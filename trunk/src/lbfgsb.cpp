@@ -44,7 +44,7 @@
 
 #include <string.h>
 #include "SimTKcommon/internal/common.h"
-#include "LBFGSBOptimizer.h"
+#include "simmath/internal/LBFGSBOptimizer.h"
 
 #ifdef __BORLANDC__
 /* A hack to overcome a typo in borlands math.h
@@ -57,7 +57,7 @@
 #else
 # include <math.h>
 #endif
-#include "Simmath_f2c.h"
+#include "simmath/internal/Simmath_f2c.h"
 //#include "netlib.h"
 
 #include "SimTKlapack.h"

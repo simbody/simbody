@@ -22,8 +22,8 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#include "Simmath_f2c.h"
-#include "LBFGSBOptimizer.h"
+#include "simmath/internal/Simmath_f2c.h"
+#include "simmath/internal/LBFGSBOptimizer.h"
 #include "SimTKcommon/internal/common.h"
 
 using std::cout;

@@ -22,7 +22,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "SimTKmath.h"
-#include "OptimizerRep.h"
+#include "simmath/internal/OptimizerRep.h"
 
 namespace SimTK {
     OptimizerRep::~OptimizerRep() {

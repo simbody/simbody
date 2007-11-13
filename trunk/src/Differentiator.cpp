@@ -27,7 +27,7 @@
  */
 
 #include "SimTKcommon.h"
-#include "Differentiator.h"
+#include "simmath/Differentiator.h"
 
 #include <exception>
 

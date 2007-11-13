@@ -22,11 +22,11 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "SimTKmath.h"
-#include "Optimizer.h"
-#include "LBFGSOptimizer.h"
-#include "LBFGSBOptimizer.h"
-#include "InteriorPointOptimizer.h"
-#include "CFSQPOptimizer.h"
+#include "simmath/Optimizer.h"
+#include "simmath/internal/LBFGSOptimizer.h"
+#include "simmath/internal/LBFGSBOptimizer.h"
+#include "simmath/internal/InteriorPointOptimizer.h"
+#include "simmath/internal/CFSQPOptimizer.h"
 #include <string>
 
 namespace SimTK {
