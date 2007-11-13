@@ -125,8 +125,7 @@ public:
         eti.push_back(System::EventTriggerInfo(0)
                       .setRequiredLocalizationTimeWindow(1)
                       .setTriggerOnRisingSignTransition(false));
-        eti.push_back(System::EventTriggerInfo(1)
-                      .setTriggerOnZeroTransitions(true));
+        eti.push_back(System::EventTriggerInfo(1));
         eti.push_back(System::EventTriggerInfo(2) 
                       .setTriggerOnFallingSignTransition(false));
         return 0;
