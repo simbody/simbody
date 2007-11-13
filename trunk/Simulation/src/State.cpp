@@ -98,22 +98,15 @@ private:
 EventStatus::eventTriggerString(EventTrigger e) {
     // Catch special combos first
     if (e==NoEventTrigger)        return "NoEventTrigger";
-    if (e==ZeroToNonzero)         return "ZeroToNonzero";
-    if (e==NonzeroToZero)         return "NonzeroToZero";
-    if (e==PositiveToNonpositive) return "PositiveToNonpositive";
     if (e==Falling)               return "Falling";
-    if (e==NegativeToNonnegative) return "NegativeToNonnegative";
     if (e==Rising)                return "Rising";
     if (e==AnySignChange)         return "AnySignChange";
 
     // Not a special combo; unmask one at a time.
     const EventTrigger triggers[] =
-     { ZeroToPositive,ZeroToNegative,PositiveToZero,
-       NegativeToZero,PositiveToNegative,NegativeToPositive,
-       NoEventTrigger };
+     { PositiveToNegative,NegativeToPositive,NoEventTrigger };
     const char *triggerNames[] =
-     { "ZeroToPositive","ZeroToNegative","PositiveToZero",
-       "NegativeToZero","PositiveToNegative","NegativeToPositive" };
+     { "PositiveToNegative","NegativeToPositive" };
 
     String s;
     for (int i=0; triggers[i] != NoEventTrigger; ++i)

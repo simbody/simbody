@@ -432,28 +432,22 @@ public:
     int getEventId() const; // returns -1 if not set
     bool shouldTriggerOnRisingSignTransition()  const; // default=true
     bool shouldTriggerOnFallingSignTransition() const; // default=true
-    bool shouldTriggerOnZeroTransitions()       const; // default=false
     Real getRequiredLocalizationTimeWindow()    const; // default=0.1
 
     // These return the modified 'this', like assignment operators.
     EventTriggerInfo& setEventId(int);
     EventTriggerInfo& setTriggerOnRisingSignTransition(bool);
     EventTriggerInfo& setTriggerOnFallingSignTransition(bool);
-    EventTriggerInfo& setTriggerOnZeroTransitions(bool);
     EventTriggerInfo& setRequiredLocalizationTimeWindow(Real);
 
     // TODO: switch to SignTransitionSet and trash EventStatus altogether.
     EventStatus::EventTrigger calcTransitionMask() const {
         unsigned mask = 0;
         if (shouldTriggerOnRisingSignTransition()) {
-            mask |= (EventStatus::NegativeToPositive|EventStatus::NegativeToZero);
-            if (shouldTriggerOnZeroTransitions())
-                mask |= EventStatus::ZeroToPositive;
+            mask |= EventStatus::NegativeToPositive;
         }
         if (shouldTriggerOnFallingSignTransition()) {
-            mask |= (EventStatus::PositiveToNegative|EventStatus::PositiveToZero);
-            if (shouldTriggerOnZeroTransitions())
-                mask |= EventStatus::ZeroToNegative;
+            mask |= EventStatus::PositiveToNegative;
         }
         return EventStatus::EventTrigger(mask);
     }
@@ -461,9 +455,7 @@ public:
     EventStatus::EventTrigger calcTransitionToReport
        (EventStatus::EventTrigger transitionSeen) const
     {
-        if (shouldTriggerOnZeroTransitions())
-            return transitionSeen; // what we saw is what we report
-        // otherwise report -1 to 1 or 1 to -1 as appropriate
+        // report -1 to 1 or 1 to -1 as appropriate
         if (transitionSeen & EventStatus::Rising)
             return EventStatus::NegativeToPositive;
         if (transitionSeen & EventStatus::Falling)

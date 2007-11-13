@@ -781,9 +781,6 @@ bool System::EventTriggerInfo::shouldTriggerOnRisingSignTransition() const {
 bool System::EventTriggerInfo::shouldTriggerOnFallingSignTransition() const {
     return getRep().triggerOnFalling;
 }
-bool System::EventTriggerInfo::shouldTriggerOnZeroTransitions()       const {
-    return getRep().triggerOnZero;
-}
 Real System::EventTriggerInfo::getRequiredLocalizationTimeWindow()    const {
     return getRep().localizationWindow;
 }
@@ -801,11 +798,6 @@ System::EventTriggerInfo::setTriggerOnRisingSignTransition(bool shouldTrigger) {
 System::EventTriggerInfo& 
 System::EventTriggerInfo::setTriggerOnFallingSignTransition(bool shouldTrigger) {
     updRep().triggerOnFalling = shouldTrigger; 
-    return *this;
-}
-System::EventTriggerInfo& 
-System::EventTriggerInfo::setTriggerOnZeroTransitions(bool shouldTrigger) {
-    updRep().triggerOnZero = shouldTrigger; 
     return *this;
 }
 System::EventTriggerInfo& 

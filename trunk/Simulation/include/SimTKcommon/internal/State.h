@@ -92,21 +92,12 @@ public:
     enum EventTrigger {
         NoEventTrigger          =0x0000,    // must be 0
 
-        ZeroToPositive          =0x0001,    //  1
-        ZeroToNegative          =0x0002,    //  2
-        PositiveToZero          =0x0004,    //  4
-        NegativeToZero          =0x0008,    //  8
-        PositiveToNegative      =0x0010,    // 16
-        NegativeToPositive      =0x0020,    // 32
+        PositiveToNegative      =0x0001,    // 1
+        NegativeToPositive      =0x0002,    // 2
 
-        ZeroToNonzero           =(ZeroToPositive|ZeroToNegative),        // 3
-        NonzeroToZero           =(NegativeToZero|PositiveToZero),        // 12
-        PositiveToNonpositive   =(PositiveToZero|PositiveToNegative),    // 20 
-        Falling                 =(PositiveToNonpositive|ZeroToNegative), // 22
-        NegativeToNonnegative   =(NegativeToZero|NegativeToPositive),    // 40
-        Rising                  =(NegativeToNonnegative|ZeroToPositive), // 41
-        AnySignChange           =(ZeroToNonzero|NegativeToNonnegative    // 63
-                                  |PositiveToNonpositive)
+        Falling                 =(PositiveToNegative), // 1
+        Rising                  =(NegativeToPositive), // 2
+        AnySignChange           =(PositiveToNegative|NegativeToPositive)    // 3
     };
 
     bool isEventPending() const {return transitionSeen != NoEventTrigger;}
@@ -139,13 +130,14 @@ public:
 
     // Classify a before/after sign transition.
     static EventTrigger classifyTransition(int before, int after) {
-        if (before==after) return NoEventTrigger;
+        if (before==after)
+            return NoEventTrigger;
         if (before==0)
-            return after==1 ? ZeroToPositive : ZeroToNegative;
+            return NoEventTrigger; // Do not report transitions away from zero.
         if (before==1)
-            return after==0 ? PositiveToZero : PositiveToNegative;
+            return PositiveToNegative;
         // before==-1
-        return after==0 ? NegativeToZero : NegativeToPositive;
+        return NegativeToPositive;
     }
 
     static EventTrigger maskTransition(EventTrigger transition, EventTrigger mask) {
