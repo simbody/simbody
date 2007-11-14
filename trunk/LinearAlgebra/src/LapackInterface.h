@@ -39,41 +39,33 @@ namespace SimTK {
 class LapackInterface { public:
     // MEANINGLESS IF NOT SPECIALIZED
 
-template <class P> static void
-    geev
-   (char jobvl, char jobvr,
+template <class P> 
+    static void geev (char jobvl, char jobvr,
     int n, P a[], int lda, P wr[], P wi[],  
     P vl[], int ldvl, P vr[], int ldvr, P work[],
     int lwork, int& info ) {assert(false);}
-};
 
 
-template <> inline void LapackInterface::geev<double>
-   (char jobvl, char jobvr,
-    int n, double a[], int lda, double wr[], double wi[],  
-    double vl[], int ldvl, double vr[], int ldvr, double work[],
-    int lwork, int& info )
-{
+/* solve system of linear equations using the LU factorization  computed by getrf */
+template <class T>
+    static void getrs( const bool transpose, const int ncol, const int nrhs, const T *lu,
+            const int *pivots, T *b )   { assert(false); }
 
-    dgeev_( jobvl, jobvr, 
-             n, a, lda, wr, wi, vl, ldvl, vr, ldvr, 
-             work, lwork, info, 
-             1, 1);
-}
+template <class T>
+    static void getrf( const int m, const int n, T *a, const int lda, int *pivots, int& info ) { assert(false); }
+template <class T>
+    static void gttrf( const int m, const int n, T* dl, T* d, T* du, T* du2, int *pivots, int& info ) { assert(false); }
+template <class T>
+    static void gbtrf( const int m, const int n, const int kl, const int ku, T* lu, const int lda, int *pivots, int& info ) { assert(false); }
+template <class T>
+    static void potrf( const int m, const int n, const int kl, const int ku, T* lu, const int lda, int *pivots, int& info ) { assert(false); }
+template <class T>
+    static void sytrf( const char m, const int n, T* a,  const int lda, int *pivots, T* work, const int lwork, int& info ) { assert(false); }
 
-template <> inline void LapackInterface::geev<float>
-   (char jobvl, char jobvr,
-    int n, float a[], int lda, float wr[], float wi[],  
-    float vl[], int ldvl, float vr[], int ldvr, float work[],
-    int lwork, int& info )
-{
+template <class T>
+    static int ilaenv( int ispec,  const char* name,  const char *opts, int n1, int n2, int n3, int n4  ) { assert(false); }
 
-    sgeev_( jobvl, jobvr, 
-             n, a, lda, wr, wi, vl, ldvl, vr, ldvr, 
-             work, lwork, info, 
-             1, 1);
-}
-
+}; // class LapackInterface
 
 }   // namespace SimTK
 

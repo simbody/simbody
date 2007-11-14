@@ -29,7 +29,6 @@
  * SimTK Simmath numerical differentiation tools.
  */
 
-#include "SimTKcommon.h"
 
 /* Shared libraries are messy in Visual Studio. We have to distinguish three
  * cases:
@@ -51,9 +50,64 @@
 */
 
 
+#include <limits.h>
+#include "SimTKcommon.h"
+#include "SimTKmath.h"
+#include "SimTKcommon/internal/BigMatrix.h"
+#include "internal/common.h"
+
 namespace SimTK {
+
+class SimTK_SIMMATH_EXPORT Factor {
+public:
+
+  Factor() {}
+  template <class ELT> Factor( Matrix_<ELT> m );
+  template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x );
+  template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x );
+  
+// TODO Suppress copy constructor and default assigment operator.
+//  Factor(const Factor&);
+//  Factor& operator=(const Factor&);
+
+//   explicit Factor(class FactorRep* r) : rep(r) { }
+
+}; // class Factor
+
+class FactorLURepBase;
+
+class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
+    public:
+
+    ~FactorLU();
+
+
+    template <class ELT> FactorLU( const Matrix_<ELT>& m );
+    template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x );
+    template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x );
+
+    template <class ELT> void getL( Matrix_<ELT>& l ) const;
+    template <class ELT> void getU( Matrix_<ELT>& u ) const;
+
+    bool isSingular() const;
+    int getSingularIndex() const;
+    void display(int);
+    Real getConditionNumber() const;
+    template <class ELT> void getErrorBounds(Vector_<ELT>& err, Vector_<ELT>& berr) const;
+
+     // only for symmetric/Hermitan, positive definite, tridaiagoal 
+     // or symmetric/Hermitan indefinite => LDL
+    template <class ELT> void getD( Matrix_<ELT>& m ) const; 
+
+    protected:
+    class FactorLURepBase *rep;
+
+}; // class FactorLU
+
+
 template <class P>
 bool eigenValuesRightVectors( Matrix_<P> &m, Vector_< std::complex<P> > &eigenValues, Matrix_< std::complex<P> > &eigenVectors );
 
 } // namespace SimTK 
+
 #endif //SimTK_LINEAR_ALGEBRA_H_

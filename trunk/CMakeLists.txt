@@ -24,7 +24,7 @@
 #----------------------------------------------------
 
 PROJECT ( SimTKsimmath )
-SUBDIRS (staticTarget sharedTarget Integrator tests examples)
+SUBDIRS (staticTarget sharedTarget LinearAlgebra Integrator tests examples)
 
 # The build system will set ARCH64 for 64 bit builds, which require
 # use of the lib64/ library directories rather than lib/.
@@ -67,6 +67,7 @@ ENDIF (NOT CMAKE_CXX_FLAGS_RELEASE)
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
 SET(SIMMATH_SOURCE_SUBDIRS  src Ipopt include include/simmath include/simmath/internal 
+    LinearAlgebra/src LinearAlgebra/include LinearAlgebra/include/simmath LinearAlgebra/include/simmath/internal
     Integrator/src Integrator/include Integrator/include/simmath Integrator/include/simmath/internal)
 
 
