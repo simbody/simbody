@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_SimTKSIMBODY_H_
-#define SimTK_SIMBODY_SimTKSIMBODY_H_
+#ifndef SimTK_SIMBODY_SimTKSIMBODY_AUX_H_
+#define SimTK_SIMBODY_SimTKSIMBODY_AUX_H_
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
@@ -37,29 +37,9 @@
  * Simbody capabilities.
  */
 
-#include "SimTKcommon.h"
-#include "SimTKmath.h"
-#include "simbody/internal/common.h"
-#include "simbody/internal/MultibodySystem.h"
-#include "simbody/internal/MolecularMechanicsSystem.h"
-#include "simbody/internal/Body.h"
-#include "simbody/internal/MobilizedBody.h"
-#include "simbody/internal/Constraint.h"
-#include "simbody/internal/ForceSubsystem.h"
-#include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "simbody/internal/SimbodyMatterSubsystem_Subtree.h"
-#include "simbody/internal/UniformGravitySubsystem.h"
-#include "simbody/internal/GeneralForceElements.h"
-#include "simbody/internal/HuntCrossleyContact.h"
-#include "simbody/internal/DuMMForceFieldSubsystem.h"
-#include "simbody/internal/NumericalMethods.h"
-#include "simbody/internal/DecorationSubsystem.h"
+#include "SimTKsimbody.h"
 
-// VTKReporter does not belong here because it is in the aux section
-// #include "simbody/internal/VTKReporter.h"
-// #include "simbody/internal/VTKEventReporter.h"
+#include "simbody/internal/VTKReporter.h"
+#include "simbody/internal/VTKEventReporter.h"
 
-#include "simbody/internal/TextDataEventReporter.h"
-#include "simbody/internal/ObservedPointFitter.h"
-
-#endif // SimTK_SIMBODY_SimTKSIMBODY_H_
+#endif // SimTK_SIMBODY_SimTKSIMBODY_AUX_H_

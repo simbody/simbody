@@ -34,6 +34,7 @@
  */
 
 #include "SimTKsimbody.h"
+#include "SimTKsimbody_aux.h"
 
 #include <cmath>
 #include <cstdio>

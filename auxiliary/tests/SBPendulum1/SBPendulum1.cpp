@@ -62,6 +62,7 @@
  */
 
 #include "SimTKsimbody.h"
+#include "SimTKsimbody_aux.h" // requires VTK
 
 #include <string>
 #include <iostream>

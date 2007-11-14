@@ -36,6 +36,7 @@
  */
 
 #include "SimTKsimbody.h"
+#include "SimTKsimbody_aux.h" // requires VTK
 
 //#include "simmath/RungeKuttaMersonIntegrator.h"
 //#include "simmath/CPodesIntegrator.h"
