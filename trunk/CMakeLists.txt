@@ -24,7 +24,7 @@
 #----------------------------------------------------
 
 PROJECT ( SimTKsimmath )
-SUBDIRS (staticTarget sharedTarget LinearAlgebra Integrator tests examples)
+SUBDIRS (staticTarget sharedTarget Integrator tests examples)
 
 # The build system will set ARCH64 for 64 bit builds, which require
 # use of the lib64/ library directories rather than lib/.
