@@ -159,7 +159,7 @@ void LapackInterface::sytrf<double>( const char m, const int n, double* a,  cons
 template <> 
 void LapackInterface::sytrf<std::complex<float> >( const char m, const int n, std::complex<float>* a,  const int lda, int *pivots, std::complex<float>* work, const int lwork, int& info ) { assert(false); }
 template <> 
-static void LapackInterface::sytrf<std::complex<double> >( const char m, const int n, std::complex<double>* a,  const int lda, int *pivots, std::complex<double>* work, const int lwork, int& info ) { assert(false); }
+void LapackInterface::sytrf<std::complex<double> >( const char m, const int n, std::complex<double>* a,  const int lda, int *pivots, std::complex<double>* work, const int lwork, int& info ) { assert(false); }
 
 template <>
 int LapackInterface::ilaenv<double>( int ispec,  const char* name,  const char *opts, int n1, int n2, int n3, int n4 ) { 
