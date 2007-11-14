@@ -196,6 +196,39 @@ public:
     typedef MatrixBase<ESqHermT>         TSqHermT;  // ~Mat*Mat
     typedef MatrixBase<ESqTHerm>         TSqTHerm;  // Mat*~Mat
 
+    void setMatrixStructure(MatrixStructures::Structure structure) {
+        helper.setMatrixStructure( structure);  // default Uncommitted
+    }
+    MatrixStructures::Structure getMatrixStructure() const {
+        return helper.getMatrixStructure();
+    }
+    void setMatrixShape(MatrixShapes::Shape shape) {
+        helper.setMatrixStructure( shape);          // default Uncommitted
+    }
+    MatrixShapes::Shape getMatrixShape() const  {
+        return helper.getMatrixShape();
+    }
+    void setMatrixSparsity(MatrixSparseFormats::Sparsity sparsity) {
+        helper.setMatrixSparsity( sparsity);    // default Uncommitted
+    }
+    MatrixSparseFormats::Sparsity getMatrixSparsity() const  {
+        return helper.getMatrixSparsity();
+    }
+    void setMatrixStorage(MatrixStorageFormats::Storage storage) {
+        helper.setMatrixStructure( storage);      // default Uncommitted
+    }
+    MatrixStorageFormats::Storage getMatrixStorage() const  {
+        return helper.getMatrixStorage();
+    }
+
+    void setMatrixCondition(MatrixConditions::Condition condition) {
+        helper.setMatrixCondition(condition);  //  default Uncommitted
+    }
+    MatrixConditions::Condition getMatrixCondition() const  {
+        return helper.getMatrixCondition();
+    }
+
+
     // This gives the resulting matrix type when (m(i,j) op P) is applied to each element.
     // It will have element types which are the regular composite result of E op P.
     template <class P> struct EltResult { 
@@ -1439,7 +1472,126 @@ typedef MatrixView_<std::complex<float> >       FCMatrixView;
 typedef MatrixView_<std::complex<double> >      DCMatrixView;
 typedef MatrixView_<std::complex<long double> > LCMatrixView;
 
+
     
+// Not all combinations of structure/sparsity/storage/condition
+// are allowed. 
+
+class MatrixShape {
+public:
+
+    MatrixShape() : shape(MatrixShapes::Uncommitted) { }
+    // implicit conversion
+    MatrixShape(MatrixShapes::Shape s) : shape(s) { }
+    MatrixShapes::Shape shape;
+};
+
+class MatrixSize {
+public:
+    enum Freedom {
+        Uncommitted = 0x00,    // nrow, ncol variable
+        FixedNRows  = 0x01,    // can't vary nrows
+        FixedNCols  = 0x02,    // can't vary ncols
+        Fixed       = FixedNRows | FixedNCols
+    };
+
+    MatrixSize() 
+      : freedom(Uncommitted), nrow(0), ncol(0) { }
+
+    MatrixSize(Freedom f, long nr, long nc) 
+      : freedom(f), nrow(nr), ncol(nc) { }
+
+    Freedom freedom;
+    long nrow;
+    long ncol;
+};
+
+class MatrixStructure {
+public:
+
+    MatrixStructure() : structure(MatrixStructures::Uncommitted) { }
+    
+    // implicit conversion
+    MatrixStructure(MatrixStructures::Structure ms) : structure(ms) { }
+
+    MatrixStructures::Structure structure;
+};
+
+class MatrixSparsity {
+public:
+
+    // If Banded, how stuck are we on a particular bandwidth?
+    enum BandwidthFreedom {
+        Free        = 0x00,    // upper & lower are free
+        FixedUpper  = 0x01,
+        FixedLower  = 0x02,
+        Fixed       = FixedUpper | FixedLower
+    };
+
+    MatrixSparsity() 
+      : sparsity(MatrixSparseFormats::Uncommitted), lowerBandwidth(-1), upperBandwidth(-1)
+    {
+    }
+
+    MatrixSparsity(int lower, int upper) 
+      : sparsity(MatrixSparseFormats::Banded), lowerBandwidth(lower), upperBandwidth(upper)
+    {
+        assert(lower >= 0 && upper >= 0);
+    }
+
+    MatrixSparseFormats::Sparsity sparsity;
+    int lowerBandwidth;
+    int upperBandwidth;
+};
+
+class MatrixStorage {
+public:
+
+    enum Position {
+        Lower,              // lower is default
+        Upper
+    };
+
+    // OR-able
+    enum Assumptions {
+        None         = 0x00,
+        UnitDiagonal = 0x01
+    };
+
+    MatrixStorage() 
+      : storage(MatrixStorageFormats::Uncommitted), position(Lower), assumptions(None)
+    {
+    }
+    
+    // also serves as implicit conversion from Storage type
+    MatrixStorage(MatrixStorageFormats::Storage s, Position p=Lower, Assumptions a=None) 
+        : storage(s), position(p), assumptions(a)
+    {
+    }
+
+    MatrixStorageFormats::Storage     storage;
+    Position    position;
+    Assumptions assumptions;
+
+    // All the 2d formats allow a leading dimension larger
+    // than the number of rows, producing a gap between
+    // each column.
+    int leadingDimension;
+
+    // 1d formats allow spacing between elements. Stride==1
+    // means packed.
+    int stride;
+};
+
+class MatrixCondition {
+public:
+
+    MatrixCondition() : condition(MatrixConditions::Uncommitted) { }
+    // implicit conversion
+    MatrixCondition(MatrixConditions::Condition c) : condition(c) { }
+
+    MatrixConditions::Condition condition;
+};
 } //namespace SimTK
 
 #endif //SimTK_SIMMATRIX_BIGMATRIX_H_

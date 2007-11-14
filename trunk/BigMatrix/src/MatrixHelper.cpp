@@ -179,6 +179,17 @@ public:
     void unlockNCols();
     void unlockShape();
 
+     void setMatrixStructure(MatrixStructures::Structure );
+     MatrixStructures::Structure getMatrixStructure() const;
+     void setMatrixShape(MatrixShapes::Shape );
+     MatrixShapes::Shape getMatrixShape() const;
+     void setMatrixSparsity(MatrixSparseFormats::Sparsity );
+     MatrixSparseFormats::Sparsity getMatrixSparsity() const;
+     void setMatrixStorage(MatrixStorageFormats::Storage );
+     MatrixStorageFormats::Storage getMatrixStorage() const;
+     void setMatrixCondition(MatrixConditions::Condition );
+     MatrixConditions::Condition getMatrixCondition() const;
+
     ~MatrixHelperRep();
 
 
@@ -236,6 +247,49 @@ private:
     ///////////////////
 
 // These are all pass-throughs to the MatrixHelperRep class.
+
+    template <class S> void
+    MatrixHelper<S>::setMatrixStructure(MatrixStructures::Structure structure) {
+        rep->setMatrixStructure( structure );
+    }
+
+    template <class S> MatrixStructures::Structure
+    MatrixHelper<S>::getMatrixStructure() const {
+        return rep->getMatrixStructure();
+    }
+    template <class S> void
+    MatrixHelper<S>::setMatrixShape(MatrixShapes::Shape shape) {
+        rep->setMatrixShape( shape );
+    }
+    template <class S> MatrixShapes::Shape
+    MatrixHelper<S>::getMatrixShape() const {
+        return rep->getMatrixShape();
+    }
+    template <class S> void
+    MatrixHelper<S>::setMatrixSparsity(MatrixSparseFormats::Sparsity sparsity) {
+        rep->setMatrixSparsity( sparsity );
+    }
+    template <class S> MatrixSparseFormats::Sparsity
+    MatrixHelper<S>::getMatrixSparsity() const {
+        return rep->getMatrixSparsity();
+    }
+    template <class S> void
+    MatrixHelper<S>::setMatrixStorage(MatrixStorageFormats::Storage storage) {
+        rep->setMatrixStorage( storage );
+    }
+    template <class S> MatrixStorageFormats::Storage
+    MatrixHelper<S>::getMatrixStorage() const {
+        return rep->getMatrixStorage();
+    }
+    template <class S> void
+    MatrixHelper<S>::setMatrixCondition(MatrixConditions::Condition condition) {
+        rep->setMatrixCondition( condition );
+    }
+    template <class S> MatrixConditions::Condition
+    MatrixHelper<S>::getMatrixCondition() const {
+        return rep->getMatrixCondition();
+    }
+
 
 template <class S> void
 MatrixHelper<S>::clear() {
@@ -1033,6 +1087,49 @@ MatrixHelperRep<S>::scalarSum() const {
     for (int j=0; j<ncol(); ++j) sum += scalarColSum(j);
     return sum;
 }     
+
+    template <class S> void
+    MatrixHelperRep<S>::setMatrixStructure(MatrixStructures::Structure structure) {
+        structureCommitment.structure = structure;
+    }
+
+    template <class S> MatrixStructures::Structure
+    MatrixHelperRep<S>::getMatrixStructure() const {
+        return structureCommitment.structure;
+    }
+    template <class S> void
+    MatrixHelperRep<S>::setMatrixShape(MatrixShapes::Shape shape) {
+        shapeCommitment.shape = shape;
+    }
+    template <class S> MatrixShapes::Shape
+    MatrixHelperRep<S>::getMatrixShape() const {
+        return shapeCommitment.shape;
+    }
+    template <class S> void
+    MatrixHelperRep<S>::setMatrixSparsity(MatrixSparseFormats::Sparsity sparsity) {
+        sparsityCommitment.sparsity = sparsity;
+    }
+    template <class S> MatrixSparseFormats::Sparsity
+    MatrixHelperRep<S>::getMatrixSparsity() const {
+        return sparsityCommitment.sparsity;
+    }
+    template <class S> void
+    MatrixHelperRep<S>::setMatrixStorage(MatrixStorageFormats::Storage storage) {
+         storageCommitment.storage = storage;
+    }
+    template <class S> MatrixStorageFormats::Storage
+    MatrixHelperRep<S>::getMatrixStorage() const {
+        return storageCommitment.storage;
+    }
+    template <class S> void
+    MatrixHelperRep<S>::setMatrixCondition(MatrixConditions::Condition condition) {
+         conditionCommitment.condition = condition;
+    }
+    template <class S> MatrixConditions::Condition
+    MatrixHelperRep<S>::getMatrixCondition() const {
+        return conditionCommitment.condition;
+    }
+
 
 // Instantiations for each of the 18 Scalar types. (These will instantiate
 // the MatrixHelperRep<S> classes also.

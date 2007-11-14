@@ -68,164 +68,69 @@
 
 namespace SimTK {
 
-// Not all combinations of structure/sparsity/storage/condition
-// are allowed. 
-
-class MatrixShape {
-public:
-    enum Shape {
-        Uncommitted,
-        General,        // 2d rectangular matrix
-        Square,         // restriction to nrow==ncol
-        Vector,         // 1d column vector
-        RowVector       // 1d row vector
-    };
-
-    MatrixShape() : shape(Uncommitted) { }
-    // implicit conversion
-    MatrixShape(Shape s) : shape(s) { }
-    Shape shape;
-};
-
-class MatrixSize {
-public:
-    enum Freedom {
-        Uncommitted = 0x00,    // nrow, ncol variable
-        FixedNRows  = 0x01,    // can't vary nrows
-        FixedNCols  = 0x02,    // can't vary ncols
-        Fixed       = FixedNRows | FixedNCols
-    };
-
-    MatrixSize() 
-      : freedom(Uncommitted), nrow(0), ncol(0) { }
-
-    MatrixSize(Freedom f, long nr, long nc) 
-      : freedom(f), nrow(nr), ncol(nc) { }
-
-    Freedom freedom;
-    long nrow;
-    long ncol;
-};
-
-class MatrixStructure {
-public:
-    enum Structure {
-        Uncommitted,
-        Full,       // all elements are significant
-        Diagonal,
-        Symmetric,  // also means Hermitian
-        Triangular,
-        QuasiTriangular,
-        Hessenberg,
-        Permutation
-    };
-
-    MatrixStructure() : structure(Uncommitted) { }
-    
-    // implicit conversion
-    MatrixStructure(Structure ms) : structure(ms) { }
-
-    Structure structure;
-};
-
-class MatrixSparsity {
-public:
-    enum Sparsity {
-        Uncommitted,
-        Full,
-        Banded // needs upper & lower bandwidth
-    };
-
-    // If Banded, how stuck are we on a particular bandwidth?
-    enum BandwidthFreedom {
-        Free        = 0x00,    // upper & lower are free
-        FixedUpper  = 0x01,
-        FixedLower  = 0x02,
-        Fixed       = FixedUpper | FixedLower
-    };
-
-    MatrixSparsity() 
-      : sparsity(Uncommitted), lowerBandwidth(-1), upperBandwidth(-1)
-    {
-    }
-
-    MatrixSparsity(int lower, int upper) 
-      : sparsity(Banded), lowerBandwidth(lower), upperBandwidth(upper)
-    {
-        assert(lower >= 0 && upper >= 0);
-    }
-
-    Sparsity sparsity;
-    int lowerBandwidth;
-    int upperBandwidth;
-};
-
-class MatrixStorage {
-public:
-    enum Storage {
-        Uncommitted,
-        Conventional,
-        Packed,             // triangular or symmetric
-        HouseholderProduct, // orthogonal only
-        PivotArray          // pivot only
-    };
-
-    enum Position {
-        Lower,              // lower is default
-        Upper
-    };
-
-    // OR-able
-    enum Assumptions {
-        None         = 0x00,
-        UnitDiagonal = 0x01
-    };
-
-    MatrixStorage() 
-      : storage(Uncommitted), position(Lower), assumptions(None)
-    {
-    }
-    
-    // also serves as implicit conversion from Storage type
-    MatrixStorage(Storage s, Position p=Lower, Assumptions a=None) 
-        : storage(s), position(p), assumptions(a)
-    {
-    }
-
-    Storage     storage;
-    Position    position;
-    Assumptions assumptions;
-
-    // All the 2d formats allow a leading dimension larger
-    // than the number of rows, producing a gap between
-    // each column.
-    int leadingDimension;
-
-    // 1d formats allow spacing between elements. Stride==1
-    // means packed.
-    int stride;
-};
-
-class MatrixCondition {
-public:
-    enum Condition {
-        Uncommitted,
-        Unknown,
-        Orthogonal,
-        PositiveDefinite,
-        WellConditioned,    // implies full rank
-        FullRank,           // but might have bad conditioning
-        Singular            // implies possible bad conditioning
-    };
-
-    MatrixCondition() : condition(Uncommitted) { }
-    // implicit conversion
-    MatrixCondition(Condition c) : condition(c) { }
-
-    Condition condition;
-};
 
 template <class S> class MatrixHelperRep;
+
+/**
+ * Class of enums used to communicate  various attributes of matrices that
+ * affect which alogrithms are used for factoring, solving etc.
+ */
+class MatrixStructures {
+    public:
+    enum Structure {
+        Uncommitted        = 0,
+        Full               = 1,  // all elements are significant
+        Diagonal           = 2,
+        Symmetric          = 3,  // also means Hermitian
+        Triangular         = 4,
+        QuasiTriangular    = 5,
+        Hessenberg         = 6,
+        Permutation        = 7,
+        TriDiagonal        = 8
+    };
+};
+
+class MatrixShapes {
+    public:
+    enum Shape {
+        Uncommitted        = 0,
+        General            = 1,  // 2d rectangular matrix
+        Square             = 2,  // restriction to nrow==ncol
+        Vector             = 3,  // 1d column vector
+        RowVector          = 4   // 1d row vector
+    };
+};
+
+class MatrixSparseFormats {
+    public:
+    enum Sparsity {
+        Uncommitted        = 0,
+        Full               = 1,
+        Banded             = 2 // needs upper & lower bandwidth
+    };
+};
+class MatrixStorageFormats {
+    public:
+    enum Storage {
+        Uncommitted        = 0,
+        Conventional       = 1,
+        Packed             = 2, // triangular or symmetric
+        HouseholderProduct = 3, // orthogonal only
+        PivotArray         = 4  // pivot only
+    };
+};
+class MatrixConditions {
+    public:
+    enum Condition {
+        Uncommitted        = 0,
+        Unknown            = 1,
+        Orthogonal         = 2,
+        PositiveDefinite   = 3,
+        WellConditioned    = 4, // implies full rank
+        FullRank           = 5, // but might have bad conditioning
+        Singular           = 6  // implies possible bad conditioning
+    };
+};
 
 template <class S> 
 class SimTK_SimTKCOMMON_EXPORT MatrixHelper {
@@ -363,6 +268,17 @@ public:
     void unlockNRows();
     void unlockNCols();
     void unlockShape();
+
+    void setMatrixStructure(MatrixStructures::Structure );
+    MatrixStructures::Structure getMatrixStructure() const;
+    void setMatrixShape(MatrixShapes::Shape );
+    MatrixShapes::Shape getMatrixShape() const;
+    void setMatrixSparsity(MatrixSparseFormats::Sparsity );
+    MatrixSparseFormats::Sparsity getMatrixSparsity() const;
+    void setMatrixStorage(MatrixStorageFormats::Storage );
+    MatrixStorageFormats::Storage getMatrixStorage() const;
+    void setMatrixCondition(MatrixConditions::Condition );
+    MatrixConditions::Condition getMatrixCondition() const;
 
     // Access to raw data. For now this is only allowed if there is no view
     // and the raw data is contiguous.
