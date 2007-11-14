@@ -33,7 +33,7 @@
 #include <math.h>
 #include "SimTKcommon.h"
 #include "LapackInterface.h"
-#include "simmath/internal/LinearAlgebra.h"
+#include "simmath/LinearAlgebra.h"
 #include "simmath/internal/common.h"
 
 

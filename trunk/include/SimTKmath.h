@@ -39,7 +39,7 @@ enum { TRACE, MAX_FUNCTION_EVALUATIONS, DEFAULT_STEP_LENGTH, LINE_SEARCH_ACCURAC
 #include "simmath/RungeKuttaMersonIntegrator.h"
 
 #include "simmath/internal/common.h"
-#include "simmath/internal/LinearAlgebra.h"
+#include "simmath/LinearAlgebra.h"
 
 
 

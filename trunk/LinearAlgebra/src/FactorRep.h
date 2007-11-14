@@ -93,10 +93,10 @@ class FactorLURepBase {
    virtual void getD( Matrix_<std::complex<double> >& d ) const{
        printf(" getD called with D of type complex<double>  which does not match type of original linear system \n");   
    }
-   virtual bool isSingular() const{};
-   virtual int getSingularIndex() const{};
+   virtual bool isSingular() const{ return false;};
+   virtual int getSingularIndex() const{ return 1; };
    virtual void display(int){};
-   virtual  Real getConditionNumber() const{};
+   virtual  Real getConditionNumber() const{ return 0.0;};
    
    virtual void getErrorBounds( const Vector_<float>& err, Vector_<float>& berr ){
        printf(" getErrorBounds called with rhs arguments type <float>  which does not match type of original linear system \n");

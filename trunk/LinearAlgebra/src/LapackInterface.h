@@ -49,21 +49,16 @@ template <class P>
 /* solve system of linear equations using the LU factorization  computed by getrf */
 template <class T>
     static void getrs( const bool transpose, const int ncol, const int nrhs, const T *lu,
-            const int *pivots, T *b )   { assert(false); }
+            const int *pivots, T *b ); 
+
+template <class T> static void getrf( const int m, const int n, T *a, const int lda, int *pivots, int& info );
+template <class T> static void gttrf( const int m, const int n, T* dl, T* d, T* du, T* du2, int *pivots, int& info );
+template <class T> static void gbtrf( const int m, const int n, const int kl, const int ku, T* lu, const int lda, int *pivots, int& info );
+template <class T> static void potrf( const int m, const int n, const int kl, const int ku, T* lu, const int lda, int *pivots, int& info );
+template <class T> static void sytrf( const char m, const int n, T* a,  const int lda, int *pivots, T* work, const int lwork, int& info );
 
 template <class T>
-    static void getrf( const int m, const int n, T *a, const int lda, int *pivots, int& info ) { assert(false); }
-template <class T>
-    static void gttrf( const int m, const int n, T* dl, T* d, T* du, T* du2, int *pivots, int& info ) { assert(false); }
-template <class T>
-    static void gbtrf( const int m, const int n, const int kl, const int ku, T* lu, const int lda, int *pivots, int& info ) { assert(false); }
-template <class T>
-    static void potrf( const int m, const int n, const int kl, const int ku, T* lu, const int lda, int *pivots, int& info ) { assert(false); }
-template <class T>
-    static void sytrf( const char m, const int n, T* a,  const int lda, int *pivots, T* work, const int lwork, int& info ) { assert(false); }
-
-template <class T>
-    static int ilaenv( int ispec,  const char* name,  const char *opts, int n1, int n2, int n3, int n4  ) { assert(false); }
+    static int ilaenv( int ispec,  const char* name,  const char *opts, int n1, int n2, int n3, int n4  );
 
 }; // class LapackInterface
 

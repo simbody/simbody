@@ -351,7 +351,7 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
         if( sparsity == MatrixSparseFormats::Banded ) {
 //             LapackInterface::gbtrf<T>(nRow, nCol kl, ku, lu.data, lda, pivots.data, info);
         } else if( structure == MatrixStructures::Triangular ) {
-             double *dl, *d, *du, *du2;
+//             double *dl, *d, *du, *du2;
 //             LapackInterface::gttrf<T>(nRow, nCol, dl, d, du, du2, pivots.data, info);
         } else {
              LapackInterface::getrf<T>(nRow, nCol, lu.data, lda, pivots.data, info);
