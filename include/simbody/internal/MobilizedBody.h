@@ -1869,6 +1869,8 @@ protected:
     void invalidateTopologyCache() const;
 };
 
+extern template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl>;
+
 } // namespace SimTK
 
 #endif // SimTK_SIMBODY_MOBILIZED_BODY_H_
