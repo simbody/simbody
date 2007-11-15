@@ -50,6 +50,7 @@ class OptimizerFunction : public OptimizerSystem {
 public:
     OptimizerFunction(const MultibodySystem& system, vector<MobilizedBodyId> bodyIds, vector<vector<Vec3> > stations, vector<vector<Vec3> > targetLocations, vector<vector<Real> > weights) :
         OptimizerSystem(system.getDefaultState().getNQ()), system(system), bodyIds(bodyIds), stations(stations), targetLocations(targetLocations), weights(weights), state(system.getDefaultState()) {
+        setNumEqualityConstraints(system.getDefaultState().getNQErr());
     }
     int objectiveFunc(const Vector& parameters, const bool new_parameters, Real& f) const {
         state.updQ() = parameters;
@@ -62,12 +63,23 @@ public:
                 f += weights[id][j]*(targetLocations[id][j]-body.getBodyTransform(state)*stations[id][j]).normSqr();
             }
         }
+//std::cout << "f: "<<f<< std::endl;
+        return 0;
+    }
+    int constraintFunc(const Vector& parameters, const bool new_parameters, Vector& constraints) const {
+        state.updQ() = parameters;
+        system.realize(state, Stage::Velocity);
+        constraints = state.getQErr();
+//std::cout << parameters << std::endl;
+//std::cout << "Constraint: "<<constraints << std::endl;
         return 0;
     }
     void optimize(Vector& q) {
         Optimizer opt(*this);
-        opt.setConvergenceTolerance(0.001);
+//        opt.setConvergenceTolerance(0.01);
         opt.useNumericalGradient(true);
+        opt.useNumericalJacobian(true);
+//        opt.setMaxIterations(1000);
         opt.optimize(q);
     }
 private:
@@ -108,7 +120,7 @@ void createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, 
     }
     copy.realizeTopology();
     State& s = copy.updDefaultState();
-    copyMatter.setUseEulerAngles(s, true);
+//    copyMatter.setUseEulerAngles(s, true);
     copy.realizeModel(s);
 }
 
@@ -212,8 +224,8 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
             copyWeights[copyBodyIds[j]] = weights[originalBodyIds[j]];
         }
         OptimizerFunction optimizer(copy, copyBodyIds, copyStations, copyTargetLocations, copyWeights);
-        Vector q(copy.getDefaultState().getNQ());
-        q.setToZero();
+        Vector q(copy.getDefaultState().getQ());
+//std::cout << q << std::endl;
         optimizer.optimize(q);
         copy.updDefaultState().updQ() = q;
         body.setQVector(state, copy.getMatterSubsystem().getMobilizedBody(copyBodyIds[currentBodyIndex]).getQVector(copy.getDefaultState()));

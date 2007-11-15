@@ -38,7 +38,7 @@ using namespace std;
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
-const int NUM_BODIES = 15;
+const int NUM_BODIES = 20;
 const Real BOND_LENGTH = 0.5;
 
 void testFitting(const MultibodySystem& mbs, State& state, const vector<MobilizedBodyId>& bodyIds, const vector<vector<Vec3> >& stations, const vector<vector<Vec3> >& targetLocations, Real minError, Real maxError) {
