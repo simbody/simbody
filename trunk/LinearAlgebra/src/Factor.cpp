@@ -155,33 +155,30 @@ template <typename T >
 FactorLURep<T>::~FactorLURep() {}
 
 template < class T >
-    template < class ELT >
-void FactorLURep<T>::solve( const Vector_<ELT>& b, Vector_<ELT> &x ) {
+void FactorLURep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) {
     x.copyAssign(b);
 // TODO check  that ELT of b is same as the factored matrix (size,imageoffset)
     LapackInterface::getrs<T>( false, nCol, 1, lu.data, pivots.data, &x(0));
     return;
 }
 template < class T >
-void FactorLURep<T>::copyElement( const int i, const int j, T* ptr ) {
+void FactorLURep<T>::copyElement( int i, int j, T* ptr ) const {
     *ptr =  lu.data[j*nRow+i];
 }
 template < class T >
     template < class ELT >
-void FactorLURep<T>::copyElement( const int i, const int j, std::complex<ELT> *ptr ) {
+void FactorLURep<T>::copyElement( int i, int j, std::complex<ELT> *ptr ) const {
     *ptr =  std::complex<ELT>(lu.data[j*nRow+i].real(), lu.data[j*nRow+i].imag() ); 
 }
 // TODO handle cases where length to b,x and dimensions of lu are not consistant
 template <typename T >
-    template < class ELT >
-void FactorLURep<T>::solve(  const Matrix_<ELT>& b, Matrix_<ELT>& x ) {
+void FactorLURep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) {
     x.copyAssign(b);
-    LapackInterface::getrs<ELT>( false, nCol, b.ncol(), lu.data, pivots.data, &x(0,0));
+    LapackInterface::getrs<T>( false, nCol, b.ncol(), lu.data, pivots.data, &x(0,0));
     return;
 }
 template <typename T >
-   template < class ELT >
-void FactorLURep<T>::getL( Matrix_<ELT>& m) const {
+void FactorLURep<T>::getL( Matrix_<T>& m) const {
        int i,j;
       
        m.resize( nRow, nCol ); 
@@ -194,8 +191,7 @@ void FactorLURep<T>::getL( Matrix_<ELT>& m) const {
     return;
 }
 template <typename T >
-    template < class ELT >
-void FactorLURep<T>::getU( Matrix_<ELT>& m) const {
+void FactorLURep<T>::getU( Matrix_<T>& m) const {
        int i,j;
        m.resize( nRow, nCol );
        
@@ -206,8 +202,7 @@ void FactorLURep<T>::getU( Matrix_<ELT>& m) const {
     return;
 }
 template <typename T >
-    template < class ELT >
-void FactorLURep<T>::getD( Matrix_<ELT>& m) const {
+void FactorLURep<T>::getD( Matrix_<T>& m) const {
        int i,j;
        m.resize( nRow, nCol );
        for(i = 0;i<nRow;i++) {
@@ -222,8 +217,7 @@ Real FactorLURep<T>::getConditionNumber() const {
    return 0.0;
 }
 template <typename T >
-     template < class ELT >
-void FactorLURep<T>::getErrorBounds ( Vector_<ELT>& err, Vector_<ELT>& berr) const {
+void FactorLURep<T>::getErrorBounds ( Vector_<T>& err, Vector_<T>& berr) const {
     return;
 }
 template <typename T >
