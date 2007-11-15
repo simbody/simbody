@@ -62,4 +62,7 @@
 #include "simbody/internal/TextDataEventReporter.h"
 #include "simbody/internal/ObservedPointFitter.h"
 
+// Prevent awkward instantiation in the wrong places
+extern template class SimTK::PIMPLHandle<SimTK::MobilizedBody, SimTK::MobilizedBodyImpl>;
+
 #endif // SimTK_SIMBODY_SimTKSIMBODY_H_
