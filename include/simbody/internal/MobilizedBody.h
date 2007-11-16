@@ -52,6 +52,7 @@
 namespace SimTK {
 
 class SimbodyMatterSubsystem;
+class MobilizedBody;
 class MobilizedBodyImpl;
 
 /**
@@ -66,6 +67,13 @@ class MobilizedBodyImpl;
  *    - binary compatible interface
  *    - custom object interface
  */
+
+// We only want the template instantiation to occur once. This symbol is defined in the SimTK core
+// compilation unit that defines the mobilized body class but should not be defined any other time.
+#ifndef SimTK_DEFINING_MOBILIZED_BODY
+    extern template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl>;
+#endif
+
 class SimTK_SIMBODY_EXPORT MobilizedBody : public PIMPLHandle<MobilizedBody, MobilizedBodyImpl> {
 public:
     MobilizedBody() { }
@@ -1868,8 +1876,6 @@ protected:
     // non-const should start by calling invalidateTopologyCache().
     void invalidateTopologyCache() const;
 };
-
-extern template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl>;
 
 } // namespace SimTK
 
