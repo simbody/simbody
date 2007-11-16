@@ -824,6 +824,32 @@ bool SimbodyMatterSubsystemRep::isConstraintDisabled(const State& s, ConstraintI
     return modelVars.disabled[constraint];
 }
 
+void SimbodyMatterSubsystemRep::convertToEulerAngles(const State& inputState, State& outputState) const {
+    assert(!getUseEulerAngles(inputState));
+    setUseEulerAngles(outputState, true);
+    getMultibodySystem().realizeModel(outputState);
+    outputState.updU() = inputState.getU();
+    const Vector& inputQ = inputState.getQ();
+    Vector& outputQ = outputState.updQ();
+    for (int i = 0; i < getNumMobilizedBodies(); ++i) {
+        const RigidBodyNode& node = getRigidBodyNode(i);
+        node.convertToEulerAngles(inputQ, outputQ);
+    }
+}
+
+void SimbodyMatterSubsystemRep::convertToQuaternions(const State& inputState, State& outputState) const {
+    assert(getUseEulerAngles(inputState));
+    setUseEulerAngles(outputState, false);
+    getMultibodySystem().realizeModel(outputState);
+    outputState.updU() = inputState.getU();
+    const Vector& inputQ = inputState.getQ();
+    Vector& outputQ = outputState.updQ();
+    for (int i = 0; i < getNumMobilizedBodies(); ++i) {
+        const RigidBodyNode& node = getRigidBodyNode(i);
+        node.convertToQuaternions(inputQ, outputQ);
+    }
+}
+
 bool SimbodyMatterSubsystemRep::isUsingQuaternion(const State& s, MobilizedBodyId body) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     return n.isUsingQuaternion(getModelVars(s));

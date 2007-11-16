@@ -179,6 +179,11 @@ public:
     virtual bool enforceQuaternionConstraints(
         const SBModelVars& mv,
         Vector&            q) const=0;
+    
+    // Convert from quaternion to Euler angle representations.
+    virtual void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {throw VirtualBaseMethod();};
+    // Convert from Euler angle to quaternion representations.
+    virtual void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {throw VirtualBaseMethod();};
 
     // Called after Model variables are allocated by realizeTopology()
     virtual void setMobilizerDefaultModelValues       (const SBTopologyCache&, SBModelVars&)        const {}

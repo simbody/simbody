@@ -204,6 +204,9 @@ public:
         const SBModelVars& mv,
         Vector&             q) const {return false;}
 
+    /*virtual*/void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {}
+    /*virtual*/void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {}
+
     /*virtual*/void setMobilizerDefaultModelValues(const SBTopologyCache&, 
                                           SBModelVars& v) const
     {
@@ -728,6 +731,16 @@ public:
         Vector&            q) const 
     {
         return false;
+    }
+
+    void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {
+        // The default implementation just copies Q.  Subclasses may override this.
+        toQ(outputQ) = fromQ(inputQ);
+    }
+    
+    void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {
+        // The default implementation just copies Q.  Subclasses may override this.
+        toQ(outputQ) = fromQ(inputQ);
     }
 
     const SpatialRow& getHRow(const SBPositionCache& pc, int i) const {
@@ -2085,6 +2098,17 @@ public:
         return true;
     }
 
+    void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {
+        toQuat(outputQ) = Vec4(0); // clear unused element
+        toQ(outputQ) = Rotation(Quaternion(fromQuat(inputQ))).convertRotationToBodyFixedXYZ();
+    }
+    
+    void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {
+        Rotation rot;
+        rot.setRotationToBodyFixedXYZ(fromQ(inputQ));
+        toQuat(outputQ) = rot.convertRotationToQuaternion().asVec4();
+    }
+
     void getInternalForce(const SBAccelerationCache&, Vector&) const {
         assert(false); // TODO: decompose cross-joint torque into 123 gimbal torques
         /* OLD BALL CODE:
@@ -2635,6 +2659,19 @@ public:
         Vec4& quat = toQuat(q);
         quat = quat / quat.norm();
         return true;
+    }
+
+    void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {
+        toQVec3(outputQ, 4) = Vec3(0); // clear unused element
+        toQVec3(outputQ, 3) = fromQVec3(inputQ, 4);
+        toQVec3(outputQ, 0) = Rotation(Quaternion(fromQuat(inputQ))).convertRotationToBodyFixedXYZ();
+    }
+    
+    void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {
+        toQVec3(outputQ, 4) = fromQVec3(inputQ, 3);
+        Rotation rot;
+        rot.setRotationToBodyFixedXYZ(fromQVec3(inputQ, 0));
+        toQuat(outputQ) = rot.convertRotationToQuaternion().asVec4();
     }
 
     void getInternalForce(const SBAccelerationCache&, Vector&) const {

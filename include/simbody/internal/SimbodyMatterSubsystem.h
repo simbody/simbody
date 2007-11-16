@@ -359,6 +359,14 @@ public:
     int  getQuaternionIndex(const State&, MobilizedBodyId) const;
     void setConstraintIsDisabled(State&, ConstraintId constraint, bool) const;
     bool isConstraintDisabled(const State&, ConstraintId constraint) const;
+    
+    /// Given a State which is modeled using quaternions, convert it to a
+    /// representation based on Euler angles and store the result in another state.
+    void convertToEulerAngles(const State& inputState, State& outputState) const;
+    
+    /// Given a State which is modeled using Euler angles, convert it to a
+    /// representation based on quaternions and store the result in another state.
+    void convertToQuaternions(const State& inputState, State& outputState) const;
 
     // Position Stage. 
 

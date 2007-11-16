@@ -555,6 +555,8 @@ public:
     bool getUseEulerAngles(const State& s) const;
     bool isMobilizerPrescribed(const State& s, MobilizedBodyId) const;
     bool isConstraintDisabled(const State& s, ConstraintId constraint) const;
+    void convertToEulerAngles(const State& inputState, State& outputState) const;
+    void convertToQuaternions(const State& inputState, State& outputState) const;
 
         // CALLABLE AFTER realizeModel()
 

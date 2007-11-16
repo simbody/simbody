@@ -224,6 +224,10 @@ bool SimbodyMatterSubsystem::isMobilizerPrescribed(const State& s, MobilizedBody
   { return getRep().isMobilizerPrescribed(s,body); }
 bool SimbodyMatterSubsystem::isConstraintDisabled(const State& s, ConstraintId constraint) const
   { return getRep().isConstraintDisabled(s,constraint); }
+void SimbodyMatterSubsystem::convertToEulerAngles(const State& inputState, State& outputState) const
+  { return getRep().convertToEulerAngles(inputState, outputState); }
+void SimbodyMatterSubsystem::convertToQuaternions(const State& inputState, State& outputState) const
+  { return getRep().convertToQuaternions(inputState, outputState); }
 
 int SimbodyMatterSubsystem::getNQuaternionsInUse(const State& s) const {
     return getRep().getNQuaternionsInUse(s);

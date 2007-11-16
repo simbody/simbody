@@ -48,9 +48,9 @@ const Real BOND_LENGTH = 0.5;
 
 class OptimizerFunction : public OptimizerSystem {
 public:
-    OptimizerFunction(const MultibodySystem& system, vector<MobilizedBodyId> bodyIds, vector<vector<Vec3> > stations, vector<vector<Vec3> > targetLocations, vector<vector<Real> > weights) :
-        OptimizerSystem(system.getDefaultState().getNQ()), system(system), bodyIds(bodyIds), stations(stations), targetLocations(targetLocations), weights(weights), state(system.getDefaultState()) {
-        setNumEqualityConstraints(system.getDefaultState().getNQErr());
+    OptimizerFunction(const MultibodySystem& system, const State& state, vector<MobilizedBodyId> bodyIds, vector<vector<Vec3> > stations, vector<vector<Vec3> > targetLocations, vector<vector<Real> > weights) :
+        OptimizerSystem(state.getNQ()), system(system), state(state), bodyIds(bodyIds), stations(stations), targetLocations(targetLocations), weights(weights) {
+        setNumEqualityConstraints(state.getNQErr());
     }
     int objectiveFunc(const Vector& parameters, const bool new_parameters, Real& f) const {
         state.updQ() = parameters;
@@ -63,15 +63,12 @@ public:
                 f += weights[id][j]*(targetLocations[id][j]-body.getBodyTransform(state)*stations[id][j]).normSqr();
             }
         }
-//std::cout << "f: "<<f<< std::endl;
         return 0;
     }
     int constraintFunc(const Vector& parameters, const bool new_parameters, Vector& constraints) const {
         state.updQ() = parameters;
         system.realize(state, Stage::Velocity);
         constraints = state.getQErr();
-//std::cout << parameters << std::endl;
-//std::cout << "Constraint: "<<constraints << std::endl;
         return 0;
     }
     void optimize(Vector& q) {
@@ -120,7 +117,7 @@ void createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, 
     }
     copy.realizeTopology();
     State& s = copy.updDefaultState();
-//    copyMatter.setUseEulerAngles(s, true);
+    copyMatter.setUseEulerAngles(s, true);
     copy.realizeModel(s);
 }
 
@@ -200,11 +197,14 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
 
     // Perform the initial estimation of Q for each mobilizer.
     
-    state.updQ().setToZero();
+    State tempState = state;
+    matter.setUseEulerAngles(tempState, true);
+    system.realizeModel(tempState);
+    tempState.updQ().setToZero();
     for (int i = 0; i < matter.getNBodies(); ++i) {
         MobilizedBodyId id(i);
         const MobilizedBody& body = matter.getMobilizedBody(id);
-        if (body.getNumQ(state) == 0)
+        if (body.getNumQ(tempState) == 0)
             continue; // No degrees of freedom to determine.
         if (children[id].size() == 0 && stations[id].size() == 0)
             continue; // There are no stations whose positions are affected by this.
@@ -223,20 +223,24 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
             copyTargetLocations[copyBodyIds[j]] = targetLocations[originalBodyIds[j]];
             copyWeights[copyBodyIds[j]] = weights[originalBodyIds[j]];
         }
-        OptimizerFunction optimizer(copy, copyBodyIds, copyStations, copyTargetLocations, copyWeights);
+        OptimizerFunction optimizer(copy, copy.getDefaultState(), copyBodyIds, copyStations, copyTargetLocations, copyWeights);
         Vector q(copy.getDefaultState().getQ());
-//std::cout << q << std::endl;
         optimizer.optimize(q);
         copy.updDefaultState().updQ() = q;
-        body.setQVector(state, copy.getMatterSubsystem().getMobilizedBody(copyBodyIds[currentBodyIndex]).getQVector(copy.getDefaultState()));
+        body.setQVector(tempState, copy.getMatterSubsystem().getMobilizedBody(copyBodyIds[currentBodyIndex]).getQVector(copy.getDefaultState()));
     }
 
     // Now do the final optimization of the whole system.
 
-    OptimizerFunction optimizer(system, bodyIds, stations, targetLocations, weights);
-    Vector q = state.getQ();
+    OptimizerFunction optimizer(system, tempState, bodyIds, stations, targetLocations, weights);
+    Vector q = tempState.getQ();
     optimizer.optimize(q);
-    state.updQ() = q;
+    if (matter.getUseEulerAngles(state))
+        state.updQ() = q;
+    else {
+        tempState.updQ() = q;
+        matter.convertToQuaternions(tempState, state);
+    }
     
     // Return the RMS error in the optimized system.
     

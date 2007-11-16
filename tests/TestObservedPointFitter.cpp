@@ -41,7 +41,7 @@ using namespace std;
 const int NUM_BODIES = 20;
 const Real BOND_LENGTH = 0.5;
 
-void testFitting(const MultibodySystem& mbs, State& state, const vector<MobilizedBodyId>& bodyIds, const vector<vector<Vec3> >& stations, const vector<vector<Vec3> >& targetLocations, Real minError, Real maxError) {
+void testFitting(const MultibodySystem& mbs, State& state, const vector<MobilizedBodyId>& bodyIds, const vector<vector<Vec3> >& stations, const vector<vector<Vec3> >& targetLocations, Real minError, Real maxError, Real endDistance) {
     
     // Find the best fit.
     
@@ -62,6 +62,11 @@ void testFitting(const MultibodySystem& mbs, State& state, const vector<Mobilize
     }
     error = std::sqrt(error/numStations);
     ASSERT(std::abs(1.0-error/reportedError) < 0.0001);
+    
+    // Verify that the ends are the correct distance apart.
+    
+    Real distance = (matter.getMobilizedBody(bodyIds[0]).getBodyOriginLocation(state)-matter.getMobilizedBody(bodyIds[bodyIds.size()-1]).getBodyOriginLocation(state)).norm();
+    ASSERT(std::abs(1.0-endDistance/distance) < 0.0001);
 }
 
 
@@ -88,7 +93,7 @@ int main() {
         else if (type == 1)
             nextBody = new MobilizedBody::Slider(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
         else
-            nextBody = new MobilizedBody::Pin(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
+            nextBody = new MobilizedBody::Ball(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
         bodies.push_back(nextBody);
         if (mainChain)
             lastMainChainBody = nextBody;
@@ -121,9 +126,15 @@ int main() {
         }
     }
     
+    // Add a constraint fixing the distance between the first and last bodies.
+    
+    Real distance = (bodies[0]->getBodyOriginLocation(s)-bodies[NUM_BODIES-1]->getBodyOriginLocation(s)).norm();
+    Constraint::Rod(*bodies[0], Vec3(0), *bodies[NUM_BODIES-1], Vec3(0), distance);
+    mbs.realizeTopology();
+    
     // Try fitting it.
     
-    testFitting(mbs, s, bodyIds, stations, targetLocations, 0.0, 0.02);
+    testFitting(mbs, s, bodyIds, stations, targetLocations, 0.0, 0.02, distance);
     
     // Now add random noise to the target locations, and see if it can still fit decently.
     
@@ -133,6 +144,6 @@ int main() {
             targetLocations[i][j] += Vec3(gaussian.getValue(), gaussian.getValue(), gaussian.getValue());
         }
     }
-    testFitting(mbs, s, bodyIds, stations, targetLocations, 0.1, 0.4);
+    testFitting(mbs, s, bodyIds, stations, targetLocations, 0.1, 0.4, distance);
     std::cout << "Done" << std::endl;
 }
