@@ -35,6 +35,10 @@
  * represent the built-in mobilizer types.
  */
 
+// This suppresses the 'extern template' instantiations in MobilizedBody.h so that
+// we can instantiate them for real here.
+#define SimTK_DEFINING_MOBILIZED_BODY
+
 #include "SimTKcommon.h"
 #include "SimTKcommon/internal/PrivateImplementation_Defs.h"
 #include "simbody/internal/common.h"
