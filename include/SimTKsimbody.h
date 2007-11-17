@@ -54,12 +54,8 @@
 #include "simbody/internal/DuMMForceFieldSubsystem.h"
 #include "simbody/internal/NumericalMethods.h"
 #include "simbody/internal/DecorationSubsystem.h"
-
-// VTKReporter does not belong here because it is in the aux section
-// #include "simbody/internal/VTKReporter.h"
-// #include "simbody/internal/VTKEventReporter.h"
-
 #include "simbody/internal/TextDataEventReporter.h"
 #include "simbody/internal/ObservedPointFitter.h"
+#include "simbody/internal/VelocityRescalingThermostat.h"
 
 #endif // SimTK_SIMBODY_SimTKSIMBODY_H_
