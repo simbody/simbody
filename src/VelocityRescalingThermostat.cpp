@@ -34,41 +34,80 @@
 
 using namespace SimTK;
 
-VelocityRescalingThermostat::VelocityRescalingThermostat(const MultibodySystem& system, Real boltzmannsConstant) : system(system), boltzmannsConstant(boltzmannsConstant) {
-    lastEventTime = -Infinity;
-    temperature = 293.15; // 20 degrees C
-    rescalingInterval = 1; // 1 picosecond
+/**
+ * This class is the internal implementation for VelocityRescalingThermostat.
+ */
+
+class VelocityRescalingThermostat::VelocityRescalingThermostatImpl {
+public:
+    VelocityRescalingThermostatImpl(const MultibodySystem& system, Real boltzmannsConstant, Real temperature, Real rescalingInterval) : 
+            system(system), boltzmannsConstant(boltzmannsConstant), temperature(temperature), rescalingInterval(rescalingInterval) {
+        lastEventTime = -Infinity;
+    }
+    Real getTemperature() {
+        return temperature;
+    }
+    void setTemperature(Real temp) {
+        temperature = temp;
+    }
+    Real getRescalingInterval() {
+        return rescalingInterval;
+    }
+    void setRescalingInterval(Real interval) {
+        rescalingInterval = interval;
+    }
+    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) {
+        lastEventTime = state.getTime();
+        Real energy = system.getKineticEnergy(state);
+        if (energy == 0.0)
+            return;
+        int dof = state.getNU()-state.getNUErr();
+        Real currentTemp = 2.0*energy/(dof*boltzmannsConstant);
+        Real scale = std::sqrt(temperature/currentTemp);
+        state.updU() *= scale;
+        lowestModified = Stage::Velocity;
+        system.realize(state, Stage::Acceleration);
+    }
+    Real getNextEventTime(const State& state) const {
+        return std::max(lastEventTime+rescalingInterval, state.getTime());
+    }
+private:
+    const MultibodySystem& system;
+    const Real boltzmannsConstant;
+    Real temperature;
+    Real rescalingInterval;
+    Real lastEventTime;
+};
+
+
+VelocityRescalingThermostat::VelocityRescalingThermostat(const MultibodySystem& system, Real boltzmannsConstant, Real temperature, Real rescalingInterval) {
+    impl = new VelocityRescalingThermostatImpl(system, boltzmannsConstant, temperature, rescalingInterval);
+}
+
+VelocityRescalingThermostat::~VelocityRescalingThermostat() {
+    delete impl;
 }
 
 Real VelocityRescalingThermostat::getTemperature() {
-    return temperature;
+    impl->getTemperature();
 }
 
 void VelocityRescalingThermostat::setTemperature(Real temp) {
-    temperature = temp;
+    impl->setTemperature(temp);
 }
 
 Real VelocityRescalingThermostat::getRescalingInterval() {
-    return rescalingInterval;
+    return impl->getRescalingInterval();
 }
 
 void VelocityRescalingThermostat::setRescalingInterval(Real interval) {
-    rescalingInterval = interval;
+    impl->setRescalingInterval(interval);
 }
 
 Real VelocityRescalingThermostat::getNextEventTime(const State& state) const {
-    return std::max(lastEventTime+rescalingInterval, state.getTime());
+    return impl->getNextEventTime(state);
 }
 
 void VelocityRescalingThermostat::handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) {
-    lastEventTime = state.getTime();
-    Real energy = system.getKineticEnergy(state);
-    if (energy == 0.0)
-        return;
-    int dof = state.getNU()-state.getNUErr();
-    Real currentTemp = 2.0*energy/(dof*boltzmannsConstant);
-    Real scale = std::sqrt(temperature/currentTemp);
-    state.updU() *= scale;
-    lowestModified = Stage::Velocity;
-    system.realize(state, Stage::Acceleration);
+    impl->handleEvent(state, accuracy, yWeights, ooConstraintTols, lowestModified, shouldTerminate);
 }

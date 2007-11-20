@@ -46,12 +46,13 @@ namespace SimTK {
 class SimTK_SIMBODY_EXPORT VelocityRescalingThermostat : public ScheduledEventHandler {
 public:
     /**
-     * Create a VelocityRescalingThermostat.  The rescaling interval is initialized to 1, and the temperature
-     * to 293.15 Kelvin (20 C).
+     * Create a VelocityRescalingThermostat.
      * @param system the MultibodySystem to be simulated
      * @param boltzmannsConstant the value of Boltzmann's constant in whatever units are used by the system
+     * @param temperature the temperature to maintain  the system at.  The default value is 293.15 Kelvin (20 C).
+     * @param rescalingInterval the time interval at which to rescale velocities.  The default value is 1.0.
      */
-    VelocityRescalingThermostat(const MultibodySystem& system, Real boltzmannsConstant);
+    VelocityRescalingThermostat(const MultibodySystem& system, Real boltzmannsConstant, Real temperature=293.15, Real rescalingInterval=1.0);
     /**
      * Get the temperature this thermostat is set to maintain.
      */
@@ -70,12 +71,10 @@ public:
     void setRescalingInterval(Real interval);
     void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate);
     Real getNextEventTime(const State& state) const;
+    ~VelocityRescalingThermostat();
 private:
-    const MultibodySystem& system;
-    const Real boltzmannsConstant;
-    Real temperature;
-    Real rescalingInterval;
-    Real lastEventTime;
+    class VelocityRescalingThermostatImpl;
+    VelocityRescalingThermostatImpl* impl;
 };
 
 } // namespace SimTK

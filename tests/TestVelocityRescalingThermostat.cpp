@@ -109,9 +109,7 @@ int main() {
         MobilizedBody* second = new MobilizedBody::LineOrientation(*first, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, 0, BOND_LENGTH)));
     }
     forces.addCustomForce(BetweenBodyForce());
-    VelocityRescalingThermostat* thermostat = new VelocityRescalingThermostat(mbs, SimTK_BOLTZMANN_CONSTANT_MD);
-    thermostat->setTemperature(TEMPERATURE);
-    mbs.updDefaultSubsystem().addEventHandler(thermostat);
+    mbs.updDefaultSubsystem().addEventHandler(new VelocityRescalingThermostat(mbs, SimTK_BOLTZMANN_CONSTANT_MD, TEMPERATURE, 1.0));
     EnergyMonitor* monitor = new EnergyMonitor(mbs);
     mbs.getDefaultSubsystem().addEventReporter(monitor);
     mbs.realizeTopology();
