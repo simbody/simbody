@@ -197,6 +197,12 @@ RungeKuttaMersonIntegratorRep::stepTo(Real reportTime,
             assert(!"unrecognized stepCommunicationStatus");
         }
 
+        // If a report or event is requested at the current time, return immediately.
+        if (getState().getTime() == reportTime)
+            return Integrator::ReachedReportTime;
+        if (getState().getTime() == scheduledEventTime)
+            return Integrator::ReachedScheduledEvent;
+
             // NO EXCUSE LEFT: MUST ADVANCE TIME
     
         // We will now try to take the biggest step
@@ -242,8 +248,7 @@ RungeKuttaMersonIntegratorRep::stepTo(Real reportTime,
         // the continuous pieces of the current state for restarts and interpolation.
         // These will be updated below only when we make irreversible progress. Otherwise
         // we'll use them to put things back the way we found them after any failures.
-        // We're assuming that the current state has already been realized through
-        // Stage::Acceleration.
+        realizeStateDerivatives(getAdvancedState());
         saveStateAsPrevious(getAdvancedState());
 
         // Now we're going to attempt to take as big a step as we can
@@ -455,8 +460,6 @@ RungeKuttaMersonIntegratorRep::attemptAStep
     tLow = t0; tHigh = t1;
 
     if ((tHigh-tLow) <= narrowestWindow && !(tLow < tReport && tReport < tHigh)) {
-        printf("event at (%g < %g < %g] already localized to %g\n",
-            tLow, earliestTimeEst, tHigh, narrowestWindow);
         findEventIds(eventCandidates);
         setTriggeredEvents(tLow, tHigh, eventCandidates, eventTimeEstimates, eventCandidateTransitions);
         return SuccessWithEvent;     // localized already; advanced state is right (tHigh==tAdvanced)
@@ -491,13 +494,6 @@ RungeKuttaMersonIntegratorRep::attemptAStep
 
         const Real tMid = (tLow < tReport && tReport < tHigh) 
                           ? tReport : earliestTimeEst;
-        if (tLow < tReport && tReport < tHigh) {
-            printf("had to adjust tMid from %g%% to %g%% due to tReport\n",
-                100*(earliestTimeEst-tLow)/(tHigh-tLow), 100*(tReport-tLow)/(tHigh-tLow));
-        }
-
-        printf("localizing %d candidates to %.15g < guess < %.15g, next bias=%g\n", 
-            eventCandidates.size(), tLow, tHigh, bias);
 
         createInterpolatedState(tMid);
 
@@ -517,7 +513,6 @@ RungeKuttaMersonIntegratorRep::attemptAStep
                             earliestTimeEst, narrowestWindow);
 
         if (!newEventCandidates.empty()) {
-            printf("  event found in (%15g,guess]\n", tLow);
             sideTwoItersAgo = sidePrevIter;
             sidePrevIter = -1;
 
@@ -533,8 +528,6 @@ RungeKuttaMersonIntegratorRep::attemptAStep
         }
 
         // Nope. It must be in the upper part of the interval (tMid,tHigh].
-        printf("  no event in (%.15g,guess]\n", tLow);
-
         findEventCandidates(e0.size(), &eventCandidates,  &eventCandidateTransitions,
                             tMid, eMid, tHigh, eHigh, bias, MinWindow,
                             newEventCandidates, newEventTimeEstimates, newEventCandidateTransitions,
@@ -542,8 +535,6 @@ RungeKuttaMersonIntegratorRep::attemptAStep
 
         assert(!newEventCandidates.empty()); // TODO: I think this can happen if
                                              // we land exactly on a zero in eMid.
-
-        printf("  event found in (guess,%.15g]\n", tHigh);
 
         sideTwoItersAgo = sidePrevIter;
         sidePrevIter = 1;
@@ -556,10 +547,6 @@ RungeKuttaMersonIntegratorRep::attemptAStep
         eventCandidateTransitions = newEventCandidateTransitions;
 
     } while ((tHigh-tLow) > narrowestWindow);
-
-    printf("localized %d candidates: (%.15g < guess < %.15g] to %g (est time=%.15g)\n", 
-           eventCandidates.size(), 
-           tLow, tHigh, narrowestWindow, earliestTimeEst);
 
     findEventIds(eventCandidates);
     setTriggeredEvents(tLow, tHigh, eventCandidates, eventTimeEstimates, eventCandidateTransitions);

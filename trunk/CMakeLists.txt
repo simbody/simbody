@@ -303,6 +303,8 @@ ADD_TEST(TimeStepperTest		${TEST_PATH}/TimeStepperTest)
 ADD_TEST(TimeStepperTestStatic		${TEST_PATH}/TimeStepperTestStatic)
 ADD_TEST(CPodesIntegratorTest		${TEST_PATH}/CPodesIntegratorTest)
 ADD_TEST(CPodesIntegratorTestStatic	${TEST_PATH}/CPodesIntegratorTestStatic)
+ADD_TEST(RungeKuttaMersonIntegratorTest       ${TEST_PATH}/RungeKuttaMersonIntegratorTest)
+ADD_TEST(RungeKuttaMersonIntegratorTestStatic ${TEST_PATH}/RungeKuttaMersonIntegratorTestStatic)
 
 #
 # Installation
