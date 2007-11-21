@@ -89,7 +89,7 @@ VelocityRescalingThermostat::~VelocityRescalingThermostat() {
 }
 
 Real VelocityRescalingThermostat::getTemperature() {
-    impl->getTemperature();
+    return impl->getTemperature();
 }
 
 void VelocityRescalingThermostat::setTemperature(Real temp) {
