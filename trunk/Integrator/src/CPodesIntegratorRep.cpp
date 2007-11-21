@@ -283,6 +283,17 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
             cpodes->getProjNumProj(&oldProjections);
             cpodes->getProjNumFailures(&oldProjectionFailures);
             res = cpodes->step(tMax, &tret, yout, ypout, mode);
+            if (res == CPodes::TooClose) {
+                
+                // This happens when the user asked the integrator to advance time by a tiny amount,
+                // comparable to numerical precision.  Since CPODES cannot advance time by such small
+                // increments, and the state would not change significantly in that time anyway,
+                // just set the time while leaving the rest of the state unchanged.
+                
+                tret = tMax;
+                yout = getAdvancedState().getTime();
+                res = 0;
+            }
             long newSteps = 0, newTestFailures = 0, newNonlinConvFailures = 0, newProjections = 0, newProjectionFailures = 0;
             cpodes->getNumSteps(&newSteps);
             cpodes->getNumErrTestFails(&newTestFailures);
