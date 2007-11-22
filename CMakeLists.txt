@@ -239,8 +239,6 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     ## A gcc build
     SET(MATH_LIBS_TO_USE SimTKlapack pthread)
 
-    LINK_DIRECTORIES(/usr/local/lib${LIB64} /lib${LIB64})
-
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     ## Assume Microsoft Visual Studio
