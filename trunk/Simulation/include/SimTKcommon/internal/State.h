@@ -498,8 +498,8 @@ public:
     /// Stage >= ce.stage-1; does not change stage
     AbstractValue& updCacheEntry(SubsystemId, int index) const; // mutable
     
-    /// Create a new State object which shares all the same data as this one,
-    /// such that modifying either one will modify both of them.  The new object
+    /// Transform a State into one which shares all the same data as this one,
+    /// such that modifying either one will modify both of them.  The new State
     /// restricts which stages and subsystems may be modified.  Any
     /// attempt to modify restricted data through that object will produce an
     /// exception.
@@ -508,7 +508,7 @@ public:
     /// itself created by createRestrictedState(), the new state will inherit
     /// all of the restrictions from this one, in addition to any that are specified
     /// in the arguments.
-    State createRestrictedState(EnumerationSet<Stage> restrictedStages, std::set<SubsystemId> restrictedSubsystems);
+    void createRestrictedState(State& restrictedState, EnumerationSet<Stage> restrictedStages, std::set<SubsystemId> restrictedSubsystems);
 
     /// Get the set of stages which cannot be modified in this State.  Attempting
     /// to modify any of these stages will produce an exception.
@@ -525,7 +525,6 @@ private:
     class StateRep* rep;
     const StateRep& getRep() const {assert(rep); return *rep;}
     StateRep&       updRep()       {assert(rep); return *rep;}
-    State(State& state, EnumerationSet<Stage>& restrictedStages, std::set<SubsystemId>& restrictedSubsystems);
 };
 
 SimTK_SimTKCOMMON_EXPORT std::ostream& 

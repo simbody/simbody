@@ -643,7 +643,8 @@ int System::Guts::handleEventsImpl
     // Event handlers should not be able to modify the time.
     
     std::set<SubsystemId> temp;
-    State restricted = s.createRestrictedState(Stage::Time, temp);
+    State restricted;
+    s.createRestrictedState(restricted, Stage::Time, temp);
     
     // Loop over each subsystem, see which events belong to it, and allow it to handle those events.
     

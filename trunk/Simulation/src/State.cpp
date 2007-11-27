@@ -1622,7 +1622,7 @@ public:
     
     // Verify that this State permits unrestricted modifications.
     void checkCanModifyAnySubsystem() const {
-        SimTK_ASSERT_ALWAYS(restrictedStages.empty() && restrictedSubsystems.empty(),
+        SimTK_ASSERT_ALWAYS(restrictedSubsystems.empty(),
                 "Modification of state data has been restricted.");
     }
     
@@ -1761,17 +1761,6 @@ public:
     set<SubsystemId> restrictedSubsystems;
 };
 
-
-
-
-
-
-
-
-
-
-
-
 State::State() {
     rep = new StateRep();
 }
@@ -1780,9 +1769,6 @@ State::~State() {
 }
 State::State(const State& state) {
     rep = new StateRep(*state.rep);
-}
-State::State(State& state, EnumerationSet<Stage>& restrictedStages, std::set<SubsystemId>& restrictedSubsystems) {
-    rep = new StateRep(*state.rep, restrictedStages, restrictedSubsystems);
 }
 void State::clear() {
     rep->clear();
@@ -2154,12 +2140,12 @@ const AbstractValue& State::getCacheEntry(SubsystemId subsys, int index) const {
 AbstractValue& State::updCacheEntry(SubsystemId subsys, int index) const {
     return rep->updCacheEntry(subsys, index);
 }
-State State::createRestrictedState(EnumerationSet<Stage> restrictedStages, std::set<SubsystemId> restrictedSubsystems) {
+void State::createRestrictedState(State& restrictedState, EnumerationSet<Stage> restrictedStages, std::set<SubsystemId> restrictedSubsystems) {
     restrictedStages |= getRestrictedStages();
     std::set<SubsystemId> currentSubsystems = getRestrictedSubsystems();
     restrictedSubsystems.insert(currentSubsystems.begin(), currentSubsystems.end());
-    State temp(*this, restrictedStages, restrictedSubsystems);
-    return temp;
+    delete restrictedState.rep;
+    restrictedState.rep = new StateRep(*rep, restrictedStages, restrictedSubsystems);
 }
 EnumerationSet<Stage> State::getRestrictedStages() const {
     return rep->getRestrictedStages();
