@@ -77,7 +77,7 @@ public:
     Real sumEnergy, sumEnergySquared;
     EnergyMonitor(MultibodySystem& system) : system(system), lastEventTime(1.0), sumEnergy(0.0), sumEnergySquared(0.0) {
     }
-    Real getNextEventTime(const State&) const {
+    Real getNextEventTime(const State&, bool includeCurrentTime) const {
         return lastEventTime+0.05;
     }
     void handleEvent(const State& state) {

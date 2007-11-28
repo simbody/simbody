@@ -43,7 +43,7 @@ namespace SimTK {
  * kT/2 per degree of freedom.
  */
 
-class SimTK_SIMBODY_EXPORT VelocityRescalingThermostat : public ScheduledEventHandler {
+class SimTK_SIMBODY_EXPORT VelocityRescalingThermostat : public PeriodicEventHandler {
 public:
     /**
      * Create a VelocityRescalingThermostat.
@@ -61,16 +61,7 @@ public:
      * Set the temperature this thermostat is set to maintain.
      */
     void setTemperature(Real temp);
-    /**
-     * Get the time interval at which the velocities will be rescaled.
-     */
-    Real getRescalingInterval();
-    /**
-     * Set the time interval at which the velocities will be rescaled.
-     */
-    void setRescalingInterval(Real interval);
     void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate);
-    Real getNextEventTime(const State& state) const;
     ~VelocityRescalingThermostat();
 private:
     class VelocityRescalingThermostatImpl;

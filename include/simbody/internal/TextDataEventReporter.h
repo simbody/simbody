@@ -47,14 +47,19 @@
 
 namespace SimTK {
 
-class SimTK_SIMBODY_EXPORT TextDataEventReporter : public ScheduledEventReporter {
+class SimTK_SIMBODY_EXPORT TextDataEventReporter : public PeriodicEventReporter {
 public:
+    /**
+     * Create a TextDataEventReporter which calculates a single number at each reporting interval, and displays
+     * it along with the time.
+     */
     TextDataEventReporter(const System& system, UserFunction<Real>* function, Real reportInterval);
+    /**
+     * Create a TextDataEventReporter which calculates a vector of numbers at each reporting interval, and displays
+     * them along with the time.
+     */
     TextDataEventReporter(const System& system, UserFunction<Vector>* function, Real reportInterval);
     ~TextDataEventReporter();
-    Real getReportInterval() const;
-    void setReportInterval(Real interval);
-    Real getNextEventTime(const State&) const;
     void handleEvent(const State& state);
     class TextDataEventReporterRep;
 protected:

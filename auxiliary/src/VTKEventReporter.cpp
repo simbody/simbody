@@ -35,35 +35,20 @@ using namespace SimTK;
 
 class VTKEventReporter::VTKEventReporterRep {
 public:
-    VTKEventReporterRep(MultibodySystem& system, Real reportInterval, Real defaultScaleForAutoGeometry) : reporter(VTKReporter(system, defaultScaleForAutoGeometry)), reportInterval(reportInterval) {
-        lastReportTime = -1;
+    VTKEventReporterRep(MultibodySystem& system, Real defaultScaleForAutoGeometry) : reporter(VTKReporter(system, defaultScaleForAutoGeometry)) {
     }
     VTKReporter& getReporter() {
         return reporter;
     }
-    Real getReportInterval() const {
-        return reportInterval;
-    }
-    void setReportInterval(Real interval) {
-        reportInterval = interval;
-    }
-    Real getNextEventTime(const State&) const {
-        if (lastReportTime == -1)
-            return 0;
-        return lastReportTime+reportInterval;
-    }
     void handleEvent(const State& state) {
         reporter.report(state);
-        lastReportTime = state.getTime();
     }
     VTKEventReporter* handle;
     VTKReporter reporter;
-    Real reportInterval;
-    Real lastReportTime;
 };
 
-VTKEventReporter::VTKEventReporter(MultibodySystem& system, Real reportInterval, Real defaultScaleForAutoGeometry) {
-    rep = new VTKEventReporterRep(system, reportInterval, defaultScaleForAutoGeometry);
+VTKEventReporter::VTKEventReporter(MultibodySystem& system, Real reportInterval, Real defaultScaleForAutoGeometry) : PeriodicEventReporter(reportInterval) {
+    rep = new VTKEventReporterRep(system, defaultScaleForAutoGeometry);
     updRep().handle = this;
 }
 
@@ -72,33 +57,10 @@ VTKEventReporter::~VTKEventReporter() {
         delete rep;
 }
 
-/**
- * Get the VTKReporter which generates the images.  It may be used to configure the display.
- */
-
 VTKReporter& VTKEventReporter::getReporter() {
     return updRep().getReporter();
 }
 
-/**
- * Get the time interval at which images should be displayed.
- */
-
-Real VTKEventReporter::getReportInterval() const {
-    return getRep().getReportInterval();
-}
-
-/**
- * Set the time interval at which images should be displayed.
- */
-
-void VTKEventReporter::setReportInterval(Real interval) {
-    updRep().setReportInterval(interval);
-}
-
-Real VTKEventReporter::getNextEventTime(const State& state) const {
-    return getRep().getNextEventTime(state);
-}
 void VTKEventReporter::handleEvent(const State& state) {
     updRep().handleEvent(state);
 }

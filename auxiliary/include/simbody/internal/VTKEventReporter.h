@@ -47,14 +47,14 @@ namespace SimTK {
 
 class MultibodySystem;
 
-class SimTK_SIMBODY_EXPORT VTKEventReporter : public ScheduledEventReporter {
+class SimTK_SIMBODY_EXPORT VTKEventReporter : public PeriodicEventReporter {
 public:
     VTKEventReporter(MultibodySystem& system, Real reportInterval, Real defaultScaleForAutoGeometry=1.);
     ~VTKEventReporter();
+    /**
+     * Get the VTKReporter which generates the images.  It may be used to configure the display.
+     */
     VTKReporter& getReporter();
-    Real getReportInterval() const;
-    void setReportInterval(Real interval);
-    Real getNextEventTime(const State&) const;
     void handleEvent(const State& state);
     class VTKEventReporterRep;
 protected:

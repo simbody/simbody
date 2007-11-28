@@ -31,7 +31,7 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/VelocityRescalingThermostat.h"
-
+#include <math.h>
 using namespace SimTK;
 
 /**
@@ -40,9 +40,8 @@ using namespace SimTK;
 
 class VelocityRescalingThermostat::VelocityRescalingThermostatImpl {
 public:
-    VelocityRescalingThermostatImpl(const MultibodySystem& system, Real boltzmannsConstant, Real temperature, Real rescalingInterval) : 
-            system(system), boltzmannsConstant(boltzmannsConstant), temperature(temperature), rescalingInterval(rescalingInterval) {
-        lastEventTime = -Infinity;
+    VelocityRescalingThermostatImpl(const MultibodySystem& system, Real boltzmannsConstant, Real temperature) : 
+            system(system), boltzmannsConstant(boltzmannsConstant), temperature(temperature) {
     }
     Real getTemperature() {
         return temperature;
@@ -50,14 +49,7 @@ public:
     void setTemperature(Real temp) {
         temperature = temp;
     }
-    Real getRescalingInterval() {
-        return rescalingInterval;
-    }
-    void setRescalingInterval(Real interval) {
-        rescalingInterval = interval;
-    }
     void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) {
-        lastEventTime = state.getTime();
         Real energy = system.getKineticEnergy(state);
         if (energy == 0.0)
             return;
@@ -68,20 +60,15 @@ public:
         lowestModified = Stage::Velocity;
         system.realize(state, Stage::Acceleration);
     }
-    Real getNextEventTime(const State& state) const {
-        return std::max(lastEventTime+rescalingInterval, state.getTime());
-    }
 private:
     const MultibodySystem& system;
     const Real boltzmannsConstant;
     Real temperature;
-    Real rescalingInterval;
-    Real lastEventTime;
 };
 
 
-VelocityRescalingThermostat::VelocityRescalingThermostat(const MultibodySystem& system, Real boltzmannsConstant, Real temperature, Real rescalingInterval) {
-    impl = new VelocityRescalingThermostatImpl(system, boltzmannsConstant, temperature, rescalingInterval);
+VelocityRescalingThermostat::VelocityRescalingThermostat(const MultibodySystem& system, Real boltzmannsConstant, Real temperature, Real rescalingInterval) : PeriodicEventHandler(rescalingInterval) {
+    impl = new VelocityRescalingThermostatImpl(system, boltzmannsConstant, temperature);
 }
 
 VelocityRescalingThermostat::~VelocityRescalingThermostat() {
@@ -94,18 +81,6 @@ Real VelocityRescalingThermostat::getTemperature() {
 
 void VelocityRescalingThermostat::setTemperature(Real temp) {
     impl->setTemperature(temp);
-}
-
-Real VelocityRescalingThermostat::getRescalingInterval() {
-    return impl->getRescalingInterval();
-}
-
-void VelocityRescalingThermostat::setRescalingInterval(Real interval) {
-    impl->setRescalingInterval(interval);
-}
-
-Real VelocityRescalingThermostat::getNextEventTime(const State& state) const {
-    return impl->getNextEventTime(state);
 }
 
 void VelocityRescalingThermostat::handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) {

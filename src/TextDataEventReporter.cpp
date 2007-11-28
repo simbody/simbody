@@ -42,38 +42,24 @@ using namespace SimTK;
 
 class TextDataEventReporter::TextDataEventReporterRep {
 public:
-    TextDataEventReporterRep(const System& system, Real reportInterval) : system(system), reportInterval(reportInterval) {
-        lastReportTime = -1;
-    }
-    Real getReportInterval() const {
-        return reportInterval;
-    }
-    void setReportInterval(Real interval) {
-        reportInterval = interval;
-    }
-    Real getNextEventTime(const State&) const {
-        if (lastReportTime == -1)
-            return 0;
-        return lastReportTime+reportInterval;
+    TextDataEventReporterRep(const System& system) : system(system) {
     }
     virtual void printValues(const State& state) const = 0;
     void handleEvent(const State& state) {
-        lastReportTime = state.getTime();
-        cout << lastReportTime;
+        cout << state.getTime();
         printValues(state);
         cout << endl;
     }
     TextDataEventReporter* handle;
     const System& system;
     Real reportInterval;
-    Real lastReportTime;
     class RealFunction;
     class VectorFunction;
 };
 
 class TextDataEventReporter::TextDataEventReporterRep::RealFunction : public TextDataEventReporter::TextDataEventReporterRep {
 public:
-    RealFunction(const System& system, UserFunction<Real>* function, Real reportInterval) : TextDataEventReporterRep(system, reportInterval), function(function) {
+    RealFunction(const System& system, UserFunction<Real>* function) : TextDataEventReporterRep(system), function(function) {
     }
     ~RealFunction() {
         delete function;
@@ -87,7 +73,7 @@ public:
 
 class TextDataEventReporter::TextDataEventReporterRep::VectorFunction : public TextDataEventReporter::TextDataEventReporterRep {
 public:
-    VectorFunction(const System& system, UserFunction<Vector>* function, Real reportInterval) : TextDataEventReporterRep(system, reportInterval), function(function) {
+    VectorFunction(const System& system, UserFunction<Vector>* function) : TextDataEventReporterRep(system), function(function) {
     }
     ~VectorFunction() {
         delete function;
@@ -100,23 +86,13 @@ public:
     UserFunction<Vector>* function;
 };
 
-/**
- * Create a TextDataEventReporter which calculates a single number at each reporting interval, and displays
- * it along with the time.
- */
-
-TextDataEventReporter::TextDataEventReporter(const System& system, UserFunction<Real>* function, Real reportInterval) {
-    rep = new TextDataEventReporterRep::RealFunction(system, function, reportInterval);
+TextDataEventReporter::TextDataEventReporter(const System& system, UserFunction<Real>* function, Real reportInterval) : PeriodicEventReporter(reportInterval) {
+    rep = new TextDataEventReporterRep::RealFunction(system, function);
     updRep().handle = this;
 }
 
-/**
- * Create a TextDataEventReporter which calculates a vector of numbers at each reporting interval, and displays
- * them along with the time.
- */
-
-TextDataEventReporter::TextDataEventReporter(const System& system, UserFunction<Vector>* function, Real reportInterval) {
-    rep = new TextDataEventReporterRep::VectorFunction(system, function, reportInterval);
+TextDataEventReporter::TextDataEventReporter(const System& system, UserFunction<Vector>* function, Real reportInterval) : PeriodicEventReporter(reportInterval) {
+    rep = new TextDataEventReporterRep::VectorFunction(system, function);
     updRep().handle = this;
 }
 
@@ -125,25 +101,6 @@ TextDataEventReporter::~TextDataEventReporter() {
         delete rep;
 }
 
-/**
- * Get the time interval at which values should be reported.
- */
-
-Real TextDataEventReporter::getReportInterval() const {
-    return getRep().getReportInterval();
-}
-
-/**
- * Set the time interval at which values should be reported.
- */
-
-void TextDataEventReporter::setReportInterval(Real interval) {
-    updRep().setReportInterval(interval);
-}
-
-Real TextDataEventReporter::getNextEventTime(const State& state) const {
-    return getRep().getNextEventTime(state);
-}
 void TextDataEventReporter::handleEvent(const State& state) {
     updRep().handleEvent(state);
 }
