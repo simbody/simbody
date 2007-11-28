@@ -44,7 +44,9 @@ namespace SimTK {
  * and what happens when it does.  You will not generally subclass EventHandler
  * directly.  Instead, subclass ScheduledEventHandler (for events that occur at a
  * particular time that is know in advance) or TriggeredEventHandler (for events that
- * occur when some condition is satisfied within the system).
+ * occur when some condition is satisfied within the system).  ScheduledEventHandler
+ * also has another subclass, PeriodicEventHandler, for the common situation of
+ * events that occur at regular intervals.
  * 
  * An EventHandler should be thought of as an integral part of the system it belongs
  * to, and may alter the physical properties or behavior of the system.  If you merely
@@ -94,9 +96,13 @@ public:
     
     /**
      * Get the next time at which an event will occur.
+     * 
+     * @param state                 the current state of the system
+     * @param includeCurrentTime    if true, return the next event whose time is >= the current time.
+     *                              If false, only return events after (not at) the current time.
      */
     
-    virtual Real getNextEventTime(const State&) const = 0;
+    virtual Real getNextEventTime(const State&, bool includeCurrentTime) const = 0;
 };
 
 /**
@@ -110,7 +116,7 @@ public:
 
 class SimTK_SimTKCOMMON_EXPORT TriggeredEventHandler : public EventHandler {
 public:
-    class TriggeredEventHandlerRep;
+    class TriggeredEventHandlerImpl;
     TriggeredEventHandler(const TriggeredEventHandler& clone);
     TriggeredEventHandler& operator=(const TriggeredEventHandler& clone);
     virtual ~TriggeredEventHandler();
@@ -141,7 +147,42 @@ public:
     
     Stage getRequiredStage() const;
 private:
-    TriggeredEventHandlerRep* rep;
+    TriggeredEventHandlerImpl* impl;
+};
+
+/**
+ * PeriodicEventHandler is a subclass of ScheduledEventHandler which generates a series
+ * of uniformly spaced events at regular intervals.  This allows you to very easily create
+ * event handlers with this behavior.
+ */
+
+class SimTK_SimTKCOMMON_EXPORT PeriodicEventHandler : public ScheduledEventHandler {
+public:
+    class PeriodicEventHandlerImpl;
+    ~PeriodicEventHandler();
+    Real getNextEventTime(const State& state, bool includeCurrentTime) const;
+    
+    /**
+     * Create a PeriodicEventHandler.
+     * 
+     * @param eventInterval       the time interval at which events should occur.
+     */
+
+    PeriodicEventHandler(Real eventInterval);
+    
+    /**
+     * Get the time interval at which events occur.
+     */
+    
+    Real getEventInterval();
+    
+    /**
+     * Set the time interval at which events occur.
+     */
+    
+    void setEventInterval(Real eventInterval);
+private:
+    PeriodicEventHandlerImpl* impl;
 };
 
 } // namespace SimTK

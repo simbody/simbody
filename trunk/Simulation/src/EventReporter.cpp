@@ -33,40 +33,76 @@
 
 namespace SimTK {
 
-class TriggeredEventReporter::TriggeredEventReporterRep {
+class TriggeredEventReporter::TriggeredEventReporterImpl {
 public:
-    TriggeredEventReporterRep(Stage requiredStage) : requiredStage(requiredStage) {
+    TriggeredEventReporterImpl(Stage requiredStage) : requiredStage(requiredStage) {
     }
     System::EventTriggerInfo triggerInfo;
     Stage requiredStage;
 };
 
 TriggeredEventReporter::TriggeredEventReporter(Stage requiredStage) {
-    rep = new TriggeredEventReporterRep(requiredStage);
+    impl = new TriggeredEventReporterImpl(requiredStage);
 }
 
 TriggeredEventReporter::TriggeredEventReporter(const TriggeredEventReporter& clone) {
-    rep = new TriggeredEventReporterRep(*clone.rep);
+    impl = new TriggeredEventReporterImpl(*clone.impl);
 }
 
 TriggeredEventReporter& TriggeredEventReporter::operator=(const TriggeredEventReporter& clone) {
-    rep = new TriggeredEventReporterRep(*clone.rep);
+    impl = new TriggeredEventReporterImpl(*clone.impl);
     return *this;
 }
 
 TriggeredEventReporter::~TriggeredEventReporter() {
-    delete rep;
+    delete impl;
 }
 
 System::EventTriggerInfo& TriggeredEventReporter::getTriggerInfo() {
-    return rep->triggerInfo;
+    return impl->triggerInfo;
 }
 
 Stage TriggeredEventReporter::getRequiredStage() const {
-    return rep->requiredStage;
+    return impl->requiredStage;
 }
 
 ScheduledEventReporter::~ScheduledEventReporter() {
+}
+
+class PeriodicEventReporter::PeriodicEventReporterImpl {
+public:
+    PeriodicEventReporterImpl(Real eventInterval) : eventInterval(eventInterval) {
+        SimTK_APIARGCHECK1_ALWAYS(eventInterval > 0.0, "PeriodicEventReporterImpl", "PeriodicEventReporterImpl", "The interval was %d.  It must be > 0", eventInterval);
+    }
+    Real eventInterval;
+};
+
+PeriodicEventReporter::PeriodicEventReporter(Real eventInterval) {
+    impl = new PeriodicEventReporterImpl(eventInterval);
+}
+
+PeriodicEventReporter::~PeriodicEventReporter() {
+    delete impl;
+}
+
+Real PeriodicEventReporter::getNextEventTime(const State& state, bool includeCurrentTime) const {
+    Real currentTime = state.getTime();
+    int count = std::floor(currentTime/impl->eventInterval);
+    Real eventTime = count*impl->eventInterval;
+    if (eventTime < currentTime || (eventTime == currentTime && !includeCurrentTime)) {
+        count++;
+        eventTime = count*impl->eventInterval;
+    }
+    return eventTime;
+}
+
+Real PeriodicEventReporter::getEventInterval() {
+    return impl->eventInterval;
+}
+
+void PeriodicEventReporter::setEventInterval(Real eventInterval) {
+    SimTK_APIARGCHECK1_ALWAYS(eventInterval > 0.0, "PeriodicEventReporter", "setEventInterval", "The interval was %d.  It must be > 0", eventInterval);
+    impl->eventInterval = eventInterval;
 }
 
 } // namespace SimTK

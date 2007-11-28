@@ -821,7 +821,7 @@ public:
         const CacheInfo& info = getCacheInfo(s);
         tNextEvent = Infinity;
         for (int i = 0; i < (int)scheduledEventHandlers.size(); ++i) {
-            Real time = scheduledEventHandlers[i]->getNextEventTime(s);
+            Real time = scheduledEventHandlers[i]->getNextEventTime(s, includeCurrentTime);
             if (time <= tNextEvent && (time > s.getTime() || (includeCurrentTime && time == s.getTime()))) {
                 if (time < tNextEvent)
                     eventIds.clear();
@@ -837,7 +837,7 @@ public:
         const CacheInfo& info = getCacheInfo(s);
         tNextEvent = Infinity;
         for (int i = 0; i < (int)scheduledEventReporters.size(); ++i) {
-            Real time = scheduledEventReporters[i]->getNextEventTime(s);
+            Real time = scheduledEventReporters[i]->getNextEventTime(s, includeCurrentTime);
             if (time <= tNextEvent && (time > s.getTime() || (includeCurrentTime && time == s.getTime()))) {
                 if (time < tNextEvent)
                     eventIds.clear();

@@ -33,40 +33,76 @@
 
 namespace SimTK {
 
-class TriggeredEventHandler::TriggeredEventHandlerRep {
+class TriggeredEventHandler::TriggeredEventHandlerImpl {
 public:
-    TriggeredEventHandlerRep(Stage requiredStage) : requiredStage(requiredStage) {
+    TriggeredEventHandlerImpl(Stage requiredStage) : requiredStage(requiredStage) {
     }
     System::EventTriggerInfo triggerInfo;
     Stage requiredStage;
 };
 
 TriggeredEventHandler::TriggeredEventHandler(Stage requiredStage) {
-    rep = new TriggeredEventHandlerRep(requiredStage);
+    impl = new TriggeredEventHandlerImpl(requiredStage);
 }
 
 TriggeredEventHandler::TriggeredEventHandler(const TriggeredEventHandler& clone) {
-    rep = new TriggeredEventHandlerRep(*clone.rep);
+    impl = new TriggeredEventHandlerImpl(*clone.impl);
 }
 
 TriggeredEventHandler& TriggeredEventHandler::operator=(const TriggeredEventHandler& clone) {
-    rep = new TriggeredEventHandlerRep(*clone.rep);
+    impl = new TriggeredEventHandlerImpl(*clone.impl);
     return *this;
 }
 
 TriggeredEventHandler::~TriggeredEventHandler() {
-    delete rep;
+    delete impl;
 }
 
 System::EventTriggerInfo& TriggeredEventHandler::getTriggerInfo() {
-    return rep->triggerInfo;
+    return impl->triggerInfo;
 }
 
 Stage TriggeredEventHandler::getRequiredStage() const {
-    return rep->requiredStage;
+    return impl->requiredStage;
 }
 
 ScheduledEventHandler::~ScheduledEventHandler() {
+}
+
+class PeriodicEventHandler::PeriodicEventHandlerImpl {
+public:
+    PeriodicEventHandlerImpl(Real eventInterval) : eventInterval(eventInterval) {
+        SimTK_APIARGCHECK1_ALWAYS(eventInterval > 0.0, "PeriodicEventHandlerImpl", "PeriodicEventHandlerImpl", "The interval was %d.  It must be > 0", eventInterval);
+    }
+    Real eventInterval;
+};
+
+PeriodicEventHandler::PeriodicEventHandler(Real eventInterval) {
+    impl = new PeriodicEventHandlerImpl(eventInterval);
+}
+
+PeriodicEventHandler::~PeriodicEventHandler() {
+    delete impl;
+}
+
+Real PeriodicEventHandler::getNextEventTime(const State& state, bool includeCurrentTime) const {
+    Real currentTime = state.getTime();
+    int count = std::floor(currentTime/impl->eventInterval);
+    Real eventTime = count*impl->eventInterval;
+    if (eventTime < currentTime || (eventTime == currentTime && !includeCurrentTime)) {
+        count++;
+        eventTime = count*impl->eventInterval;
+    }
+    return eventTime;
+}
+
+Real PeriodicEventHandler::getEventInterval() {
+    return impl->eventInterval;
+}
+
+void PeriodicEventHandler::setEventInterval(Real eventInterval) {
+    SimTK_APIARGCHECK1_ALWAYS(eventInterval > 0.0, "PeriodicEventHandler", "setEventInterval", "The interval was %d.  It must be > 0", eventInterval);
+    impl->eventInterval = eventInterval;
 }
 
 } // namespace SimTK

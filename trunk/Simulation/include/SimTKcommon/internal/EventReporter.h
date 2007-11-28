@@ -44,7 +44,9 @@ namespace SimTK {
  * and what happens when it does.  You will not generally subclass EventReporter
  * directly.  Instead, subclass ScheduledEventReporter (for events that occur at a
  * particular time that is know in advance) or TriggeredEventReporter (for events that
- * occur when some condition is satisfied within the system).
+ * occur when some condition is satisfied within the system).  ScheduledEventReporter
+ * also has another subclass, PeriodicEventReporter, for the common situation of
+ * events that occur at regular intervals.
  * 
  * EventReporter is very similar to EventHandler, but differs in that it is not permitted
  * to modify the state of the system.  It can observe the system's behavior, but not
@@ -79,9 +81,13 @@ public:
     
     /**
      * Get the next time at which an event will occur.
+     * 
+     * @param state                 the current state of the system
+     * @param includeCurrentTime    if true, return the next event whose time is >= the current time.
+     *                              If false, only return events after (not at) the current time.
      */
     
-    virtual Real getNextEventTime(const State&) const = 0;
+    virtual Real getNextEventTime(const State& state, bool includeCurrentTime) const = 0;
 };
 
 /**
@@ -95,7 +101,7 @@ public:
 
 class SimTK_SimTKCOMMON_EXPORT TriggeredEventReporter : public EventReporter {
 public:
-    class TriggeredEventReporterRep;
+    class TriggeredEventReporterImpl;
     TriggeredEventReporter(const TriggeredEventReporter& clone);
     TriggeredEventReporter& operator=(const TriggeredEventReporter& clone);
     virtual ~TriggeredEventReporter();
@@ -126,7 +132,42 @@ public:
     
     Stage getRequiredStage() const;
 private:
-    TriggeredEventReporterRep* rep;
+    TriggeredEventReporterImpl* impl;
+};
+
+/**
+ * PeriodicEventReporter is a subclass of ScheduledEventReporter which generates a series
+ * of uniformly spaced events at regular intervals.  This allows you to very easily create
+ * event reporters with this behavior.
+ */
+
+class SimTK_SimTKCOMMON_EXPORT PeriodicEventReporter : public ScheduledEventReporter {
+public:
+    class PeriodicEventReporterImpl;
+    ~PeriodicEventReporter();
+    Real getNextEventTime(const State& state, bool includeCurrentTime) const;
+    
+    /**
+     * Create a PeriodicEventReporter.
+     * 
+     * @param eventInterval       the time interval at which events should occur.
+     */
+
+    PeriodicEventReporter(Real eventInterval);
+    
+    /**
+     * Get the time interval at which events occur.
+     */
+    
+    Real getEventInterval();
+    
+    /**
+     * Set the time interval at which events occur.
+     */
+    
+    void setEventInterval(Real eventInterval);
+private:
+    PeriodicEventReporterImpl* impl;
 };
 
 } // namespace SimTK
