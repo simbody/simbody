@@ -51,12 +51,12 @@ using std::printf;
 using std::cout;
 using std::endl;
 
-class PeriodicEventHandler : public ScheduledEventHandler {
+class PeriodicHandler : public ScheduledEventHandler {
 public:
     static int eventCount;
     static Real lastEventTime;
     static Real interval;
-    Real getNextEventTime(const State&) const {
+    Real getNextEventTime(const State&, bool includeCurrentTime) const {
         return lastEventTime+interval;
     }
     void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) {
@@ -128,14 +128,14 @@ private:
     PendulumSystem& pendulum;
 };
 
-class PeriodicEventReporter : public ScheduledEventReporter {
+class PeriodicReporter : public ScheduledEventReporter {
 public:
     static int eventCount;
     static Real lastEventTime;
     static Real interval;
-    PeriodicEventReporter(PendulumSystem& pendulum) : pendulum(pendulum) {
+    PeriodicReporter(PendulumSystem& pendulum) : pendulum(pendulum) {
     }
-    Real getNextEventTime(const State&) const {
+    Real getNextEventTime(const State&, bool includeCurrentTime) const {
         return lastEventTime+interval;
     }
     void handleEvent(const State& state) {
@@ -165,7 +165,7 @@ public:
     static bool hasOccurred;
     OnceOnlyEventReporter() {
     }
-    Real getNextEventTime(const State&) const {
+    Real getNextEventTime(const State&, bool includeCurrentTime) const {
         return 5.0;
     }
     void handleEvent(const State& state) {
@@ -176,27 +176,27 @@ public:
 
 int ZeroVelocityHandler::eventCount = 0;
 Real ZeroVelocityHandler::lastEventTime = 0.0;
-int PeriodicEventHandler::eventCount = 0;
-Real PeriodicEventHandler::lastEventTime = 0.0;
-Real PeriodicEventHandler::interval = 0.0;
+int PeriodicHandler::eventCount = 0;
+Real PeriodicHandler::lastEventTime = 0.0;
+Real PeriodicHandler::interval = 0.0;
 int ZeroPositionHandler::eventCount = 0;
 Real ZeroPositionHandler::lastEventTime = 0.0;
 bool ZeroPositionHandler::hasAccelerated = false;
-int PeriodicEventReporter::eventCount = 0;
-Real PeriodicEventReporter::lastEventTime = 0.0;
-Real PeriodicEventReporter::interval = 0.0;
+int PeriodicReporter::eventCount = 0;
+Real PeriodicReporter::lastEventTime = 0.0;
+Real PeriodicReporter::interval = 0.0;
 bool OnceOnlyEventReporter::hasOccurred = false;
 
 void testIntegrator (Integrator& integ, PendulumSystem& sys) {
     ZeroVelocityHandler::eventCount = 0;
     ZeroVelocityHandler::lastEventTime = 0.0;
-    PeriodicEventHandler::eventCount = 0;
-    PeriodicEventHandler::lastEventTime = -PeriodicEventHandler::interval;
+    PeriodicHandler::eventCount = 0;
+    PeriodicHandler::lastEventTime = -PeriodicHandler::interval;
     ZeroPositionHandler::eventCount = 0;
     ZeroPositionHandler::lastEventTime = 0.0;
     ZeroPositionHandler::hasAccelerated = false;
-    PeriodicEventReporter::eventCount = 0;
-    PeriodicEventReporter::lastEventTime = -PeriodicEventReporter::interval;
+    PeriodicReporter::eventCount = 0;
+    PeriodicReporter::lastEventTime = -PeriodicReporter::interval;
     OnceOnlyEventReporter::hasOccurred = false;
 
     const Real t0=0;
@@ -243,9 +243,9 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys) {
     ASSERT(ts.getTime() == tFinal);
     ASSERT(integ.getTerminationReason() == Integrator::ReachedFinalTime);
     ASSERT(ZeroVelocityHandler::eventCount > 10);
-    ASSERT(PeriodicEventHandler::eventCount == (int) (ts.getTime()/PeriodicEventHandler::interval)+1);
+    ASSERT(PeriodicHandler::eventCount == (int) (ts.getTime()/PeriodicHandler::interval)+1);
     ASSERT(ZeroPositionHandler::eventCount > 10);
-    ASSERT(PeriodicEventReporter::eventCount == (int) (ts.getTime()/PeriodicEventReporter::interval)+1);
+    ASSERT(PeriodicReporter::eventCount == (int) (ts.getTime()/PeriodicReporter::interval)+1);
 }
 
 #endif /*SimTK_SIMMATH_INTEGRATOR_TEST_FRAMEWORK_H_*/

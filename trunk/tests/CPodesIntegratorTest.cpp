@@ -36,9 +36,9 @@ int main () {
   try {
     PendulumSystem sys;
     sys.updDefaultSubsystem().addEventHandler(new ZeroVelocityHandler(sys));
-    sys.updDefaultSubsystem().addEventHandler(new PeriodicEventHandler());
+    sys.updDefaultSubsystem().addEventHandler(new PeriodicHandler());
     sys.updDefaultSubsystem().addEventHandler(new ZeroPositionHandler(sys));
-    sys.updDefaultSubsystem().addEventReporter(new PeriodicEventReporter(sys));
+    sys.updDefaultSubsystem().addEventReporter(new PeriodicReporter(sys));
     sys.updDefaultSubsystem().addEventReporter(new OnceOnlyEventReporter());
     sys.realizeTopology();
 
@@ -46,8 +46,8 @@ int main () {
     // large or small compared to the expected internal step size of the integrator.
 
     for (int i = 0; i < 4; ++i) {
-        PeriodicEventHandler::interval = (i == 0 || i == 1 ? 0.01 : 2.0);
-        PeriodicEventReporter::interval = (i == 0 || i == 2 ? 0.015 : 1.5);
+        PeriodicHandler::interval = (i == 0 || i == 1 ? 0.01 : 2.0);
+        PeriodicReporter::interval = (i == 0 || i == 2 ? 0.015 : 1.5);
         
         // Test the BDF integrator in both normal and single step modes.
         

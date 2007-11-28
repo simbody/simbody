@@ -73,11 +73,11 @@ private:
     PendulumSystem& pendulum;
 };
 
-class PeriodicEventHandler : public ScheduledEventHandler {
+class PeriodicHandler : public ScheduledEventHandler {
 public:
     static int eventCount;
     static Real lastEventTime;
-    Real getNextEventTime(const State&) const {
+    Real getNextEventTime(const State&, bool includeCurrentTime) const {
         return lastEventTime+1.5;
     }
     void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) {
@@ -113,11 +113,11 @@ private:
     PendulumSystem& pendulum;
 };
 
-class PeriodicEventReporter : public ScheduledEventReporter {
+class PeriodicReporter : public ScheduledEventReporter {
 public:
     static int eventCount;
     static Real lastEventTime;
-    Real getNextEventTime(const State&) const {
+    Real getNextEventTime(const State&, bool includeCurrentTime) const {
         return lastEventTime*2;
     }
     void handleEvent(const State& state) {
@@ -132,20 +132,20 @@ public:
 
 int ZeroVelocityHandler::eventCount = 0;
 Real ZeroVelocityHandler::lastEventTime = 0.0;
-int PeriodicEventHandler::eventCount = 0;
-Real PeriodicEventHandler::lastEventTime = 0.0;
+int PeriodicHandler::eventCount = 0;
+Real PeriodicHandler::lastEventTime = 0.0;
 int ZeroPositionReporter::eventCount = 0;
 Real ZeroPositionReporter::lastEventTime = 0.0;
-int PeriodicEventReporter::eventCount = 0;
-Real PeriodicEventReporter::lastEventTime = 0.5;
+int PeriodicReporter::eventCount = 0;
+Real PeriodicReporter::lastEventTime = 0.5;
 
 int main () {
   try {
     PendulumSystem sys;
     sys.updDefaultSubsystem().addEventHandler(new ZeroVelocityHandler(sys));
-    sys.updDefaultSubsystem().addEventHandler(new PeriodicEventHandler());
+    sys.updDefaultSubsystem().addEventHandler(new PeriodicHandler());
     sys.updDefaultSubsystem().addEventReporter(new ZeroPositionReporter(sys));
-    sys.updDefaultSubsystem().addEventReporter(new PeriodicEventReporter());
+    sys.updDefaultSubsystem().addEventReporter(new PeriodicReporter());
     sys.realizeTopology();
 
     RungeKuttaMersonIntegrator integ(sys);
@@ -177,9 +177,9 @@ int main () {
     ASSERT(ts.getTime() == tFinal);
     ASSERT(integ.getTerminationReason() == Integrator::ReachedFinalTime);
     ASSERT(ZeroVelocityHandler::eventCount >= 10);
-    ASSERT(PeriodicEventHandler::eventCount == (int) (ts.getTime()/1.5));
+    ASSERT(PeriodicHandler::eventCount == (int) (ts.getTime()/1.5));
     ASSERT(ZeroPositionReporter::eventCount > 10);
-    ASSERT(PeriodicEventReporter::eventCount == (int) (std::log(ts.getTime())/std::log(2.0))+1);
+    ASSERT(PeriodicReporter::eventCount == (int) (std::log(ts.getTime())/std::log(2.0))+1);
     cout << "Done" << endl;
     return 0;
   }
