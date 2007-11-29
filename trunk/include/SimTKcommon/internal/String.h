@@ -39,7 +39,6 @@
 
 
 #include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/List.h"
 
 #include <cstdio>
 #include <string>
@@ -120,8 +119,6 @@ public:
     explicit String(bool b) : std::string(b?"true":"false") { }
     //@}
 };	
-
-SimTK_LIST_SPECIALIZE(String);
 
 }
 #endif // SimTK_SimTKCOMMON_STRING_H_
