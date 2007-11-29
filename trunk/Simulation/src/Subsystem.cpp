@@ -805,13 +805,18 @@ public:
         // each one for its EventTriggerInfo.
         
         const CacheInfo& info = getCacheInfo(s);
+        triggers.resize(triggeredEventHandlers.size()+triggeredEventReporters.size());
         for (int i = 0; i < (int)triggeredEventHandlers.size(); ++i) {
-            triggers += triggeredEventHandlers[i]->getTriggerInfo();
-            triggers[triggers.size()-1].setEventId(info.triggeredEventIds[i]);
+            Stage stage = triggeredEventHandlers[i]->getRequiredStage();
+            int index = info.triggeredEventIndices[i]+s.getEventStartByStage(stage)+s.getEventStartByStage(getMySubsystemId(), stage);
+            triggers[index] = triggeredEventHandlers[i]->getTriggerInfo();
+            triggers[index].setEventId(info.triggeredEventIds[i]);
         }
         for (int i = 0; i < (int)triggeredEventReporters.size(); ++i) {
-            triggers += triggeredEventReporters[i]->getTriggerInfo();
-            triggers[triggers.size()-1].setEventId(info.triggeredReportIds[i]);
+            Stage stage = triggeredEventReporters[i]->getRequiredStage();
+            int index = info.triggeredReportIndices[i]+s.getEventStartByStage(stage)+s.getEventStartByStage(getMySubsystemId(), stage);
+            triggers[index] = triggeredEventReporters[i]->getTriggerInfo();
+            triggers[index].setEventId(info.triggeredReportIds[i]);
         }
     }
     void calcTimeOfNextScheduledEvent(const State& s, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const {
