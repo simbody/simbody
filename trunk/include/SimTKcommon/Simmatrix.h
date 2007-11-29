@@ -34,14 +34,21 @@
 
 /** @file
  * This is the header which should be included in user programs that would
- * like to make use of all the Simmatrix facilities.
+ * like to make use of all the Simmatrix facilities, but none of the other
+ * parts of SimTKcommon.
  */
 
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/Scalar.h"
-#include "SimTKcommon/internal/SmallMatrix.h"
+// Each of these is independently user-includable, with later ones including
+// former ones.
+#include "SimTKcommon/Scalar.h"         // self-contained
+#include "SimTKcommon/SmallMatrix.h"    // includes Scalar.h
+#include "SimTKcommon/Orientation.h"    // includes SmallMatrix.h
+#include "SimTKcommon/Mechanics.h"      // includes Orientation.h
+
+// Here we add the missing pieces that provide large matrix functionality,
+// and some additional small matrix functionality that depends on having
+// access to large matrix capabilities.
 #include "SimTKcommon/internal/BigMatrix.h"
 #include "SimTKcommon/internal/SmallDefsThatNeedBig.h"
-#include "SimTKcommon/internal/Mechanics.h"
 
 #endif // SimTK_SIMMATRIX_H_

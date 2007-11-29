@@ -38,8 +38,6 @@
  * BigMatrix classes is the easiest way to get the desired functionality.
  */
 
-#include "SimTKcommon/basics.h"
-
 namespace SimTK {
 
 // TODO: This is really bad! Should share space instead of recopying.

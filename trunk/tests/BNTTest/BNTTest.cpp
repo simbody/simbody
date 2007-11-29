@@ -33,8 +33,7 @@
 //#define SimTK_DEFAULT_PRECISION 2
 //#define SimTK_DEFAULT_PRECISION 4
 
-#include "SimTKcommon/basics.h"
-#include "SimTKcommon/internal/Scalar.h"
+#include "SimTKcommon/Scalar.h"
 
 #include <iostream>
 #include <iomanip>

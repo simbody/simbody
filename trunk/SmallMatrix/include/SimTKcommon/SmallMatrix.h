@@ -93,9 +93,7 @@
  * 
  */
 
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/Constants.h"
-#include "SimTKcommon/internal/Scalar.h"
+#include "SimTKcommon/Scalar.h"
 
 // Forward declarations.
 namespace SimTK {

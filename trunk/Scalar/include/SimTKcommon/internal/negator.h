@@ -62,10 +62,6 @@
  * @endverbatim
  */
 
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/NTraits.h"
-#include "SimTKcommon/internal/CompositeNumericalTypes.h"
-
 #include <iostream>
     
 namespace SimTK {

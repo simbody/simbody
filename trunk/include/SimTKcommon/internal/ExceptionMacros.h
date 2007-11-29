@@ -82,7 +82,6 @@
 // ...
 
 #include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/String.h"
 #include "SimTKcommon/internal/Exception.h"
 
 #include <string>

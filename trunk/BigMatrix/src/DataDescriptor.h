@@ -39,9 +39,9 @@
  * side code.
  */
 
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/Scalar.h"
-#include "SimTKcommon/internal/SmallMatrix.h"
+#include "SimTKcommon/Scalar.h"
+#include "SimTKcommon/SmallMatrix.h"
+
 #include "SimTKcommon/internal/BigMatrix.h"
 
 #include "ElementFilter.h"

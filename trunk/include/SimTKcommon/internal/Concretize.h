@@ -32,8 +32,6 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon/internal/common.h"
-
 namespace SimTK {
 
 /** 

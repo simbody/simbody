@@ -32,8 +32,12 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+// Keeps MS VC++ 8 quiet about sprintf, strcpy, etc.
+#ifdef _MSC_VER
+#pragma warning(disable:4996)
+#endif
+
 #include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/String.h"
 
 #include <string>
 #include <iostream>
@@ -50,32 +54,32 @@ public:
 	explicit Base(const char* fn="<UNKNOWN>", int ln=0) 
       : fileName(fn), lineNo(ln) { } 
 	virtual ~Base() throw() { }
-	const String& getMessage()     const { return msg; }
-    const String& getMessageText() const { return text; }
+	const std::string& getMessage()     const { return msg; }
+    const std::string& getMessageText() const { return text; }
 
     // override virtual function from std::exception
     const char* what() const throw() {return getMessage().c_str();}
 protected:
-	void setMessage(const String& msgin) {
+	void setMessage(const std::string& msgin) {
         text = msgin;
         msg = "SimTK Exception thrown at " + where() + ":\n  " + msgin;
     }
 private:
-	String	fileName;	// where the exception was thrown
-	int		lineNo;	
-	String	msg;		// a message formatted for display by catcher
-    String  text;      // the original passed-in text
+	std::string	fileName;	// where the exception was thrown
+	int		    lineNo;	
+	std::string	msg;		// a message formatted for display by catcher
+    std::string text;      // the original passed-in text
     
-    static String shortenFileName(const String& fn) 
-    {   String::size_type pos = fn.find_last_of("/\\");
+    static std::string shortenFileName(const std::string& fn) 
+    {   std::string::size_type pos = fn.find_last_of("/\\");
         if (pos+1>=fn.size()) pos=0;
-        return String(fn,(int)(pos+1),(int)(fn.size()-(pos+1)));
+        return std::string(fn,(int)(pos+1),(int)(fn.size()-(pos+1)));
     }
 	
-	String where() const {
+	std::string where() const {
         char buf[32];
         sprintf(buf,"%d",lineNo);
-        return shortenFileName(fileName) + ":" + String(buf); 
+        return shortenFileName(fileName) + ":" + std::string(buf); 
     } 
 };
 
@@ -91,8 +95,8 @@ public:
         va_start(args, fmt);
         vsprintf(buf, fmt, args);
 
-        setMessage("Internal SimTK bug detected: " + String(buf)
-                   + " (Assertion '" + String(assertion) + "' failed). "
+        setMessage("Internal SimTK bug detected: " + std::string(buf)
+                   + " (Assertion '" + std::string(assertion) + "' failed). "
                      "Please report this to the appropriate authorities at SimTK.org.");
         va_end(args);
     }
@@ -110,8 +114,8 @@ public:
         va_start(args, fmt);
         vsprintf(buf, fmt, args);
         setMessage("Bad call to SimTK API method " 
-                   + String(className) + "::" + String(methodName) + "(): "
-                   + String(buf) + ".");
+                   + std::string(className) + "::" + std::string(methodName) + "(): "
+                   + std::string(buf) + ".");
         va_end(args);
     }
 private:
@@ -128,7 +132,7 @@ public:
 
         sprintf(buf, "Index out of range in %s: expected %ld <= %s < %ld but %s=%ld.",
             where,lb,indexName,ub,indexName,index);
-        setMessage(String(buf));
+        setMessage(std::string(buf));
     }
 private:
 };
@@ -143,7 +147,7 @@ public:
 
         sprintf(buf, "Size out of range in %s: expected 0 <= %s <= %ld but %s=%ld.",
             where,szName,maxsz,szName,sz);
-        setMessage(String(buf));
+        setMessage(std::string(buf));
     }
 private:
 };
@@ -158,7 +162,7 @@ public:
 
         sprintf(buf, "Size argument was negative in %s: expected 0 <= %s but %s=%ld.",
             where,szName,szName,sz);
-        setMessage(String(buf));
+        setMessage(std::string(buf));
     }
 private:
 };
@@ -174,7 +178,7 @@ public:
 
         sprintf(buf, "Value out of range in %s: expected %g <= %s <= %g but %s=%g.",
             where,lowerBound,valueName,upperBound,valueName,value);
-        setMessage(String(buf));
+        setMessage(std::string(buf));
     }
 private:
 };
@@ -189,7 +193,7 @@ public:
 
         sprintf(buf, "Expected non-negative value for %s in %s but got %g.",
             valueName,where,value);
-        setMessage(String(buf));
+        setMessage(std::string(buf));
     }
 private:
 };
@@ -197,7 +201,7 @@ private:
 class UnimplementedVirtualMethod : public Base {
 public:
     UnimplementedVirtualMethod(const char* fn, int ln, 
-        String baseClass, String methodName) 
+        std::string baseClass, std::string methodName) 
 		: Base(fn,ln)
 	{ 
 		setMessage("The base class " + baseClass + 
@@ -208,7 +212,7 @@ public:
 
 class IncompatibleValues : public Base {
 public:
-    IncompatibleValues(const char* fn, int ln, String src, String dest) : Base(fn,ln)
+    IncompatibleValues(const char* fn, int ln, std::string src, std::string dest) : Base(fn,ln)
     {
         setMessage("Attempt to assign a Value<"+src+"> to a Value<"+dest+">");
     }
@@ -217,7 +221,7 @@ private:
 
 class OperationNotAllowedOnView : public Base {
 public:
-    OperationNotAllowedOnView(const char* fn, int ln, const String& op) : Base(fn,ln)
+    OperationNotAllowedOnView(const char* fn, int ln, const std::string& op) : Base(fn,ln)
     {
         setMessage("Operation '" + op + "' allowed only for owners, not views");
     }   
@@ -225,7 +229,7 @@ public:
 
 class OperationNotAllowedOnOwner : public Base {
 public:
-    OperationNotAllowedOnOwner(const char* fn, int ln, const String& op) : Base(fn,ln)
+    OperationNotAllowedOnOwner(const char* fn, int ln, const std::string& op) : Base(fn,ln)
     {
         setMessage("Operation '" + op + "' allowed only for views, not owners");
     }   
@@ -233,7 +237,7 @@ public:
 
 class OperationNotAllowedOnNonconstReadOnlyView : public Base {
 public:
-    OperationNotAllowedOnNonconstReadOnlyView(const char* fn, int ln, const String& op) : Base(fn,ln)
+    OperationNotAllowedOnNonconstReadOnlyView(const char* fn, int ln, const std::string& op) : Base(fn,ln)
     {
         setMessage("Operation '" + op + "' not allowed on non-const readonly view");
     }   
@@ -242,7 +246,7 @@ public:
 // SimTK::Exception::Cant
 class Cant : public Base {
 public:
-	Cant(const char* fn, int ln, const String& s) : Base(fn,ln)
+	Cant(const char* fn, int ln, const std::string& s) : Base(fn,ln)
 	{
 		setMessage("Can't perform operation: " + s);
 	}	

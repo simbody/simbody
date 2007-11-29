@@ -42,7 +42,6 @@
  * to produce the effect of attaching AnalyticGeometry objects to bodies.
  */
 
-#include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 
 #include <cassert>

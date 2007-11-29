@@ -96,7 +96,6 @@
  * know the body's configuration, that is, Stage::Position.
  */
 
-#include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 
 #include <cassert>

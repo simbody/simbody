@@ -36,8 +36,10 @@
  *
  * This header collects all the Mechanics header files in one place.
  */
-#include "SimTKcommon/basics.h"
-#include "SimTKcommon/internal/Orientation.h"
+#include "SimTKcommon/Scalar.h"
+#include "SimTKcommon/SmallMatrix.h"
+#include "SimTKcommon/Orientation.h"
+
 #include "SimTKcommon/internal/SpatialAlgebra.h"
 #include "SimTKcommon/internal/MassProperties.h"
 

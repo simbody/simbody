@@ -39,9 +39,14 @@
  */
 
 #include "SimTKcommon/internal/common.h"
+#include "SimTKcommon/Constants.h"
+#include "SimTKcommon/internal/Exception.h"
+#include "SimTKcommon/internal/ExceptionMacros.h"
+#include "SimTKcommon/internal/String.h"
+
 #include "SimTKcommon/internal/conjugate.h"
-#include "SimTKcommon/internal/NTraits.h"
 #include "SimTKcommon/internal/CompositeNumericalTypes.h"
+#include "SimTKcommon/internal/NTraits.h"
 #include "SimTKcommon/internal/negator.h"
 
 #include <complex>

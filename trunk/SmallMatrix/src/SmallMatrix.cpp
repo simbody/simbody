@@ -29,9 +29,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon/basics.h"
-#include "SimTKcommon/internal/Scalar.h"
-#include "SimTKcommon/internal/SmallMatrix.h"
+#include "SimTKcommon/Scalar.h"
+#include "SimTKcommon/SmallMatrix.h"
 
 using namespace SimTK;
 

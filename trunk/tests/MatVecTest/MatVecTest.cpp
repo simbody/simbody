@@ -29,7 +29,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon.h"
+#include "SimTKcommon/SmallMatrix.h"
 
 #include <cstdio>
 #include <iostream>

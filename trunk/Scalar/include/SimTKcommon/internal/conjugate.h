@@ -65,8 +65,6 @@
  *       pg 592ff.
  */
 
-#include "SimTKcommon/internal/common.h"
-
 #include <complex>
 #include <iostream>
 #include <limits>

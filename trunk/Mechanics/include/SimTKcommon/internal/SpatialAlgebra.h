@@ -38,9 +38,7 @@
  * Rodriguez and Jain's Spatial Operator Algebra.
  */
 
-#include "SimTKcommon/basics.h"
-#include "SimTKcommon/internal/Scalar.h"
-#include "SimTKcommon/internal/SmallMatrix.h"
+#include "SimTKcommon/SmallMatrix.h"
 
 #include <iostream>
 

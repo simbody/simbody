@@ -33,11 +33,12 @@
  * Tests for the classes defined in Orientation.h.
  */
 
-#include "SimTKcommon.h"
+#include "SimTKcommon/Simmatrix.h"
 
 #include <string>
 #include <typeinfo>
 #include <iostream>
+#include <iomanip>
 #include <cmath>
 #include <limits>
 using std::cout;

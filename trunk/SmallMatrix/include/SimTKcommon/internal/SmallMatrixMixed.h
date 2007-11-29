@@ -37,8 +37,6 @@
  * types and hence need to wait until everything is defined.
  */
 
-#include "SimTKcommon/internal/common.h"
-
 namespace SimTK {
 
     // DOT PRODUCT

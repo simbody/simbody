@@ -58,8 +58,7 @@
  * is private, in the undefined class MatrixHelperRep<S>.
  */
 
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/Scalar.h"
+#include "SimTKcommon/Scalar.h"
 
 #include <iostream>
 #include <cassert>

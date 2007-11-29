@@ -29,8 +29,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon/basics.h"
-#include "SimTKcommon/internal/Scalar.h"
+#include "SimTKcommon/Scalar.h"
 
 #include <limits>
 #include <cmath>

@@ -38,10 +38,9 @@
  * those messy inertias.
  */
 
-#include "SimTKcommon/basics.h"
-#include "SimTKcommon/internal/Scalar.h"
-#include "SimTKcommon/internal/SmallMatrix.h"
-#include "SimTKcommon/internal/Orientation.h"
+#include "SimTKcommon/Scalar.h"
+#include "SimTKcommon/SmallMatrix.h"
+#include "SimTKcommon/Orientation.h"
 
 #include <iostream>
 

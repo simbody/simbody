@@ -55,11 +55,6 @@
  *      <conjugate> ::= conjugate< <real> >
  */
 
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/CompositeNumericalTypes.h"
-
-#include "SimTKcommon/Constants.h"
-
 #include <cstddef>
 #include <cassert>
 #include <complex>

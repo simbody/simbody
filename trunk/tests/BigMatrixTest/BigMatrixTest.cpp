@@ -29,7 +29,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon.h"
+#include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/TemplatizedLapack.h"
 
 #include <cstdlib> // for rand()
