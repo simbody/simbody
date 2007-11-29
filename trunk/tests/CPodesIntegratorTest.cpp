@@ -40,6 +40,7 @@ int main () {
     sys.updDefaultSubsystem().addEventHandler(new ZeroPositionHandler(sys));
     sys.updDefaultSubsystem().addEventReporter(new PeriodicReporter(sys));
     sys.updDefaultSubsystem().addEventReporter(new OnceOnlyEventReporter());
+    sys.updDefaultSubsystem().addEventReporter(new DiscontinuousReporter());
     sys.realizeTopology();
 
     // Test with various intervals for the event handler and event reporter, ones that are either

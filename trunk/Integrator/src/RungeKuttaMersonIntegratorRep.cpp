@@ -105,11 +105,6 @@ RungeKuttaMersonIntegratorRep::stepTo(Real reportTime,
             assert(!"can't call after final time reported"); //TODO: throw
             break;
 
-          case StepHasBeenReturnedWithEvent:
-            setUseInterpolatedState(false);
-            setStepCommunicationStatus(StepHasBeenReturnedNoEvent);
-            break;
-
           case StepHasBeenReturnedNoEvent:
             if (getAdvancedTime() >= finalTime) {
                 setUseInterpolatedState(false);
@@ -149,6 +144,10 @@ RungeKuttaMersonIntegratorRep::stepTo(Real reportTime,
             setStepCommunicationStatus(StepHasBeenReturnedWithEvent);
             return Integrator::ReachedEventTrigger;
           }
+
+          case StepHasBeenReturnedWithEvent:
+            setUseInterpolatedState(false);
+            // Fall through to the next case.
 
           case CompletedInternalStepNoEvent: {
             // Time has been advanced. If there is a report due before tAdvanced,

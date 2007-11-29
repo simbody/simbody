@@ -174,6 +174,32 @@ public:
     }
 };
 
+class DiscontinuousReporter : public TriggeredEventReporter {
+public:
+    static int eventCount;
+    DiscontinuousReporter() : TriggeredEventReporter(Stage::Time) {
+    }
+    Real getValue(const State& state) const {
+        Real step = std::floor(state.getTime());
+        step = std::fmod(step, 4.0);
+        if (step == 0.0)
+            return 1.0;
+        if (step == 2.0)
+            return -1.0;
+        return 0.0;
+    }
+    void handleEvent(const State& state) {
+        
+        // This should be triggered when the value goes to 0, but not when it leaves 0.
+        
+        Real t = state.getTime();
+        Real phase = std::fmod(t, 2.0);
+        ASSERT(std::abs(phase-1.0) < 0.01);
+        eventCount++;
+    }
+};
+
+
 int ZeroVelocityHandler::eventCount = 0;
 Real ZeroVelocityHandler::lastEventTime = 0.0;
 int PeriodicHandler::eventCount = 0;
@@ -186,6 +212,7 @@ int PeriodicReporter::eventCount = 0;
 Real PeriodicReporter::lastEventTime = 0.0;
 Real PeriodicReporter::interval = 0.0;
 bool OnceOnlyEventReporter::hasOccurred = false;
+int DiscontinuousReporter::eventCount = 0;
 
 void testIntegrator (Integrator& integ, PendulumSystem& sys) {
     ZeroVelocityHandler::eventCount = 0;
@@ -198,6 +225,7 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys) {
     PeriodicReporter::eventCount = 0;
     PeriodicReporter::lastEventTime = -PeriodicReporter::interval;
     OnceOnlyEventReporter::hasOccurred = false;
+    DiscontinuousReporter::eventCount = 0;
 
     const Real t0=0;
     const Real tFinal = 20.003;
@@ -246,6 +274,7 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys) {
     ASSERT(PeriodicHandler::eventCount == (int) (ts.getTime()/PeriodicHandler::interval)+1);
     ASSERT(ZeroPositionHandler::eventCount > 10);
     ASSERT(PeriodicReporter::eventCount == (int) (ts.getTime()/PeriodicReporter::interval)+1);
+    ASSERT(DiscontinuousReporter::eventCount == (int) (ts.getTime()/2.0));
 }
 
 #endif /*SimTK_SIMMATH_INTEGRATOR_TEST_FRAMEWORK_H_*/
