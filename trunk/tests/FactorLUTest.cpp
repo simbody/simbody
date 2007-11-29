@@ -77,42 +77,50 @@ A =   5.25  -2.95  -0.95   -3.80   and B = 24.35
 #include "SimTKcommon.h"
 #include "SimTKmath.h"
 
-#include <cstdio>
-#include <cassert>
 #include <iostream>
+using std::cout; using std::endl;
+
+#define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
 using namespace SimTK;
 
-using std::printf;
-using std::cout;
-using std::endl;
+Real A[16] = { 1.80,   2.88,   2.05,   -0.89,
+               5.25,  -2.95,  -0.95,   -3.80,
+               1.58,  -2.69,  -2.90,   -1.04,
+              -1.11,  -0.66,  -0.59,    0.80  };
 
-  double A[16] = { 1.80,   2.88,   2.05,   -0.89,
-                   5.25,  -2.95,  -0.95,   -3.80,
-                   1.58,  -2.69,  -2.90,   -1.04,
-                  -1.11,  -0.66,  -0.59,    0.80  };
+Real B[4] =  { 9.52, 24.35,  0.77, -6.22 };
 
-  double B[4] =  { 9.52, 24.35,  0.77, -6.22 };
+Real X[4] =  { 1.,   -1.,    3.,   -5.   };
 
 int main () {
     try { 
-        int i,j;
-        Matrix_<double> a(4,4);
-        Vector_<double> b(4);
-        Vector_<double> x(4);
-
-        for(i=0;i<4;i++) {
-            for(j=0;j<4;j++) {
-                a(i,j) = A[i*4 + j];
-            }
-        }
-        for(i=0;i<4;i++) b(i) = B[i];
+            // Default precision (Real, normally double) test.
+        Matrix a(4,4, A);
+        Vector b(4, B);
+        Vector x_right(4, X);
+        Vector x; // should get sized automatically to 4 by solve()
 
         FactorLU lu(a);  // perform LU factorization 
 
         lu.solve( b, x );  // solve for x given a right hand side 
 
-        printf(" SOLUTION: "); for(i=0;i<4;i++) printf("%f ",x(i)); printf(" \n" );
+        cout << " Real SOLUTION: " << x << "  errnorm=" << (x-x_right).norm() << endl;
+        ASSERT((x-x_right).norm() < 10*SignificantReal);
+
+            // float test
+
+        Matrix_<float> af(4,4); for (int i=0; i<4; ++i) for (int j=0; j<4; ++j) af(i,j)=(float)a(i,j);
+        Vector_<float> bf(4); for (int i=0; i<4; ++i) bf[i] = (float)b[i];
+        Vector_<float> xf_right(4); for (int i=0; i<4; ++i) xf_right[i] = (float)x_right[i];
+        Vector_<float> xf; // should get sized automatically to 4 by solve()
+
+        FactorLU luf(af);
+        luf.solve(bf, xf);
+
+        cout << " float SOLUTION: " << xf << "  errnorm=" << (xf-xf_right).norm() << endl;
+        const float SignificantFloat = NTraits<float>::getSignificant();
+        ASSERT((xf-xf_right).norm() < 10*SignificantFloat);
         
         return 0;
     } 
