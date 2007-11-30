@@ -75,7 +75,7 @@ class EnergyMonitor : public PeriodicEventReporter {
 public:
     mutable int eventCount;
     mutable Real sumEnergy, sumEnergySquared;
-    EnergyMonitor(MultibodySystem& system) : PeriodicEventReporter(0.05), system(system), sumEnergy(0.0), sumEnergySquared(0.0) {
+    EnergyMonitor(MultibodySystem& system) : PeriodicEventReporter(0.05), system(system), eventCount(0), sumEnergy(0.0), sumEnergySquared(0.0) {
     }
     void handleEvent(const State& state) const {
         if (state.getTime() <= 1.0)
@@ -88,7 +88,6 @@ public:
     }
 private:
     MultibodySystem& system;
-    Real lastEventTime;
 };
 
 int main() {
