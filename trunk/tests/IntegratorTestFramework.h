@@ -51,21 +51,18 @@ using std::printf;
 using std::cout;
 using std::endl;
 
-class PeriodicHandler : public ScheduledEventHandler {
+class PeriodicHandler : public PeriodicEventHandler {
 public:
     static int eventCount;
-    static Real lastEventTime;
-    static Real interval;
-    Real getNextEventTime(const State&, bool includeCurrentTime) const {
-        return lastEventTime+interval;
+    static PeriodicHandler* handler;
+    PeriodicHandler() : PeriodicEventHandler(1.0) {
     }
     void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
         
         // This should be triggered every (interval) time units.
         
-        ASSERT(state.getTime() == lastEventTime+interval);
+        ASSERT(state.getTime() == getNextEventTime(state, true));
         eventCount++;
-        lastEventTime = state.getTime();
     }
 };
 
@@ -128,23 +125,18 @@ private:
     PendulumSystem& pendulum;
 };
 
-class PeriodicReporter : public ScheduledEventReporter {
+class PeriodicReporter : public PeriodicEventReporter {
 public:
     static int eventCount;
-    static Real lastEventTime;
-    static Real interval;
-    PeriodicReporter(PendulumSystem& pendulum) : pendulum(pendulum) {
-    }
-    Real getNextEventTime(const State&, bool includeCurrentTime) const {
-        return lastEventTime+interval;
+    static PeriodicReporter* reporter;
+    PeriodicReporter(PendulumSystem& pendulum) : PeriodicEventReporter(1.0), pendulum(pendulum) {
     }
     void handleEvent(const State& state) const {
         
         // This should be triggered every (interval) time units.
         
-        ASSERT(state.getTime() == lastEventTime+interval);
+        ASSERT(state.getTime() == getNextEventTime(state, true));
         eventCount++;
-        lastEventTime = state.getTime();
         
         // Verify conservation of energy.
         
@@ -203,14 +195,12 @@ public:
 int ZeroVelocityHandler::eventCount = 0;
 Real ZeroVelocityHandler::lastEventTime = 0.0;
 int PeriodicHandler::eventCount = 0;
-Real PeriodicHandler::lastEventTime = 0.0;
-Real PeriodicHandler::interval = 0.0;
+PeriodicHandler* PeriodicHandler::handler = 0;
 int ZeroPositionHandler::eventCount = 0;
 Real ZeroPositionHandler::lastEventTime = 0.0;
 bool ZeroPositionHandler::hasAccelerated = false;
 int PeriodicReporter::eventCount = 0;
-Real PeriodicReporter::lastEventTime = 0.0;
-Real PeriodicReporter::interval = 0.0;
+PeriodicReporter* PeriodicReporter::reporter = 0;
 bool OnceOnlyEventReporter::hasOccurred = false;
 int DiscontinuousReporter::eventCount = 0;
 
@@ -218,12 +208,10 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys) {
     ZeroVelocityHandler::eventCount = 0;
     ZeroVelocityHandler::lastEventTime = 0.0;
     PeriodicHandler::eventCount = 0;
-    PeriodicHandler::lastEventTime = -PeriodicHandler::interval;
     ZeroPositionHandler::eventCount = 0;
     ZeroPositionHandler::lastEventTime = 0.0;
     ZeroPositionHandler::hasAccelerated = false;
     PeriodicReporter::eventCount = 0;
-    PeriodicReporter::lastEventTime = -PeriodicReporter::interval;
     OnceOnlyEventReporter::hasOccurred = false;
     DiscontinuousReporter::eventCount = 0;
 
@@ -271,9 +259,9 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys) {
     ASSERT(ts.getTime() == tFinal);
     ASSERT(integ.getTerminationReason() == Integrator::ReachedFinalTime);
     ASSERT(ZeroVelocityHandler::eventCount > 10);
-    ASSERT(PeriodicHandler::eventCount == (int) (ts.getTime()/PeriodicHandler::interval)+1);
+    ASSERT(PeriodicHandler::eventCount == (int) (ts.getTime()/PeriodicHandler::handler->getEventInterval())+1);
     ASSERT(ZeroPositionHandler::eventCount > 10);
-    ASSERT(PeriodicReporter::eventCount == (int) (ts.getTime()/PeriodicReporter::interval)+1);
+    ASSERT(PeriodicReporter::eventCount == (int) (ts.getTime()/PeriodicReporter::reporter->getEventInterval())+1);
     ASSERT(DiscontinuousReporter::eventCount == (int) (ts.getTime()/2.0));
 }
 
