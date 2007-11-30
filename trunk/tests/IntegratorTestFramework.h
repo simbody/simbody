@@ -59,7 +59,7 @@ public:
     Real getNextEventTime(const State&, bool includeCurrentTime) const {
         return lastEventTime+interval;
     }
-    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) {
+    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
         
         // This should be triggered every (interval) time units.
         
@@ -79,7 +79,7 @@ public:
     Real getValue(const State& state) const {
         return state.getQ(pendulum.getGuts().getSubsysIndex())[0];
     }
-    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) {
+    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
         
         // This should be triggered when the pendulum crosses x == 0.
         
@@ -113,7 +113,7 @@ public:
     Real getValue(const State& state) const {
         return state.getU(pendulum.getGuts().getSubsysIndex())[0];
     }
-    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) {
+    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
         
         // This should be triggered when the pendulum reaches its farthest point in the
         // negative direction: q[0] == -1, u[0] == 0.
@@ -138,7 +138,7 @@ public:
     Real getNextEventTime(const State&, bool includeCurrentTime) const {
         return lastEventTime+interval;
     }
-    void handleEvent(const State& state) {
+    void handleEvent(const State& state) const {
         
         // This should be triggered every (interval) time units.
         
@@ -168,7 +168,7 @@ public:
     Real getNextEventTime(const State&, bool includeCurrentTime) const {
         return 5.0;
     }
-    void handleEvent(const State& state) {
+    void handleEvent(const State& state) const {
         ASSERT(!hasOccurred);
         hasOccurred = true;
     }
@@ -188,7 +188,7 @@ public:
             return -1.0;
         return 0.0;
     }
-    void handleEvent(const State& state) {
+    void handleEvent(const State& state) const {
         
         // This should be triggered when the value goes to 0, but not when it leaves 0.
         

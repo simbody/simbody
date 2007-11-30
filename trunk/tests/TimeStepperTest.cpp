@@ -56,7 +56,7 @@ public:
     Real getValue(const State& state) const {
         return state.getU(pendulum.getGuts().getSubsysIndex())[0];
     }
-    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) {
+    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
         
         // This should be triggered when the pendulum reaches its farthest point in the
         // negative direction: q == -1, u == 0.
@@ -80,7 +80,7 @@ public:
     Real getNextEventTime(const State&, bool includeCurrentTime) const {
         return lastEventTime+1.5;
     }
-    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) {
+    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
         
         // This should be triggered every 1.5 time units.
         
@@ -99,7 +99,7 @@ public:
     Real getValue(const State& state) const {
         return state.getQ(pendulum.getGuts().getSubsysIndex())[0];
     }
-    void handleEvent(const State& state) {
+    void handleEvent(const State& state) const {
         
         // This should be triggered when the pendulum crosses q == 0.
         
@@ -120,7 +120,7 @@ public:
     Real getNextEventTime(const State&, bool includeCurrentTime) const {
         return lastEventTime*2;
     }
-    void handleEvent(const State& state) {
+    void handleEvent(const State& state) const {
         
         // This should be triggered every 1.5 time units.
         
