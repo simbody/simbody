@@ -61,7 +61,7 @@ public:
      * Set the temperature this thermostat is set to maintain.
      */
     void setTemperature(Real temp);
-    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate);
+    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const;
     ~VelocityRescalingThermostat();
 private:
     class VelocityRescalingThermostatImpl;

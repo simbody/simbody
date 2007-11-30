@@ -68,7 +68,7 @@ public:
 
     /// This method calculates a new visualization frame using the MultibodySystem
     /// and the supplied state, and updates the screen.
-    void report(const State& s);
+    void report(const State& s) const;
 
     /// Change the camera location. This is a point in the Ground frame.
     void setCameraLocation(const Vec3&);

@@ -71,22 +71,20 @@ public:
     }
 };
 
-class EnergyMonitor : public ScheduledEventReporter {
+class EnergyMonitor : public PeriodicEventReporter {
 public:
-    int eventCount;
-    Real sumEnergy, sumEnergySquared;
-    EnergyMonitor(MultibodySystem& system) : system(system), lastEventTime(1.0), sumEnergy(0.0), sumEnergySquared(0.0) {
+    mutable int eventCount;
+    mutable Real sumEnergy, sumEnergySquared;
+    EnergyMonitor(MultibodySystem& system) : PeriodicEventReporter(0.05), system(system), sumEnergy(0.0), sumEnergySquared(0.0) {
     }
-    Real getNextEventTime(const State&, bool includeCurrentTime) const {
-        return lastEventTime+0.05;
-    }
-    void handleEvent(const State& state) {
+    void handleEvent(const State& state) const {
+        if (state.getTime() <= 1.0)
+            return;
         eventCount++;
         system.realize(state, Stage::Dynamics);
         Real energy = system.getKineticEnergy(state);
         sumEnergy += energy;
         sumEnergySquared += energy*energy;
-        lastEventTime = state.getTime();
     }
 private:
     MultibodySystem& system;

@@ -45,7 +45,7 @@ public:
     TextDataEventReporterRep(const System& system) : system(system) {
     }
     virtual void printValues(const State& state) const = 0;
-    void handleEvent(const State& state) {
+    void handleEvent(const State& state) const {
         cout << state.getTime();
         printValues(state);
         cout << endl;
@@ -101,6 +101,6 @@ TextDataEventReporter::~TextDataEventReporter() {
         delete rep;
 }
 
-void TextDataEventReporter::handleEvent(const State& state) {
+void TextDataEventReporter::handleEvent(const State& state) const {
     updRep().handleEvent(state);
 }

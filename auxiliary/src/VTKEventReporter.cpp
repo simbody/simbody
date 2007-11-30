@@ -40,7 +40,7 @@ public:
     VTKReporter& getReporter() {
         return reporter;
     }
-    void handleEvent(const State& state) {
+    void handleEvent(const State& state) const {
         reporter.report(state);
     }
     VTKEventReporter* handle;
@@ -61,6 +61,6 @@ VTKReporter& VTKEventReporter::getReporter() {
     return updRep().getReporter();
 }
 
-void VTKEventReporter::handleEvent(const State& state) {
+void VTKEventReporter::handleEvent(const State& state) const {
     updRep().handleEvent(state);
 }

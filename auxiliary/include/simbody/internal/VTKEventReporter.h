@@ -55,7 +55,7 @@ public:
      * Get the VTKReporter which generates the images.  It may be used to configure the display.
      */
     VTKReporter& getReporter();
-    void handleEvent(const State& state);
+    void handleEvent(const State& state) const;
     class VTKEventReporterRep;
 protected:
     VTKEventReporterRep* rep;

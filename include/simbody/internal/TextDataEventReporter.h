@@ -60,7 +60,7 @@ public:
      */
     TextDataEventReporter(const System& system, UserFunction<Vector>* function, Real reportInterval);
     ~TextDataEventReporter();
-    void handleEvent(const State& state);
+    void handleEvent(const State& state) const;
     class TextDataEventReporterRep;
 protected:
     TextDataEventReporterRep* rep;

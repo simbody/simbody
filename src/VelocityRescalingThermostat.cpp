@@ -49,7 +49,7 @@ public:
     void setTemperature(Real temp) {
         temperature = temp;
     }
-    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) {
+    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
         Real energy = system.getKineticEnergy(state);
         if (energy == 0.0)
             return;
@@ -83,6 +83,6 @@ void VelocityRescalingThermostat::setTemperature(Real temp) {
     impl->setTemperature(temp);
 }
 
-void VelocityRescalingThermostat::handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) {
+void VelocityRescalingThermostat::handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
     impl->handleEvent(state, accuracy, yWeights, ooConstraintTols, lowestModified, shouldTerminate);
 }

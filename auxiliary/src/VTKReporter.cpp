@@ -213,7 +213,7 @@ VTKReporter::~VTKReporter() {
     delete rep; rep=0;
 }
 
-void VTKReporter::report(const State& s) {
+void VTKReporter::report(const State& s) const {
     assert(rep);
     rep->report(s);
 }
