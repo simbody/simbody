@@ -66,7 +66,7 @@ public:
      * system at the time when the event occurs.
      */
     
-    virtual void handleEvent(const State& state) = 0;
+    virtual void handleEvent(const State& state) const = 0;
 };
 
 /**
@@ -160,7 +160,7 @@ public:
      * Get the time interval at which events occur.
      */
     
-    Real getEventInterval();
+    Real getEventInterval() const;
     
     /**
      * Set the time interval at which events occur.

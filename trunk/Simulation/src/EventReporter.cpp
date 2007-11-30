@@ -96,7 +96,7 @@ Real PeriodicEventReporter::getNextEventTime(const State& state, bool includeCur
     return eventTime;
 }
 
-Real PeriodicEventReporter::getEventInterval() {
+Real PeriodicEventReporter::getEventInterval() const {
     return impl->eventInterval;
 }
 

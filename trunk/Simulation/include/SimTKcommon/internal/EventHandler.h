@@ -81,7 +81,7 @@ public:
      *                          immediately.
      */
     
-    virtual void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) = 0;
+    virtual void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const = 0;
 };
 
 /**
@@ -175,7 +175,7 @@ public:
      * Get the time interval at which events occur.
      */
     
-    Real getEventInterval();
+    Real getEventInterval() const;
     
     /**
      * Set the time interval at which events occur.
