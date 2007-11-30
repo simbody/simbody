@@ -131,7 +131,10 @@ public:
     // canonical has 1st number <= last number; middle two must swap
     // if the outside ones do
     void canonicalize() {
-        if(ids[0]>ids[3]) {
+        // Id quad has additional case where 1 == 4 and 2 differs from 3
+        if(    (ids[0]>ids[3]) 
+            || ( (ids[0] == ids[3]) && (ids[1] > ids[2]) ) )
+        {
             std::swap(ids[0],ids[3]); 
             std::swap(ids[1],ids[2]);
         }
