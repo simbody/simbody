@@ -50,7 +50,7 @@ static Real factr = 1.0e7;   //
 
 
           /* assume all paramters have both upper and lower limits */
-          nbd = (int *)malloc(n*sizeof(int));
+          nbd = new int[n];
           for(i=0;i<n;i++) {
                nbd[i] = 2;
           }
@@ -75,7 +75,6 @@ static Real factr = 1.0e7;   //
          gradient = new Real[n];
 
 
-//printf("\n ***** LBFGSBOptimizer ***** \n\n");
  
          iprint[0] = iprint[1] = iprint[2] = diagnosticsLevel;
          sys.getParameterLimits( &lowerLimits, &upperLimits );
@@ -100,6 +99,9 @@ static Real factr = 1.0e7;   //
              } else {
                 run_optimizer = 0;
                 if( strncmp( task, "CONV", 4) != 0 ){
+                    delete[] gradient;
+                    delete[] iwa;
+                    delete[] wa;
                     SimTK_THROW1(SimTK::Exception::OptimizerFailed , SimTK::String(task) ); 
                 }
              }

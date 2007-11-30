@@ -8,9 +8,71 @@
 #include "SimTKcommon.h"
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/BigMatrix.h"
-#include "Optimizer.h"
 
 #include "nlpqlp.h"
+
+static int pow_ii(int *ap, int *bp) {
+int pow, x, n;
+
+pow = 1;
+x = *ap;
+n = *bp;
+
+if(n < 0)
+	{ }
+else if(n > 0)
+	for( ; ; )
+		{
+		if(n & 01)
+			pow *= x;
+		if(n >>= 1)
+			x *= x;
+		else
+			break;
+		}
+return(pow);
+}
+
+static const Real log10e = 0.43429448190325182765;
+Real  d_lg10(Real *x)
+{
+
+return( log10e * log(*x) );
+}
+static Real d_sign(Real *a, Real *b)
+{
+   Real x;
+   x = (*a >= 0 ? *a : - *a);
+   return( *b >= 0 ? x : -x);
+}
+static Real pow_di(Real *ap, int *bp)
+{
+Real pow, x;
+int n;
+
+pow = 1;
+x = *ap;
+n = *bp;
+
+if(n != 0)
+	{
+	if(n < 0)
+		{
+		n = -n;
+		x = 1/x;
+		}
+	for( ; ; )
+		{
+		if(n & 01)
+			pow *= x;
+		if(n >>= 1)
+			x *= x;
+		else
+			break;
+		}
+	}
+return(pow);
+}
 
 int (*current_test)(int*);
 
@@ -85,7 +147,7 @@ static int (*(tests[]))(int*) = {  tp1_,  tp2_,  tp3_,  tp4_,  tp5_,  tp6_,  tp7
                            tp361_, tp362_, tp363_
                          };
 
-static char *test_names[] = {     "tp1_",  "tp2_",  "tp3_",  "tp4_",  "tp5_",  "tp6_",  "tp7_",  "tp8_",  "tp9_", "tp10_", 
+static const char *test_names[] = {     "tp1_",  "tp2_",  "tp3_",  "tp4_",  "tp5_",  "tp6_",  "tp7_",  "tp8_",  "tp9_", "tp10_", 
                            "tp11_", "tp12_", "tp13_", "tp14_", "tp15_", "tp16_", "tp17_", "tp18_", "tp19_", "tp20_",
                            "tp21_", "tp22_", "tp23_", "tp24_", "tp25_", "tp26_", "tp27_", "tp28_", "tp29_", "tp30_",
                            "tp31_", "tp32_", "tp33_", "tp34_", "tp35_", "tp36_", "tp37_", "tp38_", "tp39_", "tp40_", 
@@ -156,6 +218,7 @@ using namespace SimTK;
 class ProblemSystem : public OptimizerSystem {
 public:
 
+  int m;
 
   int objectiveFunc(  const Vector &coefficients, const bool new_coefficients, Real& f ) const {
 
@@ -212,7 +275,7 @@ int constraintFunc( const Vector &coefficients, const bool new_coefficients, Vec
   current_test(&mode);
 
   Real *cv = (Real*)&l3_;
-  for(i=0;i<numConstraints;i++)  {
+  for(i=0;i<m;i++)  {
      if( !std::isfinite(cv[i]) ) {
           printf(" constraint is not finite \n");
           exit(0);
@@ -235,21 +298,25 @@ int constraintJacobian( const Vector& coefficients, const bool new_coefficients,
 
     current_test(&mode);
     Real *jv = (Real*)&l5_;
-    for(j=0;j<numConstraints;j++) {
+    for(j=0;j<numEqualityConstraints;j++) {
        for(i=0;i<numParameters;i++) {
-          if( !std::isfinite(jv[i*numConstraints+j]) ) {
-             printf(" jacobian(%d,%d) is not finite index=%d\n",j,i,i*numConstraints+j);
+          if( !std::isfinite(jv[i*m+j]) ) {
+             printf(" jacobian(%d,%d) is not finite index=%d\n",j,i,i*numEqualityConstraints+j);
              exit(0);
           }
-          jac(j,i) = jv[i*numConstraints+j];   // original
+          jac(j,i) = jv[i*m+j];   // original
 //          jac(j,i) = jv[i+numParameters*j];
        }
     }
   return (0);
 }
-   ProblemSystem( const int numParams, const int numConstraints) :
-         OptimizerSystem( numParams, numConstraints ) {}
-
+   ProblemSystem( const int numParams, const int numEqualityConstraints, const int numInEqualityConstraints) :
+         OptimizerSystem( numParams ) { 
+         setNumEqualityConstraints( numEqualityConstraints );
+         setNumInequalityConstraints( numInEqualityConstraints );
+         
+             m = numEqualityConstraints+ numInEqualityConstraints;
+         } 
    ProblemSystem( const int numParams) :
          OptimizerSystem( numParams ) {}
 
@@ -268,9 +335,11 @@ int main()
    int fail64bit[] = { 76, 99, 103, 136, 164, 184 };
 
 
-//   for( j=0;j<279;j++) {
-   for( j=83;j<86;j++) {
+   for( j=0;j<279;j++) {
+//   for( j=0;j<20;j++) {
+//   for( j=83;j<86;j++) {
 //   for( l=0;l<26;l++) {
+//   for( l=0;l<1;l++) {
 //      j = failures[l]-1;
    
       num_tests++;
@@ -299,8 +368,7 @@ bool run_test(int j ) {
   n = ndim->n;
   m = ndim->nili + ndim->ninl + ndim->neli + ndim->nenl;
 
-  ProblemSystem sys( n, m );
-  if( m > 0 ) sys.setNumEqualityConstraints( ndim->neli + ndim->nenl );
+  ProblemSystem sys( n,  ndim->neli + ndim->nenl, ndim->nili + ndim->ninl );
 
   index1 = (bool *)&l9_;
   for(i=0;i<m;i++)  index1[i] = true;
@@ -355,10 +423,10 @@ bool run_test(int j ) {
     opt.setConvergenceTolerance( 1e-3 );
 
 //    opt.useNumericalGradient( true );
-//    opt.useNumericalJacobian( true );
+    opt.useNumericalJacobian( true );
 //    opt.setDiagnosticsLevel( 7 );
 
-    // some tests do no supply gradients
+    // some tests do nor supply gradients
     if( j == 248-1 ||
         j == 264-1 ||
         j == 265-1 ||
@@ -30218,66 +30286,3 @@ Real norint_(Real *x)
     }
     return ret_val;
 } /* norint_ */
-static int pow_ii(int *ap, int *bp) {
-int pow, x, n;
-
-pow = 1;
-x = *ap;
-n = *bp;
-
-if(n < 0)
-	{ }
-else if(n > 0)
-	for( ; ; )
-		{
-		if(n & 01)
-			pow *= x;
-		if(n >>= 1)
-			x *= x;
-		else
-			break;
-		}
-return(pow);
-}
-
-static Real pow_di(Real *ap, int *bp)
-{
-Real pow, x;
-int n;
-
-pow = 1;
-x = *ap;
-n = *bp;
-
-if(n != 0)
-	{
-	if(n < 0)
-		{
-		n = -n;
-		x = 1/x;
-		}
-	for( ; ; )
-		{
-		if(n & 01)
-			pow *= x;
-		if(n >>= 1)
-			x *= x;
-		else
-			break;
-		}
-	}
-return(pow);
-}
-
-static const Real log10e = 0.43429448190325182765;
-Real  d_lg10(Real *x)
-{
-
-return( log10e * log(*x) );
-}
-static Real d_sign(Real *a, Real *b)
-{
-   Real x;
-   x = (*a >= 0 ? *a : - *a);
-   return( *b >= 0 ? x : -x);
-}

@@ -76,6 +76,7 @@ public:
 };
 
 
+
 // We want to perturb y0 by h such that the perturbation is
 // exactly representable in binary. hEst is our first guess
 // at h, which we calculate h=(y0+hEst)-y0 taking care not
@@ -176,6 +177,10 @@ private:
     DifferentiatorRep(const DifferentiatorRep&);
     DifferentiatorRep& operator=(const DifferentiatorRep&);
 };
+
+Differentiator::~Differentiator() {
+    delete rep;
+}
 
 class Differentiator::FunctionRep {
     friend class Differentiator::Function;

@@ -70,6 +70,7 @@ public:
     static const char* getMethodName(Method);
     static int         getMethodOrder(Method);
 
+    ~Differentiator();
     explicit Differentiator(const Function& f, 
                             Method          defaultMethod=UnspecifiedMethod);
 

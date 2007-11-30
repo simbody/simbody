@@ -72,7 +72,7 @@ public:
 
 class OptimizerRep {
 public:
-    ~OptimizerRep();
+    virtual ~OptimizerRep();
     OptimizerRep(OptimizerSystem& sys) 
        : sysp(0), 
          myHandle(0), 

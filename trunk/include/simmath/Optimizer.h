@@ -64,7 +64,12 @@ public:
         setNumParameters(nParameters);
     }
 
-  virtual ~OptimizerSystem() {}
+  virtual ~OptimizerSystem() {
+     if( useLimits ) {
+         delete lowerLimits;
+         delete upperLimits;
+     }
+  }
 
   /* this method must be supplied by concreate class */
   virtual int objectiveFunc      ( const Vector& parameters, 
@@ -156,8 +161,10 @@ public:
            SimTK_THROW5(Exception::IncorrectArrayLength, szName, lower.size(), "numParameters", numParameters, where);
         } 
        // set the upper and lower limits
-       if( lowerLimits ) delete lowerLimits;
-       if( upperLimits ) delete upperLimits;
+       if( useLimits ) {
+           delete lowerLimits;
+           delete upperLimits;
+       }
 
        if( upper.size() == 0 ) {
           useLimits = false;

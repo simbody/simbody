@@ -272,13 +272,10 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
 /*     INITIALIZE */
 /*     ---------- */
 
-	char buf[256];
-	Real *diag, *gradient, *w;
+    char buf[256];
+    Real *diag, *gradient, *w;
     int info;
     bool converged = false;
-	diag =     new Real[n];
-	w =        new Real[n*(2*m+1) + 2*m];
-    gradient = new Real[n];
     ispt = n + (m << 1);
     iypt = ispt + n * m;
     ftol = 1e-4;
@@ -288,6 +285,9 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
     if (n <= 0 || m <= 0) {
        SimTK_THROW1(SimTK::Exception::OptimizerFailed , "IMPROPER INPUT PARAMETERS N OR M ARE NOT POSITIVE");
     }
+    diag =     new Real[n];
+    w =        new Real[n*(2*m+1) + 2*m];
+    gradient = new Real[n];
     nfun = 1;
     point = 0;
 
@@ -414,9 +414,12 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
        do {
           SimTK::LBFGSOptimizer::mcsrch_(&n, x, f, gradient, &w[ispt + point * n], &stp, &ftol, xtol, &maxfev, &info, &nfev, diag);
           if (info == -1) {
-             objectiveFuncWrapper( n, x, true, f, (void*)this );
-             gradientFuncWrapper( n,  x, false, gradient, (void*)this );
+              objectiveFuncWrapper( n, x, true, f, (void*)this );
+              gradientFuncWrapper( n,  x, false, gradient, (void*)this );
           } else if (info != 1) {
+	      delete [] diag;
+              delete [] gradient;
+	      delete [] w;
               if (lb3_1.lp > 0) {
                  SimTK_THROW1(SimTK::Exception::OptimizerFailed , 
                  "LBFGS LINE SEARCH FAILED POSSIBLE CAUSES: FUNCTION OR GRADIENT ARE INCORRECT OR INCORRECT TOLERANCES");  
@@ -438,6 +441,12 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
              } else if( info == 6){
                  SimTK_THROW1(SimTK::Exception::OptimizerFailed,
                  "LBFGS ERROR: ROUNDING ERRORS PREVENT FURTHER PROGRESS.\n THERE MAY NOT BE A STEP WHICH SATISFIES THE SUFFICIENT DECREASE AND CURVATURE\n CONDITIONS. TOLERANCES MAY BE TOO SMALL.");
+             } else if( info == 7){
+                 SimTK_THROW1(SimTK::Exception::OptimizerFailed , "Error in input parameters to MCSRCH"); 
+             } else if( info == 8){
+                 SimTK_THROW1(SimTK::Exception::OptimizerFailed , "THE SEARCH DIRECTION IS NOT A DESCENT DIRECTION");
+             } else if( info == 9){
+                 SimTK_THROW1(SimTK::Exception::OptimizerFailed , "Error in input parameters to mcstep_"); 
              } else {
                  sprintf(buf, "LBFGS ERROR: info = %d \n",info );
                  SimTK_THROW1(SimTK::Exception::OptimizerFailed, SimTK::String(buf) );
@@ -724,7 +733,8 @@ void SimTK::LBFGSOptimizer::mcsrch_(integer *n, Real *x, Real *f, Real *g, Real 
 
     if (*n <= 0 || *stp <= 0. || *ftol < 0. || lb3_1.gtol < 0. || *xtol < 0. ||
         lb3_1.stpmin < 0. || lb3_1.stpmax < lb3_1.stpmin || *maxfev <= 0) {
-        SimTK_THROW1(SimTK::Exception::OptimizerFailed , "Error in input parameters to MCSRCH"); 
+        *info = 7;
+        return;
     }
 
 /*     COMPUTE THE INITIAL GRADIENT IN THE SEARCH DIRECTION */
@@ -735,7 +745,8 @@ void SimTK::LBFGSOptimizer::mcsrch_(integer *n, Real *x, Real *f, Real *g, Real 
         dginit += g[j] * s[j];
     }
     if (dginit >= 0.) {
-        SimTK_THROW1(SimTK::Exception::OptimizerFailed , "THE SEARCH DIRECTION IS NOT A DESCENT DIRECTION");
+        *info = 8;
+        return;
     }
 
 /*     INITIALIZE LOCAL VARIABLES. */
@@ -976,7 +987,8 @@ static void mcstep_(Real *stx, Real *fx, Real *dx, Real *sty, Real *fy, Real *dy
 
     if ( ( *brackt && ( *stp <= std::min(*stx,*sty) || *stp >= std::max(*stx,*sty) ) )
         || *dx * (*stp - *stx) >= 0. || *stpmax < *stpmin) {
-        SimTK_THROW1(SimTK::Exception::OptimizerFailed , "Error in input parameters to mcstep_"); 
+        *info = 9;
+        return;
     }
 
 /*     DETERMINE IF THE DERIVATIVES HAVE OPPOSITE SIGN. */

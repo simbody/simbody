@@ -165,12 +165,10 @@ double *afact;
     double *w, *work,*atmp;
     char jobz = 'N';
     char uplo = 'L';
-    int *tmp_ipiv; 
     int i;
 
-    
+    delete [] ipiv;
     ipiv = new int[n];
-    tmp_ipiv = (int *)malloc( sizeof(int)*n );
 
     /* compute negative eigenvalues */
 
@@ -182,7 +180,10 @@ double *afact;
     for(i=0;i<n*n;i++) atmp[i] = a[i];
     dsyev_(jobz, uplo, n, atmp, n, w, work, lwork, info,  1, 1);
     if( info != 0 ) {
-         return(SYMSOLVER_FATAL_ERROR);
+        delete [] w;
+        delete [] work;
+        delete [] atmp;
+        return(SYMSOLVER_FATAL_ERROR);
     }
     for(i=0;i<n;i++){
    //     printf(" eigenvlaue #%d = %f \n",i,w[i] );
@@ -191,6 +192,7 @@ double *afact;
     delete [] w;
     delete [] work;
     if (check_NegEVals && (numberOfNegEVals!=negevals_)) {
+       delete [] atmp;
        return SYMSOLVER_WRONG_INERTIA;
     }
 

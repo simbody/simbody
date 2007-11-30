@@ -27,10 +27,10 @@
 namespace SimTK {
     OptimizerRep::~OptimizerRep() {
 
-        if( jacDiff ) delete jacDiff;
-        if( gradDiff ) delete gradDiff;
-        if( cf ) delete cf;
-        if( of ) delete of;
+        delete jacDiff;
+        delete gradDiff;
+        delete cf;
+        delete of;
 
      }
     void OptimizerRep::setConvergenceTolerance( const Real tolerance ){
