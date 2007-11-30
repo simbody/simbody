@@ -89,7 +89,7 @@ Real PeriodicEventHandler::getNextEventTime(const State& state, bool includeCurr
     Real currentTime = state.getTime();
     long count = (long)std::floor(currentTime/impl->eventInterval);
     Real eventTime = count*impl->eventInterval;
-    if (eventTime < currentTime || (eventTime == currentTime && !includeCurrentTime)) {
+    while (eventTime < currentTime || (eventTime == currentTime && !includeCurrentTime)) {
         count++;
         eventTime = count*impl->eventInterval;
     }
