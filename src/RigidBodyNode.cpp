@@ -2432,6 +2432,17 @@ public:
         return true;
     }
 
+    void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {
+        toQuat(outputQ) = Vec4(0); // clear unused element
+        toQ(outputQ) = Rotation(Quaternion(fromQuat(inputQ))).convertRotationToBodyFixedXYZ();
+    }
+    
+    void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {
+        Rotation rot;
+        rot.setRotationToBodyFixedXYZ(fromQ(inputQ));
+        toQuat(outputQ) = rot.convertRotationToQuaternion().asVec4();
+    }
+
     void getInternalForce(const SBAccelerationCache&, Vector&) const {
         assert(false); // TODO: decompose cross-joint torque into 123 gimbal torques
     }
@@ -2932,6 +2943,19 @@ public:
         quat = quat / quat.norm();
         return true;
     }
+
+    void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {
+        toQVec3(outputQ, 4) = Vec3(0); // clear unused element
+        toQVec3(outputQ, 2) = fromQVec3(inputQ, 3);
+        toQVec3(outputQ, 0) = Rotation(Quaternion(fromQuat(inputQ))).convertRotationToBodyFixedXYZ();
+    }
+    
+    void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {
+        toQVec3(outputQ, 4) = fromQVec3(inputQ, 3);
+        Rotation rot;
+        rot.setRotationToBodyFixedXYZ(fromQVec3(inputQ, 0));
+        toQuat(outputQ) = rot.convertRotationToQuaternion().asVec4();
+    }
 };
 
 
@@ -3197,6 +3221,19 @@ public:
         Vec4& quat = toQuat(q);
         quat = quat / quat.norm();
         return true;
+    }
+
+    void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {
+        toQVec3(outputQ, 4) = Vec3(0); // clear unused element
+        toQVec3(outputQ, 3) = fromQVec3(inputQ, 4);
+        toQVec3(outputQ, 0) = Rotation(Quaternion(fromQuat(inputQ))).convertRotationToBodyFixedXYZ();
+    }
+    
+    void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {
+        toQVec3(outputQ, 4) = fromQVec3(inputQ, 3);
+        Rotation rot;
+        rot.setRotationToBodyFixedXYZ(fromQVec3(inputQ, 0));
+        toQuat(outputQ) = rot.convertRotationToQuaternion().asVec4();
     }
 };
 
