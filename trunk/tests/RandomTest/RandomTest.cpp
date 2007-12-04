@@ -174,7 +174,15 @@ void testUniform() {
     for (int i = 0; i < 2000; ++i)
         value3[i] = rand.getIntValue();
     verifyUniformDistribution(5, 20, value3, 2000);
+
+    // Verify that if we do not explicitly set the seed, every Random object is initialized with a different seed.
     
+    Random::Uniform rand1, rand2;
+    rand1.fillArray(value, 2000);
+    rand2.fillArray(value2, 2000);
+    for (int i = 0; i < 2000; ++i)
+        ASSERT(value[i] != value2[i])
+
     // Make sure none of the above operations has overwritten the final array element.
     
     ASSERT(value[2000] == 123.4)
@@ -228,6 +236,7 @@ int main() {
         cout << "exception: " << e.what() << endl;
         return 1;
     }
+    cout << "Done" << endl;
     return 0;
 }
 

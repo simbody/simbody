@@ -44,11 +44,11 @@ namespace SimTK {
  * Random::Uniform random(0.0, 100.0);
  * Real nextValue = random.getValue(); // Each time you call this, it will return a different value.
  * 
- * Although the numbers are distributed in a seemingly random way, they are nonetheless deterministic, so if you create
- * several random number generators with the same parameters, each one will return exactly the same sequence of numbers.
- * If you want to get a different sequence of numbers, you can invoke setSeed(int seed) on a Random object.  Each seed
- * value corresponds to a different sequence of numbers that is uncorrelated with all others.  When a new Random object
- * is created, it is initialized with a seed value of 0.
+ * Although the numbers are distributed in a seemingly random way, they are nonetheless deterministic, so you can create
+ * several random number generators that each returns exactly the same sequence of numbers.  The sequence is determined
+ * by the seed value with which the Random object is initialized.  By default, a different seed is used for every object.
+ * You can invoke setSeed(int seed) on a Random object to explicitly specify the seed to use.  Each seed
+ * value corresponds to a different sequence of numbers that is uncorrelated with all others.
  * 
  * This class is implemented using the SIMD-oriented Fast Mersenne Twister (SFMT) library.  It provides
  * good performance, excellent statistical properties, and a very long period.
