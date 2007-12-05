@@ -62,7 +62,7 @@ static int subsystemCalcZUnitWeightsImplLocator(const Subsystem::Guts&, const St
 static int subsystemCalcQErrUnitTolerancesImplLocator(const Subsystem::Guts&, const State&, Vector&);
 static int subsystemCalcUErrUnitTolerancesImplLocator(const Subsystem::Guts&, const State&, Vector&);
 static int subsystemCalcDecorativeGeometryAndAppendImplLocator
-                (const Subsystem::Guts&, const State&, Stage, Array<DecorativeGeometry>&);
+                (const Subsystem::Guts&, const State&, Stage, std::vector<DecorativeGeometry>&);
 
 /**
  * The abstract parent of all Subsystems.
@@ -292,8 +292,8 @@ public:
     // throw an exception if this subsystem's state hasn't already been realized
     // to that stage. Note that the list is not inclusive -- you have to
     // request geometry from each stage to get all of it.
-    // The generated geometry will be *appended* to the supplied output Array.
-    void calcDecorativeGeometryAndAppend(const State&, Stage, Array<DecorativeGeometry>&) const;
+    // The generated geometry will be *appended* to the supplied output vector.
+    void calcDecorativeGeometryAndAppend(const State&, Stage, std::vector<DecorativeGeometry>&) const;
     
     void createScheduledEvent(State& state, int& eventId) const;
     void createTriggeredEvent(State& state, int& eventId, int& triggerFunctionIndex, Stage stage) const;
@@ -302,13 +302,13 @@ public:
     // Each subsystem is responsible for defining its own events, and
     // System then combines the information from them, and dispatches events
     // to the appropriate subsystems for handling when they occur.
-    virtual void calcEventTriggerInfo(const State&, Array<System::EventTriggerInfo>&) const;
-    virtual void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
-    virtual void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
-    virtual void handleEvents(State&, System::EventCause, const Array<int>& eventIds,
+    virtual void calcEventTriggerInfo(const State&, std::vector<System::EventTriggerInfo>&) const;
+    virtual void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const;
+    virtual void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const;
+    virtual void handleEvents(State&, System::EventCause, const std::vector<int>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
-    virtual void reportEvents(const State&, System::EventCause, const Array<int>& eventIds) const;
+    virtual void reportEvents(const State&, System::EventCause, const std::vector<int>& eventIds) const;
 protected:
     // These virtual methods should be overridden in concrete Subsystems as
     // necessary. They should never be called directly; instead call the
@@ -345,7 +345,7 @@ protected:
     virtual int calcQErrUnitTolerancesImpl(const State& s, Vector& tolerances) const;
     virtual int calcUErrUnitTolerancesImpl(const State& s, Vector& tolerances) const;
     virtual int calcDecorativeGeometryAndAppendImpl
-       (const State&, Stage, Array<DecorativeGeometry>&) const;
+       (const State&, Stage, std::vector<DecorativeGeometry>&) const;
 
     // Use these to allocate state variables and cache entries that are owned
     // by this Subsystem.
@@ -377,7 +377,7 @@ private:
     typedef int (*RealizeConstStateImplLocator)(const Subsystem::Guts&, const State&);
     typedef int (*CalcUnitWeightsImplLocator)(const Subsystem::Guts&, const State&, Vector& weights);
     typedef int (*CalcDecorativeGeometryAndAppendImplLocator)
-       (const Subsystem::Guts&, const State&, Stage, Array<DecorativeGeometry>&);
+       (const Subsystem::Guts&, const State&, Stage, std::vector<DecorativeGeometry>&);
 
     void librarySideConstruction(const String& name, const String& version);
     void librarySideDestruction();
@@ -424,7 +424,7 @@ private:
     friend int subsystemCalcQErrUnitTolerancesImplLocator(const Subsystem::Guts&, const State&, Vector&);
     friend int subsystemCalcUErrUnitTolerancesImplLocator(const Subsystem::Guts&, const State&, Vector&);
     friend int subsystemCalcDecorativeGeometryAndAppendImplLocator
-                (const Subsystem::Guts&, const State&, Stage, Array<DecorativeGeometry>&);
+                (const Subsystem::Guts&, const State&, Stage, std::vector<DecorativeGeometry>&);
 };
 
 
@@ -466,7 +466,7 @@ static int subsystemCalcQErrUnitTolerancesImplLocator(const Subsystem::Guts& sys
 static int subsystemCalcUErrUnitTolerancesImplLocator(const Subsystem::Guts& sys, const State& s, Vector& tolerances)
   { return sys.calcUErrUnitTolerancesImpl(s,tolerances); }
 static int subsystemCalcDecorativeGeometryAndAppendImplLocator
-   (const Subsystem::Guts& sys, const State& s, Stage g, Array<DecorativeGeometry>& geom)
+   (const Subsystem::Guts& sys, const State& s, Stage g, std::vector<DecorativeGeometry>& geom)
   { return sys.calcDecorativeGeometryAndAppendImpl(s,g,geom); }
 
 

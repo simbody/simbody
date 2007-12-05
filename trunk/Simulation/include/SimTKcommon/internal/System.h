@@ -173,10 +173,10 @@ public:
     // to that stage. Note that the list is not inclusive -- you have to
     // request geometry from each stage to get all of it.
     // This routine asks each subsystem in succession to generate its decorative geometry
-    // and append it to the end of the Array.
+    // and append it to the end of the vector.
     // If the stage is Stage::Topology, realizeTopology() must already have
     // been called but the State is ignored.
-    void calcDecorativeGeometryAndAppend(const State&, Stage, Array<DecorativeGeometry>&) const;
+    void calcDecorativeGeometryAndAppend(const State&, Stage, std::vector<DecorativeGeometry>&) const;
 
         ///////////////////////////
         // THE CONTINUOUS SYSTEM //
@@ -308,14 +308,14 @@ public:
     /// to true before returning.
 
     void handleEvents
-       (State&, EventCause, const Array<int>& eventIds,
+       (State&, EventCause, const std::vector<int>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
     
     /// This method is similar to handleEvents(), but does not allow the State to be
     /// modified.  It is used for scheduled events that were marked as being reports.
     
-    void reportEvents(const State& s, EventCause cause, const Array<int>& eventIds) const;
+    void reportEvents(const State& s, EventCause cause, const std::vector<int>& eventIds) const;
 
     /// This routine provides the Integrator with information it needs about the
     /// individual event trigger functions, such as which sign transitions are
@@ -326,19 +326,19 @@ public:
     /// A default implementation is provided which returns default EventTriggerInfo for
     /// each event trigger in State.
     /// State must already be realized to Stage::Instance.
-    void calcEventTriggerInfo(const State&, Array<EventTriggerInfo>&) const;
+    void calcEventTriggerInfo(const State&, std::vector<EventTriggerInfo>&) const;
 
     /// This routine should be called to determine if and when there is an event
     /// scheduled to occur at a particular time. This is a *lot* cheaper than
     /// making the Integrator hunt these down like ordinary state-dependent events.
     /// The returned time can be passed to the Integrator's stepping function as
     /// the advance time limit.
-    void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
+    void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const;
 
     /// This routine is similar to calcTimeOfNextScheduledEvent(), but is used for
     /// "reporting events" which do not modify the state.  Events returned by this
     /// method should be handled by invoking reportEvents() instead of hanldeEvents().
-    void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
+    void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const;
     
     //TODO: these operators should be provided by the Vector class where they
     //can be perfomed more efficiently.

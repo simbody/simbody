@@ -59,12 +59,12 @@ static int  systemCalcYUnitWeightsImplLocator(const System::Guts&, const State&,
 static int  systemProjectImplLocator(const System::Guts&, State&, Real, const Vector&, const Vector&,
                                          Vector&);
 static int  systemCalcYErrUnitTolerancesImplLocator(const System::Guts&, const State&, Vector& ootols);
-static int  systemHandleEventsImplLocator(const System::Guts&, State&, System::EventCause, const Array<int>&,
+static int  systemHandleEventsImplLocator(const System::Guts&, State&, System::EventCause, const std::vector<int>&,
                                               Real, const Vector&, const Vector&, Stage&, bool&);
-static int  systemReportEventsImplLocator(const System::Guts&, const State&, System::EventCause, const Array<int>&);
-static int  systemCalcEventTriggerInfoImplLocator(const System::Guts&, const State&, Array<System::EventTriggerInfo>&);
-static int  systemCalcTimeOfNextScheduledEventImplLocator(const System::Guts&, const State&, Real&, Array<int>&, bool includeCurrentTime);
-static int  systemCalcTimeOfNextScheduledReportImplLocator(const System::Guts&, const State&, Real&, Array<int>&, bool includeCurrentTime);
+static int  systemReportEventsImplLocator(const System::Guts&, const State&, System::EventCause, const std::vector<int>&);
+static int  systemCalcEventTriggerInfoImplLocator(const System::Guts&, const State&, std::vector<System::EventTriggerInfo>&);
+static int  systemCalcTimeOfNextScheduledEventImplLocator(const System::Guts&, const State&, Real&, std::vector<int>&, bool includeCurrentTime);
+static int  systemCalcTimeOfNextScheduledReportImplLocator(const System::Guts&, const State&, Real&, std::vector<int>&, bool includeCurrentTime);
 
 /**
  * This is the declaration for the System::Guts class, the abstract object to
@@ -187,16 +187,16 @@ public:
                  const Vector& ootols, Vector& yerrest) const;
     void calcYErrUnitTolerances(const State&, Vector& tolerances) const;
     void handleEvents
-       (State&, EventCause, const Array<int>& eventIds,
+       (State&, EventCause, const std::vector<int>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
-    void reportEvents(const State&, EventCause, const Array<int>& eventIds) const;
-    void calcEventTriggerInfo(const State&, Array<EventTriggerInfo>&) const;
-    void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
-    void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
+    void reportEvents(const State&, EventCause, const std::vector<int>& eventIds) const;
+    void calcEventTriggerInfo(const State&, std::vector<EventTriggerInfo>&) const;
+    void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const;
+    void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const;
 
     void calcDecorativeGeometryAndAppend(const State&, Stage, 
-                                         Array<DecorativeGeometry>&) const;
+                                         std::vector<DecorativeGeometry>&) const;
 
 
 protected:
@@ -234,16 +234,16 @@ protected:
     virtual int calcYErrUnitTolerancesImpl(const State&, Vector& tolerances) const;
 
     virtual int handleEventsImpl
-       (State&, EventCause, const Array<int>& eventIds,
+       (State&, EventCause, const std::vector<int>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
 
-    virtual int reportEventsImpl(const State&, EventCause, const Array<int>& eventIds) const;
+    virtual int reportEventsImpl(const State&, EventCause, const std::vector<int>& eventIds) const;
 
-    virtual int calcEventTriggerInfoImpl(const State&, Array<EventTriggerInfo>&) const;
+    virtual int calcEventTriggerInfoImpl(const State&, std::vector<EventTriggerInfo>&) const;
 
-    virtual int calcTimeOfNextScheduledEventImpl(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
-    virtual int calcTimeOfNextScheduledReportImpl(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
+    virtual int calcTimeOfNextScheduledEventImpl(const State&, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const;
+    virtual int calcTimeOfNextScheduledReportImpl(const State&, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const;
 private:
     Guts& operator=(const Guts&); // suppress default copy assignment operator
 
@@ -264,16 +264,16 @@ private:
                                              Vector&);
 
     typedef int (*HandleEventsImplLocator)
-       (const System::Guts&, State&, EventCause, const Array<int>&,
+       (const System::Guts&, State&, EventCause, const std::vector<int>&,
         Real, const Vector&, const Vector&, Stage&, bool&);
     typedef int (*ReportEventsImplLocator)
-       (const System::Guts&, const State&, EventCause, const Array<int>&);
+       (const System::Guts&, const State&, EventCause, const std::vector<int>&);
     typedef int (*CalcEventTriggerInfoImplLocator)
-       (const System::Guts&, const State&, Array<EventTriggerInfo>&);
+       (const System::Guts&, const State&, std::vector<EventTriggerInfo>&);
     typedef int (*CalcTimeOfNextScheduledEventImplLocator)
-       (const System::Guts&, const State&, Real&, Array<int>&, bool);
+       (const System::Guts&, const State&, Real&, std::vector<int>&, bool);
     typedef int (*CalcTimeOfNextScheduledReportImplLocator)
-       (const System::Guts&, const State&, Real&, Array<int>&, bool);
+       (const System::Guts&, const State&, Real&, std::vector<int>&, bool);
 
     class EventTriggerInfoRep;
 
@@ -324,12 +324,12 @@ private:
     friend int  systemProjectImplLocator(const System::Guts&, State&, Real, const Vector&, const Vector&,
                                          Vector&);
     friend int  systemCalcYErrUnitTolerancesImplLocator(const System::Guts&, const State&, Vector& ootols);
-    friend int  systemHandleEventsImplLocator(const System::Guts&, State&, EventCause, const Array<int>&,
+    friend int  systemHandleEventsImplLocator(const System::Guts&, State&, EventCause, const std::vector<int>&,
                                               Real, const Vector&, const Vector&, Stage&, bool&);
-    friend int  systemReportEventsImplLocator(const System::Guts&, const State&, EventCause, const Array<int>&);
-    friend int  systemCalcEventTriggerInfoImplLocator(const System::Guts&, const State&, Array<EventTriggerInfo>&);
-    friend int  systemCalcTimeOfNextScheduledEventImplLocator(const System::Guts&, const State&, Real&, Array<int>&, bool);
-    friend int  systemCalcTimeOfNextScheduledReportImplLocator(const System::Guts&, const State&, Real&, Array<int>&, bool);
+    friend int  systemReportEventsImplLocator(const System::Guts&, const State&, EventCause, const std::vector<int>&);
+    friend int  systemCalcEventTriggerInfoImplLocator(const System::Guts&, const State&, std::vector<EventTriggerInfo>&);
+    friend int  systemCalcTimeOfNextScheduledEventImplLocator(const System::Guts&, const State&, Real&, std::vector<int>&, bool);
+    friend int  systemCalcTimeOfNextScheduledReportImplLocator(const System::Guts&, const State&, Real&, std::vector<int>&, bool);
 };
 
 
@@ -376,23 +376,23 @@ static int  systemCalcYErrUnitTolerancesImplLocator(const System::Guts& sys, con
   { return sys.calcYErrUnitTolerancesImpl(state, ootols); }
 
 static int  systemHandleEventsImplLocator
-   (const System::Guts& sys, State& state, System::EventCause cause, const Array<int>& eventIds,
+   (const System::Guts& sys, State& state, System::EventCause cause, const std::vector<int>& eventIds,
     Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate)
   { return sys.handleEventsImpl(state, cause, eventIds, accuracy, yWeights, ooConstraintTols, lowestModified, shouldTerminate); }
 
 static int  systemReportEventsImplLocator
-   (const System::Guts& sys, const State& state, System::EventCause cause, const Array<int>& eventIds)
+   (const System::Guts& sys, const State& state, System::EventCause cause, const std::vector<int>& eventIds)
   { return sys.reportEventsImpl(state, cause, eventIds); }
 
-static int  systemCalcEventTriggerInfoImplLocator(const System::Guts& sys, const State& state, Array<System::EventTriggerInfo>& info)
+static int  systemCalcEventTriggerInfoImplLocator(const System::Guts& sys, const State& state, std::vector<System::EventTriggerInfo>& info)
   { return sys.calcEventTriggerInfoImpl(state,info); }
 
 static int  systemCalcTimeOfNextScheduledEventImplLocator
-   (const System::Guts& sys, const State& state, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime)
+   (const System::Guts& sys, const State& state, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime)
   { return sys.calcTimeOfNextScheduledEventImpl(state,tNextEvent,eventIds,includeCurrentTime); }
 
 static int  systemCalcTimeOfNextScheduledReportImplLocator
-   (const System::Guts& sys, const State& state, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime)
+   (const System::Guts& sys, const State& state, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime)
   { return sys.calcTimeOfNextScheduledReportImpl(state,tNextEvent,eventIds,includeCurrentTime); }
 
 
