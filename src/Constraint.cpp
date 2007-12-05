@@ -332,7 +332,7 @@ Constraint::PointInPlane::PointInPlaneRep& Constraint::PointInPlane::updRep() {
     // PointInPlaneRep
 
 void Constraint::PointInPlane::PointInPlaneRep::calcDecorativeGeometryAndAppendImpl
-   (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the artwork until we know the normal, height, and follower
     // point location, which might not be until Instance stage.
@@ -474,7 +474,7 @@ Constraint::Ball::BallRep& Constraint::Ball::updRep() {
     // BallRep
 
 void Constraint::Ball::BallRep::calcDecorativeGeometryAndAppendImpl
-   (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the ball until we know the radius, and we can't place
     // the geometry on the body until we know the body1 and body2 point

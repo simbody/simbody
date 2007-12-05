@@ -258,11 +258,11 @@ try // If anything goes wrong, an exception will be thrown.
     //sub.addTerminalBody(myRNA.getMobilizedBody(MobilizedBodyId(20)));
     sub.realizeTopology();
     cout << "sub.ancestor=" << sub.getAncestorBody();
-    cout << "  sub.terminalBodies=" << sub.getTerminalBodies() << endl;
-    cout << "sub.allBodies=" << sub.getAllBodies() << endl;
+//    cout << "  sub.terminalBodies=" << sub.getTerminalBodies() << endl;
+//    cout << "sub.allBodies=" << sub.getAllBodies() << endl;
     for (SubtreeBodyId i(0); i < sub.getAllBodies().size(); ++i) {
        cout << "sub.parent[" << i << "]=" << sub.getParentSubtreeBodyId(i);
-       cout << "  sub.children[" << i << "]=" << sub.getChildSubtreeBodyIds(i) << endl;
+//       cout << "  sub.children[" << i << "]=" << sub.getChildSubtreeBodyIds(i) << endl;
     }
    
 

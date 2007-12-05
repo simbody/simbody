@@ -227,12 +227,12 @@ public:
 
 
     virtual void calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
     {
     }
 
     void calcDecorativeGeometryAndAppend
-       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
     {
         // Let the individual constraint deal with any complicated stuff.
         calcDecorativeGeometryAndAppendImpl(s,stage,geom);
@@ -418,7 +418,7 @@ public:
     ConstraintNode* createConstraintNode() const; 
 
     void calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
 
     void setPlaneDisplayHalfWidth(Real h) {
         // h <= 0 means don't display plane
@@ -458,7 +458,7 @@ public:
     ConstraintNode* createConstraintNode() const; 
 
     void calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
 
     void setDefaultRadius(Real r) {
         // r <= 0 means don't display

@@ -48,6 +48,7 @@ using SimTK::Transform;
 using SimTK::Rotation;
 using SimTK::Inertia;
 using SimTK::MassProperties;
+using SimTK::Array;
 
 /**
  * This is an abstract class representing the *computational* form of a body and its

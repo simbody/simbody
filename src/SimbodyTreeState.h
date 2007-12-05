@@ -77,7 +77,7 @@
 #include <vector>
 
 
-using SimTK::State; using SimTK::Array; using SimTK::Vector; using SimTK::Vec3;
+using SimTK::State; using SimTK::Vector; using SimTK::Vec3;
 using SimTK::Rotation; using SimTK::Transform; using SimTK::Inertia;
 using SimTK::Real; using SimTK::Vector_;
 using SimTK::UnitVec3; using SimTK::SpatialVec; using SimTK::SpatialRow; 

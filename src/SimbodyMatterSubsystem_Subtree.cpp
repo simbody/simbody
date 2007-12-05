@@ -88,7 +88,7 @@ public:
     }
 
 
-    void setTerminalBodies(const Array<MobilizedBodyId>& bids) {
+    void setTerminalBodies(const std::vector<MobilizedBodyId>& bids) {
         clear();
         for (int i=0; i < bids.size(); ++i)
             addTerminalBody(bids[i]);
@@ -340,23 +340,23 @@ private:
 
         // TOPOLOGY STATE VARIABLES
 
-    Array<MobilizedBodyId> terminalBodies;
+    std::vector<MobilizedBodyId> terminalBodies;
 
         // TOPOLOGY CACHE VARIABLES
 
     // Maps SubtreeBodyId to MobilizedBodyId
     MobilizedBodyId        ancestor;
-    Array<MobilizedBodyId> allBodies; // ancestor body is 0; ids are in increasing order
+    std::vector<MobilizedBodyId> allBodies; // ancestor body is 0; ids are in increasing order
 
     // Maps each subtree body (by SubtreeBodyId) to its unique parent within the subtree
     // the base body (SubtreeBodyId==SubtreeBaseBodyId==0) returns an InvalidSubtreeBodyId
     // as its parent.
-    Array<SubtreeBodyId>   parentSubtreeBodies;
+    std::vector<SubtreeBodyId>   parentSubtreeBodies;
 
     // Maps each subtree body to its children within the subtree. Note that a subtree terminal
     // body may have children in the full matter subsystem, but which are not included in
     // the subtree.
-    Array< Array<SubtreeBodyId> > childSubtreeBodies;
+    std::vector< std::vector<SubtreeBodyId> > childSubtreeBodies;
 
 private:
 
@@ -690,7 +690,7 @@ SimbodyMatterSubsystem::Subtree::Subtree(const SimbodyMatterSubsystem& matter)
 
 
 SimbodyMatterSubsystem::Subtree::Subtree(const SimbodyMatterSubsystem& matter,
-                                         const Array<MobilizedBodyId>& terminalBodies)
+                                         const std::vector<MobilizedBodyId>& terminalBodies)
   : rep(0)
 {
     rep = new SubtreeRep(*this, matter);
@@ -755,7 +755,7 @@ MobilizedBodyId SimbodyMatterSubsystem::Subtree::getAncestorBody() const {
     return getRep().ancestor;
 }
 
-const Array<MobilizedBodyId>& 
+const std::vector<MobilizedBodyId>& 
 SimbodyMatterSubsystem::Subtree::getTerminalBodies() const {
     return getRep().terminalBodies;
 }
@@ -764,7 +764,7 @@ int SimbodyMatterSubsystem::Subtree::getNumSubtreeBodies() const {
     return (int)getRep().allBodies.size();
 }
 
-const Array<MobilizedBodyId>& 
+const std::vector<MobilizedBodyId>& 
 SimbodyMatterSubsystem::Subtree::getAllBodies() const {
     assert(getRep().stage >= Stage::Topology);
     return getRep().allBodies;
@@ -775,7 +775,7 @@ SimbodyMatterSubsystem::Subtree::getParentSubtreeBodyId(SubtreeBodyId sbid) cons
     assert(getRep().stage >= Stage::Topology);
     return getRep().parentSubtreeBodies[sbid];
 }
-const Array<SubtreeBodyId>& 
+const std::vector<SubtreeBodyId>& 
 SimbodyMatterSubsystem::Subtree::getChildSubtreeBodyIds(SubtreeBodyId sbid) const {
     assert(getRep().stage >= Stage::Topology);
     return getRep().childSubtreeBodies[sbid];

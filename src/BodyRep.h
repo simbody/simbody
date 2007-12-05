@@ -70,7 +70,7 @@ public:
         myg.setTransform(X_BD*myg.getTransform());
     }
 
-    void appendDecorativeGeometry(MobilizedBodyId id, Array<DecorativeGeometry>& geom) const {
+    void appendDecorativeGeometry(MobilizedBodyId id, std::vector<DecorativeGeometry>& geom) const {
         for (int i=0; i<(int)geometry.size(); ++i) {
             geom.push_back(geometry[i]);
             geom.back().setBodyId(id);

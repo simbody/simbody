@@ -251,8 +251,8 @@ static inline bool operator<(const LoopWNodes& l1, const LoopWNodes& l2) {
 // 
 //   
 void
-LengthConstraints::construct(const Array<RBDistanceConstraint*>& iloops,
-                             const Array<RBPointInPlaneConstraint*>& pipLoops)
+LengthConstraints::construct(const std::vector<RBDistanceConstraint*>& iloops,
+                             const std::vector<RBPointInPlaneConstraint*>& pipLoops)
 {
     //clean up
     pvConstraints.resize(0);

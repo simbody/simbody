@@ -150,7 +150,7 @@ private:
     // This geometry gets displayed at the next frame render and then 
     // destroyed. We have to remember the actors we generate to do that so 
     // we can remove them from the renderer when we're done with the frame.
-    Array<DecorativeGeometry> ephemeralGeometry;
+    std::vector<DecorativeGeometry> ephemeralGeometry;
     std::vector<vtkActor*>    ephemeralActors;
 
     vtkRenderWindow* renWin;
@@ -588,7 +588,7 @@ void VTKReporterRep::initTopology() {
 
     // Mine the system for any geometry it wants us to show.
     // TODO: there is currently no way to turn this off.
-    Array<DecorativeGeometry> sysGeom;
+    std::vector<DecorativeGeometry> sysGeom;
     mbs.calcDecorativeGeometryAndAppend(State(), Stage::Topology, sysGeom);
     for (int i=0; i<sysGeom.size(); ++i)
         addDecoration(MobilizedBodyId(sysGeom[i].getBodyId()), Transform(), sysGeom[i]);

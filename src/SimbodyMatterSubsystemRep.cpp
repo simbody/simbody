@@ -181,11 +181,11 @@ MobilizedBodyId SimbodyMatterSubsystemRep::getParent(MobilizedBodyId body) const
     return MobilizedBodyId(getRigidBodyNode(body).getParent()->getNodeNum());
 }
 
-Array<MobilizedBodyId> SimbodyMatterSubsystemRep::getChildren(MobilizedBodyId body) const {
+std::vector<MobilizedBodyId> SimbodyMatterSubsystemRep::getChildren(MobilizedBodyId body) const {
     const RigidBodyNode& node = getRigidBodyNode(body);
-    Array<MobilizedBodyId> children;
+    std::vector<MobilizedBodyId> children;
     for (MobilizedBodyId i(0); i < node.getNChildren(); ++i)
-        children += MobilizedBodyId(node.getChild(i)->getNodeNum());
+        children.push_back(MobilizedBodyId(node.getChild(i)->getNodeNum()));
     return children;
 }
 
@@ -652,7 +652,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemReportImpl(const State& s) const 
 }
 
 int SimbodyMatterSubsystemRep::calcDecorativeGeometryAndAppendImpl
-   (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // Let the bodies and mobilizers have a chance to generate some geometry.
     for (MobilizedBodyId i(0); i<(int)mobilizedBodies.size(); ++i)

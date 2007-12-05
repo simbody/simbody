@@ -936,7 +936,7 @@ Vec3& MobilizedBody::Ball::updMyPartU(const State& s, Vector& ulike) const {
     // BallImpl
 
 void MobilizedBody::BallImpl::calcDecorativeGeometryAndAppendImpl
-   (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the ball until we know the radius, and we can't place
     // the geometry on the body until we know the parent and child mobilizer frame
@@ -1017,7 +1017,7 @@ Quaternion& MobilizedBody::Ellipsoid::updDefaultQ() {
 }
 
 void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl
-   (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the ellipsoid until we know the radius, and we can't place either
     // piece of geometry on the bodies until we know the parent and child mobilizer frame

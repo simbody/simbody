@@ -85,12 +85,12 @@ public:
     virtual void copyOutDefaultQImpl(int nq, Real* q) const = 0;
 
     virtual void calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
     {
     }
 
     void calcDecorativeGeometryAndAppend
-       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
     {
         // We know how to deal with the topological (construction) geometry
         // here. For bodies we can just draw it at topology stage. For mobilizers,
@@ -264,7 +264,7 @@ public:
 private:
     // Body topological geometry is defined with respect to the body frame so we
     // can draw it right away.
-    void appendTopologicalBodyGeometry(Array<DecorativeGeometry>& geom) const {
+    void appendTopologicalBodyGeometry(std::vector<DecorativeGeometry>& geom) const {
         getBody().getRep().appendDecorativeGeometry(getMyMobilizedBodyId(), geom);
     }
 
@@ -274,7 +274,7 @@ private:
     // until Instance stage. At that point we can find M and F, so they are passed in
     // here.
     void appendTopologicalMobilizerGeometry(const Transform& X_BM, const Transform& X_PF,
-                                            Array<DecorativeGeometry>& geom) const
+                                            std::vector<DecorativeGeometry>& geom) const
     {
         for (int i=0; i<(int)outboardGeometry.size(); ++i) {
             geom.push_back(outboardGeometry[i]);
@@ -501,7 +501,7 @@ public:
     }
 
     void calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
 
     void setDefaultRadius(Real r) {
         assert(r>0);
@@ -537,7 +537,7 @@ public:
     }
 
     void calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
 
     void setDefaultRadii(const Vec3& r) {
         assert(r[0]>0 && r[1]>0 && r[2]>0);

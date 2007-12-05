@@ -634,8 +634,8 @@ class LengthConstraints {
 public:
     LengthConstraints(const SimbodyMatterSubsystemRep&, int verbose);
 
-    void construct(const Array<RBDistanceConstraint*>&,
-                   const Array<RBPointInPlaneConstraint*>&);
+    void construct(const std::vector<RBDistanceConstraint*>&,
+                   const std::vector<RBPointInPlaneConstraint*>&);
 
     // Returns true if any change was made in the state.
     bool enforcePositionConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;

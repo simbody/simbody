@@ -149,7 +149,7 @@ public:
     }
 
     int calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
 
     SimTK_DOWNCAST(DecorationSubsystemGuts, Subsystem::Guts);
 private:
