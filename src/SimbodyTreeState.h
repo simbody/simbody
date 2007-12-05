@@ -184,14 +184,14 @@ public:
     int nVelocityConstraintEquationsInUse;
     int nAccelerationConstraintEquationsInUse; // also # multipliers
 
-    Array<Segment> qErrSegment;    // (offset,mp)       for each Constraint, within subsystem qErr
-    Array<Segment> uErrSegment;    // (offset,mp+mv)    same, but for uErr slots
-    Array<Segment> udotErrSegment; // (offset,mp+mv+ma) same, but for udotErr slots (and multiplier slots)
+    std::vector<Segment> qErrSegment;    // (offset,mp)       for each Constraint, within subsystem qErr
+    std::vector<Segment> uErrSegment;    // (offset,mp+mv)    same, but for uErr slots
+    std::vector<Segment> udotErrSegment; // (offset,mp+mv+ma) same, but for udotErr slots (and multiplier slots)
 
     // Quaternion errors go in qErr also, but after all the physical contraint errors. That is,
     // they start at index nPositionConstraintEquationsInUse.
     int nQuaternionsInUse, firstQuaternionQErrSlot;
-    Array<int> quaternionIndex; // nb (-1 for bodies w/no quats)
+    std::vector<int> quaternionIndex; // nb (-1 for bodies w/no quats)
 
     // These record where in the full System's State our Subsystem's qErr, uErr, and udotErr
     // entries begin. That is, this subsystem's segments can be found at
@@ -221,11 +221,11 @@ public:
     //   principal axes and corresponding principal moments of inertia of each rigid body
     //   reference configuration X_PB when q==0 (usually that means M==Mb), for each rigid body
 
-    Real             totalMass; // sum of all rigid body and particles masses
-    Array<Inertia>   centralInertias;           // nb
-    Vector_<Vec3>    principalMoments;          // nb
-    Array<Rotation>  principalAxes;             // nb
-    Array<Transform> referenceConfiguration;    // nb
+    Real                   totalMass; // sum of all rigid body and particles masses
+    std::vector<Inertia>   centralInertias;           // nb
+    Vector_<Vec3>          principalMoments;          // nb
+    std::vector<Rotation>  principalAxes;             // nb
+    std::vector<Transform> referenceConfiguration;    // nb
 
 public:
     void allocate(const SBTopologyCache& topology) {
@@ -255,15 +255,15 @@ public:
     Matrix_<Vec3> storageForHtFM; // 2 x ndof (~H_FM)
     Matrix_<Vec3> storageForHt;    // 2 x ndof (~H_PB_G)
 
-    Array<Transform>    bodyJointInParentJointFrame;  // nb (X_FM)
+    std::vector<Transform>    bodyJointInParentJointFrame;  // nb (X_FM)
 
-    Array<Transform>    bodyConfigInParent;           // nb (X_PB)
-    Array<Transform>    bodyConfigInGround;           // nb (X_GB)
-    Array<PhiMatrix>    bodyToParentShift;            // nb (phi)
-    Array<Inertia>      bodyInertiaInGround;          // nb (I_OB_G)
-    Vector_<SpatialMat> bodySpatialInertia;           // nb (Mk)
-    Vector_<Vec3>       bodyCOMInGround;              // nb (COM_G)
-    Vector_<Vec3>       bodyCOMStationInGround;       // nb (COMstation_G)
+    std::vector<Transform>    bodyConfigInParent;           // nb (X_PB)
+    std::vector<Transform>    bodyConfigInGround;           // nb (X_GB)
+    std::vector<PhiMatrix>    bodyToParentShift;            // nb (phi)
+    std::vector<Inertia>      bodyInertiaInGround;          // nb (I_OB_G)
+    Vector_<SpatialMat>       bodySpatialInertia;           // nb (Mk)
+    Vector_<Vec3>             bodyCOMInGround;              // nb (COM_G)
+    Vector_<Vec3>             bodyCOMStationInGround;       // nb (COMstation_G)
 
     // Distance constraint calculations. These are indexed by
     // *distance constraint* number, not *constraint* number.
@@ -532,9 +532,9 @@ public:
 
 class SBModelVars {
 public:
-    bool        useEulerAngles;
-    Array<bool> prescribed;           // nb (# bodies & mobilizers, [0] always true)
-    Array<bool> disabled;             // nc (# constraints)
+    bool              useEulerAngles;
+    std::vector<bool> prescribed;           // nb (# bodies & mobilizers, [0] always true)
+    std::vector<bool> disabled;             // nc (# constraints)
 public:
 
     // We have to allocate these without looking at any other
@@ -550,10 +550,10 @@ public:
 
 class SBInstanceVars {
 public:
-    Array<MassProperties> bodyMassProperties;
-    Array<Transform>      outboardMobilizerFrames;
-    Array<Transform>      inboardMobilizerFrames;
-    Vector                particleMasses;
+    std::vector<MassProperties> bodyMassProperties;
+    std::vector<Transform>      outboardMobilizerFrames;
+    std::vector<Transform>      inboardMobilizerFrames;
+    Vector                      particleMasses;
 
 public:
 
@@ -566,10 +566,14 @@ public:
         mutvars.particleMasses.resize(topology.nParticles);
 
         // Set default values
-        mutvars.bodyMassProperties      = MassProperties(1,Vec3(0),Inertia(1));
-        mutvars.outboardMobilizerFrames = Transform(); // i.e., B frame
-        mutvars.inboardMobilizerFrames  = Transform(); // i.e., P frame
-        mutvars.particleMasses          = Real(1);
+        for (int i = 0; i < mutvars.bodyMassProperties.size(); ++i)
+            mutvars.bodyMassProperties[i] = MassProperties(1,Vec3(0),Inertia(1));
+        for (int i = 0; i < mutvars.outboardMobilizerFrames.size(); ++i)
+            mutvars.outboardMobilizerFrames[i] = Transform(); // i.e., B frame
+        for (int i = 0; i < mutvars.inboardMobilizerFrames.size(); ++i)
+            mutvars.inboardMobilizerFrames[i] = Transform(); // i.e., P frame
+        for (int i = 0; i < mutvars.particleMasses.size(); ++i)
+            mutvars.particleMasses[i] = Real(1);
     }
 };
 

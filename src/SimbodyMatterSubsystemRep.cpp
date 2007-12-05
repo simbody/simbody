@@ -710,10 +710,12 @@ void SimbodyMatterSubsystemRep::setDefaultModelValues(const SBTopologyCache& top
     // Tree-level defaults
     modelVars.useEulerAngles = false;
     //modelVars.prescribed.assign(getNBodies(), false);
-    modelVars.prescribed = false;
+    for (int i = 0; i < modelVars.prescribed.size(); ++i)
+        modelVars.prescribed[i] = false;
     modelVars.prescribed[0] = true; // ground
     //modelVars.enabled.assign(getNConstraints(), false);
-    modelVars.disabled = false;
+    for (int i = 0; i < modelVars.disabled.size(); ++i)
+        modelVars.disabled[i] = false;
 
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
