@@ -32,9 +32,9 @@
 #include <malloc.h>
 #include <math.h>
 #include "SimTKcommon.h"
-#include "LapackInterface.h"
 #include "simmath/LinearAlgebra.h"
 #include "simmath/internal/common.h"
+#include "LapackInterface.h"
 
 
 namespace SimTK {

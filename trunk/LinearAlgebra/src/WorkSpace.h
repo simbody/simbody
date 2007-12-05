@@ -23,8 +23,6 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
-
 #include <cstdio>
 #include <complex>
 #include <cassert>
@@ -101,19 +99,11 @@ class WorkSpace {
         free(data);
     }
 
-    template<typename T> T* getData() { assert(false); }
-
     private:
    
     int lwork;
     void*  data;
 };
-
-    template<> int* WorkSpace::getData(){ return( static_cast<int*>(data)); }
-    template<> double* WorkSpace::getData(){ return( static_cast<double*>(data)); }
-    template<> float* WorkSpace::getData(){ return( static_cast<float*>(data)); }
-    template<> std::complex<double>* WorkSpace::getData(){ return( static_cast<std::complex<double>* >(data)); }
-    template<> std::complex<float>* WorkSpace::getData(){ return( static_cast<std::complex<float>* >(data)); }
 
 template <typename T>
 class TypedWorkSpace {

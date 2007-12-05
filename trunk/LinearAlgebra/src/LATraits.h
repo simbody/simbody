@@ -30,55 +30,55 @@
 
 namespace SimTK {
 
-template <typename T> struct LATraits {
+template <typename T> struct LANT;
+        
+template <> struct LANT<float>{
+     static const int sign =  1;
+     static const bool conjugate = false;
 };
-template <> struct LATraits<float>{
-     static const bool isNegated    = false;
-     static const bool isConjugated = false;
+template <> struct LANT<double>{
+     static const int sign     = 1;
+     static const bool conjugate = false;
 };
-template <> struct LATraits<double>{
-     static const bool isNegated     = false;
-     static const bool isConjugated = false;
+template <> struct LANT<std::complex<float> >{
+     static const int sign    = 1;
+     static const bool conjugate = false;
 };
-template <> struct LATraits<std::complex<float> >{
-     static const bool isNegated    = false;
-     static const bool isConjugated = false;
+template <> struct LANT<std::complex<double> >{
+     static const int sign     = 1;
+     static const bool conjgate = false;
 };
-template <> struct LATraits<std::complex<double> >{
-     static const bool isNegated     = false;
-     static const bool isConjugated = false;
+template <> struct LANT<negator<float> >{
+     static const int sign    = -1;
+     static const bool conjugate = false;
 };
-template <> struct LATraits<negator<float> >{
-     static const bool isNegated    = true;
-     static const bool isConjugated = false;
+template <> struct LANT<negator<double> >{
+     static const int sign     = -1;
+     static const bool conjugate = false;
 };
-template <> struct LATraits<negator<double> >{
-     static const bool isNegated     = true;
-     static const bool isConjugated = false;
+template <> struct LANT<negator<std::complex<float> > >{
+     static const int sign    = -1;
+     static const bool conjugate = false;
 };
-template <> struct LATraits<negator<std::complex<float> > >{
-     static const bool isNegated    = true;
-     static const bool isConjugated = false;
+template <> struct LANT<negator<std::complex<double> > >{
+     static const int sign     = -1;
+     static const bool conjugate = false;
 };
-template <> struct LATraits<negator<std::complex<double> > >{
-     static const bool isNegated     = true;
-     static const bool isConjugated = false;
+template <> struct LANT<conjugate<float> >{
+     static const int sign    = 1;
+     static const bool conjugate = true;
 };
-template <> struct LATraits<conjugate<float> >{
-     static const bool isNegated    = false;
-     static const bool isConjugated = true;
+template <> struct LANT<conjugate<double> >{
+     static const int sign     = 1;
+     static const bool conjugate = true;
 };
-template <> struct LATraits<conjugate<double> >{
-     static const bool isNegated     = false;
-     static const bool isConjugated = true;
+template <> struct LANT<negator<conjugate<float> > >{
+     static const int sign    = -1;
+     static const bool conjugate = true;
 };
-template <> struct LATraits<negator<conjugate<float> > >{
-     static const bool isNegated    = true;
-     static const bool isConjugated = true;
-};
-template <> struct LATraits<negator<conjugate<double> > >{
-     static const bool isNegated     = true;
-     static const bool isConjugated = true;
+template <> struct LANT<negator<conjugate<double> > >{
+     static const int sign     = -1;
+     static const bool conjugate = true;
 };
 
 } // namespace SimTK

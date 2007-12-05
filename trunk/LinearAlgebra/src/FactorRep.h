@@ -114,7 +114,6 @@ class FactorLURepBase {
    }
    virtual bool isSingular() const{ return false;};
    virtual int getSingularIndex() const{ return 1; };
-   virtual void display(int){};
    virtual  Real getConditionNumber() const{ return 0.0;};
    
    virtual void getErrorBounds( const Vector_<float>& err, Vector_<float>& berr ){
@@ -154,22 +153,12 @@ class FactorLURep : public FactorLURepBase {
    void getErrorBounds( Vector_<T>& err, Vector_<T>& berr) const;
    Real getConditionNumber() const;
    bool isSingular() const;
-   void display(int);
    int getSingularIndex() const;
-   void copyElement( int i, int j, T* ptr ) const ;
-   template < class ELT > void copyElement( int i, int j, std::complex<ELT>* ptr ) const;
  
    private:
 
 // factored matrix stored in LAPACK LU format
    template < class ELT> int getType(ELT*);   
-   void printElement( int i, int j);   
-   template < class ELT> void initLU(const Matrix_<ELT>&);   
-   template < class ELT> void initLU(const Matrix_<negator<ELT> >&);   
-   template < class ELT> void initLU(const Matrix_<std::complex<ELT> >&);   
-   template < class ELT> void initLU(const Matrix_<negator<std::complex<ELT> > >&);   
-   template < class ELT> void initLU(const Matrix_<conjugate<ELT> >&);   
-   template < class ELT> void initLU(const Matrix_<negator<conjugate<ELT> > >&);   
    bool isLUinitialized;
    int nRow;
    int nCol;

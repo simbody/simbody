@@ -81,7 +81,6 @@ class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
 
     ~FactorLU();
 
-
     template <class ELT> FactorLU( const Matrix_<ELT>& m );
     template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x );
     template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x );
@@ -91,7 +90,6 @@ class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
 
     bool isSingular() const;
     int getSingularIndex() const;
-    void display(int);
     Real getConditionNumber() const;
     template <class ELT> void getErrorBounds(Vector_<ELT>& err, Vector_<ELT>& berr) const;
 
@@ -104,6 +102,31 @@ class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
 
 }; // class FactorLU
 
+
+class FactorQTZRepBase;
+
+class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
+    public:
+
+    ~FactorQTZ();
+
+
+    template <class ELT> FactorQTZ( const Matrix_<ELT>& m );
+    template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x );
+    template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x );
+
+    template <class ELT> void getQ( Matrix_<ELT>& q ) const;
+    template <class ELT> void getT( Matrix_<ELT>& t ) const;
+    template <class ELT> void getZ( Matrix_<ELT>& z ) const;
+
+    int getRank() const;
+    void setRank(int rank);
+    void setRankCondition( Real rcond ); 
+
+    protected:
+    class FactorQTZRepBase *rep;
+
+}; // class FactorQTZ
 
 template <class P>
 bool eigenValuesRightVectors( Matrix_<P> &m, Vector_< std::complex<P> > &eigenValues, Matrix_< std::complex<P> > &eigenVectors );

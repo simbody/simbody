@@ -36,8 +36,9 @@
 
 namespace SimTK {
 
-class LapackInterface { public:
-    // MEANINGLESS IF NOT SPECIALIZED
+class LapackInterface { 
+   
+   public:
 
 template <class P> 
     static void geev (char jobvl, char jobvr,
@@ -47,18 +48,57 @@ template <class P>
 
 
 /* solve system of linear equations using the LU factorization  computed by getrf */
-template <class T>
-    static void getrs( const bool transpose, const int ncol, const int nrhs, const T *lu,
-            const int *pivots, T *b ); 
+template <class T> static 
+void getrs( const bool transpose, const int ncol, const int nrhs, const T *lu, const int* pivots, T *b ); 
 
-template <class T> static void getrf( const int m, const int n, T *a, const int lda, int *pivots, int& info );
-template <class T> static void gttrf( const int m, const int n, T* dl, T* d, T* du, T* du2, int *pivots, int& info );
-template <class T> static void gbtrf( const int m, const int n, const int kl, const int ku, T* lu, const int lda, int *pivots, int& info );
-template <class T> static void potrf( const int m, const int n, const int kl, const int ku, T* lu, const int lda, int *pivots, int& info );
-template <class T> static void sytrf( const char m, const int n, T* a,  const int lda, int *pivots, T* work, const int lwork, int& info );
+template <class T> static 
+void getrf( const int m, const int n, T *a, const int lda, int* pivots, int& info );
 
-template <class T>
-    static int ilaenv( int ispec,  const char* name,  const char *opts, int n1, int n2, int n3, int n4  );
+template <class T> static 
+void gttrf( const int m, const int n, T* dl, T* d, T* du, T* du2, int* pivots, int& info );
+
+template <class T> static 
+void gbtrf( const int m, const int n, const int kl, const int ku, T* lu, const int lda, int* pivots, int& info );
+
+template <class T> static 
+void potrf( const int m, const int n, const int kl, const int ku, T* lu, const int lda, int* pivots, int& info );
+
+template <class T> static 
+void sytrf( const char m, const int n, T* a,  const int lda, int* pivots, T* work, const int lwork, int& info );
+
+template <class T> static
+int ilaenv( const int& ispec,  const char* name,  const char* opts, const int& n1, const int& n2, const int& n3, const int& n4  );
+
+template <class T> static
+void getMachinePrecision( T& smallNumber, T& bigNumber );
+
+template <class T> static
+void tzrzf( const int& m, const int& n,  T* a, const int& lda, T* tau, T* work, const int& lwork, int& info );
+
+template <class T> static
+void geqp3( const int& m, const int& n,  T* a, const int& lda, int *pivots, T* tau, T* work, const int& lwork, int& info );
+
+template <class T> static
+void lascl( const char& type, const int& kl, const int& ku, const typename CNT<T>::TReal& cfrom, const typename CNT<T>::TReal& cto,  const int& m, const int& n, T* a, const int& lda, int& info );
+
+template <class T> static
+double lange( const char& norm, const int& m, const int& n, const T* a, const int& lda );
+
+template <class T> static
+void ormqr(const char& side, const char& trans, const int& m, const int& n, const int& k, T* a, const int& lda, T *tau, T *c__, const int& ldc, T* work, const int& lwork, int& info);
+
+template <class T> static
+void trsm(const char& side, const char& uplo, const char& transA, const char& diag, const int& m, const int& n, const T& alpha, const T* A, const int& lda, T* B, const int& ldb );
+ 
+template <class T> static
+// TODO void ormrz(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, T* a, const int& lda, T* tau, T* c__, const int& ldc, T* work, const int& lwork, int& info);
+void ormrz(const char& side, const char& trans, const int& m, const int& n, const int& k, int* l, T* a, const int& lda, T* tau, T* c__, const int& ldc, T* work, const int& lwork, int& info);
+ 
+template <class T> static
+void copy( const int& n, const T* x, const int& incx, T* y, const int& incy);
+
+template <class T> static
+void laic1(const int& job, const int& j, const T* x, const typename CNT<T>::TReal& sest, const T* w, const T& gamma, typename CNT<T>::TReal& sestpr, T& s, T& c__ );
 
 }; // class LapackInterface
 

@@ -35,9 +35,10 @@
 #include "SimTKcommon.h"
 #include "LapackInterface.h"
 #include "LinearAlgebra.h"
+#include "LATraits.h"
 #include "FactorRep.h"
 #include "WorkSpace.h"
-#include "LATraits.h"
+#include "LapackConvert.h"
 
 
 namespace SimTK {
@@ -99,9 +100,6 @@ bool FactorLU::isSingular () const {
 int FactorLU::getSingularIndex () const {
     return( rep->getSingularIndex() );
 }
-void FactorLU::display (int opts) {
-    return( rep->display(opts) );
-}
    /////////////////
    // FactorLURep //
    /////////////////
@@ -117,41 +115,6 @@ FactorLURep<T>::FactorLURep( const Matrix_<ELT>& mat )
 }
 
 template <typename T >
-void FactorLURep<T>::display(int options) {
-   if( options > 1 ) {
-       printf("LU = \n");
-       for(int i = 0;i<nRow;i++) {
-           for(int j = 0;j<nCol;j++) printElement( i,j);
-           printf("\n");
-       } 
-
-   }
-   if( options > 2 ) {
-       printf("pivots = ");
-       for(int j = 0;j<nCol;j++) printf("%d ",pivots.data[j]);
-       printf("\n");
-   }
-   return;
-}
-template <typename T >
-void FactorLURep<T>::printElement( int i, int j) {
-
-    if( imagOffset == 1 ) {
-        if( elementSize == 8 ) {
-//  TODO need to specialize for complex types           printf(" %f,%f", lu.data[j*nRow+i].real(), lu.data[j*nRow+i].imag() ); 
-        } else { 
-//            printf(" %f,%f", lu.data[j*nRow+i].real(), lu.data[j*nRow+i].imag() ); 
-        }
-    } else {
-        if( elementSize == 4 ) {
-//            printf(" %f", lu.data[j*nRow+i] ); 
-        } else {
-//            printf(" %f", lu.data[j*nRow+i] ); 
-        }
-    } 
-    
-}
-template <typename T >
 FactorLURep<T>::~FactorLURep() {}
 
 template < class T >
@@ -160,15 +123,6 @@ void FactorLURep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) {
 // TODO check  that ELT of b is same as the factored matrix (size,imageoffset)
     LapackInterface::getrs<T>( false, nCol, 1, lu.data, pivots.data, &x(0));
     return;
-}
-template < class T >
-void FactorLURep<T>::copyElement( int i, int j, T* ptr ) const {
-    *ptr =  lu.data[j*nRow+i];
-}
-template < class T >
-    template < class ELT >
-void FactorLURep<T>::copyElement( int i, int j, std::complex<ELT> *ptr ) const {
-    *ptr =  std::complex<ELT>(lu.data[j*nRow+i].real(), lu.data[j*nRow+i].imag() ); 
 }
 // TODO handle cases where length to b,x and dimensions of lu are not consistant
 template <typename T >
@@ -183,34 +137,34 @@ void FactorLURep<T>::getL( Matrix_<T>& m) const {
       
        m.resize( nRow, nCol ); 
 
-       for(i = 0;i<nRow;i++) {
-           for(j = 0;j<i;j++) m(j,i) = 0.0;
-           for(;j<nCol;j++) copyElement( j, i, &m(j,i) ) ;
+       for(i=0;i<nRow;i++) {
+           for(j=0;j<i;j++) m(j,i) = 0.0;
+           for(j=0;j<nCol;j++) m(j,i) = lu.data[j*nRow+i];
        }
 
     return;
 }
 template <typename T >
 void FactorLURep<T>::getU( Matrix_<T>& m) const {
-       int i,j;
-       m.resize( nRow, nCol );
+    int i,j;
+    m.resize( nRow, nCol );
        
-       for(i = 0;i<nRow;i++) {
-           for(j=0;j<i+1;j++) copyElement( j,i, &m(j,i) );
-           for(;j<nCol;j++) m(j,i) = 0.0;
-       }
-    return;
+   for(i = 0;i<nRow;i++) {
+       for(j=0;j<i+1;j++) m(j,i) = lu.data[j*nRow+i];
+       for(;j<nCol;j++) m(j,i) = 0.0;
+   }
+   return;
 }
 template <typename T >
 void FactorLURep<T>::getD( Matrix_<T>& m) const {
-       int i,j;
-       m.resize( nRow, nCol );
-       for(i = 0;i<nRow;i++) {
-           for(j=0;j<nCol;j++) m(j,i) = 0.0;
-       }
-       for(i = 0;i<nRow;i++) copyElement( i, i, &m(i,i) );
+   int i,j;
+   m.resize( nRow, nCol );
+   for(i = 0;i<nRow;i++) {
+        for(j=0;j<nCol;j++) m(j,i) = 0.0;
+   }
+   for(i = 0;i<nRow;i++) m(i,i) = lu.data[i*nRow+i];
        
-    return;
+   return;
 }
 template <typename T >
 Real FactorLURep<T>::getConditionNumber() const {
@@ -232,81 +186,21 @@ template <typename T >
 int FactorLURep<T>::getSingularIndex () const {
     return( singularIndex );
 }
-template <typename T >
-    template < class ELT> 
-void FactorLURep<T>::initLU( const Matrix_<ELT>& mat ) {
-    for(int i=0;i<nCol;i++) {
-        for(int j=0;j<nRow;j++) lu.data[i*nRow+j] = mat(j,i);
-    }
-    
-    return;
-}
-template <typename T >
-    template < class ELT > 
-void FactorLURep<T>::initLU( const Matrix_<negator<ELT> >& mat ) {
-    for(int i=0;i<nCol;i++) {
-        for(int j=0;j<nRow;j++) {
-            lu.data[i*nRow+j] = -mat(j,i);
-        }
-    }
-
-    return;
-}
-template < class T > 
-    template < class ELT > 
-void FactorLURep<T>::initLU( const Matrix_<std::complex<ELT> >& mat ) {
-    for(int i=0;i<nCol;i++) {
-        for(int j=0;j<nRow;j++) {
-            lu.data[i*nRow+j] = std::complex<ELT>(mat(j,i).real(),mat(j,i).imag());
-        }
-    }
-
-    return;
-}
-template < class T > 
-    template < class ELT > 
-void FactorLURep<T>::initLU( const Matrix_<negator<std::complex<ELT> > >& mat ) {
-    for(int i=0;i<nCol;i++) {
-        for(int j=0;j<nRow;j++) {
-            lu.data[i*nRow+j] = std::complex<ELT>(-mat(j,i).real(),-mat(j,i).imag());
-        }
-    }
-
-    return;
-}
-template < class T > 
-    template < class ELT > 
-void FactorLURep<T>::initLU( const Matrix_<conjugate<ELT> >& mat ) {
-    for(int i=0;i<nCol;i++) {
-        for(int j=0;j<nRow;j++) {
-            lu.data[i*nRow+j] = std::complex<ELT>(mat(j,i).real(),-mat(j,i).imag());
-        }
-    }
-
-    return;
-}
-template < class T > 
-    template < class ELT > 
-void FactorLURep<T>::initLU( const Matrix_<negator<conjugate<ELT> > >& mat ) {
-    for(int i=0;i<nCol;i++) {
-        for(int j=0;j<nRow;j++) {
-            lu.data[i*nRow+j] = std::complex<ELT>(-mat(j,i).real(),mat(j,i).imag());
-        }
-    }
-
-    return;
-}
 
 template <class T> 
     template<typename ELT>
 void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
+    int i,j;
+   
 
     elementSize = sizeof( T );
     imagOffset = CNT<ELT>::ImagOffset;  // real/complex (usefull for debugging)
    
-    // allocate and initialize the matrix we pass to LAPACK
+    // initialize the matrix we pass to LAPACK
     // convert (negated,conjugated etc.) to LAPACK format 
-    initLU( mat ); 
+
+    LapackConvert::convertMatrixToLapack( lu.data, mat );
+
 
     int lda = nRow;
     int info;
@@ -336,9 +230,9 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
 //                LapackInterface::sptrf<ELT>();
             } else {
                 long workSize = nCol*LapackInterface::ilaenv<T>(1, "sytrf", "U", nCol, -1, -1, -1);
-                WorkSpace  work( workSize*sizeof(T) );
+                TypedWorkSpace<T>  work( workSize );
                 
-                LapackInterface::sytrf<T>(nRow, nCol, lu.data, lda, pivots.data, work.getData<T>(), workSize, info);
+                LapackInterface::sytrf<T>(nRow, nCol, lu.data, lda, pivots.data, work.data, workSize, info);
             }
         }
     } else {
