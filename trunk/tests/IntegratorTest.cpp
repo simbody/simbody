@@ -120,7 +120,7 @@ public:
         // Implementation of discrete System virtuals //
         ////////////////////////////////////////////////
 
-    /*virtual*/int calcEventTriggerInfoImpl(const State& s, Array<System::EventTriggerInfo>& eti) const {
+    /*virtual*/int calcEventTriggerInfoImpl(const State& s, std::vector<System::EventTriggerInfo>& eti) const {
         eti.clear();
         eti.push_back(System::EventTriggerInfo(0)
                       .setRequiredLocalizationTimeWindow(1)
@@ -132,7 +132,7 @@ public:
     }
 
     /*virtual*/int calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEvent, 
-                                                    Array<int>& eventIds, bool includeCurrentTime) const
+                                                    std::vector<int>& eventIds, bool includeCurrentTime) const
     {
         // Generate an event every 5.123 seconds.
         int nFives = (int)(s.getTime() / 5.123); // rounded down
@@ -153,14 +153,14 @@ public:
     // state may have changed discontinuously. At least the discrete state
     // variables which indicate unhandled triggers must be cleared.
     /*virtual*/int handleEventsImpl
-       (State& s, System::EventCause cause, const Array<int>& eventIds,
+       (State& s, System::EventCause cause, const std::vector<int>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const
     {
         cout << "===> t=" << s.getTime() << ": HANDLING " 
              << System::getEventCauseName(cause) << " EVENT!!!" << endl;
-        if (eventIds.size())
-            cout << "  EVENT IDS: " << eventIds << endl;
+//        if (eventIds.size())
+//            cout << "  EVENT IDS: " << eventIds << endl;
 
         return 0;
     }
@@ -283,7 +283,7 @@ int main () {
     for (int reportNo=0; !integ.isSimulationOver(); 
          reportNo += (integ.getTime() >= reportNo*hReport))
     {
-        Array<int> scheduledEventIds;
+        std::vector<int> scheduledEventIds;
         Real nextScheduledEvent = NTraits<Real>::getInfinity();
         sys.calcTimeOfNextScheduledEvent(integ.getAdvancedState(), 
             nextScheduledEvent, scheduledEventIds, true);
@@ -314,7 +314,7 @@ int main () {
                 printf("TIME HAS ADVANCED TO %g\n", integ.getTime()); 
                 sys.handleEvents(integ.updAdvancedState(),
                     System::TimeAdvancedEvent,
-                    Array<int>(),
+                    std::vector<int>(),
                     integ.getAccuracyInUse(),
                     integ.getStateWeightsInUse(),
                     integ.getConstraintWeightsInUse(),
@@ -330,12 +330,12 @@ int main () {
                     integ.getTime(), integ.getAdvancedTime());
                 cout << std::setprecision(17);
                 cout << "Event window:     " << integ.getEventWindow() << endl;
-                cout << "Triggered events: " << integ.getTriggeredEvents();
+//                cout << "Triggered events: " << integ.getTriggeredEvents();
                 cout << "Transitions seen:";
                 for (int i=0; i<integ.getEventTransitionsSeen().size(); ++i)
                     cout << " " << EventStatus::eventTriggerString(integ.getEventTransitionsSeen()[i]);
                 cout << endl;
-                cout << "Est event times:  " << integ.getEstimatedEventTimes();
+//                cout << "Est event times:  " << integ.getEstimatedEventTimes();
 
                 // state(t-) => state(t+)
                 sys.handleEvents(integ.updAdvancedState(),
@@ -356,7 +356,7 @@ int main () {
                 printf("SIMULATION IS OVER. TERMINATION REASON=<TODO>\n");
                 sys.handleEvents(integ.updAdvancedState(),
                     System::TerminationEvent,
-                    Array<int>(),
+                    std::vector<int>(),
                     integ.getAccuracyInUse(),
                     integ.getStateWeightsInUse(),
                     integ.getConstraintWeightsInUse(),

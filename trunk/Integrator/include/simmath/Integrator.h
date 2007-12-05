@@ -207,9 +207,9 @@ public:
     // The following methods are callable only when stepTo() or stepBy() returns
     // "ReachedEventTrigger".
     Vec2               getEventWindow()         const; // w==(getTime(),getAdvancedTime()]
-    const Array<int>&  getTriggeredEvents()     const; // indices corresponding to event trigger functions
-    const Array<Real>& getEstimatedEventTimes() const; // all in w==(tLow,tHigh]
-    const Array<EventStatus::EventTrigger>&
+    const std::vector<int>&  getTriggeredEvents()     const; // indices corresponding to event trigger functions
+    const std::vector<Real>& getEstimatedEventTimes() const; // all in w==(tLow,tHigh]
+    const std::vector<EventStatus::EventTrigger>&
                        getEventTransitionsSeen() const;
 
 

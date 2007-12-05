@@ -159,9 +159,9 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
     }
     cpodes->rootInit(state.getNEvents());
     if (state.getNEvents() > 0) {
-        Array<System::EventTriggerInfo> triggerInfo;
+        std::vector<System::EventTriggerInfo> triggerInfo;
         getSystem().calcEventTriggerInfo(state, triggerInfo);
-        Array<int> rootDir(triggerInfo.size());
+        std::vector<int> rootDir(triggerInfo.size());
         for (int i = 0; i < triggerInfo.size(); ++i) {
             if (triggerInfo[i].shouldTriggerOnFallingSignTransition()) {
                 if (triggerInfo[i].shouldTriggerOnRisingSignTransition())

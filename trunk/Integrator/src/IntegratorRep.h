@@ -492,7 +492,7 @@ protected:
     // constant across a time step, and usually across many time steps.
     bool getDynamicSystemHasTimeAdvancedEvents()      const {return systemHasTimeAdvancedEvents;}
     Real getDynamicSystemTimescale()                  const {return timeScaleInUse;}
-    const Array<System::EventTriggerInfo>&
+    const std::vector<System::EventTriggerInfo>&
         getDynamicSystemEventTriggerInfo()            const {return eventTriggerInfo;}
     const Vector& getDynamicSystemOneOverTolerances() const {return constraintWeightsInUse;}
     const Vector& getDynamicSystemWeights()           const {return stateWeightsInUse;}
@@ -536,9 +536,9 @@ protected:
     Real getEventWindowLow()  const {return tLow;}
     Real getEventWindowHigh() const {return tHigh;}
 
-    const Array<int>&  getTriggeredEvents()      const {return triggeredEvents;}
-    const Array<Real>& getEstimatedEventTimes()  const {return estimatedEventTimes;}
-    const Array<EventStatus::EventTrigger>&
+    const std::vector<int>&  getTriggeredEvents()      const {return triggeredEvents;}
+    const std::vector<Real>& getEstimatedEventTimes()  const {return estimatedEventTimes;}
+    const std::vector<EventStatus::EventTrigger>&
                        getEventTransitionsSeen() const {return eventTransitionsSeen;}
 
     // This determines which state will be returned by getState().
@@ -760,7 +760,7 @@ private:
     // They also provide a localization window width.
     // This is Stage::Instance information.
 
-    Array<System::EventTriggerInfo> eventTriggerInfo;
+    std::vector<System::EventTriggerInfo> eventTriggerInfo;
 
     // A unitless fraction.
     Real accuracyInUse;
@@ -814,18 +814,18 @@ private:
     // These are the events that the integrator has algorithmically
     // determined are now triggered. You may not get the same result
     // simply comparing the trigger function values at tLow and tHigh.
-    Array<int>  triggeredEvents;
+    std::vector<int>  triggeredEvents;
 
     // These are the estimated times corresponding to the triggeredEvents.
     // They are in ascending order although there may be duplicates.
-    Array<Real> estimatedEventTimes;
+    std::vector<Real> estimatedEventTimes;
     
     // Which transition was seen for each triggered event (this is 
     // only a single transition, not an OR-ed together set). This is
     // the integrator's algorithmic determination of the transition to
     // be reported -- you might not get the same answer just looking
     // at the event trigger functions at tLow and tHigh.
-    Array<EventStatus::EventTrigger> eventTransitionsSeen;
+    std::vector<EventStatus::EventTrigger> eventTransitionsSeen;
 
     // When we have successfully localized a triggering event into
     // the time interval (tLow,tHigh] we record the bounds here.
