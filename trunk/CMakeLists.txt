@@ -210,7 +210,7 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     ## Assume Microsoft Visual Studio
-    SET(MATH_LIBS_TO_USE SimTKlapack)
+    SET(MATH_LIBS_TO_USE SimTKlapack pthreadVC2)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
