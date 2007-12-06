@@ -119,7 +119,7 @@ public:
 
     explicit Subtree(const SimbodyMatterSubsystem&);
     Subtree(const SimbodyMatterSubsystem&, 
-            const Array<MobilizedBodyId>& terminalBodies);
+            const std::vector<MobilizedBodyId>& terminalBodies);
 
     void setSimbodyMatterSubsystem(const SimbodyMatterSubsystem& matter);
     const SimbodyMatterSubsystem& getSimbodyMatterSubsystem() const;
@@ -137,14 +137,14 @@ public:
 
     // These are in the same order they were added; body[i] is the terminus
     // of branch i.
-    const Array<MobilizedBodyId>& getTerminalBodies() const;
+    const std::vector<MobilizedBodyId>& getTerminalBodies() const;
 
     // These are indexed by SubtreeBodyId starting with 0 for the ancestor body
     // and monotonically increasing outwards along a branch.
-    const Array<MobilizedBodyId>& getAllBodies() const;
+    const std::vector<MobilizedBodyId>& getAllBodies() const;
 
     SubtreeBodyId getParentSubtreeBodyId(SubtreeBodyId) const; // 0 returns an invalid Id
-    const Array<SubtreeBodyId>& getChildSubtreeBodyIds(SubtreeBodyId) const;
+    const std::vector<SubtreeBodyId>& getChildSubtreeBodyIds(SubtreeBodyId) const;
 
         // MODEL STAGE
 
