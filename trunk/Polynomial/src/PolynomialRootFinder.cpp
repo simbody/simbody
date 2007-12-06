@@ -226,6 +226,9 @@ void PolynomialRootFinder::findRoots(const Vector_<T>& coefficients, Vector_<com
         delete[] rooti;
         throw;
     }
+    delete[] coeff;
+    delete[] rootr;
+    delete[] rooti;
 }
 
 /**
@@ -261,6 +264,10 @@ void PolynomialRootFinder::findRoots(const Vector_<complex<T> >& coefficients, V
         delete[] rooti;
         throw;
     }
+    delete[] coeffr;
+    delete[] coeffi;
+    delete[] rootr;
+    delete[] rooti;
 }
 
 template SimTK_SimTKCOMMON_EXPORT void PolynomialRootFinder::findRoots<float>(const Vec<3,float>& coefficients, Vec<2,complex<float> >& roots);
