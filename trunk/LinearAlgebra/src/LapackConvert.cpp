@@ -28,44 +28,15 @@
 
 namespace SimTK {
 
-template <typename T> typename CNT<T>::StdNumber LapackConvert::elementToLapack( const Matrix_<T>&m, int i, int j) { 
-    return( m(i,j) ); 
-}
-template float LapackConvert::elementToLapack( const Matrix_<float>&, int, int);
-template double LapackConvert::elementToLapack( const Matrix_<double>&, int, int);
-template std::complex<float> LapackConvert::elementToLapack( const Matrix_<std::complex<float> >&, int, int);
-template std::complex<double> LapackConvert::elementToLapack( const Matrix_<std::complex<double> >&, int, int);
 
 
-template <typename T> typename CNT<T>::StdNumber LapackConvert::elementToLapack( const Matrix_<negator<T> >&m, int i, int j) { 
-    return(-m(i,j));
-}
-template float LapackConvert::elementToLapack( const Matrix_<negator<float> >&, int, int);
-template double LapackConvert::elementToLapack( const Matrix_<negator<double> >&, int, int);
-template std::complex<float> LapackConvert::elementToLapack( const Matrix_<negator<std::complex<float> > >&, int, int);
-template std::complex<double> LapackConvert::elementToLapack( const Matrix_<negator<std::complex<double> > >&, int, int);
-
-
-template <> std::complex<float> LapackConvert::elementToLapack( const Matrix_<conjugate<float> >&m, int i, int j) {
-         return( conj(m(i,j)) );
-     }
-template <> std::complex<double> LapackConvert::elementToLapack( const Matrix_<conjugate<double> >&m, int i, int j) {
-         return( conj(m(i,j)) );
-     }
-template <> std::complex<float> LapackConvert::elementToLapack( const Matrix_<negator<conjugate<float> > >&m, int i, int j) {
-         return( -conj(m(i,j)) );
-     }
-template <> std::complex<double> LapackConvert::elementToLapack( const Matrix_<negator<conjugate<double> > >&m, int i, int j) {
-         return( -conj(m(i,j)) );
-     }
-
-template < typename T>  
-void LapackConvert::convertMatrixToLapack ( typename CNT<T>::StdNumber* lapackArray, const Matrix_<T>& mat ) {
+template < typename T, typename ELT>  
+void LapackConvert::convertMatrixToLapack ( T* lapackArray, const Matrix_<ELT>& mat ) {
     int m = mat.nrow();
-    int n = mat.ncol();
+    int n = mat.ncol(); 
     for(int i=0;i<n;i++) {
         for(int j=0;j<m;j++)  {
-            lapackArray[i*m+j] = elementToLapack( mat, j, i );
+            lapackArray[i*m+j] = elementToLapack( lapackArray[i*m+j], mat, j, i );
         }
     }
     return;
