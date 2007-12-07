@@ -162,7 +162,7 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
         std::vector<System::EventTriggerInfo> triggerInfo;
         getSystem().calcEventTriggerInfo(state, triggerInfo);
         std::vector<int> rootDir(triggerInfo.size());
-        for (int i = 0; i < triggerInfo.size(); ++i) {
+        for (int i = 0; i < (int)triggerInfo.size(); ++i) {
             if (triggerInfo[i].shouldTriggerOnFallingSignTransition()) {
                 if (triggerInfo[i].shouldTriggerOnRisingSignTransition())
                     rootDir[i] = 0; // All transitions
