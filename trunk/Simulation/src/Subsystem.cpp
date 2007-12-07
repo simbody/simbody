@@ -860,7 +860,7 @@ public:
         // Build a set of the ids for quick lookup.
         
         std::set<int> idSet;
-        for (int i = 0; i < eventIds.size(); ++i)
+        for (int i = 0; i < (int)eventIds.size(); ++i)
             idSet.insert(eventIds[i]);
         
         // Process triggered events.
@@ -910,7 +910,7 @@ public:
         // Build a set of the ids for quick lookup.
         
         std::set<int> idSet;
-        for (int i = 0; i < eventIds.size(); ++i)
+        for (int i = 0; i < (int)eventIds.size(); ++i)
             idSet.insert(eventIds[i]);
         
         // Process triggered events.
@@ -1034,7 +1034,7 @@ int DefaultSystemSubsystem::createEventId(SubsystemId subsys, State& state) cons
 void DefaultSystemSubsystem::findSubsystemEventIds(SubsystemId subsys, const State& state, const std::vector<int>& allEvents, std::vector<int>& eventsForSubsystem) const {
     const DefaultSystemSubsystemGuts::CacheInfo& info = getGuts().getCacheInfo(state);
     eventsForSubsystem.clear();
-    for (int i = 0; i < allEvents.size(); ++i) {
+    for (int i = 0; i < (int)allEvents.size(); ++i) {
         if (info.eventOwnerMap[allEvents[i]] == subsys)
             eventsForSubsystem.push_back(allEvents[i]);
     }

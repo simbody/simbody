@@ -706,7 +706,7 @@ int System::Guts::calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEv
         if (time < tNextEvent) {
             tNextEvent = time;
             eventIds.clear();
-            for (int i = 0; i < ids.size(); ++i)
+            for (int i = 0; i < (int)ids.size(); ++i)
                 eventIds.push_back(ids[i]);
         }
     }
@@ -724,7 +724,7 @@ int System::Guts::calcTimeOfNextScheduledReportImpl(const State& s, Real& tNextE
         if (time < tNextEvent) {
             tNextEvent = time;
             eventIds.clear();
-            for (int i = 0; i < ids.size(); ++i)
+            for (int i = 0; i < (int)ids.size(); ++i)
                 eventIds.push_back(ids[i]);
         }
     }
