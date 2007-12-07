@@ -40,8 +40,6 @@
 using namespace SimTK;
 using namespace std;
 
-const Real BOND_LENGTH = 0.5;
-
 /**
  * This class defines the objective function which is passed to the Optimizer.
  */
