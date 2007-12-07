@@ -492,11 +492,11 @@ public:
     std::ostream& generateSelfCode(std::ostream& os) const 
     {
         os << "defineBondBend((DuMM::AtomClassId)";
-        os << (int) classes[0] << ", (DuMM::AtomClassId)";
-        os << (int) classes[1] << ", (DuMM::AtomClassId)";
-        os << (int) classes[2] << ", ";
+        os << (int) classes[0] << ", DuMM::AtomClassId(";
+        os << (int) classes[1] << "), DuMM::AtomClassId(";
+        os << (int) classes[2] << "), ";
         os << k << ", ";
-        os << theta0 << ");";
+        os << (theta0*DuMM::Rad2Deg) << ");";
 
         return os;
     }
@@ -1443,7 +1443,17 @@ void DuMMForceFieldSubsystem::dumpCForcefieldParameters(std::ostream& os, const 
 
     os << std::endl;
 
-    // 4) bond torsion parameters
+    // 4) bond bend parameters
+    std::map<AtomClassIdTriple, BondBend>::const_iterator bendI;
+    for (bendI = mm.bondBend.begin(); bendI != mm.bondBend.end(); ++bendI) {
+        os << "    dumm.";
+        bendI->second.generateSelfCode(os);
+        os << std::endl;
+    }
+
+    os << std::endl;
+
+    // 5) bond torsion parameters
     std::map<AtomClassIdQuad, BondTorsion>::const_iterator t;
     for (t = mm.bondTorsion.begin(); t != mm.bondTorsion.end(); ++t) {
         os << "    dumm.";
@@ -1453,7 +1463,7 @@ void DuMMForceFieldSubsystem::dumpCForcefieldParameters(std::ostream& os, const 
 
     os << std::endl;
 
-    // 5) amber-style improper torsion parameters
+    // 6) amber-style improper torsion parameters
     for (t = mm.amberImproperTorsion.begin(); t != mm.amberImproperTorsion.end(); ++t) {
         os << "    dumm.";
         t->second.generateSelfCode(os, 2);
@@ -1462,7 +1472,7 @@ void DuMMForceFieldSubsystem::dumpCForcefieldParameters(std::ostream& os, const 
 
     os << std::endl;
 
-    // 6) global parameters
+    // 7) global parameters
 
     // van der Waals mixing rule
     os << "    dumm.setVdwMixingRule(";
