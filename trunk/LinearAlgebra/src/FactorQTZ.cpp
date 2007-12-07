@@ -76,7 +76,7 @@ FactorQTZRep<T>::FactorQTZRep( const Matrix_<ELT>& mat )
       : nRow( mat.nrow() ),
         nCol( mat.ncol() ),
         rank(0),
-        rcond(0.01), 
+        rcond(CNT<T>::TReal(0.01)), 
         qtz( mat.nrow()*mat.ncol() ),
         pivots(mat.ncol()),
         mn( (mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol() ),
@@ -123,7 +123,7 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& x ) {
     TypedWorkSpace<T> work( lwork1>lwork2 ? lwork1 : lwork2);
 
     // compute norm of RHS
-    bnrm = LapackInterface::lange<T>( 'M', m, nrhs, &x(0,0), x.nrow() );
+    bnrm = (CNT<T>::TReal)LapackInterface::lange<T>( 'M', m, nrhs, &x(0,0), x.nrow() );
 
     LapackInterface::getMachinePrecision<typename CNT<T>::TReal>( smlnum, bignum);
  
@@ -147,7 +147,7 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& x ) {
     //  zero out elements of RHS for rank deficient systems
     for( j = 0; j<nrhs; j++ ) {
         for( i = rank; i<n; i++ ) {
-            x(i,j) = ZERO;
+            x(i,j) = 0;
         }
     }
    
@@ -205,16 +205,16 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
     LapackInterface::getMachinePrecision<typename CNT<T>::TReal>( smlnum, bignum);
 
     // scale the input system of equations
-    anrm = LapackInterface::lange<T>( 'M', nRow, nCol, qtz.data, nRow );
+    anrm = (CNT<T>::TReal)LapackInterface::lange<T>( 'M', nRow, nCol, qtz.data, nRow );
 
-    if( anrm > 0.0 && anrm < smlnum ) {
+    if( anrm > 0 && anrm < smlnum ) {
         scaleLinSys = true;
         linSysScaleF = smlnum;
     } else if( anrm > bignum )  {
         scaleLinSys = true;
         linSysScaleF = bignum;
     } 
-    if( anrm == ZERO  ) { // matrix all zeros
+    if( anrm == 0  ) { // matrix all zeros
         rank = 0;
     } else {
         if ( scaleLinSys ) {
@@ -227,11 +227,11 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
                                 tauGEQP3.data, work.data, work.size, info );
 
         // compute Rank
-        work.data[0] = ONE;
-        work.data[mn] = ONE;
+        work.data[0] = 1;
+        work.data[mn] = 1;
         smax = CNT<T>::abs( qtz.data[0] );
         smin = smax;
-        if( CNT<T>::abs(qtz.data[0]) == ZERO ) {
+        if( CNT<T>::abs(qtz.data[0]) == 0 ) {
             rank = 0;
         } else {
             T s1,s2,c1,c2;
