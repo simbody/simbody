@@ -356,7 +356,7 @@ template <>
 void LapackInterface::getMachinePrecision<float>( float& smallNumber, float& bigNumber ) {
     
     smallNumber = slamch_( 'S' )/slamch_( 'P' );
-    bigNumber = 1.0/smallNumber;
+    bigNumber = 1.f/smallNumber;
 // TODO    slabad_(smallNumber, bigNumber );
     slabad_(&smallNumber, &bigNumber );
 }
