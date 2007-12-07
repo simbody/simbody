@@ -400,7 +400,7 @@ void VTKReporterRep::displayEphemeralGeometry(const State& s)
     // Create a unique actor for each piece of geometry.
     // TODO: could probably do this with a single actor.
     ephemeralActors.resize(ephemeralGeometry.size());
-    for (int i=0; i<ephemeralGeometry.size(); ++i) {
+    for (int i=0; i<(int)ephemeralGeometry.size(); ++i) {
         DecorativeGeometry& dgeom = ephemeralGeometry[i];
         ephemeralActors[i] = vtkActor::New();
 
@@ -590,7 +590,7 @@ void VTKReporterRep::initTopology() {
     // TODO: there is currently no way to turn this off.
     std::vector<DecorativeGeometry> sysGeom;
     mbs.calcDecorativeGeometryAndAppend(State(), Stage::Topology, sysGeom);
-    for (int i=0; i<sysGeom.size(); ++i)
+    for (int i=0; i<(int)sysGeom.size(); ++i)
         addDecoration(MobilizedBodyId(sysGeom[i].getBodyId()), Transform(), sysGeom[i]);
 }
 

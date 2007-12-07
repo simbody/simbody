@@ -188,7 +188,7 @@ class RBGroundBody : public RigidBodyNode {
 public:
     RBGroundBody() : RigidBodyNode(
         MassProperties(Infinity, Vec3(0), Infinity*Inertia(1)),
-        Transform(), Transform()) 
+        Transform(), Transform(), QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed) 
     {
         uIndex = uSqIndex = qIndex = 0;
     }
@@ -384,8 +384,10 @@ public:
                       const Transform&      X_BM,
                       int&                  nextUSlot,
                       int&                  nextUSqSlot,
-                      int&                  nextQSlot)
-      : RigidBodyNode(mProps_B, X_PF, X_BM)
+                      int&                  nextQSlot,
+                      QDotHandling          qdotHandling,
+                      QuaternionUse         quaternionUse)
+      : RigidBodyNode(mProps_B, X_PF, X_BM, qdotHandling, quaternionUse)
     {
         // don't call any virtual methods in here!
         uIndex   = nextUSlot;
@@ -564,6 +566,7 @@ public:
         const Vector&          u,
         Vector&                qdot) const
     {
+        assert(qdotHandling == QDotIsAlwaysTheSameAsU);
         toQ(qdot) = fromU(u);        // default is qdot=u
     }
 
@@ -575,6 +578,7 @@ public:
         const Vector&          udot, 
         Vector&                qdotdot) const
     {
+        assert(qdotHandling == QDotIsAlwaysTheSameAsU);
         toQ(qdotdot) = fromU(udot);  // default is qdotdot=udot
     }
 
@@ -684,10 +688,12 @@ public:
         const Vector&      qIn, 
         Vector&            q) const
     {
+        assert(quaternionUse == QuaternionIsNeverUsed);
         toQ(q) = fromQ(qIn);
     }
 
-    virtual void copyU(
+    // Not virtual -- the number of u's is always the template argument dof.
+    void copyU(
         const SBModelVars& mv, 
         const Vector&      uIn, 
         Vector&            u) const
@@ -696,19 +702,67 @@ public:
     }
 
     int          getDOF()            const {return dof;}
-    virtual int  getMaxNQ()          const {return dof;} // maxNQ can be larger than dof
-    virtual int  getNQ(const SBModelVars&) const { return dof; } // DOF <= NQ <= maxNQ
-    virtual bool isUsingQuaternion(const SBModelVars&) const {return false;}
+    virtual int  getMaxNQ()          const {
+        assert(quaternionUse == QuaternionIsNeverUsed);
+        return dof; // maxNQ can be larger than dof if there's a quaternion
+    }
+    virtual int  getNQ(const SBModelVars&) const {
+        assert(quaternionUse == QuaternionIsNeverUsed);
+        return dof; // DOF <= NQ <= maxNQ
+    }
+    virtual bool isUsingQuaternion(const SBModelVars&) const {
+        assert(quaternionUse == QuaternionIsNeverUsed);
+        return false;
+    }
 
     // State digest should be at Stage::Position.
     virtual void calcLocalQDotFromLocalU(const SBStateDigest&, const Real* u, Real* qdot) const {
+        assert(qdotHandling == QDotIsAlwaysTheSameAsU);
         Vec<dof>::updAs(qdot) = Vec<dof>::getAs(u); // default says qdot=u
     }
 
     // State digest should be at Stage::Velocity.
     virtual void calcLocalQDotDotFromLocalUDot(const SBStateDigest&, const Real* udot, Real* qdotdot) const {
+        assert(qdotHandling == QDotIsAlwaysTheSameAsU);
         Vec<dof>::updAs(qdotdot) = Vec<dof>::getAs(udot); // default says qdotdot=udot
     }
+
+    // State digest should be at Stage::Position for calculating Q (the matrix which maps
+    // generalized speeds u to coordinate derivatives qdot, qdot=Qu). The default implementation
+    // assumes nq==nu and the nqXnu block of Q corresponding to this mobilizer is identity. Then 
+    // either operation (regardless of side) just copies nu numbers from in to out.
+    //
+    // THIS MUST BE OVERRIDDEN by any mobilizer for which nq != nu, or qdot != u.
+    virtual void multiplyByQBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
+                                  bool matrixOnRight,  const Real* in, Real* out) const
+    {
+        assert(qdotHandling == QDotIsAlwaysTheSameAsU);
+        Vec<dof>::updAs(out) = Vec<dof>::getAs(in);
+    }
+
+    virtual void multiplyByQInvBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
+                                     bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(qdotHandling == QDotIsAlwaysTheSameAsU);
+        Vec<dof>::updAs(out) = Vec<dof>::getAs(in);
+    }
+
+    // State digest should be at Stage::Velocity for calculating QDot (the matrix which is used in
+    // mapping generalized accelerations udot to coordinate 2nd derivatives qdotdot, 
+    // qdotdot=Q udot + QDot u. The default implementation assumes nq==nu and the nqXnu block
+    // of Q corresponding to this mobilizer is identity, so QDot is an nuXnu block of zeroes.
+    // Then either operation (regardless of side) just copies nu zeros to out.
+    //
+    // THIS MUST BE OVERRIDDEN by any mobilizer for which nq != nu, or qdot != u.
+    /* TODO
+    virtual void multiplyByQDotBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, 
+                                     const Real* q, const Real* u,
+                                     bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(qdotHandling == QDotIsAlwaysTheSameAsU);
+        Vec<dof>::updAs(out) = 0;
+    }
+    */
 
     // No default implementations here for:
     // calcMobilizerTransformFromQ
@@ -730,16 +784,19 @@ public:
         const SBModelVars& mv,
         Vector&            q) const 
     {
+        assert(quaternionUse == QuaternionIsNeverUsed);
         return false;
     }
 
     void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {
         // The default implementation just copies Q.  Subclasses may override this.
+        assert(quaternionUse == QuaternionIsNeverUsed);
         toQ(outputQ) = fromQ(inputQ);
     }
     
     void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {
         // The default implementation just copies Q.  Subclasses may override this.
+        assert(quaternionUse == QuaternionIsNeverUsed);
         toQ(outputQ) = fromQ(inputQ);
     }
 
@@ -984,7 +1041,8 @@ public:
                     int&                  nextUSlot,
                     int&                  nextUSqSlot,
                     int&                  nextQSlot)
-      : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1074,7 +1132,8 @@ public:
                  int&                  nextUSlot,
                  int&                  nextUSqSlot,
                  int&                  nextQSlot)
-      : RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1159,7 +1218,8 @@ public:
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
-      : RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1269,7 +1329,8 @@ public:
                 int&                  nextUSlot,
                 int&                  nextUSqSlot,
                 int&                  nextQSlot)
-      : RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot),
+      : RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed),
         pitch(p)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
@@ -1372,7 +1433,8 @@ public:
                    int&                  nextUSlot,
                    int&                  nextUSqSlot,
                    int&                  nextQSlot)
-      : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1481,7 +1543,8 @@ public:
                       int&                  nextUSlot,
                       int&                  nextUSqSlot,
                       int&                  nextQSlot)
-      : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1653,7 +1716,8 @@ public:
                  int&                  nextUSlot,
                  int&                  nextUSqSlot,
                  int&                  nextQSlot)
-      : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1772,7 +1836,8 @@ public:
                  int&                  nextUSlot,
                  int&                  nextUSqSlot,
                  int&                  nextQSlot)
-      : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1860,6 +1925,229 @@ public:
 
 };
 
+    // GIMBAL //
+
+// Gimbal joint. This provides three degrees of rotational freedom,  i.e.,
+// unrestricted orientation of the body's M frame in the parent's F frame.
+// The generalized coordinates are:
+//   * 3 1-2-3 body fixed Euler angles (that is, fixed in M)
+// and generalized speeds are:
+//   * angular velocity w_FM as a vector expressed in the F frame.
+// Thus rotational qdots have to be derived from the generalized speeds to
+// be turned into 3 Euler angle derivatives.
+//
+// NOTE: This joint has a singularity when the middle angle is near 90 degrees.
+// In most cases you should use a Ball joint instead, which by default uses
+// a quaternion as its generalized coordinates to avoid this singularity.
+
+class RBNodeGimbal : public RigidBodyNodeSpec<3> {
+public:
+    virtual const char* type() { return "gimbal"; }
+
+    RBNodeGimbal( const MassProperties& mProps_B,
+                  const Transform&      X_PF,
+                  const Transform&      X_BM,
+                  int&                  nextUSlot,
+                  int&                  nextUSqSlot,
+                  int&                  nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             QDotMayDifferFromU, QuaternionIsNeverUsed)
+    {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    }
+
+    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_FM,
+                           Vector& q) const 
+    {
+        toQ(q) = R_FM.convertRotationToBodyFixedXYZ();
+    }
+
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+        // M and F frame origins are always coincident for this mobilizer so there is no
+        // way to create a translation by rotating. So the only translation we can represent is 0.
+    }
+
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM,
+                                  Vector& u) const
+    {
+        toU(u) = w_FM; // relative angular velocity always used as generalized speeds
+    }
+
+    void setUToFitLinearVelocity
+       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
+    {
+        // M and F frame origins are always coincident for this mobilizer so there is no
+        // way to create a linear velocity by rotating. So the only linear velocity
+        // we can represent is 0.
+    }
+
+    // Precalculate sines and cosines.
+    void calcJointSinCosQNorm(
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const
+    {
+        const Vec3& a = fromQ(q); // angular coordinates
+        toQ(sine)   = Vec3(std::sin(a[0]), std::sin(a[1]), std::sin(a[2]));
+        toQ(cosine) = Vec3(std::cos(a[0]), std::cos(a[1]), std::cos(a[2]));
+        // no quaternions
+    }
+
+    // Calculate X_FM.
+    void calcAcrossJointTransform(
+        const SBModelVars& mv,
+        const Vector&      q,
+        Transform&         X_FM) const
+    {
+        X_FM.updT() = 0.; // This joint can't translate.
+        X_FM.updR().setRotationToBodyFixedXYZ( fromQ(q) );
+    }
+
+    // Generalized speeds are the angular velocity expressed in F, so they
+    // cause rotations around F x,y,z axes respectively.
+    void calcAcrossJointVelocityJacobian(
+        const SBModelVars&     mv,
+        const SBPositionCache& pc, 
+        HType&                 H_FM) const
+    {
+        H_FM[0] = SpatialRow( Row3(1,0,0), Row3(0) );
+        H_FM[1] = SpatialRow( Row3(0,1,0), Row3(0) );
+        H_FM[2] = SpatialRow( Row3(0,0,1), Row3(0) );
+    }
+
+    void calcAcrossJointVelocityJacobianDot(
+        const SBModelVars&     mv,
+        const SBPositionCache& pc, 
+        const SBVelocityCache& vc, 
+        HType&                 H_FM_Dot) const
+    {
+        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
+    }
+
+    void calcQDot(
+        const SBModelVars&     mv,
+        const Vector&          q,
+        const SBPositionCache& pc,
+        const Vector&          u, 
+        Vector&                qdot) const 
+    {
+        const Vec3& w_FM = fromU(u); // angular velocity of M in F 
+        const Rotation& R_FM = getX_FM(pc).R();
+        toQ(qdot) = Rotation::convertAngVelToBodyFixed123Dot(fromQ(q),
+                                    ~R_FM*w_FM); // need w in *body*, not parent
+    }
+
+    void calcLocalQDotFromLocalU(const SBStateDigest& sbs, const Real* u, Real* qdot) const {
+        assert(sbs.getStage() >= Stage::Position);
+        assert(u && qdot);
+
+        const SBModelVars&     mv   = sbs.getModelVars();
+        const SBPositionCache& pc   = sbs.getPositionCache();
+        const Real*            allQ = sbs.getQ();
+
+        const Vec3&            w_FM = Vec3::getAs(u);
+
+        const Rotation& R_FM = getX_FM(pc).R();
+        Vec3::updAs(qdot) = Rotation::convertAngVelToBodyFixed123Dot(fromQ(allQ),
+                                         ~R_FM*w_FM); // need w in *body*, not parent
+    }
+
+    // Compute out_q = Q * in_u
+    //   or    out_u = in_q * Q
+    void multiplyByQBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+                          bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(sbs.getStage() >= Stage::Model);
+        assert(q && in && out);
+
+        // TODO: it's annoying that this Q block is only available in the Body (M) frame,
+        // because this mobilizer uses angular velocity in the Parent (F) frame
+        // as generalized speeds. So we have to do an expensive conversion here. It
+        // would be just as easy to compute this matrix in the Parent frame in 
+        // the first place.
+        const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
+        const Mat33    Q = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
+        if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * Q;
+        else               Vec3::updAs(out) = Q * Vec3::getAs(in);
+    }
+
+    // Compute out_u = inv(Q) * in_q
+    //   or    out_q = in_u * inv(Q)
+    void multiplyByQInvBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+                             bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(sbs.getStage() >= Stage::Position);
+        assert(in && out);
+
+        // TODO: see above regarding the need for this R_FM kludge
+        const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
+        const Mat33    QInv(R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q)));
+        if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * QInv;
+        else               Vec3::updAs(out) = QInv * Vec3::getAs(in);
+    }
+ 
+    void calcQDotDot(
+        const SBModelVars&     mv,
+        const Vector&          q,
+        const SBPositionCache& pc,
+        const Vector&          u, 
+        const Vector&          udot, 
+        Vector&                qdotdot) const 
+    {
+        const Vec3& w_FM     = fromU(u); // angular velocity of J in Jb, expr in Jb
+        const Vec3& w_FM_dot = fromU(udot);
+
+        const Rotation& R_FM = getX_FM(pc).R();
+        toQ(qdotdot)    = Rotation::convertAngVelDotToBodyFixed123DotDot
+                              (fromQ(q), ~R_FM*w_FM, ~R_FM*w_FM_dot);
+    }
+
+    void calcLocalQDotDotFromLocalUDot(const SBStateDigest& sbs, const Real* udot, Real* qdotdot) const {
+        assert(sbs.getStage() >= Stage::Velocity);
+        assert(udot && qdotdot);
+
+        const SBModelVars&     mv   = sbs.getModelVars();
+        const SBPositionCache& pc   = sbs.getPositionCache();
+        const Real*            allQ = sbs.getQ();
+        const Real*            allU = sbs.getU();
+
+        const Vec3& w_FM     = fromU(allU);
+        const Vec3& w_FM_dot = Vec3::getAs(udot);
+
+        const Rotation& R_FM = getX_FM(pc).R();
+        Vec3::updAs(qdotdot) = Rotation::convertAngVelDotToBodyFixed123DotDot
+                                    (fromQ(allQ), ~R_FM*w_FM, ~R_FM*w_FM_dot);
+    }
+
+    void getInternalForce(const SBAccelerationCache&, Vector&) const {
+        assert(false); // TODO: decompose cross-joint torque into 123 gimbal torques
+        /* OLD BALL CODE:
+        Vector& f = s.cache->netHingeForces;
+        //dependency: calcR_PB must be called first
+        assert( useEuler );
+
+        const Vec<3,Vec2>& scq = getSinCosQ(s);
+        const Real sPhi   = scq[0][0], cPhi   = scq[0][1];
+        const Real sTheta = scq[1][0], cTheta = scq[1][1];
+        const Real sPsi   = scq[2][0], cPsi   = scq[2][1];
+
+        Vec3 torque = forceInternal;
+        const Mat33 M( 0.          , 0.          , 1.    ,
+                      -sPhi        , cPhi        , 0.    ,
+                       cPhi*cTheta , sPhi*cTheta ,-sTheta );
+        Vec3 eTorque = RigidBodyNode::DEG2RAD * M * torque;
+
+        Vec3::updAs(&v[uIndex]) = eTorque;
+        */
+    }
+};
+
     // ORIENTATION (BALL) //
 
 // Ball joint. This provides three degrees of rotational freedom,  i.e.,
@@ -1870,17 +2158,18 @@ public:
 //   * angular velocity w_FM as a vector expressed in the F frame.
 // Thus rotational qdots have to be derived from the generalized speeds to
 // be turned into either 4 quaternion derivatives or 3 Euler angle derivatives.
-class RBNodeRotate3 : public RigidBodyNodeSpec<3> {
+class RBNodeBall : public RigidBodyNodeSpec<3> {
 public:
-    virtual const char* type() { return "rotate3"; }
+    virtual const char* type() { return "ball"; }
 
-    RBNodeRotate3(const MassProperties& mProps_B,
-                  const Transform&      X_PF,
-                  const Transform&      X_BM,
-                  int&                  nextUSlot,
-                  int&                  nextUSqSlot,
-                  int&                  nextQSlot)
-      : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+    RBNodeBall(const MassProperties& mProps_B,
+               const Transform&      X_PF,
+               const Transform&      X_BM,
+               int&                  nextUSlot,
+               int&                  nextUSqSlot,
+               int&                  nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             QDotMayDifferFromU, QuaternionMayBeUsed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1902,7 +2191,7 @@ public:
     void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM,
                                      Vector& u) const
     {
-            toU(u) = w_FM[0]; // relative angular velocity always used as generalized speeds
+            toU(u) = w_FM; // relative angular velocity always used as generalized speeds
     }
 
     void setUToFitLinearVelocity
@@ -2012,6 +2301,54 @@ public:
             Vec4::updAs(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(allQ),w_FM);
     }
 
+    // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
+    // is up to the caller to do that if it is necessary.
+    void multiplyByQBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+                          bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(sbs.getStage() >= Stage::Model);
+        assert(q && in && out);
+
+        if (useEulerAnglesIfPossible) {
+            // TODO: it's annoying that this Q block is only available in the Body (M) frame,
+            // because this mobilizer uses angular velocity in the Parent (F) frame
+            // as generalized speeds. So we have to do an expensive conversion here. It
+            // would be just as easy to compute this matrix in the Parent frame in 
+            // the first place.
+            const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
+            const Mat33    Q = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
+            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * Q;
+            else               Vec3::updAs(out) = Q * Vec3::getAs(in);
+        } else {
+            // Quaternion
+            const Mat43 Q = Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q));
+            if (matrixOnRight) Row3::updAs(out) = Row4::getAs(in) * Q;
+            else               Vec4::updAs(out) = Q * Vec3::getAs(in);
+        }
+    }
+
+    // Compute out_u = inv(Q) * in_q
+    //   or    out_q = in_u * inv(Q)
+    void multiplyByQInvBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+                             bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(sbs.getStage() >= Stage::Position);
+        assert(in && out);
+
+        if (useEulerAnglesIfPossible) {
+            // TODO: see above regarding the need for this R_FM kludge
+            const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
+            const Mat33    QInv(R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q)));
+            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * QInv;
+            else               Vec3::updAs(out) = QInv * Vec3::getAs(in);
+        } else {
+            
+            // Quaternion
+            const Mat34 QInv = Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q));
+            if (matrixOnRight) Row4::updAs(out) = Row3::getAs(in) * QInv;
+            else               Vec3::updAs(out) = QInv * Vec4::getAs(in);
+        }
+    }
  
     void calcQDotDot(
         const SBModelVars&     mv,
@@ -2182,7 +2519,8 @@ public:
 				  int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
-      : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot),
+      : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             QDotMayDifferFromU, QuaternionMayBeUsed),
         semi(radii)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
@@ -2352,6 +2690,55 @@ public:
 		H_FM_Dot[2] = SpatialRow( Row3(0), Row3(-ndot[1]*semi[0], ndot[0]*semi[1],       0        ) );
     }
 
+    // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
+    // is up to the caller to do that if it is necessary.
+    void multiplyByQBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+                          bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(sbs.getStage() >= Stage::Model);
+        assert(q && in && out);
+
+        if (useEulerAnglesIfPossible) {
+            // TODO: it's annoying that this Q block is only available in the Body (M) frame,
+            // because this mobilizer uses angular velocity in the Parent (F) frame
+            // as generalized speeds. So we have to do an expensive conversion here. It
+            // would be just as easy to compute this matrix in the Parent frame in 
+            // the first place.
+            const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
+            const Mat33    Q = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
+            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * Q;
+            else               Vec3::updAs(out) = Q * Vec3::getAs(in);
+        } else {
+            // Quaternion
+            const Mat43 Q = Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q));
+            if (matrixOnRight) Row3::updAs(out) = Row4::getAs(in) * Q;
+            else               Vec4::updAs(out) = Q * Vec3::getAs(in);
+        }
+    }
+
+    // Compute out_u = inv(Q) * in_q
+    //   or    out_q = in_u * inv(Q)
+    void multiplyByQInvBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+                             bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(sbs.getStage() >= Stage::Position);
+        assert(in && out);
+
+        if (useEulerAnglesIfPossible) {
+            // TODO: see above regarding the need for this R_FM kludge
+            const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
+            const Mat33    QInv(R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q)));
+            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * QInv;
+            else               Vec3::updAs(out) = QInv * Vec3::getAs(in);
+        } else {
+            
+            // Quaternion
+            const Mat34 QInv = Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q));
+            if (matrixOnRight) Row4::updAs(out) = Row3::getAs(in) * QInv;
+            else               Vec3::updAs(out) = QInv * Vec4::getAs(in);
+        }
+    }
+
     void calcQDot(
         const SBModelVars&     mv,
         const Vector&          q,
@@ -2464,17 +2851,18 @@ public:
 // qdots have to be derived from the generalized speeds to be turned into
 // either 4 quaternion derivatives or 3 Euler angle derivatives.
 //   
-class RBNodeTranslateRotate3 : public RigidBodyNodeSpec<6> {
+class RBNodeFree : public RigidBodyNodeSpec<6> {
 public:
-    virtual const char* type() { return "full"; }
+    virtual const char* type() { return "free"; }
 
-    RBNodeTranslateRotate3(const MassProperties& mProps_B,
-                           const Transform&      X_PF,
-                           const Transform&      X_BM,
-                           int&                  nextUSlot,
-                           int&                  nextUSqSlot,
-                           int&                  nextQSlot)
-      : RigidBodyNodeSpec<6>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+    RBNodeFree(const MassProperties& mProps_B,
+               const Transform&      X_PF,
+               const Transform&      X_BM,
+               int&                  nextUSlot,
+               int&                  nextUSqSlot,
+               int&                  nextQSlot)
+      : RigidBodyNodeSpec<6>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             QDotMayDifferFromU, QuaternionMayBeUsed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -2588,6 +2976,68 @@ public:
         H_FM_Dot[5] = SpatialRow( Row3(0), Row3(0) );
     }
 
+    // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
+    // is up to the caller to do that if it is necessary.
+    void multiplyByQBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+                          bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(sbs.getStage() >= Stage::Model);
+        assert(q && in && out);
+
+        if (useEulerAnglesIfPossible) {
+            // TODO: it's annoying that this Q block is only available in the Body (M) frame,
+            // because this mobilizer uses angular velocity in the Parent (F) frame
+            // as generalized speeds. So we have to do an expensive conversion here. It
+            // would be just as easy to compute this matrix in the Parent frame in 
+            // the first place.
+            const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
+            const Mat33    Q = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
+            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * Q;
+            else               Vec3::updAs(out) = Q * Vec3::getAs(in);
+            // translational part of Q block is identity
+            Vec3::updAs(out+3) = Vec3::getAs(in+3);
+        } else {
+            // Quaternion
+            const Mat43 Q = Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q));
+            if (matrixOnRight) {
+                Row3::updAs(out)   = Row4::getAs(in) * Q;
+                Row3::updAs(out+3) = Row3::getAs(in+4); // translational part of Q block is identity
+            } else { // matrix on left
+                Vec4::updAs(out) = Q * Vec3::getAs(in);
+                Vec3::updAs(out+4) = Vec3::getAs(in+3); // translational part of Q block is identity
+            }
+        }
+    }
+
+    // Compute out_u = inv(Q) * in_q
+    //   or    out_q = in_u * inv(Q)
+    void multiplyByQInvBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+                             bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(sbs.getStage() >= Stage::Position);
+        assert(in && out);
+
+        if (useEulerAnglesIfPossible) {
+            // TODO: see above regarding the need for this R_FM kludge
+            const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
+            const Mat33    QInv(R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q)));
+            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * QInv;
+            else               Vec3::updAs(out) = QInv * Vec3::getAs(in);
+            // translational part of QInv block is identity
+            Vec3::updAs(out+3) = Vec3::getAs(in+3);
+        } else {           
+            // Quaternion
+            const Mat34 QInv = Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q));
+            if (matrixOnRight) {
+                Row4::updAs(out) = Row3::getAs(in) * QInv;
+                Row3::updAs(out+4) = Row3::getAs(in+3); // translational part of QInv block is identity
+            } else { // matrix on left
+                Vec3::updAs(out) = QInv * Vec4::getAs(in);
+                Vec3::updAs(out+3) = Vec3::getAs(in+4); // translational part of QInv block is identity
+            }
+        }
+    }
+
     void calcQDot(
         const SBModelVars&     mv,
         const Vector&          q,
@@ -2638,7 +3088,7 @@ public:
         }
     }
 
-    void copyQ(Vector& q, const SBModelVars& mv, const Vector& qIn) const {
+    void copyQ(const SBModelVars& mv, const Vector& qIn, Vector& q) const {
         if (getUseEulerAngles(mv))
             toQ(q) = fromQ(qIn);
         else {
@@ -2743,7 +3193,8 @@ public:
                           int&                  nextUSlot,
                           int&                  nextUSqSlot,
                           int&                  nextQSlot)
-      : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             QDotMayDifferFromU, QuaternionMayBeUsed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -2999,7 +3450,8 @@ public:
                    int&                  nextUSlot,
                    int&                  nextUSqSlot,
                    int&                  nextQSlot)
-      : RigidBodyNodeSpec<5>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<5>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             QDotMayDifferFromU, QuaternionMayBeUsed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -3188,7 +3640,7 @@ public:
         }
     }
 
-    void copyQ(Vector& q, const SBModelVars& mv, const Vector& qIn) const {
+    void copyQ(const SBModelVars& mv, const Vector& qIn, Vector& q) const {
         if (getUseEulerAngles(mv)) {
             toQVec3(q,0) = fromQVec3(qIn,0); // euler angles
             toQVec3(q,3) = fromQVec3(qIn,3); // translations
@@ -3781,10 +4233,9 @@ RigidBodyNode* MobilizedBody::GimbalImpl::createRigidBodyNode(
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    assert(!"Gimbal MobilizedBody not implemented yet"); return 0;
-    // return new RBNodeGimbal(getDefaultRigidBodyMassProperties(),
-    //     getDefaultInboardFrame(),getDefaultOutboardFrame(),
-    //     nxtUSlot,nxtUSqSlot,nxtQSlot);
+    return new RBNodeGimbal(getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
 RigidBodyNode* MobilizedBody::BallImpl::createRigidBodyNode(
@@ -3792,7 +4243,7 @@ RigidBodyNode* MobilizedBody::BallImpl::createRigidBodyNode(
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    return new RBNodeRotate3(
+    return new RBNodeBall(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
         nxtUSlot,nxtUSqSlot,nxtQSlot);
@@ -3826,7 +4277,7 @@ RigidBodyNode* MobilizedBody::FreeImpl::createRigidBodyNode(
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    return new RBNodeTranslateRotate3(
+    return new RBNodeFree(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
         nxtUSlot,nxtUSqSlot,nxtQSlot);

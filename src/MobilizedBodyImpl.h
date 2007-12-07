@@ -56,7 +56,7 @@ namespace SimTK {
 
 class MobilizedBodyImpl : public PIMPLImplementation<MobilizedBody,MobilizedBodyImpl> {
 public:
-    MobilizedBodyImpl() : myHandle(0), myMatterSubsystemRep(0), myRBnode(0) {
+    MobilizedBodyImpl() : myHandle(0), myMatterSubsystemRep(0), myLevel(-1), myRBnode(0) {
     }
     virtual ~MobilizedBodyImpl() {
         delete myRBnode;
@@ -245,6 +245,16 @@ public:
         return myParentId;
     }
 
+    MobilizedBodyId getMyBaseBodyMobilizedBodyId() const {
+        assert(myBaseBodyId.isValid());
+        return myBaseBodyId;
+    }
+
+    int getMyLevel() const {
+        assert(myLevel >= 0);
+        return myLevel;
+    }
+
     bool isInSubsystem() const {return myMatterSubsystemRep != 0;}
 
     void setMyMatterSubsystem(SimbodyMatterSubsystem& matter,
@@ -253,8 +263,22 @@ public:
     {
         assert(!myMatterSubsystemRep);
         myMatterSubsystemRep = &matter.updRep();
-        myParentId           = parentId;
+
+        assert(id.isValid());
+        assert(parentId.isValid() || id==GroundId);
+
+        myParentId           = parentId; // invalid if this is Ground
         myMobilizedBodyId    = id;
+
+        if (id != GroundId) {
+            const MobilizedBody& parent = matter.getMobilizedBody(parentId);
+            myLevel = parent.getLevelInMultibodyTree() + 1;
+            myBaseBodyId = (myLevel == 1 ? myMobilizedBodyId 
+                                         : parent.getBaseMobilizedBody().getMobilizedBodyId());
+        } else {
+            myLevel = 0;
+            myBaseBodyId = GroundId;
+        }
     }
 
     void setMyHandle(MobilizedBody& h) {myHandle = &h;}
@@ -310,7 +334,10 @@ private:
     // heap space here so don't delete it!
     SimbodyMatterSubsystemRep* myMatterSubsystemRep;
     MobilizedBodyId  myMobilizedBodyId; // id within the subsystem
-    MobilizedBodyId  myParentId;
+    MobilizedBodyId  myParentId;   // Invalid if this body is Ground, otherwise the parent's Id
+    MobilizedBodyId  myBaseBodyId; // GroundId if this is ground, otherwise a level-1 BodyId
+    int              myLevel;      // Distance from ground in multibody graph (0 if this is ground,
+                                   //   1 if a base body, 2 if parent is a base body, etc.)
 
         // TOPOLOGY "CACHE"
 
@@ -475,9 +502,20 @@ public:
         Vec3::updAs(q) = defaultQ;
     }
 
+    void calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
+
+    void setDefaultRadius(Real r) {
+        assert(r>0);
+        invalidateTopologyCache();
+        defaultRadius=r;
+    }
+    Real getDefaultRadius() const {return defaultRadius;}
+
     SimTK_DOWNCAST(GimbalImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Gimbal;
+    Real defaultRadius;   // used for visualization only
     Vec3 defaultQ;  // the three angles in radians
 };
 

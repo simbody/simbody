@@ -203,6 +203,16 @@ void SimbodyMatterSubsystem::calcQDotDot(const State& s,
     getRep().calcQDotDot(s, udot, qdotdot);
 }
 
+void SimbodyMatterSubsystem::multiplyByQMatrix(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
+{
+    getRep().multiplyByQMatrix(s,matrixOnRight,in,out);
+}
+
+void SimbodyMatterSubsystem::multiplyByQMatrixInverse(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
+{
+    getRep().multiplyByQMatrixInverse(s,matrixOnRight,in,out);
+}
+
 // Topological info. Note the lack of a State argument.
 int SimbodyMatterSubsystem::getNBodies()        const {return getRep().getNBodies();}
 int SimbodyMatterSubsystem::getNMobilities()    const {return getRep().getNMobilities();}

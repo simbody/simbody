@@ -134,6 +134,23 @@ class RigidBodyNode {
 public:
     class VirtualBaseMethod {};    // an exception
 
+    // Every concrete RigidBodyNode sets this property on construction so we know
+    // whether it can use simple default implementations for kinematic equations
+    // (those involving the Q matrix), which rely on qdot=u.
+    enum QDotHandling {
+        QDotIsAlwaysTheSameAsU,
+        QDotMayDifferFromU
+    };
+
+    // This property tells us whether a RigidBodyNode may use a quaternion for
+    // some set of modeling options. If so, we know that nq > nu, and it must
+    // also be the case that QDotMayDifferFromU. (But note that there may be
+    // mobilizers for which qdot != u but there is no quaternion.)
+    enum QuaternionUse {
+        QuaternionIsNeverUsed,
+        QuaternionMayBeUsed
+    };
+
     virtual ~RigidBodyNode() {}
 
         // MOBILIZER-SPECIFIC VIRTUAL METHODS //
@@ -156,9 +173,8 @@ public:
       { throw VirtualBaseMethod(); }
 
     // Copy the right u's from uIn to the corresponding slots in u. Modeling choices
-    // shouldn't affect the number copied since the number of u's should be identical
-    // to the number of mobilities. TODO: then why the first argument? and why does this
-    // need to be virtual?
+    // can't affect the number copied since the number of u's should be identical
+    // to the number of mobilities. TODO: then why the first argument?
     virtual void copyU(
         const SBModelVars& mv, 
         const Vector&      uIn, 
@@ -175,6 +191,76 @@ public:
     virtual Transform  calcParentToChildTransformFromQ      (const SBStateDigest&,    const Real* q)    const {throw VirtualBaseMethod();}
     virtual SpatialVec calcParentToChildVelocityFromU       (const SBStateDigest&,    const Real* u)    const {throw VirtualBaseMethod();}
     virtual SpatialVec calcParentToChildAccelerationFromUDot(const SBStateDigest&,    const Real* udot) const {throw VirtualBaseMethod();}
+
+    // Operators involving kinematics matrix Q and related matrices QInv and QDot. 
+    // These methods perform operations involving
+    // just the block on the diagonal of the matrix that corresponds to this mobilizer. These
+    // blocks can be rectangular, in which case the u-dimension is always the number
+    // of mobilizers dofs (generalized speeds) but the q-dimension may depend on 
+    // modeling options (specifically, whether the mobilizer orientation is modeled
+    // with 4 quaternions or 3 euler angles). These normally treat the input as a
+    // column vector and multiply with the matrix on the left. Optionally they will
+    // treat the input as a row vector and multiply with the matrix on the right. (The
+    // latter is equivalent to multiplication on the left by the transpose of the
+    // matrix.)
+    //
+    //   multiplyByQBlock
+    //     Left   out_q = Q * in_u
+    //     Right  out_u = in_q * Q
+    //
+    //   multiplyByQInvBlock
+    //     Left  u = inv(Q) q
+    //     Right q = u inv(Q)
+    //
+    //   multiplyByQDotBlock
+    //     Left   q = QDot u
+    //     Right  u = q QDot
+    //      (not invertible but inverse isn't needed; see below)
+    //
+    // where 'in_q' and 'in_u' etc. indicate q-like and u-like vectors or row vectors, not the
+    // actual state variables of the same names. Note that the interpretation of the in and out
+    // arrays is different depending on whether we're multiplying on the left or right; which
+    // is q-like and which is u-like reverses.
+    //
+    // Note that Q=Q(q), QInv=Qinv(q), and QDot=QDot(q,u) where now I am talking about
+    // the real set of generalized coordinates q and generalized speeds u but *just for this
+    // mobilizer*.
+    //
+    // In typical usage qdot=Q*u, qdotdot=Q*udot + QDot*u. These can be
+    // inverted as u=inv(Q)*qdot, and udot=inv(Q)*(qdotdot - QDot*u); note that
+    // inv(QDot) is not needed (a good thing since it is likely to be singular!).
+    //
+    // WARNING: these routines do not normalize quaternions before using them, so the resulting
+    // matrices are scaled by the quaternion norm (if it isn't 1). This is important for 
+    // correct calculation of qdots because otherwise they would not be the correct derivatives
+    // for unnormalized q's. 
+
+    virtual void multiplyByQBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
+                                  bool matrixOnRight, 
+                                  const Real* in, Real* out) const {throw VirtualBaseMethod();}
+    virtual void multiplyByQInvBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
+                                     bool matrixOnRight,
+                                     const Real* in, Real* out) const {throw VirtualBaseMethod();}
+    virtual void multiplyByQDotBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q, const Real* u,
+                                     bool matrixOnRight,
+                                     const Real* in, Real* out) const {throw VirtualBaseMethod();}
+
+    virtual void calcQDot(
+        const SBModelVars&     mv,
+        const Vector&          q,
+        const SBPositionCache& pc,
+        const Vector&          u,
+        Vector&                qdot) const
+      { throw VirtualBaseMethod(); }
+
+    virtual void calcQDotDot(
+        const SBModelVars&     mv,
+        const Vector&          q,
+        const SBPositionCache& pc,
+        const Vector&          u, 
+        const Vector&          udot, 
+        Vector&                qdotdot) const
+      { throw VirtualBaseMethod(); }
 
     // This will do nothing unless the mobilizer is using a quaternion.
     virtual bool enforceQuaternionConstraints(
@@ -364,22 +450,6 @@ public:
         Vector&                     allUDot) const
       { throw VirtualBaseMethod(); }
 
-    virtual void calcQDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u,
-        Vector&                qdot) const
-      { throw VirtualBaseMethod(); }
-
-    virtual void calcQDotDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u, 
-        const Vector&          udot, 
-        Vector&                qdotdot) const
-      { throw VirtualBaseMethod(); }
 
     virtual void setVelFromSVel(const SBPositionCache&, const SBVelocityCache&,
                                 const SpatialVec&, Vector& u) const {throw VirtualBaseMethod();}
@@ -693,12 +763,18 @@ protected:
     // concrete types in their constructors.
     RigidBodyNode(const MassProperties& mProps_B,
                   const Transform&      xform_PF,
-                  const Transform&      xform_BM)
+                  const Transform&      xform_BM,
+                  QDotHandling          qdotType,
+                  QuaternionUse         quatUse)
       : qIndex(-1), uIndex(-1), uSqIndex(-1), quaternionIndex(-1),
         parent(0), children(), level(-1), nodeNum(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentralInertia()),
-        X_BM(xform_BM), X_PF(xform_PF), X_MB(~xform_BM)
+        X_BM(xform_BM), X_PF(xform_PF), X_MB(~xform_BM),
+        qdotHandling(qdotType), quaternionUse(quatUse)
     {
+        // If a quaternion might be used, it can't possibly be true that qdot is
+        // always the same as u.
+        assert(!(quatUse==QuaternionMayBeUsed && qdotType==QDotIsAlwaysTheSameAsU));
     }
 
     typedef std::vector<RigidBodyNode*> RigidBodyNodeList;
@@ -735,6 +811,20 @@ protected:
     // to body B (F) measured from and expressed in the parent frame P. It is 
     // a constant in frame P. TODO: make it parameterizable.
     const Transform X_PF;
+
+    // Concrete RigidBodyNodes should set this flag on construction to indicate whether they can guarantee
+    // that their mobilizer's qdots are just the generalized speeds u, for all possible
+    // modeling options. That is the same as saying nq=nu and qdot=u, or that the block of the kinematic
+    // matrix Q corresponding to this node is an nuXnu identity matrix; QInv is the same; and
+    // QDot is nuXnu zero. These conditions allows the use of default implementations of many
+    // methods which would otherwise have to be overridden. The default implementations assert
+    // that qdotHandling==QDotIsAlwaysTheSameAsU.
+    const QDotHandling qdotHandling;
+
+    // Concrete RigidBodyNodes should set this flag on construction to indicate whether they
+    // can guarantee never to use a quaternion in their generailized coordinates for any set
+    // of modeling options.
+    const QuaternionUse quaternionUse;
 
     template<int dof> friend class RigidBodyNodeSpec;
 

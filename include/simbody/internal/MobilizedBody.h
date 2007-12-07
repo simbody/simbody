@@ -955,8 +955,10 @@ public:
 
     // Implicit conversion to MobilizedBodyId when needed.
     operator MobilizedBodyId() const {return getMobilizedBodyId();}
-    MobilizedBodyId        getMobilizedBodyId()     const;
-    const MobilizedBody&   getParentMobilizedBody() const;
+    MobilizedBodyId        getMobilizedBodyId()     const; // id of this mobilized body
+    const MobilizedBody&   getParentMobilizedBody() const; // the inboard body (not allowed if this is ground)
+    const MobilizedBody&   getBaseMobilizedBody()   const; // the lowest numbered ancestor body on this branch
+                                                           //   (returns Ground if if this is Ground)
 
     // These will fail unless this MobilizedBody is owned by a MatterSubsystem.
     const SimbodyMatterSubsystem& getMatterSubsystem()      const;
@@ -1360,7 +1362,6 @@ public:
 /// Three mobilities -- unrestricted orientation modeled as a 1-2-3
 /// body-fixed Euler angle sequence. This is singular when the middle
 /// angle is 90 degrees.
-/// TODO: not implemented yet.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Gimbal : public PIMPLDerivedHandle<Gimbal, GimbalImpl, MobilizedBody> {
 public:
     Gimbal();
@@ -1391,6 +1392,39 @@ public:
     Gimbal& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
+
+    // This is just a nicer name for the generalized coordinate.
+    Gimbal& setDefaultRotation(const Rotation& R_FM) {
+        return setDefaultQ(R_FM.convertRotationToBodyFixedXYZ());
+    }
+    Rotation getDefaultRotation() const {
+        const Vec3& q = getDefaultQ();
+        return Rotation(BodyRotationSequence,
+            q[0], XAxis, q[1], YAxis, q[2], ZAxis);
+    }
+
+    // This is used only for visualization.
+    Gimbal& setDefaultRadius(Real r);
+    Real getDefaultRadius() const;
+
+    // Generic default state Topology methods.
+    const Vec3& getDefaultQ() const; // X,Y,Z body-fixed Euler angles
+    Gimbal& setDefaultQ(const Vec3& q);
+
+    const Vec3& getQ(const State&) const;
+    const Vec3& getQDot(const State&) const;
+    const Vec3& getQDotDot(const State&) const;
+    const Vec3& getU(const State&) const;
+    const Vec3& getUDot(const State&) const;
+
+    void setQ(State&, const Vec3&) const;
+    void setU(State&, const Vec3&) const;
+
+    const Vec3& getMyPartQ(const State&, const Vector& qlike) const;
+    const Vec3& getMyPartU(const State&, const Vector& ulike) const;
+   
+    Vec3& updMyPartQ(const State&, Vector& qlike) const;
+    Vec3& updMyPartU(const State&, Vector& ulike) const;
 };
 
 /// Three mobilities -- unrestricted orientation modeled with a

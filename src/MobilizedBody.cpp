@@ -92,13 +92,19 @@ const SimbodyMatterSubsystem& MobilizedBody::getMatterSubsystem() const {
 MobilizedBodyId MobilizedBody::getMobilizedBodyId() const {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
         "getMobilizedBodyId() called on a MobilizedBody that is not part of a subsystem.");
-    return getImpl().myMobilizedBodyId;
+    return getImpl().getMyMobilizedBodyId();
 }
 
 const MobilizedBody& MobilizedBody::getParentMobilizedBody() const {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
         "getParentMobilizedBody() called on a MobilizedBody that is not part of a subsystem.");
-    return getImpl().getMyMatterSubsystemRep().getMobilizedBody(getImpl().myParentId);
+    return getImpl().getMyMatterSubsystemRep().getMobilizedBody(getImpl().getMyParentMobilizedBodyId());
+}
+
+const MobilizedBody& MobilizedBody::getBaseMobilizedBody() const {
+    SimTK_ASSERT_ALWAYS(isInSubsystem(),
+        "getBaseMobilizedBody() called on a MobilizedBody that is not part of a subsystem.");
+    return getImpl().getMyMatterSubsystemRep().getMobilizedBody(getImpl().getMyBaseBodyMobilizedBodyId());
 }
 
 bool MobilizedBody::isInSubsystem() const {
@@ -119,7 +125,7 @@ bool MobilizedBody::isGround() const {
 }
 
 int MobilizedBody::getLevelInMultibodyTree() const {
-    return getImpl().getMyRigidBodyNode().getLevel();
+    return getImpl().getMyLevel();
 }
 
 SimbodyMatterSubsystem& MobilizedBody::updMatterSubsystem() {
@@ -430,21 +436,19 @@ const RigidBodyNode& MobilizedBodyImpl::realizeTopology
     delete myRBnode;
     myRBnode = createRigidBodyNode(nxtU,nxtUSq,nxtQ);
 
-    int level;
-    if (!myParentId.isValid()) {
-        // this is ground
-        assert(myMobilizedBodyId == 0);
-        level = 0;
-    } else {
+    assert(myMobilizedBodyId.isValid());
+    assert(myParentId.isValid() || myMobilizedBodyId == GroundId);
+
+    if (myParentId.isValid()) {
         // not ground
         const MobilizedBodyImpl& parent = 
             myMatterSubsystemRep->getMobilizedBody(myParentId).getImpl();
-        level = parent.myRBnode->getLevel() + 1;
+        assert(myLevel == parent.myRBnode->getLevel() + 1);
         parent.myRBnode->addChild(myRBnode);
         myRBnode->setParent(parent.myRBnode);
     }
 
-    myRBnode->setLevel(level);
+    myRBnode->setLevel(myLevel);
     myRBnode->setNodeNum(myMobilizedBodyId);
     return *myRBnode;
 }
@@ -829,6 +833,125 @@ MobilizedBody::Gimbal::Gimbal(MobilizedBody& parent, const Transform& inbFrame,
 
     parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
                                                    *this);
+}
+
+MobilizedBody::Gimbal& MobilizedBody::Gimbal::setDefaultRadius(Real r) {
+    getImpl().invalidateTopologyCache();
+    updImpl().setDefaultRadius(r);
+    return *this;
+}
+
+Real MobilizedBody::Gimbal::getDefaultRadius() const {
+    return getImpl().getDefaultRadius();
+}
+
+const Vec3& MobilizedBody::Gimbal::getDefaultQ() const {
+    return getImpl().defaultQ;
+}
+MobilizedBody::Gimbal& MobilizedBody::Gimbal::setDefaultQ(const Vec3& q) {
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultQ = q;
+    return *this;
+}
+
+const Vec3& MobilizedBody::Gimbal::getQ(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQ(s)[qStart]);
+}
+void MobilizedBody::Gimbal::setQ(State& s, const Vec3& q) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    Vec3::updAs(&mbr.getMyMatterSubsystemRep().updQ(s)[qStart]) = q;
+}
+const Vec3& MobilizedBody::Gimbal::getQDot(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDot(s)[qStart]);
+}
+const Vec3& MobilizedBody::Gimbal::getQDotDot(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart]);
+}
+
+
+const Vec3& MobilizedBody::Gimbal::getU(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getU(s)[uStart]);
+}
+void MobilizedBody::Gimbal::setU(State& s, const Vec3& u) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    Vec3::updAs(&mbr.getMyMatterSubsystemRep().updU(s)[uStart]) = u;
+}
+const Vec3& MobilizedBody::Gimbal::getUDot(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getUDot(s)[uStart]);
+}
+
+const Vec3& MobilizedBody::Gimbal::getMyPartQ(const State& s, const Vector& qlike) const {
+    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    return Vec3::getAs(&qlike[qStart]);
+}
+
+const Vec3& MobilizedBody::Gimbal::getMyPartU(const State& s, const Vector& ulike) const {
+    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::getAs(&ulike[uStart]);
+}
+
+Vec3& MobilizedBody::Gimbal::updMyPartQ(const State& s, Vector& qlike) const {
+    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    return Vec3::updAs(&qlike[qStart]);
+}
+
+Vec3& MobilizedBody::Gimbal::updMyPartU(const State& s, Vector& ulike) const {
+    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::updAs(&ulike[uStart]);
+}
+
+    // GimbalImpl
+
+void MobilizedBody::GimbalImpl::calcDecorativeGeometryAndAppendImpl
+   (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+{
+    // We can't generate the ball until we know the radius, and we can't place
+    // the geometry on the body until we know the parent and child mobilizer frame
+    // placement on the body, which might not be until Instance stage.
+    if (stage == Stage::Instance) {
+        const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+        const Transform& X_PMb = getInboardFrame(s);
+        const Transform& X_BM  = getOutboardFrame(s);
+
+        // On the inboard body, draw a solid sphere and a wireframe one attached to it for
+        // easier visualization of its rotation. These are at about 90% of the radius.
+        geom.push_back(DecorativeSphere(0.92*getDefaultRadius())
+                                            .setColor(Gray)
+                                            .setRepresentation(DecorativeGeometry::DrawSurface)
+                                            .setOpacity(0.5)
+                                            .setResolution(0.75)
+                                            .setBodyId(getMyParentMobilizedBodyId())
+                                            .setTransform(X_PMb));
+        geom.push_back(DecorativeSphere(0.90*getDefaultRadius())
+            .setColor(White)
+            .setRepresentation(DecorativeGeometry::DrawWireframe)
+            .setResolution(0.75)
+            .setLineThickness(3)
+            .setOpacity(0.1)
+            .setBodyId(getMyParentMobilizedBodyId())
+            .setTransform(X_PMb));
+
+        // On the outboard body draw an orange mesh sphere at the ball radius.
+        geom.push_back(DecorativeSphere(getDefaultRadius())
+                                            .setColor(Orange)
+                                            .setRepresentation(DecorativeGeometry::DrawWireframe)
+                                            .setOpacity(0.5)
+                                            .setResolution(0.5)
+                                            .setBodyId(getMyMobilizedBodyId())
+                                            .setTransform(X_BM));
+    }
 }
 
     ///////////////////////////////////////////////////

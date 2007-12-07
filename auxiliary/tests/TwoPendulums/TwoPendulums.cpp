@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
     Body::Rigid pendulumBody = Body::Rigid(MassProperties(m, Vec3(0), Inertia(1)))
                                   .addDecoration(Transform(), DecorativeBrick(Vec3(.1,.0667,.05)));
 
-    MobilizedBody::  /*Pin*/Ball
+    MobilizedBody::  Ball /*Gimbal*/ /*Free*/
         leftPendulum(twoPends.Ground(),
                          Transform(Vec3(-1, 0, 0)),
                      pendulumBody,
@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
                          Transform(Vec3(0, d, 0)));
 */
 
-    leftPendulum.setDefaultRadius(0.2); // for Ball artwork
+//    leftPendulum.setDefaultRadius(0.2); // for Ball artwork
 
     Vec3 radii(1.5/2.,1/3.,1/4.); radii*=.5; //radii=Vec3(.333,.5,1);
     MobilizedBody::Ellipsoid rightPendulum(twoPends.Ground(), pendulumBody);
@@ -180,6 +180,13 @@ int main(int argc, char** argv) {
 
     if (cid.isValid()) {
         cout << "CONSTRAINT -- " << twoPends.getConstraint(cid).getSubtree();
+    }
+
+    for (MobilizedBodyId i(0); i < twoPends.getNBodies(); ++i) {
+        const MobilizedBody& mb = twoPends.getMobilizedBody(i);
+        cout << "Body " << i 
+             << " base=" << mb.getBaseMobilizedBody().getMobilizedBodyId() 
+             << endl;
     }
 
 
@@ -293,6 +300,21 @@ int main(int argc, char** argv) {
             twoPends.getQErr(s).normRMS(),
             twoPends.getUErr(s).normRMS(),
             twoPends.getUDotErr(s).normRMS());
+
+        Vector qdot;
+        twoPends.calcQDot(s, s.getU(), qdot);
+        cout << "===> qdot =" << qdot << endl;
+
+        Vector qdot2;
+        twoPends.multiplyByQMatrix(s, false, s.getU(), qdot2);
+        cout << "===> qdot2=" << qdot2 << endl;
+
+        Vector u2, uT;
+        twoPends.multiplyByQMatrixInverse(s, false, qdot2, u2);
+        twoPends.multiplyByQMatrix(s,true, qdot2, uT); // use transpose instead of inverse (wrong!)
+        cout << "===> u =" << s.getU() << endl;
+        cout << "===> u2=" << u2 << endl;
+        cout << "===> uT=" << uT << endl;
 
         //sub.copyPositionsFromState(s, results);
         //sub.copyVelocitiesFromState(s, results);

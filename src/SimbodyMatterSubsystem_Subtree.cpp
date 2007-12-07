@@ -90,13 +90,10 @@ public:
 
     void setTerminalBodies(const std::vector<MobilizedBodyId>& bids) {
         clear();
-        for (int i=0; i < bids.size(); ++i)
+        for (int i=0; i < (int)bids.size(); ++i)
             addTerminalBody(bids[i]);
     }
 
-    //TODO: don't allow a terminal body which is on the same branch with
-    //some other terminal body (i.e., no terminal body can appear along the
-    //branch back to the ancestor).
     void addTerminalBody(MobilizedBodyId bid) {
         assert(!isTerminalBody(bid)); // can only appear once
         invalidate(Stage::Topology);
@@ -213,7 +210,7 @@ public:
     }
 
     bool isTerminalBody(MobilizedBodyId bid) const {
-        for (int i=0; i < terminalBodies.size(); ++i)
+        for (int i=0; i < (int)terminalBodies.size(); ++i)
             if (bid == terminalBodies[i])
                 return true;
         return false;
@@ -238,7 +235,7 @@ public:
         MapType subtreeBodyIdMap;
         // Pre-load the map with the ancestor body and its subtree body id 0.
         subtreeBodyIdMap.insert(MapEntry(ancestor, SubtreeBodyId(0)));
-        for (int i=0; i < terminalBodies.size(); ++i) {
+        for (int i=0; i < (int)terminalBodies.size(); ++i) {
             // Run down this branch adding any new bodies we encounter
             // until we hit one that is already in the map. If we get to
             // Ground without hitting the ancestor (OK if Ground *is* the
@@ -978,7 +975,7 @@ std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystem::Subtree&
         o << sub.getAllBodies()[i] << " ";
     o << endl;
 
-    for (SubtreeBodyId b(0); b < sub.getAllBodies().size(); ++b) {
+    for (SubtreeBodyId b(0); b < (int)sub.getAllBodies().size(); ++b) {
         o << "  parent[" << b << "]=" << sub.getParentSubtreeBodyId(b);
 
         o << "  children[" << b << "]=";

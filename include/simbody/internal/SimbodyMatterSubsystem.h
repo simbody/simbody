@@ -301,6 +301,18 @@ public:
         const Vector& udot,
         Vector&       qdotdot) const;
 
+    /// Must be in Stage::Position to calculate out_q = Q(q)*in_u (e.g., qdot=Q*u)
+    /// or out_u = in_q * Q(q). Note that one of "in" and "out" is always "q-like" while
+    /// the other is "u-like", but which is which changes if the matrix is on the right.
+    /// This is an O(N) operator since Q is block diagonal.
+    void multiplyByQMatrix(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const;
+
+    /// Must be in Stage::Position to calculate out_u = QInv(q)*in_q (e.g., u=QInv*qdot)
+    /// or out_q = in_u * QInv(q). Note that one of "in" and "out" is always "q-like" while
+    /// the other is "u-like", but which is which changes if the matrix is on the right.
+    /// This is an O(N) operator since QInv is block diagonal.
+    void multiplyByQMatrixInverse(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const;
+
     // Constraint projections.
 
     /// Project position coordinates (q's) so that they satisfy their 
