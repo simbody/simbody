@@ -126,12 +126,21 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
         AddIpoptIntOption(nlp, "limited_memory_max_history", limitedMemoryHistory);
         AddIpoptIntOption(nlp, "print_level", diagnosticsLevel); // default is 4
 
-        static const char *advancedRealOptions[] = {"obj_scaling_factor", "nlp_scaling_max_gradient",0}; 
+        int i;
+        static const char *advancedRealOptions[] = {"obj_scaling_factor", "nlp_scaling_max_gradient", "acceptable_tol", 0}; 
         Real value;
-        for(int i=0;advancedRealOptions[i];i++) {
+        for(i=0;advancedRealOptions[i];i++) {
             if(getAdvancedRealOption(advancedRealOptions[i],value))
                 AddIpoptNumOption(nlp, advancedRealOptions[i], value);
         }
+
+        static const std::string advancedStrOptions[] = {"print_options_documentation", "print_user_options", ""}; 
+        std::string svalue;
+        for(i=0;!advancedStrOptions[i].empty();i++) {
+            if(getAdvancedStrOption(advancedStrOptions[i], svalue))
+                AddIpoptStrOption(nlp, advancedStrOptions[i].c_str(), svalue.c_str());
+        }
+
 
         // Only makes sense to do a warm start if this is not the first call to optimize() (since we need 
         // reasonable starting multiplier values)

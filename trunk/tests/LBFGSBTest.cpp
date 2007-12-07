@@ -116,6 +116,7 @@ int main() {
     Optimizer opt( sys ); 
 
     opt.setConvergenceTolerance( .0001 );
+    opt.setDiagnosticsLevel( 5 );
     f = opt.optimize( results );
 
   }

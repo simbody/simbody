@@ -36,7 +36,7 @@ void LapackConvert::convertMatrixToLapack ( T* lapackArray, const Matrix_<ELT>& 
     int n = mat.ncol(); 
     for(int i=0;i<n;i++) {
         for(int j=0;j<m;j++)  {
-            lapackArray[i*m+j] = elementToLapack( lapackArray[i*m+j], mat, j, i );
+            elementToLapack( lapackArray[i*m+j], mat, j, i );
         }
     }
     return;

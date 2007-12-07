@@ -159,7 +159,7 @@ int main() {
 
     opt.useNumericalGradient( true );
     opt.useNumericalJacobian( true );
-    opt.setDiagnosticsLevel( 7 );
+    opt.setDiagnosticsLevel( 5 );
 
     /* compute  optimization */ 
     f = opt.optimize( results );

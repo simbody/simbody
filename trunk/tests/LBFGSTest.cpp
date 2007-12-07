@@ -83,6 +83,7 @@ int main() {
 
 
     opt.setConvergenceTolerance( .0001 );
+    opt.setDiagnosticsLevel( 5 );
 
     results[0] =  100;
     results[1] = -100;
