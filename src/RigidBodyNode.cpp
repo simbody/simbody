@@ -3181,6 +3181,7 @@ public:
 // and generalized speeds are:
 //   * the x,y components of the angular velocity w_FM_M, that is, the angular
 //     velocity of M in F expressed in M (where we want wz=0).
+//     NOTE: THAT IS A DIFFERENT FRAME THAN IS USED FOR BALL AND GIMBAL
 // Thus the qdots have to be derived from the generalized speeds to
 // be turned into either 4 quaternion derivatives or 3 Euler angle derivatives.
 class RBNodeLineOrientation : public RigidBodyNodeSpec<2> {
@@ -3312,6 +3313,54 @@ public:
         H_FM_Dot[1] = SpatialRow( ~(w_FM % My_F), Row3(0) );
     }
 
+    // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
+    // is up to the caller to do that if it is necessary.
+    void multiplyByQBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+                          bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(sbs.getStage() >= Stage::Model);
+        assert(q && in && out);
+
+        if (useEulerAnglesIfPossible) {
+            const Mat32    Q = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
+                                    .getSubMat<3,2>(0,0); // drop 3rd column
+            if (matrixOnRight) Row2::updAs(out) = Row3::getAs(in) * Q;
+            else               Vec3::updAs(out) = Q * Vec2::getAs(in);
+        } else {
+            // Quaternion: Q block is only available expecting angular velocity in the
+            // parent frame F, but we have it in M for this joint.
+            const Rotation R_FM(Quaternion(Vec4::getAs(q)));
+            const Mat42 Q = (Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q))*R_FM)
+                                .getSubMat<4,2>(0,0); // drop 3rd column
+            if (matrixOnRight) Row2::updAs(out) = Row4::getAs(in) * Q;
+            else               Vec4::updAs(out) = Q * Vec2::getAs(in);
+        }
+    }
+
+    // Compute out_u = inv(Q) * in_q
+    //   or    out_q = in_u * inv(Q)
+    void multiplyByQInvBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+                             bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(sbs.getStage() >= Stage::Position);
+        assert(in && out);
+
+        if (useEulerAnglesIfPossible) {
+            const Mat23    QInv = Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
+                                        .getSubMat<2,3>(0,0); // drop 3rd row
+            if (matrixOnRight) Row3::updAs(out) = Row2::getAs(in) * QInv;
+            else               Vec2::updAs(out) = QInv * Vec3::getAs(in);
+        } else {
+            // Quaternion: QInv block is only available expecting angular velocity in the
+            // parent frame F, but we have it in M for this joint.
+            const Rotation R_FM(Quaternion(Vec4::getAs(q)));
+            const Mat24 QInv = (~R_FM*Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q)))
+                                    .getSubMat<2,4>(0,0);   // drop 3rd row
+            if (matrixOnRight) Row4::updAs(out) = Row2::getAs(in) * QInv;
+            else               Vec2::updAs(out) = QInv * Vec4::getAs(in);
+        }
+    }
+
     void calcQDot(
         const SBModelVars&     mv,
         const Vector&          q,
@@ -3438,6 +3487,7 @@ public:
 //   * the x,y components of the angular velocity w_FM_M, that is, the angular
 //     velocity of M in F expressed in *M* (where we want wz=0).
 //   * 3 components of the linear velocity of origin of M in F, expressed in F.
+//     NOTE: THAT IS NOT THE SAME FRAME AS FOR A FREE JOINT
 // Thus the qdots have to be derived from the generalized speeds to
 // be turned into either 4 quaternion derivatives or 3 Euler angle derivatives.
 class RBNodeFreeLine : public RigidBodyNodeSpec<5> {
@@ -3585,6 +3635,75 @@ public:
         H_FM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
         H_FM_Dot[3] = SpatialRow( Row3(0), Row3(0) );
         H_FM_Dot[4] = SpatialRow( Row3(0), Row3(0) );
+    }
+
+    // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
+    // is up to the caller to do that if it is necessary.
+    void multiplyByQBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+                          bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(sbs.getStage() >= Stage::Model);
+        assert(q && in && out);
+
+        if (useEulerAnglesIfPossible) {
+            const Mat32    Q = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
+                                    .getSubMat<3,2>(0,0); // drop 3rd column
+            if (matrixOnRight) {
+                Row2::updAs(out)   = Row3::getAs(in) * Q;
+                Row3::updAs(out+2) = Row3::getAs(in+3);// translational part of Q block is identity
+            } else {
+                Vec3::updAs(out)   = Q * Vec2::getAs(in);        
+                Vec3::updAs(out+3) = Vec3::getAs(in+2);// translational part of Q block is identity
+            }
+
+        } else {
+            // Quaternion: Q block is only available expecting angular velocity in the
+            // parent frame F, but we have it in M for this joint.
+            const Rotation R_FM(Quaternion(Vec4::getAs(q)));
+            const Mat42 Q = (Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q))*R_FM)
+                                .getSubMat<4,2>(0,0); // drop 3rd column
+            if (matrixOnRight) {
+                Row2::updAs(out)   = Row4::getAs(in) * Q;
+                Row3::updAs(out+2) = Row3::getAs(in+4); // translational part of Q block is identity
+            } else { // matrix on left
+                Vec4::updAs(out)   = Q * Vec2::getAs(in);
+                Vec3::updAs(out+4) = Vec3::getAs(in+2); // translational part of Q block is identity
+            }
+        }
+    }
+
+    // Compute out_u = inv(Q) * in_q
+    //   or    out_q = in_u * inv(Q)
+    void multiplyByQInvBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+                             bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(sbs.getStage() >= Stage::Position);
+        assert(in && out);
+
+        if (useEulerAnglesIfPossible) {
+            const Mat23    QInv = Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
+                                    .getSubMat<2,3>(0,0);   // drop 3rd row
+            if (matrixOnRight) {
+                Row3::updAs(out)   = Row2::getAs(in) * QInv;
+                Row3::updAs(out+3) = Row3::getAs(in+2); // translational part of QInv block is identity
+            } else {
+                Vec2::updAs(out)   = QInv * Vec3::getAs(in);
+                Vec3::updAs(out+2) = Vec3::getAs(in+3); // translational part of QInv block is identity
+            }
+        } else {           
+            // Quaternion: QInv block is only available expecting angular velocity in the
+            // parent frame F, but we have it in M for this joint.
+            const Rotation R_FM(Quaternion(Vec4::getAs(q)));
+            const Mat24 QInv = (~R_FM*Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q)))
+                                    .getSubMat<2,4>(0,0);   // drop 3rd row
+            if (matrixOnRight) {
+                Row4::updAs(out)   = Row2::getAs(in) * QInv;
+                Row3::updAs(out+4) = Row3::getAs(in+2); // translational part of QInv block is identity
+            } else { // matrix on left
+                Vec2::updAs(out)   = QInv * Vec4::getAs(in);
+                Vec3::updAs(out+2) = Vec3::getAs(in+4); // translational part of QInv block is identity
+            }
+        }
     }
 
     void calcQDot(

@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
     Body::Rigid pendulumBody = Body::Rigid(MassProperties(m, Vec3(0), Inertia(1)))
                                   .addDecoration(Transform(), DecorativeBrick(Vec3(.1,.0667,.05)));
 
-    MobilizedBody::  Ball /*Gimbal*/ /*Free*/
+    MobilizedBody:: Ball /*Gimbal*/ /*FreeLine*/ /*LineOrientation*/ /*Free*/
         leftPendulum(twoPends.Ground(),
                          Transform(Vec3(-1, 0, 0)),
                      pendulumBody,
@@ -139,12 +139,13 @@ int main(int argc, char** argv) {
     cout << "Constraint, spring, or nothing? c/s/n"; cin >> c;
 
     ConstraintId cid;
+    const Vec3 leftAttachPt(.1,0.05,0);
     if (c == 'c') {   
 
         cid = 
         //Constraint::PointInPlane(twoPends.Ground(), UnitVec3(0,1,0), -2*d,
         //                         leftPendulum2, Vec3(0))
-        Constraint::Rod(leftPendulum, Vec3(0),
+        Constraint::Rod(leftPendulum, leftAttachPt,
                         rightPendulum, Vec3(0),
                        distance)
         // Constraint::Ball(leftPendulum2, Vec3(.5,0,0),
@@ -152,17 +153,17 @@ int main(int argc, char** argv) {
         .getConstraintId();
 
     } else if (c == 's') {
-        forces.addTwoPointLinearSpring(leftPendulum, Vec3(0),
+        forces.addTwoPointLinearSpring(leftPendulum, leftAttachPt,
                                        rightPendulum, Vec3(0),
                                        stiffness, distance);
-        forces.addTwoPointLinearDamper(leftPendulum, Vec3(0),
+        forces.addTwoPointLinearDamper(leftPendulum, leftAttachPt,
                                        rightPendulum, Vec3(0),
                                        damping);
     }
 
     // Add visualization line (orange=spring, black=constraint)
     if (c=='c' || c=='s')
-        viz.addRubberBandLine(leftPendulum, Vec3(0),
+        viz.addRubberBandLine(leftPendulum, leftAttachPt,
                               rightPendulum, Vec3(0),
                               DecorativeLine().setColor(c=='c' ? Black : Orange).setLineThickness(4));
 
@@ -309,12 +310,13 @@ int main(int argc, char** argv) {
         twoPends.multiplyByQMatrix(s, false, s.getU(), qdot2);
         cout << "===> qdot2=" << qdot2 << endl;
 
-        Vector u2, uT;
+        Vector u1,u2;
+        twoPends.multiplyByQMatrixInverse(s, false, qdot, u1);
         twoPends.multiplyByQMatrixInverse(s, false, qdot2, u2);
-        twoPends.multiplyByQMatrix(s,true, qdot2, uT); // use transpose instead of inverse (wrong!)
         cout << "===> u =" << s.getU() << endl;
+        cout << "===> u1=" << u1 << endl;
         cout << "===> u2=" << u2 << endl;
-        cout << "===> uT=" << uT << endl;
+        cout << "     norm=" << (s.getU()-u2).normRMS() << endl;
 
         //sub.copyPositionsFromState(s, results);
         //sub.copyVelocitiesFromState(s, results);
