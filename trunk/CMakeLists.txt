@@ -307,6 +307,8 @@ ADD_TEST(CPodesIntegratorTest		${TEST_PATH}/CPodesIntegratorTest)
 ADD_TEST(CPodesIntegratorTestStatic	${TEST_PATH}/CPodesIntegratorTestStatic)
 ADD_TEST(RungeKuttaMersonIntegratorTest       ${TEST_PATH}/RungeKuttaMersonIntegratorTest)
 ADD_TEST(RungeKuttaMersonIntegratorTestStatic ${TEST_PATH}/RungeKuttaMersonIntegratorTestStatic)
+ADD_TEST(ExplicitEulerIntegratorTest       ${TEST_PATH}/ExplicitEulerIntegratorTest)
+ADD_TEST(ExplicitEulerIntegratorTestStatic ${TEST_PATH}/ExplicitEulerIntegratorTestStatic)
 
 #
 # Installation
