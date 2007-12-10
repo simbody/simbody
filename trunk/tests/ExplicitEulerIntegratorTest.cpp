@@ -42,21 +42,15 @@ int main () {
     sys.updDefaultSubsystem().addEventReporter(new OnceOnlyEventReporter());
     sys.updDefaultSubsystem().addEventReporter(new DiscontinuousReporter());
     sys.realizeTopology();
-
-    // Test with various intervals for the event handler and event reporter, ones that are either
-    // large or small compared to the expected internal step size of the integrator.
-
-    for (int i = 0; i < 4; ++i) {
-        PeriodicHandler::handler->setEventInterval(i == 0 || i == 1 ? 0.01 : 2.0);
-        PeriodicReporter::reporter->setEventInterval(i == 0 || i == 2 ? 0.015 : 1.5);
-        
-        // Test the integrator in both normal and single step modes.
-        
-        ExplicitEulerIntegrator integ(sys, 0.0001);
-        testIntegrator(integ, sys);
-        integ.setReturnEveryInternalStep(true);
-        testIntegrator(integ, sys);
-    }
+    PeriodicHandler::handler->setEventInterval(0.01);
+    PeriodicReporter::reporter->setEventInterval(0.015);
+    
+    // Test the integrator in both normal and single step modes.
+    
+    ExplicitEulerIntegrator integ(sys, 0.0001);
+    testIntegrator(integ, sys);
+    integ.setReturnEveryInternalStep(true);
+    testIntegrator(integ, sys);
     cout << "Done" << endl;
     return 0;
   }
