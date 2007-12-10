@@ -76,7 +76,7 @@ FactorQTZRep<T>::FactorQTZRep( const Matrix_<ELT>& mat )
       : nRow( mat.nrow() ),
         nCol( mat.ncol() ),
         rank(0),
-        rcond(CNT<T>::TReal(0.01)), 
+        rcond(typename CNT<T>::TReal(0.01)), 
         qtz( mat.nrow()*mat.ncol() ),
         pivots(mat.ncol()),
         mn( (mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol() ),
@@ -123,9 +123,9 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& x ) {
     TypedWorkSpace<T> work( lwork1>lwork2 ? lwork1 : lwork2);
 
     // compute norm of RHS
-    bnrm = (CNT<T>::TReal)LapackInterface::lange<T>( 'M', m, nrhs, &x(0,0), x.nrow() );
+    bnrm = (RealType)LapackInterface::lange<T>( 'M', m, nrhs, &x(0,0), x.nrow() );
 
-    LapackInterface::getMachinePrecision<typename CNT<T>::TReal>( smlnum, bignum);
+    LapackInterface::getMachinePrecision<RealType>( smlnum, bignum);
  
     // compute scale for RHS
     if( bnrm > ZERO  && bnrm < smlnum ) {
@@ -202,10 +202,10 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
     long lwork2 = 2*nCol + (nCol+1)*LapackInterface::ilaenv<T>(1, "geqp3", " ", nRow, nCol,  -1, -1);
     TypedWorkSpace<T> work( lwork1>lwork2 ? lwork1 : lwork2 );
 
-    LapackInterface::getMachinePrecision<typename CNT<T>::TReal>( smlnum, bignum);
+    LapackInterface::getMachinePrecision<RealType>( smlnum, bignum);
 
     // scale the input system of equations
-    anrm = (CNT<T>::TReal)LapackInterface::lange<T>( 'M', nRow, nCol, qtz.data, nRow );
+    anrm = (RealType)LapackInterface::lange<T>( 'M', nRow, nCol, qtz.data, nRow );
 
     if( anrm > 0 && anrm < smlnum ) {
         scaleLinSys = true;
