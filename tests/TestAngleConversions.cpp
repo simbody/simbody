@@ -56,7 +56,7 @@ int main() {
     lastBody = new MobilizedBody::Cylinder(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
     lastBody = new MobilizedBody::BendStretch(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
     lastBody = new MobilizedBody::Planar(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
-//    lastBody = new MobilizedBody::Gimbal(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue()))); // TODO Not yet implemented
+    lastBody = new MobilizedBody::Gimbal(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
     lastBody = new MobilizedBody::Ball(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
     lastBody = new MobilizedBody::Translation(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
     lastBody = new MobilizedBody::Free(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
