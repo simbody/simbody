@@ -44,15 +44,17 @@ using namespace std;
  * This class defines the objective function which is passed to the Optimizer.
  */
 
-class OptimizerFunction : public OptimizerSystem {
+class ObservedPointFitter::OptimizerFunction : public OptimizerSystem {
 public:
     OptimizerFunction(const MultibodySystem& system, const State& state, vector<MobilizedBodyId> bodyIds, vector<vector<Vec3> > stations, vector<vector<Vec3> > targetLocations, vector<vector<Real> > weights) :
         OptimizerSystem(state.getNQ()), system(system), state(state), bodyIds(bodyIds), stations(stations), targetLocations(targetLocations), weights(weights) {
         setNumEqualityConstraints(state.getNQErr());
     }
     int objectiveFunc(const Vector& parameters, const bool new_parameters, Real& f) const {
-        state.updQ() = parameters;
-        system.realize(state, Stage::Position);
+        if (new_parameters) {
+            state.updQ() = parameters;
+            system.realize(state, Stage::Position);
+        }
         f = 0.0;
         for (int i = 0; i < (int)bodyIds.size(); ++i) {
             const MobilizedBodyId id = bodyIds[i];
@@ -64,8 +66,10 @@ public:
         return 0;
     }
     int gradientFunc(const Vector &parameters, const bool new_parameters, Vector &gradient) const  {
-        state.updQ() = parameters;
-        system.realize(state, Stage::Position);
+        if (new_parameters) {
+            state.updQ() = parameters;
+            system.realize(state, Stage::Position);
+        }
         const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
         Vector_<SpatialVec> dEdR(matter.getNBodies());
         dEdR = SpatialVec(Vec3(0), Vec3(0));
@@ -107,7 +111,7 @@ private:
  * in the original system, and is used to find an initial estimate of that MobilizedBody's conformation.
  */
 
-void createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, const vector<MobilizedBodyId>& originalBodyIds, vector<MobilizedBodyId>& copyBodyIds) {
+void ObservedPointFitter::createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, const vector<MobilizedBodyId>& originalBodyIds, vector<MobilizedBodyId>& copyBodyIds) {
     const SimbodyMatterSubsystem& originalMatter = original.getMatterSubsystem();
     SimbodyMatterSubsystem copyMatter(copy);
     Body::Rigid body = Body::Rigid(MassProperties(1, Vec3(0), Inertia(1)))
@@ -140,7 +144,7 @@ void createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, 
  * to reasonably perform a fit.
  */
 
-void findUpstreamBodies(MobilizedBodyId currentBodyId, const vector<int> numStations, const SimbodyMatterSubsystem& matter, vector<MobilizedBodyId>& bodyIds, int requiredStations) /*const*/ {
+void ObservedPointFitter::findUpstreamBodies(MobilizedBodyId currentBodyId, const vector<int> numStations, const SimbodyMatterSubsystem& matter, vector<MobilizedBodyId>& bodyIds, int requiredStations) {
     const MobilizedBody& currentBody = matter.getMobilizedBody(currentBodyId);
     if (currentBody.isGround())
         return;
@@ -156,7 +160,7 @@ void findUpstreamBodies(MobilizedBodyId currentBodyId, const vector<int> numStat
  * to reasonably perform a fit.
  */
 
-void findDownstreamBodies(MobilizedBodyId currentBodyId, const vector<int> numStations, const vector<vector<MobilizedBodyId> > children, vector<MobilizedBodyId>& bodyIds, int& requiredStations) /*const*/ {
+void ObservedPointFitter::findDownstreamBodies(MobilizedBodyId currentBodyId, const vector<int> numStations, const vector<vector<MobilizedBodyId> > children, vector<MobilizedBodyId>& bodyIds, int& requiredStations) {
     if (numStations[currentBodyId] == 0 && children[currentBodyId].empty())
         return; // There's no benefit from including this body.
     bodyIds.push_back(currentBodyId);
@@ -171,7 +175,7 @@ void findDownstreamBodies(MobilizedBodyId currentBodyId, const vector<int> numSt
  * stations both upstream and downstream of the MobilizedBody currently being analyzed.
  */
 
-int findBodiesForClonedSystem(MobilizedBodyId primaryBodyId, const vector<int> numStations, const SimbodyMatterSubsystem& matter, const vector<vector<MobilizedBodyId> > children, vector<MobilizedBodyId>& bodyIds) {
+int ObservedPointFitter::findBodiesForClonedSystem(MobilizedBodyId primaryBodyId, const vector<int> numStations, const SimbodyMatterSubsystem& matter, const vector<vector<MobilizedBodyId> > children, vector<MobilizedBodyId>& bodyIds) {
     findUpstreamBodies(primaryBodyId, numStations,  matter, bodyIds, 5);
     int primaryBodyIndex = bodyIds.size();
     int requiredStations = 5;

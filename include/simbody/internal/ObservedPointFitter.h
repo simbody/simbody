@@ -73,6 +73,12 @@ public:
      */
 
     static Real findBestFit(const MultibodySystem& system, State& state, const std::vector<MobilizedBodyId>& bodyIds, const std::vector<std::vector<Vec3> >& stations, const std::vector<std::vector<Vec3> >& targetLocations, const std::vector<std::vector<Real> >& weights);
+private:
+    static void createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, const std::vector<MobilizedBodyId>& originalBodyIds, std::vector<MobilizedBodyId>& copyBodyIds);
+    static void findUpstreamBodies(MobilizedBodyId currentBodyId, const std::vector<int> numStations, const SimbodyMatterSubsystem& matter, std::vector<MobilizedBodyId>& bodyIds, int requiredStations);
+    static void findDownstreamBodies(MobilizedBodyId currentBodyId, const std::vector<int> numStations, const std::vector<std::vector<MobilizedBodyId> > children, std::vector<MobilizedBodyId>& bodyIds, int& requiredStations);
+    static int findBodiesForClonedSystem(MobilizedBodyId primaryBodyId, const std::vector<int> numStations, const SimbodyMatterSubsystem& matter, const std::vector<std::vector<MobilizedBodyId> > children, std::vector<MobilizedBodyId>& bodyIds);
+    class OptimizerFunction;
 };
 
 } // namespace SimTK
