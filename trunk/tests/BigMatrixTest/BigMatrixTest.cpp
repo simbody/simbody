@@ -214,7 +214,7 @@ int main()
     cout << "after mm2(0,2,2,2) = (-99,-99): mm2=" << mm2;
 
     mm2.updDiag() *= .001;
-    cout << "after mm2*=.001: mm2=" << mm2;
+    cout << "after mm2.updDiag()*=.001: mm2=" << mm2;
 
     // scalar assign to a row-shaped matrix should set only
     // the first element to the scalar and all else zero
