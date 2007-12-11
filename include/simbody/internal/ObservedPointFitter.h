@@ -57,7 +57,7 @@ public:
      * has a weight of 1.
      */
 
-    static Real findBestFit(const MultibodySystem& system, State& state, const std::vector<MobilizedBodyId>& bodyIds, const std::vector<std::vector<Vec3> >& stations, const std::vector<std::vector<Vec3> >& targetLocations);
+    static Real findBestFit(const MultibodySystem& system, State& state, const std::vector<MobilizedBodyId>& bodyIds, const std::vector<std::vector<Vec3> >& stations, const std::vector<std::vector<Vec3> >& targetLocations, Real tolerance=0.001);
 
     /**
      * Find the configuration of a MultibodySystem which best fits a set of target locations for stations.
@@ -69,10 +69,11 @@ public:
      *                    bodyIds[i], given in that body's reference frame.
      * @param targetLocations    the target locations for each body, given relative to ground.  targetLocations[i][j] is the target for stations[i][j].
      * @param weights     weights[i][j] is the weight to use for stations[i][j] when performing the fitting
+     * @param tolerance   the distance tolerance within which the best fit should be found
      * @return the RMS distance of points in the best fit conformation from their target locations
      */
 
-    static Real findBestFit(const MultibodySystem& system, State& state, const std::vector<MobilizedBodyId>& bodyIds, const std::vector<std::vector<Vec3> >& stations, const std::vector<std::vector<Vec3> >& targetLocations, const std::vector<std::vector<Real> >& weights);
+    static Real findBestFit(const MultibodySystem& system, State& state, const std::vector<MobilizedBodyId>& bodyIds, const std::vector<std::vector<Vec3> >& stations, const std::vector<std::vector<Vec3> >& targetLocations, const std::vector<std::vector<Real> >& weights, Real tolerance=0.001);
 private:
     static void createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, const std::vector<MobilizedBodyId>& originalBodyIds, std::vector<MobilizedBodyId>& copyBodyIds);
     static void findUpstreamBodies(MobilizedBodyId currentBodyId, const std::vector<int> numStations, const SimbodyMatterSubsystem& matter, std::vector<MobilizedBodyId>& bodyIds, int requiredStations);

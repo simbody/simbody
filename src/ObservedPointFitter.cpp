@@ -92,9 +92,10 @@ public:
         constraints = state.getQErr();
         return 0;
     }
-    void optimize(Vector& q) {
+    void optimize(Vector& q, Real tolerance) {
         Optimizer opt(*this);
         opt.useNumericalJacobian(true);
+        opt.setConvergenceTolerance(tolerance);
         opt.optimize(q);
     }
 private:
@@ -183,15 +184,15 @@ int ObservedPointFitter::findBodiesForClonedSystem(MobilizedBodyId primaryBodyId
     return primaryBodyIndex;
 }
 
-Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& state, const vector<MobilizedBodyId>& bodyIds, const vector<vector<Vec3> >& stations, const vector<vector<Vec3> >& targetLocations) {
+Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& state, const vector<MobilizedBodyId>& bodyIds, const vector<vector<Vec3> >& stations, const vector<vector<Vec3> >& targetLocations, Real tolerance) {
     vector<vector<Real> > weights(stations.size());
     for (int i = 0; i < (int)stations.size(); ++i)
         for (int j = 0; j < (int)stations[i].size(); ++j)
             weights[i].push_back(1.0);
-    return findBestFit(system, state, bodyIds, stations, targetLocations, weights);
+    return findBestFit(system, state, bodyIds, stations, targetLocations, weights, tolerance);
 }
 
-Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& state, const vector<MobilizedBodyId>& bodyIds, const vector<vector<Vec3> >& stations, const vector<vector<Vec3> >& targetLocations, const vector<vector<Real> >& weights) {
+Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& state, const vector<MobilizedBodyId>& bodyIds, const vector<vector<Vec3> >& stations, const vector<vector<Vec3> >& targetLocations, const vector<vector<Real> >& weights, Real tolerance) {
     
     // Build a list of children for each body.
     
@@ -250,7 +251,7 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
         try {
             OptimizerFunction optimizer(copy, copy.getDefaultState(), copyBodyIds, copyStations, copyTargetLocations, copyWeights);
             Vector q(copy.getDefaultState().getQ());
-            optimizer.optimize(q);
+            optimizer.optimize(q, tolerance);
             copy.updDefaultState().updQ() = q;
             body.setQVector(tempState, copy.getMatterSubsystem().getMobilizedBody(copyBodyIds[currentBodyIndex]).getQVector(copy.getDefaultState()));
         }
@@ -264,7 +265,7 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
 
     OptimizerFunction optimizer(system, tempState, bodyIds, stations, targetLocations, weights);
     Vector q = tempState.getQ();
-    optimizer.optimize(q);
+    optimizer.optimize(q, tolerance);
     if (matter.getUseEulerAngles(state))
         state.updQ() = q;
     else {
