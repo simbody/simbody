@@ -204,6 +204,32 @@ int main()
     (~mm)(1,1,1,2)=99;
     cout << "after (~mm)(1112)=99, mm=" << mm;
 
+    cout << "\n--- DIAGONAL TEST ---\n";
+    cout << "mm2.diag()=" << mm2.diag() << endl;
+
+    mm2 = 99;
+    cout << "after mm2=99: mm2=" << mm2;
+
+    mm2(0,2,2,2) = std::complex<double>(-99,-99);
+    cout << "after mm2(0,2,2,2) = (-99,-99): mm2=" << mm2;
+
+    mm2.updDiag() *= .001;
+    cout << "after mm2*=.001: mm2=" << mm2;
+
+    // scalar assign to a row-shaped matrix should set only
+    // the first element to the scalar and all else zero
+    // (since that's the diagonal), while
+    // scalar assign to a row should set all the elements.
+    mm2(0,0,1,mm2.ncol()) = 1; // row shaped block of first row
+    mm2[mm2.nrow()-1]      = 1; // last row
+    cout << "after mm2(0,0,1,n)=1 and mm2[m-1]=1: mm2=" << mm2;
+
+    // ditto for columns
+    mm2(0,1,mm2.nrow(),1) = 2;
+    mm2(2) = 2;
+
+    cout << "after mm2(0,1,m,1)=2 and mm2(2)=2: mm2=" << mm2;
+
 
     cout << "\n-------- ASSIGN TEST --------\n";
     Matrix_< Vec<2,Complex> > rr(2,3); 

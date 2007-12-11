@@ -106,6 +106,9 @@ public:
     MatrixHelperRep* createReadOnlyBlockView(int i, int j, int m, int n) const;
     MatrixHelperRep* createWritableBlockView(int i, int j, int m, int n);
 
+    MatrixHelperRep* createReadOnlyDiagonalView() const;
+    MatrixHelperRep* createWritableDiagonalView();
+
     MatrixHelperRep<typename CNT<S>::THerm>* createReadOnlyTransposedView() const;
     MatrixHelperRep<typename CNT<S>::THerm>* createWritableTransposedView();
 
@@ -381,6 +384,22 @@ template <class S>
 MatrixHelper<S>::MatrixHelper(MatrixHelper<typename CNT<S>::THerm>& h,
                               const TransposeView&) : rep(0) {
     rep = h.rep->createWritableTransposedView();
+    rep->setMyHandle(*this);
+}
+
+// Construct read only diagonal view of passed-in helper.
+template <class S>
+MatrixHelper<S>::MatrixHelper(const MatrixHelper& h,
+                              const DiagonalView&) : rep(0) {
+    rep = h.rep->createReadOnlyDiagonalView();
+    rep->setMyHandle(*this);
+}
+
+// Construct (possibly) writable diagonal view of passed-in helper.
+template <class S>
+MatrixHelper<S>::MatrixHelper(MatrixHelper& h,
+                              const DiagonalView&) : rep(0) {
+    rep = h.rep->createWritableDiagonalView();
     rep->setMyHandle(*this);
 }
 
@@ -695,6 +714,7 @@ MatrixHelperRep<S>::createReadOnlyBlockView(int i, int j, int m, int n) const
 }
 
 
+
 template <class S> MatrixHelperRep<S>*
 MatrixHelperRep<S>::createWritableBlockView(int i, int j, int m, int n)
 {
@@ -705,6 +725,52 @@ MatrixHelperRep<S>::createWritableBlockView(int i, int j, int m, int n)
     copy->view = view 
         ? new ElementFilter(*view,true,m,n,ix)
         : new ElementFilter(true,m,n,ix);
+
+    copy->data = data;
+    return copy;
+}
+
+// This will create a column Vector which is a view of the main diagonal of
+// the leading square part of the current Matrix (that is, a square whose dimension
+// is the shorter of (nrow,ncol)).
+template <class S> MatrixHelperRep<S>*
+MatrixHelperRep<S>::createReadOnlyDiagonalView() const
+{
+    MatrixHelperRep* copy = new MatrixHelperRep(eltSize,cppEltSize);
+
+    // Incrementing the row index should increment both the row and
+    // column indices into the underlying matrix to move along the
+    // diagonal:
+    //                                  drdx drdy dcdx dcdy
+    const ElementFilter::Indexer ix(0,0,  1,   0,   1,   0);
+
+    const int length = std::min(nrow(), ncol());
+
+    copy->view = view 
+        ? new ElementFilter(*view,false,length,1,ix)
+        : new ElementFilter(false,length,1,ix);
+
+    copy->data = data;
+    return copy;
+}
+
+// See previous method; this one is writable.
+template <class S> MatrixHelperRep<S>*
+MatrixHelperRep<S>::createWritableDiagonalView()
+{
+    MatrixHelperRep* copy = new MatrixHelperRep(eltSize,cppEltSize);
+
+    // Incrementing the row index should increment both the row and
+    // column indices into the underlying matrix to move along the
+    // diagonal:
+    //                                  drdx drdy dcdx dcdy
+    const ElementFilter::Indexer ix(0,0,  1,   0,   1,   0);
+
+    const int length = std::min(nrow(), ncol());
+
+    copy->view = view 
+        ? new ElementFilter(*view,true,length,1,ix)
+        : new ElementFilter(true,length,1,ix);
 
     copy->data = data;
     return copy;

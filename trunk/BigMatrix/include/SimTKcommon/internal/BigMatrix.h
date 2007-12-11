@@ -353,12 +353,25 @@ public:
     template <class EE> MatrixBase& operator-=(const MatrixBase<EE>& b) 
       { helper.subIn(b.helper); return *this; }
 
-    // fill current allocation with copies of element
-    MatrixBase& operator=(const ELT& t) 
-      { helper.fillWith(reinterpret_cast<const Scalar*>(&t)); return *this; }    
+    // Matrix assignment to an element sets only the *diagonal* elements to
+    // the indicated value; everything else is set to zero. This is particularly
+    // useful for setting a Matrix to zero or to the identity; for other values
+    // it create as Matrix which acts like the scalar. That is, if the scalar
+    // is s and we do M=s, then multiplying another Matrix B by the resulting 
+    // diagonal matrix M gives the same result as multiplying B by s. That is
+    // (M=s)*B == s*B.
+    //
+    // NOTE: this must be overridden for Vector and RowVector since then scalar
+    // assignment is defined to copy the scalar to every element.
+    MatrixBase& operator=(const ELT& t) { 
+        setToZero(); updDiag().setTo(t); 
+        return *this;
+    }    
 
-    void setToNaN() {helper.fillWithScalar(CNT<StdNumber>::getNaN());}
-    void setToZero() {helper.fillWithScalar(StdNumber(0));}
+    // fill every element in current allocation with given element (or NaN or 0)
+    MatrixBase& setTo(const ELT& t) {helper.fillWith(reinterpret_cast<const Scalar*>(&t)); return *this;}
+    MatrixBase& setToNaN() {helper.fillWithScalar(CNT<StdNumber>::getNaN()); return *this;}
+    MatrixBase& setToZero() {helper.fillWithScalar(StdNumber(0)); return *this;}
  
     // View creating operators. TODO: these should be DeadMatrixViews  
     inline RowVectorView_<ELT> row(int i) const;   // select a row
@@ -386,6 +399,10 @@ public:
 
     MatrixView_<EHerm> operator~() const {return transpose();}
     MatrixView_<EHerm> operator~()       {return updTranspose();}
+
+    // Select matrix diagonal (of largest leading square if rectangular).
+    inline VectorView_<ELT> diag() const;
+    inline VectorView_<ELT> updDiag();
 
     // Create a view of the real or imaginary elements.
     inline MatrixView_<TReal> real() const;
@@ -609,8 +626,10 @@ public:
       { Base::operator-=(b); return *this; } 
 
 
-    // fill current allocation with copies of element
-    VectorBase& operator=(const ELT& t) { Base::operator=(t); return *this; }  
+    // Fill current allocation with copies of element. Note that this is not the 
+    // same behavior as assignment for Matrices, where only the diagonal is set (and
+    // everything else is set to zero.)
+    VectorBase& operator=(const ELT& t) { Base::setTo(t); return *this; }  
 
     // Implicit conversions are allowed to Vector or Matrix, but not to RowVector.   
     operator const Vector_<ELT>&()     const { return *reinterpret_cast<const Vector_<ELT>*>(this); }
@@ -730,9 +749,11 @@ public:
       { Base::operator-=(b); return *this; } 
 
     // default destructor
-
-    // fill current allocation with copies of element
-    RowVectorBase& operator=(const ELT& t) {Base::operator=(t); return *this; }  
+ 
+    // Fill current allocation with copies of element. Note that this is not the 
+    // same behavior as assignment for Matrices, where only the diagonal is set (and
+    // everything else is set to zero.)
+    RowVectorBase& operator=(const ELT& t) { Base::setTo(t); return *this; } 
 
     // Implicit conversions are allowed to RowVector or Matrix, but not to Vector.   
     operator const RowVector_<ELT>&()     const {return *reinterpret_cast<const RowVector_<ELT>*>(this);}
@@ -894,6 +915,18 @@ MatrixBase<E>::updTranspose() {
     MatrixHelper<typename CNT<Scalar>::THerm> 
         h(helper, typename MatrixHelper<typename CNT<Scalar>::THerm>::TransposeView());
     return MatrixView_<typename CNT<E>::THerm>(h); 
+}
+
+template <class E> inline VectorView_<E>
+MatrixBase<E>::diag() const { 
+    MatrixHelper<Scalar> h(helper, MatrixHelper<Scalar>::DiagonalView());
+    return VectorView_<E>(h); 
+}
+    
+template <class E> inline VectorView_<E>
+MatrixBase<E>::updDiag() {     
+    MatrixHelper<Scalar> h(helper, MatrixHelper<Scalar>::DiagonalView());
+    return VectorView_<E>(h);
 }
 
 template <class ELT> inline VectorView_<ELT> 

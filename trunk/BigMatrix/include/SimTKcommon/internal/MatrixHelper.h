@@ -146,6 +146,7 @@ public:
     class ShallowCopy   { };
     class DeepCopy      { };
     class TransposeView { };
+    class DiagonalView  { };
     
     // Matrix owner constructors
     
@@ -173,6 +174,10 @@ public:
                  const TransposeView&);    // a read only transposed view
     MatrixHelper(MatrixHelper<typename CNT<S>::THerm>&,       
                  const TransposeView&);    // a writable transposed view
+
+    // These are the constructors for making a diagonal view of a Matrix.
+    MatrixHelper(const MatrixHelper&, const DiagonalView&); // a read only diagonal view
+    MatrixHelper(MatrixHelper&, const DiagonalView&);       // a writable diagonal view
 
     // Copy an existing MatrixHelper using deep or shallow copy as requested. 
     // For shallow copy, const form loses writability, non-const retains same
