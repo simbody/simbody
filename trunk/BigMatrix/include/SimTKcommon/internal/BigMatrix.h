@@ -919,13 +919,13 @@ MatrixBase<E>::updTranspose() {
 
 template <class E> inline VectorView_<E>
 MatrixBase<E>::diag() const { 
-    MatrixHelper<Scalar> h(helper, MatrixHelper<Scalar>::DiagonalView());
+    MatrixHelper<Scalar> h(helper, typename MatrixHelper<Scalar>::DiagonalView());
     return VectorView_<E>(h); 
 }
     
 template <class E> inline VectorView_<E>
 MatrixBase<E>::updDiag() {     
-    MatrixHelper<Scalar> h(helper, MatrixHelper<Scalar>::DiagonalView());
+    MatrixHelper<Scalar> h(helper, typename MatrixHelper<Scalar>::DiagonalView());
     return VectorView_<E>(h);
 }
 
