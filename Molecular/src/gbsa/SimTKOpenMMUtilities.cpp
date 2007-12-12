@@ -363,7 +363,7 @@ FILE* SimTKOpenMMUtilities::writeDebugFile( int numberOfFields, const Real* fiel
       }
       if( numberOfStringFields > 0 ){
          for( StringVectorCI ii = stringFields.begin(); ii != stringFields.end() ; ii++ ){
-            (void) fprintf( debugFile, "%s ", *ii );
+            (void) fprintf( debugFile, "%s ", (*ii).c_str()  );
          }
       }
    }
@@ -742,7 +742,7 @@ void SimTKOpenMMUtilities::Xfree( const char* name, char* fileName, int line, vo
 #ifdef UseGromacsMalloc
    return save_free( name, fileName, line, ptr );
 #else
-   delete ptr;
+   delete (char*) ptr;
    return;
 #endif
 }

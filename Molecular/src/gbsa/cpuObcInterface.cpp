@@ -26,7 +26,7 @@
 
 #include "SimTKOpenMMLog.h"
 #include "SimTKOpenMMUtilities.h"
-#include "SimTKOpenMMGromacsUtilities.h"
+// #include "SimTKOpenMMGromacsUtilities.h"
 #include "ObcParameters.h"
 #include "CpuObc.h"
 
