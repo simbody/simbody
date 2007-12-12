@@ -57,5 +57,6 @@
 #include "simbody/internal/TextDataEventReporter.h"
 #include "simbody/internal/ObservedPointFitter.h"
 #include "simbody/internal/VelocityRescalingThermostat.h"
+#include "simbody/internal/LocalEnergyMinimizer.h"
 
 #endif // SimTK_SIMBODY_SimTKSIMBODY_H_
