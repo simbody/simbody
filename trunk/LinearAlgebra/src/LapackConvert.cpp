@@ -30,17 +30,41 @@ namespace SimTK {
 
 
 
-template < typename T, typename ELT>  
-void LapackConvert::convertMatrixToLapack ( T* lapackArray, const Matrix_<ELT>& mat ) {
+template <>
+void LapackConvert::convertMatrixToLapack( std::complex<double>* lapackArray,  const Matrix_<negator<conjugate<double> > >& mat ) {
     int m = mat.nrow();
-    int n = mat.ncol(); 
+    int n = mat.ncol();
     for(int i=0;i<n;i++) {
         for(int j=0;j<m;j++)  {
-            elementToLapack( lapackArray[i*m+j], mat, j, i );
+             lapackArray[i*m+j] = std::complex<double>(mat(j,i).real(),mat(j,i).imag());
         }
     }
     return;
 }
+
+template <>
+void LapackConvert::convertMatrixToLapack( std::complex<float>* lapackArray,  const Matrix_<negator<conjugate<float> > >& mat ) {
+    int m = mat.nrow();
+    int n = mat.ncol();
+    for(int i=0;i<n;i++) {
+        for(int j=0;j<m;j++)  {
+             lapackArray[i*m+j] = std::complex<float>(mat(j,i).real(),mat(j,i).imag());
+        }
+    }
+    return;
+}
+template < typename T, typename ELT>
+void LapackConvert::convertMatrixToLapack ( T* lapackArray,  const Matrix_<ELT>& mat ) {
+    int m = mat.nrow();
+    int n = mat.ncol();
+    for(int i=0;i<n;i++) {
+        for(int j=0;j<m;j++)  {
+             lapackArray[i*m+j] = mat(j,i);
+        }
+    }
+    return;
+}
+
 
 template void LapackConvert::convertMatrixToLapack( float*  lapackArray, const Matrix_<float>& mat );
 template void LapackConvert::convertMatrixToLapack( double* lapackArray, const Matrix_<double>& mat );
@@ -52,7 +76,5 @@ template void LapackConvert::convertMatrixToLapack( std::complex<float>*  lapack
 template void LapackConvert::convertMatrixToLapack( std::complex<double>* lapackArray, const Matrix_<negator<std::complex<double> > >& mat );
 template void LapackConvert::convertMatrixToLapack( std::complex<float>*  lapackArray, const Matrix_<conjugate<float> >& mat );
 template void LapackConvert::convertMatrixToLapack( std::complex<double>* lapackArray, const Matrix_<conjugate<double> >& mat );
-template void LapackConvert::convertMatrixToLapack( std::complex<float>*  lapackArray, const Matrix_<negator<conjugate<float> > >& mat );
-template void LapackConvert::convertMatrixToLapack( std::complex<double>* lapackArray, const Matrix_<negator<conjugate<double> > >& mat );
 
 } // namespace SimTK

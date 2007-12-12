@@ -96,34 +96,37 @@ template < class T >
 void FactorQTZRep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) {
     Matrix_<T> m(b.nrow(), 1 );
     m.copyAssign(b);
-    doSolve( m );
-    x.copyAssign(m);
+    Matrix_<T> r(nCol, 1 );
+    doSolve( m, r );
+    x.copyAssign(r);
     return;
 }
 // TODO handle cases where length of b,x and dimensions of  are not consistant
 template <typename T >
 void FactorQTZRep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) {
-    x.copyAssign(b);
-    doSolve(x);
+    x.resize(nCol, b.ncol() );
+    Matrix_<T> tb;
+    tb.copyAssign(b);
+    doSolve(tb, x);
 }
 template <typename T >
-void FactorQTZRep<T>::doSolve(  Matrix_<T>& x ) {
+void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) {
     int i,j;
     int info;
     typedef typename CNT<T>::TReal RealType;
     RealType bnrm, smlnum, bignum;
-    int nrhs = x.ncol();
+    int nrhs = b.ncol();
     int n = nCol;
     int m = nRow;
-
+printf("FactorQTZRep<T>::doSolve b.ncol() = %d    nRow = %d    rank = %d\n", b.ncol(), nRow, rank );
     // compute size of workspace 
     // for dormqr, dormrz:  lwork = n*nb
-    long lwork1 = n*LapackInterface::ilaenv<T>(1, "ormqr", "LT ", nRow, x.ncol(), -1, -1);
-    long lwork2 = n*LapackInterface::ilaenv<T>(1, "ormrz", "LUNN", rank, x.ncol(), -1, -1);
+    long lwork1 = n*LapackInterface::ilaenv<T>(1, "ormqr", "LT ", nRow, b.ncol(), -1, -1);
+    long lwork2 = n*LapackInterface::ilaenv<T>(1, "ormrz", "LUNN", rank, b.ncol(), -1, -1);
     TypedWorkSpace<T> work( lwork1>lwork2 ? lwork1 : lwork2);
 
     // compute norm of RHS
-    bnrm = (RealType)LapackInterface::lange<T>( 'M', m, nrhs, &x(0,0), x.nrow() );
+    bnrm = (RealType)LapackInterface::lange<T>( 'M', m, nrhs, &b(0,0), b.nrow() );
 
     LapackInterface::getMachinePrecision<RealType>( smlnum, bignum);
  
@@ -137,31 +140,31 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& x ) {
     }
 
     if( scaleRHS ) {  // apply scale factor to RHS
-        LapackInterface::lascl<T>( 'G', 0, 0, bnrm, rhsScaleF, m, nrhs, &x(0,0), x.nrow(), info ); 
+        LapackInterface::lascl<T>( 'G', 0, 0, bnrm, rhsScaleF, m, nrhs, &b(0,0), b.nrow(), info ); 
     }
     // 
-    LapackInterface::ormqr<T>( 'L', 'T', nRow, x.ncol(), mn, qtz.data, nRow, tauGEQP3.data,
-                               &x(0,0), x.nrow(), work.data, work.size, info );
-    LapackInterface::trsm<T>( 'L', 'U', 'N', 'N', rank, x.ncol(), 1.0, qtz.data, nRow, &x(0,0), x.nrow() );
+    LapackInterface::ormqr<T>( 'L', 'T', nRow, b.ncol(), mn, qtz.data, nRow, tauGEQP3.data,
+                               &b(0,0), b.nrow(), work.data, work.size, info );
+    LapackInterface::trsm<T>( 'L', 'U', 'N', 'N', rank, b.ncol(), 1.0, qtz.data, nRow, &b(0,0), b.nrow() );
 
     //  zero out elements of RHS for rank deficient systems
     for( j = 0; j<nrhs; j++ ) {
         for( i = rank; i<n; i++ ) {
-            x(i,j) = 0;
+            b(i,j) = 0;
         }
     }
    
     if( rank < nCol ) {
 // TODO        LapackInterface::ormrz<T>('L', 'T', nCol, x.ncol(), rank, nCol-rank, qtz.data, nRow, 
         int l = nCol-rank;
-        LapackInterface::ormrz<T>('L', 'T', nCol, x.ncol(), rank, &l, qtz.data, nRow, 
-                                   tauORMQR.data, &x(0,0), x.nrow(), work.data, work.size, info );
+        LapackInterface::ormrz<T>('L', 'T', nCol, b.ncol(), rank, &l, qtz.data, nRow, 
+                                   tauORMQR.data, &b(0,0), b.nrow(), work.data, work.size, info );
     }
 
     // adjust for pivoting
     for( j = 0; j<nrhs; j++ ) {
         for( i = 0; i<n; i++ ) {
-            work.data[ pivots.data[i]-1] = x(i,j);
+            work.data[ pivots.data[i]-1] = b(i,j);
         }
         LapackInterface::copy<T>(n, work.data, 1, &x(0,j), 1 );
     }
@@ -185,7 +188,7 @@ template <class T>
 void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
 
     // allocate and initialize the matrix we pass to LAPACK
-    // convert (negated,conjugated etc.) to LAPACK format 
+    // converts (negated,conjugated etc.) to LAPACK format 
     LapackConvert::convertMatrixToLapack( qtz.data, mat );
 
     int info;
@@ -233,6 +236,7 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
         smin = smax;
         if( CNT<T>::abs(qtz.data[0]) == 0 ) {
             rank = 0;
+printf("CNT<T>::abs(qtz.data[0]) = 0  set rank to zero \n");
         } else {
             T s1,s2,c1,c2;
             RealType smaxpr,sminpr;

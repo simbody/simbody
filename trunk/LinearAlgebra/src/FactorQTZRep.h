@@ -81,7 +81,7 @@ class FactorQTZRep : public FactorQTZRepBase {
  
    private:
   
-   void doSolve( Matrix_<T>& x );
+   void doSolve( Matrix_<T>& b, Matrix_<T>& x );
 
    int mn;
    int nRow;

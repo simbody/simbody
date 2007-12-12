@@ -197,8 +197,7 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
     imagOffset = CNT<ELT>::ImagOffset;  // real/complex (usefull for debugging)
    
     // initialize the matrix we pass to LAPACK
-    // convert (negated,conjugated etc.) to LAPACK format 
-
+    // converts (negated,conjugated etc.) to LAPACK format 
     LapackConvert::convertMatrixToLapack( lu.data, mat );
 
 

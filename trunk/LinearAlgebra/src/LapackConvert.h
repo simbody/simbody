@@ -34,30 +34,7 @@ namespace SimTK {
 
 class LapackConvert {
     public:
-    template <typename T, typename ELT> static void convertMatrixToLapack( T* lapackArray, const Matrix_<ELT>& mat ); 
-
-	static void elementToLapack( float& e, const Matrix_<float>& m, int i, int j){ e =  m(i,j); }
-	static void elementToLapack( double& e, const Matrix_<double>& m, int i, int j){ e = m(i,j); }
-	static void elementToLapack( std::complex<float>& e,  const Matrix_<std::complex<float> >& m, int i, int j){ e = m(i,j); }
-	static void elementToLapack( std::complex<double>& e, const Matrix_<std::complex<double> >& m, int i, int j){ e = m(i,j); }
-	static void elementToLapack( float& e, const Matrix_<negator<float> >& m, int i, int j){ e = -m(i,j); }
-    static void elementToLapack( double& e, const Matrix_<negator<double> >& m, int i, int j){ e = -m(i,j); }
-    static void elementToLapack( std::complex<float>& e,  const Matrix_<negator<std::complex<float> > >& m, int i, int j){ 
-        e = -m(i,j);
-    }
-    static void elementToLapack( std::complex<double>& e, const Matrix_<negator<std::complex<double> > >& m, int i, int j){ 
-        e = -m(i,j);
-    }
-    static void elementToLapack( std::complex<float>& e, const Matrix_<conjugate<float> >&m, int i, int j){ e = conj(m(i,j)); }
- 
-	static void elementToLapack( std::complex<double>& e,  const Matrix_<conjugate<double> >&m, int i, int j){ e = conj(m(i,j)); }
-   
-    static void elementToLapack( std::complex<float>& e, const Matrix_<negator<conjugate<float> > >&m, int i, int j) {
-         e = -conj(m(i,j));
-    }
-    static void elementToLapack( std::complex<double>& e, const Matrix_<negator<conjugate<double> > >&m, int i, int j) {
-         e = -conj(m(i,j));
-    }
+    template <typename T, typename ELT> static void convertMatrixToLapack( T* lapackArray,  const Matrix_<ELT>& mat );
 };
 
         

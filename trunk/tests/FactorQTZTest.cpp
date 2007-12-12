@@ -76,33 +76,56 @@ estimated rank = 4
 #include <cassert>
 #include <iostream>
 
+#define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
+
 using namespace SimTK;
 
 using std::printf;
 using std::cout;
 using std::endl;
 
-  double A[30] = { -0.09,   0.14,  -0.46,    0.68,   1.29,       
+Real A[30] = { -0.09,   0.14,  -0.46,    0.68,   1.29,       
                    -1.56,   0.20,   0.29,    1.09,   0.51,        
                    -1.48,  -0.43,   0.89,   -0.71,  -0.96,   
                    -1.09,   0.84,   0.77,    2.11,  -1.27,       
                     0.08,   0.55,  -1.13,    0.14,   1.74,        
                    -1.59,  -0.72,   1.06,    1.24,   0.34  };  
 
-  double B[6] =  { 7.4, 4.2, -8.3, 1.8, 8.6, 2.1 };
+Real B[6] =  { 7.4, 4.2, -8.3, 1.8, 8.6, 2.1 };
+Real X[5] =  { 0.6344, 0.9699, -1.4402, 3.3678,  3.3992 };
 
 int main () {
     try { 
-        int i,j;
-        Matrix_<double> a(6,5, A);
-        Vector_<double> b(6, B);
-        Vector_<double> x(6);
+           // Default precision (Real, normally double) test.
+
+        Matrix a(6,5, A);
+        Vector b(6, B);
+        Vector x_right(5, X);
+        Vector x; // should get sized automatically to 5 by solve()
 
         FactorQTZ qtz(a);  // perform LU factorization 
 
         qtz.solve( b, x );  // solve for x given a right hand side 
 
-        printf(" SOLUTION: "); for(i=0;i<5;i++) printf("%f ",x(i)); printf(" \n" );
+
+        cout << " Real SOLUTION: " << x << "  errnorm=" << (x-x_right).norm() << endl;
+//        ASSERT((x-x_right).norm() < 10*SignificantReal);
+        ASSERT((x-x_right).norm() < 0.001);
+
+        Matrix_<float> af(6,5); for (int i=0; i<6; ++i) for (int j=0; j<5; ++j) af(i,j)=(float)a(i,j);
+        Vector_<float> bf(6); for (int i=0; i<6; ++i) bf[i] = (float)b[i];
+        Vector_<float> xf_right(5); for (int i=0; i<5; ++i) xf_right[i] = (float)x_right[i];
+        Vector_<float> xf; // should get sized automatically to 5 by solve()
+
+        FactorQTZ qtzf(af);
+        qtzf.solve(bf, xf);
+
+        cout << " float SOLUTION: " << xf << "  errnorm=" << (xf-xf_right).norm() << endl;
+        const float SignificantFloat = NTraits<float>::getSignificant();
+//        ASSERT((xf-xf_right).norm() < 10*SignificantFloat);
+        ASSERT((xf-xf_right).norm() < 0.001);
+
+
         
         return 0;
     } 

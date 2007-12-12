@@ -226,8 +226,17 @@ void LapackInterface::lascl<std::complex<double> >( const char& type, const int&
 
 template <> 
 double LapackInterface::lange<float>( const char& norm, const int& m, const int& n, const float* a, const int& lda){
+/*
+ TODO JACKM because g77 returns FORTRAN REAL's as doubles and gfortran returns them as floats
+ changes this once everyone has changed to new libraires and SimTKlapak.h has been updated
      TypedWorkSpace<float> work(m);
      return( slange_( norm, m, n, a, lda, work.data, 1 ) ); 
+*/
+
+     TypedWorkSpace<double> work(m);
+     TypedWorkSpace<double> da(m*n);
+     for(int i=0;i<m*n;i++)  da.data[i] = a[i];
+     return( dlange_( norm, m, n, da.data, lda, work.data, 1 ) );
 }
  
 template <> 
@@ -238,8 +247,18 @@ double LapackInterface::lange<double>( const char& norm, const int& m, const int
  
 template <> 
 double LapackInterface::lange<std::complex<float> >( const char& norm, const int& m, const int& n, const std::complex<float>* a, const int& lda ){
+/*
+ TODO JACKM because g77 returns FORTRAN REAL's as doubles and gfortran returns them as floats
+ switch to correct LAPACK call when everyone uses SimTKlapack.h has been updated
      TypedWorkSpace<float> work(m);
      return( clange_( norm, m, n, a, lda, work.data, 1 ) );
+*/
+     TypedWorkSpace<double> work(m);
+     TypedWorkSpace<std::complex<double> > za(m*n);
+     for(int i=0;i<m*n;i++)  za.data[i] = a[i];
+     return( zlange_( norm, m, n, za.data, lda, work.data, 1 ) );
+
+     
 }
  
 template <> 
