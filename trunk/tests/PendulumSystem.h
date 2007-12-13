@@ -295,6 +295,7 @@ int PendulumSystemGuts::realizeAccelerationImpl(const State& s) const {
     const Real L  = (m*v2 - mg*q[1])/r2;
     udot[0] = - q[0]*L/m;
     udot[1] = - q[1]*L/m - g;
+    s.updQDotDot() = udot;
     s.updMultipliers(subsysIndex)[0] = L;
     s.updUDotErr(subsysIndex)[0] = q[0]*udot[0] + q[1]*udot[1] + v2;
     System::Guts::realizeAccelerationImpl(s);
