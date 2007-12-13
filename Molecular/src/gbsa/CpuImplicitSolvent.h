@@ -71,21 +71,21 @@ class CpuImplicitSolvent {
 
       // work arrays
 
-      Real* _bornForce;
+      RealOpenMM* _bornForce;
 
       // Born radii and force
 
-      Real* _bornRadii;
-      Real* _tempBornRadii;
+      RealOpenMM* _bornRadii;
+      RealOpenMM* _tempBornRadii;
 
       // convert units for energy/force
 
-      Real _forceConversionFactor;
-      Real _energyConversionFactor;
+      RealOpenMM _forceConversionFactor;
+      RealOpenMM _energyConversionFactor;
 
       // Ed, 2007-04-27: Store the energy internally
 
-      Real _implicitSolventEnergy; 
+      RealOpenMM _implicitSolventEnergy; 
 
       /**---------------------------------------------------------------------------------------
       
@@ -100,14 +100,14 @@ class CpuImplicitSolvent {
 
       /**---------------------------------------------------------------------------------------
       
-         Return implicitSolventBornForce, a work array of size _implicitSolventParameters->getNumberOfAtoms()*sizeof( Real )
+         Return implicitSolventBornForce, a work array of size _implicitSolventParameters->getNumberOfAtoms()*sizeof( RealOpenMM )
          On first call, memory for array is allocated if not set
       
          @return array
       
          --------------------------------------------------------------------------------------- */
       
-      Real* getBornForce( void );
+      RealOpenMM* getBornForce( void );
 
       /**---------------------------------------------------------------------------------------
       
@@ -118,7 +118,7 @@ class CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      Real* getBornRadiiTemp( void );
+      RealOpenMM* getBornRadiiTemp( void );
 
       /**---------------------------------------------------------------------------------------
       
@@ -130,7 +130,7 @@ class CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
 
-		int setEnergy( Real energy );
+		int setEnergy( RealOpenMM energy );
 
    public:
 
@@ -211,7 +211,7 @@ class CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
 
-		Real getEnergy( void ) const;
+		RealOpenMM getEnergy( void ) const;
 
       /**---------------------------------------------------------------------------------------
       
@@ -265,7 +265,7 @@ class CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      Real getForceConversionFactor(  void  ) const;
+      RealOpenMM getForceConversionFactor(  void  ) const;
 
       /**---------------------------------------------------------------------------------------
       
@@ -277,7 +277,7 @@ class CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      int setForceConversionFactor(  Real forceConversionFactor  );
+      int setForceConversionFactor(  RealOpenMM forceConversionFactor  );
 
       /**---------------------------------------------------------------------------------------
       
@@ -287,7 +287,7 @@ class CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      Real getEnergyConversionFactor( void  ) const;
+      RealOpenMM getEnergyConversionFactor( void  ) const;
 
       /**---------------------------------------------------------------------------------------
       
@@ -299,7 +299,7 @@ class CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      int setEnergyConversionFactor( Real energyConversionFactor );
+      int setEnergyConversionFactor( RealOpenMM energyConversionFactor );
 
       /**---------------------------------------------------------------------------------------
       
@@ -330,7 +330,7 @@ class CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      Real* getBornRadii( void );
+      RealOpenMM* getBornRadii( void );
       
       /**---------------------------------------------------------------------------------------
       
@@ -340,7 +340,7 @@ class CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      const Real* getBornRadiiConst( void ) const;
+      const RealOpenMM* getBornRadiiConst( void ) const;
       
       /**---------------------------------------------------------------------------------------
       
@@ -354,8 +354,8 @@ class CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      static int computeImplicitSolventForces( Real** atomCoordinates, const Real* partialCharges,
-                                               Real** forces );
+      static int computeImplicitSolventForces( RealOpenMM** atomCoordinates, const RealOpenMM* partialCharges,
+                                               RealOpenMM** forces );
       
       /**---------------------------------------------------------------------------------------
       
@@ -369,7 +369,7 @@ class CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      virtual int computeBornRadii( Real** atomCoordinates, Real* bornRadii, Real* obcChain = NULL );
+      virtual int computeBornRadii( RealOpenMM** atomCoordinates, RealOpenMM* bornRadii, RealOpenMM* obcChain = NULL );
       
       /**---------------------------------------------------------------------------------------
       
@@ -384,8 +384,8 @@ class CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      virtual int computeBornEnergyForces( Real* bornRadii, Real** atomCoordinates,
-                                           const Real* partialCharges, Real** forces );
+      virtual int computeBornEnergyForces( RealOpenMM* bornRadii, RealOpenMM** atomCoordinates,
+                                           const RealOpenMM* partialCharges, RealOpenMM** forces );
       
       /**---------------------------------------------------------------------------------------
       
@@ -401,8 +401,8 @@ class CpuImplicitSolvent {
          --------------------------------------------------------------------------------------- */
       
       int computeAceNonPolarForce( const ImplicitSolventParameters* implicitSolventParameters,
-                                   const Real* bornRadii, Real* energy, 
-                                   Real* forces ) const;
+                                   const RealOpenMM* bornRadii, RealOpenMM* energy, 
+                                   RealOpenMM* forces ) const;
       
       /**---------------------------------------------------------------------------------------
       
@@ -417,8 +417,8 @@ class CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      virtual int writeBornEnergyForces( Real** atomCoordinates,
-                                         const Real* partialCharges, Real** forces,
+      virtual int writeBornEnergyForces( RealOpenMM** atomCoordinates,
+                                         const RealOpenMM* partialCharges, RealOpenMM** forces,
                                          const std::string& resultsFileName ) const;
 
       /**---------------------------------------------------------------------------------------
@@ -533,7 +533,7 @@ class CpuImplicitSolvent {
          --------------------------------------------------------------------------------------- */
       
       /*
-      static int writeXyzFile( int numberOfAtoms, const Real** atomCoordinates, 
+      static int writeXyzFile( int numberOfAtoms, const RealOpenMM** atomCoordinates, 
                                const char** atomNames,
                                const std::string& header, const std::string& xyzFileName,
                                const implicitSolventBonds** bondsArray ); */

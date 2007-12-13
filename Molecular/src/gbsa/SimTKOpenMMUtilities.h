@@ -78,8 +78,8 @@ class SimTKOpenMMUtilities {
       
          --------------------------------------------------------------------------------------- */
       
-      static int getDistanceSquaredFromSpecifiedAtom( Real** atomCoordinates, int atomIndex,
-                                                      int numberOfAtoms, Real* distances, FILE* log );
+      static int getDistanceSquaredFromSpecifiedAtom( RealOpenMM** atomCoordinates, int atomIndex,
+                                                      int numberOfAtoms, RealOpenMM* distances, FILE* log );
       
       /**---------------------------------------------------------------------------------------
       
@@ -96,16 +96,16 @@ class SimTKOpenMMUtilities {
       
          --------------------------------------------------------------------------------------- */
       
-      static int getDistanceSquaredFromSpecifiedPoint( Real** atomCoordinates, Real* point, 
-                                                       int numberOfAtoms, Real* distances, FILE* log );
+      static int getDistanceSquaredFromSpecifiedPoint( RealOpenMM** atomCoordinates, RealOpenMM* point, 
+                                                       int numberOfAtoms, RealOpenMM* distances, FILE* log );
 
       /**---------------------------------------------------------------------------------------
       
-         Helper method to allocate Real arrays (Simbios)
+         Helper method to allocate RealOpenMM arrays (Simbios)
       
          @param bufferIndex         buffer index
          @param allocatedSz         array of allocated sizes
-         @param bufferArray         array of allocated Real arrays
+         @param bufferArray         array of allocated RealOpenMM arrays
          @param requestedSize       requested size
          @param dataAction          action flag: -1 = free memory \n
                                                   1 = zero memory
@@ -114,7 +114,7 @@ class SimTKOpenMMUtilities {
       
          --------------------------------------------------------------------------------------- */
       
-      static int allocateRealBufferArray( int bufferIndex, int* allocatedSz, Real** bufferArray,
+      static int allocateRealOpenMMBufferArray( int bufferIndex, int* allocatedSz, RealOpenMM** bufferArray,
                                            int requestedSize, int dataAction );
       
       /**---------------------------------------------------------------------------------------
@@ -132,8 +132,8 @@ class SimTKOpenMMUtilities {
       
          --------------------------------------------------------------------------------------- */
 
-      static int printCoordinateAnd1DArrays( int numberAtoms, Real** atomCoordinates,
-                                             int numberOf1Darrays, Real** oneDArrays,
+      static int printCoordinateAnd1DArrays( int numberAtoms, RealOpenMM** atomCoordinates,
+                                             int numberOf1Darrays, RealOpenMM** oneDArrays,
                                              const char* idString, FILE* log );
 
       /**---------------------------------------------------------------------------------------
@@ -178,18 +178,18 @@ class SimTKOpenMMUtilities {
       
          @return debugFile unless file is closed
       
-         stringFields printed after Real fields
+         stringFields printed after RealOpenMM fields
       
          --------------------------------------------------------------------------------------- */
       
-      static FILE* writeDebugFile( int numberOfFields, const Real* fields,
+      static FILE* writeDebugFile( int numberOfFields, const RealOpenMM* fields,
                                    int numberOfStringFields, const  StringVector& stringFields,
                                    const char* comment, const char* debugFileName, int action,
                                    FILE* debugFile, FILE* log );
       
       /**---------------------------------------------------------------------------------------
       
-         Allocate 2D Real array (Simbios)
+         Allocate 2D RealOpenMM array (Simbios)
       
          array[i][j]
       
@@ -204,13 +204,13 @@ class SimTKOpenMMUtilities {
       
          --------------------------------------------------------------------------------------- */
       
-      static Real** allocateTwoDRealArray( int iSize, int jSize,
-                                           Real** array2D, int initialize, Real initialValue,
+      static RealOpenMM** allocateTwoDRealOpenMMArray( int iSize, int jSize,
+                                           RealOpenMM** array2D, int initialize, RealOpenMM initialValue,
                                            const std::string& idString = std::string( "2DArray" ) );
       
       /* ---------------------------------------------------------------------------------------
       
-         Free 2D Real array (Simbios)
+         Free 2D RealOpenMM array (Simbios)
       
          array[i][j]
       
@@ -221,11 +221,11 @@ class SimTKOpenMMUtilities {
       
          --------------------------------------------------------------------------------------- */
       
-      static int freeTwoDRealArray( Real** array2D, const std::string& idString = std::string( "2DArray" ) );
+      static int freeTwoDRealOpenMMArray( RealOpenMM** array2D, const std::string& idString = std::string( "2DArray" ) );
       
       /**---------------------------------------------------------------------------------------
       
-         Initialize 2D Real array (Simbios)
+         Initialize 2D RealOpenMM array (Simbios)
       
          array[i][j]
       
@@ -238,8 +238,8 @@ class SimTKOpenMMUtilities {
       
          --------------------------------------------------------------------------------------- */
       
-      static int initialize2DRealArray( int iSize, int jSize,
-                                         Real** array2D, Real initialValue );
+      static int initialize2DRealOpenMMArray( int iSize, int jSize,
+                                         RealOpenMM** array2D, RealOpenMM initialValue );
 
       /**---------------------------------------------------------------------------------------
       
@@ -261,7 +261,7 @@ class SimTKOpenMMUtilities {
       
          --------------------------------------------------------------------------------------- */
             
-      static void normalizeVector3( Real* vector );
+      static void normalizeVector3( RealOpenMM* vector );
       
       /**---------------------------------------------------------------------------------------
       
@@ -273,7 +273,7 @@ class SimTKOpenMMUtilities {
       
          --------------------------------------------------------------------------------------- */
       
-      static void removeVector3( Real* vectorToRemove, Real* vector );
+      static void removeVector3( RealOpenMM* vectorToRemove, RealOpenMM* vector );
       
       /**---------------------------------------------------------------------------------------
       
@@ -289,7 +289,7 @@ class SimTKOpenMMUtilities {
       
          --------------------------------------------------------------------------------------- */
       
-      static void crossProductVector3( Real* vectorX, Real* vectorY, Real* vectorZ );
+      static void crossProductVector3( RealOpenMM* vectorX, RealOpenMM* vectorY, RealOpenMM* vectorZ );
 
       /**---------------------------------------------------------------------------------------
       
@@ -305,7 +305,7 @@ class SimTKOpenMMUtilities {
       
          --------------------------------------------------------------------------------------- */
       
-      static void matrixProductVector3( Real* matrixX, Real* vectorY, Real* vectorZ );
+      static void matrixProductVector3( RealOpenMM* matrixX, RealOpenMM* vectorY, RealOpenMM* vectorZ );
 
       /**---------------------------------------------------------------------------------------
       
@@ -321,7 +321,7 @@ class SimTKOpenMMUtilities {
       
          --------------------------------------------------------------------------------------- */
       
-      static void matrixCrossProductMatrix3( Real* matrixX, Real* matrixY, Real* vectorZ );
+      static void matrixCrossProductMatrix3( RealOpenMM* matrixX, RealOpenMM* matrixY, RealOpenMM* vectorZ );
 
       /* ---------------------------------------------------------------------------------------
       
@@ -356,15 +356,15 @@ class SimTKOpenMMUtilities {
          Format array of reals
       
          @param message             input string stream
-         @param realArray				array of Reals
+         @param realArray				array of RealOpenMMs
          @param numberOfFields      number of fields (optional - defaults to 3)
       
          @return SimTKOpenMMCommon::DefaultReturn
 
          --------------------------------------------------------------------------------------- */
       
-      static int formatRealStringStream( std::stringstream& message, const Real* realArray, 
-                                         int numberOfFields = 3, Real factor = (Real) 1.0f );
+      static int formatRealStringStream( std::stringstream& message, const RealOpenMM* realArray, 
+                                         int numberOfFields = 3, RealOpenMM factor = (RealOpenMM) 1.0f );
       
       /**---------------------------------------------------------------------------------------
       
@@ -425,15 +425,15 @@ class SimTKOpenMMUtilities {
 
       /**---------------------------------------------------------------------------------------
       
-         Check that string is valid Real
+         Check that string is valid RealOpenMM
       
          @param stringToCheck string to check
       
-         @return true if string is a valid Real
+         @return true if string is a valid RealOpenMM
       
          --------------------------------------------------------------------------------------- */
       
-      static bool isValidReal( std::string stringToCheck );
+      static bool isValidRealOpenMM( std::string stringToCheck );
 
       /**---------------------------------------------------------------------------------------
       
@@ -491,15 +491,15 @@ class SimTKOpenMMUtilities {
          @param maxValue               max value in array on output
          @param maxIndex               index of max value in array on output
       
-         if numberOfEntries <= 0, return 0 for all Real values and -1 for index values
+         if numberOfEntries <= 0, return 0 for all RealOpenMM values and -1 for index values
       
          @return SimTKOpenMMCommon::DefaultReturn
       
          --------------------------------------------------------------------------------------- */
       
-      static int getArrayStatistics( int numberOfEntries, const Real* array, Real* average,
-                                     Real* stdDev, Real* minValue, int* minIndex,
-                                     Real* maxValue, int* maxIndex );
+      static int getArrayStatistics( int numberOfEntries, const RealOpenMM* array, RealOpenMM* average,
+                                     RealOpenMM* stdDev, RealOpenMM* minValue, int* minIndex,
+                                     RealOpenMM* maxValue, int* maxIndex );
       
 };
    

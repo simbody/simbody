@@ -219,7 +219,7 @@ int ObcParameters::setObcTypeParameters( ObcParameters::ObcType obcType ){
 
    --------------------------------------------------------------------------------------- */
 
-Real ObcParameters::getDielectricOffset( void ) const {
+RealOpenMM ObcParameters::getDielectricOffset( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -238,7 +238,7 @@ Real ObcParameters::getDielectricOffset( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-Real ObcParameters::getAlphaObc( void ) const {
+RealOpenMM ObcParameters::getAlphaObc( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -257,7 +257,7 @@ Real ObcParameters::getAlphaObc( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-Real ObcParameters::getBetaObc( void ) const {
+RealOpenMM ObcParameters::getBetaObc( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -276,7 +276,7 @@ Real ObcParameters::getBetaObc( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-Real ObcParameters::getGammaObc( void ) const {
+RealOpenMM ObcParameters::getGammaObc( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -295,7 +295,7 @@ Real ObcParameters::getGammaObc( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-Real* ObcParameters::getAtomicRadii( void ) const {
+RealOpenMM* ObcParameters::getAtomicRadii( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -303,7 +303,7 @@ Real* ObcParameters::getAtomicRadii( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
-   Real* atomicRadii = ImplicitSolventParameters::getAtomicRadii();
+   RealOpenMM* atomicRadii = ImplicitSolventParameters::getAtomicRadii();
 
    // if dielectric offset applied, then unapply
 
@@ -322,7 +322,7 @@ Real* ObcParameters::getAtomicRadii( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-int ObcParameters::setAtomicRadii( Real* atomicRadii, int units ){
+int ObcParameters::setAtomicRadii( RealOpenMM* atomicRadii, int units ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -345,7 +345,7 @@ int ObcParameters::setAtomicRadii( Real* atomicRadii, int units ){
 
    --------------------------------------------------------------------------------------- */
 
-int ObcParameters::setAtomicRadii( const RealVector& atomicRadii, int units ){
+int ObcParameters::setAtomicRadii( const RealOpenMMVector& atomicRadii, int units ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -365,7 +365,7 @@ int ObcParameters::setAtomicRadii( const RealVector& atomicRadii, int units ){
 
    --------------------------------------------------------------------------------------- */
 
-const Real* ObcParameters::getScaledRadiusFactors( void ) const {
+const RealOpenMM* ObcParameters::getScaledRadiusFactors( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -375,9 +375,9 @@ const Real* ObcParameters::getScaledRadiusFactors( void ) const {
 
    if( _scaledRadiusFactors == NULL ){
       ObcParameters* localThis = const_cast<ObcParameters* const>(this);
-      localThis->_scaledRadiusFactors    = new Real[getNumberOfAtoms()];
+      localThis->_scaledRadiusFactors    = new RealOpenMM[getNumberOfAtoms()];
       localThis->_ownScaledRadiusFactors = true;
-      memset( _scaledRadiusFactors, 0, sizeof( Real )*getNumberOfAtoms() );
+      memset( _scaledRadiusFactors, 0, sizeof( RealOpenMM )*getNumberOfAtoms() );
    }   
    return _scaledRadiusFactors;
 }
@@ -416,7 +416,7 @@ int ObcParameters::setOwnScaleFactors( int ownScaledRadiusFactors ){
 
    --------------------------------------------------------------------------------------- */
 
-int ObcParameters::setScaledRadiusFactors( Real* scaledRadiusFactors ){
+int ObcParameters::setScaledRadiusFactors( RealOpenMM* scaledRadiusFactors ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -435,7 +435,7 @@ int ObcParameters::setScaledRadiusFactors( Real* scaledRadiusFactors ){
 
 }
 
-#if RealType == 2
+#if RealOpenMMType == 2
 
 /**---------------------------------------------------------------------------------------
 
@@ -456,11 +456,11 @@ int ObcParameters::setScaledRadiusFactors( float* scaledRadiusFactors ){
    // ---------------------------------------------------------------------------------------
 
    if( _scaledRadiusFactors == NULL ){
-      _scaledRadiusFactors    = new Real[getNumberOfAtoms()];
+      _scaledRadiusFactors    = new RealOpenMM[getNumberOfAtoms()];
       _ownScaledRadiusFactors = true;
    }   
    for( int ii = 0; ii < getNumberOfAtoms(); ii++ ){
-      _scaledRadiusFactors[ii] = (Real) scaledRadiusFactors[ii];
+      _scaledRadiusFactors[ii] = (RealOpenMM) scaledRadiusFactors[ii];
    }
 
    return SimTKOpenMMCommon::DefaultReturn;
@@ -479,7 +479,7 @@ int ObcParameters::setScaledRadiusFactors( float* scaledRadiusFactors ){
 
    --------------------------------------------------------------------------------------- */
 
-int ObcParameters::setScaledRadiusFactors( const RealVector& scaledRadiusFactors ){
+int ObcParameters::setScaledRadiusFactors( const RealOpenMMVector& scaledRadiusFactors ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -491,185 +491,11 @@ int ObcParameters::setScaledRadiusFactors( const RealVector& scaledRadiusFactors
       delete[] _scaledRadiusFactors;
    }
    _ownScaledRadiusFactors = true;
-   _scaledRadiusFactors    = new Real[getNumberOfAtoms()];
+   _scaledRadiusFactors    = new RealOpenMM[getNumberOfAtoms()];
    for( int ii = 0; ii < (int) scaledRadiusFactors.size(); ii++ ){
       _scaledRadiusFactors[ii] = scaledRadiusFactors[ii];
    }
 
-   return SimTKOpenMMCommon::DefaultReturn;
-}
-
-/**---------------------------------------------------------------------------------------
-
-   Assign standard radii for GB/SA methods other than ACE;
-   taken from Macromodel and OPLS-AA, except for hydrogens (Simbios)
-
-   Logic follows that in Tinker's ksolv.f
-
-   Currently only works for standard amino acid atoms
-   If invalid atom name is encountered, a message is printed to log file and the
-   radius for that atom is set to 1.0f
-
-   @param numberOfAtoms       number of atoms
-   @param atomNames           array of atom names from GMX top data struct
-   @param radii               array to store Macromodel radii for each atom
-   @param log                 if set, then print error messages to log file
-
-   @return SimTKOpenMMCommon::DefaultReturn always
-
-   --------------------------------------------------------------------------------------- */
-
-int ObcParameters::getMacroModelAtomicRadii( int numberOfAtoms,
-                                              char*** atomNames, Real* radii, FILE* log ){
-
-   // ---------------------------------------------------------------------------------------
-
-   static const char* methodName = "\nObcParameters::getMacroModelAtomicRadii";
-
-   // ---------------------------------------------------------------------------------------
-
-   // loop over atoms
-   // get Tinker atom number from atom name
-   // using atom number and bonds12 array, set atom radius
-
-/*
-   for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
-
-      int tinkerAtomNumber = mapGmxAtomNameToTinkerAtomNumber( (*(atomNames[atomI])), log );
-      int stretchBondCount = obcBondsArray[atomI]->stretchBondCount;
-
-      Real radius;
-      int bondedAtom;
-      int bondedTinkerAtomNumber;
-      switch( tinkerAtomNumber ){
-
-         // H
-         case  1:
-
-            // NH?
-            bondedAtom             = obcBondsArray[atomI]->stretchBonds->atomJ;
-            bondedTinkerAtomNumber = mapGmxAtomNameToTinkerAtomNumber( (*(atomNames[bondedAtom])), log );
-
-//(void) fprintf( log, "\n    H j=%d Name=<%s>", bondedAtom, (*(atomNames[bondedAtom])) );
-//(void) fprintf( log, " tinkerNo=%d", bondedTinkerAtomNumber );
-//(void) fflush( log );
-            if( bondedTinkerAtomNumber == 7 ){
-               radius = 1.15f;
-            } else if( bondedTinkerAtomNumber == 8 ){
-               radius = 1.05f;
-            } else {
-               radius = 1.25f;
-            }
-            break;
-
-         // ?
-         case  3:
-
-            radius = 1.432f;
-            break;
-
-         // C
-         case  6:
-
-            // C-terminal
-
-            if( stretchBondCount == 3 ){
-               radius = 1.875f;
-            } else if( stretchBondCount == 2 ){
-               radius = 1.825f;
-            } else {
-               radius = 1.90f;
-            }
-            break;
-
-         // N
-         case 7:
-
-            if( stretchBondCount == 4 ){
-               radius = 1.625f;
-            } else if( stretchBondCount == 1 ){
-               radius = 1.60f;
-            } else {
-               radius = 1.7063f;
-            }
-            break;
-
-         // O
-         case 8:
-
-            if( stretchBondCount == 1 ){
-               radius = 1.48f;
-            } else {
-               radius = 1.535f;
-            }
-            break;
-
-         case 9:
-            radius = 1.47f;
-            break;
-         case 10:
-            radius = 1.39f;
-            break;
-         case 11:
-            radius = 1.992f;
-            break;
-         case 12:
-            radius = 1.70f;
-            break;
-         case 14:
-            radius = 1.80f;
-            break;
-         case 15:
-            radius = 1.87f;
-            break;
-         case 16:
-            radius = 1.775f;
-            break;
-         case 17:
-            radius = 1.735f;
-            break;
-         case 18:
-            radius = 1.70f;
-            break;
-         case 19:
-            radius = 2.123f;
-            break;
-         case 20:
-            radius = 1.817f;
-            break;
-         case 35:
-            radius = 1.90f;
-            break;
-         case 36:
-            radius = 1.812f;
-            break;
-         case 37:
-            radius = 2.26f;
-            break;
-         case 53:
-            radius = 2.10f;
-            break;
-         case 54:
-            radius = 1.967f;
-            break;
-         case 55:
-            radius = 2.507f;
-            break;
-         case 56:
-            radius = 2.188f;
-            break;
-         default:
-            radius = 1.0f;
-            (void) fprintf( log ? log : stderr, "\nWarning: %s Tinker atom number=%d unrecognized -- name=<%s>.",
-                            methodName, tinkerAtomNumber, (*(atomNames[bondedAtom])) );
-           break;
-      }
-
-      // convert from A to nm
-
-      radii[atomI] = 0.1f*radius;
-   } */
-      
    return SimTKOpenMMCommon::DefaultReturn;
 }
 
@@ -804,7 +630,7 @@ int ObcParameters::isNotReady( void ) const {
    std::stringstream message;
    message << methodName;
 
-   const Real* scaledRadiusFactors = getScaledRadiusFactors();
+   const RealOpenMM* scaledRadiusFactors = getScaledRadiusFactors();
    if( scaledRadiusFactors == NULL || scaledRadiusFactors[0] <= 0.0 ){
       errors++;
       message << "\n   scaledRadiusFactors is not set";
@@ -812,7 +638,7 @@ int ObcParameters::isNotReady( void ) const {
 
    // check scale factors are in correct units
 
-   Real average, stdDev, maxValue, minValue;
+   RealOpenMM average, stdDev, maxValue, minValue;
    int minIndex, maxIndex;
    SimTKOpenMMUtilities::getArrayStatistics( getNumberOfAtoms(), scaledRadiusFactors, &average,
                                              &stdDev, &minValue, &minIndex,

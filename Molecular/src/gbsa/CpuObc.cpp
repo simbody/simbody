@@ -144,7 +144,7 @@ int CpuObc::setObcParameters(  ObcParameters* obcParameters ){
 
    --------------------------------------------------------------------------------------- */
 
-Real* CpuObc::getObcChain( void ){
+RealOpenMM* CpuObc::getObcChain( void ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -153,7 +153,7 @@ Real* CpuObc::getObcChain( void ){
    // ---------------------------------------------------------------------------------------
 
    if( _obcChain == NULL ){
-      _obcChain = new Real[_obcParameters->getNumberOfAtoms()];
+      _obcChain = new RealOpenMM[_obcParameters->getNumberOfAtoms()];
    }
    return _obcChain;
 }
@@ -166,7 +166,7 @@ Real* CpuObc::getObcChain( void ){
 
    --------------------------------------------------------------------------------------- */
 
-Real* CpuObc::getObcChainConst( void ) const {
+RealOpenMM* CpuObc::getObcChainConst( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -186,7 +186,7 @@ Real* CpuObc::getObcChainConst( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-Real* CpuObc::getObcChainTemp( void ){
+RealOpenMM* CpuObc::getObcChainTemp( void ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -195,7 +195,7 @@ Real* CpuObc::getObcChainTemp( void ){
    // ---------------------------------------------------------------------------------------
 
    if( _obcChainTemp == NULL ){
-      _obcChainTemp = new Real[_obcParameters->getNumberOfAtoms()];
+      _obcChainTemp = new RealOpenMM[_obcParameters->getNumberOfAtoms()];
    }
    return _obcChainTemp;
 }
@@ -214,34 +214,34 @@ Real* CpuObc::getObcChainTemp( void ){
 
    --------------------------------------------------------------------------------------- */
 
-int CpuObc::computeBornRadii( Real** atomCoordinates, Real* bornRadii, Real* obcChain ){
+int CpuObc::computeBornRadii( RealOpenMM** atomCoordinates, RealOpenMM* bornRadii, RealOpenMM* obcChain ){
 
    // ---------------------------------------------------------------------------------------
 
-   static const Real zero    = (Real) 0.0;
-   static const Real one     = (Real) 1.0;
-   static const Real two     = (Real) 2.0;
-   static const Real three   = (Real) 3.0;
-   static const Real half    = (Real) 0.5;
-   static const Real fourth  = (Real) 0.25;
+   static const RealOpenMM zero    = (RealOpenMM) 0.0;
+   static const RealOpenMM one     = (RealOpenMM) 1.0;
+   static const RealOpenMM two     = (RealOpenMM) 2.0;
+   static const RealOpenMM three   = (RealOpenMM) 3.0;
+   static const RealOpenMM half    = (RealOpenMM) 0.5;
+   static const RealOpenMM fourth  = (RealOpenMM) 0.25;
 
    // static const char* methodName = "\nCpuObc::computeBornRadii";
 
    // ---------------------------------------------------------------------------------------
 
-   ObcParameters* obcParameters    = getObcParameters();
+   ObcParameters* obcParameters          = getObcParameters();
 
-   int numberOfAtoms               = obcParameters->getNumberOfAtoms();
-   Real* atomicRadii               = obcParameters->getAtomicRadii();
-   const Real* scaledRadiusFactor  = obcParameters->getScaledRadiusFactors();
+   int numberOfAtoms                     = obcParameters->getNumberOfAtoms();
+   RealOpenMM* atomicRadii               = obcParameters->getAtomicRadii();
+   const RealOpenMM* scaledRadiusFactor  = obcParameters->getScaledRadiusFactors();
    if( !obcChain ){
-      obcChain                     = getObcChain();
+      obcChain = getObcChain();
    }
 
-   Real dielectricOffset           = obcParameters->getDielectricOffset();
-   Real alphaObc                   = obcParameters->getAlphaObc();
-   Real betaObc                    = obcParameters->getBetaObc();
-   Real gammaObc                   = obcParameters->getGammaObc();
+   RealOpenMM dielectricOffset           = obcParameters->getDielectricOffset();
+   RealOpenMM alphaObc                   = obcParameters->getAlphaObc();
+   RealOpenMM betaObc                    = obcParameters->getBetaObc();
+   RealOpenMM gammaObc                   = obcParameters->getGammaObc();
 
    // ---------------------------------------------------------------------------------------
 
@@ -251,11 +251,11 @@ int CpuObc::computeBornRadii( Real** atomCoordinates, Real* bornRadii, Real* obc
 
    for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
      
-      Real radiusI         = atomicRadii[atomI];
-      Real offsetRadiusI   = radiusI - dielectricOffset;
+      RealOpenMM radiusI         = atomicRadii[atomI];
+      RealOpenMM offsetRadiusI   = radiusI - dielectricOffset;
 
-      Real radiusIInverse  = one/offsetRadiusI;
-      Real sum             = zero;
+      RealOpenMM radiusIInverse  = one/offsetRadiusI;
+      RealOpenMM sum             = zero;
 
       // HCT code
 
@@ -263,28 +263,28 @@ int CpuObc::computeBornRadii( Real** atomCoordinates, Real* bornRadii, Real* obc
 
          if( atomJ != atomI ){
 
-            Real deltaX          = atomCoordinates[atomJ][0] - atomCoordinates[atomI][0];
-            Real deltaY          = atomCoordinates[atomJ][1] - atomCoordinates[atomI][1];
-            Real deltaZ          = atomCoordinates[atomJ][2] - atomCoordinates[atomI][2];
+            RealOpenMM deltaX          = atomCoordinates[atomJ][0] - atomCoordinates[atomI][0];
+            RealOpenMM deltaY          = atomCoordinates[atomJ][1] - atomCoordinates[atomI][1];
+            RealOpenMM deltaZ          = atomCoordinates[atomJ][2] - atomCoordinates[atomI][2];
  
-            Real r2              = deltaX*deltaX + deltaY*deltaY + deltaZ*deltaZ;
-            Real r               = SQRT( r2 );
-            Real offsetRadiusJ   = atomicRadii[atomJ] - dielectricOffset; 
-            Real scaledRadiusJ   = offsetRadiusJ*scaledRadiusFactor[atomJ];
-            Real rScaledRadiusJ  = r + scaledRadiusJ;
+            RealOpenMM r2              = deltaX*deltaX + deltaY*deltaY + deltaZ*deltaZ;
+            RealOpenMM r               = SQRT( r2 );
+            RealOpenMM offsetRadiusJ   = atomicRadii[atomJ] - dielectricOffset; 
+            RealOpenMM scaledRadiusJ   = offsetRadiusJ*scaledRadiusFactor[atomJ];
+            RealOpenMM rScaledRadiusJ  = r + scaledRadiusJ;
 
             if( offsetRadiusI < rScaledRadiusJ ){
-               Real rInverse = one/r;
-               Real l_ij     = offsetRadiusI > FABS( r - scaledRadiusJ ) ? offsetRadiusI : FABS( r - scaledRadiusJ );
-                    l_ij     = one/l_ij;
+               RealOpenMM rInverse = one/r;
+               RealOpenMM l_ij     = offsetRadiusI > FABS( r - scaledRadiusJ ) ? offsetRadiusI : FABS( r - scaledRadiusJ );
+                    l_ij           = one/l_ij;
 
-               Real u_ij     = one/rScaledRadiusJ;
+               RealOpenMM u_ij     = one/rScaledRadiusJ;
 
-               Real l_ij2    = l_ij*l_ij;
-               Real u_ij2    = u_ij*u_ij;
+               RealOpenMM l_ij2    = l_ij*l_ij;
+               RealOpenMM u_ij2    = u_ij*u_ij;
  
-               Real ratio    = LN( (u_ij/l_ij) );
-               Real term     = l_ij - u_ij + fourth*r*(u_ij2 - l_ij2)  + ( half*rInverse*ratio) + (fourth*scaledRadiusJ*scaledRadiusJ*rInverse)*(l_ij2 - u_ij2);
+               RealOpenMM ratio    = LN( (u_ij/l_ij) );
+               RealOpenMM term     = l_ij - u_ij + fourth*r*(u_ij2 - l_ij2)  + ( half*rInverse*ratio) + (fourth*scaledRadiusJ*scaledRadiusJ*rInverse)*(l_ij2 - u_ij2);
                if( offsetRadiusI < (scaledRadiusJ - r) ){
                   term += two*( radiusIInverse - l_ij);
                }
@@ -304,9 +304,9 @@ if( atomI == 0 ){
       // OBC-specific code (Eqs. 6-8 in paper)
 
       sum                  *= half*offsetRadiusI;
-      Real sum2             = sum*sum;
-      Real sum3             = sum*sum2;
-      Real tanhSum          = TANH( alphaObc*sum - betaObc*sum2 + gammaObc*sum3 );
+      RealOpenMM sum2       = sum*sum;
+      RealOpenMM sum3       = sum*sum2;
+      RealOpenMM tanhSum    = TANH( alphaObc*sum - betaObc*sum2 + gammaObc*sum3 );
       
       bornRadii[atomI]      = one/( one/offsetRadiusI - tanhSum/radiusI ); 
  
@@ -341,21 +341,21 @@ if( atomI == 0 ){
 
    --------------------------------------------------------------------------------------- */
 
-int CpuObc::computeBornEnergyForces( Real* bornRadii, Real** atomCoordinates,
-                                     const Real* partialCharges, Real** forces ){
+int CpuObc::computeBornEnergyForces( RealOpenMM* bornRadii, RealOpenMM** atomCoordinates,
+                                     const RealOpenMM* partialCharges, RealOpenMM** forces ){
 
    // ---------------------------------------------------------------------------------------
 
    // static const char* methodName = "\nCpuObc::computeBornEnergyForces";
 
-   static const Real zero    = (Real) 0.0;
-   static const Real one     = (Real) 1.0;
-   static const Real two     = (Real) 2.0;
-   static const Real three   = (Real) 3.0;
-   static const Real four    = (Real) 4.0;
-   static const Real half    = (Real) 0.5;
-   static const Real fourth  = (Real) 0.25;
-   static const Real eighth  = (Real) 0.125;
+   static const RealOpenMM zero    = (RealOpenMM) 0.0;
+   static const RealOpenMM one     = (RealOpenMM) 1.0;
+   static const RealOpenMM two     = (RealOpenMM) 2.0;
+   static const RealOpenMM three   = (RealOpenMM) 3.0;
+   static const RealOpenMM four    = (RealOpenMM) 4.0;
+   static const RealOpenMM half    = (RealOpenMM) 0.5;
+   static const RealOpenMM fourth  = (RealOpenMM) 0.25;
+   static const RealOpenMM eighth  = (RealOpenMM) 0.125;
 
    // ---------------------------------------------------------------------------------------
 
@@ -370,22 +370,22 @@ int CpuObc::computeBornEnergyForces( Real* bornRadii, Real** atomCoordinates,
 
    // constants
 
-   const Real preFactor           = obcParameters->getPreFactor();
-   const Real electricConstant    = obcParameters->getElectricConstant();
-   const Real dielectricOffset    = obcParameters->getDielectricOffset();
+   const RealOpenMM preFactor           = obcParameters->getPreFactor();
+   const RealOpenMM electricConstant    = obcParameters->getElectricConstant();
+   const RealOpenMM dielectricOffset    = obcParameters->getDielectricOffset();
 
    // ---------------------------------------------------------------------------------------
 
    // set energy/forces to zero
 
-   Real obcEnergy                       = zero;
-   const unsigned int arraySzInBytes    = sizeof( Real )*numberOfAtoms;
+   RealOpenMM obcEnergy                 = zero;
+   const unsigned int arraySzInBytes    = sizeof( RealOpenMM )*numberOfAtoms;
 
    for( int ii = 0; ii < numberOfAtoms; ii++ ){
-      memset( forces[ii], 0, 3*sizeof( Real ) );
+      memset( forces[ii], 0, 3*sizeof( RealOpenMM ) );
    }
 
-   Real* bornForces = getBornForce();
+   RealOpenMM* bornForces = getBornForce();
    memset( bornForces, 0, arraySzInBytes );
 
    // ---------------------------------------------------------------------------------------
@@ -403,38 +403,38 @@ int CpuObc::computeBornEnergyForces( Real* bornRadii, Real** atomCoordinates,
 
    for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
  
-      Real partialChargeI = preFactor*partialCharges[atomI];
+      RealOpenMM partialChargeI = preFactor*partialCharges[atomI];
       for( int atomJ = atomI; atomJ < numberOfAtoms; atomJ++ ){
 
          // 3 FLOP
 
-         Real deltaX             = atomCoordinates[atomJ][0] - atomCoordinates[atomI][0];
-         Real deltaY             = atomCoordinates[atomJ][1] - atomCoordinates[atomI][1];
-         Real deltaZ             = atomCoordinates[atomJ][2] - atomCoordinates[atomI][2];
+         RealOpenMM deltaX             = atomCoordinates[atomJ][0] - atomCoordinates[atomI][0];
+         RealOpenMM deltaY             = atomCoordinates[atomJ][1] - atomCoordinates[atomI][1];
+         RealOpenMM deltaZ             = atomCoordinates[atomJ][2] - atomCoordinates[atomI][2];
  
          // 5 FLOP
 
-         Real r2                 = deltaX*deltaX + deltaY*deltaY + deltaZ*deltaZ;
+         RealOpenMM r2                 = deltaX*deltaX + deltaY*deltaY + deltaZ*deltaZ;
 
          // 3 FLOP
 
-         Real alpha2_ij          = bornRadii[atomI]*bornRadii[atomJ];
-         Real D_ij               = r2/(four*alpha2_ij);
+         RealOpenMM alpha2_ij          = bornRadii[atomI]*bornRadii[atomJ];
+         RealOpenMM D_ij               = r2/(four*alpha2_ij);
 
          // exp + 2 + sqrt FLOP 
 
-         Real expTerm            = EXP( -D_ij );
-         Real denominator2       = r2 + alpha2_ij*expTerm; 
-         Real denominator        = SQRT( denominator2 ); 
+         RealOpenMM expTerm            = EXP( -D_ij );
+         RealOpenMM denominator2       = r2 + alpha2_ij*expTerm; 
+         RealOpenMM denominator        = SQRT( denominator2 ); 
          
          // 6 FLOP
 
-         Real Gpol               = (partialChargeI*partialCharges[atomJ])/denominator; 
-         Real dGpol_dr           = -Gpol*( one - fourth*expTerm )/denominator2;  
+         RealOpenMM Gpol               = (partialChargeI*partialCharges[atomJ])/denominator; 
+         RealOpenMM dGpol_dr           = -Gpol*( one - fourth*expTerm )/denominator2;  
 
          // 5 FLOP
 
-         Real dGpol_dalpha2_ij   = -half*Gpol*expTerm*( one + D_ij )/denominator2;
+         RealOpenMM dGpol_dalpha2_ij   = -half*Gpol*expTerm*( one + D_ij )/denominator2;
 
          // 11 FLOP
 
@@ -475,19 +475,19 @@ int CpuObc::computeBornEnergyForces( Real* bornRadii, Real** atomCoordinates,
    // initialize Born radii & ObcChain temp arrays -- contain values
    // used in next iteration
 
-   Real* bornRadiiTemp             = getBornRadiiTemp();
+   RealOpenMM* bornRadiiTemp             = getBornRadiiTemp();
    memset( bornRadiiTemp, 0, arraySzInBytes );
 
-   Real* obcChainTemp              = getObcChainTemp();
+   RealOpenMM* obcChainTemp              = getObcChainTemp();
    memset( obcChainTemp, 0, arraySzInBytes );
 
-   Real* obcChain                  = getObcChain();
-   const Real* atomicRadii         = obcParameters->getAtomicRadii();
+   RealOpenMM* obcChain                  = getObcChain();
+   const RealOpenMM* atomicRadii         = obcParameters->getAtomicRadii();
 
-   const Real alphaObc             = obcParameters->getAlphaObc();
-   const Real betaObc              = obcParameters->getBetaObc();
-   const Real gammaObc             = obcParameters->getGammaObc();
-   const Real* scaledRadiusFactor  = obcParameters->getScaledRadiusFactors();
+   const RealOpenMM alphaObc             = obcParameters->getAlphaObc();
+   const RealOpenMM betaObc              = obcParameters->getBetaObc();
+   const RealOpenMM gammaObc             = obcParameters->getGammaObc();
+   const RealOpenMM* scaledRadiusFactor  = obcParameters->getScaledRadiusFactors();
 
     // compute factor that depends only on the outer loop index
 
@@ -499,69 +499,69 @@ int CpuObc::computeBornEnergyForces( Real* bornRadii, Real** atomCoordinates,
  
       // radius w/ dielectric offset applied
 
-      Real radiusI        = atomicRadii[atomI];
-      Real offsetRadiusI  = radiusI - dielectricOffset;
+      RealOpenMM radiusI        = atomicRadii[atomI];
+      RealOpenMM offsetRadiusI  = radiusI - dielectricOffset;
 
       // used to compute Born radius for next iteration
 
-      Real bornSum        = zero;
+      RealOpenMM bornSum        = zero;
 
       for( int atomJ = 0; atomJ < numberOfAtoms; atomJ++ ){
 
          if( atomJ != atomI ){
 
-            Real deltaX             = atomCoordinates[atomJ][0] - atomCoordinates[atomI][0];
-            Real deltaY             = atomCoordinates[atomJ][1] - atomCoordinates[atomI][1];
-            Real deltaZ             = atomCoordinates[atomJ][2] - atomCoordinates[atomI][2];
+            RealOpenMM deltaX             = atomCoordinates[atomJ][0] - atomCoordinates[atomI][0];
+            RealOpenMM deltaY             = atomCoordinates[atomJ][1] - atomCoordinates[atomI][1];
+            RealOpenMM deltaZ             = atomCoordinates[atomJ][2] - atomCoordinates[atomI][2];
     
-            Real r2                 = deltaX*deltaX + deltaY*deltaY + deltaZ*deltaZ;
-            Real r                  = SQRT( r2 );
+            RealOpenMM r2                 = deltaX*deltaX + deltaY*deltaY + deltaZ*deltaZ;
+            RealOpenMM r                  = SQRT( r2 );
  
             // radius w/ dielectric offset applied
 
-            Real offsetRadiusJ      = atomicRadii[atomJ] - dielectricOffset;
+            RealOpenMM offsetRadiusJ      = atomicRadii[atomJ] - dielectricOffset;
 
-            Real scaledRadiusJ      = offsetRadiusJ*scaledRadiusFactor[atomJ];
-            Real scaledRadiusJ2     = scaledRadiusJ*scaledRadiusJ;
-            Real rScaledRadiusJ     = r + scaledRadiusJ;
+            RealOpenMM scaledRadiusJ      = offsetRadiusJ*scaledRadiusFactor[atomJ];
+            RealOpenMM scaledRadiusJ2     = scaledRadiusJ*scaledRadiusJ;
+            RealOpenMM rScaledRadiusJ     = r + scaledRadiusJ;
 
             // dL/dr & dU/dr are zero (this can be shown analytically)
             // removed from calculation
 
             if( offsetRadiusI < rScaledRadiusJ ){
 
-               Real l_ij          = offsetRadiusI > FABS( r - scaledRadiusJ ) ? offsetRadiusI : FABS( r - scaledRadiusJ );
-                    l_ij          = one/l_ij;
+               RealOpenMM l_ij          = offsetRadiusI > FABS( r - scaledRadiusJ ) ? offsetRadiusI : FABS( r - scaledRadiusJ );
+                    l_ij                = one/l_ij;
 
-               Real u_ij          = one/rScaledRadiusJ;
+               RealOpenMM u_ij          = one/rScaledRadiusJ;
 
-               Real l_ij2         = l_ij*l_ij;
+               RealOpenMM l_ij2         = l_ij*l_ij;
 
-               Real u_ij2         = u_ij*u_ij;
+               RealOpenMM u_ij2         = u_ij*u_ij;
  
-               Real rInverse      = one/r;
-               Real r2Inverse     = one/r2;
+               RealOpenMM rInverse      = one/r;
+               RealOpenMM r2Inverse     = one/r2;
 
-               Real t3            = eighth*(one + scaledRadiusJ2*r2Inverse)*(l_ij2 - u_ij2) + fourth*LN( u_ij/l_ij )*r2Inverse;
+               RealOpenMM t3            = eighth*(one + scaledRadiusJ2*r2Inverse)*(l_ij2 - u_ij2) + fourth*LN( u_ij/l_ij )*r2Inverse;
 
-               Real de            = bornForces[atomI]*t3*rInverse;
+               RealOpenMM de            = bornForces[atomI]*t3*rInverse;
 
-               deltaX            *= de;
-               deltaY            *= de;
-               deltaZ            *= de;
+               deltaX                  *= de;
+               deltaY                  *= de;
+               deltaZ                  *= de;
    
-               forces[atomI][0]  += deltaX;
-               forces[atomI][1]  += deltaY;
-               forces[atomI][2]  += deltaZ;
+               forces[atomI][0]        += deltaX;
+               forces[atomI][1]        += deltaY;
+               forces[atomI][2]        += deltaZ;
   
-               forces[atomJ][0]  -= deltaX;
-               forces[atomJ][1]  -= deltaY;
-               forces[atomJ][2]  -= deltaZ;
+               forces[atomJ][0]        -= deltaX;
+               forces[atomJ][1]        -= deltaY;
+               forces[atomJ][2]        -= deltaZ;
  
                // Born radius term
 
-               Real term          =   l_ij - u_ij  + fourth*r*(u_ij2 - l_ij2) + (half*rInverse)*LN(u_ij/l_ij)   +
-                                      (fourth*scaledRadiusJ*scaledRadiusJ*rInverse)*(l_ij2-u_ij2);
+               RealOpenMM term          =  l_ij - u_ij  + fourth*r*(u_ij2 - l_ij2) + (half*rInverse)*LN(u_ij/l_ij)   +
+                                           (fourth*scaledRadiusJ*scaledRadiusJ*rInverse)*(l_ij2-u_ij2);
 
                if( offsetRadiusI < (scaledRadiusJ - r) ){
                   term += two*( (one/offsetRadiusI) - l_ij);
@@ -573,15 +573,15 @@ int CpuObc::computeBornEnergyForces( Real* bornRadii, Real** atomCoordinates,
 
       // OBC-specific code (Eqs. 6-8 in paper)
 
-      bornSum             *= half*offsetRadiusI;
-      Real sum2            = bornSum*bornSum;
-      Real sum3            = bornSum*sum2;
-      Real tanhSum         = TANH( alphaObc*bornSum - betaObc*sum2 + gammaObc*sum3 );
+      bornSum                   *= half*offsetRadiusI;
+      RealOpenMM sum2            = bornSum*bornSum;
+      RealOpenMM sum3            = bornSum*sum2;
+      RealOpenMM tanhSum         = TANH( alphaObc*bornSum - betaObc*sum2 + gammaObc*sum3 );
       
-      bornRadiiTemp[atomI] = one/( one/offsetRadiusI - tanhSum/radiusI ); 
+      bornRadiiTemp[atomI]       = one/( one/offsetRadiusI - tanhSum/radiusI ); 
  
-      obcChainTemp[atomI]  = offsetRadiusI*( alphaObc - two*betaObc*bornSum + three*gammaObc*sum2 );
-      obcChainTemp[atomI]  = (one - tanhSum*tanhSum)*obcChainTemp[atomI]/radiusI;
+      obcChainTemp[atomI]        = offsetRadiusI*( alphaObc - two*betaObc*bornSum + three*gammaObc*sum2 );
+      obcChainTemp[atomI]        = (one - tanhSum*tanhSum)*obcChainTemp[atomI]/radiusI;
    }
 
    setEnergy( obcEnergy );
@@ -624,7 +624,8 @@ std::string CpuObc::getStateString( const char* title ) const {
    Write Born energy and forces (Simbios)
 
    @param atomCoordinates     atomic coordinates
-   @param Real forces         forces
+   @param partialCharges      partial charges
+   @param forces              forces
    @param resultsFileName     output file name
 
    @return SimTKOpenMMCommon::DefaultReturn unless
@@ -633,8 +634,8 @@ std::string CpuObc::getStateString( const char* title ) const {
 
    --------------------------------------------------------------------------------------- */
 
-int CpuObc::writeBornEnergyForces( Real** atomCoordinates,
-                                   const Real* partialCharges, Real** forces,
+int CpuObc::writeBornEnergyForces( RealOpenMM** atomCoordinates,
+                                   const RealOpenMM* partialCharges, RealOpenMM** forces,
                                    const std::string& resultsFileName ) const {
 
    // ---------------------------------------------------------------------------------------
@@ -647,11 +648,11 @@ int CpuObc::writeBornEnergyForces( Real** atomCoordinates,
    const ObcParameters* obcParameters                   = static_cast<const ObcParameters*>(implicitSolventParameters);
    
 
-   int numberOfAtoms              = obcParameters->getNumberOfAtoms();
-   const Real* atomicRadii        = obcParameters->getAtomicRadii();
-   const Real* bornRadii          = getBornRadiiConst();
-   const Real* scaledRadii        = obcParameters->getScaledRadiusFactors();
-   const Real* obcChain           = getObcChainConst();
+   int numberOfAtoms                    = obcParameters->getNumberOfAtoms();
+   const RealOpenMM* atomicRadii        = obcParameters->getAtomicRadii();
+   const RealOpenMM* bornRadii          = getBornRadiiConst();
+   const RealOpenMM* scaledRadii        = obcParameters->getScaledRadiusFactors();
+   const RealOpenMM* obcChain           = getObcChainConst();
 
    // ---------------------------------------------------------------------------------------
 
@@ -685,8 +686,8 @@ int CpuObc::writeBornEnergyForces( Real** atomCoordinates,
 
    (void) fprintf( implicitSolventResultsFile, "# %d atoms format: coords(3) bornRadii(input) q atomicRadii scaleFactors forces obcChain\n", numberOfAtoms );
 
-   Real forceConversion  = 1.0f;
-   Real lengthConversion = 1.0f;
+   RealOpenMM forceConversion  = (RealOpenMM) 1.0;
+   RealOpenMM lengthConversion = (RealOpenMM) 1.0f;
 
    // output
 
@@ -715,8 +716,9 @@ int CpuObc::writeBornEnergyForces( Real** atomCoordinates,
 
    Write  results from first loop
 
-   @param atomCoordinates     atomic coordinates
-   @param Real forces         forces
+   @param numberOfAtoms       number of atoms
+   @param forces              forces
+   @param bornForce           Born force prefactor
    @param outputFileName      output file name
 
    @return SimTKOpenMMCommon::DefaultReturn unless
@@ -725,7 +727,7 @@ int CpuObc::writeBornEnergyForces( Real** atomCoordinates,
 
    --------------------------------------------------------------------------------------- */
 
-int CpuObc::writeForceLoop1( int numberOfAtoms, Real** forces, const Real* bornForce,
+int CpuObc::writeForceLoop1( int numberOfAtoms, RealOpenMM** forces, const RealOpenMM* bornForce,
                              const std::string& outputFileName ){
 
    // ---------------------------------------------------------------------------------------
@@ -761,11 +763,11 @@ int CpuObc::writeForceLoop1( int numberOfAtoms, Real** forces, const Real* bornF
 
    Write results
 
-   @param numberOfAtoms       number of atoms
-   @param chunkSizes          vector of chunk sizes for realRealVector
-   @param realRealVector      vector of Real**
-   @param realVector          vector of Real*
-   @param outputFileName      output file name
+   @param numberOfAtoms        number of atoms
+   @param chunkSizes           vector of chunk sizes for realRealOpenMMVector
+   @param realRealOpenMMVector vector of RealOpenMM**
+   @param realVector           vector of RealOpenMM*
+   @param outputFileName       output file name
 
    @return SimTKOpenMMCommon::DefaultReturn unless
            file cannot be opened
@@ -774,8 +776,8 @@ int CpuObc::writeForceLoop1( int numberOfAtoms, Real** forces, const Real* bornF
    --------------------------------------------------------------------------------------- */
 
 int CpuObc::writeForceLoop( int numberOfAtoms, const IntVector& chunkSizes,
-                            const RealPtrPtrVector& realRealVector, 
-                            const RealPtrVector& realVector,
+                            const RealOpenMMPtrPtrVector& realRealOpenMMVector, 
+                            const RealOpenMMPtrVector& realVector,
                             const std::string& outputFileName ){
 
    // ---------------------------------------------------------------------------------------
@@ -804,14 +806,14 @@ int CpuObc::writeForceLoop( int numberOfAtoms, const IntVector& chunkSizes,
       line << (atomI+1) << " ";
 
       int index = 0;
-      for( RealPtrPtrVectorCI ii = realRealVector.begin(); ii != realRealVector.end(); ii++ ){
-         Real** forces = *ii;
+      for( RealOpenMMPtrPtrVectorCI ii = realRealOpenMMVector.begin(); ii != realRealOpenMMVector.end(); ii++ ){
+         RealOpenMM** forces = *ii;
          SimTKOpenMMUtilities::formatRealStringStream( line, forces[atomI], chunks[index++] );
          line << " ";
       }
 
-      for( RealPtrVectorCI ii = realVector.begin(); ii != realVector.end(); ii++ ){
-         Real* array = *ii;
+      for( RealOpenMMPtrVectorCI ii = realVector.begin(); ii != realVector.end(); ii++ ){
+         RealOpenMM* array = *ii;
          line << array[atomI] << " ";
       }
 
@@ -837,21 +839,21 @@ int CpuObc::writeForceLoop( int numberOfAtoms, const IntVector& chunkSizes,
 
    --------------------------------------------------------------------------------------- */
 
-int CpuObc::computeBornEnergyForcesPrint( Real* bornRadii, Real** atomCoordinates,
-                                         const Real* partialCharges, Real** forces ){
+int CpuObc::computeBornEnergyForcesPrint( RealOpenMM* bornRadii, RealOpenMM** atomCoordinates,
+                                         const RealOpenMM* partialCharges, RealOpenMM** forces ){
  
    // ---------------------------------------------------------------------------------------
 
    // static const char* methodName = "\nCpuObc::computeBornEnergyForcesPrint";
 
-   static const Real zero    = (Real) 0.0;
-   static const Real one     = (Real) 1.0;
-   static const Real two     = (Real) 2.0;
-   static const Real three   = (Real) 3.0;
-   static const Real four    = (Real) 4.0;
-   static const Real half    = (Real) 0.5;
-   static const Real fourth  = (Real) 0.25;
-   static const Real eighth  = (Real) 0.125;
+   static const RealOpenMM zero    = (RealOpenMM) 0.0;
+   static const RealOpenMM one     = (RealOpenMM) 1.0;
+   static const RealOpenMM two     = (RealOpenMM) 2.0;
+   static const RealOpenMM three   = (RealOpenMM) 3.0;
+   static const RealOpenMM four    = (RealOpenMM) 4.0;
+   static const RealOpenMM half    = (RealOpenMM) 0.5;
+   static const RealOpenMM fourth  = (RealOpenMM) 0.25;
+   static const RealOpenMM eighth  = (RealOpenMM) 0.125;
 
    // ---------------------------------------------------------------------------------------
 
@@ -868,22 +870,22 @@ FILE* logFile = SimTKOpenMMLog::getSimTKOpenMMLogFile( );
 
    // constants
 
-   const Real preFactor           = obcParameters->getPreFactor();
-   const Real electricConstant    = obcParameters->getElectricConstant();
-   const Real dielectricOffset    = obcParameters->getDielectricOffset();
+   const RealOpenMM preFactor           = obcParameters->getPreFactor();
+   const RealOpenMM electricConstant    = obcParameters->getElectricConstant();
+   const RealOpenMM dielectricOffset    = obcParameters->getDielectricOffset();
 
    // ---------------------------------------------------------------------------------------
 
    // set energy/forces to zero
 
-   Real obcEnergy                       = zero;
-   const unsigned int arraySzInBytes    = sizeof( Real )*numberOfAtoms;
+   RealOpenMM obcEnergy                 = zero;
+   const unsigned int arraySzInBytes    = sizeof( RealOpenMM )*numberOfAtoms;
 
    for( int ii = 0; ii < numberOfAtoms; ii++ ){
-      memset( forces[ii], 0, 3*sizeof( Real ) );
+      memset( forces[ii], 0, 3*sizeof( RealOpenMM ) );
    }
 
-   Real* bornForces = getBornForce();
+   RealOpenMM* bornForces = getBornForce();
    memset( bornForces, 0, arraySzInBytes );
 
    // ---------------------------------------------------------------------------------------
@@ -901,58 +903,58 @@ FILE* logFile = SimTKOpenMMLog::getSimTKOpenMMLogFile( );
 
    for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
  
-      Real partialChargeI = preFactor*partialCharges[atomI];
+      RealOpenMM partialChargeI = preFactor*partialCharges[atomI];
       for( int atomJ = atomI; atomJ < numberOfAtoms; atomJ++ ){
 
          // 3 FLOP
 
-         Real deltaX             = atomCoordinates[atomJ][0] - atomCoordinates[atomI][0];
-         Real deltaY             = atomCoordinates[atomJ][1] - atomCoordinates[atomI][1];
-         Real deltaZ             = atomCoordinates[atomJ][2] - atomCoordinates[atomI][2];
+         RealOpenMM deltaX             = atomCoordinates[atomJ][0] - atomCoordinates[atomI][0];
+         RealOpenMM deltaY             = atomCoordinates[atomJ][1] - atomCoordinates[atomI][1];
+         RealOpenMM deltaZ             = atomCoordinates[atomJ][2] - atomCoordinates[atomI][2];
  
          // 5 FLOP
 
-         Real r2                 = deltaX*deltaX + deltaY*deltaY + deltaZ*deltaZ;
+         RealOpenMM r2                 = deltaX*deltaX + deltaY*deltaY + deltaZ*deltaZ;
 
          // 3 FLOP
 
-         Real alpha2_ij          = bornRadii[atomI]*bornRadii[atomJ];
-         Real D_ij               = r2/(four*alpha2_ij);
+         RealOpenMM alpha2_ij          = bornRadii[atomI]*bornRadii[atomJ];
+         RealOpenMM D_ij               = r2/(four*alpha2_ij);
 
          // exp + 2 + sqrt FLOP 
 
-         Real expTerm            = EXP( -D_ij );
-         Real denominator2       = r2 + alpha2_ij*expTerm; 
-         Real denominator        = SQRT( denominator2 ); 
+         RealOpenMM expTerm            = EXP( -D_ij );
+         RealOpenMM denominator2       = r2 + alpha2_ij*expTerm; 
+         RealOpenMM denominator        = SQRT( denominator2 ); 
          
          // 6 FLOP
 
-         Real Gpol               = (partialChargeI*partialCharges[atomJ])/denominator; 
+         RealOpenMM Gpol               = (partialChargeI*partialCharges[atomJ])/denominator; 
   
          // dGpol/dr              = -1/2*(Gpol/denominator2)*(2r - r/2*exp() )
-         Real dGpol_dr           = -Gpol*( one - fourth*expTerm )/denominator2;  
+         RealOpenMM dGpol_dr           = -Gpol*( one - fourth*expTerm )/denominator2;  
 
          // 5 FLOP
 
-         Real dGpol_dalpha2_ij   = -half*Gpol*expTerm*( one + D_ij )/denominator2;
+         RealOpenMM dGpol_dalpha2_ij   = -half*Gpol*expTerm*( one + D_ij )/denominator2;
 
          // 11 FLOP
 
          if( atomI != atomJ ){
 
-             bornForces[atomJ] += dGpol_dalpha2_ij*bornRadii[atomI];
+             bornForces[atomJ]       += dGpol_dalpha2_ij*bornRadii[atomI];
 
-             deltaX            *= dGpol_dr;
-             deltaY            *= dGpol_dr;
-             deltaZ            *= dGpol_dr;
+             deltaX                  *= dGpol_dr;
+             deltaY                  *= dGpol_dr;
+             deltaZ                  *= dGpol_dr;
 
-             forces[atomI][0]  -= deltaX;
-             forces[atomI][1]  -= deltaY;
-             forces[atomI][2]  -= deltaZ;
+             forces[atomI][0]        -= deltaX;
+             forces[atomI][1]        -= deltaY;
+             forces[atomI][2]        -= deltaZ;
 
-             forces[atomJ][0]  += deltaX;
-             forces[atomJ][1]  += deltaY;
-             forces[atomJ][2]  += deltaZ;
+             forces[atomJ][0]        += deltaX;
+             forces[atomJ][1]        += deltaY;
+             forces[atomJ][2]        += deltaZ;
 
          } else {
             Gpol *= half;
@@ -997,7 +999,7 @@ for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
       CpuObc::writeForceLoop1( numberOfAtoms, forces, bornForces, outputFileName );
 /*
       for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
-         forces[atomI][0] = forces[atomI][1] = forces[atomI][2] = (Real) 0.0;
+         forces[atomI][0] = forces[atomI][1] = forces[atomI][2] = (RealOpenMM) 0.0;
       }
 */
    }
@@ -1009,19 +1011,19 @@ for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
    // initialize Born radii & ObcChain temp arrays -- contain values
    // used in next iteration
 
-   Real* bornRadiiTemp             = getBornRadiiTemp();
+   RealOpenMM* bornRadiiTemp             = getBornRadiiTemp();
    memset( bornRadiiTemp, 0, arraySzInBytes );
 
-   Real* obcChainTemp              = getObcChainTemp();
+   RealOpenMM* obcChainTemp              = getObcChainTemp();
    memset( obcChainTemp, 0, arraySzInBytes );
 
-   Real* obcChain                  = getObcChain();
-   const Real* atomicRadii         = obcParameters->getAtomicRadii();
+   RealOpenMM* obcChain                  = getObcChain();
+   const RealOpenMM* atomicRadii         = obcParameters->getAtomicRadii();
 
-   const Real alphaObc             = obcParameters->getAlphaObc();
-   const Real betaObc              = obcParameters->getBetaObc();
-   const Real gammaObc             = obcParameters->getGammaObc();
-   const Real* scaledRadiusFactor  = obcParameters->getScaledRadiusFactors();
+   const RealOpenMM alphaObc             = obcParameters->getAlphaObc();
+   const RealOpenMM betaObc              = obcParameters->getBetaObc();
+   const RealOpenMM gammaObc             = obcParameters->getGammaObc();
+   const RealOpenMM* scaledRadiusFactor  = obcParameters->getScaledRadiusFactors();
 
     // compute factor that depends only on the outer loop index
 
@@ -1029,38 +1031,38 @@ for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
       bornForces[atomI] *= bornRadii[atomI]*bornRadii[atomI]*obcChain[atomI];      
    }
 
-Real* bornSumArray = (Real*) malloc( sizeof( Real )*numberOfAtoms );
-memset( bornSumArray, 0, sizeof( Real )*numberOfAtoms );
+RealOpenMM* bornSumArray = (RealOpenMM*) malloc( sizeof( RealOpenMM )*numberOfAtoms );
+memset( bornSumArray, 0, sizeof( RealOpenMM )*numberOfAtoms );
 
    for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
  
       // radius w/ dielectric offset applied
 
-      Real radiusI        = atomicRadii[atomI];
-      Real offsetRadiusI  = radiusI - dielectricOffset;
+      RealOpenMM radiusI        = atomicRadii[atomI];
+      RealOpenMM offsetRadiusI  = radiusI - dielectricOffset;
 
       // used to compute Born radius for next iteration
 
-      Real bornSum        = zero;
+      RealOpenMM bornSum        = zero;
 
       for( int atomJ = 0; atomJ < numberOfAtoms; atomJ++ ){
 
          if( atomJ != atomI ){
 
-            Real deltaX             = atomCoordinates[atomJ][0] - atomCoordinates[atomI][0];
-            Real deltaY             = atomCoordinates[atomJ][1] - atomCoordinates[atomI][1];
-            Real deltaZ             = atomCoordinates[atomJ][2] - atomCoordinates[atomI][2];
+            RealOpenMM deltaX             = atomCoordinates[atomJ][0] - atomCoordinates[atomI][0];
+            RealOpenMM deltaY             = atomCoordinates[atomJ][1] - atomCoordinates[atomI][1];
+            RealOpenMM deltaZ             = atomCoordinates[atomJ][2] - atomCoordinates[atomI][2];
     
-            Real r2                 = deltaX*deltaX + deltaY*deltaY + deltaZ*deltaZ;
-            Real r                  = SQRT( r2 );
+            RealOpenMM r2                 = deltaX*deltaX + deltaY*deltaY + deltaZ*deltaZ;
+            RealOpenMM r                  = SQRT( r2 );
  
             // radius w/ dielectric offset applied
 
-            Real radiusJ            = atomicRadii[atomJ] - dielectricOffset;
+            RealOpenMM radiusJ            = atomicRadii[atomJ] - dielectricOffset;
 
-            Real scaledRadiusJ      = radiusJ*scaledRadiusFactor[atomJ];
-            Real scaledRadiusJ2     = scaledRadiusJ*scaledRadiusJ;
-            Real rScaledRadiusJ     = r + scaledRadiusJ;
+            RealOpenMM scaledRadiusJ      = radiusJ*scaledRadiusFactor[atomJ];
+            RealOpenMM scaledRadiusJ2     = scaledRadiusJ*scaledRadiusJ;
+            RealOpenMM rScaledRadiusJ     = r + scaledRadiusJ;
 
             // L_ij != 1 && U_ij != 1
 
@@ -1069,37 +1071,37 @@ memset( bornSumArray, 0, sizeof( Real )*numberOfAtoms );
 
             if( offsetRadiusI < rScaledRadiusJ ){
 
-               Real l_ij           = offsetRadiusI > FABS( r - scaledRadiusJ ) ? offsetRadiusI : FABS( r - scaledRadiusJ );
-                    l_ij           = one/l_ij;
+               RealOpenMM l_ij          = offsetRadiusI > FABS( r - scaledRadiusJ ) ? offsetRadiusI : FABS( r - scaledRadiusJ );
+                    l_ij                = one/l_ij;
 
-               Real l_ij2          = l_ij*l_ij;
+               RealOpenMM l_ij2         = l_ij*l_ij;
 
-               Real u_ij           = one/rScaledRadiusJ;
-               Real u_ij2          = u_ij*u_ij;
+               RealOpenMM u_ij          = one/rScaledRadiusJ;
+               RealOpenMM u_ij2         = u_ij*u_ij;
  
-               Real rInverse       = one/r;
-               Real r2Inverse      = one/r2;
+               RealOpenMM rInverse      = one/r;
+               RealOpenMM r2Inverse     = one/r2;
 
-               Real logRatio       = LN( u_ij/l_ij );
-               Real t3             = eighth*(one + scaledRadiusJ2*r2Inverse)*(l_ij2 - u_ij2) + fourth*logRatio*r2Inverse;
+               RealOpenMM logRatio      = LN( u_ij/l_ij );
+               RealOpenMM t3            = eighth*(one + scaledRadiusJ2*r2Inverse)*(l_ij2 - u_ij2) + fourth*logRatio*r2Inverse;
 
-               Real de             = bornForces[atomI]*t3*rInverse;
+               RealOpenMM de            = bornForces[atomI]*t3*rInverse;
 
-               deltaX            *= de;
-               deltaY            *= de;
-               deltaZ            *= de;
+               deltaX                  *= de;
+               deltaY                  *= de;
+               deltaZ                  *= de;
 
-               forces[atomI][0]  += deltaX;
-               forces[atomI][1]  += deltaY;
-               forces[atomI][2]  += deltaZ;
+               forces[atomI][0]        += deltaX;
+               forces[atomI][1]        += deltaY;
+               forces[atomI][2]        += deltaZ;
   
-               forces[atomJ][0]  -= deltaX;
-               forces[atomJ][1]  -= deltaY;
-               forces[atomJ][2]  -= deltaZ;
+               forces[atomJ][0]        -= deltaX;
+               forces[atomJ][1]        -= deltaY;
+               forces[atomJ][2]        -= deltaZ;
  
                // Born radius term
 
-               Real term          =   l_ij - u_ij + fourth*r*(u_ij2 - l_ij2) + (half*rInverse)*logRatio + (fourth*scaledRadiusJ*scaledRadiusJ*rInverse)*(l_ij2-u_ij2);
+               RealOpenMM term          =   l_ij - u_ij + fourth*r*(u_ij2 - l_ij2) + (half*rInverse)*logRatio + (fourth*scaledRadiusJ*scaledRadiusJ*rInverse)*(l_ij2-u_ij2);
 
                if( offsetRadiusI < (scaledRadiusJ - r) ){
                   term += two*( (one/offsetRadiusI) - l_ij);
@@ -1122,9 +1124,9 @@ bornSumArray[atomI] = half*bornSum;
       // OBC-specific code (Eqs. 6-8 in paper)
 
       bornSum             *= half*offsetRadiusI;
-      Real sum2            = bornSum*bornSum;
-      Real sum3            = bornSum*sum2;
-      Real tanhSum         = TANH( alphaObc*bornSum - betaObc*sum2 + gammaObc*sum3 );
+      RealOpenMM sum2            = bornSum*bornSum;
+      RealOpenMM sum3            = bornSum*sum2;
+      RealOpenMM tanhSum         = TANH( alphaObc*bornSum - betaObc*sum2 + gammaObc*sum3 );
       
       bornRadiiTemp[atomI] = one/( one/offsetRadiusI - tanhSum/radiusI); 
  
@@ -1143,10 +1145,10 @@ bornSumArray[atomI] = half*bornSum;
       IntVector chunkVector;
       chunkVector.push_back( 3 );
 
-      RealPtrPtrVector realPtrPtrVector;
+      RealOpenMMPtrPtrVector realPtrPtrVector;
       realPtrPtrVector.push_back( forces );
 
-      RealPtrVector realPtrVector;
+      RealOpenMMPtrVector realPtrVector;
 realPtrVector.push_back( bornSumArray );
       realPtrVector.push_back( bornRadiiTemp );
       realPtrVector.push_back( obcChainTemp );
@@ -1158,8 +1160,8 @@ free( (char*) bornSumArray );
    // 6 FLOP
 
 /*
-   Real forceFactor    = getForceConversionFactor();
-   Real constantFactor = 1.0f/electricConstant;
+   RealOpenMM forceFactor    = getForceConversionFactor();
+   RealOpenMM constantFactor = 1.0f/electricConstant;
    if( fabs(forceFactor - 1.0f) > 1.0e-04 ){
       constantFactor *= forceFactor;
       for( int ii = 0; ii < numberOfAtoms; ii++ ){

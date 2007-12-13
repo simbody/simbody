@@ -46,13 +46,13 @@
 
    --------------------------------------------------------------------------------------- */
 
-int SimTKOpenMMUtilities::getDistanceSquaredFromSpecifiedAtom( Real** atomCoordinates, int atomIndex,
-                                                               int numberOfAtoms, Real* distances,
+int SimTKOpenMMUtilities::getDistanceSquaredFromSpecifiedAtom( RealOpenMM** atomCoordinates, int atomIndex,
+                                                               int numberOfAtoms, RealOpenMM* distances,
                                                                FILE* log ){
 
    // ---------------------------------------------------------------------------------------
 
-   Real atomXyz[3];
+   RealOpenMM atomXyz[3];
    // static const char* methodName    = "\nSimTKOpenMMUtilities::getDistanceSquaredFromSpecifiedAtom";
 
    // ---------------------------------------------------------------------------------------
@@ -80,9 +80,10 @@ int SimTKOpenMMUtilities::getDistanceSquaredFromSpecifiedAtom( Real** atomCoordi
 
    --------------------------------------------------------------------------------------- */
 
-int SimTKOpenMMUtilities::getDistanceSquaredFromSpecifiedPoint( Real** atomCoordinates, Real* point,
+int SimTKOpenMMUtilities::getDistanceSquaredFromSpecifiedPoint( RealOpenMM** atomCoordinates,
+                                                                RealOpenMM* point,
                                                                 int numberOfAtoms,
-                                                                Real* distances, FILE* log ){
+                                                                RealOpenMM* distances, FILE* log ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -90,10 +91,10 @@ int SimTKOpenMMUtilities::getDistanceSquaredFromSpecifiedPoint( Real** atomCoord
 
    // ---------------------------------------------------------------------------------------
 
-   memset( distances, 0, sizeof( Real )*numberOfAtoms );
+   memset( distances, 0, sizeof( RealOpenMM )*numberOfAtoms );
    for( int ii = 0; ii < numberOfAtoms; ii++ ){
       for( int jj = 0; jj < 3; jj++ ){
-         Real diff = (point[jj] - atomCoordinates[ii][jj]);
+         RealOpenMM diff = (point[jj] - atomCoordinates[ii][jj]);
          distances[ii] += diff*diff;
       }
    }
@@ -103,11 +104,11 @@ int SimTKOpenMMUtilities::getDistanceSquaredFromSpecifiedPoint( Real** atomCoord
 
 /* ---------------------------------------------------------------------------------------
 
-   Helper method to allocate Real arrays (Simbios)
+   Helper method to allocate RealOpenMM arrays (Simbios)
 
    @param bufferIndex         buffer index
    @param allocatedSz         array of allocated sizes
-   @param bufferArray         array of allocated Real arrays
+   @param bufferArray         array of allocated RealOpenMM arrays
    @param requestedSize       requested size
    @param dataAction          action flag: -1 = free memory \n
                                             1 = zero memory
@@ -116,13 +117,13 @@ int SimTKOpenMMUtilities::getDistanceSquaredFromSpecifiedPoint( Real** atomCoord
 
    --------------------------------------------------------------------------------------- */
 
-int SimTKOpenMMUtilities::allocateRealBufferArray( int bufferIndex, int* allocatedSz,
-                                                    Real** bufferArray,
-                                                    int requestedSize, int dataAction ){
+int SimTKOpenMMUtilities::allocateRealOpenMMBufferArray( int bufferIndex, int* allocatedSz,
+                                                         RealOpenMM** bufferArray,
+                                                         int requestedSize, int dataAction ){
 
    // ---------------------------------------------------------------------------------------
 
-   // static const char* methodName    = "\nSimTKOpenMMUtilities::allocateRealBufferArray";
+   // static const char* methodName    = "\nSimTKOpenMMUtilities::allocateRealOpenMMBufferArray";
 
    // ---------------------------------------------------------------------------------------
 
@@ -150,14 +151,14 @@ int SimTKOpenMMUtilities::allocateRealBufferArray( int bufferIndex, int* allocat
 
    // allocate
 
-   // bufferArray[bufferIndex] = (Real*) malloc( requestedSize*sizeof( Real ) );
-   bufferArray[bufferIndex] = (Real*) SimTKOpenMMUtilities::Xmalloc( "bufferArray", __FILE__, __LINE__, requestedSize*sizeof( Real ) );
+   // bufferArray[bufferIndex] = (RealOpenMM*) malloc( requestedSize*sizeof( RealOpenMM ) );
+   bufferArray[bufferIndex] = (RealOpenMM*) SimTKOpenMMUtilities::Xmalloc( "bufferArray", __FILE__, __LINE__, requestedSize*sizeof( RealOpenMM ) );
    allocatedSz[bufferIndex] = requestedSize;
 
    // zero?
 
    if( dataAction == 1 ){
-      memset( bufferArray[bufferIndex], 0, requestedSize*sizeof( Real ) );
+      memset( bufferArray[bufferIndex], 0, requestedSize*sizeof( RealOpenMM ) );
    }
 
    return SimTKOpenMMCommon::DefaultReturn;
@@ -178,9 +179,9 @@ int SimTKOpenMMUtilities::allocateRealBufferArray( int bufferIndex, int* allocat
 
    --------------------------------------------------------------------------------------- */
 
-int SimTKOpenMMUtilities::printCoordinateAnd1DArrays( int numberAtoms, Real** atomCoordinates,
+int SimTKOpenMMUtilities::printCoordinateAnd1DArrays( int numberAtoms, RealOpenMM** atomCoordinates,
                                                       int numberOf1Darrays,
-                                                      Real** oneDArrays, 
+                                                      RealOpenMM** oneDArrays, 
                                                       const char* idString, FILE* log ){
 
    // ---------------------------------------------------------------------------------------
@@ -291,11 +292,11 @@ int SimTKOpenMMUtilities::tabStringInPlace( char* string, int tab ){
    @return debugFile unless file coud not be opened (or other errors )
    or file is closed -- for these cases return NULL
 
-   stringFields printed after Real fields
+   stringFields printed after RealOpenMM fields
 
    --------------------------------------------------------------------------------------- */
 
-FILE* SimTKOpenMMUtilities::writeDebugFile( int numberOfFields, const Real* fields,
+FILE* SimTKOpenMMUtilities::writeDebugFile( int numberOfFields, const RealOpenMM* fields,
                                             int numberOfStringFields,
                                             const StringVector& stringFields,
                                             const char* comment, const char* debugFileName, int action,
@@ -375,7 +376,7 @@ FILE* SimTKOpenMMUtilities::writeDebugFile( int numberOfFields, const Real* fiel
 
 /* ---------------------------------------------------------------------------------------
 
-   Allocate 2D Real array (Simbios)
+   Allocate 2D RealOpenMM array (Simbios)
 
    array[i][j]
 
@@ -390,23 +391,24 @@ FILE* SimTKOpenMMUtilities::writeDebugFile( int numberOfFields, const Real* fiel
 
    --------------------------------------------------------------------------------------- */
 
-Real** SimTKOpenMMUtilities::allocateTwoDRealArray( int iSize, int jSize, Real** array2D, 
-                                                    int initialize, Real initialValue,
-                                                    const std::string& idString ){
+RealOpenMM** SimTKOpenMMUtilities::allocateTwoDRealOpenMMArray( int iSize, int jSize,
+                                                                RealOpenMM** array2D, 
+                                                                int initialize, RealOpenMM initialValue,
+                                                                const std::string& idString ){
 
    // ---------------------------------------------------------------------------------------
 
-   // static const char* methodName = "\nSimTKOpenMMUtilities::allocate2DRealArray";
+   // static const char* methodName = "\nSimTKOpenMMUtilities::allocate2DRealOpenMMArray";
 
    // ---------------------------------------------------------------------------------------
 
    if( array2D == NULL ){
 
-      array2D     = (Real**) SimTKOpenMMUtilities::Xmalloc( idString.c_str(), __FILE__, __LINE__, iSize*sizeof( Real* ) );
+      array2D     = (RealOpenMM**) SimTKOpenMMUtilities::Xmalloc( idString.c_str(), __FILE__, __LINE__, iSize*sizeof( RealOpenMM* ) );
       std::string blockString = idString;
       blockString.append( "Block" );
 
-      Real* block = (Real*)  SimTKOpenMMUtilities::Xmalloc( blockString.c_str(),   __FILE__, __LINE__, jSize*iSize*sizeof( Real ) );
+      RealOpenMM* block = (RealOpenMM*)  SimTKOpenMMUtilities::Xmalloc( blockString.c_str(),   __FILE__, __LINE__, jSize*iSize*sizeof( RealOpenMM ) );
 
       for( int ii = 0; ii < iSize; ii++ ){
          array2D[ii]  = block;
@@ -415,7 +417,7 @@ Real** SimTKOpenMMUtilities::allocateTwoDRealArray( int iSize, int jSize, Real**
    }
 
    if( initialize ){
-      initialize2DRealArray( iSize, jSize, array2D, initialValue );
+      initialize2DRealOpenMMArray( iSize, jSize, array2D, initialValue );
    }
 
    return array2D;
@@ -423,7 +425,7 @@ Real** SimTKOpenMMUtilities::allocateTwoDRealArray( int iSize, int jSize, Real**
 
 /* ---------------------------------------------------------------------------------------
 
-   Free 2D Real array (Simbios)
+   Free 2D RealOpenMM array (Simbios)
 
    array[i][j]
 
@@ -434,11 +436,11 @@ Real** SimTKOpenMMUtilities::allocateTwoDRealArray( int iSize, int jSize, Real**
 
    --------------------------------------------------------------------------------------- */
 
-int SimTKOpenMMUtilities::freeTwoDRealArray( Real** array2D, const std::string& idString ){
+int SimTKOpenMMUtilities::freeTwoDRealOpenMMArray( RealOpenMM** array2D, const std::string& idString ){
 
    // ---------------------------------------------------------------------------------------
 
-   // static const char* methodName = "\nSimTKOpenMMUtilities::allocate2DRealArray";
+   // static const char* methodName = "\nSimTKOpenMMUtilities::allocate2DRealOpenMMArray";
 
    // ---------------------------------------------------------------------------------------
 
@@ -456,7 +458,7 @@ int SimTKOpenMMUtilities::freeTwoDRealArray( Real** array2D, const std::string& 
 
 /* ---------------------------------------------------------------------------------------
 
-   Initialize 2D Real array (Simbios)
+   Initialize 2D RealOpenMM array (Simbios)
 
    array[i][j]
 
@@ -469,12 +471,12 @@ int SimTKOpenMMUtilities::freeTwoDRealArray( Real** array2D, const std::string& 
 
    --------------------------------------------------------------------------------------- */
 
-int SimTKOpenMMUtilities::initialize2DRealArray( int iSize, int jSize,
-                                                  Real** array2D, Real initialValue ){
+int SimTKOpenMMUtilities::initialize2DRealOpenMMArray( int iSize, int jSize,
+                                                       RealOpenMM** array2D, RealOpenMM initialValue ){
 
    // ---------------------------------------------------------------------------------------
 
-   // static const char* methodName = "\nSimTKOpenMMUtilities::initialize2DRealArray";
+   // static const char* methodName = "\nSimTKOpenMMUtilities::initialize2DRealOpenMMArray";
 
    // ---------------------------------------------------------------------------------------
 
@@ -495,10 +497,10 @@ int SimTKOpenMMUtilities::initialize2DRealArray( int iSize, int jSize,
 
    if( useMemset ){
       if( useMemsetSingleBlock ){
-         memset( array2D[0], 0, iSize*jSize*sizeof( Real ) );
+         memset( array2D[0], 0, iSize*jSize*sizeof( RealOpenMM ) );
       } else {
          for( int ii = 0; ii < iSize; ii++ ){
-            memset( array2D[ii], 0, jSize*sizeof( Real ) );
+            memset( array2D[ii], 0, jSize*sizeof( RealOpenMM ) );
          }
       }
    } else {
@@ -548,7 +550,7 @@ char* SimTKOpenMMUtilities::allocateAndZero( unsigned int bytesToAllocate ){
 
    --------------------------------------------------------------------------------------- */
      
-void SimTKOpenMMUtilities::normalizeVector3( Real* vector ){
+void SimTKOpenMMUtilities::normalizeVector3( RealOpenMM* vector ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -556,12 +558,12 @@ void SimTKOpenMMUtilities::normalizeVector3( Real* vector ){
 
    // ---------------------------------------------------------------------------------------
 
-   Real sum   = vector[0]*vector[0] + vector[1]*vector[1] + vector[2]*vector[2];
-   sum        = sum > 0.0 ? (Real) (1.0/SQRT( sum )) : (Real) 0.0;
+   RealOpenMM sum   = vector[0]*vector[0] + vector[1]*vector[1] + vector[2]*vector[2];
+   sum              = sum > 0.0 ? (RealOpenMM) (1.0/SQRT( sum )) : (RealOpenMM) 0.0;
 
-   vector[0] *= sum;
-   vector[1] *= sum;
-   vector[2] *= sum;
+   vector[0]       *= sum;
+   vector[1]       *= sum;
+   vector[2]       *= sum;
 
    return;
 }
@@ -576,7 +578,7 @@ void SimTKOpenMMUtilities::normalizeVector3( Real* vector ){
 
    --------------------------------------------------------------------------------------- */
      
-void SimTKOpenMMUtilities::removeVector3( Real* vectorToRemove, Real* vector ){
+void SimTKOpenMMUtilities::removeVector3( RealOpenMM* vectorToRemove, RealOpenMM* vector ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -584,11 +586,11 @@ void SimTKOpenMMUtilities::removeVector3( Real* vectorToRemove, Real* vector ){
 
    // ---------------------------------------------------------------------------------------
 
-   Real dot   = vectorToRemove[0]*vector[0] + vectorToRemove[1]*vector[1] + vectorToRemove[2]*vector[2];
+   RealOpenMM dot   = vectorToRemove[0]*vector[0] + vectorToRemove[1]*vector[1] + vectorToRemove[2]*vector[2];
 
-   vector[0] -= dot*vectorToRemove[0];
-   vector[1] -= dot*vectorToRemove[1];
-   vector[2] -= dot*vectorToRemove[2];
+   vector[0]       -= dot*vectorToRemove[0];
+   vector[1]       -= dot*vectorToRemove[1];
+   vector[2]       -= dot*vectorToRemove[2];
 
    normalizeVector3( vector );
 }
@@ -607,7 +609,7 @@ void SimTKOpenMMUtilities::removeVector3( Real* vectorToRemove, Real* vector ){
 
    --------------------------------------------------------------------------------------- */
      
-void SimTKOpenMMUtilities::crossProductVector3( Real* vectorX, Real* vectorY, Real* vectorZ ){
+void SimTKOpenMMUtilities::crossProductVector3( RealOpenMM* vectorX, RealOpenMM* vectorY, RealOpenMM* vectorZ ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -636,7 +638,8 @@ void SimTKOpenMMUtilities::crossProductVector3( Real* vectorX, Real* vectorY, Re
 
    --------------------------------------------------------------------------------------- */
     
-void SimTKOpenMMUtilities::matrixProductVector3( Real* matrixX, Real* vectorY, Real* vectorZ ){
+void SimTKOpenMMUtilities::matrixProductVector3( RealOpenMM* matrixX, RealOpenMM* vectorY,
+                                                 RealOpenMM* vectorZ ){
      
    // ---------------------------------------------------------------------------------------
 
@@ -665,14 +668,15 @@ void SimTKOpenMMUtilities::matrixProductVector3( Real* matrixX, Real* vectorY, R
 
    --------------------------------------------------------------------------------------- */
     
-void SimTKOpenMMUtilities::matrixCrossProductMatrix3( Real* matrixX, Real* matrixY, Real* vectorZ ){
+void SimTKOpenMMUtilities::matrixCrossProductMatrix3( RealOpenMM* matrixX, RealOpenMM* matrixY,
+                                                      RealOpenMM* vectorZ ){
 
    // ---------------------------------------------------------------------------------------
 
    // static const int indices[3][2] = { { 3, 6 }, { 6, 0 }, { 0 , 3 } };
    // static const char* methodName = "\nSimTKOpenMMUtilities::matrixCrossProductMatrix3";
-   Real* xPtr[3];
-   Real* yPtr[3];
+   RealOpenMM* xPtr[3];
+   RealOpenMM* yPtr[3];
 
    // ---------------------------------------------------------------------------------------
 
@@ -752,7 +756,7 @@ void SimTKOpenMMUtilities::Xfree( const char* name, char* fileName, int line, vo
    Format array of reals
       
    @param message             input string stream
-   @param realArray           array of Reals
+   @param realArray           array of RealOpenMMs
    @param numberOfFields      number of fields (optional - defaults to 3)
    @param factor					scale factor
       
@@ -760,8 +764,8 @@ void SimTKOpenMMUtilities::Xfree( const char* name, char* fileName, int line, vo
 
 --------------------------------------------------------------------------------------- */
           
-int SimTKOpenMMUtilities::formatRealStringStream( std::stringstream& message, const Real* realArray,
-	       	                                      int numberOfFields, Real factor ){
+int SimTKOpenMMUtilities::formatRealStringStream( std::stringstream& message, const RealOpenMM* realArray,
+   	       	                                   int numberOfFields, RealOpenMM factor ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -873,25 +877,25 @@ bool SimTKOpenMMUtilities::isValidInteger( std::string stringToCheck ){
 
 /**---------------------------------------------------------------------------------------
 
-   Check that string is valid Real
+   Check that string is valid RealOpenMM
 
    @param stringToCheck string to check
 
-   @return true if string is a valid Real
+   @return true if string is a valid RealOpenMM
 
    --------------------------------------------------------------------------------------- */
 
-bool SimTKOpenMMUtilities::isValidReal( std::string stringToCheck ){
+bool SimTKOpenMMUtilities::isValidRealOpenMM( std::string stringToCheck ){
 
    // ---------------------------------------------------------------------------------------
 
-   // static const std::string methodName = "\nSimTKOpenMMUtilities::isValidReal";
+   // static const std::string methodName = "\nSimTKOpenMMUtilities::isValidRealOpenMM";
 
    // ---------------------------------------------------------------------------------------
 
-   Real ii;
+   RealOpenMM ii;
 
-   return checkString<Real>(ii, stringToCheck, std::dec );
+   return checkString<RealOpenMM>(ii, stringToCheck, std::dec );
 }
 
 /**---------------------------------------------------------------------------------------
@@ -1182,21 +1186,21 @@ int SimTKOpenMMUtilities::writeFile( const StringVector& lineVector, const std::
    @param maxValue               max value in array on output
    @param maxIndex               index of max value in array on output
 
-   if numberOfEntries <= 0, return 0 for all Real values and -1 for index values
+   if numberOfEntries <= 0, return 0 for all RealOpenMM values and -1 for index values
 
    @return SimTKOpenMMCommon::DefaultReturn
 
    --------------------------------------------------------------------------------------- */
 
-int SimTKOpenMMUtilities::getArrayStatistics( int numberOfEntries, const Real* array, Real* average,
-                                              Real* stdDev, Real* minValue, int* minIndex,
-                                              Real* maxValue, int* maxIndex ){
+int SimTKOpenMMUtilities::getArrayStatistics( int numberOfEntries, const RealOpenMM* array, RealOpenMM* average,
+                                              RealOpenMM* stdDev, RealOpenMM* minValue, int* minIndex,
+                                              RealOpenMM* maxValue, int* maxIndex ){
 
    // ---------------------------------------------------------------------------------------
 
    static const std::string methodName = "\nSimTKOpenMMUtilities::getArrayStatistics";
-   static const Real zero              = 1.0;
-   static const Real one               = 1.0;
+   static const RealOpenMM zero        = 1.0;
+   static const RealOpenMM one         = 1.0;
 
    // ---------------------------------------------------------------------------------------
 
@@ -1226,7 +1230,7 @@ int SimTKOpenMMUtilities::getArrayStatistics( int numberOfEntries, const Real* a
       }
    }
   
-   Real numberOfEntriesR  = (Real) numberOfEntries;
+   RealOpenMM numberOfEntriesR  = (RealOpenMM) numberOfEntries;
    *average              /= numberOfEntriesR;
    *stdDev                = *stdDev - numberOfEntriesR*(*average)*(*average);
 

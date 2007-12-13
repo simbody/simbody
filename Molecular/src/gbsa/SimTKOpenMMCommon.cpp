@@ -34,17 +34,17 @@ const std::string SimTKOpenMMCommon::Tab                     = std::string( "\t"
 
 const int SimTKOpenMMCommon::DefaultReturn                   = 0;
 const int SimTKOpenMMCommon::ErrorReturn                     = -1;
-const Real SimTKOpenMMCommon::BigCutoffValue                 = 1.0e+05;
+const RealOpenMM SimTKOpenMMCommon::BigCutoffValue           = 1.0e+05;
 
       // units
 
 const int SimTKOpenMMCommon::MdUnits                         = 1;
 const int SimTKOpenMMCommon::KcalAngUnits                    = 2;
 
-// specify Real number format
+// specify RealOpenMM number format
   
 const int SimTKOpenMMCommon::HighStringStreamNumberWidth     = 20;   
 const int SimTKOpenMMCommon::HighStringStreamNumberPrecision = 12;
 
-const Real SimTKOpenMMCommon::DegreeToRadians                = (Real) 0.017453292f;
+const RealOpenMM SimTKOpenMMCommon::DegreeToRadians          = (RealOpenMM) 0.017453292;
 

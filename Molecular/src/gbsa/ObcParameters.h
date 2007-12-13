@@ -44,16 +44,16 @@ class ObcParameters : public ImplicitSolventParameters {
 
       // OBC constants & parameters
    
-      Real _dielectricOffset;
-      Real _alphaObc;
-      Real _betaObc;
-      Real _gammaObc;
+      RealOpenMM _dielectricOffset;
+      RealOpenMM _alphaObc;
+      RealOpenMM _betaObc;
+      RealOpenMM _gammaObc;
       ObcType _obcType;
 
       // scaled radius factors (S_kk in HCT paper)
 
       int _ownScaledRadiusFactors;
-      Real* _scaledRadiusFactors;
+      RealOpenMM* _scaledRadiusFactors;
 
       /**---------------------------------------------------------------------------------------
       
@@ -65,7 +65,7 @@ class ObcParameters : public ImplicitSolventParameters {
 
          --------------------------------------------------------------------------------------- */
       
-      int setDielectricOffset( Real dielectricOffset );
+      int setDielectricOffset( RealOpenMM dielectricOffset );
 
    public:
 
@@ -125,7 +125,7 @@ class ObcParameters : public ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      Real getAlphaObc( void ) const;
+      RealOpenMM getAlphaObc( void ) const;
       
       /**---------------------------------------------------------------------------------------
       
@@ -135,7 +135,7 @@ class ObcParameters : public ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      Real getBetaObc( void ) const;
+      RealOpenMM getBetaObc( void ) const;
       
       /**---------------------------------------------------------------------------------------
       
@@ -145,7 +145,7 @@ class ObcParameters : public ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      Real getGammaObc( void ) const;
+      RealOpenMM getGammaObc( void ) const;
       
       /**---------------------------------------------------------------------------------------
       
@@ -155,7 +155,7 @@ class ObcParameters : public ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      Real getDielectricOffset( void ) const;
+      RealOpenMM getDielectricOffset( void ) const;
 
       /**---------------------------------------------------------------------------------------
       
@@ -165,7 +165,7 @@ class ObcParameters : public ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      const Real* getScaledRadiusFactors( void ) const;
+      const RealOpenMM* getScaledRadiusFactors( void ) const;
         
       /**---------------------------------------------------------------------------------------
       
@@ -175,11 +175,11 @@ class ObcParameters : public ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      int setScaledRadiusFactors( Real* scaledRadiusFactors );
-#if RealType == 2
+      int setScaledRadiusFactors( RealOpenMM* scaledRadiusFactors );
+#if RealOpenMMType == 2
       int setScaledRadiusFactors( float* scaledRadiusFactors );
 #endif
-      int setScaledRadiusFactors( const RealVector& scaledRadiusFactors );
+      int setScaledRadiusFactors( const RealOpenMMVector& scaledRadiusFactors );
         
       /**---------------------------------------------------------------------------------------
       
@@ -215,7 +215,7 @@ class ObcParameters : public ImplicitSolventParameters {
          --------------------------------------------------------------------------------------- */
       
       int getMacroModelAtomicRadii( int numberOfAtoms,
-                                    char*** atomNames, Real* radii, FILE* log );
+                                    char*** atomNames, RealOpenMM* radii, FILE* log );
 
       /**---------------------------------------------------------------------------------------
       
@@ -225,7 +225,7 @@ class ObcParameters : public ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
 
-      Real* getAtomicRadii( void ) const;
+      RealOpenMM* getAtomicRadii( void ) const;
 
       /**---------------------------------------------------------------------------------------
       
@@ -239,7 +239,7 @@ class ObcParameters : public ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
 
-      int setAtomicRadii( Real* atomicRadii, int units = SimTKOpenMMCommon::MdUnits  );
+      int setAtomicRadii( RealOpenMM* atomicRadii, int units = SimTKOpenMMCommon::MdUnits  );
 
       /**---------------------------------------------------------------------------------------
       
@@ -253,7 +253,7 @@ class ObcParameters : public ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
 
-      int setAtomicRadii( const RealVector& atomicRadii, int units = SimTKOpenMMCommon::MdUnits );
+      int setAtomicRadii( const RealOpenMMVector& atomicRadii, int units = SimTKOpenMMCommon::MdUnits );
 
       /**---------------------------------------------------------------------------------------
       

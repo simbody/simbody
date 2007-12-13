@@ -84,9 +84,9 @@ externC int cpuDeleteObcParameters( void );
    --------------------------------------------------------------------------------------- */
 
 externC 
-int cpuSetObcParameters( int numberOfAtoms, Real* atomicRadii, Real* obcScaleFactors,
-                         int includeAceApproximation, Real soluteDielectric,
-                         Real solventDielectric, FILE* log );
+int cpuSetObcParameters( int numberOfAtoms, RealOpenMM* atomicRadii, RealOpenMM* obcScaleFactors,
+                         int includeAceApproximation, RealOpenMM soluteDielectric,
+                         RealOpenMM solventDielectric, FILE* log );
 
 /**---------------------------------------------------------------------------------------
 
@@ -105,9 +105,9 @@ int cpuSetObcParameters( int numberOfAtoms, Real* atomicRadii, Real* obcScaleFac
 
    --------------------------------------------------------------------------------------- */
 
-externC int cpuCalculateImplicitSolventForces( Real** atomCoordinates,
-                                               const Real* partialChargesIn,
-                                               Real** forces, Real* energy );
+externC int cpuCalculateImplicitSolventForces( RealOpenMM** atomCoordinates,
+                                               const RealOpenMM* partialChargesIn,
+                                               RealOpenMM** forces, RealOpenMM* energy );
 
 /**---------------------------------------------------------------------------------------
 
@@ -121,8 +121,8 @@ externC int cpuCalculateImplicitSolventForces( Real** atomCoordinates,
 
    --------------------------------------------------------------------------------------- */
 
-externC int getObcScaleFactorsGivenAtomMasses( int numberOfAtoms, const Real* masses,
-                                               Real* scaleFactors );
+externC int getObcScaleFactorsGivenAtomMasses( int numberOfAtoms, const RealOpenMM* masses,
+                                               RealOpenMM* scaleFactors );
 
 /**---------------------------------------------------------------------------------------
 
@@ -136,7 +136,7 @@ externC int getObcScaleFactorsGivenAtomMasses( int numberOfAtoms, const Real* ma
 
    --------------------------------------------------------------------------------------- */
 
-externC int getObcScaleFactors( int numberOfAtoms, const int* atomicNumber, Real* scaleFactors );
+externC int getObcScaleFactors( int numberOfAtoms, const int* atomicNumber, RealOpenMM* scaleFactors );
 
 /**---------------------------------------------------------------------------------------
 
@@ -157,7 +157,7 @@ externC int getObcScaleFactors( int numberOfAtoms, const int* atomicNumber, Real
 
 externC int getGbsaRadii( int numberOfAtoms, const int* atomicNumber, 
                           const int* numberOfCovalentPartners, 
-                          const int* indexOfCovalentPartner, Real* gbsaRadii );
+                          const int* indexOfCovalentPartner, RealOpenMM* gbsaRadii );
 
 
 #undef externC

@@ -80,21 +80,21 @@ typedef std::map<std::string, std::string> StringStringMap;
 typedef StringStringMap::iterator StringStringMapI;
 typedef StringStringMap::const_iterator StringStringMapCI;
 
-typedef std::vector<Real> RealVector;
-typedef RealVector::iterator RealVectorI;
-typedef RealVector::const_iterator RealVectorCI;
+typedef std::vector<RealOpenMM> RealOpenMMVector;
+typedef RealOpenMMVector::iterator RealOpenMMVectorI;
+typedef RealOpenMMVector::const_iterator RealOpenMMVectorCI;
 
-typedef std::vector<Real*> RealPtrVector;
-typedef RealPtrVector::iterator RealPtrVectorI;
-typedef RealPtrVector::const_iterator RealPtrVectorCI;
+typedef std::vector<RealOpenMM*> RealOpenMMPtrVector;
+typedef RealOpenMMPtrVector::iterator RealOpenMMPtrVectorI;
+typedef RealOpenMMPtrVector::const_iterator RealOpenMMPtrVectorCI;
 
-typedef std::vector<Real**> RealPtrPtrVector;
-typedef RealPtrPtrVector::iterator RealPtrPtrVectorI;
-typedef RealPtrPtrVector::const_iterator RealPtrPtrVectorCI;
+typedef std::vector<RealOpenMM**> RealOpenMMPtrPtrVector;
+typedef RealOpenMMPtrPtrVector::iterator RealOpenMMPtrPtrVectorI;
+typedef RealOpenMMPtrPtrVector::const_iterator RealOpenMMPtrPtrVectorCI;
 
-typedef std::map<std::string, Real> StringRealMap;
-typedef StringRealMap::iterator StringRealMapI;
-typedef StringRealMap::const_iterator StringRealMapCI;
+typedef std::map<std::string, RealOpenMM> StringRealOpenMMMap;
+typedef StringRealOpenMMMap::iterator StringRealOpenMMMapI;
+typedef StringRealOpenMMMap::const_iterator StringRealOpenMMMapCI;
 
 typedef std::map<std::string, int> StringIntMap;
 typedef StringIntMap::iterator StringIntMapI;
@@ -107,7 +107,7 @@ class SimTKOpenMMCommon {
    public:
 
       static const std::string NotSet;
-      static const Real BigCutoffValue;
+      static const RealOpenMM BigCutoffValue;
       static const std::string Comment;
       static const std::string Tab;
       static const std::string YesU;
@@ -124,12 +124,12 @@ class SimTKOpenMMCommon {
       static const int MdUnits;
       static const int KcalAngUnits;
 
-      // specify Real number format
+      // specify RealOpenMM number format
   
       static const int HighStringStreamNumberWidth;
       static const int HighStringStreamNumberPrecision;
 
-      static const Real DegreeToRadians;
+      static const RealOpenMM DegreeToRadians;
 
       /**---------------------------------------------------------------------------------------
       

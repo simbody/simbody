@@ -156,7 +156,7 @@ int ImplicitSolventParameters::getNumberOfAtoms( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-Real ImplicitSolventParameters::getSolventDielectric( void ) const {
+RealOpenMM ImplicitSolventParameters::getSolventDielectric( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -177,7 +177,7 @@ Real ImplicitSolventParameters::getSolventDielectric( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-int ImplicitSolventParameters::setSolventDielectric( Real solventDielectric ){
+int ImplicitSolventParameters::setSolventDielectric( RealOpenMM solventDielectric ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -198,7 +198,7 @@ int ImplicitSolventParameters::setSolventDielectric( Real solventDielectric ){
 
    --------------------------------------------------------------------------------------- */
 
-Real ImplicitSolventParameters::getSoluteDielectric( void ) const {
+RealOpenMM ImplicitSolventParameters::getSoluteDielectric( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -219,7 +219,7 @@ Real ImplicitSolventParameters::getSoluteDielectric( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-int ImplicitSolventParameters::setSoluteDielectric( Real soluteDielectric ){
+int ImplicitSolventParameters::setSoluteDielectric( RealOpenMM soluteDielectric ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -240,7 +240,7 @@ int ImplicitSolventParameters::setSoluteDielectric( Real soluteDielectric ){
 
    --------------------------------------------------------------------------------------- */
 
-Real ImplicitSolventParameters::getElectricConstant( void ) const {
+RealOpenMM ImplicitSolventParameters::getElectricConstant( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -261,7 +261,7 @@ Real ImplicitSolventParameters::getElectricConstant( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-int ImplicitSolventParameters::setElectricConstant( Real electricConstant ){
+int ImplicitSolventParameters::setElectricConstant( RealOpenMM electricConstant ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -283,7 +283,7 @@ int ImplicitSolventParameters::setElectricConstant( Real electricConstant ){
 
    --------------------------------------------------------------------------------------- */
 
-Real ImplicitSolventParameters::getProbeRadius( void ) const {
+RealOpenMM ImplicitSolventParameters::getProbeRadius( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -304,7 +304,7 @@ Real ImplicitSolventParameters::getProbeRadius( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-int ImplicitSolventParameters::setProbeRadius( Real probeRadius ){
+int ImplicitSolventParameters::setProbeRadius( RealOpenMM probeRadius ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -319,14 +319,14 @@ int ImplicitSolventParameters::setProbeRadius( Real probeRadius ){
 /**---------------------------------------------------------------------------------------
 
    Get pi*4*Asolv:  used in ACE approximation for nonpolar term  
-         ((Real) M_PI)*4.0f*0.0049*1000.0; (Still) 
-         ((Real) M_PI)*4.0f*0.0054*1000.0; (OBC) 
+         ((RealOpenMM) M_PI)*4.0f*0.0049*1000.0; (Still) 
+         ((RealOpenMM) M_PI)*4.0f*0.0054*1000.0; (OBC) 
 
    @return pi4Asolv
 
    --------------------------------------------------------------------------------------- */
 
-Real ImplicitSolventParameters::getPi4Asolv( void ) const {
+RealOpenMM ImplicitSolventParameters::getPi4Asolv( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -345,7 +345,7 @@ Real ImplicitSolventParameters::getPi4Asolv( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-Real ImplicitSolventParameters::getPreFactor( void ) const {
+RealOpenMM ImplicitSolventParameters::getPreFactor( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -359,8 +359,8 @@ Real ImplicitSolventParameters::getPreFactor( void ) const {
 /**---------------------------------------------------------------------------------------
 
    Set pi4Asolv:  used in ACE approximation for nonpolar term  
-         ((Real) M_PI)*4.0f*0.0049*1000.0; (Still) 
-         ((Real) M_PI)*4.0f*0.0054*1000.0; (OBC) 
+         ((RealOpenMM) M_PI)*4.0f*0.0049*1000.0; (Still) 
+         ((RealOpenMM) M_PI)*4.0f*0.0054*1000.0; (OBC) 
 
    @param pi4Asolv	probe radius
 
@@ -368,7 +368,7 @@ Real ImplicitSolventParameters::getPreFactor( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-int ImplicitSolventParameters::setPi4Asolv( Real pi4Asolv ){
+int ImplicitSolventParameters::setPi4Asolv( RealOpenMM pi4Asolv ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -388,7 +388,7 @@ int ImplicitSolventParameters::setPi4Asolv( Real pi4Asolv ){
 
    --------------------------------------------------------------------------------------- */
 
-Real ImplicitSolventParameters::getKcalA_To_kJNm( void ) const {
+RealOpenMM ImplicitSolventParameters::getKcalA_To_kJNm( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -409,7 +409,7 @@ Real ImplicitSolventParameters::getKcalA_To_kJNm( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-int ImplicitSolventParameters::setKcalA_To_kJNm( Real kcalA_To_kJNm ){
+int ImplicitSolventParameters::setKcalA_To_kJNm( RealOpenMM kcalA_To_kJNm ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -429,7 +429,7 @@ int ImplicitSolventParameters::setKcalA_To_kJNm( Real kcalA_To_kJNm ){
 
    --------------------------------------------------------------------------------------- */
 
-Real* ImplicitSolventParameters::getAtomicRadii( void ) const {
+RealOpenMM* ImplicitSolventParameters::getAtomicRadii( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -439,9 +439,9 @@ Real* ImplicitSolventParameters::getAtomicRadii( void ) const {
 
    if( _atomicRadii == NULL ){
       ImplicitSolventParameters* localThis = const_cast<ImplicitSolventParameters* const>(this);
-      localThis->_atomicRadii   = new Real[getNumberOfAtoms()];
+      localThis->_atomicRadii   = new RealOpenMM[getNumberOfAtoms()];
       localThis->_ownAtomicRadii = true;
-      memset( localThis->_atomicRadii, 0, sizeof( Real )*getNumberOfAtoms() );
+      memset( localThis->_atomicRadii, 0, sizeof( RealOpenMM )*getNumberOfAtoms() );
    }
    return _atomicRadii;
 }
@@ -456,7 +456,7 @@ Real* ImplicitSolventParameters::getAtomicRadii( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-int ImplicitSolventParameters::setAtomicRadii( Real* atomicRadii ){
+int ImplicitSolventParameters::setAtomicRadii( RealOpenMM* atomicRadii ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -485,7 +485,7 @@ int ImplicitSolventParameters::setAtomicRadii( Real* atomicRadii ){
 
    --------------------------------------------------------------------------------------- */
 
-int ImplicitSolventParameters::setAtomicRadii( const RealVector& atomicRadii, int units ){
+int ImplicitSolventParameters::setAtomicRadii( const RealOpenMMVector& atomicRadii, int units ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -497,9 +497,9 @@ int ImplicitSolventParameters::setAtomicRadii( const RealVector& atomicRadii, in
 
    if( _ownAtomicRadii ){
       delete[] _atomicRadii;
-      _atomicRadii = new Real[numberOfAtoms];
+      _atomicRadii = new RealOpenMM[numberOfAtoms];
    } else if( _atomicRadii == NULL ){
-      _atomicRadii    = new Real[numberOfAtoms];
+      _atomicRadii    = new RealOpenMM[numberOfAtoms];
       _ownAtomicRadii = true;
    }
    
@@ -514,7 +514,7 @@ int ImplicitSolventParameters::setAtomicRadii( const RealVector& atomicRadii, in
    // force kcal/A units
 
    if( units == SimTKOpenMMCommon::MdUnits ){
-      Real ten = (Real) 10.0;
+      RealOpenMM ten = (RealOpenMM) 10.0;
       for( int ii = 0; ii < numberOfAtoms; ii++ ){
          _atomicRadii[ii] = ten*atomicRadii[ii];
       }
@@ -539,7 +539,7 @@ int ImplicitSolventParameters::setAtomicRadii( const RealVector& atomicRadii, in
 
    --------------------------------------------------------------------------------------- */
 
-int ImplicitSolventParameters::setAtomicRadii( Real* atomicRadii, int units ){
+int ImplicitSolventParameters::setAtomicRadii( RealOpenMM* atomicRadii, int units ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -551,16 +551,16 @@ int ImplicitSolventParameters::setAtomicRadii( Real* atomicRadii, int units ){
 
    if( _ownAtomicRadii ){
       delete[] _atomicRadii;
-      _atomicRadii = new Real[numberOfAtoms];
+      _atomicRadii = new RealOpenMM[numberOfAtoms];
    } else if( _atomicRadii == NULL ){
-      _atomicRadii    = new Real[numberOfAtoms];
+      _atomicRadii    = new RealOpenMM[numberOfAtoms];
       _ownAtomicRadii = true;
    }
    
    // force kcal/A units
 
    if( units == SimTKOpenMMCommon::MdUnits ){
-      Real ten = (Real) 10.0;
+      RealOpenMM ten = (RealOpenMM) 10.0;
       for( int ii = 0; ii < numberOfAtoms; ii++ ){
          _atomicRadii[ii] = ten*atomicRadii[ii];
       }
@@ -653,16 +653,16 @@ void ImplicitSolventParameters::_initializeImplicitSolventConstants( void ){
 
    // ---------------------------------------------------------------------------------------
 
-   _soluteDielectric        = (Real)    1.0;
-   _solventDielectric       = (Real)   78.3;
-   _kcalA_To_kJNm           = (Real)    0.4184;
-   _probeRadius             = (Real)    1.4;
-   _electricConstant        = (Real) -166.02691;
-   // _pi4Asolv                = (Real) PI_M*4.0*0.0049*1000.0;
-   //_pi4Asolv                = (Real) PI_M*19.6;
+   _soluteDielectric        = (RealOpenMM)    1.0;
+   _solventDielectric       = (RealOpenMM)   78.3;
+   _kcalA_To_kJNm           = (RealOpenMM)    0.4184;
+   _probeRadius             = (RealOpenMM)    1.4;
+   _electricConstant        = (RealOpenMM) -166.02691;
+   // _pi4Asolv                = (RealOpenMM) PI_M*4.0*0.0049*1000.0;
+   //_pi4Asolv                = (RealOpenMM) PI_M*19.6;
 
-   // _pi4Asolv                = (Real) PI_M*4.0*0.0054;
-   _pi4Asolv                = (Real) PI_M*0.0216;
+   // _pi4Asolv                = (RealOpenMM) PI_M*4.0*0.0054;
+   _pi4Asolv                = (RealOpenMM) PI_M*0.0216;
    
    _resetPreFactor();
 }
@@ -681,9 +681,9 @@ void ImplicitSolventParameters::_resetPreFactor( void ){
 
    // static const char* methodName = "\nImplicitSolventParameters::_resetPreFactor:";
 
-   static const Real zero = 0.0;
-   static const Real one  = 1.0;
-   static const Real two  = 2.0;
+   static const RealOpenMM zero = 0.0;
+   static const RealOpenMM one  = 1.0;
+   static const RealOpenMM two  = 2.0;
 
    // ---------------------------------------------------------------------------------------
 
@@ -757,7 +757,7 @@ int ImplicitSolventParameters::isNotReady( void ) const {
       message << "\n   number of atoms=" << getNumberOfAtoms() << " is invalid.";
    }
 
-   Real* atomicRadii = getAtomicRadii();
+   RealOpenMM* atomicRadii = getAtomicRadii();
    if( atomicRadii == NULL ){
       errors++;
       message << "\n   scaledRadiusFactors is not set";
@@ -765,7 +765,7 @@ int ImplicitSolventParameters::isNotReady( void ) const {
 
    // check radii are in correct units
 
-   Real average, stdDev, maxValue, minValue;
+   RealOpenMM average, stdDev, maxValue, minValue;
    int minIndex, maxIndex;
    SimTKOpenMMUtilities::getArrayStatistics( getNumberOfAtoms(), atomicRadii, &average,
                                              &stdDev, &minValue, &minIndex,

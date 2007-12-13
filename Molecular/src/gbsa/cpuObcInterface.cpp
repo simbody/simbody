@@ -66,9 +66,9 @@
    --------------------------------------------------------------------------------------- */
 
 extern "C" int 
-cpuSetObcParameters( int numberOfAtoms, Real* atomicRadii, Real* obcScaleFactors,
+cpuSetObcParameters( int numberOfAtoms, RealOpenMM* atomicRadii, RealOpenMM* obcScaleFactors,
                      int includeAceApproximation,
-                     Real soluteDielectric, Real solventDielectric, FILE* log ){
+                     RealOpenMM soluteDielectric, RealOpenMM solventDielectric, FILE* log ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -133,7 +133,7 @@ cpuSetObcParameters( int numberOfAtoms, Real* atomicRadii, Real* obcScaleFactors
    @param atomCoordinates   atom coordinates in Angstrom; format of array is
                             atomCoordinates[atom][3] in Angstrom
 
-   @param partialCharges    Gromacs charges ('mdatoms->chargeA' in md.c)
+   @param partialCharges    partial charges
 
    @param forces            output forces in kcal/mol.A; format of array is 
                             forces[atom][3]
@@ -147,8 +147,9 @@ cpuSetObcParameters( int numberOfAtoms, Real* atomicRadii, Real* obcScaleFactors
    --------------------------------------------------------------------------------------- */
 
 extern "C" int
-cpuCalculateImplicitSolventForces( Real** atomCoordinates, const Real* partialCharges,
-                                   Real** forces, Real* energy ){
+cpuCalculateImplicitSolventForces( RealOpenMM** atomCoordinates,
+                                   const RealOpenMM* partialCharges,
+                                   RealOpenMM** forces, RealOpenMM* energy ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -212,7 +213,8 @@ extern "C" int cpuDeleteObcParameters( void ){
 
    --------------------------------------------------------------------------------------- */
 
-extern "C" int getObcScaleFactorsGivenAtomMasses( int numberOfAtoms, const Real* masses, Real* scaleFactors ){
+extern "C" int getObcScaleFactorsGivenAtomMasses( int numberOfAtoms, const RealOpenMM* masses,
+                                                   RealOpenMM* scaleFactors ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -222,8 +224,8 @@ extern "C" int getObcScaleFactorsGivenAtomMasses( int numberOfAtoms, const Real*
 
    for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
 
-      double scaleFactor = 0.8;
-      Real mass          = masses[atomI];
+      double scaleFactor       = 0.8;
+      RealOpenMM mass          = masses[atomI];
 
       if ( mass < 1.2 && mass >= 1.0 ){        // hydrogen
          scaleFactor  = 0.85; 
@@ -244,7 +246,7 @@ extern "C" int getObcScaleFactorsGivenAtomMasses( int numberOfAtoms, const Real*
          SimTKOpenMMLog::printMessage( message );
       }
 
-      scaleFactors[atomI] = (Real) scaleFactor;
+      scaleFactors[atomI] = (RealOpenMM) scaleFactor;
    }
 
    return SimTKOpenMMCommon::DefaultReturn;
@@ -262,7 +264,7 @@ extern "C" int getObcScaleFactorsGivenAtomMasses( int numberOfAtoms, const Real*
 
    --------------------------------------------------------------------------------------- */
 
-extern "C" int getObcScaleFactors( int numberOfAtoms, const int* atomicNumber, Real* scaleFactors ){
+extern "C" int getObcScaleFactors( int numberOfAtoms, const int* atomicNumber, RealOpenMM* scaleFactors ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -316,7 +318,7 @@ extern "C" int getObcScaleFactors( int numberOfAtoms, const int* atomicNumber, R
             break;
       }
 
-      scaleFactors[atomI] = (Real) scaleFactor;
+      scaleFactors[atomI] = (RealOpenMM) scaleFactor;
    }
 
    return SimTKOpenMMCommon::DefaultReturn;
@@ -347,7 +349,7 @@ extern "C" int getObcScaleFactors( int numberOfAtoms, const int* atomicNumber, R
 extern "C" int getGbsaRadii( int numberOfAtoms, const int* atomicNumber, 
                              const int* numberOfCovalentPartners, 
                              const int* indexOfCovalentPartner,
-                             Real* gbsaRadii ){
+                             RealOpenMM* gbsaRadii ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -480,7 +482,7 @@ extern "C" int getGbsaRadii( int numberOfAtoms, const int* atomicNumber,
             break;
       }
          
-      gbsaRadii[atomI] = (Real) radius;
+      gbsaRadii[atomI] = (RealOpenMM) radius;
    }
 
    return SimTKOpenMMCommon::DefaultReturn;

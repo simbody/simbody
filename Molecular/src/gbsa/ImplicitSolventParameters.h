@@ -36,14 +36,14 @@ class ImplicitSolventParameters {
 
       // parameters common to implicit solvent models
    
-      Real _solventDielectric;
-      Real _soluteDielectric;
-      Real _kcalA_To_kJNm;
-      Real _electricConstant;
-      Real _probeRadius;
-      Real _pi4Asolv;
+      RealOpenMM _solventDielectric;
+      RealOpenMM _soluteDielectric;
+      RealOpenMM _kcalA_To_kJNm;
+      RealOpenMM _electricConstant;
+      RealOpenMM _probeRadius;
+      RealOpenMM _pi4Asolv;
 
-      Real _preFactor;
+      RealOpenMM _preFactor;
    
       // ---------------------------------------------------------------------------------------
 
@@ -58,7 +58,7 @@ class ImplicitSolventParameters {
       // atomic radii
 
       int _ownAtomicRadii;
-      Real* _atomicRadii;
+      RealOpenMM* _atomicRadii;
 
       /**---------------------------------------------------------------------------------------
       
@@ -78,7 +78,7 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      int setKcalA_To_kJNm( Real kcalA_To_kJNm );
+      int setKcalA_To_kJNm( RealOpenMM kcalA_To_kJNm );
 
       /**---------------------------------------------------------------------------------------
       
@@ -158,7 +158,7 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      Real getSolventDielectric( void ) const;
+      RealOpenMM getSolventDielectric( void ) const;
       
       /**---------------------------------------------------------------------------------------
       
@@ -170,7 +170,7 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      int setSolventDielectric( Real solventDielectric );
+      int setSolventDielectric( RealOpenMM solventDielectric );
       
       /**---------------------------------------------------------------------------------------
       
@@ -180,7 +180,7 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      Real getSoluteDielectric( void ) const;
+      RealOpenMM getSoluteDielectric( void ) const;
       
       /**---------------------------------------------------------------------------------------
       
@@ -192,7 +192,7 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      int setSoluteDielectric( Real soluteDielectric );
+      int setSoluteDielectric( RealOpenMM soluteDielectric );
       
       /**---------------------------------------------------------------------------------------
       
@@ -202,7 +202,7 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      Real getKcalA_To_kJNm( void ) const;
+      RealOpenMM getKcalA_To_kJNm( void ) const;
       
       
       /**---------------------------------------------------------------------------------------
@@ -213,7 +213,7 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      Real getElectricConstant( void ) const;
+      RealOpenMM getElectricConstant( void ) const;
       
       /**---------------------------------------------------------------------------------------
       
@@ -225,7 +225,7 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      int setElectricConstant( Real electricConstant );
+      int setElectricConstant( RealOpenMM electricConstant );
 
       /**---------------------------------------------------------------------------------------
       
@@ -235,7 +235,7 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      Real getProbeRadius( void ) const;
+      RealOpenMM getProbeRadius( void ) const;
       
       /**---------------------------------------------------------------------------------------
       
@@ -247,18 +247,18 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      int setProbeRadius( Real probeRadius );
+      int setProbeRadius( RealOpenMM probeRadius );
       
       /**---------------------------------------------------------------------------------------
       
          Get pi4Asolv:  used in ACE approximation for nonpolar term  
-            ((Real) M_PI)*4.0f*0.0049f*1000.0f; (Simbios) 
+            ((RealOpenMM) M_PI)*4.0f*0.0049f*1000.0f; (Simbios) 
       
          @return pi4Asolv
       
          --------------------------------------------------------------------------------------- */
       
-      Real getPi4Asolv( void ) const;
+      RealOpenMM getPi4Asolv( void ) const;
       
       /**---------------------------------------------------------------------------------------
       
@@ -268,12 +268,12 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      Real getPreFactor( void ) const;
+      RealOpenMM getPreFactor( void ) const;
       
       /**---------------------------------------------------------------------------------------
       
          Set values used in ACE approximation for nonpolar term
-            ((Real) M_PI)*4.0f*0.0049f*1000.0f; (Simbios) 
+            ((RealOpenMM) M_PI)*4.0f*0.0049f*1000.0f; (Simbios) 
       
          @param pi4Asolv   see above
       
@@ -281,7 +281,7 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      int setPi4Asolv( Real pi4Asolv );
+      int setPi4Asolv( RealOpenMM pi4Asolv );
       
       /**---------------------------------------------------------------------------------------
       
@@ -291,7 +291,7 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
 
-      virtual Real* getAtomicRadii( void ) const;
+      virtual RealOpenMM* getAtomicRadii( void ) const;
 
       /**---------------------------------------------------------------------------------------
       
@@ -303,7 +303,7 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
 
-      virtual int setAtomicRadii( Real* atomicRadii );
+      virtual int setAtomicRadii( RealOpenMM* atomicRadii );
 
       /**---------------------------------------------------------------------------------------
       
@@ -317,7 +317,7 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
 
-      virtual int setAtomicRadii( const RealVector& atomicRadii,
+      virtual int setAtomicRadii( const RealOpenMMVector& atomicRadii,
                                   int units = SimTKOpenMMCommon::MdUnits );
       
       /**---------------------------------------------------------------------------------------
@@ -332,7 +332,7 @@ class ImplicitSolventParameters {
       
          --------------------------------------------------------------------------------------- */
       
-      virtual int setAtomicRadii( Real* atomicRadii, int units );
+      virtual int setAtomicRadii( RealOpenMM* atomicRadii, int units );
       
       /**---------------------------------------------------------------------------------------
       

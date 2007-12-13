@@ -40,8 +40,8 @@ class CpuObc : public CpuImplicitSolvent {
 
       // arrays containing OBC chain derivative 
 
-      Real* _obcChain;
-      Real* _obcChainTemp;
+      RealOpenMM* _obcChain;
+      RealOpenMM* _obcChainTemp;
 
       // initialize data members (more than
       // one constructor, so centralize intialization here)
@@ -101,8 +101,8 @@ class CpuObc : public CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      Real* getObcChain( void );
-      Real* getObcChainConst( void ) const;
+      RealOpenMM* getObcChain( void );
+      RealOpenMM* getObcChainConst( void ) const;
       
       /**---------------------------------------------------------------------------------------
       
@@ -113,7 +113,7 @@ class CpuObc : public CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      Real* getObcChainTemp( void );
+      RealOpenMM* getObcChainTemp( void );
       
       /**---------------------------------------------------------------------------------------
       
@@ -121,12 +121,15 @@ class CpuObc : public CpuImplicitSolvent {
 
          @param atomCoordinates   atomic coordinates
          @param bornRadii         output array of Born radii
+         @param obcChain          output array of OBC chain derivative factors; if NULL,
+                                  then ignored
       
          @return array of Born radii
       
          --------------------------------------------------------------------------------------- */
       
-      int computeBornRadii( Real** atomCoordinates, Real* bornRadii, Real* obcChain = NULL );
+      int computeBornRadii( RealOpenMM** atomCoordinates, RealOpenMM* bornRadii,
+                            RealOpenMM* obcChain = NULL );
       
       /**---------------------------------------------------------------------------------------
       
@@ -141,11 +144,11 @@ class CpuObc : public CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      int computeBornEnergyForces( Real* bornRadii, Real** atomCoordinates,
-                                   const Real* partialCharges, Real** forces );
+      int computeBornEnergyForces( RealOpenMM* bornRadii, RealOpenMM** atomCoordinates,
+                                   const RealOpenMM* partialCharges, RealOpenMM** forces );
       
-      int computeBornEnergyForcesPrint( Real* bornRadii, Real** atomCoordinates,
-                                        const Real* partialCharges, Real** forces );
+      int computeBornEnergyForcesPrint( RealOpenMM* bornRadii, RealOpenMM** atomCoordinates,
+                                        const RealOpenMM* partialCharges, RealOpenMM** forces );
       
       /**---------------------------------------------------------------------------------------
       
@@ -172,8 +175,8 @@ class CpuObc : public CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
           
-      int writeBornEnergyForces( Real** atomCoordinates,
-                                 const Real* partialCharges, Real** forces,
+      int writeBornEnergyForces( RealOpenMM** atomCoordinates,
+                                 const RealOpenMM* partialCharges, RealOpenMM** forces,
                                  const std::string& resultsFileName ) const;
 
       /**---------------------------------------------------------------------------------------
@@ -181,7 +184,7 @@ class CpuObc : public CpuImplicitSolvent {
          Write  results from first loop
       
          @param atomCoordinates     atomic coordinates
-         @param Real forces         forces
+         @param RealOpenMM forces         forces
          @param outputFileName      output file name
       
          @return SimTKOpenMMCommon::DefaultReturn unless
@@ -190,7 +193,7 @@ class CpuObc : public CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      static int writeForceLoop1( int numberOfAtoms, Real** forces, const Real* bornForce,
+      static int writeForceLoop1( int numberOfAtoms, RealOpenMM** forces, const RealOpenMM* bornForce,
                                   const std::string& outputFileName );
       
       /**---------------------------------------------------------------------------------------
@@ -198,9 +201,9 @@ class CpuObc : public CpuImplicitSolvent {
          Write results
       
          @param numberOfAtoms       number of atoms
-         @param chunkSizes          vector of chunk sizes for realRealVector
-         @param realRealVector      vector of Real**
-         @param realVector          vector of Real*
+         @param chunkSizes          vector of chunk sizes for realRealOpenMMVector
+         @param realRealOpenMMVector      vector of RealOpenMM**
+         @param realVector          vector of RealOpenMM*
          @param outputFileName      output file name
       
          @return SimTKOpenMMCommon::DefaultReturn unless
@@ -210,8 +213,8 @@ class CpuObc : public CpuImplicitSolvent {
          --------------------------------------------------------------------------------------- */
       
       static int writeForceLoop( int numberOfAtoms, const IntVector& chunkSizes,
-                                 const RealPtrPtrVector& realRealVector, 
-                                 const RealPtrVector& realVector,
+                                 const RealOpenMMPtrPtrVector& realRealOpenMMVector, 
+                                 const RealOpenMMPtrVector& realVector,
                                  const std::string& outputFileName );
       
 };

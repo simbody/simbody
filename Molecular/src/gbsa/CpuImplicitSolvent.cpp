@@ -119,12 +119,12 @@ void CpuImplicitSolvent::_initializeDataMembers( void ){
  
    _includeAceApproximation             = 0;
 
-   _forceConversionFactor               = (Real) 1.0;
-   _energyConversionFactor              = (Real) 1.0;
+   _forceConversionFactor               = (RealOpenMM) 1.0;
+   _energyConversionFactor              = (RealOpenMM) 1.0;
 
    _forceCallIndex                      = 0;
 
-   _implicitSolventEnergy               = (Real) 0.0;
+   _implicitSolventEnergy               = (RealOpenMM) 0.0;
 
    _baseFileName                        = SimTKOpenMMCommon::NotSet;
    _outputFileFrequency                 = 1;
@@ -158,7 +158,7 @@ int CpuImplicitSolvent::getNumberOfAtoms( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-Real CpuImplicitSolvent::getEnergy( void ) const {
+RealOpenMM CpuImplicitSolvent::getEnergy( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -246,7 +246,7 @@ CpuImplicitSolvent* CpuImplicitSolvent::getCpuImplicitSolvent( void ){
 
    --------------------------------------------------------------------------------------- */
 
-int CpuImplicitSolvent::setEnergy( Real energy ){
+int CpuImplicitSolvent::setEnergy( RealOpenMM energy ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -354,7 +354,7 @@ int CpuImplicitSolvent::setIncludeAceApproximation( int includeAceApproximation 
 
    --------------------------------------------------------------------------------------- */
 
-Real CpuImplicitSolvent::getForceConversionFactor( void ) const {
+RealOpenMM CpuImplicitSolvent::getForceConversionFactor( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -376,7 +376,7 @@ Real CpuImplicitSolvent::getForceConversionFactor( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-int CpuImplicitSolvent::setForceConversionFactor( Real forceConversionFactor ){
+int CpuImplicitSolvent::setForceConversionFactor( RealOpenMM forceConversionFactor ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -398,7 +398,7 @@ int CpuImplicitSolvent::setForceConversionFactor( Real forceConversionFactor ){
 
    --------------------------------------------------------------------------------------- */
 
-Real CpuImplicitSolvent::getEnergyConversionFactor( void ) const {
+RealOpenMM CpuImplicitSolvent::getEnergyConversionFactor( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -420,7 +420,7 @@ Real CpuImplicitSolvent::getEnergyConversionFactor( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-int CpuImplicitSolvent::setEnergyConversionFactor( Real energyConversionFactor ){
+int CpuImplicitSolvent::setEnergyConversionFactor( RealOpenMM energyConversionFactor ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -478,14 +478,14 @@ int CpuImplicitSolvent::incrementForceCallIndex( void ){
 
 /**---------------------------------------------------------------------------------------
 
-   Return bornForce, a work array of size _implicitSolventParameters->getNumberOfAtoms()*sizeof( Real )
+   Return bornForce, a work array of size _implicitSolventParameters->getNumberOfAtoms()*sizeof( RealOpenMM )
    On first call, memory for array is allocated if not set
 
    @return array
 
    --------------------------------------------------------------------------------------- */
 
-Real* CpuImplicitSolvent::getBornForce( void ){
+RealOpenMM* CpuImplicitSolvent::getBornForce( void ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -494,7 +494,7 @@ Real* CpuImplicitSolvent::getBornForce( void ){
    // ---------------------------------------------------------------------------------------
 
    if( _bornForce == NULL ){
-      _bornForce = new Real[_implicitSolventParameters->getNumberOfAtoms()];
+      _bornForce = new RealOpenMM[_implicitSolventParameters->getNumberOfAtoms()];
    }
    return _bornForce;
 
@@ -509,7 +509,7 @@ Real* CpuImplicitSolvent::getBornForce( void ){
 
    --------------------------------------------------------------------------------------- */
 
-Real* CpuImplicitSolvent::getBornRadii( void ){
+RealOpenMM* CpuImplicitSolvent::getBornRadii( void ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -518,7 +518,7 @@ Real* CpuImplicitSolvent::getBornRadii( void ){
    // ---------------------------------------------------------------------------------------
 
    if( _bornRadii == NULL ){
-      _bornRadii = new Real[_implicitSolventParameters->getNumberOfAtoms()];
+      _bornRadii = new RealOpenMM[_implicitSolventParameters->getNumberOfAtoms()];
    }
    return _bornRadii;
 }
@@ -531,7 +531,7 @@ Real* CpuImplicitSolvent::getBornRadii( void ){
 
    --------------------------------------------------------------------------------------- */
 
-const Real* CpuImplicitSolvent::getBornRadiiConst( void ) const {
+const RealOpenMM* CpuImplicitSolvent::getBornRadiiConst( void ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -551,7 +551,7 @@ const Real* CpuImplicitSolvent::getBornRadiiConst( void ) const {
 
    --------------------------------------------------------------------------------------- */
 
-Real* CpuImplicitSolvent::getBornRadiiTemp( void ){
+RealOpenMM* CpuImplicitSolvent::getBornRadiiTemp( void ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -560,7 +560,7 @@ Real* CpuImplicitSolvent::getBornRadiiTemp( void ){
    // ---------------------------------------------------------------------------------------
 
    if( _tempBornRadii == NULL ){
-      _tempBornRadii = new Real[_implicitSolventParameters->getNumberOfAtoms()];
+      _tempBornRadii = new RealOpenMM[_implicitSolventParameters->getNumberOfAtoms()];
    }
    return _tempBornRadii;
 }
@@ -571,13 +571,15 @@ Real* CpuImplicitSolvent::getBornRadiiTemp( void ){
 
    @param atomCoordinates     atomic coordinates
    @param bornRadii           output array of Born radii
+   @param obcChain            output array of Obc chain derivatives
 
    @return SimTKOpenMMCommon::DefaultReturn or SimTKOpenMMCommon::ErrorReturn 
            if problems encountered
 
    --------------------------------------------------------------------------------------- */
 
-int CpuImplicitSolvent::computeBornRadii( Real** atomCoordinates, Real* bornRadii, Real* obcChain ){
+int CpuImplicitSolvent::computeBornRadii( RealOpenMM** atomCoordinates, RealOpenMM* bornRadii,
+                                          RealOpenMM* obcChain ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -605,8 +607,9 @@ int CpuImplicitSolvent::computeBornRadii( Real** atomCoordinates, Real* bornRadi
 
    --------------------------------------------------------------------------------------- */
 
-int CpuImplicitSolvent::computeImplicitSolventForces( Real** atomCoordinates, const Real* partialCharges,
-                                                      Real** forces ){
+int CpuImplicitSolvent::computeImplicitSolventForces( RealOpenMM** atomCoordinates,
+                                                      const RealOpenMM* partialCharges,
+                                                      RealOpenMM** forces ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -664,8 +667,8 @@ int CpuImplicitSolvent::computeImplicitSolventForces( Real** atomCoordinates, co
 
    // after first iteration Born radii are updated in force calculation (computeBornEnergyForces())
 
-   Real* bornRadii = cpuImplicitSolvent->getBornRadii();
-   if( bornRadii[0] < (Real) 0.0001 || callId == 1 ){
+   RealOpenMM* bornRadii = cpuImplicitSolvent->getBornRadii();
+   if( bornRadii[0] < (RealOpenMM) 0.0001 || callId == 1 ){
 
       cpuImplicitSolvent->computeBornRadii( atomCoordinates, bornRadii );
 
@@ -673,7 +676,7 @@ int CpuImplicitSolvent::computeImplicitSolventForces( Real** atomCoordinates, co
 
       if( printSampleOutput ){
 
-         Real* atomicRadii = implicitSolventParameters->getAtomicRadii();
+         RealOpenMM* atomicRadii = implicitSolventParameters->getAtomicRadii();
          std::stringstream message;
          message.precision( 6 );
          message.width( 12 );
@@ -758,8 +761,9 @@ int CpuImplicitSolvent::computeImplicitSolventForces( Real** atomCoordinates, co
 
    --------------------------------------------------------------------------------------- */
 
-int CpuImplicitSolvent::computeBornEnergyForces( Real* bornRadii, Real** atomCoordinates,
-                                                 const Real* partialCharges, Real** forces ){
+int CpuImplicitSolvent::computeBornEnergyForces( RealOpenMM* bornRadii, RealOpenMM** atomCoordinates,
+                                                 const RealOpenMM* partialCharges,
+                                                 RealOpenMM** forces ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -790,7 +794,8 @@ int CpuImplicitSolvent::computeBornEnergyForces( Real* bornRadii, Real** atomCoo
    --------------------------------------------------------------------------------------- */
 
 int CpuImplicitSolvent::computeAceNonPolarForce( const ImplicitSolventParameters* implicitSolventParameters,
-                                                 const Real* bornRadii, Real* energy, Real* forces ) const {
+                                                 const RealOpenMM* bornRadii, RealOpenMM* energy,
+                                                 RealOpenMM* forces ) const {
 
    // ---------------------------------------------------------------------------------------
 
@@ -800,20 +805,20 @@ int CpuImplicitSolvent::computeAceNonPolarForce( const ImplicitSolventParameters
 
    // compute the nonpolar solvation via ACE approximation
 
-   const Real probeRadius          = implicitSolventParameters->getProbeRadius();
-   const Real surfaceAreaFactor    = implicitSolventParameters->getPi4Asolv();
-   const Real* atomicRadii         = implicitSolventParameters->getAtomicRadii();
-   int numberOfAtoms               = implicitSolventParameters->getNumberOfAtoms();
+   const RealOpenMM probeRadius          = implicitSolventParameters->getProbeRadius();
+   const RealOpenMM surfaceAreaFactor    = implicitSolventParameters->getPi4Asolv();
+   const RealOpenMM* atomicRadii         = implicitSolventParameters->getAtomicRadii();
+   int numberOfAtoms                     = implicitSolventParameters->getNumberOfAtoms();
 
    // 1 + 1 + pow + 3 + 1 + 2 FLOP
 
    for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
       if( bornRadii[atomI] > 0.0f ){
-         Real r            = atomicRadii[atomI] + probeRadius;
-         Real ratio6       = POW( atomicRadii[atomI]/bornRadii[atomI], (Real) 6.0f );
-         Real saTerm       = surfaceAreaFactor*r*r*ratio6;
-         *energy          += saTerm;
-         forces[atomI]    += -6.0f*saTerm/bornRadii[atomI]; 
+         RealOpenMM r            = atomicRadii[atomI] + probeRadius;
+         RealOpenMM ratio6       = POW( atomicRadii[atomI]/bornRadii[atomI], (RealOpenMM) 6.0 );
+         RealOpenMM saTerm       = surfaceAreaFactor*r*r*ratio6;
+         *energy                += saTerm;
+         forces[atomI]          += -6.0f*saTerm/bornRadii[atomI]; 
       }
    }
 
@@ -826,7 +831,8 @@ int CpuImplicitSolvent::computeAceNonPolarForce( const ImplicitSolventParameters
    Write Born energy and forces (Simbios)
 
    @param atomCoordinates     atomic coordinates
-   @param Real forces         forces
+   @param partialCharges      array of partial charges
+   @param RealOpenMM forces   forces
    @param resultsFileName     output file name
 
    @return SimTKOpenMMCommon::DefaultReturn unless
@@ -835,8 +841,9 @@ int CpuImplicitSolvent::computeAceNonPolarForce( const ImplicitSolventParameters
 
    --------------------------------------------------------------------------------------- */
 
-int CpuImplicitSolvent::writeBornEnergyForces( Real** atomCoordinates,
-                                               const Real* partialCharges, Real** forces,
+int CpuImplicitSolvent::writeBornEnergyForces( RealOpenMM** atomCoordinates,
+                                               const RealOpenMM* partialCharges,
+                                               RealOpenMM** forces,
                                                const std::string& resultsFileName ) const {
 
    // ---------------------------------------------------------------------------------------
@@ -847,9 +854,9 @@ int CpuImplicitSolvent::writeBornEnergyForces( Real** atomCoordinates,
 
    ImplicitSolventParameters* implicitSolventParameters = getImplicitSolventParameters();
 
-   int numberOfAtoms              = implicitSolventParameters->getNumberOfAtoms();
-   const Real* atomicRadii        = implicitSolventParameters->getAtomicRadii();
-   const Real* bornRadii          = getBornRadiiConst();
+   int numberOfAtoms                    = implicitSolventParameters->getNumberOfAtoms();
+   const RealOpenMM* atomicRadii        = implicitSolventParameters->getAtomicRadii();
+   const RealOpenMM* bornRadii          = getBornRadiiConst();
 
    // ---------------------------------------------------------------------------------------
 
@@ -883,8 +890,8 @@ int CpuImplicitSolvent::writeBornEnergyForces( Real** atomCoordinates,
 
    (void) fprintf( implicitSolventResultsFile, "# %d atoms format: coords bornRadii q atomicRadii forces\n", numberOfAtoms );
 
-   Real forceConversion  = 1.0f;
-   Real lengthConversion = 1.0f;
+   RealOpenMM forceConversion  = (RealOpenMM) 1.0;
+   RealOpenMM lengthConversion = (RealOpenMM) 1.0;
 
    // output
 
