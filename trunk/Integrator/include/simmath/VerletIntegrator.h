@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMMATH_EXPLICIT_EULER_INTEGRATOR_H_
-#define SimTK_SIMMATH_EXPLICIT_EULER_INTEGRATOR_H_
+#ifndef SimTK_SIMMATH_VERLET_INTEGRATOR_H_
+#define SimTK_SIMMATH_VERLET_INTEGRATOR_H_
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simmath(tm)                         *
@@ -54,6 +54,6 @@ public:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMMATH_EXPLICIT_EULER_INTEGRATOR_H_
+#endif // SimTK_SIMMATH_VERLET_INTEGRATOR_H_
 
 

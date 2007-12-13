@@ -29,8 +29,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "simmath/VerletIntegrator.h"
 #include "IntegratorTestFramework.h"
+#include "simmath/VerletIntegrator.h"
 
 int main () {
   try {
