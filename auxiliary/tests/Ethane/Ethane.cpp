@@ -641,8 +641,13 @@ try
                                          3, 0.160,  0.);
     mm.defineBondTorsion_KA( 1, 1,23, 1, 2, 0.100,180.,
                                          3, 0.383,  0.);
-    mm.defineBondTorsion_KA( 1,23, 1, 1, 2, 0.850,180.,
-                                         3, 0.100,  0.);
+
+
+    // Equivalent to previous torsion (1,1,23,1), but with different params => causes error!!!
+    // mm.defineBondTorsion_KA( 1,23, 1, 1, 2, 0.850,180.,
+    //                                     3, 0.100,  0.);
+
+
     mm.defineBondTorsion_KA( 1,23, 1,22, 1, 1.350,180.,
                                          2, 0.850,180.,
                                          3, 0.100,  0.);
