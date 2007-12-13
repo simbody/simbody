@@ -309,6 +309,8 @@ ADD_TEST(RungeKuttaMersonIntegratorTest       ${TEST_PATH}/RungeKuttaMersonInteg
 ADD_TEST(RungeKuttaMersonIntegratorTestStatic ${TEST_PATH}/RungeKuttaMersonIntegratorTestStatic)
 ADD_TEST(ExplicitEulerIntegratorTest       ${TEST_PATH}/ExplicitEulerIntegratorTest)
 ADD_TEST(ExplicitEulerIntegratorTestStatic ${TEST_PATH}/ExplicitEulerIntegratorTestStatic)
+ADD_TEST(VerletIntegratorTest       ${TEST_PATH}/VerletIntegratorTest)
+ADD_TEST(VerletIntegratorTestStatic ${TEST_PATH}/VerletIntegratorTestStatic)
 
 #
 # Installation
