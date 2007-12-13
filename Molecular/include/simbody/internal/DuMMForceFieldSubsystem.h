@@ -435,6 +435,10 @@ public:
     void setBondBendGlobalScaleFactor(Real);
     void setBondTorsionGlobalScaleFactor(Real);
     void setAmberImproperTorsionGlobalScaleFactor(Real);
+    void setGbsaGlobalScaleFactor(Real);
+    void setGbsaIncludeAceApproximation(bool);
+    void setGbsaIncludeAceApproximationOn()  {setGbsaIncludeAceApproximation(true );}
+    void setGbsaIncludeAceApproximationOff() {setGbsaIncludeAceApproximation(false);}
 
     void dump() const; // to stdout
     SimTK_PIMPL_DOWNCAST(DuMMForceFieldSubsystem, Subsystem);

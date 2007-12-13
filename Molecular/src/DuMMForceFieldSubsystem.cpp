@@ -1353,6 +1353,8 @@ private:
     Real vdwGlobalScaleFactor, coulombGlobalScaleFactor; 
     Real bondStretchGlobalScaleFactor, bondBendGlobalScaleFactor, 
          bondTorsionGlobalScaleFactor, amberImproperTorsionGlobalScaleFactor;
+    Real gbsaGlobalScaleFactor;
+    bool doIncludeGbsaAceApproximation;
 
         // TOPOLOGICAL CACHE ENTRIES
         //   These are calculated in realizeTopology() from topological
@@ -1515,6 +1517,8 @@ void DuMMForceFieldSubsystem::dumpCForcefieldParameters(std::ostream& os, const 
     os << "    dumm.setBondBendGlobalScaleFactor(" << mm.bondBendGlobalScaleFactor << ");" << std::endl;
     os << "    dumm.setBondTorsionGlobalScaleFactor(" << mm.bondTorsionGlobalScaleFactor << ");" << std::endl;
     os << "    dumm.setAmberImproperTorsionGlobalScaleFactor(" << mm.amberImproperTorsionGlobalScaleFactor << ");" << std::endl;
+    os << "    dumm.setGbsaGlobalScaleFactor(" << mm.gbsaGlobalScaleFactor << ");" << std::endl;
+    os << "    dumm.setIncludeGbsaAceApproximation(" << mm.doIncludeGbsaAceApproximation << ");" << std::endl;
 
     os << "}" << std::endl; // end of method
 }
@@ -2129,6 +2133,31 @@ void DuMMForceFieldSubsystem::setAmberImproperTorsionGlobalScaleFactor(Real fac)
         fac);
 
     mm.amberImproperTorsionGlobalScaleFactor=fac;
+}
+
+void DuMMForceFieldSubsystem::setGbsaGlobalScaleFactor(Real fac) {
+    static const char* MethodName = "setGbsaGlobalScaleFactor";
+
+    invalidateSubsystemTopologyCache();
+
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+    SimTK_APIARGCHECK1_ALWAYS(0 <= fac, mm.ApiClassName, MethodName,
+        "Global generalized Born scale factor (%g) was invalid: must be nonnegative",
+        fac);
+
+    mm.gbsaGlobalScaleFactor=fac;
+}
+
+void DuMMForceFieldSubsystem::setGbsaIncludeAceApproximation(bool doInclude)
+{
+    static const char* MethodName = "setGbsaIncludeAceApproximation";
+
+    invalidateSubsystemTopologyCache();
+
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+    mm.doIncludeGbsaAceApproximation=doInclude;
 }
 
 DuMM::ClusterId DuMMForceFieldSubsystem::createCluster(const char* groupName)

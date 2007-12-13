@@ -175,7 +175,7 @@ cpuCalculateImplicitSolventForces( RealOpenMM** atomCoordinates,
 
    --------------------------------------------------------------------------------------- */
 
-extern "C" float cpuGetImplicitSolventEnergy( void ){
+extern "C" RealOpenMM cpuGetImplicitSolventEnergy( void ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -183,7 +183,7 @@ extern "C" float cpuGetImplicitSolventEnergy( void ){
 
    // ---------------------------------------------------------------------------------------
 
-   float energy =  CpuImplicitSolvent::getCpuImplicitSolvent()->getEnergy();
+   RealOpenMM energy =  CpuImplicitSolvent::getCpuImplicitSolvent()->getEnergy();
    // printf( "\ncpuGetImplicitSolventEnergy E=%.5e", energy );
 
    return energy;

@@ -25,8 +25,9 @@
 #ifndef __RealSimTk_H_
 #define __RealSimTk_H__
 
+// Set RealType to 2 for double precision, 1 for float
 #ifndef RealType
-#define RealType 1
+#define RealType 2
 #endif 
 
 #if RealType == 1 
@@ -78,7 +79,7 @@
 
 #define ATOF       atof
 
-#define PI              3.141592653589
+#define PI_M            3.141592653589
 #define TWO_SIX         1.122462048309372981
 #define RADIAN         57.29577951308
 #define LOG_TEN         2.302585092994045684

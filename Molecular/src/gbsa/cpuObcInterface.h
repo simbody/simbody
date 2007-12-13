@@ -42,7 +42,7 @@
 
    --------------------------------------------------------------------------------------- */
 
-externC float cpuGetImplicitSolventEnergy( void );
+externC RealOpenMM cpuGetImplicitSolventEnergy( void );
 
 /**---------------------------------------------------------------------------------------
 
