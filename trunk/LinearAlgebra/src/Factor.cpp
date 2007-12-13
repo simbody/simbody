@@ -190,8 +190,6 @@ int FactorLURep<T>::getSingularIndex () const {
 template <class T> 
     template<typename ELT>
 void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
-    int i,j;
-   
 
     elementSize = sizeof( T );
     imagOffset = CNT<ELT>::ImagOffset;  // real/complex (usefull for debugging)
