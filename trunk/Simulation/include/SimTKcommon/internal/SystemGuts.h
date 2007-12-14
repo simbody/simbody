@@ -57,7 +57,7 @@ static int systemRealizeReportImplLocator      (const System::Guts&, const State
 static Real systemCalcTimescaleImplLocator(const System::Guts&, const State&);
 static int  systemCalcYUnitWeightsImplLocator(const System::Guts&, const State&, Vector& weights);
 static int  systemProjectImplLocator(const System::Guts&, State&, Real, const Vector&, const Vector&,
-                                         Vector&);
+                                         Vector&, bool);
 static int  systemCalcYErrUnitTolerancesImplLocator(const System::Guts&, const State&, Vector& ootols);
 static int  systemHandleEventsImplLocator(const System::Guts&, State&, System::EventCause, const std::vector<int>&,
                                               Real, const Vector&, const Vector&, Stage&, bool&);
@@ -184,7 +184,7 @@ public:
     Real calcTimescale(const State&) const;
     void calcYUnitWeights(const State&, Vector& weights) const;
     void project(State&, Real consAccuracy, const Vector& yweights,
-                 const Vector& ootols, Vector& yerrest) const;
+                 const Vector& ootols, Vector& yerrest, bool velocityOnly) const;
     void calcYErrUnitTolerances(const State&, Vector& tolerances) const;
     void handleEvents
        (State&, EventCause, const std::vector<int>& eventIds,
@@ -230,7 +230,7 @@ protected:
     virtual int calcYUnitWeightsImpl(const State&, Vector& weights) const;
 
     virtual int projectImpl(State&, Real consAccuracy, const Vector& yweights,
-                            const Vector& ootols, Vector& yerrest) const;
+                            const Vector& ootols, Vector& yerrest, bool velocityOnly) const;
     virtual int calcYErrUnitTolerancesImpl(const State&, Vector& tolerances) const;
 
     virtual int handleEventsImpl
@@ -261,7 +261,7 @@ private:
     typedef int (*CalcUnitWeightsImplLocator)(const System::Guts&, const State&, Vector& weights);
 
     typedef int (*ProjectImplLocator)(const System::Guts&, State&, Real, const Vector&, const Vector&,
-                                             Vector&);
+                                             Vector&, bool);
 
     typedef int (*HandleEventsImplLocator)
        (const System::Guts&, State&, EventCause, const std::vector<int>&,
@@ -322,7 +322,7 @@ private:
     friend Real systemCalcTimescaleImplLocator(const System::Guts&, const State&);
     friend int  systemCalcYUnitWeightsImplLocator(const System::Guts&, const State&, Vector& weights);
     friend int  systemProjectImplLocator(const System::Guts&, State&, Real, const Vector&, const Vector&,
-                                         Vector&);
+                                         Vector&, bool);
     friend int  systemCalcYErrUnitTolerancesImplLocator(const System::Guts&, const State&, Vector& ootols);
     friend int  systemHandleEventsImplLocator(const System::Guts&, State&, EventCause, const std::vector<int>&,
                                               Real, const Vector&, const Vector&, Stage&, bool&);
@@ -369,8 +369,8 @@ static int  systemCalcYUnitWeightsImplLocator(const System::Guts& sys, const Sta
 
 static int  systemProjectImplLocator
    (const System::Guts& sys, State& state, Real consAccuracy,
-    const Vector& yWeights, const Vector& ooConstraintTols, Vector& yErrest)
-  { return sys.projectImpl(state, consAccuracy, yWeights, ooConstraintTols, yErrest); }
+    const Vector& yWeights, const Vector& ooConstraintTols, Vector& yErrest, bool velocityOnly)
+  { return sys.projectImpl(state, consAccuracy, yWeights, ooConstraintTols, yErrest, velocityOnly); }
 
 static int  systemCalcYErrUnitTolerancesImplLocator(const System::Guts& sys, const State& state, Vector& ootols)
   { return sys.calcYErrUnitTolerancesImpl(state, ootols); }

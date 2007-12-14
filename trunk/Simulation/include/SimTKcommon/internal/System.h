@@ -223,8 +223,12 @@ public:
     /// author must ensure that only position and velocity stage, continuous
     /// variables are updated by this call.
     /// On return the state will be realized to at least Stage::Velocity.
+    ///
+    /// If velocityOnly is set to true, only the velocity will be projected.
+    /// It is assumed that the positions already satisfy the constraints,
+    /// and the State has already been realized to at least Stage::Position.
     void project(State&, Real consAccuracy, const Vector& yweights,
-                 const Vector& ootols, Vector& yerrest) const;
+                 const Vector& ootols, Vector& yerrest, bool velocityOnly=false) const;
 
     /// This provides scaling information for each of the position and velocity
     /// constraints (YErr) in the State. The tolerance is the absolute error in the

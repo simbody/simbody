@@ -139,8 +139,8 @@ Real System::calcTimescale(const State& s) const {return getSystemGuts().calcTim
 void System::calcYUnitWeights(const State& s, Vector& weights) const
   { getSystemGuts().calcYUnitWeights(s,weights); }
 void System::project(State& s, Real consAccuracy, const Vector& yweights,
-                     const Vector& ootols, Vector& yerrest) const
-  { getSystemGuts().project(s,consAccuracy,yweights,ootols,yerrest); }
+                     const Vector& ootols, Vector& yerrest, bool velocityOnly) const
+  { getSystemGuts().project(s,consAccuracy,yweights,ootols,yerrest, velocityOnly); }
 void System::calcYErrUnitTolerances(const State& s, Vector& tolerances) const
   { getSystemGuts().calcYErrUnitTolerances(s,tolerances); }
 void System::handleEvents(State& s, EventCause cause, const std::vector<int>& eventIds,
@@ -476,11 +476,11 @@ void System::Guts::calcYErrUnitTolerances(const State& s, Vector& tolerances) co
 }
 
 void System::Guts::project(State& s, Real consAccuracy, const Vector& yweights,
-                     const Vector& ootols, Vector& yerrest) const
+                     const Vector& ootols, Vector& yerrest, bool velocityOnly) const
 {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Instance, // TODO: is this the right stage?
         "System::Guts::project()");
-    getRep().projectp(*this,s,consAccuracy,yweights,ootols,yerrest);
+    getRep().projectp(*this,s,consAccuracy,yweights,ootols,yerrest,velocityOnly);
 }
 
 void System::Guts::handleEvents
@@ -615,7 +615,7 @@ int System::Guts::calcYUnitWeightsImpl(const State& s, Vector& weights) const {
 }
 
 int System::Guts::projectImpl(State&, Real consAccuracy, const Vector& yweights,
-                        const Vector& ootols, Vector& yerrest) const
+                        const Vector& ootols, Vector& yerrest, bool velocityOnly) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod, "System", "project"); 
     return std::numeric_limits<int>::min();
