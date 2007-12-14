@@ -1256,10 +1256,7 @@ public:
         return 0;
     }
 
-    int realizeSubsystemPositionImpl(const State& s) const {
-        // Nothing to compute here.
-        return 0;
-    }
+    int realizeSubsystemPositionImpl(const State& s) const;
 
     int realizeSubsystemVelocityImpl(const State& s) const {
         // Nothing to compute here.
@@ -1363,6 +1360,10 @@ private:
         // TOPOLOGICAL CACHE ENTRIES
         //   These are calculated in realizeTopology() from topological
         //   state variables (from here or others in the DuMM class).
+    
+    mutable int forceValidCacheIndex;
+    mutable int forceCacheIndex;
+    mutable int energyCacheIndex;
 };
 
 
@@ -2990,7 +2991,17 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
         }
 
     }
+    
+    // Create cache entries for storing forces.
+    forceValidCacheIndex = s.allocateCacheEntry(getMySubsystemId(), Stage::Position, new Value<bool>());
+    energyCacheIndex = s.allocateCacheEntry(getMySubsystemId(), Stage::Position, new Value<Real>());
+    forceCacheIndex = s.allocateCacheEntry(getMySubsystemId(), Stage::Dynamics, new Value<Vector_<SpatialVec> >());
 
+    return 0;
+}
+
+int DuMMForceFieldSubsystemRep::realizeSubsystemPositionImpl(const State& s) const {
+    return Value<bool>::downcast(s.updCacheEntry(getMySubsystemId(), forceValidCacheIndex)).upd() = false;
     return 0;
 }
 
@@ -3018,266 +3029,274 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
     Vector coulombScale((int)atoms.size(), Real(1));
 
     // Get access to system-global cache entries.
-    Real& pe = mbs.updPotentialEnergy(s, Stage::Dynamics); // kJ
-    Vector_<SpatialVec>& rigidBodyForces = 
-        mbs.updRigidBodyForces(s, Stage::Dynamics); // kJ (torque), kJ/nm (force)
+    bool& forceValid = Value<bool>::downcast(s.updCacheEntry(getMySubsystemId(), forceValidCacheIndex)).upd();
+    Real& energyCache = Value<Real>::downcast(s.updCacheEntry(getMySubsystemId(), energyCacheIndex)).upd();
+    Vector_<SpatialVec>& forceCache = Value<Vector_<SpatialVec> >::downcast(s.updCacheEntry(getMySubsystemId(), forceCacheIndex)).upd();
 
-    for (MobilizedBodyId b1(0); b1 < (int)bodies.size(); ++b1) {
-        const Transform&          X_GB1  = matter.getMobilizedBody(b1).getBodyTransform(s);
-        const AtomPlacementArray& alist1 = bodies[b1].allAtoms;
+    if (!forceValid) {
+        // We need to calculate the forces.
+        energyCache = 0;
+        forceCache.resize(bodies.size());
+        forceCache = SpatialVec(Vec3(0), Vec3(0));
+        forceValid = true;
+        
+        for (MobilizedBodyId b1(0); b1 < (int)bodies.size(); ++b1) {
+             const Transform&          X_GB1  = matter.getMobilizedBody(b1).getBodyTransform(s);
+             const AtomPlacementArray& alist1 = bodies[b1].allAtoms;
 
-        for (int i=0; i < (int)alist1.size(); ++i) {
-            const int       a1num = alist1[i].atomId;
-            const Atom&     a1 = atoms[a1num];
-            const ChargedAtomType& a1type  = chargedAtomTypes[a1.chargedAtomTypeId];
-            int                    a1cnum  = a1type.atomClassId;
-            const AtomClass&       a1class = atomClasses[a1cnum];
-            const Vec3      a1Station_G = X_GB1.R()*a1.station_B;
-            const Vec3      a1Pos_G     = X_GB1.T() + a1Station_G;
-            const Real      q1Fac = coulombGlobalScaleFactor*CoulombFac*a1type.partialCharge;
+             for (int i=0; i < (int)alist1.size(); ++i) {
+                 const int       a1num = alist1[i].atomId;
+                 const Atom&     a1 = atoms[a1num];
+                 const ChargedAtomType& a1type  = chargedAtomTypes[a1.chargedAtomTypeId];
+                 int                    a1cnum  = a1type.atomClassId;
+                 const AtomClass&       a1class = atomClasses[a1cnum];
+                 const Vec3      a1Station_G = X_GB1.R()*a1.station_B;
+                 const Vec3      a1Pos_G     = X_GB1.T() + a1Station_G;
+                 const Real      q1Fac = coulombGlobalScaleFactor*CoulombFac*a1type.partialCharge;
 
-            // Bonded. Note that each bond will appear twice so we only process
-            // it the time when its 1st atom has a lower ID than its last.
+                 // Bonded. Note that each bond will appear twice so we only process
+                 // it the time when its 1st atom has a lower ID than its last.
 
-            // Bond stretch (1-2)
-            for (int b12=0; b12 < (int)a1.xbond12.size(); ++b12) {
-                const int a2num = a1.xbond12[b12];
-                assert(a2num != a1num);
-                if (a2num < a1num)
-                    continue; // don't process this bond this time
+                 // Bond stretch (1-2)
+                 for (int b12=0; b12 < (int)a1.xbond12.size(); ++b12) {
+                     const int a2num = a1.xbond12[b12];
+                     assert(a2num != a1num);
+                     if (a2num < a1num)
+                         continue; // don't process this bond this time
 
-                const Atom& a2 = atoms[a2num];
-                const MobilizedBodyId b2 = a2.bodyId;
-                assert(b2 != b1);
-                const Transform& X_GB2 = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
-                const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
-                const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
-                const Vec3       r = a2Pos_G - a1Pos_G;
-                const Real       d = r.norm();
+                     const Atom& a2 = atoms[a2num];
+                     const MobilizedBodyId b2 = a2.bodyId;
+                     assert(b2 != b1);
+                     const Transform& X_GB2 = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
+                     const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
+                     const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
+                     const Vec3       r = a2Pos_G - a1Pos_G;
+                     const Real       d = r.norm();
 
-                // TODO: come up with something for when d is 0; for relaxation
-                // just needs to push away from zero; what to do for dynamics?
+                     // TODO: come up with something for when d is 0; for relaxation
+                     // just needs to push away from zero; what to do for dynamics?
 
-                const BondStretch& bs = a1.stretch[b12];
-                const Real         x  = d - bs.d0;
-                const Real         k  = bondStretchGlobalScaleFactor*bs.k;
+                     const BondStretch& bs = a1.stretch[b12];
+                     const Real         x  = d - bs.d0;
+                     const Real         k  = bondStretchGlobalScaleFactor*bs.k;
 
-                const Real eStretch =  k*x*x; // no factor of 1/2!
-                const Real fStretch = -2*k*x; // sign is as would be applied to a2
-                const Vec3 f2 = (fStretch/d) * r;
-                pe += eStretch;
-                rigidBodyForces[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
-                rigidBodyForces[b1] -= SpatialVec( a1Station_G % f2, f2);   // 15 flops
-            }
+                     const Real eStretch =  k*x*x; // no factor of 1/2!
+                     const Real fStretch = -2*k*x; // sign is as would be applied to a2
+                     const Vec3 f2 = (fStretch/d) * r;
+                     energyCache += eStretch;
+                     forceCache[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
+                     forceCache[b1] -= SpatialVec( a1Station_G % f2, f2);   // 15 flops
+                 }
 
-            // Bond bend (1-2-3)
-            for (int b13=0; b13 < (int)a1.xbond13.size(); ++b13) {
-                const int a2num = a1.xbond13[b13][0];
-                const int a3num = a1.xbond13[b13][1];
-                assert(a3num != a1num);
-                if (a3num < a1num)
-                    continue; // don't process this bond this time
+                 // Bond bend (1-2-3)
+                 for (int b13=0; b13 < (int)a1.xbond13.size(); ++b13) {
+                     const int a2num = a1.xbond13[b13][0];
+                     const int a3num = a1.xbond13[b13][1];
+                     assert(a3num != a1num);
+                     if (a3num < a1num)
+                         continue; // don't process this bond this time
 
-                const Atom& a2 = atoms[a2num];
-                const Atom& a3 = atoms[a3num];
-                const MobilizedBodyId b2 = a2.bodyId;
-                const MobilizedBodyId b3 = a3.bodyId;
-                assert(!(b2==b1 && b3==b1)); // shouldn't be on the list if all on 1 body
+                     const Atom& a2 = atoms[a2num];
+                     const Atom& a3 = atoms[a3num];
+                     const MobilizedBodyId b2 = a2.bodyId;
+                     const MobilizedBodyId b3 = a3.bodyId;
+                     assert(!(b2==b1 && b3==b1)); // shouldn't be on the list if all on 1 body
 
-                // TODO: These might be the same body but for now we don't care.
-                const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
-                const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
-                const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
-                const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
-                const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
-                const Vec3       a3Pos_G     = X_GB3.T() + a3Station_G;
+                     // TODO: These might be the same body but for now we don't care.
+                     const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
+                     const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
+                     const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
+                     const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
+                     const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
+                     const Vec3       a3Pos_G     = X_GB3.T() + a3Station_G;
 
-                Real angle, energy;
-                Vec3 f1, f2, f3;
-                const BondBend& bb = a1.bend[b13];
-                // atom 2 is the central one
-                bb.harmonic(a2Pos_G, a1Pos_G, a3Pos_G, bondBendGlobalScaleFactor, angle, energy, f2, f1, f3);
+                     Real angle, energy;
+                     Vec3 f1, f2, f3;
+                     const BondBend& bb = a1.bend[b13];
+                     // atom 2 is the central one
+                     bb.harmonic(a2Pos_G, a1Pos_G, a3Pos_G, bondBendGlobalScaleFactor, angle, energy, f2, f1, f3);
 
-                pe += energy;
-                rigidBodyForces[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
-                rigidBodyForces[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
-                rigidBodyForces[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
-            }
+                     energyCache += energy;
+                     forceCache[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
+                     forceCache[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
+                     forceCache[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
+                 }
 
-            // Bond torsion (1-2-3-4)
-            for (int b14=0; b14 < (int)a1.xbond14.size(); ++b14) {
-                const int a2num = a1.xbond14[b14][0];
-                const int a3num = a1.xbond14[b14][1];
-                const int a4num = a1.xbond14[b14][2];
-                assert(a4num != a1num);
-                if (a4num < a1num)
-                    continue; // don't process this bond this time
+                 // Bond torsion (1-2-3-4)
+                 for (int b14=0; b14 < (int)a1.xbond14.size(); ++b14) {
+                     const int a2num = a1.xbond14[b14][0];
+                     const int a3num = a1.xbond14[b14][1];
+                     const int a4num = a1.xbond14[b14][2];
+                     assert(a4num != a1num);
+                     if (a4num < a1num)
+                         continue; // don't process this bond this time
 
-                const Atom& a2 = atoms[a2num];
-                const Atom& a3 = atoms[a3num];
-                const Atom& a4 = atoms[a4num];
-                const int b2 = a2.bodyId;
-                const int b3 = a3.bodyId;
-                const int b4 = a4.bodyId;
-                assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
+                     const Atom& a2 = atoms[a2num];
+                     const Atom& a3 = atoms[a3num];
+                     const Atom& a4 = atoms[a4num];
+                     const int b2 = a2.bodyId;
+                     const int b3 = a3.bodyId;
+                     const int b4 = a4.bodyId;
+                     assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
 
-                // TODO: These might be the same body but for now we don't care.
-                const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
-                const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
-                const Transform& X_GB4   = matter.getMobilizedBody(a4.bodyId).getBodyTransform(s);
-                const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
-                const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
-                const Vec3       a4Station_G = X_GB4.R()*a4.station_B;
-                const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
-                const Vec3       a3Pos_G     = X_GB3.T() + a3Station_G;
-                const Vec3       a4Pos_G     = X_GB4.T() + a4Station_G;
+                     // TODO: These might be the same body but for now we don't care.
+                     const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
+                     const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
+                     const Transform& X_GB4   = matter.getMobilizedBody(a4.bodyId).getBodyTransform(s);
+                     const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
+                     const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
+                     const Vec3       a4Station_G = X_GB4.R()*a4.station_B;
+                     const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
+                     const Vec3       a3Pos_G     = X_GB3.T() + a3Station_G;
+                     const Vec3       a4Pos_G     = X_GB4.T() + a4Station_G;
 
-                Real angle, energy;
-                Vec3 f1, f2, f3, f4;
-                const BondTorsion& bt = a1.torsion[b14];
-                bt.periodic(a1Pos_G, a2Pos_G, a3Pos_G, a4Pos_G, bondTorsionGlobalScaleFactor,
-                            angle, energy, f1, f2, f3, f4);
+                     Real angle, energy;
+                     Vec3 f1, f2, f3, f4;
+                     const BondTorsion& bt = a1.torsion[b14];
+                     bt.periodic(a1Pos_G, a2Pos_G, a3Pos_G, a4Pos_G, bondTorsionGlobalScaleFactor,
+                                 angle, energy, f1, f2, f3, f4);
 
-                pe += energy;
-                rigidBodyForces[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
-                rigidBodyForces[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
-                rigidBodyForces[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
-                rigidBodyForces[b4] += SpatialVec( a4Station_G % f4, f4);   // 15 flops
-            }
+                     energyCache += energy;
+                     forceCache[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
+                     forceCache[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
+                     forceCache[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
+                     forceCache[b4] += SpatialVec( a4Station_G % f4, f4);   // 15 flops
+                 }
 
-            // Amber improper torsion
-            // Note that a1 is the *third* atom in the torsion
-            for (int b14=0; b14 < (int)a1.aImproperTorsion14.size(); ++b14) {
-                const int a2num = a1.aImproperTorsion14[b14][0];
-                const int a3num = a1.aImproperTorsion14[b14][1];
-                const int a4num = a1.aImproperTorsion14[b14][2];
-                assert(a4num != a1num);
-                //if (a4num < a1num)
-                //    continue; // don't process this bond this time
+                 // Amber improper torsion
+                 // Note that a1 is the *third* atom in the torsion
+                 for (int b14=0; b14 < (int)a1.aImproperTorsion14.size(); ++b14) {
+                     const int a2num = a1.aImproperTorsion14[b14][0];
+                     const int a3num = a1.aImproperTorsion14[b14][1];
+                     const int a4num = a1.aImproperTorsion14[b14][2];
+                     assert(a4num != a1num);
+                     //if (a4num < a1num)
+                     //    continue; // don't process this bond this time
 
-                const Atom& a2 = atoms[a2num];
-                const Atom& a3 = atoms[a3num];
-                const Atom& a4 = atoms[a4num];
-                const int b2 = a2.bodyId;
-                const int b3 = a3.bodyId;
-                const int b4 = a4.bodyId;
-                assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
+                     const Atom& a2 = atoms[a2num];
+                     const Atom& a3 = atoms[a3num];
+                     const Atom& a4 = atoms[a4num];
+                     const int b2 = a2.bodyId;
+                     const int b3 = a3.bodyId;
+                     const int b4 = a4.bodyId;
+                     assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
 
-                // TODO: These might be the same body but for now we don't care.
-                const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
-                const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
-                const Transform& X_GB4   = matter.getMobilizedBody(a4.bodyId).getBodyTransform(s);
-                const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
-                const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
-                const Vec3       a4Station_G = X_GB4.R()*a4.station_B;
-                const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
-                const Vec3       a3Pos_G     = X_GB3.T() + a3Station_G;
-                const Vec3       a4Pos_G     = X_GB4.T() + a4Station_G;
+                     // TODO: These might be the same body but for now we don't care.
+                     const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
+                     const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
+                     const Transform& X_GB4   = matter.getMobilizedBody(a4.bodyId).getBodyTransform(s);
+                     const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
+                     const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
+                     const Vec3       a4Station_G = X_GB4.R()*a4.station_B;
+                     const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
+                     const Vec3       a3Pos_G     = X_GB3.T() + a3Station_G;
+                     const Vec3       a4Pos_G     = X_GB4.T() + a4Station_G;
 
-                Real angle, energy;
-                Vec3 f1, f2, f3, f4;
-                const BondTorsion& bt = a1.aImproperTorsion[b14];
-                //bt.periodic(a1Pos_G, a2Pos_G, a3Pos_G, a4Pos_G, bondTorsionGlobalScaleFactor,
-                //            angle, energy, f1, f2, f3, f4);
-                bt.periodic(a2Pos_G, a3Pos_G, a1Pos_G, a4Pos_G,
-                            amberImproperTorsionGlobalScaleFactor,
-                            angle, energy, f2, f3, f1, f4);
+                     Real angle, energy;
+                     Vec3 f1, f2, f3, f4;
+                     const BondTorsion& bt = a1.aImproperTorsion[b14];
+                     //bt.periodic(a1Pos_G, a2Pos_G, a3Pos_G, a4Pos_G, bondTorsionGlobalScaleFactor,
+                     //            angle, energy, f1, f2, f3, f4);
+                     bt.periodic(a2Pos_G, a3Pos_G, a1Pos_G, a4Pos_G,
+                                 amberImproperTorsionGlobalScaleFactor,
+                                 angle, energy, f2, f3, f1, f4);
 
-                pe += energy;
-                rigidBodyForces[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
-                rigidBodyForces[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
-                rigidBodyForces[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
-                rigidBodyForces[b4] += SpatialVec( a4Station_G % f4, f4);   // 15 flops
-            }
+                     energyCache += energy;
+                     forceCache[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
+                     forceCache[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
+                     forceCache[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
+                     forceCache[b4] += SpatialVec( a4Station_G % f4, f4);   // 15 flops
+                 }
 
-/*
-            if (a1.aImproperTorsion14.isValid()) {
-                const Atom& a2 = atoms[a1.aImproperTorsion14[0]];
-                const Atom& a3 = atoms[a1.aImproperTorsion14[1]];
-                const Atom& a4 = atoms[a1.aImproperTorsion14[2]];
-                const int b2 = a2.bodyId;
-                const int b3 = a3.bodyId;
-                const int b4 = a4.bodyId;
-                assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
+     /*
+                 if (a1.aImproperTorsion14.isValid()) {
+                     const Atom& a2 = atoms[a1.aImproperTorsion14[0]];
+                     const Atom& a3 = atoms[a1.aImproperTorsion14[1]];
+                     const Atom& a4 = atoms[a1.aImproperTorsion14[2]];
+                     const int b2 = a2.bodyId;
+                     const int b3 = a3.bodyId;
+                     const int b4 = a4.bodyId;
+                     assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
 
-                // TODO: These might be the same body but for now we don't care.
-                const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
-                const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
-                const Transform& X_GB4   = matter.getMobilizedBody(a4.bodyId).getBodyTransform(s);
-                const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
-                const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
-                const Vec3       a4Station_G = X_GB4.R()*a4.station_B;
-                const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
-                const Vec3       a3Pos_G     = X_GB3.T() + a3Station_G;
-                const Vec3       a4Pos_G     = X_GB4.T() + a4Station_G;
+                     // TODO: These might be the same body but for now we don't care.
+                     const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
+                     const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
+                     const Transform& X_GB4   = matter.getMobilizedBody(a4.bodyId).getBodyTransform(s);
+                     const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
+                     const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
+                     const Vec3       a4Station_G = X_GB4.R()*a4.station_B;
+                     const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
+                     const Vec3       a3Pos_G     = X_GB3.T() + a3Station_G;
+                     const Vec3       a4Pos_G     = X_GB4.T() + a4Station_G;
 
-                Real angle, energy;
-                Vec3 f1, f2, f3, f4;
-                const BondTorsion& bt = a1.aImproperTorsion;
-//                bt.periodic(a1Pos_G, a2Pos_G, a3Pos_G, a4Pos_G, amberImproperTorsionGlobalScaleFactor,
-//                            angle, energy, f1, f2, f3, f4);
-                bt.periodic(a2Pos_G, a3Pos_G, a1Pos_G, a4Pos_G, amberImproperTorsionGlobalScaleFactor,
-                            angle, energy, f2, f3, f1, f4);
-                pe += energy;
-                rigidBodyForces[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
-                rigidBodyForces[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
-                rigidBodyForces[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
-                rigidBodyForces[b4] += SpatialVec( a4Station_G % f4, f4);   // 15 flops
-            }
-*/
+                     Real angle, energy;
+                     Vec3 f1, f2, f3, f4;
+                     const BondTorsion& bt = a1.aImproperTorsion;
+     //                bt.periodic(a1Pos_G, a2Pos_G, a3Pos_G, a4Pos_G, amberImproperTorsionGlobalScaleFactor,
+     //                            angle, energy, f1, f2, f3, f4);
+                     bt.periodic(a2Pos_G, a3Pos_G, a1Pos_G, a4Pos_G, amberImproperTorsionGlobalScaleFactor,
+                                 angle, energy, f2, f3, f1, f4);
+                     energyCache += energy;
+                     forceCache[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
+                     forceCache[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
+                     forceCache[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
+                     forceCache[b4] += SpatialVec( a4Station_G % f4, f4);   // 15 flops
+                 }
+     */
 
-            // Coulombic electrostatic force
-            scaleBondedAtoms(a1,vdwScale,coulombScale);
-            for (MobilizedBodyId b2(b1+1); b2 < (int)bodies.size(); ++b2) {
-                const Transform&          X_GB2  = matter.getMobilizedBody(b2).getBodyTransform(s);
-                const AtomPlacementArray& alist2 = bodies[b2].allAtoms;
+                 // Coulombic electrostatic force
+                 scaleBondedAtoms(a1,vdwScale,coulombScale);
+                 for (MobilizedBodyId b2(b1+1); b2 < (int)bodies.size(); ++b2) {
+                     const Transform&          X_GB2  = matter.getMobilizedBody(b2).getBodyTransform(s);
+                     const AtomPlacementArray& alist2 = bodies[b2].allAtoms;
 
-                for (int j=0; j < (int)alist2.size(); ++j) {
-                    const int       a2num = alist2[j].atomId;
-                    assert(a2num != a1num);
-                    const Atom&     a2 = atoms[a2num];
-                    const ChargedAtomType& a2type  = chargedAtomTypes[a2.chargedAtomTypeId];
-                    int                    a2cnum  = a2type.atomClassId;
-                    const AtomClass&       a2class = atomClasses[a2cnum];
-                    
-                    const Vec3  a2Station_G = X_GB2.R()*a2.station_B; // 15 flops
-                    const Vec3  a2Pos_G     = X_GB2.T() + a2Station_G;  // 3 flops
-                    const Vec3  r = a2Pos_G - a1Pos_G; // from a1 to a2 (3 flops)
-                    const Real  d2 = r.normSqr(); // 5 flops
+                     for (int j=0; j < (int)alist2.size(); ++j) {
+                         const int       a2num = alist2[j].atomId;
+                         assert(a2num != a1num);
+                         const Atom&     a2 = atoms[a2num];
+                         const ChargedAtomType& a2type  = chargedAtomTypes[a2.chargedAtomTypeId];
+                         int                    a2cnum  = a2type.atomClassId;
+                         const AtomClass&       a2class = atomClasses[a2cnum];
+                         
+                         const Vec3  a2Station_G = X_GB2.R()*a2.station_B; // 15 flops
+                         const Vec3  a2Pos_G     = X_GB2.T() + a2Station_G;  // 3 flops
+                         const Vec3  r = a2Pos_G - a1Pos_G; // from a1 to a2 (3 flops)
+                         const Real  d2 = r.normSqr(); // 5 flops
 
-                    // Check for cutoffs on d2?
+                         // Check for cutoffs on d2?
 
-                    const Real  ood = 1/std::sqrt(d2); // approx 40 flops
-                    const Real  ood2 = ood*ood;        // 1 flop
+                         const Real  ood = 1/std::sqrt(d2); // approx 40 flops
+                         const Real  ood2 = ood*ood;        // 1 flop
 
-                    Real eCoulomb = 0, fCoulomb = 0;
-                    const Real qq = coulombScale[a2num]*q1Fac*a2type.partialCharge; // 2 flops
-                    eCoulomb = qq * ood; //  scale*(1/(4*pi*e0)) *  q1*q2/d       (1 flop)  
-                    fCoulomb = eCoulomb; // -scale*(1/(4*pi*e0)) * -q1*q2/d^2 * d (factor of 1/d^2 missing)
+                         Real eCoulomb = 0, fCoulomb = 0;
+                         const Real qq = coulombScale[a2num]*q1Fac*a2type.partialCharge; // 2 flops
+                         eCoulomb = qq * ood; //  scale*(1/(4*pi*e0)) *  q1*q2/d       (1 flop)  
+                         fCoulomb = eCoulomb; // -scale*(1/(4*pi*e0)) * -q1*q2/d^2 * d (factor of 1/d^2 missing)
 
-                    // van der Waals.
+                         // van der Waals.
 
-                    // Get precomputed mixed dmin and emin. Must ask the lower-numbered atom class.
-                    const Real dij = (a1cnum <= a2cnum ? a1class.vdwDij[a2cnum-a1cnum]
-                                                       : a2class.vdwDij[a1cnum-a2cnum]);
-                    const Real eij = (a1cnum <= a2cnum ? a1class.vdwEij[a2cnum-a1cnum]
-                                                       : a2class.vdwEij[a1cnum-a2cnum]);
+                         // Get precomputed mixed dmin and emin. Must ask the lower-numbered atom class.
+                         const Real dij = (a1cnum <= a2cnum ? a1class.vdwDij[a2cnum-a1cnum]
+                                                            : a2class.vdwDij[a1cnum-a2cnum]);
+                         const Real eij = (a1cnum <= a2cnum ? a1class.vdwEij[a2cnum-a1cnum]
+                                                            : a2class.vdwEij[a1cnum-a2cnum]);
 
-                    const Real ddij2  = dij*dij*ood2;        // (dmin_ij/d)^2 (2 flops)
-                    const Real ddij6  = ddij2*ddij2*ddij2;   // 2 flops
-                    const Real ddij12 = ddij6*ddij6;         // 1 flop
+                         const Real ddij2  = dij*dij*ood2;        // (dmin_ij/d)^2 (2 flops)
+                         const Real ddij6  = ddij2*ddij2*ddij2;   // 2 flops
+                         const Real ddij12 = ddij6*ddij6;         // 1 flop
 
-                    const Real eijScale = vdwGlobalScaleFactor*vdwScale[a2num]*eij; // 2 flops
-                    const Real eVdw =      eijScale * (ddij12 - 2*ddij6); // 3 flops
-                    const Real fVdw = 12 * eijScale * (ddij12 - ddij6);   // factor of 1/d^2 missing (3 flops)
-                    const Vec3 fj = ((fCoulomb+fVdw)*ood2) * r;      // to apply to atom j on b2 (5 flops)
+                         const Real eijScale = vdwGlobalScaleFactor*vdwScale[a2num]*eij; // 2 flops
+                         const Real eVdw =      eijScale * (ddij12 - 2*ddij6); // 3 flops
+                         const Real fVdw = 12 * eijScale * (ddij12 - ddij6);   // factor of 1/d^2 missing (3 flops)
+                         const Vec3 fj = ((fCoulomb+fVdw)*ood2) * r;      // to apply to atom j on b2 (5 flops)
 
-                    pe += (eCoulomb + eVdw); // kJ (Da-nm^2/ps^2) (2 flops)
-                    rigidBodyForces[b2] += SpatialVec( a2Station_G % fj, fj);   // 15 flops
-                    rigidBodyForces[b1] -= SpatialVec( a1Station_G % fj, fj);   // 15 flops
-                }
-            }
-            unscaleBondedAtoms(a1,vdwScale,coulombScale);
+                         energyCache += (eCoulomb + eVdw); // kJ (Da-nm^2/ps^2) (2 flops)
+                         forceCache[b2] += SpatialVec( a2Station_G % fj, fj);   // 15 flops
+                         forceCache[b1] -= SpatialVec( a1Station_G % fj, fj);   // 15 flops
+                     }
+                 }
+                 unscaleBondedAtoms(a1,vdwScale,coulombScale);
+             }
         }
     }
 
@@ -3400,13 +3419,17 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
 
             SpatialVec forceOnBody(a1Station_G % fGbsa, fGbsa);
             // std::cout << forceOnBody << std::endl;
-            rigidBodyForces[b1] += SpatialVec( a1Station_G % fGbsa, fGbsa );
+            forceCache[b1] += SpatialVec( a1Station_G % fGbsa, fGbsa );
         }
     }
 
-    if (false) {
-    }
-
+    // Copy the values from the cache.
+    Real& pe = mbs.updPotentialEnergy(s, Stage::Dynamics); // kJ
+    Vector_<SpatialVec>& rigidBodyForces = 
+        mbs.updRigidBodyForces(s, Stage::Dynamics); // kJ (torque), kJ/nm (force)
+    pe += energyCache;
+    rigidBodyForces += forceCache;
+ 
     return 0;
 }
 

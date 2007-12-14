@@ -434,7 +434,7 @@ public:
     //
     // TODO: yWeights & ooTols are being ignored here but shouldn't be!
     int projectImpl(State& s, Real consAccuracy, const Vector& yWeights,
-                    const Vector& ooTols, Vector& yErrest) const
+                    const Vector& ooTols, Vector& yErrest, bool velocityOnly) const
     {
         const Real tol = consAccuracy;
         const Real targetTol = 0.1*tol;
@@ -445,8 +445,9 @@ public:
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
 
         mech.getRep().realizeSubsystemPosition(s);
-        if (mech.projectQConstraints(s, yErrest, tol, targetTol))
-            anyChange = true;
+        if (!velocityOnly)
+            if (mech.projectQConstraints(s, yErrest, tol, targetTol))
+                anyChange = true;
 
         realize(s, Stage::Position);  // realize the whole system now
 
