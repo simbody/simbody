@@ -689,7 +689,7 @@ try
     */
     const bool allowStretch = false;
     const OneDofEthane ethane1(allowStretch, GroundId, mbs);
-    //const RigidEthane  rethane1(0, GroundId, mbs);
+    const RigidEthane  rethane1(0, GroundId, mbs);
     const RigidEthane  rethane2(60, GroundId, mbs);
     const FloppyEthane floppy1(GroundId, mbs);
     const RigidO2      rigidO2(GroundId, mbs);
@@ -749,15 +749,15 @@ try
 
     floppy1.setDefaultInternalState(s);
     floppy1.setMoleculeTransform(s,Vec3(-1,0,0));
-    //floppy1.setCCStretch(.1,s);
-    //floppy1.setTorsionAngleDeg(80,s);
-    //floppy1.setTorsionRate(10,s);
+    floppy1.setCCStretch(.1,s);
+    floppy1.setTorsionAngleDeg(80,s);
+    floppy1.setTorsionRate(10,s);
 
     ethane1.setDefaultInternalState(s);
     ethane1.setMoleculeTransform(s,Vec3(1,0,0));
 
-    //rethane1.setDefaultInternalState(s);
-   // rethane1.setMoleculeTransform(s,Vec3(0,0,-1));
+    rethane1.setDefaultInternalState(s);
+    rethane1.setMoleculeTransform(s,Vec3(0,0,-1));
 
     rethane2.setDefaultInternalState(s);
     rethane2.setMoleculeTransform(s,Vec3(-1,0,-1));
@@ -765,8 +765,8 @@ try
     rigidO2.setDefaultInternalState(s);
 
     const Transform o2pos( Rotation( BodyRotationSequence, 0.5*Pi/2, XAxis, 0.5*Pi/2, YAxis ),  Vec3(1,0,-1) );
-   // rigidO2.setMoleculeTransform(s,o2pos);
-   // rigidO2.setMoleculeVelocity(s,SpatialVec(0*Vec3(1.1,1.2,3), Vec3(-.2,0,0)));
+    rigidO2.setMoleculeTransform(s,o2pos);
+    rigidO2.setMoleculeVelocity(s,SpatialVec(0*Vec3(1.1,1.2,3), Vec3(-.2,0,0)));
 
     /*
 

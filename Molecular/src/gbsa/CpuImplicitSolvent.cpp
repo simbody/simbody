@@ -613,7 +613,7 @@ int CpuImplicitSolvent::computeImplicitSolventForces( RealOpenMM** atomCoordinat
 
    // ---------------------------------------------------------------------------------------
 
-   int printSampleOutput         = 20;
+   int printSampleOutput         = 0;
    static const char* methodName = "\nCpuImplicitSolvent::computeImplicitSolventForces";
 
    // ---------------------------------------------------------------------------------------
@@ -656,7 +656,7 @@ int CpuImplicitSolvent::computeImplicitSolventForces( RealOpenMM** atomCoordinat
          std::stringstream message;
          message << methodName;
          message << " implicitSolventParameters appear to be set.";
-         SimTKOpenMMLog::printMessage( message );
+         // SimTKOpenMMLog::printMessage( message );
       }
    }
 
