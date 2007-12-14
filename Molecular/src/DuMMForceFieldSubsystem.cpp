@@ -2619,16 +2619,20 @@ DuMMForceFieldSubsystemRep::getAmberImproperTorsion
    (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4) const
 {
 //xxx -> Randy's warning flag
-    printf("aImp--classes: %d-%d-%d-%d\n", (int)class1,
-                                  (int)class2,
-                                  (int)class3,
-                                  (int)class4);
-    std::map<AtomClassIdQuad,BondTorsion>::const_iterator i;
-    for (i=amberImproperTorsion.begin(); i!=amberImproperTorsion.end(); i++) {
-        printf( "aImp-matches: %d-%d-%d-%d\n", (int)i->first[0],
-                                      (int)(i->first[1]),
-                                      (int)(i->first[2]),
-                                      (int)(i->first[3]) );
+    bool printCrapToTheScreen = false;
+    if (printCrapToTheScreen)
+    {
+        printf("aImp--classes: %d-%d-%d-%d\n", (int)class1,
+                                      (int)class2,
+                                      (int)class3,
+                                      (int)class4);
+        std::map<AtomClassIdQuad,BondTorsion>::const_iterator i;
+        for (i=amberImproperTorsion.begin(); i!=amberImproperTorsion.end(); i++) {
+            printf( "aImp-matches: %d-%d-%d-%d\n", (int)i->first[0],
+                                          (int)(i->first[1]),
+                                          (int)(i->first[2]),
+                                          (int)(i->first[3]) );
+        }
     }
     
     static const AtomClassIdQuad dummyKey(DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId);
