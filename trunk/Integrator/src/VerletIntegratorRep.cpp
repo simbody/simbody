@@ -246,6 +246,9 @@ bool VerletIntegratorRep::takeOneStep(Real t0, Real t1, Real tReport)
     Vector udot0 = advanced.getUDot();
     Vector z0 = advanced.getZ();
     Vector zdot0 = advanced.getZDot();
+    
+    // Calculate the new positions and initial estimate for the velocities.
+    
     Vector q1 = q0 + qdot0*h + 0.5*qdotdot0*h*h;
     Vector u1 = u0 + udot0*h;
     Vector z1 = z0 + zdot0*h;
@@ -256,12 +259,21 @@ bool VerletIntegratorRep::takeOneStep(Real t0, Real t1, Real tReport)
     getSystem().realize(advanced, Stage::Position);
     projectStateAndErrorEstimate(advanced, Vector());
     realizeStateDerivatives(advanced);
-    Vector udot1 = advanced.getUDot();
-    Vector zdot1 = advanced.getZDot();
-    advanced.updU() = u0 + 0.5*(udot0+udot1)*h;
-    advanced.updZ() = z0 + 0.5*(zdot0+zdot1)*h;
-    projectStateAndErrorEstimate(advanced, Vector());
-    realizeStateDerivatives(advanced);
+    
+    // Now calculate the corrected velocities.
+    
+    while (true) {
+        Vector udot1 = advanced.getUDot();
+        Vector zdot1 = advanced.getZDot();
+        advanced.updU() = u0 + 0.5*(udot0+udot1)*h;
+        advanced.updZ() = z0 + 0.5*(zdot0+zdot1)*h;
+        projectStateAndErrorEstimate(advanced, Vector());
+        realizeStateDerivatives(advanced);
+        Real convergence = (advanced.getU()-u1).norm()/u1.norm();
+        if (convergence <= getAccuracyInUse())
+            break;
+        u1 = advanced.getU();
+    }
     
     // The step succeeded. Check for event triggers. If there aren't
     // any, we're done with the step. Otherwise our goal will be to
