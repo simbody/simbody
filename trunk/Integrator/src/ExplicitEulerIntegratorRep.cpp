@@ -80,7 +80,8 @@ Integrator::SuccessfulStepStatus ExplicitEulerIntegratorRep::stepTo(Real reportT
       }
       
       // tMax is the time beyond which we cannot advance internally.
-      Real tMax = std::min(scheduledEventTime, userFinalTime);
+      const Real finalTime = (userFinalTime == -1.0 ? Infinity : userFinalTime);
+      Real tMax = std::min(scheduledEventTime, finalTime);
 
       // tReturn is the next scheduled time to return control to the user.
       // Events may cause an earlier return.
@@ -105,7 +106,7 @@ Integrator::SuccessfulStepStatus ExplicitEulerIntegratorRep::stepTo(Real reportT
               break;
 
             case StepHasBeenReturnedNoEvent:
-              if (getAdvancedTime() >= userFinalTime) {
+              if (getAdvancedTime() >= finalTime) {
                   setUseInterpolatedState(false);
                   setStepCommunicationStatus(FinalTimeHasBeenReturned);
                   terminationReason = Integrator::ReachedFinalTime;
@@ -175,7 +176,7 @@ Integrator::SuccessfulStepStatus ExplicitEulerIntegratorRep::stepTo(Real reportT
                   reportReason = Integrator::TimeHasAdvanced;
               } else if (getAdvancedTime() >= reportTime) {
                   reportReason = Integrator::ReachedReportTime;
-              } else if (getAdvancedTime() >= userFinalTime) {
+              } else if (getAdvancedTime() >= finalTime) {
                   reportReason = Integrator::ReachedReportTime;
               } else if (userInternalStepLimit > 0 && internalStepsTaken >= userInternalStepLimit) {
                   // Last-ditch excuse: too much work.
