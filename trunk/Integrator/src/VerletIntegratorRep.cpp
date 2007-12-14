@@ -267,7 +267,7 @@ bool VerletIntegratorRep::takeOneStep(Real t0, Real t1, Real tReport)
         Vector zdot1 = advanced.getZDot();
         advanced.updU() = u0 + 0.5*(udot0+udot1)*h;
         advanced.updZ() = z0 + 0.5*(zdot0+zdot1)*h;
-        projectStateAndErrorEstimate(advanced, Vector());
+        projectStateAndErrorEstimate(advanced, Vector(), true);
         realizeStateDerivatives(advanced);
         Real convergence = (advanced.getU()-u1).norm()/u1.norm();
         if (convergence <= getAccuracyInUse())
