@@ -216,26 +216,26 @@ class SimTK_SIMBODY_EXPORT GeneralForceElements::CustomForce {
 public:
     virtual ~CustomForce() { }
 
-    // The force arrays and potential energy are accumulated as we go,
-    // so this routine must *add in* its own contributions, not replace
-    // what is already there. 'bodyForces' is indexed by MobilizedBodyId, so the
-    // first entry corresponds to Ground -- you can apply forces there
-    // if you want but they won't do anything. Body torques and forces
-    // are supplied in the Ground frame. 'mobilityForces' are
-    // indexed by generalized speed number and take on the meaning
-    // appropriate for that mobility. Note that mobility forces act
-    // like a motor placed on that mobility -- they apply equal
-    // and opposite forces or torques on the body and its parent body. 
-    // Body (and particle) forces on the other hand act like the Hand
-    // of God and apply just the single force or torque without regard
-    // to how it would have to be implemented physically.
-    // TODO: particleForces will be indexed by particle number; forces
-    // will be expressed in the Ground frame.
-    // If this is a potential (conservative) force, that is, a force
-    // which depends only on configuration, then you should calculate
-    // its current contribution to the system potential energy and add
-    // it in to the indicated argument. Otherwise, just leave 'pe' alone;
-    // don't set it zero!
+    /// The force arrays and potential energy are accumulated as we go,
+    /// so this routine must *add in* its own contributions, not replace
+    /// what is already there. 'bodyForces' is indexed by MobilizedBodyId, so the
+    /// first entry corresponds to Ground -- you can apply forces there
+    /// if you want but they won't do anything. Body torques and forces
+    /// are supplied in the Ground frame. 'mobilityForces' are
+    /// indexed by generalized speed number and take on the meaning
+    /// appropriate for that mobility. Note that mobility forces act
+    /// like a motor placed on that mobility -- they apply equal
+    /// and opposite forces or torques on the body and its parent body. 
+    /// Body (and particle) forces on the other hand act like the Hand
+    /// of God and apply just the single force or torque without regard
+    /// to how it would have to be implemented physically.
+    /// TODO: particleForces will be indexed by particle number; forces
+    /// will be expressed in the Ground frame.
+    /// If this is a potential (conservative) force, that is, a force
+    /// which depends only on configuration, then you should calculate
+    /// its current contribution to the system potential energy and add
+    /// it in to the indicated argument. Otherwise, just leave 'pe' alone;
+    /// don't set it zero!
     virtual void calc(const SimbodyMatterSubsystem& matter, const State& state,
                       Vector_<SpatialVec>& bodyForces,
                       Vector_<Vec3>&       particleForces,
@@ -243,6 +243,13 @@ public:
                       Real&                pe) const = 0;
 
     virtual CustomForce* clone() const = 0;
+    
+    /// Get whether this force depends only on the position variables (q),
+    /// not on the velocies (u) or auxiliary variables (z).  This allows
+    /// the force calculations to be optimized in some cases.
+    virtual bool dependsOnlyOnPositions() {
+        return false;
+    }
 
 private:
     // This is tricky because no library-side code can depend on the ordering

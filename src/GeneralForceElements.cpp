@@ -307,6 +307,11 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
     // This must be filled in during realizeTopology and treated
     // as const thereafter.
     mutable int instanceVarsIndex;
+    mutable int forceValidCacheIndex;
+    mutable int rigidBodyForceCacheIndex;
+    mutable int mobilityForceCacheIndex;
+    mutable int particleForceCacheIndex;
+    mutable int energyCacheIndex;
 
     const Parameters& getParameters(const State& s) const {
         assert(subsystemTopologyHasBeenRealized());
@@ -446,8 +451,12 @@ public:
     GeneralForceElementsRep* cloneImpl() const {return new GeneralForceElementsRep(*this);}
 
     int realizeSubsystemTopologyImpl(State& s) const {
-        instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemId(), Stage::Instance, 
-            new Value<Parameters>(defaultParameters));
+        instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemId(), Stage::Instance, new Value<Parameters>(defaultParameters));
+        forceValidCacheIndex = s.allocateCacheEntry(getMySubsystemId(), Stage::Position, new Value<bool>());
+        energyCacheIndex = s.allocateCacheEntry(getMySubsystemId(), Stage::Position, new Value<Real>());
+        rigidBodyForceCacheIndex = s.allocateCacheEntry(getMySubsystemId(), Stage::Dynamics, new Value<Vector_<SpatialVec> >());
+        mobilityForceCacheIndex = s.allocateCacheEntry(getMySubsystemId(), Stage::Dynamics, new Value<Vector>());
+        particleForceCacheIndex = s.allocateCacheEntry(getMySubsystemId(), Stage::Dynamics, new Value<Vector_<Vec3> >());
         return 0;
     }
 
@@ -467,7 +476,7 @@ public:
     }
 
     int realizeSubsystemPositionImpl(const State& s) const {
-        // Nothing to compute here.
+        return Value<bool>::downcast(s.updCacheEntry(getMySubsystemId(), forceValidCacheIndex)).upd() = false;
         return 0;
     }
 
@@ -484,21 +493,132 @@ public:
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
         // Get access to system-global cache entries.
+        bool& forceValid = Value<bool>::downcast(s.updCacheEntry(getMySubsystemId(), forceValidCacheIndex)).upd();
+        Real& energyCache = Value<Real>::downcast(s.updCacheEntry(getMySubsystemId(), energyCacheIndex)).upd();
+        Vector_<SpatialVec>& rigidBodyForceCache = Value<Vector_<SpatialVec> >::downcast(s.updCacheEntry(getMySubsystemId(), rigidBodyForceCacheIndex)).upd();
+        Vector_<Vec3>& particleForceCache = Value<Vector_<Vec3> >::downcast(s.updCacheEntry(getMySubsystemId(), particleForceCacheIndex)).upd();
+        Vector& mobilityForceCache = Value<Vector>::downcast(s.updCacheEntry(getMySubsystemId(), mobilityForceCacheIndex)).upd();
+
+        if (!forceValid) {
+            // We need to calculate the velocity independent forces.
+            energyCache = 0;
+            rigidBodyForceCache.resize(matter.getNBodies());
+            rigidBodyForceCache = SpatialVec(Vec3(0), Vec3(0));
+            particleForceCache.resize(matter.getNParticles());
+            particleForceCache = Vec3(0);
+            mobilityForceCache.resize(matter.getNMobilities());
+            mobilityForceCache = 0;
+
+            // Linear mobility springs
+            for (int i=0; i < (int)p.mobilityLinearSprings.size(); ++i) {
+                const MobilityLinearSpringParameters& f = p.mobilityLinearSprings[i];
+                const MobilizedBody& body = matter.getMobilizedBody(f.body);
+                const Real q = body.getOneQ(s,f.axis);
+                const Real frc = -f.stiffness*(q-f.naturalLength);
+                energyCache -= 0.5*frc*(q-f.naturalLength);
+                body.applyOneMobilityForce(s,f.axis,frc,mobilityForceCache);
+            }
+    
+            // Constant mobility forces
+            for (int i=0; i < (int)p.mobilityConstantForces.size(); ++i) {
+                const MobilityConstantForceParameters& f = p.mobilityConstantForces[i];
+                const MobilizedBody& body = matter.getMobilizedBody(f.body);
+                // no PE contribution
+                body.applyOneMobilityForce(s,f.axis,f.force,mobilityForceCache);
+            }
+    
+            // Two-point linear springs
+            for (int i=0; i < (int)p.twoPointLinearSprings.size(); ++i) {
+                const TwoPointLinearSpringParameters& spring =
+                    p.twoPointLinearSprings[i];
+                const Transform& X_GB1 = matter.getMobilizedBody(spring.body1).getBodyTransform(s);
+                const Transform& X_GB2 = matter.getMobilizedBody(spring.body2).getBodyTransform(s);
+    
+                const Vec3 s1_G = X_GB1.R() * spring.station1;
+                const Vec3 s2_G = X_GB2.R() * spring.station2;
+    
+                const Vec3 p1_G = X_GB1.T() + s1_G; // station measured from ground origin
+                const Vec3 p2_G = X_GB2.T() + s2_G;
+    
+                const Vec3 r_G = p2_G - p1_G; // vector from point1 to point2
+                const Real d   = r_G.norm();  // distance between the points
+                const Real stretch   = d - spring.naturalLength; // + -> tension, - -> compression
+                const Real frcScalar = spring.stiffness*stretch; // k(x-x0)
+    
+                energyCache += 0.5 * frcScalar * stretch; // 1/2 k (x-x0)^2
+    
+                const Vec3 f1_G = (frcScalar/d) * r_G;
+                rigidBodyForceCache[spring.body1] +=  SpatialVec(s1_G % f1_G, f1_G);
+                rigidBodyForceCache[spring.body2] -=  SpatialVec(s2_G % f1_G, f1_G);
+            }
+    
+            // Two-point constant force (no PE contribution)
+            for (int i=0; i < (int)p.twoPointConstantForces.size(); ++i) {
+                const TwoPointConstantForceParameters& frc =
+                    p.twoPointConstantForces[i];
+                const Transform& X_GB1 = matter.getMobilizedBody(frc.body1).getBodyTransform(s);
+                const Transform& X_GB2 = matter.getMobilizedBody(frc.body2).getBodyTransform(s);
+    
+                const Vec3 s1_G = X_GB1.R() * frc.station1;
+                const Vec3 s2_G = X_GB2.R() * frc.station2;
+    
+                const Vec3 p1_G = X_GB1.T() + s1_G; // station measured from ground origin
+                const Vec3 p2_G = X_GB2.T() + s2_G;
+    
+                const Vec3 r_G = p2_G - p1_G; // vector from point1 to point2
+                const Real x   = r_G.norm();  // distance between the points
+                const UnitVec3 d(r_G/x, true);
+    
+                const Vec3 f2_G = frc.force * d;
+                rigidBodyForceCache[frc.body1] -=  SpatialVec(s1_G % f2_G, f2_G);
+                rigidBodyForceCache[frc.body2] +=  SpatialVec(s2_G % f2_G, f2_G);
+            }
+    
+            // Constant forces (no PE contribution)
+            for (int i=0; i < (int)p.constantForces.size(); ++i) {
+                const ConstantForceParameters& f = p.constantForces[i];
+                if (f.fmag == 0)
+                    continue;
+    
+                const Transform& X_GB = matter.getMobilizedBody(f.body).getBodyTransform(s);
+                const Vec3 station_G = X_GB.R() * f.station_B;
+    
+                rigidBodyForceCache[f.body] += SpatialVec(station_G % f.force_G, f.force_G);
+            }
+    
+            // Constant torques (no PE contribution)
+            for (int i=0; i < (int)p.constantTorques.size(); ++i) {
+                const ConstantTorqueParameters& t = p.constantTorques[i];
+                if (t.tmag == 0)
+                    continue;
+    
+                // update only the angular component of the spatial force on this body
+                rigidBodyForceCache[t.body][0] += t.torque_G;
+            }
+        }
+
+        // User forces
         Real&                  pe              = mbs.updPotentialEnergy(s, Stage::Dynamics);
         Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s, Stage::Dynamics);
         Vector_<Vec3>&         particleForces  = mbs.updParticleForces (s, Stage::Dynamics);
         Vector&                mobilityForces  = mbs.updMobilityForces (s, Stage::Dynamics);
-
-        // Linear mobility springs
-        for (int i=0; i < (int)p.mobilityLinearSprings.size(); ++i) {
-            const MobilityLinearSpringParameters& f = p.mobilityLinearSprings[i];
-            const MobilizedBody& body = matter.getMobilizedBody(f.body);
-            const Real q = body.getOneQ(s,f.axis);
-            const Real frc = -f.stiffness*(q-f.naturalLength);
-            pe -= 0.5*frc*(q-f.naturalLength);
-            body.applyOneMobilityForce(s,f.axis,frc,mobilityForces);
+        for (int i=0; i < (int)p.customForces.size(); ++i) {
+            const CustomForceParameters& u = p.customForces[i];
+            if (!u.uforce->dependsOnlyOnPositions())
+                u.calc(*u.uforce, matter, s, 
+                       rigidBodyForces, particleForces, mobilityForces, pe);
+            else if (!forceValid)
+                u.calc(*u.uforce, matter, s, 
+                       rigidBodyForceCache, particleForceCache, mobilityForceCache, energyCache);
         }
 
+        // Copy the values from the cache.
+        forceValid = true;
+        pe += energyCache;
+        rigidBodyForces += rigidBodyForceCache;
+        particleForces += particleForceCache;
+        mobilityForces += mobilityForceCache;
+            
         // Linear mobility dampers
         for (int i=0; i < (int)p.mobilityLinearDampers.size(); ++i) {
             const MobilityLinearDamperParameters& f = p.mobilityLinearDampers[i];
@@ -509,65 +629,10 @@ public:
             body.applyOneMobilityForce(s,f.axis,frc,mobilityForces);
         }
 
-        // Constant mobility forces
-        for (int i=0; i < (int)p.mobilityConstantForces.size(); ++i) {
-            const MobilityConstantForceParameters& f = p.mobilityConstantForces[i];
-            const MobilizedBody& body = matter.getMobilizedBody(f.body);
-            // no PE contribution
-            body.applyOneMobilityForce(s,f.axis,f.force,mobilityForces);
-        }
-
         // Global energy drain (no PE contribution)
         for (int i=0; i < (int)p.globalEnergyDrains.size(); ++i) {
             const Real c = p.globalEnergyDrains[i].damping;
             mobilityForces -= c*matter.getU(s);
-        }
-
-        // Two-point linear springs
-        for (int i=0; i < (int)p.twoPointLinearSprings.size(); ++i) {
-            const TwoPointLinearSpringParameters& spring =
-                p.twoPointLinearSprings[i];
-            const Transform& X_GB1 = matter.getMobilizedBody(spring.body1).getBodyTransform(s);
-            const Transform& X_GB2 = matter.getMobilizedBody(spring.body2).getBodyTransform(s);
-
-            const Vec3 s1_G = X_GB1.R() * spring.station1;
-            const Vec3 s2_G = X_GB2.R() * spring.station2;
-
-            const Vec3 p1_G = X_GB1.T() + s1_G; // station measured from ground origin
-            const Vec3 p2_G = X_GB2.T() + s2_G;
-
-            const Vec3 r_G = p2_G - p1_G; // vector from point1 to point2
-            const Real d   = r_G.norm();  // distance between the points
-            const Real stretch   = d - spring.naturalLength; // + -> tension, - -> compression
-            const Real frcScalar = spring.stiffness*stretch; // k(x-x0)
-
-            pe += 0.5 * frcScalar * stretch; // 1/2 k (x-x0)^2
-
-            const Vec3 f1_G = (frcScalar/d) * r_G;
-            rigidBodyForces[spring.body1] +=  SpatialVec(s1_G % f1_G, f1_G);
-            rigidBodyForces[spring.body2] -=  SpatialVec(s2_G % f1_G, f1_G);
-        }
-
-        // Two-point constant force (no PE contribution)
-        for (int i=0; i < (int)p.twoPointConstantForces.size(); ++i) {
-            const TwoPointConstantForceParameters& frc =
-                p.twoPointConstantForces[i];
-            const Transform& X_GB1 = matter.getMobilizedBody(frc.body1).getBodyTransform(s);
-            const Transform& X_GB2 = matter.getMobilizedBody(frc.body2).getBodyTransform(s);
-
-            const Vec3 s1_G = X_GB1.R() * frc.station1;
-            const Vec3 s2_G = X_GB2.R() * frc.station2;
-
-            const Vec3 p1_G = X_GB1.T() + s1_G; // station measured from ground origin
-            const Vec3 p2_G = X_GB2.T() + s2_G;
-
-            const Vec3 r_G = p2_G - p1_G; // vector from point1 to point2
-            const Real x   = r_G.norm();  // distance between the points
-            const UnitVec3 d(r_G/x, true);
-
-            const Vec3 f2_G = frc.force * d;
-            rigidBodyForces[frc.body1] -=  SpatialVec(s1_G % f2_G, f2_G);
-            rigidBodyForces[frc.body2] +=  SpatialVec(s2_G % f2_G, f2_G);
         }
 
         // Two-point linear dampers (no PE contribution)
@@ -593,35 +658,6 @@ public:
             const Vec3 f1_G = frc*d;
             rigidBodyForces[damper.body1] +=  SpatialVec(s1_G % f1_G, f1_G);
             rigidBodyForces[damper.body2] -=  SpatialVec(s2_G % f1_G, f1_G);
-        }
-
-        // Constant forces (no PE contribution)
-        for (int i=0; i < (int)p.constantForces.size(); ++i) {
-            const ConstantForceParameters& f = p.constantForces[i];
-            if (f.fmag == 0)
-                continue;
-
-            const Transform& X_GB = matter.getMobilizedBody(f.body).getBodyTransform(s);
-            const Vec3 station_G = X_GB.R() * f.station_B;
-
-            rigidBodyForces[f.body] += SpatialVec(station_G % f.force_G, f.force_G);
-        }
-
-        // Constant torques (no PE contribution)
-        for (int i=0; i < (int)p.constantTorques.size(); ++i) {
-            const ConstantTorqueParameters& t = p.constantTorques[i];
-            if (t.tmag == 0)
-                continue;
-
-            // update only the angular component of the spatial force on this body
-            rigidBodyForces[t.body][0] += t.torque_G;
-        }
-
-        // User forces
-        for (int i=0; i < (int)p.customForces.size(); ++i) {
-            const CustomForceParameters& u = p.customForces[i];
-            u.calc(*u.uforce, matter, s, 
-                   rigidBodyForces, particleForces, mobilityForces, pe);
         }
 
         return 0;
