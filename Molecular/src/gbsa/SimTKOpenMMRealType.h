@@ -22,69 +22,70 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+
 #ifndef __RealSimTk_H_
 #define __RealSimTk_H__
 
-// Set RealType to 2 for double precision, 1 for float
-#ifndef RealType
-#define RealType 2
+// Set RealOpenMMType to 2 for double precision, 1 for float
+
+#ifndef RealOpenMMType
+#define RealOpenMMType 1
 #endif 
 
-#if RealType == 1 
+#if RealOpenMMType == 1 
 
-#define RealOpenMM float
-#define SQRT       sqrtf
-#define POW        powf
-#define SIN        sinf
-#define COS        cosf
-#define TAN        tanf
+#define RealOpenMM     float
+#define SQRT           sqrtf
+#define POW            powf
+#define SIN            sinf
+#define COS            cosf
+#define TAN            tanf
 
 // LOG is used in Vishal's gpu code; modifying LOG -> LN 
-#define LN         logf
+#define LN             logf
 
-#define EXP        expf
-#define FABS       fabsf
-#define ACOS       acosf
-#define ASIN       asinf
-#define ATAN       atanf
-#define TANH       tanhf
+#define EXP            expf
+#define FABS           fabsf
+#define ACOS           acosf
+#define ASIN           asinf
+#define ATAN           atanf
+#define TANH           tanhf
 
-#define ATOF       atoff
+#define ATOF           atoff
 
-#define PI_M             3.141592653589f
-#define TWO_SIX          1.122462048309372981f
-#define RADIAN           57.29577951308f
-#define LOG_TEN          2.302585092994045684f
-#define SQRT_TWO         1.41421356237309504f
-#define RADIAN_INVERSE   0.01745329252f
+#define PI_M           3.141592653589f
+#define TWO_SIX        1.122462048309372981f
+#define RADIAN        57.29577951308f
+#define LOG_TEN        2.302585092994045684f
+#define SQRT_TWO       1.41421356237309504f
 
 #else
 
-#define RealOpenMM double
-#define SQRT       sqrt
-#define POW        pow
-#define SIN        sin
-#define COS        cos
-#define TAN        tan
+#define RealOpenMM     double
+#define SQRT           sqrt
+#define POW            pow
+#define SIN            sin
+#define COS            cos
+#define TAN            tan
 
 // LOG is used in Vishal's gpu code; modifying LOG -> LN 
-#define LN         log
+#define LN             log
 
-#define EXP        exp
-#define FABS       fabs
-#define ACOS       acos
-#define ASIN       asin
-#define ATAN       atan
-#define TANH       tanh
+#define EXP            exp
+#define FABS           fabs
+#define ACOS           acos
+#define ASIN           asin
+#define ATAN           atan
+#define TANH           tanh
 
-#define ATOF       atof
+#define ATOF           atof
 
-#define PI_M            3.141592653589
-#define TWO_SIX         1.122462048309372981
-#define RADIAN         57.29577951308
-#define LOG_TEN         2.302585092994045684
-#define SQRT_TWO        1.41421356237309504
-#define RADIAN_INVERSE  0.01745329252
+#define PI_M           3.141592653589
+#define TWO_SIX        1.122462048309372981
+#define RADIAN        57.29577951308
+#define LOG_TEN        2.302585092994045684
+#define SQRT_TWO       1.41421356237309504
+#define RADIAN_INVERSE 0.01745329252
 
 #endif
 

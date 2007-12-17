@@ -354,7 +354,8 @@ class CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      static int computeImplicitSolventForces( RealOpenMM** atomCoordinates, const RealOpenMM* partialCharges,
+      static int computeImplicitSolventForces( RealOpenMM** atomCoordinates,
+                                               const RealOpenMM* partialCharges,
                                                RealOpenMM** forces );
       
       /**---------------------------------------------------------------------------------------
@@ -369,7 +370,8 @@ class CpuImplicitSolvent {
       
          --------------------------------------------------------------------------------------- */
       
-      virtual int computeBornRadii( RealOpenMM** atomCoordinates, RealOpenMM* bornRadii, RealOpenMM* obcChain = NULL );
+      virtual int computeBornRadii( RealOpenMM** atomCoordinates, RealOpenMM* bornRadii,
+                                    RealOpenMM* obcChain = NULL );
       
       /**---------------------------------------------------------------------------------------
       

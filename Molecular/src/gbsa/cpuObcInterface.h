@@ -136,7 +136,8 @@ externC int getObcScaleFactorsGivenAtomMasses( int numberOfAtoms, const RealOpen
 
    --------------------------------------------------------------------------------------- */
 
-externC int getObcScaleFactors( int numberOfAtoms, const int* atomicNumber, RealOpenMM* scaleFactors );
+externC int getObcScaleFactors( int numberOfAtoms, const int* atomicNumber,
+                                RealOpenMM* scaleFactors );
 
 /**---------------------------------------------------------------------------------------
 

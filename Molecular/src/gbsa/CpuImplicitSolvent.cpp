@@ -761,7 +761,8 @@ int CpuImplicitSolvent::computeImplicitSolventForces( RealOpenMM** atomCoordinat
 
    --------------------------------------------------------------------------------------- */
 
-int CpuImplicitSolvent::computeBornEnergyForces( RealOpenMM* bornRadii, RealOpenMM** atomCoordinates,
+int CpuImplicitSolvent::computeBornEnergyForces( RealOpenMM* bornRadii,
+                                                 RealOpenMM** atomCoordinates,
                                                  const RealOpenMM* partialCharges,
                                                  RealOpenMM** forces ){
 
@@ -801,6 +802,8 @@ int CpuImplicitSolvent::computeAceNonPolarForce( const ImplicitSolventParameters
 
    // static const char* methodName = "\nCpuImplicitSolvent::computeAceNonPolarForce";
 
+   static const RealOpenMM minusSix = -6.0;
+
    // ---------------------------------------------------------------------------------------
 
    // compute the nonpolar solvation via ACE approximation
@@ -813,12 +816,12 @@ int CpuImplicitSolvent::computeAceNonPolarForce( const ImplicitSolventParameters
    // 1 + 1 + pow + 3 + 1 + 2 FLOP
 
    for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
-      if( bornRadii[atomI] > 0.0f ){
+      if( bornRadii[atomI] > 0.0 ){
          RealOpenMM r            = atomicRadii[atomI] + probeRadius;
          RealOpenMM ratio6       = POW( atomicRadii[atomI]/bornRadii[atomI], (RealOpenMM) 6.0 );
          RealOpenMM saTerm       = surfaceAreaFactor*r*r*ratio6;
          *energy                += saTerm;
-         forces[atomI]          += -6.0f*saTerm/bornRadii[atomI]; 
+         forces[atomI]          += minusSix*saTerm/bornRadii[atomI]; 
       }
    }
 
@@ -831,8 +834,7 @@ int CpuImplicitSolvent::computeAceNonPolarForce( const ImplicitSolventParameters
    Write Born energy and forces (Simbios)
 
    @param atomCoordinates     atomic coordinates
-   @param partialCharges      array of partial charges
-   @param RealOpenMM forces   forces
+   @param forces              forces
    @param resultsFileName     output file name
 
    @return SimTKOpenMMCommon::DefaultReturn unless
@@ -854,9 +856,9 @@ int CpuImplicitSolvent::writeBornEnergyForces( RealOpenMM** atomCoordinates,
 
    ImplicitSolventParameters* implicitSolventParameters = getImplicitSolventParameters();
 
-   int numberOfAtoms                    = implicitSolventParameters->getNumberOfAtoms();
-   const RealOpenMM* atomicRadii        = implicitSolventParameters->getAtomicRadii();
-   const RealOpenMM* bornRadii          = getBornRadiiConst();
+   int numberOfAtoms              = implicitSolventParameters->getNumberOfAtoms();
+   const RealOpenMM* atomicRadii  = implicitSolventParameters->getAtomicRadii();
+   const RealOpenMM* bornRadii    = getBornRadiiConst();
 
    // ---------------------------------------------------------------------------------------
 
@@ -890,8 +892,8 @@ int CpuImplicitSolvent::writeBornEnergyForces( RealOpenMM** atomCoordinates,
 
    (void) fprintf( implicitSolventResultsFile, "# %d atoms format: coords bornRadii q atomicRadii forces\n", numberOfAtoms );
 
-   RealOpenMM forceConversion  = (RealOpenMM) 1.0;
-   RealOpenMM lengthConversion = (RealOpenMM) 1.0;
+   RealOpenMM forceConversion  = 1.0;
+   RealOpenMM lengthConversion = 1.0;
 
    // output
 
@@ -901,7 +903,7 @@ int CpuImplicitSolvent::writeBornEnergyForces( RealOpenMM** atomCoordinates,
                             lengthConversion*atomCoordinates[ii][0],
                             lengthConversion*atomCoordinates[ii][1], 
                             lengthConversion*atomCoordinates[ii][2],
-                           (bornRadii != NULL ? lengthConversion*bornRadii[ii] : 0.0f),
+                           (bornRadii != NULL ? lengthConversion*bornRadii[ii] : 0.0),
                             partialCharges[ii], lengthConversion*atomicRadii[ii],
                             forceConversion*forces[ii][0],
                             forceConversion*forces[ii][1],

@@ -235,7 +235,7 @@ int CpuObc::computeBornRadii( RealOpenMM** atomCoordinates, RealOpenMM* bornRadi
    RealOpenMM* atomicRadii               = obcParameters->getAtomicRadii();
    const RealOpenMM* scaledRadiusFactor  = obcParameters->getScaledRadiusFactors();
    if( !obcChain ){
-      obcChain = getObcChain();
+      obcChain                           = getObcChain();
    }
 
    RealOpenMM dielectricOffset           = obcParameters->getDielectricOffset();
@@ -276,7 +276,7 @@ int CpuObc::computeBornRadii( RealOpenMM** atomCoordinates, RealOpenMM* bornRadi
             if( offsetRadiusI < rScaledRadiusJ ){
                RealOpenMM rInverse = one/r;
                RealOpenMM l_ij     = offsetRadiusI > FABS( r - scaledRadiusJ ) ? offsetRadiusI : FABS( r - scaledRadiusJ );
-                    l_ij           = one/l_ij;
+                          l_ij     = one/l_ij;
 
                RealOpenMM u_ij     = one/rScaledRadiusJ;
 
@@ -687,7 +687,7 @@ int CpuObc::writeBornEnergyForces( RealOpenMM** atomCoordinates,
    (void) fprintf( implicitSolventResultsFile, "# %d atoms format: coords(3) bornRadii(input) q atomicRadii scaleFactors forces obcChain\n", numberOfAtoms );
 
    RealOpenMM forceConversion  = (RealOpenMM) 1.0;
-   RealOpenMM lengthConversion = (RealOpenMM) 1.0f;
+   RealOpenMM lengthConversion = (RealOpenMM) 1.0;
 
    // output
 
@@ -697,7 +697,7 @@ int CpuObc::writeBornEnergyForces( RealOpenMM** atomCoordinates,
                             lengthConversion*atomCoordinates[ii][0],
                             lengthConversion*atomCoordinates[ii][1], 
                             lengthConversion*atomCoordinates[ii][2],
-                           (bornRadii != NULL ? lengthConversion*bornRadii[ii] : 0.0f),
+                           (bornRadii != NULL ? lengthConversion*bornRadii[ii] : 0.0),
                             partialCharges[ii], lengthConversion*atomicRadii[ii], scaledRadii[ii],
                             forceConversion*forces[ii][0],
                             forceConversion*forces[ii][1],
@@ -942,19 +942,19 @@ FILE* logFile = SimTKOpenMMLog::getSimTKOpenMMLogFile( );
 
          if( atomI != atomJ ){
 
-             bornForces[atomJ]       += dGpol_dalpha2_ij*bornRadii[atomI];
+             bornForces[atomJ]        += dGpol_dalpha2_ij*bornRadii[atomI];
 
-             deltaX                  *= dGpol_dr;
-             deltaY                  *= dGpol_dr;
-             deltaZ                  *= dGpol_dr;
+             deltaX                   *= dGpol_dr;
+             deltaY                   *= dGpol_dr;
+             deltaZ                   *= dGpol_dr;
 
-             forces[atomI][0]        -= deltaX;
-             forces[atomI][1]        -= deltaY;
-             forces[atomI][2]        -= deltaZ;
+             forces[atomI][0]         -= deltaX;
+             forces[atomI][1]         -= deltaY;
+             forces[atomI][2]         -= deltaZ;
 
-             forces[atomJ][0]        += deltaX;
-             forces[atomJ][1]        += deltaY;
-             forces[atomJ][2]        += deltaZ;
+             forces[atomJ][0]         += deltaX;
+             forces[atomJ][1]         += deltaY;
+             forces[atomJ][2]         += deltaZ;
 
          } else {
             Gpol *= half;
@@ -1071,37 +1071,37 @@ memset( bornSumArray, 0, sizeof( RealOpenMM )*numberOfAtoms );
 
             if( offsetRadiusI < rScaledRadiusJ ){
 
-               RealOpenMM l_ij          = offsetRadiusI > FABS( r - scaledRadiusJ ) ? offsetRadiusI : FABS( r - scaledRadiusJ );
-                    l_ij                = one/l_ij;
+               RealOpenMM l_ij            = offsetRadiusI > FABS( r - scaledRadiusJ ) ? offsetRadiusI : FABS( r - scaledRadiusJ );
+                          l_ij            = one/l_ij;
 
-               RealOpenMM l_ij2         = l_ij*l_ij;
+               RealOpenMM l_ij2           = l_ij*l_ij;
 
-               RealOpenMM u_ij          = one/rScaledRadiusJ;
-               RealOpenMM u_ij2         = u_ij*u_ij;
+               RealOpenMM u_ij            = one/rScaledRadiusJ;
+               RealOpenMM u_ij2           = u_ij*u_ij;
  
-               RealOpenMM rInverse      = one/r;
-               RealOpenMM r2Inverse     = one/r2;
+               RealOpenMM rInverse        = one/r;
+               RealOpenMM r2Inverse       = one/r2;
 
-               RealOpenMM logRatio      = LN( u_ij/l_ij );
-               RealOpenMM t3            = eighth*(one + scaledRadiusJ2*r2Inverse)*(l_ij2 - u_ij2) + fourth*logRatio*r2Inverse;
+               RealOpenMM logRatio        = LN( u_ij/l_ij );
+               RealOpenMM t3              = eighth*(one + scaledRadiusJ2*r2Inverse)*(l_ij2 - u_ij2) + fourth*logRatio*r2Inverse;
 
-               RealOpenMM de            = bornForces[atomI]*t3*rInverse;
+               RealOpenMM de              = bornForces[atomI]*t3*rInverse;
 
-               deltaX                  *= de;
-               deltaY                  *= de;
-               deltaZ                  *= de;
+               deltaX                    *= de;
+               deltaY                    *= de;
+               deltaZ                    *= de;
 
-               forces[atomI][0]        += deltaX;
-               forces[atomI][1]        += deltaY;
-               forces[atomI][2]        += deltaZ;
+               forces[atomI][0]          += deltaX;
+               forces[atomI][1]          += deltaY;
+               forces[atomI][2]          += deltaZ;
   
-               forces[atomJ][0]        -= deltaX;
-               forces[atomJ][1]        -= deltaY;
-               forces[atomJ][2]        -= deltaZ;
+               forces[atomJ][0]          -= deltaX;
+               forces[atomJ][1]          -= deltaY;
+               forces[atomJ][2]          -= deltaZ;
  
                // Born radius term
 
-               RealOpenMM term          =   l_ij - u_ij + fourth*r*(u_ij2 - l_ij2) + (half*rInverse)*logRatio + (fourth*scaledRadiusJ*scaledRadiusJ*rInverse)*(l_ij2-u_ij2);
+               RealOpenMM term            =   l_ij - u_ij + fourth*r*(u_ij2 - l_ij2) + (half*rInverse)*logRatio + (fourth*scaledRadiusJ*scaledRadiusJ*rInverse)*(l_ij2-u_ij2);
 
                if( offsetRadiusI < (scaledRadiusJ - r) ){
                   term += two*( (one/offsetRadiusI) - l_ij);

@@ -439,8 +439,8 @@ RealOpenMM* ImplicitSolventParameters::getAtomicRadii( void ) const {
 
    if( _atomicRadii == NULL ){
       ImplicitSolventParameters* localThis = const_cast<ImplicitSolventParameters* const>(this);
-      localThis->_atomicRadii   = new RealOpenMM[getNumberOfAtoms()];
-      localThis->_ownAtomicRadii = true;
+      localThis->_atomicRadii              = new RealOpenMM[getNumberOfAtoms()];
+      localThis->_ownAtomicRadii           = true;
       memset( localThis->_atomicRadii, 0, sizeof( RealOpenMM )*getNumberOfAtoms() );
    }
    return _atomicRadii;
@@ -658,11 +658,11 @@ void ImplicitSolventParameters::_initializeImplicitSolventConstants( void ){
    _kcalA_To_kJNm           = (RealOpenMM)    0.4184;
    _probeRadius             = (RealOpenMM)    1.4;
    _electricConstant        = (RealOpenMM) -166.02691;
+
    // _pi4Asolv                = (RealOpenMM) PI_M*4.0*0.0049*1000.0;
    //_pi4Asolv                = (RealOpenMM) PI_M*19.6;
-
    // _pi4Asolv                = (RealOpenMM) PI_M*4.0*0.0054;
-   _pi4Asolv                = (RealOpenMM) PI_M*0.0216;
+   _pi4Asolv                = (RealOpenMM) (PI_M*0.0216);
    
    _resetPreFactor();
 }

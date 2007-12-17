@@ -79,7 +79,8 @@ class SimTKOpenMMUtilities {
          --------------------------------------------------------------------------------------- */
       
       static int getDistanceSquaredFromSpecifiedAtom( RealOpenMM** atomCoordinates, int atomIndex,
-                                                      int numberOfAtoms, RealOpenMM* distances, FILE* log );
+                                                      int numberOfAtoms, RealOpenMM* distances,
+                                                      FILE* log );
       
       /**---------------------------------------------------------------------------------------
       
@@ -97,7 +98,8 @@ class SimTKOpenMMUtilities {
          --------------------------------------------------------------------------------------- */
       
       static int getDistanceSquaredFromSpecifiedPoint( RealOpenMM** atomCoordinates, RealOpenMM* point, 
-                                                       int numberOfAtoms, RealOpenMM* distances, FILE* log );
+                                                       int numberOfAtoms, RealOpenMM* distances,
+                                                       FILE* log );
 
       /**---------------------------------------------------------------------------------------
       
@@ -114,8 +116,9 @@ class SimTKOpenMMUtilities {
       
          --------------------------------------------------------------------------------------- */
       
-      static int allocateRealOpenMMBufferArray( int bufferIndex, int* allocatedSz, RealOpenMM** bufferArray,
-                                           int requestedSize, int dataAction );
+      static int allocateRealOpenMMBufferArray( int bufferIndex, int* allocatedSz,
+                                                RealOpenMM** bufferArray,
+                                                int requestedSize, int dataAction );
       
       /**---------------------------------------------------------------------------------------
       
@@ -205,8 +208,9 @@ class SimTKOpenMMUtilities {
          --------------------------------------------------------------------------------------- */
       
       static RealOpenMM** allocateTwoDRealOpenMMArray( int iSize, int jSize,
-                                           RealOpenMM** array2D, int initialize, RealOpenMM initialValue,
-                                           const std::string& idString = std::string( "2DArray" ) );
+                                                       RealOpenMM** array2D, int initialize,
+                                                       RealOpenMM initialValue,
+                                                       const std::string& idString = std::string( "2DArray" ) );
       
       /* ---------------------------------------------------------------------------------------
       
@@ -221,7 +225,8 @@ class SimTKOpenMMUtilities {
       
          --------------------------------------------------------------------------------------- */
       
-      static int freeTwoDRealOpenMMArray( RealOpenMM** array2D, const std::string& idString = std::string( "2DArray" ) );
+      static int freeTwoDRealOpenMMArray( RealOpenMM** array2D,
+                                          const std::string& idString = std::string( "2DArray" ) );
       
       /**---------------------------------------------------------------------------------------
       
@@ -239,7 +244,7 @@ class SimTKOpenMMUtilities {
          --------------------------------------------------------------------------------------- */
       
       static int initialize2DRealOpenMMArray( int iSize, int jSize,
-                                         RealOpenMM** array2D, RealOpenMM initialValue );
+                                              RealOpenMM** array2D, RealOpenMM initialValue );
 
       /**---------------------------------------------------------------------------------------
       
@@ -497,8 +502,9 @@ class SimTKOpenMMUtilities {
       
          --------------------------------------------------------------------------------------- */
       
-      static int getArrayStatistics( int numberOfEntries, const RealOpenMM* array, RealOpenMM* average,
-                                     RealOpenMM* stdDev, RealOpenMM* minValue, int* minIndex,
+      static int getArrayStatistics( int numberOfEntries, const RealOpenMM* array,
+                                     RealOpenMM* average, RealOpenMM* stdDev,
+                                     RealOpenMM* minValue, int* minIndex,
                                      RealOpenMM* maxValue, int* maxIndex );
       
 };

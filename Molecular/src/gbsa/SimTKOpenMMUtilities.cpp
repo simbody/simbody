@@ -152,7 +152,8 @@ int SimTKOpenMMUtilities::allocateRealOpenMMBufferArray( int bufferIndex, int* a
    // allocate
 
    // bufferArray[bufferIndex] = (RealOpenMM*) malloc( requestedSize*sizeof( RealOpenMM ) );
-   bufferArray[bufferIndex] = (RealOpenMM*) SimTKOpenMMUtilities::Xmalloc( "bufferArray", __FILE__, __LINE__, requestedSize*sizeof( RealOpenMM ) );
+   bufferArray[bufferIndex] = (RealOpenMM*) SimTKOpenMMUtilities::Xmalloc( "bufferArray", __FILE__, __LINE__,
+                                                                           requestedSize*sizeof( RealOpenMM ) );
    allocatedSz[bufferIndex] = requestedSize;
 
    // zero?
@@ -179,7 +180,8 @@ int SimTKOpenMMUtilities::allocateRealOpenMMBufferArray( int bufferIndex, int* a
 
    --------------------------------------------------------------------------------------- */
 
-int SimTKOpenMMUtilities::printCoordinateAnd1DArrays( int numberAtoms, RealOpenMM** atomCoordinates,
+int SimTKOpenMMUtilities::printCoordinateAnd1DArrays( int numberAtoms,
+                                                      RealOpenMM** atomCoordinates,
                                                       int numberOf1Darrays,
                                                       RealOpenMM** oneDArrays, 
                                                       const char* idString, FILE* log ){
@@ -391,8 +393,7 @@ FILE* SimTKOpenMMUtilities::writeDebugFile( int numberOfFields, const RealOpenMM
 
    --------------------------------------------------------------------------------------- */
 
-RealOpenMM** SimTKOpenMMUtilities::allocateTwoDRealOpenMMArray( int iSize, int jSize,
-                                                                RealOpenMM** array2D, 
+RealOpenMM** SimTKOpenMMUtilities::allocateTwoDRealOpenMMArray( int iSize, int jSize, RealOpenMM** array2D, 
                                                                 int initialize, RealOpenMM initialValue,
                                                                 const std::string& idString ){
 
@@ -404,11 +405,13 @@ RealOpenMM** SimTKOpenMMUtilities::allocateTwoDRealOpenMMArray( int iSize, int j
 
    if( array2D == NULL ){
 
-      array2D     = (RealOpenMM**) SimTKOpenMMUtilities::Xmalloc( idString.c_str(), __FILE__, __LINE__, iSize*sizeof( RealOpenMM* ) );
+      array2D     = (RealOpenMM**) SimTKOpenMMUtilities::Xmalloc( idString.c_str(), __FILE__, __LINE__,
+                                                                  iSize*sizeof( RealOpenMM* ) );
       std::string blockString = idString;
       blockString.append( "Block" );
 
-      RealOpenMM* block = (RealOpenMM*)  SimTKOpenMMUtilities::Xmalloc( blockString.c_str(),   __FILE__, __LINE__, jSize*iSize*sizeof( RealOpenMM ) );
+      RealOpenMM* block = (RealOpenMM*)  SimTKOpenMMUtilities::Xmalloc( blockString.c_str(),   __FILE__, __LINE__,
+                                                                        jSize*iSize*sizeof( RealOpenMM ) );
 
       for( int ii = 0; ii < iSize; ii++ ){
          array2D[ii]  = block;
@@ -472,7 +475,8 @@ int SimTKOpenMMUtilities::freeTwoDRealOpenMMArray( RealOpenMM** array2D, const s
    --------------------------------------------------------------------------------------- */
 
 int SimTKOpenMMUtilities::initialize2DRealOpenMMArray( int iSize, int jSize,
-                                                       RealOpenMM** array2D, RealOpenMM initialValue ){
+                                                       RealOpenMM** array2D,
+                                                       RealOpenMM initialValue ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -536,7 +540,9 @@ char* SimTKOpenMMUtilities::allocateAndZero( unsigned int bytesToAllocate ){
       return NULL;
    }
 
-   char* ptrToMemory = (char*) SimTKOpenMMUtilities::Xmalloc( "ptrToMemory", __FILE__, __LINE__, bytesToAllocate*sizeof( char ) );
+   char* ptrToMemory = (char*) SimTKOpenMMUtilities::Xmalloc( "ptrToMemory",
+                                                              __FILE__, __LINE__,
+                                                              bytesToAllocate*sizeof( char ) );
    memset( ptrToMemory, 0, bytesToAllocate );
 
    return ptrToMemory;
@@ -609,7 +615,9 @@ void SimTKOpenMMUtilities::removeVector3( RealOpenMM* vectorToRemove, RealOpenMM
 
    --------------------------------------------------------------------------------------- */
      
-void SimTKOpenMMUtilities::crossProductVector3( RealOpenMM* vectorX, RealOpenMM* vectorY, RealOpenMM* vectorZ ){
+void SimTKOpenMMUtilities::crossProductVector3( RealOpenMM* vectorX,
+                                                RealOpenMM* vectorY,
+                                                RealOpenMM* vectorZ ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -638,7 +646,8 @@ void SimTKOpenMMUtilities::crossProductVector3( RealOpenMM* vectorX, RealOpenMM*
 
    --------------------------------------------------------------------------------------- */
     
-void SimTKOpenMMUtilities::matrixProductVector3( RealOpenMM* matrixX, RealOpenMM* vectorY,
+void SimTKOpenMMUtilities::matrixProductVector3( RealOpenMM* matrixX,
+                                                 RealOpenMM* vectorY,
                                                  RealOpenMM* vectorZ ){
      
    // ---------------------------------------------------------------------------------------
@@ -668,7 +677,8 @@ void SimTKOpenMMUtilities::matrixProductVector3( RealOpenMM* matrixX, RealOpenMM
 
    --------------------------------------------------------------------------------------- */
     
-void SimTKOpenMMUtilities::matrixCrossProductMatrix3( RealOpenMM* matrixX, RealOpenMM* matrixY,
+void SimTKOpenMMUtilities::matrixCrossProductMatrix3( RealOpenMM* matrixX, 
+                                                      RealOpenMM* matrixY,
                                                       RealOpenMM* vectorZ ){
 
    // ---------------------------------------------------------------------------------------
@@ -764,8 +774,9 @@ void SimTKOpenMMUtilities::Xfree( const char* name, char* fileName, int line, vo
 
 --------------------------------------------------------------------------------------- */
           
-int SimTKOpenMMUtilities::formatRealStringStream( std::stringstream& message, const RealOpenMM* realArray,
-   	       	                                   int numberOfFields, RealOpenMM factor ){
+int SimTKOpenMMUtilities::formatRealStringStream( std::stringstream& message,
+                                                  const RealOpenMM* realArray,
+                                                  int numberOfFields, RealOpenMM factor ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -937,8 +948,8 @@ int SimTKOpenMMUtilities::readFileIntoStringVector( const std::string& fileName,
    } else {
       std::stringstream message;
       message << methodName.c_str() << " could not open file=<" <<  fileName.c_str() << ">.";
-(void) fprintf( stderr, "\n%s\n", message.str().c_str() ); 
-(void) fflush( stderr );
+//(void) fprintf( stderr, "\n%s\n", message.str().c_str() ); 
+//(void) fflush( stderr );
       SimTKOpenMMLog::printMessage( message );
       return SimTKOpenMMCommon::ErrorReturn;  
    }
@@ -1192,8 +1203,9 @@ int SimTKOpenMMUtilities::writeFile( const StringVector& lineVector, const std::
 
    --------------------------------------------------------------------------------------- */
 
-int SimTKOpenMMUtilities::getArrayStatistics( int numberOfEntries, const RealOpenMM* array, RealOpenMM* average,
-                                              RealOpenMM* stdDev, RealOpenMM* minValue, int* minIndex,
+int SimTKOpenMMUtilities::getArrayStatistics( int numberOfEntries, const RealOpenMM* array,
+                                              RealOpenMM* average, RealOpenMM* stdDev,
+                                              RealOpenMM* minValue, int* minIndex,
                                               RealOpenMM* maxValue, int* maxIndex ){
 
    // ---------------------------------------------------------------------------------------
