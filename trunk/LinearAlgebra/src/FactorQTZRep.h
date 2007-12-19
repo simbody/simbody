@@ -72,6 +72,7 @@ template <typename T>
 class FactorQTZRep : public FactorQTZRepBase {
    public:
    template <class ELT> FactorQTZRep( const Matrix_<ELT>&  );
+   template <class ELT> FactorQTZRep( const Matrix_<ELT>&, typename CNT<T>::TReal  );
 
    ~FactorQTZRep();
 

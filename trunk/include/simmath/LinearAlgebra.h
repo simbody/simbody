@@ -104,6 +104,8 @@ class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
 
 
 class FactorQTZRepBase;
+//  default for recipricol of the condition number 
+static const double DefaultRecpCondition = 0.01;
 
 class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
     public:
@@ -111,7 +113,7 @@ class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
     ~FactorQTZ();
 
 
-    template <class ELT> FactorQTZ( const Matrix_<ELT>& m );
+    template <class ELT> FactorQTZ( const Matrix_<ELT>& m, typename CNT<ELT>::TReal rcond = (typename CNT<ELT>::TReal)DefaultRecpCondition );
     template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x );
     template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x );
 
@@ -121,7 +123,7 @@ class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
 
     int getRank() const;
     void setRank(int rank);
-    void setRankCondition( Real rcond ); 
+    void setRecepricolConditionNumber( Real rcond ); 
 
     protected:
     class FactorQTZRepBase *rep;
