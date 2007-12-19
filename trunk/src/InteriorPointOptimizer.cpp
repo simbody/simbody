@@ -127,7 +127,7 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
         AddIpoptIntOption(nlp, "print_level", diagnosticsLevel); // default is 4
 
         int i;
-        static const char *advancedRealOptions[] = {"obj_scaling_factor", "nlp_scaling_max_gradient", "acceptable_tol", 0}; 
+        static const char *advancedRealOptions[] = {"obj_scaling_factor", "nlp_scaling_max_gradient", "acceptable_tol", "dual_inf_tol", "constr_viol_tol", "compl_inf_tol", "recalc_y_feas_tol", 0}; 
         Real value;
         for(i=0;advancedRealOptions[i];i++) {
             if(getAdvancedRealOption(advancedRealOptions[i],value))

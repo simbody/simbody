@@ -118,7 +118,6 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) {
     int nrhs = b.ncol();
     int n = nCol;
     int m = nRow;
-printf("FactorQTZRep<T>::doSolve b.ncol() = %d    nRow = %d    rank = %d\n", b.ncol(), nRow, rank );
     // compute size of workspace 
     // for dormqr, dormrz:  lwork = n*nb
     long lwork1 = n*LapackInterface::ilaenv<T>(1, "ormqr", "LT ", nRow, b.ncol(), -1, -1);
@@ -155,7 +154,7 @@ printf("FactorQTZRep<T>::doSolve b.ncol() = %d    nRow = %d    rank = %d\n", b.n
     }
    
     if( rank < nCol ) {
-// TODO        LapackInterface::ormrz<T>('L', 'T', nCol, x.ncol(), rank, nCol-rank, qtz.data, nRow, 
+// TODO  fix SimTKlapack.h  LapackInterface::ormrz<T>('L', 'T', nCol, x.ncol(), rank, nCol-rank, qtz.data, nRow, 
         int l = nCol-rank;
         LapackInterface::ormrz<T>('L', 'T', nCol, b.ncol(), rank, &l, qtz.data, nRow, 
                                    tauORMQR.data, &b(0,0), b.nrow(), work.data, work.size, info );
@@ -236,7 +235,6 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
         smin = smax;
         if( CNT<T>::abs(qtz.data[0]) == 0 ) {
             rank = 0;
-printf("CNT<T>::abs(qtz.data[0]) = 0  set rank to zero \n");
         } else {
             T s1,s2,c1,c2;
             RealType smaxpr,sminpr;

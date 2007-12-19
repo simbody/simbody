@@ -119,13 +119,15 @@ namespace SimTK {
     void OptimizerRep::initNumericalJac() {  // instaniates a jacobian Differentiator
 
         cf      = new SysConstraintFunc(sysp->getNumConstraints(), sysp->numParameters, sysp );
-        jacDiff = new Differentiator(*cf);  // construct Differentiator
+//        jacDiff = new Differentiator(*cf);  // construct Differentiator
+        jacDiff = new Differentiator(*cf, Differentiator::CentralDifference);  // construct Differentiator
 
     }
     void OptimizerRep::initNumericalGrad() {  // instaniates a gradient Differentiator
 
         of       = new SysObjectiveFunc( sysp->numParameters, sysp );
-        gradDiff = new Differentiator(*of );  // construct Differentiator
+//        gradDiff = new Differentiator(*of );  // construct Differentiator
+        gradDiff = new Differentiator(*of, Differentiator::CentralDifference );  // construct Differentiator
 
      }
 
