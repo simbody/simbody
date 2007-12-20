@@ -29,7 +29,7 @@
 // Set RealOpenMMType to 2 for double precision, 1 for float
 
 #ifndef RealOpenMMType
-#define RealOpenMMType 1
+#define RealOpenMMType 2
 #endif 
 
 #if RealOpenMMType == 1 
