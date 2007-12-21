@@ -59,10 +59,13 @@ public:
     int getMethodMaxOrder() const;
     bool methodHasErrorControl() const;
 private:
-    bool takeOneStep(Real t0, Real t1, Real tReport);
+    void attemptAStep(Real t0, Real t1, const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, const Vector& u0, const Vector& udot0, const Vector& z0, const Vector& zdot0, Vector& err, Real tReport);
+    bool adjustStepSize(Real err, bool hWasArtificiallyLimited);
+    bool takeOneStep(Real t0, Real tMax, Real tReport);
     void backUpAdvancedStateByInterpolation(Real t);
     bool initialized;
-    long statsStepsTaken;
+    long statsStepsTaken, statsStepsAttempted, statsErrorTestFailures;
+    Real currentStepSize;
 };
 
 } // namespace SimTK

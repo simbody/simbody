@@ -39,6 +39,14 @@ VerletIntegratorRep::VerletIntegratorRep(Integrator* handle, const System& sys) 
 
 void VerletIntegratorRep::methodInitialize(const State& state) {
     initialized = true;
+    if (userInitStepSize != -1)
+        currentStepSize = userInitStepSize;
+    else
+        currentStepSize = 0.1*getDynamicSystemTimescale();
+    if (userMinStepSize != -1)
+        currentStepSize = std::max(currentStepSize, userMinStepSize);
+    if (userMaxStepSize != -1)
+        currentStepSize = std::min(currentStepSize, userMaxStepSize);
     resetMethodStatistics();
  }
 
@@ -211,8 +219,7 @@ Integrator::SuccessfulStepStatus VerletIntegratorRep::stepTo(Real reportTime, Re
           saveStateAsPrevious(getAdvancedState());
           
           // Now take a step and see whether an event occurred.
-          Real tNext = std::min(tMax, getAdvancedTime()+userInitStepSize);
-          bool eventOccurred = takeOneStep(getPreviousTime(), tNext, reportTime);
+          bool eventOccurred = takeOneStep(getPreviousTime(), tMax, reportTime);
           ++internalStepsTaken;
           ++statsStepsTaken;
           setStepCommunicationStatus(eventOccurred ? CompletedInternalStepWithEvent : CompletedInternalStepNoEvent);
@@ -233,19 +240,14 @@ Integrator::SuccessfulStepStatus VerletIntegratorRep::stepTo(Real reportTime, Re
       return Integrator::InvalidSuccessfulStepStatus;
 }
 
-bool VerletIntegratorRep::takeOneStep(Real t0, Real t1, Real tReport)
-{
-    assert(t1 > t0);
+/**
+ * Take a trial step and store the result in the advanced state.  Also estimate the error in each element of Y, and store them in err.
+ */
+
+void VerletIntegratorRep::attemptAStep(Real t0, Real t1, const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, const Vector& u0, const Vector& udot0, const Vector& z0, const Vector& zdot0, Vector& err, Real tReport) {
+    statsStepsAttempted++;
     Real h = t1-t0;
     State& advanced = updAdvancedState();
-    getSystem().realize(advanced, Stage::Acceleration);
-    Vector q0 = advanced.getQ();
-    Vector qdot0 = advanced.getQDot();
-    Vector qdotdot0 = advanced.getQDotDot();
-    Vector u0 = advanced.getU();
-    Vector udot0 = advanced.getUDot();
-    Vector z0 = advanced.getZ();
-    Vector zdot0 = advanced.getZDot();
     
     // Calculate the new positions and initial estimate for the velocities.
     
@@ -259,21 +261,94 @@ bool VerletIntegratorRep::takeOneStep(Real t0, Real t1, Real tReport)
     getSystem().realize(advanced, Stage::Position);
     projectStateAndErrorEstimate(advanced, Vector());
     realizeStateDerivatives(advanced);
+    err(0, advanced.getNQ()) = q0 + 0.5*(qdot0+advanced.getQDot())*h - advanced.getQ();
     
     // Now calculate the corrected velocities.
     
-    while (true) {
+    Real tol = std::min(1e-4, 0.1*getAccuracyInUse());
+    for (int i = 0; i < 10; ++i) {
         Vector udot1 = advanced.getUDot();
         Vector zdot1 = advanced.getZDot();
         advanced.updU() = u0 + 0.5*(udot0+udot1)*h;
         advanced.updZ() = z0 + 0.5*(zdot0+zdot1)*h;
-        projectStateAndErrorEstimate(advanced, Vector(), true);
+        err(advanced.getUStart(), advanced.getNU()) = u0 + udot0*h - advanced.getU();
+        err(advanced.getZStart(), advanced.getNZ()) = z0 + zdot0*h - advanced.getZ();
+        projectStateAndErrorEstimate(advanced, err, true);
         realizeStateDerivatives(advanced);
         Real convergence = (advanced.getU()-u1).norm()/u1.norm();
-        if (convergence <= getAccuracyInUse())
+        if (convergence <= tol)
             break;
         u1 = advanced.getU();
     }
+    
+    // Two different integrators were used to estimate errors: trapezoidal for Q, and
+    // explicit Euler for U and Z.  This means that the U and Z errors are of a different
+    // order than the Q errors.  We therefore multiply them by h so everything will be
+    // of the same order.
+    
+    err(advanced.getUStart(), advanced.getNU()+advanced.getNZ()) *= h;
+}
+
+/**
+ * Evaluate the error that occurred in the step we just attempted, and select a new
+ * step size accordingly.
+ * 
+ * @param err     the error estimate from the step that was just attempted
+ * @param hWasArtificiallyLimited   tells whether the step size was artificially
+ * reduced due to a scheduled event time.  If this is true, we will never attempt
+ * to increase the step size.
+ * @return true if the step should be accepted, false if it should be rejected and retried
+ * with a smaller step size
+ */
+
+bool VerletIntegratorRep::adjustStepSize(Real err, bool hWasArtificiallyLimited) {
+    const Real Safety = 0.9, MinShrink = 0.1, MaxGrow = 5;
+    const Real HysteresisLow = 0.9, HysteresisHigh = 1.5;
+    const Real Order = 3; // of the error *estimate*
+    
+    Real newStepSize = Safety*currentStepSize*std::pow(getAccuracyInUse()/err, 1.0/Order);
+    if (newStepSize > currentStepSize) {
+        if (hWasArtificiallyLimited || newStepSize < HysteresisHigh*currentStepSize)
+            newStepSize = currentStepSize;
+    }
+    if (newStepSize < currentStepSize && err <= getAccuracyInUse())
+        newStepSize = currentStepSize;
+    newStepSize = std::min(newStepSize, MaxGrow*currentStepSize);
+    newStepSize = std::max(newStepSize, MinShrink*currentStepSize);
+    if (newStepSize < currentStepSize)
+        newStepSize = std::min(newStepSize, HysteresisLow*currentStepSize);
+    if (userMinStepSize != -1)
+        newStepSize = std::max(newStepSize, userMinStepSize);
+    if (userMaxStepSize != -1)
+        newStepSize = std::min(newStepSize, userMaxStepSize);
+    bool success = (newStepSize >= currentStepSize);
+    currentStepSize = newStepSize;
+    return success;
+}
+
+bool VerletIntegratorRep::takeOneStep(Real t0, Real tMax, Real tReport)
+{
+    Real t1;
+    State& advanced = updAdvancedState();
+    getSystem().realize(advanced, Stage::Acceleration);
+    Vector q0 = advanced.getQ();
+    Vector qdot0 = advanced.getQDot();
+    Vector qdotdot0 = advanced.getQDotDot();
+    Vector u0 = advanced.getU();
+    Vector udot0 = advanced.getUDot();
+    Vector z0 = advanced.getZ();
+    Vector zdot0 = advanced.getZDot();
+    
+    Vector err(advanced.getNY());
+    bool stepSucceeded = false;
+    do {
+        bool hWasArtificiallyLimited = (tMax < t0+currentStepSize);
+        t1 = std::min(tMax, t0+currentStepSize);
+        attemptAStep(t0, t1, q0, qdot0, qdotdot0, u0, udot0, z0, zdot0, err, tReport);
+        stepSucceeded = adjustStepSize(calcWeightedRMSNorm(err, getDynamicSystemWeights()), hWasArtificiallyLimited);
+        if (!stepSucceeded)
+            statsErrorTestFailures++;
+    } while (!stepSucceeded);
     
     // The step succeeded. Check for event triggers. If there aren't
     // any, we're done with the step. Otherwise our goal will be to
@@ -482,7 +557,7 @@ Real VerletIntegratorRep::getPredictedNextStepSize() const {
 
 long VerletIntegratorRep::getNStepsAttempted() const {
     assert(initialized);
-    return statsStepsTaken;
+    return statsStepsAttempted;
 }
 
 long VerletIntegratorRep::getNStepsTaken() const {
@@ -491,11 +566,13 @@ long VerletIntegratorRep::getNStepsTaken() const {
 }
 
 long VerletIntegratorRep::getNErrorTestFailures() const {
-    return 0;
+    return statsErrorTestFailures;
 }
 
 void VerletIntegratorRep::resetMethodStatistics() {
     statsStepsTaken = 0;
+    statsStepsAttempted = 0;
+    statsErrorTestFailures = 0;
 }
 
 const char* VerletIntegratorRep::getMethodName() const {

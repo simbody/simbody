@@ -256,6 +256,13 @@ public:
     void setInitialStepSize(Real hinit);    // default depends on method
     void setMinimumStepSize(Real hmin);     // default depends on method
     void setMaximumStepSize(Real hmax);     // Infinity
+    
+    /// Set the integrator to use a single fixed step size for all steps.  This is exactly equivalent
+    /// to calling setInitialStepSize(), setMinimumStepSize(), and setMaximumStepSize(), passing the
+    /// same value to each one.  This will therefore not work correctly if the integrator does not
+    /// support minimum and/or maximum step sizes.
+    
+    void setFixedStepSize(Real stepSize);
 
     void setAccuracy(Real accuracy);        
     void setRelativeTolerance(Real relTol);

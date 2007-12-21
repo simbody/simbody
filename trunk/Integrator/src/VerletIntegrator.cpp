@@ -36,8 +36,13 @@
 
 using namespace SimTK;
 
+VerletIntegrator::VerletIntegrator(const System& sys)
+{
+    rep = new VerletIntegratorRep(this, sys);
+}
+
 VerletIntegrator::VerletIntegrator(const System& sys, Real stepSize)
 {
     rep = new VerletIntegratorRep(this, sys);
-    setInitialStepSize(stepSize);
+    setFixedStepSize(stepSize);
 }

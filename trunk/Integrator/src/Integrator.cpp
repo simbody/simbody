@@ -239,6 +239,11 @@ void Integrator::setMaximumStepSize(Real z) {
     assert(getRep().userMinStepSize ==-1. || z >= getRep().userMinStepSize);
     updRep().userMaxStepSize = z;
 }
+void Integrator::setFixedStepSize(Real stepSize) {
+    updRep().userInitStepSize = stepSize;
+    updRep().userMinStepSize = stepSize;
+    updRep().userMaxStepSize = stepSize;
+}
 void Integrator::setAccuracy(Real accuracy) {
     assert(accuracy == -1. || (0. < accuracy && accuracy < 1.));
     updRep().userAccuracy = accuracy;
