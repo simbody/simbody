@@ -130,6 +130,22 @@ class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
 
 }; // class FactorQTZ
 
+class SimTK_SIMMATH_EXPORT Eigen {
+    public:
+
+    ~Eigen();
+
+    template <class ELT> Eigen( const Matrix_<ELT>& m );
+    template <class T> void getValues( Vector_<T>& values);
+    template <class T> void getVectors( Matrix_<T>& vectors );
+    void selectVectors( const std::vector<bool>& selectedVectors );
+    void selectValues( const std::vector<bool>& selectedValues );
+
+     
+    protected:
+    class EigenRepBase *rep;
+
+}; // class FactorQTZ
 template <class P>
 bool eigenValuesRightVectors( Matrix_<P> &m, Vector_< std::complex<P> > &eigenValues, Matrix_< std::complex<P> > &eigenVectors );
 
