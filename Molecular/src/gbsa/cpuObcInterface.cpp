@@ -138,7 +138,10 @@ cpuSetObcParameters( int numberOfAtoms, RealOpenMM* atomicRadii, RealOpenMM* obc
    @param forces            output forces in kcal/mol.A; format of array is 
                             forces[atom][3]
 
-   @param energy            energy in kcal/mol
+   @param energy            output energy in kcal/mol
+
+   @param updateBornRadii   if set, then Born radii are updated for current configuration; 
+                            otherwise radii correspond to configuration from previous iteration
 
    Function calls a static method in CpuImplicitSolvent class to calculate forces/energy
 
@@ -149,7 +152,8 @@ cpuSetObcParameters( int numberOfAtoms, RealOpenMM* atomicRadii, RealOpenMM* obc
 extern "C" int
 cpuCalculateImplicitSolventForces( RealOpenMM** atomCoordinates,
                                    const RealOpenMM* partialCharges,
-                                   RealOpenMM** forces, RealOpenMM* energy ){
+                                   RealOpenMM** forces, RealOpenMM* energy,
+                                   int updateBornRadii ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -158,7 +162,7 @@ cpuCalculateImplicitSolventForces( RealOpenMM** atomCoordinates,
    // ---------------------------------------------------------------------------------------
 
    int status = CpuImplicitSolvent::computeImplicitSolventForces( atomCoordinates, partialCharges,
-                                                                  forces );
+                                                                  forces, updateBornRadii );
 
    *energy = CpuImplicitSolvent::getCpuImplicitSolvent()->getEnergy(); 
    // printf( "\ncpuCalculateImplicitSolventForcesE=%.5e", *energy );
@@ -170,6 +174,8 @@ cpuCalculateImplicitSolventForces( RealOpenMM** atomCoordinates,
 /**---------------------------------------------------------------------------------------
 
    Retrieve the calculated energy from the static class member
+   The energy is calculated in cpuCalculateImplicitSolventForces()
+   along w/ the forces
 
    @return the calculated energy from the static class member
 
@@ -214,7 +220,7 @@ extern "C" int cpuDeleteObcParameters( void ){
    --------------------------------------------------------------------------------------- */
 
 extern "C" int getObcScaleFactorsGivenAtomMasses( int numberOfAtoms, const RealOpenMM* masses,
-                                                   RealOpenMM* scaleFactors ){
+                                                  RealOpenMM* scaleFactors ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -224,8 +230,8 @@ extern "C" int getObcScaleFactorsGivenAtomMasses( int numberOfAtoms, const RealO
 
    for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
 
-      double scaleFactor       = 0.8;
-      RealOpenMM mass          = masses[atomI];
+      double scaleFactor = 0.8;
+      RealOpenMM mass    = masses[atomI];
 
       if ( mass < 1.2 && mass >= 1.0 ){        // hydrogen
          scaleFactor  = 0.85; 

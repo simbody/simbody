@@ -540,7 +540,7 @@ int CpuObc::computeBornEnergyForces( RealOpenMM* bornRadii, RealOpenMM** atomCoo
                RealOpenMM u_ij2         = u_ij*u_ij;
  
                RealOpenMM rInverse      = one/r;
-               RealOpenMM r2Inverse     = one/r2;
+               RealOpenMM r2Inverse     = rInverse*rInverse;
 
                RealOpenMM t3            = eighth*(one + scaledRadiusJ2*r2Inverse)*(l_ij2 - u_ij2) + fourth*LN( u_ij/l_ij )*r2Inverse;
 
@@ -1031,8 +1031,33 @@ for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
       bornForces[atomI] *= bornRadii[atomI]*bornRadii[atomI]*obcChain[atomI];      
    }
 
+   if( 0 ){
+
+      std::string outputFileName = "PostLoop1Cpu.txt";
+
+      IntVector chunkVector;
+      chunkVector.push_back( 3 );
+
+      RealOpenMMPtrPtrVector realPtrPtrVector;
+      realPtrPtrVector.push_back( forces );
+
+      RealOpenMMPtrVector realPtrVector;
+      realPtrVector.push_back( obcChain );
+      realPtrVector.push_back( bornRadii );
+      realPtrVector.push_back( bornForces );
+
+      CpuObc::writeForceLoop( numberOfAtoms, chunkVector, realPtrPtrVector, realPtrVector, outputFileName );
+   }
+
 RealOpenMM* bornSumArray = (RealOpenMM*) malloc( sizeof( RealOpenMM )*numberOfAtoms );
 memset( bornSumArray, 0, sizeof( RealOpenMM )*numberOfAtoms );
+/*
+for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
+   forces[atomI][0]  = 0.0;
+   forces[atomI][1]  = 0.0;
+   forces[atomI][2]  = 0.0;
+} */
+   
 
    for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
  
@@ -1080,12 +1105,24 @@ memset( bornSumArray, 0, sizeof( RealOpenMM )*numberOfAtoms );
                RealOpenMM u_ij2           = u_ij*u_ij;
  
                RealOpenMM rInverse        = one/r;
-               RealOpenMM r2Inverse       = one/r2;
+               RealOpenMM r2Inverse       = rInverse*rInverse;
 
                RealOpenMM logRatio        = LN( u_ij/l_ij );
                RealOpenMM t3              = eighth*(one + scaledRadiusJ2*r2Inverse)*(l_ij2 - u_ij2) + fourth*logRatio*r2Inverse;
 
                RealOpenMM de              = bornForces[atomI]*t3*rInverse;
+
+//de = scaledRadiusJ2;
+// de = t3;
+//de = scaledRadiusJ2*r2Inverse;
+//de = FABS( r - scaledRadiusJ ) ok;
+//de = rInverse;
+// de = 1.0;
+// de = r;
+//de = bornForces[atomI];
+// de = r2;
+//de = r2;
+//de = rScaledRadiusJ;
 
                deltaX                    *= de;
                deltaY                    *= de;
@@ -1119,14 +1156,14 @@ if( atomI == -1 || atomJ == -1 ){
         }
       }
 
-bornSumArray[atomI] = half*bornSum;
+      bornSumArray[atomI] = bornSum;
 
       // OBC-specific code (Eqs. 6-8 in paper)
 
       bornSum             *= half*offsetRadiusI;
-      RealOpenMM sum2            = bornSum*bornSum;
-      RealOpenMM sum3            = bornSum*sum2;
-      RealOpenMM tanhSum         = TANH( alphaObc*bornSum - betaObc*sum2 + gammaObc*sum3 );
+      RealOpenMM sum2      = bornSum*bornSum;
+      RealOpenMM sum3      = bornSum*sum2;
+      RealOpenMM tanhSum   = TANH( alphaObc*bornSum - betaObc*sum2 + gammaObc*sum3 );
       
       bornRadiiTemp[atomI] = one/( one/offsetRadiusI - tanhSum/radiusI); 
  
@@ -1138,7 +1175,7 @@ bornSumArray[atomI] = half*bornSum;
    obcEnergy *= getEnergyConversionFactor();
    setEnergy( obcEnergy );
 
-   if( fileDebug ){
+   if( 1 ){
 
       std::string outputFileName = "Loop2Cpu.txt";
 
@@ -1149,12 +1186,12 @@ bornSumArray[atomI] = half*bornSum;
       realPtrPtrVector.push_back( forces );
 
       RealOpenMMPtrVector realPtrVector;
-realPtrVector.push_back( bornSumArray );
-      realPtrVector.push_back( bornRadiiTemp );
-      realPtrVector.push_back( obcChainTemp );
+      realPtrVector.push_back( bornSumArray );
+      // realPtrVector.push_back( bornRadiiTemp );
+      // realPtrVector.push_back( obcChainTemp );
 
       CpuObc::writeForceLoop( numberOfAtoms, chunkVector, realPtrPtrVector, realPtrVector, outputFileName );
-free( (char*) bornSumArray );
+      free( (char*) bornSumArray );
    }
 
    // 6 FLOP

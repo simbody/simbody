@@ -602,6 +602,9 @@ int CpuImplicitSolvent::computeBornRadii( RealOpenMM** atomCoordinates, RealOpen
    @param atomCoordinates     atomic coordinates
    @param partialCharges      partial charges
    @param forces              forces (output)
+   @param updateBornRadii     if set, then Born radii are updated for current configuration; 
+                              otherwise radii correspond to configuration from previous iteration
+
 
    @return SimTKOpenMMCommon::DefaultReturn; abort if cpuImplicitSolvent is not set
 
@@ -609,7 +612,7 @@ int CpuImplicitSolvent::computeBornRadii( RealOpenMM** atomCoordinates, RealOpen
 
 int CpuImplicitSolvent::computeImplicitSolventForces( RealOpenMM** atomCoordinates,
                                                       const RealOpenMM* partialCharges,
-                                                      RealOpenMM** forces ){
+                                                      RealOpenMM** forces, int updateBornRadii ){
 
    // ---------------------------------------------------------------------------------------
 
@@ -666,9 +669,10 @@ int CpuImplicitSolvent::computeImplicitSolventForces( RealOpenMM** atomCoordinat
    // and then once computed, always greater than zero.
 
    // after first iteration Born radii are updated in force calculation (computeBornEnergyForces())
+   // unless updateBornRadii is set
 
    RealOpenMM* bornRadii = cpuImplicitSolvent->getBornRadii();
-   if( bornRadii[0] < (RealOpenMM) 0.0001 || callId == 1 ){
+   if( updateBornRadii || bornRadii[0] < (RealOpenMM) 0.0001 || callId == 1 ){
 
       cpuImplicitSolvent->computeBornRadii( atomCoordinates, bornRadii );
 

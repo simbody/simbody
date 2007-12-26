@@ -98,6 +98,8 @@ int cpuSetObcParameters( int numberOfAtoms, RealOpenMM* atomicRadii, RealOpenMM*
    @param forces            output forces in kcal/mol.A; format of array is 
                             forces[atom][3]
    @param energy            energy
+   @param updateBornRadii   if set, then Born radii are updated for current configuration; 
+                            otherwise radii correspond to configuration from previous iteration
 
    Function calls a static method in CpuImplicitSolvent class to calculate forces/energy
 
@@ -107,7 +109,8 @@ int cpuSetObcParameters( int numberOfAtoms, RealOpenMM* atomicRadii, RealOpenMM*
 
 externC int cpuCalculateImplicitSolventForces( RealOpenMM** atomCoordinates,
                                                const RealOpenMM* partialChargesIn,
-                                               RealOpenMM** forces, RealOpenMM* energy );
+                                               RealOpenMM** forces, RealOpenMM* energy,
+                                               int updateBornRadii );
 
 /**---------------------------------------------------------------------------------------
 

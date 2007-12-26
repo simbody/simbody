@@ -349,6 +349,8 @@ class CpuImplicitSolvent {
          @param atomCoordinates   atomic coordinates
          @param partialCharges    partial charges
          @param forces            forces (output); if not set on input, then memory is allocated
+         @param updateBornRadii   if set, then Born radii are updated for current configuration; 
+                                  otherwise radii correspond to configuration from previous iteration
       
          @return SimTKOpenMMCommon::DefaultReturn 
       
@@ -356,7 +358,7 @@ class CpuImplicitSolvent {
       
       static int computeImplicitSolventForces( RealOpenMM** atomCoordinates,
                                                const RealOpenMM* partialCharges,
-                                               RealOpenMM** forces );
+                                               RealOpenMM** forces, int updateBornRadii = 0 );
       
       /**---------------------------------------------------------------------------------------
       
