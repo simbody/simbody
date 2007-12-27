@@ -332,7 +332,7 @@ int main () {
                 cout << "Event window:     " << integ.getEventWindow() << endl;
 //                cout << "Triggered events: " << integ.getTriggeredEvents();
                 cout << "Transitions seen:";
-                for (int i=0; i<integ.getEventTransitionsSeen().size(); ++i)
+                for (int i=0; i<(int)integ.getEventTransitionsSeen().size(); ++i)
                     cout << " " << EventStatus::eventTriggerString(integ.getEventTransitionsSeen()[i]);
                 cout << endl;
 //                cout << "Est event times:  " << integ.getEstimatedEventTimes();
