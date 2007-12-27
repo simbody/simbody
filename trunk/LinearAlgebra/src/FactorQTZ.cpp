@@ -278,6 +278,7 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
 }
 
 // instantiate
+/* TODO -- sherm 12/26/07 -- I commented this out because it won't compile in Visual Studio
 template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<double>& m, double rcond );
 template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<float>& m, float rcond );
 template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<std::complex<float> >& m, float rcond );
@@ -290,6 +291,7 @@ template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< std::
 template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< std::complex<double> > >& m, double rcond );
 template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< conjugate<float> > >& m, float rcond );
 template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< conjugate<double> > >& m, double rcond );
+*/
 
 template class FactorQTZRep<double>;
 template FactorQTZRep<double>::FactorQTZRep( const Matrix_<double>& m, double rcond);
