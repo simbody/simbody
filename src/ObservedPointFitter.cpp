@@ -207,7 +207,7 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
     // Build a mapping of body IDs to indices.
     
     vector<int> bodyIndex(matter.getNBodies());
-    for (int i = 0; i < bodyIds.size(); ++i)
+    for (int i = 0; i < (int)bodyIds.size(); ++i)
         bodyIndex[bodyIds[i]] = i;
     
     // Find the number of stations on each body with a nonzero weight.

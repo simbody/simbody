@@ -97,9 +97,14 @@ public:
             Mobilized2ConstrainedMap::value_type(b.getMobilizedBodyId(), nextId));
         assert(result.second); // can only add a body once
 
-        // This is a new constrained body -- add it to the Conrained->Mobilized map too.
+        // This is a new constrained body -- add it to the Constrained->Mobilized map too.
         myConstrainedBodies.push_back(b.getMobilizedBodyId());
         return nextId;
+    }
+
+    MobilizedBodyId getMobilizedBodyIdOfConstrainedBody(ConstrainedBodyId c) const {
+        assert(0 <= c && c < (int)myConstrainedBodies.size());
+        return myConstrainedBodies[c];
     }
 
     void realizeTopology(int& nxtQErr, int& nxtUErr, int& nxtMult) const;
@@ -112,7 +117,9 @@ public:
     const SBAccelerationCache& getAccelerationCache(const State&) const;
 
     // These are measured from and expressed in the ancestor (A) frame.
+
     //TODO: should precalculate in State, return reference
+    // (Client "get" methods below should be changed to references also.) 
 
     // These are for use during realization of the associated stage.
     Transform  getBodyTransform   (const State& s, const SBPositionCache&, ConstrainedBodyId B) const; // X_AB
@@ -131,14 +138,22 @@ public:
     }
 
     // Extract just the rotational quantities from the spatial quantities above.
-    const Rotation& getBodyRotation           (const State& s, ConstrainedBodyId B) const {return getBodyTransform(s,B).R();}   // R_AB
-    const Vec3&     getBodyAngularVelocity    (const State& s, ConstrainedBodyId B) const {return getBodyVelocity(s,B)[0];}     // w_AB
-    const Vec3&     getBodyAngularAcceleration(const State& s, ConstrainedBodyId B) const {return getBodyAcceleration(s,B)[0];} // b_AB
+    //TODO: should be references (see above)
+    const Rotation getBodyRotation           (const State& s, const SBPositionCache& pc, ConstrainedBodyId B)     const {return getBodyTransform(s,pc,B).R();}   // R_AB
+    const Vec3     getBodyAngularVelocity    (const State& s, const SBVelocityCache& vc, ConstrainedBodyId B)     const {return getBodyVelocity(s,vc,B)[0];}     // w_AB
+    const Vec3     getBodyAngularAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyId B) const {return getBodyAcceleration(s,ac,B)[0];} // b_AB
+    const Rotation getBodyRotation           (const State& s, ConstrainedBodyId B) const {return getBodyTransform(s,B).R();}   // R_AB
+    const Vec3     getBodyAngularVelocity    (const State& s, ConstrainedBodyId B) const {return getBodyVelocity(s,B)[0];}     // w_AB
+    const Vec3     getBodyAngularAcceleration(const State& s, ConstrainedBodyId B) const {return getBodyAcceleration(s,B)[0];} // b_AB
 
     // Extract just the translational (linear) quantities from the spatial quantities above.
-    const Vec3& getBodyOriginLocation    (const State& s, ConstrainedBodyId B) const {return getBodyTransform(s,B).T();}   // p_AB
-    const Vec3& getBodyOriginVelocity    (const State& s, ConstrainedBodyId B) const {return getBodyVelocity(s,B)[1];}     // v_AB
-    const Vec3& getBodyOriginAcceleration(const State& s, ConstrainedBodyId B) const {return getBodyAcceleration(s,B)[1];} // a_AB
+    //TODO: should be references (see above)
+    const Vec3 getBodyOriginLocation    (const State& s, const SBPositionCache& pc, ConstrainedBodyId B)     const {return getBodyTransform(s,pc,B).T();}   // p_AB
+    const Vec3 getBodyOriginVelocity    (const State& s, const SBVelocityCache& vc, ConstrainedBodyId B)     const {return getBodyVelocity(s,vc,B)[1];}     // v_AB
+    const Vec3 getBodyOriginAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyId B) const {return getBodyAcceleration(s,ac,B)[1];} // a_AB
+    const Vec3 getBodyOriginLocation    (const State& s, ConstrainedBodyId B) const {return getBodyTransform(s,B).T();}   // p_AB
+    const Vec3 getBodyOriginVelocity    (const State& s, ConstrainedBodyId B) const {return getBodyVelocity(s,B)[1];}     // v_AB
+    const Vec3 getBodyOriginAcceleration(const State& s, ConstrainedBodyId B) const {return getBodyAcceleration(s,B)[1];} // a_AB
 
     Vec3 calcStationLocation(const State& s, const SBPositionCache& pc, ConstrainedBodyId B, const Vec3& p_B) const {
         return getBodyTransform(s,pc,B) * p_B; // re-measure and re-express
@@ -164,6 +179,33 @@ public:
     }
     Vec3 calcStationAcceleration(const State& s, ConstrainedBodyId B, const Vec3& p_B) const {
         return calcStationAcceleration(s, getAccelerationCache(s), B, p_B);
+    }
+
+    // Apply an A-frame force to a B-frame station, updating the appropriate bodyForces entry.
+    void addInStationForce(const State& s, ConstrainedBodyId B, const Vec3& p_B, 
+                           const Vec3& forceInA, Vector_<SpatialVec>& bodyForcesInA) const 
+    {
+        assert(bodyForcesInA.size() == getNumConstrainedBodies());
+        const Rotation& R_AB = getBodyRotation(s,B);
+        bodyForcesInA[B] += SpatialVec((R_AB*p_B) % forceInA, forceInA); // rXf, f
+    }
+
+    // Apply an A-frame torque to body B, updating the appropriate bodyForces entry.
+    void addInBodyTorque(const State& s, ConstrainedBodyId B, const Vec3& torqueInA,
+                         Vector_<SpatialVec>& bodyForcesInA) const 
+    {
+        assert(bodyForcesInA.size() == getNumConstrainedBodies());
+        bodyForcesInA[B][0] += torqueInA; // no force
+    }
+
+    // Apply a generalized (mobility) force to a particular mobility of the given constraint body B,
+    // adding it in to the appropriate slot of the mobilityForces vector.
+    void addInMobilityForce(const State& s, ConstrainedBodyId B, int which, Real f,
+                            Vector& mobilityForces) const 
+    { 
+        assert(mobilityForces.size() == getNumConstrainedMobilities(s));
+        assert(0 <= which && which < getNumConstrainedMobilities(s, B));
+        mobilityForces[getConstrainedMobilityIndex(s,B,which)] += f;
     }
 
     virtual ~ConstraintRep();
@@ -291,6 +333,29 @@ public:
             && getMyMatterSubsystem().isSameSubsystem(body.getMatterSubsystem());
     }
 
+    int getNumConstrainedBodies() const {
+        SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
+            "Number of constrained bodies is not available until Topology stage has been realized.");
+        return (int)myConstrainedBodies.size();
+    }
+
+    int getNumConstrainedMobilities(const State& s) const {
+        //TODO
+        assert(!"Constraint::getNumConstrainedMobilities() not implemented yet.");
+        return -1;
+    }
+
+    int getNumConstrainedMobilities(const State& s, ConstrainedBodyId B) const {
+        //TODO
+        assert(!"Constraint::getNumConstrainedMobilities(B) not implemented yet.");
+        return -1;
+    }
+
+    int getConstrainedMobilityIndex(const State& s, ConstrainedBodyId B, int which) const {
+        //TODO
+        assert(!"Constraint::getConstrainedMobilityIndex(B) not implemented yet.");
+        return -1;
+    }
 
     const SimbodyMatterSubsystemRep& getMyMatterSubsystemRep() const {
         SimTK_ASSERT(myMatterSubsystemRep,
@@ -414,7 +479,7 @@ public:
     // respectively.
     void applyPositionConstraintForcesVirtual
        (const State& s, int mp, const Real* multipliers,
-        Vector_<SpatialVec>& bodyForces,
+        Vector_<SpatialVec>& bodyForcesInA,
         Vector&              mobilityForces) const
     {
         assert(mp==1 && multipliers);
@@ -424,8 +489,15 @@ public:
         const Vec3 p2 = calcStationLocation(s, B2, defaultPoint2);
         const Vec3 p = p2 - p1;
 
-        bodyForces[B2][1] = lambda * p; // no torque
-        bodyForces[B1][1] = -bodyForces[B2][1];
+        const Vec3 f2 = lambda * p;
+
+        // The forces on either point have the same line of action because they are aligned
+        // with the vector between the points. Applying the forces to any point along the line
+        // would have the same effect (e.g., same point in space on both bodies) so this is
+        // the same as an equal and opposite force applied to the same point and this constraint
+        // will do no work even if the position or velocity constraints are not satisfied.
+        addInStationForce(s, B2, defaultPoint2,  f2, bodyForcesInA);
+        addInStationForce(s, B1, defaultPoint1, -f2, bodyForcesInA);
     }
 
     SimTK_DOWNCAST(RodRep, ConstraintRep);
@@ -434,8 +506,6 @@ private:
 
     ConstrainedBodyId B1, B2;
 
-    MobilizedBodyId body1; // B1
-    MobilizedBodyId body2; // B2
     Vec3            defaultPoint1; // on body 1, exp. in B1 frame
     Vec3            defaultPoint2; // on body 2, exp. in B2 frame
     Real            defaultRodLength;
@@ -469,19 +539,315 @@ public:
     }
     Real getPointDisplayRadius() const {return pointRadius;}
 
+
+    // Implementation of virtuals required for holonomic constraints.
+
+    // Let B=B1 be the "base" body onto which the plane P is fixed, and F=B2 the "follower" body onto which
+    // a station S is fixed. Then n is the plane normal (a constant
+    // unit vector in B), h is the plane height measured from the B origin along n (a scalar constant),
+    // and h_S is the current height of the station S (on F) over the plane (on B). h_S is a calculated, state
+    // dependent quantity. The constraint we want to enforce is that h_S(q)=h.
+    //
+    // perr = h_S(q) - h
+    //
+    // For convenience, we'll calculate this in the ancestor frame A, measuring heights h_AS and h_AP
+    // over the A frame origin OA instead of the B frame origin OB:
+    //      perr = (h_S+h_OB) - (h+h_OB)
+    //           =   h_AS(q)  -  h_AP(q)
+    // Then
+    //      verr = hd_AS  - hd_AP     (where 'd' means dot; i.e., time derivative in A)
+    //      aerr = hdd_AS - hdd_AP
+    // 
+    // To recalculate the heights from the A origin, we'll need n_A, the normal vector expressed in A, where
+    // it is no longer a constant. We'll also need the 1st and 2nd time derivatives of the normal in A:
+    //      n_A   = R_AB*n
+    //      nd_A  = w_AB X n_A
+    //      ndd_A = b_AB X n_A + w_AB X nd_A  (b is angular accleration)
+    //
+    // Now we can calculate the heights and their derivatives in terms of the normal and its derivatives:
+    //      h_AP = p_AB * n_A + h         (height of plane over the A origin)
+    //      h_AS = p_AS * n_A             (height of follower station S over the A origin)
+    //
+    // Then
+    //      perr = h_AS - h_AP =  (p_AS-p_AB) * n_A - h
+    //
+    //      hd_AP = v_AB * n_A + p_AB * nd_A
+    //      hd_AS = v_AS * n_A + p_AS * nd_A
+    //
+    //      verr = hd_AS - hd_AP = (v_AS-v_AB)*n_A + (p_AS-p_AB)*nd_A
+    //
+    //      hdd_AP = a_AB*n_A + 2(v_AB*nd_A) + p_AB*ndd_A
+    //      hdd_AS = a_AS*n_A + 2(v_AS*nd_A) + p_AS*ndd_A
+    //
+    //      aerr = hdd_AS - hdd_AP = (a_AS-a_AB)*n_A + 2*(v_AS-v_AB)*nd_A + (p_AS-p_AB)*ndd_A
+    //
+    // Then, from examination of verr we find velocities and angular velocities like this:
+    //        v_AS*n_A, -v_AB*n_A, (p_AS-p_AB)*(w_AB X n_A) = w_AB*(n_A X (p_AS-p_AB))
+    //
+    // so we apply a forces lambda*n_A to S, -lambda*n_A to OB, and torque lambda*(n_A X (p_AS-p_AB)) to B.
+    // More simply, just apply force lambda*n_A to S and -lambda*n_A to the point S' of B which is
+    // instantaneously coincident in space to S. That adds an rXF torque (p_AS-p_AB) X (-lambda*n_A).
+    //
+    void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
+        assert(mp==1 && perr);
+        const Transform& X_AB = getBodyTransform(s, pc, planeBody);
+        const Rotation&  R_AB = X_AB.R();
+        const Vec3&      p_AB = X_AB.T();
+        const Vec3       p_AS = calcStationLocation(s,pc,followerBody,defaultFollowerPoint);
+        const UnitVec3   n_A  = R_AB * defaultPlaneNormal;
+
+        const Real h_AP = dot(p_AB, n_A) + defaultPlaneHeight;
+        const Real h_AS = dot(p_AS, n_A);
+
+        *perr = h_AS - h_AP;
+    }
+
+    // pverr = d/dt perr = hd_AS - hd_AP
+    void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
+        assert(mp==1 && pverr);
+        //TODO: should be able to get p info from State
+        const Transform&  X_AB = getBodyTransform(s, planeBody);
+        const Rotation&   R_AB = X_AB.R();
+        const Vec3&       p_AB = X_AB.T();
+        const Vec3        p_AS = calcStationLocation(s,followerBody,defaultFollowerPoint);
+        const UnitVec3    n_A  = R_AB * defaultPlaneNormal;
+
+        const SpatialVec& V_AB = getBodyVelocity(s, vc, planeBody);
+        const Vec3&       v_AB = V_AB[1];
+        const Vec3&       w_AB = V_AB[0];
+        const Vec3        v_AS = calcStationVelocity(s,vc,followerBody,defaultFollowerPoint);
+        const Vec3        nd_A = w_AB % n_A;
+
+        const Real hd_AP = dot(v_AB, n_A) + dot(p_AB, nd_A);
+        const Real hd_AS = dot(v_AS, n_A) + dot(p_AS, nd_A);
+
+        *pverr = hd_AS - hd_AP;
+    }
+
+    // paerr = d/dt verr = hdd_AS - hdd_AP
+    void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
+        assert(mp==1 && paerr);
+        //TODO: should be able to get p and v info from State
+        const Transform&  X_AB = getBodyTransform(s, planeBody);
+        const Rotation&   R_AB = X_AB.R();
+        const Vec3&       p_AB = X_AB.T();
+        const Vec3        p_AS = calcStationLocation(s,followerBody,defaultFollowerPoint);
+        const UnitVec3    n_A  = R_AB * defaultPlaneNormal;
+
+        const SpatialVec& V_AB = getBodyVelocity(s, planeBody);
+        const Vec3&       v_AB = V_AB[1];
+        const Vec3&       w_AB = V_AB[0];
+        const Vec3        v_AS = calcStationVelocity(s,followerBody,defaultFollowerPoint);
+        const Vec3        nd_A = w_AB % n_A;
+
+        const SpatialVec& A_AB  = getBodyAcceleration(s, ac, planeBody);
+        const Vec3&       a_AB  = A_AB[1];
+        const Vec3&       b_AB  = A_AB[0];
+        const Vec3        a_AS  = calcStationAcceleration(s,ac,followerBody,defaultFollowerPoint);
+        const Vec3        ndd_A = b_AB % n_A + w_AB % nd_A;
+
+        const Real hdd_AP = dot(a_AB,n_A) + 2*dot(v_AB,nd_A) + dot(p_AB,ndd_A);
+        const Real hdd_AS = dot(a_AS,n_A) + 2*dot(v_AS,nd_A) + dot(p_AS,ndd_A);
+
+        *paerr = hdd_AS - hdd_AP;
+    }
+
+    void applyPositionConstraintForcesVirtual
+       (const State& s, int mp, const Real* multipliers,
+        Vector_<SpatialVec>& bodyForcesInA,
+        Vector&              mobilityForces) const
+    {
+        assert(mp==1 && multipliers);
+        const Real lambda = *multipliers;
+        //TODO: should be able to get p info from State
+        const Transform&  X_AB = getBodyTransform(s, planeBody);
+        const Rotation&   R_AB = X_AB.R();
+        const Vec3&       p_AB = X_AB.T();
+        const Vec3        p_AS = calcStationLocation(s, followerBody, defaultFollowerPoint);
+        const UnitVec3    n_A  = R_AB * defaultPlaneNormal;
+
+        const Vec3        p_BS = ~R_AB*(p_AS-p_AB); // point S' on B coincident with S
+        const Vec3        f_S = lambda*n_A;         // force (in A) to be applied to point S
+
+        // Because we're applying equal and opposite forces at the same point in space, this
+        // constraint will do no work even if the position and velocity constraints are not satisfied.
+        addInStationForce(s, followerBody, defaultFollowerPoint, f_S, bodyForcesInA);
+        addInStationForce(s, planeBody,    p_BS,                -f_S, bodyForcesInA);
+    }
+
     SimTK_DOWNCAST(PointInPlaneRep, ConstraintRep);
 private:
     friend class Constraint::PointInPlane;
 
-    MobilizedBodyId planeBody;    // B1
-    MobilizedBodyId followerBody; // B2
-    UnitVec3        defaultPlaneNormal; // on body 1, exp. in B1 frame
-    Real            defaultPlaneHeight;
-    Vec3            defaultFollowerPoint; // on body 2, exp. in B2 frame
+    ConstrainedBodyId planeBody;    // B1
+    ConstrainedBodyId followerBody; // B2
+
+    UnitVec3          defaultPlaneNormal; // on body 1, exp. in B1 frame
+    Real              defaultPlaneHeight;
+    Vec3              defaultFollowerPoint; // on body 2, exp. in B2 frame
 
     // These are just for visualization
     Real planeHalfWidth;
     Real pointRadius;
+};
+
+
+class Constraint::ConstantAngle::ConstantAngleRep : public Constraint::ConstraintRep {
+public:
+    ConstantAngleRep()
+      : ConstraintRep(1,0,0), defaultAxisB(), defaultAxisF(), defaultAngle(Pi/2),
+        axisLength(1), axisThickness(1), cosineOfDefaultAngle(0)
+    { }
+    ConstantAngleRep* clone() const { return new ConstantAngleRep(*this); }
+
+    ConstraintNode* createConstraintNode() const; 
+
+    void calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+
+    void setAxisLength(Real length) {
+        // length <= 0 means don't display axis
+        invalidateTopologyCache();
+        axisLength = length > 0 ? length : 0;
+    }
+    Real getAxisLength() const {return axisLength;}
+
+    void setAxisThickness(Real t) {
+        // t <= 0 means don't display axis
+        invalidateTopologyCache();
+        axisThickness = t > 0 ? t : 0;
+    }
+    Real getAxisThickness() const {return axisThickness;}
+
+
+    // Implementation of virtuals required for holonomic constraints.
+
+    // Let B=B1 be the "base" body onto which unit vector b is fixed, and F=B2 the "follower" 
+    // body onto which unit vector f is fixed. The angle theta between these vectors is
+    // given by cos(theta) = dot(b, f) with the axes expressed in a common basis.
+    // This can range from 1 to -1, corresponding to angles 0 to 180 respectively.
+    // We would like to enforce the constraint that cos(theta) is a constant. This can be done
+    // with a single constraint equation as long as theta is sufficiently far away from 0 and
+    // 180, with the numerically best performance at theta=90 degrees where cos(theta)==0.
+    //
+    // If you want to enforce that two axes are aligned with one another (that is, the angle
+    // between them is 0 or 180), that takes *two* constraint equations since the only remaining
+    // rotation is about the common axis.
+    //
+    // We will work in the A frame.
+    //
+    // ------------------------------
+    // perr = ~b_A * f_A - cos(theta)
+    // ------------------------------
+    //
+    // verr = d/dt perr (derivative taken in A)
+    //      = ~b_A * (w_AF % f_A) + ~f_A * (w_AB % b_A)
+    //      = ~w_AF * (f_A % b_A) - ~w_AB * (f_A % b_A)     (scalar triple product identity)
+    // => ------------------------------
+    // verr = ~(w_AF-w_AB) * (f_A % b_A)
+    // ---------------------------------
+    //
+    // aerr = d/dt verr (derivative taken in A)
+    //      = ~(b_AF-b_AB) * (f_A % b_A)
+    //        + (w_AF-w_AB) * ((w_AF%f_A) % b_A)
+    //        + (w_AF-w_AB) * (f_A % (w_AB%b_A))
+    //      = ~(b_AF-b_AB) * (f_A % b_A)
+    //        + 2 (w_AF % w_AB) * (f_A % b_A)
+    // => ------------------------------------------------
+    // aerr = ~(b_AF - b_AB + 2 w_AF % w_AB) * (f_A % b_A)
+    // ---------------------------------------------------
+    //
+    // Constraint torque can be determined by inspection of verr:
+    //    lambda * (f_A % b_A) applied to body F
+    //   -lambda * (f_A % b_A) applied to body B
+    //
+
+    // ------------------------------
+    // perr = ~b_A * f_A - cos(theta)
+    // ------------------------------
+    void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
+        assert(mp==1 && perr);
+
+        const Rotation& R_AB = getBodyRotation(s, pc, B);
+        const Rotation& R_AF = getBodyRotation(s, pc, F);
+        const UnitVec3  b_A  = R_AB * defaultAxisB;
+        const UnitVec3  f_A  = R_AF * defaultAxisF;
+
+        *perr = dot(b_A, f_A) - cosineOfDefaultAngle;
+    }
+
+    // ----------------------------------
+    // pverr = ~(w_AF-w_AB) * (f_A % b_A)
+    // ----------------------------------
+    void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
+        assert(mp==1 && pverr);
+        //TODO: should be able to get p info from State
+        const Rotation& R_AB = getBodyRotation(s, B);
+        const Rotation& R_AF = getBodyRotation(s, F);
+        const UnitVec3  b_A  = R_AB * defaultAxisB;
+        const UnitVec3  f_A  = R_AF * defaultAxisF;
+        const Vec3      w_AB = getBodyAngularVelocity(s, vc, B);
+        const Vec3      w_AF = getBodyAngularVelocity(s, vc, F);
+
+        *pverr = dot( w_AF-w_AB,  f_A % b_A );
+    }
+
+    // ----------------------------------------------------
+    // paerr = ~(b_AF - b_AB + 2 w_AF % w_AB) * (f_A % b_A)
+    // ----------------------------------------------------
+    void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
+        assert(mp==1 && paerr);
+        //TODO: should be able to get p and v info from State
+        const Rotation& R_AB = getBodyRotation(s, B);
+        const Rotation& R_AF = getBodyRotation(s, F);
+        const UnitVec3  b_A  = R_AB * defaultAxisB;
+        const UnitVec3  f_A  = R_AF * defaultAxisF;
+        const Vec3      w_AB = getBodyAngularVelocity(s, B);
+        const Vec3      w_AF = getBodyAngularVelocity(s, F);
+        const Vec3      b_AB = getBodyAngularAcceleration(s, ac, B);
+        const Vec3      b_AF = getBodyAngularAcceleration(s, ac, F);
+
+        *paerr = dot( b_AF-b_AB + 2*(w_AF % w_AB), 
+                      f_A % b_A );
+    }
+
+    //    lambda * (f_A % b_A) applied to body F
+    //   -lambda * (f_A % b_A) applied to body B
+    void applyPositionConstraintForcesVirtual
+       (const State& s, int mp, const Real* multipliers,
+        Vector_<SpatialVec>& bodyForcesInA,
+        Vector&              mobilityForces) const
+    {
+        assert(mp==1 && multipliers);
+        const Real lambda = *multipliers;
+        //TODO: should be able to get p info from State
+        const Rotation&  R_AB = getBodyRotation(s, B);
+        const Rotation&  R_AF = getBodyRotation(s, F);
+        const UnitVec3   b_A = R_AB*defaultAxisB;
+        const UnitVec3   f_A = R_AF*defaultAxisF;
+        const Vec3       torque_F_A = lambda * (f_A % b_A); // on F, in A frame
+
+        addInBodyTorque(s, F,  torque_F_A, bodyForcesInA);
+        addInBodyTorque(s, B, -torque_F_A, bodyForcesInA);
+    }
+
+    SimTK_DOWNCAST(ConstantAngleRep, ConstraintRep);
+private:
+    friend class Constraint::ConstantAngle;
+
+    ConstrainedBodyId B; // B1 is "base" body
+    ConstrainedBodyId F; // B2 is "follower" body
+
+    UnitVec3          defaultAxisB; // fixed to B, expressed in B frame
+    UnitVec3          defaultAxisF; // fixed to F, expressed in F frame
+    Real              defaultAngle; // required angle between axisB and axisF
+
+    // These are just for visualization
+    Real axisLength;
+    Real axisThickness;
+
+    // TOPOLOGY CACHE (that is, calculated from construction data)
+    Real cosineOfDefaultAngle;
 };
 
 
@@ -502,17 +868,307 @@ public:
     }
     Real getDefaultRadius() const {return defaultRadius;}
 
+    // Implementation of virtuals required for holonomic constraints.
+
+    // We have a ball joint between base body B and follower body F, located at a point P fixed to B
+    // and point S fixed on F. All forces will be applied at point S and the coincident point C on B which is 
+    // instantaneously at the same spatial location as S. We will work in the B frame where p_BP is a constant,
+    // so that it will not appear in the velocity and acceleration equations.
+    //
+    //    perr = p_PC (expressed in B)
+    //         = p_BC - p_BP
+    //         = R_BA*(p_AS-p_AB) - p_BP
+    //
+    //   (Below we're using the identity w_BA = -R_BA*w_AB)
+    //
+    //    verr = d/dt perr = v_BC (derivative taken in B)
+    //         = w_BA X R_BA*(p_AS-p_AB) 
+    //                + R_BA*(v_AS-v_AB)
+    //         = R_BA*(         (v_AS-v_AB) 
+    //                 - w_AB X (p_AS-p_AB))
+    //
+    //    aerr = d/dt verr = a_BC (derivative taken in B)
+    //         = (b_BA + w_BA X w_BA) X R_BA*(p_AS-p_AB)
+    //                       + 2*w_BA X R_BA*(v_AS-v_AB) 
+    //                                + R_BA*(a_AS-a_AB)
+    //         = -R_BA*(b_AB - w_AB X w_AB) X R_BA*(p_AS-p_AB)
+    //                        - 2*R_BA*w_AB X R_BA*(v_AS-v_AB)
+    //                                      + R_BA*(a_AS-a_AB)
+    //         = R_BA*(                         (a_AS-a_AB)
+    //                               - 2*w_AB X (v_AS-v_AB) 
+    //                 - (b_AB - w_AB X w_AB) X (p_AS-p_AB))
+    //
+
+    void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
+        assert(mp==3 && perr);
+
+        const Rotation&  R_AB   = getBodyRotation(s, pc, B1);
+        const Vec3&      p_AB   = getBodyOriginLocation(s, pc, B1);
+        const Vec3       p_AS   = calcStationLocation(s, pc, B2, defaultPoint2);
+        const Vec3       p_BS_A = p_AS - p_AB;
+
+        Vec3::updAs(perr) = ~R_AB*p_BS_A - defaultPoint1;  // p_BC - p_BP (C is pt of B coincident with S)
+    }
+
+    // pverr = d/dt perr = 
+    void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
+        assert(mp==3 && pverr);
+        //TODO: should be able to get p info from State
+        const Rotation&   R_AB   = getBodyRotation(s, B1);
+        const Vec3&       p_AB   = getBodyOriginLocation(s, B1);
+        const Vec3        p_AS   = calcStationLocation(s, B2, defaultPoint2);
+        const Vec3        p_BS_A = p_AS - p_AB;
+
+        const Vec3&       w_AB    = getBodyAngularVelocity(s, vc, B1);
+        const Vec3&       v_AB    = getBodyOriginVelocity(s, vc, B1);
+        const Vec3        v_AS    = calcStationVelocity(s, vc, B2, defaultPoint2);
+        const Vec3        v_BS_A  = v_AS - v_AB;
+        const Vec3        pverr_A = v_BS_A - w_AB % p_BS_A;
+
+        Vec3::updAs(pverr) = ~R_AB * pverr_A;
+    }
+
+    // paerr = d/dt verr = 
+    void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
+        assert(mp==3 && paerr);
+        //TODO: should be able to get p and v info from State
+
+        const Rotation&   R_AB   = getBodyRotation(s, B1);
+        const Vec3&       p_AB   = getBodyOriginLocation(s, B1);
+        const Vec3        p_AS   = calcStationLocation(s, B2, defaultPoint2);
+        const Vec3        p_BS_A = p_AS - p_AB;
+
+        const Vec3&       w_AB    = getBodyAngularVelocity(s, B1);
+        const Vec3&       v_AB    = getBodyOriginVelocity(s, B1);
+        const Vec3        v_AS    = calcStationVelocity(s, B2, defaultPoint2);
+        const Vec3        v_BS_A  = v_AS - v_AB;
+
+        const Vec3&       b_AB    = getBodyAngularAcceleration(s, ac, B1);
+        const Vec3&       a_AB    = getBodyOriginAcceleration(s, ac, B1);
+        const Vec3        a_AS    = calcStationAcceleration(s, ac, B2, defaultPoint2);
+        const Vec3        a_BS_A  = a_AS - a_AB;
+        const Vec3        paerr_A = a_BS_A 
+                                    - 2 * w_AB % v_BS_A
+                                    - (b_AB - w_AB%w_AB) % p_BS_A;
+
+        Vec3::updAs(paerr) = ~R_AB * paerr_A;
+    }
+
+    void applyPositionConstraintForcesVirtual
+       (const State& s, int mp, const Real* multipliers,
+        Vector_<SpatialVec>& bodyForcesInA,
+        Vector&              mobilityForces) const
+    {
+        assert(mp==3 && multipliers);
+        const Vec3 force = Vec3::getAs(multipliers);
+        //TODO: should be able to get p info from State
+        const Transform& X_AB  = getBodyTransform(s,B1);
+        const Vec3&      p_FS  = defaultPoint2;
+        const Vec3       p_AS  = calcStationLocation(s, B2, p_FS);
+        const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin and reexpress in B;
+                                              // C is material point of B coincident with S
+
+        // Multipliers are force to be applied to S on F, but
+        // apply the -force not to point P of B, but to the point "C" of B
+        // coincident with S, which won't be exactly the same place
+        // as P if the position-level constraint isn't met exactly.
+
+        addInStationForce(s, B2, p_FS,  force, bodyForcesInA);
+        addInStationForce(s, B1, p_BC, -force, bodyForcesInA);
+    }
+
     SimTK_DOWNCAST(BallRep, ConstraintRep);
 private:
     friend class Constraint::Ball;
 
-    MobilizedBodyId body1; // B1
-    MobilizedBodyId body2; // B2
+    ConstrainedBodyId B1;
+    ConstrainedBodyId B2;
+
     Vec3            defaultPoint1; // on body 1, exp. in B1 frame
     Vec3            defaultPoint2; // on body 2, exp. in B2 frame
     Real            defaultRadius; // used for visualization only
 };
 
+class Constraint::ConstantOrientation::ConstantOrientationRep : public Constraint::ConstraintRep {
+public:
+    ConstantOrientationRep()
+      : ConstraintRep(1,0,0), defaultRB(), defaultRF(),
+        axisLength(1), axisThickness(1)
+    { }
+    ConstantOrientationRep* clone() const { return new ConstantOrientationRep(*this); }
+
+    ConstraintNode* createConstraintNode() const; 
+
+    void calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+
+    void setAxisLength(Real length) {
+        // length <= 0 means don't display axis
+        invalidateTopologyCache();
+        axisLength = length > 0 ? length : 0;
+    }
+    Real getAxisLength() const {return axisLength;}
+
+    void setAxisThickness(Real t) {
+        // t <= 0 means don't display axis
+        invalidateTopologyCache();
+        axisThickness = t > 0 ? t : 0;
+    }
+    Real getAxisThickness() const {return axisThickness;}
+
+
+    // Implementation of virtuals required for holonomic constraints.
+
+    // Let B=B1 be the "base" body onto which rotation matrix RB is fixed, and F=B2 the "follower" 
+    // body onto which rotation matrix RF is fixed. We would like to enforce the constraint
+    // that RB==RF when both are expressed in a common basis. (Remember that a rotation matrix
+    // is just three axis vectors.)
+    // 
+    // Here the (redundant) assembly constraint is that all the axes are parallel, that is
+    // RBx==RFx, RBy==RFy, and RBz==RFz. However, aligning two vectors takes *two* constraints
+    // so that would be a total of 6 constraints, with only 3 independent.
+    // The independent runtime constraints just enforce perpendicularity, but can be satisfied
+    // in cases where some of the axes are antiparallel so are not suited for the initial assembly.
+    // The runtime constraints are thus three "constant angle" constraints, where the angle
+    // is always 90 degrees:
+    //
+    //    ~RFx * RBy = 0
+    //    ~RFy * RBz = 0
+    //    ~RFz * RBx = 0
+    //
+    // We'll work in A. See the "constant angle" constraint for details.
+    //
+    // -----------------
+    // perr = ~RFx * RBy  (with all axes expressed in A)
+    //        ~RFy * RBz
+    //        ~RFz * RBx
+    // -----------------
+    //
+    // ---------------------------------
+    // verr = ~(w_AF-w_AB) * (RFx % RBy)
+    //      = ~(w_AF-w_AB) * (RFy % RBz)
+    //      = ~(w_AF-w_AB) * (RFz % RBx)
+    // ---------------------------------
+    //
+    // ---------------------------------------------------
+    // aerr = ~(b_AF - b_AB + 2 w_AF % w_AB) * (RFx % RBy)
+    //      = ~(b_AF - b_AB + 2 w_AF % w_AB) * (RFy % RBz)
+    //      = ~(b_AF - b_AB + 2 w_AF % w_AB) * (RFz % RBx)
+    // ---------------------------------------------------
+    //
+    // Constraint torque can be determined by inspection of verr:
+    //    t_F =   lambda_x * (RFx % RBy)   (applied to body F)
+    //          + lambda_y * (RFy % RBz)
+    //          + lambda_z * (RFz % RBx)
+    //    t_B = -t_F                       (applied to body B)
+    //
+
+    // -----------------
+    // perr = ~RFx * RBy  (with all axes expressed in A)
+    //        ~RFy * RBz
+    //        ~RFz * RBx
+    // -----------------
+    void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
+        assert(mp==3 && perr);
+
+        const Rotation& R_AB = getBodyRotation(s, pc, B);
+        const Rotation& R_AF = getBodyRotation(s, pc, F);
+        const Rotation  RB = R_AB * defaultRB; // now expressed in A
+        const Rotation  RF = R_AF * defaultRF;
+
+        Vec3::updAs(perr) = Vec3(~RF.x()*RB.y(),
+                                 ~RF.y()*RB.z(),
+                                 ~RF.z()*RB.x());
+    }
+
+    // ----------------------------------
+    // verr = ~(w_AF-w_AB) * (RFx % RBy)
+    //      = ~(w_AF-w_AB) * (RFy % RBz)
+    //      = ~(w_AF-w_AB) * (RFz % RBx)
+    // ----------------------------------
+    void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
+        assert(mp==3 && pverr);
+        //TODO: should be able to get p info from State
+        const Rotation& R_AB = getBodyRotation(s, B);
+        const Rotation& R_AF = getBodyRotation(s, F);
+        const Rotation  RB = R_AB * defaultRB; // now expressed in A
+        const Rotation  RF = R_AF * defaultRF;
+
+        const Vec3&     w_AB = getBodyAngularVelocity(s, vc, B);
+        const Vec3&     w_AF = getBodyAngularVelocity(s, vc, F);
+        const Vec3      w_BF = w_AF-w_AB; // in A
+
+        Vec3::updAs(pverr) = Vec3( ~w_BF * (RF.x() % RB.y()),
+                                   ~w_BF * (RF.y() % RB.z()),
+                                   ~w_BF * (RF.z() % RB.x()) );
+    }
+
+    // ----------------------------------------------------
+    // aerr = ~(b_AF - b_AB + 2 w_AF % w_AB) * (RFx % RBy)
+    //      = ~(b_AF - b_AB + 2 w_AF % w_AB) * (RFy % RBz)
+    //      = ~(b_AF - b_AB + 2 w_AF % w_AB) * (RFz % RBx)
+    // ----------------------------------------------------
+    void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
+        assert(mp==3 && paerr);
+        //TODO: should be able to get p and v info from State
+        const Rotation& R_AB = getBodyRotation(s, B);
+        const Rotation& R_AF = getBodyRotation(s, F);
+        const Rotation  RB = R_AB * defaultRB; // now expressed in A
+        const Rotation  RF = R_AF * defaultRF;
+
+        const Vec3&     w_AB = getBodyAngularVelocity(s, B);
+        const Vec3&     w_AF = getBodyAngularVelocity(s, F);
+
+        const Vec3&     b_AB = getBodyAngularAcceleration(s, ac, B);
+        const Vec3&     b_AF = getBodyAngularAcceleration(s, ac, F);
+
+        const Vec3      b_BF = (b_AF-b_AB + 2*(w_AF % w_AB)); // in A
+
+        Vec3::updAs(paerr) = Vec3( ~b_BF * (RF.x() % RB.y()),
+                                   ~b_BF * (RF.y() % RB.z()),
+                                   ~b_BF * (RF.z() % RB.x()) );
+    }
+
+    //    t_F =   lambda_x * (RFx % RBy)   (applied to body F)
+    //          + lambda_y * (RFy % RBz)
+    //          + lambda_z * (RFz % RBx)
+    //    t_B = -t_F                       (applied to body B)
+    void applyPositionConstraintForcesVirtual
+       (const State& s, int mp, const Real* multipliers,
+        Vector_<SpatialVec>& bodyForcesInA,
+        Vector&              mobilityForces) const
+    {
+        assert(mp==3 && multipliers);
+        const Vec3& lambda = Vec3::getAs(multipliers);
+
+        //TODO: should be able to get p info from State
+        const Rotation& R_AB = getBodyRotation(s, B);
+        const Rotation& R_AF = getBodyRotation(s, F);
+        const Rotation  RB = R_AB * defaultRB; // now expressed in A
+        const Rotation  RF = R_AF * defaultRF;
+
+        const Vec3 torque_F_A =   lambda[0] * (RF.x() % RB.y())
+                                + lambda[1] * (RF.y() % RB.z())
+                                + lambda[2] * (RF.z() % RB.x());
+
+        addInBodyTorque(s, F,  torque_F_A, bodyForcesInA);
+        addInBodyTorque(s, B, -torque_F_A, bodyForcesInA);
+    }
+
+    SimTK_DOWNCAST(ConstantOrientationRep, ConstraintRep);
+private:
+    friend class Constraint::ConstantOrientation;
+
+    ConstrainedBodyId B; // B1 is "base" body
+    ConstrainedBodyId F; // B2 is "follower" body
+
+    Rotation          defaultRB; // fixed to B, expressed in B frame; RB = R_B_RB
+    Rotation          defaultRF; // fixed to F, expressed in F frame; RF = R_F_RF
+
+    // These are just for visualization
+    Real axisLength;
+    Real axisThickness;
+};
 
 
 class Constraint::Weld::WeldRep : public Constraint::ConstraintRep {
@@ -522,12 +1178,69 @@ public:
 
     ConstraintNode* createConstraintNode() const; 
 
+    // Implementation of virtuals required for holonomic constraints.
+
+    // TODO: THEORY GOES HERE
+
+    void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
+        assert(mp==6 && perr);
+
+        Vec6::updAs(perr) = 0; // orientation error, position error
+    }
+
+    // pverr = d/dt perr = 
+    void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
+        assert(mp==6 && pverr);
+        //TODO: should be able to get p info from State
+
+
+        Vec6::updAs(pverr) = 0;
+    }
+
+    // paerr = d/dt verr = 
+    void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
+        assert(mp==6 && paerr);
+        //TODO: should be able to get p and v info from State
+
+        // XXX
+
+        Vec6::updAs(paerr) = 0;
+    }
+
+    void applyPositionConstraintForcesVirtual
+       (const State& s, int mp, const Real* multipliers,
+        Vector_<SpatialVec>& bodyForcesInA,
+        Vector&              mobilityForces) const
+    {
+        assert(mp==6 && multipliers);
+        const Vec3 torque = Vec3::getAs(multipliers);
+        const Vec3 force  = Vec3::getAs(multipliers + 3);
+        //TODO: should be able to get p info from State
+
+        const Transform& X_AB1  = getBodyTransform(s,B1);
+        const Vec3&      p_B2F2 = defaultFrame2.T();
+        const Vec3       p_AF2  = calcStationLocation(s, B2, p_B2F2);
+        const Vec3       p_B1F2 = ~X_AB1 * p_AF2; // shift to B1 origin and reexpress in B1
+
+        // Multipliers are torque and force to be applied to body2; apply
+        // equal and opposite torque to body1, but apply the -force to the
+        // point of body1 coincident with frame2's origin, which in general
+        // won't be exactly the same as frame1's origin.
+
+        addInBodyTorque(s, B2,  torque, bodyForcesInA);
+        addInBodyTorque(s, B1, -torque, bodyForcesInA);
+
+        addInStationForce(s, B2, p_B2F2,  force, bodyForcesInA);
+        addInStationForce(s, B1, p_B1F2, -force, bodyForcesInA);
+    }
+
     SimTK_DOWNCAST(WeldRep, ConstraintRep);
 private:
     friend class Constraint::Weld;
 
-    MobilizedBodyId body1; // B1
-    MobilizedBodyId body2; // B2
+    ConstrainedBodyId B1;
+    ConstrainedBodyId B2;
+
     Transform       defaultFrame1; // on body 1, relative to B1 frame
     Transform       defaultFrame2; // on body 2, relative to B2 frame};
 };

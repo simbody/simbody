@@ -190,9 +190,10 @@ try
     // Young's modulus and p is Poisson's ratio for the material. The c's are
     // the dissipation coefficients in units of 1/velocity.
 
-    const Real kwall=concrete_planestrain, khard=steel_planestrain, krubber=rubber_planestrain;
-    const Real cwall=concrete_dissipation, chard=steel_dissipation, crubber=rubber_dissipation;
+    Real kwall=concrete_planestrain, khard=steel_planestrain, krubber=rubber_planestrain;
+    Real cwall=concrete_dissipation, chard=steel_dissipation, crubber=rubber_dissipation;
     //const Real cwall = 0., chard = 0., crubber=0.;
+    /*XXXkwall*=.001, khard*=.001;*/
 
     contact.addSphere(pend1, Vec3(0, -linkLength/2, 0), pendBallRadius, krubber, crubber);
     contact.addSphere(pend2, Vec3(0, -linkLength/2, 0), pendBallRadius, krubber, crubber);
@@ -248,7 +249,10 @@ try
     //OLDCPodesIntegrator ee(mbs, s);
 
     RungeKuttaMersonIntegrator ee(mbs);
+    //VerletIntegrator ee(mbs);
+    //ee.setMaximumStepSize(.01);
     //CPodesIntegrator ee(mbs, CPodes::BDF, CPodes::Newton);
+    //CPodesIntegrator ee(mbs, CPodes::Adams, CPodes::Functional);
     //ee.setProjectEveryStep(true);
 
     vtk.report(s);
@@ -263,7 +267,7 @@ try
     const Real tstart = 0.;
     const Real tmax = 100;
 
-    ee.setAccuracy(1e-4);
+    ee.setAccuracy(1e-2);
     ee.setConstraintTolerance(1e-3);
 
     s.updTime() = tstart;

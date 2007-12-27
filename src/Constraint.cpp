@@ -104,21 +104,32 @@ SimbodyMatterSubsystem& Constraint::updMatterSubsystem() {
 }
 
 bool Constraint::isInSubsystem() const {
-    return rep && rep->isInSubsystem();
+    return getRep().isInSubsystem();
 }
 
 bool Constraint::isInSameSubsystem(const MobilizedBody& body) const {
-    return rep && rep->isInSameSubsystem(body);
+    return getRep().isInSameSubsystem(body);
 }
 
 int Constraint::getNumConstrainedBodies() const {
-    assert(getRep().subsystemTopologyHasBeenRealized());
-    return (int)getRep().myConstrainedBodies.size();
+    return getRep().getNumConstrainedBodies();
 }
 
-const MobilizedBody& Constraint::getConstrainedBody(ConstrainedBodyId b) const {
+int Constraint::getNumConstrainedMobilities(const State& s) const {
+    return getRep().getNumConstrainedMobilities(s);
+}
+
+int Constraint::getNumConstrainedMobilities(const State& s, ConstrainedBodyId B) const {
+    return getRep().getNumConstrainedMobilities(s,B);
+}
+
+int Constraint::getConstrainedMobilityIndex(const State& s, ConstrainedBodyId B, int which) const {
+    return getRep().getConstrainedMobilityIndex(s,B,which);
+}
+
+const MobilizedBody& Constraint::getConstrainedBody(ConstrainedBodyId B) const {
     assert(getRep().subsystemTopologyHasBeenRealized());
-    return getMatterSubsystem().getMobilizedBody(getRep().myConstrainedBodies[b]);
+    return getMatterSubsystem().getMobilizedBody(getRep().myConstrainedBodies[B]);
 }
 
 const SimbodyMatterSubsystem::Subtree& Constraint::getSubtree() const {
@@ -140,15 +151,12 @@ Constraint::Rod::Rod(MobilizedBody& body1, MobilizedBody& body2, Real defaultRod
         "Constraint::Rod(): Rod length must always be greater than zero");
 
     rep = new RodRep(); rep->setMyHandle(*this);
-
-    updRep().body1 = body1.getMobilizedBodyId();
-    updRep().body2 = body2.getMobilizedBodyId();
-    updRep().defaultRodLength = defaultRodLength;
-
     body1.updMatterSubsystem().adoptConstraint(*this);
 
     updRep().B1 = updRep().addConstrainedBody(body1);
     updRep().B2 = updRep().addConstrainedBody(body2);
+
+    updRep().defaultRodLength = defaultRodLength;
 }
 
 Constraint::Rod::Rod(MobilizedBody& body1, const Vec3& point1,
@@ -162,17 +170,14 @@ Constraint::Rod::Rod(MobilizedBody& body1, const Vec3& point1,
         "Constraint::Rod(): Rod length must always be greater than zero");
 
     rep = new RodRep(); rep->setMyHandle(*this);
-
-    updRep().body1 = body1.getMobilizedBodyId();
-    updRep().body2 = body2.getMobilizedBodyId();
-    updRep().defaultPoint1 = point1;
-    updRep().defaultPoint2 = point2;
-    updRep().defaultRodLength = defaultRodLength;
-
     body1.updMatterSubsystem().adoptConstraint(*this);
 
     updRep().B1 = updRep().addConstrainedBody(body1);
     updRep().B2 = updRep().addConstrainedBody(body2);
+
+    updRep().defaultPoint1 = point1;
+    updRep().defaultPoint2 = point2;
+    updRep().defaultRodLength = defaultRodLength;
 }
 
 Constraint::Rod& Constraint::Rod::setDefaultPointOnBody1(const Vec3& p1) {
@@ -191,11 +196,11 @@ Constraint::Rod& Constraint::Rod::setDefaultRodLength(Real length) {
 }
 
 
-MobilizedBodyId Constraint::Rod::getBody1Id() const {
-    return getRep().body1;
+MobilizedBodyId Constraint::Rod::getBody1MobilizedBodyId() const {
+    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().B1);
 }
-MobilizedBodyId Constraint::Rod::getBody2Id() const {
-    return getRep().body2;
+MobilizedBodyId Constraint::Rod::getBody2MobilizedBodyId() const {
+    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().B1);
 }
 const Vec3& Constraint::Rod::getDefaultPointOnBody1() const {
     return getRep().defaultPoint1;
@@ -244,17 +249,13 @@ Constraint::PointInPlane::PointInPlane
         "Constraint::PointInPlane(): both bodies to be connected must be in the same SimbodyMatterSubsystem.");
 
     rep = new PointInPlaneRep(); rep->setMyHandle(*this);
+    planeBody.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().planeBody    = planeBody.getMobilizedBodyId();
-    updRep().followerBody = followerBody.getMobilizedBodyId();
+    updRep().planeBody    = updRep().addConstrainedBody(planeBody);
+    updRep().followerBody = updRep().addConstrainedBody(followerBody);
     updRep().defaultPlaneNormal   = defPlaneNormal;
     updRep().defaultPlaneHeight   = defPlaneHeight;
     updRep().defaultFollowerPoint = defFollowerPoint;
-
-    planeBody.updMatterSubsystem().adoptConstraint(*this);
-
-    updRep().addConstrainedBody(planeBody);
-    updRep().addConstrainedBody(followerBody);
 }
 
 Constraint::PointInPlane& Constraint::PointInPlane::setDefaultPlaneNormal(const UnitVec3& n) {
@@ -275,11 +276,11 @@ Constraint::PointInPlane& Constraint::PointInPlane::setDefaultFollowerPoint(cons
     return *this;
 }
 
-MobilizedBodyId Constraint::PointInPlane::getPlaneBodyId() const {
-    return getRep().planeBody;
+MobilizedBodyId Constraint::PointInPlane::getPlaneMobilizedBodyId() const {
+    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().planeBody);
 }
-MobilizedBodyId Constraint::PointInPlane::getFollowerBodyId() const {
-    return getRep().followerBody;
+MobilizedBodyId Constraint::PointInPlane::getFollowerMobilizedBodyId() const {
+    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().followerBody);
 }
 const UnitVec3& Constraint::PointInPlane::getDefaultPlaneNormal() const {
     return getRep().defaultPlaneNormal;
@@ -383,14 +384,10 @@ Constraint::Ball::Ball(MobilizedBody& body1, MobilizedBody& body2)
         "Constraint::Ball(): both bodies to be connected must be in the same MatterSubsystem.");
 
     rep = new BallRep(); rep->setMyHandle(*this);
-
-    updRep().body1 = body1.getMobilizedBodyId();
-    updRep().body2 = body2.getMobilizedBodyId();
-
     body1.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().addConstrainedBody(body1);
-    updRep().addConstrainedBody(body2);
+    updRep().B1 = updRep().addConstrainedBody(body1);
+    updRep().B2 = updRep().addConstrainedBody(body2);
 }
 
 Constraint::Ball::Ball(MobilizedBody& body1, const Vec3& point1,
@@ -402,16 +399,13 @@ Constraint::Ball::Ball(MobilizedBody& body1, const Vec3& point1,
         "Constraint::Ball(): both bodies to be connected must be in the same MatterSubsystem.");
 
     rep = new BallRep(); rep->setMyHandle(*this);
-
-    updRep().body1 = body1.getMobilizedBodyId();
-    updRep().body2 = body2.getMobilizedBodyId();
-    updRep().defaultPoint1 = point1;
-    updRep().defaultPoint2 = point2;
-
     body1.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().addConstrainedBody(body1);
-    updRep().addConstrainedBody(body2);
+    updRep().B1 = updRep().addConstrainedBody(body1);
+    updRep().B2 = updRep().addConstrainedBody(body2);
+
+    updRep().defaultPoint1 = point1;
+    updRep().defaultPoint2 = point2;
 }
 
 Constraint::Ball& Constraint::Ball::setDefaultPointOnBody1(const Vec3& p1) {
@@ -426,11 +420,11 @@ Constraint::Ball& Constraint::Ball::setDefaultPointOnBody2(const Vec3& p2) {
     return *this;
 }
 
-MobilizedBodyId Constraint::Ball::getBody1Id() const {
-    return getRep().body1;
+MobilizedBodyId Constraint::Ball::getBody1MobilizedBodyId() const {
+    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().B1);
 }
-MobilizedBodyId Constraint::Ball::getBody2Id() const {
-    return getRep().body2;
+MobilizedBodyId Constraint::Ball::getBody2MobilizedBodyId() const {
+    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().B2);
 }
 const Vec3& Constraint::Ball::getDefaultPointOnBody1() const {
     return getRep().defaultPoint1;
@@ -491,7 +485,7 @@ void Constraint::Ball::BallRep::calcDecorativeGeometryAndAppendImpl
                                             .setRepresentation(DecorativeGeometry::DrawSurface)
                                             .setOpacity(0.5)
                                             .setResolution(0.75)
-                                            .setBodyId(body1)
+                                            .setBodyId(getMobilizedBodyIdOfConstrainedBody(B1))
                                             .setTransform(X_B1));
         geom.push_back(DecorativeSphere(0.90*getDefaultRadius())
             .setColor(White)
@@ -499,7 +493,7 @@ void Constraint::Ball::BallRep::calcDecorativeGeometryAndAppendImpl
             .setResolution(0.75)
             .setLineThickness(3)
             .setOpacity(0.1)
-            .setBodyId(body1)
+            .setBodyId(getMobilizedBodyIdOfConstrainedBody(B1))
             .setTransform(X_B1));
 
         // On the outboard body draw an orange mesh sphere at the ball radius.
@@ -508,7 +502,7 @@ void Constraint::Ball::BallRep::calcDecorativeGeometryAndAppendImpl
                                             .setRepresentation(DecorativeGeometry::DrawWireframe)
                                             .setOpacity(0.5)
                                             .setResolution(0.5)
-                                            .setBodyId(body2)
+                                            .setBodyId(getMobilizedBodyIdOfConstrainedBody(B2))
                                             .setTransform(X_B2));
     }
 }
@@ -525,14 +519,10 @@ Constraint::Weld::Weld(MobilizedBody& body1, MobilizedBody& body2)
         "Constraint::Weld(): both bodies to be connected must be in the same MatterSubsystem.");
 
     rep = new WeldRep(); rep->setMyHandle(*this);
-
-    updRep().body1 = body1.getMobilizedBodyId();
-    updRep().body2 = body2.getMobilizedBodyId();
-
     body1.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().addConstrainedBody(body1);
-    updRep().addConstrainedBody(body2);
+    updRep().B1 = updRep().addConstrainedBody(body1);
+    updRep().B2 = updRep().addConstrainedBody(body2);
 }
 
 Constraint::Weld::Weld(MobilizedBody& body1, const Transform& frame1,
@@ -544,16 +534,13 @@ Constraint::Weld::Weld(MobilizedBody& body1, const Transform& frame1,
         "Constraint::Weld(): both bodies to be connected must be in the same MatterSubsystem.");
 
     rep = new WeldRep(); rep->setMyHandle(*this);
-
-    updRep().body1 = body1.getMobilizedBodyId();
-    updRep().body2 = body2.getMobilizedBodyId();
-    updRep().defaultFrame1 = frame1;
-    updRep().defaultFrame2 = frame2;
-
     body1.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().addConstrainedBody(body1);
-    updRep().addConstrainedBody(body2);
+    updRep().B1 = updRep().addConstrainedBody(body1);
+    updRep().B2 = updRep().addConstrainedBody(body2);
+
+    updRep().defaultFrame1 = frame1;
+    updRep().defaultFrame2 = frame2;
 }
 
 Constraint::Weld& Constraint::Weld::setDefaultFrameOnBody1(const Transform& f1) {
@@ -566,11 +553,11 @@ Constraint::Weld& Constraint::Weld::setDefaultFrameOnBody2(const Transform& f2) 
     return *this;
 }
 
-MobilizedBodyId Constraint::Weld::getBody1Id() const {
-    return getRep().body1;
+MobilizedBodyId Constraint::Weld::getBody1MobilizedBodyId() const {
+    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().B1);
 }
-MobilizedBodyId Constraint::Weld::getBody2Id() const {
-    return getRep().body2;
+MobilizedBodyId Constraint::Weld::getBody2MobilizedBodyId() const {
+    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().B2);
 }
 const Transform& Constraint::Weld::getDefaultFrameOnBody1() const {
     return getRep().defaultFrame1;

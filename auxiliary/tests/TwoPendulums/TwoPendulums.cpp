@@ -88,7 +88,6 @@ private:
 void ff(Vector& v) {
     v = 23.;
 }
-    
 
 int main(int argc, char** argv) {
   try { // If anything goes wrong, an exception will be thrown.
