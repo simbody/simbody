@@ -22,6 +22,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#ifdef NOTDEF
+
 // class of shared, static utility methods
 
 #include "SimTKOpenMMGromacsUtilities.h"
@@ -2080,3 +2082,4 @@ int SimTKOpenMMGromacsUtilities::getAtomResidueNames( const t_topology* top,
    return SimTKOpenMMCommon::DefaultReturn;
 
 }
+#endif

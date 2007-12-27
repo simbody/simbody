@@ -3395,7 +3395,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
         returnValue = cpuCalculateImplicitSolventForces( &gbsaCoordinatePointers[0],
                                                          &gbsaAtomicPartialCharges[0],
                                                          &atomicGbsaForcePointers[0], 
-                                                         &gbsaEnergy );
+                                                         &gbsaEnergy, 1/*updateBornRadii*/ );
         assert( returnValue == 0 );
 
         // 4)  apply GBSA forces to bodies

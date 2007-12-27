@@ -22,6 +22,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#ifdef NOTDEF
+
 #include "gromacsCpuObcInterface.h"
 #include "cpuObcInterface.h"
 
@@ -255,3 +257,5 @@ extern "C" int cpuWriteXyzFile( const rvec *atomCoordinates, const t_topology* t
    return 0;
 
 }
+
+#endif
