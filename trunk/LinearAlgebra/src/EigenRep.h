@@ -83,12 +83,20 @@ class EigenRep : public EigenRepBase {
    void getVectors( Matrix_< typename CNT<T>::TReal >& vectors );
    void selectValues( const std::vector<bool>& selectedValues);
    void selectVectors( const std::vector<bool>& selectedVectors);
+   void computeValues();
  
    private:
   
-   int nRow;
-   int nCol;
-   int numValues;
+   int n;
+   bool needAllValues;
+   bool needAllVectors;
+   bool computedValues;     // true if eigen values  already computed
+   bool computedVectors;    // true if eigen vectors already computed
+   TypedWorkSpace<bool> selectedValues;
+   TypedWorkSpace<bool> selectedVectors;
+   TypedWorkSpace<T> inputMatrix;
+   TypedWorkSpace<std::complex< typename CNT<T>::TReal > >eigenValues;
+   Matrix_<std::complex< typename CNT<T>::TReal > > rightVectors;
 
 }; // end class EigenRep
 } // namespace SimTK

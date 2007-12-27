@@ -33,8 +33,13 @@
 #include "LapackInterface.h"
 #include "WorkSpace.h"
 
+static const double EPS = .000001;
 namespace SimTK {
 
+int LapackInterface::getLWork( float* work) { return( (int)work[0] ); }
+int LapackInterface::getLWork( double* work) { return( (int)work[0] ); }
+int LapackInterface::getLWork( std::complex<float>* work) { return( (int)work[0].real() ); }
+int LapackInterface::getLWork( std::complex<double>* work) { return( (int)work[0].real() ); }
 
 template <> void LapackInterface::getrs<double>
     ( const bool transpose, const int ncol, const int nrhs, const double *lu, const int *pivots, double *b ) {
@@ -99,30 +104,121 @@ template <> void LapackInterface::getrs<complex<double> >
 
     return;
 }
-template <> inline void LapackInterface::geev<double>
+template <> void LapackInterface::geev<double>
    (char jobvl, char jobvr,
-    int n, double a[], int lda, double wr[], double wi[],  
-    double vl[], int ldvl, double vr[], int ldvr, double work[],
+    int n, double a[], int lda, std::complex<double>* values, 
+    double vl[], int ldvl, Matrix_<std::complex<double> >& rightVectors, int ldvr, double work[],
     int lwork, int& info )
 {
+    TypedWorkSpace<double> wr(n);
+    TypedWorkSpace<double> wi(n);
+    TypedWorkSpace<double> vr(n*n);
 
     dgeev_( jobvl, jobvr, 
-             n, a, lda, wr, wi, vl, ldvl, vr, ldvr, 
+//             n, a, lda, wr.data, wi.data, vl, ldvl, vr.data, ldvr, 
+             n, a, lda, wr.data, wi.data, vl, ldvl, vr.data, ldvr, 
              work, lwork, info, 
              1, 1);
+
+    for(int i=0;i<n;i++) {
+        values[i] = std::complex<double>(wr.data[i], wi.data[i] );
+    }
+
+    /*
+    ** LAPACK returns the eigen vectors as complex conjuate pairs 
+    ** if the eigen value is real  ( imaginary part == 0 ) then the eigen vector is real
+    ** else the vectors are returned with the real part in the jth column and the
+    ** imaginary part in the j+1 column
+    */
+    for(int j=0;j<n;j++) {
+        if( fabs(wi.data[j]) < EPS ) {
+            for(int i=0;i<n;i++) {
+                rightVectors(i,j) = std::complex<double>(vr.data[j*n+i], 0.0 );
+             }
+        } else {
+            for(int i=0;i<n;i++) {
+                rightVectors(i,j) = std::complex<double>(vr.data[j*n+i], vr.data[(j+1)*n+i]);
+                rightVectors(i,j+1) = std::complex<double>(vr.data[j*n+i], -vr.data[(j+1)*n+i]);
+            }
+            j++;
+        }
+    } 
+/*
+    for(int j=0;j<n;j++) { 
+        for(int i=0;i<n;i++) printf("%f %f    ", rightVectors(i,j).real(), rightVectors(i,j).imag() ); 
+        printf("\n");
+    }
+*/
 }
 
-template <> inline void LapackInterface::geev<float>
+template <> void LapackInterface::geev<float>
    (char jobvl, char jobvr,
-    int n, float a[], int lda, float wr[], float wi[],  
-    float vl[], int ldvl, float vr[], int ldvr, float work[],
+    int n, float a[], int lda, std::complex<float>* values,
+    float vl[], int ldvl, Matrix_<std::complex<float> >& rightVectors, int ldvr, float work[],
+    int lwork, int& info )
+{
+    TypedWorkSpace<float> wr(n);
+    TypedWorkSpace<float> wi(n);
+    TypedWorkSpace<float> vr(n*n);
+
+    sgeev_( jobvl, jobvr, 
+             n, a, lda, wr.data, wi.data, vl, ldvl, vr.data, ldvr, 
+             work, lwork, info, 
+             1, 1);
+
+    for(int i=0;i<n;i++) {
+        values[i] = std::complex<float>(wr.data[i], wi.data[i] );
+    }
+    /*
+    ** LAPACK returns the eigen vectors as complex conjuate pairs 
+    ** if the eigen value is real  ( imaginary part == 0 ) then the eigen vector is real
+    ** else the vectors are returned with the real part in the jth column and the
+    ** imaginary part in the j+1 column
+    */
+    for(int j=0;j<n;j++) {
+        if( fabs(wi.data[j]) < (float)EPS ) {
+            for(int i=0;i<n;i++) {
+                rightVectors(i,j) = std::complex<float>(vr.data[j*n+i], 0.0 );
+//printf(" %f ",vr.data[j*n+i] );
+             }
+//printf("\n");
+        } else {
+            for(int i=0;i<n;i++) {
+                rightVectors(i,j) = std::complex<float>(vr.data[j*n+i], vr.data[(j+1)*n+i]);
+                rightVectors(i,j+1) = std::complex<float>(vr.data[j*n+i], -vr.data[(j+1)*n+i]);
+            }
+            j++;
+	}
+    } 
+}
+template <> void LapackInterface::geev<std::complex<float> >
+   (char jobvl, char jobvr,
+    int n, std::complex<float> a[], int lda, std::complex<float>* values, 
+    std::complex<float> vl[], int ldvl, Matrix_<std::complex<float> >& rightVectors, int ldvr, std::complex<float> work[],
     int lwork, int& info )
 {
 
-    sgeev_( jobvl, jobvr, 
-             n, a, lda, wr, wi, vl, ldvl, vr, ldvr, 
-             work, lwork, info, 
+    TypedWorkSpace<float> Rwork(2*n);
+    cgeev_( jobvl, jobvr, 
+             n, a, lda, values,  vl, ldvl, &rightVectors(0,0), ldvr, 
+             work, lwork, Rwork.data, info, 
              1, 1);
+
+}
+
+template <> void LapackInterface::geev<std::complex<double> >
+   (char jobvl, char jobvr,
+    int n, std::complex<double> a[], int lda, std::complex<double>* values, 
+    std::complex<double> vl[], int ldvl, Matrix_<std::complex<double> >& rightVectors, int ldvr, std::complex<double> work[],
+    int lwork, int& info )
+{
+
+    TypedWorkSpace<double> Rwork(2*n);
+    zgeev_( jobvl, jobvr, 
+             n, a, lda, values,  vl, ldvl, &rightVectors(0,0), ldvr, 
+             work, lwork, Rwork.data, info, 
+             1, 1);
+
 }
 template <> 
 void  LapackInterface::getrf<double>( const int m, const int n, double *lu, const int lda,  int *pivots, int& info ) {

@@ -28,6 +28,7 @@
 
 
 #include <iostream> 
+#include <cstdio>
 #include <malloc.h>
 #include <math.h>
 #include <complex>
@@ -79,9 +80,21 @@ void Eigen::getVectors(  Matrix_<T>& vectors ) {
    /////////////////
 template <typename T >
     template < typename ELT >
-EigenRep<T>::EigenRep( const Matrix_<ELT>& mat)  {
+EigenRep<T>::EigenRep( const Matrix_<ELT>& mat):
+        n(mat.ncol()),  
+        inputMatrix(n*n),
+        rightVectors(n,n),
+        eigenValues(n),
+        selectedVectors(n),
+        selectedValues(n),
+        computedValues(false),
+        computedVectors(false),
+        needAllValues(true),
+        needAllVectors(true) {  
+         
+   LapackConvert::convertMatrixToLapack( inputMatrix.data, mat );
         
-//	EigenRep<T>::computeValues( mat );
+        
 }
 
 template <typename T >
@@ -89,24 +102,80 @@ EigenRep<T>::~EigenRep() {}
 
 template < class T >
 void EigenRep<T>::getValues( Vector_<std::complex<typename CNT<T>::TReal> >& values ) {
-    values.resize(numValues);
+     values.resize(n);
+
+    if( !computedValues ) computeValues();
+    for(int i=0; i<n;i++) {
+         values(i) = eigenValues.data[i];
+    }
+}
+    
+template < class T >
+void EigenRep<T>::computeValues() {
+
+    typedef typename CNT<T>::TReal RType;
+    int i,j;
+    int info;
+
+    if( needAllValues && needAllVectors) {
+            char calcLeftEigenVectors  = 'N';     // don't compute left eigen vectors
+            char calcRightEigenVectors = 'V';     // compute  right eigen vectors
+ 
+            int computeLwork = -1;
+            T size[1];
+            T *leftVectors = NULL;           // no left vectors are calculated
+
+            // compute optimial size of workspace
+            LapackInterface::geev<T>( calcLeftEigenVectors, calcRightEigenVectors,
+                              n, inputMatrix.data, n,
+                              eigenValues.data,
+                              leftVectors,  n,
+                              rightVectors, n,
+                              size, computeLwork,
+                              info);
+
+            int lwork = LapackInterface::getLWork( size );
+            TypedWorkSpace<T> workSpace(lwork);
+    
+            // compute all eigen values and eigen vectors of a general matrix
+            LapackInterface::geev<T>( calcLeftEigenVectors,      calcRightEigenVectors,
+                              n, inputMatrix.data, n,
+                              eigenValues.data,
+                              leftVectors,  n,
+                              rightVectors, n,
+                              workSpace.data,    lwork,
+                              info);
+
+            // copy computed eigen values and eigen vectors into caller's arguements
+            if( info != 0 ) {
+         // TODO THROW EXCEPTION
+            } 
+            computedVectors = true;
+            computedValues = true;
+    }
+
+
     return;
 }
 template < class T >
 void EigenRep<T>::getValues( Vector_<typename CNT<T>::TReal>& values ) {
-    values.resize(numValues);
+    values.resize(n);
     return;
 }
 
 template < class T >
 void EigenRep<T>::getVectors( Matrix_<std::complex<typename CNT<T>::TReal> >& vectors ) {
-    vectors.resize(nRow,nCol);
+    vectors.resize(n,n);
+// std::cout << "getVectors: rightVectors = " << rightVectors <<  std::endl;
+    if( computedVectors ) {
+        vectors.copyAssign( rightVectors );  
+    }
     return;
 }
 
 template < class T >
 void EigenRep<T>::getVectors( Matrix_<typename CNT<T>::TReal>& vectors ) {
-    vectors.resize(nRow,nCol);
+    vectors.resize(n,n);
     return;
 }
 

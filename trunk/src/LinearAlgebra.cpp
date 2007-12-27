@@ -78,25 +78,27 @@ bool calcEigenValuesRightEigenVectors( Matrix_<P> &m, Vector_< std::complex<P> >
     }
     // compute and allocate optimial workspace
     int dimensionOfWorkSpace = -1;
-    LapackInterface::geev<P>( calcLeftEigenVectors,     calcRightEigenVectors,
+/*    LapackInterface::geev<P>( calcLeftEigenVectors,     calcRightEigenVectors,
                               inputMatrixNumberOfRowsOrCols, inputMatrix, inputMatrixLeadingDimension,
                               realPartOfEigenValues,    imagPartOfEigenValues,
                               arrayForLeftEigenVectors, leadingDimensionOfLeftEigenvectorsArray,
                               arrayForRightEigenVectors,leadingDimensionOfRightEigenvectorsArray,
                               size, dimensionOfWorkSpace, 
                               info);
+*/
 
     dimensionOfWorkSpace = (int)size[0];
     P *workSpace = new P[dimensionOfWorkSpace]; // allocate workspace
    
     // compute eigen values and right eigen vectors 
-    LapackInterface::geev<P>( calcLeftEigenVectors,      calcRightEigenVectors,
+/*    LapackInterface::geev<P>( calcLeftEigenVectors,      calcRightEigenVectors,
                               inputMatrixNumberOfRowsOrCols, inputMatrix, inputMatrixLeadingDimension,
                               realPartOfEigenValues,     imagPartOfEigenValues,
                               arrayForLeftEigenVectors,  leadingDimensionOfLeftEigenvectorsArray,
                               arrayForRightEigenVectors, leadingDimensionOfRightEigenvectorsArray,
                               workSpace,                 dimensionOfWorkSpace, 
                               info);
+*/
 
     // resize output vector and matrix  if necessary 
     eigenValues.resize( inputMatrixNumberOfRowsOrCols );

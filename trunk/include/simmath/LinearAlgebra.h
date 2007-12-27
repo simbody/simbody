@@ -145,7 +145,7 @@ class SimTK_SIMMATH_EXPORT Eigen {
     protected:
     class EigenRepBase *rep;
 
-}; // class FactorQTZ
+}; // class Eigen
 template <class P>
 bool eigenValuesRightVectors( Matrix_<P> &m, Vector_< std::complex<P> > &eigenValues, Matrix_< std::complex<P> > &eigenVectors );
 

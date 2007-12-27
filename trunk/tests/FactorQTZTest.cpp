@@ -30,9 +30,10 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * This is a test program which uses the FactorLU  class to do an LU 
+ * This is a test program which uses the FactorQTZ  class to do an QTZ 
  * factorization on a system of linear equations and then use the 
- * factored LU matrix to solve for a particular right hand side 
+ * factored QTZ matrix to solve a find a least squares solution 
+ * for a particular right hand side 
  */
 
 /*
@@ -103,7 +104,7 @@ int main () {
         Vector x_right(5, X);
         Vector x; // should get sized automatically to 5 by solve()
 
-        FactorQTZ qtz(a);  // perform LU factorization 
+        FactorQTZ qtz(a);  // perform QTZ factorization 
 
         qtz.solve( b, x );  // solve for x given a right hand side 
 
