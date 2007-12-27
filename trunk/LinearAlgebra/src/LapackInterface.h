@@ -45,11 +45,12 @@ static int getLWork( double* work);
 static int getLWork( std::complex<float>* work);
 static int getLWork( std::complex<double>* work);
 
+
 template <class P> 
     static void geev (char jobvl, char jobvr,
     int n, P a[], int lda, std::complex<typename CNT<P>::TReal>* values, 
     P vl[], int ldvl, Matrix_<std::complex<typename CNT<P>::TReal> >& vr, 
-    int ldvr, P work[], int lwork, int& info ) {assert(false);}
+    int ldvr, P work[], int lwork, int& info );
 
 
 /* solve system of linear equations using the LU factorization  computed by getrf */

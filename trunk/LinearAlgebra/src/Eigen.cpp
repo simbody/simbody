@@ -40,7 +40,6 @@
 #include "LATraits.h"
 #include "LapackConvert.h"
 
-
 namespace SimTK {
 
    ///////////////
@@ -114,7 +113,6 @@ template < class T >
 void EigenRep<T>::computeValues() {
 
     typedef typename CNT<T>::TReal RType;
-    int i,j;
     int info;
 
     if( needAllValues && needAllVectors) {

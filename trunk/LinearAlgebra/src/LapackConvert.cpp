@@ -29,7 +29,6 @@
 namespace SimTK {
 
 
-
 template <>
 void LapackConvert::convertMatrixToLapack( std::complex<double>* lapackArray,  const Matrix_<negator<conjugate<double> > >& mat ) {
     int m = mat.nrow();

@@ -30,8 +30,6 @@
 #include "SimTKcommon.h"
 
 namespace SimTK {
-
-
 class LapackConvert {
     public:
     template <typename T, typename ELT> static void convertMatrixToLapack( T* lapackArray,  const Matrix_<ELT>& mat );

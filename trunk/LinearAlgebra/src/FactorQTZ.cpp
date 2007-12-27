@@ -23,7 +23,7 @@
  */
 /**@file
  *
- * Factors systems of linear algebra equations.
+ * Solves for least squares solution of a system of linear algebra equations.
  */
 
 
@@ -44,6 +44,7 @@ namespace SimTK {
 
 static const double ZERO = 0.0;
 static const double ONE  = 1.0;
+
    ///////////////
    // FactorQTZ //
    ///////////////
@@ -52,7 +53,7 @@ FactorQTZ::~FactorQTZ() {
 }
 
 template < class ELT >
-FactorQTZ::FactorQTZ( const Matrix_<ELT>& m, typename CNT<ELT>::TReal rcond ) {
+FactorQTZ::FactorQTZ( const Matrix_<ELT>& m, double rcond ) {
     rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, rcond); 
 }
 
@@ -73,7 +74,7 @@ void FactorQTZ::solve(  const Matrix_<ELT>& b, Matrix_<ELT>& x ) {
    /////////////////
 template <typename T >
     template < typename ELT >
-FactorQTZRep<T>::FactorQTZRep( const Matrix_<ELT>& mat, typename CNT<T>::TReal rc) 
+FactorQTZRep<T>::FactorQTZRep( const Matrix_<ELT>& mat, double rc) 
       : nRow( mat.nrow() ),
         nCol( mat.ncol() ),
         rank(0),
@@ -241,7 +242,7 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
             RealType smaxpr,sminpr;
 
             // Determine rank using incremental condition estimate
-            for( rank=1,smaxpr=0.0,sminpr=1.0; rank<mn && smaxpr*rcond < sminpr; ) {
+            for( rank=1,smaxpr=0.0,sminpr=1.0; rank<mn && smaxpr*(RealType)rcond < sminpr; ) {
 
                 LapackInterface::laic1<T>( smallestSingularValue, rank, work.data, smin,
                       &qtz.data[rank*nRow], qtz.data[(rank*nRow)+rank], sminpr, s1, c1 );
@@ -249,7 +250,7 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
                 LapackInterface::laic1<T>( largestSingularValue,  rank, &work.data[mn], smax,
                        &qtz.data[rank*nRow], qtz.data[(rank*nRow)+rank], smaxpr, s2, c2 );
 
-                if( smaxpr*rcond < sminpr ) {
+                if( smaxpr*(RealType)rcond < sminpr ) {
                     for(int i=0;i<rank;i++) {
                          work.data[i]    *= s1;
                          work.data[i+mn] *= s2;
@@ -278,20 +279,19 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
 }
 
 // instantiate
-/* TODO -- sherm 12/26/07 -- I commented this out because it won't compile in Visual Studio
+
 template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<double>& m, double rcond );
-template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<float>& m, float rcond );
-template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<std::complex<float> >& m, float rcond );
+template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<float>& m, double rcond );
+template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<std::complex<float> >& m, double rcond );
 template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<std::complex<double> >& m, double rcond );
-template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<conjugate<float> >& m, float rcond );
+template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<conjugate<float> >& m, double rcond );
 template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<conjugate<double> >& m, double rcond );
 template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< double> >& m, double rcond );
-template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< float> >& m, float rcond );
-template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< std::complex<float> > >& m, float rcond );
+template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< float> >& m, double rcond );
+template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< std::complex<float> > >& m, double rcond );
 template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< std::complex<double> > >& m, double rcond );
-template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< conjugate<float> > >& m, float rcond );
+template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< conjugate<float> > >& m, double rcond );
 template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< conjugate<double> > >& m, double rcond );
-*/
 
 template class FactorQTZRep<double>;
 template FactorQTZRep<double>::FactorQTZRep( const Matrix_<double>& m, double rcond);
@@ -300,8 +300,8 @@ template void FactorQTZRep<double>::factor( const Matrix_<double>& m);
 template void FactorQTZRep<double>::factor( const Matrix_<negator<double> >& m);
 
 template class FactorQTZRep<float>;
-template FactorQTZRep<float>::FactorQTZRep( const Matrix_<float>& m, float rcond );
-template FactorQTZRep<float>::FactorQTZRep( const Matrix_<negator<float> >& m, float rcond );
+template FactorQTZRep<float>::FactorQTZRep( const Matrix_<float>& m, double rcond );
+template FactorQTZRep<float>::FactorQTZRep( const Matrix_<negator<float> >& m, double rcond );
 template void FactorQTZRep<float>::factor( const Matrix_<float>& m);
 template void FactorQTZRep<float>::factor( const Matrix_<negator<float> >& m);
 
@@ -316,10 +316,10 @@ template void FactorQTZRep<std::complex<double> >::factor( const Matrix_<conjuga
 template void FactorQTZRep<std::complex<double> >::factor( const Matrix_<negator<conjugate<double> > >& m);
 
 template class FactorQTZRep<std::complex<float> >;
-template FactorQTZRep<std::complex<float> >::FactorQTZRep( const Matrix_<std::complex<float> >& m, float rcond);
-template FactorQTZRep<std::complex<float> >::FactorQTZRep( const Matrix_<negator<std::complex<float> > >& m, float rcond);
-template FactorQTZRep<std::complex<float> >::FactorQTZRep( const Matrix_<conjugate<float> >& m, float rcond);
-template FactorQTZRep<std::complex<float> >::FactorQTZRep( const Matrix_<negator<conjugate<float> > >& m, float rcond);
+template FactorQTZRep<std::complex<float> >::FactorQTZRep( const Matrix_<std::complex<float> >& m, double rcond);
+template FactorQTZRep<std::complex<float> >::FactorQTZRep( const Matrix_<negator<std::complex<float> > >& m, double rcond);
+template FactorQTZRep<std::complex<float> >::FactorQTZRep( const Matrix_<conjugate<float> >& m, double rcond);
+template FactorQTZRep<std::complex<float> >::FactorQTZRep( const Matrix_<negator<conjugate<float> > >& m, double rcond);
 template void FactorQTZRep<std::complex<float> >::factor( const Matrix_<std::complex<float> >& m);
 template void FactorQTZRep<std::complex<float> >::factor( const Matrix_<negator<std::complex<float> > >& m);
 template void FactorQTZRep<std::complex<float> >::factor( const Matrix_<conjugate<float> >& m);

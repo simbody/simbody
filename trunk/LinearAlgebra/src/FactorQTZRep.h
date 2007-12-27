@@ -22,6 +22,7 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 #include "SimTKmath.h"
 #include "WorkSpace.h"
 
@@ -72,7 +73,7 @@ template <typename T>
 class FactorQTZRep : public FactorQTZRepBase {
    public:
    template <class ELT> FactorQTZRep( const Matrix_<ELT>&  );
-   template <class ELT> FactorQTZRep( const Matrix_<ELT>&, typename CNT<T>::TReal  );
+   template <class ELT> FactorQTZRep( const Matrix_<ELT>&, double  );
 
    ~FactorQTZRep();
 
@@ -93,7 +94,7 @@ class FactorQTZRep : public FactorQTZRepBase {
    typename CNT<T>::TReal linSysScaleF;
    typename CNT<T>::TReal rhsScaleF;
    typename CNT<T>::TReal anrm;
-   typename CNT<T>::TReal rcond;
+   double                 rcond;
    TypedWorkSpace<int>    pivots;
    TypedWorkSpace<T>      qtz;
    TypedWorkSpace<T>      tauGEQP3;
