@@ -33,20 +33,20 @@
 #include "LapackInterface.h"
 #include "WorkSpace.h"
 
-
 static const double EPS = .000001;
 namespace SimTK {
+
+template <class P> 
+static void geev (char jobvl, char jobvr,
+    int n, P a[], int lda, std::complex<typename CNT<P>::TReal>* values, 
+    P vl[], int ldvl, Matrix_<std::complex<typename CNT<P>::TReal> >& vr, 
+    int ldvr, P work[], int lwork, int& info ) {assert(false);}
 
 int LapackInterface::getLWork( float* work) { return( (int)work[0] ); }
 int LapackInterface::getLWork( double* work) { return( (int)work[0] ); }
 int LapackInterface::getLWork( std::complex<float>* work) { return( (int)work[0].real() ); }
 int LapackInterface::getLWork( std::complex<double>* work) { return( (int)work[0].real() ); }
 
-template <class P> 
-    static void geev (char jobvl, char jobvr,
-    int n, P a[], int lda, std::complex<typename CNT<P>::TReal>* values, 
-    P vl[], int ldvl, Matrix_<std::complex<typename CNT<P>::TReal> >& vr, 
-    int ldvr, P work[], int lwork, int& info ) {assert(false);}
 
 template <> void LapackInterface::getrs<double>
     ( const bool transpose, const int ncol, const int nrhs, const double *lu, const int *pivots, double *b ) {

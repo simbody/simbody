@@ -51,14 +51,12 @@ template <class P>
 bool calcEigenValuesRightEigenVectors( Matrix_<P> &m, Vector_< std::complex<P> > &eigenValues, Matrix_< std::complex<P> > &eigenVectors ) {
 
     int i,j;
-    int info;
     int inputMatrixNumberOfRowsOrCols = m.ncol();     // dimension of matrix
     int inputMatrixLeadingDimension = m.ncol();       // maxtrix has contiguous data
     int leadingDimensionOfLeftEigenvectorsArray = m.ncol(); 
     int leadingDimensionOfRightEigenvectorsArray = m.ncol();
     char calcLeftEigenVectors  = 'N';     // tell LAPACK not to compute left eigen vectors
     char calcRightEigenVectors = 'V';     // tell LAPACK to compute right eigen vectors
-    P size[1];              // dimension of opitimal workspace computed in 1st call to geev 
     P *inputMatrix = new P[inputMatrixNumberOfRowsOrCols*inputMatrixNumberOfRowsOrCols];  // alloc temporary matrix
     P *realPartOfEigenValues = new P[inputMatrixNumberOfRowsOrCols];     // alloc real portion of results
     P *imagPartOfEigenValues = new P[inputMatrixNumberOfRowsOrCols];     // alloc imaginary portion of results
@@ -78,6 +76,9 @@ bool calcEigenValuesRightEigenVectors( Matrix_<P> &m, Vector_< std::complex<P> >
     }
     // compute and allocate optimial workspace
     int dimensionOfWorkSpace = -1;
+    int info=0;
+    P size[1];              // dimension of opitimal workspace computed in 1st call to geev
+	size[0] = 1;
 /*    LapackInterface::geev<P>( calcLeftEigenVectors,     calcRightEigenVectors,
                               inputMatrixNumberOfRowsOrCols, inputMatrix, inputMatrixLeadingDimension,
                               realPartOfEigenValues,    imagPartOfEigenValues,

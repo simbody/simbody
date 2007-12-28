@@ -40,6 +40,7 @@
 #include "LATraits.h"
 #include "LapackConvert.h"
 
+
 namespace SimTK {
 
    ///////////////

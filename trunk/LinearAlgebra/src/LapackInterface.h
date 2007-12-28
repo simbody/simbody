@@ -45,7 +45,6 @@ static int getLWork( double* work);
 static int getLWork( std::complex<float>* work);
 static int getLWork( std::complex<double>* work);
 
-
 template <class P> 
     static void geev (char jobvl, char jobvr,
     int n, P a[], int lda, std::complex<typename CNT<P>::TReal>* values, 

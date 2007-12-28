@@ -140,30 +140,30 @@ Real A[16] = {  0.35,  0.45,  -0.14,  -0.17,
                -0.44, -0.33,  -0.03,   0.17,
                 0.25, -0.32,  -0.13,   0.11 };
 
-std::complex<float> expEigen[4] = { std::complex<float>(0.79948,   0.0), 
-                                      std::complex<float>(-0.099412,  0.40079), 
-                                      std::complex<float>(-0.099412, -0.40079),
-                                      std::complex<float>(-0.10066,   0.0) };
+std::complex<double> expEigen[4] = { std::complex<double>(0.79948,   0.0), 
+                                      std::complex<double>(-0.099412,  0.40079), 
+                                      std::complex<double>(-0.099412, -0.40079),
+                                      std::complex<double>(-0.10066,   0.0) };
 
-std::complex<float> expVectors[16] = { std::complex<float>( -.65509, 0.0),
-                                       std::complex<float>( -.52363, 0.0),
-                                       std::complex<float>(  .53622, 0.0),
-                                       std::complex<float>( -.095607, 0.0),
+std::complex<double> expVectors[16] = { std::complex<double>( -.65509, 0.0),
+                                       std::complex<double>( -.52363, 0.0),
+                                       std::complex<double>(  .53622, 0.0),
+                                       std::complex<double>( -.095607, 0.0),
 
-                                       std::complex<float>(-.1933001,  .25463),
-                                       std::complex<float>( .2518601, -.52240),
-                                       std::complex<float>( .09718202,-.30838),
-                                       std::complex<float>( .67595,   0.000),
+                                       std::complex<double>(-.1933001,  .25463),
+                                       std::complex<double>( .2518601, -.52240),
+                                       std::complex<double>( .09718202,-.30838),
+                                       std::complex<double>( .67595,   0.000),
 
-                                       std::complex<float>(-.1933001, -.25463),
-                                       std::complex<float>( .2518601,  .52240),
-                                       std::complex<float>( .09718202, .30838),
-                                       std::complex<float>( .67595,   -0.000),
+                                       std::complex<double>(-.1933001, -.25463),
+                                       std::complex<double>( .2518601,  .52240),
+                                       std::complex<double>( .09718202, .30838),
+                                       std::complex<double>( .67595,   -0.000),
 
-                                       std::complex<float>( .12533, 0.0),
-                                       std::complex<float>( .33202, 0.0),
-                                       std::complex<float>( .59384, 0.0),
-                                       std::complex<float>( .72209, 0.0) };
+                                       std::complex<double>( .12533, 0.0),
+                                       std::complex<double>( .33202, 0.0),
+                                       std::complex<double>( .59384, 0.0),
+                                       std::complex<double>( .72209, 0.0) };
 template <typename T> 
 T complex_norm( Vector_<std::complex<T> >values, Vector_<std::complex<T> > expected, bool checkReversed ) {
    T norm = 0;
@@ -237,7 +237,7 @@ int main () {
         Matrix_<float> af(4,4); for (int i=0; i<4; ++i) for (int j=0; j<4; ++j) af(i,j)=(float)a(i,j); 
 
         for(int i=0;i<4;i++) expectedValuesf[i] = (std::complex<float>)expEigen[i];
-        for(int i=0;i<4;i++) for(int j=0;j<4;j++) expectedVectorsf(i,j) = expVectors[j*4+i];
+        for(int i=0;i<4;i++) for(int j=0;j<4;j++) expectedVectorsf(i,j) = (std::complex<float>)expVectors[j*4+i];
 
         Eigen  esf(af);   // setup the eigen system
 
