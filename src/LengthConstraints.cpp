@@ -710,7 +710,6 @@ LengthSet::testGrad(State& s, const Vector& pos, const Matrix& grad) const
 //
 // sherm: this appears to calculate the transpose of G
 //
-// TODO: won't work right for balls right now
 // sherm 060222: OK, this routine doesn't really do what it says
 // when the constraint includes a ball or free joint. It
 // does not use the actual q's, which are quaternions. Instead
@@ -741,7 +740,7 @@ LengthSet::calcGrad(const State& s) const
 {
     // We're not updating, but need to use upd here because Position stage
     // was invalidated by change to state.
-    const SBPositionCache& cc = getRBTree().updPositionCache(s);
+    const SBPositionCache& pc = getRBTree().updPositionCache(s);
 
     Matrix grad(ndofThisSet,loops.size(),0.0);
     const Mat33 one(1);  //FIX: should be done once
@@ -755,19 +754,19 @@ LengthSet::calcGrad(const State& s) const
                 phiT[b][phiT[b].size()-1] = 1;  // identity
                 for (int j=l.nodes[b].size()-2 ; j>=0 ; j-- ) {
                     const RigidBodyNode* n = l.nodes[b][j+1];
-                    phiT[b][j] = phiT[b][j+1] * ~n->getPhi(cc);
+                    phiT[b][j] = phiT[b][j+1] * ~n->getPhi(pc);
                 }
             }
         }
 
         // compute gradient
-        //Vec3 uBond = unitVec(l.tipPos(cc,2) - l.tipPos(cc,1));
-        const Vec3 uBond = l.tipPos(cc,2) - l.tipPos(cc,1); // p
+        //Vec3 uBond = unitVec(l.tipPos(pc,2) - l.tipPos(pc,1));
+        const Vec3 uBond = l.tipPos(pc,2) - l.tipPos(pc,1); // p
         Row<2,Mat33> J[2];
         for (int b=1 ; b<=2 ; b++)
             // TODO: get rid of this b-1; make tips 0-based
-            J[b-1] = Row<2,Mat33>(-crossMat(l.tipPos(cc,b) -
-                                            l.tips(b).getNode().getX_GB(cc).T()),   one);
+            J[b-1] = Row<2,Mat33>(-crossMat(l.tipPos(pc,b) -
+                                            l.tips(b).getNode().getX_GB(pc).T()),   one);
         int g_indx=0;
         for (int j=0 ; j<(int)nodeMap.size() ; j++) {
             Real elem=0.0;
@@ -785,7 +784,7 @@ LengthSet::calcGrad(const State& s) const
             const int l2_indx = (found1==n1.end() ? -1 : found1-n1.begin());
 
             for (int k=0 ; k < nodeMap[j]->getDOF() ; k++) {
-                const SpatialVec& HtCol = ~nodeMap[j]->getHRow(cc, k);
+                const SpatialVec& HtCol = ~nodeMap[j]->getHRow(pc, k);
                 if ( l1_indx >= 0 ) { 
                     elem = -dot(uBond , Vec3(J[0] * phiT[0][l1_indx]*HtCol));
                 } else if ( l2_indx >= 0 ) { 

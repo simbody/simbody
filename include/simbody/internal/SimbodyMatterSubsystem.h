@@ -83,6 +83,7 @@ class Constraint;
  * the coefficient matrix for a(). pdot, pdotdot are obtained
  * by differentiation of p(), vdot by differentiation of v().
  * P=partial(pdot)/partial(u) (yes, that's u, not q), V=partial(v)/partial(u).
+ * (We can get partial(p)/partial(q) when we need it as P*Q^-1.)
  * n(q) is the set of quaternion normalization constraints, which exist only at the
  * position level and are uncoupled from everything else.
  *
@@ -99,10 +100,17 @@ class Constraint;
  *    [G M^-1 ~G]   to calculate multipliers (square, symmetric: LDL' if
  *                  well conditioned, else pseudoinverse)
  *
- *    [P]           for projection onto position manifold (pseudoinverse)
+ *    [P Q^-1]      for projection onto position manifold (pseudoinverse)
  *
- *    [P]           for projection onto velocity manifold (pseudoinverse)
- *    [V]
+ *    [P;V]         for projection onto velocity manifold (pseudoinverse)
+ *                  (using Matlab notation meaning rows of P over rows of V)
+ *
+ * When working in a weighted norm with weights W on the state variables and
+ * weights T (1/tolerance) on the constraint errors, the matrices we need are
+ * actually [T PQ^1 Wq^1], [T [P;V] Wu^-1], etc. with T and W diagonal
+ * weighting matrices. These can then be used to find least squares solutions
+ * in the weighted norms.
+ *
  * @endverbatim
  *
  * In many cases these matrices consist of decoupled blocks which can
