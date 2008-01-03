@@ -244,7 +244,7 @@ Integrator::SuccessfulStepStatus VerletIntegratorRep::stepTo(Real reportTime, Re
  * Take a trial step and store the result in the advanced state.  Also estimate the error in each element of Y, and store them in err.
  */
 
-void VerletIntegratorRep::attemptAStep(Real t0, Real t1, const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, const Vector& u0, const Vector& udot0, const Vector& z0, const Vector& zdot0, Vector& err, Real tReport) {
+bool VerletIntegratorRep::attemptAStep(Real t0, Real t1, const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, const Vector& u0, const Vector& udot0, const Vector& z0, const Vector& zdot0, Vector& err, Real tReport) {
     statsStepsAttempted++;
     Real h = t1-t0;
     State& advanced = updAdvancedState();
@@ -258,35 +258,44 @@ void VerletIntegratorRep::attemptAStep(Real t0, Real t1, const Vector& q0, const
     advanced.updU() = u1;
     advanced.updZ() = z1;
     advanced.updTime() = t1;
-    getSystem().realize(advanced, Stage::Position);
-    projectStateAndErrorEstimate(advanced, Vector());
-    realizeStateDerivatives(advanced);
-    err(0, advanced.getNQ()) = q0 + 0.5*(qdot0+advanced.getQDot())*h - advanced.getQ();
-    
-    // Now calculate the corrected velocities.
-    
-    Real tol = std::min(1e-4, 0.1*getAccuracyInUse());
-    for (int i = 0; i < 10; ++i) {
-        Vector udot1 = advanced.getUDot();
-        Vector zdot1 = advanced.getZDot();
-        advanced.updU() = u0 + 0.5*(udot0+udot1)*h;
-        advanced.updZ() = z0 + 0.5*(zdot0+zdot1)*h;
-        err(advanced.getUStart(), advanced.getNU()) = u0 + udot0*h - advanced.getU();
-        err(advanced.getZStart(), advanced.getNZ()) = z0 + zdot0*h - advanced.getZ();
-        projectStateAndErrorEstimate(advanced, err, true);
+    try {
+        getSystem().realize(advanced, Stage::Position);
+        projectStateAndErrorEstimate(advanced, Vector());
         realizeStateDerivatives(advanced);
-        Real convergence = (advanced.getU()-u1).norm()/u1.norm();
-        if (convergence <= tol)
-            break;
-        u1 = advanced.getU();
+        err(0, advanced.getNQ()) = q0 + 0.5*(qdot0+advanced.getQDot())*h - advanced.getQ();
+        
+        // Now calculate the corrected velocities.
+        
+        Real tol = std::min(1e-4, 0.1*getAccuracyInUse());
+        bool converged = false;
+        for (int i = 0; i < 10; ++i) {
+            Vector udot1 = advanced.getUDot();
+            Vector zdot1 = advanced.getZDot();
+            advanced.updU() = u0 + 0.5*(udot0+udot1)*h;
+            advanced.updZ() = z0 + 0.5*(zdot0+zdot1)*h;
+            err(advanced.getUStart(), advanced.getNU()) = u0 + udot0*h - advanced.getU();
+            err(advanced.getZStart(), advanced.getNZ()) = z0 + zdot0*h - advanced.getZ();
+            projectStateAndErrorEstimate(advanced, err, true);
+            realizeStateDerivatives(advanced);
+            Real convergence = (advanced.getU()-u1).norm()/u1.norm();
+            if (convergence <= tol) {
+                converged = true;
+                break;
+            }
+            u1 = advanced.getU();
+        }
+        
+        // Two different integrators were used to estimate errors: trapezoidal for Q, and
+        // explicit Euler for U and Z.  This means that the U and Z errors are of a different
+        // order than the Q errors.  We therefore multiply them by h so everything will be
+        // of the same order.
+        
+        err(advanced.getUStart(), advanced.getNU()+advanced.getNZ()) *= h;
+        return converged;
     }
-    
-    // Two different integrators were used to estimate errors: trapezoidal for Q, and
-    // explicit Euler for U and Z.  This means that the U and Z errors are of a different
-    // order than the Q errors.  We therefore multiply them by h so everything will be
-    // of the same order.
-    
-    err(advanced.getUStart(), advanced.getNU()+advanced.getNZ()) *= h;
+    catch (std::exception ex) {
+        return false;
+    }
 }
 
 /**
@@ -344,8 +353,9 @@ bool VerletIntegratorRep::takeOneStep(Real t0, Real tMax, Real tReport)
     do {
         bool hWasArtificiallyLimited = (tMax < t0+currentStepSize);
         t1 = std::min(tMax, t0+currentStepSize);
-        attemptAStep(t0, t1, q0, qdot0, qdotdot0, u0, udot0, z0, zdot0, err, tReport);
-        stepSucceeded = adjustStepSize(calcWeightedRMSNorm(err, getDynamicSystemWeights()), hWasArtificiallyLimited);
+        bool converged = attemptAStep(t0, t1, q0, qdot0, qdotdot0, u0, udot0, z0, zdot0, err, tReport);
+        Real rmsErr = (converged ? calcWeightedRMSNorm(err, getDynamicSystemWeights()) : Infinity);
+        stepSucceeded = adjustStepSize(rmsErr, hWasArtificiallyLimited);
         if (!stepSucceeded)
             statsErrorTestFailures++;
     } while (!stepSucceeded);
