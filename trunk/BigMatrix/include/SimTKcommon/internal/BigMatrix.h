@@ -119,6 +119,8 @@
 namespace SimTK {
 
 template <class ELT>    class MatrixBase;
+template <class ELT>    class VectorBase;
+template <class ELT>    class RowVectorBase;
 
 template <class T=Real> class MatrixView_;
 template <class T=Real> class TmpMatrixView_;
@@ -200,7 +202,7 @@ public:
         return helper.getMatrixStructure();
     }
     void setMatrixShape(MatrixShapes::Shape shape) {
-        helper.setMatrixStructure( shape);          // default Uncommitted
+        helper.setMatrixShape( shape);          // default Uncommitted
     }
     MatrixShapes::Shape getMatrixShape() const  {
         return helper.getMatrixShape();
@@ -212,7 +214,7 @@ public:
         return helper.getMatrixSparsity();
     }
     void setMatrixStorage(MatrixStorageFormats::Storage storage) {
-        helper.setMatrixStructure( storage);      // default Uncommitted
+        helper.setMatrixStorage( storage);      // default Uncommitted
     }
     MatrixStorageFormats::Storage getMatrixStorage() const  {
         return helper.getMatrixStorage();
@@ -232,7 +234,7 @@ public:
         typedef MatrixBase<typename CNT<E>::template Result<P>::Mul> Mul;
         typedef MatrixBase<typename CNT<E>::template Result<P>::Dvd> Dvd;
         typedef MatrixBase<typename CNT<E>::template Result<P>::Add> Add;
-        typedef MatrixBase<typename CNT<E>::template Result<P>::Sib> Sub;
+        typedef MatrixBase<typename CNT<E>::template Result<P>::Sub> Sub;
     };
        
     // Product of dimensions may be > 32 bits.
@@ -366,7 +368,50 @@ public:
     MatrixBase& operator=(const ELT& t) { 
         setToZero(); updDiag().setTo(t); 
         return *this;
-    }    
+    }
+
+	// M = diag(v) * M; v must have nrow() elements.
+	// That is, M[i] *= v[i].
+	template <class EE> inline MatrixBase& rowScaleInPlace(const VectorBase<EE>&);
+
+	// Return type is a new matrix which will have the same dimensions as 'this' but
+	// will have element types appropriate for the elementwise multiply being performed.
+	template <class EE> inline void rowScale(const VectorBase<EE>&    v, typename EltResult<EE>::Mul& out) const;
+	template <class EE> inline typename EltResult<EE>::Mul rowScale(const VectorBase<EE>& v) const
+      { EltResult<EE>::Mul out(nrow(), ncol()); rowScale(v,out); return out; }
+
+	// M = diag(v)^-1 * M; v must have nrow() elements.
+	// That is, M[i] /= v[i].
+	template <class EE> inline MatrixBase& rowUnscaleInPlace(const VectorBase<EE>&);
+	template <class EE> inline void rowUnscale(const VectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const;
+	template <class EE> inline typename EltResult<EE>::Dvd rowUnscale(const VectorBase<EE>& v) const
+      { EltResult<EE>::Dvd out(nrow(), ncol()); rowUnscale(v,out); return out; }
+
+	// M = M * diag(v); v must have ncol() elements
+	// That is, M(i) *= v[i]
+	template <class EE> inline MatrixBase& colScaleInPlace(const VectorBase<EE>&);
+	template <class EE> inline void colScale(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const;
+	template <class EE> inline typename EltResult<EE>::Mul colScale(const VectorBase<EE>& v) const
+      { EltResult<EE>::Mul out(nrow(), ncol()); colScale(v,out); return out; }
+
+	// M = M * diag(v)^-1; v must have ncol() elements
+	// That is, M(i) /= v[i]
+	template <class EE> inline MatrixBase& colUnscaleInPlace(const VectorBase<EE>&);
+	template <class EE> inline void colUnscale(const VectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const;
+	template <class EE> inline typename EltResult<EE>::Dvd colUnscale(const VectorBase<EE>& v) const
+      { EltResult<EE>::Dvd out(nrow(), ncol()); colUnscale(v,out); return out; }
+
+	// M(i,j) *= R(i,j); R must have same dimensions as this
+	template <class EE> inline MatrixBase& elementwiseMultiplyInPlace(const MatrixBase<EE>&);
+	template <class EE> inline void elementwiseMultiply(const MatrixBase<EE>&, typename EltResult<EE>::Mul&) const;
+	template <class EE> inline typename EltResult<EE>::Mul elementwiseMultiply(const MatrixBase<EE>&) const
+      { EltResult<EE>::Mul out(nrow(), ncol()); elementwiseMultiply(v,out); return out; }
+
+	// M(i,j) /= R(i,j); R must have same dimensions as this
+	template <class EE> inline MatrixBase& elementwiseDivideInPlace(const MatrixBase<EE>& r);
+	template <class EE> inline void elementwiseDivide(const MatrixBase<EE>&, typename EltResult<EE>::Dvd&) const;
+	template <class EE> inline typename EltResult<EE>::Mul elementwiseDivide(const MatrixBase<EE>&) const
+      { EltResult<EE>::Dvd out(nrow(), ncol()); elementwiseDivide(v,out); return out; }
 
     // fill every element in current allocation with given element (or NaN or 0)
     MatrixBase& setTo(const ELT& t) {helper.fillWith(reinterpret_cast<const Scalar*>(&t)); return *this;}
@@ -404,15 +449,15 @@ public:
     inline VectorView_<ELT> diag() const;
     inline VectorView_<ELT> updDiag();
 
-    // Create a view of the real or imaginary elements.
-    inline MatrixView_<TReal> real() const;
-    inline MatrixView_<TReal> updReal();
-    inline MatrixView_<TImag> imag() const;
-    inline MatrixView_<TImag> updImag();
+    // Create a view of the real or imaginary elements. TODO
+    //inline MatrixView_<EReal> real() const;
+    //inline MatrixView_<EReal> updReal();
+    //inline MatrixView_<EImag> imag() const;
+    //inline MatrixView_<EImag> updImag();
 
-    // Overload "real" and "imag" for both read and write as a nod to convention.
-    MatrixView_<TReal> real() {return updReal();}
-    MatrixView_<TReal> imag() {return updImag();}
+    // Overload "real" and "imag" for both read and write as a nod to convention. TODO
+    //MatrixView_<EReal> real() {return updReal();}
+    //MatrixView_<EReal> imag() {return updImag();}
 
     // TODO: this routine seems ill-advised but I need it for the IVM port at the moment
     Matrix_<StdNumber> invert() const {  // return a newly-allocated inverse; dump negator 
@@ -513,6 +558,10 @@ public:
       { assert(ncol()==1); return *reinterpret_cast<const Vector_<ELT>*>(this); }
     Vector_<ELT>&           updAsVector()           
       { assert(ncol()==1); return *reinterpret_cast<      Vector_<ELT>*>(this); }
+    const VectorBase<ELT>& getAsVectorBase() const 
+      { assert(ncol()==1); return *reinterpret_cast<const VectorBase<ELT>*>(this); }
+    VectorBase<ELT>&       updAsVectorBase()       
+      { assert(ncol()==1); return *reinterpret_cast<      VectorBase<ELT>*>(this); } 
                 
     const RowVectorView_<ELT>& getAsRowVectorView() const 
       { assert(nrow()==1); return *reinterpret_cast<const RowVectorView_<ELT>*>(this); }
@@ -522,7 +571,11 @@ public:
       { assert(nrow()==1); return *reinterpret_cast<const RowVector_<ELT>*>(this); }
     RowVector_<ELT>&           updAsRowVector()           
       { assert(nrow()==1); return *reinterpret_cast<      RowVector_<ELT>*>(this); }        
-       
+    const RowVectorBase<ELT>& getAsRowVectorBase() const 
+      { assert(nrow()==1); return *reinterpret_cast<const RowVectorBase<ELT>*>(this); }
+    RowVectorBase<ELT>&       updAsRowVectorBase()       
+      { assert(nrow()==1); return *reinterpret_cast<      RowVectorBase<ELT>*>(this); } 
+
     // Access to raw data. We have to return the raw data
     // pointer as pointer-to-scalar because we may pack the elements tighter
     // than a C++ array would.
@@ -612,6 +665,15 @@ public:
     VectorBase(const MatrixHelper<Scalar>& h, const typename MatrixHelper<Scalar>::ShallowCopy& s) : Base(h,s) { }
     VectorBase(const MatrixHelper<Scalar>& h, const typename MatrixHelper<Scalar>::DeepCopy& d)    : Base(h,d) { }
 
+    // This gives the resulting vector type when (v[i] op P) is applied to each element.
+    // It will have element types which are the regular composite result of ELT op P.
+    template <class P> struct EltResult { 
+        typedef VectorBase<typename CNT<ELT>::template Result<P>::Mul> Mul;
+        typedef VectorBase<typename CNT<ELT>::template Result<P>::Dvd> Dvd;
+        typedef VectorBase<typename CNT<ELT>::template Result<P>::Add> Add;
+        typedef VectorBase<typename CNT<ELT>::template Result<P>::Sub> Sub;
+    };
+
     VectorBase& operator*=(const StdNumber& t)  { Base::operator*=(t); return *this; }
     VectorBase& operator/=(const StdNumber& t)  { Base::operator/=(t); return *this; }
     VectorBase& operator+=(const VectorBase& r) { Base::operator+=(r); return *this; }
@@ -630,6 +692,38 @@ public:
     // same behavior as assignment for Matrices, where only the diagonal is set (and
     // everything else is set to zero.)
     VectorBase& operator=(const ELT& t) { Base::setTo(t); return *this; }  
+
+	// There's only one column here so it's a bit wierd to use rowScale rather than
+	// elementwiseMultiply, but there's nothing really wrong with it. Using colScale
+	// would be really wacky since it is the same as a scalar multiply. We won't support
+	// colScale here except through inheritance where it will not be much use.
+	template <class EE> VectorBase& rowScaleInPlace(const VectorBase<EE>& v)
+	  { Base::rowScaleInPlace<EE>(v); return *this; }
+	template <class EE> inline void rowScale(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
+	  { return Base::rowScale(v,out); }
+	template <class EE> inline typename EltResult<EE>::Mul rowScale(const VectorBase<EE>& v) const
+	  { typename EltResult<EE>::Mul out(nrow()); Base::rowScale(v,out); return out; }
+
+	template <class EE> VectorBase& rowUnscaleInPlace(const VectorBase<EE>& v)
+	  { Base::rowUnscaleInPlace<EE>(v); return *this; }
+	template <class EE> inline void rowUnscale(const VectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const
+	  { return Base::rowUnscale(v,out); }
+	template <class EE> inline typename EltResult<EE>::Dvd rowUnscale(const VectorBase<EE>& v) const
+	  { typename EltResult<EE>::Dvd out(nrow()); Base::rowUnscale(v,out); return out; }
+
+	template <class EE> VectorBase& elementwiseMultiplyInPlace(const VectorBase<EE>& r)
+	  { Base::elementwiseMultiplyInPlace<EE>(r); return *this; }
+	template <class EE> inline void elementwiseMultiply(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
+	  { return Base::elementwiseMultiply(v,out); }
+	template <class EE> inline typename EltResult<EE>::Mul elementwiseMultiply(const VectorBase<EE>& v) const
+	  { typename EltResult<EE>::Mul out(nrow()); Base::elementwiseMultiply(v,out); return out; }
+
+	template <class EE> VectorBase& elementwiseDivideInPlace(const VectorBase<EE>& r)
+	  { Base::elementwiseDivideInPlace<EE>(r); return *this; }
+	template <class EE> inline void elementwiseDivide(const VectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const
+	  { return Base::elementwiseDivide(v,out); }
+	template <class EE> inline typename EltResult<EE>::Mul elementwiseDivide(const VectorBase<EE>& v) const
+	  { typename EltResult<EE>::Dvd out(nrow()); Base::elementwiseDivide(v,out); return out; }
 
     // Implicit conversions are allowed to Vector or Matrix, but not to RowVector.   
     operator const Vector_<ELT>&()     const { return *reinterpret_cast<const Vector_<ELT>*>(this); }
@@ -736,6 +830,15 @@ public:
     RowVectorBase(const MatrixHelper<Scalar>& h, const typename MatrixHelper<Scalar>::ShallowCopy& s) : Base(h,s) { }
     RowVectorBase(const MatrixHelper<Scalar>& h, const typename MatrixHelper<Scalar>::DeepCopy& d)    : Base(h,d) { }
 
+	// This gives the resulting rowvector type when (r(i) op P) is applied to each element.
+    // It will have element types which are the regular composite result of ELT op P.
+    template <class P> struct EltResult { 
+        typedef RowVectorBase<typename CNT<ELT>::template Result<P>::Mul> Mul;
+        typedef RowVectorBase<typename CNT<ELT>::template Result<P>::Dvd> Dvd;
+        typedef RowVectorBase<typename CNT<ELT>::template Result<P>::Add> Add;
+        typedef RowVectorBase<typename CNT<ELT>::template Result<P>::Sub> Sub;
+    };
+
     RowVectorBase& operator*=(const StdNumber& t)     {Base::operator*=(t); return *this;}
     RowVectorBase& operator/=(const StdNumber& t)     {Base::operator/=(t); return *this;}
     RowVectorBase& operator+=(const RowVectorBase& r) {Base::operator+=(r); return *this;}
@@ -754,6 +857,39 @@ public:
     // same behavior as assignment for Matrices, where only the diagonal is set (and
     // everything else is set to zero.)
     RowVectorBase& operator=(const ELT& t) { Base::setTo(t); return *this; } 
+
+	// There's only one row here so it's a bit wierd to use colScale rather than
+	// elementwiseMultiply, but there's nothing really wrong with it. Using rowScale
+	// would be really wacky since it is the same as a scalar multiply. We won't support
+	// rowScale here except through inheritance where it will not be much use.
+
+	template <class EE> RowVectorBase& colScaleInPlace(const VectorBase<EE>& v)
+	  { Base::colScaleInPlace<EE>(v); return *this; }
+	template <class EE> inline void colScale(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
+	  { return Base::colScale(v,out); }
+	template <class EE> inline typename EltResult<EE>::Mul colScale(const VectorBase<EE>& v) const
+	  { typename EltResult<EE>::Mul out(ncol()); Base::colScale(v,out); return out; }
+
+	template <class EE> RowVectorBase& colUnscaleInPlace(const VectorBase<EE>& v)
+	  { Base::colUnscaleInPlace<EE>(v); return *this; }
+	template <class EE> inline void colUnscale(const VectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const
+	  { return Base::colUnscale(v,out); }
+	template <class EE> inline typename EltResult<EE>::Dvd colUnscale(const VectorBase<EE>& v) const
+	  { typename EltResult<EE>::Dvd out(ncol()); Base::colUnscale(v,out); return out; }
+
+	template <class EE> RowVectorBase& elementwiseMultiplyInPlace(const VectorBase<EE>& r)
+	  { Base::elementwiseMultiplyInPlace<EE>(r); return *this; }
+	template <class EE> inline void elementwiseMultiply(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
+	  { return Base::elementwiseMultiply(v,out); }
+	template <class EE> inline typename EltResult<EE>::Mul elementwiseMultiply(const VectorBase<EE>& v) const
+	  { typename EltResult<EE>::Mul out(ncol()); Base::elementwiseMultiply(v,out); return out; }
+
+	template <class EE> RowVectorBase& elementwiseDivideInPlace(const VectorBase<EE>& r)
+	  { Base::elementwiseDivideInPlace<EE>(r); return *this; }
+	template <class EE> inline void elementwiseDivide(const VectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const
+	  { return Base::elementwiseDivide(v,out); }
+	template <class EE> inline typename EltResult<EE>::Mul elementwiseDivide(const VectorBase<EE>& v) const
+	  { typename EltResult<EE>::Dvd out(ncol()); Base::elementwiseDivide(v,out); return out; }
 
     // Implicit conversions are allowed to RowVector or Matrix, but not to Vector.   
     operator const RowVector_<ELT>&()     const {return *reinterpret_cast<const RowVector_<ELT>*>(this);}
@@ -959,6 +1095,118 @@ MatrixBase<ELT>::updRow(int i) {
 
     MatrixHelper<Scalar> h(helper,i,0,1,ncol());        
     return RowVectorView_<ELT>(h); 
+}
+
+// M = diag(v) * M; v must have nrow() elements.
+// That is, M[i] *= v[i].
+template <class ELT> template <class EE> inline MatrixBase<ELT>& 
+MatrixBase<ELT>::rowScaleInPlace(const VectorBase<EE>& v) {
+	assert(v.nrow() == nrow());
+	for (int i=0; i < nrow(); ++i)
+		(*this)[i] *= v[i];
+	return *this;
+}
+
+template <class ELT> template <class EE> inline void
+MatrixBase<ELT>::rowScale(const VectorBase<EE>& v, typename MatrixBase<ELT>::EltResult<EE>::Mul& out) const {
+	assert(v.nrow() == nrow());
+	out.resize(nrow(), ncol());
+    for (int j=0; j<ncol(); ++j)
+	    for (int i=0; i<nrow(); ++i)
+		   out(i,j) = (*this)(i,j) * v[i];
+}
+
+// M = diag(v)^-1 * M; v must have nrow() elements.
+// That is, M[i] /= v[i].
+template <class ELT> template <class EE>  inline MatrixBase<ELT>& 
+MatrixBase<ELT>::rowUnscaleInPlace(const VectorBase<EE>& v) {
+	assert(v.nrow() == nrow());
+	for (int i=0; i < nrow(); ++i)
+		(*this)[i] /= v[i];
+	return *this;
+}
+
+template <class ELT> template <class EE> inline void
+MatrixBase<ELT>::rowUnscale(const VectorBase<EE>& v, typename MatrixBase<ELT>::EltResult<EE>::Dvd& out) const {
+	assert(v.nrow() == nrow());
+	out.resize(nrow(), ncol());
+    for (int j=0; j<ncol(); ++j)
+	    for (int i=0; i<nrow(); ++i)
+		   out(i,j) = (*this)(i,j) / v[i];
+}
+
+// M = M * diag(v); v must have ncol() elements
+// That is, M(i) *= v[i]
+template <class ELT> template <class EE>  inline MatrixBase<ELT>& 
+MatrixBase<ELT>::colScaleInPlace(const VectorBase<EE>& v) {
+    assert(v.nrow() == ncol());
+	for (int j=0; j < ncol(); ++j)
+		(*this)(j) *= v[j];
+	return *this;
+}
+
+template <class ELT> template <class EE> inline void
+MatrixBase<ELT>::colScale(const VectorBase<EE>& v, typename MatrixBase<ELT>::EltResult<EE>::Mul& out) const {
+	assert(v.nrow() == ncol());
+	out.resize(nrow(), ncol());
+    for (int j=0; j<ncol(); ++j)
+	    for (int i=0; i<nrow(); ++i)
+		   out(i,j) = (*this)(i,j) * v[j];
+}
+
+// M = M * diag(v)^-1; v must have ncol() elements
+// That is, M(i) /= v[i]
+template <class ELT> template <class EE> inline MatrixBase<ELT>& 
+MatrixBase<ELT>::colUnscaleInPlace(const VectorBase<EE>& v) {
+    assert(v.nrow() == ncol());
+	for (int j=0; j < ncol(); ++j)
+		(*this)(j) /= v[j];
+	return *this;
+}
+
+template <class ELT> template <class EE> inline void
+MatrixBase<ELT>::colUnscale(const VectorBase<EE>& v, typename MatrixBase<ELT>::EltResult<EE>::Dvd& out) const {
+	assert(v.nrow() == ncol());
+	out.resize(nrow(), ncol());
+    for (int j=0; j<ncol(); ++j)
+	    for (int i=0; i<nrow(); ++i)
+		   out(i,j) = (*this)(i,j) / v[j];
+}
+
+// M(i,j) *= R(i,j); R must have same dimensions as this
+template <class ELT> template <class EE> inline MatrixBase<ELT>& 
+MatrixBase<ELT>::elementwiseMultiplyInPlace(const MatrixBase<EE>& r) {
+	assert(r.nrow()==nrow() && r.ncol()==ncol());
+    for (int j=0; j<ncol(); ++j)
+	    for (int i=0; i<nrow(); ++i)
+			(*this)(i,j) *= r(i,j);
+}
+
+template <class ELT> template <class EE> inline void 
+MatrixBase<ELT>::elementwiseMultiply(const MatrixBase<EE>& r, typename EltResult<EE>::Mul& out) const {
+	assert(r.nrow()==nrow() && r.ncol()==ncol());
+	out.resize(nrow(),ncol());
+    for (int j=0; j<ncol(); ++j)
+	    for (int i=0; i<nrow(); ++i)
+			out(i,j) = (*this)(i,j) * r(i,j);
+}
+
+// M(i,j) /= R(i,j); R must have same dimensions as this
+template <class ELT> template <class EE> inline MatrixBase<ELT>& 
+MatrixBase<ELT>::elementwiseDivideInPlace(const MatrixBase<EE>& r) {
+	assert(r.nrow()==nrow() && r.ncol()==ncol());
+    for (int j=0; j<ncol(); ++j)
+	    for (int i=0; i<nrow(); ++i)
+			(*this)(i,j) /= r(i,j);
+}
+
+template <class ELT> template <class EE> inline void 
+MatrixBase<ELT>::elementwiseDivide(const MatrixBase<EE>& r, typename EltResult<EE>::Dvd& out) const {
+	assert(r.nrow()==nrow() && r.ncol()==ncol());
+	out.resize(nrow(),ncol());
+    for (int j=0; j<ncol(); ++j)
+	    for (int i=0; i<nrow(); ++i)
+			out(i,j) = (*this)(i,j) / r(i,j);
 }
 
 /*

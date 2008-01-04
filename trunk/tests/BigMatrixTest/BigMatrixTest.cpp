@@ -61,6 +61,7 @@ namespace NR {
 template class Matrix_<Real>;
 template class Vector_<Complex>;
 template class RowVector_< conjugate<float> >;
+template class MatrixBase< Mat<3,4,Vec2> >;
 
 template class MatrixView_< complex<long double> >;
 template class VectorView_< negator<float> >;
@@ -180,9 +181,39 @@ int main()
     mm = 2390.; 
     for (int i=0; i<mm.nrow(); ++i) {
         for (int j=0; j<mm.ncol(); ++j)
-            mm(i,j)=i*j, cout << mm(i,j) << " ";
+            mm(i,j)=(i+1)*(j+1), cout << mm(i,j) << " ";
         cout << endl;
     }
+
+	Vector mmColScale(4), mmRowScale(3);
+	mmColScale[0]=1; mmColScale[1]=10; mmColScale[2]=100; mmColScale[3]=1000;
+	mmRowScale[0]=-1000; mmRowScale[1]=-100; mmRowScale[2]=-10;
+	Vector_<long double> mmRowScaleR(3); for(int i=0;i<3;++i) mmRowScaleR[i]=(float)mmRowScale[i];
+
+	cout << "mm=" << mm << " mmColScale=" << mmColScale << endl;
+	mm.colScaleInPlace(mmColScale);
+	cout << "after col scale, mm=" << mm;
+
+	mm.colUnscaleInPlace(mmColScale);
+	cout << "after col UNscale mm=" << mm;
+
+	cout <<  " mmRowScale=" << mmRowScale << endl;
+	mm.rowScaleInPlace(mmRowScale);
+	cout << "after row scale, mm=" << mm;
+
+	mm.rowUnscaleInPlace(mmRowScale);
+	cout << "after row UNscale mm=" << mm;
+
+	mm.rowScaleInPlace(mmRowScaleR);
+	cout << "after LONG DOUBLE row scale mm=" << mm;
+
+	cout << "mm.rowScale(long double)=" << mm.rowScale(mmRowScaleR);
+	cout << "type(mm.rowScale(long double))=" << typeid(mm.rowScale(mmRowScaleR)).name() << endl;
+
+	Vector_<Vec2> mmVCol(4); for (int i=0; i<4; ++i) mmVCol[i] = Vec2(4*i, 4*i+1);
+	cout << "mm Vec2 colScale=" << mmVCol << endl;
+	cout << "mm.colScale(Vec2)=" << mm.colScale(mmVCol);
+	cout << "type(mm.colScale(Vec2))=" << typeid(mm.colScale(mmVCol)).name() << endl;
     
     mm *= 1000.; dump("mm(3,4) after *=1000", mm);
     mm.dump("*** mm ***");
