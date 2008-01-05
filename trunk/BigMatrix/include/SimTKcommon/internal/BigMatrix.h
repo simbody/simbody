@@ -698,7 +698,7 @@ public:
 	// would be really wacky since it is the same as a scalar multiply. We won't support
 	// colScale here except through inheritance where it will not be much use.
 	template <class EE> VectorBase& rowScaleInPlace(const VectorBase<EE>& v)
-	  { Base::rowScaleInPlace<EE>(v); return *this; }
+	  { Base::template rowScaleInPlace<EE>(v); return *this; }
 	template <class EE> inline void rowScale(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
 	  { return Base::rowScale(v,out); }
 	template <class EE> inline typename EltResult<EE>::Mul rowScale(const VectorBase<EE>& v) const
@@ -738,10 +738,13 @@ public:
 
 
     // Override MatrixBase size() for Vectors to return int instead of long.
-    int size() const {
-        assert(Base::size() <= std::numeric_limits<int>::max()); 
-        return (int)Base::size();
-    }
+	int size() const { 
+		assert(Base::size() <= (long)std::numeric_limits<int>::max()); 
+		assert(Base::ncol()==1);
+		return (int)Base::size();
+	}
+	int nrow() const { assert(Base::ncol()==1); return Base::nrow(); }
+	int ncol() const { assert(Base::ncol()==1); return Base::ncol(); }
 
     // Override MatrixBase operators to return the right shape
     TAbs abs() const {TAbs result; Base::abs(result); return result;}
@@ -807,6 +810,7 @@ public:
     }
 
     // default destructor
+
 
     explicit RowVectorBase(int n, bool lockNcol=false)
       : Base(1,n,true,lockNcol) { }
@@ -904,10 +908,13 @@ public:
     
 
     // Override MatrixBase size() for RowVectors to return int instead of long.
-    int size() const { 
-        assert(Base::size() <= std::numeric_limits<int>::max()); 
-        return (int)Base::size();
-    }
+	int size() const { 
+		assert(Base::size() <= (long)std::numeric_limits<int>::max()); 
+		assert(Base::nrow()==1);
+		return (int)Base::size();
+	}
+	int nrow() const { assert(Base::nrow()==1); return Base::nrow(); }
+	int ncol() const { assert(Base::nrow()==1); return Base::ncol(); }
 
     // Override MatrixBase operators to return the right shape
     TAbs abs() const {
