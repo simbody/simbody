@@ -378,40 +378,40 @@ public:
 	// will have element types appropriate for the elementwise multiply being performed.
 	template <class EE> inline void rowScale(const VectorBase<EE>&    v, typename EltResult<EE>::Mul& out) const;
 	template <class EE> inline typename EltResult<EE>::Mul rowScale(const VectorBase<EE>& v) const
-      { EltResult<EE>::Mul out(nrow(), ncol()); rowScale(v,out); return out; }
+      { typename EltResult<EE>::Mul out(nrow(), ncol()); rowScale(v,out); return out; }
 
 	// M = diag(v)^-1 * M; v must have nrow() elements.
 	// That is, M[i] /= v[i].
 	template <class EE> inline MatrixBase& rowUnscaleInPlace(const VectorBase<EE>&);
 	template <class EE> inline void rowUnscale(const VectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const;
 	template <class EE> inline typename EltResult<EE>::Dvd rowUnscale(const VectorBase<EE>& v) const
-      { EltResult<EE>::Dvd out(nrow(), ncol()); rowUnscale(v,out); return out; }
+      { typename EltResult<EE>::Dvd out(nrow(), ncol()); rowUnscale(v,out); return out; }
 
 	// M = M * diag(v); v must have ncol() elements
 	// That is, M(i) *= v[i]
 	template <class EE> inline MatrixBase& colScaleInPlace(const VectorBase<EE>&);
 	template <class EE> inline void colScale(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const;
 	template <class EE> inline typename EltResult<EE>::Mul colScale(const VectorBase<EE>& v) const
-      { EltResult<EE>::Mul out(nrow(), ncol()); colScale(v,out); return out; }
+      { typename EltResult<EE>::Mul out(nrow(), ncol()); colScale(v,out); return out; }
 
 	// M = M * diag(v)^-1; v must have ncol() elements
 	// That is, M(i) /= v[i]
 	template <class EE> inline MatrixBase& colUnscaleInPlace(const VectorBase<EE>&);
 	template <class EE> inline void colUnscale(const VectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const;
 	template <class EE> inline typename EltResult<EE>::Dvd colUnscale(const VectorBase<EE>& v) const
-      { EltResult<EE>::Dvd out(nrow(), ncol()); colUnscale(v,out); return out; }
+      { typename EltResult<EE>::Dvd out(nrow(), ncol()); colUnscale(v,out); return out; }
 
 	// M(i,j) *= R(i,j); R must have same dimensions as this
 	template <class EE> inline MatrixBase& elementwiseMultiplyInPlace(const MatrixBase<EE>&);
 	template <class EE> inline void elementwiseMultiply(const MatrixBase<EE>&, typename EltResult<EE>::Mul&) const;
 	template <class EE> inline typename EltResult<EE>::Mul elementwiseMultiply(const MatrixBase<EE>&) const
-      { EltResult<EE>::Mul out(nrow(), ncol()); elementwiseMultiply(v,out); return out; }
+      { typename EltResult<EE>::Mul out(nrow(), ncol()); elementwiseMultiply(v,out); return out; }
 
 	// M(i,j) /= R(i,j); R must have same dimensions as this
 	template <class EE> inline MatrixBase& elementwiseDivideInPlace(const MatrixBase<EE>& r);
 	template <class EE> inline void elementwiseDivide(const MatrixBase<EE>&, typename EltResult<EE>::Dvd&) const;
 	template <class EE> inline typename EltResult<EE>::Mul elementwiseDivide(const MatrixBase<EE>&) const
-      { EltResult<EE>::Dvd out(nrow(), ncol()); elementwiseDivide(v,out); return out; }
+      { typename EltResult<EE>::Dvd out(nrow(), ncol()); elementwiseDivide(v,out); return out; }
 
     // fill every element in current allocation with given element (or NaN or 0)
     MatrixBase& setTo(const ELT& t) {helper.fillWith(reinterpret_cast<const Scalar*>(&t)); return *this;}
