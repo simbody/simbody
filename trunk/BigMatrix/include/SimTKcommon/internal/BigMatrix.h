@@ -404,14 +404,14 @@ public:
 	// M(i,j) *= R(i,j); R must have same dimensions as this
 	template <class EE> inline MatrixBase& elementwiseMultiplyInPlace(const MatrixBase<EE>&);
 	template <class EE> inline void elementwiseMultiply(const MatrixBase<EE>&, typename EltResult<EE>::Mul&) const;
-	template <class EE> inline typename EltResult<EE>::Mul elementwiseMultiply(const MatrixBase<EE>&) const
-      { typename EltResult<EE>::Mul out(nrow(), ncol()); elementwiseMultiply(v,out); return out; }
+	template <class EE> inline typename EltResult<EE>::Mul elementwiseMultiply(const MatrixBase<EE>& m) const
+      { typename EltResult<EE>::Mul out(nrow(), ncol()); elementwiseMultiply(m,out); return out; }
 
 	// M(i,j) /= R(i,j); R must have same dimensions as this
-	template <class EE> inline MatrixBase& elementwiseDivideInPlace(const MatrixBase<EE>& r);
+	template <class EE> inline MatrixBase& elementwiseDivideInPlace(const MatrixBase<EE>&);
 	template <class EE> inline void elementwiseDivide(const MatrixBase<EE>&, typename EltResult<EE>::Dvd&) const;
-	template <class EE> inline typename EltResult<EE>::Mul elementwiseDivide(const MatrixBase<EE>&) const
-      { typename EltResult<EE>::Dvd out(nrow(), ncol()); elementwiseDivide(v,out); return out; }
+	template <class EE> inline typename EltResult<EE>::Mul elementwiseDivide(const MatrixBase<EE>& m) const
+      { typename EltResult<EE>::Dvd out(nrow(), ncol()); elementwiseDivide(m,out); return out; }
 
     // fill every element in current allocation with given element (or NaN or 0)
     MatrixBase& setTo(const ELT& t) {helper.fillWith(reinterpret_cast<const Scalar*>(&t)); return *this;}
