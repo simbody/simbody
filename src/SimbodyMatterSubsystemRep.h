@@ -209,16 +209,8 @@ public:
     // TODO: these are just unit weights and tolerances. They should be calculated
     // to be something more reasonable.
 
-    int calcQUnitWeightsImpl(const State& s, Vector& weights) const {
-        weights.resize(getNQ(s));
-        weights = 1; // default says everyone's opinion is just as valid
-        return 0;
-    }
-    int calcUUnitWeightsImpl(const State& s, Vector& weights) const {
-        weights.resize(getNU(s));
-        weights = 1;
-        return 0;
-    }
+    int calcQUnitWeightsImpl(const State& s, Vector& weights) const;
+    int calcUUnitWeightsImpl(const State& s, Vector& weights) const;
     int calcZUnitWeightsImpl(const State& s, Vector& weights) const {
         weights.resize(getNZ(s));
         weights = 1;
@@ -845,6 +837,10 @@ private:
         const Vector&              mobilityForces,
         const Vector_<Vec3>&       particleForces,
         const Vector_<SpatialVec>& bodyForces) const;
+    
+    // Recursively calculate the weights for Q's or U's.
+    void calcQUnitWeightsRecursively(const State& s, State& tempState, Vector& weights, Vec6& bounds, const RigidBodyNode& body) const;
+    void calcUUnitWeightsRecursively(const State& s, State& tempState, Vector& weights, Vec6& bounds, const RigidBodyNode& body) const;
 
     friend std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);
     friend class SimTK::SimbodyMatterSubsystem;

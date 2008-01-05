@@ -745,7 +745,139 @@ int SimbodyMatterSubsystemRep::calcDecorativeGeometryAndAppendImpl
 
     return 0;
 }
-
+int SimbodyMatterSubsystemRep::calcQUnitWeightsImpl(const State& s, Vector& weights) const {
+    weights.resize(getNQ(s));
+    weights = 1;
+    Vec6 bounds;
+    State tempState = s;
+    getSystem().realize(tempState, Stage::Position);
+    calcQUnitWeightsRecursively(s, tempState, weights, bounds, getRigidBodyNode(getGround().getMobilizedBodyId()));
+    return 0;
+}
+int SimbodyMatterSubsystemRep::calcUUnitWeightsImpl(const State& s, Vector& weights) const {
+    weights.resize(getNU(s));
+    weights = 1;
+    Vec6 bounds;
+    State tempState = s;
+    tempState.updU() = 0;
+    getSystem().realize(tempState, Stage::Position);
+    calcUUnitWeightsRecursively(s, tempState, weights, bounds, getRigidBodyNode(getGround().getMobilizedBodyId()));
+    return 0;
+}
+void SimbodyMatterSubsystemRep::calcQUnitWeightsRecursively(const State& s, State& tempState, Vector& weights, Vec6& bounds, const RigidBodyNode& body) const {
+    bounds[0] = bounds[2] = bounds[4] = Infinity;
+    bounds[1] = bounds[3] = bounds[5] = -Infinity;
+    
+    // Call this method recursively on the body's children, and build up a bounding box
+    // for everything downstream of it.
+    
+    for (int i = 0; i < body.getNChildren(); ++i) {
+        Vec6 childBounds;
+        calcQUnitWeightsRecursively(s, tempState, weights, childBounds, *body.getChild(i));
+        bounds[0] = std::min(bounds[0], childBounds[0]);
+        bounds[2] = std::min(bounds[2], childBounds[2]);
+        bounds[4] = std::min(bounds[4], childBounds[4]);
+        bounds[1] = std::max(bounds[1], childBounds[1]);
+        bounds[3] = std::max(bounds[3], childBounds[3]);
+        bounds[5] = std::max(bounds[5], childBounds[5]);
+    }
+    const SBPositionCache& pc = getPositionCache(s);
+    const SBModelVars& mv = getModelVars(s);
+    Vec3 origin = body.getX_GB(pc).T();
+    bounds[0] = std::min(bounds[0], origin[0]);
+    bounds[2] = std::min(bounds[2], origin[1]);
+    bounds[4] = std::min(bounds[4], origin[2]);
+    bounds[1] = std::max(bounds[1], origin[0]);
+    bounds[3] = std::max(bounds[3], origin[1]);
+    bounds[5] = std::max(bounds[5], origin[2]);
+    std::vector<Vec3> corners;
+    corners.push_back(Vec3(bounds[0], bounds[2], bounds[4]));
+    corners.push_back(Vec3(bounds[0], bounds[2], bounds[5]));
+    corners.push_back(Vec3(bounds[0], bounds[3], bounds[4]));
+    corners.push_back(Vec3(bounds[0], bounds[3], bounds[5]));
+    corners.push_back(Vec3(bounds[1], bounds[2], bounds[4]));
+    corners.push_back(Vec3(bounds[1], bounds[2], bounds[5]));
+    corners.push_back(Vec3(bounds[1], bounds[3], bounds[4]));
+    corners.push_back(Vec3(bounds[1], bounds[3], bounds[5]));
+    
+    // Try changing each Q, and see how much the position of each corner of the box is affected
+    
+    const Real delta = 1e-10;
+    Transform t = ~body.getX_GB(pc);
+    for (int i = 0; i < body.getNQ(mv); ++i) {
+        int qindex = body.getQIndex()+i;
+        tempState.updQ()[qindex] = s.getQ()[qindex]+delta;
+        getSystem().realize(tempState, Stage::Position);
+        const SBPositionCache& tempCache = getPositionCache(tempState);
+        Transform deltaT = body.getX_GB(tempCache)*t;
+        Real max = 0.0;
+        for (int j = 0; j < corners.size(); ++j) {
+            Real dist = (corners[j]-deltaT*corners[j]).norm();
+            max = std::max(max, dist);
+        }
+        weights[qindex] = std::max(max/delta, 0.1);
+        tempState.updQ()[qindex] = s.getQ()[qindex];
+    }
+}
+void SimbodyMatterSubsystemRep::calcUUnitWeightsRecursively(const State& s, State& tempState, Vector& weights, Vec6& bounds, const RigidBodyNode& body) const {
+    bounds[0] = bounds[2] = bounds[4] = Infinity;
+    bounds[1] = bounds[3] = bounds[5] = -Infinity;
+    
+    // Call this method recursively on the body's children, and build up a bounding box
+    // for everything downstream of it.
+    
+    for (int i = 0; i < body.getNChildren(); ++i) {
+        Vec6 childBounds;
+        calcUUnitWeightsRecursively(s, tempState, weights, childBounds, *body.getChild(i));
+        bounds[0] = std::min(bounds[0], childBounds[0]);
+        bounds[2] = std::min(bounds[2], childBounds[2]);
+        bounds[4] = std::min(bounds[4], childBounds[4]);
+        bounds[1] = std::max(bounds[1], childBounds[1]);
+        bounds[3] = std::max(bounds[3], childBounds[3]);
+        bounds[5] = std::max(bounds[5], childBounds[5]);
+    }
+    const SBPositionCache& pc = getPositionCache(s);
+    const SBModelVars& mv = getModelVars(s);
+    Vec3 origin = body.getX_GB(pc).T();
+    bounds[0] = std::min(bounds[0], origin[0]);
+    bounds[2] = std::min(bounds[2], origin[1]);
+    bounds[4] = std::min(bounds[4], origin[2]);
+    bounds[1] = std::max(bounds[1], origin[0]);
+    bounds[3] = std::max(bounds[3], origin[1]);
+    bounds[5] = std::max(bounds[5], origin[2]);
+    std::vector<Vec3> corners;
+    corners.push_back(Vec3(bounds[0], bounds[2], bounds[4]));
+    corners.push_back(Vec3(bounds[0], bounds[2], bounds[5]));
+    corners.push_back(Vec3(bounds[0], bounds[3], bounds[4]));
+    corners.push_back(Vec3(bounds[0], bounds[3], bounds[5]));
+    corners.push_back(Vec3(bounds[1], bounds[2], bounds[4]));
+    corners.push_back(Vec3(bounds[1], bounds[2], bounds[5]));
+    corners.push_back(Vec3(bounds[1], bounds[3], bounds[4]));
+    corners.push_back(Vec3(bounds[1], bounds[3], bounds[5]));
+    
+    // Try changing each U, and see how much the position of each corner of the box is affected
+    
+    const Real delta = 1e-10;
+    const Real timescale = getSystem().calcTimescale(s);
+    Transform t = ~body.getX_GB(pc);
+    for (int i = 0; i < body.getDOF(); ++i) {
+        int uindex = body.getUIndex()+i;
+        tempState.updU()[uindex] = 1.0;
+        getSystem().realize(tempState, Stage::Velocity);
+        tempState.updQ() = s.getQ()+tempState.getQDot()*(delta/timescale);
+        getSystem().realize(tempState, Stage::Position);
+        const SBPositionCache& tempCache = getPositionCache(tempState);
+        Transform deltaT = body.getX_GB(tempCache)*t;
+        Real max = 0.0;
+        for (int j = 0; j < corners.size(); ++j) {
+            Real dist = (corners[j]-deltaT*corners[j]).norm();
+            max = std::max(max, dist);
+        }
+        weights[uindex] = std::max(max/delta, 0.1);
+        tempState.updU()[uindex] = 0.0;
+        tempState.updQ() = s.getQ();
+    }
+}
 int SimbodyMatterSubsystemRep::getQIndex(MobilizedBodyId body) const {
     assert(subsystemTopologyHasBeenRealized());
     return getRigidBodyNode(body).getQIndex();
