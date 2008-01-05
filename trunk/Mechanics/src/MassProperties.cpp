@@ -34,7 +34,7 @@
  */
 
 #include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/Simmatrix.h"
+#include "SimTKcommon/internal/MassProperties.h"
 
 #include <iostream>
 
