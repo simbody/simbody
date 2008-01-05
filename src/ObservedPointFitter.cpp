@@ -96,6 +96,7 @@ public:
         Optimizer opt(*this);
         opt.useNumericalJacobian(true);
         opt.setConvergenceTolerance(tolerance);
+        opt.setLimitedMemoryHistory(100);
         opt.optimize(q);
     }
 private:

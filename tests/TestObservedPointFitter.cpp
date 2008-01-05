@@ -45,7 +45,7 @@ void testFitting(const MultibodySystem& mbs, State& state, const vector<Mobilize
     
     // Find the best fit.
     
-    Real reportedError = ObservedPointFitter::findBestFit(mbs, state, bodyIds, stations, targetLocations);
+    Real reportedError = ObservedPointFitter::findBestFit(mbs, state, bodyIds, stations, targetLocations, 1e-4);
     ASSERT(reportedError <= maxError && reportedError >= minError);
     
     // Verify that the error was calculated correctly.
@@ -56,9 +56,9 @@ void testFitting(const MultibodySystem& mbs, State& state, const vector<Mobilize
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
     for (int i = 0; i < (int) bodyIds.size(); ++i) {
         MobilizedBodyId id = bodyIds[i];
-        numStations += stations[id].size();
-        for (int j = 0; j < (int) stations[id].size(); ++j)
-            error += (targetLocations[id][j]-matter.getMobilizedBody(id).getBodyTransform(state)*stations[id][j]).normSqr();
+        numStations += stations[i].size();
+        for (int j = 0; j < (int) stations[i].size(); ++j)
+            error += (targetLocations[i][j]-matter.getMobilizedBody(id).getBodyTransform(state)*stations[i][j]).normSqr();
     }
     error = std::sqrt(error/numStations);
     ASSERT(std::abs(1.0-error/reportedError) < 0.0001);
@@ -121,8 +121,8 @@ int main() {
         int numStations = (int) (random.getValue()*4);
         for (int j = 0; j < numStations; ++j) {
             Vec3 pos(2.0*random.getValue()-1.0, 2.0*random.getValue()-1.0, 2.0*random.getValue()-1.0);
-            stations[id].push_back(pos);
-            targetLocations[id].push_back(bodies[i]->getBodyTransform(s)*pos);
+            stations[i].push_back(pos);
+            targetLocations[i].push_back(bodies[i]->getBodyTransform(s)*pos);
         }
     }
     
@@ -144,6 +144,6 @@ int main() {
             targetLocations[i][j] += Vec3(gaussian.getValue(), gaussian.getValue(), gaussian.getValue());
         }
     }
-    testFitting(mbs, s, bodyIds, stations, targetLocations, 0.1, 0.4, distance);
+    testFitting(mbs, s, bodyIds, stations, targetLocations, 0.1, 0.5, distance);
     std::cout << "Done" << std::endl;
 }
