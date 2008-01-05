@@ -629,7 +629,7 @@ template <class ELT> class VectorBase : public MatrixBase<ELT> {
     typedef VectorBase<typename CNT<ELT>::TNeg>         TNeg;
     typedef RowVectorView_<typename CNT<ELT>::THerm>    THerm;
 public:     
-    VectorBase() : Base() { }
+    VectorBase() : Base(0,1,false,true) { } // a 0x1 matrix locked at 1 column
 
     // Copy constructor is a deep copy (not appropriate for views!).
     VectorBase(const VectorBase& b) : Base(b) { }
@@ -798,7 +798,7 @@ template <class ELT> class RowVectorBase : public MatrixBase<ELT> {
     typedef RowVectorBase<typename CNT<ELT>::TNeg>      TNeg;
     typedef VectorView_<typename CNT<ELT>::THerm>       THerm;
 public:     
-    RowVectorBase() : Base() { }
+    RowVectorBase() : Base(1,0,true,false) { } // a 1x0 matrix locked at 1 row
     
     // Copy constructor is a deep copy (not appropriate for views!).    
     RowVectorBase(const RowVectorBase& b) : Base(b) { }
@@ -1359,7 +1359,7 @@ template <class ELT> class Vector_ : public VectorBase<ELT> {
     typedef typename CNT<ELT>::Number       Number;
     typedef typename CNT<ELT>::StdNumber    StdNumber;
 public:
-    Vector_() : Base() { }  // 0x1 TODO, reallocatable
+    Vector_() : Base() { }  // 0x1 reallocatable
     // Uses default destructor.
 
     // Copy constructor is deep.
@@ -1471,7 +1471,7 @@ template <class ELT> class RowVector_ : public RowVectorBase<ELT> {
     typedef typename CNT<ELT>::Number       Number;
     typedef typename CNT<ELT>::StdNumber    StdNumber;
 public:
-    RowVector_() : Base() { }   // 1x0 TODO, reallocatable
+    RowVector_() : Base() { }   // 1x0 reallocatable
     // Uses default destructor.
 
     // Copy constructor is deep.

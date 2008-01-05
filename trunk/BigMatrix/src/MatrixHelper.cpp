@@ -595,9 +595,23 @@ MatrixHelper<S>::swapOwnedContiguousData(S* newData, int length, S*& oldData) {
 // Element size and handle remain unchanged by clear().
 template <class S> void
 MatrixHelperRep<S>::clear() {
-    if (view==0) delete data;   // i.e., owner
-    data=0;
-    delete view; view=0;
+	if (view) {
+		// just a view; break the connection and forget everything
+        data=0;
+        delete view; view=0;
+		return;
+	}
+
+	// owner
+	if (data) {
+		const bool mustLockRows = data->rowsWereLockedOnConstruction();
+		const bool mustLockCols = data->colsWereLockedOnConstruction();
+		const int m = mustLockRows ? data->nrowElt(eltSize) : 0;
+		const int n = mustLockCols ? data->ncolElt(eltSize) : 0;
+		delete data; data = 0;
+		if (m || n)
+			data = new DataDescriptor<S>(eltSize,m,n,mustLockRows,mustLockCols);
+	}
 }
 
 template <class S> 
@@ -1077,10 +1091,12 @@ template <class S> void MatrixHelperRep<S>::unlockNCols() {
     assert(data && isDataOwned());
     data->unlockNCols();
 }
+
+// This is less fussy; it just unlocks anything that was locked after construction.
 template <class S> void MatrixHelperRep<S>::unlockShape() {
     assert(data && isDataOwned());
-    data->unlockNRows(); 
-    data->unlockNCols();
+    if (!data->rowsWereLockedOnConstruction()) data->unlockNRows(); 
+    if (!data->colsWereLockedOnConstruction()) data->unlockNCols();
 }
 
 template <class S> void

@@ -392,6 +392,9 @@ public:
         oldData = data;
         data = newData;
     }
+
+	bool rowsWereLockedOnConstruction() const {return rowsLockedOnConstruction;}
+	bool colsWereLockedOnConstruction() const {return colsLockedOnConstruction;}
                                     
 private:    
     const bool   rowsLockedOnConstruction;     // can't ever change m
