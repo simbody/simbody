@@ -424,14 +424,14 @@ void LapackInterface::trsm<std::complex<float> >(const char& side, const char& u
 template <> 
 // TODO void LapackInterface::ormrz<float>(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, float* a, const int& lda, float* tau, float* c__, const int& ldc, float* work, const int& lwork, int& info) {
 void LapackInterface::ormrz<float>(const char& side, const char& trans, const int& m, const int& n, const int& k, int* l, float* a, const int& lda, float* tau, float* c__, const int& ldc, float* work, const int& lwork, int& info) {
-   sormrz_( side, trans, m, n, k, l, a, lda, tau, c__, lda, work, lwork, info, 1, 1 );
+   sormrz_( side, trans, m, n, k, l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
    return;
 }
 
 template <> 
 // TODO void LapackInterface::ormrz<double>(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, double* a, const int& lda, double* tau, double* c__, const int& ldc, double* work, const int& lwork, int& info) {
 void LapackInterface::ormrz<double>(const char& side, const char& trans, const int& m, const int& n, const int& k, int* l, double* a, const int& lda, double* tau, double* c__, const int& ldc, double* work, const int& lwork, int& info) {
-   dormrz_( side, trans, m, n, k, l, a, lda, tau, c__, lda, work, lwork, info, 1, 1 );
+   dormrz_( side, trans, m, n, k, l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
    return;
 }
 
@@ -439,7 +439,7 @@ template <>
 //void LapackInterface::ormrz<std::complex<float> >(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, std::complex<float>* a, const int& lda, std::complex<float>* tau, std::complex<float>* c__, const int& ldc, std::complex<float>* work, const int& lwork, int& info) {
 //   cunmrz_( side, trans, m, n, k, l, a, lda, tau, c__, lda, work, lwork, info, 1, 1 );
 void LapackInterface::ormrz<std::complex<float> >(const char& side, const char& trans, const int& m, const int& n, const int& k, int* l, std::complex<float>* a, const int& lda, std::complex<float>* tau, std::complex<float>* c__, const int& ldc, std::complex<float>* work, const int& lwork, int& info) {
-   cunmrz_( side, trans, m, n, k, *l, a, lda, tau, c__, lda, work, lwork, info, 1, 1 );
+   cunmrz_( side, trans, m, n, k, *l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
    return;
 }
 
@@ -447,7 +447,7 @@ template <>
 //void LapackInterface::ormrz<std::complex<double> >(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, std::complex<double>* a, const int& lda, std::complex<double>* tau, std::complex<double>* c__, const int& ldc, std::complex<double>* work, const int& lwork, int& info) {
 //   zunmrz_( side, trans, m, n, k, l, a, lda, tau, c__, lda, work, lwork, info, 1, 1 );
 void LapackInterface::ormrz<std::complex<double> >(const char& side, const char& trans, const int& m, const int& n, const int& k, int* l, std::complex<double>* a, const int& lda, std::complex<double>* tau, std::complex<double>* c__, const int& ldc, std::complex<double>* work, const int& lwork, int& info) {
-   zunmrz_( side, trans, m, n, k, *l, a, lda, tau, c__, lda, work, lwork, info, 1, 1 );
+   zunmrz_( side, trans, m, n, k, *l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
    return;
 }
 
