@@ -110,12 +110,30 @@ int main()
     cout << "vw=" << vdot%wdot << " rw" << rdot%wdot
          << " vs" << vdot%sdot << " rs" << rdot%sdot << endl;
 
+	cout << "*** TEST crossMat() ***" << endl;
     Mat<3,3,Complex> vcross(crossMat(vdot));
     Mat<3,3,Complex> rcross(crossMat(rdot));
-    cout << "--- crossMat should be same whether made from row or vec" << endl;
+    cout << "--- crossMat 3d should be same whether made from row or vec" << endl;
+	cout << "vdot%wdot=" << vdot%wdot << endl;
     cout << "crossMat(v)=" << vcross << "crossMat(r)=" << rcross;
     cout << "crossMat(v)*w=" << crossMat(vdot)*wdot << " vcross*w=" << vcross*wdot << endl;
+
+
+	Vec<2,Complex> vdot2 = vdot.getSubVec<2>(0);
+	Vec<2,Complex> wdot2 = wdot.getSubVec<2>(0);
+	Row<2,Complex> rdot2 = rdot.getSubRow<2>(0);
+	Row<2,Complex> vcross2(crossMat(vdot2));
+	Row<2,Complex> rcross2(crossMat(rdot2));
+
+    cout << "--- crossMat 2d should be same whether made from row or vec" << endl;
+	cout << "vdot2, wdot2=" << vdot2 << ", " << wdot2 << " vdot2%wdot2=" << vdot2%wdot2 << endl;
+    cout << "crossMat(v2)=" << vcross2 << "crossMat(r2)=" << rcross2;
+    cout << "crossMat(v2)*w2=" << crossMat(vdot2)*wdot2 << " vcross2*w2=" << vcross2*wdot2 << endl;
+
     cout << "*********\n";
+
+
+
     Mat<2,5,float> m25f( 1, 2, 3, 4, 5,
                          6, 7, 8, 9, 10 );
     cout << "Mat<2,5,float>=" << m25f;

@@ -358,16 +358,15 @@ crossMat(const Vec<3,E,S>& v) {
 template <class E, int S> inline
 Mat<3,3,E> crossMat(const Row<3,E,S>& r) {return crossMat(r.positionalTranspose());}
 
-// Calculate M(v) such that M(v)*w = v0*w1-v1*w0 = v % w. Whether v is column
-// or row we create the same M.
+// Calculate M(v) such that M(v)*w = v0*w1-v1*w0 = v % w (a scalar). Whether v is column
+// or row we create the same M, which must be a row.
 template <class E, int S> inline
-Mat<2,2,E>
+Row<2,E>
 crossMat(const Vec<2,E,S>& v) {
-    return Mat<2,2,E>(Row<2,E>( E(0),  v[0]),
-                      Row<2,E>(-v[1],  E(0)));
+    return Row<2,E>(-v[1], v[0]);
 }
 template <class E, int S> inline
-Mat<2,2,E> crossMat(const Row<2,E,S>& r) {return crossMat(r.positionalTranspose());}
+Row<2,E> crossMat(const Row<2,E,S>& r) {return crossMat(r.positionalTranspose());}
 
 } //namespace SimTK
 
