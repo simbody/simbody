@@ -315,9 +315,6 @@ ELSE (EXECUTABLE_OUTPUT_PATH)
   SET (TEST_PATH .)
 ENDIF (EXECUTABLE_OUTPUT_PATH)
 
-ADD_TEST(IntegratorTest               ${TEST_PATH}/IntegratorTest)
-ADD_TEST(IntegratorTestStatic         ${TEST_PATH}/IntegratorTestStatic)
-
 
 #
 # Installation
