@@ -78,11 +78,8 @@ public:
         advanced.updTime() = t;
         try {
             const Real tol = integ.getConstraintToleranceInUse();
-            Vector yUnitWeights, unitTolerances;
             system.realize(advanced, Stage::Position);
-            system.calcYUnitWeights(advanced, yUnitWeights);
-            system.calcYErrUnitTolerances(advanced, unitTolerances);
-            system.project(advanced, tol, yUnitWeights, unitTolerances, err);
+            system.project(advanced, tol, integ.getStateWeightsInUse(), integ.getConstraintWeightsInUse(), err);
         }
         catch (...) { return CPodes::RecoverableError; } // assume recoverable
         ycorr = advanced.getY()-y;
