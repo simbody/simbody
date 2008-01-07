@@ -465,3 +465,7 @@ void CPodesIntegratorRep::setUseCPodesProjection() {
         "This method may not be invoked after the integrator has been initialized.");
     useCpodesProjection = true;
 }
+
+void CPodesIntegratorRep::setOrderLimit(int order) {
+    cpodes->setMaxOrd(order);
+}

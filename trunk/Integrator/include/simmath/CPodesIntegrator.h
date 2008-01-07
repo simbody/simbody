@@ -54,9 +54,30 @@ class CPodesIntegratorRep;
 
 class SimTK_SIMMATH_EXPORT CPodesIntegrator : public Integrator {
 public:
+    /**
+     * Create a CPodesIntegrator for integrating a System.
+     */
     CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method=CPodes::BDF);
+    /**
+     * Create a CPodesIntegrator for integrating a System.  The nonlinear system iteration type is chosen automatically
+     * based on the linear multistep method: Newton iteration for BDF (the default), and functional iteration for Adams.
+     */
     CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method, CPodes::NonlinearSystemIterationType iterationType);
+    /**
+     * CPODES provides its own mechanism for projecting the system onto the constraint manifold.  By default,
+     * CPodesIntegrator uses the System's project() method for doing projection, which is usually more
+     * efficient.  Invoking this method tells it to use the CPODES mechanism instead.
+     * 
+     * This method must be invoked before the integrator is initialized.  Invoking it after initialization
+     * will produce an exception.
+     */
     void setUseCPodesProjection();
+    /**
+     * Restrict the integrator to a lower order than it is otherwise capable of (12 for Adams, 5 for BDF).  This method
+     * may only be used to decrease the maximum order permitted, never to increase it.  Once you specify an order limit, calling it
+     * again with a larger value will fail.
+     */
+    void setOrderLimit(int order);
 };
 
 } // namespace SimTK

@@ -65,6 +65,7 @@ public:
     int getMethodMaxOrder() const;
     bool methodHasErrorControl() const;
     void setUseCPodesProjection();
+    void setOrderLimit(int order);
     class CPodesSystemImpl;
     friend class CPodesSystemImpl;
 private:

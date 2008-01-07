@@ -36,36 +36,24 @@
 
 using namespace SimTK;
 
-/**
- * Create a CPodesIntegrator for integrating a System.  The nonlinear system iteration type is chosen automatically
- * based on the linear multistep method: Newton iteration for BDF (the default), and functional iteration for Adams.
- */
-
 CPodesIntegrator::CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method)
 {
     rep = new CPodesIntegratorRep(this, sys, method);
 }
-
-/**
- * Create a CPodesIntegrator for integrating a System.
- */
 
 CPodesIntegrator::CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method, CPodes::NonlinearSystemIterationType iterationType) 
 {
     rep = new CPodesIntegratorRep(this, sys, method, iterationType);
 }
 
-/**
- * CPODES provides its own mechanism for projecting the system onto the constraint manifold.  By default,
- * CPodesIntegrator uses the System's project() method for doing projection, which is usually more
- * efficient.  Invoking this method tells it to use the CPODES mechanism instead.
- * 
- * This method must be invoked before the integrator is initialized.  Invoking it after initialization
- * will produce an exception.
- */
-
 void CPodesIntegrator::setUseCPodesProjection() {
     CPodesIntegratorRep& cprep = dynamic_cast<CPodesIntegratorRep&>(*rep);
     cprep.setUseCPodesProjection();
 }
+
+void CPodesIntegrator::setOrderLimit(int order) {
+    CPodesIntegratorRep& cprep = dynamic_cast<CPodesIntegratorRep&>(*rep);
+    cprep.setOrderLimit(order);
+}
+
 
