@@ -58,6 +58,8 @@ int main() {
     	fill_array32(values, length, *sfmt);
     	for (int i = 0; i < 5; ++i)
     		assert(values[i] == expected[i]);
+    	deleteSFMTData(sfmt);
+    	delete[] values;
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;
