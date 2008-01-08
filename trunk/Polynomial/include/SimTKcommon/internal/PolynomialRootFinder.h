@@ -65,16 +65,52 @@ namespace SimTK {
 class SimTK_SimTKCOMMON_EXPORT PolynomialRootFinder {
 public:
     class ZeroLeadingCoefficient;
+    /**
+     * Find the roots of a quadratic polynomial with real coefficients.
+     * 
+     * @param coefficients     The polynomial coefficients in order of decreasing powers
+     * @param roots            On exit, the roots of the polynomial are stored in this
+     */
     template <class T>
     static void findRoots(const Vec<3,T>& coefficients, Vec<2,complex<T> >& roots);
+    /**
+     * Find the roots of a quadratic polynomial with complex coefficients.
+     * 
+     * @param coefficients     The polynomial coefficients in order of decreasing powers
+     * @param roots            On exit, the roots of the polynomial are stored in this
+     */
     template <class T>
     static void findRoots(const Vec<3,complex<T> >& coefficients, Vec<2,complex<T> >& roots);
+    /**
+     * Find the roots of a cubic polynomial with real coefficients.
+     * 
+     * @param coefficients     The polynomial coefficients in order of decreasing powers
+     * @param roots            On exit, the roots of the polynomial are stored in this
+     */
     template <class T>
     static void findRoots(const Vec<4,T>& coefficients, Vec<3,complex<T> >& roots);
+    /**
+     * Find the roots of a cubic polynomial with complex coefficients.
+     * 
+     * @param coefficients     The polynomial coefficients in order of decreasing powers
+     * @param roots            On exit, the roots of the polynomial are stored in this
+     */
     template <class T>
     static void findRoots(const Vec<4,complex<T> >& coefficients, Vec<3,complex<T> >& roots);
+    /**
+     * Find the roots of a polynomial of arbitrary degree with real coefficients.
+     * 
+     * @param coefficients     The polynomial coefficients in order of decreasing powers
+     * @param roots            On exit, the roots of the polynomial are stored in this
+     */
     template <class T>
     static void findRoots(const Vector_<T>& coefficients, Vector_<complex<T> >& roots);
+    /**
+     * Find the roots of a polynomial of arbitrary degree with complex coefficients.
+     * 
+     * @param coefficients     The polynomial coefficients in order of decreasing powers
+     * @param roots            On exit, the roots of the polynomial are stored in this
+     */
     template <class T>
     static void findRoots(const Vector_<complex<T> >& coefficients, Vector_<complex<T> >& roots);
 };

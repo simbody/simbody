@@ -35,13 +35,6 @@
 
 namespace SimTK {
 
-/**
- * Find the roots of a quadratic polynomial with real coefficients.
- * 
- * @param coefficients     The polynomial coefficients in order of decreasing powers
- * @param roots            On exit, the roots of the polynomial are stored in this
- */
-
 template <class T>
 void PolynomialRootFinder::findRoots(const Vec<3,T>& coefficients, Vec<2,complex<T> >& roots) {
     T a = coefficients[0], b = coefficients[1], c = coefficients[2];
@@ -80,13 +73,6 @@ void PolynomialRootFinder::findRoots(const Vec<3,T>& coefficients, Vec<2,complex
     roots[1] = c/q;
 }
 
-/**
- * Find the roots of a quadratic polynomial with complex coefficients.
- * 
- * @param coefficients     The polynomial coefficients in order of decreasing powers
- * @param roots            On exit, the roots of the polynomial are stored in this
- */
-
 template <class T>
 void PolynomialRootFinder::findRoots(const Vec<3,complex<T> >& coefficients, Vec<2,complex<T> >& roots) {
     complex<T> a = coefficients[0], b = coefficients[1], c = coefficients[2];
@@ -109,13 +95,6 @@ void PolynomialRootFinder::findRoots(const Vec<3,complex<T> >& coefficients, Vec
     roots[1] = c/q;
 }
 
-/**
- * Find the roots of a cubic polynomial with real coefficients.
- * 
- * @param coefficients     The polynomial coefficients in order of decreasing powers
- * @param roots            On exit, the roots of the polynomial are stored in this
- */
-
 template <class T>
 void PolynomialRootFinder::findRoots(const Vec<4,T>& coefficients, Vec<3,complex<T> >& roots) {
     if (coefficients[0] == 0.0)
@@ -127,61 +106,7 @@ void PolynomialRootFinder::findRoots(const Vec<4,T>& coefficients, Vec<3,complex
     roots[0] = Complex(rootr[0], rooti[0]);
     roots[1] = Complex(rootr[1], rooti[1]);
     roots[2] = Complex(rootr[2], rooti[2]);
-    
-    
-    
-//    T scale = 1.0/coefficients[0];
-//    T a = scale*coefficients[1], b = scale*coefficients[2], c = scale*coefficients[3];
-//    T q = (a*a-3.0*b)/9.0;
-//    T r = (2.0*a*a*a - 9.0*a*b + 27.0*c)/54.0;
-//    T r2 = r*r;
-//    T q3 = q*q*q;
-//    T diff = r2-q3;
-//    T tol = 2.0*NTraits<T>::getEps()*r2;
-//    if (diff < tol && diff > -tol) {
-//
-//        // r^2 == q^3 to within machine precision, so set theta=0 and simplify the formulas.
-//        
-//        T mult = -2.0*std::sqrt(q);
-//        T sub = a/3.0;
-//        T twopi = 2.0*NTraits<T>::getPi();
-//        roots[0] = mult - sub;
-//        T root = mult*std::cos(twopi/3.0) - sub;
-//        roots[1] = root;
-//        roots[2] = root;
-//        return;
-//    }
-//    if (r2 < q3) {
-//        
-//        // There are three real roots.
-//        
-//        T theta = std::acos(r/std::sqrt(q3));
-//        T mult = -2.0*std::sqrt(q);
-//        T sub = a/3.0;
-//        T twopi = 2.0*NTraits<T>::getPi();
-//        roots[0] = mult*std::cos(theta/3.0) - sub;
-//        roots[1] = mult*std::cos((theta+twopi)/3.0) - sub;
-//        roots[2] = mult*std::cos((theta-twopi)/3.0) - sub;
-//        return;
-//    }
-//    T aa = std::pow(std::abs(r)+std::sqrt(diff), 1.0/3.0);
-//    if (r >= 0.0)
-//        aa = -aa;
-//    T bb = (aa == 0.0 ? 0.0 : q/aa);
-//    roots[0] = aa+bb-a/3.0;
-//    T rootr = -0.5*(aa+bb)-a/3.0;
-//    T rooti = 0.5*NTraits<T>::getSqrt3()*(aa-bb);
-//    roots[1] = complex<T>(rootr, rooti);
-//    roots[2] = complex<T>(rootr, -rooti);
 }
-
-
-/**
- * Find the roots of a cubic polynomial with complex coefficients.
- * 
- * @param coefficients     The polynomial coefficients in order of decreasing powers
- * @param roots            On exit, the roots of the polynomial are stored in this
- */
 
 template <class T>
 void PolynomialRootFinder::findRoots(const Vec<4,complex<T> >& coefficients, Vec<3,complex<T> >& roots) {
@@ -196,13 +121,6 @@ void PolynomialRootFinder::findRoots(const Vec<4,complex<T> >& coefficients, Vec
     roots[1] = Complex(rootr[1], rooti[1]);
     roots[2] = Complex(rootr[2], rooti[2]);
 }
-
-/**
- * Find the roots of a polynomial of arbitrary degree with real coefficients.
- * 
- * @param coefficients     The polynomial coefficients in order of decreasing powers
- * @param roots            On exit, the roots of the polynomial are stored in this
- */
 
 template <class T>
 void PolynomialRootFinder::findRoots(const Vector_<T>& coefficients, Vector_<complex<T> >& roots) {
@@ -230,13 +148,6 @@ void PolynomialRootFinder::findRoots(const Vector_<T>& coefficients, Vector_<com
     delete[] rootr;
     delete[] rooti;
 }
-
-/**
- * Find the roots of a polynomial of arbitrary degree with complex coefficients.
- * 
- * @param coefficients     The polynomial coefficients in order of decreasing powers
- * @param roots            On exit, the roots of the polynomial are stored in this
- */
 
 template <class T>
 void PolynomialRootFinder::findRoots(const Vector_<complex<T> >& coefficients, Vector_<complex<T> >& roots) {

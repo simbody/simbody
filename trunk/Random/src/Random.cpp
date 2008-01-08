@@ -195,10 +195,6 @@ public:
     }
 };
 
-/**
- * This constructor should never be invoked directly.  Instead, create an instance of one of the subclasses.
- */
-
 Random::Random() : impl(0) {
 }
 
@@ -206,59 +202,32 @@ Random::~Random() {
     delete impl;
 }
 
-/**
- * Get the internal object which implements the random number generator.
- */
-
 Random::RandomImpl& Random::getImpl() {
     assert(impl);
     return *impl;
 }
-
-/**
- * Get a constant reference to the internal object which implements the random number generator.
- */
 
 const Random::RandomImpl& Random::getConstImpl() const {
     assert(impl);
     return *impl;
 }
 
-/**
- * Reinitialize this random number generator with a new seed value.
- */
-
 void Random::setSeed(int seed) {
     getImpl().setSeed(seed);
 }
-
-/**
- * Get the next value in the pseudo-random sequence.
- */
 
 Real Random::getValue() const {
     return getConstImpl().getValue();
 }
 
-/**
- * Fill an array with values from the pseudo-random sequence.
- */
 
 void Random::fillArray(Real array[], int length) const {
     getConstImpl().fillArray(array, length);
 }
 
-/**
- * Create a new random number generator that produces values uniformly distributed between 0 (inclusive) and 1 (exclusive).
- */
-
 Random::Uniform::Uniform() {
     impl = new Random::Uniform::UniformImpl(0.0, 1.0);
 }
-
-/**
- * Create a new random number generator that produces values uniformly distributed between min (inclusive) and max (exclusive).
- */
 
 Random::Uniform::Uniform(Real min, Real max) {
     impl = new Random::Uniform::UniformImpl(min, max);
@@ -274,57 +243,29 @@ const Random::Uniform::UniformImpl& Random::Uniform::getConstImpl() const {
     return dynamic_cast<Random::Uniform::UniformImpl&>(*impl);
 }
 
-/**
- * Get a random integer, uniformly distributed between 0 (inclusive) and max (exclusive).
- */
-
 int Random::Uniform::getIntValue() {
     return (int) std::floor(getImpl().getValue());
 }
-
-/**
- * Get the lower end of the range in which values are uniformly distributed.
- */
 
 Real Random::Uniform::getMin() const {
     return getConstImpl().getMin();
 }
 
-/**
- * Set the lower end of the range in which values are uniformly distributed.
- */
-
 void Random::Uniform::setMin(Real min) {
     getImpl().setMin(min);
 }
-
-/**
- * Get the upper end of the range in which values are uniformly distributed.
- */
 
 Real Random::Uniform::getMax() const {
     return getConstImpl().getMax();
 }
 
-/**
- * Set the upper end of the range in which values are uniformly distributed.
- */
-
 void Random::Uniform::setMax(Real max) {
     getImpl().setMax(max);
 }
 
-/**
- * Create a new random number generator that produces values according to a Gaussian distribution with mean 0 and standard deviation 1.
- */
-
 Random::Gaussian::Gaussian() {
     impl = new Random::Gaussian::GaussianImpl(0.0, 1.0);
 }
-
-/**
- * Create a new random number generator that produces values according to a Gaussian distribution with the specified mean and standard deviation.
- */
 
 Random::Gaussian::Gaussian(Real mean, Real stddev) {
     impl = new Random::Gaussian::GaussianImpl(mean, stddev);
@@ -340,33 +281,17 @@ const Random::Gaussian::GaussianImpl& Random::Gaussian::getConstImpl() const {
     return dynamic_cast<Random::Gaussian::GaussianImpl&>(*impl);
 }
 
-/**
- * Get the mean of the Gaussian distribution.
- */
-
 Real Random::Gaussian::getMean() const {
     return getConstImpl().getMean();
 }
-
-/**
- * Set the mean of the Gaussian distribution.
- */
 
 void Random::Gaussian::setMean(Real mean) {
     getImpl().setMean(mean);
 }
 
-/**
- * Get the standard deviation of the Gaussian distribution.
- */
-
 Real Random::Gaussian::getStdDev() const {
     return getConstImpl().getStdDev();
 }
-
-/**
- * Set the standard deviation of the Gaussian distribution.
- */
 
 void Random::Gaussian::setStdDev(Real stddev) {
     getImpl().setStdDev(stddev);

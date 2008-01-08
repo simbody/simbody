@@ -62,14 +62,32 @@ public:
     class Uniform;
     class Gaussian;
     class RandomImpl;
-    Random();
     ~Random();
+    /**
+     * Reinitialize this random number generator with a new seed value.
+     */
     void setSeed(int seed);
+    /**
+     * Get the next value in the pseudo-random sequence.
+     */
     Real getValue() const;
+    /**
+     * Fill an array with values from the pseudo-random sequence.
+     */
     void fillArray(Real array[], int length) const;
 protected:
     RandomImpl* impl;
+    /**
+     * This constructor should never be invoked directly.  Instead, create an instance of one of the subclasses.
+     */
+    Random();
+    /**
+     * Get the internal object which implements the random number generator.
+     */
     RandomImpl& getImpl();
+    /**
+     * Get a constant reference to the internal object which implements the random number generator.
+     */
     const RandomImpl& getConstImpl() const;
 private:
     Random(Random& r);
@@ -83,12 +101,33 @@ private:
 class SimTK_SimTKCOMMON_EXPORT Random::Uniform : public Random {
 public:
     class UniformImpl;
+    /**
+     * Create a new random number generator that produces values uniformly distributed between 0 (inclusive) and 1 (exclusive).
+     */
     Uniform();
+    /**
+     * Create a new random number generator that produces values uniformly distributed between min (inclusive) and max (exclusive).
+     */
     Uniform(Real min, Real max);
+    /**
+     * Get a random integer, uniformly distributed between 0 (inclusive) and max (exclusive).
+     */
     int getIntValue();
+    /**
+     * Get the lower end of the range in which values are uniformly distributed.
+     */
     Real getMin() const;
+    /**
+     * Set the lower end of the range in which values are uniformly distributed.
+     */
     void setMin(Real min);
+    /**
+     * Get the upper end of the range in which values are uniformly distributed.
+     */
     Real getMax() const;
+    /**
+     * Set the upper end of the range in which values are uniformly distributed.
+     */
     void setMax(Real max);
 protected:
     UniformImpl& getImpl();
@@ -103,11 +142,29 @@ protected:
 class SimTK_SimTKCOMMON_EXPORT Random::Gaussian : public Random {
 public:
     class GaussianImpl;
+    /**
+     * Create a new random number generator that produces values according to a Gaussian distribution with mean 0 and standard deviation 1.
+     */
     Gaussian();
+    /**
+     * Create a new random number generator that produces values according to a Gaussian distribution with the specified mean and standard deviation.
+     */
     Gaussian(Real mean, Real stddev);
+    /**
+     * Get the mean of the Gaussian distribution.
+     */
     Real getMean() const;
+    /**
+     * Set the mean of the Gaussian distribution.
+     */
     void setMean(Real mean);
+    /**
+     * Get the standard deviation of the Gaussian distribution.
+     */
     Real getStdDev() const;
+    /**
+     * Set the standard deviation of the Gaussian distribution.
+     */
     void setStdDev(Real stddev);
 protected:
     GaussianImpl& getImpl();
