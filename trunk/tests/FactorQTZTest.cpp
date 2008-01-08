@@ -109,7 +109,7 @@ int main () {
         qtz.solve( b, x );  // solve for x given a right hand side 
 
 
-        cout << " Real SOLUTION: " << x << "  errnorm=" << (x-x_right).norm() << endl;
+        cout << " Overdetermined Double SOLUTION: " << x << "  errnorm=" << (x-x_right).norm() << endl;
 //        ASSERT((x-x_right).norm() < 10*SignificantReal);
         ASSERT((x-x_right).norm() < 0.001);
 
@@ -121,13 +121,40 @@ int main () {
         FactorQTZ qtzf(af);
         qtzf.solve(bf, xf);
 
-        cout << " float SOLUTION: " << xf << "  errnorm=" << (xf-xf_right).norm() << endl;
+        cout << " Overdetermined Float SOLUTION: " << xf << "  errnorm=" << (xf-xf_right).norm() << endl;
         const float SignificantFloat = NTraits<float>::getSignificant();
-//        ASSERT((xf-xf_right).norm() < 10*SignificantFloat);
         ASSERT((xf-xf_right).norm() < 0.001);
 
-
+        // Underdetermined case adapted from 
+        // http://idlastro.gsfc.nasa.gov/idl_html_help/LA_LEAST_SQUARES.html
         
+        Real Au[12] = { 2,     5,     3,     4,
+                        7,     1,     3,     5,
+                        4,     3,     6,     2   };
+        Real Bu[3] = { 3,     1,     6 };
+        Real Xu[4] = { -0.0376844,     0.350628,    0.986164,   -0.409066 };
+        Matrix au(3, 4, Au);
+        Vector bu(3, Bu);
+        Vector xu_right(4, Xu);
+        Vector xu; // should get sized automatically to 4 by solve()
+
+        FactorQTZ qtzu(au);  // perform QTZ factorization
+
+        qtzu.solve( bu, xu );  // solve for x given a right hand side
+
+        cout << " Underdetermined Double SOLUTION: " << xu << "  errnorm=" << (xu-xu_right).norm() << endl;
+  
+        Matrix_<float> afu(3,4); for (int i=0; i<3; ++i) for (int j=0; j<4; ++j) afu(i,j)=(float)au(i,j);
+        Vector_<float> bfu(3); for (int i=0; i<3; ++i) bfu[i] = (float)bu[i];
+        Vector_<float> xfu_right(4); for (int i=0; i<4; ++i) xfu_right[i] = (float)xu_right[i];
+        Vector_<float> xfu; // should get sized automatically to 4 by solve()
+
+        FactorQTZ qtzfu(afu);  // perform QTZ factorization
+
+        qtzfu.solve( bfu, xfu );  // solve for x given a right hand side
+ 
+        cout << " Underdetermined Float SOLUTION: " << xfu << "  errnorm=" << (xfu-xfu_right).norm() << endl;
+  
         return 0;
     } 
     catch (std::exception& e) {

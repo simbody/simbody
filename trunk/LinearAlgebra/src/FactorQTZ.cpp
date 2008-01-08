@@ -88,6 +88,7 @@ FactorQTZRep<T>::FactorQTZRep( const Matrix_<ELT>& mat, typename CNT<T>::TReal r
         qtz( mat.nrow()*mat.ncol() ),
         pivots(mat.ncol()),
         mn( (mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol() ),
+        maxmn( (mat.nrow() > mat.ncol()) ? mat.nrow() : mat.ncol() ),
         tauGEQP3(mn),
         tauORMQR(mn),
         scaleLinSys(false),
@@ -103,19 +104,33 @@ FactorQTZRep<T>::~FactorQTZRep() {}
 
 template < class T >
 void FactorQTZRep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) {
-    Matrix_<T> m(b.nrow(), 1 );
-    m.copyAssign(b);
+
+    SimTK_APIARGCHECK2_ALWAYS(b.size()==nRow,"FactorQTZ","solve",
+       "number of rows in right hand side=%d does not match number of rows in original matrix=%d \n", 
+        b.size(), nRow );
+
+
+    Matrix_<T> m(maxmn,1);
+
+    for(int i=0;i<b.size();i++) {
+        m(i,0) = b(i);
+    }
     Matrix_<T> r(nCol, 1 );
     doSolve( m, r );
     x.copyAssign(r);
     return;
 }
-// TODO handle cases where length of b,x and dimensions of  are not consistant
 template <typename T >
 void FactorQTZRep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) {
+
+    SimTK_APIARGCHECK2_ALWAYS(b.nrow()==nRow,"FactorQTZ","solve",
+       "number of rows in right hand side=%d does not match number of rows in original matrix=%d \n", 
+        b.nrow(), nRow );
+
     x.resize(nCol, b.ncol() );
     Matrix_<T> tb;
-    tb.copyAssign(b);
+    tb.resize(maxmn, b.ncol() );
+    for(int j=0;j<b.ncol();j++) for(int i=0;i<b.nrow();i++) tb(i,j) = b(i,j);
     doSolve(tb, x);
 }
 template <typename T >

@@ -84,7 +84,8 @@ class FactorQTZRep : public FactorQTZRepBase {
   
    void doSolve( Matrix_<T>& b, Matrix_<T>& x );
 
-   int mn;
+   int mn;           // min of number of rows or columns
+   int maxmn;        // max of number of rows or columns
    int nRow;
    int nCol;
    int rank;
