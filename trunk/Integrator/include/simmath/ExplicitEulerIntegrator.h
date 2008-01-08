@@ -39,6 +39,8 @@
 
 namespace SimTK {
 
+class ExplicitEulerIntegratorRep;
+
 /**
  * This is an Integrator based on the explicit Euler algorithm.  It is a
  * constant step size, first order explicit integrator.  This is the simplest
@@ -51,8 +53,6 @@ namespace SimTK {
  * has an effect is setInitialStepSize(), which sets the step size which will
  * be used for every step.
  */
-
-class ExplicitEulerIntegratorRep;
 
 class SimTK_SIMMATH_EXPORT ExplicitEulerIntegrator : public Integrator {
 public:

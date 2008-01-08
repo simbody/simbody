@@ -39,8 +39,10 @@
 
 namespace SimTK {
 
+class VerletIntegratorRep;
+
 /**
- * This is an integrator based on the velocity Verlet algorithm.  It is a third order, semi-explicit integrator.
+ * This is an Integrator based on the velocity Verlet algorithm.  It is a third order, semi-explicit integrator.
  * Velocity independent forces only need to be evaluated once per time step, but forces which depend on velocity
  * must be evaluated multiple times.  This makes it a very efficient algorithm for systems where most of the time
  * is spent evaluating forces that depend only on position.
@@ -68,8 +70,6 @@ namespace SimTK {
  * preserve accuracy.  This leads to fairly good long term energy conservation, while still maintaining reasonable
  * accuracy when unusually large forces transiently occur.
  */
-
-class VerletIntegratorRep;
 
 class SimTK_SIMMATH_EXPORT VerletIntegrator : public Integrator {
 public:

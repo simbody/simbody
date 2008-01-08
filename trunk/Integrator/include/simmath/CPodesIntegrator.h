@@ -40,17 +40,20 @@
 
 namespace SimTK {
 
+class CPodesIntegratorRep;
+
 /**
- * This is an integrator based on the CPODES library.  It is an error controlled,
- * variable order implicit integrator.
+ * This is an Integrator based on the CPODES library.  It is an error controlled, variable order
+ * implicit integrator.  It provides a good combination of accuracy, stability, and speed, and
+ * is a good choice for integrating stiff problems.
  * 
  * When creating a CPodesIntegrator, you can specify various options for how to perform
- * the implicit integration: the linear multistep method to use, and the nonlinear system
- * iteration type.  For stiff problems, the recommended choices are BDF with Newton iteration.
- * For non-stiff problems, the recommended choices are Adams with functional iteration.
+ * the implicit integration: the linear multistep method to use (Adams or BDF), and the nonlinear system
+ * iteration type (Newton iteration or functional iteration).  For stiff problems, the recommended choices
+ * are BDF with Newton iteration.  For non-stiff problems, using Adams and/or functional iteration may
+ * provide better performance.  Note that Adams is <i>never</i> recommended for systems that include
+ * constraints.
  */
-
-class CPodesIntegratorRep;
 
 class SimTK_SIMMATH_EXPORT CPodesIntegrator : public Integrator {
 public:
@@ -73,7 +76,7 @@ public:
      */
     void setUseCPodesProjection();
     /**
-     * Restrict the integrator to a lower order than it is otherwise capable of (12 for Adams, 5 for BDF).  This method
+     * Restrict the integrator to lower orders than it is otherwise capable of (up to 12 for Adams, 5 for BDF).  This method
      * may only be used to decrease the maximum order permitted, never to increase it.  Once you specify an order limit, calling it
      * again with a larger value will fail.
      */
