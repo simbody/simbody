@@ -51,6 +51,9 @@ public:
     BetweenBodyForce* clone() const {
         return new BetweenBodyForce(*this);
     }
+    bool dependsOnlyOnPositions() {
+        return true;
+    }
     void calc(const SimbodyMatterSubsystem& matter, const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
         for (int i = 0; i < matter.getNBodies(); ++i) {
             const MobilizedBody& body1 = matter.getMobilizedBody(MobilizedBodyId(i));
@@ -63,7 +66,7 @@ public:
                 const Real invDist2 = invDist*invDist;
                 const Real k = 20.0;
                 const Vec3 f = k*(dist-2.0)*(pos2-pos1)*invDist2*invDist2;
-                pe -= k*(invDist-1)*invDist;
+                pe += k*(invDist-1)*invDist;
                 body1.applyBodyForce(state, SpatialVec(Vec3(0),  f), bodyForces);
                 body2.applyBodyForce(state, SpatialVec(Vec3(0), -f), bodyForces);
             }
