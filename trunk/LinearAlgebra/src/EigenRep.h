@@ -32,41 +32,159 @@ class EigenRepBase {
 
     virtual ~EigenRepBase(){};
 
-   virtual void getValues( Vector_<float>& values ){
-       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getValues",
-       "getValues called with vector of type <float>   \n");
+   virtual void getAllEigenValuesAndVectors( Vector_<float>& values, Matrix_<float>& vectors ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValuesAndVectors",
+       "getAllEigenValuesAndVectors called with vector of type <float, float>   \n");
    }
-   virtual void getValues( Vector_<double>& values ){
-       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getValues",
-       "  getValues called with illegal type <double>   \n");
+   virtual void getAllEigenValuesAndVectors( Vector_<double>& values, Matrix_<double>& vectors ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValuesAndVectors",
+       "getAllEigenValuesAndVectors called with vector of type <double, double>   \n");
    }
-   virtual void getValues( Vector_<std::complex<float> >& values ){
-       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getValues",
-       "  getValues called with illegal type complex<float>  \n");
+   virtual void getAllEigenValuesAndVectors( Vector_<double>& values, Matrix_<std::complex<double> >& vectors ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValuesAndVectors",
+       "getAllEigenValuesAndVectors called with vector of types  <double, std::complex<double>   \n");
    }
-   virtual void getValues( Vector_<std::complex<double> >& values ){
-       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getValues",
-       "  getValues called with illegal type complex<double>   \n");   
+   virtual void getAllEigenValuesAndVectors( Vector_<std::complex<double> >& values, Matrix_<std::complex<double> >& vectors ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValuesAndVectors",
+       "getAllEigenValuesAndVectors called with vector of type <std::complex<double>, std::complex<double> >  \n");
    }
-   virtual void getVectors( Matrix_<float>& vectors ){
-       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getVectors",
-       "getVectors called with vector of type <float>   \n");
+   virtual void getAllEigenValuesAndVectors( Vector_<float>& values, Matrix_<std::complex<float> >& vectors ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValuesAndVectors",
+       "getAllEigenValuesAndVectors called with vector of type <float, std::complex<float> >   \n");
    }
-   virtual void getVectors( Matrix_<double>& vectors ){
-       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getVectors",
-       "  getVectors called with illegal type <double>   \n");
-   }
-   virtual void getVectors( Matrix_<std::complex<float> >& vectors ){
-       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getVectors",
-       "  getVectors called with illegal type complex<float>  \n");
-   }
-   virtual void getVectors( Matrix_<std::complex<double> >& vectors ){
-       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getVectors",
-       "  getVectors called with illegal type complex<double>   \n");   
+   virtual void getAllEigenValuesAndVectors( Vector_<std::complex<float> >& values, Matrix_<std::complex<float> >& vectors ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValuesAndVectors",
+       "getAllEigenValuesAndVectors called with vector of type <std::complex<float, std::complex<float> >   \n");
    }
 
-   virtual void selectValues( const std::vector<bool>& selectedValues) { return; }
-   virtual void selectVectors( const std::vector<bool>& selectedVectors) { return;  }
+   virtual void getAllEigenValues( Vector_<float>& values ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
+       "getAllEigenValues called with vector of type <float>   \n");
+   }
+   virtual void getAllEigenValues( Vector_<double>& values ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
+       "getAllEigenValues called with vector of type <double>   \n");
+   }
+   virtual void getAllEigenValues( Vector_<std::complex<double> >& values){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
+       "getAllEigenValues called with vector of type <std::complex<double>   \n");
+   }
+   virtual void getAllEigenValues( Vector_<std::complex<float> >& values ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
+       "getAllEigenValues called with vector of type <std::complex<float>   \n");
+   }
+   virtual void getFewEigenValuesAndVectors( Vector_<float>& values, Matrix_<float>& vectors, int ilow, int ihi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+       "getFewEigenValuesAndVectors called with vector of type <float,float>   \n");
+   }
+   virtual void getFewEigenValuesAndVectors( Vector_<double>& values, Matrix_<double>& vectors, int ilow, int ihi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+       "getFewEigenValuesAndVectors called with vector of type <double,double>   \n");
+   }
+   virtual void getFewEigenValuesAndVectors( Vector_<std::complex<float> >& values, Matrix_<std::complex<float> >& vectors, int ilow, int ihi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+       "getFewEigenValuesAndVectors called with vector of type <std::complex<float>, std::complex<float> >   \n");
+   }
+   virtual void getFewEigenValuesAndVectors( Vector_<float>& values, Matrix_<std::complex<float> >& vectors, int ilow, int ihi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+       "getFewEigenValuesAndVectors called with vector of type <float, std::complex<float> >   \n");
+   }
+   virtual void getFewEigenValuesAndVectors( Vector_<std::complex<double> >& values, Matrix_<std::complex<double> >& vectors, int ilow, int ihi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+       "getFewEigenValuesAndVectors called with vector of type <std::complex<double>, std::complex<double> >   \n");
+   }
+   virtual void getFewEigenValuesAndVectors( Vector_<double>& values, Matrix_<std::complex<double> >& vectors, int ilow, int ihi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+       "getFewEigenValuesAndVectors called with vector of type < double, std::complex<double> >   \n");
+   }
+   virtual void getFewEigenValuesAndVectors( Vector_<float>& values, Matrix_<float>& vectors, float rlow, float rhi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+       "getFewEigenValuesAndVectors called with vector of type <float, float>   \n");
+   }
+   virtual void getFewEigenValuesAndVectors( Vector_<double>& values, Matrix_<double>& vectors, double rlow, double rhi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+       "getFewEigenValuesAndVectors called with vector of type <double, double>   \n");
+   }
+   virtual void getFewEigenValuesAndVectors( Vector_<std::complex<float> >& values, Matrix_<std::complex<float> >& vectors, float rlow, float rhi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+       "getFewEigenValuesAndVectors called with vector of type <std::complex<float>, std::complex<float> >   \n");
+   }
+   virtual void getFewEigenValuesAndVectors( Vector_<float>& values, Matrix_<std::complex<float> >& vectors, float rlow, float rhi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+       "getFewEigenValuesAndVectors called with vector of type <float, std::complex<float> >   \n");
+   }
+   virtual void getFewEigenValuesAndVectors( Vector_<std::complex<double> >& values, Matrix_<std::complex<double> >& vectors, double rlow, double rhi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+       "getFewEigenValuesAndVectors called with vector of type <std::complex<double>, std::complex<double> >   \n");
+   }
+   virtual void getFewEigenValuesAndVectors( Vector_<double>& values, Matrix_<std::complex<double> >& vectors, double rlow, double rhi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+       "getFewEigenValuesAndVectors called with vector of type <double, std::complex<double> >   \n");
+   }
+   virtual void getFewEigenValues( Vector_<float>& values, int ilow, int ihi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
+       "getFewEigenValues called with vector of type <float>   \n");
+   }
+   virtual void getFewEigenValues( Vector_<double>& values, int ilow, int ihi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
+       "getFewEigenValues called with vector of type <double>   \n");
+   }
+   virtual void getFewEigenValues( Vector_<std::complex<float> >& values, int ilow, int ihi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
+       "getFewEigenValues called with vector of type <std::complex<float> >   \n");
+   }
+   virtual void getFewEigenValues( Vector_<std::complex<double> >& values, int ilow, int ihi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
+       "getFewEigenValues called with vector of type <std::complex<double> >   \n");
+   }
+   virtual void getFewEigenValues( Vector_<float>& values, float rlow, float rhi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
+       "getFewEigenValues called with vector of type <float>   \n");
+   }
+   virtual void getFewEigenValues( Vector_<double>& values, double rlow, double rhi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
+       "getFewEigenValues called with vector of type <double>   \n");
+   }
+   virtual void getFewEigenValues( Vector_<std::complex<float> >& values, float rlow, float rhi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
+       "getFewEigenValues called with vector of type <std::complex<float> >   \n");
+   }
+   virtual void getFewEigenValues( Vector_<std::complex<double> >& values, double rlow, double rhi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
+       "getFewEigenValues called with vector of type <std::complex<double> >   \n");
+   }
+   virtual void getFewEigenVectors( Matrix_<float>& vectors, int ilow, int ihi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
+       "getFewEigenVectors called with vector of type <float>   \n");
+   }
+   virtual void getFewEigenVectors(  Matrix_<double>& vectors, int ilow, int ihi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
+       "getFewEigenVectors called with vector of type <double>   \n");
+   }
+   virtual void getFewEigenVectors( Matrix_<std::complex<float> >& vectors, int ilow, int ihi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
+       "getFewEigenVectors called with vector of type <std::complex<float> >   \n");
+   }
+   virtual void getFewEigenVectors(  Matrix_<std::complex<double> >& vectors, int ilow, int ihi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
+       "getFewEigenVectors called with vector of type <std::complex<double> >   \n");
+   }
+   virtual void getFewEigenVectors(  Matrix_<float>& vectors, float rlow, float rhi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
+       "getFewEigenVectors called with vector of type <float>   \n");
+   }
+   virtual void getFewEigenVectors(  Matrix_<double>& vectors, double rlow, double rhi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
+       "getFewEigenVectors called with vector of type <double>   \n");
+   }
+   virtual void getFewEigenVectors( Matrix_<std::complex<float> >& vectors, float rlow, float rhi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
+       "getFewEigenVectors called with vector of type <std::complex<float> >   \n");
+   }
+   virtual void getFewEigenVectors( Matrix_<std::complex<double> >& vectors, double rlow, double rhi ){
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
+       "getFewEigenVectors called with vector of type <std::complex<double> >   \n");
+   }
 
 }; // class EigenRepBase
 
@@ -75,28 +193,64 @@ class EigenRep : public EigenRepBase {
    public:
    template <class ELT> EigenRep( const Matrix_<ELT>&  );
 
-   ~EigenRep();
+    enum EigenRange {
+        AllValues   = 0,
+        IndexRange  = 1,
+        ValueRange  = 2 
+    };
 
-   void getValues( Vector_<std::complex< typename CNT<T>::TReal> >& values );
-   void getVectors( Matrix_<std::complex< typename CNT<T>::TReal> >& vectors );
-   void getValues( Vector_< typename CNT<T>::TReal >& values );
-   void getVectors( Matrix_< typename CNT<T>::TReal >& vectors );
-   void selectValues( const std::vector<bool>& selectedValues);
-   void selectVectors( const std::vector<bool>& selectedVectors);
-   void computeValues();
- 
-   private:
+    ~EigenRep();
+
+    typedef typename CNT<T>::TReal RType;
+//    template <class VAL, class VEC> void getAllEigenValuesAndVectors( Vector_<VAL>& values, Matrix_<VEC>& vectors);
+    void getAllEigenValuesAndVectors( Vector_<std::complex<RType> >& values, Matrix_<std::complex<RType> >& vectors);
+    void getAllEigenValuesAndVectors( Vector_<RType>& values, Matrix_<RType>& vectors);
+    void getAllEigenValuesAndVectors( Vector_<RType>& values, Matrix_<std::complex<RType> >& vectors);
+    void getAllEigenValues( Vector_<RType>& values);
+    void getAllEigenValues( Vector_<std::complex<RType> >& values);
+
+    void getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<RType>& vectors, int ilow, int ihi);
+    void getFewEigenValuesAndVectors( Vector_<std::complex<RType> >& values, Matrix_<std::complex<RType> >& vectors, int ilow, int ihi);
+    void getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<std::complex<RType> >& vectors, int ilow, int ihi);
+    void getFewEigenVectors( Matrix_<RType>& vectors, int ilow, int ihi );
+    void getFewEigenVectors( Matrix_<std::complex<RType> >& vectors, int ilow, int ihi );
+    void getFewEigenValues( Vector_<RType>& values, int ilow, int ihi );
+    void getFewEigenValues( Vector_<std::complex<RType> >& values, int ilow, int ihi );
+
+    void getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<RType>& vectors, RType rlow, RType ihi);
+    void getFewEigenValuesAndVectors( Vector_<std::complex<RType> >& values, Matrix_<std::complex<RType> >& vectors, RType rlow, RType ihi);
+    void getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<std::complex<RType> >& vectors, RType rlow, RType ihi);
+    void getFewEigenVectors( Matrix_<RType>& vectors, RType rlow, RType ihi );
+    void getFewEigenVectors( Matrix_<std::complex<RType> >& vectors, RType rlow, RType ihi );
+    void getFewEigenValues( Vector_<RType>& values, RType rlow, RType ihi );
+    void getFewEigenValues( Vector_<std::complex<RType> >& values, RType rlow, RType ihi );
+
+    private:
   
-   int n;
-   bool needAllValues;
-   bool needAllVectors;
-   bool computedValues;     // true if eigen values  already computed
-   bool computedVectors;    // true if eigen vectors already computed
-   TypedWorkSpace<bool> selectedValues;
-   TypedWorkSpace<bool> selectedVectors;
-   TypedWorkSpace<T> inputMatrix;
-   TypedWorkSpace<std::complex< typename CNT<T>::TReal > >eigenValues;
-   Matrix_<std::complex< typename CNT<T>::TReal > > rightVectors;
+    void computeValues(bool);
+   
+    template <typename P>  void copyVectors( Matrix_<P>& vectors );
+    void copyValues( Vector_<float>& values );
+    void copyValues( Vector_<double>& values );
+    void copyValues( Vector_<std::complex<float> >& values );
+    void copyValues( Vector_<std::complex<double> >& values );
+
+    int n;
+    int lowIndex, hiIndex;   // min and max indexes for computing a few eigenvalues 
+    RType lowValue, hiValue; // min and max values for computing a few eigenvalues
+    RType abstol;            // convergence tolerance used by interative eigen routines
+    bool needValues;         // true if eigen values  need to be computed
+    bool needVectors;        // true if eigen vectors need to be computed
+    bool vectorsInMatrix;    // true if eigen vectors stored in inputMatrix
+    int valuesFound;         // number of eigen values found when computing few values
+    EigenRange range;
+    MatrixStructures::Structure structure;
+    TypedWorkSpace<T> inputMatrix;
+    TypedWorkSpace< RType> realEigenValues;
+    TypedWorkSpace< std::complex<RType> > complexEigenValues;
+    TypedWorkSpace< std::complex<RType> > complexEigenVectors;
+    TypedWorkSpace<int> ifail;   // indexes of eigenvalues that did not converge
+    TypedWorkSpace<T> symmetricEigenVectors;
 
 }; // end class EigenRep
 } // namespace SimTK

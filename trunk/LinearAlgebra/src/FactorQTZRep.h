@@ -73,6 +73,7 @@ class FactorQTZRep : public FactorQTZRepBase {
    public:
    template <class ELT> FactorQTZRep( const Matrix_<ELT>&  );
    template <class ELT> FactorQTZRep( const Matrix_<ELT>&, typename CNT<T>::TReal  );
+   FactorQTZRep();
 
    ~FactorQTZRep();
 
@@ -86,17 +87,18 @@ class FactorQTZRep : public FactorQTZRepBase {
 
    int mn;           // min of number of rows or columns
    int maxmn;        // max of number of rows or columns
-   int nRow;
-   int nCol;
-   int rank;
-   bool scaleLinSys;
-   bool scaleRHS;
-   typename CNT<T>::TReal linSysScaleF;
-   typename CNT<T>::TReal rhsScaleF;
+   int nRow;         // number of rows in original matrix
+   int nCol;         // number of columns in original matrix
+   int rank;         // esitmated rank computed during factorization
+   bool scaleLinSys; // true if matrix was scaled during factorization
+   bool scaleRHS;    // true if right hand side was scaled during factorization
+   bool isFactored;  // true if QTZ factorization done
+   typename CNT<T>::TReal linSysScaleF; // scale factor applied to matrix 
+   typename CNT<T>::TReal rhsScaleF; // scale factor applied to right hand side
    typename CNT<T>::TReal anrm;
-   typename CNT<T>::TReal rcond;
+   typename CNT<T>::TReal rcond;   // reciprocol condition number
    TypedWorkSpace<int>    pivots;
-   TypedWorkSpace<T>      qtz;
+   TypedWorkSpace<T>      qtz;     // factored matrix
    TypedWorkSpace<T>      tauGEQP3;
    TypedWorkSpace<T>      tauORMQR;
 

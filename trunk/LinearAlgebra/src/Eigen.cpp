@@ -55,138 +55,578 @@ Eigen::Eigen( const Matrix_<ELT>& m ) {
     rep = new EigenRep<typename CNT<ELT>::StdNumber>(m); 
 }
 
-void Eigen::selectVectors( const std::vector<bool>& selectedVectors ) {
-    rep->selectVectors( selectedVectors );
-}
-
-void Eigen::selectValues( const std::vector<bool>& selectedValues ) {
-    rep->selectValues( selectedValues );
-}
-
-template < typename T >
-void Eigen::getValues( Vector_<T>& values ) {
-    rep->getValues( values );
+template <class VAL, class VEC> 
+void Eigen::getAllEigenValuesAndVectors( Vector_<VAL>& values, Matrix_<VEC>& vectors) {
+    rep->getAllEigenValuesAndVectors( values, vectors );
     return;
 }
-template < class T >
-void Eigen::getVectors(  Matrix_<T>& vectors ) {
-    rep->getVectors(  vectors );
+template <class VAL> 
+void Eigen::getAllEigenValues( Vector_<VAL>& values) {
+    rep->getAllEigenValues( values );
+    return;
+}
+template <class VAL, class VEC> 
+void Eigen::getFewEigenValuesAndVectors( Vector_<VAL>& values, Matrix_<VEC>& vectors, int ilow, int ihi) {
+    rep->getFewEigenValuesAndVectors( values, vectors, ilow, ihi );
+    return;
+}
+template <class T> 
+void Eigen::getFewEigenVectors( Matrix_<T>& vectors, int ilow, int ihi ) {
+    rep->getFewEigenVectors( vectors, ilow, ihi );
     return;
 }
 
+template <class T> 
+void Eigen::getFewEigenValues( Vector_<T>& values, int ilow, int ihi ) {
+    rep->getFewEigenValues( values, ilow, ihi );
+    return;
+}
+
+
+template <class VAL, class VEC> 
+void Eigen::getFewEigenValuesAndVectors( Vector_<VAL>& values, Matrix_<VEC>& vectors, typename CNT<VAL>::TReal rlow, typename CNT<VAL>::TReal rhi) {
+    rep->getFewEigenValuesAndVectors( values, vectors, rlow, rhi );
+    return;
+}
+template <class T> 
+void Eigen::getFewEigenVectors( Matrix_<T>& vectors, typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi) {
+    rep->getFewEigenVectors( vectors, rlow, rhi );
+    return;
+}
+
+template <class T> 
+void Eigen::getFewEigenValues( Vector_<T>& values, typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi) {
+    rep->getFewEigenValues( values, rlow, rhi );
+    return;
+}
 
    /////////////////
    // EigenRep //
    /////////////////
-template <typename T >
+template <typename T >        // constructor 
     template < typename ELT >
 EigenRep<T>::EigenRep( const Matrix_<ELT>& mat):
-        n(mat.ncol()),  
-        inputMatrix(n*n),
-        rightVectors(n,n),
-        eigenValues(n),
-        selectedVectors(n),
-        selectedValues(n),
-        computedValues(false),
-        computedVectors(false),
-        needAllValues(true),
-        needAllVectors(true) {  
+    n(mat.ncol()),  
+    inputMatrix(n*n),
+    structure(mat.getMatrixStructure()),
+    range(AllValues),
+    vectorsInMatrix(false),
+    needValues(true),
+    needVectors(true) {  
          
-   LapackConvert::convertMatrixToLapack( inputMatrix.data, mat );
-        
+    LapackInterface::getMachineUnderflow( abstol );
+    abstol *= 0.5;
+
+    LapackConvert::convertMatrixToLapack( inputMatrix.data, mat );
         
 }
 
 template <typename T >
 EigenRep<T>::~EigenRep() {}
 
-template < class T >
-void EigenRep<T>::getValues( Vector_<std::complex<typename CNT<T>::TReal> >& values ) {
-     values.resize(n);
+template <typename T >
+void EigenRep<T>::copyValues(Vector_<float>& values) {
 
-    if( !computedValues ) computeValues();
-    for(int i=0; i<n;i++) {
-         values(i) = eigenValues.data[i];
+    for(int j = 0;j<n;j++ ) {
+        values(j) = realEigenValues.data[j];
+    }
+    return;
+}
+template <typename T >
+void EigenRep<T>::copyValues(Vector_<double>& values) {
+
+    for(int j = 0;j<n;j++ ) {
+        values(j) = realEigenValues.data[j];
+    }
+    return;
+}
+template <typename T >
+void EigenRep<T>::copyValues(Vector_<std::complex<float> >& values) {
+
+    for(int j = 0;j<n;j++ ) {
+        values(j) = complexEigenValues.data[j];
     }
 }
-    
-template < class T >
-void EigenRep<T>::computeValues() {
+template <typename T >
+void EigenRep<T>::copyValues(Vector_<std::complex<double> >& values) {
 
-    typedef typename CNT<T>::TReal RType;
+    for(int j = 0;j<n;j++ ) {
+        values(j) = complexEigenValues.data[j];
+    }
+}
+template <>
+    template <>
+void EigenRep<float>::copyVectors(Matrix_<float>& vectors) {   // symmetric
+    int i,j;
+
+    if( vectorsInMatrix ) {
+         for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = inputMatrix.data[j*n+i];
+    } else {
+         for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = symmetricEigenVectors.data[j*n+i];
+    }
+
+    return;
+}
+template <>
+    template <>
+void EigenRep<double>::copyVectors(Matrix_<double>& vectors) { // symmetric
+    int i,j;
+
+    if( vectorsInMatrix ) {
+        for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = inputMatrix.data[j*n+i];
+    } else {
+        for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = symmetricEigenVectors.data[j*n+i];
+    }
+    return;
+}
+template <>
+    template <>
+void EigenRep<float>::copyVectors(Matrix_<std::complex<float> >& vectors) { // non-symmetric
+    int i,j;
+
+    for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = complexEigenVectors.data[j*n+i];
+
+    return;
+}
+template <>
+    template <>
+void EigenRep<double>::copyVectors(Matrix_<std::complex<double> >& vectors) { // non-symmetric
+    int i,j;
+
+    for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = complexEigenVectors.data[j*n+i];
+
+    return;
+}
+template <>
+   template <>
+void EigenRep<std::complex<float> >::copyVectors(Matrix_<std::complex<float> >& vectors) {
+    int i,j;
+
+    if( structure ==  MatrixStructures::Symmetric ) {
+        if( vectorsInMatrix ) {
+            for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = inputMatrix.data[j*n+i];
+        } else {
+            for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = symmetricEigenVectors.data[j*n+i];
+        }
+    } else {
+        for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = complexEigenVectors.data[j*n+i];
+    }
+    return;
+}
+template <>
+   template <>
+void EigenRep<std::complex<double> >::copyVectors(Matrix_<std::complex<double> >& vectors) {
+    int i,j;
+
+    if( structure ==  MatrixStructures::Symmetric ) {
+        if( vectorsInMatrix ) {
+            for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = inputMatrix.data[j*n+i];
+        } else {
+            for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = symmetricEigenVectors.data[j*n+i];
+        }
+    } else {
+        for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = complexEigenVectors.data[j*n+i];
+    }
+    return;
+}
+template <>
+   template <>
+void EigenRep<std::complex<double> >::copyVectors(Matrix_<double>& vectors) { assert(false);} // should never get called
+
+template <>
+   template <>
+void EigenRep<std::complex<float> >::copyVectors(Matrix_<float>& vectors) { assert(false);} // should never get called
+
+template < class T >
+void EigenRep<T>::computeValues(bool computeVectors) {
+
     int info;
 
-    if( needAllValues && needAllVectors) {
-            char calcLeftEigenVectors  = 'N';     // don't compute left eigen vectors
-            char calcRightEigenVectors = 'V';     // compute  right eigen vectors
- 
-            int computeLwork = -1;
-            T size[1];
-            T *leftVectors = NULL;           // no left vectors are calculated
+    T *leftVectors = NULL;           // no left vectors are calculated
+    char calcLeftEigenVectors  = 'N';     // don't compute left eigen vectors
+    char calcRightEigenVectors; 
+    if( computeVectors )  {
+        calcRightEigenVectors = 'V'; // compute  right eigen vectors
+    } else {
+        calcRightEigenVectors = 'N'; // don't compute right eigen vectors
+    } 
+    int computeLwork = -1;
+    T size[1];
 
-            // compute optimial size of workspace
-            LapackInterface::geev<T>( calcLeftEigenVectors, calcRightEigenVectors,
-                              n, inputMatrix.data, n,
-                              eigenValues.data,
-                              leftVectors,  n,
-                              rightVectors, n,
-                              size, computeLwork,
-                              info);
+    if( structure ==  MatrixStructures::Symmetric ) {
+         char useUpper = 'U'; // matrix is stored in upper triangle
+         realEigenValues.resize(n);
+         if( range == AllValues ) {
 
-            int lwork = LapackInterface::getLWork( size );
-            TypedWorkSpace<T> workSpace(lwork);
+             LapackInterface::syev<T>( calcRightEigenVectors, useUpper, n,
+                 inputMatrix.data, n, realEigenValues.data, info );
+             vectorsInMatrix = true;
+
+         } else {
+             char rangeChar; 
+             if( range == IndexRange ) {
+                 rangeChar = 'I';
+             } else {
+                 rangeChar = 'V';
+             }
+             LapackInterface::getMachineUnderflow( abstol );
+             abstol *= 0.5;
+             ifail.resize((long)n);
+             symmetricEigenVectors.resize(n*n);
+             LapackInterface::syevx<T>( calcRightEigenVectors, rangeChar, 
+             useUpper, n, inputMatrix.data, n, lowValue, hiValue, 
+             lowIndex, hiIndex, abstol, valuesFound, realEigenValues.data,
+             symmetricEigenVectors.data, n, ifail.data, info );
+             
+         }
+
+    } else {
+          complexEigenVectors.resize(n*n);
+          complexEigenValues.resize(n);
+
+          LapackInterface::geev<T>( calcLeftEigenVectors, calcRightEigenVectors,
+               n, inputMatrix.data, n, complexEigenValues.data, leftVectors, 
+               n, complexEigenVectors.data, n, size, computeLwork, info);
+
+
+          int lwork = LapackInterface::getLWork( size );
+          TypedWorkSpace<T> workSpace(lwork);
     
-            // compute all eigen values and eigen vectors of a general matrix
-            LapackInterface::geev<T>( calcLeftEigenVectors,      calcRightEigenVectors,
-                              n, inputMatrix.data, n,
-                              eigenValues.data,
-                              leftVectors,  n,
-                              rightVectors, n,
-                              workSpace.data,    lwork,
-                              info);
+          // compute all eigen values and eigen vectors of a general matrix
 
-            // copy computed eigen values and eigen vectors into caller's arguements
-            if( info != 0 ) {
+          LapackInterface::geev<T>( calcLeftEigenVectors, calcRightEigenVectors,
+                              n, inputMatrix.data, n, complexEigenValues.data,
+                              leftVectors, n, complexEigenVectors.data, n, 
+                              workSpace.data,  lwork, info);
+
+    } 
+    // copy computed eigen values and eigen vectors into caller's arguements
+    if( info != 0 ) {
          // TODO THROW EXCEPTION
-            } 
-            computedVectors = true;
-            computedValues = true;
-    }
-
-
+    } 
+    needVectors = false;
+    needValues = false;
     return;
 }
 template < class T >
-void EigenRep<T>::getValues( Vector_<typename CNT<T>::TReal>& values ) {
+void EigenRep<T>::getAllEigenValuesAndVectors( Vector_<std::complex<RType> >& values,  Matrix_<std::complex<RType> >& vectors ) {
+
+    range = AllValues;
+    vectors.resize(n,n);
     values.resize(n);
+
+    if( needValues ) computeValues( true );
+    copyValues( values );
+    copyVectors( vectors );
+
     return;
 }
-
+// only for symmetric real matrix
 template < class T >
-void EigenRep<T>::getVectors( Matrix_<std::complex<typename CNT<T>::TReal> >& vectors ) {
-    vectors.resize(n,n);
-// std::cout << "getVectors: rightVectors = " << rightVectors <<  std::endl;
-    if( computedVectors ) {
-        vectors.copyAssign( rightVectors );  
+void EigenRep<T>::getAllEigenValuesAndVectors( Vector_<RType>& values,  Matrix_<RType>& vectors ) {
+
+    // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
+    if( !CNT<T>::IsPrecision  ) {
+         SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
+         "getAllEigenValuesAndVectors(Real, Real) called with for a complex matrix   \n");
     }
-    return;
-}
+    if( structure != MatrixStructures::Symmetric ) {
+         SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
+         "getAllEigenValuesAndVectors(Real, Real) called with   for a non symmetric matrix   \n");
+    }
 
-template < class T >
-void EigenRep<T>::getVectors( Matrix_<typename CNT<T>::TReal>& vectors ) {
+    range = AllValues;
     vectors.resize(n,n);
+    values.resize(n);
+
+    if( needValues ) computeValues( true );
+    copyValues( values );
+    copyVectors( vectors );
+
+    return;
+}
+// only for symmetric complex matrix
+template < class T >
+void EigenRep<T>::getAllEigenValuesAndVectors( Vector_<RType>& values,  Matrix_<std::complex<RType> >& vectors ) {
+
+    // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
+    if( CNT<T>::IsPrecision  ) {
+         SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
+         "getAllEigenValuesAndVectors(Real, complex) called for a real matrix   \n");
+    }
+    if( structure != MatrixStructures::Symmetric ) {
+         SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
+         "getAllEigenValuesAndVectors(Real, complex) called for a non symmetric matrix   \n");
+    }
+
+    range = AllValues;
+    vectors.resize(n,n);
+    values.resize(n);
+
+    if( needValues ) computeValues( true );
+    copyValues( values );
+    copyVectors( vectors );
+
     return;
 }
 
 template < class T >
-void EigenRep<T>::selectVectors( const std::vector<bool>& selectedVectors ) {
+void EigenRep<T>::getAllEigenValues( Vector_<RType>& values ) {
+
+    // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
+    if(  structure != MatrixStructures::Symmetric ) {
+         SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
+         "getAllEigenValues called with value of type real for a non symmetric matrix   \n");
+    }
+    range = AllValues;
+    if( needValues ) computeValues( false ); 
+    copyValues( values );
+
+    return; 
+}
+template < class T >
+void EigenRep<T>::getAllEigenValues( Vector_<std::complex<RType> >& values ) {
+
+    range = AllValues;
+    if( needValues ) computeValues( false ); 
+    copyValues( values );
+
+    return; 
+}
+template < class T >
+void EigenRep<T>::getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<RType>& vectors,  typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi ) {
+
+    // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
+    if(  structure != MatrixStructures::Symmetric ) {
+         SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+         "getFewEigenValuesAndVectors(real, real ) called for a non symmetric matrix   \n");
+    }
+    range = ValueRange;
+    lowValue = rlow;
+    hiValue = rhi;
+    if( needValues ) computeValues(true);
+
+    copyValues(values);
+    copyVectors( vectors );
+    
+
+    return; 
+}
+template < class T >
+void EigenRep<T>::getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<std::complex<RType> >& vectors,  typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi ) {
+
+    // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
+    if(  structure != MatrixStructures::Symmetric ) {
+         SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+         "getFewEigenValuesAndVectors(real, complex ) called for a non symmetric matrix   \n");
+    }
+    if(  !CNT<T>::IsPrecision ) {
+         SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+         "getFewEigenValuesAndVectors(real, complex ) called for a real matrix   \n");
+    }
+    range = ValueRange;
+    lowValue = rlow;
+    hiValue = rhi;
+    if( needValues ) computeValues(true);
+
+    copyValues(values);
+    copyVectors( vectors );
+    
+
+    return; 
+}
+template < class T >
+void EigenRep<T>::getFewEigenValuesAndVectors( Vector_<std::complex<RType> >& values, Matrix_<std::complex<RType> >& vectors,  typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi ) {
+
+    range = ValueRange;
+    lowValue = rlow;
+    hiValue = rhi;
+    if( needValues ) computeValues(true);
+
+    copyValues(values);
+    copyVectors( vectors );
+    
+
+    return; 
 }
 
 template < class T >
-void EigenRep<T>::selectValues( const std::vector<bool>& selectedValues ) {
+void EigenRep<T>::getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<RType>& vectors,  int ilow, int ihi ) {
+
+    // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
+    if(  structure != MatrixStructures::Symmetric ) {
+         SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+         "getFewEigenValuesAndVectors(real, complex ) called for a non symmetric matrix   \n");
+    }
+    if(  !CNT<T>::IsPrecision ) {
+         SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+         "getFewEigenValuesAndVectors(real, real ) called for a complex matrix   \n");
+    }
+    range = IndexRange;
+    lowIndex = ilow;
+    hiIndex = ihi;
+    if( needValues ) computeValues( true );
+
+    copyValues(values);
+    copyVectors( vectors );
+
+    return; 
 }
+template < class T >
+void EigenRep<T>::getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<std::complex<RType> >& vectors,  int ilow, int ihi ) {
 
+    // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
+    if(  structure != MatrixStructures::Symmetric ) {
+         SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+         "getFewEigenValuesAndVectors(real, complex ) called for a non symmetric matrix   \n");
+    }
+    if( CNT<T>::IsPrecision ) {
+         SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
+         "getFewEigenValuesAndVectors(real, complex ) called for a real matrix   \n");
+    }
+    range = IndexRange;
+    lowIndex = ilow;
+    hiIndex = ihi;
+    if( needValues ) computeValues( true );
 
+    copyValues(values);
+    copyVectors( vectors );
+
+    return; 
+}
+template < class T >
+void EigenRep<T>::getFewEigenValuesAndVectors( Vector_<std::complex<RType> >& values, Matrix_<std::complex<RType> >& vectors,  int ilow, int ihi ) {
+
+    range = IndexRange;
+    lowIndex = ilow;
+    hiIndex = ihi;
+    if( needValues ) computeValues( true );
+
+    copyValues(values);
+    copyVectors( vectors );
+
+    return; 
+}
+template < class T >
+void EigenRep<T>::getFewEigenValues( Vector_<RType>& values,  typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi ) {
+
+    // symmetric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
+    if(  structure != MatrixStructures::Symmetric ) {
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
+       "getFewEigenValues(real) called for a non symmetric matrix   \n");
+    }
+    range = ValueRange;
+    lowValue = rlow;
+    hiValue = rhi;
+    if( needValues ) computeValues(false);
+
+    copyValues(values);
+
+    return; 
+}
+template < class T >
+void EigenRep<T>::getFewEigenValues( Vector_<std::complex<RType> >& values,  typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi ) {
+
+    range = ValueRange;
+    lowValue = rlow;
+    hiValue = rhi;
+    if( needValues ) computeValues(false);
+
+    copyValues(values);
+
+    return; 
+}
+template < class T >
+void EigenRep<T>::getFewEigenValues( Vector_<RType>& values,  int ilow, int ihi ) {
+
+    // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
+    if( structure != MatrixStructures::Symmetric ) {
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
+       "getFewEigenValues(real) called for a non symmetric matrix   \n");
+    }
+    range = IndexRange;
+    lowIndex = ilow;
+    hiIndex = ihi;
+    if( needValues ) computeValues(false);
+
+    copyValues(values);
+
+    return; 
+}
+template < class T >
+void EigenRep<T>::getFewEigenValues( Vector_<std::complex<RType> >& values,  int ilow, int ihi ) {
+
+    range = IndexRange;
+    lowIndex = ilow;
+    hiIndex = ihi;
+    if( needValues ) computeValues(false);
+
+    copyValues(values);
+
+    return; 
+}
+template < class T >
+void EigenRep<T>::getFewEigenVectors( Matrix_<std::complex<RType> >& vectors,  int ilow, int ihi ) {
+
+    range = IndexRange;
+    lowValue = ilow;
+    hiValue = ihi;
+    if( needVectors ) computeValues( true );
+    copyVectors( vectors );
+
+    return; 
+}
+template < class T >
+void EigenRep<T>::getFewEigenVectors( Matrix_<std::complex<RType> >& vectors,  typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi ) {
+
+    range = ValueRange;
+    lowValue = rlow;
+    hiValue = rhi;
+    if( needVectors ) computeValues( true );
+    copyVectors( vectors );
+
+    return; 
+}
+template < class T >
+void EigenRep<T>::getFewEigenVectors( Matrix_<RType>& vectors,  int ilow, int ihi ) {
+
+    // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
+    if( structure != MatrixStructures::Symmetric ) {
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
+       "getFewEigenVectors(real) called for a non symmetric matrix   \n");
+    } 
+    if( !CNT<T>::IsPrecision ) {
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
+       "getFewEigenVectors(real) called for a complex matrix   \n");
+    } 
+    range = IndexRange;
+    lowValue = ilow;
+    hiValue = ihi;
+    if( needVectors ) computeValues( true );
+    copyVectors( vectors );
+
+    return; 
+}
+template < class T >
+void EigenRep<T>::getFewEigenVectors( Matrix_<RType>& vectors,  RType rlow, RType rhi ) {
+
+    // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
+    if( structure != MatrixStructures::Symmetric ) {
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
+       "getFewEigenVectors(real) called for a non symmetric matrix   \n");
+    } 
+    if( !CNT<T>::IsPrecision ) {
+       SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
+       "getFewEigenVectors(real) called for a complex matrix   \n");
+    } 
+    range = ValueRange;
+    lowValue = rlow;
+    hiValue = rhi;
+    if( needVectors ) computeValues( true );
+    copyVectors( vectors );
+
+    return; 
+}
 
 // instantiate
 template SimTK_SIMMATH_EXPORT Eigen::Eigen( const Matrix_<double>& m );
@@ -201,6 +641,49 @@ template SimTK_SIMMATH_EXPORT Eigen::Eigen( const Matrix_<negator< std::complex<
 template SimTK_SIMMATH_EXPORT Eigen::Eigen( const Matrix_<negator< std::complex<double> > >& m );
 template SimTK_SIMMATH_EXPORT Eigen::Eigen( const Matrix_<negator< conjugate<float> > >& m );
 template SimTK_SIMMATH_EXPORT Eigen::Eigen( const Matrix_<negator< conjugate<double> > >& m );
+
+template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<float, float >(Vector_<float>&, Matrix_<float>& );
+template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<double, double >(Vector_<double>&, Matrix_<double>& );
+template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<float, std::complex<float> >(Vector_<float>&, Matrix_<std::complex<float> >& );
+template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<double, std::complex<double> >(Vector_<double>&, Matrix_<std::complex<double> >& );
+template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<std::complex<float>, std::complex<float> >(Vector_<std::complex<float> >&, Matrix_<std::complex<float> >& );
+template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<std::complex<double>, std::complex<double> >(Vector_<std::complex<double> >&, Matrix_<std::complex<double> >& );
+
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<float, float >(Vector_<float>&, Matrix_<float>&, int ilow, int ihi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<double, double >(Vector_<double>&, Matrix_<double>&, int ilow, int ihi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<float, std::complex<float> >(Vector_<float>&, Matrix_<std::complex<float> >&, int ilow, int ihi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<double, std::complex<double> >(Vector_<double>&, Matrix_<std::complex<double> >&, int ilow, int ihi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<std::complex<float>, std::complex<float> >(Vector_<std::complex<float> >&, Matrix_<std::complex<float> >&, int ilow, int ihi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<std::complex<double>, std::complex<double> >(Vector_<std::complex<double> >&, Matrix_<std::complex<double> >&, int ilow, int ihi );
+
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<float, float >(Vector_<float>&, Matrix_<float>&, float rlow, float rhi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<double, double >(Vector_<double>&, Matrix_<double>&, double rlow, double rhi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<float, std::complex<float> >(Vector_<float>&, Matrix_<std::complex<float> >&, float rlow, float rhi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<double, std::complex<double> >(Vector_<double>&, Matrix_<std::complex<double> >&, double rlow, double rhi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<std::complex<float>, std::complex<float> >(Vector_<std::complex<float> >&, Matrix_<std::complex<float> >&, float rlow, float rhi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<std::complex<double>, std::complex<double> >(Vector_<std::complex<double> >&, Matrix_<std::complex<double> >&, double rlow, double rhi );
+
+template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValues<double>(Vector_<double>& );
+template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValues<float>(Vector_<float>& );
+template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValues<std::complex<double> >(Vector_<std::complex<double> >& );
+template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValues<std::complex<float> >(Vector_<std::complex<float> >& );
+
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValues<double>(Vector_<double>&, int ilow, int ihi);
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValues<float>(Vector_<float>&, int ilow, int ihi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValues<std::complex<double> >(Vector_<std::complex<double> >&, int ilow, int ihi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValues<std::complex<float> >(Vector_<std::complex<float> >&, int ilow, int ihi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValues<double>(Vector_<double>&, double rlow, double rhi);
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValues<float>(Vector_<float>&, float rlow, float rhi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValues<std::complex<double> >(Vector_<std::complex<double> >&, double rlow, double rhi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValues<std::complex<float> >(Vector_<std::complex<float> >&, float rlow, float rhi );
+
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenVectors<double>(Matrix_<double>&, int ilow, int ihi);
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenVectors<float>(Matrix_<float>&, int ilow, int ihi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenVectors<std::complex<double> >(Matrix_<std::complex<double> >&, int ilow, int ihi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenVectors<std::complex<float> >(Matrix_<std::complex<float> >&, int ilow, int ihi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenVectors<double>(Matrix_<double>&, double rlow, double rhi);
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenVectors<float>(Matrix_<float>&, float rlow, float rhi );
+template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenVectors<std::complex<double> >(Matrix_<std::complex<double> >&, double rlow, double rhi );
 
 template class EigenRep<double>;
 template EigenRep<double>::EigenRep( const Matrix_<double>& m);
@@ -221,14 +704,5 @@ template EigenRep<std::complex<float> >::EigenRep( const Matrix_<std::complex<fl
 template EigenRep<std::complex<float> >::EigenRep( const Matrix_<negator<std::complex<float> > >& m );
 template EigenRep<std::complex<float> >::EigenRep( const Matrix_<conjugate<float> >& m );
 template EigenRep<std::complex<float> >::EigenRep( const Matrix_<negator<conjugate<float> > >& m );
-
-template SimTK_SIMMATH_EXPORT void Eigen::getValues<float >(Vector_<float>& );
-template SimTK_SIMMATH_EXPORT void Eigen::getValues<double>(Vector_<double>& );
-template SimTK_SIMMATH_EXPORT void Eigen::getValues<std::complex<float> >(Vector_<std::complex<float> >& );
-template SimTK_SIMMATH_EXPORT void Eigen::getValues<std::complex<double> >(Vector_<std::complex<double> >& );
-template SimTK_SIMMATH_EXPORT void Eigen::getVectors<float>(Matrix_<float>&);
-template SimTK_SIMMATH_EXPORT void Eigen::getVectors<double>(Matrix_<double>& );
-template SimTK_SIMMATH_EXPORT void Eigen::getVectors<std::complex<float> >(Matrix_<std::complex<float> >&);
-template SimTK_SIMMATH_EXPORT void Eigen::getVectors<std::complex<double> >(Matrix_<std::complex<double> >& );
 
 } // namespace SimTK

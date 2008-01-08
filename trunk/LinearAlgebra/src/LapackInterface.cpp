@@ -36,12 +36,6 @@
 static const double EPS = .000001;
 namespace SimTK {
 
-template <class P> 
-static void geev (char jobvl, char jobvr,
-    int n, P a[], int lda, std::complex<typename CNT<P>::TReal>* values, 
-    P vl[], int ldvl, Matrix_<std::complex<typename CNT<P>::TReal> >& vr, 
-    int ldvr, P work[], int lwork, int& info ) {assert(false);}
-
 int LapackInterface::getLWork( float* work) { return( (int)work[0] ); }
 int LapackInterface::getLWork( double* work) { return( (int)work[0] ); }
 int LapackInterface::getLWork( std::complex<float>* work) { return( (int)work[0].real() ); }
@@ -111,10 +105,167 @@ template <> void LapackInterface::getrs<complex<double> >
 
     return;
 }
+// selected eigenvalues for symmetric matrices
+template <class T> 
+void LapackInterface::syevx( char jobz, char range, char uplo, int n, T* a, int lda,
+    typename CNT<T>::TReal vl, typename CNT<T>::TReal vu, int il, int iu,     
+    typename CNT<T>::TReal abstol, int& nFound, typename CNT<T>::TReal* values, 
+    T* vectors, int LDVectors, int* ifail, int& info ) {
+    assert(false);
+} 
+template <> void LapackInterface::syevx<float>( char jobz, char range, 
+    char uplo, int n, float* a, int lda, float vl, float vu, int il, 
+    int iu,   float abstol, int& nFound, float *values, float* vectors, 
+    int LDVectors, int* ifail, int& info ) {
+    
+    TypedWorkSpace<int> iwork(5*n);
+    float wsize[1];
+    ssyevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
+          values, vectors, LDVectors, wsize, -1, iwork.data, ifail, info, 
+          1, 1, 1);
+
+    int lwork = wsize[0];
+    TypedWorkSpace<float> work(lwork);
+    ssyevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
+          values, vectors, LDVectors,  work.data, lwork, iwork.data, ifail, 
+          info, 1, 1, 1);
+
+    return;
+}
+
+template <> void LapackInterface::syevx<double>( char jobz, char range, 
+    char uplo, int n, double* a, int lda, double vl, double vu, int il, 
+    int iu,   double abstol, int& nFound, double *values, double* vectors, 
+    int LDVectors, int* ifail, int& info ) {
+    
+    TypedWorkSpace<int> iwork(5*n);
+    double wsize[1];
+    dsyevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
+          values, vectors, LDVectors, wsize, -1, iwork.data, ifail, info, 
+          1, 1, 1);
+
+    int lwork = wsize[0];
+    TypedWorkSpace<double> work(lwork);
+    dsyevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
+          values, vectors, LDVectors,  work.data, lwork, iwork.data, ifail, 
+          info, 1, 1, 1);
+
+    return;
+}
+
+template <> void LapackInterface::syevx<std::complex<double> >( char jobz, 
+    char range, char uplo, int n, std::complex<double>* a, int lda, double vl, 
+    double vu, int il, int iu,   double abstol, int& nFound, double *values, 
+    std::complex<double>* vectors, int LDVectors, int* ifail, int& info ) {
+    
+    TypedWorkSpace<int> iwork(5*n);
+    TypedWorkSpace<double> rwork( 7*n );
+    std::complex<double>  wsize[1];
+    zheevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound, 
+          values, vectors, LDVectors, wsize, -1,  rwork.data, iwork.data, 
+          ifail, info, 1, 1, 1);
+
+    int lwork = wsize[0].real();
+    TypedWorkSpace<std::complex<double> > work(lwork);
+    zheevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
+          values, vectors, LDVectors,  work.data, lwork, rwork.data, 
+          iwork.data, ifail, info, 1, 1, 1);
+
+    return;
+}
+
+template <> void LapackInterface::syevx<std::complex<float> >( char jobz, 
+    char range, char uplo, int n, std::complex<float>* a, int lda, float vl, 
+    float vu, int il, int iu,   float abstol, int& nFound, float *values, 
+    std::complex<float>* vectors, int LDVectors, int* ifail, int& info ) {
+    
+    TypedWorkSpace<int> iwork(5*n);
+    TypedWorkSpace<float> rwork( 7*n );
+    std::complex<float> wsize[1];
+    cheevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
+          values, vectors, LDVectors, wsize, -1, rwork.data, iwork.data, ifail, 
+          info, 1, 1, 1);
+
+    int lwork = wsize[0].real();
+    TypedWorkSpace<std::complex<float> > work(lwork);
+    cheevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
+          values, vectors, LDVectors,  work.data, lwork, rwork.data, iwork.data,
+          ifail, info, 1, 1, 1);
+
+    return;
+}
+
+// all eigenvalues for symmetric matrices eigen vectors returned in a
+template <class T> 
+void LapackInterface::syev( char jobz,  char uplo, int n, 
+    T* a, int lda, typename CNT<T>::TReal * eigenValues, int& info ) {
+    assert(false);
+} 
+template <> void LapackInterface::syev<float>( char jobz,  char uplo, int n, 
+    float* a, int lda, float* eigenValues, int& info ) {
+
+    float wsize[1];
+    ssyev_( jobz, uplo, n, a, lda, eigenValues, wsize, -1, info,  1, 1 );
+    int lwork = wsize[0];
+    TypedWorkSpace<float> work(lwork);
+    ssyev_( jobz, uplo, n, a, lda, eigenValues, work.data, lwork, info, 1, 1 );
+} 
+
+template <> void LapackInterface::syev<double>( char jobz,  char uplo, int n, 
+    double* a, int lda, double* eigenValues, int& info ) {
+
+    double wsize[1];
+    dsyev_( jobz, uplo, n, a, lda, eigenValues, wsize, -1, info,  1, 1 );
+    int lwork = wsize[0];
+    TypedWorkSpace<double> work(lwork);
+    dsyev_( jobz, uplo, n, a, lda, eigenValues, work.data, lwork, info, 1, 1 );
+} 
+
+template <> void LapackInterface::syev<std::complex<float> >( char jobz,  char uplo, int n, 
+    std::complex<float>* a, int lda, float* eigenValues, int& info ) {
+
+    std::complex<float> wsize[1];
+    int l = 3*n -2;
+    if( l < 1 ) l = 1;
+    
+    TypedWorkSpace<float> rwork( l );
+
+    cheev_( jobz, uplo, n, a, lda, eigenValues, wsize, -1, rwork.data, info,  1, 1 );
+
+    int lwork = wsize[0].real();
+    TypedWorkSpace<std::complex<float> > work(lwork);
+    cheev_( jobz, uplo, n, a, lda, eigenValues, work.data, lwork, rwork.data, info, 1, 1 );
+} 
+
+template <> void LapackInterface::syev<std::complex<double> >( char jobz,  char uplo, int n, 
+    std::complex<double>* a, int lda, double* eigenValues, int& info ) {
+
+    std::complex<double> wsize[1];
+    int l = 3*n -2;
+    if( l < 1 ) l = 1;
+    
+    TypedWorkSpace<double> rwork( l );
+
+    zheev_( jobz, uplo, n, a, lda, eigenValues, wsize, -1, rwork.data, info,  1, 1 );
+
+    int lwork = wsize[0].real();
+    TypedWorkSpace<std::complex<double> > work(lwork);
+    zheev_( jobz, uplo, n, a, lda, eigenValues, work.data, lwork, rwork.data, info, 1, 1 );
+} 
+
+// eigenvlaues for nonsymmetric matrices
+template <class T> 
+void LapackInterface::geev (char jobvl, char jobvr,
+    int n, T a[], int lda, std::complex<typename CNT<T>::TReal>* values, 
+    T vl[], int ldvl, std::complex<typename CNT<T>::TReal>* vr, 
+    int ldvr, T work[], int lwork, int& info ) {
+    assert(false);
+}
+
 template <> void LapackInterface::geev<double>
    (char jobvl, char jobvr,
     int n, double a[], int lda, std::complex<double>* values, 
-    double vl[], int ldvl, Matrix_<std::complex<double> >& rightVectors, int ldvr, double work[],
+    double vl[], int ldvl, std::complex<double>* rightVectors, int ldvr, double work[],
     int lwork, int& info )
 {
     TypedWorkSpace<double> wr(n);
@@ -140,12 +291,12 @@ template <> void LapackInterface::geev<double>
     for(int j=0;j<n;j++) {
         if( fabs(wi.data[j]) < EPS ) {
             for(int i=0;i<n;i++) {
-                rightVectors(i,j) = std::complex<double>(vr.data[j*n+i], 0.0 );
+                rightVectors[j*n+i] = std::complex<double>(vr.data[j*n+i], 0.0 );
              }
         } else {
             for(int i=0;i<n;i++) {
-                rightVectors(i,j) = std::complex<double>(vr.data[j*n+i], vr.data[(j+1)*n+i]);
-                rightVectors(i,j+1) = std::complex<double>(vr.data[j*n+i], -vr.data[(j+1)*n+i]);
+                rightVectors[j*n+i] = std::complex<double>(vr.data[j*n+i], vr.data[(j+1)*n+i]);
+                rightVectors[(j+1)*n+i] = std::complex<double>(vr.data[j*n+i], -vr.data[(j+1)*n+i]);
             }
             j++;
         }
@@ -161,7 +312,7 @@ template <> void LapackInterface::geev<double>
 template <> void LapackInterface::geev<float>
    (char jobvl, char jobvr,
     int n, float a[], int lda, std::complex<float>* values,
-    float vl[], int ldvl, Matrix_<std::complex<float> >& rightVectors, int ldvr, float work[],
+    float vl[], int ldvl, std::complex<float>* rightVectors, int ldvr, float work[],
     int lwork, int& info )
 {
     TypedWorkSpace<float> wr(n);
@@ -185,14 +336,14 @@ template <> void LapackInterface::geev<float>
     for(int j=0;j<n;j++) {
         if( fabs(wi.data[j]) < (float)EPS ) {
             for(int i=0;i<n;i++) {
-                rightVectors(i,j) = std::complex<float>(vr.data[j*n+i], 0.0 );
+                rightVectors[j*n+i] = std::complex<float>(vr.data[j*n+i], 0.0 );
 //printf(" %f ",vr.data[j*n+i] );
              }
 //printf("\n");
         } else {
             for(int i=0;i<n;i++) {
-                rightVectors(i,j) = std::complex<float>(vr.data[j*n+i], vr.data[(j+1)*n+i]);
-                rightVectors(i,j+1) = std::complex<float>(vr.data[j*n+i], -vr.data[(j+1)*n+i]);
+                rightVectors[j*n+i] = std::complex<float>(vr.data[j*n+i], vr.data[(j+1)*n+i]);
+                rightVectors[(j+1)*n+i] = std::complex<float>(vr.data[j*n+i], -vr.data[(j+1)*n+i]);
             }
             j++;
 	}
@@ -201,13 +352,13 @@ template <> void LapackInterface::geev<float>
 template <> void LapackInterface::geev<std::complex<float> >
    (char jobvl, char jobvr,
     int n, std::complex<float> a[], int lda, std::complex<float>* values, 
-    std::complex<float> vl[], int ldvl, Matrix_<std::complex<float> >& rightVectors, int ldvr, std::complex<float> work[],
+    std::complex<float> vl[], int ldvl, std::complex<float>* rightVectors, int ldvr, std::complex<float>* work,
     int lwork, int& info )
 {
 
     TypedWorkSpace<float> Rwork(2*n);
     cgeev_( jobvl, jobvr, 
-             n, a, lda, values,  vl, ldvl, &rightVectors(0,0), ldvr, 
+             n, a, lda, values,  vl, ldvl, rightVectors, ldvr, 
              work, lwork, Rwork.data, info, 
              1, 1);
 
@@ -216,13 +367,13 @@ template <> void LapackInterface::geev<std::complex<float> >
 template <> void LapackInterface::geev<std::complex<double> >
    (char jobvl, char jobvr,
     int n, std::complex<double> a[], int lda, std::complex<double>* values, 
-    std::complex<double> vl[], int ldvl, Matrix_<std::complex<double> >& rightVectors, int ldvr, std::complex<double> work[],
+    std::complex<double> vl[], int ldvl, std::complex<double>* rightVectors, int ldvr, std::complex<double> work[],
     int lwork, int& info )
 {
 
     TypedWorkSpace<double> Rwork(2*n);
     zgeev_( jobvl, jobvr, 
-             n, a, lda, values,  vl, ldvl, &rightVectors(0,0), ldvr, 
+             n, a, lda, values,  vl, ldvl, rightVectors, ldvr, 
              work, lwork, Rwork.data, info, 
              1, 1);
 
@@ -473,6 +624,16 @@ template <>
 void LapackInterface::copy<std::complex<double> >( const int& n, const std::complex<double>* x, const int& incx, std::complex<double>* y, const int& incy) {
      zcopy_(n, x, incx, y, incy );
      return;
+}
+template <>
+void LapackInterface::getMachineUnderflow<float>( float& underFlow ) {
+    underFlow = slamch_('S');
+    return;
+}
+template <>
+void LapackInterface::getMachineUnderflow<double>( double& underFlow ) {
+    underFlow = dlamch_('S');
+    return;
 }
 template <>
 void LapackInterface::getMachinePrecision<float>( float& smallNumber, float& bigNumber ) {

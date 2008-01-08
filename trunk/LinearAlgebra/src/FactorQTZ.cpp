@@ -51,9 +51,28 @@ static const double ONE  = 1.0;
 FactorQTZ::~FactorQTZ() {
     delete rep;
 }
+// default constructor
+FactorQTZ::FactorQTZ() {
+    rep = new FactorQTZRep<float>();
+}
+template < class ELT >
+void FactorQTZ::factor( const Matrix_<ELT>& m ){
+    delete rep;
+    rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, (typename CNT<ELT>::TReal)DefaultRecpCondition);
+}
+template < class ELT >
+void FactorQTZ::factor( const Matrix_<ELT>& m, double rcond ){
+    delete rep;
+    rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, rcond );
+}
+template < class ELT >
+void FactorQTZ::factor( const Matrix_<ELT>& m, float rcond ){
+    delete rep;
+    rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, rcond );
+}
 template < class ELT >
 FactorQTZ::FactorQTZ( const Matrix_<ELT>& m ) {
-	rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, (typename CNT<ELT>::TReal)DefaultRecpCondition); 
+    rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, (typename CNT<ELT>::TReal)DefaultRecpCondition); 
 }
 template < class ELT >
 FactorQTZ::FactorQTZ( const Matrix_<ELT>& m, double rcond ) {
@@ -63,7 +82,6 @@ template < class ELT >
 FactorQTZ::FactorQTZ( const Matrix_<ELT>& m, float rcond ) {
     rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, rcond); 
 }
-
 
 template < typename ELT >
 void FactorQTZ::solve( const Vector_<ELT>& b, Vector_<ELT>& x ) {
@@ -79,6 +97,20 @@ void FactorQTZ::solve(  const Matrix_<ELT>& b, Matrix_<ELT>& x ) {
    /////////////////
    // FactorQTZRep //
    /////////////////
+template <typename T >
+FactorQTZRep<T>::FactorQTZRep() 
+      : nRow(0),
+        nCol(0),
+        rank(0),
+        qtz(0),
+        pivots(0),
+        mn(0),
+        maxmn(0 ),
+        tauGEQP3(0),
+        tauORMQR(0),
+        scaleLinSys(false),
+        scaleRHS(false)   { } 
+
 template <typename T >
     template < typename ELT >
 FactorQTZRep<T>::FactorQTZRep( const Matrix_<ELT>& mat, typename CNT<T>::TReal rc) 
@@ -97,6 +129,7 @@ FactorQTZRep<T>::FactorQTZRep( const Matrix_<ELT>& mat, typename CNT<T>::TReal r
         rcond = rc;
         for(int i=0;i<mat.ncol();i++) pivots.data[i] = 0;
 	FactorQTZRep<T>::factor( mat );
+        isFactored = true;
 }
 
 template <typename T >
@@ -104,6 +137,9 @@ FactorQTZRep<T>::~FactorQTZRep() {}
 
 template < class T >
 void FactorQTZRep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) {
+
+    SimTK_APIARGCHECK_ALWAYS(isFactored ,"FactorQTZ","solve",
+       "No matrix was passed to FactorQTZ. \n"  );
 
     SimTK_APIARGCHECK2_ALWAYS(b.size()==nRow,"FactorQTZ","solve",
        "number of rows in right hand side=%d does not match number of rows in original matrix=%d \n", 
@@ -122,6 +158,9 @@ void FactorQTZRep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) {
 }
 template <typename T >
 void FactorQTZRep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) {
+
+    SimTK_APIARGCHECK_ALWAYS(0 == nRow,"FactorQTZ","solve",
+       "No matrix was passed to FactorQTZ. \n"  );
 
     SimTK_APIARGCHECK2_ALWAYS(b.nrow()==nRow,"FactorQTZ","solve",
        "number of rows in right hand side=%d does not match number of rows in original matrix=%d \n", 
@@ -326,6 +365,32 @@ template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< std::
 template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< std::complex<double> > >& m, double rcond );
 template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< conjugate<float> > >& m, float rcond );
 template SimTK_SIMMATH_EXPORT FactorQTZ::FactorQTZ( const Matrix_<negator< conjugate<double> > >& m, double rcond );
+
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<double>& m );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<float>& m );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<std::complex<float> >& m );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<std::complex<double> >& m );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<conjugate<float> >& m );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<conjugate<double> >& m );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<negator< double> >& m );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<negator< float> >& m );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<negator< std::complex<float> > >& m );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<negator< std::complex<double> > >& m );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<negator< conjugate<float> > >& m );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<negator< conjugate<double> > >& m );
+
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<double>& m, double rcond );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<float>& m, float rcond );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<std::complex<float> >& m, float rcond );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<std::complex<double> >& m, double rcond );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<conjugate<float> >& m, float rcond );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<conjugate<double> >& m, double rcond );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<negator< double> >& m, double rcond );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<negator< float> >& m, float rcond );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<negator< std::complex<float> > >& m, float rcond );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<negator< std::complex<double> > >& m, double rcond );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<negator< conjugate<float> > >& m, float rcond );
+template SimTK_SIMMATH_EXPORT void FactorQTZ::factor( const Matrix_<negator< conjugate<double> > >& m, double rcond );
 
 template class FactorQTZRep<double>;
 template FactorQTZRep<double>::FactorQTZRep( const Matrix_<double>& m, double rcond);

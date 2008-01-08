@@ -110,9 +110,13 @@ class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
 
     ~FactorQTZ();
 
+    FactorQTZ();
     template <typename ELT> FactorQTZ( const Matrix_<ELT>& m);
-	template <typename ELT> FactorQTZ( const Matrix_<ELT>& m, double rcond );
-	template <typename ELT> FactorQTZ( const Matrix_<ELT>& m, float rcond );
+    template <typename ELT> FactorQTZ( const Matrix_<ELT>& m, double rcond );
+    template <typename ELT> FactorQTZ( const Matrix_<ELT>& m, float rcond );
+    template <typename ELT> void factor( const Matrix_<ELT>& m);
+    template <typename ELT> void factor( const Matrix_<ELT>& m, float rcond );
+    template <typename ELT> void factor( const Matrix_<ELT>& m, double rcond );
     template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x );
     template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x );
 
@@ -135,10 +139,16 @@ class SimTK_SIMMATH_EXPORT Eigen {
     ~Eigen();
 
     template <class ELT> Eigen( const Matrix_<ELT>& m );
-    template <class T> void getValues( Vector_<T>& values);
-    template <class T> void getVectors( Matrix_<T>& vectors );
-    void selectVectors( const std::vector<bool>& selectedVectors );
-    void selectValues( const std::vector<bool>& selectedValues );
+    template <class VAL, class VEC> void getAllEigenValuesAndVectors( Vector_<VAL>& values, Matrix_<VEC>& vectors);
+    template <class T> void getAllEigenValues( Vector_<T>& values);
+
+    template <class VAL, class VEC> void getFewEigenValuesAndVectors( Vector_<VAL>& values, Matrix_<VEC>& vectors, int ilow, int ihi);
+    template <class T> void getFewEigenVectors( Matrix_<T>& vectors, int ilow, int ihi );
+    template <class T> void getFewEigenValues( Vector_<T>& values, int ilow, int ihi );
+
+    template <class VAL, class VEC> void getFewEigenValuesAndVectors( Vector_<VAL>& values, Matrix_<VEC>& vectors, typename CNT<VAL>::TReal rlow, typename CNT<VAL>::TReal rhi);
+    template <class T> void getFewEigenVectors( Matrix_<T>& vectors, typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi );
+    template <class T> void getFewEigenValues( Vector_<T>& values, typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi );
 
      
     protected:

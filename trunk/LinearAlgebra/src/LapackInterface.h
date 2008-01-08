@@ -38,18 +38,29 @@ namespace SimTK {
 
 class LapackInterface { 
    
-   public:
+public:
 
 static int getLWork( float* work);
 static int getLWork( double* work);
 static int getLWork( std::complex<float>* work);
 static int getLWork( std::complex<double>* work);
 
-template <class P> 
-    static void geev (char jobvl, char jobvr,
-    int n, P a[], int lda, std::complex<typename CNT<P>::TReal>* values, 
-    P vl[], int ldvl, Matrix_<std::complex<typename CNT<P>::TReal> >& vr, 
-    int ldvr, P work[], int lwork, int& info );
+template <class T> static
+void geev (char jobvl, char jobvr, int n, T* a, int lda, 
+    std::complex<typename CNT<T>::TReal>* values, 
+    T* vl, int ldvl, std::complex<typename CNT<T>::TReal>* vr, 
+    int ldvr, T* work, int lwork, int& info );
+
+template <class T> static
+void syevx( char jobz, char range, char uplo, int n, T* a, int lda, 
+    typename CNT<T>::TReal vl, typename CNT<T>::TReal vu, int il, int iu, 
+    typename CNT<T>::TReal abstol, int& nFound, typename CNT<T>::TReal* values, 
+    T* vectors, int LDVectors, int* ifail, int& info );
+                  
+
+template <class T> static
+void syev( char jobz,  char uplo, int n, T* a_eigenVectors, int lda,  
+    typename CNT<T>::TReal* eigenValues, int& info );
 
 
 /* solve system of linear equations using the LU factorization  computed by getrf */
@@ -76,6 +87,9 @@ int ilaenv( const int& ispec,  const char* name,  const char* opts, const int& n
 
 template <class T> static
 void getMachinePrecision( T& smallNumber, T& bigNumber );
+
+template <class T> static
+void getMachineUnderflow( T& underFlow );
 
 template <class T> static
 void tzrzf( const int& m, const int& n,  T* a, const int& lda, T* tau, T* work, const int& lwork, int& info );

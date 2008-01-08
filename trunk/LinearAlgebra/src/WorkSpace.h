@@ -111,11 +111,27 @@ class TypedWorkSpace {
 
     TypedWorkSpace( long n ) {
         size = n;
-        data = new T[n];
+        if( n == 0 ) {
+            data = 0;
+        } else {
+            data = new T[n];
+        }
     }
+
+    TypedWorkSpace() {
+        size = 0;
+        data = 0;
+    }
+
 
     ~TypedWorkSpace() {
         delete [] data;
+    }
+    
+    void resize( long n ) {
+        delete data;
+        size = n;
+        data = new T[n];
     }
 
     long size;
