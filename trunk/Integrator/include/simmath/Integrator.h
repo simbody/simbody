@@ -46,6 +46,31 @@ namespace SimTK {
 class IntegratorRep;
 
 /**
+ * An Integrator is an object that can simulate the behavior of a System through
+ * time.  This is an abstract class.  Subclasses implement a variety of different
+ * integration methods, which vary in their speed, accuracy, stability, and various
+ * other properties.
+ * 
+ * <h3>Usage</h3>
+ * 
+ * An Integrator is most often used in combination with a TimeStepper.  The
+ * TimeStepper automates much of the work of using an Integrator: invoking it repeatedly to
+ * advance time, calling event handlers, reintializing the Integrator as necessary,
+ * and so on.  A typical use of an Integrator generally resembles the following:
+ * 
+ * <pre>
+ * // Instantiate an Integrator subclass which is appropriate for your problem.
+ * VerletIntegrator integ(system);
+ * // Set configuration options on the Integrator.
+ * integ.setAccuracy(1e-3);
+ * // Create a TimeStepper and use it to run the simulation.
+ * TimeStepper stepper(system, integ);
+ * stepper.initialize(initialState);
+ * stepper.stepTo(finalTime);
+ * </pre>
+ * 
+ * <h3>Mathematical Overview</h3>
+ * 
  * Given a continuous system of differential equations for state variables y, and
  * optionally a manifold (set of algebraic equations) on which the solution must lie,
  * an Integrator object will advance that system through time. If the full system
@@ -111,173 +136,244 @@ public:
     class TriedToAdvancePastFinalTime;
     class CantAskForEventInfoWhenNoEventTriggered;
 
+    /// Get the name of this integration method
     const char* getMethodName();
+    /// Get the minimum order this Integrator may use
     int         getMethodMinOrder();
+    /// Get the maximum order this Integrator may use
     int         getMethodMaxOrder();
+    /// Get whether this Integrator provides error control.  An error controlled Integrator will dynamically adjust its
+    /// step size to maintain the level of accuracy specified with setAccuracy().  An Integrator which does not provide
+    /// error control cannot do this, and will usually ignore the value specified with setAccuracy().
     bool        methodHasErrorControl();
 
-    // Supply the integrator with a starting state. This is *copied*
-    // into the integrator's internally maintained current state; 
-    // subsequent changes to the State object passed in here will not
-    // affect the integration.
-    void initialize(const State&);
+    /// Supply the integrator with a starting state.  This must be called before the first call to stepBy() or stepTo().
+    /// The specified state is copied into the Integrator's internally maintained current state; subsequent changes to
+    /// the State object passed in here will not affect the integration.
+    void initialize(const State& state);
 
-    // After the TimeStepper has made a discontinuous change to the Integrator's
-    // "advanced state" we need to reinitialize the Integrator. However, event handlers
-    // can do varying amounts of damage and some events will require no
-    // reinitialization, or minimal reinitialization, depending on details
-    // of the particular integration method. So after the handler has 
-    // mangled our State, we tell the Integrator the lowest Stage which was
-    // changed and allow the Integrator to figure out how much reinitialization
-    // to do. For example, if Stage::Model has not been altered then
-    // the Integrator will not have to reallocate any of its internal
-    // data structures since sizes will be unchanged.
-    // TODO: actually this should not be allowed if Model or Topology
-    // stage changes have been made since the integrator would have no
-    // way to create a reasonable state. Those changes require that
-    // initialize() be called again, providing a workable Model-stage
-    // state.
-    // If 'shouldTerminate" is passed in true, the integrator will wrap
-    // things up and report that the end of the simulation has been reached.
-    void reinitialize(Stage, bool shouldTerminate);
+    /// After an event handler has made a discontinuous change to the Integrator's
+    /// "advanced state", this method must be called to reinitialize the Integrator.
+    /// Event handlers can do varying amounts of damage and some events will require no
+    /// reinitialization, or minimal reinitialization, depending on details
+    /// of the particular integration method. So after the handler has 
+    /// mangled our State, we tell the Integrator the lowest Stage which was
+    /// changed and allow the Integrator to figure out how much reinitialization
+    /// to do.
+    ///
+    /// If 'shouldTerminate" is passed in true, the Integrator will wrap
+    /// things up and report that the end of the simulation has been reached.
+    void reinitialize(Stage stage, bool shouldTerminate);
 
-    // Return a state which satisfies the caller's step request. This 
-    // may be an interpolated value earlier than getAdvancedState().
+    /// Return a State corresponding to the "current" time at the end of the last call to
+    /// stepTo() or stepBy(). This may be an interpolated value earlier than getAdvancedState().
     const State& getState() const;
+    /// Get the time of the current State.  This is equivalent to calling getState().getTime().
     Real         getTime() const {return getState().getTime();}
 
-    // This is mostly for prurient interest; it shouldn't matter. This
-    // says whether getState() above will return an interpolated state
-    // or just the same thing as getAdvancedState() does.
+    /// Get whether getState() will return an interpolated state or just the same thing as getAdvancedState() does.
+    /// In most cases, you should not have reason to care whether the state is interpolated or not.
     bool isStateInterpolated() const;
 
-    // Return the state representing the trajectory point to which the
-    // integrator has irreversibly advanced. This may be later than the
-    // state return by getState().
+    /// Return the state representing the trajectory point to which the
+    /// integrator has irreversibly advanced. This may be later than the
+    /// state return by getState().
     const State& getAdvancedState() const;
+    /// Get the time of the advanced State.  This is equivalent to calling getAdvancedState().getTime().
     Real         getAdvancedTime() const {return getAdvancedState().getTime();}
 
+    /// Get a non-const reference to the advanced state.
     State& updAdvancedState();
 
-    // Report the internally-maintained quantities used for accuracy control.
-    // These may or may not be the same as what the DynamicSystem would return
-    // at the current state. 
+    /// Get the accuracy which is being used for error control.  Usually this is the same value that was
+    /// specified to setAccuracy().
     Real getAccuracyInUse() const;
+    /// Get the constraint tolerance which is being used for error control.  Usually this is the same value that was
+    /// specified to setConstraintTolerance().
     Real getConstraintToleranceInUse() const;
+    /// Get the characteristic timescale of the System being integrated.  This is calculated by calling
+    /// calcTimescale() on the System.
     Real getTimeScaleInUse() const;
+    /// Get the vector of weights being used to normalize errors in the state variables.  This is calculated by calling
+    /// calcYUnitWeights() on the System.
     const Vector& getStateWeightsInUse() const;
+    /// Get the vector of weights being used to normalize constraint errors.  This is calculated by calling
+    /// calcYErrUnitTolerances() on the System.
     const Vector& getConstraintWeightsInUse() const;
 
-    // When a step is successful, it will return an indication of what
-    // caused it to stop where it did. When unsuccessful it will throw
-    // an exception so you won't see any return value.
-    //
-    // When return of control is due ONLY to reaching a report time,
-    // (status is ReachedReportTime) the integrator's getState() method may return an
-    // interpolated value at an earlier time than its getAdvancedState()
-    // method would return. For the other returns, and whenever the report
-    // time coincides with the end of an internal step, getState() and
-    // getAdvancedState() will be identical.
-    //
-    // Note: we ensure algorithmically that no report time, scheduled time,
-    // or final time t can occur *within* an event window, that is, we will
-    // never have t_low < t < t_high for any interesting t. Further, t_report,
-    // t_scheduled and t_final can coincide with t_high but only t_report can
-    // be at t_low. The interior of t_low:t_high is a "no mans land" where we
-    // don't understand the solution, so must be avoided.
-
+    /// When a step is successful, it will return an indication of what
+    /// caused it to stop where it did. When unsuccessful it will throw
+    /// an exception so you won't see any return value.
+    ///
+    /// When return of control is due ONLY to reaching a report time,
+    /// (status is ReachedReportTime) the integrator's getState() method may return an
+    /// interpolated value at an earlier time than its getAdvancedState()
+    /// method would return. For the other returns, and whenever the report
+    /// time coincides with the end of an internal step, getState() and
+    /// getAdvancedState() will be identical.
+    ///
+    /// Note: we ensure algorithmically that no report time, scheduled time,
+    /// or final time t can occur *within* an event window, that is, we will
+    /// never have t_low < t < t_high for any interesting t. Further, t_report,
+    /// t_scheduled and t_final can coincide with t_high but only t_report can
+    /// be at t_low. The interior of t_low:t_high is a "no man's land" where we
+    /// don't understand the solution, so must be avoided.
     enum SuccessfulStepStatus {
-        ReachedReportTime    =1, // stopped only to report; might be interpolated
-        ReachedEventTrigger  =2, // localized an event; this is the *before* state (interpolated)
-        ReachedScheduledEvent=3, // reached the limit provided in stepTo() (scheduled event)
-        TimeHasAdvanced      =4, // user requested control whenever an internal step is successful
-        ReachedStepLimit     =5, // took a lot of internal steps but didn't return control yet
-        EndOfSimulation      =6, // termination; don't call again
-        StartOfContinuousInterval=7, // the beginning of a continuous interval: either the start of the simulation, or t_high
-                                     // after an event handler has modified the state.
-
+        /// stopped only to report; might be interpolated
+        ReachedReportTime    =1,
+        /// localized an event; this is the *before* state (interpolated)
+        ReachedEventTrigger  =2,
+        /// reached the limit provided in stepTo() (scheduled event)
+        ReachedScheduledEvent=3,
+        /// user requested control whenever an internal step is successful
+        TimeHasAdvanced      =4,
+        /// took a lot of internal steps but didn't return control yet
+        ReachedStepLimit     =5,
+        /// termination; don't call again
+        EndOfSimulation      =6,
+        /// the beginning of a continuous interval: either the start of the simulation, or t_high after an event handler has modified the state.
+        StartOfContinuousInterval=7,
         InvalidSuccessfulStepStatus = -1
     };
+    /// Get a human readable description of the reason a step returned.
     static String successfulStepStatusString(SuccessfulStepStatus);
 
-    SuccessfulStepStatus stepTo(Real reportTime, Real timeLimit=Infinity);
-    SuccessfulStepStatus stepBy(Real interval, Real timeLimit=Infinity);
+    /// Integrate the System until something happens which requires outside processing, and return a status code describing what happened.
+    /// @param reportTime           the time of the next scheduled report
+    /// @param scheduledEventTime   the time of the next scheduled event
+    SuccessfulStepStatus stepTo(Real reportTime, Real scheduledEventTime=Infinity);
+    /// Integrate the System until something happens which requires outside processing, and return a status code describing what happened.
+    /// @param interval             the interval from the current time (as returned by getTime()) until the next scheduled report
+    /// @param scheduledEventTime   the time of the next scheduled event
+    SuccessfulStepStatus stepBy(Real interval, Real scheduledEventTime=Infinity);
 
 
-    // The following methods are callable only when stepTo() or stepBy() returns
-    // "ReachedEventTrigger".
-    Vec2               getEventWindow()         const; // w==(getTime(),getAdvancedTime()]
-    const std::vector<int>&  getTriggeredEvents()     const; // indices corresponding to event trigger functions
-    const std::vector<Real>& getEstimatedEventTimes() const; // all in w==(tLow,tHigh]
-    const std::vector<EventStatus::EventTrigger>&
-                       getEventTransitionsSeen() const;
+    /// Get the window (tLow, tHigh] within which one or more events have been localized.  This may only be called
+    /// when stepTo() or stepBy() has returned ReachedEventTrigger.
+    Vec2 getEventWindow() const;
+    /// Get the IDs of all events which have been localized within the event window.  This may only be called
+    /// when stepTo() or stepBy() has returned ReachedEventTrigger.
+    const std::vector<int>& getTriggeredEvents() const;
+    /// Get the estimated times of all events which have been localized within the event window.  This may only be called
+    /// when stepTo() or stepBy() has returned ReachedEventTrigger.
+    const std::vector<Real>& getEstimatedEventTimes() const;
+    /// Get EventTriggers describing the events which have been localized within the event window.  This may only be called
+    /// when stepTo() or stepBy() has returned ReachedEventTrigger.
+    const std::vector<EventStatus::EventTrigger>& getEventTransitionsSeen() const;
 
 
         // TERMINATION //
 
+    /// Once the simulation has ended, getTerminationReason() may be called to find out what caused it to end.
     enum TerminationReason {
+        /// The simulation reached the time specified by setFinalTime().
         ReachedFinalTime                 = 1,
+        /// An error occurred which the Integrator was unable to handle.
         AnUnrecoverableErrorOccurred     = 2,
+        /// An event handler function requested that the simulation terminate immediately.
         EventHandlerRequestedTermination = 3,
-
+        /// This will be returned if getTerminationReason() is called before the simulation has ended.
         InvalidTerminationReason         = -1
     };
 
-    // Don't call stepTo() or stepBy() again if this returns true.
+    /// Get whether the simulation has terminated.  If this returns true, you should not
+    /// call stepTo() or stepBy() again.
     bool isSimulationOver() const;
 
-    // Callable only when EndOfSimulation has been reached (isSimulationOver()==true).
+    /// Get the reason the simulation terminated.  This should only be called if
+    /// isSimulationOver() returns true.
     TerminationReason getTerminationReason() const;
 
-    // Statistics (mutable)
-    void resetAllStatistics();                // reset all stats to zero
+    /// Reset all statistics to zero.
+    void resetAllStatistics();
 
-    // What was the size of the first successful step after the last initialize() call?
+    /// Get the size of the first successful step after the last initialize() call.
     Real getActualInitialStepSizeTaken() const;
 
-    // What was the size of the most recent successful step?
+    /// Get the size of the most recent successful step.
     Real getPreviousStepSizeTaken() const;
 
-    // What step size will be attempted first on the next step() call?
+    /// Get the step size that will be attempted first on the next call to stepTo() or stepBy().
     Real getPredictedNextStepSize() const;
 
+    /// Get the total number of steps that have been attempted (successfully or unsuccessfully) since
+    /// the last call to resetAllStatistics().
     long getNStepsAttempted() const;
+    /// Get the total number of steps that have been successfully taken since the last call to resetAllStatistics().
     long getNStepsTaken() const; 
+    /// Get the total number of state realizations that have been performed since the last call to resetAllStatistics().
     long getNRealizations() const;
+    /// Get the total number of times a state has been projected since the last call to resetAllStatistics().
     long getNProjections() const;
+    /// Get the number of attempted steps that have failed due to the error being unacceptably high since
+    /// the last call to resetAllStatistics().
     long getNErrorTestFailures() const;
+    /// Get the number of attempted steps that have failed due to an error when realizing the state since
+    /// the last call to resetAllStatistics().
     long getNRealizationFailures() const;
+    /// Get the number of attempted steps that have failed due to an error when projecting the state since
+    /// the last call to resetAllStatistics().
     long getNProjectionFailures() const;
 
-    // Control over integrator behavior. Not all integration methods
-    // respond to all the controls. Defaults are shown.
-
-    void setFinalTime(Real tFinal);         // Infinity
-    void setInitialStepSize(Real hinit);    // default depends on method
-    void setMinimumStepSize(Real hmin);     // default depends on method
-    void setMaximumStepSize(Real hmax);     // Infinity
+    /// Set the time at which the simulation should end.  The default is infinity.  Some integrators may
+    /// not support this option.
+    void setFinalTime(Real tFinal);
+    /// Set the initial step size that should be attempted.  The default depends on the integration method.
+    /// Some integrators may not support this option.
+    void setInitialStepSize(Real hinit);
+    /// Set the minimum step size that should ever be used.  The default depends on the integration method.
+    /// Some integrators may not support this option.
+    void setMinimumStepSize(Real hmin);
+    /// Set the maximum step size that should ever be used.  The default depends on the integration method.
+    /// Some integrators may not support this option.
+    void setMaximumStepSize(Real hmax);
     
     /// Set the integrator to use a single fixed step size for all steps.  This is exactly equivalent
     /// to calling setInitialStepSize(), setMinimumStepSize(), and setMaximumStepSize(), passing the
     /// same value to each one.  This will therefore not work correctly if the integrator does not
     /// support minimum and/or maximum step sizes.
-    
     void setFixedStepSize(Real stepSize);
 
-    void setAccuracy(Real accuracy);        
+    /// Set the overall accuracy that should be used for integration.  If the Integrator does not support
+    /// error control (methodHasErrorControl() returns false), this may have no effect.
+    void setAccuracy(Real accuracy);
+    /// Set the relative error tolerance to be used for integration.  Some Integrators do not allow
+    /// relative and absolute tolerances to be specified independently, in which case this will have
+    /// no effect.  Even for Integrators which do support it, it is usually sufficient to call only
+    /// setAccuracy(), and allow the Integrator to select relative and absolute tolerances accordingly.
     void setRelativeTolerance(Real relTol);
+    /// Set the absolute error tolerance to be used for integration.  Some Integrators do not allow
+    /// relative and absolute tolerances to be specified independently, in which case this will have
+    /// no effect.  Even for Integrators which do support it, it is usually sufficient to call only
+    /// setAccuracy(), and allow the Integrator to select relative and absolute tolerances accordingly.
     void setAbsoluteTolerance(Real absTol);
+    /// Set the tolerance within which constraints must be satisfied.
     void setConstraintTolerance(Real consTol);
 
-    // If this many internal steps occur during stepTo() before reaching
-    // the report time, we'll return control with a ReachedStepLimit status.
-    // nSteps <= 0 means no limit.
-    void setInternalStepLimit(int nSteps);  // 500
+    /// Set the maximum number of steps that may be taken within a single call to stepTo() or stepBy().
+    /// If this many internal steps occur before reaching the report time, it will return control with
+    /// a ReachedStepLimit status.  If nSteps <= 0, the number of steps will be unlimited.
+    void setInternalStepLimit(int nSteps);
 
-    void setReturnEveryInternalStep(bool shouldReturn); // false
+    /// Set whether the Integrator should return from stepTo() or stepBy() after every internal step,
+    /// even if no event has occurred and the report time has not been reached.  The default is false.
+    void setReturnEveryInternalStep(bool shouldReturn);
 
-    void setProjectEveryStep(bool forceProject);
+    /// Set whether the system should be projected back to the constraint manifold after every step.
+    /// If this is false, projection will only be performed when the constraint error exceeds the
+    /// allowed tolerance.
+    void setProjectEveryStep(bool forceProject);    
+    /// Set whether the Integrator is permitted to return interpolated states for reporting purposes
+    /// which may be less accurate than the "real" states that form the trajectory.  Setting this to
+    /// true may significantly affect performance, since the Integrator will be forced to decrease its
+    /// step size at every scheduled reporting time.
+    ///
+    /// This option is generally only meaningful if interpolated states are less accurate than other
+    /// states on the trajectory.  If an Integrator can produce interpolated states that have the same
+    /// accuracy as the rest of the trajectory, it may ignore this option.
     void setAllowInterpolation(bool shouldInterpolate);
+    /// Set whether interpolated states should be projected back to the constraint manifold after
+    /// interpolation is performed.
     void setProjectInterpolatedStates(bool shouldProject);
 
 protected:
