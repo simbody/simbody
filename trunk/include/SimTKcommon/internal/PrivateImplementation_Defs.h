@@ -73,7 +73,7 @@ void PIMPLImplementation<HANDLE, IMPL>::incrementHandleCount() const {
 
 template <class HANDLE, class IMPL>
 int PIMPLImplementation<HANDLE, IMPL>::decrementHandleCount() const {
-    assert(handleCount>=1); return handleCount--;
+    assert(handleCount>=1); return --handleCount;
 }
 
 template <class HANDLE, class IMPL>
