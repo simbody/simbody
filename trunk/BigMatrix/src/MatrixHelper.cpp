@@ -875,6 +875,7 @@ MatrixHelperRep<S>::readOnlyViewAssign(const MatrixHelper<S>& h)
         ? new ElementFilter(*hrep.view) // loses writability
         : new ElementFilter(false,hrep.data->nrowElt(eltSize),hrep.data->ncolElt(eltSize),
                              ElementFilter::Indexer(0,0));
+    delete data;
     data = hrep.data;
     return *this;
 }
@@ -892,6 +893,7 @@ MatrixHelperRep<S>::writableViewAssign(MatrixHelper<S>& h)
         ? new ElementFilter(*hrep.view, true)    // keep writability if possible
         : new ElementFilter(true,hrep.data->nrowElt(eltSize),hrep.data->ncolElt(eltSize),
                              ElementFilter::Indexer(0,0));
+    delete data;
     data = hrep.data;
     return *this;
 }
