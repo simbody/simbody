@@ -45,6 +45,14 @@ namespace SimTK {
 static const double DefaultRecpCondition = 0.01;
 static const double ZERO = 0.0;
 static const double ONE  = 1.0;
+
+   //////////////////////
+   // FactorQTZDefault //
+   //////////////////////
+FactorQTZDefault::FactorQTZDefault() {
+    isFactored = false; 
+}
+
    ///////////////
    // FactorQTZ //
    ///////////////
@@ -172,6 +180,7 @@ void FactorQTZRep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) {
     for(int j=0;j<b.ncol();j++) for(int i=0;i<b.nrow();i++) tb(i,j) = b(i,j);
     doSolve(tb, x);
 }
+
 template <typename T >
 void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) {
     int i,j;
@@ -181,6 +190,7 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) {
     int nrhs = b.ncol();
     int n = nCol;
     int m = nRow;
+
     // compute size of workspace 
     // for dormqr, dormrz:  lwork = n*nb
     long lwork1 = n*LapackInterface::ilaenv<T>(1, "ormqr", "LT ", nRow, b.ncol(), -1, -1);
