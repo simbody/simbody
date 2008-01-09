@@ -43,14 +43,23 @@
 
 namespace SimTK {
 
+   //////////////////////
+   // FactorQTZDefault //
+   //////////////////////
+FactorLUDefault::FactorLUDefault() {
+    isFactored = false;
+}
+
    ///////////////
    // FactorLU //
    ///////////////
 FactorLU::~FactorLU() {
     delete rep;
 }
-
-
+// default constructor
+FactorLU::FactorLU() {
+    rep = new FactorLUDefault();
+}
 
 
 template < class ELT >
@@ -58,14 +67,19 @@ FactorLU::FactorLU( const Matrix_<ELT>& m ) {
     rep = new FactorLURep<typename CNT<ELT>::StdNumber>(m);
 }
 
+template < class ELT >
+void FactorLU::factor( const Matrix_<ELT>& m ) {
+    delete rep;
+    rep = new FactorLURep<typename CNT<ELT>::StdNumber>(m);
+}
 
 template < typename ELT >
-void FactorLU::solve( const Vector_<ELT>& b, Vector_<ELT>& x ) {
+void FactorLU::solve( const Vector_<ELT>& b, Vector_<ELT>& x ) const {
     rep->solve( b, x );
     return;
 }
 template < class ELT >
-void FactorLU::solve(  const Matrix_<ELT>& b, Matrix_<ELT>& x ) {
+void FactorLU::solve(  const Matrix_<ELT>& b, Matrix_<ELT>& x ) const {
     rep->solve(  b, x );
     return;
 }
@@ -118,7 +132,7 @@ template <typename T >
 FactorLURep<T>::~FactorLURep() {}
 
 template < class T >
-void FactorLURep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) {
+void FactorLURep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) const {
     x.copyAssign(b);
 // TODO check  that ELT of b is same as the factored matrix (size,imageoffset)
     LapackInterface::getrs<T>( false, nCol, 1, lu.data, pivots.data, &x(0));
@@ -126,7 +140,7 @@ void FactorLURep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) {
 }
 // TODO handle cases where length to b,x and dimensions of lu are not consistant
 template <typename T >
-void FactorLURep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) {
+void FactorLURep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) const {
     x.copyAssign(b);
     LapackInterface::getrs<T>( false, nCol, b.ncol(), lu.data, pivots.data, &x(0,0));
     return;
@@ -262,6 +276,19 @@ template SimTK_SIMMATH_EXPORT FactorLU::FactorLU( const Matrix_<negator< std::co
 template SimTK_SIMMATH_EXPORT FactorLU::FactorLU( const Matrix_<negator< conjugate<float> > >& m );
 template SimTK_SIMMATH_EXPORT FactorLU::FactorLU( const Matrix_<negator< conjugate<double> > >& m );
 
+template SimTK_SIMMATH_EXPORT void FactorLU::factor( const Matrix_<double>& m );
+template SimTK_SIMMATH_EXPORT void FactorLU::factor( const Matrix_<float>& m );
+template SimTK_SIMMATH_EXPORT void FactorLU::factor( const Matrix_<std::complex<float> >& m );
+template SimTK_SIMMATH_EXPORT void FactorLU::factor( const Matrix_<std::complex<double> >& m );
+template SimTK_SIMMATH_EXPORT void FactorLU::factor( const Matrix_<conjugate<float> >& m );
+template SimTK_SIMMATH_EXPORT void FactorLU::factor( const Matrix_<conjugate<double> >& m );
+template SimTK_SIMMATH_EXPORT void FactorLU::factor( const Matrix_<negator< double> >& m );
+template SimTK_SIMMATH_EXPORT void FactorLU::factor( const Matrix_<negator< float> >& m );
+template SimTK_SIMMATH_EXPORT void FactorLU::factor( const Matrix_<negator< std::complex<float> > >& m );
+template SimTK_SIMMATH_EXPORT void FactorLU::factor( const Matrix_<negator< std::complex<double> > >& m );
+template SimTK_SIMMATH_EXPORT void FactorLU::factor( const Matrix_<negator< conjugate<float> > >& m );
+template SimTK_SIMMATH_EXPORT void FactorLU::factor( const Matrix_<negator< conjugate<double> > >& m );
+
 template class FactorLURep<double>;
 template FactorLURep<double>::FactorLURep( const Matrix_<double>& m);
 template FactorLURep<double>::FactorLURep( const Matrix_<negator<double> >& m);
@@ -306,13 +333,13 @@ template SimTK_SIMMATH_EXPORT void FactorLU::getU<float>(Matrix_<float>&) const;
 template SimTK_SIMMATH_EXPORT void FactorLU::getU<double>(Matrix_<double>&) const;
 template SimTK_SIMMATH_EXPORT void FactorLU::getU<std::complex<float> >(Matrix_<std::complex<float> >&) const;
 template SimTK_SIMMATH_EXPORT void FactorLU::getU<std::complex<double> >(Matrix_<std::complex<double> >&) const;
-template SimTK_SIMMATH_EXPORT void FactorLU::solve<float>(const Vector_<float>&, Vector_<float>&);
-template SimTK_SIMMATH_EXPORT void FactorLU::solve<double>(const Vector_<double>&, Vector_<double>&);
-template SimTK_SIMMATH_EXPORT void FactorLU::solve<std::complex<float> >(const Vector_<std::complex<float> >&, Vector_<std::complex<float> >&);
-template SimTK_SIMMATH_EXPORT void FactorLU::solve<std::complex<double> >(const Vector_<std::complex<double> >&, Vector_<std::complex<double> >&);
-template SimTK_SIMMATH_EXPORT void FactorLU::solve<float>(const Matrix_<float>&, Matrix_<float>&);
-template SimTK_SIMMATH_EXPORT void FactorLU::solve<double>(const Matrix_<double>&, Matrix_<double>&);
-template SimTK_SIMMATH_EXPORT void FactorLU::solve<std::complex<float> >(const Matrix_<std::complex<float> >&, Matrix_<std::complex<float> >&);
-template SimTK_SIMMATH_EXPORT void FactorLU::solve<std::complex<double> >(const Matrix_<std::complex<double> >&, Matrix_<std::complex<double> >&);
+template SimTK_SIMMATH_EXPORT void FactorLU::solve<float>(const Vector_<float>&, Vector_<float>&) const;
+template SimTK_SIMMATH_EXPORT void FactorLU::solve<double>(const Vector_<double>&, Vector_<double>&) const;
+template SimTK_SIMMATH_EXPORT void FactorLU::solve<std::complex<float> >(const Vector_<std::complex<float> >&, Vector_<std::complex<float> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorLU::solve<std::complex<double> >(const Vector_<std::complex<double> >&, Vector_<std::complex<double> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorLU::solve<float>(const Matrix_<float>&, Matrix_<float>&) const;
+template SimTK_SIMMATH_EXPORT void FactorLU::solve<double>(const Matrix_<double>&, Matrix_<double>&) const;
+template SimTK_SIMMATH_EXPORT void FactorLU::solve<std::complex<float> >(const Matrix_<std::complex<float> >&, Matrix_<std::complex<float> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorLU::solve<std::complex<double> >(const Matrix_<std::complex<double> >&, Matrix_<std::complex<double> >&) const;
 
 } // namespace SimTK

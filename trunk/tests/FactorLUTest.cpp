@@ -115,12 +115,18 @@ int main () {
         Vector_<float> xf_right(4); for (int i=0; i<4; ++i) xf_right[i] = (float)x_right[i];
         Vector_<float> xf; // should get sized automatically to 4 by solve()
 
-        FactorLU luf(af);
+        FactorLU luf;
+        luf.factor(af);
         luf.solve(bf, xf);
 
         cout << " float SOLUTION: " << xf << "  errnorm=" << (xf-xf_right).norm() << endl;
         const float SignificantFloat = NTraits<float>::getSignificant();
         ASSERT((xf-xf_right).norm() < 10*SignificantFloat);
+
+        luf.factor(a);
+        lu.solve( b, x );  // solve for x given a right hand side 
+        cout << " Real SOLUTION: " << x << "  errnorm=" << (x-x_right).norm() << endl;
+        ASSERT((x-x_right).norm() < 10*SignificantReal);
         
         return 0;
     } 

@@ -61,7 +61,7 @@ FactorQTZ::~FactorQTZ() {
 }
 // default constructor
 FactorQTZ::FactorQTZ() {
-    rep = new FactorQTZRep<float>();
+    rep = new FactorQTZDefault();
 }
 template < class ELT >
 void FactorQTZ::factor( const Matrix_<ELT>& m ){

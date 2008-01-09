@@ -89,6 +89,7 @@ class FactorQTZRepBase {
 }; // class FactorQTZRepBase
 
 class FactorQTZDefault : public FactorQTZRepBase {
+   public:
    FactorQTZDefault();
 };
 
