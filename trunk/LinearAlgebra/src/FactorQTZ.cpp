@@ -92,12 +92,12 @@ FactorQTZ::FactorQTZ( const Matrix_<ELT>& m, float rcond ) {
 }
 
 template < typename ELT >
-void FactorQTZ::solve( const Vector_<ELT>& b, Vector_<ELT>& x ) {
+void FactorQTZ::solve( const Vector_<ELT>& b, Vector_<ELT>& x ) const {
     rep->solve( b, x );
     return;
 }
 template < class ELT >
-void FactorQTZ::solve(  const Matrix_<ELT>& b, Matrix_<ELT>& x ) {
+void FactorQTZ::solve(  const Matrix_<ELT>& b, Matrix_<ELT>& x ) const {
     rep->solve(  b, x );
     return;
 }
@@ -116,8 +116,7 @@ FactorQTZRep<T>::FactorQTZRep()
         maxmn(0 ),
         tauGEQP3(0),
         tauORMQR(0),
-        scaleLinSys(false),
-        scaleRHS(false)   { } 
+        scaleLinSys(false) { } 
 
 template <typename T >
     template < typename ELT >
@@ -131,8 +130,7 @@ FactorQTZRep<T>::FactorQTZRep( const Matrix_<ELT>& mat, typename CNT<T>::TReal r
         maxmn( (mat.nrow() > mat.ncol()) ? mat.nrow() : mat.ncol() ),
         tauGEQP3(mn),
         tauORMQR(mn),
-        scaleLinSys(false),
-        scaleRHS(false)             { 
+        scaleLinSys(false)             { 
         
         rcond = rc;
         for(int i=0;i<mat.ncol();i++) pivots.data[i] = 0;
@@ -144,7 +142,7 @@ template <typename T >
 FactorQTZRep<T>::~FactorQTZRep() {}
 
 template < class T >
-void FactorQTZRep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) {
+void FactorQTZRep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) const {
 
     SimTK_APIARGCHECK_ALWAYS(isFactored ,"FactorQTZ","solve",
        "No matrix was passed to FactorQTZ. \n"  );
@@ -165,7 +163,7 @@ void FactorQTZRep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) {
     return;
 }
 template <typename T >
-void FactorQTZRep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) {
+void FactorQTZRep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) const {
 
     SimTK_APIARGCHECK_ALWAYS(0 == nRow,"FactorQTZ","solve",
        "No matrix was passed to FactorQTZ. \n"  );
@@ -182,7 +180,7 @@ void FactorQTZRep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) {
 }
 
 template <typename T >
-void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) {
+void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) const {
     int i,j;
     int info;
     typedef typename CNT<T>::TReal RealType;
@@ -190,6 +188,8 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) {
     int nrhs = b.ncol();
     int n = nCol;
     int m = nRow;
+    typename CNT<T>::TReal rhsScaleF; // scale factor applied to right hand side
+    bool scaleRHS = false; // true if right hand side should be scaled
 
     // compute size of workspace 
     // for dormqr, dormrz:  lwork = n*nb
@@ -434,13 +434,13 @@ template void FactorQTZRep<std::complex<float> >::factor( const Matrix_<negator<
 template void FactorQTZRep<std::complex<float> >::factor( const Matrix_<conjugate<float> >& m);
 template void FactorQTZRep<std::complex<float> >::factor( const Matrix_<negator<conjugate<float> > >& m);
 
-template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<float>(const Vector_<float>&, Vector_<float>&);
-template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<double>(const Vector_<double>&, Vector_<double>&);
-template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<std::complex<float> >(const Vector_<std::complex<float> >&, Vector_<std::complex<float> >&);
-template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<std::complex<double> >(const Vector_<std::complex<double> >&, Vector_<std::complex<double> >&);
-template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<float>(const Matrix_<float>&, Matrix_<float>&);
-template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<double>(const Matrix_<double>&, Matrix_<double>&);
-template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<std::complex<float> >(const Matrix_<std::complex<float> >&, Matrix_<std::complex<float> >&);
-template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<std::complex<double> >(const Matrix_<std::complex<double> >&, Matrix_<std::complex<double> >&);
+template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<float>(const Vector_<float>&, Vector_<float>&) const;
+template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<double>(const Vector_<double>&, Vector_<double>&) const;
+template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<std::complex<float> >(const Vector_<std::complex<float> >&, Vector_<std::complex<float> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<std::complex<double> >(const Vector_<std::complex<double> >&, Vector_<std::complex<double> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<float>(const Matrix_<float>&, Matrix_<float>&) const;
+template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<double>(const Matrix_<double>&, Matrix_<double>&) const;
+template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<std::complex<float> >(const Matrix_<std::complex<float> >&, Matrix_<std::complex<float> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<std::complex<double> >(const Matrix_<std::complex<double> >&, Matrix_<std::complex<double> >&) const;
 
 } // namespace SimTK

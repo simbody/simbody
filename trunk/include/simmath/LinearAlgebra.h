@@ -117,8 +117,8 @@ class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
     template <typename ELT> void factor( const Matrix_<ELT>& m);
     template <typename ELT> void factor( const Matrix_<ELT>& m, float rcond );
     template <typename ELT> void factor( const Matrix_<ELT>& m, double rcond );
-    template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x );
-    template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x );
+    template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x ) const ;
+    template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x ) const ;
 
     template <class ELT> void getQ( Matrix_<ELT>& q ) const;
     template <class ELT> void getT( Matrix_<ELT>& t ) const;

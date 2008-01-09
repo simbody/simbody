@@ -32,42 +32,42 @@ class FactorQTZRepBase {
 
     virtual ~FactorQTZRepBase(){};
 
-    virtual void solve( const Vector_<float>& b, Vector_<float>& x ){
+    virtual void solve( const Vector_<float>& b, Vector_<float>& x ) const {
         checkIfFactored();
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",
         "solve called with rhs of type <float>  which does not match type of original linear system \n");
    }
-   virtual void solve( const Vector_<double>& b, Vector_<double>& x ){
+   virtual void solve( const Vector_<double>& b, Vector_<double>& x ) const {
         checkIfFactored();
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",
         "solve called with rhs of type <double>  which does not match type of original linear system \n");
    }
-   virtual void solve( const Vector_<std::complex<float> >& b, Vector_<std::complex<float> >& x ){
+   virtual void solve( const Vector_<std::complex<float> >& b, Vector_<std::complex<float> >& x ) const {
         checkIfFactored();
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",
         "solve called with rhs of type complex<float> which does not match type of original linear system \n");
    }
-   virtual void solve( const Vector_<std::complex<double> >& b, Vector_<std::complex<double> >& x ){
+   virtual void solve( const Vector_<std::complex<double> >& b, Vector_<std::complex<double> >& x ) const {
         checkIfFactored();
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",
         "solve called with rhs of type complex<double>  which does not match type of original linear system \n");   
    }
-    virtual void solve( const Matrix_<float>& b, Matrix_<float>& x ){
+    virtual void solve( const Matrix_<float>& b, Matrix_<float>& x ) const {
         checkIfFactored();
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",
         "solve called with rhs of type <float>  which does not match type of original linear system \n");
    }
-   virtual void solve( const Matrix_<double>& b, Matrix_<double>& x ){
+   virtual void solve( const Matrix_<double>& b, Matrix_<double>& x ) const {
         checkIfFactored();
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",
         "solve called with rhs of type <double>  which does not match type of original linear system \n");
    }
-   virtual void solve( const Matrix_<std::complex<float> >& b, Matrix_<std::complex<float> >& x ){
+   virtual void solve( const Matrix_<std::complex<float> >& b, Matrix_<std::complex<float> >& x ) const {
         checkIfFactored();
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",
         "solve called with rhs of type complex<float> which does not match type of original linear system \n");
    }
-   virtual void solve( const Matrix_<std::complex<double> >& b, Matrix_<std::complex<double> >& x ){
+   virtual void solve  ( const Matrix_<std::complex<double> >& b, Matrix_<std::complex<double> >& x ) const {
        checkIfFactored();
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",
         "solve called with rhs of type complex<double>  which does not match type of original linear system \n");   
@@ -76,7 +76,7 @@ class FactorQTZRepBase {
    bool isFactored;
 
    private:
-   void checkIfFactored() {
+   void checkIfFactored()  const {
        if( !isFactored ) {
            SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",
            "solve called before the matrix was factored \n");
@@ -102,12 +102,12 @@ class FactorQTZRep : public FactorQTZRepBase {
    ~FactorQTZRep();
 
    template < class ELT > void factor(const Matrix_<ELT>& ); 
-   void solve( const Vector_<T>& b, Vector_<T>& x );
-   void solve( const Matrix_<T>& b, Matrix_<T>& x );
+   void solve( const Vector_<T>& b, Vector_<T>& x ) const;
+   void solve( const Matrix_<T>& b, Matrix_<T>& x ) const;
  
    private:
   
-   void doSolve( Matrix_<T>& b, Matrix_<T>& x );
+   void doSolve( Matrix_<T>& b, Matrix_<T>& x ) const;
 
    int mn;           // min of number of rows or columns
    int maxmn;        // max of number of rows or columns
@@ -115,9 +115,7 @@ class FactorQTZRep : public FactorQTZRepBase {
    int nCol;         // number of columns in original matrix
    int rank;         // esitmated rank computed during factorization
    bool scaleLinSys; // true if matrix was scaled during factorization
-   bool scaleRHS;    // true if right hand side was scaled during factorization
    typename CNT<T>::TReal linSysScaleF; // scale factor applied to matrix 
-   typename CNT<T>::TReal rhsScaleF; // scale factor applied to right hand side
    typename CNT<T>::TReal anrm;
    typename CNT<T>::TReal rcond;   // reciprocol condition number
    TypedWorkSpace<int>    pivots;
