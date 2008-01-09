@@ -36,14 +36,16 @@
 
 using namespace SimTK;
 
-CPodesIntegrator::CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method)
-{
+CPodesIntegrator::CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method) {
     rep = new CPodesIntegratorRep(this, sys, method);
 }
 
-CPodesIntegrator::CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method, CPodes::NonlinearSystemIterationType iterationType) 
-{
+CPodesIntegrator::CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method, CPodes::NonlinearSystemIterationType iterationType)  {
     rep = new CPodesIntegratorRep(this, sys, method, iterationType);
+}
+
+CPodesIntegrator::~CPodesIntegrator() {
+    delete rep;
 }
 
 void CPodesIntegrator::setUseCPodesProjection() {

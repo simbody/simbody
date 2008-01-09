@@ -51,3 +51,7 @@ RungeKuttaMersonIntegrator::RungeKuttaMersonIntegrator(const System& sys)
 {
     rep = new RungeKuttaMersonIntegratorRep(this, sys);
 }
+
+RungeKuttaMersonIntegrator::~RungeKuttaMersonIntegrator() {
+    delete rep;
+}

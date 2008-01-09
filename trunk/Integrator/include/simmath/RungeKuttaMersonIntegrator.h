@@ -49,6 +49,7 @@ class RungeKuttaMersonIntegratorRep;
 class SimTK_SIMMATH_EXPORT RungeKuttaMersonIntegrator : public Integrator {
 public:
     RungeKuttaMersonIntegrator(const System& sys);
+    ~RungeKuttaMersonIntegrator();
 };
 
 } // namespace SimTK

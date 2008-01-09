@@ -57,6 +57,7 @@ class CPodesIntegratorRep;
 
 class SimTK_SIMMATH_EXPORT CPodesIntegrator : public Integrator {
 public:
+    ~CPodesIntegrator();
     /**
      * Create a CPodesIntegrator for integrating a System.
      */

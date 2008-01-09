@@ -60,6 +60,7 @@ public:
      * Create an ExplicitEulerIntegrator for integrating a System.
      */
     ExplicitEulerIntegrator(const System& sys, Real stepSize);
+    ~ExplicitEulerIntegrator();
 };
 
 } // namespace SimTK
