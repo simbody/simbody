@@ -124,7 +124,7 @@ template <> void LapackInterface::syevx<float>( char jobz, char range,
           values, vectors, LDVectors, wsize, -1, iwork.data, ifail, info, 
           1, 1, 1);
 
-    int lwork = wsize[0];
+    int lwork = (int)wsize[0];
     TypedWorkSpace<float> work(lwork);
     ssyevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
           values, vectors, LDVectors,  work.data, lwork, iwork.data, ifail, 
@@ -144,7 +144,7 @@ template <> void LapackInterface::syevx<double>( char jobz, char range,
           values, vectors, LDVectors, wsize, -1, iwork.data, ifail, info, 
           1, 1, 1);
 
-    int lwork = wsize[0];
+    int lwork = (int)wsize[0];
     TypedWorkSpace<double> work(lwork);
     dsyevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
           values, vectors, LDVectors,  work.data, lwork, iwork.data, ifail, 
@@ -165,7 +165,7 @@ template <> void LapackInterface::syevx<std::complex<double> >( char jobz,
           values, vectors, LDVectors, wsize, -1,  rwork.data, iwork.data, 
           ifail, info, 1, 1, 1);
 
-    int lwork = wsize[0].real();
+    int lwork = (int)wsize[0].real();
     TypedWorkSpace<std::complex<double> > work(lwork);
     zheevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
           values, vectors, LDVectors,  work.data, lwork, rwork.data, 
@@ -186,7 +186,7 @@ template <> void LapackInterface::syevx<std::complex<float> >( char jobz,
           values, vectors, LDVectors, wsize, -1, rwork.data, iwork.data, ifail, 
           info, 1, 1, 1);
 
-    int lwork = wsize[0].real();
+    int lwork = (int)wsize[0].real();
     TypedWorkSpace<std::complex<float> > work(lwork);
     cheevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
           values, vectors, LDVectors,  work.data, lwork, rwork.data, iwork.data,
@@ -206,7 +206,7 @@ template <> void LapackInterface::syev<float>( char jobz,  char uplo, int n,
 
     float wsize[1];
     ssyev_( jobz, uplo, n, a, lda, eigenValues, wsize, -1, info,  1, 1 );
-    int lwork = wsize[0];
+    int lwork = (int)wsize[0];
     TypedWorkSpace<float> work(lwork);
     ssyev_( jobz, uplo, n, a, lda, eigenValues, work.data, lwork, info, 1, 1 );
 } 
@@ -216,7 +216,7 @@ template <> void LapackInterface::syev<double>( char jobz,  char uplo, int n,
 
     double wsize[1];
     dsyev_( jobz, uplo, n, a, lda, eigenValues, wsize, -1, info,  1, 1 );
-    int lwork = wsize[0];
+    int lwork = (int)wsize[0];
     TypedWorkSpace<double> work(lwork);
     dsyev_( jobz, uplo, n, a, lda, eigenValues, work.data, lwork, info, 1, 1 );
 } 
@@ -232,7 +232,7 @@ template <> void LapackInterface::syev<std::complex<float> >( char jobz,  char u
 
     cheev_( jobz, uplo, n, a, lda, eigenValues, wsize, -1, rwork.data, info,  1, 1 );
 
-    int lwork = wsize[0].real();
+    int lwork = (int)wsize[0].real();
     TypedWorkSpace<std::complex<float> > work(lwork);
     cheev_( jobz, uplo, n, a, lda, eigenValues, work.data, lwork, rwork.data, info, 1, 1 );
 } 
@@ -248,7 +248,7 @@ template <> void LapackInterface::syev<std::complex<double> >( char jobz,  char 
 
     zheev_( jobz, uplo, n, a, lda, eigenValues, wsize, -1, rwork.data, info,  1, 1 );
 
-    int lwork = wsize[0].real();
+    int lwork = (int)wsize[0].real();
     TypedWorkSpace<std::complex<double> > work(lwork);
     zheev_( jobz, uplo, n, a, lda, eigenValues, work.data, lwork, rwork.data, info, 1, 1 );
 } 
@@ -256,16 +256,16 @@ template <> void LapackInterface::syev<std::complex<double> >( char jobz,  char 
 // eigenvlaues for nonsymmetric matrices
 template <class T> 
 void LapackInterface::geev (char jobvl, char jobvr,
-    int n, T a[], int lda, std::complex<typename CNT<T>::TReal>* values, 
-    T vl[], int ldvl, std::complex<typename CNT<T>::TReal>* vr, 
-    int ldvr, T work[], int lwork, int& info ) {
+    int n, T* a, int lda, std::complex<typename CNT<T>::TReal>* values, 
+    T* vl, int ldvl, std::complex<typename CNT<T>::TReal>* vr, 
+    int ldvr, T* work, int lwork, int& info ) {
     assert(false);
 }
 
 template <> void LapackInterface::geev<double>
    (char jobvl, char jobvr,
-    int n, double a[], int lda, std::complex<double>* values, 
-    double vl[], int ldvl, std::complex<double>* rightVectors, int ldvr, double work[],
+    int n, double* a, int lda, std::complex<double>* values, 
+    double* vl, int ldvl, std::complex<double>* rightVectors, int ldvr, double* work,
     int lwork, int& info )
 {
     TypedWorkSpace<double> wr(n);
@@ -311,8 +311,8 @@ template <> void LapackInterface::geev<double>
 
 template <> void LapackInterface::geev<float>
    (char jobvl, char jobvr,
-    int n, float a[], int lda, std::complex<float>* values,
-    float vl[], int ldvl, std::complex<float>* rightVectors, int ldvr, float work[],
+    int n, float* a, int lda, std::complex<float>* values,
+    float* vl, int ldvl, std::complex<float>* rightVectors, int ldvr, float* work,
     int lwork, int& info )
 {
     TypedWorkSpace<float> wr(n);
@@ -351,8 +351,8 @@ template <> void LapackInterface::geev<float>
 }
 template <> void LapackInterface::geev<std::complex<float> >
    (char jobvl, char jobvr,
-    int n, std::complex<float> a[], int lda, std::complex<float>* values, 
-    std::complex<float> vl[], int ldvl, std::complex<float>* rightVectors, int ldvr, std::complex<float>* work,
+    int n, std::complex<float>* a, int lda, std::complex<float>* values, 
+    std::complex<float>* vl, int ldvl, std::complex<float>* rightVectors, int ldvr, std::complex<float>* work,
     int lwork, int& info )
 {
 
@@ -366,8 +366,8 @@ template <> void LapackInterface::geev<std::complex<float> >
 
 template <> void LapackInterface::geev<std::complex<double> >
    (char jobvl, char jobvr,
-    int n, std::complex<double> a[], int lda, std::complex<double>* values, 
-    std::complex<double> vl[], int ldvl, std::complex<double>* rightVectors, int ldvr, std::complex<double> work[],
+    int n, std::complex<double>* a, int lda, std::complex<double>* values, 
+    std::complex<double>* vl, int ldvl, std::complex<double>* rightVectors, int ldvr, std::complex<double>* work,
     int lwork, int& info )
 {
 

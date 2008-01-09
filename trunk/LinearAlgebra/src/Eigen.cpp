@@ -128,7 +128,7 @@ template <typename T >
 void EigenRep<T>::copyValues(Vector_<float>& values) {
 
     for(int j = 0;j<n;j++ ) {
-        values(j) = realEigenValues.data[j];
+        values(j) = (float)realEigenValues.data[j];
     }
     return;
 }
@@ -569,8 +569,8 @@ template < class T >
 void EigenRep<T>::getFewEigenVectors( Matrix_<std::complex<RType> >& vectors,  int ilow, int ihi ) {
 
     range = IndexRange;
-    lowValue = ilow;
-    hiValue = ihi;
+    lowIndex = ilow;
+    hiIndex = ihi;
     if( needVectors ) computeValues( true );
     copyVectors( vectors );
 
@@ -600,8 +600,8 @@ void EigenRep<T>::getFewEigenVectors( Matrix_<RType>& vectors,  int ilow, int ih
        "getFewEigenVectors(real) called for a complex matrix   \n");
     } 
     range = IndexRange;
-    lowValue = ilow;
-    hiValue = ihi;
+    lowIndex = ilow;
+    hiIndex = ihi;
     if( needVectors ) computeValues( true );
     copyVectors( vectors );
 
