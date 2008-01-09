@@ -33,12 +33,6 @@
  * -------------------------------------------------------------------------- */
 
 
-/**
- * This is an event reporter that makes it easy to generate on-screen movies of any simulation.
- * Simply create a VTKEventReporter, then invoke addEventReporter() on the MultibodySystem's
- * default subsystem.
- */
-
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/VTKReporter.h"
@@ -47,6 +41,11 @@ namespace SimTK {
 
 class MultibodySystem;
 
+/**
+ * This is an EventReporter that makes it easy to generate on-screen movies of any simulation.
+ * Simply create a VTKEventReporter, then invoke addEventReporter() on the MultibodySystem's
+ * default subsystem.
+ */
 class SimTK_SIMBODY_EXPORT VTKEventReporter : public PeriodicEventReporter {
 public:
     VTKEventReporter(MultibodySystem& system, Real reportInterval, Real defaultScaleForAutoGeometry=1.);

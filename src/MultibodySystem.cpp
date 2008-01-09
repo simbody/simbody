@@ -74,14 +74,14 @@ MultibodySystem::updRep() {
 // Create generic multibody system by default.
 MultibodySystem::MultibodySystem() {
     adoptSystemGuts(new MultibodySystemRep());
-    new DefaultSystemSubsystem(*this); // This invokes adoptSubsystem().
+    DefaultSystemSubsystem defsub(*this); // This invokes adoptSubsystem().
     updRep().setGlobalSubsystem();
 }
 
 MultibodySystem::MultibodySystem(SimbodyMatterSubsystem& m)
 {
     adoptSystemGuts(new MultibodySystemRep());
-    new DefaultSystemSubsystem(*this); // This invokes adoptSubsystem().
+    DefaultSystemSubsystem defsub(*this); // This invokes adoptSubsystem().
     updRep().setGlobalSubsystem();
     setMatterSubsystem(m);
 }
@@ -90,7 +90,7 @@ MultibodySystem::MultibodySystem(SimbodyMatterSubsystem& m)
 // allocate a more specialized MultibodySystemRep.
 MultibodySystem::MultibodySystem(MultibodySystemRep* rp) {
     adoptSystemGuts(rp);
-    new DefaultSystemSubsystem(*this); // This invokes adoptSubsystem().
+    DefaultSystemSubsystem defsub(*this); // This invokes adoptSubsystem().
     updRep().setGlobalSubsystem();
 }
 

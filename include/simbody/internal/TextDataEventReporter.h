@@ -33,20 +33,19 @@
  * -------------------------------------------------------------------------- */
 
 
+#include "SimTKcommon.h"
+#include "simbody/internal/common.h"
+
+namespace SimTK {
+
 /**
- * This is an event reporter which prints out numeric data at regular intervals in tabular form.
+ * This is an EventReporter which prints out numeric data at regular intervals in tabular form.
  * You provide it with a UserFunction, which calculates the values to be reported.  At every
  * reporting interval, it invokes the UserFunction, then prints out the current time along
  * with the value or values returned by the function.
  * 
  * After creating a TextDataEventReporter, invoke addEventReporter() on the System's default subsystem.
  */
-
-#include "SimTKcommon.h"
-#include "simbody/internal/common.h"
-
-namespace SimTK {
-
 class SimTK_SIMBODY_EXPORT TextDataEventReporter : public PeriodicEventReporter {
 public:
     /**
