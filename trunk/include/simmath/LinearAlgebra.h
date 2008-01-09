@@ -139,9 +139,11 @@ class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
 class SimTK_SIMMATH_EXPORT Eigen {
     public:
 
+    Eigen();
     ~Eigen();
 
     template <class ELT> Eigen( const Matrix_<ELT>& m );
+    template <class ELT> void factor( const Matrix_<ELT>& m );
     template <class VAL, class VEC> void getAllEigenValuesAndVectors( Vector_<VAL>& values, Matrix_<VEC>& vectors);
     template <class T> void getAllEigenValues( Vector_<T>& values);
 

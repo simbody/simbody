@@ -43,15 +43,30 @@
 
 namespace SimTK {
 
-   ///////////////
+   //////////////////
+   // EigenDefault //
+   //////////////////
+EigenDefault::EigenDefault() {
+    isFactored = false;
+}
+
+   ///////////
    // Eigen //
-   ///////////////
+   ///////////
 Eigen::~Eigen() {
     delete rep;
+}
+Eigen::Eigen() {
+   rep = new EigenDefault();
 }
 
 template < class ELT >
 Eigen::Eigen( const Matrix_<ELT>& m ) {
+    rep = new EigenRep<typename CNT<ELT>::StdNumber>(m); 
+}
+template < class ELT >
+void Eigen::factor( const Matrix_<ELT>& m ) {
+    delete rep;
     rep = new EigenRep<typename CNT<ELT>::StdNumber>(m); 
 }
 
@@ -118,6 +133,7 @@ EigenRep<T>::EigenRep( const Matrix_<ELT>& mat):
     abstol *= 0.5;
 
     LapackConvert::convertMatrixToLapack( inputMatrix.data, mat );
+    isFactored = true;
         
 }
 

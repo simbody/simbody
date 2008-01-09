@@ -33,18 +33,22 @@ class EigenRepBase {
     virtual ~EigenRepBase(){};
 
    virtual void getAllEigenValuesAndVectors( Vector_<float>& values, Matrix_<float>& vectors ){
+       checkIfFactored( "getAllEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValuesAndVectors",
        "getAllEigenValuesAndVectors called with vector of type <float, float>   \n");
    }
    virtual void getAllEigenValuesAndVectors( Vector_<double>& values, Matrix_<double>& vectors ){
+       checkIfFactored( "getAllEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValuesAndVectors",
        "getAllEigenValuesAndVectors called with vector of type <double, double>   \n");
    }
    virtual void getAllEigenValuesAndVectors( Vector_<double>& values, Matrix_<std::complex<double> >& vectors ){
+       checkIfFactored( "getAllEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValuesAndVectors",
        "getAllEigenValuesAndVectors called with vector of types  <double, std::complex<double>   \n");
    }
    virtual void getAllEigenValuesAndVectors( Vector_<std::complex<double> >& values, Matrix_<std::complex<double> >& vectors ){
+       checkIfFactored( "getAllEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValuesAndVectors",
        "getAllEigenValuesAndVectors called with vector of type <std::complex<double>, std::complex<double> >  \n");
    }
@@ -53,140 +57,191 @@ class EigenRepBase {
        "getAllEigenValuesAndVectors called with vector of type <float, std::complex<float> >   \n");
    }
    virtual void getAllEigenValuesAndVectors( Vector_<std::complex<float> >& values, Matrix_<std::complex<float> >& vectors ){
+       checkIfFactored( "getAllEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValuesAndVectors",
        "getAllEigenValuesAndVectors called with vector of type <std::complex<float, std::complex<float> >   \n");
    }
 
    virtual void getAllEigenValues( Vector_<float>& values ){
+       checkIfFactored( "getAllEigenValues" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
        "getAllEigenValues called with vector of type <float>   \n");
    }
    virtual void getAllEigenValues( Vector_<double>& values ){
+       checkIfFactored( "getAllEigenValues" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
        "getAllEigenValues called with vector of type <double>   \n");
    }
    virtual void getAllEigenValues( Vector_<std::complex<double> >& values){
+       checkIfFactored( "getAllEigenValues" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
        "getAllEigenValues called with vector of type <std::complex<double>   \n");
    }
    virtual void getAllEigenValues( Vector_<std::complex<float> >& values ){
+       checkIfFactored( "getAllEigenValues" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
        "getAllEigenValues called with vector of type <std::complex<float>   \n");
    }
    virtual void getFewEigenValuesAndVectors( Vector_<float>& values, Matrix_<float>& vectors, int ilow, int ihi ){
+       checkIfFactored( "getFewEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
        "getFewEigenValuesAndVectors called with vector of type <float,float>   \n");
    }
    virtual void getFewEigenValuesAndVectors( Vector_<double>& values, Matrix_<double>& vectors, int ilow, int ihi ){
+       checkIfFactored( "getFewEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
        "getFewEigenValuesAndVectors called with vector of type <double,double>   \n");
    }
    virtual void getFewEigenValuesAndVectors( Vector_<std::complex<float> >& values, Matrix_<std::complex<float> >& vectors, int ilow, int ihi ){
+       checkIfFactored( "getFewEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
        "getFewEigenValuesAndVectors called with vector of type <std::complex<float>, std::complex<float> >   \n");
    }
    virtual void getFewEigenValuesAndVectors( Vector_<float>& values, Matrix_<std::complex<float> >& vectors, int ilow, int ihi ){
+       checkIfFactored( "getFewEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
        "getFewEigenValuesAndVectors called with vector of type <float, std::complex<float> >   \n");
    }
    virtual void getFewEigenValuesAndVectors( Vector_<std::complex<double> >& values, Matrix_<std::complex<double> >& vectors, int ilow, int ihi ){
+       checkIfFactored( "getFewEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
        "getFewEigenValuesAndVectors called with vector of type <std::complex<double>, std::complex<double> >   \n");
    }
    virtual void getFewEigenValuesAndVectors( Vector_<double>& values, Matrix_<std::complex<double> >& vectors, int ilow, int ihi ){
+       checkIfFactored( "getFewEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
        "getFewEigenValuesAndVectors called with vector of type < double, std::complex<double> >   \n");
    }
    virtual void getFewEigenValuesAndVectors( Vector_<float>& values, Matrix_<float>& vectors, float rlow, float rhi ){
+       checkIfFactored( "getFewEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
        "getFewEigenValuesAndVectors called with vector of type <float, float>   \n");
    }
    virtual void getFewEigenValuesAndVectors( Vector_<double>& values, Matrix_<double>& vectors, double rlow, double rhi ){
+       checkIfFactored( "getFewEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
        "getFewEigenValuesAndVectors called with vector of type <double, double>   \n");
    }
    virtual void getFewEigenValuesAndVectors( Vector_<std::complex<float> >& values, Matrix_<std::complex<float> >& vectors, float rlow, float rhi ){
+       checkIfFactored( "getFewEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
        "getFewEigenValuesAndVectors called with vector of type <std::complex<float>, std::complex<float> >   \n");
    }
    virtual void getFewEigenValuesAndVectors( Vector_<float>& values, Matrix_<std::complex<float> >& vectors, float rlow, float rhi ){
+       checkIfFactored( "getFewEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
        "getFewEigenValuesAndVectors called with vector of type <float, std::complex<float> >   \n");
    }
    virtual void getFewEigenValuesAndVectors( Vector_<std::complex<double> >& values, Matrix_<std::complex<double> >& vectors, double rlow, double rhi ){
+       checkIfFactored( "getFewEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
        "getFewEigenValuesAndVectors called with vector of type <std::complex<double>, std::complex<double> >   \n");
    }
    virtual void getFewEigenValuesAndVectors( Vector_<double>& values, Matrix_<std::complex<double> >& vectors, double rlow, double rhi ){
+       checkIfFactored( "getFewEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
        "getFewEigenValuesAndVectors called with vector of type <double, std::complex<double> >   \n");
    }
    virtual void getFewEigenValues( Vector_<float>& values, int ilow, int ihi ){
+       checkIfFactored( "getFewEigenValues" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
        "getFewEigenValues called with vector of type <float>   \n");
    }
    virtual void getFewEigenValues( Vector_<double>& values, int ilow, int ihi ){
+       checkIfFactored( "getFewEigenValues" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
        "getFewEigenValues called with vector of type <double>   \n");
    }
    virtual void getFewEigenValues( Vector_<std::complex<float> >& values, int ilow, int ihi ){
+       checkIfFactored( "getFewEigenValues" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
        "getFewEigenValues called with vector of type <std::complex<float> >   \n");
    }
    virtual void getFewEigenValues( Vector_<std::complex<double> >& values, int ilow, int ihi ){
+       checkIfFactored( "getFewEigenValues" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
        "getFewEigenValues called with vector of type <std::complex<double> >   \n");
    }
    virtual void getFewEigenValues( Vector_<float>& values, float rlow, float rhi ){
+       checkIfFactored( "getFewEigenValues" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
        "getFewEigenValues called with vector of type <float>   \n");
    }
    virtual void getFewEigenValues( Vector_<double>& values, double rlow, double rhi ){
+       checkIfFactored( "getFewEigenValues" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
        "getFewEigenValues called with vector of type <double>   \n");
    }
    virtual void getFewEigenValues( Vector_<std::complex<float> >& values, float rlow, float rhi ){
+       checkIfFactored( "getFewEigenValues" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
        "getFewEigenValues called with vector of type <std::complex<float> >   \n");
    }
    virtual void getFewEigenValues( Vector_<std::complex<double> >& values, double rlow, double rhi ){
+       checkIfFactored( "getFewEigenValues" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
        "getFewEigenValues called with vector of type <std::complex<double> >   \n");
    }
    virtual void getFewEigenVectors( Matrix_<float>& vectors, int ilow, int ihi ){
+       checkIfFactored( "getFewEigenVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
        "getFewEigenVectors called with vector of type <float>   \n");
    }
    virtual void getFewEigenVectors(  Matrix_<double>& vectors, int ilow, int ihi ){
+       checkIfFactored( "getFewEigenVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
        "getFewEigenVectors called with vector of type <double>   \n");
    }
    virtual void getFewEigenVectors( Matrix_<std::complex<float> >& vectors, int ilow, int ihi ){
+       checkIfFactored( "getFewEigenVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
        "getFewEigenVectors called with vector of type <std::complex<float> >   \n");
    }
    virtual void getFewEigenVectors(  Matrix_<std::complex<double> >& vectors, int ilow, int ihi ){
+       checkIfFactored( "getFewEigenVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
        "getFewEigenVectors called with vector of type <std::complex<double> >   \n");
    }
    virtual void getFewEigenVectors(  Matrix_<float>& vectors, float rlow, float rhi ){
+       checkIfFactored( "getFewEigenVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
        "getFewEigenVectors called with vector of type <float>   \n");
    }
    virtual void getFewEigenVectors(  Matrix_<double>& vectors, double rlow, double rhi ){
+       checkIfFactored( "getFewEigenVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
        "getFewEigenVectors called with vector of type <double>   \n");
    }
    virtual void getFewEigenVectors( Matrix_<std::complex<float> >& vectors, float rlow, float rhi ){
+       checkIfFactored( "getFewEigenVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
        "getFewEigenVectors called with vector of type <std::complex<float> >   \n");
    }
    virtual void getFewEigenVectors( Matrix_<std::complex<double> >& vectors, double rlow, double rhi ){
+       checkIfFactored( "getFewEigenVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenVectors",
        "getFewEigenVectors called with vector of type <std::complex<double> >   \n");
    }
+   bool isFactored;
+
+   private:
+   void checkIfFactored(const char* function_name)  const {
+       if( !isFactored ) {
+           SimTK_APIARGCHECK_ALWAYS(false,"Eigen",function_name,
+           "matrix has not been factored\n");
+       }
+
+       return;
+   }
+
 
 }; // class EigenRepBase
+
+class EigenDefault : public EigenRepBase {
+   public:
+   EigenDefault();
+};
+
 
 template <typename T>
 class EigenRep : public EigenRepBase {
