@@ -46,6 +46,11 @@ static int getLWork( std::complex<float>* work);
 static int getLWork( std::complex<double>* work);
 
 template <class T> static
+void gesdd( char jobz, int m, int n, T* a, int lda, 
+           typename CNT<T>::TReal* s, T* u, int ldu,
+           T* vt, int ldvt, int& info);
+
+template <class T> static
 void geev (char jobvl, char jobvr, int n, T* a, int lda, 
     std::complex<typename CNT<T>::TReal>* values, 
     T* vl, int ldvl, std::complex<typename CNT<T>::TReal>* vr, 

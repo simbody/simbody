@@ -140,53 +140,35 @@ Real A[16] = {  0.35,  0.45,  -0.14,  -0.17,
                -0.44, -0.33,  -0.03,   0.17,
                 0.25, -0.32,  -0.13,   0.11 };
 
-std::complex<double> expEigen[4] = { std::complex<double>(0.79948,   0.0), 
-                                      std::complex<double>(-0.099412,  0.40079), 
-                                      std::complex<double>(-0.099412, -0.40079),
-                                      std::complex<double>(-0.10066,   0.0) };
+typedef std::complex<double> cd;
+cd expEigen[4] = { cd(0.79948,   0.0), 
+                                      cd(-0.099412,  0.40079), 
+                                      cd(-0.099412, -0.40079),
+                                      cd(-0.10066,   0.0) };
 
-std::complex<double> expVectors[16] = { std::complex<double>( -.65509, 0.0),
-                                       std::complex<double>( -.52363, 0.0),
-                                       std::complex<double>(  .53622, 0.0),
-                                       std::complex<double>( -.095607, 0.0),
-
-                                       std::complex<double>(-.1933001,  .25463),
-                                       std::complex<double>( .2518601, -.52240),
-                                       std::complex<double>( .09718202,-.30838),
-                                       std::complex<double>( .67595,   0.000),
-
-                                       std::complex<double>(-.1933001, -.25463),
-                                       std::complex<double>( .2518601,  .52240),
-                                       std::complex<double>( .09718202, .30838),
-                                       std::complex<double>( .67595,   -0.000),
-
-                                       std::complex<double>( .12533, 0.0),
-                                       std::complex<double>( .33202, 0.0),
-                                       std::complex<double>( .59384, 0.0),
-                                       std::complex<double>( .72209, 0.0) };
-template <typename T> 
-T complex_norm( Vector_<std::complex<T> >values, Vector_<std::complex<T> > expected, bool checkReversed ) {
+cd expVectors[16] = { cd( -.65509, 0.0), cd( -.52363, 0.0), cd(  .53622, 0.0), cd( -.095607, 0.0),
+                      cd(-.1933001,  .25463), cd( .2518601, -.52240), cd( .09718202,-.30838), cd( .67595,   0.000),
+                      cd(-.1933001, -.25463), cd( .2518601,  .52240), cd( .09718202, .30838), cd( .67595,   -0.000),
+                      cd( .12533, 0.0), cd( .33202, 0.0), cd( .59384, 0.0), cd( .72209, 0.0) };
+ template <typename T> 
+T absNormComplex( Vector_<std::complex<T> >& values, Vector_<std::complex<T> >& expected) {
    T norm = 0;
  
    for(int i=0;i<values.size(); i++ ) {
-       if( checkReversed ){
-          norm += (values(i).real() + expected(i).real()) * (values(i).real() + expected(i).real()) + 
-              (values(i).imag() + expected(i).imag()) * (values(i).imag() + expected(i).imag());  
-       } else {
-          norm += (values(i).real() - expected(i).real()) * (values(i).real() - expected(i).real()) + 
-              (values(i).imag() - expected(i).imag()) * (values(i).imag() - expected(i).imag());  
-       }
+       norm += (fabs(values(i).real()) - fabs(expected(i).real())) * (fabs(values(i).real()) - fabs(expected(i).real())) + 
+             (fabs(values(i).imag()) - fabs(expected(i).imag())) * (fabs(values(i).imag()) - fabs(expected(i).imag()));  
    } 
 
-/*
-printf("expect=   ");
-   for(int i=0;i<values.size(); i++ ) printf("%f %f ", expected(i).real(), expected(i).imag());
-printf(" \n");
-printf("computed= ");
-   for(int i=0;i<values.size(); i++ ) printf("%f %f ", values(i).real(), values(i).imag());
-printf(" \n");
-*/
-   
+   return( sqrt(norm) );
+}
+template <typename T> 
+T absNorm( Vector_<T>& values, Vector_<T>& expected) {
+   T norm = 0;
+
+   for(int i=0;i<values.size(); i++ ) {
+       norm += (fabs(values(i)) - fabs(expected(i))) * (fabs(values(i)) - fabs(expected(i))) + 
+              (fabs(values(i)) - fabs(expected(i))) * (fabs(values(i)) - fabs(expected(i)));  
+   }
    return( sqrt(norm) );
 }
 
@@ -209,18 +191,17 @@ int main () {
 
         es.getAllEigenValuesAndVectors( values, vectors );  // solve for the eigenvalues and eigenvectors of the system 
 
-        cout << " Real SOLUTION: " << values << "  errnorm=" << complex_norm(values,expectedValues, false) << endl;
-        ASSERT(complex_norm(values,expectedValues, false) < 0.001);
-/*
+        printf("\n *****  NON-SYMMETRIC:  ***** \n\n"  );
+        cout << " Real SOLUTION: " << values << "  errnorm=" << absNormComplex(values,expectedValues) << endl;
+        ASSERT(absNormComplex(values,expectedValues) < 0.001);
+
         cout << "Vectors = "  << endl;
         for(int i=0;i<4;i++) {
             computeVec = vectors(i); 
             expectVec = expectedVectors(i);
 
-            errnorm =  complex_norm( computeVec, expectVec, false );
-            // if an eigen vector is wrong reverse its direction and recheck 
-            if( errnorm > EPS ) errnorm =  complex_norm( computeVec, expectVec, true );
-            cout << vectors(i) << "  errnorm=" << errnorm << endl;
+            errnorm =  absNormComplex( computeVec, expectVec );
+            cout << computeVec << "  errnorm=" << errnorm << endl;
             ASSERT( errnorm < 0.00001 );
 
         }
@@ -242,21 +223,73 @@ int main () {
 
         esf.getAllEigenValuesAndVectors( valuesf, vectorsf);   // solve for the eigenvalues and vectors of the system
 
-        cout << " float SOLUTION: " << valuesf << "  errnorm=" << complex_norm(valuesf,expectedValuesf, false) << endl;
-        ASSERT(complex_norm(valuesf,expectedValuesf, false) < 0.001);
+        cout << " float SOLUTION: " << valuesf << "  errnorm=" << absNormComplex(valuesf,expectedValuesf) << endl;
+        ASSERT(absNormComplex(valuesf,expectedValuesf) < 0.001);
 
         cout << "Vectors = " << endl;
         for(int i=0;i<4;i++) {
             computeVecf = vectorsf(i); 
             expectVecf = expectedVectorsf(i);
 
-            errnorm = complex_norm( computeVecf, expectVecf, false );
-            // if an eigen vector is wrong reverse  the direction and recheck 
-            if( errnorm > EPS ) errnorm = complex_norm( computeVecf, expectVecf, true ); 
-            cout << vectorsf(i) << "  errnorm=" << errnorm << endl;
+            errnorm = absNormComplex( computeVecf, expectVecf );
+            cout << computeVecf << "  errnorm=" << errnorm << endl;
             ASSERT( errnorm < 0.0001 );
         }
-*/
+//
+//         SYMMETRIC TESTS:
+//
+        Real S[16] = {     1.0,  2.0,  3.0,  4.0,
+                           0.0,  2.0,  3.0,  4.0,
+                           0.0,  0.0,  3.0,  4.0,
+                           0.0,  0.0,  0.0,  4.0 };
+
+        Real expectSymVals[4] = { -2.0531, -0.5146, -0.2943, 12.8621 };
+        Real expectSymVecs[16] = {  -0.7003, -0.5144,  0.2767, -0.4103,
+                                    -0.3592,  0.4851, -0.6634, -0.4422,
+                                     0.1569,  0.5420,  0.6504, -0.5085,
+                                     0.5965, -0.4543, -0.2457, -0.6144 };
+
+
+
+        Matrix as(4,4, S);
+        as.setMatrixStructure( MatrixStructures::Symmetric ) ;
+
+        Eigen  esym(as);   // setup the eigen system
+        Vector symValues;
+        Vector expectedSymValues(4);
+        for(int i=0;i<4;i++) expectedSymValues[i] = expectSymVals[i];
+        Matrix symVectors;
+        Vector symVector;
+        Vector expectedSymVector; 
+        Matrix expectedSymVectors(4,4,expectSymVecs );
+        esym.getAllEigenValuesAndVectors( symValues, symVectors );  // solve for the eigenvalues and eigenvectors of the system 
+
+        printf("\n *****  SYMMETRIC:  ***** \n\n"  );
+
+        cout << " Real SOLUTION:  All Values and Vectors" << symValues << "  errnorm=" << absNorm(symValues,expectedSymValues) << endl;
+
+        cout << " Eigen Vectors = " << endl;
+        for(int i=0;i<4;i++) {
+            symVector = symVectors(i);
+            expectedSymVector = expectedSymVectors(i);
+            errnorm = absNorm(symVector,expectedSymVector);
+            cout << symVectors(i) << "  errnorm=" << errnorm << endl;
+//            cout << expectedSymVectors(i) <<  endl;
+        }
+
+        Eigen  efewi(as);   // setup the eigen system
+        efewi.getFewEigenValuesAndVectors( symValues, symVectors, 2, 3 );  // solve for few eigenvalues and eigenvectors of the system 
+        cout << " Real SOLUTION:  Values/Vectors between indices 2 and 3" << symValues << endl;
+        for(int j=0;j<symVectors.ncol();j++)  cout << symVectors(j) <<  endl;
+
+        Eigen  efewr(as);   // setup the eigen system
+
+        // solve for few eigenvalues/vectors between -1, 1 
+        efewr.getFewEigenValuesAndVectors( symValues, symVectors, -1.0, 1.0 );  
+        cout << " Real SOLUTION:  Values/Vectors  between -1, 1 " << symValues << endl;
+        for(int j=0;j<symVectors.ncol();j++)  cout << symVectors(j) <<  endl;
+       
+
         return 0;
     } 
     catch (std::exception& e) {

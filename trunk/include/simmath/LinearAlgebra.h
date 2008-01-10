@@ -160,6 +160,23 @@ class SimTK_SIMMATH_EXPORT Eigen {
     class EigenRepBase *rep;
 
 }; // class Eigen
+
+class SimTK_SIMMATH_EXPORT FactorSVD {
+    public:
+
+    FactorSVD();
+    ~FactorSVD();
+
+    template < class ELT > FactorSVD( const Matrix_<ELT>& m );
+    template < class ELT > void factor( const Matrix_<ELT>& m );
+    template < class T > void getSingularValuesAndVectors( Vector_<typename CNT<T>::TReal>& values, 
+                              Matrix_<T>& leftVectors,  Matrix_<T>& rightVectors );
+    template < class T > void getSingularValues( Vector_<T>& values);
+
+    protected:
+    class FactorSVDRepBase *rep;
+
+}; // class FactorSVD
 template <class P>
 bool eigenValuesRightVectors( Matrix_<P> &m, Vector_< std::complex<P> > &eigenValues, Matrix_< std::complex<P> > &eigenVectors );
 

@@ -279,6 +279,8 @@ ELSE (EXECUTABLE_OUTPUT_PATH)
   SET (TEST_PATH .)
 ENDIF (EXECUTABLE_OUTPUT_PATH)
 
+ADD_TEST(FactorQTZTest                  ${TEST_PATH}/FactorQTZTest)
+ADD_TEST(FactorQTZTestStatic            ${TEST_PATH}/FactorQTZTestStatic)
 ADD_TEST(EigenTest                      ${TEST_PATH}/EigenTest)
 ADD_TEST(EigenTestStatic                ${TEST_PATH}/EigenTestStatic)
 ADD_TEST(FactorQTZTest                  ${TEST_PATH}/FactorQTZTest)

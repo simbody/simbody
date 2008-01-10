@@ -125,6 +125,7 @@ EigenRep<T>::EigenRep( const Matrix_<ELT>& mat):
     inputMatrix(n*n),
     structure(mat.getMatrixStructure()),
     range(AllValues),
+    valuesFound(0),
     vectorsInMatrix(false),
     needValues(true),
     needVectors(true) {  
@@ -143,7 +144,8 @@ EigenRep<T>::~EigenRep() {}
 template <typename T >
 void EigenRep<T>::copyValues(Vector_<float>& values) {
 
-    for(int j = 0;j<n;j++ ) {
+    values.resize(valuesFound);
+    for(int j = 0;j<valuesFound;j++ ) {
         values(j) = (float)realEigenValues.data[j];
     }
     return;
@@ -151,7 +153,8 @@ void EigenRep<T>::copyValues(Vector_<float>& values) {
 template <typename T >
 void EigenRep<T>::copyValues(Vector_<double>& values) {
 
-    for(int j = 0;j<n;j++ ) {
+    values.resize(valuesFound);
+    for(int j = 0;j<valuesFound;j++ ) {
         values(j) = realEigenValues.data[j];
     }
     return;
@@ -159,14 +162,16 @@ void EigenRep<T>::copyValues(Vector_<double>& values) {
 template <typename T >
 void EigenRep<T>::copyValues(Vector_<std::complex<float> >& values) {
 
-    for(int j = 0;j<n;j++ ) {
+    values.resize(valuesFound);
+    for(int j = 0;j<valuesFound;j++ ) {
         values(j) = complexEigenValues.data[j];
     }
 }
 template <typename T >
 void EigenRep<T>::copyValues(Vector_<std::complex<double> >& values) {
 
-    for(int j = 0;j<n;j++ ) {
+    values.resize(valuesFound);
+    for(int j = 0;j<valuesFound;j++ ) {
         values(j) = complexEigenValues.data[j];
     }
 }
@@ -175,10 +180,11 @@ template <>
 void EigenRep<float>::copyVectors(Matrix_<float>& vectors) {   // symmetric
     int i,j;
 
+    vectors.resize(n,valuesFound);
     if( vectorsInMatrix ) {
-         for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = inputMatrix.data[j*n+i];
+         for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = inputMatrix.data[j*n+i];
     } else {
-         for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = symmetricEigenVectors.data[j*n+i];
+         for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = symmetricEigenVectors.data[j*n+i];
     }
 
     return;
@@ -188,10 +194,11 @@ template <>
 void EigenRep<double>::copyVectors(Matrix_<double>& vectors) { // symmetric
     int i,j;
 
+    vectors.resize(n,valuesFound);
     if( vectorsInMatrix ) {
-        for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = inputMatrix.data[j*n+i];
+        for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = inputMatrix.data[j*n+i];
     } else {
-        for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = symmetricEigenVectors.data[j*n+i];
+        for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = symmetricEigenVectors.data[j*n+i];
     }
     return;
 }
@@ -200,7 +207,8 @@ template <>
 void EigenRep<float>::copyVectors(Matrix_<std::complex<float> >& vectors) { // non-symmetric
     int i,j;
 
-    for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = complexEigenVectors.data[j*n+i];
+    vectors.resize(n,valuesFound);
+    for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = complexEigenVectors.data[j*n+i];
 
     return;
 }
@@ -209,7 +217,8 @@ template <>
 void EigenRep<double>::copyVectors(Matrix_<std::complex<double> >& vectors) { // non-symmetric
     int i,j;
 
-    for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = complexEigenVectors.data[j*n+i];
+    vectors.resize(n,valuesFound);
+    for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = complexEigenVectors.data[j*n+i];
 
     return;
 }
@@ -218,14 +227,15 @@ template <>
 void EigenRep<std::complex<float> >::copyVectors(Matrix_<std::complex<float> >& vectors) {
     int i,j;
 
+    vectors.resize(n,valuesFound);
     if( structure ==  MatrixStructures::Symmetric ) {
         if( vectorsInMatrix ) {
-            for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = inputMatrix.data[j*n+i];
+            for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = inputMatrix.data[j*n+i];
         } else {
-            for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = symmetricEigenVectors.data[j*n+i];
+            for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = symmetricEigenVectors.data[j*n+i];
         }
     } else {
-        for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = complexEigenVectors.data[j*n+i];
+        for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = complexEigenVectors.data[j*n+i];
     }
     return;
 }
@@ -234,14 +244,15 @@ template <>
 void EigenRep<std::complex<double> >::copyVectors(Matrix_<std::complex<double> >& vectors) {
     int i,j;
 
+    vectors.resize(n,valuesFound);
     if( structure ==  MatrixStructures::Symmetric ) {
         if( vectorsInMatrix ) {
-            for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = inputMatrix.data[j*n+i];
+            for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = inputMatrix.data[j*n+i];
         } else {
-            for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = symmetricEigenVectors.data[j*n+i];
+            for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = symmetricEigenVectors.data[j*n+i];
         }
     } else {
-        for(j=0;j<n;j++) for(i=0;i<n;i++) vectors(i,j) = complexEigenVectors.data[j*n+i];
+        for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = complexEigenVectors.data[j*n+i];
     }
     return;
 }
@@ -277,6 +288,7 @@ void EigenRep<T>::computeValues(bool computeVectors) {
              LapackInterface::syev<T>( calcRightEigenVectors, useUpper, n,
                  inputMatrix.data, n, realEigenValues.data, info );
              vectorsInMatrix = true;
+             valuesFound = n;
 
          } else {
              char rangeChar; 
@@ -293,7 +305,6 @@ void EigenRep<T>::computeValues(bool computeVectors) {
              useUpper, n, inputMatrix.data, n, lowValue, hiValue, 
              lowIndex, hiIndex, abstol, valuesFound, realEigenValues.data,
              symmetricEigenVectors.data, n, ifail.data, info );
-             
          }
 
     } else {
@@ -304,6 +315,7 @@ void EigenRep<T>::computeValues(bool computeVectors) {
                n, inputMatrix.data, n, complexEigenValues.data, leftVectors, 
                n, complexEigenVectors.data, n, size, computeLwork, info);
 
+          valuesFound = n;
 
           int lwork = LapackInterface::getLWork( size );
           TypedWorkSpace<T> workSpace(lwork);
@@ -328,8 +340,6 @@ template < class T >
 void EigenRep<T>::getAllEigenValuesAndVectors( Vector_<std::complex<RType> >& values,  Matrix_<std::complex<RType> >& vectors ) {
 
     range = AllValues;
-    vectors.resize(n,n);
-    values.resize(n);
 
     if( needValues ) computeValues( true );
     copyValues( values );
@@ -352,8 +362,6 @@ void EigenRep<T>::getAllEigenValuesAndVectors( Vector_<RType>& values,  Matrix_<
     }
 
     range = AllValues;
-    vectors.resize(n,n);
-    values.resize(n);
 
     if( needValues ) computeValues( true );
     copyValues( values );
@@ -376,8 +384,6 @@ void EigenRep<T>::getAllEigenValuesAndVectors( Vector_<RType>& values,  Matrix_<
     }
 
     range = AllValues;
-    vectors.resize(n,n);
-    values.resize(n);
 
     if( needValues ) computeValues( true );
     copyValues( values );

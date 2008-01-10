@@ -252,7 +252,92 @@ template <> void LapackInterface::syev<std::complex<double> >( char jobz,  char 
     TypedWorkSpace<std::complex<double> > work(lwork);
     zheev_( jobz, uplo, n, a, lda, eigenValues, work.data, lwork, rwork.data, info, 1, 1 );
 } 
+template <class T> 
+void LapackInterface::gesdd( char jobz, int m, int n, T* a, int lda,
+           typename CNT<T>::TReal* s, T* u, int ldu,  T* vt,
+           int ldvt,  int& info) {
+    assert(false);
+}
+template <>
+void LapackInterface::gesdd<float>( char jobz, int m, int n, float* a, int lda,
+           float* s, float* u, int ldu,  float* vt,
+           int ldvt, int& info ){
 
+    int lwork;
+    int mn = (m < n ) ? m : n;  // min(m,n)
+    TypedWorkSpace<float> work(1);
+    TypedWorkSpace<int> iwork(8*mn);
+    
+    sgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, -1, iwork.data, info, 1);
+    lwork = (int)work.data[0];
+    work.resize(lwork); 
+    sgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, lwork, iwork.data, info, 1);
+}
+template <>
+void LapackInterface::gesdd<double>( char jobz, int m, int n, double* a, int lda,
+           double* s, double* u, int ldu,  double* vt,
+           int ldvt, int& info ){
+
+    int lwork;
+    int mn = (m < n ) ? m : n;  // min(m,n)
+    TypedWorkSpace<double> work(1);
+    TypedWorkSpace<int> iwork(8*mn);
+
+    dgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, -1, iwork.data, info, 1);
+    lwork = (int)work.data[0];
+    work.resize(lwork); 
+    dgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, lwork, iwork.data, info, 1);
+}
+// TODO REMOVE when added to SimTKlapack.
+extern "C" {
+    extern void cgesdd_(const char& jobz, const int& m, const int& n,  std::complex<float> *a, const int& lda, float *s,  std::complex<float> *u, const int& ldu,  std::complex<float> *vt, const int& ldvt,  std::complex<float> *work, const int& lwork, float *rwork, int *iwork, int& info, int jobz_len=1 );
+    extern void zgesdd_(const char& jobz, const int& m, const int& n,  std::complex<double> *a, const int& lda, double *s,  std::complex<double> *u, const int& ldu,  std::complex<double> *vt, const int& ldvt,  std::complex<double> *work, const int& lwork, double *rwork, int *iwork, int& info, int jobz_len=1 );
+}
+template <>
+void LapackInterface::gesdd<std::complex<float> >( char jobz, int m, int n, 
+      std::complex<float>* a, int lda, float* s, std::complex<float>* u, 
+      int ldu,  std::complex<float>* vt, int ldvt, int& info ){
+
+    int mn = (m < n ) ? m : n;  // min(m,n)
+    TypedWorkSpace<float> rwork;
+    if( jobz = 'N' ) {
+        rwork.resize(5*mn);
+    } else {
+        rwork.resize(5*mn*mn + 7*mn);
+    }
+    TypedWorkSpace<std::complex<float> > work(1);
+    TypedWorkSpace<int> iwork(8*mn);
+
+    cgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, -1, rwork.data, iwork.data, info, 1);
+    int lwork = (int)work.data[0].real();
+    work.resize(lwork); 
+    cgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, lwork, rwork.data, iwork.data, info, 1);
+
+    return;
+}
+
+template <>
+void LapackInterface::gesdd<std::complex<double> >( char jobz, int m, int n, 
+      std::complex<double>* a, int lda, double* s, std::complex<double>* u, 
+      int ldu,  std::complex<double>* vt, int ldvt, int& info ){
+
+    int mn = (m < n ) ? m : n;  // min(m,n)
+    TypedWorkSpace<double> rwork;
+    if( jobz = 'N' ) {
+        rwork.resize(5*mn);
+    } else {
+        rwork.resize(5*mn*mn + 7*mn);
+    }
+    TypedWorkSpace<std::complex<double> > work(1);
+    TypedWorkSpace<int> iwork(8*mn);
+
+    zgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, -1, rwork.data, iwork.data, info, 1);
+    int lwork = (int)work.data[0].real();
+    work.resize(lwork); 
+    zgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, lwork, rwork.data, iwork.data, info, 1);
+
+    return;
+}
 // eigenvlaues for nonsymmetric matrices
 template <class T> 
 void LapackInterface::geev (char jobvl, char jobvr,
@@ -726,7 +811,6 @@ int LapackInterface::ilaenv<std::complex<float> >( const int& ispec,  const char
      c[1] = '\0';
      return (ilaenv_( ispec, strcat( c, name), opts, n1, n2, n3, n3, 6, strlen(opts)) ); 
 }
-
 
 
 }   // namespace SimTK
