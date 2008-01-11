@@ -48,7 +48,7 @@ public:
         advanced.updY() = y;
         advanced.updTime() = t;
         try { 
-            system.realize(advanced, Stage::Acceleration); 
+            integ.realizeStateDerivatives(advanced); 
         }
         catch(...) { return CPodes::RecoverableError; } // assume recoverable
         ydot = advanced.getYDot();
@@ -94,7 +94,7 @@ public:
         advanced.updY() = y;
         advanced.updTime() = t;
         try { 
-            system.realize(advanced, Stage::Acceleration); 
+            integ.realizeStateDerivatives(advanced); 
         }
         catch(...) { return CPodes::RecoverableError; } // assume recoverable
         gout = advanced.getEvents();
