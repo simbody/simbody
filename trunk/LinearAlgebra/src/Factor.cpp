@@ -127,7 +127,14 @@ FactorLURep<T>::FactorLURep( const Matrix_<ELT>& mat )
         
 	FactorLURep<T>::factor( mat );
 }
-
+template <typename T >
+FactorLURep<T>::FactorLURep() 
+      : nRow(0),
+        nCol(0),
+        lu(0),
+        pivots(0)             { 
+        
+}
 template <typename T >
 FactorLURep<T>::~FactorLURep() {}
 
