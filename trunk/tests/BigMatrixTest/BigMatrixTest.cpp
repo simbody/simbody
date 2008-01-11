@@ -429,7 +429,7 @@ int main()
     cout << "old data =";
     for (int i=0; i<12; ++i) cout << " " << oldData[i];
     cout << endl;
-    delete oldData;
+    delete[] oldData;
 
     }
     catch(const Exception::Base& b)
@@ -530,7 +530,7 @@ void luinvert(const int N, DP* a/*N,N*/, DP* y/*N,N*/) {
         NR::lubksb(N,a,indx,col); // writes directly into y
     }
 
-    delete indx;
+    delete[] indx;
 }
 
 template <class DP>
@@ -610,7 +610,7 @@ void ludcmp(const int N, DP* a/*N,N*/, int* indx/*N*/, DP &d)
 		}
 	}
 
-    delete vv;
+    delete[] vv;
 }
 
 
