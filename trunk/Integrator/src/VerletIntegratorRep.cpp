@@ -259,8 +259,9 @@ bool VerletIntegratorRep::attemptAStep(Real t0, Real t1, const Vector& q0, const
     advanced.updZ() = z1;
     advanced.updTime() = t1;
     try {
-        getSystem().realize(advanced, Stage::Position);
-        projectStateAndErrorEstimate(advanced, Vector());
+        getSystem().realize(advanced, Stage::Velocity);
+        if (userProjectEveryStep == 1 || IntegratorRep::calcWeightedInfinityNorm(advanced.getYErr(), getDynamicSystemOneOverTolerances()) > consTol)
+            projectStateAndErrorEstimate(advanced, Vector());
         realizeStateDerivatives(advanced);
         err(0, advanced.getNQ()) = q0 + 0.5*(qdot0+advanced.getQDot())*h - advanced.getQ();
         
@@ -275,7 +276,9 @@ bool VerletIntegratorRep::attemptAStep(Real t0, Real t1, const Vector& q0, const
             advanced.updZ() = z0 + 0.5*(zdot0+zdot1)*h;
             err(advanced.getUStart(), advanced.getNU()) = u0 + udot0*h - advanced.getU();
             err(advanced.getZStart(), advanced.getNZ()) = z0 + zdot0*h - advanced.getZ();
-            projectStateAndErrorEstimate(advanced, err, true);
+            getSystem().realize(advanced, Stage::Velocity);
+            if (userProjectEveryStep == 1 || IntegratorRep::calcWeightedInfinityNorm(advanced.getYErr(), getDynamicSystemOneOverTolerances()) > consTol)
+                projectStateAndErrorEstimate(advanced, err, true);
             realizeStateDerivatives(advanced);
             Real convergence = (advanced.getU()-u1).norm()/u1.norm();
             if (convergence <= tol) {
