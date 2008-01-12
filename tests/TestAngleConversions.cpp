@@ -49,22 +49,21 @@ int main() {
     Body::Rigid body = Body::Rigid(MassProperties(1, Vec3(0), Inertia(1)))
                                   .addDecoration(Transform(), DecorativeSphere(.1));
     Random::Uniform random(0.0, 2.0);
-    MobilizedBody* lastBody = &matter.Ground();
-    lastBody = new MobilizedBody::Pin(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
-    lastBody = new MobilizedBody::Slider(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
-    lastBody = new MobilizedBody::Universal(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
-    lastBody = new MobilizedBody::Cylinder(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
-    lastBody = new MobilizedBody::BendStretch(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
-    lastBody = new MobilizedBody::Planar(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
-    lastBody = new MobilizedBody::Gimbal(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
-    lastBody = new MobilizedBody::Ball(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
-    lastBody = new MobilizedBody::Translation(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
-    lastBody = new MobilizedBody::Free(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
-    lastBody = new MobilizedBody::LineOrientation(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
-    lastBody = new MobilizedBody::FreeLine(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
-//    lastBody = new MobilizedBody::Weld(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue()))); // TODO Not yet implemented
-    lastBody = new MobilizedBody::Screw(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())), 0.5);
-    lastBody = new MobilizedBody::Ellipsoid(*lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
+    MobilizedBody lastBody = MobilizedBody::Pin(matter.Ground(), Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
+    lastBody = MobilizedBody::Slider(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
+    lastBody = MobilizedBody::Universal(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
+    lastBody = MobilizedBody::Cylinder(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
+    lastBody = MobilizedBody::BendStretch(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
+    lastBody = MobilizedBody::Planar(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
+    lastBody = MobilizedBody::Gimbal(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
+    lastBody = MobilizedBody::Ball(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
+    lastBody = MobilizedBody::Translation(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
+    lastBody = MobilizedBody::Free(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
+    lastBody = MobilizedBody::LineOrientation(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
+    lastBody = MobilizedBody::FreeLine(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
+//    lastBody = MobilizedBody::Weld(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue()))); // TODO Not yet implemented
+    lastBody = MobilizedBody::Screw(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())), 0.5);
+    lastBody = MobilizedBody::Ellipsoid(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
     mbs.realizeTopology();
     State& s = mbs.updDefaultState();
     mbs.realizeModel(s);
@@ -83,7 +82,7 @@ int main() {
     matter.convertToEulerAngles(s, euler);
     mbs.realize(euler, Stage::Position);
     for (int i = 0; i < matter.getNBodies(); ++i) {
-        MobilizedBody body = matter.getMobilizedBody(MobilizedBodyId(i));
+        const MobilizedBody& body = matter.getMobilizedBody(MobilizedBodyId(i));
         Real dist = (body.getBodyOriginLocation(euler)-body.getBodyOriginLocation(s)).norm();
         ASSERT(dist < 1e-5);
     }
@@ -94,7 +93,7 @@ int main() {
     matter.convertToQuaternions(euler, quaternions);
     mbs.realize(quaternions, Stage::Position);
     for (int i = 0; i < matter.getNBodies(); ++i) {
-        MobilizedBody body = matter.getMobilizedBody(MobilizedBodyId(i));
+        const MobilizedBody& body = matter.getMobilizedBody(MobilizedBodyId(i));
         Real dist = (body.getBodyOriginLocation(quaternions)-body.getBodyOriginLocation(s)).norm();
         ASSERT(dist < 1e-5);
     }

@@ -58,6 +58,10 @@ class MobilizedBodyImpl : public PIMPLImplementation<MobilizedBody,MobilizedBody
 public:
     MobilizedBodyImpl() : myHandle(0), myMatterSubsystemRep(0), myLevel(-1), myRBnode(0) {
     }
+    MobilizedBodyImpl(const MobilizedBodyImpl& clone) {
+        *this = clone;
+        myRBnode = 0;
+    }
     virtual ~MobilizedBodyImpl() {
         delete myRBnode;
     }

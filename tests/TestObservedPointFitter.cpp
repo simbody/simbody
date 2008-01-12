@@ -88,12 +88,18 @@ int main() {
         MobilizedBody* parent = (mainChain ? lastMainChainBody : lastBody);
         int type = (int) (random.getValue()*3);
         MobilizedBody* nextBody;
-        if (type == 0)
-            nextBody = new MobilizedBody::Cylinder(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
-        else if (type == 1)
-            nextBody = new MobilizedBody::Slider(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
-        else
-            nextBody = new MobilizedBody::Ball(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
+        if (type == 0) {
+            MobilizedBody::Cylinder cylinder(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
+            nextBody = &matter.updMobilizedBody(cylinder.getMobilizedBodyId());
+        }
+        else if (type == 1) {
+            MobilizedBody::Slider slider(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
+            nextBody = &matter.updMobilizedBody(slider.getMobilizedBodyId());
+        }
+        else {
+            MobilizedBody::Ball ball(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
+            nextBody = &matter.updMobilizedBody(ball.getMobilizedBodyId());
+        }
         bodies.push_back(nextBody);
         if (mainChain)
             lastMainChainBody = nextBody;

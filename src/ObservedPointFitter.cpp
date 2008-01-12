@@ -122,23 +122,20 @@ void ObservedPointFitter::createClonedSystem(const MultibodySystem& original, Mu
     for (int i = 0; i < (int)originalBodyIds.size(); ++i) {
         const MobilizedBody& originalBody = originalMatter.getMobilizedBody(originalBodyIds[i]);
         MobilizedBody* copyBody;
-        bool shouldDelete = true;
         if (i == 0) {
-            if (originalBody.isGround()) {
+            if (originalBody.isGround())
                 copyBody = &copyMatter.Ground();
-                shouldDelete = false;
+            else {
+                MobilizedBody::Free free(copyMatter.Ground(), body);
+                copyBody = &copyMatter.updMobilizedBody(free.getMobilizedBodyId());
             }
-            else
-                copyBody = new MobilizedBody::Free(copyMatter.Ground(), body);
         }
         else {
             MobilizedBody& parent = copyMatter.updMobilizedBody(idMap[originalBody.getParentMobilizedBody().getMobilizedBodyId()]);
-            copyBody = originalBody.cloneForNewParent(parent);
+            copyBody = &originalBody.cloneForNewParent(parent);
         }
         copyBodyIds.push_back(copyBody->getMobilizedBodyId());
         idMap[originalBodyIds[i]] = copyBody->getMobilizedBodyId();
-        if (shouldDelete)
-            delete copyBody;
     }
     copy.realizeTopology();
     State& s = copy.updDefaultState();
