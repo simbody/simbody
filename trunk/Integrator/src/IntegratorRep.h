@@ -188,7 +188,8 @@ class IntegratorRep {
 public:
     IntegratorRep(Integrator* handle,
                   const System&);
-    // default destructor, no default constructor, no copy or copy assign
+    virtual ~IntegratorRep() { }
+    // no default constructor, no copy or copy assign
 
     // The DynamicSystem must be successfully realized to Stage::Model before this
     // call. At this point the integrator can query the DynamicSystem about the
