@@ -170,7 +170,7 @@ int main()
 
     dump("2x2 complex md",md);
     dump("md(0,1,2,1)",md(0,1,2,1));
-    const CMatrixView& mvc = md(0,1,2,1);
+    const ComplexMatrixView& mvc = md(0,1,2,1);
     dump("mvc=md(0,1,2,1)", mvc);
     md(1,0) *= 10.;
     dump("md after md(1,0) *= 10.",md);
