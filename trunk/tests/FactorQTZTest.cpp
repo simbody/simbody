@@ -104,8 +104,9 @@ int main () {
         Vector x_right(5, X);
         Vector x; // should get sized automatically to 5 by solve()
 
-        FactorQTZ qtz(a);  // perform QTZ factorization 
+        FactorQTZ qtz;  // perform QTZ factorization 
 
+        qtz.factor(a);
         qtz.solve( b, x );  // solve for x given a right hand side 
 
 
@@ -118,8 +119,8 @@ int main () {
         Vector_<float> xf_right(5); for (int i=0; i<5; ++i) xf_right[i] = (float)x_right[i];
         Vector_<float> xf; // should get sized automatically to 5 by solve()
 
-        FactorQTZ qtzf(af);
-        qtzf.solve(bf, xf);
+          qtz.factor(af);
+          qtz.solve(bf,xf);
 
         cout << " Overdetermined Float SOLUTION: " << xf << "  errnorm=" << (xf-xf_right).norm() << endl;
         const float SignificantFloat = NTraits<float>::getSignificant();

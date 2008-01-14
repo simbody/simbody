@@ -137,7 +137,7 @@ class TypedWorkSpace {
     }
     
     void resize( long n ) {
-        delete data;
+        delete [] data;
         size = n;
         data = new T[n];
     }
