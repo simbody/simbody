@@ -118,8 +118,8 @@ int main() {
     
     // Select some random stations on each body.
     
-    vector<vector<Vec3> > stations(matter.getNBodies());
-    vector<vector<Vec3> > targetLocations(matter.getNBodies());
+    vector<vector<Vec3> > stations(NUM_BODIES);
+    vector<vector<Vec3> > targetLocations(NUM_BODIES);
     vector<MobilizedBodyId> bodyIds;
     for (int i = 0; i < NUM_BODIES; ++i) {
         MobilizedBodyId id = bodies[i]->getMobilizedBodyId();

@@ -197,9 +197,18 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
 
 Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& state, const vector<MobilizedBodyId>& bodyIds, const vector<vector<Vec3> >& stations, const vector<vector<Vec3> >& targetLocations, const vector<vector<Real> >& weights, Real tolerance) {
     
-    // Build a list of children for each body.
+    // Verify the inputs.
     
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
+    SimTK_APIARGCHECK(bodyIds.size() == stations.size() && stations.size() == targetLocations.size(), "ObservedPointFitter", "findBestFit", "bodyIds, stations, and targetLocations must all be the same length");
+    int numBodies = matter.getNBodies();
+    for (int i = 0; i < stations.size(); ++i) {
+        SimTK_APIARGCHECK(bodyIds[i] >= 0 && bodyIds[i] < numBodies, "ObservedPointFitter", "findBestFit", "Illegal body ID");
+        SimTK_APIARGCHECK(stations[i].size() == targetLocations[i].size(), "ObservedPointFitter", "findBestFit", "Different number of stations and target locations for body");
+    }
+    
+    // Build a list of children for each body.
+    
     vector<vector<MobilizedBodyId> > children(matter.getNBodies());
     for (int i = 0; i < matter.getNBodies(); ++i) {
         const MobilizedBody& body = matter.getMobilizedBody(MobilizedBodyId(i));
@@ -210,17 +219,20 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
     // Build a mapping of body IDs to indices.
     
     vector<int> bodyIndex(matter.getNBodies());
+    for (int i = 0; i < (int) bodyIndex.size(); ++i)
+        bodyIndex[i] = -1;
     for (int i = 0; i < (int)bodyIds.size(); ++i)
         bodyIndex[bodyIds[i]] = i;
     
     // Find the number of stations on each body with a nonzero weight.
     
-    vector<int> numStations(stations.size());
-    for (int i = 0; i < (int)weights.size(); ++i) {
+    vector<int> numStations(matter.getNBodies());
+    for (int i = 0; i < (int) numStations.size(); ++i)
         numStations[i] = 0;
+    for (int i = 0; i < (int)weights.size(); ++i) {
         for (int j = 0; j < (int)weights[i].size(); ++j)
             if (weights[i][j] != 0)
-                numStations[i]++;
+                numStations[bodyIds[i]]++;
     }
 
     // Perform the initial estimation of Q for each mobilizer.
@@ -234,7 +246,7 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
         const MobilizedBody& body = matter.getMobilizedBody(id);
         if (body.getNumQ(tempState) == 0)
             continue; // No degrees of freedom to determine.
-        if (children[id].size() == 0 && stations[id].size() == 0)
+        if (children[id].size() == 0 && numStations[id] == 0)
             continue; // There are no stations whose positions are affected by this.
         vector<MobilizedBodyId> originalBodyIds;
         int currentBodyIndex = findBodiesForClonedSystem(body.getMobilizedBodyId(), numStations, matter, children, originalBodyIds);
@@ -247,9 +259,12 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
         vector<vector<Vec3> > copyTargetLocations(copy.getMatterSubsystem().getNBodies());
         vector<vector<Real> > copyWeights(copy.getMatterSubsystem().getNBodies());
         for (int j = 0; j < (int)originalBodyIds.size(); ++j) {
-            copyStations[copyBodyIds[j]] = stations[bodyIndex[originalBodyIds[j]]];
-            copyTargetLocations[copyBodyIds[j]] = targetLocations[bodyIndex[originalBodyIds[j]]];
-            copyWeights[copyBodyIds[j]] = weights[bodyIndex[originalBodyIds[j]]];
+            int index = bodyIndex[originalBodyIds[j]];
+            if (index != -1) {
+                copyStations[copyBodyIds[j]] = stations[index];
+                copyTargetLocations[copyBodyIds[j]] = targetLocations[index];
+                copyWeights[copyBodyIds[j]] = weights[index];
+            }
         }
         try {
             OptimizerFunction optimizer(copy, copy.getDefaultState(), copyBodyIds, copyStations, copyTargetLocations, copyWeights);
