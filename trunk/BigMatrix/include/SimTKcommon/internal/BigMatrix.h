@@ -1516,79 +1516,81 @@ private:
 // compatible. At run time these will fail if the dimensions are incompatible.
 template <class E1, class E2>
 Matrix_<typename CNT<E1>::template Result<E2>::Add>
-operator+(const Matrix_<E1>& l, const Matrix_<E2>& r) {
+operator+(const MatrixBase<E1>& l, const MatrixBase<E2>& r) {
     return Matrix_<typename CNT<E1>::template Result<E2>::Add>(l) += r;
 }
+
 template <class E1, class E2>
 Matrix_<typename CNT<E1>::template Result<E2>::Sub>
-operator-(const Matrix_<E1>& l, const Matrix_<E2>& r) {
+operator-(const MatrixBase<E1>& l, const MatrixBase<E2>& r) {
     return Matrix_<typename CNT<E1>::template Result<E2>::Sub>(l) -= r;
 }
+
 
 // Scalar multiply and divide. You might wish the scalar could be
 // a templatized type "E2", but that would create horrible ambiguities since
 // E2 would match not only scalar types but everything else including
 // matrices.
 template <class E> Matrix_<E>
-operator*(const Matrix_<E>& l, const typename CNT<E>::StdNumber& r) 
+operator*(const MatrixBase<E>& l, const typename CNT<E>::StdNumber& r) 
   { return Matrix_<E>(l)*=r; }
 
 template <class E> Matrix_<E>
-operator*(const typename CNT<E>::StdNumber& l, const Matrix_<E>& r) 
+operator*(const typename CNT<E>::StdNumber& l, const MatrixBase<E>& r) 
   { return Matrix_<E>(r)*=l; }
 
 template <class E> Matrix_<E>
-operator/(const Matrix_<E>& l, const typename CNT<E>::StdNumber& r) 
+operator/(const MatrixBase<E>& l, const typename CNT<E>::StdNumber& r) 
   { return Matrix_<E>(l)/=r; }
 
     // GLOBAL OPERATORS: Vector_
 
 template <class E1, class E2>
 Vector_<typename CNT<E1>::template Result<E2>::Add>
-operator+(const Vector_<E1>& l, const Vector_<E2>& r) {
+operator+(const VectorBase<E1>& l, const VectorBase<E2>& r) {
     return Vector_<typename CNT<E1>::template Result<E2>::Add>(l) += r;
 }
 template <class E1, class E2>
 Vector_<typename CNT<E1>::template Result<E2>::Sub>
-operator-(const Vector_<E1>& l, const Vector_<E2>& r) {
+operator-(const VectorBase<E1>& l, const VectorBase<E2>& r) {
     return Vector_<typename CNT<E1>::template Result<E2>::Sub>(l) -= r;
 }
 
 template <class E> Vector_<E>
-operator*(const Vector_<E>& l, const typename CNT<E>::StdNumber& r) 
+operator*(const VectorBase<E>& l, const typename CNT<E>::StdNumber& r) 
   { return Vector_<E>(l)*=r; }
 
 template <class E> Vector_<E>
-operator*(const typename CNT<E>::StdNumber& l, const Vector_<E>& r) 
+operator*(const typename CNT<E>::StdNumber& l, const VectorBase<E>& r) 
   { return Vector_<E>(r)*=l; }
 
 template <class E> Vector_<E>
-operator/(const Vector_<E>& l, const typename CNT<E>::StdNumber& r) 
+operator/(const VectorBase<E>& l, const typename CNT<E>::StdNumber& r) 
   { return Vector_<E>(l)/=r; }
 
     // GLOBAL OPERATORS: RowVector_
 
 template <class E1, class E2>
 RowVector_<typename CNT<E1>::template Result<E2>::Add>
-operator+(const RowVector_<E1>& l, const RowVector_<E2>& r) {
+operator+(const RowVectorBase<E1>& l, const RowVectorBase<E2>& r) {
     return RowVector_<typename CNT<E1>::template Result<E2>::Add>(l) += r;
 }
 template <class E1, class E2>
 RowVector_<typename CNT<E1>::template Result<E2>::Sub>
-operator-(const RowVector_<E1>& l, const RowVector_<E2>& r) {
+operator-(const RowVectorBase<E1>& l, const RowVectorBase<E2>& r) {
     return RowVector_<typename CNT<E1>::template Result<E2>::Sub>(l) -= r;
 }
 
 template <class E> RowVector_<E>
-operator*(const RowVector_<E>& l, const typename CNT<E>::StdNumber& r) 
+operator*(const RowVectorBase<E>& l, const typename CNT<E>::StdNumber& r) 
   { return RowVector_<E>(l)*=r; }
 
 template <class E> RowVector_<E>
-operator*(const typename CNT<E>::StdNumber& l, const RowVector_<E>& r) 
+operator*(const typename CNT<E>::StdNumber& l, const RowVectorBase<E>& r) 
   { return RowVector_<E>(r)*=l; }
 
 template <class E> RowVector_<E>
-operator/(const RowVector_<E>& l, const typename CNT<E>::StdNumber& r) 
+operator/(const RowVectorBase<E>& l, const typename CNT<E>::StdNumber& r) 
   { return RowVector_<E>(l)/=r; }
 
 
@@ -1599,57 +1601,27 @@ operator/(const RowVector_<E>& l, const typename CNT<E>::StdNumber& r)
 // Dot product
 template <class E1, class E2> 
 typename CNT<E1>::template Result<E2>::Mul
-operator*(const RowVector_<E1>& r, const Vector_<E2>& v) {
+operator*(const RowVectorBase<E1>& r, const VectorBase<E2>& v) {
     assert(r.ncol() == v.nrow());
     typename CNT<E1>::template Result<E2>::Mul sum(0);
     for (int j=0; j < r.ncol(); ++j)
         sum += r(j) * v[j];
     return sum;
 }
-template <class E1, class E2> 
-typename CNT<E1>::template Result<E2>::Mul
-operator*(const RowVectorView_<E1>& r, const Vector_<E2>& v) {
-    return r.getAsRowVector()*v;
-}
-template <class E1, class E2> 
-typename CNT<E1>::template Result<E2>::Mul
-operator*(const RowVector_<E1>& r, const VectorView_<E2>& v) {
-    return r*v.getAsVector();
-}
-template <class E1, class E2> 
-typename CNT<E1>::template Result<E2>::Mul
-operator*(const RowVectorView_<E1>& r, const VectorView_<E2>& v) {
-    return r.getAsRowVector()*v.getAsVector();
-}
 
 template <class E1, class E2> 
 Vector_<typename CNT<E1>::template Result<E2>::Mul>
-operator*(const Matrix_<E1>& m, const Vector_<E2>& v) {
+operator*(const MatrixBase<E1>& m, const VectorBase<E2>& v) {
     assert(m.ncol() == v.nrow());
     Vector_<typename CNT<E1>::template Result<E2>::Mul> res(m.nrow());
     for (int i=0; i< m.nrow(); ++i)
         res[i] = m[i]*v;
     return res;
 }
-template <class E1, class E2> 
-Vector_<typename CNT<E1>::template Result<E2>::Mul>
-operator*(const MatrixView_<E1>& m, const Vector_<E2>& v) {
-    return m.getAsMatrix()*v;
-}
-template <class E1, class E2> 
-Vector_<typename CNT<E1>::template Result<E2>::Mul>
-operator*(const Matrix_<E1>& m, const VectorView_<E2>& v) {
-    return m*v.getAsVector();
-}
-template <class E1, class E2> 
-Vector_<typename CNT<E1>::template Result<E2>::Mul>
-operator*(const MatrixView_<E1>& m, const VectorView_<E2>& v) {
-    return m.getAsMatrix()*v.getAsVector();
-}
 
 template <class E1, class E2> 
 Matrix_<typename CNT<E1>::template Result<E2>::Mul>
-operator*(const Matrix_<E1>& m1, const Matrix_<E2>& m2) {
+operator*(const MatrixBase<E1>& m1, const MatrixBase<E2>& m2) {
     assert(m1.ncol() == m2.nrow());
     Matrix_<typename CNT<E1>::template Result<E2>::Mul> 
         res(m1.nrow(),m2.ncol());
@@ -1660,21 +1632,7 @@ operator*(const Matrix_<E1>& m1, const Matrix_<E2>& m2) {
 
     return res;
 }
-template <class E1, class E2> 
-Matrix_<typename CNT<E1>::template Result<E2>::Mul>
-operator*(const MatrixView_<E1>& m1, const Matrix_<E2>& m2) {
-    return m1.getAsMatrix()*m2;
-}
-template <class E1, class E2> 
-Matrix_<typename CNT<E1>::template Result<E2>::Mul>
-operator*(const Matrix_<E1>& m1, const MatrixView_<E2>& m2) {
-    return m1*m2.getAsMatrix();
-}
-template <class E1, class E2> 
-Matrix_<typename CNT<E1>::template Result<E2>::Mul>
-operator*(const MatrixView_<E1>& m1, const MatrixView_<E2>& m2) {
-    return m1.getAsMatrix()*m2.getAsMatrix();
-}
+
     // GLOBAL OPERATORS: I/O
 
 template <class T> inline std::ostream&
@@ -1696,66 +1654,25 @@ operator<<(std::ostream& o, const MatrixBase<T>& m) {
 }
 
 
-// Friendly abbreviations
-typedef Vector_<Real>                           Vector;     // default precision
-typedef Vector_<float>                          FVector;
-typedef Vector_<double>                         DVector;
-typedef Vector_<long double>                    LVector;
+// Friendly abbreviations for default precision vectors and matrices.
 
-typedef Vector_<Complex>                        CVector;    // default precision
-typedef Vector_<std::complex<float> >           FCVector;
-typedef Vector_<std::complex<double> >          DCVector;
-typedef Vector_<std::complex<long double> >     LCVector;
+typedef Vector_<Real>           Vector;
+typedef Vector_<Complex>        ComplexVector;
 
-typedef VectorView_<Real>                       VectorView;
-typedef VectorView_<float>                      FVectorView;
-typedef VectorView_<double>                     DVectorView;
-typedef VectorView_<long double>                LVectorView;
+typedef VectorView_<Real>       VectorView;
+typedef VectorView_<Complex>    ComplexVectorView;
 
-typedef VectorView_<Complex>                    CVectorView;
-typedef VectorView_<std::complex<float> >       FCVectorView;
-typedef VectorView_<std::complex<double> >      DCVectorView;
-typedef VectorView_<std::complex<long double> > LCVectorView;
+typedef RowVector_<Real>        RowVector;
+typedef RowVector_<Complex>     ComplexRowVector;
 
-typedef RowVector_<Real>                           RowVector;     // default precision
-typedef RowVector_<float>                          FRowVector;
-typedef RowVector_<double>                         DRowVector;
-typedef RowVector_<long double>                    LRowVector;
+typedef RowVectorView_<Real>    RowVectorView;
+typedef RowVectorView_<Complex> ComplexRowVectorView;
 
-typedef RowVector_<Complex>                        CRowVector;    // default precision
-typedef RowVector_<std::complex<float> >           FCRowVector;
-typedef RowVector_<std::complex<double> >          DCRowVector;
-typedef RowVector_<std::complex<long double> >     LCRowVector;
+typedef Matrix_<Real>           Matrix;
+typedef Matrix_<Complex>        ComplexMatrix;
 
-typedef RowVectorView_<Real>                       RowVectorView;
-typedef RowVectorView_<float>                      FRowVectorView;
-typedef RowVectorView_<double>                     DRowVectorView;
-typedef RowVectorView_<long double>                LRowVectorView;
-
-typedef RowVectorView_<Complex>                    CRowVectorView;
-typedef RowVectorView_<std::complex<float> >       FCRowVectorView;
-typedef RowVectorView_<std::complex<double> >      DCRowVectorView;
-typedef RowVectorView_<std::complex<long double> > LCRowVectorView;
-
-typedef Matrix_<Real>                           Matrix;
-typedef Matrix_<float>                          FMatrix;
-typedef Matrix_<double>                         DMatrix;
-typedef Matrix_<long double>                    LMatrix;
-
-typedef Matrix_<Complex>                        CMatrix;
-typedef Matrix_<std::complex<float> >           FCMatrix;
-typedef Matrix_<std::complex<double> >          DCMatrix;
-typedef Matrix_<std::complex<long double> >     LCMatrix;
-
-typedef MatrixView_<Real>                       MatrixView;
-typedef MatrixView_<float>                      FMatrixView;
-typedef MatrixView_<double>                     DMatrixView;
-typedef MatrixView_<long double>                LMatrixView;
-
-typedef MatrixView_<Complex>                    CMatrixView;
-typedef MatrixView_<std::complex<float> >       FCMatrixView;
-typedef MatrixView_<std::complex<double> >      DCMatrixView;
-typedef MatrixView_<std::complex<long double> > LCMatrixView;
+typedef MatrixView_<Real>       MatrixView;
+typedef MatrixView_<Complex>    ComplexMatrixView;
 
 
     
