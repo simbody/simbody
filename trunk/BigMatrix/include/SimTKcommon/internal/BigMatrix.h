@@ -722,7 +722,7 @@ public:
 	  { Base::template elementwiseDivideInPlace<EE>(r); return *this; }
 	template <class EE> inline void elementwiseDivide(const VectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const
 	  { return Base::elementwiseDivide(v,out); }
-	template <class EE> inline typename EltResult<EE>::Mul elementwiseDivide(const VectorBase<EE>& v) const
+	template <class EE> inline typename EltResult<EE>::Dvd elementwiseDivide(const VectorBase<EE>& v) const
 	  { typename EltResult<EE>::Dvd out(nrow()); Base::elementwiseDivide(v,out); return out; }
 
     // Implicit conversions are allowed to Vector or Matrix, but not to RowVector.   
@@ -892,7 +892,7 @@ public:
 	  { Base::template elementwiseDivideInPlace<EE>(r); return *this; }
 	template <class EE> inline void elementwiseDivide(const VectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const
 	  { return Base::elementwiseDivide(v,out); }
-	template <class EE> inline typename EltResult<EE>::Mul elementwiseDivide(const VectorBase<EE>& v) const
+	template <class EE> inline typename EltResult<EE>::Dvd elementwiseDivide(const VectorBase<EE>& v) const
 	  { typename EltResult<EE>::Dvd out(ncol()); Base::elementwiseDivide(v,out); return out; }
 
     // Implicit conversions are allowed to RowVector or Matrix, but not to Vector.   
