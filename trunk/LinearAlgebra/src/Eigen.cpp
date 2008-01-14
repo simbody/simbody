@@ -287,6 +287,11 @@ void EigenRep<T>::computeValues(bool computeVectors) {
 
              LapackInterface::syev<T>( calcRightEigenVectors, useUpper, n,
                  inputMatrix.data, n, realEigenValues.data, info );
+             if( info < 0 ) {
+                 SimTK_THROW2( SimTK::Exception::ConvergedFailed,
+                 "LapackInterface::syev",
+                 "off-diagonal elements of intermediate tridiagonal" );
+             }
              vectorsInMatrix = true;
              valuesFound = n;
 
@@ -305,6 +310,12 @@ void EigenRep<T>::computeValues(bool computeVectors) {
              useUpper, n, inputMatrix.data, n, lowValue, hiValue, 
              lowIndex, hiIndex, abstol, valuesFound, realEigenValues.data,
              symmetricEigenVectors.data, n, ifail.data, info );
+
+             if( info < 0 ) {
+                 SimTK_THROW2( SimTK::Exception::ConvergedFailed,
+                 "LapackInterface::syev",
+                 "off-diagonal elements of intermediate tridiagonal" );
+             }
          }
 
     } else {
@@ -314,6 +325,11 @@ void EigenRep<T>::computeValues(bool computeVectors) {
           LapackInterface::geev<T>( calcLeftEigenVectors, calcRightEigenVectors,
                n, inputMatrix.data, n, complexEigenValues.data, leftVectors, 
                n, complexEigenVectors.data, n, size, computeLwork, info);
+          if( info < 0 ) {
+               SimTK_THROW2( SimTK::Exception::ConvergedFailed,
+               "LapackInterface::geev",
+               "QR algorithm" );
+          }
 
           valuesFound = n;
 
@@ -326,6 +342,11 @@ void EigenRep<T>::computeValues(bool computeVectors) {
                               n, inputMatrix.data, n, complexEigenValues.data,
                               leftVectors, n, complexEigenVectors.data, n, 
                               workSpace.data,  lwork, info);
+          if( info < 0 ) {
+               SimTK_THROW2( SimTK::Exception::ConvergedFailed,
+               "LapackInterface::geev",
+               "QR algorithm" );
+          }
 
     } 
     // copy computed eigen values and eigen vectors into caller's arguements

@@ -202,6 +202,7 @@ class FactorLURep : public FactorLURepBase {
 // factored matrix stored in LAPACK LU format
    template < class ELT> int getType(ELT*);   
    bool isLUinitialized;
+   bool positiveDefinite;
    int nRow;
    int nCol;
    int LUtype;

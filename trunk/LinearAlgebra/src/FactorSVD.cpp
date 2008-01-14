@@ -72,7 +72,9 @@ void FactorSVD::factor( const Matrix_<ELT>& m ) {
 
 template <class T> 
 void FactorSVD::getSingularValuesAndVectors( Vector_<typename CNT<T>::TReal >& values, Matrix_<T>& leftVectors, Matrix_<T>& rightVectors) {
+
     rep->getSingularValuesAndVectors( values, leftVectors, rightVectors );
+
     return;
 }
 
@@ -107,6 +109,7 @@ FactorSVDRep<T>::~FactorSVDRep() {}
 template < class T >
 void FactorSVDRep<T>::getSingularValuesAndVectors( Vector_<RType>& values,  Matrix_<T>& leftVectors, Matrix_<T>& rightVectors ) {
    
+
     leftVectors.resize(m,m);
     rightVectors.resize(n,n);
     values.resize(mn);
@@ -139,6 +142,12 @@ void FactorSVDRep<T>::computeSVD( bool computeVectors, RType* values, T* leftVec
 
     LapackInterface::gesdd<T>(jobz, m,n,inputMatrix.data, m, values,
            leftVectors, m, rightVectors, n, info);
+
+    if( info > 0 ) {
+        SimTK_THROW2( SimTK::Exception::ConvergedFailed,
+        "FactorSVD::getSingularValuesAndVectors", 
+        "divide and conquer singular value decomposition" );
+    }
 
     return;
 }

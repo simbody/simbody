@@ -30,6 +30,7 @@
 
 #include "SimTKcommon.h"
 #include "SimTKlapack.h"
+#include "SimTKmath.h"
 #include "LapackInterface.h"
 #include "WorkSpace.h"
 
@@ -54,6 +55,10 @@ template <> void LapackInterface::getrs<double>
         trans = 'N';
 
     dgetrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
+  
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dgetrs", info );
+    }
 
     return;
 }
@@ -72,6 +77,10 @@ template <> void LapackInterface::getrs<float>
 
     sgetrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
 
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "sgetrs", info );
+    }
+
     return;
 }
 
@@ -88,6 +97,10 @@ template <> void LapackInterface::getrs<complex<float> >
 
     cgetrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
 
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "cgetrs", info );
+    }
+
     return;
 }
 template <> void LapackInterface::getrs<complex<double> >
@@ -102,6 +115,10 @@ template <> void LapackInterface::getrs<complex<double> >
         trans = 'N';
 
     zgetrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zgetrs", info );
+    }
 
     return;
 }
@@ -130,6 +147,11 @@ template <> void LapackInterface::syevx<float>( char jobz, char range,
           values, vectors, LDVectors,  work.data, lwork, iwork.data, ifail, 
           info, 1, 1, 1);
 
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "ssyevx", info );
+    }
+
+
     return;
 }
 
@@ -150,6 +172,9 @@ template <> void LapackInterface::syevx<double>( char jobz, char range,
           values, vectors, LDVectors,  work.data, lwork, iwork.data, ifail, 
           info, 1, 1, 1);
 
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dsyevx", info );
+    }
     return;
 }
 
@@ -171,6 +196,9 @@ template <> void LapackInterface::syevx<std::complex<double> >( char jobz,
           values, vectors, LDVectors,  work.data, lwork, rwork.data, 
           iwork.data, ifail, info, 1, 1, 1);
 
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zheevx", info );
+    }
     return;
 }
 
@@ -192,6 +220,9 @@ template <> void LapackInterface::syevx<std::complex<float> >( char jobz,
           values, vectors, LDVectors,  work.data, lwork, rwork.data, iwork.data,
           ifail, info, 1, 1, 1);
 
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "cheevx", info );
+    }
     return;
 }
 
@@ -209,6 +240,10 @@ template <> void LapackInterface::syev<float>( char jobz,  char uplo, int n,
     int lwork = (int)wsize[0];
     TypedWorkSpace<float> work(lwork);
     ssyev_( jobz, uplo, n, a, lda, eigenValues, work.data, lwork, info, 1, 1 );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "ssyev", info );
+    }
 } 
 
 template <> void LapackInterface::syev<double>( char jobz,  char uplo, int n, 
@@ -219,6 +254,10 @@ template <> void LapackInterface::syev<double>( char jobz,  char uplo, int n,
     int lwork = (int)wsize[0];
     TypedWorkSpace<double> work(lwork);
     dsyev_( jobz, uplo, n, a, lda, eigenValues, work.data, lwork, info, 1, 1 );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dsyev", info );
+    }
 } 
 
 template <> void LapackInterface::syev<std::complex<float> >( char jobz,  char uplo, int n, 
@@ -235,6 +274,10 @@ template <> void LapackInterface::syev<std::complex<float> >( char jobz,  char u
     int lwork = (int)wsize[0].real();
     TypedWorkSpace<std::complex<float> > work(lwork);
     cheev_( jobz, uplo, n, a, lda, eigenValues, work.data, lwork, rwork.data, info, 1, 1 );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "cheev", info );
+    }
 } 
 
 template <> void LapackInterface::syev<std::complex<double> >( char jobz,  char uplo, int n, 
@@ -247,6 +290,10 @@ template <> void LapackInterface::syev<std::complex<double> >( char jobz,  char 
     TypedWorkSpace<double> rwork( l );
 
     zheev_( jobz, uplo, n, a, lda, eigenValues, wsize, -1, rwork.data, info,  1, 1 );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zheev", info );
+    }
 
     int lwork = (int)wsize[0].real();
     TypedWorkSpace<std::complex<double> > work(lwork);
@@ -272,6 +319,10 @@ void LapackInterface::gesdd<float>( char jobz, int m, int n, float* a, int lda,
     lwork = (int)work.data[0];
     work.resize(lwork); 
     sgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, lwork, iwork.data, info, 1);
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "sgesdd", info );
+    }
 }
 template <>
 void LapackInterface::gesdd<double>( char jobz, int m, int n, double* a, int lda,
@@ -287,6 +338,10 @@ void LapackInterface::gesdd<double>( char jobz, int m, int n, double* a, int lda
     lwork = (int)work.data[0];
     work.resize(lwork); 
     dgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, lwork, iwork.data, info, 1);
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dgesdd", info );
+    }
 }
 // TODO REMOVE when added to SimTKlapack.
 extern "C" {
@@ -313,6 +368,9 @@ void LapackInterface::gesdd<std::complex<float> >( char jobz, int m, int n,
     work.resize(lwork); 
     cgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, lwork, rwork.data, iwork.data, info, 1);
 
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "cgesdd", info );
+    }
     return;
 }
 
@@ -336,6 +394,10 @@ void LapackInterface::gesdd<std::complex<double> >( char jobz, int m, int n,
     work.resize(lwork); 
     zgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, lwork, rwork.data, iwork.data, info, 1);
 
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zgesdd", info );
+    }
     return;
 }
 // eigenvlaues for nonsymmetric matrices
@@ -360,8 +422,11 @@ template <> void LapackInterface::geev<double>
     dgeev_( jobvl, jobvr, 
 //             n, a, lda, wr.data, wi.data, vl, ldvl, vr.data, ldvr, 
              n, a, lda, wr.data, wi.data, vl, ldvl, vr.data, ldvr, 
-             work, lwork, info, 
-             1, 1);
+             work, lwork, info, 1, 1);
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dgeev", info );
+    }
 
     for(int i=0;i<n;i++) {
         values[i] = std::complex<double>(wr.data[i], wi.data[i] );
@@ -409,6 +474,10 @@ template <> void LapackInterface::geev<float>
              work, lwork, info, 
              1, 1);
 
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "sgeev", info );
+    }
+
     for(int i=0;i<n;i++) {
         values[i] = std::complex<float>(wr.data[i], wi.data[i] );
     }
@@ -447,6 +516,10 @@ template <> void LapackInterface::geev<std::complex<float> >
              work, lwork, Rwork.data, info, 
              1, 1);
 
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "cgeev", info );
+    }
+
 }
 
 template <> void LapackInterface::geev<std::complex<double> >
@@ -462,6 +535,10 @@ template <> void LapackInterface::geev<std::complex<double> >
              work, lwork, Rwork.data, info, 
              1, 1);
 
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zgeev", info );
+    }
+
 }
 template <> 
 void  LapackInterface::getrf<double>( const int m, const int n, double *lu, const int lda,  int *pivots, int& info ) {
@@ -476,23 +553,40 @@ void  LapackInterface::getrf<float>( const int m, const int n, float *lu, const 
 template <> 
 void  LapackInterface::getrf<std::complex<double> >( const int m, const int n, std::complex<double> *lu, const int lda,  int *pivots, int& info ) {
     zgetrf_(m, n, lu, lda, pivots, info   );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zgetrf", info );
+    }
+
    return;
 }
 template <> 
 void  LapackInterface::getrf<std::complex<float> >( const int m, const int n, std::complex<float> *lu, const int lda,  int *pivots, int& info ) {
     cgetrf_(m, n, lu, lda, pivots, info   );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "cgetrf", info );
+    }
    return;
 }
 
 template <> 
 void LapackInterface::tzrzf<double>( const int& m, const int& n,  double* a, const int& lda, double* tau, double* work, const int& lwork, int& info ) {
     dtzrzf_(m, n, a, lda, tau, work, lwork, info );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dtzrzf", info );
+    }
     return;
 }
 
 template <> 
 void LapackInterface::tzrzf<float>( const int& m, const int& n,  float* a, const int& lda, float* tau, float* work, const int& lwork, int& info ) {
     stzrzf_(m, n, a, lda, tau, work, lwork, info );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "stzrzf", info );
+    }
     return;
 }
 
@@ -505,18 +599,30 @@ void LapackInterface::tzrzf<std::complex<double> >( const int& m, const int& n, 
 template <> 
 void LapackInterface::tzrzf<std::complex<float> >( const int& m, const int& n,  std::complex<float>* a, const int& lda, std::complex<float>* tau, std::complex<float>* work, const int& lwork, int& info ) {
     ctzrzf_(m, n, a, lda, tau, work, lwork, info );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "ctzrzf", info );
+    }
     return;
 }
 
 template <> 
 void LapackInterface::geqp3<double>( const int& m, const int& n,  double* a, const int& lda, int *pivots, double* tau, double* work, const int& lwork, int& info ) {
      dgeqp3_( m, n, a, lda, pivots, tau, work, lwork, info );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dgeqp3", info );
+    }
      return;
 }
 
 template <> 
 void LapackInterface::geqp3<float>( const int& m, const int& n,  float* a, const int& lda, int *pivots, float* tau, float* work, const int& lwork, int& info ) {
      sgeqp3_( m, n, a, lda, pivots, tau, work, lwork, info );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "sgeqp3", info );
+    }
      return;
 }
 
@@ -524,6 +630,10 @@ template <>
 void LapackInterface::geqp3<std::complex<float> >( const int& m, const int& n,  std::complex<float>* a, const int& lda, int *pivots, std::complex<float>* tau, std::complex<float>* work, const int& lwork,  int& info ) {
      TypedWorkSpace<float> rwork(2*n);
      cgeqp3_( m, n, a, lda, pivots, tau, work, lwork, rwork.data, info );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "cgeqp3", info );
+    }
      return;
 }
 
@@ -531,6 +641,10 @@ template <>
 void LapackInterface::geqp3<std::complex<double> >( const int& m, const int& n,  std::complex<double>* a, const int& lda, int *pivots, std::complex<double>*  tau, std::complex<double>* work, const int& lwork,  int& info ) {
      TypedWorkSpace<double> rwork(2*n);
      zgeqp3_( m, n, a, lda, pivots, tau, work,  lwork, rwork.data, info );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zgeqp3", info );
+    }
      return;
 }
 
@@ -538,6 +652,10 @@ template <>
 void LapackInterface::lascl<double>( const char& type, const int& kl, const int& ku, const double& cfrom, const double& cto,  const int& m, const int& n, double* a, const int& lda, int& info ) {
 //TODO     dlascl_( type, kl, ku, cfrom, cto, m, n, a, lda, info, 1 ); 
     dlascl_( type, kl, ku, &cfrom, &cto, m, n, a, lda, info, 1 ); 
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dlascl", info );
+    }
     return;
 }
 
@@ -545,6 +663,10 @@ template <>
 void LapackInterface::lascl<float>( const char& type, const int& kl, const int& ku, const float& cfrom, const float& cto,  const int& m, const int& n, float* a, const int& lda, int& info ) {
 // TODO    slascl_( type, kl, ku, cfrom, cto, m, n, a, lda, info, 1 ); 
     slascl_( type, kl, ku, &cfrom, &cto, m, n, a, lda, info, 1 ); 
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "slascl", info );
+    }
     return;
 }
 
@@ -552,6 +674,10 @@ template <>
 void LapackInterface::lascl<std::complex<float> >( const char& type, const int& kl, const int& ku, const float& cfrom, const float& cto,  const int& m, const int& n, std::complex<float>* a, const int& lda, int& info) {
 // TODO    clascl_( type, kl, ku, cfrom, cto, m, n, a, lda, info, 1 ); 
     clascl_( type, kl, ku, &cfrom, &cto, m, n, a, lda, info, 1 ); 
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "clascl", info );
+    }
     return;
 }
 
@@ -559,6 +685,10 @@ template <>
 void LapackInterface::lascl<std::complex<double> >( const char& type, const int& kl, const int& ku, const double& cfrom, const double& cto,  const int& m, const int& n, std::complex<double>* a, const int& lda, int& info) {
 // TODO    zlascl_( type, kl, ku, cfrom, cto, m, n, a, lda, info, 1 ); 
     zlascl_( type, kl, ku, &cfrom, &cto, m, n, a, lda, info, 1 ); 
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zlascl", info );
+    }
     return;
 }
 
@@ -610,6 +740,10 @@ template <>
 void LapackInterface::ormqr<float>(const char& side, const char& trans, const int& m, const int& n, const int& k, float* a, const int& lda, float *tau, float *c__, const int& ldc, float* work, const int& lwork, int& info) {
 
      sormqr_( side, trans, m, n, k, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "sormqr", info );
+    }
      return;
 }
 
@@ -617,6 +751,10 @@ template <>
 void LapackInterface::ormqr<double>(const char& side, const char& trans, const int& m, const int& n, const int& k, double* a, const int& lda, double *tau, double *c__, const int& ldc, double* work, const int& lwork, int& info) {
 
      dormqr_( side, trans, m, n, k, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dormqr", info );
+    }
      return;
 }
 
@@ -624,6 +762,10 @@ template <>
 void LapackInterface::ormqr<std::complex<double> >(const char& side, const char& trans, const int& m, const int& n, const int& k, std::complex<double>* a, const int& lda, std::complex<double> *tau, std::complex<double> *c__, const int& ldc, std::complex<double>* work, const int& lwork, int& info) {
 
      zunmqr_( side, trans, m, n, k, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zunmqr", info );
+    }
      return;
 }
 
@@ -631,6 +773,10 @@ template <>
 void LapackInterface::ormqr<std::complex<float> >(const char& side, const char& trans, const int& m, const int& n, const int& k, std::complex<float>* a, const int& lda, std::complex<float> *tau, std::complex<float> *c__, const int& ldc, std::complex<float>* work, const int& lwork, int& info) {
 
      cunmqr_( side, trans, m, n, k, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "cunmqr", info );
+    }
      return;
 }
 
@@ -661,6 +807,10 @@ template <>
 // TODO void LapackInterface::ormrz<float>(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, float* a, const int& lda, float* tau, float* c__, const int& ldc, float* work, const int& lwork, int& info) {
 void LapackInterface::ormrz<float>(const char& side, const char& trans, const int& m, const int& n, const int& k, int* l, float* a, const int& lda, float* tau, float* c__, const int& ldc, float* work, const int& lwork, int& info) {
    sormrz_( side, trans, m, n, k, l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "sormrz", info );
+    }
    return;
 }
 
@@ -668,6 +818,10 @@ template <>
 // TODO void LapackInterface::ormrz<double>(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, double* a, const int& lda, double* tau, double* c__, const int& ldc, double* work, const int& lwork, int& info) {
 void LapackInterface::ormrz<double>(const char& side, const char& trans, const int& m, const int& n, const int& k, int* l, double* a, const int& lda, double* tau, double* c__, const int& ldc, double* work, const int& lwork, int& info) {
    dormrz_( side, trans, m, n, k, l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dormrz", info );
+    }
    return;
 }
 
@@ -676,6 +830,10 @@ template <>
 //   cunmrz_( side, trans, m, n, k, l, a, lda, tau, c__, lda, work, lwork, info, 1, 1 );
 void LapackInterface::ormrz<std::complex<float> >(const char& side, const char& trans, const int& m, const int& n, const int& k, int* l, std::complex<float>* a, const int& lda, std::complex<float>* tau, std::complex<float>* c__, const int& ldc, std::complex<float>* work, const int& lwork, int& info) {
    cunmrz_( side, trans, m, n, k, *l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "cunmrz", info );
+    }
    return;
 }
 
@@ -684,6 +842,10 @@ template <>
 //   zunmrz_( side, trans, m, n, k, l, a, lda, tau, c__, lda, work, lwork, info, 1, 1 );
 void LapackInterface::ormrz<std::complex<double> >(const char& side, const char& trans, const int& m, const int& n, const int& k, int* l, std::complex<double>* a, const int& lda, std::complex<double>* tau, std::complex<double>* c__, const int& ldc, std::complex<double>* work, const int& lwork, int& info) {
    zunmrz_( side, trans, m, n, k, *l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zunmrz", info );
+    }
    return;
 }
 

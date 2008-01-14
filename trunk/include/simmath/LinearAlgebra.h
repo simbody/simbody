@@ -93,8 +93,6 @@ class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
 
     bool isSingular() const;
     int getSingularIndex() const;
-    Real getConditionNumber() const;
-    template <class ELT> void getErrorBounds(Vector_<ELT>& err, Vector_<ELT>& berr) const;
 
      // only for symmetric/Hermitan, positive definite, tridaiagoal 
      // or symmetric/Hermitan indefinite => LDL

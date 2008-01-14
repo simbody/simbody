@@ -99,6 +99,8 @@ void FactorLU::getD( Matrix_<ELT>& m) const {
     rep->getD( m );
     return;
 }
+
+/*    implement in future release ?
 Real FactorLU::getConditionNumber() const  {
    return( rep->getConditionNumber() );
 }
@@ -107,6 +109,8 @@ void FactorLU::getErrorBounds (Vector_<ELT>& err, Vector_<ELT>& berr) const {
     rep->getErrorBounds( err, berr );
     return;
 }
+*/
+
 bool FactorLU::isSingular () const {
     return( rep->isSingular() );
 }
@@ -122,6 +126,7 @@ template <typename T >
 FactorLURep<T>::FactorLURep( const Matrix_<ELT>& mat ) 
       : nRow( mat.nrow() ),
         nCol( mat.ncol() ),
+        positiveDefinite( false ),
         lu( mat.nrow()*mat.ncol() ),
         pivots(mat.ncol())             { 
         
@@ -140,14 +145,20 @@ FactorLURep<T>::~FactorLURep() {}
 
 template < class T >
 void FactorLURep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) const {
+    SimTK_APIARGCHECK2_ALWAYS(b.size()==nRow,"FactorLU","solve",
+       "number of rows in right hand side=%d does not match number of rows in original matrix=%d \n",
+        b.size(), nRow );
+
     x.copyAssign(b);
-// TODO check  that ELT of b is same as the factored matrix (size,imageoffset)
     LapackInterface::getrs<T>( false, nCol, 1, lu.data, pivots.data, &x(0));
     return;
 }
-// TODO handle cases where length to b,x and dimensions of lu are not consistant
 template <typename T >
 void FactorLURep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) const {
+    SimTK_APIARGCHECK2_ALWAYS(b.nrow()==nRow,"FactorLU","solve",
+       "number of rows in right hand side=%d does not match number of rows in original matrix=%d \n",
+        b.nrow(), nRow );
+
     x.copyAssign(b);
     LapackInterface::getrs<T>( false, nCol, b.ncol(), lu.data, pivots.data, &x(0,0));
     return;
@@ -179,6 +190,8 @@ void FactorLURep<T>::getU( Matrix_<T>& m) const {
 template <typename T >
 void FactorLURep<T>::getD( Matrix_<T>& m) const {
    int i,j;
+
+
    m.resize( nRow, nCol );
    for(i = 0;i<nRow;i++) {
         for(j=0;j<nCol;j++) m(j,i) = 0.0;
@@ -231,17 +244,22 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
 
     if( structure == MatrixStructures::Symmetric ) {
         if( condition == MatrixConditions::PositiveDefinite ) {
+            positiveDefinite = true; 
             if( storage == MatrixStorageFormats::Packed ) {
 //                LapackInterface::pptrf<ELT>( );     
             } else if( sparsity == MatrixSparseFormats::Banded ) {
-//                LapackInterface::pbtrf<ELT>( );     
+//  TODO               LapackInterface::pbtrf<ELT>( );     
             } else if( structure == MatrixStructures::TriDiagonal ) {
-//                LapackInterface::pttrf<ELT>( );     
+//    TODO             LapackInterface::pttrf<ELT>( );     
             } else {
                 int kl = nRow;  // TODO poperly set these
                 int ku = nCol;
-// TODO check  that ELT of b is same as the factored matrix (size,imageoffset)
                 LapackInterface::potrf<T>(nRow,nCol,kl,ku, lu.data, lda, pivots.data, info);     
+                if( info > 0 ) {
+                    singularIndex = info;
+                    SimTK_THROW2( SimTK::Exception::NotPositiveDefinite, 
+                    getSingularIndex(), "FactorLU:LapackInterface::potrf" ); 
+                }
             }
         }  else {
             if( storage == MatrixStorageFormats::Packed ) {
@@ -251,22 +269,29 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
                 TypedWorkSpace<T>  work( workSize );
                 
                 LapackInterface::sytrf<T>(nRow, nCol, lu.data, lda, pivots.data, work.data, workSize, info);
+                if( info > 0 ) {
+                    singularIndex = info;
+                    SimTK_THROW2( SimTK::Exception::SingularMatrix, 
+                    getSingularIndex(), "FactorLU:LapackInterface::sytrf" ); 
+                }
             }
         }
     } else {
         if( sparsity == MatrixSparseFormats::Banded ) {
-//             LapackInterface::gbtrf<T>(nRow, nCol kl, ku, lu.data, lda, pivots.data, info);
+//    TODO          LapackInterface::gbtrf<T>(nRow, nCol kl, ku, lu.data, lda, pivots.data, info);
         } else if( structure == MatrixStructures::Triangular ) {
 //             double *dl, *d, *du, *du2;
-//             LapackInterface::gttrf<T>(nRow, nCol, dl, d, du, du2, pivots.data, info);
+//    TODO          LapackInterface::gttrf<T>(nRow, nCol, dl, d, du, du2, pivots.data, info);
         } else {
-             LapackInterface::getrf<T>(nRow, nCol, lu.data, lda, pivots.data, info);
+            LapackInterface::getrf<T>(nRow, nCol, lu.data, lda, pivots.data, info);
+            if( info > 0 ) {
+                singularIndex = info;
+                SimTK_THROW2( SimTK::Exception::SingularMatrix, 
+                getSingularIndex(), "FactorLU:LapackInterface::getrf" ); 
+            }
         }
     }
 
-    if( info < 0 ) {
-       // TODO arg #info bad value throw
-    } 
 }
 
 // instantiate

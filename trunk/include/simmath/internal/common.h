@@ -102,6 +102,20 @@ public:
 private:
 };
 
+class IllegalLapackArg : public Base {
+public:
+        IllegalLapackArg( const char *fn, int ln, const char *lapackRoutine, 
+                  int argNum ) : Base(fn, ln)
+        {
+        char buf[1024];
+
+        sprintf(buf, "SimTK internal error: %s called with an illegal value to arguement #%d \n Please report this to SimTK",
+            lapackRoutine, argNum );
+        setMessage(String(buf));
+
+        }
+private:
+};
 class IncorrectArrayLength : public Base {
 public:
         IncorrectArrayLength( const char *fn, int ln, const char *valueName, int length,  
@@ -111,6 +125,50 @@ public:
 
         sprintf(buf, "Incorrect array length in %s : %s is %d and must equal %s which is %d",
             where, valueName, length, paramName, paramValue );
+        setMessage(String(buf));
+
+        }
+private:
+};
+
+class SingularMatrix : public Base {
+public:
+        SingularMatrix( const char *fn, int ln, int index,  
+                               const char *where) : Base(fn, ln)
+        {
+        char buf[1024];
+
+        sprintf(buf, "%s failed because index %d in matrix was singular and factorization failed",
+            where, index );
+        setMessage(String(buf));
+
+        }
+private:
+};
+
+class ConvergedFailed : public Base {
+public:
+        ConvergedFailed( const char *fn, int ln, const char *algorithm,  
+                               const char *where) : Base(fn, ln)
+        {
+        char buf[1024];
+
+        sprintf(buf, "%s failed because %s failed to converge", where, algorithm );
+        setMessage(String(buf));
+
+        }
+private:
+};
+
+class NotPositiveDefinite : public Base {
+public:
+        NotPositiveDefinite( const char *fn, int ln, int index,  
+                               const char *where) : Base(fn, ln)
+        {
+        char buf[1024];
+
+        sprintf(buf, "%s failed because index %d in matrix was not positive definite and factorization failed ",
+            where, index );
         setMessage(String(buf));
 
         }

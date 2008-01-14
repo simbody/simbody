@@ -31,6 +31,12 @@
 
 namespace SimTK {
 
+/*  the WorkSpace class was ment to be used as a resource manager 
+    class for generic  blocks of memory the TypeWorkSpace class
+    is easier to use. The code for WorkSpace and the associated traits
+    should be deleted once we are sure we do not need them.
+
+
 struct WorkSpaceTypes {
      enum eltTypes {
          IntWA           = 1,
@@ -68,8 +74,9 @@ class WorkSpace {
     public:
     WorkSpace(long size) {
 
-        data = (void*)malloc(size);
-// TODO  Throw exception if malloc was unsuccessful
+   //     data = (void*)malloc(size);
+        data = (void*)new char[size];
+// ***  Throw exception if malloc was unsuccessful
         lwork = size;
     }
     template <typename T>
@@ -96,7 +103,8 @@ class WorkSpace {
     }
 
     ~WorkSpace() {
-        free(data);
+//        free(data);
+          delete [] data;
     }
 
     private:
@@ -104,7 +112,7 @@ class WorkSpace {
     int lwork;
     void*  data;
 };
-
+*/
 template <typename T>
 class TypedWorkSpace {
     public:
