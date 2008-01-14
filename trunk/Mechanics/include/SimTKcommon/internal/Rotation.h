@@ -476,8 +476,9 @@ public:
     /// QInv (= Q^-1) which maps quaternion derivatives qdot to angular velocity
     /// w, where the angular velocity is in the parent frame, i.e. w==w_PB_P.
     /// Note: when the quaternion is not normalized, this is not precisely the
-    /// inverse of Q. inv(Q)=inv(Q')/|q| but we're returning |q|*inv(Q')=|q|^2*inv(Q).
-    /// That is, Q*QInv =|q|^2*I, which is I if the original q was normalized.
+    /// (pseudo)inverse of Q. inv(Q)=inv(Q')/|q| but we're returning
+    /// |q|*inv(Q')=|q|^2*inv(Q). That is, QInv*Q =|q|^2*I, which is I
+    /// if the original q was normalized. (Note: Q*QInv != I, not even close.)
     static Mat34 calcUnnormalizedQInvBlockForQuaternion(const Vec4& q) {
         const Vec4 e = 2*q;
         return Mat34(-e[1], e[0],-e[3], e[2],
