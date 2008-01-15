@@ -188,11 +188,11 @@ public:
     typedef typename CNT<E>::Precision          EPrecision;
     typedef typename CNT<E>::ScalarSq           EScalarSq;
 
-    typedef typename EScalar    Scalar;        // the underlying Scalar type
-    typedef typename ENumber    Number;        // negator removed from Scalar
-    typedef typename EStdNumber StdNumber;     // conjugate goes to complex
-    typedef typename EPrecision Precision;     // complex removed from StdNumber
-    typedef typename EScalarSq  ScalarSq;
+    typedef EScalar    Scalar;        // the underlying Scalar type
+    typedef ENumber    Number;        // negator removed from Scalar
+    typedef EStdNumber StdNumber;     // conjugate goes to complex
+    typedef EPrecision Precision;     // complex removed from StdNumber
+    typedef EScalarSq  ScalarSq;
 
     typedef MatrixBase<E>                T;
     typedef MatrixBase<ENeg>             TNeg;
@@ -434,7 +434,7 @@ public:
     template <class S> inline MatrixBase&
     scalarSubtractFromLeftInPlace(const S& s) {
         negateInPlace();
-        updDiag().elementwiseAddScalarInPlace(s);
+        updDiag().elementwiseAddScalarInPlace(s); // yes, add
     }
 
     /// Set M(i,j) = M(i,j)*S for some "scalar" S. Actually S can be any
@@ -775,6 +775,8 @@ public:
 
     const TNeg&       operator-() const {return negate();}
     TNeg&             operator-()       {return updNegate();}
+
+    MatrixBase& negateInPlace() {(*this) *= EPrecision(-1);}
  
     MatrixBase& resize(int m, int n)     { helper.resize(m,n); return *this; }
     MatrixBase& resizeKeep(int m, int n) { helper.resizeKeep(m,n); return *this; }
@@ -960,13 +962,13 @@ public:
     }
 
     /// Set supplied out[i] = this[i]^-1
-    void elementwiseInvert(VectorBase<typename CNT<E>::TInvert>& out) const {
+    void elementwiseInvert(VectorBase<typename CNT<ELT>::TInvert>& out) const {
         Base::elementwiseInvert(out);
     }
 
     /// Return out[i]=this[i]^-1 as function return.
-    VectorBase<typename CNT<E>::TInvert> elementwiseInvert() const {
-        VectorBase<typename CNT<E>::TInvert> out(nrow());
+    VectorBase<typename CNT<ELT>::TInvert> elementwiseInvert() const {
+        VectorBase<typename CNT<ELT>::TInvert> out(nrow());
         Base::elementwiseInvert(out);
         return out;
     }
@@ -975,9 +977,9 @@ public:
 	template <class EE> VectorBase& elementwiseMultiplyInPlace(const VectorBase<EE>& r)
 	  { Base::template elementwiseMultiplyInPlace<EE>(r); return *this; }
 	template <class EE> inline void elementwiseMultiply(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
-	  { Base::elementwiseMultiply<EE>(v,out); }
+	  { Base::template elementwiseMultiply<EE>(v,out); }
 	template <class EE> inline typename EltResult<EE>::Mul elementwiseMultiply(const VectorBase<EE>& v) const
-	  { typename EltResult<EE>::Mul out(nrow()); Base::elementwiseMultiply<EE>(v,out); return out; }
+	  { typename EltResult<EE>::Mul out(nrow()); Base::template elementwiseMultiply<EE>(v,out); return out; }
 
         // elementwise multiply from left
 	template <class EE> VectorBase& elementwiseMultiplyFromLeftInPlace(const VectorBase<EE>& r)
@@ -987,13 +989,13 @@ public:
         const VectorBase<EE>& v, 
         typename VectorBase<EE>::template EltResult<ELT>::Mul& out) const
 	{ 
-        Base::elementwiseMultiplyFromLeft<EE>(v,out);
+        Base::template elementwiseMultiplyFromLeft<EE>(v,out);
     }
 	template <class EE> inline typename VectorBase<EE>::template EltResult<ELT>::Mul 
     elementwiseMultiplyFromLeft(const VectorBase<EE>& v) const
 	{ 
         typename VectorBase<EE>::template EltResult<ELT>::Mul out(nrow()); 
-        Base::elementwiseMultiplyFromLeft<EE>(v,out); 
+        Base::template elementwiseMultiplyFromLeft<EE>(v,out); 
         return out;
     }
 
@@ -1001,9 +1003,9 @@ public:
 	template <class EE> VectorBase& elementwiseDivideInPlace(const VectorBase<EE>& r)
 	  { Base::template elementwiseDivideInPlace<EE>(r); return *this; }
 	template <class EE> inline void elementwiseDivide(const VectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const
-	  { Base::elementwiseDivide<EE>(v,out); }
+	  { Base::template elementwiseDivide<EE>(v,out); }
 	template <class EE> inline typename EltResult<EE>::Dvd elementwiseDivide(const VectorBase<EE>& v) const
-	  { typename EltResult<EE>::Dvd out(nrow()); Base::elementwiseDivide<EE>(v,out); return out; }
+	  { typename EltResult<EE>::Dvd out(nrow()); Base::template elementwiseDivide<EE>(v,out); return out; }
 
         // elementwise divide from left
 	template <class EE> VectorBase& elementwiseDivideFromLeftInPlace(const VectorBase<EE>& r)
@@ -1013,13 +1015,13 @@ public:
         const VectorBase<EE>& v, 
         typename VectorBase<EE>::template EltResult<ELT>::Dvd& out) const
 	{ 
-        Base::elementwiseDivideFromLeft<EE>(v,out);
+        Base::template elementwiseDivideFromLeft<EE>(v,out);
     }
 	template <class EE> inline typename VectorBase<EE>::template EltResult<ELT>::Dvd 
     elementwiseDivideFromLeft(const VectorBase<EE>& v) const
 	{ 
         typename VectorBase<EE>::template EltResult<ELT>::Dvd out(nrow()); 
-        Base::elementwiseDivideFromLeft<EE>(v,out); 
+        Base::template elementwiseDivideFromLeft<EE>(v,out); 
         return out;
     }
 
@@ -1168,18 +1170,18 @@ public:
 	template <class EE> RowVectorBase& colScaleInPlace(const VectorBase<EE>& v)
 	  { Base::template colScaleInPlace<EE>(v); return *this; }
 	template <class EE> inline void colScale(const VectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
-	  { return Base::colScale<EE>(v,out); }
+	  { return Base::template colScale<EE>(v,out); }
 	template <class EE> inline typename EltResult<EE>::Mul colScale(const VectorBase<EE>& v) const
-	  { typename EltResult<EE>::Mul out(ncol()); Base::colScale<EE>(v,out); return out; }
+	  { typename EltResult<EE>::Mul out(ncol()); Base::template colScale<EE>(v,out); return out; }
 
 
         // elementwise multiply
 	template <class EE> RowVectorBase& elementwiseMultiplyInPlace(const RowVectorBase<EE>& r)
 	  { Base::template elementwiseMultiplyInPlace<EE>(r); return *this; }
 	template <class EE> inline void elementwiseMultiply(const RowVectorBase<EE>& v, typename EltResult<EE>::Mul& out) const
-	  { Base::elementwiseMultiply<EE>(v,out); }
+	  { Base::template elementwiseMultiply<EE>(v,out); }
 	template <class EE> inline typename EltResult<EE>::Mul elementwiseMultiply(const RowVectorBase<EE>& v) const
-	  { typename EltResult<EE>::Mul out(nrow()); Base::elementwiseMultiply<EE>(v,out); return out; }
+	  { typename EltResult<EE>::Mul out(nrow()); Base::template elementwiseMultiply<EE>(v,out); return out; }
 
         // elementwise multiply from left
 	template <class EE> RowVectorBase& elementwiseMultiplyFromLeftInPlace(const RowVectorBase<EE>& r)
@@ -1189,13 +1191,13 @@ public:
         const RowVectorBase<EE>& v, 
         typename RowVectorBase<EE>::template EltResult<ELT>::Mul& out) const
 	{ 
-        Base::elementwiseMultiplyFromLeft<EE>(v,out);
+        Base::template elementwiseMultiplyFromLeft<EE>(v,out);
     }
 	template <class EE> inline typename RowVectorBase<EE>::template EltResult<ELT>::Mul 
     elementwiseMultiplyFromLeft(const RowVectorBase<EE>& v) const
 	{ 
         typename RowVectorBase<EE>::template EltResult<ELT>::Mul out(nrow()); 
-        Base::elementwiseMultiplyFromLeft<EE>(v,out); 
+        Base::template elementwiseMultiplyFromLeft<EE>(v,out); 
         return out;
     }
 
@@ -1203,9 +1205,9 @@ public:
 	template <class EE> RowVectorBase& elementwiseDivideInPlace(const RowVectorBase<EE>& r)
 	  { Base::template elementwiseDivideInPlace<EE>(r); return *this; }
 	template <class EE> inline void elementwiseDivide(const RowVectorBase<EE>& v, typename EltResult<EE>::Dvd& out) const
-	  { Base::elementwiseDivide<EE>(v,out); }
+	  { Base::template elementwiseDivide<EE>(v,out); }
 	template <class EE> inline typename EltResult<EE>::Dvd elementwiseDivide(const RowVectorBase<EE>& v) const
-	  { typename EltResult<EE>::Dvd out(nrow()); Base::elementwiseDivide<EE>(v,out); return out; }
+	  { typename EltResult<EE>::Dvd out(nrow()); Base::template elementwiseDivide<EE>(v,out); return out; }
 
         // elementwise divide from left
 	template <class EE> RowVectorBase& elementwiseDivideFromLeftInPlace(const RowVectorBase<EE>& r)
@@ -1215,13 +1217,13 @@ public:
         const RowVectorBase<EE>& v, 
         typename RowVectorBase<EE>::template EltResult<ELT>::Dvd& out) const
 	{ 
-        Base::elementwiseDivideFromLeft<EE>(v,out);
+        Base::template elementwiseDivideFromLeft<EE>(v,out);
     }
 	template <class EE> inline typename RowVectorBase<EE>::template EltResult<ELT>::Dvd 
     elementwiseDivideFromLeft(const RowVectorBase<EE>& v) const
 	{ 
         typename RowVectorBase<EE>::template EltResult<ELT>::Dvd out(nrow()); 
-        Base::elementwiseDivideFromLeft<EE>(v,out); 
+        Base::template elementwiseDivideFromLeft<EE>(v,out); 
         return out;
     }
 
