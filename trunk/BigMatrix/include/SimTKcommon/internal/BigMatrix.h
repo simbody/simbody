@@ -1482,6 +1482,7 @@ MatrixBase<ELT>::rowAndColScaleInPlace(const VectorBase<ER>& r, const VectorBase
     for (int j=0; j<ncol(); ++j)
 	    for (int i=0; i<nrow(); ++i)
 			(*this)(i,j) *= (r[i]*c[j]);
+    return *this;
 }
 
 template <class ELT> template <class ER, class EC> inline void
@@ -1508,6 +1509,7 @@ MatrixBase<ELT>::elementwiseInvertInPlace() {
             ELT& e = updElt(i,j);
             e = CNT<ELT>::invert(e);
         }
+    return *this;
 }
 
 template <class ELT> inline void
@@ -1525,6 +1527,7 @@ MatrixBase<ELT>::elementwiseAddScalarInPlace(const S& s) {
     for (int j=0; j<ncol(); ++j)
 	    for (int i=0; i<nrow(); ++i)
 			(*this)(i,j) += s;
+    return *this;
 }
 
 template <class ELT> template <class S> inline void 
@@ -1545,6 +1548,7 @@ MatrixBase<ELT>::elementwiseSubtractScalarInPlace(const S& s) {
     for (int j=0; j<ncol(); ++j)
 	    for (int i=0; i<nrow(); ++i)
 			(*this)(i,j) -= s;
+    return *this;
 }
 
 template <class ELT> template <class S> inline void 
@@ -1568,6 +1572,7 @@ MatrixBase<ELT>::elementwiseSubtractFromScalarInPlace(const S& s) {
             ELT& e = updElt(i,j);
 			e = s - e;
         }
+    return *this;
 }
 
 template <class ELT> template <class S> inline void 
@@ -1590,6 +1595,7 @@ MatrixBase<ELT>::elementwiseMultiplyInPlace(const MatrixBase<EE>& r) {
     for (int j=0; j<nc; ++j)
 	    for (int i=0; i<nr; ++i)
 			(*this)(i,j) *= r(i,j);
+    return *this;
 }
 
 template <class ELT> template <class EE> inline void 
@@ -1615,6 +1621,7 @@ MatrixBase<ELT>::elementwiseMultiplyFromLeftInPlace(const MatrixBase<EE>& r) {
             ELT& e = updElt(i,j);
 			e = r(i,j) * e;
         }
+    return *this;
 }
 
 template <class ELT> template <class EE> inline void 
@@ -1638,6 +1645,7 @@ MatrixBase<ELT>::elementwiseDivideInPlace(const MatrixBase<EE>& r) {
     for (int j=0; j<nc; ++j)
 	    for (int i=0; i<nr; ++i)
 			(*this)(i,j) /= r(i,j);
+    return *this;
 }
 
 template <class ELT> template <class EE> inline void 
@@ -1662,6 +1670,7 @@ MatrixBase<ELT>::elementwiseDivideFromLeftInPlace(const MatrixBase<EE>& r) {
             ELT& e = updElt(i,j);
 			e = r(i,j) / e;
         }
+    return *this;
 }
 
 template <class ELT> template <class EE> inline void 
