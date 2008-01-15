@@ -301,10 +301,11 @@ public:
     static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)
         {return reinterpret_cast<TWithoutNegator&>(t);}
 
-    static ScalarSq  scalarNormSqr(const K& t) {return t.scalarNormSqr();}
-    static TAbs      abs(const K& t)           {return t.abs();}
-    static TStandard standardize(const K& t)   {return t.standardize();}
-    static TNormalize normalize(const K& t)    {return t.normalize();}
+    static ScalarSq   scalarNormSqr(const K& t) {return t.scalarNormSqr();}
+    static TAbs       abs(const K& t)           {return t.abs();}
+    static TStandard  standardize(const K& t)   {return t.standardize();}
+    static TNormalize normalize(const K& t)     {return t.normalize();}
+    static TInvert    invert(const K& t)        {return t.invert();}
 };
 
 } // namespace SimTK

@@ -44,11 +44,11 @@ namespace SimTK {
 template <int M, int N, class ELT, int CS, int RS>
 typename Mat<M,N,ELT,CS,RS>::TInvert 
 Mat<M,N,ELT,CS,RS>::invert() const {
-    Matrix_< StdNumber > bigm(M,N);
+    Matrix_< EStandard > bigm(M,N);
     for (int j=0; j<N; ++j)
         for (int i=0; i<M; ++i)
             bigm(i,j) = (*this)(i,j);
-    Matrix_< StdNumber > result = bigm.invert();
+    Matrix_< EInvert > result = bigm.invert();
     assert(result.nrow() == TInvert::NRows && result.ncol() == TInvert::NCols);
     TInvert out;
     for (int j=0; j<TInvert::NCols; ++j)

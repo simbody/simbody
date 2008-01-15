@@ -61,7 +61,7 @@ namespace NR {
 template class Matrix_<Real>;
 template class Vector_<Complex>;
 template class RowVector_< conjugate<float> >;
-template class MatrixBase< Mat<3,4,Vec2> >;
+//template class MatrixBase< Mat<3,4,Vec2> >;
 
 template class MatrixView_< complex<long double> >;
 template class VectorView_< negator<float> >;
@@ -194,14 +194,14 @@ int main()
 	mm.colScaleInPlace(mmColScale);
 	cout << "after col scale, mm=" << mm;
 
-	mm.colUnscaleInPlace(mmColScale);
+	mm.colScaleInPlace(mmColScale.elementwiseInvert());
 	cout << "after col UNscale mm=" << mm;
 
 	cout <<  " mmRowScale=" << mmRowScale << endl;
 	mm.rowScaleInPlace(mmRowScale);
 	cout << "after row scale, mm=" << mm;
 
-	mm.rowUnscaleInPlace(mmRowScale);
+	mm.rowScaleInPlace(mmRowScale.elementwiseInvert());
 	cout << "after row UNscale mm=" << mm;
 
 	mm.rowScaleInPlace(mmRowScaleR);

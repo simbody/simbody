@@ -227,6 +227,7 @@ public:
         { return std::abs(t); } // no, not just sqrt of scalarNormSqr()!
     static const TStandard& standardize(const T& t) {return t;} // already standard
     static TNormalize normalize(const T& t) {return t/abs(t);}
+    static TInvert    invert(const T& t)    {return TReal(1)/t;}
 
     static const T& getNaN() {
         static const T c=T(NTraits<R>::getNaN(), NTraits<R>::getNaN());
@@ -386,6 +387,7 @@ public:
     static TStandard standardize(const T& t)
         { return TStandard(t); }        // i.e., convert to complex
     static TNormalize normalize(const T& t) {return TNormalize(t/abs(t));}
+    static TInvert    invert(const T& t)    {return TReal(1)/t;}
 
     // We want a "conjugate NaN", NaN - NaN*i, meaning both reals should
     // be positive NaN.
@@ -553,6 +555,7 @@ public:                                         \
     static TAbs       abs(const T& t) {return std::abs(t);}                 \
     static const TStandard& standardize(const T& t) {return t;}             \
     static TNormalize normalize(const T& t) {return (t>0?T(1):(t<0?T(-1):getNaN()));} \
+    static TInvert invert(const T& t) {return T(1)/t;}                      \
     /* properties of this floating point representation, with memory addresses */     \
     static const T& getNaN()          {static const T c=std::numeric_limits<T>::quiet_NaN(); return c;} \
     static const T& getInfinity()     {static const T c=std::numeric_limits<T>::infinity();  return c;} \

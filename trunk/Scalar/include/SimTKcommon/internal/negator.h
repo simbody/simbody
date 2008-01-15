@@ -173,6 +173,7 @@ public:
     TAbs       abs()           const {return NTraits<N>::abs(v);}
     TStandard  standardize()   const {return -NTraits<N>::standardize(v);}
     TNormalize normalize()     const {return -NTraits<N>::normalize(v);}
+    TInvert    invert()        const {return -NTraits<N>::invert(v);}
 
     negator() {
     #ifndef NDEBUG
