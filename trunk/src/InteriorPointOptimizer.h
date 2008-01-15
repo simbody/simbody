@@ -47,7 +47,7 @@ class InteriorPointOptimizer: public OptimizerRep {
         delete [] mult_g;
      }
 
-     InteriorPointOptimizer(OptimizerSystem& sys); 
+     InteriorPointOptimizer(const OptimizerSystem& sys); 
      Real optimize(  Vector &results );
 
      private:

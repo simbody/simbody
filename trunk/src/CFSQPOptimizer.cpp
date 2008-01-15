@@ -82,7 +82,7 @@ CFSQPOptimizer::
     delete[] _lambda;
 }
 //_____________________________________________________________________________
-CFSQPOptimizer::CFSQPOptimizer(OptimizerSystem& sys)
+CFSQPOptimizer::CFSQPOptimizer(const OptimizerSystem& sys)
     : OptimizerRep(sys)
 {
     bindToCFSQPLibrary();

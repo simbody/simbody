@@ -41,7 +41,7 @@ class LBFGSOptimizer: public OptimizerRep {
 
      ~LBFGSOptimizer() { }
 
-     LBFGSOptimizer(OptimizerSystem& sys); 
+     LBFGSOptimizer(const OptimizerSystem& sys); 
 
      Real optimize(  SimTK::Vector &results );
      

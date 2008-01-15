@@ -78,7 +78,7 @@ public:
 	// CONSTRUCTION
 	//--------------------------------------------------------------------------
 	virtual ~CFSQPOptimizer();
-    CFSQPOptimizer(OptimizerSystem& sys); 
+    CFSQPOptimizer(const OptimizerSystem& sys); 
 
     static bool isAvailable();
 

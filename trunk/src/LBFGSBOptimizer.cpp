@@ -30,7 +30,7 @@ using std::cout;
 using std::endl;
 namespace SimTK {
 
-     LBFGSBOptimizer::LBFGSBOptimizer( OptimizerSystem& sys )
+     LBFGSBOptimizer::LBFGSBOptimizer( const OptimizerSystem& sys )
         : OptimizerRep( sys ),
           factr( 1.0e7) {
           int n,i;

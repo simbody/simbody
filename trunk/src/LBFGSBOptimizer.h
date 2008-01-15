@@ -42,7 +42,7 @@ class LBFGSBOptimizer: public OptimizerRep {
         delete [] nbd;
 
      }
-     LBFGSBOptimizer(OptimizerSystem& sys); 
+     LBFGSBOptimizer(const OptimizerSystem& sys); 
      Real optimize(  Vector &results );
      int setulb_(int *n, int *m, Real *x, Real *l,
           Real *u, int *nbd, Real *f, Real *g,

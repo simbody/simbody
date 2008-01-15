@@ -250,8 +250,8 @@ class SimTK_SIMMATH_EXPORT Optimizer  {
    public:
 
     Optimizer();
-    Optimizer( OptimizerSystem& sys);
-    Optimizer( OptimizerSystem& sys, OptimizerAlgorithm algorithm);
+    Optimizer( const OptimizerSystem& sys);
+    Optimizer( const OptimizerSystem& sys, OptimizerAlgorithm algorithm);
 
     ~Optimizer();
 
@@ -263,8 +263,8 @@ class SimTK_SIMMATH_EXPORT Optimizer  {
     void setDiagnosticsLevel( const int level ); 
     void setDifferentiatorMethod( Differentiator::Method method);
 
-    void setOptimizerSystem( OptimizerSystem& sys  );
-    void setOptimizerSystem( OptimizerSystem& sys, OptimizerAlgorithm algorithm );
+    void setOptimizerSystem( const OptimizerSystem& sys  );
+    void setOptimizerSystem( const OptimizerSystem& sys, OptimizerAlgorithm algorithm );
 
     bool setAdvancedStrOption( const char *option, const char *value );
     bool setAdvancedRealOption( const char *option, const Real value );
@@ -306,7 +306,7 @@ private:
 
     // This is the library-side part of the CPodes constructor. This must
     // be done prior to the client side construction.
-  void librarySideOptimizerConstructor(OptimizerSystem& sys, OptimizerAlgorithm algorithm);
+  void librarySideOptimizerConstructor(const OptimizerSystem& sys, OptimizerAlgorithm algorithm);
 
   void clientSideOptimizerConstructor() {
        registerObjectiveFunc( objectiveFunc_static );

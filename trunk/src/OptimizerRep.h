@@ -73,7 +73,7 @@ public:
 class OptimizerRep {
 public:
     virtual ~OptimizerRep();
-    OptimizerRep(OptimizerSystem& sys) 
+    OptimizerRep(const OptimizerSystem& sys) 
        : sysp(0), 
          myHandle(0), 
          cf(0),
@@ -151,7 +151,7 @@ public:
     Differentiator::Method   diffMethod;
 
     private:
-    OptimizerSystem* sysp;
+    const OptimizerSystem* sysp;
     bool numericalGradient; // true if optimizer will compute an numerical gradient
     bool numericalJacobian; // true if optimizer will compute an numerical gradient
 

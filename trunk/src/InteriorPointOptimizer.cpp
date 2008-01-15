@@ -54,7 +54,7 @@ static std::string applicationReturnStatusToString(int status) {
 }
 
 // Assume by the time this constructor is called, the number of parameters and constraints has been finalized
-InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
+InteriorPointOptimizer::InteriorPointOptimizer( const OptimizerSystem& sys )
         : OptimizerRep( sys ) {
 
         int n = sys.getNumParameters();
