@@ -127,6 +127,12 @@ void Optimizer::setMaxIterations( const int iter ){
     return;
 }
 
+void Optimizer::setDifferentiatorMethod( Differentiator::Method method){
+
+    ((OptimizerRep *)rep)->setDifferentiatorMethod(method);
+    return;
+}
+
 void Optimizer::setLimitedMemoryHistory( const int history ){
 
     ((OptimizerRep *)rep)->setLimitedMemoryHistory(history);
@@ -309,5 +315,6 @@ void Optimizer::registerConstraintJacobian(Optimizer::ConstraintJacobian f) {
 void Optimizer::registerHessian(Optimizer::Hessian f) {
     updRep().hessian = f;
 }
+
 
 } // namespace SimTK

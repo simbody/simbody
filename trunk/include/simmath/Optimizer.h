@@ -27,9 +27,7 @@
 
 
 #include "SimTKcommon.h"
-
-#include "simmath/internal/common.h"
-
+#include "SimTKmath.h"
 #include <limits.h>
 
 namespace SimTK {
@@ -263,6 +261,7 @@ class SimTK_SIMMATH_EXPORT Optimizer  {
     void setMaxIterations( const int iter );
     void setLimitedMemoryHistory( const int history );
     void setDiagnosticsLevel( const int level ); 
+    void setDifferentiatorMethod( Differentiator::Method method);
 
     void setOptimizerSystem( OptimizerSystem& sys  );
     void setOptimizerSystem( OptimizerSystem& sys, OptimizerAlgorithm algorithm );
