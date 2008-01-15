@@ -90,6 +90,8 @@ int main() {
     results[1] = -100;
 
     
+    opt.setAdvancedRealOption( "xtol", 1e-6 );
+
     opt.optimize( results );
   }
   catch (const std::exception& e) {

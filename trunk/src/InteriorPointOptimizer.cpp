@@ -127,20 +127,94 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
         AddIpoptIntOption(nlp, "print_level", diagnosticsLevel); // default is 4
 
         int i;
-        static const char *advancedRealOptions[] = {"obj_scaling_factor", "nlp_scaling_max_gradient", "acceptable_tol", "dual_inf_tol", "constr_viol_tol", "compl_inf_tol", "recalc_y_feas_tol", 0}; 
+        static const char *advancedRealOptions[] = {
+                                                    "compl_inf_tol", 
+                                                    "dual_inf_tol", 
+                                                    "constr_viol_tol", 
+                                                    "acceptable_tol", 
+                                                    "acceptable_compl_inf_tol", 
+                                                    "acceptable_constr_viol_tol", 
+                                                    "acceptable_dual_inf_tol", 
+                                                    "diverging_iterates_tol", 
+                                                    "barrier_tol_factor", 
+                                                    "obj_scaling_factor", 
+                                                    "nlp_scaling_max_gradient", 
+                                                    "bounds_relax_factor", 
+                                                    "recalc_y_feas_tol", 
+                                                    "mu_init", 
+                                                    "mu_max_fact", 
+                                                    "mu_max", 
+                                                    "mu_min", 
+                                                    "mu_linear_decrease_factor", 
+                                                    "mu_superlinear_decrease_factor", 
+                                                    "bound_frac", 
+                                                    "bound_push", 
+                                                    "bound_mult_init_val", 
+                                                    "constr_mult_init_max", 
+                                                    "constr_mult_init_val", 
+                                                    "warm_start_bound_push", 
+                                                    "warm_start_bound_frac", 
+                                                    "warm_start_mult_bound_push", 
+                                                    "warm_start_mult_init_max", 
+                                                    "recalc_y_feas_tol", 
+                                                    "expect_infeasible_problem_ctol", 
+                                                    "soft_resto_pderror_reduction_factor", 
+                                                    "required_infeasibility_reduction", 
+                                                    "bound_mult_reset_threshold", 
+                                                    "constr_mult_reset_threshold", 
+                                                    "max_hessian_perturbation", 
+                                                    "min_hessian_perturbation", 
+                                                    "first_hessian_perturbation", 
+                                                    "perturb_inc_fact_first", 
+                                                    "perturb_inc_fact", 
+                                                    "perturb_dec_fact", 
+                                                    "jacobian_reqularization_value", 
+                                                    "derivative_test_perturbation", 
+                                                    "derivative_test_tol", 
+                                                    0}; 
         Real value;
         for(i=0;advancedRealOptions[i];i++) {
             if(getAdvancedRealOption(advancedRealOptions[i],value))
                 AddIpoptNumOption(nlp, advancedRealOptions[i], value);
         }
 
-        static const std::string advancedStrOptions[] = {"print_options_documentation", "print_user_options", ""}; 
+        static const std::string advancedStrOptions[] = {"nlp_scaling_method",
+                                                         "honor_original_bounds", 
+                                                         "check_derivatives_for_naninf", 
+                                                         "mu_strategy", 
+                                                         "mu_oracle", 
+                                                         "fixed_mu_oracle", 
+                                                         "alpha_for_y", 
+                                                         "recalc_y", 
+                                                         "expect_infeasible_problem", 
+                                                         "print_options_documentation", 
+                                                         "print_user_options", 
+                                                         "start_with_resto", 
+                                                         "evaluate_orig_obj_at_resto_trial", 
+                                                         "hessian_approximation", 
+                                                         "derivative_test", 
+                                                         ""}; 
         std::string svalue;
         for(i=0;!advancedStrOptions[i].empty();i++) {
             if(getAdvancedStrOption(advancedStrOptions[i], svalue))
                 AddIpoptStrOption(nlp, advancedStrOptions[i].c_str(), svalue.c_str());
         }
 
+        static const char*  advancedIntOptions[] = {"quality_function_max_section_steps",
+                                                         "max_soc",
+                                                         "watchdog_shorted_iter_trigger",
+                                                         "watchdog_trial_iter_max",
+                                                         "max_refinement_steps",
+                                                         "min_refinement_steps",
+                                                         "limited_memory_max_history",
+                                                         "limited_memory_max_skipping",
+                                                         "derivative_test_print_all",
+                                                         0}; 
+        int ivalue;
+        for(i=0;advancedIntOptions[i];i++) {
+            if(getAdvancedIntOption(advancedIntOptions[i], ivalue))
+                AddIpoptIntOption(nlp, advancedIntOptions[i], ivalue);
+        }
 
         // Only makes sense to do a warm start if this is not the first call to optimize() (since we need 
         // reasonable starting multiplier values)

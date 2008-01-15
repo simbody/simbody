@@ -52,6 +52,7 @@ class LBFGSBOptimizer: public OptimizerRep {
 
 
      private:
+     double      factr;
      int         iprint[3];
      int         *nbd;
 

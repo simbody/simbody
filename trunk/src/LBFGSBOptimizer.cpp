@@ -30,13 +30,9 @@ using std::cout;
 using std::endl;
 namespace SimTK {
 
-
-// TODO make these options
-static Real factr = 1.0e7;   // 
-
-
      LBFGSBOptimizer::LBFGSBOptimizer( OptimizerSystem& sys )
-        : OptimizerRep( sys ) {
+        : OptimizerRep( sys ),
+          factr( 1.0e7) {
           int n,i;
 
          n = sys.getNumParameters();
@@ -80,7 +76,13 @@ static Real factr = 1.0e7;   //
          sys.getParameterLimits( &lowerLimits, &upperLimits );
          iwa = new int[3*n];
          wa = new Real[((2*m + 4)*n + 12*m*m + 12*m)];
-
+     
+         double factor;
+         if( getAdvancedRealOption("factr", factor ) ) {
+              SimTK_APIARGCHECK_ALWAYS(factor > 0,"LBFGSBOptimizer","optimze",
+              "factr must be positive \n");
+              factr = factor;
+         }
          strcpy( task, "START" );
 
 

@@ -30,13 +30,12 @@ using std::endl;
 namespace SimTK {
 
      LBFGSOptimizer::LBFGSOptimizer( OptimizerSystem& sys )
-        : OptimizerRep( sys ) 
+        : OptimizerRep( sys ) ,
+          xtol(1e-16)
+
 {
       /* internal flags for LBFGS */
          iprint[0] = iprint[1] = 0; // no output generated
-         xtol[0] = 1e-16; // from itk/core/vnl/algo/vnl_lbfgs.cxx
-
-// TODO option for xtol  ??
 
          if( sys.getNumParameters() < 1 ) {
              const char* where = "Optimizer Initialization";
@@ -44,7 +43,6 @@ namespace SimTK {
              SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  sys.getNumParameters(), INT_MAX, where); 
          }
      } 
-
 
      Real LBFGSOptimizer::optimize(  Vector &results ) {
 
@@ -57,8 +55,15 @@ namespace SimTK {
 //printf("\n ***** LBFGSOptimizer ***** \n\n");
 
          iprint[0] = iprint[1] = iprint[2] = diagnosticsLevel; 
+ 
+          double tol;
+          if( getAdvancedRealOption("xtol", tol ) ) {
+              SimTK_APIARGCHECK_ALWAYS(tol > 0,"LBFGSOptimizer","optimize",
+              "xtol must be positive \n");
+              xtol = tol;
+          }
 
-          lbfgs_( n, m, &results[0], &f, iprint, &convergenceTolerance,  xtol );
+          lbfgs_( n, m, &results[0], &f, iprint, &convergenceTolerance,  &xtol );
 
           objectiveFuncWrapper( n, &results[0], true, &f, (void*)this );
           return f;

@@ -114,6 +114,7 @@ int main() {
 
     opt.setConvergenceTolerance( .0001 );
     opt.setDiagnosticsLevel( 5 );
+    opt.setAdvancedRealOption( "factr", 1000);
     f = opt.optimize( results );
 
   }
