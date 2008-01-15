@@ -22,7 +22,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "SimTKmath.h"
-#include "simmath/internal/OptimizerRep.h"
+#include "OptimizerRep.h"
 
 namespace SimTK {
     Real DefaultOptimizer::optimize(  Vector &results ) {

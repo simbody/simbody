@@ -25,8 +25,8 @@
 #include "simmath/internal/common.h"
 
 #include "simmath/Optimizer.h"
-#include "simmath/internal/Simmath_f2c.h" 
-#include "simmath/internal/LBFGSOptimizer.h"
+#include "Simmath_f2c.h" 
+#include "LBFGSOptimizer.h"
 
 #include <iostream> 
 #include <malloc.h>

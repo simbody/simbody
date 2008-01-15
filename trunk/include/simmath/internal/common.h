@@ -78,8 +78,6 @@ const static double POSITIVE_INF =  2e19;
 const static double NEGATIVE_INF = -2e19;
 
 namespace SimTK {
-template <class P>
-bool calcEigenValuesRightEigenVectors( Matrix_<P> &m, Vector_< std::complex<P> > &eigenValues, Matrix_< std::complex<P> > &eigenVectors ); 
 
 
 namespace Exception {
