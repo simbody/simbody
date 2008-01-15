@@ -110,7 +110,7 @@ Real X[4] =  { 9.9966,  3.6831,  1.3569,  0.5000 };
 
 
 int main () {
-    double errnorm;
+    
     try { 
            // Default precision (Real, normally double) test.
 
