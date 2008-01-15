@@ -251,18 +251,9 @@ class SimTK_SIMMATH_EXPORT Optimizer  {
 
    public:
 
-    Optimizer( OptimizerSystem& sys) {
-        // Perform construction of the OptimizerRep on the library side.
-        librarySideOptimizerConstructor(sys, BestAvailiable );
-        // But fill in function pointers from the client side.
-        clientSideOptimizerConstructor();
-    }
-    Optimizer( OptimizerSystem& sys, OptimizerAlgorithm algorithm) {
-        // Perform construction of the OptimizerRep on the library side.
-        librarySideOptimizerConstructor(sys, algorithm);
-        // But fill in function pointers from the client side.
-        clientSideOptimizerConstructor();
-    }
+    Optimizer();
+    Optimizer( OptimizerSystem& sys);
+    Optimizer( OptimizerSystem& sys, OptimizerAlgorithm algorithm);
 
     ~Optimizer();
 
@@ -272,6 +263,9 @@ class SimTK_SIMMATH_EXPORT Optimizer  {
     void setMaxIterations( const int iter );
     void setLimitedMemoryHistory( const int history );
     void setDiagnosticsLevel( const int level ); 
+
+    void setOptimizerSystem( OptimizerSystem& sys  );
+    void setOptimizerSystem( OptimizerSystem& sys, OptimizerAlgorithm algorithm );
 
     bool setAdvancedStrOption( const char *option, const char *value );
     bool setAdvancedRealOption( const char *option, const Real value );

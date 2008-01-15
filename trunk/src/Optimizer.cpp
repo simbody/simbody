@@ -44,7 +44,32 @@ bool Optimizer::isAlgorithmAvailable(OptimizerAlgorithm algorithm) {
         default: return false;
     }
 }
+Optimizer::Optimizer( OptimizerSystem& sys) {
+    // Perform construction of the OptimizerRep on the library side.
+    librarySideOptimizerConstructor(sys, BestAvailiable );
+    // But fill in function pointers from the client side.
+    clientSideOptimizerConstructor();
+}
+Optimizer::Optimizer( OptimizerSystem& sys, OptimizerAlgorithm algorithm) {
+    // Perform construction of the OptimizerRep on the library side.
+    librarySideOptimizerConstructor(sys, algorithm);
+    // But fill in function pointers from the client side.
+    clientSideOptimizerConstructor();
+}
 
+Optimizer::Optimizer() {
+    rep = (OptimizerRep *) new DefaultOptimizer();
+}
+void Optimizer::setOptimizerSystem( OptimizerSystem& sys ) {
+    delete rep;
+    librarySideOptimizerConstructor( sys, BestAvailiable );
+    clientSideOptimizerConstructor();
+}
+void Optimizer::setOptimizerSystem( OptimizerSystem& sys, OptimizerAlgorithm algorithm ) {
+    delete rep;
+    librarySideOptimizerConstructor( sys, algorithm );
+    clientSideOptimizerConstructor();
+}
 void Optimizer::librarySideOptimizerConstructor( OptimizerSystem& sys, OptimizerAlgorithm algorithm ) {
  
     rep = 0;

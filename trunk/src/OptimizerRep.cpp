@@ -25,6 +25,11 @@
 #include "simmath/internal/OptimizerRep.h"
 
 namespace SimTK {
+    Real DefaultOptimizer::optimize(  Vector &results ) {
+        SimTK_APIARGCHECK_ALWAYS(false,"Optimizer","optimize",
+        "the OptimizerSystem has not been set \n");
+    }
+
     OptimizerRep::~OptimizerRep() {
 
         delete jacDiff;

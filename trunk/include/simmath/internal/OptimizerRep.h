@@ -90,6 +90,7 @@ public:
     {
        zeroFunctionPointers();
     }
+    OptimizerRep(){}
 
     static bool isAvailable() { return true; }
 
@@ -167,5 +168,8 @@ public:
     Optimizer* myHandle;   // The owner handle of this Rep.
     
 }; // end class OptimizerRep
+class DefaultOptimizer: public OptimizerRep {
+    Real optimize(  Vector &results );
+};
 } // namespace SimTK
 #endif  //_SimTK_OPTIMIZER_REP_H_

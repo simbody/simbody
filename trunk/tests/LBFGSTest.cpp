@@ -79,7 +79,11 @@ int main() {
       int returnValue = 0; // assume success
   try {
 
-    Optimizer opt( sys ); 
+    
+    Optimizer opt; 
+    //Optimizer opt( sys ); 
+
+    opt.setOptimizerSystem( sys );
 
 
     opt.setConvergenceTolerance( .0001 );
