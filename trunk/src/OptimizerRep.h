@@ -91,7 +91,24 @@ public:
     {
        zeroFunctionPointers();
     }
-    OptimizerRep(){}
+    OptimizerRep()
+       : sysp(0), 
+         myHandle(0), 
+         cf(0),
+         of(0),
+         jacDiff(0),
+         gradDiff(0),
+         convergenceTolerance(1e-4),
+         maxIterations(100),
+         limitedMemoryHistory(5),
+         diagnosticsLevel(0),
+         diffMethod(Differentiator::CentralDifference),
+         numericalGradient(false), 
+         numericalJacobian(false)
+
+    {
+       zeroFunctionPointers();
+    }
 
     static bool isAvailable() { return true; }
 
