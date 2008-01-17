@@ -811,7 +811,7 @@ void SimbodyMatterSubsystemRep::calcQUnitWeightsRecursively(const State& s, Stat
         const SBPositionCache& tempCache = getPositionCache(tempState);
         Transform deltaT = body.getX_GB(tempCache)*t;
         Real max = 0.0;
-        for (int j = 0; j < corners.size(); ++j) {
+        for (int j = 0; j < (int) corners.size(); ++j) {
             Real dist = (corners[j]-deltaT*corners[j]).norm();
             max = std::max(max, dist);
         }
@@ -869,7 +869,7 @@ void SimbodyMatterSubsystemRep::calcUUnitWeightsRecursively(const State& s, Stat
         const SBPositionCache& tempCache = getPositionCache(tempState);
         Transform deltaT = body.getX_GB(tempCache)*t;
         Real max = 0.0;
-        for (int j = 0; j < corners.size(); ++j) {
+        for (int j = 0; j < (int) corners.size(); ++j) {
             Real dist = (corners[j]-deltaT*corners[j]).norm();
             max = std::max(max, dist);
         }
