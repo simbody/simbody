@@ -31,6 +31,8 @@
 
 namespace SimTK {
 
+
+
 Optimizer::~Optimizer() {
    delete( (OptimizerRep *)rep );
 }
@@ -60,6 +62,7 @@ Optimizer::Optimizer( const OptimizerSystem& sys, OptimizerAlgorithm algorithm) 
 Optimizer::Optimizer() {
     rep = (OptimizerRep *) new DefaultOptimizer();
 }
+
 void Optimizer::setOptimizerSystem( const OptimizerSystem& sys ) {
     delete rep;
     librarySideOptimizerConstructor( sys, BestAvailiable );
@@ -70,6 +73,16 @@ void Optimizer::setOptimizerSystem( const OptimizerSystem& sys, OptimizerAlgorit
     librarySideOptimizerConstructor( sys, algorithm );
     clientSideOptimizerConstructor();
 }
+// copy constructor
+Optimizer::Optimizer( const Optimizer& c ) {
+    rep = c.rep->clone();
+}
+// copy assignment operator
+Optimizer& Optimizer::operator=(const Optimizer& rhs) {
+    rep = rhs.rep->clone();
+    return *this;
+}
+
 void Optimizer::librarySideOptimizerConstructor( const OptimizerSystem& sys, OptimizerAlgorithm algorithm ) {
  
     rep = 0;

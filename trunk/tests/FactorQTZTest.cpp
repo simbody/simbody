@@ -108,11 +108,24 @@ int main () {
 
         qtz.factor(a);
         qtz.solve( b, x );  // solve for x given a right hand side 
+  
+        printf("\n  Estimated rank = %d \n\n",qtz.getRank() );
+
 
 
         cout << " Overdetermined Double SOLUTION: " << x << "  errnorm=" << (x-x_right).norm() << endl;
 //        ASSERT((x-x_right).norm() < 10*SignificantReal);
         ASSERT((x-x_right).norm() < 0.001);
+
+        FactorQTZ qtzCopy( qtz );
+        Vector xc; // should get sized automatically to 5 by solve()
+        qtzCopy.solve(b, xc );
+        cout << " copy constructor SOLUTION:      " << xc << "  errnorm=" << (xc-x_right).norm() << endl;
+
+        FactorQTZ qtzAssign = qtz;
+        Vector xa; // should get sized automatically to 5 by solve()
+        qtzCopy.solve(b, xa );
+        cout << " copy assign SOLUTION:           " << xa << "  errnorm=" << (xa-x_right).norm() << endl;
 
         Matrix_<float> af(6,5); for (int i=0; i<6; ++i) for (int j=0; j<5; ++j) af(i,j)=(float)a(i,j);
         Vector_<float> bf(6); for (int i=0; i<6; ++i) bf[i] = (float)b[i];
@@ -122,7 +135,7 @@ int main () {
           qtz.factor(af);
           qtz.solve(bf,xf);
 
-        cout << " Overdetermined Float SOLUTION: " << xf << "  errnorm=" << (xf-xf_right).norm() << endl;
+        cout << " Overdetermined Float SOLUTION:  " << xf << "  errnorm=" << (xf-xf_right).norm() << endl;
         const float SignificantFloat = NTraits<float>::getSignificant();
         ASSERT((xf-xf_right).norm() < 0.001);
 
@@ -155,6 +168,16 @@ int main () {
         qtzfu.solve( bfu, xfu );  // solve for x given a right hand side
  
         cout << " Underdetermined Float SOLUTION: " << xfu << "  errnorm=" << (xfu-xfu_right).norm() << endl;
+
+Real C[4] = { 1.0,   2.0,
+              1.0,   3.0  };
+        Matrix c(2,2, C);
+        FactorQTZ cqtz(c);
+        Matrix invQTZ;
+        cqtz.inverse(invQTZ);
+        cout << " FactorQTZ.inverse : " << endl;
+        cout << invQTZ[0] << endl;
+        cout << invQTZ[1] << endl;
   
         return 0;
     } 

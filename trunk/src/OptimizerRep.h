@@ -105,6 +105,7 @@ public:
          diffMethod(Differentiator::CentralDifference),
          numericalGradient(false), 
          numericalJacobian(false)
+    virtual OptimizerRep* clone() const {};
 
     {
        zeroFunctionPointers();
@@ -190,6 +191,7 @@ public:
 }; // end class OptimizerRep
 class DefaultOptimizer: public OptimizerRep {
     Real optimize(  Vector &results );
+    OptimizerRep* clone() const;
 };
 } // namespace SimTK
 #endif  //_SimTK_OPTIMIZER_REP_H_

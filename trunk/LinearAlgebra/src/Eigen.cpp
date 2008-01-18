@@ -49,6 +49,10 @@ namespace SimTK {
 EigenDefault::EigenDefault() {
     isFactored = false;
 }
+EigenRepBase* EigenDefault::clone() const {
+    return( new EigenDefault(*this));
+}
+
 
    ///////////
    // Eigen //
@@ -64,6 +68,16 @@ template < class ELT >
 Eigen::Eigen( const Matrix_<ELT>& m ) {
     rep = new EigenRep<typename CNT<ELT>::StdNumber>(m); 
 }
+// copy constructor
+Eigen::Eigen( const Eigen& c ) {
+    rep = c.rep->clone();
+}
+// copy assignment operator
+Eigen& Eigen::operator=(const Eigen& rhs) {
+    rep = rhs.rep->clone();
+    return *this;
+}
+
 template < class ELT >
 void Eigen::factor( const Matrix_<ELT>& m ) {
     delete rep;
@@ -137,6 +151,12 @@ EigenRep<T>::EigenRep( const Matrix_<ELT>& mat):
     isFactored = true;
         
 }
+template <typename T >
+EigenRepBase* EigenRep<T>::clone() const {
+   return( new EigenRep<T>(*this) );
+}
+
+
 
 template <typename T >
 EigenRep<T>::~EigenRep() {}

@@ -44,11 +44,15 @@
 namespace SimTK {
 
    //////////////////////
-   // FactorQTZDefault //
+   // FactorLUDefault  //
    //////////////////////
 FactorLUDefault::FactorLUDefault() {
     isFactored = false;
 }
+FactorLURepBase* FactorLUDefault::clone() const {
+    return( new FactorLUDefault(*this));
+}
+
 
    ///////////////
    // FactorLU //
@@ -59,6 +63,21 @@ FactorLU::~FactorLU() {
 // default constructor
 FactorLU::FactorLU() {
     rep = new FactorLUDefault();
+}
+
+// copy constructor
+FactorLU::FactorLU( const FactorLU& c ) {
+    rep = c.rep->clone();
+}
+// copy assignment operator
+FactorLU& FactorLU::operator=(const FactorLU& rhs) {
+    rep = rhs.rep->clone();
+    return *this;
+}
+
+template <typename ELT>
+void FactorLU::inverse( Matrix_<ELT>& inverse ) const {
+    rep->inverse( inverse );
 }
 
 
@@ -126,41 +145,86 @@ template <typename T >
 FactorLURep<T>::FactorLURep( const Matrix_<ELT>& mat ) 
       : nRow( mat.nrow() ),
         nCol( mat.ncol() ),
+        mn( (mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol() ),
         positiveDefinite( false ),
         lu( mat.nrow()*mat.ncol() ),
-        pivots(mat.ncol())             { 
-        
+        structure(mat.getMatrixStructure() ),
+        condition(mat.getMatrixCondition() ),
+        shape(mat.getMatrixShape() ),
+        sparsity(mat.getMatrixSparsity() ),
+        storage(mat.getMatrixStorage() ),
+        pivots(mat.ncol())              { 
+
 	FactorLURep<T>::factor( mat );
 }
 template <typename T >
 FactorLURep<T>::FactorLURep() 
       : nRow(0),
         nCol(0),
+        mn(0),
         lu(0),
         pivots(0)             { 
         
 }
 template <typename T >
 FactorLURep<T>::~FactorLURep() {}
+ 
+template <typename T >
+FactorLURepBase* FactorLURep<T>::clone() const {
+   return( new FactorLURep<T>(*this) );
+}
+
+template < class T >
+void FactorLURep<T>::inverse(  Matrix_<T>& inverse ) const {
+    Matrix_<T> iden(mn,mn);
+    iden.resize(mn,mn);
+    iden = 1.0;
+    solve( iden, inverse );
+}
 
 template < class T >
 void FactorLURep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) const {
+
     SimTK_APIARGCHECK2_ALWAYS(b.size()==nRow,"FactorLU","solve",
        "number of rows in right hand side=%d does not match number of rows in original matrix=%d \n",
         b.size(), nRow );
 
     x.copyAssign(b);
-    LapackInterface::getrs<T>( false, nCol, 1, lu.data, pivots.data, &x(0));
+
+    if( structure == MatrixStructures::Symmetric ) {
+        if( condition == MatrixConditions::PositiveDefinite ) {
+            LapackInterface::potrs<T>( 'L', nCol, 1, lu.data,  &x(0) );
+        } else {
+            LapackInterface::sytrs<T>( 'L', nCol, 1, lu.data, pivots.data, &x(0) );
+        }
+    } else {
+        LapackInterface::getrs<T>( 'N', nCol, 1, lu.data, pivots.data, &x(0) );
+    }
+
     return;
 }
 template <typename T >
 void FactorLURep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) const {
+
     SimTK_APIARGCHECK2_ALWAYS(b.nrow()==nRow,"FactorLU","solve",
        "number of rows in right hand side=%d does not match number of rows in original matrix=%d \n",
         b.nrow(), nRow );
 
     x.copyAssign(b);
-    LapackInterface::getrs<T>( false, nCol, b.ncol(), lu.data, pivots.data, &x(0,0));
+
+
+    if( structure == MatrixStructures::Symmetric ) {
+        const char uplo = 'L';
+        if( condition == MatrixConditions::PositiveDefinite ) {
+            LapackInterface::potrs<T>( uplo, nCol, b.ncol(), lu.data,  &x(0,0) );
+        } else {
+            LapackInterface::sytrs<T>( uplo, nCol, b.ncol(), lu.data, pivots.data, &x(0,0) );
+        }
+    } else {
+        const char trans = 'N';
+        LapackInterface::getrs<T>( trans, nCol, b.ncol(), lu.data, pivots.data, &x(0,0) );
+    }
+
     return;
 }
 template <typename T >
@@ -236,15 +300,10 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
     int lda = nRow;
     int info;
 
-    MatrixStructures::Structure structure  = mat.getMatrixStructure();
-    MatrixShapes::Shape shape              = mat.getMatrixShape();
-    MatrixSparseFormats::Sparsity sparsity = mat.getMatrixSparsity();
-    MatrixStorageFormats::Storage storage  = mat.getMatrixStorage();
-    MatrixConditions::Condition condition  = mat.getMatrixCondition();
-
     if( structure == MatrixStructures::Symmetric ) {
         if( condition == MatrixConditions::PositiveDefinite ) {
             positiveDefinite = true; 
+/*
             if( storage == MatrixStorageFormats::Packed ) {
 //                LapackInterface::pptrf<ELT>( );     
             } else if( sparsity == MatrixSparseFormats::Banded ) {
@@ -252,19 +311,21 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
             } else if( structure == MatrixStructures::TriDiagonal ) {
 //    TODO             LapackInterface::pttrf<ELT>( );     
             } else {
-                int kl = nRow;  // TODO poperly set these
-                int ku = nCol;
-                LapackInterface::potrf<T>(nRow,nCol,kl,ku, lu.data, lda, pivots.data, info);     
+*/
+                char uplo = 'L';
+                LapackInterface::potrf<T>(uplo, nRow, lu.data, lda, info);     
                 if( info > 0 ) {
                     singularIndex = info;
                     SimTK_THROW2( SimTK::Exception::NotPositiveDefinite, 
                     getSingularIndex(), "FactorLU:LapackInterface::potrf" ); 
                 }
-            }
+ //           }
         }  else {
+/*
             if( storage == MatrixStorageFormats::Packed ) {
 //                LapackInterface::sptrf<ELT>();
             } else {
+*/
                 long workSize = nCol*LapackInterface::ilaenv<T>(1, "sytrf", "U", nCol, -1, -1, -1);
                 TypedWorkSpace<T>  work( workSize );
                 
@@ -274,22 +335,29 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
                     SimTK_THROW2( SimTK::Exception::SingularMatrix, 
                     getSingularIndex(), "FactorLU:LapackInterface::sytrf" ); 
                 }
-            }
+ //           }
         }
     } else {
+/*
         if( sparsity == MatrixSparseFormats::Banded ) {
 //    TODO          LapackInterface::gbtrf<T>(nRow, nCol kl, ku, lu.data, lda, pivots.data, info);
-        } else if( structure == MatrixStructures::Triangular ) {
+        } else if( structure == MatrixStructures::Tridiagonal ) {
 //             double *dl, *d, *du, *du2;
 //    TODO          LapackInterface::gttrf<T>(nRow, nCol, dl, d, du, du2, pivots.data, info);
+            if( info > 0 ) {
+                singularIndex = info;
+                SimTK_THROW2( SimTK::Exception::SingularMatrix, 
+                getSingularIndex(), "FactorLU:LapackInterface::gttrf" ); 
+            }
         } else {
+*/
             LapackInterface::getrf<T>(nRow, nCol, lu.data, lda, pivots.data, info);
             if( info > 0 ) {
                 singularIndex = info;
                 SimTK_THROW2( SimTK::Exception::SingularMatrix, 
                 getSingularIndex(), "FactorLU:LapackInterface::getrf" ); 
             }
-        }
+ //       }
     }
 
 }
@@ -373,5 +441,10 @@ template SimTK_SIMMATH_EXPORT void FactorLU::solve<float>(const Matrix_<float>&,
 template SimTK_SIMMATH_EXPORT void FactorLU::solve<double>(const Matrix_<double>&, Matrix_<double>&) const;
 template SimTK_SIMMATH_EXPORT void FactorLU::solve<std::complex<float> >(const Matrix_<std::complex<float> >&, Matrix_<std::complex<float> >&) const;
 template SimTK_SIMMATH_EXPORT void FactorLU::solve<std::complex<double> >(const Matrix_<std::complex<double> >&, Matrix_<std::complex<double> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorLU::inverse<float>(Matrix_<float>&) const;
+template SimTK_SIMMATH_EXPORT void FactorLU::inverse<double>(Matrix_<double>&) const;
+template SimTK_SIMMATH_EXPORT void FactorLU::inverse<std::complex<float> >(Matrix_<std::complex<float> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorLU::inverse<std::complex<double> >(Matrix_<std::complex<double> >&) const;
+
 
 } // namespace SimTK

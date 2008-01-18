@@ -83,6 +83,7 @@ public:
     static bool isAvailable();
 
     Real optimize(Vector &results);
+    OptimizerRep* clone() const;
 
 private:
     static void bindToCFSQPLibrary();

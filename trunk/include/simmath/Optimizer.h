@@ -253,6 +253,7 @@ class SimTK_SIMMATH_EXPORT Optimizer  {
     Optimizer( const OptimizerSystem& sys);
     Optimizer( const OptimizerSystem& sys, OptimizerAlgorithm algorithm);
 
+
     ~Optimizer();
 
     static bool isAlgorithmAvailable(OptimizerAlgorithm algorithm);
@@ -322,9 +323,8 @@ private:
     const OptimizerRep& getRep() const {assert(rep); return *rep;}
     OptimizerRep&       updRep()       {assert(rep); return *rep;}
 
-    // Suppress copy constructor and default assigment operator.
-    Optimizer(const Optimizer&);
-    Optimizer& operator=(const Optimizer&);
+    Optimizer( const Optimizer& c );
+    Optimizer& operator=(const Optimizer& rhs);
 
 }; // Class Optimizer
  

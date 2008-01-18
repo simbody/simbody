@@ -42,17 +42,199 @@ int LapackInterface::getLWork( double* work) { return( (int)work[0] ); }
 int LapackInterface::getLWork( std::complex<float>* work) { return( (int)work[0].real() ); }
 int LapackInterface::getLWork( std::complex<double>* work) { return( (int)work[0].real() ); }
 
+template <typename T> void LapackInterface::gelss( int m, int n,  int mn, int nrhs,
+           T* a, int lda, T* b, int ldb,  typename CNT<T>::TReal* s,
+           typename CNT<T>::TReal rcond, int& rank, int& info){ assert(false); }
 
-template <> void LapackInterface::getrs<double>
-    ( const bool transpose, const int ncol, const int nrhs, const double *lu, const int *pivots, double *b ) {
+template <> void LapackInterface::gelss<double>( int m, int n,  int mn, int nrhs,
+           double* a, int lda, double* b,  int ldb, double* s,
+           double rcond, int& rank, int& info){ 
+
+    double wsize[1];
+    dgelss_(m, n, nrhs, a, lda, b, ldb, s, rcond, rank, wsize, -1, info );
+
+    int lwork = (int)wsize[0];
+    TypedWorkSpace<double> work(lwork);
+
+    dgelss_(m, n, nrhs, a, lda, b, ldb, s, rcond, rank, work.data, lwork, info );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dgelss", info );
+    }
+}
+
+template <> void LapackInterface::gelss<float>( int m, int n,  int mn, int nrhs,
+           float* a, int lda, float* b, int ldb,   float* s,
+           float rcond, int& rank, int& info){ 
+
+    float wsize[1];
+    sgelss_(m, n, nrhs, a, lda, b, ldb, s, rcond, rank, wsize, -1, info );
+
+    int lwork = (int)wsize[0];
+    TypedWorkSpace<float> work(lwork);
+
+    sgelss_(m, n, nrhs, a, lda, b, ldb, s, rcond, rank, work.data, lwork, info );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "sgelss", info );
+    }
+}
+
+template <> void LapackInterface::gelss<std::complex<float> >( int m, int n,  int mn, int nrhs,
+           std::complex<float>* a, int lda, std::complex<float>* b,  int ldb, float* s,
+           float rcond, int& rank, int& info){ 
+
+    std::complex<float>  wsize[1];
+    TypedWorkSpace<float> rwork(5*mn);
+    cgelss_(m, n, nrhs, a, lda, b, ldb, s, rcond, rank, wsize, -1, rwork.data, info );
+
+    int lwork = (int)wsize[0].real();
+    TypedWorkSpace<std::complex<float> > work(lwork);
+
+    cgelss_(m, n, nrhs, a, lda, b, ldb, s, rcond, rank, work.data, lwork, rwork.data, info );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "cgelss", info );
+    }
+}
+
+template <> void LapackInterface::gelss<std::complex<double> >( int m, int n,  int mn, int nrhs,
+           std::complex<double>* a, int lda, std::complex<double>* b,  int ldb, double* s,
+           double rcond, int& rank, int& info){ 
+
+    TypedWorkSpace<double> rwork(5*mn);
+    std::complex<double>  wsize[1];
+    zgelss_(m, n, nrhs, a, lda, b, ldb, s, rcond, rank, wsize, -1, rwork.data, info );
+
+    int lwork = (int)wsize[0].real();
+    TypedWorkSpace<std::complex<double> > work(lwork);
+
+    zgelss_(m, n, nrhs, a, lda, b, ldb, s, rcond, rank, work.data, lwork, rwork.data, info );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zgelss", info );
+    }
+}
+
+
+template <> void LapackInterface::potrs<double>
+    ( char uplo, const int ncol, const int nrhs, const double *lu,  double *b ) {
 
     int info;
-    char trans;
-    
-    if( transpose ) 
-        trans = 'T';
-    else
-        trans = 'N';
+
+    dpotrs_(uplo, ncol, nrhs, lu, ncol, b, ncol, info, 1  );
+  
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dpotrs", info );
+    }
+
+    return;
+}
+
+template <> void LapackInterface::potrs<float>
+    ( char uplo, const int ncol, const int nrhs, const float *lu,  float *b ) {
+
+    int info;
+
+    spotrs_(uplo, ncol, nrhs, lu, ncol, b, ncol, info, 1  );
+  
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "spotrs", info );
+    }
+
+    return;
+}
+
+template <> void LapackInterface::potrs<std::complex<float> >
+    ( char uplo, const int ncol, const int nrhs, const std::complex<float>* lu,  std::complex<float>* b ) {
+
+    int info;
+
+    cpotrs_(uplo, ncol, nrhs, lu, ncol, b, ncol, info, 1  );
+  
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "cpotrs", info );
+    }
+
+    return;
+}
+
+template <> void LapackInterface::potrs<std::complex<double> >
+    ( char uplo, const int ncol, const int nrhs, const std::complex<double>* lu,  std::complex<double>* b ) {
+
+    int info;
+
+    zpotrs_(uplo, ncol, nrhs, lu, ncol, b, ncol, info, 1  );
+  
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zpotrs", info );
+    }
+
+    return;
+}
+template <> void LapackInterface::sytrs<double>
+// TODO fix SimTKlapack.h for const int* pivots    ( char trans,  const int ncol, const int nrhs, const double *lu, const int *pivots, double *b ) {
+( char trans,  const int ncol, const int nrhs, double *lu,  int *pivots, double *b ) {
+
+    int info;
+
+    dsytrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
+  
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dsytrs", info );
+    }
+
+    return;
+}
+
+template <> void LapackInterface::sytrs<float>
+// TODO    ( char trans, const int ncol, const int nrhs, const float *lu, const int *pivots, float *b ) {
+    ( char trans, const int ncol, const int nrhs, float *lu, int *pivots, float *b ) {
+
+    int info;
+
+    ssytrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
+  
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "ssytrs", info );
+    }
+
+    return;
+}
+
+template <> void LapackInterface::sytrs<std::complex<float> >
+// TODO    ( char trans, const int ncol, const int nrhs, const std::complex<float>* lu, const int *pivots, std::complex<float>* b ) {
+    ( char trans, const int ncol, const int nrhs, std::complex<float>* lu, int *pivots, std::complex<float>* b ) {
+
+    int info;
+
+    chetrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
+  
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "chetrs", info );
+    }
+    return;
+}
+
+
+template <> void LapackInterface::sytrs<std::complex<double> >
+// TODO    ( char trans, const int ncol, const int nrhs, const std::complex<double>* lu, const int *pivots, std::complex<double>* b ) {
+    ( char trans, const int ncol, const int nrhs, std::complex<double>* lu, int *pivots, std::complex<double>* b ) {
+
+    int info;
+
+    zhetrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
+  
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zhetrs", info );
+    }
+    return;
+}
+
+template <> void LapackInterface::getrs<double>
+    ( char trans, const int ncol, const int nrhs, const double *lu, const int *pivots, double *b ) {
+
+    int info;
 
     dgetrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
   
@@ -65,15 +247,9 @@ template <> void LapackInterface::getrs<double>
 
 
 template <> void LapackInterface::getrs<float>
-    ( const bool transpose, const int ncol, const int nrhs, const float *lu, const int *pivots, float *b ) {
+    ( char trans , const int ncol, const int nrhs, const float *lu, const int *pivots, float *b ) {
 
     int info;
-    char trans;
-
-    if( transpose ) 
-        trans = 'T';
-    else
-        trans = 'N';
 
     sgetrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
 
@@ -85,15 +261,9 @@ template <> void LapackInterface::getrs<float>
 }
 
 template <> void LapackInterface::getrs<complex<float> >
-    ( const bool transpose, const int ncol, const int nrhs, const std::complex<float> *lu, const int *pivots, complex<float> *b ) {
+    ( char trans, const int ncol, const int nrhs, const std::complex<float> *lu, const int *pivots, complex<float> *b ) {
 
     int info;
-    char trans;
-    
-    if( transpose ) 
-        trans = 'T';
-    else
-        trans = 'N';
 
     cgetrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
 
@@ -104,15 +274,9 @@ template <> void LapackInterface::getrs<complex<float> >
     return;
 }
 template <> void LapackInterface::getrs<complex<double> >
-    ( const bool transpose, const int ncol, const int nrhs, const complex<double> *lu, const int *pivots, complex<double> *b ) {
+    ( char trans, const int ncol, const int nrhs, const complex<double> *lu, const int *pivots, complex<double> *b ) {
 
     int info;
-    char trans;
-   
-    if( transpose ) 
-        trans = 'T';
-    else
-        trans = 'N';
 
     zgetrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
 
@@ -933,22 +1097,88 @@ void LapackInterface::laic1<std::complex<double> >(const int& job, const int& j,
 }
 
 template <>
-void LapackInterface::potrf<double>( const int m, const int n, const int kl, const int ku, double* lu, const int lda, int *pivots, int& info ) { assert(false); }
-template <>
-void LapackInterface::potrf<float>( const int m, const int n, const int kl, const int ku, float* lu, const int lda, int *pivots, int& info ) { assert(false); }
-template <>
-void LapackInterface::potrf<std::complex<double> >( const int m, const int n, const int kl, const int ku, std::complex<double>* lu, const int lda, int *pivots, int& info ) { assert(false); }
-template <>
-void LapackInterface::potrf<std::complex<float> >( const int m, const int n, const int kl, const int ku, std::complex<float>* lu, const int lda, int *pivots, int& info ) { assert(false); }
+void LapackInterface::potrf<double>( const char& uplo, const int n,  double* a, const int lda, int& info ) { 
 
+    dpotrf_(uplo, n, a, lda, info);
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dpotrf", info );
+    }
+
+    return;
+ }
+template <>
+void LapackInterface::potrf<float>( const char& uplo, const int n,  float* a, const int lda, int& info ) { 
+
+    spotrf_(uplo, n, a, lda, info);
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "spotrf", info );
+    }
+
+    return;
+ }
+template <>
+void LapackInterface::potrf<std::complex<double> >( const char& uplo, const int n,  std::complex<double>* a, const int lda, int& info ) { 
+
+    zpotrf_(uplo, n, a, lda, info);
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zpotrf", info );
+    }
+
+    return;
+ }
+template <>
+void LapackInterface::potrf<std::complex<float> >( const char& uplo, const int n,  std::complex<float>* a, const int lda, int& info ) { 
+
+    cpotrf_(uplo, n, a, lda, info);
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "cpotrf", info );
+    }
+
+    return;
+ }
 template <> 
-void LapackInterface::sytrf<float>( const char m, const int n, float* a,  const int lda, int *pivots, float* work, const int lwork, int& info ){ assert(false); }
+void LapackInterface::sytrf<float>( const char& uplo, const int n, float* a,  const int lda, int* pivots, float* work, const int lwork, int& info){ 
+
+    ssytrf_( uplo, n, a, lda, pivots, work, lwork, info );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "ssytrf", info );
+    }
+    return;
+}
 template <> 
-void LapackInterface::sytrf<double>( const char m, const int n, double* a,  const int lda, int *pivots, double* work, const int lwork, int& info ) { assert(false); }
+void LapackInterface::sytrf<double>( const char& uplo, const int n, double* a,  const int lda, int* pivots, double* work, const int lwork, int& info){ 
+
+    dsytrf_( uplo, n, a, lda, pivots, work, lwork, info );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dsytrf", info );
+    }
+    return;
+}
 template <> 
-void LapackInterface::sytrf<std::complex<float> >( const char m, const int n, std::complex<float>* a,  const int lda, int *pivots, std::complex<float>* work, const int lwork, int& info ) { assert(false); }
+void LapackInterface::sytrf<std::complex<double> >( const char& uplo, const int n, std::complex<double>* a,  const int lda, int* pivots, std::complex<double>* work, const int lwork, int& info){ 
+
+    zsytrf_( uplo, n, a, lda, pivots, work, lwork, info );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zsytrf", info );
+    }
+    return;
+}
 template <> 
-void LapackInterface::sytrf<std::complex<double> >( const char m, const int n, std::complex<double>* a,  const int lda, int *pivots, std::complex<double>* work, const int lwork, int& info ) { assert(false); }
+void LapackInterface::sytrf<std::complex<float> >( const char& uplo, const int n, std::complex<float>* a,  const int lda, int* pivots, std::complex<float>* work, const int lwork, int& info){ 
+
+    csytrf_( uplo, n, a, lda, pivots, work, lwork, info );
+
+    if( info < 0 ) {
+        SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "csytrf", info );
+    }
+    return;
+}
+template <typename T> 
+void LapackInterface::sytrf( const char& uplo, const int n, T* a,  const int lda, int *pivots, T* work, const int lwork, int& info ) { assert(false); }
 
 template <>
 int LapackInterface::ilaenv<double>( const int& ispec,  const char* name,  const char *opts, const int& n1, const int& n2, const int& n3, const int& n4 ) { 

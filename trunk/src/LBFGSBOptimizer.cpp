@@ -30,6 +30,11 @@ using std::cout;
 using std::endl;
 namespace SimTK {
 
+    OptimizerRep* LBFGSBOptimizer::clone() const {
+        return( new LBFGSBOptimizer(*this) );
+    }
+
+
      LBFGSBOptimizer::LBFGSBOptimizer( const OptimizerSystem& sys )
         : OptimizerRep( sys ),
           factr( 1.0e7) {

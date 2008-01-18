@@ -44,6 +44,7 @@ class LBFGSOptimizer: public OptimizerRep {
      LBFGSOptimizer(const OptimizerSystem& sys); 
 
      Real optimize(  SimTK::Vector &results );
+     OptimizerRep* clone() const;
      
      private:
      int         iprint[3];

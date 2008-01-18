@@ -29,6 +29,11 @@ using std::endl;
 
 namespace SimTK {
 
+    OptimizerRep* LBFGSOptimizer::clone() const {
+        return( new LBFGSOptimizer(*this) );
+    }
+
+
      LBFGSOptimizer::LBFGSOptimizer( const OptimizerSystem& sys )
         : OptimizerRep( sys ) ,
           xtol(1e-16)

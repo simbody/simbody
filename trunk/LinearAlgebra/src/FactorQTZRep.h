@@ -32,6 +32,7 @@ class FactorQTZRepBase {
 
     virtual ~FactorQTZRepBase(){};
 
+    virtual FactorQTZRepBase* clone() const {};
     virtual void solve( const Vector_<float>& b, Vector_<float>& x ) const {
         checkIfFactored();
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",
@@ -72,10 +73,27 @@ class FactorQTZRepBase {
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",
         "solve called with rhs of type complex<double>  which does not match type of original linear system \n");   
    }
+    virtual void inverse(  Matrix_<double>& inverse ) const {
+        SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","inverse",
+        "inverse(  <double> ) called with type that is inconsistant with the original matrix  \n");
+    }
+    virtual void inverse(  Matrix_<float>& inverse ) const {
+        SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","inverse",
+        "inverse(  <float> ) called with type that is inconsistant with the original matrix  \n");
+    }
+    virtual void inverse(  Matrix_<std::complex<float> >& inverse ) const {
+        SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","inverse",
+        "inverse(  std::complex<float> ) called with type that is inconsistant with the original matrix  \n");
+    }
+    virtual void inverse(  Matrix_<std::complex<double> >& inverse ) const {
+        SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","inverse",
+        "inverse(  std::complex<double> ) called with type that is inconsistant with the original matrix  \n");
+    }
+
 
    bool isFactored;
+   int rank;     // esitmated rank computed during factorization
 
-   private:
    void checkIfFactored()  const {
        if( !isFactored ) {
            SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",
@@ -90,21 +108,24 @@ class FactorQTZRepBase {
 
 class FactorQTZDefault : public FactorQTZRepBase {
    public:
-   FactorQTZDefault();
+	   FactorQTZDefault();
+	   FactorQTZRepBase* clone() const;
 };
 
 template <typename T>
 class FactorQTZRep : public FactorQTZRepBase {
    public:
-   template <class ELT> FactorQTZRep( const Matrix_<ELT>&  );
    template <class ELT> FactorQTZRep( const Matrix_<ELT>&, typename CNT<T>::TReal  );
    FactorQTZRep();
 
    ~FactorQTZRep();
 
    template < class ELT > void factor(const Matrix_<ELT>& ); 
+   void inverse( Matrix_<T>& ) const; 
    void solve( const Vector_<T>& b, Vector_<T>& x ) const;
    void solve( const Matrix_<T>& b, Matrix_<T>& x ) const;
+
+   FactorQTZRepBase* clone() const;
  
    private:
   
@@ -114,7 +135,6 @@ class FactorQTZRep : public FactorQTZRepBase {
    int maxmn;        // max of number of rows or columns
    int nRow;         // number of rows in original matrix
    int nCol;         // number of columns in original matrix
-   int rank;         // esitmated rank computed during factorization
    bool scaleLinSys; // true if matrix was scaled during factorization
    typename CNT<T>::TReal linSysScaleF; // scale factor applied to matrix 
    typename CNT<T>::TReal anrm;

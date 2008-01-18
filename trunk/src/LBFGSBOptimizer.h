@@ -42,8 +42,12 @@ class LBFGSBOptimizer: public OptimizerRep {
         delete [] nbd;
 
      }
+
      LBFGSBOptimizer(const OptimizerSystem& sys); 
+
      Real optimize(  Vector &results );
+     OptimizerRep* clone() const;
+
      int setulb_(int *n, int *m, Real *x, Real *l,
           Real *u, int *nbd, Real *f, Real *g,
           Real *factr, Real *pgtol, Real *wa, int *iwa,

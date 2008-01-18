@@ -52,6 +52,9 @@ static std::string applicationReturnStatusToString(int status) {
         default: return "Unknown Ipopt return status";
     }
 }
+OptimizerRep* InteriorPointOptimizer::clone() const {
+	return( new InteriorPointOptimizer(*this) );
+}
 
 // Assume by the time this constructor is called, the number of parameters and constraints has been finalized
 InteriorPointOptimizer::InteriorPointOptimizer( const OptimizerSystem& sys )

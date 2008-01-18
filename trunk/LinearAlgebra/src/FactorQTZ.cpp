@@ -41,8 +41,6 @@
 
 
 namespace SimTK {
-//  default for recipricol of the condition number 
-static const double DefaultRecpCondition = 0.01;
 static const double ZERO = 0.0;
 static const double ONE  = 1.0;
 
@@ -51,6 +49,9 @@ static const double ONE  = 1.0;
    //////////////////////
 FactorQTZDefault::FactorQTZDefault() {
     isFactored = false; 
+}
+FactorQTZRepBase* FactorQTZDefault::clone() const {
+    return( new FactorQTZDefault(*this));  
 }
 
    ///////////////
@@ -62,6 +63,20 @@ FactorQTZ::~FactorQTZ() {
 // default constructor
 FactorQTZ::FactorQTZ() {
     rep = new FactorQTZDefault();
+}
+// copy constructor
+FactorQTZ::FactorQTZ( const FactorQTZ& c ) {
+    rep = c.rep->clone();
+}
+// copy assignment operator
+FactorQTZ& FactorQTZ::operator=(const FactorQTZ& rhs) {
+    rep = rhs.rep->clone();
+    return *this;
+}
+
+template <typename ELT>
+void FactorQTZ::inverse( Matrix_<ELT>& inverse ) const {
+    rep->inverse( inverse );
 }
 template < class ELT >
 void FactorQTZ::factor( const Matrix_<ELT>& m ){
@@ -91,6 +106,9 @@ FactorQTZ::FactorQTZ( const Matrix_<ELT>& m, float rcond ) {
     rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, rcond); 
 }
 
+int FactorQTZ::getRank() const {
+    return(rep->rank);
+}
 template < typename ELT >
 void FactorQTZ::solve( const Vector_<ELT>& b, Vector_<ELT>& x ) const {
     rep->solve( b, x );
@@ -109,21 +127,21 @@ template <typename T >
 FactorQTZRep<T>::FactorQTZRep() 
       : nRow(0),
         nCol(0),
-        rank(0),
         qtz(0),
         pivots(0),
         mn(0),
         maxmn(0 ),
         tauGEQP3(0),
         tauORMQR(0),
-        scaleLinSys(false) { } 
+        scaleLinSys(false) { 
+     rank = 0;
+} 
 
 template <typename T >
     template < typename ELT >
 FactorQTZRep<T>::FactorQTZRep( const Matrix_<ELT>& mat, typename CNT<T>::TReal rc) 
       : nRow( mat.nrow() ),
         nCol( mat.ncol() ),
-        rank(0),
         qtz( mat.nrow()*mat.ncol() ),
         pivots(mat.ncol()),
         mn( (mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol() ),
@@ -132,10 +150,16 @@ FactorQTZRep<T>::FactorQTZRep( const Matrix_<ELT>& mat, typename CNT<T>::TReal r
         tauORMQR(mn),
         scaleLinSys(false)             { 
         
+        rank = 0;
         rcond = rc;
         for(int i=0;i<mat.ncol();i++) pivots.data[i] = 0;
 	FactorQTZRep<T>::factor( mat );
         isFactored = true;
+}
+
+template <typename T >
+FactorQTZRepBase* FactorQTZRep<T>::clone() const {
+   return( new FactorQTZRep<T>(*this) );
 }
 
 template <typename T >
@@ -252,6 +276,15 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) const {
         LapackInterface::lascl<T>('g', 0, 0, bnrm, rhsScaleF, nCol, x.ncol(), &x(0,0), 1, info);
     }
     
+    return;
+}
+template < class T >
+void FactorQTZRep<T>::inverse(  Matrix_<T>& inverse ) const {
+    Matrix_<T> iden(mn,mn);
+    inverse.resize(mn,mn);
+    iden = 1.0;
+    doSolve( iden, inverse );
+
     return;
 }
 
@@ -442,5 +475,9 @@ template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<float>(const Matrix_<float>&
 template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<double>(const Matrix_<double>&, Matrix_<double>&) const;
 template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<std::complex<float> >(const Matrix_<std::complex<float> >&, Matrix_<std::complex<float> >&) const;
 template SimTK_SIMMATH_EXPORT void FactorQTZ::solve<std::complex<double> >(const Matrix_<std::complex<double> >&, Matrix_<std::complex<double> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorQTZ::inverse<float>(Matrix_<float>&) const;
+template SimTK_SIMMATH_EXPORT void FactorQTZ::inverse<double>(Matrix_<double>&) const;
+template SimTK_SIMMATH_EXPORT void FactorQTZ::inverse<std::complex<float> >(Matrix_<std::complex<float> >&) const;
+template SimTK_SIMMATH_EXPORT void FactorQTZ::inverse<std::complex<double> >(Matrix_<std::complex<double> >&) const;
 
 } // namespace SimTK

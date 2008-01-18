@@ -32,6 +32,8 @@ class EigenRepBase {
 
     virtual ~EigenRepBase(){};
 
+    virtual EigenRepBase* clone() const {};
+
    virtual void getAllEigenValuesAndVectors( Vector_<float>& values, Matrix_<float>& vectors ){
        checkIfFactored( "getAllEigenValuesAndVectors" );
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValuesAndVectors",
@@ -240,6 +242,7 @@ class EigenRepBase {
 class EigenDefault : public EigenRepBase {
    public:
    EigenDefault();
+   EigenRepBase* clone() const;
 };
 
 
@@ -255,6 +258,7 @@ class EigenRep : public EigenRepBase {
     };
 
     ~EigenRep();
+    EigenRepBase* clone() const;
 
     typedef typename CNT<T>::TReal RType;
 //    template <class VAL, class VEC> void getAllEigenValuesAndVectors( Vector_<VAL>& values, Matrix_<VEC>& vectors);

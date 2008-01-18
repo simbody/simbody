@@ -58,6 +58,9 @@
 
 namespace SimTK {
 
+//  default for recipricol of the condition number
+static const double DefaultRecpCondition = 0.01;
+
 class SimTK_SIMMATH_EXPORT Factor {
 public:
 
@@ -66,10 +69,7 @@ public:
   template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x ) const;
   template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x ) const;
   
-// TODO Suppress copy constructor and default assigment operator.
-//  Factor(const Factor&);
-//  Factor& operator=(const Factor&);
-
+// TODO suppress implicit conversions ?
 //   explicit Factor(class FactorRep* r) : rep(r) { }
 
 }; // class Factor
@@ -82,6 +82,8 @@ class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
     ~FactorLU();
 
     FactorLU();
+    FactorLU( const FactorLU& c );
+    FactorLU& operator=(const FactorLU& rhs);
 
     template <class ELT> FactorLU( const Matrix_<ELT>& m );
     template <class ELT> void factor( const Matrix_<ELT>& m );
@@ -90,6 +92,7 @@ class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
 
     template <class ELT> void getL( Matrix_<ELT>& l ) const;
     template <class ELT> void getU( Matrix_<ELT>& u ) const;
+    template < class ELT > void inverse(  Matrix_<ELT>& m ) const;
 
     bool isSingular() const;
     int getSingularIndex() const;
@@ -112,6 +115,9 @@ class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
     ~FactorQTZ();
 
     FactorQTZ();
+    FactorQTZ( const FactorQTZ& c );
+    FactorQTZ& operator=(const FactorQTZ& rhs);
+
     template <typename ELT> FactorQTZ( const Matrix_<ELT>& m);
     template <typename ELT> FactorQTZ( const Matrix_<ELT>& m, double rcond );
     template <typename ELT> FactorQTZ( const Matrix_<ELT>& m, float rcond );
@@ -121,12 +127,10 @@ class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
     template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x ) const;
     template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x ) const;
 
-    template <class ELT> void getQ( Matrix_<ELT>& q ) const;
-    template <class ELT> void getT( Matrix_<ELT>& t ) const;
-    template <class ELT> void getZ( Matrix_<ELT>& z ) const;
+    template < class ELT > void inverse(  Matrix_<ELT>& m ) const;
 
     int getRank() const;
-    void setRank(int rank);
+//    void setRank(int rank);
     void setRecepricolConditionNumber( Real rcond ); 
 
     protected:
@@ -137,8 +141,11 @@ class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
 class SimTK_SIMMATH_EXPORT Eigen {
     public:
 
-    Eigen();
     ~Eigen();
+
+    Eigen();
+    Eigen( const Eigen& c );
+    Eigen& operator=(const Eigen& rhs);
 
     template <class ELT> Eigen( const Matrix_<ELT>& m );
     template <class ELT> void factor( const Matrix_<ELT>& m );
@@ -159,24 +166,35 @@ class SimTK_SIMMATH_EXPORT Eigen {
 
 }; // class Eigen
 
-class SimTK_SIMMATH_EXPORT FactorSVD {
+class SimTK_SIMMATH_EXPORT FactorSVD: public Factor {
     public:
 
-    FactorSVD();
     ~FactorSVD();
 
+    FactorSVD();
+    FactorSVD( const FactorSVD& c );
+    FactorSVD& operator=(const FactorSVD& rhs);
+
     template < class ELT > FactorSVD( const Matrix_<ELT>& m );
+    template < class ELT > FactorSVD( const Matrix_<ELT>& m, float rcond );
+    template < class ELT > FactorSVD( const Matrix_<ELT>& m, double rcond );
     template < class ELT > void factor( const Matrix_<ELT>& m );
+    template < class ELT > void factor( const Matrix_<ELT>& m, float rcond );
+    template < class ELT > void factor( const Matrix_<ELT>& m, double rcond );
+
     template < class T > void getSingularValuesAndVectors( Vector_<typename CNT<T>::TReal>& values, 
                               Matrix_<T>& leftVectors,  Matrix_<T>& rightVectors );
     template < class T > void getSingularValues( Vector_<T>& values);
+
+    int getRank();
+    template < class ELT > void inverse(  Matrix_<ELT>& m );
+    template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x );
+    template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x );
 
     protected:
     class FactorSVDRepBase *rep;
 
 }; // class FactorSVD
-template <class P>
-bool eigenValuesRightVectors( Matrix_<P> &m, Vector_< std::complex<P> > &eigenValues, Matrix_< std::complex<P> > &eigenVectors );
 
 } // namespace SimTK 
 

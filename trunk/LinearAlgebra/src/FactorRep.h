@@ -31,6 +31,7 @@ class FactorLURepBase {
     public:
 
     virtual ~FactorLURepBase(){};
+    virtual FactorLURepBase* clone() const {};
 
    virtual void solve( const Vector_<float>& b, Vector_<float>& x ) const {
        checkIfFactored("solve");
@@ -132,6 +133,20 @@ class FactorLURepBase {
        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","getD",
        " getD called with D of type complex<double>  which does not match type of original linear system \n");   
    }
+    virtual void inverse(  Matrix_<double>& inverse ) const{
+        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","inverse",         "inverse(  <double> ) called with type that is inconsistant with the original matrix  \n");
+    }
+    virtual void inverse(  Matrix_<float>& inverse ) const{
+        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","inverse",         "inverse(  <float> ) called with type that is inconsistant with the original matrix  \n");
+    }
+    virtual void inverse(  Matrix_<std::complex<float> >& inverse ) const{
+        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","inverse",         "inverse(  std::complex<float> ) called with type that is inconsistant with the original matrix  \n");
+    }
+    virtual void inverse(  Matrix_<std::complex<double> >& inverse ) const{
+        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","inverse",
+        "inverse(  std::complex<double> ) called with type that is inconsistant with the original matrix  \n");
+    }
+
    virtual bool isSingular() const{ return false;};
    virtual int getSingularIndex() const{ return 1; };
    virtual  Real getConditionNumber() const{ return 0.0;};
@@ -175,6 +190,8 @@ class FactorLURepBase {
 class FactorLUDefault : public FactorLURepBase {
    public:
    FactorLUDefault();
+   FactorLURepBase* clone() const;
+
 };
 
 template <typename T>
@@ -184,10 +201,12 @@ class FactorLURep : public FactorLURepBase {
    FactorLURep();
 
    ~FactorLURep();
+   FactorLURepBase* clone() const;
 
    template < class ELT > void factor(const Matrix_<ELT>& ); 
    void solve( const Vector_<T>& b, Vector_<T>& x ) const;
    void solve( const Matrix_<T>& b, Matrix_<T>& x ) const;
+   void inverse( Matrix_<T>& m ) const;
 
    void  getL( Matrix_<T>& l ) const; 
    void  getU( Matrix_<T>& u ) const;
@@ -205,10 +224,18 @@ class FactorLURep : public FactorLURepBase {
    bool positiveDefinite;
    int nRow;
    int nCol;
+   int mn;        // min(m,n)
    int LUtype;
    int singularIndex;
    int elementSize;
    int imagOffset;
+   MatrixStructures::Structure structure;
+   MatrixConditions::Condition condition; 
+   MatrixShapes::Shape shape;  
+   MatrixSparseFormats::Sparsity sparsity;
+   MatrixStorageFormats::Storage storage;
+
+
    TypedWorkSpace<int>  pivots;
    TypedWorkSpace<T>    lu;
 }; // end class FactorLURep

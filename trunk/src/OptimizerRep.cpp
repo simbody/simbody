@@ -25,6 +25,12 @@
 #include "OptimizerRep.h"
 
 namespace SimTK {
+    //////////////////////
+    // DefaultOptimizer //
+    //////////////////////
+    OptimizerRep* DefaultOptimizer::clone() const {
+        return( new DefaultOptimizer(*this));
+    }
     Real DefaultOptimizer::optimize(  Vector &results ) {
         SimTK_APIARGCHECK_ALWAYS(false,"Optimizer","optimize",
         "the OptimizerSystem has not been set \n");

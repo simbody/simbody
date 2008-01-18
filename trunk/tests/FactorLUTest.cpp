@@ -128,7 +128,15 @@ int main () {
         cout << " Real SOLUTION: " << x << "  errnorm=" << (x-x_right).norm() << endl;
         ASSERT((x-x_right).norm() < 10*SignificantReal);
         
-        return 0;
+Real C[4] = { 1.0,   2.0,
+              1.0,   3.0  };
+        Matrix c(2,2, C);
+        FactorLU clu(c);
+        Matrix invC;
+        clu.inverse(invC);
+        cout << "Inverse c: " << endl;
+        cout << invC[0] << endl;
+        cout << invC[1] << endl;
     } 
     catch (std::exception& e) {
         std::printf("FAILED: %s\n", e.what());

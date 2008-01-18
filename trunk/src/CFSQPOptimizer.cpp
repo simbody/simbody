@@ -81,6 +81,11 @@ CFSQPOptimizer::
     delete[] _c;
     delete[] _lambda;
 }
+
+OptimizerRep* CFSQPOptimizer::clone() const {
+    return( new CFSQPOptimizer(*this) );
+}
+
 //_____________________________________________________________________________
 CFSQPOptimizer::CFSQPOptimizer(const OptimizerSystem& sys)
     : OptimizerRep(sys)

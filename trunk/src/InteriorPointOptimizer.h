@@ -49,6 +49,7 @@ class InteriorPointOptimizer: public OptimizerRep {
 
      InteriorPointOptimizer(const OptimizerSystem& sys); 
      Real optimize(  Vector &results );
+     OptimizerRep* clone() const;
 
      private:
      Real         *mult_x_L;

@@ -33,7 +33,12 @@
 
 #include "SimTKcommon.h"
 #include "SimTKlapack.h"
+// TODO remove these once SimTKlapak.h is fixed
+extern "C" {
+extern void cgelss_(const int& m, const int& n, const int& nrhs, std::complex<float> *a, const int& lda, std::complex<float> *b, const int& ldb, float *s, const float& rcond, int& rank, std::complex<float> *work, const int& lwork, float *rwork, int& info);
+extern void zgelss_(const int& m, const int& n, const int& nrhs, std::complex<double> *a, const int& lda, std::complex<double> *b, const int& ldb, double *s, const double& rcond, int& rank, std::complex<double> *work, const int& lwork, double *rwork, int& info);
 
+}
 namespace SimTK {
 
 class LapackInterface { 
@@ -44,6 +49,11 @@ static int getLWork( float* work);
 static int getLWork( double* work);
 static int getLWork( std::complex<float>* work);
 static int getLWork( std::complex<double>* work);
+
+template <class T> static
+void gelss( int m, int n,  int mn, int nrhs, 
+           T* a, int lda, T* b,  int ldb, typename CNT<T>::TReal* s,
+           typename CNT<T>::TReal rcond, int& rank, int& info);
 
 template <class T> static
 void gesdd( char jobz, int m, int n, T* a, int lda, 
@@ -68,9 +78,17 @@ void syev( char jobz,  char uplo, int n, T* a_eigenVectors, int lda,
     typename CNT<T>::TReal* eigenValues, int& info );
 
 
-/* solve system of linear equations using the LU factorization  computed by getrf */
+/* solve system of linear equations using the LU factorization  */
 template <class T> static 
-void getrs( const bool transpose, const int ncol, const int nrhs, const T *lu, const int* pivots, T *b ); 
+void potrs( char uplo, const int ncol, const int nrhs, const T *lu,  T *b ); 
+
+template <class T> static 
+// TODO void sytrs( char uplo, const int ncol, const int nrhs, const T *lu, const int* pivots, T *b ); 
+void sytrs( char uplo, const int ncol, const int nrhs, T *lu, int* pivots, T *b ); 
+
+
+template <class T> static 
+void getrs( char trans, const int ncol, const int nrhs, const T *lu, const int* pivots, T *b ); 
 
 template <class T> static 
 void getrf( const int m, const int n, T *a, const int lda, int* pivots, int& info );
@@ -82,10 +100,10 @@ template <class T> static
 void gbtrf( const int m, const int n, const int kl, const int ku, T* lu, const int lda, int* pivots, int& info );
 
 template <class T> static 
-void potrf( const int m, const int n, const int kl, const int ku, T* lu, const int lda, int* pivots, int& info );
+void potrf( const char& uplo, const int n,  T* lu, const int lda, int& info );
 
 template <class T> static 
-void sytrf( const char m, const int n, T* a,  const int lda, int* pivots, T* work, const int lwork, int& info );
+void sytrf( const char& uplo, const int n, T* a,  const int lda, int* pivots, T* work, const int lwork, int& info );
 
 template <class T> static
 int ilaenv( const int& ispec,  const char* name,  const char* opts, const int& n1, const int& n2, const int& n3, const int& n4  );

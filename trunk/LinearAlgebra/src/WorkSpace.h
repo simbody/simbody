@@ -117,7 +117,31 @@ template <typename T>
 class TypedWorkSpace {
     public:
 
-    TypedWorkSpace( long n ) {
+    // copy constructor
+    TypedWorkSpace( const TypedWorkSpace& c ) {
+        size = c.size;
+
+        if( size == 0 ) {
+             data = 0;
+         } else {
+             data = new T[size];
+             for(int i=0;i<size;i++) data[i] = c.data[i];
+         }
+       
+    }
+    TypedWorkSpace& operator=(const TypedWorkSpace& rhs) {
+        
+        size = rhs.size;
+
+        if( size == 0 ) {
+             data = 0;
+         } else {
+             data = new T[size];
+             for(int i=0;i<size;i++) data[i] = rhs.data[i];
+         }
+         return *this;
+    }
+ TypedWorkSpace( long n ) {
         size = n;
         if( n == 0 ) {
             data = 0;
