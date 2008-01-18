@@ -214,6 +214,14 @@ public:
            (*this)(j) = src(j);
         return *this;
     }
+    // Convert a SymMat to a Mat.
+    explicit Mat(const SymMat<M, ELT>& src) {
+        for (int i = 0; i < M; ++i)
+            for (int j = 0; j <= i; ++j) {
+                (*this)(i, j) = src(i, j);
+                (*this)(j, i) = src(i, j);
+            }
+    }
 
     // We want an implicit conversion from a Mat of the same length
     // and element type but with different spacings.
@@ -750,6 +758,13 @@ public:
         Mat<M,N,ELT,M,1> m;
         m.setToNaN();
         return m;
+    }
+    
+    TRow sum() const {
+        TRow temp;
+        for (int i = 0; i < N; ++i)
+            temp[i] = col(i).sum();
+        return temp;
     }
 
 private:

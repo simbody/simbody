@@ -50,5 +50,6 @@
 // access to large matrix capabilities.
 #include "SimTKcommon/internal/BigMatrix.h"
 #include "SimTKcommon/internal/SmallDefsThatNeedBig.h"
+#include "SimTKcommon/internal/VectorMath.h"
 
 #endif // SimTK_SIMMATRIX_H_

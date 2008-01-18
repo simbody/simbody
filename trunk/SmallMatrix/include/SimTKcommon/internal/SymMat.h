@@ -565,6 +565,18 @@ public:
     // must be i < j
     const EHerm& getEltUpper(int i, int j) const {return getUpper()[lowerIx(j,i)];}
     EHerm&       updEltUpper(int i, int j)       {return updUpper()[lowerIx(j,i)];}
+    
+    TRow sum() const {
+        TRow temp(~getDiag());
+        for (int i = 1; i < M; ++i)
+            for (int j = 0; j < i; ++j) {
+                E value = getEltLower(i, j);;
+                temp[i] += value;
+                temp[j] += value;
+            }
+        return temp;
+    }
+
 private:
     E d[NActualElements];
 

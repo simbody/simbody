@@ -62,7 +62,7 @@ void PolynomialRootFinder::findRoots(const Vec<3,T>& coefficients, Vec<2,complex
             roots[1] = -root;
         }
         else {
-            T root = sqrt(-discriminant)/(T) 2.0*a;
+            T root = std::sqrt(-discriminant)/(T) 2.0*a;
             roots[0] = Complex(0.0, root);
             roots[1] = Complex(0.0, -root);
         }

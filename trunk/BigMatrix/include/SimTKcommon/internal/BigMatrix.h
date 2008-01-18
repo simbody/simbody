@@ -136,7 +136,9 @@ template <class T=Real> class RowVectorView_;
 template <class T=Real> class TmpRowVectorView_;
 template <class T=Real> class RowVector_;
 template <class T=Real> class DeadRowVector_;
- 
+
+template <class ELT, class VECTOR_CLASS> class VectorIterator;
+
 /**
  * Variable-size 2d matrix of Composite Numerical Type (ELT) elements. This is
  * a container of such elements, it is NOT a Composite Numerical Type itself.
@@ -766,7 +768,13 @@ public:
     }
 
 
-    ELT sum() const { ELT s; helper.sum(reinterpret_cast<Scalar*>(&s)); return s; } // add all the elements        
+    RowVectorBase<ELT> sum() const {
+        const int cols = ncol();
+        RowVectorBase<ELT> row(cols);
+        for (int i = 0; i < cols; ++i)
+            helper.colSum(i, reinterpret_cast<Scalar*>(&row[i]));
+        return row;
+    }
 
     //TODO: make unary +/- return a self-view so they won't reallocate?
     const MatrixBase& operator+() const {return *this; }
@@ -1078,6 +1086,14 @@ public:
 
     VectorBase& resize(int m)     {Base::resize(m,1); return *this;}
     VectorBase& resizeKeep(int m) {Base::resizeKeep(m,1); return *this;}
+
+    ELT sum() const {ELT s; Base::helper.sum(reinterpret_cast<Scalar*>(&s)); return s; } // add all the elements        
+    VectorIterator<ELT, VectorBase<ELT> > begin() {
+        return VectorIterator<ELT, VectorBase<ELT> >(*this, 0);
+    }
+    VectorIterator<ELT, VectorBase<ELT> > end() {
+        return VectorIterator<ELT, VectorBase<ELT> >(*this, size());
+    }
 private:
     // NO DATA MEMBERS ALLOWED
 };
@@ -1282,6 +1298,14 @@ public:
 
     RowVectorBase& resize(int n)     {Base::resize(1,n); return *this;}
     RowVectorBase& resizeKeep(int n) {Base::resizeKeep(1,n); return *this;}
+
+    ELT sum() const {ELT s; Base::helper.sum(reinterpret_cast<Scalar*>(&s)); return s; } // add all the elements        
+    VectorIterator<ELT, RowVectorBase<ELT> > begin() {
+        return VectorIterator<ELT, RowVectorBase<ELT> >(*this, 0);
+    }
+    VectorIterator<ELT, RowVectorBase<ELT> > end() {
+        return VectorIterator<ELT, RowVectorBase<ELT> >(*this, size());
+    }
 private:
     // NO DATA MEMBERS ALLOWED
 };
@@ -2264,6 +2288,90 @@ public:
 
     MatrixConditions::Condition condition;
 };
+
+/**
+ * This is an iterator for iterating over the elements of a matrix.
+ */
+
+template <class ELT, class VECTOR_CLASS>
+class VectorIterator {
+public:
+    typedef ELT value_type;
+    typedef int difference_type;
+    typedef ELT& reference;
+    typedef ELT* pointer;
+    typedef std::random_access_iterator_tag iterator_category;
+    VectorIterator(VECTOR_CLASS& vector, int index) : vector(vector), index(index) {
+    }
+    VectorIterator(const VectorIterator& iter) : vector(iter.vector), index(iter.index) {
+    }
+    VectorIterator& operator=(const VectorIterator& iter) {
+        vector = iter.vector;
+        index = iter.index;
+        return *this;
+    }
+    ELT& operator*() {
+        assert (index >= 0 && index < vector.size());
+        return vector[index];
+    }
+    ELT& operator[](int i) {
+        assert (i >= 0 && i < vector.size());
+        return vector[i];
+    }
+    VectorIterator operator++() {
+        assert (index < vector.size());
+        ++index;
+        return *this;
+    }
+    VectorIterator operator++(int) {
+        assert (index < vector.size());
+        VectorIterator current = *this;
+        ++index;
+        return current;
+    }
+    VectorIterator operator--() {
+        assert (index > 0);
+        --index;
+        return *this;
+    }
+    VectorIterator operator--(int) {
+        assert (index > 0);
+        VectorIterator current = *this;
+        --index;
+        return current;
+    }
+    bool operator<(VectorIterator iter) const {
+        return (index < iter.index);
+    }
+    bool operator>(VectorIterator iter) const {
+        return (index > iter.index);
+    }
+    bool operator<=(VectorIterator iter) const {
+        return (index <= iter.index);
+    }
+    bool operator>=(VectorIterator iter) const {
+        return (index >= iter.index);
+    }
+    int operator-(VectorIterator iter) const {
+        return (index - iter.index);
+    }
+    VectorIterator operator-(int n) const {
+        return VectorIterator(vector, index-n);
+    }
+    VectorIterator operator+(int n) const {
+        return VectorIterator(vector, index+n);
+    }
+    bool operator==(VectorIterator iter) const {
+        return (index == iter.index);
+    }
+    bool operator!=(VectorIterator iter) const {
+        return (index != iter.index);
+    }
+private:
+    VECTOR_CLASS& vector;
+    int index;
+};
+
 } //namespace SimTK
 
 #endif //SimTK_SIMMATRIX_BIGMATRIX_H_
