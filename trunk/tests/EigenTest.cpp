@@ -235,6 +235,7 @@ int main () {
             cout << computeVecf << "  errnorm=" << errnorm << endl;
             ASSERT( errnorm < 0.0001 );
         }
+/*
 //
 //         SYMMETRIC TESTS:
 //
@@ -263,7 +264,6 @@ int main () {
         Vector expectedSymVector; 
         Matrix expectedSymVectors(4,4,expectSymVecs );
         esym.getAllEigenValuesAndVectors( symValues, symVectors );  // solve for the eigenvalues and eigenvectors of the system 
-
         printf("\n *****  SYMMETRIC:  ***** \n\n"  );
 
         cout << " Real SOLUTION:  All Values and Vectors" << symValues << "  errnorm=" << absNorm(symValues,expectedSymValues) << endl;
@@ -288,7 +288,7 @@ int main () {
         efewr.getFewEigenValuesAndVectors( symValues, symVectors, -1.0, 1.0 );  
         cout << " Real SOLUTION:  Values/Vectors  between -1, 1 " << symValues << endl;
         for(int j=0;j<symVectors.ncol();j++)  cout << symVectors(j) <<  endl;
-       
+*/       
 
         return 0;
     } 

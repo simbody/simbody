@@ -105,12 +105,12 @@ public:
          diffMethod(Differentiator::CentralDifference),
          numericalGradient(false), 
          numericalJacobian(false)
-    virtual OptimizerRep* clone() const {};
 
     {
        zeroFunctionPointers();
     }
 
+    virtual OptimizerRep* clone() const {};
     static bool isAvailable() { return true; }
 
     virtual Real optimize(  Vector &results ) =  0;

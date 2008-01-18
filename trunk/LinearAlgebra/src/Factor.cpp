@@ -190,7 +190,7 @@ void FactorLURep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) const {
         b.size(), nRow );
 
     x.copyAssign(b);
-
+/*  TODO after 1.0
     if( structure == MatrixStructures::Symmetric ) {
         if( condition == MatrixConditions::PositiveDefinite ) {
             LapackInterface::potrs<T>( 'L', nCol, 1, lu.data,  &x(0) );
@@ -198,8 +198,9 @@ void FactorLURep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) const {
             LapackInterface::sytrs<T>( 'L', nCol, 1, lu.data, pivots.data, &x(0) );
         }
     } else {
+*/
         LapackInterface::getrs<T>( 'N', nCol, 1, lu.data, pivots.data, &x(0) );
-    }
+//    }
 
     return;
 }
@@ -212,7 +213,7 @@ void FactorLURep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) const {
 
     x.copyAssign(b);
 
-
+/* TODO after 1.0
     if( structure == MatrixStructures::Symmetric ) {
         const char uplo = 'L';
         if( condition == MatrixConditions::PositiveDefinite ) {
@@ -221,9 +222,10 @@ void FactorLURep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) const {
             LapackInterface::sytrs<T>( uplo, nCol, b.ncol(), lu.data, pivots.data, &x(0,0) );
         }
     } else {
+*/
         const char trans = 'N';
         LapackInterface::getrs<T>( trans, nCol, b.ncol(), lu.data, pivots.data, &x(0,0) );
-    }
+//    }
 
     return;
 }
@@ -300,10 +302,10 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
     int lda = nRow;
     int info;
 
+/*  TODO after 1.0
     if( structure == MatrixStructures::Symmetric ) {
         if( condition == MatrixConditions::PositiveDefinite ) {
             positiveDefinite = true; 
-/*
             if( storage == MatrixStorageFormats::Packed ) {
 //                LapackInterface::pptrf<ELT>( );     
             } else if( sparsity == MatrixSparseFormats::Banded ) {
@@ -311,7 +313,6 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
             } else if( structure == MatrixStructures::TriDiagonal ) {
 //    TODO             LapackInterface::pttrf<ELT>( );     
             } else {
-*/
                 char uplo = 'L';
                 LapackInterface::potrf<T>(uplo, nRow, lu.data, lda, info);     
                 if( info > 0 ) {
@@ -321,11 +322,11 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
                 }
  //           }
         }  else {
-/*
+
             if( storage == MatrixStorageFormats::Packed ) {
 //                LapackInterface::sptrf<ELT>();
             } else {
-*/
+
                 long workSize = nCol*LapackInterface::ilaenv<T>(1, "sytrf", "U", nCol, -1, -1, -1);
                 TypedWorkSpace<T>  work( workSize );
                 
@@ -338,7 +339,7 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
  //           }
         }
     } else {
-/*
+
         if( sparsity == MatrixSparseFormats::Banded ) {
 //    TODO          LapackInterface::gbtrf<T>(nRow, nCol kl, ku, lu.data, lda, pivots.data, info);
         } else if( structure == MatrixStructures::Tridiagonal ) {
@@ -358,7 +359,7 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
                 getSingularIndex(), "FactorLU:LapackInterface::getrf" ); 
             }
  //       }
-    }
+ //   }
 
 }
 

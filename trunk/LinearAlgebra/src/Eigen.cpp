@@ -248,6 +248,7 @@ void EigenRep<std::complex<float> >::copyVectors(Matrix_<std::complex<float> >& 
     int i,j;
 
     vectors.resize(n,valuesFound);
+/*
     if( structure ==  MatrixStructures::Symmetric ) {
         if( vectorsInMatrix ) {
             for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = inputMatrix.data[j*n+i];
@@ -255,15 +256,16 @@ void EigenRep<std::complex<float> >::copyVectors(Matrix_<std::complex<float> >& 
             for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = symmetricEigenVectors.data[j*n+i];
         }
     } else {
+*/
         for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = complexEigenVectors.data[j*n+i];
-    }
+//   }
     return;
 }
 template <>
    template <>
 void EigenRep<std::complex<double> >::copyVectors(Matrix_<std::complex<double> >& vectors) {
     int i,j;
-
+/*
     vectors.resize(n,valuesFound);
     if( structure ==  MatrixStructures::Symmetric ) {
         if( vectorsInMatrix ) {
@@ -272,8 +274,9 @@ void EigenRep<std::complex<double> >::copyVectors(Matrix_<std::complex<double> >
             for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = symmetricEigenVectors.data[j*n+i];
         }
     } else {
+*/
         for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = complexEigenVectors.data[j*n+i];
-    }
+ //   }
     return;
 }
 template <>
@@ -299,7 +302,7 @@ void EigenRep<T>::computeValues(bool computeVectors) {
     } 
     int computeLwork = -1;
     T size[1];
-
+/*
     if( structure ==  MatrixStructures::Symmetric ) {
          char useUpper = 'U'; // matrix is stored in upper triangle
          realEigenValues.resize(n);
@@ -339,6 +342,7 @@ void EigenRep<T>::computeValues(bool computeVectors) {
          }
 
     } else {
+*/
           complexEigenVectors.resize(n*n);
           complexEigenValues.resize(n);
 
@@ -368,7 +372,7 @@ void EigenRep<T>::computeValues(bool computeVectors) {
                "QR algorithm" );
           }
 
-    } 
+ //   } 
     // copy computed eigen values and eigen vectors into caller's arguements
     if( info != 0 ) {
          // TODO THROW EXCEPTION
@@ -705,13 +709,13 @@ template SimTK_SIMMATH_EXPORT Eigen::Eigen( const Matrix_<negator< std::complex<
 template SimTK_SIMMATH_EXPORT Eigen::Eigen( const Matrix_<negator< conjugate<float> > >& m );
 template SimTK_SIMMATH_EXPORT Eigen::Eigen( const Matrix_<negator< conjugate<double> > >& m );
 
-template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<float, float >(Vector_<float>&, Matrix_<float>& );
-template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<double, double >(Vector_<double>&, Matrix_<double>& );
-template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<float, std::complex<float> >(Vector_<float>&, Matrix_<std::complex<float> >& );
-template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<double, std::complex<double> >(Vector_<double>&, Matrix_<std::complex<double> >& );
+//template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<float, float >(Vector_<float>&, Matrix_<float>& );
+//template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<double, double >(Vector_<double>&, Matrix_<double>& );
+//template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<float, std::complex<float> >(Vector_<float>&, Matrix_<std::complex<float> >& );
+//template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<double, std::complex<double> >(Vector_<double>&, Matrix_<std::complex<double> >& );
 template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<std::complex<float>, std::complex<float> >(Vector_<std::complex<float> >&, Matrix_<std::complex<float> >& );
 template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValuesAndVectors<std::complex<double>, std::complex<double> >(Vector_<std::complex<double> >&, Matrix_<std::complex<double> >& );
-
+/*
 template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<float, float >(Vector_<float>&, Matrix_<float>&, int ilow, int ihi );
 template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<double, double >(Vector_<double>&, Matrix_<double>&, int ilow, int ihi );
 template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<float, std::complex<float> >(Vector_<float>&, Matrix_<std::complex<float> >&, int ilow, int ihi );
@@ -725,12 +729,13 @@ template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<float, std
 template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<double, std::complex<double> >(Vector_<double>&, Matrix_<std::complex<double> >&, double rlow, double rhi );
 template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<std::complex<float>, std::complex<float> >(Vector_<std::complex<float> >&, Matrix_<std::complex<float> >&, float rlow, float rhi );
 template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValuesAndVectors<std::complex<double>, std::complex<double> >(Vector_<std::complex<double> >&, Matrix_<std::complex<double> >&, double rlow, double rhi );
+*/
 
-template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValues<double>(Vector_<double>& );
-template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValues<float>(Vector_<float>& );
+//template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValues<double>(Vector_<double>& );
+//template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValues<float>(Vector_<float>& );
 template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValues<std::complex<double> >(Vector_<std::complex<double> >& );
 template SimTK_SIMMATH_EXPORT void Eigen::getAllEigenValues<std::complex<float> >(Vector_<std::complex<float> >& );
-
+/*
 template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValues<double>(Vector_<double>&, int ilow, int ihi);
 template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValues<float>(Vector_<float>&, int ilow, int ihi );
 template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenValues<std::complex<double> >(Vector_<std::complex<double> >&, int ilow, int ihi );
@@ -747,6 +752,7 @@ template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenVectors<std::complex<float>
 template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenVectors<double>(Matrix_<double>&, double rlow, double rhi);
 template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenVectors<float>(Matrix_<float>&, float rlow, float rhi );
 template SimTK_SIMMATH_EXPORT void Eigen::getFewEigenVectors<std::complex<double> >(Matrix_<std::complex<double> >&, double rlow, double rhi );
+*/
 
 template class EigenRep<double>;
 template EigenRep<double>::EigenRep( const Matrix_<double>& m);
