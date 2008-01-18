@@ -32,7 +32,7 @@ class FactorSVDRepBase {
 
     virtual ~FactorSVDRepBase(){};
 
-    virtual FactorSVDRepBase* clone() const {};
+    virtual FactorSVDRepBase* clone() const { return 0; };
 
 
     virtual void getSingularValues( Vector_<float>& values ){
@@ -129,6 +129,7 @@ class FactorSVDRepBase {
     }
     virtual int getRank() const {
        checkIfFactored( "getRank" );
+	   return(0);
     }
 
     void checkIfFactored(const char* function_name)  const {

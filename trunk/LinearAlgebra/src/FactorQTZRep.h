@@ -32,7 +32,7 @@ class FactorQTZRepBase {
 
     virtual ~FactorQTZRepBase(){};
 
-    virtual FactorQTZRepBase* clone() const {};
+    virtual FactorQTZRepBase* clone() const { return 0; };
     virtual void solve( const Vector_<float>& b, Vector_<float>& x ) const {
         checkIfFactored();
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",

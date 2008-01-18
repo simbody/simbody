@@ -294,7 +294,7 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
     /* compute initial function and gradient values */
     objectiveFuncWrapper( n, x, true, f, (void*)this );
     gradientFuncWrapper( n,  x, false, gradient, (void*)this );
-    gnorm = sqrt(ddot_(n, gradient, c__1, gradient, c__1));
+	gnorm = std::sqrt(ddot_(n, gradient, c__1, gradient, c__1));
     stp1 = 1. / gnorm;
 
     for (i = 0; i < n; ++i) {
@@ -472,8 +472,8 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
 /*     TERMINATION TEST */
 /*     ---------------- */
 
-       gnorm = sqrt(ddot_(n, gradient, c__1, gradient, c__1));
-       xnorm = sqrt(ddot_(n, x, c__1, x, c__1));
+	   gnorm = std::sqrt(ddot_(n, gradient, c__1, gradient, c__1));
+	   xnorm = std::sqrt(ddot_(n, x, c__1, x, c__1));
        xnorm = std::max(1.,xnorm);
        if (gnorm / xnorm <= *eps) {
            converged = true;

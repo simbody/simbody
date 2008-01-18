@@ -110,7 +110,7 @@ public:
        zeroFunctionPointers();
     }
 
-    virtual OptimizerRep* clone() const {};
+    virtual OptimizerRep* clone() const { return 0; };
     static bool isAvailable() { return true; }
 
     virtual Real optimize(  Vector &results ) =  0;

@@ -32,7 +32,7 @@ class EigenRepBase {
 
     virtual ~EigenRepBase(){};
 
-    virtual EigenRepBase* clone() const {};
+    virtual EigenRepBase* clone() const { return 0; };
 
    virtual void getAllEigenValuesAndVectors( Vector_<float>& values, Matrix_<float>& vectors ){
        checkIfFactored( "getAllEigenValuesAndVectors" );

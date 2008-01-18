@@ -31,7 +31,7 @@ class FactorLURepBase {
     public:
 
     virtual ~FactorLURepBase(){};
-    virtual FactorLURepBase* clone() const {};
+    virtual FactorLURepBase* clone() const { return 0; };
 
    virtual void solve( const Vector_<float>& b, Vector_<float>& x ) const {
        checkIfFactored("solve");
