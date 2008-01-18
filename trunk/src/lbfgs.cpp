@@ -76,7 +76,6 @@ static const integer c__1 = 1;
 
 #include "SimTKlapack.h"
 
-extern Real sqrt(Real); 
 
 static void mcstep_(Real *stx, Real *fx, Real *dx, Real *sty, Real *fy, Real *dy,
                     Real *stp, Real *fp, Real *dp, bool *brackt,
@@ -1006,7 +1005,7 @@ static void mcstep_(Real *stx, Real *fx, Real *dx, Real *sty, Real *fy, Real *dy
         theta = (*fx - *fp) * 3 / (*stp - *stx) + *dx + *dp;
         s = std::max(std::max(std::abs(theta),std::abs(*dx)),std::abs(*dp));
         d__1 = theta / s;
-        gamma = s * sqrt(d__1 * d__1 - *dx / s * (*dp / s));
+        gamma = s * std::sqrt(d__1 * d__1 - *dx / s * (*dp / s));
         if (*stp < *stx) {
             gamma = -gamma;
         }
@@ -1033,7 +1032,7 @@ static void mcstep_(Real *stx, Real *fx, Real *dx, Real *sty, Real *fy, Real *dy
         theta = (*fx - *fp) * 3 / (*stp - *stx) + *dx + *dp;
         s = std::max(std::max(std::abs(theta),std::abs(*dx)),std::abs(*dp));
         d__1 = theta / s;
-        gamma = s * sqrt(d__1 * d__1 - *dx / s * (*dp / s));
+        gamma = s * std::sqrt(d__1 * d__1 - *dx / s * (*dp / s));
         if (*stp > *stx) {
             gamma = -gamma;
         }
@@ -1069,7 +1068,7 @@ static void mcstep_(Real *stx, Real *fx, Real *dx, Real *sty, Real *fy, Real *dy
 
         d__1 = theta / s;
         d__1 = d__1 * d__1 - *dx / s * (*dp / s);
-        gamma = s * sqrt((std::max(0.,d__1)));
+        gamma = s * std::sqrt((std::max(0.,d__1)));
         if (*stp > *stx) {
             gamma = -gamma;
         }
@@ -1110,7 +1109,7 @@ static void mcstep_(Real *stx, Real *fx, Real *dx, Real *sty, Real *fy, Real *dy
             theta = (*fp - *fy) * 3 / (*sty - *stp) + *dy + *dp;
             s = std::max(std::max(std::abs(theta),std::abs(*dy)),std::abs(*dp));
             d__1 = theta / s;
-            gamma = s * sqrt(d__1 * d__1 - *dy / s * (*dp / s));
+            gamma = s * std::sqrt(d__1 * d__1 - *dy / s * (*dp / s));
             if (*stp > *sty) {
                 gamma = -gamma;
             }

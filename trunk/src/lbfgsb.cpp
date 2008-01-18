@@ -333,7 +333,7 @@ int *col, Real *v, Real *p, int *info)
 /*         solve D^(1/2)p1=v1. */
     i__1 = *col;
     for (i__ = 1; i__ <= i__1; ++i__) {
-    p[i__] = v[i__] / sqrt(sy[i__ + i__ * sy_dim1]);
+    p[i__] = v[i__] / std::sqrt(sy[i__ + i__ * sy_dim1]);
 /* L30: */
     }
 /*     PART II: solve [ -D^(1/2)   D^(-1/2)*L'  ] [ p1 ] = [ p1 ] */
@@ -347,7 +347,7 @@ int *col, Real *v, Real *p, int *info)
 /*                 =-D^(-1/2)p1+D^(-1)L'p2. */
     i__1 = *col;
     for (i__ = 1; i__ <= i__1; ++i__) {
-    p[i__] = -p[i__] / sqrt(sy[i__ + i__ * sy_dim1]);
+    p[i__] = -p[i__] / std::sqrt(sy[i__ + i__ * sy_dim1]);
 /* L40: */
     }
     i__1 = *col;
@@ -1964,7 +1964,7 @@ Real *dsave, ftnlen task_len, ftnlen csave_len)
     goto L556;
     }
     *dtd = ddot_(nr, &d__[1], (const int&)c__1, &d__[1], (const int&)c__1);
-    *dnorm = sqrt(*dtd);
+    *dnorm = std::sqrt(*dtd);
 /*     Determine the maximum step length. */
     *stpmx = 1e10;
     if (*cnstnd) {
@@ -3604,7 +3604,7 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
     s = std::max(d__1,d__2);
 /* Computing 2nd power */
     d__1 = theta / s;
-    gamma = s * sqrt(d__1 * d__1 - *dx / s * (*dp / s));
+    gamma = s * std::sqrt(d__1 * d__1 - *dx / s * (*dp / s));
     if (*stp < *stx) {
         gamma = -gamma;
     }
@@ -3633,7 +3633,7 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
     s = std::max(d__1,d__2);
 /* Computing 2nd power */
     d__1 = theta / s;
-    gamma = s * sqrt(d__1 * d__1 - *dx / s * (*dp / s));
+    gamma = s * std::sqrt(d__1 * d__1 - *dx / s * (*dp / s));
     if (*stp > *stx) {
         gamma = -gamma;
     }
@@ -3667,7 +3667,7 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
 /* Computing 2nd power */
     d__3 = theta / s;
     d__1 = 0., d__2 = d__3 * d__3 - *dx / s * (*dp / s);
-    gamma = s * sqrt((std::max(d__1,d__2)));
+    gamma = s * std::sqrt((std::max(d__1,d__2)));
     if (*stp > *stx) {
         gamma = -gamma;
     }
@@ -3727,7 +3727,7 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
         s = std::max(d__1,d__2);
 /* Computing 2nd power */
         d__1 = theta / s;
-        gamma = s * sqrt(d__1 * d__1 - *dy / s * (*dp / s));
+        gamma = s * std::sqrt(d__1 * d__1 - *dy / s * (*dp / s));
         if (*stp > *sty) {
         gamma = -gamma;
         }

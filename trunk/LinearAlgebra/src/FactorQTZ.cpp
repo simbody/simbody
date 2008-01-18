@@ -215,6 +215,8 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) const {
     typename CNT<T>::TReal rhsScaleF; // scale factor applied to right hand side
     bool scaleRHS = false; // true if right hand side should be scaled
 
+    if( rank == 0 ) return;
+
     // compute size of workspace 
     // for dormqr, dormrz:  lwork = n*nb
     long lwork1 = n*LapackInterface::ilaenv<T>(1, "ormqr", "LT ", nRow, b.ncol(), -1, -1);

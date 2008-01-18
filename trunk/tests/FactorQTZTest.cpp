@@ -169,7 +169,7 @@ int main () {
  
         cout << " Underdetermined Float SOLUTION: " << xfu << "  errnorm=" << (xfu-xfu_right).norm() << endl;
 
-Real C[4] = { 1.0,   2.0,
+       Real C[4] = { 1.0,   2.0,
               1.0,   3.0  };
         Matrix c(2,2, C);
         FactorQTZ cqtz(c);
@@ -179,6 +179,25 @@ Real C[4] = { 1.0,   2.0,
         cout << invQTZ[0] << endl;
         cout << invQTZ[1] << endl;
   
+        Real Z[4] = { 0.0,   0.0,
+                     0.0,   0.0  };
+
+        Matrix z(2,2, Z);
+        FactorQTZ zqtz(z);
+        Vector_<double> xz;
+        Vector_<double> bz(2);
+        bz(1) = bz(0) = 0.0;
+        zqtz.solve( bz, xz );
+        cout << " solve with mat all zeros : " << endl;
+        for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
+
+        Matrix_<double> z0;
+        FactorQTZ z0qtz(z0);
+        Vector_<double> bz0(0);
+        z0qtz.solve( bz0, xz );
+        cout << " solve with mat(0,0) : " << endl;
+        for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
+
         return 0;
     } 
     catch (std::exception& e) {
