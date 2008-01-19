@@ -137,6 +137,27 @@ Real C[4] = { 1.0,   2.0,
         cout << "Inverse c: " << endl;
         cout << invC[0] << endl;
         cout << invC[1] << endl;
+        Real Z[4] = { 0.0,   0.0,
+                     0.0,   0.0  };
+        try {
+            Matrix z(2,2, Z);
+            FactorLU zlu(z);
+            Vector_<double> xz;
+            Vector_<double> bz(2);
+            bz(1) = bz(0) = 0.0;
+            zlu.solve( bz, xz );
+            cout << " solve with mat all zeros : " << endl;
+            for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
+   
+            Matrix_<double> z0;
+            FactorLU z0lu(z0);
+            Vector_<double> bz0(0);
+            z0lu.solve( bz0, xz );
+            cout << " solve with mat(0,0) : " << endl;
+            for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
+        } catch ( SimTK::Exception::SingularMatrix cptn ) {
+             cout << "NULL matrix test " << cptn.getMessage() << '\n';
+        }
     } 
     catch (std::exception& e) {
         std::printf("FAILED: %s\n", e.what());

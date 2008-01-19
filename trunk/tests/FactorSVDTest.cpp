@@ -145,7 +145,54 @@ int main () {
              printf("\n");
          }
 
+       Real C[4] = { 1.0,   2.0,
+              1.0,   3.0  };
+
+        Matrix c(2,2, C);
+        FactorSVD csvd(c);
+        Matrix invSVD;
+        csvd.inverse(invSVD);
+        cout << " FactorSVD.inverse : " << endl;
+        cout << invSVD[0] << endl;
+        cout << invSVD[1] << endl;
+
+        Real Z[4] = { 0.0,   0.0,
+                     0.0,   0.0  };
+
+        Matrix z(2,2, Z);
+        FactorSVD zsvd(z);
+        Vector_<double> xz;
+        Vector_<double> bz(2);
+        bz(1) = bz(0) = 0.0;
+        zsvd.solve( bz, xz );
+        cout << " solve with mat all zeros : " << endl;
+        for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
+
+        Matrix_<double> z0;
+        FactorSVD z0svd(z0);
+        Vector_<double> bz0(0);
+        z0svd.solve( bz0, xz );
+        cout << " solve with mat(0,0) : " << endl;
+        for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
+
          
+        cout << " SVD factorization with mat(0,0) : " << endl;
+        FactorSVD z0fsvd(z0);
+        z0fsvd.getSingularValuesAndVectors( singularValues, leftVectors, rightVectors );  // solve for the singular values  
+        cout << " Real SOLUTION: " << singularValues <<  endl;
+
+         printf("Left Vectors = \n");
+         for(i=0;i<leftVectors.ncol();i++) {
+             for(j=0;j<leftVectors.nrow();j++)  printf("%f  ",leftVectors(i,j) );
+             printf("\n");
+         }
+
+             
+         printf("Right Vectors = \n");
+         for(i=0;i<rightVectors.ncol();i++) {
+             for(j=0;j<rightVectors.nrow();j++)  printf("%f  ",rightVectors(i,j) );
+             printf("\n");
+         }
 
         return 0;
     } 

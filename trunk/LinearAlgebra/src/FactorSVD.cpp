@@ -193,14 +193,19 @@ void FactorSVDRep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) {
        "number of rows in right hand side=%d does not match number of rows in original matrix=%d \n",
         b.size(), nRow );
 
-    Matrix_<T> m(maxmn,1);
+    if( inputMatrix.size == 0 || b.size() == 0 ) {
+        x.resize(0);
+    } else { 
 
-    for(int i=0;i<b.size();i++) {
-        m(i,0) = b(i);
+        Matrix_<T> m(maxmn,1);
+
+        for(int i=0;i<b.size();i++) {
+            m(i,0) = b(i);
+        }
+        Matrix_<T> r(nCol, 1 );
+        doSolve( m, r );
+        x.copyAssign(r);
     }
-    Matrix_<T> r(nCol, 1 );
-    doSolve( m, r );
-    x.copyAssign(r);
     return;
 
 }
@@ -215,11 +220,15 @@ void FactorSVDRep<T>::solve( const Matrix_<T>& b, Matrix_<T> &x ) {
        "number of rows in right hand side=%d does not match number of rows in original matrix=%d \n",
         b.size(), nRow );
 
-    x.resize( nCol, b.ncol() );
-    Matrix_<T> tb;
-    tb.resize(maxmn, b.ncol() );
-    for(int j=0;j<b.ncol();j++) for(int i=0;i<b.nrow();i++) tb(i,j) = b(i,j);
-    doSolve(tb, x);
+    if( inputMatrix.size == 0 || b.size() == 0 ) {
+        x.resize(0,0);
+    } else { 
+        x.resize( nCol, b.ncol() );
+        Matrix_<T> tb;
+        tb.resize(maxmn, b.ncol() );
+        for(int j=0;j<b.ncol();j++) for(int i=0;i<b.nrow();i++) tb(i,j) = b(i,j);
+        doSolve(tb, x);
+    }
 
 
 }
@@ -229,6 +238,8 @@ void FactorSVDRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) {
     int i,j;
     int info;
     typedef typename CNT<T>::TReal RealType;
+
+    if( b.size() == 0 || inputMatrix.size == 0) return;
 
     TypedWorkSpace<T> tempMatrix = inputMatrix;
 
@@ -254,9 +265,16 @@ template < class T >
 void FactorSVDRep<T>::getSingularValuesAndVectors( Vector_<RType>& values,  Matrix_<T>& leftVectors, Matrix_<T>& rightVectors ) {
    
 
-    leftVectors.resize(nRow,nRow);
-    rightVectors.resize(nCol,nCol);
-    values.resize(mn);
+    if( inputMatrix.size == 0 ) {
+        leftVectors.resize(0,0);
+        rightVectors.resize(0,0);
+        values.resize(0);
+        return;
+    } else {
+        leftVectors.resize(nRow,nRow);
+        rightVectors.resize(nCol,nCol);
+        values.resize(mn);
+    }
 
     computeSVD( true, &values(0), &leftVectors(0,0), &rightVectors(0,0) );
 
@@ -265,7 +283,12 @@ void FactorSVDRep<T>::getSingularValuesAndVectors( Vector_<RType>& values,  Matr
 template < class T >
 void FactorSVDRep<T>::getSingularValues( Vector_<RType>& values ) {
 
-    values.resize(mn);
+    if( inputMatrix.size == 0 ) {
+        values.resize(0);
+        return;
+    } else {
+        values.resize(mn);
+    }
 
     computeSVD( false, &values(0), NULL, NULL );
 
@@ -276,6 +299,7 @@ void FactorSVDRep<T>::computeSVD( bool computeVectors, RType* values, T* leftVec
 
     int info;
     char jobz;
+
 
     if( computeVectors ) {
         jobz = 'A';
