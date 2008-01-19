@@ -250,7 +250,7 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
             continue; // There are no stations whose positions are affected by this.
         vector<MobilizedBodyId> originalBodyIds;
         int currentBodyIndex = findBodiesForClonedSystem(body.getMobilizedBodyId(), numStations, matter, children, originalBodyIds);
-        if (currentBodyIndex == (int) originalBodyIds.size()-1 && stations[id].size() == 0)
+        if (currentBodyIndex == (int) originalBodyIds.size()-1 && stations[bodyIndex[id]].size() == 0)
             continue; // There are no stations whose positions are affected by this.
         MultibodySystem copy;
         vector<MobilizedBodyId> copyBodyIds;
