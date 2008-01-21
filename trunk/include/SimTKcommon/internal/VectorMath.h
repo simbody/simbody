@@ -35,6 +35,9 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 
+#include <cmath>     // for std:sin, sqrt, etc.
+#include <algorithm> // for std:sort, nth_element, etc.
+
 /**
  * This file defines a large number of standard math functions that can be applied to vectors and
  * matrices (both the large matrix and small matrix classes).
