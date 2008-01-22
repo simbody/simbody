@@ -285,7 +285,7 @@ try {
     cout << "q=" << s.getQ() << endl;
     cout << "body frame: " << bodyConfig;
 
-    pend.enforcePositionConstraints(s, 1e-3, 1e-10);
+    pend.projectQConstraints(s, 1e-3, Vector(), Vector(), Vector(), System::ProjectOptions::All);
     mbs.realize(s, Stage::Position);
 
     cout << "-------> STATE after realize(Position):" << s;
