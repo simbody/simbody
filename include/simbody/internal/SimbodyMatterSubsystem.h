@@ -63,12 +63,12 @@ class Constraint;
  *     G=[V]  b=[bv]  f=T+J*(F-C)
  *       [A]    [ba]
  *
- * a(t,q,u,udot) = A udot - ba(t,q,u) = 0
- *          vdot = V udot - bv(t,q,u) = 0
  *       pdotdot = P udot - bp(t,q,u) = 0
+ *          vdot = V udot - bv(t,q,u) = 0
+ * a(t,q,u,udot) = A udot - ba(t,q,u) = 0
  *           
- *                           v(t,q,u) = 0
  *                pdot = P u - c(t,q) = 0
+ *                           v(t,q,u) = 0
  *
  *                             p(t,q) = 0
  *                               n(q) = 0                  @endverbatim
@@ -107,7 +107,7 @@ class Constraint;
  *
  * When working in a weighted norm with weights W on the state variables and
  * weights T (1/tolerance) on the constraint errors, the matrices we need are
- * actually [T PQ^1 Wq^1], [T [P;V] Wu^-1], etc. with T and W diagonal
+ * actually [Tp PQ^1 Wq^1], [Tpv [P;V] Wu^-1], etc. with T and W diagonal
  * weighting matrices. These can then be used to find least squares solutions
  * in the weighted norms.
  *
@@ -321,16 +321,6 @@ public:
     /// This is an O(N) operator since QInv is block diagonal.
     void multiplyByQMatrixInverse(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const;
 
-    // Constraint projections.
-
-    /// Project position coordinates (q's) so that they satisfy their 
-    /// constraints to at least tol.
-    void enforcePositionConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
-
-    /// Project velocity coordinates (u's) so that they satisfy their
-    /// constraints to at least tol.
-    void enforceVelocityConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
-
     // These are available after realizeTopology().
 
     /// The number of bodies includes all rigid bodies, massless
@@ -490,10 +480,11 @@ public:
 
     /// This is a solver you can call after the State has been realized
     /// to stage Position. It will project the Q constraints
-    /// along the error norm so that getQConstraintNorm() <= tol, and will
-    /// project out the corresponding component of y_err so that y_err's Q norm
-    /// is reduced. Returns true if it does anything at all to State or y_err.
-    bool projectQConstraints(State&, Vector& y_err, Real tol, Real targetTol) const;
+    /// along the error norm so that getQConstraintNorm() <= consAccuracy, and will
+    /// project out the corresponding component of yErrest so that yErrest's Q norm
+    /// is reduced. Returns true if it does anything at all to State or yErrest.
+    bool projectQConstraints(State& s, Real consAccuracy, const Vector& yWeights,
+							 const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
 
         // VELOCITY STAGE responses //
 
@@ -503,10 +494,11 @@ public:
 
     /// This is a solver you can call after the State has been realized
     /// to stage Velocity. It will project the U constraints
-    /// along the error norm so that getUConstraintNorm() <= tol, and will
-    /// project out the corresponding component of y_err so that y_err's U norm
-    /// is reduced.
-    bool projectUConstraints(State&, Vector& y_err, Real tol, Real targetTol) const;
+    /// along the error norm so that getUConstraintNorm() <= consAccuracy, and will
+    /// project out the corresponding component of yErrest so that yErrest's U norm
+    /// is reduced. Returns true if it does anything at all to State or yErrest.
+    bool projectUConstraints(State& s, Real consAccuracy, const Vector& yWeights,
+							 const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
 
         // ACCELERATION STAGE reponses
 
