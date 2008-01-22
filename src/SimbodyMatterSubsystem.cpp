@@ -249,11 +249,6 @@ int SimbodyMatterSubsystem::getQuaternionIndex(const State& s, MobilizedBodyId b
     return getRep().getQuaternionIndex(s, body);
 }
 
-void SimbodyMatterSubsystem::enforcePositionConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
-  { getRep().enforcePositionConstraints(s, requiredTol, desiredTol); }
-void SimbodyMatterSubsystem::enforceVelocityConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
-  { getRep().enforceVelocityConstraints(s, requiredTol, desiredTol); }
-
 const SpatialVec&
 SimbodyMatterSubsystem::getCoriolisAcceleration(const State& s, MobilizedBodyId body) const {
     return getRep().getCoriolisAcceleration(s,body);
@@ -328,11 +323,15 @@ Vector_<Vec3>& SimbodyMatterSubsystem::updAllParticleVelocities(State& s) const 
     return getRep().updAllParticleVelocities(s);
 }
 
-bool SimbodyMatterSubsystem::projectQConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const { 
-    return getRep().projectQConstraints(s,y_err,tol,targetTol); 
+bool SimbodyMatterSubsystem::projectQConstraints(State& s, Real consAccuracy, const Vector& yWeights,
+                                                 const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
+{ 
+    return getRep().projectQConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts); 
 }
-bool SimbodyMatterSubsystem::projectUConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const { 
-    return getRep().projectUConstraints(s,y_err,tol,targetTol); 
+bool SimbodyMatterSubsystem::projectUConstraints(State& s, Real consAccuracy, const Vector& yWeights,
+												 const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
+{ 
+    return getRep().projectUConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts); 
 }
 
 /// Calculate the total system mass.
