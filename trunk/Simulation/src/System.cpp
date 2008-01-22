@@ -102,6 +102,18 @@ void System::adoptSystemGuts(System::Guts* g) {
 const String& System::getName()    const {return getSystemGuts().getName();}
 const String& System::getVersion() const {return getSystemGuts().getVersion();}
 
+void System::resetAllCountersToZero() {updSystemGuts().updRep().resetAllCounters();}
+long System::getNumRealizationsOfThisStage(Stage g) const {return getSystemGuts().getRep().nRealizationsOfStage[g];}
+long System::getNumRealizeCalls() const {return getSystemGuts().getRep().nRealizeCalls;}
+long System::getNumQProjections() const {return getSystemGuts().getRep().nQProjections;}
+long System::getNumUProjections() const {return getSystemGuts().getRep().nUProjections;} 
+long System::getNumQErrorEstimateProjections() const {return getSystemGuts().getRep().nQErrEstProjections;}
+long System::getNumUErrorEstimateProjections() const {return getSystemGuts().getRep().nUErrEstProjections;}
+long System::getNumProjectCalls() const {return getSystemGuts().getRep().nProjectCalls;}
+long System::getNumHandlerCallsThatChangedStage(Stage g) const {return getSystemGuts().getRep().nHandlerCallsThatChangedStage[g];}
+long System::getNumHandleEventCalls() const {return getSystemGuts().getRep().nHandleEventsCalls;}
+long System::getNumReportEventCalls() const {return getSystemGuts().getRep().nReportEventsCalls;}
+
 const State& System::getDefaultState() const {return getSystemGuts().getDefaultState();}
 State& System::updDefaultState() {return updSystemGuts().updDefaultState();}
 
@@ -139,8 +151,8 @@ Real System::calcTimescale(const State& s) const {return getSystemGuts().calcTim
 void System::calcYUnitWeights(const State& s, Vector& weights) const
   { getSystemGuts().calcYUnitWeights(s,weights); }
 void System::project(State& s, Real consAccuracy, const Vector& yweights,
-                     const Vector& ootols, Vector& yerrest, bool velocityOnly) const
-  { getSystemGuts().project(s,consAccuracy,yweights,ootols,yerrest, velocityOnly); }
+                     const Vector& ootols, Vector& yerrest, System::ProjectOptions opts) const
+  { getSystemGuts().project(s,consAccuracy,yweights,ootols,yerrest, opts); }
 void System::calcYErrUnitTolerances(const State& s, Vector& tolerances) const
   { getSystemGuts().calcYErrUnitTolerances(s,tolerances); }
 void System::handleEvents(State& s, EventCause cause, const std::vector<int>& eventIds,
@@ -347,6 +359,8 @@ const State& System::Guts::realizeTopology() const {
         // Now realize the default state to the highest Stage.
         // TODO: this is problematic if the default state is not a valid one.
         //realize(defaultState, Stage::HighestValid);
+
+        getRep().nRealizationsOfStage[Stage::Topology]++; // mutable counter
     }
     return defaultState;
 }
@@ -364,6 +378,8 @@ void System::Guts::realizeModel(State& s) const {
             if (getRep().subsystems[i].getStage(s) < Stage::Model)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemModel(s);
         s.advanceSystemToStage(Stage::Model);
+
+        getRep().nRealizationsOfStage[Stage::Model]++; // mutable counter
     }
 }
 void System::Guts::realizeInstance(const State& s) const {
@@ -376,6 +392,8 @@ void System::Guts::realizeInstance(const State& s) const {
             if (getRep().subsystems[i].getStage(s) < Stage::Instance)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemInstance(s);
         s.advanceSystemToStage(Stage::Instance);
+
+        getRep().nRealizationsOfStage[Stage::Instance]++; // mutable counter
     }
 }
 void System::Guts::realizeTime(const State& s) const {
@@ -389,6 +407,8 @@ void System::Guts::realizeTime(const State& s) const {
             if (getRep().subsystems[i].getStage(s) < Stage::Time)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemTime(s);
         s.advanceSystemToStage(Stage::Time);
+
+        getRep().nRealizationsOfStage[Stage::Time]++; // mutable counter
     }
 }
 void System::Guts::realizePosition(const State& s) const {
@@ -402,6 +422,8 @@ void System::Guts::realizePosition(const State& s) const {
             if (getRep().subsystems[i].getStage(s) < Stage::Position)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemPosition(s);
         s.advanceSystemToStage(Stage::Position);
+
+        getRep().nRealizationsOfStage[Stage::Position]++; // mutable counter
     }
 }
 void System::Guts::realizeVelocity(const State& s) const {
@@ -415,6 +437,8 @@ void System::Guts::realizeVelocity(const State& s) const {
             if (getRep().subsystems[i].getStage(s) < Stage::Velocity)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemVelocity(s);
         s.advanceSystemToStage(Stage::Velocity);
+
+        getRep().nRealizationsOfStage[Stage::Velocity]++; // mutable counter
     }
 }
 void System::Guts::realizeDynamics(const State& s) const {
@@ -428,6 +452,8 @@ void System::Guts::realizeDynamics(const State& s) const {
             if (getRep().subsystems[i].getStage(s) < Stage::Dynamics)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemDynamics(s);
         s.advanceSystemToStage(Stage::Dynamics);
+
+        getRep().nRealizationsOfStage[Stage::Dynamics]++; // mutable counter
     }
 }
 void System::Guts::realizeAcceleration(const State& s) const {
@@ -441,6 +467,8 @@ void System::Guts::realizeAcceleration(const State& s) const {
             if (getRep().subsystems[i].getStage(s) < Stage::Acceleration)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemAcceleration(s);
         s.advanceSystemToStage(Stage::Acceleration);
+
+        getRep().nRealizationsOfStage[Stage::Acceleration]++; // mutable counter
     }
 }
 void System::Guts::realizeReport(const State& s) const {
@@ -454,6 +482,8 @@ void System::Guts::realizeReport(const State& s) const {
             if (getRep().subsystems[i].getStage(s) < Stage::Report)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemReport(s);
         s.advanceSystemToStage(Stage::Report);
+
+        getRep().nRealizationsOfStage[Stage::Report]++; // mutable counter
     }
 }
 
@@ -476,11 +506,17 @@ void System::Guts::calcYErrUnitTolerances(const State& s, Vector& tolerances) co
 }
 
 void System::Guts::project(State& s, Real consAccuracy, const Vector& yweights,
-                     const Vector& ootols, Vector& yerrest, bool velocityOnly) const
+                           const Vector& ootols, Vector& yerrest, System::ProjectOptions opts) const
 {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Instance, // TODO: is this the right stage?
         "System::Guts::project()");
-    getRep().projectp(*this,s,consAccuracy,yweights,ootols,yerrest,velocityOnly);
+    getRep().projectp(*this,s,consAccuracy,yweights,ootols,yerrest,opts);
+
+    getRep().nProjectCalls++; // mutable counter
+    if (opts&ProjectOptions::Q) getRep().nQProjections++;
+    if (opts&ProjectOptions::U) getRep().nUProjections++;
+    if (opts&ProjectOptions::QError) getRep().nQErrEstProjections++;
+    if (opts&ProjectOptions::UError) getRep().nUErrEstProjections++;
 }
 
 void System::Guts::handleEvents
@@ -493,6 +529,10 @@ void System::Guts::handleEvents
     const Real savedTime = s.getTime();
     getRep().handleEventsp(*this,s,cause,eventIds,accuracy,yWeights,ooConstraintTols,
                      lowestModified, shouldTerminate);
+
+    getRep().nHandleEventsCalls++; // mutable counters
+    getRep().nHandlerCallsThatChangedStage[lowestModified]++;
+
     SimTK_ASSERT_ALWAYS(s.getTime() == savedTime,
         "System::Guts::handleEvents(): handleEventsImpl() tried to change the time");
 }
@@ -504,6 +544,9 @@ void System::Guts::reportEvents
         "System::Guts::reportEvents()");
     const Real savedTime = s.getTime();
     getRep().reportEventsp(*this,s,cause,eventIds);
+
+    getRep().nReportEventsCalls++; // mutable counter
+    getRep().nHandlerCallsThatChangedStage[Stage::Report]++;
 }
 
 void System::Guts::calcTimeOfNextScheduledEvent
@@ -615,7 +658,7 @@ int System::Guts::calcYUnitWeightsImpl(const State& s, Vector& weights) const {
 }
 
 int System::Guts::projectImpl(State&, Real consAccuracy, const Vector& yweights,
-                        const Vector& ootols, Vector& yerrest, bool velocityOnly) const
+                              const Vector& ootols, Vector& yerrest, System::ProjectOptions) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod, "System", "project"); 
     return std::numeric_limits<int>::min();

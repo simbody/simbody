@@ -107,6 +107,102 @@ public:
     const String& getVersion() const;
 
 
+    class ProjectOptions {
+        unsigned long optionSet;
+        explicit ProjectOptions(unsigned int o) : optionSet(o) { }
+    public:
+
+        enum Option {
+            None   = 0x00,
+
+            Q      = 0x01,
+            U      = 0x02,
+            QError = 0x04,
+            UError = 0x08,
+
+            PositionOnly = (Q|QError),
+            VelocityOnly = (U|UError),
+            All          = (PositionOnly|VelocityOnly)
+        };
+
+        ProjectOptions() : optionSet(0) { }
+
+        // This is an implicit conversion
+        ProjectOptions(Option opt) : optionSet((unsigned long)opt) { }
+
+        // Implicit conversion to bool when needed
+        operator bool() const {return optionSet != 0;}
+        bool hasAnyPositionOptions() const {return (optionSet&(unsigned long)PositionOnly) != 0;}
+        bool hasAnyVelocityOptions() const {return (optionSet&(unsigned long)VelocityOnly) != 0;}
+        bool isEmpty() const {return optionSet==0;}
+
+        bool isOptionSet(Option opt) const {return (optionSet&(unsigned long)opt) != 0;}
+        void clear() {optionSet=0;}
+        void clearOption(Option opt) {optionSet &= ~(unsigned long)opt;}
+        void setOption  (Option opt) {optionSet |= (unsigned long)opt;}
+
+        // Set operators: not, or, and, set difference
+        ProjectOptions operator~() const {return ProjectOptions( (~optionSet) & (unsigned long)All );}
+        ProjectOptions& operator|=(ProjectOptions opts) {optionSet |= opts.optionSet; return *this;}
+        ProjectOptions& operator&=(ProjectOptions opts) {optionSet &= opts.optionSet; return *this;}
+        ProjectOptions& operator-=(ProjectOptions opts) {optionSet &= ~opts.optionSet; return *this;}
+
+        ProjectOptions& operator|=(Option opt) {setOption(opt); return *this;}
+        ProjectOptions& operator-=(Option opt) {clearOption(opt); return *this;}
+    };
+
+        ////////////////
+        // STATISTICS //
+        ////////////////
+
+    /// The System keeps mutable statistics internally, initialized to zero
+    /// at construction. These cannot affect
+    /// results in any way. Although the stats are mutable, we only allow
+    /// them to be reset by a caller who has write access since setting the
+    /// stats to zero is associated with construction.
+    void resetAllCountersToZero();
+
+        // Realization
+
+    /// Whenever the system was realized from Stage-1 to the indicated Stage,
+    /// this counter is bumped. Note that a single call to realize() can 
+    /// cause several counters to get bumped.
+    long getNumRealizationsOfThisStage(Stage) const;
+
+    /// Return the total number of calls to realizeTopology(), realizeModel(),
+    /// or realize(), regardless of whether these routines actually did
+    /// anything when called.
+    long getNumRealizeCalls() const;
+
+        // Projection
+
+    /// Count the number of times we call project() with a particular
+    /// option set.
+    long getNumQProjections() const;
+    long getNumUProjections() const;
+    long getNumQErrorEstimateProjections() const;
+    long getNumUErrorEstimateProjections() const;
+
+    /// Return the total number of calls to project(), regardless of
+    /// whether the call did anything.
+    long getNumProjectCalls() const;
+
+        // Event handling and reporting
+
+    /// handleEvents() reports the lowest Stage it modified and we bump
+    /// the counter for that Stage. We also count reportEvents() calls here
+    /// as having "changed" Stage::Report.
+    long getNumHandlerCallsThatChangedStage(Stage) const;
+
+    /// This is the total number of calls to handleEvents() regardless
+    /// of the outcome.
+    long getNumHandleEventCalls() const;
+
+    /// This is the total number of calls to reportEvents() regardless
+    /// of the outcome.
+    long getNumReportEventCalls() const;
+
+
         /////////////////
         // REALIZATION //
         /////////////////
@@ -228,7 +324,7 @@ public:
     /// It is assumed that the positions already satisfy the constraints,
     /// and the State has already been realized to at least Stage::Position.
     void project(State&, Real consAccuracy, const Vector& yweights,
-                 const Vector& ootols, Vector& yerrest, bool velocityOnly=false) const;
+                 const Vector& ootols, Vector& yerrest, ProjectOptions=ProjectOptions::All) const;
 
     /// This provides scaling information for each of the position and velocity
     /// constraints (YErr) in the State. The tolerance is the absolute error in the
@@ -413,6 +509,17 @@ public:
 private:
     class EventTriggerInfoRep;
 };
+
+inline static System::ProjectOptions operator|(System::ProjectOptions::Option  o1,    System::ProjectOptions::Option o2)    {return System::ProjectOptions(o1) |= o2;}
+inline static System::ProjectOptions operator|(System::ProjectOptions          opts,  System::ProjectOptions::Option o)     {return opts |= o;}
+inline static System::ProjectOptions operator|(System::ProjectOptions::Option  o,     System::ProjectOptions         opts)  {return opts |= o;}
+inline static System::ProjectOptions operator&(System::ProjectOptions::Option  o1,    System::ProjectOptions::Option o2)    {return System::ProjectOptions(o1) &= o2;}
+inline static System::ProjectOptions operator&(System::ProjectOptions          opts,  System::ProjectOptions::Option o)     {return opts &= o;}
+inline static System::ProjectOptions operator&(System::ProjectOptions::Option  o,     System::ProjectOptions         opts)  {return opts &= o;}
+inline static System::ProjectOptions operator~(System::ProjectOptions::Option  o)                                           {return ~System::ProjectOptions(o);}
+inline static System::ProjectOptions operator-(System::ProjectOptions          opts,  System::ProjectOptions::Option o)     {return opts -= o;}
+inline static System::ProjectOptions operator-(System::ProjectOptions          opts1, System::ProjectOptions         opts2) {return opts1 -= opts2;}
+
 
 
 /// This class is used to communicate between the System and an 

@@ -115,33 +115,38 @@ int main() {
         matrix[1][0] = 4;
         matrix[1][1] = -5;
         matrix[1][2] = 6;
-        Mat<2,3> mat = Mat<2,3>(-1, 2, -3, 4, -5, 6);
+        Mat<2,3> mat = Mat<2,3>(-1,  2, -3, 
+                                 4, -5,  6);
         Real temp[] = {-1, 2, -3};
         SymMat<2> symmat = SymMat<2>(temp);
         
         // Test the abs function.
         
         Vec5 expectedVec = Vec5(1, 2, 3, 4, 5);
-        Mat<2,3> expectedMat = Mat<2,3>(1, 2, 3, 4, 5, 6);
+        Mat<2,3> expectedMat = Mat<2,3>(1, 2, 3, 
+                                        4, 5, 6);
         testVector(abs(vector), expectedVec);
         testVector(abs(rowvector), expectedVec);
         testVector(abs(vec), expectedVec);
         testVector(abs(row), expectedVec);
         testMatrix<Matrix,2,3>(abs(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(abs(mat), expectedMat);
-        testSymMat(abs(symmat), SymMat<2>(Mat22(1, 2, 2, 3)));
+        testSymMat(abs(symmat), SymMat<2>(Mat22(1, 2, 
+                                                2, 3)));
         
         // Test the exp function.
         
         expectedVec = Vec5(exp(-1), exp(2), exp(-3), exp(4), exp(-5));
-        expectedMat = Mat<2,3>(exp(-1), exp(2), exp(-3), exp(4), exp(-5), exp(6));
+        expectedMat = Mat<2,3>(exp(-1), exp( 2), exp(-3), 
+                               exp( 4), exp(-5), exp( 6));
         testVector(exp(vector), expectedVec);
         testVector(exp(rowvector), expectedVec);
         testVector(exp(vec), expectedVec);
         testVector(exp(row), expectedVec);
         testMatrix<Matrix,2,3>(exp(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(exp(mat), expectedMat);
-        testSymMat(exp(symmat), SymMat<2>(Mat22(exp(-1), exp(2), exp(2), exp(-3))));
+        testSymMat(exp(symmat), SymMat<2>(Mat22(exp(-1), exp( 2), 
+                                                exp( 2), exp(-3))));
         
         // Test the log function.
         

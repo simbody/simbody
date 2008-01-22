@@ -58,12 +58,15 @@ public:
         systemTopologyRealized(false), hasTimeAdvancedEventsFlag(false)
     {
         clearAllFunctionPointers();
+        resetAllCounters();
     }
     GutsRep(const String& name, const String& version) 
       : systemName(name), systemVersion(version), 
         myHandle(0),
         systemTopologyRealized(false), hasTimeAdvancedEventsFlag(false)
     {
+        clearAllFunctionPointers();
+        resetAllCounters();
     }
 
     GutsRep(const GutsRep& src) {
@@ -74,6 +77,8 @@ public:
         copyAllFunctionPointers(src);
         hasTimeAdvancedEventsFlag = src.hasTimeAdvancedEventsFlag;
         systemTopologyRealized = false;
+
+        resetAllCounters();
     }
 
 
@@ -234,6 +239,26 @@ private:
 
     // This is only meaningful if systemTopologyRealized==true.
     mutable State defaultState;
+
+        // STATISTICS //
+    mutable long nRealizationsOfStage[Stage::NValid];
+    mutable long nRealizeCalls; // counts realizeTopology(), realizeModel(), realize()
+
+    mutable long nQProjections, nUProjections;
+    mutable long nQErrEstProjections, nUErrEstProjections;
+    mutable long nProjectCalls;
+
+    mutable long nHandlerCallsThatChangedStage[Stage::NValid];
+    mutable long nHandleEventsCalls;
+    mutable long nReportEventsCalls;
+
+    void resetAllCounters() {
+        for (int i=0; i<Stage::NValid; ++i)
+            nRealizationsOfStage[i] = nHandlerCallsThatChangedStage[i] = 0;
+        nRealizeCalls = nProjectCalls = nHandleEventsCalls = nReportEventsCalls = 0;
+        nQProjections = nUProjections = 0;
+        nQErrEstProjections = nUErrEstProjections = 0;
+    }
 
 };
 
