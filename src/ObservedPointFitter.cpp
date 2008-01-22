@@ -202,7 +202,7 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
     SimTK_APIARGCHECK(bodyIds.size() == stations.size() && stations.size() == targetLocations.size(), "ObservedPointFitter", "findBestFit", "bodyIds, stations, and targetLocations must all be the same length");
     int numBodies = matter.getNBodies();
-    for (int i = 0; i < stations.size(); ++i) {
+    for (int i = 0; i < (int)stations.size(); ++i) {
         SimTK_APIARGCHECK(bodyIds[i] >= 0 && bodyIds[i] < numBodies, "ObservedPointFitter", "findBestFit", "Illegal body ID");
         SimTK_APIARGCHECK(stations[i].size() == targetLocations[i].size(), "ObservedPointFitter", "findBestFit", "Different number of stations and target locations for body");
     }

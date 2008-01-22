@@ -409,14 +409,20 @@ public:
         return v;
     }
 
-    bool projectQConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const {
+    bool projectQConstraints(State& s, Real tol, const Vector& yWeights,
+                             const Vector& ooTols, Vector& yErrEst, 
+                             System::ProjectOptions) const 
+    {
         // TODO
-        enforcePositionConstraints(s, tol, targetTol);
+        enforcePositionConstraints(s, tol, 0.1*tol);
         return true;
     }
-    bool projectUConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const {
+    bool projectUConstraints(State& s, Real tol, const Vector& yWeights,
+                             const Vector& ooTols, Vector& yErrEst, 
+                             System::ProjectOptions) const 
+    {
         // TODO
-        enforceVelocityConstraints(s, tol, targetTol);
+        enforceVelocityConstraints(s, tol, 0.1*tol);
         return true;
     }
 
