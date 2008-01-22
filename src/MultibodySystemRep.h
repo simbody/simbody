@@ -434,26 +434,27 @@ public:
     //
     // TODO: yWeights & ooTols are being ignored here but shouldn't be!
     int projectImpl(State& s, Real consAccuracy, const Vector& yWeights,
-                    const Vector& ooTols, Vector& yErrest, bool velocityOnly) const
+                    const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
     {
-        const Real tol = consAccuracy;
-        const Real targetTol = 0.1*tol;
         bool anyChange = false;
 
         realize(s, Stage::Time);
 
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
 
-        mech.getRep().realizeSubsystemPosition(s);
-        if (!velocityOnly)
-            if (mech.projectQConstraints(s, yErrest, tol, targetTol))
+        if (opts.hasAnyPositionOptions()) {
+            mech.getRep().realizeSubsystemPosition(s);
+            if (mech.projectQConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts))
                 anyChange = true;
+        }
 
         realize(s, Stage::Position);  // realize the whole system now
 
-        mech.getRep().realizeSubsystemVelocity(s);
-        if (mech.projectUConstraints(s, yErrest, tol, targetTol))
-            anyChange = true;
+        if (opts.hasAnyVelocityOptions()) {
+            mech.getRep().realizeSubsystemVelocity(s);
+            if (mech.projectUConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts))
+                anyChange = true;
+        }
 
         realize(s, Stage::Velocity);  // realize the whole system now
 
