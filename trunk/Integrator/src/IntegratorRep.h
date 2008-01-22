@@ -642,10 +642,10 @@ protected:
     // Project the supplied state onto the constraint manifold and
     // remove the corresponding errors from errEst. Throws an exception
     // if it fails. Updates stats.
-    void projectStateAndErrorEstimate(State& s, Vector& errEst, bool velocityOnly=false) {
+    void projectStateAndErrorEstimate(State& s, Vector& errEst, System::ProjectOptions opts=System::ProjectOptions::All) {
         ++statsProjections; ++statsProjectionFailures;
         getSystem().project(s,
-            consTol,getDynamicSystemWeights(),getDynamicSystemOneOverTolerances(),errEst,velocityOnly);
+            consTol,getDynamicSystemWeights(),getDynamicSystemOneOverTolerances(),errEst,opts);
         --statsProjectionFailures;
     }
 

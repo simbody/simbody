@@ -105,7 +105,7 @@ public:
 
 
     /*virtual*/int projectImpl(State&, Real consAccuracy, const Vector& yweights,
-                           const Vector& ctols, Vector& yerrest, bool velocityOnly) const;
+                           const Vector& ctols, Vector& yerrest, System::ProjectOptions) const;
 
 };
 
@@ -340,7 +340,7 @@ static Real wrms(const Vector& y, const Vector& w) {
 
 int PendulumSystemGuts::projectImpl(State& s, Real consAccuracy,
                                 const Vector& yweights, const Vector& ctols,
-                                Vector& yerrest, bool velocityOnly) const // yerrest is in/out
+                                Vector& yerrest, System::ProjectOptions opts) const // yerrest is in/out
 {
     const Vec2& wq = Vec2::getAs(&yweights[0]);
     const Vec2& wu = Vec2::getAs(&yweights[2]);
@@ -355,7 +355,7 @@ int PendulumSystemGuts::projectImpl(State& s, Real consAccuracy,
     //cout << "BEFORE wperr=" << tp*ep << endl;
 
     Real wqchg;
-    if (!velocityOnly) {
+    if (opts.hasAnyPositionOptions()) {
         do {
             // Position projection
             Real r2 = ~q*q; // x^2+y^2

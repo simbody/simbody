@@ -54,10 +54,10 @@ void ExplicitEulerIntegratorRep::createInterpolatedState(Real t) {
     interp.updY() = weight1*getPreviousY()+weight2*getAdvancedState().getY();
     interp.updTime() = t;
     getSystem().realize(interp, Stage::Velocity); // cheap  
-    if (userProjectInterpolatedStates != 1)
+    if (userProjectInterpolatedStates == 0) // default is to project interpolated states if they need it
         return; // leave 'em in "as is" condition
     if (userProjectEveryStep != 1) {
-        const Real constraintError =  IntegratorRep::calcWeightedInfinityNorm(interp.getYErr(), getDynamicSystemOneOverTolerances());
+        const Real constraintError =  IntegratorRep::calcWeightedRMSNorm(interp.getYErr(), getDynamicSystemOneOverTolerances());
         if (constraintError <= consTol)
             return; // no need to project
     }
@@ -236,7 +236,7 @@ Integrator::SuccessfulStepStatus ExplicitEulerIntegratorRep::stepTo(Real reportT
 bool ExplicitEulerIntegratorRep::takeOneStep(Real t0, const Vector& y0, const Vector& f0, Real t1, Real tReport)
 {
     assert(t1 > t0);
-    setAdvancedStateAndRealizeDerivatives(t1, y0 + (t1-t0)*f0);
+    setAdvancedStateAndRealizeKinematics(t1, y0 + (t1-t0)*f0);
     projectStateAndErrorEstimate(updAdvancedState(), Vector());
     realizeStateDerivatives(getAdvancedState());
     

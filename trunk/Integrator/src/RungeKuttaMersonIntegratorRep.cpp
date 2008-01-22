@@ -705,8 +705,8 @@ bool RungeKuttaMersonIntegratorRep::takeAnRK4MStep
 
     if (!projectEveryStep) {
         const Real constraintError = 
-            IntegratorRep::calcWeightedInfinityNorm(getAdvancedState().getYErr(),
-                                                    getDynamicSystemOneOverTolerances());
+            IntegratorRep::calcWeightedRMSNorm(getAdvancedState().getYErr(),
+                                               getDynamicSystemOneOverTolerances());
         if (constraintError <= consTol)
             return true; // no need to project
     }
@@ -747,7 +747,7 @@ void RungeKuttaMersonIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
     // won't get carried away if the user isn't being finicky about it.
     if (!projectEveryStep) {
         const Real constraintError = 
-            IntegratorRep::calcWeightedInfinityNorm(advanced.getYErr(),
+            IntegratorRep::calcWeightedRMSNorm(advanced.getYErr(),
                                                     getDynamicSystemOneOverTolerances());
         if (constraintError <= consTol)
             return; // no need to project
@@ -775,8 +775,8 @@ void RungeKuttaMersonIntegratorRep::createInterpolatedState(Real t) {
 
     if (!projectEveryStep) {
         const Real constraintError = 
-            IntegratorRep::calcWeightedInfinityNorm(interp.getYErr(),
-                                                    getDynamicSystemOneOverTolerances());
+            IntegratorRep::calcWeightedRMSNorm(interp.getYErr(),
+                                               getDynamicSystemOneOverTolerances());
         if (constraintError <= consTol)
             return; // no need to project
     }

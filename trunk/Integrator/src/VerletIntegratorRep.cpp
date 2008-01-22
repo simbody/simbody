@@ -62,10 +62,10 @@ void VerletIntegratorRep::createInterpolatedState(Real t) {
                       t, interp.updY());
     interp.updTime() = t;
     getSystem().realize(interp, Stage::Velocity); // cheap  
-    if (userProjectInterpolatedStates != 1)
+    if (userProjectInterpolatedStates == 0) // default is yes
         return; // leave 'em in "as is" condition
     if (userProjectEveryStep != 1) {
-        const Real constraintError =  IntegratorRep::calcWeightedInfinityNorm(interp.getYErr(), getDynamicSystemOneOverTolerances());
+        const Real constraintError =  IntegratorRep::calcWeightedRMSNorm(interp.getYErr(), getDynamicSystemOneOverTolerances());
         if (constraintError <= consTol)
             return; // no need to project
     }
@@ -222,7 +222,9 @@ Integrator::SuccessfulStepStatus VerletIntegratorRep::stepTo(Real reportTime, Re
           bool eventOccurred = takeOneStep(getPreviousTime(), tMax, reportTime);
           ++internalStepsTaken;
           ++statsStepsTaken;
-          setStepCommunicationStatus(eventOccurred ? CompletedInternalStepWithEvent : CompletedInternalStepNoEvent);
+          setStepCommunicationStatus(eventOccurred 
+                                        ? CompletedInternalStepWithEvent 
+                                        : CompletedInternalStepNoEvent);
       } // END OF MAIN STEP LOOP
 
       //NOTREACHED
@@ -241,64 +243,131 @@ Integrator::SuccessfulStepStatus VerletIntegratorRep::stepTo(Real reportTime, Re
 }
 
 /**
- * Take a trial step and store the result in the advanced state.  Also estimate the error in each element of Y, and store them in err.
+ * Given initial values for all the continuous variables y=(q,u,z) and their derivatives
+ * (not necessarily what's in advancedState currently), take a trial step of size 
+ * h=(t1-t0), optimistically storing the result in advancedState.
+ * Also estimate the absolute error in each element of y, and store them in yErrEst.
  */
 
-bool VerletIntegratorRep::attemptAStep(Real t0, Real t1, const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, const Vector& u0, const Vector& udot0, const Vector& z0, const Vector& zdot0, Vector& err, Real tReport) {
-    statsStepsAttempted++;
-    Real h = t1-t0;
+bool VerletIntegratorRep::attemptAStep(Real t0, Real t1, 
+                                       const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
+                                       const Vector& u0, const Vector& udot0, 
+                                       const Vector& z0, const Vector& zdot0, 
+                                       Vector& yErrEst)
+{
+    // We will catch any exceptions thrown by realize() or project() and simply treat that
+    // as a failure to take a step due to the step size being too big. The idea is that the
+    // caller should reduce the step size and try again, giving up only when the step size
+    // goes below the allowed minimum.
+
+  try
+  { statsStepsAttempted++;
+    const Real h = t1-t0;
     State& advanced = updAdvancedState();
+
+    const int nq = advanced.getNQ();
+    const int nu = advanced.getNU();
+    const int nz = advanced.getNZ();
+
+    VectorView qErrEst = yErrEst(    0, nq);
+    VectorView uErrEst = yErrEst(   nq, nu);
+    VectorView zErrEst = yErrEst(nq+nu, nz);
+
+    Vector dummyErrEst; // use this when we don't want the error estimate projected
     
-    // Calculate the new positions and initial estimate for the velocities.
+    // Calculate the new positions q (3rd order) and initial (1st order) 
+    // estimate for the velocities u and auxiliary variables z.
     
-    Vector q1 = q0 + qdot0*h + 0.5*qdotdot0*h*h;
-    Vector u1 = u0 + udot0*h;
-    Vector z1 = z0 + zdot0*h;
-    advanced.updQ() = q1;
-    advanced.updU() = u1;
-    advanced.updZ() = z1;
+    // These are final values (the q's will get projected, though).
     advanced.updTime() = t1;
-    try {
+    advanced.updQ()    = q0 + qdot0*h + 0.5*qdotdot0*h*h;
+
+    const Vector u1_est = u0 + udot0*h;
+    const Vector z1_est = z0 + zdot0*h;
+
+    advanced.updU()    = u1_est; // these will change
+    advanced.updZ()    = z1_est;
+
+    // Here we'll project the q's to their final constrained values, and project
+    // our estimated u's also. TODO: does this mess up the error estimation?
+
+    getSystem().realize(advanced, Stage::Velocity);
+    if (userProjectEveryStep == 1 || IntegratorRep::calcWeightedRMSNorm(advanced.getYErr(), getDynamicSystemOneOverTolerances()) > consTol)
+        projectStateAndErrorEstimate(advanced, dummyErrEst);
+
+    // Get new values for the derivatives.
+    realizeStateDerivatives(advanced);
+    
+    // We're going to integrate the u's and z's with the 2nd order implicit
+    // trapezoid rule: u(t+h) = u(t) + h*(f(u(t))+f(u(t+h)))/2. Unfortunately this is an
+    // implicit method so we have to iterate to refine u(t+h) until this equation
+    // is acceptably satisfied. We're using functional iteration here which has a
+    // very limited radius of convergence.
+    
+    const Real tol = std::min(1e-4, 0.1*getAccuracyInUse());
+    Vector usave(nu), zsave(nz); // temporaries
+    bool converged = false;
+    for (int i = 0; !converged && i < 10; ++i) {
+        // At this point we know that the advanced state has been realized
+        // through the Acceleration level, so its uDot and zDot reflect
+        // the u and z state values it contains.
+        usave = advanced.getU();
+        zsave = advanced.getZ();
+
+        // Get these references now -- as soon as we change u or z they
+        // will be invalid.
+        const Vector& udot1 = advanced.getUDot();
+        const Vector& zdot1 = advanced.getZDot();
+        
+        // Refine u and z estimates.
+        advanced.setU(u0 + 0.5*(udot0 + udot1)*h);
+        advanced.setZ(z0 + 0.5*(zdot0 + zdot1)*h);
+
+        // Project only the velocities; we're done with the q's for good.
         getSystem().realize(advanced, Stage::Velocity);
-        if (userProjectEveryStep == 1 || IntegratorRep::calcWeightedInfinityNorm(advanced.getYErr(), getDynamicSystemOneOverTolerances()) > consTol)
-            projectStateAndErrorEstimate(advanced, Vector());
+        if (userProjectEveryStep == 1 || IntegratorRep::calcWeightedRMSNorm(advanced.getYErr(), getDynamicSystemOneOverTolerances()) > consTol)
+            projectStateAndErrorEstimate(advanced, dummyErrEst, System::ProjectOptions::VelocityOnly);
+
+        // Calculate fresh derivatives UDot and ZDot.
         realizeStateDerivatives(advanced);
-        err(0, advanced.getNQ()) = q0 + 0.5*(qdot0+advanced.getQDot())*h - advanced.getQ();
+
+        // Calculate convergence as the ratio of the norm of the last delta to
+        // the norm of the values prior to the last change. We're using the 2-norm
+        // but this ratio would be the same if we used the RMS norm. TinyReal is
+        // there to keep us out of trouble if we started at zero.
         
-        // Now calculate the corrected velocities.
-        
-        Real tol = std::min(1e-4, 0.1*getAccuracyInUse());
-        bool converged = false;
-        for (int i = 0; i < 10; ++i) {
-            Vector udot1 = advanced.getUDot();
-            Vector zdot1 = advanced.getZDot();
-            advanced.updU() = u0 + 0.5*(udot0+udot1)*h;
-            advanced.updZ() = z0 + 0.5*(zdot0+zdot1)*h;
-            err(advanced.getUStart(), advanced.getNU()) = u0 + udot0*h - advanced.getU();
-            err(advanced.getZStart(), advanced.getNZ()) = z0 + zdot0*h - advanced.getZ();
-            getSystem().realize(advanced, Stage::Velocity);
-            if (userProjectEveryStep == 1 || IntegratorRep::calcWeightedInfinityNorm(advanced.getYErr(), getDynamicSystemOneOverTolerances()) > consTol)
-                projectStateAndErrorEstimate(advanced, err, true);
-            realizeStateDerivatives(advanced);
-            Real convergence = (advanced.getU()-u1).norm()/u1.norm();
-            if (convergence <= tol) {
-                converged = true;
-                break;
-            }
-            u1 = advanced.getU();
-        }
-        
-        // Two different integrators were used to estimate errors: trapezoidal for Q, and
-        // explicit Euler for U and Z.  This means that the U and Z errors are of a different
-        // order than the Q errors.  We therefore multiply them by h so everything will be
-        // of the same order.
-        
-        err(advanced.getUStart(), advanced.getNU()+advanced.getNZ()) *= h;
-        return converged;
+        const Real convergenceU = (advanced.getU()-usave).norm()/(usave.norm()+TinyReal);
+        const Real convergenceZ = (advanced.getZ()-zsave).norm()/(zsave.norm()+TinyReal);
+        converged = std::max(convergenceU,convergenceZ) <= tol;
     }
-    catch (std::exception ex) {
-        return false;
-    }
+
+    // Now that we have achieved 2nd order estimates of u and z, we can use them to calculate a 3rd order
+    // error estimate for q and 2nd order error estimates for u and z. Note that we have already
+    // realized the state with the new values, so QDot reflects the new u's.
+
+    qErrEst = q0 + 0.5*(qdot0+advanced.getQDot())*h // implicit trapezoid rule integral
+              - advanced.getQ();                    // Verlet integral
+
+    uErrEst = u1_est                    // explicit Euler integral
+              - advanced.getU();        // implicit trapezoid rule integral
+    zErrEst = z1_est - advanced.getZ(); // ditto for z's
+
+    // TODO: because we're only projecting velocities here, we aren't going to get our
+    // position errors reduced here, which is a shame.
+    if (userProjectEveryStep == 1 || IntegratorRep::calcWeightedRMSNorm(advanced.getYErr(), getDynamicSystemOneOverTolerances()) > consTol)
+        projectStateAndErrorEstimate(advanced, yErrEst, System::ProjectOptions::VelocityOnly);
+    
+    // Two different integrators were used to estimate errors: trapezoidal for Q, and
+    // explicit Euler for U and Z.  This means that the U and Z errors are of a different
+    // order than the Q errors.  We therefore multiply them by h so everything will be
+    // of the same order.
+    
+    uErrEst *= h; zErrEst *= h; // everything is 3rd order in h now
+    return converged;
+  }
+  catch (std::exception ex) {
+    return false;
+  }
 }
 
 /**
@@ -342,21 +411,27 @@ bool VerletIntegratorRep::takeOneStep(Real t0, Real tMax, Real tReport)
 {
     Real t1;
     State& advanced = updAdvancedState();
-    getSystem().realize(advanced, Stage::Acceleration);
-    Vector q0 = advanced.getQ();
-    Vector qdot0 = advanced.getQDot();
-    Vector qdotdot0 = advanced.getQDotDot();
-    Vector u0 = advanced.getU();
-    Vector udot0 = advanced.getUDot();
-    Vector z0 = advanced.getZ();
-    Vector zdot0 = advanced.getZDot();
+
+    // Make sure we're realized through Stage::Acceleration. This won't
+    // do anything if the state is already realized that far.
+    realizeStateDerivatives(advanced);
+
+    // Record the starting values for the continuous variables and their
+    // derivatives in case we have to back up.
+    const Vector q0         = advanced.getQ();
+    const Vector qdot0      = advanced.getQDot();
+    const Vector qdotdot0   = advanced.getQDotDot();
+    const Vector u0         = advanced.getU();
+    const Vector udot0      = advanced.getUDot();
+    const Vector z0         = advanced.getZ();
+    const Vector zdot0      = advanced.getZDot();
     
     Vector err(advanced.getNY());
     bool stepSucceeded = false;
     do {
         bool hWasArtificiallyLimited = (tMax < t0+currentStepSize);
         t1 = std::min(tMax, t0+currentStepSize);
-        bool converged = attemptAStep(t0, t1, q0, qdot0, qdotdot0, u0, udot0, z0, zdot0, err, tReport);
+        bool converged = attemptAStep(t0, t1, q0, qdot0, qdotdot0, u0, udot0, z0, zdot0, err);
         Real rmsErr = (converged ? calcWeightedRMSNorm(err, getDynamicSystemWeights()) : Infinity);
         stepSucceeded = adjustStepSize(rmsErr, hWasArtificiallyLimited);
         if (!stepSucceeded)
@@ -546,8 +621,8 @@ void VerletIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
     // won't get carried away if the user isn't being finicky about it.
     if (userProjectEveryStep != 1) {
         const Real constraintError = 
-            IntegratorRep::calcWeightedInfinityNorm(advanced.getYErr(),
-                                                    getDynamicSystemOneOverTolerances());
+            IntegratorRep::calcWeightedRMSNorm(advanced.getYErr(),
+                                               getDynamicSystemOneOverTolerances());
         if (constraintError <= consTol)
             return; // no need to project
     }
