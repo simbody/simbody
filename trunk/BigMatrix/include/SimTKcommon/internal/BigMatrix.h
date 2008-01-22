@@ -1513,7 +1513,7 @@ template <class ELT> template <class ER, class EC> inline void
 MatrixBase<ELT>::rowAndColScale(
     const VectorBase<ER>& r, 
     const VectorBase<EC>& c,
-    typename MatrixBase<ELT>::template EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul& 
+    typename EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul& 
                           out) const
 {
 	assert(r.nrow()==nrow() && c.nrow()==ncol());
