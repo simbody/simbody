@@ -35,12 +35,12 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/State.h"
+#include "SimTKcommon/internal/System.h"
 
 namespace SimTK {
 
 class Subsystem;
 class DecorativeGeometry;
-class System;
 
 // See below for definitions.
 static void systemDestructImplLocator(System::Guts*);
@@ -57,7 +57,7 @@ static int systemRealizeReportImplLocator      (const System::Guts&, const State
 static Real systemCalcTimescaleImplLocator(const System::Guts&, const State&);
 static int  systemCalcYUnitWeightsImplLocator(const System::Guts&, const State&, Vector& weights);
 static int  systemProjectImplLocator(const System::Guts&, State&, Real, const Vector&, const Vector&,
-                                         Vector&, bool);
+                                         Vector&, System::ProjectOptions);
 static int  systemCalcYErrUnitTolerancesImplLocator(const System::Guts&, const State&, Vector& ootols);
 static int  systemHandleEventsImplLocator(const System::Guts&, State&, System::EventCause, const std::vector<int>&,
                                               Real, const Vector&, const Vector&, Stage&, bool&);
