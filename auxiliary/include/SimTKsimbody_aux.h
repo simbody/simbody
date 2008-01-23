@@ -39,7 +39,7 @@
 
 #include "SimTKsimbody.h"
 
-#include "simbody/internal/VTKReporter.h"
+#include "simbody/internal/VTKVisualizer.h"
 #include "simbody/internal/VTKEventReporter.h"
 
 #endif // SimTK_SIMBODY_SimTKSIMBODY_AUX_H_

@@ -122,7 +122,7 @@ try { // If anything goes wrong, an exception will be thrown.
     // Visualize with VTK. This will pick up decorative geometry from
     // each subsystem that generates any, including of course the 
     // VisualizationSubsystem, but not limited to it.
-    VTKReporter display(mbs);
+    VTKVisualizer display(mbs);
 
 
     const Real expectedPeriod = 2*Pi*std::sqrt(d/g);

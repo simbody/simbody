@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System
 
-    VTKReporter display(mbs);
+    VTKVisualizer display(mbs);
 
     mbs.realize(s, Stage::Position);
     display.report(s);

@@ -35,7 +35,7 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/VTKReporter.h"
+#include "simbody/internal/VTKVisualizer.h"
 
 namespace SimTK {
 
@@ -51,9 +51,9 @@ public:
     VTKEventReporter(MultibodySystem& system, Real reportInterval, Real defaultScaleForAutoGeometry=1.);
     ~VTKEventReporter();
     /**
-     * Get the VTKReporter which generates the images.  It may be used to configure the display.
+     * Get the VTKVisualizer which generates the images.  It may be used to configure the display.
      */
-    VTKReporter& getReporter();
+    VTKVisualizer& getVisualizer();
     void handleEvent(const State& state) const;
     class VTKEventReporterRep;
 protected:

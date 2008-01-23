@@ -199,7 +199,7 @@ try {
     State s = mbs.realizeTopology();
     cout << "mbs State as built: " << s;
 
-    VTKReporter vtk(mbs);
+    VTKVisualizer vtk(mbs);
     vtk.addDecoration(GroundId, Transform(), DecorativeBrick(Vec3(20,.1,20)).setColor(1.5*Gray).setOpacity(.3));
     vtk.addDecoration(GroundId, Transform(Vec3(-10,0,0)), DecorativeBrick(Vec3(.1,20,20)).setColor(Yellow).setOpacity(1));
     vtk.addDecoration(GroundId, Transform(Vec3(10,0,0)), DecorativeBrick(Vec3(.1,20,20)).setColor(Yellow).setOpacity(1));

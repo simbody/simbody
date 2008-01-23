@@ -35,16 +35,16 @@ using namespace SimTK;
 
 class VTKEventReporter::VTKEventReporterRep {
 public:
-    VTKEventReporterRep(MultibodySystem& system, Real defaultScaleForAutoGeometry) : reporter(VTKReporter(system, defaultScaleForAutoGeometry)) {
+    VTKEventReporterRep(MultibodySystem& system, Real defaultScaleForAutoGeometry) : vtk(VTKVisualizer(system, defaultScaleForAutoGeometry)) {
     }
-    VTKReporter& getReporter() {
-        return reporter;
+    VTKVisualizer& getVisualizer() {
+        return vtk;
     }
     void handleEvent(const State& state) const {
-        reporter.report(state);
+        vtk.report(state);
     }
     VTKEventReporter* handle;
-    VTKReporter reporter;
+    VTKVisualizer vtk;
 };
 
 VTKEventReporter::VTKEventReporter(MultibodySystem& system, Real reportInterval, Real defaultScaleForAutoGeometry) : PeriodicEventReporter(reportInterval) {
@@ -57,8 +57,8 @@ VTKEventReporter::~VTKEventReporter() {
         delete rep;
 }
 
-VTKReporter& VTKEventReporter::getReporter() {
-    return updRep().getReporter();
+VTKVisualizer& VTKEventReporter::getVisualizer() {
+    return updRep().getVisualizer();
 }
 
 void VTKEventReporter::handleEvent(const State& state) const {

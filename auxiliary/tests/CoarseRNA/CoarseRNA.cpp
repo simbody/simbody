@@ -86,7 +86,7 @@ public:
 
     }
 
-    void decorateBody(MobilizedBodyId bodyNum, VTKReporter& display) const {
+    void decorateBody(MobilizedBodyId bodyNum, VTKVisualizer& display) const {
         assert(bodyInfo[bodyNum].bnum == bodyNum);
         if (bodyInfo[bodyNum].isDuplex)
             addDuplexDecorations(bodyNum, DuplexRadius, HalfHeight, CylinderSlop, 
@@ -96,7 +96,7 @@ public:
                                     ConnectorEndSlop, display);
     }
 
-    void decorateGlobal(VTKReporter& display) const {
+    void decorateGlobal(VTKVisualizer& display) const {
         DecorativeLine rbProto; rbProto.setColor(Black).setLineThickness(2);
         display.addRubberBandLine(end1, Vec3(0, -HalfHeight,0), end2, Vec3(0, -HalfHeight,0), rbProto);
     }
@@ -188,7 +188,7 @@ private:
     }
 
     void addDuplexDecorations(MobilizedBodyId bodyNum, Real r, Real halfHeight, Real slop, int nAtoms,
-                              Real atomRadius, VTKReporter& display) const
+                              Real atomRadius, VTKVisualizer& display) const
     {
         display.addDecoration(bodyNum, Transform(), 
             DecorativeCylinder(r+atomRadius+slop, halfHeight).setColor(Cyan).setOpacity(0.4));
@@ -208,7 +208,7 @@ private:
     }
 
     void addConnectorDecorations(MobilizedBodyId bodyNum, Real r, Real halfHeight, Real endSlop,  
-                                 VTKReporter& display) const
+                                 VTKVisualizer& display) const
     {
         display.addDecoration(bodyNum, Transform(), 
             DecorativeCylinder(r, halfHeight-endSlop).setColor(Blue));
@@ -291,7 +291,7 @@ try // If anything goes wrong, an exception will be thrown.
     myStudy.setConstraintTolerance(1e-3); 
     myStudy.setProjectEveryStep(false);
 
-    VTKReporter display(mbs);
+    VTKVisualizer display(mbs);
     for (MobilizedBodyId i(1); i<myRNA.getNBodies(); ++i)
         myRNA.decorateBody(i, display);
     myRNA.decorateGlobal(display);

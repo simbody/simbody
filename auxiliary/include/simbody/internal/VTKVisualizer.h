@@ -54,17 +54,17 @@ class State;
 class MultibodySystem;
 class DecorativeGeometry;
 
-class SimTK_SIMBODY_EXPORT VTKReporter  {
+class SimTK_SIMBODY_EXPORT VTKVisualizer  {
 public:
-    VTKReporter() : rep(0) { }
+    VTKVisualizer() : rep(0) { }
 
     // Set the scale to 0 to disable automatically-generated geometry. Otherwise set
     // it to a typical length scale for a body.
-    explicit VTKReporter(const MultibodySystem& m, Real defaultScaleForAutoGeometry=1.);
+    explicit VTKVisualizer(const MultibodySystem& m, Real defaultScaleForAutoGeometry=1.);
 
-    VTKReporter(const VTKReporter&);
-    ~VTKReporter();
-    VTKReporter& operator=(const VTKReporter&);
+    VTKVisualizer(const VTKVisualizer&);
+    ~VTKVisualizer();
+    VTKVisualizer& operator=(const VTKVisualizer&);
 
     /// This method calculates a new visualization frame using the MultibodySystem
     /// and the supplied state, and updates the screen.
@@ -110,7 +110,6 @@ public:
     void addEphemeralDecoration(const DecorativeGeometry&);
 
     // TODO: default geometry generation should be moved to the matter subsystem.
-    void disableDefaultGeometry();
     void setDefaultBodyColor(MobilizedBodyId bodyNum, const Vec3& rgb);
     const Vec3& getDefaultBodyColor(MobilizedBodyId bodyNum) const;
  
@@ -120,12 +119,12 @@ public:
     bool isEmptyHandle() const;
 
     // Internal use only
-    explicit VTKReporter(class VTKReporterRep* r) : rep(r) { }
+    explicit VTKVisualizer(class VTKVisualizerRep* r) : rep(r) { }
     bool                  hasRep() const {return rep!=0;}
-    const VTKReporterRep& getRep() const {assert(rep); return *rep;}
-    VTKReporterRep&       updRep() const {assert(rep); return *rep;}
+    const VTKVisualizerRep& getRep() const {assert(rep); return *rep;}
+    VTKVisualizerRep&       updRep() const {assert(rep); return *rep;}
 protected:
-    class VTKReporterRep* rep;
+    class VTKVisualizerRep* rep;
 };
 
 } // namespace SimTK

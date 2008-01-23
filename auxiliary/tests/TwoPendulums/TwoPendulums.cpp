@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
     cout << "INIT RESULTS=" << results;
 
 
-    VTKReporter display(mbs);
+    VTKVisualizer display(mbs);
 
     mbs.realize(s, Stage::Position);
     display.report(s);

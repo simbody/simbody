@@ -34,7 +34,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "simbody/internal/VTKReporter.h"
+#include "simbody/internal/VTKVisualizer.h"
 
 #include "VTKDecorativeGeometry.h"
 
@@ -75,12 +75,12 @@ static const Vec3 DefaultGroundBodyColor = Green;
 static const Vec3 DefaultBaseBodyColor   = Red;
 static const Vec3 DefaultBodyColor       = Gray;
 
-class SimTK::VTKReporterRep {
+class SimTK::VTKVisualizerRep {
 public:
     // no default constructor -- must have MultibodySystem always
-    VTKReporterRep(const MultibodySystem& m, Real defaultScaleForAutoGeometry, VTKReporter *reporter);
+    VTKVisualizerRep(const MultibodySystem& m, Real defaultScaleForAutoGeometry, VTKVisualizer *reporter);
 
-    ~VTKReporterRep() {
+    ~VTKVisualizerRep() {
         deletePointers();
     }
 
@@ -108,20 +108,20 @@ public:
         bodies[bodyNum].scale = scale;
     }
 
-    VTKReporterRep* clone() const {
-        VTKReporterRep* dup = new VTKReporterRep(*this);
+    VTKVisualizerRep* clone() const {
+        VTKVisualizerRep* dup = new VTKVisualizerRep(*this);
         dup->myHandle = 0;
         return dup;
     }
 
     void report(const State& s);
 
-    void setMyHandle(VTKReporter& h) {myHandle = &h;}
+    void setMyHandle(VTKVisualizer& h) {myHandle = &h;}
     void clearMyHandle() {myHandle=0;}
 
 private:
-    friend class VTKReporter;
-    VTKReporter* myHandle;     // the owner of this rep
+    friend class VTKVisualizer;
+    VTKVisualizer* myHandle;     // the owner of this rep
 
     bool cameraNeedsToBeReset; // report() checks and clears this
 
@@ -177,28 +177,28 @@ private:
 
 };
 
-    /////////////////
-    // VTKReporter //
-    /////////////////
+    ///////////////////
+    // VTKVisualizer //
+    ///////////////////
 
 
-bool VTKReporter::isOwnerHandle() const {
+bool VTKVisualizer::isOwnerHandle() const {
     return rep==0 || rep->myHandle==this;
 }
-bool VTKReporter::isEmptyHandle() const {return rep==0;}
+bool VTKVisualizer::isEmptyHandle() const {return rep==0;}
 
-VTKReporter::VTKReporter(const MultibodySystem& m, Real defaultScaleForAutoGeometry) : rep(0) {
-    rep = new VTKReporterRep(m, defaultScaleForAutoGeometry,this);
+VTKVisualizer::VTKVisualizer(const MultibodySystem& m, Real defaultScaleForAutoGeometry) : rep(0) {
+    rep = new VTKVisualizerRep(m, defaultScaleForAutoGeometry,this);
 }
 
-VTKReporter::VTKReporter(const VTKReporter& src) : rep(0) {
+VTKVisualizer::VTKVisualizer(const VTKVisualizer& src) : rep(0) {
     if (src.rep) {
         rep = src.rep->clone();
         rep->setMyHandle(*this);
     }
 }
 
-VTKReporter& VTKReporter::operator=(const VTKReporter& src) {
+VTKVisualizer& VTKVisualizer::operator=(const VTKVisualizer& src) {
     if (&src != this) {
         delete rep; rep=0;
         if (src.rep) {
@@ -209,62 +209,62 @@ VTKReporter& VTKReporter::operator=(const VTKReporter& src) {
     return *this;
 }
 
-VTKReporter::~VTKReporter() {
+VTKVisualizer::~VTKVisualizer() {
     delete rep; rep=0;
 }
 
-void VTKReporter::report(const State& s) const {
+void VTKVisualizer::report(const State& s) const {
     assert(rep);
     rep->report(s);
 }
 
 
-void VTKReporter::setCameraLocation(const Vec3& p) {
+void VTKVisualizer::setCameraLocation(const Vec3& p) {
     if (!rep || !rep->renderer) return;
     vtkCamera* camera = rep->renderer->GetActiveCamera();
     camera->SetPosition(p[0], p[1], p[2]);
     camera->ComputeViewPlaneNormal();
 }
 
-void VTKReporter::setCameraFocalPoint(const Vec3& p) {
+void VTKVisualizer::setCameraFocalPoint(const Vec3& p) {
     if (!rep || !rep->renderer) return;
     vtkCamera* camera = rep->renderer->GetActiveCamera();
     camera->SetFocalPoint(p[0], p[1], p[2]);
     camera->ComputeViewPlaneNormal();
 }
 
-void VTKReporter::setCameraUpDirection(const Vec3& d) {
+void VTKVisualizer::setCameraUpDirection(const Vec3& d) {
     if (!rep || !rep->renderer) return;
     vtkCamera* camera = rep->renderer->GetActiveCamera();
     camera->SetViewUp(d[0], d[1], d[2]);
     camera->OrthogonalizeViewUp();
 }
 
-void VTKReporter::setCameraClippingRange(Real nearPlane, Real farPlane) {
+void VTKVisualizer::setCameraClippingRange(Real nearPlane, Real farPlane) {
     if (!rep || !rep->renderer) return;
     vtkCamera* camera = rep->renderer->GetActiveCamera();
     camera->SetClippingRange(nearPlane, farPlane);
 }
 
-void VTKReporter::zoomCameraToIncludeAllGeometry() {
+void VTKVisualizer::zoomCameraToIncludeAllGeometry() {
     if (!rep || !rep->renderer) return;
     rep->renderer->ResetCamera();
 }
 
-void VTKReporter::zoomCamera(Real z) {
+void VTKVisualizer::zoomCamera(Real z) {
     if (!rep || !rep->renderer) return;
     vtkCamera* camera = rep->renderer->GetActiveCamera();
     camera->Zoom(z);
 }
 
-void VTKReporter::addDecoration(MobilizedBodyId body, const Transform& X_GD,
+void VTKVisualizer::addDecoration(MobilizedBodyId body, const Transform& X_GD,
                                 const DecorativeGeometry& g) 
 {
     assert(rep);
     rep->addDecoration(body, X_GD, g);
 }
 
-void VTKReporter::addRubberBandLine(MobilizedBodyId b1, const Vec3& station1,
+void VTKVisualizer::addRubberBandLine(MobilizedBodyId b1, const Vec3& station1,
                                     MobilizedBodyId b2, const Vec3& station2,
                                     const DecorativeLine& g)
 {
@@ -272,22 +272,22 @@ void VTKReporter::addRubberBandLine(MobilizedBodyId b1, const Vec3& station1,
     rep->addRubberBandLine(b1,station1,b2,station2,g);
 }
 
-void VTKReporter::addEphemeralDecoration(const DecorativeGeometry& g) 
+void VTKVisualizer::addEphemeralDecoration(const DecorativeGeometry& g) 
 {
     assert(rep);
     rep->addEphemeralDecoration(g);
 }
 
-void VTKReporter::setDefaultBodyColor(MobilizedBodyId bodyNum, const Vec3& rgb) {
+void VTKVisualizer::setDefaultBodyColor(MobilizedBodyId bodyNum, const Vec3& rgb) {
    assert(rep);
    rep->setDefaultBodyColor(bodyNum,rgb);
 }
 
-    ////////////////////
-    // VTKReporterRep //
-    ////////////////////
+    //////////////////////
+    // VTKVisualizerRep //
+    //////////////////////
 
-void VTKReporterRep::addDecoration(MobilizedBodyId body, const Transform& X_GD,
+void VTKVisualizerRep::addDecoration(MobilizedBodyId body, const Transform& X_GD,
                                    const DecorativeGeometry& g)
 {
     class DecorativeGeometryRep;
@@ -337,7 +337,7 @@ void VTKReporterRep::addDecoration(MobilizedBodyId body, const Transform& X_GD,
     cameraNeedsToBeReset = true;
 }
 
-void VTKReporterRep::addRubberBandLine(MobilizedBodyId b1, const Vec3& station1,
+void VTKVisualizerRep::addRubberBandLine(MobilizedBodyId b1, const Vec3& station1,
                                        MobilizedBodyId b2, const Vec3& station2,
                                        const DecorativeLine& g)
 {
@@ -378,7 +378,7 @@ void VTKReporterRep::addRubberBandLine(MobilizedBodyId b1, const Vec3& station1,
     cameraNeedsToBeReset = true;
 }
 
-void VTKReporterRep::addEphemeralDecoration(const DecorativeGeometry& g)
+void VTKVisualizerRep::addEphemeralDecoration(const DecorativeGeometry& g)
 {
     // TODO: this should not be done here (sherm 071106)
     initTopology();
@@ -386,7 +386,7 @@ void VTKReporterRep::addEphemeralDecoration(const DecorativeGeometry& g)
     ephemeralGeometry.push_back(g);
 }
 
-void VTKReporterRep::displayEphemeralGeometry(const State& s)
+void VTKVisualizerRep::displayEphemeralGeometry(const State& s)
 {
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -447,7 +447,7 @@ void VTKReporterRep::displayEphemeralGeometry(const State& s)
 }
 
 // set default length scale to 0 to disable automatically-generated geometry
-VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, VTKReporter* reporter ) 
+VTKVisualizerRep::VTKVisualizerRep(const MultibodySystem& m, Real bodyScaleDefault, VTKVisualizer* reporter ) 
     :  defaultBodyScaleForAutoGeometry(bodyScaleDefault), mbs(m),
       cameraNeedsToBeReset(true)
 {
@@ -509,11 +509,11 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
     renWin->Render();
 }
 
-void VTKReporterRep::initTopology() {
+void VTKVisualizerRep::initTopology() {
     static bool hasInitialized = false;
     if (hasInitialized)
         return;
-    SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(mbs.systemTopologyHasBeenRealized(), "MultibodySystem", mbs.getName(), "VTKReporterRep::initTopology()");
+    SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(mbs.systemTopologyHasBeenRealized(), "MultibodySystem", mbs.getName(), "VTKVisualizerRep::initTopology()");
     hasInitialized = true;
     const SimbodyMatterSubsystem& sbs = mbs.getMatterSubsystem();
     bodies.resize(sbs.getNBodies());
@@ -542,7 +542,7 @@ void VTKReporterRep::initTopology() {
 
     // Generate default geometry unless suppressed.
     // TODO: this and the scaling code above 
-    // should be moved to the matter subsystem; VTKReporter shouldn't
+    // should be moved to the matter subsystem; VTKVisualizer shouldn't
     // need to know about this sort of system detail.
     if (defaultBodyScaleForAutoGeometry!=0)
         for (MobilizedBodyId i(0); i<(int)bodies.size(); ++i) {
@@ -594,7 +594,7 @@ void VTKReporterRep::initTopology() {
         addDecoration(MobilizedBodyId(sysGeom[i].getBodyId()), Transform(), sysGeom[i]);
 }
 
-void VTKReporterRep::report(const State& s) {
+void VTKVisualizerRep::report(const State& s) {
     if (!renWin) return;
     
     initTopology();
@@ -647,10 +647,10 @@ void VTKReporterRep::report(const State& s) {
 
 }
 
-void VTKReporterRep::zeroPointers() {
+void VTKVisualizerRep::zeroPointers() {
     renWin=0; renderer=0;
 }
-void VTKReporterRep::deletePointers() {
+void VTKVisualizerRep::deletePointers() {
     // Delete all the actors. The geometry gets deleted automatically
     // thanks to good design!
     for (int i=0; i<(int)bodies.size(); ++i) {
@@ -673,7 +673,7 @@ void VTKReporterRep::deletePointers() {
     zeroPointers();
 }
 
-void VTKReporterRep::setConfiguration(MobilizedBodyId bodyNum, const Transform& X_GB) {
+void VTKVisualizerRep::setConfiguration(MobilizedBodyId bodyNum, const Transform& X_GB) {
     const std::vector<vtkProp3D*>& actors = bodies[bodyNum].aList;
     for (int i=0; i < (int)actors.size(); ++i) {
         vtkProp3D*       actor = actors[i];
@@ -685,7 +685,7 @@ void VTKReporterRep::setConfiguration(MobilizedBodyId bodyNum, const Transform& 
 }
 
 // Provide two points in ground frame and generate the appropriate line between them.
-void VTKReporterRep::setRubberBandLine(int dgeom, const Vec3& p1, const Vec3& p2) {
+void VTKVisualizerRep::setRubberBandLine(int dgeom, const Vec3& p1, const Vec3& p2) {
     vtkActor*       actor = dynamicGeom[dgeom].actor;
     DecorativeLine& line  = dynamicGeom[dgeom].line;
     line.setEndpoints(p1, p2);

@@ -796,7 +796,7 @@ try
 
     mm.dump();
 
-    VTKReporter display(mbs, 0.1);
+    VTKVisualizer display(mbs, 0.1);
 
     OLDRungeKuttaMerson study(mbs, s);
     //OLDCPodesIntegrator study(mbs,s);
