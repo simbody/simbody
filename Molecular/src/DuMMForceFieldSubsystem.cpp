@@ -3401,15 +3401,19 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
         // 4)  apply GBSA forces to bodies
         for (MobilizedBodyId b1(0); b1 < (int)bodies.size(); ++b1) 
         {
+            // Location of body in ground frame
+            const Transform&          X_GB1  = matter.getMobilizedBody(b1).getBodyTransform(s);
+
             const AtomPlacementArray& alist1 = bodies[b1].allAtoms;
             for (int i=0; i < (int)alist1.size(); ++i) 
             {
                 const int       a1num = alist1[i].atomId;
                 
-                Vec3 a1Station_G(gbsaRawCoordinates[0], 
-                                 gbsaRawCoordinates[1],
-                                 gbsaRawCoordinates[2]);
-                a1Station_G *= DuMM::Ang2Nm; // convert Angstroms to nanometers
+                Vec3 a1Pos_G(gbsaRawCoordinates[3 * a1num + 0], 
+                             gbsaRawCoordinates[3 * a1num + 0],
+                             gbsaRawCoordinates[3 * a1num + 0]);
+                a1Pos_G *= DuMM::Ang2Nm;  // convert Angstroms to nanometers
+                Vec3 a1Station_G = a1Pos_G - X_GB1.T();
 
                 Vec3 fGbsa(atomicGbsaForces[3 * a1num + 0],
                            atomicGbsaForces[3 * a1num + 1],
