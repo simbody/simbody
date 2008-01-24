@@ -235,6 +235,27 @@ int main () {
             cout << computeVecf << "  errnorm=" << errnorm << endl;
             ASSERT( errnorm < 0.0001 );
         }
+        Real Z[4] = { 0.0,   0.0,
+                      0.0,   0.0  };
+
+        Matrix z(2,2, Z);
+        Eigen zeigen(z);
+        zeigen.getAllEigenValuesAndVectors( values, vectors); 
+        cout << "Matrix of all zeros" << endl << "eigenvalues: " << values << endl;
+        cout << "Eigen vectors: " << endl;
+        for(int i=0;i<vectors.nrow();i++ ) {
+               cout << vectors(i) << endl;
+        }
+
+        Matrix_<double> z0;
+        Eigen z0Eigen(z0);
+        zeigen.getAllEigenValuesAndVectors( values, vectors); 
+        cout << "Matrix of dimension 0,0" << endl << "eigenvalues: " << values << endl;
+        cout << "Eigen vectors: " << endl;
+        for(int i=0;i<vectors.nrow();i++ ) {
+               cout << vectors(i) << endl;
+        }
+
 /*
 //
 //         SYMMETRIC TESTS:

@@ -39,6 +39,9 @@ enum OptimizerAlgorithm {
      LBFGSB         = 3, // LBFGS optimizer with simple bounds
      CFSQP          = 4  // CFSQP sequential quadratic programming optimizer (requires external library)
 };
+/**
+ * The OptimizerSystem class describes the system to be optimized.
+ */
 
 class SimTK_SIMMATH_EXPORT OptimizerSystem {
 public:
@@ -233,17 +236,27 @@ static int hessian_static(const OptimizerSystem& sys,
     return sys.hessian( parameters, new_parameters, gradient);
 }
 
-/*
-** Class for API interface to Simmath's optimizers.
-** The OptimizerSystem class describes the optimization by
-** specifying the objective function and constraints. OptimizerFactory()
-** instantiates the correct optimizer based on the objective function 
-** and constraints specified in the OptimizerSystem object. 
-** If the user calls the Optimizer constructor and 
-** supplies the algorithm argument the OptimizerFactory() will ignore the 
-** will create instatiate the Optimizer asked for.
-**  
-*/
+/**
+ * API for Simmath's optimizers.
+ * An optimizer finds a local minimum to an objective function. The
+ * optimizer can be constrained to search for a minimum within a feasible 
+ * region. The feasible region can be defined by setting limits on the 
+ * paramters of the objective function and/or supplying constraint 
+ * functions that must be satisfied. 
+ * The optimizer start searching for a minimum begining at a user supplied 
+ * initial set of paramters.
+ *
+ * The objective function and constraints are specified by supplying the
+ * Optimizer with an implemenation of the OptimizerSystem class.
+ * The OptimizerSystem can be passed to the Optimizer either through the 
+ * Optimizer constructor or by calling the setOptimizerSystem method.  
+ * The Optimizer class will select the best optimization algorithm to solve the
+ * problem based on the  constraints supplied by the OptimizerSystem. 
+ * A user can also override the 
+ * optimization algorithm selected by the Optimizer by specifying the 
+ * optimization algorithm. 
+ *  
+ */
 
 class SimTK_SIMMATH_EXPORT Optimizer  {
 
@@ -257,25 +270,36 @@ class SimTK_SIMMATH_EXPORT Optimizer  {
     ~Optimizer();
 
     static bool isAlgorithmAvailable(OptimizerAlgorithm algorithm);
-
+   
+    /// sets the absolute tolerance used determine if the problem has converged
     void setConvergenceTolerance( const Real tolerance );
+    /// set the maximum number of iterations used for each step  
     void setMaxIterations( const int iter );
+    /// set the maximum number of previous hessians used in a limitied memory hessian approximation  
     void setLimitedMemoryHistory( const int history );
+    /// set the level of debugging info displayed 
     void setDiagnosticsLevel( const int level ); 
+    /// set which numerical gradient algorithm is used 
     void setDifferentiatorMethod( Differentiator::Method method);
 
     void setOptimizerSystem( const OptimizerSystem& sys  );
     void setOptimizerSystem( const OptimizerSystem& sys, OptimizerAlgorithm algorithm );
 
+    /// set the value of an advanced option specified by a string
     bool setAdvancedStrOption( const char *option, const char *value );
+    /// set the value of an advanced option specified by a real value
     bool setAdvancedRealOption( const char *option, const Real value );
+    /// set the value of an advanced option specified by an integer value
     bool setAdvancedIntOption( const char *option, const int value );
+    /// set the value of an advanced option specified by an boolean value
     bool setAdvancedBoolOption( const char *option, const bool value );
 
- // TODO set differentiator options 
+    /// enable numerical gradients 
     void useNumericalGradient( const bool flag );
+    /// enable numerical Jacobian 
     void useNumericalJacobian( const bool flag );
 
+    /// compute optimization
     double optimize(Vector&);
     
 private:
