@@ -1371,6 +1371,8 @@ public:
 
     MatrixView_& operator*=(const StdNumber& t) { Base::operator*=(t); return *this; }
     MatrixView_& operator/=(const StdNumber& t) { Base::operator/=(t); return *this; }
+    MatrixView_& operator+=(const ELT& r)       { this->updDiag() += r; return *this; }
+    MatrixView_& operator-=(const ELT& r)       { this->updDiag() -= r; return *this; }  
 
     operator const Matrix_<ELT>&() const { return *reinterpret_cast<const Matrix_<ELT>*>(this); }
     operator Matrix_<ELT>&()             { return *reinterpret_cast<Matrix_<ELT>*>(this); }      
@@ -1771,6 +1773,8 @@ public:
 
     Matrix_& operator*=(const StdNumber& t) { Base::operator*=(t); return *this; }
     Matrix_& operator/=(const StdNumber& t) { Base::operator/=(t); return *this; }
+    Matrix_& operator+=(const ELT& r)       { this->updDiag() += r; return *this; }
+    Matrix_& operator-=(const ELT& r)       { this->updDiag() -= r; return *this; }  
 
     const TNeg& negate()    const {return *reinterpret_cast<const TNeg*>(this); }
     TNeg&       updNegate()       {return *reinterpret_cast<TNeg*>(this); }
@@ -1822,6 +1826,8 @@ public:
 
     VectorView_& operator*=(const StdNumber& t) { Base::operator*=(t); return *this; }
     VectorView_& operator/=(const StdNumber& t) { Base::operator/=(t); return *this; }
+    VectorView_& operator+=(const ELT& b) { elementwiseAddScalarInPlace(b); return *this; } 
+    VectorView_& operator-=(const ELT& b) { elementwiseSubtractScalarInPlace(b); return *this; } 
 
 private:
     // NO DATA MEMBERS ALLOWED
@@ -1887,6 +1893,8 @@ public:
 
     Vector_& operator*=(const StdNumber& t) { Base::operator*=(t); return *this; }
     Vector_& operator/=(const StdNumber& t) { Base::operator/=(t); return *this; }
+    Vector_& operator+=(const ELT& b) { elementwiseAddScalarInPlace(b); return *this; } 
+    Vector_& operator-=(const ELT& b) { elementwiseSubtractScalarInPlace(b); return *this; } 
  
 private:
     // NO DATA MEMBERS ALLOWED
@@ -1933,6 +1941,8 @@ public:
 
     RowVectorView_& operator*=(const StdNumber& t) { Base::operator*=(t); return *this; }
     RowVectorView_& operator/=(const StdNumber& t) { Base::operator/=(t); return *this; }
+    RowVectorView_& operator+=(const ELT& b) { elementwiseAddScalarInPlace(b); return *this; } 
+    RowVectorView_& operator-=(const ELT& b) { elementwiseSubtractScalarInPlace(b); return *this; } 
 
 private:
     // NO DATA MEMBERS ALLOWED
@@ -1999,7 +2009,9 @@ public:
 
     RowVector_& operator*=(const StdNumber& t) { Base::operator*=(t); return *this; }
     RowVector_& operator/=(const StdNumber& t) { Base::operator/=(t); return *this; }
- 
+    RowVector_& operator+=(const ELT& b) { elementwiseAddScalarInPlace(b); return *this; } 
+    RowVector_& operator-=(const ELT& b) { elementwiseSubtractScalarInPlace(b); return *this; } 
+
 private:
     // NO DATA MEMBERS ALLOWED
 };
@@ -2014,12 +2026,33 @@ operator+(const MatrixBase<E1>& l, const MatrixBase<E2>& r) {
     return Matrix_<typename CNT<E1>::template Result<E2>::Add>(l) += r;
 }
 
+template <class E>
+Matrix_<E> operator+(const MatrixBase<E>& l, const typename CNT<E>::T& r) {
+    return Matrix_<E>(l) += r;
+}
+
+template <class E>
+Matrix_<E> operator+(const typename CNT<E>::T& l, const MatrixBase<E>& r) {
+    return Matrix_<E>(r) += l;
+}
+
 template <class E1, class E2>
 Matrix_<typename CNT<E1>::template Result<E2>::Sub>
 operator-(const MatrixBase<E1>& l, const MatrixBase<E2>& r) {
     return Matrix_<typename CNT<E1>::template Result<E2>::Sub>(l) -= r;
 }
 
+template <class E>
+Matrix_<E> operator-(const MatrixBase<E>& l, const typename CNT<E>::T& r) {
+    return Matrix_<E>(l) -= r;
+}
+
+template <class E>
+Matrix_<E> operator-(const typename CNT<E>::T& l, const MatrixBase<E>& r) {
+    Matrix_<E> temp(r.nrow(), r.ncol());
+    temp = l;
+    return (temp -= r);
+}
 
 // Scalar multiply and divide. You might wish the scalar could be
 // a templatized type "E2", but that would create horrible ambiguities since
@@ -2044,10 +2077,28 @@ Vector_<typename CNT<E1>::template Result<E2>::Add>
 operator+(const VectorBase<E1>& l, const VectorBase<E2>& r) {
     return Vector_<typename CNT<E1>::template Result<E2>::Add>(l) += r;
 }
+template <class E>
+Vector_<E> operator+(const VectorBase<E>& l, const typename CNT<E>::T& r) {
+    return Vector_<E>(l) += r;
+}
+template <class E>
+Vector_<E> operator+(const typename CNT<E>::T& l, const VectorBase<E>& r) {
+    return Vector_<E>(r) += l;
+}
 template <class E1, class E2>
 Vector_<typename CNT<E1>::template Result<E2>::Sub>
 operator-(const VectorBase<E1>& l, const VectorBase<E2>& r) {
     return Vector_<typename CNT<E1>::template Result<E2>::Sub>(l) -= r;
+}
+template <class E>
+Vector_<E> operator-(const VectorBase<E>& l, const typename CNT<E>::T& r) {
+    return Vector_<E>(l) -= r;
+}
+template <class E>
+Vector_<E> operator-(const typename CNT<E>::T& l, const VectorBase<E>& r) {
+    Vector_<E> temp(r.size());
+    temp = l;
+    return (temp -= r);
 }
 
 template <class E> Vector_<E>
@@ -2069,10 +2120,28 @@ RowVector_<typename CNT<E1>::template Result<E2>::Add>
 operator+(const RowVectorBase<E1>& l, const RowVectorBase<E2>& r) {
     return RowVector_<typename CNT<E1>::template Result<E2>::Add>(l) += r;
 }
+template <class E>
+RowVector_<E> operator+(const RowVectorBase<E>& l, const typename CNT<E>::T& r) {
+    return RowVector_<E>(l) += r;
+}
+template <class E>
+RowVector_<E> operator+(const typename CNT<E>::T& l, const RowVectorBase<E>& r) {
+    return RowVector_<E>(r) += l;
+}
 template <class E1, class E2>
 RowVector_<typename CNT<E1>::template Result<E2>::Sub>
 operator-(const RowVectorBase<E1>& l, const RowVectorBase<E2>& r) {
     return RowVector_<typename CNT<E1>::template Result<E2>::Sub>(l) -= r;
+}
+template <class E>
+RowVector_<E> operator-(const RowVectorBase<E>& l, const typename CNT<E>::T& r) {
+    return RowVector_<E>(l) -= r;
+}
+template <class E>
+RowVector_<E> operator-(const typename CNT<E>::T& l, const RowVectorBase<E>& r) {
+    RowVector_<E> temp(r.size());
+    temp = l;
+    return (temp -= r);
 }
 
 template <class E> RowVector_<E>
