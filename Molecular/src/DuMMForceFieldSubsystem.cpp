@@ -3322,8 +3322,8 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                 const Atom&     a1 = atoms[a1num];
 
                 // atomic coordinates with respect to Ground frame
-                const Vec3      a1Station_G = DuMM::Nm2Ang * X_GB1.R()*a1.station_B; // 10 * : convert nanometers to Angstroms           
-                const Vec3      a1Pos_G     = X_GB1.T() + a1Station_G;
+                const Vec3      a1Station_G = X_GB1.R() * a1.station_B; // nanometers
+                const Vec3      a1Pos_G     = (X_GB1.T() + a1Station_G) * DuMM::Nm2Ang; // Angstroms
 
                 gbsaRawCoordinates[3 * a1num + 0] = a1Pos_G[0];
                 gbsaRawCoordinates[3 * a1num + 1] = a1Pos_G[1];
@@ -3410,8 +3410,8 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                 const int       a1num = alist1[i].atomId;
                 
                 Vec3 a1Pos_G(gbsaRawCoordinates[3 * a1num + 0], 
-                             gbsaRawCoordinates[3 * a1num + 0],
-                             gbsaRawCoordinates[3 * a1num + 0]);
+                             gbsaRawCoordinates[3 * a1num + 1],
+                             gbsaRawCoordinates[3 * a1num + 2]);
                 a1Pos_G *= DuMM::Ang2Nm;  // convert Angstroms to nanometers
                 Vec3 a1Station_G = a1Pos_G - X_GB1.T();
 
