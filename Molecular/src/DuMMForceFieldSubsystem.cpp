@@ -1097,7 +1097,7 @@ public:
     }
 
     // common checks when defining improper and proper torsions
-    void DuMMForceFieldSubsystemRep::checkTorsion 
+    void checkTorsion 
         (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4, 
             int periodicity1, Real amp1InKJ, Real phase1InDegrees,
             int periodicity2, Real amp2InKJ, Real phase2InDegrees,

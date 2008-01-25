@@ -470,7 +470,7 @@ protected:
         setAtomClassVdwParameters(atomClassId, radiusInAng*DuMM::Ang2Nm, wellDepthInKcal*DuMM::Kcal2KJ);
     }
 
-    bool DuMMForceFieldSubsystem::isValidAtomClass(DuMM::AtomClassId) const;
+    bool isValidAtomClass(DuMM::AtomClassId) const;
     
     void defineIncompleteChargedAtomType(
         DuMM::ChargedAtomTypeId typeId, 

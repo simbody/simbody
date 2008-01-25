@@ -127,13 +127,13 @@ public:
     SpatialVec getBodyAcceleration(const State& s, const SBAccelerationCache&, ConstrainedBodyId B) const; // A_AB
 
     // These are for use when after realization of the associated stage has been completed.
-    Transform  Constraint::ConstraintRep::getBodyTransform(const State& s, ConstrainedBodyId B) const {
+    Transform  getBodyTransform(const State& s, ConstrainedBodyId B) const {
         return getBodyTransform(s, getPositionCache(s), B);
     }
-    SpatialVec Constraint::ConstraintRep::getBodyVelocity(const State& s, ConstrainedBodyId B) const {
+    SpatialVec getBodyVelocity(const State& s, ConstrainedBodyId B) const {
         return getBodyVelocity(s, getVelocityCache(s), B);
     }
-    SpatialVec Constraint::ConstraintRep::getBodyAcceleration(const State& s, ConstrainedBodyId B) const {
+    SpatialVec getBodyAcceleration(const State& s, ConstrainedBodyId B) const {
         return getBodyAcceleration(s, getAccelerationCache(s), B);
     }
 
