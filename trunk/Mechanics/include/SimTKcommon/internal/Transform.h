@@ -40,6 +40,7 @@
 
 //-----------------------------------------------------------------------------
 #include "SimTKcommon/SmallMatrix.h"
+#include "SimTKcommon/internal/BigMatrix.h"
 #include "SimTKcommon/internal/UnitVec.h"
 #include "SimTKcommon/internal/Quaternion.h"
 #include "SimTKcommon/internal/Rotation.h"
@@ -414,6 +415,98 @@ inline Vec4  operator*( const InverseTransform& X_BF, const Vec4& a_F ) {
     return out;
 }
 
+/// Multiplying a matrix or vector by a Transform applies it to each element individually.
+//@{
+template <class E>
+inline Vector_<E> operator*(const Transform& T, const VectorBase<E>& v) {
+    Vector_<E> result(v.size());
+    for (int i = 0; i < v.size(); ++i)
+        result[i] = T*v[i];
+    return result;
+}
+template <class E>
+inline Vector_<E> operator*(const VectorBase<E>& v, const Transform& T) {
+    Vector_<E> result(v.size());
+    for (int i = 0; i < v.size(); ++i)
+        result[i] = T*v[i];
+    return result;
+}
+template <class E>
+inline RowVector_<E> operator*(const Transform& T, const RowVectorBase<E>& v) {
+    RowVector_<E> result(v.size());
+    for (int i = 0; i < v.size(); ++i)
+        result[i] = T*v[i];
+    return result;
+}
+template <class E>
+inline RowVector_<E> operator*(const RowVectorBase<E>& v, const Transform& T) {
+    RowVector_<E> result(v.size());
+    for (int i = 0; i < v.size(); ++i)
+        result[i] = T*v[i];
+    return result;
+}
+template <class E>
+inline Matrix_<E> operator*(const Transform& T, const MatrixBase<E>& v) {
+    Matrix_<E> result(v.nrow(), v.ncol());
+    for (int i = 0; i < v.nrow(); ++i)
+        for (int j = 0; j < v.ncol(); ++j)
+            result(i, j) = T*v(i, j);
+    return result;
+}
+template <class E>
+inline Matrix_<E> operator*(const MatrixBase<E>& v, const Transform& T) {
+    Matrix_<E> result(v.nrow(), v.ncol());
+    for (int i = 0; i < v.nrow(); ++i)
+        for (int j = 0; j < v.ncol(); ++j)
+            result(i, j) = T*v(i, j);
+    return result;
+}
+template <int N, class E>
+inline Vec<N,E> operator*(const Transform& T, const Vec<N,E>& v) {
+    Vec<N,E> result;
+    for (int i = 0; i < N; ++i)
+        result[i] = T*v[i];
+    return result;
+}
+template <int N, class E>
+inline Vec<N,E> operator*(const Vec<N,E>& v, const Transform& T) {
+    Vec<N,E> result;
+    for (int i = 0; i < N; ++i)
+        result[i] = T*v[i];
+    return result;
+}
+template <int N, class E>
+inline Row<N,E> operator*(const Transform& T, const Row<N,E>& v) {
+    Row<N,E> result;
+    for (int i = 0; i < N; ++i)
+        result[i] = T*v[i];
+    return result;
+}
+template <int N, class E>
+inline Row<N,E> operator*(const Row<N,E>& v, const Transform& T) {
+    Row<N,E> result;
+    for (int i = 0; i < N; ++i)
+        result[i] = T*v[i];
+    return result;
+}
+template <int M, int N, class E>
+inline Mat<M,N,E> operator*(const Transform& T, const Mat<M,N,E>& v) {
+    Mat<M,N,E> result;
+    for (int i = 0; i < M; ++i)
+        for (int j = 0; j < N; ++j)
+            result(i, j) = T*v(i, j);
+    return result;
+}
+template <int M, int N, class E>
+inline Mat<M,N,E> operator*(const Mat<M,N,E>& v, const Transform& T) {
+    Mat<M,N,E> result;
+    for (int i = 0; i < M; ++i)
+        for (int j = 0; j < N; ++j)
+            result(i, j) = T*v(i, j);
+    return result;
+}
+
+//@}
 
 // These Transform definitions had to wait for InverseTransform to be declared.
 inline Transform&  Transform::operator=( const InverseTransform& X ) {
