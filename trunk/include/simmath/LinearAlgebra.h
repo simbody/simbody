@@ -1,53 +1,43 @@
 #ifndef SimTK_LINEAR_ALGEBRA_H_
 #define SimTK_LINEAR_ALGEBRA_H_
+/* -------------------------------------------------------------------------- *
+ *                      SimTK Core: SimTK Simmath(tm)                         *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org.               *
 
-/* Portions copyright (c) 2007 Stanford University and Jack Middleton.
- * Contributors:
- * 
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including 
- * without limitation the rights to use, copy, modify, merge, publish, 
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject
- * to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included 
- * in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS, COPYRIGHT HOLDERS, OR CONTRIBUTORS BE
- * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
- * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * Portions copyright (c) 2006-2007 Stanford University and Jack Middleton.   *
+ * Contributors:                                                              *
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining      *
+ * a copy of this software and associated documentation files (the            *
+ * "Software"), to deal in the Software without restriction, including        *
+ * without limitation the rights to use, copy, modify, merge, publish,        *
+ * distribute, sublicense, and/or sell copies of the Software, and to         *
+ * permit persons to whom the Software is furnished to do so, subject         *
+ * to the following conditions:                                               *
+ *
+ * The above copyright notice and this permission notice shall be included    *
+ * in all copies or substantial portions of the Software.                     *
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    *
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 *
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     *
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
+ * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
  */
+
 
 /** @file
  * This is the header file that user code should include to pick up the 
- * SimTK Simmath numerical differentiation tools.
+ * SimTK Simmath linear algebra tools.
  */
 
 
-/* Shared libraries are messy in Visual Studio. We have to distinguish three
- * cases:
- *   (1) this header is being used to build the simmath shared library (dllexport)
- *   (2) this header is being used by a *client* of the simmath shared
- *       library (dllimport)
- *   (3) we are building the simmath static library, or the client is
- *       being compiled with the expectation of linking with the
- *       simmath static library (nothing special needed)
- * In the CMake script for building this library, we define one of the symbols
- *     SIMMATH_BUILDING_{SHARED|STATIC}_LIBRARY
- * Client code normally has no special symbol defined, in which case we'll
- * assume it wants to use the shared library. However, if the client defines
- * the symbol SimTK_USE_STATIC_LIBRARIES we'll suppress the dllimport so
- * that the client code can be linked with static libraries. Note that
- * the client symbol is not library dependent, while the library symbols
- * affect only the simmath library, meaning that other libraries can
- * be clients of this one. However, we are assuming all-static or all-shared.
-*/
 
 
 #include <limits.h>
@@ -58,24 +48,29 @@
 
 namespace SimTK {
 
-//  default for recipricol of the condition number
+//  default for reciprocal of the condition number
 static const double DefaultRecpCondition = 0.01;
-
+/**
+ * Abstract class for performing matrix factorizations 
+ */
 class SimTK_SIMMATH_EXPORT Factor {
 public:
 
   Factor() {}
+  /// creates an factorization of a matrix
   template <class ELT> Factor( Matrix_<ELT> m );
+  /// solves a single right hand side using a factorization
   template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x ) const;
+  /// solves multiple right hand sides using a factorization
   template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x ) const;
   
-// TODO suppress implicit conversions ?
-//   explicit Factor(class FactorRep* r) : rep(r) { }
-
 }; // class Factor
 
 class FactorLURepBase;
 
+/**
+ * Class for performing LU matrix factorizations 
+ */
 class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
     public:
 
@@ -86,20 +81,25 @@ class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
     FactorLU& operator=(const FactorLU& rhs);
 
     template <class ELT> FactorLU( const Matrix_<ELT>& m );
+    /// factors a matrix
     template <class ELT> void factor( const Matrix_<ELT>& m );
+    /// solves a single right hand side 
     template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x ) const;
+    /// solves multiple  right hand sides 
     template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x ) const;
 
+    /// returns the lower triangle of an LU factorization 
     template <class ELT> void getL( Matrix_<ELT>& l ) const;
+    /// returns the upper triangle of an LU factorization 
     template <class ELT> void getU( Matrix_<ELT>& u ) const;
+    /// returns the inverse of a matrix using an LU factorization
     template < class ELT > void inverse(  Matrix_<ELT>& m ) const;
 
+    /// returns true if matrix was singular 
     bool isSingular() const;
+    /// returns the first diagonal which was found to be singular
     int getSingularIndex() const;
 
-     // only for symmetric/Hermitan, positive definite, tridaiagoal 
-     // or symmetric/Hermitan indefinite => LDL
-    template <class ELT> void getD( Matrix_<ELT>& m ) const; 
 
     protected:
     class FactorLURepBase *rep;
@@ -108,7 +108,9 @@ class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
 
 
 class FactorQTZRepBase;
-
+/**
+ * Class to perform a QTZ (linear least squares) factorization
+ */
 class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
     public:
 
@@ -117,27 +119,38 @@ class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
     FactorQTZ();
     FactorQTZ( const FactorQTZ& c );
     FactorQTZ& operator=(const FactorQTZ& rhs);
-
+    /// do QTZ factorization of a matrix
     template <typename ELT> FactorQTZ( const Matrix_<ELT>& m);
+    /// do QTZ factorization of a matrix for a given reciprocal condition number
     template <typename ELT> FactorQTZ( const Matrix_<ELT>& m, double rcond );
+    /// do QTZ factorization of a matrix for a given reciprocal condition number
     template <typename ELT> FactorQTZ( const Matrix_<ELT>& m, float rcond );
+    /// do QTZ factorization of a matrix
     template <typename ELT> void factor( const Matrix_<ELT>& m);
+    /// do QTZ factorization of a matrix for a given reciprocal condition number
     template <typename ELT> void factor( const Matrix_<ELT>& m, float rcond );
+    /// do QTZ factorization of a matrix for a given reciprocal condition number
     template <typename ELT> void factor( const Matrix_<ELT>& m, double rcond );
-    template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x ) const;
-    template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x ) const;
+    /// solve  for a vector x given a right hand side vector b
+    template <typename ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x ) const;
+    /// solve  for an array of vectors  given multiple  right hand sides  
+    template <typename ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x ) const;
 
     template < class ELT > void inverse(  Matrix_<ELT>& m ) const;
 
+    /// returns the rank of the matrix
     int getRank() const;
-//    void setRank(int rank);
+//    void setRank(int rank); TBD
+    /// set the reciprocal  of the condition number 
     void setRecepricolConditionNumber( Real rcond ); 
 
     protected:
     class FactorQTZRepBase *rep;
 
 }; // class FactorQTZ
-
+/**
+ * Class to compute Eigen values and Eigen vectors of a matrix
+ */
 class SimTK_SIMMATH_EXPORT Eigen {
     public:
 
@@ -147,17 +160,27 @@ class SimTK_SIMMATH_EXPORT Eigen {
     Eigen( const Eigen& c );
     Eigen& operator=(const Eigen& rhs);
 
+    /// create a default eigen class
     template <class ELT> Eigen( const Matrix_<ELT>& m );
+    /// supply matrix which eigen values will be computed for  
     template <class ELT> void factor( const Matrix_<ELT>& m );
+    /// get all the eigen values and eigen vectors of a matrix 
     template <class VAL, class VEC> void getAllEigenValuesAndVectors( Vector_<VAL>& values, Matrix_<VEC>& vectors);
+    /// get all the eigen values of a matrix 
     template <class T> void getAllEigenValues( Vector_<T>& values);
 
+    /// get a few eigen values  and eigen vectors of a symmetric matrix which are within a range of indices
     template <class VAL, class VEC> void getFewEigenValuesAndVectors( Vector_<VAL>& values, Matrix_<VEC>& vectors, int ilow, int ihi);
+    /// get a few eigen vectors of a symmetric matrix which are within a range of indices
     template <class T> void getFewEigenVectors( Matrix_<T>& vectors, int ilow, int ihi );
+    /// get a few eigen values of a symmetric matrix which are within a range of indices
     template <class T> void getFewEigenValues( Vector_<T>& values, int ilow, int ihi );
 
+    /// get a few eigen values  and eigen vectors of a symmetric matrix which are within a range of eigen values
     template <class VAL, class VEC> void getFewEigenValuesAndVectors( Vector_<VAL>& values, Matrix_<VEC>& vectors, typename CNT<VAL>::TReal rlow, typename CNT<VAL>::TReal rhi);
+    /// get a few eigen vectors of a symmetric matrix which are within a range of eigen values
     template <class T> void getFewEigenVectors( Matrix_<T>& vectors, typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi );
+    /// get a few eigen values of a symmetric matrix which are within a range of eigen values
     template <class T> void getFewEigenValues( Vector_<T>& values, typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi );
 
      
@@ -165,30 +188,51 @@ class SimTK_SIMMATH_EXPORT Eigen {
     class EigenRepBase *rep;
 
 }; // class Eigen
-
+/**
+ * Class to compute a singular value decomposition of a matrix
+ */
 class SimTK_SIMMATH_EXPORT FactorSVD: public Factor {
     public:
 
     ~FactorSVD();
-
+    /// default constructor  
     FactorSVD();
+    /// copy  constructor  
     FactorSVD( const FactorSVD& c );
+    /// copy  assign  
     FactorSVD& operator=(const FactorSVD& rhs);
 
+    /// constructor 
     template < class ELT > FactorSVD( const Matrix_<ELT>& m );
+    /// singular value decomposition of a matrix using the specified reciprocal of the condition
+    /// number rcond
     template < class ELT > FactorSVD( const Matrix_<ELT>& m, float rcond );
+    /// singular value decomposition of a matrix using the specified reciprocal of the condition
+    /// number rcond
     template < class ELT > FactorSVD( const Matrix_<ELT>& m, double rcond );
+    /// supply the matrix to do a singular value decomposition 
     template < class ELT > void factor( const Matrix_<ELT>& m );
+    /// supply the matrix to do a singular value decomposition using the specified 
+    /// reciprocal of the condition number rcond
     template < class ELT > void factor( const Matrix_<ELT>& m, float rcond );
+    /// supply the matrix to do a singular value decomposition using the specified reciprocal of the condition
+    /// reciprocal of the condition number rcond
     template < class ELT > void factor( const Matrix_<ELT>& m, double rcond );
 
+    /// get the singular values and singular vectors of the matrix
     template < class T > void getSingularValuesAndVectors( Vector_<typename CNT<T>::TReal>& values, 
                               Matrix_<T>& leftVectors,  Matrix_<T>& rightVectors );
+    /// get just the singular values of the matrix
     template < class T > void getSingularValues( Vector_<T>& values);
 
+    /// get rank of the matrix 
     int getRank();
+    /// get inverse of the matrix  using singular value decomposition (sometimes called the pseudo inverse)
     template < class ELT > void inverse(  Matrix_<ELT>& m );
+    /// solve for x given a right hand side vector using the singular value decomposition
     template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x );
+    /// solve for a set of x vectors  given multiple right hand side vectors 
+    /// using the singular value decomposition
     template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x );
 
     protected:

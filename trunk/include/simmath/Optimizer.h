@@ -2,27 +2,35 @@
 #ifndef _SimTK_OPTIMIZER_H
 #define _SimTK_OPTIMIZER_H
 
-/* Portions copyright (c) 2006 Stanford University and Jack Middleton.
- * Contributors:
+/* -------------------------------------------------------------------------- *
+ *                      SimTK Core: SimTK Simmath(tm)                         *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org.               *
+
+ * Portions copyright (c) 2006-2007 Stanford University and Jack Middleton.   *
+ * Contributors:                                                              *
  *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject
- * to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining      *
+ * a copy of this software and associated documentation files (the            *
+ * "Software"), to deal in the Software without restriction, including        *
+ * without limitation the rights to use, copy, modify, merge, publish,        *
+ * distribute, sublicense, and/or sell copies of the Software, and to         *
+ * permit persons to whom the Software is furnished to do so, subject         *
+ * to the following conditions:                                               *
  *
- * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included    *
+ * in all copies or substantial portions of the Software.                     *
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS    *
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF                 *
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.     *
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY       *
+ * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,       *
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE          *
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                     *
  */
 
 
@@ -40,7 +48,9 @@ enum OptimizerAlgorithm {
      CFSQP          = 4  // CFSQP sequential quadratic programming optimizer (requires external library)
 };
 /**
- * The OptimizerSystem class describes the system to be optimized.
+ * Abstract class which defines an objective/cost function which is optimized by
+ * and Optimizer object. The OptimizerSystem also defines any constraints which 
+ * must be satisfied. 
  */
 
 class SimTK_SIMMATH_EXPORT OptimizerSystem {
@@ -72,33 +82,38 @@ public:
      }
   }
 
-  /* this method must be supplied by concreate class */
+  /// Objective/cost function which is to be optimized. 
+  /// This method must be supplied by concreate class 
   virtual int objectiveFunc      ( const Vector& parameters, 
                                  const bool new_parameters, Real& f ) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "objectiveFunc" );
                                  return -1; }
-
-
+  
+  /// computes the gradient of the objective function 
+  /// this method does not have to be supplied if a numerical gradient is used
   virtual int gradientFunc       ( const Vector &parameters, 
                                  const bool new_parameters, Vector &gradient ) const  {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "gradientFunc" );
                                  return -1; }
-
+  /// computes the value of the constraints 
+  /// this method must be supplied if the objective function has constraints
   virtual int constraintFunc     ( const Vector & parameters, 
                                  const bool new_parameters, Vector & constraints ) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "constraintFunc" );
                                  return -1; }
-
+  /// computes jacobian of the constraints
+  /// this method does not have to be supplied if a numerical jacobian is used
   virtual int constraintJacobian ( const Vector& parameters, 
                                   const bool new_parameters, Matrix& jac ) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "constraintJacobian" );
                                  return -1; }
-
+  /// computes Hessian of the objective function
+  /// this method does not have to be supplied limited memory is used
   virtual int hessian            (  const Vector &parameters, 
                                  const bool new_parameters, Vector &gradient) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "hessian" );
                                  return -1; }
-
+   /// sets the number of paramters in the objective function
    virtual void setNumParameters( const int nParameters ) {
 
        if(   nParameters < 1 ) {
@@ -109,6 +124,7 @@ public:
             numParameters = nParameters;
        }
    }
+   /// sets the number of equality constraints  
    void setNumEqualityConstraints( const int n ) {
  
         if( n < 0 ) {
@@ -119,6 +135,7 @@ public:
            numEqualityConstraints = n;
         }
    }
+   /// sets the number of inequality constraints  
    void setNumInequalityConstraints( const int n ) {
 
        if( n < 0 ) {
@@ -129,6 +146,7 @@ public:
             numInequalityConstraints = n;
        }
    }
+   /// sets the number of lineaer equality constraints  
    void setNumLinearEqualityConstraints( const int n ) {
  
         if( n < 0 || n > numEqualityConstraints ) {
@@ -139,6 +157,7 @@ public:
            numLinearEqualityConstraints = n;
         }
    }
+   /// sets the number of lineaer inequality constraints  
    void setNumLinearInequalityConstraints( const int n ) {
 
        if( n < 0 || n > numInequalityConstraints ) {
@@ -149,6 +168,7 @@ public:
             numLinearInequalityConstraints = n;
        }
    }
+   /// set the upper and lower bounds on the paramters
    void setParameterLimits( const Vector& lower, const Vector& upper  ) {
  
         if(   upper.size() != numParameters  && upper.size() != 0) {
@@ -177,17 +197,27 @@ public:
 
        return;
    }
+   /// returns the number of paramters
    int getNumParameters() const {return numParameters;}
 
+   /// returns the total number of constraints
    int getNumConstraints() const {return numEqualityConstraints+numInequalityConstraints;}
+   /// returns the number of equality constraints
    int getNumEqualityConstraints() const {return numEqualityConstraints;}
+   /// returns the number of inequality constraints
    int getNumInequalityConstraints() const {return numInequalityConstraints;}
+   /// returns the number of linear equality constraints
    int getNumLinearEqualityConstraints() const {return numLinearEqualityConstraints;}
+   /// returns the number of nonlinear equality constraints
    int getNumNonlinearEqualityConstraints() const {return numEqualityConstraints-numLinearEqualityConstraints;}
+   /// returns the number of linear inequality constraints
    int getNumLinearInequalityConstraints() const {return numLinearInequalityConstraints;}
+   /// returns the number of linear inequality constraints
    int getNumNonlinearInequalityConstraints() const {return numInequalityConstraints-numLinearInequalityConstraints;}
 
+   /// returns a bool true if there are limits on the parameters
    bool getHasLimits() const { return useLimits; }
+   /// returns the paramter limits 
    void getParameterLimits( double **lower, double **upper ) const {
         *lower = &(*lowerLimits)[0];
         *upper = &(*upperLimits)[0];
@@ -243,11 +273,11 @@ static int hessian_static(const OptimizerSystem& sys,
  * region. The feasible region can be defined by setting limits on the 
  * paramters of the objective function and/or supplying constraint 
  * functions that must be satisfied. 
- * The optimizer start searching for a minimum begining at a user supplied 
+ * The optimizer starts searching for a minimum begining at a user supplied 
  * initial set of paramters.
  *
  * The objective function and constraints are specified by supplying the
- * Optimizer with an implemenation of the OptimizerSystem class.
+ * Optimizer with a concreate implemenation of a OptimizerSystem class.
  * The OptimizerSystem can be passed to the Optimizer either through the 
  * Optimizer constructor or by calling the setOptimizerSystem method.  
  * The Optimizer class will select the best optimization algorithm to solve the

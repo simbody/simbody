@@ -113,11 +113,13 @@ void FactorLU::getU( Matrix_<ELT>& m) const {
     rep->getU( m );
     return;
 }
+/*
 template < class ELT >
 void FactorLU::getD( Matrix_<ELT>& m) const {
     rep->getD( m );
     return;
 }
+*/
 
 /*    implement in future release ?
 Real FactorLU::getConditionNumber() const  {
@@ -426,10 +428,10 @@ template SimTK_SIMMATH_EXPORT void FactorLU::getL<float>(Matrix_<float>&) const;
 template SimTK_SIMMATH_EXPORT void FactorLU::getL<double>(Matrix_<double>&) const;
 template SimTK_SIMMATH_EXPORT void FactorLU::getL<std::complex<float> >(Matrix_<std::complex<float> >&) const;
 template SimTK_SIMMATH_EXPORT void FactorLU::getL<std::complex<double> >(Matrix_<std::complex<double> >&) const;
-template SimTK_SIMMATH_EXPORT void FactorLU::getD<float>(Matrix_<float>&) const;
-template SimTK_SIMMATH_EXPORT void FactorLU::getD<double>(Matrix_<double>&) const;
-template SimTK_SIMMATH_EXPORT void FactorLU::getD<std::complex<float> >(Matrix_<std::complex<float> >&) const;
-template SimTK_SIMMATH_EXPORT void FactorLU::getD<std::complex<double> >(Matrix_<std::complex<double> >&) const;
+//template SimTK_SIMMATH_EXPORT void FactorLU::getD<float>(Matrix_<float>&) const;
+//template SimTK_SIMMATH_EXPORT void FactorLU::getD<double>(Matrix_<double>&) const;
+//template SimTK_SIMMATH_EXPORT void FactorLU::getD<std::complex<float> >(Matrix_<std::complex<float> >&) const;
+//template SimTK_SIMMATH_EXPORT void FactorLU::getD<std::complex<double> >(Matrix_<std::complex<double> >&) const;
 template SimTK_SIMMATH_EXPORT void FactorLU::getU<float>(Matrix_<float>&) const;
 template SimTK_SIMMATH_EXPORT void FactorLU::getU<double>(Matrix_<double>&) const;
 template SimTK_SIMMATH_EXPORT void FactorLU::getU<std::complex<float> >(Matrix_<std::complex<float> >&) const;
