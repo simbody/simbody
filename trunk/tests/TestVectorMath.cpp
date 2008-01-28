@@ -33,7 +33,8 @@
 
 #include <iostream>
 
-#define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
+#define ASSERT(cond) {SimTK_ASSERT_ALWAYS((cond), "Assertion failed");}
+#define ASSERT_EQUAL(val1, val2) {ASSERT(std::abs((val1)-(val2)) < 1e-10);}
 
 using std::cout;
 using std::endl;
@@ -61,7 +62,7 @@ void testVector(const T& value, const Vec<N>& expected) {
             ASSERT(isNaN(value[i]));
         }
         else {
-            ASSERT(value[i] == expected[i]);
+            ASSERT_EQUAL(value[i], expected[i]);
         }
     }
 }
@@ -76,7 +77,7 @@ void testMatrix(const T& value, const Mat<M, N>& expected) {
                 ASSERT(isNaN(value(i, j)));
             }
             else {
-                ASSERT(value(i, j) == expected(i, j));
+                ASSERT_EQUAL(value(i, j), expected(i, j));
             }
         }
 }
@@ -90,7 +91,7 @@ void testSymMat(const T& value, const SymMat<N>& expected) {
                 ASSERT(isNaN(value(i, j)));
             }
             else {
-                ASSERT(value(i, j) == expected(i, j));
+                ASSERT_EQUAL(value(i, j), expected(i, j));
             }
         }
 }
@@ -282,40 +283,40 @@ int main() {
         
         // Test the sum function.
         
-        ASSERT(sum(vector) == -3);
-        ASSERT(sum(rowvector) == -3);
-        ASSERT(sum(vec) == -3);
-        ASSERT(sum(row) == -3);
+        ASSERT_EQUAL(sum(vector), -3);
+        ASSERT_EQUAL(sum(rowvector), -3);
+        ASSERT_EQUAL(sum(vec), -3);
+        ASSERT_EQUAL(sum(row), -3);
         testVector(sum(matrix), Vec3(3, -3, 3));
         testVector(sum(mat), Vec3(3, -3, 3));
         testVector(sum(symmat), Vec2(1, -1));
         
         // Test the min function.
         
-        ASSERT(min(vector) == -5);
-        ASSERT(min(rowvector) == -5);
-        ASSERT(min(vec) == -5);
-        ASSERT(min(row) == -5);
+        ASSERT_EQUAL(min(vector), -5);
+        ASSERT_EQUAL(min(rowvector), -5);
+        ASSERT_EQUAL(min(vec), -5);
+        ASSERT_EQUAL(min(row), -5);
         testVector(min(matrix), Vec3(-1, -5, -3));
         testVector(min(mat), Vec3(-1, -5, -3));
         testVector(min(symmat), Vec2(-1, -3));
         
         // Test the max function.
         
-        ASSERT(max(vector) == 4);
-        ASSERT(max(rowvector) == 4);
-        ASSERT(max(vec) == 4);
-        ASSERT(max(row) == 4);
+        ASSERT_EQUAL(max(vector), 4);
+        ASSERT_EQUAL(max(rowvector), 4);
+        ASSERT_EQUAL(max(vec), 4);
+        ASSERT_EQUAL(max(row), 4);
         testVector(max(matrix), Vec3(4, 2, 6));
         testVector(max(mat), Vec3(4, 2, 6));
         testVector(max(symmat), Vec2(2, 2));
         
         // Test the mean function.
         
-        ASSERT(mean(vector) == -0.6);
-        ASSERT(mean(rowvector) == -0.6);
-        ASSERT(mean(vec) == -0.6);
-        ASSERT(mean(row) == -0.6);
+        ASSERT_EQUAL(mean(vector), -0.6);
+        ASSERT_EQUAL(mean(rowvector), -0.6);
+        ASSERT_EQUAL(mean(vec), -0.6);
+        ASSERT_EQUAL(mean(row), -0.6);
         testVector(mean(matrix), Vec3(1.5, -1.5, 1.5));
         testVector(mean(mat), Vec3(1.5, -1.5, 1.5));
         testVector(mean(symmat), Vec2(0.5, -0.5));
@@ -335,14 +336,15 @@ int main() {
         
         // Test the median function.
         
-        ASSERT(median(vector) == -1);
-        ASSERT(median(rowvector) == -1);
-        ASSERT(median(vec) == -1);
-        ASSERT(median(row) == -1);
+        ASSERT_EQUAL(median(vector), -1);
+        ASSERT_EQUAL(median(rowvector), -1);
+        ASSERT_EQUAL(median(vec), -1);
+        ASSERT_EQUAL(median(row), -1);
         testVector(median(matrix), Vec3(1.5, -1.5, 1.5));
         testVector(median(mat), Vec3(1.5, -1.5, 1.5));
         testVector(median(symmat), Vec2(0.5, -0.5));
-} catch(const std::exception& e) {
+        ASSERT_EQUAL(median(Vec6(6, 1, 5, 2, 4, 3)), 3.5);
+    } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;
     }
