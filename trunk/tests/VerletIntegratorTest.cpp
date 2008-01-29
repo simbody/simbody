@@ -52,7 +52,7 @@ int main () {
         
         // Test the integrator in both normal and single step modes.
         
-        VerletIntegrator integ(sys, 0.01);
+        VerletIntegrator integ(sys);
         testIntegrator(integ, sys);
         integ.setReturnEveryInternalStep(true);
         testIntegrator(integ, sys);

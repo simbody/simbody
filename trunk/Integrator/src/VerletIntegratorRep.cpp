@@ -47,6 +47,8 @@ void VerletIntegratorRep::methodInitialize(const State& state) {
         currentStepSize = std::max(currentStepSize, userMinStepSize);
     if (userMaxStepSize != -1)
         currentStepSize = std::min(currentStepSize, userMaxStepSize);
+    lastStepSize = currentStepSize;
+    actualInitialStepSizeTaken = NaN;
     resetMethodStatistics();
  }
 
@@ -433,9 +435,12 @@ bool VerletIntegratorRep::takeOneStep(Real t0, Real tMax, Real tReport)
         t1 = std::min(tMax, t0+currentStepSize);
         bool converged = attemptAStep(t0, t1, q0, qdot0, qdotdot0, u0, udot0, z0, zdot0, err);
         Real rmsErr = (converged ? calcWeightedRMSNorm(err, getDynamicSystemWeights()) : Infinity);
+        lastStepSize = currentStepSize;
         stepSucceeded = adjustStepSize(rmsErr, hWasArtificiallyLimited);
         if (!stepSucceeded)
             statsErrorTestFailures++;
+        else if (isNaN(actualInitialStepSizeTaken))
+            actualInitialStepSizeTaken = lastStepSize;
     } while (!stepSucceeded);
     
     // The step succeeded. Check for event triggers. If there aren't
@@ -632,15 +637,15 @@ void VerletIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
 }
 
 Real VerletIntegratorRep::getActualInitialStepSizeTaken() const {
-    return userInitStepSize;
+    return actualInitialStepSizeTaken;
 }
 
 Real VerletIntegratorRep::getPreviousStepSizeTaken() const {
-    return userInitStepSize;
+    return lastStepSize;
 }
 
 Real VerletIntegratorRep::getPredictedNextStepSize() const {
-    return userInitStepSize;
+    return currentStepSize;
 }
 
 long VerletIntegratorRep::getNStepsAttempted() const {

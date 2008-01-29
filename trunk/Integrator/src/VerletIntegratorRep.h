@@ -69,7 +69,7 @@ private:
     void backUpAdvancedStateByInterpolation(Real t);
     bool initialized;
     long statsStepsTaken, statsStepsAttempted, statsErrorTestFailures;
-    Real currentStepSize;
+    Real currentStepSize, lastStepSize, actualInitialStepSizeTaken;
 };
 
 } // namespace SimTK
