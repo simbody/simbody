@@ -179,6 +179,9 @@ int main(int argc, char** argv) {
     mbs.realizeModel(s); // define appropriate states for this System
 
     if (cid.isValid()) {
+		int mp, mv, ma;
+		twoPends.getConstraint(cid).getNumConstraintEquations(s, mp, mv, ma);
+		cout << "CONSTRAINT ID " << cid << " mp,v,a=" << mp << ", " << mv << ", " << ma << endl;
         cout << "CONSTRAINT -- " << twoPends.getConstraint(cid).getSubtree();
     }
 
@@ -207,6 +210,15 @@ int main(int argc, char** argv) {
     cout << "q=" << s.getQ() << endl;
     cout << "qErr=" << s.getQErr() << endl;
     cout << "T_MbM=" << rightPendulum.getMobilizerTransform(s).T() << endl;
+
+	if (cid.isValid()) {
+		const Constraint& c = twoPends.getConstraint(cid);
+		cout << "CONSTRAINT perr=" << c.getPositionError(s)
+			 << endl;
+		cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
+		cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
+	}
+
     cout << "Default configuration shown. Ready? "; cin >> c;
 
     sub.copyPositionsFromState(s, results);
@@ -238,21 +250,17 @@ int main(int argc, char** argv) {
     cout << "v_MbM=" << rightPendulum.getMobilizerVelocity(s)[1] << endl;
     cout << "Unassembled configuration shown. Ready to assemble? "; cin >> c;
 
-
-    // Create a study using the Runge Kutta Merson or CPODES integrator
-    //OLDRungeKuttaMerson myStudy(mbs, s);
-    //OLDCPodesIntegrator myStudy(mbs, s);
-    //OLDExplicitEuler myStudy(mbs, s);
-
     // These are the SimTK Simmath integrators:
     RungeKuttaMersonIntegrator myStudy(mbs);
     //CPodesIntegrator myStudy(mbs, CPodes::BDF, CPodes::Newton);
+    //myStudy.setOrderLimit(2); // cpodes only
+    //VerletIntegrator myStudy(mbs);
 
 
     //myStudy.setMaximumStepSize(0.001);
-    myStudy.setAccuracy(1e-2);
+    myStudy.setAccuracy(1e-1);
     //myStudy.setProjectEveryStep(true);
-    //myStudy.setConstraintTolerance(1e-7);
+    myStudy.setConstraintTolerance(1e-2);
     //myStudy.setAllowInterpolation(false);
     //myStudy.setMaximumStepSize(.1);
 
@@ -301,21 +309,32 @@ int main(int argc, char** argv) {
             twoPends.getUErr(s).normRMS(),
             twoPends.getUDotErr(s).normRMS());
 
+		if (cid.isValid()) {
+			const Constraint& c = twoPends.getConstraint(cid);
+			cout << "CONSTRAINT perr=" << c.getPositionError(s)
+				 << " verr=" << c.getVelocityError(s)
+				 << " aerr=" << c.getAccelerationError(s)
+				 << endl;
+			//cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
+			//cout << "  ~d(f)/d lambda=" << c.calcPositionConstraintMatrixPT(s);
+			//cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
+		}
+
         Vector qdot;
         twoPends.calcQDot(s, s.getU(), qdot);
-        cout << "===> qdot =" << qdot << endl;
+       // cout << "===> qdot =" << qdot << endl;
 
         Vector qdot2;
         twoPends.multiplyByQMatrix(s, false, s.getU(), qdot2);
-        cout << "===> qdot2=" << qdot2 << endl;
+       // cout << "===> qdot2=" << qdot2 << endl;
 
         Vector u1,u2;
         twoPends.multiplyByQMatrixInverse(s, false, qdot, u1);
         twoPends.multiplyByQMatrixInverse(s, false, qdot2, u2);
-        cout << "===> u =" << s.getU() << endl;
-        cout << "===> u1=" << u1 << endl;
-        cout << "===> u2=" << u2 << endl;
-        cout << "     norm=" << (s.getU()-u2).normRMS() << endl;
+      //  cout << "===> u =" << s.getU() << endl;
+      //  cout << "===> u1=" << u1 << endl;
+      //  cout << "===> u2=" << u2 << endl;
+       // cout << "     norm=" << (s.getU()-u2).normRMS() << endl;
 
         //sub.copyPositionsFromState(s, results);
         //sub.copyVelocitiesFromState(s, results);
@@ -328,8 +347,12 @@ int main(int argc, char** argv) {
 
         //status = myStudy.stepTo(s.getTime() + dt);
 
-        if (s.getTime() >= nextReport*dt) 
-            ++nextReport;
+		//THIS CAN FAIL SOMETIMES
+        //if (s.getTime() >= nextReport*dt) 
+        //    ++nextReport;
+
+		if (status == Integrator::ReachedReportTime)
+			++nextReport;
 
         if (s.getTime() >= schedule[nextScheduledEvent])
             ++nextScheduledEvent;

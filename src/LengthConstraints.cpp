@@ -464,9 +464,13 @@ LengthSet::calcVelB(State& s, const Vector& vel) const
 // Let P = d perr/dq, A = d verr/du, Q = d qdot/du.
 //
 // We want to find a change deltaq that will elimate the current error b:
-// P deltaq = b. Instead we solve A * x = b, where x = inv(Q) * deltaq,
+// P deltaq = b. [WRONG:]Instead we solve A * x = b, where x = inv(Q) * deltaq,
 // and then solve deltaq = Q * x. Conveniently Q is our friendly invertible
 // relation between qdot's and u's: qdot = Q*u.
+//
+// TODO: Sherm 080101: the above is incorrect. We have to factor (PQ^-1) and
+// solve (PQ^-1)*deltaq = b for LS deltaq, which is not the same as 
+// solving for LS x in P*x=b and then deltaq=Q*x.
 //
 // TODO: I have oversimplified the above since we are really looking for
 // a least squares solution to an underdetermined system. With the 
@@ -475,7 +479,8 @@ LengthSet::calcVelB(State& s, const Vector& vel) const
 Vector
 LengthSet::calcPosZ(const State& s, const Vector& b) const
 {
-    const Vector x = calcPseudoInverseA(calcGrad(s)) * b;
+	const Matrix Gt = calcGrad(s);
+    const Vector x = calcPseudoInverseA(Gt) * b;
 
     const SBModelVars&     mv = getRBTree().getModelVars(s);
     const Vector&          q  = getRBTree().getQ(s);
@@ -511,16 +516,17 @@ LengthSet::calcPosZ(const State& s, const Vector& b) const
 class CalcVelZ {
     const State&   s;
     const LengthSet* lengthSet;
-    const Matrix     gInverse;
+	const Matrix Gt;
+    const Matrix GInverse;
 public:
     CalcVelZ(const State& ss, const LengthSet* lset)
-      : s(ss), lengthSet(lset), 
-        gInverse(LengthSet::calcPseudoInverseA(lset->calcGrad(s))) 
+      : s(ss), lengthSet(lset), Gt(lset->calcGrad(s)),
+        GInverse(LengthSet::calcPseudoInverseA(Gt)) 
     {
     }
 
     Vector operator()(const Vector& b) {
-        const Vector dir = gInverse * b;
+        const Vector dir = GInverse * b;
         Vector       z(lengthSet->getRBTree().getTotalDOF(),0.0);
 
         // map the vector dir back to the appropriate elements of z
@@ -1066,13 +1072,15 @@ LengthSet::calcConstraintForces(const State& s, const Vector& udotErr,
     //cout << "  rhs = " << rhs << endl;
 
     //FIX: using inverse is inefficient
-    multipliers = A.invert() * rhs;
+    const Vector multipliersForThisSet = A.invert() * rhs;
 
-    //cout << "  lambda = " << lambda << endl;
+    //TODO: need to copy out the right multipliers to the full multipliers array
+
+    //cout << "  OLD lambda = " << multipliersForThisSet << endl;
 
     // add forces due to these constraints
     for (int i=0 ; i<(int)loops.size() ; i++) {
-        const Vec3 frc = multipliers[i] * (loops[i].tipPos(pc,2) - loops[i].tipPos(pc,1));
+        const Vec3 frc = multipliersForThisSet[i] * (loops[i].tipPos(pc,2) - loops[i].tipPos(pc,1));
         loops[i].setTipForce(ac, 2, -frc);
         loops[i].setTipForce(ac, 1,  frc);
     }
@@ -1458,7 +1466,7 @@ void RBPointInPlaneConstraint::calcAccInfo(
     updNormalDotDot_G(ac)  = A_GP[0] % getNormal_G(pc) + V_GP[0] % getNormalDot_G(vc);
 
     // Acceleration a_GS of follower point in Ground (= a + aaXr + wXwXr)
-    updAcc_G(ac) = A_GF[1] + A_GF[0] % getStation_G(pc) + V_GF[0] % V_GF[0] % getStation_G(pc);
+    updAcc_G(ac) = A_GF[1] + A_GF[0] % getStation_G(pc) + V_GF[0] % (V_GF[0] % getStation_G(pc));
 
     // This is a_PS_G = d/dt v_PS_G
     updAccInPlaneBody_G(ac) = getAcc_G(ac) - A_GP[1];

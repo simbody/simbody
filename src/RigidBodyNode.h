@@ -262,10 +262,17 @@ public:
         Vector&                qdotdot) const
       { throw VirtualBaseMethod(); }
 
-    // This will do nothing unless the mobilizer is using a quaternion.
+    // This will do nothing unless the mobilizer is using a quaternion. Otherwise it
+    // will normalize its quaternion in q, and if qErrest has non-zero length then
+    // it will remove the component of the error estimate which was along the direction
+    // of the quaternion, since that error will now be zero. That is, we'll set
+    //     q_fixed = q/|q|
+    // and qErrest -= dot(qErrest,q_fixed)*q_fixed
+
     virtual bool enforceQuaternionConstraints(
         const SBModelVars& mv,
-        Vector&            q) const=0;
+        Vector&            q,
+        Vector&            qErrest) const=0;
     
     // Convert from quaternion to Euler angle representations.
     virtual void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {throw VirtualBaseMethod();};

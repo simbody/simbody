@@ -170,7 +170,7 @@ private:
 class SimbodyMatterSubsystemRep : public SimTK::Subsystem::Guts {
 public:
     SimbodyMatterSubsystemRep() 
-      : Subsystem::Guts("SimbodyMatterSubsystem", "0.5.5"),
+      : Subsystem::Guts("SimbodyMatterSubsystem", "0.7.1"),
         lConstraints(0)
     { 
         clearTopologyCache();
@@ -182,7 +182,7 @@ public:
 
         // IMPLEMENTATIONS OF SUBSYSTEM::GUTS VIRTUAL METHODS
 
-    // Destructor is virtual
+    // Subsystem::Guts destructor is virtual
     ~SimbodyMatterSubsystemRep() {
         invalidateSubsystemTopologyCache();
         clearTopologyCache(); // should do cache before state
@@ -409,20 +409,18 @@ public:
         return v;
     }
 
-    bool projectQConstraints(State& s, Real tol, const Vector& yWeights,
-                             const Vector& ooTols, Vector& yErrEst, 
-                             System::ProjectOptions) const 
-    {
+    bool projectQConstraints(State& s, Real consAccuracy, const Vector& yWeights,
+							 const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
+	{
         // TODO
-        enforcePositionConstraints(s, tol, 0.1*tol);
+        enforcePositionConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts);
         return true;
     }
-    bool projectUConstraints(State& s, Real tol, const Vector& yWeights,
-                             const Vector& ooTols, Vector& yErrEst, 
-                             System::ProjectOptions) const 
-    {
-        // TODO
-        enforceVelocityConstraints(s, tol, 0.1*tol);
+    bool projectUConstraints(State& s, Real consAccuracy, const Vector& yWeights,
+							 const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
+	{ 
+		// TODO
+        enforceVelocityConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts);
         return true;
     }
 
@@ -596,9 +594,34 @@ public:
 
         // CALLABLE AFTER realizeModel()
 
-    int  getNQuaternionsInUse(const State&) const;
+    int  getNQuaternionsInUse(const State&) const;						 // mquat
     bool isUsingQuaternion(const State&, MobilizedBodyId) const;
     int  getQuaternionIndex(const State&, MobilizedBodyId) const; // -1 if none
+
+	// Note that although holonomic constraints are position-level constraints, they
+	// do *not* include quaternion constraints (although the state's QErr vector does
+	// include both). The total number of position-level constraints is thus
+	// getNHolonmicConstraintEquationsInUse()+getNQuaternionsInUse()==mp+mquat.
+
+	int getNHolonomicConstraintEquationsInUse       (const State&) const; // mp
+	int getNNonholonomicConstraintEquationsInUse    (const State&) const; // mv
+	int getNAccelerationOnlyConstraintEquationsInUse(const State&) const; // ma
+
+	void calcHolonomicConstraintMatrixPQInverse(const State&, Matrix&) const; // mp X nq
+	void calcHolonomicVelocityConstraintMatrixP(const State&, Matrix&) const; // mp X nu
+	void calcHolonomicVelocityConstraintMatrixPt(const State&, Matrix&) const; // nu X mp
+	void calcNonholonomicConstraintMatrixV     (const State&, Matrix&) const; // mv X nu
+	void calcNonholonomicConstraintMatrixVt    (const State&, Matrix&) const; // nu X mv
+	void calcAccelerationOnlyConstraintMatrixA (const State&, Matrix&) const; // ma X nu
+	void calcAccelerationOnlyConstraintMatrixAt(const State&, Matrix&) const; // nu X ma
+
+    // Treating all constraints together, given a comprehensive set of multipliers lambda,
+    // generate the complete set of body and mobility forces applied by all the 
+    // constraints.
+	void calcConstraintForcesFromMultipliers
+      (const State& s, const Vector& lambda,
+	   Vector_<SpatialVec>& bodyForcesInG,
+	   Vector&              mobilityForces) const;
 
     // Call after realizeDynamics()
     const SpatialMat& getArticulatedBodyInertia(const State& s, MobilizedBodyId) const;
@@ -607,8 +630,10 @@ public:
     // This is a solver which generates internal velocities from spatial ones.
     void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
 
-    void enforcePositionConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
-    void enforceVelocityConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
+    void enforcePositionConstraints(State& s, Real consAccuracy, const Vector& yWeights,
+									const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
+    void enforceVelocityConstraints(State& s, Real consAccuracy, const Vector& yWeights,
+									const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
 
     // Unconstrained (tree) dynamics 
 
@@ -871,17 +896,41 @@ private:
     // Constraints are treated similarly.
     std::vector<Constraint*>    constraints;
 
+    // Our realizeTopology method calls this after all bodies & constraints have been added,
+    // to construct part of the topology cache below.
+    void endConstruction(State&);
+
         // TOPOLOGY CACHE
 
-    // Here we sort the above constraints by branch (base body), then by
+    // The data members here are filled in when realizeTopology() is called.
+    // The flag which remembers whether we have realized topology is in 
+    // the Subsystem::Guts base class.
+    // Note that a cache is treated as mutable, so the methods that manipulate
+    // it are const.
+
+    void clearTopologyCache() const {
+        SimbodyMatterSubsystemRep& mthis = const_cast<SimbodyMatterSubsystemRep&>(*this);
+        mthis.clearTopologyCache(); // call the non-const version
+    }
+
+    // This method should clear out all the data members below.
+    void clearTopologyCache();
+
+		// Mobilized bodies and their rigid body nodes
+
+    // This holds pointers to nodes and serves to map (level,offset) to nodeNum.
+    std::vector<RBNodePtrList>      rbNodeLevels;
+    // Map nodeNum to (level,offset).
+    std::vector<RigidBodyNodeIndex> nodeNum2NodeMap;
+
+		// Constraints
+
+    // Here we sort the above constraints by branch (ancestor's base body), then by
     // level within that branch. That is, each constraint is addressed
     // by three indices [branch][levelOfAncestor][offset]
     // where offset is an arbitrary unique integer assigned to all
     // the constraints on the same branch with the same level of ancestor.
     std::vector< std::vector< std::vector<ConstraintId> > > branches;
-
-
-    std::vector<SimbodyMatterSubsystem::Subtree> constraintSubtrees; // one per Constraint
 
     // Partition the constraints into groups which are coupled by constraints at
     // the indicated level. Only Constraints which generate holonomic constraint
@@ -913,23 +962,6 @@ private:
     // used to modify the articulated body inertias.
     std::vector<CoupledConstraintSet> dynamicallyCoupledConstraints;
 
-    // Our realizeTopology method calls this after all bodies & constraints have been added,
-    // to construct part of the topology cache below.
-    void endConstruction();
-
-    // The data members here are filled in when realizeTopology() is called.
-    // The flag which remembers whether we have realized topology is in 
-    // the Subsystem::Guts base class.
-    // Note that a cache is treated as mutable, so the methods that manipulate
-    // it are const.
-
-    void clearTopologyCache() const {
-        SimbodyMatterSubsystemRep& mthis = const_cast<SimbodyMatterSubsystemRep&>(*this);
-        mthis.clearTopologyCache(); // call the non-const version
-    }
-
-    // This method should clear out all the data members below.
-    void clearTopologyCache();
 
     // TODO: these state indices and counters should be deferred to realizeModel()
     // so we can have Model stage variables which change the number of state
@@ -957,17 +989,13 @@ private:
     SBTopologyCache topologyCache;
     int topologyCacheIndex; // topologyCache is copied here in the State
 
-    // This holds pointers to nodes and serves to map (level,offset) to nodeNum.
-    std::vector<RBNodePtrList>      rbNodeLevels;
-    // Map nodeNum to (level,offset).
-    std::vector<RigidBodyNodeIndex> nodeNum2NodeMap;
 
 
     // These are the distant constraint equations and point-in-plane
     // constraint equations generated by Constraints.
+	// TODO: these will be OBSOLETE when the new constraints are in place
     std::vector<RBDistanceConstraint*>     distanceConstraints;
     std::vector<RBPointInPlaneConstraint*> pointInPlaneConstraints;
-    
     LengthConstraints* lConstraints;
 };
 

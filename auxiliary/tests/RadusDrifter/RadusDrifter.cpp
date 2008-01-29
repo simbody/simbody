@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
     //forces.addCustomForce(ShermsForce(leftPendulum,rightPendulum));
     //forces.addGlobalEnergyDrain(1);
 
-    forces.addMobilityConstantForce(crank, 0, 10);
+    forces.addMobilityConstantForce(crank, 0, 1000);
     forces.addMobilityLinearDamper(crank, 0, 1.0);
 
     State s = mbs.realizeTopology(); // returns a reference to the the default state
@@ -140,18 +140,14 @@ int main(int argc, char** argv) {
     cout << "q=" << s.getQ() << endl;
     cout << "qErr=" << s.getQErr() << endl;
 
-    // Create a study using the Runge Kutta Merson or CPODES integrator
-    //OLDRungeKuttaMerson myStudy(mbs, s);
-    //OLDCPodesIntegrator myStudy(mbs, s);
-    //OLDExplicitEuler myStudy(mbs, s);
 
     // These are the SimTK Simmath integrators:
-    //RungeKuttaMersonIntegrator myStudy(mbs);
-    CPodesIntegrator myStudy(mbs, CPodes::BDF, CPodes::Newton);
+    RungeKuttaMersonIntegrator myStudy(mbs);
+    //CPodesIntegrator myStudy(mbs, CPodes::BDF, CPodes::Newton);
 
 
     //myStudy.setMaximumStepSize(0.001);
-    myStudy.setAccuracy(1e-4);
+    myStudy.setAccuracy(1e-1);
     //myStudy.setProjectEveryStep(true);
     //myStudy.setAllowInterpolation(false);
     //myStudy.setMaximumStepSize(.1);
@@ -208,8 +204,8 @@ int main(int argc, char** argv) {
         display.report(s);
 
 
-        if (s.getTime() >= nextReport*dt) 
-            ++nextReport;
+		if (status == Integrator::ReachedReportTime)
+			++nextReport;
     }
 
     for (int i=0; i<100; ++i)

@@ -62,7 +62,7 @@ static const Real ConnectorHalfHeight = 3;  // A
 static const Real ConnectorEndSlop    = 0.2;// A
 static const Real ConnectorDensity    = 10;  // Dalton/A^3
 
-static int NSegments = 4;
+static int NSegments = 2;
 
 class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {
@@ -250,6 +250,22 @@ try // If anything goes wrong, an exception will be thrown.
     State s = mbs.realizeTopology();
     //myRNA.setUseEulerAngles(s,true);
     mbs.realizeModel(s);
+    mbs.realize(s, Stage::Position);
+
+    for (ConstraintId cid(0); cid < myRNA.getNConstraints(); ++cid) {
+        const Constraint& c = myRNA.getConstraint(cid);
+
+	    cout << "CONSTRAINT " << cid << " ancestor=" << c.getAncestorMobilizedBody().getMobilizedBodyId()
+             << " " << c.getNumConstrainedBodies() << "constrained bodies, perr=" << c.getPositionError(s)
+		     << endl;
+        for (ConstrainedBodyId cid(0); cid < c.getNumConstrainedBodies(); ++cid)
+            cout << "  constrained body: " << c.getConstrainedMobilizedBody(cid).getMobilizedBodyId() << endl;
+
+	    cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
+	    cout << "   d(perrdot)/du=" << ~c.calcPositionConstraintMatrixPt(s);
+
+	    cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
+    }
 
 
     SimbodyMatterSubsystem::Subtree sub(myRNA);
@@ -257,7 +273,7 @@ try // If anything goes wrong, an exception will be thrown.
     sub.addTerminalBody(myRNA.getMobilizedBody(MobilizedBodyId(10)));
     //sub.addTerminalBody(myRNA.getMobilizedBody(MobilizedBodyId(20)));
     sub.realizeTopology();
-    cout << "sub.ancestor=" << sub.getAncestorBody();
+    cout << "sub.ancestor=" << sub.getAncestorMobilizedBodyId();
 //    cout << "  sub.terminalBodies=" << sub.getTerminalBodies() << endl;
 //    cout << "sub.allBodies=" << sub.getAllBodies() << endl;
     for (SubtreeBodyId i(0); i < (int)sub.getAllBodies().size(); ++i) {
@@ -281,11 +297,9 @@ try // If anything goes wrong, an exception will be thrown.
     // And a study using the Runge Kutta Merson integrator
     bool suppressProject = false;
 
-    //OLDRungeKuttaMerson myStudy(mbs, s, suppressProject);
-    //OLDCPodesIntegrator myStudy(mbs, s);
-
     RungeKuttaMersonIntegrator myStudy(mbs);
     //CPodesIntegrator  myStudy(mbs);
+    //VerletIntegrator myStudy(mbs);
 
     myStudy.setAccuracy(1e-2);
     myStudy.setConstraintTolerance(1e-3); 

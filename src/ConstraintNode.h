@@ -173,6 +173,41 @@ private:
 };
 
 /**
+ * This class represents a single constraint equation, enforcing that a vector fixed
+ * to one body maintains a constant angle with respect to a vector fixed to another
+ * body.
+ */
+class ConstantAngleConstraintNode : public ConstraintNode {
+public:
+    ConstantAngleConstraintNode(
+            const RigidBodyNode& baseNode, const UnitVec3& axisOnB,
+            const RigidBodyNode& followerNode,  const Vec3& axisOnF, Real a)
+      : baseBody(baseNode), followerBody(followerNode), 
+      axisB(axisOnB), axisF(axisOnF), angle(a), constantAngleConstraintIndex(-1)
+    {
+    }
+    ~ConstantAngleConstraintNode() { }
+
+    /*virtual*/ void finishConstruction(SimbodyMatterSubsystemRep& tree) {
+    }
+
+    /*virtual*/ const char* type()     const {return "constantAngle";}
+    /*virtual*/ int         getNConstraintEquations() const {return 1;}
+    /*virtual*/ ConstraintNode* clone() const {
+        return new ConstantAngleConstraintNode(*this);
+    }
+    
+private:
+    const RigidBodyNode& baseBody;
+    const RigidBodyNode& followerBody;  
+    const UnitVec3 axisB;
+    const UnitVec3 axisF;
+    const Real     angle;
+
+    int constantAngleConstraintIndex;
+};
+
+/**
  * This class represents three constraint equations, together conspiring to hold
  * a station on one body coincident with one on another (or on ground).
  * The current implementation uses three distance constraints between the

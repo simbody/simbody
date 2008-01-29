@@ -6,8 +6,8 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
- * Authors: Randy Radmer, Michael Sherman                                     *
+ * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
@@ -30,425 +30,304 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * This is an outer block for simulating ??? in various ways with Simbody.
- * This is about testing Simbody, *not* studying ???!
+ * This is a simple example of using a constraint.
+ * Here we have two independent pendulums hanging from ground pins.
+ * They can be connected by a spring or a distance constraint.
  */
 
 #include "SimTKsimbody.h"
 #include "SimTKsimbody_aux.h" // requires VTK
 
-#include <string>
-#include <iostream>
-#include <exception>
 #include <cmath>
+#include <cstdio>
+#include <exception>
 #include <vector>
-using std::cout;
-using std::endl;
 
+using namespace std;
 using namespace SimTK;
-using namespace DuMM; // for conversion constants
 
-//static const int NUM_WATERS = 23;
-static const int NUM_WATERS = 20;
+static const Real Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,
+                  Rad2Deg = (Real)SimTK_RADIAN_TO_DEGREE;
 
-enum {
-    ATOM_TYPE_OW = 1,
-    ATOM_TYPE_HW = 2,
-    ATOM_TYPE_CA_BASE = 11,
-    ATOM_TYPE_HA_BASE = 21,
-    CHARGED_ATOM_TYPE_OW = 1001,
-    CHARGED_ATOM_TYPE_HW = 1002,
-    CHARGED_ATOM_TYPE_CA_BASE = 1011,
-    CHARGED_ATOM_TYPE_HA_BASE = 1021,
-};
+static const Transform GroundFrame;
 
-class Molecule {
-public:
-    Molecule(int parentBodyNum, const Transform& parentMobilizerFrame,
-             const MolecularMechanicsSystem& mmSys)
-        : parent(parentBodyNum), mobilizerFrameOnParent(parentMobilizerFrame), 
-          mmSystem(&mmSys)
-    { }
+static const Real m = 1;   // kg
+static const Real g = 9.8; // meters/s^2; apply in –y direction
+static const Real d = 0.5; // meters
 
-    // Translate and rotation the molecule as a whole. Usually this just means move the base body,
-    // but some molecules may not have a single base, so they can override this default.
-    virtual void setMoleculeTransform(State& s, const Transform& pos) const
-    {
-        getMatter().getMobilizedBody(bodies[0]).setQToFitTransform(s, pos);
-    }
-
-    virtual void setMoleculeVelocity(State& s, const SpatialVec& vel) const
-    {
-        getMatter().getMobilizedBody(bodies[0]).setUToFitVelocity(s, vel);
-    }
-
-    // This routine must set the internal mobilities to their nominal values, both
-    // for position and velocity states. This State must have already been realized
-    // to at least Model stage.
-    virtual void setDefaultInternalState(State& s) const = 0; 
-
-    int getNAtoms()  const {return (int)atoms.size();}
-    int getNBodies() const {return (int)bodies.size();}
-
-    // return atomId of ith atom in Molecule
-    DuMM::AtomId getAtom(int i) const {return atoms[i];}
-
-    // return bodyNum of ith body; 0 is molecule's base body
-    MobilizedBodyId getBody(int i) const {return bodies[i];}
-
-    const SimbodyMatterSubsystem& getMatter() const {
-        return SimbodyMatterSubsystem::downcast(mmSystem->getMatterSubsystem());
-    }
-    const DuMMForceFieldSubsystem& getDuMM() const {
-        return mmSystem->getMolecularMechanicsForceSubsystem();
-    }
-protected:
-    std::vector<DuMM::AtomId>    atoms;
-    std::vector<MobilizedBodyId> bodies;
-    MobilizedBodyId       parent;
-    Transform mobilizerFrameOnParent;
-    const MolecularMechanicsSystem* mmSystem;
-};
+static const Vec3 hl(1, 0.5, 0.5); // body half lengths
 
 
-class Tip3p_water : public Molecule {
-public:
-    Tip3p_water(MobilizedBodyId parentBodyNum,
-          MolecularMechanicsSystem& mmSys)
-      : Molecule(parentBodyNum, Transform(), mmSys)
-    {
-        Real xH, yH;
-        DuMMForceFieldSubsystem& mm = mmSys.updMolecularMechanicsForceSubsystem();
+// Create a free body and constrain it to a point on ground.
+//
+//                       * (1,2,0)
+//                |
+//           -----|-----
+//          |     *     |   (0,0,0)
+//           -----------
 
-        // Create the atoms and bonds. Atom 0 is OW, atoms 1 and 2 are H1 and H2
-        //  OW will serve as the base frame for the molecule.
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)CHARGED_ATOM_TYPE_OW));
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)CHARGED_ATOM_TYPE_HW));
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)CHARGED_ATOM_TYPE_HW));
-        mm.addBond(getAtom(0),getAtom(1));
-        mm.addBond(getAtom(0),getAtom(2));
-        //mm.addBond(getAtom(1),getAtom(2));
+int main(int argc, char** argv) {
+  try { // If anything goes wrong, an exception will be thrown.
 
-        // Define the clusers.
-        tip3p_water = mm.createCluster("tip3p_water");
+        // CREATE MULTIBODY SYSTEM AND ITS SUBSYSTEMS
+    MultibodySystem         mbs;
 
-        xH=getNominalHHBondLength()/2;
-        yH=sqrt(getNominalOHBondLength()*getNominalOHBondLength()-xH*xH);
-        //printf("2*xH = %f, sqrt(xH**2+yH**2) = %f\n", 2*xH, sqrt(xH*xH+yH*yH));
-        mm.placeAtomInCluster(getAtom(0), tip3p_water, Vec3(0));
-        mm.placeAtomInCluster(getAtom(1), tip3p_water, Vec3(-xH,yH,0));
-        mm.placeAtomInCluster(getAtom(2), tip3p_water, Vec3( xH,yH,0));
+    SimbodyMatterSubsystem  matter(mbs);
+    UniformGravitySubsystem gravity(mbs, Vec3(0, -g, 0));
+    GeneralForceElements    forces(mbs);
+    DecorationSubsystem     viz(mbs);
 
-        SimbodyMatterSubsystem&  matter =
-            SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
+        // ADD BODIES AND THEIR MOBILIZERS
+    const Body::Rigid body = Body::Rigid(MassProperties(m, Vec3(0), m*Inertia::brick(hl[0],hl[1],hl[2])))
+                                  .addDecoration(Transform(), DecorativeBrick(hl).setOpacity(.5))
+                                  .addDecoration(Transform(), DecorativeLine(Vec3(0), Vec3(0,1,0)).setColor(Green));
 
-        MassProperties mprops = mm.calcClusterMassProperties(tip3p_water, Transform());
+    MobilizedBody::Free mobilizedBody(matter.Ground(), Transform(), body, Transform());
+    MobilizedBody::Free mobilizedBody0(mobilizedBody, Transform(Vec3(1,2,0)), body, Transform(Vec3(0,1,0)));
+    //MobilizedBody::Ball mobilizedBody(mobilizedBody0, Transform(Vec3(1,2,0)), body, Transform(Vec3(0,1,0)));
+    MobilizedBody::Free mobilizedBody2(mobilizedBody0, Vec3(-5,0,0), body, Transform());
 
-        bodies.push_back(
-            MobilizedBody::Free(
-                matter.updMobilizedBody(parentBodyNum), Transform(Vec3(0,0,0)),    // parent mobilizer frame
-                Body::Rigid(mprops), Transform(Vec3(0,0,0))));    // inboard mobilizer frame
+#define HASC
+    
+    Constraint::Ball myc2(matter.Ground(), Vec3(-4,2,0),  mobilizedBody2, Vec3(0,1,0));
+    Constraint::Ball myc(matter.Ground(), Vec3(1,2,0),  mobilizedBody, Vec3(0,1,0));
+    Constraint::Ball ball(mobilizedBody0, Vec3(2,0,0), mobilizedBody2, Vec3(3,0,0));
+    
 
-        mm.attachClusterToBody(tip3p_water, bodies.back(), Transform());
-    }
+    /*
+    Constraint::Rod myc2(matter.Ground(), Vec3(-4,2,0),  mobilizedBody2, Vec3(0,1,0), 1);
+    Constraint::Rod myc(matter.Ground(), Vec3(1,2,0),  mobilizedBody, Vec3(0,1,0), 1);
+    Constraint::Rod ball(mobilizedBody0, Vec3(2,0,0), mobilizedBody2, Vec3(3,0,0), 5);
+    */
 
-    Real getNominalOHBondLength() const { return 0.9572 * Ang2Nm; }
-    Real getNominalHHBondLength() const { return 1.5136 * Ang2Nm; }
+    //Constraint::Rod rod(mobilizedBody, Vec3(0,0,1), mobilizedBody2, Vec3(-1,0,0), 5);
+    //Constraint::Rod myc(matter.Ground(), Vec3(1,2,0),  mobilizedBody, Vec3(0,1,0), 1);
 
-    void setDefaultInternalState(State& s) const { } // none
-
-protected:
-    DuMM::ClusterId tip3p_water; // cluster
-};
+    //Constraint::Ball myc(mobilizedBody, Vec3(1,2,0),  mobilizedBody2, Vec3(0,1,0));
+    //Constraint::PointInPlane myc(mobilizedBody, UnitVec3(0,1,0),  2, mobilizedBody2, Vec3(0,1,0));
+    //Constraint::Rod myc(mobilizedBody, Vec3(0), mobilizedBody2, Vec3(0), 5);
 
 
-class Benzene : public Molecule {
-public:
-    Benzene(MobilizedBodyId parentBodyNum, const Transform& parentMobilizerFrame,
-                  MolecularMechanicsSystem& mmSys)
-      : Molecule(parentBodyNum, parentMobilizerFrame, mmSys)
-    {
-        Real a, x, y, rC, rH;
-        DuMMForceFieldSubsystem& mm = mmSys.updMolecularMechanicsForceSubsystem();
+    //Constraint::Rod myc(matter.Ground(), Vec3(1,2,0),  mobilizedBody, Vec3(0,1,0), 0.1);
+    
+    //Constraint::PointInPlane myc(matter.Ground(), UnitVec3(0,1,0), 2, // parallel to xz at height 2
+    //                     mobilizedBody, Vec3(0,1,0));
+    //Constraint::ConstantAngle myc(matter.Ground(), UnitVec3(1,1,1), mobilizedBody, UnitVec3(0,1,0), Pi/2);
 
-        for(int i=0; i<6; i++) {
-            atoms.push_back( mm.addAtom((DuMM::ChargedAtomTypeId)(CHARGED_ATOM_TYPE_CA_BASE+i)) );
+    //Constraint::PointInPlane myc(matter.Ground(), UnitVec3(1,0,0), 1, 
+    //                         mobilizedBody, Vec3(0,1,0));
+     //Constraint::PointInPlane mycy(matter.Ground(), UnitVec3(0,1,0), 2, 
+     //                        mobilizedBody, Vec3(0,1,0));
+     //Constraint::PointInPlane mycz(matter.Ground(), UnitVec3(0,0,1), 0, 
+     //                        mobilizedBody, Vec3(0,1,0));
+    
+    //Constraint::Ball redundant(matter.Ground(), Vec3(1,2,0), 
+      //                   mobilizedBody, Vec3(0,1,0));
+     //Constraint::Ball other(matter.Ground(), Vec3(0,0,0), 
+      //                   mobilizedBody, Vec3(0,0,0));
+    
+
+
+    viz.addRubberBandLine(matter.Ground(), Vec3(1,2,0),
+                          mobilizedBody, Vec3(0,1,0),
+                          DecorativeLine().setColor(Orange).setLineThickness(4));
+    viz.addBodyFixedDecoration(matter.Ground(), Vec3(1,2,0), DecorativeSphere(0.1).setOpacity(.2));
+    viz.addBodyFixedDecoration(matter.Ground(), Transform(), DecorativeLine(Vec3(0),Vec3(1,1,1)).setColor(Black));
+
+    State s = mbs.realizeTopology(); // returns a reference to the the default state
+    //matter.setUseEulerAngles(s, true);
+    mbs.realizeModel(s); // define appropriate states for this System
+
+    //mobilizedBody0.setQ(s, .1);
+    //mobilizedBody.setQ(s, .2);
+
+    VTKVisualizer display(mbs);
+
+    //{Real qq[] = {0.9719,0,0,-0.235396,0.542437,1.11082,0};
+    // s.updQ()=Vector(4,qq);
+    //}
+    mbs.realize(s, Stage::Position);
+    display.report(s);
+    cout << "q=" << s.getQ() << endl;
+    cout << "qErr=" << s.getQErr() << endl;
+
+#ifdef HASC
+    for (ConstraintId cid(0); cid < matter.getNConstraints(); ++cid) {
+        const Constraint& c = matter.getConstraint(cid);
+        int mp,mv,ma;
+        c.getNumConstraintEquations(s, mp,mv,ma);
+
+	    cout << "CONSTRAINT " << cid << " ancestor=" << c.getAncestorMobilizedBody().getMobilizedBodyId()
+             << " " << c.getNumConstrainedBodies() << "constrained bodies, perr=" << c.getPositionError(s)
+		     << endl;
+        for (ConstrainedBodyId cid(0); cid < c.getNumConstrainedBodies(); ++cid)
+            cout << "  constrained body: " << c.getConstrainedMobilizedBody(cid).getMobilizedBodyId() << endl;
+        cout << c.getSubtree();
+	    cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
+        cout << "  ~d(Gt lambda)/dlambda=" << ~c.calcPositionConstraintMatrixPt(s);
+
+
+	    cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
+
+        Matrix P = c.calcPositionConstraintMatrixP(s);
+        Matrix PQ(mp,matter.getNQ(s));
+        Vector out(matter.getNQ(s));
+        Matrix Q(matter.getNQ(s), matter.getNU(s));
+        Matrix Qinv(matter.getNU(s),matter.getNQ(s));
+        for (int i=0; i<mp; ++i) {
+            Vector in = ~P[i];
+            matter.multiplyByQMatrixInverse(s, true, in, out);
+            PQ[i] = ~out;
         }
-        for(int i=0; i<6; i++) {
-            atoms.push_back( mm.addAtom((DuMM::ChargedAtomTypeId)(CHARGED_ATOM_TYPE_HA_BASE+i)) );
+        cout << " calculated d(perr)/dq=" << PQ;
+
+        Vector u(matter.getNU(s)); u=0;
+        for (int i=0; i < matter.getNU(s); ++i) {
+            u[i]=1;
+            matter.multiplyByQMatrix(s,false,u,Q(i));
+            u[i]=0;
         }
-        for( int i = 0; i < 6; i++ ) {
-            mm.addBond( (DuMM::AtomId)i, (DuMM::AtomId)((i+1)%6) );
-            mm.addBond( (DuMM::AtomId)i, (DuMM::AtomId)(i+6) );
-            //mm.addBond(i,(i+2)%6);  // False bonds -- hack for improper torsions
-        }
+        cout << " Q=" << Q;
 
-        // Define the clusers.
-        benzene = mm.createCluster("benzene");
-
-        rC=getNominalCCBondLength();
-        rH=rC+getNominalCCBondLength();
-        for (int i=0; i<6; i++) {
-            a=(2*Pi/6.0)*i;
-            x=cos(a);
-            y=sin(a);
-            mm.placeAtomInCluster((DuMM::AtomId)(i), benzene, Vec3(rC*x, rC*y, 0));
-            mm.placeAtomInCluster((DuMM::AtomId)(i+6), benzene, Vec3(rH*x, rH*y, 0));
-        }
     }
+    const Constraint& c = matter.getConstraint(myc.getConstraintId());
+    
+#endif
 
-    // Get the atom number for each atom.
+    char ans;
+    cout << "Default configuration shown. Ready? "; cin >> ans;
 
-    Real getNominalCCBondLength() const { return 1.40 * Ang2Nm; }
-    Real getNominalCHBondLength() const { return 1.08 * Ang2Nm; }
+    mobilizedBody.setQToFitTransform (s, Transform(Rotation(.05,Vec3(1,1,1)),Vec3(.1,.2,.3)));
+    mobilizedBody0.setQToFitTransform (s, Transform(Rotation(.05,Vec3(1,-1,1)),Vec3(.2,.2,.3)));
+    mobilizedBody2.setQToFitTransform (s, Transform(Rotation(.05,Vec3(-1,1,1)),Vec3(.1,.2,.1)));
+    mobilizedBody.setUToFitAngularVelocity(s, 100*Vec3(.1,.2,.3));
 
-protected:
-    DuMM::ClusterId benzene; // cluster
-};
-
-
-class RigidBenzene : public Benzene {
-public:
-    RigidBenzene(MobilizedBodyId parent, MolecularMechanicsSystem& mmSys)
-                : Benzene(parent,Transform(),mmSys)
-    {
-        SimbodyMatterSubsystem&  matter =
-            SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
-        DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
-
-        MassProperties mprops = mm.calcClusterMassProperties(benzene, Transform());
-
-        bodies.push_back(
-            MobilizedBody::Free(
-                matter.updMobilizedBody(parent), Transform(Vec3(0,0,0)),    // parent mobilizer frame
-                Body::Rigid(mprops), Transform(Vec3(0,0,0))));    // inboard mobilizer frame
-
-        mm.attachClusterToBody(benzene, bodies.back(), Transform());
-    }
-
-    void setDefaultInternalState(State& s) const { } // none
-};
-
-
-class FloppyBenzene : public Benzene {
-public:
-    FloppyBenzene(MobilizedBodyId parent, MolecularMechanicsSystem& mmSys)
-                : Benzene(parent,Transform(),mmSys)
-    { }
-
-    void setDefaultInternalState(State& s) const { } // none
-};
-
-
-
-static const Transform BodyFrame;   // identity transform on any body
-
-// How it actually looks now:
-int main() {
-try
-  { MolecularMechanicsSystem mbs;
-    SimbodyMatterSubsystem   matter(mbs);
-    DuMMForceFieldSubsystem  mm(mbs);
-    GeneralForceElements     forces(mbs);
-    DecorationSubsystem      artwork(mbs);
-
-    Real accuracy = 1e-2;
-    Real outputInterval = .10;
-    Real simulationLength = 100;
-    //Real outputInterval = .1;
-    //Real simulationLength = 10;
-
-    const Real torsControlGain = /*100000*/0;
-    const Real desiredTorsAngle = /*Pi/3*/0;
-
-    forces.addGlobalEnergyDrain(.1);
-
-    mm.setVdw14ScaleFactor(1/2.); // reduce energy by these factors
-    mm.setCoulomb14ScaleFactor(1/1.2);
-
-    mm.defineAtomClass_KA(ATOM_TYPE_OW, "TIP3P OW", 8, 1, 1.7683, 0.1520); 
-    mm.defineAtomClass_KA(ATOM_TYPE_HW, "TIP3P HW", 1, 1, 1.0000, 0.0000); 
-
-    mm.defineChargedAtomType_KA(CHARGED_ATOM_TYPE_OW, "TIP3P OW",
-                                ATOM_TYPE_OW, -0.834);
-    mm.defineChargedAtomType_KA(CHARGED_ATOM_TYPE_HW, "TIP3P HW",
-                                ATOM_TYPE_HW,  0.417);
-
-    mm.defineBondStretch_KA(ATOM_TYPE_OW, ATOM_TYPE_HW, 553., 0.9572);
-    mm.defineBondStretch_KA(ATOM_TYPE_HW, ATOM_TYPE_HW, 553., 1.5136);
-
-// CA
-    mm.defineAtomClass_KA(ATOM_TYPE_CA_BASE+0, "BENZENE C1", 6, 1, 1.9080, 0.0860);
-    mm.defineAtomClass_KA(ATOM_TYPE_CA_BASE+1, "BENZENE C2", 6, 1, 1.9080, 0.0860);
-    mm.defineAtomClass_KA(ATOM_TYPE_CA_BASE+2, "BENZENE C3", 6, 1, 1.9080, 0.0860);
-    mm.defineAtomClass_KA(ATOM_TYPE_CA_BASE+3, "BENZENE C4", 6, 1, 1.9080, 0.0860);
-    mm.defineAtomClass_KA(ATOM_TYPE_CA_BASE+4, "BENZENE C5", 6, 1, 1.9080, 0.0860);
-    mm.defineAtomClass_KA(ATOM_TYPE_CA_BASE+5, "BENZENE C6", 6, 1, 1.9080, 0.0860);
-// HA
-    mm.defineAtomClass_KA(ATOM_TYPE_HA_BASE+0, "BENZENE H1", 1, 1, 1.4590, 0.0150);
-    mm.defineAtomClass_KA(ATOM_TYPE_HA_BASE+1, "BENZENE H2", 1, 1, 1.4590, 0.0150);
-    mm.defineAtomClass_KA(ATOM_TYPE_HA_BASE+2, "BENZENE H3", 1, 1, 1.4590, 0.0150);
-    mm.defineAtomClass_KA(ATOM_TYPE_HA_BASE+3, "BENZENE H4", 1, 1, 1.4590, 0.0150);
-    mm.defineAtomClass_KA(ATOM_TYPE_HA_BASE+4, "BENZENE H5", 1, 1, 1.4590, 0.0150);
-    mm.defineAtomClass_KA(ATOM_TYPE_HA_BASE+5, "BENZENE H6", 1, 1, 1.4590, 0.0150);
-
-// CA
-    mm.defineChargedAtomType_KA(CHARGED_ATOM_TYPE_CA_BASE+0, "BENZENE C1", ATOM_TYPE_CA_BASE+0, -0.115);
-    mm.defineChargedAtomType_KA(CHARGED_ATOM_TYPE_CA_BASE+1, "BENZENE C2", ATOM_TYPE_CA_BASE+1, -0.115);
-    mm.defineChargedAtomType_KA(CHARGED_ATOM_TYPE_CA_BASE+2, "BENZENE C3", ATOM_TYPE_CA_BASE+2, -0.115);
-    mm.defineChargedAtomType_KA(CHARGED_ATOM_TYPE_CA_BASE+3, "BENZENE C4", ATOM_TYPE_CA_BASE+3, -0.115);
-    mm.defineChargedAtomType_KA(CHARGED_ATOM_TYPE_CA_BASE+4, "BENZENE C5", ATOM_TYPE_CA_BASE+4, -0.115);
-    mm.defineChargedAtomType_KA(CHARGED_ATOM_TYPE_CA_BASE+5, "BENZENE C6", ATOM_TYPE_CA_BASE+5, -0.115);
-// HA
-    mm.defineChargedAtomType_KA(CHARGED_ATOM_TYPE_HA_BASE+0, "BENZENE H1", ATOM_TYPE_HA_BASE+0,  0.115);
-    mm.defineChargedAtomType_KA(CHARGED_ATOM_TYPE_HA_BASE+1, "BENZENE H2", ATOM_TYPE_HA_BASE+1,  0.115);
-    mm.defineChargedAtomType_KA(CHARGED_ATOM_TYPE_HA_BASE+2, "BENZENE H3", ATOM_TYPE_HA_BASE+2,  0.115);
-    mm.defineChargedAtomType_KA(CHARGED_ATOM_TYPE_HA_BASE+3, "BENZENE H4", ATOM_TYPE_HA_BASE+3,  0.115);
-    mm.defineChargedAtomType_KA(CHARGED_ATOM_TYPE_HA_BASE+4, "BENZENE H5", ATOM_TYPE_HA_BASE+4,  0.115);
-    mm.defineChargedAtomType_KA(CHARGED_ATOM_TYPE_HA_BASE+5, "BENZENE H6", ATOM_TYPE_HA_BASE+5,  0.115);
-
-    for (int i=0; i<6; i++) {
-//     CA-CA
-        mm.defineBondStretch_KA( ATOM_TYPE_CA_BASE+i, ATOM_TYPE_CA_BASE+(1+i)%6, 469.0, 1.400);
-//     CA-HA
-        mm.defineBondStretch_KA( ATOM_TYPE_CA_BASE+i, ATOM_TYPE_HA_BASE+i, 367.0, 1.080);
-//     CA-CA -- False bond, for Improper Torsions; note these are zero
-        mm.defineBondStretch_KA( ATOM_TYPE_CA_BASE+i, ATOM_TYPE_CA_BASE+(2+i)%6, 0.0, 1.732);
-
-//     CA-CA-CA
-        mm.defineBondBend_KA( ATOM_TYPE_CA_BASE+i, ATOM_TYPE_CA_BASE+(1+i)%6, ATOM_TYPE_CA_BASE+(2+i)%6, 63.0, 120.00);
-//     CA-CA-HA
-        mm.defineBondBend_KA( ATOM_TYPE_CA_BASE+i, ATOM_TYPE_CA_BASE+(1+i)%6, ATOM_TYPE_HA_BASE+(1+i)%6, 50.0, 120.00);
-//     HA-CA-CA
-        mm.defineBondBend_KA( ATOM_TYPE_HA_BASE+i, ATOM_TYPE_CA_BASE+i, ATOM_TYPE_CA_BASE+(1+i)%6, 50.0, 120.00);
-
-//     CA-CA-CA-CA
-        mm.defineBondTorsion_KA( ATOM_TYPE_CA_BASE+i, ATOM_TYPE_CA_BASE+(1+i)%6, ATOM_TYPE_CA_BASE+(2+i)%6, ATOM_TYPE_CA_BASE+(3+i)%6, 2, 3.625, 180.);
-//     CA-CA-CA-HA
-        mm.defineBondTorsion_KA( ATOM_TYPE_CA_BASE+i, ATOM_TYPE_CA_BASE+(1+i)%6, ATOM_TYPE_CA_BASE+(2+i)%6, ATOM_TYPE_HA_BASE+(2+i)%6, 2, 3.625, 180.);
-//     HA-CA-CA-CA
-        mm.defineBondTorsion_KA( ATOM_TYPE_HA_BASE+i, ATOM_TYPE_CA_BASE+i, ATOM_TYPE_CA_BASE+(1+i)%6, ATOM_TYPE_CA_BASE+(2+i)%6, 2, 3.625, 180.);
-//     HA-CA-CA-HA
-        mm.defineBondTorsion_KA( ATOM_TYPE_HA_BASE+i, ATOM_TYPE_CA_BASE+i, ATOM_TYPE_CA_BASE+(1+i)%6, ATOM_TYPE_HA_BASE+(1+i)%6, 2, 3.625, 180.);
-//     CA-CA-CA-HA -- Improper
-        mm.defineBondTorsion_KA( ATOM_TYPE_CA_BASE+i, ATOM_TYPE_CA_BASE+(2+i)%6, ATOM_TYPE_CA_BASE+(1+i)%6, ATOM_TYPE_HA_BASE+(1+i)%6, 2, 1.1, 180.);
-    }
-
-    mm.setVdwMixingRule( DuMMForceFieldSubsystem::LorentzBerthelot );
-
-
-    const RigidBenzene rBenzene(GroundId, mbs);
-
-    std::vector<Tip3p_water> tip3p_waters;
-    for (int i=0; i<NUM_WATERS; ++i) {
-        tip3p_waters.push_back(Tip3p_water(GroundId, mbs));
-    }
-
-    DecorativeLine crossBodyBond; crossBodyBond.setColor(Orange).setLineThickness(5);
-
-    for (DuMM::BondId i = (DuMM::BondId)0; i < (DuMM::BondId)mm.getNBonds(); ++i) {
-        const DuMM::AtomId a1 = mm.getBondAtom(i, 0), a2 = mm.getBondAtom(i, 1);
-        const MobilizedBodyId b1 = mm.getAtomBody(a1),  b2 = mm.getAtomBody(a2);
-        if (b1==b2)
-            artwork.addBodyFixedDecoration(b1, Transform(),
-                                           DecorativeLine(mm.getAtomStationOnBody(a1), mm.getAtomStationOnBody(a2))
-                                             .setColor(Gray).setLineThickness(3));
-        else
-            artwork.addRubberBandLine(b1, mm.getAtomStationOnBody(a1),
-                                      b2, mm.getAtomStationOnBody(a2), crossBodyBond);
-    }
-
-    for (DuMM::AtomId anum = (DuMM::AtomId)0; anum < (DuMM::AtomId)mm.getNAtoms(); ++anum) {
-        Real shrink = 0.25, opacity = mm.getAtomElement(anum)==1?0.5:1;
-        Real r = mm.getAtomRadius(anum);
-        if (r<.001) r=0.1; //nm
-        //opacity=0.5;//XXX
-        artwork.addBodyFixedDecoration(mm.getAtomBody(anum), mm.getAtomStationOnBody(anum),
-            DecorativeSphere(shrink*r)
-                .setColor(mm.getAtomDefaultColor(anum)).setOpacity(opacity).setResolution(3));
-    }
-
-    State s = mbs.realizeTopology();
-    mbs.realizeModel(s);
-
-    rBenzene.setDefaultInternalState(s);
-    rBenzene.setMoleculeTransform(s,Vec3(0,0,0));
-
-    int iSize;
-    iSize=int(sqrt(NUM_WATERS/2.0));
-    for (int i=0; i<NUM_WATERS/2; ++i) {
-        Real x, y=-0.5, z;
-
-        x=.5*(i%iSize-iSize/2);
-        z=.5*(i/iSize-iSize/2);
-        tip3p_waters[i].setDefaultInternalState(s);
-        tip3p_waters[i].setMoleculeTransform(s,Vec3(x,y,z));
-    }
-    for (int i=NUM_WATERS/2; i<NUM_WATERS; ++i) {
-        Real x, y=0.5, z;
-
-        x=.5*(i%iSize-iSize/2);
-        z=.5*(i/iSize-iSize/2);
-        tip3p_waters[i].setDefaultInternalState(s);
-        tip3p_waters[i].setMoleculeTransform(s,Vec3(x,y,z));
-    }
-
-    mm.dump();
-
-    VTKVisualizer display(mbs, 0.1);
-
-    OLDRungeKuttaMerson study(mbs, s);
-    //OLDCPodesIntegrator study(mbs,s);
-
-    const Real h = outputInterval;
-    const int interval = 1;
-    const Real tstart = 0.;
-    const Real tmax = simulationLength; //ps
-
-    s.updTime() = tstart;
+    mbs.realize(s, Stage::Velocity);
     display.report(s);
 
-    study.setAccuracy(accuracy);
-    study.initialize(); 
+    cout << "q=" << s.getQ() << endl;
+    cout << "qErr=" << s.getQErr() << endl;
+    cout << "T_MbM=" << mobilizedBody.getMobilizerTransform(s).T() << endl;
+    cout << "v_MbM=" << mobilizedBody.getMobilizerVelocity(s)[1] << endl;
+    cout << "Unassembled configuration shown. Ready to assemble? "; cin >> ans;
+
+    // These are the SimTK Simmath integrators:
+    RungeKuttaMersonIntegrator myStudy(mbs);
+    //CPodesIntegrator myStudy(mbs, CPodes::BDF, CPodes::Newton/*Functional*/);
+    //myStudy.setOrderLimit(2); // cpodes only
+    //VerletIntegrator myStudy(mbs);
+    //ExplicitEulerIntegrator myStudy(mbs, .0005);
+
+
+    //myStudy.setMaximumStepSize(0.001);
+    myStudy.setAccuracy(1e-6);
+    //myStudy.setProjectEveryStep(true);
+    //myStudy.setProjectInterpolatedStates(false);
+    myStudy.setConstraintTolerance(1e-7);
+    //myStudy.setAllowInterpolation(false);
+    //myStudy.setMaximumStepSize(.1);
+
+    const Real dt = .02; // output intervals
+    const Real finalTime = 2;
+
+    myStudy.setFinalTime(finalTime);
 
     std::vector<State> saveEm;
-    saveEm.push_back(s);
-    for (int i=0; i<100; ++i)
+
+    for (int i=0; i<50; ++i)
         saveEm.push_back(s);    // delay
-    display.report(s);
 
-    const Real Estart = mbs.getEnergy(s);
 
-    int step = 0; bool flag=false;
-    while (s.getTime() <= tmax) {
-        mbs.realize(s);
+    // Peforms assembly if constraints are violated.
+    myStudy.initialize(s);
 
-        cout << s.getTime();
-        cout << " deltaE=" << 100*(mbs.getEnergy(s)-Estart)
-                                /(std::abs(Estart)+TinyReal) 
-             << "% pe(kcal)=" << mbs.getPotentialEnergy(s)*KJ2Kcal
-             << ", ke(kcal)=" << mbs.getKineticEnergy(s)*KJ2Kcal
-             << " hNext(fs)=" << 1000*study.getPredictedNextStep();
+    for (int i=0; i<50; ++i)
+        saveEm.push_back(s);    // delay
 
-        cout << "\n  System COM loc=" << matter.calcSystemMassCenterLocationInGround(s);
-        cout << "\n  System COM vel=" << matter.calcSystemMassCenterVelocityInGround(s);
-        cout << "\n  System COM acc=" << matter.calcSystemMassCenterAccelerationInGround(s);
-        cout << endl;
+    cout << "Using Integrator " << std::string(myStudy.getMethodName()) << ":\n";
+    cout << "ACCURACY IN USE=" << myStudy.getAccuracyInUse() << endl;
+    cout << "CTOL IN USE=" << myStudy.getConstraintToleranceInUse() << endl;
+    cout << "TIMESCALE=" << myStudy.getTimeScaleInUse() << endl;
+    cout << "Y WEIGHTS=" << myStudy.getStateWeightsInUse() << endl;
+    cout << "1/CTOLS=" << myStudy.getConstraintWeightsInUse() << endl;
 
-        cout << "     q=" << matter.getQ(s) << endl;
-        cout << "     u=" << matter.getU(s) << endl;
-        cout << "  udot=" << matter.getUDot(s) << endl;
-
-        cout << endl;
-
-        if (!(step % interval)) {
-            display.report(s);
-            saveEm.push_back(s);
-        }
-
-        study.step(s.getTime() + h);
-        ++step;
+    {
+        const State& s = myStudy.getState();
+        display.report(s);
+        cout << "q=" << s.getQ() << endl;
+        cout << "qErr=" << s.getQErr() << endl;
+        cout << "T_MbM=" << mobilizedBody.getMobilizerTransform(s).T() << endl;
+        cout << "PE=" << mbs.getPotentialEnergy(s) << " KE=" << mbs.getKineticEnergy(s) << " E=" << mbs.getEnergy(s) << endl;
+        cout << "angle=" << std::acos(~mobilizedBody.expressBodyVectorInGround(s, Vec3(0,1,0)) * UnitVec3(1,1,1)) << endl;
+        cout << "Assembled configuration shown. Ready to simulate? "; cin >> ans;
     }
+
+    Integrator::SuccessfulStepStatus status;
+    int nextReport = 0;
+
+    mbs.resetAllCountersToZero();
+
+    while ((status=myStudy.stepTo(nextReport*dt))
+           != Integrator::EndOfSimulation) 
+    {
+        const State& s = myStudy.getState();
+        mbs.realize(s, Stage::Acceleration);
+        const Real angle = std::acos(~mobilizedBody.expressBodyVectorInGround(s, Vec3(0,1,0)) * UnitVec3(1,1,1));
+        printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
+            angle,
+            mbs.getEnergy(s), myStudy.getNStepsTaken(),
+            myStudy.getPreviousStepSizeTaken(),
+            Integrator::successfulStepStatusString(status).c_str(),
+            myStudy.isStateInterpolated()?" (INTERP)":"");
+        printf("     qerr=%10.8g uerr=%10.8g uderr=%10.8g\n",
+            matter.getQErr(s).normRMS(),
+            matter.getUErr(s).normRMS(),
+            s.getSystemStage() >= Stage::Acceleration ? matter.getUDotErr(s).normRMS() : Real(-1));
+#ifdef HASC
+		cout << "CONSTRAINT perr=" << c.getPositionError(s)
+			 << " verr=" << c.getVelocityError(s)
+			 << " aerr=" << c.getAccelerationError(s)
+			 << endl;
+#endif
+		//cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
+		//cout << "  ~d(f)/d lambda=" << c.calcPositionConstraintMatrixPT(s);
+		//cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
+        cout << "Q=" << matter.getQ(s) << endl;
+
+        Vector qdot;
+        matter.calcQDot(s, s.getU(), qdot);
+       // cout << "===> qdot =" << qdot << endl;
+
+        Vector qdot2;
+        matter.multiplyByQMatrix(s, false, s.getU(), qdot2);
+       // cout << "===> qdot2=" << qdot2 << endl;
+
+        Vector u1,u2;
+        matter.multiplyByQMatrixInverse(s, false, qdot, u1);
+        matter.multiplyByQMatrixInverse(s, false, qdot2, u2);
+      //  cout << "===> u =" << s.getU() << endl;
+      //  cout << "===> u1=" << u1 << endl;
+      //  cout << "===> u2=" << u2 << endl;
+       // cout << "     norm=" << (s.getU()-u2).normRMS() << endl;
+
+        display.report(s);
+        saveEm.push_back(s);
+
+		if (status == Integrator::ReachedReportTime)
+			++nextReport;
+    }
+
+    printf("Using Integrator %s:\n", myStudy.getMethodName());
+    printf("# STEPS/ATTEMPTS = %d/%d\n", myStudy.getNStepsTaken(), myStudy.getNStepsAttempted());
+    printf("# ERR TEST FAILS = %d\n", myStudy.getNErrorTestFailures());
+    printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNRealizations(), myStudy.getNProjections());
+
+    printf("System stats: realize %ldP %ldV %ldA, project %ld\n",
+        mbs.getNumRealizationsOfThisStage(Stage::Position),
+        mbs.getNumRealizationsOfThisStage(Stage::Velocity),
+        mbs.getNumRealizationsOfThisStage(Stage::Acceleration),
+        mbs.getNumProjectCalls());
+
 
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {
@@ -457,13 +336,15 @@ try
         }
         getchar();
     }
-
-  }
-catch (const std::exception& e)
-  {
+  } 
+  catch (const exception& e) {
     printf("EXCEPTION THROWN: %s\n", e.what());
+    exit(1);
   }
-    return 0;
-}
+  catch (...) {
+    printf("UNKNOWN EXCEPTION THROWN\n");
+    exit(1);
+  }
 
+}
 

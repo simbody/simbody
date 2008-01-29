@@ -201,8 +201,9 @@ public:
     /*virtual*/bool isUsingQuaternion(const SBModelVars&) const {return false;}
 
     /*virtual*/bool enforceQuaternionConstraints(
-        const SBModelVars& mv,
-        Vector&             q) const {return false;}
+        const SBModelVars&  mv,
+        Vector&             q,
+        Vector&             qErrest) const {return false;}
 
     /*virtual*/void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {}
     /*virtual*/void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {}
@@ -782,7 +783,8 @@ public:
     // Return true if any change is made to the q vector.
     virtual bool enforceQuaternionConstraints(
         const SBModelVars& mv,
-        Vector&            q) const 
+        Vector&            q,
+        Vector&            qErrest) const 
     {
         assert(quaternionUse == QuaternionIsNeverUsed);
         return false;
@@ -2425,13 +2427,21 @@ public:
     }
 
     bool enforceQuaternionConstraints(
-        const SBModelVars& mv,
-        Vector&            q) const 
+        const SBModelVars&  mv,
+        Vector&             q,
+        Vector&             qErrest) const 
     {
         if (getUseEulerAngles(mv)) 
             return false;   // no change
+
         Vec4& quat = toQuat(q);
         quat = quat / quat.norm();
+
+        if (qErrest.size()) {
+            Vec4& qerr = toQuat(qErrest);
+            qerr -= dot(qerr,quat) * quat;
+        }
+
         return true;
     }
 
@@ -2809,13 +2819,21 @@ public:
     }
 
     bool enforceQuaternionConstraints(
-        const SBModelVars& mv,
-        Vector&            q) const 
+        const SBModelVars&  mv,
+        Vector&             q,
+        Vector&             qErrest) const 
     {
         if (getUseEulerAngles(mv)) 
             return false;   // no change
+
         Vec4& quat = toQuat(q);
         quat = quat / quat.norm();
+
+        if (qErrest.size()) {
+            Vec4& qerr = toQuat(qErrest);
+            qerr -= dot(qerr,quat) * quat;
+        }
+
         return true;
     }
 
@@ -3114,11 +3132,22 @@ public:
         }
     }
 
-    bool enforceQuaternionConstraints(const SBModelVars& mv, Vector& q) const {
+    bool enforceQuaternionConstraints(
+        const SBModelVars&  mv, 
+        Vector&             q,
+        Vector&             qErrest) const
+    {
         if (getUseEulerAngles(mv)) 
             return false; // no change
+
         Vec4& quat = toQuat(q);
         quat = quat / quat.norm();
+
+        if (qErrest.size()) {
+            Vec4& qerr = toQuat(qErrest);
+            qerr -= dot(qerr,quat) * quat;
+        }
+
         return true;
     }
 
@@ -3434,13 +3463,21 @@ public:
     }
 
     bool enforceQuaternionConstraints(
-        const SBModelVars& mv,
-        Vector&            q) const 
+        const SBModelVars&  mv,
+        Vector&             q,
+        Vector&             qErrest) const 
     {
         if (getUseEulerAngles(mv)) 
             return false;   // no change
+
         Vec4& quat = toQuat(q);
         quat = quat / quat.norm();
+
+        if (qErrest.size()) {
+            Vec4& qerr = toQuat(qErrest);
+            qerr -= dot(qerr,quat) * quat;
+        }
+
         return true;
     }
 
@@ -3786,11 +3823,22 @@ public:
         }
     }
 
-    bool enforceQuaternionConstraints(const SBModelVars& mv, Vector& q) const {
+    bool enforceQuaternionConstraints(
+        const SBModelVars&  mv, 
+        Vector&             q,
+        Vector&             qErrest) const 
+    {
         if (getUseEulerAngles(mv)) 
             return false; // no change
+
         Vec4& quat = toQuat(q);
         quat = quat / quat.norm();
+
+        if (qErrest.size()) {
+            Vec4& qerr = toQuat(qErrest);
+            qerr -= dot(qerr,quat) * quat;
+        }
+
         return true;
     }
 

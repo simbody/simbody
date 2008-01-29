@@ -748,7 +748,7 @@ void SimbodyMatterSubsystem::Subtree::realizeTopology() {
     updRep().realizeTopology();
 }
 
-MobilizedBodyId SimbodyMatterSubsystem::Subtree::getAncestorBody() const {
+MobilizedBodyId SimbodyMatterSubsystem::Subtree::getAncestorMobilizedBodyId() const {
     return getRep().ancestor;
 }
 
@@ -963,7 +963,7 @@ const SpatialVec& SimbodyMatterSubsystem::SubtreeResults::getSubtreeBodyAccelera
 
 std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystem::Subtree& sub) {
     o << "SUBTREE:" << endl;
-    o << "  ancestor=" << sub.getAncestorBody();
+    o << "  ancestor=" << sub.getAncestorMobilizedBodyId();
 
     o << "  terminalBodies=";
     for (int i=0; i < (int)sub.getTerminalBodies().size(); ++i)

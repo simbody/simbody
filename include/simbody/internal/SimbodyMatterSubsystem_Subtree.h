@@ -133,7 +133,7 @@ public:
     void realizeTopology();
 
     int getNumSubtreeBodies() const; // includes ancestor
-    MobilizedBodyId getAncestorBody() const;
+    MobilizedBodyId getAncestorMobilizedBodyId() const;
 
     // These are in the same order they were added; body[i] is the terminus
     // of branch i.

@@ -89,7 +89,8 @@ public:
 
     /// Return a reference to the actual MobilizedBodies included in the count
     /// above. 0 <= which < getNumConstrainedBodies().
-    const MobilizedBody& getConstrainedBody(ConstrainedBodyId which) const;
+    const MobilizedBody& getConstrainedMobilizedBody(ConstrainedBodyId which) const;
+    const MobilizedBody& getAncestorMobilizedBody() const;
 
     const SimbodyMatterSubsystem::Subtree& getSubtree() const;
 
@@ -123,17 +124,56 @@ public:
     // nothing in base class currently
 
         // POSITION STAGE //
-    Vector getPositionError(const State&) const;
+    Vector getPositionError(const State&) const;	// mp of these
+	Vector calcPositionErrorFromQ(const State&, const Vector& q) const;
+
+	// Matrix P = partial(perr_dot)/partial(u). (just the holonomic constraints)
+	Matrix calcPositionConstraintMatrixP(const State&) const; // mp X nu
+	Matrix calcPositionConstraintMatrixPt(const State&) const; // nu X mp
+
+	// Matrix PQInv = partial(perr)/partial(q) = P*Q^-1
+	Matrix calcPositionConstraintMatrixPQInverse(const State&) const; // mp X nq
+
+    // This operator calculates this constraint's body and mobility forces
+    // given the complete set of multipliers lambda. We expect that lambda
+    // has been packed to include multipliers associated with the
+    // second derivatives of the position
+    // (holonomic) constraints, the first derivatives of the velocity
+    // (nonholonomic) constraints, and the acceleration only constraints, in
+    // that order.
+    // The state must be realized already to Stage::Position. Returned body
+    // forces correspond only to the *constrained bodies* and the mobility
+    // forces correspond only to the *constrained mobilities*; they must 
+    // be unpacked by the caller into the actual mobilized bodies.
+    // Note that the body forces are in the ancestor body frame A, not necessarily
+    // the Ground frame G.
+    void calcConstraintForcesFromMultipliers(const State&,const Vector& lambda,
+        Vector_<SpatialVec>& bodyForcesInA,
+        Vector& mobilityForces) const;
 
         // VELOCITY STAGE //
-    Vector getVelocityError(const State&) const;
+    Vector getVelocityError(const State&) const;	// mp+mv of these
+	Vector calcVelocityErrorFromU(const State&, const Vector& u) const;
+
+	// Matrix V = partial(verr)/partial(u) for just the non-holonomic constraints.
+	Matrix calcVelocityConstraintMatrixV(const State&) const;  // mv X nu
+	Matrix calcVelocityConstraintMatrixVt(const State&) const; // nu X mv
 
         // DYNAMICS STAGE //
     // nothing in base class currently
 
         // ACCELERATION STAGE //
-    Vector getAccelerationError(const State&) const;
-    Vector getMultipliers(const State&) const;
+    Vector getAccelerationError(const State&) const;	// mp+mv+ma of these
+	Vector calcAccelerationErrorFromUDot(const State&, const Vector& udot) const {
+		assert(!"calcAccelerationErrorFromUDot: Not implemented yet");
+		return Vector();
+	}
+
+    Vector getMultipliers(const State&) const;			// mp+mv+ma of these   
+
+	// Matrix A = partial(aerr)/partial(udot) for just the acceleration-only constraints.
+	Matrix calcAccelerationConstraintMatrixA(const State&) const;  // ma X nu
+	Matrix calcAccelerationConstraintMatrixAt(const State&) const; // nu X ma
 
     // These are the built-in Constraint types. Types on the same line are
     // synonymous.
@@ -288,17 +328,16 @@ public:
                   MobilizedBody& followerBody_F, const UnitVec3& defaultAxis_F, 
                   Real angle = Pi/2);
 
-    // These affect only generated decorative geometry for visualization;
-    // the plane is really infinite in extent with zero depth and the
-    // point is really of zero radius.
+    // These affect only generated decorative geometry for visualization.
     ConstantAngle& setAxisDisplayLength(Real);
     ConstantAngle& setAxisDisplayWidth(Real);
     Real getAxisDisplayLength() const;
     Real getAxisDisplayWidth() const;
 
     // Defaults for Instance variables.
-    ConstantAngle& setDefaultAxisDirection(const UnitVec3&);
-    ConstantAngle& setDefaultRadiusDirection(const UnitVec3&);
+    ConstantAngle& setDefaultBaseAxis(const UnitVec3&);
+    ConstantAngle& setDefaultFollowerAxis(const UnitVec3&);
+    ConstantAngle& setDefaultAngle(Real);
 
     // Stage::Topology
     MobilizedBodyId getBaseMobilizedBodyId() const;
@@ -306,10 +345,12 @@ public:
 
     const UnitVec3& getDefaultBaseAxis() const;
     const UnitVec3& getDefaultFollowerAxis() const;
+    Real getDefaultAngle() const;
 
     // Stage::Instance
     const UnitVec3& getBaseAxis(const State&) const;
     const UnitVec3& getFollowerAxis(const State&) const;
+    Real getAngle(const State&) const;
 
     // Stage::Position, Velocity
     Real getPositionError(const State&) const;

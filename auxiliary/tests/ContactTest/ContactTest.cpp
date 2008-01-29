@@ -245,15 +245,17 @@ try
     //bouncers.setUseEulerAngles(s, true);
     mbs.realizeModel(s);
     bool suppressProjection = false;
-    //OLDRungeKuttaMerson ee(mbs, s, suppressProjection);
-    //OLDCPodesIntegrator ee(mbs, s);
 
     RungeKuttaMersonIntegrator ee(mbs);
     //VerletIntegrator ee(mbs);
     //ee.setMaximumStepSize(.01);
     //CPodesIntegrator ee(mbs, CPodes::BDF, CPodes::Newton);
-    //CPodesIntegrator ee(mbs, CPodes::Adams, CPodes::Functional);
+    //CPodesIntegrator ee(mbs, CPodes::BDF, CPodes::Functional);
+    //ee.setOrderLimit(3); //CPodes only
     //ee.setProjectEveryStep(true);
+
+    ee.setAccuracy(1e-2);
+    ee.setConstraintTolerance(1e-3);
 
     vtk.report(s);
 
@@ -267,8 +269,6 @@ try
     const Real tstart = 0.;
     const Real tmax = 100;
 
-    ee.setAccuracy(1e-2);
-    ee.setConstraintTolerance(1e-3);
 
     s.updTime() = tstart;
     mbs.realize(s, Stage::Acceleration);
