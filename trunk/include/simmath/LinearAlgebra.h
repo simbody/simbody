@@ -49,7 +49,11 @@
 namespace SimTK {
 
 //  default for reciprocal of the condition number
-static const double DefaultRecpCondition = 0.01;
+// TODO: sherm 080128 I changed this from 0.01 to a more reasonable
+// value but it is still wrong because the default should depend
+// on the matrix size, something like max(m,n)*eps^(7/8) where
+// eps is machine precision for float or double as appropriate.
+static const double DefaultRecpCondition = 1e-12;
 /**
  * Abstract class for performing matrix factorizations 
  */
@@ -142,7 +146,7 @@ class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
     int getRank() const;
 //    void setRank(int rank); TBD
     /// set the reciprocal  of the condition number 
-    void setRecepricolConditionNumber( Real rcond ); 
+    void setReciprocalConditionNumber( Real rcond ); 
 
     protected:
     class FactorQTZRepBase *rep;
