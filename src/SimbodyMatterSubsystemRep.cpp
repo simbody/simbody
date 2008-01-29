@@ -1487,6 +1487,7 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
         }
 }
 
+
 // q=Qu or u=~Qq
 void SimbodyMatterSubsystemRep::multiplyByQMatrix(const State& s, bool transpose, const Vector& in, Vector& out) const
 {
@@ -1509,15 +1510,20 @@ void SimbodyMatterSubsystemRep::multiplyByQMatrix(const State& s, bool transpose
     for (int i=1; i<(int)rbNodeLevels.size(); i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& rbn = *rbNodeLevels[i][j];
+
+            // Find the right piece of the vectors to work with.
+            const int qx = rbn.getQIndex();
+            const int ux = rbn.getUIndex();
+            const int inpx  = transpose ? qx : ux;
+            const int outpx = transpose ? ux : qx;
+
             // TODO: kludge: for now q-like output may have an unused element because
             // we always allocate the max space. Set the last element to zero in case
             // it doesn't get written.
-            if (!transpose) outp[rbn.getMaxNQ()-1] = 0;
-            rbn.multiplyByQBlock(sbState, useEulerAngles, qp, 
-                                 transpose, inp, outp);
-            qp   += rbn.getMaxNQ(); // TODO: read actual size from Model cache
-            inp  += (transpose ? rbn.getMaxNQ() : rbn.getDOF());
-            outp += (transpose ? rbn.getDOF() : rbn.getMaxNQ());
+            if (!transpose) outp[outpx + rbn.getMaxNQ()-1] = 0;
+
+            rbn.multiplyByQBlock(sbState, useEulerAngles, &qp[qx], 
+                                 transpose, &inp[inpx], &outp[outpx]);
         }
 }
 
@@ -1543,18 +1549,22 @@ void SimbodyMatterSubsystemRep::multiplyByQMatrixInverse(const State& s, bool tr
     for (int i=1; i<(int)rbNodeLevels.size(); i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& rbn = *rbNodeLevels[i][j];
+
+            // Find the right piece of the vectors to work with.
+            const int qx = rbn.getQIndex();
+            const int ux = rbn.getUIndex();
+            const int inpx  = transpose ? ux : qx;
+            const int outpx = transpose ? qx : ux;
+
             // TODO: kludge: for now q-like output may have an unused element because
             // we always allocate the max space. Set the last element to zero in case
             // it doesn't get written.
-            if (transpose) outp[rbn.getMaxNQ()-1] = 0;
-            rbn.multiplyByQInvBlock(sbState, useEulerAngles, qp,
-                                    transpose, inp, outp);
-            qp   += rbn.getMaxNQ(); //TODO: see above
-            inp  += (transpose ? rbn.getDOF() : rbn.getMaxNQ());
-            outp += (transpose ? rbn.getMaxNQ() : rbn.getDOF());
+            if (transpose) outp[outpx + rbn.getMaxNQ()-1] = 0;
+
+            rbn.multiplyByQInvBlock(sbState, useEulerAngles, &qp[qx],
+                                    transpose, &inp[inpx], &outp[outpx]);
         }
 }
-
 
 // Must be in ConfigurationStage to calculate qdot = Q*u.
 void SimbodyMatterSubsystemRep::calcQDot(const State& s, const Vector& u, Vector& qdot) const {
