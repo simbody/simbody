@@ -117,15 +117,15 @@ long System::getNumReportEventCalls() const {return getSystemGuts().getRep().nRe
 const State& System::getDefaultState() const {return getSystemGuts().getDefaultState();}
 State& System::updDefaultState() {return updSystemGuts().updDefaultState();}
 
-SubsystemId System::adoptSubsystem(Subsystem& child) {return updSystemGuts().adoptSubsystem(child);}
+SubsystemIndex System::adoptSubsystem(Subsystem& child) {return updSystemGuts().adoptSubsystem(child);}
 int System::getNSubsystems() const {return getSystemGuts().getNSubsystems();}
-const Subsystem& System::getSubsystem(SubsystemId i) const {return getSystemGuts().getSubsystem(i);}
-Subsystem& System::updSubsystem(SubsystemId i) {return updSystemGuts().updSubsystem(i);}
+const Subsystem& System::getSubsystem(SubsystemIndex i) const {return getSystemGuts().getSubsystem(i);}
+Subsystem& System::updSubsystem(SubsystemIndex i) {return updSystemGuts().updSubsystem(i);}
 const DefaultSystemSubsystem& System::getDefaultSubsystem() const {
-    return static_cast<const DefaultSystemSubsystem&>(getSystemGuts().getSubsystem(SubsystemId(0)));
+    return static_cast<const DefaultSystemSubsystem&>(getSystemGuts().getSubsystem(SubsystemIndex(0)));
 }
 DefaultSystemSubsystem& System::updDefaultSubsystem() {
-    return static_cast<DefaultSystemSubsystem&>(updSystemGuts().updSubsystem(SubsystemId(0)));
+    return static_cast<DefaultSystemSubsystem&>(updSystemGuts().updSubsystem(SubsystemIndex(0)));
 }
 
 // TODO: this should be a Model stage variable allocated by the base class.
@@ -256,8 +256,8 @@ State& System::Guts::updDefaultState() {
 }
 
 int System::Guts::getNSubsystems() const {return getRep().getNSubsystems();}
-const Subsystem& System::Guts::getSubsystem(SubsystemId i) const {return getRep().getSubsystem(i);}
-Subsystem& System::Guts::updSubsystem(SubsystemId i) {return updRep().updSubsystem(i);}
+const Subsystem& System::Guts::getSubsystem(SubsystemIndex i) const {return getRep().getSubsystem(i);}
+Subsystem& System::Guts::updSubsystem(SubsystemIndex i) {return updRep().updSubsystem(i);}
 
 void System::Guts::registerDestructImpl(DestructImplLocator f) {
     updRep().destructp = f;
@@ -339,14 +339,14 @@ const State& System::Guts::realizeTopology() const {
     if (!getRep().systemTopologyHasBeenRealized()) {
         defaultState.clear();
         defaultState.setNSubsystems(getNSubsystems());
-        for (SubsystemId i(0); i<getNSubsystems(); ++i) 
+        for (SubsystemIndex i(0); i<getNSubsystems(); ++i) 
             defaultState.initializeSubsystem(i, getRep().subsystems[i].getName(), 
                                                 getRep().subsystems[i].getVersion());
         
         // Allow the subclass to do processing.
         getRep().realizeTopologyp(*this,defaultState); // defaultState is mutable
         // Realize any subsystems that the subclass didn't already take care of.
-        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+        for (SubsystemIndex i(0); i<getNSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(defaultState) < Stage::Topology)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemTopology(defaultState);
         getRep().systemTopologyRealized = true; // mutable
@@ -374,7 +374,7 @@ void System::Guts::realizeModel(State& s) const {
         // Allow the subclass to do processing.
         getRep().realizeModelp(*this,s);
         // Realize any subsystems that the subclass didn't already take care of.
-        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+        for (SubsystemIndex i(0); i<getNSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(s) < Stage::Model)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemModel(s);
         s.advanceSystemToStage(Stage::Model);
@@ -388,7 +388,7 @@ void System::Guts::realizeInstance(const State& s) const {
     if (s.getSystemStage() < Stage::Instance) {
         getRep().realizeInstancep(*this,s);    // take care of the Subsystems
         // Realize any subsystems that the subclass didn't already take care of.
-        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+        for (SubsystemIndex i(0); i<getNSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(s) < Stage::Instance)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemInstance(s);
         s.advanceSystemToStage(Stage::Instance);
@@ -403,7 +403,7 @@ void System::Guts::realizeTime(const State& s) const {
         // Allow the subclass to do processing.
         getRep().realizeTimep(*this,s);
         // Realize any subsystems that the subclass didn't already take care of.
-        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+        for (SubsystemIndex i(0); i<getNSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(s) < Stage::Time)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemTime(s);
         s.advanceSystemToStage(Stage::Time);
@@ -418,7 +418,7 @@ void System::Guts::realizePosition(const State& s) const {
         // Allow the subclass to do processing.
         getRep().realizePositionp(*this,s);
         // Realize any subsystems that the subclass didn't already take care of.
-        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+        for (SubsystemIndex i(0); i<getNSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(s) < Stage::Position)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemPosition(s);
         s.advanceSystemToStage(Stage::Position);
@@ -433,7 +433,7 @@ void System::Guts::realizeVelocity(const State& s) const {
         // Allow the subclass to do processing.
         getRep().realizeVelocityp(*this,s);
         // Realize any subsystems that the subclass didn't already take care of.
-        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+        for (SubsystemIndex i(0); i<getNSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(s) < Stage::Velocity)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemVelocity(s);
         s.advanceSystemToStage(Stage::Velocity);
@@ -448,7 +448,7 @@ void System::Guts::realizeDynamics(const State& s) const {
         // Allow the subclass to do processing.
         getRep().realizeDynamicsp(*this,s);
         // Realize any subsystems that the subclass didn't already take care of.
-        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+        for (SubsystemIndex i(0); i<getNSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(s) < Stage::Dynamics)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemDynamics(s);
         s.advanceSystemToStage(Stage::Dynamics);
@@ -463,7 +463,7 @@ void System::Guts::realizeAcceleration(const State& s) const {
         // Allow the subclass to do processing.
         getRep().realizeAccelerationp(*this,s);
         // Realize any subsystems that the subclass didn't already take care of.
-        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+        for (SubsystemIndex i(0); i<getNSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(s) < Stage::Acceleration)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemAcceleration(s);
         s.advanceSystemToStage(Stage::Acceleration);
@@ -478,7 +478,7 @@ void System::Guts::realizeReport(const State& s) const {
         // Allow the subclass to do processing.
         getRep().realizeReportp(*this,s);
         // Realize any subsystems that the subclass didn't already take care of.
-        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+        for (SubsystemIndex i(0); i<getNSubsystems(); ++i)
             if (getRep().subsystems[i].getStage(s) < Stage::Report)
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemReport(s);
         s.advanceSystemToStage(Stage::Report);
@@ -594,12 +594,12 @@ void System::Guts::realize(const State& s, Stage g) const {
 
 void System::Guts::calcDecorativeGeometryAndAppend(const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const {
     assert(stage==Stage::Topology || s.getSystemStage() >= stage);
-    for (SubsystemId i(0); i<getNSubsystems(); ++i)
+    for (SubsystemIndex i(0); i<getNSubsystems(); ++i)
         getRep().subsystems[i].getSubsystemGuts().calcDecorativeGeometryAndAppend(s, stage, geom);
 }
 
 
-SubsystemId System::Guts::adoptSubsystem(Subsystem& src) {
+SubsystemIndex System::Guts::adoptSubsystem(Subsystem& src) {
     return updRep().adoptSubsystem(src);
 }
 
@@ -648,7 +648,7 @@ int System::Guts::calcYUnitWeightsImpl(const State& s, Vector& weights) const {
     VectorView uwts = weights(s.getUStart(), s.getNU());
     VectorView zwts = weights(s.getZStart(), s.getNZ());
 
-    for (SubsystemId i(0); i<getNSubsystems(); ++i) {
+    for (SubsystemIndex i(0); i<getNSubsystems(); ++i) {
         const Subsystem::Guts& sub = getRep().subsystems[i].getSubsystemGuts();
         sub.calcQUnitWeights(s, qwts(s.getQStart(i), s.getNQ(i)));
         sub.calcUUnitWeights(s, uwts(s.getUStart(i), s.getNU(i)));
@@ -670,7 +670,7 @@ int System::Guts::calcYErrUnitTolerancesImpl(const State& s, Vector& ootols) con
     VectorView qtols = ootols(s.getQErrStart(), s.getNQErr()); // writable views
     VectorView utols = ootols(s.getUErrStart(), s.getNUErr());
 
-    for (SubsystemId i(0); i<getNSubsystems(); ++i) {
+    for (SubsystemIndex i(0); i<getNSubsystems(); ++i) {
         const Subsystem::Guts& sub = getRep().subsystems[i].getSubsystemGuts();
         sub.calcQErrUnitTolerances(s, qtols(s.getQErrStart(i), s.getNQErr(i)));
         sub.calcUErrUnitTolerances(s, utols(s.getUErrStart(i), s.getNUErr(i)));
@@ -685,7 +685,7 @@ int System::Guts::handleEventsImpl
 {
     // Event handlers should not be able to modify the time.
     
-    std::set<SubsystemId> temp;
+    std::set<SubsystemIndex> temp;
     State restricted;
     s.createRestrictedState(restricted, Stage::Time, temp);
     
@@ -694,10 +694,10 @@ int System::Guts::handleEventsImpl
     lowestModified = Stage::HighestValid;
     shouldTerminate = false;
     std::vector<int> eventsForSubsystem;
-    for (SubsystemId i(0); i<getNSubsystems(); ++i) {
+    for (SubsystemIndex i(0); i<getNSubsystems(); ++i) {
         Stage subsysLowestModified = Stage::HighestValid;
         bool subsysShouldTerminate = false;
-        getSystem().getDefaultSubsystem().findSubsystemEventIds(getRep().subsystems[i].getMySubsystemId(), restricted, eventIds, eventsForSubsystem);
+        getSystem().getDefaultSubsystem().findSubsystemEventIds(getRep().subsystems[i].getMySubsystemIndex(), restricted, eventIds, eventsForSubsystem);
         if (eventsForSubsystem.size() > 0) {
             getRep().subsystems[i].getSubsystemGuts().handleEvents(restricted, cause, eventsForSubsystem, accuracy, yWeights, ooConstraintTols, subsysLowestModified, subsysShouldTerminate);
             if (subsysLowestModified < lowestModified)
@@ -714,8 +714,8 @@ int System::Guts::reportEventsImpl(const State& s, EventCause cause, const std::
     // Loop over each subsystem, see which events belong to it, and allow it to handle those events.
     
     std::vector<int> eventsForSubsystem;
-    for (SubsystemId i(0); i<getNSubsystems(); ++i) {
-        getSystem().getDefaultSubsystem().findSubsystemEventIds(getRep().subsystems[i].getMySubsystemId(), s, eventIds, eventsForSubsystem);
+    for (SubsystemIndex i(0); i<getNSubsystems(); ++i) {
+        getSystem().getDefaultSubsystem().findSubsystemEventIds(getRep().subsystems[i].getMySubsystemIndex(), s, eventIds, eventsForSubsystem);
         if (eventsForSubsystem.size() > 0) {
             getRep().subsystems[i].getSubsystemGuts().reportEvents(s, cause, eventsForSubsystem);
         }
@@ -728,7 +728,7 @@ int System::Guts::calcEventTriggerInfoImpl(const State& s, std::vector<System::E
     // Loop over each subsystem, get its EventTriggerInfos, and combine all of them into a single list.
     
     info.clear();
-    for (SubsystemId i(0); i<getNSubsystems(); ++i) {
+    for (SubsystemIndex i(0); i<getNSubsystems(); ++i) {
         std::vector<System::EventTriggerInfo> subinfo;
         getRep().subsystems[i].getSubsystemGuts().calcEventTriggerInfo(s, subinfo);
         for (std::vector<EventTriggerInfo>::const_iterator e = subinfo.begin(); e != subinfo.end(); e++) {
@@ -742,7 +742,7 @@ int System::Guts::calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEv
 {
     tNextEvent = Infinity;
     eventIds.clear();
-    for (SubsystemId i(0); i<getNSubsystems(); ++i) {
+    for (SubsystemIndex i(0); i<getNSubsystems(); ++i) {
         Real time;
         std::vector<int> ids;
         getRep().subsystems[i].getSubsystemGuts().calcTimeOfNextScheduledEvent(s, time, ids, includeCurrentTime);
@@ -760,7 +760,7 @@ int System::Guts::calcTimeOfNextScheduledReportImpl(const State& s, Real& tNextE
 {
     tNextEvent = Infinity;
     eventIds.clear();
-    for (SubsystemId i(0); i<getNSubsystems(); ++i) {
+    for (SubsystemIndex i(0); i<getNSubsystems(); ++i) {
         Real time;
         std::vector<int> ids;
         getRep().subsystems[i].getSubsystemGuts().calcTimeOfNextScheduledReport(s, time, ids, includeCurrentTime);

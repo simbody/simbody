@@ -102,7 +102,7 @@ void Subsystem::adoptSubsystemGuts(Subsystem::Guts* g) {
     guts->setOwnerSubsystemHandle(*this);
 }
 
-void Subsystem::setSystem(System& sys, SubsystemId id) {
+void Subsystem::setSystem(System& sys, SubsystemIndex id) {
     updSubsystemGuts().setSystem(sys,id);
 }
 
@@ -125,8 +125,8 @@ bool Subsystem::isInSameSystem(const Subsystem& otherSubsystem) const {
 const System& Subsystem::getSystem() const {return getSubsystemGuts().getSystem();}
 System&       Subsystem::updSystem()       {return updSubsystemGuts().updSystem();}
 
-SubsystemId Subsystem::getMySubsystemId() const {
-    return getSubsystemGuts().getMySubsystemId();
+SubsystemIndex Subsystem::getMySubsystemIndex() const {
+    return getSubsystemGuts().getMySubsystemIndex();
 }
 
 const Vector& Subsystem::getQ(const State& s) const {return getSubsystemGuts().getQ(s);}
@@ -230,7 +230,7 @@ bool Subsystem::Guts::hasOwnerSubsystemHandle() const {
     return rep->myHandle != 0;
 }
 
-void Subsystem::Guts::setSystem(System& sys, SubsystemId id) {
+void Subsystem::Guts::setSystem(System& sys, SubsystemIndex id) {
     updRep().setSystem(sys,id);
 }
 
@@ -298,112 +298,112 @@ bool Subsystem::Guts::isInSameSystem(const Subsystem& otherSubsystem) const {
 }
 const System& Subsystem::Guts::getSystem() const {return getRep().getSystem();}
 System&       Subsystem::Guts::updSystem()	     {return updRep().updSystem();}
-SubsystemId   Subsystem::Guts::getMySubsystemId() const {return getRep().getMySubsystemId();}
+SubsystemIndex   Subsystem::Guts::getMySubsystemIndex() const {return getRep().getMySubsystemIndex();}
 
 int Subsystem::Guts::allocateQ(State& s, const Vector& qInit) const {
-    return s.allocateQ(getRep().getMySubsystemId(), qInit);
+    return s.allocateQ(getRep().getMySubsystemIndex(), qInit);
 }
 
 int Subsystem::Guts::allocateU(State& s, const Vector& uInit) const {
-    return s.allocateU(getRep().getMySubsystemId(), uInit);
+    return s.allocateU(getRep().getMySubsystemIndex(), uInit);
 }
 
 int Subsystem::Guts::allocateZ(State& s, const Vector& zInit) const {
-    return s.allocateZ(getRep().getMySubsystemId(), zInit);
+    return s.allocateZ(getRep().getMySubsystemIndex(), zInit);
 }
 
 int Subsystem::Guts::allocateQErr(State& s, int nqerr) const {
-    return s.allocateQErr(getRep().getMySubsystemId(), nqerr);
+    return s.allocateQErr(getRep().getMySubsystemIndex(), nqerr);
 }
 
 int Subsystem::Guts::allocateUErr(State& s, int nuerr) const {
-    return s.allocateUErr(getRep().getMySubsystemId(), nuerr);
+    return s.allocateUErr(getRep().getMySubsystemIndex(), nuerr);
 }
 
 // Multipliers are added as a side effect.
 int Subsystem::Guts::allocateUDotErr(State& s, int nudoterr) const {
-    return s.allocateUDotErr(getRep().getMySubsystemId(), nudoterr);
+    return s.allocateUDotErr(getRep().getMySubsystemIndex(), nudoterr);
 }
 
 int Subsystem::Guts::allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const {
-    return s.allocateDiscreteVariable(getRep().getMySubsystemId(), g, v);
+    return s.allocateDiscreteVariable(getRep().getMySubsystemIndex(), g, v);
 }
 
 int Subsystem::Guts::allocateCacheEntry(State& s, Stage g, AbstractValue* v) const {
-    return s.allocateCacheEntry(getRep().getMySubsystemId(), g, v);
+    return s.allocateCacheEntry(getRep().getMySubsystemIndex(), g, v);
 }
 
 void Subsystem::Guts::advanceToStage(const State& s, Stage g) const {
-    s.advanceSubsystemToStage(getRep().getMySubsystemId(), g);
+    s.advanceSubsystemToStage(getRep().getMySubsystemIndex(), g);
 }
 
 Stage Subsystem::Guts::getStage(const State& s) const {
-    return s.getSubsystemStage(getRep().getMySubsystemId());
+    return s.getSubsystemStage(getRep().getMySubsystemIndex());
 }
 const AbstractValue& Subsystem::Guts::getDiscreteVariable(const State& s, int index) const {
-    return s.getDiscreteVariable(getRep().getMySubsystemId(), index);
+    return s.getDiscreteVariable(getRep().getMySubsystemIndex(), index);
 }
 
 AbstractValue& Subsystem::Guts::updDiscreteVariable(State& s, int index) const {
-    return s.updDiscreteVariable(getRep().getMySubsystemId(), index);
+    return s.updDiscreteVariable(getRep().getMySubsystemIndex(), index);
 }
 
 const AbstractValue& Subsystem::Guts::getCacheEntry(const State& s, int index) const {
-    return s.getCacheEntry(getRep().getMySubsystemId(), index);
+    return s.getCacheEntry(getRep().getMySubsystemIndex(), index);
 }
 
 AbstractValue& Subsystem::Guts::updCacheEntry(const State& s, int index) const {
-    return s.updCacheEntry(getRep().getMySubsystemId(), index);
+    return s.updCacheEntry(getRep().getMySubsystemIndex(), index);
 }
 
-const Vector& Subsystem::Guts::getQ(const State& s) const {return s.getQ(getRep().getMySubsystemId());}
-const Vector& Subsystem::Guts::getU(const State& s) const {return s.getU(getRep().getMySubsystemId());}
-const Vector& Subsystem::Guts::getZ(const State& s) const {return s.getZ(getRep().getMySubsystemId());}
+const Vector& Subsystem::Guts::getQ(const State& s) const {return s.getQ(getRep().getMySubsystemIndex());}
+const Vector& Subsystem::Guts::getU(const State& s) const {return s.getU(getRep().getMySubsystemIndex());}
+const Vector& Subsystem::Guts::getZ(const State& s) const {return s.getZ(getRep().getMySubsystemIndex());}
 
-Vector& Subsystem::Guts::updQ(State& s) const {return s.updQ(getRep().getMySubsystemId());}
-Vector& Subsystem::Guts::updU(State& s) const {return s.updU(getRep().getMySubsystemId());}
-Vector& Subsystem::Guts::updZ(State& s) const {return s.updZ(getRep().getMySubsystemId());}
+Vector& Subsystem::Guts::updQ(State& s) const {return s.updQ(getRep().getMySubsystemIndex());}
+Vector& Subsystem::Guts::updU(State& s) const {return s.updU(getRep().getMySubsystemIndex());}
+Vector& Subsystem::Guts::updZ(State& s) const {return s.updZ(getRep().getMySubsystemIndex());}
 
-const Vector& Subsystem::Guts::getQDot   (const State& s) const {return s.getQDot(getRep().getMySubsystemId());}
-const Vector& Subsystem::Guts::getUDot   (const State& s) const {return s.getUDot(getRep().getMySubsystemId());}
-const Vector& Subsystem::Guts::getZDot   (const State& s) const {return s.getZDot(getRep().getMySubsystemId());}
-const Vector& Subsystem::Guts::getQDotDot(const State& s) const {return s.getQDotDot(getRep().getMySubsystemId());}
+const Vector& Subsystem::Guts::getQDot   (const State& s) const {return s.getQDot(getRep().getMySubsystemIndex());}
+const Vector& Subsystem::Guts::getUDot   (const State& s) const {return s.getUDot(getRep().getMySubsystemIndex());}
+const Vector& Subsystem::Guts::getZDot   (const State& s) const {return s.getZDot(getRep().getMySubsystemIndex());}
+const Vector& Subsystem::Guts::getQDotDot(const State& s) const {return s.getQDotDot(getRep().getMySubsystemIndex());}
 
-Vector& Subsystem::Guts::updQDot   (const State& s) const {return s.updQDot(getRep().getMySubsystemId());}
-Vector& Subsystem::Guts::updUDot   (const State& s) const {return s.updUDot(getRep().getMySubsystemId());}
-Vector& Subsystem::Guts::updZDot   (const State& s) const {return s.updZDot(getRep().getMySubsystemId());}
-Vector& Subsystem::Guts::updQDotDot(const State& s) const {return s.updQDotDot(getRep().getMySubsystemId());}
+Vector& Subsystem::Guts::updQDot   (const State& s) const {return s.updQDot(getRep().getMySubsystemIndex());}
+Vector& Subsystem::Guts::updUDot   (const State& s) const {return s.updUDot(getRep().getMySubsystemIndex());}
+Vector& Subsystem::Guts::updZDot   (const State& s) const {return s.updZDot(getRep().getMySubsystemIndex());}
+Vector& Subsystem::Guts::updQDotDot(const State& s) const {return s.updQDotDot(getRep().getMySubsystemIndex());}
 
-const Vector& Subsystem::Guts::getQErr(const State& s) const {return s.getQErr(getRep().getMySubsystemId());}
-const Vector& Subsystem::Guts::getUErr(const State& s) const {return s.getUErr(getRep().getMySubsystemId());}
-const Vector& Subsystem::Guts::getUDotErr(const State& s) const {return s.getUDotErr(getRep().getMySubsystemId());}
-const Vector& Subsystem::Guts::getMultipliers(const State& s) const {return s.getMultipliers(getRep().getMySubsystemId());}
+const Vector& Subsystem::Guts::getQErr(const State& s) const {return s.getQErr(getRep().getMySubsystemIndex());}
+const Vector& Subsystem::Guts::getUErr(const State& s) const {return s.getUErr(getRep().getMySubsystemIndex());}
+const Vector& Subsystem::Guts::getUDotErr(const State& s) const {return s.getUDotErr(getRep().getMySubsystemIndex());}
+const Vector& Subsystem::Guts::getMultipliers(const State& s) const {return s.getMultipliers(getRep().getMySubsystemIndex());}
 
-Vector& Subsystem::Guts::updQErr(const State& s) const {return s.updQErr(getRep().getMySubsystemId());}
-Vector& Subsystem::Guts::updUErr(const State& s) const {return s.updUErr(getRep().getMySubsystemId());}
-Vector& Subsystem::Guts::updUDotErr(const State& s) const {return s.updUDotErr(getRep().getMySubsystemId());}
-Vector& Subsystem::Guts::updMultipliers(const State& s) const {return s.updMultipliers(getRep().getMySubsystemId());}
+Vector& Subsystem::Guts::updQErr(const State& s) const {return s.updQErr(getRep().getMySubsystemIndex());}
+Vector& Subsystem::Guts::updUErr(const State& s) const {return s.updUErr(getRep().getMySubsystemIndex());}
+Vector& Subsystem::Guts::updUDotErr(const State& s) const {return s.updUDotErr(getRep().getMySubsystemIndex());}
+Vector& Subsystem::Guts::updMultipliers(const State& s) const {return s.updMultipliers(getRep().getMySubsystemIndex());}
 
-int Subsystem::Guts::getQStart(const State& s) const {return s.getQStart(getRep().getMySubsystemId());}
-int Subsystem::Guts::getNQ(const State& s)     const {return s.getNQ(getRep().getMySubsystemId());}
+int Subsystem::Guts::getQStart(const State& s) const {return s.getQStart(getRep().getMySubsystemIndex());}
+int Subsystem::Guts::getNQ(const State& s)     const {return s.getNQ(getRep().getMySubsystemIndex());}
 
-int Subsystem::Guts::getUStart(const State& s) const {return s.getUStart(getRep().getMySubsystemId());}
-int Subsystem::Guts::getNU(const State& s)     const {return s.getNU(getRep().getMySubsystemId());}
+int Subsystem::Guts::getUStart(const State& s) const {return s.getUStart(getRep().getMySubsystemIndex());}
+int Subsystem::Guts::getNU(const State& s)     const {return s.getNU(getRep().getMySubsystemIndex());}
 
-int Subsystem::Guts::getZStart(const State& s) const {return s.getZStart(getRep().getMySubsystemId());}
-int Subsystem::Guts::getNZ(const State& s)     const {return s.getNZ(getRep().getMySubsystemId());}
+int Subsystem::Guts::getZStart(const State& s) const {return s.getZStart(getRep().getMySubsystemIndex());}
+int Subsystem::Guts::getNZ(const State& s)     const {return s.getNZ(getRep().getMySubsystemIndex());}
 
-int Subsystem::Guts::getQErrStart(const State& s) const {return s.getQErrStart(getRep().getMySubsystemId());}
-int Subsystem::Guts::getNQErr(const State& s)     const {return s.getNQErr(getRep().getMySubsystemId());}
+int Subsystem::Guts::getQErrStart(const State& s) const {return s.getQErrStart(getRep().getMySubsystemIndex());}
+int Subsystem::Guts::getNQErr(const State& s)     const {return s.getNQErr(getRep().getMySubsystemIndex());}
 
-int Subsystem::Guts::getUErrStart(const State& s) const {return s.getUErrStart(getRep().getMySubsystemId());}
-int Subsystem::Guts::getNUErr(const State& s)     const {return s.getNUErr(getRep().getMySubsystemId());}
+int Subsystem::Guts::getUErrStart(const State& s) const {return s.getUErrStart(getRep().getMySubsystemIndex());}
+int Subsystem::Guts::getNUErr(const State& s)     const {return s.getNUErr(getRep().getMySubsystemIndex());}
 
-int Subsystem::Guts::getUDotErrStart(const State& s) const {return s.getUDotErrStart(getRep().getMySubsystemId());}
-int Subsystem::Guts::getNUDotErr(const State& s)     const {return s.getNUDotErr(getRep().getMySubsystemId());}
+int Subsystem::Guts::getUDotErrStart(const State& s) const {return s.getUDotErrStart(getRep().getMySubsystemIndex());}
+int Subsystem::Guts::getNUDotErr(const State& s)     const {return s.getNUDotErr(getRep().getMySubsystemIndex());}
 
-int Subsystem::Guts::getMultipliersStart(const State& s) const {return s.getMultipliersStart(getRep().getMySubsystemId());}
-int Subsystem::Guts::getNMultipliers(const State& s)     const {return s.getNMultipliers(getRep().getMySubsystemId());}
+int Subsystem::Guts::getMultipliersStart(const State& s) const {return s.getMultipliersStart(getRep().getMySubsystemIndex());}
+int Subsystem::Guts::getNMultipliers(const State& s)     const {return s.getNMultipliers(getRep().getMySubsystemIndex());}
 
 void Subsystem::Guts::invalidateSubsystemTopologyCache() const {
     getRep().invalidateSubsystemTopologyCache();
@@ -422,7 +422,7 @@ bool Subsystem::Guts::subsystemTopologyHasBeenRealized() const {
  */
 
 void Subsystem::Guts::createScheduledEvent(State& state, int& eventId) const {
-    eventId = getSystem().getDefaultSubsystem().createEventId(getMySubsystemId(), state);
+    eventId = getSystem().getDefaultSubsystem().createEventId(getMySubsystemIndex(), state);
 }
 
 /**
@@ -438,8 +438,8 @@ void Subsystem::Guts::createScheduledEvent(State& state, int& eventId) const {
  */
 
 void Subsystem::Guts::createTriggeredEvent(State& state, int& eventId, int& triggerFunctionIndex, Stage stage) const {
-    eventId = getSystem().getDefaultSubsystem().createEventId(getMySubsystemId(), state);
-    triggerFunctionIndex = state.allocateEvent(getMySubsystemId(), stage, 1);
+    eventId = getSystem().getDefaultSubsystem().createEventId(getMySubsystemIndex(), state);
+    triggerFunctionIndex = state.allocateEvent(getMySubsystemIndex(), stage, 1);
 }
 
     // wrappers for Subsystem::Guts virtuals
@@ -657,7 +657,7 @@ public:
     public:
         CacheInfo() : eventIdCounter(0) {}
         mutable int eventIdCounter;
-        mutable std::map<int, SubsystemId> eventOwnerMap;
+        mutable std::map<int, SubsystemIndex> eventOwnerMap;
         std::vector<int> scheduledEventIds;
         std::vector<int> triggeredEventIndices;
         std::vector<int> triggeredEventIds;
@@ -723,7 +723,7 @@ public:
     }
 
     int realizeSubsystemTopologyImpl(State& s) const {
-        cacheInfoIndex = s.allocateCacheEntry(getMySubsystemId(), Stage::Topology, new Value<CacheInfo>());
+        cacheInfoIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Topology, new Value<CacheInfo>());
         return 0;
     }
     
@@ -766,7 +766,7 @@ public:
 
     int realizeEvents(const State& s, Stage g) const {
         const CacheInfo& info = getCacheInfo(s);
-        Vector& events = s.updEventsByStage(getMySubsystemId(), g);
+        Vector& events = s.updEventsByStage(getMySubsystemIndex(), g);
         for (int i = 0; i < (int)triggeredEventHandlers.size(); ++i) {
             if (g == triggeredEventHandlers[i]->getRequiredStage())
                 events[info.triggeredEventIndices[i]] = triggeredEventHandlers[i]->getValue(s);
@@ -808,13 +808,13 @@ public:
         triggers.resize(triggeredEventHandlers.size()+triggeredEventReporters.size());
         for (int i = 0; i < (int)triggeredEventHandlers.size(); ++i) {
             Stage stage = triggeredEventHandlers[i]->getRequiredStage();
-            int index = info.triggeredEventIndices[i]+s.getEventStartByStage(stage)+s.getEventStartByStage(getMySubsystemId(), stage);
+            int index = info.triggeredEventIndices[i]+s.getEventStartByStage(stage)+s.getEventStartByStage(getMySubsystemIndex(), stage);
             triggers[index] = triggeredEventHandlers[i]->getTriggerInfo();
             triggers[index].setEventId(info.triggeredEventIds[i]);
         }
         for (int i = 0; i < (int)triggeredEventReporters.size(); ++i) {
             Stage stage = triggeredEventReporters[i]->getRequiredStage();
-            int index = info.triggeredReportIndices[i]+s.getEventStartByStage(stage)+s.getEventStartByStage(getMySubsystemId(), stage);
+            int index = info.triggeredReportIndices[i]+s.getEventStartByStage(stage)+s.getEventStartByStage(getMySubsystemIndex(), stage);
             triggers[index] = triggeredEventReporters[i]->getTriggerInfo();
             triggers[index].setEventId(info.triggeredReportIds[i]);
         }
@@ -1014,7 +1014,7 @@ void DefaultSystemSubsystem::addEventReporter(TriggeredEventReporter* handler) c
  * Subsystem::Guts::createScheduledEvent() or Subsystem::Guts::createTriggeredEvent().
  */
 
-int DefaultSystemSubsystem::createEventId(SubsystemId subsys, State& state) const {
+int DefaultSystemSubsystem::createEventId(SubsystemIndex subsys, State& state) const {
     const DefaultSystemSubsystemGuts::CacheInfo& info = getGuts().getCacheInfo(state);
     int id = info.eventIdCounter++;
     info.eventOwnerMap[id] = subsys;
@@ -1031,7 +1031,7 @@ int DefaultSystemSubsystem::createEventId(SubsystemId subsys, State& state) cons
  *                              specified Subsystem.
  */
 
-void DefaultSystemSubsystem::findSubsystemEventIds(SubsystemId subsys, const State& state, const std::vector<int>& allEvents, std::vector<int>& eventsForSubsystem) const {
+void DefaultSystemSubsystem::findSubsystemEventIds(SubsystemIndex subsys, const State& state, const std::vector<int>& allEvents, std::vector<int>& eventsForSubsystem) const {
     const DefaultSystemSubsystemGuts::CacheInfo& info = getGuts().getCacheInfo(state);
     eventsForSubsystem.clear();
     for (int i = 0; i < (int)allEvents.size(); ++i) {

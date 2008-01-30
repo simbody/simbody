@@ -50,7 +50,7 @@ class DefaultSystemSubsystem;
  * need access to content in the state which is produced by other
  * subsystems. 
  *
- * A System provides a unique SubsystemId (a small positive integer)
+ * A System provides a unique SubsystemIndex (a small positive integer)
  * for each of its subsystems, and the subsystems are constructed
  * knowing their indices. The indices are used subsequently by the subsystems
  * to find their own entries in the system state, and by each subsystem
@@ -467,14 +467,14 @@ public:
 
     /// Take over ownership of the supplied subsystem and install it into 
     /// the next free subsystem slot. The new slot index is returned.
-    SubsystemId adoptSubsystem(Subsystem& child);
+    SubsystemIndex adoptSubsystem(Subsystem& child);
 
     /// How may Subsystems are in here?
     int getNSubsystems() const;
     /// Obtain read-only access to a particular subsystem by its index.
-    const Subsystem& getSubsystem(SubsystemId)   const;
+    const Subsystem& getSubsystem(SubsystemIndex)   const;
     /// Obtain writable access to a particular subsystem by its index.
-    Subsystem&       updSubsystem(SubsystemId);
+    Subsystem&       updSubsystem(SubsystemIndex);
     /// Get read-only access to the default subsystem which is present in every system.
     const DefaultSystemSubsystem& getDefaultSubsystem() const;
     /// Get writable access to the default subsystem which is present in every system.

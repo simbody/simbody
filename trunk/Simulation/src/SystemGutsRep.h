@@ -95,22 +95,22 @@ public:
     State&       updDefaultState()       {return defaultState;}
 
     int              getNSubsystems()            const {return subsystems.size();}
-    const Subsystem& getSubsystem(SubsystemId i) const {return subsystems[i];}
-    Subsystem&       updSubsystem(SubsystemId i)       {return subsystems[i];}
+    const Subsystem& getSubsystem(SubsystemIndex i) const {return subsystems[i];}
+    Subsystem&       updSubsystem(SubsystemIndex i)       {return subsystems[i];}
 
 
 	// Take over ownership from the Subsystem handle, allocate a new
     // subsystem slot for it, and return the slot number. This is only 
     // allowed if the supplied Subsytem already has a rep, but is
     // NOT part of some other System.
-	SubsystemId adoptSubsystem(Subsystem& child) {
+	SubsystemIndex adoptSubsystem(Subsystem& child) {
 		assert(child.hasGuts() && !child.isInSystem()); // TODO
         assert(child.isOwnerHandle());
 
         // This is a topology change.
         invalidateSystemTopologyCache();
 
-        const SubsystemId id = SubsystemId((int)subsystems.size());
+        const SubsystemIndex id = SubsystemIndex((int)subsystems.size());
         subsystems.resize(id+1); // grow
 		Subsystem& s = subsystems.back(); // refer to the empty handle
 

@@ -199,7 +199,7 @@ public:
 	const System& getSystem() const;
 	System&       updSystem();
 
-	SubsystemId getMySubsystemId() const;
+	SubsystemIndex getMySubsystemIndex() const;
 
     // Internal use only
     const Subsystem& getOwnerSubsystemHandle() const;
@@ -207,7 +207,7 @@ public:
     void setOwnerSubsystemHandle(Subsystem&);
     bool hasOwnerSubsystemHandle() const;
 
-    void setSystem(System&, SubsystemId);
+    void setSystem(System&, SubsystemIndex);
 
     explicit Guts(class GutsRep* r) : rep(r) { }
     bool                hasRep() const {return rep!=0;}

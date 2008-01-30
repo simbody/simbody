@@ -202,29 +202,29 @@ inline std::ostream& operator<<(std::ostream& o, Stage g) { o << g.getName(); re
     // REALIZECHECKs: these should be used to catch and report problems that
     // occur when realizing a subsystem.
 
-#define SimTK_REALIZECHECK_ALWAYS(cond,stage,subsysId,subsysName,msg)       \
+#define SimTK_REALIZECHECK_ALWAYS(cond,stage,subsysIx,subsysName,msg)       \
     do{if(!(cond))SimTK_THROW4(SimTK::Exception::RealizeCheckFailed,        \
-                    (stage),(subsysId),(subsysName),(msg));                 \
+                    (stage),(subsysIx),(subsysName),(msg));                 \
     }while(false)
-#define SimTK_REALIZECHECK1_ALWAYS(cond,stage,subsysId,subsysName,msg,a1)   \
+#define SimTK_REALIZECHECK1_ALWAYS(cond,stage,subsysIx,subsysName,msg,a1)   \
     do{if(!(cond))SimTK_THROW5(SimTK::Exception::RealizeCheckFailed,        \
-                    (stage),(subsysId),(subsysName),(msg),(a1));            \
+                    (stage),(subsysIx),(subsysName),(msg),(a1));            \
     }while(false)
-#define SimTK_REALIZECHECK2_ALWAYS(cond,stage,subsysId,subsysName,msg,a1,a2)\
+#define SimTK_REALIZECHECK2_ALWAYS(cond,stage,subsysIx,subsysName,msg,a1,a2)\
     do{if(!(cond))SimTK_THROW6(SimTK::Exception::RealizeCheckFailed,        \
-                    (stage),(subsysId),(subsysName),(msg),(a1),(a2));       \
+                    (stage),(subsysIx),(subsysName),(msg),(a1),(a2));       \
     }while(false)
-#define SimTK_REALIZECHECK3_ALWAYS(cond,stage,subsysId,subsysName,msg,a1,a2,a3)     \
+#define SimTK_REALIZECHECK3_ALWAYS(cond,stage,subsysIx,subsysName,msg,a1,a2,a3)     \
     do{if(!(cond))SimTK_THROW7(SimTK::Exception::RealizeCheckFailed,                \
-                    (stage),(subsysId),(subsysName),(msg),(a1),(a2),(a3));          \
+                    (stage),(subsysIx),(subsysName),(msg),(a1),(a2),(a3));          \
     }while(false)
-#define SimTK_REALIZECHECK4_ALWAYS(cond,stage,subsysId,subsysName,msg,a1,a2,a3,a4)  \
+#define SimTK_REALIZECHECK4_ALWAYS(cond,stage,subsysIx,subsysName,msg,a1,a2,a3,a4)  \
     do{if(!(cond))SimTK_THROW8(SimTK::Exception::RealizeCheckFailed,                \
-                    (stage),(subsysId),(subsysName),(msg),(a1),(a2),(a3),(a4));     \
+                    (stage),(subsysIx),(subsysName),(msg),(a1),(a2),(a3),(a4));     \
     }while(false)
-#define SimTK_REALIZECHECK5_ALWAYS(cond,stage,subsysId,subsysName,msg,a1,a2,a3,a4,a5)   \
+#define SimTK_REALIZECHECK5_ALWAYS(cond,stage,subsysIx,subsysName,msg,a1,a2,a3,a4,a5)   \
     do{if(!(cond))SimTK_THROW9(SimTK::Exception::RealizeCheckFailed,                    \
-                    (stage),(subsysId),(subsysName),(msg),(a1),(a2),(a3),(a4),(a5));    \
+                    (stage),(subsysIx),(subsysName),(msg),(a1),(a2),(a3),(a4),(a5));    \
     }while(false)
 
     

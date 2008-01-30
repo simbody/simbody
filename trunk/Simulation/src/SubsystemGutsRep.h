@@ -51,7 +51,7 @@ class Subsystem::Guts::GutsRep {
 public:
 	GutsRep(const String& name, const String& version) 
       : subsystemName(name), subsystemVersion(version),
-        mySystem(0), mySubsystemId(InvalidSubsystemId), myHandle(0),
+        mySystem(0), mySubsystemIndex(InvalidSubsystemIndex), myHandle(0),
         subsystemTopologyRealized(false)
     { 
         clearAllFunctionPointers();
@@ -61,7 +61,7 @@ public:
         subsystemName = src.subsystemName;
         subsystemVersion = src.subsystemVersion;
         mySystem = 0;
-        mySubsystemId = InvalidSubsystemId;
+        mySubsystemIndex = InvalidSubsystemIndex;
         myHandle = 0;
         subsystemTopologyRealized = false;
         copyAllFunctionPointers(src);
@@ -96,15 +96,15 @@ public:
         SimTK_ASSERT(isInSystem(), "Subsystem::updSystem()");
 		return *mySystem;
 	}
-	void setSystem(System& sys, SubsystemId id) {
+	void setSystem(System& sys, SubsystemIndex id) {
         SimTK_ASSERT(!isInSystem(), "Subsystem::setSystem()");
         SimTK_ASSERT(id.isValid(), "Subsystem::setSystem()");
 		mySystem = &sys;
-		mySubsystemId = id;
+		mySubsystemIndex = id;
 	}
-	SubsystemId getMySubsystemId() const {
-		SimTK_ASSERT(isInSystem(), "Subsystem::getMySubsystemId()");
-		return mySubsystemId;
+	SubsystemIndex getMySubsystemIndex() const {
+		SimTK_ASSERT(isInSystem(), "Subsystem::getMySubsystemIndex()");
+		return mySubsystemIndex;
 	}
 
     void setMyHandle(Subsystem& h) {myHandle = &h;}
@@ -116,7 +116,7 @@ private:
     String      subsystemName;
     String      subsystemVersion;
 	System*     mySystem;       // the System to which this Subsystem belongs
-	SubsystemId mySubsystemId;  // Subsystem # within System
+	SubsystemIndex mySubsystemIndex;  // Subsystem # within System
 
     friend class Subsystem;
     Subsystem* myHandle;	// the owner handle of this rep

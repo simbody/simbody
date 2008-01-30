@@ -177,7 +177,7 @@ public:
 	const System& getSystem() const;
 	System&       updSystem();
 
-	SubsystemId getMySubsystemId() const;
+	SubsystemIndex getMySubsystemIndex() const;
 
     // Is this handle the owner of this rep? This is true if the
     // handle is empty or if its rep points back here.
@@ -199,7 +199,7 @@ public:
     // If this handle is already in use, this routine will throw
     // an exception.
     void adoptSubsystemGuts(Subsystem::Guts* g);
-    void setSystem(System&, SubsystemId);
+    void setSystem(System&, SubsystemIndex);
 
     explicit Subsystem(Subsystem::Guts* g) : guts(g) { }
     bool hasGuts() const {return guts!=0;}
@@ -219,8 +219,8 @@ public:
     void addEventHandler(TriggeredEventHandler* handler);
     void addEventReporter(ScheduledEventReporter* handler) const;
     void addEventReporter(TriggeredEventReporter* handler) const;
-    int createEventId(SubsystemId subsys, State& state) const;
-    void findSubsystemEventIds(SubsystemId subsys, const State& state, const std::vector<int>& allEvents, std::vector<int>& eventsForSubsystem) const;
+    int createEventId(SubsystemIndex subsys, State& state) const;
+    void findSubsystemEventIds(SubsystemIndex subsys, const State& state, const std::vector<int>& allEvents, std::vector<int>& eventsForSubsystem) const;
 private:
     const DefaultSystemSubsystemGuts& getGuts() const;
     DefaultSystemSubsystemGuts& updGuts();

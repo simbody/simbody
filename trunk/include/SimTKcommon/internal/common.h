@@ -153,64 +153,64 @@ extern "C" {
 #include <limits>
 
 /**
- * Use this macro to define a unique "Id" type which is just a type-safe
+ * Use this macro to define a unique "Index" type which is just a type-safe
  * non-negative int, augmented with a "NaN" value given by the predefined
- * int constant SimTK::InvalidId. No namespace is assumed for the newly-
+ * int constant SimTK::InvalidIndex. No namespace is assumed for the newly-
  * defined type; if you want the symbol in a namespace be sure to invoke
  * the macro within that namespace. Make sure that the system include
  * file <cassert> has been included by the point of invocation, because
- * the define Id type uses the assert() macro when in Debug mode.
+ * the define Index type uses the assert() macro when in Debug mode.
  *
  * For most uses it will behave like an int, and it has an implicit
  * conversion *to* int. Importantly though, it has no implicit conversion
  * *from* int so you can't pass some other kind of number where a particular
- * kind of Id was expected. This is used to create Id types
+ * kind of Index was expected. This is used to create Index types
  * which can be used as array indices but which prevent accidental mixing
- * of types. Examples: SubsystemId, ConstraintId.
+ * of types. Examples: SubsystemIndex, ConstraintIndex.
  *
- * If you create a type "ThingId" you will also get a constant of
- * type ThingId named "ThingInvalidId" which will be the initial
- * value of any objects of type ThingId, and will have the same numerical
- * value as SimTK::InvalidId.
+ * If you create a type "ThingIndex" you will also get a constant of
+ * type ThingIndex named "InvalidThingIndex" which will be the initial
+ * value of any objects of type ThingIndex, and will have the same numerical
+ * value as SimTK::InvalidIndex.
  */
 namespace SimTK {
-    static const int InvalidId = -1111111111;
+    static const int InvalidIndex = -1111111111;
 }
 
-/// Define a global (that is, SimTK namespace level) Id class that
+/// Define a global (that is, SimTK namespace level) Index class that
 /// is not exported in MS VC++ DLLs.
-#define SimTK_DEFINE_UNIQUE_ID_TYPE(NAME)                   \
-    SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_ID_TYPE(,,,NAME)   \
+#define SimTK_DEFINE_UNIQUE_INDEX_TYPE(NAME)                   \
+    SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_INDEX_TYPE(,,,NAME)   \
     static const NAME Invalid ## NAME;
 
-/// Define a global (that is, SimTK namespace level) Id class with
+/// Define a global (that is, SimTK namespace level) Index class with
 /// a MS VC++ "export" specification for DLLs.
-#define SimTK_DEFINE_AND_EXPORT_UNIQUE_ID_TYPE(EXPORT,NAME)     \
-    SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_ID_TYPE(EXPORT,,,NAME) \
+#define SimTK_DEFINE_AND_EXPORT_UNIQUE_INDEX_TYPE(EXPORT,NAME)     \
+    SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_INDEX_TYPE(EXPORT,,,NAME) \
     static const NAME Invalid ## NAME;
 
-/// Define a local Id class within a Parent class.
-#define SimTK_DEFINE_UNIQUE_LOCAL_ID_TYPE(PARENT,NAME) \
-    SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_ID_TYPE(,PARENT,::,NAME)
+/// Define a local Index class within a Parent class.
+#define SimTK_DEFINE_UNIQUE_LOCAL_INDEX_TYPE(PARENT,NAME) \
+    SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_INDEX_TYPE(,PARENT,::,NAME)
 
 /// The most general form allows a MS VC++ "export" specification for DLLs,
-/// and a Parent class (with SEP=::) for local Id names.
-#define SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_ID_TYPE(EXPORT,PARENT,SEP,NAME)   \
+/// and a Parent class (with SEP=::) for local Index names.
+#define SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_INDEX_TYPE(EXPORT,PARENT,SEP,NAME)   \
 class EXPORT NAME {                         \
-    int id;                                 \
+    int ix;                                 \
 public:                                     \
-    NAME() : id(SimTK::InvalidId) { }       \
-    explicit NAME(int i) : id(i)      {assert(i>=0 || i==SimTK::InvalidId);} \
-    explicit NAME(long i): id((int)i) {assert(i>=0 || i==SimTK::InvalidId);} \
-    explicit NAME(unsigned int  u) : id((int)u) {assert((int)u >= 0);}       \
-    explicit NAME(unsigned long u) : id((int)u) {assert((int)u >= 0);}       \
-    operator int() const {return id;}       \
-    bool isValid() const {return id>=0;}    \
-    void invalidate(){id=SimTK::InvalidId;} \
-    const NAME& operator++() {assert(id>=0); ++id;return *this;}      /*prefix */   \
-    NAME operator++(int)     {assert(id>=0); ++id; return NAME(id-1);}/*postfix*/   \
-    const NAME& operator--() {assert(id>=1); --id;return *this;}      /*prefix */   \
-    NAME operator--(int)     {assert(id>=1); --id; return NAME(id+1);}/*postfix*/   \
+    NAME() : ix(SimTK::InvalidIndex) { }       \
+    explicit NAME(int i) : ix(i)      {assert(i>=0 || i==SimTK::InvalidIndex);} \
+    explicit NAME(long i): ix((int)i) {assert(i>=0 || i==SimTK::InvalidIndex);} \
+    explicit NAME(unsigned int  u) : ix((int)u) {assert((int)u >= 0);}       \
+    explicit NAME(unsigned long u) : ix((int)u) {assert((int)u >= 0);}       \
+    operator int() const {return ix;}       \
+    bool isValid() const {return ix>=0;}    \
+    void invalidate(){ix=SimTK::InvalidIndex;} \
+    const NAME& operator++() {assert(ix>=0); ++ix;return *this;}      /*prefix */   \
+    NAME operator++(int)     {assert(ix>=0); ++ix; return NAME(ix-1);}/*postfix*/   \
+    const NAME& operator--() {assert(ix>=1); --ix;return *this;}      /*prefix */   \
+    NAME operator--(int)     {assert(ix>=1); --ix; return NAME(ix+1);}/*postfix*/   \
     static const NAME& Invalid() {static const NAME invalid; return invalid;}       \
 };
 

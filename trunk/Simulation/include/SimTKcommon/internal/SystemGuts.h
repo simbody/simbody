@@ -137,11 +137,11 @@ public:
 
     void realize(const State& s, Stage g = Stage::HighestValid) const;
 
-    SubsystemId adoptSubsystem(Subsystem& child);
+    SubsystemIndex adoptSubsystem(Subsystem& child);
 
     int getNSubsystems() const;
-    const Subsystem& getSubsystem(SubsystemId)   const;
-    Subsystem&       updSubsystem(SubsystemId);
+    const Subsystem& getSubsystem(SubsystemIndex)   const;
+    Subsystem&       updSubsystem(SubsystemIndex);
 
     // Obtain the owner handle for this System::Guts object.
     const System& getSystem() const;
@@ -207,7 +207,7 @@ protected:
     virtual System::Guts* cloneImpl() const = 0;
 
     // Override these to change the evaluation order of the Subsystems.
-    // The default is to evaluate them in increasing order of SubsystemId.
+    // The default is to evaluate them in increasing order of SubsystemIndex.
     // These methods should not be called directly; they are invoked by the
     // above wrapper methods. Note: the wrappers *will not* call these
     // routines if the system stage has already met the indicated stage level.
