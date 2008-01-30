@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-8 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -491,12 +491,12 @@ private:
     // These data members are filled in once the Constraint is added to
     // a MatterSubsystem.
     SimbodyMatterSubsystemRep* myMatterSubsystemRep;
-    ConstraintIndex               myConstraintIndex; // id within the matter subsystem
+    ConstraintIndex            myConstraintIndex; // id within the matter subsystem
 
     // We'll keep the bodies in two maps: one maps MobilizedBodyIndex->ConstrainedBodyIndex
     // (O(log n) to look up), and the other maps ConstrainedBodyIndex->MobilizedBodyIndex
     // (randomly addressable in constant time).
-    Mobilized2ConstrainedMap     myMobilizedBodies;
+    Mobilized2ConstrainedMap        myMobilizedBodies;
     std::vector<MobilizedBodyIndex> myConstrainedBodies; // index with ConstrainedBodyIndex
 
     // These are the defaults for the number of position (holonomic) constraint equations,
@@ -1006,40 +1006,9 @@ public:
     // Implementation of virtuals required for holonomic constraints.
 
     // We have a ball joint between base body B and follower body F, located at a point P fixed to B
-    // and point S fixed on F. All forces will be applied at point S and the coincident point C on B which is 
-    // instantaneously at the same spatial location as S. We will work in the B frame where p_BP is a constant,
-    // so that it will not appear in the velocity and acceleration equations.
+    // and point S fixed on F. All forces will be applied at point S and the coincident material point 
+    // C on B which is instantaneously at the same spatial location as S. We will work in the A frame.
     //
-    //    perr = p_PC (expressed in B)
-    //         = p_BC - p_BP
-    //         = R_BA*(p_AS-p_AB) - p_BP
-    //
-    //   (Below we're using the identity w_BA = -R_BA*w_AB)
-    //
-    //    verr = d/dt perr = v_BC (derivative taken in B)
-    //         = w_BA X R_BA*(p_AS-p_AB) 
-    //                + R_BA*(v_AS-v_AB)
-    //         = R_BA*(         (v_AS-v_AB) 
-    //                 - w_AB X (p_AS-p_AB))
-    //
-   //    aerr = d/dt verr = a_BC (derivative taken in B)
-    //         =               b_BA X R_BA*(p_AS-p_AB) 
-    //               + w_BA X (w_BA X R_BA*(p_AS-p_AB))
-    //               +       2 w_BA X R_BA*(v_AS-v_AB)
-    //               +                R_BA*(a_AS-a_AB)
-    //
-    //         =                 (-R_BA*b_AB) X R_BA*(p_AS-p_AB) 
-    //               + R_BA*w_AB X (R_BA*w_AB X R_BA*(p_AS-p_AB))
-    //               -            2 R_BA*w_AB X R_BA*(v_AS-v_AB)
-    //               +                          R_BA*(a_AS-a_AB)
-	//    ---------------------------------------------------------
-    //    aerr =   R_BA*(         -b_AB X (p_AS-p_AB) 
-    //                   + w_AB X (w_AB X (p_AS-p_AB))
-    //                   -       2 w_AB X (v_AS-v_AB)
-    //                   +                (a_AS-a_AB)
-	//    ---------------------------------------------------------
-    //
-    // NEW: do this in A
     //  First, find the material point C of B that is coincident
     //  in space with point S of F: p_BC = p_AS-p_AB. This vector
     //  is *constant* in the B frame because it is a material point,
@@ -1064,60 +1033,37 @@ public:
     void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
         assert(mp==3 && perr);
 
-        const Rotation&  R_AB   = getBodyRotation(s, pc, B1);
-        const Vec3&      p_AB   = getBodyOriginLocation(s, pc, B1);
-        const Vec3       p_AS   = calcStationLocation(s, pc, B2, defaultPoint2);
-        const Vec3       p_BC_A = p_AS - p_AB;
+        const Vec3 p_AP = calcStationLocation(s, pc, B1, defaultPoint1);
+        const Vec3 p_AS = calcStationLocation(s, pc, B2, defaultPoint2);
 
-        //Vec3::updAs(perr) = ~R_AB*p_BC_A - defaultPoint1;  // p_BC - p_BP (C is pt of B coincident with S)
-        Vec3::updAs(perr) = p_BC_A - R_AB*defaultPoint1;  // p_BC - p_BP (C is pt of B coincident with S)
+        // See above comments -- this is just the constant of integration; there is a missing (p_AS-p_AC)
+        // term (always 0) here which is what we differentiate to get the verr equation.
+        Vec3::updAs(perr) = p_AS - p_AP;
     }
  
     void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
         assert(mp==3 && pverr);
         //TODO: should be able to get p info from State
-        const Rotation&   R_AB   = getBodyRotation(s, B1);
-        const Vec3&       p_AB   = getBodyOriginLocation(s, B1);
+        const Transform&  X_AB   = getBodyTransform(s, B1);
         const Vec3        p_AS   = calcStationLocation(s, B2, defaultPoint2);
-        const Vec3        p_BC_A = p_AS - p_AB;
+        const Vec3        p_BC   = ~X_AB*p_AS; // C is a material point of body B
 
-        const Vec3&       w_AB    = getBodyAngularVelocity(s, vc, B1);
-        const Vec3&       v_AB    = getBodyOriginVelocity(s, vc, B1);
         const Vec3        v_AS    = calcStationVelocity(s, vc, B2, defaultPoint2);
-        const Vec3        v_BS_A  = v_AS - v_AB;
-        const Vec3        pverr_A = v_BS_A - w_AB % p_BC_A;
-
-//        Vec3::updAs(pverr) = ~R_AB * pverr_A;
-        Vec3::updAs(pverr) = v_AS - (v_AB + w_AB % p_BC_A);
+        const Vec3        v_AC    = calcStationVelocity(s, vc, B1, p_BC);
+        Vec3::updAs(pverr) = v_AS - v_AC;
     }
 
     void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
         assert(mp==3 && paerr);
         //TODO: should be able to get p and v info from State
 
-        const Rotation&   R_AB   = getBodyRotation(s, B1);
-        const Vec3&       p_AB   = getBodyOriginLocation(s, B1);
+        const Transform&  X_AB   = getBodyTransform(s, B1);
         const Vec3        p_AS   = calcStationLocation(s, B2, defaultPoint2);
-        const Vec3        p_BC_A = p_AS - p_AB;
+        const Vec3        p_BC   = ~X_AB*p_AS; // C is a material point of body B
 
-        const Vec3&       w_AB    = getBodyAngularVelocity(s, B1);
-        const Vec3&       v_AB    = getBodyOriginVelocity(s, B1);
-        const Vec3        v_AS    = calcStationVelocity(s, B2, defaultPoint2);
-        const Vec3        v_BS_A  = v_AS - v_AB;
-        const Vec3        pverr_A = v_BS_A - w_AB % p_BC_A;
-
-        const Vec3&       b_AB    = getBodyAngularAcceleration(s, ac, B1);
-        const Vec3&       a_AB    = getBodyOriginAcceleration(s, ac, B1);
         const Vec3        a_AS    = calcStationAcceleration(s, ac, B2, defaultPoint2);
-        const Vec3        a_BS_A  = a_AS - a_AB;
-        //const Vec3        paerr_A = a_BS_A - b_AB % p_BC_A
-        //                            - 2 * w_AB % v_BS_A
-         //                           + w_AB % (w_AB % p_BC_A);
-        //Vec3::updAs(paerr) = ~R_AB * paerr_A;
-
-    //      aerr = a_AS - (a_AB + b_AB X R_AB*p_BC + w_AB X (w_AB X R_AB*p_BC))
-        Vec3::updAs(paerr) = a_AS - (a_AB + b_AB % p_BC_A + w_AB % (w_AB % p_BC_A));
-
+        const Vec3        a_AC    = calcStationAcceleration(s, ac, B1, p_BC);
+        Vec3::updAs(paerr) = a_AS - a_AC;
     }
 
     void applyPositionConstraintForcesVirtual
@@ -1134,8 +1080,6 @@ public:
         const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin and reexpress in B;
                                               // C is material point of B coincident with S
 
-        //const Vec3 force_B = Vec3::getAs(multipliers);
-        //const Vec3 force_A = X_AB.R()*force_B;
         const Vec3 force_A = Vec3::getAs(multipliers);
 
         // Multipliers are force to be applied to S on F, but

@@ -89,10 +89,12 @@ int main(int argc, char** argv) {
 
 #define HASC
     
-    Constraint::Ball myc2(matter.Ground(), Vec3(-4,2,0),  mobilizedBody2, Vec3(0,1,0));
+    //Constraint::Ball myc2(matter.Ground(), Vec3(-4,2,0),  mobilizedBody2, Vec3(0,1,0));
     Constraint::Ball myc(matter.Ground(), Vec3(1,2,0),  mobilizedBody, Vec3(0,1,0));
     Constraint::Ball ball(mobilizedBody0, Vec3(2,0,0), mobilizedBody2, Vec3(3,0,0));
     
+    Constraint::PointInPlane pip(matter.Ground(), UnitVec3(0,1,0),  2, mobilizedBody2, Vec3(0,1,0));
+    pip.setPlaneDisplayHalfWidth(40);
 
     /*
     Constraint::Rod myc2(matter.Ground(), Vec3(-4,2,0),  mobilizedBody2, Vec3(0,1,0), 1);
@@ -104,7 +106,6 @@ int main(int argc, char** argv) {
     //Constraint::Rod myc(matter.Ground(), Vec3(1,2,0),  mobilizedBody, Vec3(0,1,0), 1);
 
     //Constraint::Ball myc(mobilizedBody, Vec3(1,2,0),  mobilizedBody2, Vec3(0,1,0));
-    //Constraint::PointInPlane myc(mobilizedBody, UnitVec3(0,1,0),  2, mobilizedBody2, Vec3(0,1,0));
     //Constraint::Rod myc(mobilizedBody, Vec3(0), mobilizedBody2, Vec3(0), 5);
 
 

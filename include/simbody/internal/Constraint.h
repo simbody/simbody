@@ -181,7 +181,8 @@ public:
     class Ball; typedef Ball CoincidentPoints;
     class Weld; typedef Weld CoincidentFrames;
     class PointInPlane;  // translations perpendicular to plane normal only
-    class ConstantAngle; // rotations perpendicular to an axis only
+    class PointOnLine;   // translations along a line only
+    class ConstantAngle; // prevent rotation about common normal of two vectors
     class ConstantOrientation; // allows any translation but no rotation
     class Custom;
 
@@ -208,7 +209,15 @@ protected:
 
 /// One constraint equation. This constraint enforces a constant distance between
 /// a point on one body and a point on another body. This is like connecting them
-/// by a rigid, massless rod with ball joints at either end.
+/// by a rigid, massless rod with ball joints at either end. The constraint is
+/// enforced by a force acting along the rod with opposite signs at either end.
+/// When positive, this represents tension in the rod pulling the points together;
+/// when negative it represents compression keeping the points separated.
+///
+/// Caution: you can't use this to enforce a distance of zero between two points.
+/// That takes three constraints because there is no restriction on the force direction.
+/// For a distance of zero (i.e., you want the points to be coincident) use a Ball
+/// constraint, a.k.a. CoincidentPoints constraint.
 class SimTK_SIMBODY_EXPORT Constraint::Rod : public Constraint {
 public:
     // no default constructor
