@@ -494,8 +494,9 @@ bool VerletIntegratorRep::takeOneStep(Real t0, Real tMax, Real tReport)
     Real tHigh = t1;
 
     if ((tHigh-tLow) <= narrowestWindow && !(tLow < tReport && tReport < tHigh)) {
-        findEventIds(eventCandidates);
-        setTriggeredEvents(tLow, tHigh, eventCandidates, eventTimeEstimates, eventCandidateTransitions);
+        std::vector<EventId> ids;
+        findEventIds(eventCandidates, ids);
+        setTriggeredEvents(tLow, tHigh, ids, eventTimeEstimates, eventCandidateTransitions);
         return true;     // localized already; advanced state is right (tHigh==tAdvanced)
     }
 
@@ -581,8 +582,9 @@ bool VerletIntegratorRep::takeOneStep(Real t0, Real tMax, Real tReport)
 
     } while ((tHigh-tLow) > narrowestWindow);
 
-    findEventIds(eventCandidates);
-    setTriggeredEvents(tLow, tHigh, eventCandidates, eventTimeEstimates, eventCandidateTransitions);
+    std::vector<EventId> ids;
+    findEventIds(eventCandidates, ids);
+    setTriggeredEvents(tLow, tHigh, ids, eventTimeEstimates, eventCandidateTransitions);
 
 
     // We have to throw away all of the advancedState that occurred after

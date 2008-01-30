@@ -452,9 +452,9 @@ public:
     
     /// Given a list of events, specified by their indices in the list of trigger functions,
     /// convert them to the corresponding event IDs.
-    void findEventIds(std::vector<int>& events) {
-        for (int i = 0; i < (int)events.size(); ++i)
-            events[i] = eventTriggerInfo[events[i]].getEventId();
+    void findEventIds(const std::vector<int>& indices, std::vector<EventId>& ids) {
+        for (int i = 0; i < (int)indices.size(); ++i)
+            ids.push_back(eventTriggerInfo[indices[i]].getEventId());
     }
 
     // TODO: these utilities don't really belong here
@@ -509,7 +509,7 @@ protected:
     }
 
     void setTriggeredEvents(Real tlo, Real thi,
-                            const std::vector<int>&  eventIds,
+                            const std::vector<EventId>&  eventIds,
                             const std::vector<Real>& estEventTimes,
                             const std::vector<EventStatus::EventTrigger>& transitionsSeen)
     {
@@ -537,7 +537,7 @@ protected:
     Real getEventWindowLow()  const {return tLow;}
     Real getEventWindowHigh() const {return tHigh;}
 
-    const std::vector<int>&  getTriggeredEvents()      const {return triggeredEvents;}
+    const std::vector<EventId>&  getTriggeredEvents()  const {return triggeredEvents;}
     const std::vector<Real>& getEstimatedEventTimes()  const {return estimatedEventTimes;}
     const std::vector<EventStatus::EventTrigger>&
                        getEventTransitionsSeen() const {return eventTransitionsSeen;}
@@ -704,7 +704,7 @@ private:
         Real estTime;
     };
 
-    void calcEventOrder(const std::vector<int>&  eventIds,
+    void calcEventOrder(const std::vector<EventId>&  eventIds,
                         const std::vector<Real>& estEventTimes,
                         std::vector<int>&        eventOrder)
     {
@@ -815,7 +815,7 @@ private:
     // These are the events that the integrator has algorithmically
     // determined are now triggered. You may not get the same result
     // simply comparing the trigger function values at tLow and tHigh.
-    std::vector<int>  triggeredEvents;
+    std::vector<EventId>  triggeredEvents;
 
     // These are the estimated times corresponding to the triggeredEvents.
     // They are in ascending order although there may be duplicates.

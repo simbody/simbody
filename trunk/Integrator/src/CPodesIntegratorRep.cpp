@@ -374,7 +374,7 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
             
             // An event was triggered.
             
-            std::vector<int> eventIds;
+            std::vector<int> eventIndices;
             std::vector<Real> eventTimes;
             std::vector<EventStatus::EventTrigger> eventTransitions;
             int nevents = getAdvancedState().getNEvents();
@@ -382,13 +382,14 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
             cpodes->getRootInfo(eventFlags);
             for (int i = 0; i < nevents; ++i)
                 if (eventFlags[i] != 0) {
-                    eventIds.push_back(i);
+                    eventIndices.push_back(i);
                     eventTimes.push_back(tret);
                     eventTransitions.push_back(eventFlags[i] == 1 ? EventStatus::Rising : EventStatus::Falling);
                 }
             delete[] eventFlags;
-            findEventIds(eventIds);
-            setTriggeredEvents(previousStartTime, tret, eventIds, eventTimes, eventTransitions);
+            std::vector<EventId> ids;
+            findEventIds(eventIndices, ids);
+            setTriggeredEvents(previousStartTime, tret, ids, eventTimes, eventTransitions);
             setStepCommunicationStatus(IntegratorRep::StepHasBeenReturnedWithEvent);
             return Integrator::ReachedEventTrigger;
         }

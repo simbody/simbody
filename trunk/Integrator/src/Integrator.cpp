@@ -113,7 +113,7 @@ Vec2 Integrator::getEventWindow() const {
     return Vec2(getRep().getEventWindowLow(), getRep().getEventWindowHigh());
 }
 
-const std::vector<int>& 
+const std::vector<EventId>& 
 Integrator::getTriggeredEvents() const {
     if (getRep().getStepCommunicationStatus() != IntegratorRep::StepHasBeenReturnedWithEvent) {
         SimTK_THROW2(CantAskForEventInfoWhenNoEventTriggered, "getTriggeredEvents",

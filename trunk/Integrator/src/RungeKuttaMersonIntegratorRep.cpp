@@ -459,8 +459,9 @@ RungeKuttaMersonIntegratorRep::attemptAStep
     tLow = t0; tHigh = t1;
 
     if ((tHigh-tLow) <= narrowestWindow && !(tLow < tReport && tReport < tHigh)) {
-        findEventIds(eventCandidates);
-        setTriggeredEvents(tLow, tHigh, eventCandidates, eventTimeEstimates, eventCandidateTransitions);
+        std::vector<EventId> ids;
+        findEventIds(eventCandidates, ids);
+        setTriggeredEvents(tLow, tHigh, ids, eventTimeEstimates, eventCandidateTransitions);
         return SuccessWithEvent;     // localized already; advanced state is right (tHigh==tAdvanced)
     }
 
@@ -547,8 +548,9 @@ RungeKuttaMersonIntegratorRep::attemptAStep
 
     } while ((tHigh-tLow) > narrowestWindow);
 
-    findEventIds(eventCandidates);
-    setTriggeredEvents(tLow, tHigh, eventCandidates, eventTimeEstimates, eventCandidateTransitions);
+    std::vector<EventId> ids;
+    findEventIds(eventCandidates, ids);
+    setTriggeredEvents(tLow, tHigh, ids, eventTimeEstimates, eventCandidateTransitions);
 
 
     // We have to throw away all of the advancedState that occurred after

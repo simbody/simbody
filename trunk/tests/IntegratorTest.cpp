@@ -122,11 +122,11 @@ public:
 
     /*virtual*/int calcEventTriggerInfoImpl(const State& s, std::vector<System::EventTriggerInfo>& eti) const {
         eti.clear();
-        eti.push_back(System::EventTriggerInfo(0)
+        eti.push_back(System::EventTriggerInfo(EventId(0))
                       .setRequiredLocalizationTimeWindow(1)
                       .setTriggerOnRisingSignTransition(false));
-        eti.push_back(System::EventTriggerInfo(1));
-        eti.push_back(System::EventTriggerInfo(2) 
+        eti.push_back(System::EventTriggerInfo(EventId(1)));
+        eti.push_back(System::EventTriggerInfo(EventId(2)) 
                       .setTriggerOnFallingSignTransition(false));
         return 0;
     }
@@ -283,7 +283,7 @@ int main () {
     for (int reportNo=0; !integ.isSimulationOver(); 
          reportNo += (integ.getTime() >= reportNo*hReport))
     {
-        std::vector<int> scheduledEventIds;
+        std::vector<EventId> scheduledEventIds;
         Real nextScheduledEvent = NTraits<Real>::getInfinity();
         sys.calcTimeOfNextScheduledEvent(integ.getAdvancedState(), 
             nextScheduledEvent, scheduledEventIds, true);
@@ -314,7 +314,7 @@ int main () {
                 printf("TIME HAS ADVANCED TO %g\n", integ.getTime()); 
                 sys.handleEvents(integ.updAdvancedState(),
                     System::TimeAdvancedEvent,
-                    std::vector<int>(),
+                    std::vector<EventId>(),
                     integ.getAccuracyInUse(),
                     integ.getStateWeightsInUse(),
                     integ.getConstraintWeightsInUse(),
@@ -356,7 +356,7 @@ int main () {
                 printf("SIMULATION IS OVER. TERMINATION REASON=<TODO>\n");
                 sys.handleEvents(integ.updAdvancedState(),
                     System::TerminationEvent,
-                    std::vector<int>(),
+                    std::vector<EventId>(),
                     integ.getAccuracyInUse(),
                     integ.getStateWeightsInUse(),
                     integ.getConstraintWeightsInUse(),
