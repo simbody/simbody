@@ -41,9 +41,9 @@ namespace SimTK {
 namespace Ordinality {
     /// Enumeration to indicate whether a residue is at the beginning, middle, or end of a polymer chain.
     enum Residue {
-        ANY, ///< Indicates either a residue in the middle (i.e. not at the ends) of a polymer chain, or that the ordinality is unimportant
-        INITIAL, ///<Indicates a residue at the beginning of a polymer chain
-        FINAL}; ///<Indicates a residue at the end of a polymer chain
+        Any = 1, ///< Indicates either a residue in the middle (i.e. not at the ends) of a polymer chain, or that the ordinality is unimportant
+        Initial = 2, ///<Indicates a residue at the beginning of a polymer chain
+        Final = 3}; ///<Indicates a residue at the end of a polymer chain
 }
 
 // Biotype is a hook that will be used to look up molecular
@@ -97,17 +97,17 @@ public:
     static const Biotype& get(TinkerBiotypeId tinkerBiotypeId);
     static const Biotype& get(const char* residueName, 
                               const char* atomName, 
-                              Ordinality::Residue ordinality = Ordinality::ANY);
+                              Ordinality::Residue ordinality = Ordinality::Any);
 
     static Biotype& upd(BiotypeId biotypeId);
     static Biotype& upd(TinkerBiotypeId tinkerBiotypeId);
     static Biotype& upd(const char* residueName, 
                               const char* atomName, 
-                              Ordinality::Residue ordinality = Ordinality::ANY);
+                              Ordinality::Residue ordinality = Ordinality::Any);
 
     static bool exists(const char* residueName, 
                        const char* atomName, 
-                       Ordinality::Residue ordinality = Ordinality::ANY);
+                       Ordinality::Residue ordinality = Ordinality::Any);
 
     static bool exists(BiotypeId biotypeId);
 
@@ -115,7 +115,7 @@ public:
                                    int valence,
                                    const char* residueName, 
                                    const char* atomName, 
-                                   Ordinality::Residue ordinality = Ordinality::ANY)
+                                   Ordinality::Residue ordinality = Ordinality::Any)
     {
         return defineTinkerBiotype(InvalidTinkerBiotypeId, 
                                    element,
@@ -130,7 +130,7 @@ public:
                                          int valence,
                                          const char* residueName, 
                                          const char* atomName, 
-                                         Ordinality::Residue ordinality = Ordinality::ANY); 
+                                         Ordinality::Residue ordinality = Ordinality::Any); 
 
     static std::ostream& generateAllBiotypeCode(std::ostream& os); 
 

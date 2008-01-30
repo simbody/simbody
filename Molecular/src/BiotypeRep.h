@@ -87,13 +87,13 @@ public:
         // Create a string with a symbolic representation of the residue ordinality
         String ordString;
         switch(ordinality) {
-            case Ordinality::INITIAL:
+            case Ordinality::Initial:
                 ordString = "Ordinality::INITIAL";
                 break;
-            case Ordinality::ANY:
+            case Ordinality::Any:
                 ordString =  "Ordinality::ANY";
                 break;
-            case Ordinality::FINAL:
+            case Ordinality::Final:
                 ordString =  "Ordinality::FINAL";
                 break;
             default:
