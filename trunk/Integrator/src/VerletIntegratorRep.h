@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-2008 Stanford University and the Authors.      *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -32,44 +32,19 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon.h"
-
-#include "simmath/internal/common.h"
-#include "simmath/Integrator.h"
-
-#include "IntegratorRep.h"
+#include "AbstractIntegratorRep.h"
 
 namespace SimTK {
 
-class VerletIntegratorRep : public IntegratorRep {
+class VerletIntegratorRep : public AbstractIntegratorRep {
 public:
     VerletIntegratorRep(Integrator* handle, const System& sys);
-    void methodInitialize(const State&);
-    Integrator::SuccessfulStepStatus stepTo(Real reportTime, Real scheduledEventTime);
-    Real getActualInitialStepSizeTaken() const;
-    Real getPreviousStepSizeTaken() const;
-    Real getPredictedNextStepSize() const;
-    long getNStepsAttempted() const;
-    long getNStepsTaken() const;
-    long getNErrorTestFailures() const;
-    void resetMethodStatistics();
-    void createInterpolatedState(Real t);
-    const char* getMethodName() const;
-    int getMethodMinOrder() const;
-    int getMethodMaxOrder() const;
-    bool methodHasErrorControl() const;
-private:
+protected:
     bool attemptAStep(Real t0, Real t1, 
                       const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
                       const Vector& u0, const Vector& udot0, const Vector& z0, 
                       const Vector& zdot0, 
                       Vector& yErrEst);
-    bool adjustStepSize(Real err, bool hWasArtificiallyLimited);
-    bool takeOneStep(Real t0, Real tMax, Real tReport);
-    void backUpAdvancedStateByInterpolation(Real t);
-    bool initialized;
-    long statsStepsTaken, statsStepsAttempted, statsErrorTestFailures;
-    Real currentStepSize, lastStepSize, actualInitialStepSizeTaken;
 };
 
 } // namespace SimTK

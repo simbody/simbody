@@ -47,11 +47,9 @@ class ExplicitEulerIntegratorRep;
  * integrator possible.  As such, it is useful as a test case, but usually is
  * a bad choice for real simulations.
  * 
- * Because this is not an error controlled integator, the error tolerance and
- * constraint tolerance that you specify are ignored.  Similarly, setting the
- * maximum or minimum step size has no effect.  The only method which actually
- * has an effect is setInitialStepSize(), which sets the step size which will
- * be used for every step.
+ * Because this is not an error controlled integator, the error tolerance that
+ * you specify is ignored.  It simply takes fixed steps of the size specified
+ * to the constructor without regard to error.
  */
 
 class SimTK_SIMMATH_EXPORT ExplicitEulerIntegrator : public Integrator {
