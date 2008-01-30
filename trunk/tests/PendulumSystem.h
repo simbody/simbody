@@ -46,7 +46,7 @@ class PendulumSystemGuts: public System::Guts {
     friend class PendulumSystem;
 
     // TOPOLOGY STATE
-    SubsystemId subsysIndex;
+    SubsystemIndex subsysIndex;
 
     // TOPOLOGY CACHE
     mutable int massIndex, lengthIndex, gravityIndex;
@@ -54,7 +54,7 @@ class PendulumSystemGuts: public System::Guts {
     mutable int mgForceIndex; // a cache entry m*g calculated at Dynamics stage
 public:
     PendulumSystemGuts() : Guts() {
-        subsysIndex = InvalidSubsystemId;
+        subsysIndex = InvalidSubsystemIndex;
         massIndex = lengthIndex = gravityIndex = -1;
         q0 = u0 = qerr0 = uerr0 = udoterr0 = event0 = -1;
         mgForceIndex = -1;
@@ -64,7 +64,7 @@ public:
         return reinterpret_cast<const PendulumSystem&>(getSystem());
     }
     
-    SubsystemId getSubsysIndex() const {
+    SubsystemIndex getSubsysIndex() const {
         return subsysIndex;
     }
 
@@ -115,7 +115,7 @@ public:
     { 
         adoptSystemGuts(new PendulumSystemGuts());
         DefaultSystemSubsystem defsub(*this);
-        updGuts().subsysIndex = defsub.getMySubsystemId();
+        updGuts().subsysIndex = defsub.getMySubsystemIndex();
 
         setHasTimeAdvancedEvents(false);
     }

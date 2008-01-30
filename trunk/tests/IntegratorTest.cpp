@@ -58,7 +58,7 @@ class MyPendulumGuts: public System::Guts {
     friend class MyPendulum;
 
     // TOPOLOGY STATE
-    SubsystemId subsysIndex;
+    SubsystemIndex subsysIndex;
 
     // TOPOLOGY CACHE
     mutable int massIndex, lengthIndex, gravityIndex;
@@ -66,7 +66,7 @@ class MyPendulumGuts: public System::Guts {
     mutable int mgForceIndex; // a cache entry m*g calculated at Dynamics stage
 public:
     MyPendulumGuts() : Guts() {
-        subsysIndex = InvalidSubsystemId;
+        subsysIndex = InvalidSubsystemIndex;
         massIndex = lengthIndex = gravityIndex = -1;
         q0 = u0 = qerr0 = uerr0 = udoterr0 = event0 = -1;
         mgForceIndex = -1;
@@ -177,7 +177,7 @@ public:
     { 
         adoptSystemGuts(new MyPendulumGuts());
         DefaultSystemSubsystem defsub(*this);
-        updGuts().subsysIndex = defsub.getMySubsystemId();
+        updGuts().subsysIndex = defsub.getMySubsystemIndex();
 
         setHasTimeAdvancedEvents(false);
         (void)realizeTopology();
@@ -378,8 +378,8 @@ int main () {
             s.getTime(), integ.getAdvancedTime(),
             s.getY()[0], s.getY()[1], s.getY()[2], s.getY()[3],
             s.getYErr()[0], s.getYErr()[1], 
-            s.getEventsByStage(SubsystemId(0),Stage::Position)[0], s.getEventsByStage(SubsystemId(0),Stage::Position)[1], 
-            s.getEventsByStage(SubsystemId(0),Stage::Position)[2]);
+            s.getEventsByStage(SubsystemIndex(0),Stage::Position)[0], s.getEventsByStage(SubsystemIndex(0),Stage::Position)[1], 
+            s.getEventsByStage(SubsystemIndex(0),Stage::Position)[2]);
 
         cout << "YDot:        " << s.getYDot() << endl;
         cout << "Multipliers: " << s.getMultipliers() << endl;

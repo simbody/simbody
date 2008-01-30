@@ -91,7 +91,7 @@ public:
             // at x=0, all of its energy is kinetic).
             
             hasAccelerated = true;
-            SubsystemId subsys = pendulum.getGuts().getSubsysIndex();
+            SubsystemIndex subsys = pendulum.getGuts().getSubsysIndex();
             state.updU(subsys) *= std::sqrt(1.5);
             lowestModified = Stage::Velocity;
         }
