@@ -48,13 +48,13 @@ namespace SimTK {
 class DecorationSubsystemGuts : public Subsystem::Guts {
 
     struct RubberBandLine {
-        RubberBandLine(MobilizedBodyId b1, const Vec3& s1,
-                       MobilizedBodyId b2, const Vec3& s2,
+        RubberBandLine(MobilizedBodyIndex b1, const Vec3& s1,
+                       MobilizedBodyIndex b2, const Vec3& s2,
                        const DecorativeLine& l)
           : body1(b1), body2(b2), station1(s1), station2(s2), line(l)
         {
         }
-        MobilizedBodyId  body1, body2;
+        MobilizedBodyIndex  body1, body2;
         Vec3 station1, station2;
         DecorativeLine line;
     };
@@ -75,7 +75,7 @@ public:
     // This will make an internal copy of the supplied DecorativeGeometry. We'll save the
     // body Id in and apply the transform now to the saved copy, so that the geometry we return
     // later will be relative to the body frame only.
-    void addBodyFixedDecoration(MobilizedBodyId body, const Transform& X_BD, const DecorativeGeometry& g)
+    void addBodyFixedDecoration(MobilizedBodyIndex body, const Transform& X_BD, const DecorativeGeometry& g)
     {
         invalidateSubsystemTopologyCache(); // this is a topological change
         geometry.push_back(g); // make a new copy
@@ -85,13 +85,13 @@ public:
     }
 
     // This will make an internal copy of the supplied DecorativeGeometry.
-    void addRubberBandLine(MobilizedBodyId b1, const Vec3& station1, MobilizedBodyId b2, const Vec3& station2,
+    void addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1, MobilizedBodyIndex b2, const Vec3& station2,
                            const DecorativeLine& g)
     {
         invalidateSubsystemTopologyCache(); // this is a topological change
         rubberBandLines.push_back(RubberBandLine(b1,station1,b2,station2,g));
         DecorativeLine& myg = rubberBandLines.back().line; // new copy
-        myg.setBodyId(GroundId);    // make sure the generated geometry will display properly
+        myg.setBodyId(GroundIndex);    // make sure the generated geometry will display properly
         myg.setTransform(Transform());
     }
 

@@ -216,7 +216,7 @@ public:
      * like a 6x6 diagonal matrix with Infinity on the diagonals.
      * 
      * @par Required stage
-     *   \c Stage::Position, unless \a objectBodyB == \c GroundId
+     *   \c Stage::Position, unless \a objectBodyB == \c GroundIndex
      */
     SpatialMat calcBodySpatialInertiaMatrixInGround(const State& s) const
     {
@@ -249,7 +249,7 @@ public:
     /// @par Required stage
     ///   \c Stage::Instance
     Inertia calcBodyCentralInertia(const State& s, 
-                                   MobilizedBodyId objectBodyB) const
+                                   MobilizedBodyIndex objectBodyB) const
     {
         return getBodyMassProperties(s).calcCentralInertia();
     }
@@ -953,9 +953,9 @@ public:
     /// vector A_GB = {alpha_GB, a_GB}. This response is available at Acceleration stage.
     const SpatialVec& getBodyAcceleration(const State& s) const; // A_GB
 
-    // Implicit conversion to MobilizedBodyId when needed.
-    operator MobilizedBodyId() const {return getMobilizedBodyId();}
-    MobilizedBodyId        getMobilizedBodyId()     const; // id of this mobilized body
+    // Implicit conversion to MobilizedBodyIndex when needed.
+    operator MobilizedBodyIndex() const {return getMobilizedBodyIndex();}
+    MobilizedBodyIndex        getMobilizedBodyIndex()     const; // id of this mobilized body
     const MobilizedBody&   getParentMobilizedBody() const; // the inboard body (not allowed if this is ground)
     const MobilizedBody&   getBaseMobilizedBody()   const; // the lowest numbered ancestor body on this branch
                                                            //   (returns Ground if if this is Ground)

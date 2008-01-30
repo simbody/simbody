@@ -82,7 +82,7 @@ int main() {
     matter.convertToEulerAngles(s, euler);
     mbs.realize(euler, Stage::Position);
     for (int i = 0; i < matter.getNBodies(); ++i) {
-        const MobilizedBody& body = matter.getMobilizedBody(MobilizedBodyId(i));
+        const MobilizedBody& body = matter.getMobilizedBody(MobilizedBodyIndex(i));
         Real dist = (body.getBodyOriginLocation(euler)-body.getBodyOriginLocation(s)).norm();
         ASSERT(dist < 1e-5);
     }
@@ -93,7 +93,7 @@ int main() {
     matter.convertToQuaternions(euler, quaternions);
     mbs.realize(quaternions, Stage::Position);
     for (int i = 0; i < matter.getNBodies(); ++i) {
-        const MobilizedBody& body = matter.getMobilizedBody(MobilizedBodyId(i));
+        const MobilizedBody& body = matter.getMobilizedBody(MobilizedBodyIndex(i));
         Real dist = (body.getBodyOriginLocation(quaternions)-body.getBodyOriginLocation(s)).norm();
         ASSERT(dist < 1e-5);
     }

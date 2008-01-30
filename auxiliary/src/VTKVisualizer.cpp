@@ -89,8 +89,8 @@ public:
     // This will make a copy of the supplied DecorativeGeometry.
     // These are topology-stage decorations which we can precalculate (at least in part)
     // since they will be present in every rendered frame.
-    void addDecoration(MobilizedBodyId bodyNum, const Transform& X_GD, const DecorativeGeometry&);
-    void addRubberBandLine(MobilizedBodyId b1, const Vec3& station1, MobilizedBodyId b2, const Vec3& station2,
+    void addDecoration(MobilizedBodyIndex bodyNum, const Transform& X_GD, const DecorativeGeometry&);
+    void addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1, MobilizedBodyIndex b2, const Vec3& station2,
                            const DecorativeLine&);
 
     // This geometry survives only until the next frame is rendered, then evaporates.
@@ -99,12 +99,12 @@ public:
     // Make sure everything can be seen.
     void resetCamera() {cameraNeedsToBeReset=true;}
 
-    void setDefaultBodyColor(MobilizedBodyId bodyNum, const Vec3& rgb) {
+    void setDefaultBodyColor(MobilizedBodyIndex bodyNum, const Vec3& rgb) {
         bodies[bodyNum].defaultColorRGB = rgb;
     }
-    const Vec3& getDefaultBodyColor(MobilizedBodyId body) const {return bodies[body].defaultColorRGB;}
+    const Vec3& getDefaultBodyColor(MobilizedBodyIndex body) const {return bodies[body].defaultColorRGB;}
     
-    void setBodyScale(MobilizedBodyId bodyNum, const Real& scale) {
+    void setBodyScale(MobilizedBodyIndex bodyNum, const Real& scale) {
         bodies[bodyNum].scale = scale;
     }
 
@@ -142,7 +142,7 @@ private:
         PerDynamicGeomInfo() : actor(0) { }
         vtkActor*      actor;
         DecorativeLine line;
-        MobilizedBodyId  body1, body2;
+        MobilizedBodyIndex  body1, body2;
         Vec3 station1, station2;
     };
     std::vector<PerDynamicGeomInfo> dynamicGeom;
@@ -159,7 +159,7 @@ private:
     void initTopology();
     void zeroPointers();
     void deletePointers();
-    void setConfiguration(MobilizedBodyId bodyNum, const Transform& X_GB);
+    void setConfiguration(MobilizedBodyIndex bodyNum, const Transform& X_GB);
     void setRubberBandLine(int dgeom, const Vec3& p1, const Vec3& p2);
 
     void displayEphemeralGeometry(const State& s);
@@ -257,15 +257,15 @@ void VTKVisualizer::zoomCamera(Real z) {
     camera->Zoom(z);
 }
 
-void VTKVisualizer::addDecoration(MobilizedBodyId body, const Transform& X_GD,
+void VTKVisualizer::addDecoration(MobilizedBodyIndex body, const Transform& X_GD,
                                 const DecorativeGeometry& g) 
 {
     assert(rep);
     rep->addDecoration(body, X_GD, g);
 }
 
-void VTKVisualizer::addRubberBandLine(MobilizedBodyId b1, const Vec3& station1,
-                                    MobilizedBodyId b2, const Vec3& station2,
+void VTKVisualizer::addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1,
+                                    MobilizedBodyIndex b2, const Vec3& station2,
                                     const DecorativeLine& g)
 {
     assert(rep);
@@ -278,7 +278,7 @@ void VTKVisualizer::addEphemeralDecoration(const DecorativeGeometry& g)
     rep->addEphemeralDecoration(g);
 }
 
-void VTKVisualizer::setDefaultBodyColor(MobilizedBodyId bodyNum, const Vec3& rgb) {
+void VTKVisualizer::setDefaultBodyColor(MobilizedBodyIndex bodyNum, const Vec3& rgb) {
    assert(rep);
    rep->setDefaultBodyColor(bodyNum,rgb);
 }
@@ -287,7 +287,7 @@ void VTKVisualizer::setDefaultBodyColor(MobilizedBodyId bodyNum, const Vec3& rgb
     // VTKVisualizerRep //
     //////////////////////
 
-void VTKVisualizerRep::addDecoration(MobilizedBodyId body, const Transform& X_GD,
+void VTKVisualizerRep::addDecoration(MobilizedBodyIndex body, const Transform& X_GD,
                                    const DecorativeGeometry& g)
 {
     class DecorativeGeometryRep;
@@ -337,8 +337,8 @@ void VTKVisualizerRep::addDecoration(MobilizedBodyId body, const Transform& X_GD
     cameraNeedsToBeReset = true;
 }
 
-void VTKVisualizerRep::addRubberBandLine(MobilizedBodyId b1, const Vec3& station1,
-                                       MobilizedBodyId b2, const Vec3& station2,
+void VTKVisualizerRep::addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1,
+                                       MobilizedBodyIndex b2, const Vec3& station2,
                                        const DecorativeLine& g)
 {
         // TODO: this should not be done here (sherm 071106)
@@ -404,7 +404,7 @@ void VTKVisualizerRep::displayEphemeralGeometry(const State& s)
         DecorativeGeometry& dgeom = ephemeralGeometry[i];
         ephemeralActors[i] = vtkActor::New();
 
-        const MobilizedBodyId body = MobilizedBodyId(dgeom.getBodyId());
+        const MobilizedBodyIndex body = MobilizedBodyIndex(dgeom.getBodyId());
         const Transform& X_GB = matter.getMobilizedBody(body).getBodyTransform(s);
 
         // Apply the transformation.
@@ -520,13 +520,13 @@ void VTKVisualizerRep::initTopology() {
     for (int i=0; i<(int)bodies.size(); ++i)
         bodies[i].scale = defaultBodyScaleForAutoGeometry;
 
-    setDefaultBodyColor(GroundId, DefaultGroundBodyColor);
-    for (MobilizedBodyId i(1); i<(int)bodies.size(); ++i) {
+    setDefaultBodyColor(GroundIndex, DefaultGroundBodyColor);
+    for (MobilizedBodyIndex i(1); i<(int)bodies.size(); ++i) {
         const MobilizedBody& bodyI = sbs.getMobilizedBody(i);
-        const MobilizedBodyId parent = 
-            bodyI.getParentMobilizedBody().getMobilizedBodyId();
+        const MobilizedBodyIndex parent = 
+            bodyI.getParentMobilizedBody().getMobilizedBodyIndex();
 
-        if (parent == GroundId)
+        if (parent == GroundIndex)
              setDefaultBodyColor(i, DefaultBaseBodyColor);
         else setDefaultBodyColor(i, DefaultBodyColor);
 
@@ -545,7 +545,7 @@ void VTKVisualizerRep::initTopology() {
     // should be moved to the matter subsystem; VTKVisualizer shouldn't
     // need to know about this sort of system detail.
     if (defaultBodyScaleForAutoGeometry!=0)
-        for (MobilizedBodyId i(0); i<(int)bodies.size(); ++i) {
+        for (MobilizedBodyIndex i(0); i<(int)bodies.size(); ++i) {
             const MobilizedBody& bodyI = sbs.getMobilizedBody(i);
 
             const Real scale = bodies[i].scale;
@@ -557,8 +557,8 @@ void VTKVisualizerRep::initTopology() {
             // same as the body frame. Then find the corresponding frame on the
             // parent and display that in this body's color.
             if (i > 0) {
-                const MobilizedBodyId parent = 
-                    bodyI.getParentMobilizedBody().getMobilizedBodyId();
+                const MobilizedBodyIndex parent = 
+                    bodyI.getParentMobilizedBody().getMobilizedBodyIndex();
 
                 const Real pscale = bodies[parent].scale;
                 const Transform& M = bodyI.getDefaultOutboardFrame(); // TODO: get from state
@@ -591,7 +591,7 @@ void VTKVisualizerRep::initTopology() {
     std::vector<DecorativeGeometry> sysGeom;
     mbs.calcDecorativeGeometryAndAppend(State(), Stage::Topology, sysGeom);
     for (int i=0; i<(int)sysGeom.size(); ++i)
-        addDecoration(MobilizedBodyId(sysGeom[i].getBodyId()), Transform(), sysGeom[i]);
+        addDecoration(MobilizedBodyIndex(sysGeom[i].getBodyId()), Transform(), sysGeom[i]);
 }
 
 void VTKVisualizerRep::report(const State& s) {
@@ -602,7 +602,7 @@ void VTKVisualizerRep::report(const State& s) {
     mbs.realize(s, Stage::Position); // just in case
 
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
-    for (MobilizedBodyId i(1); i<matter.getNBodies(); ++i) {
+    for (MobilizedBodyIndex i(1); i<matter.getNBodies(); ++i) {
         const Transform& config = matter.getMobilizedBody(i).getBodyTransform(s);
         setConfiguration(i, config);
     }
@@ -673,7 +673,7 @@ void VTKVisualizerRep::deletePointers() {
     zeroPointers();
 }
 
-void VTKVisualizerRep::setConfiguration(MobilizedBodyId bodyNum, const Transform& X_GB) {
+void VTKVisualizerRep::setConfiguration(MobilizedBodyIndex bodyNum, const Transform& X_GB) {
     const std::vector<vtkProp3D*>& actors = bodies[bodyNum].aList;
     for (int i=0; i < (int)actors.size(); ++i) {
         vtkProp3D*       actor = actors[i];

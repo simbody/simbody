@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
     char c;
     cout << "Constraint, spring, or nothing? c/s/n"; cin >> c;
 
-    ConstraintId cid;
+    ConstraintIndex cid;
     const Vec3 leftAttachPt(.1,0.05,0);
     if (c == 'c') {   
 
@@ -149,7 +149,7 @@ int main(int argc, char** argv) {
                        distance)
         // Constraint::Ball(leftPendulum2, Vec3(.5,0,0),
         //                 twoPends.Ground(), Vec3(0,-d,0))
-        .getConstraintId();
+        .getConstraintIndex();
 
     } else if (c == 's') {
         forces.addTwoPointLinearSpring(leftPendulum, leftAttachPt,
@@ -185,10 +185,10 @@ int main(int argc, char** argv) {
         cout << "CONSTRAINT -- " << twoPends.getConstraint(cid).getSubtree();
     }
 
-    for (MobilizedBodyId i(0); i < twoPends.getNBodies(); ++i) {
+    for (MobilizedBodyIndex i(0); i < twoPends.getNBodies(); ++i) {
         const MobilizedBody& mb = twoPends.getMobilizedBody(i);
         cout << "Body " << i 
-             << " base=" << mb.getBaseMobilizedBody().getMobilizedBodyId() 
+             << " base=" << mb.getBaseMobilizedBody().getMobilizedBodyIndex() 
              << endl;
     }
 

@@ -74,8 +74,8 @@ namespace SimTK {
  *                   ...
  *                  Ground                                  @endverbatim
  *
- * Each body in the Subtree is assigned an index called a SubtreeBodyId,
- * with the Ancestor being SubtreeBodyId 0 and other ids assigned such
+ * Each body in the Subtree is assigned an index called a SubtreeBodyIndex,
+ * with the Ancestor being SubtreeBodyIndex 0 and other ids assigned such
  * that ids increase going outwards along a branch. Maps are
  * kept in the Subtree object to track its relationship to the full tree.
  *
@@ -88,7 +88,7 @@ namespace SimTK {
  *
  * A SubtreeResults object is initialized at Model stage, at which point
  * we can determine the mobilities u and generalized coordinates q. These are
- * assigned SubtreeUId's and SubtreeQId's in the same order that the Subtree
+ * assigned SubtreeUIndex's and SubtreeQIndex's in the same order that the Subtree
  * bodies are numbered. Maps are kept in the SubtreeResults object to track
  * the relationship between the Subtree mobilities and those in the full tree.
  *
@@ -119,7 +119,7 @@ public:
 
     explicit Subtree(const SimbodyMatterSubsystem&);
     Subtree(const SimbodyMatterSubsystem&, 
-            const std::vector<MobilizedBodyId>& terminalBodies);
+            const std::vector<MobilizedBodyIndex>& terminalBodies);
 
     void setSimbodyMatterSubsystem(const SimbodyMatterSubsystem& matter);
     const SimbodyMatterSubsystem& getSimbodyMatterSubsystem() const;
@@ -128,23 +128,23 @@ public:
     // is one, but does remove all the bodies from the Subtree.
     void clear();
 
-    Subtree& addTerminalBody(MobilizedBodyId);
+    Subtree& addTerminalBody(MobilizedBodyIndex);
 
     void realizeTopology();
 
     int getNumSubtreeBodies() const; // includes ancestor
-    MobilizedBodyId getAncestorMobilizedBodyId() const;
+    MobilizedBodyIndex getAncestorMobilizedBodyIndex() const;
 
     // These are in the same order they were added; body[i] is the terminus
     // of branch i.
-    const std::vector<MobilizedBodyId>& getTerminalBodies() const;
+    const std::vector<MobilizedBodyIndex>& getTerminalBodies() const;
 
-    // These are indexed by SubtreeBodyId starting with 0 for the ancestor body
+    // These are indexed by SubtreeBodyIndex starting with 0 for the ancestor body
     // and monotonically increasing outwards along a branch.
-    const std::vector<MobilizedBodyId>& getAllBodies() const;
+    const std::vector<MobilizedBodyIndex>& getAllBodies() const;
 
-    SubtreeBodyId getParentSubtreeBodyId(SubtreeBodyId) const; // 0 returns an invalid Id
-    const std::vector<SubtreeBodyId>& getChildSubtreeBodyIds(SubtreeBodyId) const;
+    SubtreeBodyIndex getParentSubtreeBodyIndex(SubtreeBodyIndex) const; // 0 returns an invalid Index
+    const std::vector<SubtreeBodyIndex>& getChildSubtreeBodyIndexs(SubtreeBodyIndex) const;
 
         // MODEL STAGE
 
@@ -174,7 +174,7 @@ public:
 
     // Calculates a perturbed position result starting with the subQ's and position results
     // which must already be in SubtreeResults.
-    void perturbPositions(const State&, SubtreeQId subQIndex, Real perturbation, SubtreeResults&) const;
+    void perturbPositions(const State&, SubtreeQIndex subQIndex, Real perturbation, SubtreeResults&) const;
 
 
         // VELOCITY STAGE
@@ -198,7 +198,7 @@ public:
 
     // Calculates a perturbed velocity result starting with the subU's and velocity results
     // which must already be in SubtreeResults.
-    void perturbVelocities(const State&, SubtreeUId subUIndex, Real perturbation, SubtreeResults&) const;
+    void perturbVelocities(const State&, SubtreeUIndex subUIndex, Real perturbation, SubtreeResults&) const;
 
 
         // ACCELERATION STAGE
@@ -223,7 +223,7 @@ public:
 
     // Calculates a perturbed velocity result starting with the subUDot's and acceleration results
     // which must already be in SubtreeResults.
-    void perturbAccelerations(const State&, SubtreeUId subUDotIndex, Real perturbation, SubtreeResults&) const;
+    void perturbAccelerations(const State&, SubtreeUIndex subUDotIndex, Real perturbation, SubtreeResults&) const;
 
     class SubtreeRep;
 private:
@@ -250,7 +250,7 @@ public:
     void clear();
 
     void reallocateBodies(int nBodies);
-    void addMobilities(SubtreeBodyId, QId qStart, int nq, UId uStart, int nu);
+    void addMobilities(SubtreeBodyIndex, QIndex qStart, int nq, UIndex uStart, int nu);
     void realizeModel(const Vector& stateQ, const Vector& stateU);
 
     Stage getStage() const;
@@ -260,20 +260,20 @@ public:
     int getNumSubtreeUs() const;
 
     const Vector&     getSubtreeQ() const;
-    const Transform&  getSubtreeBodyTransform(SubtreeBodyId) const; // from ancestor frame
+    const Transform&  getSubtreeBodyTransform(SubtreeBodyIndex) const; // from ancestor frame
 
     const Vector&     getSubtreeU() const;
-    const SpatialVec& getSubtreeBodyVelocity(SubtreeBodyId) const; // measured & expressed  in ancestor frame
+    const SpatialVec& getSubtreeBodyVelocity(SubtreeBodyIndex) const; // measured & expressed  in ancestor frame
 
     const Vector&     getSubtreeUDot() const;
-    const SpatialVec& getSubtreeBodyAcceleration(SubtreeBodyId) const; // measured & expressed in ancestor frame
+    const SpatialVec& getSubtreeBodyAcceleration(SubtreeBodyIndex) const; // measured & expressed in ancestor frame
 
-    // These are indexed by SubtreeQId and SubtreeUId.
-    const std::vector<QId>& getQSubset() const; // subset of Subsystem Qs used by this Subtree
-    const std::vector<UId>& getUSubset() const; // subset of Subsystem Us used by this Subtree
+    // These are indexed by SubtreeQIndex and SubtreeUIndex.
+    const std::vector<QIndex>& getQSubset() const; // subset of Subsystem Qs used by this Subtree
+    const std::vector<UIndex>& getUSubset() const; // subset of Subsystem Us used by this Subtree
 
-    void findSubtreeBodyQ(SubtreeBodyId, SubtreeQId& qStart, int& nq) const; // indices into QSubset
-    void findSubtreeBodyU(SubtreeBodyId, SubtreeUId& uStart, int& nu) const; // indices into USubset
+    void findSubtreeBodyQ(SubtreeBodyIndex, SubtreeQIndex& qStart, int& nq) const; // indices into QSubset
+    void findSubtreeBodyU(SubtreeBodyIndex, SubtreeUIndex& uStart, int& nu) const; // indices into USubset
 
     class SubtreeResultsRep;
 private:

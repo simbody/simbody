@@ -239,19 +239,19 @@ public:
         return *myMatterSubsystemRep;
     }
 
-    MobilizedBodyId getMyMobilizedBodyId() const {
-        assert(myMobilizedBodyId.isValid());
-        return myMobilizedBodyId;
+    MobilizedBodyIndex getMyMobilizedBodyIndex() const {
+        assert(myMobilizedBodyIndex.isValid());
+        return myMobilizedBodyIndex;
     }
 
-    MobilizedBodyId getMyParentMobilizedBodyId() const {
-        assert(myParentId.isValid());
-        return myParentId;
+    MobilizedBodyIndex getMyParentMobilizedBodyIndex() const {
+        assert(myParentIndex.isValid());
+        return myParentIndex;
     }
 
-    MobilizedBodyId getMyBaseBodyMobilizedBodyId() const {
-        assert(myBaseBodyId.isValid());
-        return myBaseBodyId;
+    MobilizedBodyIndex getMyBaseBodyMobilizedBodyIndex() const {
+        assert(myBaseBodyIndex.isValid());
+        return myBaseBodyIndex;
     }
 
     int getMyLevel() const {
@@ -262,26 +262,26 @@ public:
     bool isInSubsystem() const {return myMatterSubsystemRep != 0;}
 
     void setMyMatterSubsystem(SimbodyMatterSubsystem& matter,
-                              MobilizedBodyId  parentId,
-                              MobilizedBodyId  id)
+                              MobilizedBodyIndex  parentIndex,
+                              MobilizedBodyIndex  index)
     {
         assert(!myMatterSubsystemRep);
         myMatterSubsystemRep = &matter.updRep();
 
-        assert(id.isValid());
-        assert(parentId.isValid() || id==GroundId);
+        assert(index.isValid());
+        assert(parentIndex.isValid() || index==GroundIndex);
 
-        myParentId           = parentId; // invalid if this is Ground
-        myMobilizedBodyId    = id;
+        myParentIndex           = parentIndex; // invalid if this is Ground
+        myMobilizedBodyIndex    = index;
 
-        if (id != GroundId) {
-            const MobilizedBody& parent = matter.getMobilizedBody(parentId);
+        if (index != GroundIndex) {
+            const MobilizedBody& parent = matter.getMobilizedBody(parentIndex);
             myLevel = parent.getLevelInMultibodyTree() + 1;
-            myBaseBodyId = (myLevel == 1 ? myMobilizedBodyId 
-                                         : parent.getBaseMobilizedBody().getMobilizedBodyId());
+            myBaseBodyIndex = (myLevel == 1 ? myMobilizedBodyIndex 
+                                         : parent.getBaseMobilizedBody().getMobilizedBodyIndex());
         } else {
             myLevel = 0;
-            myBaseBodyId = GroundId;
+            myBaseBodyIndex = GroundIndex;
         }
     }
 
@@ -293,7 +293,7 @@ private:
     // Body topological geometry is defined with respect to the body frame so we
     // can draw it right away.
     void appendTopologicalBodyGeometry(std::vector<DecorativeGeometry>& geom) const {
-        getBody().getRep().appendDecorativeGeometry(getMyMobilizedBodyId(), geom);
+        getBody().getRep().appendDecorativeGeometry(getMyMobilizedBodyIndex(), geom);
     }
 
     // Mobilizer topological geometry is defined with respect to the M (outboard, child)
@@ -306,12 +306,12 @@ private:
     {
         for (int i=0; i<(int)outboardGeometry.size(); ++i) {
             geom.push_back(outboardGeometry[i]);
-            geom.back().setBodyId(getMyMobilizedBodyId())
+            geom.back().setBodyId(getMyMobilizedBodyIndex())
                        .setTransform(X_BM*outboardGeometry[i].getTransform());
         }
         for (int i=0; i<(int)inboardGeometry.size(); ++i) {
             geom.push_back(inboardGeometry[i]);
-            geom.back().setBodyId(getMyParentMobilizedBodyId())
+            geom.back().setBodyId(getMyParentMobilizedBodyIndex())
                        .setTransform(X_PF*inboardGeometry[i].getTransform());
         }
     }
@@ -337,9 +337,9 @@ private:
     // the Subsystem which owns this MobilizedBody -- we don't own the
     // heap space here so don't delete it!
     SimbodyMatterSubsystemRep* myMatterSubsystemRep;
-    MobilizedBodyId  myMobilizedBodyId; // id within the subsystem
-    MobilizedBodyId  myParentId;   // Invalid if this body is Ground, otherwise the parent's Id
-    MobilizedBodyId  myBaseBodyId; // GroundId if this is ground, otherwise a level-1 BodyId
+    MobilizedBodyIndex  myMobilizedBodyIndex; // index within the subsystem
+    MobilizedBodyIndex  myParentIndex;   // Invalid if this body is Ground, otherwise the parent's index
+    MobilizedBodyIndex  myBaseBodyIndex; // GroundIndex if this is ground, otherwise a level-1 BodyIndex
     int              myLevel;      // Distance from ground in multibody graph (0 if this is ground,
                                    //   1 if a base body, 2 if parent is a base body, etc.)
 

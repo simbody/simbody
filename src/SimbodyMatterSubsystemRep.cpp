@@ -103,13 +103,13 @@ void SimbodyMatterSubsystemRep::clearTopologyCache() {
     nodeNum2NodeMap.clear();
 }
 
-MobilizedBodyId SimbodyMatterSubsystemRep::adoptMobilizedBody
-   (MobilizedBodyId parentId, MobilizedBody& child) 
+MobilizedBodyIndex SimbodyMatterSubsystemRep::adoptMobilizedBody
+   (MobilizedBodyIndex parentIx, MobilizedBody& child) 
 {
     invalidateSubsystemTopologyCache();
 
-    const MobilizedBodyId id((int)mobilizedBodies.size());
-    assert(parentId < id);
+    const MobilizedBodyIndex id((int)mobilizedBodies.size());
+    assert(parentIx < id);
 
     mobilizedBodies.push_back(new MobilizedBody()); // grow
     MobilizedBody& m = *mobilizedBodies.back(); // refer to the empty handle we just created
@@ -118,14 +118,14 @@ MobilizedBodyId SimbodyMatterSubsystemRep::adoptMobilizedBody
 
     // Now tell the MobilizedBody object its owning MatterSubsystem, id within
     // that Subsystem, and parent MobilizedBody object.
-    m.updImpl().setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), parentId, id);
+    m.updImpl().setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), parentIx, id);
     return id;
 }
 
-ConstraintId SimbodyMatterSubsystemRep::adoptConstraint(Constraint& child) {
+ConstraintIndex SimbodyMatterSubsystemRep::adoptConstraint(Constraint& child) {
     invalidateSubsystemTopologyCache();
 
-    const ConstraintId id((int)constraints.size());
+    const ConstraintIndex id((int)constraints.size());
 
     constraints.push_back(new Constraint()); // grow
     Constraint& c = *constraints.back(); // refer to the empty handle we just created
@@ -145,8 +145,8 @@ void SimbodyMatterSubsystemRep::createGroundBody() {
 
     mobilizedBodies.push_back(new MobilizedBody::Ground());
     mobilizedBodies[0]->updImpl().setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), 
-                                                      MobilizedBodyId(), 
-                                                      MobilizedBodyId(0));
+                                                      MobilizedBodyIndex(), 
+                                                      MobilizedBodyIndex(0));
 }
 
 // Add a distance constraint and assign it to use a particular slot in the
@@ -182,63 +182,63 @@ int SimbodyMatterSubsystemRep::addOnePointInPlaneEquation(
     return pointInPlaneConstraints.size()-1;
 }
 
-MobilizedBodyId SimbodyMatterSubsystemRep::getParent(MobilizedBodyId body) const { 
-    return MobilizedBodyId(getRigidBodyNode(body).getParent()->getNodeNum());
+MobilizedBodyIndex SimbodyMatterSubsystemRep::getParent(MobilizedBodyIndex body) const { 
+    return MobilizedBodyIndex(getRigidBodyNode(body).getParent()->getNodeNum());
 }
 
-std::vector<MobilizedBodyId> SimbodyMatterSubsystemRep::getChildren(MobilizedBodyId body) const {
+std::vector<MobilizedBodyIndex> SimbodyMatterSubsystemRep::getChildren(MobilizedBodyIndex body) const {
     const RigidBodyNode& node = getRigidBodyNode(body);
-    std::vector<MobilizedBodyId> children;
-    for (MobilizedBodyId i(0); i < node.getNChildren(); ++i)
-        children.push_back(MobilizedBodyId(node.getChild(i)->getNodeNum()));
+    std::vector<MobilizedBodyIndex> children;
+    for (MobilizedBodyIndex i(0); i < node.getNChildren(); ++i)
+        children.push_back(MobilizedBodyIndex(node.getChild(i)->getNodeNum()));
     return children;
 }
 
 const MassProperties&
-SimbodyMatterSubsystemRep::getDefaultBodyMassProperties(MobilizedBodyId body) const
+SimbodyMatterSubsystemRep::getDefaultBodyMassProperties(MobilizedBodyIndex body) const
   { return getRigidBodyNode(body).getMassProperties_OB_B(); }
 
 const Transform&
-SimbodyMatterSubsystemRep::getDefaultMobilizerFrame(MobilizedBodyId body) const
+SimbodyMatterSubsystemRep::getDefaultMobilizerFrame(MobilizedBodyIndex body) const
   { return getRigidBodyNode(body).getX_BM(); }
 
 const Transform&
-SimbodyMatterSubsystemRep::getDefaultMobilizerFrameOnParent(MobilizedBodyId body) const
+SimbodyMatterSubsystemRep::getDefaultMobilizerFrameOnParent(MobilizedBodyIndex body) const
   { return getRigidBodyNode(body).getX_PF(); }
 
 const Transform&
-SimbodyMatterSubsystemRep::getBodyTransform(const State& s, const SBPositionCache& pc, MobilizedBodyId body) const
+SimbodyMatterSubsystemRep::getBodyTransform(const State& s, const SBPositionCache& pc, MobilizedBodyIndex body) const
   { return getRigidBodyNode(body).getX_GB(pc); }
 
 const SpatialVec&
-SimbodyMatterSubsystemRep::getBodyVelocity(const State& s, const SBVelocityCache& vc, MobilizedBodyId body) const {
+SimbodyMatterSubsystemRep::getBodyVelocity(const State& s, const SBVelocityCache& vc, MobilizedBodyIndex body) const {
   return getRigidBodyNode(body).getV_GB(vc);
 }
 
 const SpatialVec&
-SimbodyMatterSubsystemRep::getBodyAcceleration(const State& s, const SBAccelerationCache& ac, MobilizedBodyId body) const {
+SimbodyMatterSubsystemRep::getBodyAcceleration(const State& s, const SBAccelerationCache& ac, MobilizedBodyIndex body) const {
     return getRigidBodyNode(body).getA_GB(ac);
 }
 
 const SpatialVec&
-SimbodyMatterSubsystemRep::getCoriolisAcceleration(const State& s, MobilizedBodyId body) const {
+SimbodyMatterSubsystemRep::getCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
   return getRigidBodyNode(body).getCoriolisAcceleration(getDynamicsCache(s));
 }
 const SpatialVec&
-SimbodyMatterSubsystemRep::getTotalCoriolisAcceleration(const State& s, MobilizedBodyId body) const {
+SimbodyMatterSubsystemRep::getTotalCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
   return getRigidBodyNode(body).getTotalCoriolisAcceleration(getDynamicsCache(s));
 }
 const SpatialVec&
-SimbodyMatterSubsystemRep::getGyroscopicForce(const State& s, MobilizedBodyId body) const {
+SimbodyMatterSubsystemRep::getGyroscopicForce(const State& s, MobilizedBodyIndex body) const {
   return getRigidBodyNode(body).getGyroscopicForce(getDynamicsCache(s));
 }
 const SpatialVec&
-SimbodyMatterSubsystemRep::getCentrifugalForces(const State& s, MobilizedBodyId body) const {
+SimbodyMatterSubsystemRep::getCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
   return getRigidBodyNode(body).getCentrifugalForces(getDynamicsCache(s));
 }
 
 const SpatialMat&
-SimbodyMatterSubsystemRep::getArticulatedBodyInertia(const State& s, MobilizedBodyId body) const {
+SimbodyMatterSubsystemRep::getArticulatedBodyInertia(const State& s, MobilizedBodyIndex body) const {
   return getRigidBodyNode(body).getArticulatedBodyInertia(getDynamicsCache(s));
 }
 
@@ -264,7 +264,7 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
     //Must do these in order from lowest number (ground) to highest. 
     for (int i=0; i<getNumMobilizedBodies(); ++i) {
         // Create the RigidBodyNode properly linked to its parent.
-        const MobilizedBodyImpl& mbr = getMobilizedBody(MobilizedBodyId(i)).getImpl();
+        const MobilizedBodyImpl& mbr = getMobilizedBody(MobilizedBodyIndex(i)).getImpl();
         const RigidBodyNode& n = mbr.realizeTopology(nextUSlot,nextUSqSlot,nextQSlot);
 
         // Create the computational multibody tree data structures, organized by level.
@@ -301,7 +301,7 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
 //        branches.resize(rbNodeLevels[1].size()); // each level 1 body is a branch
 
     nextQErrSlot = nextUErrSlot = nextMultSlot = 0; // state cache allocation
-    for (ConstraintId i(0); i<getNumConstraints(); ++i) {
+    for (ConstraintIndex i(0); i<getNumConstraints(); ++i) {
         const Constraint::ConstraintRep& crep = getConstraint(i).getRep();
         crep.realizeTopology(s,nextQErrSlot,nextUErrSlot,nextMultSlot);
 
@@ -409,7 +409,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     mc.nHolonomicConstraintEquationsInUse = mc.nNonholonomicConstraintEquationsInUse = 
         mc.nAccelerationOnlyConstraintEquationsInUse = 0;
 
-    for (ConstraintId i(0); i < (int)constraints.size(); ++i) {
+    for (ConstraintIndex i(0); i < (int)constraints.size(); ++i) {
         // These are just the primary contraint equations, not their time derivatives.
         int mHolo, mNonholo, mAccOnly;
         if (mv.disabled[i]) mHolo=mNonholo=mAccOnly=0;
@@ -493,12 +493,12 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     // MobilizedBodies provide default values for their q's. The number and
     // values of these can depend on modeling variables, which are already
     // set in the State. Don't do this for Ground, which has no q's.
-    for (MobilizedBodyId i(1); i < (int)mobilizedBodies.size(); ++i) {
+    for (MobilizedBodyIndex i(1); i < (int)mobilizedBodies.size(); ++i) {
         const MobilizedBodyImpl& mb = mobilizedBodies[i]->getImpl();
         mb.copyOutDefaultQ(s, qInit);
     }
 
-    mc.qIndex = s.allocateQ(getMySubsystemId(), qInit);
+    mc.qIndex = s.allocateQ(getMySubsystemIndex(), qInit);
     mc.qVarsIndex = -1; // no config vars other than q
     mc.qCacheIndex = allocateCacheEntry(s, Stage::Position, new Value<SBPositionCache>());
 
@@ -512,7 +512,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     Vector uInit(DOFTotal);
     setDefaultVelocityValues(mv, uInit);
 
-    mc.uIndex = s.allocateU(getMySubsystemId(), uInit);
+    mc.uIndex = s.allocateU(getMySubsystemIndex(), uInit);
     mc.uVarsIndex = -1; // no velocity vars other than u
     mc.uCacheIndex = allocateCacheEntry(s, Stage::Velocity, new Value<SBVelocityCache>());
     // Note that qdots are automatically allocated in the Velocity stage cache.
@@ -750,11 +750,11 @@ int SimbodyMatterSubsystemRep::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // Let the bodies and mobilizers have a chance to generate some geometry.
-    for (MobilizedBodyId i(0); i<(int)mobilizedBodies.size(); ++i)
+    for (MobilizedBodyIndex i(0); i<(int)mobilizedBodies.size(); ++i)
         mobilizedBodies[i]->getImpl().calcDecorativeGeometryAndAppend(s,stage,geom);
 
     // Likewise for the constraints
-    for (ConstraintId i(0); i<(int)constraints.size(); ++i)
+    for (ConstraintIndex i(0); i<(int)constraints.size(); ++i)
         constraints[i]->getRep().calcDecorativeGeometryAndAppend(s,stage,geom);
 
     // Now add in any subsystem-level geometry.
@@ -768,7 +768,7 @@ int SimbodyMatterSubsystemRep::calcDecorativeGeometryAndAppendImpl
         assert(getStage(s) >= Stage::Position);
         //TODO: just to check control flow, put a ball at system COM
         //const Vec3 com = getMyMatterSubsystemHandle().calcSystemMassCenterLocationInGround(s);
-        //geom.push_back(DecorativeSphere(0.02).setBodyId(GroundId).setTransform(com)
+        //geom.push_back(DecorativeSphere(0.02).setBodyId(GroundIndex).setTransform(com)
         //                .setColor(Green).setRepresentation(DecorativeGeometry::DrawPoints)
          //               .setResolution(1));
     }
@@ -785,7 +785,7 @@ int SimbodyMatterSubsystemRep::calcQUnitWeightsImpl(const State& s, Vector& weig
     Vec6 bounds;
     State tempState = s;
     getSystem().realize(tempState, Stage::Position);
-    calcQUnitWeightsRecursively(s, tempState, weights, bounds, getRigidBodyNode(getGround().getMobilizedBodyId()));
+    calcQUnitWeightsRecursively(s, tempState, weights, bounds, getRigidBodyNode(getGround().getMobilizedBodyIndex()));
     /**/
     return 0;
 }
@@ -797,7 +797,7 @@ int SimbodyMatterSubsystemRep::calcUUnitWeightsImpl(const State& s, Vector& weig
     State tempState = s;
     tempState.updU() = 0;
     getSystem().realize(tempState, Stage::Position);
-    calcUUnitWeightsRecursively(s, tempState, weights, bounds, getRigidBodyNode(getGround().getMobilizedBodyId()));
+    calcUUnitWeightsRecursively(s, tempState, weights, bounds, getRigidBodyNode(getGround().getMobilizedBodyIndex()));
     /**/
     return 0;
 }
@@ -915,19 +915,19 @@ void SimbodyMatterSubsystemRep::calcUUnitWeightsRecursively(const State& s, Stat
         tempState.updQ() = s.getQ();
     }
 }
-int SimbodyMatterSubsystemRep::getQIndex(MobilizedBodyId body) const {
+int SimbodyMatterSubsystemRep::getQIndex(MobilizedBodyIndex body) const {
     assert(subsystemTopologyHasBeenRealized());
     return getRigidBodyNode(body).getQIndex();
 }
-int SimbodyMatterSubsystemRep::getQAlloc(MobilizedBodyId body) const {
+int SimbodyMatterSubsystemRep::getQAlloc(MobilizedBodyIndex body) const {
     assert(subsystemTopologyHasBeenRealized());
     return getRigidBodyNode(body).getMaxNQ();
 }
-int SimbodyMatterSubsystemRep::getUIndex(MobilizedBodyId body) const {
+int SimbodyMatterSubsystemRep::getUIndex(MobilizedBodyIndex body) const {
     assert(subsystemTopologyHasBeenRealized());
     return getRigidBodyNode(body).getUIndex();
 }
-int SimbodyMatterSubsystemRep::getDOF(MobilizedBodyId body) const {
+int SimbodyMatterSubsystemRep::getDOF(MobilizedBodyIndex body) const {
     assert(subsystemTopologyHasBeenRealized());
     return getRigidBodyNode(body).getDOF();
 }
@@ -1035,11 +1035,11 @@ void SimbodyMatterSubsystemRep::setUseEulerAngles(State& s, bool useAngles) cons
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.useEulerAngles = useAngles;
 }
-void SimbodyMatterSubsystemRep::setMobilizerIsPrescribed(State& s, MobilizedBodyId body, bool prescribe) const {
+void SimbodyMatterSubsystemRep::setMobilizerIsPrescribed(State& s, MobilizedBodyIndex body, bool prescribe) const {
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.prescribed[body] = prescribe;
 }
-void SimbodyMatterSubsystemRep::setConstraintIsDisabled(State& s, ConstraintId constraint, bool disable) const {
+void SimbodyMatterSubsystemRep::setConstraintIsDisabled(State& s, ConstraintIndex constraint, bool disable) const {
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.disabled[constraint] = disable;   
 }
@@ -1048,11 +1048,11 @@ bool SimbodyMatterSubsystemRep::getUseEulerAngles(const State& s) const {
     const SBModelVars& modelVars = getModelVars(s); // check stage
     return modelVars.useEulerAngles;
 }
-bool SimbodyMatterSubsystemRep::isMobilizerPrescribed(const State& s, MobilizedBodyId body) const {
+bool SimbodyMatterSubsystemRep::isMobilizerPrescribed(const State& s, MobilizedBodyIndex body) const {
     const SBModelVars& modelVars = getModelVars(s); // check stage
     return modelVars.prescribed[body];
 }
-bool SimbodyMatterSubsystemRep::isConstraintDisabled(const State& s, ConstraintId constraint) const {
+bool SimbodyMatterSubsystemRep::isConstraintDisabled(const State& s, ConstraintIndex constraint) const {
     const SBModelVars& modelVars = getModelVars(s); // check stage
     return modelVars.disabled[constraint];
 }
@@ -1083,7 +1083,7 @@ void SimbodyMatterSubsystemRep::convertToQuaternions(const State& inputState, St
     }
 }
 
-bool SimbodyMatterSubsystemRep::isUsingQuaternion(const State& s, MobilizedBodyId body) const {
+bool SimbodyMatterSubsystemRep::isUsingQuaternion(const State& s, MobilizedBodyIndex body) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     return n.isUsingQuaternion(getModelVars(s));
 }
@@ -1093,7 +1093,7 @@ int SimbodyMatterSubsystemRep::getNQuaternionsInUse(const State& s) const {
     return mc.nQuaternionsInUse;
 }
 
-int SimbodyMatterSubsystemRep::getQuaternionIndex(const State& s, MobilizedBodyId body) const {
+int SimbodyMatterSubsystemRep::getQuaternionIndex(const State& s, MobilizedBodyIndex body) const {
     const SBModelCache& mc = getModelCache(s); // must be >=Model stage
     return mc.quaternionIndex[body];
 }
@@ -1240,8 +1240,8 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
         c.calcConstraintForcesFromMultipliers(s,lambda1,bodyF1,mobilityF1);
 
         //TODO:mobility forces
-        for (ConstrainedBodyId cb(0); cb < c.getNumConstrainedBodies(); ++cb)
-            bodyForcesInG[c.getConstrainedMobilizedBody(cb).getMobilizedBodyId()] += R_GA*bodyF1[cb];
+        for (ConstrainedBodyIndex cb(0); cb < c.getNumConstrainedBodies(); ++cb)
+            bodyForcesInG[c.getConstrainedMobilizedBody(cb).getMobilizedBodyIndex()] += R_GA*bodyF1[cb];
     }
 }
 
@@ -2082,7 +2082,7 @@ void SimbodyMatterSubsystemRep::calcQDotDot(const State& s, const Vector& udot, 
 
 // State must be in Stage::Position.
 void SimbodyMatterSubsystemRep::
-calcMobilizerQDotFromU(const State& s, MobilizedBodyId mb, int nu, const Real* u, 
+calcMobilizerQDotFromU(const State& s, MobilizedBodyIndex mb, int nu, const Real* u, 
                        int nq, Real* qdot) const
 {
     const SBStateDigest sbState(s, *this, Stage::Position);
@@ -2097,7 +2097,7 @@ calcMobilizerQDotFromU(const State& s, MobilizedBodyId mb, int nu, const Real* u
 // State must be realized to Stage::Velocity, so that we can extract Q(q), QDot(q,u), and u from it to calculate
 // qdotdot=Q(q)*udot + QDot(q,u)*u for this mobilizer.
 void SimbodyMatterSubsystemRep::
-calcMobilizerQDotDotFromUDot(const State& s, MobilizedBodyId mb, int nu, const Real* udot, 
+calcMobilizerQDotDotFromUDot(const State& s, MobilizedBodyIndex mb, int nu, const Real* udot, 
                                   int nq, Real* qdotdot) const
 {
     const SBStateDigest sbState(s, *this, Stage::Velocity);
@@ -2115,7 +2115,7 @@ calcMobilizerQDotDotFromUDot(const State& s, MobilizedBodyId mb, int nu, const R
 // and the called mobilizer agree on the generalized coordinates.
 // Returns X_FM(q).
 Transform SimbodyMatterSubsystemRep::
-calcMobilizerTransformFromQ(const State& s, MobilizedBodyId mb, int nq, const Real* q) const {
+calcMobilizerTransformFromQ(const State& s, MobilizedBodyIndex mb, int nq, const Real* q) const {
     const SBStateDigest sbState(s, *this, Stage::Instance);
     const RigidBodyNode& n  = getRigidBodyNode(mb);
 
@@ -2131,7 +2131,7 @@ calcMobilizerTransformFromQ(const State& s, MobilizedBodyId mb, int nq, const Re
 // Returns V_FM(q,u)=H_FM(q)*u, where the q dependency is extracted from the State via
 // the hinge transition matrix H_FM(q).
 SpatialVec SimbodyMatterSubsystemRep::
-calcMobilizerVelocityFromU(const State& s, MobilizedBodyId mb, int nu, const Real* u) const {
+calcMobilizerVelocityFromU(const State& s, MobilizedBodyIndex mb, int nu, const Real* u) const {
     const SBStateDigest sbState(s, *this, Stage::Position);
     const RigidBodyNode& n  = getRigidBodyNode(mb);
 
@@ -2148,7 +2148,7 @@ calcMobilizerVelocityFromU(const State& s, MobilizedBodyId mb, int nu, const Rea
 // Returns A_FM(q,u,udot)=H_FM(q)*udot + HDot_FM(q,u)*u where the q and u dependencies
 // are extracted from the State via H_FM(q), and HDot_FM(q,u).
 SpatialVec SimbodyMatterSubsystemRep::
-calcMobilizerAccelerationFromUDot(const State& s, MobilizedBodyId mb, int nu, const Real* udot) const{
+calcMobilizerAccelerationFromUDot(const State& s, MobilizedBodyIndex mb, int nu, const Real* udot) const{
     const SBStateDigest sbState(s, *this, Stage::Velocity);
     const RigidBodyNode& n  = getRigidBodyNode(mb);
 
@@ -2162,7 +2162,7 @@ calcMobilizerAccelerationFromUDot(const State& s, MobilizedBodyId mb, int nu, co
 // relate the child body's frame B to its parent body's frame P, rather than the M and F frames
 // which are attached to B and P respectively but differ by a constant transform.
 Transform SimbodyMatterSubsystemRep::
-calcParentToChildTransformFromQ(const State& s, MobilizedBodyId mb, int nq, const Real* q) const {
+calcParentToChildTransformFromQ(const State& s, MobilizedBodyIndex mb, int nq, const Real* q) const {
     const Transform& X_PF = getMobilizerFrameOnParent(s,mb);
     const Transform& X_BM = getMobilizerFrame(s,mb);
 
@@ -2171,12 +2171,12 @@ calcParentToChildTransformFromQ(const State& s, MobilizedBodyId mb, int nq, cons
 }
 
 SpatialVec SimbodyMatterSubsystemRep::
-calcParentToChildVelocityFromU(const State& s, MobilizedBodyId mb, int nu, const Real* u) const {
+calcParentToChildVelocityFromU(const State& s, MobilizedBodyIndex mb, int nu, const Real* u) const {
     assert(!"not implemented yet");
     return SpatialVec(Vec3(0),Vec3(0));
 }
 SpatialVec SimbodyMatterSubsystemRep::
-calcParentToChildAccelerationFromUDot(const State& s, MobilizedBodyId mb, int nu, const Real* udot) const {
+calcParentToChildAccelerationFromUDot(const State& s, MobilizedBodyIndex mb, int nu, const Real* udot) const {
     assert(!"not implemented yet");
     return SpatialVec(Vec3(0),Vec3(0));
 }

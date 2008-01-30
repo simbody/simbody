@@ -99,12 +99,12 @@ public:
     HuntCrossleyContact();
     explicit HuntCrossleyContact(MultibodySystem&);
 
-    int addSphere(MobilizedBodyId body, const Vec3& center,
+    int addSphere(MobilizedBodyIndex body, const Vec3& center,
                   const Real& radius,
                   const Real& stiffness,     // E (plane strain)
                   const Real& dissipation);  // c (1/v)
 
-    int addHalfSpace(MobilizedBodyId body, const UnitVec3& normal,
+    int addHalfSpace(MobilizedBodyIndex body, const UnitVec3& normal,
                      const Real& height,
                      const Real& stiffness,     // E (plane strain)
                      const Real& dissipation);  // c (1/v)

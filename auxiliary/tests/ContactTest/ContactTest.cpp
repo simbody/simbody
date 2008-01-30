@@ -170,7 +170,7 @@ try
     const MassProperties rubberBallMProps(rubberBallMass, Vec3(0), 
         rubberBallMass*Inertia::sphere(rubberBallRadius));
     const Vec3 firstHardBallPos = Vec3(-6,30,0), firstRubberBallPos = Vec3(18,30,-18);
-    std::vector<MobilizedBodyId> balls;
+    std::vector<MobilizedBodyIndex> balls;
 
     const int NRubberBalls = 6;
     for (int i=0; i<NRubberBalls; ++i)
@@ -205,23 +205,23 @@ try
     artwork.addBodyFixedDecoration(pend2, Transform(), DecorativeLine(Vec3(0,linkLength/2,0),Vec3(0,-linkLength/2,0)));
  
     DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(1);
-    artwork.addRubberBandLine(GroundId, pendGroundPt2,pend2,Vec3(0,-linkLength/2,0), rbProto);
+    artwork.addRubberBandLine(GroundIndex, pendGroundPt2,pend2,Vec3(0,-linkLength/2,0), rbProto);
 
-    contact.addHalfSpace(GroundId, UnitVec3(0,1,0), 0, kwall, cwall);
-    contact.addHalfSpace(GroundId, UnitVec3(1,0,0), -20, kwall, cwall); // left
-    contact.addHalfSpace(GroundId, UnitVec3(-1,0,0), -20, kwall, cwall); // right
-    contact.addHalfSpace(GroundId, UnitVec3(0,0,-1), -20, kwall, cwall); // front
-    contact.addHalfSpace(GroundId, UnitVec3(0,0,1), -20, kwall, cwall); // back
+    contact.addHalfSpace(GroundIndex, UnitVec3(0,1,0), 0, kwall, cwall);
+    contact.addHalfSpace(GroundIndex, UnitVec3(1,0,0), -20, kwall, cwall); // left
+    contact.addHalfSpace(GroundIndex, UnitVec3(-1,0,0), -20, kwall, cwall); // right
+    contact.addHalfSpace(GroundIndex, UnitVec3(0,0,-1), -20, kwall, cwall); // front
+    contact.addHalfSpace(GroundIndex, UnitVec3(0,0,1), -20, kwall, cwall); // back
 
-    artwork.addBodyFixedDecoration(GroundId, Transform(), 
+    artwork.addBodyFixedDecoration(GroundIndex, Transform(), 
         DecorativeBrick(Vec3(20,.1,20)).setColor(Green).setOpacity(1));
-    artwork.addBodyFixedDecoration(GroundId, Transform(Vec3(-20,20,0)), 
+    artwork.addBodyFixedDecoration(GroundIndex, Transform(Vec3(-20,20,0)), 
         DecorativeBrick(Vec3(.1,30,20)).setColor(Yellow).setOpacity(.2));
-    artwork.addBodyFixedDecoration(GroundId, Transform(Vec3(20,20,0)), 
+    artwork.addBodyFixedDecoration(GroundIndex, Transform(Vec3(20,20,0)), 
         DecorativeBrick(Vec3(.1,30,20)).setColor(Yellow).setOpacity(.2));
-    artwork.addBodyFixedDecoration(GroundId, Transform(Vec3(0,20,20)), 
+    artwork.addBodyFixedDecoration(GroundIndex, Transform(Vec3(0,20,20)), 
         DecorativeBrick(Vec3(20,20,.1)).setColor(Gray).setOpacity(.05));
-    artwork.addBodyFixedDecoration(GroundId, Transform(Vec3(0,20,-20)), 
+    artwork.addBodyFixedDecoration(GroundIndex, Transform(Vec3(0,20,-20)), 
         DecorativeBrick(Vec3(20,30,.1)).setColor(Cyan).setOpacity(.2));
 
     DecorativeSphere rubberSphere(rubberBallRadius);

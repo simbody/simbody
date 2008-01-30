@@ -62,7 +62,7 @@ public:
     // then transformed at Stage::Position for display on a screen.
     //
     // This will make an internal copy of the supplied DecorativeGeometry. We can't fill
-    // in the MobilizedBodyId yet, but we apply the transform now to the saved copy so that
+    // in the MobilizedBodyIndex yet, but we apply the transform now to the saved copy so that
     // the geometry we return later will be relative to the body frame only.
     void addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         geometry.push_back(g); // make a new copy
@@ -70,7 +70,7 @@ public:
         myg.setTransform(X_BD*myg.getTransform());
     }
 
-    void appendDecorativeGeometry(MobilizedBodyId id, std::vector<DecorativeGeometry>& geom) const {
+    void appendDecorativeGeometry(MobilizedBodyIndex id, std::vector<DecorativeGeometry>& geom) const {
         for (int i=0; i<(int)geometry.size(); ++i) {
             geom.push_back(geometry[i]);
             geom.back().setBodyId(id);

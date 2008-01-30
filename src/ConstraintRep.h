@@ -86,26 +86,26 @@ public:
         defaultMa = ma;
     }
 
-    typedef std::map<MobilizedBodyId,ConstrainedBodyId> Mobilized2ConstrainedMap;
+    typedef std::map<MobilizedBodyIndex,ConstrainedBodyIndex> Mobilized2ConstrainedMap;
 
-    ConstrainedBodyId addConstrainedBody(const MobilizedBody& b) {
+    ConstrainedBodyIndex addConstrainedBody(const MobilizedBody& b) {
         assert(isInSameSubsystem(b));
         invalidateTopologyCache();
 
-        const ConstrainedBodyId nextId((int)myConstrainedBodies.size());
+        const ConstrainedBodyIndex nextIx((int)myConstrainedBodies.size());
 
         // Add to the Mobilized->Constrained map and check for duplicates.
         std::pair<Mobilized2ConstrainedMap::iterator, bool> result;
         result = myMobilizedBodies.insert(
-            Mobilized2ConstrainedMap::value_type(b.getMobilizedBodyId(), nextId));
+            Mobilized2ConstrainedMap::value_type(b.getMobilizedBodyIndex(), nextIx));
         assert(result.second); // can only add a body once
 
         // This is a new constrained body -- add it to the Constrained->Mobilized map too.
-        myConstrainedBodies.push_back(b.getMobilizedBodyId());
-        return nextId;
+        myConstrainedBodies.push_back(b.getMobilizedBodyIndex());
+        return nextIx;
     }
 
-    MobilizedBodyId getMobilizedBodyIdOfConstrainedBody(ConstrainedBodyId c) const {
+    MobilizedBodyIndex getMobilizedBodyIndexOfConstrainedBody(ConstrainedBodyIndex c) const {
         assert(0 <= c && c < (int)myConstrainedBodies.size());
         return myConstrainedBodies[c];
     }
@@ -218,48 +218,48 @@ public:
     // (Client "get" methods below should be changed to references also.) 
 
     // These are for use during realization of the associated stage.
-    Transform  getBodyTransform   (const State& s, const SBPositionCache&, ConstrainedBodyId B) const; // X_AB
-    SpatialVec getBodyVelocity    (const State& s, const SBVelocityCache&, ConstrainedBodyId B) const; // V_AB
-    SpatialVec getBodyAcceleration(const State& s, const SBAccelerationCache&, ConstrainedBodyId B) const; // A_AB
+    Transform  getBodyTransform   (const State& s, const SBPositionCache&, ConstrainedBodyIndex B) const; // X_AB
+    SpatialVec getBodyVelocity    (const State& s, const SBVelocityCache&, ConstrainedBodyIndex B) const; // V_AB
+    SpatialVec getBodyAcceleration(const State& s, const SBAccelerationCache&, ConstrainedBodyIndex B) const; // A_AB
 
     // These are for use when after realization of the associated stage has been completed.
-    Transform  getBodyTransform(const State& s, ConstrainedBodyId B) const {
+    Transform  getBodyTransform(const State& s, ConstrainedBodyIndex B) const {
         return getBodyTransform(s, getPositionCache(s), B);
     }
-    SpatialVec getBodyVelocity(const State& s, ConstrainedBodyId B) const {
+    SpatialVec getBodyVelocity(const State& s, ConstrainedBodyIndex B) const {
         return getBodyVelocity(s, getVelocityCache(s), B);
     }
-    SpatialVec getBodyAcceleration(const State& s, ConstrainedBodyId B) const {
+    SpatialVec getBodyAcceleration(const State& s, ConstrainedBodyIndex B) const {
         return getBodyAcceleration(s, getAccelerationCache(s), B);
     }
 
     // Extract just the rotational quantities from the spatial quantities above.
     //TODO: should be references (see above)
-    const Rotation getBodyRotation           (const State& s, const SBPositionCache& pc, ConstrainedBodyId B)     const {return getBodyTransform(s,pc,B).R();}   // R_AB
-    const Vec3     getBodyAngularVelocity    (const State& s, const SBVelocityCache& vc, ConstrainedBodyId B)     const {return getBodyVelocity(s,vc,B)[0];}     // w_AB
-    const Vec3     getBodyAngularAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyId B) const {return getBodyAcceleration(s,ac,B)[0];} // b_AB
-    const Rotation getBodyRotation           (const State& s, ConstrainedBodyId B) const {return getBodyTransform(s,B).R();}   // R_AB
-    const Vec3     getBodyAngularVelocity    (const State& s, ConstrainedBodyId B) const {return getBodyVelocity(s,B)[0];}     // w_AB
-    const Vec3     getBodyAngularAcceleration(const State& s, ConstrainedBodyId B) const {return getBodyAcceleration(s,B)[0];} // b_AB
+    const Rotation getBodyRotation           (const State& s, const SBPositionCache& pc, ConstrainedBodyIndex B)     const {return getBodyTransform(s,pc,B).R();}   // R_AB
+    const Vec3     getBodyAngularVelocity    (const State& s, const SBVelocityCache& vc, ConstrainedBodyIndex B)     const {return getBodyVelocity(s,vc,B)[0];}     // w_AB
+    const Vec3     getBodyAngularAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyIndex B) const {return getBodyAcceleration(s,ac,B)[0];} // b_AB
+    const Rotation getBodyRotation           (const State& s, ConstrainedBodyIndex B) const {return getBodyTransform(s,B).R();}   // R_AB
+    const Vec3     getBodyAngularVelocity    (const State& s, ConstrainedBodyIndex B) const {return getBodyVelocity(s,B)[0];}     // w_AB
+    const Vec3     getBodyAngularAcceleration(const State& s, ConstrainedBodyIndex B) const {return getBodyAcceleration(s,B)[0];} // b_AB
 
     // Extract just the translational (linear) quantities from the spatial quantities above.
     //TODO: should be references (see above)
-    const Vec3 getBodyOriginLocation    (const State& s, const SBPositionCache& pc, ConstrainedBodyId B)     const {return getBodyTransform(s,pc,B).T();}   // p_AB
-    const Vec3 getBodyOriginVelocity    (const State& s, const SBVelocityCache& vc, ConstrainedBodyId B)     const {return getBodyVelocity(s,vc,B)[1];}     // v_AB
-    const Vec3 getBodyOriginAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyId B) const {return getBodyAcceleration(s,ac,B)[1];} // a_AB
-    const Vec3 getBodyOriginLocation    (const State& s, ConstrainedBodyId B) const {return getBodyTransform(s,B).T();}   // p_AB
-    const Vec3 getBodyOriginVelocity    (const State& s, ConstrainedBodyId B) const {return getBodyVelocity(s,B)[1];}     // v_AB
-    const Vec3 getBodyOriginAcceleration(const State& s, ConstrainedBodyId B) const {return getBodyAcceleration(s,B)[1];} // a_AB
+    const Vec3 getBodyOriginLocation    (const State& s, const SBPositionCache& pc, ConstrainedBodyIndex B)     const {return getBodyTransform(s,pc,B).T();}   // p_AB
+    const Vec3 getBodyOriginVelocity    (const State& s, const SBVelocityCache& vc, ConstrainedBodyIndex B)     const {return getBodyVelocity(s,vc,B)[1];}     // v_AB
+    const Vec3 getBodyOriginAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyIndex B) const {return getBodyAcceleration(s,ac,B)[1];} // a_AB
+    const Vec3 getBodyOriginLocation    (const State& s, ConstrainedBodyIndex B) const {return getBodyTransform(s,B).T();}   // p_AB
+    const Vec3 getBodyOriginVelocity    (const State& s, ConstrainedBodyIndex B) const {return getBodyVelocity(s,B)[1];}     // v_AB
+    const Vec3 getBodyOriginAcceleration(const State& s, ConstrainedBodyIndex B) const {return getBodyAcceleration(s,B)[1];} // a_AB
 
-    Vec3 calcStationLocation(const State& s, const SBPositionCache& pc, ConstrainedBodyId B, const Vec3& p_B) const {
+    Vec3 calcStationLocation(const State& s, const SBPositionCache& pc, ConstrainedBodyIndex B, const Vec3& p_B) const {
         return getBodyTransform(s,pc,B) * p_B; // re-measure and re-express
     }
-    Vec3 calcStationVelocity(const State& s, const SBVelocityCache& vc, ConstrainedBodyId B, const Vec3& p_B) const {
+    Vec3 calcStationVelocity(const State& s, const SBVelocityCache& vc, ConstrainedBodyIndex B, const Vec3& p_B) const {
         const Vec3 p_A = getBodyRotation(s,B) * p_B; // rexpressed but not shifted
         const SpatialVec& V_AB = getBodyVelocity(s,vc,B);
         return V_AB[1] + (V_AB[0] % p_A);
     }
-    Vec3 calcStationAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyId B, const Vec3& p_B) const {
+    Vec3 calcStationAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyIndex B, const Vec3& p_B) const {
         const Vec3  p_A  = getBodyRotation(s,B) * p_B; // rexpressed but not shifted
         const Vec3& w_AB = getBodyVelocity(s,B)[0];
         const SpatialVec& A_AB = getBodyAcceleration(s,ac,B);
@@ -268,18 +268,18 @@ public:
     }
 
     // These are for use when after realization of the associated stage has been completed.
-    Vec3 calcStationLocation(const State& s, ConstrainedBodyId B, const Vec3& p_B) const {
+    Vec3 calcStationLocation(const State& s, ConstrainedBodyIndex B, const Vec3& p_B) const {
         return calcStationLocation(s, getPositionCache(s), B, p_B);
     }
-    Vec3 calcStationVelocity(const State& s, ConstrainedBodyId B, const Vec3& p_B) const {
+    Vec3 calcStationVelocity(const State& s, ConstrainedBodyIndex B, const Vec3& p_B) const {
         return calcStationVelocity(s, getVelocityCache(s), B, p_B);
     }
-    Vec3 calcStationAcceleration(const State& s, ConstrainedBodyId B, const Vec3& p_B) const {
+    Vec3 calcStationAcceleration(const State& s, ConstrainedBodyIndex B, const Vec3& p_B) const {
         return calcStationAcceleration(s, getAccelerationCache(s), B, p_B);
     }
 
     // Apply an A-frame force to a B-frame station, updating the appropriate bodyForces entry.
-    void addInStationForce(const State& s, ConstrainedBodyId B, const Vec3& p_B, 
+    void addInStationForce(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, 
                            const Vec3& forceInA, Vector_<SpatialVec>& bodyForcesInA) const 
     {
         assert(bodyForcesInA.size() == getNumConstrainedBodies());
@@ -288,7 +288,7 @@ public:
     }
 
     // Apply an A-frame torque to body B, updating the appropriate bodyForces entry.
-    void addInBodyTorque(const State& s, ConstrainedBodyId B, const Vec3& torqueInA,
+    void addInBodyTorque(const State& s, ConstrainedBodyIndex B, const Vec3& torqueInA,
                          Vector_<SpatialVec>& bodyForcesInA) const 
     {
         assert(bodyForcesInA.size() == getNumConstrainedBodies());
@@ -297,7 +297,7 @@ public:
 
     // Apply a generalized (mobility) force to a particular mobility of the given constrained body B,
     // adding it in to the appropriate slot of the mobilityForces vector.
-    void addInMobilityForce(const State& s, ConstrainedBodyId B, int which, Real f,
+    void addInMobilityForce(const State& s, ConstrainedBodyIndex B, int which, Real f,
                             Vector& mobilityForces) const 
     { 
         assert(mobilityForces.size() == getNumConstrainedMobilities(s));
@@ -422,7 +422,7 @@ public:
     const ConstraintNode& getMyConstraintNode() const;
 
     void setMyMatterSubsystem(SimbodyMatterSubsystem& matter,
-                              ConstraintId id);
+                              ConstraintIndex id);
 
     const SimbodyMatterSubsystem& getMyMatterSubsystem() const;
 
@@ -441,7 +441,7 @@ public:
         return (int)myConstrainedBodies.size();
     }
 
-    const MobilizedBody& getConstrainedMobilizedBody(ConstrainedBodyId B) const;
+    const MobilizedBody& getConstrainedMobilizedBody(ConstrainedBodyIndex B) const;
     const MobilizedBody& getAncestorMobilizedBody() const;
 
 	// Find out how many holonomic (position), nonholonomic (velocity),
@@ -455,13 +455,13 @@ public:
         return -1;
     }
 
-    int getNumConstrainedMobilities(const State& s, ConstrainedBodyId B) const {
+    int getNumConstrainedMobilities(const State& s, ConstrainedBodyIndex B) const {
         //TODO
         assert(!"Constraint::getNumConstrainedMobilities(B) not implemented yet.");
         return -1;
     }
 
-    int getConstrainedMobilityIndex(const State& s, ConstrainedBodyId B, int which) const {
+    int getConstrainedMobilityIndex(const State& s, ConstrainedBodyIndex B, int which) const {
         //TODO
         assert(!"Constraint::getConstrainedMobilityIndex(B) not implemented yet.");
         return -1;
@@ -491,13 +491,13 @@ private:
     // These data members are filled in once the Constraint is added to
     // a MatterSubsystem.
     SimbodyMatterSubsystemRep* myMatterSubsystemRep;
-    ConstraintId               myConstraintId; // id within the matter subsystem
+    ConstraintIndex               myConstraintIndex; // id within the matter subsystem
 
-    // We'll keep the bodies in two maps: one maps MobilizedBodyId->ConstrainedBodyId
-    // (O(log n) to look up), and the other maps ConstrainedBodyId->MobilizedBodyId
+    // We'll keep the bodies in two maps: one maps MobilizedBodyIndex->ConstrainedBodyIndex
+    // (O(log n) to look up), and the other maps ConstrainedBodyIndex->MobilizedBodyIndex
     // (randomly addressable in constant time).
     Mobilized2ConstrainedMap     myMobilizedBodies;
-    std::vector<MobilizedBodyId> myConstrainedBodies; // index with ConstrainedBodyId
+    std::vector<MobilizedBodyIndex> myConstrainedBodies; // index with ConstrainedBodyIndex
 
     // These are the defaults for the number of position (holonomic) constraint equations,
     // the number of velocity (nonholonomic) constraint equations, and the number of
@@ -614,7 +614,7 @@ public:
 private:
     friend class Constraint::Rod;
 
-    ConstrainedBodyId B1, B2;
+    ConstrainedBodyIndex B1, B2;
 
     Vec3            defaultPoint1; // on body 1, exp. in B1 frame
     Vec3            defaultPoint2; // on body 2, exp. in B2 frame
@@ -809,8 +809,8 @@ public:
 private:
     friend class Constraint::PointInPlane;
 
-    ConstrainedBodyId planeBody;    // B1
-    ConstrainedBodyId followerBody; // B2
+    ConstrainedBodyIndex planeBody;    // B1
+    ConstrainedBodyIndex followerBody; // B2
 
     UnitVec3          defaultPlaneNormal;   // on body 1, exp. in B1 frame
     Real              defaultPlaneHeight;
@@ -970,8 +970,8 @@ public:
 private:
     friend class Constraint::ConstantAngle;
 
-    ConstrainedBodyId B; // B1 is "base" body
-    ConstrainedBodyId F; // B2 is "follower" body
+    ConstrainedBodyIndex B; // B1 is "base" body
+    ConstrainedBodyIndex F; // B2 is "follower" body
 
     UnitVec3          defaultAxisB; // fixed to B, expressed in B frame
     UnitVec3          defaultAxisF; // fixed to F, expressed in F frame
@@ -1151,8 +1151,8 @@ public:
 private:
     friend class Constraint::Ball;
 
-    ConstrainedBodyId B1;
-    ConstrainedBodyId B2;
+    ConstrainedBodyIndex B1;
+    ConstrainedBodyIndex B2;
 
     Vec3            defaultPoint1; // on body 1, exp. in B1 frame
     Vec3            defaultPoint2; // on body 2, exp. in B2 frame
@@ -1329,8 +1329,8 @@ public:
 private:
     friend class Constraint::ConstantOrientation;
 
-    ConstrainedBodyId B; // B1 is "base" body
-    ConstrainedBodyId F; // B2 is "follower" body
+    ConstrainedBodyIndex B; // B1 is "base" body
+    ConstrainedBodyIndex F; // B2 is "follower" body
 
     Rotation          defaultRB; // fixed to B, expressed in B frame; RB = R_B_RB
     Rotation          defaultRF; // fixed to F, expressed in F frame; RF = R_F_RF
@@ -1408,8 +1408,8 @@ public:
 private:
     friend class Constraint::Weld;
 
-    ConstrainedBodyId B1;
-    ConstrainedBodyId B2;
+    ConstrainedBodyIndex B1;
+    ConstrainedBodyIndex B2;
 
     Transform       defaultFrame1; // on body 1, relative to B1 frame
     Transform       defaultFrame2; // on body 2, relative to B2 frame};

@@ -152,16 +152,16 @@ int main(int argc, char** argv) {
     cout << "qErr=" << s.getQErr() << endl;
 
 #ifdef HASC
-    for (ConstraintId cid(0); cid < matter.getNConstraints(); ++cid) {
+    for (ConstraintIndex cid(0); cid < matter.getNConstraints(); ++cid) {
         const Constraint& c = matter.getConstraint(cid);
         int mp,mv,ma;
         c.getNumConstraintEquations(s, mp,mv,ma);
 
-	    cout << "CONSTRAINT " << cid << " ancestor=" << c.getAncestorMobilizedBody().getMobilizedBodyId()
+	    cout << "CONSTRAINT " << cid << " ancestor=" << c.getAncestorMobilizedBody().getMobilizedBodyIndex()
              << " " << c.getNumConstrainedBodies() << "constrained bodies, perr=" << c.getPositionError(s)
 		     << endl;
-        for (ConstrainedBodyId cid(0); cid < c.getNumConstrainedBodies(); ++cid)
-            cout << "  constrained body: " << c.getConstrainedMobilizedBody(cid).getMobilizedBodyId() << endl;
+        for (ConstrainedBodyIndex cid(0); cid < c.getNumConstrainedBodies(); ++cid)
+            cout << "  constrained body: " << c.getConstrainedMobilizedBody(cid).getMobilizedBodyIndex() << endl;
         cout << c.getSubtree();
 	    cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
         cout << "  ~d(Gt lambda)/dlambda=" << ~c.calcPositionConstraintMatrixPt(s);
@@ -190,7 +190,7 @@ int main(int argc, char** argv) {
         cout << " Q=" << Q;
 
     }
-    const Constraint& c = matter.getConstraint(myc.getConstraintId());
+    const Constraint& c = matter.getConstraint(myc.getConstraintIndex());
     
 #endif
 

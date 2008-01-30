@@ -60,14 +60,14 @@ class HuntCrossleyContactRep : public ForceSubsystemRep {
             radius = stiffness = dissipation = CNT<Real>::getNaN();
         }
 
-        SphereParameters(MobilizedBodyId b, const Vec3& ctr,
+        SphereParameters(MobilizedBodyIndex b, const Vec3& ctr,
                          const Real& r, const Real& k, const Real& c) 
           : body(b), center(ctr), radius(r), stiffness(std::pow(k,2./3.)), dissipation(c) { 
             assert(b.isValid());
             assert(radius > 0 && stiffness >= 0 && dissipation >= 0);
         }
 
-        MobilizedBodyId body;
+        MobilizedBodyIndex body;
         Vec3 center;    // in body frame
         Real radius, stiffness, dissipation;    // r,k,c from H&C
     };
@@ -77,14 +77,14 @@ class HuntCrossleyContactRep : public ForceSubsystemRep {
             height = stiffness = dissipation = CNT<Real>::getNaN();
         }
 
-        HalfspaceParameters(MobilizedBodyId b, const UnitVec3& n,
+        HalfspaceParameters(MobilizedBodyIndex b, const UnitVec3& n,
                             const Real& h, const Real& k, const Real& c) 
           : body(b), normal(n), height(h), stiffness(std::pow(k,2./3.)), dissipation(c) { 
             assert(b.isValid());
             assert(stiffness >= 0 && dissipation >= 0);
         }
 
-        MobilizedBodyId body;
+        MobilizedBodyIndex body;
         UnitVec3 normal;    // in body frame
         Real height, stiffness, dissipation;
     };
@@ -103,7 +103,7 @@ public:
        instanceVarsIndex(-1)
     {
     }
-    int addSphere(MobilizedBodyId body, const Vec3& center,
+    int addSphere(MobilizedBodyIndex body, const Vec3& center,
                   const Real& radius,
                   const Real& stiffness,
                   const Real& dissipation) 
@@ -117,7 +117,7 @@ public:
         return (int)defaultParameters.spheres.size() - 1;    
     }
 
-    int addHalfSpace(MobilizedBodyId body, const UnitVec3& normal,
+    int addHalfSpace(MobilizedBodyIndex body, const UnitVec3& normal,
                      const Real& height,
                      const Real& stiffness,
                      const Real& dissipation)
@@ -137,7 +137,7 @@ public:
 
 
     int realizeSubsystemTopologyImpl(State& s) const {
-        instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemId(), Stage::Instance, 
+        instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Instance, 
             new Value<Parameters>(defaultParameters));
         return 0;
     }
@@ -273,7 +273,7 @@ HuntCrossleyContact::HuntCrossleyContact(MultibodySystem& mbs)
     mbs.addForceSubsystem(*this); // steal ownership
 }
 
-int HuntCrossleyContact::addSphere(MobilizedBodyId body, const Vec3& center,
+int HuntCrossleyContact::addSphere(MobilizedBodyIndex body, const Vec3& center,
               const Real& radius,
               const Real& stiffness,
               const Real& dissipation)
@@ -281,7 +281,7 @@ int HuntCrossleyContact::addSphere(MobilizedBodyId body, const Vec3& center,
     return updRep().addSphere(body,center,radius,stiffness,dissipation);
 }
 
-int HuntCrossleyContact::addHalfSpace(MobilizedBodyId body, const UnitVec3& normal,
+int HuntCrossleyContact::addHalfSpace(MobilizedBodyIndex body, const UnitVec3& normal,
                  const Real& height,
                  const Real& stiffness,
                  const Real& dissipation)

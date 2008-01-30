@@ -65,50 +65,50 @@ using namespace SimTK;
 static const Real CoulombFac = (Real)SimTK_COULOMB_CONSTANT_IN_MD;
 
 template<class T>
-class IdPair {
+class IndexPair {
 public:
-    IdPair() {ids[0]=ids[1]=(T)DuMM::InvalidAtomId;}
-    IdPair(T i1, T i2, bool canon=false) {
-        ids[0]=i1; ids[1]=i2;
+    IndexPair() {ixs[0]=ixs[1]=(T)DuMM::InvalidAtomIndex;}
+    IndexPair(T i1, T i2, bool canon=false) {
+        ixs[0]=i1; ixs[1]=i2;
         if (canon) canonicalize();
     }
-    T operator[](int i) const {assert(0<=i&&i<2); return ids[i];}
-    bool isValid() const {return ids[0]>=0 && ids[1]>=0;}
+    T operator[](int i) const {assert(0<=i&&i<2); return ixs[i];}
+    bool isValid() const {return ixs[0]>=0 && ixs[1]>=0;}
     // canonical is low,high
-    void canonicalize() {if(ids[0]>ids[1]) std::swap(ids[0],ids[1]);}
+    void canonicalize() {if(ixs[0]>ixs[1]) std::swap(ixs[0],ixs[1]);}
 private:
-    T ids[2];
+    T ixs[2];
 };
 
 template<class T>
-inline bool operator<(const IdPair<T>& i1, const IdPair<T>& i2) {
+inline bool operator<(const IndexPair<T>& i1, const IndexPair<T>& i2) {
     assert(i1.isValid() && i2.isValid());
     if (i1[0] < i2[0]) return true;
     if (i1[0] > i2[0]) return false;
     return i1[1] < i2[1];
 }
 
-typedef IdPair<DuMM::AtomId> AtomIdPair;
-typedef IdPair<DuMM::AtomClassId> AtomClassIdPair;
+typedef IndexPair<DuMM::AtomIndex> AtomIndexPair;
+typedef IndexPair<DuMM::AtomClassIndex> AtomClassIndexPair;
 
 template <class T>
-class IdTriple {
+class IndexTriple {
 public:
-    IdTriple() {invalidate();}
-    IdTriple(T i1, T i2, T i3, bool canon=false) {
-        ids[0]= i1; ids[1]=i2; ids[2]=i3;
+    IndexTriple() {invalidate();}
+    IndexTriple(T i1, T i2, T i3, bool canon=false) {
+        ixs[0]= i1; ixs[1]=i2; ixs[2]=i3;
         if (canon) canonicalize();
     }
-    T operator[](int i) const {assert(0<=i&&i<3); return ids[i];}
-    bool isValid() const {return ids[0]>=0 && ids[1]>=0 && ids[2]>=0;}
-    void invalidate() {ids[0]=ids[1]=ids[2]=(T)(int)(DuMM::InvalidAtomId);}
+    T operator[](int i) const {assert(0<=i&&i<3); return ixs[i];}
+    bool isValid() const {return ixs[0]>=0 && ixs[1]>=0 && ixs[2]>=0;}
+    void invalidate() {ixs[0]=ixs[1]=ixs[2]=(T)(int)(DuMM::InvalidAtomIndex);}
     // canonical has 1st number <= last number; middle stays put
-    void canonicalize() {if(ids[0]>ids[2]) std::swap(ids[0],ids[2]);}
+    void canonicalize() {if(ixs[0]>ixs[2]) std::swap(ixs[0],ixs[2]);}
 private:
-    T ids[3];
+    T ixs[3];
 };
 template<class T>
-inline bool operator<(const IdTriple<T>& i1, const IdTriple<T>& i2) {
+inline bool operator<(const IndexTriple<T>& i1, const IndexTriple<T>& i2) {
     assert(i1.isValid() && i2.isValid());
     if (i1[0] < i2[0]) return true;
     if (i1[0] > i2[0]) return false;
@@ -117,37 +117,37 @@ inline bool operator<(const IdTriple<T>& i1, const IdTriple<T>& i2) {
     return i1[2] < i2[2];
 }
 
-typedef IdTriple<DuMM::AtomId> AtomIdTriple;
-typedef IdTriple<DuMM::AtomClassId> AtomClassIdTriple;
+typedef IndexTriple<DuMM::AtomIndex> AtomIndexTriple;
+typedef IndexTriple<DuMM::AtomClassIndex> AtomClassIndexTriple;
 
 template<class T>
-class IdQuad {
+class IndexQuad {
 public:
-    IdQuad() {ids[0]=ids[1]=ids[2]=ids[3]=-1;}
-    IdQuad(T i1, T i2, T i3, T i4, bool canon=false) {
-        ids[0]= i1; ids[1]=i2; ids[2]=i3; ids[3]=i4;
+    IndexQuad() {ixs[0]=ixs[1]=ixs[2]=ixs[3]=-1;}
+    IndexQuad(T i1, T i2, T i3, T i4, bool canon=false) {
+        ixs[0]= i1; ixs[1]=i2; ixs[2]=i3; ixs[3]=i4;
         if (canon) canonicalize();
     }
-    T operator[](int i) const {assert(0<=i&&i<4); return ids[i];}
-    bool isValid() const {return ids[0]>=0 && ids[1]>=0 && ids[2]>=0 && ids[3]>=0;}
+    T operator[](int i) const {assert(0<=i&&i<4); return ixs[i];}
+    bool isValid() const {return ixs[0]>=0 && ixs[1]>=0 && ixs[2]>=0 && ixs[3]>=0;}
     // canonical has 1st number <= last number; middle two must swap
     // if the outside ones do
     void canonicalize() {
-        // Id quad has additional case where 1 == 4 and 2 differs from 3
-        if(    (ids[0]>ids[3]) 
-            || ( (ids[0] == ids[3]) && (ids[1] > ids[2]) ) )
+        // Index quad has additional case where 1 == 4 and 2 differs from 3
+        if(    (ixs[0]>ixs[3]) 
+            || ( (ixs[0] == ixs[3]) && (ixs[1] > ixs[2]) ) )
         {
-            std::swap(ids[0],ids[3]); 
-            std::swap(ids[1],ids[2]);
+            std::swap(ixs[0],ixs[3]); 
+            std::swap(ixs[1],ixs[2]);
         }
     }
 
 private:
-    T ids[4];
+    T ixs[4];
 };
 
 template<class T>
-inline bool operator<(const IdQuad<T>& i1, const IdQuad<T>& i2) {
+inline bool operator<(const IndexQuad<T>& i1, const IndexQuad<T>& i2) {
     assert(i1.isValid() && i2.isValid());
     if (i1[0] < i2[0]) return true;
     if (i1[0] > i2[0]) return false;
@@ -158,8 +158,8 @@ inline bool operator<(const IdQuad<T>& i1, const IdQuad<T>& i2) {
     return i1[3] < i2[3];
 }
 
-typedef IdQuad<DuMM::AtomId> AtomIdQuad;
-typedef IdQuad<DuMM::AtomClassId> AtomClassIdQuad;
+typedef IndexQuad<DuMM::AtomIndex> AtomIndexQuad;
+typedef IndexQuad<DuMM::AtomClassIndex> AtomClassIndexQuad;
 
 // Vdw combining functions
 // -----------------------
@@ -325,7 +325,7 @@ class AtomClass {
 public:
     AtomClass() : element(-1), valence(-1), vdwRadius(-1), vdwWellDepth(-1) { }
     AtomClass(int id, const char* nm, int e, int v, Real radInNm, Real wellDepthInKJ)
-      : atomClassId(id), name(nm), element(e), valence(v), 
+      : atomClassIx(id), name(nm), element(e), valence(v), 
         vdwRadius(radInNm), vdwWellDepth(wellDepthInKJ)
     { 
         // Permit incomplete construction, i.e. radius and depth not yet set
@@ -333,7 +333,7 @@ public:
     }
 
     bool isValid() const {
-        return atomClassId >= 0 
+        return atomClassIx >= 0 
             && element > 0 
             && valence >= 0;
     }
@@ -351,7 +351,7 @@ public:
 
     void dump() const {
         printf("   %d(%s): element=%d, valence=%d vdwRad=%g nm, vdwDepth(kJ)=%g (%g kcal)\n",
-            (int) atomClassId, name.c_str(), element, valence, vdwRadius, vdwWellDepth,
+            (int) atomClassIx, name.c_str(), element, valence, vdwRadius, vdwWellDepth,
             vdwWellDepth*DuMM::KJ2Kcal);
         printf("    vdwDij (nm):");
         for (int i=0; i< (int)vdwDij.size(); ++i)
@@ -364,8 +364,8 @@ public:
 
     std::ostream& generateSelfCode(std::ostream& os) const 
     {
-        os << "defineAtomClass((DuMM::AtomClassId)";
-        os << atomClassId << ", ";
+        os << "defineAtomClass((DuMM::AtomClassIndex)";
+        os << atomClassIx << ", ";
         os << "\"" << name << "\", ";
         os << element << ", ";
         os << valence << ", ";
@@ -378,7 +378,7 @@ public:
         // TOPOLOGICAL STATE VARIABLES
         //   Filled in during construction.
 
-    DuMM::AtomClassId         atomClassId;
+    DuMM::AtomClassIndex         atomClassIx;
     std::string name;
 
     int     element;
@@ -395,8 +395,8 @@ public:
     // combining rules for dmin and well depth energy. We only fill
     // in entries for pairings of this class with itself and with
     // higher-numbered atom types, so to find the entry for class c, 
-    // index these arrays by c-atomClassId where atomClassId is the
-    // class Id of the present AtomClass.
+    // index these arrays by c-atomClassIx where atomClassIx is the
+    // class Index of the present AtomClass.
     // Note that different combining rules may be used but they
     // will always result in a pair of vdw parameters.
     std::vector<Real> vdwDij;   // nm
@@ -405,25 +405,25 @@ public:
 
 class ChargedAtomType {
 public:
-    ChargedAtomType() : chargedAtomTypeId(DuMM::InvalidChargedAtomTypeId), atomClassId(DuMM::InvalidAtomId), partialCharge(NaN) { }
-    ChargedAtomType(DuMM::ChargedAtomTypeId id, const char* nm, DuMM::AtomClassId aclass, Real chg)
-      : chargedAtomTypeId(id), name(nm), atomClassId(aclass), partialCharge(chg) 
+    ChargedAtomType() : chargedAtomTypeIndex(DuMM::InvalidChargedAtomTypeIndex), atomClassIx(DuMM::InvalidAtomIndex), partialCharge(NaN) { }
+    ChargedAtomType(DuMM::ChargedAtomTypeIndex id, const char* nm, DuMM::AtomClassIndex aclass, Real chg)
+      : chargedAtomTypeIndex(id), name(nm), atomClassIx(aclass), partialCharge(chg) 
     { 
         assert(isValid());
     }
-    bool isValid() const {return chargedAtomTypeId >= 0 && atomClassId >= 0;}
+    bool isValid() const {return chargedAtomTypeIndex >= 0 && atomClassIx >= 0;}
 
     void dump() const {
-        printf("    %d(%s): atomClassId=%d, chg=%g e\n", 
-              (int) chargedAtomTypeId, name.c_str(), (int) atomClassId, partialCharge);
+        printf("    %d(%s): atomClassIx=%d, chg=%g e\n", 
+              (int) chargedAtomTypeIndex, name.c_str(), (int) atomClassIx, partialCharge);
     }
 
     std::ostream& generateSelfCode(std::ostream& os) const 
     {
-        os << "defineChargedAtomType((DuMM::ChargedAtomTypeId)";
-        os << chargedAtomTypeId << ", ";
+        os << "defineChargedAtomType((DuMM::ChargedAtomTypeIndex)";
+        os << chargedAtomTypeIndex << ", ";
         os << "\"" << name << "\", ";
-        os << "(DuMM::AtomClassId)" << atomClassId << ", ";
+        os << "(DuMM::AtomClassIndex)" << atomClassIx << ", ";
         os << partialCharge << ");";
 
         return os;
@@ -431,35 +431,35 @@ public:
 
     // These are all Topological state variables, filled in during construction.
     // There are no calculations to be performed.
-    DuMM::ChargedAtomTypeId         chargedAtomTypeId;
+    DuMM::ChargedAtomTypeIndex         chargedAtomTypeIndex;
     std::string name;
 
-    DuMM::AtomClassId         atomClassId;
+    DuMM::AtomClassIndex         atomClassIx;
     Real        partialCharge; // qi, in e (charge on proton)
 
 };
 
 // This represents bond-stretch information for a pair of atom types.
-// Use an AtomIdPair as a key.
+// Use an AtomIndexPair as a key.
 class BondStretch {
 public:
-    BondStretch() : k(-1), d0(-1), classes(DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId)
+    BondStretch() : k(-1), d0(-1), classes(DuMM::InvalidAtomClassIndex, DuMM::InvalidAtomClassIndex)
     {}
-    BondStretch(AtomClassIdPair key, Real stiffnessInKJperNmSq, Real lengthInNm) 
+    BondStretch(AtomClassIndexPair key, Real stiffnessInKJperNmSq, Real lengthInNm) 
       : classes(key), k(stiffnessInKJperNmSq), d0(lengthInNm) { 
         assert(isValid());
     }
     bool isValid() const {
         return (k >= 0 )
             && (d0 >= 0)
-            && (classes[0] != DuMM::InvalidAtomClassId)
-            && (classes[1] != DuMM::InvalidAtomClassId); 
+            && (classes[0] != DuMM::InvalidAtomClassIndex)
+            && (classes[1] != DuMM::InvalidAtomClassIndex); 
     }
 
     std::ostream& generateSelfCode(std::ostream& os) const 
     {
-        os << "defineBondStretch((DuMM::AtomClassId)";
-        os << (int) classes[0] << ", (DuMM::AtomClassId)";
+        os << "defineBondStretch((DuMM::AtomClassIndex)";
+        os << (int) classes[0] << ", (DuMM::AtomClassIndex)";
         os << (int) classes[1] << ", ";
         os << k << ", ";
         os << d0  << ");";
@@ -467,7 +467,7 @@ public:
         return os;
     }
 
-    AtomClassIdPair classes;
+    AtomClassIndexPair classes;
     Real k;  // in energy units (kJ=Da-nm^2/ps^2) per nm^2, i.e. Da/ps^2
     Real d0; // distance at which force is 0 (in nm)
 };
@@ -475,9 +475,9 @@ public:
 class BondBend {
 public:
     BondBend() : k(-1), theta0(-1), 
-        classes(DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId) 
+        classes(DuMM::InvalidAtomClassIndex, DuMM::InvalidAtomClassIndex, DuMM::InvalidAtomClassIndex) 
     { }
-    BondBend(AtomClassIdTriple key, Real stiffnessInKJPerRadSq, Real angleInDeg) 
+    BondBend(AtomClassIndexTriple key, Real stiffnessInKJPerRadSq, Real angleInDeg) 
       : k(stiffnessInKJPerRadSq), theta0(angleInDeg*DuMM::Deg2Rad),
       classes(key)
     {
@@ -493,9 +493,9 @@ public:
 
     std::ostream& generateSelfCode(std::ostream& os) const 
     {
-        os << "defineBondBend((DuMM::AtomClassId)";
-        os << (int) classes[0] << ", DuMM::AtomClassId(";
-        os << (int) classes[1] << "), DuMM::AtomClassId(";
+        os << "defineBondBend((DuMM::AtomClassIndex)";
+        os << (int) classes[0] << ", DuMM::AtomClassIndex(";
+        os << (int) classes[1] << "), DuMM::AtomClassIndex(";
         os << (int) classes[2] << "), ";
         os << k << ", ";
         os << (theta0*DuMM::Rad2Deg) << ");";
@@ -503,7 +503,7 @@ public:
         return os;
     }
 
-    AtomClassIdTriple classes;
+    AtomClassIndexTriple classes;
     Real k;      // energy units kJ per rad^2, i.e. Da-nm^2/(ps^2-rad^2)
     Real theta0; // unstressed angle in radians
 };
@@ -564,9 +564,9 @@ public:
 class BondTorsion {
 public:
     BondTorsion() :
-      classes(DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId)
+      classes(DuMM::InvalidAtomClassIndex, DuMM::InvalidAtomClassIndex, DuMM::InvalidAtomClassIndex, DuMM::InvalidAtomClassIndex)
     {}
-    BondTorsion(AtomClassIdQuad key) : classes(key)
+    BondTorsion(AtomClassIndexQuad key) : classes(key)
     { }
     void addTerm(const TorsionTerm& tt) {
         assert(!hasTerm(tt.periodicity));
@@ -614,14 +614,14 @@ public:
     std::ostream& generateSelfCode(std::ostream& os, int torsionType = 1) const 
     {
         if (torsionType == 1)
-            os << "defineBondTorsion((DuMM::AtomClassId)";
+            os << "defineBondTorsion((DuMM::AtomClassIndex)";
         else
-            os << "defineAmberImproperTorsion((DuMM::AtomClassId)";
+            os << "defineAmberImproperTorsion((DuMM::AtomClassIndex)";
 
         os << classes[0];
-        os << ", (DuMM::AtomClassId)" << classes[1];
-        os << ", (DuMM::AtomClassId)" << classes[2];
-        os << ", (DuMM::AtomClassId)" << classes[3];
+        os << ", (DuMM::AtomClassIndex)" << classes[1];
+        os << ", (DuMM::AtomClassIndex)" << classes[2];
+        os << ", (DuMM::AtomClassIndex)" << classes[3];
 
         std::vector<TorsionTerm>::const_iterator term;
         for (term = terms.begin(); term != terms.end(); ++term)
@@ -632,48 +632,48 @@ public:
         return os;
     }
 
-    AtomClassIdQuad classes;
+    AtomClassIndexQuad classes;
     std::vector<TorsionTerm> terms;
 };
 
 
 class AtomPlacement {
 public:
-    AtomPlacement() : atomId(-1) { }
-    AtomPlacement(DuMM::AtomId a, const Vec3& s) : atomId(a), station(s) {
+    AtomPlacement() : atomIndex(-1) { }
+    AtomPlacement(DuMM::AtomIndex a, const Vec3& s) : atomIndex(a), station(s) {
         assert(isValid());
     }
-    bool isValid() const {return atomId >= 0;}
+    bool isValid() const {return atomIndex >= 0;}
 
-    DuMM::AtomId  atomId;
+    DuMM::AtomIndex  atomIndex;
     Vec3 station;   // in nm
 };
 inline bool operator<(const AtomPlacement& a1, const AtomPlacement& a2) {
-    return a1.atomId < a2.atomId;
+    return a1.atomIndex < a2.atomIndex;
 }
 inline bool operator==(const AtomPlacement& a1, const AtomPlacement& a2) {
-    return a1.atomId == a2.atomId;
+    return a1.atomIndex == a2.atomIndex;
 }
 
 class ClusterPlacement {
 public:
-    ClusterPlacement() : clusterId(-1) { }
-    ClusterPlacement(DuMM::ClusterId c, const Transform& t) : clusterId(c), placement(t) {
+    ClusterPlacement() : clusterIndex(-1) { }
+    ClusterPlacement(DuMM::ClusterIndex c, const Transform& t) : clusterIndex(c), placement(t) {
         assert(isValid());
     }
-    bool isValid() const {return clusterId >= 0;}
+    bool isValid() const {return clusterIndex >= 0;}
 
-    DuMM::ClusterId         clusterId;
+    DuMM::ClusterIndex         clusterIndex;
     Transform   placement;  // translation in nm
 };
 inline bool operator<(const ClusterPlacement& r1, const ClusterPlacement& r2) {
-    return r1.clusterId < r2.clusterId;
+    return r1.clusterIndex < r2.clusterIndex;
 }
 inline bool operator==(const ClusterPlacement& r1, const ClusterPlacement& r2) {
-    return r1.clusterId == r2.clusterId;
+    return r1.clusterIndex == r2.clusterIndex;
 }
 
-typedef std::vector<DuMM::AtomId>            AtomArray;
+typedef std::vector<DuMM::AtomIndex>            AtomArray;
 typedef std::vector<AtomPlacement>  AtomPlacementArray;
 typedef std::set<AtomPlacement>     AtomPlacementSet;
 typedef std::set<ClusterPlacement>  ClusterPlacementSet;
@@ -681,26 +681,26 @@ typedef std::set<ClusterPlacement>  ClusterPlacementSet;
 class Atom {
 public:
     Atom() 
-      : atomId(-1), chargedAtomTypeId(-1) {
+      : atomIndex(-1), chargedAtomTypeIndex(-1) {
     }
-    Atom(DuMM::ChargedAtomTypeId t, DuMM::AtomId aId) : atomId(aId), chargedAtomTypeId(t) {
+    Atom(DuMM::ChargedAtomTypeIndex t, DuMM::AtomIndex aIx) : atomIndex(aIx), chargedAtomTypeIndex(t) {
         assert(isValid());
     }
 
-    bool isValid() const {return atomId>=0 && chargedAtomTypeId>=0;}
-    // bool isValid() const {return atomId>=0;}
+    bool isValid() const {return atomIndex>=0 && chargedAtomTypeIndex>=0;}
+    // bool isValid() const {return atomIndex>=0;}
 
-    bool isAttachedToBody() const {return bodyId >= 0;}
+    bool isAttachedToBody() const {return bodyIx >= 0;}
 
-    MobilizedBodyId getBodyId() const {assert(isAttachedToBody()); return bodyId;}
+    MobilizedBodyIndex getBodyIndex() const {assert(isAttachedToBody()); return bodyIx;}
 
-    void attachToBody(MobilizedBodyId bnum, const Vec3& s) {
+    void attachToBody(MobilizedBodyIndex bnum, const Vec3& s) {
         assert(!isAttachedToBody());
-        bodyId = bnum;
+        bodyIx = bnum;
         station_B = s;
     }
 
-    bool isBondedTo(DuMM::AtomId anum) const {
+    bool isBondedTo(DuMM::AtomIndex anum) const {
         for (int i=0; i<(int)bond12.size(); ++i)
             if (bond12[i] == anum) return true;
         return false;
@@ -723,14 +723,14 @@ public:
         // TOPOLOGICAL STATE VARIABLES
         //   Filled in during construction.
 
-    DuMM::AtomId         atomId;
-    DuMM::ChargedAtomTypeId         chargedAtomTypeId;
+    DuMM::AtomIndex         atomIndex;
+    DuMM::ChargedAtomTypeIndex         chargedAtomTypeIndex;
     AtomArray   bond12;
 
     // After the atom or a containing cluster has been attached to a
     // body, we fill these in.
-    MobilizedBodyId bodyId;
-    Vec3   station_B; // atom's station fixed in body bodyId's frame, in nm
+    MobilizedBodyIndex bodyIx;
+    Vec3   station_B; // atom's station fixed in body bodyIx's frame, in nm
 
         // TOPOLOGICAL CACHE ENTRIES
         //   These are calculated in realizeTopology() from topological
@@ -746,43 +746,43 @@ public:
     // two atoms, while the bond and xbond arrays give *all* connection paths,
     // with bonds3Atoms giving at most one.
 
-    std::vector<AtomIdPair>   bond13;
-    std::vector<AtomIdTriple> bond14;
-    std::vector<AtomIdQuad>   bond15;
-    std::vector<AtomIdPair>   shortPath13;
-    std::vector<AtomIdTriple> shortPath14;
-    std::vector<AtomIdQuad>   shortPath15;
+    std::vector<AtomIndexPair>   bond13;
+    std::vector<AtomIndexTriple> bond14;
+    std::vector<AtomIndexQuad>   bond15;
+    std::vector<AtomIndexPair>   shortPath13;
+    std::vector<AtomIndexTriple> shortPath14;
+    std::vector<AtomIndexQuad>   shortPath15;
 
     // This will be invalid unless we find that the current atom is directly
-    // bonded to exactly three other atoms, in which case their atom Ids will
+    // bonded to exactly three other atoms, in which case their atom indices will
     // be stored here and isValid() will return true.
-    AtomIdTriple bonds3Atoms;
+    AtomIndexTriple bonds3Atoms;
 
     // These are shorter versions of the bond lists in which only those
     // bonds which include atoms from at least two bodies are included.
     // Note that each bond will appear twice in the overall data structure,
     // in the Atom entries for the atoms at either end. We avoid double
     // processing by only processing the instance in which the first atoms'
-    // Id is the lower of the two. But we need to keep both copies because
+    // index is the lower of the two. But we need to keep both copies because
     // these are also used for scaling nearby interaction during non-bonded 
     // calculation.
     // TODO: not sure the above comment about the need for both copies
     // is (a) right in the first place, and (b) in any case necessary for
     // the "bond" arrays since it would seem to apply only to the shortPath
     // arrays which are used for scaling.
-    std::vector<DuMM::AtomId>       xbond12;
-    std::vector<AtomIdPair>   xbond13;
-    std::vector<AtomIdTriple> xbond14;
-    std::vector<AtomIdQuad>   xbond15;
-    std::vector<AtomIdPair>   xshortPath13;
-    std::vector<AtomIdTriple> xshortPath14;
-    std::vector<AtomIdQuad>   xshortPath15;
+    std::vector<DuMM::AtomIndex>       xbond12;
+    std::vector<AtomIndexPair>   xbond13;
+    std::vector<AtomIndexTriple> xbond14;
+    std::vector<AtomIndexQuad>   xbond15;
+    std::vector<AtomIndexPair>   xshortPath13;
+    std::vector<AtomIndexTriple> xshortPath14;
+    std::vector<AtomIndexQuad>   xshortPath15;
 
     // This is even less likely to be valid than bonds3Atoms above. It will
     // be valid iff (a) bonds3Atoms is valid, and (b) at least one of the
     // three atoms is on a different body from this one.
-    AtomIdTriple xbonds3Atoms;
-    std::vector<AtomIdTriple> aImproperTorsion14; // might have zero length
+    AtomIndexTriple xbonds3Atoms;
+    std::vector<AtomIndexTriple> aImproperTorsion14; // might have zero length
     std::vector<BondTorsion> aImproperTorsion; // might have zero length
 
     std::vector<BondStretch> stretch; // same length as cross-body 1-2 list
@@ -794,12 +794,12 @@ public:
 class Bond {
 public:
     Bond() { }
-    Bond(DuMM::AtomId atom1, DuMM::AtomId atom2) : atoms(atom1,atom2) { 
+    Bond(DuMM::AtomIndex atom1, DuMM::AtomIndex atom2) : atoms(atom1,atom2) { 
         assert(isValid());
     }
     bool isValid() const {return atoms.isValid();}
 
-    AtomIdPair atoms;
+    AtomIndexPair atoms;
 };
 
 class ChargeProperties {
@@ -827,17 +827,17 @@ public:
 //
 class Cluster {
 public:
-    Cluster() : clusterId(-1) { }
+    Cluster() : clusterIndex(-1) { }
     Cluster(const char* nm)
-        : clusterId(DuMM::InvalidClusterId), name(nm) {
-        // not valid yet -- still need Id assigned
+        : clusterIndex(DuMM::InvalidClusterIndex), name(nm) {
+        // not valid yet -- still need index assigned
     }
 
-    bool isValid() const {return clusterId >= 0;}
-    bool isAttachedToBody() const {return bodyId >= 0;}
+    bool isValid() const {return clusterIndex >= 0;}
+    bool isAttachedToBody() const {return bodyIx >= 0;}
     bool isTopLevelCluster() const {return parentClusters.empty();}
 
-    MobilizedBodyId getBodyId() const {assert(isAttachedToBody()); return bodyId;}
+    MobilizedBodyIndex getBodyIndex() const {assert(isAttachedToBody()); return bodyIx;}
 
     const AtomPlacementSet& getDirectlyContainedAtoms() const {return directAtomPlacements;}
     const AtomPlacementSet& getAllContainedAtoms()      const {return allAtomPlacements;}
@@ -847,12 +847,12 @@ public:
     const ClusterPlacementSet& getAllContainedClusters()      const {return allClusterPlacements;}
     ClusterPlacementSet&       updAllContainedClusters()            {return allClusterPlacements;}
 
-    bool containsAtom(DuMM::AtomId atomId) const {
-        return allAtomPlacements.find(AtomPlacement(atomId,Vec3(0))) 
+    bool containsAtom(DuMM::AtomIndex atomIndex) const {
+        return allAtomPlacements.find(AtomPlacement(atomIndex,Vec3(0))) 
                 != allAtomPlacements.end();
     }
-    bool containsCluster(DuMM::ClusterId clusterId) const {
-        return allClusterPlacements.find(ClusterPlacement(clusterId,Transform())) 
+    bool containsCluster(DuMM::ClusterIndex clusterIndex) const {
+        return allClusterPlacements.find(ClusterPlacement(clusterIndex,Transform())) 
                 != allClusterPlacements.end();
     }
 
@@ -861,8 +861,8 @@ public:
     // TODO: can only handle top-level cluster so we don't have to run up the
     //       ancestor branches.
     // If we find an atom common to both clusters we'll return it to permit
-    // nice error messages, otherwise we return false and -1 for the atomId.
-    bool overlapsWithCluster(const Cluster& test, DuMM::AtomId& anAtomIdInBothClusters) const {
+    // nice error messages, otherwise we return false and -1 for the atomIndex.
+    bool overlapsWithCluster(const Cluster& test, DuMM::AtomIndex& anAtomIndexInBothClusters) const {
         assert(isTopLevelCluster());
 
         const AtomPlacementSet& testAtoms = test.getAllContainedAtoms();
@@ -870,24 +870,24 @@ public:
 
         AtomPlacementSet::const_iterator ap = testAtoms.begin();
         while (ap != testAtoms.end()) {
-            if (containsAtom(ap->atomId)) {
-                anAtomIdInBothClusters = ap->atomId;
+            if (containsAtom(ap->atomIndex)) {
+                anAtomIndexInBothClusters = ap->atomIndex;
                 return true;
             }
             ++ap;
         }
-        anAtomIdInBothClusters = DuMM::InvalidAtomId;
+        anAtomIndexInBothClusters = DuMM::InvalidAtomIndex;
         return false;
     }
 
     // Return true if this cluster contains (directly or indirectly) any atom which has already
     // been attached to a body. If so return one of the attached atoms and its body, which can
     // be helpful in error messages.
-    bool containsAnyAtomsAttachedToABody(DuMM::AtomId& atomId, MobilizedBodyId& bodyId, 
+    bool containsAnyAtomsAttachedToABody(DuMM::AtomIndex& atomIndex, MobilizedBodyIndex& bodyIx, 
                                          const DuMMForceFieldSubsystemRep& mm) const;
 
     // Translation is in nm.
-    void attachToBody(MobilizedBodyId bnum, const Transform& X_BR, DuMMForceFieldSubsystemRep& mm);
+    void attachToBody(MobilizedBodyIndex bnum, const Transform& X_BR, DuMMForceFieldSubsystemRep& mm);
 
     // Place an atom in this cluster. To be valid, the atom must not
     // already be
@@ -897,7 +897,7 @@ public:
     //           that group is a top-level group (i.e., it has no parents).
     // If this group is already attached to a body, then we will update
     // the atom entry to note that it is now attached to the body also.
-    void placeAtom(DuMM::AtomId atomId, const Vec3& stationInNm, DuMMForceFieldSubsystemRep& mm);
+    void placeAtom(DuMM::AtomIndex atomIndex, const Vec3& stationInNm, DuMMForceFieldSubsystemRep& mm);
 
     // Place a child cluster in this parent cluster. To be valid, the child 
     // must not 
@@ -911,7 +911,7 @@ public:
     // the child to note that it is now attached to the body also (and it
     // will update its contained atoms).
     // (translation is in nm)
-    void placeCluster(DuMM::ClusterId childClusterId, const Transform& placement, DuMMForceFieldSubsystemRep& mm);
+    void placeCluster(DuMM::ClusterIndex childClusterIndex, const Transform& placement, DuMMForceFieldSubsystemRep& mm);
 
 
     // Calculate the composite mass properties for this cluster, transformed into
@@ -931,40 +931,40 @@ public:
 
 
     void dump() const {
-        printf("    clusterId=%d(%s)\n", (int) clusterId, name.c_str());
+        printf("    clusterIndex=%d(%s)\n", (int) clusterIndex, name.c_str());
         printf("      direct atom placements (nm): ");
         AtomPlacementSet::const_iterator ap = directAtomPlacements.begin();
         while (ap != directAtomPlacements.end()) {
-            std::cout << " " << ap->atomId << ":" << ap->station;
+            std::cout << " " << ap->atomIndex << ":" << ap->station;
             ++ap;
         }
         printf("\n      all atom placements (nm): ");
         AtomPlacementSet::const_iterator aap = allAtomPlacements.begin();
         while (aap != allAtomPlacements.end()) {
-            std::cout << " " << aap->atomId << ":" << aap->station;
+            std::cout << " " << aap->atomIndex << ":" << aap->station;
             ++aap;
         }
         printf("\n      direct cluster placements (nm):\n");
         ClusterPlacementSet::const_iterator cp = directClusterPlacements.begin();
         while (cp != directClusterPlacements.end()) {
-            std::cout << "      " << cp->clusterId << ":" << cp->placement;
+            std::cout << "      " << cp->clusterIndex << ":" << cp->placement;
             ++cp;
         }
         printf("\n      all cluster placements (nm):\n");
         ClusterPlacementSet::const_iterator acp = allClusterPlacements.begin();
         while (acp != allClusterPlacements.end()) {
-            std::cout << "      " << acp->clusterId << ":" << acp->placement;
+            std::cout << "      " << acp->clusterIndex << ":" << acp->placement;
             ++acp;
         }
         printf("\n      parent cluster placements (nm):\n");
         ClusterPlacementSet::const_iterator pp = parentClusters.begin();
         while (pp != parentClusters.end()) {
-            std::cout << "      " << pp->clusterId << ":" << pp->placement;
+            std::cout << "      " << pp->clusterIndex << ":" << pp->placement;
             ++pp;
         }
 
-        if (bodyId >= 0) 
-            std::cout << "\n      attached to body " << bodyId << " at (nm) " << placement_B;
+        if (bodyIx >= 0) 
+            std::cout << "\n      attached to body " << bodyIx << " at (nm) " << placement_B;
         else
             std::cout << "\n      NOT ATTACHED TO ANY BODY.";
         std::cout << std::endl;
@@ -977,26 +977,26 @@ public:
 
 private:
     // translation is in nm
-    void noteNewChildCluster(DuMM::ClusterId childClusterId, const Transform& X_PC) {
+    void noteNewChildCluster(DuMM::ClusterIndex childClusterIndex, const Transform& X_PC) {
         std::pair<ClusterPlacementSet::iterator, bool> ret;
-        ret = directClusterPlacements.insert(ClusterPlacement(childClusterId,X_PC));
+        ret = directClusterPlacements.insert(ClusterPlacement(childClusterIndex,X_PC));
         assert(ret.second); // must not have been there already
 
-        ret = allClusterPlacements.insert(ClusterPlacement(childClusterId,X_PC));
+        ret = allClusterPlacements.insert(ClusterPlacement(childClusterIndex,X_PC));
         assert(ret.second); // must not have been there already
     }
 
     // translation is in nm
-    void noteNewParentCluster(DuMM::ClusterId parentClusterId, const Transform& X_PC) {
+    void noteNewParentCluster(DuMM::ClusterIndex parentClusterIndex, const Transform& X_PC) {
         std::pair<ClusterPlacementSet::iterator, bool> ret =
-            parentClusters.insert(ClusterPlacement(parentClusterId,X_PC));
+            parentClusters.insert(ClusterPlacement(parentClusterIndex,X_PC));
         assert(ret.second); // must not have been there already
     }
 
 public:
         // TOPOLOGICAL STATE VARIABLES
         //   Filled in during construction.
-    DuMM::ClusterId                 clusterId;
+    DuMM::ClusterIndex                 clusterIndex;
     std::string         name;
 
     // These are the *directly* attached atoms and clusters.
@@ -1020,8 +1020,8 @@ public:
 
     // After this cluster or a containing cluster has been attached to a
     // body, we can fill these in.
-    MobilizedBodyId    bodyId;
-    Transform placement_B; // cluster's placement fixed in body bodyId's frame (nm)
+    MobilizedBodyIndex    bodyIx;
+    Transform placement_B; // cluster's placement fixed in body bodyIx's frame (nm)
 
         // TOPOLOGICAL CACHE ENTRIES
         //   These are calculated in realizeTopology() from topological
@@ -1036,27 +1036,27 @@ public:
 // at runtime for fast body-by-body processing.
 class DuMMBody {
 public:
-    DuMMBody() : clusterId(DuMM::InvalidClusterId) { }
-    explicit DuMMBody(DuMM::ClusterId cId) : clusterId(cId) { 
+    DuMMBody() : clusterIndex(DuMM::InvalidClusterIndex) { }
+    explicit DuMMBody(DuMM::ClusterIndex cIx) : clusterIndex(cIx) { 
         assert(isValid());
     }
 
-    bool isValid() const {return clusterId >= 0;}
+    bool isValid() const {return clusterIndex >= 0;}
 
     void invalidateTopologicalCache() {allAtoms.clear();}
     void realizeTopologicalCache(const DuMMForceFieldSubsystemRep& mm);
 
-    DuMM::ClusterId getClusterId() const {assert(isValid()); return clusterId;}
+    DuMM::ClusterIndex getClusterIndex() const {assert(isValid()); return clusterIndex;}
 
     void dump() const {
-        printf("    clusterId=%d\n", (int) clusterId);
+        printf("    clusterIndex=%d\n", (int) clusterIndex);
         printf("    shadowBodies=");
         for (int i=0; i < (int)shadowBodies.size(); ++i)
             printf(" %d", shadowBodies[i]);
         printf("\n");
         printf("    allAtoms=");
         for (int i=0; i < (int)allAtoms.size(); ++i) 
-            printf(" %d(%g,%g,%g)(nm)", (int) allAtoms[i].atomId,
+            printf(" %d(%g,%g,%g)(nm)", (int) allAtoms[i].atomIndex,
                 allAtoms[i].station[0], allAtoms[i].station[1], allAtoms[i].station[2]);
         printf("\n");
     }
@@ -1067,12 +1067,12 @@ public:
         return std::string(buf);
     }
 
-    DuMM::ClusterId clusterId;
+    DuMM::ClusterIndex clusterIndex;
     std::vector<int> shadowBodies; // if needed
 
     // This is an expansion of all the atom & group placements, with
     // all stations transformed to this body's frame, sorted in order
-    // of atomId, and built for speed!
+    // of atomIndex, and built for speed!
     AtomPlacementArray  allAtoms;
 };
 
@@ -1092,13 +1092,13 @@ public:
         vdwScale14=coulombScale14=vdwScale15=coulombScale15=1;
         doIncludeGbsaAceApproximation = false;
         loadElements();
-        const DuMM::ClusterId gid = addCluster(Cluster("free atoms and groups"));
+        const DuMM::ClusterIndex gid = addCluster(Cluster("free atoms and groups"));
         assert(gid==0);
     }
 
     // common checks when defining improper and proper torsions
     void checkTorsion 
-        (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4, 
+        (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4, 
             int periodicity1, Real amp1InKJ, Real phase1InDegrees,
             int periodicity2, Real amp2InKJ, Real phase2InDegrees,
             int periodicity3, Real amp3InKJ, Real phase3InDegrees,
@@ -1109,30 +1109,30 @@ public:
                 && elements[atomicNumber].isValid();
     }
 
-    bool isValidAtom(DuMM::AtomId atomNum) const {
-        return 0 <= atomNum && atomNum < (DuMM::AtomId)atoms.size() && atoms[atomNum].isValid();
+    bool isValidAtom(DuMM::AtomIndex atomNum) const {
+        return 0 <= atomNum && atomNum < (DuMM::AtomIndex)atoms.size() && atoms[atomNum].isValid();
     }
 
-    bool isValidBond(DuMM::BondId bondNum) const {
-        return 0 <= bondNum && bondNum < (DuMM::BondId)bonds.size() && bonds[bondNum].isValid();
+    bool isValidBond(DuMM::BondIndex bondNum) const {
+        return 0 <= bondNum && bondNum < (DuMM::BondIndex)bonds.size() && bonds[bondNum].isValid();
     }
 
-    bool isValidCluster(DuMM::ClusterId clusterId) const {
-        return 0 <= clusterId && clusterId < (DuMM::ClusterId)clusters.size()
-                && clusters[clusterId].isValid();
+    bool isValidCluster(DuMM::ClusterIndex clusterIndex) const {
+        return 0 <= clusterIndex && clusterIndex < (DuMM::ClusterIndex)clusters.size()
+                && clusters[clusterIndex].isValid();
     }
 
-    bool isValidBody(int bodyId) const {
-        return 0 <= bodyId && bodyId < (int)bodies.size() && bodies[bodyId].isValid();
+    bool isValidBody(int bodyIx) const {
+        return 0 <= bodyIx && bodyIx < (int)bodies.size() && bodies[bodyIx].isValid();
     }
 
-    bool isValidChargedAtomType(DuMM::ChargedAtomTypeId typeNum) const {
-        return 0 <= typeNum && typeNum < (DuMM::ChargedAtomTypeId)chargedAtomTypes.size() 
+    bool isValidChargedAtomType(DuMM::ChargedAtomTypeIndex typeNum) const {
+        return 0 <= typeNum && typeNum < (DuMM::ChargedAtomTypeIndex)chargedAtomTypes.size() 
                && chargedAtomTypes[typeNum].isValid();
     }
 
-    bool isValidAtomClass(DuMM::AtomClassId classNum) const {
-        return 0 <= classNum && classNum < (DuMM::AtomClassId)atomClasses.size() 
+    bool isValidAtomClass(DuMM::AtomClassIndex classNum) const {
+        return 0 <= classNum && classNum < (DuMM::AtomClassIndex)atomClasses.size() 
                && atomClasses[classNum].isValid();
     }
 
@@ -1163,62 +1163,62 @@ public:
         dmin = 2*rmin;
     }
 
-    DuMM::ClusterId addCluster(const Cluster& c) {
+    DuMM::ClusterIndex addCluster(const Cluster& c) {
 
         invalidateSubsystemTopologyCache();
 
-        const DuMM::ClusterId clusterId = (DuMM::ClusterId)clusters.size();
+        const DuMM::ClusterIndex clusterIndex = (DuMM::ClusterIndex)clusters.size();
         clusters.push_back(c);
-        clusters[clusterId].clusterId = clusterId;
-        return clusterId;
+        clusters[clusterIndex].clusterIndex = clusterIndex;
+        return clusterIndex;
     }
-    Cluster& updCluster(DuMM::ClusterId clusterId) {
-        assert(isValidCluster(clusterId));
+    Cluster& updCluster(DuMM::ClusterIndex clusterIndex) {
+        assert(isValidCluster(clusterIndex));
 
         invalidateSubsystemTopologyCache();
-        return clusters[clusterId];
+        return clusters[clusterIndex];
     }
-    const Cluster& getCluster(DuMM::ClusterId clusterId) const {
-        assert(isValidCluster(clusterId));
-        return clusters[clusterId];
+    const Cluster& getCluster(DuMM::ClusterIndex clusterIndex) const {
+        assert(isValidCluster(clusterIndex));
+        return clusters[clusterIndex];
     }
-    DuMMBody& updBody(int bodyId) {
-        assert(isValidBody(bodyId));
+    DuMMBody& updBody(int bodyIx) {
+        assert(isValidBody(bodyIx));
 
         invalidateSubsystemTopologyCache();
-        return bodies[bodyId];
+        return bodies[bodyIx];
     }
-    const DuMMBody& getBody(int bodyId) const {
-        assert(isValidBody(bodyId));
-        return bodies[bodyId];
+    const DuMMBody& getBody(int bodyIx) const {
+        assert(isValidBody(bodyIx));
+        return bodies[bodyIx];
     }
 
 
     int getNAtoms() const {return (int)atoms.size();}
     int getNBonds() const {return (int)bonds.size();}
 
-    const Atom& getAtom(DuMM::AtomId atomId) const {
-        assert(isValidAtom(atomId));
-        return atoms[atomId];
+    const Atom& getAtom(DuMM::AtomIndex atomIndex) const {
+        assert(isValidAtom(atomIndex));
+        return atoms[atomIndex];
     }
-    Atom& updAtom(DuMM::AtomId atomId) {
-        assert(isValidAtom(atomId));
+    Atom& updAtom(DuMM::AtomIndex atomIndex) {
+        assert(isValidAtom(atomIndex));
 
         invalidateSubsystemTopologyCache();
-        return atoms[atomId];
+        return atoms[atomIndex];
     }
 
-    DuMM::ChargedAtomTypeId getChargedAtomTypeId(DuMM::AtomId atomId) const {
-        return getAtom(atomId).chargedAtomTypeId;
+    DuMM::ChargedAtomTypeIndex getChargedAtomTypeIndex(DuMM::AtomIndex atomIndex) const {
+        return getAtom(atomIndex).chargedAtomTypeIndex;
     }
 
-    DuMM::AtomClassId getAtomClassId(DuMM::AtomId atomId) const {
-        const ChargedAtomType& type = chargedAtomTypes[getChargedAtomTypeId(atomId)];
-        return type.atomClassId;
+    DuMM::AtomClassIndex getAtomClassIndex(DuMM::AtomIndex atomIndex) const {
+        const ChargedAtomType& type = chargedAtomTypes[getChargedAtomTypeIndex(atomIndex)];
+        return type.atomClassIx;
     }
 
-    int getAtomElementNum(DuMM::AtomId atomId) const {
-        const AtomClass& cl = atomClasses[getAtomClassId(atomId)];
+    int getAtomElementNum(DuMM::AtomIndex atomIndex) const {
+        const AtomClass& cl = atomClasses[getAtomClassIndex(atomIndex)];
         return cl.element;
     }
 
@@ -1228,10 +1228,10 @@ public:
     }
 
 
-    const BondStretch& getBondStretch(DuMM::AtomClassId class1, DuMM::AtomClassId class2) const;
-    const BondBend&    getBondBend   (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3) const;
-    const BondTorsion& getBondTorsion(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4) const;
-    const BondTorsion& getAmberImproperTorsion(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4) const;
+    const BondStretch& getBondStretch(DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2) const;
+    const BondBend&    getBondBend   (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3) const;
+    const BondTorsion& getBondTorsion(DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4) const;
+    const BondTorsion& getAmberImproperTorsion(DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4) const;
 
     // Override virtual methods from Subsystem::Guts class.
 
@@ -1282,14 +1282,14 @@ public:
 private:
     void loadElements();
 
-    void ensureBodyEntryExists(MobilizedBodyId bodyNum) {
+    void ensureBodyEntryExists(MobilizedBodyIndex bodyNum) {
         if (bodyNum >= (int)bodies.size())
             bodies.resize(bodyNum+1);
         if (!bodies[bodyNum].isValid()) {
-            const DuMM::ClusterId clusterId = 
+            const DuMM::ClusterIndex clusterIndex = 
                 addCluster(Cluster(DuMMBody::createClusterNameForBody(bodyNum).c_str()));
-            clusters[clusterId].attachToBody(bodyNum, Transform(), *this);
-            bodies[bodyNum] = DuMMBody(clusterId);
+            clusters[clusterIndex].attachToBody(bodyNum, Transform(), *this);
+            bodies[bodyNum] = DuMMBody(clusterIndex);
         }
     }
 
@@ -1298,15 +1298,15 @@ private:
         // call does nothing (i.e., it doesn't blow up!).
 
         // molecule
-        for (DuMM::AtomId i = (DuMM::AtomId)0; i < (DuMM::AtomId)atoms.size(); ++i)
+        for (DuMM::AtomIndex i = (DuMM::AtomIndex)0; i < (DuMM::AtomIndex)atoms.size(); ++i)
             atoms[i].invalidateTopologicalCache();
-        for (DuMM::ClusterId i = (DuMM::ClusterId)0; i < (DuMM::ClusterId)clusters.size(); ++i)
+        for (DuMM::ClusterIndex i = (DuMM::ClusterIndex)0; i < (DuMM::ClusterIndex)clusters.size(); ++i)
             clusters[i].invalidateTopologicalCache();
         for (int i=0; i < (int)bodies.size(); ++i)
             bodies[i].invalidateTopologicalCache();
 
         // force field
-        for (DuMM::AtomClassId i = (DuMM::AtomClassId)0; i < (DuMM::AtomClassId)atomClasses.size(); ++i)
+        for (DuMM::AtomClassIndex i = (DuMM::AtomClassIndex)0; i < (DuMM::AtomClassIndex)atomClasses.size(); ++i)
             atomClasses[i].invalidateTopologicalCache();
     }
 
@@ -1333,10 +1333,10 @@ private:
     std::vector<ChargedAtomType>     chargedAtomTypes;
 
     // These relate atom classes, not charged atom types.
-    std::map<AtomClassIdPair,   BondStretch> bondStretch;
-    std::map<AtomClassIdTriple, BondBend>    bondBend;
-    std::map<AtomClassIdQuad,   BondTorsion> bondTorsion;
-    std::map<AtomClassIdQuad,   BondTorsion> amberImproperTorsion;
+    std::map<AtomClassIndexPair,   BondStretch> bondStretch;
+    std::map<AtomClassIndexTriple, BondBend>    bondBend;
+    std::map<AtomClassIndexQuad,   BondTorsion> bondTorsion;
+    std::map<AtomClassIndexQuad,   BondTorsion> amberImproperTorsion;
 
     // Which rule to use for combining van der Waals radii and energy well
     // depth for dissimilar atom classes.
@@ -1441,7 +1441,7 @@ void DuMMForceFieldSubsystem::dumpCForcefieldParameters(std::ostream& os, const 
     os << std::endl;
 
     // 3) bond stretch parameters
-    std::map<AtomClassIdPair, BondStretch>::const_iterator b;
+    std::map<AtomClassIndexPair, BondStretch>::const_iterator b;
     for (b = mm.bondStretch.begin(); b != mm.bondStretch.end(); ++b) {
         os << "    dumm.";
         b->second.generateSelfCode(os);
@@ -1451,7 +1451,7 @@ void DuMMForceFieldSubsystem::dumpCForcefieldParameters(std::ostream& os, const 
     os << std::endl;
 
     // 4) bond bend parameters
-    std::map<AtomClassIdTriple, BondBend>::const_iterator bendI;
+    std::map<AtomClassIndexTriple, BondBend>::const_iterator bendI;
     for (bendI = mm.bondBend.begin(); bendI != mm.bondBend.end(); ++bendI) {
         os << "    dumm.";
         bendI->second.generateSelfCode(os);
@@ -1461,7 +1461,7 @@ void DuMMForceFieldSubsystem::dumpCForcefieldParameters(std::ostream& os, const 
     os << std::endl;
 
     // 5) bond torsion parameters
-    std::map<AtomClassIdQuad, BondTorsion>::const_iterator t;
+    std::map<AtomClassIndexQuad, BondTorsion>::const_iterator t;
     for (t = mm.bondTorsion.begin(); t != mm.bondTorsion.end(); ++t) {
         os << "    dumm.";
         t->second.generateSelfCode(os);
@@ -1529,7 +1529,7 @@ void DuMMForceFieldSubsystem::dumpCForcefieldParameters(std::ostream& os, const 
 }
 
 void DuMMForceFieldSubsystem::defineIncompleteAtomClass
-   (DuMM::AtomClassId atomClassId, const char* atomClassName, int element, int valence)
+   (DuMM::AtomClassIndex atomClassIx, const char* atomClassName, int element, int valence)
 {
     static const char* MethodName = "defineIncompleteAtomClass";
 
@@ -1538,28 +1538,28 @@ void DuMMForceFieldSubsystem::defineIncompleteAtomClass
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Catch nonsense arguments.
-    SimTK_APIARGCHECK1_ALWAYS(atomClassId >= 0, mm.ApiClassName, MethodName,
-        "atom class Id %d invalid: must be nonnegative", (int) atomClassId);
+    SimTK_APIARGCHECK1_ALWAYS(atomClassIx >= 0, mm.ApiClassName, MethodName,
+        "atom class Index %d invalid: must be nonnegative", (int) atomClassIx);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidElement(element), mm.ApiClassName, MethodName,
         "element %d invalid: must be a valid atomic number and have an entry here",element);
     SimTK_APIARGCHECK1_ALWAYS(valence >= 0, mm.ApiClassName, MethodName, 
         "expected valence %d invalid: must be nonnegative", valence);
 
         // Make sure there is a slot available for this atom class.
-    if (atomClassId >= (DuMM::AtomClassId)mm.atomClasses.size())
-        mm.atomClasses.resize(atomClassId+1);
+    if (atomClassIx >= (DuMM::AtomClassIndex)mm.atomClasses.size())
+        mm.atomClasses.resize(atomClassIx+1);
 
         // Make sure this atom class hasn't already been defined.
-    SimTK_APIARGCHECK2_ALWAYS(!mm.atomClasses[atomClassId].isValid(), mm.ApiClassName, MethodName, 
-        "atom class Id %d is already in use for '%s'", (int) atomClassId, 
-        mm.atomClasses[atomClassId].name.c_str());
+    SimTK_APIARGCHECK2_ALWAYS(!mm.atomClasses[atomClassIx].isValid(), mm.ApiClassName, MethodName, 
+        "atom class Index %d is already in use for '%s'", (int) atomClassIx, 
+        mm.atomClasses[atomClassIx].name.c_str());
 
         // It's all good -- add the new atom class.
-    mm.atomClasses[atomClassId] = AtomClass(atomClassId, atomClassName, element, valence, 
+    mm.atomClasses[atomClassIx] = AtomClass(atomClassIx, atomClassName, element, valence, 
                                             NaN, NaN);
 }
 
-void DuMMForceFieldSubsystem::setAtomClassVdwParameters(DuMM::AtomClassId atomClassId, Real vdwRadiusInNm, Real vdwWellDepthInKJPerMol) 
+void DuMMForceFieldSubsystem::setAtomClassVdwParameters(DuMM::AtomClassIndex atomClassIx, Real vdwRadiusInNm, Real vdwWellDepthInKJPerMol) 
 {
     static const char* MethodName = "setAtomClsasVdwParameters";
 
@@ -1567,25 +1567,25 @@ void DuMMForceFieldSubsystem::setAtomClassVdwParameters(DuMM::AtomClassId atomCl
 
     DuMMForceFieldSubsystemRep& mm = updRep();
 
-    SimTK_APIARGCHECK1_ALWAYS(atomClassId >= 0, mm.ApiClassName, MethodName,
-        "atom class Id %d invalid: must be nonnegative", (int) atomClassId);
+    SimTK_APIARGCHECK1_ALWAYS(atomClassIx >= 0, mm.ApiClassName, MethodName,
+        "atom class Index %d invalid: must be nonnegative", (int) atomClassIx);
 
     SimTK_APIARGCHECK1_ALWAYS(vdwRadiusInNm >= 0, mm.ApiClassName, MethodName, 
         "van der Waals radius %g invalid: must be nonnegative", vdwRadiusInNm);
     SimTK_APIARGCHECK1_ALWAYS(vdwWellDepthInKJPerMol >= 0, mm.ApiClassName, MethodName, 
         "van der Waals energy well depth %g invalid: must be nonnegative", vdwWellDepthInKJPerMol);
 
-    AtomClass& atomClass = mm.atomClasses[atomClassId];
+    AtomClass& atomClass = mm.atomClasses[atomClassIx];
     atomClass.vdwRadius = vdwRadiusInNm;
     atomClass.vdwWellDepth = vdwWellDepthInKJPerMol;
 }
 
-bool DuMMForceFieldSubsystem::isValidAtomClass(DuMM::AtomClassId atomClassId) const {
-    return getRep().isValidAtomClass(atomClassId);
+bool DuMMForceFieldSubsystem::isValidAtomClass(DuMM::AtomClassIndex atomClassIx) const {
+    return getRep().isValidAtomClass(atomClassIx);
 }
 
 void DuMMForceFieldSubsystem::defineIncompleteChargedAtomType
-    (DuMM::ChargedAtomTypeId chargedAtomTypeId, const char* typeName, DuMM::AtomClassId atomClassId)
+    (DuMM::ChargedAtomTypeIndex chargedAtomTypeIndex, const char* typeName, DuMM::AtomClassIndex atomClassIx)
 {
     static const char* MethodName = "defineChargedAtomType";
 
@@ -1594,31 +1594,31 @@ void DuMMForceFieldSubsystem::defineIncompleteChargedAtomType
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Check for nonsense arguments.
-    SimTK_APIARGCHECK1_ALWAYS(chargedAtomTypeId >= 0, mm.ApiClassName, MethodName,
-        "charged atom type Id %d invalid: must be nonnegative", (int) chargedAtomTypeId);
-    SimTK_APIARGCHECK1_ALWAYS(atomClassId >= 0, mm.ApiClassName, MethodName,
-        "atom class Id %d invalid: must be nonnegative", (int) atomClassId);
+    SimTK_APIARGCHECK1_ALWAYS(chargedAtomTypeIndex >= 0, mm.ApiClassName, MethodName,
+        "charged atom type index %d invalid: must be nonnegative", (int) chargedAtomTypeIndex);
+    SimTK_APIARGCHECK1_ALWAYS(atomClassIx >= 0, mm.ApiClassName, MethodName,
+        "atom class index %d invalid: must be nonnegative", (int) atomClassIx);
     // partialCharge is a signed quantity
 
         // Make sure the referenced atom class has already been defined.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(atomClassId), mm.ApiClassName, MethodName,
-        "atom class %d is undefined", (int) atomClassId);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(atomClassIx), mm.ApiClassName, MethodName,
+        "atom class %d is undefined", (int) atomClassIx);
 
         // Make sure there is a slot available for the new chargedAtomType.
-    if (chargedAtomTypeId >= (int)mm.chargedAtomTypes.size())
-        mm.chargedAtomTypes.resize(chargedAtomTypeId+1);
+    if (chargedAtomTypeIndex >= (int)mm.chargedAtomTypes.size())
+        mm.chargedAtomTypes.resize(chargedAtomTypeIndex+1);
 
         // Check that this slot is not already in use.
-    SimTK_APIARGCHECK2_ALWAYS(!mm.chargedAtomTypes[chargedAtomTypeId].isValid(), mm.ApiClassName, MethodName, 
-        "charged atom type Id %d is already in use for '%s'", (int) chargedAtomTypeId, 
-        mm.chargedAtomTypes[chargedAtomTypeId].name.c_str());
+    SimTK_APIARGCHECK2_ALWAYS(!mm.chargedAtomTypes[chargedAtomTypeIndex].isValid(), mm.ApiClassName, MethodName, 
+        "charged atom type index %d is already in use for '%s'", (int) chargedAtomTypeIndex, 
+        mm.chargedAtomTypes[chargedAtomTypeIndex].name.c_str());
 
         // Define the new charged atom type.
-    mm.chargedAtomTypes[chargedAtomTypeId] = 
-        ChargedAtomType(chargedAtomTypeId, typeName, atomClassId, NaN);
+    mm.chargedAtomTypes[chargedAtomTypeIndex] = 
+        ChargedAtomType(chargedAtomTypeIndex, typeName, atomClassIx, NaN);
 }
 
-void DuMMForceFieldSubsystem::setChargedAtomTypeCharge(DuMM::ChargedAtomTypeId chargedAtomTypeId, Real charge) {
+void DuMMForceFieldSubsystem::setChargedAtomTypeCharge(DuMM::ChargedAtomTypeIndex chargedAtomTypeIndex, Real charge) {
     static const char* MethodName = "defineChargedAtomType";
 
     invalidateSubsystemTopologyCache();
@@ -1626,15 +1626,15 @@ void DuMMForceFieldSubsystem::setChargedAtomTypeCharge(DuMM::ChargedAtomTypeId c
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Check for nonsense arguments.
-    SimTK_APIARGCHECK1_ALWAYS(chargedAtomTypeId >= 0, mm.ApiClassName, MethodName,
-        "charged atom type Id %d invalid: must be nonnegative", (int) chargedAtomTypeId);
+    SimTK_APIARGCHECK1_ALWAYS(chargedAtomTypeIndex >= 0, mm.ApiClassName, MethodName,
+        "charged atom type index %d invalid: must be nonnegative", (int) chargedAtomTypeIndex);
 
-    ChargedAtomType& chargedAtomType = mm.chargedAtomTypes[chargedAtomTypeId];
+    ChargedAtomType& chargedAtomType = mm.chargedAtomTypes[chargedAtomTypeIndex];
     chargedAtomType.partialCharge = charge;
 }
 
 void DuMMForceFieldSubsystem::defineBondStretch
-   (DuMM::AtomClassId class1, DuMM::AtomClassId class2, Real stiffnessInKJPerNmSq, Real nominalLengthInNm)
+   (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, Real stiffnessInKJPerNmSq, Real nominalLengthInNm)
 {
     static const char* MethodName = "defineBondStretch";
 
@@ -1644,19 +1644,19 @@ void DuMMForceFieldSubsystem::defineBondStretch
 
         // Watch for nonsense arguments.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class1), mm.ApiClassName, MethodName, 
-        "class1=%d which is not a valid atom class Id", (int) class1);
+        "class1=%d which is not a valid atom class Index", (int) class1);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class2), mm.ApiClassName, MethodName, 
-        "class2=%d which is not a valid atom class Id", (int) class2);
+        "class2=%d which is not a valid atom class Index", (int) class2);
     SimTK_APIARGCHECK1_ALWAYS(stiffnessInKJPerNmSq >= 0, mm.ApiClassName, MethodName, 
         "stiffness %g is not valid: must be nonnegative", stiffnessInKJPerNmSq);
     SimTK_APIARGCHECK1_ALWAYS(nominalLengthInNm >= 0, mm.ApiClassName, MethodName, 
         "nominal length %g is not valid: must be nonnegative", nominalLengthInNm);
 
         // Attempt to insert the new bond stretch entry, canonicalizing first
-        // so that the atom class pair has the lower class Id first.
-    const AtomClassIdPair key(class1,class2,true);
-    std::pair<std::map<AtomClassIdPair,BondStretch>::iterator, bool> ret = 
-      mm.bondStretch.insert(std::pair<AtomClassIdPair,BondStretch>
+        // so that the atom class pair has the lower class Index first.
+    const AtomClassIndexPair key(class1,class2,true);
+    std::pair<std::map<AtomClassIndexPair,BondStretch>::iterator, bool> ret = 
+      mm.bondStretch.insert(std::pair<AtomClassIndexPair,BondStretch>
         (key, BondStretch(key,stiffnessInKJPerNmSq,nominalLengthInNm)));
 
         // Throw an exception if this bond stretch term was already defined. (std::map 
@@ -1666,7 +1666,7 @@ void DuMMForceFieldSubsystem::defineBondStretch
 }
 
 void DuMMForceFieldSubsystem::defineBondBend
-   (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, Real stiffnessInKJPerRadSq, Real nominalAngleInDeg)
+   (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, Real stiffnessInKJPerRadSq, Real nominalAngleInDeg)
 {
     static const char* MethodName = "defineBondBend";
 
@@ -1676,11 +1676,11 @@ void DuMMForceFieldSubsystem::defineBondBend
 
         // Watch for nonsense arguments.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class1), mm.ApiClassName, MethodName, 
-        "class1=%d which is not a valid atom class Id", (int) class1);
+        "class1=%d which is not a valid atom class Index", (int) class1);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class2), mm.ApiClassName, MethodName, 
-        "class2=%d which is not a valid atom class Id", (int) class2);
+        "class2=%d which is not a valid atom class Index", (int) class2);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class3), mm.ApiClassName, MethodName, 
-        "class3=%d which is not a valid atom class Id", (int) class3);
+        "class3=%d which is not a valid atom class Index", (int) class3);
     SimTK_APIARGCHECK1_ALWAYS(stiffnessInKJPerRadSq >= 0, mm.ApiClassName, MethodName, 
         "stiffness %g is not valid: must be nonnegative", stiffnessInKJPerRadSq);
     SimTK_APIARGCHECK1_ALWAYS(0 <= nominalAngleInDeg && nominalAngleInDeg <= 180, 
@@ -1689,11 +1689,11 @@ void DuMMForceFieldSubsystem::defineBondBend
         nominalAngleInDeg);
 
         // Attempt to insert the new bond bend entry, canonicalizing first
-        // by reversing the class Id triple if necessary so that the first 
-        // classId is no larger than the third.
-    const AtomClassIdTriple key(class1, class2, class3, true);
-    std::pair<std::map<AtomClassIdTriple,BondBend>::iterator, bool> ret = 
-      mm.bondBend.insert(std::pair<AtomClassIdTriple,BondBend>
+        // by reversing the class Index triple if necessary so that the first 
+        // classIndex is no larger than the third.
+    const AtomClassIndexTriple key(class1, class2, class3, true);
+    std::pair<std::map<AtomClassIndexTriple,BondBend>::iterator, bool> ret = 
+      mm.bondBend.insert(std::pair<AtomClassIndexTriple,BondBend>
         (key, BondBend(key, stiffnessInKJPerRadSq,nominalAngleInDeg)));
 
         // Throw an exception if this bond bend term was already defined. (std::map 
@@ -1709,7 +1709,7 @@ void DuMMForceFieldSubsystem::defineBondBend
 // defineAmberImproperTorsion() functions.
 //
 void DuMMForceFieldSubsystemRep::checkTorsion 
-(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4, 
+(DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4, 
     int periodicity1, Real amp1InKJ, Real phase1InDegrees,
     int periodicity2, Real amp2InKJ, Real phase2InDegrees,
     int periodicity3, Real amp3InKJ, Real phase3InDegrees,
@@ -1719,13 +1719,13 @@ void DuMMForceFieldSubsystemRep::checkTorsion
 
         // Watch for nonsense arguments.
     SimTK_APIARGCHECK1_ALWAYS(isValidAtomClass(class1), ApiClassName, CallingMethodName,
-        "class1=%d which is not a valid atom class Id", (int) class1);
+        "class1=%d which is not a valid atom class Index", (int) class1);
     SimTK_APIARGCHECK1_ALWAYS(isValidAtomClass(class2), ApiClassName, CallingMethodName,
-        "class2=%d which is not a valid atom class Id", (int) class2);
+        "class2=%d which is not a valid atom class Index", (int) class2);
     SimTK_APIARGCHECK1_ALWAYS(isValidAtomClass(class3), ApiClassName, CallingMethodName,
-        "class3=%d which is not a valid atom class Id", (int) class3);
+        "class3=%d which is not a valid atom class Index", (int) class3);
     SimTK_APIARGCHECK1_ALWAYS(isValidAtomClass(class4), ApiClassName, CallingMethodName,
-        "class4=%d which is not a valid atom class Id", (int) class4);
+        "class4=%d which is not a valid atom class Index", (int) class4);
     SimTK_APIARGCHECK_ALWAYS(periodicity1!=-1 || periodicity2!=-1 || periodicity3!=-1,
         ApiClassName, CallingMethodName, "must be at least one torsion term supplied");
 
@@ -1779,7 +1779,7 @@ void DuMMForceFieldSubsystemRep::checkTorsion
 // to -1.
 //
 void DuMMForceFieldSubsystem::defineBondTorsion
-   (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4, 
+   (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4, 
     int periodicity1, Real amp1InKJ, Real phase1InDegrees,
     int periodicity2, Real amp2InKJ, Real phase2InDegrees,
     int periodicity3, Real amp3InKJ, Real phase3InDegrees)
@@ -1796,8 +1796,8 @@ void DuMMForceFieldSubsystem::defineBondTorsion
                  MethodName);
 
         // Canonicalize atom class quad by reversing order if necessary so that the
-        // first class Id is numerically no larger than the fourth.
-    const AtomClassIdQuad key(class1, class2, class3, class4, true);
+        // first class Index is numerically no larger than the fourth.
+    const AtomClassIndexQuad key(class1, class2, class3, class4, true);
 
         // Now allocate an empty BondTorsion object and add terms to it as they are found.
     BondTorsion bt(key);
@@ -1820,8 +1820,8 @@ void DuMMForceFieldSubsystem::defineBondTorsion
 
         // Now try to insert the allegedly new BondTorsion specification into the bondTorsion map.
         // If it is already there the 2nd element in the returned pair will be 'false'.
-    std::pair<std::map<AtomClassIdQuad,BondTorsion>::iterator, bool> ret = 
-      mm.bondTorsion.insert(std::pair<AtomClassIdQuad,BondTorsion>(key,bt));
+    std::pair<std::map<AtomClassIndexQuad,BondTorsion>::iterator, bool> ret = 
+      mm.bondTorsion.insert(std::pair<AtomClassIndexQuad,BondTorsion>(key,bt));
 
         // Throw an exception if terms for this bond torsion were already defined.
     SimTK_APIARGCHECK4_ALWAYS(ret.second, mm.ApiClassName, MethodName, 
@@ -1831,7 +1831,7 @@ void DuMMForceFieldSubsystem::defineBondTorsion
 
 // Convenient signature for a bond torsion with only one term.
 void DuMMForceFieldSubsystem::defineBondTorsion
-   (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4, 
+   (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4, 
     int periodicity1, Real amp1InKJ, Real phase1InDegrees)
 {
     defineBondTorsion(class1, class2, class3, class4, 
@@ -1841,7 +1841,7 @@ void DuMMForceFieldSubsystem::defineBondTorsion
 
 // Convenient signature for a bond torsion with two terms.
 void DuMMForceFieldSubsystem::defineBondTorsion
-   (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4, 
+   (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4, 
     int periodicity1, Real amp1InKJ, Real phase1InDegrees,
     int periodicity2, Real amp2InKJ, Real phase2InDegrees)
 {
@@ -1858,7 +1858,7 @@ void DuMMForceFieldSubsystem::defineBondTorsion
 // periodicity to -1.
 //
 void DuMMForceFieldSubsystem::defineAmberImproperTorsion
-(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+(DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4,
     int periodicity1, Real amp1InKJ, Real phase1InDegrees,
     int periodicity2, Real amp2InKJ, Real phase2InDegrees,
     int periodicity3, Real amp3InKJ, Real phase3InDegrees)
@@ -1876,7 +1876,7 @@ void DuMMForceFieldSubsystem::defineAmberImproperTorsion
 
         // Unlike the normal bond torsions (see defineBondTorstion function) we do *not*
         // canonicalize atom class quad, because atom order does matter for amber improper torsions
-    const AtomClassIdQuad key(class1, class2, class3, class4, false);
+    const AtomClassIndexQuad key(class1, class2, class3, class4, false);
 
         // Now allocate an empty BondTorsion object and add terms to it as they are found.
     BondTorsion bt(key);
@@ -1891,8 +1891,8 @@ void DuMMForceFieldSubsystem::defineAmberImproperTorsion
         // Now try to insert the allegedly new BondTorsion specification into the
         // amberImproperTorsion map.  If it is already there the 2nd element in the
         // returned pair will be 'false'.
-    std::pair<std::map<AtomClassIdQuad,BondTorsion>::iterator, bool> ret =
-      mm.amberImproperTorsion.insert(std::pair<AtomClassIdQuad,BondTorsion>(key,bt));
+    std::pair<std::map<AtomClassIndexQuad,BondTorsion>::iterator, bool> ret =
+      mm.amberImproperTorsion.insert(std::pair<AtomClassIndexQuad,BondTorsion>(key,bt));
 
         // Throw an exception if terms for this improper torsion were already defined.
     SimTK_APIARGCHECK4_ALWAYS(ret.second, mm.ApiClassName, MethodName,
@@ -1902,7 +1902,7 @@ void DuMMForceFieldSubsystem::defineAmberImproperTorsion
 
 // Convenient signature for an amber improper torsion with only one term.
 void DuMMForceFieldSubsystem::defineAmberImproperTorsion
-   (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+   (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4,
     int periodicity1, Real amp1InKJ, Real phase1InDegrees)
 {
     defineAmberImproperTorsion(class1, class2, class3, class4,
@@ -1912,7 +1912,7 @@ void DuMMForceFieldSubsystem::defineAmberImproperTorsion
 
 // Convenient signature for an amber improper torsion with two terms.
 void DuMMForceFieldSubsystem::defineAmberImproperTorsion
-   (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+   (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4,
     int periodicity1, Real amp1InKJ, Real phase1InDegrees,
     int periodicity2, Real amp2InKJ, Real phase2InDegrees)
 {
@@ -2165,13 +2165,13 @@ void DuMMForceFieldSubsystem::setGbsaIncludeAceApproximation(bool doInclude)
     mm.doIncludeGbsaAceApproximation=doInclude;
 }
 
-DuMM::ClusterId DuMMForceFieldSubsystem::createCluster(const char* groupName)
+DuMM::ClusterIndex DuMMForceFieldSubsystem::createCluster(const char* groupName)
 {
     // Currently there is no error checking to do. We don't insist on unique group names.
     return updRep().addCluster(Cluster(groupName));
 }
 
-DuMM::AtomId DuMMForceFieldSubsystem::addAtom(DuMM::ChargedAtomTypeId chargedAtomTypeId)
+DuMM::AtomIndex DuMMForceFieldSubsystem::addAtom(DuMM::ChargedAtomTypeIndex chargedAtomTypeIndex)
 {
     static const char* MethodName = "addAtom";
 
@@ -2179,15 +2179,15 @@ DuMM::AtomId DuMMForceFieldSubsystem::addAtom(DuMM::ChargedAtomTypeId chargedAto
 
     DuMMForceFieldSubsystemRep& mm = updRep();
 
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidChargedAtomType(chargedAtomTypeId), mm.ApiClassName, MethodName, 
-        "charged atom type %d is not valid", (int) chargedAtomTypeId);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidChargedAtomType(chargedAtomTypeIndex), mm.ApiClassName, MethodName, 
+        "charged atom type %d is not valid", (int) chargedAtomTypeIndex);
 
-    const DuMM::AtomId atomId = (const DuMM::AtomId)mm.atoms.size();
-    mm.atoms.push_back(Atom(chargedAtomTypeId, atomId));
-    return atomId;
+    const DuMM::AtomIndex atomIndex = (const DuMM::AtomIndex)mm.atoms.size();
+    mm.atoms.push_back(Atom(chargedAtomTypeIndex, atomIndex));
+    return atomIndex;
 }
 
-void DuMMForceFieldSubsystem::placeAtomInCluster(DuMM::AtomId atomId, DuMM::ClusterId clusterId, const Vec3& stationInNm)
+void DuMMForceFieldSubsystem::placeAtomInCluster(DuMM::AtomIndex atomIndex, DuMM::ClusterIndex clusterIndex, const Vec3& stationInNm)
 {
     static const char* MethodName = "placeAtomInCluster";
 
@@ -2195,25 +2195,25 @@ void DuMMForceFieldSubsystem::placeAtomInCluster(DuMM::AtomId atomId, DuMM::Clus
 
     DuMMForceFieldSubsystemRep& mm = updRep();
 
-        // Make sure that we've seen both the atomId and clusterId before.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom Id %d is not valid", (int) atomId);
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
-        "cluster Id %d is not valid", (int) clusterId);
+        // Make sure that we've seen both the atomIndex and clusterIndex before.
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomIndex), mm.ApiClassName, MethodName,
+        "atom index %d is not valid", (int) atomIndex);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterIndex), mm.ApiClassName, MethodName,
+        "cluster index %d is not valid", (int) clusterIndex);
 
-    Cluster& cluster = mm.updCluster(clusterId);
+    Cluster& cluster = mm.updCluster(clusterIndex);
 
         // Make sure that this cluster doesn't already contain this atom, either directly
         // or recursively through its subclusters.
-    SimTK_APIARGCHECK3_ALWAYS(!cluster.containsAtom(atomId), mm.ApiClassName, MethodName,
-        "cluster %d('%s') already contains atom %d", (int) clusterId, cluster.name.c_str(), (int) atomId);
+    SimTK_APIARGCHECK3_ALWAYS(!cluster.containsAtom(atomIndex), mm.ApiClassName, MethodName,
+        "cluster %d('%s') already contains atom %d", (int) clusterIndex, cluster.name.c_str(), (int) atomIndex);
 
         // Add the atom to the cluster.
-    cluster.placeAtom(atomId, stationInNm, mm);
+    cluster.placeAtom(atomIndex, stationInNm, mm);
 }
 
 void DuMMForceFieldSubsystem::placeClusterInCluster
-   (DuMM::ClusterId childClusterId, DuMM::ClusterId parentClusterId, const Transform& placementInNm)
+   (DuMM::ClusterIndex childClusterIndex, DuMM::ClusterIndex parentClusterIndex, const Transform& placementInNm)
 {
     static const char* MethodName = "placeClusterInCluster";
 
@@ -2222,13 +2222,13 @@ void DuMMForceFieldSubsystem::placeClusterInCluster
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Make sure that we've seen both of these clusters before.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(childClusterId), mm.ApiClassName, MethodName,
-        "child cluster Id %d is not valid", (int) childClusterId);
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(parentClusterId), mm.ApiClassName, MethodName,
-        "parent cluster Id %d is not valid", (int) parentClusterId);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(childClusterIndex), mm.ApiClassName, MethodName,
+        "child cluster Index %d is not valid", (int) childClusterIndex);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(parentClusterIndex), mm.ApiClassName, MethodName,
+        "parent cluster Index %d is not valid", (int) parentClusterIndex);
 
-    Cluster&       parent = mm.updCluster(parentClusterId);
-    const Cluster& child  = mm.getCluster(childClusterId);
+    Cluster&       parent = mm.updCluster(parentClusterIndex);
+    const Cluster& child  = mm.getCluster(childClusterIndex);
 
         // TODO: for now, make sure the parent is a top-level cluster, meaning that it does
         // not have any parent clusters (although it can be attached to a body). This restriction
@@ -2236,33 +2236,33 @@ void DuMMForceFieldSubsystem::placeClusterInCluster
         // lists updated correctly so I'm deferring that for now (sherm 060928).
     SimTK_APIARGCHECK2_ALWAYS(parent.isTopLevelCluster(), mm.ApiClassName, MethodName,
         "parent cluster %d('%s') is not a top-level cluster so you cannot add a child cluster to it now",
-        (int) parentClusterId, parent.name.c_str());
+        (int) parentClusterIndex, parent.name.c_str());
 
         // Child must not already be attached to a body.
     SimTK_APIARGCHECK2_ALWAYS(!child.isAttachedToBody(), mm.ApiClassName, MethodName,
         "child cluster %d('%s') is already attached to a body so cannot now be placed in another cluster",
-        (int) childClusterId, child.name.c_str());
+        (int) childClusterIndex, child.name.c_str());
 
         // Make sure that parent cluster doesn't already contain child cluster, either directly
         // or recursively through its subclusters.
-    SimTK_APIARGCHECK4_ALWAYS(!parent.containsCluster(childClusterId), mm.ApiClassName, MethodName,
+    SimTK_APIARGCHECK4_ALWAYS(!parent.containsCluster(childClusterIndex), mm.ApiClassName, MethodName,
         "parent cluster %d('%s') already contains child cluster %d('%s')", 
-        (int) parentClusterId, parent.name.c_str(), (int) childClusterId, child.name.c_str());
+        (int) parentClusterIndex, parent.name.c_str(), (int) childClusterIndex, child.name.c_str());
 
         // Make sure the new child cluster doesn't contain any atoms which are already in
         // any of the trees to which the parent cluster is associated.
         // TODO: for now we need only look at the parent since we know it is top level.
-    DuMM::AtomId atomId;
-    SimTK_APIARGCHECK5_ALWAYS(!parent.overlapsWithCluster(child, atomId), mm.ApiClassName, MethodName,
+    DuMM::AtomIndex atomIndex;
+    SimTK_APIARGCHECK5_ALWAYS(!parent.overlapsWithCluster(child, atomIndex), mm.ApiClassName, MethodName,
         "parent cluster %d('%s') and would-be child cluster %d('%s') both contain atom %d"
         " so they cannot have a parent/child relationship",
-        (int) parentClusterId, parent.name.c_str(), (int) childClusterId, child.name.c_str(), (int) atomId);
+        (int) parentClusterIndex, parent.name.c_str(), (int) childClusterIndex, child.name.c_str(), (int) atomIndex);
 
         // Add the child cluster to the parent.
-    parent.placeCluster(childClusterId, placementInNm, mm);
+    parent.placeCluster(childClusterIndex, placementInNm, mm);
 }
 
-void DuMMForceFieldSubsystem::attachClusterToBody(DuMM::ClusterId clusterId, MobilizedBodyId bodyNum, 
+void DuMMForceFieldSubsystem::attachClusterToBody(DuMM::ClusterIndex clusterIndex, MobilizedBodyIndex bodyNum, 
                                                   const Transform& placementInNm) 
 {
     static const char* MethodName = "attachClusterToBody";
@@ -2272,42 +2272,42 @@ void DuMMForceFieldSubsystem::attachClusterToBody(DuMM::ClusterId clusterId, Mob
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Make sure we've seen this cluster before, and that the body number is well formed.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
-        "cluster Id %d is not valid", (int) clusterId);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterIndex), mm.ApiClassName, MethodName,
+        "cluster Index %d is not valid", (int) clusterIndex);
     SimTK_APIARGCHECK1_ALWAYS(bodyNum >= 0, mm.ApiClassName, MethodName,
         "body number %d is not valid: must be nonnegative", (int)bodyNum);
 
-    const Cluster& child  = mm.getCluster(clusterId);
+    const Cluster& child  = mm.getCluster(clusterIndex);
 
         // Child must not already be attached to a body.
     SimTK_APIARGCHECK3_ALWAYS(!child.isAttachedToBody(), mm.ApiClassName, MethodName,
         "cluster %d('%s') is already attached to body %d so cannot now be attached to a body",
-        (int) clusterId, child.name.c_str(),  (int)child.getBodyId());
+        (int) clusterIndex, child.name.c_str(),  (int)child.getBodyIndex());
 
         // None of the atoms in the child can be attached to any body.
-    DuMM::AtomId    atomId;
-    MobilizedBodyId bodyId;
-    SimTK_APIARGCHECK4_ALWAYS(!child.containsAnyAtomsAttachedToABody(atomId,bodyId,mm), 
+    DuMM::AtomIndex    atomIndex;
+    MobilizedBodyIndex bodyIx;
+    SimTK_APIARGCHECK4_ALWAYS(!child.containsAnyAtomsAttachedToABody(atomIndex,bodyIx,mm), 
         mm.ApiClassName, MethodName,
         "cluster %d('%s') contains atom %d which is already attached to body %d"
         " so the cluster cannot now be attached to another body",
-        (int) clusterId, child.name.c_str(), (int) atomId, (int)bodyId);
+        (int) clusterIndex, child.name.c_str(), (int) atomIndex, (int)bodyIx);
 
         // Create an entry for the body if necessary, and its corresponding cluster.
     mm.ensureBodyEntryExists(bodyNum);
-    Cluster& bodyCluster = mm.updCluster(mm.getBody(bodyNum).getClusterId());
+    Cluster& bodyCluster = mm.updCluster(mm.getBody(bodyNum).getClusterIndex());
 
         // Make sure that body cluster doesn't already contain child cluster, either directly
         // or recursively through its subclusters.
-    SimTK_APIARGCHECK3_ALWAYS(!bodyCluster.containsCluster(clusterId), mm.ApiClassName, MethodName,
+    SimTK_APIARGCHECK3_ALWAYS(!bodyCluster.containsCluster(clusterIndex), mm.ApiClassName, MethodName,
         "cluster %d('%s') is already attached (directly or indirectly) to body %d", 
-        (int) clusterId, child.name.c_str(), (int)bodyNum);
+        (int) clusterIndex, child.name.c_str(), (int)bodyNum);
 
         // OK, attach the cluster to the body's cluster.
-    bodyCluster.placeCluster(clusterId, placementInNm, mm);
+    bodyCluster.placeCluster(clusterIndex, placementInNm, mm);
 }
 
-void DuMMForceFieldSubsystem::attachAtomToBody(DuMM::AtomId atomId, MobilizedBodyId bodyNum, const Vec3& stationInNm) 
+void DuMMForceFieldSubsystem::attachAtomToBody(DuMM::AtomIndex atomIndex, MobilizedBodyIndex bodyNum, const Vec3& stationInNm) 
 {
     static const char* MethodName = "attachAtomToBody";
 
@@ -2316,39 +2316,39 @@ void DuMMForceFieldSubsystem::attachAtomToBody(DuMM::AtomId atomId, MobilizedBod
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Make sure we've seen this atom before, and that the body number is well formed.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom Id %d is not valid", (int) atomId);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomIndex), mm.ApiClassName, MethodName,
+        "atom index %d is not valid", (int) atomIndex);
     SimTK_APIARGCHECK1_ALWAYS(bodyNum >= 0, mm.ApiClassName, MethodName,
         "body number %d is not valid: must be nonnegative", (int)bodyNum);
 
         // The atom must not already be attached to a body, even this one.
-    SimTK_APIARGCHECK2_ALWAYS(!mm.getAtom(atomId).isAttachedToBody(), mm.ApiClassName, MethodName,
+    SimTK_APIARGCHECK2_ALWAYS(!mm.getAtom(atomIndex).isAttachedToBody(), mm.ApiClassName, MethodName,
         "atom %d is already attached to body %d so cannot now be attached to a body",
-        (int) atomId, (int)mm.getAtom(atomId).getBodyId());
+        (int) atomIndex, (int)mm.getAtom(atomIndex).getBodyIndex());
 
         // Create an entry for the body if necessary, and its corresponding cluster.
     mm.ensureBodyEntryExists(bodyNum);
-    Cluster& bodyCluster = mm.updCluster(mm.getBody(bodyNum).getClusterId());
+    Cluster& bodyCluster = mm.updCluster(mm.getBody(bodyNum).getClusterIndex());
 
         // Attach the atom to the body's cluster.
-    bodyCluster.placeAtom(atomId, stationInNm, mm);
+    bodyCluster.placeAtom(atomIndex, stationInNm, mm);
 }
 
 MassProperties DuMMForceFieldSubsystem::calcClusterMassProperties
-   (DuMM::ClusterId clusterId, const Transform& placementInNm) const
+   (DuMM::ClusterIndex clusterIndex, const Transform& placementInNm) const
 {
     static const char* MethodName = "calcClusterMassProperties";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
         // Make sure we've seen this cluster before.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
-        "cluster Id %d is not valid", (int) clusterId);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterIndex), mm.ApiClassName, MethodName,
+        "cluster Index %d is not valid", (int) clusterIndex);
 
-    return mm.getCluster(clusterId).calcMassProperties(placementInNm, mm);
+    return mm.getCluster(clusterIndex).calcMassProperties(placementInNm, mm);
 }
 
 
-DuMM::BondId DuMMForceFieldSubsystem::addBond(DuMM::AtomId atom1Id, DuMM::AtomId atom2Id)
+DuMM::BondIndex DuMMForceFieldSubsystem::addBond(DuMM::AtomIndex atom1Ix, DuMM::AtomIndex atom2Ix)
 {
     static const char* MethodName = "addBond";
 
@@ -2357,30 +2357,30 @@ DuMM::BondId DuMMForceFieldSubsystem::addBond(DuMM::AtomId atom1Id, DuMM::AtomId
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Make sure we've seen these atoms before.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atom1Id), mm.ApiClassName, MethodName,
-        "atom1(%d) is not valid", (int) atom1Id);
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atom2Id), mm.ApiClassName, MethodName,
-        "atom2(%d) is not valid", (int) atom2Id);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atom1Ix), mm.ApiClassName, MethodName,
+        "atom1(%d) is not valid", (int) atom1Ix);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atom2Ix), mm.ApiClassName, MethodName,
+        "atom2(%d) is not valid", (int) atom2Ix);
 
         // An atom can't be bonded to itself.
-    SimTK_APIARGCHECK1_ALWAYS(atom1Id != atom2Id, mm.ApiClassName, MethodName,
-        "the same atom Id(%d) was given for both atoms, which makes no sense", (int) atom1Id);
+    SimTK_APIARGCHECK1_ALWAYS(atom1Ix != atom2Ix, mm.ApiClassName, MethodName,
+        "the same atom index (%d) was given for both atoms, which makes no sense", (int) atom1Ix);
 
     // Ensure that atom1 < atom2
-    if (atom1Id > atom2Id)
-        std::swap(atom1Id,atom2Id);
+    if (atom1Ix > atom2Ix)
+        std::swap(atom1Ix,atom2Ix);
 
-    Atom& a1 = mm.updAtom(atom1Id);
-    Atom& a2 = mm.updAtom(atom2Id);
+    Atom& a1 = mm.updAtom(atom1Ix);
+    Atom& a2 = mm.updAtom(atom2Ix);
 
-    SimTK_APIARGCHECK2_ALWAYS(!a1.isBondedTo(atom2Id), mm.ApiClassName, MethodName,
+    SimTK_APIARGCHECK2_ALWAYS(!a1.isBondedTo(atom2Ix), mm.ApiClassName, MethodName,
         "atom %d is already bonded to atom %d; you can only do that once",
-        (int) atom1Id, (int) atom2Id);
+        (int) atom1Ix, (int) atom2Ix);
 
-    mm.bonds.push_back(Bond(atom1Id,atom2Id));
-    a1.bond12.push_back(atom2Id);
-    a2.bond12.push_back(atom1Id);
-    return (DuMM::BondId)(mm.bonds.size() - 1);
+    mm.bonds.push_back(Bond(atom1Ix,atom2Ix));
+    a1.bond12.push_back(atom2Ix);
+    a2.bond12.push_back(atom1Ix);
+    return (DuMM::BondIndex)(mm.bonds.size() - 1);
 }
 
 int DuMMForceFieldSubsystem::getNAtoms() const {
@@ -2390,189 +2390,189 @@ int DuMMForceFieldSubsystem::getNBonds() const {
     return getRep().getNBonds();
 }
 
-// 'which' is 0 or 1 to pick one of the two atoms whose Id we return.
-DuMM::AtomId DuMMForceFieldSubsystem::getBondAtom(DuMM::BondId bondId, int which) const {
+// 'which' is 0 or 1 to pick one of the two atoms whose index we return.
+DuMM::AtomIndex DuMMForceFieldSubsystem::getBondAtom(DuMM::BondIndex bondIx, int which) const {
     static const char* MethodName = "getBondAtom";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
         // Make sure we've seen this bond before.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidBond(bondId), mm.ApiClassName, MethodName,
-        "bond %d is not valid", (int) bondId);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidBond(bondIx), mm.ApiClassName, MethodName,
+        "bond %d is not valid", (int) bondIx);
 
     SimTK_APIARGCHECK1_ALWAYS(which==0 || which==1, mm.ApiClassName, MethodName,
         "'which' was %d but must be 0 or 1 to choose one of the two atoms", which);
 
-    return mm.bonds[bondId].atoms[which];
+    return mm.bonds[bondIx].atoms[which];
 }
 
 // Returned mass is in daltons (g/mol).
-Real DuMMForceFieldSubsystem::getAtomMass(DuMM::AtomId atomId) const {
+Real DuMMForceFieldSubsystem::getAtomMass(DuMM::AtomIndex atomIndex) const {
     static const char* MethodName = "getAtomMass";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
         // Make sure we've seen this atom before.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom %d is not valid", (int) atomId);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomIndex), mm.ApiClassName, MethodName,
+        "atom %d is not valid", (int) atomIndex);
 
-    const Element& e = mm.elements[mm.getAtomElementNum(atomId)];
+    const Element& e = mm.elements[mm.getAtomElementNum(atomIndex)];
     return e.mass;
 }
 
 // Returns the atomic number (number of protons in nucleus).
-int DuMMForceFieldSubsystem::getAtomElement(DuMM::AtomId atomId) const {
+int DuMMForceFieldSubsystem::getAtomElement(DuMM::AtomIndex atomIndex) const {
     static const char* MethodName = "getAtomElement";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
         // Make sure we've seen this atom before.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom %d is not valid", (int) atomId);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomIndex), mm.ApiClassName, MethodName,
+        "atom %d is not valid", (int) atomIndex);
 
-    return mm.getAtomElementNum(atomId);
+    return mm.getAtomElementNum(atomIndex);
 }
 
-Vec3 DuMMForceFieldSubsystem::getAtomDefaultColor(DuMM::AtomId atomId) const {
+Vec3 DuMMForceFieldSubsystem::getAtomDefaultColor(DuMM::AtomIndex atomIndex) const {
     static const char* MethodName = "getAtomDefaultColor";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
         // Make sure we've seen this atom before.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom %d is not valid", (int) atomId);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomIndex), mm.ApiClassName, MethodName,
+        "atom %d is not valid", (int) atomIndex);
 
-    const Element& e = mm.elements[mm.getAtomElementNum(atomId)];
+    const Element& e = mm.elements[mm.getAtomElementNum(atomIndex)];
     return e.defaultColor;
 }
 
 // Returned radius is in nm.
-Real DuMMForceFieldSubsystem::getAtomRadius(DuMM::AtomId atomId) const {
+Real DuMMForceFieldSubsystem::getAtomRadius(DuMM::AtomIndex atomIndex) const {
     static const char* MethodName = "getAtomRadius";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
         // Make sure we've seen this atom before.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom %d is not valid", (int) atomId);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomIndex), mm.ApiClassName, MethodName,
+        "atom %d is not valid", (int) atomIndex);
 
-    const AtomClass& cl = mm.atomClasses[mm.getAtomClassId(atomId)];
+    const AtomClass& cl = mm.atomClasses[mm.getAtomClassIndex(atomIndex)];
     return cl.vdwRadius;
 }
 
 // Returned station is in nm.
-Vec3 DuMMForceFieldSubsystem::getAtomStationOnBody(DuMM::AtomId atomId) const {
+Vec3 DuMMForceFieldSubsystem::getAtomStationOnBody(DuMM::AtomIndex atomIndex) const {
     static const char* MethodName = "getAtomStationOnBody";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
         // Make sure we've seen this atom before.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom %d is not valid", (int) atomId);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomIndex), mm.ApiClassName, MethodName,
+        "atom %d is not valid", (int) atomIndex);
 
-    const Atom& a = mm.getAtom(atomId);
+    const Atom& a = mm.getAtom(atomIndex);
 
         // Atom must be attached to a body.
     SimTK_APIARGCHECK1_ALWAYS(a.isAttachedToBody(), mm.ApiClassName, MethodName,
-        "atom %d is not attached to a body", (int) atomId);
+        "atom %d is not attached to a body", (int) atomIndex);
 
     return a.station_B;
 }
 
 // Returned placement is in nm.
-Transform DuMMForceFieldSubsystem::getClusterPlacementOnBody(DuMM::ClusterId clusterId) const {
+Transform DuMMForceFieldSubsystem::getClusterPlacementOnBody(DuMM::ClusterIndex clusterIndex) const {
     static const char* MethodName = "getClusterPlacementOnBody";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
         // Make sure we've seen this cluster before.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
-        "cluster Id %d is not valid", (int) clusterId);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterIndex), mm.ApiClassName, MethodName,
+        "cluster Index %d is not valid", (int) clusterIndex);
 
-    const Cluster& c = mm.getCluster(clusterId);
+    const Cluster& c = mm.getCluster(clusterIndex);
 
         // Cluster must be attached to a body.
     SimTK_APIARGCHECK2_ALWAYS(c.isAttachedToBody(), mm.ApiClassName, MethodName,
-        "cluster %d('%s') is not attached to a body", (int) clusterId, c.name.c_str());
+        "cluster %d('%s') is not attached to a body", (int) clusterIndex, c.name.c_str());
 
     return c.placement_B;
 }
 
 // Returned station is in nm.
-Vec3 DuMMForceFieldSubsystem::getAtomStationInCluster(DuMM::AtomId atomId, DuMM::ClusterId clusterId) const {
+Vec3 DuMMForceFieldSubsystem::getAtomStationInCluster(DuMM::AtomIndex atomIndex, DuMM::ClusterIndex clusterIndex) const {
     static const char* MethodName = "getAtomStationInCluster";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
-        // Make sure that we've seen both the atomId and clusterId before.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom Id %d is not valid", (int) atomId);
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
-        "cluster Id %d is not valid", (int) clusterId);
+        // Make sure that we've seen both the atomIndex and clusterIndex before.
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomIndex), mm.ApiClassName, MethodName,
+        "atom index %d is not valid", (int) atomIndex);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterIndex), mm.ApiClassName, MethodName,
+        "cluster index %d is not valid", (int) clusterIndex);
 
-    const Cluster& c = mm.getCluster(clusterId);
+    const Cluster& c = mm.getCluster(clusterIndex);
     const AtomPlacementSet& atoms = c.getAllContainedAtoms();
     const AtomPlacementSet::const_iterator ap = 
-        atoms.find(AtomPlacement(atomId,Vec3(0)));
+        atoms.find(AtomPlacement(atomIndex,Vec3(0)));
 
         // We're going to be upset of this cluster doesn't contain this atom.
     SimTK_APIARGCHECK3_ALWAYS(ap != atoms.end(), mm.ApiClassName, MethodName,
-        "cluster %d('%s') does not contain atom %d", (int) clusterId, c.name.c_str(), (int) atomId);
+        "cluster %d('%s') does not contain atom %d", (int) clusterIndex, c.name.c_str(), (int) atomIndex);
 
     return ap->station;
 }
 
 // Returned placement is in nm.
-Transform DuMMForceFieldSubsystem::getClusterPlacementInCluster(DuMM::ClusterId childClusterId, DuMM::ClusterId parentClusterId) const {
+Transform DuMMForceFieldSubsystem::getClusterPlacementInCluster(DuMM::ClusterIndex childClusterIndex, DuMM::ClusterIndex parentClusterIndex) const {
     static const char* MethodName = "getClusterPlacementInCluster";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
         // Make sure that we've seen both of these clusters before.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(childClusterId), mm.ApiClassName, MethodName,
-        "child cluster Id %d is not valid", (int) childClusterId);
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(parentClusterId), mm.ApiClassName, MethodName,
-        "parent cluster Id %d is not valid", (int) parentClusterId);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(childClusterIndex), mm.ApiClassName, MethodName,
+        "child cluster Index %d is not valid", (int) childClusterIndex);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(parentClusterIndex), mm.ApiClassName, MethodName,
+        "parent cluster Index %d is not valid", (int) parentClusterIndex);
 
-    const Cluster& parent = mm.getCluster(parentClusterId);
-    const Cluster& child  = mm.getCluster(childClusterId);
+    const Cluster& parent = mm.getCluster(parentClusterIndex);
+    const Cluster& child  = mm.getCluster(childClusterIndex);
 
     const ClusterPlacementSet& clusters = parent.getAllContainedClusters();
     const ClusterPlacementSet::const_iterator cp = 
-        clusters.find(ClusterPlacement(childClusterId,Transform()));
+        clusters.find(ClusterPlacement(childClusterIndex,Transform()));
 
         // We're going to be upset of the parent cluster doesn't contain the child.
     SimTK_APIARGCHECK4_ALWAYS(cp != clusters.end(), mm.ApiClassName, MethodName,
         "cluster %d('%s') does not contain cluster %d('%d')", 
-        (int) parentClusterId, parent.name.c_str(), (int) childClusterId, child.name.c_str());
+        (int) parentClusterIndex, parent.name.c_str(), (int) childClusterIndex, child.name.c_str());
 
     return cp->placement;
 }
 
-MobilizedBodyId DuMMForceFieldSubsystem::getAtomBody(DuMM::AtomId atomId) const {
+MobilizedBodyIndex DuMMForceFieldSubsystem::getAtomBody(DuMM::AtomIndex atomIndex) const {
     static const char* MethodName = "getAtomBody";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
-        // Make sure that we've seen this atomId before.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom Id %d is not valid", (int) atomId);
+        // Make sure that we've seen this atomIndex before.
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomIndex), mm.ApiClassName, MethodName,
+        "atom index %d is not valid", (int) atomIndex);
 
-    const Atom& a = mm.getAtom(atomId);
+    const Atom& a = mm.getAtom(atomIndex);
 
         // Atom must be attached to a body.
     SimTK_APIARGCHECK1_ALWAYS(a.isAttachedToBody(), mm.ApiClassName, MethodName,
-        "atom %d is not attached to a body", (int) atomId);
+        "atom %d is not attached to a body", (int) atomIndex);
 
-    return a.getBodyId();
+    return a.getBodyIndex();
 }
 
 
-MobilizedBodyId DuMMForceFieldSubsystem::getClusterBody(DuMM::ClusterId clusterId) const {
+MobilizedBodyIndex DuMMForceFieldSubsystem::getClusterBody(DuMM::ClusterIndex clusterIndex) const {
     static const char* MethodName = "getClusterBody";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
-        // Make sure that we've seen this atomId before.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
-        "cluster Id %d is not valid", (int) clusterId);
+        // Make sure that we've seen this atomIndex before.
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterIndex), mm.ApiClassName, MethodName,
+        "cluster Index %d is not valid", (int) clusterIndex);
 
-    const Cluster& c = mm.getCluster(clusterId);
+    const Cluster& c = mm.getCluster(clusterIndex);
 
         // Cluster must be attached to a body.
     SimTK_APIARGCHECK2_ALWAYS(c.isAttachedToBody(), mm.ApiClassName, MethodName,
-        "cluster %d('%s') is not attached to a body", (int) clusterId, c.name.c_str());
+        "cluster %d('%s') is not attached to a body", (int) clusterIndex, c.name.c_str());
 
-    return c.getBodyId();
+    return c.getBodyIndex();
 }
 
 void DuMMForceFieldSubsystem::dump() const {
@@ -2588,36 +2588,36 @@ void DuMMForceFieldSubsystem::dump() const {
     = "DuMMForceFieldSubsystem";
 
 const BondStretch& 
-DuMMForceFieldSubsystemRep::getBondStretch(DuMM::AtomClassId class1, DuMM::AtomClassId class2) const {
+DuMMForceFieldSubsystemRep::getBondStretch(DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2) const {
     static const BondStretch dummy; // invalid
-    const AtomClassIdPair key(class1,class2,true);
-    std::map<AtomClassIdPair,BondStretch>::const_iterator bs = bondStretch.find(key);
+    const AtomClassIndexPair key(class1,class2,true);
+    std::map<AtomClassIndexPair,BondStretch>::const_iterator bs = bondStretch.find(key);
     return (bs != bondStretch.end()) ? bs->second : dummy;
 }
 
 const BondBend& 
-DuMMForceFieldSubsystemRep::getBondBend(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3) const {
+DuMMForceFieldSubsystemRep::getBondBend(DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3) const {
     static const BondBend dummy; // invalid
-    const AtomClassIdTriple key(class1, class2, class3, true);
-    std::map<AtomClassIdTriple,BondBend>::const_iterator bb = bondBend.find(key);
+    const AtomClassIndexTriple key(class1, class2, class3, true);
+    std::map<AtomClassIndexTriple,BondBend>::const_iterator bb = bondBend.find(key);
     return (bb != bondBend.end()) ? bb->second : dummy;
 }
 
 const BondTorsion& 
 DuMMForceFieldSubsystemRep::getBondTorsion
-   (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4) const
+   (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4) const
 {
-    static const AtomClassIdQuad dummyKey(DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId);
+    static const AtomClassIndexQuad dummyKey(DuMM::InvalidAtomClassIndex, DuMM::InvalidAtomClassIndex, DuMM::InvalidAtomClassIndex, DuMM::InvalidAtomClassIndex);
     static const BondTorsion dummy(dummyKey); // invalid
 
-    const AtomClassIdQuad key(class1, class2, class3, class4, true);
-    std::map<AtomClassIdQuad,BondTorsion>::const_iterator bt = bondTorsion.find(key);
+    const AtomClassIndexQuad key(class1, class2, class3, class4, true);
+    std::map<AtomClassIndexQuad,BondTorsion>::const_iterator bt = bondTorsion.find(key);
     return (bt != bondTorsion.end()) ? bt->second : dummy;
 }
 
 const BondTorsion& 
 DuMMForceFieldSubsystemRep::getAmberImproperTorsion
-   (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4) const
+   (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4) const
 {
 //xxx -> Randy's warning flag
     bool printCrapToTheScreen = false;
@@ -2627,7 +2627,7 @@ DuMMForceFieldSubsystemRep::getAmberImproperTorsion
                                       (int)class2,
                                       (int)class3,
                                       (int)class4);
-        std::map<AtomClassIdQuad,BondTorsion>::const_iterator i;
+        std::map<AtomClassIndexQuad,BondTorsion>::const_iterator i;
         for (i=amberImproperTorsion.begin(); i!=amberImproperTorsion.end(); i++) {
             printf( "aImp-matches: %d-%d-%d-%d\n", (int)i->first[0],
                                           (int)(i->first[1]),
@@ -2636,11 +2636,11 @@ DuMMForceFieldSubsystemRep::getAmberImproperTorsion
         }
     }
     
-    static const AtomClassIdQuad dummyKey(DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId);
+    static const AtomClassIndexQuad dummyKey(DuMM::InvalidAtomClassIndex, DuMM::InvalidAtomClassIndex, DuMM::InvalidAtomClassIndex, DuMM::InvalidAtomClassIndex);
     static const BondTorsion dummy(dummyKey); // invalid
 
-    const AtomClassIdQuad key(class1, class2, class3, class4, false);
-    std::map<AtomClassIdQuad,BondTorsion>::const_iterator bt = amberImproperTorsion.find(key);
+    const AtomClassIndexQuad key(class1, class2, class3, class4, false);
+    std::map<AtomClassIndexQuad,BondTorsion>::const_iterator bt = amberImproperTorsion.find(key);
     return (bt != amberImproperTorsion.end()) ? bt->second : dummy;
 }
 
@@ -2648,8 +2648,8 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
 {
 
     // At realization time, we need to verify that every atom has a valid atom class id
-    for (DuMM::AtomId anum = (DuMM::AtomId)0; (DuMM::AtomId)anum < (DuMM::AtomId)atoms.size(); ++anum) {
-        if ( ! isValidChargedAtomType(atoms[anum].chargedAtomTypeId) ) {
+    for (DuMM::AtomIndex anum = (DuMM::AtomIndex)0; (DuMM::AtomIndex)anum < (DuMM::AtomIndex)atoms.size(); ++anum) {
+        if ( ! isValidChargedAtomType(atoms[anum].chargedAtomTypeIndex) ) {
             throw Exception::Base("Atom must have valid charged atom type before realizing topology");
         }
     }
@@ -2668,14 +2668,14 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
     // and upper triangle; that is, each class contains
     // parameters for like classes and all classes whose
     // (arbitrary) class number is higher.
-    for (DuMM::AtomClassId i = (DuMM::AtomClassId)0; i < (DuMM::AtomClassId)atomClasses.size(); ++i) {
+    for (DuMM::AtomClassIndex i = (DuMM::AtomClassIndex)0; i < (DuMM::AtomClassIndex)atomClasses.size(); ++i) {
         if (!atomClasses[i].isValid()) continue;
         if (!atomClasses[i].isComplete()) continue;
 
         AtomClass& iclass = mutableThis->atomClasses[i];
         iclass.vdwDij.resize((int)atomClasses.size()-i, NaN);
         iclass.vdwEij.resize((int)atomClasses.size()-i, NaN); 
-        for (DuMM::AtomClassId j=i; j < (DuMM::AtomClassId)atomClasses.size(); ++j) {
+        for (DuMM::AtomClassIndex j=i; j < (DuMM::AtomClassIndex)atomClasses.size(); ++j) {
             const AtomClass& jclass = atomClasses[j];
             if (jclass.isValid() && jclass.isComplete())
                 applyMixingRule(iclass.vdwRadius,    jclass.vdwRadius,
@@ -2691,7 +2691,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
 
     // We process clusters recursively, so we need to allow the clusters writable
     // access to the main DuMM object (i.e., "this").
-    for (DuMM::ClusterId cnum = (DuMM::ClusterId)0; cnum < (DuMM::ClusterId)clusters.size(); ++cnum) {
+    for (DuMM::ClusterIndex cnum = (DuMM::ClusterIndex)0; cnum < (DuMM::ClusterIndex)clusters.size(); ++cnum) {
         Cluster& c = mutableThis->clusters[cnum];
         assert(c.isValid()); // Shouldn't be any unused cluster numbers.
         c.realizeTopologicalCache(*mutableThis);
@@ -2702,7 +2702,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
     // Thus bodies need only read access to the main DuMM object, 
     // although we're passign the mutable one in so we can use the
     // same routine (TODO).
-    for (MobilizedBodyId bnum(0); bnum < (int)bodies.size(); ++bnum) {
+    for (MobilizedBodyIndex bnum(0); bnum < (int)bodies.size(); ++bnum) {
         DuMMBody& b = mutableThis->bodies[bnum];
         if (!b.isValid())
             continue; // OK for these to be unused.
@@ -2710,36 +2710,36 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
     }
 
     // Assign body & station to every atom that has been assigned to a body.
-    for (DuMM::AtomId anum = (DuMM::AtomId)0; anum < (DuMM::AtomId)atoms.size(); ++anum) {
+    for (DuMM::AtomIndex anum = (DuMM::AtomIndex)0; anum < (DuMM::AtomIndex)atoms.size(); ++anum) {
         Atom& a = mutableThis->atoms[anum];
-        a.bodyId = InvalidMobilizedBodyId;
+        a.bodyIx = InvalidMobilizedBodyIndex;
     }
-    for (MobilizedBodyId bnum(0); bnum < (int)bodies.size(); ++bnum) {
+    for (MobilizedBodyIndex bnum(0); bnum < (int)bodies.size(); ++bnum) {
         const DuMMBody& b = bodies[bnum];
         if (!b.isValid())
             continue;   // Unused body numbers are OK.
 
         for (int i=0; i < (int)b.allAtoms.size(); ++i) {
             const AtomPlacement& ap = b.allAtoms[i]; assert(ap.isValid());
-            Atom& a = mutableThis->atoms[ap.atomId]; assert(a.isValid());
-            assert(a.bodyId == InvalidMobilizedBodyId); // Can only be on one body!!
-            a.bodyId    = bnum;
+            Atom& a = mutableThis->atoms[ap.atomIndex]; assert(a.isValid());
+            assert(a.bodyIx == InvalidMobilizedBodyIndex); // Can only be on one body!!
+            a.bodyIx    = bnum;
             a.station_B = ap.station;
         }
     }
-    for (DuMM::AtomId anum = (DuMM::AtomId)0; anum < (DuMM::AtomId)atoms.size(); ++anum) {
+    for (DuMM::AtomIndex anum = (DuMM::AtomIndex)0; anum < (DuMM::AtomIndex)atoms.size(); ++anum) {
         const Atom& a = atoms[anum];
-        assert(a.bodyId >= 0); // TODO catch unassigned atoms
+        assert(a.bodyIx >= 0); // TODO catch unassigned atoms
     }
 
     // need to chase bonds to fill in the bonded data
     // Be sure to distinguish the *shortest* path between two atoms from 
     // the set of all paths between atoms.
-    for (DuMM::AtomId anum = (DuMM::AtomId)0; (DuMM::AtomId)anum < (DuMM::AtomId)atoms.size(); ++anum) {
+    for (DuMM::AtomIndex anum = (DuMM::AtomIndex)0; (DuMM::AtomIndex)anum < (DuMM::AtomIndex)atoms.size(); ++anum) {
         Atom& a = mutableThis->atoms[anum];
 
         // This set is used to avoid duplicate paths in the shortestPath calculation.
-        std::set<DuMM::AtomId> allBondedSoFar;
+        std::set<DuMM::AtomIndex> allBondedSoFar;
 
         // Only the bond12 list should be filled in at the moment. We'll sort
         // all the lists when they're done for good hygiene.
@@ -2763,16 +2763,16 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
             const Atom& a12 = atoms[a.bond12[j]];
             const AtomArray& a12_12 = a12.bond12;
             for (int k=0; k < (int)a12_12.size(); ++k) {
-                const DuMM::AtomId newAtom = a12_12[k];
+                const DuMM::AtomIndex newAtom = a12_12[k];
                 assert(newAtom != a.bond12[j]);
                 if (newAtom == anum)
                     continue; // no loop backs!
-                a.bond13.push_back(AtomIdPair(a.bond12[j], newAtom));
+                a.bond13.push_back(AtomIndexPair(a.bond12[j], newAtom));
 
                 // if no shorter path, note this short route
                 if (allBondedSoFar.find(newAtom) == allBondedSoFar.end()) {
                     allBondedSoFar.insert(newAtom);
-                    a.shortPath13.push_back(AtomIdPair(a.bond12[j], newAtom));
+                    a.shortPath13.push_back(AtomIndexPair(a.bond12[j], newAtom));
                 }
             }
         }
@@ -2788,11 +2788,11 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
             const Atom& a13 = atoms[a.bond13[j][1]];
             const AtomArray& a13_12 = a13.bond12;
             for (int k=0; k < (int)a13_12.size(); ++k) {
-                const DuMM::AtomId newAtom = a13_12[k];
+                const DuMM::AtomIndex newAtom = a13_12[k];
                 assert(newAtom != a.bond13[j][1]);
                 // avoid repeated atoms (loop back)
                 if (newAtom!=anum && newAtom!=a.bond13[j][0]) {
-                    a.bond14.push_back(AtomIdTriple(a.bond13[j][0],
+                    a.bond14.push_back(AtomIndexTriple(a.bond13[j][0],
                                                  a.bond13[j][1], newAtom));
                 }
             }
@@ -2805,12 +2805,12 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
             const Atom& a13 = atoms[a.shortPath13[j][1]];
             const AtomArray& a13_12 = a13.bond12;
             for (int k=0; k < (int)a13_12.size(); ++k) {
-                const DuMM::AtomId newAtom = a13_12[k];
+                const DuMM::AtomIndex newAtom = a13_12[k];
 
                  // check if there was already a shorter path
                 if (allBondedSoFar.find(newAtom) == allBondedSoFar.end()) {
                     allBondedSoFar.insert(newAtom);
-                    a.shortPath14.push_back(AtomIdTriple(a.shortPath13[j][0],
+                    a.shortPath14.push_back(AtomIndexTriple(a.shortPath13[j][0],
                                                       a.shortPath13[j][1], newAtom));
                 }
             }
@@ -2824,12 +2824,12 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
             const Atom& a14 = atoms[a.bond14[j][2]];
             const AtomArray& a14_12 = a14.bond12;
             for (int k=0; k < (int)a14_12.size(); ++k) {
-                const DuMM::AtomId newAtom = a14_12[k];
+                const DuMM::AtomIndex newAtom = a14_12[k];
                 assert(newAtom != a.bond14[j][2]);
 
                 // avoid repeats and loop back
                 if (newAtom!=anum && newAtom!=a.bond14[j][0] && newAtom!=a.bond14[j][1]) {
-                    a.bond15.push_back(AtomIdQuad(a.bond14[j][0],
+                    a.bond15.push_back(AtomIndexQuad(a.bond14[j][0],
                                                a.bond14[j][1],
                                                a.bond14[j][2], newAtom));
                 }
@@ -2843,12 +2843,12 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
             const Atom& a14 = atoms[a.shortPath14[j][2]];
             const AtomArray& a14_12 = a14.bond12;
             for (int k=0; k < (int)a14_12.size(); ++k) {
-                const DuMM::AtomId newAtom = a14_12[k];
+                const DuMM::AtomIndex newAtom = a14_12[k];
 
                 // check if there was already a shorter path
                 if (allBondedSoFar.find(newAtom) == allBondedSoFar.end()) {
                     allBondedSoFar.insert(newAtom);
-                    a.shortPath15.push_back(AtomIdQuad(a.shortPath14[j][0],
+                    a.shortPath15.push_back(AtomIndexQuad(a.shortPath14[j][0],
                                                     a.shortPath14[j][1],
                                                     a.shortPath14[j][2], newAtom));
                 }
@@ -2860,7 +2860,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
         // Then add all orderings of ths to the improper torsion list
         a.bonds3Atoms.invalidate();
         if (3 == (int)a.bond12.size()) {
-            a.bonds3Atoms = AtomIdTriple(a.bond12[0], a.bond12[1], a.bond12[2]);
+            a.bonds3Atoms = AtomIndexTriple(a.bond12[0], a.bond12[1], a.bond12[2]);
         }
 
         // Fill in the cross-body bond lists. We only keep atoms which
@@ -2868,64 +2868,64 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
         // and the shortest bond lists.
         a.xbond12.clear();
         for (int j=0; j < (int)a.bond12.size(); ++j)
-            if (atoms[a.bond12[j]].bodyId != a.bodyId)
+            if (atoms[a.bond12[j]].bodyIx != a.bodyIx)
                 a.xbond12.push_back(a.bond12[j]);
 
         a.xbond13.clear(); a.xshortPath13.clear();
         for (int j=0; j < (int)a.bond13.size(); ++j)
-            if (   atoms[a.bond13[j][0]].bodyId != a.bodyId
-                || atoms[a.bond13[j][1]].bodyId != a.bodyId)
+            if (   atoms[a.bond13[j][0]].bodyIx != a.bodyIx
+                || atoms[a.bond13[j][1]].bodyIx != a.bodyIx)
                 a.xbond13.push_back(a.bond13[j]);
         for (int j=0; j < (int)a.shortPath13.size(); ++j)
-            if (   atoms[a.shortPath13[j][0]].bodyId != a.bodyId
-                || atoms[a.shortPath13[j][1]].bodyId != a.bodyId)
+            if (   atoms[a.shortPath13[j][0]].bodyIx != a.bodyIx
+                || atoms[a.shortPath13[j][1]].bodyIx != a.bodyIx)
                 a.xshortPath13.push_back(a.shortPath13[j]);
 
         a.xbond14.clear(); a.xshortPath14.clear();
         for (int j=0; j < (int)a.bond14.size(); ++j)
-            if (   atoms[a.bond14[j][0]].bodyId != a.bodyId
-                || atoms[a.bond14[j][1]].bodyId != a.bodyId
-                || atoms[a.bond14[j][2]].bodyId != a.bodyId)
+            if (   atoms[a.bond14[j][0]].bodyIx != a.bodyIx
+                || atoms[a.bond14[j][1]].bodyIx != a.bodyIx
+                || atoms[a.bond14[j][2]].bodyIx != a.bodyIx)
                 a.xbond14.push_back(a.bond14[j]);
         for (int j=0; j < (int)a.shortPath14.size(); ++j)
-            if (   atoms[a.shortPath14[j][0]].bodyId != a.bodyId
-                || atoms[a.shortPath14[j][1]].bodyId != a.bodyId
-                || atoms[a.shortPath14[j][2]].bodyId != a.bodyId)
+            if (   atoms[a.shortPath14[j][0]].bodyIx != a.bodyIx
+                || atoms[a.shortPath14[j][1]].bodyIx != a.bodyIx
+                || atoms[a.shortPath14[j][2]].bodyIx != a.bodyIx)
                 a.xshortPath14.push_back(a.shortPath14[j]);
 
         a.xbond15.clear(); a.xshortPath15.clear();
         for (int j=0; j < (int)a.bond15.size(); ++j)
-            if (   atoms[a.bond15[j][0]].bodyId != a.bodyId
-                || atoms[a.bond15[j][1]].bodyId != a.bodyId
-                || atoms[a.bond15[j][2]].bodyId != a.bodyId
-                || atoms[a.bond15[j][3]].bodyId != a.bodyId)
+            if (   atoms[a.bond15[j][0]].bodyIx != a.bodyIx
+                || atoms[a.bond15[j][1]].bodyIx != a.bodyIx
+                || atoms[a.bond15[j][2]].bodyIx != a.bodyIx
+                || atoms[a.bond15[j][3]].bodyIx != a.bodyIx)
                 a.xbond15.push_back(a.bond15[j]);
         for (int j=0; j < (int)a.shortPath15.size(); ++j)
-            if (   atoms[a.shortPath15[j][0]].bodyId != a.bodyId
-                || atoms[a.shortPath15[j][1]].bodyId != a.bodyId
-                || atoms[a.shortPath15[j][2]].bodyId != a.bodyId
-                || atoms[a.shortPath15[j][3]].bodyId != a.bodyId)
+            if (   atoms[a.shortPath15[j][0]].bodyIx != a.bodyIx
+                || atoms[a.shortPath15[j][1]].bodyIx != a.bodyIx
+                || atoms[a.shortPath15[j][2]].bodyIx != a.bodyIx
+                || atoms[a.shortPath15[j][3]].bodyIx != a.bodyIx)
                 a.xshortPath15.push_back(a.shortPath15[j]);
 
         a.xbonds3Atoms.invalidate();
         // If there were 3 bonds, and at least one of them is
         // on a different body, then we win!
         if (a.bonds3Atoms.isValid() && 
-            (   atoms[a.bonds3Atoms[0]].bodyId != a.bodyId
-             || atoms[a.bonds3Atoms[1]].bodyId != a.bodyId
-             || atoms[a.bonds3Atoms[2]].bodyId != a.bodyId))
+            (   atoms[a.bonds3Atoms[0]].bodyIx != a.bodyIx
+             || atoms[a.bonds3Atoms[1]].bodyIx != a.bodyIx
+             || atoms[a.bonds3Atoms[2]].bodyIx != a.bodyIx))
             a.xbonds3Atoms = a.bonds3Atoms;
 
-        const DuMM::AtomClassId c1 = getAtomClassId(anum);
+        const DuMM::AtomClassIndex c1 = getAtomClassIndex(anum);
 
         // Save a BondStretch entry for each cross-body 1-2 bond
         a.stretch.resize(a.xbond12.size());
         for (int b12=0; b12 < (int)a.xbond12.size(); ++b12) {
-            const DuMM::AtomClassId c2 = getAtomClassId(a.xbond12[b12]);
+            const DuMM::AtomClassIndex c2 = getAtomClassIndex(a.xbond12[b12]);
             a.stretch[b12] = getBondStretch(c1, c2);
 
             SimTK_REALIZECHECK2_ALWAYS(a.stretch[b12].isValid(),
-                Stage::Topology, getMySubsystemId(), getName(),
+                Stage::Topology, getMySubsystemIndex(), getName(),
                 "couldn't find bond stretch parameters for cross-body atom class pair (%d,%d)", 
                 (int) c1,(int) c2);
         }
@@ -2933,12 +2933,12 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
         // Save a BondBend entry for each cross-body 1-3 bond
         a.bend.resize(a.xbond13.size());
         for (int b13=0; b13 < (int)a.xbond13.size(); ++b13) {
-            const DuMM::AtomClassId c2 = getAtomClassId(a.xbond13[b13][0]);
-            const DuMM::AtomClassId c3 = getAtomClassId(a.xbond13[b13][1]);
+            const DuMM::AtomClassIndex c2 = getAtomClassIndex(a.xbond13[b13][0]);
+            const DuMM::AtomClassIndex c3 = getAtomClassIndex(a.xbond13[b13][1]);
             a.bend[b13] = getBondBend(c1, c2, c3);
 
             SimTK_REALIZECHECK3_ALWAYS(a.bend[b13].isValid(),
-                Stage::Topology, getMySubsystemId(), getName(),
+                Stage::Topology, getMySubsystemIndex(), getName(),
                 "couldn't find bond bend parameters for cross-body atom class triple (%d,%d,%d)", 
                 (int) c1,(int) c2,(int) c3);
         }
@@ -2946,13 +2946,13 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
         // Save a BondTorsion entry for each cross-body 1-4 bond
         a.torsion.resize(a.xbond14.size());
         for (int b14=0; b14 < (int)a.xbond14.size(); ++b14) {
-            const DuMM::AtomClassId c2 = getAtomClassId(a.xbond14[b14][0]);
-            const DuMM::AtomClassId c3 = getAtomClassId(a.xbond14[b14][1]);
-            const DuMM::AtomClassId c4 = getAtomClassId(a.xbond14[b14][2]);
+            const DuMM::AtomClassIndex c2 = getAtomClassIndex(a.xbond14[b14][0]);
+            const DuMM::AtomClassIndex c3 = getAtomClassIndex(a.xbond14[b14][1]);
+            const DuMM::AtomClassIndex c4 = getAtomClassIndex(a.xbond14[b14][2]);
             a.torsion[b14] = getBondTorsion(c1, c2, c3, c4); 
 
             SimTK_REALIZECHECK4_ALWAYS(a.torsion[b14].isValid(),
-                Stage::Topology, getMySubsystemId(), getName(),
+                Stage::Topology, getMySubsystemIndex(), getName(),
                 "couldn't find bond torsion parameters for cross-body atom class quad (%d,%d,%d,%d)", 
                 (int) c1,(int) c2,(int) c3,(int) c4);
         }
@@ -2973,13 +2973,13 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
                     for (int i4=0; i4<3; i4++) {
                         if (i4==i2 || i4==i3) continue;
                         static const BondTorsion bt = getAmberImproperTorsion(
-                                                 getAtomClassId(a.xbonds3Atoms[i2]),
-                                                 getAtomClassId(a.xbonds3Atoms[i3]),
+                                                 getAtomClassIndex(a.xbonds3Atoms[i2]),
+                                                 getAtomClassIndex(a.xbonds3Atoms[i3]),
                                                  c1,
-                                                 getAtomClassId(a.xbonds3Atoms[i4]));
+                                                 getAtomClassIndex(a.xbonds3Atoms[i4]));
                         if (bt.isValid()) {
                             printf("anum=%d: i2=%d i3=%d i4=%d\n", (int) anum, i2, i3, i4);
-                            a.aImproperTorsion14.push_back(AtomIdTriple(
+                            a.aImproperTorsion14.push_back(AtomIndexTriple(
                                                            a.xbonds3Atoms[i2],
                                                            a.xbonds3Atoms[i3],
                                                            a.xbonds3Atoms[i4]));
@@ -2993,15 +2993,15 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
     }
     
     // Create cache entries for storing forces.
-    forceValidCacheIndex = s.allocateCacheEntry(getMySubsystemId(), Stage::Position, new Value<bool>());
-    energyCacheIndex = s.allocateCacheEntry(getMySubsystemId(), Stage::Position, new Value<Real>());
-    forceCacheIndex = s.allocateCacheEntry(getMySubsystemId(), Stage::Dynamics, new Value<Vector_<SpatialVec> >());
+    forceValidCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Position, new Value<bool>());
+    energyCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Position, new Value<Real>());
+    forceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector_<SpatialVec> >());
 
     return 0;
 }
 
 int DuMMForceFieldSubsystemRep::realizeSubsystemPositionImpl(const State& s) const {
-    return Value<bool>::downcast(s.updCacheEntry(getMySubsystemId(), forceValidCacheIndex)).upd() = false;
+    return Value<bool>::downcast(s.updCacheEntry(getMySubsystemIndex(), forceValidCacheIndex)).upd() = false;
     return 0;
 }
 
@@ -3029,9 +3029,9 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
     Vector coulombScale((int)atoms.size(), Real(1));
 
     // Get access to system-global cache entries.
-    bool& forceValid = Value<bool>::downcast(s.updCacheEntry(getMySubsystemId(), forceValidCacheIndex)).upd();
-    Real& energyCache = Value<Real>::downcast(s.updCacheEntry(getMySubsystemId(), energyCacheIndex)).upd();
-    Vector_<SpatialVec>& forceCache = Value<Vector_<SpatialVec> >::downcast(s.updCacheEntry(getMySubsystemId(), forceCacheIndex)).upd();
+    bool& forceValid = Value<bool>::downcast(s.updCacheEntry(getMySubsystemIndex(), forceValidCacheIndex)).upd();
+    Real& energyCache = Value<Real>::downcast(s.updCacheEntry(getMySubsystemIndex(), energyCacheIndex)).upd();
+    Vector_<SpatialVec>& forceCache = Value<Vector_<SpatialVec> >::downcast(s.updCacheEntry(getMySubsystemIndex(), forceCacheIndex)).upd();
 
     if (!forceValid) {
         // We need to calculate the forces.
@@ -3040,15 +3040,15 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
         forceCache = SpatialVec(Vec3(0), Vec3(0));
         forceValid = true;
         
-        for (MobilizedBodyId b1(0); b1 < (int)bodies.size(); ++b1) {
+        for (MobilizedBodyIndex b1(0); b1 < (int)bodies.size(); ++b1) {
              const Transform&          X_GB1  = matter.getMobilizedBody(b1).getBodyTransform(s);
              const AtomPlacementArray& alist1 = bodies[b1].allAtoms;
 
              for (int i=0; i < (int)alist1.size(); ++i) {
-                 const int       a1num = alist1[i].atomId;
+                 const int       a1num = alist1[i].atomIndex;
                  const Atom&     a1 = atoms[a1num];
-                 const ChargedAtomType& a1type  = chargedAtomTypes[a1.chargedAtomTypeId];
-                 int                    a1cnum  = a1type.atomClassId;
+                 const ChargedAtomType& a1type  = chargedAtomTypes[a1.chargedAtomTypeIndex];
+                 int                    a1cnum  = a1type.atomClassIx;
                  const AtomClass&       a1class = atomClasses[a1cnum];
                  const Vec3      a1Station_G = X_GB1.R()*a1.station_B;
                  const Vec3      a1Pos_G     = X_GB1.T() + a1Station_G;
@@ -3065,9 +3065,9 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                          continue; // don't process this bond this time
 
                      const Atom& a2 = atoms[a2num];
-                     const MobilizedBodyId b2 = a2.bodyId;
+                     const MobilizedBodyIndex b2 = a2.bodyIx;
                      assert(b2 != b1);
-                     const Transform& X_GB2 = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
+                     const Transform& X_GB2 = matter.getMobilizedBody(a2.bodyIx).getBodyTransform(s);
                      const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
                      const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
                      const Vec3       r = a2Pos_G - a1Pos_G;
@@ -3098,13 +3098,13 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
 
                      const Atom& a2 = atoms[a2num];
                      const Atom& a3 = atoms[a3num];
-                     const MobilizedBodyId b2 = a2.bodyId;
-                     const MobilizedBodyId b3 = a3.bodyId;
+                     const MobilizedBodyIndex b2 = a2.bodyIx;
+                     const MobilizedBodyIndex b3 = a3.bodyIx;
                      assert(!(b2==b1 && b3==b1)); // shouldn't be on the list if all on 1 body
 
                      // TODO: These might be the same body but for now we don't care.
-                     const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
-                     const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
+                     const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyIx).getBodyTransform(s);
+                     const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyIx).getBodyTransform(s);
                      const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
                      const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
                      const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
@@ -3134,15 +3134,15 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                      const Atom& a2 = atoms[a2num];
                      const Atom& a3 = atoms[a3num];
                      const Atom& a4 = atoms[a4num];
-                     const int b2 = a2.bodyId;
-                     const int b3 = a3.bodyId;
-                     const int b4 = a4.bodyId;
+                     const int b2 = a2.bodyIx;
+                     const int b3 = a3.bodyIx;
+                     const int b4 = a4.bodyIx;
                      assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
 
                      // TODO: These might be the same body but for now we don't care.
-                     const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
-                     const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
-                     const Transform& X_GB4   = matter.getMobilizedBody(a4.bodyId).getBodyTransform(s);
+                     const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyIx).getBodyTransform(s);
+                     const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyIx).getBodyTransform(s);
+                     const Transform& X_GB4   = matter.getMobilizedBody(a4.bodyIx).getBodyTransform(s);
                      const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
                      const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
                      const Vec3       a4Station_G = X_GB4.R()*a4.station_B;
@@ -3176,15 +3176,15 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                      const Atom& a2 = atoms[a2num];
                      const Atom& a3 = atoms[a3num];
                      const Atom& a4 = atoms[a4num];
-                     const int b2 = a2.bodyId;
-                     const int b3 = a3.bodyId;
-                     const int b4 = a4.bodyId;
+                     const int b2 = a2.bodyIx;
+                     const int b3 = a3.bodyIx;
+                     const int b4 = a4.bodyIx;
                      assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
 
                      // TODO: These might be the same body but for now we don't care.
-                     const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
-                     const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
-                     const Transform& X_GB4   = matter.getMobilizedBody(a4.bodyId).getBodyTransform(s);
+                     const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyIx).getBodyTransform(s);
+                     const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyIx).getBodyTransform(s);
+                     const Transform& X_GB4   = matter.getMobilizedBody(a4.bodyIx).getBodyTransform(s);
                      const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
                      const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
                      const Vec3       a4Station_G = X_GB4.R()*a4.station_B;
@@ -3213,15 +3213,15 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                      const Atom& a2 = atoms[a1.aImproperTorsion14[0]];
                      const Atom& a3 = atoms[a1.aImproperTorsion14[1]];
                      const Atom& a4 = atoms[a1.aImproperTorsion14[2]];
-                     const int b2 = a2.bodyId;
-                     const int b3 = a3.bodyId;
-                     const int b4 = a4.bodyId;
+                     const int b2 = a2.bodyIx;
+                     const int b3 = a3.bodyIx;
+                     const int b4 = a4.bodyIx;
                      assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
 
                      // TODO: These might be the same body but for now we don't care.
-                     const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
-                     const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
-                     const Transform& X_GB4   = matter.getMobilizedBody(a4.bodyId).getBodyTransform(s);
+                     const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyIx).getBodyTransform(s);
+                     const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyIx).getBodyTransform(s);
+                     const Transform& X_GB4   = matter.getMobilizedBody(a4.bodyIx).getBodyTransform(s);
                      const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
                      const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
                      const Vec3       a4Station_G = X_GB4.R()*a4.station_B;
@@ -3246,16 +3246,16 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
 
                  // Coulombic electrostatic force
                  scaleBondedAtoms(a1,vdwScale,coulombScale);
-                 for (MobilizedBodyId b2(b1+1); b2 < (int)bodies.size(); ++b2) {
+                 for (MobilizedBodyIndex b2(b1+1); b2 < (int)bodies.size(); ++b2) {
                      const Transform&          X_GB2  = matter.getMobilizedBody(b2).getBodyTransform(s);
                      const AtomPlacementArray& alist2 = bodies[b2].allAtoms;
 
                      for (int j=0; j < (int)alist2.size(); ++j) {
-                         const int       a2num = alist2[j].atomId;
+                         const int       a2num = alist2[j].atomIndex;
                          assert(a2num != a1num);
                          const Atom&     a2 = atoms[a2num];
-                         const ChargedAtomType& a2type  = chargedAtomTypes[a2.chargedAtomTypeId];
-                         int                    a2cnum  = a2type.atomClassId;
+                         const ChargedAtomType& a2type  = chargedAtomTypes[a2.chargedAtomTypeIndex];
+                         int                    a2cnum  = a2type.atomClassIx;
                          const AtomClass&       a2class = atomClasses[a2cnum];
                          
                          const Vec3  a2Station_G = X_GB2.R()*a2.station_B; // 15 flops
@@ -3312,13 +3312,13 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
         std::vector<int> gbsaFirstBondPartners(getNAtoms());
         std::vector<int> gbsaNumberOfCovalentBondPartners(getNAtoms());
         // Put atomic coordinates relative to ground in gbsaRawCoordinates
-        for (MobilizedBodyId b1(0); b1 < (int)bodies.size(); ++b1) 
+        for (MobilizedBodyIndex b1(0); b1 < (int)bodies.size(); ++b1) 
         {
             const Transform&          X_GB1  = matter.getMobilizedBody(b1).getBodyTransform(s);
             const AtomPlacementArray& alist1 = bodies[b1].allAtoms;
             for (int i=0; i < (int)alist1.size(); ++i) 
             {
-                const int       a1num = alist1[i].atomId;
+                const int       a1num = alist1[i].atomIndex;
                 const Atom&     a1 = atoms[a1num];
 
                 // atomic coordinates with respect to Ground frame
@@ -3330,11 +3330,11 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                 gbsaRawCoordinates[3 * a1num + 2] = a1Pos_G[2];
 
                 // store partial charge also
-                const ChargedAtomType& a1type  = chargedAtomTypes[a1.chargedAtomTypeId];
+                const ChargedAtomType& a1type  = chargedAtomTypes[a1.chargedAtomTypeIndex];
                 gbsaAtomicPartialCharges[a1num] = a1type.partialCharge;
 
                 // and store atomic number
-                const AtomClass& a1class = atomClasses[a1type.atomClassId];
+                const AtomClass& a1class = atomClasses[a1type.atomClassIx];
                 gbsaAtomicNumbers[a1num] = a1class.element;
 
                 // and store one representative bond partner id
@@ -3417,7 +3417,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
         }
 
         // 4)  apply GBSA forces to bodies
-        for (MobilizedBodyId b1(0); b1 < (int)bodies.size(); ++b1) 
+        for (MobilizedBodyIndex b1(0); b1 < (int)bodies.size(); ++b1) 
         {
             // Location of body in ground frame
             const Transform&          X_GB1  = matter.getMobilizedBody(b1).getBodyTransform(s);
@@ -3425,7 +3425,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
             const AtomPlacementArray& alist1 = bodies[b1].allAtoms;
             for (int i=0; i < (int)alist1.size(); ++i) 
             {
-                const int       a1num = alist1[i].atomId;
+                const int       a1num = alist1[i].atomIndex;
                 
                 Vec3 a1Pos_G(gbsaRawCoordinates[3 * a1num + 0], 
                              gbsaRawCoordinates[3 * a1num + 1],
@@ -3780,7 +3780,7 @@ void BondTorsion::periodic(const Vec3& rG, const Vec3& xG, const Vec3& yG, const
 
 void Atom::dump() const {
     printf(" chargedAtomType=%d body=%d station=%g %g %g\n",
-            (int) chargedAtomTypeId, (int)bodyId, station_B[0], station_B[1], station_B[2]);
+            (int) chargedAtomTypeIndex, (int)bodyIx, station_B[0], station_B[1], station_B[2]);
 
     printf("          bond 1-2:");
     for (int i=0; i < (int)bond12.size(); ++i)
@@ -3873,9 +3873,9 @@ void Atom::dump() const {
     /////////////
 
 
-void Cluster::attachToBody(MobilizedBodyId bnum, const Transform& X_BR, DuMMForceFieldSubsystemRep& mm) {
+void Cluster::attachToBody(MobilizedBodyIndex bnum, const Transform& X_BR, DuMMForceFieldSubsystemRep& mm) {
     assert(!isAttachedToBody());
-    bodyId = bnum;
+    bodyIx = bnum;
     placement_B = X_BR;
 
     // Tell all the atoms directly contained in this cluster that they are
@@ -3883,7 +3883,7 @@ void Cluster::attachToBody(MobilizedBodyId bnum, const Transform& X_BR, DuMMForc
     // alread attached -- no polygamy.
     AtomPlacementSet::const_iterator ap = directAtomPlacements.begin();
     while (ap != directAtomPlacements.end()) {
-        Atom& a = mm.updAtom(ap->atomId);
+        Atom& a = mm.updAtom(ap->atomIndex);
         a.attachToBody(bnum, X_BR*ap->station);
         ++ap;
     }
@@ -3892,7 +3892,7 @@ void Cluster::attachToBody(MobilizedBodyId bnum, const Transform& X_BR, DuMMForc
     // own atoms and subgroups.
     ClusterPlacementSet::const_iterator cp = directClusterPlacements.begin();
     while (cp != directClusterPlacements.end()) {
-        Cluster& c = mm.updCluster(cp->clusterId);
+        Cluster& c = mm.updCluster(cp->clusterIndex);
         c.attachToBody(bnum, X_BR*cp->placement, mm);
         ++cp;
     }
@@ -3901,22 +3901,22 @@ void Cluster::attachToBody(MobilizedBodyId bnum, const Transform& X_BR, DuMMForc
 // Return true if this cluster contains (directly or indirectly) any atom which has already
 // been attached to a body. If so return one of the attached atoms and its body, which can
 // be helpful in error messages.
-bool Cluster::containsAnyAtomsAttachedToABody(DuMM::AtomId& atomId, MobilizedBodyId& bodyId, 
+bool Cluster::containsAnyAtomsAttachedToABody(DuMM::AtomIndex& atomIndex, MobilizedBodyIndex& bodyIx, 
                                               const DuMMForceFieldSubsystemRep& mm) const 
 {
     const AtomPlacementSet& myAtoms   = getAllContainedAtoms();
     AtomPlacementSet::const_iterator ap = myAtoms.begin();
     while (ap != myAtoms.end()) {
-        const Atom& a = mm.getAtom(ap->atomId);
+        const Atom& a = mm.getAtom(ap->atomIndex);
         if (a.isAttachedToBody()) {
-            atomId = ap->atomId;
-            bodyId = a.getBodyId();
+            atomIndex = ap->atomIndex;
+            bodyIx = a.getBodyIndex();
             return true;
         }
         ++ap;
     }
-    atomId = DuMM::InvalidAtomId;
-    bodyId = InvalidMobilizedBodyId;
+    atomIndex = DuMM::InvalidAtomIndex;
+    bodyIx = InvalidMobilizedBodyIndex;
     return false;
 }
 
@@ -3928,20 +3928,20 @@ bool Cluster::containsAnyAtomsAttachedToABody(DuMM::AtomId& atomId, MobilizedBod
 //           that group is a top-level group (i.e., it has no parents).
 // If this group is already attached to a body, then we will update
 // the atom entry to note that it is now attached to the body also.
-void Cluster::placeAtom(DuMM::AtomId atomId, const Vec3& station, DuMMForceFieldSubsystemRep& mm) {
+void Cluster::placeAtom(DuMM::AtomIndex atomIndex, const Vec3& station, DuMMForceFieldSubsystemRep& mm) {
     assert(isTopLevelCluster()); // TODO
-    assert(!mm.getAtom(atomId).isAttachedToBody());
-    assert(!containsAtom(atomId));
+    assert(!mm.getAtom(atomIndex).isAttachedToBody());
+    assert(!containsAtom(atomIndex));
 
     std::pair<AtomPlacementSet::iterator, bool> ret;
-    ret = directAtomPlacements.insert(AtomPlacement(atomId,station));
+    ret = directAtomPlacements.insert(AtomPlacement(atomIndex,station));
     assert(ret.second); // must not have been there already
 
-    ret = allAtomPlacements.insert(AtomPlacement(atomId,station));
+    ret = allAtomPlacements.insert(AtomPlacement(atomIndex,station));
     assert(ret.second); // must not have been there already
 
     if (isAttachedToBody())
-        mm.updAtom(atomId).attachToBody(bodyId, placement_B*station);
+        mm.updAtom(atomIndex).attachToBody(bodyIx, placement_B*station);
 }
 
 // Place a child cluster in this parent cluster. To be valid, the child 
@@ -3955,12 +3955,12 @@ void Cluster::placeAtom(DuMM::AtomId atomId, const Vec3& station, DuMMForceField
 // If the parent is already attached to a body, then we will update
 // the child to note that it is now attached to the body also (and it
 // will update its contained atoms).
-void Cluster::placeCluster(DuMM::ClusterId childClusterId, const Transform& placement, DuMMForceFieldSubsystemRep& mm) {
+void Cluster::placeCluster(DuMM::ClusterIndex childClusterIndex, const Transform& placement, DuMMForceFieldSubsystemRep& mm) {
     assert(isTopLevelCluster()); // TODO
 
-    Cluster& child = mm.updCluster(childClusterId);
+    Cluster& child = mm.updCluster(childClusterIndex);
     assert(!child.isAttachedToBody());
-    assert(!containsCluster(childClusterId));
+    assert(!containsCluster(childClusterIndex));
 
     // Make sure the new child cluster doesn't contain any atoms which are already in
     // any of the trees to which the parent cluster (this) is associated.
@@ -3972,7 +3972,7 @@ void Cluster::placeCluster(DuMM::ClusterId childClusterId, const Transform& plac
     AtomPlacementSet::const_iterator ap = childsAtoms.begin();
     while (ap != childsAtoms.end()) {
         std::pair<AtomPlacementSet::iterator, bool> ret =
-            parentsAtoms.insert(AtomPlacement(ap->atomId, placement*ap->station));
+            parentsAtoms.insert(AtomPlacement(ap->atomIndex, placement*ap->station));
         assert(ret.second); // mustn't have been there already
         ++ap;
     }
@@ -3984,16 +3984,16 @@ void Cluster::placeCluster(DuMM::ClusterId childClusterId, const Transform& plac
     ClusterPlacementSet::const_iterator cp = childsClusters.begin();
     while (cp != childsClusters.end()) {
         std::pair<ClusterPlacementSet::iterator, bool> ret =
-            parentsClusters.insert(ClusterPlacement(cp->clusterId, placement*cp->placement));
+            parentsClusters.insert(ClusterPlacement(cp->clusterIndex, placement*cp->placement));
         assert(ret.second); // mustn't have been there already
         ++cp;
     }
 
-    noteNewChildCluster(childClusterId, placement);
-    child.noteNewParentCluster(clusterId, placement);
+    noteNewChildCluster(childClusterIndex, placement);
+    child.noteNewParentCluster(clusterIndex, placement);
 
     if (isAttachedToBody())
-        child.attachToBody(bodyId, placement_B*placement, mm);
+        child.attachToBody(bodyIx, placement_B*placement, mm);
 
     //TODO: check for loops
 }
@@ -4012,7 +4012,7 @@ MassProperties Cluster::calcMassProperties
     // Calculate the mass properties in the local frame and transform last.
     AtomPlacementSet::const_iterator aap = allAtomPlacements.begin();
     while (aap != allAtomPlacements.end()) {
-        const Real ma = mm.getElement(mm.getAtomElementNum(aap->atomId)).mass;
+        const Real ma = mm.getElement(mm.getAtomElementNum(aap->atomIndex)).mass;
         mass += ma;
         com  += ma*aap->station;
         inertia += Inertia(aap->station, ma);
@@ -4028,7 +4028,7 @@ MassProperties Cluster::calcMassProperties
 
 void DuMMBody::realizeTopologicalCache(const DuMMForceFieldSubsystemRep& mm) {
     allAtoms.clear();
-    const Cluster& c = mm.getCluster(clusterId);
+    const Cluster& c = mm.getCluster(clusterIndex);
     AtomPlacementSet::const_iterator ap = c.getAllContainedAtoms().begin();
     while (ap != c.getAllContainedAtoms().end()) {
         allAtoms.push_back(*ap);

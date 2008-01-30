@@ -496,7 +496,7 @@ public:
     // Ground node) are called 'base' nodes.
     int  getLevel() const  {return level;}
 
-    // This is the unique "body Id" for this (body,mobilizer) node. It is used to index
+    // This is the unique "body index" for this (body,mobilizer) node. It is used to index
     // arrays of body quantities.
     int  getNodeNum() const {return nodeNum;}
 

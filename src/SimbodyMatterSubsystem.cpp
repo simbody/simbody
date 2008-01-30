@@ -91,13 +91,13 @@ SimbodyMatterSubsystem::SimbodyMatterSubsystem(MultibodySystem& mbs)
     mbs.setMatterSubsystem(*this);
 }
 
-MobilizedBodyId SimbodyMatterSubsystem::adoptMobilizedBody(MobilizedBodyId parent, MobilizedBody& child) {
+MobilizedBodyIndex SimbodyMatterSubsystem::adoptMobilizedBody(MobilizedBodyIndex parent, MobilizedBody& child) {
     return updRep().adoptMobilizedBody(parent,child);
 }
-const MobilizedBody& SimbodyMatterSubsystem::getMobilizedBody(MobilizedBodyId id) const {
+const MobilizedBody& SimbodyMatterSubsystem::getMobilizedBody(MobilizedBodyIndex id) const {
     return getRep().getMobilizedBody(id);
 }
-MobilizedBody& SimbodyMatterSubsystem::updMobilizedBody(MobilizedBodyId id) {
+MobilizedBody& SimbodyMatterSubsystem::updMobilizedBody(MobilizedBodyIndex id) {
     return updRep().updMobilizedBody(id);
 }
 const MobilizedBody::Ground& SimbodyMatterSubsystem::getGround() const {
@@ -107,13 +107,13 @@ MobilizedBody::Ground& SimbodyMatterSubsystem::updGround() {
     return updRep().updGround();
 }
 
-ConstraintId SimbodyMatterSubsystem::adoptConstraint(Constraint& child) {
+ConstraintIndex SimbodyMatterSubsystem::adoptConstraint(Constraint& child) {
     return updRep().adoptConstraint(child);
 }
-const Constraint& SimbodyMatterSubsystem::getConstraint(ConstraintId id) const {
+const Constraint& SimbodyMatterSubsystem::getConstraint(ConstraintIndex id) const {
     return getRep().getConstraint(id);
 }
-Constraint& SimbodyMatterSubsystem::updConstraint(ConstraintId id) {
+Constraint& SimbodyMatterSubsystem::updConstraint(ConstraintIndex id) {
     return updRep().updConstraint(id);
 }
 
@@ -224,15 +224,15 @@ int SimbodyMatterSubsystem::getTotalQAlloc()    const {return getRep().getTotalQ
 // Modeling info.
 void SimbodyMatterSubsystem::setUseEulerAngles(State& s, bool useAngles) const
   { getRep().setUseEulerAngles(s,useAngles); }
-void SimbodyMatterSubsystem::setMobilizerIsPrescribed(State& s, MobilizedBodyId body, bool prescribed) const
+void SimbodyMatterSubsystem::setMobilizerIsPrescribed(State& s, MobilizedBodyIndex body, bool prescribed) const
   { getRep().setMobilizerIsPrescribed(s,body,prescribed); }
-void SimbodyMatterSubsystem::setConstraintIsDisabled(State& s, ConstraintId constraint, bool disabled) const
+void SimbodyMatterSubsystem::setConstraintIsDisabled(State& s, ConstraintIndex constraint, bool disabled) const
   { getRep().setConstraintIsDisabled(s,constraint,disabled); }
 bool SimbodyMatterSubsystem::getUseEulerAngles(const State& s) const
   { return getRep().getUseEulerAngles(s); }
-bool SimbodyMatterSubsystem::isMobilizerPrescribed(const State& s, MobilizedBodyId body) const
+bool SimbodyMatterSubsystem::isMobilizerPrescribed(const State& s, MobilizedBodyIndex body) const
   { return getRep().isMobilizerPrescribed(s,body); }
-bool SimbodyMatterSubsystem::isConstraintDisabled(const State& s, ConstraintId constraint) const
+bool SimbodyMatterSubsystem::isConstraintDisabled(const State& s, ConstraintIndex constraint) const
   { return getRep().isConstraintDisabled(s,constraint); }
 void SimbodyMatterSubsystem::convertToEulerAngles(const State& inputState, State& outputState) const
   { return getRep().convertToEulerAngles(inputState, outputState); }
@@ -242,32 +242,32 @@ void SimbodyMatterSubsystem::convertToQuaternions(const State& inputState, State
 int SimbodyMatterSubsystem::getNQuaternionsInUse(const State& s) const {
     return getRep().getNQuaternionsInUse(s);
 }
-bool SimbodyMatterSubsystem::isUsingQuaternion(const State& s, MobilizedBodyId body) const {
+bool SimbodyMatterSubsystem::isUsingQuaternion(const State& s, MobilizedBodyIndex body) const {
     return getRep().isUsingQuaternion(s, body);
 }
-int SimbodyMatterSubsystem::getQuaternionIndex(const State& s, MobilizedBodyId body) const {
+int SimbodyMatterSubsystem::getQuaternionIndex(const State& s, MobilizedBodyIndex body) const {
     return getRep().getQuaternionIndex(s, body);
 }
 
 const SpatialVec&
-SimbodyMatterSubsystem::getCoriolisAcceleration(const State& s, MobilizedBodyId body) const {
+SimbodyMatterSubsystem::getCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
     return getRep().getCoriolisAcceleration(s,body);
 }
 const SpatialVec&
-SimbodyMatterSubsystem::getTotalCoriolisAcceleration(const State& s, MobilizedBodyId body) const {
+SimbodyMatterSubsystem::getTotalCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
     return getRep().getTotalCoriolisAcceleration(s,body);
 }
 const SpatialVec&
-SimbodyMatterSubsystem::getGyroscopicForce(const State& s, MobilizedBodyId body) const {
+SimbodyMatterSubsystem::getGyroscopicForce(const State& s, MobilizedBodyIndex body) const {
     return getRep().getGyroscopicForce(s,body);
 }
 const SpatialVec&
-SimbodyMatterSubsystem::getCentrifugalForces(const State& s, MobilizedBodyId body) const {
+SimbodyMatterSubsystem::getCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
     return getRep().getCentrifugalForces(s,body);
 }
 
 const SpatialMat& 
-SimbodyMatterSubsystem::getArticulatedBodyInertia(const State& s, MobilizedBodyId body) const {
+SimbodyMatterSubsystem::getArticulatedBodyInertia(const State& s, MobilizedBodyIndex body) const {
     return getRep().getArticulatedBodyInertia(s,body);
 }
 
@@ -294,20 +294,20 @@ SimbodyMatterSubsystem::getAllParticleAccelerations(const State& s) const {
     return getRep().getAllParticleAccelerations(s);
 }
 
-void SimbodyMatterSubsystem::addInStationForce(const State& s, MobilizedBodyId body, const Vec3& stationInB, 
+void SimbodyMatterSubsystem::addInStationForce(const State& s, MobilizedBodyIndex body, const Vec3& stationInB, 
                                         const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const 
 {
     assert(bodyForces.size() == getRep().getNBodies());
     const Rotation& R_GB = getRep().getBodyTransform(s,body).R();
     bodyForces[body] += SpatialVec((R_GB*stationInB) % forceInG, forceInG);
 }
-void SimbodyMatterSubsystem::addInBodyTorque(const State& s, MobilizedBodyId body, const Vec3& torqueInG,
+void SimbodyMatterSubsystem::addInBodyTorque(const State& s, MobilizedBodyIndex body, const Vec3& torqueInG,
                                       Vector_<SpatialVec>& bodyForces) const 
 {
     assert(bodyForces.size() == getRep().getNBodies());
     bodyForces[body][0] += torqueInG; // no force
 }
-void SimbodyMatterSubsystem::addInMobilityForce(const State& s, MobilizedBodyId body, int index, Real d,
+void SimbodyMatterSubsystem::addInMobilityForce(const State& s, MobilizedBodyIndex body, int index, Real d,
                                          Vector& mobilityForces) const 
 { 
     assert(mobilityForces.size() == getRep().getNMobilities());
@@ -341,7 +341,7 @@ bool SimbodyMatterSubsystem::projectUConstraints(State& s, Real consAccuracy, co
 ///   \c Stage::Instance
 Real SimbodyMatterSubsystem::calcSystemMass(const State& s) const {
     Real mass = 0;
-    for (MobilizedBodyId b(1); b < getNBodies(); ++b)
+    for (MobilizedBodyIndex b(1); b < getNBodies(); ++b)
         mass += getMobilizedBody(b).getBodyMassProperties(s).getMass();
     return mass;
 }
@@ -356,7 +356,7 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterLocationInGround(const State& s
     Real    mass = 0;
     Vec3    com  = Vec3(0);
 
-    for (MobilizedBodyId b(1); b < getNBodies(); ++b) {
+    for (MobilizedBodyIndex b(1); b < getNBodies(); ++b) {
         const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
         const Transform&      X_GB    = getMobilizedBody(b).getBodyTransform(s);
         const Real            mb      = MB_OB_B.getMass();
@@ -382,7 +382,7 @@ MassProperties SimbodyMatterSubsystem::calcSystemMassPropertiesInGround(const St
     Vec3    com  = Vec3(0);
     Inertia I    = Inertia(0);
 
-    for (MobilizedBodyId b(1); b < getNBodies(); ++b) {
+    for (MobilizedBodyIndex b(1); b < getNBodies(); ++b) {
         const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
         const Transform&      X_GB    = getMobilizedBody(b).getBodyTransform(s);
         const MassProperties  MB_OG_G = MB_OB_B.calcTransformedMassProps(X_GB);
@@ -420,7 +420,7 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterVelocityInGround(const State& s
     Real    mass = 0;
     Vec3    comv = Vec3(0);
 
-    for (MobilizedBodyId b(1); b < getNBodies(); ++b) {
+    for (MobilizedBodyIndex b(1); b < getNBodies(); ++b) {
         const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
         const Vec3 v_G_CB = getMobilizedBody(b).calcBodyFixedPointVelocityInGround(s, MB_OB_B.getMassCenter());
         const Real mb     = MB_OB_B.getMass();
@@ -444,7 +444,7 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterAccelerationInGround(const Stat
     Real    mass = 0;
     Vec3    coma = Vec3(0);
 
-    for (MobilizedBodyId b(1); b < getNBodies(); ++b) {
+    for (MobilizedBodyIndex b(1); b < getNBodies(); ++b) {
         const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
         const Vec3 a_G_CB = getMobilizedBody(b).calcBodyFixedPointAccelerationInGround(s, MB_OB_B.getMassCenter());
         const Real mb     = MB_OB_B.getMass();
@@ -467,7 +467,7 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterAccelerationInGround(const Stat
 ///   \c Stage::Velocity
 SpatialVec SimbodyMatterSubsystem::calcSystemMomentumAboutGroundOrigin(const State& s) const {
     SpatialVec mom(Vec3(0), Vec3(0));
-    for (MobilizedBodyId b(1); b < getNBodies(); ++b) {
+    for (MobilizedBodyIndex b(1); b < getNBodies(); ++b) {
         const SpatialVec mom_CB_G = getMobilizedBody(b).calcBodyMomentumAboutBodyMassCenterInGround(s);
         const Vec3&      Iw = mom_CB_G[0];
         const Vec3&      mv = mom_CB_G[1];

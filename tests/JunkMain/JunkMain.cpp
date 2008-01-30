@@ -67,13 +67,13 @@ static const Element Carbon = 6;
 static const Element Hydrogen = 1;
 
 // These are the Ids in the shared atom/bond pool.
-SimTK_DEFINE_UNIQUE_ID_TYPE(AtomId)
-SimTK_DEFINE_UNIQUE_ID_TYPE(BondId)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(AtomIndex)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(BondIndex)
 
 // These are the Ids local to a Compound.
-SimTK_DEFINE_UNIQUE_ID_TYPE(CompoundAtomId)
-SimTK_DEFINE_UNIQUE_ID_TYPE(CompoundBondId)
-SimTK_DEFINE_UNIQUE_ID_TYPE(SubcompoundId)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(CompoundAtomIndex)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(CompoundBondIndex)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(SubcompoundIndex)
 
 typedef String AtomName;
 typedef String BondName;
@@ -97,13 +97,13 @@ public:
     bool isInCompound() const {return myCompound != 0 && myId.isValid();}
 
     // If an Atom is owned by a Compound these won't blow up.
-    AtomId getAtomId() const {assert(isInCompound()); return myId;}
+    AtomIndex getAtomIndex() const {assert(isInCompound()); return myId;}
     const Compound& getCompound() const {assert(isInCompound()); return *myCompound;}
     Compound&       updCompound() const {assert(isInCompound()); return *myCompound;}
 private:
     friend class Compound;
     Compound* myCompound;
-    AtomId    myId;
+    AtomIndex    myId;
 
     String    name;
     Element   element;
@@ -111,9 +111,9 @@ private:
     Vec3      location;
 
     // Only valid if containing Compound has had its topology realized.
-    std::vector<AtomId> bond12; // directly bonded atoms
+    std::vector<AtomIndex> bond12; // directly bonded atoms
 
-    void setCompound(Compound& c, AtomId id) {
+    void setCompound(Compound& c, AtomIndex id) {
         assert(!myCompound && !myId.isValid());
         myCompound = &c;
         myId = id;
@@ -122,31 +122,31 @@ private:
 
 class Bond {
 public:
-    // Bonds are not directional; we'll sort these by AtomId.
-    Bond(AtomId a, AtomId b) 
+    // Bonds are not directional; we'll sort these by AtomIndex.
+    Bond(AtomIndex a, AtomIndex b) 
       : lowId(std::min(a,b)), highId(std::max(a,b))
     {
         assert(a != b);
     }
 
-    AtomId getAtom1() const {return lowId;}
-    AtomId getAtom2() const {return highId;}
+    AtomIndex getAtom1() const {return lowId;}
+    AtomIndex getAtom2() const {return highId;}
 
     bool isInCompound() const {return myCompound != 0 && myId.isValid();}
 
     // If an Bond is owned by a Compound these won't blow up.
-    BondId getBondId() const {assert(isInCompound()); return myId;}
+    BondIndex getBondIndex() const {assert(isInCompound()); return myId;}
     const Compound& getCompound() const {assert(isInCompound()); return *myCompound;}
     Compound&       updCompound() const {assert(isInCompound()); return *myCompound;}
 private:
     friend class Compound;
     Compound* myCompound;
-    BondId    myId;
+    BondIndex    myId;
 
-    AtomId lowId;
-    AtomId highId;
+    AtomIndex lowId;
+    AtomIndex highId;
 
-    void setCompound(Compound& c, BondId id) {
+    void setCompound(Compound& c, BondIndex id) {
         assert(!myCompound && !myId.isValid());
         myCompound = &c;
         myId = id;
@@ -181,32 +181,32 @@ public:
     Array<Vec3> configuration; // one per atom
 };
 
-// These are internal to Compound, indexed by CompoundAtomId, and refer to AtomIds in the pool.
+// These are internal to Compound, indexed by CompoundAtomIndex, and refer to AtomIndexs in the pool.
 class AtomInfo {
 public:
-    AtomInfo(const String& nm, AtomId id, const Vec3& loc)
-      : name(nm), poolAtomId(id), location(loc)
+    AtomInfo(const String& nm, AtomIndex id, const Vec3& loc)
+      : name(nm), poolAtomIndex(id), location(loc)
     {
     }
 
-    AtomId  poolAtomId;
+    AtomIndex  poolAtomIndex;
     String  name;     // default name -- might be synonyms too
     Vec3    location; // in compound frame C
 };
 
-// These are indexed by CompoundBondId and refer to BondIds in the pool.
+// These are indexed by CompoundBondIndex and refer to BondIndexs in the pool.
 class BondInfo {
 public:
-    BondInfo(const String& nm, BondId id)
-        : name(nm), poolBondId(id)
+    BondInfo(const String& nm, BondIndex id)
+        : name(nm), poolBondIndex(id)
     { 
     }
         
-    BondId  poolBondId;
+    BondIndex  poolBondIndex;
     String  name;     // default name -- might be synonyms too
 };
 
-// These are indexed by SubcompoundId and actually *contain* the
+// These are indexed by SubcompoundIndex and actually *contain* the
 // subcompounds owned by this parent compound.
 class SubcompoundInfo {
 public:
@@ -365,27 +365,27 @@ public:
     CompoundRep(AtomPool&, const String& compoundType);
     explicit CompoundRep(const String& compoundType); // allocates its own pool
 
-    CompoundAtomId getCompoundAtomId(AtomName key) const {
-        std::map<AtomName,CompoundAtomId>::const_iterator abn = atomByName.find(key);
-        return abn==atomByName.end() ? InvalidCompoundAtomId : abn->second;
+    CompoundAtomIndex getCompoundAtomIndex(AtomName key) const {
+        std::map<AtomName,CompoundAtomIndex>::const_iterator abn = atomByName.find(key);
+        return abn==atomByName.end() ? InvalidCompoundAtomIndex : abn->second;
     }
 
-    CompoundBondId getCompoundBondId(BondName key) const {
-        std::map<BondName,CompoundBondId>::const_iterator bbn = bondByName.find(key);
-        return bbn==bondByName.end() ? InvalidCompoundBondId : bbn->second;
+    CompoundBondIndex getCompoundBondIndex(BondName key) const {
+        std::map<BondName,CompoundBondIndex>::const_iterator bbn = bondByName.find(key);
+        return bbn==bondByName.end() ? InvalidCompoundBondIndex : bbn->second;
     }
 
-    SubcompoundId getSubcompoundId(CompoundName key) const {
+    SubcompoundIndex getSubcompoundIndex(CompoundName key) const {
         std::map<CompoundName,CompoundId>::const_iterator sbn = subcompoundByName.find(key);
-        return sbn==subcompoundByName.end() ? InvalidSubcompoundId : sbn->second;
+        return sbn==subcompoundByName.end() ? InvalidSubcompoundIndex : sbn->second;
     }
 
-    void deleteAtom(CompoundAtomId id) {
+    void deleteAtom(CompoundAtomIndex id) {
         assert(0 <= id && id < atomInfo.size());
-        atomPool->deleteAtom(atomInfo[id].poolAtomId);
+        atomPool->deleteAtom(atomInfo[id].poolAtomIndex);
     }
-    void deleteBond(CompoundBondId);
-    void deleteSubcompound(SubcompoundId);
+    void deleteBond(CompoundBondIndex);
+    void deleteSubcompound(SubcompoundIndex);
 
     void deleteAtom(AtomName);
     void deleteBond(BondName);
@@ -397,7 +397,7 @@ private:
 
     // Back pointer for traversing the subcompound tree upwards.
     Compound*     parent;     // null if top level Compound
-    SubcompoundId idInParent; // index into the parent's subcompounds array, if parent!=0
+    SubcompoundIndex idInParent; // index into the parent's subcompounds array, if parent!=0
 
     bool isAtomPoolOwner;
     AtomPool* atomPool;
@@ -405,16 +405,16 @@ private:
     String compoundType;
 
     // Here is the Compound-local data.
-    Array<AtomInfo>        atomInfo;       // index by CompoundAtomId
-    Array<BondInfo>        bondInfo;       // index by CompoundBondId
-    Array<SubcompoundInfo> subcompounds;   // index by SubcompoundId; includes the sub-Compounds
+    Array<AtomInfo>        atomInfo;       // index by CompoundAtomIndex
+    Array<BondInfo>        bondInfo;       // index by CompoundBondIndex
+    Array<SubcompoundInfo> subcompounds;   // index by SubcompoundIndex; includes the sub-Compounds
 
     // This is our set of names for the local set of atoms and bonds, which refer to
     // atoms and bonds in the atom/bond pool, and the set of local subcompounds. 
     // There can be more than one name for an atom, bond, or subcompound.
-    std::map<AtomName,     CompoundAtomId> atomByName;
-    std::map<BondName,     CompoundBondId> bondByName;
-    std::map<CompoundName, SubcompoundId>  subcompoundByName;
+    std::map<AtomName,     CompoundAtomIndex> atomByName;
+    std::map<BondName,     CompoundBondIndex> bondByName;
+    std::map<CompoundName, SubcompoundIndex>  subcompoundByName;
 };
 
 class Compound {
@@ -438,30 +438,30 @@ public:
 
     // This takes over ownership of the Compound::Rep if the original handle was the
     // owner. If not, an exception is thrown.
-    SubcompoundId adoptSubcompound(Compound& c, const String& newName, const Transform& X_PC) {
+    SubcompoundIndex adoptSubcompound(Compound& c, const String& newName, const Transform& X_PC) {
         assert(c.isOwnerHandle());
         assert(usesSameAtomPool(c) && !c.isAtomPoolOwner() && !c.hasParentCompound());
         updRep().subcompounds.push_back(Compound()); // add an empty handle to reserve id
         updRep().subcompounds.back().rep = c.rep;
         c.updRep().myHandle = &updRep().subcompounds.back(); // change ownership
         c.updRep().parent = this;
-        c.updRep().idInParent = SubcompoundId(subcompounds.size()-1);
+        c.updRep().idInParent = SubcompoundIndex(subcompounds.size()-1);
     }
 
     // TODO
-    SubcompoundId copyInSubcompound(const Compound&, const String& newName, const Transform& X_PC);
+    SubcompoundIndex copyInSubcompound(const Compound&, const String& newName, const Transform& X_PC);
 
     // Add a new atom to the atom pool and a corresponding compound atom here.
     // We are given a "base" frame B attached to compound C, and then we position
     // the new atom relative to B.
-    CompoundAtomId addAtom(const String& atomName, const Transform& X_CB, const Vec3& loc, Element, BioType=InvalidBioType);
-    CompoundBondId addNamedBond(const String& bondName, const String& atom1, const String& atom2);
-    CompoundBondId addBond(const String& atom1, const String& atom2);
+    CompoundAtomIndex addAtom(const String& atomName, const Transform& X_CB, const Vec3& loc, Element, BioType=InvalidBioType);
+    CompoundBondIndex addNamedBond(const String& bondName, const String& atom1, const String& atom2);
+    CompoundBondIndex addBond(const String& atom1, const String& atom2);
 
     // Add a new atom to the atom pool and to this compound, bond the atom to an existing atom with
     // the bond direction being in the +x direction of the given coordinate frame. The existing atom
     // must have a location relative to the current compound.
-    CompoundAtomId bondAtom(const String& newAtomName, const String& existingAtom, const Rotation& R_CB,
+    CompoundAtomIndex bondAtom(const String& newAtomName, const String& existingAtom, const Rotation& R_CB,
                             Real bondLength, Element, BioType=InvalidBioType)
     {
         addAtom(newAtomName, Transform(R_CB, getAtomLocationInCompound(existingAtom)), Vec3(bondLength,0,0),
@@ -490,7 +490,7 @@ public:
                String bondAtom, const Rotation& R_PB)
         : Compound("bondCenter")
     {
-        atomInfo.push_back(AtomInfo("bondAtom", parent.getAtomId(bondAtom), Vec3(0));
+        atomInfo.push_back(AtomInfo("bondAtom", parent.getAtomIndex(bondAtom), Vec3(0));
         parent.adoptSubcompound(*this, bondCenterNameInParent);
     }
 
@@ -673,7 +673,7 @@ public:
 private:
     Element element;
     int formalCharge;
-    std::vector<SubcompoundId> bondCenters; // indices into subcompound list
+    std::vector<SubcompoundIndex> bondCenters; // indices into subcompound list
 };
 
 class TetrahedralCarbon : public Compound::Atom {

@@ -93,7 +93,7 @@ try { // If anything goes wrong, an exception will be thrown.
           DecorativeSphere(d/8).setColor(Blue).setOpacity(.2));
     viz.addBodyFixedDecoration(swinger, weight2Location, 
           DecorativeSphere(radiusRatio*d/8).setColor(Green).setOpacity(.2));
-    viz.addRubberBandLine(GroundId, Vec3(0),
+    viz.addRubberBandLine(GroundIndex, Vec3(0),
                           swinger, Vec3(0),
                           DecorativeLine().setColor(Blue).setLineThickness(10)
                                           .setRepresentation(DecorativeGeometry::DrawPoints));

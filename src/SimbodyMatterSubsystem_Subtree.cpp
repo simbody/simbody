@@ -84,33 +84,33 @@ public:
     void clear() {
         invalidate(Stage::Topology);
         terminalBodies.clear();
-        ancestor = InvalidMobilizedBodyId;
+        ancestor = InvalidMobilizedBodyIndex;
     }
 
 
-    void setTerminalBodies(const std::vector<MobilizedBodyId>& bids) {
+    void setTerminalBodies(const std::vector<MobilizedBodyIndex>& bids) {
         clear();
         for (int i=0; i < (int)bids.size(); ++i)
             addTerminalBody(bids[i]);
     }
 
-    void addTerminalBody(MobilizedBodyId bid) {
+    void addTerminalBody(MobilizedBodyIndex bid) {
         assert(!isTerminalBody(bid)); // can only appear once
         invalidate(Stage::Topology);
         terminalBodies.push_back(bid);
     }
 
-    MobilizedBodyId getAncestorMobilizedBodyId() const {
+    MobilizedBodyIndex getAncestorMobilizedBodyIndex() const {
         assert(stage >= Stage::Topology);
         return ancestor;
     }
 
-    MobilizedBodyId getSubtreeBodyMobilizedBodyId(SubtreeBodyId b) const {
+    MobilizedBodyIndex getSubtreeBodyMobilizedBodyIndex(SubtreeBodyIndex b) const {
         assert(stage >= Stage::Topology);
         return allBodies[b];
     }
 
-    SubtreeBodyId getParentSubtreeBodyId(SubtreeBodyId b) const {
+    SubtreeBodyIndex getParentSubtreeBodyIndex(SubtreeBodyIndex b) const {
         assert(b >= 1); // ancestor has no subtree parent
         assert(stage >= Stage::Topology);
         return parentSubtreeBodies[b];
@@ -142,7 +142,7 @@ public:
 
     // Calculates a perturbed position result starting with the subQ's and position results
     // which must already be in SubtreeResults.
-    void perturbPositions(const State&, SubtreeQId subQIndex, Real perturbation, SubtreeResults::SubtreeResultsRep&) const;
+    void perturbPositions(const State&, SubtreeQIndex subQIndex, Real perturbation, SubtreeResults::SubtreeResultsRep&) const;
 
 
         // VELOCITY STAGE
@@ -166,7 +166,7 @@ public:
 
     // Calculates a perturbed velocity result starting with the subU's and velocity results
     // which must already be in SubtreeResults.
-    void perturbVelocities(const State&, SubtreeUId subUIndex, Real perturbation, SubtreeResults::SubtreeResultsRep&) const;
+    void perturbVelocities(const State&, SubtreeUIndex subUIndex, Real perturbation, SubtreeResults::SubtreeResultsRep&) const;
 
 
         // ACCELERATION STAGE
@@ -191,25 +191,25 @@ public:
 
     // Calculates a perturbed velocity result starting with the subUDot's and acceleration results
     // which must already be in SubtreeResults.
-    void perturbAccelerations(const State&, SubtreeUId subUDotIndex, Real perturbation, SubtreeResults::SubtreeResultsRep&) const;
+    void perturbAccelerations(const State&, SubtreeUIndex subUDotIndex, Real perturbation, SubtreeResults::SubtreeResultsRep&) const;
 
-    MobilizedBodyId getParentMobilizedBodyId(MobilizedBodyId childId) const {
-        return getSimbodyMatterSubsystem().getMobilizedBody(childId)
-                     .getParentMobilizedBody().getMobilizedBodyId();
+    MobilizedBodyIndex getParentMobilizedBodyIndex(MobilizedBodyIndex childIx) const {
+        return getSimbodyMatterSubsystem().getMobilizedBody(childIx)
+                     .getParentMobilizedBody().getMobilizedBodyIndex();
     }
 
-    int getLevel(MobilizedBodyId mbid) const {
+    int getLevel(MobilizedBodyIndex mbid) const {
         return getSimbodyMatterSubsystem().getMobilizedBody(mbid).getLevelInMultibodyTree();
     }
 
-    bool hasPathToAncestor(MobilizedBodyId bid) const {
+    bool hasPathToAncestor(MobilizedBodyIndex bid) const {
         assert(ancestor.isValid());
-        while (bid!=ancestor && bid!=GroundId)
-            bid = getParentMobilizedBodyId(bid);
+        while (bid!=ancestor && bid!=GroundIndex)
+            bid = getParentMobilizedBodyIndex(bid);
         return bid == ancestor; // works if ancestor is Ground also
     }
 
-    bool isTerminalBody(MobilizedBodyId bid) const {
+    bool isTerminalBody(MobilizedBodyIndex bid) const {
         for (int i=0; i < (int)terminalBodies.size(); ++i)
             if (bid == terminalBodies[i])
                 return true;
@@ -224,64 +224,64 @@ public:
         ancestor = findAncestorBody();
         allBodies.clear(); parentSubtreeBodies.clear(); childSubtreeBodies.clear();
 
-        // We'll collect all the Subtree bodies in a MobilizedBodyId->SubtreeBodyId
+        // We'll collect all the Subtree bodies in a MobilizedBodyIndex->SubtreeBodyIndex
         // map. We'll do this in two passes through the map -- the first to eliminate
-        // duplicates and put the bodies in MobilizedBodyId order, the second to assign
-        // SubtreeBodyIds which are just the resulting ordinals.
+        // duplicates and put the bodies in MobilizedBodyIndex order, the second to assign
+        // SubtreeBodyIndexs which are just the resulting ordinals.
         // Complexity of this first pass is O(N log N) where N is the number
         // of unique bodies in the Subtree.
-        typedef std::map<MobilizedBodyId, SubtreeBodyId> MapType;
+        typedef std::map<MobilizedBodyIndex, SubtreeBodyIndex> MapType;
         typedef MapType::value_type MapEntry;
-        MapType subtreeBodyIdMap;
+        MapType subtreeBodyIndexMap;
         // Pre-load the map with the ancestor body and its subtree body id 0.
-        subtreeBodyIdMap.insert(MapEntry(ancestor, SubtreeBodyId(0)));
+        subtreeBodyIndexMap.insert(MapEntry(ancestor, SubtreeBodyIndex(0)));
         for (int i=0; i < (int)terminalBodies.size(); ++i) {
             // Run down this branch adding any new bodies we encounter
             // until we hit one that is already in the map. If we get to
             // Ground without hitting the ancestor (OK if Ground *is* the
             // ancestor) then we have been given a bad terminal body which
             // should have been caught earlier.
-            MobilizedBodyId mbid = terminalBodies[i];
+            MobilizedBodyIndex mbid = terminalBodies[i];
             // ".second" will be true if the entry was actually inserted; otherwise
             // it was already there.
-            while (subtreeBodyIdMap.insert(MapEntry(mbid,SubtreeBodyId())).second) {
-                assert(mbid != GroundId);
-                mbid = getParentMobilizedBodyId(mbid);
+            while (subtreeBodyIndexMap.insert(MapEntry(mbid,SubtreeBodyIndex())).second) {
+                assert(mbid != GroundIndex);
+                mbid = getParentMobilizedBodyIndex(mbid);
             }
         }
 
-        // Now assign the SubtreeBodyIds in order of MobilizedBodyId, and fill
-        // in allBodies which serves as the SubtreeBodyId->MobilizedBodyId map,
+        // Now assign the SubtreeBodyIndexs in order of MobilizedBodyIndex, and fill
+        // in allBodies which serves as the SubtreeBodyIndex->MobilizedBodyIndex map,
         // and parentSubtreeBodies which maps a subtree body to its unique subtree
         // parent, and childSubtreeBodies which goes from a subtree body to the
         // list of all bodies for which it is the parent.
         // This pass is also O(N log N) because we have to look up the parent
         // mobilized body id in the map to get its assigned subtree body id.
 
-        allBodies.resize(subtreeBodyIdMap.size());
-        parentSubtreeBodies.resize(subtreeBodyIdMap.size());
-        childSubtreeBodies.resize(subtreeBodyIdMap.size());
+        allBodies.resize(subtreeBodyIndexMap.size());
+        parentSubtreeBodies.resize(subtreeBodyIndexMap.size());
+        childSubtreeBodies.resize(subtreeBodyIndexMap.size());
         allBodies[0] = ancestor;
-        parentSubtreeBodies[0] = InvalidSubtreeBodyId;
+        parentSubtreeBodies[0] = InvalidSubtreeBodyIndex;
 
-        SubtreeBodyId nextFree(1); // ancestor was already assigned 0
-        MapType::iterator body = subtreeBodyIdMap.begin();
+        SubtreeBodyIndex nextFree(1); // ancestor was already assigned 0
+        MapType::iterator body = subtreeBodyIndexMap.begin();
         assert(body->first == ancestor && body->second == 0);
         ++body; // skip the ancestor
-        for (; body != subtreeBodyIdMap.end(); ++body)
+        for (; body != subtreeBodyIndexMap.end(); ++body)
         {
-            const MobilizedBodyId mbid = body->first;
-            const SubtreeBodyId   sbid = nextFree++;
+            const MobilizedBodyIndex mbid = body->first;
+            const SubtreeBodyIndex   sbid = nextFree++;
             body->second = sbid;
             allBodies[sbid] = mbid;
 
             // Look up the parent, which *must* be (a) present, and (b) 
             // one of the earlier Subtree bodies.
-            const MobilizedBodyId pmbid = getParentMobilizedBodyId(mbid);
-            MapType::const_iterator parent = subtreeBodyIdMap.find(pmbid);
-            assert(parent != subtreeBodyIdMap.end());
+            const MobilizedBodyIndex pmbid = getParentMobilizedBodyIndex(mbid);
+            MapType::const_iterator parent = subtreeBodyIndexMap.find(pmbid);
+            assert(parent != subtreeBodyIndexMap.end());
 
-            const SubtreeBodyId psbid = parent->second;
+            const SubtreeBodyIndex psbid = parent->second;
             assert(psbid < sbid && allBodies[psbid]==pmbid);
 
             parentSubtreeBodies[sbid] = psbid;
@@ -337,23 +337,23 @@ private:
 
         // TOPOLOGY STATE VARIABLES
 
-    std::vector<MobilizedBodyId> terminalBodies;
+    std::vector<MobilizedBodyIndex> terminalBodies;
 
         // TOPOLOGY CACHE VARIABLES
 
-    // Maps SubtreeBodyId to MobilizedBodyId
-    MobilizedBodyId        ancestor;
-    std::vector<MobilizedBodyId> allBodies; // ancestor body is 0; ids are in increasing order
+    // Maps SubtreeBodyIndex to MobilizedBodyIndex
+    MobilizedBodyIndex        ancestor;
+    std::vector<MobilizedBodyIndex> allBodies; // ancestor body is 0; ids are in increasing order
 
-    // Maps each subtree body (by SubtreeBodyId) to its unique parent within the subtree
-    // the base body (SubtreeBodyId==SubtreeBaseBodyId==0) returns an InvalidSubtreeBodyId
+    // Maps each subtree body (by SubtreeBodyIndex) to its unique parent within the subtree
+    // the base body (SubtreeBodyIndex==SubtreeBaseBodyIndex==0) returns an InvalidSubtreeBodyIndex
     // as its parent.
-    std::vector<SubtreeBodyId>   parentSubtreeBodies;
+    std::vector<SubtreeBodyIndex>   parentSubtreeBodies;
 
     // Maps each subtree body to its children within the subtree. Note that a subtree terminal
     // body may have children in the full matter subsystem, but which are not included in
     // the subtree.
-    std::vector< std::vector<SubtreeBodyId> > childSubtreeBodies;
+    std::vector< std::vector<SubtreeBodyIndex> > childSubtreeBodies;
 
 private:
 
@@ -363,11 +363,11 @@ private:
     // we "trim" all the branches to be the same height. Then we move
     // all the branches in sync one level closer to ground until they
     // all hit the same body. That's the outmost common ancestor.
-    MobilizedBodyId findAncestorBody() {
+    MobilizedBodyIndex findAncestorBody() {
         assert(terminalBodies.size());
 
         // Copy the terminal bodies, which are the current branch tips.
-        std::vector<MobilizedBodyId> tips(&terminalBodies[0], (&terminalBodies[0])+terminalBodies.size());
+        std::vector<MobilizedBodyIndex> tips(&terminalBodies[0], (&terminalBodies[0])+terminalBodies.size());
 
         // Find the level of the lowest-level tip.
         int minTip = 0;
@@ -379,14 +379,14 @@ private:
         // If the lowest level tip is not ground, we want to include its mobilizer so
         // start the ancestor search at its parent's level.
         if (minLevel > 0) {
-            tips[minTip] = getParentMobilizedBodyId(tips[minTip]);
+            tips[minTip] = getParentMobilizedBodyIndex(tips[minTip]);
             minLevel = getLevel(tips[minTip]);
         }
 
         // Trim all the other branches back to the lowest level.
         for (int i=0; i < (int)tips.size(); ++i)
             while (getLevel(tips[i]) > minLevel)
-                tips[i] = getParentMobilizedBodyId(tips[i]);
+                tips[i] = getParentMobilizedBodyIndex(tips[i]);
 
         // All tips are at the same level now. March them in lockstep down
         // to their common ancestor or Ground.
@@ -396,16 +396,16 @@ private:
         return tips[0]; // all branches led here
     }
 
-    static bool allElementsMatch(const std::vector<MobilizedBodyId>& ids) {
+    static bool allElementsMatch(const std::vector<MobilizedBodyIndex>& ids) {
         for (int i=1; i < (int)ids.size(); ++i)
             if (ids[i] != ids[0]) return false;
         return true;
     }
 
-    void pruneTipsOneLevel(std::vector<MobilizedBodyId>& tips) const {
+    void pruneTipsOneLevel(std::vector<MobilizedBodyIndex>& tips) const {
         for (int i=0; i < (int)tips.size(); ++i) {
-            assert(tips[i] != GroundId); // can't happen: they should have matched!
-            tips[i] = getParentMobilizedBodyId(tips[i]);
+            assert(tips[i] != GroundIndex); // can't happen: they should have matched!
+            tips[i] = getParentMobilizedBodyIndex(tips[i]);
         }
     }
 };
@@ -429,8 +429,8 @@ public:
         bodyTransforms.clear();    perturbedBodyTransforms.clear();
         bodyVelocities.clear();    perturbedBodyVelocities.clear();
         bodyAccelerations.clear(); perturbedBodyAccelerations.clear();
-        perturbedQ = InvalidSubtreeQId;
-        perturbedU = perturbedUDot = InvalidSubtreeUId;
+        perturbedQ = InvalidSubtreeQIndex;
+        perturbedU = perturbedUDot = InvalidSubtreeUIndex;
         stage = Stage::Empty;
     }
 
@@ -444,8 +444,8 @@ public:
         bodyAccelerations.resize(nb); perturbedBodyAccelerations.resize(nb);
 
         // Set the unchanging results for the ancestor body, which is treated as Ground.
-        qSeg[0] = pair<SubtreeQId,int>(SubtreeQId(0), 0); // no q's
-        uSeg[0] = pair<SubtreeUId,int>(SubtreeUId(0), 0); // no u's
+        qSeg[0] = pair<SubtreeQIndex,int>(SubtreeQIndex(0), 0); // no q's
+        uSeg[0] = pair<SubtreeUIndex,int>(SubtreeUIndex(0), 0); // no u's
 
         bodyTransforms[0]    = perturbedBodyTransforms[0]    = Transform();
         bodyVelocities[0]    = perturbedBodyVelocities[0]    = SpatialVec(Vec3(0), Vec3(0));
@@ -455,27 +455,27 @@ public:
         qSubset.clear();
         uSubset.clear();
 
-        perturbedQ = InvalidSubtreeQId;
-        perturbedU = perturbedUDot = InvalidSubtreeUId;
+        perturbedQ = InvalidSubtreeQIndex;
+        perturbedU = perturbedUDot = InvalidSubtreeUIndex;
         stage = Stage::Topology;
     }
 
     // Assign the next available Subtree q and u slots to the indicated body, and
     // remember them. We are given the MatterSubsystem q's and u's associated with
     // the corresponding mobilized body so we can keep a mapping.
-    void addMobilities(SubtreeBodyId sb, QId qStart, int nq, UId uStart, int nu) {
+    void addMobilities(SubtreeBodyIndex sb, QIndex qStart, int nq, UIndex uStart, int nu) {
         assert(stage >= Stage::Topology);
         assert(nq >= 0 && nu >= 0 && nq >= nu);
         assert(1 <= sb && sb < getNumSubtreeBodies());
         stage = Stage::Topology; // back up if necessary
 
-        qSeg[sb] = pair<SubtreeQId,int>(SubtreeQId(qSubset.size()), nq);
-        uSeg[sb] = pair<SubtreeUId,int>(SubtreeUId(uSubset.size()), nu);
+        qSeg[sb] = pair<SubtreeQIndex,int>(SubtreeQIndex(qSubset.size()), nq);
+        uSeg[sb] = pair<SubtreeUIndex,int>(SubtreeUIndex(uSubset.size()), nu);
 
         for (int i=0; i<nq; ++i)
-            qSubset.push_back(QId(qStart+i));
+            qSubset.push_back(QIndex(qStart+i));
         for (int i=0; i<nu; ++i)
-            uSubset.push_back(UId(uStart+i));
+            uSubset.push_back(UIndex(uStart+i));
     }
 
     void packStateQIntoSubtreeQ(const Vector& stateQ, Vector& subtreeQ) const {
@@ -483,7 +483,7 @@ public:
         assert(stateQ.size() >= getNumSubtreeQs());
 
         subtreeQ.resize(getNumSubtreeQs());
-        for (SubtreeQId i(0); i<getNumSubtreeQs(); ++i)
+        for (SubtreeQIndex i(0); i<getNumSubtreeQs(); ++i)
             subtreeQ[i] = stateQ[qSubset[i]];
     }
 
@@ -492,7 +492,7 @@ public:
         assert(stateU.size() >= getNumSubtreeUs());
 
         subtreeU.resize(getNumSubtreeUs());
-        for (SubtreeUId i(0); i<getNumSubtreeUs(); ++i)
+        for (SubtreeUIndex i(0); i<getNumSubtreeUs(); ++i)
             subtreeU[i] = stateU[uSubset[i]];
     }
 
@@ -501,7 +501,7 @@ public:
         assert(stage >= Stage::Model);
         assert(subtreeQ.size() == getNumSubtreeQs());
 
-        for (SubtreeQId i(0); i<getNumSubtreeQs(); ++i)
+        for (SubtreeQIndex i(0); i<getNumSubtreeQs(); ++i)
             stateQ[qSubset[i]] = subtreeQ[i];
     }
 
@@ -520,12 +520,12 @@ public:
         subUDot = NaN;
     }
 
-    QId mapSubtreeQToSubsystemQ(SubtreeQId sq) const {
+    QIndex mapSubtreeQToSubsystemQ(SubtreeQIndex sq) const {
         assert(stage >= Stage::Model);
         assert(0 <= sq && sq < (int)qSubset.size());
         return qSubset[sq]; // range checked indexing
     }
-    UId mapSubtreeUToSubsystemU(SubtreeUId su) const {
+    UIndex mapSubtreeUToSubsystemU(SubtreeUIndex su) const {
         assert(stage >= Stage::Model);
         assert(0 <= su && su < (int)uSubset.size());
         return uSubset[su];
@@ -586,49 +586,49 @@ public:
         return subUDot;
     }
 
-    const Transform& getSubtreeBodyTransform(SubtreeBodyId sb) { // X_AB
+    const Transform& getSubtreeBodyTransform(SubtreeBodyIndex sb) { // X_AB
         assert(stage >= Stage::Position);
         assert(0 <= sb && sb < (int)bodyTransforms.size());
         return bodyTransforms[sb];
     }
 
-    const SpatialVec& getSubtreeBodyVelocity(SubtreeBodyId sb) {
+    const SpatialVec& getSubtreeBodyVelocity(SubtreeBodyIndex sb) {
         assert(stage >= Stage::Velocity);
         assert(0 <= sb && sb < (int)bodyVelocities.size());
         return bodyVelocities[sb];
     }
 
-    const SpatialVec& getSubtreeBodyAcceleration(SubtreeBodyId sb) {
+    const SpatialVec& getSubtreeBodyAcceleration(SubtreeBodyIndex sb) {
         assert(stage >= Stage::Acceleration);
         assert(0 <= sb && sb < (int)bodyAccelerations.size());
         return bodyAccelerations[sb];
     }
 
-    void setSubtreeBodyTransform(SubtreeBodyId sb, const Transform& X_AB) {
+    void setSubtreeBodyTransform(SubtreeBodyIndex sb, const Transform& X_AB) {
         assert(stage >= Stage::Model);
         assert(1 <= sb && sb < getNumSubtreeBodies()); // can't set Ancestor transform
         bodyTransforms[sb] = X_AB;
     }
 
-    void setSubtreeBodyVelocity(SubtreeBodyId sb, const SpatialVec& V_AB) {
+    void setSubtreeBodyVelocity(SubtreeBodyIndex sb, const SpatialVec& V_AB) {
         assert(stage >= Stage::Position);
         assert(1 <= sb && sb < getNumSubtreeBodies()); // can't set Ancestor velocity
         bodyVelocities[sb] = V_AB;
     }
 
-    void setSubtreeBodyAcceleration(SubtreeBodyId sb, const SpatialVec& A_AB) {
+    void setSubtreeBodyAcceleration(SubtreeBodyIndex sb, const SpatialVec& A_AB) {
         assert(stage >= Stage::Velocity);
         assert(1 <= sb && sb < getNumSubtreeBodies()); // can't set Ancestor velocity
         bodyAccelerations[sb] = A_AB;
     }
 
-    void findSubtreeBodyQ(SubtreeBodyId sb, SubtreeQId& q, int& nq) const {
+    void findSubtreeBodyQ(SubtreeBodyIndex sb, SubtreeQIndex& q, int& nq) const {
         assert(stage >= Stage::Model);
         q  = qSeg[sb].first;
         nq = qSeg[sb].second;
     }
 
-    void findSubtreeBodyU(SubtreeBodyId sb, SubtreeUId& u, int& nu) const {
+    void findSubtreeBodyU(SubtreeBodyIndex sb, SubtreeUIndex& u, int& nu) const {
         assert(stage >= Stage::Model);
         u  = uSeg[sb].first;
         nu = uSeg[sb].second;
@@ -640,30 +640,30 @@ private:
     Stage stage;    // initially invalid
 
     // Model stage information
-    std::vector< QId > qSubset; // map from SubtreeQId to MatterSubsystem q
-    std::vector< UId > uSubset; // map from SubtreeUId to MatterSubsystem u (also udot)
+    std::vector< QIndex > qSubset; // map from SubtreeQIndex to MatterSubsystem q
+    std::vector< UIndex > uSubset; // map from SubtreeUIndex to MatterSubsystem u (also udot)
 
     // These identify which mobilities go with which bodies.
-    std::vector< pair<SubtreeQId,int> > qSeg;  // map from SubtreeBodyId to qSubset offset, length
-    std::vector< pair<SubtreeUId,int> > uSeg;  // map from SubtreeBodyId to uSubset offset, length
+    std::vector< pair<SubtreeQIndex,int> > qSeg;  // map from SubtreeBodyIndex to qSubset offset, length
+    std::vector< pair<SubtreeUIndex,int> > uSeg;  // map from SubtreeBodyIndex to uSubset offset, length
 
     //TODO: make PIMPL
     Vector                 subQ;                        // generalized coords for Subtree bodies
-    std::vector<Transform> bodyTransforms;              // X_AB, index by SubtreeBodyId (unperturbed)
+    std::vector<Transform> bodyTransforms;              // X_AB, index by SubtreeBodyIndex (unperturbed)
 
-    SubtreeQId             perturbedQ;                  // which Q was perturbed? InvalidSubtreeQId if none
+    SubtreeQIndex             perturbedQ;                  // which Q was perturbed? InvalidSubtreeQIndex if none
     std::vector<Transform> perturbedBodyTransforms;     // X_AB, after perturbation
 
     Vector                 subU;                        // generalized speeds for Subtree bodies
-    Vector_<SpatialVec>    bodyVelocities;              // V_AB, index by SubtreeBodyId
+    Vector_<SpatialVec>    bodyVelocities;              // V_AB, index by SubtreeBodyIndex
 
-    SubtreeUId             perturbedU;                  // which u was perturbed? InvalidSubtreeUId if none
+    SubtreeUIndex             perturbedU;                  // which u was perturbed? InvalidSubtreeUIndex if none
     Vector_<SpatialVec>    perturbedBodyVelocities;     // V_AB, after perturbation
 
     Vector                 subUDot;                     // generalized accelerations for Subtree bodies
-    Vector_<SpatialVec>    bodyAccelerations;           // A_AB, index by SubtreeBodyId
+    Vector_<SpatialVec>    bodyAccelerations;           // A_AB, index by SubtreeBodyIndex
 
-    SubtreeUId             perturbedUDot;               // which udot was perturbed? InvalidSubtreeUId if none
+    SubtreeUIndex             perturbedUDot;               // which udot was perturbed? InvalidSubtreeUIndex if none
     Vector_<SpatialVec>    perturbedBodyAccelerations;  // A_AB, after perturbation
 };
 
@@ -687,7 +687,7 @@ SimbodyMatterSubsystem::Subtree::Subtree(const SimbodyMatterSubsystem& matter)
 
 
 SimbodyMatterSubsystem::Subtree::Subtree(const SimbodyMatterSubsystem& matter,
-                                         const std::vector<MobilizedBodyId>& terminalBodies)
+                                         const std::vector<MobilizedBodyIndex>& terminalBodies)
   : rep(0)
 {
     rep = new SubtreeRep(*this, matter);
@@ -739,7 +739,7 @@ void SimbodyMatterSubsystem::Subtree::clear() {
 
 
 SimbodyMatterSubsystem::Subtree& 
-SimbodyMatterSubsystem::Subtree::addTerminalBody(MobilizedBodyId i) {
+SimbodyMatterSubsystem::Subtree::addTerminalBody(MobilizedBodyIndex i) {
     updRep().addTerminalBody(i);
     return *this;
 }
@@ -748,11 +748,11 @@ void SimbodyMatterSubsystem::Subtree::realizeTopology() {
     updRep().realizeTopology();
 }
 
-MobilizedBodyId SimbodyMatterSubsystem::Subtree::getAncestorMobilizedBodyId() const {
+MobilizedBodyIndex SimbodyMatterSubsystem::Subtree::getAncestorMobilizedBodyIndex() const {
     return getRep().ancestor;
 }
 
-const std::vector<MobilizedBodyId>& 
+const std::vector<MobilizedBodyIndex>& 
 SimbodyMatterSubsystem::Subtree::getTerminalBodies() const {
     return getRep().terminalBodies;
 }
@@ -761,19 +761,19 @@ int SimbodyMatterSubsystem::Subtree::getNumSubtreeBodies() const {
     return (int)getRep().allBodies.size();
 }
 
-const std::vector<MobilizedBodyId>& 
+const std::vector<MobilizedBodyIndex>& 
 SimbodyMatterSubsystem::Subtree::getAllBodies() const {
     assert(getRep().stage >= Stage::Topology);
     return getRep().allBodies;
 }
 
-SubtreeBodyId 
-SimbodyMatterSubsystem::Subtree::getParentSubtreeBodyId(SubtreeBodyId sbid) const {
+SubtreeBodyIndex 
+SimbodyMatterSubsystem::Subtree::getParentSubtreeBodyIndex(SubtreeBodyIndex sbid) const {
     assert(getRep().stage >= Stage::Topology);
     return getRep().parentSubtreeBodies[sbid];
 }
-const std::vector<SubtreeBodyId>& 
-SimbodyMatterSubsystem::Subtree::getChildSubtreeBodyIds(SubtreeBodyId sbid) const {
+const std::vector<SubtreeBodyIndex>& 
+SimbodyMatterSubsystem::Subtree::getChildSubtreeBodyIndexs(SubtreeBodyIndex sbid) const {
     assert(getRep().stage >= Stage::Topology);
     return getRep().childSubtreeBodies[sbid];
 }
@@ -799,7 +799,7 @@ calcPositionsFromSubtreeQ(const State& s, const Vector& subQ, SubtreeResults& sr
 }
 
 void SimbodyMatterSubsystem::Subtree::
-perturbPositions(const State& s, SubtreeQId subQIndex, Real perturbation, SubtreeResults& sr) const {
+perturbPositions(const State& s, SubtreeQIndex subQIndex, Real perturbation, SubtreeResults& sr) const {
     getRep().perturbPositions(s,subQIndex,perturbation,sr.updRep());
 }
 
@@ -819,7 +819,7 @@ calcVelocitiesFromZeroU(const State& s, SubtreeResults& sr) const {
 }
 
 void SimbodyMatterSubsystem::Subtree::
-perturbVelocities(const State& s, SubtreeUId subUIndex, Real perturbation, SubtreeResults& sr) const {
+perturbVelocities(const State& s, SubtreeUIndex subUIndex, Real perturbation, SubtreeResults& sr) const {
     getRep().perturbVelocities(s,subUIndex,perturbation,sr.updRep());
 }
 
@@ -839,7 +839,7 @@ calcAccelerationsFromZeroUDot(const State& s, SubtreeResults& sr) const {
 }
 
 void SimbodyMatterSubsystem::Subtree::
-perturbAccelerations(const State& s, SubtreeUId subUDotIndex, Real perturbation, SubtreeResults& sr) const {
+perturbAccelerations(const State& s, SubtreeUIndex subUDotIndex, Real perturbation, SubtreeResults& sr) const {
     getRep().perturbAccelerations(s,subUDotIndex,perturbation,sr.updRep());
 }
 
@@ -897,7 +897,7 @@ void SimbodyMatterSubsystem::SubtreeResults::reallocateBodies(int nb) {
 }
 
 void SimbodyMatterSubsystem::SubtreeResults::addMobilities
-   (SubtreeBodyId sb, QId qStart, int nq, UId uStart, int nu)
+   (SubtreeBodyIndex sb, QIndex qStart, int nq, UIndex uStart, int nu)
 {
     updRep().addMobilities(sb, qStart, nq, uStart, nu);
 }
@@ -910,26 +910,26 @@ Stage SimbodyMatterSubsystem::SubtreeResults::getStage() const {
     return getRep().stage;
 }
 
-const std::vector<QId>& SimbodyMatterSubsystem::SubtreeResults::getQSubset() const {
+const std::vector<QIndex>& SimbodyMatterSubsystem::SubtreeResults::getQSubset() const {
     assert(getRep().stage >= Stage::Model);
     return getRep().qSubset;
 }
 
-const std::vector<UId>& SimbodyMatterSubsystem::SubtreeResults::getUSubset() const {
+const std::vector<UIndex>& SimbodyMatterSubsystem::SubtreeResults::getUSubset() const {
     assert(getRep().stage >= Stage::Model);
     return getRep().uSubset;
 }
 
-void SimbodyMatterSubsystem::SubtreeResults::findSubtreeBodyQ(SubtreeBodyId sbid, SubtreeQId& qStart, int& nq) const {
+void SimbodyMatterSubsystem::SubtreeResults::findSubtreeBodyQ(SubtreeBodyIndex sbid, SubtreeQIndex& qStart, int& nq) const {
     assert(getStage() >= Stage::Model);
-    const pair<SubtreeQId,int>& seg = getRep().qSeg[sbid];
+    const pair<SubtreeQIndex,int>& seg = getRep().qSeg[sbid];
     qStart = seg.first;
     nq     = seg.second;
 }
 
-void SimbodyMatterSubsystem::SubtreeResults::findSubtreeBodyU(SubtreeBodyId sbid, SubtreeUId& uStart, int& nu) const {
+void SimbodyMatterSubsystem::SubtreeResults::findSubtreeBodyU(SubtreeBodyIndex sbid, SubtreeUIndex& uStart, int& nu) const {
     assert(getStage() >= Stage::Model);
-    const pair<SubtreeUId,int>& seg = getRep().uSeg[sbid];
+    const pair<SubtreeUIndex,int>& seg = getRep().uSeg[sbid];
     uStart = seg.first;
     nu     = seg.second;
 }
@@ -938,7 +938,7 @@ const Vector& SimbodyMatterSubsystem::SubtreeResults::getSubtreeQ() const {
     assert(getStage() >= Stage::Position);
     return getRep().subQ;
 }
-const Transform& SimbodyMatterSubsystem::SubtreeResults::getSubtreeBodyTransform(SubtreeBodyId sbid) const {
+const Transform& SimbodyMatterSubsystem::SubtreeResults::getSubtreeBodyTransform(SubtreeBodyIndex sbid) const {
     assert(getStage() >= Stage::Position);
     return getRep().bodyTransforms[sbid];
 }
@@ -947,7 +947,7 @@ const Vector& SimbodyMatterSubsystem::SubtreeResults::getSubtreeU() const {
     assert(getStage() >= Stage::Velocity);
     return getRep().subU;
 }
-const SpatialVec& SimbodyMatterSubsystem::SubtreeResults::getSubtreeBodyVelocity(SubtreeBodyId sbid) const {
+const SpatialVec& SimbodyMatterSubsystem::SubtreeResults::getSubtreeBodyVelocity(SubtreeBodyIndex sbid) const {
     assert(getStage() >= Stage::Velocity);
     return getRep().bodyVelocities[sbid];
 }
@@ -956,14 +956,14 @@ const Vector& SimbodyMatterSubsystem::SubtreeResults::getSubtreeUDot() const {
     assert(getStage() >= Stage::Acceleration);
     return getRep().subUDot;
 }
-const SpatialVec& SimbodyMatterSubsystem::SubtreeResults::getSubtreeBodyAcceleration(SubtreeBodyId sbid) const {
+const SpatialVec& SimbodyMatterSubsystem::SubtreeResults::getSubtreeBodyAcceleration(SubtreeBodyIndex sbid) const {
     assert(getStage() >= Stage::Acceleration);
     return getRep().bodyAccelerations[sbid];
 }
 
 std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystem::Subtree& sub) {
     o << "SUBTREE:" << endl;
-    o << "  ancestor=" << sub.getAncestorMobilizedBodyId();
+    o << "  ancestor=" << sub.getAncestorMobilizedBodyIndex();
 
     o << "  terminalBodies=";
     for (int i=0; i < (int)sub.getTerminalBodies().size(); ++i)
@@ -975,25 +975,25 @@ std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystem::Subtree&
         o << sub.getAllBodies()[i] << " ";
     o << endl;
 
-    for (SubtreeBodyId b(0); b < (int)sub.getAllBodies().size(); ++b) {
-        o << "  parent[" << b << "]=" << sub.getParentSubtreeBodyId(b);
+    for (SubtreeBodyIndex b(0); b < (int)sub.getAllBodies().size(); ++b) {
+        o << "  parent[" << b << "]=" << sub.getParentSubtreeBodyIndex(b);
 
         o << "  children[" << b << "]=";
-        for (int i=0; i < (int)sub.getChildSubtreeBodyIds(b).size(); ++i)
-            o << sub.getChildSubtreeBodyIds(b)[i] << " ";
+        for (int i=0; i < (int)sub.getChildSubtreeBodyIndexs(b).size(); ++i)
+            o << sub.getChildSubtreeBodyIndexs(b)[i] << " ";
         o << endl;
     }
 
     return o;
 }
 
-static std::ostream& operator<<(std::ostream& o, const std::vector<QId>& q) {
+static std::ostream& operator<<(std::ostream& o, const std::vector<QIndex>& q) {
     for (int i=0; i<(int)q.size(); ++i)
         o << q[i] << " ";
     return o;
 }
 
-static std::ostream& operator<<(std::ostream& o, const std::vector<UId>& u) {
+static std::ostream& operator<<(std::ostream& o, const std::vector<UIndex>& u) {
     for (int i=0; i<(int)u.size(); ++i)
         o << u[i] << " ";
     return o;
@@ -1010,9 +1010,9 @@ std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystem::SubtreeR
         o << "  QSubset: " << sr.getQSubset() << endl;
         o << "  USubset: " << sr.getUSubset() << endl;
 
-        for (SubtreeBodyId sb(1); sb < sr.getNumSubtreeBodies(); ++sb) {
-            SubtreeQId qstart; int nq;
-            SubtreeUId ustart; int nu;
+        for (SubtreeBodyIndex sb(1); sb < sr.getNumSubtreeBodies(); ++sb) {
+            SubtreeQIndex qstart; int nq;
+            SubtreeUIndex ustart; int nu;
             sr.findSubtreeBodyQ(sb,qstart,nq);
             sr.findSubtreeBodyU(sb,ustart,nu);
             o << "  body " << sb << " q=" << qstart << ".." << qstart+nq-1
@@ -1023,21 +1023,21 @@ std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystem::SubtreeR
     if (sr.getStage() >= Stage::Position) {
         o << "  POSITION RESULTS AVAILABLE:\n";
         o << "    q=" << sr.getSubtreeQ() << endl;
-        for (SubtreeBodyId sb(0); sb < sr.getNumSubtreeBodies(); ++sb)
+        for (SubtreeBodyIndex sb(0); sb < sr.getNumSubtreeBodies(); ++sb)
             o << "    X_AB" << sb << "=" << sr.getSubtreeBodyTransform(sb);
     }
 
     if (sr.getStage() >= Stage::Velocity) {
         o << "  VELOCITY RESULTS AVAILABLE\n";
         o << "    u=" << sr.getSubtreeU() << endl;
-        for (SubtreeBodyId sb(0); sb < sr.getNumSubtreeBodies(); ++sb)
+        for (SubtreeBodyIndex sb(0); sb < sr.getNumSubtreeBodies(); ++sb)
             o << "    V_AB" << sb << "=" << sr.getSubtreeBodyVelocity(sb) << endl;
     }
 
     if (sr.getStage() >= Stage::Acceleration) {
         o << "  ACCELERATION RESULTS AVAILABLE\n";
         o << "    udot=" << sr.getSubtreeUDot() << endl;
-        for (SubtreeBodyId sb(0); sb < sr.getNumSubtreeBodies(); ++sb)
+        for (SubtreeBodyIndex sb(0); sb < sr.getNumSubtreeBodies(); ++sb)
             o << "    A_AB" << sb << "=" << sr.getSubtreeBodyAcceleration(sb) << endl;
     }
 
@@ -1062,15 +1062,15 @@ initializeSubtreeResults(const State& s, SubtreeResults::SubtreeResultsRep& sr) 
 
     int nSubtreeQ=0, nSubtreeU=0;
     // start at 1 because ancestor has no relevant mobilities
-    for (SubtreeBodyId sb(1); sb < nSubtreeBodies; ++sb) {
-        const MobilizedBodyId mb = allBodies[sb];
+    for (SubtreeBodyIndex sb(1); sb < nSubtreeBodies; ++sb) {
+        const MobilizedBodyIndex mb = allBodies[sb];
 
         int qStart, nq, uStart, nu;
         matter.findMobilizerQs(s, mb, qStart, nq);
         matter.findMobilizerUs(s, mb, uStart, nu);
         nSubtreeQ += nq; nSubtreeU += nu;
 
-        sr.addMobilities(sb, QId(qStart), nq, UId(uStart), nu);
+        sr.addMobilities(sb, QIndex(qStart), nq, UIndex(uStart), nu);
     }
 
     sr.realizeModel(matter.getQ(s), matter.getU(s));
@@ -1096,18 +1096,18 @@ copyPositionsFromState(const State& s, SubtreeResults::SubtreeResultsRep& sr) co
     // body instead of ground.
     sr.packStateQIntoSubtreeQ(matter.getQ(s), sr.updSubQ());
 
-    if (getAncestorMobilizedBodyId() == GroundId) {
-        for (SubtreeBodyId sb(1); sb < getNumSubtreeBodies(); ++sb) {
-            const MobilizedBodyId mb = getSubtreeBodyMobilizedBodyId(sb);
+    if (getAncestorMobilizedBodyIndex() == GroundIndex) {
+        for (SubtreeBodyIndex sb(1); sb < getNumSubtreeBodies(); ++sb) {
+            const MobilizedBodyIndex mb = getSubtreeBodyMobilizedBodyIndex(sb);
             const Transform& X_GB = matter.getBodyTransform(s,mb);
             sr.setSubtreeBodyTransform(sb, X_GB); // =X_AB
         }
     } else {
         // Ancestor A differs from Ground G so we have to adjust all the 
         // Subtree body transforms to measure from A instead of G.
-        const Transform& X_GA = matter.getBodyTransform(s,getAncestorMobilizedBodyId());
-        for (SubtreeBodyId sb(1); sb < getNumSubtreeBodies(); ++sb) {
-            const MobilizedBodyId mb = getSubtreeBodyMobilizedBodyId(sb);
+        const Transform& X_GA = matter.getBodyTransform(s,getAncestorMobilizedBodyIndex());
+        for (SubtreeBodyIndex sb(1); sb < getNumSubtreeBodies(); ++sb) {
+            const MobilizedBodyIndex mb = getSubtreeBodyMobilizedBodyIndex(sb);
             const Transform& X_GB = matter.getBodyTransform(s,mb);
             sr.setSubtreeBodyTransform(sb, ~X_GA * X_GB); // X_AB
         }
@@ -1136,11 +1136,11 @@ calcPositionsFromSubtreeQ(const State& state, const Vector& subQ,
     const Real* allSubQ = &results.getSubQ()[0];
 
     // Iterate from the ancestor outward to propagate the transforms to the terminal bodies.
-    for (SubtreeBodyId sb(1); sb < getNumSubtreeBodies(); ++sb) {
-        const SubtreeBodyId   sp = getParentSubtreeBodyId(sb);
-        const MobilizedBodyId mb = getSubtreeBodyMobilizedBodyId(sb);
+    for (SubtreeBodyIndex sb(1); sb < getNumSubtreeBodies(); ++sb) {
+        const SubtreeBodyIndex   sp = getParentSubtreeBodyIndex(sb);
+        const MobilizedBodyIndex mb = getSubtreeBodyMobilizedBodyIndex(sb);
 
-        SubtreeQId firstSubQ; int nq;
+        SubtreeQIndex firstSubQ; int nq;
         results.findSubtreeBodyQ(sb, firstSubQ, nq);
 
         const Transform  X_PB = matter.calcMobilizerTransformFromQ(state, mb, nq, &allSubQ[firstSubQ]); 
@@ -1152,7 +1152,7 @@ calcPositionsFromSubtreeQ(const State& state, const Vector& subQ,
 }
 
 void SimbodyMatterSubsystem::Subtree::SubtreeRep::
-perturbPositions(const State& s, SubtreeQId subQIndex, Real perturbation, SubtreeResults::SubtreeResultsRep& sr) const {
+perturbPositions(const State& s, SubtreeQIndex subQIndex, Real perturbation, SubtreeResults::SubtreeResultsRep& sr) const {
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
     SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(s), Stage::Instance, 
         "perturbPositions()");
@@ -1175,19 +1175,19 @@ copyVelocitiesFromState(const State& s, SubtreeResults::SubtreeResultsRep& sr) c
     // and expressed in, the ancestor body instead of ground.
     sr.packStateUIntoSubtreeU(matter.getU(s), sr.updSubU());
 
-    if (getAncestorMobilizedBodyId() == GroundId) {
-        for (SubtreeBodyId sb(1); sb < getNumSubtreeBodies(); ++sb) {
-            const MobilizedBodyId mb = getSubtreeBodyMobilizedBodyId(sb);
+    if (getAncestorMobilizedBodyIndex() == GroundIndex) {
+        for (SubtreeBodyIndex sb(1); sb < getNumSubtreeBodies(); ++sb) {
+            const MobilizedBodyIndex mb = getSubtreeBodyMobilizedBodyIndex(sb);
             const SpatialVec& V_GB = matter.getBodyVelocity(s,mb);
             sr.setSubtreeBodyVelocity(sb, V_GB); // =V_AB
         }
     } else {
         // Ancestor A differs from Ground G so we have to adjust all the 
         // Subtree body velocities to measure from A instead of G.
-        const Transform&  X_GA = matter.getBodyTransform(s,getAncestorMobilizedBodyId());
-        const SpatialVec& V_GA = matter.getBodyVelocity(s,getAncestorMobilizedBodyId());
-        for (SubtreeBodyId sb(1); sb < getNumSubtreeBodies(); ++sb) {
-            const MobilizedBodyId mb = getSubtreeBodyMobilizedBodyId(sb);
+        const Transform&  X_GA = matter.getBodyTransform(s,getAncestorMobilizedBodyIndex());
+        const SpatialVec& V_GA = matter.getBodyVelocity(s,getAncestorMobilizedBodyIndex());
+        for (SubtreeBodyIndex sb(1); sb < getNumSubtreeBodies(); ++sb) {
+            const MobilizedBodyIndex mb = getSubtreeBodyMobilizedBodyIndex(sb);
             const Transform&  X_GB = matter.getBodyTransform(s,mb);
             const SpatialVec& V_GB = matter.getBodyVelocity(s,mb);
 
@@ -1227,7 +1227,7 @@ calcVelocitiesFromZeroU(const State& s, SubtreeResults::SubtreeResultsRep& sr) c
 }
 
 void SimbodyMatterSubsystem::Subtree::SubtreeRep::
-perturbVelocities(const State& s, SubtreeUId subUIndex, Real perturbation, SubtreeResults::SubtreeResultsRep& sr) const {
+perturbVelocities(const State& s, SubtreeUIndex subUIndex, Real perturbation, SubtreeResults::SubtreeResultsRep& sr) const {
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
     SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(s), Stage::Instance, 
         "perturbVelocities()");
@@ -1250,20 +1250,20 @@ copyAccelerationsFromState(const State& s, SubtreeResults::SubtreeResultsRep& sr
     // and expressed in, the ancestor body instead of ground.
     sr.packStateUIntoSubtreeU(matter.getUDot(s), sr.updSubUDot());
 
-    if (getAncestorMobilizedBodyId() == GroundId) {
-        for (SubtreeBodyId sb(1); sb < getNumSubtreeBodies(); ++sb) {
-            const MobilizedBodyId mb = getSubtreeBodyMobilizedBodyId(sb);
+    if (getAncestorMobilizedBodyIndex() == GroundIndex) {
+        for (SubtreeBodyIndex sb(1); sb < getNumSubtreeBodies(); ++sb) {
+            const MobilizedBodyIndex mb = getSubtreeBodyMobilizedBodyIndex(sb);
             const SpatialVec& A_GB = matter.getBodyAcceleration(s,mb);
             sr.setSubtreeBodyAcceleration(sb, A_GB); // =A_AB
         }
     } else {
         // Ancestor A differs from Ground G so we have to adjust all the 
         // Subtree body accelerations to measure from A instead of G.
-        const Transform&  X_GA = matter.getBodyTransform(s,getAncestorMobilizedBodyId());
-        const SpatialVec& V_GA = matter.getBodyVelocity(s,getAncestorMobilizedBodyId());
-        const SpatialVec& A_GA = matter.getBodyAcceleration(s,getAncestorMobilizedBodyId());
-        for (SubtreeBodyId sb(1); sb < getNumSubtreeBodies(); ++sb) {
-            const MobilizedBodyId mb = getSubtreeBodyMobilizedBodyId(sb);
+        const Transform&  X_GA = matter.getBodyTransform(s,getAncestorMobilizedBodyIndex());
+        const SpatialVec& V_GA = matter.getBodyVelocity(s,getAncestorMobilizedBodyIndex());
+        const SpatialVec& A_GA = matter.getBodyAcceleration(s,getAncestorMobilizedBodyIndex());
+        for (SubtreeBodyIndex sb(1); sb < getNumSubtreeBodies(); ++sb) {
+            const MobilizedBodyIndex mb = getSubtreeBodyMobilizedBodyIndex(sb);
             const Transform&  X_GB = matter.getBodyTransform(s,mb);
             const SpatialVec& V_GB = matter.getBodyVelocity(s,mb);
             const SpatialVec& A_GB = matter.getBodyAcceleration(s,mb);
@@ -1306,7 +1306,7 @@ calcAccelerationsFromZeroUDot(const State& s, SubtreeResults::SubtreeResultsRep&
 }
 
 void SimbodyMatterSubsystem::Subtree::SubtreeRep::
-perturbAccelerations(const State& s, SubtreeUId subUDotIndex, Real perturbation, SubtreeResults::SubtreeResultsRep& sr) const {
+perturbAccelerations(const State& s, SubtreeUIndex subUDotIndex, Real perturbation, SubtreeResults::SubtreeResultsRep& sr) const {
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
     SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(s), Stage::Instance, 
         "perturbAccelerations()");

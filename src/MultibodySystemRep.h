@@ -323,22 +323,22 @@ public:
     ~MultibodySystemRep() {
     }
 
-    SubsystemId setGlobalSubsystem() {
+    SubsystemIndex setGlobalSubsystem() {
         assert(!globalSub.isValid());
         MultibodySystemGlobalSubsystem glo;
         globalSub = adoptSubsystem(glo);
         return globalSub;
     }
-    SubsystemId setMatterSubsystem(SimbodyMatterSubsystem& m) {
+    SubsystemIndex setMatterSubsystem(SimbodyMatterSubsystem& m) {
         assert(!matterSub.isValid());
         matterSub = adoptSubsystem(m);
         return matterSub;
     }
-    SubsystemId addForceSubsystem(ForceSubsystem& f) {
+    SubsystemIndex addForceSubsystem(ForceSubsystem& f) {
         forceSubs.push_back(adoptSubsystem(f));
         return forceSubs.back();
     }
-    SubsystemId setDecorationSubsystem(DecorationSubsystem& d) {
+    SubsystemIndex setDecorationSubsystem(DecorationSubsystem& d) {
         assert(!decorationSub.isValid());
         decorationSub = adoptSubsystem(d);
         return decorationSub;
@@ -348,7 +348,7 @@ public:
         assert(matterSub.isValid());
         return SimbodyMatterSubsystem::downcast(getSubsystem(matterSub));
     }
-    const ForceSubsystem& getForceSubsystem(SubsystemId id) const {
+    const ForceSubsystem& getForceSubsystem(SubsystemIndex id) const {
         return ForceSubsystem::downcast(getSubsystem(id));
     }
     const MultibodySystemGlobalSubsystem& getGlobalSubsystem() const {
@@ -365,7 +365,7 @@ public:
         assert(matterSub.isValid());
         return SimbodyMatterSubsystem::updDowncast(updSubsystem(matterSub));
     }
-    ForceSubsystem& updForceSubsystem(SubsystemId id) {
+    ForceSubsystem& updForceSubsystem(SubsystemIndex id) {
         return ForceSubsystem::updDowncast(updSubsystem(id));
     }
     MultibodySystemGlobalSubsystem& updGlobalSubsystem() {
@@ -476,10 +476,10 @@ public:
 
     SimTK_DOWNCAST(MultibodySystemRep, System::Guts);
 private:
-    SubsystemId  globalSub;             // index of global subsystem
-    SubsystemId  matterSub;             // index of matter subsystems
-    std::vector<SubsystemId> forceSubs; // indices of force subsystems
-    SubsystemId  decorationSub;         // index of DecorationSubsystem if any, else -1
+    SubsystemIndex  globalSub;             // index of global subsystem
+    SubsystemIndex  matterSub;             // index of matter subsystems
+    std::vector<SubsystemIndex> forceSubs; // indices of force subsystems
+    SubsystemIndex  decorationSub;         // index of DecorationSubsystem if any, else -1
 };
 
 

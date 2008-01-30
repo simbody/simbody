@@ -44,8 +44,8 @@ public:
 
     BiotypeRep();
 
-    BiotypeRep(BiotypeId b,
-               TinkerBiotypeId tinkerBiotypeId, 
+    BiotypeRep(BiotypeIndex b,
+               TinkerBiotypeIndex tinkerBiotypeIndex, 
                const Element& e,
                int v,
                const char* r, 
@@ -54,17 +54,17 @@ public:
 
     const Element&  getElement()            const {return element;}
     int             getValence()            const {return valence;}
-    BiotypeId       getId()                 const {return biotypeId;}
-    TinkerBiotypeId getTinkerBiotypeIfAny() const {return tinkerBiotypeIdIfAny;}
+    BiotypeIndex       getIndex()                 const {return biotypeIndex;}
+    TinkerBiotypeIndex getTinkerBiotypeIfAny() const {return tinkerBiotypeIndexIfAny;}
 
-    void setTinkerBiotypeId(TinkerBiotypeId tId) 
+    void setTinkerBiotypeIndex(TinkerBiotypeIndex tIx) 
     {
         // If its already set, that's OK
-        if (tId == tinkerBiotypeIdIfAny) return;
+        if (tIx == tinkerBiotypeIndexIfAny) return;
 
-        assert(tinkerBiotypeIdIfAny == InvalidTinkerBiotypeId);
-        tinkerBiotypeIdIfAny = tId;
-        assert(tinkerBiotypeIdIfAny != InvalidTinkerBiotypeId);
+        assert(tinkerBiotypeIndexIfAny == InvalidTinkerBiotypeIndex);
+        tinkerBiotypeIndexIfAny = tIx;
+        assert(tinkerBiotypeIndexIfAny != InvalidTinkerBiotypeIndex);
     }
 
     const String& getAtomName() const {return atomName;}
@@ -107,10 +107,10 @@ public:
         os << indent2 << "Biotype::defineTinkerBiotype(" << std::endl;
 
         // Tinker biotype
-        if (tinkerBiotypeIdIfAny == InvalidTinkerBiotypeId)
-            os << indent3 << "InvalidTinkerBiotypeId" << std::endl;
+        if (tinkerBiotypeIndexIfAny == InvalidTinkerBiotypeIndex)
+            os << indent3 << "InvalidTinkerBiotypeIndex" << std::endl;
         else
-            os << indent3 << "TinkerBiotypeId(" << tinkerBiotypeIdIfAny << ")" << std::endl;
+            os << indent3 << "TinkerBiotypeIndex(" << tinkerBiotypeIndexIfAny << ")" << std::endl;
 
         // element
         String elementName = element.getName();
@@ -137,8 +137,8 @@ public:
 
 private:
     // Moved all private data into BiotypeRep from Biotype class
-    BiotypeId biotypeId;
-    TinkerBiotypeId tinkerBiotypeIdIfAny;
+    BiotypeIndex biotypeIndex;
+    TinkerBiotypeIndex tinkerBiotypeIndexIfAny;
     Element  element;
     int      valence;
     // int      formalCharge;

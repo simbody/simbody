@@ -75,7 +75,7 @@ public:
 
     SimTK_DOWNCAST(MolecularMechanicsSystemRep, System::Guts);
 private:
-    SubsystemId molecularMechanicsSub;
+    SubsystemIndex molecularMechanicsSub;
 };
 
 } // namespace SimTK

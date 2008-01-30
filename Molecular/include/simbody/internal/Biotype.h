@@ -48,8 +48,8 @@ namespace Ordinality {
 
 // Biotype is a hook that will be used to look up molecular
 // force field specific parameters for an atom type
-SimTK_DEFINE_AND_EXPORT_UNIQUE_ID_TYPE(SimTK_SIMBODY_EXPORT,BiotypeId);
-SimTK_DEFINE_AND_EXPORT_UNIQUE_ID_TYPE(SimTK_SIMBODY_EXPORT,TinkerBiotypeId);
+SimTK_DEFINE_AND_EXPORT_UNIQUE_INDEX_TYPE(SimTK_SIMBODY_EXPORT,BiotypeIndex);
+SimTK_DEFINE_AND_EXPORT_UNIQUE_INDEX_TYPE(SimTK_SIMBODY_EXPORT,TinkerBiotypeIndex);
 
 class Biotype;
 class BiotypeRep;
@@ -86,21 +86,21 @@ public:
 
     const Element&  getElement() const;
     int             getValence() const;
-    BiotypeId       getId() const;
-    TinkerBiotypeId getTinkerBiotypeIfAny() const;
+    BiotypeIndex       getIndex() const;
+    TinkerBiotypeIndex getTinkerBiotypeIfAny() const;
 
-    Biotype& setTinkerBiotypeId(TinkerBiotypeId tId);
+    Biotype& setTinkerBiotypeIndex(TinkerBiotypeIndex tIx);
 
     static void initializePopularBiotypes();
 
-    static const Biotype& get(BiotypeId biotypeId);
-    static const Biotype& get(TinkerBiotypeId tinkerBiotypeId);
+    static const Biotype& get(BiotypeIndex biotypeIndex);
+    static const Biotype& get(TinkerBiotypeIndex tinkerBiotypeIndex);
     static const Biotype& get(const char* residueName, 
                               const char* atomName, 
                               Ordinality::Residue ordinality = Ordinality::Any);
 
-    static Biotype& upd(BiotypeId biotypeId);
-    static Biotype& upd(TinkerBiotypeId tinkerBiotypeId);
+    static Biotype& upd(BiotypeIndex biotypeIndex);
+    static Biotype& upd(TinkerBiotypeIndex tinkerBiotypeIndex);
     static Biotype& upd(const char* residueName, 
                               const char* atomName, 
                               Ordinality::Residue ordinality = Ordinality::Any);
@@ -109,15 +109,15 @@ public:
                        const char* atomName, 
                        Ordinality::Residue ordinality = Ordinality::Any);
 
-    static bool exists(BiotypeId biotypeId);
+    static bool exists(BiotypeIndex biotypeIndex);
 
-    static BiotypeId defineBiotype(const Element& element,
+    static BiotypeIndex defineBiotype(const Element& element,
                                    int valence,
                                    const char* residueName, 
                                    const char* atomName, 
                                    Ordinality::Residue ordinality = Ordinality::Any)
     {
-        return defineTinkerBiotype(InvalidTinkerBiotypeId, 
+        return defineTinkerBiotype(InvalidTinkerBiotypeIndex, 
                                    element,
                                    valence,
                                    residueName, 
@@ -125,7 +125,7 @@ public:
                                    ordinality);
     }
 
-    static BiotypeId defineTinkerBiotype(TinkerBiotypeId tinkerBiotypeId, 
+    static BiotypeIndex defineTinkerBiotype(TinkerBiotypeIndex tinkerBiotypeIndex, 
                                          const Element& element,
                                          int valence,
                                          const char* residueName, 
@@ -148,8 +148,8 @@ public:
 
 private:
 
-    Biotype( BiotypeId biotypeId, 
-             TinkerBiotypeId tinkerBiotypeId, 
+    Biotype( BiotypeIndex biotypeIndex, 
+             TinkerBiotypeIndex tinkerBiotypeIndex, 
              const Element& element,
              int valence,
              const char* residueName, 

@@ -55,7 +55,7 @@ class MobilizedBody;
 // This is the Constraint-specific index of the MobilizedBodies which are *directly* affected
 // by this constraint. That is, the Constraint expects to apply constraint forces as body forces
 // on these bodies or as mobility forces on these bodies' mobilizers.
-SimTK_DEFINE_UNIQUE_ID_TYPE(ConstrainedBodyId)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstrainedBodyIndex)
 
 /**
  * This is the base class for all Constraint classes, which is just a handle for the underlying
@@ -70,7 +70,7 @@ public:
     ~Constraint();
 
     // These will fail unless this Constraint is owned by a MatterSubsystem.
-    ConstraintId                  getConstraintId()      const;
+    ConstraintIndex               getConstraintIndex()      const;
     const SimbodyMatterSubsystem& getMatterSubsystem()      const;
     SimbodyMatterSubsystem&       updMatterSubsystem();
 
@@ -89,7 +89,7 @@ public:
 
     /// Return a reference to the actual MobilizedBodies included in the count
     /// above. 0 <= which < getNumConstrainedBodies().
-    const MobilizedBody& getConstrainedMobilizedBody(ConstrainedBodyId which) const;
+    const MobilizedBody& getConstrainedMobilizedBody(ConstrainedBodyIndex which) const;
     const MobilizedBody& getAncestorMobilizedBody() const;
 
     const SimbodyMatterSubsystem::Subtree& getSubtree() const;
@@ -100,7 +100,7 @@ public:
     /// constrained body. This is just the number of generalized speeds for that
     /// body's mobilizer, except that if the constrained body is the Ancestor then
     /// it has no constrainable mobilities regardless of its mobilizer.
-    int getNumConstrainedMobilities(const State&, ConstrainedBodyId) const;
+    int getNumConstrainedMobilities(const State&, ConstrainedBodyIndex) const;
 
     /// Return the index into the constrained mobilities array corresponding to
     /// a particular mobility of the indicated ConstrainedBody. Don't confuse
@@ -108,7 +108,7 @@ public:
     /// mobilities on each branch between the ancestor and a constrained body.
     /// The *constrained* mobilities are just those belonging to the mobilized
     /// bodies which are directly constrained.
-    int getConstrainedMobilityIndex(const State&, ConstrainedBodyId, int which) const;
+    int getConstrainedMobilityIndex(const State&, ConstrainedBodyIndex, int which) const;
 
     /// Return the sum of the number of mobilities u associated with each of
     /// the constrained bodies, not counting the Ancestor's mobilities even
@@ -224,8 +224,8 @@ public:
     Rod& setDefaultRodLength(Real);
 
     // Stage::Topology
-    MobilizedBodyId getBody1MobilizedBodyId() const;
-    MobilizedBodyId getBody2MobilizedBodyId() const;
+    MobilizedBodyIndex getBody1MobilizedBodyIndex() const;
+    MobilizedBodyIndex getBody2MobilizedBodyIndex() const;
     const Vec3& getDefaultPointOnBody1() const;
     const Vec3& getDefaultPointOnBody2() const;
     Real getDefaultRodLength() const;
@@ -280,8 +280,8 @@ public:
     PointInPlane& setDefaultFollowerPoint(const Vec3&);
 
     // Stage::Topology
-    MobilizedBodyId getPlaneMobilizedBodyId() const;
-    MobilizedBodyId getFollowerMobilizedBodyId() const;
+    MobilizedBodyIndex getPlaneMobilizedBodyIndex() const;
+    MobilizedBodyIndex getFollowerMobilizedBodyIndex() const;
 
     const UnitVec3& getDefaultPlaneNormal() const;
     Real            getDefaultPlaneHeight() const;
@@ -340,8 +340,8 @@ public:
     ConstantAngle& setDefaultAngle(Real);
 
     // Stage::Topology
-    MobilizedBodyId getBaseMobilizedBodyId() const;
-    MobilizedBodyId getFollowerMobilizedBodyId() const;
+    MobilizedBodyIndex getBaseMobilizedBodyIndex() const;
+    MobilizedBodyIndex getFollowerMobilizedBodyIndex() const;
 
     const UnitVec3& getDefaultBaseAxis() const;
     const UnitVec3& getDefaultFollowerAxis() const;
@@ -397,8 +397,8 @@ public:
     Real getDefaultRadius() const;
 
     // Stage::Topology
-    MobilizedBodyId getBody1MobilizedBodyId() const;
-    MobilizedBodyId getBody2MobilizedBodyId() const;
+    MobilizedBodyIndex getBody1MobilizedBodyIndex() const;
+    MobilizedBodyIndex getBody2MobilizedBodyIndex() const;
     const Vec3& getDefaultPointOnBody1() const;
     const Vec3& getDefaultPointOnBody2() const;
 
@@ -460,8 +460,8 @@ public:
     ConstantOrientation& setDefaultFollowerRotation(const Rotation&);
 
     // Stage::Topology
-    MobilizedBodyId getBaseMobilizedBodyId() const;
-    MobilizedBodyId getFollowerMobilizedBodyId() const;
+    MobilizedBodyIndex getBaseMobilizedBodyIndex() const;
+    MobilizedBodyIndex getFollowerMobilizedBodyIndex() const;
 
     const Rotation& getDefaultBaseRotation() const;
     const Rotation& getDefaultFollowerRotation() const;
@@ -501,8 +501,8 @@ public:
     Weld& setDefaultFrameOnBody2(const Transform&);
 
     // Stage::Topology
-    MobilizedBodyId getBody1MobilizedBodyId() const;
-    MobilizedBodyId getBody2MobilizedBodyId() const;
+    MobilizedBodyIndex getBody1MobilizedBodyIndex() const;
+    MobilizedBodyIndex getBody2MobilizedBodyIndex() const;
     const Transform& getDefaultFrameOnBody1() const;
     const Transform& getDefaultFrameOnBody2() const;
 
@@ -547,7 +547,7 @@ public:
 
     // Start numbering from 0 for each Constraint. The supplied MobilizedBody must be
     // in the Matter Subsystem of which this Constraint is a part.
-    ConstrainedBodyId addConstrainedBody(const MobilizedBody&);
+    ConstrainedBodyIndex addConstrainedBody(const MobilizedBody&);
 
     // Alternatively, declare this as a global constraint. (Constant energy or temperature
     // might be an example.)

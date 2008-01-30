@@ -71,8 +71,8 @@ public:
     /// This contributes to potential energy: pe = 1/2 k (x-x0)^2.
     /// It is an error if the two points become coincident, since we
     /// are unable to determine a direction for the force in that case.
-    int addTwoPointLinearSpring(MobilizedBodyId body1, const Vec3& s1, // point 1
-                                MobilizedBodyId body2, const Vec3& s2, // point 2
+    int addTwoPointLinearSpring(MobilizedBodyIndex body1, const Vec3& s1, // point 1
+                                MobilizedBodyIndex body2, const Vec3& s2, // point 2
                                 const Real& k, const Real& x0);
 
     /// Add a constant force f (a signed scalar) which acts along the line between
@@ -85,8 +85,8 @@ public:
     /// at zero separation. Potential energy is then calculated as pe = -f*(x-x0).
     /// It is an error if the two points become coincident, since we
     /// are unable to determine a direction for the force in that case.
-    int addTwoPointConstantForce(MobilizedBodyId body1, const Vec3& s1,
-                                 MobilizedBodyId body2, const Vec3& s2,
+    int addTwoPointConstantForce(MobilizedBodyIndex body1, const Vec3& s1,
+                                 MobilizedBodyIndex body2, const Vec3& s2,
                                  const Real& f, const Real& x0=0);
 
     /// Add a force which resists changes in the distance between
@@ -98,19 +98,19 @@ public:
     /// force and thus does not contribute to the potential energy calculation.
     /// It is an error if the two points become coincident, since we
     /// are unable to determine a direction for the force in that case.
-    int addTwoPointLinearDamper(MobilizedBodyId body1, const Vec3& s1,
-                                MobilizedBodyId body2, const Vec3& s2,
+    int addTwoPointLinearDamper(MobilizedBodyIndex body1, const Vec3& s1,
+                                MobilizedBodyIndex body2, const Vec3& s2,
                                 const Real& damping);
 
     /// Apply a constant force to a body station. The force is a
     /// vector fixed forever in the Ground frame. This force does not
     /// contribute to potential energy.
-    int addConstantForce(MobilizedBodyId body, const Vec3& s_B, const Vec3& f_G);
+    int addConstantForce(MobilizedBodyIndex body, const Vec3& s_B, const Vec3& f_G);
 
     /// Apply a constant torque to a body. The torque is a
     /// vector fixed forever in the Ground frame. This torque does not
     /// contribute to potential energy.
-    int addConstantTorque(MobilizedBodyId body, const Vec3& t_G);
+    int addConstantTorque(MobilizedBodyIndex body, const Vec3& t_G);
 
     /// Apply a constant (scalar) "force" f to a mobility. This does not
     /// contribute to the potential energy. The axis here selects a
@@ -118,7 +118,7 @@ public:
     /// meaning depends on the definition of the generalized speed. If that
     /// speed is a translation then this is a force; if a rotation then
     /// this is a torque.
-    int addMobilityConstantForce(MobilizedBodyId body, int axis, const Real& f);
+    int addMobilityConstantForce(MobilizedBodyIndex body, int axis, const Real& f);
 
     /// Add a linear spring along or around a mobility coordinate. The
     /// stiffness k is provided, along with an arbitrary "zero" 
@@ -128,7 +128,7 @@ public:
     /// Not meaningful unless the mobility coordinate is such that qdot=u 
     /// for that coordinate, in particular don't use this on a coordinate
     /// which is part of a quaternion.
-    int addMobilityLinearSpring(MobilizedBodyId body, int axis,
+    int addMobilityLinearSpring(MobilizedBodyIndex body, int axis,
                                 const Real& stiffness,
                                 const Real& neutralValue);
 
@@ -139,7 +139,7 @@ public:
     /// generalized speeds have physical meaning. This is not
     /// a potential force and hence does not contribute to
     /// potential energy.
-    int addMobilityLinearDamper(MobilizedBodyId body, int axis,
+    int addMobilityLinearDamper(MobilizedBodyIndex body, int axis,
                                 const Real& dampingFactor);
 
     /// Add a general energy "drain" to the system. This is 
@@ -218,7 +218,7 @@ public:
 
     /// The force arrays and potential energy are accumulated as we go,
     /// so this routine must *add in* its own contributions, not replace
-    /// what is already there. 'bodyForces' is indexed by MobilizedBodyId, so the
+    /// what is already there. 'bodyForces' is indexed by MobilizedBodyIndex, so the
     /// first entry corresponds to Ground -- you can apply forces there
     /// if you want but they won't do anything. Body torques and forces
     /// are supplied in the Ground frame. 'mobilityForces' are

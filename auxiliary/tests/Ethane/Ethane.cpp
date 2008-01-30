@@ -56,9 +56,9 @@ enum {
 
 class Molecule {
 public:
-    Molecule(MobilizedBodyId pId, const Transform& parentMobilizerFrame,
+    Molecule(MobilizedBodyIndex pIx, const Transform& parentMobilizerFrame,
              const MolecularMechanicsSystem& mmSys)
-        : parentId(pId), mobilizerFrameOnParent(parentMobilizerFrame), 
+        : parentIx(pIx), mobilizerFrameOnParent(parentMobilizerFrame), 
           mmSystem(mmSys)
     { }
 
@@ -82,11 +82,11 @@ public:
     int getNAtoms()  const {return (int)atoms.size();}
     int getNBodies() const {return (int)bodies.size();}
 
-    // return atomId of ith atom in Molecule
-    DuMM::AtomId getAtom(int i) const {return atoms[i];}
+    // return atomIndex of ith atom in Molecule
+    DuMM::AtomIndex getAtom(int i) const {return atoms[i];}
 
     // return bodyNum of ith body; 0 is molecule's base body
-    MobilizedBodyId getBodyId(int i) const {return bodies[i];}
+    MobilizedBodyIndex getBodyIndex(int i) const {return bodies[i];}
 
     const SimbodyMatterSubsystem& getMatter() const {
         return mmSystem.getMatterSubsystem();
@@ -95,11 +95,11 @@ public:
         return mmSystem.getMolecularMechanicsForceSubsystem();
     }
 protected:
-    std::vector<DuMM::AtomId>       atoms;
-    std::vector<MobilizedBodyId>    bodies;
-    MobilizedBodyId                 parentId;
-    Transform                       mobilizerFrameOnParent;
-    const MolecularMechanicsSystem& mmSystem;
+    std::vector<DuMM::AtomIndex>       atoms;
+    std::vector<MobilizedBodyIndex>    bodies;
+    MobilizedBodyIndex                 parentIx;
+    Transform                          mobilizerFrameOnParent;
+    const MolecularMechanicsSystem&    mmSystem;
 };
 
 
@@ -163,48 +163,48 @@ protected:
 //
 class Ribose : public Molecule {
 public:
-    Ribose(MobilizedBodyId pId, const Transform& parentMobilizerFrame,
+    Ribose(MobilizedBodyIndex pIx, const Transform& parentMobilizerFrame,
            MolecularMechanicsSystem& mmSys) 
-      : Molecule(pId, parentMobilizerFrame, mmSys)
+      : Molecule(pIx, parentMobilizerFrame, mmSys)
     {
         DuMMForceFieldSubsystem& mm = mmSys.updMolecularMechanicsForceSubsystem();
         
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1232)); // 0
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1233)); // 1
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1002)); // 2
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1003)); // 3
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1004)); // 4
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1232)); // 0
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1233)); // 1
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1002)); // 2
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1003)); // 3
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1004)); // 4
 
         mm.addBond(atoms[0],atoms[1]); mm.addBond(atoms[2],atoms[3]);
         mm.addBond(atoms[2],atoms[4]); mm.addBond(atoms[0],atoms[2]);
 
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1096)); // 5
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1094)); // 6
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1095)); // 7
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1096)); // 5
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1094)); // 6
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1095)); // 7
 
         mm.addBond(atoms[5],atoms[6]); mm.addBond(atoms[6],atoms[7]);
         mm.addBond(atoms[2],atoms[6]);
 
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1237)); // 8
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1238)); // 9
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1010)); //10
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1011)); //11
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1237)); // 8
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1238)); // 9
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1010)); //10
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1011)); //11
         mm.addBond(atoms[8],atoms[9]); mm.addBond(atoms[10],atoms[11]);
         mm.addBond(atoms[8],atoms[10]); 
         mm.addBond(atoms[6],atoms[10]);
 
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1237)); //12
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1238)); //13
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1010)); //14
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1011)); //15
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1237)); //12
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1238)); //13
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1010)); //14
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1011)); //15
         mm.addBond(atoms[12],atoms[13]); mm.addBond(atoms[14],atoms[15]);
         mm.addBond(atoms[12],atoms[14]);
         mm.addBond(atoms[10],atoms[14]);
 
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1237)); //16
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1238)); //17
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1010)); //18
-        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1011)); //19
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1237)); //16
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1238)); //17
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1010)); //18
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)1011)); //19
         mm.addBond(atoms[16],atoms[17]); mm.addBond(atoms[18],atoms[19]);
         mm.addBond(atoms[16],atoms[18]);
         mm.addBond(atoms[14],atoms[18]);
@@ -243,17 +243,17 @@ protected:
 
 class CartesianRibose : public Ribose {
 public:
-    CartesianRibose(MobilizedBodyId pId, MolecularMechanicsSystem& mmSys)
-      : Ribose(pId,Transform(),mmSys)
+    CartesianRibose(MobilizedBodyIndex pIx, MolecularMechanicsSystem& mmSys)
+      : Ribose(pIx,Transform(),mmSys)
     {
         SimbodyMatterSubsystem&  matter = 
             SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
         DuMMForceFieldSubsystem& mm = mmSys.updMolecularMechanicsForceSubsystem();
 
-        MobilizedBody& parent = matter.updMobilizedBody(parentId);
+        MobilizedBody& parent = matter.updMobilizedBody(parentIx);
 
-        //bodies.push_back(GroundId);
-        //mm.attachAtomToBody(0,GroundId,Vec3(0));
+        //bodies.push_back(GroundIndex);
+        //mm.attachAtomToBody(0,GroundIndex,Vec3(0));
         for (int i=0; i<20; ++i) {
             bodies.push_back(
                 MobilizedBody::Cartesian(parent, Transform(),    // parent mobilizer frame
@@ -292,7 +292,7 @@ public:
         }
 
         //for (int i=0; i<20; ++i) {
-         //   if (bodies[i] != GroundId)
+         //   if (bodies[i] != GroundIndex)
          //       getMatter().setMobilizerCoordsAsVec3(s,bodies[i],Vec3(i/10., i%5/10., i%2/2.));
        // }
     }
@@ -319,15 +319,15 @@ private:
 
 class OxygenMolecule : public Molecule {
 public:
-    OxygenMolecule(MobilizedBodyId pId, const Transform& parentMobilizerFrame,
+    OxygenMolecule(MobilizedBodyIndex pIx, const Transform& parentMobilizerFrame,
                    MolecularMechanicsSystem& mmSys) 
-      : Molecule(pId, parentMobilizerFrame, mmSys)
+      : Molecule(pIx, parentMobilizerFrame, mmSys)
     {
         DuMMForceFieldSubsystem& mm = mmSys.updMolecularMechanicsForceSubsystem();
         
         // Create the atoms and bonds. Atom 0 is O0, atom 1 is O1. O0 will serve
         // as the base frame for the molecule.
-        for (int i=0;i<2;++i) atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)ShermDoubleBondedOxygen));
+        for (int i=0;i<2;++i) atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)ShermDoubleBondedOxygen));
         mm.addBond(getO(0),getO(1));
 
         // Define the clusers.
@@ -338,25 +338,25 @@ public:
     }
 
     // Get the atom number for each oxygen.
-    DuMM::AtomId getO(int i) const {assert(i==0||i==1); return getAtom(i);}
+    DuMM::AtomIndex getO(int i) const {assert(i==0||i==1); return getAtom(i);}
 
     Real getNominalOOBondLength() const {
         return 1.21 * Ang2Nm;
     }
 protected:
-    DuMM::ClusterId twoOxygens; // cluster
+    DuMM::ClusterIndex twoOxygens; // cluster
 };
 
 class RigidO2 : public OxygenMolecule {
 public:
-    RigidO2(MobilizedBodyId pId, MolecularMechanicsSystem& mmSys)
-      : OxygenMolecule(pId,Transform(),mmSys)
+    RigidO2(MobilizedBodyIndex pIx, MolecularMechanicsSystem& mmSys)
+      : OxygenMolecule(pIx,Transform(),mmSys)
     {
         SimbodyMatterSubsystem&  matter = 
             SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
         DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
 
-        MobilizedBody& parent = matter.updMobilizedBody(parentId);
+        MobilizedBody& parent = matter.updMobilizedBody(parentIx);
 
         // Align cluster reference frame with body's. (5 dofs!)
         // FreeLine prevents rotation about Z, so make sure the body has its
@@ -428,12 +428,12 @@ public:
 
 class EthaneMolecule : public Molecule {
 public:
-    EthaneMolecule(MobilizedBodyId pId, const Transform& parentMobilizerFrame,
+    EthaneMolecule(MobilizedBodyIndex pIx, const Transform& parentMobilizerFrame,
                    MolecularMechanicsSystem&);
 
     // find the atoms
-    DuMM::AtomId getC(int i) const {assert(i==0||i==1); return getAtom(i);}
-    DuMM::AtomId getH(int whichCarbon, int whichHydrogen) const {
+    DuMM::AtomIndex getC(int i) const {assert(i==0||i==1); return getAtom(i);}
+    DuMM::AtomIndex getH(int whichCarbon, int whichHydrogen) const {
         assert(0<=whichCarbon&&whichCarbon<=1);
         assert(0<=whichHydrogen&&whichHydrogen<=2);
         return getAtom(2+whichCarbon*3+whichHydrogen);
@@ -451,16 +451,16 @@ public:
 
 protected:
     // Some pre-built atom clusters.
-    DuMM::ClusterId twoCarbons;
-    DuMM::ClusterId methyl[2];
+    DuMM::ClusterIndex twoCarbons;
+    DuMM::ClusterIndex methyl[2];
 };
 
 class OneDofEthane : public EthaneMolecule {
 public:
-    OneDofEthane(bool allowStretch, MobilizedBodyId pId, MolecularMechanicsSystem&);
+    OneDofEthane(bool allowStretch, MobilizedBodyIndex pIx, MolecularMechanicsSystem&);
 
     void setDefaultInternalState(State& s) const {
-        const MobilizedBody& b = getMatter().getMobilizedBody(getBodyId(1));
+        const MobilizedBody& b = getMatter().getMobilizedBody(getBodyIndex(1));
         const int ndof = b.getNumU(s);
         for (int i=0; i<ndof; ++i) {
             b.setOneQ(s, i, 0);
@@ -470,22 +470,22 @@ public:
 
     // Set stretch around the nominal length.
     void setCCStretch(Real stretchInNm, State& s) const {
-        const MobilizedBody& b1 = getMatter().getMobilizedBody(getBodyId(1));
+        const MobilizedBody& b1 = getMatter().getMobilizedBody(getBodyIndex(1));
         assert(b1.getNumU(s) == 2);    // must have been build with Cylinder mobilizer
-        const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
+        const MobilizedBodyIndex CBody = getDuMM().getAtomBody(getC(1));
         const MobilizedBody& b = getMatter().getMobilizedBody(CBody);
         b.setOneQ(s, 1, stretchInNm);
     }
 
     void setTorsionAngleDeg(Real angleInDeg, State& s) const {
-        const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
+        const MobilizedBodyIndex CBody = getDuMM().getAtomBody(getC(1));
         const MobilizedBody& b = getMatter().getMobilizedBody(CBody);
         b.setOneQ(s, 0, angleInDeg*Deg2Rad);
     }
 
     // Rate is rad/ps
     void setTorsionRate(Real rateInRadPerPs, State& s) const {
-        const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
+        const MobilizedBodyIndex CBody = getDuMM().getAtomBody(getC(1));
         const MobilizedBody& b = getMatter().getMobilizedBody(CBody);
         b.setOneU(s, 0, rateInRadPerPs);
     }
@@ -493,7 +493,7 @@ public:
 
 class RigidEthane : public EthaneMolecule {
 public:
-    RigidEthane(Real torsionAngleInDeg, MobilizedBodyId pId, MolecularMechanicsSystem&);
+    RigidEthane(Real torsionAngleInDeg, MobilizedBodyIndex pIx, MolecularMechanicsSystem&);
     void setDefaultInternalState(State& s) const { } // doesn't have any
 };
 
@@ -505,26 +505,26 @@ public:
 // found arranged exactly 120 degrees apart. 
 class FloppyEthane : public EthaneMolecule {
 public:
-    FloppyEthane(MobilizedBodyId pId, MolecularMechanicsSystem&);
+    FloppyEthane(MobilizedBodyIndex pIx, MolecularMechanicsSystem&);
 
     void setDefaultInternalState(State& s) const;
 
     // Set stretch around the nominal length.
     void setCCStretch(Real stretchInNm, State& s) const {
-        const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
+        const MobilizedBodyIndex CBody = getDuMM().getAtomBody(getC(1));
         const MobilizedBody& b = getMatter().getMobilizedBody(CBody);
         b.setOneQ(s, 1, stretchInNm);
     }
 
     void setTorsionAngleDeg(Real angleInDeg, State& s) const {
-        const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
+        const MobilizedBodyIndex CBody = getDuMM().getAtomBody(getC(1));
         const MobilizedBody& b = getMatter().getMobilizedBody(CBody);
         b.setOneQ(s, 0, angleInDeg*Deg2Rad);
     }
 
     // Rate is rad/ps
     void setTorsionRate(Real rateInRadPerPs, State& s) const {
-        const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
+        const MobilizedBodyIndex CBody = getDuMM().getAtomBody(getC(1));
         const MobilizedBody& b = getMatter().getMobilizedBody(CBody);
         b.setOneU(s, 0, rateInRadPerPs);
     }
@@ -680,27 +680,27 @@ try
 
     /*
 
-    const OneDofEthane ethane1(allowStretch, GroundId, mbs);
-    const OneDofEthane ethane2(allowStretch, ethane1.getBodyId(0), mbs);
-    const OneDofEthane ethane3(allowStretch, ethane2.getBodyId(0), mbs);
-    const OneDofEthane ethane4(allowStretch, ethane3.getBodyId(0), mbs);
-    const RigidEthane  rethane1(0, GroundId, mbs);
-    const RigidEthane  rethane2(60, GroundId, mbs);
+    const OneDofEthane ethane1(allowStretch, GroundIndex, mbs);
+    const OneDofEthane ethane2(allowStretch, ethane1.getBodyIndex(0), mbs);
+    const OneDofEthane ethane3(allowStretch, ethane2.getBodyIndex(0), mbs);
+    const OneDofEthane ethane4(allowStretch, ethane3.getBodyIndex(0), mbs);
+    const RigidEthane  rethane1(0, GroundIndex, mbs);
+    const RigidEthane  rethane2(60, GroundIndex, mbs);
     */
     const bool allowStretch = false;
-    const OneDofEthane ethane1(allowStretch, GroundId, mbs);
-    const RigidEthane  rethane1(0, GroundId, mbs);
-    const RigidEthane  rethane2(60, GroundId, mbs);
-    const FloppyEthane floppy1(GroundId, mbs);
-    const RigidO2      rigidO2(GroundId, mbs);
+    const OneDofEthane ethane1(allowStretch, GroundIndex, mbs);
+    const RigidEthane  rethane1(0, GroundIndex, mbs);
+    const RigidEthane  rethane2(60, GroundIndex, mbs);
+    const FloppyEthane floppy1(GroundIndex, mbs);
+    const RigidO2      rigidO2(GroundIndex, mbs);
 
-    const CartesianRibose cribose(GroundId, mbs);
+    const CartesianRibose cribose(GroundIndex, mbs);
 
     /* Cartesian:  
     for (int i=0; i < mm.getNAtoms(); ++i) {
-        MobilizedBodyId b = ethane.addRigidBody(
+        MobilizedBodyIndex b = ethane.addRigidBody(
             MassProperties(mm.getAtomMass(i), Vec3(0), Inertia(0)), Transform(),
-            GroundId, Transform(),
+            GroundIndex, Transform(),
             Mobilizer::Cartesian());
         mm.attachAtomToBody(i, b, Vec3(0));
     }
@@ -717,9 +717,9 @@ try
 
     DecorativeLine crossBodyBond; crossBodyBond.setColor(Orange).setLineThickness(5);
 
-    for (DuMM::BondId i = (DuMM::BondId)0; i < (DuMM::BondId)mm.getNBonds(); ++i) {
-        const DuMM::AtomId    a1 = mm.getBondAtom(i,0), a2 = mm.getBondAtom(i,1);
-        const MobilizedBodyId b1 = mm.getAtomBody(a1),  b2 = mm.getAtomBody(a2);
+    for (DuMM::BondIndex i = (DuMM::BondIndex)0; i < (DuMM::BondIndex)mm.getNBonds(); ++i) {
+        const DuMM::AtomIndex    a1 = mm.getBondAtom(i,0), a2 = mm.getBondAtom(i,1);
+        const MobilizedBodyIndex b1 = mm.getAtomBody(a1),  b2 = mm.getAtomBody(a2);
         if (b1==b2)
             artwork.addBodyFixedDecoration(b1, Transform(),
                                            DecorativeLine(mm.getAtomStationOnBody(a1), mm.getAtomStationOnBody(a2))
@@ -729,7 +729,7 @@ try
                                       b2, mm.getAtomStationOnBody(a2), crossBodyBond);
     }
 
-    for (DuMM::AtomId anum = (DuMM::AtomId)0; anum < (DuMM::AtomId)mm.getNAtoms(); ++anum) {
+    for (DuMM::AtomIndex anum = (DuMM::AtomIndex)0; anum < (DuMM::AtomIndex)mm.getNAtoms(); ++anum) {
         Real shrink = 0.25, opacity = mm.getAtomElement(anum)==1?0.5:1;
         Real r = mm.getAtomRadius(anum);
         if (r<.001) r=0.1; //nm
@@ -868,20 +868,20 @@ catch (const std::exception& e)
     return 0;
 }
 
-EthaneMolecule::EthaneMolecule(MobilizedBodyId pId, const Transform& parentTransform,
+EthaneMolecule::EthaneMolecule(MobilizedBodyIndex pIx, const Transform& parentTransform,
                                MolecularMechanicsSystem& mmSys)
-  : Molecule(pId,parentTransform,mmSys)
+  : Molecule(pIx,parentTransform,mmSys)
 {
     SimbodyMatterSubsystem&  matter = 
         SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
     DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
 
-    twoCarbons = methyl[0] = methyl[1] = DuMM::InvalidClusterId;
+    twoCarbons = methyl[0] = methyl[1] = DuMM::InvalidClusterIndex;
 
     // Create the atoms and bonds. Atom 0 is C0, atom 1 is C1, 2-4 are the
     // hydrogens attached to C0, 5-7 are the hydrogens attached to C1.
-    for (int i=0;i<2;++i) atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)A99EthaneCarbon));
-    for (int i=0;i<6;++i) atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)A99EthaneHydrogen));
+    for (int i=0;i<2;++i) atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)A99EthaneCarbon));
+    for (int i=0;i<6;++i) atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeIndex)A99EthaneHydrogen));
 
     mm.addBond(getC(0),getC(1));
     for (int c=0; c<2; ++c)
@@ -936,14 +936,14 @@ EthaneMolecule::EthaneMolecule(MobilizedBodyId pId, const Transform& parentTrans
     }
 }
 
-OneDofEthane::OneDofEthane(bool allowStretch, MobilizedBodyId pId, MolecularMechanicsSystem& mmSys)
-  : EthaneMolecule(pId,Transform(),mmSys)
+OneDofEthane::OneDofEthane(bool allowStretch, MobilizedBodyIndex pIx, MolecularMechanicsSystem& mmSys)
+  : EthaneMolecule(pIx,Transform(),mmSys)
 {
     SimbodyMatterSubsystem&  matter = 
         SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
     DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
 
-    MobilizedBody& parent = matter.updMobilizedBody(parentId);
+    MobilizedBody& parent = matter.updMobilizedBody(parentIx);
 
     const Rotation PinAboutX = Rotation(90*Deg2Rad,YAxis); // move z to +x
 
@@ -960,13 +960,13 @@ OneDofEthane::OneDofEthane(bool allowStretch, MobilizedBodyId pId, MolecularMech
     if (allowStretch) {
         bodies.push_back(
             MobilizedBody::Cylinder(
-                matter.updMobilizedBody(getBodyId(0)), 
+                matter.updMobilizedBody(getBodyIndex(0)), 
                 Transform(PinAboutX, Vec3(getNominalCCBondLength(),0,0)),
                 Body::Rigid(m1mp), Transform(PinAboutX, Vec3(0))));
     } else {
         bodies.push_back(
             MobilizedBody::Pin(
-                matter.updMobilizedBody(getBodyId(0)),
+                matter.updMobilizedBody(getBodyIndex(0)),
                 Transform(PinAboutX, Vec3(getNominalCCBondLength(),0,0)),
                 Body::Rigid(m1mp), Transform(PinAboutX, Vec3(0))));
     }
@@ -975,16 +975,16 @@ OneDofEthane::OneDofEthane(bool allowStretch, MobilizedBodyId pId, MolecularMech
     mm.attachClusterToBody(methyl[1], bodies[1], Transform( Rotation(180*Deg2Rad,YAxis) ));
 }
 
-RigidEthane::RigidEthane(Real torsionAngleInDeg, MobilizedBodyId pId, MolecularMechanicsSystem& mmSys)
-  : EthaneMolecule(pId,Transform(),mmSys)
+RigidEthane::RigidEthane(Real torsionAngleInDeg, MobilizedBodyIndex pIx, MolecularMechanicsSystem& mmSys)
+  : EthaneMolecule(pIx,Transform(),mmSys)
 {
     SimbodyMatterSubsystem&  matter = 
         SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
     DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
 
-    MobilizedBody& parent = matter.updMobilizedBody(parentId);
+    MobilizedBody& parent = matter.updMobilizedBody(parentIx);
 
-    const DuMM::ClusterId wholeEthaneCluster = mm.createCluster("rigid ethane");
+    const DuMM::ClusterIndex wholeEthaneCluster = mm.createCluster("rigid ethane");
 
     // If we choose to treat the entire ethane molecule as a rigid body, we'll align 
     // the 1st methyl group's reference frame with the body frame, and transform the
@@ -1031,14 +1031,14 @@ RigidEthane::RigidEthane(Real torsionAngleInDeg, MobilizedBodyId pId, MolecularM
 //
 // The "molecule frame" is considered to be identical with C0's body frame.
 //
-FloppyEthane::FloppyEthane(MobilizedBodyId pId, MolecularMechanicsSystem& mmSys)
-  : EthaneMolecule(pId,Transform(),mmSys)
+FloppyEthane::FloppyEthane(MobilizedBodyIndex pIx, MolecularMechanicsSystem& mmSys)
+  : EthaneMolecule(pIx,Transform(),mmSys)
 {
     SimbodyMatterSubsystem&  matter = 
         SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
     DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
 
-    MobilizedBody& parent = matter.updMobilizedBody(parentId);
+    MobilizedBody& parent = matter.updMobilizedBody(parentIx);
 
     // For C-C cylinder joint; rotation and translation are about the
     // Mobilizer frames' common Z axis.
@@ -1064,7 +1064,7 @@ FloppyEthane::FloppyEthane(MobilizedBodyId pId, MolecularMechanicsSystem& mmSys)
            
     // Now attach 3 Hs to each C.
     for (int c=0; c<2; ++c) {
-        const MobilizedBodyId Cbody = mm.getAtomBody(getC(c));
+        const MobilizedBodyIndex Cbody = mm.getAtomBody(getC(c));
         for (int h=0; h<3; ++h) {
             const Transform CBendStretchMob(Rotation(h*120*Deg2Rad,XAxis));
             bodies.push_back(
@@ -1083,7 +1083,7 @@ void FloppyEthane::setDefaultInternalState(State& s) const {
     // set all the internal u's to zero
 
     // C1
-    const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
+    const MobilizedBodyIndex CBody = getDuMM().getAtomBody(getC(1));
     const MobilizedBody& b = getMatter().getMobilizedBody(CBody);
     b.setOneQ(s, 0, 0); // torsion;
     b.setOneQ(s, 1, getNominalCCBondLength()); // stretch
@@ -1093,7 +1093,7 @@ void FloppyEthane::setDefaultInternalState(State& s) const {
     // H (bend,stretch)
     for (int c=0; c<2; ++c)
         for (int h=0; h<3; ++h) {
-            const MobilizedBodyId HBody = getDuMM().getAtomBody(getH(c,h));
+            const MobilizedBodyIndex HBody = getDuMM().getAtomBody(getH(c,h));
             const MobilizedBody& b = getMatter().getMobilizedBody(HBody);
             b.setOneQ(s, 0, getNominalHCCBondAngle());
             b.setOneQ(s, 1, getNominalCHBondLength());

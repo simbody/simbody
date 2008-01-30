@@ -75,11 +75,11 @@ static const Real Radius2Sigma = (Real)std::pow(2.L, -1.L/6.L);
 
 
 namespace DuMM {
-    SimTK_DEFINE_UNIQUE_ID_TYPE(AtomId);
-    SimTK_DEFINE_UNIQUE_ID_TYPE(AtomClassId);
-    SimTK_DEFINE_UNIQUE_ID_TYPE(ChargedAtomTypeId);
-    SimTK_DEFINE_UNIQUE_ID_TYPE(BondId);
-    SimTK_DEFINE_UNIQUE_ID_TYPE(ClusterId);
+    SimTK_DEFINE_UNIQUE_INDEX_TYPE(AtomIndex);
+    SimTK_DEFINE_UNIQUE_INDEX_TYPE(AtomClassIndex);
+    SimTK_DEFINE_UNIQUE_INDEX_TYPE(ChargedAtomTypeIndex);
+    SimTK_DEFINE_UNIQUE_INDEX_TYPE(BondIndex);
+    SimTK_DEFINE_UNIQUE_INDEX_TYPE(ClusterIndex);
 } // namespace DuMM
 
 /**
@@ -113,57 +113,57 @@ public:
 
         // MOLECULE
 
-    // Add a new atom to the model. The atom Id number is returned; you don't get to
+    // Add a new atom to the model. The atom index number is returned; you don't get to
     // pick your own.
-    DuMM::AtomId addAtom(DuMM::ChargedAtomTypeId chargedAtomTypeId);
+    DuMM::AtomIndex addAtom(DuMM::ChargedAtomTypeIndex chargedAtomTypeIx);
 
-    // Note that these are atom Id numbers, not atom classes or types.
-    DuMM::BondId addBond(DuMM::AtomId atom1Id, DuMM::AtomId atom2Id);
+    // Note that these are atom index numbers, not atom classes or types.
+    DuMM::BondIndex addBond(DuMM::AtomIndex atom1Ix, DuMM::AtomIndex atom2Ix);
 
     int    getNAtoms() const;
-    Real   getAtomMass(DuMM::AtomId atomId) const;
-    int    getAtomElement(DuMM::AtomId atomId) const;
-    Real   getAtomRadius(DuMM::AtomId atomId) const;
-    Vec3   getAtomStationOnBody(DuMM::AtomId atomId) const;
-    Vec3   getAtomStationInCluster(DuMM::AtomId atomId, DuMM::ClusterId clusterId) const;
-    MobilizedBodyId getAtomBody(DuMM::AtomId atomId) const;
-    Vec3   getAtomDefaultColor(DuMM::AtomId atomId) const;
+    Real   getAtomMass(DuMM::AtomIndex atomIx) const;
+    int    getAtomElement(DuMM::AtomIndex atomIx) const;
+    Real   getAtomRadius(DuMM::AtomIndex atomIx) const;
+    Vec3   getAtomStationOnBody(DuMM::AtomIndex atomIx) const;
+    Vec3   getAtomStationInCluster(DuMM::AtomIndex atomIx, DuMM::ClusterIndex clusterIx) const;
+    MobilizedBodyIndex getAtomBody(DuMM::AtomIndex atomIx) const;
+    Vec3   getAtomDefaultColor(DuMM::AtomIndex atomIx) const;
 
     int  getNBonds() const;
 
-    // 'which' must be 0 or 1. 0 will return the lower-numbered atomId.
-    DuMM::AtomId  getBondAtom(DuMM::BondId bond, int which) const;
+    // 'which' must be 0 or 1. 0 will return the lower-numbered atomIx.
+    DuMM::AtomIndex  getBondAtom(DuMM::BondIndex bond, int which) const;
 
         // CLUSTERS
 
-    // Create an empty cluster (rigid group of atoms). The cluster Id number is returned;
-    // you don't get to pick your own. The name is just for display; you must use the Id
+    // Create an empty cluster (rigid group of atoms). The cluster index number is returned;
+    // you don't get to pick your own. The name is just for display; you must use the index
     // to reference the cluster. Every cluster has its own reference frame.
-    DuMM::ClusterId createCluster(const char* clusterName);
+    DuMM::ClusterIndex createCluster(const char* clusterName);
 
 
     // Place an existing atom at a particular station in the local frame of a cluster. It
     // is fine for an atom to be in more than one cluster as long as only one of them ends up
     // attached to a body.
-    void placeAtomInCluster(DuMM::AtomId atomId, DuMM::ClusterId clusterId, const Vec3& station);
+    void placeAtomInCluster(DuMM::AtomIndex atomIx, DuMM::ClusterIndex clusterIx, const Vec3& station);
 
     // Place a cluster (the child) in another cluster (the parent). The child's
     // local frame is placed at a given transform with respect to the parent's frame.
-    void placeClusterInCluster(DuMM::ClusterId childClusterId, DuMM::ClusterId parentClusterId, 
+    void placeClusterInCluster(DuMM::ClusterIndex childClusterIndex, DuMM::ClusterIndex parentClusterIndex, 
                                const Transform& placement);
 
     // Calcuate the composite mass properties of a cluster, either in its own reference
     // frame or transformed to the indicated frame.
-    MassProperties calcClusterMassProperties(DuMM::ClusterId clusterId, const Transform& = Transform()) const;
+    MassProperties calcClusterMassProperties(DuMM::ClusterIndex clusterIx, const Transform& = Transform()) const;
 
-    MobilizedBodyId    getClusterBody(DuMM::ClusterId clusterId) const;
-    Transform getClusterPlacementOnBody(DuMM::ClusterId clusterId) const;
-    Transform getClusterPlacementInCluster(DuMM::ClusterId childClusterId, DuMM::ClusterId parentClusterId) const;
+    MobilizedBodyIndex    getClusterBody(DuMM::ClusterIndex clusterIx) const;
+    Transform getClusterPlacementOnBody(DuMM::ClusterIndex clusterIx) const;
+    Transform getClusterPlacementInCluster(DuMM::ClusterIndex childClusterIndex, DuMM::ClusterIndex parentClusterIndex) const;
 
         // BODIES
 
-    void attachClusterToBody(DuMM::ClusterId clusterId, MobilizedBodyId body, const Transform& = Transform());
-    void attachAtomToBody   (DuMM::AtomId atomId,    MobilizedBodyId body, const Vec3& station = Vec3(0));
+    void attachClusterToBody(DuMM::ClusterIndex clusterIx, MobilizedBodyIndex body, const Transform& = Transform());
+    void attachAtomToBody   (DuMM::AtomIndex atomIx,    MobilizedBodyIndex body, const Vec3& station = Vec3(0));
 
         // DEFINE FORCE FIELD PARAMETERS
     
@@ -186,48 +186,48 @@ public:
     // Generate c++ code to reproduce forcefield parameters presently in memory
     void dumpCForcefieldParameters(std::ostream& os, const String& methodName = "loadParameters") const;
 
-    void defineAtomClass(DuMM::AtomClassId atomClassId, const char* atomClassName,
+    void defineAtomClass(DuMM::AtomClassIndex atomClassIx, const char* atomClassName,
                          int elementNumber, int expectedValence,
                          Real vdwRadiusInNm, Real vdwWellDepthInKJ) {
-         defineIncompleteAtomClass(atomClassId, atomClassName, elementNumber, expectedValence);
-         setAtomClassVdwParameters(atomClassId, vdwRadiusInNm, vdwWellDepthInKJ);
+         defineIncompleteAtomClass(atomClassIx, atomClassName, elementNumber, expectedValence);
+         setAtomClassVdwParameters(atomClassIx, vdwRadiusInNm, vdwWellDepthInKJ);
     }
 
     // Same routine in Kcal/Angstrom (KA) unit system, i.e., radius
     // (still not sigma) is in nm, and well depth in kcal/mol.
-    void defineAtomClass_KA(DuMM::AtomClassId atomClassId, const char* atomClassName,
+    void defineAtomClass_KA(DuMM::AtomClassIndex atomClassIx, const char* atomClassName,
                             int element, int valence,
                             Real vdwRadiusInAng, Real vdwWellDepthInKcal)
     {
-        defineAtomClass(atomClassId, atomClassName, element, valence,
+        defineAtomClass(atomClassIx, atomClassName, element, valence,
             vdwRadiusInAng*DuMM::Ang2Nm, vdwWellDepthInKcal*DuMM::Kcal2KJ);
     }
     // For backwards compatibility and compactness of expression, permit integer indices
-    void defineAtomClass_KA(int atomClassId, const char* atomClassName,
+    void defineAtomClass_KA(int atomClassIx, const char* atomClassName,
                             int element, int valence,
                             Real vdwRadiusInAng, Real vdwWellDepthInKcal)
     {
-        defineAtomClass_KA((DuMM::AtomClassId)atomClassId, atomClassName, element, valence, vdwRadiusInAng, vdwWellDepthInKcal);
+        defineAtomClass_KA((DuMM::AtomClassIndex)atomClassIx, atomClassName, element, valence, vdwRadiusInAng, vdwWellDepthInKcal);
     }
 
 
     // PartialCharge in units of e (charge on a proton); same in MD & KA
-    void defineChargedAtomType(DuMM::ChargedAtomTypeId atomTypeId, const char* atomTypeName,
-        DuMM::AtomClassId atomClassId, Real partialChargeInE) {
-            defineIncompleteChargedAtomType(atomTypeId, atomTypeName, atomClassId);
-            setChargedAtomTypeCharge(atomTypeId, partialChargeInE);
+    void defineChargedAtomType(DuMM::ChargedAtomTypeIndex atomTypeIx, const char* atomTypeName,
+        DuMM::AtomClassIndex atomClassIx, Real partialChargeInE) {
+            defineIncompleteChargedAtomType(atomTypeIx, atomTypeName, atomClassIx);
+            setChargedAtomTypeCharge(atomTypeIx, partialChargeInE);
     }
 
-    void defineChargedAtomType_KA(DuMM::ChargedAtomTypeId atomTypeId, const char* atomTypeName,
-                                  DuMM::AtomClassId atomClassId, Real partialChargeInE)
+    void defineChargedAtomType_KA(DuMM::ChargedAtomTypeIndex atomTypeIx, const char* atomTypeName,
+                                  DuMM::AtomClassIndex atomClassIx, Real partialChargeInE)
     {
-        defineChargedAtomType(atomTypeId, atomTypeName, atomClassId, partialChargeInE); // easy!
+        defineChargedAtomType(atomTypeIx, atomTypeName, atomClassIx, partialChargeInE); // easy!
     }
     // For backwards compatibility and compactness of expression, permit integer indices
-    void defineChargedAtomType_KA(int atomTypeId, const char* atomTypeName,
-                                  int atomClassId, Real partialChargeInE)
+    void defineChargedAtomType_KA(int atomTypeIx, const char* atomTypeName,
+                                  int atomClassIx, Real partialChargeInE)
     {
-        defineChargedAtomType_KA((DuMM::ChargedAtomTypeId) atomTypeId, atomTypeName, (DuMM::AtomClassId)atomClassId, partialChargeInE);
+        defineChargedAtomType_KA((DuMM::ChargedAtomTypeIndex) atomTypeIx, atomTypeName, (DuMM::AtomClassIndex)atomClassIx, partialChargeInE);
     }
 
     // Bond stretch parameters (between 2 atom classes). This
@@ -235,11 +235,11 @@ public:
     // Stiffness (energy per length^2) in (kJ/mol)/nm^2
     // (note that energy is kx^2 using this definition,
     // while force is 2kx; note factor of 2 in force)
-    void defineBondStretch(DuMM::AtomClassId class1, DuMM::AtomClassId class2,
+    void defineBondStretch(DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2,
                            Real stiffnessInKJperNmSq, Real nominalLengthInNm);
 
     // Here stiffness is in (kcal/mol)/A^2, and nominal length is in A (angstroms).
-    void defineBondStretch_KA(DuMM::AtomClassId class1, DuMM::AtomClassId class2,
+    void defineBondStretch_KA(DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2,
                               Real stiffnessInKcalPerAngSq, Real nominalLengthInAng)
     {
         defineBondStretch(class1, class2, 
@@ -250,7 +250,7 @@ public:
     void defineBondStretch_KA(int class1, int class2,
                               Real stiffnessInKcalPerAngSq, Real nominalLengthInAng)
     {
-        defineBondStretch_KA((DuMM::AtomClassId)class1, (DuMM::AtomClassId)class2, stiffnessInKcalPerAngSq, nominalLengthInAng);
+        defineBondStretch_KA((DuMM::AtomClassIndex)class1, (DuMM::AtomClassIndex)class2, stiffnessInKcalPerAngSq, nominalLengthInAng);
     }
 
     // Bending angle parameters (among 3 atom types). This fails
@@ -260,11 +260,11 @@ public:
     // while torque is 2ka; note factor of 2 in torque.
     // Note that the nominal angle is in degrees while the stiffness
     // is in radians. Odd, I know, but that seems to be how it's done!
-    void defineBondBend(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3,
+    void defineBondBend(DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3,
                         Real stiffnessInKJPerRadSq, Real nominalAngleInDeg);
 
     // Here the stiffness is given in (kcal/mol)/rad^2.
-    void defineBondBend_KA(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3,
+    void defineBondBend_KA(DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3,
         Real stiffnessInKcalPerRadSq, Real nominalAngleInDeg) 
     {
         defineBondBend(class1,class2,class3,
@@ -275,7 +275,7 @@ public:
     void defineBondBend_KA(int class1, int class2, int class3,
         Real stiffnessInKcalPerRadSq, Real nominalAngleInDeg) 
     {
-        defineBondBend_KA((DuMM::AtomClassId)class1, (DuMM::AtomClassId)class2, (DuMM::AtomClassId)class3,
+        defineBondBend_KA((DuMM::AtomClassIndex)class1, (DuMM::AtomClassIndex)class2, (DuMM::AtomClassIndex)class3,
                             stiffnessInKcalPerRadSq, nominalAngleInDeg);
     }
 
@@ -283,28 +283,28 @@ public:
     // in kJ/mol, with no factor of 1/2 expected (as is sometimes
     // the convention). 
     void defineBondTorsion
-       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4, 
+       (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4, 
         int periodicity1, Real amp1InKJ, Real phase1InDegrees);
     void defineBondTorsion
-       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,  
+       (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4,  
         int periodicity1, Real amp1InKJ, Real phase1InDegrees,
         int periodicity2, Real amp2InKJ, Real phase2InDegrees);
     void defineBondTorsion
-       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4, 
+       (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4, 
         int periodicity1, Real amp1InKJ, Real phase1InDegrees,
         int periodicity2, Real amp2InKJ, Real phase2InDegrees,
         int periodicity3, Real amp3InKJ, Real phase3InDegrees);
 
     // Here the amplitudes are given in kcal/mol.
     void defineBondTorsion_KA
-       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4, 
+       (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4, 
         int periodicity1, Real amp1InKcal, Real phase1InDegrees)
     { 
         defineBondTorsion(class1,class2,class3,class4,
                           periodicity1, amp1InKcal * DuMM::Kcal2KJ, phase1InDegrees);
     }
     void defineBondTorsion_KA
-       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,  
+       (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4,  
         int periodicity1, Real amp1InKcal, Real phase1InDegrees,
         int periodicity2, Real amp2InKcal, Real phase2InDegrees)
     {
@@ -313,7 +313,7 @@ public:
                           periodicity2, amp2InKcal * DuMM::Kcal2KJ, phase2InDegrees);
     }
     void defineBondTorsion_KA
-       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4, 
+       (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4, 
         int periodicity1, Real amp1InKcal, Real phase1InDegrees,
         int periodicity2, Real amp2InKcal, Real phase2InDegrees,
         int periodicity3, Real amp3InKcal, Real phase3InDegrees)
@@ -329,7 +329,7 @@ public:
         int periodicity1, Real amp1InKcal, Real phase1InDegrees)
     {
         defineBondTorsion_KA
-               ((DuMM::AtomClassId)class1, (DuMM::AtomClassId)class2, (DuMM::AtomClassId)class3, (DuMM::AtomClassId)class4, 
+               ((DuMM::AtomClassIndex)class1, (DuMM::AtomClassIndex)class2, (DuMM::AtomClassIndex)class3, (DuMM::AtomClassIndex)class4, 
                 periodicity1, amp1InKcal, phase1InDegrees);
     }
     // For backwards compatibility and compactness of expression, permit integer indices
@@ -339,7 +339,7 @@ public:
         int periodicity2, Real amp2InKcal, Real phase2InDegrees)
     {
         defineBondTorsion_KA
-               ((DuMM::AtomClassId)class1, (DuMM::AtomClassId)class2, (DuMM::AtomClassId)class3, (DuMM::AtomClassId)class4, 
+               ((DuMM::AtomClassIndex)class1, (DuMM::AtomClassIndex)class2, (DuMM::AtomClassIndex)class3, (DuMM::AtomClassIndex)class4, 
                 periodicity1, amp1InKcal, phase1InDegrees,
                 periodicity2, amp2InKcal, phase2InDegrees);
     }
@@ -351,7 +351,7 @@ public:
         int periodicity3, Real amp3InKcal, Real phase3InDegrees)
     {
         defineBondTorsion_KA
-               ((DuMM::AtomClassId)class1, (DuMM::AtomClassId)class2, (DuMM::AtomClassId)class3, (DuMM::AtomClassId)class4, 
+               ((DuMM::AtomClassIndex)class1, (DuMM::AtomClassIndex)class2, (DuMM::AtomClassIndex)class3, (DuMM::AtomClassIndex)class4, 
                 periodicity1, amp1InKcal, phase1InDegrees,
                 periodicity2, amp2InKcal, phase2InDegrees,
                 periodicity3, amp3InKcal, phase3InDegrees);
@@ -360,28 +360,28 @@ public:
     // As with normal torsions, (see defineAmberImproperTorsion), only one term may have
     // a given periodicity. The amplitudes are in kJ/mol.
     void defineAmberImproperTorsion
-       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+       (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4,
         int periodicity1, Real amp1InKJ, Real phase1InDegrees);
     void defineAmberImproperTorsion
-       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+       (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4,
         int periodicity1, Real amp1InKJ, Real phase1InDegrees,
         int periodicity2, Real amp2InKJ, Real phase2InDegrees);
     void defineAmberImproperTorsion
-       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+       (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4,
         int periodicity1, Real amp1InKJ, Real phase1InDegrees,
         int periodicity2, Real amp2InKJ, Real phase2InDegrees,
         int periodicity3, Real amp3InKJ, Real phase3InDegrees);
 
     // Here the amplitudes are given in kcal/mol.
     void defineAmberImproperTorsion_KA
-       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+       (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4,
         int periodicity1, Real amp1InKcal, Real phase1InDegrees)
     {
         defineAmberImproperTorsion(class1,class2,class3,class4,
                           periodicity1, amp1InKcal * DuMM::Kcal2KJ, phase1InDegrees);
     }
     void defineAmberImproperTorsion_KA
-       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+       (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4,
         int periodicity1, Real amp1InKcal, Real phase1InDegrees,
         int periodicity2, Real amp2InKcal, Real phase2InDegrees)
     {
@@ -390,7 +390,7 @@ public:
                           periodicity2, amp2InKcal * DuMM::Kcal2KJ, phase2InDegrees);
     }
     void defineAmberImproperTorsion_KA
-       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+       (DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4,
         int periodicity1, Real amp1InKcal, Real phase1InDegrees,
         int periodicity2, Real amp2InKcal, Real phase2InDegrees,
         int periodicity3, Real amp3InKcal, Real phase3InDegrees)
@@ -404,11 +404,11 @@ public:
     // The third atom is the central one to which the other
     // three are bonded; this is not the same in reverse order.
     // TODO: not implemented
-    // void defineImproperTorsion(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+    // void defineImproperTorsion(DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4,
     //     Real amplitude, Real phase, int periodicity,
     //     Real amp2, Real phase2, int period2,
     //     Real amp3, Real phase3, int period3);
-    // void defineImproperTorsion_KA(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+    // void defineImproperTorsion_KA(DuMM::AtomClassIndex class1, DuMM::AtomClassIndex class2, DuMM::AtomClassIndex class3, DuMM::AtomClassIndex class4,
     //     Real amplitude, Real phase, int periodicity,
     //     Real amp2, Real phase2, int period2,
     //     Real amp3, Real phase3, int period3);
@@ -446,48 +446,48 @@ public:
 protected:
 
     void defineIncompleteAtomClass(
-        DuMM::AtomClassId classId, 
+        DuMM::AtomClassIndex classIx, 
         const char* name, 
         int elementNumber, 
         int valence);
 
     void defineIncompleteAtomClass_KA(
-        DuMM::AtomClassId classId, 
+        DuMM::AtomClassIndex classIx, 
         const char* name, 
         int elementNumber, 
         int valence) 
     {
         defineIncompleteAtomClass(
-            classId, 
+            classIx, 
             name, 
             elementNumber, 
             valence
             );
     }
 
-    void setAtomClassVdwParameters(DuMM::AtomClassId atomClassId, Real vdwRadiusInNm, Real vdwWellDepthInKJPerMol);
-    void setAtomClassVdwParameters_KA(DuMM::AtomClassId atomClassId, Real radiusInAng, Real wellDepthInKcal) {
-        setAtomClassVdwParameters(atomClassId, radiusInAng*DuMM::Ang2Nm, wellDepthInKcal*DuMM::Kcal2KJ);
+    void setAtomClassVdwParameters(DuMM::AtomClassIndex atomClassIx, Real vdwRadiusInNm, Real vdwWellDepthInKJPerMol);
+    void setAtomClassVdwParameters_KA(DuMM::AtomClassIndex atomClassIx, Real radiusInAng, Real wellDepthInKcal) {
+        setAtomClassVdwParameters(atomClassIx, radiusInAng*DuMM::Ang2Nm, wellDepthInKcal*DuMM::Kcal2KJ);
     }
 
-    bool isValidAtomClass(DuMM::AtomClassId) const;
+    bool isValidAtomClass(DuMM::AtomClassIndex) const;
     
     void defineIncompleteChargedAtomType(
-        DuMM::ChargedAtomTypeId typeId, 
+        DuMM::ChargedAtomTypeIndex typeIx, 
         const char* name,
-        DuMM::AtomClassId classId);
+        DuMM::AtomClassIndex classIx);
 
     void defineIncompleteChargedAtomType_KA(
-        DuMM::ChargedAtomTypeId typeId, 
+        DuMM::ChargedAtomTypeIndex typeIx, 
         const char* name,
-        DuMM::AtomClassId classId) 
+        DuMM::AtomClassIndex classIx) 
     {
-        defineIncompleteChargedAtomType(typeId, name, classId);
+        defineIncompleteChargedAtomType(typeIx, name, classIx);
     }
 
-    void setChargedAtomTypeCharge(DuMM::ChargedAtomTypeId, Real charge);
-    void setChargedAtomTypeCharge_KA(DuMM::ChargedAtomTypeId chargedAtomTypeId, Real charge) {
-        setChargedAtomTypeCharge(chargedAtomTypeId, charge);
+    void setChargedAtomTypeCharge(DuMM::ChargedAtomTypeIndex, Real charge);
+    void setChargedAtomTypeCharge_KA(DuMM::ChargedAtomTypeIndex chargedAtomTypeIx, Real charge) {
+        setChargedAtomTypeCharge(chargedAtomTypeIx, charge);
     }
 
 private:

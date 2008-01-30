@@ -205,9 +205,9 @@ public:
     // handle, leaving that handle as a reference to our new matter object.
     // It is an error if the given handle wasn't the owner of the
     // matter representation.
-    MobilizedBodyId      adoptMobilizedBody(MobilizedBodyId parent, MobilizedBody& child);
-    const MobilizedBody& getMobilizedBody(MobilizedBodyId) const;
-    MobilizedBody&       updMobilizedBody(MobilizedBodyId);
+    MobilizedBodyIndex      adoptMobilizedBody(MobilizedBodyIndex parent, MobilizedBody& child);
+    const MobilizedBody& getMobilizedBody(MobilizedBodyIndex) const;
+    MobilizedBody&       updMobilizedBody(MobilizedBodyIndex);
 
 
     // Note: topology is not marked invalid upon returning a writable reference
@@ -218,9 +218,9 @@ public:
     MobilizedBody::Ground&       updGround();
     MobilizedBody::Ground&       Ground() {return updGround();}
 
-    ConstraintId      adoptConstraint(Constraint&);
-    const Constraint& getConstraint(ConstraintId) const;
-    Constraint&       updConstraint(ConstraintId);
+    ConstraintIndex      adoptConstraint(Constraint&);
+    const Constraint& getConstraint(ConstraintIndex) const;
+    Constraint&       updConstraint(ConstraintIndex);
 
         ///////////////
         // OPERATORS //
@@ -363,12 +363,12 @@ public:
 
     // TODO: these are obsolete. Their functions should be
     // taken over by methods in the MobilizedBody and Constraint classes.
-    void setMobilizerIsPrescribed(State&, MobilizedBodyId, bool) const;
-    bool isMobilizerPrescribed  (const State&, MobilizedBodyId) const;
-    bool isUsingQuaternion(const State&, MobilizedBodyId) const;
-    int  getQuaternionIndex(const State&, MobilizedBodyId) const;
-    void setConstraintIsDisabled(State&, ConstraintId constraint, bool) const;
-    bool isConstraintDisabled(const State&, ConstraintId constraint) const;
+    void setMobilizerIsPrescribed(State&, MobilizedBodyIndex, bool) const;
+    bool isMobilizerPrescribed  (const State&, MobilizedBodyIndex) const;
+    bool isUsingQuaternion(const State&, MobilizedBodyIndex) const;
+    int  getQuaternionIndex(const State&, MobilizedBodyIndex) const;
+    void setConstraintIsDisabled(State&, ConstraintIndex constraint, bool) const;
+    bool isConstraintDisabled(const State&, ConstraintIndex constraint) const;
     
     /// Given a State which is modeled using quaternions, convert it to a
     /// representation based on Euler angles and store the result in another state.
@@ -383,14 +383,14 @@ public:
     // Dynamics stage responses.
 
     // Cross joint
-    const SpatialVec& getCoriolisAcceleration(const State&, MobilizedBodyId) const;
+    const SpatialVec& getCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
 
     // Including parent
-    const SpatialVec& getTotalCoriolisAcceleration(const State&, MobilizedBodyId) const;
+    const SpatialVec& getTotalCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
 
-    const SpatialVec& getGyroscopicForce(const State&, MobilizedBodyId) const;
-    const SpatialVec& getCentrifugalForces(const State&, MobilizedBodyId) const;
-    const SpatialMat& getArticulatedBodyInertia(const State& s, MobilizedBodyId) const;
+    const SpatialVec& getGyroscopicForce(const State&, MobilizedBodyIndex) const;
+    const SpatialVec& getCentrifugalForces(const State&, MobilizedBodyIndex) const;
+    const SpatialMat& getArticulatedBodyInertia(const State& s, MobilizedBodyIndex) const;
 
         // PARTICLES
 
@@ -402,10 +402,10 @@ public:
     const Vector_<Vec3>& getAllParticleLocations    (const State&) const;
     const Vector_<Vec3>& getAllParticleVelocities   (const State&) const;
 
-    const Vec3& getParticleLocation(const State& s, ParticleId p) const {
+    const Vec3& getParticleLocation(const State& s, ParticleIndex p) const {
         return getAllParticleLocations(s)[p];
     }
-    const Vec3& getParticleVelocity(const State& s, ParticleId p) const {
+    const Vec3& getParticleVelocity(const State& s, ParticleIndex p) const {
         return getAllParticleVelocities(s)[p];
     }
 
@@ -426,17 +426,17 @@ public:
     // The following inline routines are provided by the generic MatterSubsystem class
     // for convenience.
 
-    Vec3& updParticleLocation(State& s, ParticleId p) const {
+    Vec3& updParticleLocation(State& s, ParticleIndex p) const {
         return updAllParticleLocations(s)[p];
     }
-    Vec3& updParticleVelocity(State& s, ParticleId p) const {
+    Vec3& updParticleVelocity(State& s, ParticleIndex p) const {
         return updAllParticleVelocities(s)[p];
     }
 
-    void setParticleLocation(State& s, ParticleId p, const Vec3& r) const {
+    void setParticleLocation(State& s, ParticleIndex p, const Vec3& r) const {
         updAllParticleLocations(s)[p] = r;
     }
-    void setParticleVelocity(State& s, ParticleId p, const Vec3& v) const {
+    void setParticleVelocity(State& s, ParticleIndex p, const Vec3& v) const {
         updAllParticleVelocities(s)[p] = v;
     }
 
@@ -452,7 +452,7 @@ public:
 
     const Vector_<Vec3>& getAllParticleAccelerations(const State&) const;
 
-    const Vec3& getParticleAcceleration(const State& s, ParticleId p) const {
+    const Vec3& getParticleAcceleration(const State& s, ParticleIndex p) const {
         return getAllParticleAccelerations(s)[p];
     }
 
@@ -463,17 +463,17 @@ public:
     /// Apply a force to a point on a body (a station). Provide the
     /// station in the body frame, force in the ground frame. Must
     /// be realized to Position stage prior to call.
-    void addInStationForce(const State&, MobilizedBodyId bodyB, const Vec3& stationOnB, 
+    void addInStationForce(const State&, MobilizedBodyIndex bodyB, const Vec3& stationOnB, 
                            const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const;
 
     /// Apply a torque to a body. Provide the torque vector in the
     /// ground frame.
-    void addInBodyTorque(const State&, MobilizedBodyId, const Vec3& torqueInG, 
+    void addInBodyTorque(const State&, MobilizedBodyIndex, const Vec3& torqueInG, 
                          Vector_<SpatialVec>& bodyForces) const;
 
     /// Apply a scalar joint force or torque to an axis of the
     /// indicated body's mobilizer.
-    void addInMobilityForce(const State&, MobilizedBodyId, int axis, Real f,
+    void addInMobilityForce(const State&, MobilizedBodyIndex, int axis, Real f,
                             Vector& mobilityForces) const;
 
         // POSITION STAGE solvers //

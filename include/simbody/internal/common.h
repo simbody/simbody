@@ -91,28 +91,28 @@ extern "C" {
 namespace SimTK {
 
 // This is just a type-safe non-negative int, augmented with a "NaN" 
-// value called InvalidMobilizedBodyId. For most uses it will behave like an int,
+// value called InvalidMobilizedBodyIndex. For most uses it will behave like an int,
 // and it has an implicit conversion *to* int. Importantly though,
 // it has no implicit conversion *from* int so you can't pass some
-// other kind of number as a MobilizedBodyId.
+// other kind of number as a MobilizedBodyIndex.
 // 
-// We also predefine GroundId which is always MobilizedBodyId(0).
+// We also predefine GroundIndex which is always MobilizedBodyIndex(0).
 //
-SimTK_DEFINE_UNIQUE_ID_TYPE(MobilizedBodyId)
-static const MobilizedBodyId GroundId(0);
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(MobilizedBodyIndex)
+static const MobilizedBodyIndex GroundIndex(0);
 
-SimTK_DEFINE_UNIQUE_ID_TYPE(QId)    // an index into generalized coordinates q
-SimTK_DEFINE_UNIQUE_ID_TYPE(UId)    // an index into generalized speeds u (and accelerations udot)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(QIndex)    // an index into generalized coordinates q
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(UIndex)    // an index into generalized speeds u (and accelerations udot)
 
-// And similarly for other unique Id types.
-SimTK_DEFINE_UNIQUE_ID_TYPE(SubtreeBodyId)
-static const SubtreeBodyId SubtreeAncestorId(0);
+// And similarly for other unique Index types.
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(SubtreeBodyIndex)
+static const SubtreeBodyIndex SubtreeAncestorIndex(0);
 
-SimTK_DEFINE_UNIQUE_ID_TYPE(SubtreeQId)
-SimTK_DEFINE_UNIQUE_ID_TYPE(SubtreeUId)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(SubtreeQIndex)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(SubtreeUIndex)
 
-SimTK_DEFINE_UNIQUE_ID_TYPE(ConstraintId)
-SimTK_DEFINE_UNIQUE_ID_TYPE(ParticleId)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstraintIndex)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(ParticleIndex)
 
 
 namespace Exception {
@@ -139,7 +139,7 @@ public:
 class MobilizerCantExactlyRepresentRequestedQuantity : public Base {
 public:
     MobilizerCantExactlyRepresentRequestedQuantity(const char* fn, int ln, 
-       String method, MobilizedBodyId body, String quantity) : Base(fn,ln)
+       String method, MobilizedBodyIndex body, String quantity) : Base(fn,ln)
     {
         setMessage(method + "(): the mobilizer for body " + String((int)body)
             + " can't represent the given " + quantity + " to machine precision");

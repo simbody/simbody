@@ -90,14 +90,14 @@ DecorationSubsystem::DecorationSubsystem(MultibodySystem& mbs)
 }
 
 void DecorationSubsystem::addBodyFixedDecoration
-   (MobilizedBodyId body, const Transform& X_GD, const DecorativeGeometry& g) 
+   (MobilizedBodyIndex body, const Transform& X_GD, const DecorativeGeometry& g) 
 {
     updGuts().addBodyFixedDecoration(body, X_GD, g);
 }
 
 void DecorationSubsystem::addRubberBandLine
-   (MobilizedBodyId b1, const Vec3& station1,
-    MobilizedBodyId b2, const Vec3& station2,
+   (MobilizedBodyIndex b1, const Vec3& station1,
+    MobilizedBodyIndex b2, const Vec3& station2,
     const DecorativeLine& g)
 {
     updGuts().addRubberBandLine(b1,station1,b2,station2,g);

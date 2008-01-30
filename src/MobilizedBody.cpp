@@ -89,22 +89,22 @@ const SimbodyMatterSubsystem& MobilizedBody::getMatterSubsystem() const {
 }
 
 
-MobilizedBodyId MobilizedBody::getMobilizedBodyId() const {
+MobilizedBodyIndex MobilizedBody::getMobilizedBodyIndex() const {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
-        "getMobilizedBodyId() called on a MobilizedBody that is not part of a subsystem.");
-    return getImpl().getMyMobilizedBodyId();
+        "getMobilizedBodyIndex() called on a MobilizedBody that is not part of a subsystem.");
+    return getImpl().getMyMobilizedBodyIndex();
 }
 
 const MobilizedBody& MobilizedBody::getParentMobilizedBody() const {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
         "getParentMobilizedBody() called on a MobilizedBody that is not part of a subsystem.");
-    return getImpl().getMyMatterSubsystemRep().getMobilizedBody(getImpl().getMyParentMobilizedBodyId());
+    return getImpl().getMyMatterSubsystemRep().getMobilizedBody(getImpl().getMyParentMobilizedBodyIndex());
 }
 
 const MobilizedBody& MobilizedBody::getBaseMobilizedBody() const {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
         "getBaseMobilizedBody() called on a MobilizedBody that is not part of a subsystem.");
-    return getImpl().getMyMatterSubsystemRep().getMobilizedBody(getImpl().getMyBaseBodyMobilizedBodyId());
+    return getImpl().getMyMatterSubsystemRep().getMobilizedBody(getImpl().getMyBaseBodyMobilizedBodyIndex());
 }
 
 bool MobilizedBody::isInSubsystem() const {
@@ -263,14 +263,14 @@ void MobilizedBody::applyBodyForce(const State& s, const SpatialVec& spatialForc
                                    Vector_<SpatialVec>& bodyForces) const 
 {
     assert(bodyForces.size() == getMatterSubsystem().getNBodies());
-    bodyForces[getMobilizedBodyId()] += spatialForceInG;
+    bodyForces[getMobilizedBodyIndex()] += spatialForceInG;
 }
 
 void MobilizedBody::applyBodyTorque(const State& s, const Vec3& torqueInG, 
                      Vector_<SpatialVec>& bodyForces) const 
 {
     assert(bodyForces.size() == getMatterSubsystem().getNBodies());
-    bodyForces[getMobilizedBodyId()][0] += torqueInG; // don't change force
+    bodyForces[getMobilizedBodyIndex()][0] += torqueInG; // don't change force
 }
 
 void MobilizedBody::applyForceToBodyPoint(const State& s, const Vec3& pointInB, const Vec3& forceInG,
@@ -278,7 +278,7 @@ void MobilizedBody::applyForceToBodyPoint(const State& s, const Vec3& pointInB, 
 {
     assert(bodyForces.size() == getMatterSubsystem().getNBodies());
     const Rotation& R_GB = getBodyTransform(s).R();
-    bodyForces[getMobilizedBodyId()] += SpatialVec((R_GB*pointInB) % forceInG, forceInG);
+    bodyForces[getMobilizedBodyIndex()] += SpatialVec((R_GB*pointInB) % forceInG, forceInG);
 }
 
 Real MobilizedBody::getOneQ(const State& s, int which) const {
@@ -355,8 +355,8 @@ MobilizedBody& MobilizedBody::cloneForNewParent(MobilizedBody& parent) const {
     copyBody = *this;
     copyBody.updImpl().myMatterSubsystemRep = 0;
     copyBody.updImpl().myRBnode = 0;
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(), copyBody);
-    return parent.updMatterSubsystem().updMobilizedBody(copyBody.getMobilizedBodyId());
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(), copyBody);
+    return parent.updMatterSubsystem().updMobilizedBody(copyBody.getMobilizedBodyIndex());
 }
 
     ////////////////////////
@@ -365,11 +365,11 @@ MobilizedBody& MobilizedBody::cloneForNewParent(MobilizedBody& parent) const {
 
 void MobilizedBodyImpl::findMobilizerQs(const State& s, int& qStart, int& nq) const {
     getMyMatterSubsystemRep()
-        .findMobilizerQs(s, myMobilizedBodyId, qStart, nq);
+        .findMobilizerQs(s, myMobilizedBodyIndex, qStart, nq);
 }
 void MobilizedBodyImpl::findMobilizerUs(const State& s, int& uStart, int& nu) const {
     getMyMatterSubsystemRep()
-        .findMobilizerUs(s, myMobilizedBodyId, uStart, nu);
+        .findMobilizerUs(s, myMobilizedBodyIndex, uStart, nu);
 }
 
 void MobilizedBodyImpl::copyOutDefaultQ(const State& s, Vector& qDefault) const {
@@ -436,20 +436,20 @@ const RigidBodyNode& MobilizedBodyImpl::realizeTopology
     delete myRBnode;
     myRBnode = createRigidBodyNode(nxtU,nxtUSq,nxtQ);
 
-    assert(myMobilizedBodyId.isValid());
-    assert(myParentId.isValid() || myMobilizedBodyId == GroundId);
+    assert(myMobilizedBodyIndex.isValid());
+    assert(myParentIndex.isValid() || myMobilizedBodyIndex == GroundIndex);
 
-    if (myParentId.isValid()) {
+    if (myParentIndex.isValid()) {
         // not ground
         const MobilizedBodyImpl& parent = 
-            myMatterSubsystemRep->getMobilizedBody(myParentId).getImpl();
+            myMatterSubsystemRep->getMobilizedBody(myParentIndex).getImpl();
         assert(myLevel == parent.myRBnode->getLevel() + 1);
         parent.myRBnode->addChild(myRBnode);
         myRBnode->setParent(parent.myRBnode);
     }
 
     myRBnode->setLevel(myLevel);
-    myRBnode->setNodeNum(myMobilizedBodyId);
+    myRBnode->setNodeNum(myMobilizedBodyIndex);
     return *myRBnode;
 }
 
@@ -464,7 +464,7 @@ MobilizedBody::Pin::Pin(MobilizedBody& parent, const Body& body) : PIMPLDerivedH
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -474,7 +474,7 @@ MobilizedBody::Pin::Pin(MobilizedBody& parent, const Transform& inbFrame,
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -558,7 +558,7 @@ MobilizedBody::Slider::Slider(MobilizedBody& parent, const Body& body) : PIMPLDe
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -568,7 +568,7 @@ MobilizedBody::Slider::Slider(MobilizedBody& parent, const Transform& inbFrame,
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -652,7 +652,7 @@ MobilizedBody::Universal::Universal(MobilizedBody& parent, const Body& body) : P
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -662,7 +662,7 @@ MobilizedBody::Universal::Universal(MobilizedBody& parent, const Transform& inbF
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -677,7 +677,7 @@ MobilizedBody::Cylinder::Cylinder(MobilizedBody& parent, const Body& body) : PIM
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -687,7 +687,7 @@ MobilizedBody::Cylinder::Cylinder(MobilizedBody& parent, const Transform& inbFra
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -703,7 +703,7 @@ MobilizedBody::BendStretch::BendStretch(MobilizedBody& parent, const Body& body)
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -713,7 +713,7 @@ MobilizedBody::BendStretch::BendStretch(MobilizedBody& parent, const Transform& 
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -728,7 +728,7 @@ MobilizedBody::Planar::Planar(MobilizedBody& parent, const Body& body) : PIMPLDe
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -738,7 +738,7 @@ MobilizedBody::Planar::Planar(MobilizedBody& parent, const Transform& inbFrame,
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -821,7 +821,7 @@ MobilizedBody::Gimbal::Gimbal(MobilizedBody& parent, const Body& body) : PIMPLDe
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -831,7 +831,7 @@ MobilizedBody::Gimbal::Gimbal(MobilizedBody& parent, const Transform& inbFrame,
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -932,7 +932,7 @@ void MobilizedBody::GimbalImpl::calcDecorativeGeometryAndAppendImpl
                                             .setRepresentation(DecorativeGeometry::DrawSurface)
                                             .setOpacity(0.5)
                                             .setResolution(0.75)
-                                            .setBodyId(getMyParentMobilizedBodyId())
+                                            .setBodyId(getMyParentMobilizedBodyIndex())
                                             .setTransform(X_PMb));
         geom.push_back(DecorativeSphere(0.90*getDefaultRadius())
             .setColor(White)
@@ -940,7 +940,7 @@ void MobilizedBody::GimbalImpl::calcDecorativeGeometryAndAppendImpl
             .setResolution(0.75)
             .setLineThickness(3)
             .setOpacity(0.1)
-            .setBodyId(getMyParentMobilizedBodyId())
+            .setBodyId(getMyParentMobilizedBodyIndex())
             .setTransform(X_PMb));
 
         // On the outboard body draw an orange mesh sphere at the ball radius.
@@ -949,7 +949,7 @@ void MobilizedBody::GimbalImpl::calcDecorativeGeometryAndAppendImpl
                                             .setRepresentation(DecorativeGeometry::DrawWireframe)
                                             .setOpacity(0.5)
                                             .setResolution(0.5)
-                                            .setBodyId(getMyMobilizedBodyId())
+                                            .setBodyId(getMyMobilizedBodyIndex())
                                             .setTransform(X_BM));
     }
 }
@@ -965,7 +965,7 @@ MobilizedBody::Ball::Ball(MobilizedBody& parent, const Body& body) : PIMPLDerive
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -975,7 +975,7 @@ MobilizedBody::Ball::Ball(MobilizedBody& parent, const Transform& inbFrame,
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -1076,7 +1076,7 @@ void MobilizedBody::BallImpl::calcDecorativeGeometryAndAppendImpl
                                             .setRepresentation(DecorativeGeometry::DrawSurface)
                                             .setOpacity(0.5)
                                             .setResolution(0.75)
-                                            .setBodyId(getMyParentMobilizedBodyId())
+                                            .setBodyId(getMyParentMobilizedBodyIndex())
                                             .setTransform(X_PMb));
         geom.push_back(DecorativeSphere(0.90*getDefaultRadius())
             .setColor(White)
@@ -1084,7 +1084,7 @@ void MobilizedBody::BallImpl::calcDecorativeGeometryAndAppendImpl
             .setResolution(0.75)
             .setLineThickness(3)
             .setOpacity(0.1)
-            .setBodyId(getMyParentMobilizedBodyId())
+            .setBodyId(getMyParentMobilizedBodyIndex())
             .setTransform(X_PMb));
 
         // On the outboard body draw an orange mesh sphere at the ball radius.
@@ -1093,7 +1093,7 @@ void MobilizedBody::BallImpl::calcDecorativeGeometryAndAppendImpl
                                             .setRepresentation(DecorativeGeometry::DrawWireframe)
                                             .setOpacity(0.5)
                                             .setResolution(0.5)
-                                            .setBodyId(getMyMobilizedBodyId())
+                                            .setBodyId(getMyMobilizedBodyIndex())
                                             .setTransform(X_BM));
     }
 }
@@ -1109,7 +1109,7 @@ MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Body& body) : P
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -1119,7 +1119,7 @@ MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Transform& inbF
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -1159,7 +1159,7 @@ void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl
             .setRepresentation(DecorativeGeometry::DrawSurface)
             .setOpacity(0.5)
             .setResolution(1.25)
-            .setBodyId(getMyParentMobilizedBodyId())
+            .setBodyId(getMyParentMobilizedBodyIndex())
             .setTransform(X_PMb));
         geom.push_back(DecorativeEllipsoid(radii*.99)
             .setColor(White)
@@ -1167,7 +1167,7 @@ void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl
             .setResolution(0.75)
             .setLineThickness(3)
             .setOpacity(0.1)
-            .setBodyId(getMyParentMobilizedBodyId())
+            .setBodyId(getMyParentMobilizedBodyIndex())
             .setTransform(X_PMb));
 
         // Calculate the follower plate dimensions from the ellipsoid dimensions.
@@ -1184,7 +1184,7 @@ void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl
             //.setOpacity(.2)
             .setResolution(0.75)
             .setLineThickness(1)
-            .setBodyId(getMyParentMobilizedBodyId())
+            .setBodyId(getMyParentMobilizedBodyIndex())
             .setTransform(X_PMb));
         */
 
@@ -1192,7 +1192,7 @@ void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl
         const Transform X_BFollower(X_BM.R(), X_BM.T() + Vec3(0,0,hh));
         geom.push_back(DecorativeBrick(Vec3(hw,2*hw/3.,hh))
             .setColor(Orange)
-            .setBodyId(getMyMobilizedBodyId())
+            .setBodyId(getMyMobilizedBodyIndex())
             .setTransform(X_BFollower));
     }
 }
@@ -1209,7 +1209,7 @@ MobilizedBody::Translation::Translation(MobilizedBody& parent, const Body& body)
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -1219,7 +1219,7 @@ MobilizedBody::Translation::Translation(MobilizedBody& parent, const Transform& 
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -1301,7 +1301,7 @@ MobilizedBody::Free::Free(MobilizedBody& parent, const Body& body) : PIMPLDerive
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -1311,7 +1311,7 @@ MobilizedBody::Free::Free(MobilizedBody& parent, const Transform& inbFrame,
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -1428,7 +1428,7 @@ MobilizedBody::LineOrientation::LineOrientation(MobilizedBody& parent, const Bod
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -1438,7 +1438,7 @@ MobilizedBody::LineOrientation::LineOrientation(MobilizedBody& parent, const Tra
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -1454,7 +1454,7 @@ MobilizedBody::FreeLine::FreeLine(MobilizedBody& parent, const Body& body) : PIM
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -1464,7 +1464,7 @@ MobilizedBody::FreeLine::FreeLine(MobilizedBody& parent, const Transform& inbFra
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -1480,7 +1480,7 @@ MobilizedBody::Weld::Weld(MobilizedBody& parent, const Body& body) : PIMPLDerive
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -1490,7 +1490,7 @@ MobilizedBody::Weld::Weld(MobilizedBody& parent, const Transform& inbFrame,
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -1513,7 +1513,7 @@ MobilizedBody::Screw::Screw(MobilizedBody& parent, const Body& body, Real pitch)
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 
@@ -1524,7 +1524,7 @@ MobilizedBody::Screw::Screw(MobilizedBody& parent, const Transform& inbFrame,
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
 
-    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
 

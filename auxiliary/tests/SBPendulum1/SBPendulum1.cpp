@@ -53,9 +53,9 @@
  * located in opposite directions along the B
  * frame X axis.
  *
- * There is a frame Jb on GroundId which will connect
+ * There is a frame Jb on GroundIndex which will connect
  * to J via a torsion joint around their mutual z axis.
- * Gravity is in the -y direction of the GroundId frame.
+ * Gravity is in the -y direction of the GroundIndex frame.
  * Note that Jb may not be aligned with G, and J may
  * differ from B so the reference configuration may 
  * involve twisting the pendulum around somewhat.
@@ -79,23 +79,23 @@ void stateTest() {
   try {
     State s;
     s.setNSubsystems(1);
-    s.advanceSubsystemToStage(SubsystemId(0), Stage::Topology);
+    s.advanceSubsystemToStage(SubsystemIndex(0), Stage::Topology);
     s.advanceSystemToStage(Stage::Topology);
 
     Vector v3(3), v2(2);
-    long q1 = s.allocateQ(SubsystemId(0), v3);
-    long q2 = s.allocateQ(SubsystemId(0), v2);
+    long q1 = s.allocateQ(SubsystemIndex(0), v3);
+    long q2 = s.allocateQ(SubsystemIndex(0), v2);
 
     printf("q1,2=%d,%d\n", q1, q2);
     cout << s;
 
-    long dv = s.allocateDiscreteVariable(SubsystemId(0), Stage::Dynamics, new Value<int>(5));
+    long dv = s.allocateDiscreteVariable(SubsystemIndex(0), Stage::Dynamics, new Value<int>(5));
 
-    s.advanceSubsystemToStage(SubsystemId(0), Stage::Model);
-        //long dv2 = s.allocateDiscreteVariable(SubsystemId(0), Stage::Position, new Value<int>(5));
+    s.advanceSubsystemToStage(SubsystemIndex(0), Stage::Model);
+        //long dv2 = s.allocateDiscreteVariable(SubsystemIndex(0), Stage::Position, new Value<int>(5));
 
-    Value<int>::downcast(s.updDiscreteVariable(SubsystemId(0), dv)) = 71;
-    cout << s.getDiscreteVariable(SubsystemId(0), dv) << endl;
+    Value<int>::downcast(s.updDiscreteVariable(SubsystemIndex(0), dv)) = 71;
+    cout << s.getDiscreteVariable(SubsystemIndex(0), dv) << endl;
 
     s.advanceSystemToStage(Stage::Model);
 
@@ -184,14 +184,14 @@ try {
 
     const Vec3 attachPt(1.5, 1, 0);
     springs.addTwoPointLinearSpring(
-        GroundId, attachPt, 
+        GroundIndex, attachPt, 
         aPendulum, Vec3(L/2,0,0), 
         100, 1);
 
     const Real k = 1000, c = 0.0;
-    contact.addHalfSpace(GroundId, UnitVec3(0,1,0), 0, k, c); // h,k,c
-    contact.addHalfSpace(GroundId, UnitVec3(1,0,0), -10, k, c); // h,k,c
-    contact.addHalfSpace(GroundId, UnitVec3(-1,0,0), -10, k, c); // h,k,c
+    contact.addHalfSpace(GroundIndex, UnitVec3(0,1,0), 0, k, c); // h,k,c
+    contact.addHalfSpace(GroundIndex, UnitVec3(1,0,0), -10, k, c); // h,k,c
+    contact.addHalfSpace(GroundIndex, UnitVec3(-1,0,0), -10, k, c); // h,k,c
 
     contact.addSphere(aBall, Vec3(0), ballRadius, k, c); // r,k,c
     contact.addSphere(aBall2, Vec3(0), ballRadius, k, c); // r,k,c
@@ -200,21 +200,21 @@ try {
     cout << "mbs State as built: " << s;
 
     VTKVisualizer vtk(mbs);
-    vtk.addDecoration(GroundId, Transform(), DecorativeBrick(Vec3(20,.1,20)).setColor(1.5*Gray).setOpacity(.3));
-    vtk.addDecoration(GroundId, Transform(Vec3(-10,0,0)), DecorativeBrick(Vec3(.1,20,20)).setColor(Yellow).setOpacity(1));
-    vtk.addDecoration(GroundId, Transform(Vec3(10,0,0)), DecorativeBrick(Vec3(.1,20,20)).setColor(Yellow).setOpacity(1));
+    vtk.addDecoration(GroundIndex, Transform(), DecorativeBrick(Vec3(20,.1,20)).setColor(1.5*Gray).setOpacity(.3));
+    vtk.addDecoration(GroundIndex, Transform(Vec3(-10,0,0)), DecorativeBrick(Vec3(.1,20,20)).setColor(Yellow).setOpacity(1));
+    vtk.addDecoration(GroundIndex, Transform(Vec3(10,0,0)), DecorativeBrick(Vec3(.1,20,20)).setColor(Yellow).setOpacity(1));
 
     DecorativeSphere bouncer(ballRadius);
     vtk.addDecoration(aBall, Transform(), bouncer.setColor(Orange));
     vtk.addDecoration(aBall2, Transform(), bouncer.setColor(Blue));
 
     DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
-    vtk.addRubberBandLine(GroundId, attachPt, aPendulum, Vec3(L/2,0,0), rbProto);
+    vtk.addRubberBandLine(GroundIndex, attachPt, aPendulum, Vec3(L/2,0,0), rbProto);
 
     DecorativeSphere sphere(0.25);
     sphere.setRepresentation(DecorativeGeometry::DrawPoints);
     sphere.setResolution(2);
-    vtk.addDecoration(GroundId, Transform(Vec3(1,2,3)), sphere);
+    vtk.addDecoration(GroundIndex, Transform(Vec3(1,2,3)), sphere);
     sphere.setScale(0.5); sphere.setResolution(1);
     vtk.addDecoration(aPendulum, Transform(Vec3(0.1,0.2,0.3)), sphere);
     Quaternion qqq; qqq.setQuaternionFromAngleAxis(Pi/4, UnitVec3(1,0,0));
@@ -256,7 +256,7 @@ try {
         s.getNYErr(), s.getQErrStart(), s.getNQErr(),
         s.getUErrStart(), s.getNUErr());
     printf("  nudoterr=%d\n", s.getNUDotErr());
-    for (SubsystemId i(0); i<s.getNSubsystems(); ++i) {
+    for (SubsystemIndex i(0); i<s.getNSubsystems(); ++i) {
         printf("Subsys %d: q:y(%d,%d) u:y(%d,%d) z:y(%d,%d)\n",
             (int)i,s.getQStart()+s.getQStart(i),s.getNQ(i),
               s.getUStart()+s.getUStart(i),s.getNU(i),
@@ -303,7 +303,7 @@ try {
     cout << "dEdR=" << dEdR << endl;
     cout << "dEdQ=" << dEdQ << endl;
 
-    pend.getMobilizedBody(MobilizedBodyId(1)).setOneU(s,0,10.);
+    pend.getMobilizedBody(MobilizedBodyIndex(1)).setOneU(s,0,10.);
 
     Vector_<SpatialVec> bodyForces(pend.getNBodies());
     Vector_<Vec3>       particleForces(pend.getNParticles());

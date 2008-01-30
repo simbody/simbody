@@ -56,10 +56,10 @@ public:
     }
     void calc(const SimbodyMatterSubsystem& matter, const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
         for (int i = 0; i < matter.getNBodies(); ++i) {
-            const MobilizedBody& body1 = matter.getMobilizedBody(MobilizedBodyId(i));
+            const MobilizedBody& body1 = matter.getMobilizedBody(MobilizedBodyIndex(i));
             const Vec3 pos1 = body1.getBodyOriginLocation(state);
             for (int j = i+1; j < matter.getNBodies(); ++j) {
-                const MobilizedBody& body2 = matter.getMobilizedBody(MobilizedBodyId(j));
+                const MobilizedBody& body2 = matter.getMobilizedBody(MobilizedBodyIndex(j));
                 const Vec3 pos2 = body2.getBodyOriginLocation(state);
                 const Real dist = (pos2-pos1).norm();
                 const Real invDist = 1.0/dist;

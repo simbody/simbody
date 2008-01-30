@@ -82,8 +82,8 @@ ConstraintNode* Constraint::Rod::RodRep::createConstraintNode() const
 {
     assert(isInSubsystem());
     const SimbodyMatterSubsystemRep& sbdyrep = getMyMatterSubsystemRep();
-    const MobilizedBodyId mobilizedBody1 = getMobilizedBodyIdOfConstrainedBody(B1);
-    const MobilizedBodyId mobilizedBody2 = getMobilizedBodyIdOfConstrainedBody(B2);
+    const MobilizedBodyIndex mobilizedBody1 = getMobilizedBodyIndexOfConstrainedBody(B1);
+    const MobilizedBodyIndex mobilizedBody2 = getMobilizedBodyIndexOfConstrainedBody(B2);
     return new ConstantDistanceConstraintNode(
         sbdyrep.getRigidBodyNode(mobilizedBody1), defaultPoint1,
         sbdyrep.getRigidBodyNode(mobilizedBody2), defaultPoint2,
@@ -100,8 +100,8 @@ ConstraintNode* Constraint::PointInPlane::PointInPlaneRep::createConstraintNode(
 {
     assert(isInSubsystem());
     const SimbodyMatterSubsystemRep& sbdyrep = getMyMatterSubsystemRep();
-    const MobilizedBodyId planeMobilizedBody = getMobilizedBodyIdOfConstrainedBody(planeBody);
-    const MobilizedBodyId followerMobilizedBody = getMobilizedBodyIdOfConstrainedBody(followerBody);
+    const MobilizedBodyIndex planeMobilizedBody = getMobilizedBodyIndexOfConstrainedBody(planeBody);
+    const MobilizedBodyIndex followerMobilizedBody = getMobilizedBodyIndexOfConstrainedBody(followerBody);
 
     return new PointInPlaneConstraintNode(
         sbdyrep.getRigidBodyNode(planeMobilizedBody), defaultPlaneNormal, defaultPlaneHeight,
@@ -116,8 +116,8 @@ ConstraintNode* Constraint::PointInPlane::PointInPlaneRep::createConstraintNode(
 ConstraintNode* Constraint::ConstantAngle::ConstantAngleRep::createConstraintNode() const {
     assert(isInSubsystem());
     const SimbodyMatterSubsystemRep& sbdyrep = getMyMatterSubsystemRep();
-    const MobilizedBodyId baseMobilizedBody = getMobilizedBodyIdOfConstrainedBody(B);
-    const MobilizedBodyId followerMobilizedBody = getMobilizedBodyIdOfConstrainedBody(F);
+    const MobilizedBodyIndex baseMobilizedBody = getMobilizedBodyIndexOfConstrainedBody(B);
+    const MobilizedBodyIndex followerMobilizedBody = getMobilizedBodyIndexOfConstrainedBody(F);
     return new ConstantAngleConstraintNode(
         sbdyrep.getRigidBodyNode(baseMobilizedBody), defaultAxisB,
         sbdyrep.getRigidBodyNode(followerMobilizedBody), defaultAxisF, defaultAngle);
@@ -130,8 +130,8 @@ ConstraintNode* Constraint::ConstantAngle::ConstantAngleRep::createConstraintNod
 ConstraintNode* Constraint::Ball::BallRep::createConstraintNode() const {
     assert(isInSubsystem());
     const SimbodyMatterSubsystemRep& sbdyrep = getMyMatterSubsystemRep();
-    const MobilizedBodyId mobilizedBody1 = getMobilizedBodyIdOfConstrainedBody(B1);
-    const MobilizedBodyId mobilizedBody2 = getMobilizedBodyIdOfConstrainedBody(B2);
+    const MobilizedBodyIndex mobilizedBody1 = getMobilizedBodyIndexOfConstrainedBody(B1);
+    const MobilizedBodyIndex mobilizedBody2 = getMobilizedBodyIndexOfConstrainedBody(B2);
     return new CoincidentStationsConstraintNode(
         sbdyrep.getRigidBodyNode(mobilizedBody1), defaultPoint1,
         sbdyrep.getRigidBodyNode(mobilizedBody2), defaultPoint2);
@@ -145,8 +145,8 @@ ConstraintNode* Constraint::Ball::BallRep::createConstraintNode() const {
 ConstraintNode* Constraint::Weld::WeldRep::createConstraintNode() const {
     assert(isInSubsystem());
     const SimbodyMatterSubsystemRep& sbdyrep = getMyMatterSubsystemRep();
-    const MobilizedBodyId mobilizedBody1 = getMobilizedBodyIdOfConstrainedBody(B1);
-    const MobilizedBodyId mobilizedBody2 = getMobilizedBodyIdOfConstrainedBody(B2);
+    const MobilizedBodyIndex mobilizedBody1 = getMobilizedBodyIndexOfConstrainedBody(B1);
+    const MobilizedBodyIndex mobilizedBody2 = getMobilizedBodyIndexOfConstrainedBody(B2);
     return new WeldConstraintNode(
         sbdyrep.getRigidBodyNode(mobilizedBody1), defaultFrame1,
         sbdyrep.getRigidBodyNode(mobilizedBody2), defaultFrame2);

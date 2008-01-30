@@ -66,18 +66,18 @@ static int NSegments = 2;
 
 class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {
-        PerBodyInfo(MobilizedBodyId b, bool d) : bnum(b), isDuplex(d) { }
-        MobilizedBodyId bnum;
+        PerBodyInfo(MobilizedBodyIndex b, bool d) : bnum(b), isDuplex(d) { }
+        MobilizedBodyIndex bnum;
         bool isDuplex;
     };
     std::vector<PerBodyInfo> bodyInfo;
-    MobilizedBodyId end1, end2;
+    MobilizedBodyIndex end1, end2;
 public:
     MyRNAExample(MultibodySystem& mbs, int nsegs, bool shouldFlop) : SimbodyMatterSubsystem(mbs)
     {
-        bodyInfo.push_back(PerBodyInfo(GroundId, false)); // placeholder for ground
-        end1 = makeChain(GroundId, Vec3(0), nsegs, shouldFlop);
-        end2 = makeChain(GroundId, Vec3(20,0,0), nsegs, shouldFlop);
+        bodyInfo.push_back(PerBodyInfo(GroundIndex, false)); // placeholder for ground
+        end1 = makeChain(GroundIndex, Vec3(0), nsegs, shouldFlop);
+        end2 = makeChain(GroundIndex, Vec3(20,0,0), nsegs, shouldFlop);
 
         if (true) {
             Constraint::Rod theConstraint2(updMobilizedBody(end1), Vec3(0, -HalfHeight,0),
@@ -86,7 +86,7 @@ public:
 
     }
 
-    void decorateBody(MobilizedBodyId bodyNum, VTKVisualizer& display) const {
+    void decorateBody(MobilizedBodyIndex bodyNum, VTKVisualizer& display) const {
         assert(bodyInfo[bodyNum].bnum == bodyNum);
         if (bodyInfo[bodyNum].isDuplex)
             addDuplexDecorations(bodyNum, DuplexRadius, HalfHeight, CylinderSlop, 
@@ -103,8 +103,8 @@ public:
 
 private:
 
-    MobilizedBodyId makeChain(MobilizedBodyId startBodyId, const Vec3& startOrigin, int nSegs, bool shouldFlop) {
-        //MobilizedBodyId baseBodyId = startBody;
+    MobilizedBodyIndex makeChain(MobilizedBodyIndex startBodyId, const Vec3& startOrigin, int nSegs, bool shouldFlop) {
+        //MobilizedBodyIndex baseBodyIx = startBody;
         MobilizedBody baseBody = updMobilizedBody(startBodyId);
         Vec3 origin = startOrigin;
         MobilizedBody lastDup;
@@ -187,7 +187,7 @@ private:
         return MassProperties(mass,com,iner);
     }
 
-    void addDuplexDecorations(MobilizedBodyId bodyNum, Real r, Real halfHeight, Real slop, int nAtoms,
+    void addDuplexDecorations(MobilizedBodyIndex bodyNum, Real r, Real halfHeight, Real slop, int nAtoms,
                               Real atomRadius, VTKVisualizer& display) const
     {
         display.addDecoration(bodyNum, Transform(), 
@@ -207,7 +207,7 @@ private:
         }
     }
 
-    void addConnectorDecorations(MobilizedBodyId bodyNum, Real r, Real halfHeight, Real endSlop,  
+    void addConnectorDecorations(MobilizedBodyIndex bodyNum, Real r, Real halfHeight, Real endSlop,  
                                  VTKVisualizer& display) const
     {
         display.addDecoration(bodyNum, Transform(), 
@@ -233,8 +233,8 @@ try // If anything goes wrong, an exception will be thrown.
 
     const Vec3 attachPt(150, -40, -50);
 
-    forces.addTwoPointLinearSpring(GroundId, attachPt,
-                                   MobilizedBodyId(myRNA.getNBodies()-1), Vec3(0),
+    forces.addTwoPointLinearSpring(GroundIndex, attachPt,
+                                   MobilizedBodyIndex(myRNA.getNBodies()-1), Vec3(0),
                                    1000.,  // stiffness
                                    1.);    // natural length
 
@@ -252,14 +252,14 @@ try // If anything goes wrong, an exception will be thrown.
     mbs.realizeModel(s);
     mbs.realize(s, Stage::Position);
 
-    for (ConstraintId cid(0); cid < myRNA.getNConstraints(); ++cid) {
+    for (ConstraintIndex cid(0); cid < myRNA.getNConstraints(); ++cid) {
         const Constraint& c = myRNA.getConstraint(cid);
 
-	    cout << "CONSTRAINT " << cid << " ancestor=" << c.getAncestorMobilizedBody().getMobilizedBodyId()
+	    cout << "CONSTRAINT " << cid << " ancestor=" << c.getAncestorMobilizedBody().getMobilizedBodyIndex()
              << " " << c.getNumConstrainedBodies() << "constrained bodies, perr=" << c.getPositionError(s)
 		     << endl;
-        for (ConstrainedBodyId cid(0); cid < c.getNumConstrainedBodies(); ++cid)
-            cout << "  constrained body: " << c.getConstrainedMobilizedBody(cid).getMobilizedBodyId() << endl;
+        for (ConstrainedBodyIndex cid(0); cid < c.getNumConstrainedBodies(); ++cid)
+            cout << "  constrained body: " << c.getConstrainedMobilizedBody(cid).getMobilizedBodyIndex() << endl;
 
 	    cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
 	    cout << "   d(perrdot)/du=" << ~c.calcPositionConstraintMatrixPt(s);
@@ -269,21 +269,21 @@ try // If anything goes wrong, an exception will be thrown.
 
 
     SimbodyMatterSubsystem::Subtree sub(myRNA);
-    sub.addTerminalBody(myRNA.getMobilizedBody(MobilizedBodyId(7)));
-    sub.addTerminalBody(myRNA.getMobilizedBody(MobilizedBodyId(10)));
-    //sub.addTerminalBody(myRNA.getMobilizedBody(MobilizedBodyId(20)));
+    sub.addTerminalBody(myRNA.getMobilizedBody(MobilizedBodyIndex(7)));
+    sub.addTerminalBody(myRNA.getMobilizedBody(MobilizedBodyIndex(10)));
+    //sub.addTerminalBody(myRNA.getMobilizedBody(MobilizedBodyIndex(20)));
     sub.realizeTopology();
-    cout << "sub.ancestor=" << sub.getAncestorMobilizedBodyId();
+    cout << "sub.ancestor=" << sub.getAncestorMobilizedBodyIndex();
 //    cout << "  sub.terminalBodies=" << sub.getTerminalBodies() << endl;
 //    cout << "sub.allBodies=" << sub.getAllBodies() << endl;
-    for (SubtreeBodyId i(0); i < (int)sub.getAllBodies().size(); ++i) {
-       cout << "sub.parent[" << i << "]=" << sub.getParentSubtreeBodyId(i);
-//       cout << "  sub.children[" << i << "]=" << sub.getChildSubtreeBodyIds(i) << endl;
+    for (SubtreeBodyIndex i(0); i < (int)sub.getAllBodies().size(); ++i) {
+       cout << "sub.parent[" << i << "]=" << sub.getParentSubtreeBodyIndex(i);
+//       cout << "  sub.children[" << i << "]=" << sub.getChildSubtreeBodyIndexs(i) << endl;
     }
    
 
     printf("# quaternions in use = %d\n", myRNA.getNQuaternionsInUse(s));
-    for (MobilizedBodyId i(0); i<myRNA.getNBodies(); ++i) {
+    for (MobilizedBodyIndex i(0); i<myRNA.getNBodies(); ++i) {
         printf("body %2d: using quat? %s; quat index=%d\n",
             (int)i, myRNA.isUsingQuaternion(s,i) ? "true":"false", 
             myRNA.getQuaternionIndex(s,i));
@@ -306,13 +306,13 @@ try // If anything goes wrong, an exception will be thrown.
     myStudy.setProjectEveryStep(false);
 
     VTKVisualizer display(mbs);
-    for (MobilizedBodyId i(1); i<myRNA.getNBodies(); ++i)
+    for (MobilizedBodyIndex i(1); i<myRNA.getNBodies(); ++i)
         myRNA.decorateBody(i, display);
     myRNA.decorateGlobal(display);
 
     DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
-    display.addRubberBandLine(GroundId, attachPt,MobilizedBodyId(myRNA.getNBodies()-1),Vec3(0), rbProto);
-    //display.addRubberBandLine(GroundId, -attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
+    display.addRubberBandLine(GroundIndex, attachPt,MobilizedBodyIndex(myRNA.getNBodies()-1),Vec3(0), rbProto);
+    //display.addRubberBandLine(GroundIndex, -attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
 
     const Real dt = 0.05; // output intervals
 

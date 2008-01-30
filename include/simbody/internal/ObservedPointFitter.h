@@ -57,28 +57,28 @@ public:
      * has a weight of 1.
      */
 
-    static Real findBestFit(const MultibodySystem& system, State& state, const std::vector<MobilizedBodyId>& bodyIds, const std::vector<std::vector<Vec3> >& stations, const std::vector<std::vector<Vec3> >& targetLocations, Real tolerance=0.001);
+    static Real findBestFit(const MultibodySystem& system, State& state, const std::vector<MobilizedBodyIndex>& bodyIxs, const std::vector<std::vector<Vec3> >& stations, const std::vector<std::vector<Vec3> >& targetLocations, Real tolerance=0.001);
 
     /**
      * Find the configuration of a MultibodySystem which best fits a set of target locations for stations.
      * 
      * @param system      the MultibodySystem being analyzed
      * @param state       on exit, this State's Q vector contains the values which provide a best fit
-     * @param bodyIds     a list of MobilizedBodyIds corresponding to the bodies for which stations are defined
+     * @param bodyIxs     a list of MobilizedBodyIndexs corresponding to the bodies for which stations are defined
      * @param stations    the list of stations for each body.  stations[i][j] is the location of the j'th station for the body given by
-     *                    bodyIds[i], given in that body's reference frame.
+     *                    bodyIxs[i], given in that body's reference frame.
      * @param targetLocations    the target locations for each body, given relative to ground.  targetLocations[i][j] is the target for stations[i][j].
      * @param weights     weights[i][j] is the weight to use for stations[i][j] when performing the fitting
      * @param tolerance   the distance tolerance within which the best fit should be found
      * @return the RMS distance of points in the best fit conformation from their target locations
      */
 
-    static Real findBestFit(const MultibodySystem& system, State& state, const std::vector<MobilizedBodyId>& bodyIds, const std::vector<std::vector<Vec3> >& stations, const std::vector<std::vector<Vec3> >& targetLocations, const std::vector<std::vector<Real> >& weights, Real tolerance=0.001);
+    static Real findBestFit(const MultibodySystem& system, State& state, const std::vector<MobilizedBodyIndex>& bodyIxs, const std::vector<std::vector<Vec3> >& stations, const std::vector<std::vector<Vec3> >& targetLocations, const std::vector<std::vector<Real> >& weights, Real tolerance=0.001);
 private:
-    static void createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, const std::vector<MobilizedBodyId>& originalBodyIds, std::vector<MobilizedBodyId>& copyBodyIds);
-    static void findUpstreamBodies(MobilizedBodyId currentBodyId, const std::vector<int> numStations, const SimbodyMatterSubsystem& matter, std::vector<MobilizedBodyId>& bodyIds, int requiredStations);
-    static void findDownstreamBodies(MobilizedBodyId currentBodyId, const std::vector<int> numStations, const std::vector<std::vector<MobilizedBodyId> > children, std::vector<MobilizedBodyId>& bodyIds, int& requiredStations);
-    static int findBodiesForClonedSystem(MobilizedBodyId primaryBodyId, const std::vector<int> numStations, const SimbodyMatterSubsystem& matter, const std::vector<std::vector<MobilizedBodyId> > children, std::vector<MobilizedBodyId>& bodyIds);
+    static void createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, const std::vector<MobilizedBodyIndex>& originalBodyIxs, std::vector<MobilizedBodyIndex>& copyBodyIxs);
+    static void findUpstreamBodies(MobilizedBodyIndex currentBodyIx, const std::vector<int> numStations, const SimbodyMatterSubsystem& matter, std::vector<MobilizedBodyIndex>& bodyIxs, int requiredStations);
+    static void findDownstreamBodies(MobilizedBodyIndex currentBodyIx, const std::vector<int> numStations, const std::vector<std::vector<MobilizedBodyIndex> > children, std::vector<MobilizedBodyIndex>& bodyIxs, int& requiredStations);
+    static int findBodiesForClonedSystem(MobilizedBodyIndex primaryBodyIx, const std::vector<int> numStations, const SimbodyMatterSubsystem& matter, const std::vector<std::vector<MobilizedBodyIndex> > children, std::vector<MobilizedBodyIndex>& bodyIxs);
     class OptimizerFunction;
 };
 

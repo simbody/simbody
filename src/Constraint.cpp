@@ -91,10 +91,10 @@ const SimbodyMatterSubsystem& Constraint::getMatterSubsystem() const {
     return getRep().getMyMatterSubsystemRep().getMySimbodyMatterSubsystemHandle();
 }
 
-ConstraintId Constraint::getConstraintId() const {
+ConstraintIndex Constraint::getConstraintIndex() const {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
-        "getConstraintId() called on a Constraint that is not part of a subsystem.");
-    return rep->myConstraintId;
+        "getConstraintIndex() called on a Constraint that is not part of a subsystem.");
+    return rep->myConstraintIndex;
 }
 
 SimbodyMatterSubsystem& Constraint::updMatterSubsystem() {
@@ -119,15 +119,15 @@ int Constraint::getNumConstrainedMobilities(const State& s) const {
     return getRep().getNumConstrainedMobilities(s);
 }
 
-int Constraint::getNumConstrainedMobilities(const State& s, ConstrainedBodyId B) const {
+int Constraint::getNumConstrainedMobilities(const State& s, ConstrainedBodyIndex B) const {
     return getRep().getNumConstrainedMobilities(s,B);
 }
 
-int Constraint::getConstrainedMobilityIndex(const State& s, ConstrainedBodyId B, int which) const {
+int Constraint::getConstrainedMobilityIndex(const State& s, ConstrainedBodyIndex B, int which) const {
     return getRep().getConstrainedMobilityIndex(s,B,which);
 }
 
-const MobilizedBody& Constraint::getConstrainedMobilizedBody(ConstrainedBodyId B) const {
+const MobilizedBody& Constraint::getConstrainedMobilizedBody(ConstrainedBodyIndex B) const {
     return getRep().getConstrainedMobilizedBody(B);
 }
 const MobilizedBody& Constraint::getAncestorMobilizedBody() const {
@@ -234,8 +234,8 @@ Matrix Constraint::calcPositionConstraintMatrixPt(const State& s) const {
 			bodyForcesInA = SpatialVec(Vec3(0), Vec3(0));
 			mobilityForces = 0;
 			rep.applyPositionConstraintForces(s, mp, &lambda[0], bodyForcesInA, mobilityForces);
-			for (ConstrainedBodyId cb(0); cb < ncb; ++cb) {
-				bodyForcesInG[rep.getMobilizedBodyIdOfConstrainedBody(cb)] =
+			for (ConstrainedBodyIndex cb(0); cb < ncb; ++cb) {
+				bodyForcesInG[rep.getMobilizedBodyIndexOfConstrainedBody(cb)] =
 					R_GA*bodyForcesInA[cb];
 			}
 			lambda[i] = 0;
@@ -316,8 +316,8 @@ Matrix Constraint::calcVelocityConstraintMatrixVt(const State& s) const {
 			bodyForcesInA = SpatialVec(Vec3(0), Vec3(0));
 			mobilityForces = 0;
 			rep.applyVelocityConstraintForces(s, mv, &lambda[0], bodyForcesInA, mobilityForces);
-			for (ConstrainedBodyId cb(0); cb < ncb; ++cb) {
-				bodyForcesInG[rep.getMobilizedBodyIdOfConstrainedBody(cb)] =
+			for (ConstrainedBodyIndex cb(0); cb < ncb; ++cb) {
+				bodyForcesInG[rep.getMobilizedBodyIndexOfConstrainedBody(cb)] =
 					R_GA*bodyForcesInA[cb];
 			}
 			lambda[i] = 0;
@@ -398,8 +398,8 @@ Matrix Constraint::calcAccelerationConstraintMatrixAt(const State& s) const {
 			bodyForcesInA = SpatialVec(Vec3(0), Vec3(0));
 			mobilityForces = 0;
 			rep.applyAccelerationConstraintForces(s, ma, &lambda[0], bodyForcesInA, mobilityForces);
-			for (ConstrainedBodyId cb(0); cb < ncb; ++cb) {
-				bodyForcesInG[rep.getMobilizedBodyIdOfConstrainedBody(cb)] =
+			for (ConstrainedBodyIndex cb(0); cb < ncb; ++cb) {
+				bodyForcesInG[rep.getMobilizedBodyIndexOfConstrainedBody(cb)] =
 					R_GA*bodyForcesInA[cb];
 			}
 			lambda[i] = 0;
@@ -515,11 +515,11 @@ Constraint::Rod& Constraint::Rod::setDefaultRodLength(Real length) {
 }
 
 
-MobilizedBodyId Constraint::Rod::getBody1MobilizedBodyId() const {
-    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().B1);
+MobilizedBodyIndex Constraint::Rod::getBody1MobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B1);
 }
-MobilizedBodyId Constraint::Rod::getBody2MobilizedBodyId() const {
-    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().B1);
+MobilizedBodyIndex Constraint::Rod::getBody2MobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B1);
 }
 const Vec3& Constraint::Rod::getDefaultPointOnBody1() const {
     return getRep().defaultPoint1;
@@ -595,11 +595,11 @@ Constraint::PointInPlane& Constraint::PointInPlane::setDefaultFollowerPoint(cons
     return *this;
 }
 
-MobilizedBodyId Constraint::PointInPlane::getPlaneMobilizedBodyId() const {
-    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().planeBody);
+MobilizedBodyIndex Constraint::PointInPlane::getPlaneMobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().planeBody);
 }
-MobilizedBodyId Constraint::PointInPlane::getFollowerMobilizedBodyId() const {
-    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().followerBody);
+MobilizedBodyIndex Constraint::PointInPlane::getFollowerMobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().followerBody);
 }
 const UnitVec3& Constraint::PointInPlane::getDefaultPlaneNormal() const {
     return getRep().defaultPlaneNormal;
@@ -663,8 +663,8 @@ void Constraint::PointInPlane::PointInPlaneRep::calcDecorativeGeometryAndAppendI
         const Transform X_B1(Rotation(defaultPlaneNormal,ZAxis), defaultPlaneHeight*defaultPlaneNormal);
         const Transform X_B2(Rotation(), defaultFollowerPoint);
 
-        const MobilizedBodyId planeMBId = getMobilizedBodyIdOfConstrainedBody(planeBody);
-        const MobilizedBodyId followerMBId = getMobilizedBodyIdOfConstrainedBody(followerBody);
+        const MobilizedBodyIndex planeMBId = getMobilizedBodyIndexOfConstrainedBody(planeBody);
+        const MobilizedBodyIndex followerMBId = getMobilizedBodyIndexOfConstrainedBody(followerBody);
 
         if (planeHalfWidth > 0 && pointRadius > 0) {
             // On the inboard body, draw a gray transparent rectangle, outlined in black lines.
@@ -735,11 +735,11 @@ Constraint::ConstantAngle& Constraint::ConstantAngle::setDefaultAngle(Real t) {
     return *this;
 }
 
-MobilizedBodyId Constraint::ConstantAngle::getBaseMobilizedBodyId() const {
-    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().B);
+MobilizedBodyIndex Constraint::ConstantAngle::getBaseMobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B);
 }
-MobilizedBodyId Constraint::ConstantAngle::getFollowerMobilizedBodyId() const {
-    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().F);
+MobilizedBodyIndex Constraint::ConstantAngle::getFollowerMobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().F);
 }
 const UnitVec3& Constraint::ConstantAngle::getDefaultBaseAxis() const {
     return getRep().defaultAxisB;
@@ -850,11 +850,11 @@ Constraint::Ball& Constraint::Ball::setDefaultPointOnBody2(const Vec3& p2) {
     return *this;
 }
 
-MobilizedBodyId Constraint::Ball::getBody1MobilizedBodyId() const {
-    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().B1);
+MobilizedBodyIndex Constraint::Ball::getBody1MobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B1);
 }
-MobilizedBodyId Constraint::Ball::getBody2MobilizedBodyId() const {
-    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().B2);
+MobilizedBodyIndex Constraint::Ball::getBody2MobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B2);
 }
 const Vec3& Constraint::Ball::getDefaultPointOnBody1() const {
     return getRep().defaultPoint1;
@@ -915,7 +915,7 @@ void Constraint::Ball::BallRep::calcDecorativeGeometryAndAppendImpl
                                             .setRepresentation(DecorativeGeometry::DrawSurface)
                                             .setOpacity(0.5)
                                             .setResolution(0.75)
-                                            .setBodyId(getMobilizedBodyIdOfConstrainedBody(B1))
+                                            .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B1))
                                             .setTransform(X_B1));
         geom.push_back(DecorativeSphere(0.90*getDefaultRadius())
             .setColor(White)
@@ -923,7 +923,7 @@ void Constraint::Ball::BallRep::calcDecorativeGeometryAndAppendImpl
             .setResolution(0.75)
             .setLineThickness(3)
             .setOpacity(0.1)
-            .setBodyId(getMobilizedBodyIdOfConstrainedBody(B1))
+            .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B1))
             .setTransform(X_B1));
 
         // On the outboard body draw an orange mesh sphere at the ball radius.
@@ -932,7 +932,7 @@ void Constraint::Ball::BallRep::calcDecorativeGeometryAndAppendImpl
                                             .setRepresentation(DecorativeGeometry::DrawWireframe)
                                             .setOpacity(0.5)
                                             .setResolution(0.5)
-                                            .setBodyId(getMobilizedBodyIdOfConstrainedBody(B2))
+                                            .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B2))
                                             .setTransform(X_B2));
     }
 }
@@ -983,11 +983,11 @@ Constraint::Weld& Constraint::Weld::setDefaultFrameOnBody2(const Transform& f2) 
     return *this;
 }
 
-MobilizedBodyId Constraint::Weld::getBody1MobilizedBodyId() const {
-    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().B1);
+MobilizedBodyIndex Constraint::Weld::getBody1MobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B1);
 }
-MobilizedBodyId Constraint::Weld::getBody2MobilizedBodyId() const {
-    return getRep().getMobilizedBodyIdOfConstrainedBody(getRep().B2);
+MobilizedBodyIndex Constraint::Weld::getBody2MobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B2);
 }
 const Transform& Constraint::Weld::getDefaultFrameOnBody1() const {
     return getRep().defaultFrame1;
@@ -1030,7 +1030,7 @@ void Constraint::ConstraintRep::realizeTopology(State& s, int& nxtQErr, int& nxt
     // Calculate the relevant Subtree.
     mySubtree.clear();
     mySubtree.setSimbodyMatterSubsystem(getMyMatterSubsystem());
-    for (ConstrainedBodyId b(0); b < (int)myConstrainedBodies.size(); ++b)
+    for (ConstrainedBodyIndex b(0); b < (int)myConstrainedBodies.size(); ++b)
         mySubtree.addTerminalBody(myConstrainedBodies[b]);
     mySubtree.realizeTopology();
 
@@ -1039,7 +1039,7 @@ void Constraint::ConstraintRep::realizeTopology(State& s, int& nxtQErr, int& nxt
     // Create a constraint node for dealing with computational issues.
     delete myConstraintNode;
     myConstraintNode = createConstraintNode();
-    myConstraintNode->setConstraintNum(myConstraintId);
+    myConstraintNode->setConstraintNum(myConstraintIndex);
     myConstraintNode->setQErrIndex(nxtQErr);
     myConstraintNode->setUErrIndex(nxtUErr);
     myConstraintNode->setMultIndex(nxtMult);
@@ -1070,11 +1070,11 @@ const ConstraintNode& Constraint::ConstraintRep::getMyConstraintNode() const {
 }
 
 void Constraint::ConstraintRep::setMyMatterSubsystem
-   (SimbodyMatterSubsystem& matter, ConstraintId id)
+   (SimbodyMatterSubsystem& matter, ConstraintIndex id)
 {
     assert(!isInSubsystem());
     myMatterSubsystemRep = &matter.updRep();
-    myConstraintId = id;
+    myConstraintIndex = id;
 }
 
 const SimbodyMatterSubsystem& 
@@ -1083,7 +1083,7 @@ Constraint::ConstraintRep::getMyMatterSubsystem() const {
 }
 
 const MobilizedBody& 
-Constraint::ConstraintRep::getConstrainedMobilizedBody(ConstrainedBodyId B) const {
+Constraint::ConstraintRep::getConstrainedMobilizedBody(ConstrainedBodyIndex B) const {
     SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
         "Constrained bodies are not available until Topology stage has been realized.");
     return getMyMatterSubsystemRep().getMobilizedBody(myConstrainedBodies[B]);
@@ -1093,22 +1093,22 @@ const MobilizedBody&
 Constraint::ConstraintRep::getAncestorMobilizedBody() const {
     SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
         "The ancestor body is not available until Topology stage has been realized.");
-    return getMyMatterSubsystemRep().getMobilizedBody(mySubtree.getAncestorMobilizedBodyId()); ;
+    return getMyMatterSubsystemRep().getMobilizedBody(mySubtree.getAncestorMobilizedBodyIndex()); ;
 }
 
 // These are measured from and expressed in the ancestor (A) frame.
 //TODO: should precalculate in State, return reference
-Transform Constraint::ConstraintRep::getBodyTransform(const State& s, const SBPositionCache& pc, ConstrainedBodyId B) const { // X_AB
+Transform Constraint::ConstraintRep::getBodyTransform(const State& s, const SBPositionCache& pc, ConstrainedBodyIndex B) const { // X_AB
     const Transform& X_GB = getMyMatterSubsystemRep().getBodyTransform(s, pc, myConstrainedBodies[B]);
-    const Transform& X_GA = getMyMatterSubsystemRep().getBodyTransform(s, pc, mySubtree.getAncestorMobilizedBodyId());
+    const Transform& X_GA = getMyMatterSubsystemRep().getBodyTransform(s, pc, mySubtree.getAncestorMobilizedBodyIndex());
     return ~X_GA*X_GB;
 }
 
-SpatialVec Constraint::ConstraintRep::getBodyVelocity(const State& s, const SBVelocityCache& vc, ConstrainedBodyId B) const { // V_AB
+SpatialVec Constraint::ConstraintRep::getBodyVelocity(const State& s, const SBVelocityCache& vc, ConstrainedBodyIndex B) const { // V_AB
     const Transform&  X_GB = getMyMatterSubsystemRep().getBodyTransform(s, myConstrainedBodies[B]);
-    const Transform&  X_GA = getMyMatterSubsystemRep().getBodyTransform(s, mySubtree.getAncestorMobilizedBodyId());
+    const Transform&  X_GA = getMyMatterSubsystemRep().getBodyTransform(s, mySubtree.getAncestorMobilizedBodyIndex());
     const SpatialVec& V_GB = getMyMatterSubsystemRep().getBodyVelocity(s, vc, myConstrainedBodies[B]);
-    const SpatialVec& V_GA = getMyMatterSubsystemRep().getBodyVelocity(s, vc, mySubtree.getAncestorMobilizedBodyId());
+    const SpatialVec& V_GA = getMyMatterSubsystemRep().getBodyVelocity(s, vc, mySubtree.getAncestorMobilizedBodyIndex());
     const Vec3 p_AB_G     = X_GB.T() - X_GA.T();
     const Vec3 p_AB_G_dot = V_GB[1]  - V_GA[1];        // d/dt p taken in G
 
@@ -1121,14 +1121,14 @@ SpatialVec Constraint::ConstraintRep::getBodyVelocity(const State& s, const SBVe
     return ~X_GA.R() * SpatialVec(w_AB_G, v_AB_G);     // re-express in A
 }
 
-SpatialVec Constraint::ConstraintRep::getBodyAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyId B) const { // A_AB
+SpatialVec Constraint::ConstraintRep::getBodyAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyIndex B) const { // A_AB
     const Vec3&       p_GB = getMyMatterSubsystemRep().getBodyTransform(s, myConstrainedBodies[B]).T();
-    const Transform&  X_GA = getMyMatterSubsystemRep().getBodyTransform(s, mySubtree.getAncestorMobilizedBodyId());
+    const Transform&  X_GA = getMyMatterSubsystemRep().getBodyTransform(s, mySubtree.getAncestorMobilizedBodyIndex());
     const Vec3&       p_GA = X_GA.T();
     const SpatialVec& V_GB = getMyMatterSubsystemRep().getBodyVelocity(s, myConstrainedBodies[B]);
-    const SpatialVec& V_GA = getMyMatterSubsystemRep().getBodyVelocity(s, mySubtree.getAncestorMobilizedBodyId());
+    const SpatialVec& V_GA = getMyMatterSubsystemRep().getBodyVelocity(s, mySubtree.getAncestorMobilizedBodyIndex());
     const SpatialVec& A_GB = getMyMatterSubsystemRep().getBodyAcceleration(s, ac, myConstrainedBodies[B]);
-    const SpatialVec& A_GA = getMyMatterSubsystemRep().getBodyAcceleration(s, ac, mySubtree.getAncestorMobilizedBodyId());
+    const SpatialVec& A_GA = getMyMatterSubsystemRep().getBodyAcceleration(s, ac, mySubtree.getAncestorMobilizedBodyIndex());
     const Vec3&       w_GA = V_GA[0];
     const Vec3&       w_GB = V_GB[0];
     const Vec3&       b_GA = A_GA[0];
@@ -1156,7 +1156,7 @@ SpatialVec Constraint::ConstraintRep::getBodyAcceleration(const State& s, const 
 // and acceleration-only constraint equations are generated by this Constraint.
 void Constraint::ConstraintRep::getNumConstraintEquations(const State& s, int& mp, int& mv, int& ma) const {
 	const SBModelCache&  mc  = getModelCache(s);
-	const ConstraintId   id  = myConstraintId;
+	const ConstraintIndex   id  = myConstraintIndex;
 
 	mp = mc.mHolonomicEquationsInUse[id];
 	mv = mc.mNonholonomicEquationsInUse[id];
@@ -1171,11 +1171,11 @@ void Constraint::ConstraintRep::getNumConstraintEquations(const State& s, int& m
 void Constraint::ConstraintRep::getPositionErrors(const State& s, int mp, Real* perr) const {
 	const SBModelCache& mc = getModelCache(s);
 
-	assert(mp == mc.mHolonomicEquationsInUse[myConstraintId]);
-	assert(mp == mc.holoErrSegment[myConstraintId].length);
+	assert(mp == mc.mHolonomicEquationsInUse[myConstraintIndex]);
+	assert(mp == mc.holoErrSegment[myConstraintIndex].length);
 
 	// Find the offset to our first qerr in the ModelCache.
-	const int firstQErr = mc.holoErrSegment[myConstraintId].offset;
+	const int firstQErr = mc.holoErrSegment[myConstraintIndex].offset;
 
 	// Get all qerr's for the subsystem.
 	const Vector& qerr = getMyMatterSubsystemRep().getQErr(s);
@@ -1196,24 +1196,24 @@ void Constraint::ConstraintRep::getPositionErrors(const State& s, int mp, Real* 
 void Constraint::ConstraintRep::getVelocityErrors(const State& s, int mpv, Real* pverr) const {
 	const SBModelCache& mc = getModelCache(s);
 
-	assert(mpv ==   mc.mHolonomicEquationsInUse   [myConstraintId] 
-				  + mc.mNonholonomicEquationsInUse[myConstraintId]);
-	assert(mpv ==  mc.holoErrSegment[myConstraintId].length
-                 + mc.nonholoErrSegment[myConstraintId].length);
+	assert(mpv ==   mc.mHolonomicEquationsInUse   [myConstraintIndex] 
+				  + mc.mNonholonomicEquationsInUse[myConstraintIndex]);
+	assert(mpv ==  mc.holoErrSegment[myConstraintIndex].length
+                 + mc.nonholoErrSegment[myConstraintIndex].length);
 
 	// Get referente to all uerr's for the subsystem.
 	const Vector& uerr = getMyMatterSubsystemRep().getUErr(s);
 
 	// Find the offset to our first uerr in the ModelCache.
-	const int firstHoloErr = mc.holoErrSegment[myConstraintId].offset;
-    const int mHolo        = mc.holoErrSegment[myConstraintId].length;
+	const int firstHoloErr = mc.holoErrSegment[myConstraintIndex].offset;
+    const int mHolo        = mc.holoErrSegment[myConstraintIndex].length;
 
     for (int i=0; i < mHolo; ++i)
         pverr[i] = uerr[firstHoloErr+i];
 
     const int firstNonholoErr = mc.nHolonomicConstraintEquationsInUse // total for whole subsystem
-                                + mc.nonholoErrSegment[myConstraintId].offset;
-    const int mNonholo        = mc.nonholoErrSegment[myConstraintId].length;
+                                + mc.nonholoErrSegment[myConstraintIndex].offset;
+    const int mNonholo        = mc.nonholoErrSegment[myConstraintIndex].length;
 
     for (int i=0; i < mNonholo; ++i)
         pverr[mHolo+i] = uerr[firstNonholoErr+i];
@@ -1231,33 +1231,33 @@ void Constraint::ConstraintRep::getVelocityErrors(const State& s, int mpv, Real*
 void Constraint::ConstraintRep::getAccelerationErrors(const State& s, int mpva, Real* pvaerr) const {
 	const SBModelCache& mc = getModelCache(s);
 
-	assert(mpva ==   mc.mHolonomicEquationsInUse       [myConstraintId] 
-				   + mc.mNonholonomicEquationsInUse    [myConstraintId]
-				   + mc.mAccelerationOnlyEquationsInUse[myConstraintId]);
-	assert(mpva ==   mc.holoErrSegment[myConstraintId].length
-                   + mc.nonholoErrSegment[myConstraintId].length
-                   + mc.accOnlyErrSegment[myConstraintId].length);
+	assert(mpva ==   mc.mHolonomicEquationsInUse       [myConstraintIndex] 
+				   + mc.mNonholonomicEquationsInUse    [myConstraintIndex]
+				   + mc.mAccelerationOnlyEquationsInUse[myConstraintIndex]);
+	assert(mpva ==   mc.holoErrSegment[myConstraintIndex].length
+                   + mc.nonholoErrSegment[myConstraintIndex].length
+                   + mc.accOnlyErrSegment[myConstraintIndex].length);
 
 	// Get referente to all udoterr's for the subsystem.
 	const Vector& udoterr = getMyMatterSubsystemRep().getUDotErr(s);
 
 	// Find the offset to our first uerr in the ModelCache.
-	const int firstHoloErr = mc.holoErrSegment[myConstraintId].offset;
-    const int mHolo        = mc.holoErrSegment[myConstraintId].length;
+	const int firstHoloErr = mc.holoErrSegment[myConstraintIndex].offset;
+    const int mHolo        = mc.holoErrSegment[myConstraintIndex].length;
 
     for (int i=0; i < mHolo; ++i)
         pvaerr[i] = udoterr[firstHoloErr+i];
 
     const int firstNonholoErr = mc.nHolonomicConstraintEquationsInUse // total for whole subsystem
-                                + mc.nonholoErrSegment[myConstraintId].offset;
-    const int mNonholo        = mc.nonholoErrSegment[myConstraintId].length;
+                                + mc.nonholoErrSegment[myConstraintIndex].offset;
+    const int mNonholo        = mc.nonholoErrSegment[myConstraintIndex].length;
 
     for (int i=0; i < mNonholo; ++i)
         pvaerr[mHolo+i] = udoterr[firstNonholoErr+i];
 
     const int firstAccOnlyErr = mc.nHolonomicConstraintEquationsInUse+mc.nNonholonomicConstraintEquationsInUse // total for whole subsystem
-                                + mc.accOnlyErrSegment[myConstraintId].offset;
-    const int mAccOnly        = mc.accOnlyErrSegment[myConstraintId].length;
+                                + mc.accOnlyErrSegment[myConstraintIndex].offset;
+    const int mAccOnly        = mc.accOnlyErrSegment[myConstraintIndex].length;
 
     for (int i=0; i < mAccOnly; ++i)
         pvaerr[mHolo+mNonholo+i] = udoterr[firstAccOnlyErr+i];
