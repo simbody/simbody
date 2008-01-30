@@ -43,6 +43,12 @@ class DecorativeGeometry;
 class DefaultSystemSubsystem;
 
 /**
+ * This is a class to represent unique IDs for events in a type-safe way.
+ */
+
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(EventId)
+
+/**
  * The handle class which serves as the abstract parent of all Systems.
  *
  * A System serves as a mediator for a group of interacting Subsystems.
@@ -408,14 +414,14 @@ public:
     /// to true before returning.
 
     void handleEvents
-       (State&, EventCause, const std::vector<int>& eventIds,
+       (State&, EventCause, const std::vector<EventId>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
     
     /// This method is similar to handleEvents(), but does not allow the State to be
     /// modified.  It is used for scheduled events that were marked as being reports.
     
-    void reportEvents(const State& s, EventCause cause, const std::vector<int>& eventIds) const;
+    void reportEvents(const State& s, EventCause cause, const std::vector<EventId>& eventIds) const;
 
     /// This routine provides the Integrator with information it needs about the
     /// individual event trigger functions, such as which sign transitions are
@@ -433,12 +439,12 @@ public:
     /// making the Integrator hunt these down like ordinary state-dependent events.
     /// The returned time can be passed to the Integrator's stepping function as
     /// the advance time limit.
-    void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const;
+    void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
 
     /// This routine is similar to calcTimeOfNextScheduledEvent(), but is used for
     /// "reporting events" which do not modify the state.  Events returned by this
     /// method should be handled by invoking reportEvents() instead of hanldeEvents().
-    void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const;
+    void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
     
     //TODO: these operators should be provided by the Vector class where they
     //can be perfomed more efficiently.
@@ -535,18 +541,18 @@ inline static System::ProjectOptions operator-(System::ProjectOptions          o
 class SimTK_SimTKCOMMON_EXPORT System::EventTriggerInfo {
 public:
     EventTriggerInfo();
-    explicit EventTriggerInfo(int eventId);
+    explicit EventTriggerInfo(EventId eventId);
     ~EventTriggerInfo();
     EventTriggerInfo(const EventTriggerInfo&);
     EventTriggerInfo& operator=(const EventTriggerInfo&);
 
-    int getEventId() const; // returns -1 if not set
+    EventId getEventId() const; // returns -1 if not set
     bool shouldTriggerOnRisingSignTransition()  const; // default=true
     bool shouldTriggerOnFallingSignTransition() const; // default=true
     Real getRequiredLocalizationTimeWindow()    const; // default=0.1
 
     // These return the modified 'this', like assignment operators.
-    EventTriggerInfo& setEventId(int);
+    EventTriggerInfo& setEventId(EventId);
     EventTriggerInfo& setTriggerOnRisingSignTransition(bool);
     EventTriggerInfo& setTriggerOnFallingSignTransition(bool);
     EventTriggerInfo& setRequiredLocalizationTimeWindow(Real);

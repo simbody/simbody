@@ -155,20 +155,20 @@ void System::project(State& s, Real consAccuracy, const Vector& yweights,
   { getSystemGuts().project(s,consAccuracy,yweights,ootols,yerrest, opts); }
 void System::calcYErrUnitTolerances(const State& s, Vector& tolerances) const
   { getSystemGuts().calcYErrUnitTolerances(s,tolerances); }
-void System::handleEvents(State& s, EventCause cause, const std::vector<int>& eventIds,
+void System::handleEvents(State& s, EventCause cause, const std::vector<EventId>& eventIds,
                           Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
                           Stage& lowestModified, bool& shouldTerminate) const
   { getSystemGuts().handleEvents(s,cause,eventIds,accuracy,yWeights,ooConstraintTols,
                                lowestModified,shouldTerminate); }
-void System::reportEvents(const State& s, EventCause cause, const std::vector<int>& eventIds) const
+void System::reportEvents(const State& s, EventCause cause, const std::vector<EventId>& eventIds) const
   { getSystemGuts().reportEvents(s,cause,eventIds); }
 void System::calcEventTriggerInfo(const State& s, std::vector<EventTriggerInfo>& info) const
   { getSystemGuts().calcEventTriggerInfo(s,info); }
 void System::calcTimeOfNextScheduledEvent(const State& s, Real& tNextEvent,
-                                          std::vector<int>& eventIds, bool includeCurrentTime) const
+                                          std::vector<EventId>& eventIds, bool includeCurrentTime) const
   { getSystemGuts().calcTimeOfNextScheduledEvent(s,tNextEvent,eventIds,includeCurrentTime); }
 void System::calcTimeOfNextScheduledReport(const State& s, Real& tNextEvent,
-                                          std::vector<int>& eventIds, bool includeCurrentTime) const
+                                          std::vector<EventId>& eventIds, bool includeCurrentTime) const
   { getSystemGuts().calcTimeOfNextScheduledReport(s,tNextEvent,eventIds,includeCurrentTime); }
 
 const char* System::getEventCauseName(System::EventCause cause) {
@@ -520,7 +520,7 @@ void System::Guts::project(State& s, Real consAccuracy, const Vector& yweights,
 }
 
 void System::Guts::handleEvents
-   (State& s, EventCause cause, const std::vector<int>& eventIds,
+   (State& s, EventCause cause, const std::vector<EventId>& eventIds,
     Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
     Stage& lowestModified, bool& shouldTerminate) const
 {
@@ -538,7 +538,7 @@ void System::Guts::handleEvents
 }
 
 void System::Guts::reportEvents
-   (const State& s, EventCause cause, const std::vector<int>& eventIds) const
+   (const State& s, EventCause cause, const std::vector<EventId>& eventIds) const
 {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Model, // TODO: is this the right stage?
         "System::Guts::reportEvents()");
@@ -550,7 +550,7 @@ void System::Guts::reportEvents
 }
 
 void System::Guts::calcTimeOfNextScheduledEvent
-    (const State& s, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const
+    (const State& s, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const
 {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Time,
         "System::Guts::calcTimeOfNextScheduledEvent()");
@@ -559,7 +559,7 @@ void System::Guts::calcTimeOfNextScheduledEvent
 }
 
 void System::Guts::calcTimeOfNextScheduledReport
-    (const State& s, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const
+    (const State& s, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const
 {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Time,
         "System::Guts::calcTimeOfNextScheduledReport()");
@@ -679,7 +679,7 @@ int System::Guts::calcYErrUnitTolerancesImpl(const State& s, Vector& ootols) con
 }
 
 int System::Guts::handleEventsImpl
-   (State& s, EventCause cause, const std::vector<int>& eventIds,
+   (State& s, EventCause cause, const std::vector<EventId>& eventIds,
     Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
     Stage& lowestModified, bool& shouldTerminate) const
 {
@@ -693,7 +693,7 @@ int System::Guts::handleEventsImpl
     
     lowestModified = Stage::HighestValid;
     shouldTerminate = false;
-    std::vector<int> eventsForSubsystem;
+    std::vector<EventId> eventsForSubsystem;
     for (SubsystemIndex i(0); i<getNSubsystems(); ++i) {
         Stage subsysLowestModified = Stage::HighestValid;
         bool subsysShouldTerminate = false;
@@ -709,11 +709,11 @@ int System::Guts::handleEventsImpl
     return 0;
 }
 
-int System::Guts::reportEventsImpl(const State& s, EventCause cause, const std::vector<int>& eventIds) const
+int System::Guts::reportEventsImpl(const State& s, EventCause cause, const std::vector<EventId>& eventIds) const
 {
     // Loop over each subsystem, see which events belong to it, and allow it to handle those events.
     
-    std::vector<int> eventsForSubsystem;
+    std::vector<EventId> eventsForSubsystem;
     for (SubsystemIndex i(0); i<getNSubsystems(); ++i) {
         getSystem().getDefaultSubsystem().findSubsystemEventIds(getRep().subsystems[i].getMySubsystemIndex(), s, eventIds, eventsForSubsystem);
         if (eventsForSubsystem.size() > 0) {
@@ -738,13 +738,13 @@ int System::Guts::calcEventTriggerInfoImpl(const State& s, std::vector<System::E
     return 0;
 }
 
-int System::Guts::calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const
+int System::Guts::calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const
 {
     tNextEvent = Infinity;
     eventIds.clear();
     for (SubsystemIndex i(0); i<getNSubsystems(); ++i) {
         Real time;
-        std::vector<int> ids;
+        std::vector<EventId> ids;
         getRep().subsystems[i].getSubsystemGuts().calcTimeOfNextScheduledEvent(s, time, ids, includeCurrentTime);
         if (time < tNextEvent) {
             tNextEvent = time;
@@ -756,13 +756,13 @@ int System::Guts::calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEv
     return 0;
 }
 
-int System::Guts::calcTimeOfNextScheduledReportImpl(const State& s, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const
+int System::Guts::calcTimeOfNextScheduledReportImpl(const State& s, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const
 {
     tNextEvent = Infinity;
     eventIds.clear();
     for (SubsystemIndex i(0); i<getNSubsystems(); ++i) {
         Real time;
-        std::vector<int> ids;
+        std::vector<EventId> ids;
         getRep().subsystems[i].getSubsystemGuts().calcTimeOfNextScheduledReport(s, time, ids, includeCurrentTime);
         if (time < tNextEvent) {
             tNextEvent = time;
@@ -795,7 +795,7 @@ System::EventTriggerInfo::~EventTriggerInfo() {
     rep = 0;
 }
 
-System::EventTriggerInfo::EventTriggerInfo(int eventId) : rep(0) {
+System::EventTriggerInfo::EventTriggerInfo(EventId eventId) : rep(0) {
     rep = new System::EventTriggerInfoRep(this);
     rep->eventId = eventId;
 }
@@ -816,7 +816,7 @@ System::EventTriggerInfo::operator=(const System::EventTriggerInfo& src) {
     return *this;
 }
 
-int System::EventTriggerInfo::getEventId() const {
+EventId System::EventTriggerInfo::getEventId() const {
     return getRep().eventId;
 }
 bool System::EventTriggerInfo::shouldTriggerOnRisingSignTransition() const {
@@ -830,7 +830,7 @@ Real System::EventTriggerInfo::getRequiredLocalizationTimeWindow()    const {
 }
 
 System::EventTriggerInfo& 
-System::EventTriggerInfo::setEventId(int id) {
+System::EventTriggerInfo::setEventId(EventId id) {
     updRep().eventId = id; 
     return *this;
 }

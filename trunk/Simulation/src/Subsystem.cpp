@@ -421,7 +421,7 @@ bool Subsystem::Guts::subsystemTopologyHasBeenRealized() const {
  * @param eventId   on exit, the newly allocated event ID is stored here
  */
 
-void Subsystem::Guts::createScheduledEvent(State& state, int& eventId) const {
+void Subsystem::Guts::createScheduledEvent(State& state, EventId& eventId) const {
     eventId = getSystem().getDefaultSubsystem().createEventId(getMySubsystemIndex(), state);
 }
 
@@ -437,7 +437,7 @@ void Subsystem::Guts::createScheduledEvent(State& state, int& eventId) const {
  * @param stage     the Stage at which the event will be evaluated
  */
 
-void Subsystem::Guts::createTriggeredEvent(State& state, int& eventId, int& triggerFunctionIndex, Stage stage) const {
+void Subsystem::Guts::createTriggeredEvent(State& state, EventId& eventId, int& triggerFunctionIndex, Stage stage) const {
     eventId = getSystem().getDefaultSubsystem().createEventId(getMySubsystemIndex(), state);
     triggerFunctionIndex = state.allocateEvent(getMySubsystemIndex(), stage, 1);
 }
@@ -612,23 +612,23 @@ void Subsystem::Guts::calcDecorativeGeometryAndAppend(const State& s, Stage stag
 {
     return 0;
 }
-void Subsystem::Guts::handleEvents(State&, System::EventCause, const std::vector<int>& eventIds,
+void Subsystem::Guts::handleEvents(State&, System::EventCause, const std::vector<EventId>& eventIds,
     Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
     Stage& lowestModified, bool& shouldTerminate) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Subsystem", "handleEvents"); 
 }
-void Subsystem::Guts::reportEvents(const State&, System::EventCause, const std::vector<int>& eventIds) const
+void Subsystem::Guts::reportEvents(const State&, System::EventCause, const std::vector<EventId>& eventIds) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Subsystem", "reportEvents"); 
 }
 void Subsystem::Guts::calcEventTriggerInfo(const State& s, std::vector<System::EventTriggerInfo>& info) const {
 }
-void Subsystem::Guts::calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const {
+void Subsystem::Guts::calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const {
     tNextEvent = Infinity;
     eventIds.clear();
 }
-void Subsystem::Guts::calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const {
+void Subsystem::Guts::calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const {
     tNextEvent = Infinity;
     eventIds.clear();
 }
@@ -658,12 +658,12 @@ public:
         CacheInfo() : eventIdCounter(0) {}
         mutable int eventIdCounter;
         mutable std::map<int, SubsystemIndex> eventOwnerMap;
-        std::vector<int> scheduledEventIds;
+        std::vector<EventId> scheduledEventIds;
         std::vector<int> triggeredEventIndices;
-        std::vector<int> triggeredEventIds;
-        std::vector<int> scheduledReportIds;
+        std::vector<EventId> triggeredEventIds;
+        std::vector<EventId> scheduledReportIds;
         std::vector<int> triggeredReportIndices;
-        std::vector<int> triggeredReportIds;
+        std::vector<EventId> triggeredReportIds;
     };
     DefaultSystemSubsystemGuts() : Guts("DefaultSystemSubsystemGuts", "0.0.1") { }
     
@@ -737,26 +737,28 @@ public:
         info.triggeredReportIds.clear();
         if (scheduledEventHandlers.size() > 0)
             for (vector<ScheduledEventHandler*>::const_iterator e = scheduledEventHandlers.begin(); e != scheduledEventHandlers.end(); e++) {
-                int id;
+                EventId id;
                 createScheduledEvent(s, id);
                 info.scheduledEventIds.push_back(id);
             }
         if (triggeredEventHandlers.size() > 0)
             for (vector<TriggeredEventHandler*>::const_iterator e = triggeredEventHandlers.begin(); e != triggeredEventHandlers.end(); e++) {
-                int id, index;
+                EventId id;
+                int index;
                 createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
                 info.triggeredEventIds.push_back(id);
                 info.triggeredEventIndices.push_back(index);
             }
         if (scheduledEventReporters.size() > 0)
             for (vector<ScheduledEventReporter*>::const_iterator e = scheduledEventReporters.begin(); e != scheduledEventReporters.end(); e++) {
-                int id;
+                EventId id;
                 createScheduledEvent(s, id);
                 info.scheduledReportIds.push_back(id);
             }
         if (triggeredEventReporters.size() > 0)
             for (vector<TriggeredEventReporter*>::const_iterator e = triggeredEventReporters.begin(); e != triggeredEventReporters.end(); e++) {
-                int id, index;
+                EventId id;
+                int index;
                 createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
                 info.triggeredReportIds.push_back(id);
                 info.triggeredReportIndices.push_back(index);
@@ -819,7 +821,7 @@ public:
             triggers[index].setEventId(info.triggeredReportIds[i]);
         }
     }
-    void calcTimeOfNextScheduledEvent(const State& s, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const {
+    void calcTimeOfNextScheduledEvent(const State& s, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const {
         
         // Loop over all registered ScheduledEventHandlers, and ask each one when its next event occurs.
         
@@ -835,7 +837,7 @@ public:
             }
         }
     }
-    void calcTimeOfNextScheduledReport(const State& s, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const {
+    void calcTimeOfNextScheduledReport(const State& s, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const {
         
         // Loop over all registered ScheduledEventReporters, and ask each one when its next event occurs.
         
@@ -851,7 +853,7 @@ public:
             }
         }
     }
-    void handleEvents(State& s, System::EventCause cause, const std::vector<int>& eventIds, Real accuracy, const Vector& yWeights,
+    void handleEvents(State& s, System::EventCause cause, const std::vector<EventId>& eventIds, Real accuracy, const Vector& yWeights,
             const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
         const CacheInfo& info = getCacheInfo(s);
         lowestModified = Stage::HighestValid;
@@ -859,7 +861,7 @@ public:
         
         // Build a set of the ids for quick lookup.
         
-        std::set<int> idSet;
+        std::set<EventId> idSet;
         for (int i = 0; i < (int)eventIds.size(); ++i)
             idSet.insert(eventIds[i]);
         
@@ -904,12 +906,12 @@ public:
         }
     }
 
-    void reportEvents(const State& s, System::EventCause cause, const std::vector<int>& eventIds) const {
+    void reportEvents(const State& s, System::EventCause cause, const std::vector<EventId>& eventIds) const {
         const CacheInfo& info = getCacheInfo(s);
         
         // Build a set of the ids for quick lookup.
         
-        std::set<int> idSet;
+        std::set<EventId> idSet;
         for (int i = 0; i < (int)eventIds.size(); ++i)
             idSet.insert(eventIds[i]);
         
@@ -1014,11 +1016,11 @@ void DefaultSystemSubsystem::addEventReporter(TriggeredEventReporter* handler) c
  * Subsystem::Guts::createScheduledEvent() or Subsystem::Guts::createTriggeredEvent().
  */
 
-int DefaultSystemSubsystem::createEventId(SubsystemIndex subsys, State& state) const {
+EventId DefaultSystemSubsystem::createEventId(SubsystemIndex subsys, State& state) const {
     const DefaultSystemSubsystemGuts::CacheInfo& info = getGuts().getCacheInfo(state);
     int id = info.eventIdCounter++;
     info.eventOwnerMap[id] = subsys;
-    return id;
+    return EventId(id);
 }
 
 /**
@@ -1031,7 +1033,7 @@ int DefaultSystemSubsystem::createEventId(SubsystemIndex subsys, State& state) c
  *                              specified Subsystem.
  */
 
-void DefaultSystemSubsystem::findSubsystemEventIds(SubsystemIndex subsys, const State& state, const std::vector<int>& allEvents, std::vector<int>& eventsForSubsystem) const {
+void DefaultSystemSubsystem::findSubsystemEventIds(SubsystemIndex subsys, const State& state, const std::vector<EventId>& allEvents, std::vector<EventId>& eventsForSubsystem) const {
     const DefaultSystemSubsystemGuts::CacheInfo& info = getGuts().getCacheInfo(state);
     eventsForSubsystem.clear();
     for (int i = 0; i < (int)allEvents.size(); ++i) {

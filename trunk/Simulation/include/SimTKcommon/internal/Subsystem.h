@@ -35,6 +35,7 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/State.h"
+#include "SimTKcommon/internal/System.h"
 
 #include <cassert>
 
@@ -219,8 +220,8 @@ public:
     void addEventHandler(TriggeredEventHandler* handler);
     void addEventReporter(ScheduledEventReporter* handler) const;
     void addEventReporter(TriggeredEventReporter* handler) const;
-    int createEventId(SubsystemIndex subsys, State& state) const;
-    void findSubsystemEventIds(SubsystemIndex subsys, const State& state, const std::vector<int>& allEvents, std::vector<int>& eventsForSubsystem) const;
+    EventId createEventId(SubsystemIndex subsys, State& state) const;
+    void findSubsystemEventIds(SubsystemIndex subsys, const State& state, const std::vector<EventId>& allEvents, std::vector<EventId>& eventsForSubsystem) const;
 private:
     const DefaultSystemSubsystemGuts& getGuts() const;
     DefaultSystemSubsystemGuts& updGuts();

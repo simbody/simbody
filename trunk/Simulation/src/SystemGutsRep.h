@@ -270,7 +270,7 @@ private:
 class System::EventTriggerInfoRep {
 public:
     explicit EventTriggerInfoRep(System::EventTriggerInfo* h)
-      : myHandle(h), eventId(-1), triggerOnRising(true), triggerOnFalling(true), localizationWindow(0.1)
+      : myHandle(h), eventId(EventId(InvalidIndex)), triggerOnRising(true), triggerOnFalling(true), localizationWindow(0.1)
     {
         assert(h);
     }
@@ -279,7 +279,7 @@ private:
     System::EventTriggerInfo* myHandle;
     friend class System::EventTriggerInfo;
 
-    int  eventId;
+    EventId  eventId;
     bool triggerOnRising;
     bool triggerOnFalling;
     Real localizationWindow;

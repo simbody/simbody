@@ -295,20 +295,20 @@ public:
     // The generated geometry will be *appended* to the supplied output vector.
     void calcDecorativeGeometryAndAppend(const State&, Stage, std::vector<DecorativeGeometry>&) const;
     
-    void createScheduledEvent(State& state, int& eventId) const;
-    void createTriggeredEvent(State& state, int& eventId, int& triggerFunctionIndex, Stage stage) const;
+    void createScheduledEvent(State& state, EventId& eventId) const;
+    void createTriggeredEvent(State& state, EventId& eventId, int& triggerFunctionIndex, Stage stage) const;
 
     // These methods are called by the corresponding methods of System.
     // Each subsystem is responsible for defining its own events, and
     // System then combines the information from them, and dispatches events
     // to the appropriate subsystems for handling when they occur.
     virtual void calcEventTriggerInfo(const State&, std::vector<System::EventTriggerInfo>&) const;
-    virtual void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const;
-    virtual void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, std::vector<int>& eventIds, bool includeCurrentTime) const;
-    virtual void handleEvents(State&, System::EventCause, const std::vector<int>& eventIds,
+    virtual void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
+    virtual void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
+    virtual void handleEvents(State&, System::EventCause, const std::vector<EventId>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
-    virtual void reportEvents(const State&, System::EventCause, const std::vector<int>& eventIds) const;
+    virtual void reportEvents(const State&, System::EventCause, const std::vector<EventId>& eventIds) const;
 protected:
     // These virtual methods should be overridden in concrete Subsystems as
     // necessary. They should never be called directly; instead call the
