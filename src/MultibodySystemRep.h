@@ -466,12 +466,12 @@ public:
     virtual int calcYUnitWeightsImpl(const State&, Vector& weights) const;
     virtual int calcYErrUnitTolerancesImpl(const State&, Vector& tolerances) const;
     virtual int handleEventsImpl
-       (State&, EventCause, const Array<int>& eventIds,
+       (State&, EventCause, const Array<EventId>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
     virtual int calcEventTriggerInfoImpl(const State&, Array<EventTriggerInfo>&) const;
     virtual int calcTimeOfNextScheduledEventImpl
-        (const State&, Real& tNextEvent, Array<int>& eventIds) const;
+        (const State&, Real& tNextEvent, Array<EventId>& eventIds) const;
     */
 
     SimTK_DOWNCAST(MultibodySystemRep, System::Guts);
