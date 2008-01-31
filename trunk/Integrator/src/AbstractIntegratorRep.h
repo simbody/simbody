@@ -73,8 +73,7 @@ protected:
     virtual bool attemptAStep(Real t0, Real t1, 
                       const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
                       const Vector& u0, const Vector& udot0, const Vector& z0, 
-                      const Vector& zdot0, 
-                      Vector& yErrEst) = 0;
+                      const Vector& zdot0, Vector& yErrEst, int& errOrder) = 0;
     /**
      * Evaluate the error that occurred in the step we just attempted, and select a new
      * step size accordingly.  The default implementation should work well for most integrators.
@@ -86,7 +85,7 @@ protected:
      * @return true if the step should be accepted, false if it should be rejected and retried
      * with a smaller step size
      */
-    virtual bool adjustStepSize(Real err, bool hWasArtificiallyLimited);
+    virtual bool adjustStepSize(Real err, int errOrder, bool hWasArtificiallyLimited);
     /**
      * Create an interpolated state at time t, which is between the previous and advanced
      * times.  The default implementation uses third order Hermite spline interpolation.

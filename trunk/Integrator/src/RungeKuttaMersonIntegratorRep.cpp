@@ -55,11 +55,11 @@ RungeKuttaMersonIntegratorRep::RungeKuttaMersonIntegratorRep(Integrator* handle,
 bool RungeKuttaMersonIntegratorRep::attemptAStep(Real t0, Real t1, 
                   const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
                   const Vector& u0, const Vector& udot0, const Vector& z0, 
-                  const Vector& zdot0, 
-                  Vector& y1err)
+                  const Vector& zdot0, Vector& y1err, int& errOrder)
 {
     assert(t1 > t0);
 
+    errOrder = 4;
     const Vector& y0 = getPreviousY();
     const Vector& f0 = getPreviousYDot();
     if (ytmp[0].size() != y0.size())

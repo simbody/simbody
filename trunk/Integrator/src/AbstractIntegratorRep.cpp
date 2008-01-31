@@ -243,12 +243,11 @@ Integrator::SuccessfulStepStatus AbstractIntegratorRep::stepTo(Real reportTime, 
       return Integrator::InvalidSuccessfulStepStatus;
 }
 
-bool AbstractIntegratorRep::adjustStepSize(Real err, bool hWasArtificiallyLimited) {
+bool AbstractIntegratorRep::adjustStepSize(Real err, int errOrder, bool hWasArtificiallyLimited) {
     const Real Safety = 0.9, MinShrink = 0.1, MaxGrow = 5;
     const Real HysteresisLow = 0.9, HysteresisHigh = 1.2;
-    const Real Order = 3; // of the error *estimate*
     
-    Real newStepSize = Safety*currentStepSize*std::pow(getAccuracyInUse()/err, 1.0/Order);
+    Real newStepSize = Safety*currentStepSize*std::pow(getAccuracyInUse()/err, 1.0/errOrder);
     if (newStepSize > currentStepSize) {
         if (hWasArtificiallyLimited || newStepSize < HysteresisHigh*currentStepSize)
             newStepSize = currentStepSize;
@@ -293,11 +292,12 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     do {
         bool hWasArtificiallyLimited = (tMax < t0+currentStepSize);
         t1 = std::min(tMax, t0+currentStepSize);
-        bool converged = attemptAStep(t0, t1, q0, qdot0, qdotdot0, u0, udot0, z0, zdot0, err);
+        int errOrder;
+        bool converged = attemptAStep(t0, t1, q0, qdot0, qdotdot0, u0, udot0, z0, zdot0, err, errOrder);
         Real rmsErr = (converged ? calcWeightedRMSNorm(err, getDynamicSystemWeights()) : Infinity);
         lastStepSize = currentStepSize;
         if (hasErrorControl)
-            stepSucceeded = adjustStepSize(rmsErr, hWasArtificiallyLimited);
+            stepSucceeded = adjustStepSize(rmsErr, errOrder, hWasArtificiallyLimited);
         else
             stepSucceeded = true;
         if (!stepSucceeded)

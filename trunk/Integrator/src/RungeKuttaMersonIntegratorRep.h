@@ -49,8 +49,7 @@ protected:
     bool attemptAStep(Real t0, Real t1, 
                       const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
                       const Vector& u0, const Vector& udot0, const Vector& z0, 
-                      const Vector& zdot0, 
-                      Vector& yErrEst);
+                      const Vector& zdot0, Vector& yErrEst, int& errOrder);
 private:    
     static const int NTemps = 4;
     Vector ytmp[NTemps];

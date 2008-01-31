@@ -41,7 +41,7 @@ bool VerletIntegratorRep::attemptAStep(Real t0, Real t1,
                                        const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
                                        const Vector& u0, const Vector& udot0, 
                                        const Vector& z0, const Vector& zdot0, 
-                                       Vector& yErrEst)
+                                       Vector& yErrEst, int& errOrder)
 {
     // We will catch any exceptions thrown by realize() or project() and simply treat that
     // as a failure to take a step due to the step size being too big. The idea is that the
@@ -51,6 +51,7 @@ bool VerletIntegratorRep::attemptAStep(Real t0, Real t1,
   try
   {
     statsStepsAttempted++;
+    errOrder = 3;
     const Real h = t1-t0;
     State& advanced = updAdvancedState();
 
