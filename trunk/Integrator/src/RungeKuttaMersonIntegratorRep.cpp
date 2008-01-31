@@ -59,6 +59,7 @@ bool RungeKuttaMersonIntegratorRep::attemptAStep(Real t0, Real t1,
 {
     assert(t1 > t0);
 
+    statsStepsAttempted++;
     errOrder = 4;
     const Vector& y0 = getPreviousY();
     const Vector& f0 = getPreviousYDot();
