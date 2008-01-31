@@ -36,6 +36,10 @@
 
 using namespace SimTK;
 
+ExplicitEulerIntegrator::ExplicitEulerIntegrator(const System& sys) {
+    rep = new ExplicitEulerIntegratorRep(this, sys);
+}
+
 ExplicitEulerIntegrator::ExplicitEulerIntegrator(const System& sys, Real stepSize) {
     rep = new ExplicitEulerIntegratorRep(this, sys);
     setInitialStepSize(stepSize);

@@ -42,20 +42,20 @@ namespace SimTK {
 class ExplicitEulerIntegratorRep;
 
 /**
- * This is an Integrator based on the explicit Euler algorithm.  It is a
- * constant step size, first order explicit integrator.  This is the simplest
- * integrator possible.  As such, it is useful as a test case, but usually is
+ * This is an Integrator based on the explicit Euler algorithm.  It is an
+ * error controlled, first order explicit integrator.  This is one of the simplest
+ * integrators possible.  As such, it is useful as a test case, but usually is
  * a bad choice for real simulations.
- * 
- * Because this is not an error controlled integator, the error tolerance that
- * you specify is ignored.  It simply takes fixed steps of the size specified
- * to the constructor without regard to error.
  */
 
 class SimTK_SIMMATH_EXPORT ExplicitEulerIntegrator : public Integrator {
 public:
     /**
-     * Create an ExplicitEulerIntegrator for integrating a System.
+     * Create an ExplicitEulerIntegrator for integrating a System with variable sized steps.
+     */
+    ExplicitEulerIntegrator(const System& sys);
+    /**
+     * Create an ExplicitEulerIntegrator for integrating a System with fixed sized steps.
      */
     ExplicitEulerIntegrator(const System& sys, Real stepSize);
     ~ExplicitEulerIntegrator();

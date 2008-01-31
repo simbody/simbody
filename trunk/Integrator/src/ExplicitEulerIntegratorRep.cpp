@@ -34,7 +34,7 @@
 
 using namespace SimTK;
 
-ExplicitEulerIntegratorRep::ExplicitEulerIntegratorRep(Integrator* handle, const System& sys) : AbstractIntegratorRep(handle, sys, 1, 1, "ExplicitEuler", false) {
+ExplicitEulerIntegratorRep::ExplicitEulerIntegratorRep(Integrator* handle, const System& sys) : AbstractIntegratorRep(handle, sys, 1, 1, "ExplicitEuler", true) {
 }
 
 // Create an interpolated state at time t, which is between tPrev and tCurrent.
@@ -70,13 +70,17 @@ bool ExplicitEulerIntegratorRep::attemptAStep(Real t0, Real t1,
     statsStepsAttempted++;
     State& advanced = updAdvancedState();
     advanced.updTime() = t1;
-    advanced.updQ() = q0 + (t1-t0)*qdot0;
-    advanced.updU() = u0 + (t1-t0)*udot0;
-    advanced.updZ() = z0 + (t1-t0)*zdot0;
+    advanced.updY() = getPreviousY() + (t1-t0)*getPreviousYDot();
+    yErrEst = advanced.getY();
     getSystem().realize(advanced, Stage::Velocity);
     if (userProjectEveryStep == 1 || IntegratorRep::calcWeightedRMSNorm(advanced.getYErr(), getDynamicSystemOneOverTolerances()) > consTol)
         projectStateAndErrorEstimate(advanced, Vector());
     realizeStateDerivatives(advanced);
+    
+    // Calculate a reference state with the explicit trapezoidal rule, and use it to estimate error.
+    
+    yErrEst -= getPreviousY() + (t1-t0)*0.5*(getPreviousYDot()+advanced.getYDot());
+    errOrder = 2;
     return true;
 }
 

@@ -47,10 +47,10 @@ int main () {
     
     // Test the integrator in both normal and single step modes.
     
-    ExplicitEulerIntegrator integ(sys, 0.0001);
-    testIntegrator(integ, sys);
+    ExplicitEulerIntegrator integ(sys);
+    testIntegrator(integ, sys, 1e-6);
     integ.setReturnEveryInternalStep(true);
-    testIntegrator(integ, sys);
+    testIntegrator(integ, sys, 1e-6);
     cout << "Done" << endl;
     return 0;
   }

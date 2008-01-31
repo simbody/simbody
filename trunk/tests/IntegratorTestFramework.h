@@ -204,7 +204,7 @@ PeriodicReporter* PeriodicReporter::reporter = 0;
 bool OnceOnlyEventReporter::hasOccurred = false;
 int DiscontinuousReporter::eventCount = 0;
 
-void testIntegrator (Integrator& integ, PendulumSystem& sys) {
+void testIntegrator (Integrator& integ, PendulumSystem& sys, Real accuracy=1e-4) {
     ZeroVelocityHandler::eventCount = 0;
     ZeroVelocityHandler::lastEventTime = 0.0;
     PeriodicHandler::eventCount = 0;
@@ -224,7 +224,7 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys) {
 
     sys.setDefaultMass(10);
     sys.setDefaultTimeAndState(t0, q0, u0);
-    integ.setAccuracy(1e-4);
+    integ.setAccuracy(accuracy);
     integ.setConstraintTolerance(1e-4);
     integ.setFinalTime(tFinal);
     
