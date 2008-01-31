@@ -552,7 +552,63 @@ const Constraint::Rod::RodRep& Constraint::Rod::getRep() const {
 Constraint::Rod::RodRep& Constraint::Rod::updRep() {
     return dynamic_cast<RodRep&>(*rep);
 }
+    // RodRep
 
+void Constraint::Rod::RodRep::calcDecorativeGeometryAndAppendImpl
+   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+{
+    // We can't generate the endpoint artwork until we know the end point stations,
+    // which could be as late as Stage::Instance.
+    if (stage == Stage::Instance && pointRadius != 0) {
+        // TODO: point stations and rod length should be instance-stage data 
+        // from State rather than topological data
+        const MobilizedBodyIndex body1 = getMobilizedBodyIndexOfConstrainedBody(B1);
+        const MobilizedBodyIndex body2 = getMobilizedBodyIndexOfConstrainedBody(B2);
+
+        const Real useRadius = pointRadius > 0 ? pointRadius 
+            : std::max(defaultRodLength, .1) * 0.02; // 2% of the length by default
+
+        // Draw a blue mesh sphere at the first point.
+        geom.push_back(DecorativeSphere(useRadius)
+                            .setColor(Blue)
+                            .setRepresentation(DecorativeGeometry::DrawWireframe)
+                            .setResolution(0.5)
+                            .setBodyId(body1)
+                            .setTransform(defaultPoint1));
+
+        // On the follower body draw an purple mesh sphere at the point radius.
+        geom.push_back(DecorativeSphere(useRadius)
+                            .setColor(Purple)
+                            .setRepresentation(DecorativeGeometry::DrawWireframe)
+                            .setResolution(0.5)
+                            .setBodyId(body2)
+                            .setTransform(defaultPoint2));
+    }
+
+    // We can't generate the line artwork until we know the two end point locations,
+    // which isn't until Position stage since the ends are on different bodies.
+    if (stage == Stage::Position) {
+        // TODO: point stations and rod length should be instance-stage data 
+        // from State rather than topological data
+
+        const Vec3 p_GP1 = getConstrainedMobilizedBody(B1)
+                              .locateBodyPointOnGround(s, defaultPoint1);
+        const Vec3 p_GP2 = getConstrainedMobilizedBody(B2)
+                              .locateBodyPointOnGround(s, defaultPoint2);
+
+        const Vec3 p_P1P2 = p_GP2 - p_GP1;
+        const Real d = p_P1P2.norm();
+
+        if (d >= SignificantReal) {
+            const Vec3 endPoint = p_GP1 + defaultRodLength * p_P1P2/d;
+            geom.push_back(DecorativeLine(p_GP1, endPoint)
+                                            .setColor(Black)
+                                            .setLineThickness(3)
+                                            .setBodyId(GroundIndex));
+        }
+    }
+
+}
 
     ////////////////////////////////
     // CONSTRAINT::POINT IN PLANE //
@@ -678,6 +734,147 @@ void Constraint::PointInPlane::PointInPlaneRep::calcDecorativeGeometryAndAppendI
                                                 .setColor(Black)
                                                 .setRepresentation(DecorativeGeometry::DrawWireframe)
                                                 .setBodyId(planeMBId)
+                                                .setTransform(X_B1));
+
+            // On the follower body draw an orange mesh sphere at the point radius.
+            geom.push_back(DecorativeSphere(pointRadius)
+                                                .setColor(Orange)
+                                                .setRepresentation(DecorativeGeometry::DrawWireframe)
+                                                .setResolution(0.5)
+                                                .setBodyId(followerMBId)
+                                                .setTransform(X_B2));
+        }
+    }
+}
+
+
+
+    ///////////////////////////////
+    // CONSTRAINT::POINT ON LINE //
+    ///////////////////////////////
+
+Constraint::PointOnLine::PointOnLine
+   (MobilizedBody& lineBody,     const UnitVec3& defLineDirection, const Vec3& defPointOnLine,
+    MobilizedBody& followerBody, const Vec3&     defFollowerPoint)
+{
+    SimTK_ASSERT_ALWAYS(lineBody.isInSubsystem() && followerBody.isInSubsystem(),
+        "Constraint::PointOnLine(): both bodies must already be in a SimbodyMatterSubsystem.");
+    SimTK_ASSERT_ALWAYS(lineBody.isInSameSubsystem(followerBody),
+        "Constraint::PointOnLine(): both bodies to be connected must be in the same SimbodyMatterSubsystem.");
+
+    rep = new PointOnLineRep(); rep->setMyHandle(*this);
+    lineBody.updMatterSubsystem().adoptConstraint(*this);
+
+    updRep().lineBody     = updRep().addConstrainedBody(lineBody);
+    updRep().followerBody = updRep().addConstrainedBody(followerBody);
+    updRep().defaultLineDirection = defLineDirection;
+    updRep().defaultPointOnLine   = defPointOnLine;
+    updRep().defaultFollowerPoint = defFollowerPoint;
+}
+
+Constraint::PointOnLine& Constraint::PointOnLine::setDefaultLineDirection(const UnitVec3& z) {
+    getRep().invalidateTopologyCache();
+    updRep().defaultLineDirection = z;
+    return *this;
+}
+
+Constraint::PointOnLine& Constraint::PointOnLine::setDefaultPointOnLine(const Vec3& P) {
+    getRep().invalidateTopologyCache();
+    updRep().defaultPointOnLine = P;
+    return *this;
+}
+
+Constraint::PointOnLine& Constraint::PointOnLine::setDefaultFollowerPoint(const Vec3& S) {
+    getRep().invalidateTopologyCache();
+    updRep().defaultFollowerPoint = S;
+    return *this;
+}
+
+MobilizedBodyIndex Constraint::PointOnLine::getLineMobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().lineBody);
+}
+MobilizedBodyIndex Constraint::PointOnLine::getFollowerMobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().followerBody);
+}
+const UnitVec3& Constraint::PointOnLine::getDefaultLineDirection() const {
+    return getRep().defaultLineDirection;
+}
+const Vec3& Constraint::PointOnLine::getDefaultPointOnLine() const {
+    return getRep().defaultPointOnLine;
+}
+const Vec3& Constraint::PointOnLine::getDefaultFollowerPoint() const {
+    return getRep().defaultFollowerPoint;
+}
+
+Constraint::PointOnLine& Constraint::PointOnLine::setLineDisplayHalfLength(Real h) {
+    updRep().setLineDisplayHalfLength(h);
+    return *this;
+}
+Constraint::PointOnLine& Constraint::PointOnLine::setPointDisplayRadius(Real r) {
+    updRep().setPointDisplayRadius(r);
+    return *this;
+}
+
+Real Constraint::PointOnLine::getLineDisplayHalfLength() const {
+    return getRep().getLineDisplayHalfLength();
+}
+
+Real Constraint::PointOnLine::getPointDisplayRadius() const {
+    return getRep().getPointDisplayRadius();
+}
+
+    // PointOnLine bookkeeping //
+
+bool Constraint::PointOnLine::isInstanceOf(const Constraint& s) {
+    return PointOnLineRep::isA(s.getRep());
+}
+const Constraint::PointOnLine& Constraint::PointOnLine::downcast(const Constraint& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const PointOnLine&>(s);
+}
+Constraint::PointOnLine& Constraint::PointOnLine::updDowncast(Constraint& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<PointOnLine&>(s);
+}
+const Constraint::PointOnLine::PointOnLineRep& Constraint::PointOnLine::getRep() const {
+    return dynamic_cast<const PointOnLineRep&>(*rep);
+}
+
+Constraint::PointOnLine::PointOnLineRep& Constraint::PointOnLine::updRep() {
+    return dynamic_cast<PointOnLineRep&>(*rep);
+}
+
+    // PointOnLineRep
+
+void Constraint::PointOnLine::PointOnLineRep::calcDecorativeGeometryAndAppendImpl
+   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+{
+    // We can't generate the artwork until we know the direction, point on line, and follower
+    // point location, which might not be until Instance stage.
+    if (stage == Stage::Instance) {
+        const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+        // TODO: should be instance-stage data from State rather than topological data
+        // This makes z axis point along line
+        const Transform X_B1(Rotation(defaultLineDirection,ZAxis), defaultPointOnLine);
+        const Transform X_B2(Rotation(), defaultFollowerPoint);
+
+        const MobilizedBodyIndex lineMBId = getMobilizedBodyIndexOfConstrainedBody(lineBody);
+        const MobilizedBodyIndex followerMBId = getMobilizedBodyIndexOfConstrainedBody(followerBody);
+
+        if (lineHalfLength > 0 && pointRadius > 0) {
+            // On the line body, draw a black line centered at the point-on-line.
+            geom.push_back(DecorativeLine(Vec3(0,0,-lineHalfLength), Vec3(0,0,lineHalfLength))
+                                                .setColor(Black)
+                                                .setLineThickness(3)
+                                                .setBodyId(lineMBId)
+                                                .setTransform(X_B1));
+
+            // On the line body draw a blue mesh sphere at the line center.
+            geom.push_back(DecorativeSphere(pointRadius)
+                                                .setColor(Blue)
+                                                .setRepresentation(DecorativeGeometry::DrawWireframe)
+                                                .setResolution(0.5)
+                                                .setBodyId(lineMBId)
                                                 .setTransform(X_B1));
 
             // On the follower body draw an orange mesh sphere at the point radius.

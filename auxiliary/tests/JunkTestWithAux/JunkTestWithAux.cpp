@@ -93,8 +93,15 @@ int main(int argc, char** argv) {
     Constraint::Ball myc(matter.Ground(), Vec3(1,2,0),  mobilizedBody, Vec3(0,1,0));
     Constraint::Ball ball(mobilizedBody0, Vec3(2,0,0), mobilizedBody2, Vec3(3,0,0));
     
-    Constraint::PointInPlane pip(matter.Ground(), UnitVec3(0,1,0),  2, mobilizedBody2, Vec3(0,1,0));
-    pip.setPlaneDisplayHalfWidth(40);
+    //Constraint::PointInPlane pip(mobilizedBody, UnitVec3(0,1,0),  2, mobilizedBody2, Vec3(0,1,0));
+    //pip.setPlaneDisplayHalfWidth(40);
+
+    Constraint::PointOnLine pol(mobilizedBody, UnitVec3(1,0,0),  Vec3(5,0,0), mobilizedBody2, Vec3(0,1,0));
+    pol.setLineDisplayHalfLength(5);
+
+    Constraint::Rod rod(mobilizedBody, hl, mobilizedBody2, -hl, 5);
+    Constraint::ConstantAngle ang(mobilizedBody0, UnitVec3(0,1,0),
+                                  mobilizedBody2, UnitVec3(0,1,0), Pi/4);
 
     /*
     Constraint::Rod myc2(matter.Ground(), Vec3(-4,2,0),  mobilizedBody2, Vec3(0,1,0), 1);
@@ -201,7 +208,7 @@ int main(int argc, char** argv) {
     mobilizedBody.setQToFitTransform (s, Transform(Rotation(.05,Vec3(1,1,1)),Vec3(.1,.2,.3)));
     mobilizedBody0.setQToFitTransform (s, Transform(Rotation(.05,Vec3(1,-1,1)),Vec3(.2,.2,.3)));
     mobilizedBody2.setQToFitTransform (s, Transform(Rotation(.05,Vec3(-1,1,1)),Vec3(.1,.2,.1)));
-    mobilizedBody.setUToFitAngularVelocity(s, 100*Vec3(.1,.2,.3));
+    mobilizedBody.setUToFitAngularVelocity(s, 10*Vec3(.1,.2,.3));
 
     mbs.realize(s, Stage::Velocity);
     display.report(s);
@@ -221,10 +228,10 @@ int main(int argc, char** argv) {
 
 
     //myStudy.setMaximumStepSize(0.001);
-    myStudy.setAccuracy(1e-6);
+    myStudy.setAccuracy(1e-6); //myStudy.setAccuracy(1e-3);
     //myStudy.setProjectEveryStep(true);
     //myStudy.setProjectInterpolatedStates(false);
-    myStudy.setConstraintTolerance(1e-7);
+    myStudy.setConstraintTolerance(1e-7); //myStudy.setConstraintTolerance(1e-2);
     //myStudy.setAllowInterpolation(false);
     //myStudy.setMaximumStepSize(.1);
 

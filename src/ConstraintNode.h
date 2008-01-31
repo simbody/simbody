@@ -173,6 +173,41 @@ private:
 };
 
 /**
+ * This class represents two constraint equations, enforcing that a point fixed
+ * to one body move on a line fixed to another.
+ * TODO: THIS IS A USELESS STUB TO BE REMOVED
+ */
+class PointOnLineConstraintNode : public ConstraintNode {
+public:
+    PointOnLineConstraintNode(
+            const RigidBodyNode& lineNode, const UnitVec3& lineDirectionInB, const Vec3& pointOnLineInB,
+            const RigidBodyNode& followerNode,  const Vec3& followerPointInF)
+      : lineBody(lineNode), followerBody(followerNode), dir(lineDirectionInB), point(pointOnLineInB),
+        followerStation(followerPointInF), pointOnLineConstraintIndex(-1)
+    {
+    }
+    ~PointOnLineConstraintNode() { }
+
+    /*virtual*/ void finishConstruction(SimbodyMatterSubsystemRep& tree) {
+    }
+
+    /*virtual*/ const char* type()     const {return "pointOnLine";}
+    /*virtual*/ int         getNConstraintEquations() const {return 2;}
+    /*virtual*/ ConstraintNode* clone() const {
+        return new PointOnLineConstraintNode(*this);
+    }
+    
+private:
+    const RigidBodyNode& lineBody;
+    const RigidBodyNode& followerBody;  
+    const UnitVec3 dir;
+    const Vec3     point;
+    const Vec3     followerStation;
+
+    int pointOnLineConstraintIndex;
+};
+
+/**
  * This class represents a single constraint equation, enforcing that a vector fixed
  * to one body maintains a constant angle with respect to a vector fixed to another
  * body.

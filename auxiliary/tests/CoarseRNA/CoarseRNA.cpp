@@ -97,8 +97,7 @@ public:
     }
 
     void decorateGlobal(VTKVisualizer& display) const {
-        DecorativeLine rbProto; rbProto.setColor(Black).setLineThickness(2);
-        display.addRubberBandLine(end1, Vec3(0, -HalfHeight,0), end2, Vec3(0, -HalfHeight,0), rbProto);
+        // nothing
     }
 
 private:

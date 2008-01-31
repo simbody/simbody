@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
     //forces.addCustomForce(ShermsForce(leftPendulum,rightPendulum));
     //forces.addGlobalEnergyDrain(1);
 
-    forces.addMobilityConstantForce(crank, 0, 1000);
+    forces.addMobilityConstantForce(crank, 0, 1);
     forces.addMobilityLinearDamper(crank, 0, 1.0);
 
     State s = mbs.realizeTopology(); // returns a reference to the the default state
@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
 
 
     //myStudy.setMaximumStepSize(0.001);
-    myStudy.setAccuracy(1e-1);
+    myStudy.setAccuracy(1e-3);
     //myStudy.setProjectEveryStep(true);
     //myStudy.setAllowInterpolation(false);
     //myStudy.setMaximumStepSize(.1);

@@ -318,6 +318,65 @@ private:
     const PointInPlaneRep& getRep() const;
 };
 
+    // POINT ON LINE
+
+/// Two constraint equations. This constraint enforces that a point fixed to
+/// one body (the "follower body") must travel along a line fixed on another body (the
+/// "line body"). The constraint is enforced by an internal (non-working)
+/// scalar force acting at the spatial location of the follower point, directed in the
+/// plane for which the line is a normal, and equal and opposite on the two bodies.
+///
+/// The assembly condition is the same as the run-time constraint: the point
+/// has to be moved onto the line.
+class SimTK_SIMBODY_EXPORT Constraint::PointOnLine : public Constraint {
+public:
+    // no default constructor
+    PointOnLine(MobilizedBody& lineBody_B, const UnitVec3& defaultLineDirection_B, const Vec3& defaultPointOnLine_B,
+                MobilizedBody& followerBody_F, const Vec3& defaultFollowerPoint_F);
+
+    // These affect only generated decorative geometry for visualization;
+    // the line is really infinite in extent and the
+    // point is really of zero radius.
+    PointOnLine& setLineDisplayHalfLength(Real);
+    PointOnLine& setPointDisplayRadius(Real);
+    Real getLineDisplayHalfLength() const;
+    Real getPointDisplayRadius() const;
+
+    // Defaults for Instance variables.
+    PointOnLine& setDefaultLineDirection(const UnitVec3&);
+    PointOnLine& setDefaultPointOnLine(const Vec3&);
+    PointOnLine& setDefaultFollowerPoint(const Vec3&);
+
+    // Stage::Topology
+    MobilizedBodyIndex getLineMobilizedBodyIndex() const;
+    MobilizedBodyIndex getFollowerMobilizedBodyIndex() const;
+
+    const UnitVec3& getDefaultLineDirection() const;
+    const Vec3&     getDefaultPointOnLine() const;
+    const Vec3&     getDefaultFollowerPoint() const;
+
+    // Stage::Instance
+    const UnitVec3& getLineDirection(const State&) const;
+    const Vec3&     getPointOnLine(const State&) const;
+    const Vec3&     getFollowerPoint(const State&) const;
+
+    // Stage::Position, Velocity
+    const Vec2& getPositionError(const State&) const;
+    const Vec2& getVelocityError(const State&) const;
+
+    // Stage::Acceleration
+    const Vec2& getAccelerationErrors(const State&) const;
+    const Vec2& getMultipliers(const State&) const;
+    const Vec2& getForceOnFollowerPoint(const State&) const; // in normal direction
+
+    class PointOnLineRep; // local subclass
+
+    SimTK_PIMPL_DOWNCAST(PointOnLine, Constraint);
+private:
+    class PointOnLineRep& updRep();
+    const PointOnLineRep& getRep() const;
+};
+
 /// One constraint equation. This constraint enforces that a vector fixed to
 /// one body (the "base body") must maintain a fixed angle with respect to
 /// a vector fixed on the other body (the "follower body"). That is, we have a

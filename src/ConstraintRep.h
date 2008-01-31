@@ -531,13 +531,25 @@ private:
 class Constraint::Rod::RodRep : public Constraint::ConstraintRep {
 public:
     RodRep() 
-      : ConstraintRep(1,0,0), defaultPoint1(0), defaultPoint2(0), defaultRodLength(1)
+      : ConstraintRep(1,0,0), defaultPoint1(0), defaultPoint2(0), defaultRodLength(1),
+        pointRadius(-1) // this means "use default point radius"
     { 
         // Rod constructor sets all the data members here directly
     }
     RodRep* clone() const { return new RodRep(*this); }
 
     ConstraintNode* createConstraintNode() const; 
+
+    // Draw some end points and a rubber band line.
+    void calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+
+    void setPointDisplayRadius(Real r) {
+        // r == 0 means don't display point, r < 0 means use default which is some fraction of rod length
+        invalidateTopologyCache();
+        pointRadius= r > 0 ? r : 0;
+    }
+    Real getPointDisplayRadius() const {return pointRadius;}
 
     // Implementation of virtuals required for holonomic constraints.
 
@@ -619,6 +631,9 @@ private:
     Vec3            defaultPoint1; // on body 1, exp. in B1 frame
     Vec3            defaultPoint2; // on body 2, exp. in B2 frame
     Real            defaultRodLength;
+
+    // This is just for visualization
+    Real pointRadius;
 };
 
 
@@ -653,131 +668,94 @@ public:
 
     // We have a point-in-plane connection between base body B, on which the plane is fixed,
 	// and follower body F, on which the follower point S is fixed. All forces will be applied
-	// at point S and the coincident point C on B which is instantaneously at the same spatial
+	// at point S and the coincident material point C on B which is instantaneously at the same spatial
 	// location as S. Then n is the plane normal (a constant unit vector in B), h is the
-	// plane height measured from the B origin along n (a scalar constant),
-    // and h_C is the current height of material point C (on B) which is by construction
-	// the same as the height of S (on F) over the plane (on B). Point C's location in B
+	// plane height measured from the B origin along n (a scalar constant).Point C's location in B
 	// is given by the vector p_BC from B's origin to the current location of S, and expressed
-	// in B. That vector expressed in A is p_BC_A (= p_AS-p_AB).
-	//
-	// h_C is a calculated, state dependent quantity. The constraint we want to enforce is
-	// that h_C(q)=h. We will work in the B frame where the plane normal n and its
-	// height h are constant.
-	//
-	// Except for the projection along the normal, this constraint is identical to the ball
-	// joint constraint (which has 3 constraints instead of the 1 here).
+	// in B. That vector expressed in A is p_BC_A (= p_AS-p_AB). We will express in the A frame but
+    // differentiate in the B frame.
     //
-    //    perr = h_C - h
-    //         = ~p_BC*n - h
-	//    --------------------------------
-    //    perr = ~[R_BA*(p_AS-p_AB)]*n - h
-	//    --------------------------------
+    // Derivation:
+    //   (1) Note that to take a derivative d/dt_B in a moving frame B, we can take the derivative d/dt_A
+    //       and then add in the contribution d_A/dt_B from A's rotation in B (which is the angular
+    //       velocity of A in B, w_BA=-w_AB).
+    //   (2) p_CS = p_AS-p_AC = 0 by construction of C, but its derivative in A, 
+    //       v_CS_A = d/dt_A p_CS != 0.
     //
-    //   (Below we're using the identity w_BA = -R_BA*w_AB, and the scalar triple
-	//    product identity v*(w X z)=w*(z X v)=z*(v X w).)
+    //    perr = p_CS * n + constant 
+    //         = constant  (because P_CS==0 by construction)
     //
-    //    verr = d/dt perr = ~v_BC * n (derivative taken in B)
-    //         = ~[w_BA X R_BA*(p_AS-p_AB) 
-    //                  + R_BA*(v_AS-v_AB)] * n
-	//    -----------------------------------------
-    //    verr = ~[R_BA*(         (v_AS-v_AB) 
-    //                   - w_AB X (p_AS-p_AB))] * n
-	//    -----------------------------------------
+    //    verr = d/dt_B perr = d/dt_A perr + d_A/dt_B perr
+    //         = [v_CS_A*n + p_CS * (w_AB X n)] + [(w_BA X p_CS) * n + p_CS * (w_BA X n)]
+    //         = v_CS_A*n + p_CS * (w_AB X n) (because terms in 2nd [] cancel)
+    //         = v_CS_A * n  (because p_CS==0 by construction)
     //
-    //    aerr = d/dt verr = ~a_BC * n (derivative taken in B)
-    //         = ~[            b_BA X R_BA*(p_AS-p_AB) 
-    //               + w_BA X (w_BA X R_BA*(p_AS-p_AB))
-    //               +       2 w_BA X R_BA*(v_AS-v_AB)
-    //               +                R_BA*(a_AS-a_AB) ] * n
+    //    aerr = d/dt_B verr = d/dt_A verr + d_A/dt_B verr
+    //         = [a_CS_A*n + v_CS_A*(w_AB X n) + v_CS_A*(w_AB X n) + p_CS*(2 w_AB X(w_AB X n))]
+    //           + [w_BAXv_CS_A*n + v_CS_A*w_BAXn]
+    //         = (a_CS_A - 2 w_AB X v_CS_A) * n   (2nd bracket cancels, and p_CS==0)
     //
-    //         = ~[              (-R_BA*b_AB) X R_BA*(p_AS-p_AB) 
-    //               + R_BA*w_AB X (R_BA*w_AB X R_BA*(p_AS-p_AB))
-    //               -            2 R_BA*w_AB X R_BA*(v_AS-v_AB)
-    //               +                          R_BA*(a_AS-a_AB) ] * n
-	//    ---------------------------------------------------------
-    //    aerr = ~[R_BA*(         -b_AB X (p_AS-p_AB) 
-    //                   + w_AB X (w_AB X (p_AS-p_AB))
-    //                   -       2 w_AB X (v_AS-v_AB)
-    //                   +                (a_AS-a_AB) ] * n
-	//    ---------------------------------------------------------
+    // (The constant in perr is set so that S starts at the same height h as the plane.)
     //  
-    // Then, from examination of verr and some rearrangement,
-	// we find velocities and angular velocities used like this:
-    //       ~v_AS*n_A                  (body F at point S) 
-	//     - ~v_AB*n_A                  (body B at B origin)
-	//       ~w_AB*(n_A X (p_AS-p_AB))  (applied to body B)
+    // Then, from examination of verr noting that v_CS_A=v_AS-v_AC:
+    //       ~v_AS*n                  (body F at point S) 
+	//     - ~v_AC*n                  (body B at pointC)
+    // so we apply a forces lambda*n to F at S, -lambda*n to B at C.
     //
-    // so we apply a forces lambda*n_A to S, -lambda*n_A to OB, and torque lambda*(n_A X (p_AS-p_AB)) to B.
-    // More simply, just apply force lambda*n_A to S and -lambda*n_A to the point C of B which is
-    // instantaneously coincident in space to S. That adds an rXF torque (p_AS-p_AB) X (-lambda*n_A).
-    //
-
 	//    --------------------------------
-    //    perr = ~[R_BA*(p_AS-p_AB)]*n - h
+    //    perr = ~p_BS*n - h
 	//    --------------------------------
     void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
         assert(mp==1 && perr);
 
-        const Rotation&  R_AB   = getBodyRotation(s, pc, planeBody);
-        const Vec3&      p_AB   = getBodyOriginLocation(s, pc, planeBody);
-        const Vec3       p_AS   = calcStationLocation(s, pc, followerBody, defaultFollowerPoint);
-        const Vec3       p_BS_A = p_AS - p_AB;
+        const Transform& X_AB = getBodyTransform(s, pc, planeBody);
+        const Vec3       p_AS = calcStationLocation(s, pc, followerBody, defaultFollowerPoint);
+        const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin and reexpress in B;
+                                              // C is material point of B coincident with S
 
-        *perr = dot(~R_AB*p_BS_A, defaultPlaneNormal) - defaultPlaneHeight;
+        // We'll calculate this scalar using B-frame vectors, but any frame would have done.
+        *perr = dot(p_BC, defaultPlaneNormal) - defaultPlaneHeight;
     }
 
-	//    -----------------------------------------
-    //    verr = ~[R_BA*(         (v_AS-v_AB) 
-    //                   - w_AB X (p_AS-p_AB))] * n
-	//    -----------------------------------------
+	//    --------------------------------
+    //    verr = ~v_CS_A*n
+	//    --------------------------------
     void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
         assert(mp==1 && pverr);
         //TODO: should be able to get p info from State
-        const Rotation&   R_AB   = getBodyRotation(s, planeBody);
-        const Vec3&       p_AB   = getBodyOriginLocation(s, planeBody);
-        const Vec3        p_AS   = calcStationLocation(s, followerBody, defaultFollowerPoint);
-        const Vec3        p_BS_A = p_AS - p_AB;
+        const Transform& X_AB = getBodyTransform(s, planeBody);
+        const Vec3       p_AS = calcStationLocation(s, followerBody, defaultFollowerPoint);
+        const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin and reexpress in B;
+                                              // C is material point of B coincident with S
+        const UnitVec3   n_A  = X_AB.R() * defaultPlaneNormal;
 
-        const Vec3&       w_AB    = getBodyAngularVelocity(s, vc, planeBody);
-        const Vec3&       v_AB    = getBodyOriginVelocity(s, vc, planeBody);
-        const Vec3        v_AS    = calcStationVelocity(s, vc, followerBody, defaultFollowerPoint);
-        const Vec3        v_BS_A  = v_AS - v_AB;
-        const Vec3        pverr_A = v_BS_A - w_AB % p_BS_A;
+        const Vec3       v_AS = calcStationVelocity(s, vc, followerBody, defaultFollowerPoint);
+        const Vec3       v_AC = calcStationVelocity(s, vc, planeBody, p_BC);
 
-        *pverr = dot(~R_AB * pverr_A, defaultPlaneNormal);
+        // Calculate this scalar using A-frame vectors.
+        *pverr = dot( v_AS-v_AC, n_A );
     }
 
-	//    ---------------------------------------------------------
-    //    aerr = ~[R_BA*(         -b_AB X (p_AS-p_AB) 
-    //                   + w_AB X (w_AB X (p_AS-p_AB))
-    //                   -       2 w_AB X (v_AS-v_AB)
-    //                   +                (a_AS-a_AB) ] * n
-	//    ---------------------------------------------------------
+	//    -------------------------------------
+    //    aerr = ~(a_CS_A - 2 w_AB X v_CS_A) * n
+	//    -------------------------------------
     void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
         assert(mp==1 && paerr);
         //TODO: should be able to get p and v info from State
+        const Transform& X_AB = getBodyTransform(s, planeBody);
+        const Vec3       p_AS = calcStationLocation(s, followerBody, defaultFollowerPoint);
+        const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin and reexpress in B;
+                                              // C is material point of B coincident with S
+        const UnitVec3   n_A  = X_AB.R() * defaultPlaneNormal;
 
-        const Rotation&   R_AB   = getBodyRotation(s, planeBody);
-        const Vec3&       p_AB   = getBodyOriginLocation(s, planeBody);
-        const Vec3        p_AS   = calcStationLocation(s, followerBody, defaultFollowerPoint);
-        const Vec3        p_BS_A = p_AS - p_AB;
+        const Vec3&      w_AB = getBodyAngularVelocity(s, planeBody);
+        const Vec3       v_AS = calcStationVelocity(s, followerBody, defaultFollowerPoint);
+        const Vec3       v_AC = calcStationVelocity(s, planeBody, p_BC);
 
-        const Vec3&       w_AB    = getBodyAngularVelocity(s, planeBody);
-        const Vec3&       v_AB    = getBodyOriginVelocity(s, planeBody);
-        const Vec3        v_AS    = calcStationVelocity(s, followerBody, defaultFollowerPoint);
-        const Vec3        v_BS_A  = v_AS - v_AB;
+        const Vec3       a_AS = calcStationAcceleration(s, ac, followerBody, defaultFollowerPoint);;
+        const Vec3       a_AC = calcStationAcceleration(s, ac, planeBody, p_BC);
 
-        const Vec3&       b_AB    = getBodyAngularAcceleration(s, ac, planeBody);
-        const Vec3&       a_AB    = getBodyOriginAcceleration(s, ac, planeBody);
-        const Vec3        a_AS    = calcStationAcceleration(s, ac, followerBody, defaultFollowerPoint);
-        const Vec3        a_BS_A  = a_AS - a_AB;
-
-        const Vec3        paerr_A = a_BS_A - b_AB % p_BS_A
-                                    - 2 * w_AB % v_BS_A
-                                    + w_AB % (w_AB % p_BS_A);
-
-        *paerr = dot(~R_AB * paerr_A, defaultPlaneNormal);
+        *paerr = dot( (a_AS-a_AC) - 2*w_AB % (v_AS-v_AC), n_A );
     }
 
 	// apply f=lambda*n to the follower point S of body F,
@@ -791,15 +769,11 @@ public:
         const Real lambda = *multipliers;
 
         //TODO: should be able to get p info from State
-        const Rotation&  R_AB = getBodyRotation(s, planeBody);
-        const Vec3&      p_AB = getBodyOriginLocation(s, planeBody);
-        const Vec3&      p_FS = defaultFollowerPoint;
-        const Vec3       p_AS = calcStationLocation(s, followerBody, defaultFollowerPoint);
-        const Vec3       p_BC = ~R_AB * (p_AS-p_AB); // shift to B origin and reexpress in B;
-                                                     // C is material point of B coincident with S
-
-		const Vec3 force_B = lambda*defaultPlaneNormal;
-		const Vec3 force_A = R_AB * force_B;
+        const Transform& X_AB    = getBodyTransform(s, planeBody);
+        const Vec3&      p_FS    = defaultFollowerPoint; // measured & expressed in F
+        const Vec3       p_AS    = calcStationLocation(s, followerBody, defaultFollowerPoint);
+        const Vec3       p_BC    = ~X_AB * p_AS;         // measured & expressed in B
+		const Vec3       force_A = X_AB.R()*(lambda*defaultPlaneNormal);
 
         addInStationForce(s, followerBody, p_FS,  force_A, bodyForcesInA);
         addInStationForce(s, planeBody,    p_BC, -force_A, bodyForcesInA);
@@ -821,6 +795,158 @@ private:
     Real pointRadius;
 };
 
+    // POINT ON LINE
+
+class Constraint::PointOnLine::PointOnLineRep : public Constraint::ConstraintRep {
+public:
+    PointOnLineRep()
+      : ConstraintRep(2,0,0), defaultLineDirection(), defaultPointOnLine(), defaultFollowerPoint(0),
+        lineHalfLength(1), pointRadius(0.05) 
+    { }
+    PointOnLineRep* clone() const { return new PointOnLineRep(*this); }
+
+    ConstraintNode* createConstraintNode() const; 
+
+    void calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+
+    void setLineDisplayHalfLength(Real h) {
+        // h <= 0 means don't display line
+        invalidateTopologyCache();
+        lineHalfLength = h > 0 ? h : 0;
+    }
+    Real getLineDisplayHalfLength() const {return lineHalfLength;}
+
+    void setPointDisplayRadius(Real r) {
+        // r <= 0 means don't display point
+        invalidateTopologyCache();
+        pointRadius= r > 0 ? r : 0;
+    }
+    Real getPointDisplayRadius() const {return pointRadius;}
+
+    // Implementation of ContraintRep virtuals
+    void realizeTopologyVirtual(State& s) const {
+        x = defaultLineDirection.perp(); // x and y are mutable
+        y = UnitVec3(defaultLineDirection % x);
+    }
+
+    // Implementation of virtuals required for holonomic constraints.
+
+    // We have a point-on-line connection between base body B, on which the line is fixed,
+	// and follower body F, on which the follower point S is fixed. All forces will be applied
+	// at point S and the coincident material point C on B which is instantaneously at the same spatial
+	// location as S. Then z is a unit vector in the direction of the line, and P is a point fixed
+    // to B that the line passes through. We will enforce this using two point-on-plane constraints,
+    // where the intersection of the two planes is the line. For that we need two plane normals
+    // perpendicular to z. We'll use an arbitrary perpendicular x, then use y=z X x as the
+    // other perpendicular. This establishes a right handed coordinate system where the line
+    // is along the z axis, and we'll apply constraint forces in the x-y plane.
+    //
+    // See the point-in-plane constraint for details; here we're just picking x and y as
+    // plane normals.
+
+	//    --------------------------------
+    //    perr = ~(p_BS-p_BP) * x
+    //           ~(p_BS-p_BP) * y
+	//    --------------------------------
+    void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
+        assert(mp==2 && perr);
+
+        const Transform& X_AB = getBodyTransform(s, pc, lineBody);
+        const Vec3       p_AS = calcStationLocation(s, pc, followerBody, defaultFollowerPoint);
+        const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin and reexpress in B;
+                                              // C is material point of B coincident with S
+        const Vec3       p_PC = p_BC - defaultPointOnLine;
+
+        // We'll calculate these two scalars using B-frame vectors, but any frame would have done.
+        Vec2::updAs(perr) = Vec2(~p_PC*x, ~p_PC*y);
+    }
+
+	//    --------------------------------
+    //    verr = ~v_CS_A*n
+	//    --------------------------------
+    void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
+        assert(mp==2 && pverr);
+        //TODO: should be able to get p info from State
+        const Transform& X_AB = getBodyTransform(s, lineBody);
+        const Vec3       p_AS = calcStationLocation(s, followerBody, defaultFollowerPoint);
+        const Vec3       p_BC = ~X_AB * p_AS;
+        const Vec3       p_PC = p_BC - defaultPointOnLine;
+
+        const Vec3       v_AS = calcStationVelocity(s, vc, followerBody, defaultFollowerPoint);
+        const Vec3       v_AC = calcStationVelocity(s, vc, lineBody, p_BC);
+
+        const Vec3       v_CS_B = ~X_AB.R()*(v_AS-v_AC); // reexpress in B
+
+        // Calculate these scalar using B-frame vectors, but any frame would have done.
+        Vec2::updAs(pverr) = Vec2(~v_CS_B*x, ~v_CS_B*y);
+    }
+
+	//    -------------------------------------
+    //    aerr = ~(a_CS_A - 2 w_AB X v_CS_A) * n
+	//    -------------------------------------
+    void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
+        assert(mp==2 && paerr);
+        //TODO: should be able to get p and v info from State
+        const Transform& X_AB = getBodyTransform(s, lineBody);
+        const Vec3       p_AS = calcStationLocation(s, followerBody, defaultFollowerPoint);
+        const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin and reexpress in B;
+                                              // C is material point of B coincident with S
+        const Vec3       p_PC = p_BC - defaultPointOnLine;
+
+        const Vec3&      w_AB = getBodyAngularVelocity(s, lineBody);
+        const Vec3       v_AS = calcStationVelocity(s, followerBody, defaultFollowerPoint);
+        const Vec3       v_AC = calcStationVelocity(s, lineBody, p_BC);
+
+        const Vec3       a_AS = calcStationAcceleration(s, ac, followerBody, defaultFollowerPoint);;
+        const Vec3       a_AC = calcStationAcceleration(s, ac, lineBody, p_BC);
+        const Vec3       a_CS_B = ~X_AB.R()*(a_AS-a_AC - 2 * w_AB % (v_AS-v_AC));
+
+        // Calculate these scalar using B-frame vectors, but any frame would have done.
+        Vec2::updAs(paerr) = Vec2( ~a_CS_B * x, ~a_CS_B * y );
+    }
+
+	// apply f=lambda0*x + lambda1*y to the follower point S of body F,
+	//      -f                       to point C (coincident point) of body B
+    void applyPositionConstraintForcesVirtual
+       (const State& s, int mp, const Real* multipliers,
+        Vector_<SpatialVec>& bodyForcesInA,
+        Vector&              mobilityForces) const
+    {
+        assert(mp==2 && multipliers);
+        const Vec2 lambda = Vec2::getAs(multipliers);
+
+        //TODO: should be able to get p info from State
+        const Transform& X_AB    = getBodyTransform(s, lineBody);
+        const Vec3&      p_FS    = defaultFollowerPoint; // measured & expressed in F
+        const Vec3       p_AS    = calcStationLocation(s, followerBody, defaultFollowerPoint);
+        const Vec3       p_BC    = ~X_AB * p_AS;         // measured & expressed in B
+
+		const Vec3       force_B = lambda[0] * x + lambda[1] * y;
+        const Vec3       force_A = X_AB.R() * force_B;
+
+        addInStationForce(s, followerBody, p_FS,  force_A, bodyForcesInA);
+        addInStationForce(s, lineBody,     p_BC, -force_A, bodyForcesInA);
+    }
+
+    SimTK_DOWNCAST(PointOnLineRep, ConstraintRep);
+private:
+    friend class Constraint::PointOnLine;
+
+    ConstrainedBodyIndex lineBody;     // B
+    ConstrainedBodyIndex followerBody; // F
+
+    UnitVec3          defaultLineDirection;   // z on B, exp. in B frame
+    Vec3              defaultPointOnLine;     // P on B, meas&exp in B frame
+    Vec3              defaultFollowerPoint;   // S on F, meas&exp in F frame
+
+    // These are just for visualization
+    Real lineHalfLength;
+    Real pointRadius;
+
+    // TOPOLOGY CACHE (that is, calculated from construction data)
+    mutable UnitVec3 x, y;
+};
 
 class Constraint::ConstantAngle::ConstantAngleRep : public Constraint::ConstraintRep {
 public:
@@ -886,11 +1012,12 @@ public:
     //      = ~(b_AF-b_AB) * (f_A % b_A)
     //        + (w_AF-w_AB) * ((w_AF%f_A) % b_A)
     //        + (w_AF-w_AB) * (f_A % (w_AB%b_A))
-    //      = ~(b_AF-b_AB) * (f_A % b_A)
-    //        + 2 (w_AF % w_AB) * (f_A % b_A)
-    // => ------------------------------------------------
-    // aerr = ~(b_AF - b_AB + 2 w_AF % w_AB) * (f_A % b_A)
-    // ---------------------------------------------------
+    //      =   ~(b_AF-b_AB) * (f_A % b_A)
+    //        + ~(w_AF-w_AB) * ((w_AF%f_A) % b_A) - (w_AB%b_A) % f_A)
+    // => -----------------------------------------------------------
+    // aerr =   ~(b_AF-b_AB) * (f_A % b_A)
+    //        + ~(w_AF-w_AB) * ((w_AF%f_A) % b_A) - (w_AB%b_A) % f_A)
+    // --------------------------------------------------------------
     //
     // Constraint torque can be determined by inspection of verr:
     //    lambda * (f_A % b_A) applied to body F
@@ -927,9 +1054,10 @@ public:
         *pverr = dot( w_AF-w_AB,  f_A % b_A );
     }
 
-    // ----------------------------------------------------
-    // paerr = ~(b_AF - b_AB + 2 w_AF % w_AB) * (f_A % b_A)
-    // ----------------------------------------------------
+    // --------------------------------------------------------------
+    // paerr =  ~(b_AF-b_AB) * (f_A % b_A)
+    //        + ~(w_AF-w_AB) * ((w_AF%f_A) % b_A) - (w_AB%b_A) % f_A)
+    // --------------------------------------------------------------
     void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
         assert(mp==1 && paerr);
         //TODO: should be able to get p and v info from State
@@ -942,8 +1070,8 @@ public:
         const Vec3      b_AB = getBodyAngularAcceleration(s, ac, B);
         const Vec3      b_AF = getBodyAngularAcceleration(s, ac, F);
 
-        *paerr = dot( b_AF-b_AB + 2*(w_AF % w_AB), 
-                      f_A % b_A );
+        *paerr =   dot( b_AF-b_AB, f_A % b_A )
+                 + dot( w_AF-w_AB, (w_AF%f_A) % b_A - (w_AB%b_A) % f_A);
     }
 
     //    lambda * (f_A % b_A) applied to body F

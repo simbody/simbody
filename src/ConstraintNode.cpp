@@ -109,6 +109,22 @@ ConstraintNode* Constraint::PointInPlane::PointInPlaneRep::createConstraintNode(
 }
 
 
+    //////////////////////////////////////////////////
+    // CONSTRAINT::POINT ON LINE::POINT ON LINE REP //
+    //////////////////////////////////////////////////
+
+ConstraintNode* Constraint::PointOnLine::PointOnLineRep::createConstraintNode() const
+{
+    assert(isInSubsystem());
+    const SimbodyMatterSubsystemRep& sbdyrep = getMyMatterSubsystemRep();
+    const MobilizedBodyIndex lineMobilizedBody = getMobilizedBodyIndexOfConstrainedBody(lineBody);
+    const MobilizedBodyIndex followerMobilizedBody = getMobilizedBodyIndexOfConstrainedBody(followerBody);
+
+    return new PointOnLineConstraintNode(
+        sbdyrep.getRigidBodyNode(lineMobilizedBody), defaultLineDirection, defaultPointOnLine,
+        sbdyrep.getRigidBodyNode(followerMobilizedBody), defaultFollowerPoint);
+}
+
     ////////////////////////////////////////////////////
     // CONSTRAINT::CONSTANT ANGLE::CONSTANT ANGLE REP //
     ////////////////////////////////////////////////////
