@@ -3400,21 +3400,21 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
 
         // Debugging
         // Set false for production code
-        bool generateDebuggingReportToMatchMarksTinkerData = false;
-        if (generateDebuggingReportToMatchMarksTinkerData) {
-            printf("# %6d     %16.3f No atoms and esolv [x y z] rBrn q rsolv scObc [fX fY fZ] A tag res rName aName type\n", getNAtoms(), gbsaEnergy);
-            for (int a = 0; a < getNAtoms(); ++a) {
-                printf(" % #10.4E % #10.4E % #10.4E", gbsaRawCoordinates[3*a+0], gbsaRawCoordinates[3*a+1], gbsaRawCoordinates[3*a+2]);
-                printf(" % #10.4E", 2.0); // Born radius - don't have
-                printf(" % #10.4E", gbsaAtomicPartialCharges[a]); // partial charge
-                printf(" % #10.4E", gbsaRadii[a]); // gbsa radius
-                printf(" % #10.4E", obcScaleFactors[a]); // obc scale
-                printf(" % #010.4E % #10.4E % #10.4E", atomicGbsaForces[3*a+0], atomicGbsaForces[3*a+1], atomicGbsaForces[3*a+2]);
-                printf("%5d", gbsaAtomicNumbers[a]);
+// #define GENERATE_DEBUGGING_REPORT_TO_MATCH_MARKS_TINKER_DATA 1
+#ifdef GENERATE_DEBUGGING_REPORT_TO_MATCH_MARKS_TINKER_DATA
+        printf("# %6d     %16.3f No atoms and esolv [x y z] rBrn q rsolv scObc [fX fY fZ] A tag res rName aName type\n", getNAtoms(), gbsaEnergy);
+        for (int a = 0; a < getNAtoms(); ++a) {
+            printf(" % #10.4E % #10.4E % #10.4E", gbsaRawCoordinates[3*a+0], gbsaRawCoordinates[3*a+1], gbsaRawCoordinates[3*a+2]);
+            printf(" % #10.4E", 2.0); // Born radius - don't have
+            printf(" % #10.4E", gbsaAtomicPartialCharges[a]); // partial charge
+            printf(" % #10.4E", gbsaRadii[a]); // gbsa radius
+            printf(" % #10.4E", obcScaleFactors[a]); // obc scale
+            printf(" % #010.4E % #10.4E % #10.4E", atomicGbsaForces[3*a+0], atomicGbsaForces[3*a+1], atomicGbsaForces[3*a+2]);
+            printf("%5d", gbsaAtomicNumbers[a]);
 
-                printf("\n");
-           }
-        }
+            printf("\n");
+       }
+#endif
 
         // 4)  apply GBSA forces to bodies
         for (MobilizedBodyIndex b1(0); b1 < (int)bodies.size(); ++b1) 
