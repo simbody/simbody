@@ -3416,6 +3416,29 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
        }
 #endif
 
+// #define GENERATE_XYZ_FILE_FOR_MARK 1
+#ifdef GENERATE_XYZ_FILE_FOR_MARK
+        printf("%6d STRUCTURE FROM SIMBODY\n", getNAtoms());
+        for (int a = 0; a < getNAtoms(); ++a) 
+        {
+            const Atom& a1 = atoms[a];
+            const ChargedAtomType& chargedAtomType = chargedAtomTypes[a1.chargedAtomTypeIndex];
+            const AtomClass& a1class = atomClasses[chargedAtomType.atomClassIx];
+
+            printf("%6d  %-4s %16.9f %16.9f %16.9f %6d ",
+                a+1, // atom index
+                a1class.name.c_str(), // amber atom class name
+                gbsaRawCoordinates[3*a+0], gbsaRawCoordinates[3*a+1], gbsaRawCoordinates[3*a+2], // coordinates
+                chargedAtomType.chargedAtomTypeIndex); // biotype
+
+            for (int b = 0; b < (int)a1.bond12.size(); ++b) {
+                printf("%6d ", a1.bond12[b]+1);
+            }
+
+            printf("\n");
+       }
+#endif
+
         // 4)  apply GBSA forces to bodies
         for (MobilizedBodyIndex b1(0); b1 < (int)bodies.size(); ++b1) 
         {
