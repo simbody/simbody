@@ -216,7 +216,7 @@ class ConstantAngleConstraintNode : public ConstraintNode {
 public:
     ConstantAngleConstraintNode(
             const RigidBodyNode& baseNode, const UnitVec3& axisOnB,
-            const RigidBodyNode& followerNode,  const Vec3& axisOnF, Real a)
+            const RigidBodyNode& followerNode,  const UnitVec3& axisOnF, Real a)
       : baseBody(baseNode), followerBody(followerNode), 
       axisB(axisOnB), axisF(axisOnF), angle(a), constantAngleConstraintIndex(-1)
     {
@@ -240,6 +240,39 @@ private:
     const Real     angle;
 
     int constantAngleConstraintIndex;
+};
+
+/**
+ * This class represents three constraint equations, conspiring to keep a frame on
+ * one body aligned with one on another body.
+ */
+class ConstantOrientationConstraintNode : public ConstraintNode {
+public:
+    ConstantOrientationConstraintNode(
+            const RigidBodyNode& baseNode, const Rotation& frameOnB,
+            const RigidBodyNode& followerNode,  const Rotation& frameOnF)
+      : baseBody(baseNode), followerBody(followerNode), 
+      frameB(frameOnB), frameF(frameOnF), constantOrientationConstraintIndex(-1)
+    {
+    }
+    ~ConstantOrientationConstraintNode() { }
+
+    /*virtual*/ void finishConstruction(SimbodyMatterSubsystemRep& tree) {
+    }
+
+    /*virtual*/ const char* type()     const {return "constantOrientation";}
+    /*virtual*/ int         getNConstraintEquations() const {return 3;}
+    /*virtual*/ ConstraintNode* clone() const {
+        return new ConstantOrientationConstraintNode(*this);
+    }
+    
+private:
+    const RigidBodyNode& baseBody;
+    const RigidBodyNode& followerBody;  
+    const Rotation frameB;
+    const Rotation frameF;
+
+    int constantOrientationConstraintIndex;
 };
 
 /**

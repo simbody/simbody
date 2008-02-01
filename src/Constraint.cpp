@@ -1134,6 +1134,81 @@ void Constraint::Ball::BallRep::calcDecorativeGeometryAndAppendImpl
     }
 }
 
+    //////////////////////////////////////
+    // CONSTRAINT::CONSTANT ORIENTATION //
+    //////////////////////////////////////
+
+Constraint::ConstantOrientation::ConstantOrientation
+   (MobilizedBody& baseBody,     const Rotation& defaultFrameOnB,
+    MobilizedBody& followerBody, const Rotation& defaultFrameOnF)
+{
+    SimTK_ASSERT_ALWAYS(baseBody.isInSubsystem() && followerBody.isInSubsystem(),
+        "Constraint::ConstantOrientation(): both bodies must already be in a SimbodyMatterSubsystem.");
+    SimTK_ASSERT_ALWAYS(baseBody.isInSameSubsystem(followerBody),
+        "Constraint::ConstantOrientation(): both bodies to be connected must be in the same SimbodyMatterSubsystem.");
+
+    rep = new ConstantOrientationRep(); rep->setMyHandle(*this);
+    baseBody.updMatterSubsystem().adoptConstraint(*this);
+
+    updRep().B = updRep().addConstrainedBody(baseBody);
+    updRep().F = updRep().addConstrainedBody(followerBody);
+    updRep().defaultRB = defaultFrameOnB;
+    updRep().defaultRF = defaultFrameOnF;
+}
+
+Constraint::ConstantOrientation& Constraint::ConstantOrientation::setDefaultBaseRotation(const Rotation& R) {
+    getRep().invalidateTopologyCache();
+    updRep().defaultRB = R;
+    return *this;
+}
+
+Constraint::ConstantOrientation& Constraint::ConstantOrientation::setDefaultFollowerRotation(const Rotation& R) {
+    getRep().invalidateTopologyCache();
+    updRep().defaultRF = R;
+    return *this;
+}
+
+
+MobilizedBodyIndex Constraint::ConstantOrientation::getBaseMobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B);
+}
+MobilizedBodyIndex Constraint::ConstantOrientation::getFollowerMobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().F);
+}
+const Rotation& Constraint::ConstantOrientation::getDefaultBaseRotation() const {
+    return getRep().defaultRB;
+}
+const Rotation& Constraint::ConstantOrientation::getDefaultFollowerRotation() const {
+    return getRep().defaultRF;
+}
+
+    // ConstantOrientation bookkeeping //
+
+bool Constraint::ConstantOrientation::isInstanceOf(const Constraint& s) {
+    return ConstantOrientationRep::isA(s.getRep());
+}
+const Constraint::ConstantOrientation& Constraint::ConstantOrientation::downcast(const Constraint& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const ConstantOrientation&>(s);
+}
+Constraint::ConstantOrientation& Constraint::ConstantOrientation::updDowncast(Constraint& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<ConstantOrientation&>(s);
+}
+const Constraint::ConstantOrientation::ConstantOrientationRep& Constraint::ConstantOrientation::getRep() const {
+    return dynamic_cast<const ConstantOrientationRep&>(*rep);
+}
+
+Constraint::ConstantOrientation::ConstantOrientationRep& Constraint::ConstantOrientation::updRep() {
+    return dynamic_cast<ConstantOrientationRep&>(*rep);
+}
+
+    // ConstantOrientationRep
+
+    //TODO: no visualization yet
+
+
+
     //////////////////////
     // CONSTRAINT::WELD //
     //////////////////////

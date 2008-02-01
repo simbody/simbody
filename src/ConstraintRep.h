@@ -527,6 +527,7 @@ private:
     mutable ConstraintNode* myConstraintNode;
 };
 
+    // ROD
 
 class Constraint::Rod::RodRep : public Constraint::ConstraintRep {
 public:
@@ -636,6 +637,7 @@ private:
     Real pointRadius;
 };
 
+    // POINT IN PLANE
 
 class Constraint::PointInPlane::PointInPlaneRep : public Constraint::ConstraintRep {
 public:
@@ -948,6 +950,8 @@ private:
     mutable UnitVec3 x, y;
 };
 
+    // CONSTANT ANGLE
+
 class Constraint::ConstantAngle::ConstantAngleRep : public Constraint::ConstraintRep {
 public:
     ConstantAngleRep()
@@ -1113,6 +1117,7 @@ private:
     mutable Real cosineOfDefaultAngle;
 };
 
+    // BALL
 
 class Constraint::Ball::BallRep : public Constraint::ConstraintRep {
 public:
@@ -1231,32 +1236,18 @@ private:
     Real            defaultRadius; // used for visualization only
 };
 
+    // CONSTANT ORIENTATION
+
 class Constraint::ConstantOrientation::ConstantOrientationRep : public Constraint::ConstraintRep {
 public:
     ConstantOrientationRep()
-      : ConstraintRep(1,0,0), defaultRB(), defaultRF(),
-        axisLength(1), axisThickness(1)
+      : ConstraintRep(3,0,0), defaultRB(), defaultRF()
     { }
     ConstantOrientationRep* clone() const { return new ConstantOrientationRep(*this); }
 
     ConstraintNode* createConstraintNode() const; 
 
-    void calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
-
-    void setAxisLength(Real length) {
-        // length <= 0 means don't display axis
-        invalidateTopologyCache();
-        axisLength = length > 0 ? length : 0;
-    }
-    Real getAxisLength() const {return axisLength;}
-
-    void setAxisThickness(Real t) {
-        // t <= 0 means don't display axis
-        invalidateTopologyCache();
-        axisThickness = t > 0 ? t : 0;
-    }
-    Real getAxisThickness() const {return axisThickness;}
+    //TODO: visualization?
 
 
     // Implementation of virtuals required for holonomic constraints.
@@ -1292,11 +1283,14 @@ public:
     //      = ~(w_AF-w_AB) * (RFz % RBx)
     // ---------------------------------
     //
-    // ---------------------------------------------------
-    // aerr = ~(b_AF - b_AB + 2 w_AF % w_AB) * (RFx % RBy)
-    //      = ~(b_AF - b_AB + 2 w_AF % w_AB) * (RFy % RBz)
-    //      = ~(b_AF - b_AB + 2 w_AF % w_AB) * (RFz % RBx)
-    // ---------------------------------------------------
+    // -----------------------------------------------------------------------
+    // aerr = ~(b_AF-b_AB) * (RFx % RBy)
+    //                 + ~(w_AF-w_AB) * ((w_AF%RFx) % RBy) - (w_AB%RBy) % RFx)
+    //        ~(b_AF-b_AB) * (RFy % RBz)
+    //                 + ~(w_AF-w_AB) * ((w_AF%RFy) % RBz) - (w_AB%RBz) % RFy)
+    //        ~(b_AF-b_AB) * (RFz % RBx)
+    //                 + ~(w_AF-w_AB) * ((w_AF%RFz) % RBx) - (w_AB%RBx) % RFz)
+    // -----------------------------------------------------------------------
     //
     // Constraint torque can be determined by inspection of verr:
     //    t_F =   lambda_x * (RFx % RBy)   (applied to body F)
@@ -1345,11 +1339,14 @@ public:
                                    ~w_BF * (RF.z() % RB.x()) );
     }
 
-    // ----------------------------------------------------
-    // aerr = ~(b_AF - b_AB + 2 w_AF % w_AB) * (RFx % RBy)
-    //      = ~(b_AF - b_AB + 2 w_AF % w_AB) * (RFy % RBz)
-    //      = ~(b_AF - b_AB + 2 w_AF % w_AB) * (RFz % RBx)
-    // ----------------------------------------------------
+    //------------------------------------------------------------------------
+    // aerr = ~(b_AF-b_AB) * (RFx % RBy)
+    //                 + ~(w_AF-w_AB) * ((w_AF%RFx) % RBy) - (w_AB%RBy) % RFx)
+    //        ~(b_AF-b_AB) * (RFy % RBz)
+    //                 + ~(w_AF-w_AB) * ((w_AF%RFy) % RBz) - (w_AB%RBz) % RFy)
+    //        ~(b_AF-b_AB) * (RFz % RBx)
+    //                 + ~(w_AF-w_AB) * ((w_AF%RFz) % RBx) - (w_AB%RBx) % RFz)
+    //------------------------------------------------------------------------
     void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
         assert(mp==3 && paerr);
         //TODO: should be able to get p and v info from State
@@ -1360,15 +1357,19 @@ public:
 
         const Vec3&     w_AB = getBodyAngularVelocity(s, B);
         const Vec3&     w_AF = getBodyAngularVelocity(s, F);
+        const Vec3      w_BF = w_AF-w_AB; // in A
 
         const Vec3&     b_AB = getBodyAngularAcceleration(s, ac, B);
         const Vec3&     b_AF = getBodyAngularAcceleration(s, ac, F);
+        const Vec3      b_BF = b_AF-b_AB; // in A
 
-        const Vec3      b_BF = (b_AF-b_AB + 2*(w_AF % w_AB)); // in A
-
-        Vec3::updAs(paerr) = Vec3( ~b_BF * (RF.x() % RB.y()),
-                                   ~b_BF * (RF.y() % RB.z()),
-                                   ~b_BF * (RF.z() % RB.x()) );
+        Vec3::updAs(paerr) = 
+             Vec3( dot( b_BF, RF.x() % RB.y() )
+                        + dot( w_BF, (w_AF%RF.x()) % RB.y() - (w_AB%RB.y()) % RF.x()),
+                   dot( b_BF, RF.y() % RB.z() )
+                        + dot( w_BF, (w_AF%RF.y()) % RB.z() - (w_AB%RB.z()) % RF.y()),
+                   dot( b_BF, RF.z() % RB.x() )
+                        + dot( w_BF, (w_AF%RF.z()) % RB.x() - (w_AB%RB.x()) % RF.z()));
     }
 
     //    t_F =   lambda_x * (RFx % RBy)   (applied to body F)
@@ -1406,12 +1407,9 @@ private:
 
     Rotation          defaultRB; // fixed to B, expressed in B frame; RB = R_B_RB
     Rotation          defaultRF; // fixed to F, expressed in F frame; RF = R_F_RF
-
-    // These are just for visualization
-    Real axisLength;
-    Real axisThickness;
 };
 
+    // WELD
 
 class Constraint::Weld::WeldRep : public Constraint::ConstraintRep {
 public:

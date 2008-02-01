@@ -503,9 +503,9 @@ private:
 /// y,z,x axes respectively.
 ///
 /// This constraint is enforced by an internal (non-working) torque vector applied equal and
-/// opposite on each body. This torque is composed of 
+/// opposite on each body.
 ///
-/// The assembly condition is not the same as the run-time constraint, because the
+/// TODO: The assembly condition is not the same as the run-time constraint, because the
 /// perpendicularity conditions can be satisfied with antiparallel axes. For assembly
 /// we must have additional (redundant) constraints requiring parallel axes.
 
@@ -515,13 +515,7 @@ public:
     ConstantOrientation(MobilizedBody& baseBody_B,     const Rotation& defaultRB,
                         MobilizedBody& followerBody_F, const Rotation& defaultRF); 
 
-    // These affect only generated decorative geometry for visualization;
-    // the plane is really infinite in extent with zero depth and the
-    // point is really of zero radius.
-    ConstantOrientation& setAxisDisplayLength(Real);
-    ConstantOrientation& setAxisDisplayWidth(Real);
-    Real getAxisDisplayLength() const;
-    Real getAxisDisplayWidth() const;
+    //TODO: default visualization geometry?
 
     // Defaults for Instance variables.
     ConstantOrientation& setDefaultBaseRotation(const Rotation&);
@@ -545,7 +539,7 @@ public:
     // Stage::Acceleration
     Vec3 getAccelerationError(const State&) const;
     Vec3 getMultiplier(const State&) const;
-    Vec3 getTorqueOnFollowerBody(const State&) const; // about f X b
+    Vec3 getTorqueOnFollowerBody(const State&) const;
 
     class ConstantOrientationRep; // local subclass
 

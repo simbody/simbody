@@ -139,6 +139,20 @@ ConstraintNode* Constraint::ConstantAngle::ConstantAngleRep::createConstraintNod
         sbdyrep.getRigidBodyNode(followerMobilizedBody), defaultAxisF, defaultAngle);
 }
 
+    ////////////////////////////////////////////////////////////////
+    // CONSTRAINT::CONSTANT ORIENTATION::CONSTANT ORIENTATION REP //
+    ////////////////////////////////////////////////////////////////
+
+ConstraintNode* Constraint::ConstantOrientation::ConstantOrientationRep::createConstraintNode() const {
+    assert(isInSubsystem());
+    const SimbodyMatterSubsystemRep& sbdyrep = getMyMatterSubsystemRep();
+    const MobilizedBodyIndex baseMobilizedBody = getMobilizedBodyIndexOfConstrainedBody(B);
+    const MobilizedBodyIndex followerMobilizedBody = getMobilizedBodyIndexOfConstrainedBody(F);
+    return new ConstantOrientationConstraintNode(
+        sbdyrep.getRigidBodyNode(baseMobilizedBody), defaultRB,
+        sbdyrep.getRigidBodyNode(followerMobilizedBody), defaultRF);
+}
+
     ///////////////////////////////
     // CONSTRAINT::BALL::BALLREP //
     ///////////////////////////////
