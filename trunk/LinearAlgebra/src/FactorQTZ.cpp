@@ -81,7 +81,10 @@ void FactorQTZ::inverse( Matrix_<ELT>& inverse ) const {
 template < class ELT >
 void FactorQTZ::factor( const Matrix_<ELT>& m ){
     delete rep;
-    rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, (typename CNT<ELT>::TReal)DefaultRecpCondition);
+  
+    // if user does not supply rcond set it to max(nRow,nCol)*(eps)^7/8 (similar to matlab)
+    int mnmax = (m.nrow() > m.ncol()) ? m.nrow() : m.ncol();
+    rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, mnmax*NTraits<typename CNT<ELT>::Precision>::getSignificant());
 }
 template < class ELT >
 void FactorQTZ::factor( const Matrix_<ELT>& m, double rcond ){
@@ -95,7 +98,10 @@ void FactorQTZ::factor( const Matrix_<ELT>& m, float rcond ){
 }
 template < class ELT >
 FactorQTZ::FactorQTZ( const Matrix_<ELT>& m ) {
-    rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, (typename CNT<ELT>::TReal)DefaultRecpCondition); 
+
+    // if user does not supply rcond set it to max(nRow,nCol)*(eps)^7/8 (similar to matlab)
+    int mnmax = (m.nrow() > m.ncol()) ? m.nrow() : m.ncol();
+    rep = new FactorQTZRep<typename CNT<ELT>::StdNumber>(m, mnmax*NTraits<typename CNT<ELT>::Precision>::getSignificant()); 
 }
 template < class ELT >
 FactorQTZ::FactorQTZ( const Matrix_<ELT>& m, double rcond ) {
@@ -135,6 +141,7 @@ FactorQTZRep<T>::FactorQTZRep()
         tauORMQR(0),
         scaleLinSys(false) { 
      rank = 0;
+     rcond = NTraits<typename CNT<T>::Precision>::getSignificant();
 } 
 
 template <typename T >
@@ -303,6 +310,8 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
     const int largestSingularValue = 1;
     typedef typename CNT<T>::TReal  RealType;
     RealType smlnum, bignum, smin, smax;
+
+
 
     // compute optimal block size
     // dtzrzf: lwork = m*nb  

@@ -86,11 +86,11 @@ using std::cout;
 using std::endl;
 
 Real A[30] = { -0.09,   0.14,  -0.46,    0.68,   1.29,       
-                   -1.56,   0.20,   0.29,    1.09,   0.51,        
-                   -1.48,  -0.43,   0.89,   -0.71,  -0.96,   
-                   -1.09,   0.84,   0.77,    2.11,  -1.27,       
-                    0.08,   0.55,  -1.13,    0.14,   1.74,        
-                   -1.59,  -0.72,   1.06,    1.24,   0.34  };  
+               -1.56,   0.20,   0.29,    1.09,   0.51,        
+               -1.48,  -0.43,   0.89,   -0.71,  -0.96,   
+               -1.09,   0.84,   0.77,    2.11,  -1.27,       
+                0.08,   0.55,  -1.13,    0.14,   1.74,        
+               -1.59,  -0.72,   1.06,    1.24,   0.34  };  
 
 Real B[6] =  { 7.4, 4.2, -8.3, 1.8, 8.6, 2.1 };
 Real X[5] =  { 0.6344, 0.9699, -1.4402, 3.3678,  3.3992 };
@@ -107,14 +107,16 @@ int main () {
         FactorQTZ qtz;  // perform QTZ factorization 
 
         qtz.factor(a);
+        printf("\n  Estimated rank with default rcond  %d \n\n",qtz.getRank() );
+        ASSERT( qtz.getRank() == 5 );
+
+        qtz.factor(a, 0.01);
         qtz.solve( b, x );  // solve for x given a right hand side 
   
-        printf("\n  Estimated rank = %d \n\n",qtz.getRank() );
-
+        printf("\n  Estimated rank with rcond = 0.01 : %d \n\n",qtz.getRank() );
 
 
         cout << " Overdetermined Double SOLUTION: " << x << "  errnorm=" << (x-x_right).norm() << endl;
-//        ASSERT((x-x_right).norm() < 10*SignificantReal);
         ASSERT((x-x_right).norm() < 0.001);
 
         FactorQTZ qtzCopy( qtz );
@@ -132,8 +134,8 @@ int main () {
         Vector_<float> xf_right(5); for (int i=0; i<5; ++i) xf_right[i] = (float)x_right[i];
         Vector_<float> xf; // should get sized automatically to 5 by solve()
 
-          qtz.factor(af);
-          qtz.solve(bf,xf);
+        qtz.factor(af, (float)0.01);
+        qtz.solve(bf,xf);
 
         cout << " Overdetermined Float SOLUTION:  " << xf << "  errnorm=" << (xf-xf_right).norm() << endl;
         const float SignificantFloat = NTraits<float>::getSignificant();

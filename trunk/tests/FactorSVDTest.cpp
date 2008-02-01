@@ -122,13 +122,14 @@ int main () {
         Matrix rightVectors;
         Matrix leftVectors;
 
-        FactorSVD  svd(a);   // setup the eigen system 
+        FactorSVD  svd(a, 0.01);   // setup the eigen system 
 
+        svd.getSingularValues( singularValues );  // solve for the singular values  
+        cout << " SingularValues rcond = 0.01 : " << singularValues << endl;
+
+        svd.factor(a );   // setup the eigen system 
+        cout << " SingularValues rcond = default : " << singularValues << "  errnorm=" << (singularValues-expectedValues).norm() << endl;
         svd.getSingularValuesAndVectors( singularValues, leftVectors, rightVectors );  // solve for the singular values  
-//        svd.getSingularValues( singularValues );  // solve for the singular values  
-
-        cout << " Real SOLUTION: " << singularValues << "  errnorm=" << (singularValues-expectedValues).norm() << endl;
-
         ASSERT((singularValues-expectedValues).norm() < 0.001);
 
 
