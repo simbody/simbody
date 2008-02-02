@@ -248,6 +248,8 @@ int CpuObc::computeBornRadii( RealOpenMM** atomCoordinates, RealOpenMM* bornRadi
    // calculate Born radii
 
 //FILE* logFile = SimTKOpenMMLog::getSimTKOpenMMLogFile( );
+//FILE* logFile = NULL;
+FILE* logFile = fopen( "bR", "w" );
 
    for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
      
@@ -290,12 +292,11 @@ int CpuObc::computeBornRadii( RealOpenMM** atomCoordinates, RealOpenMM* bornRadi
                }
                sum += term;
 
-/*
-if( atomI == 0 ){
+if( logFile && atomI == 0 ){
    (void) fprintf( logFile, "\nRR %d %d r=%.4f rads[%.6f %.6f] scl=[%.3f %.3f] sum=%12.6e %12.6e %12.6e %12.6e",
                    atomI, atomJ, r, offsetRadiusI, offsetRadiusJ, scaledRadiusFactor[atomI], scaledRadiusFactor[atomJ], 0.5f*sum,
                    l_ij, u_ij, term );
-} */
+}
 
             }
          }
@@ -313,12 +314,14 @@ if( atomI == 0 ){
       obcChain[atomI]       = offsetRadiusI*( alphaObc - two*betaObc*sum + three*gammaObc*sum2 );
       obcChain[atomI]       = (one - tanhSum*tanhSum)*obcChain[atomI]/radiusI;
 
-/*
-if( atomI == 0 ){
+if( logFile && atomI >= 0 ){
    (void) fprintf( logFile, "\nRRQ %d sum=%12.6e tanhS=%12.6e radI=%.5f %.5f born=%12.6e obc=%12.6e",
                    atomI, sum, tanhSum, radiusI, offsetRadiusI, bornRadii[atomI], obcChain[atomI] );
-} */
+}
 
+   }
+   if( logFile ){
+      (void) fclose( logFile );
    }
 
    return SimTKOpenMMCommon::DefaultReturn;
@@ -341,7 +344,7 @@ if( atomI == 0 ){
 
    --------------------------------------------------------------------------------------- */
 
-int CpuObc::computeBornEnergyForces( RealOpenMM* bornRadii, RealOpenMM** atomCoordinates,
+int CpuObc::computeBornEnergyForcesPrint( RealOpenMM* bornRadii, RealOpenMM** atomCoordinates,
                                      const RealOpenMM* partialCharges, RealOpenMM** forces ){
 
    // ---------------------------------------------------------------------------------------
@@ -839,7 +842,7 @@ int CpuObc::writeForceLoop( int numberOfAtoms, const IntVector& chunkSizes,
 
    --------------------------------------------------------------------------------------- */
 
-int CpuObc::computeBornEnergyForcesPrint( RealOpenMM* bornRadii, RealOpenMM** atomCoordinates,
+int CpuObc::computeBornEnergyForces( RealOpenMM* bornRadii, RealOpenMM** atomCoordinates,
                                          const RealOpenMM* partialCharges, RealOpenMM** forces ){
  
    // ---------------------------------------------------------------------------------------
@@ -864,7 +867,9 @@ int CpuObc::computeBornEnergyForcesPrint( RealOpenMM* bornRadii, RealOpenMM** at
       bornRadii   = getBornRadii();
    }
 
-FILE* logFile = SimTKOpenMMLog::getSimTKOpenMMLogFile( );
+//FILE* logFile = NULL;
+//FILE* logFile = SimTKOpenMMLog::getSimTKOpenMMLogFile( );
+FILE* logFile = fopen( "bF", "w" );
 
    // ---------------------------------------------------------------------------------------
 
@@ -965,7 +970,7 @@ FILE* logFile = SimTKOpenMMLog::getSimTKOpenMMLogFile( );
          obcEnergy         += Gpol;
          bornForces[atomI] += dGpol_dalpha2_ij*bornRadii[atomJ];
 
-if( atomI == -1 || atomJ == -1 ){
+if( logFile && (atomI == 1 || atomJ == -1) ){
 //   (void) fprintf( logFile, "\nWWX %d %d F[%.6e %.6e %.6e] bF=[%.6e %.6e] Gpl[%.6e %.6e %.6e] rb[%6.4f %7.4f] rs[%6.4f %7.4f] ",
 //                    atomI, atomJ,
 //                    forces[atomI][0],  forces[atomI][1],  forces[atomI][2],
@@ -985,15 +990,15 @@ if( atomI == -1 || atomJ == -1 ){
 
    }
 
-(void) fprintf( logFile, "\nWXX bF & F" );
-for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
-   (void) fprintf( logFile, "\nWXX %d %.6e q=%.3f F[%.6e %.6e %.6e] ",
-                   atomI, partialCharges[atomI],  bornForces[atomI], forces[atomI][0],  forces[atomI][1],  forces[atomI][2] );
+if( logFile ){
+   (void) fprintf( logFile, "\nWXX bF & F E=%.8e", obcEnergy );
+   for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
+      (void) fprintf( logFile, "\nWXX %d %.6e q=%.3f F[%.6e %.6e %.6e] ",
+                      atomI, partialCharges[atomI],  bornForces[atomI], forces[atomI][0],  forces[atomI][1],  forces[atomI][2] );
+   }
 }
 
-   obcEnergy *= getEnergyConversionFactor();
-
-   int fileDebug = 1;
+   int fileDebug = 0;
    if( fileDebug ){
       std::string outputFileName = "Loop1Cpu.txt";
       CpuObc::writeForceLoop1( numberOfAtoms, forces, bornForces, outputFileName );
@@ -1112,18 +1117,6 @@ for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
 
                RealOpenMM de              = bornForces[atomI]*t3*rInverse;
 
-//de = scaledRadiusJ2;
-// de = t3;
-//de = scaledRadiusJ2*r2Inverse;
-//de = FABS( r - scaledRadiusJ ) ok;
-//de = rInverse;
-// de = 1.0;
-// de = r;
-//de = bornForces[atomI];
-// de = r2;
-//de = r2;
-//de = rScaledRadiusJ;
-
                deltaX                    *= de;
                deltaY                    *= de;
                deltaZ                    *= de;
@@ -1145,12 +1138,11 @@ for( int atomI = 0; atomI < numberOfAtoms; atomI++ ){
                }
                bornSum += term; 
 
-if( atomI == -1 || atomJ == -1 ){
-   (void) fprintf( logFile, "\nXXY %d %d de=%.6e bo[%.6e %.6e %6e] dl %.0f t3=%.6e r=%.6e f[%.6e %.6e %.6e] f[%.6e %.6e %.6e]",
-                    atomI, atomJ, de,
-                    bornForces[atomI], obcChain[atomI],
-                    t3, r, forces[atomI][0],  forces[atomI][1],  forces[atomI][2],
-                    deltaX, deltaY, deltaZ );
+if( atomI == 0 || atomJ == -1 ){
+   (void) fprintf( logFile, "\nXXY %d %d de=%.6e bF[%.6e %6e] t3=%.6e r=%.6e trm=%.6e bSm=%.6e f[%.6e %.6e %.6e]",
+                   atomI, atomJ, de,
+                   bornForces[atomI], obcChain[atomI],
+                   t3, r, term, bornSum, forces[atomI][0],  forces[atomI][1],  forces[atomI][2] );
 }
             }
         }
@@ -1170,9 +1162,13 @@ if( atomI == -1 || atomJ == -1 ){
       obcChainTemp[atomI]  = offsetRadiusI*( alphaObc - two*betaObc*bornSum + three*gammaObc*sum2 );
       obcChainTemp[atomI]  = (one - tanhSum*tanhSum)*obcChainTemp[atomI]/radiusI;
 
+if( logFile && atomI >= 0 ){
+   (void) fprintf( logFile, "\nXXX %d bSum[%.6e %.6e %.6e] bRt=[%.6e %6e] obc=%.6e rI=[%.5f %.5f]",
+                   atomI, bornSumArray[atomI], bornSum, tanhSum, bornRadii[atomI], bornRadiiTemp[atomI], obcChainTemp[atomI], radiusI, offsetRadiusI );
+}
+
    }
 
-   obcEnergy *= getEnergyConversionFactor();
    setEnergy( obcEnergy );
 
    if( 1 ){
@@ -1191,6 +1187,9 @@ if( atomI == -1 || atomJ == -1 ){
       // realPtrVector.push_back( obcChainTemp );
 
       CpuObc::writeForceLoop( numberOfAtoms, chunkVector, realPtrPtrVector, realPtrVector, outputFileName );
+   }
+
+   if( bornSumArray ){
       free( (char*) bornSumArray );
    }
 
@@ -1213,6 +1212,10 @@ if( atomI == -1 || atomJ == -1 ){
 //(void) fprintf( logFile, "\nBorn radii not being updated!!!!" );
    memcpy( bornRadii, bornRadiiTemp, arraySzInBytes );
    memcpy( obcChain, obcChainTemp, arraySzInBytes );
+
+   if( logFile ){
+      (void) fclose( logFile );
+   }
 
    return SimTKOpenMMCommon::DefaultReturn;
 
