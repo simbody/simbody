@@ -296,7 +296,14 @@ void VTKVisualizerRep::addDecoration(MobilizedBodyIndex body, const Transform& X
     initTopology();
 
     // For now we create a unique actor for each piece of geometry
-    vtkActor* actor = vtkActor::New();
+    vtkActor* actor;
+    if (g.getFaceCamera()) {
+        vtkFollower* follower = vtkFollower::New();
+        follower->SetCamera(renderer->GetActiveCamera());
+        actor = follower;
+    }
+    else
+        actor = vtkActor::New();
     bodies[body].aList.push_back(actor);
     bodies[body].gList.push_back(g);
     DecorativeGeometry& dgeom  = bodies[body].gList.back();
@@ -680,7 +687,8 @@ void VTKVisualizerRep::setConfiguration(MobilizedBodyIndex bodyNum, const Transf
         actor->SetPosition(X_GB.T()[0], X_GB.T()[1], X_GB.T()[2]);
         const Vec4 av = X_GB.R().convertRotationToAngleAxis();
         actor->SetOrientation(0,0,0);
-        actor->RotateWXYZ(av[0]*RadiansToDegrees, av[1], av[2], av[3]);
+        if (!actor->IsA("vtkFollower"))
+            actor->RotateWXYZ(av[0]*RadiansToDegrees, av[1], av[2], av[3]);
     }
 }
 

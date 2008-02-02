@@ -79,6 +79,7 @@ public:
     /*virtual*/ void implementSphereGeometry   (const DecorativeSphere&);
     /*virtual*/ void implementEllipsoidGeometry(const DecorativeEllipsoid&);
     /*virtual*/ void implementFrameGeometry    (const DecorativeFrame&);
+    /*virtual*/ void implementTextGeometry     (const DecorativeText&);
 
     // The last vtkObject is the end of the VTK pipeline -- its output is the
     // final representation of the object.

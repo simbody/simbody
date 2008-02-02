@@ -62,6 +62,7 @@
 #include "vtkPolyData.h"
 #include "vtkPolyDataAlgorithm.h"
 #include "vtkLineSource.h"
+#include "vtkDiskSource.h"
 #include "vtkSphereSource.h"
 #include "vtkCubeSource.h"
 #include "vtkCylinderSource.h"
@@ -144,7 +145,24 @@ void VTKDecorativeGeometry::implementLineGeometry(const DecorativeLine& dline) {
 }
 
 void VTKDecorativeGeometry::implementCircleGeometry(const DecorativeCircle& dcircle) {
-    assert(!"VTKDecorativeGeometry::implementCircleGeometry() NOT IMPLEMENTED YET");
+    static const int DefaultResolution = 15;
+
+    const Real r = dcircle.getRadius();
+    vtkDiskSource *vcircle = vtkDiskSource::New();
+    rememberVTKObject(vcircle);
+
+    vcircle->SetOuterRadius(r);
+    vcircle->SetInnerRadius(0.0);
+
+    int res = DefaultResolution;
+    if (dcircle.getResolution() > 0.) 
+        res = (int)(res*dcircle.getResolution()+0.5);
+    vcircle->SetCircumferentialResolution(res);
+
+    const Real scale = dcircle.getScale() > 0. ? dcircle.getScale() : 1.;
+    vtkPolyData* data = transformVTKPolyData(dcircle.getTransform(), Vec3(scale), 
+                                             vcircle->GetOutput());
+    // Not using "data" here -- transform also appended to the vtkObjects list.
 }
 
 void VTKDecorativeGeometry::implementSphereGeometry(const DecorativeSphere& dsphere) {
@@ -267,4 +285,14 @@ void VTKDecorativeGeometry::implementFrameGeometry(const DecorativeFrame& dframe
     // Not using "data" here -- transform also appended to the vtkObjects list.
 }
 
+void VTKDecorativeGeometry::implementTextGeometry(const DecorativeText& dtext) {
+    vtkVectorText *vtext = vtkVectorText::New();
+    rememberVTKObject(vtext);
 
+    vtext->SetText(dtext.getText().c_str());
+
+    const Real scale = dtext.getScale() > 0. ? dtext.getScale() : 1.;
+    vtkPolyData* data = transformVTKPolyData(dtext.getTransform(), Vec3(scale), 
+                                             vtext->GetOutput());
+    // Not using "data" here -- transform also appended to the vtkObjects list.
+}
