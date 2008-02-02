@@ -44,7 +44,7 @@ class DecorativeGeometryRep {
 public:
     DecorativeGeometryRep() 
       : myHandle(0), body(0), placement(), resolution(-1), scale(-1),
-      colorRGB(-1,-1,-1), opacity(-1), lineThickness(-1), representation(DecorativeGeometry::DrawDefault)
+      colorRGB(-1,-1,-1), opacity(-1), lineThickness(-1), faceCamera(false), representation(DecorativeGeometry::DrawDefault)
     { 
     }
 
@@ -99,6 +99,12 @@ public:
         lineThickness = t > 0 ? t : -1.;
     }
     Real getLineThickness() const {return lineThickness;}
+    
+    void setFaceCamera(bool face) {
+        faceCamera = face;
+    }
+    
+    bool getFaceCamera() const {return faceCamera;}
 
     void setRepresentation(const DecorativeGeometry::Representation& r) {representation=r;}
     DecorativeGeometry::Representation getRepresentation() const {return representation;}
@@ -131,6 +137,7 @@ private:
     Vec3 colorRGB;          // set R to -1 for "use default"
     Real opacity;           // -1 means "use default"
     Real lineThickness;     // -1 means "use default"
+    bool faceCamera;
     DecorativeGeometry::Representation  representation; // e.g. points, wireframe, surface
 
 protected:
@@ -398,6 +405,45 @@ private:
         return *reinterpret_cast<const DecorativeFrame*>(myHandle);
     }
 };
+
+///////////////////////
+// DecorativeTextRep //
+///////////////////////
+
+class DecorativeTextRep : public DecorativeGeometryRep {
+static const int DefaultResolution = 15;
+public:
+// no default constructor
+explicit DecorativeTextRep(const std::string& label) : text(label) {
+}
+
+void setText(const std::string& label) {
+    text = label;
+}
+const std::string& getText() const {
+    return text;
+}
+
+// virtuals
+DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
+    DecorativeTextRep* DGRep = new DecorativeTextRep(*this);
+    return( DGRep ); 
+}
+
+void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+    geometry.implementTextGeometry(getMyTextHandle());
+}
+
+SimTK_DOWNCAST(DecorativeTextRep, DecorativeGeometryRep);
+private:
+std::string text;
+
+// This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+const DecorativeText& getMyTextHandle() const {
+    return *reinterpret_cast<const DecorativeText*>(myHandle);
+}
+};
+
 
 } // namespace SimTK
 

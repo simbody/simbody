@@ -105,6 +105,9 @@ DecorativeGeometry& DecorativeGeometry::setRepresentation(const DecorativeGeomet
     updRep().setRepresentation(r);return *this;
 }
 
+DecorativeGeometry& DecorativeGeometry::setFaceCamera(bool face) {updRep().setFaceCamera(face);return *this;}
+bool DecorativeGeometry::getFaceCamera() const {return getRep().getFaceCamera();}
+
 DecorativeGeometry::Representation
 DecorativeGeometry::getRepresentation() const {return getRep().getRepresentation();}
 
@@ -264,6 +267,24 @@ void DecorativeFrame::setAxisLength(Real l) {
 }
 Real DecorativeFrame::getAxisLength() const {
     return DecorativeFrameRep::downcast(*rep).getAxisLength();
+}
+
+
+    /////////////////////
+    // DECORATIVE TEXT //
+    /////////////////////
+
+DecorativeText::DecorativeText(const std::string& label) {
+    rep = new DecorativeTextRep(label);
+    rep->setMyHandle(*this);
+    setFaceCamera(true);
+}
+
+void DecorativeText::setText(const std::string& label) {
+    DecorativeTextRep::downcast(*rep).setText(label);
+}
+const std::string& DecorativeText::getText() const {
+return DecorativeTextRep::downcast(*rep).getText();
 }
 
 } // namespace SimTK

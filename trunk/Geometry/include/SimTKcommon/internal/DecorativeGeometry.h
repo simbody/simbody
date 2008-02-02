@@ -212,6 +212,11 @@ public:
     const Vec3& getColor()      const;
     Real        getOpacity()    const;
     Real        getLineThickness() const;
+    
+    /// Set whether the geometry acts as a billboard, always rotating to face the camera.
+    DecorativeGeometry& setFaceCamera(bool face);
+    /// Get whether the geometry acts as a billboard, always rotating to face the camera.
+    bool getFaceCamera() const;
 
     /// Request a particular rendering representation of this DecorativeGeometry
     /// object. The default is that the rendering representation choice is made elsewhere.
@@ -383,6 +388,23 @@ private:
     const DecorativeFrameRep& getRep() const;
 };
 
+/**
+ * This defines a text label with its base at the origin. The
+ * default constructor creates a blank label.
+ */
+class SimTK_SimTKCOMMON_EXPORT DecorativeText : public DecorativeGeometry {
+public:
+    explicit DecorativeText(const std::string& label="");
+
+    void setText(const std::string& label);
+    const std::string& getText() const;
+
+    SimTK_PIMPL_DOWNCAST(DecorativeText, DecorativeGeometry);
+private:
+    class DecorativeTextRep& updRep();
+    const DecorativeTextRep& getRep() const;
+};
+
 
 /**
  * Use this abstract class to connect your implementation of decorative geometry
@@ -398,6 +420,7 @@ public:
     virtual void implementSphereGeometry(   const DecorativeSphere&)   = 0;
     virtual void implementEllipsoidGeometry(const DecorativeEllipsoid&)= 0;
     virtual void implementFrameGeometry(    const DecorativeFrame&)    = 0;
+    virtual void implementTextGeometry(     const DecorativeText&)     = 0;
 
     // TODO: wrappers for binary compatibility
 };
