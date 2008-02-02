@@ -193,7 +193,7 @@ try
     Real kwall=concrete_planestrain, khard=steel_planestrain, krubber=rubber_planestrain;
     Real cwall=concrete_dissipation, chard=steel_dissipation, crubber=rubber_dissipation;
     //const Real cwall = 0., chard = 0., crubber=0.;
-    /*XXXkwall*=.01, khard*=.01;*/
+    /*XXX*/kwall*=.01, khard*=.01;
 
     contact.addSphere(pend1, Vec3(0, -linkLength/2, 0), pendBallRadius, krubber, crubber);
     contact.addSphere(pend2, Vec3(0, -linkLength/2, 0), pendBallRadius, krubber, crubber);
@@ -254,7 +254,7 @@ try
     //ee.setOrderLimit(3); //CPodes only
     //ee.setProjectEveryStep(true);
 
-    ee.setAccuracy(1e-2);
+    ee.setAccuracy(2e-2);
     ee.setConstraintTolerance(1e-3);
 
     vtk.report(s);

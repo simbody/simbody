@@ -57,6 +57,10 @@ class MobilizedBody;
 // on these bodies or as mobility forces on these bodies' mobilizers.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstrainedBodyIndex)
 
+    ///////////////////////////
+    // CONSTRAINT BASE CLASS //
+    ///////////////////////////
+
 /**
  * This is the base class for all Constraint classes, which is just a handle for the underlying
  * hidden implementation. Each built-in Constraint type is a local subclass within
@@ -207,17 +211,23 @@ protected:
     class ConstraintRep* rep;
 };
 
-/// One constraint equation. This constraint enforces a constant distance between
-/// a point on one body and a point on another body. This is like connecting them
-/// by a rigid, massless rod with ball joints at either end. The constraint is
-/// enforced by a force acting along the rod with opposite signs at either end.
-/// When positive, this represents tension in the rod pulling the points together;
-/// when negative it represents compression keeping the points separated.
-///
-/// Caution: you can't use this to enforce a distance of zero between two points.
-/// That takes three constraints because there is no restriction on the force direction.
-/// For a distance of zero (i.e., you want the points to be coincident) use a Ball
-/// constraint, a.k.a. CoincidentPoints constraint.
+    ////////////////////////////////////////
+    // ROD (CONSTANT DISTANCE) CONSTRAINT //
+    ////////////////////////////////////////
+
+/**
+ *  One constraint equation. This constraint enforces a constant distance between
+ *  a point on one body and a point on another body. This is like connecting them
+ *  by a rigid, massless rod with ball joints at either end. The constraint is
+ *  enforced by a force acting along the rod with opposite signs at either end.
+ *  When positive, this represents tension in the rod pulling the points together;
+ *  when negative it represents compression keeping the points separated.
+ * 
+ *  Caution: you can't use this to enforce a distance of zero between two points.
+ *  That takes three constraints because there is no restriction on the force direction.
+ *  For a distance of zero (i.e., you want the points to be coincident) use a Ball
+ *  constraint, a.k.a. CoincidentPoints constraint.
+ */
 class SimTK_SIMBODY_EXPORT Constraint::Rod : public Constraint {
 public:
     // no default constructor
@@ -261,14 +271,20 @@ private:
     const RodRep& getRep() const;
 };
 
-/// One constraint equation. This constraint enforces that a point fixed to
-/// one body (the "follower body") must travel in a plane fixed on another body (the
-/// "plane body"). The constraint is enforced by an internal (non-working)
-/// scalar force acting at the spatial location of the follower point, directed along
-/// the plane normal, and equal and opposite on the two bodies.
-///
-/// The assembly condition is the same as the run-time constraint: the point
-/// has to be moved into the plane.
+    ///////////////////////////////
+    // POINT IN PLANE CONSTRAINT //
+    ///////////////////////////////
+
+/**
+ *  One constraint equation. This constraint enforces that a point fixed to
+ *  one body (the "follower body") must travel in a plane fixed on another body (the
+ *  "plane body"). The constraint is enforced by an internal (non-working)
+ *  scalar force acting at the spatial location of the follower point, directed along
+ *  the plane normal, and equal and opposite on the two bodies.
+ * 
+ *  The assembly condition is the same as the run-time constraint: the point
+ *  has to be moved into the plane.
+ */
 class SimTK_SIMBODY_EXPORT Constraint::PointInPlane : public Constraint {
 public:
     // no default constructor
@@ -318,16 +334,20 @@ private:
     const PointInPlaneRep& getRep() const;
 };
 
-    // POINT ON LINE
+    //////////////////////////////
+    // POINT ON LINE CONSTRAINT //
+    //////////////////////////////
 
-/// Two constraint equations. This constraint enforces that a point fixed to
-/// one body (the "follower body") must travel along a line fixed on another body (the
-/// "line body"). The constraint is enforced by an internal (non-working)
-/// scalar force acting at the spatial location of the follower point, directed in the
-/// plane for which the line is a normal, and equal and opposite on the two bodies.
-///
-/// The assembly condition is the same as the run-time constraint: the point
-/// has to be moved onto the line.
+/**
+ *  Two constraint equations. This constraint enforces that a point fixed to
+ *  one body (the "follower body") must travel along a line fixed on another body (the
+ *  "line body"). The constraint is enforced by an internal (non-working)
+ *  scalar force acting at the spatial location of the follower point, directed in the
+ *  plane for which the line is a normal, and equal and opposite on the two bodies.
+ * 
+ *  The assembly condition is the same as the run-time constraint: the point
+ *  has to be moved onto the line.
+ */
 class SimTK_SIMBODY_EXPORT Constraint::PointOnLine : public Constraint {
 public:
     // no default constructor
@@ -377,18 +397,23 @@ private:
     const PointOnLineRep& getRep() const;
 };
 
-/// One constraint equation. This constraint enforces that a vector fixed to
-/// one body (the "base body") must maintain a fixed angle with respect to
-/// a vector fixed on the other body (the "follower body"). That is, we have a
-/// single constraint equation that prohibits rotation about the mutual perpendicular
-/// to the two vectors.
-///
-/// This constraint is enforced by an internal scalar torque applied equal and
-/// opposite on each body, about the mutual perpendicular to the two vectors.
-///
-/// The assembly condition is the same as the run-time constraint: the 
-/// bodies must be rotated until the vectors have the right angle between them.
+    ///////////////////////////////
+    // CONSTANT ANGLE CONSTRAINT //
+    ///////////////////////////////
 
+/**
+ *  One constraint equation. This constraint enforces that a vector fixed to
+ *  one body (the "base body") must maintain a fixed angle with respect to
+ *  a vector fixed on the other body (the "follower body"). That is, we have a
+ *  single constraint equation that prohibits rotation about the mutual perpendicular
+ *  to the two vectors.
+ * 
+ *  This constraint is enforced by an internal scalar torque applied equal and
+ *  opposite on each body, about the mutual perpendicular to the two vectors.
+ * 
+ *  The assembly condition is the same as the run-time constraint: the 
+ *  bodies must be rotated until the vectors have the right angle between them.
+ */
 class SimTK_SIMBODY_EXPORT Constraint::ConstantAngle : public Constraint {
 public:
     // no default constructor
@@ -437,18 +462,23 @@ private:
     const ConstantAngleRep& getRep() const;
 };
 
-/// Three constraint equations. This constraint enforces coincident location between
-/// a point on one body and a point on another body.
-///
-/// The constraint is enforced by an internal (non-working) force applied at the
-/// spatial location of the point on body 2, on material points of each body that
-/// are coincident with that spatial location. Note that this is somewhat asymmetric
-/// when the ball is not properly assembled -- it acts as though the contact occurs
-/// at the point on body 2, *not* at the point on body 1.
-///
-/// The assembly condition is the same as the runtime constraint -- the two points
-/// can be brought together by driving the perr to zero.
+    /////////////////////////////////////////
+    // BALL (COINCIDENT POINTS) CONSTRAINT //
+    /////////////////////////////////////////
 
+/**
+ *  Three constraint equations. This constraint enforces coincident location between
+ *  a point on one body and a point on another body.
+ * 
+ *  The constraint is enforced by an internal (non-working) force applied at the
+ *  spatial location of the point on body 2, on material points of each body that
+ *  are coincident with that spatial location. Note that this is somewhat asymmetric
+ *  when the ball is not properly assembled -- it acts as though the contact occurs
+ *  at the point on body 2, *not* at the point on body 1.
+ * 
+ *  The assembly condition is the same as the runtime constraint -- the two points
+ *  can be brought together by driving the perr to zero.
+ */
 class SimTK_SIMBODY_EXPORT Constraint::Ball : public Constraint {
 public:
     // no default constructor
@@ -494,21 +524,26 @@ private:
     const BallRep& getRep() const;
 };
 
-/// Three constraint equations. This constraint enforces that a reference frame
-/// fixed to one body (the "follower body") must have the same orientation as another
-/// reference frame fixed on another body (the "base body"). That is, we have three
-/// constraint equations that collectively prohibit any relative rotation between
-/// the base and follower. The run time equations we use are just three "constant angle"
-/// constraints enforcing perpendicularity between follower's x,y,z axes with the base
-/// y,z,x axes respectively.
-///
-/// This constraint is enforced by an internal (non-working) torque vector applied equal and
-/// opposite on each body.
-///
-/// TODO: The assembly condition is not the same as the run-time constraint, because the
-/// perpendicularity conditions can be satisfied with antiparallel axes. For assembly
-/// we must have additional (redundant) constraints requiring parallel axes.
+    /////////////////////////////////////
+    // CONSTANT ORIENTATION CONSTRAINT //
+    /////////////////////////////////////
 
+/**
+ *  Three constraint equations. This constraint enforces that a reference frame
+ *  fixed to one body (the "follower body") must have the same orientation as another
+ *  reference frame fixed on another body (the "base body"). That is, we have three
+ *  constraint equations that collectively prohibit any relative rotation between
+ *  the base and follower. The run time equations we use are just three "constant angle"
+ *  constraints enforcing perpendicularity between follower's x,y,z axes with the base
+ *  y,z,x axes respectively.
+ * 
+ *  This constraint is enforced by an internal (non-working) torque vector applied equal and
+ *  opposite on each body.
+ * 
+ *  TODO: The assembly condition is not the same as the run-time constraint, because the
+ *  perpendicularity conditions can be satisfied with antiparallel axes. For assembly
+ *  we must have additional (redundant) constraints requiring parallel axes.
+ */
 class SimTK_SIMBODY_EXPORT Constraint::ConstantOrientation : public Constraint {
 public:
     // no default constructor
@@ -549,38 +584,101 @@ private:
     const ConstantOrientationRep& getRep() const;
 };
 
-/// Six constraint equations. This constraint enforces coincidence between
-/// a frame on one body and a frame on another body.
+    /////////////////////////////////////////
+    // WELD (COINCIDENT FRAMES) CONSTRAINT //
+    /////////////////////////////////////////
+
+/**
+ *  Six constraint equations. This constraint enforces coincidence between
+ *  a frame on one body and a frame on another body. This is a combination
+ *  of a ConstantOrientation constraint and a Ball constraint. The first three
+ *  equations correspond to the perpendicularity constraints associated with
+ *  the orientation constraint, the last three equations are the 
+ *  coincident point conditions.
+ * 
+ *  The constraint is enforced by an internal (non-working) force applied at the
+ *  spatial location of the frame origin on body 2, on material points of each body that
+ *  are coincident with that spatial location. Note that this is somewhat asymmetric
+ *  when the Weld is not properly assembled -- it acts as though the contact occurs
+ *  at the origin of the frame on body 2, *not* at the origin of the frame on body 1.
+ *  The orientation constrains on the other hand are symmetric, they are three
+ *  "constant angle" constraints enforcing perpendicularity between body2's
+ *  x,y,z axes with body1's y,z,x axes respectively, via an internal (non-working)
+ *  torque vector applied equal and opposite on each body.
+ * 
+ *  TODO: Although the frame origins can be brought together by the Ball constraint, the
+ *  perpendicularity conditions can be satisfied with antiparallel axes in addition
+ *  to the parallel ones we want. Therefore the assembly conditions must include
+ *  additional (redundant) constraints requiring parallel axes.
+ */
 class SimTK_SIMBODY_EXPORT Constraint::Weld : public Constraint {
 public:
-    // no default constructor
+        // no default constructor
+
+    /// Make the body frame of one body coincident with the body frame
+    /// of the other body.
     Weld(MobilizedBody& body1, MobilizedBody& body2);
+
+    /// Make a particular frame attached to one body coincident with
+    /// a particular frame attached to the other body. The frames are
+    /// specified by giving the transform X_BF which expresses the
+    /// position and orientation of frame F relative to the body frame B.
     Weld(MobilizedBody& body1, const Transform& frame1,
          MobilizedBody& body2, const Transform& frame2);
 
-    // Defaults for Instance variables.
+        // Control over generated decorative geometry.
+
+    /// This is used only for visualization. Set r <= 0 to disable
+    /// default frame drawing. Default axis length is r=1. This is a
+    /// topology-stage variable, not changeable later.
+    Weld& setAxisDisplayLength(Real r);
+
+    /// Report the length being used for display of the frames being
+    /// connected by this Weld. If this returns 0 then no geometry is
+    /// being generated for the frames.
+    Real getAxisDisplayLength() const;
+
+        // Defaults for Instance variables.
+
+    /// Explicitly set the default value for the frame on body1 which
+    /// is to be made coincident with a frame on body2. Note that this is
+    /// topology-stage value so requires non-const access to the Constraint.
     Weld& setDefaultFrameOnBody1(const Transform&);
+
+    /// Retrieve the default transform for the frame on body 1.
+    const Transform& getDefaultFrameOnBody1() const;
+
+    /// Explicitly set the default value for the frame on body2 which
+    /// is to be made coincident with a frame on body1. Note that this is
+    /// topology-stage value so requires non-const access to the Constraint.
     Weld& setDefaultFrameOnBody2(const Transform&);
 
-    // Stage::Topology
-    MobilizedBodyIndex getBody1MobilizedBodyIndex() const;
-    MobilizedBodyIndex getBody2MobilizedBodyIndex() const;
-    const Transform& getDefaultFrameOnBody1() const;
+    /// Retrieve the default transform for the frame on body 2.
     const Transform& getDefaultFrameOnBody2() const;
 
-    // Stage::Instance
+
+        // Stage::Topology
+
+    /// Report the MobilizedBodyIndex of body 1 for this Weld constraint.
+    MobilizedBodyIndex getBody1MobilizedBodyIndex() const;
+
+    /// Report the MobilizedBodyIndex of body 2 for this Weld constraint.
+    MobilizedBodyIndex getBody2MobilizedBodyIndex() const;
+
+
+        // Stage::Instance
     const Transform& getFrameOnBody1(const State&) const;
     const Transform& getFrameOnBody2(const State&) const;
 
-    // Stage::Position, Velocity, Acceleration
+        // Stage::Position, Velocity, Acceleration
     const Vec6& getPositionErrors(const State&) const;
     const Vec6& getVelocityErrors(const State&) const;
 
-    // Stage::Acceleration
+        // Stage::Acceleration
     const Vec6& getAccelerationErrors(const State&) const;
     const Vec6& getMultipliers(const State&) const;
 
-    // Forces are reported expressed in the body frame of the indicated body.
+        // Forces are reported expressed in the body frame of the indicated body.
     const SpatialVec& getWeldReactionOnBody1(const State&) const;
     const SpatialVec& getWeldReactionOnBody2(const State&) const;
 

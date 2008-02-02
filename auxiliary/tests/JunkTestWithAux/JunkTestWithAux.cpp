@@ -93,7 +93,9 @@ int main(int argc, char** argv) {
     Constraint::Ball myc(matter.Ground(), Vec3(1,2,0),  mobilizedBody, Vec3(0,1,0));
     Constraint::Ball ball(mobilizedBody0, Vec3(2,0,0), mobilizedBody2, Vec3(3,0,0));
 
-    Constraint::ConstantOrientation ori(mobilizedBody, Rotation(), mobilizedBody2, Rotation());
+    //Constraint::ConstantOrientation ori(mobilizedBody, Rotation(), mobilizedBody2, Rotation());
+    Constraint::Weld weld(mobilizedBody, Transform(Rotation(Pi/4, ZAxis), Vec3(1,1,0)),
+                          mobilizedBody2, Transform(Rotation(-Pi/4, ZAxis), Vec3(-1,-1,0)));
     
     //Constraint::PointInPlane pip(mobilizedBody, UnitVec3(0,1,0),  2, mobilizedBody2, Vec3(0,1,0));
     //pip.setPlaneDisplayHalfWidth(40);

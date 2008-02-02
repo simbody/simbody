@@ -175,10 +175,10 @@ ConstraintNode* Constraint::Ball::BallRep::createConstraintNode() const {
 ConstraintNode* Constraint::Weld::WeldRep::createConstraintNode() const {
     assert(isInSubsystem());
     const SimbodyMatterSubsystemRep& sbdyrep = getMyMatterSubsystemRep();
-    const MobilizedBodyIndex mobilizedBody1 = getMobilizedBodyIndexOfConstrainedBody(B1);
-    const MobilizedBodyIndex mobilizedBody2 = getMobilizedBodyIndexOfConstrainedBody(B2);
+    const MobilizedBodyIndex mobilizedBody1 = getMobilizedBodyIndexOfConstrainedBody(B);
+    const MobilizedBodyIndex mobilizedBody2 = getMobilizedBodyIndexOfConstrainedBody(F);
     return new WeldConstraintNode(
-        sbdyrep.getRigidBodyNode(mobilizedBody1), defaultFrame1,
-        sbdyrep.getRigidBodyNode(mobilizedBody2), defaultFrame2);
+        sbdyrep.getRigidBodyNode(mobilizedBody1), defaultFrameB,
+        sbdyrep.getRigidBodyNode(mobilizedBody2), defaultFrameF);
 }
 

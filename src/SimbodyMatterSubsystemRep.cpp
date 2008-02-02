@@ -608,14 +608,12 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
 
     //cout << "BEFORE qErr=" << qErr << endl;
 #ifndef USE_OLD_CONSTRAINTS
-    /* NEW CONSTRAINTS */
     // Put position constraint equation errors in qErr
     for (int i=0; i < (int)constraints.size(); ++i) {
         const Segment& pseg = mc.holoErrSegment[i];
         if (pseg.length)
             constraints[i]->getRep().realizePositionErrors(s, pc, pseg.length, &qErr[pseg.offset]);
     }
-    /* */
 #else // USE_OLD_CONSTRAINTS
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
         distanceConstraints[i]->calcPosInfo(qErr,pc);
@@ -651,7 +649,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
             rbNodeLevels[i][j]->realizeVelocity(mv,q,pc,u,vc,qdot); 
 
 #ifndef USE_OLD_CONSTRAINTS
-    /* NEW CONSTRAINTS */
     // Put velocity constraint equation errors in uErr
     for (int i=0; i < (int)constraints.size(); ++i) {
         const Segment& holoseg = mc.holoErrSegment[i]; // for derivatives of holonomic constraints
@@ -662,8 +659,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
         if (mNonholo)
             constraints[i]->getRep().realizeVelocityErrors   (s, vc, mNonholo, &uErr[mc.nHolonomicConstraintEquationsInUse + nonholoseg.offset]);
     }
-    /* */
-
     //cout << "NEW UERR=" << uErr << endl;
 #else // USE_OLD_CONSTRAINTS
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
@@ -1658,12 +1653,21 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
 
     // Calculate multipliers lambda as
     //     (G M^-1 ~G) lambda = aerr
+    // TODO: Optimally, we would calculate this mXm matrix in O(m^2) time. Then 
+    // we'll factor it in O(m^3) time. I don't know how to calculate it that
+    // fast, but using m calls to the M^-1*f and G*udot O(n) operators
+    // we can calculate it in O(mn) time. As long as m << n, and
+    // especially if m is a small constant independent of n, and even better
+    // if we've partitioned it into little 
+    // subblocks, this is all very reasonable. One slip up and you'll toss in a
+    // factor of mn^2 or m^2n and screw this up -- be careful! (see below)
     Matrix MInvGt(nu, ma);
     Vector_<SpatialVec> A_GB(getNBodies()); // dummy
-    for (int j=0; j<ma; ++j)
+    for (int j=0; j<ma; ++j) // This is O(mn)
         calcMInverseF(s, Gt(j), A_GB, MInvGt(j));
 
-    Matrix GMInvGt = (~Gt)*MInvGt; // TODO: BAD!!! O(mn^2) -- Use G udot operator instead for O(mn)
+    // TODO: Toldya! Check out this m^2n bit here ...
+    Matrix GMInvGt = (~Gt)*MInvGt; // TODO: BAD!!! O(m^2n) -- Use m x G udot operators instead for O(mn)
     FactorQTZ qtz(GMInvGt, ma*SignificantReal); // specify 1/cond at which we declare rank deficiency
     Vector lambda(ma);
     qtz.solve(udotErr, lambda);

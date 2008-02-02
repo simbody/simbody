@@ -1223,8 +1223,8 @@ Constraint::Weld::Weld(MobilizedBody& body1, MobilizedBody& body2)
     rep = new WeldRep(); rep->setMyHandle(*this);
     body1.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().B1 = updRep().addConstrainedBody(body1);
-    updRep().B2 = updRep().addConstrainedBody(body2);
+    updRep().B = updRep().addConstrainedBody(body1);
+    updRep().F = updRep().addConstrainedBody(body2);
 }
 
 Constraint::Weld::Weld(MobilizedBody& body1, const Transform& frame1,
@@ -1238,34 +1238,34 @@ Constraint::Weld::Weld(MobilizedBody& body1, const Transform& frame1,
     rep = new WeldRep(); rep->setMyHandle(*this);
     body1.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().B1 = updRep().addConstrainedBody(body1);
-    updRep().B2 = updRep().addConstrainedBody(body2);
+    updRep().B = updRep().addConstrainedBody(body1);
+    updRep().F = updRep().addConstrainedBody(body2);
 
-    updRep().defaultFrame1 = frame1;
-    updRep().defaultFrame2 = frame2;
+    updRep().defaultFrameB = frame1;
+    updRep().defaultFrameF = frame2;
 }
 
 Constraint::Weld& Constraint::Weld::setDefaultFrameOnBody1(const Transform& f1) {
-    updRep().defaultFrame1 = f1;
+    updRep().defaultFrameB = f1;
     return *this;
 }
 
 Constraint::Weld& Constraint::Weld::setDefaultFrameOnBody2(const Transform& f2) {
-    updRep().defaultFrame2 = f2;
+    updRep().defaultFrameF = f2;
     return *this;
 }
 
 MobilizedBodyIndex Constraint::Weld::getBody1MobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B1);
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B);
 }
 MobilizedBodyIndex Constraint::Weld::getBody2MobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B2);
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().F);
 }
 const Transform& Constraint::Weld::getDefaultFrameOnBody1() const {
-    return getRep().defaultFrame1;
+    return getRep().defaultFrameB;
 }
 const Transform& Constraint::Weld::getDefaultFrameOnBody2() const {
-    return getRep().defaultFrame2;
+    return getRep().defaultFrameF;
 }
 
 
@@ -1287,6 +1287,44 @@ const Constraint::Weld::WeldRep& Constraint::Weld::getRep() const {
 }
 Constraint::Weld::WeldRep& Constraint::Weld::updRep() {
     return dynamic_cast<WeldRep&>(*rep);
+}
+
+    // WeldRep
+
+void Constraint::Weld::WeldRep::calcDecorativeGeometryAndAppendImpl
+   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+{
+    // We can't generate the frames until we know the axis lengths to use, and we can't place
+    // the geometry on the bodies until we know the body1 and body2 frame
+    // placements, which might not be until Instance stage.
+    if (stage == Stage::Instance && getAxisDisplayLength() != 0) {
+
+        geom.push_back(DecorativeFrame(getAxisDisplayLength())
+                                            .setColor(getFrameColor(0))
+                                            .setLineThickness(2)
+                                            .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B))
+                                            .setTransform(defaultFrameB));
+
+        // Draw connector line back to body origin.
+        if (defaultFrameB.T().norm() >= SignificantReal)
+            geom.push_back(DecorativeLine(Vec3(0), defaultFrameB.T())
+                             .setColor(getFrameColor(0))
+                             .setLineThickness(2)
+                             .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B)));
+           
+
+        geom.push_back(DecorativeFrame(0.67*getAxisDisplayLength())
+                                            .setColor(getFrameColor(1))
+                                            .setLineThickness(4)
+                                            .setBodyId(getMobilizedBodyIndexOfConstrainedBody(F))
+                                            .setTransform(defaultFrameF));
+
+        if (defaultFrameF.T().norm() >= SignificantReal)
+            geom.push_back(DecorativeLine(Vec3(0), defaultFrameF.T())
+                             .setColor(getFrameColor(1))
+                             .setLineThickness(4)
+                             .setBodyId(getMobilizedBodyIndexOfConstrainedBody(F)));
+    }
 }
 
     ////////////////////

@@ -1412,39 +1412,136 @@ private:
     // WELD
 
 class Constraint::Weld::WeldRep : public Constraint::ConstraintRep {
+    static Real getDefaultAxisDisplayLength() {return 1;}
+    static Vec3 getDefaultFrameColor(int which) {
+        return which==0 ? Blue : Purple;
+    }
 public:
-    WeldRep() : ConstraintRep(6,0,0) { } // transforms are Identity
+    WeldRep() 
+      : ConstraintRep(6,0,0), axisDisplayLength(-1), // means "use default axis length"
+        frameBColor(-1), frameFColor(-1) // means "use default colors"
+    {   // default Transforms are identity, i.e. body frames
+    }
     WeldRep* clone() const { return new WeldRep(*this); }
 
     ConstraintNode* createConstraintNode() const; 
 
+    // Draw the two frames.
+    void calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+
+    void setAxisDisplayLength(Real len) {
+        // len == 0 means "don't display"
+        // len < 0 means "use default"
+        invalidateTopologyCache();
+        axisDisplayLength = len >= 0 ? len : -1;
+    }
+    Real getAxisDisplayLength() const {
+        return axisDisplayLength < 0 ? getDefaultAxisDisplayLength() : axisDisplayLength;
+    }
+
+    void setFrameColor(int which, const Vec3& color) {
+        assert(which==0 || which==1);
+        // color[0] < 0 means "use default color for this frame"
+        invalidateTopologyCache();
+        if (which==0) frameBColor = color[0] < 0 ? Vec3(-1) : color;
+        else          frameFColor = color[0] < 0 ? Vec3(-1) : color;
+    }
+    Vec3 getFrameColor(int which) const {
+        assert(which==0 || which==1);
+        if (which==0) return frameBColor[0] < 0 ? getDefaultFrameColor(0) : frameBColor;
+        else          return frameFColor[0] < 0 ? getDefaultFrameColor(1) : frameFColor;
+    }
+
     // Implementation of virtuals required for holonomic constraints.
 
-    // TODO: THEORY GOES HERE
+    // For theory, look at the ConstantOrientation (1st 3 equations) and 
+    // Ball (last 3 equations) theory above. Otherwise just lay back and 
+    // enjoy the ride.
 
     void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
         assert(mp==6 && perr);
 
-        Vec6::updAs(perr) = 0; // orientation error, position error
+        const Rotation& R_AB = getBodyRotation(s, pc, B);
+        const Rotation& R_AF = getBodyRotation(s, pc, F);
+        const Rotation  RB = R_AB * defaultFrameB.R(); // now expressed in A
+        const Rotation  RF = R_AF * defaultFrameF.R();
+
+        // Orientation error
+        Vec3::updAs(perr) = Vec3(~RF.x()*RB.y(),
+                                 ~RF.y()*RB.z(),
+                                 ~RF.z()*RB.x());
+
+        const Vec3 p_AF1 = calcStationLocation(s, pc, B, defaultFrameB.T());
+        const Vec3 p_AF2 = calcStationLocation(s, pc, F, defaultFrameF.T());
+
+        // position error
+        Vec3::updAs(perr+3) = p_AF2 - p_AF1;
     }
 
-    // pverr = d/dt perr = 
     void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
         assert(mp==6 && pverr);
         //TODO: should be able to get p info from State
+        const Rotation& R_AB = getBodyRotation(s, B);
+        const Rotation& R_AF = getBodyRotation(s, F);
+        const Rotation  RB = R_AB * defaultFrameB.R(); // now expressed in A
+        const Rotation  RF = R_AF * defaultFrameF.R();
 
+        const Vec3&     w_AB = getBodyAngularVelocity(s, vc, B);
+        const Vec3&     w_AF = getBodyAngularVelocity(s, vc, F);
+        const Vec3      w_BF = w_AF-w_AB; // in A
 
-        Vec6::updAs(pverr) = 0;
+        // orientation error
+        Vec3::updAs(pverr) = Vec3( ~w_BF * (RF.x() % RB.y()),
+                                   ~w_BF * (RF.y() % RB.z()),
+                                   ~w_BF * (RF.z() % RB.x()) );
+
+        //TODO: should be able to get p info from State
+        const Transform&  X_AB   = getBodyTransform(s, B);
+        const Vec3        p_AF2  = calcStationLocation(s, F, defaultFrameF.T());
+        const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
+
+        const Vec3        v_AF2   = calcStationVelocity(s, vc, F, defaultFrameF.T());
+        const Vec3        v_AC    = calcStationVelocity(s, vc, B, p_BC);
+ 
+        // position error
+        Vec3::updAs(pverr+3) = v_AF2 - v_AC;
     }
 
-    // paerr = d/dt verr = 
     void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
         assert(mp==6 && paerr);
         //TODO: should be able to get p and v info from State
+        const Rotation& R_AB = getBodyRotation(s, B);
+        const Rotation& R_AF = getBodyRotation(s, F);
+        const Rotation  RB = R_AB * defaultFrameB.R(); // now expressed in A
+        const Rotation  RF = R_AF * defaultFrameF.R();
 
-        // XXX
+        const Vec3&     w_AB = getBodyAngularVelocity(s, B);
+        const Vec3&     w_AF = getBodyAngularVelocity(s, F);
+        const Vec3      w_BF = w_AF-w_AB; // in A
 
-        Vec6::updAs(paerr) = 0;
+        const Vec3&     b_AB = getBodyAngularAcceleration(s, ac, B);
+        const Vec3&     b_AF = getBodyAngularAcceleration(s, ac, F);
+        const Vec3      b_BF = b_AF-b_AB; // in A
+
+        // orientation error
+        Vec3::updAs(paerr) = 
+             Vec3( dot( b_BF, RF.x() % RB.y() )
+                        + dot( w_BF, (w_AF%RF.x()) % RB.y() - (w_AB%RB.y()) % RF.x()),
+                   dot( b_BF, RF.y() % RB.z() )
+                        + dot( w_BF, (w_AF%RF.y()) % RB.z() - (w_AB%RB.z()) % RF.y()),
+                   dot( b_BF, RF.z() % RB.x() )
+                        + dot( w_BF, (w_AF%RF.z()) % RB.x() - (w_AB%RB.x()) % RF.z()));
+
+        const Transform&  X_AB   = getBodyTransform(s, B);
+        const Vec3        p_AF2  = calcStationLocation(s, F, defaultFrameF.T());
+        const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
+
+        const Vec3        a_AF2  = calcStationAcceleration(s, ac, F, defaultFrameF.T());
+        const Vec3        a_AC   = calcStationAcceleration(s, ac, B, p_BC);
+
+        // position error
+        Vec3::updAs(paerr+3) = a_AF2 - a_AC;
     }
 
     void applyPositionConstraintForcesVirtual
@@ -1453,36 +1550,45 @@ public:
         Vector&              mobilityForces) const
     {
         assert(mp==6 && multipliers);
-        const Vec3 torque = Vec3::getAs(multipliers);
-        const Vec3 force  = Vec3::getAs(multipliers + 3);
+
+        const Vec3& torques = Vec3::getAs(multipliers);
+        const Vec3& force_A = Vec3::getAs(multipliers+3);
+
         //TODO: should be able to get p info from State
+        const Rotation& R_AB = getBodyRotation(s, B);
+        const Rotation& R_AF = getBodyRotation(s, F);
+        const Rotation  RB = R_AB * defaultFrameB.R(); // now expressed in A
+        const Rotation  RF = R_AF * defaultFrameF.R();
 
-        const Transform& X_AB1  = getBodyTransform(s,B1);
-        const Vec3&      p_B2F2 = defaultFrame2.T();
-        const Vec3       p_AF2  = calcStationLocation(s, B2, p_B2F2);
-        const Vec3       p_B1F2 = ~X_AB1 * p_AF2; // shift to B1 origin and reexpress in B1
+        const Vec3 torque_F_A =   torques[0] * (RF.x() % RB.y())
+                                + torques[1] * (RF.y() % RB.z())
+                                + torques[2] * (RF.z() % RB.x());
 
-        // Multipliers are torque and force to be applied to body2; apply
-        // equal and opposite torque to body1, but apply the -force to the
-        // point of body1 coincident with frame2's origin, which in general
-        // won't be exactly the same as frame1's origin.
+        addInBodyTorque(s, F,  torque_F_A, bodyForcesInA);
+        addInBodyTorque(s, B, -torque_F_A, bodyForcesInA);
 
-        addInBodyTorque(s, B2,  torque, bodyForcesInA);
-        addInBodyTorque(s, B1, -torque, bodyForcesInA);
+        const Transform& X_AB  = getBodyTransform(s,B);
+        const Vec3&      p_FF2 = defaultFrameF.T();
+        const Vec3       p_AF2 = calcStationLocation(s, F, p_FF2);
+        const Vec3       p_BC = ~X_AB * p_AF2;
 
-        addInStationForce(s, B2, p_B2F2,  force, bodyForcesInA);
-        addInStationForce(s, B1, p_B1F2, -force, bodyForcesInA);
+        addInStationForce(s, F, p_FF2, force_A, bodyForcesInA);
+        addInStationForce(s, B, p_BC, -force_A, bodyForcesInA);
     }
 
     SimTK_DOWNCAST(WeldRep, ConstraintRep);
 private:
     friend class Constraint::Weld;
 
-    ConstrainedBodyIndex B1;
-    ConstrainedBodyIndex B2;
+    ConstrainedBodyIndex B; // aka "body 1"
+    ConstrainedBodyIndex F; // aka "body 2"
 
-    Transform       defaultFrame1; // on body 1, relative to B1 frame
-    Transform       defaultFrame2; // on body 2, relative to B2 frame};
+    Transform       defaultFrameB; // on body 1, relative to B frame
+    Transform       defaultFrameF; // on body 2, relative to F frame};
+
+    // These are for visualization control only.
+    Real axisDisplayLength; // for all 6 axes; <= 0 means "don't display"
+    Vec3 frameBColor, frameFColor;
 };
 
 
