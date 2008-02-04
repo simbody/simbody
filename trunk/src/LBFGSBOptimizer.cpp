@@ -78,7 +78,17 @@ namespace SimTK {
 
  
          iprint[0] = iprint[1] = iprint[2] = diagnosticsLevel;
-         sys.getParameterLimits( &lowerLimits, &upperLimits );
+
+         if( sys.getHasLimits() ) {
+             sys.getParameterLimits( &lowerLimits, &upperLimits );
+         } else {
+             lowerLimits = 0;
+             upperLimits = 0;
+             for(int i=0;i<n;i++) {
+                 nbd[i] = 0;          // unbounded
+             }
+         }
+
          iwa = new int[3*n];
          wa = new Real[((2*m + 4)*n + 12*m*m + 12*m)];
      

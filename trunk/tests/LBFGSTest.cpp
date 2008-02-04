@@ -22,15 +22,13 @@
  */
 
 #include "SimTKmath.h"
+#include "simmath/Optimizer.h"
 #include "SimTKcommon.h"
 
 #include <iostream>
 using std::cout;
 using std::endl;
-using SimTK::Vector;
-using SimTK::Real;
-using SimTK::Optimizer;
-using SimTK::OptimizerSystem;
+using namespace SimTK;
 
 /* adapted from itkLBFGSOptimizerTest.cxx */
 
@@ -65,6 +63,8 @@ class ProblemSystem : public OptimizerSystem {
    }
 };
 
+static const Real expected[] = { 2.0, -2.0 };
+
 int main() {
 
     int i;
@@ -77,18 +77,12 @@ int main() {
   try {
 
     
-    Optimizer opt; 
-    //Optimizer opt( sys ); 
-
-    opt.setOptimizerSystem( sys );
-
+    Optimizer opt( sys ); 
 
     opt.setConvergenceTolerance( .0001 );
     opt.setDiagnosticsLevel( 5 );
-
     results[0] =  100;
     results[1] = -100;
-
     
     opt.setAdvancedRealOption( "xtol", 1e-6 );
 
@@ -101,12 +95,18 @@ int main() {
 
 
     static const Real TOL = 1e-4;
-    Real expected[] = { 2.0, -2.0 };
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        if( results[i] > expected[i]+TOL || results[i] < expected[i]-TOL) {
            printf(" LBFGSTest.cpp:  error results[%d] = %f  expected=%f \n",i,results[i], expected[i]); 
            returnValue = 1;
        }
+    }
+    if( returnValue == 0 ) {
+        printf("LBFGSTest.cpp results = ");
+        for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
+             printf( "%f ", results[i]);
+        }
+        printf("\n");
     }
 
     return( returnValue );

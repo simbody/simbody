@@ -293,7 +293,17 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
     /* compute initial function and gradient values */
     objectiveFuncWrapper( n, x, true, f, (void*)this );
     gradientFuncWrapper( n,  x, false, gradient, (void*)this );
-	gnorm = std::sqrt(ddot_(n, gradient, c__1, gradient, c__1));
+
+    converged = true;
+    for(int i=0;i<n;i++ ) {
+        if( std::fabs(gradient[i]) > *eps ) {
+           converged=false;
+        }
+    }
+    if( converged ) return;   // check if starting at minimum 
+
+    gnorm = std::sqrt(ddot_(n, gradient, c__1, gradient, c__1));
+
     stp1 = 1. / gnorm;
 
     for (i = 0; i < n; ++i) {
@@ -411,7 +421,7 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
        }
 
        do {
-          SimTK::LBFGSOptimizer::mcsrch_(&n, x, f, gradient, &w[ispt + point * n], &stp, &ftol, xtol, &maxfev, &info, &nfev, diag);
+          SimTK::LBFGSOptimizer::mcsrch_(&n, x, f, gradient, &w[ispt + point * n], &stp, &ftol, xtol, eps, &maxfev, &info, &nfev, diag);
           if (info == -1) {
               objectiveFuncWrapper( n, x, true, f, (void*)this );
               gradientFuncWrapper( n,  x, false, gradient, (void*)this );
@@ -608,7 +618,7 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
 
 /* Subroutine */
 void SimTK::LBFGSOptimizer::mcsrch_(integer *n, Real *x, Real *f, Real *g, Real *s, Real *stp,
-                    Real *ftol, Real *xtol, integer *maxfev, integer *info, integer *nfev, Real *wa)
+                    Real *ftol, Real *xtol, Real *eps, integer *maxfev, integer *info, integer *nfev, Real *wa)
 {
     /* Initialized data */
 
