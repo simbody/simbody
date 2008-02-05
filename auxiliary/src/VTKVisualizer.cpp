@@ -61,6 +61,10 @@
 #include "windows.h" // kludge
 #endif
 
+#ifdef VTK_USE_CARBON
+#include <Carbon/Carbon.h>
+#endif
+
 #include <cassert>
 #include <cmath>
 #include <cstdio>
@@ -572,6 +576,16 @@ void VTKVisualizerRep::report(const State& s) {
         }
         TranslateMessage(&msg);
         DispatchMessage(&msg);
+    }
+#endif
+    
+#ifdef VTK_USE_CARBON
+    EventRef theEvent;
+    EventTargetRef theTarget;
+    theTarget = GetEventDispatcherTarget();
+    while (ReceiveNextEvent(0, NULL, kEventDurationNoWait, true, &theEvent) == noErr) {
+        SendEventToEventTarget(theEvent, theTarget);
+        ReleaseEvent(theEvent);
     }
 #endif
 
