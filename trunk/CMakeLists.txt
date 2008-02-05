@@ -26,6 +26,10 @@
 PROJECT ( SimTKsimmath )
 SUBDIRS (staticTarget sharedTarget Integrator tests examples)
 
+# Some test run longer than the timeout limit, so give it more time. <RJR>
+SET(DART_TESTING_TIMEOUT 15000)
+#SET(CTEST_TESTING_TIMEOUT 15000)
+
 # The build system will set ARCH64 for 64 bit builds, which require
 # use of the lib64/ library directories rather than lib/.
 SET( ARCH64 OFF CACHE BOOL "ON for 64bit builds, OFF for 32bit builds")
