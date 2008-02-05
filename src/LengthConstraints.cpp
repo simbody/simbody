@@ -251,8 +251,7 @@ static inline bool operator<(const LoopWNodes& l1, const LoopWNodes& l2) {
 // 
 //   
 void
-LengthConstraints::construct(const std::vector<RBDistanceConstraint*>& iloops,
-                             const std::vector<RBPointInPlaneConstraint*>& pipLoops)
+LengthConstraints::construct(const std::vector<RBDistanceConstraint*>& iloops)
 {
     //clean up
     pvConstraints.resize(0);
@@ -1076,7 +1075,7 @@ LengthSet::calcConstraintForces(const State& s, const Vector& udotErr,
 
     //TODO: need to copy out the right multipliers to the full multipliers array
 
-    //cout << "  OLD lambda = " << multipliersForThisSet << endl;
+    cout << "  OLD lambda = " << multipliersForThisSet << endl;
 
     // add forces due to these constraints
     for (int i=0 ; i<(int)loops.size() ; i++) {
@@ -1386,98 +1385,4 @@ void RBDistanceConstraint::calcAccInfo(
     const Vec3 relAcc_G = getAcc_G(ac,2) - getAcc_G(ac,1);
     updAccErr(udotErr) = getRelVel_G(vc).normSqr() + (~relAcc_G * getFromTip1ToTip2_G(pc));
 }
-
-
-
-    //////////////////////////////////
-    // RB POINT-IN-PLANE CONSTRAINT //
-    //////////////////////////////////
-
-
-void RBPointInPlaneConstraint::calcPosInfo(Vector& qErr, SBPositionCache& pc) const
-{
-    assert(isValid() && pipConstNum >= 0);
-
-    const Transform& X_GP = getNode(1).getX_GB(pc); // plane body transform
-    const Transform& X_GF = getNode(2).getX_GB(pc); // follower body transform
-
-    // Re-express normal n_P in G, giving n_G
-    updNormal_G(pc) = X_GP.R() * getPlaneNormal(); // n_G
-
-    // Re-express position vector from OF to follower station S (p_FS) in G, giving p_FS_G
-    updStation_G(pc) = X_GF.R() * getFollowerPoint(); // p_FS_G
-
-    // Now measure follower station S from Ground origin, giving p_GS
-    updPos_G(pc)     = X_GF.T() + getStation_G(pc); // p_GS
-
-    // Now measure follower station S from plane body origin, but expressed in G (p_PS_G)
-    updPosInPlaneBody_G(pc) = getPos_G(pc) - X_GP.T(); // p_PS_G
-
-    // Height of follower point along plane normal, with plane body origin being zero.
-    updHeight(pc) = dot( getPosInPlaneBody_G(pc), getNormal_G(pc) ); // h
-
-    // perr = height - desiredHeight
-    updPosErr(qErr) = getHeight(pc) - getPlaneHeight();
-
-}
-
-void RBPointInPlaneConstraint::calcVelInfo(
-        const SBPositionCache& pc, 
-        Vector&                uErr,
-        SBVelocityCache&       vc) const
-{
-    assert(isValid() && pipConstNum >= 0);
-
-    const SpatialVec& V_GP = getNode(1).getV_GB(vc); // plane body velocity
-    const SpatialVec& V_GF = getNode(2).getV_GB(vc); // follower body velocity
-
-    // Time derivative of normal vector in G
-    updNormalDot_G(vc)  = V_GP[0] % getNormal_G(pc);    // ndot_G = w_GP x n_G
-
-    // Velocity v_GS of follower point in Ground (= v + wXr)
-    updVel_G(vc) = V_GF[1] + V_GF[0] % getStation_G(pc);
-
-    // This is v_PS_G = d/dt p_PS_G
-    updVelInPlaneBody_G(vc) = getVel_G(vc) - V_GP[1];
-
-    // This is d/dt height = dot(v_PS_G,n_G) + dot(p_PS_G,ndot_G)
-    updHeightDot(vc) =    dot( getVelInPlaneBody_G(vc), getNormal_G(pc) )
-                        + dot( getPosInPlaneBody_G(pc), getNormalDot_G(vc) );
-
-    // verr = d/dt height
-    updVelErr(uErr) = getHeightDot(vc);
-}
-
-void RBPointInPlaneConstraint::calcAccInfo(
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc,
-        Vector&                udotErr,
-        SBAccelerationCache&   ac) const
-{
-    assert(isValid() && pipConstNum >= 0);
-
-    const SpatialVec& V_GP = getNode(1).getV_GB(vc); // plane body velocity
-    const SpatialVec& V_GF = getNode(2).getV_GB(vc); // follower body velocity
-
-    const SpatialVec& A_GP = getNode(1).getA_GB(ac); // plane body acceleration
-    const SpatialVec& A_GF = getNode(2).getA_GB(ac); // follower body acceleration
-
-    // 2nd time derivative of normal vector in G (= aaXn + wXwXn)
-    updNormalDotDot_G(ac)  = A_GP[0] % getNormal_G(pc) + V_GP[0] % getNormalDot_G(vc);
-
-    // Acceleration a_GS of follower point in Ground (= a + aaXr + wXwXr)
-    updAcc_G(ac) = A_GF[1] + A_GF[0] % getStation_G(pc) + V_GF[0] % (V_GF[0] % getStation_G(pc));
-
-    // This is a_PS_G = d/dt v_PS_G
-    updAccInPlaneBody_G(ac) = getAcc_G(ac) - A_GP[1];
-
-    // This is d/dt heightDot
-    updHeightDotDot(ac) =    dot(getAccInPlaneBody_G(ac), getNormal_G(pc))
-                         + 2*dot(getVelInPlaneBody_G(vc), getNormalDot_G(vc))
-                         +   dot(getPosInPlaneBody_G(pc), getNormalDotDot_G(ac));
-
-    // verr = d/dt heightDot
-    updAccErr(udotErr) = getHeightDotDot(ac);
-}
-
 

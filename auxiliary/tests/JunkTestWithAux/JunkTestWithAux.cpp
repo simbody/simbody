@@ -107,11 +107,11 @@ int main(int argc, char** argv) {
     //Constraint::ConstantAngle ang(mobilizedBody0, UnitVec3(0,1,0),
      //                             mobilizedBody2, UnitVec3(0,1,0), Pi/4);
 
-    /*
-    Constraint::Rod myc2(matter.Ground(), Vec3(-4,2,0),  mobilizedBody2, Vec3(0,1,0), 1);
-    Constraint::Rod myc(matter.Ground(), Vec3(1,2,0),  mobilizedBody, Vec3(0,1,0), 1);
-    Constraint::Rod ball(mobilizedBody0, Vec3(2,0,0), mobilizedBody2, Vec3(3,0,0), 5);
-    */
+    
+    //Constraint::Rod myc2(matter.Ground(), Vec3(-4,2,0),  mobilizedBody2, Vec3(0,1,0), 1);
+    //Constraint::Rod myc(matter.Ground(), Vec3(1,2,0),  mobilizedBody, Vec3(0,1,0), 1);
+    //Constraint::Rod ball(mobilizedBody0, Vec3(2,0,0), mobilizedBody2, Vec3(3,0,0), 5);
+    
 
     //Constraint::Rod rod(mobilizedBody, Vec3(0,0,1), mobilizedBody2, Vec3(-1,0,0), 5);
     //Constraint::Rod myc(matter.Ground(), Vec3(1,2,0),  mobilizedBody, Vec3(0,1,0), 1);
@@ -146,6 +146,8 @@ int main(int argc, char** argv) {
     viz.addBodyFixedDecoration(matter.Ground(), Vec3(1,2,0), DecorativeSphere(0.1).setOpacity(.2));
     viz.addBodyFixedDecoration(matter.Ground(), Transform(), DecorativeLine(Vec3(0),Vec3(1,1,1)).setColor(Black));
 
+    viz.addBodyFixedDecoration(mobilizedBody, Transform(), DecorativeCircle());
+    viz.addBodyFixedDecoration(mobilizedBody, Transform(Vec3(1,2,3)), DecorativeText("hello world").setScale(.1));
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     //matter.setUseEulerAngles(s, true);
     mbs.realizeModel(s); // define appropriate states for this System
@@ -225,7 +227,7 @@ int main(int argc, char** argv) {
 
     // These are the SimTK Simmath integrators:
     RungeKuttaMersonIntegrator myStudy(mbs);
-    //CPodesIntegrator myStudy(mbs, CPodes::BDF, CPodes::Newton/*Functional*/);
+    //CPodesIntegrator myStudy(mbs, CPodes::BDF, CPodes::/*Newton*/Functional);
     //myStudy.setOrderLimit(2); // cpodes only
     //VerletIntegrator myStudy(mbs);
    // ExplicitEulerIntegrator myStudy(mbs, .0005); // fixed step
@@ -233,10 +235,10 @@ int main(int argc, char** argv) {
 
 
     //myStudy.setMaximumStepSize(0.001);
-    myStudy.setAccuracy(1e-6); //myStudy.setAccuracy(1e-2);
+    myStudy.setAccuracy(1e-6); //myStudy.setAccuracy(1e-1);
     //myStudy.setProjectEveryStep(true);
     //myStudy.setProjectInterpolatedStates(false);
-    myStudy.setConstraintTolerance(1e-7);// myStudy.setConstraintTolerance(1e-2);
+    myStudy.setConstraintTolerance(1e-7); //myStudy.setConstraintTolerance(1e-2);
     //myStudy.setAllowInterpolation(false);
     //myStudy.setMaximumStepSize(.1);
 

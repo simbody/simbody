@@ -243,7 +243,7 @@ try // If anything goes wrong, an exception will be thrown.
                                    1.);    // natural length
     */
 
-    forces.addGlobalEnergyDrain(1000);
+    forces.addGlobalEnergyDrain(100);
 
 
     State s = mbs.realizeTopology();
@@ -299,9 +299,10 @@ try // If anything goes wrong, an exception will be thrown.
     RungeKuttaMersonIntegrator myStudy(mbs);
     //CPodesIntegrator  myStudy(mbs);
     //VerletIntegrator myStudy(mbs);
+    //ExplicitEulerIntegrator myStudy(mbs);
 
-    myStudy.setAccuracy(1e-2);
-    myStudy.setConstraintTolerance(1e-3); 
+    myStudy.setAccuracy(1e-1);
+    myStudy.setConstraintTolerance(1e-2); 
     myStudy.setProjectEveryStep(false);
 
     VTKVisualizer display(mbs);

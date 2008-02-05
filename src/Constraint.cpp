@@ -41,7 +41,10 @@
 
 #include "ConstraintRep.h"
 #include "SimbodyMatterSubsystemRep.h"
-#include "ConstraintNode.h"
+
+#ifdef USE_OLD_CONSTRAINTS
+    #include "LengthConstraints.h"
+#endif
 
 namespace SimTK {
 
@@ -553,6 +556,20 @@ Constraint::Rod::RodRep& Constraint::Rod::updRep() {
     return dynamic_cast<RodRep&>(*rep);
 }
     // RodRep
+
+void Constraint::Rod::RodRep::realizeTopologyVirtual(State& s) const { 
+#ifdef USE_OLD_CONSTRAINTS
+    SimbodyMatterSubsystemRep& matter = 
+        const_cast<RodRep*>(this)->updMyMatterSubsystemRep();
+    const MobilizedBodyIndex mobilizedBody1 = getMobilizedBodyIndexOfConstrainedBody(B1);
+    const MobilizedBodyIndex mobilizedBody2 = getMobilizedBodyIndexOfConstrainedBody(B2);
+    const RigidBodyNode& rbn1 = matter.getRigidBodyNode(mobilizedBody1);
+    const RigidBodyNode& rbn2 = matter.getRigidBodyNode(mobilizedBody2);
+    const RBStation s1(rbn1, defaultPoint1);
+    const RBStation s2(rbn2, defaultPoint2);
+    matter.addOneDistanceConstraintEquation(s1,s2,defaultRodLength);
+#endif
+}
 
 void Constraint::Rod::RodRep::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
@@ -1094,6 +1111,24 @@ Constraint::Ball::BallRep& Constraint::Ball::updRep() {
 
     // BallRep
 
+void Constraint::Ball::BallRep::realizeTopologyVirtual(State& s) const { 
+#ifdef USE_OLD_CONSTRAINTS
+    SimbodyMatterSubsystemRep& matter = 
+        const_cast<BallRep*>(this)->updMyMatterSubsystemRep();
+    const MobilizedBodyIndex mobilizedBody1 = getMobilizedBodyIndexOfConstrainedBody(B1);
+    const MobilizedBodyIndex mobilizedBody2 = getMobilizedBodyIndexOfConstrainedBody(B2);
+    const RigidBodyNode& rbn1 = matter.getRigidBodyNode(mobilizedBody1);
+    const RigidBodyNode& rbn2 = matter.getRigidBodyNode(mobilizedBody2);
+    const RBStation s1x(rbn1, defaultPoint1+Vec3(1,0,0));
+    const RBStation s1y(rbn1, defaultPoint1+Vec3(0,1,0));       
+    const RBStation s1z(rbn1, defaultPoint1+Vec3(0,0,1));
+    const RBStation s2(rbn2, defaultPoint2);
+    matter.addOneDistanceConstraintEquation(s1x,s2,1.);
+    matter.addOneDistanceConstraintEquation(s1y,s2,1.);
+    matter.addOneDistanceConstraintEquation(s1z,s2,1.);
+#endif
+}
+
 void Constraint::Ball::BallRep::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
@@ -1291,6 +1326,45 @@ Constraint::Weld::WeldRep& Constraint::Weld::updRep() {
 
     // WeldRep
 
+void Constraint::Weld::WeldRep::realizeTopologyVirtual(State& s) const { 
+#ifdef USE_OLD_CONSTRAINTS
+    SimbodyMatterSubsystemRep& matter = 
+        const_cast<WeldRep*>(this)->updMyMatterSubsystemRep();
+    const MobilizedBodyIndex mobilizedBody1 = getMobilizedBodyIndexOfConstrainedBody(B);
+    const MobilizedBodyIndex mobilizedBody2 = getMobilizedBodyIndexOfConstrainedBody(F);
+    const Vec3& station1 = defaultFrameB.T();
+    const Vec3& station2 = defaultFrameF.T();
+    const RigidBodyNode& rbn1 = matter.getRigidBodyNode(mobilizedBody1);
+    const RigidBodyNode& rbn2 = matter.getRigidBodyNode(mobilizedBody2);
+    const RBStation s1 (rbn1, station1);
+    const RBStation s1x(rbn1, station1+defaultFrameB.x());
+    const RBStation s1y(rbn1, station1+defaultFrameB.y());       
+    const RBStation s1z(rbn1, station1+defaultFrameB.z());
+
+    const RBStation s2 (rbn2, station2);
+    const RBStation s2x(rbn2, station2+defaultFrameF.x());
+    const RBStation s2y(rbn2, station2+defaultFrameF.y());       
+    const RBStation s2z(rbn2, station2+defaultFrameF.z());
+
+    // This is a "coincident station" constraint holding the frame
+    // origins together (see above).
+    matter.addOneDistanceConstraintEquation(s1x,s2,1.);
+    matter.addOneDistanceConstraintEquation(s1y,s2,1.);
+    matter.addOneDistanceConstraintEquation(s1z,s2,1.);
+
+    // This is an "align axes" constraint. This has an unfortunate
+    // symmetry when rotating 180 degrees about any axis.
+    // This set of constraint equations is fine for *projection* but
+    // not enough for *assembly*. You need to add another one to
+    // eliminate the rotational symmetries when assembling from
+    // far away.
+    const Real d = std::sqrt(2.);
+    matter.addOneDistanceConstraintEquation(s1y,s2z,d); // restrain x rot
+    matter.addOneDistanceConstraintEquation(s1z,s2x,d); // restrain y rot
+    matter.addOneDistanceConstraintEquation(s1x,s2y,d); // restrain z rot  
+#endif
+}
+
 void Constraint::Weld::WeldRep::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
@@ -1332,10 +1406,10 @@ void Constraint::Weld::WeldRep::calcDecorativeGeometryAndAppendImpl
     ////////////////////
 
 /*virtual*/ Constraint::ConstraintRep::~ConstraintRep() {
-    delete myConstraintNode; myConstraintNode=0;
+    // NOTHING
 }
 
-void Constraint::ConstraintRep::realizeTopology(State& s, int& nxtQErr, int& nxtUErr, int& nxtMult) const
+void Constraint::ConstraintRep::realizeTopology(State& s) const
 {
     // Calculate the relevant Subtree.
     mySubtree.clear();
@@ -1345,38 +1419,15 @@ void Constraint::ConstraintRep::realizeTopology(State& s, int& nxtQErr, int& nxt
     mySubtree.realizeTopology();
 
     realizeTopologyVirtual(s); // delegate to concrete constraint
-
-    // Create a constraint node for dealing with computational issues.
-    delete myConstraintNode;
-    myConstraintNode = createConstraintNode();
-    myConstraintNode->setConstraintNum(myConstraintIndex);
-    myConstraintNode->setQErrIndex(nxtQErr);
-    myConstraintNode->setUErrIndex(nxtUErr);
-    myConstraintNode->setMultIndex(nxtMult);
-    const int nConsEqns = myConstraintNode->getNConstraintEquations();
-    nxtQErr += nConsEqns;
-    nxtUErr += nConsEqns;
-    nxtMult += nConsEqns;
-    myConstraintNode->finishConstruction(*myMatterSubsystemRep);
 }
 
 void Constraint::ConstraintRep::invalidateTopologyCache() const {
-    delete myConstraintNode; myConstraintNode=0;
     if (myMatterSubsystemRep)
         myMatterSubsystemRep->invalidateSubsystemTopologyCache();
 }
 
 bool Constraint::ConstraintRep::subsystemTopologyHasBeenRealized() const {
     return myMatterSubsystemRep && myMatterSubsystemRep->subsystemTopologyHasBeenRealized();
-}
-
-const ConstraintNode& Constraint::ConstraintRep::getMyConstraintNode() const {
-    SimTK_ASSERT(myConstraintNode && myMatterSubsystemRep && 
-                 myMatterSubsystemRep->subsystemTopologyHasBeenRealized(),
-      "An operation on a Constraint was illegal because realizeTopology() has "
-      "not been performed on the containing Subsystem since the last topological change."
-    );
-    return *myConstraintNode;
 }
 
 void Constraint::ConstraintRep::setMyMatterSubsystem
@@ -1464,14 +1515,32 @@ SpatialVec Constraint::ConstraintRep::getBodyAcceleration(const State& s, const 
 
 // Find out how many holonomic (position), nonholonomic (velocity),
 // and acceleration-only constraint equations are generated by this Constraint.
-void Constraint::ConstraintRep::getNumConstraintEquations(const State& s, int& mp, int& mv, int& ma) const {
-	const SBModelCache&  mc  = getModelCache(s);
-	const ConstraintIndex   id  = myConstraintIndex;
+void Constraint::ConstraintRep::getNumConstraintEquations
+   (const State& s, int& mp, int& mv, int& ma) const 
+{
+	const SBModelCache&   mc = getModelCache(s);
+	const ConstraintIndex ix = myConstraintIndex;
 
-	mp = mc.mHolonomicEquationsInUse[id];
-	mv = mc.mNonholonomicEquationsInUse[id];
-	ma = mc.mAccelerationOnlyEquationsInUse[id];
+	mp = mc.mHolonomicEquationsInUse[ix];
+	mv = mc.mNonholonomicEquationsInUse[ix];
+	ma = mc.mAccelerationOnlyEquationsInUse[ix];
 }
+
+// Find the slots in the QErr, UErr and UDotErr/Multiplier arrays allocated for the
+// equations of this Constraint.
+void Constraint::ConstraintRep::getConstraintEquationSlots
+   (const State& s, int& holo0, int& nonholo0, int& accOnly0) const
+{
+	const SBModelCache&   mc = getModelCache(s);
+	const ConstraintIndex ix = myConstraintIndex;
+
+    holo0    = mc.holoErrSegment[ix].offset;
+    nonholo0 = mc.nHolonomicConstraintEquationsInUse 
+               + mc.nonholoErrSegment[ix].offset;
+    accOnly0 = mc.nHolonomicConstraintEquationsInUse + mc.nNonholonomicConstraintEquationsInUse 
+               + mc.accOnlyErrSegment[ix].offset;
+}
+
 
 // Given a state realized to Position stage, extract the position constraint errors
 // corresponding to this Constraint. The 'mp' argument is for sanity checking -- it

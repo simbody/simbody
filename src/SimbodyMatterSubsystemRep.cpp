@@ -42,7 +42,6 @@
 #include "SimbodyMatterSubsystemRep.h"
 #include "SimbodyTreeState.h"
 #include "RigidBodyNode.h"
-#include "ConstraintNode.h"
 #include "LengthConstraints.h"
 #include "MultibodySystemRep.h"
 #include "MobilizedBodyImpl.h"
@@ -82,7 +81,6 @@ void SimbodyMatterSubsystemRep::clearTopologyCache() {
     // TODO: state indices really shouldn't be dealt out until Stage::Model.
     // At the moment they are part of the topology.
     nextUSlot=nextUSqSlot=nextQSlot        = 0;
-    nextQErrSlot=nextUErrSlot=nextMultSlot = 0;
     DOFTotal=SqDOFTotal=maxNQTotal         = -1;
     topologyCache.clear();
     topologyCacheIndex = -1;
@@ -92,10 +90,6 @@ void SimbodyMatterSubsystemRep::clearTopologyCache() {
     for (int i=0; i<(int)distanceConstraints.size(); ++i)
         delete distanceConstraints[i];
     distanceConstraints.clear();
-
-    for (int i=0; i<(int)pointInPlaneConstraints.size(); ++i)
-        delete pointInPlaneConstraints[i];
-    pointInPlaneConstraints.clear();
 
     // RigidBodyNodes themselves are owned by the MobilizedBodyImpls and will
     // be deleted when the MobilizedBodyImpl objects are.
@@ -152,34 +146,18 @@ void SimbodyMatterSubsystemRep::createGroundBody() {
 // Add a distance constraint and assign it to use a particular slot in the
 // qErr, uErr, and multiplier arrays.
 // Return the assigned distance constraint index for caller's use.
+// TODO: OBSOLETE
 int SimbodyMatterSubsystemRep::addOneDistanceConstraintEquation(
-    const RBStation& s1, const RBStation& s2, const Real& d,
-    int qerrIndex, int uerrIndex, int multIndex)
+    const RBStation& s1, const RBStation& s2, const Real& d)
 {
+    const int nxtIndex = (int)distanceConstraints.size();
     RBDistanceConstraint* dc = new RBDistanceConstraint(s1,s2,d);
-    dc->setQErrIndex(qerrIndex);
-    dc->setUErrIndex(uerrIndex);
-    dc->setMultIndex(multIndex);
+    dc->setQErrIndex(nxtIndex);
+    dc->setUErrIndex(nxtIndex);
+    dc->setMultIndex(nxtIndex);
     dc->setDistanceConstraintNum(distanceConstraints.size());
     distanceConstraints.push_back(dc);
-    return distanceConstraints.size()-1;
-}
-
-
-// Add a point-in-plane constraint and assign it to use a particular slot in the
-// qErr, uErr, and multiplier arrays.
-// Return the assigned point-in-plane constraint index for caller's use.
-int SimbodyMatterSubsystemRep::addOnePointInPlaneEquation(
-        const RBDirection& d, Real height, const RBStation& s,
-        int qerrIndex, int uerrIndex, int multIndex)
-{
-    RBPointInPlaneConstraint* pipc = new RBPointInPlaneConstraint(d,height,s);
-    pipc->setQErrIndex(qerrIndex);
-    pipc->setUErrIndex(uerrIndex);
-    pipc->setMultIndex(multIndex);
-    pipc->setPointInPlaneConstraintNum(pointInPlaneConstraints.size());
-    pointInPlaneConstraints.push_back(pipc);
-    return pointInPlaneConstraints.size()-1;
+    return nxtIndex;
 }
 
 MobilizedBodyIndex SimbodyMatterSubsystemRep::getParent(MobilizedBodyIndex body) const { 
@@ -282,16 +260,7 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
     }
 
     // Order doesn't matter for constraints as long as the bodies are already there.
-    // This creates a ConstraintNode owned by the Topology cache of each Constraint, and 
-    // doles out the multipliers and constraint error slots for topological
-    // constraints. 
-    // TODO: currently our constraints are all holonomic, meaning
-    // position-level, so that they occupy one slot in the qErr array, then
-    // their time derivatives need one slot in uErr and their 2nd time 
-    // derivatives need one acceleration-level multiplier. Later we will
-    // have constraints which start at the velocity level (nonholonomic) so
-    // they won't use up a qErr slot.
-    // Also, quaternion normalization constraints exist only at the 
+    // Quaternion normalization constraints exist only at the 
     // position level, however they are not topological since modeling
     // choices affect whether we use them. See realizeModel() below.
 
@@ -300,10 +269,9 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
 //    if (rbNodeLevels.size() > 1)
 //        branches.resize(rbNodeLevels[1].size()); // each level 1 body is a branch
 
-    nextQErrSlot = nextUErrSlot = nextMultSlot = 0; // state cache allocation
     for (ConstraintIndex i(0); i<getNumConstraints(); ++i) {
         const Constraint::ConstraintRep& crep = getConstraint(i).getRep();
-        crep.realizeTopology(s,nextQErrSlot,nextUErrSlot,nextMultSlot);
+        crep.realizeTopology(s);
 
         // Create computational constraint data structure. This is organized by
         // the ancestor body's "branch" (ground or level 1 base body), then by 
@@ -324,8 +292,9 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
     // Now create the computational data structure for the length constraint
     // equations which currently are used to implement all the Constraints.
     // This is owned by the SimbodyMatterSubsystemRep.
+    // TODO: OBSOLETE -- part of the old IVM constraint system
     lConstraints = new LengthConstraints(*this, 0);
-    lConstraints->construct(distanceConstraints, pointInPlaneConstraints);
+    lConstraints->construct(distanceConstraints);
 }
 
 int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
@@ -351,7 +320,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     mutableThis->topologyCache.maxNQs       = maxNQTotal;
     mutableThis->topologyCache.sumSqDOFs    = SqDOFTotal;
     mutableThis->topologyCache.nDistanceConstraints     = distanceConstraints.size();
-    mutableThis->topologyCache.nPointInPlaneConstraints = pointInPlaneConstraints.size();
 
     SBModelVars mvars;
     mvars.allocate(topologyCache);
@@ -388,7 +356,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     //TODO: count dofs here and assign q and u indices to the mobilizers
 
     // Count position, velocity, and acceleration constraint equations generated by
-    // each Constraint that has not been disabled. The State's QErr, UErr, UDotErr arrays
+    // each Constraint that has not been disabled. The State's QErr, UErr, UDotErr/Multiplier arrays
     // are laid out like this:
     //
     //            ---------------------- ---------------
@@ -504,7 +472,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
 
     // We'll store the the physical constraint errors (which consist solely of distance
     // constraint equations at the moment), followed by the quaternion constraints.
-    mc.qErrIndex = allocateQErr(s, nextQErrSlot + mc.nQuaternionsInUse);
+    mc.qErrIndex = allocateQErr(s, mc.nHolonomicConstraintEquationsInUse + mc.nQuaternionsInUse);
 
     // Velocity variables are just the generalized speeds u, which the State knows how to deal
     // with. Zero is always a reasonable value for velocity, so we'll initialize it here.
@@ -519,8 +487,11 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
 
     // Only physical constraints exist at the velocity and acceleration levels; 
     // the quaternion normalization constraints are gone.
-    mc.uErrIndex    = allocateUErr   (s, nextUErrSlot);
-    mc.udotErrIndex = allocateUDotErr(s, nextMultSlot);
+    mc.uErrIndex    = allocateUErr   (s,   mc.nHolonomicConstraintEquationsInUse
+                                         + mc.nNonholonomicConstraintEquationsInUse);
+    mc.udotErrIndex = allocateUDotErr(s,   mc.nHolonomicConstraintEquationsInUse
+                                         + mc.nNonholonomicConstraintEquationsInUse
+                                         + mc.nAccelerationOnlyConstraintEquationsInUse);
 
     // no z's
     // We do have dynamic vars for now for forces & pres. accel. but those will
@@ -617,8 +588,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
 #else // USE_OLD_CONSTRAINTS
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
         distanceConstraints[i]->calcPosInfo(qErr,pc);
-    for (int i=0; i < (int)pointInPlaneConstraints.size(); ++i)
-        pointInPlaneConstraints[i]->calcPosInfo(qErr,pc);
 #endif
 
     //cout << "AFTER qErr=" << qErr << endl;
@@ -663,8 +632,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
 #else // USE_OLD_CONSTRAINTS
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
         distanceConstraints[i]->calcVelInfo(pc,uErr,vc);
-    for (int i=0; i < (int)pointInPlaneConstraints.size(); ++i)
-        pointInPlaneConstraints[i]->calcVelInfo(pc,uErr,vc);
     //cout << "OLD UERR=" << uErr << endl;
 #endif
 
@@ -1593,8 +1560,6 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
     // Calculate constraint acceleration errors.
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
         distanceConstraints[i]->calcAccInfo(pc,vc,oldUDotErr,ac);
-    for (int i=0; i < (int)pointInPlaneConstraints.size(); ++i)
-        pointInPlaneConstraints[i]->calcAccInfo(pc,vc,oldUDotErr,ac);
 
     //cout << "Tree:OLD UDOT ERR=" << oldUDotErr << endl;
     udotErr=oldUDotErr;
@@ -1638,10 +1603,8 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
         multipliers.resize(0);
         return;
     }
-    //TODO: remove this
-    const Vector udotErrSave(udotErr);
 
-    //cout << "---> BEFORE udotErr=" << udotErrSave << endl;
+    //cout << "---> BEFORE udotErr=" << udotErr << endl;
 
 
 #ifndef USE_OLD_CONSTRAINTS
@@ -1692,8 +1655,6 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
                                     0, &bodyF, ac, udot, udotErr);
         //cout << "  NEW UDOTERR=" << udotErr << endl;
 #else // USE_OLD_CONSTRAINTS
-    udotErr = udotErrSave;
-
     Vector_<SpatialVec> cFrc(getNBodies()); 
     cFrc.setToZero();
 
