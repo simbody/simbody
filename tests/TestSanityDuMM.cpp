@@ -12,7 +12,7 @@ try {
     DuMMForceFieldSubsystem dumm;
     assert(dumm.getNAtoms() == 0);
 
-    dumm.dumpCForcefieldParameters(cout);
+    dumm.dumpCForceFieldParameters(cout);
 
     cout << "PASSED" << endl;
 

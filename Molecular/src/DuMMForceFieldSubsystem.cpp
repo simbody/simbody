@@ -1410,7 +1410,7 @@ DuMMForceFieldSubsystem::DuMMForceFieldSubsystem(MolecularMechanicsSystem& mms)
     mms.setMolecularMechanicsForceSubsystem(*this); // steal ownership
 }
 
-void DuMMForceFieldSubsystem::dumpCForcefieldParameters(std::ostream& os, const String& methodName) const {
+void DuMMForceFieldSubsystem::dumpCForceFieldParameters(std::ostream& os, const String& methodName) const {
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
     os << "void " << methodName << "(DuMMForceFieldSubsystem& dumm)" << std::endl;

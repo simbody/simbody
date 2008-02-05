@@ -183,8 +183,8 @@ public:
     // To convert for LJ: Rmin = 2^(1/6) * Sigma.
     // The radius is in nm, the well depth in kJ/mol.
 
-    // Generate c++ code to reproduce forcefield parameters presently in memory
-    void dumpCForcefieldParameters(std::ostream& os, const String& methodName = "loadParameters") const;
+    // Generate c++ code to reproduce forceField parameters presently in memory
+    void dumpCForceFieldParameters(std::ostream& os, const String& methodName = "loadParameters") const;
 
     void defineAtomClass(DuMM::AtomClassIndex atomClassIx, const char* atomClassName,
                          int elementNumber, int expectedValence,
