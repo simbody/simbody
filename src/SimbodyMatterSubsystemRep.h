@@ -171,7 +171,7 @@ class SimbodyMatterSubsystemRep : public SimTK::Subsystem::Guts {
 public:
     SimbodyMatterSubsystemRep() 
       : Subsystem::Guts("SimbodyMatterSubsystem", "0.7.1"),
-        lConstraints(0)
+        lConstraints(0), showDefaultGeometry(true)
     { 
         clearTopologyCache();
     }
@@ -825,6 +825,9 @@ public:
     SimbodyMatterSubsystem& updMySimbodyMatterSubsystemHandle() {
         return SimbodyMatterSubsystem::updDowncast(updOwnerSubsystemHandle());
     }
+    bool getShowDefaultGeometry() const;
+    void setShowDefaultGeometry(bool show);
+
 private:
     ConstraintIndex addConstraintNode(ConstraintNode*&);
 
@@ -997,6 +1000,9 @@ private:
     std::vector<RBDistanceConstraint*>     distanceConstraints;
     std::vector<RBPointInPlaneConstraint*> pointInPlaneConstraints;
     LengthConstraints* lConstraints;
+    
+    // Specifies whether default decorative geometry should be shown.
+    bool showDefaultGeometry;
 };
 
 std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);

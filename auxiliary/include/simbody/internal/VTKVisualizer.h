@@ -58,9 +58,7 @@ class SimTK_SIMBODY_EXPORT VTKVisualizer  {
 public:
     VTKVisualizer() : rep(0) { }
 
-    // Set the scale to 0 to disable automatically-generated geometry. Otherwise set
-    // it to a typical length scale for a body.
-    explicit VTKVisualizer(const MultibodySystem& m, Real defaultScaleForAutoGeometry=1.);
+    explicit VTKVisualizer(const MultibodySystem& m);
 
     VTKVisualizer(const VTKVisualizer&);
     ~VTKVisualizer();
@@ -108,10 +106,6 @@ public:
     /// pulled from the argument, and the geometry is generated immediately and added to
     /// the current frame. Then it is discarded.
     void addEphemeralDecoration(const DecorativeGeometry&);
-
-    // TODO: default geometry generation should be moved to the matter subsystem.
-    void setDefaultBodyColor(MobilizedBodyIndex bodyNum, const Vec3& rgb);
-    const Vec3& getDefaultBodyColor(MobilizedBodyIndex bodyNum) const;
  
     /// Is this handle the owner of this rep? This is true if the
     /// handle is empty or if its rep points back here.

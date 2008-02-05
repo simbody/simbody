@@ -78,7 +78,7 @@ static const Vec3 DefaultBodyColor       = Gray;
 class SimTK::VTKVisualizerRep {
 public:
     // no default constructor -- must have MultibodySystem always
-    VTKVisualizerRep(const MultibodySystem& m, Real defaultScaleForAutoGeometry, VTKVisualizer *reporter);
+    VTKVisualizerRep(const MultibodySystem& m, VTKVisualizer *reporter);
 
     ~VTKVisualizerRep() {
         deletePointers();
@@ -98,16 +98,7 @@ public:
 
     // Make sure everything can be seen.
     void resetCamera() {cameraNeedsToBeReset=true;}
-
-    void setDefaultBodyColor(MobilizedBodyIndex bodyNum, const Vec3& rgb) {
-        bodies[bodyNum].defaultColorRGB = rgb;
-    }
-    const Vec3& getDefaultBodyColor(MobilizedBodyIndex body) const {return bodies[body].defaultColorRGB;}
     
-    void setBodyScale(MobilizedBodyIndex bodyNum, const Real& scale) {
-        bodies[bodyNum].scale = scale;
-    }
-
     VTKVisualizerRep* clone() const {
         VTKVisualizerRep* dup = new VTKVisualizerRep(*this);
         dup->myHandle = 0;
@@ -130,11 +121,9 @@ private:
     const MultibodySystem& mbs;
 
     struct PerBodyInfo {
-        PerBodyInfo() : defaultColorRGB(Black), scale(1) { }
+        PerBodyInfo() { }
         std::vector<vtkProp3D*>         aList;
         std::vector<DecorativeGeometry> gList; // one per actor (TODO)
-        Vec3        defaultColorRGB;
-        Real        scale;  // overall size of body, default 1
     };
     std::vector<PerBodyInfo> bodies;
 
@@ -157,6 +146,7 @@ private:
     vtkRenderer*     renderer;
 
     void initTopology();
+    void createInstanceGeometry(const State& state);
     void zeroPointers();
     void deletePointers();
     void setConfiguration(MobilizedBodyIndex bodyNum, const Transform& X_GB);
@@ -187,8 +177,8 @@ bool VTKVisualizer::isOwnerHandle() const {
 }
 bool VTKVisualizer::isEmptyHandle() const {return rep==0;}
 
-VTKVisualizer::VTKVisualizer(const MultibodySystem& m, Real defaultScaleForAutoGeometry) : rep(0) {
-    rep = new VTKVisualizerRep(m, defaultScaleForAutoGeometry,this);
+VTKVisualizer::VTKVisualizer(const MultibodySystem& m) : rep(0) {
+    rep = new VTKVisualizerRep(m, this);
 }
 
 VTKVisualizer::VTKVisualizer(const VTKVisualizer& src) : rep(0) {
@@ -278,11 +268,6 @@ void VTKVisualizer::addEphemeralDecoration(const DecorativeGeometry& g)
     rep->addEphemeralDecoration(g);
 }
 
-void VTKVisualizer::setDefaultBodyColor(MobilizedBodyIndex bodyNum, const Vec3& rgb) {
-   assert(rep);
-   rep->setDefaultBodyColor(bodyNum,rgb);
-}
-
     //////////////////////
     // VTKVisualizerRep //
     //////////////////////
@@ -320,7 +305,7 @@ void VTKVisualizerRep::addDecoration(MobilizedBodyIndex body, const Transform& X
     vtkPolyData* poly = vgeom.getVTKPolyData(); // retrieve the results
 
     // Now apply the actor-level properties from the geometry.
-    const Vec3 color = (dgeom.getColor()[0] != -1 ? dgeom.getColor() : getDefaultBodyColor(body)); 
+    const Vec3 color = (dgeom.getColor()[0] != -1 ? dgeom.getColor() : DefaultBodyColor); 
     actor->GetProperty()->SetColor(color[0],color[1],color[2]);
 
     const Real opacity = (dgeom.getOpacity() != -1 ? dgeom.getOpacity() : Real(1));
@@ -362,7 +347,7 @@ void VTKVisualizerRep::addRubberBandLine(MobilizedBodyIndex b1, const Vec3& stat
     info.station1 = station1; info.station2 = station2;
 
     // Now apply the actor-level properties from the geometry.
-    const Vec3 color = (info.line.getColor()[0] != -1 ? info.line.getColor() : Black); 
+    const Vec3 color = (info.line.getColor()[0] != -1 ? info.line.getColor() : DefaultBodyColor); 
     info.actor->GetProperty()->SetColor(color[0],color[1],color[2]);
 
     const Real opacity = (info.line.getOpacity() != -1 ? info.line.getOpacity() : Real(1));
@@ -418,7 +403,7 @@ void VTKVisualizerRep::displayEphemeralGeometry(const State& s)
         dgeom.setTransform(X_GB*dgeom.getTransform());
 
         // Now apply the actor-level properties from the geometry.
-        const Vec3 color = (dgeom.getColor()[0] != -1 ? dgeom.getColor() : getDefaultBodyColor(body)); 
+        const Vec3 color = (dgeom.getColor()[0] != -1 ? dgeom.getColor() : DefaultBodyColor); 
         ephemeralActors[i]->GetProperty()->SetColor(color[0],color[1],color[2]);
 
         const Real opacity = (dgeom.getOpacity() != -1 ? dgeom.getOpacity() : Real(1));
@@ -453,14 +438,11 @@ void VTKVisualizerRep::displayEphemeralGeometry(const State& s)
     ephemeralGeometry.clear();
 }
 
-// set default length scale to 0 to disable automatically-generated geometry
-VTKVisualizerRep::VTKVisualizerRep(const MultibodySystem& m, Real bodyScaleDefault, VTKVisualizer* reporter ) 
-    :  defaultBodyScaleForAutoGeometry(bodyScaleDefault), mbs(m),
-      cameraNeedsToBeReset(true)
+VTKVisualizerRep::VTKVisualizerRep(const MultibodySystem& m, VTKVisualizer* reporter ) 
+    :  mbs(m), cameraNeedsToBeReset(true)
 {
     myHandle = reporter;
-    const Real cameraScale = defaultBodyScaleForAutoGeometry == 0. 
-                                ? 1. : defaultBodyScaleForAutoGeometry;
+    const Real cameraScale = 1.0;
     zeroPointers();
 
     renWin = vtkRenderWindow::New();
@@ -524,79 +506,19 @@ void VTKVisualizerRep::initTopology() {
     hasInitialized = true;
     const SimbodyMatterSubsystem& sbs = mbs.getMatterSubsystem();
     bodies.resize(sbs.getNBodies());
-    for (int i=0; i<(int)bodies.size(); ++i)
-        bodies[i].scale = defaultBodyScaleForAutoGeometry;
+}
 
-    setDefaultBodyColor(GroundIndex, DefaultGroundBodyColor);
-    for (MobilizedBodyIndex i(1); i<(int)bodies.size(); ++i) {
-        const MobilizedBody& bodyI = sbs.getMobilizedBody(i);
-        const MobilizedBodyIndex parent = 
-            bodyI.getParentMobilizedBody().getMobilizedBodyIndex();
-
-        if (parent == GroundIndex)
-             setDefaultBodyColor(i, DefaultBaseBodyColor);
-        else setDefaultBodyColor(i, DefaultBodyColor);
-
-        // TODO: should use actual Mobilizer frames rather than default (but that
-        // requires access to the State)
-        const Transform& M = bodyI.getDefaultOutboardFrame();
-        if (M.T().norm() > bodies[i].scale)
-            bodies[i].scale = M.T().norm();
-        const Transform& Mb = bodyI.getDefaultInboardFrame();
-        if (Mb.T().norm() > bodies[parent].scale)
-            bodies[parent].scale = Mb.T().norm();
-    }
-
-    // Generate default geometry unless suppressed.
-    // TODO: this and the scaling code above 
-    // should be moved to the matter subsystem; VTKVisualizer shouldn't
-    // need to know about this sort of system detail.
-    if (defaultBodyScaleForAutoGeometry!=0)
-        for (MobilizedBodyIndex i(0); i<(int)bodies.size(); ++i) {
-            const MobilizedBody& bodyI = sbs.getMobilizedBody(i);
-
-            const Real scale = bodies[i].scale;
-            DecorativeFrame axes(scale*0.5);
-            axes.setLineThickness(2);
-            addDecoration(i, Transform(), axes); // the body frame
-
-            // Display the inboard joint frame (at half size), unless it is the
-            // same as the body frame. Then find the corresponding frame on the
-            // parent and display that in this body's color.
-            if (i > 0) {
-                const MobilizedBodyIndex parent = 
-                    bodyI.getParentMobilizedBody().getMobilizedBodyIndex();
-
-                const Real pscale = bodies[parent].scale;
-                const Transform& M = bodyI.getDefaultOutboardFrame(); // TODO: get from state
-                if (M.T() != Vec3(0) || M.R() != Mat33(1)) {
-                    addDecoration(i, M, DecorativeFrame(scale*0.25));
-                    if (M.T() != Vec3(0))
-                        addDecoration(i, Transform(), DecorativeLine(Vec3(0), M.T()));
-                }
-                const Transform& Mb = bodyI.getDefaultInboardFrame(); // TODO: from state
-                DecorativeFrame frameOnParent(pscale*0.25);
-                frameOnParent.setColor(getDefaultBodyColor(i));
-                addDecoration(parent, Mb, frameOnParent);
-                if (Mb.T() != Vec3(0))
-                    addDecoration(parent, Transform(), DecorativeLine(Vec3(0),Mb.T()));
-            }
-
-            // Put a little purple wireframe sphere at the COM, and add a line from 
-            // body origin to the com.
-
-            DecorativeSphere com(scale*.05);
-            com.setColor(Purple).setRepresentation(DecorativeGeometry::DrawPoints);
-            const Vec3& comPos_B = bodyI.getDefaultMassProperties().getMassCenter(); // TODO: from state
-            addDecoration(i, Transform(comPos_B), com);
-            if (comPos_B != Vec3(0))
-                addDecoration(i, Transform(), DecorativeLine(Vec3(0), comPos_B));
-        }
-
+void VTKVisualizerRep::createInstanceGeometry(const State& state) {
+    static bool hasCreated = false;
+    if (hasCreated)
+        return;
+    hasCreated = true;
+    
     // Mine the system for any geometry it wants us to show.
-    // TODO: there is currently no way to turn this off.
+
     std::vector<DecorativeGeometry> sysGeom;
-    mbs.calcDecorativeGeometryAndAppend(State(), Stage::Topology, sysGeom);
+    for (Stage stage = Stage::Topology; stage < Stage::Time; stage++)
+        mbs.calcDecorativeGeometryAndAppend(state, stage, sysGeom);
     for (int i=0; i<(int)sysGeom.size(); ++i)
         addDecoration(MobilizedBodyIndex(sysGeom[i].getBodyId()), Transform(), sysGeom[i]);
 }
@@ -607,6 +529,7 @@ void VTKVisualizerRep::report(const State& s) {
     initTopology();
 
     mbs.realize(s, Stage::Position); // just in case
+    createInstanceGeometry(s);
 
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
     for (MobilizedBodyIndex i(1); i<matter.getNBodies(); ++i) {
@@ -622,7 +545,7 @@ void VTKVisualizerRep::report(const State& s) {
         setRubberBandLine(i, X_GB1*info.station1, X_GB2*info.station2);
     }
 
-    for (int stage=Stage::Model; stage <= s.getSystemStage(); ++stage)
+    for (int stage=Stage::Time; stage <= s.getSystemStage(); ++stage)
         mbs.calcDecorativeGeometryAndAppend(s, Stage::getValue(stage), 
                                             ephemeralGeometry);
 

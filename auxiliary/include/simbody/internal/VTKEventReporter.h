@@ -48,7 +48,7 @@ class MultibodySystem;
  */
 class SimTK_SIMBODY_EXPORT VTKEventReporter : public PeriodicEventReporter {
 public:
-    VTKEventReporter(MultibodySystem& system, Real reportInterval, Real defaultScaleForAutoGeometry=1.);
+    VTKEventReporter(MultibodySystem& system, Real reportInterval);
     ~VTKEventReporter();
     /**
      * Get the VTKVisualizer which generates the images.  It may be used to configure the display.

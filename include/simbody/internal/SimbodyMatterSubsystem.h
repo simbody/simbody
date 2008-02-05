@@ -138,6 +138,12 @@ public:
         Subsystem::operator=(ss);
         return *this;
     }
+    
+    /// Get whether default decorative geometry is displayed for bodies in this system.
+    bool getShowDefaultGeometry() const;
+
+    /// Set whether default decorative geometry is displayed for bodies in this system.
+    void setShowDefaultGeometry(bool show);
 
 
         ///////////////////////////////

@@ -915,12 +915,16 @@ Vec3& MobilizedBody::Gimbal::updMyPartU(const State& s, Vector& ulike) const {
     // GimbalImpl
 
 void MobilizedBody::GimbalImpl::calcDecorativeGeometryAndAppendImpl
-   (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
+    // Call the superclass implementation to get standard default geometry.
+    
+    MobilizedBodyImpl::calcDecorativeGeometryAndAppendImpl(s, stage, geom);
+    
     // We can't generate the ball until we know the radius, and we can't place
     // the geometry on the body until we know the parent and child mobilizer frame
     // placement on the body, which might not be until Instance stage.
-    if (stage == Stage::Instance) {
+    if (stage == Stage::Instance && getMyMatterSubsystemRep().getShowDefaultGeometry()) {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
         const Transform& X_PMb = getInboardFrame(s);
         const Transform& X_BM  = getOutboardFrame(s);
@@ -1061,10 +1065,14 @@ Vec3& MobilizedBody::Ball::updMyPartU(const State& s, Vector& ulike) const {
 void MobilizedBody::BallImpl::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
+    // Call the superclass implementation to get standard default geometry.
+    
+    MobilizedBodyImpl::calcDecorativeGeometryAndAppendImpl(s, stage, geom);
+
     // We can't generate the ball until we know the radius, and we can't place
     // the geometry on the body until we know the parent and child mobilizer frame
     // placement on the body, which might not be until Instance stage.
-    if (stage == Stage::Instance) {
+    if (stage == Stage::Instance && getMyMatterSubsystemRep().getShowDefaultGeometry()) {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
         const Transform& X_PMb = getInboardFrame(s);
         const Transform& X_BM  = getOutboardFrame(s);
@@ -1142,10 +1150,14 @@ Quaternion& MobilizedBody::Ellipsoid::updDefaultQ() {
 void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
+    // Call the superclass implementation to get standard default geometry.
+    
+    MobilizedBodyImpl::calcDecorativeGeometryAndAppendImpl(s, stage, geom);
+
     // We can't generate the ellipsoid until we know the radius, and we can't place either
     // piece of geometry on the bodies until we know the parent and child mobilizer frame
     // placements, which might not be until Instance stage.
-    if (stage == Stage::Instance) {
+    if (stage == Stage::Instance && getMyMatterSubsystemRep().getShowDefaultGeometry()) {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
         const Transform& X_PMb = getInboardFrame(s);
         const Transform& X_BM  = getOutboardFrame(s);

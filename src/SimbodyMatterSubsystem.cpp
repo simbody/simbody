@@ -107,6 +107,15 @@ MobilizedBody::Ground& SimbodyMatterSubsystem::updGround() {
     return updRep().updGround();
 }
 
+bool SimbodyMatterSubsystem::getShowDefaultGeometry() const {
+    return getRep().getShowDefaultGeometry();
+}
+
+void SimbodyMatterSubsystem::setShowDefaultGeometry(bool show) {
+    updRep().setShowDefaultGeometry(show);
+}
+
+
 ConstraintIndex SimbodyMatterSubsystem::adoptConstraint(Constraint& child) {
     return updRep().adoptConstraint(child);
 }

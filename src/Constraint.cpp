@@ -559,7 +559,7 @@ void Constraint::Rod::RodRep::calcDecorativeGeometryAndAppendImpl
 {
     // We can't generate the endpoint artwork until we know the end point stations,
     // which could be as late as Stage::Instance.
-    if (stage == Stage::Instance && pointRadius != 0) {
+    if (stage == Stage::Instance && pointRadius != 0 && getMyMatterSubsystemRep().getShowDefaultGeometry()) {
         // TODO: point stations and rod length should be instance-stage data 
         // from State rather than topological data
         const MobilizedBodyIndex body1 = getMobilizedBodyIndexOfConstrainedBody(B1);
@@ -712,7 +712,7 @@ void Constraint::PointInPlane::PointInPlaneRep::calcDecorativeGeometryAndAppendI
 {
     // We can't generate the artwork until we know the normal, height, and follower
     // point location, which might not be until Instance stage.
-    if (stage == Stage::Instance) {
+    if (stage == Stage::Instance && getMyMatterSubsystemRep().getShowDefaultGeometry()) {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
         // TODO: should be instance-stage data from State rather than topological data
         // This makes z axis point along plane normal
@@ -851,7 +851,7 @@ void Constraint::PointOnLine::PointOnLineRep::calcDecorativeGeometryAndAppendImp
 {
     // We can't generate the artwork until we know the direction, point on line, and follower
     // point location, which might not be until Instance stage.
-    if (stage == Stage::Instance) {
+    if (stage == Stage::Instance && getMyMatterSubsystemRep().getShowDefaultGeometry()) {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
         // TODO: should be instance-stage data from State rather than topological data
         // This makes z axis point along line
@@ -993,7 +993,7 @@ void Constraint::ConstantAngle::ConstantAngleRep::calcDecorativeGeometryAndAppen
 {
     // We can't generate the artwork until we know the normal, height, and follower
     // point location, which might not be until Instance stage.
-    if (stage == Stage::Instance) {
+    if (stage == Stage::Instance && getMyMatterSubsystemRep().getShowDefaultGeometry()) {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
         //TODO
     }
@@ -1100,7 +1100,7 @@ void Constraint::Ball::BallRep::calcDecorativeGeometryAndAppendImpl
     // We can't generate the ball until we know the radius, and we can't place
     // the geometry on the body until we know the body1 and body2 point
     // placements on the bodies, which might not be until Instance stage.
-    if (stage == Stage::Instance && getDefaultRadius() > 0) {
+    if (stage == Stage::Instance && getDefaultRadius() > 0 && getMyMatterSubsystemRep().getShowDefaultGeometry()) {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
         const Transform X_B1(Rotation(), defaultPoint1); // should be point from State
         const Transform X_B2(Rotation(), defaultPoint2);
@@ -1297,7 +1297,7 @@ void Constraint::Weld::WeldRep::calcDecorativeGeometryAndAppendImpl
     // We can't generate the frames until we know the axis lengths to use, and we can't place
     // the geometry on the bodies until we know the body1 and body2 frame
     // placements, which might not be until Instance stage.
-    if (stage == Stage::Instance && getAxisDisplayLength() != 0) {
+    if (stage == Stage::Instance && getAxisDisplayLength() != 0 && getMyMatterSubsystemRep().getShowDefaultGeometry()) {
 
         geom.push_back(DecorativeFrame(getAxisDisplayLength())
                                             .setColor(getFrameColor(0))

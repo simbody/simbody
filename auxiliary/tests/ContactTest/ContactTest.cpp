@@ -240,7 +240,7 @@ try
     }
 
     State s = mbs.realizeTopology();
-    VTKVisualizer vtk(mbs, false); // suppress default geometry
+    VTKVisualizer vtk(mbs);
 
     //bouncers.setUseEulerAngles(s, true);
     mbs.realizeModel(s);

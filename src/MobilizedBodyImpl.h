@@ -91,6 +91,46 @@ public:
     virtual void calcDecorativeGeometryAndAppendImpl
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
     {
+        if (stage != Stage::Instance || !getMyMatterSubsystemRep().getShowDefaultGeometry())
+            return;
+        const Real scale = 1.0;
+        DecorativeFrame axes(scale*0.5);
+        axes.setLineThickness(2);
+        axes.setBodyId(myMobilizedBodyIndex);
+        geom.push_back(axes); // the body frame
+
+        // Display the inboard joint frame (at half size), unless it is the
+        // same as the body frame. Then find the corresponding frame on the
+        // parent and display that in this body's color.
+        if (myMobilizedBodyIndex != 0) {
+            const Real pscale = 1.0;
+            const Transform& M = getDefaultOutboardFrame(); // TODO: get from state
+            if (M.T() != Vec3(0) || M.R() != Mat33(1)) {
+                geom.push_back(DecorativeFrame(scale*0.25).setBodyId(myMobilizedBodyIndex));
+                if (M.T() != Vec3(0))
+                    geom.push_back(DecorativeLine(Vec3(0), M.T()).setBodyId(myMobilizedBodyIndex));
+            }
+            const Transform& Mb = getDefaultInboardFrame(); // TODO: from state
+            DecorativeFrame frameOnParent(pscale*0.25);
+            frameOnParent.setBodyId(myParentIndex);
+            frameOnParent.setColor(Black);
+            frameOnParent.setTransform(Mb);
+            geom.push_back(frameOnParent);
+            if (Mb.T() != Vec3(0))
+                geom.push_back(DecorativeLine(Vec3(0),Mb.T()).setBodyId(myParentIndex));
+        }
+
+        // Put a little purple wireframe sphere at the COM, and add a line from 
+        // body origin to the com.
+
+        DecorativeSphere com(scale*.05);
+        com.setBodyId(myMobilizedBodyIndex);
+        com.setColor(Purple).setRepresentation(DecorativeGeometry::DrawPoints);
+        const Vec3& comPos_B = theBody.getDefaultRigidBodyMassProperties().getMassCenter(); // TODO: from state
+        com.setTransform(comPos_B);
+        geom.push_back(com);
+        if (comPos_B != Vec3(0))
+            geom.push_back(DecorativeLine(Vec3(0), comPos_B).setBodyId(myMobilizedBodyIndex));
     }
 
     void calcDecorativeGeometryAndAppend
@@ -507,7 +547,7 @@ public:
     }
 
     void calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
 
     void setDefaultRadius(Real r) {
         assert(r>0);

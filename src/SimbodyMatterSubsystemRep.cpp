@@ -2264,6 +2264,14 @@ void SimbodyMatterSubsystemRep::calcConstraintCorrectedInternalForces(const Stat
     lConstraints->projectUVecOntoMotionConstraints(s, T);
 }
 
+bool SimbodyMatterSubsystemRep::getShowDefaultGeometry() const {
+    return showDefaultGeometry;
+}
+
+void SimbodyMatterSubsystemRep::setShowDefaultGeometry(bool show) {
+    showDefaultGeometry = show;
+}
+
 std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystemRep& tree) {
     o << "SimbodyMatterSubsystemRep has " << tree.getNBodies() << " bodies (incl. G) in "
       << tree.rbNodeLevels.size() << " levels." << std::endl;
