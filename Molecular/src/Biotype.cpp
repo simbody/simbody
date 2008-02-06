@@ -46,6 +46,9 @@ using namespace std;
 
 namespace SimTK {
 
+template class PIMPLImplementation<Biotype,BiotypeRep>; // explicit instantiation
+template class PIMPLHandle<Biotype,BiotypeRep>; // explicit instantiation
+
 // Store biotype data in this compilation unit, rather than in the biotype class
 
 static void initializePopularBiotypes();
