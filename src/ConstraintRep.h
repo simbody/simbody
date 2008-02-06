@@ -1581,6 +1581,135 @@ private:
     Vec3 frameBColor, frameFColor;
 };
 
+    // NO SLIP 1D
+
+class Constraint::NoSlip1D::NoSlip1DRep : public Constraint::ConstraintRep {
+public:
+    NoSlip1DRep()
+      : ConstraintRep(0,1,0), defaultNoSlipDirection(), defaultContactPoint(0),
+        directionLength(1), pointRadius(0.05) 
+    { }
+    NoSlip1DRep* clone() const { return new NoSlip1DRep(*this); }
+
+    void calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+
+    void setDirectionDisplayLength(Real l) {
+        // l <= 0 means don't display direction line
+        invalidateTopologyCache();
+        directionLength = l > 0 ? l : 0;
+    }
+    Real getDirectionDisplayLength() const {return directionLength;}
+
+    void setPointDisplayRadius(Real r) {
+        // r <= 0 means don't display point
+        invalidateTopologyCache();
+        pointRadius= r > 0 ? r : 0;
+    }
+    Real getPointDisplayRadius() const {return pointRadius;}
+
+    // Implementation of virtuals required for holonomic constraints.
+
+    // One non-holonomic constraint equation. There is a contact point P and a no-slip 
+    // direction n fixed in a case body C. There are two moving bodies B0 and B1. The 
+    // material point P0 of B0 and the material point P1 of B1 which are each coincident 
+    // with the contact point P must have identical velocities in C, along the direction n.
+    // This can be used to implement simple rolling contact between disks, such as occurs
+    // in gear trains.
+    //
+    // There is no perr equation here since this is a non-holonomic (velocity) constraint.
+    // In the C frame, the constraint we want is
+    //    verr = ~(v_CP1 - v_CP0) * n_C
+    // that is, the two contact points have no relative velocity in C along the normal.
+    // We can calculate this in A instead since the velocities in C of each point will 
+    // differ from their velocities in A by a constant (because they are both in the same
+    // place in space). So:
+    //    verr = ~(v_AP1 - v_AP0) * n_A
+    // Differentiating material point velocities in A, we get the acceleration error
+    //    aerr = ~(a_AP1 - a_AP0) * n_A + ~(v_AP1 - v_AP0) * (w_AC X n_A)
+    //         = ~(a_AP1 - a_AP0 - w_AC X (v_AP1 - v_AP0)) * n_A
+    // 
+    void realizeVelocityErrorsVirtual(const State& s, const SBVelocityCache& vc, int mv,  Real* verr) const {
+        assert(mv==1 && verr);
+        //TODO: should be able to get p info from State
+        const Transform& X_AC = getBodyTransform(s, caseBody);
+        const Transform& X_AB0 = getBodyTransform(s, movingBody0);
+        const Transform& X_AB1 = getBodyTransform(s, movingBody1);
+        const Vec3       p_AP  = X_AC * defaultContactPoint; // P's location in A
+        const Vec3       p_P0  = ~X_AB0 * p_AP;              // P0's station in B0
+        const Vec3       p_P1  = ~X_AB1 * p_AP;              // P1's station in B1
+        const UnitVec3   n_A   = X_AC.R() * defaultNoSlipDirection;
+
+        const Vec3       v_AP0 = calcStationVelocity(s, vc, movingBody0, p_P0);
+        const Vec3       v_AP1 = calcStationVelocity(s, vc, movingBody1, p_P1);
+
+        // Calculate this scalar using A-frame vectors.
+        *verr = ~(v_AP1-v_AP0) * n_A;
+    }
+
+    void realizeVelocityDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mv,  Real* vaerr) const {
+        assert(mv==1 && vaerr);
+        //TODO: should be able to get p and v info from State
+        const Transform& X_AC = getBodyTransform(s, caseBody);
+        const Transform& X_AB0 = getBodyTransform(s, movingBody0);
+        const Transform& X_AB1 = getBodyTransform(s, movingBody1);
+        const Vec3       p_AP  = X_AC * defaultContactPoint; // P's location in A
+        const Vec3       p_P0  = ~X_AB0 * p_AP;              // P0's station in B0
+        const Vec3       p_P1  = ~X_AB1 * p_AP;              // P1's station in B1
+        const UnitVec3   n_A   = X_AC.R() * defaultNoSlipDirection;
+
+        const Vec3       v_AP0 = calcStationVelocity(s, movingBody0, p_P0);
+        const Vec3       v_AP1 = calcStationVelocity(s, movingBody1, p_P1);
+        const Vec3&      w_AC  = getBodyAngularVelocity(s, caseBody);
+
+        const Vec3       a_AP0 = calcStationAcceleration(s, ac, movingBody0, p_P0);
+        const Vec3       a_AP1 = calcStationAcceleration(s, ac, movingBody1, p_P1);
+
+        // Calculate this scalar using A-frame vectors.
+        *vaerr = ~(a_AP1-a_AP0 - w_AC % (v_AP1-v_AP0)) * n_A;
+    }
+
+	// apply f=lambda*n to contact point P1 of B1,
+	//      -f          to contact point P2 of B2
+    void applyVelocityConstraintForcesVirtual
+       (const State& s, int mv, const Real* multipliers,
+        Vector_<SpatialVec>& bodyForcesInA,
+        Vector&              mobilityForces) const
+    {
+        assert(mv==1 && multipliers);
+        const Real lambda = *multipliers;
+
+        //TODO: should be able to get p info from State
+        const Transform& X_AC = getBodyTransform(s, caseBody);
+        const Transform& X_AB0 = getBodyTransform(s, movingBody0);
+        const Transform& X_AB1 = getBodyTransform(s, movingBody1);
+        const Vec3       p_AP  = X_AC * defaultContactPoint; // P's location in A
+        const Vec3       p_P0  = ~X_AB0 * p_AP;              // P0's station in B0
+        const Vec3       p_P1  = ~X_AB1 * p_AP;              // P1's station in B1
+
+		const Vec3       force_A = X_AC.R()*(lambda*defaultNoSlipDirection);
+
+        addInStationForce(s, movingBody1, p_P1,  force_A, bodyForcesInA);
+        addInStationForce(s, movingBody0, p_P0, -force_A, bodyForcesInA);
+    }
+
+    SimTK_DOWNCAST(NoSlip1DRep, ConstraintRep);
+private:
+    friend class Constraint::NoSlip1D;
+
+    ConstrainedBodyIndex caseBody;     // C
+    ConstrainedBodyIndex movingBody0;  // B0
+    ConstrainedBodyIndex movingBody1;  // B1
+
+    UnitVec3          defaultNoSlipDirection;   // on body C, exp. in C frame
+    Vec3              defaultContactPoint;      // on body C, exp. in C frame
+
+    // These are just for visualization
+    Real directionLength;
+    Real pointRadius;
+};
+
+
 
 class Constraint::Custom::CustomRep : public Constraint::ConstraintRep {
 public:

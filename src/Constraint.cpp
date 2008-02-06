@@ -1401,6 +1401,131 @@ void Constraint::Weld::WeldRep::calcDecorativeGeometryAndAppendImpl
     }
 }
 
+
+    ////////////////////////////
+    // CONSTRAINT::NO SLIP 1D //
+    ////////////////////////////
+
+Constraint::NoSlip1D::NoSlip1D
+   (MobilizedBody& caseBody, const Vec3& P_C, const UnitVec3& n_C,
+    MobilizedBody& movingBody0, MobilizedBody& movingBody1)
+{
+    SimTK_ASSERT_ALWAYS(caseBody.isInSubsystem() && movingBody0.isInSubsystem()&& movingBody1.isInSubsystem(),
+        "Constraint::NoSlip1D(): all three bodies must already be in a SimbodyMatterSubsystem.");
+    SimTK_ASSERT_ALWAYS(caseBody.isInSameSubsystem(movingBody0) && caseBody.isInSameSubsystem(movingBody1),
+        "Constraint::NoSlip1D(): all three bodies must be in the same SimbodyMatterSubsystem.");
+
+    rep = new NoSlip1DRep(); rep->setMyHandle(*this);
+    caseBody.updMatterSubsystem().adoptConstraint(*this);
+
+    updRep().caseBody    = updRep().addConstrainedBody(caseBody);
+    updRep().movingBody0 = updRep().addConstrainedBody(movingBody0);
+    updRep().movingBody1 = updRep().addConstrainedBody(movingBody1);
+    updRep().defaultNoSlipDirection = n_C;
+    updRep().defaultContactPoint    = P_C;
+}
+
+Constraint::NoSlip1D& Constraint::NoSlip1D::setDefaultDirection(const UnitVec3& n) {
+    getRep().invalidateTopologyCache();
+    updRep().defaultNoSlipDirection = n;
+    return *this;
+}
+
+Constraint::NoSlip1D& Constraint::NoSlip1D::setDefaultContactPoint(const Vec3& p) {
+    getRep().invalidateTopologyCache();
+    updRep().defaultContactPoint = p;
+    return *this;
+}
+
+MobilizedBodyIndex Constraint::NoSlip1D::getCaseMobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().caseBody);
+}
+MobilizedBodyIndex Constraint::NoSlip1D::getMovingBodyMobilizedBodyIndex(int which) const {
+    assert(which==0 || which==1);
+    return getRep().getMobilizedBodyIndexOfConstrainedBody(
+        which==0 ? getRep().movingBody0 : getRep().movingBody1);
+}
+const UnitVec3& Constraint::NoSlip1D::getDefaultDirection() const {
+    return getRep().defaultNoSlipDirection;
+}
+const Vec3& Constraint::NoSlip1D::getDefaultContactPoint() const {
+    return getRep().defaultContactPoint;
+}
+
+Constraint::NoSlip1D& Constraint::NoSlip1D::setDirectionDisplayLength(Real l) {
+    updRep().setDirectionDisplayLength(l);
+    return *this;
+}
+Constraint::NoSlip1D& Constraint::NoSlip1D::setPointDisplayRadius(Real r) {
+    updRep().setPointDisplayRadius(r);
+    return *this;
+}
+
+Real Constraint::NoSlip1D::getDirectionDisplayLength() const {
+    return getRep().getDirectionDisplayLength();
+}
+
+Real Constraint::NoSlip1D::getPointDisplayRadius() const {
+    return getRep().getPointDisplayRadius();
+}
+
+    // NoSlip1D bookkeeping //
+
+bool Constraint::NoSlip1D::isInstanceOf(const Constraint& s) {
+    return NoSlip1DRep::isA(s.getRep());
+}
+const Constraint::NoSlip1D& Constraint::NoSlip1D::downcast(const Constraint& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const NoSlip1D&>(s);
+}
+Constraint::NoSlip1D& Constraint::NoSlip1D::updDowncast(Constraint& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<NoSlip1D&>(s);
+}
+const Constraint::NoSlip1D::NoSlip1DRep& Constraint::NoSlip1D::getRep() const {
+    return dynamic_cast<const NoSlip1DRep&>(*rep);
+}
+
+Constraint::NoSlip1D::NoSlip1DRep& Constraint::NoSlip1D::updRep() {
+    return dynamic_cast<NoSlip1DRep&>(*rep);
+}
+
+    // NoSlip1DRep
+
+void Constraint::NoSlip1D::NoSlip1DRep::calcDecorativeGeometryAndAppendImpl
+   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+{
+    // We can't generate the artwork until we know the direction and contact
+    // point location, which might not be until Instance stage.
+    if (stage == Stage::Instance && getMyMatterSubsystemRep().getShowDefaultGeometry()) {
+        const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+        // TODO: should be instance-stage data from State rather than topological data
+        // This makes x axis point along no-slip direction, origin at contact point
+        const Transform X_CP(Rotation(defaultNoSlipDirection,XAxis), defaultContactPoint);
+
+        const MobilizedBodyIndex caseMBId = getMobilizedBodyIndexOfConstrainedBody(caseBody);
+
+        if (directionLength > 0) {
+            // On the case body, draw a gray line in the no-slip direction, starting at contact point.
+            geom.push_back(DecorativeLine(Vec3(0), Vec3(directionLength,0,0))
+                                                .setColor(Gray)
+                                                .setBodyId(caseMBId)
+                                                .setTransform(X_CP));
+        }
+        if (pointRadius > 0) {
+            // On the follower body draw an orange mesh sphere at the point radius.
+            geom.push_back(DecorativeSphere(pointRadius)
+                                                .setColor(Orange)
+                                                .setRepresentation(DecorativeGeometry::DrawWireframe)
+                                                .setResolution(0.5)
+                                                .setBodyId(caseMBId)
+                                                .setTransform(X_CP));
+        }
+    }
+}
+
+
+
     ////////////////////
     // CONSTRAINT REP //
     ////////////////////

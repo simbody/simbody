@@ -188,6 +188,7 @@ public:
     class PointOnLine;   // translations along a line only
     class ConstantAngle; // prevent rotation about common normal of two vectors
     class ConstantOrientation; // allows any translation but no rotation
+    class NoSlip1D; // same velocity at a point along a direction
     class Custom;
 
     // Is this handle the owner of this rep? This is true if the
@@ -688,6 +689,67 @@ public:
 private:
     class WeldRep& updRep();
     const WeldRep& getRep() const;
+};
+
+    ///////////////////////////
+    // NO SLIP 1D CONSTRAINT //
+    ///////////////////////////
+
+/**
+ * One non-holonomic constraint equation. There is a contact point P and a no-slip 
+ * direction n fixed in a case body C. There are two moving bodies B0 and B1. The 
+ * material point of B0 and the material point of B1 which are each coincident 
+ * with the contact point P must have identical velocities in C, along the direction n.
+ * This can be used to implement simple rolling contact between disks, such as occurs
+ * in gear trains.
+ * 
+ * The assembly condition is the same as the run-time constraint: the velocities must
+ * be made to match.
+ */
+class SimTK_SIMBODY_EXPORT Constraint::NoSlip1D : public Constraint {
+public:
+    // no default constructor
+    NoSlip1D(MobilizedBody& caseBodyC, const Vec3& P_C, const UnitVec3& n_C,
+             MobilizedBody& movingBody0, MobilizedBody& movingBody1);
+
+    // These affect only generated decorative geometry for visualization;
+    // the plane is really infinite in extent with zero depth and the
+    // point is really of zero radius.
+    NoSlip1D& setDirectionDisplayLength(Real);
+    NoSlip1D& setPointDisplayRadius(Real);
+    Real getDirectionDisplayLength() const;
+    Real getPointDisplayRadius() const;
+
+    // Defaults for Instance variables.
+    NoSlip1D& setDefaultDirection(const UnitVec3&);
+    NoSlip1D& setDefaultContactPoint(const Vec3&);
+
+    // Stage::Topology
+    MobilizedBodyIndex getCaseMobilizedBodyIndex() const;
+    MobilizedBodyIndex getMovingBodyMobilizedBodyIndex(int which) const;
+
+    const UnitVec3& getDefaultDirection() const;
+    const Vec3&     getDefaultContactPoint() const;
+
+    // Stage::Instance
+    const UnitVec3& getDirection(const State&) const;
+    const Vec3&     getContactPoint(const State&) const;
+
+    // Stage::Position, Velocity
+        // no position error
+    Real getVelocityError(const State&) const;
+
+    // Stage::Acceleration
+    Real getAccelerationError(const State&) const;
+    Real getMultiplier(const State&) const;
+    Real getForceAtContactPoint(const State&) const; // in normal direction, no body 2
+
+    class NoSlip1DRep; // local subclass
+
+    SimTK_PIMPL_DOWNCAST(NoSlip1D, Constraint);
+private:
+    class NoSlip1DRep& updRep();
+    const NoSlip1DRep& getRep() const;
 };
 
 // TODO: this is just a sketch of a Custom Constraint base class.

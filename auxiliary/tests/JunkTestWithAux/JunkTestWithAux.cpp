@@ -87,6 +87,16 @@ int main(int argc, char** argv) {
     //MobilizedBody::Ball mobilizedBody(mobilizedBody0, Transform(Vec3(1,2,0)), body, Transform(Vec3(0,1,0)));
     MobilizedBody::Free mobilizedBody2(mobilizedBody0, Vec3(-5,0,0), body, Transform());
 
+    const Body::Rigid gear1body = Body::Rigid(MassProperties(m, Vec3(0), m*Inertia::cylinderAlongZ(.5, .1)))
+        .addDecoration(Transform(), DecorativeCircle(.5).setColor(Green).setOpacity(.7))
+        .addDecoration(Transform(), DecorativeLine(Vec3(0), Vec3(.5,0,0)).setColor(Black).setLineThickness(4));
+    const Body::Rigid gear2body = Body::Rigid(MassProperties(m, Vec3(0), m*Inertia::cylinderAlongZ(1.5, .1)))
+        .addDecoration(Transform(), DecorativeCircle(1.5).setColor(Blue).setOpacity(.7))  
+        .addDecoration(Transform(), DecorativeLine(Vec3(0), Vec3(1.5,0,0)).setColor(Black).setLineThickness(4));
+    MobilizedBody::Pin gear1(mobilizedBody0, Vec3(-1,0,0), gear1body, Transform()); // along z
+    MobilizedBody::Pin gear2(mobilizedBody0, Vec3(1,0,0), gear2body, Transform()); // along z
+    Constraint::NoSlip1D(mobilizedBody0, Vec3(-.5,0,0), UnitVec3(0,1,0), gear1, gear2);
+
 #define HASC
     
     //Constraint::Ball myc2(matter.Ground(), Vec3(-4,2,0),  mobilizedBody2, Vec3(0,1,0));
@@ -160,11 +170,12 @@ int main(int argc, char** argv) {
     //{Real qq[] = {0.9719,0,0,-0.235396,0.542437,1.11082,0};
     // s.updQ()=Vector(4,qq);
     //}
-    mbs.realize(s, Stage::Position);
+    mbs.realize(s, Stage::Velocity);
     display.report(s);
     cout << "q=" << s.getQ() << endl;
+    cout << "u=" << s.getU() << endl;
     cout << "qErr=" << s.getQErr() << endl;
-
+    cout << "uErr=" << s.getUErr() << endl;
 #ifdef HASC
     for (ConstraintIndex cid(0); cid < matter.getNConstraints(); ++cid) {
         const Constraint& c = matter.getConstraint(cid);
@@ -172,41 +183,48 @@ int main(int argc, char** argv) {
         c.getNumConstraintEquations(s, mp,mv,ma);
 
 	    cout << "CONSTRAINT " << cid << " ancestor=" << c.getAncestorMobilizedBody().getMobilizedBodyIndex()
-             << " " << c.getNumConstrainedBodies() << "constrained bodies, perr=" << c.getPositionError(s)
-		     << endl;
+             << " " << c.getNumConstrainedBodies() << "constrained bodies, mp,mv,ma=" << mp << "," << mv << "," << ma << endl;
         for (ConstrainedBodyIndex cid(0); cid < c.getNumConstrainedBodies(); ++cid)
             cout << "  constrained body: " << c.getConstrainedMobilizedBody(cid).getMobilizedBodyIndex() << endl;
         cout << c.getSubtree();
-	    cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
-        cout << "  ~d(Gt lambda)/dlambda=" << ~c.calcPositionConstraintMatrixPt(s);
+             
+        if (mp) {
+            cout << "perr=" << c.getPositionError(s) << endl;
+	        cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
+            cout << "  ~d(Pt lambda)/dlambda=" << ~c.calcPositionConstraintMatrixPt(s);
+	        cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
 
-
-	    cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
-
-        Matrix P = c.calcPositionConstraintMatrixP(s);
-        Matrix PQ(mp,matter.getNQ(s));
-        Vector out(matter.getNQ(s));
-        Matrix Q(matter.getNQ(s), matter.getNU(s));
-        Matrix Qinv(matter.getNU(s),matter.getNQ(s));
-        for (int i=0; i<mp; ++i) {
-            Vector in = ~P[i];
-            matter.multiplyByQMatrixInverse(s, true, in, out);
-            PQ[i] = ~out;
+            Matrix P = c.calcPositionConstraintMatrixP(s);
+            Matrix PQ(mp,matter.getNQ(s));
+            Vector out(matter.getNQ(s));
+            for (int i=0; i<mp; ++i) {
+                Vector in = ~P[i];
+                matter.multiplyByQMatrixInverse(s, true, in, out);
+                PQ[i] = ~out;
+            }
+            cout << " calculated d(perr)/dq=" << PQ;
         }
-        cout << " calculated d(perr)/dq=" << PQ;
 
-        Vector u(matter.getNU(s)); u=0;
-        for (int i=0; i < matter.getNU(s); ++i) {
-            u[i]=1;
-            matter.multiplyByQMatrix(s,false,u,Q(i));
-            u[i]=0;
+
+        if (mv) {
+            cout << "verr=" << c.getVelocityError(s) << endl;
+	        //cout << "   d(verrdot)/dudot=" << c.calcVelocityConstraintMatrixV(s);
+            cout << "  ~d(Vt lambda)/dlambda=" << ~c.calcVelocityConstraintMatrixVt(s);
         }
-        cout << " Q=" << Q;
 
     }
     const Constraint& c = matter.getConstraint(myc.getConstraintIndex());
     
 #endif
+    Matrix Q(matter.getNQ(s), matter.getNU(s));
+    Matrix Qinv(matter.getNU(s),matter.getNQ(s));
+    Vector u(matter.getNU(s)); u=0;
+    for (int i=0; i < matter.getNU(s); ++i) {
+        u[i]=1;
+        matter.multiplyByQMatrix(s,false,u,Q(i));
+        u[i]=0;
+    }
+    cout << " BigQ=" << Q;
 
     char ans;
     cout << "Default configuration shown. Ready? "; cin >> ans;
@@ -216,11 +234,16 @@ int main(int argc, char** argv) {
     mobilizedBody2.setQToFitTransform (s, Transform(Rotation(.05,Vec3(-1,1,1)),Vec3(.1,.2,.1)));
     mobilizedBody.setUToFitAngularVelocity(s, 10*Vec3(.1,.2,.3));
 
+    gear1.setUToFitAngularVelocity(s, Vec3(0,0,100)); // these should be opposite directions!
+    //gear2.setUToFitAngularVelocity(s, Vec3(0,0,100));
+
     mbs.realize(s, Stage::Velocity);
     display.report(s);
 
     cout << "q=" << s.getQ() << endl;
+    cout << "u=" << s.getU() << endl;
     cout << "qErr=" << s.getQErr() << endl;
+    cout << "uErr=" << s.getUErr() << endl;
     cout << "T_MbM=" << mobilizedBody.getMobilizerTransform(s).T() << endl;
     cout << "v_MbM=" << mobilizedBody.getMobilizerVelocity(s)[1] << endl;
     cout << "Unassembled configuration shown. Ready to assemble? "; cin >> ans;
@@ -270,7 +293,9 @@ int main(int argc, char** argv) {
         const State& s = myStudy.getState();
         display.report(s);
         cout << "q=" << s.getQ() << endl;
+        cout << "u=" << s.getU() << endl;
         cout << "qErr=" << s.getQErr() << endl;
+        cout << "uErr=" << s.getUErr() << endl;
         cout << "T_MbM=" << mobilizedBody.getMobilizerTransform(s).T() << endl;
         cout << "PE=" << mbs.getPotentialEnergy(s) << " KE=" << mbs.getKineticEnergy(s) << " E=" << mbs.getEnergy(s) << endl;
         cout << "angle=" << std::acos(~mobilizedBody.expressBodyVectorInGround(s, Vec3(0,1,0)) * UnitVec3(1,1,1)) << endl;
@@ -308,6 +333,7 @@ int main(int argc, char** argv) {
 		//cout << "  ~d(f)/d lambda=" << c.calcPositionConstraintMatrixPT(s);
 		//cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
         cout << "Q=" << matter.getQ(s) << endl;
+        cout << "U=" << matter.getU(s) << endl;
 
         Vector qdot;
         matter.calcQDot(s, s.getU(), qdot);

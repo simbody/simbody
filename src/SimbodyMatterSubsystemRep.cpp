@@ -1403,14 +1403,14 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
     Vector scaledVerrs = vErrs.rowScale(ooPVTols);
     Real normAchievedTRMS = scaledVerrs.normRMS();
     
-    /*
+    /**/
     cout << "!!!! initially @" << s.getTime() << ", verr TRMS=" << normAchievedTRMS << " consAcc=" << consAccuracy;
     if (uErrest.size())
         cout << " uErrest WRMS=" << uErrest.rowScale(uWeights).normRMS();
     else cout << " NO U ERROR ESTIMATE";
     cout << endl;
     cout << "!!!! VERR=" << vErrs << endl;
-    */
+    /**/
 
     Real lastChangeMadeWRMS = 0;
     int nItsUsed = 0;
@@ -1439,7 +1439,7 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
             scaledVerrs = vErrs.rowScale(ooPVTols);
             normAchievedTRMS=scaledVerrs.normRMS();
             ++nItsUsed;
-            //cout << "  !! iter " << nItsUsed << ": TRMS(verr)=" << normAchievedTRMS << ", WRMS(du)=" << lastChangeMadeWRMS << endl;
+            cout << "  !! iter " << nItsUsed << ": TRMS(verr)=" << normAchievedTRMS << ", WRMS(du)=" << lastChangeMadeWRMS << endl;
         } while (normAchievedTRMS > 0.1*consAccuracy 
                  && nItsUsed < MaxIterations);
 
@@ -1457,14 +1457,14 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
             uErrest.rowScaleInPlace(uWeights); // uErrest = Wu*uErrEst
             PVqtz.solve(~PVt*uErrest, du_WLS);
             uErrest -= du_WLS; // still weighted
-            //cout << "  !! U FIXUP: now WRMS(uerrest)=" << uErrest.normRMS() << " using WRMS(du)=" << du_WLS.normRMS() << endl;
+            cout << "  !! U FIXUP: now WRMS(uerrest)=" << uErrest.normRMS() << " using WRMS(du)=" << du_WLS.normRMS() << endl;
             uErrest.rowScaleInPlace(ooUWeights); // back to unscaled error estimates
         }
     }
 
     
-    //cout << "!!!! verr achieved " << normAchievedTRMS << " in " << nItsUsed << " iterations" << endl;
-    //cout << "!!!! ... VERR=" << vErrs << endl;
+    cout << "!!!! verr achieved " << normAchievedTRMS << " in " << nItsUsed << " iterations" << endl;
+    cout << "!!!! ... VERR=" << vErrs << endl;
 #else // USE_OLD_CONSTRAINTS
     // Fix the velocity constraints produced by defined length constraints.
     if (lConstraints->enforceVelocityConstraints(s, consAccuracy, 0.1*consAccuracy))
