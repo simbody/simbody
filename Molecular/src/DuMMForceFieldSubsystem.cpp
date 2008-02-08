@@ -60,6 +60,13 @@
 
 using namespace SimTK;
 
+namespace SimTK {
+namespace DuMM {
+    // Explicitly distinguish DuMMBodyIndex from related but not identical MobilizedBodyIndex
+    SimTK_DEFINE_UNIQUE_INDEX_TYPE(DuMMBodyIndex);
+} // namespace DuMM
+}
+
 // This is Coulomb's constant 1/(4*pi*e0) in units which convert
 // e^2/nm to kJ/mol.
 static const Real CoulombFac = (Real)SimTK_COULOMB_CONSTANT_IN_MD;
@@ -1036,17 +1043,24 @@ public:
 // at runtime for fast body-by-body processing.
 class DuMMBody {
 public:
-    DuMMBody() : clusterIndex(DuMM::InvalidClusterIndex) { }
-    explicit DuMMBody(DuMM::ClusterIndex cIx) : clusterIndex(cIx) { 
+    DuMMBody() : 
+      clusterIndex(DuMM::InvalidClusterIndex),
+      mobilizedBodyIndex(InvalidMobilizedBodyIndex)
+    { }
+
+    explicit DuMMBody(DuMM::ClusterIndex cIx, MobilizedBodyIndex mIx) : 
+        clusterIndex(cIx), mobilizedBodyIndex(mIx)
+    {
         assert(isValid());
     }
 
-    bool isValid() const {return clusterIndex >= 0;}
+    bool isValid() const {return (clusterIndex >= 0) && (mobilizedBodyIndex != InvalidMobilizedBodyIndex);}
 
     void invalidateTopologicalCache() {allAtoms.clear();}
     void realizeTopologicalCache(const DuMMForceFieldSubsystemRep& mm);
 
     DuMM::ClusterIndex getClusterIndex() const {assert(isValid()); return clusterIndex;}
+    MobilizedBodyIndex getMobilizedBodyIndex() const {return mobilizedBodyIndex;}
 
     void dump() const {
         printf("    clusterIndex=%d\n", (int) clusterIndex);
@@ -1068,6 +1082,7 @@ public:
     }
 
     DuMM::ClusterIndex clusterIndex;
+    SimTK::MobilizedBodyIndex mobilizedBodyIndex; // TODO - how to populate this?
     std::vector<int> shadowBodies; // if needed
 
     // This is an expansion of all the atom & group placements, with
@@ -1122,8 +1137,8 @@ public:
                 && clusters[clusterIndex].isValid();
     }
 
-    bool isValidBody(int bodyIx) const {
-        return 0 <= bodyIx && bodyIx < (int)bodies.size() && bodies[bodyIx].isValid();
+    bool isValidDuMMBody(DuMM::DuMMBodyIndex bodyIx) const {
+        return 0 <= bodyIx && bodyIx < (int)duMMSubsetOfBodies.size() && duMMSubsetOfBodies[bodyIx].isValid();
     }
 
     bool isValidChargedAtomType(DuMM::ChargedAtomTypeIndex typeNum) const {
@@ -1182,15 +1197,15 @@ public:
         assert(isValidCluster(clusterIndex));
         return clusters[clusterIndex];
     }
-    DuMMBody& updBody(int bodyIx) {
-        assert(isValidBody(bodyIx));
+    DuMMBody& updDuMMBody(DuMM::DuMMBodyIndex bodyIx) {
+        assert(isValidDuMMBody(bodyIx));
 
         invalidateSubsystemTopologyCache();
-        return bodies[bodyIx];
+        return duMMSubsetOfBodies[bodyIx];
     }
-    const DuMMBody& getBody(int bodyIx) const {
-        assert(isValidBody(bodyIx));
-        return bodies[bodyIx];
+    const DuMMBody& getDuMMBody(DuMM::DuMMBodyIndex duMMBodyIx) const {
+        assert(isValidDuMMBody(duMMBodyIx));
+        return duMMSubsetOfBodies[duMMBodyIx];
     }
 
 
@@ -1282,15 +1297,32 @@ public:
 private:
     void loadElements();
 
-    void ensureBodyEntryExists(MobilizedBodyIndex bodyNum) {
-        if (bodyNum >= (int)bodies.size())
-            bodies.resize(bodyNum+1);
-        if (!bodies[bodyNum].isValid()) {
+    std::map<MobilizedBodyIndex, DuMM::DuMMBodyIndex> dummBodyIndicesByMobilizedBodyIndex;
+
+    DuMM::DuMMBodyIndex ensureDuMMBodyEntryExists(MobilizedBodyIndex bodyIx) 
+    {
+        DuMM::DuMMBodyIndex duMMBodyIndex = DuMM::InvalidDuMMBodyIndex;
+
+        if ( dummBodyIndicesByMobilizedBodyIndex.find(bodyIx) == dummBodyIndicesByMobilizedBodyIndex.end() )
+        {
+            // Create a new DuMMBody for this MobilizedBody
+            duMMBodyIndex = (DuMM::DuMMBodyIndex) duMMSubsetOfBodies.size();
+
             const DuMM::ClusterIndex clusterIndex = 
-                addCluster(Cluster(DuMMBody::createClusterNameForBody(bodyNum).c_str()));
-            clusters[clusterIndex].attachToBody(bodyNum, Transform(), *this);
-            bodies[bodyNum] = DuMMBody(clusterIndex);
+                addCluster(Cluster(DuMMBody::createClusterNameForBody(bodyIx).c_str()));
+            clusters[clusterIndex].attachToBody(bodyIx, Transform(), *this);
+
+            duMMSubsetOfBodies.push_back( DuMMBody(clusterIndex, bodyIx) );
+            dummBodyIndicesByMobilizedBodyIndex[bodyIx] = duMMBodyIndex;
         }
+        else 
+        {
+            // Sanity check of preexisting DuMMBody
+        }
+
+        assert( duMMSubsetOfBodies[duMMBodyIndex].isValid() );
+
+        return duMMBodyIndex;
     }
 
     void invalidateAllTopologicalCacheEntries() {
@@ -1302,8 +1334,8 @@ private:
             atoms[i].invalidateTopologicalCache();
         for (DuMM::ClusterIndex i = (DuMM::ClusterIndex)0; i < (DuMM::ClusterIndex)clusters.size(); ++i)
             clusters[i].invalidateTopologicalCache();
-        for (int i=0; i < (int)bodies.size(); ++i)
-            bodies[i].invalidateTopologicalCache();
+        for (int i=0; i < (int)duMMSubsetOfBodies.size(); ++i)
+            duMMSubsetOfBodies[i].invalidateTopologicalCache();
 
         // force field
         for (DuMM::AtomClassIndex i = (DuMM::AtomClassIndex)0; i < (DuMM::AtomClassIndex)atomClasses.size(); ++i)
@@ -1322,7 +1354,7 @@ private:
     // This defines the partitioning of atoms onto the matter subsystem's bodies.
     // The indices here correspond to the body numbers. Only entries for bodies on
     // which our atoms have been attached will be valid.
-    std::vector<DuMMBody>    bodies;
+    std::vector<DuMMBody> duMMSubsetOfBodies;
 
     // force field
 
@@ -2262,7 +2294,7 @@ void DuMMForceFieldSubsystem::placeClusterInCluster
     parent.placeCluster(childClusterIndex, placementInNm, mm);
 }
 
-void DuMMForceFieldSubsystem::attachClusterToBody(DuMM::ClusterIndex clusterIndex, MobilizedBodyIndex bodyNum, 
+void DuMMForceFieldSubsystem::attachClusterToBody(DuMM::ClusterIndex clusterIndex, MobilizedBodyIndex bodyIx, 
                                                   const Transform& placementInNm) 
 {
     static const char* MethodName = "attachClusterToBody";
@@ -2274,8 +2306,8 @@ void DuMMForceFieldSubsystem::attachClusterToBody(DuMM::ClusterIndex clusterInde
         // Make sure we've seen this cluster before, and that the body number is well formed.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterIndex), mm.ApiClassName, MethodName,
         "cluster Index %d is not valid", (int) clusterIndex);
-    SimTK_APIARGCHECK1_ALWAYS(bodyNum >= 0, mm.ApiClassName, MethodName,
-        "body number %d is not valid: must be nonnegative", (int)bodyNum);
+    SimTK_APIARGCHECK1_ALWAYS(bodyIx >= 0, mm.ApiClassName, MethodName,
+        "body number %d is not valid: must be nonnegative", (int)bodyIx);
 
     const Cluster& child  = mm.getCluster(clusterIndex);
 
@@ -2285,29 +2317,29 @@ void DuMMForceFieldSubsystem::attachClusterToBody(DuMM::ClusterIndex clusterInde
         (int) clusterIndex, child.name.c_str(),  (int)child.getBodyIndex());
 
         // None of the atoms in the child can be attached to any body.
-    DuMM::AtomIndex    atomIndex;
-    MobilizedBodyIndex bodyIx;
-    SimTK_APIARGCHECK4_ALWAYS(!child.containsAnyAtomsAttachedToABody(atomIndex,bodyIx,mm), 
+    DuMM::AtomIndex    tempAtomIndex;
+    MobilizedBodyIndex tempBodyIndex;
+    SimTK_APIARGCHECK4_ALWAYS(!child.containsAnyAtomsAttachedToABody(tempAtomIndex,tempBodyIndex,mm), 
         mm.ApiClassName, MethodName,
         "cluster %d('%s') contains atom %d which is already attached to body %d"
         " so the cluster cannot now be attached to another body",
-        (int) clusterIndex, child.name.c_str(), (int) atomIndex, (int)bodyIx);
+        (int) clusterIndex, child.name.c_str(), (int) tempAtomIndex, (int)tempBodyIndex);
 
-        // Create an entry for the body if necessary, and its corresponding cluster.
-    mm.ensureBodyEntryExists(bodyNum);
-    Cluster& bodyCluster = mm.updCluster(mm.getBody(bodyNum).getClusterIndex());
+    // Create an entry for the body if necessary, and its corresponding cluster.
+    DuMM::DuMMBodyIndex duMMBodyIndex = mm.ensureDuMMBodyEntryExists(bodyIx);
+    Cluster& bodyCluster = mm.updCluster(mm.getDuMMBody(duMMBodyIndex).getClusterIndex());
 
         // Make sure that body cluster doesn't already contain child cluster, either directly
         // or recursively through its subclusters.
     SimTK_APIARGCHECK3_ALWAYS(!bodyCluster.containsCluster(clusterIndex), mm.ApiClassName, MethodName,
         "cluster %d('%s') is already attached (directly or indirectly) to body %d", 
-        (int) clusterIndex, child.name.c_str(), (int)bodyNum);
+        (int) clusterIndex, child.name.c_str(), (int)bodyIx);
 
         // OK, attach the cluster to the body's cluster.
     bodyCluster.placeCluster(clusterIndex, placementInNm, mm);
 }
 
-void DuMMForceFieldSubsystem::attachAtomToBody(DuMM::AtomIndex atomIndex, MobilizedBodyIndex bodyNum, const Vec3& stationInNm) 
+void DuMMForceFieldSubsystem::attachAtomToBody(DuMM::AtomIndex atomIndex, MobilizedBodyIndex bodyIndex, const Vec3& stationInNm) 
 {
     static const char* MethodName = "attachAtomToBody";
 
@@ -2318,8 +2350,8 @@ void DuMMForceFieldSubsystem::attachAtomToBody(DuMM::AtomIndex atomIndex, Mobili
         // Make sure we've seen this atom before, and that the body number is well formed.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomIndex), mm.ApiClassName, MethodName,
         "atom index %d is not valid", (int) atomIndex);
-    SimTK_APIARGCHECK1_ALWAYS(bodyNum >= 0, mm.ApiClassName, MethodName,
-        "body number %d is not valid: must be nonnegative", (int)bodyNum);
+    SimTK_APIARGCHECK1_ALWAYS(bodyIndex >= 0, mm.ApiClassName, MethodName,
+        "body number %d is not valid: must be nonnegative", (int)bodyIndex);
 
         // The atom must not already be attached to a body, even this one.
     SimTK_APIARGCHECK2_ALWAYS(!mm.getAtom(atomIndex).isAttachedToBody(), mm.ApiClassName, MethodName,
@@ -2327,8 +2359,8 @@ void DuMMForceFieldSubsystem::attachAtomToBody(DuMM::AtomIndex atomIndex, Mobili
         (int) atomIndex, (int)mm.getAtom(atomIndex).getBodyIndex());
 
         // Create an entry for the body if necessary, and its corresponding cluster.
-    mm.ensureBodyEntryExists(bodyNum);
-    Cluster& bodyCluster = mm.updCluster(mm.getBody(bodyNum).getClusterIndex());
+    DuMM::DuMMBodyIndex duMMBodyIndex = mm.ensureDuMMBodyEntryExists(bodyIndex);
+    Cluster& bodyCluster = mm.updCluster(mm.getDuMMBody(duMMBodyIndex).getClusterIndex());
 
         // Attach the atom to the body's cluster.
     bodyCluster.placeAtom(atomIndex, stationInNm, mm);
@@ -2702,8 +2734,8 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
     // Thus bodies need only read access to the main DuMM object, 
     // although we're passign the mutable one in so we can use the
     // same routine (TODO).
-    for (MobilizedBodyIndex bnum(0); bnum < (int)bodies.size(); ++bnum) {
-        DuMMBody& b = mutableThis->bodies[bnum];
+    for (DuMM::DuMMBodyIndex bnum(0); bnum < (int)duMMSubsetOfBodies.size(); ++bnum) {
+        DuMMBody& b = mutableThis->duMMSubsetOfBodies[bnum];
         if (!b.isValid())
             continue; // OK for these to be unused.
         b.realizeTopologicalCache(*mutableThis);
@@ -2714,8 +2746,8 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
         Atom& a = mutableThis->atoms[anum];
         a.bodyIx = InvalidMobilizedBodyIndex;
     }
-    for (MobilizedBodyIndex bnum(0); bnum < (int)bodies.size(); ++bnum) {
-        const DuMMBody& b = bodies[bnum];
+    for (DuMM::DuMMBodyIndex bnum(0); bnum < (int)duMMSubsetOfBodies.size(); ++bnum) {
+        const DuMMBody& b = duMMSubsetOfBodies[bnum];
         if (!b.isValid())
             continue;   // Unused body numbers are OK.
 
@@ -2723,7 +2755,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
             const AtomPlacement& ap = b.allAtoms[i]; assert(ap.isValid());
             Atom& a = mutableThis->atoms[ap.atomIndex]; assert(a.isValid());
             assert(a.bodyIx == InvalidMobilizedBodyIndex); // Can only be on one body!!
-            a.bodyIx    = bnum;
+            a.bodyIx    = b.getMobilizedBodyIndex();
             a.station_B = ap.station;
         }
     }
@@ -3036,13 +3068,17 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
     if (!forceValid) {
         // We need to calculate the forces.
         energyCache = 0;
-        forceCache.resize(bodies.size());
+        forceCache.resize( matter.getNBodies() );
         forceCache = SpatialVec(Vec3(0), Vec3(0));
         forceValid = true;
         
-        for (MobilizedBodyIndex b1(0); b1 < (int)bodies.size(); ++b1) {
-             const Transform&          X_GB1  = matter.getMobilizedBody(b1).getBodyTransform(s);
-             const AtomPlacementArray& alist1 = bodies[b1].allAtoms;
+        for (DuMM::DuMMBodyIndex duMMBodyIndex1(0); duMMBodyIndex1 < (int)duMMSubsetOfBodies.size(); ++duMMBodyIndex1) 
+        {
+            MobilizedBodyIndex bodyIndex1 = getDuMMBody(duMMBodyIndex1).getMobilizedBodyIndex();
+            assert(bodyIndex1 != InvalidMobilizedBodyIndex);
+
+             const Transform&          X_GB1  = matter.getMobilizedBody(bodyIndex1).getBodyTransform(s);
+             const AtomPlacementArray& alist1 = duMMSubsetOfBodies[duMMBodyIndex1].allAtoms;
 
              for (int i=0; i < (int)alist1.size(); ++i) {
                  const int       a1num = alist1[i].atomIndex;
@@ -3066,7 +3102,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
 
                      const Atom& a2 = atoms[a2num];
                      const MobilizedBodyIndex b2 = a2.bodyIx;
-                     assert(b2 != b1);
+                     assert(b2 != bodyIndex1);
                      const Transform& X_GB2 = matter.getMobilizedBody(a2.bodyIx).getBodyTransform(s);
                      const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
                      const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
@@ -3085,7 +3121,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                      const Vec3 f2 = (fStretch/d) * r;
                      energyCache += eStretch;
                      forceCache[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
-                     forceCache[b1] -= SpatialVec( a1Station_G % f2, f2);   // 15 flops
+                     forceCache[bodyIndex1] -= SpatialVec( a1Station_G % f2, f2);   // 15 flops
                  }
 
                  // Bond bend (1-2-3)
@@ -3100,7 +3136,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                      const Atom& a3 = atoms[a3num];
                      const MobilizedBodyIndex b2 = a2.bodyIx;
                      const MobilizedBodyIndex b3 = a3.bodyIx;
-                     assert(!(b2==b1 && b3==b1)); // shouldn't be on the list if all on 1 body
+                     assert(!(b2==bodyIndex1 && b3==bodyIndex1)); // shouldn't be on the list if all on 1 body
 
                      // TODO: These might be the same body but for now we don't care.
                      const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyIx).getBodyTransform(s);
@@ -3117,7 +3153,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                      bb.harmonic(a2Pos_G, a1Pos_G, a3Pos_G, bondBendGlobalScaleFactor, angle, energy, f2, f1, f3);
 
                      energyCache += energy;
-                     forceCache[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
+                     forceCache[bodyIndex1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
                      forceCache[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
                      forceCache[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
                  }
@@ -3137,7 +3173,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                      const int b2 = a2.bodyIx;
                      const int b3 = a3.bodyIx;
                      const int b4 = a4.bodyIx;
-                     assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
+                     assert(!(b2==bodyIndex1 && b3==bodyIndex1 && b4==bodyIndex1)); // shouldn't be on the list if all on 1 body
 
                      // TODO: These might be the same body but for now we don't care.
                      const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyIx).getBodyTransform(s);
@@ -3157,7 +3193,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                                  angle, energy, f1, f2, f3, f4);
 
                      energyCache += energy;
-                     forceCache[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
+                     forceCache[bodyIndex1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
                      forceCache[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
                      forceCache[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
                      forceCache[b4] += SpatialVec( a4Station_G % f4, f4);   // 15 flops
@@ -3179,7 +3215,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                      const int b2 = a2.bodyIx;
                      const int b3 = a3.bodyIx;
                      const int b4 = a4.bodyIx;
-                     assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
+                     assert(!(b2==bodyIndex1 && b3==bodyIndex1 && b4==bodyIndex1)); // shouldn't be on the list if all on 1 body
 
                      // TODO: These might be the same body but for now we don't care.
                      const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyIx).getBodyTransform(s);
@@ -3202,7 +3238,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                                  angle, energy, f2, f3, f1, f4);
 
                      energyCache += energy;
-                     forceCache[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
+                     forceCache[bodyIndex1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
                      forceCache[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
                      forceCache[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
                      forceCache[b4] += SpatialVec( a4Station_G % f4, f4);   // 15 flops
@@ -3216,7 +3252,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                      const int b2 = a2.bodyIx;
                      const int b3 = a3.bodyIx;
                      const int b4 = a4.bodyIx;
-                     assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
+                     assert(!(b2==bodyIndex1 && b3==bodyIndex1 && b4==bodyIndex1)); // shouldn't be on the list if all on 1 body
 
                      // TODO: These might be the same body but for now we don't care.
                      const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyIx).getBodyTransform(s);
@@ -3237,7 +3273,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                      bt.periodic(a2Pos_G, a3Pos_G, a1Pos_G, a4Pos_G, amberImproperTorsionGlobalScaleFactor,
                                  angle, energy, f2, f3, f1, f4);
                      energyCache += energy;
-                     forceCache[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
+                     forceCache[bodyIndex1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
                      forceCache[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
                      forceCache[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
                      forceCache[b4] += SpatialVec( a4Station_G % f4, f4);   // 15 flops
@@ -3246,9 +3282,14 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
 
                  // Coulombic electrostatic force
                  scaleBondedAtoms(a1,vdwScale,coulombScale);
-                 for (MobilizedBodyIndex b2(b1+1); b2 < (int)bodies.size(); ++b2) {
-                     const Transform&          X_GB2  = matter.getMobilizedBody(b2).getBodyTransform(s);
-                     const AtomPlacementArray& alist2 = bodies[b2].allAtoms;
+
+                 for (DuMM::DuMMBodyIndex duMMBodyIndex2(duMMBodyIndex1 + 1); duMMBodyIndex2 < (int)duMMSubsetOfBodies.size(); ++duMMBodyIndex2) 
+                 {
+                     MobilizedBodyIndex bodyIndex2 = getDuMMBody(duMMBodyIndex2).getMobilizedBodyIndex();
+                     assert(bodyIndex2 != InvalidMobilizedBodyIndex);
+
+                     const Transform&          X_GB2  = matter.getMobilizedBody(bodyIndex2).getBodyTransform(s);
+                     const AtomPlacementArray& alist2 = duMMSubsetOfBodies[duMMBodyIndex2].allAtoms;
 
                      for (int j=0; j < (int)alist2.size(); ++j) {
                          const int       a2num = alist2[j].atomIndex;
@@ -3291,8 +3332,8 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                          const Vec3 fj = ((fCoulomb+fVdw)*ood2) * r;      // to apply to atom j on b2 (5 flops)
 
                          energyCache += (eCoulomb + eVdw); // kJ (Da-nm^2/ps^2) (2 flops)
-                         forceCache[b2] += SpatialVec( a2Station_G % fj, fj);   // 15 flops
-                         forceCache[b1] -= SpatialVec( a1Station_G % fj, fj);   // 15 flops
+                         forceCache[bodyIndex2] += SpatialVec( a2Station_G % fj, fj);   // 15 flops
+                         forceCache[bodyIndex1] -= SpatialVec( a1Station_G % fj, fj);   // 15 flops
                      }
                  }
                  unscaleBondedAtoms(a1,vdwScale,coulombScale);
@@ -3312,10 +3353,13 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
         std::vector<int> gbsaFirstBondPartners(getNAtoms());
         std::vector<int> gbsaNumberOfCovalentBondPartners(getNAtoms());
         // Put atomic coordinates relative to ground in gbsaRawCoordinates
-        for (MobilizedBodyIndex b1(0); b1 < (int)bodies.size(); ++b1) 
+
+        for (DuMM::DuMMBodyIndex duMMBodyIndex1(0); duMMBodyIndex1 < (int)duMMSubsetOfBodies.size(); ++duMMBodyIndex1) 
         {
-            const Transform&          X_GB1  = matter.getMobilizedBody(b1).getBodyTransform(s);
-            const AtomPlacementArray& alist1 = bodies[b1].allAtoms;
+            MobilizedBodyIndex bodyIndex1 = duMMSubsetOfBodies[duMMBodyIndex1].getMobilizedBodyIndex();     
+
+            const Transform&          X_GB1  = matter.getMobilizedBody(bodyIndex1).getBodyTransform(s);
+            const AtomPlacementArray& alist1 = duMMSubsetOfBodies[duMMBodyIndex1].allAtoms;
             for (int i=0; i < (int)alist1.size(); ++i) 
             {
                 const int       a1num = alist1[i].atomIndex;
@@ -3440,12 +3484,14 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
 #endif
 
         // 4)  apply GBSA forces to bodies
-        for (MobilizedBodyIndex b1(0); b1 < (int)bodies.size(); ++b1) 
+        for (DuMM::DuMMBodyIndex duMMBodyIndex1(0); duMMBodyIndex1 < (int)duMMSubsetOfBodies.size(); ++duMMBodyIndex1) 
         {
-            // Location of body in ground frame
-            const Transform&          X_GB1  = matter.getMobilizedBody(b1).getBodyTransform(s);
+            MobilizedBodyIndex bodyIndex1 = duMMSubsetOfBodies[duMMBodyIndex1].getMobilizedBodyIndex();
 
-            const AtomPlacementArray& alist1 = bodies[b1].allAtoms;
+            // Location of body in ground frame
+            const Transform&          X_GB1  = matter.getMobilizedBody(bodyIndex1).getBodyTransform(s);
+
+            const AtomPlacementArray& alist1 = duMMSubsetOfBodies[duMMBodyIndex1].allAtoms;
             for (int i=0; i < (int)alist1.size(); ++i) 
             {
                 const int       a1num = alist1[i].atomIndex;
@@ -3467,7 +3513,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
 
                 SpatialVec forceOnBody(a1Station_G % fGbsa, fGbsa);
                 // std::cout << forceOnBody << std::endl;
-                forceCache[b1] += SpatialVec( a1Station_G % fGbsa, fGbsa );
+                forceCache[bodyIndex1] += SpatialVec( a1Station_G % fGbsa, fGbsa );
             }
         }
 
@@ -3653,11 +3699,11 @@ void DuMMForceFieldSubsystemRep::dump() const
 {
     printf("Dump of DuMMForceFieldSubsystem:\n");
     printf("  NBodies=%d NClusters=%d NAtoms=%d NAtomClasses=%d NChargedAtomTypes=%d NBonds=%d\n",
-        bodies.size(), clusters.size(), atoms.size(), 
+        duMMSubsetOfBodies.size(), clusters.size(), atoms.size(), 
         atomClasses.size(), chargedAtomTypes.size(), bonds.size());
-    for (int i=0; i < (int)bodies.size(); ++i) {
+    for (int i=0; i < (int)duMMSubsetOfBodies.size(); ++i) {
         printf("  DuMMBody %d:\n", i);
-        bodies[i].dump();
+        duMMSubsetOfBodies[i].dump();
     }
     for (int i=0; i < (int)clusters.size(); ++i) {
         printf("  Cluster %d:\n", i);
