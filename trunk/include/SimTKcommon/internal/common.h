@@ -201,17 +201,59 @@ class EXPORT NAME {                         \
 public:                                     \
     NAME() : ix(SimTK::InvalidIndex) { }       \
     explicit NAME(int i) : ix(i)      {assert(i>=0 || i==SimTK::InvalidIndex);} \
-    explicit NAME(long i): ix((int)i) {assert(i>=0 || i==SimTK::InvalidIndex);} \
-    explicit NAME(unsigned int  u) : ix((int)u) {assert((int)u >= 0);}       \
-    explicit NAME(unsigned long u) : ix((int)u) {assert((int)u >= 0);}       \
-    operator int() const {return ix;}       \
-    bool isValid() const {return ix>=0;}    \
-    void invalidate(){ix=SimTK::InvalidIndex;} \
-    const NAME& operator++() {assert(ix>=0); ++ix;return *this;}      /*prefix */   \
-    NAME operator++(int)     {assert(ix>=0); ++ix; return NAME(ix-1);}/*postfix*/   \
-    const NAME& operator--() {assert(ix>=1); --ix;return *this;}      /*prefix */   \
-    NAME operator--(int)     {assert(ix>=1); --ix; return NAME(ix+1);}/*postfix*/   \
+    explicit NAME(long l): ix((int)l) {assert(canStoreInNonnegativeInt(l));}    \
+    explicit NAME(unsigned int  u)  : ix((int)u)  {assert(canStoreInInt(u));}   \
+    explicit NAME(unsigned long ul) : ix((int)ul) {assert(canStoreInInt(ul));}  \
+    operator int() const {return ix;}           \
+    bool isValid() const {return ix>=0;}        \
+    void invalidate(){ix=SimTK::InvalidIndex;}  \
+    \
+    bool operator==(int  i) const {assert(isValid() && isValid(i)); return ix==i;}    \
+    bool operator==(long l) const {assert(isValid() && isValid(l)); return ix==(int)l;}  \
+    bool operator==(unsigned int  u)  const {assert(isValid() && isValid(u)); return ix==(int)u;}   \
+    bool operator==(unsigned long ul) const {assert(isValid() && isValid(ul)); return ix==(int)ul;} \
+    bool operator!=(int  i)           const {return !operator==(i);}    \
+    bool operator!=(long l)           const {return !operator==(l);}    \
+    bool operator!=(unsigned int  u)  const {return !operator==(u);}    \
+    bool operator!=(unsigned long ul) const {return !operator==(ul);}   \
+    \
+    bool operator< (int  i) const {assert(isValid() && isValid(i)); return ix<i;}        \
+    bool operator< (long l) const {assert(isValid() && isValid(l)); return ix<(int)l;}   \
+    bool operator< (unsigned int  u)  const {assert(isValid() && isValid(u));  return ix<(int)u;}    \
+    bool operator< (unsigned long ul) const {assert(isValid() && isValid(ul)); return ix<(int)ul;}   \
+    bool operator>=(int  i)           const {return !operator<(i);}    \
+    bool operator>=(long l)           const {return !operator<(l);}    \
+    bool operator>=(unsigned int  u)  const {return !operator<(u);}    \
+    bool operator>=(unsigned long ul) const {return !operator<(ul);}   \
+    \
+    bool operator> (int  i) const {assert(isValid() && isValid(i)); return ix>i;}        \
+    bool operator> (long l) const {assert(isValid() && isValid(l)); return ix>(int)l;}   \
+    bool operator> (unsigned int  u)  const {assert(isValid() && isValid(u));  return ix>(int)u;}    \
+    bool operator> (unsigned long ul) const {assert(isValid() && isValid(ul)); return ix>(int)ul;}   \
+    bool operator<=(int  i)           const {return !operator>(i);}    \
+    bool operator<=(long l)           const {return !operator>(l);}    \
+    bool operator<=(unsigned int  u)  const {return !operator>(u);}    \
+    bool operator<=(unsigned long ul) const {return !operator>(ul);}   \
+    \
+    const NAME& operator++() {assert(isValid()); ++ix; return *this;}     /*prefix */   \
+    NAME operator++(int)     {assert(isValid()); ++ix; return NAME(ix-1);}/*postfix*/   \
+    const NAME& operator--() {assert(ix>=1); --ix; return *this;}         /*prefix */   \
+    NAME operator--(int)     {assert(ix>=1); --ix; return NAME(ix+1);}    /*postfix*/   \
+    \
+    NAME& operator+=(int i)  {assert(isValid() && isValid(ix+i)); ix+=i; return *this;}     \
+    NAME& operator-=(int i)  {assert(isValid() && isValid(ix-i)); ix-=i; return *this;}     \
+    NAME& operator+=(long l) {assert(isValid() && canStoreInInt(l) && isValid(ix+(int)l)); ix+=(int)l; return *this;}     \
+    NAME& operator-=(long l) {assert(isValid() && canStoreInInt(l) && isValid(ix-(int)l)); ix-=(int)l; return *this;}     \
+    NAME& operator+=(unsigned int  u)  {assert(isValid()&& canStoreInInt(u)  && isValid(ix+(int)u));  ix+=(int)u;  return *this;}  \
+    NAME& operator-=(unsigned int  u)  {assert(isValid()&& canStoreInInt(u)  && isValid(ix-(int)u));  ix-=(int)u;  return *this;}  \
+    NAME& operator+=(unsigned long ul) {assert(isValid()&& canStoreInInt(ul) && isValid(ix+(int)ul)); ix+=(int)ul; return *this;}  \
+    NAME& operator-=(unsigned long ul) {assert(isValid()&& canStoreInInt(ul) && isValid(ix-(int)ul)); ix-=(int)ul; return *this;}  \
+    \
     static const NAME& Invalid() {static const NAME invalid; return invalid;}       \
+    static bool isValid(int  i) {return i>=0;}                                      \
+    static bool isValid(long l) {return canStoreInNonnegativeInt(l);}               \
+    static bool isValid(unsigned int  u)  {return canStoreInInt(u);}                \
+    static bool isValid(unsigned long ul) {return canStoreInInt(ul);}               \
 };
 
 /**
