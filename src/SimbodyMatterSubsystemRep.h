@@ -306,7 +306,7 @@ public:
     void findMobilizerQs(const State& s, MobilizedBodyIndex body, QIndex& qStart, int& nq) const {
         const RigidBodyNode& n = getRigidBodyNode(body);
         qStart = n.getQIndex();
-        nq     = n.getNQ(getModelVars(s));
+        nq     = n.getNQInUse(getModelVars(s));
     }
 
     void findMobilizerUs(const State& s, MobilizedBodyIndex body, UIndex& uStart, int& nu) const {

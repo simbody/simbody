@@ -221,6 +221,7 @@ public:
     // Find the indicated cache in the passed-in State. This requires that realization has
     // been completed for the associated Stage. *During* realization, we will instead pass in
     // the appropriate cache entry rather than ask the State for it.
+
     const SBModelCache&			getModelCache(const State&) const;
     const SBPositionCache&		getPositionCache(const State&) const;
     const SBVelocityCache&		getVelocityCache(const State&) const;
@@ -231,12 +232,12 @@ public:
     //TODO: should precalculate in State, return reference
     // (Client "get" methods below should be changed to references also.) 
 
-    Real getOneU(const State&, ConstrainedBodyIndex, int whichMobility) const {
+    Real getOneU(const State&, ConstrainedBodyIndex, MobilizerUIndex whichMobility) const {
         assert(!"ConstraintRep::getOneU(): not implemented yet");
         return NaN;
     }
 
-    Real getOneUDot(const State&, const SBAccelerationCache& ac, ConstrainedBodyIndex, int whichMobility) const {
+    Real getOneUDot(const State&, const SBAccelerationCache& ac, ConstrainedBodyIndex, MobilizerUIndex whichMobility) const {
         assert(!"ConstraintRep::getOneUDot(): not implemented yet");
         return NaN;
     }
@@ -321,7 +322,7 @@ public:
 
     // Apply a generalized (mobility) force to a particular mobility of the given constrained body B,
     // adding it in to the appropriate slot of the mobilityForces vector.
-    void addInOneMobilityForce(const State& s, ConstrainedBodyIndex B, int which, Real f,
+    void addInOneMobilityForce(const State& s, ConstrainedBodyIndex B, MobilizerUIndex which, Real f,
                                Vector& mobilityForces) const 
     { 
         assert(mobilityForces.size() == getNumConstrainedMobilities(s));
@@ -478,23 +479,10 @@ public:
 	// State must be realized to Stage::Model.
     void getConstraintEquationSlots(const State& s, int& holo0, int& nonholo0, int& accOnly0) const;
 
-    int getNumConstrainedMobilities(const State& s) const {
-        //TODO
-        assert(!"Constraint::getNumConstrainedMobilities() not implemented yet.");
-        return -1;
-    }
-
-    int getNumConstrainedMobilities(const State& s, ConstrainedBodyIndex B) const {
-        //TODO
-        assert(!"Constraint::getNumConstrainedMobilities(B) not implemented yet.");
-        return -1;
-    }
-
-    ConstrainedUIndex getConstrainedMobilityIndex(const State& s, ConstrainedBodyIndex B, int which) const {
-        //TODO
-        assert(!"Constraint::getConstrainedMobilityIndex(B) not implemented yet.");
-        return ConstrainedUIndex();
-    }
+    int getNumConstrainedMobilities(const State& s) const;
+    int getNumConstrainedMobilities(const State& s, ConstrainedBodyIndex B) const;
+    ConstrainedUIndex getConstrainedMobilityIndex
+       (const State& s, ConstrainedBodyIndex B, MobilizerUIndex which) const;
 
     const SimbodyMatterSubsystemRep& getMyMatterSubsystemRep() const {
         SimTK_ASSERT(myMatterSubsystemRep,
@@ -1770,7 +1758,7 @@ private:
     friend class Constraint::ConstantSpeed;
 
     ConstrainedBodyIndex theBody;
-    int whichMobility;
+    MobilizerUIndex whichMobility;
     Real prescribedSpeed;
 };
 

@@ -679,7 +679,7 @@ LengthSet::fdgradf(State& s,
     int grad_indx=0;
     for (int i=0 ; i<(int)nodeMap.size() ; i++) {
         int pos_indx=nodeMap[i]->getQIndex();
-        for (int j=0 ; j<nodeMap[i]->getNQ(mv) ; j++,pos_indx++,grad_indx++) {
+        for (int j=0 ; j<nodeMap[i]->getNQInUse(mv) ; j++,pos_indx++,grad_indx++) {
             Vector posp = pos;
             posp(pos_indx) += eps;
             const Vector bp = calcB(posp);

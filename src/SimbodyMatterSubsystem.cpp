@@ -318,7 +318,7 @@ void SimbodyMatterSubsystem::addInBodyTorque(const State& s, MobilizedBodyIndex 
     assert(bodyForces.size() == getRep().getNBodies());
     bodyForces[body][0] += torqueInG; // no force
 }
-void SimbodyMatterSubsystem::addInMobilityForce(const State& s, MobilizedBodyIndex body, MobilizedBodyUIndex which, Real d,
+void SimbodyMatterSubsystem::addInMobilityForce(const State& s, MobilizedBodyIndex body, MobilizerUIndex which, Real d,
                                                 Vector& mobilityForces) const 
 { 
     assert(mobilityForces.size() == getRep().getNMobilities());

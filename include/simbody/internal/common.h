@@ -147,13 +147,13 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(QuaternionPoolIndex)
 // do that once.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(AnglePoolIndex)
 
-    // PER-MOBILIZED BODY INDEX TYPES
+    // PER-MOBILIZER INDEX TYPES
 
-// Each MobilizedBody, once modeled, has a specific number of generalized coordinates q
-// (0-7) and generalized speeds (mobilities) u (0-6). These are the index types for the
-// small arrays of MobilizedBody-local q's and u's.
-SimTK_DEFINE_UNIQUE_INDEX_TYPE(MobilizedBodyQIndex)
-SimTK_DEFINE_UNIQUE_INDEX_TYPE(MobilizedBodyUIndex)
+// The Mobilizer associated with each MobilizedBody, once modeled, has a specific number
+// of generalized coordinates q (0-7) and generalized speeds (mobilities) u (0-6). These
+// are the index types for the small arrays of Mobilizer-local q's and u's.
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(MobilizerQIndex)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(MobilizerUIndex)
 
     // PER-CONSTRAINT INDEX TYPES
     

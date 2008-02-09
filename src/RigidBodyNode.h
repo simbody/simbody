@@ -157,12 +157,18 @@ public:
 
     virtual const char* type()     const {return "unknown";}
     virtual int  getDOF()   const=0; //number of independent dofs
-    virtual int  getMaxNQ() const=0; //dofs plus quaternion constraints
-    virtual int  getNQ(const SBModelVars&) const=0; //actual number of q's
+    virtual int  getMaxNQ() const=0; //dofs plus extra quaternion coordinate if any
+
+    virtual int getNQInUse(const SBModelVars&) const=0; //actual number of q's
+    virtual int getNUInUse(const SBModelVars&) const=0; // actual number of u's
 
     // This depends on the mobilizer type and modeling options. If it returns
-    // true then this node will be assigned a unique quaternion index.
-    virtual bool isUsingQuaternion(const SBModelVars&) const=0;
+    // true then this node will be assigned a slot for the quaternion information pool.
+    virtual bool isUsingQuaternion(const SBModelVars&, MobilizerQIndex& startOfQuaternion) const=0;
+
+    // This depends on the mobilizer type and modeling options. If it returns
+    // true then this node will be assigned slots for the angle information pool.
+    virtual bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const=0;
 
     // Copy the right q's from qIn to the corresponding slots in q. The number copied
     // may depend on modeling choices as supplied in the first argument.
@@ -498,7 +504,7 @@ public:
 
     // This is the unique "body index" for this (body,mobilizer) node. It is used to index
     // arrays of body quantities.
-    int  getNodeNum() const {return nodeNum;}
+    MobilizedBodyIndex getNodeNum() const {return nodeNum;}
 
     bool isGroundNode() const { return level==0; }
     bool isBaseNode()   const { return level==1; }

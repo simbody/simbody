@@ -108,7 +108,8 @@ public:
     /// mobilities on each branch between the ancestor and a constrained body.
     /// The *constrained* mobilities are just those belonging to the mobilized
     /// bodies which are directly constrained.
-    ConstrainedUIndex getConstrainedMobilityIndex(const State&, ConstrainedBodyIndex, int which) const;
+    ConstrainedUIndex getConstrainedMobilityIndex
+        (const State&, ConstrainedBodyIndex, MobilizerUIndex which) const;
 
     /// Return the sum of the number of mobilities u associated with each of
     /// the constrained bodies, not counting the Ancestor's mobilities even

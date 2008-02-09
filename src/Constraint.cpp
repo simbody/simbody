@@ -126,7 +126,8 @@ int Constraint::getNumConstrainedMobilities(const State& s, ConstrainedBodyIndex
     return getRep().getNumConstrainedMobilities(s,B);
 }
 
-ConstrainedUIndex Constraint::getConstrainedMobilityIndex(const State& s, ConstrainedBodyIndex B, int which) const {
+ConstrainedUIndex Constraint::getConstrainedMobilityIndex
+   (const State& s, ConstrainedBodyIndex B, MobilizerUIndex which) const {
     return getRep().getConstrainedMobilityIndex(s,B,which);
 }
 
@@ -1719,6 +1720,26 @@ void Constraint::ConstraintRep::getConstraintEquationSlots
     accOnly0 = mHolo + mNonholo + cInfo.accOnlyErrSegment.offset;
 }
 
+int Constraint::ConstraintRep::getNumConstrainedMobilities(const State& s) const {
+    return getModelCache(s).getConstraintModelInfo(myConstraintIndex).nConstrainedUs;
+}
+
+int Constraint::ConstraintRep::getNumConstrainedMobilities
+   (const State& s, ConstrainedBodyIndex B) const
+{
+    const MobilizedBodyIndex mbx = getMobilizedBodyIndexOfConstrainedBody(B);
+    return getModelCache(s).getMobilizedBodyModelInfo(mbx).nUInUse;
+}
+
+ConstrainedUIndex Constraint::ConstraintRep::getConstrainedMobilityIndex
+   (const State& s, ConstrainedBodyIndex B, MobilizerUIndex which) const 
+{
+    const int nu = getNumConstrainedMobilities(s,B);
+    assert(0 <= which && which < nu);
+    const SBModelCache::PerConstrainedBodyModelInfo& bInfo =
+        getModelCache(s).getConstraintModelInfo(myConstraintIndex).getConstrainedBodyModelInfo(B);
+    return ConstrainedUIndex(bInfo.firstConstrainedUIndex + which);
+}       
 
 // Given a state realized to Position stage, extract the position constraint errors
 // corresponding to this Constraint. The 'mp' argument is for sanity checking -- it

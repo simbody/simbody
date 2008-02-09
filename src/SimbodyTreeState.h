@@ -164,7 +164,7 @@ public:
         = totalNHolonomicConstraintEquationsInUse 
         = totalNNonholonomicConstraintEquationsInUse 
         = totalNAccelerationOnlyConstraintEquationsInUse
-        = totalNQuaternionsInUse = -1;
+        = totalNQInUse = totalNUInUse = totalNQuaternionsInUse = totalNAnglesInUse = -1;
 
         mobilizedBodyModelInfo.clear();
         constraintModelInfo.clear();
@@ -188,16 +188,16 @@ public:
         // In case there is a quaternion in use by this Mobilizer. The index here can be
         // used to find precalculated data associated with this quaternion, such as its current length.
         bool                hasQuaternionInUse;
-        MobilizedBodyQIndex startOfQuaternion;   // 0..nQInUse-1: which local coordinate starts the quaternion if any?
+        MobilizerQIndex     startOfQuaternion;   // 0..nQInUse-1: which local coordinate starts the quaternion if any?
         QuaternionPoolIndex quaternionPoolIndex; // assigned slot # for this MB's quat, -1 if none
 
         // In case there are any generalized coordinates which are angles. We require that the
         // angular coordinates be consecutive and just store the number of angles and the coordinate
         // index of the first one. The index can be used to find precalculated data associated with
         // angles, such as their sines and cosines.
-        int                 nAnglesInUse;
-        MobilizedBodyQIndex startOfAngles;  // 0..nQInUse-1: which local coordinate starts angles if any?
-        AnglePoolIndex      anglePoolIndex; // start of assigned segment for this MB's angle information, if any
+        int             nAnglesInUse;
+        MobilizerQIndex startOfAngles;  // 0..nQInUse-1: which local coordinate starts angles if any?
+        AnglePoolIndex  anglePoolIndex; // start of assigned segment for this MB's angle information, if any
     };
 
 
@@ -226,6 +226,10 @@ public:
         std::vector<PerConstrainedBodyModelInfo> constrainedBodyModelInfo;
     public:
         PerConstraintModelInfo() : nConstrainedQs(-1), nConstrainedUs(-1) { }
+        void allocateConstrainedBodyModelInfo(int nConstrainedBodies) {
+            assert(nConstrainedBodies >= 0);
+            constrainedBodyModelInfo.resize(nConstrainedBodies);
+        }
         const PerConstrainedBodyModelInfo& getConstrainedBodyModelInfo(ConstrainedBodyIndex b) const {
             return constrainedBodyModelInfo[b];
         }
@@ -280,11 +284,8 @@ public:
     //    udotErr(udotErrIndex, nAccelerationConstraintEquationsInUse)
     int qErrIndex, uErrIndex, udotErrIndex;
 
-
-
     // These are sums over the per-MobilizedBody counts above.
-    int totalNQInUse, totalNUInUse, totalNQuaternionsInUse;
-
+    int totalNQInUse, totalNUInUse, totalNQuaternionsInUse, totalNAnglesInUse;
 
     // These are the sums over the per-Constraint data above. The number of
 	// position constraint equations (not counting quaternion normalization constraints)

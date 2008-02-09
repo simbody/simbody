@@ -313,7 +313,7 @@ try {
     particleForces.setToZero();
     mobilityForces.setToZero();
 
-    pend.addInMobilityForce(s, aPendulum, MobilizedBodyUIndex(0), 147, mobilityForces);
+    pend.addInMobilityForce(s, aPendulum, MobilizerUIndex(0), 147, mobilityForces);
 
     mbs.realize(s, Stage::Velocity);
     SpatialVec bodyVel = aPendulum.getBodyVelocity(s);

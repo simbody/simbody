@@ -480,7 +480,7 @@ public:
 
     /// Apply a scalar joint force or torque to an axis of the
     /// indicated body's mobilizer.
-    void addInMobilityForce(const State&, MobilizedBodyIndex, MobilizedBodyUIndex which, Real f,
+    void addInMobilityForce(const State&, MobilizedBodyIndex, MobilizerUIndex which, Real f,
                             Vector& mobilityForces) const;
 
         // POSITION STAGE solvers //

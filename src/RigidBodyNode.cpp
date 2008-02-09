@@ -199,9 +199,16 @@ public:
     /*virtual*/const char* type() const { return "ground"; }
     /*virtual*/int  getDOF()   const {return 0;}
     /*virtual*/int  getMaxNQ() const {return 0;}
-    /*virtual*/int  getNQ(const SBModelVars&) const {return 0;}
-    /*virtual*/bool isUsingQuaternion(const SBModelVars&) const {return false;}
-
+    /*virtual*/int  getNUInUse(const SBModelVars&) const {return 0;}
+    /*virtual*/int  getNQInUse(const SBModelVars&) const {return 0;}
+    /*virtual*/bool isUsingQuaternion(const SBModelVars&, MobilizerQIndex& ix) const {
+        ix.invalidate();
+        return false;
+    }
+    /*virtual*/bool isUsingAngles(const SBModelVars& mv, MobilizerQIndex& ix, int& nAngles) const {
+        ix.invalidate(); nAngles = 0;
+        return false;
+    }
     /*virtual*/bool enforceQuaternionConstraints(
         const SBModelVars&  mv,
         Vector&             q,
@@ -709,14 +716,24 @@ public:
         assert(quaternionUse == QuaternionIsNeverUsed);
         return dof; // maxNQ can be larger than dof if there's a quaternion
     }
-    virtual int  getNQ(const SBModelVars&) const {
-        assert(quaternionUse == QuaternionIsNeverUsed);
+    virtual int  getNQInUse(const SBModelVars&) const {
+        assert(quaternionUse == QuaternionIsNeverUsed); // method must be overridden otherwise
         return dof; // DOF <= NQ <= maxNQ
     }
-    virtual bool isUsingQuaternion(const SBModelVars&) const {
-        assert(quaternionUse == QuaternionIsNeverUsed);
+    virtual int  getNUInUse(const SBModelVars&) const {
+        // Currently NU is always just the Mobilizer's DOFs (the template argument)
+        // Later we may want to offer modeling options to lock joints, or perhaps
+        // break them.
+        return dof;
+    }
+    virtual bool isUsingQuaternion(const SBModelVars&, MobilizerQIndex& startOfQuaternion) const {
+        assert(quaternionUse == QuaternionIsNeverUsed); // method must be overridden otherwise
+        startOfQuaternion.invalidate();
         return false;
     }
+
+    // Most mobilizers do use angles, so we're not going to provide a default implementation
+    // of the pure virtual isUsingAngles() method here.
 
     // State digest should be at Stage::Position.
     virtual void calcLocalQDotFromLocalU(const SBStateDigest&, const Real* u, Real* qdot) const {
@@ -1071,6 +1088,12 @@ public:
         toU(u) = v_FM;
     }
 
+    // This is required for all mobilizers.
+    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+        startOfAngles.invalidate(); nAngles=0; // no angles for a Cartesian mobilizer
+        return false;
+    }
+
     // This is required but does nothing here since there are no rotations for this joint.
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
@@ -1161,6 +1184,13 @@ public:
     {
         // We can only represent a velocity along x with this joint.
         to1U(u) = v_FM[0];
+    }
+
+
+    // This is required for all mobilizers.
+    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+        startOfAngles.invalidate(); nAngles=0; // no angles for a Slider
+        return false;
     }
 
     // This is required but does nothing here since we there are no rotations for this joint.
@@ -1255,6 +1285,13 @@ public:
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a linear velocity by rotating. So the only linear velocity
         // we can represent is 0.
+    }
+
+
+    // This is required for all mobilizers.
+    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+        startOfAngles = MobilizerQIndex(0); nAngles=1; // torsion mobilizer
+        return false;
     }
 
     // Precalculate sines and cosines.
@@ -1366,6 +1403,15 @@ public:
         to1U(u) = v_FM[2]/pitch;
     }
 
+    // This is required for all mobilizers.
+    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+        // We're currently using an angle as the generalized coordinate for the screw joint
+        // but could just as easily have used translation or some non-physical coordinate. It
+        // might make sense to offer a Model stage option to set the coordinate meaning.
+        startOfAngles = MobilizerQIndex(0); nAngles=1; 
+        return false;
+    }
+
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
@@ -1470,6 +1516,13 @@ public:
         // create a linear velocity by rotating around z. So the only linear velocity we can represent
         // is that component which is along z.
         toU(u)[1] = v_FM[2];
+    }
+
+    // This is required for all mobilizers.
+    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+        // Cylinder joint has one angular coordinate, which comes first.
+        startOfAngles = MobilizerQIndex(0); nAngles=1; 
+        return false;
     }
 
     // Precalculate sines and cosines.
@@ -1620,6 +1673,13 @@ public:
         toU(u)[0] = v_FM_M[1] / x; // set angular velocity about z to produce vy
     }
 
+    // This is required for all mobilizers.
+    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+        // Bend-stretch joint has one angular coordinate, which comes first.
+        startOfAngles = MobilizerQIndex(0); nAngles=1; 
+        return false;
+    }
+
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
@@ -1759,6 +1819,13 @@ public:
         // we can represent is 0.
     }
 
+    // This is required for all mobilizers.
+    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+        // U-joint has two angular coordinates.
+        startOfAngles = MobilizerQIndex(0); nAngles=2; 
+        return false;
+    }
+
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
@@ -1876,6 +1943,13 @@ public:
         toU(u)[2] = v_FM[1]; // y
     }
 
+    // This is required for all mobilizers.
+    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+        // Planar joint has one angular coordinate, which comes first.
+        startOfAngles = MobilizerQIndex(0); nAngles=1; 
+        return false;
+    }
+
     // This is required but does nothing here since there are no rotations for this joint.
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
@@ -1983,6 +2057,13 @@ public:
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a linear velocity by rotating. So the only linear velocity
         // we can represent is 0.
+    }
+
+    // This is required for all mobilizers.
+    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+        // Gimbal joint has three angular coordinates.
+        startOfAngles = MobilizerQIndex(0); nAngles=3; 
+        return false;
     }
 
     // Precalculate sines and cosines.
@@ -2206,6 +2287,16 @@ public:
         // we can represent is 0.
     }
 
+    // This is required for all mobilizers.
+    bool isUsingAngles(const SBModelVars& mv, MobilizerQIndex& startOfAngles, int& nAngles) const {
+        // Ball joint has three angular coordinates when Euler angles are being used, 
+        // none when quaternions are being used.
+        if (!getUseEulerAngles(mv)) {startOfAngles.invalidate(); nAngles=0; return false;} 
+        startOfAngles = MobilizerQIndex(0);
+        nAngles = 3;
+        return true;
+    }
+
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
@@ -2411,11 +2502,13 @@ public:
     }
 
     int getMaxNQ()              const {return 4;}
-    int getNQ(const SBModelVars& mv) const {
+    int getNQInUse(const SBModelVars& mv) const {
         return getUseEulerAngles(mv) ? 3 : 4;
     } 
-    bool isUsingQuaternion(const SBModelVars& mv) const {
-        return !getUseEulerAngles(mv);
+    bool isUsingQuaternion(const SBModelVars& mv, MobilizerQIndex& startOfQuaternion) const {
+        if (getUseEulerAngles(mv)) {startOfQuaternion.invalidate(); return false;}
+        startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
+        return true;
     }
 
     void setMobilizerDefaultPositionValues(
@@ -2625,6 +2718,16 @@ public:
         toU(u) = w_FM;
     }
 
+    // This is required for all mobilizers.
+    bool isUsingAngles(const SBModelVars& mv, MobilizerQIndex& startOfAngles, int& nAngles) const {
+        // Ellipsoid joint has three angular coordinates when Euler angles are being used, 
+        // none when quaternions are being used.
+        if (!getUseEulerAngles(mv)) {startOfAngles.invalidate(); nAngles=0; return false;} 
+        startOfAngles = MobilizerQIndex(0);
+        nAngles = 3;
+        return true;
+    }
+
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
@@ -2805,11 +2908,13 @@ public:
     }
 
     int getMaxNQ() const {return 4;}
-    int getNQ(const SBModelVars& mv) const {
+    int getNQInUse(const SBModelVars& mv) const {
         return getUseEulerAngles(mv) ? 3 : 4;
     } 
-    bool isUsingQuaternion(const SBModelVars& mv) const {
-        return !getUseEulerAngles(mv);
+    bool isUsingQuaternion(const SBModelVars& mv, MobilizerQIndex& startOfQuaternion) const {
+        if (getUseEulerAngles(mv)) {startOfQuaternion.invalidate(); return false;}
+        startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
+        return true;
     }
 
     void setMobilizerDefaultPositionValues(
@@ -2924,6 +3029,16 @@ public:
        (const SBModelVars& mv, const Vector& q, const Vec3& v_FM, Vector& u, bool only) const
     {
         toUVec3(u,3) = v_FM;
+    }
+
+    // This is required for all mobilizers.
+    bool isUsingAngles(const SBModelVars& mv, MobilizerQIndex& startOfAngles, int& nAngles) const {
+        // Free joint has three angular coordinates when Euler angles are being used, 
+        // none when quaternions are being used.
+        if (!getUseEulerAngles(mv)) {startOfAngles.invalidate(); nAngles=0; return false;} 
+        startOfAngles = MobilizerQIndex(0);
+        nAngles = 3;
+        return true;
     }
 
     // Precalculate sines and cosines.
@@ -3124,9 +3239,11 @@ public:
     }
 
     int  getMaxNQ()                   const {return 7;}
-    int  getNQ(const SBModelVars& mv) const {return getUseEulerAngles(mv) ? 6 : 7;} 
-    bool isUsingQuaternion(const SBModelVars& mv) const {
-        return !getUseEulerAngles(mv);
+    int  getNQInUse(const SBModelVars& mv) const {return getUseEulerAngles(mv) ? 6 : 7;} 
+    bool isUsingQuaternion(const SBModelVars& mv, MobilizerQIndex& startOfQuaternion) const {
+        if (getUseEulerAngles(mv)) {startOfQuaternion.invalidate(); return false;}
+        startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
+        return true;
     }
 
     void setMobilizerDefaultPositionValues(const SBModelVars& mv, Vector& q) const 
@@ -3271,6 +3388,16 @@ public:
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a linear velocity by rotating. So the only linear velocity
         // we can represent is 0.
+    }
+
+    // This is required for all mobilizers.
+    bool isUsingAngles(const SBModelVars& mv, MobilizerQIndex& startOfAngles, int& nAngles) const {
+        // LineOrientation joint has three angular coordinates when Euler angles are being used, 
+        // none when quaternions are being used.
+        if (!getUseEulerAngles(mv)) {startOfAngles.invalidate(); nAngles=0; return false;} 
+        startOfAngles = MobilizerQIndex(0);
+        nAngles = 3;
+        return true;
     }
 
     // Precalculate sines and cosines.
@@ -3453,11 +3580,13 @@ public:
     }
 
     int getMaxNQ()              const {return 4;}
-    int getNQ(const SBModelVars& mv) const {
+    int getNQInUse(const SBModelVars& mv) const {
         return getUseEulerAngles(mv) ? 3 : 4;
     } 
-    bool isUsingQuaternion(const SBModelVars& mv) const {
-        return !getUseEulerAngles(mv);
+    bool isUsingQuaternion(const SBModelVars& mv, MobilizerQIndex& startOfQuaternion) const {
+        if (getUseEulerAngles(mv)) {startOfQuaternion.invalidate(); return false;}
+        startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
+        return true;
     }
 
     void setMobilizerDefaultPositionValues(
@@ -3595,6 +3724,16 @@ public:
        (const SBModelVars& mv, const Vector& q, const Vec3& v_FM, Vector& u, bool only) const
     {
         toUVec3(u,2) = v_FM;
+    }
+
+    // This is required for all mobilizers.
+    bool isUsingAngles(const SBModelVars& mv, MobilizerQIndex& startOfAngles, int& nAngles) const {
+        // FreeLine joint has three angular coordinates when Euler angles are being used, 
+        // none when quaternions are being used.
+        if (!getUseEulerAngles(mv)) {startOfAngles.invalidate(); nAngles=0; return false;} 
+        startOfAngles = MobilizerQIndex(0);
+        nAngles = 3;
+        return true;
     }
 
     // Precalculate sines and cosines.
@@ -3819,9 +3958,11 @@ public:
     }
 
     int  getMaxNQ()                   const {return 7;}
-    int  getNQ(const SBModelVars& mv) const {return getUseEulerAngles(mv) ? 6 : 7;} 
-    bool isUsingQuaternion(const SBModelVars& mv) const {
-        return !getUseEulerAngles(mv);
+    int  getNQInUse(const SBModelVars& mv) const {return getUseEulerAngles(mv) ? 6 : 7;} 
+    bool isUsingQuaternion(const SBModelVars& mv, MobilizerQIndex& startOfQuaternion) const {
+        if (getUseEulerAngles(mv)) {startOfQuaternion.invalidate(); return false;}
+        startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
+        return true;
     }
 
     void setMobilizerDefaultPositionValues(const SBModelVars& mv, Vector& q) const 
