@@ -70,9 +70,9 @@ public:
     // This creates a rigid body node using the appropriate mobilizer type.
     // Called during realizeTopology().
     virtual RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const = 0; 
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const = 0;
 
     virtual void realizeTopologyImpl(State&) const { }
 
@@ -168,8 +168,8 @@ public:
     }
 
 
-    void findMobilizerQs(const State&, int& qStart, int& nq) const;
-    void findMobilizerUs(const State&, int& uStart, int& nu) const;
+    void findMobilizerQs(const State&, QIndex& qStart, int& nq) const;
+    void findMobilizerUs(const State&, UIndex& uStart, int& nu) const;
 
     // Given the Model stage state variables (if any are relevant), each
     // concrete mobilizer should return the number of q's and u's it expects
@@ -243,7 +243,7 @@ public:
         return getMyRigidBodyNode().getV_FM(vc);
     }
 
-    const RigidBodyNode& realizeTopology(int& nxtU, int& nxtUSq, int& nxtQ) const;
+    const RigidBodyNode& realizeTopology(UIndex& nxtU, USquaredIndex& nxtUSq, QIndex& nxtQ) const;
 
     void invalidateTopologyCache() const {
         delete myRBnode; myRBnode=0;
@@ -403,9 +403,9 @@ public:
     PinImpl* clone() const { return new PinImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==1, 
@@ -426,9 +426,9 @@ public:
     SliderImpl* clone() const { return new SliderImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==1, 
@@ -448,9 +448,9 @@ public:
     UniversalImpl* clone() const { return new UniversalImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==2, 
@@ -470,9 +470,9 @@ public:
     CylinderImpl* clone() const { return new CylinderImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==2, 
@@ -492,9 +492,9 @@ public:
     BendStretchImpl* clone() const { return new BendStretchImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==2, 
@@ -514,9 +514,9 @@ public:
     PlanarImpl* clone() const { return new PlanarImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==3, 
@@ -536,9 +536,9 @@ public:
     GimbalImpl* clone() const { return new GimbalImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==3, 
@@ -569,9 +569,9 @@ public:
     BallImpl* clone() const { return new BallImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==4||nq==3, 
@@ -605,9 +605,9 @@ public:
     EllipsoidImpl* clone() const { return new EllipsoidImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==4||nq==3, 
@@ -641,9 +641,9 @@ public:
     TranslationImpl* clone() const { return new TranslationImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==3, 
@@ -663,9 +663,9 @@ public:
     FreeImpl* clone() const { return new FreeImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==7||nq==6, 
@@ -692,9 +692,9 @@ public:
     LineOrientationImpl* clone() const { return new LineOrientationImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==4||nq==3, 
@@ -717,9 +717,9 @@ public:
     FreeLineImpl* clone() const { return new FreeLineImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==7||nq==6, 
@@ -746,9 +746,9 @@ public:
     WeldImpl* clone() const { return new WeldImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==0, 
@@ -767,9 +767,9 @@ public:
     GroundImpl* clone() const { return new GroundImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==0, 
@@ -795,9 +795,9 @@ public:
     ScrewImpl* clone() const { return new ScrewImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==1, 
@@ -821,9 +821,9 @@ public:
     CustomImpl* clone() const { return new CustomImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ) const;
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
 
     void copyOutDefaultQImpl(int expectedNq, Real* q) const {
         SimTK_ASSERT(expectedNq==nq, 

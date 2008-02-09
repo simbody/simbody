@@ -55,6 +55,12 @@ class SimbodyMatterSubsystem;
 class MobilizedBody;
 class MobilizedBodyImpl;
 
+// We only want the template instantiation to occur once. This symbol is defined in the SimTK core
+// compilation unit that defines the mobilized body class but should not be defined any other time.
+#ifndef SimTK_DEFINING_MOBILIZED_BODY
+    extern template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl>;
+#endif
+
 /**
  * This is the base class for all MobilizedBody classes, which is just a handle for the underlying
  * hidden implementation. Each built-in MobilizedBody type is a local subclass within
@@ -67,12 +73,6 @@ class MobilizedBodyImpl;
  *    - binary compatible interface
  *    - custom object interface
  */
-
-// We only want the template instantiation to occur once. This symbol is defined in the SimTK core
-// compilation unit that defines the mobilized body class but should not be defined any other time.
-#ifndef SimTK_DEFINING_MOBILIZED_BODY
-    extern template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl>;
-#endif
 
 class SimTK_SIMBODY_EXPORT MobilizedBody : public PIMPLHandle<MobilizedBody, MobilizedBodyImpl> {
 public:
@@ -886,12 +886,12 @@ public:
     /// that is, its acceleration relative to the ground frame, expressed in the
     /// ground frame. Cost is 48 flops. This operator is available at Acceleration stage.
     Vec3 calcBodyFixedPointAccelerationInGround(const State& s, const Vec3& stationOnB) const {
-        const Vec3& w  = getBodyAngularVelocity(s);     // in G
-        const Vec3& aa = getBodyAngularAcceleration(s); // in G
-        const Vec3& a  = getBodyOriginAcceleration(s);  // in G
+        const Vec3& w = getBodyAngularVelocity(s);     // in G
+        const Vec3& b = getBodyAngularAcceleration(s); // in G
+        const Vec3& a = getBodyOriginAcceleration(s);  // in G
 
         const Vec3  r = expressBodyVectorInGround(s,stationOnB); // 15 flops
-        return a + aa % r + w % (w % r);                         // 33 flops
+        return a + b % r + w % (w % r);                          // 33 flops
     }
 
     /// It is cheaper to calculate a station's ground location, velocity, and acceleration together
@@ -907,14 +907,14 @@ public:
         const Vec3 r = R_GB*locationOnB; // re-express station vector in G (15 flops)
         locationOnGround = r_G_OB + r;   // 3 flops
 
-        const Vec3& w  = getBodyAngularVelocity(s); // in G
-        const Vec3& v  = getBodyOriginVelocity(s);  // in G
-        const Vec3& aa = getBodyAngularAcceleration(s); // in G
-        const Vec3& a  = getBodyOriginAcceleration(s);  // in G
+        const Vec3& w = getBodyAngularVelocity(s);      // in G
+        const Vec3& v = getBodyOriginVelocity(s);       // in G
+        const Vec3& b = getBodyAngularAcceleration(s);  // in G
+        const Vec3& a = getBodyOriginAcceleration(s);   // in G
 
         const Vec3 wXr = w % r; // "whipping" velocity w X r due to angular velocity (9 flops)
-        velocityInGround     = v + wXr;              // v + w X r (3 flops)
-        accelerationInGround = a + aa % r + w % wXr; // 24 flops
+        velocityInGround     = v + wXr;                 // v + w X r (3 flops)
+        accelerationInGround = a + b % r + w % wXr;     // 24 flops
     }
 
     /// Given a station fixed on body B, return its velocity relative to the body frame of
@@ -955,7 +955,7 @@ public:
 
     // Implicit conversion to MobilizedBodyIndex when needed.
     operator MobilizedBodyIndex() const {return getMobilizedBodyIndex();}
-    MobilizedBodyIndex        getMobilizedBodyIndex()     const; // id of this mobilized body
+    MobilizedBodyIndex     getMobilizedBodyIndex()  const; // index of this mobilized body
     const MobilizedBody&   getParentMobilizedBody() const; // the inboard body (not allowed if this is ground)
     const MobilizedBody&   getBaseMobilizedBody()   const; // the lowest numbered ancestor body on this branch
                                                            //   (returns Ground if if this is Ground)

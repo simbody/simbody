@@ -140,7 +140,7 @@ private:
     bool topologyRealized;
 
     // Sorted in nondecreasing order of ancestor MobilizedBodyIndex.
-    std::vector<ConstraintIndex>       coupledConstraints;
+    std::vector<ConstraintIndex>    coupledConstraints;
     SimbodyMatterSubsystem::Subtree coupledSubtree; // with the new ancestor
 };
 
@@ -303,13 +303,13 @@ public:
     const Transform&      getDefaultMobilizerFrame        (MobilizedBodyIndex b) const;
     const Transform&      getDefaultMobilizerFrameOnParent(MobilizedBodyIndex b) const;
 
-    void findMobilizerQs(const State& s, MobilizedBodyIndex body, int& qStart, int& nq) const {
+    void findMobilizerQs(const State& s, MobilizedBodyIndex body, QIndex& qStart, int& nq) const {
         const RigidBodyNode& n = getRigidBodyNode(body);
         qStart = n.getQIndex();
         nq     = n.getNQ(getModelVars(s));
     }
 
-    void findMobilizerUs(const State& s, MobilizedBodyIndex body, int& uStart, int& nu) const {
+    void findMobilizerUs(const State& s, MobilizedBodyIndex body, UIndex& uStart, int& nu) const {
         const RigidBodyNode& n = getRigidBodyNode(body);
         uStart = n.getUIndex();
         nu     = n.getDOF();
@@ -594,7 +594,8 @@ public:
 
     int  getNQuaternionsInUse(const State&) const;						 // mquat
     bool isUsingQuaternion(const State&, MobilizedBodyIndex) const;
-    int  getQuaternionIndex(const State&, MobilizedBodyIndex) const; // -1 if none
+    QuaternionPoolIndex getQuaternionPoolIndex(const State&, MobilizedBodyIndex) const; // Invalid if none
+    AnglePoolIndex      getAnglePoolIndex     (const State&, MobilizedBodyIndex) const; // Invalid if none
 
 	// Note that although holonomic constraints are position-level constraints, they
 	// do *not* include quaternion constraints (although the state's QErr vector does
@@ -961,9 +962,9 @@ private:
 
     // Initialize to 0 at beginning of construction. These are for doling
     // out Q & U state variables to the nodes.
-    int nextUSlot;
-    int nextUSqSlot;
-    int nextQSlot;
+    UIndex        nextUSlot;
+    USquaredIndex nextUSqSlot;
+    QIndex        nextQSlot;
 
     // These are similarly for doling out slots for *topological* constraint
     // equations for position errors, velocity errors, and multipliers.

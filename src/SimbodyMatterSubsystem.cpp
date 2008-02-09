@@ -254,10 +254,12 @@ int SimbodyMatterSubsystem::getNQuaternionsInUse(const State& s) const {
 bool SimbodyMatterSubsystem::isUsingQuaternion(const State& s, MobilizedBodyIndex body) const {
     return getRep().isUsingQuaternion(s, body);
 }
-int SimbodyMatterSubsystem::getQuaternionIndex(const State& s, MobilizedBodyIndex body) const {
-    return getRep().getQuaternionIndex(s, body);
+QuaternionPoolIndex SimbodyMatterSubsystem::getQuaternionPoolIndex(const State& s, MobilizedBodyIndex body) const {
+    return getRep().getQuaternionPoolIndex(s, body);
 }
-
+AnglePoolIndex SimbodyMatterSubsystem::getAnglePoolIndex(const State& s, MobilizedBodyIndex body) const {
+    return getRep().getAnglePoolIndex(s, body);
+}
 const SpatialVec&
 SimbodyMatterSubsystem::getCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
     return getRep().getCoriolisAcceleration(s,body);
@@ -304,25 +306,25 @@ SimbodyMatterSubsystem::getAllParticleAccelerations(const State& s) const {
 }
 
 void SimbodyMatterSubsystem::addInStationForce(const State& s, MobilizedBodyIndex body, const Vec3& stationInB, 
-                                        const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const 
+                                               const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const 
 {
     assert(bodyForces.size() == getRep().getNBodies());
     const Rotation& R_GB = getRep().getBodyTransform(s,body).R();
     bodyForces[body] += SpatialVec((R_GB*stationInB) % forceInG, forceInG);
 }
 void SimbodyMatterSubsystem::addInBodyTorque(const State& s, MobilizedBodyIndex body, const Vec3& torqueInG,
-                                      Vector_<SpatialVec>& bodyForces) const 
+                                             Vector_<SpatialVec>& bodyForces) const 
 {
     assert(bodyForces.size() == getRep().getNBodies());
     bodyForces[body][0] += torqueInG; // no force
 }
-void SimbodyMatterSubsystem::addInMobilityForce(const State& s, MobilizedBodyIndex body, int index, Real d,
-                                         Vector& mobilityForces) const 
+void SimbodyMatterSubsystem::addInMobilityForce(const State& s, MobilizedBodyIndex body, MobilizedBodyUIndex which, Real d,
+                                                Vector& mobilityForces) const 
 { 
     assert(mobilityForces.size() == getRep().getNMobilities());
-    int uStart, nu; getRep().findMobilizerUs(s,body,uStart,nu);
-    assert(0 <= index && index < nu);
-    mobilityForces[uStart+index] += d;
+    UIndex uStart; int nu; getRep().findMobilizerUs(s,body,uStart,nu);
+    assert(0 <= which && which < nu);
+    mobilityForces[uStart+which] += d;
 }
 
 Vector_<Vec3>& SimbodyMatterSubsystem::updAllParticleLocations(State& s) const {

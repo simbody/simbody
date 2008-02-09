@@ -285,7 +285,7 @@ try // If anything goes wrong, an exception will be thrown.
     for (MobilizedBodyIndex i(0); i<myRNA.getNBodies(); ++i) {
         printf("body %2d: using quat? %s; quat index=%d\n",
             (int)i, myRNA.isUsingQuaternion(s,i) ? "true":"false", 
-            myRNA.getQuaternionIndex(s,i));
+            myRNA.getQuaternionPoolIndex(s,i));
     }
 
     ugs.updGravity(s) *= 10;
@@ -301,7 +301,7 @@ try // If anything goes wrong, an exception will be thrown.
     //VerletIntegrator myStudy(mbs);
     //ExplicitEulerIntegrator myStudy(mbs);
 
-    myStudy.setAccuracy(1e-1);
+    myStudy.setAccuracy(1e-2);
     myStudy.setConstraintTolerance(1e-2); 
     myStudy.setProjectEveryStep(false);
 

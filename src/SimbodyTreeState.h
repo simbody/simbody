@@ -77,15 +77,9 @@
 #include <vector>
 
 
-using SimTK::State; using SimTK::Vector; using SimTK::Vec3;
-using SimTK::Rotation; using SimTK::Transform; using SimTK::Inertia;
-using SimTK::Real; using SimTK::Vector_;
-using SimTK::UnitVec3; using SimTK::SpatialVec; using SimTK::SpatialRow; 
-using SimTK::SpatialMat; using SimTK::Matrix_;
-using SimTK::PhiMatrix; using SimTK::Mat33; using SimTK::MassProperties; using SimTK::Stage;
-using SimTK::Segment;
+using namespace SimTK;
 
-class State;
+class SimTK::State;
 
 class SimbodyMatterSubsystemRep;
 class RigidBodyNode;
@@ -150,7 +144,7 @@ public:
 
 class SBModelCache {
 public:
-    // TODO: Modeling
+    // Modeling
     //   counts of various things resulting from modeling choices,
     //   constraint enabling, prescribed motion
 
@@ -158,6 +152,7 @@ public:
         clear();
     }
 
+    // Restore this cache entry to its just-constructed condition.
     void clear() {
         instanceVarsIndex = instanceCacheIndex
         = timeVarsIndex = timeCacheIndex
@@ -165,14 +160,105 @@ public:
         = uIndex = uVarsIndex = uCacheIndex
         = dynamicsVarsIndex = dynamicsCacheIndex
         = accelerationVarsIndex = accelerationCacheIndex
-        = nHolonomicConstraintEquationsInUse = nNonholonomicConstraintEquationsInUse = nAccelerationOnlyConstraintEquationsInUse
-        = nQuaternionsInUse = firstQuaternionQErrSlot 
-        = qErrIndex = uErrIndex = udotErrIndex = -1;
+        = firstQuaternionQErrSlot = qErrIndex = uErrIndex = udotErrIndex
+        = totalNHolonomicConstraintEquationsInUse 
+        = totalNNonholonomicConstraintEquationsInUse 
+        = totalNAccelerationOnlyConstraintEquationsInUse
+        = totalNQuaternionsInUse = -1;
 
-        mHolonomicEquationsInUse.clear(); mNonholonomicEquationsInUse.clear(); mAccelerationOnlyEquationsInUse.clear();
-        holoErrSegment.clear(); nonholoErrSegment.clear(); accOnlyErrSegment.clear();
-        quaternionIndex.clear();
+        mobilizedBodyModelInfo.clear();
+        constraintModelInfo.clear();
     }
+
+    void allocate(const SBTopologyCache& tc) {
+        mobilizedBodyModelInfo.resize(tc.nBodies);
+        constraintModelInfo.resize(tc.nConstraints);
+    }
+
+        // MOBILIZED BODY MODELING INFORMATION
+
+    class PerMobilizedBodyModelInfo {
+    public:
+        PerMobilizedBodyModelInfo() : nQInUse(-1), nUInUse(-1), hasQuaternionInUse(false), nAnglesInUse(-1) { }
+
+        int nQInUse, nUInUse;
+        QIndex firstQIndex; // These count from 0 for this SimbodyMatterSubsystem
+        UIndex firstUIndex;
+
+        // In case there is a quaternion in use by this Mobilizer. The index here can be
+        // used to find precalculated data associated with this quaternion, such as its current length.
+        bool                hasQuaternionInUse;
+        MobilizedBodyQIndex startOfQuaternion;   // 0..nQInUse-1: which local coordinate starts the quaternion if any?
+        QuaternionPoolIndex quaternionPoolIndex; // assigned slot # for this MB's quat, -1 if none
+
+        // In case there are any generalized coordinates which are angles. We require that the
+        // angular coordinates be consecutive and just store the number of angles and the coordinate
+        // index of the first one. The index can be used to find precalculated data associated with
+        // angles, such as their sines and cosines.
+        int                 nAnglesInUse;
+        MobilizedBodyQIndex startOfAngles;  // 0..nQInUse-1: which local coordinate starts angles if any?
+        AnglePoolIndex      anglePoolIndex; // start of assigned segment for this MB's angle information, if any
+    };
+
+
+        // CONSTRAINT MODELING INFORMATION
+
+    // Store some Model-stage information about each Constraint. Most important, we don't
+    // know how many constraint equations (if any) the Constraint will generate until
+    // Model stage. In particular, a disabled Constraint won't generate any equations (it
+    // will have an Info entry here, however). Also, although we know the Constrained
+    // Bodies at Topology stage, we don't know the specific number or types of internal
+    // coordinates involved until Model stage.
+
+    struct PerConstrainedBodyModelInfo {
+        // The correspondence between Constrained Bodies and Mobilized Bodies is
+        // Topological information you can pull from the TopologyCache. We're going
+        // to keep a copy of it here for convenience and to permit some redundancy checks.
+        // See the MobilizedBody for counts of its q's and u's, which define the allocated
+        // number of slots for the ConstrainedBody as well.
+        MobilizedBodyIndex correspondingMobilizedBody;
+        ConstrainedQIndex  firstConstrainedQIndex; // these count from 0 for each Constraint
+        ConstrainedUIndex  firstConstrainedUIndex;
+    };
+        
+    class PerConstraintModelInfo {
+        // Access using accessor methods below so you'll get type checking on the index type.
+        std::vector<PerConstrainedBodyModelInfo> constrainedBodyModelInfo;
+    public:
+        PerConstraintModelInfo() : nConstrainedQs(-1), nConstrainedUs(-1) { }
+        const PerConstrainedBodyModelInfo& getConstrainedBodyModelInfo(ConstrainedBodyIndex b) const {
+            return constrainedBodyModelInfo[b];
+        }
+        PerConstrainedBodyModelInfo& updConstrainedBodyModelInfo(ConstrainedBodyIndex b) {
+            return constrainedBodyModelInfo[b];
+        }
+        Segment holoErrSegment;    // (offset,mHolo)    for each Constraint, within subsystem qErr
+        Segment nonholoErrSegment; // (offset,mNonholo) same, but for uErr slots (after holo derivs)
+        Segment accOnlyErrSegment; // (offset,mAccOnly) same, but for udotErr slots (after holo/nonholo derivs)
+
+        int nConstrainedQs; // sum of the #q's of the ConstrainedBodies for this Constraint
+        int nConstrainedUs; //       "    #u's                "
+    };
+
+    // Use these accessors so that you get type checking on the index types.
+    PerMobilizedBodyModelInfo& updMobilizedBodyModelInfo(MobilizedBodyIndex mbx) {
+        return mobilizedBodyModelInfo[mbx];
+    }
+    const PerMobilizedBodyModelInfo& getMobilizedBodyModelInfo(MobilizedBodyIndex mbx) const {
+        return mobilizedBodyModelInfo[mbx];
+    }
+    PerConstraintModelInfo& updConstraintModelInfo(ConstraintIndex cx) {
+        return constraintModelInfo[cx];
+    }
+    const PerConstraintModelInfo& getConstraintModelInfo(ConstraintIndex cx) const {
+        return constraintModelInfo[cx];
+    }
+
+        // STATE ALLOCATION FOR THIS SUBSYSTEM
+
+    // Note that a MatterSubsystem is only one of potentially many users of a System's State, so only
+    // a subset of State variables and State Cache entries belong to it. Here we record the indices
+    // we were given when we asked the State for some resources.
 
     int instanceVarsIndex, instanceCacheIndex;
     int timeVarsIndex, timeCacheIndex;
@@ -183,38 +269,9 @@ public:
     int dynamicsVarsIndex, dynamicsCacheIndex;
     int accelerationVarsIndex, accelerationCacheIndex;
 
-    // For each Constraint, record the number of holonomic, nonholonomic, and
-    // acceleration-only constraint equations currently in use by that Constraint, that is,
-    // given the current values for Model-stage variables.
-    //
-    // Note here that "nonholonomic" is not a synonym for "velocity". Nonholonomic does not
-    // include velocity-level constraints generated by differentiation of 
-    // holnomic constraints. Similarly, acceleration-only does not include
-    // contributions from holonomic and nonholonomic differentiation.
-    //
-    // Note that disabled constraints will still have entries here, but they will
-    // all be zero.
-    std::vector<int> mHolonomicEquationsInUse;
-    std::vector<int> mNonholonomicEquationsInUse;
-    std::vector<int> mAccelerationOnlyEquationsInUse;
-
-    // These are the sums of the per-Constraint data above. The number of
-	// position constraint equations (not counting quaternion normalization constraints)
-	// is the same as the number of holonomic constraints mHolo. The number of velocity
-	// constraint equations is mHolo+mNonholo. The number of acceleration constraints,
-	// and thus the number of multipliers, is mHolo+mNonholo+mAccOnly.
-    int nHolonomicConstraintEquationsInUse;         // sum(mHolo)    (#position equations = mHolo)
-	int nNonholonomicConstraintEquationsInUse;      // sum(mNonholo) (#velocity equations = mHolo+mNonholo)
-    int nAccelerationOnlyConstraintEquationsInUse;  // sum(mAccOnly) (#acceleration eqns  = mHolo+mNonholo+mAccOnly)
-
-    std::vector<Segment> holoErrSegment;    // (offset,mHolo)    for each Constraint, within subsystem qErr
-    std::vector<Segment> nonholoErrSegment; // (offset,mNonholo) same, but for uErr slots (after holo derivs)
-    std::vector<Segment> accOnlyErrSegment; // (offset,mAccOnly) same, but for udotErr slots (after holo/nonholo derivs)
-
     // Quaternion errors go in qErr also, but after all the physical contraint errors. That is,
-    // they start at index nPositionConstraintEquationsInUse.
-    int nQuaternionsInUse, firstQuaternionQErrSlot;
-    std::vector<int> quaternionIndex; // nb (-1 for bodies w/no quats)
+    // they start at index totalNHolonomicConstraintEquationsInUse.
+    int firstQuaternionQErrSlot;
 
     // These record where in the full System's State our Subsystem's qErr, uErr, and udotErr
     // entries begin. That is, this subsystem's segments can be found at
@@ -223,16 +280,26 @@ public:
     //    udotErr(udotErrIndex, nAccelerationConstraintEquationsInUse)
     int qErrIndex, uErrIndex, udotErrIndex;
 
-public:
-    void allocate(const SBTopologyCache& tc) {
-        mHolonomicEquationsInUse.resize(tc.nConstraints);
-        mNonholonomicEquationsInUse.resize(tc.nConstraints);
-        mAccelerationOnlyEquationsInUse.resize(tc.nConstraints);
-        holoErrSegment.resize(tc.nConstraints);
-        nonholoErrSegment.resize(tc.nConstraints);
-        accOnlyErrSegment.resize(tc.nConstraints);
-        quaternionIndex.resize(tc.nBodies, -1); // init to -1
-    }
+
+
+    // These are sums over the per-MobilizedBody counts above.
+    int totalNQInUse, totalNUInUse, totalNQuaternionsInUse;
+
+
+    // These are the sums over the per-Constraint data above. The number of
+	// position constraint equations (not counting quaternion normalization constraints)
+	// is the same as the number of holonomic constraints mHolo. The number of velocity
+	// constraint equations is mHolo+mNonholo. The number of acceleration constraints,
+	// and thus the number of multipliers, is mHolo+mNonholo+mAccOnly.
+    int totalNHolonomicConstraintEquationsInUse;         // sum(mHolo)    (#position equations = mHolo)
+	int totalNNonholonomicConstraintEquationsInUse;      // sum(mNonholo) (#velocity equations = mHolo+mNonholo)
+    int totalNAccelerationOnlyConstraintEquationsInUse;  // sum(mAccOnly) (#acceleration eqns  = mHolo+mNonholo+mAccOnly)
+
+
+private:
+    // Use accessor routines for these so that you get type checking on the index types.
+    std::vector<PerMobilizedBodyModelInfo> mobilizedBodyModelInfo; // MobilizedBody 0 is Ground
+    std::vector<PerConstraintModelInfo>    constraintModelInfo;
 };
 
 class SBInstanceCache {

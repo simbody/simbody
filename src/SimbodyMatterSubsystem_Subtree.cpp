@@ -1065,12 +1065,13 @@ initializeSubtreeResults(const State& s, SubtreeResults::SubtreeResultsRep& sr) 
     for (SubtreeBodyIndex sb(1); sb < nSubtreeBodies; ++sb) {
         const MobilizedBodyIndex mb = allBodies[sb];
 
-        int qStart, nq, uStart, nu;
+        QIndex qStart; int nq;
+        UIndex uStart; int nu;
         matter.findMobilizerQs(s, mb, qStart, nq);
         matter.findMobilizerUs(s, mb, uStart, nu);
         nSubtreeQ += nq; nSubtreeU += nu;
 
-        sr.addMobilities(sb, QIndex(qStart), nq, UIndex(uStart), nu);
+        sr.addMobilities(sb, qStart, nq, uStart, nu);
     }
 
     sr.realizeModel(matter.getQ(s), matter.getU(s));

@@ -190,7 +190,9 @@ public:
         MassProperties(Infinity, Vec3(0), Infinity*Inertia(1)),
         Transform(), Transform(), QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed) 
     {
-        uIndex = uSqIndex = qIndex = 0;
+        uIndex   = UIndex(0);
+        uSqIndex = USquaredIndex(0);
+        qIndex   = QIndex(0);
     }
     ~RBGroundBody() {}
 
@@ -383,9 +385,9 @@ public:
     RigidBodyNodeSpec(const MassProperties& mProps_B,
                       const Transform&      X_PF,
                       const Transform&      X_BM,
-                      int&                  nextUSlot,
-                      int&                  nextUSqSlot,
-                      int&                  nextQSlot,
+                      UIndex&               nextUSlot,
+                      USquaredIndex&        nextUSqSlot,
+                      QIndex&               nextQSlot,
                       QDotHandling          qdotHandling,
                       QuaternionUse         quaternionUse)
       : RigidBodyNode(mProps_B, X_PF, X_BM, qdotHandling, quaternionUse)
@@ -396,7 +398,7 @@ public:
         qIndex   = nextQSlot;
     }
 
-    void updateSlots(int& nextUSlot, int& nextUSqSlot, int& nextQSlot) {
+    void updateSlots(UIndex& nextUSlot, USquaredIndex& nextUSqSlot, QIndex& nextQSlot) {
         // OK to call virtual method here.
         nextUSlot   += getDOF();
         nextUSqSlot += getDOF()*getDOF();
@@ -1040,9 +1042,9 @@ public:
     RBNodeTranslate(const MassProperties& mProps_B,
                     const Transform&      X_PF,
                     const Transform&      X_BM,
-                    int&                  nextUSlot,
-                    int&                  nextUSqSlot,
-                    int&                  nextQSlot)
+                    UIndex&               nextUSlot,
+                    USquaredIndex&        nextUSqSlot,
+                    QIndex&               nextQSlot)
       : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
                              QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
     {
@@ -1131,9 +1133,9 @@ public:
     RBNodeSlider(const MassProperties& mProps_B,
                  const Transform&      X_PF,
                  const Transform&      X_BM,
-                 int&                  nextUSlot,
-                 int&                  nextUSqSlot,
-                 int&                  nextQSlot)
+                 UIndex&               nextUSlot,
+                 USquaredIndex&        nextUSqSlot,
+                 QIndex&               nextQSlot)
       : RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
                              QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
     {
@@ -1217,9 +1219,9 @@ public:
     RBNodeTorsion(const MassProperties& mProps_B,
                   const Transform&      X_PF,
                   const Transform&      X_BM,
-                  int&                  nextUSlot,
-                  int&                  nextUSqSlot,
-                  int&                  nextQSlot)
+                  UIndex&               nextUSlot,
+                  USquaredIndex&        nextUSqSlot,
+                  QIndex&               nextQSlot)
       : RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
                              QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
     {
@@ -1328,9 +1330,9 @@ public:
                 const Transform&      X_PF,
                 const Transform&      X_BM,
                 Real                  p,  // the pitch
-                int&                  nextUSlot,
-                int&                  nextUSqSlot,
-                int&                  nextQSlot)
+                UIndex&               nextUSlot,
+                USquaredIndex&        nextUSqSlot,
+                QIndex&               nextQSlot)
       : RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
                              QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed),
         pitch(p)
@@ -1432,9 +1434,9 @@ public:
     RBNodeCylinder(const MassProperties& mProps_B,
                    const Transform&      X_PF,
                    const Transform&      X_BM,
-                   int&                  nextUSlot,
-                   int&                  nextUSqSlot,
-                   int&                  nextQSlot)
+                   UIndex&               nextUSlot,
+                   USquaredIndex&        nextUSqSlot,
+                   QIndex&               nextQSlot)
       : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
                              QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
     {
@@ -1542,9 +1544,9 @@ public:
     RBNodeBendStretch(const MassProperties& mProps_B,
                       const Transform&      X_PF,
                       const Transform&      X_BM,
-                      int&                  nextUSlot,
-                      int&                  nextUSqSlot,
-                      int&                  nextQSlot)
+                      UIndex&               nextUSlot,
+                      USquaredIndex&        nextUSqSlot,
+                      QIndex&               nextQSlot)
       : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
                              QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
     {
@@ -1715,9 +1717,9 @@ public:
     RBNodeUJoint(const MassProperties& mProps_B,
                  const Transform&      X_PF,
                  const Transform&      X_BM,
-                 int&                  nextUSlot,
-                 int&                  nextUSqSlot,
-                 int&                  nextQSlot)
+                 UIndex&               nextUSlot,
+                 USquaredIndex&        nextUSqSlot,
+                 QIndex&               nextQSlot)
       : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
                              QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
     {
@@ -1835,9 +1837,9 @@ public:
     RBNodePlanar(const MassProperties& mProps_B,
                  const Transform&      X_PF,
                  const Transform&      X_BM,
-                 int&                  nextUSlot,
-                 int&                  nextUSqSlot,
-                 int&                  nextQSlot)
+                 UIndex&               nextUSlot,
+                 USquaredIndex&        nextUSqSlot,
+                 QIndex&               nextQSlot)
       : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
                              QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
     {
@@ -1949,9 +1951,9 @@ public:
     RBNodeGimbal( const MassProperties& mProps_B,
                   const Transform&      X_PF,
                   const Transform&      X_BM,
-                  int&                  nextUSlot,
-                  int&                  nextUSqSlot,
-                  int&                  nextQSlot)
+                  UIndex&               nextUSlot,
+                  USquaredIndex&        nextUSqSlot,
+                  QIndex&               nextQSlot)
       : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
                              QDotMayDifferFromU, QuaternionIsNeverUsed)
     {
@@ -2167,9 +2169,9 @@ public:
     RBNodeBall(const MassProperties& mProps_B,
                const Transform&      X_PF,
                const Transform&      X_BM,
-               int&                  nextUSlot,
-               int&                  nextUSqSlot,
-               int&                  nextQSlot)
+               UIndex&               nextUSlot,
+               USquaredIndex&        nextUSqSlot,
+               QIndex&               nextQSlot)
       : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
                              QDotMayDifferFromU, QuaternionMayBeUsed)
     {
@@ -2214,6 +2216,8 @@ public:
         Vector&             qErr,
         Vector&             qnorm) const
     {
+        const SBModelCache::PerMobilizedBodyModelInfo& bInfo = mc.getMobilizedBodyModelInfo(nodeNum);
+
         if (getUseEulerAngles(mv)) {
             const Vec3& a = fromQ(q); // angular coordinates
             toQ(sine)   = Vec3(std::sin(a[0]), std::sin(a[1]), std::sin(a[2]));
@@ -2223,8 +2227,8 @@ public:
             // no angles
             const Vec4& quat = fromQuat(q); // unnormalized quaternion from state
             const Real  quatLen = quat.norm();
-            assert(mc.quaternionIndex[nodeNum] >= 0);
-            qErr[mc.firstQuaternionQErrSlot+mc.quaternionIndex[nodeNum]] = quatLen - Real(1);
+            assert(bInfo.hasQuaternionInUse && bInfo.quaternionPoolIndex.isValid());
+            qErr[mc.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
             toQuat(qnorm) = quat / quatLen;
         }
     }
@@ -2526,9 +2530,9 @@ public:
                   const Transform&      X_PF,
                   const Transform&      X_BM,
                   const Vec3&           radii, // x,y,z
-				  int&                  nextUSlot,
-                  int&                  nextUSqSlot,
-                  int&                  nextQSlot)
+                  UIndex&               nextUSlot,
+                  USquaredIndex&        nextUSqSlot,
+                  QIndex&               nextQSlot)
       : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
                              QDotMayDifferFromU, QuaternionMayBeUsed),
         semi(radii)
@@ -2631,6 +2635,8 @@ public:
         Vector&             qErr,
         Vector&             qnorm) const
     {
+        const SBModelCache::PerMobilizedBodyModelInfo& bInfo = mc.getMobilizedBodyModelInfo(nodeNum);
+
         if (getUseEulerAngles(mv)) {
             const Vec3& a = fromQ(q); // angular coordinates
             toQ(sine)   = Vec3(std::sin(a[0]), std::sin(a[1]), std::sin(a[2]));
@@ -2641,9 +2647,9 @@ public:
             const Vec4& quat = fromQuat(q); // unnormalized quaternion from state
             const Real  quatLen = quat.norm();
 
-            assert(mc.quaternionIndex[nodeNum] >= 0);
+            assert(bInfo.hasQuaternionInUse && bInfo.quaternionPoolIndex.isValid());
 
-            qErr[mc.firstQuaternionQErrSlot+mc.quaternionIndex[nodeNum]] = quatLen - Real(1);
+            qErr[mc.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
             toQuat(qnorm) = quat / quatLen;
         }
     }
@@ -2876,9 +2882,9 @@ public:
     RBNodeFree(const MassProperties& mProps_B,
                const Transform&      X_PF,
                const Transform&      X_BM,
-               int&                  nextUSlot,
-               int&                  nextUSqSlot,
-               int&                  nextQSlot)
+               UIndex&               nextUSlot,
+               USquaredIndex&        nextUSqSlot,
+               QIndex&               nextQSlot)
       : RigidBodyNodeSpec<6>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
                              QDotMayDifferFromU, QuaternionMayBeUsed)
     {
@@ -2930,6 +2936,8 @@ public:
         Vector&             qErr,
         Vector&             qnorm) const
     {
+        const SBModelCache::PerMobilizedBodyModelInfo& bInfo = mc.getMobilizedBodyModelInfo(nodeNum);
+
         if (getUseEulerAngles(mv)) {
             const Vec3& a = fromQ(q).getSubVec<3>(0); // angular coordinates
             toQ(sine).updSubVec<3>(0)   = Vec3(std::sin(a[0]), std::sin(a[1]), std::sin(a[2]));
@@ -2939,8 +2947,8 @@ public:
             // no angles
             const Vec4& quat = fromQuat(q); // unnormalized quaternion from state
             const Real  quatLen = quat.norm();
-            assert(mc.quaternionIndex[nodeNum] >= 0);
-            qErr[mc.firstQuaternionQErrSlot+mc.quaternionIndex[nodeNum]] = quatLen - Real(1);
+            assert(bInfo.hasQuaternionInUse && bInfo.quaternionPoolIndex.isValid());
+            qErr[mc.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
             toQuat(qnorm) = quat / quatLen;
         }
     }
@@ -3220,9 +3228,9 @@ public:
     RBNodeLineOrientation(const MassProperties& mProps_B,
                           const Transform&      X_PF,
                           const Transform&      X_BM,
-                          int&                  nextUSlot,
-                          int&                  nextUSqSlot,
-                          int&                  nextQSlot)
+                          UIndex&               nextUSlot,
+                          USquaredIndex&        nextUSqSlot,
+                          QIndex&               nextQSlot)
       : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
                              QDotMayDifferFromU, QuaternionMayBeUsed)
     {
@@ -3275,6 +3283,8 @@ public:
         Vector&             qErr,
         Vector&             qnorm) const
     {
+        const SBModelCache::PerMobilizedBodyModelInfo& bInfo = mc.getMobilizedBodyModelInfo(nodeNum);
+
         if (getUseEulerAngles(mv)) {
             const Vec3& a = fromQVec3(q,0); // angular coordinates
             toQVec3(sine,0)   = Vec3(std::sin(a[0]), std::sin(a[1]), std::sin(a[2]));
@@ -3284,8 +3294,8 @@ public:
             // no angles
             const Vec4& quat = fromQuat(q); // unnormalized quaternion from state
             const Real  quatLen = quat.norm();
-            assert(mc.quaternionIndex[nodeNum] >= 0);
-            qErr[mc.firstQuaternionQErrSlot+mc.quaternionIndex[nodeNum]] = quatLen - Real(1);
+            assert(bInfo.hasQuaternionInUse && bInfo.quaternionPoolIndex.isValid());
+            qErr[mc.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
             toQuat(qnorm) = quat / quatLen;
         }
     }
@@ -3534,9 +3544,9 @@ public:
     RBNodeFreeLine(const MassProperties& mProps_B,
                    const Transform&      X_PF,
                    const Transform&      X_BM,
-                   int&                  nextUSlot,
-                   int&                  nextUSqSlot,
-                   int&                  nextQSlot)
+                   UIndex&               nextUSlot,
+                   USquaredIndex&        nextUSqSlot,
+                   QIndex&               nextQSlot)
       : RigidBodyNodeSpec<5>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
                              QDotMayDifferFromU, QuaternionMayBeUsed)
     {
@@ -3597,6 +3607,8 @@ public:
         Vector&             qErr,
         Vector&             qnorm) const
     {
+        const SBModelCache::PerMobilizedBodyModelInfo& bInfo = mc.getMobilizedBodyModelInfo(nodeNum);
+
         if (getUseEulerAngles(mv)) {
             const Vec3& a = fromQ(q).getSubVec<3>(0); // angular coordinates
             toQ(sine).updSubVec<3>(0)   = Vec3(std::sin(a[0]), std::sin(a[1]), std::sin(a[2]));
@@ -3606,8 +3618,8 @@ public:
             // no angles
             const Vec4& quat = fromQuat(q); // unnormalized quaternion from state
             const Real  quatLen = quat.norm();
-            assert(mc.quaternionIndex[nodeNum] >= 0);
-            qErr[mc.firstQuaternionQErrSlot+mc.quaternionIndex[nodeNum]] = quatLen - Real(1);
+            assert(bInfo.hasQuaternionInUse && bInfo.quaternionPoolIndex.isValid());
+            qErr[mc.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
             toQuat(qnorm) = quat / quatLen;
         }
     }
@@ -4333,188 +4345,188 @@ RigidBodyNode::createGroundNode() {
     ///////////////////////////////////////////////////////////////////////
 
 RigidBodyNode* MobilizedBody::PinImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     return new RBNodeTorsion(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
-        nxtUSlot,nxtUSqSlot,nxtQSlot);
+        nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 RigidBodyNode* MobilizedBody::SliderImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     return new RBNodeSlider(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
-        nxtUSlot,nxtUSqSlot,nxtQSlot);
+        nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 RigidBodyNode* MobilizedBody::UniversalImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     return new RBNodeUJoint(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
-        nxtUSlot,nxtUSqSlot,nxtQSlot);
+        nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 RigidBodyNode* MobilizedBody::CylinderImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     return new RBNodeCylinder(getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
-        nxtUSlot,nxtUSqSlot,nxtQSlot);
+        nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 RigidBodyNode* MobilizedBody::BendStretchImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     return new RBNodeBendStretch(getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
-        nxtUSlot,nxtUSqSlot,nxtQSlot);
+        nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 RigidBodyNode* MobilizedBody::PlanarImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     return new RBNodePlanar(getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
-        nxtUSlot,nxtUSqSlot,nxtQSlot);
+        nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 RigidBodyNode* MobilizedBody::GimbalImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     return new RBNodeGimbal(getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
-        nxtUSlot,nxtUSqSlot,nxtQSlot);
+        nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 RigidBodyNode* MobilizedBody::BallImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     return new RBNodeBall(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
-        nxtUSlot,nxtUSqSlot,nxtQSlot);
+        nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 RigidBodyNode* MobilizedBody::EllipsoidImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     return new RBNodeEllipsoid(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
         getDefaultRadii(),
-        nxtUSlot,nxtUSqSlot,nxtQSlot);
+        nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 RigidBodyNode* MobilizedBody::TranslationImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     return new RBNodeTranslate(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
-        nxtUSlot,nxtUSqSlot,nxtQSlot);
+        nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 RigidBodyNode* MobilizedBody::FreeImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     return new RBNodeFree(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
-        nxtUSlot,nxtUSqSlot,nxtQSlot);
+        nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 RigidBodyNode* MobilizedBody::LineOrientationImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     return new RBNodeLineOrientation(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
-        nxtUSlot,nxtUSqSlot,nxtQSlot);
+        nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 RigidBodyNode* MobilizedBody::FreeLineImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     return new RBNodeFreeLine(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
-        nxtUSlot,nxtUSqSlot,nxtQSlot);
+        nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 
 RigidBodyNode* MobilizedBody::ScrewImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     return new RBNodeScrew(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
-        getDefaultPitch(),nxtUSlot,nxtUSqSlot,nxtQSlot);
+        getDefaultPitch(),nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 RigidBodyNode* MobilizedBody::WeldImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
-    assert(!"Weld MobilizedBody not implemented yet"); return 0;
+    assert(!"Weld (im)MobilizedBody not implemented yet"); return 0;
     // return new RBNodeWeld(
     //     getDefaultRigidBodyMassProperties(),
     //     getDefaultInboardFrame(),getDefaultOutboardFrame(),
-    //     nxtUSlot,nxtUSqSlot,nxtQSlot);
+    //     nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 
 RigidBodyNode* MobilizedBody::GroundImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     return new RBGroundBody();
 }
 
 RigidBodyNode* MobilizedBody::CustomImpl::createRigidBodyNode(
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot) const
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
 {
     assert(!"Custom MobilizedBody not implemented yet"); return 0;
     // return new RBNodeCustom(
     //     getDefaultRigidBodyMassProperties(),
     //     getDefaultInboardFrame(),getDefaultOutboardFrame(),
-    //     nxtUSlot,nxtUSqSlot,nxtQSlot);
+    //     nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 

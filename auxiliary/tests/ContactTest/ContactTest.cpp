@@ -140,6 +140,9 @@ try
     UniformGravitySubsystem gravityForces(mbs, gravity);
     DecorationSubsystem     artwork(mbs);
 
+    // No, thank you.
+    bouncers.setShowDefaultGeometry(false);
+
     // start with a 2body pendulum with big rubber balls
     Real linkLength = 20.; // m
     Real pendBallRadius = 3; // m

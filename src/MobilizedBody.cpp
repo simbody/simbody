@@ -227,33 +227,33 @@ void MobilizedBody::setUToFitLinearVelocityOnly(State& s, const Vec3& v_MbM) con
 }
 
 int MobilizedBody::getNumQ(const State& s) const {
-    int qStart, nq; getImpl().findMobilizerQs(s, qStart, nq);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s, qStart, nq);
     return nq;
 }
 
 int MobilizedBody::getNumU(const State& s) const {
-    int uStart, nu; getImpl().findMobilizerUs(s, uStart, nu);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s, uStart, nu);
     return nu;
 }
 
 Real  MobilizedBody::getOneFromQPartition(const State& s, int which, const Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s, qStart, nq);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s, qStart, nq);
     assert(0 <= which && which < nq);
     return qlike[qStart+which];
 }
 Real& MobilizedBody::updOneFromQPartition(const State& s, int which, Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s, qStart, nq);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s, qStart, nq);
     assert(0 <= which && which < nq);
     return qlike[qStart+which];
 }
 
 Real  MobilizedBody::getOneFromUPartition(const State& s, int which, const Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s, uStart, nu);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s, uStart, nu);
     assert(0 <= which && which < nu);
     return ulike[uStart+which];
 }
 Real& MobilizedBody::updOneFromUPartition(const State& s, int which, Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s, uStart, nu);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s, uStart, nu);
     assert(0 <= which && which < nu);
     return ulike[uStart+which];
 }
@@ -308,45 +308,45 @@ Real MobilizedBody::getOneQDotDot(const State& s, int which) const {
 
 Vector MobilizedBody::getQVector(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s, qStart, nq);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s, qStart, nq);
     return mbr.getMyMatterSubsystemRep().getQ(s)(qStart,nq);
 }
 
 void MobilizedBody::setQVector(State& s, const Vector& q) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s, qStart, nq);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s, qStart, nq);
     assert(q.size() == nq);
     mbr.getMyMatterSubsystemRep().updQ(s)(qStart,nq) = q;
 }
 
 Vector MobilizedBody::getUVector(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s, uStart, nu);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s, uStart, nu);
     return mbr.getMyMatterSubsystemRep().getU(s)(uStart,nu);
 }
 
 void MobilizedBody::setUVector(State& s, const Vector& u) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s, uStart, nu);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s, uStart, nu);
     assert(u.size() == nu);
     mbr.getMyMatterSubsystemRep().updU(s)(uStart,nu) = u;
 }
 
 Vector MobilizedBody::getQDotVector(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s, qStart, nq);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s, qStart, nq);
     return mbr.getMyMatterSubsystemRep().getQDot(s)(qStart,nq);
 }
 
 Vector MobilizedBody::getUDotVector(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s, uStart, nu);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s, uStart, nu);
     return mbr.getMyMatterSubsystemRep().getUDot(s)(uStart,nu);
 }
 
 Vector MobilizedBody::getQDotDotVector(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s, qStart, nq);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s, qStart, nq);
     return mbr.getMyMatterSubsystemRep().getQDotDot(s)(qStart,nq);
 }
 
@@ -363,11 +363,11 @@ MobilizedBody& MobilizedBody::cloneForNewParent(MobilizedBody& parent) const {
     // MOBILIZED BODY REP //
     ////////////////////////
 
-void MobilizedBodyImpl::findMobilizerQs(const State& s, int& qStart, int& nq) const {
+void MobilizedBodyImpl::findMobilizerQs(const State& s, QIndex& qStart, int& nq) const {
     getMyMatterSubsystemRep()
         .findMobilizerQs(s, myMobilizedBodyIndex, qStart, nq);
 }
-void MobilizedBodyImpl::findMobilizerUs(const State& s, int& uStart, int& nu) const {
+void MobilizedBodyImpl::findMobilizerUs(const State& s, UIndex& uStart, int& nu) const {
     getMyMatterSubsystemRep()
         .findMobilizerUs(s, myMobilizedBodyIndex, uStart, nu);
 }
@@ -375,7 +375,7 @@ void MobilizedBodyImpl::findMobilizerUs(const State& s, int& uStart, int& nu) co
 void MobilizedBodyImpl::copyOutDefaultQ(const State& s, Vector& qDefault) const {
     SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(s), Stage::Topology,
         "MobilizedBody::copyOutDefaultQ()");
-    int qStart, nq;
+    QIndex qStart; int nq;
     findMobilizerQs(s, qStart, nq);
     copyOutDefaultQImpl(nq, &qDefault[qStart]);
 }
@@ -431,7 +431,7 @@ void MobilizedBodyImpl::setUToFitLinearVelocity(State& s, const Vec3& v_MbM,
 
 
 const RigidBodyNode& MobilizedBodyImpl::realizeTopology
-   (int& nxtU, int& nxtUSq, int& nxtQ) const
+   (UIndex& nxtU, USquaredIndex& nxtUSq, QIndex& nxtQ) const
 {
     delete myRBnode;
     myRBnode = createRigidBodyNode(nxtU,nxtUSq,nxtQ);
@@ -491,59 +491,59 @@ MobilizedBody::Pin& MobilizedBody::Pin::setDefaultQ(Real q) {
 
 Real MobilizedBody::Pin::getQ(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
     return mbr.getMyMatterSubsystemRep().getQ(s)[qStart];
 }
 void MobilizedBody::Pin::setQ(State& s, Real q) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
     mbr.getMyMatterSubsystemRep().updQ(s)[qStart] = q;
 }
 Real MobilizedBody::Pin::getQDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
     return mbr.getMyMatterSubsystemRep().getQDot(s)[qStart];
 }
 Real MobilizedBody::Pin::getQDotDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
     return mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart];
 }
 
 
 Real MobilizedBody::Pin::getU(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
     return mbr.getMyMatterSubsystemRep().getU(s)[uStart];
 }
 void MobilizedBody::Pin::setU(State& s, Real u) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
     mbr.getMyMatterSubsystemRep().updU(s)[uStart] = u;
 }
 Real MobilizedBody::Pin::getUDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
     return mbr.getMyMatterSubsystemRep().getUDot(s)[uStart];
 }
 
 Real MobilizedBody::Pin::getMyPartQ(const State& s, const Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 1);
     return qlike[qStart];
 }
 
 Real MobilizedBody::Pin::getMyPartU(const State& s, const Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 1);
     return ulike[uStart];
 }
 
 Real& MobilizedBody::Pin::updMyPartQ(const State& s, Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 1);
     return qlike[qStart];
 }
 
 Real& MobilizedBody::Pin::updMyPartU(const State& s, Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 1);
     return ulike[uStart];
 }
 
@@ -584,59 +584,59 @@ MobilizedBody::Slider& MobilizedBody::Slider::setDefaultQ(Real q) {
 
 Real MobilizedBody::Slider::getQ(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
     return mbr.getMyMatterSubsystemRep().getQ(s)[qStart];
 }
 void MobilizedBody::Slider::setQ(State& s, Real q) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
     mbr.getMyMatterSubsystemRep().updQ(s)[qStart] = q;
 }
 Real MobilizedBody::Slider::getQDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
     return mbr.getMyMatterSubsystemRep().getQDot(s)[qStart];
 }
 Real MobilizedBody::Slider::getQDotDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
     return mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart];
 }
 
 
 Real MobilizedBody::Slider::getU(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
     return mbr.getMyMatterSubsystemRep().getU(s)[uStart];
 }
 void MobilizedBody::Slider::setU(State& s, Real u) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
     mbr.getMyMatterSubsystemRep().updU(s)[uStart] = u;
 }
 Real MobilizedBody::Slider::getUDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
     return mbr.getMyMatterSubsystemRep().getUDot(s)[uStart];
 }
 
 Real MobilizedBody::Slider::getMyPartQ(const State& s, const Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 1);
     return qlike[qStart];
 }
 
 Real MobilizedBody::Slider::getMyPartU(const State& s, const Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 1);
     return ulike[uStart];
 }
 
 Real& MobilizedBody::Slider::updMyPartQ(const State& s, Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 1);
     return qlike[qStart];
 }
 
 Real& MobilizedBody::Slider::updMyPartU(const State& s, Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 1);
     return ulike[uStart];
 }
 
@@ -753,59 +753,59 @@ MobilizedBody::Planar& MobilizedBody::Planar::setDefaultQ(const Vec3& q) {
 
 const Vec3& MobilizedBody::Planar::getQ(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQ(s)[qStart]);
 }
 void MobilizedBody::Planar::setQ(State& s, const Vec3& q) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
     Vec3::updAs(&mbr.getMyMatterSubsystemRep().updQ(s)[qStart]) = q;
 }
 const Vec3& MobilizedBody::Planar::getQDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDot(s)[qStart]);
 }
 const Vec3& MobilizedBody::Planar::getQDotDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart]);
 }
 
 
 const Vec3& MobilizedBody::Planar::getU(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getU(s)[uStart]);
 }
 void MobilizedBody::Planar::setU(State& s, const Vec3& u) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
     Vec3::updAs(&mbr.getMyMatterSubsystemRep().updU(s)[uStart]) = u;
 }
 const Vec3& MobilizedBody::Planar::getUDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getUDot(s)[uStart]);
 }
 
 const Vec3& MobilizedBody::Planar::getMyPartQ(const State& s, const Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
     return Vec3::getAs(&qlike[qStart]);
 }
 
 const Vec3& MobilizedBody::Planar::getMyPartU(const State& s, const Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::getAs(&ulike[uStart]);
 }
 
 Vec3& MobilizedBody::Planar::updMyPartQ(const State& s, Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
     return Vec3::updAs(&qlike[qStart]);
 }
 
 Vec3& MobilizedBody::Planar::updMyPartU(const State& s, Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::updAs(&ulike[uStart]);
 }
 
@@ -856,59 +856,59 @@ MobilizedBody::Gimbal& MobilizedBody::Gimbal::setDefaultQ(const Vec3& q) {
 
 const Vec3& MobilizedBody::Gimbal::getQ(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQ(s)[qStart]);
 }
 void MobilizedBody::Gimbal::setQ(State& s, const Vec3& q) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
     Vec3::updAs(&mbr.getMyMatterSubsystemRep().updQ(s)[qStart]) = q;
 }
 const Vec3& MobilizedBody::Gimbal::getQDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDot(s)[qStart]);
 }
 const Vec3& MobilizedBody::Gimbal::getQDotDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart]);
 }
 
 
 const Vec3& MobilizedBody::Gimbal::getU(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getU(s)[uStart]);
 }
 void MobilizedBody::Gimbal::setU(State& s, const Vec3& u) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
     Vec3::updAs(&mbr.getMyMatterSubsystemRep().updU(s)[uStart]) = u;
 }
 const Vec3& MobilizedBody::Gimbal::getUDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getUDot(s)[uStart]);
 }
 
 const Vec3& MobilizedBody::Gimbal::getMyPartQ(const State& s, const Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
     return Vec3::getAs(&qlike[qStart]);
 }
 
 const Vec3& MobilizedBody::Gimbal::getMyPartU(const State& s, const Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::getAs(&ulike[uStart]);
 }
 
 Vec3& MobilizedBody::Gimbal::updMyPartQ(const State& s, Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
     return Vec3::updAs(&qlike[qStart]);
 }
 
 Vec3& MobilizedBody::Gimbal::updMyPartU(const State& s, Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::updAs(&ulike[uStart]);
 }
 
@@ -1004,59 +1004,59 @@ MobilizedBody::Ball& MobilizedBody::Ball::setDefaultQ(const Quaternion& quat) {
 
 const Vec4& MobilizedBody::Ball::getQ(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
     return Vec4::getAs(&mbr.getMyMatterSubsystemRep().getQ(s)[qStart]);
 }
 void MobilizedBody::Ball::setQ(State& s, const Vec4& q) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
     Vec4::updAs(&mbr.getMyMatterSubsystemRep().updQ(s)[qStart]) = q;
 }
 const Vec4& MobilizedBody::Ball::getQDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
     return Vec4::getAs(&mbr.getMyMatterSubsystemRep().getQDot(s)[qStart]);
 }
 const Vec4& MobilizedBody::Ball::getQDotDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
     return Vec4::getAs(&mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart]);
 }
 
 
 const Vec3& MobilizedBody::Ball::getU(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getU(s)[uStart]);
 }
 void MobilizedBody::Ball::setU(State& s, const Vec3& u) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
     Vec3::updAs(&mbr.getMyMatterSubsystemRep().updU(s)[uStart]) = u;
 }
 const Vec3& MobilizedBody::Ball::getUDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getUDot(s)[uStart]);
 }
 
 const Vec4& MobilizedBody::Ball::getMyPartQ(const State& s, const Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 4);
     return Vec4::getAs(&qlike[qStart]);
 }
 
 const Vec3& MobilizedBody::Ball::getMyPartU(const State& s, const Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::getAs(&ulike[uStart]);
 }
 
 Vec4& MobilizedBody::Ball::updMyPartQ(const State& s, Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 4);
     return Vec4::updAs(&qlike[qStart]);
 }
 
 Vec3& MobilizedBody::Ball::updMyPartU(const State& s, Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::updAs(&ulike[uStart]);
 }
 
@@ -1246,59 +1246,59 @@ MobilizedBody::Translation& MobilizedBody::Translation::setDefaultQ(const Vec3& 
 
 const Vec3& MobilizedBody::Translation::getQ(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQ(s)[qStart]);
 }
 void MobilizedBody::Translation::setQ(State& s, const Vec3& q) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
     Vec3::updAs(&mbr.getMyMatterSubsystemRep().updQ(s)[qStart]) = q;
 }
 const Vec3& MobilizedBody::Translation::getQDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDot(s)[qStart]);
 }
 const Vec3& MobilizedBody::Translation::getQDotDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart]);
 }
 
 
 const Vec3& MobilizedBody::Translation::getU(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getU(s)[uStart]);
 }
 void MobilizedBody::Translation::setU(State& s, const Vec3& u) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
     Vec3::updAs(&mbr.getMyMatterSubsystemRep().updU(s)[uStart]) = u;
 }
 const Vec3& MobilizedBody::Translation::getUDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getUDot(s)[uStart]);
 }
 
 const Vec3& MobilizedBody::Translation::getMyPartQ(const State& s, const Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
     return Vec3::getAs(&qlike[qStart]);
 }
 
 const Vec3& MobilizedBody::Translation::getMyPartU(const State& s, const Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::getAs(&ulike[uStart]);
 }
 
 Vec3& MobilizedBody::Translation::updMyPartQ(const State& s, Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
     return Vec3::updAs(&qlike[qStart]);
 }
 
 Vec3& MobilizedBody::Translation::updMyPartU(const State& s, Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
     return Vec3::updAs(&ulike[uStart]);
 }
 
@@ -1372,59 +1372,59 @@ MobilizedBody::Free& MobilizedBody::Free::setDefaultQ(const Vec7& q) {
 
 const Vec7& MobilizedBody::Free::getQ(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq==7);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq==7);
     return Vec7::getAs(&mbr.getMyMatterSubsystemRep().getQ(s)[qStart]);
 }
 void MobilizedBody::Free::setQ(State& s, const Vec7& q) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq==7);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq==7);
     Vec7::updAs(&mbr.getMyMatterSubsystemRep().updQ(s)[qStart]) = q;
 }
 const Vec7& MobilizedBody::Free::getQDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq==7);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq==7);
     return Vec7::getAs(&mbr.getMyMatterSubsystemRep().getQDot(s)[qStart]);
 }
 const Vec7& MobilizedBody::Free::getQDotDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq==7);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq==7);
     return Vec7::getAs(&mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart]);
 }
 
 
 const Vec6& MobilizedBody::Free::getU(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 6);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 6);
     return Vec6::getAs(&mbr.getMyMatterSubsystemRep().getU(s)[uStart]);
 }
 void MobilizedBody::Free::setU(State& s, const Vec6& u) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 6);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 6);
     Vec6::updAs(&mbr.getMyMatterSubsystemRep().updU(s)[uStart]) = u;
 }
 const Vec6& MobilizedBody::Free::getUDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 6);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 6);
     return Vec6::getAs(&mbr.getMyMatterSubsystemRep().getUDot(s)[uStart]);
 }
 
 const Vec7& MobilizedBody::Free::getMyPartQ(const State& s, const Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 7);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 7);
     return Vec7::getAs(&qlike[qStart]);
 }
 
 const Vec6& MobilizedBody::Free::getMyPartU(const State& s, const Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 6);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 6);
     return Vec6::getAs(&ulike[uStart]);
 }
 
 Vec7& MobilizedBody::Free::updMyPartQ(const State& s, Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 7);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 7);
     return Vec7::updAs(&qlike[qStart]);
 }
 
 Vec6& MobilizedBody::Free::updMyPartU(const State& s, Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 6);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 6);
     return Vec6::updAs(&ulike[uStart]);
 }
 
@@ -1561,59 +1561,59 @@ MobilizedBody::Screw& MobilizedBody::Screw::setDefaultQ(Real q) {
 
 Real MobilizedBody::Screw::getQ(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
     return mbr.getMyMatterSubsystemRep().getQ(s)[qStart];
 }
 void MobilizedBody::Screw::setQ(State& s, Real q) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
     mbr.getMyMatterSubsystemRep().updQ(s)[qStart] = q;
 }
 Real MobilizedBody::Screw::getQDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
     return mbr.getMyMatterSubsystemRep().getQDot(s)[qStart];
 }
 Real MobilizedBody::Screw::getQDotDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
     return mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart];
 }
 
 
 Real MobilizedBody::Screw::getU(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
     return mbr.getMyMatterSubsystemRep().getU(s)[uStart];
 }
 void MobilizedBody::Screw::setU(State& s, Real u) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
     mbr.getMyMatterSubsystemRep().updU(s)[uStart] = u;
 }
 Real MobilizedBody::Screw::getUDot(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
-    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
     return mbr.getMyMatterSubsystemRep().getUDot(s)[uStart];
 }
 
 Real MobilizedBody::Screw::getMyPartQ(const State& s, const Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 1);
     return qlike[qStart];
 }
 
 Real MobilizedBody::Screw::getMyPartU(const State& s, const Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 1);
     return ulike[uStart];
 }
 
 Real& MobilizedBody::Screw::updMyPartQ(const State& s, Vector& qlike) const {
-    int qStart, nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 1);
     return qlike[qStart];
 }
 
 Real& MobilizedBody::Screw::updMyPartU(const State& s, Vector& ulike) const {
-    int uStart, nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 1);
     return ulike[uStart];
 }
 

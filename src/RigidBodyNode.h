@@ -482,7 +482,7 @@ public:
     // Register the passed-in node as a child of this one.
     void addChild(RigidBodyNode* child);
     void setParent(RigidBodyNode* p) {parent=p;}
-    void setNodeNum(int n) {nodeNum=n;}
+    void setNodeNum(MobilizedBodyIndex n) {nodeNum=n;}
     void setLevel(int i)   {level=i;}
 
         // TOPOLOGICAL INFO: no State needed
@@ -503,8 +503,8 @@ public:
     bool isGroundNode() const { return level==0; }
     bool isBaseNode()   const { return level==1; }
 
-    int  getUIndex() const {return uIndex;}
-    int  getQIndex() const {return qIndex;}
+    UIndex getUIndex() const {return uIndex;}
+    QIndex getQIndex() const {return qIndex;}
 
 
     // Access routines for plucking the right per-body data from the pool in the State.
@@ -540,10 +540,16 @@ public:
     bool getUseEulerAngles(const SBModelVars& mv) const {return mv.useEulerAngles;}
     bool isPrescribed     (const SBModelVars& mv) const {return mv.prescribed[nodeNum];}
 
-    int  getQuaternionIndex(const SBModelCache& mc) const {
-        return mc.quaternionIndex[nodeNum];
-    }
+    // Find cache resources allocated to this RigidBodyNode.
 
+    // Return value will be invalid if there are no quaternions currently in use here.
+    QuaternionPoolIndex getQuaternionPoolIndex(const SBModelCache& mc) const {
+        return mc.getMobilizedBodyModelInfo(MobilizedBodyIndex(nodeNum)).quaternionPoolIndex;
+    }
+    // Return value will be invalid if there are no angles currently in use here.
+    AnglePoolIndex getAnglePoolIndex(const SBModelCache& mc) const {
+        return mc.getMobilizedBodyModelInfo(MobilizedBodyIndex(nodeNum)).anglePoolIndex;
+    }
         // INSTANCE INFO
 
     // TODO: These ignore State currently since they aren't parametrizable.
@@ -552,7 +558,7 @@ public:
     const Vec3&           getCOM_B         () const {return massProps_B.getMassCenter();}
     const Inertia&        getInertia_OB_B  () const {return massProps_B.getInertia();}
     const Transform&      getX_BM          () const {return X_BM;}
-    const Transform&      getX_PF         () const {return X_PF;}
+    const Transform&      getX_PF          () const {return X_PF;}
 
     // These are calculated on construction.
     // TODO: principal axes
@@ -773,8 +779,7 @@ protected:
                   const Transform&      xform_BM,
                   QDotHandling          qdotType,
                   QuaternionUse         quatUse)
-      : qIndex(-1), uIndex(-1), uSqIndex(-1), quaternionIndex(-1),
-        parent(0), children(), level(-1), nodeNum(-1),
+      : parent(0), children(), level(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentralInertia()),
         X_BM(xform_BM), X_PF(xform_PF), X_MB(~xform_BM),
         qdotHandling(qdotType), quaternionUse(quatUse)
@@ -786,15 +791,15 @@ protected:
 
     typedef std::vector<RigidBodyNode*> RigidBodyNodeList;
 
-    int qIndex;   // index into internal coord pos array
-    int uIndex;   // index into internal coord vel,acc arrays
-    int uSqIndex; // index into array of DOF^2 objects
-    int quaternionIndex; // if this mobilizer has a quaternion, this is our slot
+    QIndex              qIndex;   // index into internal coord pos array
+    UIndex              uIndex;   // index into internal coord vel,acc arrays
+    USquaredIndex       uSqIndex; // index into array of DOF^2 objects
+    QuaternionPoolIndex quaternionIndex; // if this mobilizer has a quaternion, this is our slot
 
-    RigidBodyNode*    parent; 
-    RigidBodyNodeList children;
-    int               level;        //how far from base 
-    int               nodeNum;      //unique ID number in SimbodyMatterSubsystemRep
+    RigidBodyNode*     parent; 
+    RigidBodyNodeList  children;
+    int                level;        //how far from base 
+    MobilizedBodyIndex nodeNum;      //unique ID number in SimbodyMatterSubsystemRep
 
     // These are the default body properties, all supplied or calculated on
     // construction. TODO: they should be 

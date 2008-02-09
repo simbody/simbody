@@ -372,7 +372,8 @@ public:
     void setMobilizerIsPrescribed(State&, MobilizedBodyIndex, bool) const;
     bool isMobilizerPrescribed  (const State&, MobilizedBodyIndex) const;
     bool isUsingQuaternion(const State&, MobilizedBodyIndex) const;
-    int  getQuaternionIndex(const State&, MobilizedBodyIndex) const;
+    QuaternionPoolIndex getQuaternionPoolIndex(const State&, MobilizedBodyIndex) const;
+    AnglePoolIndex      getAnglePoolIndex(const State&, MobilizedBodyIndex) const;
     void setConstraintIsDisabled(State&, ConstraintIndex constraint, bool) const;
     bool isConstraintDisabled(const State&, ConstraintIndex constraint) const;
     
@@ -479,7 +480,7 @@ public:
 
     /// Apply a scalar joint force or torque to an axis of the
     /// indicated body's mobilizer.
-    void addInMobilityForce(const State&, MobilizedBodyIndex, int axis, Real f,
+    void addInMobilityForce(const State&, MobilizedBodyIndex, MobilizedBodyUIndex which, Real f,
                             Vector& mobilityForces) const;
 
         // POSITION STAGE solvers //

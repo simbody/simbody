@@ -52,10 +52,6 @@ namespace SimTK {
 
 class MobilizedBody;
 
-// This is the Constraint-specific index of the MobilizedBodies which are *directly* affected
-// by this constraint. That is, the Constraint expects to apply constraint forces as body forces
-// on these bodies or as mobility forces on these bodies' mobilizers.
-SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstrainedBodyIndex)
 
     ///////////////////////////
     // CONSTRAINT BASE CLASS //
@@ -100,7 +96,7 @@ public:
 
         // MODEL STAGE //
 
-    /// Return the number of constrianable mobilities associated with a particular
+    /// Return the number of constrainable mobilities associated with a particular
     /// constrained body. This is just the number of generalized speeds for that
     /// body's mobilizer, except that if the constrained body is the Ancestor then
     /// it has no constrainable mobilities regardless of its mobilizer.
@@ -112,7 +108,7 @@ public:
     /// mobilities on each branch between the ancestor and a constrained body.
     /// The *constrained* mobilities are just those belonging to the mobilized
     /// bodies which are directly constrained.
-    int getConstrainedMobilityIndex(const State&, ConstrainedBodyIndex, int which) const;
+    ConstrainedUIndex getConstrainedMobilityIndex(const State&, ConstrainedBodyIndex, int which) const;
 
     /// Return the sum of the number of mobilities u associated with each of
     /// the constrained bodies, not counting the Ancestor's mobilities even
@@ -189,6 +185,7 @@ public:
     class ConstantAngle; // prevent rotation about common normal of two vectors
     class ConstantOrientation; // allows any translation but no rotation
     class NoSlip1D; // same velocity at a point along a direction
+    class ConstantSpeed; // prescribe generalized speed value
     class Custom;
 
     // Is this handle the owner of this rep? This is true if the
@@ -750,6 +747,55 @@ public:
 private:
     class NoSlip1DRep& updRep();
     const NoSlip1DRep& getRep() const;
+};
+
+    ////////////////////
+    // CONSTANT SPEED //
+    ////////////////////
+
+/**
+ * One non-holonomic constraint equation. Some mobility u is required to be at a
+ * particular value s.
+ * 
+ * The assembly condition is the same as the run-time constraint: u must be set to s.
+ */
+class SimTK_SIMBODY_EXPORT Constraint::ConstantSpeed : public Constraint {
+public:
+    // no default constructor
+   ConstantSpeed(MobilizedBody& body, int which, Real s);
+   ConstantSpeed(MobilizedBody& body, Real s); // only if 1 dof mobilizer
+
+    // These affect only generated decorative geometry for visualization;
+    // the plane is really infinite in extent with zero depth and the
+    // point is really of zero radius.
+    NoSlip1D& setDirectionDisplayLength(Real);
+    NoSlip1D& setPointDisplayRadius(Real);
+    Real getDirectionDisplayLength() const;
+    Real getPointDisplayRadius() const;
+
+    // Defaults for Instance variables.
+    NoSlip1D& setDefaultDirection(const UnitVec3&);
+    NoSlip1D& setDefaultContactPoint(const Vec3&);
+
+    // Stage::Topology
+    MobilizedBodyIndex getMobilizedBodyIndex() const;
+    int                getWhichMobility() const;
+
+    // Stage::Position, Velocity
+        // no position error
+    Real getVelocityError(const State&) const;
+
+    // Stage::Acceleration
+    Real getAccelerationError(const State&) const;
+    Real getMultiplier(const State&) const;
+    Real getGeneralizedForce(const State&) const;
+
+    class ConstantSpeedRep; // local subclass
+
+    SimTK_PIMPL_DOWNCAST(ConstantSpeed, Constraint);
+private:
+    class ConstantSpeedRep& updRep();
+    const ConstantSpeedRep& getRep() const;
 };
 
 // TODO: this is just a sketch of a Custom Constraint base class.

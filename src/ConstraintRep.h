@@ -92,6 +92,9 @@ public:
 
     typedef std::map<MobilizedBodyIndex,ConstrainedBodyIndex> Mobilized2ConstrainedMap;
 
+    // Call this during construction phase to add a body to the topological structure of
+    // this Constraint. All the coordinates q and mobilities u for this body are added also,
+    // but we don't know how many of those there will be until Stage::Model.
     ConstrainedBodyIndex addConstrainedBody(const MobilizedBody& b) {
         assert(isInSameSubsystem(b));
         invalidateTopologyCache();
@@ -102,7 +105,8 @@ public:
         std::pair<Mobilized2ConstrainedMap::iterator, bool> result;
         result = myMobilizedBodies.insert(
             Mobilized2ConstrainedMap::value_type(b.getMobilizedBodyIndex(), nextIx));
-        assert(result.second); // can only add a body once
+        SimTK_ASSERT_ALWAYS(result.second,
+            "addConstrainedBody(): a Constrained Body can be added only once per Constraint");
 
         // This is a new constrained body -- add it to the Constrained->Mobilized map too.
         myConstrainedBodies.push_back(b.getMobilizedBodyIndex());
@@ -114,8 +118,14 @@ public:
         return myConstrainedBodies[c];
     }
 
-    void realizeTopology(State&) const;
-
+    void realizeTopology(State&) const; // eventually calls realizeTopologyVirtual()
+    void realizeModel   (State&) const; // eventually calls realizeModelVirtual()       
+    void realizeInstance(const State& s) const {
+        realizeInstanceVirtual(s); // nothing to do at the base class level
+    }
+    void realizeTime(const State& s) const {
+        realizeTimeVirtual(s); // nothing to do in the base class
+    }
 
 
 	// Given a state realized to Position stage, extract the position constraint errors
@@ -209,7 +219,7 @@ public:
 	}
 
     // Find the indicated cache in the passed-in State. This requires that realization has
-    // been completed for the associated Stage. During realization, we will instead pass in
+    // been completed for the associated Stage. *During* realization, we will instead pass in
     // the appropriate cache entry rather than ask the State for it.
     const SBModelCache&			getModelCache(const State&) const;
     const SBPositionCache&		getPositionCache(const State&) const;
@@ -220,6 +230,16 @@ public:
 
     //TODO: should precalculate in State, return reference
     // (Client "get" methods below should be changed to references also.) 
+
+    Real getOneU(const State&, ConstrainedBodyIndex, int whichMobility) const {
+        assert(!"ConstraintRep::getOneU(): not implemented yet");
+        return NaN;
+    }
+
+    Real getOneUDot(const State&, const SBAccelerationCache& ac, ConstrainedBodyIndex, int whichMobility) const {
+        assert(!"ConstraintRep::getOneUDot(): not implemented yet");
+        return NaN;
+    }
 
     // These are for use during realization of the associated stage.
     Transform  getBodyTransform   (const State& s, const SBPositionCache&, ConstrainedBodyIndex B) const; // X_AB
@@ -301,8 +321,8 @@ public:
 
     // Apply a generalized (mobility) force to a particular mobility of the given constrained body B,
     // adding it in to the appropriate slot of the mobilityForces vector.
-    void addInMobilityForce(const State& s, ConstrainedBodyIndex B, int which, Real f,
-                            Vector& mobilityForces) const 
+    void addInOneMobilityForce(const State& s, ConstrainedBodyIndex B, int which, Real f,
+                               Vector& mobilityForces) const 
     { 
         assert(mobilityForces.size() == getNumConstrainedMobilities(s));
         assert(0 <= which && which < getNumConstrainedMobilities(s, B));
@@ -470,10 +490,10 @@ public:
         return -1;
     }
 
-    int getConstrainedMobilityIndex(const State& s, ConstrainedBodyIndex B, int which) const {
+    ConstrainedUIndex getConstrainedMobilityIndex(const State& s, ConstrainedBodyIndex B, int which) const {
         //TODO
         assert(!"Constraint::getConstrainedMobilityIndex(B) not implemented yet.");
-        return -1;
+        return ConstrainedUIndex();
     }
 
     const SimbodyMatterSubsystemRep& getMyMatterSubsystemRep() const {
@@ -1608,7 +1628,7 @@ public:
     }
     Real getPointDisplayRadius() const {return pointRadius;}
 
-    // Implementation of virtuals required for holonomic constraints.
+    // Implementation of virtuals required for nonholonomic constraints.
 
     // One non-holonomic constraint equation. There is a contact point P and a no-slip 
     // direction n fixed in a case body C. There are two moving bodies B0 and B1. The 
@@ -1632,7 +1652,7 @@ public:
     void realizeVelocityErrorsVirtual(const State& s, const SBVelocityCache& vc, int mv,  Real* verr) const {
         assert(mv==1 && verr);
         //TODO: should be able to get p info from State
-        const Transform& X_AC = getBodyTransform(s, caseBody);
+        const Transform& X_AC  = getBodyTransform(s, caseBody);
         const Transform& X_AB0 = getBodyTransform(s, movingBody0);
         const Transform& X_AB1 = getBodyTransform(s, movingBody1);
         const Vec3       p_AP  = X_AC * defaultContactPoint; // P's location in A
@@ -1650,7 +1670,7 @@ public:
     void realizeVelocityDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mv,  Real* vaerr) const {
         assert(mv==1 && vaerr);
         //TODO: should be able to get p and v info from State
-        const Transform& X_AC = getBodyTransform(s, caseBody);
+        const Transform& X_AC  = getBodyTransform(s, caseBody);
         const Transform& X_AB0 = getBodyTransform(s, movingBody0);
         const Transform& X_AB1 = getBodyTransform(s, movingBody1);
         const Vec3       p_AP  = X_AC * defaultContactPoint; // P's location in A
@@ -1680,7 +1700,7 @@ public:
         const Real lambda = *multipliers;
 
         //TODO: should be able to get p info from State
-        const Transform& X_AC = getBodyTransform(s, caseBody);
+        const Transform& X_AC  = getBodyTransform(s, caseBody);
         const Transform& X_AB0 = getBodyTransform(s, movingBody0);
         const Transform& X_AB1 = getBodyTransform(s, movingBody1);
         const Vec3       p_AP  = X_AC * defaultContactPoint; // P's location in A
@@ -1709,6 +1729,50 @@ private:
     Real pointRadius;
 };
 
+    // CONSTANT SPEED
+
+class Constraint::ConstantSpeed::ConstantSpeedRep : public Constraint::ConstraintRep {
+public:
+    ConstantSpeedRep()
+      : ConstraintRep(0,1,0), theBody(), whichMobility(-1), prescribedSpeed(NaN)
+    { }
+    ConstantSpeedRep* clone() const { return new ConstantSpeedRep(*this); }
+
+    // Implementation of virtuals required for nonholonomic constraints.
+
+    // One non-holonomic (well, velocity-level) constraint equation.
+    //    verr = u - s
+    //    aerr = udot
+    // 
+    void realizeVelocityErrorsVirtual(const State& s, const SBVelocityCache& vc, int mv,  Real* verr) const {
+        assert(mv==1 && verr);
+        *verr = getOneU(s, theBody, whichMobility) - prescribedSpeed;
+    }
+
+    void realizeVelocityDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mv,  Real* vaerr) const {
+        assert(mv==1 && vaerr);
+        *vaerr = getOneUDot(s, ac, theBody, whichMobility);
+    }
+
+	// apply generalized force lambda to the mobility
+    void applyVelocityConstraintForcesVirtual
+       (const State& s, int mv, const Real* multipliers,
+        Vector_<SpatialVec>& bodyForcesInA,
+        Vector&              mobilityForces) const
+    {
+        assert(mv==1 && multipliers);
+        const Real lambda = *multipliers;
+        addInOneMobilityForce(s, theBody, whichMobility, lambda, mobilityForces);
+    }
+
+    SimTK_DOWNCAST(ConstantSpeedRep, ConstraintRep);
+private:
+    friend class Constraint::ConstantSpeed;
+
+    ConstrainedBodyIndex theBody;
+    int whichMobility;
+    Real prescribedSpeed;
+};
 
 
 class Constraint::Custom::CustomRep : public Constraint::ConstraintRep {

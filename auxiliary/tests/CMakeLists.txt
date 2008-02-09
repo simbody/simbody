@@ -1,1 +1,1 @@
-SUBDIRS( CoarseRNA  ContactTest  Ethane  PendulumExample  TwoPendulums SBPendulum1 JunkTestWithAux RadusDrifter)
+SUBDIRS( CoarseRNA  ContactTest  Ethane  PendulumExample  TwoPendulums SBPendulum1 JunkTestWithAux JunkAux2 RadusDrifter)

@@ -777,7 +777,7 @@ public:
     // is (a) right in the first place, and (b) in any case necessary for
     // the "bond" arrays since it would seem to apply only to the shortPath
     // arrays which are used for scaling.
-    std::vector<DuMM::AtomIndex>       xbond12;
+    std::vector<DuMM::AtomIndex> xbond12;
     std::vector<AtomIndexPair>   xbond13;
     std::vector<AtomIndexTriple> xbond14;
     std::vector<AtomIndexQuad>   xbond15;
