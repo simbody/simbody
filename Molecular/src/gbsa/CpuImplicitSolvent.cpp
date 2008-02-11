@@ -716,6 +716,9 @@ int CpuImplicitSolvent::computeImplicitSolventForces( RealOpenMM** atomCoordinat
 
    if( printSampleOutput && callId == 1 ){
 
+      static int internalId = 0;
+      int processId         = internalId++ + callId;
+
       std::stringstream message;
       message.precision( 6 );
       message.width( 12 );
@@ -742,7 +745,7 @@ int CpuImplicitSolvent::computeImplicitSolventForces( RealOpenMM** atomCoordinat
       // write Born forces
 
       std::stringstream resultsFileName;
-      resultsFileName << cpuImplicitSolvent->getBaseFileName() << "." << callId << ".gbsa0";
+      resultsFileName << cpuImplicitSolvent->getBaseFileName() << "." << processId << ".gbsa0";
       cpuImplicitSolvent->writeBornEnergyForces( atomCoordinates, partialCharges, forces, resultsFileName.str() );
 
    }
