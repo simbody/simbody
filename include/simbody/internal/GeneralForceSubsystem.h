@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_SimTKSIMBODY_H_
-#define SimTK_SIMBODY_SimTKSIMBODY_H_
+#ifndef SimTK_SIMBODY_GENERAL_FORCE_ELEMENTS_H_
+#define SimTK_SIMBODY_GENERAL_FORCE_ELEMENTS_H_
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -32,34 +32,52 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-/** @file
- * This is the header file that user code should include to pick up all
- * Simbody capabilities.
- */
-
-#include "SimTKcommon.h"
-#include "SimTKmath.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/MultibodySystem.h"
-#include "simbody/internal/MolecularMechanicsSystem.h"
-#include "simbody/internal/Body.h"
-#include "simbody/internal/MobilizedBody.h"
-#include "simbody/internal/Constraint.h"
-#include "simbody/internal/Force.h"
 #include "simbody/internal/ForceSubsystem.h"
-#include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "simbody/internal/SimbodyMatterSubsystem_Subtree.h"
-#include "simbody/internal/UniformGravitySubsystem.h"
-#include "simbody/internal/GeneralForceSubsystem.h"
-#include "simbody/internal/HuntCrossleyContact.h"
-#include "simbody/internal/DuMMForceFieldSubsystem.h"
-#include "simbody/internal/NumericalMethods.h"
-#include "simbody/internal/DecorationSubsystem.h"
-#include "simbody/internal/TextDataEventReporter.h"
-#include "simbody/internal/ObservedPointFitter.h"
-#include "simbody/internal/VelocityRescalingThermostat.h"
-#include "simbody/internal/LocalEnergyMinimizer.h"
-#include "simbody/internal/Element.h"
-#include "simbody/internal/Biotype.h"
 
-#endif // SimTK_SIMBODY_SimTKSIMBODY_H_
+#include <cassert>
+
+namespace SimTK {
+
+class MultibodySystem;
+class SimbodyMatterSubsystem;
+class Force;
+
+/**
+ * This is a concrete subsystem which can apply arbitrary forces to a MultibodySystem.
+ * Each force is represented by a Force object.  For example, to add a spring between two
+ * bodies, you would write
+ * 
+ * <pre>
+ * GeneralForceSubsystem forces(system);
+ * ...
+ * Force::TwoPointLinearSpring(forces, body1, station1, body2, station2, k, x0);
+ * </pre>
+ */
+class SimTK_SIMBODY_EXPORT GeneralForceSubsystem : public ForceSubsystem {
+public:
+    GeneralForceSubsystem();
+    explicit GeneralForceSubsystem(MultibodySystem&);
+
+    /// Attach a new force to this subsystem.  The subsystem takes over ownership of the force,
+    /// leaving the passed in handle as a reference to it.
+    ForceIndex adoptForce(Force& force);
+    
+    /// Get the number of Forces which have been added.
+    int getNForces() const;
+    
+    /// Get a const reference to a Force by index.
+    const Force& getForce(ForceIndex index) const;
+
+    /// Get a modifiable reference to a Force by index.
+    Force& updForce(ForceIndex index);
+    
+    SimTK_PIMPL_DOWNCAST(GeneralForceSubsystem, ForceSubsystem);
+private:
+    class GeneralForceSubsystemRep& updRep();
+    const GeneralForceSubsystemRep& getRep() const;
+};
+
+} // namespace SimTK
+
+#endif // SimTK_SIMBODY_GENERAL_FORCE_ELEMENTS_H_

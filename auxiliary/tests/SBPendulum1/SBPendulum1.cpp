@@ -147,7 +147,7 @@ int main() {
 try {
     MultibodySystem mbs;
     SimbodyMatterSubsystem pend(mbs);
-    GeneralForceElements springs(mbs);
+    GeneralForceSubsystem springs(mbs);
     UniformGravitySubsystem gravityForces(mbs); // default is none
     HuntCrossleyContact contact(mbs);
 
@@ -183,8 +183,7 @@ try {
                                     aPendulum, jointFrame.T());
 
     const Vec3 attachPt(1.5, 1, 0);
-    springs.addTwoPointLinearSpring(
-        GroundIndex, attachPt, 
+    Force::TwoPointLinearSpring(springs, pend.Ground(), attachPt, 
         aPendulum, Vec3(L/2,0,0), 
         100, 1);
 

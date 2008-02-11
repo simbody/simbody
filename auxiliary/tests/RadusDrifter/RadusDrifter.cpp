@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
 
     SimbodyMatterSubsystem  crankRocker(mbs);
     UniformGravitySubsystem gravity(mbs, Vec3(0, -g, 0));
-    GeneralForceElements    forces(mbs);
+    GeneralForceSubsystem    forces(mbs);
     DecorationSubsystem     viz(mbs);
 
         // ADD BODIES AND THEIR MOBILIZERS
@@ -112,8 +112,8 @@ int main(int argc, char** argv) {
     //forces.addCustomForce(ShermsForce(leftPendulum,rightPendulum));
     //forces.addGlobalEnergyDrain(1);
 
-    forces.addMobilityConstantForce(crank, 0, 1);
-    forces.addMobilityLinearDamper(crank, 0, 1.0);
+    Force::MobilityConstantForce(forces, crank, 0, 1);
+    Force::MobilityLinearDamper(forces, crank, 0, 1.0);
 
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System

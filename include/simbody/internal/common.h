@@ -182,6 +182,7 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(SubtreeQIndex)
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(SubtreeUIndex)
 
 
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(ForceIndex)
 
 
 namespace Exception {

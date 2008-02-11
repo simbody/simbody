@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
 
     SimbodyMatterSubsystem  matter(mbs);
     UniformGravitySubsystem gravity(mbs, Vec3(0, -g, 0));
-    GeneralForceElements    forces(mbs);
+    GeneralForceSubsystem    forces(mbs);
     DecorationSubsystem     viz(mbs);
 
         // ADD BODIES AND THEIR MOBILIZERS

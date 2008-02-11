@@ -58,7 +58,7 @@ try { // If anything goes wrong, an exception will be thrown.
 
     MultibodySystem         mbs;
     UniformGravitySubsystem gravity(mbs, Vec3(0, -g, 0));
-    GeneralForceElements    forces(mbs);
+    GeneralForceSubsystem    forces(mbs);
     SimbodyMatterSubsystem  pend(mbs);
     DecorationSubsystem     viz(mbs);
 
@@ -99,7 +99,7 @@ try { // If anything goes wrong, an exception will be thrown.
                                           .setRepresentation(DecorativeGeometry::DrawPoints));
 
     //forces.addMobilityConstantForce(swinger, 0, 10);
-    forces.addConstantTorque(swinger, Vec3(0,0,10));
+    Force::ConstantTorque(forces, swinger, Vec3(0,0,10));
     //forces.addConstantForce(swinger, Vec3(0), Vec3(0,10,0));
     //forces.addConstantForce(swinger, Vec3(0,0,0), Vec3(10,10,0)); // z should do nothing
     //forces.addMobilityConstantForce(swinger, 1, 10);

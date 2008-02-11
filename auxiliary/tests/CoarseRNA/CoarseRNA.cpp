@@ -227,13 +227,13 @@ try // If anything goes wrong, an exception will be thrown.
     // Create a multibody system using Simbody.
     MultibodySystem mbs;
     MyRNAExample myRNA(mbs, nseg, shouldFlop != 0);
-    GeneralForceElements forces(mbs);
+    GeneralForceSubsystem forces(mbs);
     UniformGravitySubsystem ugs(mbs, Vec3(0, -g, 0));
 
     const Vec3 attachPt(150, -40, -50);
 
-    forces.addTwoPointLinearSpring(GroundIndex, attachPt,
-                                   MobilizedBodyIndex(myRNA.getNBodies()-1), Vec3(0),
+    Force::TwoPointLinearSpring(forces, myRNA.Ground(), attachPt,
+                                   myRNA.getMobilizedBody(MobilizedBodyIndex(myRNA.getNBodies()-1)), Vec3(0),
                                    1000.,  // stiffness
                                    1.);    // natural length
 
@@ -243,7 +243,7 @@ try // If anything goes wrong, an exception will be thrown.
                                    1.);    // natural length
     */
 
-    forces.addGlobalEnergyDrain(100);
+    Force::GlobalDamper(forces, myRNA, 100);
 
 
     State s = mbs.realizeTopology();
@@ -285,7 +285,7 @@ try // If anything goes wrong, an exception will be thrown.
     for (MobilizedBodyIndex i(0); i<myRNA.getNBodies(); ++i) {
         printf("body %2d: using quat? %s; quat index=%d\n",
             (int)i, myRNA.isUsingQuaternion(s,i) ? "true":"false", 
-            myRNA.getQuaternionPoolIndex(s,i));
+            (int)myRNA.getQuaternionPoolIndex(s,i));
     }
 
     ugs.updGravity(s) *= 10;

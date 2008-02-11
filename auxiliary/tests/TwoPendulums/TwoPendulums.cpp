@@ -58,12 +58,12 @@ static const Real m = 1;   // kg
 static const Real g = 9.8; // meters/s^2; apply in –y direction
 static const Real d = 0.5; // meters
 
-class ShermsForce : public GeneralForceElements::CustomForce {
+class ShermsForce : public Force::Custom::Implementation {
 public:
     ShermsForce(const MobilizedBody& b1, const MobilizedBody& b2) : body1(b1), body2(b2) { }
     ShermsForce* clone() const {return new ShermsForce(*this);}
 
-    void calc(const SimbodyMatterSubsystem& matter, const State& state,
+    void calcForce(const State& state,
               Vector_<SpatialVec>& bodyForces,
               Vector_<Vec3>&       particleForces,
               Vector&              mobilityForces,
@@ -97,7 +97,7 @@ int main(int argc, char** argv) {
 
     SimbodyMatterSubsystem  twoPends(mbs);
     UniformGravitySubsystem gravity(mbs, Vec3(0, -g, 0));
-    GeneralForceElements    forces(mbs);
+    GeneralForceSubsystem    forces(mbs);
     DecorationSubsystem     viz(mbs);
 
         // ADD BODIES AND THEIR MOBILIZERS
@@ -153,10 +153,10 @@ int main(int argc, char** argv) {
         .getConstraintIndex();
 
     } else if (c == 's') {
-        forces.addTwoPointLinearSpring(leftPendulum, leftAttachPt,
+        Force::TwoPointLinearSpring(forces, leftPendulum, leftAttachPt,
                                        rightPendulum, Vec3(0),
                                        stiffness, distance);
-        forces.addTwoPointLinearDamper(leftPendulum, leftAttachPt,
+        Force::TwoPointLinearDamper(forces, leftPendulum, leftAttachPt,
                                        rightPendulum, Vec3(0),
                                        damping);
     }

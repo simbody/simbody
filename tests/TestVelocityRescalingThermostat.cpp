@@ -44,17 +44,14 @@ const Real TEMPERATURE = 300.0;
  * Create a force between every pair of bodies (including ground) with the potential k*(1/x^2 - 1/x).
  */
 
-class BetweenBodyForce : public GeneralForceElements::CustomForce {
+class BetweenBodyForce : public Force::Custom::Implementation {
 public:
-    BetweenBodyForce() {
-    }
-    BetweenBodyForce* clone() const {
-        return new BetweenBodyForce(*this);
+    BetweenBodyForce(const SimbodyMatterSubsystem& matter) : matter(matter){
     }
     bool dependsOnlyOnPositions() {
         return true;
     }
-    void calc(const SimbodyMatterSubsystem& matter, const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
         for (int i = 0; i < matter.getNBodies(); ++i) {
             const MobilizedBody& body1 = matter.getMobilizedBody(MobilizedBodyIndex(i));
             const Vec3 pos1 = body1.getBodyOriginLocation(state);
@@ -72,6 +69,7 @@ public:
             }
         }
     }
+    const SimbodyMatterSubsystem& matter;
 };
 
 class EnergyMonitor : public PeriodicEventReporter {
@@ -96,7 +94,7 @@ private:
 int main() {
     MultibodySystem mbs;
     SimbodyMatterSubsystem matter(mbs);
-    GeneralForceElements forces(mbs);
+    GeneralForceSubsystem forces(mbs);
     
     // Create a gas of two atom molecules.
     
@@ -105,10 +103,10 @@ int main() {
     Random::Uniform random(-10.0, 10.0);
     for (int i = 0; i < NUM_MOLECULES; ++i) {
         Vec3 pos(random.getValue(), random.getValue(), random.getValue());
-        MobilizedBody* first = new MobilizedBody::Translation(matter.Ground(), Transform(Vec3(0, 0, 0)), body, Transform(pos));
-        MobilizedBody* second = new MobilizedBody::LineOrientation(*first, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, 0, BOND_LENGTH)));
+        MobilizedBody::Translation first(matter.Ground(), Transform(Vec3(0, 0, 0)), body, Transform(pos));
+        MobilizedBody::LineOrientation second(first, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, 0, BOND_LENGTH)));
     }
-    forces.addCustomForce(BetweenBodyForce());
+    Force::Custom(forces, new BetweenBodyForce(matter));
     mbs.updDefaultSubsystem().addEventHandler(new VelocityRescalingThermostat(mbs, SimTK_BOLTZMANN_CONSTANT_MD, TEMPERATURE, 1.0));
     EnergyMonitor* monitor = new EnergyMonitor(mbs);
     mbs.getDefaultSubsystem().addEventReporter(monitor);

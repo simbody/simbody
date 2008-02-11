@@ -540,7 +540,7 @@ try
 
     SimbodyMatterSubsystem   matter(mbs);
     DuMMForceFieldSubsystem  mm(mbs);
-    GeneralForceElements     forces(mbs);
+    GeneralForceSubsystem     forces(mbs);
     DecorationSubsystem      artwork(mbs);
     UniformGravitySubsystem  gravity(mbs, Vec3(0,0,0));
 
@@ -553,7 +553,7 @@ try
     const Real torsControlGain = /*100000*/0;
     const Real desiredTorsAngle = /*Pi/3*/0;
 
-    forces.addGlobalEnergyDrain(.01);
+    Force::GlobalDamper(forces, matter, .01);
 
 
     // AMBER 99
