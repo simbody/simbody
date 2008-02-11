@@ -64,6 +64,7 @@ class MyPendulumGuts: public System::Guts {
     mutable int massIndex, lengthIndex, gravityIndex;
     mutable int q0, u0, qerr0, uerr0, udoterr0, event0;
     mutable int mgForceIndex; // a cache entry m*g calculated at Dynamics stage
+    mutable EventId eventId0, eventId1, eventId2;
 public:
     MyPendulumGuts() : Guts() {
         subsysIndex = InvalidSubsystemIndex;
@@ -122,11 +123,11 @@ public:
 
     /*virtual*/int calcEventTriggerInfoImpl(const State& s, std::vector<System::EventTriggerInfo>& eti) const {
         eti.clear();
-        eti.push_back(System::EventTriggerInfo(EventId(0))
+        eti.push_back(System::EventTriggerInfo(eventId0)
                       .setRequiredLocalizationTimeWindow(1)
                       .setTriggerOnRisingSignTransition(false));
-        eti.push_back(System::EventTriggerInfo(EventId(1)));
-        eti.push_back(System::EventTriggerInfo(EventId(2)) 
+        eti.push_back(System::EventTriggerInfo(eventId1));
+        eti.push_back(System::EventTriggerInfo(eventId2) 
                       .setTriggerOnFallingSignTransition(false));
         return 0;
     }
@@ -140,7 +141,7 @@ public:
         // Careful ...
         if (tNextEvent <= s.getTime())
             tNextEvent += Real(5.123);
-        eventIds.push_back(1); // event Id for scheduled pulse
+        eventIds.push_back(eventId1); // event Id for scheduled pulse
 
         return 0;
     }
@@ -497,6 +498,7 @@ int MyPendulumGuts::realizeTopologyImpl(State& s) const {
     udoterr0 = s.allocateUDotErr(subsysIndex, 1); // and multiplier
     event0 = s.allocateEvent(subsysIndex, Stage::Position, 3);
 
+
     mgForceIndex = s.allocateCacheEntry(subsysIndex, Stage::Dynamics,
                                              new Value<Real>());
     System::Guts::realizeTopologyImpl(s);
@@ -504,6 +506,9 @@ int MyPendulumGuts::realizeTopologyImpl(State& s) const {
 }
 int MyPendulumGuts::realizeModelImpl(State& s) const {
     System::Guts::realizeModelImpl(s);
+    eventId0 = getSystem().getDefaultSubsystem().createEventId(subsysIndex, s);
+    eventId1 = getSystem().getDefaultSubsystem().createEventId(subsysIndex, s);
+    eventId2 = getSystem().getDefaultSubsystem().createEventId(subsysIndex, s);
     return 0;
 }
 int MyPendulumGuts::realizePositionImpl(const State& s) const {
