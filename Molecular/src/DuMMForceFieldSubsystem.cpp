@@ -80,7 +80,7 @@ public:
         if (canon) canonicalize();
     }
     T operator[](int i) const {assert(0<=i&&i<2); return ixs[i];}
-    bool isValid() const {return ixs[0]>=0 && ixs[1]>=0;}
+    bool isValid() const {return ixs[0].isValid() && ixs[1].isValid();}
     // canonical is low,high
     void canonicalize() {if(ixs[0]>ixs[1]) std::swap(ixs[0],ixs[1]);}
 private:
@@ -107,7 +107,7 @@ public:
         if (canon) canonicalize();
     }
     T operator[](int i) const {assert(0<=i&&i<3); return ixs[i];}
-    bool isValid() const {return ixs[0]>=0 && ixs[1]>=0 && ixs[2]>=0;}
+    bool isValid() const {return ixs[0].isValid() && ixs[1].isValid() && ixs[2].isValid();}
     void invalidate() {ixs[0]=ixs[1]=ixs[2]=(T)(int)(DuMM::InvalidAtomIndex);}
     // canonical has 1st number <= last number; middle stays put
     void canonicalize() {if(ixs[0]>ixs[2]) std::swap(ixs[0],ixs[2]);}
@@ -136,7 +136,7 @@ public:
         if (canon) canonicalize();
     }
     T operator[](int i) const {assert(0<=i&&i<4); return ixs[i];}
-    bool isValid() const {return ixs[0]>=0 && ixs[1]>=0 && ixs[2]>=0 && ixs[3]>=0;}
+    bool isValid() const {return ixs[0].isValid() && ixs[1].isValid() && ixs[2].isValid() && ixs[3].isValid();}
     // canonical has 1st number <= last number; middle two must swap
     // if the outside ones do
     void canonicalize() {
@@ -340,7 +340,7 @@ public:
     }
 
     bool isValid() const {
-        return atomClassIx >= 0 
+        return atomClassIx.isValid() 
             && element > 0 
             && valence >= 0;
     }
@@ -418,7 +418,7 @@ public:
     { 
         assert(isValid());
     }
-    bool isValid() const {return chargedAtomTypeIndex >= 0 && atomClassIx >= 0;}
+    bool isValid() const {return chargedAtomTypeIndex.isValid() && atomClassIx.isValid();}
 
     void dump() const {
         printf("    %d(%s): atomClassIx=%d, chg=%g e\n", 
@@ -459,8 +459,8 @@ public:
     bool isValid() const {
         return (k >= 0 )
             && (d0 >= 0)
-            && (classes[0] != DuMM::InvalidAtomClassIndex)
-            && (classes[1] != DuMM::InvalidAtomClassIndex); 
+            && (classes[0].isValid())
+            && (classes[1].isValid()); 
     }
 
     std::ostream& generateSelfCode(std::ostream& os) const 
@@ -650,7 +650,7 @@ public:
     AtomPlacement(DuMM::AtomIndex a, const Vec3& s) : atomIndex(a), station(s) {
         assert(isValid());
     }
-    bool isValid() const {return atomIndex >= 0;}
+    bool isValid() const {return atomIndex.isValid();}
 
     DuMM::AtomIndex  atomIndex;
     Vec3 station;   // in nm
@@ -668,7 +668,7 @@ public:
     ClusterPlacement(DuMM::ClusterIndex c, const Transform& t) : clusterIndex(c), placement(t) {
         assert(isValid());
     }
-    bool isValid() const {return clusterIndex >= 0;}
+    bool isValid() const {return clusterIndex.isValid();}
 
     DuMM::ClusterIndex         clusterIndex;
     Transform   placement;  // translation in nm
@@ -694,10 +694,10 @@ public:
         assert(isValid());
     }
 
-    bool isValid() const {return atomIndex>=0 && chargedAtomTypeIndex>=0;}
-    // bool isValid() const {return atomIndex>=0;}
+    bool isValid() const {return atomIndex.isValid() && chargedAtomTypeIndex.isValid();}
+    // bool isValid() const {return atomIndex.isValid();}
 
-    bool isAttachedToBody() const {return bodyIx >= 0;}
+    bool isAttachedToBody() const {return bodyIx.isValid();}
 
     MobilizedBodyIndex getBodyIndex() const {assert(isAttachedToBody()); return bodyIx;}
 
@@ -840,8 +840,8 @@ public:
         // not valid yet -- still need index assigned
     }
 
-    bool isValid() const {return clusterIndex >= 0;}
-    bool isAttachedToBody() const {return bodyIx >= 0;}
+    bool isValid() const {return clusterIndex.isValid();}
+    bool isAttachedToBody() const {return bodyIx.isValid();}
     bool isTopLevelCluster() const {return parentClusters.empty();}
 
     MobilizedBodyIndex getBodyIndex() const {assert(isAttachedToBody()); return bodyIx;}
@@ -970,7 +970,7 @@ public:
             ++pp;
         }
 
-        if (bodyIx >= 0) 
+        if (bodyIx.isValid()) 
             std::cout << "\n      attached to body " << bodyIx << " at (nm) " << placement_B;
         else
             std::cout << "\n      NOT ATTACHED TO ANY BODY.";
@@ -1054,7 +1054,7 @@ public:
         assert(isValid());
     }
 
-    bool isValid() const {return (clusterIndex >= 0) && (mobilizedBodyIndex != InvalidMobilizedBodyIndex);}
+    bool isValid() const {return (clusterIndex.isValid()) && (mobilizedBodyIndex.isValid());}
 
     void invalidateTopologicalCache() {allAtoms.clear();}
     void realizeTopologicalCache(const DuMMForceFieldSubsystemRep& mm);
@@ -1570,7 +1570,7 @@ void DuMMForceFieldSubsystem::defineIncompleteAtomClass
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Catch nonsense arguments.
-    SimTK_APIARGCHECK1_ALWAYS(atomClassIx >= 0, mm.ApiClassName, MethodName,
+    SimTK_APIARGCHECK1_ALWAYS(atomClassIx.isValid(), mm.ApiClassName, MethodName,
         "atom class Index %d invalid: must be nonnegative", (int) atomClassIx);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidElement(element), mm.ApiClassName, MethodName,
         "element %d invalid: must be a valid atomic number and have an entry here",element);
@@ -1599,7 +1599,7 @@ void DuMMForceFieldSubsystem::setAtomClassVdwParameters(DuMM::AtomClassIndex ato
 
     DuMMForceFieldSubsystemRep& mm = updRep();
 
-    SimTK_APIARGCHECK1_ALWAYS(atomClassIx >= 0, mm.ApiClassName, MethodName,
+    SimTK_APIARGCHECK1_ALWAYS(atomClassIx.isValid(), mm.ApiClassName, MethodName,
         "atom class Index %d invalid: must be nonnegative", (int) atomClassIx);
 
     SimTK_APIARGCHECK1_ALWAYS(vdwRadiusInNm >= 0, mm.ApiClassName, MethodName, 
@@ -1626,9 +1626,9 @@ void DuMMForceFieldSubsystem::defineIncompleteChargedAtomType
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Check for nonsense arguments.
-    SimTK_APIARGCHECK1_ALWAYS(chargedAtomTypeIndex >= 0, mm.ApiClassName, MethodName,
+    SimTK_APIARGCHECK1_ALWAYS(chargedAtomTypeIndex.isValid(), mm.ApiClassName, MethodName,
         "charged atom type index %d invalid: must be nonnegative", (int) chargedAtomTypeIndex);
-    SimTK_APIARGCHECK1_ALWAYS(atomClassIx >= 0, mm.ApiClassName, MethodName,
+    SimTK_APIARGCHECK1_ALWAYS(atomClassIx.isValid(), mm.ApiClassName, MethodName,
         "atom class index %d invalid: must be nonnegative", (int) atomClassIx);
     // partialCharge is a signed quantity
 
@@ -1658,7 +1658,7 @@ void DuMMForceFieldSubsystem::setChargedAtomTypeCharge(DuMM::ChargedAtomTypeInde
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Check for nonsense arguments.
-    SimTK_APIARGCHECK1_ALWAYS(chargedAtomTypeIndex >= 0, mm.ApiClassName, MethodName,
+    SimTK_APIARGCHECK1_ALWAYS(chargedAtomTypeIndex.isValid(), mm.ApiClassName, MethodName,
         "charged atom type index %d invalid: must be nonnegative", (int) chargedAtomTypeIndex);
 
     ChargedAtomType& chargedAtomType = mm.chargedAtomTypes[chargedAtomTypeIndex];
@@ -2306,7 +2306,7 @@ void DuMMForceFieldSubsystem::attachClusterToBody(DuMM::ClusterIndex clusterInde
         // Make sure we've seen this cluster before, and that the body number is well formed.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterIndex), mm.ApiClassName, MethodName,
         "cluster Index %d is not valid", (int) clusterIndex);
-    SimTK_APIARGCHECK1_ALWAYS(bodyIx >= 0, mm.ApiClassName, MethodName,
+    SimTK_APIARGCHECK1_ALWAYS(bodyIx.isValid(), mm.ApiClassName, MethodName,
         "body number %d is not valid: must be nonnegative", (int)bodyIx);
 
     const Cluster& child  = mm.getCluster(clusterIndex);
@@ -2350,7 +2350,7 @@ void DuMMForceFieldSubsystem::attachAtomToBody(DuMM::AtomIndex atomIndex, Mobili
         // Make sure we've seen this atom before, and that the body number is well formed.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomIndex), mm.ApiClassName, MethodName,
         "atom index %d is not valid", (int) atomIndex);
-    SimTK_APIARGCHECK1_ALWAYS(bodyIndex >= 0, mm.ApiClassName, MethodName,
+    SimTK_APIARGCHECK1_ALWAYS(bodyIndex.isValid(), mm.ApiClassName, MethodName,
         "body number %d is not valid: must be nonnegative", (int)bodyIndex);
 
         // The atom must not already be attached to a body, even this one.
@@ -2754,14 +2754,14 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
         for (int i=0; i < (int)b.allAtoms.size(); ++i) {
             const AtomPlacement& ap = b.allAtoms[i]; assert(ap.isValid());
             Atom& a = mutableThis->atoms[ap.atomIndex]; assert(a.isValid());
-            assert(a.bodyIx == InvalidMobilizedBodyIndex); // Can only be on one body!!
+            assert(!a.bodyIx.isValid()); // Can only be on one body!!
             a.bodyIx    = b.getMobilizedBodyIndex();
             a.station_B = ap.station;
         }
     }
     for (DuMM::AtomIndex anum = (DuMM::AtomIndex)0; anum < (DuMM::AtomIndex)atoms.size(); ++anum) {
         const Atom& a = atoms[anum];
-        assert(a.bodyIx >= 0); // TODO catch unassigned atoms
+        assert(a.bodyIx.isValid()); // TODO catch unassigned atoms
     }
 
     // need to chase bonds to fill in the bonded data
@@ -3075,7 +3075,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
         for (DuMM::DuMMBodyIndex duMMBodyIndex1(0); duMMBodyIndex1 < (int)duMMSubsetOfBodies.size(); ++duMMBodyIndex1) 
         {
             MobilizedBodyIndex bodyIndex1 = getDuMMBody(duMMBodyIndex1).getMobilizedBodyIndex();
-            assert(bodyIndex1 != InvalidMobilizedBodyIndex);
+            assert(bodyIndex1.isValid());
 
              const Transform&          X_GB1  = matter.getMobilizedBody(bodyIndex1).getBodyTransform(s);
              const AtomPlacementArray& alist1 = duMMSubsetOfBodies[duMMBodyIndex1].allAtoms;
@@ -3286,7 +3286,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                  for (DuMM::DuMMBodyIndex duMMBodyIndex2(duMMBodyIndex1 + 1); duMMBodyIndex2 < (int)duMMSubsetOfBodies.size(); ++duMMBodyIndex2) 
                  {
                      MobilizedBodyIndex bodyIndex2 = getDuMMBody(duMMBodyIndex2).getMobilizedBodyIndex();
-                     assert(bodyIndex2 != InvalidMobilizedBodyIndex);
+                     assert(bodyIndex2.isValid());
 
                      const Transform&          X_GB2  = matter.getMobilizedBody(bodyIndex2).getBodyTransform(s);
                      const AtomPlacementArray& alist2 = duMMSubsetOfBodies[duMMBodyIndex2].allAtoms;

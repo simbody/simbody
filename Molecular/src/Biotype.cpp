@@ -141,7 +141,7 @@ static std::map<BiotypeKey, BiotypeIndex> biotypeIxsByKey;
         ordinality
         );
 
-    if (tinkerBiotypeIndex != InvalidTinkerBiotypeIndex) {
+    if (tinkerBiotypeIndex.isValid()) {
         assert(! tinkerIxExists(tinkerBiotypeIndex) );
         biotypeIxsByTinkerIndex[tinkerBiotypeIndex] = biotypeIndex;
         assert( tinkerIxExists(tinkerBiotypeIndex) );

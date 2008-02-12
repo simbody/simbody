@@ -62,9 +62,9 @@ public:
         // If its already set, that's OK
         if (tIx == tinkerBiotypeIndexIfAny) return;
 
-        assert(tinkerBiotypeIndexIfAny == InvalidTinkerBiotypeIndex);
+        assert(!tinkerBiotypeIndexIfAny.isValid());
         tinkerBiotypeIndexIfAny = tIx;
-        assert(tinkerBiotypeIndexIfAny != InvalidTinkerBiotypeIndex);
+        assert(tinkerBiotypeIndexIfAny.isValid());
     }
 
     const String& getAtomName() const {return atomName;}
@@ -107,7 +107,7 @@ public:
         os << indent2 << "Biotype::defineTinkerBiotype(" << std::endl;
 
         // Tinker biotype
-        if (tinkerBiotypeIndexIfAny == InvalidTinkerBiotypeIndex)
+        if (!tinkerBiotypeIndexIfAny.isValid())
             os << indent3 << "InvalidTinkerBiotypeIndex" << std::endl;
         else
             os << indent3 << "TinkerBiotypeIndex(" << tinkerBiotypeIndexIfAny << ")" << std::endl;
