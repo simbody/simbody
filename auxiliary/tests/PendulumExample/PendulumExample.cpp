@@ -57,10 +57,10 @@ int main(int argc, char** argv) {
 try { // If anything goes wrong, an exception will be thrown.
 
     MultibodySystem         mbs;
-    UniformGravitySubsystem gravity(mbs, Vec3(0, -g, 0));
     GeneralForceSubsystem    forces(mbs);
     SimbodyMatterSubsystem  pend(mbs);
     DecorationSubsystem     viz(mbs);
+    Force::UniformGravity gravity(forces, pend, Vec3(0, -g, 0));
 
     MobilizedBody::Ball connector(pend.Ground(), 
                                     Transform(1*Vec3(0, 0, 0)),

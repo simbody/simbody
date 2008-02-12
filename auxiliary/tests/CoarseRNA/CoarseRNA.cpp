@@ -228,7 +228,7 @@ try // If anything goes wrong, an exception will be thrown.
     MultibodySystem mbs;
     MyRNAExample myRNA(mbs, nseg, shouldFlop != 0);
     GeneralForceSubsystem forces(mbs);
-    UniformGravitySubsystem ugs(mbs, Vec3(0, -g, 0));
+    Force::UniformGravity ugs(forces, myRNA, Vec3(0, -g, 0), -0.8);
 
     const Vec3 attachPt(150, -40, -50);
 
@@ -287,11 +287,6 @@ try // If anything goes wrong, an exception will be thrown.
             (int)i, myRNA.isUsingQuaternion(s,i) ? "true":"false", 
             (int)myRNA.getQuaternionPoolIndex(s,i));
     }
-
-    ugs.updGravity(s) *= 10;
-    ugs.disableGravity(s);
-    ugs.enableGravity(s);
-    ugs.updZeroHeight(s) = -0.8;
 
     // And a study using the Runge Kutta Merson integrator
     bool suppressProject = false;

@@ -96,9 +96,9 @@ int main(int argc, char** argv) {
     MultibodySystem         mbs;
 
     SimbodyMatterSubsystem  twoPends(mbs);
-    UniformGravitySubsystem gravity(mbs, Vec3(0, -g, 0));
     GeneralForceSubsystem    forces(mbs);
     DecorationSubsystem     viz(mbs);
+    Force::UniformGravity gravity(forces, twoPends, Vec3(0, -g, 0));
 
         // ADD BODIES AND THEIR MOBILIZERS
     Body::Rigid pendulumBody = Body::Rigid(MassProperties(m, Vec3(0), Inertia(1)))

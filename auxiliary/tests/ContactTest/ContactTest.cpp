@@ -137,8 +137,9 @@ try
     MultibodySystem mbs;
     SimbodyMatterSubsystem  bouncers(mbs);
     HuntCrossleyContact     contact(mbs);
-    UniformGravitySubsystem gravityForces(mbs, gravity);
     DecorationSubsystem     artwork(mbs);
+    GeneralForceSubsystem   forces(mbs);
+    Force::UniformGravity gravityForces(forces, bouncers, gravity);
 
     // No, thank you.
     bouncers.setShowDefaultGeometry(false);

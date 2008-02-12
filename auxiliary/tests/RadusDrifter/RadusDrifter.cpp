@@ -65,9 +65,9 @@ int main(int argc, char** argv) {
     MultibodySystem         mbs;
 
     SimbodyMatterSubsystem  crankRocker(mbs);
-    UniformGravitySubsystem gravity(mbs, Vec3(0, -g, 0));
     GeneralForceSubsystem    forces(mbs);
     DecorationSubsystem     viz(mbs);
+    Force::UniformGravity gravity(forces, crankRocker, Vec3(0, -g, 0));
 
         // ADD BODIES AND THEIR MOBILIZERS
     Body::Rigid crankBody  = Body::Rigid(MassProperties(.1, Vec3(0), 0.1*Inertia::brick(1,3,.5)))

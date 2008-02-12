@@ -47,6 +47,7 @@ template class PIMPLDerivedHandle<Force::MobilityConstantForce, Force::MobilityC
 template class PIMPLDerivedHandle<Force::ConstantForce, Force::ConstantForceImpl, Force>;
 template class PIMPLDerivedHandle<Force::ConstantTorque, Force::ConstantTorqueImpl, Force>;
 template class PIMPLDerivedHandle<Force::GlobalDamper, Force::GlobalDamperImpl, Force>;
+template class PIMPLDerivedHandle<Force::UniformGravity, Force::UniformGravityImpl, Force>;
 
 ForceIndex Force::getForceIndex() const {
     return getImpl().getForceIndex();
@@ -259,6 +260,44 @@ Force::GlobalDamperImpl::GlobalDamperImpl(const SimbodyMatterSubsystem& matter, 
 
 void Force::GlobalDamperImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
     mobilityForces -= damping*matter.getU(state);
+}
+
+// UniformGravity
+
+Force::UniformGravity::UniformGravity(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter,
+        const Vec3& g, Real zeroHeight) : PIMPLDerivedHandleBase(new UniformGravityImpl(matter, g, zeroHeight)) {
+    updImpl().setForceIndex(forces.adoptForce(*this));
+}
+
+Force::UniformGravityImpl::UniformGravityImpl(const SimbodyMatterSubsystem& matter, const Vec3& g, Real zeroHeight) : matter(matter), g(g), zeroHeight(zeroHeight) {
+}
+
+void Force::UniformGravityImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
+    const int nBodies    = matter.getNBodies();
+    const int nParticles = matter.getNParticles();
+
+    if (nParticles) {
+        const Vector& m = matter.getAllParticleMasses(state);
+        const Vector_<Vec3>& loc_G = matter.getAllParticleLocations(state);
+        for (int i=0; i < nParticles; ++i) {
+            pe -= m[i]*(~g*loc_G[i] + zeroHeight); // odd signs because height is in -g direction
+            particleForces[i] += g * m[i];
+        }
+    }
+Real oldpe = pe;
+    // no need to apply gravity to Ground!
+    for (MobilizedBodyIndex i(1); i < nBodies; ++i) {
+        const MassProperties& mprops = matter.getMobilizedBody(i).getBodyMassProperties(state);
+        const Real&      m       = mprops.getMass();
+        const Vec3&      com_B   = mprops.getMassCenter();
+        const Transform& X_GB    = matter.getMobilizedBody(i).getBodyTransform(state);
+        const Vec3       com_B_G = X_GB.R()*com_B;
+        const Vec3       com_G   = X_GB.T() + com_B_G;
+        const Vec3       frc_G   = m*g;
+
+        pe -= m*(~g*com_G + zeroHeight); // odd signs because height is in -g direction
+        bodyForces[i] += SpatialVec(com_B_G % frc_G, frc_G); 
+    }
 }
 
 // Custom

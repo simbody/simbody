@@ -68,6 +68,7 @@ public:
     class ConstantForce;
     class ConstantTorque;
     class GlobalDamper;
+    class UniformGravity;
     class Custom;
     
     class TwoPointLinearSpringImpl;
@@ -79,6 +80,7 @@ public:
     class ConstantForceImpl;
     class ConstantTorqueImpl;
     class GlobalDamperImpl;
+    class UniformGravityImpl;
     class CustomImpl;
 };
 
@@ -274,6 +276,17 @@ public:
 class SimTK_SIMBODY_EXPORT Force::GlobalDamper : public PIMPLDerivedHandle<GlobalDamper, GlobalDamperImpl, Force> {
 public:
     GlobalDamper(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter, Real damping);
+};
+
+/**
+ * A uniform gravitational force applied to every body in the system.  The force
+ * is specified by a vector in the Ground frame.  You can optionally specify
+ * a height at which the gravitational potential energy is zero.
+ */
+
+class SimTK_SIMBODY_EXPORT Force::UniformGravity : public PIMPLDerivedHandle<UniformGravity, UniformGravityImpl, Force> {
+public:
+    UniformGravity(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter, const Vec3& g, Real zeroHeight=0);
 };
 
 /**

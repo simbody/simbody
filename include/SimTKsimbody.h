@@ -49,7 +49,6 @@
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem_Subtree.h"
-#include "simbody/internal/UniformGravitySubsystem.h"
 #include "simbody/internal/GeneralForceSubsystem.h"
 #include "simbody/internal/HuntCrossleyContact.h"
 #include "simbody/internal/DuMMForceFieldSubsystem.h"

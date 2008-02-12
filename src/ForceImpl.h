@@ -199,6 +199,19 @@ private:
     Real damping;
 };
 
+class Force::UniformGravityImpl : public ForceImpl {
+public:
+    UniformGravityImpl(const SimbodyMatterSubsystem& matter, const Vec3& g, Real zeroHeight);
+    UniformGravityImpl* clone() const {
+        return new UniformGravityImpl(*this);
+    }
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const;
+private:
+    const SimbodyMatterSubsystem& matter;
+    Vec3 g;
+    Real zeroHeight;
+};
+
 class Force::CustomImpl : public ForceImpl {
 public:
     CustomImpl(Force::Custom::Implementation* implementation);

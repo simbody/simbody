@@ -95,6 +95,7 @@ void testStandardForces() {
     Force::TwoPointConstantForce twoPointConstantForce(forces, body1, Vec3(0), body9, Vec3(0), 2.0);
     Force::TwoPointLinearDamper twoPointLinearDamper(forces, body1, Vec3(0), body9, Vec3(0), 2.0);
     Force::TwoPointLinearSpring twoPointLinearSpring(forces, body1, Vec3(0), body9, Vec3(0), 2.0, 0.5);
+    Force::UniformGravity uniformGravity(forces, matter, Vec3(0, -2.0, 0));
     Force::Custom custom(forces, new MyForceImpl());
 
     // Create a random state for it.
@@ -193,6 +194,14 @@ void testStandardForces() {
     bodyForces[9][1] = -twoPointLinearSpringForce*delta19.normalize();
     verifyForces(twoPointLinearSpring, state, bodyForces, particleForces, mobilityForces);
     
+    // Check UniformGravity
+    
+    bodyForces = SpatialVec(Vec3(0), Vec3(0, -2.0, 0));
+    bodyForces[0] = SpatialVec(Vec3(0), Vec3(0));
+    particleForces = Vec3(0);
+    mobilityForces = 0;
+    verifyForces(uniformGravity, state, bodyForces, particleForces, mobilityForces);
+
     // Check Custom
     
     bodyForces = SpatialVec(Vec3(0), Vec3(0));
@@ -225,6 +234,7 @@ void testEnergyConservation() {
     MobilizedBody& body9 = matter.updMobilizedBody(MobilizedBodyIndex(9));
     Force::MobilityLinearSpring mobilityLinearSpring(forces, body1, 1, 0.1, 1.0);
     Force::TwoPointLinearSpring twoPointLinearSpring(forces, body1, Vec3(0), body9, Vec3(0), 1.0, 4.0);
+    Force::UniformGravity uniformGravity(forces, matter, Vec3(0, -1.0, 0));
 
     // Create a random initial state for it.
     
@@ -245,7 +255,7 @@ void testEnergyConservation() {
     ts.stepTo(10.0);
     system.realize(state, Stage::Dynamics);
     Real finalEnergy = system.getEnergy(ts.getState());
-    ASSERT(std::abs(initialEnergy/finalEnergy-1.0) < 1e-3);
+    ASSERT(std::abs(initialEnergy/finalEnergy-1.0) < 0.005);
 }
 
 int main() {

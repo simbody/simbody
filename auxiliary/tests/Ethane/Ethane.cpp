@@ -542,7 +542,7 @@ try
     DuMMForceFieldSubsystem  mm(mbs);
     GeneralForceSubsystem     forces(mbs);
     DecorationSubsystem      artwork(mbs);
-    UniformGravitySubsystem  gravity(mbs, Vec3(0,0,0));
+    Force::UniformGravity gravity(forces, matter, Vec3(0,0,0));
 
     Real accuracy = 1e-2;
     Real outputInterval = .01;

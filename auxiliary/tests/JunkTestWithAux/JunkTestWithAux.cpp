@@ -73,9 +73,9 @@ int main(int argc, char** argv) {
     MultibodySystem         mbs;
 
     SimbodyMatterSubsystem  matter(mbs);
-    UniformGravitySubsystem gravity(mbs, Vec3(0, -g, 0));
     GeneralForceSubsystem    forces(mbs);
     DecorationSubsystem     viz(mbs);
+    Force::UniformGravity gravity(forces, matter, Vec3(0, -g, 0));
 
         // ADD BODIES AND THEIR MOBILIZERS
     const Body::Rigid body = Body::Rigid(MassProperties(m, Vec3(0), m*Inertia::brick(hl[0],hl[1],hl[2])))

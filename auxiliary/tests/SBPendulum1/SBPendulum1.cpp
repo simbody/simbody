@@ -148,7 +148,6 @@ try {
     MultibodySystem mbs;
     SimbodyMatterSubsystem pend(mbs);
     GeneralForceSubsystem springs(mbs);
-    UniformGravitySubsystem gravityForces(mbs); // default is none
     HuntCrossleyContact contact(mbs);
 
     Real L = 1.; 
@@ -163,6 +162,7 @@ try {
         << mprops.getMassCenter() << ", " << mprops.getInertia() << endl;
 
     Vec3 gravity(0.,-g,0.);
+    Force::UniformGravity gravityForces(springs, pend, gravity);
     cout << "period should be " << 2*std::acos(-1.)*std::sqrt(L/g) << " seconds." << endl;
 
     MobilizedBody::Free aPendulum(pend.Ground(), Transform(), // ground, at origin
@@ -265,8 +265,6 @@ try {
             s.getUErrStart()+s.getUErrStart(i),s.getNUErr(i),
             s.getUDotErrStart(i),s.getNUDotErr(i));
     }
-
-    gravityForces.updGravity(s) = gravity;
 
 
     //pend.setJointQ(s,1,0,0);
