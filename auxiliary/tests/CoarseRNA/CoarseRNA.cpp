@@ -253,18 +253,40 @@ try // If anything goes wrong, an exception will be thrown.
 
     for (ConstraintIndex cid(0); cid < myRNA.getNConstraints(); ++cid) {
         const Constraint& c = myRNA.getConstraint(cid);
+        int mp,mv,ma;
+        c.getNumConstraintEquations(s, mp,mv,ma);
 
-	    cout << "CONSTRAINT " << cid << " ancestor=" << c.getAncestorMobilizedBody().getMobilizedBodyIndex()
-             << " " << c.getNumConstrainedBodies() << "constrained bodies, perr=" << c.getPositionError(s)
-		     << endl;
-        for (ConstrainedBodyIndex cid(0); cid < c.getNumConstrainedBodies(); ++cid)
-            cout << "  constrained body: " << c.getConstrainedMobilizedBody(cid).getMobilizedBodyIndex() << endl;
+	    cout << "CONSTRAINT " << cid 
+             << " constrained bodies=" << c.getNumConstrainedBodies() 
+             << " ancestor=" << c.getAncestorMobilizedBody().getMobilizedBodyIndex()
+             << " constrained mobilizers/nq/nu=" << c.getNumConstrainedMobilizers() 
+                                           << "/" << c.getNumConstrainedQ(s) << "/" << c.getNumConstrainedU(s)
+             << " mp,mv,ma=" << mp << "," << mv << "," << ma 
+             << endl;
+        for (ConstrainedBodyIndex cid(0); cid < c.getNumConstrainedBodies(); ++cid) {
+            cout << "  constrained body: " << c.getMobilizedBodyFromConstrainedBody(cid).getMobilizedBodyIndex(); 
+            cout << endl;
+        }
+        for (ConstrainedMobilizerIndex cmx(0); cmx < c.getNumConstrainedMobilizers(); ++cmx) {
+            cout << "  constrained mobilizer " << c.getMobilizedBodyFromConstrainedMobilizer(cmx).getMobilizedBodyIndex() 
+                  << ", q(" << c.getNumConstrainedQ(s, cmx) << ")="; 
+            for (MobilizerQIndex i(0); i < c.getNumConstrainedQ(s, cmx); ++i)
+                cout << " " << c.getConstrainedQIndex(s, cmx, i);                  
+            cout << ", u(" << c.getNumConstrainedU(s, cmx) << ")=";
+            for (MobilizerUIndex i(0); i < c.getNumConstrainedU(s, cmx); ++i)
+                cout << " " << c.getConstrainedUIndex(s, cmx, i);
+            cout << endl;
+        }
+        cout << c.getSubtree();
 
 	    cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
 	    cout << "   d(perrdot)/du=" << ~c.calcPositionConstraintMatrixPt(s);
 
 	    cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
     }
+
+
+
 
 
     SimbodyMatterSubsystem::Subtree sub(myRNA);

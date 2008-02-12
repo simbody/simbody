@@ -158,18 +158,24 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(MobilizerUIndex)
     // PER-CONSTRAINT INDEX TYPES
     
 // This is the Constraint-specific index of the MobilizedBodies which are *directly* affected
-// by a constraint. That is, the Constraint expects to apply constraint forces as body forces
-// on these bodies or as mobility forces on these bodies' mobilizers.
+// by a constraint, through body forces as body torques on these bodies.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstrainedBodyIndex)
+
+// This is the Constraint-specific index of the MobilizedBodies whose mobilizers' mobilities
+// can appear explicitly in constraint equations, and which are acted upon by the Constraint
+// through generation of generalized (mobility) forces. Note that for a multi-dof mobilizer
+// we don't select individual mobilities; it is all or nothing so we can use the MobilizedBody
+// to stand for its mobilizer.
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstrainedMobilizerIndex)
 
 // This is the Constraint-specific index of a coordinate q which can be *directly* affected
 // by this constraint through generation of a mobility force on a corresponding mobility. These
-// are numbered in order of ConstrainedBodyIndex for the bodies for which these are the q's.
+// are numbered in order of ConstrainedMobilizerIndex for the mobilizers for which these are the q's.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstrainedQIndex)
 
 // This is the Constraint-specific index of a mobility u which can be *directly* affected
 // by this constraint through generation of a mobility force. These are numbered in order
-// of ConstrainedBodyIndex for the bodies for which these are the u's.
+// of ConstrainedMobilizerIndex for the bodies for which these are the u's.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstrainedUIndex)
 
     // SUBTREE INDEX TYPES

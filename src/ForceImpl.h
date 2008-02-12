@@ -31,6 +31,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include "SimTKcommon.h"
+#include "simbody/internal/common.h"
 #include "simbody/internal/Force.h"
 
 namespace SimTK {

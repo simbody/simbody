@@ -117,22 +117,39 @@ bool Constraint::isInSameSubsystem(const MobilizedBody& body) const {
 int Constraint::getNumConstrainedBodies() const {
     return getRep().getNumConstrainedBodies();
 }
-
-int Constraint::getNumConstrainedMobilities(const State& s) const {
-    return getRep().getNumConstrainedMobilities(s);
+int Constraint::getNumConstrainedMobilizers() const {
+    return getRep().getNumConstrainedMobilizers();
 }
 
-int Constraint::getNumConstrainedMobilities(const State& s, ConstrainedBodyIndex B) const {
-    return getRep().getNumConstrainedMobilities(s,B);
+int Constraint::getNumConstrainedQ(const State& s) const {
+    return getRep().getNumConstrainedQ(s);
+}
+int Constraint::getNumConstrainedU(const State& s) const {
+    return getRep().getNumConstrainedU(s);
 }
 
-ConstrainedUIndex Constraint::getConstrainedMobilityIndex
-   (const State& s, ConstrainedBodyIndex B, MobilizerUIndex which) const {
-    return getRep().getConstrainedMobilityIndex(s,B,which);
+int Constraint::getNumConstrainedQ(const State& s, ConstrainedMobilizerIndex M) const {
+    return getRep().getNumConstrainedQ(s,M);
+}
+int Constraint::getNumConstrainedU(const State& s, ConstrainedMobilizerIndex M) const {
+    return getRep().getNumConstrainedU(s,M);
 }
 
-const MobilizedBody& Constraint::getConstrainedMobilizedBody(ConstrainedBodyIndex B) const {
-    return getRep().getConstrainedMobilizedBody(B);
+ConstrainedQIndex Constraint::getConstrainedQIndex
+   (const State& s, ConstrainedMobilizerIndex M, MobilizerQIndex which) const {
+    return getRep().getConstrainedQIndex(s,M,which);
+}
+ConstrainedUIndex Constraint::getConstrainedUIndex
+   (const State& s, ConstrainedMobilizerIndex M, MobilizerUIndex which) const {
+    return getRep().getConstrainedUIndex(s,M,which);
+}
+
+const MobilizedBody& Constraint::getMobilizedBodyFromConstrainedMobilizer(ConstrainedMobilizerIndex M) const {
+    return getRep().getMobilizedBodyFromConstrainedMobilizer(M);
+}
+
+const MobilizedBody& Constraint::getMobilizedBodyFromConstrainedBody(ConstrainedBodyIndex B) const {
+    return getRep().getMobilizedBodyFromConstrainedBody(B);
 }
 const MobilizedBody& Constraint::getAncestorMobilizedBody() const {
     return getRep().getAncestorMobilizedBody();
@@ -609,9 +626,9 @@ void Constraint::Rod::RodRep::calcDecorativeGeometryAndAppendImpl
         // TODO: point stations and rod length should be instance-stage data 
         // from State rather than topological data
 
-        const Vec3 p_GP1 = getConstrainedMobilizedBody(B1)
+        const Vec3 p_GP1 = getMobilizedBodyFromConstrainedBody(B1)
                               .locateBodyPointOnGround(s, defaultPoint1);
-        const Vec3 p_GP2 = getConstrainedMobilizedBody(B2)
+        const Vec3 p_GP2 = getMobilizedBodyFromConstrainedBody(B2)
                               .locateBodyPointOnGround(s, defaultPoint2);
 
         const Vec3 p_P1P2 = p_GP2 - p_GP1;
@@ -1573,28 +1590,28 @@ void Constraint::ConstraintRep::realizeModel(State& s) const
     // TODO: Subtree?
 
     // At this point we can find out how many q's and u's are associated with
-    // each of the constrained bodies. We'll create packed arrays of q's and
-    // u's ordered corresponding to the ConstrainedBodyIndices. We'll record
+    // each of the constrained mobilizers. We'll create packed arrays of q's and
+    // u's ordered corresponding to the ConstrainedMobilizerIndices. We'll record
     // these in the ModelCache, by storing the ConstrainedQIndex and ConstrainedUIndex
     // of the lowest-numbered coordinate and mobility associated with each of
-    // the ConstrainedBodies, along with the number of q's and u's.
+    // the ConstrainedMobilizers, along with the number of q's and u's.
 
     ConstrainedQIndex nxtQ(0);
     ConstrainedUIndex nxtU(0);
-    for (ConstrainedBodyIndex b(0); b < (int)myConstrainedBodies.size(); ++b) {
-        SBModelCache::PerConstrainedBodyModelInfo& bInfo = cInfo.updConstrainedBodyModelInfo(b);
+    for (ConstrainedMobilizerIndex m(0); m < (int)myConstrainedMobilizers.size(); ++m) {
+        SBModelCache::PerConstrainedMobilizerModelInfo& mInfo = cInfo.updConstrainedMobilizerModelInfo(m);
 
-        const MobilizedBodyIndex m = myConstrainedBodies[b];
+        const MobilizedBodyIndex mb = myConstrainedMobilizers[m];
         QIndex qix; int nq;
         UIndex uix; int nu;
-        matter.findMobilizerQs(s,m,qix,nq);
-        matter.findMobilizerUs(s,m,uix,nu);
-        bInfo.firstConstrainedQIndex = nxtQ;
-        bInfo.firstConstrainedUIndex = nxtU;
+        matter.findMobilizerQs(s,mb,qix,nq);
+        matter.findMobilizerUs(s,mb,uix,nu);
+        mInfo.firstConstrainedQIndex = nxtQ;
+        mInfo.firstConstrainedUIndex = nxtU;
         nxtQ += nq; nxtU += nu;
     }
-    cInfo.nConstrainedQs = nxtQ;
-    cInfo.nConstrainedUs = nxtU;
+    //cInfo.nConstrainedQs = nxtQ;
+    //cInfo.nConstrainedUs = nxtU;
     
     realizeModelVirtual(s); // delegate to concrete constraint
 }
@@ -1622,7 +1639,14 @@ Constraint::ConstraintRep::getMyMatterSubsystem() const {
 }
 
 const MobilizedBody& 
-Constraint::ConstraintRep::getConstrainedMobilizedBody(ConstrainedBodyIndex B) const {
+Constraint::ConstraintRep::getMobilizedBodyFromConstrainedMobilizer(ConstrainedMobilizerIndex M) const {
+    SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
+        "Constrained mobilizers are not available until Topology stage has been realized.");
+    return getMyMatterSubsystemRep().getMobilizedBody(myConstrainedMobilizers[M]);
+}
+
+const MobilizedBody& 
+Constraint::ConstraintRep::getMobilizedBodyFromConstrainedBody(ConstrainedBodyIndex B) const {
     SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
         "Constrained bodies are not available until Topology stage has been realized.");
     return getMyMatterSubsystemRep().getMobilizedBody(myConstrainedBodies[B]);
@@ -1720,26 +1744,47 @@ void Constraint::ConstraintRep::getConstraintEquationSlots
     accOnly0 = mHolo + mNonholo + cInfo.accOnlyErrSegment.offset;
 }
 
-int Constraint::ConstraintRep::getNumConstrainedMobilities(const State& s) const {
-    return getModelCache(s).getConstraintModelInfo(myConstraintIndex).nConstrainedUs;
+int Constraint::ConstraintRep::getNumConstrainedQ(const State& s) const {
+    return getModelCache(s).getConstraintModelInfo(myConstraintIndex).getNConstrainedQ();
 }
 
-int Constraint::ConstraintRep::getNumConstrainedMobilities
-   (const State& s, ConstrainedBodyIndex B) const
+int Constraint::ConstraintRep::getNumConstrainedQ
+   (const State& s, ConstrainedMobilizerIndex M) const
 {
-    const MobilizedBodyIndex mbx = getMobilizedBodyIndexOfConstrainedBody(B);
+    const MobilizedBodyIndex mbx = getMobilizedBodyIndexOfConstrainedMobilizer(M);
+    return getModelCache(s).getMobilizedBodyModelInfo(mbx).nQInUse;
+}
+
+ConstrainedQIndex Constraint::ConstraintRep::getConstrainedQIndex
+   (const State& s, ConstrainedMobilizerIndex M, MobilizerQIndex which) const 
+{
+    const int nq = getNumConstrainedQ(s,M);
+    assert(0 <= which && which < nq);
+    const SBModelCache::PerConstrainedMobilizerModelInfo& mInfo =
+        getModelCache(s).getConstraintModelInfo(myConstraintIndex).getConstrainedMobilizerModelInfo(M);
+    return ConstrainedQIndex(mInfo.firstConstrainedQIndex + which);
+}       
+
+int Constraint::ConstraintRep::getNumConstrainedU(const State& s) const {
+    return getModelCache(s).getConstraintModelInfo(myConstraintIndex).getNConstrainedU();
+}
+
+int Constraint::ConstraintRep::getNumConstrainedU
+   (const State& s, ConstrainedMobilizerIndex M) const
+{
+    const MobilizedBodyIndex mbx = getMobilizedBodyIndexOfConstrainedMobilizer(M);
     return getModelCache(s).getMobilizedBodyModelInfo(mbx).nUInUse;
 }
 
-ConstrainedUIndex Constraint::ConstraintRep::getConstrainedMobilityIndex
-   (const State& s, ConstrainedBodyIndex B, MobilizerUIndex which) const 
+ConstrainedUIndex Constraint::ConstraintRep::getConstrainedUIndex
+   (const State& s, ConstrainedMobilizerIndex M, MobilizerUIndex which) const 
 {
-    const int nu = getNumConstrainedMobilities(s,B);
+    const int nu = getNumConstrainedU(s,M);
     assert(0 <= which && which < nu);
-    const SBModelCache::PerConstrainedBodyModelInfo& bInfo =
-        getModelCache(s).getConstraintModelInfo(myConstraintIndex).getConstrainedBodyModelInfo(B);
-    return ConstrainedUIndex(bInfo.firstConstrainedUIndex + which);
-}       
+    const SBModelCache::PerConstrainedMobilizerModelInfo& mInfo =
+        getModelCache(s).getConstraintModelInfo(myConstraintIndex).getConstrainedMobilizerModelInfo(M);
+    return ConstrainedUIndex(mInfo.firstConstrainedUIndex + which);
+}   
 
 // Given a state realized to Position stage, extract the position constraint errors
 // corresponding to this Constraint. The 'mp' argument is for sanity checking -- it

@@ -207,41 +207,66 @@ public:
     // know how many constraint equations (if any) the Constraint will generate until
     // Model stage. In particular, a disabled Constraint won't generate any equations (it
     // will have an Info entry here, however). Also, although we know the Constrained
-    // Bodies at Topology stage, we don't know the specific number or types of internal
+    // Mobilizers at Topology stage, we don't know the specific number or types of internal
     // coordinates involved until Model stage.
 
-    struct PerConstrainedBodyModelInfo {
-        // The correspondence between Constrained Bodies and Mobilized Bodies is
-        // Topological information you can pull from the TopologyCache. We're going
-        // to keep a copy of it here for convenience and to permit some redundancy checks.
+    struct PerConstrainedMobilizerModelInfo {
+        // The correspondence between Constrained Mobilizers and Mobilized Bodies is
+        // Topological information you can pull from the TopologyCache.
         // See the MobilizedBody for counts of its q's and u's, which define the allocated
-        // number of slots for the ConstrainedBody as well.
-        MobilizedBodyIndex correspondingMobilizedBody;
+        // number of slots for the ConstrainedMobilizer as well.
         ConstrainedQIndex  firstConstrainedQIndex; // these count from 0 for each Constraint
         ConstrainedUIndex  firstConstrainedUIndex;
     };
         
     class PerConstraintModelInfo {
         // Access using accessor methods below so you'll get type checking on the index type.
-        std::vector<PerConstrainedBodyModelInfo> constrainedBodyModelInfo;
+        std::vector<PerConstrainedMobilizerModelInfo> constrainedMobilizerModelInfo;
+
+        // The ConstrainedBodies and ConstrainedMobilizers are set at Topology stage, but the
+        // particular generalized coordinates q and generalized speeds u which are involved
+        // can't be determined until Model stage, since the associated mobilizers have Model
+        // stage options which can affect the number and meanings of these variables.
+        // These are sorted in order of their associated ConstrainedMobilizer, not necessarily
+        // in order of QIndex or UIndex. Each value appears only once.
+        std::vector<QIndex> constrainedQ;   // indexed by ConstrainedQIndex, maps to subsystem QIndex
+        std::vector<UIndex> constrainedU;   // indexed by ConstrainedUIndex, maps to subsystem UIndex
+
+        // Participating mobilities include ALL the mobilities which may be involved in any of this
+        // Constraint's constraint equations, whether from being directly constrained or indirectly
+        // as a result of their effects on ConstrainedBodies. These are sorted in order of increasing
+        // QIndex and UIndex, and each QIndex or UIndex appears only once.
+        std::vector<QIndex> participatingQ; // indexed by ParticipatingQIndex, maps to subsystem QIndex
+        std::vector<UIndex> participatingU; // indexed by ParticipatingUIndex, maps to subsystem UIndex
     public:
-        PerConstraintModelInfo() : nConstrainedQs(-1), nConstrainedUs(-1) { }
-        void allocateConstrainedBodyModelInfo(int nConstrainedBodies) {
-            assert(nConstrainedBodies >= 0);
-            constrainedBodyModelInfo.resize(nConstrainedBodies);
+        PerConstraintModelInfo() { }
+        void allocateConstrainedMobilizerModelInfo(int nConstrainedMobilizers) {
+            assert(nConstrainedMobilizers >= 0);
+            constrainedMobilizerModelInfo.resize(nConstrainedMobilizers);
+            constrainedQ.clear();   // build by appending
+            constrainedU.clear();
         }
-        const PerConstrainedBodyModelInfo& getConstrainedBodyModelInfo(ConstrainedBodyIndex b) const {
-            return constrainedBodyModelInfo[b];
+        const PerConstrainedMobilizerModelInfo& getConstrainedMobilizerModelInfo(ConstrainedMobilizerIndex M) const {
+            return constrainedMobilizerModelInfo[M];
         }
-        PerConstrainedBodyModelInfo& updConstrainedBodyModelInfo(ConstrainedBodyIndex b) {
-            return constrainedBodyModelInfo[b];
+        PerConstrainedMobilizerModelInfo& updConstrainedMobilizerModelInfo(ConstrainedMobilizerIndex M) {
+            return constrainedMobilizerModelInfo[M];
         }
+        
+        int getNConstrainedQ() const {return (int)constrainedQ.size();}
+        int getNConstrainedU() const {return (int)constrainedU.size();}
+        ConstrainedQIndex addConstrainedQ(QIndex qx) {
+            constrainedQ.push_back(qx);
+            return ConstrainedQIndex(constrainedQ.size()-1);
+        }
+        ConstrainedUIndex addConstrainedU(UIndex ux) {
+            constrainedU.push_back(ux);
+            return ConstrainedUIndex(constrainedU.size()-1);
+        }
+
         Segment holoErrSegment;    // (offset,mHolo)    for each Constraint, within subsystem qErr
         Segment nonholoErrSegment; // (offset,mNonholo) same, but for uErr slots (after holo derivs)
         Segment accOnlyErrSegment; // (offset,mAccOnly) same, but for udotErr slots (after holo/nonholo derivs)
-
-        int nConstrainedQs; // sum of the #q's of the ConstrainedBodies for this Constraint
-        int nConstrainedUs; //       "    #u's                "
     };
 
     // Use these accessors so that you get type checking on the index types.

@@ -90,11 +90,12 @@ public:
         defaultMa = ma;
     }
 
-    typedef std::map<MobilizedBodyIndex,ConstrainedBodyIndex> Mobilized2ConstrainedMap;
+    typedef std::map<MobilizedBodyIndex,ConstrainedBodyIndex>       MobilizedBody2ConstrainedBodyMap;
+    typedef std::map<MobilizedBodyIndex,ConstrainedMobilizerIndex>  MobilizedBody2ConstrainedMobilizerMap;
 
     // Call this during construction phase to add a body to the topological structure of
-    // this Constraint. All the coordinates q and mobilities u for this body are added also,
-    // but we don't know how many of those there will be until Stage::Model.
+    // this Constraint. This body's mobilizer's mobilities are *not* part of the constraint; 
+    // mobilizers must be added separately.
     ConstrainedBodyIndex addConstrainedBody(const MobilizedBody& b) {
         assert(isInSameSubsystem(b));
         invalidateTopologyCache();
@@ -102,20 +103,45 @@ public:
         const ConstrainedBodyIndex nextIx((int)myConstrainedBodies.size());
 
         // Add to the Mobilized->Constrained map and check for duplicates.
-        std::pair<Mobilized2ConstrainedMap::iterator, bool> result;
-        result = myMobilizedBodies.insert(
-            Mobilized2ConstrainedMap::value_type(b.getMobilizedBodyIndex(), nextIx));
+        std::pair<MobilizedBody2ConstrainedBodyMap::iterator, bool> result;
+        result = myMobilizedBody2ConstrainedBodyMap.insert(
+            MobilizedBody2ConstrainedBodyMap::value_type(b.getMobilizedBodyIndex(), nextIx));
         SimTK_ASSERT_ALWAYS(result.second,
-            "addConstrainedBody(): a Constrained Body can be added only once per Constraint");
+            "addConstrainedBody(): a particular Constrained Body can be added only once per Constraint");
 
-        // This is a new constrained body -- add it to the Constrained->Mobilized map too.
+        // This is a new constrained body -- add it to the ConstrainedBody->MobilizedBody map too.
         myConstrainedBodies.push_back(b.getMobilizedBodyIndex());
+        return nextIx;
+    }
+
+    // Call this during construction phase to add a mobilizer to the topological structure of
+    // this Constraint. All the coordinates q and mobilities u for this mobilizer are added also,
+    // but we don't know how many of those there will be until Stage::Model.
+    ConstrainedMobilizerIndex addConstrainedMobilizer(const MobilizedBody& b) {
+        assert(isInSameSubsystem(b));
+        invalidateTopologyCache();
+
+        const ConstrainedMobilizerIndex nextIx((int)myConstrainedMobilizers.size());
+
+        // Add to the Mobilized->Constrained map and check for duplicates.
+        std::pair<MobilizedBody2ConstrainedMobilizerMap::iterator, bool> result;
+        result = myMobilizedBody2ConstrainedMobilizerMap.insert(
+            MobilizedBody2ConstrainedMobilizerMap::value_type(b.getMobilizedBodyIndex(), nextIx));
+        SimTK_ASSERT_ALWAYS(result.second,
+            "addConstrainedMobilizer(): a particular Constrained Mobilizer can be added only once per Constraint");
+
+        // This is a new constrained mobilizer -- add it to the ConstrainedMobilizer->MobilizedBody map too.
+        myConstrainedMobilizers.push_back(b.getMobilizedBodyIndex());
         return nextIx;
     }
 
     MobilizedBodyIndex getMobilizedBodyIndexOfConstrainedBody(ConstrainedBodyIndex c) const {
         assert(0 <= c && c < (int)myConstrainedBodies.size());
         return myConstrainedBodies[c];
+    }
+    MobilizedBodyIndex getMobilizedBodyIndexOfConstrainedMobilizer(ConstrainedMobilizerIndex c) const {
+        assert(0 <= c && c < (int)myConstrainedMobilizers.size());
+        return myConstrainedMobilizers[c];
     }
 
     void realizeTopology(State&) const; // eventually calls realizeTopologyVirtual()
@@ -232,15 +258,43 @@ public:
     //TODO: should precalculate in State, return reference
     // (Client "get" methods below should be changed to references also.) 
 
-    Real getOneU(const State&, ConstrainedBodyIndex, MobilizerUIndex whichMobility) const {
+        // Methods for use with ConstrainedMobilizers.
+
+    Real getOneQ(const State&, ConstrainedMobilizerIndex, MobilizerQIndex whichMobility) const {
+        assert(!"ConstraintRep::getOneQ(): not implemented yet");
+        return NaN;
+    }
+
+    Real getOneU(const State&, ConstrainedMobilizerIndex, MobilizerUIndex whichMobility) const {
         assert(!"ConstraintRep::getOneU(): not implemented yet");
         return NaN;
     }
 
-    Real getOneUDot(const State&, const SBAccelerationCache& ac, ConstrainedBodyIndex, MobilizerUIndex whichMobility) const {
+    Real getOneQDot(const State&, const SBVelocityCache& vc, 
+                    ConstrainedMobilizerIndex, MobilizerQIndex whichMobility) const
+    {
+        assert(!"ConstraintRep::getOneQDot(): not implemented yet");
+        return NaN;
+    }
+
+    Real getOneUDot(const State&, const SBAccelerationCache& ac,
+                    ConstrainedMobilizerIndex, MobilizerUIndex whichMobility) const
+    {
         assert(!"ConstraintRep::getOneUDot(): not implemented yet");
         return NaN;
     }
+
+    // Apply a generalized (mobility) force to a particular mobility of the given constrained body B,
+    // adding it in to the appropriate slot of the mobilityForces vector.
+    void addInOneMobilityForce(const State& s, ConstrainedMobilizerIndex M, MobilizerUIndex which,
+                               Real f, Vector& mobilityForces) const 
+    { 
+        assert(mobilityForces.size() == getNumConstrainedU(s));
+        assert(0 <= which && which < getNumConstrainedU(s, M));
+        mobilityForces[getConstrainedUIndex(s,M,which)] += f;
+    }
+
+        // Methods for use with ConstrainedBodies.
 
     // These are for use during realization of the associated stage.
     Transform  getBodyTransform   (const State& s, const SBPositionCache&, ConstrainedBodyIndex B) const; // X_AB
@@ -303,7 +357,7 @@ public:
         return calcStationAcceleration(s, getAccelerationCache(s), B, p_B);
     }
 
-    // Apply an A-frame force to a B-frame station, updating the appropriate bodyForces entry.
+    // Apply an Ancestor-frame force to a B-frame station, updating the appropriate bodyForces entry.
     void addInStationForce(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, 
                            const Vec3& forceInA, Vector_<SpatialVec>& bodyForcesInA) const 
     {
@@ -312,23 +366,14 @@ public:
         bodyForcesInA[B] += SpatialVec((R_AB*p_B) % forceInA, forceInA); // rXf, f
     }
 
-    // Apply an A-frame torque to body B, updating the appropriate bodyForces entry.
-    void addInBodyTorque(const State& s, ConstrainedBodyIndex B, const Vec3& torqueInA,
-                         Vector_<SpatialVec>& bodyForcesInA) const 
+    // Apply an Ancestor-frame torque to body B, updating the appropriate bodyForces entry.
+    void addInBodyTorque(const State& s, ConstrainedBodyIndex B,
+                         const Vec3& torqueInA, Vector_<SpatialVec>& bodyForcesInA) const 
     {
         assert(bodyForcesInA.size() == getNumConstrainedBodies());
         bodyForcesInA[B][0] += torqueInA; // no force
     }
 
-    // Apply a generalized (mobility) force to a particular mobility of the given constrained body B,
-    // adding it in to the appropriate slot of the mobilityForces vector.
-    void addInOneMobilityForce(const State& s, ConstrainedBodyIndex B, MobilizerUIndex which, Real f,
-                               Vector& mobilityForces) const 
-    { 
-        assert(mobilityForces.size() == getNumConstrainedMobilities(s));
-        assert(0 <= which && which < getNumConstrainedMobilities(s, B));
-        mobilityForces[getConstrainedMobilityIndex(s,B,which)] += f;
-    }
 
     virtual ~ConstraintRep();
     virtual ConstraintRep* clone() const = 0;
@@ -460,14 +505,20 @@ public:
             "Number of constrained bodies is not available until Topology stage has been realized.");
         return (int)myConstrainedBodies.size();
     }
+    int getNumConstrainedMobilizers() const {
+        SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
+            "Number of constrained mobilizers is not available until Topology stage has been realized.");
+        return (int)myConstrainedMobilizers.size();
+    }
 
-    const MobilizedBody& getConstrainedMobilizedBody(ConstrainedBodyIndex B) const;
+    const MobilizedBody& getMobilizedBodyFromConstrainedMobilizer(ConstrainedMobilizerIndex) const;
+    const MobilizedBody& getMobilizedBodyFromConstrainedBody(ConstrainedBodyIndex) const;
     const MobilizedBody& getAncestorMobilizedBody() const;
 
 	// Find out how many holonomic (position), nonholonomic (velocity),
 	// and acceleration-only constraint equations are generated by this Constraint.
 	// State must be realized to Stage::Model.
-	void getNumConstraintEquations(const State& s, int& mHolo, int& mNonholo, int& mAccOnly) const;
+	void getNumConstraintEquations(const State&, int& mHolo, int& mNonholo, int& mAccOnly) const;
 
     // Find the first assigned slots for these constraint equations in the containing
     // SimbodyMatterSubsystem's QErr, UErr, and UDotErr/Multiplier arrays. There will be
@@ -477,12 +528,16 @@ public:
     //    (totalNumHolo+totalNumNonholo + accOnly0, mAccOnly)
     // Returns -1 if the Constraint has no constraint equations in the indicated category.
 	// State must be realized to Stage::Model.
-    void getConstraintEquationSlots(const State& s, int& holo0, int& nonholo0, int& accOnly0) const;
+    void getConstraintEquationSlots(const State&, int& holo0, int& nonholo0, int& accOnly0) const;
 
-    int getNumConstrainedMobilities(const State& s) const;
-    int getNumConstrainedMobilities(const State& s, ConstrainedBodyIndex B) const;
-    ConstrainedUIndex getConstrainedMobilityIndex
-       (const State& s, ConstrainedBodyIndex B, MobilizerUIndex which) const;
+    int getNumConstrainedQ(const State&) const;
+    int getNumConstrainedU(const State&) const;
+    int getNumConstrainedQ(const State&, ConstrainedMobilizerIndex) const;
+    int getNumConstrainedU(const State&, ConstrainedMobilizerIndex) const;
+    ConstrainedQIndex getConstrainedQIndex
+       (const State&, ConstrainedMobilizerIndex, MobilizerQIndex which) const;
+    ConstrainedUIndex getConstrainedUIndex
+       (const State&, ConstrainedMobilizerIndex, MobilizerUIndex which) const;
 
     const SimbodyMatterSubsystemRep& getMyMatterSubsystemRep() const {
         SimTK_ASSERT(myMatterSubsystemRep,
@@ -510,11 +565,16 @@ private:
     SimbodyMatterSubsystemRep* myMatterSubsystemRep;
     ConstraintIndex            myConstraintIndex; // id within the matter subsystem
 
-    // We'll keep the bodies in two maps: one maps MobilizedBodyIndex->ConstrainedBodyIndex
-    // (O(log n) to look up), and the other maps ConstrainedBodyIndex->MobilizedBodyIndex
+    // We'll keep the constrained bodies and constrained mobilizers each in two maps: 
+    // one maps MobilizedBodyIndex->ConstrainedBody[Mobilizer]Index (O(log n) to look
+    // up), and the other maps ConstrainedBody[Mobilizer]Index->MobilizedBodyIndex
     // (randomly addressable in constant time).
-    Mobilized2ConstrainedMap        myMobilizedBodies;
-    std::vector<MobilizedBodyIndex> myConstrainedBodies; // index with ConstrainedBodyIndex
+    MobilizedBody2ConstrainedBodyMap        myMobilizedBody2ConstrainedBodyMap;
+    MobilizedBody2ConstrainedMobilizerMap   myMobilizedBody2ConstrainedMobilizerMap;
+
+    std::vector<MobilizedBodyIndex> myConstrainedBodies;     // index with ConstrainedBodyIndex
+    std::vector<MobilizedBodyIndex> myConstrainedMobilizers; // index with ConstrainedMobilizerIndex
+
 
     // These are the defaults for the number of position (holonomic) constraint equations,
     // the number of velocity (nonholonomic) constraint equations, and the number of
@@ -1722,7 +1782,7 @@ private:
 class Constraint::ConstantSpeed::ConstantSpeedRep : public Constraint::ConstraintRep {
 public:
     ConstantSpeedRep()
-      : ConstraintRep(0,1,0), theBody(), whichMobility(-1), prescribedSpeed(NaN)
+      : ConstraintRep(0,1,0), theMobilizer(), whichMobility(-1), prescribedSpeed(NaN)
     { }
     ConstantSpeedRep* clone() const { return new ConstantSpeedRep(*this); }
 
@@ -1734,12 +1794,12 @@ public:
     // 
     void realizeVelocityErrorsVirtual(const State& s, const SBVelocityCache& vc, int mv,  Real* verr) const {
         assert(mv==1 && verr);
-        *verr = getOneU(s, theBody, whichMobility) - prescribedSpeed;
+        *verr = getOneU(s, theMobilizer, whichMobility) - prescribedSpeed;
     }
 
     void realizeVelocityDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mv,  Real* vaerr) const {
         assert(mv==1 && vaerr);
-        *vaerr = getOneUDot(s, ac, theBody, whichMobility);
+        *vaerr = getOneUDot(s, ac, theMobilizer, whichMobility);
     }
 
 	// apply generalized force lambda to the mobility
@@ -1750,16 +1810,16 @@ public:
     {
         assert(mv==1 && multipliers);
         const Real lambda = *multipliers;
-        addInOneMobilityForce(s, theBody, whichMobility, lambda, mobilityForces);
+        addInOneMobilityForce(s, theMobilizer, whichMobility, lambda, mobilityForces);
     }
 
     SimTK_DOWNCAST(ConstantSpeedRep, ConstraintRep);
 private:
     friend class Constraint::ConstantSpeed;
 
-    ConstrainedBodyIndex theBody;
-    MobilizerUIndex whichMobility;
-    Real prescribedSpeed;
+    ConstrainedMobilizerIndex   theMobilizer;
+    MobilizerUIndex             whichMobility;
+    Real                        prescribedSpeed;
 };
 
 

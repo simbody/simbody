@@ -29,25 +29,16 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#define SimTK_DEFINING_FORCE
+#include "SimTKcommon.h"
+
+#include "simbody/internal/common.h"
+#include "simbody/internal/MobilizedBody.h"
+#include "simbody/internal/SimbodyMatterSubsystem.h"
+#include "simbody/internal/Force.h"
 
 #include "ForceImpl.h"
-#include "SimTKcommon/internal/PrivateImplementation_Defs.h"
 
 namespace SimTK {
-
-template class PIMPLHandle<Force, ForceImpl>;
-template class PIMPLImplementation<Force, ForceImpl>;
-template class PIMPLDerivedHandle<Force::TwoPointLinearSpring, Force::TwoPointLinearSpringImpl, Force>;
-template class PIMPLDerivedHandle<Force::TwoPointLinearDamper, Force::TwoPointLinearDamperImpl, Force>;
-template class PIMPLDerivedHandle<Force::TwoPointConstantForce, Force::TwoPointConstantForceImpl, Force>;
-template class PIMPLDerivedHandle<Force::MobilityLinearSpring, Force::MobilityLinearSpringImpl, Force>;
-template class PIMPLDerivedHandle<Force::MobilityLinearDamper, Force::MobilityLinearDamperImpl, Force>;
-template class PIMPLDerivedHandle<Force::MobilityConstantForce, Force::MobilityConstantForceImpl, Force>;
-template class PIMPLDerivedHandle<Force::ConstantForce, Force::ConstantForceImpl, Force>;
-template class PIMPLDerivedHandle<Force::ConstantTorque, Force::ConstantTorqueImpl, Force>;
-template class PIMPLDerivedHandle<Force::GlobalDamper, Force::GlobalDamperImpl, Force>;
-template class PIMPLDerivedHandle<Force::UniformGravity, Force::UniformGravityImpl, Force>;
 
 ForceIndex Force::getForceIndex() const {
     return getImpl().getForceIndex();
@@ -324,3 +315,4 @@ void Force::CustomImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyF
 }
 
 } // namespace SimTK
+

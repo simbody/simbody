@@ -79,43 +79,72 @@ public:
 
         // TOPOLOGY STAGE (i.e., post-construction) //
 
-    /// Return the number of MobilizedBodies *directly* restricted by this
+    /// Return the number of bodies *directly* restricted by this
     /// constraint. Included are any bodies to which the Constraint may
-    /// apply a body force (i.e., torque or point force), or to whose mobilizer
-    /// the Constraint may apply any mobility force. The Ancestor body is not
-    /// included unless it was specified as a ConstrainedBody, and even then
-    /// the Ancestor's mobilities can't be influenced by the constraint.
+    /// apply a body force (i.e., torque or point force). The Ancestor body is not
+    /// included unless it was specified as a ConstrainedBody.
     int getNumConstrainedBodies() const;
-
     /// Return a reference to the actual MobilizedBodies included in the count
     /// above. 0 <= which < getNumConstrainedBodies().
-    const MobilizedBody& getConstrainedMobilizedBody(ConstrainedBodyIndex which) const;
+    const MobilizedBody& getMobilizedBodyFromConstrainedBody
+       (ConstrainedBodyIndex which) const;
+    /// Return a reference to the actual MobilizedBody which is serving as
+    /// the Ancestor body for the constrained bodies in this Constraint. This
+    /// will fail if there are no constrained bodies
+    /// (i.e., if getNumConstrainedBodies()==0).
     const MobilizedBody& getAncestorMobilizedBody() const;
+
+    /// Return the number of mobilizers *directly* restricted by this
+    /// constraint. Included are any mobilizers to which the Constraint may
+    /// apply any mobility force. Like bodies, mobilizers are referenced 
+    /// using the MobilizedBody containing them.
+    int getNumConstrainedMobilizers() const;
+    /// Return a reference to the actual MobilizedBodies included in the count
+    /// of constrained mobilizers above. 0 <= which < getNumConstrainedMobilizers().
+    const MobilizedBody& getMobilizedBodyFromConstrainedMobilizer
+       (ConstrainedMobilizerIndex which) const;
+
+
 
     const SimbodyMatterSubsystem::Subtree& getSubtree() const;
 
         // MODEL STAGE //
 
-    /// Return the number of constrainable mobilities associated with a particular
-    /// constrained body. This is just the number of generalized speeds for that
-    /// body's mobilizer, except that if the constrained body is the Ancestor then
-    /// it has no constrainable mobilities regardless of its mobilizer.
-    int getNumConstrainedMobilities(const State&, ConstrainedBodyIndex) const;
+    /// Return the number of constrainable generalized coordinates q
+    /// associated with a particular constrained mobilizer. This is just
+    /// the number of generalized coordinates for that mobilizer.
+    int getNumConstrainedQ(const State&, ConstrainedMobilizerIndex) const;
+    /// Return the number of constrainable mobilities u associated with a particular
+    /// constrained mobilizer. This is just the number of generalized speeds for that
+    /// mobilizer.
+    int getNumConstrainedU(const State&, ConstrainedMobilizerIndex) const;
 
-    /// Return the index into the constrained mobilities array corresponding to
-    /// a particular mobility of the indicated ConstrainedBody. Don't confuse
-    /// this with the set of *participating* mobilities which includes all 
+    /// Return the index into the constrained mobilities u array corresponding to
+    /// a particular mobility of the indicated ConstrainedMobilizer. Don't confuse
+    /// this with the set of *participating* mobilities which also includes all 
     /// mobilities on each branch between the ancestor and a constrained body.
-    /// The *constrained* mobilities are just those belonging to the mobilized
-    /// bodies which are directly constrained.
-    ConstrainedUIndex getConstrainedMobilityIndex
-        (const State&, ConstrainedBodyIndex, MobilizerUIndex which) const;
+    /// The *constrained* mobilities are just those belonging to the mobilizers
+    /// which are directly constrained.
+    ConstrainedUIndex getConstrainedUIndex
+        (const State&, ConstrainedMobilizerIndex, MobilizerUIndex which) const;
+    /// Return the index into the constrained coordinates q array corresponding to
+    /// a particular coordinate of the indicated ConstrainedMobilizer. Don't confuse
+    /// this with the set of *participating* coordinates which also includes all 
+    /// coordinates on each branch between the ancestor and a constrained body.
+    /// The *constrained* coordinates are just those belonging to the mobilizers
+    /// which are directly constrained.
+    ConstrainedQIndex getConstrainedQIndex
+        (const State&, ConstrainedMobilizerIndex, MobilizerQIndex which) const;
+
+    /// Return the sum of the number of coordinates q associated with each of
+    /// the constrained mobilizers.
+    int getNumConstrainedQ(const State&) const;
 
     /// Return the sum of the number of mobilities u associated with each of
-    /// the constrained bodies, not counting the Ancestor's mobilities even
-    /// if it is a constrained body. These are the only mobilities to which 
-    /// the constraint may directly apply a force.
-    int getNumConstrainedMobilities(const State&) const;
+    /// the constrained mobilizers. These are the only mobilities to which 
+    /// the constraint may directly apply a force, so this is the dimension
+    /// of the mobilityForces array.
+    int getNumConstrainedU(const State&) const;
     
     /// Find out how many holonomic (position), nonholonomic (velocity),
     /// and acceleration-only constraint equations are generated by this Constraint.
@@ -145,12 +174,13 @@ public:
     // The state must be realized already to Stage::Position. Returned body
     // forces correspond only to the *constrained bodies* and the mobility
     // forces correspond only to the *constrained mobilities*; they must 
-    // be unpacked by the caller into the actual mobilized bodies.
+    // be unpacked by the caller into the actual system mobilized bodies and 
+    // actual system mobilities.
     // Note that the body forces are in the ancestor body frame A, not necessarily
     // the Ground frame G.
     void calcConstraintForcesFromMultipliers(const State&,const Vector& lambda,
         Vector_<SpatialVec>& bodyForcesInA,
-        Vector& mobilityForces) const;
+        Vector&              mobilityForces) const;
 
         // VELOCITY STAGE //
     Vector getVelocityError(const State&) const;	// mp+mv of these

@@ -32,11 +32,14 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon.h"
+#include "simbody/internal/common.h"
 #include "simbody/internal/GeneralForceSubsystem.h"
-#include "simbody/internal/SimbodyMatterSubsystem.h"
 
 namespace SimTK {
 
+class SimbodyMatterSubsystem;
+class GeneralForceSubsystem;
+class MobilizedBody;
 class Force;
 class ForceImpl;
 

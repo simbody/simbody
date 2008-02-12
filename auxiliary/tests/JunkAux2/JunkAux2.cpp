@@ -122,18 +122,26 @@ int main(int argc, char** argv) {
         c.getNumConstraintEquations(s, mp,mv,ma);
 
 	    cout << "CONSTRAINT " << cid 
+             << " constrained bodies=" << c.getNumConstrainedBodies() 
              << " ancestor=" << c.getAncestorMobilizedBody().getMobilizedBodyIndex()
-             << " constrained bodies/mobilities=" << c.getNumConstrainedBodies() << "/" << c.getNumConstrainedMobilities(s)
+             << " constrained mobilizers/nq/nu=" << c.getNumConstrainedMobilizers() 
+                                           << "/" << c.getNumConstrainedQ(s) << "/" << c.getNumConstrainedU(s)
              << " mp,mv,ma=" << mp << "," << mv << "," << ma 
              << endl;
         for (ConstrainedBodyIndex cid(0); cid < c.getNumConstrainedBodies(); ++cid) {
-            cout << "  constrained body(nu): " << c.getConstrainedMobilizedBody(cid).getMobilizedBodyIndex() 
-                                               << "(" << c.getNumConstrainedMobilities(s, cid) << ")";
-            for (MobilizerUIndex i(0); i < c.getNumConstrainedMobilities(s, cid); ++i)
-                cout << " " << c.getConstrainedMobilityIndex(s, cid, i);
+            cout << "  constrained body: " << c.getMobilizedBodyFromConstrainedBody(cid).getMobilizedBodyIndex(); 
             cout << endl;
         }
-
+        for (ConstrainedMobilizerIndex cmx(0); cmx < c.getNumConstrainedMobilizers(); ++cmx) {
+            cout << "  constrained mobilizer " << c.getMobilizedBodyFromConstrainedMobilizer(cmx).getMobilizedBodyIndex() 
+                  << ", q(" << c.getNumConstrainedQ(s, cmx) << ")="; 
+            for (MobilizerQIndex i(0); i < c.getNumConstrainedQ(s, cmx); ++i)
+                cout << " " << c.getConstrainedQIndex(s, cmx, i);                  
+            cout << ", u(" << c.getNumConstrainedU(s, cmx) << ")=";
+            for (MobilizerUIndex i(0); i < c.getNumConstrainedU(s, cmx); ++i)
+                cout << " " << c.getConstrainedUIndex(s, cmx, i);
+            cout << endl;
+        }
         cout << c.getSubtree();
              
         if (mp) {
