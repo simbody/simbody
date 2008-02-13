@@ -438,9 +438,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
         getConstraint(cx).getRep().realizeModel(s);
 
-    cout << "-------------------------------\n";
-    cout << mc;
-    cout << "-------------------------------\n";
+    //cout << "-------------------------------\n";
+    //cout << mc;
+    //cout << "-------------------------------\n";
 
     // Build sets of kinematically coupled constraints. Kinematic coupling can be different at
     // position, velocity, and acceleration levels, with only holonomic constraints included
