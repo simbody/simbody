@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_CONSTRAINT_REP_H_
-#define SimTK_SIMBODY_CONSTRAINT_REP_H_
+#ifndef SimTK_SIMBODY_CONSTRAINT_IMPL_H_
+#define SimTK_SIMBODY_CONSTRAINT_IMPL_H_
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
@@ -69,18 +69,18 @@ class SimbodyMatterSubtree;
 class MobilizedBody;
 
     /////////////////////
-    // CONSTRAINT REPS //
+    // CONSTRAINT IMPL //
     /////////////////////
 
-class ConstraintRep : public PIMPLImplementation<Constraint, ConstraintRep> {
+class ConstraintImpl : public PIMPLImplementation<Constraint, ConstraintImpl> {
 public:
-    ConstraintRep() : myMatterSubsystemRep(0), defaultMp(0), defaultMv(0), defaultMa(0)
+    ConstraintImpl() : myMatterSubsystemRep(0), defaultMp(0), defaultMv(0), defaultMa(0)
     {
     }
-    virtual ~ConstraintRep() { }
-    virtual ConstraintRep* clone() const = 0;
+    virtual ~ConstraintImpl() { }
+    virtual ConstraintImpl* clone() const = 0;
 
-    ConstraintRep(int mp, int mv, int ma) : myMatterSubsystemRep(0), 
+    ConstraintImpl(int mp, int mv, int ma) : myMatterSubsystemRep(0), 
         defaultMp(mp), defaultMv(mv), defaultMa(ma)
     {
     }
@@ -543,15 +543,15 @@ private:
 
     // ROD
 
-class Constraint::RodRep : public ConstraintRep {
+class Constraint::RodImpl : public ConstraintImpl {
 public:
-    RodRep() 
-      : ConstraintRep(1,0,0), defaultPoint1(0), defaultPoint2(0), defaultRodLength(1),
+    RodImpl() 
+      : ConstraintImpl(1,0,0), defaultPoint1(0), defaultPoint2(0), defaultRodLength(1),
         pointRadius(-1) // this means "use default point radius"
     { 
         // Rod constructor sets all the data members here directly
     }
-    RodRep* clone() const { return new RodRep(*this); }
+    RodImpl* clone() const { return new RodImpl(*this); }
 
     // Draw some end points and a rubber band line.
     void calcDecorativeGeometryAndAppendImpl
@@ -637,7 +637,7 @@ public:
         addInStationForce(s, B1, defaultPoint1, -f2, bodyForcesInA);
     }
 
-    SimTK_DOWNCAST(RodRep, ConstraintRep);
+    SimTK_DOWNCAST(RodImpl, ConstraintImpl);
 private:
     friend class Constraint::Rod;
 
@@ -653,13 +653,13 @@ private:
 
     // POINT IN PLANE
 
-class Constraint::PointInPlaneRep : public ConstraintRep {
+class Constraint::PointInPlaneImpl : public ConstraintImpl {
 public:
-    PointInPlaneRep()
-      : ConstraintRep(1,0,0), defaultPlaneNormal(), defaultPlaneHeight(0), defaultFollowerPoint(0),
+    PointInPlaneImpl()
+      : ConstraintImpl(1,0,0), defaultPlaneNormal(), defaultPlaneHeight(0), defaultFollowerPoint(0),
         planeHalfWidth(1), pointRadius(0.05) 
     { }
-    PointInPlaneRep* clone() const { return new PointInPlaneRep(*this); }
+    PointInPlaneImpl* clone() const { return new PointInPlaneImpl(*this); }
 
     void calcDecorativeGeometryAndAppendImpl
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
@@ -793,7 +793,7 @@ public:
         addInStationForce(s, planeBody,    p_BC, -force_A, bodyForcesInA);
     }
 
-    SimTK_DOWNCAST(PointInPlaneRep, ConstraintRep);
+    SimTK_DOWNCAST(PointInPlaneImpl, ConstraintImpl);
 private:
     friend class Constraint::PointInPlane;
 
@@ -811,13 +811,13 @@ private:
 
     // POINT ON LINE
 
-class Constraint::PointOnLineRep : public ConstraintRep {
+class Constraint::PointOnLineImpl : public ConstraintImpl {
 public:
-    PointOnLineRep()
-      : ConstraintRep(2,0,0), defaultLineDirection(), defaultPointOnLine(), defaultFollowerPoint(0),
+    PointOnLineImpl()
+      : ConstraintImpl(2,0,0), defaultLineDirection(), defaultPointOnLine(), defaultFollowerPoint(0),
         lineHalfLength(1), pointRadius(0.05) 
     { }
-    PointOnLineRep* clone() const { return new PointOnLineRep(*this); }
+    PointOnLineImpl* clone() const { return new PointOnLineImpl(*this); }
 
     void calcDecorativeGeometryAndAppendImpl
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
@@ -941,7 +941,7 @@ public:
         addInStationForce(s, lineBody,     p_BC, -force_A, bodyForcesInA);
     }
 
-    SimTK_DOWNCAST(PointOnLineRep, ConstraintRep);
+    SimTK_DOWNCAST(PointOnLineImpl, ConstraintImpl);
 private:
     friend class Constraint::PointOnLine;
 
@@ -962,13 +962,13 @@ private:
 
     // CONSTANT ANGLE
 
-class Constraint::ConstantAngleRep : public ConstraintRep {
+class Constraint::ConstantAngleImpl : public ConstraintImpl {
 public:
-    ConstantAngleRep()
-      : ConstraintRep(1,0,0), defaultAxisB(), defaultAxisF(), defaultAngle(Pi/2),
+    ConstantAngleImpl()
+      : ConstraintImpl(1,0,0), defaultAxisB(), defaultAxisF(), defaultAngle(Pi/2),
         axisLength(1), axisThickness(1), cosineOfDefaultAngle(NaN)
     { }
-    ConstantAngleRep* clone() const { return new ConstantAngleRep(*this); }
+    ConstantAngleImpl* clone() const { return new ConstantAngleImpl(*this); }
 
     void calcDecorativeGeometryAndAppendImpl
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
@@ -1106,7 +1106,7 @@ public:
         addInBodyTorque(s, B, -torque_F_A, bodyForcesInA);
     }
 
-    SimTK_DOWNCAST(ConstantAngleRep, ConstraintRep);
+    SimTK_DOWNCAST(ConstantAngleImpl, ConstraintImpl);
 private:
     friend class Constraint::ConstantAngle;
 
@@ -1127,10 +1127,10 @@ private:
 
     // BALL
 
-class Constraint::BallRep : public ConstraintRep {
+class Constraint::BallImpl : public ConstraintImpl {
 public:
-    BallRep() : ConstraintRep(3,0,0), defaultPoint1(0), defaultPoint2(0), defaultRadius(0.1) { }
-    BallRep* clone() const { return new BallRep(*this); }
+    BallImpl() : ConstraintImpl(3,0,0), defaultPoint1(0), defaultPoint2(0), defaultRadius(0.1) { }
+    BallImpl* clone() const { return new BallImpl(*this); }
 
     void calcDecorativeGeometryAndAppendImpl
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
@@ -1232,7 +1232,7 @@ public:
         addInStationForce(s, B1, p_BC, -force_A, bodyForcesInA);
     }
 
-    SimTK_DOWNCAST(BallRep, ConstraintRep);
+    SimTK_DOWNCAST(BallImpl, ConstraintImpl);
 private:
     friend class Constraint::Ball;
 
@@ -1246,12 +1246,12 @@ private:
 
     // CONSTANT ORIENTATION
 
-class Constraint::ConstantOrientationRep : public ConstraintRep {
+class Constraint::ConstantOrientationImpl : public ConstraintImpl {
 public:
-    ConstantOrientationRep()
-      : ConstraintRep(3,0,0), defaultRB(), defaultRF()
+    ConstantOrientationImpl()
+      : ConstraintImpl(3,0,0), defaultRB(), defaultRF()
     { }
-    ConstantOrientationRep* clone() const { return new ConstantOrientationRep(*this); }
+    ConstantOrientationImpl* clone() const { return new ConstantOrientationImpl(*this); }
 
     //TODO: visualization?
 
@@ -1404,7 +1404,7 @@ public:
         addInBodyTorque(s, B, -torque_F_A, bodyForcesInA);
     }
 
-    SimTK_DOWNCAST(ConstantOrientationRep, ConstraintRep);
+    SimTK_DOWNCAST(ConstantOrientationImpl, ConstraintImpl);
 private:
     friend class Constraint::ConstantOrientation;
 
@@ -1417,18 +1417,18 @@ private:
 
     // WELD
 
-class Constraint::WeldRep : public ConstraintRep {
+class Constraint::WeldImpl : public ConstraintImpl {
     static Real getDefaultAxisDisplayLength() {return 1;}
     static Vec3 getDefaultFrameColor(int which) {
         return which==0 ? Blue : Purple;
     }
 public:
-    WeldRep() 
-      : ConstraintRep(6,0,0), axisDisplayLength(-1), // means "use default axis length"
+    WeldImpl() 
+      : ConstraintImpl(6,0,0), axisDisplayLength(-1), // means "use default axis length"
         frameBColor(-1), frameFColor(-1) // means "use default colors"
     {   // default Transforms are identity, i.e. body frames
     }
-    WeldRep* clone() const { return new WeldRep(*this); }
+    WeldImpl* clone() const { return new WeldImpl(*this); }
 
     // Draw the two frames.
     void calcDecorativeGeometryAndAppendImpl
@@ -1582,7 +1582,7 @@ public:
         addInStationForce(s, B, p_BC, -force_A, bodyForcesInA);
     }
 
-    SimTK_DOWNCAST(WeldRep, ConstraintRep);
+    SimTK_DOWNCAST(WeldImpl, ConstraintImpl);
 private:
     friend class Constraint::Weld;
 
@@ -1599,13 +1599,13 @@ private:
 
     // NO SLIP 1D
 
-class Constraint::NoSlip1DRep : public ConstraintRep {
+class Constraint::NoSlip1DImpl : public ConstraintImpl {
 public:
-    NoSlip1DRep()
-      : ConstraintRep(0,1,0), defaultNoSlipDirection(), defaultContactPoint(0),
+    NoSlip1DImpl()
+      : ConstraintImpl(0,1,0), defaultNoSlipDirection(), defaultContactPoint(0),
         directionLength(1), pointRadius(0.05) 
     { }
-    NoSlip1DRep* clone() const { return new NoSlip1DRep(*this); }
+    NoSlip1DImpl* clone() const { return new NoSlip1DImpl(*this); }
 
     void calcDecorativeGeometryAndAppendImpl
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
@@ -1709,7 +1709,7 @@ public:
         addInStationForce(s, movingBody0, p_P0, -force_A, bodyForcesInA);
     }
 
-    SimTK_DOWNCAST(NoSlip1DRep, ConstraintRep);
+    SimTK_DOWNCAST(NoSlip1DImpl, ConstraintImpl);
 private:
     friend class Constraint::NoSlip1D;
 
@@ -1727,12 +1727,12 @@ private:
 
     // CONSTANT SPEED
 
-class Constraint::ConstantSpeedRep : public ConstraintRep {
+class Constraint::ConstantSpeedImpl : public ConstraintImpl {
 public:
-    ConstantSpeedRep()
-      : ConstraintRep(0,1,0), theMobilizer(), whichMobility(), prescribedSpeed(NaN)
+    ConstantSpeedImpl()
+      : ConstraintImpl(0,1,0), theMobilizer(), whichMobility(), prescribedSpeed(NaN)
     { }
-    ConstantSpeedRep* clone() const { return new ConstantSpeedRep(*this); }
+    ConstantSpeedImpl* clone() const { return new ConstantSpeedImpl(*this); }
 
     // Implementation of virtuals required for nonholonomic constraints.
 
@@ -1761,7 +1761,7 @@ public:
         addInOneMobilityForce(s, theMobilizer, whichMobility, lambda, mobilityForces);
     }
 
-    SimTK_DOWNCAST(ConstantSpeedRep, ConstraintRep);
+    SimTK_DOWNCAST(ConstantSpeedImpl, ConstraintImpl);
 private:
     friend class Constraint::ConstantSpeed;
 
@@ -1771,11 +1771,11 @@ private:
 };
 
 
-class Constraint::CustomRep : public ConstraintRep {
+class Constraint::CustomImpl : public ConstraintImpl {
 public:
-    CustomRep* clone() const { return new CustomRep(*this); }
+    CustomImpl* clone() const { return new CustomImpl(*this); }
 
-    //SimTK_DOWNCAST(CustomRep, ConstraintRep);
+    //SimTK_DOWNCAST(CustomImpl, ConstraintImpl);
 private:
     friend class Constraint::Custom;
 
@@ -1784,7 +1784,7 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_CONSTRAINT_REP_H_
+#endif // SimTK_SIMBODY_CONSTRAINT_IMPL_H_
 
 
 

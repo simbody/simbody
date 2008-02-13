@@ -45,7 +45,7 @@
 #include "LengthConstraints.h"
 #include "MultibodySystemRep.h"
 #include "MobilizedBodyImpl.h"
-#include "ConstraintRep.h"
+#include "ConstraintImpl.h"
 
 #include <string>
 #include <iostream>
@@ -277,7 +277,7 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
 //        branches.resize(rbNodeLevels[1].size()); // each level 1 body is a branch
 
     for (ConstraintIndex cx(0); cx<getNumConstraints(); ++cx) {
-        const ConstraintRep& crep = getConstraint(cx).getImpl();
+        const ConstraintImpl& crep = getConstraint(cx).getImpl();
         crep.realizeTopology(s);
 
         // Create computational constraint data structure. This is organized by
@@ -1244,7 +1244,7 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
         lambda1(mh, mnh)     = lambda(mHolo+nonholoSeg.offset, mnh);
         lambda1(mh+mnh, mao) = lambda(mHolo+mNonholo+accOnlySeg.offset, mao);
 
-        const ConstraintRep& crep = constraints[cx]->getImpl();
+        const ConstraintImpl& crep = constraints[cx]->getImpl();
  
         bodyF1.resize(crep.getNumConstrainedBodies());
         mobilityF1.resize(crep.getNumConstrainedU(s));

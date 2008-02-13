@@ -39,7 +39,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/Constraint.h"
 
-#include "ConstraintRep.h"
+#include "ConstraintImpl.h"
 #include "SimbodyMatterSubsystemRep.h"
 
 #include <vector>
@@ -205,7 +205,7 @@ Matrix Constraint::calcPositionConstraintMatrixPt(const State& s) const {
 
 	Matrix Pt(nu, mp);
 	if (mp && nu) {
-		const ConstraintRep& rep = getImpl();
+		const ConstraintImpl& rep = getImpl();
 		Vector_<SpatialVec> bodyForcesInA(ncb);
 		Vector              mobilityForces(nu); // TODO should be n participating u's
 
@@ -287,7 +287,7 @@ Matrix Constraint::calcVelocityConstraintMatrixVt(const State& s) const {
     if (mv==0 || nu==0)
         return Vt;
 
-	const ConstraintRep& rep = getImpl();
+	const ConstraintImpl& rep = getImpl();
 	const int ncb = rep.getNumConstrainedBodies();
     const int ncu = rep.getNumConstrainedU(s);
 
@@ -387,7 +387,7 @@ Matrix Constraint::calcAccelerationConstraintMatrixAt(const State& s) const {
 
 	Matrix At(nu, ma);
 	if (ma && nu) {
-		const ConstraintRep& rep = getImpl();
+		const ConstraintImpl& rep = getImpl();
 		Vector_<SpatialVec> bodyForcesInA(ncb);
 		Vector              mobilityForces(nu); // TODO should be n participating u's
 
@@ -468,7 +468,7 @@ void Constraint::calcConstraintForcesFromMultipliers(
     /////////////////////
 
 Constraint::Rod::Rod(MobilizedBody& body1, MobilizedBody& body2, Real defaultRodLength)
-  : PIMPLDerivedHandleBase(new RodRep())
+  : PIMPLDerivedHandleBase(new RodImpl())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Rod(): both bodies must already be in a MatterSubsystem.");
@@ -477,7 +477,7 @@ Constraint::Rod::Rod(MobilizedBody& body1, MobilizedBody& body2, Real defaultRod
     SimTK_ASSERT_ALWAYS(defaultRodLength > 0,
         "Constraint::Rod(): Rod length must always be greater than zero");
 
-    //rep = new RodRep(); rep->setMyHandle(*this);
+    //rep = new RodImpl(); rep->setMyHandle(*this);
     body1.updMatterSubsystem().adoptConstraint(*this);
 
     updImpl().B1 = updImpl().addConstrainedBody(body1);
@@ -488,7 +488,7 @@ Constraint::Rod::Rod(MobilizedBody& body1, MobilizedBody& body2, Real defaultRod
 
 Constraint::Rod::Rod(MobilizedBody& body1, const Vec3& point1,
                      MobilizedBody& body2, const Vec3& point2, Real defaultRodLength)
-  : PIMPLDerivedHandleBase(new RodRep())
+  : PIMPLDerivedHandleBase(new RodImpl())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Rod(): both bodies must already be in a MatterSubsystem.");
@@ -497,7 +497,7 @@ Constraint::Rod::Rod(MobilizedBody& body1, const Vec3& point1,
     SimTK_ASSERT_ALWAYS(defaultRodLength > 0,
         "Constraint::Rod(): Rod length must always be greater than zero");
 
-    //rep = new RodRep(); rep->setMyHandle(*this);
+    //rep = new RodImpl(); rep->setMyHandle(*this);
     body1.updMatterSubsystem().adoptConstraint(*this);
 
     updImpl().B1 = updImpl().addConstrainedBody(body1);
@@ -541,12 +541,12 @@ Real Constraint::Rod::getDefaultRodLength() const {
 }
 
 
-    // RodRep
+    // RodImpl
 
-void Constraint::Rod::RodRep::realizeTopologyVirtual(State& s) const { 
+void Constraint::Rod::RodImpl::realizeTopologyVirtual(State& s) const { 
 #ifdef USE_OLD_CONSTRAINTS
     SimbodyMatterSubsystemRep& matter = 
-        const_cast<RodRep*>(this)->updMyMatterSubsystemRep();
+        const_cast<RodImpl*>(this)->updMyMatterSubsystemRep();
     const MobilizedBodyIndex mobilizedBody1 = getMobilizedBodyIndexOfConstrainedBody(B1);
     const MobilizedBodyIndex mobilizedBody2 = getMobilizedBodyIndexOfConstrainedBody(B2);
     const RigidBodyNode& rbn1 = matter.getRigidBodyNode(mobilizedBody1);
@@ -557,7 +557,7 @@ void Constraint::Rod::RodRep::realizeTopologyVirtual(State& s) const {
 #endif
 }
 
-void Constraint::Rod::RodRep::calcDecorativeGeometryAndAppendImpl
+void Constraint::Rod::RodImpl::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the endpoint artwork until we know the end point stations,
@@ -620,7 +620,7 @@ void Constraint::Rod::RodRep::calcDecorativeGeometryAndAppendImpl
 Constraint::PointInPlane::PointInPlane
    (MobilizedBody& planeBody,    const UnitVec3& defPlaneNormal, Real defPlaneHeight,
     MobilizedBody& followerBody, const Vec3&     defFollowerPoint)
-  : PIMPLDerivedHandleBase(new PointInPlaneRep())
+  : PIMPLDerivedHandleBase(new PointInPlaneImpl())
 {
     SimTK_ASSERT_ALWAYS(planeBody.isInSubsystem() && followerBody.isInSubsystem(),
         "Constraint::PointInPlane(): both bodies must already be in a SimbodyMatterSubsystem.");
@@ -688,9 +688,9 @@ Real Constraint::PointInPlane::getPointDisplayRadius() const {
     return getImpl().getPointDisplayRadius();
 }
 
-    // PointInPlaneRep
+    // PointInPlaneImpl
 
-void Constraint::PointInPlane::PointInPlaneRep::calcDecorativeGeometryAndAppendImpl
+void Constraint::PointInPlane::PointInPlaneImpl::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the artwork until we know the normal, height, and follower
@@ -739,7 +739,7 @@ void Constraint::PointInPlane::PointInPlaneRep::calcDecorativeGeometryAndAppendI
 Constraint::PointOnLine::PointOnLine
    (MobilizedBody& lineBody,     const UnitVec3& defLineDirection, const Vec3& defPointOnLine,
     MobilizedBody& followerBody, const Vec3&     defFollowerPoint)
-  : PIMPLDerivedHandleBase(new PointOnLineRep())
+  : PIMPLDerivedHandleBase(new PointOnLineImpl())
 {
     SimTK_ASSERT_ALWAYS(lineBody.isInSubsystem() && followerBody.isInSubsystem(),
         "Constraint::PointOnLine(): both bodies must already be in a SimbodyMatterSubsystem.");
@@ -807,9 +807,9 @@ Real Constraint::PointOnLine::getPointDisplayRadius() const {
     return getImpl().getPointDisplayRadius();
 }
 
-    // PointOnLineRep
+    // PointOnLineImpl
 
-void Constraint::PointOnLine::PointOnLineRep::calcDecorativeGeometryAndAppendImpl
+void Constraint::PointOnLine::PointOnLineImpl::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the artwork until we know the direction, point on line, and follower
@@ -861,7 +861,7 @@ Constraint::ConstantAngle::ConstantAngle
    (MobilizedBody& baseBody,     const UnitVec3& defaultAxisOnB,
     MobilizedBody& followerBody, const UnitVec3& defaultAxisOnF,
     Real angle)
-  : PIMPLDerivedHandleBase(new ConstantAngleRep())
+  : PIMPLDerivedHandleBase(new ConstantAngleImpl())
 {
     SimTK_ASSERT_ALWAYS(baseBody.isInSubsystem() && followerBody.isInSubsystem(),
         "Constraint::ConstantAngle(): both bodies must already be in a SimbodyMatterSubsystem.");
@@ -929,9 +929,9 @@ Real Constraint::ConstantAngle::getAxisDisplayWidth() const {
     return getImpl().axisThickness;
 }
 
-    // ConstantAngleRep
+    // ConstantAngleImpl
 
-void Constraint::ConstantAngle::ConstantAngleRep::calcDecorativeGeometryAndAppendImpl
+void Constraint::ConstantAngle::ConstantAngleImpl::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the artwork until we know the normal, height, and follower
@@ -947,7 +947,7 @@ void Constraint::ConstantAngle::ConstantAngleRep::calcDecorativeGeometryAndAppen
     //////////////////////
 
 Constraint::Ball::Ball(MobilizedBody& body1, MobilizedBody& body2)
-  : PIMPLDerivedHandleBase(new BallRep())
+  : PIMPLDerivedHandleBase(new BallImpl())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Ball(): both bodies must already be in a MatterSubsystem.");
@@ -963,7 +963,7 @@ Constraint::Ball::Ball(MobilizedBody& body1, MobilizedBody& body2)
 
 Constraint::Ball::Ball(MobilizedBody& body1, const Vec3& point1,
                        MobilizedBody& body2, const Vec3& point2)
-  : PIMPLDerivedHandleBase(new BallRep())
+  : PIMPLDerivedHandleBase(new BallImpl())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Ball(): both bodies must already be in a MatterSubsystem.");
@@ -1015,9 +1015,9 @@ Real Constraint::Ball::getDefaultRadius() const {
     return getImpl().getDefaultRadius();
 }
 
-    // BallRep
+    // BallImpl
 
-void Constraint::Ball::BallRep::realizeTopologyVirtual(State& s) const { 
+void Constraint::Ball::BallImpl::realizeTopologyVirtual(State& s) const { 
 #ifdef USE_OLD_CONSTRAINTS
     SimbodyMatterSubsystemRep& matter = 
         const_cast<BallRep*>(this)->updMyMatterSubsystemRep();
@@ -1035,7 +1035,7 @@ void Constraint::Ball::BallRep::realizeTopologyVirtual(State& s) const {
 #endif
 }
 
-void Constraint::Ball::BallRep::calcDecorativeGeometryAndAppendImpl
+void Constraint::Ball::BallImpl::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the ball until we know the radius, and we can't place
@@ -1096,7 +1096,7 @@ void Constraint::Ball::BallRep::calcDecorativeGeometryAndAppendImpl
 Constraint::ConstantOrientation::ConstantOrientation
    (MobilizedBody& baseBody,     const Rotation& defaultFrameOnB,
     MobilizedBody& followerBody, const Rotation& defaultFrameOnF)
-  : PIMPLDerivedHandleBase(new ConstantOrientationRep())
+  : PIMPLDerivedHandleBase(new ConstantOrientationImpl())
 {
     SimTK_ASSERT_ALWAYS(baseBody.isInSubsystem() && followerBody.isInSubsystem(),
         "Constraint::ConstantOrientation(): both bodies must already be in a SimbodyMatterSubsystem.");
@@ -1138,7 +1138,7 @@ const Rotation& Constraint::ConstantOrientation::getDefaultFollowerRotation() co
     return getImpl().defaultRF;
 }
 
-    // ConstantOrientationRep
+    // ConstantOrientationImpl
 
     //TODO: no visualization yet
 
@@ -1149,7 +1149,7 @@ const Rotation& Constraint::ConstantOrientation::getDefaultFollowerRotation() co
     //////////////////////
 
 Constraint::Weld::Weld(MobilizedBody& body1, MobilizedBody& body2)
-  : PIMPLDerivedHandleBase(new WeldRep())
+  : PIMPLDerivedHandleBase(new WeldImpl())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Weld(): both bodies must already be in a MatterSubsystem.");
@@ -1165,7 +1165,7 @@ Constraint::Weld::Weld(MobilizedBody& body1, MobilizedBody& body2)
 
 Constraint::Weld::Weld(MobilizedBody& body1, const Transform& frame1,
                        MobilizedBody& body2, const Transform& frame2)
-  : PIMPLDerivedHandleBase(new WeldRep())
+  : PIMPLDerivedHandleBase(new WeldImpl())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Weld(): both bodies must already be in a MatterSubsystem.");
@@ -1205,9 +1205,9 @@ const Transform& Constraint::Weld::getDefaultFrameOnBody2() const {
     return getImpl().defaultFrameF;
 }
 
-    // WeldRep
+    // WeldImpl
 
-void Constraint::Weld::WeldRep::realizeTopologyVirtual(State& s) const { 
+void Constraint::Weld::WeldImpl::realizeTopologyVirtual(State& s) const { 
 #ifdef USE_OLD_CONSTRAINTS
     SimbodyMatterSubsystemRep& matter = 
         const_cast<WeldRep*>(this)->updMyMatterSubsystemRep();
@@ -1246,7 +1246,7 @@ void Constraint::Weld::WeldRep::realizeTopologyVirtual(State& s) const {
 #endif
 }
 
-void Constraint::Weld::WeldRep::calcDecorativeGeometryAndAppendImpl
+void Constraint::Weld::WeldImpl::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the frames until we know the axis lengths to use, and we can't place
@@ -1290,7 +1290,7 @@ void Constraint::Weld::WeldRep::calcDecorativeGeometryAndAppendImpl
 Constraint::NoSlip1D::NoSlip1D
    (MobilizedBody& caseBody, const Vec3& P_C, const UnitVec3& n_C,
     MobilizedBody& movingBody0, MobilizedBody& movingBody1)
-  : PIMPLDerivedHandleBase(new NoSlip1DRep())
+  : PIMPLDerivedHandleBase(new NoSlip1DImpl())
 {
     SimTK_ASSERT_ALWAYS(caseBody.isInSubsystem() && movingBody0.isInSubsystem()&& movingBody1.isInSubsystem(),
         "Constraint::NoSlip1D(): all three bodies must already be in a SimbodyMatterSubsystem.");
@@ -1351,9 +1351,9 @@ Real Constraint::NoSlip1D::getPointDisplayRadius() const {
     return getImpl().getPointDisplayRadius();
 }
 
-    // NoSlip1DRep
+    // NoSlip1DImpl
 
-void Constraint::NoSlip1D::NoSlip1DRep::calcDecorativeGeometryAndAppendImpl
+void Constraint::NoSlip1D::NoSlip1DImpl::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the artwork until we know the direction and contact
@@ -1393,7 +1393,7 @@ void Constraint::NoSlip1D::NoSlip1DRep::calcDecorativeGeometryAndAppendImpl
 // This picks one of the mobilities from a multiple-mobility mobilizer.
 Constraint::ConstantSpeed::ConstantSpeed
    (MobilizedBody& mobilizer, MobilizerUIndex whichU, Real defaultSpeed)
-  : PIMPLDerivedHandleBase(new ConstantSpeedRep())
+  : PIMPLDerivedHandleBase(new ConstantSpeedImpl())
 {
     SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
         "Constraint::ConstantSpeed(): the mobilizer must already be in a SimbodyMatterSubsystem.");
@@ -1408,7 +1408,7 @@ Constraint::ConstantSpeed::ConstantSpeed
 
 // This is for mobilizers with only 1 mobility.
 Constraint::ConstantSpeed::ConstantSpeed(MobilizedBody& mobilizer, Real defaultSpeed)
-  : PIMPLDerivedHandleBase(new ConstantSpeedRep())
+  : PIMPLDerivedHandleBase(new ConstantSpeedImpl())
 {
     SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
         "Constraint::ConstantSpeed(): the mobilizer must already be in a SimbodyMatterSubsystem.");
@@ -1431,7 +1431,7 @@ Real Constraint::ConstantSpeed::getDefaultSpeed() const {
     return getImpl().prescribedSpeed;
 }
 
-    // ConstantSpeedRep
+    // ConstantSpeedImpl
     // nothing yet
 
 
@@ -1439,7 +1439,7 @@ Real Constraint::ConstantSpeed::getDefaultSpeed() const {
     // CONSTRAINT REP //
     ////////////////////
 
-void ConstraintRep::realizeTopology(State& s) const
+void ConstraintImpl::realizeTopology(State& s) const
 {
     // Calculate the relevant Subtree.
     mySubtree.clear();
@@ -1464,10 +1464,10 @@ void ConstraintRep::realizeTopology(State& s) const
 //     from their effects on ConstrainedBodies. Together we call those "participating q's"
 //     and "participating u's" (or "participating mobilities").
 // The results of these computations goes in the Model cache.
-void ConstraintRep::realizeModel(State& s) const
+void ConstraintImpl::realizeModel(State& s) const
 {
     SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
-        "ConstraintRep::realizeModel() can't be called until after realizeToplogy().");
+        "ConstraintImpl::realizeModel() can't be called until after realizeToplogy().");
 
     const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
     const SBModelVars& modelVars = matter.getModelVars(s);
@@ -1542,16 +1542,16 @@ void ConstraintRep::realizeModel(State& s) const
     realizeModelVirtual(s); // delegate to concrete constraint
 }
 
-void ConstraintRep::invalidateTopologyCache() const {
+void ConstraintImpl::invalidateTopologyCache() const {
     if (myMatterSubsystemRep)
         myMatterSubsystemRep->invalidateSubsystemTopologyCache();
 }
 
-bool ConstraintRep::subsystemTopologyHasBeenRealized() const {
+bool ConstraintImpl::subsystemTopologyHasBeenRealized() const {
     return myMatterSubsystemRep && myMatterSubsystemRep->subsystemTopologyHasBeenRealized();
 }
 
-void ConstraintRep::setMyMatterSubsystem
+void ConstraintImpl::setMyMatterSubsystem
    (SimbodyMatterSubsystem& matter, ConstraintIndex id)
 {
     assert(!isInSubsystem());
@@ -1560,51 +1560,51 @@ void ConstraintRep::setMyMatterSubsystem
 }
 
 const SimbodyMatterSubsystem& 
-ConstraintRep::getMyMatterSubsystem() const {
+ConstraintImpl::getMyMatterSubsystem() const {
     return getMyMatterSubsystemRep().getMySimbodyMatterSubsystemHandle();
 }
 
-bool ConstraintRep::isInSameSubsystem(const MobilizedBody& body) const {
+bool ConstraintImpl::isInSameSubsystem(const MobilizedBody& body) const {
     return isInSubsystem() && body.isInSubsystem() 
         && getMyMatterSubsystem().isSameSubsystem(body.getMatterSubsystem());
 }
 
 const MobilizedBody& 
-ConstraintRep::getMobilizedBodyFromConstrainedMobilizer(ConstrainedMobilizerIndex M) const {
+ConstraintImpl::getMobilizedBodyFromConstrainedMobilizer(ConstrainedMobilizerIndex M) const {
     SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
         "Constrained mobilizers are not available until Topology stage has been realized.");
     return getMyMatterSubsystemRep().getMobilizedBody(myConstrainedMobilizers[M]);
 }
 
 const MobilizedBody& 
-ConstraintRep::getMobilizedBodyFromConstrainedBody(ConstrainedBodyIndex B) const {
+ConstraintImpl::getMobilizedBodyFromConstrainedBody(ConstrainedBodyIndex B) const {
     SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
         "Constrained bodies are not available until Topology stage has been realized.");
     return getMyMatterSubsystemRep().getMobilizedBody(myConstrainedBodies[B]);
 }
 
 const MobilizedBody& 
-ConstraintRep::getAncestorMobilizedBody() const {
+ConstraintImpl::getAncestorMobilizedBody() const {
     SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
         "The ancestor body is not available until Topology stage has been realized.");
     return getMyMatterSubsystemRep().getMobilizedBody(mySubtree.getAncestorMobilizedBodyIndex()); ;
 }
 
-Real ConstraintRep::getOneQ
+Real ConstraintImpl::getOneQ
    (const State& s, ConstrainedMobilizerIndex cmx, MobilizerQIndex whichQ) const
 {
     const QIndex qx = getQIndexOfConstrainedQ(s, getConstrainedQIndex(s, cmx, whichQ));
     return getMyMatterSubsystemRep().getQ(s)[qx];
 }
 
-Real ConstraintRep::getOneU
+Real ConstraintImpl::getOneU
    (const State& s, ConstrainedMobilizerIndex cmx, MobilizerUIndex whichU) const 
 {
     const UIndex ux = getUIndexOfConstrainedU(s, getConstrainedUIndex(s, cmx, whichU));
     return getMyMatterSubsystemRep().getU(s)[ux];
 }
 
-Real ConstraintRep::getOneQDot(const State& s, 
+Real ConstraintImpl::getOneQDot(const State& s, 
                 ConstrainedMobilizerIndex cmx, MobilizerQIndex whichQ, bool realizing) const
 {
     const QIndex qx = getQIndexOfConstrainedQ(s, getConstrainedQIndex(s, cmx, whichQ));
@@ -1612,7 +1612,7 @@ Real ConstraintRep::getOneQDot(const State& s,
     return realizing ? matter.updQDot(s)[qx] : matter.getQDot(s)[qx];
 }
 
-Real ConstraintRep::getOneUDot(const State& s,
+Real ConstraintImpl::getOneUDot(const State& s,
                 ConstrainedMobilizerIndex cmx, MobilizerUIndex whichU, bool realizing) const
 {
     const UIndex ux = getUIndexOfConstrainedU(s, getConstrainedUIndex(s, cmx, whichU));
@@ -1621,7 +1621,7 @@ Real ConstraintRep::getOneUDot(const State& s,
 }
 
 
-Real ConstraintRep::getOneQDotDot(const State& s, 
+Real ConstraintImpl::getOneQDotDot(const State& s, 
                 ConstrainedMobilizerIndex cmx, MobilizerQIndex whichQ, bool realizing) const
 {
     const QIndex qx = getQIndexOfConstrainedQ(s, getConstrainedQIndex(s, cmx, whichQ));
@@ -1631,13 +1631,13 @@ Real ConstraintRep::getOneQDotDot(const State& s,
 
 // These are measured from and expressed in the ancestor (A) frame.
 //TODO: should precalculate in State, return reference
-Transform ConstraintRep::getBodyTransform(const State& s, const SBPositionCache& pc, ConstrainedBodyIndex B) const { // X_AB
+Transform ConstraintImpl::getBodyTransform(const State& s, const SBPositionCache& pc, ConstrainedBodyIndex B) const { // X_AB
     const Transform& X_GB = getMyMatterSubsystemRep().getBodyTransform(s, pc, myConstrainedBodies[B]);
     const Transform& X_GA = getMyMatterSubsystemRep().getBodyTransform(s, pc, mySubtree.getAncestorMobilizedBodyIndex());
     return ~X_GA*X_GB;
 }
 
-SpatialVec ConstraintRep::getBodyVelocity(const State& s, const SBVelocityCache& vc, ConstrainedBodyIndex B) const { // V_AB
+SpatialVec ConstraintImpl::getBodyVelocity(const State& s, const SBVelocityCache& vc, ConstrainedBodyIndex B) const { // V_AB
     const Transform&  X_GB = getMyMatterSubsystemRep().getBodyTransform(s, myConstrainedBodies[B]);
     const Transform&  X_GA = getMyMatterSubsystemRep().getBodyTransform(s, mySubtree.getAncestorMobilizedBodyIndex());
     const SpatialVec& V_GB = getMyMatterSubsystemRep().getBodyVelocity(s, vc, myConstrainedBodies[B]);
@@ -1654,7 +1654,7 @@ SpatialVec ConstraintRep::getBodyVelocity(const State& s, const SBVelocityCache&
     return ~X_GA.R() * SpatialVec(w_AB_G, v_AB_G);     // re-express in A
 }
 
-SpatialVec ConstraintRep::getBodyAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyIndex B) const { // A_AB
+SpatialVec ConstraintImpl::getBodyAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyIndex B) const { // A_AB
     const Vec3&       p_GB = getMyMatterSubsystemRep().getBodyTransform(s, myConstrainedBodies[B]).T();
     const Transform&  X_GA = getMyMatterSubsystemRep().getBodyTransform(s, mySubtree.getAncestorMobilizedBodyIndex());
     const Vec3&       p_GA = X_GA.T();
@@ -1687,7 +1687,7 @@ SpatialVec ConstraintRep::getBodyAcceleration(const State& s, const SBAccelerati
 
 // Find out how many holonomic (position), nonholonomic (velocity),
 // and acceleration-only constraint equations are generated by this Constraint.
-void ConstraintRep::getNumConstraintEquations
+void ConstraintImpl::getNumConstraintEquations
    (const State& s, int& mHolo, int& mNonholo, int& mAccOnly) const 
 {
     const SBModelCache::PerConstraintModelInfo& cInfo = 
@@ -1700,7 +1700,7 @@ void ConstraintRep::getNumConstraintEquations
 
 // Find the slots in the QErr, UErr and UDotErr/Multiplier arrays allocated for the
 // equations of this Constraint.
-void ConstraintRep::getConstraintEquationSlots
+void ConstraintImpl::getConstraintEquationSlots
    (const State& s, int& holo0, int& nonholo0, int& accOnly0) const
 {
     const SBModelCache::PerConstraintModelInfo& cInfo = 
@@ -1717,7 +1717,7 @@ void ConstraintRep::getConstraintEquationSlots
 // Call this during construction phase to add a body to the topological structure of
 // this Constraint. This body's mobilizer's mobilities are *not* part of the constraint; 
 // mobilizers must be added separately.
-ConstrainedBodyIndex ConstraintRep::addConstrainedBody(const MobilizedBody& b) {
+ConstrainedBodyIndex ConstraintImpl::addConstrainedBody(const MobilizedBody& b) {
     assert(isInSameSubsystem(b));
     invalidateTopologyCache();
 
@@ -1738,7 +1738,7 @@ ConstrainedBodyIndex ConstraintRep::addConstrainedBody(const MobilizedBody& b) {
 // Call this during construction phase to add a mobilizer to the topological structure of
 // this Constraint. All the coordinates q and mobilities u for this mobilizer are added also,
 // but we don't know how many of those there will be until Stage::Model.
-ConstrainedMobilizerIndex ConstraintRep::addConstrainedMobilizer(const MobilizedBody& b) {
+ConstrainedMobilizerIndex ConstraintImpl::addConstrainedMobilizer(const MobilizedBody& b) {
     assert(isInSameSubsystem(b));
     invalidateTopologyCache();
 
@@ -1756,30 +1756,30 @@ ConstrainedMobilizerIndex ConstraintRep::addConstrainedMobilizer(const Mobilized
     return nextIx;
 }
 
-QIndex ConstraintRep::getQIndexOfConstrainedQ(const State& s, ConstrainedQIndex cqx) const {
+QIndex ConstraintImpl::getQIndexOfConstrainedQ(const State& s, ConstrainedQIndex cqx) const {
     const SBModelCache&                         mc    = getModelCache(s);
     const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
     return cInfo.getQIndexFromConstrainedQ(cqx);
 }
 
-UIndex ConstraintRep::getUIndexOfConstrainedU(const State& s, ConstrainedUIndex cqx) const {
+UIndex ConstraintImpl::getUIndexOfConstrainedU(const State& s, ConstrainedUIndex cqx) const {
     const SBModelCache&                         mc    = getModelCache(s);
     const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
     return cInfo.getUIndexFromConstrainedU(cqx);
 }
 
-int ConstraintRep::getNumConstrainedQ(const State& s) const {
+int ConstraintImpl::getNumConstrainedQ(const State& s) const {
     return getModelCache(s).getConstraintModelInfo(myConstraintIndex).getNConstrainedQ();
 }
 
-int ConstraintRep::getNumConstrainedQ
+int ConstraintImpl::getNumConstrainedQ
    (const State& s, ConstrainedMobilizerIndex M) const
 {
     const MobilizedBodyIndex mbx = getMobilizedBodyIndexOfConstrainedMobilizer(M);
     return getModelCache(s).getMobilizedBodyModelInfo(mbx).nQInUse;
 }
 
-ConstrainedQIndex ConstraintRep::getConstrainedQIndex
+ConstrainedQIndex ConstraintImpl::getConstrainedQIndex
    (const State& s, ConstrainedMobilizerIndex M, MobilizerQIndex which) const 
 {
     const int nq = getNumConstrainedQ(s,M);
@@ -1789,18 +1789,18 @@ ConstrainedQIndex ConstraintRep::getConstrainedQIndex
     return ConstrainedQIndex(mInfo.firstConstrainedQIndex + which);
 }       
 
-int ConstraintRep::getNumConstrainedU(const State& s) const {
+int ConstraintImpl::getNumConstrainedU(const State& s) const {
     return getModelCache(s).getConstraintModelInfo(myConstraintIndex).getNConstrainedU();
 }
 
-int ConstraintRep::getNumConstrainedU
+int ConstraintImpl::getNumConstrainedU
    (const State& s, ConstrainedMobilizerIndex M) const
 {
     const MobilizedBodyIndex mbx = getMobilizedBodyIndexOfConstrainedMobilizer(M);
     return getModelCache(s).getMobilizedBodyModelInfo(mbx).nUInUse;
 }
 
-ConstrainedUIndex ConstraintRep::getConstrainedUIndex
+ConstrainedUIndex ConstraintImpl::getConstrainedUIndex
    (const State& s, ConstrainedMobilizerIndex M, MobilizerUIndex which) const 
 {
     const int nu = getNumConstrainedU(s,M);
@@ -1815,7 +1815,7 @@ ConstrainedUIndex ConstraintRep::getConstrainedUIndex
 // is an error if that isn't an exact match for the current number of holonomic
 // constraint equations generated by this Constraint. We expect that perr points
 // to an array of at least mp elements that we can write on.
-void ConstraintRep::getPositionErrors(const State& s, int mp, Real* perr) const {
+void ConstraintImpl::getPositionErrors(const State& s, int mp, Real* perr) const {
     const SBModelCache::PerConstraintModelInfo& cInfo = 
         getModelCache(s).getConstraintModelInfo(myConstraintIndex);
 
@@ -1840,7 +1840,7 @@ void ConstraintRep::getPositionErrors(const State& s, int mp, Real* perr) const 
 // current number of holonomic+nonholonomic (mp+mv) constraint equations generated
 // by this Constraint. We expect that pverr points to an array of at least mp+mv
 // elements that we can write on.
-void ConstraintRep::getVelocityErrors(const State& s, int mpv, Real* pverr) const {
+void ConstraintImpl::getVelocityErrors(const State& s, int mpv, Real* pverr) const {
     const SBModelCache& mc = getModelCache(s);
     const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
 
@@ -1874,7 +1874,7 @@ void ConstraintRep::getVelocityErrors(const State& s, int mpv, Real* pverr) cons
 // current number of holonomic+nonholonomic+accelerationOnly (mp+mv+ma) constraint
 // equations generated by this Constraint. We expect that pvaerr points to an array
 // of at least mp+mv+ma elements that we can write on.
-void ConstraintRep::getAccelerationErrors(const State& s, int mpva, Real* pvaerr) const {
+void ConstraintImpl::getAccelerationErrors(const State& s, int mpva, Real* pvaerr) const {
     const SBModelCache& mc = getModelCache(s);
     const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
 
@@ -1908,98 +1908,98 @@ void ConstraintRep::getAccelerationErrors(const State& s, int mpva, Real* pvaerr
         pvaerr[mHolo+mNonholo+i] = udoterr[firstAccOnlyErr+i];
 }
 
-const SBModelCache& ConstraintRep::getModelCache(const State& s) const {
+const SBModelCache& ConstraintImpl::getModelCache(const State& s) const {
     return getMyMatterSubsystemRep().getModelCache(s);
 }
-const SBPositionCache& ConstraintRep::getPositionCache(const State& s) const {
+const SBPositionCache& ConstraintImpl::getPositionCache(const State& s) const {
     return getMyMatterSubsystemRep().getPositionCache(s);
 }
-const SBVelocityCache& ConstraintRep::getVelocityCache(const State& s) const {
+const SBVelocityCache& ConstraintImpl::getVelocityCache(const State& s) const {
     return getMyMatterSubsystemRep().getVelocityCache(s);
 }
-const SBAccelerationCache& ConstraintRep::getAccelerationCache(const State& s) const {
+const SBAccelerationCache& ConstraintImpl::getAccelerationCache(const State& s) const {
     return getMyMatterSubsystemRep().getAccelerationCache(s);
 }
 
-// Default implementations for ConstraintRep virtuals throw "unimplemented"
+// Default implementations for ConstraintImpl virtuals throw "unimplemented"
 // exceptions. These shouldn't be called unless the concrete constraint has
 // given a non-zero value for mp, mv, and/or ma which is a promise to 
 // implement the associated methods.
 
     // These must be defined if there are any positin (holonomic) constraints defined.
 
-void ConstraintRep::
+void ConstraintImpl::
 realizePositionErrorsVirtual(const State&, const SBPositionCache&, int mp,  Real* perr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintRep", "realizePositionErrors");
+        "ConstraintImpl", "realizePositionErrors");
 }
 
-void ConstraintRep::
+void ConstraintImpl::
 realizePositionDotErrorsVirtual(const State&, const SBVelocityCache&, int mp,  Real* pverr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintRep", "realizePositionDotErrors");
+        "ConstraintImpl", "realizePositionDotErrors");
 }
 
-void ConstraintRep::
+void ConstraintImpl::
 realizePositionDotDotErrorsVirtual(const State&, const SBAccelerationCache&, int mp,  Real* paerr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintRep", "realizePositionDotDotErrors");
+        "ConstraintImpl", "realizePositionDotDotErrors");
 }
 
 
-void ConstraintRep::
+void ConstraintImpl::
 applyPositionConstraintForcesVirtual
    (const State&, int mp, const Real* multipliers,
     Vector_<SpatialVec>& bodyForces,
     Vector&              mobilityForces) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintRep", "applyPositionConstraintForces");
+        "ConstraintImpl", "applyPositionConstraintForces");
 }
 
     // These must be defined if there are any velocity (nonholonomic) constraints defined.
 
-void ConstraintRep::
+void ConstraintImpl::
 realizeVelocityErrorsVirtual(const State&, const SBVelocityCache&, int mv,  Real* verr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintRep", "realizeVelocityErrors");
+        "ConstraintImpl", "realizeVelocityErrors");
 }
 
 
-void ConstraintRep::
+void ConstraintImpl::
 realizeVelocityDotErrorsVirtual(const State&, const SBAccelerationCache&, int mv,  Real* vaerr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintRep", "realizeVelocityDotErrors");
+        "ConstraintImpl", "realizeVelocityDotErrors");
 }
 
 
-void ConstraintRep::
+void ConstraintImpl::
 applyVelocityConstraintForcesVirtual
    (const State&, int mv, const Real* multipliers,
     Vector_<SpatialVec>& bodyForces,
     Vector&              mobilityForces) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintRep", "applyVelocityConstraintForces");
+        "ConstraintImpl", "applyVelocityConstraintForces");
 }
 
 
 
 // These must be defined if there are any acceleration-only constraints defined.
-void ConstraintRep::
+void ConstraintImpl::
 realizeAccelerationErrorsVirtual(const State&, const SBAccelerationCache&, int ma,  Real* aerr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintRep", "realizeAccelerationErrors");
+        "ConstraintImpl", "realizeAccelerationErrors");
 }
 
-void ConstraintRep::
+void ConstraintImpl::
 applyAccelerationConstraintForcesVirtual
    (const State&, int ma, const Real* multipliers,
     Vector_<SpatialVec>& bodyForces,
     Vector&              mobilityForces) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "ConstraintRep", "applyAccelerationConstraintForces");
+        "ConstraintImpl", "applyAccelerationConstraintForces");
 }
 
 

@@ -39,22 +39,22 @@
 // we can instantiate them for real here.
 #define SimTK_SIMBODY_DEFINING_CONSTRAINT
 #include "simbody/internal/Constraint.h"
-#include "ConstraintRep.h"
+#include "ConstraintImpl.h"
 
 namespace SimTK {
 
-template class PIMPLHandle<Constraint, ConstraintRep>;
-template class PIMPLImplementation<Constraint, ConstraintRep>;
-template class PIMPLDerivedHandle<Constraint::Rod, Constraint::RodRep, Constraint>;
-template class PIMPLDerivedHandle<Constraint::Ball, Constraint::BallRep, Constraint>;
-template class PIMPLDerivedHandle<Constraint::Weld, Constraint::WeldRep, Constraint>;
-template class PIMPLDerivedHandle<Constraint::PointInPlane, Constraint::PointInPlaneRep, Constraint>;
-template class PIMPLDerivedHandle<Constraint::PointOnLine, Constraint::PointOnLineRep, Constraint>;
-template class PIMPLDerivedHandle<Constraint::ConstantAngle, Constraint::ConstantAngleRep, Constraint>;
-template class PIMPLDerivedHandle<Constraint::ConstantOrientation, Constraint::ConstantOrientationRep, Constraint>;
-template class PIMPLDerivedHandle<Constraint::NoSlip1D, Constraint::NoSlip1DRep, Constraint>;
-template class PIMPLDerivedHandle<Constraint::ConstantSpeed, Constraint::ConstantSpeedRep, Constraint>;
-template class PIMPLDerivedHandle<Constraint::Custom, Constraint::CustomRep, Constraint>;
+template class PIMPLHandle<Constraint, ConstraintImpl>;
+template class PIMPLImplementation<Constraint, ConstraintImpl>;
+template class PIMPLDerivedHandle<Constraint::Rod, Constraint::RodImpl, Constraint>;
+template class PIMPLDerivedHandle<Constraint::Ball, Constraint::BallImpl, Constraint>;
+template class PIMPLDerivedHandle<Constraint::Weld, Constraint::WeldImpl, Constraint>;
+template class PIMPLDerivedHandle<Constraint::PointInPlane, Constraint::PointInPlaneImpl, Constraint>;
+template class PIMPLDerivedHandle<Constraint::PointOnLine, Constraint::PointOnLineImpl, Constraint>;
+template class PIMPLDerivedHandle<Constraint::ConstantAngle, Constraint::ConstantAngleImpl, Constraint>;
+template class PIMPLDerivedHandle<Constraint::ConstantOrientation, Constraint::ConstantOrientationImpl, Constraint>;
+template class PIMPLDerivedHandle<Constraint::NoSlip1D, Constraint::NoSlip1DImpl, Constraint>;
+template class PIMPLDerivedHandle<Constraint::ConstantSpeed, Constraint::ConstantSpeedImpl, Constraint>;
+template class PIMPLDerivedHandle<Constraint::Custom, Constraint::CustomImpl, Constraint>;
 
 } // namespace SimTK
 

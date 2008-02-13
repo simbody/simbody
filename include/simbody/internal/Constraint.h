@@ -53,12 +53,12 @@ class SimbodyMatterSubsystem;
 class SimbodyMatterSubtree;
 class MobilizedBody;
 class Constraint;
-class ConstraintRep;
+class ConstraintImpl;
 
 // We only want the template instantiation to occur once. This symbol is defined in the SimTK core
 // compilation unit that defines the Force class but should not be defined any other time.
 #ifndef SimTK_SIMBODY_DEFINING_CONSTRAINT
-    extern template class PIMPLHandle<Constraint, ConstraintRep>;
+    extern template class PIMPLHandle<Constraint, ConstraintImpl>;
 #endif
 
     ///////////////////////////
@@ -72,10 +72,10 @@ class ConstraintRep;
  *
  * TODO: should derive from PIMPLHandle
  */
-class SimTK_SIMBODY_EXPORT Constraint : public PIMPLHandle<Constraint, ConstraintRep> {
+class SimTK_SIMBODY_EXPORT Constraint : public PIMPLHandle<Constraint, ConstraintImpl> {
 public:
     Constraint() { }
-    explicit Constraint(ConstraintRep* r) : HandleBase(r) { }
+    explicit Constraint(ConstraintImpl* r) : HandleBase(r) { }
 
     // These will fail unless this Constraint is owned by a MatterSubsystem.
     ConstraintIndex               getConstraintIndex()      const;
@@ -228,16 +228,16 @@ public:
     class ConstantSpeed; // prescribe generalized speed value
     class Custom;
 
-    class RodRep;
-    class BallRep;
-    class WeldRep;
-    class PointInPlaneRep;
-    class PointOnLineRep;
-    class ConstantAngleRep;
-    class ConstantOrientationRep;
-    class NoSlip1DRep;
-    class ConstantSpeedRep;
-    class CustomRep;
+    class RodImpl;
+    class BallImpl;
+    class WeldImpl;
+    class PointInPlaneImpl;
+    class PointOnLineImpl;
+    class ConstantAngleImpl;
+    class ConstantOrientationImpl;
+    class NoSlip1DImpl;
+    class ConstantSpeedImpl;
+    class CustomImpl;
 };
 
     ////////////////////////////////////////
@@ -257,7 +257,7 @@ public:
  *  For a distance of zero (i.e., you want the points to be coincident) use a Ball
  *  constraint, a.k.a. CoincidentPoints constraint.
  */
- class SimTK_SIMBODY_EXPORT Constraint::Rod : public PIMPLDerivedHandle<Rod, RodRep, Constraint> {
+ class SimTK_SIMBODY_EXPORT Constraint::Rod : public PIMPLDerivedHandle<Rod, RodImpl, Constraint> {
 public:
     // no default constructor
     Rod(MobilizedBody& body1, MobilizedBody& body2,
@@ -307,7 +307,7 @@ public:
  *  The assembly condition is the same as the run-time constraint: the point
  *  has to be moved into the plane.
  */
-class SimTK_SIMBODY_EXPORT Constraint::PointInPlane : public PIMPLDerivedHandle<PointInPlane, PointInPlaneRep, Constraint>  {
+class SimTK_SIMBODY_EXPORT Constraint::PointInPlane : public PIMPLDerivedHandle<PointInPlane, PointInPlaneImpl, Constraint>  {
 public:
     // no default constructor
     PointInPlane(MobilizedBody& planeBody_B, const UnitVec3& defaultPlaneNormal_B, Real defaultHeight,
@@ -363,7 +363,7 @@ public:
  *  The assembly condition is the same as the run-time constraint: the point
  *  has to be moved onto the line.
  */
-class SimTK_SIMBODY_EXPORT Constraint::PointOnLine : public PIMPLDerivedHandle<PointOnLine, PointOnLineRep, Constraint>  {
+class SimTK_SIMBODY_EXPORT Constraint::PointOnLine : public PIMPLDerivedHandle<PointOnLine, PointOnLineImpl, Constraint>  {
 public:
     // no default constructor
     PointOnLine(MobilizedBody& lineBody_B, const UnitVec3& defaultLineDirection_B, const Vec3& defaultPointOnLine_B,
@@ -422,7 +422,7 @@ public:
  *  The assembly condition is the same as the run-time constraint: the 
  *  bodies must be rotated until the vectors have the right angle between them.
  */
-class SimTK_SIMBODY_EXPORT Constraint::ConstantAngle : public PIMPLDerivedHandle<ConstantAngle, ConstantAngleRep, Constraint> {
+class SimTK_SIMBODY_EXPORT Constraint::ConstantAngle : public PIMPLDerivedHandle<ConstantAngle, ConstantAngleImpl, Constraint> {
 public:
     // no default constructor
     ConstantAngle(MobilizedBody& baseBody_B,     const UnitVec3& defaultAxis_B,
@@ -480,7 +480,7 @@ public:
  *  The assembly condition is the same as the runtime constraint -- the two points
  *  can be brought together by driving the perr to zero.
  */
-class SimTK_SIMBODY_EXPORT Constraint::Ball : public PIMPLDerivedHandle<Ball, BallRep, Constraint> {
+class SimTK_SIMBODY_EXPORT Constraint::Ball : public PIMPLDerivedHandle<Ball, BallImpl, Constraint> {
 public:
     // no default constructor
     Ball(MobilizedBody& body1, MobilizedBody& body2);
@@ -539,7 +539,7 @@ public:
  *  we must have additional (redundant) constraints requiring parallel axes.
  */
 class SimTK_SIMBODY_EXPORT Constraint::ConstantOrientation 
-  : public PIMPLDerivedHandle<ConstantOrientation, ConstantOrientationRep, Constraint>
+  : public PIMPLDerivedHandle<ConstantOrientation, ConstantOrientationImpl, Constraint>
 {
 public:
     // no default constructor
@@ -600,7 +600,7 @@ public:
  *  to the parallel ones we want. Therefore the assembly conditions must include
  *  additional (redundant) constraints requiring parallel axes.
  */
-class SimTK_SIMBODY_EXPORT Constraint::Weld : public PIMPLDerivedHandle<Weld, WeldRep, Constraint> {
+class SimTK_SIMBODY_EXPORT Constraint::Weld : public PIMPLDerivedHandle<Weld, WeldImpl, Constraint> {
 public:
         // no default constructor
 
@@ -687,7 +687,7 @@ public:
  * The assembly condition is the same as the run-time constraint: the velocities must
  * be made to match.
  */
-class SimTK_SIMBODY_EXPORT Constraint::NoSlip1D : public PIMPLDerivedHandle<NoSlip1D, NoSlip1DRep, Constraint> {
+class SimTK_SIMBODY_EXPORT Constraint::NoSlip1D : public PIMPLDerivedHandle<NoSlip1D, NoSlip1DImpl, Constraint> {
 public:
     // no default constructor
     NoSlip1D(MobilizedBody& caseBodyC, const Vec3& P_C, const UnitVec3& n_C,
@@ -737,7 +737,7 @@ public:
  * The assembly condition is the same as the run-time constraint: u must be set to s.
  */
 class SimTK_SIMBODY_EXPORT Constraint::ConstantSpeed
-  : public PIMPLDerivedHandle<ConstantSpeed, ConstantSpeedRep, Constraint>
+  : public PIMPLDerivedHandle<ConstantSpeed, ConstantSpeedImpl, Constraint>
 {
 public:
     // no default constructor
@@ -760,7 +760,7 @@ public:
 };
 
 // TODO: this is just a sketch of a Custom Constraint base class.
-class SimTK_SIMBODY_EXPORT Constraint::Custom : public PIMPLDerivedHandle<Custom, CustomRep, Constraint> {
+class SimTK_SIMBODY_EXPORT Constraint::Custom : public PIMPLDerivedHandle<Custom, CustomImpl, Constraint> {
 public:
     // no default constructor (?)
 
