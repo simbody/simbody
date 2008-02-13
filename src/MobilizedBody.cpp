@@ -6,9 +6,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-8 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Peter Eastman                                                *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -35,12 +35,7 @@
  * represent the built-in mobilizer types.
  */
 
-// This suppresses the 'extern template' instantiations in MobilizedBody.h so that
-// we can instantiate them for real here.
-#define SimTK_SIMBODY_DEFINING_MOBILIZED_BODY
-
 #include "SimTKcommon.h"
-#include "SimTKcommon/internal/PrivateImplementation_Defs.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/MobilizedBody.h"
 
@@ -48,26 +43,6 @@
 #include "SimbodyMatterSubsystemRep.h"
 
 namespace SimTK {
-
-template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl>;
-template class PIMPLImplementation<MobilizedBody, MobilizedBodyImpl>;
-template class PIMPLDerivedHandle<MobilizedBody::Ball, MobilizedBody::BallImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::BendStretch, MobilizedBody::BendStretchImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Custom, MobilizedBody::CustomImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Cylinder, MobilizedBody::CylinderImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Ellipsoid, MobilizedBody::EllipsoidImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Free, MobilizedBody::FreeImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::FreeLine, MobilizedBody::FreeLineImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Gimbal, MobilizedBody::GimbalImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Ground, MobilizedBody::GroundImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::LineOrientation, MobilizedBody::LineOrientationImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Pin, MobilizedBody::PinImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Planar, MobilizedBody::PlanarImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Screw, MobilizedBody::ScrewImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Slider, MobilizedBody::SliderImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Translation, MobilizedBody::TranslationImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Universal, MobilizedBody::UniversalImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Weld, MobilizedBody::WeldImpl, MobilizedBody>;
 
     ////////////////////
     // MOBILIZED BODY //

@@ -34,27 +34,33 @@
 #include "simbody/internal/common.h"
 #include "SimTKcommon/internal/PrivateImplementation_Defs.h"
 
-
-// This suppresses the 'extern template' instantiations in Constraint.h so that
+// This suppresses the 'extern template' instantiations in MobilizedBody.h so that
 // we can instantiate them for real here.
-#define SimTK_SIMBODY_DEFINING_CONSTRAINT
-#include "simbody/internal/Constraint.h"
-#include "ConstraintImpl.h"
+#define SimTK_SIMBODY_DEFINING_MOBILIZED_BODY
+#include "simbody/internal/MobilizedBody.h"
+#include "MobilizedBodyImpl.h"
 
 namespace SimTK {
 
-template class PIMPLHandle<Constraint, ConstraintImpl>;
-template class PIMPLImplementation<Constraint, ConstraintImpl>;
-template class PIMPLDerivedHandle<Constraint::Rod, Constraint::RodImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::Ball, Constraint::BallImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::Weld, Constraint::WeldImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::PointInPlane, Constraint::PointInPlaneImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::PointOnLine, Constraint::PointOnLineImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::ConstantAngle, Constraint::ConstantAngleImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::ConstantOrientation, Constraint::ConstantOrientationImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::NoSlip1D, Constraint::NoSlip1DImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::ConstantSpeed, Constraint::ConstantSpeedImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::Custom, Constraint::CustomImpl, Constraint>;
+template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl>;
+template class PIMPLImplementation<MobilizedBody, MobilizedBodyImpl>;
+template class PIMPLDerivedHandle<MobilizedBody::Ball, MobilizedBody::BallImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::BendStretch, MobilizedBody::BendStretchImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::Custom, MobilizedBody::CustomImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::Cylinder, MobilizedBody::CylinderImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::Ellipsoid, MobilizedBody::EllipsoidImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::Free, MobilizedBody::FreeImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::FreeLine, MobilizedBody::FreeLineImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::Gimbal, MobilizedBody::GimbalImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::Ground, MobilizedBody::GroundImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::LineOrientation, MobilizedBody::LineOrientationImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::Pin, MobilizedBody::PinImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::Planar, MobilizedBody::PlanarImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::Screw, MobilizedBody::ScrewImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::Slider, MobilizedBody::SliderImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::Translation, MobilizedBody::TranslationImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::Universal, MobilizedBody::UniversalImpl, MobilizedBody>;
+template class PIMPLDerivedHandle<MobilizedBody::Weld, MobilizedBody::WeldImpl, MobilizedBody>;
 
 } // namespace SimTK
 
