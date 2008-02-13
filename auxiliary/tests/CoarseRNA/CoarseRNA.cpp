@@ -283,7 +283,7 @@ try // If anything goes wrong, an exception will be thrown.
 
 
 
-    SimbodyMatterSubsystem::Subtree sub(myRNA);
+    SimbodyMatterSubtree sub(myRNA);
     sub.addTerminalBody(myRNA.getMobilizedBody(MobilizedBodyIndex(7)));
     sub.addTerminalBody(myRNA.getMobilizedBody(MobilizedBodyIndex(10)));
     //sub.addTerminalBody(myRNA.getMobilizedBody(MobilizedBodyIndex(20)));

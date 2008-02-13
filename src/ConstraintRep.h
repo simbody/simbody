@@ -41,7 +41,6 @@
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/Constraint.h"
-#include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem_Subtree.h"
 
 #include <map>
@@ -58,7 +57,6 @@ using std::cout; using std::endl;
 //#define USE_OLD_CONSTRAINTS
 
 class SimbodyMatterSubsystemRep;
-
 class SBModelCache;
 class SBPositionCache;
 class SBVelocityCache;
@@ -66,18 +64,23 @@ class SBAccelerationCache;
 
 namespace SimTK {
 
+class SimbodyMatterSubsystem;
+class SimbodyMatterSubtree;
+class MobilizedBody;
+
     /////////////////////
     // CONSTRAINT REPS //
     /////////////////////
 
-class Constraint::ConstraintRep {
+class ConstraintRep : public PIMPLImplementation<Constraint, ConstraintRep> {
 public:
-    ConstraintRep() : myHandle(0), myMatterSubsystemRep(0), 
-        defaultMp(0), defaultMv(0), defaultMa(0)
+    ConstraintRep() : myMatterSubsystemRep(0), defaultMp(0), defaultMv(0), defaultMa(0)
     {
     }
+    virtual ~ConstraintRep() { }
+    virtual ConstraintRep* clone() const = 0;
 
-    ConstraintRep(int mp, int mv, int ma) : myHandle(0), myMatterSubsystemRep(0), 
+    ConstraintRep(int mp, int mv, int ma) : myMatterSubsystemRep(0), 
         defaultMp(mp), defaultMv(mv), defaultMa(ma)
     {
     }
@@ -96,44 +99,12 @@ public:
     // Call this during construction phase to add a body to the topological structure of
     // this Constraint. This body's mobilizer's mobilities are *not* part of the constraint; 
     // mobilizers must be added separately.
-    ConstrainedBodyIndex addConstrainedBody(const MobilizedBody& b) {
-        assert(isInSameSubsystem(b));
-        invalidateTopologyCache();
-
-        const ConstrainedBodyIndex nextIx((int)myConstrainedBodies.size());
-
-        // Add to the Mobilized->Constrained map and check for duplicates.
-        std::pair<MobilizedBody2ConstrainedBodyMap::iterator, bool> result;
-        result = myMobilizedBody2ConstrainedBodyMap.insert(
-            MobilizedBody2ConstrainedBodyMap::value_type(b.getMobilizedBodyIndex(), nextIx));
-        SimTK_ASSERT_ALWAYS(result.second,
-            "addConstrainedBody(): a particular Constrained Body can be added only once per Constraint");
-
-        // This is a new constrained body -- add it to the ConstrainedBody->MobilizedBody map too.
-        myConstrainedBodies.push_back(b.getMobilizedBodyIndex());
-        return nextIx;
-    }
+    ConstrainedBodyIndex addConstrainedBody(const MobilizedBody&);
 
     // Call this during construction phase to add a mobilizer to the topological structure of
     // this Constraint. All the coordinates q and mobilities u for this mobilizer are added also,
     // but we don't know how many of those there will be until Stage::Model.
-    ConstrainedMobilizerIndex addConstrainedMobilizer(const MobilizedBody& b) {
-        assert(isInSameSubsystem(b));
-        invalidateTopologyCache();
-
-        const ConstrainedMobilizerIndex nextIx((int)myConstrainedMobilizers.size());
-
-        // Add to the Mobilized->Constrained map and check for duplicates.
-        std::pair<MobilizedBody2ConstrainedMobilizerMap::iterator, bool> result;
-        result = myMobilizedBody2ConstrainedMobilizerMap.insert(
-            MobilizedBody2ConstrainedMobilizerMap::value_type(b.getMobilizedBodyIndex(), nextIx));
-        SimTK_ASSERT_ALWAYS(result.second,
-            "addConstrainedMobilizer(): a particular Constrained Mobilizer can be added only once per Constraint");
-
-        // This is a new constrained mobilizer -- add it to the ConstrainedMobilizer->MobilizedBody map too.
-        myConstrainedMobilizers.push_back(b.getMobilizedBodyIndex());
-        return nextIx;
-    }
+    ConstrainedMobilizerIndex addConstrainedMobilizer(const MobilizedBody&);
 
     MobilizedBodyIndex getMobilizedBodyIndexOfConstrainedBody(ConstrainedBodyIndex c) const {
         assert(0 <= c && c < (int)myConstrainedBodies.size());
@@ -361,9 +332,6 @@ public:
     }
 
 
-    virtual ~ConstraintRep();
-    virtual ConstraintRep* clone() const = 0;
-
     // After realizeTopology() we can look at the values of modeling variables in the State.
     // A Constraint is free to use those in determining how many constraint equations of each
     // type to generate. The default implementation here doesn't look at the state but instead
@@ -481,10 +449,9 @@ public:
         return myMatterSubsystemRep != 0;
     }
 
-    bool isInSameSubsystem(const MobilizedBody& body) const {
-        return isInSubsystem() && body.isInSubsystem() 
-            && getMyMatterSubsystem().isSameSubsystem(body.getMatterSubsystem());
-    }
+    // Is the supplied body in the same subsystem as this Constraint? (Returns false also if
+    // either the Constraint or the MobilizedBody is not in a subsystem.)
+    bool isInSameSubsystem(const MobilizedBody& body) const;
 
     int getNumConstrainedBodies() const {
         SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
@@ -536,13 +503,8 @@ public:
         return *myMatterSubsystemRep;
     }
 
-    void setMyHandle(Constraint& h) {myHandle = &h;}
-    const Constraint& getMyHandle() const {assert(myHandle); return *myHandle;}
-    void clearMyHandle() {myHandle=0;}
-
 private:
     friend class Constraint;
-    Constraint* myHandle;	// the owner handle of this rep
 
         // TOPOLOGY "STATE"
 
@@ -576,12 +538,12 @@ private:
     // constrained bodies to the ancestor are included; nothing outboard of the
     // constrained bodies is included; and the ancestor is treated as ground so
     // that its mobilities are *not* included.
-    mutable SimbodyMatterSubsystem::Subtree mySubtree;
+    mutable SimbodyMatterSubtree mySubtree;
 };
 
     // ROD
 
-class Constraint::Rod::RodRep : public Constraint::ConstraintRep {
+class Constraint::RodRep : public ConstraintRep {
 public:
     RodRep() 
       : ConstraintRep(1,0,0), defaultPoint1(0), defaultPoint2(0), defaultRodLength(1),
@@ -691,7 +653,7 @@ private:
 
     // POINT IN PLANE
 
-class Constraint::PointInPlane::PointInPlaneRep : public Constraint::ConstraintRep {
+class Constraint::PointInPlaneRep : public ConstraintRep {
 public:
     PointInPlaneRep()
       : ConstraintRep(1,0,0), defaultPlaneNormal(), defaultPlaneHeight(0), defaultFollowerPoint(0),
@@ -849,7 +811,7 @@ private:
 
     // POINT ON LINE
 
-class Constraint::PointOnLine::PointOnLineRep : public Constraint::ConstraintRep {
+class Constraint::PointOnLineRep : public ConstraintRep {
 public:
     PointOnLineRep()
       : ConstraintRep(2,0,0), defaultLineDirection(), defaultPointOnLine(), defaultFollowerPoint(0),
@@ -1000,7 +962,7 @@ private:
 
     // CONSTANT ANGLE
 
-class Constraint::ConstantAngle::ConstantAngleRep : public Constraint::ConstraintRep {
+class Constraint::ConstantAngleRep : public ConstraintRep {
 public:
     ConstantAngleRep()
       : ConstraintRep(1,0,0), defaultAxisB(), defaultAxisF(), defaultAngle(Pi/2),
@@ -1165,7 +1127,7 @@ private:
 
     // BALL
 
-class Constraint::Ball::BallRep : public Constraint::ConstraintRep {
+class Constraint::BallRep : public ConstraintRep {
 public:
     BallRep() : ConstraintRep(3,0,0), defaultPoint1(0), defaultPoint2(0), defaultRadius(0.1) { }
     BallRep* clone() const { return new BallRep(*this); }
@@ -1284,7 +1246,7 @@ private:
 
     // CONSTANT ORIENTATION
 
-class Constraint::ConstantOrientation::ConstantOrientationRep : public Constraint::ConstraintRep {
+class Constraint::ConstantOrientationRep : public ConstraintRep {
 public:
     ConstantOrientationRep()
       : ConstraintRep(3,0,0), defaultRB(), defaultRF()
@@ -1455,7 +1417,7 @@ private:
 
     // WELD
 
-class Constraint::Weld::WeldRep : public Constraint::ConstraintRep {
+class Constraint::WeldRep : public ConstraintRep {
     static Real getDefaultAxisDisplayLength() {return 1;}
     static Vec3 getDefaultFrameColor(int which) {
         return which==0 ? Blue : Purple;
@@ -1637,7 +1599,7 @@ private:
 
     // NO SLIP 1D
 
-class Constraint::NoSlip1D::NoSlip1DRep : public Constraint::ConstraintRep {
+class Constraint::NoSlip1DRep : public ConstraintRep {
 public:
     NoSlip1DRep()
       : ConstraintRep(0,1,0), defaultNoSlipDirection(), defaultContactPoint(0),
@@ -1765,7 +1727,7 @@ private:
 
     // CONSTANT SPEED
 
-class Constraint::ConstantSpeed::ConstantSpeedRep : public Constraint::ConstraintRep {
+class Constraint::ConstantSpeedRep : public ConstraintRep {
 public:
     ConstantSpeedRep()
       : ConstraintRep(0,1,0), theMobilizer(), whichMobility(), prescribedSpeed(NaN)
@@ -1809,11 +1771,11 @@ private:
 };
 
 
-class Constraint::Custom::CustomRep : public Constraint::ConstraintRep {
+class Constraint::CustomRep : public ConstraintRep {
 public:
     CustomRep* clone() const { return new CustomRep(*this); }
 
-    SimTK_DOWNCAST(CustomRep, ConstraintRep);
+    //SimTK_DOWNCAST(CustomRep, ConstraintRep);
 private:
     friend class Constraint::Custom;
 

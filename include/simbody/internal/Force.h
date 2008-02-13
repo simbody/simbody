@@ -45,7 +45,7 @@ class ForceImpl;
 
 // We only want the template instantiation to occur once. This symbol is defined in the SimTK core
 // compilation unit that defines the Force class but should not be defined any other time.
-#ifndef SimTK_DEFINING_FORCE
+#ifndef SimTK_SIMBODY_DEFINING_FORCE
     extern template class PIMPLHandle<Force, ForceImpl>;
 #endif
 

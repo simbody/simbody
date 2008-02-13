@@ -31,7 +31,7 @@
 
 /**@file
  *
- * Implementation of SimbodyMatterSubsystem::Subtree and ::SubtreeResults.
+ * Implementation of SimbodyMatterSubtree and SimbodyMatterSubtreeResults.
  */
 
 #include "SimTKcommon.h"
@@ -52,15 +52,15 @@ namespace SimTK {
     // SUBTREE REP //
     /////////////////
 
-class SimbodyMatterSubsystem::Subtree::SubtreeRep {
+class SimbodyMatterSubtree::SubtreeRep {
 public:
-    SubtreeRep(const Subtree& handle, const SimbodyMatterSubsystem& sms) 
+    SubtreeRep(const SimbodyMatterSubtree& handle, const SimbodyMatterSubsystem& sms) 
       : myHandle(handle), matter(&sms), stage(Stage::Empty)
     { 
     }
 
     // Here we don't know the matter subsystem yet.
-    explicit SubtreeRep(const Subtree& handle) 
+    explicit SubtreeRep(const SimbodyMatterSubtree& handle) 
       : myHandle(handle), matter(0), stage(Stage::Empty)
     { 
     }
@@ -119,12 +119,12 @@ public:
     // State must be realized to at least Stage::Model for this call to work. 
     // The supplied SubtreeResults object is allocated and properly initialized to
     // be able to hold computation results from this Subtree.
-    void initializeSubtreeResults(const State&, SubtreeResults::SubtreeResultsRep&) const;
+    void initializeSubtreeResults(const State&, SimbodyMatterSubtreeResults::SubtreeResultsRep&) const;
 
     // This can be used as a sanity check that initializeSubtreeResults() was already called
     // in this Subtree to produce these SubtreeResults. It is by no means exhaustive but
     // will catch egregious errors.
-    bool isCompatibleSubtreeResults(const SubtreeResults::SubtreeResultsRep&) const;
+    bool isCompatibleSubtreeResults(const SimbodyMatterSubtreeResults::SubtreeResultsRep&) const;
 
         // POSITION STAGE
 
@@ -133,16 +133,16 @@ public:
     // will be Stage::Position after this call. All body transforms will be the same as
     // the corresponding ones in the state, except they will be measured from the ancestor
     // frame instead of ground. Subtree q's will be identical to corresponding State q's.
-    void copyPositionsFromState(const State&, SubtreeResults::SubtreeResultsRep&) const;
+    void copyPositionsFromState(const State&, SimbodyMatterSubtreeResults::SubtreeResultsRep&) const;
 
     // State must be realized to Stage::Instance. subQ must be the right length for this
     // Subtree, and SubtreeResults must have been properly initialized. SubtreeResults
     // stage will be Stage::Position after this call.
-    void calcPositionsFromSubtreeQ(const State&, const Vector& subQ, SubtreeResults::SubtreeResultsRep&) const;
+    void calcPositionsFromSubtreeQ(const State&, const Vector& subQ, SimbodyMatterSubtreeResults::SubtreeResultsRep&) const;
 
     // Calculates a perturbed position result starting with the subQ's and position results
     // which must already be in SubtreeResults.
-    void perturbPositions(const State&, SubtreeQIndex subQIndex, Real perturbation, SubtreeResults::SubtreeResultsRep&) const;
+    void perturbPositions(const State&, SubtreeQIndex subQIndex, Real perturbation, SimbodyMatterSubtreeResults::SubtreeResultsRep&) const;
 
 
         // VELOCITY STAGE
@@ -152,21 +152,21 @@ public:
     // will be Stage::Velocity after this call. All subtree body spatial velocities will be
     // the same as in the State, except measured relative to A and expressed in A. Subtree u's
     // will be identical to corresponding State u's.
-    void copyVelocitiesFromState(const State&, SubtreeResults::SubtreeResultsRep&) const;
+    void copyVelocitiesFromState(const State&, SimbodyMatterSubtreeResults::SubtreeResultsRep&) const;
 
     // State must be realized to Stage::Instance. subU must be the right length for this
     // Subtree, and SubtreeResults must already be at Stage::Position. SubtreeResults
     // stage will be Stage::Velocity after this call.
-    void calcVelocitiesFromSubtreeU(const State&, const Vector& subU, SubtreeResults::SubtreeResultsRep&) const;
+    void calcVelocitiesFromSubtreeU(const State&, const Vector& subU, SimbodyMatterSubtreeResults::SubtreeResultsRep&) const;
 
     // State must be realized to Stage::Instance and SubtreeResults must already be at
     // Stage::Position. SubtreeResults stage will be Stage::Velocity after this call, but
     // all Subtree u's and body velocities will be zero.
-    void calcVelocitiesFromZeroU(const State&, SubtreeResults::SubtreeResultsRep&) const;
+    void calcVelocitiesFromZeroU(const State&, SimbodyMatterSubtreeResults::SubtreeResultsRep&) const;
 
     // Calculates a perturbed velocity result starting with the subU's and velocity results
     // which must already be in SubtreeResults.
-    void perturbVelocities(const State&, SubtreeUIndex subUIndex, Real perturbation, SubtreeResults::SubtreeResultsRep&) const;
+    void perturbVelocities(const State&, SubtreeUIndex subUIndex, Real perturbation, SimbodyMatterSubtreeResults::SubtreeResultsRep&) const;
 
 
         // ACCELERATION STAGE
@@ -176,22 +176,22 @@ public:
     // will be Stage::Acceleration after this call. All subtree body spatial accelerations will be
     // the same as in the State, except measured relative to A and expressed in A. Subtree udots
     // will be identical to corresponding State udots.
-    void copyAccelerationsFromState(const State&, SubtreeResults::SubtreeResultsRep&) const;
+    void copyAccelerationsFromState(const State&, SimbodyMatterSubtreeResults::SubtreeResultsRep&) const;
 
     // State must be realized to Stage::Instance. subUDot must be the right length for this
     // Subtree, and SubtreeResults must already be at Stage::Velocity. SubtreeResults
     // stage will be Stage::Acceleration after this call.
-    void calcAccelerationsFromSubtreeUDot(const State&, const Vector& subUDot, SubtreeResults::SubtreeResultsRep&) const;
+    void calcAccelerationsFromSubtreeUDot(const State&, const Vector& subUDot, SimbodyMatterSubtreeResults::SubtreeResultsRep&) const;
 
     // State must be realized to Stage::Instance and SubtreeResults must already be at
     // Stage::Velocity. SubtreeResults stage will be Stage::Acceleration after this call.
     // All Subtree udots's will be zero, body accelerations will have only their bias values
     // (coriolis accelerations from nonzero u's).
-    void calcAccelerationsFromZeroUDot(const State&, SubtreeResults::SubtreeResultsRep&) const;
+    void calcAccelerationsFromZeroUDot(const State&, SimbodyMatterSubtreeResults::SubtreeResultsRep&) const;
 
     // Calculates a perturbed velocity result starting with the subUDot's and acceleration results
     // which must already be in SubtreeResults.
-    void perturbAccelerations(const State&, SubtreeUIndex subUDotIndex, Real perturbation, SubtreeResults::SubtreeResultsRep&) const;
+    void perturbAccelerations(const State&, SubtreeUIndex subUDotIndex, Real perturbation, SimbodyMatterSubtreeResults::SubtreeResultsRep&) const;
 
     MobilizedBodyIndex getParentMobilizedBodyIndex(MobilizedBodyIndex childIx) const {
         return getSimbodyMatterSubsystem().getMobilizedBody(childIx)
@@ -331,11 +331,11 @@ public:
         stage = Stage::Acceleration;
     }
 
-    const Subtree& getMySubtreeOwnerHandle() const {return myHandle;}
+    const SimbodyMatterSubtree& getMySubtreeOwnerHandle() const {return myHandle;}
 
 private:
-    friend class Subtree;
-    const Subtree&                myHandle; // owner handle
+    friend class SimbodyMatterSubtree;
+    const SimbodyMatterSubtree&   myHandle; // owner handle
     const SimbodyMatterSubsystem* matter;   // a reference to the full tree of which this is a subset
 
     Stage stage;    // initially invalid
@@ -412,9 +412,9 @@ private:
     // SUBTREE RESULTS REP //
     /////////////////////////
 
-class SimbodyMatterSubsystem::SubtreeResults::SubtreeResultsRep {
+class SimbodyMatterSubtreeResults::SubtreeResultsRep {
 public:
-    explicit SubtreeResultsRep(const SubtreeResults& handle) 
+    explicit SubtreeResultsRep(const SimbodyMatterSubtreeResults& handle) 
       : myHandle(&handle), stage(Stage::Empty)
     { 
         clear();
@@ -544,11 +544,11 @@ public:
         return (int)uSubset.size();
     }
 
-    void setMySubtreeResultsOwnerHandle(const SubtreeResults& owner) {
+    void setMySubtreeResultsOwnerHandle(const SimbodyMatterSubtreeResults& owner) {
         myHandle = &owner;
     }
 
-    const SubtreeResults& getMySubtreeResultsOwnerHandle() const {
+    const SimbodyMatterSubtreeResults& getMySubtreeResultsOwnerHandle() const {
         assert(myHandle);
         return *myHandle;
     }
@@ -632,8 +632,8 @@ public:
         nu = uSeg[sb].second;
     }
 private:
-    friend class SubtreeResults;
-    const SubtreeResults* myHandle; // owner handle
+    friend class SimbodyMatterSubtreeResults;
+    const SimbodyMatterSubtreeResults* myHandle; // owner handle
 
     Stage stage;    // initially invalid
 
@@ -671,21 +671,21 @@ private:
     /////////////////////////////////////////
 
 // Default constructor -- we don't know the SimbodyMatterSubsystem yet.
-SimbodyMatterSubsystem::Subtree::Subtree()
+SimbodyMatterSubtree::SimbodyMatterSubtree()
   : rep(0)
 {
     rep = new SubtreeRep(*this);
 }
 
-SimbodyMatterSubsystem::Subtree::Subtree(const SimbodyMatterSubsystem& matter)
+SimbodyMatterSubtree::SimbodyMatterSubtree(const SimbodyMatterSubsystem& matter)
   : rep(0)
 {
     rep = new SubtreeRep(*this, matter);
 }
 
 
-SimbodyMatterSubsystem::Subtree::Subtree(const SimbodyMatterSubsystem& matter,
-                                         const std::vector<MobilizedBodyIndex>& terminalBodies)
+SimbodyMatterSubtree::SimbodyMatterSubtree(const SimbodyMatterSubsystem& matter,
+                                           const std::vector<MobilizedBodyIndex>& terminalBodies)
   : rep(0)
 {
     rep = new SubtreeRep(*this, matter);
@@ -693,7 +693,7 @@ SimbodyMatterSubsystem::Subtree::Subtree(const SimbodyMatterSubsystem& matter,
 }
 
 // Copy constructor
-SimbodyMatterSubsystem::Subtree::Subtree(const Subtree& src) 
+SimbodyMatterSubtree::SimbodyMatterSubtree(const SimbodyMatterSubtree& src) 
   : rep(0)
 {
     if (src.rep)
@@ -701,8 +701,8 @@ SimbodyMatterSubsystem::Subtree::Subtree(const Subtree& src)
 }
 
 // Copy assignment
-SimbodyMatterSubsystem::Subtree& 
-SimbodyMatterSubsystem::Subtree::operator=(const Subtree& src)
+SimbodyMatterSubtree& 
+SimbodyMatterSubtree::operator=(const SimbodyMatterSubtree& src)
 {
     if (&src != this) {
         if (rep && (this == &rep->getMySubtreeOwnerHandle()))
@@ -715,129 +715,129 @@ SimbodyMatterSubsystem::Subtree::operator=(const Subtree& src)
 }
 
 // Destructor
-SimbodyMatterSubsystem::Subtree::~Subtree() {
+SimbodyMatterSubtree::~SimbodyMatterSubtree() {
     if (rep && (this == &rep->getMySubtreeOwnerHandle()))
         delete rep; 
     rep=0;
 }
 
 const SimbodyMatterSubsystem&
-SimbodyMatterSubsystem::Subtree::getSimbodyMatterSubsystem() const {
+SimbodyMatterSubtree::getSimbodyMatterSubsystem() const {
     return getRep().getSimbodyMatterSubsystem();
 }
 
 
-void SimbodyMatterSubsystem::Subtree::setSimbodyMatterSubsystem(const SimbodyMatterSubsystem& matter) {
+void SimbodyMatterSubtree::setSimbodyMatterSubsystem(const SimbodyMatterSubsystem& matter) {
     return updRep().setSimbodyMatterSubsystem(matter);
 }
 
-void SimbodyMatterSubsystem::Subtree::clear() {
+void SimbodyMatterSubtree::clear() {
     return updRep().clear();
 }
 
 
-SimbodyMatterSubsystem::Subtree& 
-SimbodyMatterSubsystem::Subtree::addTerminalBody(MobilizedBodyIndex i) {
+SimbodyMatterSubtree& 
+SimbodyMatterSubtree::addTerminalBody(MobilizedBodyIndex i) {
     updRep().addTerminalBody(i);
     return *this;
 }
 
-void SimbodyMatterSubsystem::Subtree::realizeTopology() {
+void SimbodyMatterSubtree::realizeTopology() {
     updRep().realizeTopology();
 }
 
-MobilizedBodyIndex SimbodyMatterSubsystem::Subtree::getAncestorMobilizedBodyIndex() const {
+MobilizedBodyIndex SimbodyMatterSubtree::getAncestorMobilizedBodyIndex() const {
     return getRep().ancestor;
 }
 
 const std::vector<MobilizedBodyIndex>& 
-SimbodyMatterSubsystem::Subtree::getTerminalBodies() const {
+SimbodyMatterSubtree::getTerminalBodies() const {
     return getRep().terminalBodies;
 }
 
-int SimbodyMatterSubsystem::Subtree::getNumSubtreeBodies() const {
+int SimbodyMatterSubtree::getNumSubtreeBodies() const {
     return (int)getRep().allBodies.size();
 }
 
 const std::vector<MobilizedBodyIndex>& 
-SimbodyMatterSubsystem::Subtree::getAllBodies() const {
+SimbodyMatterSubtree::getAllBodies() const {
     assert(getRep().stage >= Stage::Topology);
     return getRep().allBodies;
 }
 
 SubtreeBodyIndex 
-SimbodyMatterSubsystem::Subtree::getParentSubtreeBodyIndex(SubtreeBodyIndex sbid) const {
+SimbodyMatterSubtree::getParentSubtreeBodyIndex(SubtreeBodyIndex sbid) const {
     assert(getRep().stage >= Stage::Topology);
     return getRep().parentSubtreeBodies[sbid];
 }
 const std::vector<SubtreeBodyIndex>& 
-SimbodyMatterSubsystem::Subtree::getChildSubtreeBodyIndices(SubtreeBodyIndex sbid) const {
+SimbodyMatterSubtree::getChildSubtreeBodyIndices(SubtreeBodyIndex sbid) const {
     assert(getRep().stage >= Stage::Topology);
     return getRep().childSubtreeBodies[sbid];
 }
 
-bool SimbodyMatterSubsystem::Subtree::
-isCompatibleSubtreeResults(const SubtreeResults& sr) const {
+bool SimbodyMatterSubtree::
+isCompatibleSubtreeResults(const SimbodyMatterSubtreeResults& sr) const {
     return getRep().isCompatibleSubtreeResults(sr.getRep());
 }
 
-void SimbodyMatterSubsystem::Subtree::initializeSubtreeResults(const State& s, SubtreeResults& sr) const {
+void SimbodyMatterSubtree::initializeSubtreeResults(const State& s, SimbodyMatterSubtreeResults& sr) const {
     getRep().initializeSubtreeResults(s,sr.updRep());
 }
 
 
-void SimbodyMatterSubsystem::Subtree::
-copyPositionsFromState(const State& s, SubtreeResults& sr) const {
+void SimbodyMatterSubtree::
+copyPositionsFromState(const State& s, SimbodyMatterSubtreeResults& sr) const {
     getRep().copyPositionsFromState(s,sr.updRep());
 }
 
-void SimbodyMatterSubsystem::Subtree::
-calcPositionsFromSubtreeQ(const State& s, const Vector& subQ, SubtreeResults& sr) const {
+void SimbodyMatterSubtree::
+calcPositionsFromSubtreeQ(const State& s, const Vector& subQ, SimbodyMatterSubtreeResults& sr) const {
     getRep().calcPositionsFromSubtreeQ(s,subQ,sr.updRep());
 }
 
-void SimbodyMatterSubsystem::Subtree::
-perturbPositions(const State& s, SubtreeQIndex subQIndex, Real perturbation, SubtreeResults& sr) const {
+void SimbodyMatterSubtree::
+perturbPositions(const State& s, SubtreeQIndex subQIndex, Real perturbation, SimbodyMatterSubtreeResults& sr) const {
     getRep().perturbPositions(s,subQIndex,perturbation,sr.updRep());
 }
 
-void SimbodyMatterSubsystem::Subtree::
-copyVelocitiesFromState(const State& s, SubtreeResults& sr) const {
+void SimbodyMatterSubtree::
+copyVelocitiesFromState(const State& s, SimbodyMatterSubtreeResults& sr) const {
     getRep().copyVelocitiesFromState(s,sr.updRep());
 }
 
-void SimbodyMatterSubsystem::Subtree::
-calcVelocitiesFromSubtreeU(const State& s, const Vector& subU, SubtreeResults& sr) const {
+void SimbodyMatterSubtree::
+calcVelocitiesFromSubtreeU(const State& s, const Vector& subU, SimbodyMatterSubtreeResults& sr) const {
     getRep().calcVelocitiesFromSubtreeU(s,subU,sr.updRep());
 }
 
-void SimbodyMatterSubsystem::Subtree::
-calcVelocitiesFromZeroU(const State& s, SubtreeResults& sr) const {
+void SimbodyMatterSubtree::
+calcVelocitiesFromZeroU(const State& s, SimbodyMatterSubtreeResults& sr) const {
     getRep().calcVelocitiesFromZeroU(s,sr.updRep());
 }
 
-void SimbodyMatterSubsystem::Subtree::
-perturbVelocities(const State& s, SubtreeUIndex subUIndex, Real perturbation, SubtreeResults& sr) const {
+void SimbodyMatterSubtree::
+perturbVelocities(const State& s, SubtreeUIndex subUIndex, Real perturbation, SimbodyMatterSubtreeResults& sr) const {
     getRep().perturbVelocities(s,subUIndex,perturbation,sr.updRep());
 }
 
-void SimbodyMatterSubsystem::Subtree::
-copyAccelerationsFromState(const State& s, SubtreeResults& sr) const {
+void SimbodyMatterSubtree::
+copyAccelerationsFromState(const State& s, SimbodyMatterSubtreeResults& sr) const {
     getRep().copyAccelerationsFromState(s,sr.updRep());
 }
 
-void SimbodyMatterSubsystem::Subtree::
-calcAccelerationsFromSubtreeUDot(const State& s, const Vector& subUDot, SubtreeResults& sr) const {
+void SimbodyMatterSubtree::
+calcAccelerationsFromSubtreeUDot(const State& s, const Vector& subUDot, SimbodyMatterSubtreeResults& sr) const {
     getRep().calcAccelerationsFromSubtreeUDot(s,subUDot,sr.updRep());
 }
 
-void SimbodyMatterSubsystem::Subtree::
-calcAccelerationsFromZeroUDot(const State& s, SubtreeResults& sr) const {
+void SimbodyMatterSubtree::
+calcAccelerationsFromZeroUDot(const State& s, SimbodyMatterSubtreeResults& sr) const {
     getRep().calcAccelerationsFromZeroUDot(s,sr.updRep());
 }
 
-void SimbodyMatterSubsystem::Subtree::
-perturbAccelerations(const State& s, SubtreeUIndex subUDotIndex, Real perturbation, SubtreeResults& sr) const {
+void SimbodyMatterSubtree::
+perturbAccelerations(const State& s, SubtreeUIndex subUDotIndex, Real perturbation, SimbodyMatterSubtreeResults& sr) const {
     getRep().perturbAccelerations(s,subUDotIndex,perturbation,sr.updRep());
 }
 
@@ -847,25 +847,25 @@ perturbAccelerations(const State& s, SubtreeUIndex subUDotIndex, Real perturbati
     // SIMBODY MATTER SUBSYSTEM :: SUBTREE RESULTS //
     /////////////////////////////////////////////////
 
-SimbodyMatterSubsystem::SubtreeResults::SubtreeResults() : rep(0) {
+SimbodyMatterSubtreeResults::SimbodyMatterSubtreeResults() : rep(0) {
     rep = new SubtreeResultsRep(*this);
 }
 
-SimbodyMatterSubsystem::SubtreeResults::~SubtreeResults() {
+SimbodyMatterSubtreeResults::~SimbodyMatterSubtreeResults() {
     if (rep && this == rep->myHandle)
         delete rep;
     rep = 0;
 }
 
-SimbodyMatterSubsystem::SubtreeResults::SubtreeResults(const SubtreeResults& src) : rep(0) {
+SimbodyMatterSubtreeResults::SimbodyMatterSubtreeResults(const SimbodyMatterSubtreeResults& src) : rep(0) {
     if (src.rep) {
         rep = new SubtreeResultsRep(*src.rep);
         rep->setMySubtreeResultsOwnerHandle(*this);
     }
 }
 
-SimbodyMatterSubsystem::SubtreeResults& 
-SimbodyMatterSubsystem::SubtreeResults::operator=(const SubtreeResults& src) {
+SimbodyMatterSubtreeResults& 
+SimbodyMatterSubtreeResults::operator=(const SimbodyMatterSubtreeResults& src) {
     if (&src != this) {
         if (rep && this == rep->myHandle)
             delete rep;
@@ -878,88 +878,88 @@ SimbodyMatterSubsystem::SubtreeResults::operator=(const SubtreeResults& src) {
     return *this;
 }
 
-int SimbodyMatterSubsystem::SubtreeResults::getNumSubtreeBodies() const {
+int SimbodyMatterSubtreeResults::getNumSubtreeBodies() const {
     return getRep().getNumSubtreeBodies();
 }
 
-int SimbodyMatterSubsystem::SubtreeResults::getNumSubtreeQs() const {
+int SimbodyMatterSubtreeResults::getNumSubtreeQs() const {
     return getRep().getNumSubtreeQs();
 }
 
-int SimbodyMatterSubsystem::SubtreeResults::getNumSubtreeUs() const {
+int SimbodyMatterSubtreeResults::getNumSubtreeUs() const {
     return getRep().getNumSubtreeUs();
 }
 
-void SimbodyMatterSubsystem::SubtreeResults::reallocateBodies(int nb) {
+void SimbodyMatterSubtreeResults::reallocateBodies(int nb) {
     updRep().reallocateBodies(nb);
 }
 
-void SimbodyMatterSubsystem::SubtreeResults::addMobilities
+void SimbodyMatterSubtreeResults::addMobilities
    (SubtreeBodyIndex sb, QIndex qStart, int nq, UIndex uStart, int nu)
 {
     updRep().addMobilities(sb, qStart, nq, uStart, nu);
 }
 
-void SimbodyMatterSubsystem::SubtreeResults::realizeModel(const Vector& stateQ, const Vector& stateU) {
+void SimbodyMatterSubtreeResults::realizeModel(const Vector& stateQ, const Vector& stateU) {
     updRep().realizeModel(stateQ, stateU);
 }
 
-Stage SimbodyMatterSubsystem::SubtreeResults::getStage() const {
+Stage SimbodyMatterSubtreeResults::getStage() const {
     return getRep().stage;
 }
 
-const std::vector<QIndex>& SimbodyMatterSubsystem::SubtreeResults::getQSubset() const {
+const std::vector<QIndex>& SimbodyMatterSubtreeResults::getQSubset() const {
     assert(getRep().stage >= Stage::Model);
     return getRep().qSubset;
 }
 
-const std::vector<UIndex>& SimbodyMatterSubsystem::SubtreeResults::getUSubset() const {
+const std::vector<UIndex>& SimbodyMatterSubtreeResults::getUSubset() const {
     assert(getRep().stage >= Stage::Model);
     return getRep().uSubset;
 }
 
-void SimbodyMatterSubsystem::SubtreeResults::findSubtreeBodyQ(SubtreeBodyIndex sbid, SubtreeQIndex& qStart, int& nq) const {
+void SimbodyMatterSubtreeResults::findSubtreeBodyQ(SubtreeBodyIndex sbid, SubtreeQIndex& qStart, int& nq) const {
     assert(getStage() >= Stage::Model);
     const pair<SubtreeQIndex,int>& seg = getRep().qSeg[sbid];
     qStart = seg.first;
     nq     = seg.second;
 }
 
-void SimbodyMatterSubsystem::SubtreeResults::findSubtreeBodyU(SubtreeBodyIndex sbid, SubtreeUIndex& uStart, int& nu) const {
+void SimbodyMatterSubtreeResults::findSubtreeBodyU(SubtreeBodyIndex sbid, SubtreeUIndex& uStart, int& nu) const {
     assert(getStage() >= Stage::Model);
     const pair<SubtreeUIndex,int>& seg = getRep().uSeg[sbid];
     uStart = seg.first;
     nu     = seg.second;
 }
 
-const Vector& SimbodyMatterSubsystem::SubtreeResults::getSubtreeQ() const {
+const Vector& SimbodyMatterSubtreeResults::getSubtreeQ() const {
     assert(getStage() >= Stage::Position);
     return getRep().subQ;
 }
-const Transform& SimbodyMatterSubsystem::SubtreeResults::getSubtreeBodyTransform(SubtreeBodyIndex sbid) const {
+const Transform& SimbodyMatterSubtreeResults::getSubtreeBodyTransform(SubtreeBodyIndex sbid) const {
     assert(getStage() >= Stage::Position);
     return getRep().bodyTransforms[sbid];
 }
 
-const Vector& SimbodyMatterSubsystem::SubtreeResults::getSubtreeU() const {
+const Vector& SimbodyMatterSubtreeResults::getSubtreeU() const {
     assert(getStage() >= Stage::Velocity);
     return getRep().subU;
 }
-const SpatialVec& SimbodyMatterSubsystem::SubtreeResults::getSubtreeBodyVelocity(SubtreeBodyIndex sbid) const {
+const SpatialVec& SimbodyMatterSubtreeResults::getSubtreeBodyVelocity(SubtreeBodyIndex sbid) const {
     assert(getStage() >= Stage::Velocity);
     return getRep().bodyVelocities[sbid];
 }
 
-const Vector& SimbodyMatterSubsystem::SubtreeResults::getSubtreeUDot() const {
+const Vector& SimbodyMatterSubtreeResults::getSubtreeUDot() const {
     assert(getStage() >= Stage::Acceleration);
     return getRep().subUDot;
 }
-const SpatialVec& SimbodyMatterSubsystem::SubtreeResults::getSubtreeBodyAcceleration(SubtreeBodyIndex sbid) const {
+const SpatialVec& SimbodyMatterSubtreeResults::getSubtreeBodyAcceleration(SubtreeBodyIndex sbid) const {
     assert(getStage() >= Stage::Acceleration);
     return getRep().bodyAccelerations[sbid];
 }
 
-std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystem::Subtree& sub) {
+std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubtree& sub) {
     o << "SUBTREE:" << endl;
     o << "  ancestor=" << sub.getAncestorMobilizedBodyIndex();
 
@@ -997,7 +997,7 @@ static std::ostream& operator<<(std::ostream& o, const std::vector<UIndex>& u) {
     return o;
 }
 
-std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystem::SubtreeResults& sr) {
+std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubtreeResults& sr) {
     o << "SUBTREE RESULTS (stage=" << sr.getStage() << "):" << endl;
 
     if (sr.getStage() >= Stage::Topology)
@@ -1049,8 +1049,8 @@ std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystem::SubtreeR
 // SIMBODY MATTER SUBSYSTEM :: SUBTREE :: SUBTREE REP //
 ////////////////////////////////////////////////////////
 
-void SimbodyMatterSubsystem::Subtree::SubtreeRep::
-initializeSubtreeResults(const State& s, SubtreeResults::SubtreeResultsRep& sr) const {
+void SimbodyMatterSubtree::SubtreeRep::
+initializeSubtreeResults(const State& s, SimbodyMatterSubtreeResults::SubtreeResultsRep& sr) const {
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
     SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(s), Stage::Model, 
         "Subtree::initializeSubtreeResults()");
@@ -1076,15 +1076,15 @@ initializeSubtreeResults(const State& s, SubtreeResults::SubtreeResultsRep& sr) 
     assert(nSubtreeQ == sr.getNumSubtreeQs() && nSubtreeU == sr.getNumSubtreeUs());
 }
 
-bool SimbodyMatterSubsystem::Subtree::SubtreeRep::
-isCompatibleSubtreeResults(const SubtreeResults::SubtreeResultsRep& sr) const {
+bool SimbodyMatterSubtree::SubtreeRep::
+isCompatibleSubtreeResults(const SimbodyMatterSubtreeResults::SubtreeResultsRep& sr) const {
     // hardly exhaustive but better than nothing
     return sr.getStage() >= Stage::Model 
         && sr.getNumSubtreeBodies() == getNumSubtreeBodies();
 }
 
-void  SimbodyMatterSubsystem::Subtree::SubtreeRep::
-copyPositionsFromState(const State& s, SubtreeResults::SubtreeResultsRep& sr) const {
+void  SimbodyMatterSubtree::SubtreeRep::
+copyPositionsFromState(const State& s, SimbodyMatterSubtreeResults::SubtreeResultsRep& sr) const {
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
     SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(s), Stage::Position, 
         "Subtree::calcPositionsFromState()");
@@ -1118,9 +1118,9 @@ copyPositionsFromState(const State& s, SubtreeResults::SubtreeResultsRep& sr) co
 // Here we are given a new set of Subtree q's, and we want to calculate the resulting A-relative
 // transforms for all the Subtree bodies. This requires calculating the cross-mobilizer transforms
 // X_FM for each Subtree mobilizer and propagating them outwards towards the terminal bodies.
-void SimbodyMatterSubsystem::Subtree::SubtreeRep::
+void SimbodyMatterSubtree::SubtreeRep::
 calcPositionsFromSubtreeQ(const State& state, const Vector& subQ, 
-                          SubtreeResults::SubtreeResultsRep& results) const
+                          SimbodyMatterSubtreeResults::SubtreeResultsRep& results) const
 {
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
     SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(state), Stage::Instance, 
@@ -1150,8 +1150,8 @@ calcPositionsFromSubtreeQ(const State& state, const Vector& subQ,
     results.setStage(Stage::Position);
 }
 
-void SimbodyMatterSubsystem::Subtree::SubtreeRep::
-perturbPositions(const State& s, SubtreeQIndex subQIndex, Real perturbation, SubtreeResults::SubtreeResultsRep& sr) const {
+void SimbodyMatterSubtree::SubtreeRep::
+perturbPositions(const State& s, SubtreeQIndex subQIndex, Real perturbation, SimbodyMatterSubtreeResults::SubtreeResultsRep& sr) const {
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
     SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(s), Stage::Instance, 
         "perturbPositions()");
@@ -1162,8 +1162,8 @@ perturbPositions(const State& s, SubtreeQIndex subQIndex, Real perturbation, Sub
     assert(!"not implemented yet");
 }
 
-void SimbodyMatterSubsystem::Subtree::SubtreeRep::
-copyVelocitiesFromState(const State& s, SubtreeResults::SubtreeResultsRep& sr) const {
+void SimbodyMatterSubtree::SubtreeRep::
+copyVelocitiesFromState(const State& s, SimbodyMatterSubtreeResults::SubtreeResultsRep& sr) const {
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
     SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(s), Stage::Velocity, 
         "calcVelocitiesFromState()");
@@ -1203,8 +1203,8 @@ copyVelocitiesFromState(const State& s, SubtreeResults::SubtreeResultsRep& sr) c
     sr.setStage(Stage::Velocity);
 }
 
-void SimbodyMatterSubsystem::Subtree::SubtreeRep::
-calcVelocitiesFromSubtreeU(const State& s, const Vector& subU, SubtreeResults::SubtreeResultsRep& sr) const {
+void SimbodyMatterSubtree::SubtreeRep::
+calcVelocitiesFromSubtreeU(const State& s, const Vector& subU, SimbodyMatterSubtreeResults::SubtreeResultsRep& sr) const {
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
     SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(s), Stage::Instance, 
         "calcVelocitiesFromSubtreeU()");
@@ -1214,8 +1214,8 @@ calcVelocitiesFromSubtreeU(const State& s, const Vector& subU, SubtreeResults::S
     assert(!"not implemented yet");
 }
 
-void SimbodyMatterSubsystem::Subtree::SubtreeRep::
-calcVelocitiesFromZeroU(const State& s, SubtreeResults::SubtreeResultsRep& sr) const {
+void SimbodyMatterSubtree::SubtreeRep::
+calcVelocitiesFromZeroU(const State& s, SimbodyMatterSubtreeResults::SubtreeResultsRep& sr) const {
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
     SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(s), Stage::Instance, 
         "calcVelocitiesFromZeroU()");
@@ -1225,8 +1225,8 @@ calcVelocitiesFromZeroU(const State& s, SubtreeResults::SubtreeResultsRep& sr) c
     assert(!"not implemented yet");
 }
 
-void SimbodyMatterSubsystem::Subtree::SubtreeRep::
-perturbVelocities(const State& s, SubtreeUIndex subUIndex, Real perturbation, SubtreeResults::SubtreeResultsRep& sr) const {
+void SimbodyMatterSubtree::SubtreeRep::
+perturbVelocities(const State& s, SubtreeUIndex subUIndex, Real perturbation, SimbodyMatterSubtreeResults::SubtreeResultsRep& sr) const {
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
     SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(s), Stage::Instance, 
         "perturbVelocities()");
@@ -1237,8 +1237,8 @@ perturbVelocities(const State& s, SubtreeUIndex subUIndex, Real perturbation, Su
     assert(!"not implemented yet");
 }
 
-void SimbodyMatterSubsystem::Subtree::SubtreeRep::
-copyAccelerationsFromState(const State& s, SubtreeResults::SubtreeResultsRep& sr) const {
+void SimbodyMatterSubtree::SubtreeRep::
+copyAccelerationsFromState(const State& s, SimbodyMatterSubtreeResults::SubtreeResultsRep& sr) const {
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
     SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(s), Stage::Acceleration, 
         "calcAccelerationsFromState()");
@@ -1282,8 +1282,8 @@ copyAccelerationsFromState(const State& s, SubtreeResults::SubtreeResultsRep& sr
     sr.setStage(Stage::Acceleration);
 }
 
-void SimbodyMatterSubsystem::Subtree::SubtreeRep::
-calcAccelerationsFromSubtreeUDot(const State& s, const Vector& subUDot, SubtreeResults::SubtreeResultsRep& sr) const {
+void SimbodyMatterSubtree::SubtreeRep::
+calcAccelerationsFromSubtreeUDot(const State& s, const Vector& subUDot, SimbodyMatterSubtreeResults::SubtreeResultsRep& sr) const {
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
     SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(s), Stage::Instance, 
         "calcAccelerationsFromSubtreeUDot()");
@@ -1293,8 +1293,8 @@ calcAccelerationsFromSubtreeUDot(const State& s, const Vector& subUDot, SubtreeR
     assert(!"not implemented yet");
 }
 
-void SimbodyMatterSubsystem::Subtree::SubtreeRep::
-calcAccelerationsFromZeroUDot(const State& s, SubtreeResults::SubtreeResultsRep& sr) const {
+void SimbodyMatterSubtree::SubtreeRep::
+calcAccelerationsFromZeroUDot(const State& s, SimbodyMatterSubtreeResults::SubtreeResultsRep& sr) const {
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
     SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(s), Stage::Instance, 
         "calcAccelerationsFromZeroUDot()");
@@ -1304,8 +1304,8 @@ calcAccelerationsFromZeroUDot(const State& s, SubtreeResults::SubtreeResultsRep&
     assert(!"not implemented yet");
 }
 
-void SimbodyMatterSubsystem::Subtree::SubtreeRep::
-perturbAccelerations(const State& s, SubtreeUIndex subUDotIndex, Real perturbation, SubtreeResults::SubtreeResultsRep& sr) const {
+void SimbodyMatterSubtree::SubtreeRep::
+perturbAccelerations(const State& s, SubtreeUIndex subUDotIndex, Real perturbation, SimbodyMatterSubtreeResults::SubtreeResultsRep& sr) const {
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
     SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(s), Stage::Instance, 
         "perturbAccelerations()");

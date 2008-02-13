@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
     MobilizedBody::Pin gear2(mobilizedBody2, Vec3(1,0,0), gear2body, Transform()); // along z
     Constraint::NoSlip1D(mobilizedBody2, Vec3(-.5,0,0), UnitVec3(0,1,0), gear1, gear2);
 
-    Constraint::ConstantSpeed(gear1, 0.);
+    Constraint::ConstantSpeed(gear1, 100.);
     
     //Constraint::Ball myc2(matter.Ground(), Vec3(-4,2,0),  mobilizedBody2, Vec3(0,1,0));
     Constraint::Weld myc(matter.Ground(), Vec3(1,2,0),  mobilizedBody, Vec3(0,1,0));
@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
     Constraint::Ball ball2(mobilizedBody0, Vec3(2,0,0), mobilizedBody2, Vec3(3,0,0));
     //Constraint::PointInPlane pip(mobilizedBody0, UnitVec3(0,-1,0), 3, mobilizedBody2, Vec3(3,0,0));
 
-    Constraint::ConstantOrientation ori(mobilizedBody, Rotation(), mobilizedBody0, Rotation());
+    //Constraint::ConstantOrientation ori(mobilizedBody, Rotation(), mobilizedBody0, Rotation());
     //Constraint::ConstantOrientation ori2(mobilizedBody2, Rotation(), mobilizedBody0, Rotation());
     //Constraint::Weld weld(mobilizedBody, Transform(Rotation(Pi/4, ZAxis), Vec3(1,1,0)),
       //                    mobilizedBody2, Transform(Rotation(-Pi/4, ZAxis), Vec3(-1,-1,0)));

@@ -141,7 +141,7 @@ private:
 
     // Sorted in nondecreasing order of ancestor MobilizedBodyIndex.
     std::vector<ConstraintIndex>    coupledConstraints;
-    SimbodyMatterSubsystem::Subtree coupledSubtree; // with the new ancestor
+    SimbodyMatterSubtree coupledSubtree; // with the new ancestor
 };
 
     //////////////////////////////////

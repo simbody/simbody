@@ -44,6 +44,7 @@ class SimbodyMatterSubsystemRep;
 
 namespace SimTK {
 
+class MobilizedBody;
 class MultibodySystem;
 class Constraint;
 

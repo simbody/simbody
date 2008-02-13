@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-8 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -44,14 +44,22 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/SimbodyMatterSubsystem.h"
 
 #include <cassert>
 
 namespace SimTK {
 
+class SimbodyMatterSubsystem;
+class SimbodyMatterSubtree;
 class MobilizedBody;
+class Constraint;
+class ConstraintRep;
 
+// We only want the template instantiation to occur once. This symbol is defined in the SimTK core
+// compilation unit that defines the Force class but should not be defined any other time.
+#ifndef SimTK_SIMBODY_DEFINING_CONSTRAINT
+    extern template class PIMPLHandle<Constraint, ConstraintRep>;
+#endif
 
     ///////////////////////////
     // CONSTRAINT BASE CLASS //
@@ -64,12 +72,10 @@ class MobilizedBody;
  *
  * TODO: should derive from PIMPLHandle
  */
-class SimTK_SIMBODY_EXPORT Constraint {
+class SimTK_SIMBODY_EXPORT Constraint : public PIMPLHandle<Constraint, ConstraintRep> {
 public:
-    Constraint() : rep(0) { }
-    Constraint(Constraint&); // shallow copy
-    Constraint& operator=(Constraint&); // shallow assignment
-    ~Constraint();
+    Constraint() { }
+    explicit Constraint(ConstraintRep* r) : HandleBase(r) { }
 
     // These will fail unless this Constraint is owned by a MatterSubsystem.
     ConstraintIndex               getConstraintIndex()      const;
@@ -105,7 +111,7 @@ public:
     /// of constrained mobilizers above. 0 <= index < getNumConstrainedMobilizers().
     const MobilizedBody& getMobilizedBodyFromConstrainedMobilizer(ConstrainedMobilizerIndex) const;
 
-    const SimbodyMatterSubsystem::Subtree& getSubtree() const;
+    const SimbodyMatterSubtree& getSubtree() const;
 
         // MODEL STAGE //
 
@@ -222,25 +228,16 @@ public:
     class ConstantSpeed; // prescribe generalized speed value
     class Custom;
 
-    // Is this handle the owner of this rep? This is true if the
-    // handle is empty or if its rep points back here.
-    bool isOwnerHandle() const;
-    bool isEmptyHandle() const;
-
-
-    // Internal use only
-
-    // The current handle is the owner of the rep. After this call
-    // the supplied handle is the owner and this one is just a reference.
-    void disown(Constraint&);
-    class ConstraintRep; // local subclass
-    explicit Constraint(class ConstraintRep* r) : rep(r) { }
-    bool                 hasRep() const {return rep!=0;}
-    const ConstraintRep& getRep() const {assert(rep); return *rep;}
-    ConstraintRep&       updRep() const {assert(rep); return *rep;}
-	void setRep(ConstraintRep& r) {assert(!rep); rep = &r;}
-protected:
-    class ConstraintRep* rep;
+    class RodRep;
+    class BallRep;
+    class WeldRep;
+    class PointInPlaneRep;
+    class PointOnLineRep;
+    class ConstantAngleRep;
+    class ConstantOrientationRep;
+    class NoSlip1DRep;
+    class ConstantSpeedRep;
+    class CustomRep;
 };
 
     ////////////////////////////////////////
@@ -260,7 +257,7 @@ protected:
  *  For a distance of zero (i.e., you want the points to be coincident) use a Ball
  *  constraint, a.k.a. CoincidentPoints constraint.
  */
-class SimTK_SIMBODY_EXPORT Constraint::Rod : public Constraint {
+ class SimTK_SIMBODY_EXPORT Constraint::Rod : public PIMPLDerivedHandle<Rod, RodRep, Constraint> {
 public:
     // no default constructor
     Rod(MobilizedBody& body1, MobilizedBody& body2,
@@ -294,13 +291,6 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getRodTension(const State&) const; // negative means compression
-
-    class RodRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(Rod, Constraint);
-private:
-    class RodRep& updRep();
-    const RodRep& getRep() const;
 };
 
     ///////////////////////////////
@@ -317,7 +307,7 @@ private:
  *  The assembly condition is the same as the run-time constraint: the point
  *  has to be moved into the plane.
  */
-class SimTK_SIMBODY_EXPORT Constraint::PointInPlane : public Constraint {
+class SimTK_SIMBODY_EXPORT Constraint::PointInPlane : public PIMPLDerivedHandle<PointInPlane, PointInPlaneRep, Constraint>  {
 public:
     // no default constructor
     PointInPlane(MobilizedBody& planeBody_B, const UnitVec3& defaultPlaneNormal_B, Real defaultHeight,
@@ -357,13 +347,6 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getForceOnFollowerPoint(const State&) const; // in normal direction
-
-    class PointInPlaneRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(PointInPlane, Constraint);
-private:
-    class PointInPlaneRep& updRep();
-    const PointInPlaneRep& getRep() const;
 };
 
     //////////////////////////////
@@ -380,7 +363,7 @@ private:
  *  The assembly condition is the same as the run-time constraint: the point
  *  has to be moved onto the line.
  */
-class SimTK_SIMBODY_EXPORT Constraint::PointOnLine : public Constraint {
+class SimTK_SIMBODY_EXPORT Constraint::PointOnLine : public PIMPLDerivedHandle<PointOnLine, PointOnLineRep, Constraint>  {
 public:
     // no default constructor
     PointOnLine(MobilizedBody& lineBody_B, const UnitVec3& defaultLineDirection_B, const Vec3& defaultPointOnLine_B,
@@ -420,13 +403,6 @@ public:
     const Vec2& getAccelerationErrors(const State&) const;
     const Vec2& getMultipliers(const State&) const;
     const Vec2& getForceOnFollowerPoint(const State&) const; // in normal direction
-
-    class PointOnLineRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(PointOnLine, Constraint);
-private:
-    class PointOnLineRep& updRep();
-    const PointOnLineRep& getRep() const;
 };
 
     ///////////////////////////////
@@ -446,7 +422,7 @@ private:
  *  The assembly condition is the same as the run-time constraint: the 
  *  bodies must be rotated until the vectors have the right angle between them.
  */
-class SimTK_SIMBODY_EXPORT Constraint::ConstantAngle : public Constraint {
+class SimTK_SIMBODY_EXPORT Constraint::ConstantAngle : public PIMPLDerivedHandle<ConstantAngle, ConstantAngleRep, Constraint> {
 public:
     // no default constructor
     ConstantAngle(MobilizedBody& baseBody_B,     const UnitVec3& defaultAxis_B,
@@ -485,13 +461,6 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getTorqueOnFollowerBody(const State&) const; // about f X b
-
-    class ConstantAngleRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(ConstantAngle, Constraint);
-private:
-    class ConstantAngleRep& updRep();
-    const ConstantAngleRep& getRep() const;
 };
 
     /////////////////////////////////////////
@@ -511,7 +480,7 @@ private:
  *  The assembly condition is the same as the runtime constraint -- the two points
  *  can be brought together by driving the perr to zero.
  */
-class SimTK_SIMBODY_EXPORT Constraint::Ball : public Constraint {
+class SimTK_SIMBODY_EXPORT Constraint::Ball : public PIMPLDerivedHandle<Ball, BallRep, Constraint> {
 public:
     // no default constructor
     Ball(MobilizedBody& body1, MobilizedBody& body2);
@@ -547,13 +516,6 @@ public:
     // Forces are reported expressed in the body frame of the indicated body.
     const Vec3& getBallReactionForceOnBody1(const State&) const;
     const Vec3& getBallReactionForceOnBody2(const State&) const;
-
-    class BallRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(Ball, Constraint);
-private:
-    class BallRep& updRep();
-    const BallRep& getRep() const;
 };
 
     /////////////////////////////////////
@@ -576,7 +538,9 @@ private:
  *  perpendicularity conditions can be satisfied with antiparallel axes. For assembly
  *  we must have additional (redundant) constraints requiring parallel axes.
  */
-class SimTK_SIMBODY_EXPORT Constraint::ConstantOrientation : public Constraint {
+class SimTK_SIMBODY_EXPORT Constraint::ConstantOrientation 
+  : public PIMPLDerivedHandle<ConstantOrientation, ConstantOrientationRep, Constraint>
+{
 public:
     // no default constructor
     ConstantOrientation(MobilizedBody& baseBody_B,     const Rotation& defaultRB,
@@ -607,13 +571,6 @@ public:
     Vec3 getAccelerationError(const State&) const;
     Vec3 getMultiplier(const State&) const;
     Vec3 getTorqueOnFollowerBody(const State&) const;
-
-    class ConstantOrientationRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(ConstantOrientation, Constraint);
-private:
-    class ConstantOrientationRep& updRep();
-    const ConstantOrientationRep& getRep() const;
 };
 
     /////////////////////////////////////////
@@ -643,7 +600,7 @@ private:
  *  to the parallel ones we want. Therefore the assembly conditions must include
  *  additional (redundant) constraints requiring parallel axes.
  */
-class SimTK_SIMBODY_EXPORT Constraint::Weld : public Constraint {
+class SimTK_SIMBODY_EXPORT Constraint::Weld : public PIMPLDerivedHandle<Weld, WeldRep, Constraint> {
 public:
         // no default constructor
 
@@ -713,13 +670,6 @@ public:
         // Forces are reported expressed in the body frame of the indicated body.
     const SpatialVec& getWeldReactionOnBody1(const State&) const;
     const SpatialVec& getWeldReactionOnBody2(const State&) const;
-
-    class WeldRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(Weld, Constraint);
-private:
-    class WeldRep& updRep();
-    const WeldRep& getRep() const;
 };
 
     ///////////////////////////
@@ -737,7 +687,7 @@ private:
  * The assembly condition is the same as the run-time constraint: the velocities must
  * be made to match.
  */
-class SimTK_SIMBODY_EXPORT Constraint::NoSlip1D : public Constraint {
+class SimTK_SIMBODY_EXPORT Constraint::NoSlip1D : public PIMPLDerivedHandle<NoSlip1D, NoSlip1DRep, Constraint> {
 public:
     // no default constructor
     NoSlip1D(MobilizedBody& caseBodyC, const Vec3& P_C, const UnitVec3& n_C,
@@ -774,13 +724,6 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getForceAtContactPoint(const State&) const; // in normal direction, no body 2
-
-    class NoSlip1DRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(NoSlip1D, Constraint);
-private:
-    class NoSlip1DRep& updRep();
-    const NoSlip1DRep& getRep() const;
 };
 
     ////////////////////
@@ -793,7 +736,9 @@ private:
  * 
  * The assembly condition is the same as the run-time constraint: u must be set to s.
  */
-class SimTK_SIMBODY_EXPORT Constraint::ConstantSpeed : public Constraint {
+class SimTK_SIMBODY_EXPORT Constraint::ConstantSpeed
+  : public PIMPLDerivedHandle<ConstantSpeed, ConstantSpeedRep, Constraint>
+{
 public:
     // no default constructor
    ConstantSpeed(MobilizedBody& mobilizer, MobilizerUIndex, Real speed);
@@ -812,17 +757,10 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getGeneralizedForce(const State&) const;
-
-    class ConstantSpeedRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(ConstantSpeed, Constraint);
-private:
-    class ConstantSpeedRep& updRep();
-    const ConstantSpeedRep& getRep() const;
 };
 
 // TODO: this is just a sketch of a Custom Constraint base class.
-class SimTK_SIMBODY_EXPORT Constraint::Custom : public Constraint {
+class SimTK_SIMBODY_EXPORT Constraint::Custom : public PIMPLDerivedHandle<Custom, CustomRep, Constraint> {
 public:
     // no default constructor (?)
 
@@ -890,13 +828,6 @@ public:
     // - Derivatives with respect to u.
     // - How to handle nonholonomic constraints?
     // - How to get topological information: what bodies, what mobilities?
-
-    class CustomRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(Custom, Constraint);
-private:
-    class CustomRep& updRep();
-    const CustomRep& getRep() const;
 };
 
 } // namespace SimTK

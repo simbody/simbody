@@ -194,12 +194,12 @@ int main(int argc, char** argv) {
     }
 
 
-    SimbodyMatterSubsystem::Subtree sub(twoPends);
+    SimbodyMatterSubtree sub(twoPends);
     sub.addTerminalBody(leftPendulum); sub.addTerminalBody(rightPendulum);
     sub.realizeTopology();
     cout << "SUB -- " << sub;
 
-    SimbodyMatterSubsystem::SubtreeResults results;
+    SimbodyMatterSubtreeResults results;
     sub.initializeSubtreeResults(s, results);
     cout << "INIT RESULTS=" << results;
 

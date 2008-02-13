@@ -34,7 +34,7 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/SimbodyMatterSubsystem.h"
+//#include "simbody/internal/SimbodyMatterSubsystem.h"
 
 #include <cassert>
 #include <vector>
@@ -42,19 +42,24 @@
 
 namespace SimTK {
 
+class SimbodyMatterSubsystem;
+class MobilizedBody;
+class SimbodyMatterSubtree;
+class SimbodyMatterSubtreeResults;
+
 /**
- * A Subtree is a view of a connected subgraph of the tree of mobilized bodies
+ * A SimbodyMatterSubtree is a view of a connected subgraph of the tree of mobilized bodies
  * in a SimbodyMatterSubsystem. It is used to perform kinematic operations on
  * the subgraph to facilitate the handling of constraints, which typically
  * involve only small subgraphs.
  *
- * A Subtree is characterized by a single ancestor body A and a set of terminal
+ * A SimbodyMatterSubtree is characterized by a single ancestor body A and a set of terminal
  * mobilized bodies T={Ti}, where A is the outmost body which is on the inboard
- * path of each Ti. Note that a Subtree's "terminal" bodies do not have to be terminal
- * in the full tree. The Subtree includes T and all "branch" mobilized bodies
+ * path of each Ti. Note that a SimbodyMatterSubtree's "terminal" bodies do not have to be terminal
+ * in the full tree. The SimbodyMatterSubtree includes T and all "branch" mobilized bodies
  * B={Bij} found on any path from a Ti to A, and A itself which serves as Ground.
- * A may be one of the terminal bodies. A's mobilizer is *not* part of the Subtree.
- * The path from Ti to A is called the ith branch of the Subtree; branches can overlap.
+ * A may be one of the terminal bodies. A's mobilizer is *not* part of the SimbodyMatterSubtree.
+ * The path from Ti to A is called the ith branch of the SimbodyMatterSubtree; branches can overlap.
  *                                                          @verbatim
  *                           . .
  *      .    .                .
@@ -62,7 +67,7 @@ namespace SimTK {
  *        T0      T1          T2     }
  *         *       *          *      }
  *     B0   *     * B1       *       }
- *           *   *          *        }   A Subtree with
+ *           *   *          *        }   A SimbodyMatterSubtree with
  *             *           *  B2     }   three branches.
  *              *        *           }
  *                *     *            }
@@ -73,27 +78,27 @@ namespace SimTK {
  *                   ...
  *                  Ground                                  @endverbatim
  *
- * Each body in the Subtree is assigned an index called a SubtreeBodyIndex,
+ * Each body in the SimbodyMatterSubtree is assigned an index called a SubtreeBodyIndex,
  * with the Ancestor being SubtreeBodyIndex 0 and other ids assigned such
  * that ids increase going outwards along a branch. Maps are
- * kept in the Subtree object to track its relationship to the full tree.
+ * kept in the SimbodyMatterSubtree object to track its relationship to the full tree.
  *
- * A Subtree can be constructed at Topology stage and needed ones can
+ * A SimbodyMatterSubtree can be constructed at Topology stage and needed ones can
  * thus be precalculated and stored in the SimbodyMatterSubsystem Topology
- * Cache (i.e., in the System not the State). Calculations done on the Subtree,
+ * Cache (i.e., in the System not the State). Calculations done on the SimbodyMatterSubtree,
  * on the other hand, require further state information and cannot be stored
  * as part of the System. For those, we define a companion class below called
- * SubtreeResults.
+ * SimbodyMatterSubtreeResults.
  *
- * A SubtreeResults object is initialized at Model stage, at which point
+ * A SimbodyMatterSubtreeResults object is initialized at Model stage, at which point
  * we can determine the mobilities u and generalized coordinates q. These are
- * assigned SubtreeUIndex's and SubtreeQIndex's in the same order that the Subtree
- * bodies are numbered. Maps are kept in the SubtreeResults object to track
- * the relationship between the Subtree mobilities and those in the full tree.
+ * assigned SubtreeUIndex's and SubtreeQIndex's in the same order that the SimbodyMatterSubtree
+ * bodies are numbered. Maps are kept in the SimbodyMatterSubtreeResults object to track
+ * the relationship between the SimbodyMatterSubtree mobilities and those in the full tree.
  *
- * Note that Subtree operations are elaborate *operators*, not *responses*.
+ * Note that SimbodyMatterSubtree operations are elaborate *operators*, not *responses*.
  * That means the results are not stored in the State, but rather in the
- * private SubtreeResults objects.
+ * private SimbodyMatterSubtreeResults objects.
  *
  * Operators here perform kinematic operations based on perturbations of
  * the global System State values. The supported perturbations are: 
@@ -109,25 +114,25 @@ namespace SimTK {
  * nominal kinematics; then perturb.
  */
 
-class SimTK_SIMBODY_EXPORT SimbodyMatterSubsystem::Subtree {
+class SimTK_SIMBODY_EXPORT SimbodyMatterSubtree {
 public:
-    Subtree();
-    Subtree(const Subtree&);
-    Subtree& operator=(const Subtree&);
-    ~Subtree();
+    SimbodyMatterSubtree();
+    SimbodyMatterSubtree(const SimbodyMatterSubtree&);
+    SimbodyMatterSubtree& operator=(const SimbodyMatterSubtree&);
+    ~SimbodyMatterSubtree();
 
-    explicit Subtree(const SimbodyMatterSubsystem&);
-    Subtree(const SimbodyMatterSubsystem&, 
+    explicit SimbodyMatterSubtree(const SimbodyMatterSubsystem&);
+    SimbodyMatterSubtree(const SimbodyMatterSubsystem&, 
             const std::vector<MobilizedBodyIndex>& terminalBodies);
 
     void setSimbodyMatterSubsystem(const SimbodyMatterSubsystem& matter);
     const SimbodyMatterSubsystem& getSimbodyMatterSubsystem() const;
 
     // This doesn't change the associated SimbodyMatterSubsystem if there
-    // is one, but does remove all the bodies from the Subtree.
+    // is one, but does remove all the bodies from the SimbodyMatterSubtree.
     void clear();
 
-    Subtree& addTerminalBody(MobilizedBodyIndex);
+    SimbodyMatterSubtree& addTerminalBody(MobilizedBodyIndex);
 
     void realizeTopology();
 
@@ -148,81 +153,81 @@ public:
         // MODEL STAGE
 
     // State must be realized to at least Stage::Model for this call to work. 
-    // The supplied SubtreeResults object is allocated and properly initialized to
-    // be able to hold computation results from this Subtree.
-    void initializeSubtreeResults(const State&, SubtreeResults&) const;
+    // The supplied SimbodyMatterSubtreeResults object is allocated and properly initialized to
+    // be able to hold computation results from this SimbodyMatterSubtree.
+    void initializeSubtreeResults(const State&, SimbodyMatterSubtreeResults&) const;
 
     // This can be used as a sanity check that initializeSubtreeResults() was already called
-    // in this Subtree to produce these SubtreeResults. It is by no means exhaustive but
+    // in this SimbodyMatterSubtree to produce these SimbodyMatterSubtreeResults. It is by no means exhaustive but
     // will catch egregious errors.
-    bool isCompatibleSubtreeResults(const SubtreeResults&) const;
+    bool isCompatibleSubtreeResults(const SimbodyMatterSubtreeResults&) const;
 
         // POSITION STAGE
 
-    // State must be realized to at least Stage::Position for this to work. SubtreeResults
-    // must have already been initialized to work with this Subtree. SubtreeResults stage
+    // State must be realized to at least Stage::Position for this to work. SimbodyMatterSubtreeResults
+    // must have already been initialized to work with this SimbodyMatterSubtree. SimbodyMatterSubtreeResults stage
     // will be Stage::Position after this call. All body transforms will be the same as
     // the corresponding ones in the state, except they will be measured from the ancestor
-    // frame instead of ground. Subtree q's will be identical to corresponding State q's.
-    void copyPositionsFromState(const State&, SubtreeResults&) const;
+    // frame instead of ground. SimbodyMatterSubtree q's will be identical to corresponding State q's.
+    void copyPositionsFromState(const State&, SimbodyMatterSubtreeResults&) const;
 
     // State must be realized to Stage::Instance. subQ must be the right length for this
-    // Subtree, and SubtreeResults must have been properly initialized. SubtreeResults
+    // SimbodyMatterSubtree, and SimbodyMatterSubtreeResults must have been properly initialized. SimbodyMatterSubtreeResults
     // stage will be Stage::Position after this call.
-    void calcPositionsFromSubtreeQ(const State&, const Vector& subQ, SubtreeResults&) const;
+    void calcPositionsFromSubtreeQ(const State&, const Vector& subQ, SimbodyMatterSubtreeResults&) const;
 
     // Calculates a perturbed position result starting with the subQ's and position results
-    // which must already be in SubtreeResults.
-    void perturbPositions(const State&, SubtreeQIndex subQIndex, Real perturbation, SubtreeResults&) const;
+    // which must already be in SimbodyMatterSubtreeResults.
+    void perturbPositions(const State&, SubtreeQIndex subQIndex, Real perturbation, SimbodyMatterSubtreeResults&) const;
 
 
         // VELOCITY STAGE
 
-    // State must be realized to at least Stage::Velocity for this to work. SubtreeResults
-    // must already be at Stage::Position. SubtreeResults stage
+    // State must be realized to at least Stage::Velocity for this to work. SimbodyMatterSubtreeResults
+    // must already be at Stage::Position. SimbodyMatterSubtreeResults stage
     // will be Stage::Velocity after this call. All subtree body spatial velocities will be
-    // the same as in the State, except measured relative to A and expressed in A. Subtree u's
+    // the same as in the State, except measured relative to A and expressed in A. SimbodyMatterSubtree u's
     // will be identical to corresponding State u's.
-    void copyVelocitiesFromState(const State&, SubtreeResults&) const;
+    void copyVelocitiesFromState(const State&, SimbodyMatterSubtreeResults&) const;
 
     // State must be realized to Stage::Instance. subU must be the right length for this
-    // Subtree, and SubtreeResults must already be at Stage::Position. SubtreeResults
+    // SimbodyMatterSubtree, and SimbodyMatterSubtreeResults must already be at Stage::Position. SimbodyMatterSubtreeResults
     // stage will be Stage::Velocity after this call.
-    void calcVelocitiesFromSubtreeU(const State&, const Vector& subU, SubtreeResults&) const;
+    void calcVelocitiesFromSubtreeU(const State&, const Vector& subU, SimbodyMatterSubtreeResults&) const;
 
-    // State must be realized to Stage::Instance and SubtreeResults must already be at
-    // Stage::Position. SubtreeResults stage will be Stage::Velocity after this call, but
-    // all Subtree u's and body velocities will be zero.
-    void calcVelocitiesFromZeroU(const State&, SubtreeResults&) const;
+    // State must be realized to Stage::Instance and SimbodyMatterSubtreeResults must already be at
+    // Stage::Position. SimbodyMatterSubtreeResults stage will be Stage::Velocity after this call, but
+    // all SimbodyMatterSubtree u's and body velocities will be zero.
+    void calcVelocitiesFromZeroU(const State&, SimbodyMatterSubtreeResults&) const;
 
     // Calculates a perturbed velocity result starting with the subU's and velocity results
-    // which must already be in SubtreeResults.
-    void perturbVelocities(const State&, SubtreeUIndex subUIndex, Real perturbation, SubtreeResults&) const;
+    // which must already be in SimbodyMatterSubtreeResults.
+    void perturbVelocities(const State&, SubtreeUIndex subUIndex, Real perturbation, SimbodyMatterSubtreeResults&) const;
 
 
         // ACCELERATION STAGE
 
-    // State must be realized to at least Stage::Acceleration for this to work. SubtreeResults
-    // must already be at Stage::Velocity. SubtreeResults stage
+    // State must be realized to at least Stage::Acceleration for this to work. SimbodyMatterSubtreeResults
+    // must already be at Stage::Velocity. SimbodyMatterSubtreeResults stage
     // will be Stage::Acceleration after this call. All subtree body spatial accelerations will be
-    // the same as in the State, except measured relative to A and expressed in A. Subtree udots
+    // the same as in the State, except measured relative to A and expressed in A. SimbodyMatterSubtree udots
     // will be identical to corresponding State udots.
-    void copyAccelerationsFromState(const State&, SubtreeResults&) const;
+    void copyAccelerationsFromState(const State&, SimbodyMatterSubtreeResults&) const;
 
     // State must be realized to Stage::Instance. subUDot must be the right length for this
-    // Subtree, and SubtreeResults must already be at Stage::Velocity. SubtreeResults
+    // SimbodyMatterSubtree, and SimbodyMatterSubtreeResults must already be at Stage::Velocity. SimbodyMatterSubtreeResults
     // stage will be Stage::Acceleration after this call.
-    void calcAccelerationsFromSubtreeUDot(const State&, const Vector& subUDot, SubtreeResults&) const;
+    void calcAccelerationsFromSubtreeUDot(const State&, const Vector& subUDot, SimbodyMatterSubtreeResults&) const;
 
-    // State must be realized to Stage::Instance and SubtreeResults must already be at
-    // Stage::Velocity. SubtreeResults stage will be Stage::Acceleration after this call.
-    // All Subtree udots's will be zero, body accelerations will have only their bias values
+    // State must be realized to Stage::Instance and SimbodyMatterSubtreeResults must already be at
+    // Stage::Velocity. SimbodyMatterSubtreeResults stage will be Stage::Acceleration after this call.
+    // All SimbodyMatterSubtree udots's will be zero, body accelerations will have only their bias values
     // (coriolis accelerations from nonzero u's).
-    void calcAccelerationsFromZeroUDot(const State&, SubtreeResults&) const;
+    void calcAccelerationsFromZeroUDot(const State&, SimbodyMatterSubtreeResults&) const;
 
     // Calculates a perturbed velocity result starting with the subUDot's and acceleration results
-    // which must already be in SubtreeResults.
-    void perturbAccelerations(const State&, SubtreeUIndex subUDotIndex, Real perturbation, SubtreeResults&) const;
+    // which must already be in SimbodyMatterSubtreeResults.
+    void perturbAccelerations(const State&, SubtreeUIndex subUDotIndex, Real perturbation, SimbodyMatterSubtreeResults&) const;
 
     class SubtreeRep;
 private:
@@ -232,19 +237,19 @@ private:
 };
 
 SimTK_SIMBODY_EXPORT std::ostream& 
-operator<<(std::ostream&, const SimbodyMatterSubsystem::Subtree&);
+operator<<(std::ostream&, const SimbodyMatterSubtree&);
 
 /*
- * This is the writable "cache" for a Subtree. Once the full State has
- * been realized to the Model stage, a Subtree can initialize one of these
+ * This is the writable "cache" for a SimbodyMatterSubtree. Once the full State has
+ * been realized to the Model stage, a SimbodyMatterSubtree can initialize one of these
  * objects and then use it to hold operator results.
  */
-class SimTK_SIMBODY_EXPORT SimbodyMatterSubsystem::SubtreeResults {
+class SimTK_SIMBODY_EXPORT SimbodyMatterSubtreeResults {
 public:
-    SubtreeResults();
-    SubtreeResults(const SubtreeResults&);
-    SubtreeResults& operator=(const SubtreeResults&);
-    ~SubtreeResults();
+    SimbodyMatterSubtreeResults();
+    SimbodyMatterSubtreeResults(const SimbodyMatterSubtreeResults&);
+    SimbodyMatterSubtreeResults& operator=(const SimbodyMatterSubtreeResults&);
+    ~SimbodyMatterSubtreeResults();
 
     void clear();
 
@@ -268,22 +273,22 @@ public:
     const SpatialVec& getSubtreeBodyAcceleration(SubtreeBodyIndex) const; // measured & expressed in ancestor frame
 
     // These are indexed by SubtreeQIndex and SubtreeUIndex.
-    const std::vector<QIndex>& getQSubset() const; // subset of Subsystem Qs used by this Subtree
-    const std::vector<UIndex>& getUSubset() const; // subset of Subsystem Us used by this Subtree
+    const std::vector<QIndex>& getQSubset() const; // subset of Subsystem Qs used by this SimbodyMatterSubtree
+    const std::vector<UIndex>& getUSubset() const; // subset of Subsystem Us used by this SimbodyMatterSubtree
 
     void findSubtreeBodyQ(SubtreeBodyIndex, SubtreeQIndex& qStart, int& nq) const; // indices into QSubset
     void findSubtreeBodyU(SubtreeBodyIndex, SubtreeUIndex& uStart, int& nu) const; // indices into USubset
 
     class SubtreeResultsRep;
 private:
-    friend class Subtree;
+    friend class SimbodyMatterSubtree;
     SubtreeResultsRep* rep;
     const SubtreeResultsRep& getRep() const {assert(rep);return *rep;}
     SubtreeResultsRep&       updRep()       {assert(rep);return *rep;}
 };
 
 SimTK_SIMBODY_EXPORT std::ostream& 
-operator<<(std::ostream&, const SimbodyMatterSubsystem::SubtreeResults&);
+operator<<(std::ostream&, const SimbodyMatterSubtreeResults&);
 
 } // namespace SimTK
 

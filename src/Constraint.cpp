@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-8 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -56,117 +56,82 @@ namespace SimTK {
     // CONSTRAINT //
     ////////////////
 
-bool Constraint::isEmptyHandle() const {return rep==0;}
-bool Constraint::isOwnerHandle() const {return rep==0 || rep->myHandle==this;}
-
-void Constraint::disown(Constraint& newOwnerHandle) {
-    SimTK_ASSERT_ALWAYS(rep && rep->myHandle==this,
-        "disown() not allowed for an empty or non-owner Constraint handle.");
-    SimTK_ASSERT_ALWAYS(!newOwnerHandle.rep,
-        "disown() can only transfer ownership to an empty Constraint handle.");
-
-    newOwnerHandle.setRep(*rep);
-    rep->setMyHandle(newOwnerHandle);
-}
-
-Constraint::~Constraint() {
-    if (isOwnerHandle()) delete rep; 
-    rep=0;
-}
-
-// Make this Constraint a non-owner handle referring to the same
-// object as the source.
-Constraint::Constraint(Constraint& src) : rep(src.rep) {
-}
-
-// Make this empty or non-owner handle refer to the same object
-// as the source. This is illegal if the current handle is an
-// owner.
-Constraint& Constraint::operator=(Constraint& src) {
-    if (&src != this) {
-        SimTK_ASSERT_ALWAYS(!(rep && rep->myHandle==this),
-            "You can't reassign the owner handle of a Constraint.");
-        rep = src.rep;
-    }
-    return *this;
-}
-
 const SimbodyMatterSubsystem& Constraint::getMatterSubsystem() const {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
         "getMatterSubsystem() called on a Constraint that is not part of a subsystem.");
-    return getRep().getMyMatterSubsystemRep().getMySimbodyMatterSubsystemHandle();
+    return getImpl().getMyMatterSubsystemRep().getMySimbodyMatterSubsystemHandle();
 }
 
 ConstraintIndex Constraint::getConstraintIndex() const {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
         "getConstraintIndex() called on a Constraint that is not part of a subsystem.");
-    return rep->myConstraintIndex;
+    return getImpl().myConstraintIndex;
 }
 
 SimbodyMatterSubsystem& Constraint::updMatterSubsystem() {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
         "updMatterSubsystem() called on a Constraint that is not part of a subsystem.");
-    return updRep().updMyMatterSubsystemRep().updMySimbodyMatterSubsystemHandle();
+    return updImpl().updMyMatterSubsystemRep().updMySimbodyMatterSubsystemHandle();
 }
 
 bool Constraint::isInSubsystem() const {
-    return getRep().isInSubsystem();
+    return getImpl().isInSubsystem();
 }
 
 bool Constraint::isInSameSubsystem(const MobilizedBody& body) const {
-    return getRep().isInSameSubsystem(body);
+    return getImpl().isInSameSubsystem(body);
 }
 
 int Constraint::getNumConstrainedBodies() const {
-    return getRep().getNumConstrainedBodies();
+    return getImpl().getNumConstrainedBodies();
 }
 int Constraint::getNumConstrainedMobilizers() const {
-    return getRep().getNumConstrainedMobilizers();
+    return getImpl().getNumConstrainedMobilizers();
 }
 
 int Constraint::getNumConstrainedQ(const State& s) const {
-    return getRep().getNumConstrainedQ(s);
+    return getImpl().getNumConstrainedQ(s);
 }
 int Constraint::getNumConstrainedU(const State& s) const {
-    return getRep().getNumConstrainedU(s);
+    return getImpl().getNumConstrainedU(s);
 }
 
 int Constraint::getNumConstrainedQ(const State& s, ConstrainedMobilizerIndex M) const {
-    return getRep().getNumConstrainedQ(s,M);
+    return getImpl().getNumConstrainedQ(s,M);
 }
 int Constraint::getNumConstrainedU(const State& s, ConstrainedMobilizerIndex M) const {
-    return getRep().getNumConstrainedU(s,M);
+    return getImpl().getNumConstrainedU(s,M);
 }
 
 ConstrainedQIndex Constraint::getConstrainedQIndex
    (const State& s, ConstrainedMobilizerIndex M, MobilizerQIndex which) const {
-    return getRep().getConstrainedQIndex(s,M,which);
+    return getImpl().getConstrainedQIndex(s,M,which);
 }
 ConstrainedUIndex Constraint::getConstrainedUIndex
    (const State& s, ConstrainedMobilizerIndex M, MobilizerUIndex which) const {
-    return getRep().getConstrainedUIndex(s,M,which);
+    return getImpl().getConstrainedUIndex(s,M,which);
 }
 
 const MobilizedBody& Constraint::getMobilizedBodyFromConstrainedMobilizer(ConstrainedMobilizerIndex M) const {
-    return getRep().getMobilizedBodyFromConstrainedMobilizer(M);
+    return getImpl().getMobilizedBodyFromConstrainedMobilizer(M);
 }
 
 const MobilizedBody& Constraint::getMobilizedBodyFromConstrainedBody(ConstrainedBodyIndex B) const {
-    return getRep().getMobilizedBodyFromConstrainedBody(B);
+    return getImpl().getMobilizedBodyFromConstrainedBody(B);
 }
 const MobilizedBody& Constraint::getAncestorMobilizedBody() const {
-    return getRep().getAncestorMobilizedBody();
+    return getImpl().getAncestorMobilizedBody();
 }
 
-const SimbodyMatterSubsystem::Subtree& Constraint::getSubtree() const {
-    assert(getRep().subsystemTopologyHasBeenRealized());
-    return getRep().mySubtree;
+const SimbodyMatterSubtree& Constraint::getSubtree() const {
+    assert(getImpl().subsystemTopologyHasBeenRealized());
+    return getImpl().mySubtree;
 }
 
 // Find out how many holonomic (position), nonholonomic (velocity),
 // and acceleration-only constraint equations are generated by this Constraint.
 void Constraint::getNumConstraintEquations(const State& s, int& mp, int& mv, int& ma) const {
-	getRep().getNumConstraintEquations(s,mp,mv,ma);
+	getImpl().getNumConstraintEquations(s,mp,mv,ma);
 }
 
 Vector Constraint::getPositionError(const State& s) const {
@@ -174,7 +139,7 @@ Vector Constraint::getPositionError(const State& s) const {
 	getNumConstraintEquations(s, mp, mv, ma);
 
 	Vector perr(mp);
-	if (mp) getRep().getPositionErrors(s, mp, &perr[0]);
+	if (mp) getImpl().getPositionErrors(s, mp, &perr[0]);
 	return perr;
 }
 
@@ -183,7 +148,7 @@ Vector Constraint::getVelocityError(const State& s) const {
 	getNumConstraintEquations(s, mp, mv, ma);
 
 	Vector pverr(mp+mv);
-	if (mp+mv) getRep().getVelocityErrors(s, mp+mv, &pverr[0]);
+	if (mp+mv) getImpl().getVelocityErrors(s, mp+mv, &pverr[0]);
 	return pverr;
 }
 
@@ -192,7 +157,7 @@ Vector Constraint::getAccelerationError(const State& s) const {
 	getNumConstraintEquations(s, mp, mv, ma);
 
 	Vector pvaerr(mp+mv+ma);
-	if (mp+mv+ma) getRep().getAccelerationErrors(s, mp+mv+ma, &pvaerr[0]);
+	if (mp+mv+ma) getImpl().getAccelerationErrors(s, mp+mv+ma, &pvaerr[0]);
 	return pvaerr;
 }
 
@@ -240,7 +205,7 @@ Matrix Constraint::calcPositionConstraintMatrixPt(const State& s) const {
 
 	Matrix Pt(nu, mp);
 	if (mp && nu) {
-		const ConstraintRep& rep = getRep();
+		const ConstraintRep& rep = getImpl();
 		Vector_<SpatialVec> bodyForcesInA(ncb);
 		Vector              mobilityForces(nu); // TODO should be n participating u's
 
@@ -322,7 +287,7 @@ Matrix Constraint::calcVelocityConstraintMatrixVt(const State& s) const {
     if (mv==0 || nu==0)
         return Vt;
 
-	const ConstraintRep& rep = getRep();
+	const ConstraintRep& rep = getImpl();
 	const int ncb = rep.getNumConstrainedBodies();
     const int ncu = rep.getNumConstrainedU(s);
 
@@ -422,7 +387,7 @@ Matrix Constraint::calcAccelerationConstraintMatrixAt(const State& s) const {
 
 	Matrix At(nu, ma);
 	if (ma && nu) {
-		const ConstraintRep& rep = getRep();
+		const ConstraintRep& rep = getImpl();
 		Vector_<SpatialVec> bodyForcesInA(ncb);
 		Vector              mobilityForces(nu); // TODO should be n participating u's
 
@@ -494,7 +459,7 @@ void Constraint::calcConstraintForcesFromMultipliers(
     assert(lambda.size() == mp+mv+ma);
     assert(lambda.hasContiguousData());
 
-    getRep().calcConstraintForcesFromMultipliers(s,mp,mv,ma,&lambda[0],bodyForcesInA,mobilityForces);
+    getImpl().calcConstraintForcesFromMultipliers(s,mp,mv,ma,&lambda[0],bodyForcesInA,mobilityForces);
 }
 
 
@@ -503,6 +468,7 @@ void Constraint::calcConstraintForcesFromMultipliers(
     /////////////////////
 
 Constraint::Rod::Rod(MobilizedBody& body1, MobilizedBody& body2, Real defaultRodLength)
+  : PIMPLDerivedHandleBase(new RodRep())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Rod(): both bodies must already be in a MatterSubsystem.");
@@ -511,17 +477,18 @@ Constraint::Rod::Rod(MobilizedBody& body1, MobilizedBody& body2, Real defaultRod
     SimTK_ASSERT_ALWAYS(defaultRodLength > 0,
         "Constraint::Rod(): Rod length must always be greater than zero");
 
-    rep = new RodRep(); rep->setMyHandle(*this);
+    //rep = new RodRep(); rep->setMyHandle(*this);
     body1.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().B1 = updRep().addConstrainedBody(body1);
-    updRep().B2 = updRep().addConstrainedBody(body2);
+    updImpl().B1 = updImpl().addConstrainedBody(body1);
+    updImpl().B2 = updImpl().addConstrainedBody(body2);
 
-    updRep().defaultRodLength = defaultRodLength;
+    updImpl().defaultRodLength = defaultRodLength;
 }
 
 Constraint::Rod::Rod(MobilizedBody& body1, const Vec3& point1,
                      MobilizedBody& body2, const Vec3& point2, Real defaultRodLength)
+  : PIMPLDerivedHandleBase(new RodRep())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Rod(): both bodies must already be in a MatterSubsystem.");
@@ -530,70 +497,50 @@ Constraint::Rod::Rod(MobilizedBody& body1, const Vec3& point1,
     SimTK_ASSERT_ALWAYS(defaultRodLength > 0,
         "Constraint::Rod(): Rod length must always be greater than zero");
 
-    rep = new RodRep(); rep->setMyHandle(*this);
+    //rep = new RodRep(); rep->setMyHandle(*this);
     body1.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().B1 = updRep().addConstrainedBody(body1);
-    updRep().B2 = updRep().addConstrainedBody(body2);
+    updImpl().B1 = updImpl().addConstrainedBody(body1);
+    updImpl().B2 = updImpl().addConstrainedBody(body2);
 
-    updRep().defaultPoint1 = point1;
-    updRep().defaultPoint2 = point2;
-    updRep().defaultRodLength = defaultRodLength;
+    updImpl().defaultPoint1 = point1;
+    updImpl().defaultPoint2 = point2;
+    updImpl().defaultRodLength = defaultRodLength;
 }
 
 Constraint::Rod& Constraint::Rod::setDefaultPointOnBody1(const Vec3& p1) {
-    updRep().defaultPoint1 = p1;
+    updImpl().defaultPoint1 = p1;
     return *this;
 }
 
 Constraint::Rod& Constraint::Rod::setDefaultPointOnBody2(const Vec3& p2) {
-    updRep().defaultPoint2 = p2;
+    updImpl().defaultPoint2 = p2;
     return *this;
 }
 
 Constraint::Rod& Constraint::Rod::setDefaultRodLength(Real length) {
-    updRep().defaultRodLength = length;
+    updImpl().defaultRodLength = length;
     return *this;
 }
 
 
 MobilizedBodyIndex Constraint::Rod::getBody1MobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B1);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(getImpl().B1);
 }
 MobilizedBodyIndex Constraint::Rod::getBody2MobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B1);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(getImpl().B1);
 }
 const Vec3& Constraint::Rod::getDefaultPointOnBody1() const {
-    return getRep().defaultPoint1;
+    return getImpl().defaultPoint1;
 }
 const Vec3& Constraint::Rod::getDefaultPointOnBody2() const {
-    return getRep().defaultPoint2;
+    return getImpl().defaultPoint2;
 }
 Real Constraint::Rod::getDefaultRodLength() const {
-    return getRep().defaultRodLength;
+    return getImpl().defaultRodLength;
 }
 
 
-
-    // Rod bookkeeping //
-
-bool Constraint::Rod::isInstanceOf(const Constraint& s) {
-    return RodRep::isA(s.getRep());
-}
-const Constraint::Rod& Constraint::Rod::downcast(const Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<const Rod&>(s);
-}
-Constraint::Rod& Constraint::Rod::updDowncast(Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<Rod&>(s);
-}
-const Constraint::Rod::RodRep& Constraint::Rod::getRep() const {
-    return dynamic_cast<const RodRep&>(*rep);
-}
-Constraint::Rod::RodRep& Constraint::Rod::updRep() {
-    return dynamic_cast<RodRep&>(*rep);
-}
     // RodRep
 
 void Constraint::Rod::RodRep::realizeTopologyVirtual(State& s) const { 
@@ -673,92 +620,72 @@ void Constraint::Rod::RodRep::calcDecorativeGeometryAndAppendImpl
 Constraint::PointInPlane::PointInPlane
    (MobilizedBody& planeBody,    const UnitVec3& defPlaneNormal, Real defPlaneHeight,
     MobilizedBody& followerBody, const Vec3&     defFollowerPoint)
+  : PIMPLDerivedHandleBase(new PointInPlaneRep())
 {
     SimTK_ASSERT_ALWAYS(planeBody.isInSubsystem() && followerBody.isInSubsystem(),
         "Constraint::PointInPlane(): both bodies must already be in a SimbodyMatterSubsystem.");
     SimTK_ASSERT_ALWAYS(planeBody.isInSameSubsystem(followerBody),
         "Constraint::PointInPlane(): both bodies to be connected must be in the same SimbodyMatterSubsystem.");
 
-    rep = new PointInPlaneRep(); rep->setMyHandle(*this);
+    //rep = new PointInPlaneRep(); rep->setMyHandle(*this);
     planeBody.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().planeBody    = updRep().addConstrainedBody(planeBody);
-    updRep().followerBody = updRep().addConstrainedBody(followerBody);
-    updRep().defaultPlaneNormal   = defPlaneNormal;
-    updRep().defaultPlaneHeight   = defPlaneHeight;
-    updRep().defaultFollowerPoint = defFollowerPoint;
+    updImpl().planeBody    = updImpl().addConstrainedBody(planeBody);
+    updImpl().followerBody = updImpl().addConstrainedBody(followerBody);
+    updImpl().defaultPlaneNormal   = defPlaneNormal;
+    updImpl().defaultPlaneHeight   = defPlaneHeight;
+    updImpl().defaultFollowerPoint = defFollowerPoint;
 }
 
 Constraint::PointInPlane& Constraint::PointInPlane::setDefaultPlaneNormal(const UnitVec3& n) {
-    getRep().invalidateTopologyCache();
-    updRep().defaultPlaneNormal = n;
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultPlaneNormal = n;
     return *this;
 }
 
 Constraint::PointInPlane& Constraint::PointInPlane::setDefaultPlaneHeight(Real h) {
-    getRep().invalidateTopologyCache();
-    updRep().defaultPlaneHeight = h;
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultPlaneHeight = h;
     return *this;
 }
 
 Constraint::PointInPlane& Constraint::PointInPlane::setDefaultFollowerPoint(const Vec3& p) {
-    getRep().invalidateTopologyCache();
-    updRep().defaultFollowerPoint = p;
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultFollowerPoint = p;
     return *this;
 }
 
 MobilizedBodyIndex Constraint::PointInPlane::getPlaneMobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().planeBody);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(getImpl().planeBody);
 }
 MobilizedBodyIndex Constraint::PointInPlane::getFollowerMobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().followerBody);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(getImpl().followerBody);
 }
 const UnitVec3& Constraint::PointInPlane::getDefaultPlaneNormal() const {
-    return getRep().defaultPlaneNormal;
+    return getImpl().defaultPlaneNormal;
 }
 Real Constraint::PointInPlane::getDefaultPlaneHeight() const {
-    return getRep().defaultPlaneHeight;
+    return getImpl().defaultPlaneHeight;
 }
 const Vec3& Constraint::PointInPlane::getDefaultFollowerPoint() const {
-    return getRep().defaultFollowerPoint;
+    return getImpl().defaultFollowerPoint;
 }
 
 Constraint::PointInPlane& Constraint::PointInPlane::setPlaneDisplayHalfWidth(Real h) {
-    updRep().setPlaneDisplayHalfWidth(h);
+    updImpl().setPlaneDisplayHalfWidth(h);
     return *this;
 }
 Constraint::PointInPlane& Constraint::PointInPlane::setPointDisplayRadius(Real r) {
-    updRep().setPointDisplayRadius(r);
+    updImpl().setPointDisplayRadius(r);
     return *this;
 }
 
 Real Constraint::PointInPlane::getPlaneDisplayHalfWidth() const {
-    return getRep().getPlaneDisplayHalfWidth();
+    return getImpl().getPlaneDisplayHalfWidth();
 }
 
 Real Constraint::PointInPlane::getPointDisplayRadius() const {
-    return getRep().getPointDisplayRadius();
-}
-
-    // PointInPlane bookkeeping //
-
-bool Constraint::PointInPlane::isInstanceOf(const Constraint& s) {
-    return PointInPlaneRep::isA(s.getRep());
-}
-const Constraint::PointInPlane& Constraint::PointInPlane::downcast(const Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<const PointInPlane&>(s);
-}
-Constraint::PointInPlane& Constraint::PointInPlane::updDowncast(Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<PointInPlane&>(s);
-}
-const Constraint::PointInPlane::PointInPlaneRep& Constraint::PointInPlane::getRep() const {
-    return dynamic_cast<const PointInPlaneRep&>(*rep);
-}
-
-Constraint::PointInPlane::PointInPlaneRep& Constraint::PointInPlane::updRep() {
-    return dynamic_cast<PointInPlaneRep&>(*rep);
+    return getImpl().getPointDisplayRadius();
 }
 
     // PointInPlaneRep
@@ -812,92 +739,72 @@ void Constraint::PointInPlane::PointInPlaneRep::calcDecorativeGeometryAndAppendI
 Constraint::PointOnLine::PointOnLine
    (MobilizedBody& lineBody,     const UnitVec3& defLineDirection, const Vec3& defPointOnLine,
     MobilizedBody& followerBody, const Vec3&     defFollowerPoint)
+  : PIMPLDerivedHandleBase(new PointOnLineRep())
 {
     SimTK_ASSERT_ALWAYS(lineBody.isInSubsystem() && followerBody.isInSubsystem(),
         "Constraint::PointOnLine(): both bodies must already be in a SimbodyMatterSubsystem.");
     SimTK_ASSERT_ALWAYS(lineBody.isInSameSubsystem(followerBody),
         "Constraint::PointOnLine(): both bodies to be connected must be in the same SimbodyMatterSubsystem.");
 
-    rep = new PointOnLineRep(); rep->setMyHandle(*this);
+    //rep = new PointOnLineRep(); rep->setMyHandle(*this);
     lineBody.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().lineBody     = updRep().addConstrainedBody(lineBody);
-    updRep().followerBody = updRep().addConstrainedBody(followerBody);
-    updRep().defaultLineDirection = defLineDirection;
-    updRep().defaultPointOnLine   = defPointOnLine;
-    updRep().defaultFollowerPoint = defFollowerPoint;
+    updImpl().lineBody     = updImpl().addConstrainedBody(lineBody);
+    updImpl().followerBody = updImpl().addConstrainedBody(followerBody);
+    updImpl().defaultLineDirection = defLineDirection;
+    updImpl().defaultPointOnLine   = defPointOnLine;
+    updImpl().defaultFollowerPoint = defFollowerPoint;
 }
 
 Constraint::PointOnLine& Constraint::PointOnLine::setDefaultLineDirection(const UnitVec3& z) {
-    getRep().invalidateTopologyCache();
-    updRep().defaultLineDirection = z;
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultLineDirection = z;
     return *this;
 }
 
 Constraint::PointOnLine& Constraint::PointOnLine::setDefaultPointOnLine(const Vec3& P) {
-    getRep().invalidateTopologyCache();
-    updRep().defaultPointOnLine = P;
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultPointOnLine = P;
     return *this;
 }
 
 Constraint::PointOnLine& Constraint::PointOnLine::setDefaultFollowerPoint(const Vec3& S) {
-    getRep().invalidateTopologyCache();
-    updRep().defaultFollowerPoint = S;
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultFollowerPoint = S;
     return *this;
 }
 
 MobilizedBodyIndex Constraint::PointOnLine::getLineMobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().lineBody);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(getImpl().lineBody);
 }
 MobilizedBodyIndex Constraint::PointOnLine::getFollowerMobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().followerBody);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(getImpl().followerBody);
 }
 const UnitVec3& Constraint::PointOnLine::getDefaultLineDirection() const {
-    return getRep().defaultLineDirection;
+    return getImpl().defaultLineDirection;
 }
 const Vec3& Constraint::PointOnLine::getDefaultPointOnLine() const {
-    return getRep().defaultPointOnLine;
+    return getImpl().defaultPointOnLine;
 }
 const Vec3& Constraint::PointOnLine::getDefaultFollowerPoint() const {
-    return getRep().defaultFollowerPoint;
+    return getImpl().defaultFollowerPoint;
 }
 
 Constraint::PointOnLine& Constraint::PointOnLine::setLineDisplayHalfLength(Real h) {
-    updRep().setLineDisplayHalfLength(h);
+    updImpl().setLineDisplayHalfLength(h);
     return *this;
 }
 Constraint::PointOnLine& Constraint::PointOnLine::setPointDisplayRadius(Real r) {
-    updRep().setPointDisplayRadius(r);
+    updImpl().setPointDisplayRadius(r);
     return *this;
 }
 
 Real Constraint::PointOnLine::getLineDisplayHalfLength() const {
-    return getRep().getLineDisplayHalfLength();
+    return getImpl().getLineDisplayHalfLength();
 }
 
 Real Constraint::PointOnLine::getPointDisplayRadius() const {
-    return getRep().getPointDisplayRadius();
-}
-
-    // PointOnLine bookkeeping //
-
-bool Constraint::PointOnLine::isInstanceOf(const Constraint& s) {
-    return PointOnLineRep::isA(s.getRep());
-}
-const Constraint::PointOnLine& Constraint::PointOnLine::downcast(const Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<const PointOnLine&>(s);
-}
-Constraint::PointOnLine& Constraint::PointOnLine::updDowncast(Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<PointOnLine&>(s);
-}
-const Constraint::PointOnLine::PointOnLineRep& Constraint::PointOnLine::getRep() const {
-    return dynamic_cast<const PointOnLineRep&>(*rep);
-}
-
-Constraint::PointOnLine::PointOnLineRep& Constraint::PointOnLine::updRep() {
-    return dynamic_cast<PointOnLineRep&>(*rep);
+    return getImpl().getPointDisplayRadius();
 }
 
     // PointOnLineRep
@@ -954,92 +861,72 @@ Constraint::ConstantAngle::ConstantAngle
    (MobilizedBody& baseBody,     const UnitVec3& defaultAxisOnB,
     MobilizedBody& followerBody, const UnitVec3& defaultAxisOnF,
     Real angle)
+  : PIMPLDerivedHandleBase(new ConstantAngleRep())
 {
     SimTK_ASSERT_ALWAYS(baseBody.isInSubsystem() && followerBody.isInSubsystem(),
         "Constraint::ConstantAngle(): both bodies must already be in a SimbodyMatterSubsystem.");
     SimTK_ASSERT_ALWAYS(baseBody.isInSameSubsystem(followerBody),
         "Constraint::ConstantAngle(): both bodies to be connected must be in the same SimbodyMatterSubsystem.");
 
-    rep = new ConstantAngleRep(); rep->setMyHandle(*this);
+    //rep = new ConstantAngleRep(); rep->setMyHandle(*this);
     baseBody.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().B = updRep().addConstrainedBody(baseBody);
-    updRep().F = updRep().addConstrainedBody(followerBody);
-    updRep().defaultAxisB = defaultAxisOnB;
-    updRep().defaultAxisF = defaultAxisOnF;
-    updRep().defaultAngle = angle;
+    updImpl().B = updImpl().addConstrainedBody(baseBody);
+    updImpl().F = updImpl().addConstrainedBody(followerBody);
+    updImpl().defaultAxisB = defaultAxisOnB;
+    updImpl().defaultAxisF = defaultAxisOnF;
+    updImpl().defaultAngle = angle;
 }
 
 Constraint::ConstantAngle& Constraint::ConstantAngle::setDefaultBaseAxis(const UnitVec3& a) {
-    getRep().invalidateTopologyCache();
-    updRep().defaultAxisB = a;
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultAxisB = a;
     return *this;
 }
 
 Constraint::ConstantAngle& Constraint::ConstantAngle::setDefaultFollowerAxis(const UnitVec3& a) {
-    getRep().invalidateTopologyCache();
-    updRep().defaultAxisF = a;
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultAxisF = a;
     return *this;
 }
 
 Constraint::ConstantAngle& Constraint::ConstantAngle::setDefaultAngle(Real t) {
-    getRep().invalidateTopologyCache();
-    updRep().defaultAngle = t;
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultAngle = t;
     return *this;
 }
 
 MobilizedBodyIndex Constraint::ConstantAngle::getBaseMobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(getImpl().B);
 }
 MobilizedBodyIndex Constraint::ConstantAngle::getFollowerMobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().F);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(getImpl().F);
 }
 const UnitVec3& Constraint::ConstantAngle::getDefaultBaseAxis() const {
-    return getRep().defaultAxisB;
+    return getImpl().defaultAxisB;
 }
 const UnitVec3& Constraint::ConstantAngle::getDefaultFollowerAxis() const {
-    return getRep().defaultAxisF;
+    return getImpl().defaultAxisF;
 }
 Real Constraint::ConstantAngle::getDefaultAngle() const {
-    return getRep().defaultAngle;
+    return getImpl().defaultAngle;
 }
 
 Constraint::ConstantAngle& Constraint::ConstantAngle::setAxisDisplayLength(Real l) {
-    updRep().axisLength = l;
+    updImpl().axisLength = l;
     return *this;
 }
 Constraint::ConstantAngle& Constraint::ConstantAngle::setAxisDisplayWidth(Real w) {
-    updRep().axisThickness = w;
+    updImpl().axisThickness = w;
     return *this;
 }
 
 Real Constraint::ConstantAngle::getAxisDisplayLength() const {
-    return getRep().axisLength;
+    return getImpl().axisLength;
 }
 
 Real Constraint::ConstantAngle::getAxisDisplayWidth() const {
-    return getRep().axisThickness;
-}
-
-    // ConstantAngle bookkeeping //
-
-bool Constraint::ConstantAngle::isInstanceOf(const Constraint& s) {
-    return ConstantAngleRep::isA(s.getRep());
-}
-const Constraint::ConstantAngle& Constraint::ConstantAngle::downcast(const Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<const ConstantAngle&>(s);
-}
-Constraint::ConstantAngle& Constraint::ConstantAngle::updDowncast(Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<ConstantAngle&>(s);
-}
-const Constraint::ConstantAngle::ConstantAngleRep& Constraint::ConstantAngle::getRep() const {
-    return dynamic_cast<const ConstantAngleRep&>(*rep);
-}
-
-Constraint::ConstantAngle::ConstantAngleRep& Constraint::ConstantAngle::updRep() {
-    return dynamic_cast<ConstantAngleRep&>(*rep);
+    return getImpl().axisThickness;
 }
 
     // ConstantAngleRep
@@ -1060,92 +947,72 @@ void Constraint::ConstantAngle::ConstantAngleRep::calcDecorativeGeometryAndAppen
     //////////////////////
 
 Constraint::Ball::Ball(MobilizedBody& body1, MobilizedBody& body2)
+  : PIMPLDerivedHandleBase(new BallRep())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Ball(): both bodies must already be in a MatterSubsystem.");
     SimTK_ASSERT_ALWAYS(body1.isInSameSubsystem(body2),
         "Constraint::Ball(): both bodies to be connected must be in the same MatterSubsystem.");
 
-    rep = new BallRep(); rep->setMyHandle(*this);
+    //rep = new BallRep(); rep->setMyHandle(*this);
     body1.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().B1 = updRep().addConstrainedBody(body1);
-    updRep().B2 = updRep().addConstrainedBody(body2);
+    updImpl().B1 = updImpl().addConstrainedBody(body1);
+    updImpl().B2 = updImpl().addConstrainedBody(body2);
 }
 
 Constraint::Ball::Ball(MobilizedBody& body1, const Vec3& point1,
                        MobilizedBody& body2, const Vec3& point2)
+  : PIMPLDerivedHandleBase(new BallRep())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Ball(): both bodies must already be in a MatterSubsystem.");
     SimTK_ASSERT_ALWAYS(body1.isInSameSubsystem(body2),
         "Constraint::Ball(): both bodies to be connected must be in the same MatterSubsystem.");
 
-    rep = new BallRep(); rep->setMyHandle(*this);
+    //rep = new BallRep(); rep->setMyHandle(*this);
     body1.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().B1 = updRep().addConstrainedBody(body1);
-    updRep().B2 = updRep().addConstrainedBody(body2);
+    updImpl().B1 = updImpl().addConstrainedBody(body1);
+    updImpl().B2 = updImpl().addConstrainedBody(body2);
 
-    updRep().defaultPoint1 = point1;
-    updRep().defaultPoint2 = point2;
+    updImpl().defaultPoint1 = point1;
+    updImpl().defaultPoint2 = point2;
 }
 
 Constraint::Ball& Constraint::Ball::setDefaultPointOnBody1(const Vec3& p1) {
-    getRep().invalidateTopologyCache();
-    updRep().defaultPoint1 = p1;
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultPoint1 = p1;
     return *this;
 }
 
 Constraint::Ball& Constraint::Ball::setDefaultPointOnBody2(const Vec3& p2) {
-    getRep().invalidateTopologyCache();
-    updRep().defaultPoint2 = p2;
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultPoint2 = p2;
     return *this;
 }
 
 MobilizedBodyIndex Constraint::Ball::getBody1MobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B1);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(getImpl().B1);
 }
 MobilizedBodyIndex Constraint::Ball::getBody2MobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B2);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(getImpl().B2);
 }
 const Vec3& Constraint::Ball::getDefaultPointOnBody1() const {
-    return getRep().defaultPoint1;
+    return getImpl().defaultPoint1;
 }
 const Vec3& Constraint::Ball::getDefaultPointOnBody2() const {
-    return getRep().defaultPoint2;
+    return getImpl().defaultPoint2;
 }
 
 Constraint::Ball& Constraint::Ball::setDefaultRadius(Real r) {
-    getRep().invalidateTopologyCache();
-    updRep().setDefaultRadius(r);
+    getImpl().invalidateTopologyCache();
+    updImpl().setDefaultRadius(r);
     return *this;
 }
 
 Real Constraint::Ball::getDefaultRadius() const {
-    return getRep().getDefaultRadius();
-}
-
-
-    // Ball bookkeeping //
-
-bool Constraint::Ball::isInstanceOf(const Constraint& s) {
-    return BallRep::isA(s.getRep());
-}
-const Constraint::Ball& Constraint::Ball::downcast(const Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<const Ball&>(s);
-}
-Constraint::Ball& Constraint::Ball::updDowncast(Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<Ball&>(s);
-}
-const Constraint::Ball::BallRep& Constraint::Ball::getRep() const {
-    return dynamic_cast<const BallRep&>(*rep);
-}
-
-Constraint::Ball::BallRep& Constraint::Ball::updRep() {
-    return dynamic_cast<BallRep&>(*rep);
+    return getImpl().getDefaultRadius();
 }
 
     // BallRep
@@ -1229,66 +1096,46 @@ void Constraint::Ball::BallRep::calcDecorativeGeometryAndAppendImpl
 Constraint::ConstantOrientation::ConstantOrientation
    (MobilizedBody& baseBody,     const Rotation& defaultFrameOnB,
     MobilizedBody& followerBody, const Rotation& defaultFrameOnF)
+  : PIMPLDerivedHandleBase(new ConstantOrientationRep())
 {
     SimTK_ASSERT_ALWAYS(baseBody.isInSubsystem() && followerBody.isInSubsystem(),
         "Constraint::ConstantOrientation(): both bodies must already be in a SimbodyMatterSubsystem.");
     SimTK_ASSERT_ALWAYS(baseBody.isInSameSubsystem(followerBody),
         "Constraint::ConstantOrientation(): both bodies to be connected must be in the same SimbodyMatterSubsystem.");
 
-    rep = new ConstantOrientationRep(); rep->setMyHandle(*this);
+    //rep = new ConstantOrientationRep(); rep->setMyHandle(*this);
     baseBody.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().B = updRep().addConstrainedBody(baseBody);
-    updRep().F = updRep().addConstrainedBody(followerBody);
-    updRep().defaultRB = defaultFrameOnB;
-    updRep().defaultRF = defaultFrameOnF;
+    updImpl().B = updImpl().addConstrainedBody(baseBody);
+    updImpl().F = updImpl().addConstrainedBody(followerBody);
+    updImpl().defaultRB = defaultFrameOnB;
+    updImpl().defaultRF = defaultFrameOnF;
 }
 
 Constraint::ConstantOrientation& Constraint::ConstantOrientation::setDefaultBaseRotation(const Rotation& R) {
-    getRep().invalidateTopologyCache();
-    updRep().defaultRB = R;
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultRB = R;
     return *this;
 }
 
 Constraint::ConstantOrientation& Constraint::ConstantOrientation::setDefaultFollowerRotation(const Rotation& R) {
-    getRep().invalidateTopologyCache();
-    updRep().defaultRF = R;
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultRF = R;
     return *this;
 }
 
 
 MobilizedBodyIndex Constraint::ConstantOrientation::getBaseMobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(getImpl().B);
 }
 MobilizedBodyIndex Constraint::ConstantOrientation::getFollowerMobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().F);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(getImpl().F);
 }
 const Rotation& Constraint::ConstantOrientation::getDefaultBaseRotation() const {
-    return getRep().defaultRB;
+    return getImpl().defaultRB;
 }
 const Rotation& Constraint::ConstantOrientation::getDefaultFollowerRotation() const {
-    return getRep().defaultRF;
-}
-
-    // ConstantOrientation bookkeeping //
-
-bool Constraint::ConstantOrientation::isInstanceOf(const Constraint& s) {
-    return ConstantOrientationRep::isA(s.getRep());
-}
-const Constraint::ConstantOrientation& Constraint::ConstantOrientation::downcast(const Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<const ConstantOrientation&>(s);
-}
-Constraint::ConstantOrientation& Constraint::ConstantOrientation::updDowncast(Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<ConstantOrientation&>(s);
-}
-const Constraint::ConstantOrientation::ConstantOrientationRep& Constraint::ConstantOrientation::getRep() const {
-    return dynamic_cast<const ConstantOrientationRep&>(*rep);
-}
-
-Constraint::ConstantOrientation::ConstantOrientationRep& Constraint::ConstantOrientation::updRep() {
-    return dynamic_cast<ConstantOrientationRep&>(*rep);
+    return getImpl().defaultRF;
 }
 
     // ConstantOrientationRep
@@ -1302,79 +1149,60 @@ Constraint::ConstantOrientation::ConstantOrientationRep& Constraint::ConstantOri
     //////////////////////
 
 Constraint::Weld::Weld(MobilizedBody& body1, MobilizedBody& body2)
+  : PIMPLDerivedHandleBase(new WeldRep())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Weld(): both bodies must already be in a MatterSubsystem.");
     SimTK_ASSERT_ALWAYS(body1.isInSameSubsystem(body2),
         "Constraint::Weld(): both bodies to be connected must be in the same MatterSubsystem.");
 
-    rep = new WeldRep(); rep->setMyHandle(*this);
+    //rep = new WeldRep(); rep->setMyHandle(*this);
     body1.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().B = updRep().addConstrainedBody(body1);
-    updRep().F = updRep().addConstrainedBody(body2);
+    updImpl().B = updImpl().addConstrainedBody(body1);
+    updImpl().F = updImpl().addConstrainedBody(body2);
 }
 
 Constraint::Weld::Weld(MobilizedBody& body1, const Transform& frame1,
                        MobilizedBody& body2, const Transform& frame2)
+  : PIMPLDerivedHandleBase(new WeldRep())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Weld(): both bodies must already be in a MatterSubsystem.");
     SimTK_ASSERT_ALWAYS(body1.isInSameSubsystem(body2),
         "Constraint::Weld(): both bodies to be connected must be in the same MatterSubsystem.");
 
-    rep = new WeldRep(); rep->setMyHandle(*this);
+    //rep = new WeldRep(); rep->setMyHandle(*this);
     body1.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().B = updRep().addConstrainedBody(body1);
-    updRep().F = updRep().addConstrainedBody(body2);
+    updImpl().B = updImpl().addConstrainedBody(body1);
+    updImpl().F = updImpl().addConstrainedBody(body2);
 
-    updRep().defaultFrameB = frame1;
-    updRep().defaultFrameF = frame2;
+    updImpl().defaultFrameB = frame1;
+    updImpl().defaultFrameF = frame2;
 }
 
 Constraint::Weld& Constraint::Weld::setDefaultFrameOnBody1(const Transform& f1) {
-    updRep().defaultFrameB = f1;
+    updImpl().defaultFrameB = f1;
     return *this;
 }
 
 Constraint::Weld& Constraint::Weld::setDefaultFrameOnBody2(const Transform& f2) {
-    updRep().defaultFrameF = f2;
+    updImpl().defaultFrameF = f2;
     return *this;
 }
 
 MobilizedBodyIndex Constraint::Weld::getBody1MobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().B);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(getImpl().B);
 }
 MobilizedBodyIndex Constraint::Weld::getBody2MobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().F);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(getImpl().F);
 }
 const Transform& Constraint::Weld::getDefaultFrameOnBody1() const {
-    return getRep().defaultFrameB;
+    return getImpl().defaultFrameB;
 }
 const Transform& Constraint::Weld::getDefaultFrameOnBody2() const {
-    return getRep().defaultFrameF;
-}
-
-
-    // Weld bookkeeping //
-
-bool Constraint::Weld::isInstanceOf(const Constraint& s) {
-    return WeldRep::isA(s.getRep());
-}
-const Constraint::Weld& Constraint::Weld::downcast(const Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<const Weld&>(s);
-}
-Constraint::Weld& Constraint::Weld::updDowncast(Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<Weld&>(s);
-}
-const Constraint::Weld::WeldRep& Constraint::Weld::getRep() const {
-    return dynamic_cast<const WeldRep&>(*rep);
-}
-Constraint::Weld::WeldRep& Constraint::Weld::updRep() {
-    return dynamic_cast<WeldRep&>(*rep);
+    return getImpl().defaultFrameF;
 }
 
     // WeldRep
@@ -1462,85 +1290,65 @@ void Constraint::Weld::WeldRep::calcDecorativeGeometryAndAppendImpl
 Constraint::NoSlip1D::NoSlip1D
    (MobilizedBody& caseBody, const Vec3& P_C, const UnitVec3& n_C,
     MobilizedBody& movingBody0, MobilizedBody& movingBody1)
+  : PIMPLDerivedHandleBase(new NoSlip1DRep())
 {
     SimTK_ASSERT_ALWAYS(caseBody.isInSubsystem() && movingBody0.isInSubsystem()&& movingBody1.isInSubsystem(),
         "Constraint::NoSlip1D(): all three bodies must already be in a SimbodyMatterSubsystem.");
     SimTK_ASSERT_ALWAYS(caseBody.isInSameSubsystem(movingBody0) && caseBody.isInSameSubsystem(movingBody1),
         "Constraint::NoSlip1D(): all three bodies must be in the same SimbodyMatterSubsystem.");
 
-    rep = new NoSlip1DRep(); rep->setMyHandle(*this);
+    //rep = new NoSlip1DRep(); rep->setMyHandle(*this);
     caseBody.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().caseBody    = updRep().addConstrainedBody(caseBody);
-    updRep().movingBody0 = updRep().addConstrainedBody(movingBody0);
-    updRep().movingBody1 = updRep().addConstrainedBody(movingBody1);
-    updRep().defaultNoSlipDirection = n_C;
-    updRep().defaultContactPoint    = P_C;
+    updImpl().caseBody    = updImpl().addConstrainedBody(caseBody);
+    updImpl().movingBody0 = updImpl().addConstrainedBody(movingBody0);
+    updImpl().movingBody1 = updImpl().addConstrainedBody(movingBody1);
+    updImpl().defaultNoSlipDirection = n_C;
+    updImpl().defaultContactPoint    = P_C;
 }
 
 Constraint::NoSlip1D& Constraint::NoSlip1D::setDefaultDirection(const UnitVec3& n) {
-    getRep().invalidateTopologyCache();
-    updRep().defaultNoSlipDirection = n;
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultNoSlipDirection = n;
     return *this;
 }
 
 Constraint::NoSlip1D& Constraint::NoSlip1D::setDefaultContactPoint(const Vec3& p) {
-    getRep().invalidateTopologyCache();
-    updRep().defaultContactPoint = p;
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultContactPoint = p;
     return *this;
 }
 
 MobilizedBodyIndex Constraint::NoSlip1D::getCaseMobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(getRep().caseBody);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(getImpl().caseBody);
 }
 MobilizedBodyIndex Constraint::NoSlip1D::getMovingBodyMobilizedBodyIndex(int which) const {
     assert(which==0 || which==1);
-    return getRep().getMobilizedBodyIndexOfConstrainedBody(
-        which==0 ? getRep().movingBody0 : getRep().movingBody1);
+    return getImpl().getMobilizedBodyIndexOfConstrainedBody(
+        which==0 ? getImpl().movingBody0 : getImpl().movingBody1);
 }
 const UnitVec3& Constraint::NoSlip1D::getDefaultDirection() const {
-    return getRep().defaultNoSlipDirection;
+    return getImpl().defaultNoSlipDirection;
 }
 const Vec3& Constraint::NoSlip1D::getDefaultContactPoint() const {
-    return getRep().defaultContactPoint;
+    return getImpl().defaultContactPoint;
 }
 
 Constraint::NoSlip1D& Constraint::NoSlip1D::setDirectionDisplayLength(Real l) {
-    updRep().setDirectionDisplayLength(l);
+    updImpl().setDirectionDisplayLength(l);
     return *this;
 }
 Constraint::NoSlip1D& Constraint::NoSlip1D::setPointDisplayRadius(Real r) {
-    updRep().setPointDisplayRadius(r);
+    updImpl().setPointDisplayRadius(r);
     return *this;
 }
 
 Real Constraint::NoSlip1D::getDirectionDisplayLength() const {
-    return getRep().getDirectionDisplayLength();
+    return getImpl().getDirectionDisplayLength();
 }
 
 Real Constraint::NoSlip1D::getPointDisplayRadius() const {
-    return getRep().getPointDisplayRadius();
-}
-
-    // NoSlip1D bookkeeping //
-
-bool Constraint::NoSlip1D::isInstanceOf(const Constraint& s) {
-    return NoSlip1DRep::isA(s.getRep());
-}
-const Constraint::NoSlip1D& Constraint::NoSlip1D::downcast(const Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<const NoSlip1D&>(s);
-}
-Constraint::NoSlip1D& Constraint::NoSlip1D::updDowncast(Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<NoSlip1D&>(s);
-}
-const Constraint::NoSlip1D::NoSlip1DRep& Constraint::NoSlip1D::getRep() const {
-    return dynamic_cast<const NoSlip1DRep&>(*rep);
-}
-
-Constraint::NoSlip1D::NoSlip1DRep& Constraint::NoSlip1D::updRep() {
-    return dynamic_cast<NoSlip1DRep&>(*rep);
+    return getImpl().getPointDisplayRadius();
 }
 
     // NoSlip1DRep
@@ -1585,62 +1393,42 @@ void Constraint::NoSlip1D::NoSlip1DRep::calcDecorativeGeometryAndAppendImpl
 // This picks one of the mobilities from a multiple-mobility mobilizer.
 Constraint::ConstantSpeed::ConstantSpeed
    (MobilizedBody& mobilizer, MobilizerUIndex whichU, Real defaultSpeed)
+  : PIMPLDerivedHandleBase(new ConstantSpeedRep())
 {
     SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
         "Constraint::ConstantSpeed(): the mobilizer must already be in a SimbodyMatterSubsystem.");
 
-    rep = new ConstantSpeedRep(); rep->setMyHandle(*this);
+    //rep = new ConstantSpeedRep(); rep->setMyHandle(*this);
     mobilizer.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().theMobilizer = updRep().addConstrainedMobilizer(mobilizer);
-    updRep().whichMobility = whichU;
-    updRep().prescribedSpeed = defaultSpeed;
+    updImpl().theMobilizer = updImpl().addConstrainedMobilizer(mobilizer);
+    updImpl().whichMobility = whichU;
+    updImpl().prescribedSpeed = defaultSpeed;
 }
 
 // This is for mobilizers with only 1 mobility.
 Constraint::ConstantSpeed::ConstantSpeed(MobilizedBody& mobilizer, Real defaultSpeed)
+  : PIMPLDerivedHandleBase(new ConstantSpeedRep())
 {
     SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
         "Constraint::ConstantSpeed(): the mobilizer must already be in a SimbodyMatterSubsystem.");
 
-    rep = new ConstantSpeedRep(); rep->setMyHandle(*this);
+    //rep = new ConstantSpeedRep(); rep->setMyHandle(*this);
     mobilizer.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().theMobilizer = updRep().addConstrainedMobilizer(mobilizer);
-    updRep().whichMobility = MobilizerUIndex(0);
-    updRep().prescribedSpeed = defaultSpeed;
+    updImpl().theMobilizer = updImpl().addConstrainedMobilizer(mobilizer);
+    updImpl().whichMobility = MobilizerUIndex(0);
+    updImpl().prescribedSpeed = defaultSpeed;
 }
 
 MobilizedBodyIndex Constraint::ConstantSpeed::getMobilizedBodyIndex() const {
-    return getRep().getMobilizedBodyIndexOfConstrainedMobilizer(getRep().theMobilizer);
+    return getImpl().getMobilizedBodyIndexOfConstrainedMobilizer(getImpl().theMobilizer);
 }
 MobilizerUIndex Constraint::ConstantSpeed::getWhichU() const {
-    return getRep().whichMobility;
+    return getImpl().whichMobility;
 }
 Real Constraint::ConstantSpeed::getDefaultSpeed() const {
-    return getRep().prescribedSpeed;
-}
-
-
-    // ConstantSpeed bookkeeping //
-
-bool Constraint::ConstantSpeed::isInstanceOf(const Constraint& s) {
-    return ConstantSpeedRep::isA(s.getRep());
-}
-const Constraint::ConstantSpeed& Constraint::ConstantSpeed::downcast(const Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<const ConstantSpeed&>(s);
-}
-Constraint::ConstantSpeed& Constraint::ConstantSpeed::updDowncast(Constraint& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<ConstantSpeed&>(s);
-}
-const Constraint::ConstantSpeed::ConstantSpeedRep& Constraint::ConstantSpeed::getRep() const {
-    return dynamic_cast<const ConstantSpeedRep&>(*rep);
-}
-
-Constraint::ConstantSpeed::ConstantSpeedRep& Constraint::ConstantSpeed::updRep() {
-    return dynamic_cast<ConstantSpeedRep&>(*rep);
+    return getImpl().prescribedSpeed;
 }
 
     // ConstantSpeedRep
@@ -1651,11 +1439,7 @@ Constraint::ConstantSpeed::ConstantSpeedRep& Constraint::ConstantSpeed::updRep()
     // CONSTRAINT REP //
     ////////////////////
 
-/*virtual*/ Constraint::ConstraintRep::~ConstraintRep() {
-    // NOTHING
-}
-
-void Constraint::ConstraintRep::realizeTopology(State& s) const
+void ConstraintRep::realizeTopology(State& s) const
 {
     // Calculate the relevant Subtree.
     mySubtree.clear();
@@ -1680,7 +1464,7 @@ void Constraint::ConstraintRep::realizeTopology(State& s) const
 //     from their effects on ConstrainedBodies. Together we call those "participating q's"
 //     and "participating u's" (or "participating mobilities").
 // The results of these computations goes in the Model cache.
-void Constraint::ConstraintRep::realizeModel(State& s) const
+void ConstraintRep::realizeModel(State& s) const
 {
     SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
         "ConstraintRep::realizeModel() can't be called until after realizeToplogy().");
@@ -1758,16 +1542,16 @@ void Constraint::ConstraintRep::realizeModel(State& s) const
     realizeModelVirtual(s); // delegate to concrete constraint
 }
 
-void Constraint::ConstraintRep::invalidateTopologyCache() const {
+void ConstraintRep::invalidateTopologyCache() const {
     if (myMatterSubsystemRep)
         myMatterSubsystemRep->invalidateSubsystemTopologyCache();
 }
 
-bool Constraint::ConstraintRep::subsystemTopologyHasBeenRealized() const {
+bool ConstraintRep::subsystemTopologyHasBeenRealized() const {
     return myMatterSubsystemRep && myMatterSubsystemRep->subsystemTopologyHasBeenRealized();
 }
 
-void Constraint::ConstraintRep::setMyMatterSubsystem
+void ConstraintRep::setMyMatterSubsystem
    (SimbodyMatterSubsystem& matter, ConstraintIndex id)
 {
     assert(!isInSubsystem());
@@ -1776,46 +1560,51 @@ void Constraint::ConstraintRep::setMyMatterSubsystem
 }
 
 const SimbodyMatterSubsystem& 
-Constraint::ConstraintRep::getMyMatterSubsystem() const {
+ConstraintRep::getMyMatterSubsystem() const {
     return getMyMatterSubsystemRep().getMySimbodyMatterSubsystemHandle();
 }
 
+bool ConstraintRep::isInSameSubsystem(const MobilizedBody& body) const {
+    return isInSubsystem() && body.isInSubsystem() 
+        && getMyMatterSubsystem().isSameSubsystem(body.getMatterSubsystem());
+}
+
 const MobilizedBody& 
-Constraint::ConstraintRep::getMobilizedBodyFromConstrainedMobilizer(ConstrainedMobilizerIndex M) const {
+ConstraintRep::getMobilizedBodyFromConstrainedMobilizer(ConstrainedMobilizerIndex M) const {
     SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
         "Constrained mobilizers are not available until Topology stage has been realized.");
     return getMyMatterSubsystemRep().getMobilizedBody(myConstrainedMobilizers[M]);
 }
 
 const MobilizedBody& 
-Constraint::ConstraintRep::getMobilizedBodyFromConstrainedBody(ConstrainedBodyIndex B) const {
+ConstraintRep::getMobilizedBodyFromConstrainedBody(ConstrainedBodyIndex B) const {
     SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
         "Constrained bodies are not available until Topology stage has been realized.");
     return getMyMatterSubsystemRep().getMobilizedBody(myConstrainedBodies[B]);
 }
 
 const MobilizedBody& 
-Constraint::ConstraintRep::getAncestorMobilizedBody() const {
+ConstraintRep::getAncestorMobilizedBody() const {
     SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
         "The ancestor body is not available until Topology stage has been realized.");
     return getMyMatterSubsystemRep().getMobilizedBody(mySubtree.getAncestorMobilizedBodyIndex()); ;
 }
 
-Real Constraint::ConstraintRep::getOneQ
+Real ConstraintRep::getOneQ
    (const State& s, ConstrainedMobilizerIndex cmx, MobilizerQIndex whichQ) const
 {
     const QIndex qx = getQIndexOfConstrainedQ(s, getConstrainedQIndex(s, cmx, whichQ));
     return getMyMatterSubsystemRep().getQ(s)[qx];
 }
 
-Real Constraint::ConstraintRep::getOneU
+Real ConstraintRep::getOneU
    (const State& s, ConstrainedMobilizerIndex cmx, MobilizerUIndex whichU) const 
 {
     const UIndex ux = getUIndexOfConstrainedU(s, getConstrainedUIndex(s, cmx, whichU));
     return getMyMatterSubsystemRep().getU(s)[ux];
 }
 
-Real Constraint::ConstraintRep::getOneQDot(const State& s, 
+Real ConstraintRep::getOneQDot(const State& s, 
                 ConstrainedMobilizerIndex cmx, MobilizerQIndex whichQ, bool realizing) const
 {
     const QIndex qx = getQIndexOfConstrainedQ(s, getConstrainedQIndex(s, cmx, whichQ));
@@ -1823,7 +1612,7 @@ Real Constraint::ConstraintRep::getOneQDot(const State& s,
     return realizing ? matter.updQDot(s)[qx] : matter.getQDot(s)[qx];
 }
 
-Real Constraint::ConstraintRep::getOneUDot(const State& s,
+Real ConstraintRep::getOneUDot(const State& s,
                 ConstrainedMobilizerIndex cmx, MobilizerUIndex whichU, bool realizing) const
 {
     const UIndex ux = getUIndexOfConstrainedU(s, getConstrainedUIndex(s, cmx, whichU));
@@ -1832,7 +1621,7 @@ Real Constraint::ConstraintRep::getOneUDot(const State& s,
 }
 
 
-Real Constraint::ConstraintRep::getOneQDotDot(const State& s, 
+Real ConstraintRep::getOneQDotDot(const State& s, 
                 ConstrainedMobilizerIndex cmx, MobilizerQIndex whichQ, bool realizing) const
 {
     const QIndex qx = getQIndexOfConstrainedQ(s, getConstrainedQIndex(s, cmx, whichQ));
@@ -1842,13 +1631,13 @@ Real Constraint::ConstraintRep::getOneQDotDot(const State& s,
 
 // These are measured from and expressed in the ancestor (A) frame.
 //TODO: should precalculate in State, return reference
-Transform Constraint::ConstraintRep::getBodyTransform(const State& s, const SBPositionCache& pc, ConstrainedBodyIndex B) const { // X_AB
+Transform ConstraintRep::getBodyTransform(const State& s, const SBPositionCache& pc, ConstrainedBodyIndex B) const { // X_AB
     const Transform& X_GB = getMyMatterSubsystemRep().getBodyTransform(s, pc, myConstrainedBodies[B]);
     const Transform& X_GA = getMyMatterSubsystemRep().getBodyTransform(s, pc, mySubtree.getAncestorMobilizedBodyIndex());
     return ~X_GA*X_GB;
 }
 
-SpatialVec Constraint::ConstraintRep::getBodyVelocity(const State& s, const SBVelocityCache& vc, ConstrainedBodyIndex B) const { // V_AB
+SpatialVec ConstraintRep::getBodyVelocity(const State& s, const SBVelocityCache& vc, ConstrainedBodyIndex B) const { // V_AB
     const Transform&  X_GB = getMyMatterSubsystemRep().getBodyTransform(s, myConstrainedBodies[B]);
     const Transform&  X_GA = getMyMatterSubsystemRep().getBodyTransform(s, mySubtree.getAncestorMobilizedBodyIndex());
     const SpatialVec& V_GB = getMyMatterSubsystemRep().getBodyVelocity(s, vc, myConstrainedBodies[B]);
@@ -1865,7 +1654,7 @@ SpatialVec Constraint::ConstraintRep::getBodyVelocity(const State& s, const SBVe
     return ~X_GA.R() * SpatialVec(w_AB_G, v_AB_G);     // re-express in A
 }
 
-SpatialVec Constraint::ConstraintRep::getBodyAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyIndex B) const { // A_AB
+SpatialVec ConstraintRep::getBodyAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyIndex B) const { // A_AB
     const Vec3&       p_GB = getMyMatterSubsystemRep().getBodyTransform(s, myConstrainedBodies[B]).T();
     const Transform&  X_GA = getMyMatterSubsystemRep().getBodyTransform(s, mySubtree.getAncestorMobilizedBodyIndex());
     const Vec3&       p_GA = X_GA.T();
@@ -1898,7 +1687,7 @@ SpatialVec Constraint::ConstraintRep::getBodyAcceleration(const State& s, const 
 
 // Find out how many holonomic (position), nonholonomic (velocity),
 // and acceleration-only constraint equations are generated by this Constraint.
-void Constraint::ConstraintRep::getNumConstraintEquations
+void ConstraintRep::getNumConstraintEquations
    (const State& s, int& mHolo, int& mNonholo, int& mAccOnly) const 
 {
     const SBModelCache::PerConstraintModelInfo& cInfo = 
@@ -1911,7 +1700,7 @@ void Constraint::ConstraintRep::getNumConstraintEquations
 
 // Find the slots in the QErr, UErr and UDotErr/Multiplier arrays allocated for the
 // equations of this Constraint.
-void Constraint::ConstraintRep::getConstraintEquationSlots
+void ConstraintRep::getConstraintEquationSlots
    (const State& s, int& holo0, int& nonholo0, int& accOnly0) const
 {
     const SBModelCache::PerConstraintModelInfo& cInfo = 
@@ -1925,31 +1714,72 @@ void Constraint::ConstraintRep::getConstraintEquationSlots
     accOnly0 = mHolo + mNonholo + cInfo.accOnlyErrSegment.offset;
 }
 
+// Call this during construction phase to add a body to the topological structure of
+// this Constraint. This body's mobilizer's mobilities are *not* part of the constraint; 
+// mobilizers must be added separately.
+ConstrainedBodyIndex ConstraintRep::addConstrainedBody(const MobilizedBody& b) {
+    assert(isInSameSubsystem(b));
+    invalidateTopologyCache();
 
-QIndex Constraint::ConstraintRep::getQIndexOfConstrainedQ(const State& s, ConstrainedQIndex cqx) const {
+    const ConstrainedBodyIndex nextIx((int)myConstrainedBodies.size());
+
+    // Add to the Mobilized->Constrained map and check for duplicates.
+    std::pair<MobilizedBody2ConstrainedBodyMap::iterator, bool> result;
+    result = myMobilizedBody2ConstrainedBodyMap.insert(
+        MobilizedBody2ConstrainedBodyMap::value_type(b.getMobilizedBodyIndex(), nextIx));
+    SimTK_ASSERT_ALWAYS(result.second,
+        "addConstrainedBody(): a particular Constrained Body can be added only once per Constraint");
+
+    // This is a new constrained body -- add it to the ConstrainedBody->MobilizedBody map too.
+    myConstrainedBodies.push_back(b.getMobilizedBodyIndex());
+    return nextIx;
+}
+
+// Call this during construction phase to add a mobilizer to the topological structure of
+// this Constraint. All the coordinates q and mobilities u for this mobilizer are added also,
+// but we don't know how many of those there will be until Stage::Model.
+ConstrainedMobilizerIndex ConstraintRep::addConstrainedMobilizer(const MobilizedBody& b) {
+    assert(isInSameSubsystem(b));
+    invalidateTopologyCache();
+
+    const ConstrainedMobilizerIndex nextIx((int)myConstrainedMobilizers.size());
+
+    // Add to the Mobilized->Constrained map and check for duplicates.
+    std::pair<MobilizedBody2ConstrainedMobilizerMap::iterator, bool> result;
+    result = myMobilizedBody2ConstrainedMobilizerMap.insert(
+        MobilizedBody2ConstrainedMobilizerMap::value_type(b.getMobilizedBodyIndex(), nextIx));
+    SimTK_ASSERT_ALWAYS(result.second,
+        "addConstrainedMobilizer(): a particular Constrained Mobilizer can be added only once per Constraint");
+
+    // This is a new constrained mobilizer -- add it to the ConstrainedMobilizer->MobilizedBody map too.
+    myConstrainedMobilizers.push_back(b.getMobilizedBodyIndex());
+    return nextIx;
+}
+
+QIndex ConstraintRep::getQIndexOfConstrainedQ(const State& s, ConstrainedQIndex cqx) const {
     const SBModelCache&                         mc    = getModelCache(s);
     const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
     return cInfo.getQIndexFromConstrainedQ(cqx);
 }
 
-UIndex Constraint::ConstraintRep::getUIndexOfConstrainedU(const State& s, ConstrainedUIndex cqx) const {
+UIndex ConstraintRep::getUIndexOfConstrainedU(const State& s, ConstrainedUIndex cqx) const {
     const SBModelCache&                         mc    = getModelCache(s);
     const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
     return cInfo.getUIndexFromConstrainedU(cqx);
 }
 
-int Constraint::ConstraintRep::getNumConstrainedQ(const State& s) const {
+int ConstraintRep::getNumConstrainedQ(const State& s) const {
     return getModelCache(s).getConstraintModelInfo(myConstraintIndex).getNConstrainedQ();
 }
 
-int Constraint::ConstraintRep::getNumConstrainedQ
+int ConstraintRep::getNumConstrainedQ
    (const State& s, ConstrainedMobilizerIndex M) const
 {
     const MobilizedBodyIndex mbx = getMobilizedBodyIndexOfConstrainedMobilizer(M);
     return getModelCache(s).getMobilizedBodyModelInfo(mbx).nQInUse;
 }
 
-ConstrainedQIndex Constraint::ConstraintRep::getConstrainedQIndex
+ConstrainedQIndex ConstraintRep::getConstrainedQIndex
    (const State& s, ConstrainedMobilizerIndex M, MobilizerQIndex which) const 
 {
     const int nq = getNumConstrainedQ(s,M);
@@ -1959,18 +1789,18 @@ ConstrainedQIndex Constraint::ConstraintRep::getConstrainedQIndex
     return ConstrainedQIndex(mInfo.firstConstrainedQIndex + which);
 }       
 
-int Constraint::ConstraintRep::getNumConstrainedU(const State& s) const {
+int ConstraintRep::getNumConstrainedU(const State& s) const {
     return getModelCache(s).getConstraintModelInfo(myConstraintIndex).getNConstrainedU();
 }
 
-int Constraint::ConstraintRep::getNumConstrainedU
+int ConstraintRep::getNumConstrainedU
    (const State& s, ConstrainedMobilizerIndex M) const
 {
     const MobilizedBodyIndex mbx = getMobilizedBodyIndexOfConstrainedMobilizer(M);
     return getModelCache(s).getMobilizedBodyModelInfo(mbx).nUInUse;
 }
 
-ConstrainedUIndex Constraint::ConstraintRep::getConstrainedUIndex
+ConstrainedUIndex ConstraintRep::getConstrainedUIndex
    (const State& s, ConstrainedMobilizerIndex M, MobilizerUIndex which) const 
 {
     const int nu = getNumConstrainedU(s,M);
@@ -1985,7 +1815,7 @@ ConstrainedUIndex Constraint::ConstraintRep::getConstrainedUIndex
 // is an error if that isn't an exact match for the current number of holonomic
 // constraint equations generated by this Constraint. We expect that perr points
 // to an array of at least mp elements that we can write on.
-void Constraint::ConstraintRep::getPositionErrors(const State& s, int mp, Real* perr) const {
+void ConstraintRep::getPositionErrors(const State& s, int mp, Real* perr) const {
     const SBModelCache::PerConstraintModelInfo& cInfo = 
         getModelCache(s).getConstraintModelInfo(myConstraintIndex);
 
@@ -2010,7 +1840,7 @@ void Constraint::ConstraintRep::getPositionErrors(const State& s, int mp, Real* 
 // current number of holonomic+nonholonomic (mp+mv) constraint equations generated
 // by this Constraint. We expect that pverr points to an array of at least mp+mv
 // elements that we can write on.
-void Constraint::ConstraintRep::getVelocityErrors(const State& s, int mpv, Real* pverr) const {
+void ConstraintRep::getVelocityErrors(const State& s, int mpv, Real* pverr) const {
     const SBModelCache& mc = getModelCache(s);
     const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
 
@@ -2044,7 +1874,7 @@ void Constraint::ConstraintRep::getVelocityErrors(const State& s, int mpv, Real*
 // current number of holonomic+nonholonomic+accelerationOnly (mp+mv+ma) constraint
 // equations generated by this Constraint. We expect that pvaerr points to an array
 // of at least mp+mv+ma elements that we can write on.
-void Constraint::ConstraintRep::getAccelerationErrors(const State& s, int mpva, Real* pvaerr) const {
+void ConstraintRep::getAccelerationErrors(const State& s, int mpva, Real* pvaerr) const {
     const SBModelCache& mc = getModelCache(s);
     const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
 
@@ -2078,16 +1908,16 @@ void Constraint::ConstraintRep::getAccelerationErrors(const State& s, int mpva, 
         pvaerr[mHolo+mNonholo+i] = udoterr[firstAccOnlyErr+i];
 }
 
-const SBModelCache& Constraint::ConstraintRep::getModelCache(const State& s) const {
+const SBModelCache& ConstraintRep::getModelCache(const State& s) const {
     return getMyMatterSubsystemRep().getModelCache(s);
 }
-const SBPositionCache& Constraint::ConstraintRep::getPositionCache(const State& s) const {
+const SBPositionCache& ConstraintRep::getPositionCache(const State& s) const {
     return getMyMatterSubsystemRep().getPositionCache(s);
 }
-const SBVelocityCache& Constraint::ConstraintRep::getVelocityCache(const State& s) const {
+const SBVelocityCache& ConstraintRep::getVelocityCache(const State& s) const {
     return getMyMatterSubsystemRep().getVelocityCache(s);
 }
-const SBAccelerationCache& Constraint::ConstraintRep::getAccelerationCache(const State& s) const {
+const SBAccelerationCache& ConstraintRep::getAccelerationCache(const State& s) const {
     return getMyMatterSubsystemRep().getAccelerationCache(s);
 }
 
@@ -2098,78 +1928,78 @@ const SBAccelerationCache& Constraint::ConstraintRep::getAccelerationCache(const
 
     // These must be defined if there are any positin (holonomic) constraints defined.
 
-void Constraint::ConstraintRep::
+void ConstraintRep::
 realizePositionErrorsVirtual(const State&, const SBPositionCache&, int mp,  Real* perr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::ConstraintRep", "realizePositionErrors");
+        "ConstraintRep", "realizePositionErrors");
 }
 
-void Constraint::ConstraintRep::
+void ConstraintRep::
 realizePositionDotErrorsVirtual(const State&, const SBVelocityCache&, int mp,  Real* pverr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::ConstraintRep", "realizePositionDotErrors");
+        "ConstraintRep", "realizePositionDotErrors");
 }
 
-void Constraint::ConstraintRep::
+void ConstraintRep::
 realizePositionDotDotErrorsVirtual(const State&, const SBAccelerationCache&, int mp,  Real* paerr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::ConstraintRep", "realizePositionDotDotErrors");
+        "ConstraintRep", "realizePositionDotDotErrors");
 }
 
 
-void Constraint::ConstraintRep::
+void ConstraintRep::
 applyPositionConstraintForcesVirtual
    (const State&, int mp, const Real* multipliers,
     Vector_<SpatialVec>& bodyForces,
     Vector&              mobilityForces) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::ConstraintRep", "applyPositionConstraintForces");
+        "ConstraintRep", "applyPositionConstraintForces");
 }
 
     // These must be defined if there are any velocity (nonholonomic) constraints defined.
 
-void Constraint::ConstraintRep::
+void ConstraintRep::
 realizeVelocityErrorsVirtual(const State&, const SBVelocityCache&, int mv,  Real* verr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::ConstraintRep", "realizeVelocityErrors");
+        "ConstraintRep", "realizeVelocityErrors");
 }
 
 
-void Constraint::ConstraintRep::
+void ConstraintRep::
 realizeVelocityDotErrorsVirtual(const State&, const SBAccelerationCache&, int mv,  Real* vaerr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::ConstraintRep", "realizeVelocityDotErrors");
+        "ConstraintRep", "realizeVelocityDotErrors");
 }
 
 
-void Constraint::ConstraintRep::
+void ConstraintRep::
 applyVelocityConstraintForcesVirtual
    (const State&, int mv, const Real* multipliers,
     Vector_<SpatialVec>& bodyForces,
     Vector&              mobilityForces) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::ConstraintRep", "applyVelocityConstraintForces");
+        "ConstraintRep", "applyVelocityConstraintForces");
 }
 
 
 
 // These must be defined if there are any acceleration-only constraints defined.
-void Constraint::ConstraintRep::
+void ConstraintRep::
 realizeAccelerationErrorsVirtual(const State&, const SBAccelerationCache&, int ma,  Real* aerr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::ConstraintRep", "realizeAccelerationErrors");
+        "ConstraintRep", "realizeAccelerationErrors");
 }
 
-void Constraint::ConstraintRep::
+void ConstraintRep::
 applyAccelerationConstraintForcesVirtual
    (const State&, int ma, const Real* multipliers,
     Vector_<SpatialVec>& bodyForces,
     Vector&              mobilityForces) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::ConstraintRep", "applyAccelerationConstraintForces");
+        "ConstraintRep", "applyAccelerationConstraintForces");
 }
 
 

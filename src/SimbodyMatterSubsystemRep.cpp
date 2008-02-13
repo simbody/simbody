@@ -131,7 +131,7 @@ ConstraintIndex SimbodyMatterSubsystemRep::adoptConstraint(Constraint& child) {
 
     // Now tell the Constraint object its owning MatterSubsystem and id within
     // that Subsystem.
-    c.updRep().setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), ix);
+    c.updImpl().setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), ix);
     return ix;
 }
 
@@ -277,7 +277,7 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
 //        branches.resize(rbNodeLevels[1].size()); // each level 1 body is a branch
 
     for (ConstraintIndex cx(0); cx<getNumConstraints(); ++cx) {
-        const Constraint::ConstraintRep& crep = getConstraint(cx).getRep();
+        const ConstraintRep& crep = getConstraint(cx).getImpl();
         crep.realizeTopology(s);
 
         // Create computational constraint data structure. This is organized by
@@ -436,7 +436,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
         mc.totalNAccelerationOnlyConstraintEquationsInUse = 0;
 
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
-        getConstraint(cx).getRep().realizeModel(s);
+        getConstraint(cx).getImpl().realizeModel(s);
 
     //cout << "-------------------------------\n";
     //cout << mc;
@@ -612,7 +612,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
         const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(c);
         const Segment& pseg = cInfo.holoErrSegment;
         if (pseg.length)
-            constraints[c]->getRep().realizePositionErrors(s, pc, pseg.length, &qErr[pseg.offset]);
+            constraints[c]->getImpl().realizePositionErrors(s, pc, pseg.length, &qErr[pseg.offset]);
     }
 #else // USE_OLD_CONSTRAINTS
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
@@ -655,9 +655,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
         const Segment& nonholoseg = cInfo.nonholoErrSegment; // vseg includes holonomic+nonholonomic
         const int mHolo = holoseg.length, mNonholo = nonholoseg.length;
         if (mHolo)
-            constraints[c]->getRep().realizePositionDotErrors(s, vc, mHolo,    &uErr[holoseg.offset]);
+            constraints[c]->getImpl().realizePositionDotErrors(s, vc, mHolo,    &uErr[holoseg.offset]);
         if (mNonholo)
-            constraints[c]->getRep().realizeVelocityErrors   (s, vc, mNonholo, &uErr[mc.totalNHolonomicConstraintEquationsInUse + nonholoseg.offset]);
+            constraints[c]->getImpl().realizeVelocityErrors   (s, vc, mNonholo, &uErr[mc.totalNHolonomicConstraintEquationsInUse + nonholoseg.offset]);
     }
     //cout << "NEW UERR=" << uErr << endl;
 #else // USE_OLD_CONSTRAINTS
@@ -748,7 +748,7 @@ int SimbodyMatterSubsystemRep::calcDecorativeGeometryAndAppendImpl
 
     // Likewise for the constraints
     for (ConstraintIndex cx(0); cx<constraints.size(); ++cx)
-        constraints[cx]->getRep().calcDecorativeGeometryAndAppend(s,stage,geom);
+        constraints[cx]->getImpl().calcDecorativeGeometryAndAppend(s,stage,geom);
 
     // Now add in any subsystem-level geometry.
     switch(stage) {
@@ -1244,7 +1244,7 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
         lambda1(mh, mnh)     = lambda(mHolo+nonholoSeg.offset, mnh);
         lambda1(mh+mnh, mao) = lambda(mHolo+mNonholo+accOnlySeg.offset, mao);
 
-        const Constraint::ConstraintRep& crep = constraints[cx]->getRep();
+        const ConstraintRep& crep = constraints[cx]->getImpl();
  
         bodyF1.resize(crep.getNumConstrainedBodies());
         mobilityF1.resize(crep.getNumConstrainedU(s));
@@ -1602,14 +1602,14 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
         const Segment& acconlyseg = cInfo.accOnlyErrSegment; // for acceleration-only constraints
         const int mHolo = holoseg.length, mNonholo = nonholoseg.length, mAccOnly = acconlyseg.length;
         if (mHolo)
-            constraints[cx]->getRep().realizePositionDotDotErrors(s, ac, mHolo,
+            constraints[cx]->getImpl().realizePositionDotDotErrors(s, ac, mHolo,
                 &udotErr[holoseg.offset]);
         if (mNonholo)
-            constraints[cx]->getRep().realizeVelocityDotErrors(s, ac, mNonholo, 
+            constraints[cx]->getImpl().realizeVelocityDotErrors(s, ac, mNonholo, 
                 &udotErr[  mc.totalNHolonomicConstraintEquationsInUse 
                          + nonholoseg.offset]);
         if (mAccOnly)
-            constraints[cx]->getRep().realizeAccelerationErrors(s, ac, mAccOnly, 
+            constraints[cx]->getImpl().realizeAccelerationErrors(s, ac, mAccOnly, 
                 &udotErr[  mc.totalNHolonomicConstraintEquationsInUse
                          + mc.totalNNonholonomicConstraintEquationsInUse 
                          + acconlyseg.offset]);

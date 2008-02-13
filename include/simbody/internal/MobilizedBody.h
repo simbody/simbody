@@ -57,7 +57,7 @@ class MobilizedBodyImpl;
 
 // We only want the template instantiation to occur once. This symbol is defined in the SimTK core
 // compilation unit that defines the mobilized body class but should not be defined any other time.
-#ifndef SimTK_DEFINING_MOBILIZED_BODY
+#ifndef SimTK_SIMBODY_DEFINING_MOBILIZED_BODY
     extern template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl>;
 #endif
 
@@ -128,23 +128,23 @@ public:
     class Custom;
     class Ground;
     
-    class BallImpl;
-    class BendStretchImpl;
-    class CustomImpl;
-    class CylinderImpl;
-    class EllipsoidImpl;
-    class FreeImpl;
-    class FreeLineImpl;
-    class GimbalImpl;
-    class GroundImpl;
-    class LineOrientationImpl;
     class PinImpl;
-    class PlanarImpl;
-    class ScrewImpl;
     class SliderImpl;
-    class TranslationImpl;
     class UniversalImpl;
+    class CylinderImpl;
+    class BendStretchImpl;
+    class PlanarImpl;
+    class GimbalImpl;
+    class BallImpl;
+    class TranslationImpl;
+    class FreeImpl;
+    class LineOrientationImpl;
+    class FreeLineImpl;
     class WeldImpl;
+    class ScrewImpl;
+    class EllipsoidImpl;
+    class CustomImpl;
+    class GroundImpl;
 
     ///////////////////////////////
     // PAUL'S FRIENDLY INTERFACE //

@@ -35,26 +35,26 @@
 #include "SimTKcommon/internal/PrivateImplementation_Defs.h"
 
 
-// This suppresses the 'extern template' instantiations in Force.h so that
+// This suppresses the 'extern template' instantiations in Constraint.h so that
 // we can instantiate them for real here.
-#define SimTK_SIMBODY_DEFINING_FORCE
-#include "simbody/internal/Force.h"
-#include "ForceImpl.h"
+#define SimTK_SIMBODY_DEFINING_CONSTRAINT
+#include "simbody/internal/Constraint.h"
+#include "ConstraintRep.h"
 
 namespace SimTK {
 
-template class PIMPLHandle<Force, ForceImpl>;
-template class PIMPLImplementation<Force, ForceImpl>;
-template class PIMPLDerivedHandle<Force::TwoPointLinearSpring, Force::TwoPointLinearSpringImpl, Force>;
-template class PIMPLDerivedHandle<Force::TwoPointLinearDamper, Force::TwoPointLinearDamperImpl, Force>;
-template class PIMPLDerivedHandle<Force::TwoPointConstantForce, Force::TwoPointConstantForceImpl, Force>;
-template class PIMPLDerivedHandle<Force::MobilityLinearSpring, Force::MobilityLinearSpringImpl, Force>;
-template class PIMPLDerivedHandle<Force::MobilityLinearDamper, Force::MobilityLinearDamperImpl, Force>;
-template class PIMPLDerivedHandle<Force::MobilityConstantForce, Force::MobilityConstantForceImpl, Force>;
-template class PIMPLDerivedHandle<Force::ConstantForce, Force::ConstantForceImpl, Force>;
-template class PIMPLDerivedHandle<Force::ConstantTorque, Force::ConstantTorqueImpl, Force>;
-template class PIMPLDerivedHandle<Force::GlobalDamper, Force::GlobalDamperImpl, Force>;
-template class PIMPLDerivedHandle<Force::UniformGravity, Force::UniformGravityImpl, Force>;
-template class PIMPLDerivedHandle<Force::Custom, Force::CustomImpl, Force>;
+template class PIMPLHandle<Constraint, ConstraintRep>;
+template class PIMPLImplementation<Constraint, ConstraintRep>;
+template class PIMPLDerivedHandle<Constraint::Rod, Constraint::RodRep, Constraint>;
+template class PIMPLDerivedHandle<Constraint::Ball, Constraint::BallRep, Constraint>;
+template class PIMPLDerivedHandle<Constraint::Weld, Constraint::WeldRep, Constraint>;
+template class PIMPLDerivedHandle<Constraint::PointInPlane, Constraint::PointInPlaneRep, Constraint>;
+template class PIMPLDerivedHandle<Constraint::PointOnLine, Constraint::PointOnLineRep, Constraint>;
+template class PIMPLDerivedHandle<Constraint::ConstantAngle, Constraint::ConstantAngleRep, Constraint>;
+template class PIMPLDerivedHandle<Constraint::ConstantOrientation, Constraint::ConstantOrientationRep, Constraint>;
+template class PIMPLDerivedHandle<Constraint::NoSlip1D, Constraint::NoSlip1DRep, Constraint>;
+template class PIMPLDerivedHandle<Constraint::ConstantSpeed, Constraint::ConstantSpeedRep, Constraint>;
+template class PIMPLDerivedHandle<Constraint::Custom, Constraint::CustomRep, Constraint>;
+
 } // namespace SimTK
 
