@@ -3339,190 +3339,190 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                  unscaleBondedAtoms(a1,vdwScale,coulombScale);
              }
         }
+
+        // GBSA - (Generalized Born/solvent accessibility implicit) solvent model
+        if (gbsaGlobalScaleFactor != 0)
+        {
+            // 1) Populate array of atom positions for gbsa
+            // We want to eventually pass a RealOpenMM** to the gbsa subroutine, so we create
+            // a couple of ugly std::vectors to make that easier
+            std::vector<RealOpenMM> gbsaRawCoordinates(3 * getNAtoms(), 0.0); // [x,y,z,x,y,z,...], Angstrom units
+            std::vector<RealOpenMM> gbsaAtomicPartialCharges(getNAtoms());
+            std::vector<int> gbsaAtomicNumbers(getNAtoms());
+            std::vector<int> gbsaFirstBondPartners(getNAtoms());
+            std::vector<int> gbsaNumberOfCovalentBondPartners(getNAtoms());
+            // Put atomic coordinates relative to ground in gbsaRawCoordinates
+    
+            for (DuMM::DuMMBodyIndex duMMBodyIndex1(0); duMMBodyIndex1 < (int)duMMSubsetOfBodies.size(); ++duMMBodyIndex1) 
+            {
+                MobilizedBodyIndex bodyIndex1 = duMMSubsetOfBodies[duMMBodyIndex1].getMobilizedBodyIndex();     
+    
+                const Transform&          X_GB1  = matter.getMobilizedBody(bodyIndex1).getBodyTransform(s);
+                const AtomPlacementArray& alist1 = duMMSubsetOfBodies[duMMBodyIndex1].allAtoms;
+                for (int i=0; i < (int)alist1.size(); ++i) 
+                {
+                    const int       a1num = alist1[i].atomIndex;
+                    const Atom&     a1 = atoms[a1num];
+    
+                    // atomic coordinates with respect to Ground frame
+                    const Vec3      a1Station_G = X_GB1.R() * a1.station_B; // nanometers
+                    const Vec3      a1Pos_G     = (X_GB1.T() + a1Station_G) * DuMM::Nm2Ang; // Angstroms
+    
+                    gbsaRawCoordinates[3 * a1num + 0] = a1Pos_G[0];
+                    gbsaRawCoordinates[3 * a1num + 1] = a1Pos_G[1];
+                    gbsaRawCoordinates[3 * a1num + 2] = a1Pos_G[2];
+    
+                    // store partial charge also
+                    const ChargedAtomType& a1type  = chargedAtomTypes[a1.chargedAtomTypeIndex];
+                    gbsaAtomicPartialCharges[a1num] = a1type.partialCharge;
+    
+                    // and store atomic number
+                    const AtomClass& a1class = atomClasses[a1type.atomClassIx];
+                    gbsaAtomicNumbers[a1num] = a1class.element;
+    
+                    // and store one representative bond partner id
+                    if (a1.bond12.size() > 0)
+                        gbsaFirstBondPartners[a1num] = a1.bond12[0];
+                    else 
+                        gbsaFirstBondPartners[a1num] = -1;
+    
+                    gbsaNumberOfCovalentBondPartners[a1num] = a1.bond12.size();
+                }
+            }
+    
+            // 2) Now that gbsaRawCoordinates is complete and stable,
+            //    fill gbsaCoordinatePointers with pointers to coordinates, assuming their
+            //    memory locations will not move in the near future.
+            //    We will use gbsaCoordinatePointers to produce the desired RealOpenMM** in step 4
+            std::vector<RealOpenMM*> gbsaCoordinatePointers(getNAtoms()); // [&x0,&x1,&x2...]
+            for (int a = 0; a < getNAtoms(); ++a)
+                gbsaCoordinatePointers[a] = &gbsaRawCoordinates[3*a];
+    
+            // 3)  compute GBSA forces
+    
+            // TODO - initialize gbsa structures before this point - steps 3a-3c should be done at realizeTopology stage
+    
+            // 3a -- look up obc scale factor for each atom
+            std::vector<RealOpenMM> obcScaleFactors(getNAtoms());
+            int returnValue = getObcScaleFactors( getNAtoms(), &gbsaAtomicNumbers[0], &obcScaleFactors[0] );
+            assert(returnValue == 0);
+    
+            // 3b -- look up gbsa radius for each atom
+            std::vector<RealOpenMM> gbsaRadii(getNAtoms());
+            returnValue = getGbsaRadii( getNAtoms(), 
+                                        &gbsaAtomicNumbers[0], 
+                                        &gbsaNumberOfCovalentBondPartners[0], 
+                                        &gbsaFirstBondPartners[0], 
+                                        &gbsaRadii[0] );
+            assert(returnValue == 0);
+    
+            // 3c -- initialize gbsa internal data structures for this collection of atoms
+            // TODO -- move this to realizeTopology step
+            int includeAceApproximation = doIncludeGbsaAceApproximation ? 1 : 0;
+            // TODO - make dielectric parameters adjustable
+            RealOpenMM soluteDielectric = 1.0;
+            RealOpenMM solventDielectric = 80.0;
+            FILE* log = NULL;
+            returnValue = cpuSetObcParameters( getNAtoms(), &gbsaRadii[0], &obcScaleFactors[0],
+                                               includeAceApproximation, soluteDielectric, solventDielectric, 
+                                               log );
+            assert(returnValue == 0);
+    
+            // 3d -- compute forces and energies
+            std::vector<RealOpenMM> atomicGbsaForces(3 * getNAtoms(), 0.0);
+            std::vector<RealOpenMM*> atomicGbsaForcePointers(getNAtoms()); // [&x0,&x1,&x2...]
+            for (int a = 0; a < getNAtoms(); ++a)
+                atomicGbsaForcePointers[a] = &atomicGbsaForces[3*a];
+    
+            RealOpenMM gbsaEnergy;
+            returnValue = cpuCalculateImplicitSolventForces( &gbsaCoordinatePointers[0],
+                                                             &gbsaAtomicPartialCharges[0],
+                                                             &atomicGbsaForcePointers[0], 
+                                                             &gbsaEnergy, 1/*updateBornRadii*/ );
+            assert( returnValue == 0 );
+    
+            // Debugging
+            // Set false for production code
+    // #define GENERATE_DEBUGGING_REPORT_TO_MATCH_MARKS_TINKER_DATA 1
+    #ifdef GENERATE_DEBUGGING_REPORT_TO_MATCH_MARKS_TINKER_DATA
+            printf("# %6d     %16.3f No atoms and esolv [x y z] rBrn q rsolv scObc [fX fY fZ] A tag res rName aName type\n", getNAtoms(), gbsaEnergy);
+            for (int a = 0; a < getNAtoms(); ++a) {
+                printf(" % #10.4E % #10.4E % #10.4E", gbsaRawCoordinates[3*a+0], gbsaRawCoordinates[3*a+1], gbsaRawCoordinates[3*a+2]);
+                printf(" % #10.4E", 2.0); // Born radius - don't have
+                printf(" % #10.4E", gbsaAtomicPartialCharges[a]); // partial charge
+                printf(" % #10.4E", gbsaRadii[a]); // gbsa radius
+                printf(" % #10.4E", obcScaleFactors[a]); // obc scale
+                printf(" % #010.4E % #10.4E % #10.4E", atomicGbsaForces[3*a+0], atomicGbsaForces[3*a+1], atomicGbsaForces[3*a+2]);
+                printf("%5d", gbsaAtomicNumbers[a]);
+    
+                printf("\n");
+           }
+    #endif
+    
+    // #define GENERATE_XYZ_FILE_FOR_MARK 1
+    #ifdef GENERATE_XYZ_FILE_FOR_MARK
+            printf("%6d STRUCTURE FROM SIMBODY\n", getNAtoms());
+            for (int a = 0; a < getNAtoms(); ++a) 
+            {
+                const Atom& a1 = atoms[a];
+                const ChargedAtomType& chargedAtomType = chargedAtomTypes[a1.chargedAtomTypeIndex];
+                const AtomClass& a1class = atomClasses[chargedAtomType.atomClassIx];
+    
+                printf("%6d  %-4s %16.9f %16.9f %16.9f %6d ",
+                    a+1, // atom index
+                    a1class.name.c_str(), // amber atom class name
+                    gbsaRawCoordinates[3*a+0], gbsaRawCoordinates[3*a+1], gbsaRawCoordinates[3*a+2], // coordinates
+                    chargedAtomType.chargedAtomTypeIndex); // biotype
+    
+                for (int b = 0; b < (int)a1.bond12.size(); ++b) {
+                    printf("%6d ", a1.bond12[b]+1);
+                }
+    
+                printf("\n");
+           }
+    #endif
+    
+            // 4)  apply GBSA forces to bodies
+            for (DuMM::DuMMBodyIndex duMMBodyIndex1(0); duMMBodyIndex1 < (int)duMMSubsetOfBodies.size(); ++duMMBodyIndex1) 
+            {
+                MobilizedBodyIndex bodyIndex1 = duMMSubsetOfBodies[duMMBodyIndex1].getMobilizedBodyIndex();
+    
+                // Location of body in ground frame
+                const Transform&          X_GB1  = matter.getMobilizedBody(bodyIndex1).getBodyTransform(s);
+    
+                const AtomPlacementArray& alist1 = duMMSubsetOfBodies[duMMBodyIndex1].allAtoms;
+                for (int i=0; i < (int)alist1.size(); ++i) 
+                {
+                    const int       a1num = alist1[i].atomIndex;
+                    
+                    Vec3 a1Pos_G(gbsaRawCoordinates[3 * a1num + 0], 
+                                 gbsaRawCoordinates[3 * a1num + 1],
+                                 gbsaRawCoordinates[3 * a1num + 2]);
+                    a1Pos_G *= DuMM::Ang2Nm;  // convert Angstroms to nanometers
+                    Vec3 a1Station_G = a1Pos_G - X_GB1.T();
+    
+                    Vec3 fGbsa(atomicGbsaForces[3 * a1num + 0],
+                               atomicGbsaForces[3 * a1num + 1],
+                               atomicGbsaForces[3 * a1num + 2]);
+    
+                    // convert force units from kcal/mol*A to to kJ/mol*nm
+                    fGbsa *= (DuMM::Kcal2KJ/DuMM::Ang2Nm);
+    
+                    fGbsa *= gbsaGlobalScaleFactor;
+    
+                    SpatialVec forceOnBody(a1Station_G % fGbsa, fGbsa);
+                    // std::cout << forceOnBody << std::endl;
+                    forceCache[bodyIndex1] += SpatialVec( a1Station_G % fGbsa, fGbsa );
+                }
+            }
+    
+            // update potential energy from gbsa
+            // convert kcal/mol to kJ/mol
+            gbsaEnergy *= gbsaGlobalScaleFactor;
+            gbsaEnergy *= DuMM::Kcal2KJ;
+            energyCache += gbsaEnergy;
+        } // end if (gbsaGlobalScaleFactor != 0)
     }
-
-    // GBSA - (Generalized Born/solvent accessibility implicit) solvent model
-    if (gbsaGlobalScaleFactor != 0)
-    {
-        // 1) Populate array of atom positions for gbsa
-        // We want to eventually pass a RealOpenMM** to the gbsa subroutine, so we create
-        // a couple of ugly std::vectors to make that easier
-        std::vector<RealOpenMM> gbsaRawCoordinates(3 * getNAtoms(), 0.0); // [x,y,z,x,y,z,...], Angstrom units
-        std::vector<RealOpenMM> gbsaAtomicPartialCharges(getNAtoms());
-        std::vector<int> gbsaAtomicNumbers(getNAtoms());
-        std::vector<int> gbsaFirstBondPartners(getNAtoms());
-        std::vector<int> gbsaNumberOfCovalentBondPartners(getNAtoms());
-        // Put atomic coordinates relative to ground in gbsaRawCoordinates
-
-        for (DuMM::DuMMBodyIndex duMMBodyIndex1(0); duMMBodyIndex1 < (int)duMMSubsetOfBodies.size(); ++duMMBodyIndex1) 
-        {
-            MobilizedBodyIndex bodyIndex1 = duMMSubsetOfBodies[duMMBodyIndex1].getMobilizedBodyIndex();     
-
-            const Transform&          X_GB1  = matter.getMobilizedBody(bodyIndex1).getBodyTransform(s);
-            const AtomPlacementArray& alist1 = duMMSubsetOfBodies[duMMBodyIndex1].allAtoms;
-            for (int i=0; i < (int)alist1.size(); ++i) 
-            {
-                const int       a1num = alist1[i].atomIndex;
-                const Atom&     a1 = atoms[a1num];
-
-                // atomic coordinates with respect to Ground frame
-                const Vec3      a1Station_G = X_GB1.R() * a1.station_B; // nanometers
-                const Vec3      a1Pos_G     = (X_GB1.T() + a1Station_G) * DuMM::Nm2Ang; // Angstroms
-
-                gbsaRawCoordinates[3 * a1num + 0] = a1Pos_G[0];
-                gbsaRawCoordinates[3 * a1num + 1] = a1Pos_G[1];
-                gbsaRawCoordinates[3 * a1num + 2] = a1Pos_G[2];
-
-                // store partial charge also
-                const ChargedAtomType& a1type  = chargedAtomTypes[a1.chargedAtomTypeIndex];
-                gbsaAtomicPartialCharges[a1num] = a1type.partialCharge;
-
-                // and store atomic number
-                const AtomClass& a1class = atomClasses[a1type.atomClassIx];
-                gbsaAtomicNumbers[a1num] = a1class.element;
-
-                // and store one representative bond partner id
-                if (a1.bond12.size() > 0)
-                    gbsaFirstBondPartners[a1num] = a1.bond12[0];
-                else 
-                    gbsaFirstBondPartners[a1num] = -1;
-
-                gbsaNumberOfCovalentBondPartners[a1num] = a1.bond12.size();
-            }
-        }
-
-        // 2) Now that gbsaRawCoordinates is complete and stable,
-        //    fill gbsaCoordinatePointers with pointers to coordinates, assuming their
-        //    memory locations will not move in the near future.
-        //    We will use gbsaCoordinatePointers to produce the desired RealOpenMM** in step 4
-        std::vector<RealOpenMM*> gbsaCoordinatePointers(getNAtoms()); // [&x0,&x1,&x2...]
-        for (int a = 0; a < getNAtoms(); ++a)
-            gbsaCoordinatePointers[a] = &gbsaRawCoordinates[3*a];
-
-        // 3)  compute GBSA forces
-
-        // TODO - initialize gbsa structures before this point - steps 3a-3c should be done at realizeTopology stage
-
-        // 3a -- look up obc scale factor for each atom
-        std::vector<RealOpenMM> obcScaleFactors(getNAtoms());
-        int returnValue = getObcScaleFactors( getNAtoms(), &gbsaAtomicNumbers[0], &obcScaleFactors[0] );
-        assert(returnValue == 0);
-
-        // 3b -- look up gbsa radius for each atom
-        std::vector<RealOpenMM> gbsaRadii(getNAtoms());
-        returnValue = getGbsaRadii( getNAtoms(), 
-                                    &gbsaAtomicNumbers[0], 
-                                    &gbsaNumberOfCovalentBondPartners[0], 
-                                    &gbsaFirstBondPartners[0], 
-                                    &gbsaRadii[0] );
-        assert(returnValue == 0);
-
-        // 3c -- initialize gbsa internal data structures for this collection of atoms
-        // TODO -- move this to realizeTopology step
-        int includeAceApproximation = doIncludeGbsaAceApproximation ? 1 : 0;
-        // TODO - make dielectric parameters adjustable
-        RealOpenMM soluteDielectric = 1.0;
-        RealOpenMM solventDielectric = 80.0;
-        FILE* log = NULL;
-        returnValue = cpuSetObcParameters( getNAtoms(), &gbsaRadii[0], &obcScaleFactors[0],
-                                           includeAceApproximation, soluteDielectric, solventDielectric, 
-                                           log );
-        assert(returnValue == 0);
-
-        // 3d -- compute forces and energies
-        std::vector<RealOpenMM> atomicGbsaForces(3 * getNAtoms(), 0.0);
-        std::vector<RealOpenMM*> atomicGbsaForcePointers(getNAtoms()); // [&x0,&x1,&x2...]
-        for (int a = 0; a < getNAtoms(); ++a)
-            atomicGbsaForcePointers[a] = &atomicGbsaForces[3*a];
-
-        RealOpenMM gbsaEnergy;
-        returnValue = cpuCalculateImplicitSolventForces( &gbsaCoordinatePointers[0],
-                                                         &gbsaAtomicPartialCharges[0],
-                                                         &atomicGbsaForcePointers[0], 
-                                                         &gbsaEnergy, 1/*updateBornRadii*/ );
-        assert( returnValue == 0 );
-
-        // Debugging
-        // Set false for production code
-// #define GENERATE_DEBUGGING_REPORT_TO_MATCH_MARKS_TINKER_DATA 1
-#ifdef GENERATE_DEBUGGING_REPORT_TO_MATCH_MARKS_TINKER_DATA
-        printf("# %6d     %16.3f No atoms and esolv [x y z] rBrn q rsolv scObc [fX fY fZ] A tag res rName aName type\n", getNAtoms(), gbsaEnergy);
-        for (int a = 0; a < getNAtoms(); ++a) {
-            printf(" % #10.4E % #10.4E % #10.4E", gbsaRawCoordinates[3*a+0], gbsaRawCoordinates[3*a+1], gbsaRawCoordinates[3*a+2]);
-            printf(" % #10.4E", 2.0); // Born radius - don't have
-            printf(" % #10.4E", gbsaAtomicPartialCharges[a]); // partial charge
-            printf(" % #10.4E", gbsaRadii[a]); // gbsa radius
-            printf(" % #10.4E", obcScaleFactors[a]); // obc scale
-            printf(" % #010.4E % #10.4E % #10.4E", atomicGbsaForces[3*a+0], atomicGbsaForces[3*a+1], atomicGbsaForces[3*a+2]);
-            printf("%5d", gbsaAtomicNumbers[a]);
-
-            printf("\n");
-       }
-#endif
-
-// #define GENERATE_XYZ_FILE_FOR_MARK 1
-#ifdef GENERATE_XYZ_FILE_FOR_MARK
-        printf("%6d STRUCTURE FROM SIMBODY\n", getNAtoms());
-        for (int a = 0; a < getNAtoms(); ++a) 
-        {
-            const Atom& a1 = atoms[a];
-            const ChargedAtomType& chargedAtomType = chargedAtomTypes[a1.chargedAtomTypeIndex];
-            const AtomClass& a1class = atomClasses[chargedAtomType.atomClassIx];
-
-            printf("%6d  %-4s %16.9f %16.9f %16.9f %6d ",
-                a+1, // atom index
-                a1class.name.c_str(), // amber atom class name
-                gbsaRawCoordinates[3*a+0], gbsaRawCoordinates[3*a+1], gbsaRawCoordinates[3*a+2], // coordinates
-                chargedAtomType.chargedAtomTypeIndex); // biotype
-
-            for (int b = 0; b < (int)a1.bond12.size(); ++b) {
-                printf("%6d ", a1.bond12[b]+1);
-            }
-
-            printf("\n");
-       }
-#endif
-
-        // 4)  apply GBSA forces to bodies
-        for (DuMM::DuMMBodyIndex duMMBodyIndex1(0); duMMBodyIndex1 < (int)duMMSubsetOfBodies.size(); ++duMMBodyIndex1) 
-        {
-            MobilizedBodyIndex bodyIndex1 = duMMSubsetOfBodies[duMMBodyIndex1].getMobilizedBodyIndex();
-
-            // Location of body in ground frame
-            const Transform&          X_GB1  = matter.getMobilizedBody(bodyIndex1).getBodyTransform(s);
-
-            const AtomPlacementArray& alist1 = duMMSubsetOfBodies[duMMBodyIndex1].allAtoms;
-            for (int i=0; i < (int)alist1.size(); ++i) 
-            {
-                const int       a1num = alist1[i].atomIndex;
-                
-                Vec3 a1Pos_G(gbsaRawCoordinates[3 * a1num + 0], 
-                             gbsaRawCoordinates[3 * a1num + 1],
-                             gbsaRawCoordinates[3 * a1num + 2]);
-                a1Pos_G *= DuMM::Ang2Nm;  // convert Angstroms to nanometers
-                Vec3 a1Station_G = a1Pos_G - X_GB1.T();
-
-                Vec3 fGbsa(atomicGbsaForces[3 * a1num + 0],
-                           atomicGbsaForces[3 * a1num + 1],
-                           atomicGbsaForces[3 * a1num + 2]);
-
-                // convert force units from kcal/mol*A to to kJ/mol*nm
-                fGbsa *= (DuMM::Kcal2KJ/DuMM::Ang2Nm);
-
-                fGbsa *= gbsaGlobalScaleFactor;
-
-                SpatialVec forceOnBody(a1Station_G % fGbsa, fGbsa);
-                // std::cout << forceOnBody << std::endl;
-                forceCache[bodyIndex1] += SpatialVec( a1Station_G % fGbsa, fGbsa );
-            }
-        }
-
-        // update potential energy from gbsa
-        // convert kcal/mol to kJ/mol
-        gbsaEnergy *= gbsaGlobalScaleFactor;
-        gbsaEnergy *= DuMM::Kcal2KJ;
-        energyCache += gbsaEnergy;
-    } // end if (gbsaGlobalScaleFactor != 0)
 
     // Copy the values from the cache.
     Real& pe = mbs.updPotentialEnergy(s, Stage::Dynamics); // kJ
