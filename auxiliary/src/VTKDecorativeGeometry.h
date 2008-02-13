@@ -50,8 +50,6 @@ class vtkPolyData;
 class vtkTransform;
 class vtkObject;
 
-using namespace SimTK;
-
 // Each object of class VTKDecorativeGeometry implements a single SimTK::DecorativeGeometry
 // object. Use it like this: (1) We are given an object DG of class DecorativeGeometry, but
 // we don't know what it is specifically. (2) Instantiate an object of type VTKDecorativeGeometry,
@@ -72,14 +70,14 @@ public:
     /*virtual*/ ~VTKDecorativeGeometry() {
         deleteVTKGeometry();
     }
-    /*virtual*/ void implementLineGeometry     (const DecorativeLine&);
-    /*virtual*/ void implementBrickGeometry    (const DecorativeBrick&);
-    /*virtual*/ void implementCylinderGeometry (const DecorativeCylinder&);
-    /*virtual*/ void implementCircleGeometry   (const DecorativeCircle&); 
-    /*virtual*/ void implementSphereGeometry   (const DecorativeSphere&);
-    /*virtual*/ void implementEllipsoidGeometry(const DecorativeEllipsoid&);
-    /*virtual*/ void implementFrameGeometry    (const DecorativeFrame&);
-    /*virtual*/ void implementTextGeometry     (const DecorativeText&);
+    /*virtual*/ void implementLineGeometry     (const SimTK::DecorativeLine&);
+    /*virtual*/ void implementBrickGeometry    (const SimTK::DecorativeBrick&);
+    /*virtual*/ void implementCylinderGeometry (const SimTK::DecorativeCylinder&);
+    /*virtual*/ void implementCircleGeometry   (const SimTK::DecorativeCircle&); 
+    /*virtual*/ void implementSphereGeometry   (const SimTK::DecorativeSphere&);
+    /*virtual*/ void implementEllipsoidGeometry(const SimTK::DecorativeEllipsoid&);
+    /*virtual*/ void implementFrameGeometry    (const SimTK::DecorativeFrame&);
+    /*virtual*/ void implementTextGeometry     (const SimTK::DecorativeText&);
 
     // The last vtkObject is the end of the VTK pipeline -- its output is the
     // final representation of the object.
@@ -87,11 +85,11 @@ public:
 
     // Combine a SimTK Transform with x,y,z scale factors and return the equivalent
     // vtkTransform that will translate, rotate, and scale the same way.
-    vtkTransform* createVTKTransform(const Transform&, const Vec3& scale);
+    vtkTransform* createVTKTransform(const SimTK::Transform&, const SimTK::Vec3& scale);
 
     // Take some polygon data as input, copy it and transform it, returning the
     // transformed polygon data.
-    vtkPolyData* transformVTKPolyData(const Transform&, const Vec3& scale, vtkPolyData*);
+    vtkPolyData* transformVTKPolyData(const SimTK::Transform&, const SimTK::Vec3& scale, vtkPolyData*);
 
 protected:
     void rememberVTKObject(vtkObject* o) {

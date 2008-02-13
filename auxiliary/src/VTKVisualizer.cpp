@@ -65,6 +65,11 @@
 #include <Carbon/Carbon.h>
 #endif
 
+#ifdef VTK_USE_TK
+#include <X11/Intrinsic.h>
+#include "vtkXRenderWindowInteractor.h"
+#endif
+
 #include <cassert>
 #include <cmath>
 #include <cstdio>
@@ -587,6 +592,12 @@ void VTKVisualizerRep::report(const State& s) {
         SendEventToEventTarget(theEvent, theTarget);
         ReleaseEvent(theEvent);
     }
+#endif
+
+#ifdef VTK_USE_TK
+    vtkXRenderWindowInteractor* rwi = dynamic_cast<vtkXRenderWindowInteractor*>(renWin->GetInteractor());
+    while (XtAppPending(rwi->GetApp()))
+        XtAppProcessEvent(rwi->GetApp(), XtIMAll);
 #endif
 
 }
