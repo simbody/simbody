@@ -540,9 +540,11 @@ try
 
     SimbodyMatterSubsystem   matter(mbs);
     DuMMForceFieldSubsystem  mm(mbs);
-    GeneralForceSubsystem     forces(mbs);
+    GeneralForceSubsystem    forces(mbs);
     DecorationSubsystem      artwork(mbs);
-    Force::UniformGravity gravity(forces, matter, Vec3(0,0,0));
+
+    // No, thank you.
+    matter.setShowDefaultGeometry(false);
 
     Real accuracy = 1e-2;
     Real outputInterval = .01;
@@ -553,6 +555,7 @@ try
     const Real torsControlGain = /*100000*/0;
     const Real desiredTorsAngle = /*Pi/3*/0;
 
+    Force::UniformGravity gravity(forces, matter, Vec3(0,0,0));
     Force::GlobalDamper(forces, matter, .01);
 
 

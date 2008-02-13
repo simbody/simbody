@@ -178,6 +178,21 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstrainedQIndex)
 // of ConstrainedMobilizerIndex for the bodies for which these are the u's.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstrainedUIndex)
 
+
+// This is the Constraint-specific index of a coordinate q which can be involved in any
+// constraint equation of this constraint, either directly through ConstrainedMobilizers
+// or indirectly as a result of its effects on ConstrainedBodies (that is, this list
+// includes all the ConstraintQIndex entries above, plus possibly many more). These are in sorted
+// order by subsystem-wide QIndex, and each QIndex appears at most once.
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(ParticipatingQIndex)
+
+// This is the Constraint-specific index of a coordinate u which can be involved in any
+// constraint equation of this constraint, either directly through ConstrainedMobilizers
+// or indirectly as a result of its effects on ConstrainedBodies (that is, this list
+// includes all the ConstraintUIndex entries above, plus possibly many more). These are in sorted
+// order by subsystem-wide UIndex, and each UIndex appears at most once.
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(ParticipatingUIndex)
+
     // SUBTREE INDEX TYPES
 
 // And similarly for other unique Index types.

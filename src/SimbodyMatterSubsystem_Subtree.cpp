@@ -220,9 +220,14 @@ public:
     void realizeTopology() {
         if (stage >= Stage::Topology)
             return;
+        allBodies.clear(); parentSubtreeBodies.clear(); childSubtreeBodies.clear();
+
+        if (terminalBodies.empty()) {
+            stage = Stage::Topology;    // this is the "empty subtree"
+            return;
+        }
 
         ancestor = findAncestorBody();
-        allBodies.clear(); parentSubtreeBodies.clear(); childSubtreeBodies.clear();
 
         // We'll collect all the Subtree bodies in a MobilizedBodyIndex->SubtreeBodyIndex
         // map. We'll do this in two passes through the map -- the first to eliminate
@@ -375,13 +380,6 @@ private:
         for (int i=1; i < (int)tips.size(); ++i)
             if (getLevel(tips[i]) < minLevel)
                {minTip = i; minLevel = getLevel(tips[minTip]);}
-
-        // If the lowest level tip is not ground, we want to include its mobilizer so
-        // start the ancestor search at its parent's level.
-        if (minLevel > 0) {
-            tips[minTip] = getParentMobilizedBodyIndex(tips[minTip]);
-            minLevel = getLevel(tips[minTip]);
-        }
 
         // Trim all the other branches back to the lowest level.
         for (int i=0; i < (int)tips.size(); ++i)
@@ -773,7 +771,7 @@ SimbodyMatterSubsystem::Subtree::getParentSubtreeBodyIndex(SubtreeBodyIndex sbid
     return getRep().parentSubtreeBodies[sbid];
 }
 const std::vector<SubtreeBodyIndex>& 
-SimbodyMatterSubsystem::Subtree::getChildSubtreeBodyIndexs(SubtreeBodyIndex sbid) const {
+SimbodyMatterSubsystem::Subtree::getChildSubtreeBodyIndices(SubtreeBodyIndex sbid) const {
     assert(getRep().stage >= Stage::Topology);
     return getRep().childSubtreeBodies[sbid];
 }
@@ -979,8 +977,8 @@ std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystem::Subtree&
         o << "  parent[" << b << "]=" << sub.getParentSubtreeBodyIndex(b);
 
         o << "  children[" << b << "]=";
-        for (int i=0; i < (int)sub.getChildSubtreeBodyIndexs(b).size(); ++i)
-            o << sub.getChildSubtreeBodyIndexs(b)[i] << " ";
+        for (int i=0; i < (int)sub.getChildSubtreeBodyIndices(b).size(); ++i)
+            o << sub.getChildSubtreeBodyIndices(b)[i] << " ";
         o << endl;
     }
 

@@ -237,13 +237,7 @@ try // If anything goes wrong, an exception will be thrown.
                                    1000.,  // stiffness
                                    1.);    // natural length
 
-    /* forces.addTwoPointLinearSpring(0, -attachPt,
-                                   myRNA.getNBodies()-1, Vec3(0),
-                                   1000.,  // stiffness
-                                   1.);    // natural length
-    */
-
-    Force::GlobalDamper(forces, myRNA, 100);
+    Force::GlobalDamper(forces, myRNA, 1000);
 
 
     State s = mbs.realizeTopology();

@@ -61,6 +61,8 @@ class MobilizedBody;
  * This is the base class for all Constraint classes, which is just a handle for the underlying
  * hidden implementation. Each built-in Constraint type is a local subclass within
  * Constraint, and is also derived from Constraint.
+ *
+ * TODO: should derive from PIMPLHandle
  */
 class SimTK_SIMBODY_EXPORT Constraint {
 public:
@@ -82,12 +84,12 @@ public:
     /// Return the number of bodies *directly* restricted by this
     /// constraint. Included are any bodies to which the Constraint may
     /// apply a body force (i.e., torque or point force). The Ancestor body is not
-    /// included unless it was specified as a ConstrainedBody.
+    /// included unless it was specified as a ConstrainedBody. This is the length
+    /// of the bodyForces array for this Constraint.
     int getNumConstrainedBodies() const;
     /// Return a reference to the actual MobilizedBodies included in the count
-    /// above. 0 <= which < getNumConstrainedBodies().
-    const MobilizedBody& getMobilizedBodyFromConstrainedBody
-       (ConstrainedBodyIndex which) const;
+    /// above. 0 <= index < getNumConstrainedBodies().
+    const MobilizedBody& getMobilizedBodyFromConstrainedBody(ConstrainedBodyIndex) const;
     /// Return a reference to the actual MobilizedBody which is serving as
     /// the Ancestor body for the constrained bodies in this Constraint. This
     /// will fail if there are no constrained bodies
@@ -100,11 +102,8 @@ public:
     /// using the MobilizedBody containing them.
     int getNumConstrainedMobilizers() const;
     /// Return a reference to the actual MobilizedBodies included in the count
-    /// of constrained mobilizers above. 0 <= which < getNumConstrainedMobilizers().
-    const MobilizedBody& getMobilizedBodyFromConstrainedMobilizer
-       (ConstrainedMobilizerIndex which) const;
-
-
+    /// of constrained mobilizers above. 0 <= index < getNumConstrainedMobilizers().
+    const MobilizedBody& getMobilizedBodyFromConstrainedMobilizer(ConstrainedMobilizerIndex) const;
 
     const SimbodyMatterSubsystem::Subtree& getSubtree() const;
 
@@ -178,13 +177,15 @@ public:
     // actual system mobilities.
     // Note that the body forces are in the ancestor body frame A, not necessarily
     // the Ground frame G.
-    void calcConstraintForcesFromMultipliers(const State&,const Vector& lambda,
-        Vector_<SpatialVec>& bodyForcesInA,
-        Vector&              mobilityForces) const;
+    void calcConstraintForcesFromMultipliers(const State&,
+        const Vector&        lambda,                // mp+mv+ma of these
+        Vector_<SpatialVec>& bodyForcesInA,         // numConstrainedBodies
+        Vector&              mobilityForces) const; // numConstrainedU
 
         // VELOCITY STAGE //
     Vector getVelocityError(const State&) const;	// mp+mv of these
-	Vector calcVelocityErrorFromU(const State&, const Vector& u) const;
+	Vector calcVelocityErrorFromU(const State&,     // mp+mv of these
+                                  const Vector& u) const;   // numParticipatingU u's
 
 	// Matrix V = partial(verr)/partial(u) for just the non-holonomic constraints.
 	Matrix calcVelocityConstraintMatrixV(const State&) const;  // mv X nu
@@ -195,7 +196,9 @@ public:
 
         // ACCELERATION STAGE //
     Vector getAccelerationError(const State&) const;	// mp+mv+ma of these
-	Vector calcAccelerationErrorFromUDot(const State&, const Vector& udot) const {
+	Vector calcAccelerationErrorFromUDot(const State&,  // mp+mv+ma of these
+                                         const Vector& udot) const // numParticipatingU udot's
+    {
 		assert(!"calcAccelerationErrorFromUDot: Not implemented yet");
 		return Vector();
 	}
@@ -793,24 +796,13 @@ private:
 class SimTK_SIMBODY_EXPORT Constraint::ConstantSpeed : public Constraint {
 public:
     // no default constructor
-   ConstantSpeed(MobilizedBody& body, int which, Real s);
-   ConstantSpeed(MobilizedBody& body, Real s); // only if 1 dof mobilizer
-
-    // These affect only generated decorative geometry for visualization;
-    // the plane is really infinite in extent with zero depth and the
-    // point is really of zero radius.
-    NoSlip1D& setDirectionDisplayLength(Real);
-    NoSlip1D& setPointDisplayRadius(Real);
-    Real getDirectionDisplayLength() const;
-    Real getPointDisplayRadius() const;
-
-    // Defaults for Instance variables.
-    NoSlip1D& setDefaultDirection(const UnitVec3&);
-    NoSlip1D& setDefaultContactPoint(const Vec3&);
+   ConstantSpeed(MobilizedBody& mobilizer, MobilizerUIndex, Real speed);
+   ConstantSpeed(MobilizedBody& mobilizer, Real speed); // only if 1 dof mobilizer
 
     // Stage::Topology
     MobilizedBodyIndex getMobilizedBodyIndex() const;
-    int                getWhichMobility() const;
+    MobilizerUIndex    getWhichU() const;
+    Real               getDefaultSpeed() const;
 
     // Stage::Position, Velocity
         // no position error

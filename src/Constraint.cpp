@@ -42,6 +42,9 @@
 #include "ConstraintRep.h"
 #include "SimbodyMatterSubsystemRep.h"
 
+#include <vector>
+#include <algorithm>
+
 #ifdef USE_OLD_CONSTRAINTS
     #include "LengthConstraints.h"
 #endif
@@ -314,40 +317,58 @@ Matrix Constraint::calcVelocityConstraintMatrixVt(const State& s) const {
 	const int nu = matter.getNU(s);
 	const int nb = matter.getNBodies();
 
-	const int ncb = getNumConstrainedBodies();
 
 	Matrix Vt(nu, mv);
-	if (mv && nu) {
-		const ConstraintRep& rep = getRep();
-		Vector_<SpatialVec> bodyForcesInA(ncb);
-		Vector              mobilityForces(nu); // TODO should be n participating u's
+    if (mv==0 || nu==0)
+        return Vt;
 
-		Vector_<SpatialVec> bodyForcesInG(nb);
+	const ConstraintRep& rep = getRep();
+	const int ncb = rep.getNumConstrainedBodies();
+    const int ncu = rep.getNumConstrainedU(s);
 
-		bodyForcesInG = SpatialVec(Vec3(0), Vec3(0));
+	Vector              mobilityForces(ncu);
+	Vector_<SpatialVec> bodyForcesInA(ncb); // might be zero of these
+
+	Vector lambda(mv);
+    lambda = 0;
+    if (ncb == 0) {
+        // Mobility forces only
+        for (int i=0; i<mv; ++i) {
+		    lambda[i] = 1;
+		    mobilityForces = 0;
+		    rep.applyVelocityConstraintForces(s, mv, &lambda[0], bodyForcesInA, mobilityForces);
+		    lambda[i] = 0;
+            Vt(i) = 0;
+            for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
+                Vt(rep.getUIndexOfConstrainedU(s, cux), i) = mobilityForces[cux]; // unpack
+        }
+    } else {
+        // There are some body forces
+	    Vector_<SpatialVec> bodyForcesInG(nb);
+	    bodyForcesInG = SpatialVec(Vec3(0), Vec3(0));
 
         // For converting those A-relative forces to G
         const Rotation& R_GA = rep.getAncestorMobilizedBody().getBodyRotation(s);
 
-		// Calculate Vt*lambda with each lambda set to 1 in turn.
-		Vector lambda(mv);
-		lambda = 0;
-		for (int i=0; i<mv; ++i) {
-			lambda[i] = 1;
-			bodyForcesInA = SpatialVec(Vec3(0), Vec3(0));
-			mobilityForces = 0;
-			rep.applyVelocityConstraintForces(s, mv, &lambda[0], bodyForcesInA, mobilityForces);
-			for (ConstrainedBodyIndex cb(0); cb < ncb; ++cb) {
-				bodyForcesInG[rep.getMobilizedBodyIndexOfConstrainedBody(cb)] =
-					R_GA*bodyForcesInA[cb];
-			}
-			lambda[i] = 0;
+	    // Calculate Vt*lambda with each lambda set to 1 in turn.
+	    lambda = 0;
+	    for (int i=0; i<mv; ++i) {
+		    lambda[i] = 1;
+		    bodyForcesInA = SpatialVec(Vec3(0), Vec3(0));
+		    mobilityForces = 0;
+		    rep.applyVelocityConstraintForces(s, mv, &lambda[0], bodyForcesInA, mobilityForces);
+		    for (ConstrainedBodyIndex cb(0); cb < ncb; ++cb) {
+			    bodyForcesInG[rep.getMobilizedBodyIndexOfConstrainedBody(cb)] =
+				    R_GA*bodyForcesInA[cb];
+		    }
+		    lambda[i] = 0;
 
-			rep.getMyMatterSubsystem().calcInternalGradientFromSpatial(s,bodyForcesInG,Vt(i));
-            //TODO: must unpack and add in mobilityForces
-		}
+		    rep.getMyMatterSubsystem().calcInternalGradientFromSpatial(s,bodyForcesInG,Vt(i));
+            for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
+                Vt(rep.getUIndexOfConstrainedU(s, cux), i) += mobilityForces[cux]; // unpack
+        }
+    }
 
-	}
 	return Vt;
 }
 
@@ -1557,6 +1578,74 @@ void Constraint::NoSlip1D::NoSlip1DRep::calcDecorativeGeometryAndAppendImpl
 }
 
 
+    ////////////////////////////////
+    // CONSTRAINT::CONSTANT SPEED //
+    ////////////////////////////////
+
+// This picks one of the mobilities from a multiple-mobility mobilizer.
+Constraint::ConstantSpeed::ConstantSpeed
+   (MobilizedBody& mobilizer, MobilizerUIndex whichU, Real defaultSpeed)
+{
+    SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
+        "Constraint::ConstantSpeed(): the mobilizer must already be in a SimbodyMatterSubsystem.");
+
+    rep = new ConstantSpeedRep(); rep->setMyHandle(*this);
+    mobilizer.updMatterSubsystem().adoptConstraint(*this);
+
+    updRep().theMobilizer = updRep().addConstrainedMobilizer(mobilizer);
+    updRep().whichMobility = whichU;
+    updRep().prescribedSpeed = defaultSpeed;
+}
+
+// This is for mobilizers with only 1 mobility.
+Constraint::ConstantSpeed::ConstantSpeed(MobilizedBody& mobilizer, Real defaultSpeed)
+{
+    SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
+        "Constraint::ConstantSpeed(): the mobilizer must already be in a SimbodyMatterSubsystem.");
+
+    rep = new ConstantSpeedRep(); rep->setMyHandle(*this);
+    mobilizer.updMatterSubsystem().adoptConstraint(*this);
+
+    updRep().theMobilizer = updRep().addConstrainedMobilizer(mobilizer);
+    updRep().whichMobility = MobilizerUIndex(0);
+    updRep().prescribedSpeed = defaultSpeed;
+}
+
+MobilizedBodyIndex Constraint::ConstantSpeed::getMobilizedBodyIndex() const {
+    return getRep().getMobilizedBodyIndexOfConstrainedMobilizer(getRep().theMobilizer);
+}
+MobilizerUIndex Constraint::ConstantSpeed::getWhichU() const {
+    return getRep().whichMobility;
+}
+Real Constraint::ConstantSpeed::getDefaultSpeed() const {
+    return getRep().prescribedSpeed;
+}
+
+
+    // ConstantSpeed bookkeeping //
+
+bool Constraint::ConstantSpeed::isInstanceOf(const Constraint& s) {
+    return ConstantSpeedRep::isA(s.getRep());
+}
+const Constraint::ConstantSpeed& Constraint::ConstantSpeed::downcast(const Constraint& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const ConstantSpeed&>(s);
+}
+Constraint::ConstantSpeed& Constraint::ConstantSpeed::updDowncast(Constraint& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<ConstantSpeed&>(s);
+}
+const Constraint::ConstantSpeed::ConstantSpeedRep& Constraint::ConstantSpeed::getRep() const {
+    return dynamic_cast<const ConstantSpeedRep&>(*rep);
+}
+
+Constraint::ConstantSpeed::ConstantSpeedRep& Constraint::ConstantSpeed::updRep() {
+    return dynamic_cast<ConstantSpeedRep&>(*rep);
+}
+
+    // ConstantSpeedRep
+    // nothing yet
+
 
     ////////////////////
     // CONSTRAINT REP //
@@ -1571,6 +1660,7 @@ void Constraint::ConstraintRep::realizeTopology(State& s) const
     // Calculate the relevant Subtree.
     mySubtree.clear();
     mySubtree.setSimbodyMatterSubsystem(getMyMatterSubsystem());
+
     for (ConstrainedBodyIndex b(0); b < (int)myConstrainedBodies.size(); ++b)
         mySubtree.addTerminalBody(myConstrainedBodies[b]);
     mySubtree.realizeTopology();
@@ -1578,16 +1668,45 @@ void Constraint::ConstraintRep::realizeTopology(State& s) const
     realizeTopologyVirtual(s); // delegate to concrete constraint
 }
 
+// There are two main tasks here that can be performed now that we have values
+// for the Model stage state variables:
+// (1) Count up the number of holonomic, nonholonomic, and acceleration-only constraint
+//     equations to be contributed by each Constraint, and assign corresponding slots
+//     in constraint-equation ordered arrays, such as the State's constraint error arrays.
+// (2) Above we assigned q's and u's to each mobilizer and stored the results in the
+//     Model cache, now we can determine which of those q's and u's are involved in each
+//     constraint. We need to collect up both the set of directly-constrained q's and u's
+//     resulting from ConstrainedMobilizers, and indirectly-constrained ones arising 
+//     from their effects on ConstrainedBodies. Together we call those "participating q's"
+//     and "participating u's" (or "participating mobilities").
+// The results of these computations goes in the Model cache.
 void Constraint::ConstraintRep::realizeModel(State& s) const
 {
     SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
         "ConstraintRep::realizeModel() can't be called until after realizeToplogy().");
 
     const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
-    SBModelCache& modelCache = matter.updModelCache(s);
-    SBModelCache::PerConstraintModelInfo& cInfo = modelCache.updConstraintModelInfo(myConstraintIndex);
+    const SBModelVars& modelVars = matter.getModelVars(s);
+    SBModelCache&      modelCache = matter.updModelCache(s);
+    SBModelCache::PerConstraintModelInfo& cInfo =
+        modelCache.updConstraintModelInfo(myConstraintIndex);
 
-    // TODO: Subtree?
+    cInfo.clear();
+
+    // These are just the primary contraint equations, not their time derivatives.
+    int mHolo, mNonholo, mAccOnly;
+    if (modelVars.disabled[myConstraintIndex]) mHolo=mNonholo=mAccOnly=0;
+    else calcNumConstraintEquations(s, mHolo, mNonholo, mAccOnly);
+
+    // Must allocate space for the primary constraint equations and their time derivatives.
+    //                                length         offset
+    cInfo.holoErrSegment    = Segment(mHolo,    modelCache.totalNHolonomicConstraintEquationsInUse);
+    cInfo.nonholoErrSegment = Segment(mNonholo, modelCache.totalNNonholonomicConstraintEquationsInUse);
+    cInfo.accOnlyErrSegment = Segment(mAccOnly, modelCache.totalNAccelerationOnlyConstraintEquationsInUse);
+
+    modelCache.totalNHolonomicConstraintEquationsInUse        += mHolo;
+    modelCache.totalNNonholonomicConstraintEquationsInUse     += mNonholo;
+    modelCache.totalNAccelerationOnlyConstraintEquationsInUse += mAccOnly;  
 
     // At this point we can find out how many q's and u's are associated with
     // each of the constrained mobilizers. We'll create packed arrays of q's and
@@ -1595,24 +1714,47 @@ void Constraint::ConstraintRep::realizeModel(State& s) const
     // these in the ModelCache, by storing the ConstrainedQIndex and ConstrainedUIndex
     // of the lowest-numbered coordinate and mobility associated with each of
     // the ConstrainedMobilizers, along with the number of q's and u's.
+    cInfo.allocateConstrainedMobilizerModelInfo(getNumConstrainedMobilizers());
 
-    ConstrainedQIndex nxtQ(0);
-    ConstrainedUIndex nxtU(0);
-    for (ConstrainedMobilizerIndex m(0); m < (int)myConstrainedMobilizers.size(); ++m) {
-        SBModelCache::PerConstrainedMobilizerModelInfo& mInfo = cInfo.updConstrainedMobilizerModelInfo(m);
+    for (ConstrainedMobilizerIndex cmx(0); cmx < getNumConstrainedMobilizers(); ++cmx) {
+        SBModelCache::PerConstrainedMobilizerModelInfo& mInfo = 
+            cInfo.updConstrainedMobilizerModelInfo(cmx);
 
-        const MobilizedBodyIndex mb = myConstrainedMobilizers[m];
+        const MobilizedBodyIndex mbx = getMobilizedBodyIndexOfConstrainedMobilizer(cmx);
         QIndex qix; int nq;
         UIndex uix; int nu;
-        matter.findMobilizerQs(s,mb,qix,nq);
-        matter.findMobilizerUs(s,mb,uix,nu);
-        mInfo.firstConstrainedQIndex = nxtQ;
-        mInfo.firstConstrainedUIndex = nxtU;
-        nxtQ += nq; nxtU += nu;
+        matter.findMobilizerQs(s,mbx,qix,nq);
+        matter.findMobilizerUs(s,mbx,uix,nu);
+        if (nq) {
+            mInfo.firstConstrainedQIndex = cInfo.addConstrainedQ(qix);
+            for (int i=1; i<nq; ++i) cInfo.addConstrainedQ(QIndex(qix+i));
+        }
+        if (nu) {
+            mInfo.firstConstrainedUIndex = cInfo.addConstrainedU(uix);
+            for (int i=1; i<nu; ++i) cInfo.addConstrainedU(UIndex(uix+i));
+        }
     }
-    //cInfo.nConstrainedQs = nxtQ;
-    //cInfo.nConstrainedUs = nxtU;
-    
+
+    // Now collect all the participating mobilities. This includes the constrained mobilities
+    // as well as every q and u that can affect the constraint equations which involve 
+    // constrained bodies. At the end we'll sort this list by subsystem QIndex/UIndex
+    // and remove duplicates.
+    cInfo.participatingQ = cInfo.constrainedQ;
+    cInfo.participatingU = cInfo.constrainedU;
+
+    const std::vector<MobilizedBodyIndex>& bodies = mySubtree.getAllBodies();
+    for (int b=1; b<(int)bodies.size(); ++b) { // skip the Ancestor body 0
+        QIndex qix; int nq;
+        UIndex uix; int nu;
+        matter.findMobilizerQs(s,bodies[b],qix,nq);
+        matter.findMobilizerUs(s,bodies[b],uix,nu);
+        for (int i=0; i<nq; ++i) cInfo.participatingQ.push_back(QIndex(qix+i));
+        for (int i=0; i<nu; ++i) cInfo.participatingU.push_back(UIndex(uix+i));
+    }
+
+    std::sort(cInfo.participatingQ.begin(), cInfo.participatingQ.end());
+    std::unique(cInfo.participatingQ.begin(), cInfo.participatingQ.end());
+
     realizeModelVirtual(s); // delegate to concrete constraint
 }
 
@@ -1657,6 +1799,45 @@ Constraint::ConstraintRep::getAncestorMobilizedBody() const {
     SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
         "The ancestor body is not available until Topology stage has been realized.");
     return getMyMatterSubsystemRep().getMobilizedBody(mySubtree.getAncestorMobilizedBodyIndex()); ;
+}
+
+Real Constraint::ConstraintRep::getOneQ
+   (const State& s, ConstrainedMobilizerIndex cmx, MobilizerQIndex whichQ) const
+{
+    const QIndex qx = getQIndexOfConstrainedQ(s, getConstrainedQIndex(s, cmx, whichQ));
+    return getMyMatterSubsystemRep().getQ(s)[qx];
+}
+
+Real Constraint::ConstraintRep::getOneU
+   (const State& s, ConstrainedMobilizerIndex cmx, MobilizerUIndex whichU) const 
+{
+    const UIndex ux = getUIndexOfConstrainedU(s, getConstrainedUIndex(s, cmx, whichU));
+    return getMyMatterSubsystemRep().getU(s)[ux];
+}
+
+Real Constraint::ConstraintRep::getOneQDot(const State& s, 
+                ConstrainedMobilizerIndex cmx, MobilizerQIndex whichQ, bool realizing) const
+{
+    const QIndex qx = getQIndexOfConstrainedQ(s, getConstrainedQIndex(s, cmx, whichQ));
+    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
+    return realizing ? matter.updQDot(s)[qx] : matter.getQDot(s)[qx];
+}
+
+Real Constraint::ConstraintRep::getOneUDot(const State& s,
+                ConstrainedMobilizerIndex cmx, MobilizerUIndex whichU, bool realizing) const
+{
+    const UIndex ux = getUIndexOfConstrainedU(s, getConstrainedUIndex(s, cmx, whichU));
+    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
+    return realizing ? matter.updUDot(s)[ux] : matter.getUDot(s)[ux];
+}
+
+
+Real Constraint::ConstraintRep::getOneQDotDot(const State& s, 
+                ConstrainedMobilizerIndex cmx, MobilizerQIndex whichQ, bool realizing) const
+{
+    const QIndex qx = getQIndexOfConstrainedQ(s, getConstrainedQIndex(s, cmx, whichQ));
+    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
+    return realizing ? matter.updQDotDot(s)[qx] : matter.getQDotDot(s)[qx];
 }
 
 // These are measured from and expressed in the ancestor (A) frame.
@@ -1742,6 +1923,19 @@ void Constraint::ConstraintRep::getConstraintEquationSlots
     holo0    =                    cInfo.holoErrSegment.offset;
     nonholo0 = mHolo            + cInfo.nonholoErrSegment.offset;
     accOnly0 = mHolo + mNonholo + cInfo.accOnlyErrSegment.offset;
+}
+
+
+QIndex Constraint::ConstraintRep::getQIndexOfConstrainedQ(const State& s, ConstrainedQIndex cqx) const {
+    const SBModelCache&                         mc    = getModelCache(s);
+    const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
+    return cInfo.getQIndexFromConstrainedQ(cqx);
+}
+
+UIndex Constraint::ConstraintRep::getUIndexOfConstrainedU(const State& s, ConstrainedUIndex cqx) const {
+    const SBModelCache&                         mc    = getModelCache(s);
+    const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
+    return cInfo.getUIndexFromConstrainedU(cqx);
 }
 
 int Constraint::ConstraintRep::getNumConstrainedQ(const State& s) const {

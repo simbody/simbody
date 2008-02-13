@@ -144,6 +144,9 @@ public:
         return myConstrainedMobilizers[c];
     }
 
+    QIndex getQIndexOfConstrainedQ(const State& s, ConstrainedQIndex cqx) const;
+    UIndex getUIndexOfConstrainedU(const State& s, ConstrainedUIndex cqx) const;
+
     void realizeTopology(State&) const; // eventually calls realizeTopologyVirtual()
     void realizeModel   (State&) const; // eventually calls realizeModelVirtual()       
     void realizeInstance(const State& s) const {
@@ -260,29 +263,12 @@ public:
 
         // Methods for use with ConstrainedMobilizers.
 
-    Real getOneQ(const State&, ConstrainedMobilizerIndex, MobilizerQIndex whichMobility) const {
-        assert(!"ConstraintRep::getOneQ(): not implemented yet");
-        return NaN;
-    }
+    Real getOneQ(const State&, ConstrainedMobilizerIndex, MobilizerQIndex) const;
+    Real getOneU(const State&, ConstrainedMobilizerIndex, MobilizerUIndex) const;
 
-    Real getOneU(const State&, ConstrainedMobilizerIndex, MobilizerUIndex whichMobility) const {
-        assert(!"ConstraintRep::getOneU(): not implemented yet");
-        return NaN;
-    }
-
-    Real getOneQDot(const State&, const SBVelocityCache& vc, 
-                    ConstrainedMobilizerIndex, MobilizerQIndex whichMobility) const
-    {
-        assert(!"ConstraintRep::getOneQDot(): not implemented yet");
-        return NaN;
-    }
-
-    Real getOneUDot(const State&, const SBAccelerationCache& ac,
-                    ConstrainedMobilizerIndex, MobilizerUIndex whichMobility) const
-    {
-        assert(!"ConstraintRep::getOneUDot(): not implemented yet");
-        return NaN;
-    }
+    Real getOneQDot   (const State&, ConstrainedMobilizerIndex, MobilizerQIndex, bool realizing=false) const;
+    Real getOneQDotDot(const State&, ConstrainedMobilizerIndex, MobilizerQIndex, bool realizing=false) const;
+    Real getOneUDot   (const State&, ConstrainedMobilizerIndex, MobilizerUIndex, bool realizing=false) const;
 
     // Apply a generalized (mobility) force to a particular mobility of the given constrained body B,
     // adding it in to the appropriate slot of the mobilityForces vector.
@@ -1782,7 +1768,7 @@ private:
 class Constraint::ConstantSpeed::ConstantSpeedRep : public Constraint::ConstraintRep {
 public:
     ConstantSpeedRep()
-      : ConstraintRep(0,1,0), theMobilizer(), whichMobility(-1), prescribedSpeed(NaN)
+      : ConstraintRep(0,1,0), theMobilizer(), whichMobility(), prescribedSpeed(NaN)
     { }
     ConstantSpeedRep* clone() const { return new ConstantSpeedRep(*this); }
 
@@ -1799,7 +1785,7 @@ public:
 
     void realizeVelocityDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mv,  Real* vaerr) const {
         assert(mv==1 && vaerr);
-        *vaerr = getOneUDot(s, ac, theMobilizer, whichMobility);
+        *vaerr = getOneUDot(s, theMobilizer, whichMobility, true);
     }
 
 	// apply generalized force lambda to the mobility

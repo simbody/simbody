@@ -53,9 +53,8 @@ namespace SimTK {
  * path of each Ti. Note that a Subtree's "terminal" bodies do not have to be terminal
  * in the full tree. The Subtree includes T and all "branch" mobilized bodies
  * B={Bij} found on any path from a Ti to A, and A itself which serves as Ground.
- * A will not be the same as any terminal body unless one of the terminal bodies
- * is Ground. A's mobilizer is *not* part of the Subtree. The path from Ti to A
- * is called the ith branch of the Subtree; branches can overlap.
+ * A may be one of the terminal bodies. A's mobilizer is *not* part of the Subtree.
+ * The path from Ti to A is called the ith branch of the Subtree; branches can overlap.
  *                                                          @verbatim
  *                           . .
  *      .    .                .
@@ -144,7 +143,7 @@ public:
     const std::vector<MobilizedBodyIndex>& getAllBodies() const;
 
     SubtreeBodyIndex getParentSubtreeBodyIndex(SubtreeBodyIndex) const; // 0 returns an invalid Index
-    const std::vector<SubtreeBodyIndex>& getChildSubtreeBodyIndexs(SubtreeBodyIndex) const;
+    const std::vector<SubtreeBodyIndex>& getChildSubtreeBodyIndices(SubtreeBodyIndex) const;
 
         // MODEL STAGE
 

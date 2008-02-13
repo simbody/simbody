@@ -1291,7 +1291,7 @@ public:
     // This is required for all mobilizers.
     bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
         startOfAngles = MobilizerQIndex(0); nAngles=1; // torsion mobilizer
-        return false;
+        return true;
     }
 
     // Precalculate sines and cosines.
@@ -1409,7 +1409,7 @@ public:
         // but could just as easily have used translation or some non-physical coordinate. It
         // might make sense to offer a Model stage option to set the coordinate meaning.
         startOfAngles = MobilizerQIndex(0); nAngles=1; 
-        return false;
+        return true;
     }
 
     // Precalculate sines and cosines.
@@ -1522,7 +1522,7 @@ public:
     bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // Cylinder joint has one angular coordinate, which comes first.
         startOfAngles = MobilizerQIndex(0); nAngles=1; 
-        return false;
+        return true;
     }
 
     // Precalculate sines and cosines.
@@ -1677,7 +1677,7 @@ public:
     bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // Bend-stretch joint has one angular coordinate, which comes first.
         startOfAngles = MobilizerQIndex(0); nAngles=1; 
-        return false;
+        return true;
     }
 
     // Precalculate sines and cosines.
@@ -1823,7 +1823,7 @@ public:
     bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // U-joint has two angular coordinates.
         startOfAngles = MobilizerQIndex(0); nAngles=2; 
-        return false;
+        return true;
     }
 
     // Precalculate sines and cosines.
@@ -1947,7 +1947,7 @@ public:
     bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // Planar joint has one angular coordinate, which comes first.
         startOfAngles = MobilizerQIndex(0); nAngles=1; 
-        return false;
+        return true;
     }
 
     // This is required but does nothing here since there are no rotations for this joint.
@@ -2063,7 +2063,7 @@ public:
     bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // Gimbal joint has three angular coordinates.
         startOfAngles = MobilizerQIndex(0); nAngles=3; 
-        return false;
+        return true;
     }
 
     // Precalculate sines and cosines.

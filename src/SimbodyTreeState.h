@@ -75,6 +75,8 @@
 
 #include <cassert>
 #include <vector>
+#include <iostream>
+using std::cout; using std::endl;
 
 
 using namespace SimTK;
@@ -220,32 +222,22 @@ public:
     };
         
     class PerConstraintModelInfo {
-        // Access using accessor methods below so you'll get type checking on the index type.
-        std::vector<PerConstrainedMobilizerModelInfo> constrainedMobilizerModelInfo;
-
-        // The ConstrainedBodies and ConstrainedMobilizers are set at Topology stage, but the
-        // particular generalized coordinates q and generalized speeds u which are involved
-        // can't be determined until Model stage, since the associated mobilizers have Model
-        // stage options which can affect the number and meanings of these variables.
-        // These are sorted in order of their associated ConstrainedMobilizer, not necessarily
-        // in order of QIndex or UIndex. Each value appears only once.
-        std::vector<QIndex> constrainedQ;   // indexed by ConstrainedQIndex, maps to subsystem QIndex
-        std::vector<UIndex> constrainedU;   // indexed by ConstrainedUIndex, maps to subsystem UIndex
-
-        // Participating mobilities include ALL the mobilities which may be involved in any of this
-        // Constraint's constraint equations, whether from being directly constrained or indirectly
-        // as a result of their effects on ConstrainedBodies. These are sorted in order of increasing
-        // QIndex and UIndex, and each QIndex or UIndex appears only once.
-        std::vector<QIndex> participatingQ; // indexed by ParticipatingQIndex, maps to subsystem QIndex
-        std::vector<UIndex> participatingU; // indexed by ParticipatingUIndex, maps to subsystem UIndex
     public:
         PerConstraintModelInfo() { }
+        void clear() {
+            constrainedMobilizerModelInfo.clear();
+            constrainedQ.clear(); constrainedU.clear();
+            participatingQ.clear(); participatingU.clear();
+        }
+
         void allocateConstrainedMobilizerModelInfo(int nConstrainedMobilizers) {
             assert(nConstrainedMobilizers >= 0);
             constrainedMobilizerModelInfo.resize(nConstrainedMobilizers);
             constrainedQ.clear();   // build by appending
             constrainedU.clear();
         }
+
+        int getNConstrainedMobilizers() const {return (int)constrainedMobilizerModelInfo.size();}
         const PerConstrainedMobilizerModelInfo& getConstrainedMobilizerModelInfo(ConstrainedMobilizerIndex M) const {
             return constrainedMobilizerModelInfo[M];
         }
@@ -263,19 +255,55 @@ public:
             constrainedU.push_back(ux);
             return ConstrainedUIndex(constrainedU.size()-1);
         }
+        QIndex getQIndexFromConstrainedQ(ConstrainedQIndex i) const {return constrainedQ[i];}
+        UIndex getUIndexFromConstrainedU(ConstrainedUIndex i) const {return constrainedU[i];}
+
+        int getNParticipatingQ() const {return (int)participatingQ.size();}
+        int getNParticipatingU() const {return (int)participatingU.size();}
+        ParticipatingQIndex addParticipatingQ(QIndex qx) {
+            participatingQ.push_back(qx);
+            return ParticipatingQIndex(participatingQ.size()-1);
+        }
+        ParticipatingUIndex addParticipatingU(UIndex ux) {
+            participatingU.push_back(ux);
+            return ParticipatingUIndex(participatingU.size()-1);
+        }
+        QIndex getQIndexFromParticipatingQ(ParticipatingQIndex i) const {return participatingQ[i];}
+        UIndex getUIndexFromParticipatingU(ParticipatingUIndex i) const {return participatingU[i];}
 
         Segment holoErrSegment;    // (offset,mHolo)    for each Constraint, within subsystem qErr
         Segment nonholoErrSegment; // (offset,mNonholo) same, but for uErr slots (after holo derivs)
         Segment accOnlyErrSegment; // (offset,mAccOnly) same, but for udotErr slots (after holo/nonholo derivs)
+    public:
+        // Better to access using accessor methods below so you'll get type checking on the index type.
+        std::vector<PerConstrainedMobilizerModelInfo> constrainedMobilizerModelInfo;
+
+        // The ConstrainedBodies and ConstrainedMobilizers are set at Topology stage, but the
+        // particular generalized coordinates q and generalized speeds u which are involved
+        // can't be determined until Model stage, since the associated mobilizers have Model
+        // stage options which can affect the number and meanings of these variables.
+        // These are sorted in order of their associated ConstrainedMobilizer, not necessarily
+        // in order of QIndex or UIndex. Each value appears only once.
+        std::vector<QIndex> constrainedQ;   // indexed by ConstrainedQIndex, maps to subsystem QIndex
+        std::vector<UIndex> constrainedU;   // indexed by ConstrainedUIndex, maps to subsystem UIndex
+
+        // Participating mobilities include ALL the mobilities which may be involved in any of this
+        // Constraint's constraint equations, whether from being directly constrained or indirectly
+        // as a result of their effects on ConstrainedBodies. These are sorted in order of increasing
+        // QIndex and UIndex, and each QIndex or UIndex appears only once.
+        std::vector<QIndex> participatingQ; // indexed by ParticipatingQIndex, maps to subsystem QIndex
+        std::vector<UIndex> participatingU; // indexed by ParticipatingUIndex, maps to subsystem UIndex
     };
 
     // Use these accessors so that you get type checking on the index types.
+    int getNMobilizedBodies() const {return (int)mobilizedBodyModelInfo.size();}
     PerMobilizedBodyModelInfo& updMobilizedBodyModelInfo(MobilizedBodyIndex mbx) {
         return mobilizedBodyModelInfo[mbx];
     }
     const PerMobilizedBodyModelInfo& getMobilizedBodyModelInfo(MobilizedBodyIndex mbx) const {
         return mobilizedBodyModelInfo[mbx];
     }
+    int getNConstraints() const {return (int)constraintModelInfo.size();}
     PerConstraintModelInfo& updConstraintModelInfo(ConstraintIndex cx) {
         return constraintModelInfo[cx];
     }
@@ -327,6 +355,54 @@ private:
     std::vector<PerMobilizedBodyModelInfo> mobilizedBodyModelInfo; // MobilizedBody 0 is Ground
     std::vector<PerConstraintModelInfo>    constraintModelInfo;
 };
+
+inline std::ostream& operator<<(std::ostream& o, const SBModelCache& c) { 
+    o << "SBModelCache:\n";
+    o << "  " << c.getNMobilizedBodies() << " Mobilized Bodies:\n";
+    for (MobilizedBodyIndex mbx(0); mbx < c.getNMobilizedBodies(); ++mbx) {
+        const SBModelCache::PerMobilizedBodyModelInfo& mInfo = c.getMobilizedBodyModelInfo(mbx);
+        o << "  " << mbx << ": nq,nu="   << mInfo.nQInUse << "," << mInfo.nUInUse
+                         <<  " qix,uix=" << mInfo.firstQIndex << "," << mInfo.firstUIndex << endl;
+        if (mInfo.hasQuaternionInUse)
+            o <<  "    firstQuat,quatPoolIx=" << mInfo.startOfQuaternion << "," << mInfo.quaternionPoolIndex << endl;
+        else o << "    no quaternion in use\n";
+        if (mInfo.nAnglesInUse)
+             o << "    nangles,firstAngle,anglePoolIx=" << mInfo.nAnglesInUse << "," << mInfo.startOfAngles << "," << mInfo.anglePoolIndex << endl;
+        else o << "    no angles in use\n";
+    }
+    o << "\n  " << c.getNConstraints() << " Constraints:\n";
+    for (ConstraintIndex cx(0); cx < c.getNConstraints(); ++cx) {
+        const SBModelCache::PerConstraintModelInfo& cInfo = c.getConstraintModelInfo(cx);
+        o << "  " << cx << ": holo=(" << cInfo.holoErrSegment.length << "@" << cInfo.holoErrSegment.offset << ")" 
+                        << ", nonholo=(" << cInfo.nonholoErrSegment.length << "@" << cInfo.nonholoErrSegment.offset << ")"
+                        << ", accOnly=(" << cInfo.accOnlyErrSegment.length << "@" << cInfo.accOnlyErrSegment.offset << ")\n";
+        if (cInfo.getNConstrainedMobilizers()) {
+            o << "    ConstrainedMobilizers:";
+            for (ConstrainedMobilizerIndex i(0); i < cInfo.getNConstrainedMobilizers(); ++i) {
+                const SBModelCache::PerConstrainedMobilizerModelInfo& mInfo = cInfo.getConstrainedMobilizerModelInfo(i);
+                o << " " << i << ": firstConstrainedQIndex/UIndex=" << mInfo.firstConstrainedQIndex 
+                                                                    << "/" << mInfo.firstConstrainedUIndex << endl;
+            }
+            o << "    constrainedQ:"; 
+            for(ConstrainedQIndex i(0); i < cInfo.getNConstrainedQ(); ++i) 
+                o << " " << cInfo.getQIndexFromConstrainedQ(i);
+            o << "\n    constrainedU: "; 
+            for(ConstrainedUIndex i(0); i < cInfo.getNConstrainedU(); ++i) 
+                o << " " << cInfo.getUIndexFromConstrainedU(i); 
+            o << endl;
+        }
+        else o << "    no constrained mobilizers\n";
+
+        o << "    participatingQ:"; 
+        for(ParticipatingQIndex i(0); i < cInfo.getNParticipatingQ(); ++i) 
+            o << " " << cInfo.getQIndexFromParticipatingQ(i);
+        o << "\n    participatingU: "; 
+        for(ParticipatingUIndex i(0); i < cInfo.getNParticipatingU(); ++i) 
+            o << " " << cInfo.getUIndexFromParticipatingU(i); 
+        o << endl;
+    }
+    return o; 
+}
 
 class SBInstanceCache {
 public:
@@ -706,8 +782,8 @@ public:
 // will compile.
 inline std::ostream& operator<<(std::ostream& o, const SBTopologyCache& c)
   { return o << "TODO: SBTopologyCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBModelCache& c)
-  { return o << "TODO: SBModelCache"; }
+// SBModelCache output is implemented above
+
 inline std::ostream& operator<<(std::ostream& o, const SBInstanceCache& c)
   { return o << "TODO: SBInstanceCache"; }
 inline std::ostream& operator<<(std::ostream& o, const SBTimeCache& c)
