@@ -38,7 +38,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "simbody/internal/SimbodyMatterSubsystem_Subtree.h"
+#include "simbody/internal/SimbodyMatterSubtree.h"
 #include "simbody/internal/MobilizedBody.h"
 
 #include "SimbodyTreeState.h"

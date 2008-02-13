@@ -35,7 +35,7 @@
  */
 
 #include "SimTKcommon.h"
-#include "simbody/internal/SimbodyMatterSubsystem_Subtree.h"
+#include "simbody/internal/SimbodyMatterSubtree.h"
 
 #include "MobilizedBodyImpl.h"
 #include "SimbodyMatterSubsystemRep.h"

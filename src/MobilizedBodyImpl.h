@@ -56,7 +56,7 @@ namespace SimTK {
 
 class MobilizedBodyImpl : public PIMPLImplementation<MobilizedBody,MobilizedBodyImpl> {
 public:
-    MobilizedBodyImpl() : myHandle(0), myMatterSubsystemRep(0), myLevel(-1), myRBnode(0) {
+    MobilizedBodyImpl() : myMatterSubsystemRep(0), myLevel(-1), myRBnode(0) {
     }
     MobilizedBodyImpl(const MobilizedBodyImpl& clone) {
         *this = clone;
@@ -325,10 +325,6 @@ public:
         }
     }
 
-    void setMyHandle(MobilizedBody& h) {myHandle = &h;}
-    const MobilizedBody& getMyHandle() const {assert(myHandle); return *myHandle;}
-    void clearMyHandle() {myHandle=0;}
-
 private:
     // Body topological geometry is defined with respect to the body frame so we
     // can draw it right away.
@@ -358,7 +354,6 @@ private:
 
 private:
     friend class MobilizedBody;
-    MobilizedBody* myHandle;	// the owner handle of this rep
 
         // TOPOLOGY "STATE"
 

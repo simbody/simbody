@@ -48,7 +48,7 @@
 #include "simbody/internal/Force.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "simbody/internal/SimbodyMatterSubsystem_Subtree.h"
+#include "simbody/internal/SimbodyMatterSubtree.h"
 #include "simbody/internal/GeneralForceSubsystem.h"
 #include "simbody/internal/HuntCrossleyContact.h"
 #include "simbody/internal/DuMMForceFieldSubsystem.h"

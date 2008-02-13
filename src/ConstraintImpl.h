@@ -41,7 +41,7 @@
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/Constraint.h"
-#include "simbody/internal/SimbodyMatterSubsystem_Subtree.h"
+#include "simbody/internal/SimbodyMatterSubtree.h"
 
 #include <map>
 #include <vector>

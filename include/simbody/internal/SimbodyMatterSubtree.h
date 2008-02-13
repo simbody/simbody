@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_MATTER_SUBSYSTEM_SUBTREE_H_
-#define SimTK_SIMBODY_MATTER_SUBSYSTEM_SUBTREE_H_
+#ifndef SimTK_SIMBODY_MATTER_SUBTREE_H_
+#define SimTK_SIMBODY_MATTER_SUBTREE_H_
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-8 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -34,7 +34,6 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-//#include "simbody/internal/SimbodyMatterSubsystem.h"
 
 #include <cassert>
 #include <vector>
@@ -292,4 +291,4 @@ operator<<(std::ostream&, const SimbodyMatterSubtreeResults&);
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_MATTER_SUBSYSTEM_SUBTREE_H_
+#endif // SimTK_SIMBODY_MATTER_SUBTREE_H_
