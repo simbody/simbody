@@ -340,6 +340,7 @@ protected:
 
 class SimTK_SIMBODY_EXPORT Force::Custom::Implementation {
 public:
+    virtual ~Implementation() { }
     /**
      * Calculate the force for a given state.
      * 

@@ -181,7 +181,7 @@ int main(int argc, char** argv) {
 
     if (cid.isValid()) {
 		int mp, mv, ma;
-		twoPends.getConstraint(cid).getNumConstraintEquations(s, mp, mv, ma);
+		twoPends.getConstraint(cid).getNumConstraintEquationsInUse(s, mp, mv, ma);
 		cout << "CONSTRAINT ID " << cid << " mp,v,a=" << mp << ", " << mv << ", " << ma << endl;
         cout << "CONSTRAINT -- " << twoPends.getConstraint(cid).getSubtree();
     }

@@ -180,7 +180,7 @@ int main(int argc, char** argv) {
     for (ConstraintIndex cid(0); cid < matter.getNConstraints(); ++cid) {
         const Constraint& c = matter.getConstraint(cid);
         int mp,mv,ma;
-        c.getNumConstraintEquations(s, mp,mv,ma);
+        c.getNumConstraintEquationsInUse(s, mp,mv,ma);
 
 	    cout << "CONSTRAINT " << cid 
              << " constrained bodies=" << c.getNumConstrainedBodies() 

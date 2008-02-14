@@ -248,7 +248,7 @@ try // If anything goes wrong, an exception will be thrown.
     for (ConstraintIndex cid(0); cid < myRNA.getNConstraints(); ++cid) {
         const Constraint& c = myRNA.getConstraint(cid);
         int mp,mv,ma;
-        c.getNumConstraintEquations(s, mp,mv,ma);
+        c.getNumConstraintEquationsInUse(s, mp,mv,ma);
 
 	    cout << "CONSTRAINT " << cid 
              << " constrained bodies=" << c.getNumConstrainedBodies() 
