@@ -1486,14 +1486,14 @@ void Constraint::CustomImpl::takeOwnershipOfImplementation(Custom::Implementatio
 // When this gets passed to a Custom handle we'll turn over ownership of the CustomImpl object
 // to the Custom handle.
 Constraint::Custom::Implementation::Implementation(SimbodyMatterSubsystem& matter) 
-  : PIMPLHandle(new ImplementationImpl(new CustomImpl())) 
+  : PIMPLHandle<Implementation,ImplementationImpl>(new ImplementationImpl(new CustomImpl())) 
 {
     // We don't know the ConstraintIndex yet since this hasn't been adopted by the MatterSubsystem.
     updImpl().updCustomImpl().setMyMatterSubsystem(matter, ConstraintIndex());
 }
 
 Constraint::Custom::Implementation::Implementation(SimbodyMatterSubsystem& matter, int mp, int mv, int ma) 
-  : PIMPLHandle(new ImplementationImpl(new CustomImpl(mp,mv,ma))) 
+  : PIMPLHandle<Implementation,ImplementationImpl>(new ImplementationImpl(new CustomImpl(mp,mv,ma))) 
 {
      // We don't know the ConstraintIndex yet since this hasn't been adopted by the MatterSubsystem.
    updImpl().updCustomImpl().setMyMatterSubsystem(matter, ConstraintIndex());
