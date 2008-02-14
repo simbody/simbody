@@ -50,6 +50,7 @@
 #include "vtkFollower.h"
 #include "vtkTransform.h"
 #include "vtkTransformPolyDataFilter.h"
+#include "vtkToolkits.h"
 
 #include "vtkPolyDataMapper.h"
 #include "vtkCaptionActor2D.h"
@@ -65,7 +66,7 @@
 #include <Carbon/Carbon.h>
 #endif
 
-#ifdef VTK_USE_TK
+#ifdef VTK_USE_X
 #include <X11/Intrinsic.h>
 #include "vtkXRenderWindowInteractor.h"
 #endif
@@ -594,7 +595,7 @@ void VTKVisualizerRep::report(const State& s) {
     }
 #endif
 
-#ifdef VTK_USE_TK
+#ifdef VTK_USE_X
     vtkXRenderWindowInteractor* rwi = dynamic_cast<vtkXRenderWindowInteractor*>(renWin->GetInteractor());
     while (XtAppPending(rwi->GetApp()))
         XtAppProcessEvent(rwi->GetApp(), XtIMAll);
