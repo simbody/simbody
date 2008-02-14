@@ -56,7 +56,7 @@ class Constraint;
 class ConstraintImpl;
 
 // We only want the template instantiation to occur once. This symbol is defined in the SimTK core
-// compilation unit that defines the Force class but should not be defined any other time.
+// compilation unit that defines the Constraint class but should not be defined any other time.
 #ifndef SimTK_SIMBODY_DEFINING_CONSTRAINT
     extern template class PIMPLHandle<Constraint, ConstraintImpl>;
 #endif
@@ -791,11 +791,14 @@ public:
  * subclass must not have any data members or virtual methods.  If it does, it will not work correctly.  Instead,
  * store all data in the Implementation subclass.
  */
-class SimTK_SIMBODY_EXPORT Constraint::Custom : public PIMPLDerivedHandle<Custom, CustomImpl, Constraint> {
+class SimTK_SIMBODY_EXPORT Constraint::Custom 
+  : public PIMPLDerivedHandle<Custom, CustomImpl, Constraint> 
+{
 public:
     class Implementation;
+    class ImplementationImpl;
 
-    /* Create a Custom force.
+    /* Create a Custom Constraint.
      * 
      * @param implementation the object which implements the custom constraint.  The Constraint::Custom takes over
      *                       ownership of the implementation object, and deletes it when the Constraint itself
@@ -807,10 +810,19 @@ protected:
     Implementation&       updImplementation();
 };
 
-// TODO: this is just a sketch of a Custom Constraint base class.
-class SimTK_SIMBODY_EXPORT Constraint::Custom::Implementation {
+// We only want the template instantiation to occur once. This symbol is defined in the SimTK core
+// compilation unit that defines the Constraint class but should not be defined any other time.
+#ifndef SimTK_SIMBODY_DEFINING_CONSTRAINT
+    extern template class PIMPLHandle<Constraint::Custom::Implementation, 
+                                      Constraint::Custom::ImplementationImpl>;
+#endif
+
+class SimTK_SIMBODY_EXPORT Constraint::Custom::Implementation 
+  : public PIMPLHandle<Implementation,ImplementationImpl> 
+{
 public:
-    // no default constructor (?)
+    // No default constructor because you have to supply at least the SimbodyMatterSubsystem
+    // to which this Constraint belongs.
 
     /// Destructor is virtual so derived classes get a chance to clean up if necessary.
     virtual ~Implementation() { }
@@ -826,13 +838,13 @@ public:
     /// This Implementation base class constructor sets the topological defaults for
     /// the number of position level (holonomic), velocity level (nonholonomic), and
     /// acceleration-only constraint equations to be generated.
-    Implementation(int mp, int mv, int ma);
+    Implementation(SimbodyMatterSubsystem&, int mp, int mv, int ma);
 
     /// The default constructor for the Implementation base class sets the number of
     /// generated equations to zero for this constraint, meaning the Constraint won't
     /// do anything by default.  The actual number can be changed using
     /// setNumConstraintEquationsInUse() prior to realizeModel(). 
-    Implementation();
+    Implementation(SimbodyMatterSubsystem&);
 
         // Topological information//
 
@@ -877,6 +889,21 @@ public:
 
     // getNumConstraintEquations(), getNumMobilities(), and getParticipatingMobilities()
     // are in the base class.
+
+
+        // Methods for use with ConstrainedMobilizers.
+
+    Real getOneQ(const State&, ConstrainedMobilizerIndex, MobilizerQIndex) const;
+    Real getOneU(const State&, ConstrainedMobilizerIndex, MobilizerUIndex) const;
+
+    Real getOneQDot   (const State&, ConstrainedMobilizerIndex, MobilizerQIndex, bool realizingVelocity=false) const;
+    Real getOneQDotDot(const State&, ConstrainedMobilizerIndex, MobilizerQIndex, bool realizingAcceleration=false) const;
+    Real getOneUDot   (const State&, ConstrainedMobilizerIndex, MobilizerUIndex, bool realizingAcceleration=false) const;
+
+    // Apply a generalized (mobility) force to a particular mobility of the given constrained body B,
+    // adding it in to the appropriate slot of the mobilityForces vector.
+    void addInOneMobilityForce(const State& s, ConstrainedMobilizerIndex M, MobilizerUIndex which,
+                               Real f, Vector& mobilityForces) const;
 
 protected:
     /// Every derived class must implement a method to copy itself.
@@ -952,6 +979,12 @@ protected:
     /// Note that this is called <em>before</em> realizePositionDotDotErrorsVirtual(),
     /// realizeVelocityDotErrorsVirtual(), and realizeAccelerationErrorsVirtual().
     virtual void realizeAccelerationVirtual(const State&) const { }
+
+    /// The Matter Subsystem's realizeReport() method will call this method after any MobilizedBody
+    /// Report-stage processing has been done. This gives the Constraint a chance to 
+    ///   - calculate Report stage cache values according to the current values found
+    ///     in the State.
+    virtual void realizeReportVirtual(const State&) const { }
     //@}
 
     /// @name Position (Holonomic) Constraint Virtuals
@@ -1068,6 +1101,8 @@ protected:
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
     {
     }
+
+    friend class Constraint::CustomImpl;
 };
 
 } // namespace SimTK

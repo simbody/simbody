@@ -305,7 +305,8 @@ public:
                               MobilizedBodyIndex  parentIndex,
                               MobilizedBodyIndex  index)
     {
-        assert(!myMatterSubsystemRep);
+        // If the subsystem is already set it must be the same one.
+        assert(!myMatterSubsystemRep || myMatterSubsystemRep==&matter.getRep());
         myMatterSubsystemRep = &matter.updRep();
 
         assert(index.isValid());

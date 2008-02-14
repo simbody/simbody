@@ -1438,12 +1438,126 @@ Real Constraint::ConstantSpeed::getDefaultSpeed() const {
     // CONSTRAINT::CUSTOM //
     ////////////////////////
 
-        // TODO: NOTHING YET
+// We are given an Implementation object which is already holding a CustomImpl
+// object for us. We'll first take away ownership of the CustomImpl, then
+// make the CustomImpl take over ownership of the Implementation object.
+Constraint::Custom::Custom(Constraint::Custom::Implementation* implementation)
+  : PIMPLDerivedHandleBase(implementation ? implementation->updImpl().removeOwnershipOfCustomImpl()
+                                          : 0)
+{
+    SimTK_ASSERT_ALWAYS(implementation,
+        "Constraint::Custom::Custom(): Implementation pointer was NULL.");
 
+    // Now store the Implementation pointer in our CustomImpl. The Implementation
+    // object retains its original pointer to the CustomImpl object so it can
+    // operate as a proxy for the CustomImpl. However the Custom handle now owns the
+    // CustomImpl and the CustomImpl owns the Implementation.
+    updImpl().takeOwnershipOfImplementation(implementation);
+
+    updImpl().updMyMatterSubsystemRep().adoptConstraint(*this);
+}
+
+const Constraint::Custom::Implementation&
+Constraint::Custom::getImplementation() const {
+    return getImpl().getImplementation();
+}
+
+Constraint::Custom::Implementation&
+Constraint::Custom::updImplementation() {
+    return updImpl().updImplementation();
+}
+
+    // Constraint::CustomImpl
+
+// The Implementation object should already contain a pointer to this CustomImpl object.
+void Constraint::CustomImpl::takeOwnershipOfImplementation(Custom::Implementation* userImpl) {
+    assert(!implementation); // you can only do this once!
+    assert(userImpl);
+    const Custom::ImplementationImpl& impImpl = userImpl->getImpl();
+    assert(&impImpl.getCustomImpl() == this && !impImpl.isOwnerOfCustomImpl());
+    implementation = userImpl;
+}  
 
     ////////////////////////////////////////
     // CONSTRAINT::CUSTOM::IMPLEMENTATION //
     ////////////////////////////////////////
+
+// Default constructor allocates a CustomImpl object and saves it in the ImplementationImpl object.
+// When this gets passed to a Custom handle we'll turn over ownership of the CustomImpl object
+// to the Custom handle.
+Constraint::Custom::Implementation::Implementation(SimbodyMatterSubsystem& matter) 
+  : PIMPLHandle(new ImplementationImpl(new CustomImpl())) 
+{
+    // We don't know the ConstraintIndex yet since this hasn't been adopted by the MatterSubsystem.
+    updImpl().updCustomImpl().setMyMatterSubsystem(matter, ConstraintIndex());
+}
+
+Constraint::Custom::Implementation::Implementation(SimbodyMatterSubsystem& matter, int mp, int mv, int ma) 
+  : PIMPLHandle(new ImplementationImpl(new CustomImpl(mp,mv,ma))) 
+{
+     // We don't know the ConstraintIndex yet since this hasn't been adopted by the MatterSubsystem.
+   updImpl().updCustomImpl().setMyMatterSubsystem(matter, ConstraintIndex());
+}
+
+Constraint::Custom::Implementation*
+Constraint::Custom::Implementation::clone() const {
+    // This will not retain its connection to a CustomImpl class if it had one.
+    return cloneVirtual();
+}
+
+void Constraint::Custom::Implementation::
+getDefaultNumConstraintEquations(int& mp, int& mv, int& ma) const {
+    getImpl().getCustomImpl().getDefaultNumConstraintEquations(mp,mv,ma);
+}
+
+ConstrainedBodyIndex Constraint::Custom::Implementation::
+addConstrainedBody(const MobilizedBody& mb) {
+    return updImpl().updCustomImpl().addConstrainedBody(mb);
+}
+ConstrainedMobilizerIndex Constraint::Custom::Implementation::
+addConstrainedMobilizer(const MobilizedBody& mb) {
+    return updImpl().updCustomImpl().addConstrainedMobilizer(mb);
+}
+
+
+Real Constraint::Custom::Implementation::
+getOneQ(const State& s, ConstrainedMobilizerIndex cmx, MobilizerQIndex mqx) const {
+    return getImpl().getCustomImpl().getOneQ(s,cmx,mqx);
+}
+
+Real Constraint::Custom::Implementation::
+getOneU(const State& s, ConstrainedMobilizerIndex cmx, MobilizerUIndex mux) const {
+    return getImpl().getCustomImpl().getOneU(s,cmx,mux);
+}
+
+
+Real Constraint::Custom::Implementation::
+getOneQDot(const State& s, ConstrainedMobilizerIndex cmx, MobilizerQIndex mqx, bool realizingVelocity) const {
+    return getImpl().getCustomImpl().getOneQDot(s,cmx,mqx,realizingVelocity);
+}
+
+Real Constraint::Custom::Implementation::
+getOneQDotDot(const State& s, ConstrainedMobilizerIndex cmx, MobilizerQIndex mqx, bool realizingAcceleration) const {
+    return getImpl().getCustomImpl().getOneQDotDot(s,cmx,mqx,realizingAcceleration);
+}
+
+Real Constraint::Custom::Implementation::
+getOneUDot(const State& s, ConstrainedMobilizerIndex cmx, MobilizerUIndex mux, bool realizingAcceleration) const {
+    return getImpl().getCustomImpl().getOneUDot(s,cmx,mux,realizingAcceleration);
+}
+
+
+// Apply a generalized (mobility) force to a particular mobility of the given constrained body B,
+// adding it in to the appropriate slot of the mobilityForces vector.
+void Constraint::Custom::Implementation::
+addInOneMobilityForce(const State& s, ConstrainedMobilizerIndex M, MobilizerUIndex which,
+                      Real f, Vector& mobilityForces) const 
+{
+    getImpl().getCustomImpl().addInOneMobilityForce(s,M,which,f,mobilityForces);
+}
+
+
+
 
 // Default implementations for ConstraintImpl virtuals throw "unimplemented"
 // exceptions. These shouldn't be called unless the concrete constraint has
@@ -1526,9 +1640,9 @@ applyAccelerationConstraintForcesVirtual
         "Constraint::Custom::Implementation", "applyAccelerationConstraintForcesVirtual");
 }
 
-    ////////////////////
-    // CONSTRAINT REP //
-    ////////////////////
+    /////////////////////
+    // CONSTRAINT IMPL //
+    /////////////////////
 
 void ConstraintImpl::realizeTopology(State& s) const
 {
@@ -1645,7 +1759,8 @@ bool ConstraintImpl::subsystemTopologyHasBeenRealized() const {
 void ConstraintImpl::setMyMatterSubsystem
    (SimbodyMatterSubsystem& matter, ConstraintIndex id)
 {
-    assert(!isInSubsystem());
+    // If this is already set it has to be to the same MatterSubsystem.
+    assert(!myMatterSubsystemRep || myMatterSubsystemRep == &matter.getRep());
     myMatterSubsystemRep = &matter.updRep();
     myConstraintIndex = id;
 }

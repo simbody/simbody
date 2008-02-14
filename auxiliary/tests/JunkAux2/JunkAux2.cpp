@@ -55,6 +55,59 @@ static const Real d = 0.5; // meters
 
 static const Vec3 hl(1, 0.5, 0.5); // body half lengths
 
+class MyConstraintImplementation : public Constraint::Custom::Implementation {
+public:
+    MyConstraintImplementation(MobilizedBody& mobilizer, Real speed)
+      : Implementation(mobilizer.updMatterSubsystem(), 0,1,0),  
+        theMobilizer(), whichMobility(), prescribedSpeed(NaN)
+    {
+        theMobilizer = addConstrainedMobilizer(mobilizer);
+        whichMobility = MobilizerUIndex(0);
+        prescribedSpeed = speed;
+    }
+    MyConstraintImplementation* cloneVirtual() const {return new MyConstraintImplementation(*this);}
+
+    // Implementation of virtuals required for nonholonomic constraints.
+
+    // One non-holonomic (well, velocity-level) constraint equation.
+    //    verr = u - s
+    //    aerr = udot
+    // 
+    void realizeVelocityErrorsVirtual(const State& s, int mv,  Real* verr) const {
+        assert(mv==1 && verr);
+        *verr = getOneU(s, theMobilizer, whichMobility) - prescribedSpeed;
+    }
+
+    void realizeVelocityDotErrorsVirtual(const State& s, int mv,  Real* vaerr) const {
+        assert(mv==1 && vaerr);
+        *vaerr = getOneUDot(s, theMobilizer, whichMobility, true);
+    }
+
+	// apply generalized force lambda to the mobility
+    void applyVelocityConstraintForcesVirtual
+       (const State& s, int mv, const Real* multipliers,
+        Vector_<SpatialVec>& bodyForcesInA,
+        Vector&              mobilityForces) const
+    {
+        assert(mv==1 && multipliers);
+        const Real lambda = *multipliers;
+        addInOneMobilityForce(s, theMobilizer, whichMobility, lambda, mobilityForces);
+    }
+
+private:
+    ConstrainedMobilizerIndex   theMobilizer;
+    MobilizerUIndex             whichMobility;
+    Real                        prescribedSpeed;
+};
+
+class MyConstraint : public Constraint::Custom {
+public:
+    explicit MyConstraint(MobilizedBody& mobilizer, Real speed) 
+      : Custom(new MyConstraintImplementation(mobilizer, speed))
+    {
+    }
+};
+
 
 int main(int argc, char** argv) {
   try { // If anything goes wrong, an exception will be thrown.
@@ -87,7 +140,7 @@ int main(int argc, char** argv) {
     MobilizedBody::Pin gear2(mobilizedBody2, Vec3(1,0,0), gear2body, Transform()); // along z
     Constraint::NoSlip1D(mobilizedBody2, Vec3(-.5,0,0), UnitVec3(0,1,0), gear1, gear2);
 
-    Constraint::ConstantSpeed(gear1, 100.);
+    //Constraint::ConstantSpeed(gear1, 100.);
     
     //Constraint::Ball myc2(matter.Ground(), Vec3(-4,2,0),  mobilizedBody2, Vec3(0,1,0));
     Constraint::Weld myc(matter.Ground(), Vec3(1,2,0),  mobilizedBody, Vec3(0,1,0));
@@ -100,6 +153,7 @@ int main(int argc, char** argv) {
     //Constraint::Weld weld(mobilizedBody, Transform(Rotation(Pi/4, ZAxis), Vec3(1,1,0)),
       //                    mobilizedBody2, Transform(Rotation(-Pi/4, ZAxis), Vec3(-1,-1,0)));
     
+    MyConstraint xyz(gear1, -100.);
 
     viz.addBodyFixedDecoration(mobilizedBody, Transform(Vec3(1,2,3)), DecorativeText("hello world").setScale(.1));
     State s = mbs.realizeTopology(); // returns a reference to the the default state

@@ -569,6 +569,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) cons
     for (int i=0; i<getNBodies(); ++i)
         ic.totalMass += iv.bodyMassProperties[i].getMass();
 
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
+        getConstraint(cx).getImpl().realizeInstance(s);
+
     return 0;
 }
 
@@ -576,7 +579,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTimeImpl(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Time).prev(), 
         "SimbodyMatterSubsystem::realizeTime()");
 
-    // nothing yet
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
+        getConstraint(cx).getImpl().realizeTime(s);
 
     return 0;
 }
@@ -604,6 +608,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizePosition(mv,mc,q,qErr,pc); 
 
+
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
+        getConstraint(cx).getImpl().realizePosition(s);
 
     //cout << "BEFORE qErr=" << qErr << endl;
 #ifndef USE_OLD_CONSTRAINTS
@@ -645,6 +652,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizeVelocity(mv,q,pc,u,vc,qdot); 
+
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
+        getConstraint(cx).getImpl().realizeVelocity(s);
 
 #ifndef USE_OLD_CONSTRAINTS
     // Put velocity constraint equation errors in uErr
@@ -701,6 +711,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  con
     const MultibodySystem& mbs = getMultibodySystem();  // owner of this subsystem
     mbs.getRep().updKineticEnergy(s, Stage::Dynamics) += calcKineticEnergy(s);
 
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
+        getConstraint(cx).getImpl().realizeDynamics(s);
+
     return 0;
 }
 
@@ -734,7 +747,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemReportImpl(const State& s) const 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Report).prev(), 
         "SimbodyMatterSubsystem::realizeReport()");
 
-    // nothing yet
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
+        getConstraint(cx).getImpl().realizeReport(s);
 
     return 0;
 }
@@ -1592,6 +1606,9 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
                           netHingeForces, A_GB, udot);
 
 
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
+        getConstraint(cx).getImpl().realizeAcceleration(s);
+
 #ifndef USE_OLD_CONSTRAINTS
     // Put acceleration constraint equation errors in uErr
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
@@ -1664,6 +1681,7 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
         multipliers.resize(0);
         return;
     }
+
 
     //cout << "---> BEFORE udotErr=" << udotErr << endl;
 

@@ -85,12 +85,18 @@ public:
     {
     }
 
-    void setDefaultNumConstraints(int mp, int mv, int ma) {
+    void setDefaultNumConstraintEquations(int mp, int mv, int ma) {
         assert(mp >= 0 && mv >= 0 && ma >= 0);
         invalidateTopologyCache();
         defaultMp = mp;
         defaultMv = mv;
         defaultMa = ma;
+    }
+
+    void getDefaultNumConstraintEquations(int& mp, int& mv, int& ma) const {
+        mp = defaultMp;
+        mv = defaultMv;
+        ma = defaultMa;
     }
 
     typedef std::map<MobilizedBodyIndex,ConstrainedBodyIndex>       MobilizedBody2ConstrainedBodyMap;
@@ -126,8 +132,21 @@ public:
     void realizeTime(const State& s) const {
         realizeTimeVirtual(s); // nothing to do in the base class
     }
-
-
+    void realizePosition(const State& s) const {
+        realizePositionVirtual(s); // nothing to do in the base class
+    }
+    void realizeVelocity(const State& s) const {
+        realizeVelocityVirtual(s); // nothing to do in the base class
+    }
+    void realizeDynamics(const State& s) const {
+        realizeDynamicsVirtual(s); // nothing to do in the base class
+    }
+    void realizeAcceleration(const State& s) const {
+        realizeAccelerationVirtual(s); // nothing to do in the base class
+    }
+    void realizeReport(const State& s) const {
+        realizeReportVirtual(s); // nothing to do in the base class
+    }
 	// Given a state realized to Position stage, extract the position constraint errors
 	// corresponding to this Constraint. The 'mp' argument is for sanity checking -- it
 	// is an error if that isn't an exact match for the current number of holonomic
@@ -403,6 +422,7 @@ public:
     virtual void realizeVelocityVirtual(const State&) const { }
     virtual void realizeDynamicsVirtual(const State&) const { }
     virtual void realizeAccelerationVirtual(const State&) const { }
+    virtual void realizeReportVirtual(const State&) const { }
 
     // These must be defined if there are any position (holonomic) constraints defined.
     virtual void realizePositionErrorsVirtual      (const State&, const SBPositionCache&, int mp,  Real* perr) const;
@@ -1775,16 +1795,159 @@ private:
 };
 
 
+    /////////////////////////////////////////////
+    // CONSTRAINT::CUSTOM::IMPLEMENTATION IMPL //
+    /////////////////////////////////////////////
+
+// This class exists primarily to allow the Custom::Implementation class to keep
+// a pointer to its handle class's CustomImpl class which is derived from ConstraintImpl
+// which has all the goodies that are needed for defining a Constraint.
+//
+// At first this class is the owner of the CustomImpl. Then when this is put in a
+// Custom handle, that handle takes over ownership of the CustomImpl and the 
+// CustomImpl takes over ownership of this ImplementationImpl object.
+class Constraint::Custom::ImplementationImpl 
+  : public PIMPLImplementation<Implementation, ImplementationImpl>
+{
+public:
+    // no default constructor
+    explicit ImplementationImpl(CustomImpl* customImpl) : isOwner(true), builtInImpl(customImpl) { }
+    inline ~ImplementationImpl(); // see below -- have to wait for CustomImpl's definition
+
+    // Copying one of these just gives us a new one with a NULL CustomImpl pointer.
+    ImplementationImpl(const ImplementationImpl& src) : isOwner(false), builtInImpl(0) { }
+
+    ImplementationImpl* clone() const {return new ImplementationImpl(*this);}
+
+    bool isOwnerOfCustomImpl() const {return builtInImpl && isOwner;}
+    CustomImpl* removeOwnershipOfCustomImpl() {
+        assert(isOwnerOfCustomImpl()); 
+        isOwner=false; 
+        return builtInImpl;
+    }
+
+    void setReferenceToCustomImpl(CustomImpl* cimpl) {
+        assert(!builtInImpl); // you can only do this once
+        isOwner=false;
+        builtInImpl = cimpl;
+    }
+
+    bool hasCustomImpl() const {return builtInImpl != 0;}
+
+    const CustomImpl& getCustomImpl() const {
+        assert(builtInImpl);
+        return *builtInImpl;
+    }
+    CustomImpl& updCustomImpl() {
+        assert(builtInImpl);
+        return *builtInImpl;
+    }
+
+private:
+    bool isOwner;
+    CustomImpl* builtInImpl; // just a reference; not owned
+
+    // suppress assignment
+    ImplementationImpl& operator=(const ImplementationImpl&);
+};
+
+    /////////////////////////////
+    // CONSTRAINT::CUSTOM IMPL //
+    /////////////////////////////
+
 class Constraint::CustomImpl : public ConstraintImpl {
 public:
+    CustomImpl() : implementation(0) { }
+    CustomImpl(int mp, int mv, int ma) : ConstraintImpl(mp,mv,ma), implementation(0) { }
+
+    void takeOwnershipOfImplementation(Custom::Implementation* userImpl);
+
+    explicit CustomImpl(Custom::Implementation* userImpl) : implementation(0) { 
+        assert(userImpl);
+        implementation = userImpl;
+        implementation->updImpl().setReferenceToCustomImpl(this);
+    }    
+
+    // Copy constructor
+    CustomImpl(const CustomImpl& src) : implementation(0) {
+        if (src.implementation) {
+            implementation = src.implementation->clone();
+            implementation->updImpl().setReferenceToCustomImpl(this);
+        }
+    }
+    
     CustomImpl* clone() const { return new CustomImpl(*this); }
 
-    //SimTK_DOWNCAST(CustomImpl, ConstraintImpl);
+    const Custom::Implementation& getImplementation() const {
+        assert(implementation);
+        return *implementation;
+    }
+
+    Custom::Implementation& updImplementation() {
+        assert(implementation);
+        return *implementation;
+    }
+
+    // Forward all the virtuals to the Custom::Implementation virtuals.
+    void realizeTopologyVirtual(State& s) const {getImplementation().realizeTopologyVirtual(s);}
+    void realizeModelVirtual   (State& s) const {getImplementation().realizeModelVirtual(s);}
+    void realizeInstanceVirtual(const State& s) const {getImplementation().realizeInstanceVirtual(s);}
+    void realizeTimeVirtual    (const State& s) const {getImplementation().realizeTimeVirtual(s);}
+    void realizePositionVirtual(const State& s) const {getImplementation().realizePositionVirtual(s);}
+    void realizeVelocityVirtual(const State& s) const {getImplementation().realizeVelocityVirtual(s);}
+    void realizeDynamicsVirtual(const State& s) const {getImplementation().realizeDynamicsVirtual(s);}
+    void realizeAccelerationVirtual(const State& s) const {getImplementation().realizeAccelerationVirtual(s);}
+    void realizeReportVirtual  (const State& s) const {getImplementation().realizeReportVirtual(s);}
+
+    void realizePositionErrorsVirtual      (const State& s, const SBPositionCache&, int mp,  Real* perr) const
+       {getImplementation().realizePositionErrorsVirtual(s,mp,perr);}
+    void realizePositionDotErrorsVirtual   (const State& s, const SBVelocityCache&, int mp,  Real* pverr) const
+       {getImplementation().realizePositionDotErrorsVirtual(s,mp,pverr);}
+    void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache&, int mp,  Real* paerr) const
+       {getImplementation().realizePositionDotDotErrorsVirtual(s,mp,paerr);}
+    void applyPositionConstraintForcesVirtual
+           (const State& s, int mp, const Real* multipliers,
+            Vector_<SpatialVec>& bodyForces,
+            Vector&              mobilityForces) const
+       {getImplementation().applyPositionConstraintForcesVirtual(s,mp,multipliers,bodyForces,mobilityForces);}
+
+    void realizeVelocityErrorsVirtual(const State& s, const SBVelocityCache&, int mv,  Real* verr) const
+       {getImplementation().realizeVelocityErrorsVirtual(s,mv,verr);}
+    void realizeVelocityDotErrorsVirtual(const State& s, const SBAccelerationCache&, int mv,  Real* vaerr) const
+       {getImplementation().realizeVelocityDotErrorsVirtual(s,mv,vaerr);}
+    void applyVelocityConstraintForcesVirtual
+           (const State& s, int mv, const Real* multipliers,
+            Vector_<SpatialVec>& bodyForces,
+            Vector&              mobilityForces) const
+       {getImplementation().applyVelocityConstraintForcesVirtual(s,mv,multipliers,bodyForces,mobilityForces);}
+
+    void realizeAccelerationErrorsVirtual(const State& s, const SBAccelerationCache&, int ma,  Real* aerr) const
+       {getImplementation().realizeAccelerationErrorsVirtual(s,ma,aerr);}
+    void applyAccelerationConstraintForcesVirtual
+           (const State& s, int ma, const Real* multipliers,
+            Vector_<SpatialVec>& bodyForces,
+            Vector&              mobilityForces) const
+       {getImplementation().applyAccelerationConstraintForcesVirtual(s,ma,multipliers,bodyForces,mobilityForces);}
+
+    void calcDecorativeGeometryAndAppendImpl
+          (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+       {getImplementation().calcDecorativeGeometryAndAppendVirtual(s,stage,geom);}
+
+    SimTK_DOWNCAST(CustomImpl, ConstraintImpl);
 private:
     friend class Constraint::Custom;
 
-    // TODO: God only knows what goes here!
+    Custom::Implementation* implementation;
+
+    CustomImpl& operator=(const CustomImpl&); // suppress assignment
 };
+
+// Need definition for CustomImpl here in case we have to delete it.
+inline Constraint::Custom::ImplementationImpl::~ImplementationImpl() {
+    if (isOwner) 
+        delete builtInImpl; 
+    builtInImpl=0;
+}
 
 } // namespace SimTK
 
