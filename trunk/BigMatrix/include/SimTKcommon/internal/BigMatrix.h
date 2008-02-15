@@ -1761,6 +1761,14 @@ public:
     
     Matrix_(int m, int n, int leadingDim, const S* s): Base(m,n,leadingDim,s) { }
     Matrix_(int m, int n, int leadingDim,       S* s): Base(m,n,leadingDim,s) { }
+    
+    /// Convert a Mat to a Matrix_
+    template <int M, int N>
+    Matrix_(const Mat<M,N,ELT>& mat) : Base(M, N) {
+        for (int i = 0; i < M; ++i)
+            for (int j = 0; j < N; ++j)
+                this->updElt(i, j) = mat(i, j);
+    }
 
     Matrix_& operator=(const ELT& v) { Base::operator=(v); return *this; }
 
@@ -1882,6 +1890,13 @@ public:
     Vector_(int m, const S* s, bool): Base(m,m,s) { }
     Vector_(int m,       S* s, bool): Base(m,m,s) { }
     
+    /// Convert a Vec to a Vector_.
+    template <int M>
+    Vector_(const Vec<M,ELT>& v) : Base(M) {
+        for (int i = 0; i < M; ++i)
+            this->updElt(i, 0) = v(i);
+    }
+
     Vector_& operator=(const ELT& v) { Base::operator=(v); return *this; } 
 
     template <class EE> Vector_& operator=(const VectorBase<EE>& m)
@@ -1998,6 +2013,13 @@ public:
     RowVector_(int n, const S* s, bool): Base(n,1,s) { }
     RowVector_(int n,       S* s, bool): Base(n,1,s) { }
     
+    /// Convert a Row to a RowVector_.
+    template <int M>
+    RowVector_(const Row<M,ELT>& v) : Base(M) {
+        for (int i = 0; i < M; ++i)
+            this->updElt(0, i) = v(i);
+    }
+
     RowVector_& operator=(const ELT& v) { Base::operator=(v); return *this; } 
 
     template <class EE> RowVector_& operator=(const RowVectorBase<EE>& b)

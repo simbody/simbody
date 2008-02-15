@@ -73,11 +73,7 @@ int main() {
         // Currently, this only tests a small number of operations that were recently added.
         // It should be expanded into a more comprehensive test of the big matrix classes.
         
-        Matrix m(2, 2);
-        m(0, 0) = 1;
-        m(0, 1) = 2;
-        m(1, 0) = 3;
-        m(1, 1) = 4;
+        Matrix m = Mat22(1, 2, 3, 4);
         testMatrix<Matrix,2,2>(m, Mat22(1, 2, 3, 4));
         m += 3;
         testMatrix<Matrix,2,2>(m, Mat22(4, 2, 3, 7));
@@ -87,10 +83,7 @@ int main() {
         testMatrix<Matrix,2,2>(m+1, Mat22(2, 2, 3, 5));
         testMatrix<Matrix,2,2>(1-m, Mat22(0, -2, -3, -3));
         testMatrix<Matrix,2,2>(1+m, Mat22(2, 2, 3, 5));
-        Vector v(3);
-        v(0) = 1;
-        v(1) = 2;
-        v(2) = 3;
+        Vector v = Vec3(1, 2, 3);
         testVector(v, Vec3(1, 2, 3));
         v += 2;
         testVector(v, Vec3(3, 4, 5));
@@ -100,7 +93,7 @@ int main() {
         testVector(v+1, Vec3(2, 3, 4));
         testVector(1-v, Vec3(0, -1, -2));
         testVector(1+v, Vec3(2, 3, 4));
-        RowVector r = ~v;
+        RowVector r = Row3(1, 2, 3);
         testVector(r, Vec3(1, 2, 3));
         r += 2;
         testVector(r, Vec3(3, 4, 5));
