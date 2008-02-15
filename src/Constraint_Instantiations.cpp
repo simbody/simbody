@@ -55,7 +55,9 @@ template class PIMPLDerivedHandle<Constraint::ConstantOrientation, Constraint::C
 template class PIMPLDerivedHandle<Constraint::NoSlip1D, Constraint::NoSlip1DImpl, Constraint>;
 template class PIMPLDerivedHandle<Constraint::ConstantSpeed, Constraint::ConstantSpeedImpl, Constraint>;
 template class PIMPLDerivedHandle<Constraint::Custom, Constraint::CustomImpl, Constraint>;
+
 template class PIMPLHandle<Constraint::Custom::Implementation, Constraint::Custom::ImplementationImpl>;
+template class PIMPLImplementation<Constraint::Custom::Implementation, Constraint::Custom::ImplementationImpl>;
 
 } // namespace SimTK
 
