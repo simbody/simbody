@@ -112,6 +112,10 @@ class SBAccelerationCache;
 // realizeTopology(). It should contain enough information to size the other
 // stages, and can also contain whatever arbitrary data you would like to have
 // in a State to verify that it is a match for the Subsystem.
+// 
+// Note that this does not include all possible topological information in
+// a SimbodyMatterSubsystem -- any subobjects are free to hold their own
+// as long as they don't change it after realizeTopology().
 class SBTopologyCache {
 public:
     SBTopologyCache() {
@@ -119,7 +123,8 @@ public:
     }
 
     void clear() {
-        nBodies = nParticles = nConstraints = nDOFs = maxNQs = sumSqDOFs =
+        nBodies = nParticles = nConstraints = nAncestorConstrainedBodies =
+            nDOFs = maxNQs = sumSqDOFs =
             nDistanceConstraints = // TODO: OBSOLETE
             modelingVarsIndex = modelingCacheIndex = -1;
         valid = false;
@@ -129,6 +134,13 @@ public:
     int nBodies;
     int nParticles;
     int nConstraints;
+
+    // This is the total number of Constrained Bodies appearing in all Constraints
+    // where the Ancestor body is not Ground, excluding the Ancestor bodies 
+    // themselves even if they are also Constrained Bodies (which is common).
+    // This is used for sizing pool entries in various caches to hold precalculated
+    // Ancestor-frame data about these bodies.
+    int nAncestorConstrainedBodies;
 
     // TODO: these should be moved to Model stage.
     int nDOFs;
@@ -408,13 +420,13 @@ class SBInstanceCache {
 public:
     // Instance variables are:
     //   body mass props; particle masses
-    //   X_BM, X_PMb transforms
-    //   distance constraint distances & station positions
+    //   X_BM, X_PF mobilizer transforms
+    //  
     // Calculations stored here derive from those states:
     //   total mass
     //   central inertia of each rigid body
     //   principal axes and corresponding principal moments of inertia of each rigid body
-    //   reference configuration X_PB when q==0 (usually that means M==Mb), for each rigid body
+    //   reference configuration X_PB when q==0 (usually that means M==F), for each rigid body
 
     Real                   totalMass; // sum of all rigid body and particles masses
     std::vector<Inertia>   centralInertias;           // nb
@@ -457,8 +469,21 @@ public:
     std::vector<PhiMatrix>    bodyToParentShift;            // nb (phi)
     std::vector<Inertia>      bodyInertiaInGround;          // nb (I_OB_G)
     Vector_<SpatialMat>       bodySpatialInertia;           // nb (Mk)
-    Vector_<Vec3>             bodyCOMInGround;              // nb (COM_G)
-    Vector_<Vec3>             bodyCOMStationInGround;       // nb (COMstation_G)
+    Vector_<Vec3>             bodyCOMInGround;              // nb (p_G_CB)
+    Vector_<Vec3>             bodyCOMStationInGround;       // nb (p_CB_G)
+
+
+
+        // Ancestor Constrained Body Pool
+
+    // For Constraints whose Ancestor body A is not Ground G, we assign pool entries
+    // for each of their Constrained Bodies (call the total number 'nacb')
+    // to store the above information but measured and expressed in the Ancestor frame
+    // rather than Ground.
+    std::vector<Transform> constrainedBodyConfigInAncestor;     // nacb (X_AB)
+
+        // OBSOLETE: These are used only when USE_OLD_CONSTRAINTS is enabled.
+        // They aren't commented out here so the old code will still compile.
 
     // Distance constraint calculations. These are indexed by
     // *distance constraint* number, not *constraint* number.
@@ -474,6 +499,7 @@ public:
         const int nBodies = tree.nBodies;
         const int nDofs   = tree.nDOFs;   // this is the number of u's (nu)
         const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need
+        const int nacb    = tree.nAncestorConstrainedBodies;
 
         // TODO: OBSOLETE
         const int ndistc  = tree.nDistanceConstraints;
@@ -509,6 +535,10 @@ public:
         bodyCOMStationInGround.resize(nBodies);      
         bodyCOMStationInGround[0] = 0.;
 
+        constrainedBodyConfigInAncestor.resize(nacb);
+
+        // TODO: OBSOLETE
+
         station_G[0].resize(ndistc); station_G[1].resize(ndistc);
         pos_G[0].resize(ndistc); pos_G[1].resize(ndistc);
 
@@ -519,11 +549,21 @@ public:
 
 class SBVelocityCache {
 public:
-    // qdot is supplied directly by the State
-    Vector_<SpatialVec> bodyVelocityInParent;      // nb (joint velocity)
-    Vector_<SpatialVec> bodyVelocityInGround;      // nb (sVel)
-    Vector_<SpatialVec> mobilizerRelativeVelocity; // nb (V_FM)
+    // qdot cache space is supplied directly by the State
+    Vector_<SpatialVec> mobilizerRelativeVelocity; // nb (V_FM) cross-mobilizer velocity
+    Vector_<SpatialVec> bodyVelocityInParent;      // nb (V_PB) 
+    Vector_<SpatialVec> bodyVelocityInGround;      // nb (V_GB)
 
+
+        // Ancestor Constrained Body Pool
+
+    // For Constraints whose Ancestor body A is not Ground G, we assign pool entries
+    // for each of their Constrained Bodies (call the total number 'nacb')
+    // to store the above information but measured and expressed in the Ancestor frame
+    // rather than Ground.
+    std::vector<SpatialVec> constrainedBodyVelocityInAncestor; // nacb (V_AB)
+
+    // TODO: OBSOLETE
     // Distance constraint calculations. These are indexed by
     // *distance constraint* number, not *constraint* number.
     Vector_<Vec3> stationVel_G[2]; // vel of station relative to body origin, expr. in G
@@ -536,10 +576,14 @@ public:
         const int nBodies = tree.nBodies;
         const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
         const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need
+        const int nacb    = tree.nAncestorConstrainedBodies;
 
         //TODO: OBSOLETE
         const int ndistc  = tree.nDistanceConstraints;
         const int nvc     = ndistc;      // all the velocity constraints
+
+        mobilizerRelativeVelocity.resize(nBodies);       
+        mobilizerRelativeVelocity[0] = SpatialVec(Vec3(0),Vec3(0));
 
         bodyVelocityInParent.resize(nBodies);       
         bodyVelocityInParent[0] = SpatialVec(Vec3(0),Vec3(0));
@@ -547,9 +591,9 @@ public:
         bodyVelocityInGround.resize(nBodies);       
         bodyVelocityInGround[0] = SpatialVec(Vec3(0),Vec3(0));
 
-        mobilizerRelativeVelocity.resize(nBodies);       
-        mobilizerRelativeVelocity[0] = SpatialVec(Vec3(0),Vec3(0));
+        constrainedBodyVelocityInAncestor.resize(nacb);
 
+        //TODO: OBSOLETE
         stationVel_G[0].resize(ndistc); stationVel_G[1].resize(ndistc);
         vel_G[0].resize(ndistc); vel_G[1].resize(ndistc);
         relVel_G.resize(ndistc);
@@ -628,15 +672,24 @@ public:
 
 class SBAccelerationCache {
 public:
-    // udot, qdotdot are provided directly by the State
-    Vector_<SpatialVec> bodyAccelerationInGround; // nb (sAcc)
-    Vector              netHingeForces;           // nu (T-(~Am+R(F+C))
+    // udot, qdotdot cache space is provided directly by the State
+    Vector_<SpatialVec> bodyAccelerationInGround; // nb (A_GB)
 
-    Vector              nu;
-    Vector              epsilon;
+    Vector              netHingeForces;           // nu (T-(~Am+R(F+C))
+    Vector              nu; // greek letter, not # of u's, but there are nu of these
+    Vector              epsilon;                  // nu
     Vector_<SpatialVec> z;                        // nb
     Vector_<SpatialVec> Gepsilon;                 // nb
 
+        // Ancestor Constrained Body Pool
+
+    // For Constraints whose Ancestor body A is not Ground G, we assign pool entries
+    // for each of their Constrained Bodies (call the total number 'nacb')
+    // to store the above information but measured and expressed in the Ancestor frame
+    // rather than Ground.
+    std::vector<SpatialVec> constrainedBodyAccelerationInAncestor; // nacb (A_AB)
+
+    // TODO: OBSOLETE
     // Distance constraint calculations. These are indexed by
     // *distance constraint* number, not *constraint* number.
     Vector_<Vec3> acc_G[2];   // acc of tip relative to ground, expr. in G
@@ -649,6 +702,7 @@ public:
         const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
         const int nSqDofs = tree.sumSqDOFs; // sum(ndof^2) for each joint
         const int maxNQs  = tree.maxNQs;    // allocate the max # q's we'll ever need
+        const int nacb    = tree.nAncestorConstrainedBodies;
 
         // TODO: OBSOLETE
         const int ndistc  = tree.nDistanceConstraints;
@@ -665,6 +719,9 @@ public:
 
         Gepsilon.resize(nBodies); // TODO: ground initialization
 
+        constrainedBodyAccelerationInAncestor.resize(nacb);
+
+        // TODO: OBSOLETE
         acc_G[0].resize(ndistc); acc_G[1].resize(ndistc);
         force_G[0].resize(ndistc); force_G[1].resize(ndistc);
     }

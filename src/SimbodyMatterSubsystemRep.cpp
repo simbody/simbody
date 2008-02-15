@@ -84,12 +84,24 @@ void SimbodyMatterSubsystemRep::clearTopologyCache() {
     nextUSqSlot = USquaredIndex(0);
     nextQSlot   = QIndex(0);
 
-    DOFTotal=SqDOFTotal=maxNQTotal         = -1;
+    nextAncestorConstrainedBodyPoolSlot = AncestorConstrainedBodyPoolIndex(0);
+
+    DOFTotal=SqDOFTotal=maxNQTotal             = -1;
+    nextQErrSlot = nextUErrSlot = nextMultSlot = 0; // TODO: are these being used?
+
     topologyCache.clear();
     topologyCacheIndex = -1;
 
-    delete lConstraints; lConstraints=0;
+    // New constraint fields (TODO not used yet)
+    branches.clear();
+    positionCoupledConstraints.clear();
+    velocityCoupledConstraints.clear();
+    accelerationCoupledConstraints.clear();
+    dynamicallyCoupledConstraints.clear();
 
+
+    // TODO: this old constraint stuff is OBSOLETE
+    delete lConstraints; lConstraints=0;
     for (int i=0; i<(int)distanceConstraints.size(); ++i)
         delete distanceConstraints[i];
     distanceConstraints.clear();
@@ -98,6 +110,8 @@ void SimbodyMatterSubsystemRep::clearTopologyCache() {
     // be deleted when the MobilizedBodyImpl objects are.
     rbNodeLevels.clear();
     nodeNum2NodeMap.clear();
+
+    showDefaultGeometry = true;
 }
 
 MobilizedBodyIndex SimbodyMatterSubsystemRep::adoptMobilizedBody
@@ -188,17 +202,18 @@ SimbodyMatterSubsystemRep::getDefaultMobilizerFrameOnParent(MobilizedBodyIndex b
   { return getRigidBodyNode(body).getX_PF(); }
 
 const Transform&
-SimbodyMatterSubsystemRep::getBodyTransform(const State& s, const SBPositionCache& pc, MobilizedBodyIndex body) const
-  { return getRigidBodyNode(body).getX_GB(pc); }
-
-const SpatialVec&
-SimbodyMatterSubsystemRep::getBodyVelocity(const State& s, const SBVelocityCache& vc, MobilizedBodyIndex body) const {
-  return getRigidBodyNode(body).getV_GB(vc);
+SimbodyMatterSubsystemRep::getBodyTransform(const State& s, MobilizedBodyIndex body, bool realizingPosition) const { 
+    return getRigidBodyNode(body).getX_GB(getPositionCache(s, realizingPosition));
 }
 
 const SpatialVec&
-SimbodyMatterSubsystemRep::getBodyAcceleration(const State& s, const SBAccelerationCache& ac, MobilizedBodyIndex body) const {
-    return getRigidBodyNode(body).getA_GB(ac);
+SimbodyMatterSubsystemRep::getBodyVelocity(const State& s, MobilizedBodyIndex body, bool realizingVelocity) const {
+  return getRigidBodyNode(body).getV_GB(getVelocityCache(s, realizingVelocity));
+}
+
+const SpatialVec&
+SimbodyMatterSubsystemRep::getBodyAcceleration(const State& s, MobilizedBodyIndex body, bool realizingAcceleration) const {
+    return getRigidBodyNode(body).getA_GB(getAccelerationCache(s, realizingAcceleration));
 }
 
 const SpatialVec&
@@ -276,6 +291,8 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
 //    if (rbNodeLevels.size() > 1)
 //        branches.resize(rbNodeLevels[1].size()); // each level 1 body is a branch
 
+    nextAncestorConstrainedBodyPoolSlot = AncestorConstrainedBodyPoolIndex(0);
+
     for (ConstraintIndex cx(0); cx<getNumConstraints(); ++cx) {
         const ConstraintImpl& crep = getConstraint(cx).getImpl();
         crep.realizeTopology(s);
@@ -323,8 +340,10 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     // cache.
 
     mutableThis->topologyCache.nBodies      = nodeNum2NodeMap.size();
-    mutableThis->topologyCache.nParticles   = 0; // TODO
     mutableThis->topologyCache.nConstraints = constraints.size();
+    mutableThis->topologyCache.nParticles   = 0; // TODO
+    mutableThis->topologyCache.nAncestorConstrainedBodies = (int)nextAncestorConstrainedBodyPoolSlot;
+
     mutableThis->topologyCache.nDOFs        = DOFTotal;
     mutableThis->topologyCache.maxNQs       = maxNQTotal;
     mutableThis->topologyCache.sumSqDOFs    = SqDOFTotal;
@@ -619,7 +638,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
         const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(c);
         const Segment& pseg = cInfo.holoErrSegment;
         if (pseg.length)
-            constraints[c]->getImpl().realizePositionErrors(s, pc, pseg.length, &qErr[pseg.offset]);
+            constraints[c]->getImpl().realizePositionErrors(s, pseg.length, &qErr[pseg.offset]);
     }
 #else // USE_OLD_CONSTRAINTS
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
@@ -665,9 +684,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
         const Segment& nonholoseg = cInfo.nonholoErrSegment; // vseg includes holonomic+nonholonomic
         const int mHolo = holoseg.length, mNonholo = nonholoseg.length;
         if (mHolo)
-            constraints[c]->getImpl().realizePositionDotErrors(s, vc, mHolo,    &uErr[holoseg.offset]);
+            constraints[c]->getImpl().realizePositionDotErrors(s, mHolo,    &uErr[holoseg.offset]);
         if (mNonholo)
-            constraints[c]->getImpl().realizeVelocityErrors   (s, vc, mNonholo, &uErr[mc.totalNHolonomicConstraintEquationsInUse + nonholoseg.offset]);
+            constraints[c]->getImpl().realizeVelocityErrors   (s, mNonholo, &uErr[mc.totalNHolonomicConstraintEquationsInUse + nonholoseg.offset]);
     }
     //cout << "NEW UERR=" << uErr << endl;
 #else // USE_OLD_CONSTRAINTS
@@ -1619,14 +1638,14 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
         const Segment& acconlyseg = cInfo.accOnlyErrSegment; // for acceleration-only constraints
         const int mHolo = holoseg.length, mNonholo = nonholoseg.length, mAccOnly = acconlyseg.length;
         if (mHolo)
-            constraints[cx]->getImpl().realizePositionDotDotErrors(s, ac, mHolo,
+            constraints[cx]->getImpl().realizePositionDotDotErrors(s, mHolo,
                 &udotErr[holoseg.offset]);
         if (mNonholo)
-            constraints[cx]->getImpl().realizeVelocityDotErrors(s, ac, mNonholo, 
+            constraints[cx]->getImpl().realizeVelocityDotErrors(s, mNonholo, 
                 &udotErr[  mc.totalNHolonomicConstraintEquationsInUse 
                          + nonholoseg.offset]);
         if (mAccOnly)
-            constraints[cx]->getImpl().realizeAccelerationErrors(s, ac, mAccOnly, 
+            constraints[cx]->getImpl().realizeAccelerationErrors(s, mAccOnly, 
                 &udotErr[  mc.totalNHolonomicConstraintEquationsInUse
                          + mc.totalNNonholonomicConstraintEquationsInUse 
                          + acconlyseg.offset]);

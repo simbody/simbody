@@ -57,6 +57,17 @@ static const Real d = 0.5; // meters
 
 static const Vec3 hl(1, 0.5, 0.5); // body half lengths
 
+class MyHomeMadeWeldImplementation;
+
+class MyHomeMadeWeld : public Constraint::Custom {
+public:
+    MyHomeMadeWeld(MobilizedBody& body1, MobilizedBody& body2);
+    MyHomeMadeWeld(MobilizedBody& body1, const Transform& frame1,
+                   MobilizedBody& body2, const Transform& frame2);
+};
+
+
+
 
 // Create a free body and constrain it to a point on ground.
 //
@@ -104,7 +115,12 @@ int main(int argc, char** argv) {
     Constraint::Ball ball(mobilizedBody0, Vec3(2,0,0), mobilizedBody2, Vec3(3,0,0));
 
     //Constraint::ConstantOrientation ori(mobilizedBody, Rotation(), mobilizedBody2, Rotation());
-    Constraint::Weld weld(mobilizedBody, Transform(Rotation(Pi/4, ZAxis), Vec3(1,1,0)),
+
+
+    //Constraint::Weld weld(mobilizedBody, Transform(Rotation(Pi/4, ZAxis), Vec3(1,1,0)),
+     //                     mobilizedBody2, Transform(Rotation(-Pi/4, ZAxis), Vec3(-1,-1,0)));
+
+    MyHomeMadeWeld hweld(mobilizedBody, Transform(Rotation(Pi/4, ZAxis), Vec3(1,1,0)),
                           mobilizedBody2, Transform(Rotation(-Pi/4, ZAxis), Vec3(-1,-1,0)));
     
     //Constraint::PointInPlane pip(mobilizedBody, UnitVec3(0,1,0),  2, mobilizedBody2, Vec3(0,1,0));
@@ -404,5 +420,244 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
+}
+
+
+
+// This is copied from the built-in Weld constraint and should behave identically.
+class MyHomeMadeWeldImplementation : public Constraint::Custom::Implementation {
+    static Real getDefaultAxisDisplayLength() {return 1;}
+    static Vec3 getDefaultFrameColor(int which) {
+        return which==0 ? Blue : Purple;
+    }
+public:
+    MyHomeMadeWeldImplementation(MobilizedBody& body1, const MobilizedBody& body2)
+      : Implementation(body1.updMatterSubsystem(), 6,0,0),  
+        axisDisplayLength(-1), // means "use default axis length"
+        frameBColor(-1), frameFColor(-1) // means "use default colors"
+    {   // default Transforms are identity, i.e. body frames
+        B = addConstrainedBody(body1);
+        F = addConstrainedBody(body2);
+    }
+
+    MyHomeMadeWeldImplementation(MobilizedBody& body1, const Transform& f1, 
+                                 const MobilizedBody& body2, const Transform& f2)
+      : Implementation(body1.updMatterSubsystem(), 6,0,0), defaultFrameB(f1), defaultFrameF(f2), 
+        axisDisplayLength(-1), // means "use default axis length"
+        frameBColor(-1), frameFColor(-1) // means "use default colors"
+    {   // default Transforms are identity, i.e. body frames
+        B = addConstrainedBody(body1);
+        F = addConstrainedBody(body2);
+    }
+
+    MyHomeMadeWeldImplementation* cloneVirtual() const {return new MyHomeMadeWeldImplementation(*this);}
+
+    // Draw the two frames.
+    void calcDecorativeGeometryAndAppendVirtual
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+
+    void setAxisDisplayLength(Real len) {
+        // len == 0 means "don't display"
+        // len < 0 means "use default"
+        invalidateTopologyCache();
+        axisDisplayLength = len >= 0 ? len : -1;
+    }
+    Real getAxisDisplayLength() const {
+        return axisDisplayLength < 0 ? getDefaultAxisDisplayLength() : axisDisplayLength;
+    }
+
+    void setFrameColor(int which, const Vec3& color) {
+        assert(which==0 || which==1);
+        // color[0] < 0 means "use default color for this frame"
+        invalidateTopologyCache();
+        if (which==0) frameBColor = color[0] < 0 ? Vec3(-1) : color;
+        else          frameFColor = color[0] < 0 ? Vec3(-1) : color;
+    }
+    Vec3 getFrameColor(int which) const {
+        assert(which==0 || which==1);
+        if (which==0) return frameBColor[0] < 0 ? getDefaultFrameColor(0) : frameBColor;
+        else          return frameFColor[0] < 0 ? getDefaultFrameColor(1) : frameFColor;
+    }
+
+    // Implementation of virtuals required for holonomic constraints.
+
+    // For theory, look at the ConstantOrientation (1st 3 equations) and 
+    // Ball (last 3 equations) theory above. Otherwise just lay back and 
+    // enjoy the ride.
+
+    void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
+        assert(mp==6 && perr);
+
+        const Rotation& R_AB = getBodyRotation(s, B, true);
+        const Rotation& R_AF = getBodyRotation(s, F, true);
+        const Rotation  RB = R_AB * defaultFrameB.R(); // now expressed in A
+        const Rotation  RF = R_AF * defaultFrameF.R();
+
+        // Orientation error
+        Vec3::updAs(perr) = Vec3(~RF.x()*RB.y(),
+                                 ~RF.y()*RB.z(),
+                                 ~RF.z()*RB.x());
+
+        const Vec3 p_AF1 = calcStationLocation(s, B, defaultFrameB.T(), true);
+        const Vec3 p_AF2 = calcStationLocation(s, F, defaultFrameF.T(), true);
+
+        // position error
+        Vec3::updAs(perr+3) = p_AF2 - p_AF1;
+    }
+
+    void realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const {
+        assert(mp==6 && pverr);
+        //TODO: should be able to get p info from State
+        const Rotation& R_AB = getBodyRotation(s, B);
+        const Rotation& R_AF = getBodyRotation(s, F);
+        const Rotation  RB = R_AB * defaultFrameB.R(); // now expressed in A
+        const Rotation  RF = R_AF * defaultFrameF.R();
+
+        const Vec3&     w_AB = getBodyAngularVelocity(s, B, true);
+        const Vec3&     w_AF = getBodyAngularVelocity(s, F, true);
+        const Vec3      w_BF = w_AF-w_AB; // in A
+
+        // orientation error
+        Vec3::updAs(pverr) = Vec3( ~w_BF * (RF.x() % RB.y()),
+                                   ~w_BF * (RF.y() % RB.z()),
+                                   ~w_BF * (RF.z() % RB.x()) );
+
+        //TODO: should be able to get p info from State
+        const Transform&  X_AB   = getBodyTransform(s, B);
+        const Vec3        p_AF2  = calcStationLocation(s, F, defaultFrameF.T());
+        const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
+
+        const Vec3        v_AF2   = calcStationVelocity(s, F, defaultFrameF.T(), true);
+        const Vec3        v_AC    = calcStationVelocity(s, B, p_BC, true);
+ 
+        // position error
+        Vec3::updAs(pverr+3) = v_AF2 - v_AC;
+    }
+
+    void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const {
+        assert(mp==6 && paerr);
+        //TODO: should be able to get p and v info from State
+        const Rotation& R_AB = getBodyRotation(s, B);
+        const Rotation& R_AF = getBodyRotation(s, F);
+        const Rotation  RB = R_AB * defaultFrameB.R(); // now expressed in A
+        const Rotation  RF = R_AF * defaultFrameF.R();
+
+        const Vec3&     w_AB = getBodyAngularVelocity(s, B);
+        const Vec3&     w_AF = getBodyAngularVelocity(s, F);
+        const Vec3      w_BF = w_AF-w_AB; // in A
+
+        const Vec3&     b_AB = getBodyAngularAcceleration(s, B, true);
+        const Vec3&     b_AF = getBodyAngularAcceleration(s, F, true);
+        const Vec3      b_BF = b_AF-b_AB; // in A
+
+        // orientation error
+        Vec3::updAs(paerr) = 
+             Vec3( dot( b_BF, RF.x() % RB.y() )
+                        + dot( w_BF, (w_AF%RF.x()) % RB.y() - (w_AB%RB.y()) % RF.x()),
+                   dot( b_BF, RF.y() % RB.z() )
+                        + dot( w_BF, (w_AF%RF.y()) % RB.z() - (w_AB%RB.z()) % RF.y()),
+                   dot( b_BF, RF.z() % RB.x() )
+                        + dot( w_BF, (w_AF%RF.z()) % RB.x() - (w_AB%RB.x()) % RF.z()));
+
+        const Transform&  X_AB   = getBodyTransform(s, B);
+        const Vec3        p_AF2  = calcStationLocation(s, F, defaultFrameF.T());
+        const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
+
+        const Vec3        a_AF2  = calcStationAcceleration(s, F, defaultFrameF.T(), true);
+        const Vec3        a_AC   = calcStationAcceleration(s, B, p_BC, true);
+
+        // position error
+        Vec3::updAs(paerr+3) = a_AF2 - a_AC;
+    }
+
+    void applyPositionConstraintForcesVirtual
+       (const State& s, int mp, const Real* multipliers,
+        Vector_<SpatialVec>& bodyForcesInA,
+        Vector&              mobilityForces) const
+    {
+        assert(mp==6 && multipliers);
+
+        const Vec3& torques = Vec3::getAs(multipliers);
+        const Vec3& force_A = Vec3::getAs(multipliers+3);
+
+        //TODO: should be able to get p info from State
+        const Rotation& R_AB = getBodyRotation(s, B);
+        const Rotation& R_AF = getBodyRotation(s, F);
+        const Rotation  RB = R_AB * defaultFrameB.R(); // now expressed in A
+        const Rotation  RF = R_AF * defaultFrameF.R();
+
+        const Vec3 torque_F_A =   torques[0] * (RF.x() % RB.y())
+                                + torques[1] * (RF.y() % RB.z())
+                                + torques[2] * (RF.z() % RB.x());
+
+        addInBodyTorque(s, F,  torque_F_A, bodyForcesInA);
+        addInBodyTorque(s, B, -torque_F_A, bodyForcesInA);
+
+        const Transform& X_AB  = getBodyTransform(s,B);
+        const Vec3&      p_FF2 = defaultFrameF.T();
+        const Vec3       p_AF2 = calcStationLocation(s, F, p_FF2);
+        const Vec3       p_BC = ~X_AB * p_AF2;
+
+        addInStationForce(s, F, p_FF2, force_A, bodyForcesInA);
+        addInStationForce(s, B, p_BC, -force_A, bodyForcesInA);
+    }
+
+private:
+    ConstrainedBodyIndex B; // aka "body 1"
+    ConstrainedBodyIndex F; // aka "body 2"
+
+    Transform       defaultFrameB; // on body 1, relative to B frame
+    Transform       defaultFrameF; // on body 2, relative to F frame};
+
+    // These are for visualization control only.
+    Real axisDisplayLength; // for all 6 axes; <= 0 means "don't display"
+    Vec3 frameBColor, frameFColor;
+};
+
+MyHomeMadeWeld::MyHomeMadeWeld(MobilizedBody& body1, MobilizedBody& body2) 
+  : Custom(new MyHomeMadeWeldImplementation(body1, body2))
+{
+}
+MyHomeMadeWeld::MyHomeMadeWeld(MobilizedBody& body1, const Transform& frame1,
+               MobilizedBody& body2, const Transform& frame2) 
+  : Custom(new MyHomeMadeWeldImplementation(body1, frame1, body2, frame2))
+{
+}
+
+void MyHomeMadeWeldImplementation::calcDecorativeGeometryAndAppendVirtual
+   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+{
+    // We can't generate the frames until we know the axis lengths to use, and we can't place
+    // the geometry on the bodies until we know the body1 and body2 frame
+    // placements, which might not be until Instance stage.
+    if (stage == Stage::Instance && getAxisDisplayLength() != 0 
+        && getMatterSubsystem().getShowDefaultGeometry()) 
+    {
+        geom.push_back(DecorativeFrame(getAxisDisplayLength())
+                                            .setColor(getFrameColor(0))
+                                            .setLineThickness(2)
+                                            .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B))
+                                            .setTransform(defaultFrameB));
+
+        // Draw connector line back to body origin.
+        if (defaultFrameB.T().norm() >= SignificantReal)
+            geom.push_back(DecorativeLine(Vec3(0), defaultFrameB.T())
+                             .setColor(getFrameColor(0))
+                             .setLineThickness(2)
+                             .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B)));
+           
+
+        geom.push_back(DecorativeFrame(0.67*getAxisDisplayLength())
+                                            .setColor(getFrameColor(1))
+                                            .setLineThickness(4)
+                                            .setBodyId(getMobilizedBodyIndexOfConstrainedBody(F))
+                                            .setTransform(defaultFrameF));
+
+        if (defaultFrameF.T().norm() >= SignificantReal)
+            geom.push_back(DecorativeLine(Vec3(0), defaultFrameF.T())
+                             .setColor(getFrameColor(1))
+                             .setLineThickness(4)
+                             .setBodyId(getMobilizedBodyIndexOfConstrainedBody(F)));
+    }
 }
 

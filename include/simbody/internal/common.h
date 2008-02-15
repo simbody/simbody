@@ -122,6 +122,12 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstraintIndex)
 // TODO: This is for arrays indexed by MatterSubsystem-global ParticleIndex, as yet to be defined.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ParticleIndex)
 
+// Constrained Bodies in constraints where the Ancestor body is not Ground (we call
+// these "Ancestor Constrained Bodies") require some additional cached data, such as
+// their orientations and velocities in the Ancestor frame, so are each
+// allocated a slot in pools of that data. Those pools are indexed by this type.
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(AncestorConstrainedBodyPoolIndex)
+
 // This is for "q-like" arrays, that is, arrays which inherently have the same dimension as
 // the totoal number of generalized coordinates for the whole Matter Subsystem.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(QIndex)    // an index into generalized coordinates q

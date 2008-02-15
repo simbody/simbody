@@ -846,7 +846,17 @@ public:
     /// setNumConstraintEquationsInUse() prior to realizeModel(). 
     Implementation(SimbodyMatterSubsystem&);
 
+    const SimbodyMatterSubsystem& getMatterSubsystem() const;
+
         // Topological information//
+
+    /// Call this if you want to make sure that the next realizeTopology() call does
+    /// something. This is done automatically when you modify the constraint in ways
+    /// understood by Simbody, such as adding a ConstrainedBody. But if you are just
+    /// changing some of your own topology and want to make sure you get a chance to
+    /// recompute something in realizeTopology(), make this call at the time of 
+    /// modification.
+    void invalidateTopologyCache() const;
 
     /// This is an alternate way to set the default number of equations to be generated
     /// if you didn't specify them in the base class constructor.
@@ -871,11 +881,8 @@ public:
     /// of which this Constraint is a part.
     ConstrainedMobilizerIndex addConstrainedMobilizer(const MobilizedBody&);
 
-    // Alternatively, declare this as a global constraint. (Constant energy or temperature
-    // might be an example.)
-    void setAllBodiesAreConstrained(bool);
-    
-    // getNumConstrainedBodies() and getConstrainedBody() are in the base class.
+    MobilizedBodyIndex getMobilizedBodyIndexOfConstrainedBody(ConstrainedBodyIndex) const;
+    MobilizedBodyIndex getMobilizedBodyIndexOfConstrainedMobilizer(ConstrainedMobilizerIndex) const;
 
         // Model stage information //
 
@@ -893,17 +900,100 @@ public:
 
         // Methods for use with ConstrainedMobilizers.
 
+    /// Extract from the State the value of a single generalized coordinate q from one
+    /// of this Constraint's ConstrainedMobilizers. The State must have been realized
+    /// to Model stage.
     Real getOneQ(const State&, ConstrainedMobilizerIndex, MobilizerQIndex) const;
+    /// Extract from the State the value of a single generalized speed (mobility) u from one
+    /// of this Constraint's ConstrainedMobilizers. The State needs to be realized only
+    /// as high as Model stage, but don't use this value in a position-level method like
+    /// realizePositionErrorsVirtual() or in any off the applyConstraintForces methods!
+    /// Those must be limited to dependencies on time and configuration only.
     Real getOneU(const State&, ConstrainedMobilizerIndex, MobilizerUIndex) const;
 
+    /// Extract from the State cache the value of a single generalized coordinate
+    /// time derivative qdot. State must already be realized to the Velocity stage,
+    /// or if you are currently realizing that stage set \p realizingVelocity true
+    /// in which case the State need only have been realized to the previous (Position) stage.
     Real getOneQDot   (const State&, ConstrainedMobilizerIndex, MobilizerQIndex, bool realizingVelocity=false) const;
+    /// Extract from the State cache the value of a single generalized coordinate
+    /// second time derivative qdotdot. State must already be realized to the Acceleration stage,
+    /// or if you are currently realizing that stage set \p realizingAcceleration true
+    /// in which case the State need only have been realized to the previous (Dynamics) stage.
     Real getOneQDotDot(const State&, ConstrainedMobilizerIndex, MobilizerQIndex, bool realizingAcceleration=false) const;
-    Real getOneUDot   (const State&, ConstrainedMobilizerIndex, MobilizerUIndex, bool realizingAcceleration=false) const;
+    /// Extract from the State cache the value of a single generalized speed
+    /// time derivative udot. State must already be realized to the Acceleration stage,
+    /// or if you are currently realizing that stage set \p realizingAcceleration true
+    /// in which case the State need only have been realized to the previous (Dynamics) stage.
+    Real getOneUDot(const State&, ConstrainedMobilizerIndex, MobilizerUIndex, bool realizingAcceleration=false) const;
 
-    // Apply a generalized (mobility) force to a particular mobility of the given constrained body B,
-    // adding it in to the appropriate slot of the mobilityForces vector.
-    void addInOneMobilityForce(const State& s, ConstrainedMobilizerIndex M, MobilizerUIndex which,
-                               Real f, Vector& mobilityForces) const;
+    /// Apply a scalar generalized (mobility) force \p force to a particular mobility of one of this
+    /// Constraint's Constrained Mobilizers, <em>adding</em> it in to the appropriate slot of the
+    /// mobilityForces vector, which is of length getNumConstrainedU() for this Constraint.
+    /// State need only have been realized to Model stage, but this is intended for use in
+    /// applyConstraintForce methods at Position stage.
+    void addInOneMobilityForce(const State&, ConstrainedMobilizerIndex, MobilizerUIndex whichU,
+                               Real force, Vector& mobilityForces) const;
+
+        // Methods for use with ConstrainedBodies
+
+    /// Extract from the State cache the spatial transform X_AB giving the location and orientation of a Constrained Body B's
+    /// body frame in this Constraint's Ancestor frame A. The State must already be realized to the Position stage,
+    /// or if you are currently realizing that stage set \p realizingPosition true in which case State need
+    /// only have been realized to the previous (Time) stage.
+    const Transform&  getBodyTransform(const State& s, ConstrainedBodyIndex B, bool realizingPosition=false)     const; // X_AB
+    /// Extract from the State cache the spatial velocity V_AB giving the linear and angular velocity of a Constrained Body B's
+    /// body frame measured and expressed in this Constraint's Ancestor frame A. The State must already be realized to the Velocity stage,
+    /// or if you are currently realizing that stage set \p realizingVelocity true in which case State need
+    /// only have been realized to the previous (Position) stage.
+    const SpatialVec& getBodyVelocity(const State& s, ConstrainedBodyIndex B, bool realizingVelocity=false)     const; // V_AB
+    /// Extract from the State cache the spatial acceleration A_AB giving the linear and angular acceleration of a Constrained Body B's
+    /// body frame measured and expressed in this Constraint's Ancestor frame A. The State must already be realized to the Acceleration stage,
+    /// or if you are currently realizing that stage set \p realizingAcceleration true in which case State need
+    /// only have been realized to the previous (Dynamics) stage.
+    const SpatialVec& getBodyAcceleration(const State& s, ConstrainedBodyIndex B, bool realizingAcceleration=false) const; // A_AB
+
+    // Extract just the rotational quantities from the spatial quantities above.
+    const Rotation& getBodyRotation           (const State& s, ConstrainedBodyIndex B, bool realizingPosition=false) const
+       {return getBodyTransform(s,B,realizingPosition).R();}   // R_AB
+    const Vec3&     getBodyAngularVelocity    (const State& s, ConstrainedBodyIndex B, bool realizingVelocity=false) const
+       {return getBodyVelocity(s,B,realizingVelocity)[0];}     // w_AB
+    const Vec3&     getBodyAngularAcceleration(const State& s, ConstrainedBodyIndex B, bool realizingAcceleration=false) const
+       {return getBodyAcceleration(s,B,realizingAcceleration)[0];} // b_AB
+
+    // Extract just the translational (linear) quantities from the spatial quantities above.
+    //TODO: should be references (see above)
+    const Vec3& getBodyOriginLocation    (const State& s, ConstrainedBodyIndex B, bool realizingPosition=false) const
+       {return getBodyTransform(s,B,realizingPosition).T();}   // p_AB
+    const Vec3& getBodyOriginVelocity    (const State& s, ConstrainedBodyIndex B, bool realizingVelocity=false) const 
+       {return getBodyVelocity(s,B,realizingVelocity)[1];}     // v_AB
+    const Vec3& getBodyOriginAcceleration(const State& s, ConstrainedBodyIndex B, bool realizingAcceleration=false) const 
+       {return getBodyAcceleration(s,B,realizingAcceleration)[1];} // a_AB
+
+    Vec3 calcStationLocation(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, bool realizingPosition=false) const {
+        return getBodyTransform(s,B,realizingPosition) * p_B; // re-measure and re-express
+    }
+    Vec3 calcStationVelocity(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, bool realizingVelocity=false) const {
+        const Vec3        p_A  = getBodyRotation(s,B) * p_B; // rexpressed but not shifted
+        const SpatialVec& V_AB = getBodyVelocity(s,B,realizingVelocity);
+        return V_AB[1] + (V_AB[0] % p_A);
+    }
+    Vec3 calcStationAcceleration(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, bool realizingAcceleration=false) const {
+        const Vec3        p_A  = getBodyRotation(s,B) * p_B; // rexpressed but not shifted
+        const Vec3&       w_AB = getBodyAngularVelocity(s,B);
+        const SpatialVec& A_AB = getBodyAcceleration(s,B,realizingAcceleration);
+        const Vec3 a_A = A_AB[1] + (A_AB[0] % p_A) + w_AB % (w_AB % p_A); // careful: cross product is not associative
+        return a_A;
+    }
+
+    // Apply an Ancestor-frame force to a B-frame station, updating the appropriate bodyForces entry.
+    void addInStationForce(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, 
+                           const Vec3& forceInA, Vector_<SpatialVec>& bodyForcesInA) const;
+
+    // Apply an Ancestor-frame torque to body B, updating the appropriate bodyForces entry.
+    void addInBodyTorque(const State& s, ConstrainedBodyIndex B,
+                         const Vec3& torqueInA, Vector_<SpatialVec>& bodyForcesInA) const;
+
 
 protected:
     /// Every derived class must implement a method to copy itself.

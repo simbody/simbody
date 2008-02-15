@@ -74,7 +74,10 @@ class MobilizedBody;
 
 class ConstraintImpl : public PIMPLImplementation<Constraint, ConstraintImpl> {
 public:
-    ConstraintImpl() : myMatterSubsystemRep(0), defaultMp(0), defaultMv(0), defaultMa(0)
+    ConstraintImpl()
+      : myMatterSubsystemRep(0), 
+        defaultMp(0), defaultMv(0), defaultMa(0), 
+        myAncestorBodyIsNotGround(false)
     {
     }
     virtual ~ConstraintImpl() { }
@@ -121,32 +124,22 @@ public:
         return myConstrainedMobilizers[c];
     }
 
+    int allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const;
+    int allocateCacheEntry(State& s, Stage g, AbstractValue* v) const;
+
     QIndex getQIndexOfConstrainedQ(const State& s, ConstrainedQIndex cqx) const;
     UIndex getUIndexOfConstrainedU(const State& s, ConstrainedUIndex cqx) const;
 
-    void realizeTopology(State&) const; // eventually calls realizeTopologyVirtual()
-    void realizeModel   (State&) const; // eventually calls realizeModelVirtual()       
-    void realizeInstance(const State& s) const {
-        realizeInstanceVirtual(s); // nothing to do at the base class level
-    }
-    void realizeTime(const State& s) const {
-        realizeTimeVirtual(s); // nothing to do in the base class
-    }
-    void realizePosition(const State& s) const {
-        realizePositionVirtual(s); // nothing to do in the base class
-    }
-    void realizeVelocity(const State& s) const {
-        realizeVelocityVirtual(s); // nothing to do in the base class
-    }
-    void realizeDynamics(const State& s) const {
-        realizeDynamicsVirtual(s); // nothing to do in the base class
-    }
-    void realizeAcceleration(const State& s) const {
-        realizeAccelerationVirtual(s); // nothing to do in the base class
-    }
-    void realizeReport(const State& s) const {
-        realizeReportVirtual(s); // nothing to do in the base class
-    }
+    void realizeTopology(State&)       const; // eventually calls realizeTopologyVirtual()
+    void realizeModel   (State&)       const; // eventually calls realizeModelVirtual()       
+    void realizeInstance(const State&) const; // eventually calls realizeInstanceVirtual() 
+    void realizeTime    (const State&) const; // eventually calls realizeTimeVirtual() 
+    void realizePosition(const State&) const; // eventually calls realizePositionVirtual() 
+    void realizeVelocity(const State&) const; // eventually calls realizeVelocityVirtual() 
+    void realizeDynamics(const State&) const; // eventually calls realizeDynamicsVirtual() 
+    void realizeAcceleration(const State&) const; // eventually calls realizeAccelerationVirtual() 
+    void realizeReport  (const State&) const; // eventually calls realizeReportVirtual() 
+
 	// Given a state realized to Position stage, extract the position constraint errors
 	// corresponding to this Constraint. The 'mp' argument is for sanity checking -- it
 	// is an error if that isn't an exact match for the current number of holonomic
@@ -272,65 +265,41 @@ public:
 
         // Methods for use with ConstrainedBodies.
 
-    // These are for use during realization of the associated stage.
-    Transform  getBodyTransform   (const State& s, const SBPositionCache&, ConstrainedBodyIndex B) const; // X_AB
-    SpatialVec getBodyVelocity    (const State& s, const SBVelocityCache&, ConstrainedBodyIndex B) const; // V_AB
-    SpatialVec getBodyAcceleration(const State& s, const SBAccelerationCache&, ConstrainedBodyIndex B) const; // A_AB
-
-    // These are for use when after realization of the associated stage has been completed.
-    Transform  getBodyTransform(const State& s, ConstrainedBodyIndex B) const {
-        return getBodyTransform(s, getPositionCache(s), B);
-    }
-    SpatialVec getBodyVelocity(const State& s, ConstrainedBodyIndex B) const {
-        return getBodyVelocity(s, getVelocityCache(s), B);
-    }
-    SpatialVec getBodyAcceleration(const State& s, ConstrainedBodyIndex B) const {
-        return getBodyAcceleration(s, getAccelerationCache(s), B);
-    }
+    // These are used to retrieve the indicated values from the State cache.
+    const Transform&  getBodyTransform   (const State& s, ConstrainedBodyIndex B, bool realizingPosition=false)     const; // X_AB
+    const SpatialVec& getBodyVelocity    (const State& s, ConstrainedBodyIndex B, bool realizingVelocity=false)     const; // V_AB
+    const SpatialVec& getBodyAcceleration(const State& s, ConstrainedBodyIndex B, bool realizingAcceleration=false) const; // A_AB
 
     // Extract just the rotational quantities from the spatial quantities above.
-    //TODO: should be references (see above)
-    const Rotation getBodyRotation           (const State& s, const SBPositionCache& pc, ConstrainedBodyIndex B)     const {return getBodyTransform(s,pc,B).R();}   // R_AB
-    const Vec3     getBodyAngularVelocity    (const State& s, const SBVelocityCache& vc, ConstrainedBodyIndex B)     const {return getBodyVelocity(s,vc,B)[0];}     // w_AB
-    const Vec3     getBodyAngularAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyIndex B) const {return getBodyAcceleration(s,ac,B)[0];} // b_AB
-    const Rotation getBodyRotation           (const State& s, ConstrainedBodyIndex B) const {return getBodyTransform(s,B).R();}   // R_AB
-    const Vec3     getBodyAngularVelocity    (const State& s, ConstrainedBodyIndex B) const {return getBodyVelocity(s,B)[0];}     // w_AB
-    const Vec3     getBodyAngularAcceleration(const State& s, ConstrainedBodyIndex B) const {return getBodyAcceleration(s,B)[0];} // b_AB
+    const Rotation& getBodyRotation       (const State& s, ConstrainedBodyIndex B, bool realizingPosition=false)     const // R_AB
+       {return getBodyTransform(s,B,realizingPosition).R();}
+    const Vec3& getBodyAngularVelocity    (const State& s, ConstrainedBodyIndex B, bool realizingVelocity=false)     const // w_AB
+       {return getBodyVelocity(s,B,realizingVelocity)[0];}
+    const Vec3& getBodyAngularAcceleration(const State& s, ConstrainedBodyIndex B, bool realizingAcceleration=false) const // b_AB
+       {return getBodyAcceleration(s,B,realizingAcceleration)[0];}
 
     // Extract just the translational (linear) quantities from the spatial quantities above.
-    //TODO: should be references (see above)
-    const Vec3 getBodyOriginLocation    (const State& s, const SBPositionCache& pc, ConstrainedBodyIndex B)     const {return getBodyTransform(s,pc,B).T();}   // p_AB
-    const Vec3 getBodyOriginVelocity    (const State& s, const SBVelocityCache& vc, ConstrainedBodyIndex B)     const {return getBodyVelocity(s,vc,B)[1];}     // v_AB
-    const Vec3 getBodyOriginAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyIndex B) const {return getBodyAcceleration(s,ac,B)[1];} // a_AB
-    const Vec3 getBodyOriginLocation    (const State& s, ConstrainedBodyIndex B) const {return getBodyTransform(s,B).T();}   // p_AB
-    const Vec3 getBodyOriginVelocity    (const State& s, ConstrainedBodyIndex B) const {return getBodyVelocity(s,B)[1];}     // v_AB
-    const Vec3 getBodyOriginAcceleration(const State& s, ConstrainedBodyIndex B) const {return getBodyAcceleration(s,B)[1];} // a_AB
+    const Vec3& getBodyOriginLocation    (const State& s, ConstrainedBodyIndex B, bool realizingPosition=false)     const // p_AB
+       {return getBodyTransform(s,B,realizingPosition).T();}  
+    const Vec3& getBodyOriginVelocity    (const State& s, ConstrainedBodyIndex B, bool realizingVelocity=false)     const // v_AB
+       {return getBodyVelocity(s,B,realizingVelocity)[1];}     
+    const Vec3& getBodyOriginAcceleration(const State& s, ConstrainedBodyIndex B, bool realizingAcceleration=false) const // a_AB
+       {return getBodyAcceleration(s,B,realizingAcceleration)[1];} 
 
-    Vec3 calcStationLocation(const State& s, const SBPositionCache& pc, ConstrainedBodyIndex B, const Vec3& p_B) const {
-        return getBodyTransform(s,pc,B) * p_B; // re-measure and re-express
+    Vec3 calcStationLocation(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, bool realizingPosition=false) const {
+        return getBodyTransform(s,B,realizingPosition) * p_B; // re-measure and re-express
     }
-    Vec3 calcStationVelocity(const State& s, const SBVelocityCache& vc, ConstrainedBodyIndex B, const Vec3& p_B) const {
+    Vec3 calcStationVelocity(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, bool realizingVelocity=false) const {
         const Vec3        p_A  = getBodyRotation(s,B) * p_B; // rexpressed but not shifted
-        const SpatialVec& V_AB = getBodyVelocity(s,vc,B);
+        const SpatialVec& V_AB = getBodyVelocity(s,B,realizingVelocity);
         return V_AB[1] + (V_AB[0] % p_A);
     }
-    Vec3 calcStationAcceleration(const State& s, const SBAccelerationCache& ac, ConstrainedBodyIndex B, const Vec3& p_B) const {
+    Vec3 calcStationAcceleration(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, bool realizingAcceleration=false) const {
         const Vec3        p_A  = getBodyRotation(s,B) * p_B; // rexpressed but not shifted
         const Vec3&       w_AB = getBodyAngularVelocity(s,B);
-        const SpatialVec& A_AB = getBodyAcceleration(s,ac,B);
+        const SpatialVec& A_AB = getBodyAcceleration(s,B,realizingAcceleration);
         const Vec3 a_A = A_AB[1] + (A_AB[0] % p_A) + w_AB % (w_AB % p_A); // careful: cross product is not associative
         return a_A;
-    }
-
-    // These are for use when after realization of the associated stage has been completed.
-    Vec3 calcStationLocation(const State& s, ConstrainedBodyIndex B, const Vec3& p_B) const {
-        return calcStationLocation(s, getPositionCache(s), B, p_B);
-    }
-    Vec3 calcStationVelocity(const State& s, ConstrainedBodyIndex B, const Vec3& p_B) const {
-        return calcStationVelocity(s, getVelocityCache(s), B, p_B);
-    }
-    Vec3 calcStationAcceleration(const State& s, ConstrainedBodyIndex B, const Vec3& p_B) const {
-        return calcStationAcceleration(s, getAccelerationCache(s), B, p_B);
     }
 
     // Apply an Ancestor-frame force to a B-frame station, updating the appropriate bodyForces entry.
@@ -372,14 +341,14 @@ public:
     //will call these only after setting the Subtree state properly.
     //TODO: Subtree
 
-    void realizePositionErrors(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
-        realizePositionErrorsVirtual(s,pc,mp,perr);
+    void realizePositionErrors(const State& s, int mp,  Real* perr) const {
+        realizePositionErrorsVirtual(s,mp,perr);
     }
-    void realizePositionDotErrors(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
-        realizePositionDotErrorsVirtual(s,vc,mp,pverr);
+    void realizePositionDotErrors(const State& s, int mp,  Real* pverr) const {
+        realizePositionDotErrorsVirtual(s,mp,pverr);
     }
-    void realizePositionDotDotErrors(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
-        realizePositionDotDotErrorsVirtual(s,ac,mp,paerr);
+    void realizePositionDotDotErrors(const State& s, int mp,  Real* paerr) const {
+        realizePositionDotDotErrorsVirtual(s,mp,paerr);
     }
     void applyPositionConstraintForces
        (const State& s, int mp, const Real* multipliers,
@@ -389,11 +358,11 @@ public:
         applyPositionConstraintForcesVirtual(s,mp,multipliers,bodyForces,mobilityForces);
     }
 
-    void realizeVelocityErrors(const State& s, const SBVelocityCache& vc, int mv,  Real* verr) const {
-        realizeVelocityErrorsVirtual(s,vc,mv,verr);
+    void realizeVelocityErrors(const State& s, int mv,  Real* verr) const {
+        realizeVelocityErrorsVirtual(s,mv,verr);
     }
-    void realizeVelocityDotErrors(const State& s, const SBAccelerationCache& ac, int mv,  Real* vaerr) const {
-        realizeVelocityDotErrorsVirtual(s,ac,mv,vaerr);
+    void realizeVelocityDotErrors(const State& s, int mv,  Real* vaerr) const {
+        realizeVelocityDotErrorsVirtual(s,mv,vaerr);
     }
     void applyVelocityConstraintForces
        (const State& s, int mv, const Real* multipliers,
@@ -403,8 +372,8 @@ public:
         applyVelocityConstraintForcesVirtual(s,mv,multipliers,bodyForces,mobilityForces);
     }
 
-    void realizeAccelerationErrors(const State& s, const SBAccelerationCache& ac, int ma,  Real* aerr) const {
-        realizeAccelerationErrorsVirtual(s,ac,ma,aerr);
+    void realizeAccelerationErrors(const State& s, int ma,  Real* aerr) const {
+        realizeAccelerationErrorsVirtual(s,ma,aerr);
     }
     void applyAccelerationConstraintForces
        (const State& s, int ma, const Real* multipliers,
@@ -425,24 +394,24 @@ public:
     virtual void realizeReportVirtual(const State&) const { }
 
     // These must be defined if there are any position (holonomic) constraints defined.
-    virtual void realizePositionErrorsVirtual      (const State&, const SBPositionCache&, int mp,  Real* perr) const;
-    virtual void realizePositionDotErrorsVirtual   (const State&, const SBVelocityCache&, int mp,  Real* pverr) const;
-    virtual void realizePositionDotDotErrorsVirtual(const State&, const SBAccelerationCache&, int mp,  Real* paerr) const;
+    virtual void realizePositionErrorsVirtual      (const State&, int mp,  Real* perr) const;
+    virtual void realizePositionDotErrorsVirtual   (const State&, int mp,  Real* pverr) const;
+    virtual void realizePositionDotDotErrorsVirtual(const State&, int mp,  Real* paerr) const;
     virtual void applyPositionConstraintForcesVirtual
        (const State&, int mp, const Real* multipliers,
         Vector_<SpatialVec>& bodyForces,
         Vector&              mobilityForces) const;
 
     // These must be defined if there are any velocity (nonholonomic) constraints defined.
-    virtual void realizeVelocityErrorsVirtual   (const State&, const SBVelocityCache&, int mv,  Real* verr) const;
-    virtual void realizeVelocityDotErrorsVirtual(const State&, const SBAccelerationCache&, int mv,  Real* vaerr) const;
+    virtual void realizeVelocityErrorsVirtual   (const State&, int mv,  Real* verr) const;
+    virtual void realizeVelocityDotErrorsVirtual(const State&, int mv,  Real* vaerr) const;
     virtual void applyVelocityConstraintForcesVirtual
        (const State&, int mv, const Real* multipliers,
         Vector_<SpatialVec>& bodyForces,
         Vector&              mobilityForces) const;
 
     // These must be defined if there are any acceleration-only constraints defined.
-    virtual void realizeAccelerationErrorsVirtual(const State&, const SBAccelerationCache&, int ma,  Real* aerr) const;
+    virtual void realizeAccelerationErrorsVirtual(const State&, int ma,  Real* aerr) const;
     virtual void applyAccelerationConstraintForcesVirtual
        (const State&, int ma, const Real* multipliers,
         Vector_<SpatialVec>& bodyForces,
@@ -526,6 +495,13 @@ public:
             "Operation illegal on a Constraint that is not in a Subsystem.");
         return *myMatterSubsystemRep;
     }
+private:
+    // During realizePosition(), this method is used to calculate the transform X_AB of each
+    // ConstrainedBody in its Ancestor frame, provided Ancestor!=Ground and A!=B.
+    // Similarly we calculate V_AB and A_AB during realizeVelocity() and realizeAcceleration().
+    Transform  precalcConstrainedBodyTransformInAncestor   (const State&, ConstrainedBodyIndex) const;
+    SpatialVec precalcConstrainedBodyVelocityInAncestor    (const State&, ConstrainedBodyIndex) const;
+    SpatialVec precalcConstrainedBodyAccelerationInAncestor(const State&, ConstrainedBodyIndex) const;
 
 private:
     friend class Constraint;
@@ -561,8 +537,21 @@ private:
     // the constrained bodies. All mobilized bodies on the paths inward from the
     // constrained bodies to the ancestor are included; nothing outboard of the
     // constrained bodies is included; and the ancestor is treated as ground so
-    // that its mobilities are *not* included.
+    // that its mobilities are *not* included. The Ancestor may be one of the
+    // Constrained Bodies or may be distinct.
     mutable SimbodyMatterSubtree mySubtree;
+
+    // This is true only when (1) there are Constrained Bodies and (2) their Ancestor is
+    // some MobilizedBody other than Ground.
+    mutable bool myAncestorBodyIsNotGround;
+
+    // When the Ancestor is not Ground, each of the Constrained Bodies (except
+    // the Ancestor) needs some additional precalculated data in the State cache
+    // so is assigned a MatterSubsystem-global AncestorConstrainedBodyPool slot.
+    // If Ancestor isn't Ground there is an entry here for each ConstrainedBody
+    // (including Ancestor if it is one), but the index is invalid for Ancestor's
+    // entry. When Ancestor is Ground we don't allocate this array.
+    mutable std::vector<AncestorConstrainedBodyPoolIndex> myPoolIndex; // index with ConstrainedBodyIndex
 };
 
     // ROD
@@ -593,10 +582,10 @@ public:
     // Implementation of virtuals required for holonomic constraints.
 
     // perr = (p^2 - d^2)/2
-    void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
+    void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
         assert(mp==1 && perr);
-        const Vec3 p1 = calcStationLocation(s, pc, B1, defaultPoint1); // meas from & expr in ancestor
-        const Vec3 p2 = calcStationLocation(s, pc, B2, defaultPoint2);
+        const Vec3 p1 = calcStationLocation(s, B1, defaultPoint1, true); // meas from & expr in ancestor
+        const Vec3 p2 = calcStationLocation(s, B2, defaultPoint2, true);
         const Vec3 p = p2 - p1;
         //TODO: save p in state
 
@@ -604,21 +593,21 @@ public:
     }
 
     // pverr = d/dt perr = pdot*p = v*p, where v=v2-v1 is relative velocity
-    void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
+    void realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const {
         assert(mp==1 && pverr);
         //TODO: should be able to get p from State
         const Vec3 p1 = calcStationLocation(s, B1, defaultPoint1); // meas from & expr in ancestor
         const Vec3 p2 = calcStationLocation(s, B2, defaultPoint2);
         const Vec3 p = p2 - p1;
 
-        const Vec3 v1 = calcStationVelocity(s, vc, B1, defaultPoint1); // meas & expr in ancestor
-        const Vec3 v2 = calcStationVelocity(s, vc, B2, defaultPoint2);
+        const Vec3 v1 = calcStationVelocity(s, B1, defaultPoint1, true); // meas & expr in ancestor
+        const Vec3 v2 = calcStationVelocity(s, B2, defaultPoint2, true);
         const Vec3 v = v2 - v1;
         *pverr = dot(v, p);
     }
 
     // paerr = d/dt verr = vdot*p + v*pdot =a*p+v*v, where a=a2-a1 is relative acceleration
-    void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
+    void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const {
         assert(mp==1 && paerr);
         //TODO: should be able to get p and v from State
         const Vec3 p1 = calcStationLocation(s, B1, defaultPoint1); // meas from & expr in ancestor
@@ -628,8 +617,8 @@ public:
         const Vec3 v2 = calcStationVelocity(s, B2, defaultPoint2);
         const Vec3 v = v2 - v1;
 
-        const Vec3 a1 = calcStationAcceleration(s, ac, B1, defaultPoint1); // meas & expr in ancestor
-        const Vec3 a2 = calcStationAcceleration(s, ac, B2, defaultPoint2);
+        const Vec3 a1 = calcStationAcceleration(s, B1, defaultPoint1, true); // meas & expr in ancestor
+        const Vec3 a2 = calcStationAcceleration(s, B2, defaultPoint2, true);
         const Vec3 a = a2 - a1;
 
         *paerr = dot(a, p) + dot(v, v);
@@ -743,11 +732,11 @@ public:
 	//    --------------------------------
     //    perr = ~p_BS*n - h
 	//    --------------------------------
-    void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
+    void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
         assert(mp==1 && perr);
 
-        const Transform& X_AB = getBodyTransform(s, pc, planeBody);
-        const Vec3       p_AS = calcStationLocation(s, pc, followerBody, defaultFollowerPoint);
+        const Transform& X_AB = getBodyTransform(s, planeBody, true);
+        const Vec3       p_AS = calcStationLocation(s, followerBody, defaultFollowerPoint, true);
         const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin and reexpress in B;
                                               // C is material point of B coincident with S
 
@@ -758,7 +747,7 @@ public:
 	//    --------------------------------
     //    verr = ~v_CS_A*n
 	//    --------------------------------
-    void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
+    void realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const {
         assert(mp==1 && pverr);
         //TODO: should be able to get p info from State
         const Transform& X_AB = getBodyTransform(s, planeBody);
@@ -767,8 +756,8 @@ public:
                                               // C is material point of B coincident with S
         const UnitVec3   n_A  = X_AB.R() * defaultPlaneNormal;
 
-        const Vec3       v_AS = calcStationVelocity(s, vc, followerBody, defaultFollowerPoint);
-        const Vec3       v_AC = calcStationVelocity(s, vc, planeBody, p_BC);
+        const Vec3       v_AS = calcStationVelocity(s, followerBody, defaultFollowerPoint, true);
+        const Vec3       v_AC = calcStationVelocity(s, planeBody, p_BC, true);
 
         // Calculate this scalar using A-frame vectors.
         *pverr = dot( v_AS-v_AC, n_A );
@@ -777,7 +766,7 @@ public:
 	//    -------------------------------------
     //    aerr = ~(a_CS_A - 2 w_AB X v_CS_A) * n
 	//    -------------------------------------
-    void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
+    void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const {
         assert(mp==1 && paerr);
         //TODO: should be able to get p and v info from State
         const Transform& X_AB = getBodyTransform(s, planeBody);
@@ -790,8 +779,8 @@ public:
         const Vec3       v_AS = calcStationVelocity(s, followerBody, defaultFollowerPoint);
         const Vec3       v_AC = calcStationVelocity(s, planeBody, p_BC);
 
-        const Vec3       a_AS = calcStationAcceleration(s, ac, followerBody, defaultFollowerPoint);;
-        const Vec3       a_AC = calcStationAcceleration(s, ac, planeBody, p_BC);
+        const Vec3       a_AS = calcStationAcceleration(s, followerBody, defaultFollowerPoint, true);;
+        const Vec3       a_AC = calcStationAcceleration(s, planeBody, p_BC, true);
 
         *paerr = dot( (a_AS-a_AC) - 2*w_AB % (v_AS-v_AC), n_A );
     }
@@ -885,11 +874,11 @@ public:
     //    perr = ~(p_BS-p_BP) * x
     //           ~(p_BS-p_BP) * y
 	//    --------------------------------
-    void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
+    void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
         assert(mp==2 && perr);
 
-        const Transform& X_AB = getBodyTransform(s, pc, lineBody);
-        const Vec3       p_AS = calcStationLocation(s, pc, followerBody, defaultFollowerPoint);
+        const Transform& X_AB = getBodyTransform(s, lineBody, true);
+        const Vec3       p_AS = calcStationLocation(s, followerBody, defaultFollowerPoint, true);
         const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin and reexpress in B;
                                               // C is material point of B coincident with S
         const Vec3       p_PC = p_BC - defaultPointOnLine;
@@ -901,7 +890,7 @@ public:
 	//    --------------------------------
     //    verr = ~v_CS_A*n
 	//    --------------------------------
-    void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
+    void realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const {
         assert(mp==2 && pverr);
         //TODO: should be able to get p info from State
         const Transform& X_AB = getBodyTransform(s, lineBody);
@@ -909,8 +898,8 @@ public:
         const Vec3       p_BC = ~X_AB * p_AS;
         const Vec3       p_PC = p_BC - defaultPointOnLine;
 
-        const Vec3       v_AS = calcStationVelocity(s, vc, followerBody, defaultFollowerPoint);
-        const Vec3       v_AC = calcStationVelocity(s, vc, lineBody, p_BC);
+        const Vec3       v_AS = calcStationVelocity(s, followerBody, defaultFollowerPoint, true);
+        const Vec3       v_AC = calcStationVelocity(s, lineBody, p_BC, true);
 
         const Vec3       v_CS_B = ~X_AB.R()*(v_AS-v_AC); // reexpress in B
 
@@ -921,7 +910,7 @@ public:
 	//    -------------------------------------
     //    aerr = ~(a_CS_A - 2 w_AB X v_CS_A) * n
 	//    -------------------------------------
-    void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
+    void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const {
         assert(mp==2 && paerr);
         //TODO: should be able to get p and v info from State
         const Transform& X_AB = getBodyTransform(s, lineBody);
@@ -934,8 +923,8 @@ public:
         const Vec3       v_AS = calcStationVelocity(s, followerBody, defaultFollowerPoint);
         const Vec3       v_AC = calcStationVelocity(s, lineBody, p_BC);
 
-        const Vec3       a_AS = calcStationAcceleration(s, ac, followerBody, defaultFollowerPoint);;
-        const Vec3       a_AC = calcStationAcceleration(s, ac, lineBody, p_BC);
+        const Vec3       a_AS = calcStationAcceleration(s, followerBody, defaultFollowerPoint, true);
+        const Vec3       a_AC = calcStationAcceleration(s, lineBody, p_BC, true);
         const Vec3       a_CS_B = ~X_AB.R()*(a_AS-a_AC - 2 * w_AB % (v_AS-v_AC));
 
         // Calculate these scalar using B-frame vectors, but any frame would have done.
@@ -1063,11 +1052,11 @@ public:
     // ------------------------------
     // perr = ~b_A * f_A - cos(theta)
     // ------------------------------
-    void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
+    void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
         assert(mp==1 && perr);
 
-        const Rotation& R_AB = getBodyRotation(s, pc, B);
-        const Rotation& R_AF = getBodyRotation(s, pc, F);
+        const Rotation& R_AB = getBodyRotation(s, B, true);
+        const Rotation& R_AF = getBodyRotation(s, F, true);
         const UnitVec3  b_A  = R_AB * defaultAxisB;
         const UnitVec3  f_A  = R_AF * defaultAxisF;
 
@@ -1077,15 +1066,15 @@ public:
     // ----------------------------------
     // pverr = ~(w_AF-w_AB) * (f_A % b_A)
     // ----------------------------------
-    void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
+    void realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const {
         assert(mp==1 && pverr);
         //TODO: should be able to get p info from State
         const Rotation& R_AB = getBodyRotation(s, B);
         const Rotation& R_AF = getBodyRotation(s, F);
         const UnitVec3  b_A  = R_AB * defaultAxisB;
         const UnitVec3  f_A  = R_AF * defaultAxisF;
-        const Vec3      w_AB = getBodyAngularVelocity(s, vc, B);
-        const Vec3      w_AF = getBodyAngularVelocity(s, vc, F);
+        const Vec3      w_AB = getBodyAngularVelocity(s, B, true);
+        const Vec3      w_AF = getBodyAngularVelocity(s, F, true);
 
         *pverr = dot( w_AF-w_AB,  f_A % b_A );
     }
@@ -1094,7 +1083,7 @@ public:
     // paerr =  ~(b_AF-b_AB) * (f_A % b_A)
     //        + ~(w_AF-w_AB) * ((w_AF%f_A) % b_A) - (w_AB%b_A) % f_A)
     // --------------------------------------------------------------
-    void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
+    void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const {
         assert(mp==1 && paerr);
         //TODO: should be able to get p and v info from State
         const Rotation& R_AB = getBodyRotation(s, B);
@@ -1103,8 +1092,8 @@ public:
         const UnitVec3  f_A  = R_AF * defaultAxisF;
         const Vec3      w_AB = getBodyAngularVelocity(s, B);
         const Vec3      w_AF = getBodyAngularVelocity(s, F);
-        const Vec3      b_AB = getBodyAngularAcceleration(s, ac, B);
-        const Vec3      b_AF = getBodyAngularAcceleration(s, ac, F);
+        const Vec3      b_AB = getBodyAngularAcceleration(s, B, true);
+        const Vec3      b_AF = getBodyAngularAcceleration(s, F, true);
 
         *paerr =   dot( b_AF-b_AB, f_A % b_A )
                  + dot( w_AF-w_AB, (w_AF%f_A) % b_A - (w_AB%b_A) % f_A);
@@ -1195,30 +1184,30 @@ public:
     //      
     //
 
-    void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
+    void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
         assert(mp==3 && perr);
 
-        const Vec3 p_AP = calcStationLocation(s, pc, B1, defaultPoint1);
-        const Vec3 p_AS = calcStationLocation(s, pc, B2, defaultPoint2);
+        const Vec3 p_AP = calcStationLocation(s, B1, defaultPoint1, true);
+        const Vec3 p_AS = calcStationLocation(s, B2, defaultPoint2, true);
 
         // See above comments -- this is just the constant of integration; there is a missing (p_AS-p_AC)
         // term (always 0) here which is what we differentiate to get the verr equation.
         Vec3::updAs(perr) = p_AS - p_AP;
     }
  
-    void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
+    void realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const {
         assert(mp==3 && pverr);
         //TODO: should be able to get p info from State
         const Transform&  X_AB   = getBodyTransform(s, B1);
         const Vec3        p_AS   = calcStationLocation(s, B2, defaultPoint2);
         const Vec3        p_BC   = ~X_AB*p_AS; // C is a material point of body B
 
-        const Vec3        v_AS    = calcStationVelocity(s, vc, B2, defaultPoint2);
-        const Vec3        v_AC    = calcStationVelocity(s, vc, B1, p_BC);
+        const Vec3        v_AS    = calcStationVelocity(s, B2, defaultPoint2, true);
+        const Vec3        v_AC    = calcStationVelocity(s, B1, p_BC, true);
         Vec3::updAs(pverr) = v_AS - v_AC;
     }
 
-    void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
+    void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const {
         assert(mp==3 && paerr);
         //TODO: should be able to get p and v info from State
 
@@ -1226,8 +1215,8 @@ public:
         const Vec3        p_AS   = calcStationLocation(s, B2, defaultPoint2);
         const Vec3        p_BC   = ~X_AB*p_AS; // C is a material point of body B
 
-        const Vec3        a_AS    = calcStationAcceleration(s, ac, B2, defaultPoint2);
-        const Vec3        a_AC    = calcStationAcceleration(s, ac, B1, p_BC);
+        const Vec3        a_AS    = calcStationAcceleration(s, B2, defaultPoint2, true);
+        const Vec3        a_AC    = calcStationAcceleration(s, B1, p_BC, true);
         Vec3::updAs(paerr) = a_AS - a_AC;
     }
 
@@ -1334,11 +1323,11 @@ public:
     //        ~RFy * RBz
     //        ~RFz * RBx
     // -----------------
-    void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
+    void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
         assert(mp==3 && perr);
 
-        const Rotation& R_AB = getBodyRotation(s, pc, B);
-        const Rotation& R_AF = getBodyRotation(s, pc, F);
+        const Rotation& R_AB = getBodyRotation(s, B, true);
+        const Rotation& R_AF = getBodyRotation(s, F, true);
         const Rotation  RB = R_AB * defaultRB; // now expressed in A
         const Rotation  RF = R_AF * defaultRF;
 
@@ -1352,7 +1341,7 @@ public:
     //      = ~(w_AF-w_AB) * (RFy % RBz)
     //      = ~(w_AF-w_AB) * (RFz % RBx)
     // ----------------------------------
-    void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
+    void realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const {
         assert(mp==3 && pverr);
         //TODO: should be able to get p info from State
         const Rotation& R_AB = getBodyRotation(s, B);
@@ -1360,8 +1349,8 @@ public:
         const Rotation  RB = R_AB * defaultRB; // now expressed in A
         const Rotation  RF = R_AF * defaultRF;
 
-        const Vec3&     w_AB = getBodyAngularVelocity(s, vc, B);
-        const Vec3&     w_AF = getBodyAngularVelocity(s, vc, F);
+        const Vec3&     w_AB = getBodyAngularVelocity(s, B, true);
+        const Vec3&     w_AF = getBodyAngularVelocity(s, F, true);
         const Vec3      w_BF = w_AF-w_AB; // in A
 
         Vec3::updAs(pverr) = Vec3( ~w_BF * (RF.x() % RB.y()),
@@ -1377,7 +1366,7 @@ public:
     //        ~(b_AF-b_AB) * (RFz % RBx)
     //                 + ~(w_AF-w_AB) * ((w_AF%RFz) % RBx) - (w_AB%RBx) % RFz)
     //------------------------------------------------------------------------
-    void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
+    void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const {
         assert(mp==3 && paerr);
         //TODO: should be able to get p and v info from State
         const Rotation& R_AB = getBodyRotation(s, B);
@@ -1389,8 +1378,8 @@ public:
         const Vec3&     w_AF = getBodyAngularVelocity(s, F);
         const Vec3      w_BF = w_AF-w_AB; // in A
 
-        const Vec3&     b_AB = getBodyAngularAcceleration(s, ac, B);
-        const Vec3&     b_AF = getBodyAngularAcceleration(s, ac, F);
+        const Vec3&     b_AB = getBodyAngularAcceleration(s, B, true);
+        const Vec3&     b_AF = getBodyAngularAcceleration(s, F, true);
         const Vec3      b_BF = b_AF-b_AB; // in A
 
         Vec3::updAs(paerr) = 
@@ -1489,11 +1478,11 @@ public:
     // Ball (last 3 equations) theory above. Otherwise just lay back and 
     // enjoy the ride.
 
-    void realizePositionErrorsVirtual(const State& s, const SBPositionCache& pc, int mp,  Real* perr) const {
+    void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
         assert(mp==6 && perr);
 
-        const Rotation& R_AB = getBodyRotation(s, pc, B);
-        const Rotation& R_AF = getBodyRotation(s, pc, F);
+        const Rotation& R_AB = getBodyRotation(s, B, true);
+        const Rotation& R_AF = getBodyRotation(s, F, true);
         const Rotation  RB = R_AB * defaultFrameB.R(); // now expressed in A
         const Rotation  RF = R_AF * defaultFrameF.R();
 
@@ -1502,14 +1491,14 @@ public:
                                  ~RF.y()*RB.z(),
                                  ~RF.z()*RB.x());
 
-        const Vec3 p_AF1 = calcStationLocation(s, pc, B, defaultFrameB.T());
-        const Vec3 p_AF2 = calcStationLocation(s, pc, F, defaultFrameF.T());
+        const Vec3 p_AF1 = calcStationLocation(s, B, defaultFrameB.T(), true);
+        const Vec3 p_AF2 = calcStationLocation(s, F, defaultFrameF.T(), true);
 
         // position error
         Vec3::updAs(perr+3) = p_AF2 - p_AF1;
     }
 
-    void realizePositionDotErrorsVirtual(const State& s, const SBVelocityCache& vc, int mp,  Real* pverr) const {
+    void realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const {
         assert(mp==6 && pverr);
         //TODO: should be able to get p info from State
         const Rotation& R_AB = getBodyRotation(s, B);
@@ -1517,8 +1506,8 @@ public:
         const Rotation  RB = R_AB * defaultFrameB.R(); // now expressed in A
         const Rotation  RF = R_AF * defaultFrameF.R();
 
-        const Vec3&     w_AB = getBodyAngularVelocity(s, vc, B);
-        const Vec3&     w_AF = getBodyAngularVelocity(s, vc, F);
+        const Vec3&     w_AB = getBodyAngularVelocity(s, B, true);
+        const Vec3&     w_AF = getBodyAngularVelocity(s, F, true);
         const Vec3      w_BF = w_AF-w_AB; // in A
 
         // orientation error
@@ -1531,14 +1520,14 @@ public:
         const Vec3        p_AF2  = calcStationLocation(s, F, defaultFrameF.T());
         const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
 
-        const Vec3        v_AF2   = calcStationVelocity(s, vc, F, defaultFrameF.T());
-        const Vec3        v_AC    = calcStationVelocity(s, vc, B, p_BC);
+        const Vec3        v_AF2   = calcStationVelocity(s, F, defaultFrameF.T(), true);
+        const Vec3        v_AC    = calcStationVelocity(s, B, p_BC, true);
  
         // position error
         Vec3::updAs(pverr+3) = v_AF2 - v_AC;
     }
 
-    void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mp,  Real* paerr) const {
+    void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const {
         assert(mp==6 && paerr);
         //TODO: should be able to get p and v info from State
         const Rotation& R_AB = getBodyRotation(s, B);
@@ -1550,8 +1539,8 @@ public:
         const Vec3&     w_AF = getBodyAngularVelocity(s, F);
         const Vec3      w_BF = w_AF-w_AB; // in A
 
-        const Vec3&     b_AB = getBodyAngularAcceleration(s, ac, B);
-        const Vec3&     b_AF = getBodyAngularAcceleration(s, ac, F);
+        const Vec3&     b_AB = getBodyAngularAcceleration(s, B, true);
+        const Vec3&     b_AF = getBodyAngularAcceleration(s, F, true);
         const Vec3      b_BF = b_AF-b_AB; // in A
 
         // orientation error
@@ -1567,8 +1556,8 @@ public:
         const Vec3        p_AF2  = calcStationLocation(s, F, defaultFrameF.T());
         const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
 
-        const Vec3        a_AF2  = calcStationAcceleration(s, ac, F, defaultFrameF.T());
-        const Vec3        a_AC   = calcStationAcceleration(s, ac, B, p_BC);
+        const Vec3        a_AF2  = calcStationAcceleration(s, F, defaultFrameF.T(), true);
+        const Vec3        a_AC   = calcStationAcceleration(s, B, p_BC, true);
 
         // position error
         Vec3::updAs(paerr+3) = a_AF2 - a_AC;
@@ -1669,7 +1658,7 @@ public:
     //    aerr = ~(a_AP1 - a_AP0) * n_A + ~(v_AP1 - v_AP0) * (w_AC X n_A)
     //         = ~(a_AP1 - a_AP0 - w_AC X (v_AP1 - v_AP0)) * n_A
     // 
-    void realizeVelocityErrorsVirtual(const State& s, const SBVelocityCache& vc, int mv,  Real* verr) const {
+    void realizeVelocityErrorsVirtual(const State& s, int mv,  Real* verr) const {
         assert(mv==1 && verr);
         //TODO: should be able to get p info from State
         const Transform& X_AC  = getBodyTransform(s, caseBody);
@@ -1680,14 +1669,14 @@ public:
         const Vec3       p_P1  = ~X_AB1 * p_AP;              // P1's station in B1
         const UnitVec3   n_A   = X_AC.R() * defaultNoSlipDirection;
 
-        const Vec3       v_AP0 = calcStationVelocity(s, vc, movingBody0, p_P0);
-        const Vec3       v_AP1 = calcStationVelocity(s, vc, movingBody1, p_P1);
+        const Vec3       v_AP0 = calcStationVelocity(s, movingBody0, p_P0, true);
+        const Vec3       v_AP1 = calcStationVelocity(s, movingBody1, p_P1, true);
 
         // Calculate this scalar using A-frame vectors.
         *verr = ~(v_AP1-v_AP0) * n_A;
     }
 
-    void realizeVelocityDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mv,  Real* vaerr) const {
+    void realizeVelocityDotErrorsVirtual(const State& s, int mv,  Real* vaerr) const {
         assert(mv==1 && vaerr);
         //TODO: should be able to get p and v info from State
         const Transform& X_AC  = getBodyTransform(s, caseBody);
@@ -1702,8 +1691,8 @@ public:
         const Vec3       v_AP1 = calcStationVelocity(s, movingBody1, p_P1);
         const Vec3&      w_AC  = getBodyAngularVelocity(s, caseBody);
 
-        const Vec3       a_AP0 = calcStationAcceleration(s, ac, movingBody0, p_P0);
-        const Vec3       a_AP1 = calcStationAcceleration(s, ac, movingBody1, p_P1);
+        const Vec3       a_AP0 = calcStationAcceleration(s, movingBody0, p_P0, true);
+        const Vec3       a_AP1 = calcStationAcceleration(s, movingBody1, p_P1, true);
 
         // Calculate this scalar using A-frame vectors.
         *vaerr = ~(a_AP1-a_AP0 - w_AC % (v_AP1-v_AP0)) * n_A;
@@ -1764,12 +1753,12 @@ public:
     //    verr = u - s
     //    aerr = udot
     // 
-    void realizeVelocityErrorsVirtual(const State& s, const SBVelocityCache& vc, int mv,  Real* verr) const {
+    void realizeVelocityErrorsVirtual(const State& s, int mv,  Real* verr) const {
         assert(mv==1 && verr);
         *verr = getOneU(s, theMobilizer, whichMobility) - prescribedSpeed;
     }
 
-    void realizeVelocityDotErrorsVirtual(const State& s, const SBAccelerationCache& ac, int mv,  Real* vaerr) const {
+    void realizeVelocityDotErrorsVirtual(const State& s, int mv,  Real* vaerr) const {
         assert(mv==1 && vaerr);
         *vaerr = getOneUDot(s, theMobilizer, whichMobility, true);
     }
@@ -1899,11 +1888,11 @@ public:
     void realizeAccelerationVirtual(const State& s) const {getImplementation().realizeAccelerationVirtual(s);}
     void realizeReportVirtual  (const State& s) const {getImplementation().realizeReportVirtual(s);}
 
-    void realizePositionErrorsVirtual      (const State& s, const SBPositionCache&, int mp,  Real* perr) const
+    void realizePositionErrorsVirtual      (const State& s, int mp,  Real* perr) const
        {getImplementation().realizePositionErrorsVirtual(s,mp,perr);}
-    void realizePositionDotErrorsVirtual   (const State& s, const SBVelocityCache&, int mp,  Real* pverr) const
+    void realizePositionDotErrorsVirtual   (const State& s, int mp,  Real* pverr) const
        {getImplementation().realizePositionDotErrorsVirtual(s,mp,pverr);}
-    void realizePositionDotDotErrorsVirtual(const State& s, const SBAccelerationCache&, int mp,  Real* paerr) const
+    void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const
        {getImplementation().realizePositionDotDotErrorsVirtual(s,mp,paerr);}
     void applyPositionConstraintForcesVirtual
            (const State& s, int mp, const Real* multipliers,
@@ -1911,9 +1900,9 @@ public:
             Vector&              mobilityForces) const
        {getImplementation().applyPositionConstraintForcesVirtual(s,mp,multipliers,bodyForces,mobilityForces);}
 
-    void realizeVelocityErrorsVirtual(const State& s, const SBVelocityCache&, int mv,  Real* verr) const
+    void realizeVelocityErrorsVirtual(const State& s, int mv,  Real* verr) const
        {getImplementation().realizeVelocityErrorsVirtual(s,mv,verr);}
-    void realizeVelocityDotErrorsVirtual(const State& s, const SBAccelerationCache&, int mv,  Real* vaerr) const
+    void realizeVelocityDotErrorsVirtual(const State& s, int mv,  Real* vaerr) const
        {getImplementation().realizeVelocityDotErrorsVirtual(s,mv,vaerr);}
     void applyVelocityConstraintForcesVirtual
            (const State& s, int mv, const Real* multipliers,
@@ -1921,7 +1910,7 @@ public:
             Vector&              mobilityForces) const
        {getImplementation().applyVelocityConstraintForcesVirtual(s,mv,multipliers,bodyForces,mobilityForces);}
 
-    void realizeAccelerationErrorsVirtual(const State& s, const SBAccelerationCache&, int ma,  Real* aerr) const
+    void realizeAccelerationErrorsVirtual(const State& s, int ma,  Real* aerr) const
        {getImplementation().realizeAccelerationErrorsVirtual(s,ma,aerr);}
     void applyAccelerationConstraintForcesVirtual
            (const State& s, int ma, const Real* multipliers,

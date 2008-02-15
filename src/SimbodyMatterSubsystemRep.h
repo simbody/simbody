@@ -169,7 +169,7 @@ class SimbodyMatterSubsystemRep : public SimTK::Subsystem::Guts {
 public:
     SimbodyMatterSubsystemRep() 
       : Subsystem::Guts("SimbodyMatterSubsystem", "0.7.1"),
-        lConstraints(0), showDefaultGeometry(true)
+        lConstraints(0)
     { 
         clearTopologyCache();
     }
@@ -289,6 +289,15 @@ public:
         return *constraints[id];
     }
 
+    // Topology stage cache entry
+    AncestorConstrainedBodyPoolIndex allocateNextAncestorConstrainedBodyPoolSlot() const {
+        const AncestorConstrainedBodyPoolIndex nxt = nextAncestorConstrainedBodyPoolSlot;
+        // Make this mutable briefly.
+        ++ const_cast<SimbodyMatterSubsystemRep*>(this)->nextAncestorConstrainedBodyPoolSlot;
+        return nxt;
+    }
+
+
     // These counts can be obtained even during construction, where they
     // just return the current counts.
     // NBodies includes ground.
@@ -348,33 +357,15 @@ public:
         return getInstanceCache(s).totalMass;
     }
 
-    // These take explicit cache entries so that they can be used *during* a realization
-    // step. For example, for realize(Position) we expect to compute body kinematics into
-    // the position cache, then realize the constraints which will use that kinematic info
-    // in calculating position constraint errors. But all that occurs prior to marking
-    // the stage as Stage::Position, so we can't ask the State for the position cache.
-    const Transform&  getBodyTransform(const State&, const SBPositionCache&, MobilizedBodyIndex) const;
-    const SpatialVec& getBodyVelocity (const State&, const SBVelocityCache&, MobilizedBodyIndex) const;
-    const SpatialVec& getBodyAcceleration(const State& s, const SBAccelerationCache&, MobilizedBodyIndex) const;
-
-    // These will extract the appropriate cache entry from the state and then call one of the
-    // above routines. That means these cannot be called until the associated stage has been
-    // completed.
-
-    // call after Stage::Position
-    const Transform&  getBodyTransform(const State& s, MobilizedBodyIndex mbid) const {
-        return getBodyTransform(s, getPositionCache(s), mbid);
-    }
-
-    // call after Stage::Velocity
-    const SpatialVec& getBodyVelocity (const State& s, MobilizedBodyIndex mbid) const {
-        return getBodyVelocity(s, getVelocityCache(s), mbid);
-    }
-
-    // call after Stage::Acceleration
-    const SpatialVec& getBodyAcceleration(const State& s, MobilizedBodyIndex mbid) const {
-        return getBodyAcceleration(s, getAccelerationCache(s), mbid);
-    }
+    // Extract position, velocity, and acceleration information for MobilizedBodies out of the 
+    // State cache. Normally the State already has to have been realized to the Position, Velocity,
+    // or Acceleration stage resp., but if you are calling one of these *during* realization of
+    // that stage (say, from a Constraint error-calculation routine) then set the indicated flag
+    // and the routine will allow you to retrieve the cache value one stage earlier. In that case you are on
+    // the honor system not to reference the value before it is available.
+    const Transform&  getBodyTransform   (const State&, MobilizedBodyIndex, bool realizingPosition=false) const;
+    const SpatialVec& getBodyVelocity    (const State&, MobilizedBodyIndex, bool realizingVelocity=false) const;
+    const SpatialVec& getBodyAcceleration(const State&, MobilizedBodyIndex, bool realizingAcceleration=false) const;
 
     // velocity dependent
     const SpatialVec& getCoriolisAcceleration     (const State&, MobilizedBodyIndex) const;
@@ -711,36 +702,44 @@ public:
             (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).timeCacheIndex)).upd();
     }
 
-    const SBPositionCache& getPositionCache(const State& s) const {
-        return Value<SBPositionCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).qCacheIndex)).get();
+    const SBPositionCache& getPositionCache(const State& s, bool realizingPosition=false) const {
+        const AbstractValue& cacheEntry = 
+            realizingPosition ? (const AbstractValue&)s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).qCacheIndex)
+                              : s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).qCacheIndex);
+        return Value<SBPositionCache>::downcast(cacheEntry).get();
     }
     SBPositionCache& updPositionCache(const State& s) const { //mutable
         return Value<SBPositionCache>::downcast
             (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).qCacheIndex)).upd();
     }
 
-    const SBVelocityCache& getVelocityCache(const State& s) const {
-        return Value<SBVelocityCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).uCacheIndex)).get();
+    const SBVelocityCache& getVelocityCache(const State& s, bool realizingVelocity=false) const {
+        const AbstractValue& cacheEntry = 
+            realizingVelocity ? (const AbstractValue&)s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).uCacheIndex)
+                              : s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).uCacheIndex);
+        return Value<SBVelocityCache>::downcast(cacheEntry).get();
     }
     SBVelocityCache& updVelocityCache(const State& s) const { //mutable
         return Value<SBVelocityCache>::downcast
             (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).uCacheIndex)).upd();
     }
 
-    const SBDynamicsCache& getDynamicsCache(const State& s) const {
-        return Value<SBDynamicsCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).dynamicsCacheIndex)).get();
+    const SBDynamicsCache& getDynamicsCache(const State& s, bool realizingDynamics=false) const {
+        const AbstractValue& cacheEntry = 
+            realizingDynamics ? (const AbstractValue&)s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).dynamicsCacheIndex)
+                              : s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).dynamicsCacheIndex);
+        return Value<SBDynamicsCache>::downcast(cacheEntry).get();
     }
     SBDynamicsCache& updDynamicsCache(const State& s) const { //mutable
         return Value<SBDynamicsCache>::downcast
             (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).dynamicsCacheIndex)).upd();
     }
 
-    const SBAccelerationCache& getAccelerationCache(const State& s) const {
-        return Value<SBAccelerationCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).accelerationCacheIndex)).get();
+    const SBAccelerationCache& getAccelerationCache(const State& s, bool realizingAcceleration=false) const {
+        const AbstractValue& cacheEntry = 
+            realizingAcceleration ? (const AbstractValue&)s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).accelerationCacheIndex)
+                                  : s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).accelerationCacheIndex);
+        return Value<SBAccelerationCache>::downcast(cacheEntry).get();
     }
     SBAccelerationCache& updAccelerationCache(const State& s) const { //mutable
         return Value<SBAccelerationCache>::downcast
@@ -974,6 +973,10 @@ private:
     int nextQErrSlot;
     int nextUErrSlot;
     int nextMultSlot;
+
+    // Dole out slots for all Constrained Bodies which belong to Constraints
+    // whose Ancestor is not Ground (except for the Ancestor bodies themselves).
+    AncestorConstrainedBodyPoolIndex nextAncestorConstrainedBodyPoolSlot;
 
     int DOFTotal;   // summed over all nodes
     int SqDOFTotal; // sum of squares of ndofs per node
