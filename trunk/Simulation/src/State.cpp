@@ -596,7 +596,7 @@ public:
         systemStage = g;
     }
 
-    void         setMyHandle(StateRep& s) {myHandle = &s;}
+    void            setMyHandle(StateRep& s) {myHandle = &s;}
     const StateRep& getMyHandle() const   {assert(myHandle); return *myHandle;}
     StateRep&       updMyHandle()         {assert(myHandle); return *myHandle;}
 private:
