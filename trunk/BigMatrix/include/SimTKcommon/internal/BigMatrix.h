@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-8 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -1764,7 +1764,7 @@ public:
     
     /// Convert a Mat to a Matrix_
     template <int M, int N>
-    Matrix_(const Mat<M,N,ELT>& mat) : Base(M, N) {
+    explicit Matrix_(const Mat<M,N,ELT>& mat) : Base(M, N) {
         for (int i = 0; i < M; ++i)
             for (int j = 0; j < N; ++j)
                 this->updElt(i, j) = mat(i, j);
@@ -1892,7 +1892,7 @@ public:
     
     /// Convert a Vec to a Vector_.
     template <int M>
-    Vector_(const Vec<M,ELT>& v) : Base(M) {
+    explicit Vector_(const Vec<M,ELT>& v) : Base(M) {
         for (int i = 0; i < M; ++i)
             this->updElt(i, 0) = v(i);
     }
@@ -2015,7 +2015,7 @@ public:
     
     /// Convert a Row to a RowVector_.
     template <int M>
-    RowVector_(const Row<M,ELT>& v) : Base(M) {
+    explicit RowVector_(const Row<M,ELT>& v) : Base(M) {
         for (int i = 0; i < M; ++i)
             this->updElt(0, i) = v(i);
     }

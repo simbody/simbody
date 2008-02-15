@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-8 Stanford University and the Authors.           *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -73,7 +73,7 @@ int main() {
         // Currently, this only tests a small number of operations that were recently added.
         // It should be expanded into a more comprehensive test of the big matrix classes.
         
-        Matrix m = Mat22(1, 2, 3, 4);
+        Matrix m(Mat22(1, 2, 3, 4));
         testMatrix<Matrix,2,2>(m, Mat22(1, 2, 3, 4));
         m += 3;
         testMatrix<Matrix,2,2>(m, Mat22(4, 2, 3, 7));
@@ -83,7 +83,7 @@ int main() {
         testMatrix<Matrix,2,2>(m+1, Mat22(2, 2, 3, 5));
         testMatrix<Matrix,2,2>(1-m, Mat22(0, -2, -3, -3));
         testMatrix<Matrix,2,2>(1+m, Mat22(2, 2, 3, 5));
-        Vector v = Vec3(1, 2, 3);
+        Vector v(Vec3(1, 2, 3));
         testVector(v, Vec3(1, 2, 3));
         v += 2;
         testVector(v, Vec3(3, 4, 5));
@@ -93,7 +93,7 @@ int main() {
         testVector(v+1, Vec3(2, 3, 4));
         testVector(1-v, Vec3(0, -1, -2));
         testVector(1+v, Vec3(2, 3, 4));
-        RowVector r = Row3(1, 2, 3);
+        RowVector r(Row3(1, 2, 3));
         testVector(r, Vec3(1, 2, 3));
         r += 2;
         testVector(r, Vec3(3, 4, 5));
