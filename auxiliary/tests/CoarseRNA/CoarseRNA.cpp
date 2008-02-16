@@ -241,6 +241,11 @@ try // If anything goes wrong, an exception will be thrown.
 
 
     State s = mbs.realizeTopology();
+
+
+    //myRNA.getConstraint(ConstraintIndex(myRNA.getNConstraints()-4)).disable(s);
+
+
     //myRNA.setUseEulerAngles(s,true);
     mbs.realizeModel(s);
     mbs.realize(s, Stage::Position);

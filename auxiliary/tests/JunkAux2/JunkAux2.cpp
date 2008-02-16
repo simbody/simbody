@@ -156,7 +156,34 @@ int main(int argc, char** argv) {
     MyConstraint xyz(gear1, -100.);
 
     viz.addBodyFixedDecoration(mobilizedBody, Transform(Vec3(1,2,3)), DecorativeText("hello world").setScale(.1));
+
+
+
+/*
+    class MyHandler : public ScheduledEventHandler {
+    public:
+        MyHandler(const Constraint& cons) : c(cons) { }
+        Real getNextEventTime(const State&, bool includeCurrentTime) const {
+            return .314;
+        }
+        void handleEvent(State& s, Real acc, const Vector& ywts, const Vector& cwts, Stage& modified,
+                         bool& shouldTerminate) const 
+        {
+            cout << "<<<< TRIGGERED AT T=" << s.getTime() << endl;
+            c.enable(s);
+            modified = Stage::Model;
+        }
+    private:
+        const Constraint& c;
+    };
+
+    mbs.updDefaultSubsystem().addEventHandler(new MyHandler(xyz));
+*/
+
+
     State s = mbs.realizeTopology(); // returns a reference to the the default state
+
+    //xyz.disable(s);
 
     //matter.setUseEulerAngles(s, true);
     mbs.realizeModel(s); // define appropriate states for this System
@@ -178,7 +205,7 @@ int main(int argc, char** argv) {
         int mp,mv,ma;
         c.getNumConstraintEquationsInUse(s, mp,mv,ma);
 
-	    cout << "CONSTRAINT " << cid 
+        cout << "CONSTRAINT " << cid << (c.isDisabled(s) ? "**DISABLED** " : "")
              << " constrained bodies=" << c.getNumConstrainedBodies();
         if (c.getNumConstrainedBodies()) cout << " ancestor=" << c.getAncestorMobilizedBody().getMobilizedBodyIndex();
         cout << " constrained mobilizers/nq/nu=" << c.getNumConstrainedMobilizers() 
@@ -311,6 +338,7 @@ int main(int argc, char** argv) {
 
     mbs.resetAllCountersToZero();
 
+
     while ((status=myStudy.stepTo(nextReport*dt))
            != Integrator::EndOfSimulation) 
     {
@@ -338,6 +366,7 @@ int main(int argc, char** argv) {
 		//cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
         cout << "Q=" << matter.getQ(s) << endl;
         cout << "U=" << matter.getU(s) << endl;
+        cout << "Multipliers=" << matter.getMultipliers(s) << endl;
 
         Vector qdot;
         matter.calcQDot(s, s.getU(), qdot);

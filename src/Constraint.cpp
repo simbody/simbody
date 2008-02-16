@@ -56,6 +56,22 @@ namespace SimTK {
     // CONSTRAINT //
     ////////////////
 
+void Constraint::disable(State& s) const {
+    getImpl().setDisabled(s, true);
+}
+void Constraint::enable(State& s) const {
+    getImpl().setDisabled(s, false);
+}
+bool Constraint::isDisabled(const State& s) const {
+    return getImpl().isDisabled(s);
+}
+bool Constraint::isDisabledByDefault() const {
+    return getImpl().isDisabledByDefault();
+}
+void Constraint::setDisabledByDefault(bool shouldBeDisabled) {
+    updImpl().setDisabledByDefault(shouldBeDisabled);
+}
+
 const SimbodyMatterSubsystem& Constraint::getMatterSubsystem() const {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
         "getMatterSubsystem() called on a Constraint that is not part of a subsystem.");
@@ -603,7 +619,7 @@ void Constraint::Rod::RodImpl::realizeTopologyVirtual(State& s) const {
 #endif
 }
 
-void Constraint::Rod::RodImpl::calcDecorativeGeometryAndAppendImpl
+void Constraint::Rod::RodImpl::calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the endpoint artwork until we know the end point stations,
@@ -760,7 +776,7 @@ Real Constraint::PointInPlane::getMultiplier(const State& s) const {
 
     // PointInPlaneImpl
 
-void Constraint::PointInPlane::PointInPlaneImpl::calcDecorativeGeometryAndAppendImpl
+void Constraint::PointInPlane::PointInPlaneImpl::calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the artwork until we know the normal, height, and follower
@@ -904,7 +920,7 @@ Vec2 Constraint::PointOnLine::getMultipliers(const State& s) const {
 
     // PointOnLineImpl
 
-void Constraint::PointOnLine::PointOnLineImpl::calcDecorativeGeometryAndAppendImpl
+void Constraint::PointOnLine::PointOnLineImpl::calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the artwork until we know the direction, point on line, and follower
@@ -1050,7 +1066,7 @@ Real Constraint::ConstantAngle::getMultiplier(const State& s) const {
 
     // ConstantAngleImpl
 
-void Constraint::ConstantAngle::ConstantAngleImpl::calcDecorativeGeometryAndAppendImpl
+void Constraint::ConstantAngle::ConstantAngleImpl::calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the artwork until we know the normal, height, and follower
@@ -1178,7 +1194,7 @@ void Constraint::Ball::BallImpl::realizeTopologyVirtual(State& s) const {
 #endif
 }
 
-void Constraint::Ball::BallImpl::calcDecorativeGeometryAndAppendImpl
+void Constraint::Ball::BallImpl::calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the ball until we know the radius, and we can't place
@@ -1438,7 +1454,7 @@ void Constraint::Weld::WeldImpl::realizeTopologyVirtual(State& s) const {
 #endif
 }
 
-void Constraint::Weld::WeldImpl::calcDecorativeGeometryAndAppendImpl
+void Constraint::Weld::WeldImpl::calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the frames until we know the axis lengths to use, and we can't place
@@ -1563,7 +1579,7 @@ Real Constraint::NoSlip1D::getMultiplier(const State& s) const {
 
     // NoSlip1DImpl
 
-void Constraint::NoSlip1D::NoSlip1DImpl::calcDecorativeGeometryAndAppendImpl
+void Constraint::NoSlip1D::NoSlip1DImpl::calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the artwork until we know the direction and contact
@@ -1743,9 +1759,16 @@ void Constraint::Custom::Implementation::invalidateTopologyCache() const {
     getImpl().getCustomImpl().invalidateTopologyCache();
 }
 
-void Constraint::Custom::Implementation::
-getDefaultNumConstraintEquations(int& mp, int& mv, int& ma) const {
-    getImpl().getCustomImpl().getDefaultNumConstraintEquations(mp,mv,ma);
+Constraint::Custom::Implementation& Constraint::Custom::Implementation::
+setDefaultNumConstraintEquations(int mp, int mv, int ma) {
+    updImpl().updCustomImpl().setDefaultNumConstraintEquations(mp,mv,ma);
+    return *this;
+}
+
+Constraint::Custom::Implementation& Constraint::Custom::Implementation::
+setDisabledByDefault(bool shouldBeDisabled) {
+    updImpl().updCustomImpl().setDisabledByDefault(shouldBeDisabled);
+    return *this;
 }
 
 ConstrainedBodyIndex Constraint::Custom::Implementation::
@@ -1967,17 +1990,26 @@ void ConstraintImpl::realizeModel(State& s) const
         "ConstraintImpl::realizeModel() can't be called until after realizeToplogy().");
 
     const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
-    const SBModelVars& modelVars = matter.getModelVars(s);
+    const SBModelVars& modelVars  = matter.getModelVars(s);
     SBModelCache&      modelCache = matter.updModelCache(s);
     SBModelCache::PerConstraintModelInfo& cInfo =
         modelCache.updConstraintModelInfo(myConstraintIndex);
 
     cInfo.clear();
+    cInfo.allocateConstrainedMobilizerModelInfo(getNumConstrainedMobilizers());
+
+    if (isDisabled(s)) {
+        cInfo.holoErrSegment    = Segment(0,modelCache.totalNHolonomicConstraintEquationsInUse);
+        cInfo.nonholoErrSegment = Segment(0,modelCache.totalNNonholonomicConstraintEquationsInUse);
+        cInfo.accOnlyErrSegment = Segment(0,modelCache.totalNAccelerationOnlyConstraintEquationsInUse);
+        return;
+    }
+
+    // This constraint is not disabled
 
     // These are just the primary contraint equations, not their time derivatives.
     int mHolo, mNonholo, mAccOnly;
-    if (modelVars.disabled[myConstraintIndex]) mHolo=mNonholo=mAccOnly=0;
-    else calcNumConstraintEquationsInUse(s, mHolo, mNonholo, mAccOnly);
+    calcNumConstraintEquationsInUse(s, mHolo, mNonholo, mAccOnly);
 
     // Must allocate space for the primary constraint equations and their time derivatives.
     //                                length         offset
@@ -1995,7 +2027,6 @@ void ConstraintImpl::realizeModel(State& s) const
     // these in the ModelCache, by storing the ConstrainedQIndex and ConstrainedUIndex
     // of the lowest-numbered coordinate and mobility associated with each of
     // the ConstrainedMobilizers, along with the number of q's and u's.
-    cInfo.allocateConstrainedMobilizerModelInfo(getNumConstrainedMobilizers());
 
     for (ConstrainedMobilizerIndex cmx(0); cmx < getNumConstrainedMobilizers(); ++cmx) {
         SBModelCache::PerConstrainedMobilizerModelInfo& mInfo = 
@@ -2006,10 +2037,12 @@ void ConstraintImpl::realizeModel(State& s) const
         UIndex uix; int nu;
         matter.findMobilizerQs(s,mbx,qix,nq);
         matter.findMobilizerUs(s,mbx,uix,nu);
+        mInfo.nQInUse = nq;
         if (nq) {
             mInfo.firstConstrainedQIndex = cInfo.addConstrainedQ(qix);
             for (int i=1; i<nq; ++i) cInfo.addConstrainedQ(QIndex(qix+i));
         }
+        mInfo.nUInUse = nu;
         if (nu) {
             mInfo.firstConstrainedUIndex = cInfo.addConstrainedU(uix);
             for (int i=1; i<nu; ++i) cInfo.addConstrainedU(UIndex(uix+i));
@@ -2040,12 +2073,15 @@ void ConstraintImpl::realizeModel(State& s) const
 }
 
 void ConstraintImpl::realizeInstance(const State& s) const {
+    if (isDisabled(s)) return;
     realizeInstanceVirtual(s); // nothing to do at the base class level
 }
 void ConstraintImpl::realizeTime(const State& s) const {
+    if (isDisabled(s)) return;
     realizeTimeVirtual(s); // nothing to do in the base class
 }
 void ConstraintImpl::realizePosition(const State& s) const {
+    if (isDisabled(s)) return;
     if (myAncestorBodyIsNotGround) {
         // Pre-calculate configuration information in the Ancestor frame
         SBPositionCache& pc = getMyMatterSubsystemRep().updPositionCache(s);
@@ -2058,6 +2094,7 @@ void ConstraintImpl::realizePosition(const State& s) const {
     realizePositionVirtual(s); // delegate to concrete constraint
 }
 void ConstraintImpl::realizeVelocity(const State& s) const {
+    if (isDisabled(s)) return;
     if (myAncestorBodyIsNotGround) {
         // Pre-calculate velocity information in the Ancestor frame
         SBVelocityCache& vc = getMyMatterSubsystemRep().updVelocityCache(s);
@@ -2070,9 +2107,11 @@ void ConstraintImpl::realizeVelocity(const State& s) const {
     realizeVelocityVirtual(s); // delegate to concrete constraint
 }
 void ConstraintImpl::realizeDynamics(const State& s) const {
+    if (isDisabled(s)) return;
     realizeDynamicsVirtual(s); // nothing to do in the base class
 }
 void ConstraintImpl::realizeAcceleration(const State& s) const {
+    if (isDisabled(s)) return;
     if (myAncestorBodyIsNotGround) {
         // Pre-calculate velocity information in the Ancestor frame
         SBAccelerationCache& ac = getMyMatterSubsystemRep().updAccelerationCache(s);
@@ -2085,6 +2124,7 @@ void ConstraintImpl::realizeAcceleration(const State& s) const {
     realizeAccelerationVirtual(s); // delegate to concrete constraint
 }
 void ConstraintImpl::realizeReport(const State& s) const {
+    if (isDisabled(s)) return;
     realizeReportVirtual(s); // nothing to do in the base class
 }
 
@@ -2330,6 +2370,14 @@ void ConstraintImpl::getConstraintEquationSlots
     accOnly0 = mHolo + mNonholo + cInfo.accOnlyErrSegment.offset;
 }
 
+void ConstraintImpl::setDisabled(State& s, bool shouldBeDisabled) const {
+    getMyMatterSubsystemRep().setConstraintIsDisabled(s, myConstraintIndex, shouldBeDisabled);
+}
+
+bool ConstraintImpl::isDisabled(const State& s) const {
+    return getMyMatterSubsystemRep().isConstraintDisabled(s, myConstraintIndex);
+}
+
 // Call this during construction phase to add a body to the topological structure of
 // this Constraint. This body's mobilizer's mobilities are *not* part of the constraint; 
 // mobilizers must be added separately.
@@ -2391,8 +2439,9 @@ int ConstraintImpl::getNumConstrainedQ(const State& s) const {
 int ConstraintImpl::getNumConstrainedQ
    (const State& s, ConstrainedMobilizerIndex M) const
 {
-    const MobilizedBodyIndex mbx = getMobilizedBodyIndexOfConstrainedMobilizer(M);
-    return getModelCache(s).getMobilizedBodyModelInfo(mbx).nQInUse;
+    const SBModelCache::PerConstrainedMobilizerModelInfo& mInfo =
+        getModelCache(s).getConstraintModelInfo(myConstraintIndex).getConstrainedMobilizerModelInfo(M);
+    return mInfo.nQInUse; // same as corresponding MobilizedBody, or 0 if disabled
 }
 
 ConstrainedQIndex ConstraintImpl::getConstrainedQIndex
@@ -2412,8 +2461,9 @@ int ConstraintImpl::getNumConstrainedU(const State& s) const {
 int ConstraintImpl::getNumConstrainedU
    (const State& s, ConstrainedMobilizerIndex M) const
 {
-    const MobilizedBodyIndex mbx = getMobilizedBodyIndexOfConstrainedMobilizer(M);
-    return getModelCache(s).getMobilizedBodyModelInfo(mbx).nUInUse;
+    const SBModelCache::PerConstrainedMobilizerModelInfo& mInfo =
+        getModelCache(s).getConstraintModelInfo(myConstraintIndex).getConstrainedMobilizerModelInfo(M);
+    return mInfo.nUInUse; // same as corresponding MobilizedBody, or 0 if disabled
 }
 
 ConstrainedUIndex ConstraintImpl::getConstrainedUIndex

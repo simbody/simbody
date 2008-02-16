@@ -225,10 +225,12 @@ public:
     // coordinates involved until Model stage.
 
     struct PerConstrainedMobilizerModelInfo {
+        PerConstrainedMobilizerModelInfo() : nQInUse(0), nUInUse(0) { } // assume disabled
         // The correspondence between Constrained Mobilizers and Mobilized Bodies is
         // Topological information you can pull from the TopologyCache.
         // See the MobilizedBody for counts of its q's and u's, which define the allocated
         // number of slots for the ConstrainedMobilizer as well.
+        int nQInUse, nUInUse; // same as corresponding MobilizedBody unless disabled
         ConstrainedQIndex  firstConstrainedQIndex; // these count from 0 for each Constraint
         ConstrainedUIndex  firstConstrainedUIndex;
     };
@@ -392,8 +394,9 @@ inline std::ostream& operator<<(std::ostream& o, const SBModelCache& c) {
             o << "    ConstrainedMobilizers:";
             for (ConstrainedMobilizerIndex i(0); i < cInfo.getNConstrainedMobilizers(); ++i) {
                 const SBModelCache::PerConstrainedMobilizerModelInfo& mInfo = cInfo.getConstrainedMobilizerModelInfo(i);
-                o << " " << i << ": firstConstrainedQIndex/UIndex=" << mInfo.firstConstrainedQIndex 
-                                                                    << "/" << mInfo.firstConstrainedUIndex << endl;
+                o << " " << i << ": nQ/UInUse=" << mInfo.nQInUse << "/" << mInfo.nUInUse
+                  << ", firstConstrainedQIndex/UIndex=" << mInfo.firstConstrainedQIndex 
+                                                        << "/" << mInfo.firstConstrainedUIndex << endl;
             }
             o << "    constrainedQ:"; 
             for(ConstrainedQIndex i(0); i < cInfo.getNConstrainedQ(); ++i) 

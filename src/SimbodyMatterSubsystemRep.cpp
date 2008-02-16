@@ -294,6 +294,9 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
     nextAncestorConstrainedBodyPoolSlot = AncestorConstrainedBodyPoolIndex(0);
 
     for (ConstraintIndex cx(0); cx<getNumConstraints(); ++cx) {
+        // Note: currently there is no such thing as a disabled constraint at the Topology stage.
+        // Even a constraint which is disabled by default is not actually disabled until
+        // Model stage, and can be re-enabled at Model stage.
         const ConstraintImpl& crep = getConstraint(cx).getImpl();
         crep.realizeTopology(s);
 
@@ -634,11 +637,13 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
     //cout << "BEFORE qErr=" << qErr << endl;
 #ifndef USE_OLD_CONSTRAINTS
     // Put position constraint equation errors in qErr
-    for (ConstraintIndex c(0); c < constraints.size(); ++c) {
-        const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(c);
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
+        const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(cx);
         const Segment& pseg = cInfo.holoErrSegment;
         if (pseg.length)
-            constraints[c]->getImpl().realizePositionErrors(s, pseg.length, &qErr[pseg.offset]);
+            constraints[cx]->getImpl().realizePositionErrors(s, pseg.length, &qErr[pseg.offset]);
     }
 #else // USE_OLD_CONSTRAINTS
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
@@ -677,16 +682,19 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
 
 #ifndef USE_OLD_CONSTRAINTS
     // Put velocity constraint equation errors in uErr
-    for (ConstraintIndex c(0); c < constraints.size(); ++c) {
-        const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(c);
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
+        const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(cx);
 
         const Segment& holoseg = cInfo.holoErrSegment; // for derivatives of holonomic constraints
         const Segment& nonholoseg = cInfo.nonholoErrSegment; // vseg includes holonomic+nonholonomic
         const int mHolo = holoseg.length, mNonholo = nonholoseg.length;
         if (mHolo)
-            constraints[c]->getImpl().realizePositionDotErrors(s, mHolo,    &uErr[holoseg.offset]);
+            constraints[cx]->getImpl().realizePositionDotErrors(s, mHolo,    &uErr[holoseg.offset]);
         if (mNonholo)
-            constraints[c]->getImpl().realizeVelocityErrors   (s, mNonholo, &uErr[mc.totalNHolonomicConstraintEquationsInUse + nonholoseg.offset]);
+            constraints[cx]->getImpl().realizeVelocityErrors
+               (s, mNonholo, &uErr[mc.totalNHolonomicConstraintEquationsInUse + nonholoseg.offset]);
     }
     //cout << "NEW UERR=" << uErr << endl;
 #else // USE_OLD_CONSTRAINTS
@@ -966,13 +974,15 @@ void SimbodyMatterSubsystemRep::setDefaultModelValues(const SBTopologyCache& top
 {
     // Tree-level defaults
     modelVars.useEulerAngles = false;
-    //modelVars.prescribed.assign(getNBodies(), false);
-    for (int i = 0; i < (int)modelVars.prescribed.size(); ++i)
+
+    assert((int)modelVars.prescribed.size() == getNumMobilizedBodies());
+    modelVars.prescribed[0] = true; // Ground
+    for (MobilizedBodyIndex i(1); i < getNumMobilizedBodies(); ++i)
         modelVars.prescribed[i] = false;
-    modelVars.prescribed[0] = true; // ground
-    //modelVars.enabled.assign(getNConstraints(), false);
-    for (int i = 0; i < (int)modelVars.disabled.size(); ++i)
-        modelVars.disabled[i] = false;
+
+    assert((int)modelVars.disabled.size() == getNumConstraints());
+    for (ConstraintIndex i(0); i < getNumConstraints(); ++i)
+        modelVars.disabled[i] = getConstraint(i).isDisabledByDefault();
 
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
@@ -1154,11 +1164,13 @@ void SimbodyMatterSubsystemRep::calcHolonomicConstraintMatrixPQInverse(const Sta
 
     PQInv.resize(mp,nq);
 
-    for (ConstraintIndex c(0); c < constraints.size(); ++c) {
-        const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(c);
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
+        const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(cx);
         const Segment& holoSeg = cInfo.holoErrSegment; // offset into qErr and mHolo (mp)
 
-        PQInv(holoSeg.offset, 0, holoSeg.length, nq) = constraints[c]->calcPositionConstraintMatrixPQInverse(s);
+        PQInv(holoSeg.offset, 0, holoSeg.length, nq) = constraints[cx]->calcPositionConstraintMatrixPQInverse(s);
     }
 }
 void SimbodyMatterSubsystemRep::calcHolonomicVelocityConstraintMatrixP(const State& s, Matrix& P) const {
@@ -1168,11 +1180,13 @@ void SimbodyMatterSubsystemRep::calcHolonomicVelocityConstraintMatrixP(const Sta
 
     P.resize(mHolo,nu);
 
-    for (ConstraintIndex c(0); c < constraints.size(); ++c) {
-        const SBModelCache::PerConstraintModelInfo& cInfo = model.getConstraintModelInfo(c);
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
+        const SBModelCache::PerConstraintModelInfo& cInfo = model.getConstraintModelInfo(cx);
         const Segment& holoSeg = cInfo.holoErrSegment; // offset into uErr and mHolo (mp)
 
-        P(holoSeg.offset, 0, holoSeg.length, nu) = constraints[c]->calcPositionConstraintMatrixP(s);
+        P(holoSeg.offset, 0, holoSeg.length, nu) = constraints[cx]->calcPositionConstraintMatrixP(s);
     }
 }
 void SimbodyMatterSubsystemRep::calcHolonomicVelocityConstraintMatrixPt(const State& s, Matrix& Pt) const {
@@ -1182,12 +1196,14 @@ void SimbodyMatterSubsystemRep::calcHolonomicVelocityConstraintMatrixPt(const St
 
     Pt.resize(nu,mHolo);
 
-    for (ConstraintIndex c(0); c < constraints.size(); ++c) {
-        const SBModelCache::PerConstraintModelInfo& cInfo = model.getConstraintModelInfo(c);
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
+        const SBModelCache::PerConstraintModelInfo& cInfo = model.getConstraintModelInfo(cx);
         const Segment& holoSeg = cInfo.holoErrSegment; // offset into uErr and mHolo (mp)
 
         // Fill in columns of Pt
-        Pt(0, holoSeg.offset, nu, holoSeg.length) = constraints[c]->calcPositionConstraintMatrixPt(s);
+        Pt(0, holoSeg.offset, nu, holoSeg.length) = constraints[cx]->calcPositionConstraintMatrixPt(s);
     }
 }
 void SimbodyMatterSubsystemRep::calcNonholonomicConstraintMatrixV(const State& s, Matrix& V) const {
@@ -1197,11 +1213,13 @@ void SimbodyMatterSubsystemRep::calcNonholonomicConstraintMatrixV(const State& s
 
     V.resize(mNonholo,nu);
 
-    for (ConstraintIndex c(0); c < constraints.size(); ++c) {
-        const SBModelCache::PerConstraintModelInfo& cInfo = model.getConstraintModelInfo(c);
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
+        const SBModelCache::PerConstraintModelInfo& cInfo = model.getConstraintModelInfo(cx);
         const Segment& nonholoSeg = cInfo.nonholoErrSegment; // after holo derivs, offset into uerr
 
-        V(nonholoSeg.offset, 0, nonholoSeg.length, nu) = constraints[c]->calcVelocityConstraintMatrixV(s);
+        V(nonholoSeg.offset, 0, nonholoSeg.length, nu) = constraints[cx]->calcVelocityConstraintMatrixV(s);
     }
 }
 void SimbodyMatterSubsystemRep::calcNonholonomicConstraintMatrixVt(const State& s, Matrix& Vt) const {
@@ -1211,12 +1229,14 @@ void SimbodyMatterSubsystemRep::calcNonholonomicConstraintMatrixVt(const State& 
 
     Vt.resize(nu,mNonholo);
 
-    for (ConstraintIndex c(0); c < constraints.size(); ++c) {
-        const SBModelCache::PerConstraintModelInfo& cInfo = model.getConstraintModelInfo(c);
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
+        const SBModelCache::PerConstraintModelInfo& cInfo = model.getConstraintModelInfo(cx);
         const Segment& nonholoSeg = cInfo.nonholoErrSegment; // after holo derivs, offset into uerr
 
         // Fill in columns of Vt
-        Vt(0, nonholoSeg.offset, nu, nonholoSeg.length) = constraints[c]->calcVelocityConstraintMatrixVt(s);
+        Vt(0, nonholoSeg.offset, nu, nonholoSeg.length) = constraints[cx]->calcVelocityConstraintMatrixVt(s);
     }
 }
 void SimbodyMatterSubsystemRep::calcAccelerationOnlyConstraintMatrixA (const State& s, Matrix& A) const {
@@ -1226,11 +1246,13 @@ void SimbodyMatterSubsystemRep::calcAccelerationOnlyConstraintMatrixA (const Sta
 
     A.resize(mAccOnly,nu);
 
-    for (ConstraintIndex c(0); c < constraints.size(); ++c) {
-        const SBModelCache::PerConstraintModelInfo& cInfo = model.getConstraintModelInfo(c);
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
+        const SBModelCache::PerConstraintModelInfo& cInfo = model.getConstraintModelInfo(cx);
         const Segment& accOnlySeg = cInfo.accOnlyErrSegment; // after holo&nonholo derivs, offset into udoterr
 
-        A(accOnlySeg.offset, 0, accOnlySeg.length, nu) = constraints[c]->calcAccelerationConstraintMatrixA(s);
+        A(accOnlySeg.offset, 0, accOnlySeg.length, nu) = constraints[cx]->calcAccelerationConstraintMatrixA(s);
     }
 }
 void SimbodyMatterSubsystemRep::calcAccelerationOnlyConstraintMatrixAt(const State& s, Matrix& At) const {
@@ -1240,11 +1262,13 @@ void SimbodyMatterSubsystemRep::calcAccelerationOnlyConstraintMatrixAt(const Sta
 
     At.resize(nu,mAccOnly);
 
-    for (ConstraintIndex c(0); c < constraints.size(); ++c) {
-        const SBModelCache::PerConstraintModelInfo& cInfo = model.getConstraintModelInfo(c);
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
+        const SBModelCache::PerConstraintModelInfo& cInfo = model.getConstraintModelInfo(cx);
         const Segment& accOnlySeg = cInfo.accOnlyErrSegment; // after holo&nonholo derivs, offset into udoterr
 
-        At(0, accOnlySeg.offset, nu, accOnlySeg.length) = constraints[c]->calcAccelerationConstraintMatrixAt(s);
+        At(0, accOnlySeg.offset, nu, accOnlySeg.length) = constraints[cx]->calcAccelerationConstraintMatrixAt(s);
     }
 }
 // Must be realized to Stage::Position
@@ -1266,6 +1290,9 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
     Vector              mobilityF1;
     Vector              lambda1; // multipliers for 1 constraint
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
+
         const SBModelCache::PerConstraintModelInfo& cInfo = model.getConstraintModelInfo(cx);
         const Segment& holoSeg    = cInfo.holoErrSegment;
         const Segment& nonholoSeg = cInfo.nonholoErrSegment;
@@ -1631,6 +1658,8 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
 #ifndef USE_OLD_CONSTRAINTS
     // Put acceleration constraint equation errors in uErr
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        if (isConstraintDisabled(s,cx))
+            continue;
         const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(cx);
 
         const Segment& holoseg    = cInfo.holoErrSegment;    // for 2nd derivatives of holonomic constraints

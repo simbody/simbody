@@ -76,15 +76,17 @@ class ConstraintImpl : public PIMPLImplementation<Constraint, ConstraintImpl> {
 public:
     ConstraintImpl()
       : myMatterSubsystemRep(0), 
-        defaultMp(0), defaultMv(0), defaultMa(0), 
+        defaultMp(0), defaultMv(0), defaultMa(0), defaultDisabled(false),
         myAncestorBodyIsNotGround(false)
     {
     }
     virtual ~ConstraintImpl() { }
     virtual ConstraintImpl* clone() const = 0;
 
-    ConstraintImpl(int mp, int mv, int ma) : myMatterSubsystemRep(0), 
-        defaultMp(mp), defaultMv(mv), defaultMa(ma)
+    ConstraintImpl(int mp, int mv, int ma)
+      : myMatterSubsystemRep(0), 
+        defaultMp(mp), defaultMv(mv), defaultMa(ma), defaultDisabled(false),
+        myAncestorBodyIsNotGround(false)
     {
     }
 
@@ -101,6 +103,18 @@ public:
         mv = defaultMv;
         ma = defaultMa;
     }
+
+    void setDisabledByDefault(bool shouldBeDisabled) {
+        invalidateTopologyCache();
+        defaultDisabled = shouldBeDisabled;
+    }
+
+    bool isDisabledByDefault() const {
+        return defaultDisabled;
+    }
+
+    void setDisabled(State& s, bool shouldBeDisabled) const ;
+    bool isDisabled(const State& s) const;
 
     typedef std::map<MobilizedBodyIndex,ConstrainedBodyIndex>       MobilizedBody2ConstrainedBodyMap;
     typedef std::map<MobilizedBodyIndex,ConstrainedMobilizerIndex>  MobilizedBody2ConstrainedMobilizerMap;
@@ -124,8 +138,9 @@ public:
         return myConstrainedMobilizers[c];
     }
 
-    int allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const;
-    int allocateCacheEntry(State& s, Stage g, AbstractValue* v) const;
+    //TODO: Constraint-local State allocation
+    //int allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const;
+    //int allocateCacheEntry(State& s, Stage g, AbstractValue* v) const;
 
     QIndex getQIndexOfConstrainedQ(const State& s, ConstrainedQIndex cqx) const;
     UIndex getUIndexOfConstrainedU(const State& s, ConstrainedUIndex cqx) const;
@@ -188,8 +203,7 @@ public:
 		getNumConstraintEquationsInUse(s, actual_mp, actual_mv, actual_ma);
 
 		bodyForcesInA.resize(getNumConstrainedBodies());       bodyForcesInA  = SpatialVec(Vec3(0), Vec3(0));
-        //TODO:
-		//mobilityForces.resize(getNumConstrainedMobilities(s)); mobilityForces = 0;
+		mobilityForces.resize(getNumConstrainedU(s));          mobilityForces = 0;
 
 		if (mp) {
 			assert(mp == actual_mp);
@@ -239,10 +253,6 @@ public:
     const SBVelocityCache&		getVelocityCache(const State&) const;
     const SBAccelerationCache&	getAccelerationCache(const State&) const;
 
-    // These are measured from and expressed in the ancestor (A) frame.
-
-    //TODO: should precalculate in State, return reference
-    // (Client "get" methods below should be changed to references also.) 
 
         // Methods for use with ConstrainedMobilizers.
 
@@ -265,7 +275,8 @@ public:
 
         // Methods for use with ConstrainedBodies.
 
-    // These are used to retrieve the indicated values from the State cache.
+    // These are used to retrieve the indicated values from the State cache, with all values
+    // measured and expressed in the Ancestor (A) frame.
     const Transform&  getBodyTransform   (const State& s, ConstrainedBodyIndex B, bool realizingPosition=false)     const; // X_AB
     const SpatialVec& getBodyVelocity    (const State& s, ConstrainedBodyIndex B, bool realizingVelocity=false)     const; // V_AB
     const SpatialVec& getBodyAcceleration(const State& s, ConstrainedBodyIndex B, bool realizingAcceleration=false) const; // A_AB
@@ -330,16 +341,6 @@ public:
     virtual void calcNumConstraintEquationsInUseVirtual(const State&, int& mp, int& mv, int& ma) const {
         mp = defaultMp; mv = defaultMv; ma = defaultMa;
     }
-
-    //NOTE: bodyForces and mobilityForces refer only to constrained bodies and their
-    //associated mobilizers, not the system as a whole. They are initialized to zero
-    //prior to the call so do not need to be set.
-
-    //NOTE: each of these operators acts on the current state of this constraint's
-    //Subtree, which may or may not be the same as that Subtree has in the global
-    //State. This is controlled by the base class operator interface methods which
-    //will call these only after setting the Subtree state properly.
-    //TODO: Subtree
 
     void realizePositionErrors(const State& s, int mp,  Real* perr) const {
         realizePositionErrorsVirtual(s,mp,perr);
@@ -418,7 +419,7 @@ public:
         Vector&              mobilityForces) const;
 
 
-    virtual void calcDecorativeGeometryAndAppendImpl
+    virtual void calcDecorativeGeometryAndAppendVirtual
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
     {
     }
@@ -427,7 +428,7 @@ public:
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
     {
         // Let the individual constraint deal with any complicated stuff.
-        calcDecorativeGeometryAndAppendImpl(s,stage,geom);
+        calcDecorativeGeometryAndAppendVirtual(s,stage,geom);
     }
 
     void invalidateTopologyCache() const;
@@ -459,6 +460,8 @@ public:
 
     const MobilizedBody& getMobilizedBodyFromConstrainedMobilizer(ConstrainedMobilizerIndex) const;
     const MobilizedBody& getMobilizedBodyFromConstrainedBody(ConstrainedBodyIndex) const;
+
+    // Don't call this unless there is at least one Constrained Body.
     const MobilizedBody& getAncestorMobilizedBody() const;
 
 	// Find out how many holonomic (position), nonholonomic (velocity),
@@ -529,6 +532,10 @@ private:
     // acceleration-only constraint equations.
     int defaultMp, defaultMv, defaultMa;
 
+    // This says whether the Model-stage "disabled" flag for this Constraint should be initially
+    // on or off. Most constraints are enabled by default.
+    bool defaultDisabled;
+
         // TOPOLOGY "CACHE"
 
     // When topology is realized we study the constrained bodies to identify the
@@ -567,7 +574,7 @@ public:
     RodImpl* clone() const { return new RodImpl(*this); }
 
     // Draw some end points and a rubber band line.
-    void calcDecorativeGeometryAndAppendImpl
+    void calcDecorativeGeometryAndAppendVirtual
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
 
     void setPointDisplayRadius(Real r) {
@@ -674,7 +681,7 @@ public:
     { }
     PointInPlaneImpl* clone() const { return new PointInPlaneImpl(*this); }
 
-    void calcDecorativeGeometryAndAppendImpl
+    void calcDecorativeGeometryAndAppendVirtual
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
 
     void setPlaneDisplayHalfWidth(Real h) {
@@ -832,7 +839,7 @@ public:
     { }
     PointOnLineImpl* clone() const { return new PointOnLineImpl(*this); }
 
-    void calcDecorativeGeometryAndAppendImpl
+    void calcDecorativeGeometryAndAppendVirtual
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
 
     void setLineDisplayHalfLength(Real h) {
@@ -983,7 +990,7 @@ public:
     { }
     ConstantAngleImpl* clone() const { return new ConstantAngleImpl(*this); }
 
-    void calcDecorativeGeometryAndAppendImpl
+    void calcDecorativeGeometryAndAppendVirtual
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
 
     void setAxisLength(Real length) {
@@ -1073,8 +1080,8 @@ public:
         const Rotation& R_AF = getBodyRotation(s, F);
         const UnitVec3  b_A  = R_AB * defaultAxisB;
         const UnitVec3  f_A  = R_AF * defaultAxisF;
-        const Vec3      w_AB = getBodyAngularVelocity(s, B, true);
-        const Vec3      w_AF = getBodyAngularVelocity(s, F, true);
+        const Vec3&     w_AB = getBodyAngularVelocity(s, B, true);
+        const Vec3&     w_AF = getBodyAngularVelocity(s, F, true);
 
         *pverr = dot( w_AF-w_AB,  f_A % b_A );
     }
@@ -1090,10 +1097,10 @@ public:
         const Rotation& R_AF = getBodyRotation(s, F);
         const UnitVec3  b_A  = R_AB * defaultAxisB;
         const UnitVec3  f_A  = R_AF * defaultAxisF;
-        const Vec3      w_AB = getBodyAngularVelocity(s, B);
-        const Vec3      w_AF = getBodyAngularVelocity(s, F);
-        const Vec3      b_AB = getBodyAngularAcceleration(s, B, true);
-        const Vec3      b_AF = getBodyAngularAcceleration(s, F, true);
+        const Vec3&     w_AB = getBodyAngularVelocity(s, B);
+        const Vec3&     w_AF = getBodyAngularVelocity(s, F);
+        const Vec3&     b_AB = getBodyAngularAcceleration(s, B, true);
+        const Vec3&     b_AF = getBodyAngularAcceleration(s, F, true);
 
         *paerr =   dot( b_AF-b_AB, f_A % b_A )
                  + dot( w_AF-w_AB, (w_AF%f_A) % b_A - (w_AB%b_A) % f_A);
@@ -1145,7 +1152,7 @@ public:
     BallImpl() : ConstraintImpl(3,0,0), defaultPoint1(0), defaultPoint2(0), defaultRadius(0.1) { }
     BallImpl* clone() const { return new BallImpl(*this); }
 
-    void calcDecorativeGeometryAndAppendImpl
+    void calcDecorativeGeometryAndAppendVirtual
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
 
     void setDefaultRadius(Real r) {
@@ -1444,7 +1451,7 @@ public:
     WeldImpl* clone() const { return new WeldImpl(*this); }
 
     // Draw the two frames.
-    void calcDecorativeGeometryAndAppendImpl
+    void calcDecorativeGeometryAndAppendVirtual
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
 
     void setAxisDisplayLength(Real len) {
@@ -1620,7 +1627,7 @@ public:
     { }
     NoSlip1DImpl* clone() const { return new NoSlip1DImpl(*this); }
 
-    void calcDecorativeGeometryAndAppendImpl
+    void calcDecorativeGeometryAndAppendVirtual
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
 
     void setDirectionDisplayLength(Real l) {
@@ -1918,7 +1925,7 @@ public:
             Vector&              mobilityForces) const
        {getImplementation().applyAccelerationConstraintForcesVirtual(s,ma,multipliers,bodyForces,mobilityForces);}
 
-    void calcDecorativeGeometryAndAppendImpl
+    void calcDecorativeGeometryAndAppendVirtual
           (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
        {getImplementation().calcDecorativeGeometryAndAppendVirtual(s,stage,geom);}
 

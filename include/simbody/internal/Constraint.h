@@ -75,6 +75,19 @@ public:
     Constraint() { }
     explicit Constraint(ConstraintImpl* r) : HandleBase(r) { }
 
+    void disable(State&) const;
+    void enable(State&) const;
+    bool isDisabled(const State&) const;
+    bool isDisabledByDefault() const;
+
+    /// Normally Constraints are enabled when defined and can be disabled later. If
+    /// you want to define this constraint but have it be off by default, use this
+    /// method.
+    void setDisabledByDefault(bool shouldBeDisabled);
+
+    // Implicit conversion to ConstraintIndex when needed.
+    operator ConstraintIndex() const {return getConstraintIndex();}
+
     // These will fail unless this Constraint is owned by a MatterSubsystem.
     ConstraintIndex               getConstraintIndex()      const;
     const SimbodyMatterSubsystem& getMatterSubsystem()      const;
@@ -863,13 +876,16 @@ public:
     void invalidateTopologyCache() const;
 
     /// This is an alternate way to set the default number of equations to be generated
-    /// if you didn't specify them in the base class constructor.
-    void setDefaultNumConstraintEquations(int mp, int mv, int ma);
+    /// if you didn't specify them in the base class constructor. A reference to this
+    /// Implementation is returned so that this can be used in a sequence like an
+    /// assignment operator.
+    Implementation& setDefaultNumConstraintEquations(int mp, int mv, int ma);
 
-    /// Retrieve the default number of each type of constraint equations to be generated
-    /// by this constraint. This is what will be used if no Model-stage calls are made
-    /// prior to realizing a State.
-    void getDefaultNumConstraintEquations(int& mp, int& mv, int& ma) const;
+    /// Normally Constraints are enabled when defined and can be disabled later. If
+    /// you want to define this constraint but have it be off by default, use this
+    /// method. A reference to this Implementation is returned so that this can be
+    /// used in a sequence like an assignment operator.
+    Implementation& setDisabledByDefault(bool shouldBeDisabled);
 
     /// Call this during construction phase to add a body to the topological structure of
     /// this Constraint. This body's mobilizer's mobilities are *not* part of the constraint; 
@@ -889,18 +905,6 @@ public:
     MobilizedBodyIndex getMobilizedBodyIndexOfConstrainedMobilizer(ConstrainedMobilizerIndex) const;
 
         // Model stage information //
-
-    // Turn off this constraint altogether, but don't forget mp,mv, and ma.
-    void setEnableConstraint(State&, bool) const;
-    // isConstraintEnabled() is in base class.
-
-    // Set Model-stage state variables to reflect the actual number of equations to 
-    // be generated.
-    void changeNumConstraintEquations(State&, int mp, int mv, int ma) const;
-
-    // getNumConstraintEquations(), getNumMobilities(), and getParticipatingMobilities()
-    // are in the base class.
-
 
         // Methods for use with ConstrainedMobilizers.
 
