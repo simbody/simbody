@@ -1105,7 +1105,7 @@ public:
             =gbsaGlobalScaleFactor=1;
         vdwScale12=coulombScale12=vdwScale13=coulombScale13=0;
         vdwScale14=coulombScale14=vdwScale15=coulombScale15=1;
-        doIncludeGbsaAceApproximation = false;
+        doIncludeGbsaAceApproximation = true;
         loadElements();
         const DuMM::ClusterIndex gid = addCluster(Cluster("free atoms and groups"));
         assert(gid==0);
