@@ -214,7 +214,7 @@ int main(int argc, char** argv) {
 
 	if (cid.isValid()) {
 		const Constraint& c = twoPends.getConstraint(cid);
-		cout << "CONSTRAINT perr=" << c.getPositionError(s)
+		cout << "CONSTRAINT perr=" << c.getPositionErrorsAsVector(s)
 			 << endl;
 		cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
 		cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
@@ -312,9 +312,9 @@ int main(int argc, char** argv) {
 
 		if (cid.isValid()) {
 			const Constraint& c = twoPends.getConstraint(cid);
-			cout << "CONSTRAINT perr=" << c.getPositionError(s)
-				 << " verr=" << c.getVelocityError(s)
-				 << " aerr=" << c.getAccelerationError(s)
+			cout << "CONSTRAINT perr=" << c.getPositionErrorsAsVector(s)
+				 << " verr=" << c.getVelocityErrorsAsVector(s)
+				 << " aerr=" << c.getAccelerationErrorsAsVector(s)
 				 << endl;
 			//cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
 			//cout << "  ~d(f)/d lambda=" << c.calcPositionConstraintMatrixPT(s);

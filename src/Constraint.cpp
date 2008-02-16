@@ -134,7 +134,7 @@ void Constraint::getNumConstraintEquationsInUse(const State& s, int& mp, int& mv
 	getImpl().getNumConstraintEquationsInUse(s,mp,mv,ma);
 }
 
-Vector Constraint::getPositionError(const State& s) const {
+Vector Constraint::getPositionErrorsAsVector(const State& s) const {
 	int mp,mv,ma;
 	getNumConstraintEquationsInUse(s, mp, mv, ma);
 
@@ -143,7 +143,7 @@ Vector Constraint::getPositionError(const State& s) const {
 	return perr;
 }
 
-Vector Constraint::getVelocityError(const State& s) const {
+Vector Constraint::getVelocityErrorsAsVector(const State& s) const {
 	int mp,mv,ma;
 	getNumConstraintEquationsInUse(s, mp, mv, ma);
 
@@ -152,13 +152,34 @@ Vector Constraint::getVelocityError(const State& s) const {
 	return pverr;
 }
 
-Vector Constraint::getAccelerationError(const State& s) const {
+Vector Constraint::getAccelerationErrorsAsVector(const State& s) const {
 	int mp,mv,ma;
 	getNumConstraintEquationsInUse(s, mp, mv, ma);
 
 	Vector pvaerr(mp+mv+ma);
 	if (mp+mv+ma) getImpl().getAccelerationErrors(s, mp+mv+ma, &pvaerr[0]);
 	return pvaerr;
+}
+
+Vector Constraint::getMultipliersAsVector(const State& s) const {
+    int mp,mv,ma;
+    getNumConstraintEquationsInUse(s, mp, mv, ma);
+
+    Vector mult(mp+mv+ma);
+    if (mp+mv+ma) getImpl().getMultipliers(s, mp+mv+ma, &mult[0]);
+    return mult;
+}
+
+Vector Constraint::calcPositionErrorFromQ(const State&, const Vector& q) const {
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Constraint", "calcPositionErrorFromQ");
+}
+
+Vector Constraint::calcVelocityErrorFromU(const State&, const Vector& q) const {
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Constraint", "calcVelocityErrorFromU");
+}
+
+Vector Constraint::calcAccelerationErrorFromUDot(const State&, const Vector& q) const {
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Constraint", "calcAccelerationErrorFromUDot");
 }
 
 Matrix Constraint::calcPositionConstraintMatrixP(const State& s) const {
@@ -177,13 +198,13 @@ Matrix Constraint::calcPositionConstraintMatrixP(const State& s) const {
 
 		matter.updU(tmp) = 0;	// first calculate the bias term -c(t,q)
 		system.realize(tmp, Stage::Velocity);
-		pverr0 = getVelocityError(tmp)(0,mp);
+		pverr0 = getVelocityErrorsAsVector(tmp)(0,mp);
 
 		// Now calculate sensitivity of d(perr)/dt=Pu-c(t,q) to each u in turn.
 		for (int j=0; j<nu; ++j) {
 			matter.updU(tmp)[j] = 1;
 		    system.realize(tmp, Stage::Velocity);
-			pverr = getVelocityError(tmp)(0,mp);
+			pverr = getVelocityErrorsAsVector(tmp)(0,mp);
 			matter.updU(tmp)[j] = 0;
 			P(j) = pverr - pverr0;
 		}
@@ -540,6 +561,31 @@ Real Constraint::Rod::getDefaultRodLength() const {
     return getImpl().defaultRodLength;
 }
 
+Real Constraint::Rod::getPositionError(const State& s) const {
+    Real perr;
+    getImpl().getPositionErrors(s, 1, &perr);
+    return perr;
+}
+
+Real Constraint::Rod::getVelocityError(const State& s) const {
+    Real pverr;
+    getImpl().getVelocityErrors(s, 1, &pverr);
+    return pverr;
+}
+
+Real Constraint::Rod::getAccelerationError(const State& s) const {
+    Real pvaerr;
+    getImpl().getAccelerationErrors(s, 1, &pvaerr);
+    return pvaerr;
+}
+
+Real Constraint::Rod::getMultiplier(const State& s) const {
+    Real mult;
+    getImpl().getMultipliers(s, 1, &mult);
+    return mult;
+}
+
+
 
     // RodImpl
 
@@ -688,6 +734,30 @@ Real Constraint::PointInPlane::getPointDisplayRadius() const {
     return getImpl().getPointDisplayRadius();
 }
 
+Real Constraint::PointInPlane::getPositionError(const State& s) const {
+    Real perr;
+    getImpl().getPositionErrors(s, 1, &perr);
+    return perr;
+}
+
+Real Constraint::PointInPlane::getVelocityError(const State& s) const {
+    Real pverr;
+    getImpl().getVelocityErrors(s, 1, &pverr);
+    return pverr;
+}
+
+Real Constraint::PointInPlane::getAccelerationError(const State& s) const {
+    Real pvaerr;
+    getImpl().getAccelerationErrors(s, 1, &pvaerr);
+    return pvaerr;
+}
+
+Real Constraint::PointInPlane::getMultiplier(const State& s) const {
+    Real mult;
+    getImpl().getMultipliers(s, 1, &mult);
+    return mult;
+}
+
     // PointInPlaneImpl
 
 void Constraint::PointInPlane::PointInPlaneImpl::calcDecorativeGeometryAndAppendImpl
@@ -806,6 +876,31 @@ Real Constraint::PointOnLine::getLineDisplayHalfLength() const {
 Real Constraint::PointOnLine::getPointDisplayRadius() const {
     return getImpl().getPointDisplayRadius();
 }
+
+Vec2 Constraint::PointOnLine::getPositionErrors(const State& s) const {
+    Vec2 perr;
+    getImpl().getPositionErrors(s, 2, &perr[0]);
+    return perr;
+}
+
+Vec2 Constraint::PointOnLine::getVelocityErrors(const State& s) const {
+    Vec2 pverr;
+    getImpl().getVelocityErrors(s, 2, &pverr[0]);
+    return pverr;
+}
+
+Vec2 Constraint::PointOnLine::getAccelerationErrors(const State& s) const {
+    Vec2 pvaerr;
+    getImpl().getAccelerationErrors(s, 2, &pvaerr[0]);
+    return pvaerr;
+}
+
+Vec2 Constraint::PointOnLine::getMultipliers(const State& s) const {
+    Vec2 mult;
+    getImpl().getMultipliers(s, 2, &mult[0]);
+    return mult;
+}
+
 
     // PointOnLineImpl
 
@@ -929,6 +1024,30 @@ Real Constraint::ConstantAngle::getAxisDisplayWidth() const {
     return getImpl().axisThickness;
 }
 
+Real Constraint::ConstantAngle::getPositionError(const State& s) const {
+    Real perr;
+    getImpl().getPositionErrors(s, 1, &perr);
+    return perr;
+}
+
+Real Constraint::ConstantAngle::getVelocityError(const State& s) const {
+    Real pverr;
+    getImpl().getVelocityErrors(s, 1, &pverr);
+    return pverr;
+}
+
+Real Constraint::ConstantAngle::getAccelerationError(const State& s) const {
+    Real pvaerr;
+    getImpl().getAccelerationErrors(s, 1, &pvaerr);
+    return pvaerr;
+}
+
+Real Constraint::ConstantAngle::getMultiplier(const State& s) const {
+    Real mult;
+    getImpl().getMultipliers(s, 1, &mult);
+    return mult;
+}
+
     // ConstantAngleImpl
 
 void Constraint::ConstantAngle::ConstantAngleImpl::calcDecorativeGeometryAndAppendImpl
@@ -1013,6 +1132,30 @@ Constraint::Ball& Constraint::Ball::setDefaultRadius(Real r) {
 
 Real Constraint::Ball::getDefaultRadius() const {
     return getImpl().getDefaultRadius();
+}
+
+Vec3 Constraint::Ball::getPositionErrors(const State& s) const {
+    Vec3 perr;
+    getImpl().getPositionErrors(s, 3, &perr[0]);
+    return perr;
+}
+
+Vec3 Constraint::Ball::getVelocityErrors(const State& s) const {
+    Vec3 pverr;
+    getImpl().getVelocityErrors(s, 3, &pverr[0]);
+    return pverr;
+}
+
+Vec3 Constraint::Ball::getAccelerationErrors(const State& s) const {
+    Vec3 pvaerr;
+    getImpl().getAccelerationErrors(s, 3, &pvaerr[0]);
+    return pvaerr;
+}
+
+Vec3 Constraint::Ball::getMultipliers(const State& s) const {
+    Vec3 mult;
+    getImpl().getMultipliers(s, 3, &mult[0]);
+    return mult;
 }
 
     // BallImpl
@@ -1138,6 +1281,31 @@ const Rotation& Constraint::ConstantOrientation::getDefaultFollowerRotation() co
     return getImpl().defaultRF;
 }
 
+Vec3 Constraint::ConstantOrientation::getPositionErrors(const State& s) const {
+    Vec3 perr;
+    getImpl().getPositionErrors(s, 3, &perr[0]);
+    return perr;
+}
+
+Vec3 Constraint::ConstantOrientation::getVelocityErrors(const State& s) const {
+    Vec3 pverr;
+    getImpl().getVelocityErrors(s, 3, &pverr[0]);
+    return pverr;
+}
+
+Vec3 Constraint::ConstantOrientation::getAccelerationErrors(const State& s) const {
+    Vec3 pvaerr;
+    getImpl().getAccelerationErrors(s, 3, &pvaerr[0]);
+    return pvaerr;
+}
+
+Vec3 Constraint::ConstantOrientation::getMultipliers(const State& s) const {
+    Vec3 mult;
+    getImpl().getMultipliers(s, 3, &mult[0]);
+    return mult;
+}
+
+
     // ConstantOrientationImpl
 
     //TODO: no visualization yet
@@ -1203,6 +1371,30 @@ const Transform& Constraint::Weld::getDefaultFrameOnBody1() const {
 }
 const Transform& Constraint::Weld::getDefaultFrameOnBody2() const {
     return getImpl().defaultFrameF;
+}
+
+Vec6 Constraint::Weld::getPositionErrors(const State& s) const {
+    Vec6 perr;
+    getImpl().getPositionErrors(s, 6, &perr[0]);
+    return perr;
+}
+
+Vec6 Constraint::Weld::getVelocityErrors(const State& s) const {
+    Vec6 pverr;
+    getImpl().getVelocityErrors(s, 6, &pverr[0]);
+    return pverr;
+}
+
+Vec6 Constraint::Weld::getAccelerationErrors(const State& s) const {
+    Vec6 pvaerr;
+    getImpl().getAccelerationErrors(s, 6, &pvaerr[0]);
+    return pvaerr;
+}
+
+Vec6 Constraint::Weld::getMultipliers(const State& s) const {
+    Vec6 mult;
+    getImpl().getMultipliers(s, 6, &mult[0]);
+    return mult;
 }
 
     // WeldImpl
@@ -1351,6 +1543,24 @@ Real Constraint::NoSlip1D::getPointDisplayRadius() const {
     return getImpl().getPointDisplayRadius();
 }
 
+Real Constraint::NoSlip1D::getVelocityError(const State& s) const {
+    Real pverr;
+    getImpl().getVelocityErrors(s, 1, &pverr);
+    return pverr;
+}
+
+Real Constraint::NoSlip1D::getAccelerationError(const State& s) const {
+    Real pvaerr;
+    getImpl().getAccelerationErrors(s, 1, &pvaerr);
+    return pvaerr;
+}
+
+Real Constraint::NoSlip1D::getMultiplier(const State& s) const {
+    Real mult;
+    getImpl().getMultipliers(s, 1, &mult);
+    return mult;
+}
+
     // NoSlip1DImpl
 
 void Constraint::NoSlip1D::NoSlip1DImpl::calcDecorativeGeometryAndAppendImpl
@@ -1430,6 +1640,25 @@ MobilizerUIndex Constraint::ConstantSpeed::getWhichU() const {
 Real Constraint::ConstantSpeed::getDefaultSpeed() const {
     return getImpl().prescribedSpeed;
 }
+
+Real Constraint::ConstantSpeed::getVelocityError(const State& s) const {
+    Real pverr;
+    getImpl().getVelocityErrors(s, 1, &pverr);
+    return pverr;
+}
+
+Real Constraint::ConstantSpeed::getAccelerationError(const State& s) const {
+    Real pvaerr;
+    getImpl().getAccelerationErrors(s, 1, &pvaerr);
+    return pvaerr;
+}
+
+Real Constraint::ConstantSpeed::getMultiplier(const State& s) const {
+    Real mult;
+    getImpl().getMultipliers(s, 1, &mult);
+    return mult;
+}
+
 
     // ConstantSpeedImpl
     // nothing yet
@@ -2234,7 +2463,7 @@ void ConstraintImpl::getVelocityErrors(const State& s, int mpv, Real* pverr) con
 	assert(mpv ==  cInfo.holoErrSegment.length
                  + cInfo.nonholoErrSegment.length);
 
-	// Get referente to all uerr's for the subsystem.
+	// Get reference to all uerr's for the subsystem.
 	const Vector& uerr = getMyMatterSubsystemRep().getUErr(s);
 
 	// Find the offset to our first uerr in the ModelCache.
@@ -2269,7 +2498,7 @@ void ConstraintImpl::getAccelerationErrors(const State& s, int mpva, Real* pvaer
                    + cInfo.nonholoErrSegment.length
                    + cInfo.accOnlyErrSegment.length);
 
-	// Get referente to all udoterr's for the subsystem.
+	// Get reference to all udoterr's for the subsystem.
 	const Vector& udoterr = getMyMatterSubsystemRep().getUDotErr(s);
 
 	// Find the offset to our first uerr in the ModelCache.
@@ -2293,6 +2522,46 @@ void ConstraintImpl::getAccelerationErrors(const State& s, int mpva, Real* pvaer
 
     for (int i=0; i < mAccOnly; ++i)
         pvaerr[mHolo+mNonholo+i] = udoterr[firstAccOnlyErr+i];
+}
+
+// Given a State realized to Acceleration stage, extract the Lagrange multipliers
+// corresponding to this Constraint. The 'mpva' argument is
+// for sanity checking -- it is an error if that isn't an exact match for the
+// current number of holonomic+nonholonomic+accelerationOnly (mp+mv+ma) constraint
+// equations generated by this Constraint. We expect that lambda points to an array
+// of at least mp+mv+ma elements that we can write on.
+void ConstraintImpl::getMultipliers(const State& s, int mpva, Real* lambda) const {
+    const SBModelCache& mc = getModelCache(s);
+    const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
+
+    assert(mpva ==   cInfo.holoErrSegment.length
+                   + cInfo.nonholoErrSegment.length
+                   + cInfo.accOnlyErrSegment.length);
+
+    // Get reference to all multipliers for the subsystem.
+    const Vector& multipliers = getMyMatterSubsystemRep().getMultipliers(s);
+
+    // Find the offset to our first multiplier in the ModelCache.
+    const int firstHoloErr = cInfo.holoErrSegment.offset;
+    const int mHolo        = cInfo.holoErrSegment.length;
+
+    for (int i=0; i < mHolo; ++i)
+        lambda[i] = multipliers[firstHoloErr+i];
+
+    const int firstNonholoErr = mc.totalNHolonomicConstraintEquationsInUse // total for whole subsystem
+                                + cInfo.nonholoErrSegment.offset;
+    const int mNonholo        = cInfo.nonholoErrSegment.length;
+
+    for (int i=0; i < mNonholo; ++i)
+        lambda[mHolo+i] = multipliers[firstNonholoErr+i];
+
+    const int firstAccOnlyErr = mc.totalNHolonomicConstraintEquationsInUse
+                                + mc.totalNNonholonomicConstraintEquationsInUse // total for whole subsystem
+                                + cInfo.accOnlyErrSegment.offset;
+    const int mAccOnly        = cInfo.accOnlyErrSegment.length;
+
+    for (int i=0; i < mAccOnly; ++i)
+        lambda[mHolo+mNonholo+i] = multipliers[firstAccOnlyErr+i];
 }
 
 const SBModelCache& ConstraintImpl::getModelCache(const State& s) const {

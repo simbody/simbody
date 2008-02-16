@@ -222,7 +222,7 @@ int main(int argc, char** argv) {
         cout << c.getSubtree();
              
         if (mp) {
-            cout << "perr=" << c.getPositionError(s) << endl;
+            cout << "perr=" << c.getPositionErrorsAsVector(s) << endl;
 	        cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
             cout << "  ~d(Pt lambda)/dlambda=" << ~c.calcPositionConstraintMatrixPt(s);
 	        cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
@@ -240,7 +240,7 @@ int main(int argc, char** argv) {
 
 
         if (mv) {
-            cout << "verr=" << c.getVelocityError(s) << endl;
+            cout << "verr=" << c.getVelocityErrorsAsVector(s) << endl;
 	        //cout << "   d(verrdot)/dudot=" << c.calcVelocityConstraintMatrixV(s);
             cout << "  ~d(Vt lambda)/dlambda=" << ~c.calcVelocityConstraintMatrixVt(s);
         }
@@ -357,9 +357,9 @@ int main(int argc, char** argv) {
             matter.getUErr(s).normRMS(),
             s.getSystemStage() >= Stage::Acceleration ? matter.getUDotErr(s).normRMS() : Real(-1));
 #ifdef HASC
-		cout << "CONSTRAINT perr=" << c.getPositionError(s)
-			 << " verr=" << c.getVelocityError(s)
-			 << " aerr=" << c.getAccelerationError(s)
+		cout << "CONSTRAINT perr=" << c.getPositionErrorsAsVector(s)
+			 << " verr=" << c.getVelocityErrorsAsVector(s)
+			 << " aerr=" << c.getAccelerationErrorsAsVector(s)
 			 << endl;
 #endif
 		//cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);

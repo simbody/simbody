@@ -160,7 +160,9 @@ public:
     // nothing in base class currently
 
         // POSITION STAGE //
-    Vector getPositionError(const State&) const;	// mp of these
+    /// Get a Vector containing the position errors.  Many subclasses provide their
+    /// own methods for getting this information in a more specific form.
+    Vector getPositionErrorsAsVector(const State&) const;	// mp of these
 	Vector calcPositionErrorFromQ(const State&, const Vector& q) const;
 
 	// Matrix P = partial(perr_dot)/partial(u). (just the holonomic constraints)
@@ -190,7 +192,9 @@ public:
         Vector&              mobilityForces) const; // numConstrainedU
 
         // VELOCITY STAGE //
-    Vector getVelocityError(const State&) const;	// mp+mv of these
+    /// Get a Vector containing the velocity errors.  Many subclasses provide their
+    /// own methods for getting this information in a more specific form.
+    Vector getVelocityErrorsAsVector(const State&) const;	// mp+mv of these
 	Vector calcVelocityErrorFromU(const State&,     // mp+mv of these
                                   const Vector& u) const;   // numParticipatingU u's
 
@@ -202,15 +206,15 @@ public:
     // nothing in base class currently
 
         // ACCELERATION STAGE //
-    Vector getAccelerationError(const State&) const;	// mp+mv+ma of these
+    /// Get a Vector containing the acceleration errors.  Many subclasses provide their
+    /// own methods for getting this information in a more specific form.
+    Vector getAccelerationErrorsAsVector(const State&) const;	// mp+mv+ma of these
 	Vector calcAccelerationErrorFromUDot(const State&,  // mp+mv+ma of these
-                                         const Vector& udot) const // numParticipatingU udot's
-    {
-		assert(!"calcAccelerationErrorFromUDot: Not implemented yet");
-		return Vector();
-	}
+                                         const Vector& udot) const; // numParticipatingU udot's
 
-    Vector getMultipliers(const State&) const;			// mp+mv+ma of these   
+    /// Get a Vector containing the Lagrange multipliers.  Many subclasses provide their
+    /// own methods for getting this information in a more specific form.
+    Vector getMultipliersAsVector(const State&) const;			// mp+mv+ma of these   
 
 	// Matrix A = partial(aerr)/partial(udot) for just the acceleration-only constraints.
 	Matrix calcAccelerationConstraintMatrixA(const State&) const;  // ma X nu
@@ -397,12 +401,12 @@ public:
     const Vec3&     getFollowerPoint(const State&) const;
 
     // Stage::Position, Velocity
-    const Vec2& getPositionError(const State&) const;
-    const Vec2& getVelocityError(const State&) const;
+    Vec2 getPositionErrors(const State&) const;
+    Vec2 getVelocityErrors(const State&) const;
 
     // Stage::Acceleration
-    const Vec2& getAccelerationErrors(const State&) const;
-    const Vec2& getMultipliers(const State&) const;
+    Vec2 getAccelerationErrors(const State&) const;
+    Vec2 getMultipliers(const State&) const;
     const Vec2& getForceOnFollowerPoint(const State&) const; // in normal direction
 };
 
@@ -507,12 +511,12 @@ public:
     const Vec3& getPointOnBody2(const State&) const;
 
     // Stage::Position, Velocity, Acceleration
-    const Vec3& getPositionErrors(const State&) const;
-    const Vec3& getVelocityErrors(const State&) const;
+    Vec3 getPositionErrors(const State&) const;
+    Vec3 getVelocityErrors(const State&) const;
 
     // Stage::Acceleration
-    const Vec3& getAccelerationErrors(const State&) const;
-    const Vec3& getMultipliers(const State&) const;
+    Vec3 getAccelerationErrors(const State&) const;
+    Vec3 getMultipliers(const State&) const;
 
     // Forces are reported expressed in the body frame of the indicated body.
     const Vec3& getBallReactionForceOnBody1(const State&) const;
@@ -565,12 +569,12 @@ public:
     const Rotation& getFollowerRotation(const State&) const;
 
     // Stage::Position, Velocity
-    Vec3 getPositionError(const State&) const;
-    Vec3 getVelocityError(const State&) const;
+    Vec3 getPositionErrors(const State&) const;
+    Vec3 getVelocityErrors(const State&) const;
 
     // Stage::Acceleration
-    Vec3 getAccelerationError(const State&) const;
-    Vec3 getMultiplier(const State&) const;
+    Vec3 getAccelerationErrors(const State&) const;
+    Vec3 getMultipliers(const State&) const;
     Vec3 getTorqueOnFollowerBody(const State&) const;
 };
 
@@ -661,12 +665,12 @@ public:
     const Transform& getFrameOnBody2(const State&) const;
 
         // Stage::Position, Velocity, Acceleration
-    const Vec6& getPositionErrors(const State&) const;
-    const Vec6& getVelocityErrors(const State&) const;
+    Vec6 getPositionErrors(const State&) const;
+    Vec6 getVelocityErrors(const State&) const;
 
         // Stage::Acceleration
-    const Vec6& getAccelerationErrors(const State&) const;
-    const Vec6& getMultipliers(const State&) const;
+    Vec6 getAccelerationErrors(const State&) const;
+    Vec6 getMultipliers(const State&) const;
 
         // Forces are reported expressed in the body frame of the indicated body.
     const SpatialVec& getWeldReactionOnBody1(const State&) const;
