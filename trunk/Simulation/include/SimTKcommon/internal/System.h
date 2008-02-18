@@ -11,7 +11,7 @@
  *                                                                            *
  * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Peter Eastman                                                *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -65,7 +65,7 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(EventId)
  *
  * Concrete Systems understand the kinds of subsystems they contain. 
  * For example, a MultibodySystem might contain a mechanical subsystem,
- * a force subsystem, and a geometry subsystem. At each computation
+ * some force subsystems, and a geometry subsystem. At each computation
  * stage, a subsystem is realized in a single operation. That operation
  * can refer to computations from already-realized subsystems, but
  * cannot initiate computation in other subsystems. The System must
@@ -162,7 +162,7 @@ public:
         ////////////////
 
     /// The System keeps mutable statistics internally, initialized to zero
-    /// at construction. These cannot affect
+    /// at construction. These *must not* affect
     /// results in any way. Although the stats are mutable, we only allow
     /// them to be reset by a caller who has write access since setting the
     /// stats to zero is associated with construction.
@@ -326,9 +326,9 @@ public:
     /// variables are updated by this call.
     /// On return the state will be realized to at least Stage::Velocity.
     ///
-    /// If velocityOnly is set to true, only the velocity will be projected.
-    /// It is assumed that the positions already satisfy the constraints,
-    /// and the State has already been realized to at least Stage::Position.
+    /// If ProjectOptions::VelocityOnly is selected, only the velocity will be projected.
+    /// In that case is assumed that the positions already satisfy the constraints (to
+    /// within tolerance), and the State has already been realized to at least Stage::Position.
     void project(State&, Real consAccuracy, const Vector& yweights,
                  const Vector& ootols, Vector& yerrest, ProjectOptions=ProjectOptions::All) const;
 
@@ -443,7 +443,7 @@ public:
 
     /// This routine is similar to calcTimeOfNextScheduledEvent(), but is used for
     /// "reporting events" which do not modify the state.  Events returned by this
-    /// method should be handled by invoking reportEvents() instead of hanldeEvents().
+    /// method should be handled by invoking reportEvents() instead of handleEvents().
     void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
     
     //TODO: these operators should be provided by the Vector class where they

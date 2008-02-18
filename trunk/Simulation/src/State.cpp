@@ -183,7 +183,7 @@ public:
         qstart=ustart=zstart=qerrstart=uerrstart=udoterrstart = -1;
         q.clear(); u.clear(); z.clear();
         qdot.clear(); udot.clear(); zdot.clear(); qdotdot.clear();
-        qerr.clear(); uerr.clear(); udoterr.clear();
+        qerr.clear(); uerr.clear(); udoterr.clear(); multipliers.clear();
 
         for (int j=0; j<Stage::NValid; ++j) {
             eventstart[j] = -1;
@@ -377,7 +377,7 @@ private:
 class StateData {
 public:
     StateData() 
-      : t(CNT<Real>::getNaN()), systemStage(Stage::Empty), 
+      : t(NaN), systemStage(Stage::Empty), 
         myHandle(0) 
     { 
     }

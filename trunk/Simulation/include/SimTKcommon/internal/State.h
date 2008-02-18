@@ -11,7 +11,7 @@
  *                                                                            *
  * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Peter Eastman                                                *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -202,30 +202,44 @@ private:
  * to be partitioned into position variables q, velocity variables u, and
  * auxiliary variables z. There will be algebraic constraints involving q, u,
  * and u's time derivatives udot. The system is now assumed to look like this:
+ * <pre>
  *      (4) qdot    = Q(q) u
  *      (5) zdot    = zdot(d;t,q,u,z)
  *
- *      (6)           M(q) udot + ~G(q) mult = f(d;t,q,u,z)
- *      (7) udotErr = G(q) udot - b(d;t,q,u) = 0
- *      (8) uErr    = v(d;t,q,u)             = 0
- *      (9) qErr    = p(d;t,q)               = 0
+ *      (6) M(q) udot + ~G(q) mult = f(d;t,q,u,z)
+ *          G(q) udot              = b(d;t,q,u)
  *
- * Here G = [A;V] with A(q) being the coefficient matrix for constraints
- * appearing only at the acceleration level, and V(q)=partial(v)/partial(u).
- * (Note that v in Eq 8 is assumed to include equations resulting from
- * differentiation of Eq 9, as well as ones first introduced at the
- * velocity level (nonholonomic constraints).
+ *      (7) udotErr = [ pdotdot(d;t,q,u) ]      = 0
+ *                    [ vdot(d;t,q,u)    ]
+ *                    [ a(d;t,q,u)       ] 
+ *
+ *      (8) uErr    = [ pdot(d;t,q,u) ]
+ *                    [ v(d;t,q,u)    ]         = 0
+ *
+ *      (9) qErr    = [ p(d;t,q) ]              = 0
+ *                    [ n(q)     ]
+ * </pre>
+ * Here G = [P;V;A] with A(q) being the coefficient matrix for constraints
+ * appearing only at the acceleration level, and V(q)=partial(v)/partial(u)
+ * the coefficient matrix for the velocity (nonholonomic) constraints, and
+ * P(q)=partial(pdot)/partial(u) is the coefficient matrix of the first
+ * time derivatives of the position (holonomic) constraints.
+ * Note that uErr in Eq 8 is assumed to include equations resulting from
+ * differentiation of p() in Eq 9, as well as ones first introduced at the
+ * velocity level (nonholonomic constraints), and udotErr is similarly 
+ * built from acceleration-only constraints a() and derivatives of higher-level
+ * constraints.
  *
  * If a system allocates nq q's, nu u's, and nz z's the State will also
  * allocate matching cache variables qdot, qdotdot, udot, and zdot. If
- * np position constraints (9), nv velocity constraints (8) and 
- * na acceleration constraints (7) are allocated, the state creates
+ * mp position (holonomic) constraints (9), mpv velocity constraints (8) and 
+ * mpva acceleration constraints (7) are allocated, the state creates
  * cache entries of like sizes qErr, uErr, udotErr. In addition room
- * for the na Lagrange multipliers 'mult' is allocated in the cache.
+ * for the mpva Lagrange multipliers 'mult' is allocated in the cache.
  *
  * In the final view, the Subsystem view, the same variables and cache
  * entries exist, but only the ones allocated by that Subsystem are
- * visible. All of a Subsystem's q's are conscutive in memory, as are
+ * visible. All of a Subsystem's q's are consecutive in memory, as are
  * its u's, uErr's, etc., but the q's are not adjacent to the u's as
  * they are for the System's view.
  *
@@ -340,9 +354,11 @@ public:
     /// the event witness function can first be examined.
     int allocateEvent(SubsystemIndex, Stage, int nevent);
 
-    /// These are private to each subsystem and are allocated immediately.
-    /// TODO: do discrete variables need an "update" variable in the cache?
+    /// DiscreteVariables and CacheEntries are private to each subsystem and are allocated immediately.
+    /// Ownership of the AbstractValue object is taken over by the State -- don't
+    /// delete the object after this call!
     int allocateDiscreteVariable(SubsystemIndex, Stage, AbstractValue* v);
+    /// @see allocateDiscreteVariable()
     int allocateCacheEntry      (SubsystemIndex, Stage, AbstractValue* v);
     
     /// Dimensions. These are valid at Stage::Model while access to the various
@@ -355,11 +371,11 @@ public:
     int getZStart() const; int getNZ() const;
 
     int getNYErr() const; // = nqerr+nuerr
-    int getQErrStart() const; int getNQErr() const;
-    int getUErrStart() const; int getNUErr() const;
+    int getQErrStart() const; int getNQErr() const; // =mp + #quaternions
+    int getUErrStart() const; int getNUErr() const; // =mp+mv
 
-    int getNUDotErr() const;
-    int getNMultipliers() const;
+    int getNUDotErr() const;     // =mp+mv+ma
+    int getNMultipliers() const; // =mp+mv+ma, necessarily the same as NUDotErr
 
     int getQStart(SubsystemIndex)       const; int getNQ(SubsystemIndex)       const;
     int getUStart(SubsystemIndex)       const; int getNU(SubsystemIndex)       const;
