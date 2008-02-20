@@ -384,3 +384,4 @@ INSTALL( FILES ${CORE_HEADERS}     DESTINATION core/include     )
 INSTALL( FILES ${TOP_HEADERS}      DESTINATION core/include/simmath)
 INSTALL( FILES ${INTERNAL_HEADERS} DESTINATION core/include/simmath/internal )
 
+INSTALL( FILES ${PROJECT_SOURCE_DIR}/doc/SimmathUserGuide.pdf DESTINATION core/doc/simmath )
