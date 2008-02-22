@@ -299,8 +299,8 @@ ADD_TEST(SpatialAlgebraTest       ${TEST_PATH}/SpatialAlgebraTest)
 ADD_TEST(SpatialAlgebraTestStatic ${TEST_PATH}/SpatialAlgebraTestStatic)
 ADD_TEST(OrientationTest          ${TEST_PATH}/OrientationTest)
 ADD_TEST(OrientationTestStatic    ${TEST_PATH}/OrientationTestStatic)
-ADD_TEST(BigMatrixTest            ${TEST_PATH}/BigMatrixTest)
-ADD_TEST(BigMatrixTestStatic      ${TEST_PATH}/BigMatrixTestStatic)
+#ADD_TEST(BigMatrixTest            ${TEST_PATH}/BigMatrixTest)
+#ADD_TEST(BigMatrixTestStatic      ${TEST_PATH}/BigMatrixTestStatic)
 ADD_TEST(StateTest                ${TEST_PATH}/StateTest)
 ADD_TEST(StateTestStatic          ${TEST_PATH}/StateTestStatic)
 ADD_TEST(RandomTest               ${TEST_PATH}/RandomTest)
@@ -328,6 +328,8 @@ SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path pref
 ## SimTKcommon library before the local one. Be sure to delete installed one first.
 LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
 
+INCLUDE(ApiDoxygen.cmake)
+
 # libraries are installed from their subdirectories; headers here
 
 # install headers
@@ -337,4 +339,5 @@ FILE(GLOB INTERNAL_HEADERS include/SimTKcommon/internal/*.h */include/SimTKcommo
 INSTALL_FILES("/core/include"                      FILES ${CORE_HEADERS})
 INSTALL_FILES("/core/include/SimTKcommon"          FILES ${TOP_HEADERS})
 INSTALL_FILES("/core/include/SimTKcommon/internal" FILES ${INTERNAL_HEADERS})
+INSTALL( FILES ${PROJECT_SOURCE_DIR}/doc/Simmatrix.pdf DESTINATION core/doc/simtkcommon )
 

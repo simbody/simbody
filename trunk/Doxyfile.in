@@ -4,7 +4,7 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
-PROJECT_NAME           = SimTKcommon
+PROJECT_NAME           = @PROJECT_NAME@
 PROJECT_NUMBER         = 
 OUTPUT_DIRECTORY       = 
 CREATE_SUBDIRS         = NO
@@ -70,12 +70,12 @@ WARNINGS               = YES
 WARN_IF_UNDOCUMENTED   = YES
 WARN_IF_DOC_ERROR      = YES
 WARN_NO_PARAMDOC       = NO
-WARN_FORMAT            = "$file:$line: $text   "
+WARN_FORMAT            = "$file:$line: $text    "
 WARN_LOGFILE           = 
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = 
+INPUT                  = "@CMAKE_SOURCE_DIR@"
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = 
 RECURSIVE              = YES
@@ -84,6 +84,8 @@ EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = */internal/ResultType.h \
                          */tests/* \
                          */src/*
+                         */.svn/*
+
 EXCLUDE_SYMBOLS        = 
 EXAMPLE_PATH           = 
 EXAMPLE_PATTERNS       = 
@@ -187,7 +189,7 @@ ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
 SEARCH_INCLUDES        = YES
-INCLUDE_PATH           = 
+INCLUDE_PATH           = "@SimTK_SDK@/core/include"
 INCLUDE_FILE_PATTERNS  = 
 PREDEFINED             = SimTK_SimTKCOMMON_EXPORT=
 EXPAND_AS_DEFINED      = SimTK_PIMPL_DOWNCAST

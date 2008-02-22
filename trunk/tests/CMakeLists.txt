@@ -1,5 +1,9 @@
+#SUBDIRS (ListTest BNTTest MatVecTest SpatialAlgebraTest OrientationTest 
+#         BigMatrixTest StateTest RandomTest SFMTTest PolynomialTest 
+#         EnumerationTest RotationTest)
+
 SUBDIRS (ListTest BNTTest MatVecTest SpatialAlgebraTest OrientationTest 
-         BigMatrixTest StateTest RandomTest SFMTTest PolynomialTest 
+          StateTest RandomTest SFMTTest PolynomialTest 
          EnumerationTest RotationTest)
 
 # Thanks to Chris Bruns for this next part. Use this only for
