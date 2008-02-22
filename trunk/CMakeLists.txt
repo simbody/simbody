@@ -372,6 +372,7 @@ INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
 
 LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
 
+INCLUDE(ApiDoxygen.cmake)
 
 # libraries are installed from their subdirectories; headers here
 

@@ -4,7 +4,7 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
-PROJECT_NAME           = Simmath
+PROJECT_NAME           = @PROJECT_NAME@
 PROJECT_NUMBER         = 
 OUTPUT_DIRECTORY       = 
 CREATE_SUBDIRS         = NO
@@ -75,7 +75,7 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = 
+INPUT                  = "@CMAKE_SOURCE_DIR@"
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = 
 RECURSIVE              = YES
@@ -83,6 +83,7 @@ EXCLUDE                =
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = */tests/* \
                          */src/*
+                         */.svn/*
 EXCLUDE_SYMBOLS        = 
 EXAMPLE_PATH           = 
 EXAMPLE_PATTERNS       = 
@@ -186,7 +187,7 @@ ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
 SEARCH_INCLUDES        = YES
-INCLUDE_PATH           = 
+INCLUDE_PATH           = "@SimTK_SDK@/core/include"
 INCLUDE_FILE_PATTERNS  = 
 PREDEFINED             = SimTK_SIMMATH_EXPORT=
 EXPAND_AS_DEFINED      = SimTK_PIMPL_DOWNCAST
