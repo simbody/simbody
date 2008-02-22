@@ -25,7 +25,7 @@
 
 PROJECT (Simbody)
 
-SET( BUILD_AUX ON CACHE BOOL "OFF does not build Simbody aux library ")
+SET( BUILD_AUX OFF CACHE BOOL "OFF does not build Simbody aux library ")
 MARK_AS_ADVANCED( BUILD_AUX  )
 
 IF( BUILD_AUX )
@@ -63,11 +63,11 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK")
+        SET(SimTK_INSTALL_PREFIX "C:/Documents and Settings/jacklm/SimTK")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
     IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "C:/Program Files/SimTK")
+        SET(SimTK_SDK "C:/Documents and Settings/jacklm/SimTK")
     ENDIF(NOT SimTK_SDK)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
@@ -133,7 +133,7 @@ SET(SIMBODY_AUTHORS "Michael.Sherman")
 FIND_PROGRAM (SVNVERSION_EXE svnversion.exe)
 IF (SVNVERSION_EXE)
     EXEC_PROGRAM (${SVNVERSION_EXE}
-                  ARGS  "${PROJECT_SOURCE_DIR}"
+                  ARGS  \"${PROJECT_SOURCE_DIR}\"
                   OUTPUT_VARIABLE SIMBODY_SVN_REVISION )
 ELSE (SVNVERSION_EXE) 
     FIND_PROGRAM (SVNVERSION svnversion) 
@@ -340,3 +340,4 @@ FILE(GLOB INTERNAL_HEADERS include/simbody/internal/*.h */include/simbody/intern
 INSTALL_FILES(/core/include/                 FILES ${CORE_HEADERS})
 INSTALL_FILES(/core/include/simbody/         FILES ${TOP_HEADERS})
 INSTALL_FILES(/core/include/simbody/internal FILES ${INTERNAL_HEADERS})
+INSTALL( FILES ${PROJECT_SOURCE_DIR}/doc/SimbodySUserGuide.pdf DESTINATION /core/doc/simbody )
