@@ -340,4 +340,4 @@ FILE(GLOB INTERNAL_HEADERS include/simbody/internal/*.h */include/simbody/intern
 INSTALL_FILES(/core/include/                 FILES ${CORE_HEADERS})
 INSTALL_FILES(/core/include/simbody/         FILES ${TOP_HEADERS})
 INSTALL_FILES(/core/include/simbody/internal FILES ${INTERNAL_HEADERS})
-INSTALL( FILES ${PROJECT_SOURCE_DIR}/doc/SimbodySUserGuide.pdf DESTINATION /core/doc/simbody )
+INSTALL( FILES ${PROJECT_SOURCE_DIR}/doc/SimbodyUserGuide.pdf DESTINATION /core/doc/simbody )
