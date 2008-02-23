@@ -1774,12 +1774,13 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
     calcConstraintForcesFromMultipliers(s,lambda,bodyF,mobilityF);
     //TODO: this is wrong
         bodyF *= -1;
+        mobilityF *= -1;
 
         //cout << "  NEW FORCES: " << bodyF << endl;
 
     multipliers = lambda;
     calcTreeForwardDynamicsOperator(s, mobilityForces, particleForces, bodyForces,
-                                    0, &bodyF, ac, udot, udotErr);
+                                    &mobilityF, &bodyF, ac, udot, udotErr);
         //cout << "  NEW UDOTERR=" << udotErr << endl;
 #else // USE_OLD_CONSTRAINTS
     Vector_<SpatialVec> cFrc(getNBodies()); 
