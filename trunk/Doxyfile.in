@@ -83,7 +83,7 @@ EXCLUDE                =
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = */internal/ResultType.h \
                          */tests/* \
-                         */src/*
+                         */src/* \
                          */.svn/*
 
 EXCLUDE_SYMBOLS        = 
@@ -198,7 +198,7 @@ SKIP_FUNCTION_MACROS   = YES
 # Configuration::additions related to external references   
 #---------------------------------------------------------------------------
 TAGFILES               = 
-GENERATE_TAGFILE       = 
+GENERATE_TAGFILE       = "html/@PROJECT_NAME@DoxygenTagfile"
 ALLEXTERNALS           = NO
 EXTERNAL_GROUPS        = YES
 PERL_PATH              = /usr/bin/perl
