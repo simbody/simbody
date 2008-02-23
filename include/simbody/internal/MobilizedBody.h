@@ -918,23 +918,13 @@ public:
     }
 
     /// Given a station fixed on body B, return its velocity relative to the body frame of
-    /// body A, and expressed in body A's body frame. Cost is 54 flops.
-    /// This operator is available at Velocity stage.
-    /// TODO: UNTESTED!!
-    /// TODO: maybe these between-body routines should return results in ground so that they
-    /// can be easily combined. Easy to re-express vector afterwards.
+    /// body A, and expressed in body A's body frame.
     Vec3 calcStationVelocityInBody(const State& s, const Vec3& stationOnB, const MobilizedBody& bodyA) const {
-        // If body B's origin were coincident with body A's, then Vdiff_AB would be the relative angular
-        // and linear velocity of body B in body A, expressed in G. To get the point we're interested in,
-        // we need the vector from body A's origin to stationB to account for the extra linear velocity
-        // that will be created by moving away from the origin, due to the bodies' relative angular
-        // velocity.
-        const SpatialVec Vdiff_AB = getBodyVelocity(s) - bodyA.getBodyVelocity(s); // 6
-
-        // This is a vector from body A's origin to the point of interest, expressed in G.
-        const Vec3 stationA_G = locateBodyPointOnGround(s,stationOnB) - bodyA.getBodyOriginLocation(s); // 21
-        const Vec3 v_AsB_G = Vdiff_AB[1] + Vdiff_AB[0] % stationA_G; // 12
-        return ~bodyA.getBodyRotation(s) * v_AsB_G; // 15
+        const Vec3 locationOnA = calcBodyPointLocationInBody(s, stationOnB, bodyA);
+        const Vec3 velocityInGround = calcBodyFixedPointVelocityInGround(s, stationOnB);
+        const Vec3& w = bodyA.getBodyAngularVelocity(s);      // in G
+        const Vec3& v = bodyA.getBodyOriginVelocity(s);       // in G
+        return bodyA.expressGroundVectorInBody(s, velocityInGround - v - w % bodyA.expressBodyVectorInGround(s, locationOnA));
     }
 
     /// At stage Velocity or higher, return the cross-mobilizer velocity.
