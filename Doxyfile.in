@@ -195,8 +195,8 @@ SKIP_FUNCTION_MACROS   = YES
 #---------------------------------------------------------------------------
 # Configuration::additions related to external references   
 #---------------------------------------------------------------------------
-TAGFILES               = 
-GENERATE_TAGFILE       = 
+TAGFILES               = "@SimTK_SDK@/core/doc/api/SimTKsimmath/SimTKsimmathDoxygenTagFile"="../SimTKsimmath" "@SimTK_SDK@/core/doc/api/SimTKcommon/SimTKcommonDoxygenTagFile"="../SimTKcommon"
+GENERATE_TAGFILE       = "html/@PROJECT_NAME@DoxygenTagfile"
 ALLEXTERNALS           = NO
 EXTERNAL_GROUPS        = YES
 PERL_PATH              = /usr/bin/perl

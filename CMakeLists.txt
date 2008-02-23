@@ -63,11 +63,21 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "C:/Documents and Settings/jacklm/SimTK")
+        FIND_PATH(SimTK_INSTALL_PREFIX
+            NAME core
+            PATHS
+                "C:/Documents and Settings/jacklm/SimTK"
+                "C:/Program Files/SimTK"
+    )
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
     IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "C:/Documents and Settings/jacklm/SimTK")
+        FIND_PATH(SimTK_SDK
+            NAME core
+            PATHS
+                "C:/Documents and Settings/jacklm/SimTK"
+                "C:/Program Files/SimTK"
+    )
     ENDIF(NOT SimTK_SDK)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
