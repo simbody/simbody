@@ -354,15 +354,15 @@ public:
         const Vec3        w_AB_G = V_GB[0]-V_GA[0]; // angular velocity of B in A, exp in G
 
         // Angular velocity was easy, but for linear velocity we have to add in an wXr term.
-        const Transform&  X_GB      = getBodyTransform(s);
-        const Transform&  X_GA      = inBodyA.getBodyTransform(s);
-        const Vec3        r_OA_OB_G = X_GB.T() - X_GA.T(); // vector from OA to OB, exp in G
+        const Transform&  X_GB       = getBodyTransform(s);
+        const Transform&  X_GA       = inBodyA.getBodyTransform(s);
+        const Vec3        p_AB_G     = X_GB.T() - X_GA.T(); // vector from OA to OB, exp in G
+        const Vec3        p_AB_G_dot = V_GB[1]  - V_GA[1];  // d/dt p taken in G
 
-        const Vec3 v_AB_G = (V_GB[1]-V_GA[1]) + w_AB_G % r_OA_OB_G; // linear velocity of OB in A, exp in G
+        const Vec3 v_AB_G = p_AB_G_dot - V_GA[0] % p_AB_G;  // d/dt p taken in A, exp in G
 
         // We're done, but the answer is expressed in Ground. Reexpress in A and return.
-        const Rotation& R_GA = X_GA.R();
-        return SpatialVec(~R_GA*w_AB_G, ~R_GA*v_AB_G);
+        return ~X_GA.R()*SpatialVec(w_AB_G, v_AB_G);
     }
 
     /// Return the angular velocity w_AB of body B's frame in body A's frame, expressed in body A.
