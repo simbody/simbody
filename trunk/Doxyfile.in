@@ -195,7 +195,7 @@ SKIP_FUNCTION_MACROS   = YES
 #---------------------------------------------------------------------------
 # Configuration::additions related to external references   
 #---------------------------------------------------------------------------
-TAGFILES               = 
+TAGFILES               = "@SimTK_SDK@/core/doc/api/SimTKcommon/SimTKcommonDoxygenTagFile"="../SimTKcommon" "@SimTK_SDK@/core/doc/api/SimTKcpodes/SimTKcpodesDoxygenTagFile"="../SimTKcpodes"
 GENERATE_TAGFILE       = "html/@PROJECT_NAME@DoxygenTagfile"
 ALLEXTERNALS           = NO
 EXTERNAL_GROUPS        = YES
