@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-8 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy                                                 *
  *                                                                            *
@@ -50,8 +50,8 @@ class Constraint;
 
 /**
  * The Simbody low-level multibody tree interface.
- * Equations represented:                                  @verbatim
- *
+ * Equations represented:
+ * <pre>
  *                  qdot = Q u
  *                  zdot = zdot(t,q,u,z)
  *
@@ -72,8 +72,8 @@ class Constraint;
  *                           v(t,q,u) = 0
  *
  *                             p(t,q) = 0
- *                               n(q) = 0                  @endverbatim
- *
+ *                               n(q) = 0
+ * </pre>
  * 
  * where M(q) is the mass matrix, G(q) the acceleration constraint matrix, C(q,u)
  * the coriolis and gyroscopic forces, T is user-applied joint mobility forces,
@@ -105,14 +105,13 @@ class Constraint;
  *
  *    [P;V]         for projection onto velocity manifold (pseudoinverse)
  *                  (using Matlab notation meaning rows of P over rows of V)
+ * @endverbatim
  *
  * When working in a weighted norm with weights W on the state variables and
  * weights T (1/tolerance) on the constraint errors, the matrices we need are
  * actually [Tp PQ^1 Wq^1], [Tpv [P;V] Wu^-1], etc. with T and W diagonal
  * weighting matrices. These can then be used to find least squares solutions
  * in the weighted norms.
- *
- * @endverbatim
  *
  * In many cases these matrices consist of decoupled blocks which can
  * be solved independently; we try to take advantage of that whenever possible
@@ -212,7 +211,7 @@ public:
     // handle, leaving that handle as a reference to our new matter object.
     // It is an error if the given handle wasn't the owner of the
     // matter representation.
-    MobilizedBodyIndex      adoptMobilizedBody(MobilizedBodyIndex parent, MobilizedBody& child);
+    MobilizedBodyIndex   adoptMobilizedBody(MobilizedBodyIndex parent, MobilizedBody& child);
     const MobilizedBody& getMobilizedBody(MobilizedBodyIndex) const;
     MobilizedBody&       updMobilizedBody(MobilizedBodyIndex);
 
@@ -225,7 +224,7 @@ public:
     MobilizedBody::Ground&       updGround();
     MobilizedBody::Ground&       Ground() {return updGround();}
 
-    ConstraintIndex      adoptConstraint(Constraint&);
+    ConstraintIndex   adoptConstraint(Constraint&);
     const Constraint& getConstraint(ConstraintIndex) const;
     Constraint&       updConstraint(ConstraintIndex);
 
@@ -317,16 +316,20 @@ public:
         Vector&       qdotdot) const;
 
     /// Must be in Stage::Position to calculate out_q = Q(q)*in_u (e.g., qdot=Q*u)
-    /// or out_u = in_q * Q(q). Note that one of "in" and "out" is always "q-like" while
-    /// the other is "u-like", but which is which changes if the matrix is on the right.
+    /// or out_u = ~Q*in_q. Note that one of "in" and "out" is always "q-like" while
+    /// the other is "u-like", but which is which changes if the matrix is transposed.
+    /// Note that the transposed operation here is the same as multiplying by Q on
+    /// the right, with the Vectors viewed as RowVectors instead.
     /// This is an O(N) operator since Q is block diagonal.
-    void multiplyByQMatrix(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const;
+    void multiplyByQMatrix(const State& s, bool transposeMatrix, const Vector& in, Vector& out) const;
 
     /// Must be in Stage::Position to calculate out_u = QInv(q)*in_q (e.g., u=QInv*qdot)
-    /// or out_q = in_u * QInv(q). Note that one of "in" and "out" is always "q-like" while
-    /// the other is "u-like", but which is which changes if the matrix is on the right.
+    /// or out_q = ~QInv*in_u. Note that one of "in" and "out" is always "q-like" while
+    /// the other is "u-like", but which is which changes if the matrix is transposed.
+    /// Note that the transposed operation here is the same as multiplying by QInv on
+    /// the right, with the Vectors viewed as RowVectors instead.
     /// This is an O(N) operator since QInv is block diagonal.
-    void multiplyByQMatrixInverse(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const;
+    void multiplyByQMatrixInverse(const State& s, bool transposeMatrix, const Vector& in, Vector& out) const;
 
     // These are available after realizeTopology().
 
@@ -347,8 +350,8 @@ public:
     /// TODO: total number of particles.
     int getNParticles() const;
 
-    /// The sum of all the joint degrees of freedom. This is also the length
-    /// of state variable vector u.
+    /// The sum of all the mobilizer degrees of freedom. This is also the length
+    /// of the state variable vector u and the mobility forces array.
     int getNMobilities() const; 
 
     /// The sum of all the q vector allocations for each joint. There may be
@@ -368,8 +371,6 @@ public:
     bool getUseEulerAngles  (const State&) const;
     int  getNQuaternionsInUse(const State&) const;
 
-    // TODO: these are obsolete. Their functions should be
-    // taken over by methods in the MobilizedBody and Constraint classes.
     void setMobilizerIsPrescribed(State&, MobilizedBodyIndex, bool) const;
     bool isMobilizerPrescribed  (const State&, MobilizedBodyIndex) const;
     bool isUsingQuaternion(const State&, MobilizedBodyIndex) const;
@@ -384,9 +385,7 @@ public:
     
     /// Given a State which is modeled using Euler angles, convert it to a
     /// representation based on quaternions and store the result in another state.
-    void convertToQuaternions(const State& inputState, State& outputState) const;
-
-    // Position Stage. 
+    void convertToQuaternions(const State& inputState, State& outputState) const; 
 
     // Dynamics stage responses.
 
@@ -401,6 +400,9 @@ public:
     const SpatialMat& getArticulatedBodyInertia(const State& s, MobilizedBodyIndex) const;
 
         // PARTICLES
+        // TODO: not currently implemented. Use a point mass with a Cartesian (translation)
+        // mobilizer to Ground instead. The idea here would be to special-case particles
+        // to make them faster; there would be no additional functionality.
 
     // The generalized coordinates for a particle are always the three measure numbers
     // (x,y,z) of the particle's Ground-relative Cartesian location vector. The generalized
@@ -472,12 +474,12 @@ public:
     /// station in the body frame, force in the ground frame. Must
     /// be realized to Position stage prior to call.
     void addInStationForce(const State&, MobilizedBodyIndex bodyB, const Vec3& stationOnB, 
-                           const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const;
+                           const Vec3& forceInG, Vector_<SpatialVec>& bodyForcesInG) const;
 
     /// Apply a torque to a body. Provide the torque vector in the
     /// ground frame.
     void addInBodyTorque(const State&, MobilizedBodyIndex, const Vec3& torqueInG, 
-                         Vector_<SpatialVec>& bodyForces) const;
+                         Vector_<SpatialVec>& bodyForcesInG) const;
 
     /// Apply a scalar joint force or torque to an axis of the
     /// indicated body's mobilizer.

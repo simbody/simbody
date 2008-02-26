@@ -1596,6 +1596,9 @@ Real& MobilizedBody::Screw::updMyPartU(const State& s, Vector& ulike) const {
     // MOBILIZED BODY::CUSTOM //
     ////////////////////////////
 
+
+//TODO: Custom Mobilizer not implemented yet
+
 MobilizedBody::Custom::Custom(int nMobilities, int nCoordinates) : PIMPLDerivedHandleBase(new CustomImpl(nMobilities, nCoordinates)) {
 }
 

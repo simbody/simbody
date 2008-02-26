@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-8 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
- * Contributors: Paul Mitiguy                                                 *
+ * Contributors: Paul Mitiguy, Peter Eastman                                  *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -33,7 +33,7 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This defines the MobilizedBody class, which associates some mass
+ * This defines the MobilizedBody class, which associates a body
  * (the "outboard" body) with a mobilizer and a reference frame (the
  * parent or "inboard" body), already present in a MatterSubsystem.
  *
@@ -56,113 +56,523 @@ class MobilizedBody;
 class MobilizedBodyImpl;
 
 // We only want the template instantiation to occur once. This symbol is defined in the SimTK core
-// compilation unit that defines the mobilized body class but should not be defined any other time.
+// compilation unit that instantiates the mobilized body class but should not be defined any other time.
 #ifndef SimTK_SIMBODY_DEFINING_MOBILIZED_BODY
     extern template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl>;
 #endif
 
 /**
- * This is the base class for all MobilizedBody classes, which is just a handle for the underlying
+ * This is the base class for all MobilizedBody classes, just a handle for the underlying
  * hidden implementation. Each built-in MobilizedBody type is a local subclass within
  * MobilizedBody, so the built-ins have names like MobilizedBody::Pin. All concrete MobilizedBodies,
  * including the built-ins, are derived from MobilizedBody.
  *
- * SimTK Design Patterns used:
- *    - remote construction object
- *    - abstract private implementation
- *    - binary compatible interface
- *    - custom object interface
+ * There are three sets of methods used for obtaining MobilizedBody-specific data from the
+ * containing System's State. These are:
+ *    - responses
+ *    - basic operators
+ *    - high level operators
+ *
+ * Responses simply extract already-calculated data from the State cache, such as the
+ * velocity of the MobilizedBody's body frame in the ground frame. They involve no additional computation,
+ * have names beginning with "get", and return references to the requested quantities rather than
+ * calculated values. Basic operators use the state variables and responses to
+ * compute basic quantities which cannot be precomputed, such as the velocity of an arbitrary point, using
+ * an inline combination of basic floating point operations which can be reliably determined at
+ * compile time. High level operators combine responses and basic operators with run-time tests
+ * to calculate more complex quantities, with more complicated implementations that can exploit
+ * special cases at run time.
  */
 
 class SimTK_SIMBODY_EXPORT MobilizedBody : public PIMPLHandle<MobilizedBody, MobilizedBodyImpl> {
 public:
-    MobilizedBody() { }
-
-    // These declarations are needed so we can have std::vectors of
-    // these things, but they aren't implemented.
-    //MobilizedBody(const MobilizedBody&) {assert(false);}
-    //MobilizedBody& operator=(const MobilizedBody&){assert(false);return*this;}
-
-    // These are the built-in MobilizedBody types. Types on the same line are
-    // synonymous. Each of these has a known number of coordinates and speeds 
-    // (at least a default number) so
-    // can define routines which return and accept specific-size arguments, e.g.
-    // Real (for 1-dof mobilizer) and Vec5 (for 5-dof mobilizer). Here is the
-    // conventional interface that each built-in should provide. The base type
-    // provides similar routines but using variable-sized or "one at a time"
-    // arguments. (Vec<1> here will actually be a Real; assume the built-in
-    // MobilizedBody class is "BuiltIn")
-    //
-    //    BuiltIn&       setDefaultQ(const Vec<nq>&);
-    //    const Vec<nq>& getDefaultQ() const;
-    //
-    //    const Vec<nq>& getQ[Dot[Dot]](const State&) const;
-    //    const Vec<nu>& getU[Dot](const State&) const;
-    //
-    //    void setQ(State&, const Vec<nq>&) const;
-    //    void setU(State&, const Vec<nu>&) const;
-    //
-    //    const Vec<nq>& getMyPartQ(const State&, const Vector& qlike) const;
-    //    const Vec<nu>& getMyPartU(const State&, const Vector& ulike) const;
-    //   
-    //    Vec<nq>& updMyPartQ(const State&, Vector& qlike) const;
-    //    Vec<nu>& updMyPartU(const State&, Vector& ulike) const;
-    //      
 
 
-    class Pin;         typedef Pin    Torsion;
-    class Slider;      typedef Slider Prismatic;
-    class Universal;
-    class Cylinder;
-    class BendStretch;
-    class Planar;
-    class Gimbal;
-    class Ball; typedef Ball Orientation, Spherical;
-    class Translation; typedef Translation Cartesian;
-    class Free;
-    class LineOrientation;
-    class FreeLine;
-    class Weld;
-    class Screw;
-    class Ellipsoid;
-    class Custom;
-    class Ground;
-    
-    class PinImpl;
-    class SliderImpl;
-    class UniversalImpl;
-    class CylinderImpl;
-    class BendStretchImpl;
-    class PlanarImpl;
-    class GimbalImpl;
-    class BallImpl;
-    class TranslationImpl;
-    class FreeImpl;
-    class LineOrientationImpl;
-    class FreeLineImpl;
-    class WeldImpl;
-    class ScrewImpl;
-    class EllipsoidImpl;
-    class CustomImpl;
-    class GroundImpl;
+        ///////////////
+        // RESPONSES //
+        ///////////////
+
+    /// @name Responses
+    /// These methods extract already-computed information from the State or State cache.
+    //@{
+
+        // MODEL STAGE responses //
+
+    /// Return the number of generalized coordinates q currently in use by this mobilizer.
+    /// State must have been realized to Stage::Model.
+    int getNumQ(const State&) const;
+    /// Return the number of generalized speeds u currently in use by this mobilizer.
+    /// State must have been realized to Stage::Model.
+    int getNumU(const State&) const;
+
+    /// Return one of the generalized coordinates q from this mobilizer's partition of the matter
+    /// subsystem's full q vector in the State. The particular coordinate is selected using the \p which
+    /// parameter, numbering from zero to getNumQ()-1.
+    Real getOneQ(const State&, int which) const;
+
+    /// Return one of the generalized speeds u from this mobilizer's partition of the matter
+    /// subsystem's full u vector in the State. The particular coordinate is selected using the \p which
+    /// parameter, numbering from zero to getNumU()-1.
+    Real getOneU(const State&, int which) const;
+
+    /// Return as a Vector of length getNumQ() all the generalized coordinates q
+    /// currently in use by this mobilizer, from this mobilizer's partion in 
+    /// the matter subsystem's full q vector in the State.
+    Vector getQVector(const State&) const;
+    /// Return as a Vector of length getNumU() all the generalized speeds u
+    /// currently in use by this mobilizer, from this mobilizer's partion in 
+    /// the matter subsystem's full u vector in the State.
+    Vector getUVector(const State&) const;
+
+        // VELOCITY STAGE responses //
+
+    /// Return one of the generalized coordinate derivatives qdot from this mobilizer's partition of the matter
+    /// subsystem's full qdot vector in the State cache. The particular coordinate is selected using the \p which
+    /// parameter, numbering from zero to getNumQ()-1.
+    Real   getOneQDot   (const State&, int which) const;
+    /// Return as a Vector of length getNumQ() all the generalized coordinate derivatives qdot
+    /// currently in use by this mobilizer, from this mobilizer's partion in 
+    /// the matter subsystem's full qdot vector in the State cache.
+    Vector getQDotVector(const State&) const;
+
+        // ACCELERATION STAGE responses //
+
+    /// Return one of the generalized accelerations udot from this mobilizer's partition of the matter
+    /// subsystem's full udot vector in the State cache. The particular coordinate is selected using the \p which
+    /// parameter, numbering from zero to getNumU()-1.
+    Real   getOneUDot   (const State&, int which) const;
+    /// Return one of the generalized coordinate second derivatives qdotdot from this mobilizer's partition of the matter
+    /// subsystem's full qdotdot vector in the State cache. The particular coordinate is selected using the \p which
+    /// parameter, numbering from zero to getNumQ()-1.
+    Real   getOneQDotDot(const State&, int which) const;
+    /// Return as a Vector of length getNumU() all the generalized accelerations udot
+    /// currently in use by this mobilizer, from this mobilizer's partion in 
+    /// the matter subsystem's full udot vector in the State cache.
+    Vector getUDotVector   (const State&) const;
+    /// Return as a Vector of length getNumQ() all the generalized coordinate second derivatives qdotdot
+    /// currently in use by this mobilizer, from this mobilizer's partion in 
+    /// the matter subsystem's full qdotdot vector in the State cache.
+    Vector getQDotDotVector(const State&) const;
+
+        // MODEL STAGE solvers //
+
+    /// Set one of the generalized coordinates q to value \p v, in this mobilizer's partition of the matter
+    /// subsystem's full q vector in the State. The particular coordinate is selected using the \p which
+    /// parameter, numbering from zero to getNumQ()-1.
+    void setOneQ(State&, int which, Real v) const;
+    /// Set one of the generalized speeds u to value \p v, in this mobilizer's partition of the matter
+    /// subsystem's full u vector in the State. The particular coordinate is selected using the \p which
+    /// parameter, numbering from zero to getNumU()-1.
+    void setOneU(State&, int which, Real v) const;
+
+    /// Set all of the generalized coordinates q to value \p v (a Vector of length getNumQ()),
+    /// in this mobilizer's partition of the matter subsystem's full q vector in the State.
+    void setQVector(State& s, const Vector& v) const;
+    /// Set all of the generalized speeds u to value \p v (a Vector of length getNumU()),
+    /// in this mobilizer's partition of the matter subsystem's full u vector in the State.
+    void setUVector(State& s, const Vector& v) const;
+
+        // INSTANCE STAGE responses //
+
+    /// Return a reference to this body's mass properties in the State cache.
+    /// The State must have been realized to Stage::Instance or higher.
+    const MassProperties& getBodyMassProperties(const State&) const;
+
+    /// Return the mass of this body. The State must have been realized to Stage::Instance.
+    Real getBodyMass(const State& s) const {
+        return getBodyMassProperties(s).getMass();
+    }
+
+    /// Return this body's center of mass station (i.e., the vector fixed in the body,
+    /// going from body origin to body mass center, expressed in the body frame.)
+    /// The State must have been realized to Stage::Instance or higher.
+    const Vec3& getBodyMassCenterStation(const State& s) const {
+        return getBodyMassProperties(s).getMassCenter();
+    }
+
+    /// Return a reference to this body's inertia matrix in the State cache, taken
+    /// about the body origin and expressed in the body frame.
+    /// The State must have been realized to Stage::Instance or higher.
+    const Inertia& getBodyInertiaAboutBodyOrigin(const State& s) const {
+        return getBodyMassProperties(s).getInertia();
+    }
+
+    /// Return a reference to this mobilizer's frame F fixed on the parent body P, as the fixed Transform
+    /// from P's body frame to the frame F fixed to P. If this frame is changeable, the result comes
+    /// from the State cache, otherwise it is from the MobilizedBody object itself.
+    /// The State must have been realized to Stage::Instance or higher.
+    const Transform& getInboardFrame (const State&) const;  // X_PF
+    /// Return a reference to this MobilizedBody's mobilizer frame M, as the fixed Transform
+    /// from this body B's frame to the frame M fixed on B. If this frame is changeable, the result comes
+    /// from the State cache, otherwise it is from the MobilizedBody object itself.
+    /// The State must have been realized to Stage::Instance or higher.
+    const Transform& getOutboardFrame(const State&) const;  // X_BM
+
+        // INSTANCE STAGE solvers //
+
+    /// TODO: not implemented yet. Set the location and orientation of the inboard (parent) mobilizer
+    /// frame F, fixed to this mobilizer's parent body P.
+    void setInboardFrame (State&, const Transform& X_PF) const;
+    /// TODO: not implemented yet. Set the location and orientation of the outboard mobilizer
+    /// frame M, fixed to this body B.
+    void setOutboardFrame(State&, const Transform& X_BM) const;
+
+
+        // POSITION STAGE responses //
+
+    /// Extract from the state cache the already-calculated spatial configuration of
+    /// body B's body frame, measured with respect to the ground frame and expressed
+    /// in the ground frame. That is, we return the location of the body frame's
+    /// origin, and the orientation of its x, y, and z axes, as the transform X_GB.
+    /// This response is available at Position stage.
+    const Transform& getBodyTransform(const State&) const; // X_GB
+
+    /// Extract from the state cache the already-calculated spatial orientation
+    /// of body B's body frame x, y, and z axes expressed in the ground frame,
+    /// as the rotation matrix R_GB. This response is available at Position stage.
+    const Rotation& getBodyRotation(const State& s) const {
+        return getBodyTransform(s).R();
+    }
+    /// Extract from the state cache the already-calculated spatial location
+    /// of body B's body frame origin OB, measured from the ground origin and
+    /// expressed in the ground frame, as the translation vector r_OG_OB.
+    /// This response is available at Position stage.
+    const Vec3& getBodyOriginLocation(const State& s) const {
+        return getBodyTransform(s).T();
+    }
+
+    /// At stage Position or higher, return the cross-mobilizer transform.
+    /// This is X_FM, the body's inboard mobilizer frame M measured and expressed in
+    /// the parent body's corresponding outboard frame F.
+    const Transform& getMobilizerTransform(const State&) const; // X_FM
+
+
+        // VELOCITY STAGE responses //
+
+    /// Extract from the state cache the already-calculated spatial velocity of this
+    /// body's reference frame B, measured with respect to the ground frame and expressed
+    /// in the ground frame. That is, we return the linear velocity v_GB of the body
+    /// frame's origin in G, and the body's angular velocity w_GB as the spatial velocity
+    /// vector V_GB = {w_GB, v_GB}. This response is available at Velocity stage.
+    const SpatialVec& getBodyVelocity(const State&) const; // V_GB
+
+    /// Extract from the state cache the already-calculated inertial angular
+    /// velocity vector w_GB of this body B, measured with respect to the ground frame
+    /// and expressed in the ground frame. This response is available at Velocity stage.
+    const Vec3& getBodyAngularVelocity(const State& s) const {
+        return getBodyVelocity(s)[0]; 
+    }
+    /// Extract from the state cache the already-calculated inertial linear
+    /// velocity vector v_G_OB of this body B's origin point OB, measured with respect
+    /// to the ground frame and expressed in the ground frame. This response
+    /// is available at Velocity stage.
+    const Vec3& getBodyOriginVelocity(const State& s) const {
+        return getBodyVelocity(s)[1];
+    }
+
+    /// At stage Velocity or higher, return the cross-mobilizer velocity.
+    /// This is V_FM, the relative velocity of the body's inboard mobilizer
+    /// frame M in the parent body's corresponding outboard frame F, 
+    /// measured and expressed in F. Note that this isn't the usual 
+    /// spatial velocity since it isn't expressed in G.
+    const SpatialVec& getMobilizerVelocity(const State&) const; // V_FM
+
+        // ACCELERATION STAGE responses //
+
+    /// Extract from the state cache the already-calculated spatial acceleration of
+    /// this body's reference frame B, measured with respect to the ground frame and expressed
+    /// in the ground frame. That is, we return the linear acceleration a_GB of the body
+    /// frame's origin in G, and the body's angular acceleration alpha_GB as the spatial acceleration
+    /// vector A_GB = {alpha_GB, a_GB}. This response is available at Acceleration stage.
+    const SpatialVec& getBodyAcceleration(const State& s) const; // A_GB
+
+    /// Extract from the state cache the already-calculated inertial angular
+    /// acceleration vector aa_GB of this body B, measured with respect to the ground frame
+    /// and expressed in the ground frame. This response is available at Acceleration stage.
+    const Vec3& getBodyAngularAcceleration(const State& s) const {
+        return getBodyAcceleration(s)[0]; 
+    }
+    /// Extract from the state cache the already-calculated inertial linear
+    /// acceleration vector a_G_OB of this body B's origin point OB, measured with respect
+    /// to the ground frame and expressed in the ground frame. This response
+    /// is available at Acceleration stage.
+    const Vec3& getBodyOriginAcceleration(const State& s) const {
+        return getBodyAcceleration(s)[1];
+    }
+
+    /// TODO: Not implemented yet. At stage Acceleration, return the cross-mobilizer acceleration.
+    /// This is A_FM, the relative acceleration of body B's inboard mobilizer
+    /// frame M in the parent body's corresponding outboard frame F, 
+    /// measured and expressed in F. Note that this isn't the usual 
+    /// spatial acceleration since it isn't expressed in G.
+    const SpatialVec& getMobilizerAcceleration(const State&) const; // A_FM
+
+    // End of Responses.
+    //@} 
+
+        /////////////////////
+        // BASIC OPERATORS //
+        /////////////////////
+
+    /// @name Basic Operators
+    //@{
+    /// These methods use state variables and Reponse methods to compute basic quantities
+    /// which cannot be precomputed, but which can be implmented with an inline combination
+    /// of basic floating point operations which can be reliably determined at compile time. 
+
+    /// Return the Cartesian (ground) location of a station fixed on body B. That is
+    /// we return locationOnG = X_GB * locationOnB which means the result is measured from
+    /// the ground origin and expressed in ground. Cost is 18 flops. This operator is
+    /// available at Position stage.
+    Vec3 locateBodyPointOnGround(const State& s, const Vec3& locationOnB) const {
+        return getBodyTransform(s) * locationOnB;
+    }
+
+    /// Return the station fixed on this body B that is coincident with the given Ground location.
+    /// That is we return locationOnB = X_BG * locationOnG, which means the result is measured
+    /// from the body origin OB and expressed in the body frame. Cost is 18 flops. This operator
+    /// is available at Position stage or higher.
+    Vec3 locateGroundPointOnBody(const State& s, const Vec3& locationOnG) const {
+        return ~getBodyTransform(s) * locationOnG;
+    }
+
+    /// Given a location on this body B, return the location on body A which is at the same location
+    /// in space. That is, we return locationOnA = X_AB * locationOnB, which means the result
+    /// is measured from the body A origin and expressed in body A. Cost is 36 flops.
+    /// This operator is available at Position stage or higher.
+    /// Note: if you know that one of the bodies is Ground, use one of the routines above
+    /// which is specialized for Ground to avoid half the work.
+    Vec3 locateBodyPointOnBody(const State& s, const Vec3& locationOnB, 
+                               const MobilizedBody& toBodyA) const
+    {
+        return toBodyA.locateGroundPointOnBody(s, locateBodyPointOnGround(s,locationOnB));
+    }
+
+    /// Return the Cartesian (ground) location of this body B's mass center.
+    Vec3 locateBodyMassCenterOnGround(const State& s) const {
+        return locateBodyPointOnGround(s,getBodyMassCenterStation(s));
+    }
+
+    /// Re-express a vector expressed in this body B's frame into the same vector in G. That is,
+    /// we return vectorInG = R_GB * vectorInB. Cost is 15 flops. 
+    /// This operator is available at Position stage.
+    Vec3 expressBodyVectorInGround(const State& s, const Vec3& vectorInB) const {
+        return getBodyRotation(s)*vectorInB;
+    }
+
+    /// Re-express a vector expressed in Ground into the same vector expressed in this body B. That is,
+    /// we return vectorInB = R_BG * vectorInG. Cost is 15 flops. 
+    /// This operator is available at Position stage.
+    Vec3 expressGroundVectorInBody(const State& s, const Vec3& vectorInG) const {
+        return ~getBodyRotation(s)*vectorInG;
+    }
+
+    /// Re-express a vector expressed in this body B into the same vector expressed in body A.
+    /// That is, we return vectorInA = R_AB * vectorInB. Cost is 30 flops.
+    /// This operator is available at Position stage.
+    /// Note: if you know one of the bodies is Ground, call one of the specialized methods
+    /// above to save 15 flops.
+    Vec3 expressBodyVectorInBody(const State& s, const Vec3& vectorInB,
+                                 const MobilizedBody& inBodyA) const
+    {
+        return inBodyA.expressGroundVectorInBody(s, expressBodyVectorInGround(s,vectorInB));
+    }
+
+
+
+    /// Calculate this body B's mass properties, measured in the body B frame, taken about the body
+    /// B origin OB, but reexpressed in Ground.
+    MassProperties expressBodyMassPropertiesInGround(const State& s) {
+            const MassProperties& M_OB_B = getBodyMassProperties(s);
+            const Rotation&       R_GB   = getBodyRotation(s);
+            return M_OB_B.reexpress(~R_GB);
+    }
+
+    /// Calculate body B's momentum (angular, linear) measured and expressed in ground, but taken about
+    /// the body origin OB.
+    SpatialVec calcBodyMomentumAboutBodyOriginInGround(const State& s) {
+        const MassProperties M_OB_G = expressBodyMassPropertiesInGround(s);
+        const SpatialVec&    V_GB   = getBodyVelocity(s);
+        return M_OB_G.toSpatialMat() * V_GB;
+    }
+
+    /// Calculate body B's momentum (angular, linear) measured and expressed in ground, but taken about
+    /// the body mass center CB.
+    SpatialVec calcBodyMomentumAboutBodyMassCenterInGround(const State& s) const {
+        const MassProperties& M_OB_B = getBodyMassProperties(s);
+        const Rotation&       R_GB   = getBodyRotation(s);
+
+        // Given a central inertia matrix I, angular velocity w, and mass center velocity v,
+        // the central angular momentum is Iw and linear momentum is mv.
+        const Inertia I_CB_B = M_OB_B.calcCentralInertia();
+        const Inertia I_CB_G = I_CB_B.reexpress(~R_GB);
+        const Real    mb     = M_OB_B.getMass();
+        const Vec3&   w_GB   = getBodyAngularVelocity(s);
+        Vec3          v_G_CB = calcBodyFixedPointVelocityInGround(s, M_OB_B.getMassCenter());
+
+        return SpatialVec( I_CB_G*w_GB, mb*v_G_CB );
+    }
+
+    /// Given a station fixed on body B, return its inertial (Cartesian) velocity,
+    /// that is, its velocity relative to the ground frame, expressed in the
+    /// ground frame. Cost is 27 flops. This operator is available at Velocity stage.
+    Vec3 calcBodyFixedPointVelocityInGround(const State& s, const Vec3& stationOnB) const {
+        const Vec3& w = getBodyAngularVelocity(s); // in G
+        const Vec3& v = getBodyOriginVelocity(s);  // in G
+        const Vec3  r = expressBodyVectorInGround(s,stationOnB); // 15 flops
+        return v + w % r;                                        // 12 flops
+    }
+
+    /// It is cheaper to calculate a station's ground location and velocity together
+    /// than to do them separately. Here we can return them both in 30 flops, vs. 45 to
+    /// do them in two calls.
+    void calcBodyFixedPointLocationAndVelocityInGround(const State& s, const Vec3& locationOnB,
+                                                       Vec3& locationOnGround, Vec3& velocityInGround) const
+    {
+        const Vec3& r_G_OB = getBodyOriginLocation(s);
+        const Vec3  r      = expressBodyVectorInGround(s,locationOnB); // 15 flops
+        locationOnGround = r_G_OB + r;   // 3 flops
+
+        const Vec3& w = getBodyAngularVelocity(s); // in G
+        const Vec3& v = getBodyOriginVelocity(s);  // in G
+        velocityInGround = v + w % r; // 12 flops
+    }
+
+
+    /// Given a station fixed on body B, return its inertial (Cartesian) acceleration,
+    /// that is, its acceleration relative to the ground frame, expressed in the
+    /// ground frame. Cost is 48 flops. This operator is available at Acceleration stage.
+    Vec3 calcBodyFixedPointAccelerationInGround(const State& s, const Vec3& stationOnB) const {
+        const Vec3& w = getBodyAngularVelocity(s);     // in G
+        const Vec3& b = getBodyAngularAcceleration(s); // in G
+        const Vec3& a = getBodyOriginAcceleration(s);  // in G
+
+        const Vec3  r = expressBodyVectorInGround(s,stationOnB); // 15 flops
+        return a + b % r + w % (w % r);                          // 33 flops
+    }
+
+    /// It is cheaper to calculate a station's ground location, velocity, and acceleration together
+    /// than to do them separately. Here we can return them all in 54 flops, vs. 93 to
+    /// do them in three calls. This operator is available at Acceleration stage.
+    void calcBodyFixedPointLocationVelocityAndAccelerationInGround
+       (const State& s, const Vec3& locationOnB,
+        Vec3& locationOnGround, Vec3& velocityInGround, Vec3& accelerationInGround) const
+    {
+        const Rotation&  R_GB   = getBodyRotation(s);
+        const Vec3&      r_G_OB = getBodyOriginLocation(s);
+
+        const Vec3 r = R_GB*locationOnB; // re-express station vector in G (15 flops)
+        locationOnGround = r_G_OB + r;   // 3 flops
+
+        const Vec3& w = getBodyAngularVelocity(s);      // in G
+        const Vec3& v = getBodyOriginVelocity(s);       // in G
+        const Vec3& b = getBodyAngularAcceleration(s);  // in G
+        const Vec3& a = getBodyOriginAcceleration(s);   // in G
+
+        const Vec3 wXr = w % r; // "whipping" velocity w X r due to angular velocity (9 flops)
+        velocityInGround     = v + wXr;                 // v + w X r (3 flops)
+        accelerationInGround = a + b % r + w % wXr;     // 24 flops
+    }
+
+    /// Given a station fixed on body B, return its velocity relative to the body frame of
+    /// body A, and expressed in body A's body frame.
+    Vec3 calcStationVelocityInBody(const State& s, const Vec3& stationOnB, const MobilizedBody& bodyA) const {
+        const Vec3 locationOnA = calcBodyPointLocationInBody(s, stationOnB, bodyA);
+        const Vec3 velocityInGround = calcBodyFixedPointVelocityInGround(s, stationOnB);
+        const Vec3& w = bodyA.getBodyAngularVelocity(s);      // in G
+        const Vec3& v = bodyA.getBodyOriginVelocity(s);       // in G
+        return bodyA.expressGroundVectorInBody(s, velocityInGround - v - w % bodyA.expressBodyVectorInGround(s, locationOnA));
+    }
+
+        // Utilities //
+
+    /// This utility selects one of the q's (generalized coordinates) associated with this mobilizer from
+    /// a supplied "q-like" Vector, meaning a Vector which is the same length as the
+    /// Vector of q's for the containing matter subsystem.
+    Real  getOneFromQPartition(const State&, int which, const Vector& qlike) const;
+
+    /// This utility returns a writable reference to one of the q's (generalized coordinates) 
+    /// associated with this mobilizer from
+    /// a supplied "q-like" Vector, meaning a Vector which is the same length as the
+    /// Vector of q's for the containing matter subsystem.
+    Real& updOneFromQPartition(const State&, int which, Vector& qlike) const;
+
+    /// This utility selects one of the u's (generalized speeds) associated with this mobilizer from
+    /// a supplied "u-like" Vector, meaning a Vector which is the same length as the
+    /// Vector of u's for the containing matter subsystem.
+    Real  getOneFromUPartition(const State&, int which, const Vector& ulike) const;
+
+    /// This utility returns a writable reference to one of the u's (generalized speeds)
+    /// associated with this mobilizer from
+    /// a supplied "u-like" Vector, meaning a Vector which is the same length as the
+    /// Vector of u's for the containing matter subsystem.
+    Real& updOneFromUPartition(const State&, int which, Vector& ulike) const;
+
+    /// This utility adds in the supplied generalized force \p force (a scalar) to the
+    /// appropriate slot of the supplied \p mobilityForces Vector, which is a "u-like"
+    /// Vector. Note that we are <em>adding</em> this not <em>setting</em> it so it
+    /// important that \p mobilityForces be initialized to zero before making a set
+    /// of calls to applyOneMobilityForce().
+    void applyOneMobilityForce(const State& s, int which, Real f, 
+                               Vector& mobilityForces) const
+    {
+        updOneFromUPartition(s,which,mobilityForces) += f;
+    }
+
+    /// This utility adds in the supplied spatial force \p spatialForceInG (consisting
+    /// of a torque vector, and a force vector to be applied at the current body's
+    /// origin) to the appropriate slot of the supplied \p bodyForcesInG Vector. 
+    /// Note that we are <em>adding</em> this not <em>setting</em> it so it
+    /// important that \p mobilityForces be initialized to zero before making a set
+    /// of calls to applyBodyForce().
+    void applyBodyForce(const State& s, const SpatialVec& spatialForceInG, 
+                        Vector_<SpatialVec>& bodyForcesInG) const;
+
+    /// This utility adds in the supplied pure torque \p torqueInG to the appropriate
+    /// slot of the supplied \p bodyForcesInG Vector. Note that we are <em>adding</em>
+    /// this not <em>setting</em> it so it
+    /// important that \p bodyForcesInG be initialized to zero before making a set
+    /// of calls to applyBodyTorque().
+    void applyBodyTorque(const State& s, const Vec3& torqueInG, 
+                         Vector_<SpatialVec>& bodyForcesInG) const;
+
+    /// This utility adds in the supplied force \p forceInG applied at a point \p pointInB
+    /// to the appropriate slot of the supplied \p bodyForcesInG Vector. Notes: 
+    ///    - we are <em>adding</em> this not <em>setting</em> it so it
+    ///      important that \p bodyForcesInG be initialized to zero before making a set
+    ///      of calls to applyForceToBodyPoint().
+    ///    - \p pointInB represents a fixed station of B and is provided by giving the
+    ///      vector from body B's origin to the point, expressed in the B frame, while
+    ///      the applied force (and resulting body forces and torques) are expressed
+    ///      in the ground frame.
+    void applyForceToBodyPoint(const State& s, const Vec3& pointInB, const Vec3& forceInG,
+                               Vector_<SpatialVec>& bodyForcesInG) const;
+
+    // End of Basic Operators.
+    //@}
+
 
     ///////////////////////////////
     // PAUL'S FRIENDLY INTERFACE //
     ///////////////////////////////
 
-    /// @name High level interface
-    /// In the API below, the current MobilizedBody B is the "object" or "main"
-    /// body with which we are concerned. Often there will be an additional body mentioned
-    /// in the argument list as a target for some conversion. That "auxiliary" body will
-    /// be called "body A". The Ground body is abbreviated "G".
+    /// @name High-Level Operators
+    /// High level operators combine Responses and Basic Operators with run-time tests 
+    /// to calculate more complex MoblizedBody-specific quantities, with more complicated
+    /// implementations that can exploit special cases at run time.
+    ///
+    /// In the API below, we'll refer to the current ("this") MobilizedBody as "body B". It
+    /// is the "object" or "main" body with which we are concerned. Often there will be
+    /// an additional body mentioned in the argument list as a target for some conversion.
+    /// That "auxiliary" body will be called "body A". The Ground body is abbreviated "G".
     ///
     /// We use OF to mean "the origin of frame F", CB is "the mass center of body B".
-    /// R_AF is the rotation matrix giving frame F's
-    /// orientation in frame A, such that a vector v expressed in F is reexpressed in
-    /// A by v_A = R_AF * v_F. X_AF is the spatial transform giving frame F's origin
-    /// location and orientation in frame A, such that a point P whose location is
-    /// measured from F's origin OF and expressed in F by vector r_OF_P is remeasured from
-    /// frame A's origin and reexpressed in A via r_OA_P = X_AF * r_OF_P. 
+    /// R_AF is the rotation matrix giving frame F's orientation in frame A, such that
+    /// a vector v expressed in F is reexpressed in A by v_A = R_AF * v_F. X_AF is the
+    /// spatial transform giving frame F's origin location and orientation in frame A, such
+    /// that a point P whose location is measured from F's origin OF and expressed in F
+    /// by position vector p_OF_P is remeasured from frame A's origin and reexpressed
+    /// in A via p_OA_P = X_AF * p_OF_P. 
 
     //@{
 
@@ -284,10 +694,13 @@ public:
     Transform calcBodyTransformFromBody(const State& s, 
                                         const MobilizedBody& fromBodyA) const
     {
-        const Transform& X_GB = getBodyTransform(s);
-        if (fromBodyA.isGround()) return X_GB;
-        const Transform& X_GA = fromBodyA.getBodyTransform(s);
-        return ~X_GA*X_GB;
+        if (isSameMobilizedBody(fromBodyA))
+            return Transform();  // Identity transform; no access to State
+
+        if      (fromBodyA.isGround())  return  getBodyTransform(s);             // X_GB
+        else if (this->isGround())      return ~fromBodyA.getBodyTransform(s);   // X_AG (=~X_GA)
+        else                            return ~fromBodyA.getBodyTransform(s)    // X_AB=X_AG*X_GB
+                                              * getBodyTransform(s);
     }
 
     /// Return R_AB, the rotation matrix to body B's x,y,z axes from body A's x,y,z axes.
@@ -391,41 +804,116 @@ public:
     /// Return the velocity of a point P fixed on body B, in body A's frame, expressed in body A.
     Vec3 calcBodyFixedPointVelocityInBody(const State& s, 
                                           const Vec3&          locationOnBodyB, 
-                                          const MobilizedBody& inBodyA) const;
+                                          const MobilizedBody& inBodyA) const
+    {
+        const Rotation   R_AB       = calcBodyRotationFromBody(s,inBodyA);
+        const SpatialVec V_AB       = calcBodySpatialVelocityInBody(s,inBodyA);
+         // OB->P rexpressed in A but not shifted to OA
+        const Vec3 p_OB_P_A  = R_AB * locationOnBodyB;
 
-    /// Return the velocity of a point P moving on body B, in body A's frame, expressed in body A.
+        const Vec3 v_AP = V_AB[1] + (V_AB[0] % p_OB_P_A);
+        return v_AP;
+    }
+
+    // Return the velocity of a point P moving on body B, in body A's frame, expressed in body A.
+    // TODO: not implemented yet
     Vec3 calcBodyMovingPointVelocityInBody(const State& s,
                                            const Vec3& locationOnBodyB, 
                                            const Vec3& velocityOnBodyB,
-                                           const MobilizedBody& inBodyA) const;
+                                           const MobilizedBody& inBodyA) const
+    {
+        SimTK_ASSERT_ALWAYS(!"unimplemented method", 
+            "MobilizedBody::calcBodyMovingPointVelocityInBody() is not yet implemented -- any volunteers?");
+        return Vec3::getNaN();
+    }
 
         // ACCELERATION //
 
     /// Return the angular and linear acceleration of body B's frame in body A's frame, expressed in body A,
     /// and arranged as a SpatialVec.
     SpatialVec calcBodySpatialAccelerationInBody(const State& s,
-                                                 const MobilizedBody& inBodyA) const;
+                                                 const MobilizedBody& inBodyA) const
+    {
+        const SpatialVec& A_GB = getBodyAcceleration(s);
+        if (inBodyA.isGround()) return A_GB;
+
+        // Body A is not Ground so we'll have to compute relative acceleration.
+        const Vec3&       p_GB = getBodyTransform(s).T();
+        const Transform&  X_GA = inBodyA.getBodyTransform(s);
+        const Vec3&       p_GA = X_GA.T();
+        const SpatialVec& V_GB = getBodyVelocity(s);
+        const SpatialVec& V_GA = inBodyA.getBodyVelocity(s);
+        const SpatialVec& A_GA = inBodyA.getBodyAcceleration(s);
+        const Vec3&       w_GA = V_GA[0];
+        const Vec3&       w_GB = V_GB[0];
+        const Vec3&       b_GA = A_GA[0];
+        const Vec3&       b_GB = A_GB[0];
+
+        const Vec3 p_AB_G        = p_GB     - p_GA;
+        const Vec3 p_AB_G_dot    = V_GB[1]  - V_GA[1];      // d/dt p taken in G
+        const Vec3 p_AB_G_dotdot = A_GB[1]  - A_GA[1];      // d^2/dt^2 taken in G
+
+        const Vec3 w_AB_G     = w_GB - w_GA;                // relative angular velocity of B in A, exp. in G
+        const Vec3 v_AB_G     = p_AB_G_dot - w_GA % p_AB_G; // d/dt p taken in A, exp in G
+
+        const Vec3 w_AB_G_dot = b_GB - b_GA;                // d/dt of w_AB_G taken in G
+        const Vec3 v_AB_G_dot = p_AB_G_dotdot - (b_GA % p_AB_G + w_GA % p_AB_G_dot); // d/dt v_AB_G taken in G
+
+        // We have the derivative in G; change it to derivative in A by adding in contribution caused
+        // by motion of G in A, that is w_AG X w_AB_G. (Note that w_AG=-w_GA.)
+        const Vec3 b_AB_G = w_AB_G_dot - w_GA % w_AB_G;
+        const Vec3 a_AB_G = v_AB_G_dot - w_GA % v_AB_G; // taken in A, exp. in G
+
+        return ~X_GA.R() * SpatialVec(b_AB_G, a_AB_G); // taken in A, expressed in A
+    }
 
     /// Return the angular acceleration of body B's frame in body A's frame, expressed in body A.
     Vec3 calcBodyAngularAccelerationInBody(const State& s,
-                                           const MobilizedBody& inBodyA) const;
+                                           const MobilizedBody& inBodyA) const
+    {
+        // TODO: this should be optimized since we don't need the linear acceleration, which
+        // is the expensive part.
+        return calcBodySpatialAccelerationInBody(s,inBodyA)[0];
+    }
 
     /// Return the acceleration of body B's origin point in body A's frame, expressed in body A.
     Vec3 calcBodyOriginAccelerationInBody(const State& s, 
-                                          const MobilizedBody& inBodyA) const;
+                                          const MobilizedBody& inBodyA) const
+    {
+        // Probably not much to be saved by trying to optimize this since the linear part
+        // is the most expensive to calculate.
+        return calcBodySpatialAccelerationInBody(s,inBodyA)[1];
+    }
 
     /// Return the acceleration of a point P fixed on body B, in body A's frame, expressed in body A.
     Vec3 calcBodyFixedPointAccelerationInBody(const State& s,
                                               const Vec3&          locationOnBodyB, 
-                                              const MobilizedBody& inBodyA) const;
+                                              const MobilizedBody& inBodyA) const 
+    {
+        const Rotation   R_AB       = calcBodyRotationFromBody(s,inBodyA);
+        const Vec3       w_AB       = calcBodyAngularVelocityInBody(s,inBodyA);
+        const SpatialVec A_AB       = calcBodySpatialAccelerationInBody(s,inBodyA);
+        // OB->P rexpressed in A but not shifted to OA
+        const Vec3 p_OB_P_A = R_AB * locationOnBodyB;
 
-    /// Return the velocity of a point P moving (and possibly accelerating) on body B,
-    /// in body A's frame, expressed in body A.
+        const Vec3 a_AP = A_AB[1] + (A_AB[0] % p_OB_P_A) + w_AB % (w_AB % p_OB_P_A); 
+        return a_AP;
+    }
+
+    // Return the velocity of a point P moving (and possibly accelerating) on body B,
+    // in body A's frame, expressed in body A.
+    // TODO: not implemented yet
     Vec3 calcBodyMovingPointAccelerationInBody(const State& s, 
                                                const Vec3&          locationOnBodyB, 
                                                const Vec3&          velocityOnBodyB, 
                                                const Vec3&          accelerationOnBodyB,
-                                               const MobilizedBody& inBodyA) const;
+                                               const MobilizedBody& inBodyA) const
+    {
+        SimTK_ASSERT_ALWAYS(!"unimplemented method", 
+            "MobilizedBody::calcBodyMovingPointAccelerationInBody() is not yet implemented -- any volunteers?");
+        return Vec3::getNaN();
+    }
+
 
         // SCALAR DISTANCE //
 
@@ -470,7 +958,8 @@ public:
     }
 
 
-    /// Calculate the time rate of change of distance from a moving point PB on body B to a moving point
+    /// TODO: not implemented yet. Calculate the time rate of change of distance from a moving
+    /// point PB on body B to a moving point
     /// PA on body A. We are given the location vectors r_OB_PB and r_OA_PA, and the velocities of
     /// PB in B and PA in A, all expressed in their respective frames. We return d/dt |r_OB_OA|,
     /// taking into account the (given) time derivatives of the locations in their local frames, as well
@@ -480,7 +969,12 @@ public:
                                                       const Vec3&          velocityOnBodyB,
                                                       const MobilizedBody& bodyA,
                                                       const Vec3&          locationOnBodyA,
-                                                      const Vec3&          velocityOnBodyA) const;
+                                                      const Vec3&          velocityOnBodyA) const
+    {
+        SimTK_ASSERT_ALWAYS(!"unimplemented method", 
+            "MobilizedBody::calcMovingPointToPointDistanceTimeDerivative() is not yet implemented -- any volunteers?");
+        return NaN;
+    }
 
     /// Calculate the second time derivative of distance from a fixed point PB on body B to a fixed point
     /// PA on body A. We are given the location vectors (stations) r_OB_PB and r_OA_PA, expressed in their
@@ -521,7 +1015,8 @@ public:
         return dot(a,u) + dot(vp,v)/d;
     }
 
-    /// Calculate the second time derivative of distance from a moving point PB on body B to a moving point
+    /// TODO: not implemented yet. Calculate the second time derivative of distance
+    /// from a moving point PB on body B to a moving point
     /// PA on body A. We are given the location vectors r_OB_PB and r_OA_PA, and the velocities and
     /// accelerations of PB in B and PA in A, all expressed in their respective frames. We return
     /// d^2/dt^2 |r_OA_OB|, taking into account the time derivatives of the locations in their
@@ -533,94 +1028,12 @@ public:
                                                          const MobilizedBody& bodyA,
                                                          const Vec3&          locationOnBodyA,
                                                          const Vec3&          velocityOnBodyA,
-                                                         const Vec3&          accelerationOnBodyA) const;
-
-    // End of high-level interface.
-    //@}
-
-
-
-    // Add decorative geometry specified relative to the new (outboard) body's reference
-    // frame B, or to the outboard mobilizer frame M attached to body B, or
-    // to the inboard mobilizer frame F attached to the parent body P. Note that
-    // the body itself may already have had some decorative geometry on it when
-    // it was first put into this MobilizedBody; in that case this just adds more.
-    MobilizedBody& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
-        (void)updBody().addDecoration(X_BD,g);
-        return *this;
-    }
-    MobilizedBody& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry&);
-    MobilizedBody& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry&);
-
-    // Topology stage (i.e., construction).
-    // Calling these means you are (re)constructing the system and will have to do
-    // realizeTopology() and extract a new State before doing any analysis.
-    const Body&    getBody() const;
-    Body&          updBody();
-    MobilizedBody& setBody(const Body&);
-
-    MobilizedBody& setDefaultMassProperties(const MassProperties& m) {
-        updBody().setDefaultRigidBodyMassProperties(m); // might not be allowed
-        return *this;
-    }
-
-    const MassProperties& getDefaultMassProperties() const {
-        return getBody().getDefaultRigidBodyMassProperties(); // every body type can do this
-    }
-
-    MobilizedBody& setDefaultInboardFrame (const Transform& X_PF);
-    MobilizedBody& setDefaultOutboardFrame(const Transform& X_BM);
-    const Transform& getDefaultInboardFrame()  const; // X_PF
-    const Transform& getDefaultOutboardFrame() const; // X_BM
-
-        // Utilities //
-    Real  getOneFromQPartition(const State&, int which, const Vector& qlike) const;
-    Real& updOneFromQPartition(const State&, int which, Vector& qlike) const;
-
-    Real  getOneFromUPartition(const State&, int which, const Vector& ulike) const;
-    Real& updOneFromUPartition(const State&, int which, Vector& ulike) const;
-
-    void applyOneMobilityForce(const State& s, int which, Real f, 
-                               Vector& mobilityForces) const
+                                                         const Vec3&          accelerationOnBodyA) const
     {
-        updOneFromUPartition(s,which,mobilityForces) += f;
+        SimTK_ASSERT_ALWAYS(!"unimplemented method", 
+            "MobilizedBody::calcMovingPointToPointDistance2ndTimeDerivative() is not yet implemented -- any volunteers?");
+        return NaN;
     }
-
-    void applyBodyForce(const State& s, const SpatialVec& spatialForceInG, 
-                        Vector_<SpatialVec>& bodyForces) const;
-
-    void applyBodyTorque(const State& s, const Vec3& torqueInG, 
-                         Vector_<SpatialVec>& bodyForces) const;
-
-    void applyForceToBodyPoint(const State& s, const Vec3& pointInB, const Vec3& forceInG,
-                               Vector_<SpatialVec>& bodyForces) const;
-
-        // MODEL STAGE responses //
-    int getNumQ(const State&) const;
-    int getNumU(const State&) const;
-
-    Real getOneQ(const State&, int which) const;
-    Real getOneU(const State&, int which) const;
-
-    Vector getQVector(const State&) const;
-    Vector getUVector(const State&) const;
-
-        // VELOCITY STAGE responses //
-    Real   getOneQDot   (const State&, int which) const;
-    Vector getQDotVector(const State&) const;
-
-        // ACCELERATION STAGE responses //
-    Real   getOneUDot   (const State&, int which) const;
-    Real   getOneQDotDot(const State&, int which) const;
-    Vector getUDotVector   (const State&) const;
-    Vector getQDotDotVector(const State&) const;
-
-        // MODEL STAGE solvers //
-    void setOneQ(State&, int which, Real) const;
-    void setOneU(State&, int which, Real) const;
-
-    void setQVector(State& s, const Vector& v) const;
-    void setUVector(State& s, const Vector& v) const;
 
     // These routines set the generalized coordinates, or speeds (state
     // variables) for just the mobilizer associated with this MobilizedBody
@@ -666,313 +1079,225 @@ public:
     void setUToFitLinearVelocity    (State&, const Vec3&       v_FM) const;
     void setUToFitLinearVelocityOnly(State&, const Vec3&       v_FM) const;
 
+    // End of high-level interface.
+    //@}
 
-        // INSTANCE STAGE responses //
 
-    const MassProperties& getBodyMassProperties(const State&) const;
 
-    /// Return the mass of this body. Callable at Instance Stage or higher.
-    Real getBodyMass(const State& s) const {
-        return getBodyMassProperties(s).getMass();
+
+            //////////////////////////
+            // CONSTRUCTION METHODS //
+            //////////////////////////
+
+    /// The default constructor initializes the base class so that it contains a null
+    /// implementation. This should be called only from concrete MobilizedBody 
+    /// constructors.
+    MobilizedBody() { }
+
+    /// Internal use only
+    explicit MobilizedBody(MobilizedBodyImpl* r) : HandleBase(r) { }
+
+    /// @name Construction Methods
+    /// These methods are the base class services which are used while building a concrete
+    /// MobilizedBody, or to query a MobilizedBody to find out how it was built.
+    //@{
+
+    /// Add decorative geometry specified relative to the new (outboard) body's reference
+    /// frame B, or to the outboard mobilizer frame M attached to body B, or
+    /// to the inboard mobilizer frame F attached to the parent body P. Note that
+    /// the body itself may already have had some decorative geometry on it when
+    /// it was first put into this MobilizedBody; in that case this just adds more.
+    MobilizedBody& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)updBody().addDecoration(X_BD,g);
+        return *this;
     }
 
-    /// Return this body's center of mass station (i.e., the vector fixed in the body,
-    /// going from body origin to body mass center, expressed in the body frame.)
-    /// Callable at Instance Stage or higher.
-    const Vec3& getBodyMassCenterStation(const State& s) const {
-        return getBodyMassProperties(s).getMassCenter();
+    /// Add decorative geometry specified relative to the outboard mobilizer frame M
+    /// attached to body B. If body B already has decorative geometry on it,
+    /// this just adds some more.
+    MobilizedBody& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry&);
+
+    /// Add decorative geometry specified relative to the inboard mobilizer frame F
+    /// attached to the parent body P. If body P already has decorative geometry on it,
+    /// this just adds some more.
+    MobilizedBody& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry&);
+
+    /// Return a reference to the Body contained within this MobilizedBody.
+    const Body& getBody() const;
+    /// Return a writable reference to the Body contained within this MobilizedBody.
+    /// Calling this method invalidates the MobilizedBody's topology, so the containing
+    /// matter subsystem's realizeTopology() method must be called again.
+    Body& updBody();
+
+    /// Replace the Body contained within this MobilizedBody with a new one. 
+    /// Calling this method invalidates the MobilizedBody's topology, so the containing
+    /// matter subsystem's realizeTopology() method must be called again. A reference
+    /// to this MobilizedBody is returned so that this can be chained like an assignment
+    /// operator.
+    MobilizedBody& setBody(const Body&);
+
+    /// If the contained Body can have its mass properties set to the supplied value \p m
+    /// its mass properties are changed, otherwise the method fails. Calling this method
+    /// invalidates the MobilizedBody's topology, so the containing
+    /// matter subsystem's realizeTopology() method must be called again. A reference
+    /// to this MobilizedBody is returned so that this can be chained like an assignment
+    /// operator.
+    MobilizedBody& setDefaultMassProperties(const MassProperties& m) {
+        updBody().setDefaultRigidBodyMassProperties(m); // might not be allowed
+        return *this;
     }
 
-    /// Return this body's inertia matrix, taken about the body origin and 
-    /// expressed in the body frame.
-    /// Callable at Instance Stage or higher.
-    const Inertia& getBodyInertiaAboutBodyOrigin(const State& s) const {
-        return getBodyMassProperties(s).getInertia();
+    /// Return the mass properties of the Body stored within this MobilizedBody.
+    const MassProperties& getDefaultMassProperties() const {
+        return getBody().getDefaultRigidBodyMassProperties(); // every body type can do this
     }
 
-    const Transform& getInboardFrame (const State&) const;  // X_PF
-    const Transform& getOutboardFrame(const State&) const;  // X_BM
+    /// Change this mobilizer's frame F on the parent body P. Calling this method
+    /// invalidates the MobilizedBody's topology, so the containing
+    /// matter subsystem's realizeTopology() method must be called again. A reference
+    /// to this MobilizedBody is returned so that this can be chained like an assignment
+    /// operator.
+    MobilizedBody& setDefaultInboardFrame (const Transform& X_PF);
+    /// Change this mobilizer's frame M fixed on this (the outboard) body B. Calling this method
+    /// invalidates the MobilizedBody's topology, so the containing
+    /// matter subsystem's realizeTopology() method must be called again. A reference
+    /// to this MobilizedBody is returned so that this can be chained like an assignment
+    /// operator.
+    MobilizedBody& setDefaultOutboardFrame(const Transform& X_BM);
 
-        // INSTANCE STAGE solvers //
+    /// Return a reference to this mobilizer's default for the frame F fixed on
+    /// the parent body P, as the fixed Transform
+    /// from P's body frame to the frame F fixed to P. This default Transform is stored
+    /// with the MobilizedBody object, not the State.
+    const Transform& getDefaultInboardFrame()  const; // X_PF
+    /// Return a reference to this MobilizedBody's default for mobilizer frame M, as the fixed Transform
+    /// from this body B's frame to the frame M fixed on B. This default Transform is stored
+    /// with the MobilizedBody object, not the State.
+    const Transform& getDefaultOutboardFrame() const; // X_BM
 
-    // Calling these reduces stage to Stage::Model.
-    void setInboardFrame (State&, const Transform& X_PF) const;
-    void setOutboardFrame(State&, const Transform& X_BM) const;
-
-        // POSITION STAGE responses //
-
-    /// Extract from the state cache the already-calculated spatial configuration of
-    /// body B's body frame, measured with respect to the ground frame and expressed
-    /// in the ground frame. That is, we return the location of the body frame's
-    /// origin, and the orientation of its x, y, and z axes, as the transform X_GB.
-    /// This response is available at Position stage.
-    const Transform& getBodyTransform(const State&) const; // X_GB
-
-    /// Extract from the state cache the already-calculated spatial orientation
-    /// of body B's body frame x, y, and z axes expressed in the ground frame,
-    /// as the rotation matrix R_GB. This response is available at Position stage.
-    const Rotation& getBodyRotation(const State& s) const {
-        return getBodyTransform(s).R();
-    }
-    /// Extract from the state cache the already-calculated spatial location
-    /// of body B's body frame origin OB, measured from the ground origin and
-    /// expressed in the ground frame, as the translation vector r_OG_OB.
-    /// This response is available at Position stage.
-    const Vec3& getBodyOriginLocation(const State& s) const {
-        return getBodyTransform(s).T();
-    }
-
-    /// At stage Position or higher, return the cross-mobilizer transform.
-    /// This is X_FM, the body's inboard mobilizer frame M measured and expressed in
-    /// the parent body's corresponding outboard frame F.
-    const Transform& getMobilizerTransform(const State&) const; // X_FM
-
-
-        // VELOCITY STAGE responses //
-
-    /// Extract from the state cache the already-calculated spatial velocity of this
-    /// body's reference frame B, measured with respect to the ground frame and expressed
-    /// in the ground frame. That is, we return the linear velocity v_GB of the body
-    /// frame's origin in G, and the body's angular velocity w_GB as the spatial velocity
-    /// vector V_GB = {w_GB, v_GB}. This response is available at Velocity stage.
-    const SpatialVec& getBodyVelocity(const State&) const; // V_GB
-
-    /// Extract from the state cache the already-calculated inertial angular
-    /// velocity vector w_GB of this body B, measured with respect to the ground frame
-    /// and expressed in the ground frame. This response is available at Velocity stage.
-    const Vec3& getBodyAngularVelocity(const State& s) const {
-        return getBodyVelocity(s)[0]; 
-    }
-    /// Extract from the state cache the already-calculated inertial linear
-    /// velocity vector v_G_OB of this body B's origin point OB, measured with respect
-    /// to the ground frame and expressed in the ground frame. This response
-    /// is available at Velocity stage.
-    const Vec3& getBodyOriginVelocity(const State& s) const {
-        return getBodyVelocity(s)[1];
-    }
-
-    /// Extract from the state cache the already-calculated inertial angular
-    /// acceleration vector aa_GB of this body B, measured with respect to the ground frame
-    /// and expressed in the ground frame. This response is available at Acceleration stage.
-    const Vec3& getBodyAngularAcceleration(const State& s) const {
-        return getBodyAcceleration(s)[0]; 
-    }
-    /// Extract from the state cache the already-calculated inertial linear
-    /// acceleration vector a_G_OB of this body B's origin point OB, measured with respect
-    /// to the ground frame and expressed in the ground frame. This response
-    /// is available at Acceleration stage.
-    const Vec3& getBodyOriginAcceleration(const State& s) const {
-        return getBodyAcceleration(s)[1];
-    }
-
-    /// Return the Cartesian (ground) location of a station fixed on body B. That is
-    /// we return locationOnG = X_GB * locationOnB which means the result is measured from
-    /// the ground origin and expressed in ground. Cost is 18 flops. This operator is
-    /// available at Position stage.
-    Vec3 locateBodyPointOnGround(const State& s, const Vec3& locationOnB) const {
-        return getBodyTransform(s) * locationOnB;
-    }
-
-    /// Return the station fixed on this body B that is coincident with the given Ground location.
-    /// That is we return locationOnB = X_BG * locationOnG, which means the result is measured
-    /// from the body origin OB and expressed in the body frame. Cost is 18 flops. This operator
-    /// is available at Position stage or higher.
-    Vec3 locateGroundPointOnBody(const State& s, const Vec3& locationOnG) const {
-        return ~getBodyTransform(s) * locationOnG;
-    }
-
-    /// Given a location on this body B, return the location on body A which is at the same location
-    /// in space. That is, we return locationOnA = X_AB * locationOnB, which means the result
-    /// is measured from the body A origin and expressed in body A. Cost is 36 flops.
-    /// This operator is available at Position stage or higher.
-    /// Note: if you know that one of the bodies is Ground, use one of the routines above
-    /// which is specialized for Ground to avoid half the work.
-    Vec3 locateBodyPointOnBody(const State& s, const Vec3& locationOnB, 
-                               const MobilizedBody& toBodyA) const
-    {
-        return toBodyA.locateGroundPointOnBody(s, locateBodyPointOnGround(s,locationOnB));
-    }
-
-    /// Return the Cartesian (ground) location of this body B's mass center.
-    Vec3 locateBodyMassCenterOnGround(const State& s) const {
-        return locateBodyPointOnGround(s,getBodyMassCenterStation(s));
-    }
-
-    /// Re-express a vector expressed in this body B's frame into the same vector in G. That is,
-    /// we return vectorInG = R_GB * vectorInB. Cost is 15 flops. 
-    /// This operator is available at Position stage.
-    Vec3 expressBodyVectorInGround(const State& s, const Vec3& vectorInB) const {
-        return getBodyRotation(s)*vectorInB;
-    }
-
-    /// Re-express a vector expressed in Ground into the same vector expressed in this body B. That is,
-    /// we return vectorInB = R_BG * vectorInG. Cost is 15 flops. 
-    /// This operator is available at Position stage.
-    Vec3 expressGroundVectorInBody(const State& s, const Vec3& vectorInG) const {
-        return ~getBodyRotation(s)*vectorInG;
-    }
-
-    /// Re-express a vector expressed in this body B into the same vector expressed in body A.
-    /// That is, we return vectorInA = R_AB * vectorInB. Cost is 30 flops.
-    /// This operator is available at Position stage.
-    /// Note: if you know one of the bodies is Ground, call one of the specialized methods
-    /// above to save 15 flops.
-    Vec3 expressBodyVectorInBody(const State& s, const Vec3& vectorInB,
-                                 const MobilizedBody& inBodyA) const
-    {
-        return inBodyA.expressGroundVectorInBody(s, expressBodyVectorInGround(s,vectorInB));
-    }
-
-    /// Calculate this body B's mass properties, measured in the body B frame, taken about the body
-    /// B origin OB, but reexpressed in Ground.
-    MassProperties expressBodyMassPropertiesInGround(const State& s) {
-            const MassProperties& M_OB_B = getBodyMassProperties(s);
-            const Rotation&       R_GB   = getBodyRotation(s);
-            return M_OB_B.reexpress(~R_GB);
-    }
-
-    /// Calculate body B's momentum (angular, linear) measured and expressed in ground, but taken about
-    /// the body origin OB.
-    SpatialVec calcBodyMomentumAboutBodyOriginInGround(const State& s) {
-        const MassProperties M_OB_G = expressBodyMassPropertiesInGround(s);
-        const SpatialVec&    V_GB   = getBodyVelocity(s);
-        return M_OB_G.toSpatialMat() * V_GB;
-    }
-
-    /// Calculate body B's momentum (angular, linear) measured and expressed in ground, but taken about
-    /// the body mass center CB.
-    SpatialVec calcBodyMomentumAboutBodyMassCenterInGround(const State& s) const {
-        const MassProperties& M_OB_B = getBodyMassProperties(s);
-        const Rotation&       R_GB   = getBodyRotation(s);
-
-        // Given a central inertia matrix I, angular velocity w, and mass center velocity v,
-        // the central angular momentum is Iw and linear momentum is mv.
-        const Inertia I_CB_B = M_OB_B.calcCentralInertia();
-        const Inertia I_CB_G = I_CB_B.reexpress(~R_GB);
-        const Real    mb     = M_OB_B.getMass();
-        const Vec3&   w_GB   = getBodyAngularVelocity(s);
-        Vec3          v_G_CB = calcBodyFixedPointVelocityInGround(s, M_OB_B.getMassCenter());
-
-        return SpatialVec( I_CB_G*w_GB, mb*v_G_CB );
-    }
-
-    /// Given a station fixed on body B, return its inertial (Cartesian) velocity,
-    /// that is, its velocity relative to the ground frame, expressed in the
-    /// ground frame. Cost is 27 flops. This operator is available at Velocity stage.
-    Vec3 calcBodyFixedPointVelocityInGround(const State& s, const Vec3& stationOnB) const {
-        const Vec3& w = getBodyAngularVelocity(s); // in G
-        const Vec3& v = getBodyOriginVelocity(s);  // in G
-        const Vec3  r = expressBodyVectorInGround(s,stationOnB); // 15 flops
-        return v + w % r;                                        // 12 flops
-    }
-
-    /// It is cheaper to calculate a station's ground location and velocity together
-    /// than to do them separately. Here we can return them both in 30 flops, vs. 45 to
-    /// do them in two calls.
-    void calcBodyFixedPointLocationAndVelocityInGround(const State& s, const Vec3& locationOnB,
-                                                       Vec3& locationOnGround, Vec3& velocityInGround) const
-    {
-        const Vec3& r_G_OB = getBodyOriginLocation(s);
-        const Vec3  r      = expressBodyVectorInGround(s,locationOnB); // 15 flops
-        locationOnGround = r_G_OB + r;   // 3 flops
-
-        const Vec3& w = getBodyAngularVelocity(s); // in G
-        const Vec3& v = getBodyOriginVelocity(s);  // in G
-        velocityInGround = v + w % r; // 12 flops
-    }
-
-
-    /// Given a station fixed on body B, return its inertial (Cartesian) acceleration,
-    /// that is, its acceleration relative to the ground frame, expressed in the
-    /// ground frame. Cost is 48 flops. This operator is available at Acceleration stage.
-    Vec3 calcBodyFixedPointAccelerationInGround(const State& s, const Vec3& stationOnB) const {
-        const Vec3& w = getBodyAngularVelocity(s);     // in G
-        const Vec3& b = getBodyAngularAcceleration(s); // in G
-        const Vec3& a = getBodyOriginAcceleration(s);  // in G
-
-        const Vec3  r = expressBodyVectorInGround(s,stationOnB); // 15 flops
-        return a + b % r + w % (w % r);                          // 33 flops
-    }
-
-    /// It is cheaper to calculate a station's ground location, velocity, and acceleration together
-    /// than to do them separately. Here we can return them all in 54 flops, vs. 93 to
-    /// do them in three calls. This operator is available at Acceleration stage.
-    void calcBodyFixedPointLocationVelocityAndAccelerationInGround
-       (const State& s, const Vec3& locationOnB,
-        Vec3& locationOnGround, Vec3& velocityInGround, Vec3& accelerationInGround) const
-    {
-        const Rotation&  R_GB   = getBodyRotation(s);
-        const Vec3&      r_G_OB = getBodyOriginLocation(s);
-
-        const Vec3 r = R_GB*locationOnB; // re-express station vector in G (15 flops)
-        locationOnGround = r_G_OB + r;   // 3 flops
-
-        const Vec3& w = getBodyAngularVelocity(s);      // in G
-        const Vec3& v = getBodyOriginVelocity(s);       // in G
-        const Vec3& b = getBodyAngularAcceleration(s);  // in G
-        const Vec3& a = getBodyOriginAcceleration(s);   // in G
-
-        const Vec3 wXr = w % r; // "whipping" velocity w X r due to angular velocity (9 flops)
-        velocityInGround     = v + wXr;                 // v + w X r (3 flops)
-        accelerationInGround = a + b % r + w % wXr;     // 24 flops
-    }
-
-    /// Given a station fixed on body B, return its velocity relative to the body frame of
-    /// body A, and expressed in body A's body frame.
-    Vec3 calcStationVelocityInBody(const State& s, const Vec3& stationOnB, const MobilizedBody& bodyA) const {
-        const Vec3 locationOnA = calcBodyPointLocationInBody(s, stationOnB, bodyA);
-        const Vec3 velocityInGround = calcBodyFixedPointVelocityInGround(s, stationOnB);
-        const Vec3& w = bodyA.getBodyAngularVelocity(s);      // in G
-        const Vec3& v = bodyA.getBodyOriginVelocity(s);       // in G
-        return bodyA.expressGroundVectorInBody(s, velocityInGround - v - w % bodyA.expressBodyVectorInGround(s, locationOnA));
-    }
-
-    /// At stage Velocity or higher, return the cross-mobilizer velocity.
-    /// This is V_FM, the relative velocity of the body's inboard mobilizer
-    /// frame M in the parent body's corresponding outboard frame F, 
-    /// measured and expressed in F. Note that this isn't the usual 
-    /// spatial velocity since it isn't expressed in G.
-    const SpatialVec& getMobilizerVelocity(const State&) const; // V_FM
-
-        // ACCELERATION STAGE responses //
-
-    /// Extract from the state cache the already-calculated spatial acceleration of
-    /// this body's reference frame B, measured with respect to the ground frame and expressed
-    /// in the ground frame. That is, we return the linear acceleration a_GB of the body
-    /// frame's origin in G, and the body's angular acceleration alpha_GB as the spatial acceleration
-    /// vector A_GB = {alpha_GB, a_GB}. This response is available at Acceleration stage.
-    const SpatialVec& getBodyAcceleration(const State& s) const; // A_GB
-
-    // Implicit conversion to MobilizedBodyIndex when needed.
+    /// This is an implicit conversion from MobilizedBody to MobilizedBodyIndex when needed.
+    /// This will fail unless this MobilizedBody is owned by some SimbodyMatterSubsystem.
     operator MobilizedBodyIndex() const {return getMobilizedBodyIndex();}
-    MobilizedBodyIndex     getMobilizedBodyIndex()  const; // index of this mobilized body
-    const MobilizedBody&   getParentMobilizedBody() const; // the inboard body (not allowed if this is ground)
-    const MobilizedBody&   getBaseMobilizedBody()   const; // the lowest numbered ancestor body on this branch
-                                                           //   (returns Ground if if this is Ground)
 
-    // These will fail unless this MobilizedBody is owned by a MatterSubsystem.
+    /// Return the MobilizedBodyIndex of this MobilizedBody within the owning SimbodyMatterSubsystem.
+    /// This will fail unless this MobilizedBody is owned by some SimbodyMatterSubsystem.
+    MobilizedBodyIndex     getMobilizedBodyIndex()  const;
+
+    /// Return a reference to the MobilizedBody serving as the parent body of the current MobilizedBody.
+    /// This call will fail if the current MobilizedBody is Ground, since Ground has no parent.
+    const MobilizedBody&   getParentMobilizedBody() const;
+
+    /// Return a reference to this MobilizedBody's oldest ancestor other than Ground, or return Ground if
+    /// this MobilizedBody is Ground. That is, we return the "base" MobilizedBody for this MobilizedBody,
+    /// meaning the one which connects this branch of the multibody tree directly to Ground.
+    const MobilizedBody&   getBaseMobilizedBody()   const;
+
+    /// Obtain a reference to the SimbodyMatterSubsystem which contains this MobilizedBody.
+    /// This will fail unless this MobilizedBody is owned by some SimbodyMatterSubsystem.
     const SimbodyMatterSubsystem& getMatterSubsystem()      const;
+    /// Obtain a writable reference to the SimbodyMatterSubsystem which contains this MobilizedBody.
+    /// This will fail unless this MobilizedBody is owned by some SimbodyMatterSubsystem.
     SimbodyMatterSubsystem&       updMatterSubsystem();
 
+    /// Determine whether the current MobilizedBody object is owned by a matter subsystem.
     bool isInSubsystem() const;
+
+    /// Determine whether a given MobilizedBody \p mBody is in the same matter subsystem
+    /// as the current body. If the bodies are not in a subsystem, this routine will
+    /// return \c false.
     bool isInSameSubsystem(const MobilizedBody&) const;
 
-    bool isSameMobilizedBody(const MobilizedBody&) const;
-    bool isGround() const; // meaning mobilizedbody 0 of some subsystem, not just the Body type
+    /// Determine whether a given MobilizedBody \p mBody is the same MobilizedBody as
+    /// this one. For this to be true the handles must not be empty, and the implementation
+    /// objects must be <em>the same object</em> not separate objects with identical
+    /// contents.
+    bool isSameMobilizedBody(const MobilizedBody& mBody) const;
 
-    // Return this body's level in the tree of bodies, starting with ground at 0,
-    // bodies directly connected to ground at 1, bodies directly connected to those at 2, 
-    // etc. This is callable after realizeTopology(). This is the graph distance of
-    // the body from Ground.
+    /// Determine whether this body is Ground, meaning that it is actually body 0
+    /// of some matter subsytem, not just that its body type is Ground.
+    bool isGround() const;
+
+    /// Return this body's level in the tree of bodies, starting with ground at 0,
+    /// bodies directly connected to ground at 1, bodies directly connected to those at 2, 
+    /// etc. This is callable after realizeTopology(). This is the graph distance of
+    /// the body from Ground.
     int getLevelInMultibodyTree() const;
     
     /// Create a new MobilizedBody which is identical to this one, except that it has a
     /// different parent (and consequently might belong to a different MultibodySystem).
     MobilizedBody& cloneForNewParent(MobilizedBody& parent) const;
 
-    // Internal use only
 
-    explicit MobilizedBody(MobilizedBodyImpl* r) : HandleBase(r) { }
+    // End of Construction Methods.
+    //@}
+
+        /////////////////////////////////////
+        // BUILT IN MOBILIZER DECLARATIONS //
+        /////////////////////////////////////
+
+    // These are the built-in MobilizedBody types. Types on the same line are
+    // synonymous. Each of these has a known number of coordinates and speeds 
+    // (at least a default number) so
+    // can define routines which return and accept specific-size arguments, e.g.
+    // Real (for 1-dof mobilizer) and Vec5 (for 5-dof mobilizer). Here is the
+    // conventional interface that each built-in should provide. The base type
+    // provides similar routines but using variable-sized or "one at a time"
+    // arguments. (Vec<1> here will actually be a Real; assume the built-in
+    // MobilizedBody class is "BuiltIn")
+    //
+    //    BuiltIn&       setDefaultQ(const Vec<nq>&);
+    //    const Vec<nq>& getDefaultQ() const;
+    //
+    //    const Vec<nq>& getQ[Dot[Dot]](const State&) const;
+    //    const Vec<nu>& getU[Dot](const State&) const;
+    //
+    //    void setQ(State&, const Vec<nq>&) const;
+    //    void setU(State&, const Vec<nu>&) const;
+    //
+    //    const Vec<nq>& getMyPartQ(const State&, const Vector& qlike) const;
+    //    const Vec<nu>& getMyPartU(const State&, const Vector& ulike) const;
+    //   
+    //    Vec<nq>& updMyPartQ(const State&, Vector& qlike) const;
+    //    Vec<nu>& updMyPartU(const State&, Vector& ulike) const;
+    //      
+
+
+    class Pin;         typedef Pin    Torsion;
+    class Slider;      typedef Slider Prismatic;
+    class Universal;
+    class Cylinder;
+    class BendStretch;
+    class Planar;
+    class Gimbal;
+    class Ball; typedef Ball Orientation, Spherical;
+    class Translation; typedef Translation Cartesian;
+    class Free;
+    class LineOrientation;
+    class FreeLine;
+    class Weld;
+    class Screw;
+    class Ellipsoid;
+    class Custom;
+    class Ground;
+    
+    class PinImpl;
+    class SliderImpl;
+    class UniversalImpl;
+    class CylinderImpl;
+    class BendStretchImpl;
+    class PlanarImpl;
+    class GimbalImpl;
+    class BallImpl;
+    class TranslationImpl;
+    class FreeImpl;
+    class LineOrientationImpl;
+    class FreeLineImpl;
+    class WeldImpl;
+    class ScrewImpl;
+    class EllipsoidImpl;
+    class CustomImpl;
+    class GroundImpl;
+
 };
 
 /// One mobility -- rotation about the common z axis of the inboard
@@ -1864,9 +2189,10 @@ public:
     }
 };
 
-/// 1-6 mobilities. TODO: this will be an abstract class with virtual methods
+/// TODO: this will be an abstract class with virtual methods
 /// that a user's derived class can implement to define a custom mobilizer.
 /// TODO: not implemented yet.
+/// 0-6 mobilities. 
 class SimTK_SIMBODY_EXPORT MobilizedBody::Custom : public PIMPLDerivedHandle<Custom, CustomImpl, MobilizedBody> {
 public:
     Custom(int nMobilities, int nCoordinates);

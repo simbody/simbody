@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
     MobilizedBody::Pin gear2(mobilizedBody2, Vec3(1,0,0), gear2body, Transform()); // along z
     Constraint::NoSlip1D(mobilizedBody2, Vec3(-.5,0,0), UnitVec3(0,1,0), gear1, gear2);
 
-    //Constraint::ConstantSpeed(gear1, 100.);
+    Constraint::ConstantSpeed(gear1, 100.);
     
     //Constraint::Ball myc2(matter.Ground(), Vec3(-4,2,0),  mobilizedBody2, Vec3(0,1,0));
     Constraint::Weld myc(matter.Ground(), Vec3(1,2,0),  mobilizedBody, Vec3(0,1,0));
@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
     //Constraint::Weld weld(mobilizedBody, Transform(Rotation(Pi/4, ZAxis), Vec3(1,1,0)),
       //                    mobilizedBody2, Transform(Rotation(-Pi/4, ZAxis), Vec3(-1,-1,0)));
     
-    MyConstraint xyz(gear1, -100.);
+    //MyConstraint xyz(gear1, 100.);
 
     viz.addBodyFixedDecoration(mobilizedBody, Transform(Vec3(1,2,3)), DecorativeText("hello world").setScale(.1));
 
