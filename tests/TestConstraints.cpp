@@ -150,8 +150,8 @@ void testConstantOrientationConstraint() {
     Rotation r2(Pi/2, CoordinateAxis::YCoordinateAxis());
     Constraint::ConstantOrientation constraint(first, r1, last, r2);
     createState(system, state);
-    Rotation rot1 = first.getBodyRotation(state);
-    Rotation rot2 = last.getBodyRotation(state);
+    Rotation R_G1 = first.getBodyRotation(state);
+    Rotation R_G2 = last.getBodyRotation(state);
     Vec3 v1 = first.getBodyAngularVelocity(state);
     Vec3 v2 = last.getBodyAngularVelocity(state);
     Vec3 a1 = first.getBodyAngularAcceleration(state);
@@ -160,9 +160,11 @@ void testConstantOrientationConstraint() {
     // Extra constraints are required for assembly.  Without them, this constraint only guarantees
     // that the second body's X/Y/Z axis is perpendicular to the first body's Y/Z/X axis.
     
-    assertEqual(dot(rot1*r1*Vec3(1, 0, 0), rot2*r2*Vec3(0, 1, 0)), 0.0);
-    assertEqual(dot(rot1*r1*Vec3(0, 1, 0), rot2*r2*Vec3(0, 0, 1)), 0.0);
-    assertEqual(dot(rot1*r1*Vec3(0, 0, 1), rot2*r2*Vec3(1, 0, 0)), 0.0);
+    // Careful: constraint is x2 perp y1, y2 perp z1, z2 perp x1; this isn't the
+    // same if bodies are interchanged.
+    assertEqual(dot(R_G2*r2*Vec3(1, 0, 0), R_G1*r1*Vec3(0, 1, 0)), 0.0);
+    assertEqual(dot(R_G2*r2*Vec3(0, 1, 0), R_G1*r1*Vec3(0, 0, 1)), 0.0);
+    assertEqual(dot(R_G2*r2*Vec3(0, 0, 1), R_G1*r1*Vec3(1, 0, 0)), 0.0);
     assertEqual(v1, v2);
     assertEqual(a1, a2);
     delete &system;
@@ -275,6 +277,33 @@ void testRodConstraint() {
 }
 
 void testWeldConstraint() {
+
+    State state;
+    MultibodySystem& system = createSystem();
+    SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
+    MobilizedBody& first = matter.updMobilizedBody(MobilizedBodyIndex(1));
+    MobilizedBody& last = matter.updMobilizedBody(MobilizedBodyIndex(NUM_BODIES));
+    Constraint::Weld constraint(first, last);
+    createState(system, state);
+    assertEqual(first.getBodyOriginLocation(state), last.getBodyOriginLocation(state));
+    assertEqual(first.getBodyVelocity(state), last.getBodyVelocity(state));
+    assertEqual(first.getBodyAcceleration(state), last.getBodyAcceleration(state));
+
+    const Rotation& R_G1 = first.getBodyRotation(state);
+    const Rotation& R_G2 = last.getBodyRotation(state);
+    
+    // Extra constraints are required for assembly.  Without them, this constraint only guarantees
+    // that the second body's X/Y/Z axis is perpendicular to the first body's Y/Z/X axis.
+    
+    // Careful: constraint is x2 perp y1, y2 perp z1, z2 perp x1; this isn't the
+    // same if bodies are interchanged.
+    assertEqual(dot(R_G2*Vec3(1, 0, 0), R_G1*Vec3(0, 1, 0)), 0.0);
+    assertEqual(dot(R_G2*Vec3(0, 1, 0), R_G1*Vec3(0, 0, 1)), 0.0);
+    assertEqual(dot(R_G2*Vec3(0, 0, 1), R_G1*Vec3(1, 0, 0)), 0.0);
+    delete &system;
+}
+
+void testWeldConstraintWithPreAssembly() {
     
     // Different constraints are required for assembly.  Without them, this constraint only guarantees
     // that the second body's X/Y/Z axis is perpendicular to the first body's Y/Z/X axis. Here we'll
@@ -285,9 +314,10 @@ void testWeldConstraint() {
     SimbodyMatterSubsystem& assemblyMatter = assemblySystem.updMatterSubsystem();
     MobilizedBody& afirst = assemblyMatter.updMobilizedBody(MobilizedBodyIndex(1));
     MobilizedBody& alast = assemblyMatter.updMobilizedBody(MobilizedBodyIndex(NUM_BODIES));
-    Constraint::ConstantAngle(afirst, UnitVec3(1,0,0), alast, UnitVec3(1,0,0), 0.1); // about 6 degrees
-    Constraint::ConstantAngle(afirst, UnitVec3(0,1,0), alast, UnitVec3(0,1,0), 0.1);
-    Constraint::ConstantAngle(afirst, UnitVec3(0,0,1), alast, UnitVec3(0,0,1), 0.1);
+    Constraint::ConstantAngle(afirst, UnitVec3(1,0,0), alast, UnitVec3(1,0,0), 0.5); // 30 degrees
+    Constraint::ConstantAngle(afirst, UnitVec3(0,1,0), alast, UnitVec3(0,1,0), 0.5);
+    Constraint::ConstantAngle(afirst, UnitVec3(0,0,1), alast, UnitVec3(0,0,1), 0.5);
+    Constraint::Ball(afirst, alast); // take care of translation
     createState(assemblySystem, assemblyState);
     delete &assemblySystem;
 
@@ -305,11 +335,18 @@ void testWeldConstraint() {
     assertEqual(first.getBodyVelocity(state), last.getBodyVelocity(state));
     assertEqual(first.getBodyAcceleration(state), last.getBodyAcceleration(state));
 
-    Rotation rot1 = first.getBodyRotation(state);
-    Rotation rot2 = last.getBodyRotation(state);
-    assertEqual(dot(rot1*Vec3(1, 0, 0), rot2*Vec3(0, 1, 0)), 0.0);
-    assertEqual(dot(rot1*Vec3(0, 1, 0), rot2*Vec3(0, 0, 1)), 0.0);
-    assertEqual(dot(rot1*Vec3(0, 0, 1), rot2*Vec3(1, 0, 0)), 0.0);
+    const Rotation& R_G1 = first.getBodyRotation(state);
+    const Rotation& R_G2 = last.getBodyRotation(state);
+
+    // This is a much more stringent requirement than the one we can ask for without
+    // the preassembly step. Here we expect the frames to be perfectly aligned.
+    assertEqual(~R_G1.x()*R_G2.x(), 1.);
+    assertEqual(~R_G1.y()*R_G2.y(), 1.);
+    assertEqual(~R_G1.z()*R_G2.z(), 1.);
+
+    // Just for fun -- compare Rotation matrices using pointing error.
+    ASSERT(R_G1.isSameRotationToWithinAngle(R_G2, TOL));
+
     delete &system;
 }
 
@@ -324,6 +361,7 @@ int main() {
         testPointOnLineConstraint();
         testRodConstraint();
         testWeldConstraint();
+        testWeldConstraintWithPreAssembly();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
