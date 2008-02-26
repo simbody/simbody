@@ -78,12 +78,14 @@ MultibodySystem& createSystem() {
  * Create a random state for the system.
  */
 
-void createState(MultibodySystem& system, State& state) {
+void createState(MultibodySystem& system, State& state, const Vector& qOverride=Vector()) {
     system.realizeTopology();
     state = system.getDefaultState();
     Random::Uniform random;
     for (int i = 0; i < state.getNY(); ++i)
         state.updY()[i] = random.getValue();
+    if (qOverride.size())
+        state.updQ() = qOverride;
     system.realize(state, Stage::Velocity);
     system.project(state, TOL, Vector(state.getNY(), 1), Vector(state.getNYErr(), 1), Vector(state.getNY()));
     system.realize(state, Stage::Acceleration);
@@ -274,20 +276,35 @@ void testRodConstraint() {
 
 void testWeldConstraint() {
     
+    // Different constraints are required for assembly.  Without them, this constraint only guarantees
+    // that the second body's X/Y/Z axis is perpendicular to the first body's Y/Z/X axis. Here we'll
+    // attempt to point all the axes in roughly the right direction prior to Weld-ing them.
+
+    State assemblyState;
+    MultibodySystem& assemblySystem = createSystem();
+    SimbodyMatterSubsystem& assemblyMatter = assemblySystem.updMatterSubsystem();
+    MobilizedBody& afirst = assemblyMatter.updMobilizedBody(MobilizedBodyIndex(1));
+    MobilizedBody& alast = assemblyMatter.updMobilizedBody(MobilizedBodyIndex(NUM_BODIES));
+    Constraint::ConstantAngle(afirst, UnitVec3(1,0,0), alast, UnitVec3(1,0,0), 0.1); // about 6 degrees
+    Constraint::ConstantAngle(afirst, UnitVec3(0,1,0), alast, UnitVec3(0,1,0), 0.1);
+    Constraint::ConstantAngle(afirst, UnitVec3(0,0,1), alast, UnitVec3(0,0,1), 0.1);
+    createState(assemblySystem, assemblyState);
+    delete &assemblySystem;
+
+    // Now rebuild the system using a Weld instead of the three angle constraints, but
+    // transfer the q's from the State we calculated above to use as a starting guess.
+
     State state;
     MultibodySystem& system = createSystem();
     SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
     MobilizedBody& first = matter.updMobilizedBody(MobilizedBodyIndex(1));
     MobilizedBody& last = matter.updMobilizedBody(MobilizedBodyIndex(NUM_BODIES));
     Constraint::Weld constraint(first, last);
-    createState(system, state);
+    createState(system, state, assemblyState.getQ());
     assertEqual(first.getBodyOriginLocation(state), last.getBodyOriginLocation(state));
     assertEqual(first.getBodyVelocity(state), last.getBodyVelocity(state));
     assertEqual(first.getBodyAcceleration(state), last.getBodyAcceleration(state));
-    
-    // Extra constraints are required for assembly.  Without them, this constraint only guarantees
-    // that the second body's X/Y/Z axis is perpendicular to the first body's Y/Z/X axis.
-    
+
     Rotation rot1 = first.getBodyRotation(state);
     Rotation rot2 = last.getBodyRotation(state);
     assertEqual(dot(rot1*Vec3(1, 0, 0), rot2*Vec3(0, 1, 0)), 0.0);
