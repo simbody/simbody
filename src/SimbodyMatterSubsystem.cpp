@@ -433,7 +433,7 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterVelocityInGround(const State& s
 
     for (MobilizedBodyIndex b(1); b < getNBodies(); ++b) {
         const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
-        const Vec3 v_G_CB = getMobilizedBody(b).calcBodyFixedPointVelocityInGround(s, MB_OB_B.getMassCenter());
+        const Vec3 v_G_CB = getMobilizedBody(b).findStationVelocityInGround(s, MB_OB_B.getMassCenter());
         const Real mb     = MB_OB_B.getMass();
 
         mass += mb;
@@ -457,7 +457,7 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterAccelerationInGround(const Stat
 
     for (MobilizedBodyIndex b(1); b < getNBodies(); ++b) {
         const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
-        const Vec3 a_G_CB = getMobilizedBody(b).calcBodyFixedPointAccelerationInGround(s, MB_OB_B.getMassCenter());
+        const Vec3 a_G_CB = getMobilizedBody(b).findStationAccelerationInGround(s, MB_OB_B.getMassCenter());
         const Real mb     = MB_OB_B.getMass();
 
         mass += mb;
@@ -482,7 +482,7 @@ SpatialVec SimbodyMatterSubsystem::calcSystemMomentumAboutGroundOrigin(const Sta
         const SpatialVec mom_CB_G = getMobilizedBody(b).calcBodyMomentumAboutBodyMassCenterInGround(s);
         const Vec3&      Iw = mom_CB_G[0];
         const Vec3&      mv = mom_CB_G[1];
-        const Vec3       r = getMobilizedBody(b).locateBodyMassCenterOnGround(s);
+        const Vec3       r = getMobilizedBody(b).findMassCenterLocationInGround(s);
         mom[0] += (Iw + r % mv); // add central angular momentum plus contribution from mass center location
         mom[1] += mv;            // just add up central linear momenta
     }

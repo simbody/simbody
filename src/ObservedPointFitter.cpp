@@ -271,7 +271,7 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
             Vector q(copy.getDefaultState().getQ());
             optimizer.optimize(q, tolerance);
             copy.updDefaultState().updQ() = q;
-            body.setQVector(tempState, copy.getMatterSubsystem().getMobilizedBody(copyBodyIxs[currentBodyIndex]).getQVector(copy.getDefaultState()));
+            body.setQFromVector(tempState, copy.getMatterSubsystem().getMobilizedBody(copyBodyIxs[currentBodyIndex]).getQAsVector(copy.getDefaultState()));
         }
         catch (Exception::OptimizerFailed ex) {
             std::cout << "Optimization failure for body "<<i<<": "<<ex.getMessage() << std::endl;

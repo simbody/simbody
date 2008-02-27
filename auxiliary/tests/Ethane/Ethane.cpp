@@ -288,7 +288,7 @@ public:
             -0.0852995,-0.45703,0.122944};
         for (int i=0; i<20; ++i) {
             const MobilizedBody& b = getMatter().getMobilizedBody(bodies[i]);
-            b.setQVector(s,Vector(3,q+3*i));
+            b.setQFromVector(s,Vector(3,q+3*i));
         }
 
         //for (int i=0; i<20; ++i) {

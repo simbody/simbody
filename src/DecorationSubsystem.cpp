@@ -131,8 +131,8 @@ int DecorationSubsystemGuts::calcDecorativeGeometryAndAppendImpl
             geom.push_back(rb.line); // make a new copy
             DecorativeLine& line = DecorativeLine::updDowncast(geom.back()); // get access to copy
             line.setEndpoints(
-                matter.getMobilizedBody(rb.body1).locateBodyPointOnGround(s,rb.station1),
-                matter.getMobilizedBody(rb.body2).locateBodyPointOnGround(s,rb.station2));
+                matter.getMobilizedBody(rb.body1).findStationLocationInGround(s,rb.station1),
+                matter.getMobilizedBody(rb.body2).findStationLocationInGround(s,rb.station2));
         }
     }
     default: 

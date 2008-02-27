@@ -657,9 +657,9 @@ void Constraint::Rod::RodImpl::calcDecorativeGeometryAndAppendVirtual
         // from State rather than topological data
 
         const Vec3 p_GP1 = getMobilizedBodyFromConstrainedBody(B1)
-                              .locateBodyPointOnGround(s, defaultPoint1);
+                              .findStationLocationInGround(s, defaultPoint1);
         const Vec3 p_GP2 = getMobilizedBodyFromConstrainedBody(B2)
-                              .locateBodyPointOnGround(s, defaultPoint2);
+                              .findStationLocationInGround(s, defaultPoint2);
 
         const Vec3 p_P1P2 = p_GP2 - p_GP1;
         const Real d = p_P1P2.norm();

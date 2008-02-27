@@ -281,45 +281,45 @@ Real MobilizedBody::getOneQDotDot(const State& s, int which) const {
     return getOneFromQPartition(s,which,getImpl().getMyMatterSubsystemRep().getQDotDot(s));
 }
 
-Vector MobilizedBody::getQVector(const State& s) const {
+Vector MobilizedBody::getQAsVector(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
     QIndex qStart; int nq; mbr.findMobilizerQs(s, qStart, nq);
     return mbr.getMyMatterSubsystemRep().getQ(s)(qStart,nq);
 }
 
-void MobilizedBody::setQVector(State& s, const Vector& q) const {
+void MobilizedBody::setQFromVector(State& s, const Vector& q) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
     QIndex qStart; int nq; mbr.findMobilizerQs(s, qStart, nq);
     assert(q.size() == nq);
     mbr.getMyMatterSubsystemRep().updQ(s)(qStart,nq) = q;
 }
 
-Vector MobilizedBody::getUVector(const State& s) const {
+Vector MobilizedBody::getUAsVector(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
     UIndex uStart; int nu; mbr.findMobilizerUs(s, uStart, nu);
     return mbr.getMyMatterSubsystemRep().getU(s)(uStart,nu);
 }
 
-void MobilizedBody::setUVector(State& s, const Vector& u) const {
+void MobilizedBody::setUFromVector(State& s, const Vector& u) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
     UIndex uStart; int nu; mbr.findMobilizerUs(s, uStart, nu);
     assert(u.size() == nu);
     mbr.getMyMatterSubsystemRep().updU(s)(uStart,nu) = u;
 }
 
-Vector MobilizedBody::getQDotVector(const State& s) const {
+Vector MobilizedBody::getQDotAsVector(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
     QIndex qStart; int nq; mbr.findMobilizerQs(s, qStart, nq);
     return mbr.getMyMatterSubsystemRep().getQDot(s)(qStart,nq);
 }
 
-Vector MobilizedBody::getUDotVector(const State& s) const {
+Vector MobilizedBody::getUDotAsVector(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
     UIndex uStart; int nu; mbr.findMobilizerUs(s, uStart, nu);
     return mbr.getMyMatterSubsystemRep().getUDot(s)(uStart,nu);
 }
 
-Vector MobilizedBody::getQDotDotVector(const State& s) const {
+Vector MobilizedBody::getQDotDotAsVector(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
     QIndex qStart; int nq; mbr.findMobilizerQs(s, qStart, nq);
     return mbr.getMyMatterSubsystemRep().getQDotDot(s)(qStart,nq);

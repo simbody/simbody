@@ -105,8 +105,8 @@ void Force::TwoPointLinearDamperImpl::calcForce(const State& state, Vector_<Spat
     const Vec3 p1_G = X_GB1.T() + s1_G; // station measured from ground origin
     const Vec3 p2_G = X_GB2.T() + s2_G;
 
-    const Vec3 v1_G = matter.getMobilizedBody(body1).calcBodyFixedPointVelocityInGround(state, station1);
-    const Vec3 v2_G = matter.getMobilizedBody(body2).calcBodyFixedPointVelocityInGround(state, station2);
+    const Vec3 v1_G = matter.getMobilizedBody(body1).findStationVelocityInGround(state, station1);
+    const Vec3 v2_G = matter.getMobilizedBody(body2).findStationVelocityInGround(state, station2);
     const Vec3 vRel = v2_G - v1_G; // relative velocity
 
     const UnitVec3 d(p2_G - p1_G); // direction from point1 to point2

@@ -329,7 +329,7 @@ int main(int argc, char** argv) {
         cout << "uErr=" << s.getUErr() << endl;
         cout << "T_MbM=" << mobilizedBody.getMobilizerTransform(s).T() << endl;
         cout << "PE=" << mbs.getPotentialEnergy(s) << " KE=" << mbs.getKineticEnergy(s) << " E=" << mbs.getEnergy(s) << endl;
-        cout << "angle=" << std::acos(~mobilizedBody.expressBodyVectorInGround(s, Vec3(0,1,0)) * UnitVec3(1,1,1)) << endl;
+        cout << "angle=" << std::acos(~mobilizedBody.expressVectorInGroundFrame(s, Vec3(0,1,0)) * UnitVec3(1,1,1)) << endl;
         cout << "Assembled configuration shown. Ready to simulate? "; cin >> ans;
     }
 
@@ -344,7 +344,7 @@ int main(int argc, char** argv) {
     {
         const State& s = myStudy.getState();
         mbs.realize(s, Stage::Acceleration);
-        const Real angle = std::acos(~mobilizedBody.expressBodyVectorInGround(s, Vec3(0,1,0)) * UnitVec3(1,1,1));
+        const Real angle = std::acos(~mobilizedBody.expressVectorInGroundFrame(s, Vec3(0,1,0)) * UnitVec3(1,1,1));
         printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
             angle,
             mbs.getEnergy(s), myStudy.getNStepsTaken(),
