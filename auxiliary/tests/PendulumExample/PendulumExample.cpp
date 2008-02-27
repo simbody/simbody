@@ -145,8 +145,8 @@ try { // If anything goes wrong, an exception will be thrown.
 
         myStudy.initialize();
 
-        cout << "MassProperties in B=" << swinger.calcBodyMassPropertiesInBody(s,swinger);
-        cout << "MassProperties in G=" << swinger.calcBodyMassPropertiesInBody(s,pend.Ground());
+        cout << "MassProperties in B=" << swinger.expressMassPropertiesInAnotherBodyFrame(s,swinger);
+        cout << "MassProperties in G=" << swinger.expressMassPropertiesInGroundFrame(s);
         cout << "Spatial Inertia    =" << swinger.calcBodySpatialInertiaMatrixInGround(s);
 
         for (;;) {
