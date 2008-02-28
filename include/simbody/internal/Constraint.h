@@ -608,7 +608,7 @@ public:
  *  are coincident with that spatial location. Note that this is somewhat asymmetric
  *  when the Weld is not properly assembled -- it acts as though the contact occurs
  *  at the origin of the frame on body 2, *not* at the origin of the frame on body 1.
- *  The orientation constrains on the other hand are symmetric, they are three
+ *  The orientation constraints on the other hand are symmetric, they are three
  *  "constant angle" constraints enforcing perpendicularity between body2's
  *  x,y,z axes with body1's y,z,x axes respectively, via an internal (non-working)
  *  torque vector applied equal and opposite on each body.
