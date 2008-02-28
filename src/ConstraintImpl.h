@@ -297,15 +297,15 @@ public:
     const Vec3& getBodyOriginAcceleration(const State& s, ConstrainedBodyIndex B, bool realizingAcceleration=false) const // a_AB
        {return getBodyAcceleration(s,B,realizingAcceleration)[1];} 
 
-    Vec3 calcStationLocation(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, bool realizingPosition=false) const {
+    Vec3 findStationLocation(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, bool realizingPosition=false) const {
         return getBodyTransform(s,B,realizingPosition) * p_B; // re-measure and re-express
     }
-    Vec3 calcStationVelocity(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, bool realizingVelocity=false) const {
+    Vec3 findStationVelocity(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, bool realizingVelocity=false) const {
         const Vec3        p_A  = getBodyRotation(s,B) * p_B; // rexpressed but not shifted
         const SpatialVec& V_AB = getBodyVelocity(s,B,realizingVelocity);
         return V_AB[1] + (V_AB[0] % p_A);
     }
-    Vec3 calcStationAcceleration(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, bool realizingAcceleration=false) const {
+    Vec3 findStationAcceleration(const State& s, ConstrainedBodyIndex B, const Vec3& p_B, bool realizingAcceleration=false) const {
         const Vec3        p_A  = getBodyRotation(s,B) * p_B; // rexpressed but not shifted
         const Vec3&       w_AB = getBodyAngularVelocity(s,B);
         const SpatialVec& A_AB = getBodyAcceleration(s,B,realizingAcceleration);
@@ -591,8 +591,8 @@ public:
     // perr = (p^2 - d^2)/2
     void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
         assert(mp==1 && perr);
-        const Vec3 p1 = calcStationLocation(s, B1, defaultPoint1, true); // meas from & expr in ancestor
-        const Vec3 p2 = calcStationLocation(s, B2, defaultPoint2, true);
+        const Vec3 p1 = findStationLocation(s, B1, defaultPoint1, true); // meas from & expr in ancestor
+        const Vec3 p2 = findStationLocation(s, B2, defaultPoint2, true);
         const Vec3 p = p2 - p1;
         //TODO: save p in state
 
@@ -603,12 +603,12 @@ public:
     void realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const {
         assert(mp==1 && pverr);
         //TODO: should be able to get p from State
-        const Vec3 p1 = calcStationLocation(s, B1, defaultPoint1); // meas from & expr in ancestor
-        const Vec3 p2 = calcStationLocation(s, B2, defaultPoint2);
+        const Vec3 p1 = findStationLocation(s, B1, defaultPoint1); // meas from & expr in ancestor
+        const Vec3 p2 = findStationLocation(s, B2, defaultPoint2);
         const Vec3 p = p2 - p1;
 
-        const Vec3 v1 = calcStationVelocity(s, B1, defaultPoint1, true); // meas & expr in ancestor
-        const Vec3 v2 = calcStationVelocity(s, B2, defaultPoint2, true);
+        const Vec3 v1 = findStationVelocity(s, B1, defaultPoint1, true); // meas & expr in ancestor
+        const Vec3 v2 = findStationVelocity(s, B2, defaultPoint2, true);
         const Vec3 v = v2 - v1;
         *pverr = dot(v, p);
     }
@@ -617,15 +617,15 @@ public:
     void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const {
         assert(mp==1 && paerr);
         //TODO: should be able to get p and v from State
-        const Vec3 p1 = calcStationLocation(s, B1, defaultPoint1); // meas from & expr in ancestor
-        const Vec3 p2 = calcStationLocation(s, B2, defaultPoint2);
+        const Vec3 p1 = findStationLocation(s, B1, defaultPoint1); // meas from & expr in ancestor
+        const Vec3 p2 = findStationLocation(s, B2, defaultPoint2);
         const Vec3 p = p2 - p1;
-        const Vec3 v1 = calcStationVelocity(s, B1, defaultPoint1); // meas & expr in ancestor
-        const Vec3 v2 = calcStationVelocity(s, B2, defaultPoint2);
+        const Vec3 v1 = findStationVelocity(s, B1, defaultPoint1); // meas & expr in ancestor
+        const Vec3 v2 = findStationVelocity(s, B2, defaultPoint2);
         const Vec3 v = v2 - v1;
 
-        const Vec3 a1 = calcStationAcceleration(s, B1, defaultPoint1, true); // meas & expr in ancestor
-        const Vec3 a2 = calcStationAcceleration(s, B2, defaultPoint2, true);
+        const Vec3 a1 = findStationAcceleration(s, B1, defaultPoint1, true); // meas & expr in ancestor
+        const Vec3 a2 = findStationAcceleration(s, B2, defaultPoint2, true);
         const Vec3 a = a2 - a1;
 
         *paerr = dot(a, p) + dot(v, v);
@@ -642,8 +642,8 @@ public:
         assert(mp==1 && multipliers);
         const Real lambda = *multipliers;
         //TODO: should be able to get p from State
-        const Vec3 p1 = calcStationLocation(s, B1, defaultPoint1); // meas from & expr in ancestor
-        const Vec3 p2 = calcStationLocation(s, B2, defaultPoint2);
+        const Vec3 p1 = findStationLocation(s, B1, defaultPoint1); // meas from & expr in ancestor
+        const Vec3 p2 = findStationLocation(s, B2, defaultPoint2);
         const Vec3 p = p2 - p1;
 
         const Vec3 f2 = lambda * p;
@@ -743,7 +743,7 @@ public:
         assert(mp==1 && perr);
 
         const Transform& X_AB = getBodyTransform(s, planeBody, true);
-        const Vec3       p_AS = calcStationLocation(s, followerBody, defaultFollowerPoint, true);
+        const Vec3       p_AS = findStationLocation(s, followerBody, defaultFollowerPoint, true);
         const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin and reexpress in B;
                                               // C is material point of B coincident with S
 
@@ -758,13 +758,13 @@ public:
         assert(mp==1 && pverr);
         //TODO: should be able to get p info from State
         const Transform& X_AB = getBodyTransform(s, planeBody);
-        const Vec3       p_AS = calcStationLocation(s, followerBody, defaultFollowerPoint);
+        const Vec3       p_AS = findStationLocation(s, followerBody, defaultFollowerPoint);
         const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin and reexpress in B;
                                               // C is material point of B coincident with S
         const UnitVec3   n_A  = X_AB.R() * defaultPlaneNormal;
 
-        const Vec3       v_AS = calcStationVelocity(s, followerBody, defaultFollowerPoint, true);
-        const Vec3       v_AC = calcStationVelocity(s, planeBody, p_BC, true);
+        const Vec3       v_AS = findStationVelocity(s, followerBody, defaultFollowerPoint, true);
+        const Vec3       v_AC = findStationVelocity(s, planeBody, p_BC, true);
 
         // Calculate this scalar using A-frame vectors.
         *pverr = dot( v_AS-v_AC, n_A );
@@ -777,17 +777,17 @@ public:
         assert(mp==1 && paerr);
         //TODO: should be able to get p and v info from State
         const Transform& X_AB = getBodyTransform(s, planeBody);
-        const Vec3       p_AS = calcStationLocation(s, followerBody, defaultFollowerPoint);
+        const Vec3       p_AS = findStationLocation(s, followerBody, defaultFollowerPoint);
         const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin and reexpress in B;
                                               // C is material point of B coincident with S
         const UnitVec3   n_A  = X_AB.R() * defaultPlaneNormal;
 
         const Vec3&      w_AB = getBodyAngularVelocity(s, planeBody);
-        const Vec3       v_AS = calcStationVelocity(s, followerBody, defaultFollowerPoint);
-        const Vec3       v_AC = calcStationVelocity(s, planeBody, p_BC);
+        const Vec3       v_AS = findStationVelocity(s, followerBody, defaultFollowerPoint);
+        const Vec3       v_AC = findStationVelocity(s, planeBody, p_BC);
 
-        const Vec3       a_AS = calcStationAcceleration(s, followerBody, defaultFollowerPoint, true);;
-        const Vec3       a_AC = calcStationAcceleration(s, planeBody, p_BC, true);
+        const Vec3       a_AS = findStationAcceleration(s, followerBody, defaultFollowerPoint, true);;
+        const Vec3       a_AC = findStationAcceleration(s, planeBody, p_BC, true);
 
         *paerr = dot( (a_AS-a_AC) - 2*w_AB % (v_AS-v_AC), n_A );
     }
@@ -805,7 +805,7 @@ public:
         //TODO: should be able to get p info from State
         const Transform& X_AB    = getBodyTransform(s, planeBody);
         const Vec3&      p_FS    = defaultFollowerPoint; // measured & expressed in F
-        const Vec3       p_AS    = calcStationLocation(s, followerBody, defaultFollowerPoint);
+        const Vec3       p_AS    = findStationLocation(s, followerBody, defaultFollowerPoint);
         const Vec3       p_BC    = ~X_AB * p_AS;         // measured & expressed in B
 		const Vec3       force_A = X_AB.R()*(lambda*defaultPlaneNormal);
 
@@ -885,7 +885,7 @@ public:
         assert(mp==2 && perr);
 
         const Transform& X_AB = getBodyTransform(s, lineBody, true);
-        const Vec3       p_AS = calcStationLocation(s, followerBody, defaultFollowerPoint, true);
+        const Vec3       p_AS = findStationLocation(s, followerBody, defaultFollowerPoint, true);
         const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin and reexpress in B;
                                               // C is material point of B coincident with S
         const Vec3       p_PC = p_BC - defaultPointOnLine;
@@ -901,12 +901,12 @@ public:
         assert(mp==2 && pverr);
         //TODO: should be able to get p info from State
         const Transform& X_AB = getBodyTransform(s, lineBody);
-        const Vec3       p_AS = calcStationLocation(s, followerBody, defaultFollowerPoint);
+        const Vec3       p_AS = findStationLocation(s, followerBody, defaultFollowerPoint);
         const Vec3       p_BC = ~X_AB * p_AS;
         const Vec3       p_PC = p_BC - defaultPointOnLine;
 
-        const Vec3       v_AS = calcStationVelocity(s, followerBody, defaultFollowerPoint, true);
-        const Vec3       v_AC = calcStationVelocity(s, lineBody, p_BC, true);
+        const Vec3       v_AS = findStationVelocity(s, followerBody, defaultFollowerPoint, true);
+        const Vec3       v_AC = findStationVelocity(s, lineBody, p_BC, true);
 
         const Vec3       v_CS_B = ~X_AB.R()*(v_AS-v_AC); // reexpress in B
 
@@ -921,17 +921,17 @@ public:
         assert(mp==2 && paerr);
         //TODO: should be able to get p and v info from State
         const Transform& X_AB = getBodyTransform(s, lineBody);
-        const Vec3       p_AS = calcStationLocation(s, followerBody, defaultFollowerPoint);
+        const Vec3       p_AS = findStationLocation(s, followerBody, defaultFollowerPoint);
         const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin and reexpress in B;
                                               // C is material point of B coincident with S
         const Vec3       p_PC = p_BC - defaultPointOnLine;
 
         const Vec3&      w_AB = getBodyAngularVelocity(s, lineBody);
-        const Vec3       v_AS = calcStationVelocity(s, followerBody, defaultFollowerPoint);
-        const Vec3       v_AC = calcStationVelocity(s, lineBody, p_BC);
+        const Vec3       v_AS = findStationVelocity(s, followerBody, defaultFollowerPoint);
+        const Vec3       v_AC = findStationVelocity(s, lineBody, p_BC);
 
-        const Vec3       a_AS = calcStationAcceleration(s, followerBody, defaultFollowerPoint, true);
-        const Vec3       a_AC = calcStationAcceleration(s, lineBody, p_BC, true);
+        const Vec3       a_AS = findStationAcceleration(s, followerBody, defaultFollowerPoint, true);
+        const Vec3       a_AC = findStationAcceleration(s, lineBody, p_BC, true);
         const Vec3       a_CS_B = ~X_AB.R()*(a_AS-a_AC - 2 * w_AB % (v_AS-v_AC));
 
         // Calculate these scalar using B-frame vectors, but any frame would have done.
@@ -951,7 +951,7 @@ public:
         //TODO: should be able to get p info from State
         const Transform& X_AB    = getBodyTransform(s, lineBody);
         const Vec3&      p_FS    = defaultFollowerPoint; // measured & expressed in F
-        const Vec3       p_AS    = calcStationLocation(s, followerBody, defaultFollowerPoint);
+        const Vec3       p_AS    = findStationLocation(s, followerBody, defaultFollowerPoint);
         const Vec3       p_BC    = ~X_AB * p_AS;         // measured & expressed in B
 
 		const Vec3       force_B = lambda[0] * x + lambda[1] * y;
@@ -1194,8 +1194,8 @@ public:
     void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
         assert(mp==3 && perr);
 
-        const Vec3 p_AP = calcStationLocation(s, B1, defaultPoint1, true);
-        const Vec3 p_AS = calcStationLocation(s, B2, defaultPoint2, true);
+        const Vec3 p_AP = findStationLocation(s, B1, defaultPoint1, true);
+        const Vec3 p_AS = findStationLocation(s, B2, defaultPoint2, true);
 
         // See above comments -- this is just the constant of integration; there is a missing (p_AS-p_AC)
         // term (always 0) here which is what we differentiate to get the verr equation.
@@ -1206,11 +1206,11 @@ public:
         assert(mp==3 && pverr);
         //TODO: should be able to get p info from State
         const Transform&  X_AB   = getBodyTransform(s, B1);
-        const Vec3        p_AS   = calcStationLocation(s, B2, defaultPoint2);
+        const Vec3        p_AS   = findStationLocation(s, B2, defaultPoint2);
         const Vec3        p_BC   = ~X_AB*p_AS; // C is a material point of body B
 
-        const Vec3        v_AS    = calcStationVelocity(s, B2, defaultPoint2, true);
-        const Vec3        v_AC    = calcStationVelocity(s, B1, p_BC, true);
+        const Vec3        v_AS    = findStationVelocity(s, B2, defaultPoint2, true);
+        const Vec3        v_AC    = findStationVelocity(s, B1, p_BC, true);
         Vec3::updAs(pverr) = v_AS - v_AC;
     }
 
@@ -1219,11 +1219,11 @@ public:
         //TODO: should be able to get p and v info from State
 
         const Transform&  X_AB   = getBodyTransform(s, B1);
-        const Vec3        p_AS   = calcStationLocation(s, B2, defaultPoint2);
+        const Vec3        p_AS   = findStationLocation(s, B2, defaultPoint2);
         const Vec3        p_BC   = ~X_AB*p_AS; // C is a material point of body B
 
-        const Vec3        a_AS    = calcStationAcceleration(s, B2, defaultPoint2, true);
-        const Vec3        a_AC    = calcStationAcceleration(s, B1, p_BC, true);
+        const Vec3        a_AS    = findStationAcceleration(s, B2, defaultPoint2, true);
+        const Vec3        a_AC    = findStationAcceleration(s, B1, p_BC, true);
         Vec3::updAs(paerr) = a_AS - a_AC;
     }
 
@@ -1237,7 +1237,7 @@ public:
         //TODO: should be able to get p info from State
         const Transform& X_AB  = getBodyTransform(s,B1);
         const Vec3&      p_FS  = defaultPoint2;
-        const Vec3       p_AS  = calcStationLocation(s, B2, p_FS);
+        const Vec3       p_AS  = findStationLocation(s, B2, p_FS);
         const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin and reexpress in B;
                                               // C is material point of B coincident with S
 
@@ -1498,8 +1498,8 @@ public:
                                  ~RF.y()*RB.z(),
                                  ~RF.z()*RB.x());
 
-        const Vec3 p_AF1 = calcStationLocation(s, B, defaultFrameB.T(), true);
-        const Vec3 p_AF2 = calcStationLocation(s, F, defaultFrameF.T(), true);
+        const Vec3 p_AF1 = findStationLocation(s, B, defaultFrameB.T(), true);
+        const Vec3 p_AF2 = findStationLocation(s, F, defaultFrameF.T(), true);
 
         // position error
         Vec3::updAs(perr+3) = p_AF2 - p_AF1;
@@ -1524,11 +1524,11 @@ public:
 
         //TODO: should be able to get p info from State
         const Transform&  X_AB   = getBodyTransform(s, B);
-        const Vec3        p_AF2  = calcStationLocation(s, F, defaultFrameF.T());
+        const Vec3        p_AF2  = findStationLocation(s, F, defaultFrameF.T());
         const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
 
-        const Vec3        v_AF2   = calcStationVelocity(s, F, defaultFrameF.T(), true);
-        const Vec3        v_AC    = calcStationVelocity(s, B, p_BC, true);
+        const Vec3        v_AF2   = findStationVelocity(s, F, defaultFrameF.T(), true);
+        const Vec3        v_AC    = findStationVelocity(s, B, p_BC, true);
  
         // position error
         Vec3::updAs(pverr+3) = v_AF2 - v_AC;
@@ -1560,11 +1560,11 @@ public:
                         + dot( w_BF, (w_AF%RF.z()) % RB.x() - (w_AB%RB.x()) % RF.z()));
 
         const Transform&  X_AB   = getBodyTransform(s, B);
-        const Vec3        p_AF2  = calcStationLocation(s, F, defaultFrameF.T());
+        const Vec3        p_AF2  = findStationLocation(s, F, defaultFrameF.T());
         const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
 
-        const Vec3        a_AF2  = calcStationAcceleration(s, F, defaultFrameF.T(), true);
-        const Vec3        a_AC   = calcStationAcceleration(s, B, p_BC, true);
+        const Vec3        a_AF2  = findStationAcceleration(s, F, defaultFrameF.T(), true);
+        const Vec3        a_AC   = findStationAcceleration(s, B, p_BC, true);
 
         // position error
         Vec3::updAs(paerr+3) = a_AF2 - a_AC;
@@ -1595,7 +1595,7 @@ public:
 
         const Transform& X_AB  = getBodyTransform(s,B);
         const Vec3&      p_FF2 = defaultFrameF.T();
-        const Vec3       p_AF2 = calcStationLocation(s, F, p_FF2);
+        const Vec3       p_AF2 = findStationLocation(s, F, p_FF2);
         const Vec3       p_BC = ~X_AB * p_AF2;
 
         addInStationForce(s, F, p_FF2, force_A, bodyForcesInA);
@@ -1676,8 +1676,8 @@ public:
         const Vec3       p_P1  = ~X_AB1 * p_AP;              // P1's station in B1
         const UnitVec3   n_A   = X_AC.R() * defaultNoSlipDirection;
 
-        const Vec3       v_AP0 = calcStationVelocity(s, movingBody0, p_P0, true);
-        const Vec3       v_AP1 = calcStationVelocity(s, movingBody1, p_P1, true);
+        const Vec3       v_AP0 = findStationVelocity(s, movingBody0, p_P0, true);
+        const Vec3       v_AP1 = findStationVelocity(s, movingBody1, p_P1, true);
 
         // Calculate this scalar using A-frame vectors.
         *verr = ~(v_AP1-v_AP0) * n_A;
@@ -1694,12 +1694,12 @@ public:
         const Vec3       p_P1  = ~X_AB1 * p_AP;              // P1's station in B1
         const UnitVec3   n_A   = X_AC.R() * defaultNoSlipDirection;
 
-        const Vec3       v_AP0 = calcStationVelocity(s, movingBody0, p_P0);
-        const Vec3       v_AP1 = calcStationVelocity(s, movingBody1, p_P1);
+        const Vec3       v_AP0 = findStationVelocity(s, movingBody0, p_P0);
+        const Vec3       v_AP1 = findStationVelocity(s, movingBody1, p_P1);
         const Vec3&      w_AC  = getBodyAngularVelocity(s, caseBody);
 
-        const Vec3       a_AP0 = calcStationAcceleration(s, movingBody0, p_P0, true);
-        const Vec3       a_AP1 = calcStationAcceleration(s, movingBody1, p_P1, true);
+        const Vec3       a_AP0 = findStationAcceleration(s, movingBody0, p_P0, true);
+        const Vec3       a_AP1 = findStationAcceleration(s, movingBody1, p_P1, true);
 
         // Calculate this scalar using A-frame vectors.
         *vaerr = ~(a_AP1-a_AP0 - w_AC % (v_AP1-v_AP0)) * n_A;

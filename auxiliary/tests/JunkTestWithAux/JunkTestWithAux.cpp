@@ -498,8 +498,8 @@ public:
                                  ~RF.y()*RB.z(),
                                  ~RF.z()*RB.x());
 
-        const Vec3 p_AF1 = calcStationLocation(s, B, defaultFrameB.T(), true);
-        const Vec3 p_AF2 = calcStationLocation(s, F, defaultFrameF.T(), true);
+        const Vec3 p_AF1 = findStationLocation(s, B, defaultFrameB.T(), true);
+        const Vec3 p_AF2 = findStationLocation(s, F, defaultFrameF.T(), true);
 
         // position error
         Vec3::updAs(perr+3) = p_AF2 - p_AF1;
@@ -524,11 +524,11 @@ public:
 
         //TODO: should be able to get p info from State
         const Transform&  X_AB   = getBodyTransform(s, B);
-        const Vec3        p_AF2  = calcStationLocation(s, F, defaultFrameF.T());
+        const Vec3        p_AF2  = findStationLocation(s, F, defaultFrameF.T());
         const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
 
-        const Vec3        v_AF2   = calcStationVelocity(s, F, defaultFrameF.T(), true);
-        const Vec3        v_AC    = calcStationVelocity(s, B, p_BC, true);
+        const Vec3        v_AF2   = findStationVelocity(s, F, defaultFrameF.T(), true);
+        const Vec3        v_AC    = findStationVelocity(s, B, p_BC, true);
  
         // position error
         Vec3::updAs(pverr+3) = v_AF2 - v_AC;
@@ -560,11 +560,11 @@ public:
                         + dot( w_BF, (w_AF%RF.z()) % RB.x() - (w_AB%RB.x()) % RF.z()));
 
         const Transform&  X_AB   = getBodyTransform(s, B);
-        const Vec3        p_AF2  = calcStationLocation(s, F, defaultFrameF.T());
+        const Vec3        p_AF2  = findStationLocation(s, F, defaultFrameF.T());
         const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
 
-        const Vec3        a_AF2  = calcStationAcceleration(s, F, defaultFrameF.T(), true);
-        const Vec3        a_AC   = calcStationAcceleration(s, B, p_BC, true);
+        const Vec3        a_AF2  = findStationAcceleration(s, F, defaultFrameF.T(), true);
+        const Vec3        a_AC   = findStationAcceleration(s, B, p_BC, true);
 
         // position error
         Vec3::updAs(paerr+3) = a_AF2 - a_AC;
@@ -595,7 +595,7 @@ public:
 
         const Transform& X_AB  = getBodyTransform(s,B);
         const Vec3&      p_FF2 = defaultFrameF.T();
-        const Vec3       p_AF2 = calcStationLocation(s, F, p_FF2);
+        const Vec3       p_AF2 = findStationLocation(s, F, p_FF2);
         const Vec3       p_BC = ~X_AB * p_AF2;
 
         addInStationForce(s, F, p_FF2, force_A, bodyForcesInA);
