@@ -177,6 +177,133 @@ template class PIMPLHandle<Element,ElementRep>; // explicit instantiation
     }
 }
 
+// TODO - modify to return references to permanent element instances
+/* static */ Element Element::getBySymbol(const SimTK::String& symbol) 
+{
+    if      (symbol == "H")  return Hydrogen();
+    else if (symbol == "D")  return Deuterium();
+    else if (symbol == "He") return Helium();
+    else if (symbol == "Li") return Lithium();
+    else if (symbol == "Be") return Beryllium();
+    else if (symbol == "B")  return Boron();
+    else if (symbol == "C")  return  Carbon();
+    else if (symbol == "N")  return  Nitrogen();
+    else if (symbol == "O")  return  Oxygen();
+    else if (symbol == "F")  return  Fluorine();
+    else if (symbol == "Ne") return Neon();
+    else if (symbol == "Na") return Sodium();
+    else if (symbol == "Mg") return Magnesium();
+    else if (symbol == "Al") return Aluminum();
+    else if (symbol == "Si") return Silicon();
+    else if (symbol == "P") return  Phosphorus();
+    else if (symbol == "S") return  Sulfur();
+    else if (symbol == "Cl") return Chlorine();
+    else if (symbol == "Ar") return Argon();
+    else if (symbol == "K") return  Potassium();
+    else if (symbol == "Ca") return Calcium();
+    else if (symbol == "Sc") return Scandium();
+    else if (symbol == "Ti") return Titanium();
+    else if (symbol == "V") return  Vanadium();
+    else if (symbol == "Cr") return Chromium();
+    else if (symbol == "Mn") return Manganese();
+    else if (symbol == "Fe") return Iron();
+    else if (symbol == "Co") return Cobalt();
+    else if (symbol == "Ni") return Nickel();
+    else if (symbol == "Cu") return Copper();
+    else if (symbol == "Zn") return Zinc();
+    else if (symbol == "Ga") return Gallium();
+    else if (symbol == "Ge") return Germanium();
+    else if (symbol == "As") return Arsenic();
+    else if (symbol == "Se") return Selenium();
+    else if (symbol == "Br") return Bromine();
+    else if (symbol == "Kr") return Krypton();
+    else if (symbol == "Rb") return Rubidium();
+    else if (symbol == "Sr") return Strontium();
+    else if (symbol == "Y")  return Yttrium();
+    else if (symbol == "Zr") return Zirconium();
+    else if (symbol == "Nb") return Niobium();
+    else if (symbol == "Mo") return Molybdenum();
+    else if (symbol == "Tc") return Technetium();
+    else if (symbol == "Ru") return Ruthenium();
+    else if (symbol == "Rh") return Rhodium();
+    else if (symbol == "Pd") return Palladium();
+    else if (symbol == "Ag") return Silver();
+    else if (symbol == "Cd") return Cadmium();
+    else if (symbol == "In") return Indium();
+    else if (symbol == "Sn") return Tin();
+    else if (symbol == "Sb") return Antimony();
+    else if (symbol == "Te") return Tellurium();
+    else if (symbol == "I")  return Iodine();
+    else if (symbol == "Xe") return Xenon();
+    else if (symbol == "Cs") return Cesium();
+    else if (symbol == "Ba") return Barium();
+    else if (symbol == "La") return Lanthanum();
+    else if (symbol == "Ce") return Cerium();
+    else if (symbol == "Pr") return Praseodymium();
+    else if (symbol == "Nd") return Neodymium();
+    else if (symbol == "Pm") return Promethium();
+    else if (symbol == "Sm") return Samarium();
+    else if (symbol == "Eu") return Europium();
+    else if (symbol == "Gd") return Gadolinium();
+    else if (symbol == "Tb") return Terbium();
+    else if (symbol == "Dy") return Dysprosium();
+    else if (symbol == "Ho") return Holmium();
+    else if (symbol == "Er") return Erbium();
+    else if (symbol == "Tm") return Thulium();
+    else if (symbol == "Yb") return Ytterbium();
+    else if (symbol == "Lu") return Lutetium();
+    else if (symbol == "Hf") return Hafnium();
+    else if (symbol == "Ta") return Tantalum();
+    else if (symbol == "W")  return Tungsten();
+    else if (symbol == "Re") return Rhenium();
+    else if (symbol == "Os") return Osmium();
+    else if (symbol == "Ir") return Iridium();
+    else if (symbol == "Pt") return Platinum();
+    else if (symbol == "Au") return Gold();
+    else if (symbol == "Hg") return Mercury();
+    else if (symbol == "Tl") return Thallium();
+    else if (symbol == "Pb") return Lead();
+    else if (symbol == "Bi") return Bismuth();
+    else if (symbol == "Po") return Polonium();
+    else if (symbol == "At") return Astatine();
+    else if (symbol == "Rn") return Radon();
+    else if (symbol == "Fr") return Francium();
+    else if (symbol == "Ra") return Radium();
+    else if (symbol == "Ac") return Actinium();
+    else if (symbol == "Th") return Thorium();
+    else if (symbol == "Pa") return Protactinium();
+    else if (symbol == "U")  return Uranium();
+    else if (symbol == "Np") return Neptunium();
+    else if (symbol == "Pu") return Plutonium();
+    else if (symbol == "Am") return Americium();
+    else if (symbol == "Cm") return Curium();
+    else if (symbol == "Bk") return Berkelium();
+    else if (symbol == "Cf") return Californium();
+    else if (symbol == "Es") return Einsteinium();
+    else if (symbol == "Fm") return Fermium();
+    else if (symbol == "Md") return Mendelevium();
+    else if (symbol == "No") return Nobelium();
+    else if (symbol == "Lr") return Lawrencium();
+    else if (symbol == "Rf") return Rutherfordium();
+    else if (symbol == "Db") return Dubnium();
+    else if (symbol == "Sg") return Seaborgium();
+    else if (symbol == "Bh") return Bohrium();
+    else if (symbol == "Hs") return Hassium();
+    else if (symbol == "Mt") return Meitnerium();
+    else if (symbol == "Ds") return Darmstadtium();
+    else if (symbol == "Rg") return Roentgenium();
+    else if (symbol == "Uub") return Ununbium();
+    else if (symbol == "Uut") return Ununtrium();
+    else if (symbol == "Uuq") return Ununquadium();
+    else if (symbol == "Uup") return Ununpentium();
+    else if (symbol == "Uuh") return Ununhexium();
+
+    else {
+        assert(false); 
+        return Hydrogen();
+    }
+}
+
 std::ostream& operator<<(std::ostream& o, const Element& e) {
     return o << e.getName();
 }
