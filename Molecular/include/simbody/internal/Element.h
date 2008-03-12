@@ -66,6 +66,7 @@ public:
     Name getName() const;
 
     static Element getByAtomicNumber(int atomicNumber);
+    static Element getBySymbol(const SimTK::String& symbol); 
 
     class Hydrogen;
     class Deuterium;
