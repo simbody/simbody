@@ -891,11 +891,16 @@ inline std::ostream& operator<<(std::ostream& o, const SBAccelerationVars& c)
  */
 class SBStateDigest {
 public:
-    explicit SBStateDigest(const State& s) : state(s), stage(Stage::Empty) 
+    explicit SBStateDigest(const State& s) : state(s), modifiableState(0), stage(Stage::Empty) 
     {
     }
     SBStateDigest(const State& s, const SimbodyMatterSubsystemRep& matter, Stage g)
-      : state(s), stage(Stage::Empty)
+      : state(s), modifiableState(0), stage(Stage::Empty)
+    {
+        fillThroughStage(matter,g);
+    }
+    SBStateDigest(State& s, const SimbodyMatterSubsystemRep& matter, Stage g)
+      : state(s), modifiableState(&s), stage(Stage::Empty)
     {
         fillThroughStage(matter,g);
     }
@@ -907,6 +912,10 @@ public:
     // The State is read only, for cache entries you have a choice.
 
     const State& getState() const {return state;}
+    State&       updState() {
+        assert(modifiableState);
+        return *modifiableState;
+    }
     Stage        getStage() const {return stage;}
 
     const SBModelVars& getModelVars() const {
@@ -927,10 +936,10 @@ public:
         return *tv;
     }
 
-    const Real* getQ() const {
+    const Vector& getQ() const {
         assert(stage >= Stage::Position);
         assert(q);
-        return q;
+        return *q;
     }
 
     const SBPositionVars& getPositionVars() const {
@@ -939,10 +948,10 @@ public:
         return *pv;
     }
 
-    const Real* getU() const {
+    const Vector& getU() const {
         assert(stage >= Stage::Velocity);
         assert(u);
-        return u;
+        return *u;
     }
 
     const SBVelocityVars& getVelocityVars() const {
@@ -1002,15 +1011,15 @@ public:
     }
 
     // Position
-    Real* updQErr() const {
+    Vector& updQErr() const {
         assert(stage == Stage::Position);
         assert(qErr);
-        return qErr;
+        return *qErr;
     }
-    const Real* getQErr() const {
+    const Vector& getQErr() const {
         assert(stage > Stage::Position);
         assert(qErr);
-        return qErr;
+        return *qErr;
     }
     SBPositionCache& updPositionCache() const {
         assert(stage == Stage::Position);
@@ -1024,25 +1033,25 @@ public:
     }
 
     // Velocity
-    Real* updQDot() const {
+    Vector& updQDot() const {
         assert(stage == Stage::Velocity);
         assert(qdot);
-        return qdot;
+        return *qdot;
     }
-    const Real* getQDot() const {
+    const Vector& getQDot() const {
         assert(stage > Stage::Velocity);
         assert(qdot);
-        return qdot;
+        return *qdot;
     }
-    Real* updUErr() const {
+    Vector& updUErr() const {
         assert(stage == Stage::Velocity);
         assert(uErr);
-        return uErr;
+        return *uErr;
     }
-    const Real* getUErr() const {
+    const Vector& getUErr() const {
         assert(stage > Stage::Velocity);
         assert(uErr);
-        return uErr;
+        return *uErr;
     }
     SBVelocityCache& updVelocityCache() const {
         assert(stage == Stage::Velocity);
@@ -1068,35 +1077,35 @@ public:
     }
 
     // Accelerations
-    Real* updUDot() const {
+    Vector& updUDot() const {
         assert(stage == Stage::Acceleration);
         assert(udot);
-        return udot;
+        return *udot;
     }
-    const Real* getUDot() const {
+    const Vector& getUDot() const {
         assert(stage > Stage::Acceleration);
         assert(udot);
-        return udot;
+        return *udot;
     }
-    Real* updQDotDot() const {
+    Vector& updQDotDot() const {
         assert(stage == Stage::Acceleration);
         assert(qdotdot);
-        return qdotdot;
+        return *qdotdot;
     }
-    const Real* getQDotDot() const {
+    const Vector& getQDotDot() const {
         assert(stage > Stage::Acceleration);
         assert(qdotdot);
-        return qdotdot;
+        return *qdotdot;
     }
-    Real* updUDotErr() const {
+    Vector& updUDotErr() const {
         assert(stage == Stage::Acceleration);
         assert(udotErr);
-        return udotErr;
+        return *udotErr;
     }
-    const Real* getUDotErr() const {
+    const Vector& getUDotErr() const {
         assert(stage > Stage::Acceleration);
         assert(udotErr);
-        return udotErr;
+        return *udotErr;
     }
     SBAccelerationCache& updAccelerationCache() const {
         assert(stage == Stage::Acceleration);
@@ -1127,16 +1136,17 @@ public:
 
 private:
     const State& state;
+    State*       modifiableState;
     Stage        stage; // the stage to be computed
 
     const SBModelVars*          mv;
     const SBInstanceVars*       iv;
     const SBTimeVars*           tv;
 
-    const Real*                 q;
+    const Vector*               q;
     const SBPositionVars*       pv;
 
-    const Real*                 u;
+    const Vector*               u;
     const SBVelocityVars*       vv;
     const SBDynamicsVars*       dv;
     const SBAccelerationVars*   av;
@@ -1145,18 +1155,18 @@ private:
     SBInstanceCache*            ic;
     SBTimeCache*                tc;
 
-    Real*                       qErr;
+    Vector*                     qErr;
     SBPositionCache*            pc;
 
-    Real*                       qdot;
-    Real*                       uErr;
+    Vector*                     qdot;
+    Vector*                     uErr;
     SBVelocityCache*            vc;
 
     SBDynamicsCache*            dc;
 
-    Real*                       udot;
-    Real*                       qdotdot;
-    Real*                       udotErr;
+    Vector*                     udot;
+    Vector*                     qdotdot;
+    Vector*                     udotErr;
     SBAccelerationCache*        ac;
 };
 

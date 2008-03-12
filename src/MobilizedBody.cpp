@@ -182,12 +182,8 @@ void MobilizedBody::setQToFitRotation(State& s, const Rotation& R_MbM) const {
     getImpl().setQToFitRotation(s,R_MbM); 
 }
 void MobilizedBody::setQToFitTranslation(State& s, const Vec3& T_MbM) const { 
-    getImpl().setQToFitTranslation(s,T_MbM,false); // allow rotation
+    getImpl().setQToFitTranslation(s,T_MbM);
 }
-void MobilizedBody::setQToFitTranslationOnly(State& s, const Vec3& T_MbM) const { 
-    getImpl().setQToFitTranslation(s,T_MbM,true);  // prevent rotation
-}
-
 void MobilizedBody::setUToFitVelocity(State& s, const SpatialVec& V_MbM) const { 
     getImpl().setUToFitVelocity(s,V_MbM);
 }
@@ -195,10 +191,7 @@ void MobilizedBody::setUToFitAngularVelocity(State& s, const Vec3& w_MbM) const 
     getImpl().setUToFitAngularVelocity(s,w_MbM);
 }
 void MobilizedBody::setUToFitLinearVelocity(State& s, const Vec3& v_MbM) const { 
-    getImpl().setUToFitLinearVelocity(s,v_MbM,false); // allow angular velocity change
-}
-void MobilizedBody::setUToFitLinearVelocityOnly(State& s, const Vec3& v_MbM) const { 
-    getImpl().setUToFitLinearVelocity(s,v_MbM,true);  // prevent angular velocity change
+    getImpl().setUToFitLinearVelocity(s,v_MbM);
 }
 
 int MobilizedBody::getNumQ(const State& s) const {
@@ -361,52 +354,50 @@ void MobilizedBodyImpl::copyOutDefaultQ(const State& s, Vector& qDefault) const 
 
 void MobilizedBodyImpl::setQToFitTransform(State& s, const Transform& X_MbM) const {
     const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
-    const SBModelVars& mv = matterRep.getModelVars(s);
+    const SBStateDigest digest(s, matterRep, Stage::Instance);
     Vector& q = matterRep.updQ(s);
-    return getMyRigidBodyNode().setQToFitTransform(mv, X_MbM, q);
+    return getMyRigidBodyNode().setQToFitTransform(digest, X_MbM, q);
 }
 void MobilizedBodyImpl::setQToFitRotation(State& s, const Rotation& R_MbM) const {
     const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
-    const SBModelVars& mv = matterRep.getModelVars(s);
+    const SBStateDigest digest(s, matterRep, Stage::Instance);
     Vector& q = matterRep.updQ(s);
-    return getMyRigidBodyNode().setQToFitRotation(mv, R_MbM, q);
+    return getMyRigidBodyNode().setQToFitRotation(digest, R_MbM, q);
 }
-void MobilizedBodyImpl::setQToFitTranslation(State& s, const Vec3& T_MbM, 
-                             bool dontChangeOrientation) const
+void MobilizedBodyImpl::setQToFitTranslation(State& s, const Vec3& T_MbM) const
 {
     const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
-    const SBModelVars& mv = matterRep.getModelVars(s);
+    const SBStateDigest digest(s, matterRep, Stage::Instance);
     Vector& q = matterRep.updQ(s);
-    return getMyRigidBodyNode().setQToFitTranslation(mv, T_MbM, q, dontChangeOrientation);
+    return getMyRigidBodyNode().setQToFitTranslation(digest, T_MbM, q);
 }
 
 void MobilizedBodyImpl::setUToFitVelocity(State& s, const SpatialVec& V_MbM) const {
     const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
-    const SBModelVars& mv = matterRep.getModelVars(s);
+    const SBStateDigest digest(s, matterRep, Stage::Instance);
     const Vector& q = matterRep.updQ(s);
     Vector&       u = matterRep.updU(s);
-    return getMyRigidBodyNode().setUToFitVelocity(mv, q, V_MbM, u);
+    return getMyRigidBodyNode().setUToFitVelocity(digest, q, V_MbM, u);
 }
 void MobilizedBodyImpl::setUToFitAngularVelocity(State& s, const Vec3& w_MbM) const {
     const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
-    const SBModelVars& mv = matterRep.getModelVars(s);
+    const SBStateDigest digest(s, matterRep, Stage::Instance);
     const Vector& q = matterRep.updQ(s);
     Vector&       u = matterRep.updU(s);
-    return getMyRigidBodyNode().setUToFitAngularVelocity(mv, q, w_MbM, u);
+    return getMyRigidBodyNode().setUToFitAngularVelocity(digest, q, w_MbM, u);
 }
-void MobilizedBodyImpl::setUToFitLinearVelocity(State& s, const Vec3& v_MbM,
-                                bool dontChangeAngularVelocity)  const
+void MobilizedBodyImpl::setUToFitLinearVelocity(State& s, const Vec3& v_MbM)  const
 {
     const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
-    const SBModelVars& mv = matterRep.getModelVars(s);
+    const SBStateDigest digest(s, matterRep, Stage::Instance);
     const Vector& q = matterRep.updQ(s);
     Vector&       u = matterRep.updU(s);
-    return getMyRigidBodyNode().setUToFitLinearVelocity(mv, q, v_MbM, u, dontChangeAngularVelocity);
+    return getMyRigidBodyNode().setUToFitLinearVelocity(digest, q, v_MbM, u);
 }
 
 
 const RigidBodyNode& MobilizedBodyImpl::realizeTopology
-   (UIndex& nxtU, USquaredIndex& nxtUSq, QIndex& nxtQ) const
+   (State& s, UIndex& nxtU, USquaredIndex& nxtUSq, QIndex& nxtQ) const
 {
     delete myRBnode;
     myRBnode = createRigidBodyNode(nxtU,nxtUSq,nxtQ);
@@ -425,6 +416,7 @@ const RigidBodyNode& MobilizedBodyImpl::realizeTopology
 
     myRBnode->setLevel(myLevel);
     myRBnode->setNodeNum(myMobilizedBodyIndex);
+    realizeTopologyImpl(s);
     return *myRBnode;
 }
 
@@ -1592,14 +1584,167 @@ Real& MobilizedBody::Screw::updMyPartU(const State& s, Vector& ulike) const {
     return ulike[uStart];
 }
 
-    ////////////////////////////
-    // MOBILIZED BODY::CUSTOM //
-    ////////////////////////////
+////////////////////////////
+// MOBILIZED BODY::CUSTOM //
+////////////////////////////
 
+// We are given an Implementation object which is already holding a CustomImpl
+// object for us. We'll first take away ownership of the CustomImpl, then
+// make the CustomImpl take over ownership of the Implementation object.
+MobilizedBody::Custom::Custom(MobilizedBody& parent, MobilizedBody::Custom::Implementation* implementation, const Body& body)
+    : PIMPLDerivedHandleBase(implementation ? implementation->updImpl().removeOwnershipOfCustomImpl() : 0)
+{
+    SimTK_ASSERT_ALWAYS(implementation,
+        "MobilizedBody::Custom::Custom(): Implementation pointer was NULL.");
+    setBody(body);
+    
+    // Now store the Implementation pointer in our CustomImpl. The Implementation
+    // object retains its original pointer to the CustomImpl object so it can
+    // operate as a proxy for the CustomImpl. However the Custom handle now owns the
+    // CustomImpl and the CustomImpl owns the Implementation.
+    updImpl().takeOwnershipOfImplementation(implementation);
+    
+    updImpl().updMyMatterSubsystemRep().adoptMobilizedBody(parent.getMobilizedBodyIndex(), *this);
+}
 
-//TODO: Custom Mobilizer not implemented yet
+const MobilizedBody::Custom::Implementation& MobilizedBody::Custom::getImplementation() const {
+    return getImpl().getImplementation();
+}
 
-MobilizedBody::Custom::Custom(int nMobilities, int nCoordinates) : PIMPLDerivedHandleBase(new CustomImpl(nMobilities, nCoordinates)) {
+MobilizedBody::Custom::Implementation& MobilizedBody::Custom::updImplementation() {
+    return updImpl().updImplementation();
+}
+
+// MobilizedBody::CustomImpl
+
+// The Implementation object should already contain a pointer to this CustomImpl object.
+void MobilizedBody::CustomImpl::takeOwnershipOfImplementation(Custom::Implementation* userImpl) {
+    assert(!implementation); // you can only do this once!
+    assert(userImpl);
+    const Custom::ImplementationImpl& impImpl = userImpl->getImpl();
+    assert(&impImpl.getCustomImpl() == this && !impImpl.isOwnerOfCustomImpl());
+    implementation = userImpl;
+}  
+
+////////////////////////////////////////////
+// MOBILIZED BODY::CUSTOM::IMPLEMENTATION //
+////////////////////////////////////////////
+
+MobilizedBody::Custom::Implementation::Implementation(SimbodyMatterSubsystem& matter, int nu, int nq, int nAngles) 
+: PIMPLHandle<Implementation,ImplementationImpl>(new ImplementationImpl(new CustomImpl(), nu, nq, nAngles)) {
+    assert(nu > 0);
+    assert(nq > 0);
+    assert(nAngles >= 0);
+    assert(nu <= 6);
+    assert(nq <= 7);
+    assert(nAngles <= 4);
+    assert(nu <= nq);
+    assert(nAngles <= nq);
+    // We don't know the MobilizedBodyIndex yet since this hasn't been adopted by the MatterSubsystem.
+    updImpl().updCustomImpl().setMyMatterSubsystem(matter, MobilizedBodyIndex(0), MobilizedBodyIndex(0));
+}
+
+void MobilizedBody::Custom::Implementation::invalidateTopologyCache() const {
+    getImpl().getCustomImpl().invalidateTopologyCache();
+}
+
+bool MobilizedBody::Custom::Implementation::getUseEulerAngles(const State& state) const {
+    return getImpl().getCustomImpl().getMyMatterSubsystemRep().getUseEulerAngles(state);
+}
+
+Vector MobilizedBody::Custom::Implementation::getQ(const State& state) const {
+    const SBModelVars& mv = getImpl().getCustomImpl().getMyMatterSubsystemRep().getModelVars(state);
+    const RigidBodyNode& body = getImpl().getCustomImpl().getMyRigidBodyNode();
+    const int indexBase = body.getQIndex();
+    Vector q(body.getNQInUse(mv));
+    for (int i = 0; i < q.size(); ++i) {
+        int index = indexBase+i;
+        q[i] = state.getQ()[index];
+    }
+    return q;
+}
+
+Vector MobilizedBody::Custom::Implementation::getU(const State& state) const {
+    const SBModelVars& mv = getImpl().getCustomImpl().getMyMatterSubsystemRep().getModelVars(state);
+    const RigidBodyNode& body = getImpl().getCustomImpl().getMyRigidBodyNode();
+    const int indexBase = body.getUIndex();
+    Vector u(body.getNUInUse(mv));
+    for (int i = 0; i < u.size(); ++i) {
+        int index = indexBase+i;
+        u[i] = state.getU()[index];
+    }
+    return u;
+}
+
+Vector MobilizedBody::Custom::Implementation::getQDot(const State& state) const {
+    const SBModelVars& mv = getImpl().getCustomImpl().getMyMatterSubsystemRep().getModelVars(state);
+    const RigidBodyNode& body = getImpl().getCustomImpl().getMyRigidBodyNode();
+    const int indexBase = body.getQIndex();
+    Vector qdot(body.getNQInUse(mv));
+    for (int i = 0; i < qdot.size(); ++i) {
+        int index = indexBase+i;
+        qdot[i] = state.getQDot()[index];
+    }
+    return qdot;
+}
+
+Vector MobilizedBody::Custom::Implementation::getUDot(const State& state) const {
+    const SBModelVars& mv = getImpl().getCustomImpl().getMyMatterSubsystemRep().getModelVars(state);
+    const RigidBodyNode& body = getImpl().getCustomImpl().getMyRigidBodyNode();
+    const int indexBase = body.getUIndex();
+    Vector udot(body.getNUInUse(mv));
+    for (int i = 0; i < udot.size(); ++i) {
+        int index = indexBase+i;
+        udot[i] = state.getUDot()[index];
+    }
+    return udot;
+}
+
+Vector MobilizedBody::Custom::Implementation::getQDotDot(const State& state) const {
+    const SBModelVars& mv = getImpl().getCustomImpl().getMyMatterSubsystemRep().getModelVars(state);
+    const RigidBodyNode& body = getImpl().getCustomImpl().getMyRigidBodyNode();
+    const int indexBase = body.getQIndex();
+    Vector qdotdot(body.getNQInUse(mv));
+    for (int i = 0; i < qdotdot.size(); ++i) {
+        int index = indexBase+i;
+        qdotdot[i] = state.getQDotDot()[index];
+    }
+    return qdotdot;
+}
+
+const Transform&  MobilizedBody::Custom::Implementation::getMobilizerTransform(const State& s) const {
+    return getImpl().getCustomImpl().getMobilizerTransform(s);
+}
+
+const SpatialVec& MobilizedBody::Custom::Implementation::getMobilizerVelocity(const State& s) const {
+    return getImpl().getCustomImpl().getMobilizerVelocity(s);
+}
+
+void MobilizedBody::Custom::Implementation::multiplyByQMatrix(const State& s, bool transposeMatrix, 
+                       int nIn, const Real* in, int nOut, Real* out) const {
+    // Default implementation
+    assert((nIn==0 || in) && (nOut==0 || out));
+    int nu = getImpl().getNU(), nq = getImpl().getNQ(), nAngles = getImpl().getNAngles();
+    assert(nq==nu && nIn==nu && nOut==nu && nAngles < 4);
+    for (int i=0; i<nu; ++i) out[i] = in[i];
+}
+
+void MobilizedBody::Custom::Implementation::multiplyByQInverse(const State& s, bool transposeMatrix, 
+                                       int nIn, const Real* in, int nOut, Real* out) const {
+    // Default implementation
+    assert((nIn==0 || in) && (nOut==0 || out));
+    int nu = getImpl().getNU(), nq = getImpl().getNQ(), nAngles = getImpl().getNAngles();
+    assert(nq==nu && nIn==nu && nOut==nu && nAngles < 4);
+    for (int i=0; i<nu; ++i) out[i] = in[i];
+}
+
+void MobilizedBody::Custom::Implementation::multiplyByQDotMatrix(const State& s, bool transposeMatrix, 
+                                         int nIn, const Real* in, int nOut, Real* out) const {
+    // Default implementation
+    assert((nIn==0 || in) && (nOut==0 || out));
+    int nu = getImpl().getNU(), nq = getImpl().getNQ(), nAngles = getImpl().getNAngles();
+    assert(nq==nu && nIn==nu && nOut==nu && nAngles < 4);
+    for (int i=0; i<nu; ++i) out[i] = 0;
 }
 
 } // namespace SimTK

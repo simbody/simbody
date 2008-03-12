@@ -265,7 +265,7 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
     for (int i=0; i<getNumMobilizedBodies(); ++i) {
         // Create the RigidBodyNode properly linked to its parent.
         const MobilizedBodyImpl& mbr = getMobilizedBody(MobilizedBodyIndex(i)).getImpl();
-        const RigidBodyNode& n = mbr.realizeTopology(nextUSlot,nextUSqSlot,nextQSlot);
+        const RigidBodyNode& n = mbr.realizeTopology(s,nextUSlot,nextUSqSlot,nextQSlot);
 
         // Create the computational multibody tree data structures, organized by level.
         const int level = n.getLevel();
@@ -376,7 +376,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     SimTK_STAGECHECK_EQ_ALWAYS(getStage(s), Stage::Topology, 
         "SimbodyMatterSubsystem::realizeModel()");
 
-    const SBModelVars& mv = getModelVars(s);
+    SBStateDigest sbs(s, *this, Stage::Model);
+    const SBModelVars& mv = sbs.getModelVars();
 
     // Get the Model-stage cache and make sure it has been allocated and initialized if needed.
     // It is OK to hold a reference here because the discrete variables (and cache entries) in
@@ -410,14 +411,14 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
             mc.totalNUInUse += mbInfo.nUInUse;
 
             // Assign quaternion pool slot.
-            if (node.isUsingQuaternion(mv, mbInfo.startOfQuaternion)) {
+            if (node.isUsingQuaternion(sbs, mbInfo.startOfQuaternion)) {
                 mbInfo.hasQuaternionInUse = true;
                 mbInfo.quaternionPoolIndex = QuaternionPoolIndex(mc.totalNQuaternionsInUse);
                 mc.totalNQuaternionsInUse++;
             }
 
             // Assign angle pool slots.
-            if (node.isUsingAngles(mv, mbInfo.startOfAngles, mbInfo.nAnglesInUse)) {
+            if (node.isUsingAngles(sbs, mbInfo.startOfAngles, mbInfo.nAnglesInUse)) {
                 mbInfo.anglePoolIndex = AnglePoolIndex(mc.totalNAnglesInUse);
                 mc.totalNAnglesInUse += mbInfo.nAnglesInUse;
             }
@@ -427,7 +428,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     // Give the bodies a chance to put something in the cache if they need to.
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->realizeModel(mv,mc); 
+            rbNodeLevels[i][j]->realizeModel(sbs); 
 
 
         // CONSTRAINT MODELING
@@ -576,16 +577,17 @@ int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) cons
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Instance).prev(), 
         "SimbodyMatterSubsystem::realizeInstance()");
 
-    const SBModelVars&    mv = getModelVars(s);
-    const SBInstanceVars& iv = getInstanceVars(s);
+    SBStateDigest sbs(s, *this, Stage::Instance);
+    const SBInstanceVars& iv = sbs.
+    getInstanceVars();
 
     // Get the Instance-stage cache and make sure it has been allocated and initialized if needed.
-    SBInstanceCache& ic = updInstanceCache(s);
+    SBInstanceCache& ic = sbs.updInstanceCache();
     ic.allocate(topologyCache);
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->realizeInstance(mv,iv,ic); 
+            rbNodeLevels[i][j]->realizeInstance(sbs); 
 
     ic.totalMass = iv.particleMasses.sum();
     for (int i=0; i<getNBodies(); ++i)
@@ -601,6 +603,10 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTimeImpl(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Time).prev(), 
         "SimbodyMatterSubsystem::realizeTime()");
 
+    SBStateDigest stateDigest(s, *this, Stage::Time);
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            rbNodeLevels[i][j]->realizeTime(stateDigest); 
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
         getConstraint(cx).getImpl().realizeTime(s);
 
@@ -615,9 +621,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
     // Set up StateDigest for calculating position information.
     SBStateDigest stateDigest(s, *this, Stage::Position);
 
-    const SBModelVars&  mv   = getModelVars(s);
-    const SBModelCache& mc   = getModelCache(s);
-    const Vector&       q    = getQ(s);
+    const SBModelCache& mc   = stateDigest.getModelCache();
     Vector&             qErr = updQErr(s);
 
     // Get the Position-stage cache and make sure it has been allocated and initialized if needed.
@@ -628,7 +632,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
     // constraint here and put it in the appropriate slot of qErr.
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->realizePosition(mv,mc,q,qErr,pc); 
+            rbNodeLevels[i][j]->realizePosition(stateDigest); 
 
 
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
@@ -660,22 +664,17 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Velocity).prev(), 
         "SimbodyMatterSubsystem::realizeVelocity()");
 
-    const SBModelVars&     mv   = getModelVars(s);
-    const SBModelCache&    mc   = getModelCache(s);
-    const Vector&          q    = getQ(s);
-    const SBPositionCache& pc   = getPositionCache(s);
-    const Vector&          u    = getU(s);
+    SBStateDigest sbs(s, *this, Stage::Velocity);
+    const SBModelCache&    mc   = sbs.getModelCache();
     Vector&                uErr = updUErr(s);
 
     // Get the Motion-stage cache and make sure it has been allocated and initialized if needed.
     SBVelocityCache&       vc = updVelocityCache(s);
     vc.allocate(topologyCache);
 
-    Vector& qdot = updQDot(s);
-
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->realizeVelocity(mv,q,pc,u,vc,qdot); 
+            rbNodeLevels[i][j]->realizeVelocity(sbs); 
 
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
         getConstraint(cx).getImpl().realizeVelocity(s);
@@ -717,13 +716,10 @@ int SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  con
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Dynamics).prev(), 
         "SimbodyMatterSubsystem::realizeDynamics()");
 
-    const SBModelVars&     mv = getModelVars(s);
-    const SBPositionCache& pc = getPositionCache(s);
-    const SBVelocityCache& vc = getVelocityCache(s);
-    const Vector&          u  = getU(s);
+    SBStateDigest sbs(s, *this, Stage::Dynamics);
 
     // Get the Dynamics-stage cache and make sure it has been allocated and initialized if needed.
-    SBDynamicsCache& dc = updDynamicsCache(s);
+    SBDynamicsCache& dc = sbs.updDynamicsCache();
     dc.allocate(topologyCache);
 
     // tip-to-base calculation
@@ -732,7 +728,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  con
     // base-to-tip
     for (int i=0; i < (int)rbNodeLevels.size(); i++)
         for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
-            rbNodeLevels[i][j]->realizeDynamics(mv,pc,u,vc,dc);
+            rbNodeLevels[i][j]->realizeDynamics(sbs);
 
     // Update system kinetic energy
     const MultibodySystem& mbs = getMultibodySystem();  // owner of this subsystem
@@ -765,6 +761,10 @@ int SimbodyMatterSubsystemRep::realizeSubsystemAccelerationImpl(const State& s) 
         mbs.getRigidBodyForces(s, Stage::Dynamics));
 
     calcQDotDot(s, udot, qdotdot);
+    SBStateDigest stateDigest(s, *this, Stage::Acceleration);
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            rbNodeLevels[i][j]->realizeAcceleration(stateDigest); 
 
     return 0;
 }
@@ -774,6 +774,10 @@ int SimbodyMatterSubsystemRep::realizeSubsystemReportImpl(const State& s) const 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Report).prev(), 
         "SimbodyMatterSubsystem::realizeReport()");
 
+    SBStateDigest stateDigest(s, *this, Stage::Report);
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            rbNodeLevels[i][j]->realizeReport(stateDigest); 
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
         getConstraint(cx).getImpl().realizeReport(s);
 
@@ -1122,7 +1126,8 @@ void SimbodyMatterSubsystemRep::convertToQuaternions(const State& inputState, St
 bool SimbodyMatterSubsystemRep::isUsingQuaternion(const State& s, MobilizedBodyIndex body) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     MobilizerQIndex startOfQuaternion; // we don't need this information here
-    return n.isUsingQuaternion(getModelVars(s), startOfQuaternion);
+    SBStateDigest sbs(s, *this, Stage::Model);
+    return n.isUsingQuaternion(sbs, startOfQuaternion);
 }
 
 int SimbodyMatterSubsystemRep::getNQuaternionsInUse(const State& s) const {
@@ -1455,7 +1460,7 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     // By design, normalization of quaternions can't have any effect on the length
     // constraints we just fixed (because we normalize internally for calculations).
     // So now we can simply normalize the quaternions.
-    const SBModelVars& mv = getModelVars(s);
+    SBStateDigest sbs(s, *this, Stage::Model);
 
     if (mQuats) {
         //cout << "!!!! QUAT START: errs=" << getQErr(s)(mHolo, mQuats) << " RMS(qErrest)=" << qErrest.normRMS() << endl;
@@ -1463,7 +1468,7 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
 
         for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
             for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
-                if (rbNodeLevels[i][j]->enforceQuaternionConstraints(mv,q,qErrest))
+                if (rbNodeLevels[i][j]->enforceQuaternionConstraints(sbs,q,qErrest))
                     anyChange = true;
 
         //TODO: shouldn't need this
@@ -1943,29 +1948,23 @@ void SimbodyMatterSubsystemRep::calcZ(const State& s,
 
 // Y is used for length constraints: sweep from base to tip.
 void SimbodyMatterSubsystemRep::calcY(const State& s) const {
-    const SBPositionCache& pc = getPositionCache(s);
-    SBDynamicsCache&       dc = updDynamicsCache(s);
+    SBStateDigest sbs(s, *this, Stage::Dynamics);
 
     for (int i=0; i < (int)rbNodeLevels.size(); i++)
         for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
-            rbNodeLevels[i][j]->calcYOutward(pc,dc);
+            rbNodeLevels[i][j]->calcYOutward(sbs);
 }
 
 // Calc acceleration: sweep from base to tip.
 void SimbodyMatterSubsystemRep::calcTreeAccel(const State& s) const {
-    const SBModelVars&     mv      = getModelVars(s);
-    const Vector&          q       = getQ(s);
-    const SBPositionCache& pc      = getPositionCache(s);
-    const Vector&          u       = getU(s);
-    const SBDynamicsCache& dc      = getDynamicsCache(s);
+    SBStateDigest sbs(s, *this, Stage::Acceleration);
 
-    SBAccelerationCache&   ac      = updAccelerationCache(s);
     Vector&                udot    = updUDot(s);
     Vector&                qdotdot = updQDotDot(s);
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcAccel(mv,q,pc,u,dc,ac,udot,qdotdot);
+            rbNodeLevels[i][j]->calcAccel(sbs,udot,qdotdot);
 }
 
 void SimbodyMatterSubsystemRep::fixVel0(State& s, Vector& vel) const {
@@ -2075,7 +2074,7 @@ void SimbodyMatterSubsystemRep::multiplyByQMatrix(const State& s, bool transpose
     assert(in.size()  < 2 || &in[1]  == &in[0] +1); // for now must be contiguous in memory
     assert(out.size() < 2 || &out[1] == &out[0]+1); 
 
-    const Real* qp   = sbState.getQ();
+    const Vector& qp   = sbState.getQ();
     const Real* inp  = in.size()  ? &in[0]  : 0;
     Real*       outp = out.size() ? &out[0] : 0;
 
@@ -2114,7 +2113,7 @@ void SimbodyMatterSubsystemRep::multiplyByQMatrixInverse(const State& s, bool tr
     assert(in.size()  < 2 || &in[1]  == &in[0] +1); // for now must be contiguous in memory
     assert(out.size() < 2 || &out[1] == &out[0]+1); 
 
-    const Real* qp   = sbState.getQ();
+    const Vector& qp   = sbState.getQ();
     const Real* inp  = in.size()  ? &in[0]  : 0;
     Real*       outp = out.size() ? &out[0] : 0;
 
@@ -2144,9 +2143,7 @@ void SimbodyMatterSubsystemRep::multiplyByQMatrixInverse(const State& s, bool tr
 
 // Must be in ConfigurationStage to calculate qdot = Q*u.
 void SimbodyMatterSubsystemRep::calcQDot(const State& s, const Vector& u, Vector& qdot) const {
-    const SBModelVars&     mv = getModelVars(s);
-    const Vector&          q  = getQ(s);
-    const SBPositionCache& pc = getPositionCache(s);
+    SBStateDigest sbs(s, *this, Stage::Velocity);
 
     assert(u.size() == getTotalDOF());
     qdot.resize(getTotalQAlloc());
@@ -2154,15 +2151,12 @@ void SimbodyMatterSubsystemRep::calcQDot(const State& s, const Vector& u, Vector
     // Skip ground; it doesn't have qdots!
     for (int i=1; i<(int)rbNodeLevels.size(); i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcQDot(mv,q,pc, u, qdot);
+            rbNodeLevels[i][j]->calcQDot(sbs, u, qdot);
 }
 
 // Must be in Stage::Velocity to calculate qdotdot = Qdot*u + Q*udot.
 void SimbodyMatterSubsystemRep::calcQDotDot(const State& s, const Vector& udot, Vector& qdotdot) const {
-    const SBModelVars&     mv = getModelVars(s);
-    const Vector&          q  = getQ(s);
-    const SBPositionCache& pc = getPositionCache(s);
-    const Vector&          u  = getU(s);
+    SBStateDigest sbs(s, *this, Stage::Velocity);
 
     assert(udot.size() == getTotalDOF());
     qdotdot.resize(getTotalQAlloc());
@@ -2170,7 +2164,7 @@ void SimbodyMatterSubsystemRep::calcQDotDot(const State& s, const Vector& udot, 
     // Skip ground; it doesn't have qdots!
     for (int i=1; i<(int)rbNodeLevels.size(); i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcQDotDot(mv,q,pc,u, udot, qdotdot);
+            rbNodeLevels[i][j]->calcQDotDot(sbs, udot, qdotdot);
 }
 
 // State must be in Stage::Position.
@@ -2385,6 +2379,10 @@ void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, St
     assert((int)g <= (int)matter.getStage(state) + 1);
     clear();
 
+    if (state.getSystemStage() >= Stage::Model) {
+        q = &matter.getQ(state);
+        u = &matter.getU(state);
+    }
     if (g >= Stage::Model) {
         mv = &matter.getModelVars(state);
         mc = &matter.updModelCache(state);
@@ -2402,26 +2400,19 @@ void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, St
             tc = &matter.updTimeCache(state);
     }
     if (g >= Stage::Position) {
-        if (matter.getNQ(state))
-            q = &matter.getQ(state)[0];
         if (mc->qVarsIndex >= 0)
             pv = &matter.getPositionVars(state);
 
-        if (matter.getNQErr(state))
-            qErr = &matter.updQErr(state)[0];
+        qErr = &matter.updQErr(state);
         if (mc->qCacheIndex >= 0)
             pc = &matter.updPositionCache(state);
     }
     if (g >= Stage::Velocity) {
-        if (matter.getNU(state))
-            u = &matter.getU(state)[0];
         if (mc->uVarsIndex >= 0)
             vv = &matter.getVelocityVars(state);
 
-        if (matter.getNQ(state))
-            qdot = &matter.updQDot(state)[0];
-        if (matter.getNUErr(state))
-            uErr = &matter.updUErr(state)[0];
+        qdot = &matter.updQDot(state);
+        uErr = &matter.updUErr(state);
         if (mc->uCacheIndex >= 0)
             vc = &matter.updVelocityCache(state);
     }
@@ -2435,12 +2426,9 @@ void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, St
         if (mc->accelerationVarsIndex >= 0)
             av = &matter.getAccelerationVars(state);
 
-        if (matter.getNU(state))
-            udot = &matter.updUDot(state)[0];
-        if (matter.getNQ(state))
-            qdotdot = &matter.updQDotDot(state)[0];
-        if (matter.getNUDotErr(state))
-            udotErr = &matter.updUDotErr(state)[0];
+        udot = &matter.updUDot(state);
+        qdotdot = &matter.updQDotDot(state);
+        udotErr = &matter.updUDotErr(state);
         if (mc->accelerationCacheIndex >= 0)
             ac = &matter.updAccelerationCache(state);
     }

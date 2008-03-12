@@ -201,16 +201,16 @@ public:
     /*virtual*/int  getMaxNQ() const {return 0;}
     /*virtual*/int  getNUInUse(const SBModelVars&) const {return 0;}
     /*virtual*/int  getNQInUse(const SBModelVars&) const {return 0;}
-    /*virtual*/bool isUsingQuaternion(const SBModelVars&, MobilizerQIndex& ix) const {
+    /*virtual*/bool isUsingQuaternion(const SBStateDigest&, MobilizerQIndex& ix) const {
         ix.invalidate();
         return false;
     }
-    /*virtual*/bool isUsingAngles(const SBModelVars& mv, MobilizerQIndex& ix, int& nAngles) const {
+    /*virtual*/bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& ix, int& nAngles) const {
         ix.invalidate(); nAngles = 0;
         return false;
     }
     /*virtual*/bool enforceQuaternionConstraints(
-        const SBModelVars&  mv,
+        const SBStateDigest& sbs,
         Vector&             q,
         Vector&             qErrest) const {return false;}
 
@@ -224,52 +224,35 @@ public:
     }
 
     /*virtual*/ void setQToFitTransform
-       (const SBModelVars&, const Transform& X_FM, Vector& q) const {}
+       (const SBStateDigest& sbs, const Transform& X_FM, Vector& q) const {}
     /*virtual*/ void setQToFitRotation
-       (const SBModelVars&, const Rotation& R_FM, Vector& q) const {}
+       (const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {}
     /*virtual*/ void setQToFitTranslation
-       (const SBModelVars&, const Vec3& T_FM, Vector& q,
-        bool dontChangeOrientation) const {}
+       (const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {}
 
     /*virtual*/ void setUToFitVelocity
-       (const SBModelVars&, const Vector& q, const SpatialVec& V_FM, Vector& u) const {}
+       (const SBStateDigest& sbs, const Vector& q, const SpatialVec& V_FM, Vector& u) const {}
     /*virtual*/ void setUToFitAngularVelocity
-       (const SBModelVars&, const Vector& q, const Vec3& w_FM, Vector& u) const {}
+       (const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM, Vector& u) const {}
     /*virtual*/ void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector& q, const Vec3& v_FM, Vector& u,
-        bool dontChangeAngularVelocity) const {}
+       (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const {}
 
 
-    /*virtual*/void realizeModel(
-        const SBModelVars& mv,
-        SBModelCache&      mc) const {}
+    /*virtual*/void realizeModel(SBStateDigest& sbs) const {}
 
-    /*virtual*/void realizeInstance(
-        const SBModelVars&    mv,
-        const SBInstanceVars& iv,
-        SBInstanceCache&      ic) const {}
+    /*virtual*/void realizeInstance(SBStateDigest& sbs) const {}
 
-    /*virtual*/void realizePosition(
-        const SBModelVars&  mv,
-        const SBModelCache& mc,
-        const Vector&       q,
-        Vector&             qErr,
-        SBPositionCache&    pc) const {}
+    /*virtual*/void realizeTime(SBStateDigest& sbs) const {}
 
-    /*virtual*/void realizeVelocity(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u,
-        SBVelocityCache&       vc,
-        Vector&                qdot) const {}
+    /*virtual*/void realizePosition(SBStateDigest& sbs) const {}
 
-    /*virtual*/ void realizeDynamics(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc,
-        const Vector&          u,
-        const SBVelocityCache& vc,
-        SBDynamicsCache&       dc) const {}
+    /*virtual*/void realizeVelocity(SBStateDigest& sbs) const {}
+
+    /*virtual*/ void realizeDynamics(SBStateDigest& sbs) const {}
+
+    /*virtual*/ void realizeAcceleration(SBStateDigest& sbs) const {}
+
+    /*virtual*/ void realizeReport(SBStateDigest& sbs) const {}
 
     /*virtual*/void calcArticulatedBodyInertiasInward(
         const SBPositionCache& pc,
@@ -295,14 +278,9 @@ public:
         SBDynamicsCache&       dc) const {}
 
     /*virtual*/void calcAccel(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u,
-        const SBDynamicsCache& dc,
-        SBAccelerationCache&   ac,
-        Vector&                udot,
-        Vector&                qdotdot) const {}
+            const SBStateDigest&   sbs,
+            Vector&                udot,
+            Vector&                qdotdot) const {}
 
     /*virtual*/ void calcSpatialKinematicsFromInternal(
         const SBPositionCache&      pc,
@@ -428,14 +406,14 @@ public:
     // *Each* mobilizer must implement setQToFit{Rotation,Translation} and 
     // setUToFit{AngularVelocity,LinearVelocity}; there are no defaults.
 
-    virtual void setQToFitTransform(const SBModelVars& mv, const Transform& X_FM, Vector& q) const {
-        setQToFitRotation   (mv,X_FM.R(),q);
-        setQToFitTranslation(mv,X_FM.T(),q,true); // don't fiddle with the rotation
+    virtual void setQToFitTransform(const SBStateDigest& sbs, const Transform& X_FM, Vector& q) const {
+        setQToFitRotation   (sbs,X_FM.R(),q);
+        setQToFitTranslation(sbs,X_FM.T(),q);
     }
 
-    virtual void setUToFitVelocity(const SBModelVars& mv, const Vector& q, const SpatialVec& V_FM, Vector& u) const {
-        setUToFitAngularVelocity(mv,q,V_FM[0],u);
-        setUToFitLinearVelocity (mv,q,V_FM[1],u,true); // don't fiddle with the angular velocity
+    virtual void setUToFitVelocity(const SBStateDigest& sbs, const Vector& q, const SpatialVec& V_FM, Vector& u) const {
+        setUToFitAngularVelocity(sbs,q,V_FM[0],u);
+        setUToFitLinearVelocity (sbs,q,V_FM[1],u);
     }
 
     // The following routines calculate joint-specific position kinematic
@@ -471,9 +449,9 @@ public:
     // This method constitutes the *definition* of the generalized coordinates for
     // a particular joint.
     virtual void calcAcrossJointTransform(
-        const SBModelVars& mv,
-        const Vector&      q,
-        Transform&         X_FM) const=0;
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_FM) const=0;
 
 
     // This mandatory routine calculates the joint transition matrix H_FM, giving
@@ -486,9 +464,8 @@ public:
     // been calculated and available in the PositionCache but must NOT depend
     // on any quantities involving Ground or other bodies.
     virtual void calcAcrossJointVelocityJacobian(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType&                 H_FM) const=0;
+        const SBStateDigest& sbs,
+        HType&               H_FM) const=0;
 
     // This mandatory routine calculates the time derivative taken in F of
     // the matrix H_FM (call it H_FM_Dot). This is zero if the generalized
@@ -497,10 +474,8 @@ public:
     // the state PositionCache, and V_FM being already in the state VelocityCache.
     // However, it must NOT depend on any quantities involving Ground or other bodies.
     virtual void calcAcrossJointVelocityJacobianDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType&                 H_FM_Dot) const = 0;
+        const SBStateDigest& sbs,
+        HType&               H_FM_Dot) const = 0;
 
     // This routine is NOT joint specific, but cannot be called until the across-joint
     // transform X_FM has been calculated and is available in the State cache.
@@ -570,9 +545,7 @@ public:
     // must supply the other. (That is, ball-containing joints provide
     // both of these routines.)
     virtual void calcQDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
+        const SBStateDigest&   sbs,
         const Vector&          u,
         Vector&                qdot) const
     {
@@ -581,10 +554,7 @@ public:
     }
 
     virtual void calcQDotDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u, 
+        const SBStateDigest&   sbs,
         const Vector&          udot, 
         Vector&                qdotdot) const
     {
@@ -592,34 +562,31 @@ public:
         toQ(qdotdot) = fromU(udot);  // default is qdotdot=udot
     }
 
-    void realizeModel(
-        const SBModelVars& mv,
-        SBModelCache&      mc) const 
+    void realizeModel(SBStateDigest& sbs) const 
     {
     }
 
-    void realizeInstance(
-        const SBModelVars&    mv,
-        const SBInstanceVars& iv,
-        SBInstanceCache&      ic) const
+    void realizeInstance(SBStateDigest& sbs) const
+    {
+    }
+
+    void realizeTime(SBStateDigest& sbs) const
     {
     }
 
     // Set a new configuration and calculate the consequent kinematics.
     // Must call base-to-tip.
-    void realizePosition(
-        const SBModelVars&  mv,
-        const SBModelCache& mc,
-        const Vector&       q,
-        Vector&             qErr,
-        SBPositionCache&    pc) const 
+    void realizePosition(SBStateDigest& sbs) const 
     {
-        calcJointSinCosQNorm(mv, mc, q, pc.sq, pc.cq, qErr, pc.qnorm);
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBModelCache& mc = sbs.getModelCache();
+        SBPositionCache& pc = sbs.updPositionCache();
+        calcJointSinCosQNorm(mv, mc, sbs.getQ(), pc.sq, pc.cq, sbs.updQErr(), pc.qnorm);
 
-        calcAcrossJointTransform (mv, q, updX_FM(pc));
+        calcAcrossJointTransform (sbs, sbs.getQ(), updX_FM(pc));
         calcBodyTransforms       (pc, updX_PB(pc), updX_GB(pc));
 
-        calcAcrossJointVelocityJacobian(mv, pc, updH_FM(pc));
+        calcAcrossJointVelocityJacobian(sbs, updH_FM(pc));
         calcParentToChildVelocityJacobianInGround(mv,pc, updH(pc));
 
         calcJointIndependentKinematicsPos(pc);
@@ -627,34 +594,37 @@ public:
 
     // Set new velocities for the current configuration, and calculate
     // all the velocity-dependent terms. Must call base-to-tip.
-    void realizeVelocity(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u,
-        SBVelocityCache&       vc,
-        Vector&                qdot) const 
+    void realizeVelocity(SBStateDigest& sbs) const 
     {
-        calcQDot(mv,q,pc,u,qdot);
-        calcJointKinematicsVel(pc,u,vc);
+        const SBPositionCache& pc = sbs.getPositionCache();
+        SBVelocityCache& vc = sbs.updVelocityCache();
+        calcQDot(sbs, sbs.getU(), sbs.updQDot());
+        calcJointKinematicsVel(pc,sbs.getU(),vc);
         calcJointIndependentKinematicsVel(pc,vc);
     }
 
-    void realizeDynamics(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc,
-        const Vector&          u,
-        const SBVelocityCache& vc,
-        SBDynamicsCache&       dc) const
+    void realizeDynamics(SBStateDigest& sbs) const
     {
         // Mobilizer-specific.
-        calcAcrossJointVelocityJacobianDot          (mv,pc,vc, updH_FM_Dot(dc));
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBVelocityCache& vc = sbs.getVelocityCache();
+        SBDynamicsCache& dc = sbs.updDynamicsCache();
+        calcAcrossJointVelocityJacobianDot          (sbs, updH_FM_Dot(dc));
         calcParentToChildVelocityJacobianInGroundDot(mv,pc,vc, dc, updHDot(dc));
 
-        calcJointDynamics(pc,u,vc,dc);
+        calcJointDynamics(pc,sbs.getU(),vc,dc);
 
         // Mobilizer independent.
         calcJointIndependentDynamicsVel(pc,vc,dc);
+    }
+
+    void realizeAcceleration(SBStateDigest& sbs) const
+    {
+    }
+
+    void realizeReport(SBStateDigest& sbs) const
+    {
     }
 
     // This is a dynamics-stage calculation and must be called tip-to-base (inward).
@@ -726,7 +696,7 @@ public:
         // break them.
         return dof;
     }
-    virtual bool isUsingQuaternion(const SBModelVars&, MobilizerQIndex& startOfQuaternion) const {
+    virtual bool isUsingQuaternion(const SBStateDigest&, MobilizerQIndex& startOfQuaternion) const {
         assert(quaternionUse == QuaternionIsNeverUsed); // method must be overridden otherwise
         startOfQuaternion.invalidate();
         return false;
@@ -801,7 +771,7 @@ public:
 
     // Return true if any change is made to the q vector.
     virtual bool enforceQuaternionConstraints(
-        const SBModelVars& mv,
+        const SBStateDigest& sbs,
         Vector&            q,
         Vector&            qErrest) const 
     {
@@ -980,12 +950,7 @@ public:
         const Vector_<SpatialVec>& bodyForces) const;
 
     void calcAccel(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u,
-        const SBDynamicsCache& dc,
-        SBAccelerationCache&   rc,
+        const SBStateDigest&   sbs,
         Vector&                udot,
         Vector&                qdotdot) const;
 
@@ -1070,26 +1035,26 @@ public:
 
         // Implementations of virtual methods.
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
+    void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {
         // the only rotation this mobilizer can represent is identity
     }
-    void setQToFitTranslation(const SBModelVars&, const Vec3&  T_FM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3&  T_FM, Vector& q) const {
         // here's what this joint is really good at!
         toQ(q) = T_FM;
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM, Vector& u) const {
         // The only angular velocity this can represent is zero.
     }
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
+       (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
     {
         // linear velocity is in a Cartesian joint's sweet spot
         toU(u) = v_FM;
     }
 
     // This is required for all mobilizers.
-    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
         startOfAngles.invalidate(); nAngles=0; // no angles for a Cartesian mobilizer
         return false;
     }
@@ -1106,9 +1071,9 @@ public:
 
     // Calculate X_FM.
     void calcAcrossJointTransform(
-        const SBModelVars& mv,
-        const Vector&      q,
-        Transform&         X_FM) const
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_FM) const
     {
         // Translation vector q is expressed in F (and M since they have same orientation).
         // A Cartesian joint can't change orientation. 
@@ -1119,9 +1084,8 @@ public:
     // expressed in F. So individually they produce velocity along F's x,y,z
     // axes respectively.
     void calcAcrossJointVelocityJacobian(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType&                 H_FM) const
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
     {
         H_FM[0] = SpatialRow( Row3(0), Row3(1,0,0) );
         H_FM[1] = SpatialRow( Row3(0), Row3(0,1,0) );
@@ -1130,10 +1094,8 @@ public:
 
     // Since the Jacobian above is constant in F, its time derivative is zero.
     void calcAcrossJointVelocityJacobianDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType&                 H_FM_Dot) const
+        const SBStateDigest& sbs,
+        HType&               H_FM_Dot) const
     {
         H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
         H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
@@ -1166,21 +1128,20 @@ public:
     }
         // Implementations of virtual methods.
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
+    void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {
         // The only rotation a slider can represent is identity.
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
         // We can only represent the x coordinate with this joint.
         to1Q(q) = T_FM[0];
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM, Vector& u) const {
         // The only angular velocity a slider can represent is zero.
     }
 
-    void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
+    void setUToFitLinearVelocity(const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
     {
         // We can only represent a velocity along x with this joint.
         to1U(u) = v_FM[0];
@@ -1188,7 +1149,7 @@ public:
 
 
     // This is required for all mobilizers.
-    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
         startOfAngles.invalidate(); nAngles=0; // no angles for a Slider
         return false;
     }
@@ -1205,7 +1166,7 @@ public:
 
     // Calculate X_FM.
     void calcAcrossJointTransform(
-        const SBModelVars& mv,
+        const SBStateDigest& sbs,
         const Vector&      q,
         Transform&         X_FM) const
     {
@@ -1217,19 +1178,16 @@ public:
     // The generalized speed is the velocity of M's origin in the F frame,
     // along F's x axis, expressed in F.
     void calcAcrossJointVelocityJacobian(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType&                 H_FM) const
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
     {
         H_FM[0] = SpatialRow( Row3(0), Row3(1,0,0) );
     }
 
     // Since the Jacobian above is constant in F, its time derivative is zero.
     void calcAcrossJointVelocityJacobianDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType&                 H_FM_Dot) const
+        const SBStateDigest& sbs,
+        HType&               H_FM_Dot) const
     {
         H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
     }
@@ -1258,7 +1216,7 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
+    void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {
         // The only rotation our pin joint can handle is about z.
         // TODO: should use 321 to deal with singular configuration (angle2==pi/2) better;
         // in that case 1 and 3 are aligned and the conversion routine allocates all the
@@ -1269,18 +1227,18 @@ public:
         to1Q(q) = angles123[2];
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM, Vector& u) const {
         // We can only represent an angular velocity along z with this joint.
         to1U(u) = w_FM[2]; // project angular velocity onto z axis
     }
 
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
+       (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
     {
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a linear velocity by rotating. So the only linear velocity
@@ -1289,7 +1247,7 @@ public:
 
 
     // This is required for all mobilizers.
-    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
         startOfAngles = MobilizerQIndex(0); nAngles=1; // torsion mobilizer
         return true;
     }
@@ -1312,9 +1270,9 @@ public:
 
     // Calculate X_FM.
     void calcAcrossJointTransform(
-        const SBModelVars& mv,
-        const Vector&      q,
-        Transform&         X_FM) const
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_FM) const
     {
         const Real& theta  = from1Q(q);    // angular coordinate
 
@@ -1328,19 +1286,16 @@ public:
     // The generalized speed is the angular velocity of M in the F frame,
     // about F's z axis, expressed in F. (This axis is also constant in M.)
     void calcAcrossJointVelocityJacobian(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType&                 H_FM) const
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
     {
         H_FM[0] = SpatialRow( Row3(0,0,1), Row3(0) );
     }
 
     // Since the Jacobian above is constant in F, its time derivative in F is zero.
     void calcAcrossJointVelocityJacobianDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType&                 H_FM_Dot) const
+        const SBStateDigest& sbs,
+        HType&               H_FM_Dot) const
     {
         H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
     }
@@ -1377,7 +1332,7 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
+    void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {
         // The only rotation our screw joint can handle is about z.
         // TODO: should use 321 to deal with singular configuration (angle2==pi/2) better;
         // in that case 1 and 3 are aligned and the conversion routine allocates all the
@@ -1388,23 +1343,23 @@ public:
         to1Q(q) = angles123[2];
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
         to1Q(q) = T_FM[2]/pitch;
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM, Vector& u) const {
         // We can only represent an angular velocity along z with this joint.
         to1U(u) = w_FM[2]; // project angular velocity onto z axis
     }
 
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
+       (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
     {
         to1U(u) = v_FM[2]/pitch;
     }
 
     // This is required for all mobilizers.
-    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // We're currently using an angle as the generalized coordinate for the screw joint
         // but could just as easily have used translation or some non-physical coordinate. It
         // might make sense to offer a Model stage option to set the coordinate meaning.
@@ -1430,9 +1385,9 @@ public:
 
     // Calculate X_FM.
     void calcAcrossJointTransform(
-        const SBModelVars& mv,
-        const Vector&      q,
-        Transform&         X_FM) const
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_FM) const
     {
         const Real& theta  = from1Q(q);    // angular coordinate
 
@@ -1444,19 +1399,16 @@ public:
     // The generalized speed is the angular velocity of M in the F frame,
     // about F's z axis, expressed in F. (This axis is also constant in M.)
     void calcAcrossJointVelocityJacobian(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType&                 H_FM) const
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
     {
         H_FM[0] = SpatialRow( Row3(0,0,1), Row3(0,0,pitch) );
     }
 
     // Since the Jacobian above is constant in F, its time derivative in F is zero.
     void calcAcrossJointVelocityJacobianDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType&                 H_FM_Dot) const
+        const SBStateDigest& sbs,
+        HType&               H_FM_Dot) const
     {
         H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
     }
@@ -1490,27 +1442,27 @@ public:
     }
 
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
+    void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {
         // The only rotation our cylinder joint can handle is about z.
         // TODO: this code is bad -- see comments for Torsion joint above.
         const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
         toQ(q)[0] = angles123[2];
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
         // Because the M and F origins must lie along their shared z axis, there is no way to
         // create a translation by rotating around z. So the only translation we can represent
         // is that component which is along z.
         toQ(q)[1] = T_FM[2];
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM, Vector& u) const {
         // We can only represent an angular velocity along z with this joint.
         toU(u)[0] = w_FM[2];
     }
 
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
+       (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
     {
         // Because the M and F origins must lie along their shared z axis, there is no way to
         // create a linear velocity by rotating around z. So the only linear velocity we can represent
@@ -1519,7 +1471,7 @@ public:
     }
 
     // This is required for all mobilizers.
-    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // Cylinder joint has one angular coordinate, which comes first.
         startOfAngles = MobilizerQIndex(0); nAngles=1; 
         return true;
@@ -1543,9 +1495,9 @@ public:
 
     // Calculate X_FM.
     void calcAcrossJointTransform(
-        const SBModelVars& mv,
-        const Vector&      q,
-        Transform&         X_FM) const
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_FM) const
     {
         const Vec2& coords  = fromQ(q);
 
@@ -1558,9 +1510,8 @@ public:
     // about F's z axis, expressed in F, and (2) the velocity of M's origin
     // in F, along F's z axis. (The z axis is also constant in M for this joint.)
     void calcAcrossJointVelocityJacobian(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType&                 H_FM) const
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
     {
         H_FM[0] = SpatialRow( Row3(0,0,1), Row3(0)     );
         H_FM[1] = SpatialRow( Row3(0),     Row3(0,0,1) );
@@ -1568,10 +1519,8 @@ public:
 
     // Since the Jacobian above is constant in F, its time derivative in F is zero.
     void calcAcrossJointVelocityJacobianDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType&                 H_FM_Dot) const
+        const SBStateDigest& sbs,
+        HType&               H_FM_Dot) const
     {
         H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
         H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
@@ -1607,25 +1556,25 @@ public:
     }
 
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
+    void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {
         // The only rotation our bend-stretch joint can handle is about z.
         // TODO: this code is bad -- see comments for Torsion joint above.
         const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
         toQ(q)[0] = angles123[2];
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
         // We can represent any translation that puts the M origin in the x-y plane of F,
         // by a suitable rotation around z followed by translation along x.
         const Vec2 r = T_FM.getSubVec<2>(0); // (rx, ry)
 
         // If we're not allowed to change rotation then we can only move along Mx.
-        if (only) {
-            const Real angle = fromQ(q)[0];
-            const Vec2 Mx(std::cos(angle), std::sin(angle)); // a unit vector
-            toQ(q)[1] = dot(r,Mx);
-            return;
-        }
+//        if (only) {
+//            const Real angle = fromQ(q)[0];
+//            const Vec2 Mx(std::cos(angle), std::sin(angle)); // a unit vector
+//            toQ(q)[1] = dot(r,Mx);
+//            return;
+//        }
 
         const Real d = r.norm();
 
@@ -1639,7 +1588,7 @@ public:
             toQ(q)[1] = 0;
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_FM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM, Vector& u) const {
         // We can only represent an angular velocity along z with this joint.
         toU(u)[0] = w_FM[2];
     }
@@ -1649,7 +1598,7 @@ public:
     // represent any velocity in the x-y plane by introducing angular velocity about z.
     // We can never represent a linear velocity along z.
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector& q, const Vec3& v_FM, Vector& u, bool only) const
+       (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const
     {
         // Decompose the requested v into "along Mx" and "along My" components.
         const Rotation R_FM = Rotation( fromQ(q)[0], ZAxis ); // =[ Mx My Mz ] in F
@@ -1657,11 +1606,11 @@ public:
 
         toU(u)[1] = v_FM_M[0]; // velocity along Mx we can represent directly
 
-        if (only) {
-            // We can't do anything about My velocity if we're not allowed to change
-            // angular velocity, so we're done.
-            return;
-        }
+//        if (only) {
+//            // We can't do anything about My velocity if we're not allowed to change
+//            // angular velocity, so we're done.
+//            return;
+//        }
 
         const Real x = fromQ(q)[1]; // translation along Mx (signed)
         if (std::abs(x) < SignificantReal) {
@@ -1674,7 +1623,7 @@ public:
     }
 
     // This is required for all mobilizers.
-    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // Bend-stretch joint has one angular coordinate, which comes first.
         startOfAngles = MobilizerQIndex(0); nAngles=1; 
         return true;
@@ -1698,9 +1647,9 @@ public:
 
     // Calculate X_FM.
     void calcAcrossJointTransform(
-        const SBModelVars& mv,
-        const Vector&      q,
-        Transform&         X_FM) const
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_FM) const
     {
         const Vec2& coords  = fromQ(q);    // angular coordinate
 
@@ -1713,10 +1662,10 @@ public:
     // (2) the (linear) velocity of M's origin in F, along *M's* current x axis
     // (that is, after rotation about z). (The z axis is also constant in M for this joint.)
     void calcAcrossJointVelocityJacobian(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType&                 H_FM) const
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
     {
+        const SBPositionCache& pc = sbs.updPositionCache();
         const Rotation& R_FM = getX_FM(pc).R();
         const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
 
@@ -1731,11 +1680,11 @@ public:
     // its time derivative in A is the angular velocity of B in A crossed with
     // the vector, i.e., d_A/dt r_B_A = w_AB % r_B_A.
     void calcAcrossJointVelocityJacobianDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType&                 H_FM_Dot) const
+        const SBStateDigest& sbs,
+        HType&               H_FM_Dot) const
     {
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBVelocityCache& vc = sbs.getVelocityCache();
         const Rotation& R_FM = getX_FM(pc).R();
         const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
 
@@ -1786,7 +1735,7 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
+    void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {
         // The only rotations this joint can handle are about Mx and My.
         // TODO: isn't there a better way to come up with "the rotation around x&y that
         // best approximates a rotation R"? Here we're just hoping that the supplied
@@ -1795,7 +1744,7 @@ public:
         toQ(q) = angles12;
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
@@ -1805,14 +1754,14 @@ public:
     // expressed in F, project it on Fx and use that as the first generalized speed. Then
     // take whatever angular velocity is unaccounted for, express it in M, and project onto
     // My and use that as the second generalized speed.
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_FM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM, Vector& u) const {
         const Rotation R_FM = Rotation( BodyRotationSequence, fromQ(q)[0], XAxis, fromQ(q)[1], YAxis );  // body fixed 1-2 sequence
         const Vec3     wyz_FM_M = ~R_FM*Vec3(0,w_FM[1],w_FM[2]);
         toU(u) = Vec2(w_FM[0], wyz_FM_M[1]);
     }
 
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
+       (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
     {
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a linear velocity by rotating. So the only linear velocity
@@ -1820,7 +1769,7 @@ public:
     }
 
     // This is required for all mobilizers.
-    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // U-joint has two angular coordinates.
         startOfAngles = MobilizerQIndex(0); nAngles=2; 
         return true;
@@ -1844,9 +1793,9 @@ public:
 
     // Calculate X_FM.
     void calcAcrossJointTransform(
-        const SBModelVars& mv,
-        const Vector&      q,
-        Transform&         X_FM) const
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_FM) const
     {
         // We're only updating the orientation here because a U-joint can't translate.
         X_FM.updR() = Rotation( BodyRotationSequence, fromQ(q)[0], XAxis, fromQ(q)[1], YAxis );  // body fixed 1-2 sequence
@@ -1858,10 +1807,10 @@ public:
     // is just a rotation rate about Fx. The second is a rotation rate about the current My, so
     // we have to transform it into F to make H_FM uniformly expressed in F.
     void calcAcrossJointVelocityJacobian(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType&                 H_FM) const
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
     {
+        const SBPositionCache& pc = sbs.updPositionCache();
         const Rotation& R_FM = getX_FM(pc).R();
 
         H_FM[0] = SpatialRow(  Row3(1,0,0) , Row3(0) );
@@ -1874,11 +1823,11 @@ public:
     // its time derivative in A is the angular velocity of B in A crossed with
     // the vector, i.e., d_A/dt r_B_A = w_AB % r_B_A.
     void calcAcrossJointVelocityJacobianDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType&                 H_FM_Dot) const
+        const SBStateDigest& sbs,
+        HType&               H_FM_Dot) const
     {
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBVelocityCache& vc = sbs.getVelocityCache();
         const Rotation& R_FM = getX_FM(pc).R();
         const Vec3&     w_FM = getV_FM(vc)[0]; // angular velocity of M in F
 
@@ -1915,7 +1864,7 @@ public:
 
         // Implementations of virtual methods.
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
+    void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {
         // The only rotation our planar joint can handle is about z.
         // TODO: should use 321 to deal with singular configuration (angle2==pi/2) better;
         // in that case 1 and 3 are aligned and the conversion routine allocates all the
@@ -1925,18 +1874,18 @@ public:
         const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
         toQ(q)[0] = angles123[2];
     }
-    void setQToFitTranslation(const SBModelVars&, const Vec3&  T_FM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3&  T_FM, Vector& q) const {
         // Ignore translation in the z direction.
         toQ(q)[1] = T_FM[0]; // x
         toQ(q)[2] = T_FM[1]; // y
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM, Vector& u) const {
         // We can represent the z angular velocity exactly, but nothing else.
         toU(u)[0] = w_FM[2];
     }
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
+       (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
     {
         // Ignore translational velocity in the z direction.
         toU(u)[1] = v_FM[0]; // x
@@ -1944,7 +1893,7 @@ public:
     }
 
     // This is required for all mobilizers.
-    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // Planar joint has one angular coordinate, which comes first.
         startOfAngles = MobilizerQIndex(0); nAngles=1; 
         return true;
@@ -1968,9 +1917,9 @@ public:
 
     // Calculate X_FM.
     void calcAcrossJointTransform(
-        const SBModelVars& mv,
-        const Vector&      q,
-        Transform&         X_FM) const
+        const SBStateDigest& mv,
+        const Vector&        q,
+        Transform&           X_FM) const
     {
         // Rotational q is about common z axis, translational q's along Fx and Fy.
         X_FM = Transform(Rotation( fromQ(q)[0], ZAxis ), 
@@ -1980,9 +1929,8 @@ public:
     // The rotational generalized speed is about the common z axis; translations
     // are along Fx and Fy so all axes are constant in F.
     void calcAcrossJointVelocityJacobian(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType&                 H_FM) const
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
     {
         H_FM[0] = SpatialRow( Row3(0,0,1),   Row3(0) );
         H_FM[1] = SpatialRow(   Row3(0),   Row3(1,0,0) );
@@ -1991,10 +1939,8 @@ public:
 
     // Since the Jacobian above is constant in F, its time derivative is zero.
     void calcAcrossJointVelocityJacobianDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType&                 H_FM_Dot) const
+        const SBStateDigest& sbs,
+        HType&               H_FM_Dot) const
     {
         H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
         H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
@@ -2034,25 +1980,25 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_FM,
+    void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM,
                            Vector& q) const 
     {
         toQ(q) = R_FM.convertRotationToBodyFixedXYZ();
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM,
+    void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM,
                                   Vector& u) const
     {
         toU(u) = w_FM; // relative angular velocity always used as generalized speeds
     }
 
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
+       (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
     {
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a linear velocity by rotating. So the only linear velocity
@@ -2060,7 +2006,7 @@ public:
     }
 
     // This is required for all mobilizers.
-    bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const {
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // Gimbal joint has three angular coordinates.
         startOfAngles = MobilizerQIndex(0); nAngles=3; 
         return true;
@@ -2084,9 +2030,9 @@ public:
 
     // Calculate X_FM.
     void calcAcrossJointTransform(
-        const SBModelVars& mv,
-        const Vector&      q,
-        Transform&         X_FM) const
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_FM) const
     {
         X_FM.updT() = 0.; // This joint can't translate.
         X_FM.updR().setRotationToBodyFixedXYZ( fromQ(q) );
@@ -2095,9 +2041,8 @@ public:
     // Generalized speeds are the angular velocity expressed in F, so they
     // cause rotations around F x,y,z axes respectively.
     void calcAcrossJointVelocityJacobian(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType&                 H_FM) const
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
     {
         H_FM[0] = SpatialRow( Row3(1,0,0), Row3(0) );
         H_FM[1] = SpatialRow( Row3(0,1,0), Row3(0) );
@@ -2105,10 +2050,8 @@ public:
     }
 
     void calcAcrossJointVelocityJacobianDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType&                 H_FM_Dot) const
+        const SBStateDigest& sbs,
+        HType&               H_FM_Dot) const
     {
         H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
         H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
@@ -2116,15 +2059,14 @@ public:
     }
 
     void calcQDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
+        const SBStateDigest&   sbs,
         const Vector&          u, 
         Vector&                qdot) const 
     {
+        const SBPositionCache& pc = sbs.getPositionCache();
         const Vec3& w_FM = fromU(u); // angular velocity of M in F 
         const Rotation& R_FM = getX_FM(pc).R();
-        toQ(qdot) = Rotation::convertAngVelToBodyFixed123Dot(fromQ(q),
+        toQ(qdot) = Rotation::convertAngVelToBodyFixed123Dot(fromQ(sbs.getQ()),
                                     ~R_FM*w_FM); // need w in *body*, not parent
     }
 
@@ -2134,7 +2076,7 @@ public:
 
         const SBModelVars&     mv   = sbs.getModelVars();
         const SBPositionCache& pc   = sbs.getPositionCache();
-        const Real*            allQ = sbs.getQ();
+        const Vector&          allQ = sbs.getQ();
 
         const Vec3&            w_FM = Vec3::getAs(u);
 
@@ -2178,19 +2120,17 @@ public:
     }
  
     void calcQDotDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u, 
+        const SBStateDigest&   sbs,
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const Vec3& w_FM     = fromU(u); // angular velocity of J in Jb, expr in Jb
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const Vec3& w_FM     = fromU(sbs.getU()); // angular velocity of J in Jb, expr in Jb
         const Vec3& w_FM_dot = fromU(udot);
 
         const Rotation& R_FM = getX_FM(pc).R();
         toQ(qdotdot)    = Rotation::convertAngVelDotToBodyFixed123DotDot
-                              (fromQ(q), ~R_FM*w_FM, ~R_FM*w_FM_dot);
+                              (fromQ(sbs.getQ()), ~R_FM*w_FM, ~R_FM*w_FM_dot);
     }
 
     void calcLocalQDotDotFromLocalUDot(const SBStateDigest& sbs, const Real* udot, Real* qdotdot) const {
@@ -2199,8 +2139,8 @@ public:
 
         const SBModelVars&     mv   = sbs.getModelVars();
         const SBPositionCache& pc   = sbs.getPositionCache();
-        const Real*            allQ = sbs.getQ();
-        const Real*            allU = sbs.getU();
+        const Vector&          allQ = sbs.getQ();
+        const Vector&          allU = sbs.getU();
 
         const Vec3& w_FM     = fromU(allU);
         const Vec3& w_FM_dot = Vec3::getAs(udot);
@@ -2259,28 +2199,28 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_FM,
+    void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM,
                               Vector& q) const 
     {
-        if (getUseEulerAngles(mv))
+        if (getUseEulerAngles(sbs.getModelVars()))
             toQ(q)    = R_FM.convertRotationToBodyFixedXYZ();
         else
             toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM,
+    void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM,
                                      Vector& u) const
     {
             toU(u) = w_FM; // relative angular velocity always used as generalized speeds
     }
 
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
+       (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
     {
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a linear velocity by rotating. So the only linear velocity
@@ -2288,10 +2228,10 @@ public:
     }
 
     // This is required for all mobilizers.
-    bool isUsingAngles(const SBModelVars& mv, MobilizerQIndex& startOfAngles, int& nAngles) const {
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // Ball joint has three angular coordinates when Euler angles are being used, 
         // none when quaternions are being used.
-        if (!getUseEulerAngles(mv)) {startOfAngles.invalidate(); nAngles=0; return false;} 
+        if (!getUseEulerAngles(sbs.getModelVars())) {startOfAngles.invalidate(); nAngles=0; return false;} 
         startOfAngles = MobilizerQIndex(0);
         nAngles = 3;
         return true;
@@ -2326,10 +2266,11 @@ public:
 
     // Calculate X_FM.
     void calcAcrossJointTransform(
-        const SBModelVars& mv,
-        const Vector&      q,
-        Transform&         X_FM) const
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_FM) const
     {
+        const SBModelVars& mv = sbs.getModelVars();
         X_FM.updT() = 0.; // This joint can't translate.
         if (getUseEulerAngles(mv))
             X_FM.updR().setRotationToBodyFixedXYZ( fromQ(q) );
@@ -2342,9 +2283,8 @@ public:
     // Generalized speeds are the angular velocity expressed in F, so they
     // cause rotations around F x,y,z axes respectively.
     void calcAcrossJointVelocityJacobian(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType&                 H_FM) const
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
     {
         H_FM[0] = SpatialRow( Row3(1,0,0), Row3(0) );
         H_FM[1] = SpatialRow( Row3(0,1,0), Row3(0) );
@@ -2352,10 +2292,8 @@ public:
     }
 
     void calcAcrossJointVelocityJacobianDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType&                 H_FM_Dot) const
+        const SBStateDigest& sbs,
+        HType&               H_FM_Dot) const
     {
         H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
         H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
@@ -2363,20 +2301,20 @@ public:
     }
 
     void calcQDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
+        const SBStateDigest&   sbs,
         const Vector&          u, 
         Vector&                qdot) const 
     {
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBPositionCache& pc = sbs.getPositionCache();
         const Vec3& w_FM = fromU(u); // angular velocity of M in F 
         if (getUseEulerAngles(mv)) {
             toQuat(qdot) = Vec4(0); // TODO: kludge, clear unused element
             const Rotation& R_FM = getX_FM(pc).R();
-            toQ(qdot) = Rotation::convertAngVelToBodyFixed123Dot(fromQ(q),
+            toQ(qdot) = Rotation::convertAngVelToBodyFixed123Dot(fromQ(sbs.getQ()),
                                         ~R_FM*w_FM); // need w in *body*, not parent
         } else
-            toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(q),w_FM);
+            toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(sbs.getQ()),w_FM);
     }
 
     void calcLocalQDotFromLocalU(const SBStateDigest& sbs, const Real* u, Real* qdot) const {
@@ -2385,7 +2323,7 @@ public:
 
         const SBModelVars&     mv   = sbs.getModelVars();
         const SBPositionCache& pc   = sbs.getPositionCache();
-        const Real*            allQ = sbs.getQ();
+        const Vector&          allQ = sbs.getQ();
 
         const Vec3&            w_FM = Vec3::getAs(u);
 
@@ -2448,24 +2386,23 @@ public:
     }
  
     void calcQDotDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u, 
+        const SBStateDigest&   sbs,
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const Vec3& w_FM     = fromU(u); // angular velocity of J in Jb, expr in Jb
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const Vec3& w_FM     = fromU(sbs.getU()); // angular velocity of J in Jb, expr in Jb
         const Vec3& w_FM_dot = fromU(udot);
 
         if (getUseEulerAngles(mv)) {
             toQuat(qdotdot) = Vec4(0); // TODO: kludge, clear unused element
             const Rotation& R_FM = getX_FM(pc).R();
             toQ(qdotdot)    = Rotation::convertAngVelDotToBodyFixed123DotDot
-                                  (fromQ(q), ~R_FM*w_FM, ~R_FM*w_FM_dot);
+                                  (fromQ(sbs.getQ()), ~R_FM*w_FM, ~R_FM*w_FM_dot);
         } else
             toQuat(qdotdot) = Rotation::convertAngVelDotToQuaternionDotDot
-                                  (fromQuat(q),w_FM,w_FM_dot);
+                                  (fromQuat(sbs.getQ()),w_FM,w_FM_dot);
     }
 
     void calcLocalQDotDotFromLocalUDot(const SBStateDigest& sbs, const Real* udot, Real* qdotdot) const {
@@ -2474,8 +2411,8 @@ public:
 
         const SBModelVars&     mv   = sbs.getModelVars();
         const SBPositionCache& pc   = sbs.getPositionCache();
-        const Real*            allQ = sbs.getQ();
-        const Real*            allU = sbs.getU();
+        const Vector&          allQ = sbs.getQ();
+        const Vector&          allU = sbs.getU();
 
         const Vec3& w_FM     = fromU(allU);
         const Vec3& w_FM_dot = Vec3::getAs(udot);
@@ -2505,8 +2442,8 @@ public:
     int getNQInUse(const SBModelVars& mv) const {
         return getUseEulerAngles(mv) ? 3 : 4;
     } 
-    bool isUsingQuaternion(const SBModelVars& mv, MobilizerQIndex& startOfQuaternion) const {
-        if (getUseEulerAngles(mv)) {startOfQuaternion.invalidate(); return false;}
+    bool isUsingQuaternion(const SBStateDigest& sbs, MobilizerQIndex& startOfQuaternion) const {
+        if (getUseEulerAngles(sbs.getModelVars())) {startOfQuaternion.invalidate(); return false;}
         startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
         return true;
     }
@@ -2524,11 +2461,11 @@ public:
     }
 
     bool enforceQuaternionConstraints(
-        const SBModelVars&  mv,
+        const SBStateDigest& sbs,
         Vector&             q,
         Vector&             qErrest) const 
     {
-        if (getUseEulerAngles(mv)) 
+        if (getUseEulerAngles(sbs.getModelVars())) 
             return false;   // no change
 
         Vec4& quat = toQuat(q);
@@ -2633,10 +2570,10 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_FM,
+    void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM,
                            Vector& q) const 
     {
-        if (getUseEulerAngles(mv))
+        if (getUseEulerAngles(sbs.getModelVars()))
             toQ(q)    = R_FM.convertRotationToBodyFixedXYZ();
         else
             toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
@@ -2658,8 +2595,8 @@ public:
     // a direction to align with. And of course we can't do anything if "only" is true
     // here -- that means we aren't allowed to touch the rotations, and for this
     // joint that's all there is.
-    void setQToFitTranslation(const SBModelVars& mv, const Vec3& T_FM, Vector& q, bool only) const {
-        if (only || T_FM.norm() < Eps) return;
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
+        if (T_FM.norm() < Eps) return;
 
         const UnitVec3 e(T_FM); // direction from F origin towards desired M origin
         const Real latitude  = std::atan2(-e[1],e[2]); // project onto F's yz plane
@@ -2667,7 +2604,7 @@ public:
 
 		// Calculate the current value of the spin coordinate (3rd Euler angle).
         Real spin;
-		if (getUseEulerAngles(mv)){
+		if (getUseEulerAngles(sbs.getModelVars())){
             spin = fromQ(q)[2];
 		} else {
 			const Rotation R_FM_now(Quaternion(fromQuat(q)));
@@ -2678,7 +2615,7 @@ public:
         // latitude and longitude, followed by a body fixed rotation for spin.
         const Rotation R_FM = Rotation( SpaceRotationSequence, latitude, XAxis, longitude, YAxis ) * Rotation(spin,ZAxis);
 
-        if (getUseEulerAngles(mv)) {
+        if (getUseEulerAngles(sbs.getModelVars())) {
             const Vec3 q123 = R_FM.convertRotationToBodyFixedXYZ();
             toQ(q) = q123;
         } else {
@@ -2687,7 +2624,7 @@ public:
         }
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_FM,
+    void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM,
                                   Vector& u) const
     {
             toU(u) = w_FM; // relative angular velocity always used as generalized speeds
@@ -2699,10 +2636,10 @@ public:
     // which is along that direction. (The resulting vz won't be zero, though, but it
     // is completely determined by vx,vy.)
     void setUToFitLinearVelocity
-       (const SBModelVars& mv, const Vector& q, const Vec3& v_FM, Vector& u, bool only) const
+       (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const
     {
         Transform X_FM;
-        calcAcrossJointTransform(mv,q,X_FM);
+        calcAcrossJointTransform(sbs,q,X_FM);
 
         const Vec3 v_FM_M    = ~X_FM.R()*v_FM; // we can only do vx and vy in this frame
         const Vec3 r_FM_M    = ~X_FM.R()*X_FM.T(); 
@@ -2719,10 +2656,10 @@ public:
     }
 
     // This is required for all mobilizers.
-    bool isUsingAngles(const SBModelVars& mv, MobilizerQIndex& startOfAngles, int& nAngles) const {
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // Ellipsoid joint has three angular coordinates when Euler angles are being used, 
         // none when quaternions are being used.
-        if (!getUseEulerAngles(mv)) {startOfAngles.invalidate(); nAngles=0; return false;} 
+        if (!getUseEulerAngles(sbs.getModelVars())) {startOfAngles.invalidate(); nAngles=0; return false;} 
         startOfAngles = MobilizerQIndex(0);
         nAngles = 3;
         return true;
@@ -2759,11 +2696,12 @@ public:
 
     // Calculate X_FM.
     void calcAcrossJointTransform(
-        const SBModelVars& mv,
-        const Vector&      q,
-        Transform&         X_FM) const
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_FM) const
     {
 		// Calcuate the rotation R_FM first.
+        const SBModelVars& mv = sbs.getModelVars();
 		if (getUseEulerAngles(mv)){
 			const Vec3& a = fromQ(q);		
 			X_FM.updR().setRotationToBodyFixedXYZ(a);
@@ -2782,10 +2720,10 @@ public:
     // Generalized speeds are the angular velocity expressed in F, so they
     // cause rotations around F x,y,z axes respectively.
     void calcAcrossJointVelocityJacobian(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType&                 H_FM) const
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
     {
+        const SBPositionCache& pc = sbs.updPositionCache();
 		const Vec3& n = getX_FM(pc).z();
 
 		H_FM[0] = SpatialRow( Row3(1,0,0), Row3(      0,      -n[2]*semi[1], n[1]*semi[2]) );
@@ -2794,11 +2732,11 @@ public:
     }
 
     void calcAcrossJointVelocityJacobianDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType&                 H_FM_Dot) const
+        const SBStateDigest& sbs,
+        HType&               H_FM_Dot) const
     {
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBVelocityCache& vc = sbs.getVelocityCache();
 		const Vec3& n     = getX_FM(pc).z(); // ellipsoid normal
 		const Vec3& w_FM = getV_FM(vc)[0];  // angular velocity of M in F
 
@@ -2859,41 +2797,40 @@ public:
     }
 
     void calcQDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
+        const SBStateDigest&   sbs,
         const Vector&          u, 
         Vector&                qdot) const 
     {
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBPositionCache& pc = sbs.getPositionCache();
         const Vec3& w_FM = fromU(u); // angular velocity of M in F 
         if (getUseEulerAngles(mv)) {
             toQuat(qdot) = Vec4(0); // TODO: kludge, clear unused element
             const Rotation& R_FM = getX_FM(pc).R();
-            toQ(qdot) = Rotation::convertAngVelToBodyFixed123Dot(fromQ(q),
+            toQ(qdot) = Rotation::convertAngVelToBodyFixed123Dot(fromQ(sbs.getQ()),
                                         ~R_FM*w_FM); // need w in *body*, not parent
         } else
-            toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(q),w_FM);
+            toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(sbs.getQ()),w_FM);
     }
  
     void calcQDotDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u, 
+        const SBStateDigest&   sbs,
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const Vec3& w_FM     = fromU(u); // angular velocity of J in Jb, expr in Jb
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const Vec3& w_FM     = fromU(sbs.getU()); // angular velocity of J in Jb, expr in Jb
         const Vec3& w_FM_dot = fromU(udot);
 
         if (getUseEulerAngles(mv)) {
             toQuat(qdotdot) = Vec4(0); // TODO: kludge, clear unused element
             const Rotation& R_FM = getX_FM(pc).R();
             toQ(qdotdot)    = Rotation::convertAngVelDotToBodyFixed123DotDot
-                                  (fromQ(q), ~R_FM*w_FM, ~R_FM*w_FM_dot);
+                                  (fromQ(sbs.getQ()), ~R_FM*w_FM, ~R_FM*w_FM_dot);
         } else
             toQuat(qdotdot) = Rotation::convertAngVelDotToQuaternionDotDot
-                                  (fromQuat(q),w_FM,w_FM_dot);
+                                  (fromQuat(sbs.getQ()),w_FM,w_FM_dot);
     }
 
     void copyQ(
@@ -2911,8 +2848,8 @@ public:
     int getNQInUse(const SBModelVars& mv) const {
         return getUseEulerAngles(mv) ? 3 : 4;
     } 
-    bool isUsingQuaternion(const SBModelVars& mv, MobilizerQIndex& startOfQuaternion) const {
-        if (getUseEulerAngles(mv)) {startOfQuaternion.invalidate(); return false;}
+    bool isUsingQuaternion(const SBStateDigest& sbs, MobilizerQIndex& startOfQuaternion) const {
+        if (getUseEulerAngles(sbs.getModelVars())) {startOfQuaternion.invalidate(); return false;}
         startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
         return true;
     }
@@ -2930,11 +2867,11 @@ public:
     }
 
     bool enforceQuaternionConstraints(
-        const SBModelVars&  mv,
+        const SBStateDigest& sbs,
         Vector&             q,
         Vector&             qErrest) const 
     {
-        if (getUseEulerAngles(mv)) 
+        if (getUseEulerAngles(sbs.getModelVars())) 
             return false;   // no change
 
         Vec4& quat = toQuat(q);
@@ -2996,10 +2933,10 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_FM,
+    void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM,
                               Vector& q) const 
     {
-        if (getUseEulerAngles(mv))
+        if (getUseEulerAngles(sbs.getModelVars()))
             toQVec3(q,0) = R_FM.convertRotationToBodyFixedXYZ();
         else
             toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
@@ -3008,8 +2945,8 @@ public:
     // The user gives us the translation vector from OF to OM as a vector expressed in F, which
     // is what we use as translational generalized coordinates. Also, with a free joint 
     // we never have to change orientation coordinates in order to achieve a translation.
-    void setQToFitTranslation(const SBModelVars& mv, const Vec3& T_FM, Vector& q, bool only) const {
-        if (getUseEulerAngles(mv))
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
+        if (getUseEulerAngles(sbs.getModelVars()))
             toQVec3(q,3) = T_FM; // skip the 3 Euler angles
         else
             toQVec3(q,4) = T_FM; // skip the 4 quaternions
@@ -3017,7 +2954,7 @@ public:
 
     // Our 3 rotational generalized speeds are just the angular velocity vector of M in F,
     // expressed in F, which is exactly what the user provides here.
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_FM,
+    void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM,
                                      Vector& u) const
     {
         toUVec3(u,0) = w_FM; // relative angular velocity always used as generalized speeds
@@ -3026,16 +2963,16 @@ public:
     // Our 3 translational generalized speeds are the linear velocity of M's origin in F,
     // expressed in F, which is just what the user gives us.
     void setUToFitLinearVelocity
-       (const SBModelVars& mv, const Vector& q, const Vec3& v_FM, Vector& u, bool only) const
+       (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const
     {
         toUVec3(u,3) = v_FM;
     }
 
     // This is required for all mobilizers.
-    bool isUsingAngles(const SBModelVars& mv, MobilizerQIndex& startOfAngles, int& nAngles) const {
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // Free joint has three angular coordinates when Euler angles are being used, 
         // none when quaternions are being used.
-        if (!getUseEulerAngles(mv)) {startOfAngles.invalidate(); nAngles=0; return false;} 
+        if (!getUseEulerAngles(sbs.getModelVars())) {startOfAngles.invalidate(); nAngles=0; return false;} 
         startOfAngles = MobilizerQIndex(0);
         nAngles = 3;
         return true;
@@ -3070,10 +3007,11 @@ public:
 
     // Calculate X_FM.
     void calcAcrossJointTransform(
-        const SBModelVars& mv,
-        const Vector&      q,
-        Transform& X_FM) const 
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_FM) const 
     {
+        const SBModelVars& mv = sbs.getModelVars();
         if (getUseEulerAngles(mv)) {
             X_FM.updR().setRotationToBodyFixedXYZ( fromQVec3(q,0) );
             X_FM.updT() = fromQVec3(q,3); // translation is in F already
@@ -3088,9 +3026,8 @@ public:
     //   (1) the angular velocity of M in the F frame, expressed in F, and
     //   (2) the (linear) velocity of M's origin in F, expressed in F.
     void calcAcrossJointVelocityJacobian(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType&                 H_FM) const
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
     {
         H_FM[0] = SpatialRow( Row3(1,0,0),   Row3(0)   );  // rotations
         H_FM[1] = SpatialRow( Row3(0,1,0),   Row3(0)   );
@@ -3103,10 +3040,8 @@ public:
 
     // Since the Jacobian above is constant in F, its derivative in F is 0.
     void calcAcrossJointVelocityJacobianDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType&                 H_FM_Dot) const
+        const SBStateDigest& sbs,
+        HType&               H_FM_Dot) const
     {
         H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
         H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
@@ -3180,49 +3115,48 @@ public:
     }
 
     void calcQDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
+        const SBStateDigest&   sbs,
         const Vector&          u,
         Vector&                qdot) const
     {
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBPositionCache& pc = sbs.getPositionCache();
         const Vec3& w_FM = fromUVec3(u,0); // Angular velocity in F
         const Vec3& v_FM = fromUVec3(u,3); // Linear velocity in F
         if (getUseEulerAngles(mv)) {
             const Rotation& R_FM = getX_FM(pc).R();
-            const Vec3& theta = fromQVec3(q,0); // Euler angles
+            const Vec3& theta = fromQVec3(sbs.getQ(),0); // Euler angles
             toQVec3(qdot,0) = Rotation::convertAngVelToBodyFixed123Dot(theta,
                                             ~R_FM*w_FM); // need w in *body*, not parent
             toQVec3(qdot,4) = Vec3(0); // TODO: kludge, clear unused element
             toQVec3(qdot,3) = v_FM;
         } else {
-            const Vec4& quat = fromQuat(q);
+            const Vec4& quat = fromQuat(sbs.getQ());
             toQuat (qdot)   = Rotation::convertAngVelToQuaternionDot(quat,w_FM);
             toQVec3(qdot,4) = v_FM;
         }
     }
  
     void calcQDotDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u, 
+        const SBStateDigest&   sbs,
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const Vec3& w_FM     = fromUVec3(u,0); // angular velocity of M in F
-        const Vec3& v_FM     = fromUVec3(u,3); // linear velocity of M in F, expressed in F
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const Vec3& w_FM     = fromUVec3(sbs.getU(),0); // angular velocity of M in F
+        const Vec3& v_FM     = fromUVec3(sbs.getU(),3); // linear velocity of M in F, expressed in F
         const Vec3& w_FM_dot = fromUVec3(udot,0);
         const Vec3& v_FM_dot = fromUVec3(udot,3);
         if (getUseEulerAngles(mv)) {
             const Rotation& R_FM = getX_FM(pc).R();
-            const Vec3& theta  = fromQVec3(q,0); // Euler angles
+            const Vec3& theta  = fromQVec3(sbs.getQ(),0); // Euler angles
             toQVec3(qdotdot,0) = Rotation::convertAngVelDotToBodyFixed123DotDot
                                              (theta, ~R_FM*w_FM, ~R_FM*w_FM_dot);
             toQVec3(qdotdot,4) = Vec3(0); // TODO: kludge, clear unused element
             toQVec3(qdotdot,3) = v_FM_dot;
         } else {
-            const Vec4& quat  = fromQuat(q);
+            const Vec4& quat  = fromQuat(sbs.getQ());
             toQuat(qdotdot)   = Rotation::convertAngVelDotToQuaternionDotDot
                                              (quat,w_FM,w_FM_dot);
             toQVec3(qdotdot,4) = v_FM_dot;
@@ -3240,8 +3174,8 @@ public:
 
     int  getMaxNQ()                   const {return 7;}
     int  getNQInUse(const SBModelVars& mv) const {return getUseEulerAngles(mv) ? 6 : 7;} 
-    bool isUsingQuaternion(const SBModelVars& mv, MobilizerQIndex& startOfQuaternion) const {
-        if (getUseEulerAngles(mv)) {startOfQuaternion.invalidate(); return false;}
+    bool isUsingQuaternion(const SBStateDigest& sbs, MobilizerQIndex& startOfQuaternion) const {
+        if (getUseEulerAngles(sbs.getModelVars())) {startOfQuaternion.invalidate(); return false;}
         startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
         return true;
     }
@@ -3258,11 +3192,11 @@ public:
     }
 
     bool enforceQuaternionConstraints(
-        const SBModelVars&  mv, 
+        const SBStateDigest& sbs, 
         Vector&             q,
         Vector&             qErrest) const
     {
-        if (getUseEulerAngles(mv)) 
+        if (getUseEulerAngles(sbs.getModelVars())) 
             return false; // no change
 
         Vec4& quat = toQuat(q);
@@ -3354,25 +3288,25 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_FM,
+    void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM,
                               Vector& q) const 
     {
-        if (getUseEulerAngles(mv))
+        if (getUseEulerAngles(sbs.getModelVars()))
             toQVec3(q,0)    = R_FM.convertRotationToBodyFixedXYZ();
         else
             toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
 
-    void setUToFitAngularVelocity(const SBModelVars& mv, const Vector& q, const Vec3& w_FM,
+    void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM,
                                      Vector& u) const
     {
         Rotation R_FM;
-        if (getUseEulerAngles(mv))
+        if (getUseEulerAngles(sbs.getModelVars()))
             R_FM.setRotationToBodyFixedXYZ( fromQVec3(q,0) );
         else {
             // TODO: should use qnorm pool
@@ -3383,7 +3317,7 @@ public:
     }
 
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
+       (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
     {
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a linear velocity by rotating. So the only linear velocity
@@ -3391,10 +3325,10 @@ public:
     }
 
     // This is required for all mobilizers.
-    bool isUsingAngles(const SBModelVars& mv, MobilizerQIndex& startOfAngles, int& nAngles) const {
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // LineOrientation joint has three angular coordinates when Euler angles are being used, 
         // none when quaternions are being used.
-        if (!getUseEulerAngles(mv)) {startOfAngles.invalidate(); nAngles=0; return false;} 
+        if (!getUseEulerAngles(sbs.getModelVars())) {startOfAngles.invalidate(); nAngles=0; return false;} 
         startOfAngles = MobilizerQIndex(0);
         nAngles = 3;
         return true;
@@ -3429,10 +3363,11 @@ public:
 
     // Calculate X_FM.
     void calcAcrossJointTransform(
-        const SBModelVars& mv,
-        const Vector&      q,
-        Transform&         X_FM) const
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_FM) const
     {
+        const SBModelVars& mv = sbs.getModelVars();
         X_FM.updT() = 0.; // This joint can't translate.
         if (getUseEulerAngles(mv))
             X_FM.updR().setRotationToBodyFixedXYZ( fromQVec3(q,0) );
@@ -3446,10 +3381,10 @@ public:
     // components of the angular velocity of M in the F frame, expressed in the *M*
     // frame.
     void calcAcrossJointVelocityJacobian(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType&                 H_FM) const
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
     {
+        const SBPositionCache& pc = sbs.updPositionCache();
         const Rotation& R_FM = getX_FM(pc).R();
         const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
         const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
@@ -3464,11 +3399,11 @@ public:
     // its time derivative in A is the angular velocity of B in A crossed with
     // the vector, i.e., d_A/dt r_B_A = w_AB % r_B_A.
     void calcAcrossJointVelocityJacobianDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType&                 H_FM_Dot) const
+        const SBStateDigest& sbs,
+        HType&               H_FM_Dot) const
     {
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBVelocityCache& vc = sbs.getVelocityCache();
         const Rotation& R_FM = getX_FM(pc).R();
         const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
         const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
@@ -3528,43 +3463,42 @@ public:
     }
 
     void calcQDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
+        const SBStateDigest&   sbs,
         const Vector&          u, 
         Vector&                qdot) const 
     {
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBPositionCache& pc = sbs.getPositionCache();
         const Vec3 w_FM_M = fromU(u).append1(0); // angular velocity of M in F, exp in M (with wz=0) 
         if (getUseEulerAngles(mv)) {
             toQuat(qdot)    = Vec4(0); // TODO: kludge, clear unused element
-            toQVec3(qdot,0) = Rotation::convertAngVelToBodyFixed123Dot(fromQVec3(q,0),
+            toQVec3(qdot,0) = Rotation::convertAngVelToBodyFixed123Dot(fromQVec3(sbs.getQ(),0),
                                         w_FM_M); // need w in *body*, not parent
         } else {
             const Rotation& R_FM = getX_FM(pc).R();
-            toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(q),
+            toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(sbs.getQ()),
                                         R_FM*w_FM_M); // need w in *parent* frame
         }
     }
  
     void calcQDotDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u, 
+        const SBStateDigest&   sbs,
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const Vec3 w_FM_M     = fromU(u).append1(0); // angular velocity of M in F, exp in M (with wz=0)
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const Vec3 w_FM_M     = fromU(sbs.getU()).append1(0); // angular velocity of M in F, exp in M (with wz=0)
         const Vec3 w_FM_M_dot = fromU(udot).append1(0);
 
         if (getUseEulerAngles(mv)) {
             toQuat(qdotdot)    = Vec4(0); // TODO: kludge, clear unused element
             toQVec3(qdotdot,0) = Rotation::convertAngVelDotToBodyFixed123DotDot
-                                       (fromQVec3(q,0), w_FM_M, w_FM_M_dot); // body frame
+                                       (fromQVec3(sbs.getQ(),0), w_FM_M, w_FM_M_dot); // body frame
         } else {
             const Rotation& R_FM = getX_FM(pc).R();
             toQuat(qdotdot) = Rotation::convertAngVelDotToQuaternionDotDot
-                                  (fromQuat(q),R_FM*w_FM_M,R_FM*w_FM_M_dot); // parent frame
+                                  (fromQuat(sbs.getQ()),R_FM*w_FM_M,R_FM*w_FM_M_dot); // parent frame
         }
     }
 
@@ -3583,8 +3517,8 @@ public:
     int getNQInUse(const SBModelVars& mv) const {
         return getUseEulerAngles(mv) ? 3 : 4;
     } 
-    bool isUsingQuaternion(const SBModelVars& mv, MobilizerQIndex& startOfQuaternion) const {
-        if (getUseEulerAngles(mv)) {startOfQuaternion.invalidate(); return false;}
+    bool isUsingQuaternion(const SBStateDigest& sbs, MobilizerQIndex& startOfQuaternion) const {
+        if (getUseEulerAngles(sbs.getModelVars())) {startOfQuaternion.invalidate(); return false;}
         startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
         return true;
     }
@@ -3602,11 +3536,11 @@ public:
     }
 
     bool enforceQuaternionConstraints(
-        const SBModelVars&  mv,
+        const SBStateDigest& sbs,
         Vector&             q,
         Vector&             qErrest) const 
     {
-        if (getUseEulerAngles(mv)) 
+        if (getUseEulerAngles(sbs.getModelVars())) 
             return false;   // no change
 
         Vec4& quat = toQuat(q);
@@ -3682,10 +3616,10 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_FM,
+    void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM,
                               Vector& q) const 
     {
-        if (getUseEulerAngles(mv))
+        if (getUseEulerAngles(sbs.getModelVars()))
             toQVec3(q,0) = R_FM.convertRotationToBodyFixedXYZ();
         else
             toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
@@ -3695,8 +3629,8 @@ public:
     // With a free joint we never have to *change* orientation coordinates in order to achieve a translation.
     // Note: a quaternion from a state is not necessarily normalized so can't be used
     // direction as though it were a set of Euler parameters; it must be normalized first.
-    void setQToFitTranslation(const SBModelVars& mv, const Vec3& T_FM, Vector& q, bool only) const {
-        if (getUseEulerAngles(mv))
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
+        if (getUseEulerAngles(sbs.getModelVars()))
             toQVec3(q,3) = T_FM; // skip the 3 Euler angles
         else
             toQVec3(q,4) = T_FM; // skip the 4 quaternions
@@ -3704,11 +3638,11 @@ public:
 
     // Our 2 rotational generalized speeds are just the (x,y) components of the
     // angular velocity vector of M in F, expressed in M.
-    void setUToFitAngularVelocity(const SBModelVars& mv, const Vector& q, const Vec3& w_FM,
+    void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM,
                                      Vector& u) const
     {
         Rotation R_FM;
-        if (getUseEulerAngles(mv))
+        if (getUseEulerAngles(sbs.getModelVars()))
             R_FM.setRotationToBodyFixedXYZ( fromQVec3(q,0) );
         else {
             // TODO: should use qnorm pool
@@ -3721,16 +3655,16 @@ public:
     // Our 3 translational generalized speeds are the linear velocity of M's origin in F,
     // expressed in F. The user gives us that same vector.
     void setUToFitLinearVelocity
-       (const SBModelVars& mv, const Vector& q, const Vec3& v_FM, Vector& u, bool only) const
+       (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const
     {
         toUVec3(u,2) = v_FM;
     }
 
     // This is required for all mobilizers.
-    bool isUsingAngles(const SBModelVars& mv, MobilizerQIndex& startOfAngles, int& nAngles) const {
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
         // FreeLine joint has three angular coordinates when Euler angles are being used, 
         // none when quaternions are being used.
-        if (!getUseEulerAngles(mv)) {startOfAngles.invalidate(); nAngles=0; return false;} 
+        if (!getUseEulerAngles(sbs.getModelVars())) {startOfAngles.invalidate(); nAngles=0; return false;} 
         startOfAngles = MobilizerQIndex(0);
         nAngles = 3;
         return true;
@@ -3765,10 +3699,11 @@ public:
 
     // Calculate X_FM.
     void calcAcrossJointTransform(
-        const SBModelVars& mv,
-        const Vector&      q,
-        Transform& X_FM) const 
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_FM) const 
     {
+        const SBModelVars& mv = sbs.getModelVars();
         if (getUseEulerAngles(mv)) {
             X_FM.updR().setRotationToBodyFixedXYZ( fromQVec3(q,0) );
             X_FM.updT() = fromQVec3(q,3); // translation is in F
@@ -3783,10 +3718,10 @@ public:
     //   (1) the (x,y) components of angular velocity of M in the F frame, expressed in M, and
     //   (2) the (linear) velocity of M's origin in F, expressed in F.
     void calcAcrossJointVelocityJacobian(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType&                 H_FM) const
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
     {
+        const SBPositionCache& pc = sbs.updPositionCache();
         const Rotation& R_FM = getX_FM(pc).R();
         const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
         const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
@@ -3805,11 +3740,11 @@ public:
     // its time derivative in A is the angular velocity of B in A crossed with
     // the vector, i.e., d_A/dt r_B_A = w_AB % r_B_A.
     void calcAcrossJointVelocityJacobianDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType&                 H_FM_Dot) const
+        const SBStateDigest& sbs,
+        HType&               H_FM_Dot) const
     {
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBVelocityCache& vc = sbs.getVelocityCache();
         const Rotation& R_FM = getX_FM(pc).R();
         const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
         const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
@@ -3895,24 +3830,24 @@ public:
     }
 
     void calcQDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
+        const SBStateDigest&   sbs,
         const Vector&          u,
         Vector&                qdot) const
     {
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBPositionCache& pc = sbs.getPositionCache();
         const Vec3  w_FM_M = Vec3(fromU(u)[0], fromU(u)[1], 0); // Angular velocity in M
         const Vec3& v_FM   = fromUVec3(u,2);                    // Linear velocity in F
 
         if (getUseEulerAngles(mv)) {
-            const Vec3& theta = fromQVec3(q,0); // Euler angles
+            const Vec3& theta = fromQVec3(sbs.getQ(),0); // Euler angles
             toQVec3(qdot,0) = Rotation::convertAngVelToBodyFixed123Dot(theta,
                                             w_FM_M); // need w in *body*, not parent
             toQVec3(qdot,4) = Vec3(0); // TODO: kludge, clear unused element
             toQVec3(qdot,3) = v_FM;
         } else {
             const Rotation& R_FM = getX_FM(pc).R();
-            const Vec4& quat = fromQuat(q);
+            const Vec4& quat = fromQuat(sbs.getQ());
             toQuat (qdot)   = Rotation::convertAngVelToQuaternionDot(quat,
                                             R_FM*w_FM_M); // need w in *parent* frame here
             toQVec3(qdot,4) = v_FM;
@@ -3920,27 +3855,26 @@ public:
     }
  
     void calcQDotDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u, 
+        const SBStateDigest&   sbs,
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const Vec3  w_FM_M     = Vec3(fromU(u)[0], fromU(u)[1], 0); // Angular velocity of M in F, exp. in M
-        const Vec3& v_FM       = fromUVec3(u,2); // linear velocity of M in F, expressed in M
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const Vec3  w_FM_M     = Vec3(fromU(sbs.getU())[0], fromU(sbs.getU())[1], 0); // Angular velocity of M in F, exp. in M
+        const Vec3& v_FM       = fromUVec3(sbs.getU(),2); // linear velocity of M in F, expressed in M
         const Vec3  w_FM_M_dot = Vec3(fromU(udot)[0], fromU(udot)[1], 0);
         const Vec3& v_FM_dot   = fromUVec3(udot,2);
 
         if (getUseEulerAngles(mv)) {
-            const Vec3& theta  = fromQVec3(q,0); // Euler angles
+            const Vec3& theta  = fromQVec3(sbs.getQ(),0); // Euler angles
             toQVec3(qdotdot,0) = Rotation::convertAngVelDotToBodyFixed123DotDot
                                              (theta, w_FM_M, w_FM_M_dot); // needed in body frame here
             toQVec3(qdotdot,4) = Vec3(0); // TODO: kludge, clear unused element
             toQVec3(qdotdot,3) = v_FM_dot;
         } else {
             const Rotation& R_FM = getX_FM(pc).R();
-            const Vec4& quat  = fromQuat(q);
+            const Vec4& quat  = fromQuat(sbs.getQ());
             toQuat(qdotdot)   = Rotation::convertAngVelDotToQuaternionDotDot
                                              (quat,R_FM*w_FM_M,R_FM*w_FM_M_dot); // needed in parent frame
             toQVec3(qdotdot,4) = v_FM_dot;
@@ -3959,8 +3893,8 @@ public:
 
     int  getMaxNQ()                   const {return 7;}
     int  getNQInUse(const SBModelVars& mv) const {return getUseEulerAngles(mv) ? 6 : 7;} 
-    bool isUsingQuaternion(const SBModelVars& mv, MobilizerQIndex& startOfQuaternion) const {
-        if (getUseEulerAngles(mv)) {startOfQuaternion.invalidate(); return false;}
+    bool isUsingQuaternion(const SBStateDigest& sbs, MobilizerQIndex& startOfQuaternion) const {
+        if (getUseEulerAngles(sbs.getModelVars())) {startOfQuaternion.invalidate(); return false;}
         startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
         return true;
     }
@@ -3977,11 +3911,11 @@ public:
     }
 
     bool enforceQuaternionConstraints(
-        const SBModelVars&  mv, 
+        const SBStateDigest& sbs, 
         Vector&             q,
         Vector&             qErrest) const 
     {
-        if (getUseEulerAngles(mv)) 
+        if (getUseEulerAngles(sbs.getModelVars())) 
             return false; // no change
 
         Vec4& quat = toQuat(q);
@@ -4009,6 +3943,288 @@ public:
     }
 };
 
+
+/////////////////////////////////////////
+// RigidBodyNode for custom mobilizers //
+/////////////////////////////////////////
+
+template <int nu>
+class RBNodeCustom : public RigidBodyNodeSpec<nu> {
+public:
+    RBNodeCustom(const MobilizedBody::Custom::Implementation& impl, const MassProperties& mProps_B,
+            const Transform& X_PF, const Transform& X_BM,UIndex& nextUSlot, USquaredIndex& nextUSqSlot, QIndex& nextQSlot) : 
+            RigidBodyNodeSpec<nu>(mProps_B, X_PF, X_BM, nextUSlot, nextUSqSlot, nextQSlot, RigidBodyNode::QDotMayDifferFromU,
+            nAngles == 4 ? RigidBodyNode::QuaternionMayBeUsed : RigidBodyNode::QuaternionIsNeverUsed),
+            impl(impl), nq(impl.getImpl().getNQ()), nAngles(impl.getImpl().getNAngles()) {
+        this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    }
+    const char* type() const {
+        return "custom";
+    }
+    int  getMaxNQ() const {
+        return nq;
+    }
+    int getNQInUse(const SBModelVars& mv) const {
+        return (nAngles == 4 && this->getUseEulerAngles(mv) ? nq-1 : nq);
+    }
+    virtual int getNUInUse(const SBModelVars& mv) const {
+        return nu;
+    }
+    bool isUsingQuaternion(const SBStateDigest& sbs, MobilizerQIndex& startOfQuaternion) const {
+        if (nAngles < 4 || getUseEulerAngles(sbs.getModelVars())) {
+            startOfQuaternion.invalidate();
+            return false;
+        }
+        startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
+        return true;
+    }
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& numAngles) const {
+        if (nAngles == 0 || (nAngles == 4 && !getUseEulerAngles(sbs.getModelVars()))) {
+            startOfAngles.invalidate();
+            numAngles = 0;
+            return false;
+        }
+        startOfAngles = MobilizerQIndex(0);
+        numAngles = std::min(nAngles, 3); 
+        return true;
+    }
+    void copyQ(const SBModelVars& mv, const Vector& qIn, Vector& q) const {
+        const int n = getNQInUse(mv);
+        for (int i = 0; i < n; ++i)
+            q[i] = qIn[i];
+    }
+    void calcLocalQDotFromLocalU(const SBStateDigest& sbs, const Real* u, Real* qdot) const {
+        impl.multiplyByQMatrix(sbs.getState(), false, nu, u, getNQInUse(sbs.getModelVars()), qdot);
+    }
+    void calcLocalQDotDotFromLocalUDot(const SBStateDigest& sbs, const Real* udot, Real* qdotdot) const {
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBPositionCache& pc   = sbs.getPositionCache();
+        const int nqInUse = getNQInUse(sbs.getModelVars());
+        const Real* u = &sbs.getU()[this->getUIndex()];
+        impl.multiplyByQMatrix(sbs.getState(), false, nu, udot, nqInUse, qdotdot);
+        Real temp[7];
+        impl.multiplyByQDotMatrix(sbs.getState(), false, nu, u, nqInUse, temp);
+        for (int i = 0; i < nqInUse; ++i)
+            qdotdot[i] += temp[i];
+    }
+    void multiplyByQBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q, bool matrixOnRight, 
+                                  const Real* in, Real* out) const {
+        const SBModelVars& mv = sbs.getModelVars();
+        int nIn, nOut;
+        if (matrixOnRight) {
+            nIn = getNQInUse(mv);
+            nOut = getNUInUse(mv);
+        }
+        else {
+            nIn = getNUInUse(mv);
+            nOut = getNQInUse(mv);
+        }
+        impl.multiplyByQMatrix(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
+    }
+    void multiplyByQInvBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q, bool matrixOnRight,
+                                     const Real* in, Real* out) const {
+        const SBModelVars& mv = sbs.getModelVars();
+        int nIn, nOut;
+        if (matrixOnRight) {
+            nIn = getNUInUse(mv);
+            nOut = getNQInUse(mv);
+        }
+        else {
+            nIn = getNQInUse(mv);
+            nOut = getNUInUse(mv);
+        }
+        impl.multiplyByQInverse(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
+    }
+    void multiplyByQDotBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q, const Real* u,
+                                     bool matrixOnRight, const Real* in, Real* out) const {
+        const SBModelVars& mv = sbs.getModelVars();
+        int nIn, nOut;
+        if (matrixOnRight) {
+            nIn = getNQInUse(mv);
+            nOut = getNUInUse(mv);
+        }
+        else {
+            nIn = getNUInUse(mv);
+            nOut = getNQInUse(mv);
+        }
+        impl.multiplyByQDotMatrix(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
+    }
+
+    void calcQDot(const SBStateDigest& sbs, const Vector& u, Vector& qdot) const {
+        const int nqInUse = getNQInUse(sbs.getModelVars());
+        const int qindex = this->getQIndex();
+        impl.multiplyByQMatrix(sbs.getState(), false, nu, &u[this->getUIndex()], nqInUse, &qdot[qindex]);
+        for (int i = nqInUse; i < nq; ++i)
+            qdot[qindex+i] = 0.0;
+    }
+
+    void calcQDotDot(const SBStateDigest& sbs, const Vector& udot, Vector& qdotdot) const {
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBPositionCache& pc   = sbs.getPositionCache();
+        const int nqInUse = getNQInUse(sbs.getModelVars());
+        const int qindex = this->getQIndex();
+        const Real* u = &sbs.getU()[this->getUIndex()];
+        impl.multiplyByQMatrix(sbs.getState(), false, nu, &udot[this->getUIndex()], nqInUse, &qdotdot[qindex]);
+        Real temp[7];
+        impl.multiplyByQDotMatrix(sbs.getState(), false, nu, u, nqInUse, temp);
+        for (int i = 0; i < nqInUse; ++i)
+            qdotdot[qindex+i] += temp[i];
+        for (int i = nqInUse; i < nq; ++i)
+            qdotdot[qindex+i] = 0.0;
+    }
+    bool enforceQuaternionConstraints(const SBStateDigest& sbs, Vector& q, Vector& qErrest) const {
+        if (nAngles != 4 || getUseEulerAngles(sbs.getModelVars())) 
+            return false;
+        Vec4& quat = this->toQuat(q);
+        quat = quat / quat.norm();
+        if (qErrest.size()) {
+            Vec4& qerr = this->toQuat(qErrest);
+            qerr -= dot(qerr,quat) * quat;
+        }
+        return true;
+    }
+    
+    // Convert from quaternion to Euler angle representations.
+    void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {
+        int indexBase = this->getQIndex();
+        if (nAngles != 4) {
+            for (int i = 0; i < nq; ++i)
+                outputQ[indexBase+i] = inputQ[indexBase+i];
+        }
+        else {
+            this->toQVec3(outputQ, 0) = Rotation(Quaternion(this->fromQuat(inputQ))).convertRotationToBodyFixedXYZ();
+            for (int i = 3; i < nq-1; ++i)
+                outputQ[indexBase+i] = inputQ[indexBase+i+1];
+            outputQ[indexBase+nq-1] = 0.0;
+        }
+    }
+    // Convert from Euler angle to quaternion representations.
+    void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {
+        int indexBase = this->getQIndex();
+        if (nAngles != 4) {
+            for (int i = 0; i < nq; ++i)
+                outputQ[indexBase+i] = inputQ[indexBase+i];
+        }
+        else {
+            Rotation rot;
+            rot.setRotationToBodyFixedXYZ(Vec3(inputQ[indexBase], inputQ[indexBase+1], inputQ[indexBase+2]));
+            this->toQuat(outputQ) = rot.convertRotationToQuaternion().asVec4();
+            for (int i = 4; i < nq; ++i)
+                outputQ[indexBase+i] = inputQ[indexBase+i-1];
+        }
+    };
+
+    void setQToFitTransform(const SBStateDigest& sbs, const Transform& X_FM, Vector& q) const {
+        impl.setQToFitTransform(sbs.getState(), X_FM, this->getNQInUse(sbs.getModelVars()), &q[this->getQIndex()]);
+    }
+    void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {
+        setQToFitTransform(sbs, Transform(R_FM), q);
+    }
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
+        setQToFitTransform(sbs, Transform(T_FM), q);
+    }
+
+    void setUToFitVelocity(const SBStateDigest& sbs, const Vector& q, const SpatialVec& V_FM, Vector& u) const {
+        impl.setUToFitVelocity(sbs.getState(), V_FM, nu, &u[this->getUIndex()]);
+    }
+    void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM, Vector& u) const {
+        setUToFitVelocity(sbs, q, SpatialVec(w_FM, Vec3(0)), u);
+    }
+    void setUToFitLinearVelocity(const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const {
+        setUToFitVelocity(sbs, q, SpatialVec(Vec3(0), v_FM), u);
+    }
+
+        // VIRTUAL METHODS FOR SINGLE-NODE OPERATOR CONTRIBUTIONS //
+
+    void realizeModel(SBStateDigest& sbs) const {
+        RigidBodyNodeSpec<nu>::realizeModel(sbs);
+        impl.realizeModel(sbs.updState());
+    }
+
+    void realizeInstance(SBStateDigest& sbs) const {
+        RigidBodyNodeSpec<nu>::realizeInstance(sbs);
+        impl.realizeInstance(sbs.getState());
+    }
+
+    void realizeTime(SBStateDigest& sbs) const {
+        RigidBodyNodeSpec<nu>::realizeTime(sbs);
+        impl.realizeTime(sbs.getState());
+    }
+
+    void realizePosition(SBStateDigest& sbs) const {
+        impl.realizePosition(sbs.getState());
+        RigidBodyNodeSpec<nu>::realizePosition(sbs);
+    }
+
+    void realizeVelocity(SBStateDigest& sbs) const {
+        impl.realizeVelocity(sbs.getState());
+        RigidBodyNodeSpec<nu>::realizeVelocity(sbs);
+    }
+
+    void realizeDynamics(SBStateDigest& sbs) const {
+        RigidBodyNodeSpec<nu>::realizeDynamics(sbs);
+        impl.realizeDynamics(sbs.getState());
+    }
+
+    void realizeAcceleration(SBStateDigest& sbs) const {
+        RigidBodyNodeSpec<nu>::realizeAcceleration(sbs);
+        impl.realizeAcceleration(sbs.getState());
+    }
+
+    void realizeReport(SBStateDigest& sbs) const {
+        RigidBodyNodeSpec<nu>::realizeReport(sbs);
+        impl.realizeReport(sbs.getState());
+    }
+
+    void getInternalForce(const SBAccelerationCache& ac, Vector& tau) const {
+        assert(false);
+    }
+
+    void calcJointSinCosQNorm(
+        const SBModelVars&  mv, 
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const {
+        
+    }
+    
+    void calcAcrossJointTransform(
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_FM) const {
+        Vector localQ = q(this->getQIndex(), getNQInUse(sbs.getModelVars()));
+        if (nAngles == 4 && !getUseEulerAngles(sbs.getModelVars()))
+            Vec4::updAs(&localQ[0]) = Vec4::getAs(&localQ[0]).normalize(); // Normalize the quaternion
+        X_FM = impl.calcMobilizerTransformFromQ(sbs.getState(), localQ.size(), &(localQ[0]));
+    }
+    
+    void calcAcrossJointVelocityJacobian(
+        const SBStateDigest& sbs,
+        Mat<nu,2,Row3,1,2>&  H_FM) const {
+        for (int i = 0; i < nu; ++i) {
+            Vec<nu> u(0);
+            u[i] = 1;
+            H_FM.row(i) = ~impl.multiplyByHMatrix(sbs.getState(), nu, &u[0]);
+        }
+    }
+
+    void calcAcrossJointVelocityJacobianDot(
+        const SBStateDigest& sbs,
+        Mat<nu,2,Row3,1,2>&  H_FM_Dot) const {
+        for (int i = 0; i < nu; ++i) {
+            Vec<nu> u(0);
+            u[i] = 1;
+            H_FM_Dot.row(i) = ~impl.multiplyByHDotMatrix(sbs.getState(), nu, &u[0]);
+        }
+    }
+
+private:
+    const MobilizedBody::Custom::Implementation& impl;
+    const int nq, nAngles;
+};
 
 /////////////////////////////////////////////////////////////
 // Implementation of RigidBodyNodeSpec base class methods. //
@@ -4234,22 +4450,20 @@ RigidBodyNodeSpec<dof>::calcZ(
 //
 template<int dof> void 
 RigidBodyNodeSpec<dof>::calcAccel(
-    const SBModelVars&     mv,
-    const Vector&          allQ,
-    const SBPositionCache& pc,
-    const Vector&          allU,
-    const SBDynamicsCache& dc,
-    SBAccelerationCache&   ac,
+    const SBStateDigest&   sbs,
     Vector&                allUdot,
     Vector&                allQdotdot) const 
 {
+    const SBPositionCache& pc = sbs.getPositionCache();
+    const SBDynamicsCache& dc = sbs.getDynamicsCache();
+    SBAccelerationCache&   ac = sbs.updAccelerationCache();
     Vec<dof>&        udot   = toU(allUdot);
     const SpatialVec alphap = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
 
     udot        = getNu(ac) - (~getG(dc)*alphap);
     updA_GB(ac) = alphap + ~getH(pc)*udot + getCoriolisAcceleration(dc);  
 
-    calcQDotDot(mv, allQ, pc, allU, allUdot, allQdotdot);  
+    calcQDotDot(sbs, allUdot, allQdotdot);  
 }
 
  
@@ -4663,11 +4877,29 @@ RigidBodyNode* MobilizedBody::CustomImpl::createRigidBodyNode(
     USquaredIndex& nextUSqSlot,
     QIndex&        nextQSlot) const
 {
-    assert(!"Custom MobilizedBody not implemented yet"); return 0;
-    // return new RBNodeCustom(
-    //     getDefaultRigidBodyMassProperties(),
-    //     getDefaultInboardFrame(),getDefaultOutboardFrame(),
-    //     nextUSlot,nextUSqSlot,nextQSlot);
+    switch (getImplementation().getImpl().getNU()) {
+    case 1:
+        return new RBNodeCustom<1>(getImplementation(), getDefaultRigidBodyMassProperties(),
+            getDefaultInboardFrame(), getDefaultOutboardFrame(), nextUSlot, nextUSqSlot, nextQSlot);
+    case 2:
+        return new RBNodeCustom<2>(getImplementation(), getDefaultRigidBodyMassProperties(),
+            getDefaultInboardFrame(), getDefaultOutboardFrame(), nextUSlot, nextUSqSlot, nextQSlot);
+    case 3:
+        return new RBNodeCustom<3>(getImplementation(), getDefaultRigidBodyMassProperties(),
+            getDefaultInboardFrame(), getDefaultOutboardFrame(), nextUSlot, nextUSqSlot, nextQSlot);
+    case 4:
+        return new RBNodeCustom<4>(getImplementation(), getDefaultRigidBodyMassProperties(),
+            getDefaultInboardFrame(), getDefaultOutboardFrame(), nextUSlot, nextUSqSlot, nextQSlot);
+    case 5:
+        return new RBNodeCustom<5>(getImplementation(), getDefaultRigidBodyMassProperties(),
+            getDefaultInboardFrame(), getDefaultOutboardFrame(), nextUSlot, nextUSqSlot, nextQSlot);
+    case 6:
+        return new RBNodeCustom<6>(getImplementation(), getDefaultRigidBodyMassProperties(),
+            getDefaultInboardFrame(), getDefaultOutboardFrame(), nextUSlot, nextUSqSlot, nextQSlot);
+    default:
+        assert(!"Illegal number of degrees of freedom for custom MobilizedBody");
+        return 0;
+    }
 }
 
 

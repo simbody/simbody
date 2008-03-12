@@ -61,6 +61,8 @@ template class PIMPLDerivedHandle<MobilizedBody::Slider, MobilizedBody::SliderIm
 template class PIMPLDerivedHandle<MobilizedBody::Translation, MobilizedBody::TranslationImpl, MobilizedBody>;
 template class PIMPLDerivedHandle<MobilizedBody::Universal, MobilizedBody::UniversalImpl, MobilizedBody>;
 template class PIMPLDerivedHandle<MobilizedBody::Weld, MobilizedBody::WeldImpl, MobilizedBody>;
+template class PIMPLHandle<MobilizedBody::Custom::Implementation, MobilizedBody::Custom::ImplementationImpl>;
+template class PIMPLImplementation<MobilizedBody::Custom::Implementation, MobilizedBody::Custom::ImplementationImpl>;
 
 } // namespace SimTK
 

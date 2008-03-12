@@ -76,11 +76,6 @@ public:
 
     virtual void realizeTopologyImpl(State&) const { }
 
-    void realizeTopology(State& s) const {
-        realizeTopologyImpl(s);
-        //TODO: more? Move RigidBodyNode creation here?
-    }
-
     // Copy out nq default values for q, beginning at the indicated address.
     // The concrete class should assert if nq is not a reasonable
     // number for the kind of mobilizer; there is a bug somewhere in that case. 
@@ -188,14 +183,12 @@ public:
     // Invalidate Stage::Position.
     void setQToFitTransform(State& s, const Transform& X_FM) const;
     void setQToFitRotation(State& s, const Rotation& R_FM) const;
-    void setQToFitTranslation(State& s, const Vec3& T_FM, 
-                                 bool dontChangeOrientation) const;
+    void setQToFitTranslation(State& s, const Vec3& T_FM) const;
 
     // Invalidate Stage::Velocity.
     void setUToFitVelocity(State& s, const SpatialVec& V_FM) const;
     void setUToFitAngularVelocity(State& s, const Vec3& w_FM) const;
-    void setUToFitLinearVelocity(State& s, const Vec3& v_FM,
-                                 bool dontChangeAngularVelocity)  const;
+    void setUToFitLinearVelocity(State& s, const Vec3& v_FM)  const;
 
     const MassProperties& getBodyMassProperties(const State& s) const {
         // TODO: these should come from the state if the body has variable mass props
@@ -243,7 +236,7 @@ public:
         return getMyRigidBodyNode().getV_FM(vc);
     }
 
-    const RigidBodyNode& realizeTopology(UIndex& nxtU, USquaredIndex& nxtUSq, QIndex& nxtQ) const;
+    const RigidBodyNode& realizeTopology(State& s, UIndex& nxtU, USquaredIndex& nxtUSq, QIndex& nxtQ) const;
 
     void invalidateTopologyCache() const {
         delete myRBnode; myRBnode=0;
@@ -808,32 +801,151 @@ private:
     Real defaultQ; // the angle in radians
 };
 
+/////////////////////////////////////////////////
+// MOBILIZED BODY::CUSTOM::IMPLEMENTATION IMPL //
+/////////////////////////////////////////////////
+
+// This class exists primarily to allow the Custom::Implementation class to keep
+// a pointer to its handle class's CustomImpl class which is derived from MobilizedBodyImpl
+// which has all the goodies that are needed for defining a MobilizedBody.
+//
+// At first this class is the owner of the CustomImpl. Then when this is put in a
+// Custom handle, that handle takes over ownership of the CustomImpl and the 
+// CustomImpl takes over ownership of this ImplementationImpl object.
+class MobilizedBody::Custom::ImplementationImpl : public PIMPLImplementation<Implementation, ImplementationImpl> {
+public:
+    // no default constructor
+    explicit ImplementationImpl(CustomImpl* customImpl, int nu, int nq, int nAngles) : isOwner(true), builtInImpl(customImpl), nu(nu), nq(nq), nAngles(nAngles) { }
+    inline ~ImplementationImpl(); // see below -- have to wait for CustomImpl's definition
+    
+    // Copying one of these just gives us a new one with a NULL CustomImpl pointer.
+    ImplementationImpl(const ImplementationImpl& src) : isOwner(false), builtInImpl(0), nu(src.nu), nq(src.nq), nAngles(src.nAngles) { }
+    
+    ImplementationImpl* clone() const {return new ImplementationImpl(*this);}
+    
+    bool isOwnerOfCustomImpl() const {return builtInImpl && isOwner;}
+    CustomImpl* removeOwnershipOfCustomImpl() {
+        assert(isOwnerOfCustomImpl()); 
+        isOwner=false; 
+        return builtInImpl;
+    }
+    
+    void setReferenceToCustomImpl(CustomImpl* cimpl) {
+        assert(!builtInImpl); // you can only do this once
+        isOwner=false;
+        builtInImpl = cimpl;
+    }
+    
+    bool hasCustomImpl() const {return builtInImpl != 0;}
+    
+    const CustomImpl& getCustomImpl() const {
+        assert(builtInImpl);
+        return *builtInImpl;
+    }
+    CustomImpl& updCustomImpl() {
+        assert(builtInImpl);
+        return *builtInImpl;
+    }
+    
+    int getNU() const {
+        return nu;
+    }
+    
+    int getNQ() const {
+        return nq;
+    }
+    
+    int getNAngles() const {
+        return nAngles;
+    }
+
+private:
+    bool isOwner;
+    CustomImpl* builtInImpl; // just a reference; not owned
+    int nu, nq, nAngles;
+
+    // suppress assignment
+    ImplementationImpl& operator=(const ImplementationImpl&);
+};
+
+/////////////////////////////////
+// MOBILIZED BODY::CUSTOM IMPL //
+/////////////////////////////////
+
 class MobilizedBody::CustomImpl : public MobilizedBodyImpl {
 public:
-    CustomImpl(int nMobilities, int nCoordinates) 
-      : nu(nMobilities), nq(nCoordinates), defaultQ(nq) {
-        defaultQ.setToZero();
+    CustomImpl() : implementation(0) { }
+    
+    void takeOwnershipOfImplementation(Custom::Implementation* userImpl);
+    
+    explicit CustomImpl(Custom::Implementation* userImpl) : implementation(0) { 
+        assert(userImpl);
+        implementation = userImpl;
+        implementation->updImpl().setReferenceToCustomImpl(this);
+    }    
+    
+    // Copy constructor
+    CustomImpl(const CustomImpl& src) : implementation(0) {
+        if (src.implementation) {
+            implementation = src.implementation->clone();
+            implementation->updImpl().setReferenceToCustomImpl(this);
+        }
     }
+    
     CustomImpl* clone() const { return new CustomImpl(*this); }
+    
+    const Custom::Implementation& getImplementation() const {
+        assert(implementation);
+        return *implementation;
+    }
+    
+    Custom::Implementation& updImplementation() {
+        assert(implementation);
+        return *implementation;
+    }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
         QIndex&        nextQSlot) const;
-
-    void copyOutDefaultQImpl(int expectedNq, Real* q) const {
-        SimTK_ASSERT(expectedNq==nq, 
+    
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==getImplementation().getImpl().getNQ() || nq==getImplementation().getImpl().getNQ()-1, 
             "MobilizedBody::Custom::CustomImpl::copyOutDefaultQImpl(): wrong number of q's expected");
-        for (int i=0; i<nq; ++i)
-            q[i] = defaultQ[i];
+        for (int i = 0; i < nq; ++i)
+            q[i] = 0.0;
     }
 
+    // Forward all the virtuals to the Custom::Implementation virtuals.
+    void realizeTopologyImpl(State& s) const {getImplementation().realizeTopology(s);}
+    void realizeModel   (State& s) const {getImplementation().realizeModel(s);}
+    void realizeInstance(const State& s) const {getImplementation().realizeInstance(s);}
+    void realizeTime    (const State& s) const {getImplementation().realizeTime(s);}
+    void realizePosition(const State& s) const {getImplementation().realizePosition(s);}
+    void realizeVelocity(const State& s) const {getImplementation().realizeVelocity(s);}
+    void realizeDynamics(const State& s) const {getImplementation().realizeDynamics(s);}
+    void realizeAcceleration(const State& s) const {getImplementation().realizeAcceleration(s);}
+    void realizeReport  (const State& s) const {getImplementation().realizeReport(s);}
+        
+    void calcDecorativeGeometryAndAppend(const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+       {getImplementation().calcDecorativeGeometryAndAppend(s,stage,geom);}
+    
     SimTK_DOWNCAST(CustomImpl, MobilizedBodyImpl);
 private:
-    int nu;
-    int nq;
-    Vector defaultQ;
+    friend class MobilizedBody::Custom;
+    
+    Custom::Implementation* implementation;
+    
+    CustomImpl& operator=(const CustomImpl&); // suppress assignment
 };
+
+// Need definition for CustomImpl here in case we have to delete it.
+inline MobilizedBody::Custom::ImplementationImpl::~ImplementationImpl() {
+    if (isOwner) 
+        delete builtInImpl; 
+    builtInImpl=0;
+}
+
 
 } // namespace SimTK
 

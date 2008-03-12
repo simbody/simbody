@@ -481,9 +481,7 @@ LengthSet::calcPosZ(const State& s, const Vector& b) const
 	const Matrix Gt = calcGrad(s);
     const Vector x = calcPseudoInverseA(Gt) * b;
 
-    const SBModelVars&     mv = getRBTree().getModelVars(s);
-    const Vector&          q  = getRBTree().getQ(s);
-    const SBPositionCache& cc = getRBTree().updPositionCache(s);
+    const SBStateDigest digest(s, getRBTree(), Stage::Position);
 
     Vector       zu(getRBTree().getTotalDOF(),0.);
     Vector       zq(getRBTree().getTotalQAlloc(),0.);
@@ -497,7 +495,7 @@ LengthSet::calcPosZ(const State& s, const Vector& b) const
         indx += d;
 
         // Make qdot = Q*u.
-        nodeMap[i]->calcQDot(mv,q,cc,zu,zq);  // change u's to qdot's
+        nodeMap[i]->calcQDot(digest,zu,zq);  // change u's to qdot's
     }
     assert(indx == ndofThisSet);
 
@@ -608,13 +606,13 @@ LengthConstraints::enforceVelocityConstraints(State& s, const Real& requiredTol,
 
 void LengthSet::setPos(State& s, const Vector& pos) const
 {
-    const SBModelVars& mv = getRBTree().getModelVars(s);
+    const SBStateDigest digest(s, getRBTree(), Stage::Position);
     Vector&            q  = getRBTree().updQ(s);
     SBPositionCache&   pc = getRBTree().updPositionCache(s);
     Vector&            qErr = getRBTree().updQErr(s);
 
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
-        nodeMap[i]->copyQ(mv, pos, q);
+        nodeMap[i]->copyQ(digest, pos, q);
 
     // TODO: sherm this is the wrong place for the stage update!
     s.invalidateAll(Stage::Position);
@@ -636,14 +634,14 @@ void LengthSet::setPos(State& s, const Vector& pos) const
 // Must have called LengthSet::setPos() already.
 void LengthSet::setVel(State& s, const Vector& vel) const
 {
-    const SBModelVars&     mv = getRBTree().getModelVars(s);
+    const SBStateDigest digest(s, getRBTree(), Stage::Position);
     const SBPositionCache& pc = getRBTree().getPositionCache(s);
     Vector&                u  = getRBTree().updU(s);
     SBVelocityCache&       vc = getRBTree().updVelocityCache(s);
     Vector&                uErr = getRBTree().updUErr(s);
 
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
-        nodeMap[i]->copyU(mv, vel, u);
+        nodeMap[i]->copyU(digest, vel, u);
 
     // TODO: sherm this is the wrong place for the stage update!
     s.invalidateAll(Stage::Velocity);
@@ -745,6 +743,7 @@ LengthSet::calcGrad(const State& s) const
 {
     // We're not updating, but need to use upd here because Position stage
     // was invalidated by change to state.
+    const SBStateDigest digest(s, getRBTree(), Stage::Position);
     const SBPositionCache& pc = getRBTree().updPositionCache(s);
 
     Matrix grad(ndofThisSet,loops.size(),0.0);
@@ -789,7 +788,7 @@ LengthSet::calcGrad(const State& s) const
             const int l2_indx = (found1==n1.end() ? -1 : found1-n1.begin());
 
             for (int k=0 ; k < nodeMap[j]->getDOF() ; k++) {
-                const SpatialVec& HtCol = ~nodeMap[j]->getHRow(pc, k);
+                const SpatialVec& HtCol = ~nodeMap[j]->getHRow(digest, k);
                 if ( l1_indx >= 0 ) { 
                     elem = -dot(uBond , Vec3(J[0] * phiT[0][l1_indx]*HtCol));
                 } else if ( l2_indx >= 0 ) { 

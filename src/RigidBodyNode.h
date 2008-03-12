@@ -132,8 +132,6 @@ using SimTK::Array;
  */
 class RigidBodyNode {
 public:
-    class VirtualBaseMethod {};    // an exception
-
     // Every concrete RigidBodyNode sets this property on construction so we know
     // whether it can use simple default implementations for kinematic equations
     // (those involving the Q matrix), which rely on qdot=u.
@@ -164,39 +162,41 @@ public:
 
     // This depends on the mobilizer type and modeling options. If it returns
     // true then this node will be assigned a slot for the quaternion information pool.
-    virtual bool isUsingQuaternion(const SBModelVars&, MobilizerQIndex& startOfQuaternion) const=0;
+    virtual bool isUsingQuaternion(const SBStateDigest&, MobilizerQIndex& startOfQuaternion) const=0;
 
     // This depends on the mobilizer type and modeling options. If it returns
     // true then this node will be assigned slots for the angle information pool.
-    virtual bool isUsingAngles(const SBModelVars&, MobilizerQIndex& startOfAngles, int& nAngles) const=0;
+    virtual bool isUsingAngles(const SBStateDigest&, MobilizerQIndex& startOfAngles, int& nAngles) const=0;
 
     // Copy the right q's from qIn to the corresponding slots in q. The number copied
     // may depend on modeling choices as supplied in the first argument.
     virtual void copyQ(
-        const SBModelVars& mv, 
+        const SBStateDigest& sbs, 
         const Vector&      qIn, 
-        Vector&            q) const
-      { throw VirtualBaseMethod(); }
+        Vector&            q) const {
+        SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "copyQ"); 
+    }
 
     // Copy the right u's from uIn to the corresponding slots in u. Modeling choices
     // can't affect the number copied since the number of u's should be identical
     // to the number of mobilities. TODO: then why the first argument?
     virtual void copyU(
-        const SBModelVars& mv, 
+        const SBStateDigest& sbs, 
         const Vector&      uIn, 
-        Vector&            u) const
-      { throw VirtualBaseMethod(); }
+        Vector&            u) const {
+        SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "copyU");
+    }
 
 
     // Mobilizer-local operators.
-    virtual void calcLocalQDotFromLocalU      (const SBStateDigest&, const Real* u,    Real* qdot)      const {throw VirtualBaseMethod();}
-    virtual void calcLocalQDotDotFromLocalUDot(const SBStateDigest&, const Real* udot, Real* qdotdot)   const {throw VirtualBaseMethod();}
-    virtual Transform  calcMobilizerTransformFromQ          (const SBStateDigest&,    const Real* q)    const {throw VirtualBaseMethod();}
-    virtual SpatialVec calcMobilizerVelocityFromU           (const SBStateDigest&,    const Real* u)    const {throw VirtualBaseMethod();}
-    virtual SpatialVec calcMobilizerAccelerationFromUDot    (const SBStateDigest&,    const Real* udot) const {throw VirtualBaseMethod();}
-    virtual Transform  calcParentToChildTransformFromQ      (const SBStateDigest&,    const Real* q)    const {throw VirtualBaseMethod();}
-    virtual SpatialVec calcParentToChildVelocityFromU       (const SBStateDigest&,    const Real* u)    const {throw VirtualBaseMethod();}
-    virtual SpatialVec calcParentToChildAccelerationFromUDot(const SBStateDigest&,    const Real* udot) const {throw VirtualBaseMethod();}
+    virtual void calcLocalQDotFromLocalU      (const SBStateDigest&, const Real* u,    Real* qdot)      const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcLocalQDotFromLocalU");}
+    virtual void calcLocalQDotDotFromLocalUDot(const SBStateDigest&, const Real* udot, Real* qdotdot)   const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcLocalQDotDotFromLocalUDot");}
+    virtual Transform  calcMobilizerTransformFromQ          (const SBStateDigest&,    const Real* q)    const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMobilizerTransformFromQ");}
+    virtual SpatialVec calcMobilizerVelocityFromU           (const SBStateDigest&,    const Real* u)    const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMobilizerVelocityFromU");}
+    virtual SpatialVec calcMobilizerAccelerationFromUDot    (const SBStateDigest&,    const Real* udot) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMobilizerAccelerationFromUDot");}
+    virtual Transform  calcParentToChildTransformFromQ      (const SBStateDigest&,    const Real* q)    const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcParentToChildTransformFromQ");}
+    virtual SpatialVec calcParentToChildVelocityFromU       (const SBStateDigest&,    const Real* u)    const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcParentToChildVelocityFromU");}
+    virtual SpatialVec calcParentToChildAccelerationFromUDot(const SBStateDigest&,    const Real* udot) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcParentToChildAccelerationFromUDot");}
 
     // Operators involving kinematics matrix Q and related matrices QInv and QDot. 
     // These methods perform operations involving
@@ -243,30 +243,25 @@ public:
 
     virtual void multiplyByQBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
                                   bool matrixOnRight, 
-                                  const Real* in, Real* out) const {throw VirtualBaseMethod();}
+                                  const Real* in, Real* out) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "multiplyByQBlock");}
     virtual void multiplyByQInvBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
                                      bool matrixOnRight,
-                                     const Real* in, Real* out) const {throw VirtualBaseMethod();}
+                                     const Real* in, Real* out) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "multiplyByQInvBlock");}
     virtual void multiplyByQDotBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q, const Real* u,
                                      bool matrixOnRight,
-                                     const Real* in, Real* out) const {throw VirtualBaseMethod();}
+                                     const Real* in, Real* out) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "multiplyByQDotBlock");}
 
     virtual void calcQDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
+        const SBStateDigest&   sbs,
         const Vector&          u,
         Vector&                qdot) const
-      { throw VirtualBaseMethod(); }
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcQDot"); }
 
     virtual void calcQDotDot(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u, 
+        const SBStateDigest&   sbs,
         const Vector&          udot, 
         Vector&                qdotdot) const
-      { throw VirtualBaseMethod(); }
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcQDotDot"); }
 
     // This will do nothing unless the mobilizer is using a quaternion. Otherwise it
     // will normalize its quaternion in q, and if qErrest has non-zero length then
@@ -276,14 +271,14 @@ public:
     // and qErrest -= dot(qErrest,q_fixed)*q_fixed
 
     virtual bool enforceQuaternionConstraints(
-        const SBModelVars& mv,
+        const SBStateDigest& sbs,
         Vector&            q,
         Vector&            qErrest) const=0;
     
     // Convert from quaternion to Euler angle representations.
-    virtual void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {throw VirtualBaseMethod();};
+    virtual void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "convertToEulerAngles");};
     // Convert from Euler angle to quaternion representations.
-    virtual void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {throw VirtualBaseMethod();};
+    virtual void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "convertToQuaternions");};
 
     // Called after Model variables are allocated by realizeTopology()
     virtual void setMobilizerDefaultModelValues       (const SBTopologyCache&, SBModelVars&)        const {}
@@ -311,52 +306,41 @@ public:
     // make things worse. In particular, it does not need to work hard on an approximate solution.
 
     virtual void setQToFitTransform
-       (const SBModelVars&, const Transform& X_FM, Vector& q) const = 0;
+       (const SBStateDigest&, const Transform& X_FM, Vector& q) const = 0;
     virtual void setQToFitRotation
-       (const SBModelVars&, const Rotation& R_FM, Vector& q) const = 0;
+       (const SBStateDigest&, const Rotation& R_FM, Vector& q) const = 0;
     virtual void setQToFitTranslation
-       (const SBModelVars&, const Vec3& T_FM, Vector& q,
-        bool dontChangeOrientation)                           const = 0;
+       (const SBStateDigest&, const Vec3& T_FM, Vector& q) const = 0;
 
     virtual void setUToFitVelocity
-       (const SBModelVars&, const Vector& q, const SpatialVec& V_FM, Vector& u) const = 0;
+       (const SBStateDigest&, const Vector& q, const SpatialVec& V_FM, Vector& u) const = 0;
     virtual void setUToFitAngularVelocity
-       (const SBModelVars&, const Vector& q, const Vec3& w_FM, Vector& u)       const = 0;
+       (const SBStateDigest&, const Vector& q, const Vec3& w_FM, Vector& u)       const = 0;
     virtual void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector& q, const Vec3& v_FM, Vector& u,
-        bool dontChangeAngularVelocity)                                          const = 0;
+       (const SBStateDigest&, const Vector& q, const Vec3& v_FM, Vector& u) const = 0;
 
         // VIRTUAL METHODS FOR SINGLE-NODE OPERATOR CONTRIBUTIONS //
 
     virtual void realizeModel(
-        const SBModelVars& mv,
-        SBModelCache&      mc) const=0;
+        SBStateDigest& sbs) const=0;
 
     virtual void realizeInstance(
-        const SBModelVars&    mv,
-        const SBInstanceVars& iv,
-        SBInstanceCache&      ic) const=0;
+        SBStateDigest& sbs) const=0;
+
+    virtual void realizeTime(
+        SBStateDigest&      sbs) const=0;
 
     // Introduce new values for generalized coordinates and calculate
     // all the position-dependent kinematic terms, including position
     // constraint errors. Must be called base to tip.
     virtual void realizePosition(
-        const SBModelVars&  mv,
-        const SBModelCache& mc,
-        const Vector&       q,
-        Vector&             qErr,
-        SBPositionCache&    pc) const=0;
+        SBStateDigest&      sbs) const=0;
 
     // Introduce new values for generalized speeds and calculate
     // all the velocity-dependent kinematic terms. Assumes realizePosition()
     // has already been called on all nodes. Must be called base to tip.
     virtual void realizeVelocity(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u,
-        SBVelocityCache&       vc,
-        Vector&                qdot) const=0;
+        SBStateDigest&         sbs) const=0;
 
     // Calculate base-to-tip velocity-dependent terms which will be used
     // in Dynamics stage operators. Assumes realizeVelocity()
@@ -364,13 +348,13 @@ public:
     // stage calculations which must go tip-to-base (e.g. articulated
     // body inertias).
     virtual void realizeDynamics(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc,
-        const Vector&          u,
-        const SBVelocityCache& vc,
-        SBDynamicsCache&       dc) const=0;
+        SBStateDigest&         sbs) const=0;
 
+    virtual void realizeAcceleration(
+        SBStateDigest&         sbs) const=0;
 
+    virtual void realizeReport(
+        SBStateDigest&         sbs) const=0;
 
     virtual void calcArticulatedBodyInertiasInward(
         const SBPositionCache& pc,
@@ -382,43 +366,37 @@ public:
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces,
         SBAccelerationCache&       ac) const 
-      { throw VirtualBaseMethod(); }*/
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcZ"); }*/
 
     virtual void calcZ(
         const SBStateDigest&,
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces) const 
-      { throw VirtualBaseMethod(); }
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcZ"); }
 
     virtual void calcYOutward(
-        const SBPositionCache& pc,
-        SBDynamicsCache&       dc) const                     
-      { throw VirtualBaseMethod(); }
+        const SBStateDigest& sbs) const                     
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcYOutward"); }
 
     virtual void calcAccel(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u,
-        const SBDynamicsCache& dc,
-        SBAccelerationCache&   ac,
+        const SBStateDigest&   sbs,
         Vector&                udot,
         Vector&                qdotdot) const 
-      { throw VirtualBaseMethod(); }
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcAccel"); }
 
 
     virtual void calcSpatialKinematicsFromInternal(
         const SBPositionCache&      pc,
         const Vector&               v,
         Vector_<SpatialVec>&        Jv) const
-      { throw VirtualBaseMethod(); }
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcSpatialKinematicsFromInternal"); }
 
     virtual void calcInternalGradientFromSpatial(
         const SBPositionCache&      pc, 
         Vector_<SpatialVec>&        zTmp,
         const Vector_<SpatialVec>&  X, 
         Vector&                     JX) const
-      { throw VirtualBaseMethod(); }
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcInternalGradientFromSpatial"); }
 
     virtual void calcEquivalentJointForces(
         const SBPositionCache&      pc,
@@ -426,7 +404,7 @@ public:
         const Vector_<SpatialVec>&  bodyForces,
         Vector_<SpatialVec>&        allZ,
         Vector&                     jointForces) const
-      { throw VirtualBaseMethod(); }
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcEquivalentJointForces"); }
 
     virtual void calcUDotPass1Inward(
         const SBPositionCache&      pc,
@@ -436,7 +414,7 @@ public:
         Vector_<SpatialVec>&        allZ,
         Vector_<SpatialVec>&        allGepsilon,
         Vector&                     allEpsilon) const
-      { throw VirtualBaseMethod(); } 
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcUDotPass1Inward"); } 
 
     virtual void calcUDotPass2Outward(
         const SBPositionCache&      pc,
@@ -444,7 +422,7 @@ public:
         const Vector&               epsilonTmp,
         Vector_<SpatialVec>&        allA_GB,
         Vector&                     allUDot) const
-      { throw VirtualBaseMethod(); }
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcUDotPass2Outward"); }
 
     virtual void calcMInverseFPass1Inward(
         const SBPositionCache&      pc,
@@ -453,7 +431,7 @@ public:
         Vector_<SpatialVec>&        allZ,
         Vector_<SpatialVec>&        allGepsilon,
         Vector&                     allEpsilon) const
-      { throw VirtualBaseMethod(); } 
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMInverseFPass1Inward"); } 
 
     virtual void calcMInverseFPass2Outward(
         const SBPositionCache&      pc,
@@ -461,19 +439,19 @@ public:
         const Vector&               epsilonTmp,
         Vector_<SpatialVec>&        allA_GB,
         Vector&                     allUDot) const
-      { throw VirtualBaseMethod(); }
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMInverseFPass2Outward"); }
 
 
-    virtual void setVelFromSVel(const SBPositionCache&, const SBVelocityCache&,
-                                const SpatialVec&, Vector& u) const {throw VirtualBaseMethod();}
+    virtual void setVelFromSVel(const SBStateDigest&,
+                                const SpatialVec&, Vector& u) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "setVelFromSVel");}
 
 
     virtual void getInternalForce(
-        const SBAccelerationCache& ac, 
-        Vector&                    tau) const {throw VirtualBaseMethod();}
+        const SBStateDigest& sbs, 
+        Vector& tau) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getInternalForce");}
 
     // Note that this requires rows of H to be packed like SpatialRow.
-    virtual const SpatialRow& getHRow(const SBPositionCache&, int i) const {throw VirtualBaseMethod();}
+    virtual const SpatialRow& getHRow(const SBStateDigest&, int i) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getHRow");}
 
     //TODO (does this even belong here?)
     virtual void velFromCartesian() {}

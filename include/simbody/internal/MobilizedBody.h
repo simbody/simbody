@@ -215,7 +215,11 @@ public:
     /// frame M in the parent body's corresponding "fixed" frame F, 
     /// measured and expressed in F. Note that this isn't the usual 
     /// spatial acceleration since it isn't expressed in G.
-    const SpatialVec& getMobilizerAcceleration(const State&) const; // A_FM
+    const SpatialVec& getMobilizerAcceleration(const State&) const { // A_FM
+        SimTK_ASSERT_ALWAYS(!"unimplemented method", 
+            "MobilizedBody::getMobilizerAcceleration() is not yet implemented -- any volunteers?");
+        return *(new SpatialVec());
+    }
 
     /// Return a reference to this body's mass properties in the State cache.
     /// The State must have been realized to Stage::Instance or higher.
@@ -379,16 +383,8 @@ public:
     /// which requests a particular offset between the origins of the "fixed"
     /// and "moving" frames connected by this mobilizer, with <em>any</em> q's (rotational
     /// or translational) being modified if doing so helps satisfy the request.
-    /// @see setQToFitTranslationOnly() 
     /// @see setQToFitTransform()
     void setQToFitTranslation    (State&, const Vec3&      p_FM) const;
-    /// Adjust this mobilizer's q's to best approximate the supplied position vector
-    /// which requests a particular offset between the origins of the "fixed"
-    /// and "moving" frames connected by this mobilizer, <em>without</em> changing
-    /// any purely rotational q's even if doing so would halp satisfy the request.
-    /// @see setQToFitTranslation() 
-    /// @see setQToFitTransform()
-    void setQToFitTranslationOnly(State&, const Vec3&      p_FM) const;
 
     /// Adjust this mobilizer's u's (generalized speeds) to best approximate
     /// the supplied spatial velocity \p V_FM which requests the relative angular
@@ -411,14 +407,6 @@ public:
     /// @see setQToFitTransform()
     /// @see setUToFitVelocity()
     void setUToFitLinearVelocity    (State&, const Vec3&       v_FM) const;
-    /// Adjust this mobilizer's u's (generalized speeds) to best approximate
-    /// the supplied linear velocity \p v_FM which requests a particular velocity for
-    /// the "moving" frame M origin in the "fixed" frame F on the parent where these
-    /// are the frames connected by this mobilizer, but without modifying any
-    /// purely rotational (angular) u's even if doing so would help satisfy the request.
-    /// @see setQToFitTransform()
-    /// @see setUToFitVelocity()
-    void setUToFitLinearVelocityOnly(State&, const Vec3&       v_FM) const;
 
     // End of State Access Methods.
     //@} 
@@ -2241,42 +2229,377 @@ public:
     }
 };
 
-/// TODO: this will be an abstract class with virtual methods
-/// that a user's derived class can implement to define a custom mobilizer.
-/// TODO: not implemented yet.
-/// 0-6 mobilities. 
+
+/**
+ * The handle class MobilizedBody::Custom (dataless) and its companion class MobilizedBody::Custom::Implementation
+ * can be used together to define new MobilizedBody types with arbitrary properties. To use it, create a class
+ * that extends MobilizedBody::Custom::Implementation. You can then create an instance of it and pass it to the
+ * MobilizedBody::Custom constructor:
+ * 
+ * <pre>
+ * MobilizedBody::Custom myMobilizedBody(new MyMobilizedBodyImplementation(args));
+ * </pre>
+ * 
+ * Alternatively, you can also create a new Handle class which is a subclass of MobilizedBody::Custom
+ * and which creates the Implementation itself in its constructors.
+ * 
+ * <pre>
+ * class MyMobilizedBody : public MobilizedBody::Custom {
+ * public:
+ *   MyMobilizedBody(args) : MobilizedBody::Custom(new MyForceImplementation(args)) {
+ *   }
+ * }
+ * </pre>
+ * 
+ * This allows an end user to simply write
+ * 
+ * <pre>
+ * MyMobilizedBody(args);
+ * </pre>
+ * 
+ * and not worry about implementation classes or creating objects on the heap.  If you do this, your MobilizedBody::Custom
+ * subclass must not have any data members or virtual methods.  If it does, it will not work correctly.  Instead,
+ * store all data in the Implementation subclass.
+ */
 class SimTK_SIMBODY_EXPORT MobilizedBody::Custom : public PIMPLDerivedHandle<Custom, CustomImpl, MobilizedBody> {
 public:
-    Custom(int nMobilities, int nCoordinates);
+    class Implementation;
+    class ImplementationImpl;
 
-    // Get calculations through Stage::Instance from State.
-    virtual void calcTransform(const State&, const Vector& q, 
-                               Transform& X_FM) const = 0;
-    //TODO: should H be a nuX2 Matrix_<Vec3> instead? or Vector_<SpatialVec>?
-    //      or nuX6 Matrix?
-    virtual void calcTransitionMatrix(const State& s, 
-                               Vector_<SpatialRow>& H_FM) const = 0;
-    virtual void calcTransitionMatrixTimeDerivative(const State& s,  
-                               Vector_<SpatialRow>& H_FM_Dot) const = 0;
-
-    // get q and calculations through Stage::Position from State if needed
-    virtual void calcQDot(const State&, const Vector& u, Vector& qdot) const {
-        qdot = u; //TODO: only if sizes match
-    }
-    // get q,u and calculations through Stage::Dynamics from State if needed
-    virtual void calcQDotDot(const State&, const Vector& udot, Vector& qdotdot) const {
-        qdotdot = udot; //TODO: only if sizes match
-    }
+    /* Create a Custom MobilizedBody.
+     * 
+     * @param parent         the MobilizedBody's parent body
+     * @param implementation the object which implements the custom mobilized body.  The MobilizedBody::Custom takes over
+     *                       ownership of the implementation object, and deletes it when the MobilizedBody itself
+     *                       is deleted.
+     * @param body           describes this MobilizedBody's physical properties
+     */
+    explicit Custom(MobilizedBody& parent, Implementation* implementation, const Body& body);
 protected:
-    // Utilities for use by Custom mobilized body implementation.
+    const Implementation& getImplementation() const;
+    Implementation&       updImplementation();
+};
 
-    // Be sure to call this whenever you make a change to any data contained
-    // in a concrete Custom MobilizedBody class. This method ensures that the
-    // containing matter subsystem will have its topology invalidated so that
-    // a subsequent call to realizeTopology() will recalculate the topology 
-    // cache. A good rule of thumb is that any method you provide which is
-    // non-const should start by calling invalidateTopologyCache().
+// We only want the template instantiation to occur once. This symbol is defined in the SimTK core
+// compilation unit that defines the MobilizedBody class but should not be defined any other time.
+// BE SURE TO DEAL WITH THIS IN MobilizedBody_Instantiation.cpp.
+#ifndef SimTK_SIMBODY_DEFINING_MOBILIZED_BODY
+    extern template class PIMPLHandle<MobilizedBody::Custom::Implementation, MobilizedBody::Custom::ImplementationImpl>;
+#endif
+
+
+class SimTK_SIMBODY_EXPORT MobilizedBody::Custom::Implementation 
+  : public PIMPLHandle<Implementation,ImplementationImpl> 
+{
+public:
+    // No default constructor because you have to supply at least the SimbodyMatterSubsystem
+    // to which this MobilizedBody belongs.
+
+    /// Destructor is virtual so derived classes get a chance to clean up if necessary.
+    virtual ~Implementation() { }
+
+    /// This method should produce a deep copy identical to the concrete derived Implementation
+    /// object underlying this Implementation base class object.
+    /// Note that the result is new heap space; the caller must be sure to take ownership
+    /// of the returned pointer and call delete on it when done.
+    virtual Implementation* clone() const = 0;
+
+    /// This Implementation base class constructor sets the topological defaults for
+    /// the number of mobilities (generalized speeds) u, the number of generalized
+    /// coordinates q, and the number of those q's that are angles. There can be up
+    /// to 3 angular coordinates (which must be measured in radians). You also can
+    /// specify 4 as the number of angles, which is interpreted to mean the the
+    /// mobilizer uses a quaternion to represent orientation. Because quaternions
+    /// are not appropriate for some calculations, however, the user may globally
+    /// disable them by calling setUseEulerAngles() on the SimbodyMatterSubsystem.
+    /// Therefore, if you specify nAngles=4, the actual number of angular state variables
+    /// may be either 3 (a set of Euler angles) or 4 (quaternion components), and the
+    /// total number of state variables could be either nq-1 or nq. Before
+    /// interpreting the state variables, you must first call getUseEulerAngles() to
+    /// determine which representation is in use.
+    ///
+    /// In any case, if there are any angular coordinates they must be the <i>first</i>
+    /// coordinates in the array of q's associated with this mobilizer. Translational
+    /// or other q's will immediately follow the angular ones. This permits Simbody
+    /// to handle quaternion normalization and conversion automatically, and to find angles which
+    /// need to have their sines and cosines calculated.
+    ///
+    /// NOTE: if you don't say there are any angles, you can mange things yourself.
+    /// However, there is no way to get quaternions normalized and converted if you don't tell
+    /// Simbody about them.
+    Implementation(SimbodyMatterSubsystem&, int nu, int nq, int nAngles=0);
+
+    /// Return a Vector containing all the generalized coordinates q currently in use by this mobilizer.
+    /// Note that if this mobilizer uses quaternions, the number of q's will depened on whether
+    /// quaternions are currently enabled.  Call getUseEulerAngles() to check this.
+    Vector getQ(const State& s) const;
+    
+    /// Return a Vector containing all the generalized speeds u currently in use by this mobilizer.
+    Vector getU(const State& s) const;
+
+    /// Return a Vector containing all the generalized coordinate derivatives qdot currently in use by this mobilizer.
+    /// Note that if this mobilizer uses quaternions, the number of q's will depened on whether
+    /// quaternions are currently enabled.  Call getUseEulerAngles() to check this.
+    Vector getQDot(const State& s) const;
+
+    /// Return a Vector containing all the generalized accelerations udot currently in use by this mobilizer.
+    Vector getUDot(const State& s) const;
+    
+    /// Return a Vector containing all the generalized coordinate second derivatives qdotdot currently in use by this mobilizer.
+    /// Note that if this mobilizer uses quaternions, the number of q's will depened on whether
+    /// quaternions are currently enabled.  Call getUseEulerAngles() to check this.
+    Vector getQDotDot(const State& s) const;
+
+    /// Get the cross-mobilizer transform X_FM, the body's inboard mobilizer frame M measured and expressed in
+    /// the parent body's corresponding outboard frame F.  The state must have been realized to at least
+    /// Position stage.
+    const Transform& getMobilizerTransform(const State& s) const;
+
+    /// Get the cross-mobilizer velocity V_FM, the relative velocity of this body's "moving" mobilizer
+    /// frame M in the parent body's corresponding "fixed" frame F, measured and expressed in F.
+    /// Note that this isn't the usual spatial velocity since it isn't expressed in G.
+    /// The state must have been realized to at least Velocity stage.
+    const SpatialVec& getMobilizerVelocity(const State& s) const;
+
+    /// Get whether rotations are being represented as quaternions or Euler angles.
+    /// This method is only relevant if the constructor was invoked with nAngles==4.
+    /// If this returns false, the first four q's should be interpreted as the
+    /// components of a (possibly not normalized) quaternion.  If it returns true, the
+    /// first three q's should be interpreted as Euler angles.
+    ///
+    /// Note that the total number of state variables is one less when using Euler
+    /// angles than when using quaternions.
+    bool getUseEulerAngles(const State& s) const;
+
+    /// Call this if you want to make sure that the next realizeTopology() call does
+    /// something. This is done automatically when you modify the MobilizedBody in ways
+    /// understood by Simbody. But if you are just
+    /// changing some of your own topology and want to make sure you get a chance to
+    /// recompute something in realizeTopology(), make this call at the time of 
+    /// modification.
     void invalidateTopologyCache() const;
+
+    /// @name MobilizedBody Virtuals
+    /// These must be defined for any Custom MobilizedBody.
+    /// Note that the numbers nu, nq, and nAngles are passed in to these routines for
+    /// redundancy -- you should make sure they have the values you are expecting!
+    //@{
+
+    /// Given values for this mobilizer's nq generalized coordinates q, compute X_FM(q), that is,
+    /// the cross-mobilizer spatial Transform giving the configuration of the "moving" frame M
+    /// fixed to the outboard (child) body B in the "fixed" frame F attached to the inboard (parent)
+    /// body P. The state is guaranteed to have been realized to at least Instance stage.
+    virtual Transform calcMobilizerTransformFromQ(const State& s, int nq, const Real* q) const = 0;
+
+
+    /// Calculate V_FM(u) = H*u where H=H(q) is the joint transition matrix mapping the mobilities to
+    /// the relative spatial velocity between the F frame on the parent to the M frame on the child.
+    /// The state is guaranteed to have been realized to at least Position stage.
+    ///
+    /// IMPORTANT -- H should depend only on X_FM(q), not directly on q, since different sets
+    /// of q's can generate the same Transform (e.g. quaternions and Euler angles). You can
+    /// call getMobilizerTransform(s) to get the already calculated Transform.
+
+    // TODO: UGLY CAVEAT -- I believe that the "H" I'm using here is the transpose of what
+    // is used in the code internally. That's because unfortunately for historical reasons
+    // Abhi Jain used H^T as the joint kinematics Jacobian, with H being the force transmission
+    // matrix which no mobilizer-writing user is going to care about. It would be best to 
+    // use the matrix in this friendlier way (or perhaps call it something else like "J" for
+    // Jacobian, although that is heavily overloaded) at least here in the interface but 
+    // ideally we would change the sense of the matrix everywhere. In Schwieters' paper he
+    // reversed Jain's body numbering scheme but not the sense of H. Perhaps I'm wrong and
+    // we ought just to leave the sense alone since users have to give us both H and H^T 
+    // operators here.
+    virtual SpatialVec multiplyByHMatrix(const State& s, int nu, const Real* u) const = 0;
+
+    /// Calculate f = ~H*F where F is a spatial force (torque+force) and f is its mapping onto
+    /// the mobilities.
+    ///
+    /// IMPORTANT -- H should depend only on X_FM(q), not directly on q, since different sets
+    /// of q's can generate the same Transform (e.g. quaternions and Euler angles). You can
+    /// call getMobilizerTransform(s) to get the already calculated Transform.
+    virtual void multiplyByHTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const = 0;
+
+    /// Calculate A0_FM = HDot*u where HDot=HDot(q,u) is the time derivative of H. This calculates
+    /// the "bias acceleration" due to coriolis effects, such that the full cross-mobilizer
+    /// acceleration is A_FM=A0_FM + H*udot.
+    /// The state is guaranteed to have been realized to at least Velocity stage.
+    ///
+    /// IMPORTANT -- HDot should depend only on X_FM(q) and V_FM(q,u), not directly on q or u,
+    /// since different choices of coordinates can generate the same X and V, but all such choices
+    /// must produce the same H and HDot. You can call getMobilizerTransform(s) to get the already
+    /// calculated Transform, and getMobilizerVelocity(s) to get the already calculated velocity.
+    virtual SpatialVec multiplyByHDotMatrix(const State& s, int nu, const Real* u) const = 0;
+
+    /// Calculate f = ~HDot*F where F is a spatial vector and f is its mapping onto
+    /// the mobilities.
+    /// The state is guaranteed to have been realized to at least Velocity stage.
+    ///
+    /// IMPORTANT -- HDot should depend only on X_FM(q) and V_FM(q,u), not directly on q or u,
+    /// since different choices of coordinates can generate the same X and V, but all such choices
+    /// must produce the same H and HDot. You can call getMobilizerTransform(s) to get the already
+    /// calculated Transform, and getMobilizerVelocity(s) to get the already calculated velocity.
+    virtual void multiplyByHDotTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const = 0;
+
+    /// Calculate out_q = Q(q)*in_u (e.g., qdot=Q*u)
+    /// or out_u = ~Q*in_q. Note that one of "in" and "out" is always "q-like" while
+    /// the other is "u-like", but which is which changes if the matrix is transposed.
+    /// Note that the transposed operation here is the same as multiplying by Q on
+    /// the right, with the Vectors viewed as RowVectors instead.
+    /// The default implementation assumes that Q is an identity matrix, and will
+    /// only work if nq=nu=nIn=nOut and nAngles < 4 (i.e., no quaternions). If this
+    /// is true for your mobilizer, you do not need to implement this method.
+    ///
+    /// The state is guaranteed to have been realized to at least Position stage.
+    virtual void multiplyByQMatrix(const State& s, bool transposeMatrix, 
+                           int nIn, const Real* in, int nOut, Real* out) const;
+
+    /// Calculate out_u = QInv(q)*in_q (e.g., u=QInv*qdot)
+    /// or out_q = ~QInv*in_u. Note that one of "in" and "out" is always "q-like" while
+    /// the other is "u-like", but which is which changes if the matrix is transposed.
+    /// Note that the transposed operation here is the same as multiplying by QInv on
+    /// the right, with the Vectors viewed as RowVectors instead.
+    /// The default implementation assumes that QInv is an identity matrix, and will
+    /// only work if nq=nu=nIn=nOut and nAngles < 4 (i.e., no quaternions). If this
+    /// is true for your mobilizer, you do not need to implement this method.
+    ///
+    /// The state is guaranteed to have been realized to at least Position stage.
+    virtual void multiplyByQInverse(const State& s, bool transposeMatrix, 
+                                           int nIn, const Real* in, int nOut, Real* out) const;
+
+    /// Calculate out_q = QDot(q)*in_u
+    /// or out_u = ~QDot*in_q. Note that one of "in" and "out" is always "q-like" while
+    /// the other is "u-like", but which is which changes if the matrix is transposed.
+    /// Note that the transposed operation here is the same as multiplying by QDot on
+    /// the right, with the Vectors viewed as RowVectors instead.
+    /// The default implementation assumes that QDot is zero, and will
+    /// only work if nq=nu=nIn=nOut and nAngles < 4 (i.e., no quaternions) If this
+    /// is true for your mobilizer, you do not need to implement this method.
+    ///
+    /// The state is guaranteed to have been realized to at least Position stage.
+    virtual void multiplyByQDotMatrix(const State& s, bool transposeMatrix, 
+                                             int nIn, const Real* in, int nOut, Real* out) const;
+
+        // Methods for setting Mobilizer initial conditions. Note -- I've stripped this
+        // down to the two basic routines but the built-ins have 8 so that you can 
+        // specify only rotations or translations. I'm not sure that's needed here and
+        // I suppose you could add more routines later if needed.
+        // Eventually it might be nice to provide default implementation here that would
+        // use a root finder to attempt to solve these initial condition problems. For
+        // most joints there is a much more direct way to do it, and sometimes there
+        // are behavioral choices to make, which is why it is nice to have mobilizer-specific
+        // overrides for these.
+
+    /// Find a set of q's for this mobilizer that best approximate the supplied Transform
+    /// which requests a particular relative orientation and translation between
+    /// the "fixed" and "moving" frames connected by this mobilizer.
+    /// The state is guaranteed to have been realized to at least Instance stage.
+    virtual void setQToFitTransform(const State&, const Transform& X_FM, int nq, Real* q) const = 0;
+
+    /// Find a set of u's (generalized speeds) for this mobilizer that best approximate
+    /// the supplied spatial velocity \p V_FM which requests the relative angular
+    /// and linear velocity between the "fixed" and "moving" frames connected by
+    /// this mobilizer. Routines which affect generalized speeds u depend on the generalized
+    /// coordinates q already having been set; they never change these coordinates.
+    /// The state is guaranteed to have been realized to at least Position stage.
+    /// @see setQToFitTransform()
+    virtual void setUToFitVelocity(const State&, const SpatialVec& V_FM, int nu, Real* u) const = 0;
+
+    /// Implement this optional method if you would like your MobilizedBody to generate any suggestions
+    /// for geometry that could be used as default visualization as an aid to understanding a system
+    /// containing this MobilizedBody. For example, if your mobilizer connects two points, you might
+    /// want to draw a line between those points. You can also generate text labels, and you can
+    /// provide methods for controlling the presence or appearance of your generated geometry.
+    /// If you don't implement this routine no extra geometry will be generated here.
+    virtual void calcDecorativeGeometryAndAppend
+       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+    {
+    }
+    //@}
+
+
+    /// @name Optional realize() Virtual Methods
+    /// Provide implementations of these methods if you want to allocate State variables (such
+    /// as modeling options or parameters) or want to pre-calculate some expensive quantities and
+    /// store them in the State cache for your future use. Note that the Position and Velocity
+    /// realize methods will be called <em>before</em> calling the matrix operator methods
+    /// for this MobilizedBody. That way if you want to precalculate the H or HDot matrix,
+    /// for example, you can do so in realizePosition() or realizeVelocity() and then use it
+    /// in multiplyByHMatrix(), etc.
+
+    //@{
+    /// The Matter Subsystem's realizeTopology() method will call this method along with the built-in
+    /// MobilizedBodies' realizeTopology() methods. This gives the MobilizedBody a chance to 
+    ///   - pre-calculate Topology stage "cache" values (mutable values which are stored
+    ///     in the derived Implementation class directly), and
+    ///   - allocate Model-stage state variables for later use, and
+    ///   - allocate Model-stage cache entries in the State.
+    /// The indices to the Model-stage state & cache entries are stored locally as part of 
+    /// the Topology-stage cache.
+    virtual void realizeTopology(State&) const { }
+
+    /// The Matter Subsystem's realizeModel() method will call this method along with the built-in
+    /// MobilizedBodies' realizeModel() methods. This gives the MobilizedBody a chance to 
+    ///   - pre-calculate Model stage cache values according to the settings of the Model variables,
+    ///   - allocate any later-Stage variables that may be needed (typically these will be 
+    ///     Instance stage variables containing geometric information or parameters
+    ///     like lengths or pitch for a Screw.
+    /// The indices to any of the State entries allocated here are stored in the State as part
+    /// of the Model-stage cache.
+    virtual void realizeModel(State&) const { }
+
+    /// The Matter Subsystem's realizeInstance() method will call this method along with the built-in
+    /// MobilizedBodies' realizeInstance() methods. This gives the MobilizedBody a chance to 
+    ///   - pre-calculate Instance stage cache values according to the settings of the Instance variables.
+    virtual void realizeInstance(const State&) const { }
+
+    /// The Matter Subsystem's realizeTime() method will call this method along with the built-in
+    /// MobilizedBodies' realizeTime() methods. This gives the MobilizedBody a chance to 
+    ///   - pre-calculate Time stage cache values according to the current value of time found
+    ///     in the State.
+    virtual void realizeTime(const State&) const { }
+
+    /// The Matter Subsystem's realizePosition() method will call this method along with the built-in
+    /// MobilizedBodies' realizePosition() methods. This gives the MobilizedBody a chance to 
+    ///   - pre-calculate Position stage cache values according to the current values of positions found
+    ///     in the State.
+    /// Note that this is called <em>before</em> methods which implement operators involving position-dependent
+    /// matrices Q and H.
+    virtual void realizePosition(const State&) const { }
+
+    /// The Matter Subsystem's realizeVelocity() method will call this method along with the built-in
+    /// MobilizedBodies' realizeVelocity() methods. This gives the MobilizedBody a chance to 
+    ///   - pre-calculate Velocity stage cache values according to the current values of velocities found
+    ///     in the State.
+    /// Note that this is called <em>before</em> methods which implement operators involving position-dependent
+    /// matrices QDot and HDot.
+    virtual void realizeVelocity(const State&) const { }
+
+    /// The Matter Subsystem's realizeDynamics() method will call this method along with the built-in
+    /// MobilizedBodies' realizeDynamics() methods. This gives the MobilizedBody a chance to 
+    ///   - pre-calculate Dynamics stage cache values according to the current values found
+    ///     in the State.
+    /// Computations at Dynamics stage cannot affect the behavior of the MobilizedBody since that
+    /// is completely determined by the Position and Velocity stage operators.
+    virtual void realizeDynamics(const State&) const { }
+
+    /// The Matter Subsystem's realizeAcceleration() method will call this method along with the built-in
+    /// MobilizedBodies' realizeAcceleration() methods. This gives the MobilizedBody a chance to 
+    ///   - pre-calculate Acceleration stage cache values according to the current values of body
+    ///     and mobility accelerations found in the State.
+    /// Computations at Acceleration stage cannot affect the behavior of the MobilizedBody since that
+    /// is completely determined by the Position and Velocity stage operators.
+    virtual void realizeAcceleration(const State&) const { }
+
+    /// The Matter Subsystem's realizeReport() method will call this method along with the built-in
+    /// MobilizedBodies' realizeReport() methods. This gives the MobilizedBody a chance to 
+    ///   - calculate Report stage cache values according to the current values found
+    ///     in the State.
+    /// Computations at Report stage cannot affect the progress of a simulation in any way.
+    virtual void realizeReport(const State&) const { }
+    //@}
+
+    friend class MobilizedBody::CustomImpl;
 };
 
 } // namespace SimTK
