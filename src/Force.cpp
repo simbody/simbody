@@ -260,6 +260,22 @@ Force::UniformGravity::UniformGravity(GeneralForceSubsystem& forces, const Simbo
     updImpl().setForceIndex(forces.adoptForce(*this));
 }
 
+Vec3 Force::UniformGravity::getGravity() const {
+    return getImpl().getGravity();
+}
+
+void Force::UniformGravity::setGravity(const Vec3& g) {
+    updImpl().setGravity(g);
+}
+
+Real Force::UniformGravity::getZeroHeight() const {
+    return getImpl().getZeroHeight();
+}
+
+void Force::UniformGravity::setZeroHeight(Real height) {
+    updImpl().setZeroHeight(height);
+}
+
 Force::UniformGravityImpl::UniformGravityImpl(const SimbodyMatterSubsystem& matter, const Vec3& g, Real zeroHeight) : matter(matter), g(g), zeroHeight(zeroHeight) {
 }
 

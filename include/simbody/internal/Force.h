@@ -290,6 +290,10 @@ public:
 class SimTK_SIMBODY_EXPORT Force::UniformGravity : public PIMPLDerivedHandle<UniformGravity, UniformGravityImpl, Force> {
 public:
     UniformGravity(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter, const Vec3& g, Real zeroHeight=0);
+    Vec3 getGravity() const;
+    void setGravity(const Vec3& g);
+    Real getZeroHeight() const;
+    void setZeroHeight(Real height);
 };
 
 /**

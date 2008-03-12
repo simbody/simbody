@@ -34,6 +34,7 @@
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/Force.h"
+#include "simbody/internal/SimbodyMatterSubsystem.h"
 
 namespace SimTK {
 
@@ -208,6 +209,20 @@ public:
         return new UniformGravityImpl(*this);
     }
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const;
+    Vec3 getGravity() const {
+        return g;
+    }
+    void setGravity(const Vec3& gravity) {
+        g = gravity;
+        matter.invalidateSubsystemTopologyCache();
+    }
+    Real getZeroHeight() const {
+        return zeroHeight;
+    }
+    void setZeroHeight(Real height) {
+        zeroHeight = height;
+        matter.invalidateSubsystemTopologyCache();
+    }
 private:
     const SimbodyMatterSubsystem& matter;
     Vec3 g;
