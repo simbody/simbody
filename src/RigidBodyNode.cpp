@@ -3971,7 +3971,7 @@ public:
         return nu;
     }
     bool isUsingQuaternion(const SBStateDigest& sbs, MobilizerQIndex& startOfQuaternion) const {
-        if (nAngles < 4 || getUseEulerAngles(sbs.getModelVars())) {
+        if (nAngles < 4 || this->getUseEulerAngles(sbs.getModelVars())) {
             startOfQuaternion.invalidate();
             return false;
         }
@@ -3979,7 +3979,7 @@ public:
         return true;
     }
     bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& numAngles) const {
-        if (nAngles == 0 || (nAngles == 4 && !getUseEulerAngles(sbs.getModelVars()))) {
+        if (nAngles == 0 || (nAngles == 4 && !this->getUseEulerAngles(sbs.getModelVars()))) {
             startOfAngles.invalidate();
             numAngles = 0;
             return false;
@@ -4073,7 +4073,7 @@ public:
             qdotdot[qindex+i] = 0.0;
     }
     bool enforceQuaternionConstraints(const SBStateDigest& sbs, Vector& q, Vector& qErrest) const {
-        if (nAngles != 4 || getUseEulerAngles(sbs.getModelVars())) 
+        if (nAngles != 4 || this->getUseEulerAngles(sbs.getModelVars())) 
             return false;
         Vec4& quat = this->toQuat(q);
         quat = quat / quat.norm();
@@ -4196,7 +4196,7 @@ public:
         const Vector&        q,
         Transform&           X_FM) const {
         Vector localQ = q(this->getQIndex(), getNQInUse(sbs.getModelVars()));
-        if (nAngles == 4 && !getUseEulerAngles(sbs.getModelVars()))
+        if (nAngles == 4 && !this->getUseEulerAngles(sbs.getModelVars()))
             Vec4::updAs(&localQ[0]) = Vec4::getAs(&localQ[0]).normalize(); // Normalize the quaternion
         X_FM = impl.calcMobilizerTransformFromQ(sbs.getState(), localQ.size(), &(localQ[0]));
     }
