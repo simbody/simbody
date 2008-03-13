@@ -1068,10 +1068,10 @@ public:
     /// The default constructor initializes the base class so that it contains a null
     /// implementation. This should be called only from concrete MobilizedBody 
     /// constructors.
-    MobilizedBody() { }
+    MobilizedBody();
 
     /// Internal use only
-    explicit MobilizedBody(MobilizedBodyImpl* r) : HandleBase(r) { }
+    explicit MobilizedBody(MobilizedBodyImpl* r);
 
     /// @name Construction and Misc Methods
     /// These methods are the base class services which are used while building a concrete
@@ -2296,7 +2296,7 @@ public:
     // to which this MobilizedBody belongs.
 
     /// Destructor is virtual so derived classes get a chance to clean up if necessary.
-    virtual ~Implementation() { }
+    virtual ~Implementation();
 
     /// This method should produce a deep copy identical to the concrete derived Implementation
     /// object underlying this Implementation base class object.

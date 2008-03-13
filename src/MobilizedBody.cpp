@@ -48,6 +48,12 @@ namespace SimTK {
     // MOBILIZED BODY //
     ////////////////////
 
+MobilizedBody::MobilizedBody() {
+}
+
+MobilizedBody::MobilizedBody(MobilizedBodyImpl* r) : HandleBase(r) {
+}
+
 MobilizedBody& MobilizedBody::addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
     updImpl().addOutboardDecoration(X_MD,g);
     return *this;
@@ -1642,6 +1648,9 @@ MobilizedBody::Custom::Implementation::Implementation(SimbodyMatterSubsystem& ma
     assert(nAngles <= nq);
     // We don't know the MobilizedBodyIndex yet since this hasn't been adopted by the MatterSubsystem.
     updImpl().updCustomImpl().setMyMatterSubsystem(matter, MobilizedBodyIndex(0), MobilizedBodyIndex(0));
+}
+
+MobilizedBody::Custom::Implementation::~Implementation() {
 }
 
 void MobilizedBody::Custom::Implementation::invalidateTopologyCache() const {
