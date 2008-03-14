@@ -34,7 +34,6 @@
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/Force.h"
-#include "simbody/internal/SimbodyMatterSubsystem.h"
 
 namespace SimTK {
 
@@ -214,16 +213,17 @@ public:
     }
     void setGravity(const Vec3& gravity) {
         g = gravity;
-        matter.invalidateSubsystemTopologyCache();
+        invalidateTopologyCache();
     }
     Real getZeroHeight() const {
         return zeroHeight;
     }
     void setZeroHeight(Real height) {
         zeroHeight = height;
-        matter.invalidateSubsystemTopologyCache();
+        invalidateTopologyCache();
     }
 private:
+    void invalidateTopologyCache();
     const SimbodyMatterSubsystem& matter;
     Vec3 g;
     Real zeroHeight;

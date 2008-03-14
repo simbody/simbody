@@ -291,7 +291,7 @@ void Force::UniformGravityImpl::calcForce(const State& state, Vector_<SpatialVec
             particleForces[i] += g * m[i];
         }
     }
-Real oldpe = pe;
+
     // no need to apply gravity to Ground!
     for (MobilizedBodyIndex i(1); i < nBodies; ++i) {
         const MassProperties& mprops = matter.getMobilizedBody(i).getBodyMassProperties(state);
@@ -305,6 +305,10 @@ Real oldpe = pe;
         pe -= m*(~g*com_G + zeroHeight); // odd signs because height is in -g direction
         bodyForces[i] += SpatialVec(com_B_G % frc_G, frc_G); 
     }
+}
+
+void Force::UniformGravityImpl::invalidateTopologyCache() {
+    matter.invalidateSubsystemTopologyCache();
 }
 
 // Custom
