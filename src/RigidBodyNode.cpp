@@ -12,6 +12,8 @@
  *    Charles Schwieters (NIH): wrote the public domain IVM code from which   *
  *                              this was derived.                             *
  *    Ajay Seth: wrote the Ellipsoid joint.                                   *
+ *    Peter Eastman: wrote the Custom mobilizer and Euler Angle<->Quaternion  *
+ *                   conversion                                               *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
