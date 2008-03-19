@@ -222,6 +222,10 @@ void SimbodyMatterSubsystem::multiplyByQMatrixInverse(const State& s, bool matri
     getRep().multiplyByQMatrixInverse(s,matrixOnRight,in,out);
 }
 
+void SimbodyMatterSubsystem::calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const {
+    getRep().calcMobilizerReactionForces(s, forces);
+}
+
 // Topological info. Note the lack of a State argument.
 int SimbodyMatterSubsystem::getNBodies()        const {return getRep().getNBodies();}
 int SimbodyMatterSubsystem::getNMobilities()    const {return getRep().getNMobilities();}

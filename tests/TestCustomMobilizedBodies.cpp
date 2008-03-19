@@ -38,14 +38,8 @@ const Real TOL = 1e-10;
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
-void mark() {
-    std::cout << "here" << std::endl;    
-}
-
 template <class T>
 void assertEqual(T val1, T val2) {
-if (!(abs(val1-val2) < TOL))
-    mark();
     ASSERT(abs(val1-val2) < TOL);
 }
 

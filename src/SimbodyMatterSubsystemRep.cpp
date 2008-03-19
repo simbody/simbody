@@ -2140,6 +2140,49 @@ void SimbodyMatterSubsystemRep::multiplyByQMatrixInverse(const State& s, bool tr
         }
 }
 
+void SimbodyMatterSubsystemRep::calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const {
+    assert(forces.size() == getNBodies());
+    
+    // Find the total body force on every body from all sources *other* than mobilizer reaction forces.
+    
+    Vector_<SpatialVec> otherForces = getMultibodySystem().getRigidBodyForces(s, Stage::Dynamics);
+    Vector_<SpatialVec> constrainedBodyForces(getNBodies());
+    Vector constrainedMobilizerForces(s.getNU());
+    calcConstraintForcesFromMultipliers(s, s.getMultipliers(), constrainedBodyForces, constrainedMobilizerForces);
+    otherForces -= constrainedBodyForces;
+    
+    // Find the total force that was actually applied.
+    
+    Vector_<SpatialVec> totalForce(forces.size());
+    for (MobilizedBodyIndex index(0); index < getNBodies(); index++) {
+        const MobilizedBody& body = getMobilizedBody(index);
+        const MassProperties& mass = body.getBodyMassProperties(s);
+        const SpatialVec& acceleration = body.getBodyAcceleration(s);
+        if (mass.getMass() == Infinity)
+            totalForce[0] = SpatialVec(Vec3(0), Vec3(0));
+        else {
+            totalForce[index][0] = mass.getInertia()*acceleration[0];
+            totalForce[index][1] = mass.getMass()*acceleration[1];
+        }
+    }
+    
+    // Starting from the leaf nodes and working back toward ground, take the difference to find the
+    // reaction forces, then apply them to the parent.
+    
+    for (int i = (int) rbNodeLevels.size()-1; i >= 0; i--)
+        for (int j = 0; j < (int) rbNodeLevels[i].size(); j++) {
+            MobilizedBodyIndex index = rbNodeLevels[i][j]->getNodeNum();
+            forces[index] = totalForce[index]-otherForces[index];
+            if (i > 0) {
+                const MobilizedBody& body = getMobilizedBody(index);
+                MobilizedBodyIndex parentIndex = rbNodeLevels[i][j]->getParent()->getNodeNum();
+                const MobilizedBody& parent = getMobilizedBody(parentIndex);
+                parent.applyForceToBodyPoint(s, body.getInboardFrame(s).T(), -forces[index][1], otherForces);
+                Vec3 offset = parent.getBodyTransform(s).R()*(body.getMobilizerTransform(s)*body.getOutboardFrame(s).T());
+                otherForces[parentIndex][0] -= forces[index][0]-offset%forces[index][1];
+            }
+        }
+}
 
 // Must be in ConfigurationStage to calculate qdot = Q*u.
 void SimbodyMatterSubsystemRep::calcQDot(const State& s, const Vector& u, Vector& qdot) const {

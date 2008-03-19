@@ -480,6 +480,8 @@ public:
     // This is an O(N) operator since QInv is block diagonal.
     void multiplyByQMatrixInverse(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const;
 
+    void calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const;
+
     // Must be in Stage::Position to calculate qdot = Q*u.
     void calcQDot(const State& s,
         const Vector& u,
