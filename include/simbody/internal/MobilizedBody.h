@@ -470,10 +470,10 @@ public:
         return ~R_GA*R_GB; // R_AB=R_AG*R_GB
     }
 
-    /// Return the point of another body A that is currently coincident in space with the
-    /// origin OB of this body B. Cost is 18 flops. This operator is available at
-    /// Position stage. Note: "findBodyOriginLocationInGround" doesn't exist because it
-    /// would be the same as the Response getBodyOriginLocation().
+    /// Return the station on another body A (that is, a point measured and expressed in A) that is 
+    /// currently coincident in space with the origin OB of this body B. Cost is 18 flops.
+    /// This operator is available at Position stage. Note: "findBodyOriginLocationInGround" 
+    /// doesn't exist because it would be the same as the Response getBodyOriginLocation().
     /// @see getBodyOriginLocation()
     Vec3 findBodyOriginLocationInAnotherBody(const State& s, const MobilizedBody& toBodyA) const {
         return toBodyA.findStationAtGroundPoint(s,getBodyOriginLocation(s));
