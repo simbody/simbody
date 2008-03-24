@@ -9,7 +9,7 @@ namespace Ipopt
   static const Index dbg_verbosity = 0;
 #endif
 
-int *ipiv;
+int *ipiv=0;
 double *afact;
   LapackSolverInterface::LapackSolverInterface()
       :
@@ -27,7 +27,6 @@ double *afact;
   LapackSolverInterface::~LapackSolverInterface()
   {
     DBG_START_METH("LapackSolverInterface::~LapackSolverInterface()", dbg_verbosity);
-//    dmumps_c(&mumps_data); /* Terminate instance */
 
     delete [] a;
     delete [] irn_;
@@ -67,7 +66,6 @@ double *afact;
          isFactored = 1;
       } else {
 //        DBG_PRINT((1, "FACTORIZATION FAILED!\n"));
-//         printf( "MultiSolve initial FACTORIZATION FAILED! retval = %d\n",retval);
          isFactored = 0;
       }
 
@@ -159,52 +157,51 @@ double *afact;
   ESymSolverStatus LapackSolverInterface::Factorization(const Index* ia, const Index* ja,
       bool check_NegEVals, Index numberOfNegEVals)
   {
-    DBG_START_METH("LapackSolverInterface::Factorization", dbg_verbosity);
-    ESymSolverStatus retval = SYMSOLVER_SUCCESS;
-    int info,lwork;
-    double *w, *work,*atmp;
-    char jobz = 'N';
-    char uplo = 'L';
-    int i;
+      DBG_START_METH("LapackSolverInterface::Factorization", dbg_verbosity);
+      ESymSolverStatus retval = SYMSOLVER_SUCCESS;
+      int info,lwork;
+      double *w, *work,*atmp;
+      char jobz = 'N';
+      char uplo = 'L';
+      int i;
 
-    delete [] ipiv;
-    ipiv = new int[n];
+      delete [] ipiv;
+      ipiv = new int[n];
 
-    /* compute negative eigenvalues */
+      /* compute negative eigenvalues */
 
-    negevals_ = 0;
-    w = new double[n];
-    lwork = 3*n;   // TODO get optimial value 
-    work = new double[lwork];
-    atmp = new double[n*n];
-    for(i=0;i<n*n;i++) atmp[i] = a[i];
-    dsyev_(jobz, uplo, n, atmp, n, w, work, lwork, info,  1, 1);
-    if( info != 0 ) {
-        delete [] w;
-        delete [] work;
-        delete [] atmp;
-        return(SYMSOLVER_FATAL_ERROR);
-    }
-    for(i=0;i<n;i++){
-   //     printf(" eigenvlaue #%d = %f \n",i,w[i] );
-        if( w[i] < 0.0 ) negevals_++;
-    }
-    delete [] w;
-    delete [] work;
-    if (check_NegEVals && (numberOfNegEVals!=negevals_)) {
-       delete [] atmp;
-       return SYMSOLVER_WRONG_INERTIA;
-    }
+      negevals_ = 0;
+      w = new double[n];
+      lwork = 3*n;   // TODO get optimial value 
+      work = new double[lwork];
+      atmp = new double[n*n];
+      for(i=0;i<n*n;i++) atmp[i] = a[i];
+      dsyev_(jobz, uplo, n, atmp, n, w, work, lwork, info,  1, 1);
+      if( info != 0 ) {
+          delete [] w;
+          delete [] work;
+          delete [] atmp;
+          return(SYMSOLVER_FATAL_ERROR);
+      }
+      for(i=0;i<n;i++){
+          if( w[i] < 0.0 ) negevals_++;
+      }
+      delete [] w;
+      delete [] work;
+      if (check_NegEVals && (numberOfNegEVals!=negevals_)) {
+          delete [] atmp;
+          return SYMSOLVER_WRONG_INERTIA;
+      }
 
 
-    dgetrf_( n, n, a, n, ipiv, info); 
-    delete [] atmp;
+      dgetrf_( n, n, a, n, ipiv, info); 
+      delete [] atmp;
 
-    if( info > 0  ) {
-        retval = SYMSOLVER_SINGULAR;
-    }
+      if( info > 0  ) {
+          retval = SYMSOLVER_SINGULAR;
+      }
 
-    return retval;
+      return retval;
   }
 
   ESymSolverStatus LapackSolverInterface::Solve(const Index* ia, const Index* ja, Index nrhs, double *b)
@@ -232,7 +229,6 @@ double *afact;
   Index LapackSolverInterface::NumberOfNegEVals() const
   {
 //    DBG_START_METH("LapackSolverInterface::NumberOfNegEVals", dbg_verbosity);
-//printf("LapackSolverInterface::NumberOfNegEVals = %d\n",negevals_);
     DBG_ASSERT(negevals >= 0);
     return negevals_;
   }
