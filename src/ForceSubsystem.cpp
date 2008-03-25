@@ -40,7 +40,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/ForceSubsystem.h"
 
-#include "ForceSubsystemRep.h"
+#include "simbody/internal/ForceSubsystemGuts.h"
 
 namespace SimTK {
 

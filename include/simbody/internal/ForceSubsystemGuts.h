@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_MOLECULAR_MECHANICS_SYSTEM_H_
-#define SimTK_SIMBODY_MOLECULAR_MECHANICS_SYSTEM_H_
+#ifndef SimTK_SIMBODY_FORCE_SUBSYSTEM_GUTS_H
+#define SimTK_SIMBODY_FORCE_SUBSYSTEM_GUTS_H
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-6 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -32,39 +32,42 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+/** @file
+ * Define the extendible library-side implementation of the ForceSubsystem.
+ */
+
 #include "SimTKcommon.h"
+#include "SimTKcommon/internal/SubsystemGuts.h"
+
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 
-#include <vector>
-
 namespace SimTK {
 
-class SimbodyMatterSubsystem;
-class DuMMForceFieldSubsystem;
-
-/**
- * This is a particular kind of MultibodySystem, one intended for use in
- * moleular mechanics (MM). The defining feature is that in addition to
- * the mandatory MatterSubsystem common to all MultibodySystems, this one
- * will also have a single MolecularMechanicsForceSubsystem.
- */
-class SimTK_SIMBODY_EXPORT MolecularMechanicsSystem : public MultibodySystem {
+/// Public declaration of internals for ForceSubsystem extension
+class ForceSubsystem::Guts : public Subsystem::Guts {
 public:
-    MolecularMechanicsSystem();
-    MolecularMechanicsSystem(SimbodyMatterSubsystem&, DuMMForceFieldSubsystem&);
+    Guts(const String& name, const String& version) 
+      : Subsystem::Guts(name,version)
+    {
+    }
 
-    // Steals ownership of the source; returns subsystem ID number.
-    int setMolecularMechanicsForceSubsystem(DuMMForceFieldSubsystem&);
-    const DuMMForceFieldSubsystem& getMolecularMechanicsForceSubsystem() const;
-    DuMMForceFieldSubsystem&       updMolecularMechanicsForceSubsystem();
+    // Make sure the virtual destructor in Subsystem::Guts remains
+    // virtual in this intermediate class.
+    virtual ~Guts() { }
 
-    SimTK_PIMPL_DOWNCAST(MolecularMechanicsSystem, System);
-private:
-    class MolecularMechanicsSystemRep& updRep();
-    const MolecularMechanicsSystemRep& getRep() const;
+    // All the other Subsystem::Guts virtuals remain unresolved.
+
+    // Return the MultibodySystem which owns this ForceSubsystem.
+    const MultibodySystem& getMultibodySystem() const {
+        return MultibodySystem::downcast(getSystem());
+    }
+
+    SimTK_DOWNCAST(ForceSubsystem::Guts, Subsystem::Guts);
 };
+
+// typedef ForceSubsystem::Guts ForceSubsystemRep;
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_MOLECULAR_MECHANICS_SYSTEM_H_
+#endif // SimTK_SIMBODY_FORCE_SUBSYSTEM_GUTS_H

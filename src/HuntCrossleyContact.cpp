@@ -43,7 +43,8 @@
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/HuntCrossleyContact.h"
 
-#include "ForceSubsystemRep.h"
+// #include "ForceSubsystemRep.h"
+#include "simbody/internal/ForceSubsystemGuts.h"
 
 namespace SimTK {
 

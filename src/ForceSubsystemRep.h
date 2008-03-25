@@ -37,17 +37,16 @@
  */
 
 #include "SimTKcommon.h"
-#include "SimTKcommon/internal/SubsystemGuts.h"
 
 #include "simbody/internal/common.h"
-#include "simbody/internal/MultibodySystem.h"
+#include "simbody/internal/ForceSubsystemGuts.h"
 
 namespace SimTK {
 
-class ForceSubsystemRep : public Subsystem::Guts {
+class ForceSubsystemRep : public ForceSubsystem::Guts {
 public:
     ForceSubsystemRep(const String& name, const String& version) 
-      : Subsystem::Guts(name,version)
+      : ForceSubsystem::Guts(name,version)
     {
     }
 
@@ -57,11 +56,7 @@ public:
 
     // All the other Subsystem::Guts virtuals remain unresolved.
 
-    // Return the MultibodySystem which owns this ForceSubsystem.
-    const MultibodySystem& getMultibodySystem() const {
-        return MultibodySystem::downcast(getSystem());
-    }
-
+    SimTK_DOWNCAST(ForceSubsystemRep, ForceSubsystem::Guts);
     SimTK_DOWNCAST(ForceSubsystemRep, Subsystem::Guts);
 };
 

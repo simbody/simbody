@@ -46,7 +46,8 @@
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/DecorationSubsystem.h"
 
-#include "ForceSubsystemRep.h"
+#include "simbody/internal/ForceSubsystemGuts.h"
+// #include "ForceSubsystemRep.h"
 #include "SimbodyMatterSubsystemRep.h"
 
 #include <vector>

@@ -39,11 +39,12 @@
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/ForceSubsystem.h"
+#include "simbody/internal/ForceSubsystemGuts.h"
 #include "simbody/internal/GeneralForceSubsystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/MultibodySystem.h"
 
-#include "ForceSubsystemRep.h"
+// #include "ForceSubsystemRep.h"
 #include "ForceImpl.h"
 
 

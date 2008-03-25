@@ -43,12 +43,18 @@ namespace SimTK {
  */
 class SimTK_SIMBODY_EXPORT ForceSubsystem : public Subsystem {
 public:
+    /// forward declaration of extendable internals
+    class Guts;
+
     ForceSubsystem() : Subsystem() { }
 
     SimTK_PIMPL_DOWNCAST(ForceSubsystem, Subsystem);
-    class ForceSubsystemRep& updRep();
-    const ForceSubsystemRep& getRep() const;
+    Guts& updRep();
+    const Guts& getRep() const;
+
 };
+
+typedef ForceSubsystem::Guts ForceSubsystemRep;
 
 } // namespace SimTK
 
