@@ -335,6 +335,7 @@ public:
     /// constraint force that would be required to make the system move in the same way if that
     /// MobilizedBody were converted to a Free body.  A mobilizer exerts equal and opposite reaction
     /// forces on the parent and child bodies.  This method reports the force on the child body.
+    /// The force is applied at the origin of the outboard frame M, and expressed in the ground frame.
     ///
     /// The State must have been realized to Stage::Acceleration to use this method.
     void calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const;

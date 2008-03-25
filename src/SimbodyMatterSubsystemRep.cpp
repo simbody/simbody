@@ -2160,10 +2160,8 @@ void SimbodyMatterSubsystemRep::calcMobilizerReactionForces(const State& s, Vect
         const SpatialVec& acceleration = body.getBodyAcceleration(s);
         if (mass.getMass() == Infinity)
             totalForce[0] = SpatialVec(Vec3(0), Vec3(0));
-        else {
-            totalForce[index][0] = mass.getInertia()*acceleration[0];
-            totalForce[index][1] = mass.getMass()*acceleration[1];
-        }
+        else
+            totalForce[index] = body.calcBodySpatialInertiaMatrixInGround(s)*acceleration;
     }
     
     // Starting from the leaf nodes and working back toward ground, take the difference to find the
@@ -2177,11 +2175,20 @@ void SimbodyMatterSubsystemRep::calcMobilizerReactionForces(const State& s, Vect
                 const MobilizedBody& body = getMobilizedBody(index);
                 MobilizedBodyIndex parentIndex = rbNodeLevels[i][j]->getParent()->getNodeNum();
                 const MobilizedBody& parent = getMobilizedBody(parentIndex);
-                parent.applyForceToBodyPoint(s, body.getInboardFrame(s).T(), -forces[index][1], otherForces);
+                Vec3 parentPos = parent.findStationAtAnotherBodyStation(s, body, body.getOutboardFrame(s).T());
+                parent.applyForceToBodyPoint(s, parentPos, -forces[index][1], otherForces);
                 Vec3 offset = parent.getBodyTransform(s).R()*(body.getMobilizerTransform(s)*body.getOutboardFrame(s).T());
                 otherForces[parentIndex][0] -= forces[index][0]-offset%forces[index][1];
             }
         }
+    
+    // Transform the force to be reported at the outboard joint location.
+    
+    for (MobilizedBodyIndex index(0); index < getNBodies(); index++) {
+        const MobilizedBody& body = getMobilizedBody(index);
+        Vec3 localForce = ~body.getBodyTransform(s).R()*forces[index][1];
+        forces[index][0] -= body.getBodyTransform(s).R()*(body.getOutboardFrame(s).T()%localForce);
+    }
 }
 
 // Must be in ConfigurationStage to calculate qdot = Q*u.
