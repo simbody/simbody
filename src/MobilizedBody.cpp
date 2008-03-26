@@ -1722,7 +1722,9 @@ Vector MobilizedBody::Custom::Implementation::getQDotDot(const State& state) con
 }
 
 const Transform&  MobilizedBody::Custom::Implementation::getMobilizerTransform(const State& s) const {
-    return getImpl().getCustomImpl().getMobilizerTransform(s);
+    const SBPositionCache& pc = getImpl().getCustomImpl().getMyMatterSubsystemRep().getPositionCache(s, s.getSystemStage() < Stage::Position);
+    const RigidBodyNode& node = getImpl().getCustomImpl().getMyRigidBodyNode();
+    return node.getX_FM(pc);
 }
 
 const SpatialVec& MobilizedBody::Custom::Implementation::getMobilizerVelocity(const State& s) const {
