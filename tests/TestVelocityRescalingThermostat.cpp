@@ -46,12 +46,12 @@ const Real TEMPERATURE = 300.0;
 
 class BetweenBodyForce : public Force::Custom::Implementation {
 public:
-    BetweenBodyForce(const SimbodyMatterSubsystem& matter) : matter(matter){
+    BetweenBodyForce(const SimbodyMatterSubsystem& matter) : matter(matter), k(20.0) {
     }
     bool dependsOnlyOnPositions() {
         return true;
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
         for (int i = 0; i < matter.getNBodies(); ++i) {
             const MobilizedBody& body1 = matter.getMobilizedBody(MobilizedBodyIndex(i));
             const Vec3 pos1 = body1.getBodyOriginLocation(state);
@@ -61,15 +61,29 @@ public:
                 const Real dist = (pos2-pos1).norm();
                 const Real invDist = 1.0/dist;
                 const Real invDist2 = invDist*invDist;
-                const Real k = 20.0;
                 const Vec3 f = k*(dist-2.0)*(pos2-pos1)*invDist2*invDist2;
-                pe += k*(invDist-1)*invDist;
                 body1.applyBodyForce(state, SpatialVec(Vec3(0),  f), bodyForces);
                 body2.applyBodyForce(state, SpatialVec(Vec3(0), -f), bodyForces);
             }
         }
     }
+    Real calcPotentialEnergy(const State& state) const {
+        Real pe = 0;
+        for (int i = 0; i < matter.getNBodies(); ++i) {
+            const MobilizedBody& body1 = matter.getMobilizedBody(MobilizedBodyIndex(i));
+            const Vec3 pos1 = body1.getBodyOriginLocation(state);
+            for (int j = i+1; j < matter.getNBodies(); ++j) {
+                const MobilizedBody& body2 = matter.getMobilizedBody(MobilizedBodyIndex(j));
+                const Vec3 pos2 = body2.getBodyOriginLocation(state);
+                const Real dist = (pos2-pos1).norm();
+                const Real invDist = 1.0/dist;
+                pe += k*(invDist-1)*invDist;
+            }
+        }
+        return pe;
+    }
     const SimbodyMatterSubsystem& matter;
+    const Real k;
 };
 
 class EnergyMonitor : public PeriodicEventReporter {
@@ -83,7 +97,7 @@ public:
             return;
         eventCount++;
         system.realize(state, Stage::Dynamics);
-        Real energy = system.getKineticEnergy(state);
+        Real energy = system.calcKineticEnergy(state);
         sumEnergy += energy;
         sumEnergySquared += energy*energy;
     }

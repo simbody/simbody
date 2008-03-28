@@ -72,15 +72,12 @@ class DecorativeGeometry;
  */
 struct ForceCacheEntry {
     ForceCacheEntry() 
-      : potentialEnergy(NaN), kineticEnergy(NaN)
     { }
     // default copy constructor, copy assignment, destructor
 
     Vector_<SpatialVec> rigidBodyForces;
     Vector_<Vec3>       particleForces;
     Vector              mobilityForces;
-    Real                potentialEnergy;
-    Real                kineticEnergy; // TODO: does this belong here?
 
     void ensureAllocatedTo(int nRigidBodies, int nParticles, int nMobilities) {
         rigidBodyForces.resize(nRigidBodies);
@@ -92,7 +89,6 @@ struct ForceCacheEntry {
         rigidBodyForces.setToZero();
         particleForces.setToZero();
         mobilityForces.setToZero();
-        potentialEnergy = kineticEnergy = 0;
     }
 
     // This is just an assignment but allows for some bugcatchers. All the
@@ -159,12 +155,6 @@ public:
     const Vector& getMobilityForces(const State& s, Stage g) const {
         return getForceCacheEntry(s,g).mobilityForces;
     }
-    const Real& getPotentialEnergy(const State& s, Stage g) const {
-        return getForceCacheEntry(s,g).potentialEnergy;
-    }
-    const Real& getKineticEnergy(const State& s, Stage g) const {
-        return getForceCacheEntry(s,g).kineticEnergy;
-    }   
 
     Vector_<SpatialVec>& updRigidBodyForces(const State& s, Stage g) const {
         return updForceCacheEntry(s,g).rigidBodyForces;
@@ -174,12 +164,6 @@ public:
     }
     Vector& updMobilityForces(const State& s, Stage g) const {
         return updForceCacheEntry(s,g).mobilityForces;
-    }
-    Real& updPotentialEnergy(const State& s, Stage g) const {
-        return updForceCacheEntry(s,g).potentialEnergy;
-    }
-    Real& updKineticEnergy(const State& s, Stage g) const {
-        return updForceCacheEntry(s,g).kineticEnergy;
     }
 
     // These override virtual methods from Subsystem::Guts.
@@ -391,11 +375,11 @@ public:
     const Vector& getMobilityForces(const State& s, Stage g) const {
         return getGlobalSubsystem().getRep().getMobilityForces(s,g);
     }
-    const Real& getPotentialEnergy(const State& s, Stage g) const {
-        return getGlobalSubsystem().getRep().getPotentialEnergy(s,g);
-    }
-    const Real& getKineticEnergy(const State& s, Stage g) const {
-        return getGlobalSubsystem().getRep().getKineticEnergy(s,g);
+    const Real calcPotentialEnergy(const State& s) const {
+        Real pe = 0;
+        for (int i = 0; i < (int) forceSubs.size(); ++i)
+            pe += getForceSubsystem(forceSubs[i]).getRep().calcPotentialEnergy(s);
+        return pe;
     }
 
     // These are the global subsystem cache entries at the indicated Stage.
@@ -409,13 +393,6 @@ public:
     Vector& updMobilityForces(const State& s, Stage g) const {
         return getGlobalSubsystem().getRep().updMobilityForces(s,g);
     }
-    Real& updPotentialEnergy(const State& s, Stage g) const {
-        return getGlobalSubsystem().getRep().updPotentialEnergy(s,g);
-    }
-    Real& updKineticEnergy(const State& s, Stage g) const {
-        return getGlobalSubsystem().getRep().updKineticEnergy(s,g);
-    }
-
 
     // pure virtual
     MultibodySystemRep* cloneImpl() const {return new MultibodySystemRep(*this);}

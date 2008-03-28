@@ -297,9 +297,9 @@ try
         const State& ss = ee.getState();
         if (!(step % 10)) {
             mbs.realize(ss);
-            cout << ss.getTime() << ": E=" << mbs.getEnergy(ss)
-             << " (pe=" << mbs.getPotentialEnergy(ss)
-             << ", ke=" << mbs.getKineticEnergy(ss)
+            cout << ss.getTime() << ": E=" << mbs.calcEnergy(ss)
+             << " (pe=" << mbs.calcPotentialEnergy(ss)
+             << ", ke=" << mbs.calcKineticEnergy(ss)
              << ") qerr=" << bouncers.getQErr(ss).normRMS()
              << " uerr=" << bouncers.getUErr(ss).normRMS()
              << " hNext=" << ee.getPredictedNextStepSize() << endl;

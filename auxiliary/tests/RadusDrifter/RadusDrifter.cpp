@@ -192,7 +192,7 @@ int main(int argc, char** argv) {
         const Real crankAngle = crank.getBodyRotation(s).convertRotationToAngleAxis()[0] * Rad2Deg;
         printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
             crankAngle,
-            mbs.getEnergy(s), myStudy.getNStepsTaken(),
+            mbs.calcEnergy(s), myStudy.getNStepsTaken(),
             myStudy.getPreviousStepSizeTaken(),
             Integrator::successfulStepStatusString(status).c_str(),
             myStudy.isStateInterpolated()?" (INTERP)":"");

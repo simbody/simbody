@@ -66,8 +66,7 @@ public:
     void calcForce(const State& state,
               Vector_<SpatialVec>& bodyForces,
               Vector_<Vec3>&       particleForces,
-              Vector&              mobilityForces,
-              Real&                pe) const
+              Vector&              mobilityForces) const
     {
         const Vec3& pos1 = body1.getBodyTransform(state).T();
         const Vec3& pos2 = body2.getBodyTransform(state).T();
@@ -76,6 +75,9 @@ public:
         const Vec3 f = k*(d-d0)*(pos2-pos1)/d;
         body1.applyBodyForce(state, SpatialVec(Vec3(0),  f), bodyForces);
         body2.applyBodyForce(state, SpatialVec(Vec3(0), -f), bodyForces);
+    }
+    Real calcPotentialEnergy(const State& state) const {
+        return 0;
     }
 private:
     const MobilizedBody& body1;
@@ -301,7 +303,7 @@ int main(int argc, char** argv) {
         const Real leftPendulumAngle = leftPendulum.getBodyRotation(s).convertRotationToAngleAxis()[0] * Rad2Deg;
         printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
             leftPendulumAngle,
-            mbs.getEnergy(s), myStudy.getNStepsTaken(),
+            mbs.calcEnergy(s), myStudy.getNStepsTaken(),
             myStudy.getPreviousStepSizeTaken(),
             Integrator::successfulStepStatusString(status).c_str(),
             myStudy.isStateInterpolated()?" (INTERP)":"");

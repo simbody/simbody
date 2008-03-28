@@ -56,7 +56,8 @@ public:
     void setForceIndex(ForceIndex ind) {
         index = ind;
     }
-    virtual void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const = 0;
+    virtual void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const = 0;
+    virtual Real calcPotentialEnergy(const State& state) const = 0;
 private:
     ForceIndex index;
 };
@@ -70,7 +71,8 @@ public:
     bool dependsOnlyOnPositions() const {
         return true;
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const;
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
+    Real calcPotentialEnergy(const State& state) const;
 private:
     const SimbodyMatterSubsystem& matter;
     const MobilizedBodyIndex body1, body2;
@@ -84,7 +86,8 @@ public:
     TwoPointLinearDamperImpl* clone() const {
         return new TwoPointLinearDamperImpl(*this);
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const;
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
+    Real calcPotentialEnergy(const State& state) const;
 private:
     const SimbodyMatterSubsystem& matter;
     const MobilizedBodyIndex body1, body2;
@@ -101,7 +104,8 @@ public:
     bool dependsOnlyOnPositions() const {
         return true;
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const;
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
+    Real calcPotentialEnergy(const State& state) const;
 private:
     const SimbodyMatterSubsystem& matter;
     const MobilizedBodyIndex body1, body2;
@@ -118,7 +122,8 @@ public:
     bool dependsOnlyOnPositions() const {
         return true;
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const;
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
+    Real calcPotentialEnergy(const State& state) const;
 private:
     const SimbodyMatterSubsystem& matter;
     const MobilizedBodyIndex body;
@@ -132,7 +137,8 @@ public:
     MobilityLinearDamperImpl* clone() const {
         return new MobilityLinearDamperImpl(*this);
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const;
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
+    Real calcPotentialEnergy(const State& state) const;
 private:
     const SimbodyMatterSubsystem& matter;
     const MobilizedBodyIndex body;
@@ -149,7 +155,8 @@ public:
     bool dependsOnlyOnPositions() const {
         return true;
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const;
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
+    Real calcPotentialEnergy(const State& state) const;
 private:
     const SimbodyMatterSubsystem& matter;
     const MobilizedBodyIndex body;
@@ -166,7 +173,8 @@ public:
     bool dependsOnlyOnPositions() const {
         return true;
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const;
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
+    Real calcPotentialEnergy(const State& state) const;
 private:
     const SimbodyMatterSubsystem& matter;
     const MobilizedBodyIndex body;
@@ -182,7 +190,8 @@ public:
     bool dependsOnlyOnPositions() const {
         return true;
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const;
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
+    Real calcPotentialEnergy(const State& state) const;
 private:
     const SimbodyMatterSubsystem& matter;
     const MobilizedBodyIndex body;
@@ -195,7 +204,8 @@ public:
     GlobalDamperImpl* clone() const {
         return new GlobalDamperImpl(*this);
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const;
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
+    Real calcPotentialEnergy(const State& state) const;
 private:
     const SimbodyMatterSubsystem& matter;
     Real damping;
@@ -207,7 +217,8 @@ public:
     UniformGravityImpl* clone() const {
         return new UniformGravityImpl(*this);
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const;
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
+    Real calcPotentialEnergy(const State& state) const;
     Vec3 getGravity() const {
         return g;
     }
@@ -238,7 +249,8 @@ public:
     bool dependsOnlyOnPositions() const {
         return implementation->dependsOnlyOnPositions();
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const;
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
+    Real calcPotentialEnergy(const State& state) const;
     ~CustomImpl() {
         delete implementation;
     }

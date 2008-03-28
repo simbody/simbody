@@ -60,7 +60,6 @@ class GeneralForceSubsystemRep : public ForceSubsystemRep {
     mutable int rigidBodyForceCacheIndex;
     mutable int mobilityForceCacheIndex;
     mutable int particleForceCacheIndex;
-    mutable int energyCacheIndex;
 
 public:
     GeneralForceSubsystemRep()
@@ -99,7 +98,6 @@ public:
 
     int realizeSubsystemTopologyImpl(State& s) const {
         forceValidCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Position, new Value<bool>());
-        energyCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Position, new Value<Real>());
         rigidBodyForceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector_<SpatialVec> >());
         mobilityForceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector>());
         particleForceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector_<Vec3> >());
@@ -138,14 +136,12 @@ public:
 
         // Get access to system-global cache entries.
         bool& forceValid = Value<bool>::downcast(s.updCacheEntry(getMySubsystemIndex(), forceValidCacheIndex)).upd();
-        Real& energyCache = Value<Real>::downcast(s.updCacheEntry(getMySubsystemIndex(), energyCacheIndex)).upd();
         Vector_<SpatialVec>& rigidBodyForceCache = Value<Vector_<SpatialVec> >::downcast(s.updCacheEntry(getMySubsystemIndex(), rigidBodyForceCacheIndex)).upd();
         Vector_<Vec3>& particleForceCache = Value<Vector_<Vec3> >::downcast(s.updCacheEntry(getMySubsystemIndex(), particleForceCacheIndex)).upd();
         Vector& mobilityForceCache = Value<Vector>::downcast(s.updCacheEntry(getMySubsystemIndex(), mobilityForceCacheIndex)).upd();
 
         if (!forceValid) {
             // We need to calculate the velocity independent forces.
-            energyCache = 0;
             rigidBodyForceCache.resize(matter.getNBodies());
             rigidBodyForceCache = SpatialVec(Vec3(0), Vec3(0));
             particleForceCache.resize(matter.getNParticles());
@@ -155,25 +151,32 @@ public:
         }
 
         // Calculate forces
-        Real&                  pe              = mbs.updPotentialEnergy(s, Stage::Dynamics);
         Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s, Stage::Dynamics);
         Vector_<Vec3>&         particleForces  = mbs.updParticleForces (s, Stage::Dynamics);
         Vector&                mobilityForces  = mbs.updMobilityForces (s, Stage::Dynamics);
         for (int i = 0; i < (int) forces.size(); ++i) {
             const Force& f = *forces[i];
             if (!f.getImpl().dependsOnlyOnPositions())
-                f.getImpl().calcForce(s, rigidBodyForces, particleForces, mobilityForces, pe);
+                f.getImpl().calcForce(s, rigidBodyForces, particleForces, mobilityForces);
             else if (!forceValid)
-                f.getImpl().calcForce(s, rigidBodyForceCache, particleForceCache, mobilityForceCache, energyCache);
+                f.getImpl().calcForce(s, rigidBodyForceCache, particleForceCache, mobilityForceCache);
         }
 
         // Copy the values from the cache.
         forceValid = true;
-        pe += energyCache;
         rigidBodyForces += rigidBodyForceCache;
         particleForces += particleForceCache;
         mobilityForces += mobilityForceCache;
         return 0;
+    }
+    
+    Real calcPotentialEnergy(const State& state) const {
+        Real energy = 0.0;
+        for (int i = 0; i < (int) forces.size(); ++i) {
+            const Force& f = *forces[i];
+            energy += f.getImpl().calcPotentialEnergy(state);
+        }
+        return energy;
     }
 
     int realizeSubsystemAccelerationImpl(const State& s) const {

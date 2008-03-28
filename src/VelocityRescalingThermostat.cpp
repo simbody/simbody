@@ -50,7 +50,7 @@ public:
         temperature = temp;
     }
     void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
-        Real energy = system.getKineticEnergy(state);
+        Real energy = system.calcKineticEnergy(state);
         if (energy == 0.0)
             return;
         int dof = state.getNU()-state.getNUErr();

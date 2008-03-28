@@ -68,12 +68,16 @@ public:
     const DecorationSubsystem& getDecorationSubsystem() const;
     DecorationSubsystem&       updDecorationSubsystem();
 
-    // Responses available when the global subsystem is advanced to the indicated stage.
-    const Real& getPotentialEnergy(const State&, Stage g=Stage::Dynamics) const;
-    const Real& getKineticEnergy(const State&, Stage g=Stage::Dynamics) const;
-
-    Real getEnergy(const State& s, Stage g=Stage::Dynamics) const {
-        return getPotentialEnergy(s,g)+getKineticEnergy(s,g);
+    /// Calculate the total potential energy of the system.  The state must
+    /// be at Dynamics stage or later.
+    const Real calcPotentialEnergy(const State&) const;
+    /// Calculate the total kinetic energy of the system.  The state must
+    /// be at Velocity stage or later.
+    const Real calcKineticEnergy(const State&) const;
+    /// Calculate the total energy of the system.  The state must
+    /// be at Dynamics stage or later.
+    Real calcEnergy(const State& s) const {
+        return calcPotentialEnergy(s)+calcKineticEnergy(s);
     }
 
     // These methods are for use by our constituent subsystems to communicate with
@@ -89,13 +93,9 @@ public:
     const Vector&              getMobilityForces (const State&, Stage) const;
 
     // These routines are for use by force subsystems during Dynamics stage.
-    Real&                updPotentialEnergy(const State&, Stage) const;
     Vector_<SpatialVec>& updRigidBodyForces(const State&, Stage) const;
     Vector_<Vec3>&       updParticleForces (const State&, Stage) const;
     Vector&              updMobilityForces (const State&, Stage) const;
-
-    // This is for use by the matter subsystem while realizing Dynamics stage.
-    Real& updKineticEnergy(const State&, Stage) const;
 
     // Private implementation.
     SimTK_PIMPL_DOWNCAST(MultibodySystem, System);

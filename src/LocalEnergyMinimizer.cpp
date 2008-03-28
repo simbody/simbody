@@ -55,7 +55,7 @@ public:
             state.updQ() = parameters;
             system.realize(state, Stage::Dynamics);
         }
-        f = system.getEnergy(state);
+        f = system.calcEnergy(state);
         return 0;
     }
     int gradientFunc(const Vector &parameters, const bool new_parameters, Vector &gradient) const  {

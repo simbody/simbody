@@ -58,7 +58,7 @@ Force::TwoPointLinearSpringImpl::TwoPointLinearSpringImpl(const MobilizedBody& b
         body2(body2.getMobilizedBodyIndex()), station2(station2), k(k), x0(x0) {
 }
 
-void Force::TwoPointLinearSpringImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
+void Force::TwoPointLinearSpringImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
     const Transform& X_GB1 = matter.getMobilizedBody(body1).getBodyTransform(state);
     const Transform& X_GB2 = matter.getMobilizedBody(body2).getBodyTransform(state);
 
@@ -73,11 +73,26 @@ void Force::TwoPointLinearSpringImpl::calcForce(const State& state, Vector_<Spat
     const Real stretch   = d - x0; // + -> tension, - -> compression
     const Real frcScalar = k*stretch; // k(x-x0)
 
-    pe += 0.5 * frcScalar * stretch; // 1/2 k (x-x0)^2
-
     const Vec3 f1_G = (frcScalar/d) * r_G;
     bodyForces[body1] +=  SpatialVec(s1_G % f1_G, f1_G);
     bodyForces[body2] -=  SpatialVec(s2_G % f1_G, f1_G);
+}
+
+Real Force::TwoPointLinearSpringImpl::calcPotentialEnergy(const State& state) const {
+    const Transform& X_GB1 = matter.getMobilizedBody(body1).getBodyTransform(state);
+    const Transform& X_GB2 = matter.getMobilizedBody(body2).getBodyTransform(state);
+
+    const Vec3 s1_G = X_GB1.R() * station1;
+    const Vec3 s2_G = X_GB2.R() * station2;
+
+    const Vec3 p1_G = X_GB1.T() + s1_G; // station measured from ground origin
+    const Vec3 p2_G = X_GB2.T() + s2_G;
+
+    const Vec3 r_G = p2_G - p1_G; // vector from point1 to point2
+    const Real d   = r_G.norm();  // distance between the points
+    const Real stretch   = d - x0; // + -> tension, - -> compression
+
+    return 0.5*k*stretch*stretch; // 1/2 k (x-x0)^2
 }
 
 // TwoPointLinearDamper
@@ -95,7 +110,7 @@ Force::TwoPointLinearDamperImpl::TwoPointLinearDamperImpl(const MobilizedBody& b
         body2(body2.getMobilizedBodyIndex()), station2(station2), damping(damping) {
 }
 
-void Force::TwoPointLinearDamperImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
+void Force::TwoPointLinearDamperImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
     const Transform& X_GB1 = matter.getMobilizedBody(body1).getBodyTransform(state);
     const Transform& X_GB2 = matter.getMobilizedBody(body2).getBodyTransform(state);
 
@@ -117,6 +132,10 @@ void Force::TwoPointLinearDamperImpl::calcForce(const State& state, Vector_<Spat
     bodyForces[body2] -=  SpatialVec(s2_G % f1_G, f1_G);
 }
 
+Real Force::TwoPointLinearDamperImpl::calcPotentialEnergy(const State& state) const {
+    return 0;
+}
+
 // TwoPointConstantForce
 
 Force::TwoPointConstantForce::TwoPointConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1,
@@ -131,7 +150,7 @@ Force::TwoPointConstantForceImpl::TwoPointConstantForceImpl(const MobilizedBody&
         body2(body2.getMobilizedBodyIndex()), station2(station2), force(force) {
 }
 
-void Force::TwoPointConstantForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
+void Force::TwoPointConstantForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
     const Transform& X_GB1 = matter.getMobilizedBody(body1).getBodyTransform(state);
     const Transform& X_GB2 = matter.getMobilizedBody(body2).getBodyTransform(state);
 
@@ -150,6 +169,10 @@ void Force::TwoPointConstantForceImpl::calcForce(const State& state, Vector_<Spa
     bodyForces[body2] +=  SpatialVec(s2_G % f2_G, f2_G);
 }
 
+Real Force::TwoPointConstantForceImpl::calcPotentialEnergy(const State& state) const {
+    return 0;
+}
+
 // MobilityLinearSpring
 
 Force::MobilityLinearSpring::MobilityLinearSpring(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate,
@@ -161,12 +184,18 @@ Force::MobilityLinearSpringImpl::MobilityLinearSpringImpl(const MobilizedBody& b
         Real k, Real x0) : matter(body.getMatterSubsystem()), body(body.getMobilizedBodyIndex()), coordinate(coordinate), k(k), x0(x0) {
 }
 
-void Force::MobilityLinearSpringImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
+void Force::MobilityLinearSpringImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
     const MobilizedBody& mb = matter.getMobilizedBody(body);
     const Real q = mb.getOneQ(state, coordinate);
     const Real frc = -k*(q-x0);
-    pe -= 0.5*frc*(q-x0);
     mb.applyOneMobilityForce(state, coordinate, frc, mobilityForces);
+}
+
+Real Force::MobilityLinearSpringImpl::calcPotentialEnergy(const State& state) const {
+    const MobilizedBody& mb = matter.getMobilizedBody(body);
+    const Real q = mb.getOneQ(state, coordinate);
+    const Real frc = -k*(q-x0);
+    return 0.5*k*(q-x0)*(q-x0);
 }
 
 // MobilityLinearDamper
@@ -181,12 +210,15 @@ Force::MobilityLinearDamperImpl::MobilityLinearDamperImpl(const MobilizedBody& b
         Real damping) : matter(body.getMatterSubsystem()), body(body.getMobilizedBodyIndex()), coordinate(coordinate), damping(damping) {
 }
 
-void Force::MobilityLinearDamperImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
+void Force::MobilityLinearDamperImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
     const MobilizedBody& mb = matter.getMobilizedBody(body);
     const Real u = mb.getOneU(state, coordinate);
     const Real frc = -damping*u;
-    // no PE contribution
     mb.applyOneMobilityForce(state, coordinate, frc, mobilityForces);
+}
+
+Real Force::MobilityLinearDamperImpl::calcPotentialEnergy(const State& state) const {
+    return 0;
 }
 
 // MobilityConstantForce
@@ -200,10 +232,14 @@ Force::MobilityConstantForceImpl::MobilityConstantForceImpl(const MobilizedBody&
         Real force) : matter(body.getMatterSubsystem()), body(body.getMobilizedBodyIndex()), coordinate(coordinate), force(force) {
 }
 
-void Force::MobilityConstantForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
+void Force::MobilityConstantForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
     const MobilizedBody& mb = matter.getMobilizedBody(body);
     const Real q = mb.getOneQ(state, coordinate);
     mb.applyOneMobilityForce(state, coordinate, force, mobilityForces);
+}
+
+Real Force::MobilityConstantForceImpl::calcPotentialEnergy(const State& state) const {
+    return 0;
 }
 
 // ConstantForce
@@ -217,10 +253,14 @@ Force::ConstantForceImpl::ConstantForceImpl(const MobilizedBody& body, const Vec
         matter(body.getMatterSubsystem()), body(body.getMobilizedBodyIndex()), station(station), force(force) {
 }
 
-void Force::ConstantForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
+void Force::ConstantForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
     const Transform& X_GB = matter.getMobilizedBody(body).getBodyTransform(state);
     const Vec3 station_G = X_GB.R() * station;
     bodyForces[body] += SpatialVec(station_G % force, force);
+}
+
+Real Force::ConstantForceImpl::calcPotentialEnergy(const State& state) const {
+    return 0;
 }
 
 // ConstantTorque
@@ -234,8 +274,12 @@ Force::ConstantTorqueImpl::ConstantTorqueImpl(const MobilizedBody& body, const V
         matter(body.getMatterSubsystem()), body(body.getMobilizedBodyIndex()), torque(torque) {
 }
 
-void Force::ConstantTorqueImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
+void Force::ConstantTorqueImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
     bodyForces[body][0] += torque;
+}
+
+Real Force::ConstantTorqueImpl::calcPotentialEnergy(const State& state) const {
+    return 0;
 }
 
 // GlobalDamper
@@ -249,8 +293,12 @@ Force::GlobalDamper::GlobalDamper(GeneralForceSubsystem& forces, const SimbodyMa
 Force::GlobalDamperImpl::GlobalDamperImpl(const SimbodyMatterSubsystem& matter, Real damping) : matter(matter), damping(damping) {
 }
 
-void Force::GlobalDamperImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
+void Force::GlobalDamperImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
     mobilityForces -= damping*matter.getU(state);
+}
+
+Real Force::GlobalDamperImpl::calcPotentialEnergy(const State& state) const {
+    return 0;
 }
 
 // UniformGravity
@@ -279,7 +327,7 @@ void Force::UniformGravity::setZeroHeight(Real height) {
 Force::UniformGravityImpl::UniformGravityImpl(const SimbodyMatterSubsystem& matter, const Vec3& g, Real zeroHeight) : matter(matter), g(g), zeroHeight(zeroHeight) {
 }
 
-void Force::UniformGravityImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
+void Force::UniformGravityImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
     const int nBodies    = matter.getNBodies();
     const int nParticles = matter.getNParticles();
 
@@ -287,7 +335,6 @@ void Force::UniformGravityImpl::calcForce(const State& state, Vector_<SpatialVec
         const Vector& m = matter.getAllParticleMasses(state);
         const Vector_<Vec3>& loc_G = matter.getAllParticleLocations(state);
         for (int i=0; i < nParticles; ++i) {
-            pe -= m[i]*(~g*loc_G[i] + zeroHeight); // odd signs because height is in -g direction
             particleForces[i] += g * m[i];
         }
     }
@@ -299,12 +346,37 @@ void Force::UniformGravityImpl::calcForce(const State& state, Vector_<SpatialVec
         const Vec3&      com_B   = mprops.getMassCenter();
         const Transform& X_GB    = matter.getMobilizedBody(i).getBodyTransform(state);
         const Vec3       com_B_G = X_GB.R()*com_B;
-        const Vec3       com_G   = X_GB.T() + com_B_G;
         const Vec3       frc_G   = m*g;
 
-        pe -= m*(~g*com_G + zeroHeight); // odd signs because height is in -g direction
         bodyForces[i] += SpatialVec(com_B_G % frc_G, frc_G); 
     }
+}
+
+Real Force::UniformGravityImpl::calcPotentialEnergy(const State& state) const {
+    const int nBodies    = matter.getNBodies();
+    const int nParticles = matter.getNParticles();
+    Real pe = 0.0;
+
+    if (nParticles) {
+        const Vector& m = matter.getAllParticleMasses(state);
+        const Vector_<Vec3>& loc_G = matter.getAllParticleLocations(state);
+        for (int i=0; i < nParticles; ++i) {
+            pe -= m[i]*(~g*loc_G[i] + zeroHeight); // odd signs because height is in -g direction
+        }
+    }
+
+    // no need to apply gravity to Ground!
+    for (MobilizedBodyIndex i(1); i < nBodies; ++i) {
+        const MassProperties& mprops = matter.getMobilizedBody(i).getBodyMassProperties(state);
+        const Real&      m       = mprops.getMass();
+        const Vec3&      com_B   = mprops.getMassCenter();
+        const Transform& X_GB    = matter.getMobilizedBody(i).getBodyTransform(state);
+        const Vec3       com_B_G = X_GB.R()*com_B;
+        const Vec3       com_G   = X_GB.T() + com_B_G;
+
+        pe -= m*(~g*com_G + zeroHeight); // odd signs because height is in -g direction
+    }
+    return pe;
 }
 
 void Force::UniformGravityImpl::invalidateTopologyCache() {
@@ -330,8 +402,12 @@ Force::Custom::Implementation& Force::Custom::updImplementation() {
 Force::CustomImpl::CustomImpl(Force::Custom::Implementation* implementation) : implementation(implementation) {
 }
 
-void Force::CustomImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
-    implementation->calcForce(state, bodyForces, particleForces, mobilityForces, pe);
+void Force::CustomImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
+    implementation->calcForce(state, bodyForces, particleForces, mobilityForces);
+}
+
+Real Force::CustomImpl::calcPotentialEnergy(const State& state) const {
+    return implementation->calcPotentialEnergy(state);
 }
 
 } // namespace SimTK

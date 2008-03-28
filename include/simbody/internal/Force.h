@@ -355,10 +355,14 @@ public:
      *                       this is ignored.
      * @param mobilityForces forces on individual mobilities (elements of the state's u vector) are accumulated in this.
      *                       To apply a force to a mobility, add it to the appropriate element of this vector.
-     * @param pe             the system's potential energy is accumulated in this.  If this force affects the potential
-     *                       energy, add the energy change to this variable.
      */
-    virtual void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const = 0;
+    virtual void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const = 0;
+    /**
+     * Calculate this force's contribution to the potential energy of the System.
+     * 
+     * @param state          the State for which to calculate the potential energy
+     */
+    virtual Real calcPotentialEnergy(const State& state) const = 0;
     /**
      * Get whether this force depends only on the position variables (q), not on the velocies (u) or auxiliary variables (z).
      * The default implementation returns false.  If the force depends only on positions, you should override this to return

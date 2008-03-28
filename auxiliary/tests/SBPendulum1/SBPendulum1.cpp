@@ -356,9 +356,9 @@ try {
     int step = 0;
     while (s.getTime() < tmax) {
         ee.step(s.getTime() + h);
-        cout << " E=" << mbs.getEnergy(s)
-             << " (pe=" << mbs.getPotentialEnergy(s)
-             << ", ke=" << mbs.getKineticEnergy(s)
+        cout << " E=" << mbs.calcEnergy(s)
+             << " (pe=" << mbs.calcPotentialEnergy(s)
+             << ", ke=" << mbs.calcKineticEnergy(s)
              << ") hNext=" << ee.getPredictedNextStep() << endl;
 
         const Vector qdot = pend.getQDot(s);

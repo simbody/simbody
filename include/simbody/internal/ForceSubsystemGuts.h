@@ -62,6 +62,10 @@ public:
     const MultibodySystem& getMultibodySystem() const {
         return MultibodySystem::downcast(getSystem());
     }
+    
+    /// Get this subsystem's contribution to the potential energy.  The state must
+    /// be at Dynamics stage or later.
+    virtual Real calcPotentialEnergy(const State& state) const = 0;
 
     SimTK_DOWNCAST(ForceSubsystem::Guts, Subsystem::Guts);
 };

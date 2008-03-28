@@ -122,13 +122,13 @@ MultibodySystem::updDecorationSubsystem() {
     return updRep().updDecorationSubsystem();
 }
 
-const Real&                
-MultibodySystem::getPotentialEnergy(const State& s, Stage g) const {
-    return getRep().getPotentialEnergy(s,g);
+const Real
+MultibodySystem::calcPotentialEnergy(const State& s) const {
+    return getRep().calcPotentialEnergy(s);
 }
-const Real&                
-MultibodySystem::getKineticEnergy(const State& s, Stage g) const {
-    return getRep().getKineticEnergy(s,g);
+const Real
+MultibodySystem::calcKineticEnergy(const State& s) const {
+    return getMatterSubsystem().getRep().calcKineticEnergy(s);
 }
 
 const Vector_<SpatialVec>& 
@@ -142,15 +142,6 @@ MultibodySystem::getParticleForces(const State& s, Stage g) const {
 const Vector&              
 MultibodySystem::getMobilityForces(const State& s, Stage g) const {
     return getRep().getMobilityForces(s,g);
-}
-
-Real&                
-MultibodySystem::updPotentialEnergy(const State& s, Stage g) const {
-    return getRep().updPotentialEnergy(s,g);
-}
-Real&                
-MultibodySystem::updKineticEnergy(const State& s, Stage g) const {
-    return getRep().updKineticEnergy(s,g);
 }
 
 Vector_<SpatialVec>& 

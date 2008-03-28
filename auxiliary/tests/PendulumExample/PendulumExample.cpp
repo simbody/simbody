@@ -151,7 +151,7 @@ try { // If anything goes wrong, an exception will be thrown.
 
         for (;;) {
             //printf("%5g %10.4g %10.8g\n", s.getTime(), swinger.getQ(s)*Rad2Deg, mbs.getEnergy(s));
-            cout << s.getTime() << ": E=" << mbs.getEnergy(s) 
+            cout << s.getTime() << ": E=" << mbs.calcEnergy(s) 
                  << " connector q=" << connector.getQ(s) 
                  << ": swinger q=" << swinger.getQ(s) << endl;
 

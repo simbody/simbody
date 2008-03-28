@@ -47,8 +47,7 @@ void verifyForces(const Force& force, const State& state, Vector_<SpatialVec> bo
     actualBodyForces = SpatialVec(Vec3(0), Vec3(0));
     actualParticleForces = Vec3(0);
     actualMobilityForces = 0;
-    Real pe = 0;
-    force.getImpl().calcForce(state, actualBodyForces, actualParticleForces, actualMobilityForces, pe);
+    force.getImpl().calcForce(state, actualBodyForces, actualParticleForces, actualMobilityForces);
     for (int i = 0; i < bodyForces.size(); ++i)
         ASSERT((bodyForces[i]-actualBodyForces[i]).norm() < 1e-10);
     for (int i = 0; i < particleForces.size(); ++i)
@@ -59,9 +58,12 @@ void verifyForces(const Force& force, const State& state, Vector_<SpatialVec> bo
 
 class MyForceImpl : public Force::Custom::Implementation {
 public:
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces, Real& pe) const {
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
         for (int i = 0; i < mobilityForces.size(); ++i)
             mobilityForces[i] += i;
+    }
+    Real calcPotentialEnergy(const State& state) const {
+        return 0.0;
     }
 };
 
@@ -247,14 +249,14 @@ void testEnergyConservation() {
     // Simulate it for a while and see if the energy changes.
     
     system.realize(state, Stage::Dynamics);
-    Real initialEnergy = system.getEnergy(state);
+    Real initialEnergy = system.calcEnergy(state);
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-4);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(10.0);
     system.realize(state, Stage::Dynamics);
-    Real finalEnergy = system.getEnergy(ts.getState());
+    Real finalEnergy = system.calcEnergy(ts.getState());
     ASSERT(std::abs(initialEnergy/finalEnergy-1.0) < 0.005);
 }
 

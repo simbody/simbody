@@ -101,7 +101,7 @@ class HuntCrossleyContactRep : public ForceSubsystemRep {
 public:
     HuntCrossleyContactRep()
      : ForceSubsystemRep("HuntCrossleyContact", "0.0.1"), 
-       instanceVarsIndex(-1)
+       instanceVarsIndex(-1), energyCacheIndex(-1)
     {
     }
     int addSphere(MobilizedBodyIndex body, const Vec3& center,
@@ -140,6 +140,7 @@ public:
     int realizeSubsystemTopologyImpl(State& s) const {
         instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Instance, 
             new Value<Parameters>(defaultParameters));
+        energyCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Real>());
         return 0;
     }
 
@@ -187,6 +188,7 @@ public:
         return 0;
     }
 
+    Real calcPotentialEnergy(const State& state) const;
 
 private:
         // TOPOLOGY "STATE" VARIABLES
@@ -198,6 +200,7 @@ private:
     // This must be filled in during realizeTopology and treated
     // as const thereafter. These are garbage unless built=true.
     mutable int instanceVarsIndex;
+    mutable int energyCacheIndex;
 
     const Parameters& getParameters(const State& s) const {
         assert(subsystemTopologyHasBeenRealized());
@@ -310,9 +313,10 @@ int HuntCrossleyContactRep::realizeSubsystemDynamicsImpl(const State& s) const
 
     const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
+    Real& pe = Value<Real>::downcast(s.updCacheEntry(getMySubsystemIndex(), energyCacheIndex)).upd();
+    pe = 0;
 
     // Get access to system-global cache entries.
-    Real&                  pe              = mbs.updPotentialEnergy(s, Stage::Dynamics);
     Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s, Stage::Dynamics);
 
     for (int s1=0; s1 < (int)p.spheres.size(); ++s1) {
@@ -394,6 +398,10 @@ int HuntCrossleyContactRep::realizeSubsystemDynamicsImpl(const State& s) const
     }
 
     return 0;
+}
+
+Real HuntCrossleyContactRep::calcPotentialEnergy(const State& state) const {
+    return Value<Real>::downcast(state.getCacheEntry(getMySubsystemIndex(), energyCacheIndex)).get();
 }
 
 // We have determined that contact is occurring. The *undeformed* contact points and the

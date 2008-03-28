@@ -359,7 +359,7 @@ try // If anything goes wrong, an exception will be thrown.
             myRNA.getQErr(ss).normRMS(), myRNA.getUErr(ss).normRMS(),
             myStudy.getPredictedNextStepSize());
         printf("      E=%14.8g (pe=%10.4g ke=%10.4g)\n",
-            mbs.getEnergy(ss), mbs.getPotentialEnergy(ss), mbs.getKineticEnergy(ss));
+            mbs.calcEnergy(ss), mbs.calcPotentialEnergy(ss), mbs.calcKineticEnergy(ss));
 
         cout << "QERR=" << ss.getQErr() << endl;
         cout << "UERR=" << ss.getUErr() << endl;

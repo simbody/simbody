@@ -730,10 +730,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  con
         for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
             rbNodeLevels[i][j]->realizeDynamics(sbs);
 
-    // Update system kinetic energy
-    const MultibodySystem& mbs = getMultibodySystem();  // owner of this subsystem
-    mbs.getRep().updKineticEnergy(s, Stage::Dynamics) += calcKineticEnergy(s);
-
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
         getConstraint(cx).getImpl().realizeDynamics(s);
 
@@ -2159,7 +2155,7 @@ void SimbodyMatterSubsystemRep::calcMobilizerReactionForces(const State& s, Vect
         const MassProperties& mass = body.getBodyMassProperties(s);
         const SpatialVec& acceleration = body.getBodyAcceleration(s);
         if (mass.getMass() == Infinity)
-            totalForce[0] = SpatialVec(Vec3(0), Vec3(0));
+            totalForce[index] = SpatialVec(Vec3(0), Vec3(0));
         else
             totalForce[index] = body.calcBodySpatialInertiaMatrixInGround(s)*acceleration;
     }
