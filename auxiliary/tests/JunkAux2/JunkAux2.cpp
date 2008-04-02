@@ -289,10 +289,10 @@ int main(int argc, char** argv) {
 
 
     //myStudy.setMaximumStepSize(0.001);
-    myStudy.setAccuracy(1e-6); //myStudy.setAccuracy(1e-1);
+    myStudy.setAccuracy(1e-6); myStudy.setAccuracy(1e-1);
     //myStudy.setProjectEveryStep(true);
     //myStudy.setProjectInterpolatedStates(false);
-    myStudy.setConstraintTolerance(1e-7); //myStudy.setConstraintTolerance(1e-2);
+    myStudy.setConstraintTolerance(1e-7); myStudy.setConstraintTolerance(1e-2);
     //myStudy.setAllowInterpolation(false);
     //myStudy.setMaximumStepSize(.1);
 
