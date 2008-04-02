@@ -319,6 +319,8 @@ ADD_TEST(ExplicitEulerIntegratorTest       ${TEST_PATH}/ExplicitEulerIntegratorT
 ADD_TEST(ExplicitEulerIntegratorTestStatic ${TEST_PATH}/ExplicitEulerIntegratorTestStatic)
 ADD_TEST(VerletIntegratorTest       ${TEST_PATH}/VerletIntegratorTest)
 ADD_TEST(VerletIntegratorTestStatic ${TEST_PATH}/VerletIntegratorTestStatic)
+ADD_TEST(TestSpline       ${TEST_PATH}/TestSpline)
+ADD_TEST(TestSplineStatic ${TEST_PATH}/TestSplineStatic)
 
 #
 # Installation
