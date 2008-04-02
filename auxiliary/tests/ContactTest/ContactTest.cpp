@@ -132,6 +132,7 @@ int main() {
 
 try
   { Real g = 9.8;   // m/s^2
+    //Real g = 1.6;   // m/s^2 (moon)
     Vec3 gravity(0.,-g,0.);
 
     MultibodySystem mbs;
@@ -197,7 +198,7 @@ try
     Real kwall=concrete_planestrain, khard=steel_planestrain, krubber=rubber_planestrain;
     Real cwall=concrete_dissipation, chard=steel_dissipation, crubber=rubber_dissipation;
     //const Real cwall = 0., chard = 0., crubber=0.;
-    /*XXX*/kwall*=.01, khard*=.01;
+    /*XXX*/kwall*=.001, khard*=.001;
 
     contact.addSphere(pend1, Vec3(0, -linkLength/2, 0), pendBallRadius, krubber, crubber);
     contact.addSphere(pend2, Vec3(0, -linkLength/2, 0), pendBallRadius, krubber, crubber);
