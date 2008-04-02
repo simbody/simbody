@@ -35,6 +35,8 @@
 #include "simmath/internal/Function.h"
 #include "simmath/internal/GCVSPLUtil.h"
 
+#include <limits>
+
 namespace SimTK {
 
 /**
@@ -90,7 +92,7 @@ public:
         return 1;
     }
     int getMaxDerivativeOrder() const {
-        return Infinity;
+        return std::numeric_limits<int>::max();
     }
     /**
      * Get the locations (that is, the values of the independent variable) of the control points.
