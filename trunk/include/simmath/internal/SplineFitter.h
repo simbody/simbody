@@ -55,9 +55,10 @@ namespace SimTK {
  * </pre>
  * 
  * This chooses a value of the smoothing parameter to minimize the <i>Generalized Cross Validation</i> function.
- * It also estimates the true mean squared error and the number of degrees of freedom in the data, which can
+ * It also estimates the true mean squared error of the data the the number of degrees of freedom of the residual
+ * (that is, the number of degrees of freedom not explained by the spline), which can
  * be queried by calling getMeanSquaredError() and getDegreesOfFreedom().  Alternatively, if you have prior
- * knowledge of the error variance or degrees of freedom in the data, you can call fitFromErrorVariance()
+ * knowledge of the error variance or residual degrees of freedom, you can call fitFromErrorVariance()
  * or fitFromDOF() instead.  Finally, you can explicitly specify the smoothing parameter to use by calling
  * fitForSmoothingParameter().
  * 
@@ -69,7 +70,7 @@ namespace SimTK {
  */
 
 template <int N>
-class SimTK_SIMMATH_EXPORT SplineFitter {
+class SplineFitter {
 public:
     SplineFitter(const SplineFitter& copy) : impl(copy.impl) {
         impl->referenceCount++;
@@ -113,7 +114,7 @@ public:
     }
     /**
      * Perform a fit, choosing a value of the smoothing parameter based on the expect number of degrees of
-     * freedom in the data.
+     * freedom of the residual.
      * 
      * @param degree the degree of the spline to create.  This must be a positive odd value.
      * @param x      the values of the independent variable for each data point
@@ -161,7 +162,7 @@ public:
         return impl->error;
     }
     /**
-     * Get the estimate of the number of degrees of freedom in the data that was determined by the fitting.
+     * Get the estimate of the number of degrees of freedom of the residual that was determined by the fitting.
      */
     Real getDegreesOfFreedom() {
         return impl->dof;

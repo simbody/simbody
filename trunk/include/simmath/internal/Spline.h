@@ -47,7 +47,7 @@ namespace SimTK {
  */
 
 template <int N>
-class SimTK_SIMMATH_EXPORT Spline : public Function<N> {
+class Spline : public Function<N> {
 public:
     /**
      * Create a Spline object based on a set of control points.

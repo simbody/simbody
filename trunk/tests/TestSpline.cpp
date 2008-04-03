@@ -104,7 +104,7 @@ void testSplineFitter() {
         truey[i] = Vec3(sin(x[i]), 3.0*sin(2*x[i]), cos(x[i]));
         y[i] = truey[i] + Vec3(random.getValue(), random.getValue(), random.getValue());
     }
-    SplineFitter<3> fitter = SplineFitter<3>::fitFromGCV(1, x, y);
+    SplineFitter<3> fitter = SplineFitter<3>::fitFromGCV(3, x, y);
     Spline<3> spline1 = fitter.getSpline();
     
     // The fitting should have reduced the error.
@@ -118,11 +118,17 @@ void testSplineFitter() {
     // If we perform the fitting again, explicitly specifying the same value for the smoothing parameter,
     // it should produce identical results.
     
-    assertEqual(SplineFitter<3>::fitForSmoothingParameter(1, x, y, fitter.getSmoothingParameter()).getSpline().getControlPointValues(), spline1.getControlPointValues());
+    assertEqual(SplineFitter<3>::fitForSmoothingParameter(3, x, y, fitter.getSmoothingParameter()).getSpline().getControlPointValues(), spline1.getControlPointValues());
+    
+    // Likewise, specifying the same number of degrees of freedom should produce identical results.
+    
+    assertEqual(SplineFitter<3>::fitFromDOF(3, x, y, fitter.getDegreesOfFreedom()).getSpline().getControlPointValues(), spline1.getControlPointValues());
     
     // If we specify a smoothing parameter of 0, it should exactly reproduce the original data.
 
-    assertEqual(SplineFitter<3>::fitForSmoothingParameter(1, x, y, 0.0).getSpline().getControlPointValues(), y);
+    Spline<3> nosmoothing = SplineFitter<3>::fitForSmoothingParameter(3, x, y, 0.0).getSpline();
+    for (int i = 0; i < x.size(); ++i)
+        assertEqual(y[i], nosmoothing.calcValue(Vector(1, x[i])));
 }
 
 int main () {

@@ -37,7 +37,7 @@
 
 int gcvspl_(const SimTK::Real *, const SimTK::Real *, int *, const SimTK::Real *, const SimTK::Real *, int *, int *,
             int *, int *, SimTK::Real *, SimTK::Real *, int *, SimTK::Real *, int *);
-SimTK::Real splder_(int *, int *, int *, SimTK::Real *, const SimTK::Real *, const SimTK::Real *, int *, SimTK::Real *);
+SimTK::Real splder_(int *, int *, int *, SimTK::Real *, const SimTK::Real *, const SimTK::Real *, int *, SimTK::Real *, int);
 
 namespace SimTK {
 
@@ -51,15 +51,18 @@ namespace SimTK {
 class SimTK_SIMMATH_EXPORT GCVSPLUtil {
 public:
     template <int K>
-    static void gcvspl(const Vector& x, const Vector_<Vec<K> >& y, const Vector& wx, const Vec<K>& wy, int m, int md, Real val, Vector_<Vec<K> >&c, Vector& wk, int& ier);
+    static void gcvspl(const Vector& x, const Vector_<Vec<K> >& y, const Vector& wx, Vec<K> wy, int m, int md, Real val, Vector_<Vec<K> >&c, Vector& wk, int& ier);
     template <int K>
     static Vec<K> splder(int derivOrder, int degree, Real t, const Vector& x, const Vector_<Vec<K> >&coeff);
 };
 
 template <int K>
-void GCVSPLUtil::gcvspl(const Vector& x, const Vector_<Vec<K> >& y, const Vector& wx, const Vec<K>& wy, int degree, int md, Real val, Vector_<Vec<K> >&c, Vector& wk, int& ier) {
-    assert(y.size() >= x.size());
-    assert(wx.size() == x.size());
+void GCVSPLUtil::gcvspl(const Vector& x, const Vector_<Vec<K> >& y, const Vector& wx, Vec<K> wy, int degree, int md, Real val, Vector_<Vec<K> >&c, Vector& wk, int& ier) {
+    SimTK_APIARGCHECK_ALWAYS(degree > 0 && degree%2==1, "GCVSPLUtil", "gcvspl", "degree must be positive and odd");
+    SimTK_APIARGCHECK_ALWAYS(y.size() >= x.size(), "GCVSPLUtil", "gcvspl", "y is shorter than x");
+    SimTK_APIARGCHECK_ALWAYS(wx.size() >= x.size(), "GCVSPLUtil", "gcvspl", "wx and x must be the same size");
+    SimTK_APIARGCHECK_ALWAYS(x.hasContiguousData(), "GCVSPLUtil", "gcvspl", "x must have contiguous storage (i.e. not be a view)");
+    SimTK_APIARGCHECK_ALWAYS(wk.hasContiguousData(), "GCVSPLUtil", "gcvspl", "wk must have contiguous storage (i.e. not be a view)");
     
     // Create various temporary variables.
     
@@ -79,6 +82,11 @@ void GCVSPLUtil::gcvspl(const Vector& x, const Vector_<Vec<K> >& y, const Vector
     // Invoke GCV.
     
     gcvspl_(&x[0], &yvec[0], &ny, &wx[0], &wy[0], &m, &n, &k, &md, &val, &cvec[0], &n, &wk[0], &ier);
+    if (ier != 0) {
+        SimTK_APIARGCHECK_ALWAYS(n >= 2*m, "GCVSPLUtil", "gcvspl", "Too few data points");
+        SimTK_APIARGCHECK_ALWAYS(ier != 2, "GCVSPLUtil", "gcvspl", "The values in x must be strictly increasing");
+        SimTK_APIARGCHECK_ALWAYS(ier == 0, "GCVSPLUtil", "gcvspl", "GCVSPL returned an error code");
+    }
     c.resize(n);
     index = 0;
     for (int j = 0; j < K; ++j)
@@ -92,23 +100,21 @@ Vec<K> GCVSPLUtil::splder(int derivOrder, int degree, Real t, const Vector& x, c
     assert(t >= x[0] && t <= x[x.size()-1]);
     assert(x.size() == coeff.size());
     assert(degree > 0 && degree%2==1);
+    assert(x.hasContiguousData());
     
     // Create various temporary variables.
     
     Vec<K> result;
-    Vector c(coeff.size());
     int m = (degree+1)/2;
     int n = x.size();
     int interval = 0;
     Vector_<double> q(2*m);
+    int offset = (int) (&coeff[1][0]-&coeff[0][0]);
 
     // Evaluate the spline one component at a time.
     
-    for (int i = 0; i < K; ++i) {
-        for (int j = 0; j < c.size(); ++j)
-            c[j] = coeff[j][i];
-        result[i] = splder_(&derivOrder, &m, &n, &t, &x[0], &c[0], &interval, &q[0]);
-    }
+    for (int i = 0; i < K; ++i)
+        result[i] = splder_(&derivOrder, &m, &n, &t, &x[0], &coeff[0][i], &interval, &q[0], offset);
     return result;
 }
 

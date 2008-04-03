@@ -33,7 +33,6 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon.h"
-#include "simmath/internal/common.h"
 
 namespace SimTK {
 
@@ -45,7 +44,7 @@ namespace SimTK {
  */
 
 template <int N>
-class SimTK_SIMMATH_EXPORT Function {
+class Function {
 public:
     virtual ~Function() {
     }

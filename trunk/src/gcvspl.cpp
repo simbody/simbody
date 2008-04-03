@@ -8,7 +8,7 @@
 int gcvspl_(const SimTK_Real *, const SimTK_Real *, int *, const SimTK_Real *, const SimTK_Real *, int *, int *,
 	 		int *, int *, SimTK_Real *, SimTK_Real *, int *, SimTK_Real *, int *);
 
-SimTK_Real splder_(int *, int *, int *, SimTK_Real *, const SimTK_Real *, const SimTK_Real *, int *, SimTK_Real *);
+SimTK_Real splder_(int *, int *, int *, SimTK_Real *, const SimTK_Real *, const SimTK_Real *, int *, SimTK_Real *, int);
 
 #define abs(x) ((x) >= 0 ? (x) : -(x))
 #define min(a,b) ((a) <= (b) ? (a) : (b))
@@ -875,7 +875,7 @@ SimTK_Real trinv_(SimTK_Real *b, SimTK_Real *e, int *m, int *n)
 
 
 SimTK_Real splder_(int *ider, int *m, int *n, SimTK_Real *t, 
-	const SimTK_Real *x, const SimTK_Real *c, int *l, SimTK_Real *q)
+	const SimTK_Real *x, const SimTK_Real *c, int *l, SimTK_Real *q, int coffset)
 {
     /* System generated locals */
     int i__1, i__2;
@@ -900,7 +900,7 @@ SimTK_Real splder_(int *ider, int *m, int *n, SimTK_Real *t,
     /* Parameter adjustments */
     
     --q;
-    --c;
+    c -= coffset;
     --x;
 
     /* Function Body */
@@ -929,7 +929,7 @@ SimTK_Real splder_(int *ider, int *m, int *n, SimTK_Real *t,
     i__1 = ju;
     for (j = jl; j <= i__1; ++j) {
 	if (j >= mp1 && j <= npm) {
-	    q[j + ml] = c[j - *m];
+	    q[j + ml] = c[coffset*(j - *m)];
 	} else {
 	    q[j + ml] = 0.;
 	}
