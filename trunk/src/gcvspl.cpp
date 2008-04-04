@@ -4,11 +4,12 @@
 */
 
 #include "SimTKcommon.h"
+#include "simmath/internal/common.h"
 
-int gcvspl_(const SimTK_Real *, const SimTK_Real *, int *, const SimTK_Real *, const SimTK_Real *, int *, int *,
-	 		int *, int *, SimTK_Real *, SimTK_Real *, int *, SimTK_Real *, int *);
+int SimTK_SIMMATH_EXPORT gcvspl_(const SimTK_Real *, const SimTK_Real *, int *, const SimTK_Real *, const SimTK_Real *, int *, int *,
+            int *, int *, SimTK_Real *, SimTK_Real *, int *, SimTK_Real *, int *);
 
-SimTK_Real splder_(int *, int *, int *, SimTK_Real *, const SimTK_Real *, const SimTK_Real *, int *, SimTK_Real *, int);
+SimTK_Real SimTK_SIMMATH_EXPORT splder_(int *, int *, int *, SimTK_Real *, const SimTK_Real *, const SimTK_Real *, int *, SimTK_Real *, int);
 
 #define abs(x) ((x) >= 0 ? (x) : -(x))
 #define min(a,b) ((a) <= (b) ? (a) : (b))
