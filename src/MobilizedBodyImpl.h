@@ -946,6 +946,246 @@ inline MobilizedBody::Custom::ImplementationImpl::~ImplementationImpl() {
     builtInImpl=0;
 }
 
+////////////////////////////////////////
+// MOBILIZED BODY::FUNCTIONBASED IMPL //
+////////////////////////////////////////
+
+
+class MobilizedBody::FunctionBasedImpl : public MobilizedBody::Custom::Implementation {
+public:
+    FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices)
+            : Implementation(matter, nmobilities, nmobilities, 0), subsystem(matter.getMySubsystemIndex()), nu(nmobilities), cacheIndex(0), functions(functions), coordIndices(coordIndices) {
+        assert(functions.size() == 6);
+        assert(coordIndices.size() == 6);
+        for (int i = 0; i < functions.size(); ++i) {
+            assert(functions[i]->getArgumentSize() == coordIndices[i].size());
+            assert(functions[i]->getMaxDerivativeOrder() >= 2);
+        }
+    }
+
+    MobilizedBody::Custom::Implementation* clone() const {
+        return new FunctionBasedImpl(*this);
+    }
+
+    Transform calcMobilizerTransformFromQ(const State& s, int nq, const Real* q) const {
+        // TODO
+        return Transform(Vec3(0));
+    }
+
+    SpatialVec multiplyByHMatrix(const State& s, int nu, const Real* u) const {
+        switch (nu) {
+            case 1: {
+                Mat<2,1,Vec3> h = Value<CacheInfo<1> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
+                return h*Vec1::getAs(u);
+            }
+            case 2: {
+                Mat<2,2,Vec3> h = Value<CacheInfo<2> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
+                return h*Vec2::getAs(u);
+            }
+            case 3: {
+                Mat<2,3,Vec3> h = Value<CacheInfo<3> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
+                return h*Vec3::getAs(u);
+            }
+            case 4: {
+                Mat<2,4,Vec3> h = Value<CacheInfo<4> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
+                return h*Vec4::getAs(u);
+            }
+            case 5: {
+                Mat<2,5,Vec3> h = Value<CacheInfo<5> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
+                return h*Vec5::getAs(u);
+            }
+            case 6: {
+                Mat<2,6,Vec3> h = Value<CacheInfo<6> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
+                return h*Vec6::getAs(u);
+            }
+        }
+        SimTK_THROW5(SimTK::Exception::ValueOutOfRange, "nu", 1, nu, 6, "MobilizedBody::FunctionBasedImpl::multiplyByHMatrix");
+    }
+
+    void multiplyByHTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const {
+        switch (nu) {
+            case 1: {
+                Mat<2,1,Vec3> h = Value<CacheInfo<1> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
+                Vec1::updAs(f) = ~h*F;
+                return;
+            }
+            case 2: {
+                Mat<2,2,Vec3> h = Value<CacheInfo<2> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
+                Vec2::updAs(f) = ~h*F;
+                return;
+            }
+            case 3: {
+                Mat<2,3,Vec3> h = Value<CacheInfo<3> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
+                Vec3::updAs(f) = ~h*F;
+                return;
+            }
+            case 4: {
+                Mat<2,4,Vec3> h = Value<CacheInfo<4> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
+                Vec4::updAs(f) = ~h*F;
+                return;
+            }
+            case 5: {
+                Mat<2,5,Vec3> h = Value<CacheInfo<5> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
+                Vec5::updAs(f) = ~h*F;
+                return;
+            }
+            case 6: {
+                Mat<2,6,Vec3> h = Value<CacheInfo<6> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
+                Vec6::updAs(f) = ~h*F;
+                return;
+            }
+        }
+        SimTK_THROW5(SimTK::Exception::ValueOutOfRange, "nu", 1, nu, 6, "MobilizedBody::FunctionBasedImpl::multiplyByHTranspose");
+    }
+
+    SpatialVec multiplyByHDotMatrix(const State& s, int nu, const Real* u) const {
+        switch (nu) {
+            case 1: {
+                Mat<2,1,Vec3> hdot = Value<CacheInfo<1> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
+                return hdot*Vec1::getAs(u);
+            }
+            case 2: {
+                Mat<2,2,Vec3> hdot = Value<CacheInfo<2> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
+                return hdot*Vec2::getAs(u);
+            }
+            case 3: {
+                Mat<2,3,Vec3> hdot = Value<CacheInfo<3> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
+                return hdot*Vec3::getAs(u);
+            }
+            case 4: {
+                Mat<2,4,Vec3> hdot = Value<CacheInfo<4> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
+                return hdot*Vec4::getAs(u);
+            }
+            case 5: {
+                Mat<2,5,Vec3> hdot = Value<CacheInfo<5> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
+                return hdot*Vec5::getAs(u);
+            }
+            case 6: {
+                Mat<2,6,Vec3> hdot = Value<CacheInfo<6> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
+                return hdot*Vec6::getAs(u);
+            }
+        }
+        SimTK_THROW5(SimTK::Exception::ValueOutOfRange, "nu", 1, nu, 6, "MobilizedBody::FunctionBasedImpl::multiplyByHDotMatrix");
+    }
+
+    void multiplyByHDotTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const {
+        switch (nu) {
+            case 1: {
+                Mat<2,1,Vec3> hdot = Value<CacheInfo<1> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
+                Vec1::updAs(f) = ~hdot*F;
+                return;
+            }
+            case 2: {
+                Mat<2,2,Vec3> hdot = Value<CacheInfo<2> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
+                Vec2::updAs(f) = ~hdot*F;
+                return;
+            }
+            case 3: {
+                Mat<2,3,Vec3> hdot = Value<CacheInfo<3> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
+                Vec3::updAs(f) = ~hdot*F;
+                return;
+            }
+            case 4: {
+                Mat<2,4,Vec3> hdot = Value<CacheInfo<4> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
+                Vec4::updAs(f) = ~hdot*F;
+                return;
+            }
+            case 5: {
+                Mat<2,5,Vec3> hdot = Value<CacheInfo<5> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
+                Vec5::updAs(f) = ~hdot*F;
+                return;
+            }
+            case 6: {
+                Mat<2,6,Vec3> hdot = Value<CacheInfo<6> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
+                Vec6::updAs(f) = ~hdot*F;
+                return;
+            }
+        }
+        SimTK_THROW5(SimTK::Exception::ValueOutOfRange, "nu", 1, nu, 6, "MobilizedBody::FunctionBasedImpl::multiplyByHDotTranspose");
+    }
+
+    void setQToFitTransform(const State& s, const Transform& X_FM, int nq, Real* q) const {
+        // TODO
+    }
+
+    void setUToFitVelocity(const State& s, const SpatialVec& V_FM, int nu, Real* u) const {
+        // TODO
+    }
+
+    void realizeTopology(State& s) const {
+        switch (nu) {
+        case 1:
+            cacheIndex = s.allocateCacheEntry(subsystem, Stage::Topology, new Value<CacheInfo<1> >());
+            break;
+        case 2:
+            cacheIndex = s.allocateCacheEntry(subsystem, Stage::Topology, new Value<CacheInfo<2> >());
+            break;
+        case 3:
+            cacheIndex = s.allocateCacheEntry(subsystem, Stage::Topology, new Value<CacheInfo<3> >());
+            break;
+        case 4:
+            cacheIndex = s.allocateCacheEntry(subsystem, Stage::Topology, new Value<CacheInfo<4> >());
+            break;
+        case 5:
+            cacheIndex = s.allocateCacheEntry(subsystem, Stage::Topology, new Value<CacheInfo<5> >());
+            break;
+        case 6:
+            cacheIndex = s.allocateCacheEntry(subsystem, Stage::Topology, new Value<CacheInfo<6> >());
+            break;
+        }
+    }
+
+    void realizePosition(State& s) const {
+        switch (nu) {
+            case 1: {
+                CacheInfo<1>& cache = Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                // TODO set cache.h and cache.hdot
+                break;
+            }
+            case 2: {
+                CacheInfo<2>& cache = Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                // TODO set cache.h and cache.hdot
+                break;
+            }
+            case 3: {
+                CacheInfo<3>& cache = Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                // TODO set cache.h and cache.hdot
+                break;
+            }
+            case 4: {
+                CacheInfo<4>& cache = Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                // TODO set cache.h and cache.hdot
+                break;
+            }
+            case 5: {
+                CacheInfo<5>& cache = Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                // TODO set cache.h and cache.hdot
+                break;
+            }
+            case 6: {
+                CacheInfo<6>& cache = Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                // TODO set cache.h and cache.hdot
+                break;
+            }
+        }
+    }
+private:
+    const SubsystemIndex subsystem;
+    const int nu;
+    mutable int cacheIndex;
+    const std::vector<Function<1>*> functions;
+    const std::vector<std::vector<int> > coordIndices;
+    template <int N> class CacheInfo {
+    public:
+        Mat<2,N,Vec3> h, hdot;
+    };
+};
+
+template <int N>
+std::ostream& operator<<(std::ostream& o, const MobilizedBody::FunctionBasedImpl::CacheInfo<N>& info) {
+    o << "MobilizedBody::FunctionBasedImpl::CacheInfo";
+    return o;
+}
 
 } // namespace SimTK
 

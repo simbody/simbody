@@ -43,11 +43,12 @@
  * which advanced users may derive their own mobilizers.
  */
 
-#include "SimTKcommon.h"
+#include "SimTKmath.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/Body.h"
 
 #include <cassert>
+#include <vector>
 
 namespace SimTK {
 
@@ -1319,6 +1320,7 @@ public:
     class Ellipsoid;
     class Custom;
     class Ground;
+    class FunctionBased;
     
     class PinImpl;
     class SliderImpl;
@@ -1337,6 +1339,7 @@ public:
     class EllipsoidImpl;
     class CustomImpl;
     class GroundImpl;
+    class FunctionBasedImpl;
 
 };
 
@@ -2600,6 +2603,47 @@ public:
     //@}
 
     friend class MobilizedBody::CustomImpl;
+};
+
+/**
+ * This is a subclass of MobilizedBody::Custom which uses a set of Function objects to define the behavior of the
+ * MobilizedBody.  When you create it, you specify the number of generalized coordinates, and six Functions which
+ * calculate the spatial rotations and translations based on those coordinates.  It assumes there is a one to one
+ * correspondence between generalized coordinates and generalized speeds, so qdot == u.
+ * 
+ * Each of the Function objects must take some subset of the generalized coordinates as inputs, and produce a single
+ * number as its output.  It also must support derivatives up to second order.  Taken together, the six Functions
+ * define a SpatialVec giving the body's mobilizer transform.
+ */
+
+class MobilizedBody::FunctionBased : public MobilizedBody::Custom {
+public:
+    /* Create a FunctionBased MobilizedBody.
+     * 
+     * @param parent         the MobilizedBody's parent body
+     * @param body           describes this MobilizedBody's physical properties
+     * @param nmobilities    the number of generalized coordinates belonging to this MobilizedBody
+     * @param functions      the Functions describing how the body moves based on its generalized coordinates.
+     *                       This must be of length 6.  The elements correspond to, in order, x rotation, y rotation, z rotation,
+     *                       x translation, y translation, and z translation.
+     * @param coordIndices   the indices of the generalized coordinates that are inputs to each function.  For example, if coordIndices[2] = {0, 1},
+     *                       that means that functions[2] takes two input arguments, and q[0] and q[1] respectively should be passed as those arguments.
+     */
+    FunctionBased(MobilizedBody& parent, const Body& body, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices);
+    /* Create a FunctionBased MobilizedBody.
+     * 
+     * @param parent         the MobilizedBody's parent body
+     * @param inbFrame       the default inboard frame
+     * @param body           describes this MobilizedBody's physical properties
+     * @param outbFrame      the default outboard frame
+     * @param nmobilities    the number of generalized coordinates belonging to this MobilizedBody
+     * @param functions      the Functions describing how the body moves based on its generalized coordinates.
+     *                       This must be of length 6.  The elements correspond to, in order, x rotation, y rotation, z rotation,
+     *                       x translation, y translation, and z translation.
+     * @param coordIndices   the indices of the generalized coordinates that are inputs to each function.  For example, if coordIndices[2] = {0, 1},
+     *                       that means that functions[2] takes two input arguments, and q[0] and q[1] respectively should be passed as those arguments.
+     */
+    FunctionBased(MobilizedBody& parent, const Transform& inbFrame, const Body& body, const Transform& outbFrame, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices);
 };
 
 } // namespace SimTK

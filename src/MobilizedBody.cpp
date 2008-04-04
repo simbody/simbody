@@ -1758,5 +1758,15 @@ void MobilizedBody::Custom::Implementation::multiplyByQDotMatrix(const State& s,
     for (int i=0; i<nu; ++i) out[i] = 0;
 }
 
+MobilizedBody::FunctionBased::FunctionBased(MobilizedBody& parent, const Body& body, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices)
+        : Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices), body) {
+}
+
+MobilizedBody::FunctionBased::FunctionBased(MobilizedBody& parent, const Transform& inbFrame, const Body& body, const Transform& outbFrame, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices)
+        : Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices), body) {
+    setDefaultInboardFrame(inbFrame);
+    setDefaultOutboardFrame(outbFrame);
+}
+
 } // namespace SimTK
 
