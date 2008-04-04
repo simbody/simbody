@@ -34,27 +34,53 @@
 
 /**@file
  * This file defines leftover SmallMatrix implementations which need to know
- * about BigMatrix. This occurs for slow or complicated operations where punting to the
- * BigMatrix classes is the easiest way to get the desired functionality.
+ * about Lapack.
  */
+
+#include "SimTKcommon/TemplatizedLapack.h"
+#include <vector>
 
 namespace SimTK {
 
-// TODO: This is really bad! Should share space instead of recopying.
 template <int M, int N, class ELT, int CS, int RS>
 typename Mat<M,N,ELT,CS,RS>::TInvert 
 Mat<M,N,ELT,CS,RS>::invert() const {
-    Matrix_< EStandard > bigm(M,N);
-    for (int j=0; j<N; ++j)
-        for (int i=0; i<M; ++i)
-            bigm(i,j) = (*this)(i,j);
-    Matrix_< EInvert > result = bigm.invert();
-    assert(result.nrow() == TInvert::NRows && result.ncol() == TInvert::NCols);
-    TInvert out;
-    for (int j=0; j<TInvert::NCols; ++j)
-        for (int i=0; i<TInvert::NRows; ++i)
-            out(i,j) = result(i,j);
-    return out;
+    // We don't care if this is negated, but conjugated won't work.
+    assert(CNT<ELT>::IsStdNumber || CNT<typename CNT<ELT>::TNeg>::IsStdNumber);
+    assert(M == N);
+    typedef typename CNT<ELT>::StdNumber Raw;
+    
+    // Handle very small matrices directly.
+    
+    if (M == 1) {
+        assert((*this)(0, 0) != 0.0);
+        TInvert mat(1.0/(*this)(0, 0));
+        return mat;
+    }
+    if (M == 1) {
+        Raw d = (*this)(0, 0)*(*this)(1, 1) - (*this)(0, 1)*(*this)(1, 0);
+        assert(d != 0.0);
+        Raw dinv = 1.0/d;
+        TInvert mat(dinv*(*this)(1, 1), -dinv*(*this)(0, 1), -dinv*(*this)(1, 0), dinv*(*this)(0, 0));
+        return mat;
+    }
+
+    TInvert mat = *this;
+    Raw* rawData = reinterpret_cast<Raw*>(&mat);
+    int ipiv[M];
+    int info;
+    Lapack::getrf<Raw>(M,M,rawData,M,&ipiv[0],info);
+    assert(info==0);
+
+    // Calculate optimal size for work
+    Raw workSz;
+    Lapack::getri<Raw>(M,rawData,M,&ipiv[0],&workSz,-1,info);
+    const int wsz = (int)CNT<Raw>::real(workSz);
+
+    std::vector<Raw> work(wsz);
+    Lapack::getri<Raw>(M,rawData,M,&ipiv[0],&work[0],wsz,info);
+    assert(info==0);
+    return mat;
 }
 
 } //namespace SimTK
