@@ -57,7 +57,7 @@ Mat<M,N,ELT,CS,RS>::invert() const {
         TInvert mat(1.0/(*this)(0, 0));
         return mat;
     }
-    if (M == 1) {
+    if (M == 2) {
         Raw d = (*this)(0, 0)*(*this)(1, 1) - (*this)(0, 1)*(*this)(1, 0);
         assert(d != 0.0);
         Raw dinv = 1.0/d;
