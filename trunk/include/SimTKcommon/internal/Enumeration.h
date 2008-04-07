@@ -137,7 +137,7 @@ public:
      * Get the total number of allowed values for this enumerated type.
      */
     static int size() {
-        return updAllValues().size();
+        return (int)updAllValues().size();
     }
     /**
      * Get the enumerated value with a particular index.

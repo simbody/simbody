@@ -173,8 +173,8 @@ public:
         assert(currentStage == g.prev());
         // Record data needed to back up to this stage later.
         if (g == Stage::Topology)
-            nDiscreteWhenBuilt = discrete.size();
-        cacheSize[g] = cache.size();
+            nDiscreteWhenBuilt = (int)discrete.size();
+        cacheSize[g] = (int)cache.size();
         currentStage = g;
     }
 
@@ -333,13 +333,13 @@ private:
             discrete.resize(src.nDiscreteWhenBuilt);
             for (int i=0; i<src.nDiscreteWhenBuilt; ++i)
                 discrete[i] = src.discrete[i];
-            nDiscreteWhenBuilt = discrete.size();
+            nDiscreteWhenBuilt = (int)discrete.size();
             // don't copy any global shared resources
 
             cache.resize(src.cacheSize[Stage::Topology]);
             for (int i=0; i<(int)cache.size(); ++i)
                 cache[i] = src.cache[i];
-            cacheSize[Stage::Topology] = cache.size();
+            cacheSize[Stage::Topology] = (int)cache.size();
             currentStage = Stage::Topology;
             return;
         }
@@ -910,7 +910,7 @@ public:
         checkCanModify(subsys);
     
         PerSubsystemInfo& ss = data->subsystems[subsys];
-        const int nxt = ss.discrete.size();
+        const int nxt = (int)ss.discrete.size();
         ss.discrete.push_back(DiscreteVariable(g,vp));
         return nxt;
     }
@@ -925,7 +925,7 @@ public:
         checkCanModify(subsys);
 
         PerSubsystemInfo& ss = data->subsystems[subsys];
-        const int nxt = ss.cache.size();
+        const int nxt = (int)ss.cache.size();
         ss.cache.push_back(CacheEntry(g,vp));
         return nxt;
     }
