@@ -957,7 +957,7 @@ public:
             : Implementation(matter, nmobilities, nmobilities, 0), subsystem(matter.getMySubsystemIndex()), nu(nmobilities), cacheIndex(0), functions(functions), coordIndices(coordIndices) {
         assert(functions.size() == 6);
         assert(coordIndices.size() == 6);
-        for (int i = 0; i < functions.size(); ++i) {
+        for (int i = 0; i < (int)functions.size(); ++i) {
             assert(functions[i]->getArgumentSize() == coordIndices[i].size());
             assert(functions[i]->getMaxDerivativeOrder() >= 2);
         }
