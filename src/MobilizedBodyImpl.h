@@ -1139,36 +1139,37 @@ public:
         switch (nu) {
             case 1: {
                 CacheInfo<1>& cache = Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
-                // TODO set cache.h and cache.hdot
+                cache.createCache(s);
                 break;
             }
             case 2: {
                 CacheInfo<2>& cache = Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
-                // TODO set cache.h and cache.hdot
+                cache.createCache(s);
                 break;
             }
             case 3: {
                 CacheInfo<3>& cache = Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
-                // TODO set cache.h and cache.hdot
+                cache.createCache(s);
                 break;
             }
             case 4: {
                 CacheInfo<4>& cache = Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
-                // TODO set cache.h and cache.hdot
+                cache.createCache(s);
                 break;
             }
             case 5: {
                 CacheInfo<5>& cache = Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
-                // TODO set cache.h and cache.hdot
+                cache.createCache(s);
                 break;
             }
             case 6: {
                 CacheInfo<6>& cache = Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
-                // TODO set cache.h and cache.hdot
+                cache.createCache(s);
                 break;
             }
         }
     }
+    
 private:
     const SubsystemIndex subsystem;
     const int nu;
@@ -1177,6 +1178,9 @@ private:
     const std::vector<std::vector<int> > coordIndices;
     template <int N> class CacheInfo {
     public:
+        void createCache(State& s) {
+            // TODO set cache.h and cache.hdot
+        }
         Mat<2,N,Vec3> h, hdot;
     };
 };
