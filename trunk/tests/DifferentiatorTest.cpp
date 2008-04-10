@@ -190,7 +190,7 @@ static void doSinOmegaExample() {
     printf("%.3e: err1: max=%.3e, rms=%.3e  err2: max=%.3e, rms=%.3e\n",
         acc, err1max, std::sqrt(err1rms/NEntries), err2max, std::sqrt(err2rms/NEntries));
   }
-    exit(0);
+
 };
 
 
