@@ -238,14 +238,33 @@ Matrix Constraint::calcPositionConstraintMatrixPt(const State& s) const {
 	const int nu = matter.getNU(s);
 	const int nb = matter.getNBodies();
 
-	const int ncb = getNumConstrainedBodies();
 
 	Matrix Pt(nu, mp);
-	if (mp && nu) {
-		const ConstraintImpl& rep = getImpl();
-		Vector_<SpatialVec> bodyForcesInA(ncb);
-		Vector              mobilityForces(nu); // TODO should be n participating u's
+    if (mp==0 || nu==0)
+        return Pt;
 
+    const ConstraintImpl& rep = getImpl();
+    const int ncb = rep.getNumConstrainedBodies();
+    const int ncu = rep.getNumConstrainedU(s);
+
+    Vector              mobilityForces(ncu);
+    Vector_<SpatialVec> bodyForcesInA(ncb); // might be zero of these
+
+    Vector lambda(mp);
+    lambda = 0;
+    if (ncb == 0) {
+        // Mobility forces only
+        for (int i=0; i<mp; ++i) {
+            lambda[i] = 1;
+            mobilityForces = 0;
+            rep.applyPositionConstraintForces(s, mp, &lambda[0], bodyForcesInA, mobilityForces);
+            lambda[i] = 0;
+            Pt(i) = 0;
+            for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
+                Pt(rep.getUIndexOfConstrainedU(s, cux), i) = mobilityForces[cux]; // unpack
+        }
+    } else {
+        // There are some body forces
 		Vector_<SpatialVec> bodyForcesInG(nb);
 		bodyForcesInG = SpatialVec(Vec3(0), Vec3(0));
 
@@ -253,8 +272,6 @@ Matrix Constraint::calcPositionConstraintMatrixPt(const State& s) const {
         const Rotation& R_GA = rep.getAncestorMobilizedBody().getBodyRotation(s);
 
 		// Calculate Pt*lambda with each lambda set to 1 in turn.
-		Vector lambda(mp);
-		lambda = 0;
 		for (int i=0; i<mp; ++i) {
 			lambda[i] = 1;
 			bodyForcesInA = SpatialVec(Vec3(0), Vec3(0));
@@ -267,11 +284,11 @@ Matrix Constraint::calcPositionConstraintMatrixPt(const State& s) const {
 			lambda[i] = 0;
 
 			rep.getMyMatterSubsystem().calcInternalGradientFromSpatial(s,bodyForcesInG,Pt(i));
-            //TODO: must unpack and add in mobilityForces
+            for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
+                Pt(rep.getUIndexOfConstrainedU(s, cux), i) += mobilityForces[cux]; // unpack
 		}
-
 	}
-	return Pt;
+    return Pt;
 }
 
 // Calculate the constraint matrix V= partial(verr)/partial(u) for just
@@ -353,7 +370,6 @@ Matrix Constraint::calcVelocityConstraintMatrixVt(const State& s) const {
         const Rotation& R_GA = rep.getAncestorMobilizedBody().getBodyRotation(s);
 
 	    // Calculate Vt*lambda with each lambda set to 1 in turn.
-	    lambda = 0;
 	    for (int i=0; i<mv; ++i) {
 		    lambda[i] = 1;
 		    bodyForcesInA = SpatialVec(Vec3(0), Vec3(0));
@@ -420,39 +436,57 @@ Matrix Constraint::calcAccelerationConstraintMatrixAt(const State& s) const {
 	const int nu = matter.getNU(s);
 	const int nb = matter.getNBodies();
 
-	const int ncb = getNumConstrainedBodies();
 
 	Matrix At(nu, ma);
-	if (ma && nu) {
-		const ConstraintImpl& rep = getImpl();
-		Vector_<SpatialVec> bodyForcesInA(ncb);
-		Vector              mobilityForces(nu); // TODO should be n participating u's
+    if (ma==0 || nu==0)
+        return At;
 
-		Vector_<SpatialVec> bodyForcesInG(nb);
-		bodyForcesInG = SpatialVec(Vec3(0), Vec3(0));
+    const ConstraintImpl& rep = getImpl();
+    const int ncb = rep.getNumConstrainedBodies();
+    const int ncu = rep.getNumConstrainedU(s);
+
+    Vector              mobilityForces(ncu);
+    Vector_<SpatialVec> bodyForcesInA(ncb); // might be zero of these
+
+    Vector lambda(mp);
+    lambda = 0;
+    
+    if (ncb == 0) {
+        // Mobility forces only
+        for (int i=0; i<ma; ++i) {
+            lambda[i] = 1;
+            mobilityForces = 0;
+            rep.applyAccelerationConstraintForces(s, ma, &lambda[0], bodyForcesInA, mobilityForces);
+            lambda[i] = 0;
+            At(i) = 0;
+            for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
+                At(rep.getUIndexOfConstrainedU(s, cux), i) = mobilityForces[cux]; // unpack
+        }
+    } else {
+        // There are some body forces
+        Vector_<SpatialVec> bodyForcesInG(nb);
+        bodyForcesInG = SpatialVec(Vec3(0), Vec3(0));
 
         // For converting those A-relative forces to G
         const Rotation& R_GA = rep.getAncestorMobilizedBody().getBodyRotation(s);
 
-		// Calculate At*lambda with each lambda set to 1 in turn.
-		Vector lambda(ma);
-		lambda = 0;
-		for (int i=0; i<ma; ++i) {
-			lambda[i] = 1;
-			bodyForcesInA = SpatialVec(Vec3(0), Vec3(0));
-			mobilityForces = 0;
-			rep.applyAccelerationConstraintForces(s, ma, &lambda[0], bodyForcesInA, mobilityForces);
-			for (ConstrainedBodyIndex cb(0); cb < ncb; ++cb) {
-				bodyForcesInG[rep.getMobilizedBodyIndexOfConstrainedBody(cb)] =
-					R_GA*bodyForcesInA[cb];
-			}
-			lambda[i] = 0;
+        // Calculate At*lambda with each lambda set to 1 in turn.
+        for (int i=0; i<ma; ++i) {
+            lambda[i] = 1;
+            bodyForcesInA = SpatialVec(Vec3(0), Vec3(0));
+            mobilityForces = 0;
+            rep.applyAccelerationConstraintForces(s, ma, &lambda[0], bodyForcesInA, mobilityForces);
+            for (ConstrainedBodyIndex cb(0); cb < ncb; ++cb) {
+                bodyForcesInG[rep.getMobilizedBodyIndexOfConstrainedBody(cb)] =
+                    R_GA*bodyForcesInA[cb];
+            }
+            lambda[i] = 0;
 
-			rep.getMyMatterSubsystem().calcInternalGradientFromSpatial(s,bodyForcesInG,At(i));
-            //TODO: must unpack and add in mobilityForces
-		}
-
-	}
+            rep.getMyMatterSubsystem().calcInternalGradientFromSpatial(s,bodyForcesInG,At(i));
+            for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
+                At(rep.getUIndexOfConstrainedU(s, cux), i) += mobilityForces[cux]; // unpack
+        }
+    }
 	return At;
 }
 
@@ -1936,6 +1970,27 @@ applyAccelerationConstraintForcesVirtual
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
         "Constraint::Custom::Implementation", "applyAccelerationConstraintForcesVirtual");
+}
+
+    ////////////////////////////////////
+    // CONSTRAINT::COORDINATE COUPLER //
+    ////////////////////////////////////
+
+Constraint::CoordinateCoupler::CoordinateCoupler(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
+        : Custom(new CoordinateCouplerImpl(matter, function, coordBody, coordIndex)) {
+}
+
+    ///////////////////////////////
+    // CONSTRAINT::SPEED COUPLER //
+    ///////////////////////////////
+
+Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex)
+        : Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, std::vector<MobilizedBodyIndex>(0), std::vector<MobilizerQIndex>(0))) {
+}
+
+Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
+        const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
+        : Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, coordBody, coordIndex)) {
 }
 
     /////////////////////

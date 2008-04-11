@@ -42,7 +42,7 @@
  * which advanced users may derive their own constraints.
  */
 
-#include "SimTKcommon.h"
+#include "SimTKmath.h"
 #include "simbody/internal/common.h"
 
 #include <cassert>
@@ -245,6 +245,8 @@ public:
     class NoSlip1D; // same velocity at a point along a direction
     class ConstantSpeed; // prescribe generalized speed value
     class Custom;
+    class CoordinateCoupler;
+    class SpeedCoupler;
 
     class RodImpl;
     class BallImpl;
@@ -256,6 +258,8 @@ public:
     class NoSlip1DImpl;
     class ConstantSpeedImpl;
     class CustomImpl;
+    class CoordinateCouplerImpl;
+    class SpeedCouplerImpl;
 };
 
     ////////////////////////////////////////
@@ -1251,6 +1255,77 @@ protected:
     }
 
     friend class Constraint::CustomImpl;
+};
+
+/**
+ * This is a subclass of Constraint::Custom which uses a Function object to define a holonomic (position) constraint.
+ * You provide a Function which takes some subset of the system's generalized coordinates as arguments, and returns
+ * a single value.  It also must support partial derivatives up to second order.  The constraint enforces that the value
+ * of the function should equal 0 at all times.
+ */
+  
+class SimTK_SIMBODY_EXPORT Constraint::CoordinateCoupler : public Constraint::Custom {
+public:
+    /**
+     * Create a CoordinateCoupler.  You specify a Function and a list of generalized coordinates to pass to it as arguments.
+     * Each generalized coordinate is specified by a MobilizedBody and the index of the coordinate within that body.  For example
+     * matter.getMobilizedBody(bodies[2]).getOneQ(state, coordinates[2]) will be passed to the function as the value of the
+     * second argument.
+     * 
+     * @param matter      the matter subsystem this constraint will be added to
+     * @param function    the Function whose value should equal 0 at all times.  The constraint takes over ownership of this
+     *                    object, and automatically deletes in when the constraint is deleted.
+     * @param coordBody   the MobilizedBody corresponding to each generalized coordinate that should be passed as a function argument
+     * @param coordIndex  the index corresponding to each generalized coordinate that should be passed as a function argument
+     */
+    CoordinateCoupler(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
+};
+
+
+/**
+ * This is a subclass of Constraint::Custom which uses a Function object to define a nonholonomic (velocity) constraint.
+ * You provide a Function which takes some subset of the system's generalized speeds as arguments, and returns
+ * a single value.  It also must support partial derivatives up to second order.  The constraint enforces that the value
+ * of the function should equal 0 at all times.
+ * 
+ * The Function may optionally depend on coordinates (q) as well as speeds (u), but it only acts as a constraint on the
+ * speeds.  The constraint takes the current values of the coordinates as constants, then tries to modify only the speeds
+ * so as to satisfy the constraint.
+ */
+  
+class SimTK_SIMBODY_EXPORT Constraint::SpeedCoupler : public Constraint::Custom {
+public:
+    /**
+     * Create a SpeedCoupler.  You specify a Function and a list of generalized speeds to pass to it as arguments.
+     * Each generalized speed is specified by a MobilizedBody and the index of the speeds within that body.  For example
+     * matter.getMobilizedBody(bodies[2]).getOneU(state, speeds[2]) will be passed to the function as the value of the
+     * second argument.
+     * 
+     * @param matter      the matter subsystem this constraint will be added to
+     * @param function    the Function whose value should equal 0 at all times.  The constraint takes over ownership of this
+     *                    object, and automatically deletes in when the constraint is deleted.
+     * @param speedBody   the MobilizedBody corresponding to each generalized speed that should be passed as a function argument
+     * @param speedIndex  the index corresponding to each generalized speed that should be passed as a function argument
+     */
+    SpeedCoupler(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex);
+    /**
+     * Create a SpeedCoupler.  You specify a Function and a list of generalized coordinates and speeds to pass to it as arguments.
+     * Each generalized speed is specified by a MobilizedBody and the index of the speeds within that body.  For example
+     * matter.getMobilizedBody(bodies[2]).getOneU(state, speeds[2]) will be passed to the function as the value of the
+     * second argument.  Generalized coordinates come after generalized speeds in the argument list.  For example, if you specify
+     * three generalized speeds and two generalized coordinates, the Function must take a total of five arguments.  The first three
+     * are the speeds, and the last two are the coordinates.
+     * 
+     * @param matter      the matter subsystem this constraint will be added to
+     * @param function    the Function whose value should equal 0 at all times.  The constraint takes over ownership of this
+     *                    object, and automatically deletes in when the constraint is deleted.
+     * @param speedBody   the MobilizedBody corresponding to each generalized speed that should be passed as a function argument
+     * @param speedIndex  the index corresponding to each generalized speed that should be passed as a function argument
+     * @param coordBody   the MobilizedBody corresponding to each generalized coordinate that should be passed as a function argument
+     * @param coordIndex  the index corresponding to each generalized coordinate that should be passed as a function argument
+     */
+    SpeedCoupler(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
+            const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
 };
 
 } // namespace SimTK
