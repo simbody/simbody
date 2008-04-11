@@ -1773,7 +1773,11 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
     Vector_<SpatialVec> bodyF;
     Vector mobilityF;
     calcConstraintForcesFromMultipliers(s,lambda,bodyF,mobilityF);
-    //TODO: this is wrong
+    //TODO: the constraint forces here have the right sign, but the
+    //      older Schwieters code calculated them with the wrong sign
+    //      which is then compensated for when they are used. Better would
+    //      be to fix the USE_OLD_CONSTRAINTS stuff to generate the opposite
+    //      sign (rather than changing the sign here) and then fix the use.
         bodyF *= -1;
         mobilityF *= -1;
 
