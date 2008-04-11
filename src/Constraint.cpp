@@ -448,7 +448,7 @@ Matrix Constraint::calcAccelerationConstraintMatrixAt(const State& s) const {
     Vector              mobilityForces(ncu);
     Vector_<SpatialVec> bodyForcesInA(ncb); // might be zero of these
 
-    Vector lambda(mp);
+    Vector lambda(ma);
     lambda = 0;
     
     if (ncb == 0) {
@@ -1984,7 +1984,9 @@ Constraint::CoordinateCoupler::CoordinateCoupler(SimbodyMatterSubsystem& matter,
 Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function,
                                                          const std::vector<MobilizedBodyIndex>& coordBody, 
                                                          const std::vector<MobilizerQIndex>& coordIndex)
-  : Implementation(matter, 1, 0, 0), function(function), coordBodies(coordBody.size()), coordIndices(coordIndex), temp(coordBodies.size()), referenceCount(new int[1]) 
+  : Implementation(matter, 1, 0, 0), function(function), 
+    coordBodies(coordBody.size()), coordIndices(coordIndex), 
+    temp(coordBodies.size()), referenceCount(new int[1]) 
 {
     assert(coordBodies.size() == coordIndices.size());
     assert(coordIndices.size() == function->getArgumentSize());
