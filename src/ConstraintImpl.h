@@ -41,7 +41,6 @@
 #include "SimTKmath.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/Constraint.h"
-#include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/SimbodyMatterSubtree.h"
 
 #include <map>
@@ -1952,19 +1951,9 @@ inline Constraint::Custom::ImplementationImpl::~ImplementationImpl() {
 
 class Constraint::CoordinateCouplerImpl : public Constraint::Custom::Implementation {
 public:
-    CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
-            : Implementation(matter, 1, 0, 0), function(function), coordBodies(coordBody.size()), coordIndices(coordIndex), temp(coordBodies.size()), referenceCount(new int[1]) {
-        assert(coordBodies.size() == coordIndices.size());
-        assert(coordIndices.size() == function->getArgumentSize());
-        assert(function->getMaxDerivativeOrder() >= 2);
-        referenceCount[0] = 1;
-        std::map<MobilizedBodyIndex,ConstrainedMobilizerIndex> bodyIndexMap;
-        for (int i = 0; i < coordBodies.size(); ++i) {
-            if (bodyIndexMap.find(coordBody[i]) == bodyIndexMap.end())
-                bodyIndexMap[coordBody[i]] = addConstrainedMobilizer(matter.getMobilizedBody(coordBody[i]));
-            coordBodies[i] = bodyIndexMap[coordBody[i]];
-        }
-    }
+    CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function, 
+                          const std::vector<MobilizedBodyIndex>& coordBody, 
+                          const std::vector<MobilizerQIndex>& coordIndex);
     
     ~CoordinateCouplerImpl() {
         if (--referenceCount[0] == 0) {
@@ -2041,26 +2030,7 @@ private:
 class Constraint::SpeedCouplerImpl : public Constraint::Custom::Implementation {
 public:
     SpeedCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
-            const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
-            : Implementation(matter, 0, 1, 0), function(function), speedBodies(speedBody.size()), speedIndices(speedIndex), coordBodies(coordBody.size()), coordIndices(coordIndex),
-            temp(speedBody.size()+coordBody.size()), referenceCount(new int[1]) {
-        assert(speedBodies.size() == speedIndices.size());
-        assert(coordBodies.size() == coordIndices.size());
-        assert(temp.size() == function->getArgumentSize());
-        assert(function->getMaxDerivativeOrder() >= 2);
-        referenceCount[0] = 1;
-        std::map<MobilizedBodyIndex,ConstrainedMobilizerIndex> bodyIndexMap;
-        for (int i = 0; i < speedBodies.size(); ++i) {
-            if (bodyIndexMap.find(speedBody[i]) == bodyIndexMap.end())
-                bodyIndexMap[speedBody[i]] = addConstrainedMobilizer(matter.getMobilizedBody(speedBody[i]));
-            speedBodies[i] = bodyIndexMap[speedBody[i]];
-        }
-        for (int i = 0; i < coordBodies.size(); ++i) {
-            if (bodyIndexMap.find(coordBody[i]) == bodyIndexMap.end())
-                bodyIndexMap[coordBody[i]] = addConstrainedMobilizer(matter.getMobilizedBody(coordBody[i]));
-            coordBodies[i] = bodyIndexMap[coordBody[i]];
-        }
-    }
+            const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
     
     ~SpeedCouplerImpl() {
         if (--referenceCount[0] == 0) {
@@ -2083,7 +2053,7 @@ public:
         vaerr[0] = 0.0;
         findArguments(s);
         std::vector<int> components(1);
-        for (int i = 0; i < speedBodies.size(); ++i) {
+        for (int i = 0; i < (int)speedBodies.size(); ++i) {
             components[0] = i;
             vaerr[0] += function->calcDerivative(components, temp)[0]*getOneUDot(s, speedBodies[i], speedIndices[i], true);
         }
@@ -2092,7 +2062,7 @@ public:
     void applyVelocityConstraintForcesVirtual(const State& s, int mv, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
         findArguments(s);
         std::vector<int> components(1);
-        for (int i = 0; i < speedBodies.size(); ++i) {
+        for (int i = 0; i < (int)speedBodies.size(); ++i) {
             components[0] = i;
             Real force = multipliers[0]*function->calcDerivative(components, temp)[0];
             addInOneMobilityForce(s, speedBodies[i], speedIndices[i], force, mobilityForces);
@@ -2101,9 +2071,9 @@ public:
     
 private:
     void findArguments(const State& s) const {
-        for (int i = 0; i < speedBodies.size(); ++i)
+        for (int i = 0; i < (int)speedBodies.size(); ++i)
             temp[i] = getOneU(s, speedBodies[i], speedIndices[i]);
-        for (int i = 0; i < coordBodies.size(); ++i)
+        for (int i = 0; i < (int)coordBodies.size(); ++i)
             temp[i+speedBodies.size()] = getOneQ(s, coordBodies[i], coordIndices[i]);
     }
 

@@ -1980,6 +1980,24 @@ Constraint::CoordinateCoupler::CoordinateCoupler(SimbodyMatterSubsystem& matter,
         : Custom(new CoordinateCouplerImpl(matter, function, coordBody, coordIndex)) {
 }
 
+    // CoordinateCouplerImpl
+Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function,
+                                                         const std::vector<MobilizedBodyIndex>& coordBody, 
+                                                         const std::vector<MobilizerQIndex>& coordIndex)
+  : Implementation(matter, 1, 0, 0), function(function), coordBodies(coordBody.size()), coordIndices(coordIndex), temp(coordBodies.size()), referenceCount(new int[1]) 
+{
+    assert(coordBodies.size() == coordIndices.size());
+    assert(coordIndices.size() == function->getArgumentSize());
+    assert(function->getMaxDerivativeOrder() >= 2);
+    referenceCount[0] = 1;
+    std::map<MobilizedBodyIndex,ConstrainedMobilizerIndex> bodyIndexMap;
+    for (int i = 0; i < (int)coordBodies.size(); ++i) {
+        if (bodyIndexMap.find(coordBody[i]) == bodyIndexMap.end())
+            bodyIndexMap[coordBody[i]] = addConstrainedMobilizer(matter.getMobilizedBody(coordBody[i]));
+        coordBodies[i] = bodyIndexMap[coordBody[i]];
+    }
+}
+
     ///////////////////////////////
     // CONSTRAINT::SPEED COUPLER //
     ///////////////////////////////
@@ -1991,6 +2009,33 @@ Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, Function<
 Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
         const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
         : Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, coordBody, coordIndex)) {
+}
+
+    // SpeedCouplerImpl
+Constraint::SpeedCouplerImpl::SpeedCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function, 
+                                               const std::vector<MobilizedBodyIndex>& speedBody, 
+                                               const std::vector<MobilizerUIndex>& speedIndex,
+                                               const std::vector<MobilizedBodyIndex>& coordBody, 
+                                               const std::vector<MobilizerQIndex>& coordIndex)
+  : Implementation(matter, 0, 1, 0), function(function), speedBodies(speedBody.size()), speedIndices(speedIndex), coordBodies(coordBody.size()), coordIndices(coordIndex),
+    temp(speedBody.size()+coordBody.size()), referenceCount(new int[1]) 
+{
+    assert(speedBodies.size() == speedIndices.size());
+    assert(coordBodies.size() == coordIndices.size());
+    assert(temp.size() == function->getArgumentSize());
+    assert(function->getMaxDerivativeOrder() >= 2);
+    referenceCount[0] = 1;
+    std::map<MobilizedBodyIndex,ConstrainedMobilizerIndex> bodyIndexMap;
+    for (int i = 0; i < (int)speedBodies.size(); ++i) {
+        if (bodyIndexMap.find(speedBody[i]) == bodyIndexMap.end())
+            bodyIndexMap[speedBody[i]] = addConstrainedMobilizer(matter.getMobilizedBody(speedBody[i]));
+        speedBodies[i] = bodyIndexMap[speedBody[i]];
+    }
+    for (int i = 0; i < (int)coordBodies.size(); ++i) {
+        if (bodyIndexMap.find(coordBody[i]) == bodyIndexMap.end())
+            bodyIndexMap[coordBody[i]] = addConstrainedMobilizer(matter.getMobilizedBody(coordBody[i]));
+        coordBodies[i] = bodyIndexMap[coordBody[i]];
+    }
 }
 
     /////////////////////
