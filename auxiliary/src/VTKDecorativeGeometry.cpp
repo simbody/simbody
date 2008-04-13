@@ -30,7 +30,7 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * Implementation of the VTKDeorativeGeometry class.
+ * Implementation of the VTKDecorativeGeometry class.
  */
 
 #include "SimTKcommon.h"
