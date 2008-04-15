@@ -86,7 +86,7 @@ class OptimizerFailed : public Base {
 public:
         OptimizerFailed( const char * fn, int ln, String msg) : Base(fn, ln)
         {
-            setMessage("Optmizer failed: " + msg );
+            setMessage("Optimizer failed: " + msg );
         }
 private:
 };

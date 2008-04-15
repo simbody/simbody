@@ -243,9 +243,11 @@ InteriorPointOptimizer::InteriorPointOptimizer( const OptimizerSystem& sys )
         if(status == Solved_To_Acceptable_Level) {
             std::cout << "Ipopt: Solved to acceptable level" << std::endl;
         } else if (status != Solve_Succeeded) {
-            char buf[1024];
-            sprintf(buf, "Ipopt: %s (status %d)",applicationReturnStatusToString(status).c_str(),status);
-            SimTK_THROW1(SimTK::Exception::OptimizerFailed, SimTK::String(buf));
+            if( status != NonIpopt_Exception_Thrown) {
+                char buf[1024];
+                sprintf(buf, "Ipopt: %s (status %d)",applicationReturnStatusToString(status).c_str(),status);
+                SimTK_THROW1(SimTK::Exception::OptimizerFailed, SimTK::String(buf));
+            }
         }
 
         firstOptimization = false;

@@ -347,11 +347,6 @@ namespace Ipopt
       jnlst_->Printf(J_SUMMARY, J_MAIN, "\nEXIT: Not enough memory.\n");
       exit(-1);
     }
-    catch(...) {
-      IpoptException exc("Unknown Exception caught in ipopt", "Unknown File", -1);
-      exc.ReportException(*jnlst_);
-      exit(-1);
-    }
   }
 
   IpoptApplication::~IpoptApplication()
@@ -492,11 +487,6 @@ namespace Ipopt
     catch(std::bad_alloc) {
       retValue = Insufficient_Memory;
       jnlst_->Printf(J_SUMMARY, J_MAIN, "\nEXIT: Not enough memory.\n");
-    }
-    catch(...) {
-      IpoptException exc("Unknown Exception caught in Ipopt", "Unknown File", -1);
-      exc.ReportException(*jnlst_, J_ERROR);
-      retValue = NonIpopt_Exception_Thrown;
     }
 
     jnlst_->FlushBuffer();
@@ -749,11 +739,6 @@ printf("strlen user-set options= %d\n",strlen(liststr.c_str()) );
     catch(std::bad_alloc) {
       retValue = Insufficient_Memory;
       jnlst_->Printf(J_SUMMARY, J_MAIN, "\nEXIT: Not enough memory.\n");
-    }
-    catch(...) {
-      IpoptException exc("Unknown Exception caught in Ipopt", "Unknown File", -1);
-      exc.ReportException(*jnlst_, J_MOREDETAILED);
-      retValue = NonIpopt_Exception_Thrown;
     }
 
     jnlst_->FlushBuffer();
