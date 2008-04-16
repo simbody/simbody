@@ -244,8 +244,9 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) const {
         rhsScaleF = bignum;
     }
 
-    if( scaleRHS ) {  // apply scale factor to RHS
-        LapackInterface::lascl<T>( 'G', 0, 0, bnrm, rhsScaleF, m, nrhs, &b(0,0), b.nrow(), info ); 
+
+    if( scaleRHS ) {   // apply scale factor to RHS
+        LapackInterface::lascl<T>( 'G', 0, 0, bnrm, rhsScaleF, b.nrow(), nrhs, &b(0,0), b.nrow(), info ); 
     }
     // 
     LapackInterface::ormqr<T>( 'L', 'T', nRow, b.ncol(), mn, qtz.data, nRow, tauGEQP3.data,
@@ -277,12 +278,12 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) const {
  
     // compensate for scaling of linear system 
     if( scaleLinSys ) { 
-        LapackInterface::lascl<T>( 'g', 0, 0, anrm, linSysScaleF, nCol, x.ncol(), &x(0,0), 1, info );
+        LapackInterface::lascl<T>( 'g', 0, 0, anrm, linSysScaleF, nCol, x.ncol(), &x(0,0), nCol, info );
     }
 
     // compensate for scaling of RHS 
     if( scaleRHS  ) { 
-        LapackInterface::lascl<T>('g', 0, 0, bnrm, rhsScaleF, nCol, x.ncol(), &x(0,0), 1, info);
+        LapackInterface::lascl<T>('g', 0, 0, bnrm, rhsScaleF, nCol, x.ncol(), &x(0,0), nCol, info);
     }
     
     return;
@@ -311,6 +312,7 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
     typedef typename CNT<T>::TReal  RealType;
     RealType smlnum, bignum, smin, smax;
 
+    if( mat.size() == 0 ) return;
 
 
     // compute optimal block size
