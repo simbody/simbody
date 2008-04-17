@@ -76,7 +76,9 @@ public:
         impl->referenceCount++;
     }
     SplineFitter operator=(const SplineFitter& copy) {
-        return SplineFitter(copy);
+        impl = copy.impl;
+        impl->referenceCount++;
+        return *this;
     }
     ~SplineFitter() {
         impl->referenceCount--;
@@ -178,6 +180,9 @@ template <int N>
 class SplineFitter<N>::SplineFitterImpl {
 public:
     SplineFitterImpl(int degree, const Spline<N>& spline, Real p, Real error, Real dof) : degree(degree), spline(spline), p(p), error(error), dof(dof), referenceCount(1) {
+    }
+    ~SplineFitterImpl() {
+        assert(referenceCount == 0);
     }
     int referenceCount;
     int degree;

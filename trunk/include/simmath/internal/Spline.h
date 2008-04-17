@@ -61,8 +61,10 @@ public:
     Spline(const Spline& copy) : impl(copy.impl) {
         impl->referenceCount++;
     }
-    Spline operator=(const Spline& copy) {
-        return Spline(copy);
+    Spline& operator=(const Spline& copy) {
+        impl = copy.impl;
+        impl->referenceCount++;
+        return *this;
     }
     ~Spline() {
         impl->referenceCount--;
@@ -122,6 +124,9 @@ template <int N>
 class Spline<N>::SplineImpl {
 public:
     SplineImpl(int degree, const Vector& x, const Vector_<Vec<N> >& y) : degree(degree), x(x), y(y), referenceCount(1) {
+    }
+    ~SplineImpl() {
+        assert(referenceCount == 0);
     }
     Vec<N> getValue(Real t) const {
         return GCVSPLUtil::splder(0, degree, t, x, y);
