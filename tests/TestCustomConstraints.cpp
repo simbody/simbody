@@ -95,32 +95,10 @@ class CompoundFunction : public Function<1> {
 public:
     Vec<1> calcValue(const Vector& x) const {
         return Vec1(x[0]+x[1]+x[2]);
-//        return Vec1(x[0]*x[1]+x[2]);
     }
     Vec<1> calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const {
-        if (derivComponents.size() == 1) {
-return Vec1(1);
-            switch (derivComponents[0]) {
-            case 0:
-                return Vec1(x[1]);
-            case 1:
-                return Vec1(x[0]);
-            default:
-                return Vec1(1);
-            }
-        }
-        if (derivComponents.size() == 2) {
-return Vec1(0);
-            int count[] = {0, 0, 0};
-            count[derivComponents[0]]++;
-            count[derivComponents[1]]++;
-            if (count[0] == 1 && count[1] == 1)
-                return Vec1(1);
-            if (count[0] == 1 && count[2] == 1)
-                return Vec1(x[1]+1);
-            if (count[1] == 1 && count[2] == 1)
-                return Vec1(x[0]+1);
-        }
+        if (derivComponents.size() == 1)
+            return Vec1(1);
         return Vec1(0);
     }
     int getArgumentSize() const {
@@ -131,12 +109,11 @@ return Vec1(0);
     }
 };
 
-
 /**
- * Create a system consisting of a chain of bodies.
+ * Create a system consisting of a chain of Gimbal joints.
  */
 
-void createSystem(MultibodySystem& system) {
+void createGimbalSystem(MultibodySystem& system) {
     SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
     GeneralForceSubsystem forces(system);
     Force::UniformGravity gravity(forces, matter, Vec3(0, -1, 0), 0);
@@ -144,6 +121,51 @@ void createSystem(MultibodySystem& system) {
     for (int i = 0; i < NUM_BODIES; ++i) {
         MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNBodies()-1));
         MobilizedBody::Gimbal b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
+    }
+}
+
+/**
+ * Create a system consisting of a chain of Ball joints.
+ */
+
+void createBallSystem(MultibodySystem& system) {
+    SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
+    GeneralForceSubsystem forces(system);
+    Force::UniformGravity gravity(forces, matter, Vec3(0, -1, 0), 0);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+    for (int i = 0; i < NUM_BODIES; ++i) {
+        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNBodies()-1));
+        MobilizedBody::Ball b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
+    }
+}
+
+/**
+ * Create a system consisting of a chain of Planar joints.
+ */
+
+void createPlanarSystem(MultibodySystem& system) {
+    SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
+    GeneralForceSubsystem forces(system);
+    Force::UniformGravity gravity(forces, matter, Vec3(0, -1, 0), 0);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+    for (int i = 0; i < NUM_BODIES; ++i) {
+        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNBodies()-1));
+        MobilizedBody::Planar b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
+    }
+}
+
+/**
+ * Create a system consisting of a chain of Cylinder joints.
+ */
+
+void createCylinderSystem(MultibodySystem& system) {
+    SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
+    GeneralForceSubsystem forces(system);
+    Force::UniformGravity gravity(forces, matter, Vec3(0, -1, 0), 0);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+    for (int i = 0; i < NUM_BODIES; ++i) {
+        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNBodies()-1));
+        MobilizedBody::Cylinder b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
     }
 }
 
@@ -172,7 +194,7 @@ void testCoordinateCoupler1() {
     
     MultibodySystem system1;
     SimbodyMatterSubsystem matter1(system1);
-    createSystem(system1);
+    createGimbalSystem(system1);
     MobilizedBody& first = matter1.updMobilizedBody(MobilizedBodyIndex(1));
     std::vector<MobilizedBodyIndex> bodies(1);
     std::vector<MobilizerQIndex> coordinates(1);
@@ -190,7 +212,7 @@ void testCoordinateCoupler1() {
     
     MultibodySystem system2;
     SimbodyMatterSubsystem matter2(system2);
-    createSystem(system2);
+    createGimbalSystem(system2);
     Constraint::ConstantOrientation orient(matter2.updGround(), Rotation(), matter2.updMobilizedBody(MobilizedBodyIndex(1)), Rotation());
     State state2;
     createState(system2, state2, state1.getY());
@@ -210,36 +232,27 @@ void testCoordinateCoupler2() {
     
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
-    createSystem(system);
+    createCylinderSystem(system);
     MobilizedBody& first = matter.updMobilizedBody(MobilizedBodyIndex(1));
-    std::vector<MobilizedBodyIndex> bodies(1);
-    std::vector<MobilizerQIndex> coordinates(1);
+    std::vector<MobilizedBodyIndex> bodies(3);
+    std::vector<MobilizerQIndex> coordinates(3);
     bodies[0] = MobilizedBodyIndex(1);
-    bodies[1] = MobilizedBodyIndex(3);
+    bodies[1] = MobilizedBodyIndex(1);
     bodies[2] = MobilizedBodyIndex(5);
     coordinates[0] = MobilizerQIndex(0);
-    coordinates[1] = MobilizerQIndex(0);
+    coordinates[1] = MobilizerQIndex(1);
     coordinates[2] = MobilizerQIndex(1);
     Function<1>* function = new CompoundFunction();
-//    Constraint::CoordinateCoupler coupler(matter, function, bodies, coordinates);
-
-    bodies[0] = MobilizedBodyIndex(1);
-    coordinates[0] = MobilizerQIndex(0);
-    Constraint::CoordinateCoupler coupler1(matter, new LinearFunction(), bodies, coordinates);
-//    coordinates[0] = MobilizerQIndex(1);
-//    Constraint::CoordinateCoupler coupler2(matter, new LinearFunction(), bodies, coordinates);
-//    coordinates[0] = MobilizerQIndex(2);
-//    Constraint::CoordinateCoupler coupler3(matter, new LinearFunction(), bodies, coordinates);
-
+    Constraint::CoordinateCoupler coupler(matter, function, bodies, coordinates);
     State state;
-    createState(system, state, /**/ Vector(60, 1.0));
+    createState(system, state);
     
     // Make sure the constraint is satisfied.
     
     Vector args(function->getArgumentSize());
     for (int i = 0; i < args.size(); ++i)
         args[i] = matter.getMobilizedBody(bodies[i]).getOneQ(state, coordinates[i]);
-//    assertEqual(0.0, function->calcValue(args)[0]);
+    assertEqual(0.0, function->calcValue(args)[0]);
     
     // Simulate it and make sure the constraint is working correctly and energy is being conserved.
     
@@ -247,22 +260,12 @@ void testCoordinateCoupler2() {
     RungeKuttaMersonIntegrator integ(system);
     integ.setReturnEveryInternalStep(true);
     integ.initialize(state);
-std::cout << "energy: "<<energy << std::endl;
     while (integ.getTime() < 10.0) {
         integ.stepTo(10.0);
-std::cout << integ.getTime() << std::endl;
-//std::cout << state.getQErr() << std::endl;
-//std::cout << state.getUErr() << std::endl;
-//std::cout << state.getUDotErr() << std::endl;
         for (int i = 0; i < args.size(); ++i)
             args[i] = matter.getMobilizedBody(bodies[i]).getOneQ(integ.getState(), coordinates[i]);
-std::cout << integ.getState().getQ() << std::endl;
-std::cout << integ.getState().getU() << std::endl;
-std::cout << integ.getState().getUDot() << std::endl;
-//std::cout << function->calcValue(args)[0] << std::endl;
-std::cout << system.calcEnergy(integ.getState()) << std::endl;
-//        assertEqual(0.0, function->calcValue(args)[0], integ.getConstraintToleranceInUse());
-//        assertEqual(energy, system.calcEnergy(integ.getState()));
+        assertEqual(0.0, function->calcValue(args)[0], integ.getConstraintToleranceInUse());
+        assertEqual(energy, system.calcEnergy(integ.getState()), energy*0.01);
     }
     delete function;
 }
@@ -273,7 +276,7 @@ void testSpeedCoupler1() {
     
     MultibodySystem system1;
     SimbodyMatterSubsystem matter1(system1);
-    createSystem(system1);
+    createGimbalSystem(system1);
     MobilizedBody& first = matter1.updMobilizedBody(MobilizedBodyIndex(1));
     std::vector<MobilizedBodyIndex> bodies(1);
     std::vector<MobilizerUIndex> speeds(1);
@@ -287,7 +290,7 @@ void testSpeedCoupler1() {
     
     MultibodySystem system2;
     SimbodyMatterSubsystem matter2(system2);
-    createSystem(system2);
+    createGimbalSystem(system2);
     Constraint::ConstantSpeed orient(matter2.updMobilizedBody(MobilizedBodyIndex(1)), MobilizerUIndex(2), 0);
     State state2;
     createState(system2, state2, state1.getY());
@@ -307,7 +310,7 @@ void testSpeedCoupler2() {
     
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
-    createSystem(system);
+    createGimbalSystem(system);
     MobilizedBody& first = matter.updMobilizedBody(MobilizedBodyIndex(1));
     std::vector<MobilizedBodyIndex> bodies(3);
     std::vector<MobilizerUIndex> speeds(3);
@@ -340,7 +343,54 @@ void testSpeedCoupler2() {
         for (int i = 0; i < args.size(); ++i)
             args[i] = matter.getMobilizedBody(bodies[i]).getOneU(integ.getState(), speeds[i]);
         assertEqual(0.0, function->calcValue(args)[0], integ.getConstraintToleranceInUse());
-        assertEqual(energy, system.calcEnergy(integ.getState()), energy*0.05);
+        assertEqual(energy, system.calcEnergy(integ.getState()), energy*0.01);
+    }
+    delete function;
+}
+
+void testSpeedCoupler3() {
+    
+    // Create a system with a constraint that uses both u's and q's.
+    
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    createGimbalSystem(system);
+    MobilizedBody& first = matter.updMobilizedBody(MobilizedBodyIndex(1));
+    std::vector<MobilizedBodyIndex> ubody(2), qbody(1);
+    std::vector<MobilizerUIndex> uindex(2);
+    std::vector<MobilizerQIndex> qindex(1);
+    ubody[0] = MobilizedBodyIndex(1);
+    ubody[1] = MobilizedBodyIndex(3);
+    qbody[0] = MobilizedBodyIndex(5);
+    uindex[0] = MobilizerUIndex(0);
+    uindex[1] = MobilizerUIndex(1);
+    qindex[0] = MobilizerQIndex(1);
+    Function<1>* function = new CompoundFunction();
+    Constraint::SpeedCoupler coupler(matter, function, ubody, uindex, qbody, qindex);
+    State state;
+    createState(system, state);
+    
+    // Make sure the constraint is satisfied.
+    
+    Vector args(function->getArgumentSize());
+    args[0] = matter.getMobilizedBody(ubody[0]).getOneU(state, uindex[0]);
+    args[1] = matter.getMobilizedBody(ubody[1]).getOneU(state, uindex[1]);
+    args[2] = matter.getMobilizedBody(qbody[0]).getOneQ(state, qindex[0]);
+    assertEqual(0.0, function->calcValue(args)[0]);
+    
+    // Simulate it and make sure the constraint is working correctly and energy is being conserved.
+    
+    Real energy = system.calcEnergy(state);
+    RungeKuttaMersonIntegrator integ(system);
+    integ.setReturnEveryInternalStep(true);
+    integ.initialize(state);
+    while (integ.getTime() < 10.0) {
+        integ.stepTo(10.0);
+        args[0] = matter.getMobilizedBody(ubody[0]).getOneU(state, uindex[0]);
+        args[1] = matter.getMobilizedBody(ubody[1]).getOneU(state, uindex[1]);
+        args[2] = matter.getMobilizedBody(qbody[0]).getOneQ(state, qindex[0]);
+        assertEqual(0.0, function->calcValue(args)[0], integ.getConstraintToleranceInUse());
+        assertEqual(energy, system.calcEnergy(integ.getState()), energy*0.01);
     }
     delete function;
 }
@@ -348,9 +398,10 @@ void testSpeedCoupler2() {
 int main() {
     try {
         testCoordinateCoupler1();
-//        testCoordinateCoupler2();
+        testCoordinateCoupler2();
         testSpeedCoupler1();
         testSpeedCoupler2();
+//        testSpeedCoupler3();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

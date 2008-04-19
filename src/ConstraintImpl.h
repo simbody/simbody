@@ -41,6 +41,7 @@
 #include "SimTKmath.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/Constraint.h"
+#include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/SimbodyMatterSubtree.h"
 
 #include <map>
@@ -1951,9 +1952,7 @@ inline Constraint::Custom::ImplementationImpl::~ImplementationImpl() {
 
 class Constraint::CoordinateCouplerImpl : public Constraint::Custom::Implementation {
 public:
-    CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function, 
-                          const std::vector<MobilizedBodyIndex>& coordBody, 
-                          const std::vector<MobilizerQIndex>& coordIndex);
+    CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
     
     ~CoordinateCouplerImpl() {
         if (--referenceCount[0] == 0) {
@@ -1967,53 +1966,13 @@ public:
         return new CoordinateCouplerImpl(*this);
     }
 
-    void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
-        for (int i = 0; i < temp.size(); ++i)
-            temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
-        perr[0] = function->calcValue(temp)[0];
-    }
+    void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const;
 
-    void realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const {
-        pverr[0] = 0.0;
-        for (int i = 0; i < temp.size(); ++i)
-            temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
-        std::vector<int> components(1);
-        for (int i = 0; i < temp.size(); ++i) {
-            components[0] = i;
-            pverr[0] += function->calcDerivative(components, temp)[0]*getOneU(s, coordBodies[i], MobilizerUIndex(coordIndices[i]));
-        }
-    }
+    void realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const;
 
-    void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const {
-        paerr[0] = 0.0;
-        for (int i = 0; i < temp.size(); ++i)
-            temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
-        std::vector<int> components(2);
-        // TODO this could be made faster by using symmetry if necessary
-        for (int i = 0; i < temp.size(); ++i) {
-            components[0] = i;
-            for (int j = 0; j < temp.size(); ++j) {
-                components[1] = j;
-                paerr[0] += function->calcDerivative(components, temp)[0]*getOneU(s, coordBodies[i], MobilizerUIndex(coordIndices[i]))*getOneU(s, coordBodies[j], MobilizerUIndex(coordIndices[j]));
-            }
-        }
-        std::vector<int> component(1);
-        for (int i = 0; i < temp.size(); ++i) {
-            component[0] = i;
-            paerr[0] += function->calcDerivative(component, temp)[0]*getOneUDot(s, coordBodies[i], MobilizerUIndex(coordIndices[i]), true);
-        }
-    }
+    void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const;
 
-    void applyPositionConstraintForcesVirtual(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
-        for (int i = 0; i < temp.size(); ++i)
-            temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
-        std::vector<int> components(1);
-        for (int i = 0; i < temp.size(); ++i) {
-            components[0] = i;
-            Real force = multipliers[0]*function->calcDerivative(components, temp)[0];
-            addInOneMobilityForce(s, coordBodies[i], MobilizerUIndex(coordIndices[i]), force, mobilityForces);
-        }
-    }
+    void applyPositionConstraintForcesVirtual(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const;
 
 private:
     Function<1>* function;
@@ -2044,42 +2003,24 @@ public:
         return new SpeedCouplerImpl(*this);
     }
 
-    void realizeVelocityErrorsVirtual(const State& s, int mv,  Real* verr) const {
-        findArguments(s);
-        verr[0] = function->calcValue(temp)[0];
-    }
+    void realizeVelocityErrorsVirtual(const State& s, int mv,  Real* verr) const;
 
-    void realizeVelocityDotErrorsVirtual(const State& s, int mv,  Real* vaerr) const {
-        vaerr[0] = 0.0;
-        findArguments(s);
-        std::vector<int> components(1);
-        for (int i = 0; i < (int)speedBodies.size(); ++i) {
-            components[0] = i;
-            vaerr[0] += function->calcDerivative(components, temp)[0]*getOneUDot(s, speedBodies[i], speedIndices[i], true);
-        }
-    }
+    void realizeVelocityDotErrorsVirtual(const State& s, int mv,  Real* vaerr) const;
 
-    void applyVelocityConstraintForcesVirtual(const State& s, int mv, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
-        findArguments(s);
-        std::vector<int> components(1);
-        for (int i = 0; i < (int)speedBodies.size(); ++i) {
-            components[0] = i;
-            Real force = multipliers[0]*function->calcDerivative(components, temp)[0];
-            addInOneMobilityForce(s, speedBodies[i], speedIndices[i], force, mobilityForces);
-        }
-    }
+    void applyVelocityConstraintForcesVirtual(const State& s, int mv, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const;
     
 private:
     void findArguments(const State& s) const {
-        for (int i = 0; i < (int)speedBodies.size(); ++i)
+        for (int i = 0; i < (int) speedBodies.size(); ++i)
             temp[i] = getOneU(s, speedBodies[i], speedIndices[i]);
-        for (int i = 0; i < (int)coordBodies.size(); ++i)
-            temp[i+speedBodies.size()] = getOneQ(s, coordBodies[i], coordIndices[i]);
+        for (int i = 0; i < (int) coordBodies.size(); ++i)
+            temp[i+speedBodies.size()] = getMatterSubsystem().getMobilizedBody(coordBodies[i]).getOneQ(s, coordIndices[i]);
     }
 
     Function<1>* function;
     int* referenceCount;
-    std::vector<ConstrainedMobilizerIndex> speedBodies, coordBodies;
+    std::vector<ConstrainedMobilizerIndex> speedBodies;
+    std::vector<MobilizedBodyIndex> coordBodies;
     std::vector<MobilizerUIndex> speedIndices;
     std::vector<MobilizerQIndex> coordIndices;
     mutable Vector temp;

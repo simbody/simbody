@@ -41,6 +41,7 @@
 
 #include "ConstraintImpl.h"
 #include "SimbodyMatterSubsystemRep.h"
+#include "MobilizedBodyImpl.h"
 
 #include <vector>
 #include <algorithm>
@@ -1980,14 +1981,8 @@ Constraint::CoordinateCoupler::CoordinateCoupler(SimbodyMatterSubsystem& matter,
         : Custom(new CoordinateCouplerImpl(matter, function, coordBody, coordIndex)) {
 }
 
-    // CoordinateCouplerImpl
-Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function,
-                                                         const std::vector<MobilizedBodyIndex>& coordBody, 
-                                                         const std::vector<MobilizerQIndex>& coordIndex)
-  : Implementation(matter, 1, 0, 0), function(function), 
-    coordBodies(coordBody.size()), coordIndices(coordIndex), 
-    temp(coordBodies.size()), referenceCount(new int[1]) 
-{
+Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
+        : Implementation(matter, 1, 0, 0), function(function), coordBodies(coordBody.size()), coordIndices(coordIndex), temp(coordBodies.size()), referenceCount(new int[1]) {
     assert(coordBodies.size() == coordIndices.size());
     assert(coordIndices.size() == function->getArgumentSize());
     assert(function->getMaxDerivativeOrder() >= 2);
@@ -1997,6 +1992,73 @@ Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl(SimbodyMatterSubsystem&
         if (bodyIndexMap.find(coordBody[i]) == bodyIndexMap.end())
             bodyIndexMap[coordBody[i]] = addConstrainedMobilizer(matter.getMobilizedBody(coordBody[i]));
         coordBodies[i] = bodyIndexMap[coordBody[i]];
+    }
+}
+
+void Constraint::CoordinateCouplerImpl::realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
+    for (int i = 0; i < temp.size(); ++i)
+        temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
+    perr[0] = function->calcValue(temp)[0];
+}
+
+void Constraint::CoordinateCouplerImpl::realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const {
+    pverr[0] = 0.0;
+    for (int i = 0; i < temp.size(); ++i)
+        temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
+    std::vector<int> components(1);
+    for (int i = 0; i < temp.size(); ++i) {
+        components[0] = i;
+        pverr[0] += function->calcDerivative(components, temp)[0]*getOneQDot(s, coordBodies[i], coordIndices[i], true);
+    }
+}
+
+void Constraint::CoordinateCouplerImpl::realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const {
+    paerr[0] = 0.0;
+    for (int i = 0; i < temp.size(); ++i)
+        temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
+    std::vector<int> components(2);
+    // TODO this could be made faster by using symmetry if necessary
+    for (int i = 0; i < temp.size(); ++i) {
+        components[0] = i;
+        Real qdoti = getOneQDot(s, coordBodies[i], coordIndices[i], true);
+        for (int j = 0; j < temp.size(); ++j) {
+            components[1] = j;
+            paerr[0] += function->calcDerivative(components, temp)[0]*qdoti*getOneQDot(s, coordBodies[j], coordIndices[j], true);
+        }
+    }
+    std::vector<int> component(1);
+    const Vector& udot = s.updUDot();
+    Vector qdotdot(s.getNQ());
+    const SimbodyMatterSubsystem& matter = getMatterSubsystem();
+    SBStateDigest digest(s, matter.getRep(), Stage::Velocity);
+    for (int i = 0; i < temp.size(); ++i) {
+        component[0] = i;
+        const MobilizedBody& body = matter.getMobilizedBody(getMobilizedBodyIndexOfConstrainedMobilizer(coordBodies[i]));
+        const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
+        node.calcQDotDot(digest, udot, qdotdot);
+        paerr[0] += function->calcDerivative(component, temp)[0]*body.getOneFromQPartition(s, coordIndices[i], qdotdot);
+    }
+}
+
+void Constraint::CoordinateCouplerImpl::applyPositionConstraintForcesVirtual(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
+    for (int i = 0; i < temp.size(); ++i)
+        temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
+    const SimbodyMatterSubsystem& matter = getMatterSubsystem();
+    SBStateDigest digest(s, matter.getRep(), Stage::Velocity);
+    bool useEuler = matter.getUseEulerAngles(s);
+    std::vector<int> components(1);
+    for (int i = 0; i < temp.size(); ++i) {
+        components[0] = i;
+        Real force = multipliers[0]*function->calcDerivative(components, temp)[0];
+        const MobilizedBody& body = matter.getMobilizedBody(getMobilizedBodyIndexOfConstrainedMobilizer(coordBodies[i]));
+        const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
+        Vector q = body.getQAsVector(s);
+        Vector grad(body.getNumQ(s), 0.0);
+        Vector forces(body.getNumU(s));
+        grad[coordIndices[i]] = force;
+        node.multiplyByQBlock(digest, useEuler, &q[0], true, &grad[0], &forces[0]);
+        for (MobilizerUIndex index(0); index < forces.size(); index++)
+            addInOneMobilityForce(s, coordBodies[i], index, forces[index], mobilityForces);
     }
 }
 
@@ -2013,32 +2075,52 @@ Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, Function<
         : Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, coordBody, coordIndex)) {
 }
 
-    // SpeedCouplerImpl
-Constraint::SpeedCouplerImpl::SpeedCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function, 
-                                               const std::vector<MobilizedBodyIndex>& speedBody, 
-                                               const std::vector<MobilizerUIndex>& speedIndex,
-                                               const std::vector<MobilizedBodyIndex>& coordBody, 
-                                               const std::vector<MobilizerQIndex>& coordIndex)
-  : Implementation(matter, 0, 1, 0), function(function), speedBodies(speedBody.size()), speedIndices(speedIndex), coordBodies(coordBody.size()), coordIndices(coordIndex),
-    temp(speedBody.size()+coordBody.size()), referenceCount(new int[1]) 
-{
+Constraint::SpeedCouplerImpl::SpeedCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
+        const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
+        : Implementation(matter, 0, 1, 0), function(function), speedBodies(speedBody.size()), speedIndices(speedIndex), coordBodies(coordBody), coordIndices(coordIndex),
+        temp(speedBody.size()+coordBody.size()), referenceCount(new int[1]) {
     assert(speedBodies.size() == speedIndices.size());
     assert(coordBodies.size() == coordIndices.size());
     assert(temp.size() == function->getArgumentSize());
     assert(function->getMaxDerivativeOrder() >= 2);
     referenceCount[0] = 1;
     std::map<MobilizedBodyIndex,ConstrainedMobilizerIndex> bodyIndexMap;
-    for (int i = 0; i < (int)speedBodies.size(); ++i) {
+    for (int i = 0; i < speedBodies.size(); ++i) {
         if (bodyIndexMap.find(speedBody[i]) == bodyIndexMap.end())
             bodyIndexMap[speedBody[i]] = addConstrainedMobilizer(matter.getMobilizedBody(speedBody[i]));
         speedBodies[i] = bodyIndexMap[speedBody[i]];
     }
-    for (int i = 0; i < (int)coordBodies.size(); ++i) {
-        if (bodyIndexMap.find(coordBody[i]) == bodyIndexMap.end())
-            bodyIndexMap[coordBody[i]] = addConstrainedMobilizer(matter.getMobilizedBody(coordBody[i]));
-        coordBodies[i] = bodyIndexMap[coordBody[i]];
+}
+
+void Constraint::SpeedCouplerImpl::realizeVelocityErrorsVirtual(const State& s, int mv,  Real* verr) const {
+    findArguments(s);
+    verr[0] = function->calcValue(temp)[0];
+}
+
+void Constraint::SpeedCouplerImpl::realizeVelocityDotErrorsVirtual(const State& s, int mv,  Real* vaerr) const {
+    vaerr[0] = 0.0;
+    findArguments(s);
+    std::vector<int> components(1);
+    for (int i = 0; i < (int) speedBodies.size(); ++i) {
+        components[0] = i;
+        vaerr[0] += function->calcDerivative(components, temp)[0]*getOneUDot(s, speedBodies[i], speedIndices[i], true);
+    }
+    for (int i = 0; i < (int) coordBodies.size(); ++i) {
+        components[0] = speedBodies.size()+i;
+        vaerr[0] += function->calcDerivative(components, temp)[0]*getMatterSubsystem().getMobilizedBody(coordBodies[i]).getOneQDot(s, coordIndices[i]);
     }
 }
+
+void Constraint::SpeedCouplerImpl::applyVelocityConstraintForcesVirtual(const State& s, int mv, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
+    findArguments(s);
+    std::vector<int> components(1);
+    for (int i = 0; i < (int) speedBodies.size(); ++i) {
+        components[0] = i;
+        Real force = multipliers[0]*function->calcDerivative(components, temp)[0];
+        addInOneMobilityForce(s, speedBodies[i], speedIndices[i], force, mobilityForces);
+    }
+}
+
 
     /////////////////////
     // CONSTRAINT IMPL //
