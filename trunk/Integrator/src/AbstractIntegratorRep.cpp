@@ -295,15 +295,17 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         int errOrder;
         bool converged = attemptAStep(t0, t1, q0, qdot0, qdotdot0, u0, udot0, z0, zdot0, err, errOrder);
         Real rmsErr = (converged ? calcWeightedRMSNorm(err, getDynamicSystemWeights()) : Infinity);
-        lastStepSize = currentStepSize;
         if (hasErrorControl)
             stepSucceeded = adjustStepSize(rmsErr, errOrder, hWasArtificiallyLimited);
         else
             stepSucceeded = true;
         if (!stepSucceeded)
             statsErrorTestFailures++;
-        else if (isNaN(actualInitialStepSizeTaken))
-            actualInitialStepSizeTaken = lastStepSize;
+		else { // step succeeded
+			lastStepSize = t1-t0;
+			if (isNaN(actualInitialStepSizeTaken))
+				actualInitialStepSizeTaken = lastStepSize;
+		}
     } while (!stepSucceeded);
     
     // The step succeeded. Check for event triggers. If there aren't
