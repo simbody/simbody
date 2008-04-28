@@ -321,6 +321,8 @@ ADD_TEST(VerletIntegratorTest       ${TEST_PATH}/VerletIntegratorTest)
 ADD_TEST(VerletIntegratorTestStatic ${TEST_PATH}/VerletIntegratorTestStatic)
 ADD_TEST(TestSpline       ${TEST_PATH}/TestSpline)
 ADD_TEST(TestSplineStatic ${TEST_PATH}/TestSplineStatic)
+ADD_TEST(TestFunction       ${TEST_PATH}/TestFunction)
+ADD_TEST(TestFunctionStatic ${TEST_PATH}/TestFunctionStatic)
 
 #
 # Installation
