@@ -242,77 +242,6 @@ private:
 };
 
 /**
- * This class is the parent of derived handle classes. We are assuming that the implementation
- * is a C++ abstract class, so we can dynamic_cast the handle's implementation pointer to the
- * indicated concrete implementation type DERIVED_IMPL.
- * 
- * Shallow or deep copy behavior is inherited from the PARENT class. Note that the PARENT
- * may itself be a derived handle from a still higher-level handle class in this hierarchy.
- */
-template <class DERIVED, class DERIVED_IMPL, class PARENT>
-class PIMPLDerivedHandle : public PARENT {
-public:
-    /// This is the PIMPLHandle type at the root of this Handle hierarchy.
-    typedef typename PARENT::HandleBase HandleBase;
-
-
-    /// This is the type of this derived Handle object's Parent.
-    typedef PARENT ParentHandle;
-
-    /// This serves as the default constructor.
-    explicit PIMPLDerivedHandle(DERIVED_IMPL* pimpl=0);
-
-    // default copy constructor, copy assignment, destructor
-
-    /// Cast this derived handle to a const reference to its parent handle.
-    /// This conversion is normally done automatically by C++; use this routine
-    /// if you want to be explicit about it.
-    /// @see updUpcast()
-    const PARENT& upcast() const;
-
-    /// Cast this writable derived handle to a writable reference to its parent handle.
-    /// This conversion is normally done automatically by C++; use this routine
-    /// if you want to be explicit about it.
-    /// @see upcast()
-    PARENT& updUpcast();
-
-    /// Determine whether an object of this handle's parent type can be safely
-    /// downcast to an object of the derived type.
-    /// @see downcast()
-    static bool isInstanceOf(const PARENT& p);
-
-    /// Downcast a const parent-class object to a const reference to the derived
-    /// class object. This will throw an exception of the supplied object is not
-    /// actually of derived object type. If you're not sure, use isInstanceOf()
-    /// first to check.
-    /// @see isInstanceOf()
-    /// @see updDowncast()
-    static const DERIVED& downcast(const PARENT& p);
-
-    /// Downcast a writable parent-class object to a writable reference to the derived
-    /// class object. This will throw an exception of the supplied object is not
-    /// actually of derived object type. If you're not sure, use isInstanceOf()
-    /// first to check.
-    /// @see isInstanceOf()
-    /// @see downcast()
-    static DERIVED& updDowncast(PARENT& p);
-
-    /// Obtain a const reference to the implementation stored in the HandleBase, but
-    /// dynamically down cast to the DERIVED_IMPL class. This will throw a C++
-    /// "bad_cast" exception if the implementation object can't be appropriately
-    /// downcast. If you aren't sure, use isInstanceOf() first to check.
-    /// @see isInstanceOf()
-    /// @see updImpl()
-    const DERIVED_IMPL& getImpl() const;
-
-    /// Obtain a writable reference to the implementation stored in the HandleBase.
-    /// @see getImpl()
-    DERIVED_IMPL& updImpl();
-
-    typedef PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT> PIMPLDerivedHandleBase;
-};
-
-/**
  * This class provides some infrastructure useful in creating PIMPL 
  * Implementation classes (the ones referred to by Handles). Note that
  * this class is used by SimTK Core code ONLY on the library side; it never
@@ -414,6 +343,44 @@ public:
 
 template <class H, class IMPL, bool PTR>
 std::ostream& operator<<(std::ostream& o, const PIMPLHandle<H,IMPL,PTR>& h);
+
+// This macro declares methods to be included in classes derived from a PIMPLHandle subclass.
+
+#define INSERT_DERIVED_HANDLE_DECLARATIONS(DERIVED, DERIVED_IMPL, PARENT) \
+const DERIVED_IMPL& getImpl() const;\
+DERIVED_IMPL& updImpl();\
+const PARENT& upcast() const;\
+PARENT& updUpcast();\
+static bool isInstanceOf(const PARENT& p);\
+static const DERIVED& downcast(const PARENT& p);\
+static DERIVED& updDowncast(PARENT& p);
+
+// This macro provides the definitions for the above declarations.
+
+#define INSERT_DERIVED_HANDLE_DEFINITIONS(DERIVED, DERIVED_IMPL, PARENT) \
+const DERIVED_IMPL& DERIVED::getImpl() const {\
+    return dynamic_cast<const DERIVED_IMPL&>(PARENT::getImpl());\
+}\
+DERIVED_IMPL& DERIVED::updImpl() {\
+    return dynamic_cast<DERIVED_IMPL&>(PARENT::updImpl());\
+}\
+const PARENT& DERIVED::upcast() const {\
+    return static_cast<const PARENT&>(*this);\
+}\
+PARENT& DERIVED::updUpcast() {\
+    return static_cast<PARENT&>(*this);\
+}\
+bool DERIVED::isInstanceOf(const PARENT& p) {\
+    return dynamic_cast<const DERIVED_IMPL*>(&p.getImpl()) != 0;\
+}\
+const DERIVED& DERIVED::downcast(const PARENT& p) {\
+    assert(isInstanceOf(p));\
+    return static_cast<const DERIVED&>(p);\
+}\
+DERIVED& DERIVED::updDowncast(PARENT& p) {\
+    assert(isInstanceOf(p));\
+    return static_cast<DERIVED&>(p);\
+}\
 
 } // namespace SimTK
 

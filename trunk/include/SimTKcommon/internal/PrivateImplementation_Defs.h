@@ -261,61 +261,6 @@ getImplHandleCount() const {
     return impl->getHandleCount(); 
 }
 
-    ////////////////////////////////////
-    // PIMPLDerivedHandle definitions //
-    ////////////////////////////////////
-
-template <class DERIVED, class DERIVED_IMPL, class PARENT>
-/*explicit*/ PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
-PIMPLDerivedHandle(DERIVED_IMPL* pimpl) 
-  : PARENT(pimpl) 
-{ 
-}
-
-template <class DERIVED, class DERIVED_IMPL, class PARENT>
-const DERIVED_IMPL& PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
-getImpl() const {
-    return dynamic_cast<const DERIVED_IMPL&>(PARENT::getImpl());
-}
-
-template <class DERIVED, class DERIVED_IMPL, class PARENT>
-DERIVED_IMPL& PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
-updImpl() {
-    return dynamic_cast<DERIVED_IMPL&>(PARENT::updImpl());
-}
-
-template <class DERIVED, class DERIVED_IMPL, class PARENT>
-const PARENT& PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
-upcast() const {
-    return static_cast<const PARENT&>(*this);
-}
-
-template <class DERIVED, class DERIVED_IMPL, class PARENT>
-PARENT& PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
-updUpcast() {
-    return static_cast<PARENT&>(*this);
-}
-
-template <class DERIVED, class DERIVED_IMPL, class PARENT>
-/*static*/ bool PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
-isInstanceOf(const PARENT& p) {
-    return dynamic_cast<const DERIVED_IMPL*>(&p.getImpl()) != 0;
-}
-
-template <class DERIVED, class DERIVED_IMPL, class PARENT>
-/*static*/ const DERIVED& PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
-downcast(const PARENT& p) {
-    assert(isInstanceOf(p));
-    return static_cast<const DERIVED&>(p);
-}
-
-template <class DERIVED, class DERIVED_IMPL, class PARENT>
-/*static*/ DERIVED& PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
-updDowncast(PARENT& p) {
-    assert(isInstanceOf(p));
-    return static_cast<DERIVED&>(p);
-}
-
     ////////////////////////////////
     // TEMPLATIZED GLOBAL METHODS //
     ////////////////////////////////

@@ -100,13 +100,14 @@ std::ostream& operator<<(std::ostream& o, const MyHandle& h) {
 }
 
 class DerivedHandle_Impl;
-class DerivedHandle : public PIMPLDerivedHandle<DerivedHandle,DerivedHandle_Impl,MyHandle> {
+class DerivedHandle : public MyHandle {
 public:
     DerivedHandle();
     explicit DerivedHandle(DerivedHandle_Impl*);
 
     void setReal(Real);
     Real getReal() const;
+    INSERT_DERIVED_HANDLE_DECLARATIONS(DerivedHandle,DerivedHandle_Impl,MyHandle);
 };
 std::ostream& operator<<(std::ostream& o, const DerivedHandle& h) {
     o << "DerivedHandle ";
@@ -117,13 +118,14 @@ std::ostream& operator<<(std::ostream& o, const DerivedHandle& h) {
 }
 
 class DerDerivedHandle_Impl;
-class DerDerivedHandle : public PIMPLDerivedHandle<DerDerivedHandle,DerDerivedHandle_Impl,DerivedHandle> {
+class DerDerivedHandle : public DerivedHandle {
 public:
     DerDerivedHandle();
     explicit DerDerivedHandle(DerDerivedHandle_Impl*);
 
     void setString(string);
     string getString() const;
+    INSERT_DERIVED_HANDLE_DECLARATIONS(DerDerivedHandle,DerDerivedHandle_Impl,DerivedHandle);
 };
 std::ostream& operator<<(std::ostream& o, const DerDerivedHandle& h) {
     o << "DerDerivedHandle ";
@@ -352,7 +354,6 @@ private:
     Real r;
     friend class DerivedHandle;
 };
-template class PIMPLDerivedHandle<DerivedHandle,DerivedHandle_Impl,MyHandle>;
 
 class DerDerivedHandle_Impl : public DerivedHandle_Impl {
 public:
@@ -362,7 +363,6 @@ private:
     string s;
     friend class DerDerivedHandle;
 };
-template class PIMPLDerivedHandle<DerDerivedHandle,DerDerivedHandle_Impl,DerivedHandle>;
 
 MyHandle::MyHandle() : HandleBase(new MyHandle_Impl()) {
 }
@@ -375,21 +375,23 @@ const string& MyHandle::getName() const {
     return getImpl().name;
 }
 
-DerivedHandle::DerivedHandle() : PIMPLDerivedHandleBase(new DerivedHandle_Impl()) {
+DerivedHandle::DerivedHandle() : MyHandle(new DerivedHandle_Impl()) {
     setReal(27);
 }
 
-DerivedHandle::DerivedHandle(DerivedHandle_Impl* p) : PIMPLDerivedHandleBase(p) { }
+DerivedHandle::DerivedHandle(DerivedHandle_Impl* p) : MyHandle(p) { }
 
 void DerivedHandle::setReal(Real rr) {updImpl().r=rr;}
 Real DerivedHandle::getReal() const {return getImpl().r;}
 
-DerDerivedHandle::DerDerivedHandle() : PIMPLDerivedHandleBase(new DerDerivedHandle_Impl()) {
+DerDerivedHandle::DerDerivedHandle() : DerivedHandle(new DerDerivedHandle_Impl()) {
     setString("default dd string");
     setReal(22.345);
 }
-DerDerivedHandle::DerDerivedHandle(DerDerivedHandle_Impl* p) : PIMPLDerivedHandleBase(p) { }
+DerDerivedHandle::DerDerivedHandle(DerDerivedHandle_Impl* p) : DerivedHandle(p) { }
 
 void DerDerivedHandle::setString(string s) {updImpl().s=s;}
 string DerDerivedHandle::getString() const {return getImpl().s;}
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(DerivedHandle,DerivedHandle_Impl,MyHandle);
+INSERT_DERIVED_HANDLE_DEFINITIONS(DerDerivedHandle,DerDerivedHandle_Impl,DerivedHandle);
