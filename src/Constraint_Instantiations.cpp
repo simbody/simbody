@@ -38,6 +38,7 @@
 // This suppresses the 'extern template' instantiations in Constraint.h so that
 // we can instantiate them for real here.
 #define SimTK_SIMBODY_DEFINING_CONSTRAINT
+#include "MobilizedBodyImpl.h"
 #include "simbody/internal/Constraint.h"
 #include "ConstraintImpl.h"
 
@@ -45,16 +46,6 @@ namespace SimTK {
 
 template class PIMPLHandle<Constraint, ConstraintImpl>;
 template class PIMPLImplementation<Constraint, ConstraintImpl>;
-template class PIMPLDerivedHandle<Constraint::Rod, Constraint::RodImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::Ball, Constraint::BallImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::Weld, Constraint::WeldImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::PointInPlane, Constraint::PointInPlaneImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::PointOnLine, Constraint::PointOnLineImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::ConstantAngle, Constraint::ConstantAngleImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::ConstantOrientation, Constraint::ConstantOrientationImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::NoSlip1D, Constraint::NoSlip1DImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::ConstantSpeed, Constraint::ConstantSpeedImpl, Constraint>;
-template class PIMPLDerivedHandle<Constraint::Custom, Constraint::CustomImpl, Constraint>;
 
 template class PIMPLHandle<Constraint::Custom::Implementation, Constraint::Custom::ImplementationImpl>;
 template class PIMPLImplementation<Constraint::Custom::Implementation, Constraint::Custom::ImplementationImpl>;

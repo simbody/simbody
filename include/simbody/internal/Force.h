@@ -98,7 +98,7 @@ public:
  * are unable to determine a direction for the force in that case.
  */
 
-class SimTK_SIMBODY_EXPORT Force::TwoPointLinearSpring : public PIMPLDerivedHandle<TwoPointLinearSpring, TwoPointLinearSpringImpl, Force> {
+class SimTK_SIMBODY_EXPORT Force::TwoPointLinearSpring : public Force {
 public:
     /**
      * Create a TwoPointLinearSpring.
@@ -112,6 +112,7 @@ public:
      * @param x0         the distance at which the force is 0
      */
     TwoPointLinearSpring(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real k, Real x0);
+    INSERT_DERIVED_HANDLE_DECLARATIONS(TwoPointLinearSpring, TwoPointLinearSpringImpl, Force);
 };
 
 /**
@@ -126,7 +127,7 @@ public:
  * are unable to determine a direction for the force in that case.
  */
 
-class SimTK_SIMBODY_EXPORT Force::TwoPointLinearDamper: public PIMPLDerivedHandle<TwoPointLinearDamper, TwoPointLinearDamperImpl, Force> {
+class SimTK_SIMBODY_EXPORT Force::TwoPointLinearDamper: public Force {
 public:
     /**
      * Create a TwoPointLinearDamper.
@@ -139,6 +140,7 @@ public:
      * @param damping    the damping constant
      */
     TwoPointLinearDamper(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real damping);
+    INSERT_DERIVED_HANDLE_DECLARATIONS(TwoPointLinearDamper, TwoPointLinearDamperImpl, Force);
 };
 
 /**
@@ -152,7 +154,7 @@ public:
  * are unable to determine a direction for the force in that case.
  */
 
-class SimTK_SIMBODY_EXPORT Force::TwoPointConstantForce: public PIMPLDerivedHandle<TwoPointConstantForce, TwoPointConstantForceImpl, Force> {
+class SimTK_SIMBODY_EXPORT Force::TwoPointConstantForce: public Force {
 public:
     /**
      * Create a TwoPointConstantForce.
@@ -165,6 +167,7 @@ public:
      * @param force      the magnitude of the force to apply
      */
     TwoPointConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real force);
+    INSERT_DERIVED_HANDLE_DECLARATIONS(TwoPointConstantForce, TwoPointConstantForceImpl, Force);
 };
 
 /**
@@ -178,7 +181,7 @@ public:
  * which is part of a quaternion.
  */
 
-class SimTK_SIMBODY_EXPORT Force::MobilityLinearSpring : public PIMPLDerivedHandle<MobilityLinearSpring, MobilityLinearSpringImpl, Force> {
+class SimTK_SIMBODY_EXPORT Force::MobilityLinearSpring : public Force {
 public:
     /**
      * Create a MobilityLinearSpring.
@@ -190,6 +193,7 @@ public:
      * @param q0         the value of the coordinate at which the force is 0
      */
     MobilityLinearSpring(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate, Real k, Real q0);
+    INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityLinearSpring, MobilityLinearSpringImpl, Force);
 };
 
 /**
@@ -202,7 +206,7 @@ public:
  * potential energy.
  */
 
-class SimTK_SIMBODY_EXPORT Force::MobilityLinearDamper : public PIMPLDerivedHandle<MobilityLinearDamper, MobilityLinearDamperImpl, Force> {
+class SimTK_SIMBODY_EXPORT Force::MobilityLinearDamper : public Force {
 public:
     /**
      * Create a MobilityLinearDamper.
@@ -213,6 +217,7 @@ public:
      * @param damping    the damping constant
      */
     MobilityLinearDamper(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate, Real damping);
+    INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityLinearDamper, MobilityLinearDamperImpl, Force);
 };
 
 /**
@@ -225,7 +230,7 @@ public:
  * a system will cause energy not to be conserved.
  */
 
-class SimTK_SIMBODY_EXPORT Force::MobilityConstantForce : public PIMPLDerivedHandle<MobilityConstantForce, MobilityConstantForceImpl, Force> {
+class SimTK_SIMBODY_EXPORT Force::MobilityConstantForce : public Force {
 public:
     /**
      * Create a MobilityConstantForce.
@@ -236,6 +241,7 @@ public:
      * @param force      the force to apply
      */
     MobilityConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate, Real force);
+    INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityConstantForce, MobilityConstantForceImpl, Force);
 };
 
 /**
@@ -245,9 +251,10 @@ public:
  * a system will cause energy not to be conserved.
  */
 
-class SimTK_SIMBODY_EXPORT Force::ConstantForce: public PIMPLDerivedHandle<ConstantForce, ConstantForceImpl, Force> {
+class SimTK_SIMBODY_EXPORT Force::ConstantForce: public Force {
 public:
     ConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body, const Vec3& station, const Vec3& force);
+    INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantForce, ConstantForceImpl, Force);
 };
 
 /**
@@ -257,9 +264,10 @@ public:
  * a system will cause energy not to be conserved.
  */
 
-class SimTK_SIMBODY_EXPORT Force::ConstantTorque: public PIMPLDerivedHandle<ConstantTorque, ConstantTorqueImpl, Force> {
+class SimTK_SIMBODY_EXPORT Force::ConstantTorque: public Force {
 public:
     ConstantTorque(GeneralForceSubsystem& forces, const MobilizedBody& body, const Vec3& torque);
+    INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantTorque, ConstantTorqueImpl, Force);
 };
 
 /**
@@ -276,9 +284,10 @@ public:
  * hence does not contribute to potential energy.
  */
 
-class SimTK_SIMBODY_EXPORT Force::GlobalDamper : public PIMPLDerivedHandle<GlobalDamper, GlobalDamperImpl, Force> {
+class SimTK_SIMBODY_EXPORT Force::GlobalDamper : public Force {
 public:
     GlobalDamper(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter, Real damping);
+    INSERT_DERIVED_HANDLE_DECLARATIONS(GlobalDamper, GlobalDamperImpl, Force);
 };
 
 /**
@@ -287,13 +296,14 @@ public:
  * a height at which the gravitational potential energy is zero.
  */
 
-class SimTK_SIMBODY_EXPORT Force::UniformGravity : public PIMPLDerivedHandle<UniformGravity, UniformGravityImpl, Force> {
+class SimTK_SIMBODY_EXPORT Force::UniformGravity : public Force {
 public:
     UniformGravity(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter, const Vec3& g, Real zeroHeight=0);
     Vec3 getGravity() const;
     void setGravity(const Vec3& g);
     Real getZeroHeight() const;
     void setZeroHeight(Real height);
+    INSERT_DERIVED_HANDLE_DECLARATIONS(UniformGravity, UniformGravityImpl, Force);
 };
 
 /**
@@ -325,7 +335,7 @@ public:
  * store all data in the Implementation subclass.
  */
 
-class SimTK_SIMBODY_EXPORT Force::Custom : public PIMPLDerivedHandle<Custom, CustomImpl, Force> {
+class SimTK_SIMBODY_EXPORT Force::Custom : public Force {
 public:
     class Implementation;
     /**
@@ -337,6 +347,7 @@ public:
      *                       is deleted.
      */
     Custom(GeneralForceSubsystem& forces, Implementation* implementation);
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, Force);
 protected:
     const Implementation& getImplementation() const;
     Implementation& updImplementation();

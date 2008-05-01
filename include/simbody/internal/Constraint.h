@@ -279,7 +279,7 @@ public:
  *  For a distance of zero (i.e., you want the points to be coincident) use a Ball
  *  constraint, a.k.a. CoincidentPoints constraint.
  */
- class SimTK_SIMBODY_EXPORT Constraint::Rod : public PIMPLDerivedHandle<Rod, RodImpl, Constraint> {
+ class SimTK_SIMBODY_EXPORT Constraint::Rod : public Constraint {
 public:
     // no default constructor
     Rod(MobilizedBody& body1, MobilizedBody& body2,
@@ -313,6 +313,7 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getRodTension(const State&) const; // negative means compression
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Rod, RodImpl, Constraint);
 };
 
     ///////////////////////////////
@@ -329,7 +330,7 @@ public:
  *  The assembly condition is the same as the run-time constraint: the point
  *  has to be moved into the plane.
  */
-class SimTK_SIMBODY_EXPORT Constraint::PointInPlane : public PIMPLDerivedHandle<PointInPlane, PointInPlaneImpl, Constraint>  {
+class SimTK_SIMBODY_EXPORT Constraint::PointInPlane : public Constraint  {
 public:
     // no default constructor
     PointInPlane(MobilizedBody& planeBody_B, const UnitVec3& defaultPlaneNormal_B, Real defaultHeight,
@@ -369,6 +370,7 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getForceOnFollowerPoint(const State&) const; // in normal direction
+    INSERT_DERIVED_HANDLE_DECLARATIONS(PointInPlane, PointInPlaneImpl, Constraint);
 };
 
     //////////////////////////////
@@ -385,7 +387,7 @@ public:
  *  The assembly condition is the same as the run-time constraint: the point
  *  has to be moved onto the line.
  */
-class SimTK_SIMBODY_EXPORT Constraint::PointOnLine : public PIMPLDerivedHandle<PointOnLine, PointOnLineImpl, Constraint>  {
+class SimTK_SIMBODY_EXPORT Constraint::PointOnLine : public Constraint  {
 public:
     // no default constructor
     PointOnLine(MobilizedBody& lineBody_B, const UnitVec3& defaultLineDirection_B, const Vec3& defaultPointOnLine_B,
@@ -425,6 +427,7 @@ public:
     Vec2 getAccelerationErrors(const State&) const;
     Vec2 getMultipliers(const State&) const;
     const Vec2& getForceOnFollowerPoint(const State&) const; // in normal direction
+    INSERT_DERIVED_HANDLE_DECLARATIONS(PointOnLine, PointOnLineImpl, Constraint);
 };
 
     ///////////////////////////////
@@ -444,7 +447,7 @@ public:
  *  The assembly condition is the same as the run-time constraint: the 
  *  bodies must be rotated until the vectors have the right angle between them.
  */
-class SimTK_SIMBODY_EXPORT Constraint::ConstantAngle : public PIMPLDerivedHandle<ConstantAngle, ConstantAngleImpl, Constraint> {
+class SimTK_SIMBODY_EXPORT Constraint::ConstantAngle : public Constraint {
 public:
     // no default constructor
     ConstantAngle(MobilizedBody& baseBody_B,     const UnitVec3& defaultAxis_B,
@@ -483,6 +486,7 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getTorqueOnFollowerBody(const State&) const; // about f X b
+    INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantAngle, ConstantAngleImpl, Constraint);
 };
 
     /////////////////////////////////////////
@@ -502,7 +506,7 @@ public:
  *  The assembly condition is the same as the runtime constraint -- the two points
  *  can be brought together by driving the perr to zero.
  */
-class SimTK_SIMBODY_EXPORT Constraint::Ball : public PIMPLDerivedHandle<Ball, BallImpl, Constraint> {
+class SimTK_SIMBODY_EXPORT Constraint::Ball : public Constraint {
 public:
     // no default constructor
     Ball(MobilizedBody& body1, MobilizedBody& body2);
@@ -538,6 +542,7 @@ public:
     // Forces are reported expressed in the body frame of the indicated body.
     const Vec3& getBallReactionForceOnBody1(const State&) const;
     const Vec3& getBallReactionForceOnBody2(const State&) const;
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Ball, BallImpl, Constraint);
 };
 
     /////////////////////////////////////
@@ -560,8 +565,7 @@ public:
  *  perpendicularity conditions can be satisfied with antiparallel axes. For assembly
  *  we must have additional (redundant) constraints requiring parallel axes.
  */
-class SimTK_SIMBODY_EXPORT Constraint::ConstantOrientation 
-  : public PIMPLDerivedHandle<ConstantOrientation, ConstantOrientationImpl, Constraint>
+class SimTK_SIMBODY_EXPORT Constraint::ConstantOrientation : public Constraint
 {
 public:
     // no default constructor
@@ -593,6 +597,7 @@ public:
     Vec3 getAccelerationErrors(const State&) const;
     Vec3 getMultipliers(const State&) const;
     Vec3 getTorqueOnFollowerBody(const State&) const;
+    INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantOrientation, ConstantOrientationImpl, Constraint);
 };
 
     /////////////////////////////////////////
@@ -622,7 +627,7 @@ public:
  *  to the parallel ones we want. Therefore the assembly conditions must include
  *  additional (redundant) constraints requiring parallel axes.
  */
-class SimTK_SIMBODY_EXPORT Constraint::Weld : public PIMPLDerivedHandle<Weld, WeldImpl, Constraint> {
+class SimTK_SIMBODY_EXPORT Constraint::Weld : public Constraint {
 public:
         // no default constructor
 
@@ -692,6 +697,7 @@ public:
         // Forces are reported expressed in the body frame of the indicated body.
     const SpatialVec& getWeldReactionOnBody1(const State&) const;
     const SpatialVec& getWeldReactionOnBody2(const State&) const;
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Weld, WeldImpl, Constraint);
 };
 
     ///////////////////////////
@@ -709,7 +715,7 @@ public:
  * The assembly condition is the same as the run-time constraint: the velocities must
  * be made to match.
  */
-class SimTK_SIMBODY_EXPORT Constraint::NoSlip1D : public PIMPLDerivedHandle<NoSlip1D, NoSlip1DImpl, Constraint> {
+class SimTK_SIMBODY_EXPORT Constraint::NoSlip1D : public Constraint {
 public:
     // no default constructor
     NoSlip1D(MobilizedBody& caseBodyC, const Vec3& P_C, const UnitVec3& n_C,
@@ -746,6 +752,7 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getForceAtContactPoint(const State&) const; // in normal direction, no body 2
+    INSERT_DERIVED_HANDLE_DECLARATIONS(NoSlip1D, NoSlip1DImpl, Constraint);
 };
 
     ////////////////////
@@ -758,8 +765,7 @@ public:
  * 
  * The assembly condition is the same as the run-time constraint: u must be set to s.
  */
-class SimTK_SIMBODY_EXPORT Constraint::ConstantSpeed
-  : public PIMPLDerivedHandle<ConstantSpeed, ConstantSpeedImpl, Constraint>
+class SimTK_SIMBODY_EXPORT Constraint::ConstantSpeed : public Constraint
 {
 public:
     // no default constructor
@@ -779,6 +785,7 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getGeneralizedForce(const State&) const;
+    INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantSpeed, ConstantSpeedImpl, Constraint);
 };
 
 /**
@@ -812,8 +819,7 @@ public:
  * subclass must not have any data members or virtual methods.  If it does, it will not work correctly.  Instead,
  * store all data in the Implementation subclass.
  */
-class SimTK_SIMBODY_EXPORT Constraint::Custom 
-  : public PIMPLDerivedHandle<Custom, CustomImpl, Constraint> 
+class SimTK_SIMBODY_EXPORT Constraint::Custom : public Constraint 
 {
 public:
     class Implementation;
@@ -826,6 +832,7 @@ public:
      *                       is deleted.
      */
     explicit Custom(Implementation* implementation);
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, Constraint);
 protected:
     const Implementation& getImplementation() const;
     Implementation&       updImplementation();

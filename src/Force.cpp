@@ -46,8 +46,10 @@ ForceIndex Force::getForceIndex() const {
 
 // TwoPointLinearSpring
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Force::TwoPointLinearSpring, Force::TwoPointLinearSpringImpl, Force);
+
 Force::TwoPointLinearSpring::TwoPointLinearSpring(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1,
-        const MobilizedBody& body2, const Vec3& station2, Real k, Real x0) : PIMPLDerivedHandleBase(new TwoPointLinearSpringImpl(
+        const MobilizedBody& body2, const Vec3& station2, Real k, Real x0) : Force(new TwoPointLinearSpringImpl(
         body1, station1, body2, station2, k, x0)) {
     updImpl().setForceIndex(forces.adoptForce(*this));
 }
@@ -97,8 +99,10 @@ Real Force::TwoPointLinearSpringImpl::calcPotentialEnergy(const State& state) co
 
 // TwoPointLinearDamper
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Force::TwoPointLinearDamper, Force::TwoPointLinearDamperImpl, Force);
+
 Force::TwoPointLinearDamper::TwoPointLinearDamper(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1,
-        const MobilizedBody& body2, const Vec3& station2, Real damping) : PIMPLDerivedHandleBase(new TwoPointLinearDamperImpl(
+        const MobilizedBody& body2, const Vec3& station2, Real damping) : Force(new TwoPointLinearDamperImpl(
         body1, station1, body2, station2, damping)) {
     assert(damping >= 0);
     updImpl().setForceIndex(forces.adoptForce(*this));
@@ -138,8 +142,10 @@ Real Force::TwoPointLinearDamperImpl::calcPotentialEnergy(const State& state) co
 
 // TwoPointConstantForce
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Force::TwoPointConstantForce, Force::TwoPointConstantForceImpl, Force);
+
 Force::TwoPointConstantForce::TwoPointConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1,
-        const MobilizedBody& body2, const Vec3& station2, Real force) : PIMPLDerivedHandleBase(new TwoPointConstantForceImpl(
+        const MobilizedBody& body2, const Vec3& station2, Real force) : Force(new TwoPointConstantForceImpl(
         body1, station1, body2, station2, force)) {
     updImpl().setForceIndex(forces.adoptForce(*this));
 }
@@ -175,8 +181,10 @@ Real Force::TwoPointConstantForceImpl::calcPotentialEnergy(const State& state) c
 
 // MobilityLinearSpring
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearSpring, Force::MobilityLinearSpringImpl, Force);
+
 Force::MobilityLinearSpring::MobilityLinearSpring(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate,
-        Real k, Real x0) : PIMPLDerivedHandleBase(new MobilityLinearSpringImpl(body, coordinate, k, x0)) {
+        Real k, Real x0) : Force(new MobilityLinearSpringImpl(body, coordinate, k, x0)) {
     updImpl().setForceIndex(forces.adoptForce(*this));
 }
 
@@ -200,8 +208,10 @@ Real Force::MobilityLinearSpringImpl::calcPotentialEnergy(const State& state) co
 
 // MobilityLinearDamper
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearDamper, Force::MobilityLinearDamperImpl, Force);
+
 Force::MobilityLinearDamper::MobilityLinearDamper(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate,
-        Real damping) : PIMPLDerivedHandleBase(new MobilityLinearDamperImpl(body, coordinate, damping)) {
+        Real damping) : Force(new MobilityLinearDamperImpl(body, coordinate, damping)) {
     assert(damping >= 0);
     updImpl().setForceIndex(forces.adoptForce(*this));
 }
@@ -223,8 +233,10 @@ Real Force::MobilityLinearDamperImpl::calcPotentialEnergy(const State& state) co
 
 // MobilityConstantForce
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityConstantForce, Force::MobilityConstantForceImpl, Force);
+
 Force::MobilityConstantForce::MobilityConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate,
-        Real force) : PIMPLDerivedHandleBase(new MobilityConstantForceImpl(body, coordinate, force)) {
+        Real force) : Force(new MobilityConstantForceImpl(body, coordinate, force)) {
     updImpl().setForceIndex(forces.adoptForce(*this));
 }
 
@@ -244,8 +256,10 @@ Real Force::MobilityConstantForceImpl::calcPotentialEnergy(const State& state) c
 
 // ConstantForce
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Force::ConstantForce, Force::ConstantForceImpl, Force);
+
 Force::ConstantForce::ConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body, const Vec3& station, const Vec3& force) :
-        PIMPLDerivedHandleBase(new ConstantForceImpl(body, station, force)) {
+        Force(new ConstantForceImpl(body, station, force)) {
     updImpl().setForceIndex(forces.adoptForce(*this));
 }
 
@@ -265,8 +279,10 @@ Real Force::ConstantForceImpl::calcPotentialEnergy(const State& state) const {
 
 // ConstantTorque
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Force::ConstantTorque, Force::ConstantTorqueImpl, Force);
+
 Force::ConstantTorque::ConstantTorque(GeneralForceSubsystem& forces, const MobilizedBody& body, const Vec3& torque) :
-        PIMPLDerivedHandleBase(new ConstantTorqueImpl(body, torque)) {
+        Force(new ConstantTorqueImpl(body, torque)) {
     updImpl().setForceIndex(forces.adoptForce(*this));
 }
 
@@ -284,8 +300,10 @@ Real Force::ConstantTorqueImpl::calcPotentialEnergy(const State& state) const {
 
 // GlobalDamper
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Force::GlobalDamper, Force::GlobalDamperImpl, Force);
+
 Force::GlobalDamper::GlobalDamper(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter,
-        Real damping) : PIMPLDerivedHandleBase(new GlobalDamperImpl(matter, damping)) {
+        Real damping) : Force(new GlobalDamperImpl(matter, damping)) {
     assert(damping >= 0);
     updImpl().setForceIndex(forces.adoptForce(*this));
 }
@@ -303,8 +321,10 @@ Real Force::GlobalDamperImpl::calcPotentialEnergy(const State& state) const {
 
 // UniformGravity
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Force::UniformGravity, Force::UniformGravityImpl, Force);
+
 Force::UniformGravity::UniformGravity(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter,
-        const Vec3& g, Real zeroHeight) : PIMPLDerivedHandleBase(new UniformGravityImpl(matter, g, zeroHeight)) {
+        const Vec3& g, Real zeroHeight) : Force(new UniformGravityImpl(matter, g, zeroHeight)) {
     updImpl().setForceIndex(forces.adoptForce(*this));
 }
 
@@ -385,8 +405,10 @@ void Force::UniformGravityImpl::invalidateTopologyCache() {
 
 // Custom
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Force::Custom, Force::CustomImpl, Force);
+
 Force::Custom::Custom(GeneralForceSubsystem& forces, Implementation* implementation) : 
-        PIMPLDerivedHandleBase(new CustomImpl(implementation)) {
+        Force(new CustomImpl(implementation)) {
     updImpl().setForceIndex(forces.adoptForce(*this));
 }
 

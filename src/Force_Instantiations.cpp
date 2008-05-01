@@ -45,16 +45,5 @@ namespace SimTK {
 
 template class PIMPLHandle<Force, ForceImpl>;
 template class PIMPLImplementation<Force, ForceImpl>;
-template class PIMPLDerivedHandle<Force::TwoPointLinearSpring, Force::TwoPointLinearSpringImpl, Force>;
-template class PIMPLDerivedHandle<Force::TwoPointLinearDamper, Force::TwoPointLinearDamperImpl, Force>;
-template class PIMPLDerivedHandle<Force::TwoPointConstantForce, Force::TwoPointConstantForceImpl, Force>;
-template class PIMPLDerivedHandle<Force::MobilityLinearSpring, Force::MobilityLinearSpringImpl, Force>;
-template class PIMPLDerivedHandle<Force::MobilityLinearDamper, Force::MobilityLinearDamperImpl, Force>;
-template class PIMPLDerivedHandle<Force::MobilityConstantForce, Force::MobilityConstantForceImpl, Force>;
-template class PIMPLDerivedHandle<Force::ConstantForce, Force::ConstantForceImpl, Force>;
-template class PIMPLDerivedHandle<Force::ConstantTorque, Force::ConstantTorqueImpl, Force>;
-template class PIMPLDerivedHandle<Force::GlobalDamper, Force::GlobalDamperImpl, Force>;
-template class PIMPLDerivedHandle<Force::UniformGravity, Force::UniformGravityImpl, Force>;
-template class PIMPLDerivedHandle<Force::Custom, Force::CustomImpl, Force>;
 } // namespace SimTK
 

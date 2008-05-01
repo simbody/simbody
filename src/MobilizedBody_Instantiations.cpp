@@ -44,23 +44,6 @@ namespace SimTK {
 
 template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl>;
 template class PIMPLImplementation<MobilizedBody, MobilizedBodyImpl>;
-template class PIMPLDerivedHandle<MobilizedBody::Ball, MobilizedBody::BallImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::BendStretch, MobilizedBody::BendStretchImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Custom, MobilizedBody::CustomImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Cylinder, MobilizedBody::CylinderImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Ellipsoid, MobilizedBody::EllipsoidImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Free, MobilizedBody::FreeImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::FreeLine, MobilizedBody::FreeLineImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Gimbal, MobilizedBody::GimbalImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Ground, MobilizedBody::GroundImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::LineOrientation, MobilizedBody::LineOrientationImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Pin, MobilizedBody::PinImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Planar, MobilizedBody::PlanarImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Screw, MobilizedBody::ScrewImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Slider, MobilizedBody::SliderImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Translation, MobilizedBody::TranslationImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Universal, MobilizedBody::UniversalImpl, MobilizedBody>;
-template class PIMPLDerivedHandle<MobilizedBody::Weld, MobilizedBody::WeldImpl, MobilizedBody>;
 template class PIMPLHandle<MobilizedBody::Custom::Implementation, MobilizedBody::Custom::ImplementationImpl>;
 template class PIMPLImplementation<MobilizedBody::Custom::Implementation, MobilizedBody::Custom::ImplementationImpl>;
 

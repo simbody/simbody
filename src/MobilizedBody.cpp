@@ -430,10 +430,10 @@ const RigidBodyNode& MobilizedBodyImpl::realizeTopology
     // MOBILIZED BODY::PIN //
     /////////////////////////
 
-MobilizedBody::Pin::Pin() : PIMPLDerivedHandleBase(new PinImpl()) {
+MobilizedBody::Pin::Pin() : MobilizedBody(new PinImpl()) {
 }
 
-MobilizedBody::Pin::Pin(MobilizedBody& parent, const Body& body) : PIMPLDerivedHandleBase(new PinImpl()) {
+MobilizedBody::Pin::Pin(MobilizedBody& parent, const Body& body) : MobilizedBody(new PinImpl()) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -442,7 +442,7 @@ MobilizedBody::Pin::Pin(MobilizedBody& parent, const Body& body) : PIMPLDerivedH
 }
 
 MobilizedBody::Pin::Pin(MobilizedBody& parent, const Transform& inbFrame,
-                        const Body& body, const Transform& outbFrame) : PIMPLDerivedHandleBase(new PinImpl()) {
+                        const Body& body, const Transform& outbFrame) : MobilizedBody(new PinImpl()) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -520,14 +520,16 @@ Real& MobilizedBody::Pin::updMyPartU(const State& s, Vector& ulike) const {
     return ulike[uStart];
 }
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Pin, MobilizedBody::PinImpl, MobilizedBody);
+
     ////////////////////////////
     // MOBILIZED BODY::SLIDER //
     ////////////////////////////
 
-MobilizedBody::Slider::Slider() : PIMPLDerivedHandleBase(new SliderImpl()) {
+MobilizedBody::Slider::Slider() : MobilizedBody(new SliderImpl()) {
 }
 
-MobilizedBody::Slider::Slider(MobilizedBody& parent, const Body& body) : PIMPLDerivedHandleBase(new SliderImpl()) {
+MobilizedBody::Slider::Slider(MobilizedBody& parent, const Body& body) : MobilizedBody(new SliderImpl()) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -536,7 +538,7 @@ MobilizedBody::Slider::Slider(MobilizedBody& parent, const Body& body) : PIMPLDe
 }
 
 MobilizedBody::Slider::Slider(MobilizedBody& parent, const Transform& inbFrame,
-                        const Body& body, const Transform& outbFrame) : PIMPLDerivedHandleBase(new SliderImpl()) {
+                        const Body& body, const Transform& outbFrame) : MobilizedBody(new SliderImpl()) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -613,15 +615,17 @@ Real& MobilizedBody::Slider::updMyPartU(const State& s, Vector& ulike) const {
     return ulike[uStart];
 }
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Slider, MobilizedBody::SliderImpl, MobilizedBody);
+
     ///////////////////////////////
     // MOBILIZED BODY::UNIVERSAL //
     ///////////////////////////////
 
-MobilizedBody::Universal::Universal() : PIMPLDerivedHandleBase(new UniversalImpl()) {
+MobilizedBody::Universal::Universal() : MobilizedBody(new UniversalImpl()) {
 }
 
 
-MobilizedBody::Universal::Universal(MobilizedBody& parent, const Body& body) : PIMPLDerivedHandleBase(new UniversalImpl()) {
+MobilizedBody::Universal::Universal(MobilizedBody& parent, const Body& body) : MobilizedBody(new UniversalImpl()) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -630,7 +634,7 @@ MobilizedBody::Universal::Universal(MobilizedBody& parent, const Body& body) : P
 }
 
 MobilizedBody::Universal::Universal(MobilizedBody& parent, const Transform& inbFrame,
-                                    const Body& body, const Transform& outbFrame) : PIMPLDerivedHandleBase(new UniversalImpl()) {
+                                    const Body& body, const Transform& outbFrame) : MobilizedBody(new UniversalImpl()) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -639,14 +643,16 @@ MobilizedBody::Universal::Universal(MobilizedBody& parent, const Transform& inbF
                                                    *this);
 }
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Universal, MobilizedBody::UniversalImpl, MobilizedBody);
+
     //////////////////////////////
     // MOBILIZED BODY::CYLINDER //
     //////////////////////////////
 
-MobilizedBody::Cylinder::Cylinder() : PIMPLDerivedHandleBase(new CylinderImpl()) {
+MobilizedBody::Cylinder::Cylinder() : MobilizedBody(new CylinderImpl()) {
 }
 
-MobilizedBody::Cylinder::Cylinder(MobilizedBody& parent, const Body& body) : PIMPLDerivedHandleBase(new CylinderImpl()) {
+MobilizedBody::Cylinder::Cylinder(MobilizedBody& parent, const Body& body) : MobilizedBody(new CylinderImpl()) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -655,7 +661,7 @@ MobilizedBody::Cylinder::Cylinder(MobilizedBody& parent, const Body& body) : PIM
 }
 
 MobilizedBody::Cylinder::Cylinder(MobilizedBody& parent, const Transform& inbFrame,
-                                  const Body& body, const Transform& outbFrame) : PIMPLDerivedHandleBase(new CylinderImpl()) {
+                                  const Body& body, const Transform& outbFrame) : MobilizedBody(new CylinderImpl()) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -664,15 +670,17 @@ MobilizedBody::Cylinder::Cylinder(MobilizedBody& parent, const Transform& inbFra
                                                    *this);
 }
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Cylinder, MobilizedBody::CylinderImpl, MobilizedBody);
+
     //////////////////////////////////
     // MOBILIZED BODY::BEND STRETCH //
     //////////////////////////////////
 
-MobilizedBody::BendStretch::BendStretch() : PIMPLDerivedHandleBase(new BendStretchImpl()) {
+MobilizedBody::BendStretch::BendStretch() : MobilizedBody(new BendStretchImpl()) {
 }
 
 
-MobilizedBody::BendStretch::BendStretch(MobilizedBody& parent, const Body& body) : PIMPLDerivedHandleBase(new BendStretchImpl()) {
+MobilizedBody::BendStretch::BendStretch(MobilizedBody& parent, const Body& body) : MobilizedBody(new BendStretchImpl()) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -681,7 +689,7 @@ MobilizedBody::BendStretch::BendStretch(MobilizedBody& parent, const Body& body)
 }
 
 MobilizedBody::BendStretch::BendStretch(MobilizedBody& parent, const Transform& inbFrame,
-                                        const Body& body, const Transform& outbFrame) : PIMPLDerivedHandleBase(new BendStretchImpl()) {
+                                        const Body& body, const Transform& outbFrame) : MobilizedBody(new BendStretchImpl()) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -690,14 +698,16 @@ MobilizedBody::BendStretch::BendStretch(MobilizedBody& parent, const Transform& 
                                                    *this);
 }
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::BendStretch, MobilizedBody::BendStretchImpl, MobilizedBody);
+
     ////////////////////////////
     // MOBILIZED BODY::PLANAR //
     ////////////////////////////
 
-MobilizedBody::Planar::Planar() : PIMPLDerivedHandleBase(new PlanarImpl()) {
+MobilizedBody::Planar::Planar() : MobilizedBody(new PlanarImpl()) {
 }
 
-MobilizedBody::Planar::Planar(MobilizedBody& parent, const Body& body) : PIMPLDerivedHandleBase(new PlanarImpl()) {
+MobilizedBody::Planar::Planar(MobilizedBody& parent, const Body& body) : MobilizedBody(new PlanarImpl()) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -706,7 +716,7 @@ MobilizedBody::Planar::Planar(MobilizedBody& parent, const Body& body) : PIMPLDe
 }
 
 MobilizedBody::Planar::Planar(MobilizedBody& parent, const Transform& inbFrame,
-                                  const Body& body, const Transform& outbFrame) : PIMPLDerivedHandleBase(new PlanarImpl()) {
+                                  const Body& body, const Transform& outbFrame) : MobilizedBody(new PlanarImpl()) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -782,15 +792,17 @@ Vec3& MobilizedBody::Planar::updMyPartU(const State& s, Vector& ulike) const {
     return Vec3::updAs(&ulike[uStart]);
 }
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Planar, MobilizedBody::PlanarImpl, MobilizedBody);
+
     ////////////////////////////
     // MOBILIZED BODY::GIMBAL //
     ////////////////////////////
 
-MobilizedBody::Gimbal::Gimbal() : PIMPLDerivedHandleBase(new GimbalImpl()) {
+MobilizedBody::Gimbal::Gimbal() : MobilizedBody(new GimbalImpl()) {
 }
 
 
-MobilizedBody::Gimbal::Gimbal(MobilizedBody& parent, const Body& body) : PIMPLDerivedHandleBase(new GimbalImpl()) {
+MobilizedBody::Gimbal::Gimbal(MobilizedBody& parent, const Body& body) : MobilizedBody(new GimbalImpl()) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -799,7 +811,7 @@ MobilizedBody::Gimbal::Gimbal(MobilizedBody& parent, const Body& body) : PIMPLDe
 }
 
 MobilizedBody::Gimbal::Gimbal(MobilizedBody& parent, const Transform& inbFrame,
-                                    const Body& body, const Transform& outbFrame) : PIMPLDerivedHandleBase(new GimbalImpl()) {
+                                    const Body& body, const Transform& outbFrame) : MobilizedBody(new GimbalImpl()) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -885,6 +897,8 @@ Vec3& MobilizedBody::Gimbal::updMyPartU(const State& s, Vector& ulike) const {
     return Vec3::updAs(&ulike[uStart]);
 }
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Gimbal, MobilizedBody::GimbalImpl, MobilizedBody);
+
     // GimbalImpl
 
 void MobilizedBody::GimbalImpl::calcDecorativeGeometryAndAppendImpl
@@ -935,10 +949,10 @@ void MobilizedBody::GimbalImpl::calcDecorativeGeometryAndAppendImpl
     // MOBILIZED BODY::BALL (ORIENTATION, SPHERICAL) //
     ///////////////////////////////////////////////////
 
-MobilizedBody::Ball::Ball() : PIMPLDerivedHandleBase(new BallImpl()) {
+MobilizedBody::Ball::Ball() : MobilizedBody(new BallImpl()) {
 }
 
-MobilizedBody::Ball::Ball(MobilizedBody& parent, const Body& body) : PIMPLDerivedHandleBase(new BallImpl()) {
+MobilizedBody::Ball::Ball(MobilizedBody& parent, const Body& body) : MobilizedBody(new BallImpl()) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -947,7 +961,7 @@ MobilizedBody::Ball::Ball(MobilizedBody& parent, const Body& body) : PIMPLDerive
 }
 
 MobilizedBody::Ball::Ball(MobilizedBody& parent, const Transform& inbFrame,
-                          const Body& body, const Transform& outbFrame) : PIMPLDerivedHandleBase(new BallImpl()) {
+                          const Body& body, const Transform& outbFrame) : MobilizedBody(new BallImpl()) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1033,6 +1047,8 @@ Vec3& MobilizedBody::Ball::updMyPartU(const State& s, Vector& ulike) const {
     return Vec3::updAs(&ulike[uStart]);
 }
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ball, MobilizedBody::BallImpl, MobilizedBody);
+
     // BallImpl
 
 void MobilizedBody::BallImpl::calcDecorativeGeometryAndAppendImpl
@@ -1083,10 +1099,10 @@ void MobilizedBody::BallImpl::calcDecorativeGeometryAndAppendImpl
     // MOBILIZED BODY::ELLIPSOID //
     ///////////////////////////////
 
-MobilizedBody::Ellipsoid::Ellipsoid() : PIMPLDerivedHandleBase(new EllipsoidImpl()) {
+MobilizedBody::Ellipsoid::Ellipsoid() : MobilizedBody(new EllipsoidImpl()) {
 }
 
-MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Body& body) : PIMPLDerivedHandleBase(new EllipsoidImpl()) {
+MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Body& body) : MobilizedBody(new EllipsoidImpl()) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -1095,7 +1111,7 @@ MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Body& body) : P
 }
 
 MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Transform& inbFrame,
-                          const Body& body, const Transform& outbFrame) : PIMPLDerivedHandleBase(new EllipsoidImpl()) {
+                          const Body& body, const Transform& outbFrame) : MobilizedBody(new EllipsoidImpl()) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1182,15 +1198,17 @@ void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl
     }
 }
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ellipsoid, MobilizedBody::EllipsoidImpl, MobilizedBody);
+
     /////////////////////////////////
     // MOBILIZED BODY::TRANSLATION //
     /////////////////////////////////
 
-MobilizedBody::Translation::Translation() : PIMPLDerivedHandleBase(new TranslationImpl()) {
+MobilizedBody::Translation::Translation() : MobilizedBody(new TranslationImpl()) {
 }
 
 
-MobilizedBody::Translation::Translation(MobilizedBody& parent, const Body& body) : PIMPLDerivedHandleBase(new TranslationImpl()) {
+MobilizedBody::Translation::Translation(MobilizedBody& parent, const Body& body) : MobilizedBody(new TranslationImpl()) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -1199,7 +1217,7 @@ MobilizedBody::Translation::Translation(MobilizedBody& parent, const Body& body)
 }
 
 MobilizedBody::Translation::Translation(MobilizedBody& parent, const Transform& inbFrame,
-                          const Body& body, const Transform& outbFrame) : PIMPLDerivedHandleBase(new TranslationImpl()) {
+                          const Body& body, const Transform& outbFrame) : MobilizedBody(new TranslationImpl()) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1275,14 +1293,16 @@ Vec3& MobilizedBody::Translation::updMyPartU(const State& s, Vector& ulike) cons
     return Vec3::updAs(&ulike[uStart]);
 }
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Translation, MobilizedBody::TranslationImpl, MobilizedBody);
+
     //////////////////////////
     // MOBILIZED BODY::FREE //
     //////////////////////////
 
-MobilizedBody::Free::Free() : PIMPLDerivedHandleBase(new FreeImpl()) {
+MobilizedBody::Free::Free() : MobilizedBody(new FreeImpl()) {
 }
 
-MobilizedBody::Free::Free(MobilizedBody& parent, const Body& body) : PIMPLDerivedHandleBase(new FreeImpl()) {
+MobilizedBody::Free::Free(MobilizedBody& parent, const Body& body) : MobilizedBody(new FreeImpl()) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -1291,7 +1311,7 @@ MobilizedBody::Free::Free(MobilizedBody& parent, const Body& body) : PIMPLDerive
 }
 
 MobilizedBody::Free::Free(MobilizedBody& parent, const Transform& inbFrame,
-                          const Body& body, const Transform& outbFrame) : PIMPLDerivedHandleBase(new FreeImpl()) {
+                          const Body& body, const Transform& outbFrame) : MobilizedBody(new FreeImpl()) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1401,15 +1421,17 @@ Vec6& MobilizedBody::Free::updMyPartU(const State& s, Vector& ulike) const {
     return Vec6::updAs(&ulike[uStart]);
 }
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Free, MobilizedBody::FreeImpl, MobilizedBody);
+
     //////////////////////////////////////
     // MOBILIZED BODY::LINE ORIENTATION //
     //////////////////////////////////////
 
-MobilizedBody::LineOrientation::LineOrientation() : PIMPLDerivedHandleBase(new LineOrientationImpl()) {
+MobilizedBody::LineOrientation::LineOrientation() : MobilizedBody(new LineOrientationImpl()) {
 }
 
 
-MobilizedBody::LineOrientation::LineOrientation(MobilizedBody& parent, const Body& body) : PIMPLDerivedHandleBase(new LineOrientationImpl()) {
+MobilizedBody::LineOrientation::LineOrientation(MobilizedBody& parent, const Body& body) : MobilizedBody(new LineOrientationImpl()) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -1418,7 +1440,7 @@ MobilizedBody::LineOrientation::LineOrientation(MobilizedBody& parent, const Bod
 }
 
 MobilizedBody::LineOrientation::LineOrientation(MobilizedBody& parent, const Transform& inbFrame,
-                          const Body& body, const Transform& outbFrame) : PIMPLDerivedHandleBase(new LineOrientationImpl()) {
+                          const Body& body, const Transform& outbFrame) : MobilizedBody(new LineOrientationImpl()) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1427,15 +1449,17 @@ MobilizedBody::LineOrientation::LineOrientation(MobilizedBody& parent, const Tra
                                                    *this);
 }
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::LineOrientation, MobilizedBody::LineOrientationImpl, MobilizedBody);
+
     ///////////////////////////////
     // MOBILIZED BODY::FREE LINE //
     ///////////////////////////////
 
-MobilizedBody::FreeLine::FreeLine() : PIMPLDerivedHandleBase(new FreeLineImpl()) {
+MobilizedBody::FreeLine::FreeLine() : MobilizedBody(new FreeLineImpl()) {
 }
 
 
-MobilizedBody::FreeLine::FreeLine(MobilizedBody& parent, const Body& body) : PIMPLDerivedHandleBase(new FreeLineImpl()) {
+MobilizedBody::FreeLine::FreeLine(MobilizedBody& parent, const Body& body) : MobilizedBody(new FreeLineImpl()) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -1444,7 +1468,7 @@ MobilizedBody::FreeLine::FreeLine(MobilizedBody& parent, const Body& body) : PIM
 }
 
 MobilizedBody::FreeLine::FreeLine(MobilizedBody& parent, const Transform& inbFrame,
-                                  const Body& body, const Transform& outbFrame) : PIMPLDerivedHandleBase(new FreeLineImpl()) {
+                                  const Body& body, const Transform& outbFrame) : MobilizedBody(new FreeLineImpl()) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1452,16 +1476,17 @@ MobilizedBody::FreeLine::FreeLine(MobilizedBody& parent, const Transform& inbFra
     parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::FreeLine, MobilizedBody::FreeLineImpl, MobilizedBody);
 
     //////////////////////////
     // MOBILIZED BODY::WELD //
     //////////////////////////
 
-MobilizedBody::Weld::Weld() : PIMPLDerivedHandleBase(new WeldImpl()) {
+MobilizedBody::Weld::Weld() : MobilizedBody(new WeldImpl()) {
 }
 
 
-MobilizedBody::Weld::Weld(MobilizedBody& parent, const Body& body) : PIMPLDerivedHandleBase(new WeldImpl()) {
+MobilizedBody::Weld::Weld(MobilizedBody& parent, const Body& body) : MobilizedBody(new WeldImpl()) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -1470,7 +1495,7 @@ MobilizedBody::Weld::Weld(MobilizedBody& parent, const Body& body) : PIMPLDerive
 }
 
 MobilizedBody::Weld::Weld(MobilizedBody& parent, const Transform& inbFrame,
-                                  const Body& body, const Transform& outbFrame) : PIMPLDerivedHandleBase(new WeldImpl()) {
+                                  const Body& body, const Transform& outbFrame) : MobilizedBody(new WeldImpl()) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1479,22 +1504,26 @@ MobilizedBody::Weld::Weld(MobilizedBody& parent, const Transform& inbFrame,
                                                    *this);
 }
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Weld, MobilizedBody::WeldImpl, MobilizedBody);
+
     ////////////////////////////////
     // (IM)MOBILIZED BODY::GROUND //
     ////////////////////////////////
 
-MobilizedBody::Ground::Ground() : PIMPLDerivedHandleBase(new GroundImpl()) {
+MobilizedBody::Ground::Ground() : MobilizedBody(new GroundImpl()) {
     setBody(Body::Ground());
 }
+
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ground, MobilizedBody::GroundImpl, MobilizedBody);
 
     ///////////////////////////
     // MOBILIZED BODY::SCREW //
     ///////////////////////////
 
-MobilizedBody::Screw::Screw(Real pitch) : PIMPLDerivedHandleBase(new ScrewImpl(pitch)) {
+MobilizedBody::Screw::Screw(Real pitch) : MobilizedBody(new ScrewImpl(pitch)) {
 }
 
-MobilizedBody::Screw::Screw(MobilizedBody& parent, const Body& body, Real pitch) : PIMPLDerivedHandleBase(new ScrewImpl(pitch)) {
+MobilizedBody::Screw::Screw(MobilizedBody& parent, const Body& body, Real pitch) : MobilizedBody(new ScrewImpl(pitch)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -1504,7 +1533,7 @@ MobilizedBody::Screw::Screw(MobilizedBody& parent, const Body& body, Real pitch)
 
 MobilizedBody::Screw::Screw(MobilizedBody& parent, const Transform& inbFrame,
                             const Body& body, const Transform& outbFrame,
-                            Real pitch) : PIMPLDerivedHandleBase(new ScrewImpl(pitch)) {
+                            Real pitch) : MobilizedBody(new ScrewImpl(pitch)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1590,6 +1619,8 @@ Real& MobilizedBody::Screw::updMyPartU(const State& s, Vector& ulike) const {
     return ulike[uStart];
 }
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Screw, MobilizedBody::ScrewImpl, MobilizedBody);
+
 ////////////////////////////
 // MOBILIZED BODY::CUSTOM //
 ////////////////////////////
@@ -1598,7 +1629,7 @@ Real& MobilizedBody::Screw::updMyPartU(const State& s, Vector& ulike) const {
 // object for us. We'll first take away ownership of the CustomImpl, then
 // make the CustomImpl take over ownership of the Implementation object.
 MobilizedBody::Custom::Custom(MobilizedBody& parent, MobilizedBody::Custom::Implementation* implementation, const Body& body)
-    : PIMPLDerivedHandleBase(implementation ? implementation->updImpl().removeOwnershipOfCustomImpl() : 0)
+    : MobilizedBody(implementation ? implementation->updImpl().removeOwnershipOfCustomImpl() : 0)
 {
     SimTK_ASSERT_ALWAYS(implementation,
         "MobilizedBody::Custom::Custom(): Implementation pointer was NULL.");
@@ -1620,6 +1651,8 @@ const MobilizedBody::Custom::Implementation& MobilizedBody::Custom::getImplement
 MobilizedBody::Custom::Implementation& MobilizedBody::Custom::updImplementation() {
     return updImpl().updImplementation();
 }
+
+INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Custom, MobilizedBody::CustomImpl, MobilizedBody);
 
 // MobilizedBody::CustomImpl
 

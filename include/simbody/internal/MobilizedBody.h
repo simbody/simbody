@@ -1346,7 +1346,7 @@ public:
 /// One mobility -- rotation about the common z axis of the inboard
 /// and outboard mobilizer frames.
 /// Synonym: Torsion
-class SimTK_SIMBODY_EXPORT MobilizedBody::Pin : public PIMPLDerivedHandle<Pin, PinImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Pin : public MobilizedBody {
 public:
         // SPECIALIZED INTERFACE FOR PIN MOBILIZER
 
@@ -1408,12 +1408,13 @@ public:
       { (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this; }
     Pin& setDefaultOutboardFrame(const Transform& X_BM)
       { (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this; }
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Pin, PinImpl, MobilizedBody);
 };
 
 /// One mobility -- translation along the common x axis of the
 /// inboard and outboard mobilizer frames.
 /// Synonym: Prismatic
-class SimTK_SIMBODY_EXPORT MobilizedBody::Slider : public PIMPLDerivedHandle<Slider, SliderImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Slider : public MobilizedBody {
 public:
         // SPECIALIZED INTERFACE FOR SLIDER MOBILIZER
 
@@ -1475,6 +1476,7 @@ public:
       { (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this; }
     Slider& setDefaultOutboardFrame(const Transform& X_BM)
       { (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this; }
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Slider, SliderImpl, MobilizedBody);
 };
 
 /// One mobility -- coordinated rotation and translation along the
@@ -1482,7 +1484,7 @@ public:
 /// "pitch" is specified relating the two. The generalized coordinate
 /// q is the rotation angle in radians, the translation is always
 /// pitch*q.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Screw : public PIMPLDerivedHandle<Screw, ScrewImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Screw : public MobilizedBody {
 public:
     Screw(Real pitch);
 
@@ -1534,12 +1536,13 @@ public:
    
     Real& updMyPartQ(const State&, Vector& qlike) const;
     Real& updMyPartU(const State&, Vector& ulike) const;
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Screw, ScrewImpl, MobilizedBody);
 };
 
 /// Two mobilities -- rotation about the x axis, followed by a rotation
 /// about the new y axis. This mobilizer is badly behaved when the
 /// second rotation is near 90 degrees.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Universal : public PIMPLDerivedHandle<Universal, UniversalImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Universal : public MobilizedBody {
 public:
     Universal();
 
@@ -1569,11 +1572,12 @@ public:
     Universal& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Universal, UniversalImpl, MobilizedBody);
 };
 
 /// Two mobilities -- rotation and translation along the common z axis
 /// of the inboard and outboard mobilizer frames.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Cylinder : public PIMPLDerivedHandle<Cylinder, CylinderImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Cylinder : public MobilizedBody {
 public:
     Cylinder();
 
@@ -1603,6 +1607,7 @@ public:
     Cylinder& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Cylinder, CylinderImpl, MobilizedBody);
 };
 
 /// Two mobilities: The z axis of the parent's F frame is 
@@ -1611,7 +1616,7 @@ public:
 /// that is, first we rotate around z, which moves M's x with respect to F's x. Then
 /// we slide along the rotated x axis. The two generalized coordinates are the
 /// rotation and the translation, in that order.
-class SimTK_SIMBODY_EXPORT MobilizedBody::BendStretch : public PIMPLDerivedHandle<BendStretch, BendStretchImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::BendStretch : public MobilizedBody {
 public:
     BendStretch();
 
@@ -1641,13 +1646,14 @@ public:
     BendStretch& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
+    INSERT_DERIVED_HANDLE_DECLARATIONS(BendStretch, BendStretchImpl, MobilizedBody);
 };
 
 /// Three mobilities -- z rotation and x,y translation. The generalized
 /// coordinates are rotation about the shared z axis of the F and M
 /// frame, translation along the F frame's x axis, and translation along
 /// its y axis, in that order.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Planar : public PIMPLDerivedHandle<Planar, PlanarImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Planar : public MobilizedBody {
 public:
     Planar();
 
@@ -1715,12 +1721,13 @@ public:
    
     Vec3& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Planar, PlanarImpl, MobilizedBody);
 };
 
 /// Three mobilities -- unrestricted orientation modeled as a 1-2-3
 /// body-fixed Euler angle sequence. This is singular when the middle
 /// angle is 90 degrees.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Gimbal : public PIMPLDerivedHandle<Gimbal, GimbalImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Gimbal : public MobilizedBody {
 public:
     Gimbal();
 
@@ -1783,13 +1790,14 @@ public:
    
     Vec3& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Gimbal, GimbalImpl, MobilizedBody);
 };
 
 /// Three mobilities -- unrestricted orientation modeled with a
 /// quaternion which is never singular. A modeling option allows the
 /// joint to use a 1-2-3 Euler sequence (identical to a Gimbal) 
 /// instead.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Ball : public PIMPLDerivedHandle<Ball, BallImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Ball : public MobilizedBody {
 public:
     explicit Ball();
 
@@ -1848,13 +1856,14 @@ public:
    
     Vec4& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Ball, BallImpl, MobilizedBody);
 };
 
 /// Three mobilities -- coordinated rotation and translation along the
 /// surface of an ellipsoid fixed to the parent (inboard) body.
 /// The generalized coordinates are the same as for a Ball (Orientation)
 /// joint, that is, a quaternion or 1-2-3 Euler sequence.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Ellipsoid : public PIMPLDerivedHandle<Ellipsoid, EllipsoidImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Ellipsoid : public MobilizedBody {
 public:
     // The ellipsoid is placed on the mobilizer's inboard frame F, with
     // half-axis dimensions along F's x,y,z respectively.
@@ -1902,11 +1911,12 @@ public:
     const Quaternion& getDefaultQ() const;
     Quaternion& updDefaultQ();
     Ellipsoid& setDefaultQ(const Quaternion& q) {updDefaultQ()=q; return *this;}
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Ellipsoid, EllipsoidImpl, MobilizedBody);
 };
 
 /// Three translational mobilities. The generalized coordinates are
 /// x,y,z translations along the parent (inboard) F frame axes.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Translation : public PIMPLDerivedHandle<Translation, TranslationImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Translation : public MobilizedBody {
 public:
     Translation();
 
@@ -1997,6 +2007,7 @@ public:
    
     Vec3& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Translation, TranslationImpl, MobilizedBody);
 };
 
 /// Unrestricted motion for a rigid body (six mobilities). Orientation
@@ -2005,7 +2016,7 @@ public:
 /// have the joint modeled with a 1-2-3 body fixed Euler sequence like
 /// a Gimbal mobilizer. Translational generalized coordinates are
 /// x,y,z translations along the F (inboard) axes.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Free : public PIMPLDerivedHandle<Free, FreeImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Free : public MobilizedBody {
 public:
     Free();
 
@@ -2091,6 +2102,7 @@ public:
    
     Vec7& updMyPartQ(const State&, Vector& qlike) const;
     Vec6& updMyPartU(const State&, Vector& ulike) const;
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Free, FreeImpl, MobilizedBody);
 };
 
 
@@ -2115,7 +2127,7 @@ public:
 /// as for the general Orientation (Ball) mobilizer, but there are only
 /// two generalized speeds. These are the x,y components of the angular velocity
 /// of frame M in F, but expressed in the *M* (outboard frame).
-class SimTK_SIMBODY_EXPORT MobilizedBody::LineOrientation : public PIMPLDerivedHandle<LineOrientation, LineOrientationImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::LineOrientation : public MobilizedBody {
 public:
     LineOrientation();
 
@@ -2146,13 +2158,14 @@ public:
     LineOrientation& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
+    INSERT_DERIVED_HANDLE_DECLARATIONS(LineOrientation, LineOrientationImpl, MobilizedBody);
 };
 
 /// Five mobilities, representing unrestricted motion for a body which is
 /// inertialess along its own z axis. The rotational generalized coordinates are the same
 /// as for the LineOrientation mobilizer. The translational coordinates are
 /// the same as in a Free mobilizer, or a Cartesian (Translation) mobilizer.
-class SimTK_SIMBODY_EXPORT MobilizedBody::FreeLine : public PIMPLDerivedHandle<FreeLine, FreeLineImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::FreeLine : public MobilizedBody {
 public:
     FreeLine();
 
@@ -2182,12 +2195,13 @@ public:
     FreeLine& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
+    INSERT_DERIVED_HANDLE_DECLARATIONS(FreeLine, FreeLineImpl, MobilizedBody);
 };
 
 /// Zero mobilities. This degenerate "mobilizer" serves only to weld together
 /// the M frame of a body to the F frame on its parent.
 /// TODO: not implemented yet.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Weld : public PIMPLDerivedHandle<Weld, WeldImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Weld : public MobilizedBody {
 public:
     Weld();
 
@@ -2218,18 +2232,20 @@ public:
     Weld& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Weld, WeldImpl, MobilizedBody);
 };
 
 
 /// This is a special type of "mobilized" body used as a placeholder for Ground
 /// in the 0th slot for a MatterSubsystem's mobilized bodies.
 /// The body type will also be Ground.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Ground : public PIMPLDerivedHandle<Ground, GroundImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Ground : public MobilizedBody {
 public:
     Ground();
     Ground& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
     }
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Ground, GroundImpl, MobilizedBody);
 };
 
 
@@ -2264,7 +2280,7 @@ public:
  * subclass must not have any data members or virtual methods.  If it does, it will not work correctly.  Instead,
  * store all data in the Implementation subclass.
  */
-class SimTK_SIMBODY_EXPORT MobilizedBody::Custom : public PIMPLDerivedHandle<Custom, CustomImpl, MobilizedBody> {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Custom : public MobilizedBody {
 public:
     class Implementation;
     class ImplementationImpl;
@@ -2278,6 +2294,7 @@ public:
      * @param body           describes this MobilizedBody's physical properties
      */
     explicit Custom(MobilizedBody& parent, Implementation* implementation, const Body& body);
+    INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, MobilizedBody);
 protected:
     const Implementation& getImplementation() const;
     Implementation&       updImplementation();

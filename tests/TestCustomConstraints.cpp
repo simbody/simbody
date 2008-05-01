@@ -228,7 +228,7 @@ void testCoordinateCoupler1() {
 
 void testCoordinateCoupler2() {
     
-    // Create a system involving a constraint that affects three different bodies.
+    // Create a system involving a constraint that affects multiple bodies.
     
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -265,6 +265,52 @@ void testCoordinateCoupler2() {
         for (int i = 0; i < args.size(); ++i)
             args[i] = matter.getMobilizedBody(bodies[i]).getOneQ(integ.getState(), coordinates[i]);
         assertEqual(0.0, function->calcValue(args)[0], integ.getConstraintToleranceInUse());
+        assertEqual(energy, system.calcEnergy(integ.getState()), energy*0.01);
+    }
+    delete function;
+}
+
+void testCoordinateCoupler3() {
+    
+    // Create a system involving a constrained body for which qdot != u.
+    
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    createBallSystem(system);
+    MobilizedBody& first = matter.updMobilizedBody(MobilizedBodyIndex(1));
+    std::vector<MobilizedBodyIndex> bodies(3);
+    std::vector<MobilizerQIndex> coordinates(3);
+    bodies[0] = MobilizedBodyIndex(1);
+    bodies[1] = MobilizedBodyIndex(1);
+    bodies[2] = MobilizedBodyIndex(1);
+    coordinates[0] = MobilizerQIndex(0);
+    coordinates[1] = MobilizerQIndex(1);
+    coordinates[2] = MobilizerQIndex(2);
+    Function<1>* function = new CompoundFunction();
+    Constraint::CoordinateCoupler coupler(matter, function, bodies, coordinates);
+    State state;
+    createState(system, state);
+    
+    // Make sure the constraint is satisfied.
+    
+    Vector args(function->getArgumentSize());
+    for (int i = 0; i < args.size(); ++i)
+        args[i] = matter.getMobilizedBody(bodies[i]).getOneQ(state, coordinates[i]);
+    assertEqual(0.0, function->calcValue(args)[0]);
+    
+    // Simulate it and make sure the constraint is working correctly and energy is being conserved.
+    
+    Real energy = system.calcEnergy(state);
+    RungeKuttaMersonIntegrator integ(system);
+    integ.setReturnEveryInternalStep(true);
+    integ.initialize(state);
+    while (integ.getTime() < 10.0) {
+        integ.stepTo(10.0);
+        for (int i = 0; i < args.size(); ++i)
+            args[i] = matter.getMobilizedBody(bodies[i]).getOneQ(integ.getState(), coordinates[i]);
+        // Constraints are applied to unnormalized quaternions.  When they are normalized, that can
+        // increase the constraint error.  That is why we need the factor of 3 in the next line.
+        assertEqual(0.0, function->calcValue(args)[0], 3*integ.getConstraintToleranceInUse());
         assertEqual(energy, system.calcEnergy(integ.getState()), energy*0.01);
     }
     delete function;
@@ -354,7 +400,7 @@ void testSpeedCoupler3() {
     
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
-    createGimbalSystem(system);
+    createCylinderSystem(system);
     MobilizedBody& first = matter.updMobilizedBody(MobilizedBodyIndex(1));
     std::vector<MobilizedBodyIndex> ubody(2), qbody(1);
     std::vector<MobilizerUIndex> uindex(2);
@@ -378,9 +424,8 @@ void testSpeedCoupler3() {
     args[2] = matter.getMobilizedBody(qbody[0]).getOneQ(state, qindex[0]);
     assertEqual(0.0, function->calcValue(args)[0]);
     
-    // Simulate it and make sure the constraint is working correctly and energy is being conserved.
+    // Simulate it and make sure the constraint is working correctly.
     
-    Real energy = system.calcEnergy(state);
     RungeKuttaMersonIntegrator integ(system);
     integ.setReturnEveryInternalStep(true);
     integ.initialize(state);
@@ -390,7 +435,6 @@ void testSpeedCoupler3() {
         args[1] = matter.getMobilizedBody(ubody[1]).getOneU(state, uindex[1]);
         args[2] = matter.getMobilizedBody(qbody[0]).getOneQ(state, qindex[0]);
         assertEqual(0.0, function->calcValue(args)[0], integ.getConstraintToleranceInUse());
-        assertEqual(energy, system.calcEnergy(integ.getState()), energy*0.01);
     }
     delete function;
 }
@@ -399,9 +443,10 @@ int main() {
     try {
         testCoordinateCoupler1();
         testCoordinateCoupler2();
+        testCoordinateCoupler3();
         testSpeedCoupler1();
         testSpeedCoupler2();
-//        testSpeedCoupler3();
+        testSpeedCoupler3();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

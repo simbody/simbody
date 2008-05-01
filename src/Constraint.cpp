@@ -539,8 +539,10 @@ void Constraint::calcConstraintForcesFromMultipliers(
     // CONSTRAINT::ROD //
     /////////////////////
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Rod, Constraint::RodImpl, Constraint);
+
 Constraint::Rod::Rod(MobilizedBody& body1, MobilizedBody& body2, Real defaultRodLength)
-  : PIMPLDerivedHandleBase(new RodImpl())
+  : Constraint(new RodImpl())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Rod(): both bodies must already be in a MatterSubsystem.");
@@ -560,7 +562,7 @@ Constraint::Rod::Rod(MobilizedBody& body1, MobilizedBody& body2, Real defaultRod
 
 Constraint::Rod::Rod(MobilizedBody& body1, const Vec3& point1,
                      MobilizedBody& body2, const Vec3& point2, Real defaultRodLength)
-  : PIMPLDerivedHandleBase(new RodImpl())
+  : Constraint(new RodImpl())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Rod(): both bodies must already be in a MatterSubsystem.");
@@ -714,10 +716,12 @@ void Constraint::Rod::RodImpl::calcDecorativeGeometryAndAppendVirtual
     // CONSTRAINT::POINT IN PLANE //
     ////////////////////////////////
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::PointInPlane, Constraint::PointInPlaneImpl, Constraint);
+
 Constraint::PointInPlane::PointInPlane
    (MobilizedBody& planeBody,    const UnitVec3& defPlaneNormal, Real defPlaneHeight,
     MobilizedBody& followerBody, const Vec3&     defFollowerPoint)
-  : PIMPLDerivedHandleBase(new PointInPlaneImpl())
+  : Constraint(new PointInPlaneImpl())
 {
     SimTK_ASSERT_ALWAYS(planeBody.isInSubsystem() && followerBody.isInSubsystem(),
         "Constraint::PointInPlane(): both bodies must already be in a SimbodyMatterSubsystem.");
@@ -857,10 +861,12 @@ void Constraint::PointInPlane::PointInPlaneImpl::calcDecorativeGeometryAndAppend
     // CONSTRAINT::POINT ON LINE //
     ///////////////////////////////
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::PointOnLine, Constraint::PointOnLineImpl, Constraint);
+
 Constraint::PointOnLine::PointOnLine
    (MobilizedBody& lineBody,     const UnitVec3& defLineDirection, const Vec3& defPointOnLine,
     MobilizedBody& followerBody, const Vec3&     defFollowerPoint)
-  : PIMPLDerivedHandleBase(new PointOnLineImpl())
+  : Constraint(new PointOnLineImpl())
 {
     SimTK_ASSERT_ALWAYS(lineBody.isInSubsystem() && followerBody.isInSubsystem(),
         "Constraint::PointOnLine(): both bodies must already be in a SimbodyMatterSubsystem.");
@@ -1003,11 +1009,13 @@ void Constraint::PointOnLine::PointOnLineImpl::calcDecorativeGeometryAndAppendVi
     // CONSTRAINT::CONSTANT ANGLE //
     ////////////////////////////////
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::ConstantAngle, Constraint::ConstantAngleImpl, Constraint);
+
 Constraint::ConstantAngle::ConstantAngle
    (MobilizedBody& baseBody,     const UnitVec3& defaultAxisOnB,
     MobilizedBody& followerBody, const UnitVec3& defaultAxisOnF,
     Real angle)
-  : PIMPLDerivedHandleBase(new ConstantAngleImpl())
+  : Constraint(new ConstantAngleImpl())
 {
     SimTK_ASSERT_ALWAYS(baseBody.isInSubsystem() && followerBody.isInSubsystem(),
         "Constraint::ConstantAngle(): both bodies must already be in a SimbodyMatterSubsystem.");
@@ -1116,8 +1124,10 @@ void Constraint::ConstantAngle::ConstantAngleImpl::calcDecorativeGeometryAndAppe
     // CONSTRAINT::BALL //
     //////////////////////
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Ball, Constraint::BallImpl, Constraint);
+
 Constraint::Ball::Ball(MobilizedBody& body1, MobilizedBody& body2)
-  : PIMPLDerivedHandleBase(new BallImpl())
+  : Constraint(new BallImpl())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Ball(): both bodies must already be in a MatterSubsystem.");
@@ -1133,7 +1143,7 @@ Constraint::Ball::Ball(MobilizedBody& body1, MobilizedBody& body2)
 
 Constraint::Ball::Ball(MobilizedBody& body1, const Vec3& point1,
                        MobilizedBody& body2, const Vec3& point2)
-  : PIMPLDerivedHandleBase(new BallImpl())
+  : Constraint(new BallImpl())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Ball(): both bodies must already be in a MatterSubsystem.");
@@ -1287,10 +1297,12 @@ void Constraint::Ball::BallImpl::calcDecorativeGeometryAndAppendVirtual
     // CONSTRAINT::CONSTANT ORIENTATION //
     //////////////////////////////////////
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::ConstantOrientation, Constraint::ConstantOrientationImpl, Constraint);
+
 Constraint::ConstantOrientation::ConstantOrientation
    (MobilizedBody& baseBody,     const Rotation& defaultFrameOnB,
     MobilizedBody& followerBody, const Rotation& defaultFrameOnF)
-  : PIMPLDerivedHandleBase(new ConstantOrientationImpl())
+  : Constraint(new ConstantOrientationImpl())
 {
     SimTK_ASSERT_ALWAYS(baseBody.isInSubsystem() && followerBody.isInSubsystem(),
         "Constraint::ConstantOrientation(): both bodies must already be in a SimbodyMatterSubsystem.");
@@ -1367,8 +1379,10 @@ Vec3 Constraint::ConstantOrientation::getMultipliers(const State& s) const {
     // CONSTRAINT::WELD //
     //////////////////////
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Weld, Constraint::WeldImpl, Constraint);
+
 Constraint::Weld::Weld(MobilizedBody& body1, MobilizedBody& body2)
-  : PIMPLDerivedHandleBase(new WeldImpl())
+  : Constraint(new WeldImpl())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Weld(): both bodies must already be in a MatterSubsystem.");
@@ -1384,7 +1398,7 @@ Constraint::Weld::Weld(MobilizedBody& body1, MobilizedBody& body2)
 
 Constraint::Weld::Weld(MobilizedBody& body1, const Transform& frame1,
                        MobilizedBody& body2, const Transform& frame2)
-  : PIMPLDerivedHandleBase(new WeldImpl())
+  : Constraint(new WeldImpl())
 {
     SimTK_ASSERT_ALWAYS(body1.isInSubsystem() && body2.isInSubsystem(),
         "Constraint::Weld(): both bodies must already be in a MatterSubsystem.");
@@ -1530,10 +1544,12 @@ void Constraint::Weld::WeldImpl::calcDecorativeGeometryAndAppendVirtual
     // CONSTRAINT::NO SLIP 1D //
     ////////////////////////////
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::NoSlip1D, Constraint::NoSlip1DImpl, Constraint);
+
 Constraint::NoSlip1D::NoSlip1D
    (MobilizedBody& caseBody, const Vec3& P_C, const UnitVec3& n_C,
     MobilizedBody& movingBody0, MobilizedBody& movingBody1)
-  : PIMPLDerivedHandleBase(new NoSlip1DImpl())
+  : Constraint(new NoSlip1DImpl())
 {
     SimTK_ASSERT_ALWAYS(caseBody.isInSubsystem() && movingBody0.isInSubsystem()&& movingBody1.isInSubsystem(),
         "Constraint::NoSlip1D(): all three bodies must already be in a SimbodyMatterSubsystem.");
@@ -1651,10 +1667,12 @@ void Constraint::NoSlip1D::NoSlip1DImpl::calcDecorativeGeometryAndAppendVirtual
     // CONSTRAINT::CONSTANT SPEED //
     ////////////////////////////////
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::ConstantSpeed, Constraint::ConstantSpeedImpl, Constraint);
+
 // This picks one of the mobilities from a multiple-mobility mobilizer.
 Constraint::ConstantSpeed::ConstantSpeed
    (MobilizedBody& mobilizer, MobilizerUIndex whichU, Real defaultSpeed)
-  : PIMPLDerivedHandleBase(new ConstantSpeedImpl())
+  : Constraint(new ConstantSpeedImpl())
 {
     SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
         "Constraint::ConstantSpeed(): the mobilizer must already be in a SimbodyMatterSubsystem.");
@@ -1669,7 +1687,7 @@ Constraint::ConstantSpeed::ConstantSpeed
 
 // This is for mobilizers with only 1 mobility.
 Constraint::ConstantSpeed::ConstantSpeed(MobilizedBody& mobilizer, Real defaultSpeed)
-  : PIMPLDerivedHandleBase(new ConstantSpeedImpl())
+  : Constraint(new ConstantSpeedImpl())
 {
     SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
         "Constraint::ConstantSpeed(): the mobilizer must already be in a SimbodyMatterSubsystem.");
@@ -1718,11 +1736,13 @@ Real Constraint::ConstantSpeed::getMultiplier(const State& s) const {
     // CONSTRAINT::CUSTOM //
     ////////////////////////
 
+INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Custom, Constraint::CustomImpl, Constraint);
+
 // We are given an Implementation object which is already holding a CustomImpl
 // object for us. We'll first take away ownership of the CustomImpl, then
 // make the CustomImpl take over ownership of the Implementation object.
 Constraint::Custom::Custom(Constraint::Custom::Implementation* implementation)
-  : PIMPLDerivedHandleBase(implementation ? implementation->updImpl().removeOwnershipOfCustomImpl()
+  : Constraint(implementation ? implementation->updImpl().removeOwnershipOfCustomImpl()
                                           : 0)
 {
     SimTK_ASSERT_ALWAYS(implementation,
@@ -2104,10 +2124,6 @@ void Constraint::SpeedCouplerImpl::realizeVelocityDotErrorsVirtual(const State& 
     for (int i = 0; i < (int) speedBodies.size(); ++i) {
         components[0] = i;
         vaerr[0] += function->calcDerivative(components, temp)[0]*getOneUDot(s, speedBodies[i], speedIndices[i], true);
-    }
-    for (int i = 0; i < (int) coordBodies.size(); ++i) {
-        components[0] = speedBodies.size()+i;
-        vaerr[0] += function->calcDerivative(components, temp)[0]*getMatterSubsystem().getMobilizedBody(coordBodies[i]).getOneQDot(s, coordIndices[i]);
     }
 }
 
