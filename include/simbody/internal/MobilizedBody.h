@@ -2294,6 +2294,17 @@ public:
      * @param body           describes this MobilizedBody's physical properties
      */
     explicit Custom(MobilizedBody& parent, Implementation* implementation, const Body& body);
+    /* Create a Custom MobilizedBody.
+     * 
+     * @param parent         the MobilizedBody's parent body
+     * @param implementation the object which implements the custom mobilized body.  The MobilizedBody::Custom takes over
+     *                       ownership of the implementation object, and deletes it when the MobilizedBody itself
+     *                       is deleted.
+     * @param inbFrame       the MobilizedBody's inboard reference frame
+     * @param body           describes this MobilizedBody's physical properties
+     * @param outbFrame      the MobilizedBody's outboard reference frame
+     */
+    explicit Custom(MobilizedBody& parent, Implementation* implementation, const Transform& inbFrame, const Body& body, const Transform& outbFrame);
     INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, MobilizedBody);
 protected:
     const Implementation& getImplementation() const;

@@ -448,9 +448,9 @@ void testCustomBall() {
     Force::UniformGravity gravity(forces, matter, Vec3(0, -9.8, 0));
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     MobilizedBody::Ball t1(matter.Ground(), body);
-    MobilizedBody::Ball t2(t1, body);
+    MobilizedBody::Ball t2(t1, Vec3(1, 0, 0), body, Vec3(0, 2, 0));
     MobilizedBody::Custom c1(matter.Ground(), new CustomBall(matter), body);
-    MobilizedBody::Custom c2(c1, new CustomBall(matter), body);
+    MobilizedBody::Custom c2(c1, new CustomBall(matter), Vec3(1, 0, 0), body, Vec3(0, 2, 0));
     system.realizeTopology();
     compareMobilizedBodies(t2, c2, false, 4, 3);
     compareMobilizedBodies(t2, c2, true, 3, 3);

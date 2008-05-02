@@ -1644,6 +1644,24 @@ MobilizedBody::Custom::Custom(MobilizedBody& parent, MobilizedBody::Custom::Impl
     updImpl().updMyMatterSubsystemRep().adoptMobilizedBody(parent.getMobilizedBodyIndex(), *this);
 }
 
+MobilizedBody::Custom::Custom(MobilizedBody& parent, MobilizedBody::Custom::Implementation* implementation, const Transform& inbFrame, const Body& body, const Transform& outbFrame)
+    : MobilizedBody(implementation ? implementation->updImpl().removeOwnershipOfCustomImpl() : 0)
+{
+    SimTK_ASSERT_ALWAYS(implementation,
+        "MobilizedBody::Custom::Custom(): Implementation pointer was NULL.");
+    setBody(body);
+    setDefaultInboardFrame(inbFrame);
+    setDefaultOutboardFrame(outbFrame);
+    
+    // Now store the Implementation pointer in our CustomImpl. The Implementation
+    // object retains its original pointer to the CustomImpl object so it can
+    // operate as a proxy for the CustomImpl. However the Custom handle now owns the
+    // CustomImpl and the CustomImpl owns the Implementation.
+    updImpl().takeOwnershipOfImplementation(implementation);
+    
+    updImpl().updMyMatterSubsystemRep().adoptMobilizedBody(parent.getMobilizedBodyIndex(), *this);
+}
+
 const MobilizedBody::Custom::Implementation& MobilizedBody::Custom::getImplementation() const {
     return getImpl().getImplementation();
 }
