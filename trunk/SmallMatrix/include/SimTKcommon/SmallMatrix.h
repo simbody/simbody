@@ -102,6 +102,7 @@ template <int M, class E=Real, int STRIDE=1>              class Vec;
 template <int N, class E=Real, int STRIDE=1>              class Row; 
 template <int M, int N, class E=Real, int CS=M, int RS=1> class Mat; // col & row spacing
 template <int M, class E=Real, int RS=1>                  class SymMat;
+template <int N, class E1, int S1, class E2, int S2> typename CNT<E1>::template Result<E2>::Mul operator*(const Row<N,E1,S1>& r, const Vec<N,E2,S2>& v);
 
 } // namespace SimTK
 

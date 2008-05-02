@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-8 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -59,9 +59,13 @@ namespace SimTK {
 template <int M, class E1, int S1, class E2, int S2> inline
 typename CNT<typename CNT<E1>::THerm>::template Result<E2>::Mul 
 dot(const Vec<M,E1,S1>& r, const Vec<M,E2,S2>& v) {
-    typename CNT<typename CNT<E1>::THerm>::template Result<E2>::Mul sum(0);
-    for (int i=0; i<M; ++i)
-        sum += CNT<E1>::transpose(r[i])*v[i];
+    typename CNT<typename CNT<E1>::THerm>::template Result<E2>::Mul sum(dot(reinterpret_cast<const Vec<M-1,E1,S1>&>(r), reinterpret_cast<const Vec<M-1,E2,S2>&>(v)) + CNT<E1>::transpose(r[M-1])*v[M-1]);
+    return sum;
+}
+template <class E1, int S1, class E2, int S2> inline
+typename CNT<typename CNT<E1>::THerm>::template Result<E2>::Mul 
+dot(const Vec<1,E1,S1>& r, const Vec<1,E2,S2>& v) {
+    typename CNT<typename CNT<E1>::THerm>::template Result<E2>::Mul sum(CNT<E1>::transpose(r[0])*v[0]);
     return sum;
 }
 
@@ -69,9 +73,13 @@ dot(const Vec<M,E1,S1>& r, const Vec<M,E2,S2>& v) {
 template <int N, class E1, int S1, class E2, int S2> inline
 typename CNT<E1>::template Result<E2>::Mul 
 operator*(const Row<N,E1,S1>& r, const Vec<N,E2,S2>& v) {
-    typename CNT<E1>::template Result<E2>::Mul sum(0);
-    for (int i=0; i<N; ++i)
-        sum += r[i]*v[i];
+    typename CNT<E1>::template Result<E2>::Mul sum(reinterpret_cast<const Row<N-1,E1,S1>&>(r)*reinterpret_cast<const Vec<N-1,E2,S2>&>(v) + r[N-1]*v[N-1]);
+    return sum;
+}
+template <class E1, int S1, class E2, int S2> inline
+typename CNT<E1>::template Result<E2>::Mul 
+operator*(const Row<1,E1,S1>& r, const Vec<1,E2,S2>& v) {
+    typename CNT<E1>::template Result<E2>::Mul sum(r[0]*v[0]);
     return sum;
 }
 

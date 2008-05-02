@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-8 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -41,6 +41,34 @@
 
 namespace SimTK {
 
+// The following functions are used internally by Row.
+
+namespace Impl {
+
+template <int N, class E1, int S1, class E2, int S2>
+Row<N,typename CNT<E1>::template Result<E2>::Add>
+conformingAdd(const Row<N,E1,S1>& r1, const Row<N,E2,S2>& r2, Row<N,typename CNT<E1>::template Result<E2>::Add>& result) {
+    conformingAdd(reinterpret_cast<const Row<N-1,E1,S1>&>(r1), reinterpret_cast<const Row<N-1,E2,S2>&>(r2), reinterpret_cast<Row<N-1,typename CNT<E1>::template Result<E2>::Add>&>(result));
+    result[N-1] = r1[N-1] + r2[N-1];
+}
+template <class E1, int S1, class E2, int S2>
+Row<1,typename CNT<E1>::template Result<E2>::Add>
+conformingAdd(const Row<1,E1,S1>& r1, const Row<1,E2,S2>& r2, Row<1,typename CNT<E1>::template Result<E2>::Add>& result) {
+    result[0] = r1[0] + r2[0];
+}
+template <int N, class E1, int S1, class E2, int S2>
+Row<N,typename CNT<E1>::template Result<E2>::Add>
+conformingSubtract(const Row<N,E1,S1>& r1, const Row<N,E2,S2>& r2, Row<N,typename CNT<E1>::template Result<E2>::Add>& result) {
+    conformingSubtract(reinterpret_cast<const Row<N-1,E1,S1>&>(r1), reinterpret_cast<const Row<N-1,E2,S2>&>(r2), reinterpret_cast<Row<N-1,typename CNT<E1>::template Result<E2>::Add>&>(result));
+    result[N-1] = r1[N-1] - r2[N-1];
+}
+template <class E1, int S1, class E2, int S2>
+Row<1,typename CNT<E1>::template Result<E2>::Add>
+conformingSubtract(const Row<1,E1,S1>& r1, const Row<1,E2,S2>& r2, Row<1,typename CNT<E1>::template Result<E2>::Add>& result) {
+    result[0] = r1[0] - r2[0];
+}
+
+}
 
 /// Generic Row
 template <int N, class ELT, int STRIDE> class Row {
@@ -284,22 +312,20 @@ public:
     template <class EE, int SS> Row<N,typename CNT<E>::template Result<EE>::Add>
     conformingAdd(const Row<N,EE,SS>& r) const {
         Row<N,typename CNT<E>::template Result<EE>::Add> result;
-        for (int j=0;j<N;++j) result[j] = (*this)[j] + r[j];
+        Impl::conformingAdd(*this, r, result);
         return result;
     }
     template <class EE, int SS> Row<N,typename CNT<E>::template Result<EE>::Sub>
     conformingSubtract(const Row<N,EE,SS>& r) const {
         Row<N,typename CNT<E>::template Result<EE>::Sub> result;
-        for (int j=0;j<N;++j) result[j] = (*this)[j] - r[j];
+        Impl::conformingSubtract(*this, r, result);
         return result;
     }
 
     // dot product
     template <class EE, int SS> typename CNT<E>::template Result<EE>::Mul
     conformingMultiply(const Vec<N,EE,SS>& r) const {
-        typename CNT<E>::template Result<EE>::Mul result(0);
-        for (int j=0;j<N;++j) result += (*this)[j]*r[j];
-        return result;
+        return (*this)*r;
     }
 
     // row=row*mat

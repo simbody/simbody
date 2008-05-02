@@ -42,8 +42,19 @@ using namespace std;
 
 const Real TOL = 1e-10;
 
+template <class T>
+void assertEqual(T val1, T val2, double tol = TOL) {
+    ASSERT(abs(val1-val2) < tol);
+}
+
+template <int N>
+void assertEqual(Vec<N> val1, Vec<N> val2, double tol) {
+    for (int i = 0; i < N; ++i)
+        ASSERT(abs(val1[i]-val2[i]) < tol);
+}
+
 template <int N, class T>
-void assertEqual(Mat<N,N,T> val1, Mat<N,N> val2, double tol=TOL) {
+void assertEqualMat(Mat<N,N,T> val1, Mat<N,N> val2, double tol=TOL) {
     for (int i = 0; i < N; ++i)
         for (int j = 0; j < N; ++j)
             ASSERT(abs(val1(i, j)-val2(i, j)) < tol);
@@ -57,10 +68,25 @@ void testInverse() {
     for (int i = 0; i < N; ++i)
         for (int j = 0; j < N; ++j)
             mat(i, j) = random.getValue();
-    assertEqual(mat*mat.invert(), identity);
+    assertEqualMat(mat*mat.invert(), identity);
     mat = ~mat;
-    assertEqual(mat*mat.invert(), identity);
-    assertEqual((-mat)*(-mat).invert(), identity);
+    assertEqualMat(mat*mat.invert(), identity);
+    assertEqualMat((-mat)*(-mat).invert(), identity);
+}
+
+void testDotProducts() {
+    Vec3 v1(1, 2, 3);
+    Vec3 v2(-1, -2, -3);
+    Row3 r1(0.1, 0.2, 0.3);
+    Row3 r2(-0.1, -0.2, -0.3);
+    assertEqual(dot(v1, v2), -14.0);
+    assertEqual(dot(r1, r2), -0.14);
+    assertEqual(dot(v1, r2), -1.4);
+    assertEqual(dot(r1, v2), -1.4);
+    assertEqual(r1*v2, -1.4);
+    SpatialVec sv(Vec3(1, 2, 3), Vec3(4, 5, 6));
+    SpatialRow sr(Row3(1, 2, 3), Row3(4, 5, 6));
+    assertEqual(sr*sv, 91.0);
 }
 
 int main() {
@@ -70,6 +96,7 @@ int main() {
         testInverse<3>();
         testInverse<5>();
         testInverse<10>();
+        testDotProducts();
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;

@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-8 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -39,6 +39,36 @@
 #include "SimTKcommon/internal/common.h"
 
 namespace SimTK {
+
+
+// The following functions are used internally by Vec.
+
+namespace Impl {
+
+template <int N, class E1, int S1, class E2, int S2>
+Vec<N,typename CNT<E1>::template Result<E2>::Add>
+conformingAdd(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2, Vec<N,typename CNT<E1>::template Result<E2>::Add>& result) {
+    conformingAdd(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1), reinterpret_cast<const Vec<N-1,E2,S2>&>(r2), reinterpret_cast<Vec<N-1,typename CNT<E1>::template Result<E2>::Add>&>(result));
+    result[N-1] = r1[N-1] + r2[N-1];
+}
+template <class E1, int S1, class E2, int S2>
+Vec<1,typename CNT<E1>::template Result<E2>::Add>
+conformingAdd(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2, Vec<1,typename CNT<E1>::template Result<E2>::Add>& result) {
+    result[0] = r1[0] + r2[0];
+}
+template <int N, class E1, int S1, class E2, int S2>
+Vec<N,typename CNT<E1>::template Result<E2>::Add>
+conformingSubtract(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2, Vec<N,typename CNT<E1>::template Result<E2>::Add>& result) {
+    conformingSubtract(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1), reinterpret_cast<const Vec<N-1,E2,S2>&>(r2), reinterpret_cast<Vec<N-1,typename CNT<E1>::template Result<E2>::Add>&>(result));
+    result[N-1] = r1[N-1] - r2[N-1];
+}
+template <class E1, int S1, class E2, int S2>
+Vec<1,typename CNT<E1>::template Result<E2>::Add>
+conformingSubtract(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2, Vec<1,typename CNT<E1>::template Result<E2>::Add>& result) {
+    result[0] = r1[0] - r2[0];
+}
+
+}
 
 /// Generic Vec
 template <int M, class ELT, int STRIDE>
@@ -286,13 +316,13 @@ public:
     template <class EE, int SS> Vec<M,typename CNT<E>::template Result<EE>::Add>
     conformingAdd(const Vec<M,EE,SS>& r) const {
         Vec<M,typename CNT<E>::template Result<EE>::Add> result;
-        for (int i=0;i<M;++i) result[i] = (*this)[i] + r[i];
+        Impl::conformingAdd(*this, r, result);
         return result;
     }
     template <class EE, int SS> Vec<M,typename CNT<E>::template Result<EE>::Sub>
     conformingSubtract(const Vec<M,EE,SS>& r) const {
         Vec<M,typename CNT<E>::template Result<EE>::Sub> result;
-        for (int i=0;i<M;++i) result[i] = (*this)[i] - r[i];
+        Impl::conformingSubtract(*this, r, result);
         return result;
     }
     template <class EE, int SS> Mat<M,M,typename CNT<E>::template Result<EE>::Mul>
