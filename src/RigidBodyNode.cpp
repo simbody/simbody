@@ -4197,10 +4197,14 @@ public:
         const SBStateDigest& sbs,
         const Vector&        q,
         Transform&           X_FM) const {
-        Vector localQ = q(this->getQIndex(), getNQInUse(sbs.getModelVars()));
-        if (nAngles == 4 && !this->getUseEulerAngles(sbs.getModelVars()))
+        int nq = getNQInUse(sbs.getModelVars());
+        if (nAngles == 4 && !this->getUseEulerAngles(sbs.getModelVars())) {
+            Vec<nu+1> localQ = Vec<nu+1>::getAs(&q[this->getQIndex()]);
             Vec4::updAs(&localQ[0]) = Vec4::getAs(&localQ[0]).normalize(); // Normalize the quaternion
-        X_FM = impl.calcMobilizerTransformFromQ(sbs.getState(), localQ.size(), &(localQ[0]));
+            X_FM = impl.calcMobilizerTransformFromQ(sbs.getState(), nq, &(localQ[0]));
+        }
+        else
+            X_FM = impl.calcMobilizerTransformFromQ(sbs.getState(), nq, &(q[this->getQIndex()]));
     }
     
     void calcAcrossJointVelocityJacobian(
