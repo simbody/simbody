@@ -11,7 +11,7 @@
  *                                                                            *
  * Portions copyright (c) 2005-8 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Peter Eastman                                                *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -45,25 +45,24 @@ namespace SimTK {
 
 namespace Impl {
 
-template <int N, class E1, int S1, class E2, int S2>
-Row<N,typename CNT<E1>::template Result<E2>::Add>
+// For those wimpy compilers that don't unroll short, constant-limit loops, Peter Eastman added these
+// recursive template implementations of add and subtract.
+
+template <int N, class E1, int S1, class E2, int S2> void
 conformingAdd(const Row<N,E1,S1>& r1, const Row<N,E2,S2>& r2, Row<N,typename CNT<E1>::template Result<E2>::Add>& result) {
     conformingAdd(reinterpret_cast<const Row<N-1,E1,S1>&>(r1), reinterpret_cast<const Row<N-1,E2,S2>&>(r2), reinterpret_cast<Row<N-1,typename CNT<E1>::template Result<E2>::Add>&>(result));
     result[N-1] = r1[N-1] + r2[N-1];
 }
-template <class E1, int S1, class E2, int S2>
-Row<1,typename CNT<E1>::template Result<E2>::Add>
+template <class E1, int S1, class E2, int S2> void
 conformingAdd(const Row<1,E1,S1>& r1, const Row<1,E2,S2>& r2, Row<1,typename CNT<E1>::template Result<E2>::Add>& result) {
     result[0] = r1[0] + r2[0];
 }
-template <int N, class E1, int S1, class E2, int S2>
-Row<N,typename CNT<E1>::template Result<E2>::Add>
+template <int N, class E1, int S1, class E2, int S2> void
 conformingSubtract(const Row<N,E1,S1>& r1, const Row<N,E2,S2>& r2, Row<N,typename CNT<E1>::template Result<E2>::Add>& result) {
     conformingSubtract(reinterpret_cast<const Row<N-1,E1,S1>&>(r1), reinterpret_cast<const Row<N-1,E2,S2>&>(r2), reinterpret_cast<Row<N-1,typename CNT<E1>::template Result<E2>::Add>&>(result));
     result[N-1] = r1[N-1] - r2[N-1];
 }
-template <class E1, int S1, class E2, int S2>
-Row<1,typename CNT<E1>::template Result<E2>::Add>
+template <class E1, int S1, class E2, int S2> void
 conformingSubtract(const Row<1,E1,S1>& r1, const Row<1,E2,S2>& r2, Row<1,typename CNT<E1>::template Result<E2>::Add>& result) {
     result[0] = r1[0] - r2[0];
 }
