@@ -188,8 +188,8 @@ public:
         assert(derivComponents.size() > 0);
         Real arg = x[0];
         Vec<N> value(0);
-        int derivOrder = derivComponents.size();
-        int polyOrder = coefficients.size()-1;
+        const int derivOrder = (int)derivComponents.size();
+        const int polyOrder = coefficients.size()-1;
         for (int i = 0; i <= polyOrder-derivOrder; ++i) {
             Vec<N> coeff = coefficients[i];
             for (int j = 0; j < derivOrder; ++j)
