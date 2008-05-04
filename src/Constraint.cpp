@@ -2105,7 +2105,7 @@ Constraint::SpeedCouplerImpl::SpeedCouplerImpl(SimbodyMatterSubsystem& matter, F
     assert(function->getMaxDerivativeOrder() >= 2);
     referenceCount[0] = 1;
     std::map<MobilizedBodyIndex,ConstrainedMobilizerIndex> bodyIndexMap;
-    for (int i = 0; i < speedBodies.size(); ++i) {
+    for (int i = 0; i < (int)speedBodies.size(); ++i) {
         if (bodyIndexMap.find(speedBody[i]) == bodyIndexMap.end())
             bodyIndexMap[speedBody[i]] = addConstrainedMobilizer(matter.getMobilizedBody(speedBody[i]));
         speedBodies[i] = bodyIndexMap[speedBody[i]];
