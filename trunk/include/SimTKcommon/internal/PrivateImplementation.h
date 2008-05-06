@@ -346,7 +346,7 @@ std::ostream& operator<<(std::ostream& o, const PIMPLHandle<H,IMPL,PTR>& h);
 
 // This macro declares methods to be included in classes derived from a PIMPLHandle subclass.
 
-#define INSERT_DERIVED_HANDLE_DECLARATIONS(DERIVED, DERIVED_IMPL, PARENT) \
+#define SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(DERIVED, DERIVED_IMPL, PARENT) \
 const DERIVED_IMPL& getImpl() const;\
 DERIVED_IMPL& updImpl();\
 const PARENT& upcast() const;\
@@ -357,7 +357,7 @@ static DERIVED& updDowncast(PARENT& p);
 
 // This macro provides the definitions for the above declarations.
 
-#define INSERT_DERIVED_HANDLE_DEFINITIONS(DERIVED, DERIVED_IMPL, PARENT) \
+#define SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(DERIVED, DERIVED_IMPL, PARENT) \
 const DERIVED_IMPL& DERIVED::getImpl() const {\
     return dynamic_cast<const DERIVED_IMPL&>(PARENT::getImpl());\
 }\

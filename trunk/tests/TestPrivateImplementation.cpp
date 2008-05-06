@@ -107,7 +107,7 @@ public:
 
     void setReal(Real);
     Real getReal() const;
-    INSERT_DERIVED_HANDLE_DECLARATIONS(DerivedHandle,DerivedHandle_Impl,MyHandle);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(DerivedHandle,DerivedHandle_Impl,MyHandle);
 };
 std::ostream& operator<<(std::ostream& o, const DerivedHandle& h) {
     o << "DerivedHandle ";
@@ -125,7 +125,7 @@ public:
 
     void setString(string);
     string getString() const;
-    INSERT_DERIVED_HANDLE_DECLARATIONS(DerDerivedHandle,DerDerivedHandle_Impl,DerivedHandle);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(DerDerivedHandle,DerDerivedHandle_Impl,DerivedHandle);
 };
 std::ostream& operator<<(std::ostream& o, const DerDerivedHandle& h) {
     o << "DerDerivedHandle ";
@@ -393,5 +393,5 @@ DerDerivedHandle::DerDerivedHandle(DerDerivedHandle_Impl* p) : DerivedHandle(p) 
 void DerDerivedHandle::setString(string s) {updImpl().s=s;}
 string DerDerivedHandle::getString() const {return getImpl().s;}
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(DerivedHandle,DerivedHandle_Impl,MyHandle);
-INSERT_DERIVED_HANDLE_DEFINITIONS(DerDerivedHandle,DerDerivedHandle_Impl,DerivedHandle);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(DerivedHandle,DerivedHandle_Impl,MyHandle);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(DerDerivedHandle,DerDerivedHandle_Impl,DerivedHandle);
