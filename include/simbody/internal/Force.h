@@ -112,7 +112,7 @@ public:
      * @param x0         the distance at which the force is 0
      */
     TwoPointLinearSpring(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real k, Real x0);
-    INSERT_DERIVED_HANDLE_DECLARATIONS(TwoPointLinearSpring, TwoPointLinearSpringImpl, Force);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(TwoPointLinearSpring, TwoPointLinearSpringImpl, Force);
 };
 
 /**
@@ -140,7 +140,7 @@ public:
      * @param damping    the damping constant
      */
     TwoPointLinearDamper(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real damping);
-    INSERT_DERIVED_HANDLE_DECLARATIONS(TwoPointLinearDamper, TwoPointLinearDamperImpl, Force);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(TwoPointLinearDamper, TwoPointLinearDamperImpl, Force);
 };
 
 /**
@@ -167,7 +167,7 @@ public:
      * @param force      the magnitude of the force to apply
      */
     TwoPointConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real force);
-    INSERT_DERIVED_HANDLE_DECLARATIONS(TwoPointConstantForce, TwoPointConstantForceImpl, Force);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(TwoPointConstantForce, TwoPointConstantForceImpl, Force);
 };
 
 /**
@@ -193,7 +193,7 @@ public:
      * @param q0         the value of the coordinate at which the force is 0
      */
     MobilityLinearSpring(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate, Real k, Real q0);
-    INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityLinearSpring, MobilityLinearSpringImpl, Force);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityLinearSpring, MobilityLinearSpringImpl, Force);
 };
 
 /**
@@ -217,7 +217,7 @@ public:
      * @param damping    the damping constant
      */
     MobilityLinearDamper(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate, Real damping);
-    INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityLinearDamper, MobilityLinearDamperImpl, Force);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityLinearDamper, MobilityLinearDamperImpl, Force);
 };
 
 /**
@@ -241,7 +241,7 @@ public:
      * @param force      the force to apply
      */
     MobilityConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate, Real force);
-    INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityConstantForce, MobilityConstantForceImpl, Force);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityConstantForce, MobilityConstantForceImpl, Force);
 };
 
 /**
@@ -254,7 +254,7 @@ public:
 class SimTK_SIMBODY_EXPORT Force::ConstantForce: public Force {
 public:
     ConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body, const Vec3& station, const Vec3& force);
-    INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantForce, ConstantForceImpl, Force);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantForce, ConstantForceImpl, Force);
 };
 
 /**
@@ -267,7 +267,7 @@ public:
 class SimTK_SIMBODY_EXPORT Force::ConstantTorque: public Force {
 public:
     ConstantTorque(GeneralForceSubsystem& forces, const MobilizedBody& body, const Vec3& torque);
-    INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantTorque, ConstantTorqueImpl, Force);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantTorque, ConstantTorqueImpl, Force);
 };
 
 /**
@@ -287,7 +287,7 @@ public:
 class SimTK_SIMBODY_EXPORT Force::GlobalDamper : public Force {
 public:
     GlobalDamper(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter, Real damping);
-    INSERT_DERIVED_HANDLE_DECLARATIONS(GlobalDamper, GlobalDamperImpl, Force);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(GlobalDamper, GlobalDamperImpl, Force);
 };
 
 /**
@@ -303,7 +303,7 @@ public:
     void setGravity(const Vec3& g);
     Real getZeroHeight() const;
     void setZeroHeight(Real height);
-    INSERT_DERIVED_HANDLE_DECLARATIONS(UniformGravity, UniformGravityImpl, Force);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(UniformGravity, UniformGravityImpl, Force);
 };
 
 /**
@@ -347,7 +347,7 @@ public:
      *                       is deleted.
      */
     Custom(GeneralForceSubsystem& forces, Implementation* implementation);
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, Force);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, Force);
 protected:
     const Implementation& getImplementation() const;
     Implementation& updImplementation();

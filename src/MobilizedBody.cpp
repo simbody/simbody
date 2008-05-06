@@ -520,7 +520,7 @@ Real& MobilizedBody::Pin::updMyPartU(const State& s, Vector& ulike) const {
     return ulike[uStart];
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Pin, MobilizedBody::PinImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Pin, MobilizedBody::PinImpl, MobilizedBody);
 
     ////////////////////////////
     // MOBILIZED BODY::SLIDER //
@@ -615,7 +615,7 @@ Real& MobilizedBody::Slider::updMyPartU(const State& s, Vector& ulike) const {
     return ulike[uStart];
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Slider, MobilizedBody::SliderImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Slider, MobilizedBody::SliderImpl, MobilizedBody);
 
     ///////////////////////////////
     // MOBILIZED BODY::UNIVERSAL //
@@ -643,7 +643,7 @@ MobilizedBody::Universal::Universal(MobilizedBody& parent, const Transform& inbF
                                                    *this);
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Universal, MobilizedBody::UniversalImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Universal, MobilizedBody::UniversalImpl, MobilizedBody);
 
     //////////////////////////////
     // MOBILIZED BODY::CYLINDER //
@@ -670,7 +670,7 @@ MobilizedBody::Cylinder::Cylinder(MobilizedBody& parent, const Transform& inbFra
                                                    *this);
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Cylinder, MobilizedBody::CylinderImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Cylinder, MobilizedBody::CylinderImpl, MobilizedBody);
 
     //////////////////////////////////
     // MOBILIZED BODY::BEND STRETCH //
@@ -698,7 +698,7 @@ MobilizedBody::BendStretch::BendStretch(MobilizedBody& parent, const Transform& 
                                                    *this);
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::BendStretch, MobilizedBody::BendStretchImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::BendStretch, MobilizedBody::BendStretchImpl, MobilizedBody);
 
     ////////////////////////////
     // MOBILIZED BODY::PLANAR //
@@ -792,7 +792,7 @@ Vec3& MobilizedBody::Planar::updMyPartU(const State& s, Vector& ulike) const {
     return Vec3::updAs(&ulike[uStart]);
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Planar, MobilizedBody::PlanarImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Planar, MobilizedBody::PlanarImpl, MobilizedBody);
 
     ////////////////////////////
     // MOBILIZED BODY::GIMBAL //
@@ -897,7 +897,7 @@ Vec3& MobilizedBody::Gimbal::updMyPartU(const State& s, Vector& ulike) const {
     return Vec3::updAs(&ulike[uStart]);
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Gimbal, MobilizedBody::GimbalImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Gimbal, MobilizedBody::GimbalImpl, MobilizedBody);
 
     // GimbalImpl
 
@@ -1047,7 +1047,7 @@ Vec3& MobilizedBody::Ball::updMyPartU(const State& s, Vector& ulike) const {
     return Vec3::updAs(&ulike[uStart]);
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ball, MobilizedBody::BallImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ball, MobilizedBody::BallImpl, MobilizedBody);
 
     // BallImpl
 
@@ -1198,7 +1198,7 @@ void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl
     }
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ellipsoid, MobilizedBody::EllipsoidImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ellipsoid, MobilizedBody::EllipsoidImpl, MobilizedBody);
 
     /////////////////////////////////
     // MOBILIZED BODY::TRANSLATION //
@@ -1293,7 +1293,7 @@ Vec3& MobilizedBody::Translation::updMyPartU(const State& s, Vector& ulike) cons
     return Vec3::updAs(&ulike[uStart]);
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Translation, MobilizedBody::TranslationImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Translation, MobilizedBody::TranslationImpl, MobilizedBody);
 
     //////////////////////////
     // MOBILIZED BODY::FREE //
@@ -1421,7 +1421,7 @@ Vec6& MobilizedBody::Free::updMyPartU(const State& s, Vector& ulike) const {
     return Vec6::updAs(&ulike[uStart]);
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Free, MobilizedBody::FreeImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Free, MobilizedBody::FreeImpl, MobilizedBody);
 
     //////////////////////////////////////
     // MOBILIZED BODY::LINE ORIENTATION //
@@ -1449,7 +1449,7 @@ MobilizedBody::LineOrientation::LineOrientation(MobilizedBody& parent, const Tra
                                                    *this);
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::LineOrientation, MobilizedBody::LineOrientationImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::LineOrientation, MobilizedBody::LineOrientationImpl, MobilizedBody);
 
     ///////////////////////////////
     // MOBILIZED BODY::FREE LINE //
@@ -1476,7 +1476,7 @@ MobilizedBody::FreeLine::FreeLine(MobilizedBody& parent, const Transform& inbFra
     parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::FreeLine, MobilizedBody::FreeLineImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::FreeLine, MobilizedBody::FreeLineImpl, MobilizedBody);
 
     //////////////////////////
     // MOBILIZED BODY::WELD //
@@ -1504,7 +1504,7 @@ MobilizedBody::Weld::Weld(MobilizedBody& parent, const Transform& inbFrame,
                                                    *this);
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Weld, MobilizedBody::WeldImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Weld, MobilizedBody::WeldImpl, MobilizedBody);
 
     ////////////////////////////////
     // (IM)MOBILIZED BODY::GROUND //
@@ -1514,7 +1514,7 @@ MobilizedBody::Ground::Ground() : MobilizedBody(new GroundImpl()) {
     setBody(Body::Ground());
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ground, MobilizedBody::GroundImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ground, MobilizedBody::GroundImpl, MobilizedBody);
 
     ///////////////////////////
     // MOBILIZED BODY::SCREW //
@@ -1619,7 +1619,7 @@ Real& MobilizedBody::Screw::updMyPartU(const State& s, Vector& ulike) const {
     return ulike[uStart];
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Screw, MobilizedBody::ScrewImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Screw, MobilizedBody::ScrewImpl, MobilizedBody);
 
 ////////////////////////////
 // MOBILIZED BODY::CUSTOM //
@@ -1670,7 +1670,7 @@ MobilizedBody::Custom::Implementation& MobilizedBody::Custom::updImplementation(
     return updImpl().updImplementation();
 }
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Custom, MobilizedBody::CustomImpl, MobilizedBody);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Custom, MobilizedBody::CustomImpl, MobilizedBody);
 
 // MobilizedBody::CustomImpl
 

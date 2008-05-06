@@ -1408,7 +1408,7 @@ public:
       { (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this; }
     Pin& setDefaultOutboardFrame(const Transform& X_BM)
       { (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this; }
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Pin, PinImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Pin, PinImpl, MobilizedBody);
 };
 
 /// One mobility -- translation along the common x axis of the
@@ -1476,7 +1476,7 @@ public:
       { (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this; }
     Slider& setDefaultOutboardFrame(const Transform& X_BM)
       { (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this; }
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Slider, SliderImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Slider, SliderImpl, MobilizedBody);
 };
 
 /// One mobility -- coordinated rotation and translation along the
@@ -1536,7 +1536,7 @@ public:
    
     Real& updMyPartQ(const State&, Vector& qlike) const;
     Real& updMyPartU(const State&, Vector& ulike) const;
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Screw, ScrewImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Screw, ScrewImpl, MobilizedBody);
 };
 
 /// Two mobilities -- rotation about the x axis, followed by a rotation
@@ -1572,7 +1572,7 @@ public:
     Universal& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Universal, UniversalImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Universal, UniversalImpl, MobilizedBody);
 };
 
 /// Two mobilities -- rotation and translation along the common z axis
@@ -1607,7 +1607,7 @@ public:
     Cylinder& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Cylinder, CylinderImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Cylinder, CylinderImpl, MobilizedBody);
 };
 
 /// Two mobilities: The z axis of the parent's F frame is 
@@ -1646,7 +1646,7 @@ public:
     BendStretch& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
-    INSERT_DERIVED_HANDLE_DECLARATIONS(BendStretch, BendStretchImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(BendStretch, BendStretchImpl, MobilizedBody);
 };
 
 /// Three mobilities -- z rotation and x,y translation. The generalized
@@ -1721,7 +1721,7 @@ public:
    
     Vec3& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Planar, PlanarImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Planar, PlanarImpl, MobilizedBody);
 };
 
 /// Three mobilities -- unrestricted orientation modeled as a 1-2-3
@@ -1790,7 +1790,7 @@ public:
    
     Vec3& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Gimbal, GimbalImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Gimbal, GimbalImpl, MobilizedBody);
 };
 
 /// Three mobilities -- unrestricted orientation modeled with a
@@ -1856,7 +1856,7 @@ public:
    
     Vec4& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Ball, BallImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Ball, BallImpl, MobilizedBody);
 };
 
 /// Three mobilities -- coordinated rotation and translation along the
@@ -1911,7 +1911,7 @@ public:
     const Quaternion& getDefaultQ() const;
     Quaternion& updDefaultQ();
     Ellipsoid& setDefaultQ(const Quaternion& q) {updDefaultQ()=q; return *this;}
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Ellipsoid, EllipsoidImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Ellipsoid, EllipsoidImpl, MobilizedBody);
 };
 
 /// Three translational mobilities. The generalized coordinates are
@@ -2007,7 +2007,7 @@ public:
    
     Vec3& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Translation, TranslationImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Translation, TranslationImpl, MobilizedBody);
 };
 
 /// Unrestricted motion for a rigid body (six mobilities). Orientation
@@ -2102,7 +2102,7 @@ public:
    
     Vec7& updMyPartQ(const State&, Vector& qlike) const;
     Vec6& updMyPartU(const State&, Vector& ulike) const;
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Free, FreeImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Free, FreeImpl, MobilizedBody);
 };
 
 
@@ -2158,7 +2158,7 @@ public:
     LineOrientation& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
-    INSERT_DERIVED_HANDLE_DECLARATIONS(LineOrientation, LineOrientationImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(LineOrientation, LineOrientationImpl, MobilizedBody);
 };
 
 /// Five mobilities, representing unrestricted motion for a body which is
@@ -2195,7 +2195,7 @@ public:
     FreeLine& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
-    INSERT_DERIVED_HANDLE_DECLARATIONS(FreeLine, FreeLineImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(FreeLine, FreeLineImpl, MobilizedBody);
 };
 
 /// Zero mobilities. This degenerate "mobilizer" serves only to weld together
@@ -2232,7 +2232,7 @@ public:
     Weld& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Weld, WeldImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Weld, WeldImpl, MobilizedBody);
 };
 
 
@@ -2245,7 +2245,7 @@ public:
     Ground& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
     }
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Ground, GroundImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Ground, GroundImpl, MobilizedBody);
 };
 
 
@@ -2305,7 +2305,7 @@ public:
      * @param outbFrame      the MobilizedBody's outboard reference frame
      */
     explicit Custom(MobilizedBody& parent, Implementation* implementation, const Transform& inbFrame, const Body& body, const Transform& outbFrame);
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, MobilizedBody);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, MobilizedBody);
 protected:
     const Implementation& getImplementation() const;
     Implementation&       updImplementation();

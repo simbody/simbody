@@ -313,7 +313,7 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getRodTension(const State&) const; // negative means compression
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Rod, RodImpl, Constraint);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Rod, RodImpl, Constraint);
 };
 
     ///////////////////////////////
@@ -370,7 +370,7 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getForceOnFollowerPoint(const State&) const; // in normal direction
-    INSERT_DERIVED_HANDLE_DECLARATIONS(PointInPlane, PointInPlaneImpl, Constraint);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(PointInPlane, PointInPlaneImpl, Constraint);
 };
 
     //////////////////////////////
@@ -427,7 +427,7 @@ public:
     Vec2 getAccelerationErrors(const State&) const;
     Vec2 getMultipliers(const State&) const;
     const Vec2& getForceOnFollowerPoint(const State&) const; // in normal direction
-    INSERT_DERIVED_HANDLE_DECLARATIONS(PointOnLine, PointOnLineImpl, Constraint);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(PointOnLine, PointOnLineImpl, Constraint);
 };
 
     ///////////////////////////////
@@ -486,7 +486,7 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getTorqueOnFollowerBody(const State&) const; // about f X b
-    INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantAngle, ConstantAngleImpl, Constraint);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantAngle, ConstantAngleImpl, Constraint);
 };
 
     /////////////////////////////////////////
@@ -542,7 +542,7 @@ public:
     // Forces are reported expressed in the body frame of the indicated body.
     const Vec3& getBallReactionForceOnBody1(const State&) const;
     const Vec3& getBallReactionForceOnBody2(const State&) const;
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Ball, BallImpl, Constraint);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Ball, BallImpl, Constraint);
 };
 
     /////////////////////////////////////
@@ -597,7 +597,7 @@ public:
     Vec3 getAccelerationErrors(const State&) const;
     Vec3 getMultipliers(const State&) const;
     Vec3 getTorqueOnFollowerBody(const State&) const;
-    INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantOrientation, ConstantOrientationImpl, Constraint);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantOrientation, ConstantOrientationImpl, Constraint);
 };
 
     /////////////////////////////////////////
@@ -697,7 +697,7 @@ public:
         // Forces are reported expressed in the body frame of the indicated body.
     const SpatialVec& getWeldReactionOnBody1(const State&) const;
     const SpatialVec& getWeldReactionOnBody2(const State&) const;
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Weld, WeldImpl, Constraint);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Weld, WeldImpl, Constraint);
 };
 
     ///////////////////////////
@@ -752,7 +752,7 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getForceAtContactPoint(const State&) const; // in normal direction, no body 2
-    INSERT_DERIVED_HANDLE_DECLARATIONS(NoSlip1D, NoSlip1DImpl, Constraint);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(NoSlip1D, NoSlip1DImpl, Constraint);
 };
 
     ////////////////////
@@ -785,7 +785,7 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getGeneralizedForce(const State&) const;
-    INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantSpeed, ConstantSpeedImpl, Constraint);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantSpeed, ConstantSpeedImpl, Constraint);
 };
 
 /**
@@ -832,7 +832,7 @@ public:
      *                       is deleted.
      */
     explicit Custom(Implementation* implementation);
-    INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, Constraint);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, Constraint);
 protected:
     const Implementation& getImplementation() const;
     Implementation&       updImplementation();

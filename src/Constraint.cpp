@@ -539,7 +539,7 @@ void Constraint::calcConstraintForcesFromMultipliers(
     // CONSTRAINT::ROD //
     /////////////////////
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Rod, Constraint::RodImpl, Constraint);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Rod, Constraint::RodImpl, Constraint);
 
 Constraint::Rod::Rod(MobilizedBody& body1, MobilizedBody& body2, Real defaultRodLength)
   : Constraint(new RodImpl())
@@ -716,7 +716,7 @@ void Constraint::Rod::RodImpl::calcDecorativeGeometryAndAppendVirtual
     // CONSTRAINT::POINT IN PLANE //
     ////////////////////////////////
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::PointInPlane, Constraint::PointInPlaneImpl, Constraint);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::PointInPlane, Constraint::PointInPlaneImpl, Constraint);
 
 Constraint::PointInPlane::PointInPlane
    (MobilizedBody& planeBody,    const UnitVec3& defPlaneNormal, Real defPlaneHeight,
@@ -861,7 +861,7 @@ void Constraint::PointInPlane::PointInPlaneImpl::calcDecorativeGeometryAndAppend
     // CONSTRAINT::POINT ON LINE //
     ///////////////////////////////
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::PointOnLine, Constraint::PointOnLineImpl, Constraint);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::PointOnLine, Constraint::PointOnLineImpl, Constraint);
 
 Constraint::PointOnLine::PointOnLine
    (MobilizedBody& lineBody,     const UnitVec3& defLineDirection, const Vec3& defPointOnLine,
@@ -1009,7 +1009,7 @@ void Constraint::PointOnLine::PointOnLineImpl::calcDecorativeGeometryAndAppendVi
     // CONSTRAINT::CONSTANT ANGLE //
     ////////////////////////////////
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::ConstantAngle, Constraint::ConstantAngleImpl, Constraint);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::ConstantAngle, Constraint::ConstantAngleImpl, Constraint);
 
 Constraint::ConstantAngle::ConstantAngle
    (MobilizedBody& baseBody,     const UnitVec3& defaultAxisOnB,
@@ -1124,7 +1124,7 @@ void Constraint::ConstantAngle::ConstantAngleImpl::calcDecorativeGeometryAndAppe
     // CONSTRAINT::BALL //
     //////////////////////
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Ball, Constraint::BallImpl, Constraint);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Ball, Constraint::BallImpl, Constraint);
 
 Constraint::Ball::Ball(MobilizedBody& body1, MobilizedBody& body2)
   : Constraint(new BallImpl())
@@ -1297,7 +1297,7 @@ void Constraint::Ball::BallImpl::calcDecorativeGeometryAndAppendVirtual
     // CONSTRAINT::CONSTANT ORIENTATION //
     //////////////////////////////////////
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::ConstantOrientation, Constraint::ConstantOrientationImpl, Constraint);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::ConstantOrientation, Constraint::ConstantOrientationImpl, Constraint);
 
 Constraint::ConstantOrientation::ConstantOrientation
    (MobilizedBody& baseBody,     const Rotation& defaultFrameOnB,
@@ -1379,7 +1379,7 @@ Vec3 Constraint::ConstantOrientation::getMultipliers(const State& s) const {
     // CONSTRAINT::WELD //
     //////////////////////
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Weld, Constraint::WeldImpl, Constraint);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Weld, Constraint::WeldImpl, Constraint);
 
 Constraint::Weld::Weld(MobilizedBody& body1, MobilizedBody& body2)
   : Constraint(new WeldImpl())
@@ -1544,7 +1544,7 @@ void Constraint::Weld::WeldImpl::calcDecorativeGeometryAndAppendVirtual
     // CONSTRAINT::NO SLIP 1D //
     ////////////////////////////
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::NoSlip1D, Constraint::NoSlip1DImpl, Constraint);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::NoSlip1D, Constraint::NoSlip1DImpl, Constraint);
 
 Constraint::NoSlip1D::NoSlip1D
    (MobilizedBody& caseBody, const Vec3& P_C, const UnitVec3& n_C,
@@ -1667,7 +1667,7 @@ void Constraint::NoSlip1D::NoSlip1DImpl::calcDecorativeGeometryAndAppendVirtual
     // CONSTRAINT::CONSTANT SPEED //
     ////////////////////////////////
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::ConstantSpeed, Constraint::ConstantSpeedImpl, Constraint);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::ConstantSpeed, Constraint::ConstantSpeedImpl, Constraint);
 
 // This picks one of the mobilities from a multiple-mobility mobilizer.
 Constraint::ConstantSpeed::ConstantSpeed
@@ -1736,7 +1736,7 @@ Real Constraint::ConstantSpeed::getMultiplier(const State& s) const {
     // CONSTRAINT::CUSTOM //
     ////////////////////////
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Custom, Constraint::CustomImpl, Constraint);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Custom, Constraint::CustomImpl, Constraint);
 
 // We are given an Implementation object which is already holding a CustomImpl
 // object for us. We'll first take away ownership of the CustomImpl, then

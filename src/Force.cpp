@@ -46,7 +46,7 @@ ForceIndex Force::getForceIndex() const {
 
 // TwoPointLinearSpring
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Force::TwoPointLinearSpring, Force::TwoPointLinearSpringImpl, Force);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::TwoPointLinearSpring, Force::TwoPointLinearSpringImpl, Force);
 
 Force::TwoPointLinearSpring::TwoPointLinearSpring(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1,
         const MobilizedBody& body2, const Vec3& station2, Real k, Real x0) : Force(new TwoPointLinearSpringImpl(
@@ -99,7 +99,7 @@ Real Force::TwoPointLinearSpringImpl::calcPotentialEnergy(const State& state) co
 
 // TwoPointLinearDamper
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Force::TwoPointLinearDamper, Force::TwoPointLinearDamperImpl, Force);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::TwoPointLinearDamper, Force::TwoPointLinearDamperImpl, Force);
 
 Force::TwoPointLinearDamper::TwoPointLinearDamper(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1,
         const MobilizedBody& body2, const Vec3& station2, Real damping) : Force(new TwoPointLinearDamperImpl(
@@ -142,7 +142,7 @@ Real Force::TwoPointLinearDamperImpl::calcPotentialEnergy(const State& state) co
 
 // TwoPointConstantForce
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Force::TwoPointConstantForce, Force::TwoPointConstantForceImpl, Force);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::TwoPointConstantForce, Force::TwoPointConstantForceImpl, Force);
 
 Force::TwoPointConstantForce::TwoPointConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body1, const Vec3& station1,
         const MobilizedBody& body2, const Vec3& station2, Real force) : Force(new TwoPointConstantForceImpl(
@@ -181,7 +181,7 @@ Real Force::TwoPointConstantForceImpl::calcPotentialEnergy(const State& state) c
 
 // MobilityLinearSpring
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearSpring, Force::MobilityLinearSpringImpl, Force);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearSpring, Force::MobilityLinearSpringImpl, Force);
 
 Force::MobilityLinearSpring::MobilityLinearSpring(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate,
         Real k, Real x0) : Force(new MobilityLinearSpringImpl(body, coordinate, k, x0)) {
@@ -208,7 +208,7 @@ Real Force::MobilityLinearSpringImpl::calcPotentialEnergy(const State& state) co
 
 // MobilityLinearDamper
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearDamper, Force::MobilityLinearDamperImpl, Force);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearDamper, Force::MobilityLinearDamperImpl, Force);
 
 Force::MobilityLinearDamper::MobilityLinearDamper(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate,
         Real damping) : Force(new MobilityLinearDamperImpl(body, coordinate, damping)) {
@@ -233,7 +233,7 @@ Real Force::MobilityLinearDamperImpl::calcPotentialEnergy(const State& state) co
 
 // MobilityConstantForce
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityConstantForce, Force::MobilityConstantForceImpl, Force);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityConstantForce, Force::MobilityConstantForceImpl, Force);
 
 Force::MobilityConstantForce::MobilityConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body, int coordinate,
         Real force) : Force(new MobilityConstantForceImpl(body, coordinate, force)) {
@@ -256,7 +256,7 @@ Real Force::MobilityConstantForceImpl::calcPotentialEnergy(const State& state) c
 
 // ConstantForce
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Force::ConstantForce, Force::ConstantForceImpl, Force);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::ConstantForce, Force::ConstantForceImpl, Force);
 
 Force::ConstantForce::ConstantForce(GeneralForceSubsystem& forces, const MobilizedBody& body, const Vec3& station, const Vec3& force) :
         Force(new ConstantForceImpl(body, station, force)) {
@@ -279,7 +279,7 @@ Real Force::ConstantForceImpl::calcPotentialEnergy(const State& state) const {
 
 // ConstantTorque
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Force::ConstantTorque, Force::ConstantTorqueImpl, Force);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::ConstantTorque, Force::ConstantTorqueImpl, Force);
 
 Force::ConstantTorque::ConstantTorque(GeneralForceSubsystem& forces, const MobilizedBody& body, const Vec3& torque) :
         Force(new ConstantTorqueImpl(body, torque)) {
@@ -300,7 +300,7 @@ Real Force::ConstantTorqueImpl::calcPotentialEnergy(const State& state) const {
 
 // GlobalDamper
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Force::GlobalDamper, Force::GlobalDamperImpl, Force);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::GlobalDamper, Force::GlobalDamperImpl, Force);
 
 Force::GlobalDamper::GlobalDamper(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter,
         Real damping) : Force(new GlobalDamperImpl(matter, damping)) {
@@ -321,7 +321,7 @@ Real Force::GlobalDamperImpl::calcPotentialEnergy(const State& state) const {
 
 // UniformGravity
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Force::UniformGravity, Force::UniformGravityImpl, Force);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::UniformGravity, Force::UniformGravityImpl, Force);
 
 Force::UniformGravity::UniformGravity(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter,
         const Vec3& g, Real zeroHeight) : Force(new UniformGravityImpl(matter, g, zeroHeight)) {
@@ -405,7 +405,7 @@ void Force::UniformGravityImpl::invalidateTopologyCache() {
 
 // Custom
 
-INSERT_DERIVED_HANDLE_DEFINITIONS(Force::Custom, Force::CustomImpl, Force);
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::Custom, Force::CustomImpl, Force);
 
 Force::Custom::Custom(GeneralForceSubsystem& forces, Implementation* implementation) : 
         Force(new CustomImpl(implementation)) {
