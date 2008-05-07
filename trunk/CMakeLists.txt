@@ -71,18 +71,23 @@ MARK_AS_ADVANCED( SimTK_INSTALL_PREFIX  )
 
 INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
 
-
+IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
+  SET( LIB64 64 )
+ELSE( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
+  SET( LIB64  )
+ENDIF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
 
 # The build system will set ARCH64 for 64 bit builds, which require
 # use of the lib64/ library directories rather than lib/.
-SET( ARCH64 OFF CACHE BOOL "ON for 64bit builds, OFF for 32bit builds")
-MARK_AS_ADVANCED( ARCH64  )
+# uncomment the folloing lines to support cross compiling 32/64 bit builds
+#SET( ARCH64 OFF CACHE BOOL "ON for 64bit builds, OFF for 32bit builds")
+#MARK_AS_ADVANCED( ARCH64  )
+#IF (ARCH64)
+#    SET(LIB64 64)
+#ELSE (ARCH64)
+#    SET(LIB64) # nothing
+#ENDIF (ARCH64)
 
-IF (ARCH64)
-    SET(LIB64 64)
-ELSE (ARCH64)
-    SET(LIB64) # nothing
-ENDIF (ARCH64)
 
 
 IF(UNIX AND NOT CMAKE_BUILD_TYPE)
