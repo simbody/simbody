@@ -1524,9 +1524,9 @@ private:
 			Mat33 W = X_FM.R()*Arot;
 
 			for(int i=0; i < N; i++){
-				temp = W*(Fq.getSubMat<3,1>(0,i));
+				temp = W*(Fq.template getSubMat<3,1>(0,i));
 				h(0,i) = Vec3::getAs(&temp(0,0));
-				temp = Atrans*(Fq.getSubMat<3,1>(3,i));
+				temp = Atrans*(Fq.template getSubMat<3,1>(3,i));
 				h(1,i) = Vec3::getAs(&temp(0,0));
 			}
 		}
@@ -1592,9 +1592,9 @@ private:
 
 			Mat31 temp;
 			for(int i=0; i < N; i++){
-				temp = Wdot*(Fq.getSubMat<3,1>(0,i))+W*(Fqdot.getSubMat<3,1>(0,i));
+				temp = Wdot*(Fq.template getSubMat<3,1>(0,i))+W*(Fqdot.template getSubMat<3,1>(0,i));
 				hdot(0,i) = Vec3::getAs(&temp(0,0));
-				temp = Atrans*(Fqdot.getSubMat<3,1>(3,i));
+				temp = Atrans*(Fqdot.template getSubMat<3,1>(3,i));
 				hdot(1,i) = Vec3::getAs(&temp(0,0));
 			}
 		}
