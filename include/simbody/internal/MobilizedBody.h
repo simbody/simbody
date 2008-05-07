@@ -2644,7 +2644,7 @@ public:
  * define a SpatialVec giving the body's mobilizer transform.
  */
 
-class MobilizedBody::FunctionBased : public MobilizedBody::Custom {
+class SimTK_SIMBODY_EXPORT MobilizedBody::FunctionBased : public MobilizedBody::Custom {
 public:
     /* Create a FunctionBased MobilizedBody.
      * 
@@ -2672,6 +2672,36 @@ public:
      *                       that means that functions[2] takes two input arguments, and q[0] and q[1] respectively should be passed as those arguments.
      */
     FunctionBased(MobilizedBody& parent, const Transform& inbFrame, const Body& body, const Transform& outbFrame, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices);
+    /* Create a FunctionBased MobilizedBody.
+     * 
+     * @param parent         the MobilizedBody's parent body
+     * @param body           describes this MobilizedBody's physical properties
+     * @param nmobilities    the number of generalized coordinates belonging to this MobilizedBody
+     * @param functions      the Functions describing how the body moves based on its generalized coordinates.
+     *                       This must be of length 6.  The elements correspond to, in order, x rotation, y rotation, z rotation,
+     *                       x translation, y translation, and z translation.
+     * @param coordIndices   the indices of the generalized coordinates that are inputs to each function.  For example, if coordIndices[2] = {0, 1},
+     *                       that means that functions[2] takes two input arguments, and q[0] and q[1] respectively should be passed as those arguments.
+	 * @param axes			 the axes directions (as Vec3's) for each spatial coordinate, which each function describes, and is therefore length 6.
+	 *						 First 3 and last 3 axes must be linearly independent, otherwise there will be redundant speeds for the same motion.
+     */
+    FunctionBased(MobilizedBody& parent, const Body& body, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes);
+    /* Create a FunctionBased MobilizedBody.
+     * 
+     * @param parent         the MobilizedBody's parent body
+     * @param inbFrame       the default inboard frame
+     * @param body           describes this MobilizedBody's physical properties
+     * @param outbFrame      the default outboard frame
+     * @param nmobilities    the number of generalized coordinates belonging to this MobilizedBody
+     * @param functions      the Functions describing how the body moves based on its generalized coordinates.
+     *                       This must be of length 6.  The elements correspond to, in order, x rotation, y rotation, z rotation,
+     *                       x translation, y translation, and z translation.
+     * @param coordIndices   the indices of the generalized coordinates that are inputs to each function.  For example, if coordIndices[2] = {0, 1},
+     *                       that means that functions[2] takes two input arguments, and q[0] and q[1] respectively should be passed as those arguments.
+     * @param axes			 the axes directions (as Vec3's) for each spatial coordinate, which each function describes, and is therefore length 6.
+	 *						 First 3 and last 3 axes must be linearly independent, otherwise there will be redundant speeds for the same motion.
+	 */
+    FunctionBased(MobilizedBody& parent, const Transform& inbFrame, const Body& body, const Transform& outbFrame, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes);
 };
 
 } // namespace SimTK
