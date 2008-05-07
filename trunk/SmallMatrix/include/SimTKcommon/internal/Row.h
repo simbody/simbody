@@ -66,6 +66,15 @@ template <class E1, int S1, class E2, int S2> void
 conformingSubtract(const Row<1,E1,S1>& r1, const Row<1,E2,S2>& r2, Row<1,typename CNT<E1>::template Result<E2>::Add>& result) {
     result[0] = r1[0] - r2[0];
 }
+template <int N, class E1, int S1, class E2, int S2> void
+copy(Row<N,E1,S1>& r1, const Row<N,E2,S2>& r2) {
+    copy(reinterpret_cast<Row<N-1,E1,S1>&>(r1), reinterpret_cast<const Row<N-1,E2,S2>&>(r2));
+    r1[N-1] = r2[N-1];
+}
+template <class E1, int S1, class E2, int S2> void
+copy(Row<1,E1,S1>& r1, const Row<1,E2,S2>& r2) {
+    r1[0] = r2[0];
+}
 
 }
 
@@ -241,33 +250,30 @@ public:
     // assignment because the compiler doesn't understand that we may
     // have noncontiguous storage and will try to copy the whole array.
     Row(const Row& src) {
-        for (int i=0; i<N; ++i)
-            d[i*STRIDE] = src[i];
+        Impl::copy(*this, src);
     }
     Row& operator=(const Row& src) {    // no harm if src and 'this' are the same
-        for (int i=0; i<N; ++i)
-            d[i*STRIDE] = src[i];
+        Impl::copy(*this, src);
         return *this;
     }
 
     // We want an implicit conversion from a Row of the same length
     // and element type but with a different stride.
     template <int SS> Row(const Row<N,E,SS>& src) {
-        for (int i=0; i<N; ++i)
-            d[i*STRIDE] = src[i];
+        Impl::copy(*this, src);
     }
 
     // We want an implicit conversion from a Row of the same length
     // and *negated* element type, possibly with a different stride.
     template <int SS> Row(const Row<N,ENeg,SS>& src) {
-        for (int i=0; i<N; ++i)
-            d[i*STRIDE] = src[i];
+        Impl::copy(*this, src);
     }
 
     // Construct a Row from a Row of the same length, with any
     // stride. Works as long as the element types are compatible.
-    template <class EE, int SS> explicit Row(const Row<N,EE,SS>& vv)
-      { for (int i=0;i<N;++i) d[i*STRIDE]=vv[i]; }
+    template <class EE, int SS> explicit Row(const Row<N,EE,SS>& vv) {
+        Impl::copy(*this, vv);
+    }
 
     // Construction using an element assigns to each element.
     explicit Row(const ELT& e)
@@ -295,8 +301,10 @@ public:
       { assert(p); for(int i=0;i<N;++i) d[i*STRIDE]=p[i]; return *this; }
 
     // Conforming assignment ops.
-    template <class EE, int SS> Row& operator=(const Row<N,EE,SS>& vv)
-      { for(int i=0;i<N;++i) d[i*STRIDE] = vv[i]; return *this; }
+    template <class EE, int SS> Row& operator=(const Row<N,EE,SS>& vv) {
+        Impl::copy(*this, vv);
+        return *this;
+    }
     template <class EE, int SS> Row& operator+=(const Row<N,EE,SS>& r)
       { for(int i=0;i<N;++i) d[i*STRIDE] += r[i]; return *this; }
     template <class EE, int SS> Row& operator+=(const Row<N,negator<EE>,SS>& r)

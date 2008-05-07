@@ -66,6 +66,15 @@ template <class E1, int S1, class E2, int S2> void
 conformingSubtract(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2, Vec<1,typename CNT<E1>::template Result<E2>::Add>& result) {
     result[0] = r1[0] - r2[0];
 }
+template <int N, class E1, int S1, class E2, int S2> void
+copy(Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2) {
+    copy(reinterpret_cast<Vec<N-1,E1,S1>&>(r1), reinterpret_cast<const Vec<N-1,E2,S2>&>(r2));
+    r1[N-1] = r2[N-1];
+}
+template <class E1, int S1, class E2, int S2> void
+copy(Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2) {
+    r1[0] = r2[0];
+}
 
 }
 
@@ -244,34 +253,31 @@ public:
     // assignment because the compiler doesn't understand that we may
     // have noncontiguous storage and will try to copy the whole array.
     Vec(const Vec& src) {
-        for (int i=0; i<M; ++i)
-            d[i*STRIDE] = src[i];
+        Impl::copy(*this, src);
     }
     Vec& operator=(const Vec& src) {    // no harm if src and 'this' are the same
-        for (int i=0; i<M; ++i)
-            d[i*STRIDE] = src[i];
+        Impl::copy(*this, src);
         return *this;
     }
 
     // We want an implicit conversion from a Vec of the same length
     // and element type but with a different stride.
     template <int SS> Vec(const Vec<M,E,SS>& src) {
-        for (int i=0; i<M; ++i)
-            d[i*STRIDE] = src[i];
+        Impl::copy(*this, src);
     }
 
     // We want an implicit conversion from a Vec of the same length
     // and *negated* element type (possibly with a different stride).
 
     template <int SS> Vec(const Vec<M,ENeg,SS>& src) {
-        for (int i=0; i<M; ++i)
-            d[i*STRIDE] = src[i];
+        Impl::copy(*this, src);
     }
 
     // Construct a Vec from a Vec of the same length, with any
     // stride. Works as long as the element types are compatible.
-    template <class EE, int SS> explicit Vec(const Vec<M,EE,SS>& vv)
-      { for (int i=0;i<M;++i) d[i*STRIDE]=vv[i]; }
+    template <class EE, int SS> explicit Vec(const Vec<M,EE,SS>& vv) {
+        Impl::copy(*this, vv);
+    }
 
     // Construction using an element assigns to each element.
     explicit Vec(const ELT& e)
@@ -299,8 +305,10 @@ public:
       { assert(p); for(int i=0;i<M;++i) d[i*STRIDE]=p[i]; return *this; }
 
     // Conforming assignment ops.
-    template <class EE, int SS> Vec& operator=(const Vec<M,EE,SS>& vv)
-      { for(int i=0;i<M;++i) d[i*STRIDE] = vv[i]; return *this; }
+    template <class EE, int SS> Vec& operator=(const Vec<M,EE,SS>& vv) {
+        Impl::copy(*this, vv);
+        return *this;
+    }
     template <class EE, int SS> Vec& operator+=(const Vec<M,EE,SS>& r)
       { for(int i=0;i<M;++i) d[i*STRIDE] += r[i]; return *this; }
     template <class EE, int SS> Vec& operator+=(const Vec<M,negator<EE>,SS>& r)
