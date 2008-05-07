@@ -955,6 +955,7 @@ inline MobilizedBody::Custom::ImplementationImpl::~ImplementationImpl() {
 
 class MobilizedBody::FunctionBasedImpl : public MobilizedBody::Custom::Implementation {
 public:
+	//Constructor that uses default axes
     FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices)
             : Implementation(matter, nmobilities, nmobilities, 0), subsystem(matter.getMySubsystemIndex()), nu(nmobilities), cacheIndex(0), functions(functions), coordIndices(coordIndices) {
         assert(functions.size() == 6);
@@ -963,6 +964,30 @@ public:
             assert(functions[i]->getArgumentSize() == coordIndices[i].size());
             assert(functions[i]->getMaxDerivativeOrder() >= 2);
         }
+		Arot = Mat33(1);
+		Atrans = Mat33(1);
+    }
+	FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes)
+            : Implementation(matter, nmobilities, nmobilities, 0), subsystem(matter.getMySubsystemIndex()), nu(nmobilities), cacheIndex(0), functions(functions), coordIndices(coordIndices) {
+        assert(functions.size() == 6);
+        assert(coordIndices.size() == 6);
+		assert(axes.size() == 6);
+        for (int i = 0; i < (int)functions.size(); ++i) {
+            assert(functions[i]->getArgumentSize() == coordIndices[i].size());
+            assert(functions[i]->getMaxDerivativeOrder() >= 2);
+        }
+		double tol = 1e-5;
+		// Verify that none of the rotation axes are colinear
+		assert((axes[0]%axes[1]).norm() > tol);
+		assert((axes[0]%axes[2]).norm() > tol);
+		assert((axes[1]%axes[2]).norm() > tol);
+		// Verify that none of the translational axes are colinear
+		assert((axes[3]%axes[4]).norm() > tol);
+		assert((axes[3]%axes[5]).norm() > tol);
+		assert((axes[4]%axes[5]).norm() > tol);
+
+		Arot = Mat33(axes[0].normalize(), axes[1].normalize(), axes[2].normalize());
+		Atrans = Mat33(axes[3].normalize(), axes[4].normalize(), axes[5].normalize());
     }
 
     MobilizedBody::Custom::Implementation* clone() const {
@@ -970,34 +995,90 @@ public:
     }
 
     Transform calcMobilizerTransformFromQ(const State& s, int nq, const Real* q) const {
-        // TODO
-        return Transform(Vec3(0));
+        // Initialize the tranformation to be returned
+		Transform X(Vec3(0));
+		Vec6 spatialCoords;
+		
+		// Get the spatial cooridinates as a function of the q's
+		for(int i=0; i < 6; i++){
+			//Coordinates for this function
+			int nc = coordIndices[i].size();
+			Vector fcoords(nc);
+	
+			for(int j=0; j < nc; j++)
+				fcoords(j) = q[coordIndices[i][j]];			
+			
+			//default behavior of constant function should take a Vector of length 0
+			spatialCoords(i) = (functions[i]->calcValue(fcoords))[0];
+		}
+
+/*
+		UnitVec3 axis1;
+		axis1.getAs(&Arot(0,0));
+		UnitVec3 axis2;
+		axis2.getAs(&Arot(0,1));
+		UnitVec3 axis3;
+		axis3.getAs(&Arot(0,2));
+*/
+
+		//X.updR().setRotationToBodyFixedXYZ(spatialCoords.getSubVec<3>(0));
+		X.updR().setRotationFromMat33TrustMe(Rotation(spatialCoords(0), UnitVec3::getAs(&Arot(0,0)))*
+			Rotation(spatialCoords(1), UnitVec3::getAs(&Arot(0,1)))*Rotation(spatialCoords(2), UnitVec3::getAs(&Arot(0,2))));
+		X.updT() = spatialCoords(3)*UnitVec3::getAs(&Atrans(0,0))+spatialCoords(4)*UnitVec3::getAs(&Atrans(0,1))
+					+spatialCoords(5)*UnitVec3::getAs(&Atrans(0,2));
+
+        return X;
     }
 
     SpatialVec multiplyByHMatrix(const State& s, int nu, const Real* u) const {
+
         switch (nu) {
             case 1: {
+				// Check that the H  matrices in the cache are valid
+				if (!(Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+					updateH(s);
+
                 Mat<2,1,Vec3> h = Value<CacheInfo<1> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
                 return h*Vec1::getAs(u);
             }
             case 2: {
-                Mat<2,2,Vec3> h = Value<CacheInfo<2> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
+				// Check that the H  matrices in the cache are valid
+				if (!(Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+					updateH(s);
+                
+				Mat<2,2,Vec3> h = Value<CacheInfo<2> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
                 return h*Vec2::getAs(u);
             }
             case 3: {
+				// Check that the H  matrices in the cache are valid
+				if (!(Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+					updateH(s);
+
                 Mat<2,3,Vec3> h = Value<CacheInfo<3> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
                 return h*Vec3::getAs(u);
             }
             case 4: {
+				// Check that the H  matrices in the cache are valid
+				if (!(Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+					updateH(s);
+
                 Mat<2,4,Vec3> h = Value<CacheInfo<4> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
                 return h*Vec4::getAs(u);
             }
             case 5: {
+				// Check that the H matrices in the cache are valid
+				if (!(Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+					updateH(s);
+
                 Mat<2,5,Vec3> h = Value<CacheInfo<5> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
                 return h*Vec5::getAs(u);
             }
             case 6: {
-                Mat<2,6,Vec3> h = Value<CacheInfo<6> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
+				// Check that the H  matrices in the cache are valid
+				if (!(Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+					updateH(s);
+
+				Mat<2,6,Vec3> h = Value<CacheInfo<6> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
                 return h*Vec6::getAs(u);
             }
         }
@@ -1005,33 +1086,58 @@ public:
     }
 
     void multiplyByHTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const {
-        switch (nu) {
+		
+		switch (nu) {
             case 1: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+					updateH(s);
+
                 Mat<2,1,Vec3> h = Value<CacheInfo<1> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
                 Vec1::updAs(f) = ~h*F;
                 return;
             }
             case 2: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+					updateH(s);
+
                 Mat<2,2,Vec3> h = Value<CacheInfo<2> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
                 Vec2::updAs(f) = ~h*F;
                 return;
             }
             case 3: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+					updateH(s);
+
                 Mat<2,3,Vec3> h = Value<CacheInfo<3> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
                 Vec3::updAs(f) = ~h*F;
                 return;
             }
             case 4: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+					updateH(s);
+
                 Mat<2,4,Vec3> h = Value<CacheInfo<4> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
                 Vec4::updAs(f) = ~h*F;
                 return;
             }
             case 5: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+					updateH(s);
+
                 Mat<2,5,Vec3> h = Value<CacheInfo<5> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
                 Vec5::updAs(f) = ~h*F;
                 return;
             }
             case 6: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+					updateH(s);
+
                 Mat<2,6,Vec3> h = Value<CacheInfo<6> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
                 Vec6::updAs(f) = ~h*F;
                 return;
@@ -1041,28 +1147,53 @@ public:
     }
 
     SpatialVec multiplyByHDotMatrix(const State& s, int nu, const Real* u) const {
-        switch (nu) {
+
+		switch (nu) {
             case 1: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+					updateHdot(s);
+
                 Mat<2,1,Vec3> hdot = Value<CacheInfo<1> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
                 return hdot*Vec1::getAs(u);
             }
             case 2: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+					updateHdot(s);
+
                 Mat<2,2,Vec3> hdot = Value<CacheInfo<2> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
                 return hdot*Vec2::getAs(u);
             }
             case 3: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+					updateHdot(s);
+
                 Mat<2,3,Vec3> hdot = Value<CacheInfo<3> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
                 return hdot*Vec3::getAs(u);
             }
             case 4: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+					updateHdot(s);
+
                 Mat<2,4,Vec3> hdot = Value<CacheInfo<4> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
                 return hdot*Vec4::getAs(u);
             }
             case 5: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+					updateHdot(s);
+
                 Mat<2,5,Vec3> hdot = Value<CacheInfo<5> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
                 return hdot*Vec5::getAs(u);
             }
             case 6: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+					updateHdot(s);
+
                 Mat<2,6,Vec3> hdot = Value<CacheInfo<6> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
                 return hdot*Vec6::getAs(u);
             }
@@ -1071,33 +1202,58 @@ public:
     }
 
     void multiplyByHDotTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const {
-        switch (nu) {
+
+		switch (nu) {
             case 1: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+					updateHdot(s);
+
                 Mat<2,1,Vec3> hdot = Value<CacheInfo<1> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
                 Vec1::updAs(f) = ~hdot*F;
                 return;
             }
             case 2: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+					updateHdot(s);
+
                 Mat<2,2,Vec3> hdot = Value<CacheInfo<2> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
                 Vec2::updAs(f) = ~hdot*F;
                 return;
             }
             case 3: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+					updateHdot(s);
+
                 Mat<2,3,Vec3> hdot = Value<CacheInfo<3> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
                 Vec3::updAs(f) = ~hdot*F;
                 return;
             }
             case 4: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+					updateHdot(s);
+
                 Mat<2,4,Vec3> hdot = Value<CacheInfo<4> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
                 Vec4::updAs(f) = ~hdot*F;
                 return;
             }
             case 5: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+					updateHdot(s);
+
                 Mat<2,5,Vec3> hdot = Value<CacheInfo<5> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
                 Vec5::updAs(f) = ~hdot*F;
                 return;
             }
             case 6: {
+				// Check that the H and Hdot matrices in the cache are valid
+				if (!(Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+					updateHdot(s);
+
                 Mat<2,6,Vec3> hdot = Value<CacheInfo<6> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
                 Vec6::updAs(f) = ~hdot*F;
                 return;
@@ -1137,53 +1293,316 @@ public:
         }
     }
 
-    void realizePosition(State& s) const {
-        switch (nu) {
+    void realizePosition(const State& s) const {
+		switch (nu) {
+            case 1: {
+				// invalidate H and Hdot matrices
+				Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
+                break;
+            }
+            case 2: {
+                // invalidate H and Hdot matrices
+				Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
+                break;
+            }
+            case 3: {
+                // invalidate H and Hdot matrices
+				Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
+                break;
+            }
+            case 4: {
+                // invalidate H and Hdot matrices
+				Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
+                break;
+            }
+            case 5: {
+                // invalidate H and Hdot matrices
+				Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
+                break;
+            }
+            case 6: {
+                // invalidate H and Hdot matrices
+				Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
+                break;
+            }
+        }
+	}
+
+    void realizeVelocity(const State& s) const {
+		switch (nu) {
+            case 1: {
+				// invalidate H and Hdot matrices
+				Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
+                break;
+            }
+            case 2: {
+                // invalidate H and Hdot matrices
+				Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
+                break;
+            }
+            case 3: {
+                // invalidate H and Hdot matrices
+				Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
+                break;
+            }
+            case 4: {
+                // invalidate H and Hdot matrices
+				Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
+                break;
+            }
+            case 5: {
+                // invalidate H and Hdot matrices
+				Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
+                break;
+            }
+            case 6: {
+                // invalidate H and Hdot matrices
+				Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
+                break;
+            }
+        }
+	}
+
+    void updateH(const State& s) const {
+		// Get mobilizer kinematics 
+		Vector q = getQ(s);
+		Vector u = getU(s);
+		switch (nu) {
             case 1: {
                 CacheInfo<1>& cache = Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
-                cache.createCache(s);
+                cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
+				// H matrix is now valid 
+				cache.isValidH = true;
                 break;
             }
             case 2: {
                 CacheInfo<2>& cache = Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
-                cache.createCache(s);
+                cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
+				// H matrix is now valid 
+				cache.isValidH = true;
                 break;
             }
             case 3: {
                 CacheInfo<3>& cache = Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
-                cache.createCache(s);
+                cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
+				// H matrix is now valid  
+				cache.isValidH = true;
                 break;
             }
             case 4: {
                 CacheInfo<4>& cache = Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
-                cache.createCache(s);
+                cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
+				// H matrix is now valid 
+				cache.isValidH = true;
                 break;
             }
             case 5: {
                 CacheInfo<5>& cache = Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
-                cache.createCache(s);
+                cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
+				// H matrix is now valid  
+				cache.isValidH = true;
                 break;
             }
             case 6: {
                 CacheInfo<6>& cache = Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
-                cache.createCache(s);
+                cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
+				// H matrix is now valid 
+				cache.isValidH = true;
                 break;
             }
         }
     }
-    
+ 
+    void updateHdot(const State& s) const {
+		// Get mobilizer kinematics 
+		Vector q = getQ(s);
+		Vector u = getU(s);
+		switch (nu) {
+            case 1: {
+                CacheInfo<1>& cache = Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
+				// Hdot matrix is now valid 
+				cache.isValidHdot = true;
+                break;
+            }
+            case 2: {
+                CacheInfo<2>& cache = Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
+				// Hdot matrix is now valid 
+				cache.isValidHdot = true;
+                break;
+            }
+            case 3: {
+                CacheInfo<3>& cache = Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
+				// Hdot matrix is now valid  
+				cache.isValidHdot = true;
+                break;
+            }
+            case 4: {
+                CacheInfo<4>& cache = Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
+				// Hdot matrix is now valid 
+				cache.isValidHdot = true;
+                break;
+            }
+            case 5: {
+                CacheInfo<5>& cache = Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
+				// Hdot matrix is now valid 
+				cache.isValidHdot = true;
+                break;
+            }
+            case 6: {
+                CacheInfo<6>& cache = Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
+				// Hdot matrix is now valid 
+				cache.isValidHdot = true;
+                break;
+            }
+        }
+    }
+
 private:
     const SubsystemIndex subsystem;
     const int nu;
     mutable int cacheIndex;
     const std::vector<Function<1>*> functions;
     const std::vector<std::vector<int> > coordIndices;
+	//const std::vector<Vec3> axes;
+	Mat33 Arot, Atrans;
     template <int N> class CacheInfo {
     public:
-        void createCache(State& s) {
-            // TODO set cache.h and cache.hdot
-        }
-        Mat<2,N,Vec3> h, hdot;
+        void buildH(Vector& q, Vector& u, const Transform& X_FM, const std::vector<Function<1>*> functions, const std::vector<std::vector<int> > coordIndices, const Mat33 Arot, const Mat33 Atrans)
+		{
+			// Build the Fq and Fqq matrices of partials of the spatial functions with respect to the gen coordinates, q	
+			// Cycle through each row (function describing spatial coordinate)
+			Fq = Mat<6,N>(0);
+			for(int i=0; i < 6; i++){
+				// Determine the number of coordinates for this function
+				int nc = coordIndices[i].size();
+				int j; // mobility counter
+
+				if (nc > 0) {
+					// spatial coord is a function of this subset of q's
+					Vector fcoords(nc); 
+					// for each mobility, we will identify if the function is dependent on it 
+					std::vector<bool> isDependentOn(N,false);
+					int k;
+
+					// Get coordinate values to evaluate the function
+					for(k = 0; k < nc; k++)
+						fcoords(k) = q(coordIndices[i][k]);
+
+					// function is dependent on a mobility if its index is in the list of function coordIndices
+					for(j = 0; j < N; j++)
+						for(k = 0; k < nc; k++)
+							isDependentOn[j] = (isDependentOn[j] | (coordIndices[i][k] == j));
+
+					// cycle through the mobilities
+					for(j = 0; j < N; j++){
+						// check if the function for the current spatial coordinate is dependent on this mobility
+						if (isDependentOn[j]){
+							// if so take the partial of the function with respect to this (j) mobility 
+							std::vector<int> deriv(1,j);													
+							Fq(i,j) = functions[i]->calcDerivative(deriv, fcoords)[0];
+						}
+						else{
+							Fq(i,j) = 0.0;
+						}
+					}
+				}
+			}
+			// Note rotations are body fixed sequences, and so taking the derivative yields a body-fixed angular velocity
+			// and therefore, must be transformed to the parent frame.
+
+			// omega = [R_FM]*[A]*{Theta_dot(q)}, where Theta_dot(q) is described by the first three functions
+			//       = [R_FM]*[A]*[Fq_theta]*qdot
+			// vel = [A]*{X_dot(q)}, where X_dot(q) is described by the last three functions
+			//     = [A]*[Fq_x](
+			Mat31 temp;
+			Mat33 W = X_FM.R()*Arot;
+
+			for(int i=0; i < N; i++){
+				temp = W*(Fq.getSubMat<3,1>(0,i));
+				h(0,i) = Vec3::getAs(&temp(0,0));
+				temp = Atrans*(Fq.getSubMat<3,1>(3,i));
+				h(1,i) = Vec3::getAs(&temp(0,0));
+			}
+		}
+
+		void buildHdot(Vector& q, Vector& u, const Transform& X_FM, const std::vector<Function<1>*> functions, const std::vector<std::vector<int> > coordIndices, const Mat33 Arot, const Mat33 Atrans)
+		{
+			Mat<6,N> Fqdot(0);
+			for(int i=0; i < 6; i++){
+				// Determine the number of coordinates for this function
+				int nc = coordIndices[i].size();
+				int j; // mobility counter
+
+				if (nc > 0) {
+					// spatial coord is a function of this subset of q's
+					Vector fcoords(nc); 
+					// for each mobility, we will identify if the function is dependent on it 
+					std::vector<bool> isDependentOn(N,false);
+					int k;
+
+					// Get coordinate values to evaluate the function
+					for(k = 0; k < nc; k++)
+						fcoords(k) = q(coordIndices[i][k]);
+
+					// function is dependent on a mobility if its index is in the list of function coordIndices
+					for(j = 0; j < N; j++)
+						for(k = 0; k < nc; k++)
+							isDependentOn[j] = (isDependentOn[j] | (coordIndices[i][k] == j));
+
+					// cycle through the mobilities
+					for(j = 0; j < N; j++){
+						// check if the function for the current spatial coordinate is dependent on this mobility
+						if (isDependentOn[j]){
+							// if so take the partial of the function with respect to this (j) mobility 
+							Fqdot(i,j) = 0.0;
+
+							// cycle through the mobilities again to build the Hdot matrix from second order partial derivs
+							for(k = 0; k < nc; k++){
+								// only take second order partial if function is dependent on that mobility
+								if (isDependentOn[k]){
+									std::vector<int> derivs(2,j); //initialize to j
+									derivs[1] = k; // set second value to k
+									// hdot(i,j) is partial derivative of dot(h(i,:),u) which gives rise to the summation
+									Fqdot(i,j) += functions[i]->calcDerivative(derivs, fcoords)[0]*u[k];
+								}
+							}
+						}
+						else{
+							Fqdot(i,j) = 0.0;
+						}
+					}
+				}
+			}
+
+			// Hdot_theta = [(omega x R)*[A]*[Fq] + [R][A][Fqdot]
+			// Hdot_x = [A]*[Fqdot]
+			Real *up = &u[0];
+			Vec<N> uv = Vec<N>::getAs(up);
+			// Spatial velocity
+			SpatialVec V = h*uv;
+			Mat33 W = X_FM.R()*Arot; //theis is [R][A]
+			// First eelement of V is angular velocity, omega
+			Mat33 Wdot = crossMat(V[0])*W;
+
+			Mat31 temp;
+			for(int i=0; i < N; i++){
+				temp = Wdot*(Fq.getSubMat<3,1>(0,i))+W*(Fqdot.getSubMat<3,1>(0,i));
+				hdot(0,i) = Vec3::getAs(&temp(0,0));
+				temp = Atrans*(Fqdot.getSubMat<3,1>(3,i));
+				hdot(1,i) = Vec3::getAs(&temp(0,0));
+			}
+		}
+
+		Mat<2,N,Vec3> h, hdot;
+		Mat<6,N> Fq;
+		bool isValidH;
+		bool isValidHdot;
     };
 };
 
@@ -1196,7 +1615,3 @@ std::ostream& operator<<(std::ostream& o, const MobilizedBody::FunctionBasedImpl
 } // namespace SimTK
 
 #endif // SimTK_SIMBODY_MOBILIZED_BODY_REP_H_
-
-
-
-
