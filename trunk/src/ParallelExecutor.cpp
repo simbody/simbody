@@ -92,7 +92,7 @@ public:
         return new ParallelExecutorImpl(threads.size());
     }
     void execute(ParallelExecutor::Task& task, int times) {
-        if (threads.size() == 1) {
+        if (times == 1 || threads.size() == 1) {
             // Nothing is actually going to get done in parallel, so we might as well
             // just execute the task directly and save the threading overhead.
             
@@ -113,8 +113,9 @@ public:
         // Wake up the worker threads and wait until they finish.
         
         pthread_cond_broadcast(&runCondition);
-        while (waitingThreadCount < (int) threads.size())
+        do {
             pthread_cond_wait(&waitCondition, &runLock);
+        } while (waitingThreadCount < (int) threads.size());
         pthread_mutex_unlock(&runLock);
     }
     int getThreadCount() {
@@ -136,13 +137,12 @@ public:
         return &runCondition;
     }
     void incrementWaitingThreads() {
+        pthread_mutex_lock(&runLock);
         waitingThreadCount++;
         if (waitingThreadCount == threads.size()) {
-            pthread_mutex_lock(&runLock);
             pthread_cond_signal(&waitCondition);
-            pthread_mutex_unlock(&runLock);
         }
-            
+        pthread_mutex_unlock(&runLock);
     }
 private:
     bool finished;
