@@ -51,7 +51,7 @@ public:
     bool running;
 };
 
-extern "C" static void* threadBody(void* args);
+static void* threadBody(void* args);
 
 /**
  * This is the internal implementation class for ParallelExecutor.

@@ -43,39 +43,39 @@ using namespace std;
 
 class SetFlagTask : public ParallelExecutor::Task {
 public:
-    SetFlagTask(vector<bool>& flags) : flags(flags) {
+    SetFlagTask(vector<int>& flags) : flags(flags) {
     }
     void execute(int index) {
-        flags[index] = true;
+        flags[index]++;
     }
 private:
-    vector<bool>& flags;
+    vector<int>& flags;
 };
 
 void testParallelExecution() {
     const int numFlags = 100;
-    vector<bool> flags(numFlags);
+    vector<int> flags(numFlags);
     ParallelExecutor executor;
     SetFlagTask task(flags);
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 100; ++i) {
         for (int j = 0; j < numFlags; ++j)
-            flags[j] = false;
+            flags[j] = 0;
         executor.execute(task, numFlags-10);
         for (int j = 0; j < numFlags; ++j)
-            ASSERT(flags[j] == (j < numFlags-10));
+            ASSERT(flags[j] == (j < numFlags-10 ? 1 : 0));
     }
 }
 
 void testSingleThreadedExecution() {
     const int numFlags = 100;
-    vector<bool> flags(numFlags);
+    vector<int> flags(numFlags);
     ParallelExecutor executor(1); // Specify only a single thread.
     SetFlagTask task(flags);
     for (int j = 0; j < numFlags; ++j)
-        flags[j] = false;
+        flags[j] = 0;
     executor.execute(task, numFlags-10);
     for (int j = 0; j < numFlags; ++j)
-        ASSERT(flags[j] == (j < numFlags-10));
+        ASSERT(flags[j] == (j < numFlags-10 ? 1 : 0));
 }
 
 int main() {
