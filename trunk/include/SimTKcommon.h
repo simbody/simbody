@@ -54,6 +54,7 @@
 #include "SimTKcommon/internal/EventReporter.h"
 #include "SimTKcommon/internal/UserFunction.h"
 #include "SimTKcommon/internal/ParallelExecutor.h"
+#include "SimTKcommon/internal/Parallel2DExecutor.h"
 #endif
 
 

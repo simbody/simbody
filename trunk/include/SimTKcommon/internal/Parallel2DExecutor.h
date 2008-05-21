@@ -1,5 +1,5 @@
-#ifndef SimTK_SimTKCOMMON_PARALLEL_EXECUTOR_H_
-#define SimTK_SimTKCOMMON_PARALLEL_EXECUTOR_H_
+#ifndef SimTK_SimTKCOMMON_PARALLEL_2D_EXECUTOR_H_
+#define SimTK_SimTKCOMMON_PARALLEL_2D_EXECUTOR_H_
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
@@ -32,75 +32,83 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include "ParallelExecutor.h"
 #include "PrivateImplementation.h"
 
 namespace SimTK {
 
-class ParallelExecutorImpl;
+class Parallel2DExecutorImpl;
 
 /**
- * This class is used for performing multithreaded computations.  To use it, define a subclass of
- * ParallelExecutor::Task that performs some computation.  Then create a ParallelExecutor object
- * and ask it to execute the task:
+ * This class is used for performing multithreaded computations over two dimensional ranges.  That is,
+ * it performs some calculation once for each pair (i, j) where i and j vary over some range.  For
+ * example, it is useful for calculating pairwise forces between a set of bodies.
+ * 
+ * To use it, define a subclass of Parallel2DExecutor::Task that performs a computation.  Then create a
+ * Parallel2DExecutor object and ask it to execute the task:
  * 
  * <pre>
- * ParallelExecutor executor;
- * executor.execute(myTask, times);
+ * Parallel2DExecutor executor(gridSize);
+ * executor.execute(myTask, Parallel2DExecutor::FullMatrix);
  * </pre>
  * 
- * The Task's execute() method will be called the specified number of times, with each invocation
- * being given a different index value from 0 to times-1.  The invocations are done in parallel
- * on multiple threads, so you cannot make any assumptions about what order they will occur in
- * or which ones will happen at the same time.
+ * The Task's execute() method will be called once with each pair (i, j) where i and j vary between 0 and
+ * gridSize-1.  You also can restrict it to only pairs with i > j or i >= j.
  * 
- * The threads are created in the ParallelExecutor's constructor and remain active until it is deleted.
- * This means that creating a ParallelExecutor is a somewhat expensive operation, but it may then be
+ * The invocations are done in parallel on multiple threads, but they are divided up in a way that avoids
+ * index conflicts between simultaneous calculations.  If the task is executed with indices (i1, j1)
+ * on one thread, it is guaranteed that no other thread is simultaneously executing the task with
+ * either the first or second index equal to either i1 or j1.  (More precisely, if either index of one
+ * invocation is equal to either index of another invocation, the two invocations are guaranteed to be
+ * separated by a happens-before edge.)  This allows the task to modify data that is indexed by i and j
+ * without needing to worry about concurrent modifications.
+ * 
+ * The threads are created in the Parallel2DExecutor's constructor and remain active until it is deleted.
+ * This means that creating a Parallel2DExecutor is a somewhat expensive operation, but it may then be
  * used repeatedly for executing various calculations.  By default, the number of threads is chosen
  * to be equal to the number of available processor cores.  You can optionally specify a different number
  * of threads to create.  For example, using more threads than processors can sometimes lead to better
- * processor utilitization.  Alternatively, if the Task will only be executed four times, you might
- * specify max(4, ParallelExecutor::getNumProcessors()) to avoid creating extra threads that will never
- * have any work to do.
+ * processor utilitization.
  */
 
-class SimTK_SimTKCOMMON_EXPORT ParallelExecutor : public PIMPLHandle<ParallelExecutor, ParallelExecutorImpl> {
+class SimTK_SimTKCOMMON_EXPORT Parallel2DExecutor : public PIMPLHandle<Parallel2DExecutor, Parallel2DExecutorImpl> {
 public:
     class Task;
+    enum RangeType {FullMatrix, HalfMatrix, HalfPlusDiagonal};
     /**
-     * Construct a ParallelExecutor.
+     * Construct a Parallel2DExecutor.
      * 
+     * @param gridSize   the size of the range over which i and j should vary
      * @param numThreads the number of threads to create.  By default, this is set equal to the number
      * of processors.
      */
-    ParallelExecutor(int numThreads = getNumProcessors());
+    Parallel2DExecutor(int gridSize, int numThreads = ParallelExecutor::getNumProcessors());
     /**
      * Execute a parallel task.
      * 
-     * @param task    the Task to execute
-     * @param times   the number of times the Task should be executed
+     * @param task      the Task to execute
+     * @param rangeType specifies what part of the range i and j should vary over.  Specify FullyMatrix to
+     *                  execute the task for all values of i and j between 0 and gridSize, HalfMatrix to
+     *                  restrict it to i > j, and HalfPlusDiagonal to restrict it to i >= j. 
      */
-    void execute(Task& task, int times);
-    /**
-     * Get the number of available processor cores.
-     */
-    static int getNumProcessors();
+    void execute(Task& task, RangeType rangeType);
 };
 
 /**
- * Concrete subclasses of this abstract class represent tasks that can be executed by a ParallelExecutor.
+ * Concrete subclasses of this abstract class represent tasks that can be executed by a Parallel2DExecutor.
  */
 
-class ParallelExecutor::Task {
+class Parallel2DExecutor::Task {
 public:
     virtual ~Task() {
     }
     /**
-     * This method defines the task to be performed.  When the Task is passed to a ParallelExecutor's execute()
-     * method, this method will be called in parallel the specified number of times.
+     * This method defines the task to be performed.  When the Task is passed to a Parallel2DExecutor's execute()
+     * method, this method will be called in parallel for each allowed value of i and j.
      */
-    virtual void execute(int index) = 0;
+    virtual void execute(int i, int j) = 0;
 };
 
 } // namespace SimTK
 
-#endif // SimTK_SimTKCOMMON_PARALLEL_EXECUTOR_H_
+#endif // SimTK_SimTKCOMMON_PARALLEL_2D_EXECUTOR_H_
