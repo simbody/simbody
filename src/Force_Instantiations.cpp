@@ -43,7 +43,7 @@
 
 namespace SimTK {
 
-template class PIMPLHandle<Force, ForceImpl>;
+template class PIMPLHandle<Force, ForceImpl, true>;
 template class PIMPLImplementation<Force, ForceImpl>;
 } // namespace SimTK
 

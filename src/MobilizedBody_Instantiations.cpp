@@ -42,7 +42,7 @@
 
 namespace SimTK {
 
-template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl>;
+template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl, true>;
 template class PIMPLImplementation<MobilizedBody, MobilizedBodyImpl>;
 template class PIMPLHandle<MobilizedBody::Custom::Implementation, MobilizedBody::Custom::ImplementationImpl>;
 template class PIMPLImplementation<MobilizedBody::Custom::Implementation, MobilizedBody::Custom::ImplementationImpl>;

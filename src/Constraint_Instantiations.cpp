@@ -44,7 +44,7 @@
 
 namespace SimTK {
 
-template class PIMPLHandle<Constraint, ConstraintImpl>;
+template class PIMPLHandle<Constraint, ConstraintImpl, true>;
 template class PIMPLImplementation<Constraint, ConstraintImpl>;
 
 template class PIMPLHandle<Constraint::Custom::Implementation, Constraint::Custom::ImplementationImpl>;

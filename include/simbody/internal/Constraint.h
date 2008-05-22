@@ -58,7 +58,7 @@ class ConstraintImpl;
 // We only want the template instantiation to occur once. This symbol is defined in the SimTK core
 // compilation unit that defines the Constraint class but should not be defined any other time.
 #ifndef SimTK_SIMBODY_DEFINING_CONSTRAINT
-    extern template class PIMPLHandle<Constraint, ConstraintImpl>;
+    extern template class PIMPLHandle<Constraint, ConstraintImpl, true>;
 #endif
 
     ///////////////////////////
@@ -70,7 +70,7 @@ class ConstraintImpl;
  * hidden implementation. Each built-in Constraint type is a local subclass within
  * Constraint, and is also derived from Constraint.
  */
-class SimTK_SIMBODY_EXPORT Constraint : public PIMPLHandle<Constraint, ConstraintImpl> {
+class SimTK_SIMBODY_EXPORT Constraint : public PIMPLHandle<Constraint, ConstraintImpl, true> {
 public:
     Constraint() { }
     explicit Constraint(ConstraintImpl* r) : HandleBase(r) { }

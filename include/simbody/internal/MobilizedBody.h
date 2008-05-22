@@ -59,7 +59,7 @@ class MobilizedBodyImpl;
 // We only want the template instantiation to occur once. This symbol is defined in the SimTK core
 // compilation unit that instantiates the mobilized body class but should not be defined any other time.
 #ifndef SimTK_SIMBODY_DEFINING_MOBILIZED_BODY
-    extern template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl>;
+    extern template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl, true>;
 #endif
 
 /**
@@ -109,7 +109,7 @@ class MobilizedBodyImpl;
  * origin OA and reexpressed in A via p_AP = X_AF * p_FP, where p_AP==p_OA_P. 
  */
 
-class SimTK_SIMBODY_EXPORT MobilizedBody : public PIMPLHandle<MobilizedBody, MobilizedBodyImpl> {
+class SimTK_SIMBODY_EXPORT MobilizedBody : public PIMPLHandle<MobilizedBody, MobilizedBodyImpl, true> {
 public:
 
 

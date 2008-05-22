@@ -326,7 +326,7 @@ Vector MobilizedBody::getQDotDotAsVector(const State& s) const {
 
 MobilizedBody& MobilizedBody::cloneForNewParent(MobilizedBody& parent) const {
     MobilizedBody copyBody;
-    copyBody = *this;
+    copyBody.copyAssign(*this);
     copyBody.updImpl().myMatterSubsystemRep = 0;
     copyBody.updImpl().myRBnode = 0;
     parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(), copyBody);
