@@ -29,8 +29,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include "ParallelExecutorImpl.h"
 #include "SimTKcommon/internal/ParallelExecutor.h"
-#include "SimTKcommon/internal/PrivateImplementation_Defs.h"
 #include <pthread.h>
 #include <vector>
 
@@ -38,122 +38,75 @@ using std::vector;
 
 namespace SimTK {
 
-/**
- * This class stores per-thread information used while executing a task.
- */
-
-class ThreadInfo {
-public:
-    ThreadInfo(int index, ParallelExecutorImpl* executor) : index(index), executor(executor), running(false) {
-    }
-    const int index;
-    ParallelExecutorImpl* const executor;
-    bool running;
-};
-
 static void* threadBody(void* args);
 
-/**
- * This is the internal implementation class for ParallelExecutor.
- */
+ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
 
-class ParallelExecutorImpl : public PIMPLImplementation<ParallelExecutor, ParallelExecutorImpl> {
-public:
-    ParallelExecutorImpl(int numThreads) : finished(false) {
-
-        // Construct all the threading related objects we will need.
+    // Construct all the threading related objects we will need.
+    
+    threads.resize(numThreads);
+    pthread_mutex_init(&runLock, NULL);
+    pthread_cond_init(&runCondition, NULL);
+    pthread_cond_init(&waitCondition, NULL);
+    for (int i = 0; i < numThreads; ++i) {
+        threadInfo.push_back(new ThreadInfo(i, this));
+        pthread_create(&threads[i], NULL, threadBody, threadInfo[i]);
+    }
+}
+ParallelExecutorImpl::~ParallelExecutorImpl() {
+    
+    // Notify the threads that they should exit.
+    
+    pthread_mutex_lock(&runLock);
+    finished = true;
+    for (int i = 0; i < (int) threads.size(); ++i)
+        threadInfo[i]->running = true;
+    pthread_cond_broadcast(&runCondition);
+    pthread_mutex_unlock(&runLock);
+    
+    // Wait until all the threads have finished.
+    
+    for (int i = 0; i < (int) threads.size(); ++i)
+        pthread_join(threads[i], NULL);
+}
+ParallelExecutorImpl* ParallelExecutorImpl::clone() const {
+    return new ParallelExecutorImpl(threads.size());
+}
+void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
+    if (times == 1 || threads.size() == 1) {
+        // Nothing is actually going to get done in parallel, so we might as well
+        // just execute the task directly and save the threading overhead.
         
-        threads.resize(numThreads);
-        pthread_mutex_init(&runLock, NULL);
-        pthread_cond_init(&runCondition, NULL);
-        pthread_cond_init(&waitCondition, NULL);
-        for (int i = 0; i < numThreads; ++i) {
-            threadInfo.push_back(new ThreadInfo(i, this));
-            pthread_create(&threads[i], NULL, threadBody, threadInfo[i]);
-        }
+        for (int i = 0; i < times; ++i)
+            task.execute(i);
+        return;
     }
-    ~ParallelExecutorImpl() {
-        
-        // Notify the threads that they should exit.
-        
-        pthread_mutex_lock(&runLock);
-        finished = true;
-        for (int i = 0; i < (int) threads.size(); ++i)
-            threadInfo[i]->running = true;
-        pthread_cond_broadcast(&runCondition);
-        pthread_mutex_unlock(&runLock);
-        
-        // Wait until all the threads have finished.
-        
-        for (int i = 0; i < (int) threads.size(); ++i)
-            pthread_join(threads[i], NULL);
+    
+    // Initialize fields to execute the new task.
+    
+    pthread_mutex_lock(&runLock);
+    currentTask = &task;
+    currentTaskCount = times;
+    waitingThreadCount = 0;
+    for (int i = 0; i < (int) threadInfo.size(); ++i)
+        threadInfo[i]->running = true;
+    
+    // Wake up the worker threads and wait until they finish.
+    
+    pthread_cond_broadcast(&runCondition);
+    do {
+        pthread_cond_wait(&waitCondition, &runLock);
+    } while (waitingThreadCount < (int) threads.size());
+    pthread_mutex_unlock(&runLock);
+}
+void ParallelExecutorImpl::incrementWaitingThreads() {
+    pthread_mutex_lock(&runLock);
+    waitingThreadCount++;
+    if (waitingThreadCount == threads.size()) {
+        pthread_cond_signal(&waitCondition);
     }
-    ParallelExecutorImpl* clone() const {
-        return new ParallelExecutorImpl(threads.size());
-    }
-    void execute(ParallelExecutor::Task& task, int times) {
-        if (times == 1 || threads.size() == 1) {
-            // Nothing is actually going to get done in parallel, so we might as well
-            // just execute the task directly and save the threading overhead.
-            
-            for (int i = 0; i < times; ++i)
-                task.execute(i);
-            return;
-        }
-        
-        // Initialize fields to execute the new task.
-        
-        pthread_mutex_lock(&runLock);
-        currentTask = &task;
-        currentTaskCount = times;
-        waitingThreadCount = 0;
-        for (int i = 0; i < (int) threadInfo.size(); ++i)
-            threadInfo[i]->running = true;
-        
-        // Wake up the worker threads and wait until they finish.
-        
-        pthread_cond_broadcast(&runCondition);
-        do {
-            pthread_cond_wait(&waitCondition, &runLock);
-        } while (waitingThreadCount < (int) threads.size());
-        pthread_mutex_unlock(&runLock);
-    }
-    int getThreadCount() {
-        return threads.size();
-    }
-    ParallelExecutor::Task& getCurrentTask() {
-        return *currentTask;
-    }
-    int getCurrentTaskCount() {
-        return currentTaskCount;
-    }
-    bool isFinished() {
-        return finished;
-    }
-    pthread_mutex_t* getLock() {
-        return &runLock;
-    }
-    pthread_cond_t* getCondition() {
-        return &runCondition;
-    }
-    void incrementWaitingThreads() {
-        pthread_mutex_lock(&runLock);
-        waitingThreadCount++;
-        if (waitingThreadCount == threads.size()) {
-            pthread_cond_signal(&waitCondition);
-        }
-        pthread_mutex_unlock(&runLock);
-    }
-private:
-    bool finished;
-    pthread_mutex_t runLock;
-    pthread_cond_t runCondition, waitCondition;
-    vector<pthread_t> threads;
-    vector<ThreadInfo*> threadInfo;
-    ParallelExecutor::Task* currentTask;
-    int currentTaskCount;
-    int waitingThreadCount;
-};
+    pthread_mutex_unlock(&runLock);
+}
 
 /**
  * This function contains the code executed by the worker threads.
@@ -247,8 +200,5 @@ int ParallelExecutor::getNumProcessors() {
 #endif
 #endif
 }
-
-template class PIMPLHandle<ParallelExecutor, ParallelExecutorImpl>;
-template class PIMPLImplementation<ParallelExecutor, ParallelExecutorImpl>;
 
 } // namespace SimTK

@@ -37,7 +37,14 @@
 
 namespace SimTK {
 
+class Parallel2DExecutor;
 class Parallel2DExecutorImpl;
+
+// We only want the template instantiation to occur once. This symbol is defined in the SimTK core
+// compilation unit that defines the Parallel2DExecutor class but should not be defined any other time.
+#ifndef SimTK_SIMTKCOMMON_DEFINING_PARALLEL_2D_EXECUTOR
+    extern template class PIMPLHandle<Parallel2DExecutor, Parallel2DExecutorImpl>;
+#endif
 
 /**
  * This class is used for performing multithreaded computations over two dimensional ranges.  That is,

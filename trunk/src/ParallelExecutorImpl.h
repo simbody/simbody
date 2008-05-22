@@ -1,5 +1,8 @@
+#ifndef SimTK_SimTKCOMMON_PARALLEL_EXECUTOR_IMPL_H_
+#define SimTK_SimTKCOMMON_PARALLEL_EXECUTOR_IMPL_H_
+
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Core: SimTK Simbody(tm)                         *
  * -------------------------------------------------------------------------- *
  * This is part of the SimTK Core biosimulation toolkit originating from      *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
@@ -29,17 +32,67 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#define SimTK_SIMTKCOMMON_DEFINING_PARALLEL_EXECUTOR
-#define SimTK_SIMTKCOMMON_DEFINING_PARALLEL_2D_EXECUTOR
-#include "ParallelExecutorImpl.h"
-#include "Parallel2DExecutorImpl.h"
-#include "SimTKcommon/internal/PrivateImplementation_Defs.h"
+#include "SimTKcommon/internal/ParallelExecutor.h"
+#include <pthread.h>
+#include <vector>
 
 namespace SimTK {
 
-template class PIMPLHandle<ParallelExecutor, ParallelExecutorImpl>;
-template class PIMPLImplementation<ParallelExecutor, ParallelExecutorImpl>;
-template class PIMPLHandle<Parallel2DExecutor, Parallel2DExecutorImpl>;
-template class PIMPLImplementation<Parallel2DExecutor, Parallel2DExecutorImpl>;
+class ParallelExecutorImpl;
+
+/**
+ * This class stores per-thread information used while executing a task.
+ */
+
+class ThreadInfo {
+public:
+    ThreadInfo(int index, ParallelExecutorImpl* executor) : index(index), executor(executor), running(false) {
+    }
+    const int index;
+    ParallelExecutorImpl* const executor;
+    bool running;
+};
+
+/**
+ * This is the internal implementation class for ParallelExecutor.
+ */
+
+class ParallelExecutorImpl : public PIMPLImplementation<ParallelExecutor, ParallelExecutorImpl> {
+public:
+    ParallelExecutorImpl(int numThreads);
+    ~ParallelExecutorImpl();
+    ParallelExecutorImpl* clone() const;
+    void execute(ParallelExecutor::Task& task, int times);
+    int getThreadCount() {
+        return threads.size();
+    }
+    ParallelExecutor::Task& getCurrentTask() {
+        return *currentTask;
+    }
+    int getCurrentTaskCount() {
+        return currentTaskCount;
+    }
+    bool isFinished() {
+        return finished;
+    }
+    pthread_mutex_t* getLock() {
+        return &runLock;
+    }
+    pthread_cond_t* getCondition() {
+        return &runCondition;
+    }
+    void incrementWaitingThreads();
+private:
+    bool finished;
+    pthread_mutex_t runLock;
+    pthread_cond_t runCondition, waitCondition;
+    std::vector<pthread_t> threads;
+    std::vector<ThreadInfo*> threadInfo;
+    ParallelExecutor::Task* currentTask;
+    int currentTaskCount;
+    int waitingThreadCount;
+};
 
 } // namespace SimTK
+
+#endif // SimTK_SimTKCOMMON_PARALLEL_EXECUTOR_IMPL_H_

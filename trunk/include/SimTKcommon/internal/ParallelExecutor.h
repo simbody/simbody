@@ -36,7 +36,14 @@
 
 namespace SimTK {
 
+class ParallelExecutor;
 class ParallelExecutorImpl;
+
+// We only want the template instantiation to occur once. This symbol is defined in the SimTK core
+// compilation unit that defines the ParallelExecutor class but should not be defined any other time.
+#ifndef SimTK_SIMTKCOMMON_DEFINING_PARALLEL_EXECUTOR
+    extern template class PIMPLHandle<ParallelExecutor, ParallelExecutorImpl>;
+#endif
 
 /**
  * This class is used for performing multithreaded computations.  To use it, define a subclass of

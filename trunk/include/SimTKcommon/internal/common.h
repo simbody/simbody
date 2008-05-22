@@ -118,8 +118,15 @@
  */
 
 #ifdef WIN32
+    #ifdef _MSC_VER
+    #pragma warning(disable:4231) // need to use 'extern' template explicit instantiation
+    #endif
     #if defined(SimTK_SimTKCOMMON_BUILDING_SHARED_LIBRARY)
         #define SimTK_SimTKCOMMON_EXPORT __declspec(dllexport)
+        // Keep MS VC++ quiet when it tries to instantiate incomplete template classes in a DLL.
+        #ifdef _MSC_VER
+        #pragma warning(disable:4661)
+        #endif
     #elif defined(SimTK_SimTKCOMMON_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
         #define SimTK_SimTKCOMMON_EXPORT
     #else
