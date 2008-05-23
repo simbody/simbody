@@ -84,7 +84,7 @@ public:
     void incrementWaitingThreads();
 private:
     bool finished;
-    pthread_mutex_t runLock;
+    pthread_mutex_t runLock, waitLock;
     pthread_cond_t runCondition, waitCondition;
     std::vector<pthread_t> threads;
     std::vector<ThreadInfo*> threadInfo;

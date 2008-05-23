@@ -46,6 +46,7 @@ ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
     
     threads.resize(numThreads);
     pthread_mutex_init(&runLock, NULL);
+    pthread_mutex_init(&waitLock, NULL);
     pthread_cond_init(&runCondition, NULL);
     pthread_cond_init(&waitCondition, NULL);
     for (int i = 0; i < numThreads; ++i) {
@@ -68,6 +69,13 @@ ParallelExecutorImpl::~ParallelExecutorImpl() {
     
     for (int i = 0; i < (int) threads.size(); ++i)
         pthread_join(threads[i], NULL);
+    
+    // Clean up threading related objects.
+    
+    pthread_mutex_destroy(&runLock);
+    pthread_mutex_destroy(&waitLock);
+    pthread_cond_destroy(&runCondition);
+    pthread_cond_destroy(&waitCondition);
 }
 ParallelExecutorImpl* ParallelExecutorImpl::clone() const {
     return new ParallelExecutorImpl(threads.size());
@@ -90,22 +98,24 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
     waitingThreadCount = 0;
     for (int i = 0; i < (int) threadInfo.size(); ++i)
         threadInfo[i]->running = true;
-    
+
     // Wake up the worker threads and wait until they finish.
     
     pthread_cond_broadcast(&runCondition);
-    do {
-        pthread_cond_wait(&waitCondition, &runLock);
-    } while (waitingThreadCount < (int) threads.size());
     pthread_mutex_unlock(&runLock);
+    pthread_mutex_lock(&waitLock);
+    do {
+        pthread_cond_wait(&waitCondition, &waitLock);
+    } while (waitingThreadCount < (int) threads.size());
+    pthread_mutex_unlock(&waitLock);
 }
 void ParallelExecutorImpl::incrementWaitingThreads() {
-    pthread_mutex_lock(&runLock);
+    pthread_mutex_lock(&waitLock);
     waitingThreadCount++;
     if (waitingThreadCount == threads.size()) {
         pthread_cond_signal(&waitCondition);
     }
-    pthread_mutex_unlock(&runLock);
+    pthread_mutex_unlock(&waitLock);
 }
 
 /**
