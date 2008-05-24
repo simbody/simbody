@@ -100,8 +100,8 @@ Parallel2DExecutorImpl* Parallel2DExecutorImpl::clone() const {
 
 class Parallel2DExecutorImpl::TriangleTask : public ParallelExecutor::Task {
 public:
-    TriangleTask(const Parallel2DExecutorImpl& executor, Parallel2DExecutor::Task& task, Parallel2DExecutor::RangeType rangeType) :
-        executor(executor), task(task), rangeType(rangeType) {
+    TriangleTask(const Parallel2DExecutorImpl& executor, Parallel2DExecutor::Task& task, Parallel2DExecutor::RangeType rangeType, bool shouldInitialize, bool shouldFinish) :
+        executor(executor), task(task), rangeType(rangeType), shouldInitialize(shouldInitialize), shouldFinish(shouldFinish) {
     }
     void execute(int index) {
         int start = executor.getBinStart(index);
@@ -124,16 +124,25 @@ public:
             return;
         }
     }
+    void initialize() {
+        if (shouldInitialize)
+            task.initialize();
+    }
+    void finish() {
+        if (shouldFinish)
+            task.finish();
+    }
 private:
     const Parallel2DExecutorImpl& executor;
     Parallel2DExecutor::Task& task;
     const Parallel2DExecutor::RangeType rangeType;
+    bool shouldInitialize, shouldFinish;
 };
 
 class Parallel2DExecutorImpl::SquareTask : public ParallelExecutor::Task {
 public:
-    SquareTask(const Parallel2DExecutorImpl& executor, Parallel2DExecutor::Task& task, const vector<pair<int,int> >& squares, Parallel2DExecutor::RangeType rangeType) :
-        executor(executor), task(task), squares(squares), rangeType(rangeType) {
+    SquareTask(const Parallel2DExecutorImpl& executor, Parallel2DExecutor::Task& task, const vector<pair<int,int> >& squares, Parallel2DExecutor::RangeType rangeType, bool shouldInitialize, bool shouldFinish) :
+        executor(executor), task(task), squares(squares), rangeType(rangeType), shouldInitialize(shouldInitialize), shouldFinish(shouldFinish) {
     }
     void execute(int index) {
         const pair<int,int>& square = squares[index];
@@ -157,29 +166,40 @@ public:
             return;
         }
     }
+    void initialize() {
+        if (shouldInitialize)
+            task.initialize();
+    }
+    void finish() {
+        if (shouldFinish)
+            task.finish();
+    }
 private:
     const Parallel2DExecutorImpl& executor;
     Parallel2DExecutor::Task& task;
     const vector<pair<int,int> >& squares;
     const Parallel2DExecutor::RangeType rangeType;
+    bool shouldInitialize, shouldFinish;
 };
 
 void Parallel2DExecutorImpl::execute(Parallel2DExecutor::Task& task, Parallel2DExecutor::RangeType rangeType) {
     if (executor == 0) {
-        TriangleTask(*this, task, rangeType).execute(0);
+        task.initialize();
+        TriangleTask(*this, task, rangeType, false, false).execute(0);
+        task.finish();
         return;
     }
     int bins = binStart.size()-1;
     
     // Execute the blocks along the diagonal.
     
-    TriangleTask triangle(*this, task, rangeType);
+    TriangleTask triangle(*this, task, rangeType, true, false);
     executor->execute(triangle, bins);
     
     // Execute the square blocks in a series of passes.
     
     for (int i = 0; i < squares.size(); ++i) {
-        SquareTask square(*this, task, squares[i], rangeType);
+        SquareTask square(*this, task, squares[i], rangeType, false, i == squares.size()-1);
         executor->execute(square, squares[i].size());
     }
 }

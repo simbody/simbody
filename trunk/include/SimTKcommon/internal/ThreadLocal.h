@@ -1,5 +1,8 @@
+#ifndef SimTK_SimTKCOMMON_THREAD_LOCAL_H_
+#define SimTK_SimTKCOMMON_THREAD_LOCAL_H_
+
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTKcommon                               *
+ *                      SimTK Core: SimTK Simbody(tm)                         *
  * -------------------------------------------------------------------------- *
  * This is part of the SimTK Core biosimulation toolkit originating from      *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
@@ -29,76 +32,72 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon.h"
+#include <pthread.h>
 
-#include <iostream>
-#include <vector>
+namespace SimTK {
 
-#define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
+template <class T>
+static void cleanUpThreadLocalStorage(void* value) {
+    if (value != NULL) {
+        T* t = reinterpret_cast<T*>(value);
+        delete t;
+    }
+}
 
-using std::cout;
-using std::endl;
-using namespace SimTK;
-using namespace std;
+/**
+ * This class represents a "thread local" variable: one which has a different value on each thread.
+ * This is useful in many situations when writing multithreaded code.  For example, it can be used
+ * as temporary workspace for calculations.  If a single workspace object were created, all access
+ * to it would need to be synchronized to prevent threads from overwriting each other's values.
+ * Using a ThreadLocal instead means that a separate workspace object will automatically be created
+ * for each thread.
+ * 
+ * To use it, simply create a ThreadLocal, then call get() or upd() to get a readable or writable
+ * reference to the value for the current thread:
+ * 
+ * <pre>
+ * ThreadLocal<int> x;
+ * ...
+ * x.upd() = 5;
+ * assert(x.get() == 5);
+ * </pre>
+ */
 
-class SetFlagTask : public ParallelExecutor::Task {
+template <class T>
+class ThreadLocal {
 public:
-    SetFlagTask(vector<int>& flags, int& count) : flags(flags), count(count) {
+    ThreadLocal() {
+        pthread_key_create(&key, cleanUpThreadLocalStorage<T>);
     }
-    void execute(int index) {
-        flags[index]++;
-        localCount.upd()++;
+    ~ThreadLocal() {
+        pthread_key_delete(key);
     }
-    void initialize() {
-        localCount.upd() = 0;
+    /**
+     * Get a reference to the value for the current thread.
+     */
+    T& upd() {
+        T* value = reinterpret_cast<T*>(pthread_getspecific(key));
+        if (value == NULL) {
+            value = new T();
+            pthread_setspecific(key, value);
+        }
+        return *value;
     }
-    void finish() {
-        count += localCount.get();
+    /**
+     * Get a const reference to the value for the current thread.
+     */
+    const T& get() const {
+        T* value = reinterpret_cast<T*>(pthread_getspecific(key));
+        if (value == NULL) {
+            value = new T();
+            pthread_setspecific(key, value);
+        }
+        return *value;
     }
 private:
-    vector<int>& flags;
-    int& count;
-    ThreadLocal<int> localCount;
+    pthread_key_t key;
 };
 
-void testParallelExecution() {
-    const int numFlags = 100;
-    vector<int> flags(numFlags);
-    ParallelExecutor executor;
-    for (int i = 0; i < 100; ++i) {
-        int count = 0;
-        SetFlagTask task(flags, count);
-        for (int j = 0; j < numFlags; ++j)
-            flags[j] = 0;
-        executor.execute(task, numFlags-10);
-        ASSERT(count == numFlags-10);
-        for (int j = 0; j < numFlags; ++j)
-            ASSERT(flags[j] == (j < numFlags-10 ? 1 : 0));
-    }
-}
+} // namespace SimTK
 
-void testSingleThreadedExecution() {
-    const int numFlags = 100;
-    vector<int> flags(numFlags);
-    ParallelExecutor executor(1); // Specify only a single thread.
-    int count = 0;
-    SetFlagTask task(flags, count);
-    for (int j = 0; j < numFlags; ++j)
-        flags[j] = 0;
-    executor.execute(task, numFlags-10);
-    ASSERT(count == numFlags-10);
-    for (int j = 0; j < numFlags; ++j)
-        ASSERT(flags[j] == (j < numFlags-10 ? 1 : 0));
-}
-
-int main() {
-    try {
-        testParallelExecution();
-        testSingleThreadedExecution();
-    } catch(const std::exception& e) {
-        cout << "exception: " << e.what() << endl;
-        return 1;
-    }
-    cout << "Done" << endl;
-    return 0;
-}
+#endif // SimTK_SimTKCOMMON_THREAD_LOCAL_H_

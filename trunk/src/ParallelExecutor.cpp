@@ -85,8 +85,10 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
         // Nothing is actually going to get done in parallel, so we might as well
         // just execute the task directly and save the threading overhead.
         
+        task.initialize();
         for (int i = 0; i < times; ++i)
             task.execute(i);
+        task.finish();
         return;
     }
     
@@ -111,6 +113,7 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
 }
 void ParallelExecutorImpl::incrementWaitingThreads() {
     pthread_mutex_lock(&waitLock);
+    getCurrentTask().finish();
     waitingThreadCount++;
     if (waitingThreadCount == threads.size()) {
         pthread_cond_signal(&waitCondition);
@@ -141,6 +144,7 @@ void* threadBody(void* args) {
             
             int count = executor.getCurrentTaskCount();
             ParallelExecutor::Task& task = executor.getCurrentTask();
+            task.initialize();
             int index = info.index;
             while (index < count) {
                 task.execute(index);

@@ -43,13 +43,22 @@ using namespace std;
 
 class SetFlagTask : public Parallel2DExecutor::Task {
 public:
-    SetFlagTask(vector<vector<int> >& flags) : flags(flags) {
+    SetFlagTask(vector<vector<int> >& flags, int& count) : flags(flags), count(count) {
     }
     void execute(int i, int j) {
         flags[i][j]++;
+        localCount.upd()++;
+    }
+    void initialize() {
+        localCount.upd() = 0;
+    }
+    void finish() {
+        count += localCount.get();
     }
 private:
     vector<vector<int> >& flags;
+    int& count;
+    ThreadLocal<int> localCount;
 };
 
 void clearFlags(vector<vector<int> >& flags) {
@@ -65,24 +74,32 @@ void testParallelExecution() {
     int numFlags = 100;
     Parallel2DExecutor executor(numFlags);
     vector<vector<int> > flags(numFlags);
-    SetFlagTask task(flags);
     clearFlags(flags);
     for (int iter = 0; iter < 100; ++iter) {
+        int count = 0;
+        SetFlagTask task(flags, count);
         executor.execute(task, Parallel2DExecutor::FullMatrix);
+        ASSERT(count == numFlags*numFlags);
         for (int i = 0; i < numFlags; ++i)
             for (int j = 0; j < numFlags; ++j)
                 ASSERT(flags[i][j] == iter+1);
     }
     clearFlags(flags);
     for (int iter = 0; iter < 100; ++iter) {
+        int count = 0;
+        SetFlagTask task(flags, count);
         executor.execute(task, Parallel2DExecutor::HalfMatrix);
+        ASSERT(count == numFlags*(numFlags-1)/2);
         for (int i = 0; i < numFlags; ++i)
             for (int j = 0; j < numFlags; ++j)
                 ASSERT(flags[i][j] == (j < i ? iter+1 : 0));
     }
     clearFlags(flags);
     for (int iter = 0; iter < 100; ++iter) {
+        int count = 0;
+        SetFlagTask task(flags, count);
         executor.execute(task, Parallel2DExecutor::HalfPlusDiagonal);
+        ASSERT(count == numFlags*(numFlags+1)/2);
         for (int i = 0; i < numFlags; ++i)
             for (int j = 0; j < numFlags; ++j)
                 ASSERT(flags[i][j] == (j <= i ? iter+1 : 0));
@@ -93,19 +110,25 @@ void testSingleThreadedExecution() {
     int numFlags = 100;
     Parallel2DExecutor executor(numFlags, 1);
     vector<vector<int> > flags(numFlags);
-    SetFlagTask task(flags);
+    int count = 0;
+    SetFlagTask task(flags, count);
     clearFlags(flags);
     executor.execute(task, Parallel2DExecutor::FullMatrix);
+    ASSERT(count == numFlags*numFlags);
     for (int i = 0; i < numFlags; ++i)
         for (int j = 0; j < numFlags; ++j)
             ASSERT(flags[i][j] == 1);
+    count = 0;
     clearFlags(flags);
     executor.execute(task, Parallel2DExecutor::HalfMatrix);
+    ASSERT(count == numFlags*(numFlags-1)/2);
     for (int i = 0; i < numFlags; ++i)
         for (int j = 0; j < numFlags; ++j)
             ASSERT(flags[i][j] == (j < i ? 1 : 0));
+    count = 0;
     clearFlags(flags);
     executor.execute(task, Parallel2DExecutor::HalfPlusDiagonal);
+    ASSERT(count == numFlags*(numFlags+1)/2);
     for (int i = 0; i < numFlags; ++i)
         for (int j = 0; j < numFlags; ++j)
             ASSERT(flags[i][j] == (j <= i ? 1 : 0));

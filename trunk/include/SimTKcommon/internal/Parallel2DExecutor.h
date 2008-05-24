@@ -114,6 +114,19 @@ public:
      * method, this method will be called in parallel for each allowed value of i and j.
      */
     virtual void execute(int i, int j) = 0;
+    /**
+     * This method is invoked once by each worker thread before the task is executed.  This can be used to
+     * initialize thread-local storage.
+     */
+    virtual void initialize() {
+    }
+    /**
+     * This method is invoked once by each worker thread after all invocations of the task on that thread are complete.
+     * This can be used to clean up thread-local storage, or to record per-thread results.  All calls to this method
+     * are synchronized, so it can safely write to global variables without danger of interference between worker threads.
+     */
+    virtual void finish() {
+    }
 };
 
 } // namespace SimTK
