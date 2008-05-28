@@ -41,6 +41,8 @@ using std::endl;
 using namespace SimTK;
 using namespace std;
 
+bool isParallel;
+
 class SetFlagTask : public ParallelExecutor::Task {
 public:
     SetFlagTask(vector<int>& flags, int& count) : flags(flags), count(count) {
@@ -48,12 +50,15 @@ public:
     void execute(int index) {
         flags[index]++;
         localCount.upd()++;
+        ASSERT(ParallelExecutor::isWorkerThread() == isParallel);
     }
     void initialize() {
         localCount.upd() = 0;
+        ASSERT(ParallelExecutor::isWorkerThread() == isParallel);
     }
     void finish() {
         count += localCount.get();
+        ASSERT(ParallelExecutor::isWorkerThread() == isParallel);
     }
 private:
     vector<int>& flags;
@@ -64,7 +69,9 @@ private:
 void testParallelExecution() {
     const int numFlags = 100;
     vector<int> flags(numFlags);
+    isParallel = (ParallelExecutor::getNumProcessors() > 1);
     ParallelExecutor executor;
+    ASSERT(!ParallelExecutor::isWorkerThread());
     for (int i = 0; i < 100; ++i) {
         int count = 0;
         SetFlagTask task(flags, count);
@@ -75,11 +82,13 @@ void testParallelExecution() {
         for (int j = 0; j < numFlags; ++j)
             ASSERT(flags[j] == (j < numFlags-10 ? 1 : 0));
     }
+    ASSERT(!ParallelExecutor::isWorkerThread());
 }
 
 void testSingleThreadedExecution() {
     const int numFlags = 100;
     vector<int> flags(numFlags);
+    isParallel = false;
     ParallelExecutor executor(1); // Specify only a single thread.
     int count = 0;
     SetFlagTask task(flags, count);

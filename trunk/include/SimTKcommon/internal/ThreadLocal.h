@@ -66,7 +66,18 @@ static void cleanUpThreadLocalStorage(void* value) {
 template <class T>
 class ThreadLocal {
 public:
+    /**
+     * Create a new ThreadLocal variable.
+     */
     ThreadLocal() {
+        pthread_key_create(&key, cleanUpThreadLocalStorage<T>);
+    }
+    /**
+     * Create a new ThreadLocal variable.
+     * 
+     * @param defaultValue the initial value which the variable will have on each thread
+     */
+    ThreadLocal(const T& defaultValue) : defaultValue(defaultValue) {
         pthread_key_create(&key, cleanUpThreadLocalStorage<T>);
     }
     ~ThreadLocal() {
@@ -78,7 +89,7 @@ public:
     T& upd() {
         T* value = reinterpret_cast<T*>(pthread_getspecific(key));
         if (value == NULL) {
-            value = new T();
+            value = new T(defaultValue);
             pthread_setspecific(key, value);
         }
         return *value;
@@ -89,13 +100,14 @@ public:
     const T& get() const {
         T* value = reinterpret_cast<T*>(pthread_getspecific(key));
         if (value == NULL) {
-            value = new T();
+            value = new T(defaultValue);
             pthread_setspecific(key, value);
         }
         return *value;
     }
 private:
     pthread_key_t key;
+    T defaultValue;
 };
 
 } // namespace SimTK

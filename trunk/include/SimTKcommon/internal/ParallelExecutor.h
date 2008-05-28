@@ -91,6 +91,10 @@ public:
      * Get the number of available processor cores.
      */
     static int getNumProcessors();
+    /**
+     * Determine whether the thread invoking this method is a worker thread created by ParallelExecutor.
+     */
+    static bool isWorkerThread();
 };
 
 /**

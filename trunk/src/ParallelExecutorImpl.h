@@ -33,6 +33,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon/internal/ParallelExecutor.h"
+#include "SimTKcommon/internal/ThreadLocal.h"
 #include <pthread.h>
 #include <vector>
 
@@ -82,6 +83,7 @@ public:
         return &runCondition;
     }
     void incrementWaitingThreads();
+    static ThreadLocal<bool> isWorker;
 private:
     bool finished;
     pthread_mutex_t runLock, waitLock;
