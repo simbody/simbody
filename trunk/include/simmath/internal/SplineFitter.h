@@ -96,7 +96,7 @@ public:
         Vector_<Vec<N> > coeff;
         Vector wk;
         int ier;
-        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), Vec3(1.0), degree, 2, 0, coeff, wk, ier);
+        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), Vec<N>(1.0), degree, 2, 0, coeff, wk, ier);
         return SplineFitter<N>(new SplineFitterImpl(degree, Spline<N>(degree, x, coeff), wk[3], wk[4], wk[2]));
     }
     /**
@@ -111,7 +111,7 @@ public:
         Vector_<Vec<N> > coeff;
         Vector wk;
         int ier;
-        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), Vec3(1.0), degree, 3, error, coeff, wk, ier);
+        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), Vec<N>(1.0), degree, 3, error, coeff, wk, ier);
         return SplineFitter<N>(new SplineFitterImpl(degree, Spline<N>(degree, x, coeff), wk[3], wk[4], wk[2]));
     }
     /**
@@ -127,7 +127,7 @@ public:
         Vector_<Vec<N> > coeff;
         Vector wk;
         int ier;
-        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), Vec3(1.0), degree, 4, dof, coeff, wk, ier);
+        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), Vec<N>(1.0), degree, 4, dof, coeff, wk, ier);
         return SplineFitter<N>(new SplineFitterImpl(degree, Spline<N>(degree, x, coeff), wk[3], wk[4], wk[2]));
     }
     /**
@@ -142,7 +142,7 @@ public:
         Vector_<Vec<N> > coeff;
         Vector wk;
         int ier;
-        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), Vec3(1.0), degree, 1, p, coeff, wk, ier);
+        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), Vec<N>(1.0), degree, 1, p, coeff, wk, ier);
         return SplineFitter<N>(new SplineFitterImpl(degree, Spline<N>(degree, x, coeff), wk[3], wk[4], wk[2]));
     }
     /**

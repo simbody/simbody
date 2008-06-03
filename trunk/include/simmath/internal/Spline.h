@@ -61,15 +61,20 @@ public:
     Spline(const Spline& copy) : impl(copy.impl) {
         impl->referenceCount++;
     }
+    Spline() : impl(NULL) {
+    }
     Spline& operator=(const Spline& copy) {
         impl = copy.impl;
+        assert(impl);
         impl->referenceCount++;
         return *this;
     }
     ~Spline() {
-        impl->referenceCount--;
-        if (impl->referenceCount == 0)
-            delete impl;
+        if (impl) {
+            impl->referenceCount--;
+            if (impl->referenceCount == 0)
+                delete impl;
+        }
     }
     /**
      * Calculate the values of the dependent variables at a particular value of the independent variable.
@@ -77,6 +82,7 @@ public:
      * @param x a Vector of length 1 containing the value of the independent variable.
      */
     Vec<N> calcValue(const Vector& x) const {
+        assert(impl);
         assert(x.size() == 1);
         return impl->getValue(x[0]);
     }
@@ -86,6 +92,7 @@ public:
      * length determines the order of the derivative to calculate.
      */
     Vec<N> calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const {
+        assert(impl);
         assert(x.size() == 1);
         assert(derivComponents.size() > 0);
         return impl->getDerivative(derivComponents.size(), x[0]);
@@ -100,23 +107,25 @@ public:
      * Get the locations (that is, the values of the independent variable) of the control points.
      */
     const Vector& getControlPointLocations() const {
+        assert(impl);
         return impl->x;
     }
     /**
      * Get the values of the dependent variables at the control points.
      */
     const Vector_<Vec<N> >& getControlPointValues() const {
+        assert(impl);
         return impl->y;
     }
     /**
      * Get the degree of the spline.
      */
     int getSplineDegree() const {
+        assert(impl);
         return impl->degree;
     }
 private:
     class SplineImpl;
-    Spline();
     SplineImpl* impl;
 };
 
