@@ -60,6 +60,7 @@ namespace SimTK {
 
 class SimTK_SimTKCOMMON_EXPORT EventReporter {
 public:
+    virtual ~EventReporter();
     
     /**
      * This method is invoked to handle the event.  It is given a State which describes the

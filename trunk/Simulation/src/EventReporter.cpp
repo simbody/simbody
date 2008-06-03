@@ -36,6 +36,9 @@
 
 namespace SimTK {
 
+EventReporter::~EventReporter() {
+}
+
 class TriggeredEventReporter::TriggeredEventReporterImpl {
 public:
     TriggeredEventReporterImpl(Stage requiredStage) : requiredStage(requiredStage) {

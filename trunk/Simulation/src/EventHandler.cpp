@@ -36,6 +36,9 @@
 
 namespace SimTK {
 
+EventHandler::~EventHandler() {
+}
+
 class TriggeredEventHandler::TriggeredEventHandlerImpl {
 public:
     TriggeredEventHandlerImpl(Stage requiredStage) : requiredStage(requiredStage) {
