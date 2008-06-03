@@ -86,7 +86,7 @@ public:
     static ThreadLocal<bool> isWorker;
 private:
     bool finished;
-    pthread_mutex_t runLock, waitLock;
+    pthread_mutex_t runLock;
     pthread_cond_t runCondition, waitCondition;
     std::vector<pthread_t> threads;
     std::vector<ThreadInfo*> threadInfo;
