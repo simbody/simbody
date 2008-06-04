@@ -51,18 +51,16 @@ public:
         setNumEqualityConstraints(state.getNQErr());
     }
     int objectiveFunc(const Vector& parameters, const bool new_parameters, Real& f) const {
-        if (new_parameters) {
+        if (new_parameters)
             state.updQ() = parameters;
-            system.realize(state, Stage::Dynamics);
-        }
+        system.realize(state, Stage::Dynamics);
         f = system.calcEnergy(state);
         return 0;
     }
     int gradientFunc(const Vector &parameters, const bool new_parameters, Vector &gradient) const  {
-        if (new_parameters) {
+        if (new_parameters)
             state.updQ() = parameters;
-            system.realize(state, Stage::Dynamics);
-        }
+        system.realize(state, Stage::Dynamics);
         Vector_<SpatialVec> dEdR = system.getRigidBodyForces(state, Stage::Dynamics);
         const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
         Vector dEdU;
