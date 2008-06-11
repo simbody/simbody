@@ -173,5 +173,5 @@ bool AtomicInteger::operator!=(int value) const {
 
 std::ostream& SimTK::operator<<(std::ostream& stream, const AtomicInteger& value) {
     int i = value;
-    stream << i;
+    return stream << i;
 }

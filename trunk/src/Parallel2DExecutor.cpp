@@ -198,7 +198,7 @@ void Parallel2DExecutorImpl::execute(Parallel2DExecutor::Task& task, Parallel2DE
     
     // Execute the square blocks in a series of passes.
     
-    for (int i = 0; i < squares.size(); ++i) {
+    for (int i = 0; i < (int)squares.size(); ++i) {
         SquareTask square(*this, task, squares[i], rangeType, false, i == squares.size()-1);
         executor->execute(square, squares[i].size());
     }
