@@ -1623,7 +1623,7 @@ private:
 			Mat33 Wdot(Vec3(0), V1[0]%(Vec3::getAs(&W(0,1))), V2[0]%(Vec3::getAs(&W(0,2))));
 			
 			//Sanity check Omega == V[0]
-			Mat31 Omega = W*(Fq.getSubMat<3,N>(0,0))*(Mat<N,1>::getAs(up));
+			Mat31 Omega = W*(Fq.template getSubMat<3,N>(0,0))*(Mat<N,1>::getAs(up));
 
 			Mat31 temp;
 			for(int i=0; i < N; i++){
