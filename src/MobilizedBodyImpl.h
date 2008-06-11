@@ -1478,6 +1478,8 @@ private:
 			// Build the Fq and Fqq matrices of partials of the spatial functions with respect to the gen coordinates, q	
 			// Cycle through each row (function describing spatial coordinate)
 			Fq = Mat<6,N>(0);
+			Vec6 spatialCoords(0);
+
 			for(int i=0; i < 6; i++){
 				// Determine the number of coordinates for this function
 				int nc = coordIndices[i].size();
@@ -1504,24 +1506,34 @@ private:
 						// check if the function for the current spatial coordinate is dependent on this mobility
 						if (isDependentOn[j]){
 							// if so take the partial of the function with respect to this (j) mobility 
-							std::vector<int> deriv(1,j);													
+							std::vector<int> deriv(1,j);
+							if(functions[i]->getArgumentSize() == 1)
+								deriv[0] = 0;
 							Fq(i,j) = functions[i]->calcDerivative(deriv, fcoords)[0];
 						}
 						else{
 							Fq(i,j) = 0.0;
 						}
 					}
+
+					//default behavior of constant function should take a Vector of length 0
+					spatialCoords(i) = (functions[i]->calcValue(fcoords))[0];
 				}
+
 			}
 			// Note rotations are body fixed sequences, and so taking the derivative yields a body-fixed angular velocity
 			// and therefore, must be transformed to the parent frame.
 
-			// omega = [R_FM]*[A]*{Theta_dot(q)}, where Theta_dot(q) is described by the first three functions
-			//       = [R_FM]*[A]*[Fq_theta]*qdot
+			// omega = [a1, R_F1*a2, R_F2*a3]*{Theta_dot(q)}, where Theta_dot(q) is described by the first three functions
+			//       = [W*[Fq_theta]*qdot
 			// vel = [A]*{X_dot(q)}, where X_dot(q) is described by the last three functions
-			//     = [A]*[Fq_x](
+			//     = [A]*[Fq_x]*qdot
+			
+			Rotation R_F1 = Rotation(spatialCoords(0), UnitVec3::getAs(&Arot(0,0)));
+			Rotation R_F2 = R_F1*Rotation(spatialCoords(1), UnitVec3::getAs(&Arot(0,1)));
+
 			Mat31 temp;
-			Mat33 W = X_FM.R()*Arot;
+			Mat33 W(UnitVec3::getAs(&Arot(0,0)), R_F1*(UnitVec3::getAs(&Arot(0,1))), R_F2*(UnitVec3::getAs(&Arot(0,2))));
 
 			for(int i=0; i < N; i++){
 				temp = W*(Fq.template getSubMat<3,1>(0,i));
@@ -1534,14 +1546,16 @@ private:
 		void buildHdot(Vector& q, Vector& u, const Transform& X_FM, const std::vector<Function<1>*> functions, const std::vector<std::vector<int> > coordIndices, const Mat33 Arot, const Mat33 Atrans)
 		{
 			Mat<6,N> Fqdot(0);
+			Vec6 spatialCoords;
+
 			for(int i=0; i < 6; i++){
 				// Determine the number of coordinates for this function
 				int nc = coordIndices[i].size();
 				int j; // mobility counter
-
+				// spatial coord is a function of this subset of q's
+				Vector fcoords(nc); 
+				
 				if (nc > 0) {
-					// spatial coord is a function of this subset of q's
-					Vector fcoords(nc); 
 					// for each mobility, we will identify if the function is dependent on it 
 					std::vector<bool> isDependentOn(N,false);
 					int k;
@@ -1578,17 +1592,38 @@ private:
 						}
 					}
 				}
+				//default behavior of constant function should take a Vector of length 0
+				spatialCoords(i) = (functions[i]->calcValue(fcoords))[0];
 			}
 
-			// Hdot_theta = [(omega x R)*[A]*[Fq] + [R][A][Fqdot]
+			Rotation R_F1 = Rotation(spatialCoords(0), UnitVec3::getAs(&Arot(0,0)));
+			Rotation R_F2 = R_F1*Rotation(spatialCoords(1), UnitVec3::getAs(&Arot(0,1)));
+
+			Mat33 W(UnitVec3::getAs(&Arot(0,0)), R_F1*(UnitVec3::getAs(&Arot(0,1))), R_F2*(UnitVec3::getAs(&Arot(0,2))));
+
+			// Hdot_theta = [Wdot]*[Fq] + [W][Fqdot]
 			// Hdot_x = [A]*[Fqdot]
 			Real *up = &u[0];
 			Vec<N> uv = Vec<N>::getAs(up);
+			Vec<N> uv1 = uv;
+			Vec<N> uv2 = uv;
+			
+			for(int i=1; i < N; i++){
+				uv1(i) = 0;
+			}
+			if(N > 2)
+				uv2(2) = 0;
+
 			// Spatial velocity
 			SpatialVec V = h*uv;
-			Mat33 W = X_FM.R()*Arot; //theis is [R][A]
-			// First eelement of V is angular velocity, omega
-			Mat33 Wdot = crossMat(V[0])*W;
+			SpatialVec V1 = h*uv1;
+			SpatialVec V2 = h*uv2;
+			// First V[0] is angular velocity, omega
+			//Mat33 Wdot(Vec3(0), Vec3(V[0](0),0,0)%(Vec3::getAs(&W(0,1))), Vec3(V[0](0),V[0](1),0)%(Vec3::getAs(&W(0,2))));
+			Mat33 Wdot(Vec3(0), V1[0]%(Vec3::getAs(&W(0,1))), V2[0]%(Vec3::getAs(&W(0,2))));
+			
+			//Sanity check Omega == V[0]
+			Mat31 Omega = W*(Fq.getSubMat<3,N>(0,0))*(Mat<N,1>::getAs(up));
 
 			Mat31 temp;
 			for(int i=0; i < N; i++){
