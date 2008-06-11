@@ -30,9 +30,9 @@
  * -------------------------------------------------------------------------- */
 
 #include <cassert>
-#include <pthread.h>
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/internal/Random.h"
+#include "SimTKcommon/internal/AtomicInteger.h"
 #include "SFMT.h"
 using namespace SimTK_SFMT;
 
@@ -48,8 +48,7 @@ private:
     static const int bufferSize = 1024;
     mutable uint64_t buffer[bufferSize];
     mutable int nextIndex;
-    static int nextSeed;
-    static pthread_mutex_t seedLock;
+    static AtomicInteger nextSeed;
 public:
     class UniformImpl;
     class GaussianImpl;
@@ -57,24 +56,13 @@ public:
     RandomImpl() {
         sfmt = createSFMTData();
         nextIndex = bufferSize;
-        init_gen_rand(getNextSeed(), *sfmt);
+        init_gen_rand(++nextSeed, *sfmt);
     }
 
     virtual ~RandomImpl() {
         deleteSFMTData(sfmt);
     }
     
-    /**
-     * Find the next seed value with which a newly created Random should be initialized.
-     */
-    
-    static int getNextSeed() {
-        pthread_mutex_lock(&seedLock);
-        int seed = nextSeed++;
-        pthread_mutex_unlock(&seedLock);
-        return seed;
-    }
-
     virtual void setSeed(int seed) {
         nextIndex = bufferSize;
         init_gen_rand(seed, *sfmt);
@@ -102,8 +90,7 @@ public:
     }
 };
 
-int Random::RandomImpl::nextSeed = 0;
-pthread_mutex_t Random::RandomImpl::seedLock = PTHREAD_MUTEX_INITIALIZER;
+AtomicInteger Random::RandomImpl::nextSeed = 0;
 
 /**
  * This is the private implementation class for uniform random numbers.

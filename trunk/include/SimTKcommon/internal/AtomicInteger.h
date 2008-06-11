@@ -38,15 +38,15 @@ namespace SimTK {
 
 /**
  * This class functions exactly like an int, except that the following operators are atomic:
- * ++, --, +=, -=, *=, and /=.  For example, suppose myInt is an AtomicInteger that initially
- * has the value 5.  If two threads both evaluate the expression ++myInt, it is guaranteed
+ * ++, --, +=, -=, *=, /=, %=, &=, |=, ^=, <<=, and >>=.  For example, suppose myInt is an AtomicInteger
+ * that initially has the value 5.  If two threads both evaluate the expression ++myInt, it is guaranteed
  * that one thread will get the value 6 and the other will get the value 7, and myInt will
  * equal 7 afterward.  This would not be true for an ordinary int.
  * 
  * On most processors, this form of thread-safety can be implemented in a lightweight way
  * which is much faster than acquiring a lock.  When possible, this class uses these mechanisms
- * to achieve maximum efficiency.  On platforms that do not support atomic operations directly,
- * it uses locking which is slower, but still guaranteed to produce a correct result.
+ * to achieve maximum efficiency.  On platforms that do not support atomic operations directly
+ * it uses locking, which is slower but still guaranteed to produce a correct result.
  */
 
 class SimTK_SimTKCOMMON_EXPORT AtomicInteger {
@@ -64,6 +64,12 @@ public:
     AtomicInteger& operator-=(int value);
     AtomicInteger& operator*=(int value);
     AtomicInteger& operator/=(int value);
+    AtomicInteger& operator%=(int value);
+    AtomicInteger& operator&=(int value);
+    AtomicInteger& operator|=(int value);
+    AtomicInteger& operator^=(int value);
+    AtomicInteger& operator<<=(int value);
+    AtomicInteger& operator>>=(int value);
     bool operator==(int value) const;
     bool operator!=(int value) const;
 private:

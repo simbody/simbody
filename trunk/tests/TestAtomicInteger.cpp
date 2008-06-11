@@ -64,6 +64,19 @@ void testOperators() {
     ASSERT(a == -5);
     int i = a;
     ASSERT(i == -5);
+    a = 3;
+    a |= 4;
+    ASSERT(a = 7);
+    a &= 13;
+    ASSERT(a == 5);
+    a ^= 12;
+    ASSERT(a == 9);
+    a %= 7;
+    ASSERT(a == 2);
+    a <<= 2;
+    ASSERT(a == 8);
+    a >>= 1;
+    ASSERT(a == 4);
 }
 
 void testParallelExecution() {
@@ -112,6 +125,25 @@ void testParallelExecution() {
         index = 0;
         executor.execute(task, 5000);
         ASSERT(index == 10000);
+    }
+    
+    // See if the *= operator is properly atomic.
+    
+    class MultiplyTask : public ParallelExecutor::Task {
+    public:
+        MultiplyTask(AtomicInteger& index) : index(index) {
+        }
+        void execute(int i) {
+            index *= (i%500 == 0 ? 2 : -1);
+        }
+    private:
+        AtomicInteger& index;
+    };
+    for (int i = 0; i < 100; ++i) {
+        MultiplyTask task(index);
+        index = 1;
+        executor.execute(task, 4999);
+        ASSERT(index == -1024);
     }
 }
 

@@ -58,38 +58,28 @@ AtomicInteger::operator int() const {
 }
 
 int AtomicInteger::operator++() {
-    gmx_atomic_add_return(reinterpret_cast<gmx_atomic_t*>(atomic), 1);
+    return gmx_atomic_add_return(reinterpret_cast<gmx_atomic_t*>(atomic), 1);
 }
 
 int AtomicInteger::operator++(int) {
-    gmx_atomic_fetch_add(reinterpret_cast<gmx_atomic_t*>(atomic), 1);
+    return gmx_atomic_fetch_add(reinterpret_cast<gmx_atomic_t*>(atomic), 1);
 }
 
 int AtomicInteger::operator--() {
-    gmx_atomic_add_return(reinterpret_cast<gmx_atomic_t*>(atomic), -1);
+    return gmx_atomic_add_return(reinterpret_cast<gmx_atomic_t*>(atomic), -1);
 }
 
 int AtomicInteger::operator--(int) {
-    gmx_atomic_fetch_add(reinterpret_cast<gmx_atomic_t*>(atomic), -1);
+    return gmx_atomic_fetch_add(reinterpret_cast<gmx_atomic_t*>(atomic), -1);
 }
 
 AtomicInteger& AtomicInteger::operator+=(int value) {
-    gmx_atomic_t* a = reinterpret_cast<gmx_atomic_t*>(atomic);
-    int oldvalue, newvalue;
-    do {
-        oldvalue = gmx_atomic_read(a);
-        newvalue = oldvalue+value;
-    } while (gmx_atomic_cmpxchg(a, oldvalue, newvalue) != oldvalue);
+    gmx_atomic_fetch_add(reinterpret_cast<gmx_atomic_t*>(atomic), value);
     return *this;
 }
 
 AtomicInteger& AtomicInteger::operator-=(int value) {
-    gmx_atomic_t* a = reinterpret_cast<gmx_atomic_t*>(atomic);
-    int oldvalue, newvalue;
-    do {
-        oldvalue = gmx_atomic_read(a);
-        newvalue = oldvalue-value;
-    } while (gmx_atomic_cmpxchg(a, oldvalue, newvalue) != oldvalue);
+    gmx_atomic_fetch_add(reinterpret_cast<gmx_atomic_t*>(atomic), -value);
     return *this;
 }
 
@@ -109,6 +99,66 @@ AtomicInteger& AtomicInteger::operator/=(int value) {
     do {
         oldvalue = gmx_atomic_read(a);
         newvalue = oldvalue/value;
+    } while (gmx_atomic_cmpxchg(a, oldvalue, newvalue) != oldvalue);
+    return *this;
+}
+
+AtomicInteger& AtomicInteger::operator%=(int value) {
+    gmx_atomic_t* a = reinterpret_cast<gmx_atomic_t*>(atomic);
+    int oldvalue, newvalue;
+    do {
+        oldvalue = gmx_atomic_read(a);
+        newvalue = oldvalue%value;
+    } while (gmx_atomic_cmpxchg(a, oldvalue, newvalue) != oldvalue);
+    return *this;
+}
+
+AtomicInteger& AtomicInteger::operator&=(int value) {
+    gmx_atomic_t* a = reinterpret_cast<gmx_atomic_t*>(atomic);
+    int oldvalue, newvalue;
+    do {
+        oldvalue = gmx_atomic_read(a);
+        newvalue = oldvalue&value;
+    } while (gmx_atomic_cmpxchg(a, oldvalue, newvalue) != oldvalue);
+    return *this;
+}
+
+AtomicInteger& AtomicInteger::operator|=(int value) {
+    gmx_atomic_t* a = reinterpret_cast<gmx_atomic_t*>(atomic);
+    int oldvalue, newvalue;
+    do {
+        oldvalue = gmx_atomic_read(a);
+        newvalue = oldvalue|value;
+    } while (gmx_atomic_cmpxchg(a, oldvalue, newvalue) != oldvalue);
+    return *this;
+}
+
+AtomicInteger& AtomicInteger::operator^=(int value) {
+    gmx_atomic_t* a = reinterpret_cast<gmx_atomic_t*>(atomic);
+    int oldvalue, newvalue;
+    do {
+        oldvalue = gmx_atomic_read(a);
+        newvalue = oldvalue^value;
+    } while (gmx_atomic_cmpxchg(a, oldvalue, newvalue) != oldvalue);
+    return *this;
+}
+
+AtomicInteger& AtomicInteger::operator<<=(int value) {
+    gmx_atomic_t* a = reinterpret_cast<gmx_atomic_t*>(atomic);
+    int oldvalue, newvalue;
+    do {
+        oldvalue = gmx_atomic_read(a);
+        newvalue = oldvalue<<value;
+    } while (gmx_atomic_cmpxchg(a, oldvalue, newvalue) != oldvalue);
+    return *this;
+}
+
+AtomicInteger& AtomicInteger::operator>>=(int value) {
+    gmx_atomic_t* a = reinterpret_cast<gmx_atomic_t*>(atomic);
+    int oldvalue, newvalue;
+    do {
+        oldvalue = gmx_atomic_read(a);
+        newvalue = oldvalue>>value;
     } while (gmx_atomic_cmpxchg(a, oldvalue, newvalue) != oldvalue);
     return *this;
 }
