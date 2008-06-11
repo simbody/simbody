@@ -82,7 +82,7 @@ void testOperators() {
 void testParallelExecution() {
     AtomicInteger index;
     vector<int> flags(10000);
-    for (int i = 0; i < flags.size(); ++i)
+    for (int i = 0; i < (int)flags.size(); ++i)
         flags[i] = 0;
     ParallelExecutor executor;
     
@@ -104,7 +104,7 @@ void testParallelExecution() {
         index = 0;
         executor.execute(task, 5000);
         ASSERT(index == 5000);
-        for (int j = 0; j < flags.size(); ++j)
+        for (int j = 0; j < (int)flags.size(); ++j)
             ASSERT(flags[j] == (j < 5000 ? i+1 : 0));
     }
     
