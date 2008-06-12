@@ -35,7 +35,7 @@
 using namespace SimTK;
 using namespace std;
 
-const Real TOL = 1e-10;
+const Real TOL = 1e-9;
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
