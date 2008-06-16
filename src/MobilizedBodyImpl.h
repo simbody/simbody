@@ -956,7 +956,7 @@ inline MobilizedBody::Custom::ImplementationImpl::~ImplementationImpl() {
 class MobilizedBody::FunctionBasedImpl : public MobilizedBody::Custom::Implementation {
 public:
 	//Constructor that uses default axes
-    FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices)
+    FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices)
             : Implementation(matter, nmobilities, nmobilities, 0), subsystem(matter.getMySubsystemIndex()), nu(nmobilities), cacheIndex(0), functions(functions), coordIndices(coordIndices) {
         assert(functions.size() == 6);
         assert(coordIndices.size() == 6);
@@ -967,7 +967,7 @@ public:
 		Arot = Mat33(1);
 		Atrans = Mat33(1);
     }
-	FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes)
+	FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes)
             : Implementation(matter, nmobilities, nmobilities, 0), subsystem(matter.getMySubsystemIndex()), nu(nmobilities), cacheIndex(0), functions(functions), coordIndices(coordIndices) {
         assert(functions.size() == 6);
         assert(coordIndices.size() == 6);
@@ -1467,13 +1467,13 @@ private:
     const SubsystemIndex subsystem;
     const int nu;
     mutable int cacheIndex;
-    const std::vector<Function<1>*> functions;
+    const std::vector<const Function<1>*> functions;
     const std::vector<std::vector<int> > coordIndices;
 	//const std::vector<Vec3> axes;
 	Mat33 Arot, Atrans;
     template <int N> class CacheInfo {
     public:
-        void buildH(Vector& q, Vector& u, const Transform& X_FM, const std::vector<Function<1>*> functions, const std::vector<std::vector<int> > coordIndices, const Mat33 Arot, const Mat33 Atrans)
+        void buildH(Vector& q, Vector& u, const Transform& X_FM, const std::vector<const Function<1>*> functions, const std::vector<std::vector<int> > coordIndices, const Mat33 Arot, const Mat33 Atrans)
 		{
 			// Build the Fq and Fqq matrices of partials of the spatial functions with respect to the gen coordinates, q	
 			// Cycle through each row (function describing spatial coordinate)
@@ -1543,7 +1543,7 @@ private:
 			}
 		}
 
-		void buildHdot(Vector& q, Vector& u, const Transform& X_FM, const std::vector<Function<1>*> functions, const std::vector<std::vector<int> > coordIndices, const Mat33 Arot, const Mat33 Atrans)
+		void buildHdot(Vector& q, Vector& u, const Transform& X_FM, const std::vector<const Function<1>*> functions, const std::vector<std::vector<int> > coordIndices, const Mat33 Arot, const Mat33 Atrans)
 		{
 			Mat<6,N> Fqdot(0);
 			Vec6 spatialCoords;

@@ -1810,22 +1810,22 @@ void MobilizedBody::Custom::Implementation::multiplyByQDotMatrix(const State& s,
 }
 
 // Constructors without user-specified axes for function-based mobilized body
-MobilizedBody::FunctionBased::FunctionBased(MobilizedBody& parent, const Body& body, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices)
+MobilizedBody::FunctionBased::FunctionBased(MobilizedBody& parent, const Body& body, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices)
         : Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices), body) {
 }
 
-MobilizedBody::FunctionBased::FunctionBased(MobilizedBody& parent, const Transform& inbFrame, const Body& body, const Transform& outbFrame, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices)
+MobilizedBody::FunctionBased::FunctionBased(MobilizedBody& parent, const Transform& inbFrame, const Body& body, const Transform& outbFrame, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices)
         : Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices), body) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
 }
 
 // Constructors that allow user-specified axes for function-based mobilized body
-MobilizedBody::FunctionBased::FunctionBased(MobilizedBody& parent, const Body& body, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes)
+MobilizedBody::FunctionBased::FunctionBased(MobilizedBody& parent, const Body& body, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes)
         : Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices, axes), body) {
 }
 
-MobilizedBody::FunctionBased::FunctionBased(MobilizedBody& parent, const Transform& inbFrame, const Body& body, const Transform& outbFrame, int nmobilities, const std::vector<Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes)
+MobilizedBody::FunctionBased::FunctionBased(MobilizedBody& parent, const Transform& inbFrame, const Body& body, const Transform& outbFrame, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes)
         : Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices, axes), body) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
