@@ -220,7 +220,7 @@ public:
     void addEventHandler(TriggeredEventHandler* handler);
     void addEventReporter(ScheduledEventReporter* handler) const;
     void addEventReporter(TriggeredEventReporter* handler) const;
-    EventId createEventId(SubsystemIndex subsys, State& state) const;
+    EventId createEventId(SubsystemIndex subsys, const State& state) const;
     void findSubsystemEventIds(SubsystemIndex subsys, const State& state, const std::vector<EventId>& allEvents, std::vector<EventId>& eventsForSubsystem) const;
 private:
     const DefaultSystemSubsystemGuts& getGuts() const;

@@ -312,16 +312,16 @@ int Subsystem::Guts::allocateZ(State& s, const Vector& zInit) const {
     return s.allocateZ(getRep().getMySubsystemIndex(), zInit);
 }
 
-int Subsystem::Guts::allocateQErr(State& s, int nqerr) const {
+int Subsystem::Guts::allocateQErr(const State& s, int nqerr) const {
     return s.allocateQErr(getRep().getMySubsystemIndex(), nqerr);
 }
 
-int Subsystem::Guts::allocateUErr(State& s, int nuerr) const {
+int Subsystem::Guts::allocateUErr(const State& s, int nuerr) const {
     return s.allocateUErr(getRep().getMySubsystemIndex(), nuerr);
 }
 
 // Multipliers are added as a side effect.
-int Subsystem::Guts::allocateUDotErr(State& s, int nudoterr) const {
+int Subsystem::Guts::allocateUDotErr(const State& s, int nudoterr) const {
     return s.allocateUDotErr(getRep().getMySubsystemIndex(), nudoterr);
 }
 
@@ -414,19 +414,19 @@ bool Subsystem::Guts::subsystemTopologyHasBeenRealized() const {
 }
 
 /**
- * A Subsystem should invoke this method during Model stage for each scheduled event it defines.
+ * A Subsystem should invoke this method during Instance stage for each scheduled event it defines.
  * It allocates a global event ID for the event, and registers that ID as belonging to this Subsystem.
  * 
  * @param state     the State which is being realized
  * @param eventId   on exit, the newly allocated event ID is stored here
  */
 
-void Subsystem::Guts::createScheduledEvent(State& state, EventId& eventId) const {
+void Subsystem::Guts::createScheduledEvent(const State& state, EventId& eventId) const {
     eventId = getSystem().getDefaultSubsystem().createEventId(getMySubsystemIndex(), state);
 }
 
 /**
- * A Subsystem should invoke this method during Model stage for each triggered event it defines.
+ * A Subsystem should invoke this method during Instance stage for each triggered event it defines.
  * It allocates a global event ID for the event, registers that ID as belonging to this Subsystem,
  * and allocates space in the State for the event trigger function.
  * 
@@ -437,7 +437,7 @@ void Subsystem::Guts::createScheduledEvent(State& state, EventId& eventId) const
  * @param stage     the Stage at which the event will be evaluated
  */
 
-void Subsystem::Guts::createTriggeredEvent(State& state, EventId& eventId, int& triggerFunctionIndex, Stage stage) const {
+void Subsystem::Guts::createTriggeredEvent(const State& state, EventId& eventId, int& triggerFunctionIndex, Stage stage) const {
     eventId = getSystem().getDefaultSubsystem().createEventId(getMySubsystemIndex(), state);
     triggerFunctionIndex = state.allocateEvent(getMySubsystemIndex(), stage, 1);
 }
@@ -718,7 +718,7 @@ public:
         return Value<CacheInfo>::downcast(getCacheEntry(s, cacheInfoIndex)).get();
     }
     
-    CacheInfo& updCacheInfo(State& s) const {
+    CacheInfo& updCacheInfo(const State& s) const {
         return Value<CacheInfo>::downcast(updCacheEntry(s, cacheInfoIndex)).upd();
     }
 
@@ -728,6 +728,24 @@ public:
     }
     
     int realizeSubsystemModelImpl(State& s) const {
+        return 0;
+    }
+
+    int realizeEvents(const State& s, Stage g) const {
+        const CacheInfo& info = getCacheInfo(s);
+        Vector& events = s.updEventsByStage(getMySubsystemIndex(), g);
+        for (int i = 0; i < (int)triggeredEventHandlers.size(); ++i) {
+            if (g == triggeredEventHandlers[i]->getRequiredStage())
+                events[info.triggeredEventIndices[i]] = triggeredEventHandlers[i]->getValue(s);
+        }
+        for (int i = 0; i < (int)triggeredEventReporters.size(); ++i) {
+            if (g == triggeredEventReporters[i]->getRequiredStage())
+                events[info.triggeredReportIndices[i]] = triggeredEventReporters[i]->getValue(s);
+        }
+        return 0;
+    }
+    
+    int realizeSubsystemInstanceImpl(const State& s) const {
         CacheInfo& info = updCacheInfo(s);
         info.scheduledEventIds.clear();
         info.triggeredEventIndices.clear();
@@ -735,6 +753,7 @@ public:
         info.scheduledReportIds.clear();
         info.triggeredReportIndices.clear();
         info.triggeredReportIds.clear();
+        info.eventIdCounter = 0;
         if (scheduledEventHandlers.size() > 0)
             for (vector<ScheduledEventHandler*>::const_iterator e = scheduledEventHandlers.begin(); e != scheduledEventHandlers.end(); e++) {
                 EventId id;
@@ -764,24 +783,6 @@ public:
                 info.triggeredReportIndices.push_back(index);
             }
         return 0;
-    }
-
-    int realizeEvents(const State& s, Stage g) const {
-        const CacheInfo& info = getCacheInfo(s);
-        Vector& events = s.updEventsByStage(getMySubsystemIndex(), g);
-        for (int i = 0; i < (int)triggeredEventHandlers.size(); ++i) {
-            if (g == triggeredEventHandlers[i]->getRequiredStage())
-                events[info.triggeredEventIndices[i]] = triggeredEventHandlers[i]->getValue(s);
-        }
-        for (int i = 0; i < (int)triggeredEventReporters.size(); ++i) {
-            if (g == triggeredEventReporters[i]->getRequiredStage())
-                events[info.triggeredReportIndices[i]] = triggeredEventReporters[i]->getValue(s);
-        }
-        return 0;
-    }
-    
-    int realizeSubsystemInstanceImpl(const State& s) const {
-        return realizeEvents(s, Stage::Instance);
     }
     int realizeSubsystemTimeImpl(const State& s) const {
         return realizeEvents(s, Stage::Time);
@@ -1016,7 +1017,7 @@ void DefaultSystemSubsystem::addEventReporter(TriggeredEventReporter* handler) c
  * Subsystem::Guts::createScheduledEvent() or Subsystem::Guts::createTriggeredEvent().
  */
 
-EventId DefaultSystemSubsystem::createEventId(SubsystemIndex subsys, State& state) const {
+EventId DefaultSystemSubsystem::createEventId(SubsystemIndex subsys, const State& state) const {
     const DefaultSystemSubsystemGuts::CacheInfo& info = getGuts().getCacheInfo(state);
     int id = info.eventIdCounter++;
     info.eventOwnerMap[id] = subsys;

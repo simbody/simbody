@@ -179,16 +179,20 @@ public:
     }
 
 
-    void clearReferencesToStateGlobals() {
-        qstart=ustart=zstart=qerrstart=uerrstart=udoterrstart = -1;
-        q.clear(); u.clear(); z.clear();
-        qdot.clear(); udot.clear(); zdot.clear(); qdotdot.clear();
+    void clearReferencesToInstanceStageGlobals() {
+        qerrstart=uerrstart=udoterrstart = -1;
         qerr.clear(); uerr.clear(); udoterr.clear(); multipliers.clear();
 
         for (int j=0; j<Stage::NValid; ++j) {
             eventstart[j] = -1;
             events[j].clear();
         }
+    }
+
+    void clearReferencesToModelStageGlobals() {
+        qstart=ustart=zstart = -1;
+        q.clear(); u.clear(); z.clear();
+        qdot.clear(); udot.clear(); zdot.clear(); qdotdot.clear();
     }
 
     String name;
@@ -254,7 +258,8 @@ private:
     // The stage is set back to "Empty".
     void restoreToEmptyStage() {
         if (currentStage > Stage::Empty) {
-            clearReferencesToStateGlobals();
+            clearReferencesToInstanceStageGlobals();
+            clearReferencesToModelStageGlobals();
             discrete.clear(); cache.clear();
             qInit.clear(); uInit.clear(); zInit.clear();
             initialize();
@@ -269,7 +274,8 @@ private:
     void restoreToTopologyStage() {
         if (currentStage <= Stage::Topology)
             return;
-        clearReferencesToStateGlobals();
+        clearReferencesToInstanceStageGlobals();
+        clearReferencesToModelStageGlobals();
         discrete.resize(nDiscreteWhenBuilt);
         restoreCacheToStage(Stage::Topology);
         qInit.clear(); uInit.clear(); zInit.clear();
@@ -284,6 +290,8 @@ private:
         if (g==Stage::Empty)    {restoreToEmptyStage();    return;}
         if (g==Stage::Topology) {restoreToTopologyStage(); return;}
         if (currentStage <= g) return;
+        if (g < Stage::Instance)
+            nqerr = nuerr = nudoterr= 0;
 
         // State variables remain unchanged since they are all allocated
         // after realize(Model). Cache gets shrunk to the length it
@@ -345,15 +353,18 @@ private:
         }
 
         // This is the general case where Stage > Topology.
-        clearReferencesToStateGlobals();
+        clearReferencesToInstanceStageGlobals();
+        clearReferencesToModelStageGlobals();
         qInit = src.qInit;
         uInit = src.uInit;
         zInit = src.zInit;
-        nqerr = src.nqerr;
-        nuerr = src.nuerr;
-        nudoterr = src.nudoterr;
-        for (int j=0; j<Stage::NValid; ++j)
-            nevents[j] = src.nevents[j];
+        if (targetStage >= Stage::Instance) {
+            nqerr = src.nqerr;
+            nuerr = src.nuerr;
+            nudoterr = src.nudoterr;
+            for (int j=0; j<Stage::NValid; ++j)
+                nevents[j] = src.nevents[j];
+        }
 
         // Copy *all* discrete state variables since no more can be allocated
         // after Model stage. Also, make sure we know how to back up to Stage::Topology
@@ -456,6 +467,25 @@ public:
     void invalidateJustSystemStage(Stage g) {
         assert(g > Stage::Empty);
         if (systemStage >= g) {
+            if (systemStage >= Stage::Instance && Stage::Instance >= g) {
+                // We are "unmodeling" this State. Trash all the global
+                // shared states & corresponding cache entries.
+
+                // First make sure no subsystem is looking at the
+                // global shared state any more.
+                for (SubsystemIndex i(0); i < (int)subsystems.size(); ++i)
+                    subsystems[i].clearReferencesToInstanceStageGlobals();
+
+                qerr.clear(); uerr.clear();
+                for (int j=0; j<Stage::NValid; ++j)
+                    events[j].clear();
+
+                // Nuke the actual data.
+                yerr.unlockShape();        yerr.clear();
+                udoterr.unlockShape();     udoterr.clear();
+                multipliers.unlockShape(); multipliers.clear();
+                allEvents.unlockShape();   allEvents.clear();
+            }
             if (systemStage >= Stage::Model && Stage::Model >= g) {
                 // We are "unmodeling" this State. Trash all the global
                 // shared states & corresponding cache entries.
@@ -463,24 +493,17 @@ public:
                 // First make sure no subsystem is looking at the
                 // global shared state any more.
                 for (SubsystemIndex i(0); i < (int)subsystems.size(); ++i)
-                    subsystems[i].clearReferencesToStateGlobals();
+                    subsystems[i].clearReferencesToModelStageGlobals();
 
                 t = CNT<Real>::getNaN();
                 // Nuke all the global views.
                 q.clear(); u.clear(); z.clear();
                 qdot.clear(); udot.clear(); zdot.clear();
-                qerr.clear(); uerr.clear();
-                for (int j=0; j<Stage::NValid; ++j)
-                    events[j].clear();
 
                 // Nuke the actual data.
                 y.unlockShape();           y.clear(); 
                 ydot.unlockShape();        ydot.clear(); 
                 qdotdot.unlockShape();     qdotdot.clear();
-                yerr.unlockShape();        yerr.clear();
-                udoterr.unlockShape();     udoterr.clear();
-                multipliers.unlockShape(); multipliers.clear();
-                allEvents.unlockShape();   allEvents.clear();
             }
             systemStage = g.prev();
         }
@@ -498,16 +521,67 @@ public:
         if (g == Stage::Model) {
             // We know the shared state pool sizes now. Allocate the
             // states and matching shared cache pools.
-            int nq=0, nu=0, nz=0, nqerr=0, nuerr=0, nudoterr=0, nAllEvents=0;
-            int nevents[Stage::NValid];
-            for (int j=0; j<Stage::NValid; ++j)
-                nevents[j] = 0;
+            int nq=0, nu=0, nz=0;
 
             // Count up all 
             for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i) {
                 nq += subsystems[i].qInit.size();
                 nu += subsystems[i].uInit.size();
                 nz += subsystems[i].zInit.size();
+            }
+
+            // Allocate the actual shared state variables & cache 
+            // entries and make sure no one can accidentally change the size.
+            y.resize(nq+nu+nz);             y.lockShape();
+            ydot.resize(nq+nu+nz);          ydot.lockShape();
+            qdotdot.resize(nq);             qdotdot.lockShape();
+
+            // Allocate subviews of the shared state & cache entries.
+            q.viewAssign(y(0,nq));
+            u.viewAssign(y(nq,nu));
+            z.viewAssign(y(nq+nu,nz));
+
+            qdot.viewAssign(ydot(0,     nq));
+            udot.viewAssign(ydot(nq,    nu));
+            zdot.viewAssign(ydot(nq+nu, nz));
+
+            // Now partition the global resources among the subsystems and copy
+            // in the initial values for the state variables.
+            int nxtq=0, nxtu=0, nxtz=0;
+
+            for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i) {
+                PerSubsystemInfo& ss = subsystems[i];
+                const int nq=ss.qInit.size(), nu=ss.uInit.size(), nz=ss.zInit.size();
+
+                // Assign the starting indices.
+                ss.qstart=nxtq; ss.ustart=nxtu; ss.zstart=nxtz;
+ 
+                // Build the views.
+                ss.q.viewAssign(q(nxtq, nq)); ss.q = ss.qInit;
+                ss.qdot.viewAssign(qdot(nxtq, nq));
+                ss.qdotdot.viewAssign(qdotdot(nxtq, nq));
+                ss.u.viewAssign(u(nxtu, nu)); ss.u = ss.uInit;
+                ss.udot.viewAssign(udot(nxtu, nu));
+                ss.z.viewAssign(z(nxtz, nz)); ss.z = ss.zInit;
+                ss.zdot.viewAssign(zdot(nxtz, nz));
+
+                // Consume the slots.
+                nxtq += nq; nxtu += nu; nxtz += nz;
+            }
+
+            // As the final "modeling" step, initialize time to 0 (it's NaN before this).
+            t = 0;
+        }
+        if (g == Stage::Instance) {
+            // We know the shared state pool sizes now. Allocate the
+            // states and matching shared cache pools.
+            int nqerr=0, nuerr=0, nudoterr=0, nAllEvents=0;
+            int nevents[Stage::NValid];
+            for (int j=0; j<Stage::NValid; ++j)
+                nevents[j] = 0;
+
+            // Count up all 
+            for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i) {
                 nqerr    += subsystems[i].nqerr;
                 nuerr    += subsystems[i].nuerr;
                 nudoterr += subsystems[i].nudoterr;
@@ -520,22 +594,12 @@ public:
 
             // Allocate the actual shared state variables & cache 
             // entries and make sure no one can accidentally change the size.
-            y.resize(nq+nu+nz);             y.lockShape();
-            ydot.resize(nq+nu+nz);          ydot.lockShape();
-            qdotdot.resize(nq);             qdotdot.lockShape();
             yerr.resize(nqerr+nuerr);       yerr.lockShape();
             udoterr.resize(nudoterr);       udoterr.lockShape();
             multipliers.resize(nudoterr);   multipliers.lockShape(); // same size as udoterr
             allEvents.resize(nAllEvents);   allEvents.lockShape();
 
             // Allocate subviews of the shared state & cache entries.
-            q.viewAssign(y(0,nq));
-            u.viewAssign(y(nq,nu));
-            z.viewAssign(y(nq+nu,nz));
-
-            qdot.viewAssign(ydot(0,     nq));
-            udot.viewAssign(ydot(nq,    nu));
-            zdot.viewAssign(ydot(nq+nu, nz));
 
             qerr.viewAssign(yerr(0,     nqerr));
             uerr.viewAssign(yerr(nqerr, nuerr));
@@ -548,28 +612,18 @@ public:
 
             // Now partition the global resources among the subsystems and copy
             // in the initial values for the state variables.
-            int nxtq=0, nxtu=0, nxtz=0, nxtqerr=0, nxtuerr=0, nxtudoterr=0;
+            int nxtqerr=0, nxtuerr=0, nxtudoterr=0;
             int nxtevent[Stage::NValid];
             for (int j=0; j<Stage::NValid; ++j)
                 nxtevent[j] = 0;
 
             for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i) {
                 PerSubsystemInfo& ss = subsystems[i];
-                const int nq=ss.qInit.size(), nu=ss.uInit.size(), nz=ss.zInit.size();
 
                 // Assign the starting indices.
-                ss.qstart=nxtq; ss.ustart=nxtu; ss.zstart=nxtz;
                 ss.qerrstart=nxtqerr; ss.uerrstart=nxtuerr; ss.udoterrstart=nxtudoterr;
 
                 // Build the views.
-                ss.q.viewAssign(q(nxtq, nq)); ss.q = ss.qInit;
-                ss.qdot.viewAssign(qdot(nxtq, nq));
-                ss.qdotdot.viewAssign(qdotdot(nxtq, nq));
-                ss.u.viewAssign(u(nxtu, nu)); ss.u = ss.uInit;
-                ss.udot.viewAssign(udot(nxtu, nu));
-                ss.z.viewAssign(z(nxtz, nz)); ss.z = ss.zInit;
-                ss.zdot.viewAssign(zdot(nxtz, nz));
-
                 ss.qerr.viewAssign(qerr(nxtqerr, ss.nqerr));
                 ss.uerr.viewAssign(uerr(nxtuerr, ss.nuerr));
                 ss.udoterr.viewAssign(udoterr(nxtudoterr, ss.nudoterr));
@@ -577,7 +631,6 @@ public:
                 ss.multipliers.viewAssign(multipliers(nxtudoterr, ss.nudoterr));
 
                 // Consume the slots.
-                nxtq += nq; nxtu += nu; nxtz += nz;
                 nxtqerr += ss.nqerr; nxtuerr += ss.nuerr; nxtudoterr += ss.nudoterr;
 
                 // Same thing for event slots, but by stage.
@@ -588,9 +641,6 @@ public:
                 }
 
             }
-
-            // As the final "modeling" step, initialize time to 0 (it's NaN before this).
-            t = 0;
         }
 
         systemStage = g;
@@ -867,29 +917,29 @@ public:
         return nxt;
     }
     
-    int allocateQErr(SubsystemIndex subsys, int nqerr) {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateRep::allocateQErr()");
+    int allocateQErr(SubsystemIndex subsys, int nqerr) const {
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateRep::allocateQErr()");
         checkCanModify(subsys);
         const int nxt = data->subsystems[subsys].nqerr;
         data->subsystems[subsys].nqerr += nqerr;
         return nxt;
     }
-    int allocateUErr(SubsystemIndex subsys, int nuerr) {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateRep::al()");
+    int allocateUErr(SubsystemIndex subsys, int nuerr) const {
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateRep::al()");
         checkCanModify(subsys);
         const int nxt = data->subsystems[subsys].nuerr;
         data->subsystems[subsys].nuerr += nuerr;
         return nxt;
     }
-    int allocateUDotErr(SubsystemIndex subsys, int nudoterr) {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateRep::allocateUDotErr()");
+    int allocateUDotErr(SubsystemIndex subsys, int nudoterr) const {
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateRep::allocateUDotErr()");
         checkCanModify(subsys);
         const int nxt = data->subsystems[subsys].nudoterr;
         data->subsystems[subsys].nudoterr += nudoterr;
         return nxt;
     }
-    int allocateEvent(SubsystemIndex subsys, Stage g, int ne) {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateRep::allocateEvent()");
+    int allocateEvent(SubsystemIndex subsys, Stage g, int ne) const {
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateRep::allocateEvent()");
         checkCanModify(g);
         checkCanModify(subsys);
         const int nxt = data->subsystems[subsys].nevents[g];
@@ -1819,16 +1869,16 @@ int State::allocateU(SubsystemIndex subsys, const Vector& uInit) {
 int State::allocateZ(SubsystemIndex subsys, const Vector& zInit) {
     return rep->allocateZ(subsys, zInit);
 }
-int State::allocateQErr(SubsystemIndex subsys, int nqerr) {
+int State::allocateQErr(SubsystemIndex subsys, int nqerr) const {
     return rep->allocateQErr(subsys, nqerr);
 }
-int State::allocateUErr(SubsystemIndex subsys, int nuerr) {
+int State::allocateUErr(SubsystemIndex subsys, int nuerr) const {
     return rep->allocateUErr(subsys, nuerr);
 }
-int State::allocateUDotErr(SubsystemIndex subsys, int nudoterr) {
+int State::allocateUDotErr(SubsystemIndex subsys, int nudoterr) const {
     return rep->allocateUDotErr(subsys, nudoterr);
 }
-int State::allocateEvent(SubsystemIndex subsys, Stage stage, int nevent) {
+int State::allocateEvent(SubsystemIndex subsys, Stage stage, int nevent) const {
     return rep->allocateEvent(subsys, stage, nevent);
 }
 int State::allocateDiscreteVariable(SubsystemIndex subsys, Stage stage, AbstractValue* v) {

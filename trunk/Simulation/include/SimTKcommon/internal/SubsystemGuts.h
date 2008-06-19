@@ -295,8 +295,8 @@ public:
     // The generated geometry will be *appended* to the supplied output vector.
     void calcDecorativeGeometryAndAppend(const State&, Stage, std::vector<DecorativeGeometry>&) const;
     
-    void createScheduledEvent(State& state, EventId& eventId) const;
-    void createTriggeredEvent(State& state, EventId& eventId, int& triggerFunctionIndex, Stage stage) const;
+    void createScheduledEvent(const State& state, EventId& eventId) const;
+    void createTriggeredEvent(const State& state, EventId& eventId, int& triggerFunctionIndex, Stage stage) const;
 
     // These methods are called by the corresponding methods of System.
     // Each subsystem is responsible for defining its own events, and
@@ -358,9 +358,9 @@ protected:
     int allocateZ(State& s, const Vector& zInit) const;
     // qerr, uerr, udoterr are all cache entries, not variables
     // allocating udoterr also allocates matching multipliers
-    int allocateQErr(State& s, int nqerr) const;
-    int allocateUErr(State& s, int nuerr) const;
-    int allocateUDotErr(State& s, int nudoterr) const;
+    int allocateQErr(const State& s, int nqerr) const;
+    int allocateUErr(const State& s, int nuerr) const;
+    int allocateUDotErr(const State& s, int nudoterr) const;
     int allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const;
     int allocateCacheEntry(State& s, Stage g, AbstractValue* v) const;
     void advanceToStage(const State& s, Stage g) const;

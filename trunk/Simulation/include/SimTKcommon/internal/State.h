@@ -344,15 +344,15 @@ public:
     /// of the same size in the cache for the corresponding Lagrange multipliers,
     /// and these are partitioned identically to UDotErrs.
 
-    int allocateQErr   (SubsystemIndex, int nqerr);    // these are cache entries
-    int allocateUErr   (SubsystemIndex, int nuerr);
-    int allocateUDotErr(SubsystemIndex, int nudoterr);
+    int allocateQErr   (SubsystemIndex, int nqerr) const;    // these are cache entries
+    int allocateUErr   (SubsystemIndex, int nuerr) const;
+    int allocateUDotErr(SubsystemIndex, int nudoterr) const;
 
     /// Slots for event witness values are similar to constraint errors.
     /// However, this also allocates a discrete state variable to hold
     /// the "triggered" indication. The Stage here is the stage at which
     /// the event witness function can first be examined.
-    int allocateEvent(SubsystemIndex, Stage, int nevent);
+    int allocateEvent(SubsystemIndex, Stage, int nevent) const;
 
     /// DiscreteVariables and CacheEntries are private to each subsystem and are allocated immediately.
     /// Ownership of the AbstractValue object is taken over by the State -- don't
