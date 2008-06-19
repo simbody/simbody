@@ -85,6 +85,7 @@ public:
 
     /*virtual*/int realizeTopologyImpl(State&) const;
     /*virtual*/int realizeModelImpl(State&) const;
+    /*virtual*/int realizeInstanceImpl(const State&) const;
     /*virtual*/int realizePositionImpl(const State&) const;
     /*virtual*/int realizeVelocityImpl(const State&) const;
     /*virtual*/int realizeDynamicsImpl(const State&) const;
@@ -493,11 +494,6 @@ int MyPendulumGuts::realizeTopologyImpl(State& s) const {
     const Vector init(2, Real(0));
     q0 = s.allocateQ(subsysIndex, init);
     u0 = s.allocateU(subsysIndex, init);
-    qerr0 = s.allocateQErr(subsysIndex, 1);
-    uerr0 = s.allocateUErr(subsysIndex, 1);
-    udoterr0 = s.allocateUDotErr(subsysIndex, 1); // and multiplier
-    event0 = s.allocateEvent(subsysIndex, Stage::Position, 3);
-
 
     mgForceIndex = s.allocateCacheEntry(subsysIndex, Stage::Dynamics,
                                              new Value<Real>());
@@ -506,9 +502,17 @@ int MyPendulumGuts::realizeTopologyImpl(State& s) const {
 }
 int MyPendulumGuts::realizeModelImpl(State& s) const {
     System::Guts::realizeModelImpl(s);
+    return 0;
+}
+int MyPendulumGuts::realizeInstanceImpl(const State& s) const {
+    qerr0 = s.allocateQErr(subsysIndex, 1);
+    uerr0 = s.allocateUErr(subsysIndex, 1);
+    udoterr0 = s.allocateUDotErr(subsysIndex, 1); // and multiplier
+    event0 = s.allocateEvent(subsysIndex, Stage::Position, 3);
     eventId0 = getSystem().getDefaultSubsystem().createEventId(subsysIndex, s);
     eventId1 = getSystem().getDefaultSubsystem().createEventId(subsysIndex, s);
     eventId2 = getSystem().getDefaultSubsystem().createEventId(subsysIndex, s);
+    System::Guts::realizeInstanceImpl(s);
     return 0;
 }
 int MyPendulumGuts::realizePositionImpl(const State& s) const {

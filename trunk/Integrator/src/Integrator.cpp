@@ -314,21 +314,18 @@ void IntegratorRep::initialize(const State& initState) {
   { updAdvancedState() = initState;
      
     // Freeze problem dimensions.
-    getSystem().realize(getAdvancedState(), Stage::Model);
+    getSystem().realize(getAdvancedState(), Stage::Instance);
 
     // Some DynamicSystems need to get control whenever time is advanced
     // successfully (and irreversibly) so that they can do discrete updates.
     systemHasTimeAdvancedEvents = getSystem().hasTimeAdvancedEvents();
 
     // Allocate data structures now that we know the sizes.
-    const int ny = getSystem().getDefaultState().getNY();
-    const int nc = getSystem().getDefaultState().getNYErr();
-    const int ne = getSystem().getDefaultState().getNEvents();
+    const int ny = getAdvancedState().getNY();
+    const int nc = getAdvancedState().getNYErr();
+    const int ne = getAdvancedState().getNEvents();
     stateWeightsInUse.resize(ny);
     constraintWeightsInUse.resize(nc);
-
-    // Freeze instance variables (parameters).
-    getSystem().realize(getAdvancedState(), Stage::Instance);
     timeScaleInUse = getSystem().calcTimescale(getAdvancedState());
 
     // Set accuracy, consTol, relTol, absTol to their user-requested values or to

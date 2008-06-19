@@ -86,6 +86,9 @@ Integrator::SuccessfulStepStatus AbstractIntegratorRep::stepTo(Real reportTime, 
       // If this is the start of a continuous interval, return immediately so
       // the current state will be seen as part of the trajectory.
       if (startOfContinuousInterval) {
+          // The set of constraints or event triggers might have changed.
+          getSystem().calcEventTriggerInfo(getAdvancedState(), updEventTriggerInfo());
+          getSystem().calcYErrUnitTolerances(getAdvancedState(), updConstraintWeightsInUse());
           startOfContinuousInterval = false;
           return Integrator::StartOfContinuousInterval;
       }

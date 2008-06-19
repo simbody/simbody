@@ -226,6 +226,9 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
     // the current state will be seen as part of the trajectory.
 
     if (startOfContinuousInterval) {
+          // The set of constraints or event triggers might have changed.
+        getSystem().calcEventTriggerInfo(getAdvancedState(), updEventTriggerInfo());
+        getSystem().calcYErrUnitTolerances(getAdvancedState(), updConstraintWeightsInUse());
         startOfContinuousInterval = false;
         return Integrator::StartOfContinuousInterval;
     }

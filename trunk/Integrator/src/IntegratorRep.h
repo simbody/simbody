@@ -563,6 +563,8 @@ protected:
     Vector& updPreviousY()      {return yPrev;}
     Vector& updPreviousYDot()   {return ydotPrev;}
     Vector& updPreviousEvents() {return eventsPrev;}
+    std::vector<System::EventTriggerInfo>& updEventTriggerInfo() {return eventTriggerInfo;}
+    Vector& updConstraintWeightsInUse() {return constraintWeightsInUse;}
 
     // State must already have been evaluated through Stage::Acceleration
     // or this will throw a stage violation.
