@@ -350,6 +350,57 @@ void testWeldConstraintWithPreAssembly() {
     delete &system;
 }
 
+void testDisablingConstraints() {
+    
+    State state;
+    MultibodySystem& system = createSystem();
+    SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
+    MobilizedBody& first = matter.updMobilizedBody(MobilizedBodyIndex(1));
+    MobilizedBody& last = matter.updMobilizedBody(MobilizedBodyIndex(NUM_BODIES));
+    Constraint::Rod constraint(first, last, 3.0);
+    createState(system, state);
+    class DisableHandler : public ScheduledEventHandler {
+    public:
+        DisableHandler(Constraint& constraint) : constraint(constraint) {
+        }
+        void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
+            constraint.disable(state);
+            lowestModified = Stage::Instance;
+        }
+        Real getNextEventTime(const State&, bool includeCurrentTime) const {
+            return 4.9;
+        }
+        Constraint& constraint;
+    };
+    system.updDefaultSubsystem().addEventHandler(new DisableHandler(constraint));
+    RungeKuttaMersonIntegrator integ(system);
+    integ.setConstraintTolerance(TOL);
+    TimeStepper ts(system, integ);
+    ts.initialize(state);
+    for (int i = 0; i < 10; i++) {
+        ts.stepTo(i+1);
+        if (i < 4) {
+            assertEqual(ts.getState().getNQErr(), 1);
+            assertEqual(ts.getState().getNUErr(), 1);
+            assertEqual(ts.getState().getNUDotErr(), 1);
+            Vec3 r1 = first.getBodyOriginLocation(ts.getState());
+            Vec3 r2 = last.getBodyOriginLocation(ts.getState());
+            Vec3 dr = r1-r2;
+            assertEqual(dr.norm(), 3.0);
+        }
+        else {
+            assertEqual(ts.getState().getNQErr(), 0);
+            assertEqual(ts.getState().getNUErr(), 0);
+            assertEqual(ts.getState().getNUDotErr(), 0);
+            Vec3 r1 = first.getBodyOriginLocation(ts.getState());
+            Vec3 r2 = last.getBodyOriginLocation(ts.getState());
+            Vec3 dr = r1-r2;
+            ASSERT(abs(dr.norm()-3.0) > TOL);
+        }
+    }
+    delete &system;
+}
+
 int main() {
     try {
         testBallConstraint();
@@ -362,6 +413,7 @@ int main() {
         testRodConstraint();
         testWeldConstraint();
         testWeldConstraintWithPreAssembly();
+        testDisablingConstraints();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

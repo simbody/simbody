@@ -893,7 +893,7 @@ private:
     // Our realizeTopology method calls this after all bodies & constraints have been added,
     // to construct part of the topology cache below.
     void endConstruction(State&);
-
+    
         // TOPOLOGY CACHE
 
     // The data members here are filled in when realizeTopology() is called.

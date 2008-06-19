@@ -2189,19 +2189,23 @@ void ConstraintImpl::realizeModel(State& s) const
     SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
         "ConstraintImpl::realizeModel() can't be called until after realizeToplogy().");
 
+    realizeModelVirtual(s); // delegate to concrete constraint
+}
+
+void ConstraintImpl::realizeInstance(const State& s) const {
     const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
-    const SBModelVars& modelVars  = matter.getModelVars(s);
-    SBModelCache&      modelCache = matter.updModelCache(s);
-    SBModelCache::PerConstraintModelInfo& cInfo =
-        modelCache.updConstraintModelInfo(myConstraintIndex);
+    const SBInstanceVars& instanceVars  = matter.getInstanceVars(s);
+    SBInstanceCache&      instanceCache = matter.updInstanceCache(s);
+    SBInstanceCache::PerConstraintInstanceInfo& cInfo =
+        instanceCache.updConstraintInstanceInfo(myConstraintIndex);
 
     cInfo.clear();
-    cInfo.allocateConstrainedMobilizerModelInfo(getNumConstrainedMobilizers());
+    cInfo.allocateConstrainedMobilizerInstanceInfo(getNumConstrainedMobilizers());
 
     if (isDisabled(s)) {
-        cInfo.holoErrSegment    = Segment(0,modelCache.totalNHolonomicConstraintEquationsInUse);
-        cInfo.nonholoErrSegment = Segment(0,modelCache.totalNNonholonomicConstraintEquationsInUse);
-        cInfo.accOnlyErrSegment = Segment(0,modelCache.totalNAccelerationOnlyConstraintEquationsInUse);
+        cInfo.holoErrSegment    = Segment(0,instanceCache.totalNHolonomicConstraintEquationsInUse);
+        cInfo.nonholoErrSegment = Segment(0,instanceCache.totalNNonholonomicConstraintEquationsInUse);
+        cInfo.accOnlyErrSegment = Segment(0,instanceCache.totalNAccelerationOnlyConstraintEquationsInUse);
         return;
     }
 
@@ -2213,24 +2217,24 @@ void ConstraintImpl::realizeModel(State& s) const
 
     // Must allocate space for the primary constraint equations and their time derivatives.
     //                                length         offset
-    cInfo.holoErrSegment    = Segment(mHolo,    modelCache.totalNHolonomicConstraintEquationsInUse);
-    cInfo.nonholoErrSegment = Segment(mNonholo, modelCache.totalNNonholonomicConstraintEquationsInUse);
-    cInfo.accOnlyErrSegment = Segment(mAccOnly, modelCache.totalNAccelerationOnlyConstraintEquationsInUse);
+    cInfo.holoErrSegment    = Segment(mHolo,    instanceCache.totalNHolonomicConstraintEquationsInUse);
+    cInfo.nonholoErrSegment = Segment(mNonholo, instanceCache.totalNNonholonomicConstraintEquationsInUse);
+    cInfo.accOnlyErrSegment = Segment(mAccOnly, instanceCache.totalNAccelerationOnlyConstraintEquationsInUse);
 
-    modelCache.totalNHolonomicConstraintEquationsInUse        += mHolo;
-    modelCache.totalNNonholonomicConstraintEquationsInUse     += mNonholo;
-    modelCache.totalNAccelerationOnlyConstraintEquationsInUse += mAccOnly;  
+    instanceCache.totalNHolonomicConstraintEquationsInUse        += mHolo;
+    instanceCache.totalNNonholonomicConstraintEquationsInUse     += mNonholo;
+    instanceCache.totalNAccelerationOnlyConstraintEquationsInUse += mAccOnly;  
 
     // At this point we can find out how many q's and u's are associated with
     // each of the constrained mobilizers. We'll create packed arrays of q's and
     // u's ordered corresponding to the ConstrainedMobilizerIndices. We'll record
-    // these in the ModelCache, by storing the ConstrainedQIndex and ConstrainedUIndex
+    // these in the InstanceCache, by storing the ConstrainedQIndex and ConstrainedUIndex
     // of the lowest-numbered coordinate and mobility associated with each of
     // the ConstrainedMobilizers, along with the number of q's and u's.
 
     for (ConstrainedMobilizerIndex cmx(0); cmx < getNumConstrainedMobilizers(); ++cmx) {
-        SBModelCache::PerConstrainedMobilizerModelInfo& mInfo = 
-            cInfo.updConstrainedMobilizerModelInfo(cmx);
+        SBInstanceCache::PerConstrainedMobilizerInstanceInfo& mInfo = 
+            cInfo.updConstrainedMobilizerInstanceInfo(cmx);
 
         const MobilizedBodyIndex mbx = getMobilizedBodyIndexOfConstrainedMobilizer(cmx);
         QIndex qix; int nq;
@@ -2268,12 +2272,6 @@ void ConstraintImpl::realizeModel(State& s) const
 
     std::sort(cInfo.participatingQ.begin(), cInfo.participatingQ.end());
     std::unique(cInfo.participatingQ.begin(), cInfo.participatingQ.end());
-
-    realizeModelVirtual(s); // delegate to concrete constraint
-}
-
-void ConstraintImpl::realizeInstance(const State& s) const {
-    if (isDisabled(s)) return;
     realizeInstanceVirtual(s); // nothing to do at the base class level
 }
 void ConstraintImpl::realizeTime(const State& s) const {
@@ -2546,8 +2544,8 @@ SpatialVec ConstraintImpl::precalcConstrainedBodyAccelerationInAncestor(const St
 void ConstraintImpl::getNumConstraintEquationsInUse
    (const State& s, int& mHolo, int& mNonholo, int& mAccOnly) const 
 {
-    const SBModelCache::PerConstraintModelInfo& cInfo = 
-        getModelCache(s).getConstraintModelInfo(myConstraintIndex);
+    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = 
+        getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex);
 
 	mHolo    = cInfo.holoErrSegment.length;
 	mNonholo = cInfo.nonholoErrSegment.length;
@@ -2559,8 +2557,8 @@ void ConstraintImpl::getNumConstraintEquationsInUse
 void ConstraintImpl::getConstraintEquationSlots
    (const State& s, int& holo0, int& nonholo0, int& accOnly0) const
 {
-    const SBModelCache::PerConstraintModelInfo& cInfo = 
-        getModelCache(s).getConstraintModelInfo(myConstraintIndex);
+    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = 
+        getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex);
 
     const int mHolo    = cInfo.holoErrSegment.length;
 	const int mNonholo = cInfo.nonholoErrSegment.length;
@@ -2621,26 +2619,26 @@ ConstrainedMobilizerIndex ConstraintImpl::addConstrainedMobilizer(const Mobilize
 }
 
 QIndex ConstraintImpl::getQIndexOfConstrainedQ(const State& s, ConstrainedQIndex cqx) const {
-    const SBModelCache&                         mc    = getModelCache(s);
-    const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
+    const SBInstanceCache&                         mc    = getInstanceCache(s);
+    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = mc.getConstraintInstanceInfo(myConstraintIndex);
     return cInfo.getQIndexFromConstrainedQ(cqx);
 }
 
 UIndex ConstraintImpl::getUIndexOfConstrainedU(const State& s, ConstrainedUIndex cqx) const {
-    const SBModelCache&                         mc    = getModelCache(s);
-    const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
+    const SBInstanceCache&                         mc    = getInstanceCache(s);
+    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = mc.getConstraintInstanceInfo(myConstraintIndex);
     return cInfo.getUIndexFromConstrainedU(cqx);
 }
 
 int ConstraintImpl::getNumConstrainedQ(const State& s) const {
-    return getModelCache(s).getConstraintModelInfo(myConstraintIndex).getNConstrainedQ();
+    return getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getNConstrainedQ();
 }
 
 int ConstraintImpl::getNumConstrainedQ
    (const State& s, ConstrainedMobilizerIndex M) const
 {
-    const SBModelCache::PerConstrainedMobilizerModelInfo& mInfo =
-        getModelCache(s).getConstraintModelInfo(myConstraintIndex).getConstrainedMobilizerModelInfo(M);
+    const SBInstanceCache::PerConstrainedMobilizerInstanceInfo& mInfo =
+        getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getConstrainedMobilizerInstanceInfo(M);
     return mInfo.nQInUse; // same as corresponding MobilizedBody, or 0 if disabled
 }
 
@@ -2649,20 +2647,20 @@ ConstrainedQIndex ConstraintImpl::getConstrainedQIndex
 {
     const int nq = getNumConstrainedQ(s,M);
     assert(0 <= which && which < nq);
-    const SBModelCache::PerConstrainedMobilizerModelInfo& mInfo =
-        getModelCache(s).getConstraintModelInfo(myConstraintIndex).getConstrainedMobilizerModelInfo(M);
+    const SBInstanceCache::PerConstrainedMobilizerInstanceInfo& mInfo =
+        getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getConstrainedMobilizerInstanceInfo(M);
     return ConstrainedQIndex(mInfo.firstConstrainedQIndex + which);
 }       
 
 int ConstraintImpl::getNumConstrainedU(const State& s) const {
-    return getModelCache(s).getConstraintModelInfo(myConstraintIndex).getNConstrainedU();
+    return getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getNConstrainedU();
 }
 
 int ConstraintImpl::getNumConstrainedU
    (const State& s, ConstrainedMobilizerIndex M) const
 {
-    const SBModelCache::PerConstrainedMobilizerModelInfo& mInfo =
-        getModelCache(s).getConstraintModelInfo(myConstraintIndex).getConstrainedMobilizerModelInfo(M);
+    const SBInstanceCache::PerConstrainedMobilizerInstanceInfo& mInfo =
+        getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getConstrainedMobilizerInstanceInfo(M);
     return mInfo.nUInUse; // same as corresponding MobilizedBody, or 0 if disabled
 }
 
@@ -2671,8 +2669,8 @@ ConstrainedUIndex ConstraintImpl::getConstrainedUIndex
 {
     const int nu = getNumConstrainedU(s,M);
     assert(0 <= which && which < nu);
-    const SBModelCache::PerConstrainedMobilizerModelInfo& mInfo =
-        getModelCache(s).getConstraintModelInfo(myConstraintIndex).getConstrainedMobilizerModelInfo(M);
+    const SBInstanceCache::PerConstrainedMobilizerInstanceInfo& mInfo =
+        getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getConstrainedMobilizerInstanceInfo(M);
     return ConstrainedUIndex(mInfo.firstConstrainedUIndex + which);
 }   
 
@@ -2682,8 +2680,8 @@ ConstrainedUIndex ConstraintImpl::getConstrainedUIndex
 // constraint equations generated by this Constraint. We expect that perr points
 // to an array of at least mp elements that we can write on.
 void ConstraintImpl::getPositionErrors(const State& s, int mp, Real* perr) const {
-    const SBModelCache::PerConstraintModelInfo& cInfo = 
-        getModelCache(s).getConstraintModelInfo(myConstraintIndex);
+    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = 
+        getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex);
 
 	assert(mp == cInfo.holoErrSegment.length);
 
@@ -2707,8 +2705,8 @@ void ConstraintImpl::getPositionErrors(const State& s, int mp, Real* perr) const
 // by this Constraint. We expect that pverr points to an array of at least mp+mv
 // elements that we can write on.
 void ConstraintImpl::getVelocityErrors(const State& s, int mpv, Real* pverr) const {
-    const SBModelCache& mc = getModelCache(s);
-    const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
+    const SBInstanceCache& mc = getInstanceCache(s);
+    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = mc.getConstraintInstanceInfo(myConstraintIndex);
 
 	assert(mpv ==  cInfo.holoErrSegment.length
                  + cInfo.nonholoErrSegment.length);
@@ -2741,8 +2739,8 @@ void ConstraintImpl::getVelocityErrors(const State& s, int mpv, Real* pverr) con
 // equations generated by this Constraint. We expect that pvaerr points to an array
 // of at least mp+mv+ma elements that we can write on.
 void ConstraintImpl::getAccelerationErrors(const State& s, int mpva, Real* pvaerr) const {
-    const SBModelCache& mc = getModelCache(s);
-    const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
+    const SBInstanceCache& mc = getInstanceCache(s);
+    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = mc.getConstraintInstanceInfo(myConstraintIndex);
 
 	assert(mpva ==   cInfo.holoErrSegment.length
                    + cInfo.nonholoErrSegment.length
@@ -2781,8 +2779,8 @@ void ConstraintImpl::getAccelerationErrors(const State& s, int mpva, Real* pvaer
 // equations generated by this Constraint. We expect that lambda points to an array
 // of at least mp+mv+ma elements that we can write on.
 void ConstraintImpl::getMultipliers(const State& s, int mpva, Real* lambda) const {
-    const SBModelCache& mc = getModelCache(s);
-    const SBModelCache::PerConstraintModelInfo& cInfo = mc.getConstraintModelInfo(myConstraintIndex);
+    const SBInstanceCache& mc = getInstanceCache(s);
+    const SBInstanceCache::PerConstraintInstanceInfo& cInfo = mc.getConstraintInstanceInfo(myConstraintIndex);
 
     assert(mpva ==   cInfo.holoErrSegment.length
                    + cInfo.nonholoErrSegment.length
@@ -2814,6 +2812,9 @@ void ConstraintImpl::getMultipliers(const State& s, int mpva, Real* lambda) cons
         lambda[mHolo+mNonholo+i] = multipliers[firstAccOnlyErr+i];
 }
 
+const SBInstanceCache& ConstraintImpl::getInstanceCache(const State& s) const {
+    return getMyMatterSubsystemRep().getInstanceCache(s);
+}
 const SBModelCache& ConstraintImpl::getModelCache(const State& s) const {
     return getMyMatterSubsystemRep().getModelCache(s);
 }

@@ -58,6 +58,7 @@ using std::cout; using std::endl;
 //#define USE_OLD_CONSTRAINTS
 
 class SimbodyMatterSubsystemRep;
+class SBInstanceCache;
 class SBModelCache;
 class SBPositionCache;
 class SBVelocityCache;
@@ -249,7 +250,8 @@ public:
     // been completed for the associated Stage. *During* realization, we will instead pass in
     // the appropriate cache entry rather than ask the State for it.
 
-    const SBModelCache&			getModelCache(const State&) const;
+    const SBInstanceCache&		getInstanceCache(const State&) const;
+    const SBModelCache&                 getModelCache(const State&) const;
     const SBPositionCache&		getPositionCache(const State&) const;
     const SBVelocityCache&		getVelocityCache(const State&) const;
     const SBAccelerationCache&	getAccelerationCache(const State&) const;

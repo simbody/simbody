@@ -439,6 +439,7 @@ public:
     virtual void calcJointSinCosQNorm(
         const SBModelVars&  mv, 
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
@@ -582,8 +583,9 @@ public:
     {
         const SBModelVars& mv = sbs.getModelVars();
         const SBModelCache& mc = sbs.getModelCache();
+        const SBInstanceCache& ic = sbs.getInstanceCache();
         SBPositionCache& pc = sbs.updPositionCache();
-        calcJointSinCosQNorm(mv, mc, sbs.getQ(), pc.sq, pc.cq, sbs.updQErr(), pc.qnorm);
+        calcJointSinCosQNorm(mv, mc, ic, sbs.getQ(), pc.sq, pc.cq, sbs.updQErr(), pc.qnorm);
 
         calcAcrossJointTransform (sbs, sbs.getQ(), updX_FM(pc));
         calcBodyTransforms       (pc, updX_PB(pc), updX_GB(pc));
@@ -1065,6 +1067,7 @@ public:
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
@@ -1160,6 +1163,7 @@ public:
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
@@ -1258,6 +1262,7 @@ public:
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
@@ -1373,6 +1378,7 @@ public:
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
@@ -1483,6 +1489,7 @@ public:
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
@@ -1635,6 +1642,7 @@ public:
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
@@ -1781,6 +1789,7 @@ public:
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
@@ -1905,6 +1914,7 @@ public:
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
@@ -2018,6 +2028,7 @@ public:
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
@@ -2243,6 +2254,7 @@ public:
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
@@ -2261,7 +2273,7 @@ public:
             const Vec4& quat = fromQuat(q); // unnormalized quaternion from state
             const Real  quatLen = quat.norm();
             assert(bInfo.hasQuaternionInUse && bInfo.quaternionPoolIndex.isValid());
-            qErr[mc.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
+            qErr[ic.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
             toQuat(qnorm) = quat / quatLen;
         }
     }
@@ -2671,6 +2683,7 @@ public:
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
@@ -2691,7 +2704,7 @@ public:
 
             assert(bInfo.hasQuaternionInUse && bInfo.quaternionPoolIndex.isValid());
 
-            qErr[mc.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
+            qErr[ic.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
             toQuat(qnorm) = quat / quatLen;
         }
     }
@@ -2984,6 +2997,7 @@ public:
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
@@ -3002,7 +3016,7 @@ public:
             const Vec4& quat = fromQuat(q); // unnormalized quaternion from state
             const Real  quatLen = quat.norm();
             assert(bInfo.hasQuaternionInUse && bInfo.quaternionPoolIndex.isValid());
-            qErr[mc.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
+            qErr[ic.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
             toQuat(qnorm) = quat / quatLen;
         }
     }
@@ -3340,6 +3354,7 @@ public:
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
@@ -3358,7 +3373,7 @@ public:
             const Vec4& quat = fromQuat(q); // unnormalized quaternion from state
             const Real  quatLen = quat.norm();
             assert(bInfo.hasQuaternionInUse && bInfo.quaternionPoolIndex.isValid());
-            qErr[mc.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
+            qErr[ic.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
             toQuat(qnorm) = quat / quatLen;
         }
     }
@@ -3676,6 +3691,7 @@ public:
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
@@ -3694,7 +3710,7 @@ public:
             const Vec4& quat = fromQuat(q); // unnormalized quaternion from state
             const Real  quatLen = quat.norm();
             assert(bInfo.hasQuaternionInUse && bInfo.quaternionPoolIndex.isValid());
-            qErr[mc.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
+            qErr[ic.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
             toQuat(qnorm) = quat / quatLen;
         }
     }
@@ -4185,6 +4201,7 @@ public:
     void calcJointSinCosQNorm(
         const SBModelVars&  mv, 
         const SBModelCache& mc,
+        const SBInstanceCache& ic,
         const Vector&       q, 
         Vector&             sine, 
         Vector&             cosine, 
