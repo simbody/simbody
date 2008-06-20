@@ -1809,6 +1809,74 @@ void MobilizedBody::Custom::Implementation::multiplyByQDotMatrix(const State& s,
     for (int i=0; i<nu; ++i) out[i] = 0;
 }
 
+void MobilizedBody::Custom::Implementation::setQToFitTransform(const State& state, const Transform& X_FM, int nq, Real* q) const {
+    class OptimizerFunction : public OptimizerSystem {
+    public:
+        OptimizerFunction(const MobilizedBody::Custom::Implementation& impl, const State& state, int nq, const Transform& X_FM) :
+                OptimizerSystem(nq), impl(impl), state(state), X_FM(X_FM) {
+        }
+        int objectiveFunc(const Vector& parameters, const bool new_parameters, Real& f) const {
+            Transform transform = impl.calcMobilizerTransformFromQ(state, parameters.size(), &parameters[0]);
+            f = (transform.T()-X_FM.T()).norm();
+            f += std::abs((~transform.R()*X_FM.R()).convertRotationToAngleAxis()[0]);
+            return 0;
+        }
+    private:
+        const MobilizedBody::Custom::Implementation& impl;
+        const State& state;
+        const Transform& X_FM;
+    };
+    OptimizerFunction function(*this, state, nq, X_FM);
+    Optimizer opt(function);
+    opt.useNumericalJacobian(true);
+    opt.useNumericalGradient(true);
+    opt.setLimitedMemoryHistory(100);
+    Vector qvec(nq);
+    
+    // Pick initiial values which are 1) deterministic and 2) unlikely to correspond to a local
+    // maximum or inflection point, which could cause the optimizer to fail.
+    
+    for (int i = 0; i < nq; i++)
+        qvec[i] = i+0.12354;
+    opt.optimize(qvec);
+    for (int i = 0; i < nq; i++)
+        q[i] = qvec[i];
+}
+
+void MobilizedBody::Custom::Implementation::setUToFitVelocity(const State& state, const SpatialVec& V_FM, int nu, Real* u) const {
+    class OptimizerFunction : public OptimizerSystem {
+    public:
+        OptimizerFunction(const MobilizedBody::Custom::Implementation& impl, const State& state, int nu, const SpatialVec& V_FM) :
+                OptimizerSystem(nu), impl(impl), state(state), V_FM(V_FM) {
+        }
+        int objectiveFunc(const Vector& parameters, const bool new_parameters, Real& f) const {
+            SpatialVec v = impl.multiplyByHMatrix(state, parameters.size(), &parameters[0]);
+            f = (v[0]-V_FM[0]).norm();
+            f += (v[1]-V_FM[1]).norm();
+            return 0;
+        }
+    private:
+        const MobilizedBody::Custom::Implementation& impl;
+        const State& state;
+        const SpatialVec& V_FM;
+    };
+    OptimizerFunction function(*this, state, nu, V_FM);
+    Optimizer opt(function);
+    opt.useNumericalJacobian(true);
+    opt.useNumericalGradient(true);
+    opt.setLimitedMemoryHistory(100);
+    Vector uvec(nu);
+    
+    // Pick initiial values which are 1) deterministic and 2) unlikely to correspond to a local
+    // maximum or inflection point, which could cause the optimizer to fail.
+    
+    for (int i = 0; i < nu; i++)
+        uvec[i] = i+0.12354;
+    opt.optimize(uvec);
+    for (int i = 0; i < nu; i++)
+        u[i] = uvec[i];
+}
+
 // Constructors without user-specified axes for function-based mobilized body
 MobilizedBody::FunctionBased::FunctionBased(MobilizedBody& parent, const Body& body, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices)
         : Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices), body) {

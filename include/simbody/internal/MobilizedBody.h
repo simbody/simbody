@@ -2525,7 +2525,11 @@ public:
     /// which requests a particular relative orientation and translation between
     /// the "fixed" and "moving" frames connected by this mobilizer.
     /// The state is guaranteed to have been realized to at least Instance stage.
-    virtual void setQToFitTransform(const State&, const Transform& X_FM, int nq, Real* q) const = 0;
+    ///
+    /// The default implementation uses a nonlinear optimizer to search for the best
+    /// fit.  Whenever possible, subclasses should override this to provide a faster
+    /// and more robust implementation.
+    virtual void setQToFitTransform(const State&, const Transform& X_FM, int nq, Real* q) const;
 
     /// Find a set of u's (generalized speeds) for this mobilizer that best approximate
     /// the supplied spatial velocity \p V_FM which requests the relative angular
@@ -2534,7 +2538,11 @@ public:
     /// coordinates q already having been set; they never change these coordinates.
     /// The state is guaranteed to have been realized to at least Position stage.
     /// @see setQToFitTransform()
-    virtual void setUToFitVelocity(const State&, const SpatialVec& V_FM, int nu, Real* u) const = 0;
+    ///
+    /// The default implementation uses a nonlinear optimizer to search for the best
+    /// fit.  Whenever possible, subclasses should override this to provide a faster
+    /// and more robust implementation.
+    virtual void setUToFitVelocity(const State&, const SpatialVec& V_FM, int nu, Real* u) const;
 
     /// Implement this optional method if you would like your MobilizedBody to generate any suggestions
     /// for geometry that could be used as default visualization as an aid to understanding a system

@@ -1262,14 +1262,6 @@ public:
         SimTK_THROW5(SimTK::Exception::ValueOutOfRange, "nu", 1, nu, 6, "MobilizedBody::FunctionBasedImpl::multiplyByHDotTranspose");
     }
 
-    void setQToFitTransform(const State& s, const Transform& X_FM, int nq, Real* q) const {
-        // TODO
-    }
-
-    void setUToFitVelocity(const State& s, const SpatialVec& V_FM, int nu, Real* u) const {
-        // TODO
-    }
-
     void realizeTopology(State& s) const {
         switch (nu) {
         case 1:

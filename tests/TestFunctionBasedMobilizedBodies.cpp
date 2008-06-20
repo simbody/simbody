@@ -41,33 +41,33 @@ const Real TOL = 1e-6;
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
 template <class T>
-void assertEqual(T val1, T val2) {
-    ASSERT(abs(val1-val2) < TOL);
+void assertEqual(T val1, T val2, Real tol = TOL) {
+    ASSERT(abs(val1-val2) < tol);
 }
 
 template <int N>
-void assertEqual(Vec<N> val1, Vec<N> val2) {
+void assertEqual(Vec<N> val1, Vec<N> val2, Real tol = TOL) {
     for (int i = 0; i < N; ++i)
-        ASSERT(abs(val1[i]-val2[i]) < TOL);
+        ASSERT(abs(val1[i]-val2[i]) < tol);
 }
 
 template<>
-void assertEqual(Vector val1, Vector val2) {
+void assertEqual(Vector val1, Vector val2, Real tol) {
     ASSERT(val1.size() == val2.size());
     for (int i = 0; i < val1.size(); ++i)
-        assertEqual(val1[i], val2[i]);
+        assertEqual(val1[i], val2[i], tol);
 }
 
 template<>
-void assertEqual(SpatialVec val1, SpatialVec val2) {
-    assertEqual(val1[0], val2[0]);
-    assertEqual(val1[1], val2[1]);
+void assertEqual(SpatialVec val1, SpatialVec val2, Real tol) {
+    assertEqual(val1[0], val2[0], tol);
+    assertEqual(val1[1], val2[1], tol);
 }
 
 template<>
-void assertEqual(Transform val1, Transform val2) {
-    assertEqual(val1.T(), val2.T());
-    ASSERT(val1.R().isSameRotationToWithinAngle(val2.R(), TOL));
+void assertEqual(Transform val1, Transform val2, Real tol) {
+    assertEqual(val1.T(), val2.T(), tol);
+    ASSERT(val1.R().isSameRotationToWithinAngle(val2.R(), tol));
 }
 
 void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bool eulerAngles, int expectedQ, int expectedU) {
@@ -95,7 +95,7 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
         state.updQ()[i] = state.updQ()[i+nq] = random.getValue();
     int nu = state.getNU()/2;
     for (int i = 0; i < nu; ++i)
-        state.updU()[i] = state.updU()[i+nu] = 0.0; //random.getValue(); //0.0; //
+        state.updU()[i] = state.updU()[i+nu] = random.getValue(); //0.0; //
     system.realize(state, Stage::Acceleration);
         
     // Compare state variables and their derivatives.
@@ -140,18 +140,29 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
     for (int i = 0; i < b1.getNumQ(state); ++i)
         assertEqual(b1.getOneFromQPartition(state, i, tempq), b2.getOneFromQPartition(state, i, tempq));
     */
+    
     // Have them calculate q and u, and see if they agree.
     
-    //Transform t(Rotation(random.getValue(), Vec3(random.getValue(), random.getValue(), random.getValue())), Vec3(random.getValue(), random.getValue(), random.getValue()));
-    //b1.setQToFitTransform(state, t);
-    //b2.setQToFitTransform(state, t);
-    //assertEqual(b1.getQAsVector(state), b2.getQAsVector(state));
-    //SpatialVec v(Vec3(random.getValue(), random.getValue(), random.getValue()), Vec3(random.getValue(), random.getValue(), random.getValue()));
-    //b1.setUToFitVelocity(state, v);
-    //b2.setUToFitVelocity(state, v);
-    //assertEqual(b1.getUAsVector(state), b2.getUAsVector(state));
+    if (!eulerAngles) { // The optimizer does not work reliably for Euler angles, since it can hit a singularity
+        Transform t = b1.getBodyTransform(state);
+        b1.setQFromVector(state, Vector(b1.getNumQ(state), 0.0));
+        b2.setQFromVector(state, Vector(b2.getNumQ(state), 0.0));
+        b1.setQToFitTransform(state, t);
+        b2.setQToFitTransform(state, t);
+        system.realize(state, Stage::Velocity);
+        assertEqual(b1.getBodyOriginLocation(state), b2.getBodyOriginLocation(state), 1e-2);
+        assertEqual((~b1.getBodyRotation(state)*b2.getBodyRotation(state)).convertRotationToAngleAxis()[0], 0.0, 1e-2);
+        SpatialVec v = b1.getBodyVelocity(state);
+        b1.setUFromVector(state, Vector(b1.getNumU(state), 0.0));
+        b2.setUFromVector(state, Vector(b2.getNumU(state), 0.0));
+        b1.setUToFitVelocity(state, v);
+        b2.setUToFitVelocity(state, v);
+        assertEqual(b1.getUAsVector(state), b2.getUAsVector(state), 1e-2);
+    }
     
     // Simulate the system, and see if the two bodies remain identical.
+    b2.setQFromVector(state, b1.getQAsVector(state));
+    b2.setUFromVector(state, b1.getUAsVector(state));
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-8);
     TimeStepper ts(system, integ);
