@@ -95,7 +95,7 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
         state.updQ()[i] = state.updQ()[i+nq] = random.getValue();
     int nu = state.getNU()/2;
     for (int i = 0; i < nu; ++i)
-        state.updU()[i] = state.updU()[i+nu] = random.getValue(); //0.0; //
+        state.updU()[i] = state.updU()[i+nu] = (eulerAngles ? 0.0 : random.getValue());
     system.realize(state, Stage::Acceleration);
         
     // Compare state variables and their derivatives.
