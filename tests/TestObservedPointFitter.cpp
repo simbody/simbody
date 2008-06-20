@@ -97,8 +97,8 @@ int main() {
             nextBody = &matter.updMobilizedBody(slider.getMobilizedBodyIndex());
         }
         else {
-            MobilizedBody::Ball ball(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
-            nextBody = &matter.updMobilizedBody(ball.getMobilizedBodyIndex());
+            MobilizedBody::Pin pin(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
+            nextBody = &matter.updMobilizedBody(pin.getMobilizedBodyIndex());
         }
         bodies.push_back(nextBody);
         if (mainChain)
@@ -106,7 +106,7 @@ int main() {
         lastBody = nextBody;
     }
     mbs.realizeTopology();
-    State& s = mbs.updDefaultState();
+    State s = mbs.getDefaultState();
     mbs.realizeModel(s);
     
     // Choose a random initial conformation.
@@ -136,7 +136,7 @@ int main() {
     
     Real distance = (bodies[0]->getBodyOriginLocation(s)-bodies[NUM_BODIES-1]->getBodyOriginLocation(s)).norm();
     Constraint::Rod(*bodies[0], Vec3(0), *bodies[NUM_BODIES-1], Vec3(0), distance);
-    mbs.realizeTopology();
+    s = mbs.realizeTopology();
     
     // Try fitting it.
     

@@ -48,13 +48,13 @@ class ObservedPointFitter::OptimizerFunction : public OptimizerSystem {
 public:
     OptimizerFunction(const MultibodySystem& system, const State& state, vector<MobilizedBodyIndex> bodyIxs, vector<vector<Vec3> > stations, vector<vector<Vec3> > targetLocations, vector<vector<Real> > weights) :
         OptimizerSystem(state.getNQ()), system(system), state(state), bodyIxs(bodyIxs), stations(stations), targetLocations(targetLocations), weights(weights) {
+        system.realize(state, Stage::Instance);
         setNumEqualityConstraints(state.getNQErr());
     }
     int objectiveFunc(const Vector& parameters, const bool new_parameters, Real& f) const {
-        if (new_parameters) {
+        if (new_parameters)
             state.updQ() = parameters;
-            system.realize(state, Stage::Position);
-        }
+        system.realize(state, Stage::Position);
         f = 0.0;
         for (int i = 0; i < (int)bodyIxs.size(); ++i) {
             const MobilizedBodyIndex id = bodyIxs[i];
@@ -66,10 +66,9 @@ public:
         return 0;
     }
     int gradientFunc(const Vector &parameters, const bool new_parameters, Vector &gradient) const  {
-        if (new_parameters) {
+        if (new_parameters)
             state.updQ() = parameters;
-            system.realize(state, Stage::Position);
-        }
+        system.realize(state, Stage::Position);
         const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
         Vector_<SpatialVec> dEdR(matter.getNBodies());
         dEdR = SpatialVec(Vec3(0), Vec3(0));
