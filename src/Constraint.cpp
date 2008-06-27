@@ -1997,11 +1997,11 @@ applyAccelerationConstraintForcesVirtual
     // CONSTRAINT::COORDINATE COUPLER //
     ////////////////////////////////////
 
-Constraint::CoordinateCoupler::CoordinateCoupler(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
+Constraint::CoordinateCoupler::CoordinateCoupler(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
         : Custom(new CoordinateCouplerImpl(matter, function, coordBody, coordIndex)) {
 }
 
-Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
+Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
         : Implementation(matter, 1, 0, 0), function(function), coordBodies(coordBody.size()), coordIndices(coordIndex), temp(coordBodies.size()), referenceCount(new int[1]) {
     assert(coordBodies.size() == coordIndices.size());
     assert(coordIndices.size() == function->getArgumentSize());
@@ -2086,16 +2086,16 @@ void Constraint::CoordinateCouplerImpl::applyPositionConstraintForcesVirtual(con
     // CONSTRAINT::SPEED COUPLER //
     ///////////////////////////////
 
-Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex)
+Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex)
         : Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, std::vector<MobilizedBodyIndex>(0), std::vector<MobilizerQIndex>(0))) {
 }
 
-Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
+Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
         const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
         : Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, coordBody, coordIndex)) {
 }
 
-Constraint::SpeedCouplerImpl::SpeedCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
+Constraint::SpeedCouplerImpl::SpeedCouplerImpl(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
         const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
         : Implementation(matter, 0, 1, 0), function(function), speedBodies(speedBody.size()), speedIndices(speedIndex), coordBodies(coordBody), coordIndices(coordIndex),
         temp(speedBody.size()+coordBody.size()), referenceCount(new int[1]) {

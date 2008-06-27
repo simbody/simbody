@@ -1954,7 +1954,7 @@ inline Constraint::Custom::ImplementationImpl::~ImplementationImpl() {
 
 class Constraint::CoordinateCouplerImpl : public Constraint::Custom::Implementation {
 public:
-    CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
+    CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
     
     ~CoordinateCouplerImpl() {
         if (--referenceCount[0] == 0) {
@@ -1977,7 +1977,7 @@ public:
     void applyPositionConstraintForcesVirtual(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const;
 
 private:
-    Function<1>* function;
+    const Function<1>* function;
     int* referenceCount;
     std::vector<ConstrainedMobilizerIndex> coordBodies;
     std::vector<MobilizerQIndex> coordIndices;
@@ -1990,7 +1990,7 @@ private:
 
 class Constraint::SpeedCouplerImpl : public Constraint::Custom::Implementation {
 public:
-    SpeedCouplerImpl(SimbodyMatterSubsystem& matter, Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
+    SpeedCouplerImpl(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
             const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
     
     ~SpeedCouplerImpl() {
@@ -2019,7 +2019,7 @@ private:
             temp[i+speedBodies.size()] = getMatterSubsystem().getMobilizedBody(coordBodies[i]).getOneQ(s, coordIndices[i]);
     }
 
-    Function<1>* function;
+    const Function<1>* function;
     int* referenceCount;
     std::vector<ConstrainedMobilizerIndex> speedBodies;
     std::vector<MobilizedBodyIndex> coordBodies;
