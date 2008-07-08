@@ -56,7 +56,6 @@
 #include "simbody/internal/DecorationSubsystem.h"
 #include "simbody/internal/TextDataEventReporter.h"
 #include "simbody/internal/ObservedPointFitter.h"
-#include "simbody/internal/VelocityRescalingThermostat.h"
 #include "simbody/internal/LocalEnergyMinimizer.h"
 // #include "simbody/internal/Element.h"
 // #include "simbody/internal/Biotype.h"
