@@ -290,8 +290,11 @@ private:
         if (g==Stage::Empty)    {restoreToEmptyStage();    return;}
         if (g==Stage::Topology) {restoreToTopologyStage(); return;}
         if (currentStage <= g) return;
-        if (g < Stage::Instance)
-            nqerr = nuerr = nudoterr= 0;
+        if (g < Stage::Instance) {
+            nqerr = nuerr = nudoterr = 0;
+            for (int i = 0; i < Stage::NValid; i++)
+                nevents[i] = 0;
+        }
 
         // State variables remain unchanged since they are all allocated
         // after realize(Model). Cache gets shrunk to the length it
