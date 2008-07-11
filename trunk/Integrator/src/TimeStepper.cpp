@@ -113,6 +113,7 @@ void TimeStepperRep::stepTo(Real time) {
         Real nextScheduledReport = Infinity;
         Real currentTime         = integ->getTime();
         system.realize(integ->getState(), Stage::Time);
+        system.realize(integ->getAdvancedState(), Stage::Time);
         system.calcTimeOfNextScheduledEvent (integ->getState(), nextScheduledEvent,  scheduledEventIds,  lastEventTime  != currentTime);
         system.calcTimeOfNextScheduledReport(integ->getState(), nextScheduledReport, scheduledReportIds, lastReportTime != currentTime);
 
