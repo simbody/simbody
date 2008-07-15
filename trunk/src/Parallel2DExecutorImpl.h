@@ -49,7 +49,9 @@ public:
     class TriangleTask;
     class SquareTask;
     Parallel2DExecutorImpl(int gridSize, int numProcessors);
+    Parallel2DExecutorImpl(int gridSize, ParallelExecutor& executor);
     ~Parallel2DExecutorImpl();
+    void init(int numProcessors);
     void addSquare(int x, int y, int pass, int level);
     void addTriangle(int x, int y, int pass, int level);
     Parallel2DExecutorImpl* clone() const;
@@ -62,6 +64,7 @@ private:
     std::vector<std::vector<std::pair<int,int> > > squares;
     std::vector<int> binStart;
     ParallelExecutor* executor;
+    bool ownExecutor;
 };
 
 } // namespace SimTK

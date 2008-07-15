@@ -91,6 +91,16 @@ public:
      */
     Parallel2DExecutor(int gridSize, int numThreads = ParallelExecutor::getNumProcessors());
     /**
+     * Construct a Parallel2DExecutor.  This constructor allows you to specify an existing ParallelExecutor
+     * to use for parallelizing the calculation.  This can improve efficiency by reusing an existing thread
+     * pool.  It is your responsibility to make sure that the ParallelExecutor does not get deleted as long
+     * as this object exists.
+     * 
+     * @param gridSize   the size of the range over which i and j should vary
+     * @param executor   the ParallelExecutor to use for parallelizing calculations
+     */
+    Parallel2DExecutor(int gridSize, ParallelExecutor& executor);
+    /**
      * Execute a parallel task.
      * 
      * @param task      the Task to execute

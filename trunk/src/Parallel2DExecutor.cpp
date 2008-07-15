@@ -40,17 +40,23 @@ using std::vector;
 
 namespace SimTK {
 
-Parallel2DExecutorImpl::Parallel2DExecutorImpl(int gridSize, int numProcessors) : gridSize(gridSize) {
+Parallel2DExecutorImpl::Parallel2DExecutorImpl(int gridSize, int numProcessors) : gridSize(gridSize), ownExecutor(true) {
     numProcessors = std::min(numProcessors, gridSize/2);
+    if (numProcessors < 2)
+        executor = 0;
+    else
+        executor = new ParallelExecutor(numProcessors);
+    init(numProcessors);
+}
+Parallel2DExecutorImpl::Parallel2DExecutorImpl(int gridSize, ParallelExecutor& executor) : gridSize(gridSize), ownExecutor(false), executor(&executor) {
+    init(executor.getNumProcessors());
+}
+void Parallel2DExecutorImpl::init(int numProcessors) {
     int bins;
     if (numProcessors < 2) {
-        executor = 0;
         bins = 1;
     }
     else {
-        // Create the ParallelExecutor we will use for computations.
-        
-        executor = new ParallelExecutor(numProcessors);
         
         // Determine how many levels of subdivision to use.
         
@@ -74,7 +80,7 @@ Parallel2DExecutorImpl::Parallel2DExecutorImpl(int gridSize, int numProcessors) 
     binStart[bins] = gridSize;
 }
 Parallel2DExecutorImpl::~Parallel2DExecutorImpl() {
-    if (executor != 0)
+    if (executor != 0 && ownExecutor)
         delete executor;
 }
 void Parallel2DExecutorImpl::addSquare(int x, int y, int pass, int level) {
@@ -95,7 +101,9 @@ void Parallel2DExecutorImpl::addTriangle(int x, int y, int pass, int level) {
     }
 }
 Parallel2DExecutorImpl* Parallel2DExecutorImpl::clone() const {
-    return new Parallel2DExecutorImpl(gridSize, executor->getNumProcessors());
+    if (ownExecutor)
+        return new Parallel2DExecutorImpl(gridSize, executor->getNumProcessors());
+    return new Parallel2DExecutorImpl(gridSize, *executor);
 }
 
 class Parallel2DExecutorImpl::TriangleTask : public ParallelExecutor::Task {
@@ -205,6 +213,9 @@ void Parallel2DExecutorImpl::execute(Parallel2DExecutor::Task& task, Parallel2DE
 }
 
 Parallel2DExecutor::Parallel2DExecutor(int gridSize, int numProcessors) : HandleBase(new Parallel2DExecutorImpl(gridSize, numProcessors)) {
+}
+
+Parallel2DExecutor::Parallel2DExecutor(int gridSize, ParallelExecutor& executor) : HandleBase(new Parallel2DExecutorImpl(gridSize, executor)) {
 }
 
 void Parallel2DExecutor::execute(Task& task, RangeType rangeType) {
