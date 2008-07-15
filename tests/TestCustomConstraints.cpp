@@ -439,6 +439,87 @@ void testSpeedCoupler3() {
     delete function;
 }
 
+void testPrescribedMotion1() {
+    
+    // Create a system requiring simple linear motion of one Q.
+    
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    createCylinderSystem(system);
+    MobilizedBodyIndex body = MobilizedBodyIndex(2);
+    MobilizerQIndex coordinate = MobilizerQIndex(1);
+    Vector_<Vec1> coefficients(2);
+    coefficients[0] = Vec1(0.1);
+    coefficients[1] = Vec1(0.0);
+    Function<1>* function = new Function<1>::Linear(coefficients);
+    Constraint::PrescribedMotion constraint(matter, function, body, coordinate);
+    State state;
+    createState(system, state);
+    
+    // Make sure the constraint is satisfied.
+    
+    Vector args(1, state.getTime());
+    assertEqual(function->calcValue(args)[0], matter.getMobilizedBody(body).getOneQ(state, coordinate));
+    
+    // Simulate it and make sure the constraint is working correctly.
+    
+    RungeKuttaMersonIntegrator integ(system);
+    integ.setReturnEveryInternalStep(true);
+    integ.initialize(state);
+    while (integ.getTime() < 10.0) {
+        integ.stepTo(10.0);
+        Vector args(1, state.getTime());
+        assertEqual(function->calcValue(args)[0], matter.getMobilizedBody(body).getOneQ(state, coordinate), integ.getConstraintToleranceInUse());
+    }
+    delete function;
+}
+
+void testPrescribedMotion2() {
+    
+    // Create a system prescribing the motion of two Qs.
+    
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    createCylinderSystem(system);
+    MobilizedBodyIndex body1 = MobilizedBodyIndex(2);
+    MobilizerQIndex coordinate1 = MobilizerQIndex(1);
+    Vector_<Vec1> coefficients1(2);
+    coefficients1[0] = Vec1(0.1);
+    coefficients1[1] = Vec1(0.0);
+    Function<1>* function1 = new Function<1>::Linear(coefficients1);
+    Constraint::PrescribedMotion constraint1(matter, function1, body1, coordinate1);
+    MobilizedBodyIndex body2 = MobilizedBodyIndex(2);
+    MobilizerQIndex coordinate2 = MobilizerQIndex(0);
+    Vector_<Vec1> coefficients2(3);
+    coefficients2[0] = Vec1(0.5);
+    coefficients2[1] = Vec1(-0.2);
+    coefficients2[2] = Vec1(1.1);
+    Function<1>* function2 = new Function<1>::Polynomial(coefficients2);
+    Constraint::PrescribedMotion constraint2(matter, function2, body2, coordinate2);
+    State state;
+    createState(system, state);
+    
+    // Make sure the constraint is satisfied.
+    
+    Vector args(1, state.getTime());
+    assertEqual(function1->calcValue(args)[0], matter.getMobilizedBody(body1).getOneQ(state, coordinate1));
+    assertEqual(function2->calcValue(args)[0], matter.getMobilizedBody(body2).getOneQ(state, coordinate2));
+    
+    // Simulate it and make sure the constraint is working correctly and energy is being conserved.
+    
+    RungeKuttaMersonIntegrator integ(system);
+    integ.setReturnEveryInternalStep(true);
+    integ.initialize(state);
+    while (integ.getTime() < 10.0) {
+        integ.stepTo(10.0);
+        Vector args(1, state.getTime());
+        assertEqual(function1->calcValue(args)[0], matter.getMobilizedBody(body1).getOneQ(state, coordinate1), integ.getConstraintToleranceInUse());
+        assertEqual(function2->calcValue(args)[0], matter.getMobilizedBody(body2).getOneQ(state, coordinate2), integ.getConstraintToleranceInUse());
+    }
+    delete function1;
+    delete function2;
+}
+
 int main() {
     try {
         testCoordinateCoupler1();
@@ -447,6 +528,8 @@ int main() {
         testSpeedCoupler1();
         testSpeedCoupler2();
         testSpeedCoupler3();
+        testPrescribedMotion1();
+        testPrescribedMotion2();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

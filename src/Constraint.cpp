@@ -2137,6 +2137,61 @@ void Constraint::SpeedCouplerImpl::applyVelocityConstraintForcesVirtual(const St
     }
 }
 
+    ///////////////////////////////////
+    // CONSTRAINT::PRESCRIBED MOTION //
+    ///////////////////////////////////
+
+Constraint::PrescribedMotion::PrescribedMotion(SimbodyMatterSubsystem& matter, const Function<1>* function, MobilizedBodyIndex coordBody, MobilizerQIndex coordIndex)
+        : Custom(new PrescribedMotionImpl(matter, function, coordBody, coordIndex)) {
+}
+
+Constraint::PrescribedMotionImpl::PrescribedMotionImpl(SimbodyMatterSubsystem& matter, const Function<1>* function, MobilizedBodyIndex coordBody, MobilizerQIndex coordIndex)
+        : Implementation(matter, 1, 0, 0), function(function), coordIndex(coordIndex), temp(1), referenceCount(new int[1]) {
+    assert(function->getArgumentSize() == 1);
+    assert(function->getMaxDerivativeOrder() >= 2);
+    referenceCount[0] = 1;
+    this->coordBody = addConstrainedMobilizer(matter.getMobilizedBody(coordBody));
+}
+
+void Constraint::PrescribedMotionImpl::realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
+    temp[0] = s.getTime();
+    perr[0] = getOneQ(s, coordBody, coordIndex) - function->calcValue(temp)[0];
+}
+
+void Constraint::PrescribedMotionImpl::realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const {
+    temp[0] = s.getTime();
+    std::vector<int> components(1, 0);
+    pverr[0] = getOneQDot(s, coordBody, coordIndex, true) - function->calcDerivative(components, temp)[0];
+}
+
+void Constraint::PrescribedMotionImpl::realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const {
+    const Vector& udot = s.updUDot();
+    Vector qdotdot(s.getNQ());
+    const SimbodyMatterSubsystem& matter = getMatterSubsystem();
+    SBStateDigest digest(s, matter.getRep(), Stage::Velocity);
+    const MobilizedBody& body = matter.getMobilizedBody(getMobilizedBodyIndexOfConstrainedMobilizer(coordBody));
+    const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
+    node.calcQDotDot(digest, udot, qdotdot);
+    temp[0] = s.getTime();
+    std::vector<int> components(2, 0);
+    paerr[0] = body.getOneFromQPartition(s, coordIndex, qdotdot) - function->calcDerivative(components, temp)[0];
+}
+
+void Constraint::PrescribedMotionImpl::applyPositionConstraintForcesVirtual(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
+    const SimbodyMatterSubsystem& matter = getMatterSubsystem();
+    SBStateDigest digest(s, matter.getRep(), Stage::Velocity);
+    bool useEuler = matter.getUseEulerAngles(s);
+    Real force = multipliers[0];
+    const MobilizedBody& body = matter.getMobilizedBody(getMobilizedBodyIndexOfConstrainedMobilizer(coordBody));
+    const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
+    Vector q = body.getQAsVector(s);
+    Vector grad(body.getNumQ(s), 0.0);
+    Vector forces(body.getNumU(s));
+    grad[coordIndex] = force;
+    node.multiplyByQBlock(digest, useEuler, &q[0], true, &grad[0], &forces[0]);
+    for (MobilizerUIndex index(0); index < forces.size(); index++)
+        addInOneMobilityForce(s, coordBody, index, forces[index], mobilityForces);
+}
 
     /////////////////////
     // CONSTRAINT IMPL //

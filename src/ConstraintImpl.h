@@ -2028,6 +2028,42 @@ private:
     mutable Vector temp;
 };
 
+////////////////////////////////////////
+// CONSTRAINT::PRESCRIBED MOTION IMPL //
+////////////////////////////////////////
+
+class Constraint::PrescribedMotionImpl : public Constraint::Custom::Implementation {
+public:
+    PrescribedMotionImpl(SimbodyMatterSubsystem& matter, const Function<1>* function, MobilizedBodyIndex coordBody, MobilizerQIndex coordIndex);
+    
+    ~PrescribedMotionImpl() {
+        if (--referenceCount[0] == 0) {
+            delete function;
+            delete[] referenceCount;
+        }
+    }
+    
+    Implementation* cloneVirtual() const {
+        referenceCount[0]++;
+        return new PrescribedMotionImpl(*this);
+    }
+
+    void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const;
+
+    void realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const;
+
+    void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const;
+
+    void applyPositionConstraintForcesVirtual(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const;
+
+private:
+    const Function<1>* function;
+    int* referenceCount;
+    ConstrainedMobilizerIndex coordBody;
+    MobilizerQIndex coordIndex;
+    mutable Vector temp;
+};
+
 } // namespace SimTK
 
 #endif // SimTK_SIMBODY_CONSTRAINT_IMPL_H_

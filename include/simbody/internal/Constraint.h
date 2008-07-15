@@ -247,6 +247,7 @@ public:
     class Custom;
     class CoordinateCoupler;
     class SpeedCoupler;
+    class PrescribedMotion;
 
     class RodImpl;
     class BallImpl;
@@ -260,6 +261,7 @@ public:
     class CustomImpl;
     class CoordinateCouplerImpl;
     class SpeedCouplerImpl;
+    class PrescribedMotionImpl;
 };
 
     ////////////////////////////////////////
@@ -1288,7 +1290,6 @@ public:
     CoordinateCoupler(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
 };
 
-
 /**
  * This is a subclass of Constraint::Custom which uses a Function object to define a nonholonomic (velocity) constraint.
  * You provide a Function which takes some subset of the system's generalized speeds as arguments, and returns
@@ -1310,7 +1311,7 @@ public:
      * 
      * @param matter      the matter subsystem this constraint will be added to
      * @param function    the Function whose value should equal 0 at all times.  The constraint takes over ownership of this
-     *                    object, and automatically deletes in when the constraint is deleted.
+     *                    object, and automatically deletes it when the constraint is deleted.
      * @param speedBody   the MobilizedBody corresponding to each generalized speed that should be passed as a function argument
      * @param speedIndex  the index corresponding to each generalized speed that should be passed as a function argument
      */
@@ -1325,7 +1326,7 @@ public:
      * 
      * @param matter      the matter subsystem this constraint will be added to
      * @param function    the Function whose value should equal 0 at all times.  The constraint takes over ownership of this
-     *                    object, and automatically deletes in when the constraint is deleted.
+     *                    object, and automatically deletes it when the constraint is deleted.
      * @param speedBody   the MobilizedBody corresponding to each generalized speed that should be passed as a function argument
      * @param speedIndex  the index corresponding to each generalized speed that should be passed as a function argument
      * @param coordBody   the MobilizedBody corresponding to each generalized coordinate that should be passed as a function argument
@@ -1333,6 +1334,27 @@ public:
      */
     SpeedCoupler(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
             const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
+};
+
+/**
+ * This is a subclass of Constraint::Custom which uses a Function to prescribe the behavior of a single generalized coordinate
+ * as a function of time.  You provide a Function which takes the current time as its argument and returns the required value of
+ * the generalized coordinate.  It also must support derivatives up to second order.
+ */
+  
+class SimTK_SIMBODY_EXPORT Constraint::PrescribedMotion : public Constraint::Custom {
+public:
+    /**
+     * Create a PrescribedMotion constraint.  You specify a Function that takes time as its single argument, and returns the required
+     * value for the constrained coordinate.
+     * 
+     * @param matter      the matter subsystem this constraint will be added to
+     * @param function    the Function which specifies the value of the constrained coordinate.  The constraint takes over ownership of this
+     *                    object, and automatically deletes it when the constraint is deleted.
+     * @param coordBody   the MobilizedBody corresponding to the generalized coordinate which will be constrained
+     * @param coordIndex  the index of the generalized coordinate which will be constrained
+     */
+    PrescribedMotion(SimbodyMatterSubsystem& matter, const Function<1>* function, MobilizedBodyIndex coordBody, MobilizerQIndex coordIndex);
 };
 
 } // namespace SimTK
