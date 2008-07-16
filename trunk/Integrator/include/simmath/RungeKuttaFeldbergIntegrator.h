@@ -41,7 +41,7 @@ namespace SimTK {
 
 /**
  * This is an Integrator based on the Runge-Kutta-Feldberg algorithm.  It is an
- * error controlled, fourth order explicit integrator.
+ * error controlled, fifth order explicit integrator.
  */
 
 class RungeKuttaFeldbergIntegratorRep;
