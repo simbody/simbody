@@ -37,6 +37,7 @@ enum { TRACE, MAX_FUNCTION_EVALUATIONS, DEFAULT_STEP_LENGTH, LINE_SEARCH_ACCURAC
 #include "simmath/TimeStepper.h"
 #include "simmath/CPodesIntegrator.h"
 #include "simmath/RungeKuttaMersonIntegrator.h"
+#include "simmath/RungeKuttaFeldbergIntegrator.h"
 #include "simmath/ExplicitEulerIntegrator.h"
 #include "simmath/VerletIntegrator.h"
 
