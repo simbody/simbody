@@ -44,6 +44,7 @@ ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
 
     // Construct all the threading related objects we will need.
     
+    SimTK_APIARGCHECK_ALWAYS(numThreads > 0, "ParallelExecutorImpl", "ParallelExecutorImpl", "Number of threads must be positive.");
     threads.resize(numThreads);
     pthread_mutex_init(&runLock, NULL);
     pthread_cond_init(&runCondition, NULL);
@@ -145,9 +146,18 @@ void* threadBody(void* args) {
             ParallelExecutor::Task& task = executor.getCurrentTask();
             task.initialize();
             int index = info.index;
-            while (index < count) {
-                task.execute(index);
-                index += threadCount;
+            try {
+                while (index < count) {
+                    task.execute(index);
+                    index += threadCount;
+                }
+            }
+            catch (std::exception ex) {
+                std::cerr <<"The parallel task threw an unhandled exception:"<< std::endl;
+                std::cerr <<ex.what()<< std::endl;
+            }
+            catch (...) {
+                std::cerr <<"The parallel task threw an error."<< std::endl;
             }
             info.running = false;
             executor.incrementWaitingThreads();
