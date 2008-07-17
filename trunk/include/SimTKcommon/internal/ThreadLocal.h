@@ -33,15 +33,32 @@
  * -------------------------------------------------------------------------- */
 
 #include <pthread.h>
+#include <map>
+#include <set>
 
 namespace SimTK {
 
+static std::map<void*, pthread_key_t> instanceMap;
+static std::map<pthread_key_t, std::set<void*> > keyInstances;
+static pthread_mutex_t keyLock = PTHREAD_MUTEX_INITIALIZER;
+
 template <class T>
 static void cleanUpThreadLocalStorage(void* value) {
-    if (value != NULL) {
-        T* t = reinterpret_cast<T*>(value);
-        delete t;
-    }
+
+    // Delete the value.
+    
+    T* t = reinterpret_cast<T*>(value);
+    delete t;
+    
+    // Remove it from the set of values needing to be deleted.
+    
+    pthread_mutex_lock(&keyLock);
+    pthread_key_t key = instanceMap[value];
+    instanceMap.erase(value);
+    if (keyInstances.find(key) != keyInstances.end())
+        keyInstances.find(key)->second.erase(value);
+    pthread_mutex_unlock(&keyLock);
+
 }
 
 /**
@@ -70,7 +87,7 @@ public:
      * Create a new ThreadLocal variable.
      */
     ThreadLocal() {
-        pthread_key_create(&key, cleanUpThreadLocalStorage<T>);
+        this->initialize();
     }
     /**
      * Create a new ThreadLocal variable.
@@ -78,20 +95,33 @@ public:
      * @param defaultValue the initial value which the variable will have on each thread
      */
     ThreadLocal(const T& defaultValue) : defaultValue(defaultValue) {
-        pthread_key_create(&key, cleanUpThreadLocalStorage<T>);
+        this->initialize();
     }
     ~ThreadLocal() {
+        
+        // Delete the key.
+        
         pthread_key_delete(key);
+        
+        // Once the key is deleted, cleanUpThreadLocalStorage() will no longer be called, so delete
+        // all instances now.
+        
+        pthread_mutex_lock(&keyLock);
+        std::set<void*>& instances = keyInstances[key];
+        for (std::set<void*>::const_iterator iter = instances.begin(); iter != instances.end(); ++iter) {
+            instanceMap.erase(*iter);
+            delete (T*) *iter;
+        }
+        keyInstances.erase(key);
+        pthread_mutex_unlock(&keyLock);
     }
     /**
      * Get a reference to the value for the current thread.
      */
     T& upd() {
         T* value = reinterpret_cast<T*>(pthread_getspecific(key));
-        if (value == NULL) {
-            value = new T(defaultValue);
-            pthread_setspecific(key, value);
-        }
+        if (value == NULL)
+            return createValue();
         return *value;
     }
     /**
@@ -99,13 +129,26 @@ public:
      */
     const T& get() const {
         T* value = reinterpret_cast<T*>(pthread_getspecific(key));
-        if (value == NULL) {
-            value = new T(defaultValue);
-            pthread_setspecific(key, value);
-        }
+        if (value == NULL)
+            return createValue();
         return *value;
     }
 private:
+    void initialize() {
+        pthread_key_create(&key, cleanUpThreadLocalStorage<T>);
+        pthread_mutex_lock(&keyLock);
+        keyInstances[key] = std::set<void*>();
+        pthread_mutex_unlock(&keyLock);
+    }
+    T& createValue() const {
+        T* value = new T(defaultValue);
+        pthread_setspecific(key, value);
+        pthread_mutex_lock(&keyLock);
+        instanceMap[value] = key;
+        keyInstances[key].insert(value);
+        pthread_mutex_unlock(&keyLock);
+        return *value;
+    }
     pthread_key_t key;
     T defaultValue;
 };
