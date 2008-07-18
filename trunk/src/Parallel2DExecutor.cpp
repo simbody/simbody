@@ -105,6 +105,9 @@ Parallel2DExecutorImpl* Parallel2DExecutorImpl::clone() const {
         return new Parallel2DExecutorImpl(gridSize, executor->getNumProcessors());
     return new Parallel2DExecutorImpl(gridSize, *executor);
 }
+ParallelExecutor& Parallel2DExecutorImpl::getExecutor() {
+    return *executor;
+}
 
 class Parallel2DExecutorImpl::TriangleTask : public ParallelExecutor::Task {
 public:
@@ -220,6 +223,10 @@ Parallel2DExecutor::Parallel2DExecutor(int gridSize, ParallelExecutor& executor)
 
 void Parallel2DExecutor::execute(Task& task, RangeType rangeType) {
     updImpl().execute(task, rangeType);
+}
+
+ParallelExecutor& Parallel2DExecutor::getExecutor() {
+    return updImpl().getExecutor();
 }
 
 } // namespace SimTK

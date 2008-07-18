@@ -109,6 +109,10 @@ public:
      *                  restrict it to i > j, and HalfPlusDiagonal to restrict it to i >= j. 
      */
     void execute(Task& task, RangeType rangeType);
+    /**
+     * Get the ParallelExecutor used by this object to parallelize calculations.
+     */
+    ParallelExecutor& getExecutor();
 };
 
 /**

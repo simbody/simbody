@@ -56,6 +56,7 @@ public:
     void addTriangle(int x, int y, int pass, int level);
     Parallel2DExecutorImpl* clone() const;
     void execute(Parallel2DExecutor::Task& task, Parallel2DExecutor::RangeType rangeType);
+    ParallelExecutor& getExecutor();
     int getBinStart(int bin) const {
         return binStart[bin];
     }
