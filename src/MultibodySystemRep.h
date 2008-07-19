@@ -340,7 +340,11 @@ public:
         assert(globalSub.isValid());
         return MultibodySystemGlobalSubsystem::downcast(getSubsystem(globalSub));
     }
+
     bool hasDecorationSubsystem() const {return decorationSub.isValid();}
+    bool hasMatterSubsystem() const {return matterSub.isValid();}
+    bool hasGlobalSubsystem() const {return globalSub.isValid();}
+
     const DecorationSubsystem& getDecorationSubsystem() const {
         assert(decorationSub.isValid());
         return DecorationSubsystem::downcast(getSubsystem(decorationSub));

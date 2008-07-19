@@ -112,6 +112,9 @@ SimbodyMatterSubsystem&
 MultibodySystem::updMatterSubsystem() {
     return updRep().updMatterSubsystem();
 }
+bool MultibodySystem::hasMatterSubsystem() const {
+    return getRep().hasMatterSubsystem();
+}
 
 const DecorationSubsystem&       
 MultibodySystem::getDecorationSubsystem() const {
@@ -120,6 +123,9 @@ MultibodySystem::getDecorationSubsystem() const {
 DecorationSubsystem&       
 MultibodySystem::updDecorationSubsystem() {
     return updRep().updDecorationSubsystem();
+}
+bool MultibodySystem::hasDecorationSubsystem() const {
+    return getRep().hasDecorationSubsystem();
 }
 
 const Real

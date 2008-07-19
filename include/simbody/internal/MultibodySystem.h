@@ -60,13 +60,18 @@ public:
     MultibodySystem(SimbodyMatterSubsystem& m);
 
     // Steals ownership of the source; returns subsystem ID number.
-    int setMatterSubsystem(SimbodyMatterSubsystem&);
     int addForceSubsystem(ForceSubsystem&);
-    int setDecorationSubsystem(DecorationSubsystem&);
+
+    int setMatterSubsystem(SimbodyMatterSubsystem&);
     const SimbodyMatterSubsystem& getMatterSubsystem() const;
     SimbodyMatterSubsystem&       updMatterSubsystem();
+    bool hasMatterSubsystem() const;
+
+    int setDecorationSubsystem(DecorationSubsystem&);
     const DecorationSubsystem& getDecorationSubsystem() const;
     DecorationSubsystem&       updDecorationSubsystem();
+    bool hasDecorationSubsystem() const;
+
 
     /// Calculate the total potential energy of the system.  The state must
     /// be at Dynamics stage or later.
