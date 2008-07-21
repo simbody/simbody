@@ -1112,7 +1112,7 @@ MatrixHelperRep<S>::sum(S* const answer) const {
             colSum(j, csum);
             DataDescriptor<S>::addToElement(sz, answer, csum); // answer+=csum
         }
-        delete csum;
+        delete[] csum;
     }
 }        
 
