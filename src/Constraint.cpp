@@ -2325,8 +2325,12 @@ void ConstraintImpl::realizeInstance(const State& s) const {
         for (int i=0; i<nu; ++i) cInfo.participatingU.push_back(UIndex(uix+i));
     }
 
+	// Caution: std::unique does not automatically shorten the original list.
     std::sort(cInfo.participatingQ.begin(), cInfo.participatingQ.end());
-    std::unique(cInfo.participatingQ.begin(), cInfo.participatingQ.end());
+	std::vector<QIndex>::const_iterator newEnd =
+		std::unique(cInfo.participatingQ.begin(), cInfo.participatingQ.end());
+	cInfo.participatingQ.erase(newEnd, cInfo.participatingQ.end());
+
     realizeInstanceVirtual(s); // nothing to do at the base class level
 }
 void ConstraintImpl::realizeTime(const State& s) const {
