@@ -35,6 +35,7 @@
 #include "SimTKcommon.h"
 
 #include "simmath/internal/common.h"
+#include "Integrator.h"
 
 namespace SimTK {
 class Integrator;
@@ -122,7 +123,7 @@ public:
      * and the final time was reached; or if an event handler requested that the simulation terminate
      * immediately.
      */
-    void stepTo(Real time);
+    Integrator::SuccessfulStepStatus stepTo(Real time);
 private:
     class TimeStepperRep* rep;
     friend class TimeStepperRep;

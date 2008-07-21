@@ -85,8 +85,8 @@ void TimeStepper::initialize(const State& initState) {
     rep->lastReportTime = -Infinity;
 }
 
-void TimeStepper::stepTo(Real reportTime) {
-    rep->stepTo(reportTime);
+Integrator::SuccessfulStepStatus TimeStepper::stepTo(Real reportTime) {
+    return( rep->stepTo(reportTime) );
 }
 
 bool TimeStepper::getReportAllSignificantStates() {
@@ -105,7 +105,7 @@ void TimeStepper::setReportAllSignificantStates(bool b) {
 TimeStepperRep::TimeStepperRep(TimeStepper* handle, const System& system) : myHandle(handle), system(system), integ(0), reportAllSignificantStates(false) {
 }
 
-void TimeStepperRep::stepTo(Real time) {
+Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
     while (!integ->isSimulationOver()) {
         std::vector<EventId> scheduledEventIds;
         std::vector<EventId> scheduledReportIds;
@@ -126,12 +126,12 @@ void TimeStepperRep::stepTo(Real time) {
         switch (status) {
             case Integrator::ReachedStepLimit: {
                 if (reportAllSignificantStates)
-                    return;
+                    return(status);
                 continue;
             }
             case Integrator::StartOfContinuousInterval: {
                 if (reportAllSignificantStates)
-                    return;
+                    return(status);
                 continue;
             }
             case Integrator::ReachedReportTime: {
@@ -142,7 +142,7 @@ void TimeStepperRep::stepTo(Real time) {
                     lastReportTime = integ->getTime();
                 }
                 if (integ->getTime() >= time || reportAllSignificantStates)
-                    return;
+                    return(status);
                 continue;
             }
             case Integrator::ReachedScheduledEvent: {
@@ -190,7 +190,7 @@ void TimeStepperRep::stepTo(Real time) {
         }
         integ->reinitialize(lowestModified, shouldTerminate);
         if (reportAllSignificantStates)
-            return;
+            return(status);
     }
 }
 

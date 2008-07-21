@@ -58,7 +58,7 @@ public:
     TimeStepperRep(TimeStepper* handle, const System& system);
     // default destructor, no default constructor, no copy or copy assign
 
-    void stepTo(Real time);
+    Integrator::SuccessfulStepStatus stepTo(Real time);
 
     const State& getState() const {return integ->getState();}
 
