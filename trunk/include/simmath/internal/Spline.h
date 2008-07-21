@@ -64,6 +64,11 @@ public:
     Spline() : impl(NULL) {
     }
     Spline& operator=(const Spline& copy) {
+        if (impl) {
+            impl->referenceCount--;
+            if (impl->referenceCount == 0)
+                delete impl;
+        }
         impl = copy.impl;
         assert(impl);
         impl->referenceCount++;
