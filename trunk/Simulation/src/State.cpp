@@ -289,8 +289,11 @@ private:
     void restoreToStage(Stage g) {
         if (g==Stage::Empty)    {restoreToEmptyStage();    return;}
         if (g==Stage::Topology) {restoreToTopologyStage(); return;}
-        if (currentStage <= g) return;
+        if (currentStage <= g)
+			return;
+
         if (g < Stage::Instance) {
+			clearReferencesToInstanceStageGlobals();
             nqerr = nuerr = nudoterr = 0;
             for (int i = 0; i < Stage::NValid; i++)
                 nevents[i] = 0;

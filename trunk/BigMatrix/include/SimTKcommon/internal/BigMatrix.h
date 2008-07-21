@@ -1087,6 +1087,9 @@ public:
     VectorBase& resize(int m)     {Base::resize(m,1); return *this;}
     VectorBase& resizeKeep(int m) {Base::resizeKeep(m,1); return *this;}
 
+	//TODO: this is not re-locking the number of columns at 1.
+	void clear() {Base::clear(); Base::resize(0,1);}
+
     ELT sum() const {ELT s; Base::helper.sum(reinterpret_cast<Scalar*>(&s)); return s; } // add all the elements        
     VectorIterator<ELT, VectorBase<ELT> > begin() {
         return VectorIterator<ELT, VectorBase<ELT> >(*this, 0);
@@ -1298,6 +1301,9 @@ public:
 
     RowVectorBase& resize(int n)     {Base::resize(1,n); return *this;}
     RowVectorBase& resizeKeep(int n) {Base::resizeKeep(1,n); return *this;}
+
+	//TODO: this is not re-locking the number of rows at 1.
+	void clear() {Base::clear(); Base::resize(1,0);}
 
     ELT sum() const {ELT s; Base::helper.sum(reinterpret_cast<Scalar*>(&s)); return s; } // add all the elements        
     VectorIterator<ELT, RowVectorBase<ELT> > begin() {
