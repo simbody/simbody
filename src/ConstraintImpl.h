@@ -1875,6 +1875,10 @@ public:
         }
     }
     
+    ~CustomImpl() {
+        delete implementation;
+    }
+    
     CustomImpl* clone() const { return new CustomImpl(*this); }
 
     const Custom::Implementation& getImplementation() const {

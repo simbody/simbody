@@ -267,7 +267,6 @@ void testCoordinateCoupler2() {
         assertEqual(0.0, function->calcValue(args)[0], integ.getConstraintToleranceInUse());
         assertEqual(energy, system.calcEnergy(integ.getState()), energy*0.01);
     }
-    delete function;
 }
 
 void testCoordinateCoupler3() {
@@ -313,7 +312,6 @@ void testCoordinateCoupler3() {
         assertEqual(0.0, function->calcValue(args)[0], 3*integ.getConstraintToleranceInUse());
         assertEqual(energy, system.calcEnergy(integ.getState()), energy*0.01);
     }
-    delete function;
 }
 
 void testSpeedCoupler1() {
@@ -391,7 +389,6 @@ void testSpeedCoupler2() {
         assertEqual(0.0, function->calcValue(args)[0], integ.getConstraintToleranceInUse());
         assertEqual(energy, system.calcEnergy(integ.getState()), energy*0.01);
     }
-    delete function;
 }
 
 void testSpeedCoupler3() {
@@ -436,7 +433,6 @@ void testSpeedCoupler3() {
         args[2] = matter.getMobilizedBody(qbody[0]).getOneQ(state, qindex[0]);
         assertEqual(0.0, function->calcValue(args)[0], integ.getConstraintToleranceInUse());
     }
-    delete function;
 }
 
 void testPrescribedMotion1() {
@@ -471,7 +467,6 @@ void testPrescribedMotion1() {
         Vector args(1, state.getTime());
         assertEqual(function->calcValue(args)[0], matter.getMobilizedBody(body).getOneQ(state, coordinate), integ.getConstraintToleranceInUse());
     }
-    delete function;
 }
 
 void testPrescribedMotion2() {
@@ -516,8 +511,6 @@ void testPrescribedMotion2() {
         assertEqual(function1->calcValue(args)[0], matter.getMobilizedBody(body1).getOneQ(state, coordinate1), integ.getConstraintToleranceInUse());
         assertEqual(function2->calcValue(args)[0], matter.getMobilizedBody(body2).getOneQ(state, coordinate2), integ.getConstraintToleranceInUse());
     }
-    delete function1;
-    delete function2;
 }
 
 int main() {

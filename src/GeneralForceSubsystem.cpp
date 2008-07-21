@@ -67,6 +67,11 @@ public:
     {
     }
     
+    ~GeneralForceSubsystemRep() {
+        for (int i = 0; i <forces.size(); i++)
+            delete forces[i];
+    }
+    
     ForceIndex adoptForce(Force& force) 
     {
         invalidateSubsystemTopologyCache();
