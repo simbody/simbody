@@ -311,9 +311,7 @@ IntegratorRep::IntegratorRep
 
 void IntegratorRep::initialize(const State& initState) {
   try
-  { 
-
-  updAdvancedState() = initState;
+  { updAdvancedState() = initState;
      
     // Freeze problem dimensions.
     getSystem().realize(getAdvancedState(), Stage::Instance);
@@ -380,15 +378,11 @@ void IntegratorRep::initialize(const State& initState) {
     // NOT the one originally passed to initialize().
     methodInitialize(getAdvancedState());
 
-} catch( const std::exception& x ) {
-    printf("IntegratorRep::initialize Exception Thrown: %s\n",x.what() );
-    exit(1);
-} catch (...) {
-    printf("IntegratorRep::initialize UNKNOWN EXCEPTION THROWN \n");
-    exit(1);
-}
-
-
+  } catch (const std::exception& e) {
+    SimTK_THROW1(Integrator::InitializationFailed, e.what());
+  } catch (...) {
+    SimTK_THROW1(Integrator::InitializationFailed, "UNKNOWN EXCEPTION");
+  }
 }
 
 void IntegratorRep::reinitialize(Stage stage, bool shouldTerminate) {
