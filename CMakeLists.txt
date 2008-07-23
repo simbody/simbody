@@ -220,23 +220,23 @@ ENDIF(NOT LIBRARY_OUTPUT_PATH)
 SET(${PROJECT_NAME}_EXECUTABLE_DIR ${EXECUTABLE_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
 SET(${PROJECT_NAME}_LIBRARY_DIR    ${LIBRARY_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
 
-# Ensure that debug libraries have "_d" appended to their names.
-# CMake gets this right on Windows automatically with this definition.
-IF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
-    SET(CMAKE_DEBUG_POSTFIX "_d" CACHE INTERNAL "" FORCE)
-ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
-
-# But on Unix or Cygwin we have to add the suffix manually
-IF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
+IF( CMAKE_BUILD_TYPE MATCHES RelWithDebInfo )
     SET(SHARED_TARGET ${SHARED_TARGET}_d)
     SET(STATIC_TARGET ${STATIC_TARGET}_d)
-ENDIF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
+ELSE( CMAKE_BUILD_TYPE MATCHES RelWithDebInfo )
 
-IF (UNIX AND CMAKE_BUILD_TYPE MATCHES RelWithDebugInfo )
-    SET(SHARED_TARGET ${SHARED_TARGET}_d)
-    SET(STATIC_TARGET ${STATIC_TARGET}_d)
-ENDIF (UNIX AND CMAKE_BUILD_TYPE MATCHES RelWithDebugInfo )
+    # Ensure that debug libraries have "_d" appended to their names.
+    # CMake gets this right on Windows automatically with this definition.
+    IF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
+        SET(CMAKE_DEBUG_POSTFIX "_d" CACHE INTERNAL "" FORCE)
+    ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
 
+    # But on Unix or Cygwin we have to add the suffix manually
+    IF ( UNIX AND CMAKE_BUILD_TYPE MATCHES Debug )
+        SET(SHARED_TARGET ${SHARED_TARGET}_d)
+        SET(STATIC_TARGET ${STATIC_TARGET}_d)
+    ENDIF ( UNIX AND CMAKE_BUILD_TYPE MATCHES Debug )
+ENDIF( CMAKE_BUILD_TYPE MATCHES RelWithDebInfo )
 
 
 SET(SimTKCOMMON_LIBRARY_NAME SimTKcommon)
