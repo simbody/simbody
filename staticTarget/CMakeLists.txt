@@ -10,7 +10,7 @@ IF( CMAKE_BUILD_TYPE MATCHES Release )
 ELSE( CMAKE_BUILD_TYPE MATCHES Release )
     TARGET_LINK_LIBRARIES(${STATIC_TARGET} ${SimTKMATH_STATIC_LIBRARY}_d 
                                            ${SimTKCPODES_STATIC_LIBRARY}_d  
-                                           ${SimTKCOMMON_SHARED_LIBRARY}_d ${MATH_LIBS_TO_USE})
+                                           ${SimTKCOMMON_STATIC_LIBRARY}_d ${MATH_LIBS_TO_USE})
 ENDIF( CMAKE_BUILD_TYPE MATCHES Release )
 
 
