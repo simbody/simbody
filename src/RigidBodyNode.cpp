@@ -3972,7 +3972,7 @@ public:
     RBNodeCustom(const MobilizedBody::Custom::Implementation& impl, const MassProperties& mProps_B,
             const Transform& X_PF, const Transform& X_BM,UIndex& nextUSlot, USquaredIndex& nextUSqSlot, QIndex& nextQSlot) : 
             RigidBodyNodeSpec<nu>(mProps_B, X_PF, X_BM, nextUSlot, nextUSqSlot, nextQSlot, RigidBodyNode::QDotMayDifferFromU,
-            nAngles == 4 ? RigidBodyNode::QuaternionMayBeUsed : RigidBodyNode::QuaternionIsNeverUsed),
+            impl.getImpl().getNAngles() == 4 ? RigidBodyNode::QuaternionMayBeUsed : RigidBodyNode::QuaternionIsNeverUsed),
             impl(impl), nq(impl.getImpl().getNQ()), nAngles(impl.getImpl().getNAngles()) {
         this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
