@@ -107,7 +107,7 @@ Vec<K> GCVSPLUtil::splder(int derivOrder, int degree, Real t, const Vector& x, c
     Vec<K> result;
     int m = (degree+1)/2;
     int n = x.size();
-    int interval = 0;
+    int interval = (int) ceil(n*(t-x[0])/(x[n-1]-x[0]));
     Vector_<double> q(2*m);
     int offset = (int) (&coeff[1][0]-&coeff[0][0]);
 

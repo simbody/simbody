@@ -26,30 +26,30 @@ static SimTK_Real c_b6 = 1e-15;
 	wk, int *ier)
 {
 
-    static int m2 = 0;
-    static int nm1 = 0;
-    static SimTK_Real el = 0.;
+    int m2 = 0;
+    int nm1 = 0;
+    SimTK_Real el = 0.;
 
     /* System generated locals */
     int y_dim1, y_offset, c_dim1, c_offset, i__1;
 
     /* Local variables */
-    static int nm2m1, nm2p1;
+    int nm2m1, nm2p1;
     extern SimTK_Real splc_(int *, int *, int *, const SimTK_Real *, 
 	    int *, const SimTK_Real *, const SimTK_Real *, int *, SimTK_Real *, 
 	    SimTK_Real *, SimTK_Real *, SimTK_Real *, int *, SimTK_Real *,
 	     SimTK_Real *, SimTK_Real *, SimTK_Real *, SimTK_Real *);
     extern /* Subroutine */ int prep_(int *, int *, const SimTK_Real *, 
 	    const SimTK_Real *, SimTK_Real *, SimTK_Real *);
-    static int i, j;
-    static SimTK_Real alpha;
+    int i, j;
+    SimTK_Real alpha;
     extern /* Subroutine */ int basis_(int *, int *, const SimTK_Real *, 
 	    SimTK_Real *, SimTK_Real *, SimTK_Real *);
-    static SimTK_Real r1, r2, r3, r4;
-    static int ib;
-    static SimTK_Real gf2, gf1, gf3, gf4;
-    static int iwe;
-    static SimTK_Real err;
+    SimTK_Real r1, r2, r3, r4;
+    int ib;
+    SimTK_Real gf2, gf1, gf3, gf4;
+    int iwe;
+    SimTK_Real err;
 
 
     /* Parameter adjustments */
@@ -233,10 +233,10 @@ int basis_(int *m, int *n, const SimTK_Real *x, SimTK_Real
     SimTK_Real d__1;
 
     /* Local variables */
-    static int nmip1, i, j, k, l;
-    static SimTK_Real u, v, y;
-    static int j1, j2, m2, ir, mm1, mp1;
-    static SimTK_Real arg;
+    int nmip1, i, j, k, l;
+    SimTK_Real u, v, y;
+    int j1, j2, m2, ir, mm1, mp1;
+    SimTK_Real arg;
 
 
 
@@ -362,14 +362,14 @@ int prep_(int *m, int *n, const SimTK_Real *x, const SimTK_Real *
     SimTK_Real d__1;
 
     /* Local variables */
-    static SimTK_Real f;
-    static int i, j, k, l;
-    static SimTK_Real y, f1;
-    static int i1, i2, m2;
-    static SimTK_Real ff;
-    static int jj, jm, kl, nm, ku;
-    static SimTK_Real wi;
-    static int n2m, mp1, i2m1, inc, i1p1, m2m1, m2p1;
+    SimTK_Real f;
+    int i, j, k, l;
+    SimTK_Real y, f1;
+    int i1, i2, m2;
+    SimTK_Real ff;
+    int jj, jm, kl, nm, ku;
+    SimTK_Real wi;
+    int n2m, mp1, i2m1, inc, i1p1, m2m1, m2p1;
 
 
 
@@ -505,17 +505,17 @@ SimTK_Real splc_(int *m, int *n, int *k, const SimTK_Real *y, int *
     SimTK_Real ret_val, d__1;
 
     /* Local variables */
-    static int i, j, l;
+    int i, j, l;
     extern SimTK_Real trinv_(SimTK_Real *, SimTK_Real *, int *, int *)
 	    ;
-    static SimTK_Real dp;
-    static int km;
-    static SimTK_Real dt;
-    static int kp;
+    SimTK_Real dp;
+    int km;
+    SimTK_Real dt;
+    int kp;
     extern /* Subroutine */ int bandet_(SimTK_Real *, int *, int *), 
 	    bansol_(SimTK_Real *, const SimTK_Real *, int *, SimTK_Real *, 
 	    int *, int *, int *, int *);
-    static SimTK_Real pel, esn, trn;
+    SimTK_Real pel, esn, trn;
 
 
 
@@ -633,10 +633,10 @@ int bandet_(SimTK_Real *e, int *m, int *n)
     int e_dim1, e_offset, i__1, i__2, i__3, i__4;
 
     /* Local variables */
-    static int i, k, l;
-    static SimTK_Real di, dl;
-    static int mi, km, lm;
-    static SimTK_Real du;
+    int i, k, l;
+    SimTK_Real di, dl;
+    int mi, km, lm;
+    SimTK_Real du;
 
 
 
@@ -701,8 +701,8 @@ int bansol_(SimTK_Real *e, const SimTK_Real *y, int *ny,
 	    i__3, i__4;
 
     /* Local variables */
-    static SimTK_Real d;
-    static int i, j, l, mi, nm1;
+    SimTK_Real d;
+    int i, j, l, mi, nm1;
 
 
 
@@ -802,11 +802,11 @@ SimTK_Real trinv_(SimTK_Real *b, SimTK_Real *e, int *m, int *n)
     SimTK_Real ret_val;
 
     /* Local variables */
-    static int i, j, k;
-    static SimTK_Real dd, dl;
-    static int mi;
-    static SimTK_Real du;
-    static int mn, mp;
+    int i, j, k;
+    SimTK_Real dd, dl;
+    int mi;
+    SimTK_Real du;
+    int mn, mp;
 
 
 
@@ -883,16 +883,16 @@ SimTK_Real splder_(int *ider, int *m, int *n, SimTK_Real *t,
     SimTK_Real ret_val;
 
     /* Local variables */
-    static int lk1i1;
-    static SimTK_Real xjki;
-    static int i, j, k;
-    static SimTK_Real z;
-    static int i1, j1, k1, j2, m2, ii, jj, ki, jl, lk, mi, nk, lm, ml, jm,
+    int lk1i1;
+    SimTK_Real xjki;
+    int i, j, k;
+    SimTK_Real z;
+    int i1, j1, k1, j2, m2, ii, jj, ki, jl, lk, mi, nk, lm, ml, jm,
 	     ir, ju;
     extern /* Subroutine */ int search_(int *, const SimTK_Real *, SimTK_Real *,
 	     int *);
-    static SimTK_Real tt;
-    static int lk1, mp1, m2m1, jin, nki, npm, lk1i, nki1;
+    SimTK_Real tt;
+    int lk1, mp1, m2m1, jin, nki, npm, lk1i, nki1;
 
 
 
@@ -1038,7 +1038,7 @@ L6:
 int search_(int *n, const SimTK_Real *x, SimTK_Real *t, 
 	int *l)
 {
-    static int il, iu;
+    int il, iu;
 
     /* Parameter adjustments */
     
