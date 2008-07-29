@@ -275,19 +275,21 @@ public:
     }
 };
 
-int defineMobilizerFunctions(std::vector<bool> &isdof, std::vector<std::vector<int> > &coordIndices, std::vector<const Function<1>*> &functions)
+int defineMobilizerFunctions(std::vector<bool> &isdof, std::vector<std::vector<int> > &coordIndices, std::vector<const Function<1>*> &functions1, std::vector<const Function<1>*> &functions2)
 {
     int nm = 0;
     for(int i=0; i<6; i++){
         if(isdof[i]) {
             std::vector<int> findex(1);
             findex[0] = nm++;
-            functions.push_back(new LinearFunction());
+            functions1.push_back(new LinearFunction());
+            functions2.push_back(new LinearFunction());
             coordIndices.push_back(findex);
         }
         else{
             std::vector<int> findex(0);
-            functions.push_back(new ConstantFunction());
+            functions1.push_back(new ConstantFunction());
+            functions2.push_back(new ConstantFunction());
             coordIndices.push_back(findex);
         }
     }
@@ -297,12 +299,12 @@ int defineMobilizerFunctions(std::vector<bool> &isdof, std::vector<std::vector<i
 void testFunctionBasedPin() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions;
+    std::vector<const Function<1>*> functions1, functions2;
     std::vector<bool> isdof(6,false);
 
     // Set the 1 spatial rotation about Z to be mobility
     isdof[2] = true;  //rot Z
-    int nm = defineMobilizerFunctions(isdof, coordIndices, functions);
+    int nm = defineMobilizerFunctions(isdof, coordIndices, functions1, functions2);
 
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -311,8 +313,8 @@ void testFunctionBasedPin() {
     Body::Rigid body(MassProperties(1.0, Vec3(0.5), Inertia(1)));
     MobilizedBody::Pin p1(matter.Ground(), body);
     MobilizedBody::Pin p2(p1, body);
-    MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions, coordIndices);
-    MobilizedBody::FunctionBased fb2(fb1, body, nm, functions, coordIndices);
+    MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions1, coordIndices);
+    MobilizedBody::FunctionBased fb2(fb1, body, nm, functions2, coordIndices);
     system.realizeTopology();
     compareMobilizedBodies(p2, fb2, false, nm, nm);
 }
@@ -320,13 +322,13 @@ void testFunctionBasedPin() {
 void testFunctionBasedSkewedPin() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions;
+    std::vector<const Function<1>*> functions1, functions2;
     std::vector<bool> isdof(6,false);
     std::vector<Vec3> axes(6);
 
     // Set the 1 spatial rotation about first axis
     isdof[0] = true;  //rot 1
-    int nm = defineMobilizerFunctions(isdof, coordIndices, functions);
+    int nm = defineMobilizerFunctions(isdof, coordIndices, functions1, functions2);
 
     double angle = 0;
 
@@ -353,8 +355,8 @@ void testFunctionBasedSkewedPin() {
     MobilizedBody::Pin p1(matter.Ground(), inParentPin, body, inChildPin);
     MobilizedBody::Pin p2(p1, inParentPin, body, inChildPin);
     //Function-based
-    MobilizedBody::FunctionBased fb1(matter.Ground(), inParentFB, body, inChildFB, nm, functions, coordIndices, axes);
-    MobilizedBody::FunctionBased fb2(fb1, inParentFB, body, inChildFB, nm, functions, coordIndices, axes);
+    MobilizedBody::FunctionBased fb1(matter.Ground(), inParentFB, body, inChildFB, nm, functions1, coordIndices, axes);
+    MobilizedBody::FunctionBased fb2(fb1, inParentFB, body, inChildFB, nm, functions2, coordIndices, axes);
 
     system.realizeTopology();
     compareMobilizedBodies(p2, fb2, false, nm, nm);
@@ -363,12 +365,12 @@ void testFunctionBasedSkewedPin() {
 void testFunctionBasedSlider() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions;
+    std::vector<const Function<1>*> functions1, functions2;
     std::vector<bool> isdof(6,false);
 
     // Set the 1 spatial translation along X to be mobility
     isdof[3] = true; //trans X
-    int nm = defineMobilizerFunctions(isdof, coordIndices, functions);
+    int nm = defineMobilizerFunctions(isdof, coordIndices, functions1, functions2);
 
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -377,8 +379,8 @@ void testFunctionBasedSlider() {
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     MobilizedBody::Slider s1(matter.Ground(), body);
     MobilizedBody::Slider s2(s1, body);
-    MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions, coordIndices);
-    MobilizedBody::FunctionBased fb2(fb1, body, nm, functions, coordIndices);
+    MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions1, coordIndices);
+    MobilizedBody::FunctionBased fb2(fb1, body, nm, functions2, coordIndices);
     system.realizeTopology();
     compareMobilizedBodies(s2, fb2, false, nm, nm);
 }
@@ -387,7 +389,7 @@ void testFunctionBasedSlider() {
 void testFunctionBasedSkewedSlider() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions;
+    std::vector<const Function<1>*> functions1, functions2;
     std::vector<bool> isdof(6,false);
     std::vector<Vec3> axes(6);
     //axes[0] = Vec3(1/sqrt(2.0),0, -1/sqrt(2.0));
@@ -399,7 +401,7 @@ void testFunctionBasedSkewedSlider() {
     axes[5] = Vec3(1,0,0);
     // Set the 1 spatial translation along X to be mobility
     isdof[5] = true; //trans X
-    int nm = defineMobilizerFunctions(isdof, coordIndices, functions);
+    int nm = defineMobilizerFunctions(isdof, coordIndices, functions1, functions2);
 
     Transform inParent = Transform(Vec3(0)); //Transform(Rotation(-Pi/2, YAxis));
     Transform inChild = Transform(Vec3(0));
@@ -411,8 +413,8 @@ void testFunctionBasedSkewedSlider() {
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     MobilizedBody::Slider s1(matter.Ground(), inParent, body, inChild);
     MobilizedBody::Slider s2(s1, inParent, body, inChild);
-    MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions, coordIndices, axes);
-    MobilizedBody::FunctionBased fb2(fb1, body, nm, functions, coordIndices, axes);
+    MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions1, coordIndices, axes);
+    MobilizedBody::FunctionBased fb2(fb1, body, nm, functions2, coordIndices, axes);
     system.realizeTopology();
     compareMobilizedBodies(s2, fb2, false, nm, nm);
 }
@@ -420,13 +422,13 @@ void testFunctionBasedSkewedSlider() {
 void testFunctionBasedCylinder() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions;
+    std::vector<const Function<1>*> functions1, functions2;
     std::vector<bool> isdof(6,false);
 
     // Set 2 mobilities: rotation about and translation along Z
     isdof[2] = true;  //rot Z
     isdof[5] = true;  //trans Z
-    int nm = defineMobilizerFunctions(isdof, coordIndices, functions);
+    int nm = defineMobilizerFunctions(isdof, coordIndices, functions1, functions2);
 
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -435,8 +437,8 @@ void testFunctionBasedCylinder() {
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     MobilizedBody::Cylinder c1(matter.Ground(), body); 
     MobilizedBody::Cylinder c2(c1, body);
-    MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions, coordIndices);
-    MobilizedBody::FunctionBased fb2(fb1, body, nm, functions, coordIndices);
+    MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions1, coordIndices);
+    MobilizedBody::FunctionBased fb2(fb1, body, nm, functions2, coordIndices);
     system.realizeTopology();
     compareMobilizedBodies(c2, fb2, false, nm, nm);
 }
@@ -444,13 +446,13 @@ void testFunctionBasedCylinder() {
 void testFunctionBasedUniversal() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions;
+    std::vector<const Function<1>*> functions1, functions2;
     std::vector<bool> isdof(6,false);
 
     // Set 2 rotation mobilities about body's X then Y
     isdof[0] = true;  //rot X
     isdof[1] = true;  //rot Y
-    int nm = defineMobilizerFunctions(isdof, coordIndices, functions);
+    int nm = defineMobilizerFunctions(isdof, coordIndices, functions1, functions2);
 
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -459,8 +461,8 @@ void testFunctionBasedUniversal() {
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     MobilizedBody::Universal u1(matter.Ground(), body); 
     MobilizedBody::Universal u2(u1, body);
-    MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions, coordIndices);
-    MobilizedBody::FunctionBased fb2(u1, body, nm, functions, coordIndices);
+    MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions1, coordIndices);
+    MobilizedBody::FunctionBased fb2(u1, body, nm, functions2, coordIndices);
     system.realizeTopology();
     compareMobilizedBodies(u2, fb2, true, nm, nm);
 }
@@ -468,14 +470,14 @@ void testFunctionBasedUniversal() {
 void testFunctionBasedPlanar() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions;
+    std::vector<const Function<1>*> functions1, functions2;
     std::vector<bool> isdof(6,false);
 
     // Set 3 mobilities: Z rotation and translation along body's X then Y
     isdof[2] = true;  //rot Z
     isdof[3] = true;  //trans X
     isdof[4] = true;  //trans Y
-    int nm = defineMobilizerFunctions(isdof, coordIndices, functions);
+    int nm = defineMobilizerFunctions(isdof, coordIndices, functions1, functions2);
 
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -485,8 +487,8 @@ void testFunctionBasedPlanar() {
     Body::Rigid body(MassProperties(1.0, Vec3(0, 0, 0), Inertia(1)));
     MobilizedBody::Planar u1(matter.Ground(), body); 
     MobilizedBody::Planar u2(u1, body);
-    //MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions, coordIndices);
-    //MobilizedBody::FunctionBased fb2(fb1, body, nm, functions, coordIndices);
+    MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions1, coordIndices);
+    MobilizedBody::FunctionBased fb2(fb1, body, nm, functions2, coordIndices);
     system.realizeTopology();
     compareMobilizedBodies(u2, u2, false, nm, nm);
 }
@@ -494,14 +496,14 @@ void testFunctionBasedPlanar() {
 void testFunctionBasedGimbal() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions;
+    std::vector<const Function<1>*> functions1, functions2;
     std::vector<bool> isdof(6,false);
 
     // Set 3 mobilities: Z rotation and translation along body's X then Y
     isdof[0] = true;  //rot X
     isdof[1] = true;  //rot Y
     isdof[2] = true;  //rot Z
-    int nm = defineMobilizerFunctions(isdof, coordIndices, functions);
+    int nm = defineMobilizerFunctions(isdof, coordIndices, functions1, functions2);
 
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -510,8 +512,8 @@ void testFunctionBasedGimbal() {
     Body::Rigid body(MassProperties(1.0, Vec3(0, -0.5, 0), Inertia(0.5)));
     MobilizedBody::Gimbal b1(matter.Ground(), body); 
     MobilizedBody::Gimbal b2(b1, body);
-    MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions, coordIndices);
-    MobilizedBody::FunctionBased fb2(fb1, body, nm, functions, coordIndices);
+    MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions1, coordIndices);
+    MobilizedBody::FunctionBased fb2(fb1, body, nm, functions2, coordIndices);
     system.realizeTopology();
     compareMobilizedBodies(b2, fb2, true, nm, nm);
 }
@@ -519,7 +521,7 @@ void testFunctionBasedGimbal() {
 void testFunctionBasedGimbalUserAxes() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions;
+    std::vector<const Function<1>*> functions1, functions2;
     std::vector<Vec3> axes(6);
     std::vector<bool> isdof(6,false);
 
@@ -527,7 +529,7 @@ void testFunctionBasedGimbalUserAxes() {
     isdof[0] = true;  //rot X
     isdof[1] = true;  //rot Y
     isdof[2] = true;  //rot Z
-    int nm = defineMobilizerFunctions(isdof, coordIndices, functions);
+    int nm = defineMobilizerFunctions(isdof, coordIndices, functions1, functions2);
 
     Random::Gaussian random;
 
@@ -567,8 +569,8 @@ void testFunctionBasedGimbalUserAxes() {
     MobilizedBody::Pin masslessPin4(masslessPin3, parentPinAxis2, massLessBody, childPinAxis2);
     MobilizedBody::Pin b2(masslessPin4, parentPinAxis3, body, childPinAxis3);
 
-    MobilizedBody::FunctionBased fb1(matter.Ground(), inParent, body, inChild, nm, functions, coordIndices, axes);
-    MobilizedBody::FunctionBased fb2(fb1, inParent, body, inChild, nm, functions, coordIndices, axes);
+    MobilizedBody::FunctionBased fb1(matter.Ground(), inParent, body, inChild, nm, functions1, coordIndices, axes);
+    MobilizedBody::FunctionBased fb2(fb1, inParent, body, inChild, nm, functions2, coordIndices, axes);
     system.realizeTopology();
 
     State state = system.getDefaultState();

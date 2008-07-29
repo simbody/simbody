@@ -2661,7 +2661,8 @@ public:
      * @param nmobilities    the number of generalized coordinates belonging to this MobilizedBody
      * @param functions      the Functions describing how the body moves based on its generalized coordinates.
      *                       This must be of length 6.  The elements correspond to, in order, x rotation, y rotation, z rotation,
-     *                       x translation, y translation, and z translation.
+     *                       x translation, y translation, and z translation.  The MobilizedBody takes over ownership of the functions,
+     *                       and automatically deletes them when the MobilizedBody is deleted.
      * @param coordIndices   the indices of the generalized coordinates that are inputs to each function.  For example, if coordIndices[2] = {0, 1},
      *                       that means that functions[2] takes two input arguments, and q[0] and q[1] respectively should be passed as those arguments.
      */
@@ -2675,7 +2676,8 @@ public:
      * @param nmobilities    the number of generalized coordinates belonging to this MobilizedBody
      * @param functions      the Functions describing how the body moves based on its generalized coordinates.
      *                       This must be of length 6.  The elements correspond to, in order, x rotation, y rotation, z rotation,
-     *                       x translation, y translation, and z translation.
+     *                       x translation, y translation, and z translation.  The MobilizedBody takes over ownership of the functions,
+     *                       and automatically deletes them when the MobilizedBody is deleted.
      * @param coordIndices   the indices of the generalized coordinates that are inputs to each function.  For example, if coordIndices[2] = {0, 1},
      *                       that means that functions[2] takes two input arguments, and q[0] and q[1] respectively should be passed as those arguments.
      */
@@ -2687,7 +2689,8 @@ public:
      * @param nmobilities    the number of generalized coordinates belonging to this MobilizedBody
      * @param functions      the Functions describing how the body moves based on its generalized coordinates.
      *                       This must be of length 6.  The elements correspond to, in order, x rotation, y rotation, z rotation,
-     *                       x translation, y translation, and z translation.
+     *                       x translation, y translation, and z translation.  The MobilizedBody takes over ownership of the functions,
+     *                       and automatically deletes them when the MobilizedBody is deleted.
      * @param coordIndices   the indices of the generalized coordinates that are inputs to each function.  For example, if coordIndices[2] = {0, 1},
      *                       that means that functions[2] takes two input arguments, and q[0] and q[1] respectively should be passed as those arguments.
 	 * @param axes			 the axes directions (as Vec3's) for each spatial coordinate, which each function describes, and is therefore length 6.
@@ -2703,7 +2706,8 @@ public:
      * @param nmobilities    the number of generalized coordinates belonging to this MobilizedBody
      * @param functions      the Functions describing how the body moves based on its generalized coordinates.
      *                       This must be of length 6.  The elements correspond to, in order, x rotation, y rotation, z rotation,
-     *                       x translation, y translation, and z translation.
+     *                       x translation, y translation, and z translation.  The MobilizedBody takes over ownership of the functions,
+     *                       and automatically deletes them when the MobilizedBody is deleted.
      * @param coordIndices   the indices of the generalized coordinates that are inputs to each function.  For example, if coordIndices[2] = {0, 1},
      *                       that means that functions[2] takes two input arguments, and q[0] and q[1] respectively should be passed as those arguments.
      * @param axes			 the axes directions (as Vec3's) for each spatial coordinate, which each function describes, and is therefore length 6.

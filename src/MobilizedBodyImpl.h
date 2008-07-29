@@ -962,9 +962,10 @@ class MobilizedBody::FunctionBasedImpl : public MobilizedBody::Custom::Implement
 public:
     //Constructor that uses default axes
     FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices)
-            : Implementation(matter, nmobilities, nmobilities, 0), subsystem(matter.getMySubsystemIndex()), nu(nmobilities), cacheIndex(0), functions(functions), coordIndices(coordIndices) {
+            : Implementation(matter, nmobilities, nmobilities, 0), subsystem(matter.getMySubsystemIndex()), nu(nmobilities), cacheIndex(0), functions(functions), coordIndices(coordIndices), referenceCount(new int[1]) {
         assert(functions.size() == 6);
         assert(coordIndices.size() == 6);
+        referenceCount[0] = 1;
         for (int i = 0; i < (int)functions.size(); ++i) {
             assert(functions[i]->getArgumentSize() == coordIndices[i].size());
             assert(functions[i]->getMaxDerivativeOrder() >= 2);
@@ -973,10 +974,11 @@ public:
         Atrans = Mat33(1);
     }
     FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes)
-            : Implementation(matter, nmobilities, nmobilities, 0), subsystem(matter.getMySubsystemIndex()), nu(nmobilities), cacheIndex(0), functions(functions), coordIndices(coordIndices) {
+            : Implementation(matter, nmobilities, nmobilities, 0), subsystem(matter.getMySubsystemIndex()), nu(nmobilities), cacheIndex(0), functions(functions), coordIndices(coordIndices), referenceCount(new int[1]) {
         assert(functions.size() == 6);
         assert(coordIndices.size() == 6);
         assert(axes.size() == 6);
+        referenceCount[0] = 1;
         for (int i = 0; i < (int)functions.size(); ++i) {
             assert(functions[i]->getArgumentSize() == coordIndices[i].size());
             assert(functions[i]->getMaxDerivativeOrder() >= 2);
@@ -994,8 +996,17 @@ public:
         Arot = Mat33(axes[0].normalize(), axes[1].normalize(), axes[2].normalize());
         Atrans = Mat33(axes[3].normalize(), axes[4].normalize(), axes[5].normalize());
     }
+    
+    ~FunctionBasedImpl() {
+        if (--referenceCount[0] == 0) {
+            for (int i = 0; i < functions.size(); i++)
+                delete functions[i];
+            delete[] referenceCount;
+        }
+    }
 
     MobilizedBody::Custom::Implementation* clone() const {
+        referenceCount[0]++;
         return new FunctionBasedImpl(*this);
     }
 
@@ -1466,6 +1477,7 @@ private:
     mutable int cacheIndex;
     const std::vector<const Function<1>*> functions;
     const std::vector<std::vector<int> > coordIndices;
+    int* referenceCount;
     //const std::vector<Vec3> axes;
     Mat33 Arot, Atrans;
     template <int N> class CacheInfo {
