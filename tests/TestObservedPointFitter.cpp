@@ -38,15 +38,16 @@ using namespace std;
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
-const int NUM_BODIES = 20;
+const int NUM_BODIES = 10;
 const Real BOND_LENGTH = 0.5;
+const int ITERATIONS = 4;
 
-void testFitting(const MultibodySystem& mbs, State& state, const vector<MobilizedBodyIndex>& bodyIxs, const vector<vector<Vec3> >& stations, const vector<vector<Vec3> >& targetLocations, Real minError, Real maxError, Real endDistance) {
+bool testFitting(const MultibodySystem& mbs, State& state, const vector<MobilizedBodyIndex>& bodyIxs, const vector<vector<Vec3> >& stations, const vector<vector<Vec3> >& targetLocations, Real minError, Real maxError, Real endDistance) {
     
     // Find the best fit.
     
     Real reportedError = ObservedPointFitter::findBestFit(mbs, state, bodyIxs, stations, targetLocations, 1e-4);
-    ASSERT(reportedError <= maxError && reportedError >= minError);
+    bool result = (reportedError <= maxError && reportedError >= minError);
     
     // Verify that the error was calculated correctly.
     
@@ -67,89 +68,97 @@ void testFitting(const MultibodySystem& mbs, State& state, const vector<Mobilize
     
     Real distance = (matter.getMobilizedBody(bodyIxs[0]).getBodyOriginLocation(state)-matter.getMobilizedBody(bodyIxs[bodyIxs.size()-1]).getBodyOriginLocation(state)).norm();
     ASSERT(std::abs(1.0-endDistance/distance) < 0.0001);
+    return result;
 }
 
 
 int main() {
-    
-    // Build a system consisting of a chain of bodies with occasional side chains, and
-    // a variety of mobilizers.
-    
-    MultibodySystem mbs;
-    SimbodyMatterSubsystem matter(mbs);
-    Body::Rigid body = Body::Rigid(MassProperties(1, Vec3(0), Inertia(1)))
-                                  .addDecoration(Transform(), DecorativeSphere(.1));
-    MobilizedBody* lastBody = &matter.Ground();
-    MobilizedBody* lastMainChainBody = &matter.Ground();
-    vector<MobilizedBody*> bodies;
-    Random::Uniform random(0.0, 1.0);
-    for (int i = 0; i < NUM_BODIES; ++i) {
-        bool mainChain = random.getValue() < 0.5;
-        MobilizedBody* parent = (mainChain ? lastMainChainBody : lastBody);
-        int type = (int) (random.getValue()*3);
-        MobilizedBody* nextBody;
-        if (type == 0) {
-            MobilizedBody::Cylinder cylinder(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
-            nextBody = &matter.updMobilizedBody(cylinder.getMobilizedBodyIndex());
+    int failures = 0;
+    for (int iter = 0; iter < ITERATIONS; ++iter) {
+        
+        // Build a system consisting of a chain of bodies with occasional side chains, and
+        // a variety of mobilizers.
+
+        MultibodySystem mbs;
+        SimbodyMatterSubsystem matter(mbs);
+        Body::Rigid body = Body::Rigid(MassProperties(1, Vec3(0), Inertia(1)))
+                                      .addDecoration(Transform(), DecorativeSphere(.1));
+        MobilizedBody* lastBody = &matter.Ground();
+        MobilizedBody* lastMainChainBody = &matter.Ground();
+        vector<MobilizedBody*> bodies;
+        Random::Uniform random(0.0, 1.0);
+        random.setSeed(iter);
+        for (int i = 0; i < NUM_BODIES; ++i) {
+            bool mainChain = random.getValue() < 0.5;
+            MobilizedBody* parent = (mainChain ? lastMainChainBody : lastBody);
+            int type = (int) (random.getValue()*3);
+            MobilizedBody* nextBody;
+            if (type == 0) {
+                MobilizedBody::Cylinder cylinder(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
+                nextBody = &matter.updMobilizedBody(cylinder.getMobilizedBodyIndex());
+            }
+            else if (type == 1) {
+                MobilizedBody::Slider slider(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
+                nextBody = &matter.updMobilizedBody(slider.getMobilizedBodyIndex());
+            }
+            else {
+                MobilizedBody::Pin pin(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
+                nextBody = &matter.updMobilizedBody(pin.getMobilizedBodyIndex());
+            }
+            bodies.push_back(nextBody);
+            if (mainChain)
+                lastMainChainBody = nextBody;
+            lastBody = nextBody;
         }
-        else if (type == 1) {
-            MobilizedBody::Slider slider(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
-            nextBody = &matter.updMobilizedBody(slider.getMobilizedBodyIndex());
+        mbs.realizeTopology();
+        State s = mbs.getDefaultState();
+        mbs.realizeModel(s);
+
+        // Choose a random initial conformation.
+
+        vector<Real> targetQ(s.getNQ());
+        for (int i = 0; i < s.getNQ(); ++i)
+            s.updQ()[i] = targetQ[i] = 2.0*random.getValue();
+        mbs.realize(s, Stage::Position);
+
+        // Select some random stations on each body.
+
+        vector<vector<Vec3> > stations(NUM_BODIES);
+        vector<vector<Vec3> > targetLocations(NUM_BODIES);
+        vector<MobilizedBodyIndex> bodyIxs;
+        for (int i = 0; i < NUM_BODIES; ++i) {
+            MobilizedBodyIndex id = bodies[i]->getMobilizedBodyIndex();
+            bodyIxs.push_back(id);
+            int numStations = (int) (random.getValue()*4);
+            for (int j = 0; j < numStations; ++j) {
+                Vec3 pos(2.0*random.getValue()-1.0, 2.0*random.getValue()-1.0, 2.0*random.getValue()-1.0);
+                stations[i].push_back(pos);
+                targetLocations[i].push_back(bodies[i]->getBodyTransform(s)*pos);
+            }
         }
-        else {
-            MobilizedBody::Pin pin(*parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
-            nextBody = &matter.updMobilizedBody(pin.getMobilizedBodyIndex());
+
+        // Add a constraint fixing the distance between the first and last bodies.
+
+        Real distance = (bodies[0]->getBodyOriginLocation(s)-bodies[NUM_BODIES-1]->getBodyOriginLocation(s)).norm();
+        Constraint::Rod(*bodies[0], Vec3(0), *bodies[NUM_BODIES-1], Vec3(0), distance);
+        s = mbs.realizeTopology();
+
+        // Try fitting it.
+
+        if (!testFitting(mbs, s, bodyIxs, stations, targetLocations, 0.0, 0.02, distance))
+            failures++;
+
+        // Now add random noise to the target locations, and see if it can still fit decently.
+
+        Random::Gaussian gaussian(0.0, 0.2);
+        for (int i = 0; i < (int) targetLocations.size(); ++i) {
+            for (int j = 0; j < (int) targetLocations[i].size(); ++j) {
+                targetLocations[i][j] += Vec3(gaussian.getValue(), gaussian.getValue(), gaussian.getValue());
+            }
         }
-        bodies.push_back(nextBody);
-        if (mainChain)
-            lastMainChainBody = nextBody;
-        lastBody = nextBody;
+        if (!testFitting(mbs, s, bodyIxs, stations, targetLocations, 0.1, 0.5, distance))
+            failures++;
     }
-    mbs.realizeTopology();
-    State s = mbs.getDefaultState();
-    mbs.realizeModel(s);
-    
-    // Choose a random initial conformation.
-    
-    vector<Real> targetQ(s.getNQ());
-    for (int i = 0; i < s.getNQ(); ++i)
-        s.updQ()[i] = targetQ[i] = 2.0*random.getValue();
-    mbs.realize(s, Stage::Position);
-    
-    // Select some random stations on each body.
-    
-    vector<vector<Vec3> > stations(NUM_BODIES);
-    vector<vector<Vec3> > targetLocations(NUM_BODIES);
-    vector<MobilizedBodyIndex> bodyIxs;
-    for (int i = 0; i < NUM_BODIES; ++i) {
-        MobilizedBodyIndex id = bodies[i]->getMobilizedBodyIndex();
-        bodyIxs.push_back(id);
-        int numStations = (int) (random.getValue()*4);
-        for (int j = 0; j < numStations; ++j) {
-            Vec3 pos(2.0*random.getValue()-1.0, 2.0*random.getValue()-1.0, 2.0*random.getValue()-1.0);
-            stations[i].push_back(pos);
-            targetLocations[i].push_back(bodies[i]->getBodyTransform(s)*pos);
-        }
-    }
-    
-    // Add a constraint fixing the distance between the first and last bodies.
-    
-    Real distance = (bodies[0]->getBodyOriginLocation(s)-bodies[NUM_BODIES-1]->getBodyOriginLocation(s)).norm();
-    Constraint::Rod(*bodies[0], Vec3(0), *bodies[NUM_BODIES-1], Vec3(0), distance);
-    s = mbs.realizeTopology();
-    
-    // Try fitting it.
-    
-    testFitting(mbs, s, bodyIxs, stations, targetLocations, 0.0, 0.02, distance);
-    
-    // Now add random noise to the target locations, and see if it can still fit decently.
-    
-    Random::Gaussian gaussian(0.0, 0.2);
-    for (int i = 0; i < (int) targetLocations.size(); ++i) {
-        for (int j = 0; j < (int) targetLocations[i].size(); ++j) {
-            targetLocations[i][j] += Vec3(gaussian.getValue(), gaussian.getValue(), gaussian.getValue());
-        }
-    }
-    testFitting(mbs, s, bodyIxs, stations, targetLocations, 0.1, 0.5, distance);
+    ASSERT(failures <= ITERATIONS/2); // It found a good fit at least 3/4 of the time.
     std::cout << "Done" << std::endl;
 }
