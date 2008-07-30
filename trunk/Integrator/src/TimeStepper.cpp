@@ -192,6 +192,7 @@ Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
         if (reportAllSignificantStates)
             return(status);
     }
+    return Integrator::EndOfSimulation;
 }
 
 } // namespace SimTK
