@@ -1803,13 +1803,6 @@ const SimbodyMatterSubsystem& Constraint::Custom::Implementation::getMatterSubsy
     return getImpl().getCustomImpl().getMyMatterSubsystem();
 }
 
-
-Constraint::Custom::Implementation*
-Constraint::Custom::Implementation::clone() const {
-    // This will not retain its connection to a CustomImpl class if it had one.
-    return cloneVirtual();
-}
-
 void Constraint::Custom::Implementation::invalidateTopologyCache() const {
     getImpl().getCustomImpl().invalidateTopologyCache();
 }
@@ -1920,77 +1913,77 @@ addInBodyTorque(const State& s, ConstrainedBodyIndex B,
     // These must be defined if there are any positin (holonomic) constraints defined.
 
 void Constraint::Custom::Implementation::
-realizePositionErrorsVirtual(const State&, int mp,  Real* perr) const {
+realizePositionErrors(const State&, int mp,  Real* perr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "realizePositionErrorsVirtual");
+        "Constraint::Custom::Implementation", "realizePositionErrors");
 }
 
 void Constraint::Custom::Implementation::
-realizePositionDotErrorsVirtual(const State&, int mp,  Real* pverr) const {
+realizePositionDotErrors(const State&, int mp,  Real* pverr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "realizePositionDotErrorsVirtual");
+        "Constraint::Custom::Implementation", "realizePositionDotErrors");
 }
 
 void Constraint::Custom::Implementation::
-realizePositionDotDotErrorsVirtual(const State&, int mp,  Real* paerr) const {
+realizePositionDotDotErrors(const State&, int mp,  Real* paerr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "realizePositionDotDotErrorsVirtual");
+        "Constraint::Custom::Implementation", "realizePositionDotDotErrors");
 }
 
 
 void Constraint::Custom::Implementation::
-applyPositionConstraintForcesVirtual
+applyPositionConstraintForces
    (const State&, int mp, const Real* multipliers,
     Vector_<SpatialVec>& bodyForces,
     Vector&              mobilityForces) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "applyPositionConstraintForcesVirtual");
+        "Constraint::Custom::Implementation", "applyPositionConstraintForces");
 }
 
     // These must be defined if there are any velocity (nonholonomic) constraints defined.
 
 void Constraint::Custom::Implementation::
-realizeVelocityErrorsVirtual(const State&, int mv,  Real* verr) const {
+realizeVelocityErrors(const State&, int mv,  Real* verr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "realizeVelocityErrorsVirtual");
+        "Constraint::Custom::Implementation", "realizeVelocityErrors");
 }
 
 
 void Constraint::Custom::Implementation::
-realizeVelocityDotErrorsVirtual(const State&, int mv,  Real* vaerr) const {
+realizeVelocityDotErrors(const State&, int mv,  Real* vaerr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "realizeVelocityDotErrorsVirtual");
+        "Constraint::Custom::Implementation", "realizeVelocityDotErrors");
 }
 
 
 void Constraint::Custom::Implementation::
-applyVelocityConstraintForcesVirtual
+applyVelocityConstraintForces
    (const State&, int mv, const Real* multipliers,
     Vector_<SpatialVec>& bodyForces,
     Vector&              mobilityForces) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "applyVelocityConstraintForcesVirtual");
+        "Constraint::Custom::Implementation", "applyVelocityConstraintForces");
 }
 
 
 
 // These must be defined if there are any acceleration-only constraints defined.
 void Constraint::Custom::Implementation::
-realizeAccelerationErrorsVirtual(const State&, int ma,  Real* aerr) const {
+realizeAccelerationErrors(const State&, int ma,  Real* aerr) const {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "realizeAccelerationErrorsVirtual");
+        "Constraint::Custom::Implementation", "realizeAccelerationErrors");
 }
 
 void Constraint::Custom::Implementation::
-applyAccelerationConstraintForcesVirtual
+applyAccelerationConstraintForces
    (const State&, int ma, const Real* multipliers,
     Vector_<SpatialVec>& bodyForces,
     Vector&              mobilityForces) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-        "Constraint::Custom::Implementation", "applyAccelerationConstraintForcesVirtual");
+        "Constraint::Custom::Implementation", "applyAccelerationConstraintForces");
 }
 
     ////////////////////////////////////
@@ -2015,13 +2008,13 @@ Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl(SimbodyMatterSubsystem&
     }
 }
 
-void Constraint::CoordinateCouplerImpl::realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
+void Constraint::CoordinateCouplerImpl::realizePositionErrors(const State& s, int mp,  Real* perr) const {
     for (int i = 0; i < temp.size(); ++i)
         temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
     perr[0] = function->calcValue(temp)[0];
 }
 
-void Constraint::CoordinateCouplerImpl::realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const {
+void Constraint::CoordinateCouplerImpl::realizePositionDotErrors(const State& s, int mp,  Real* pverr) const {
     pverr[0] = 0.0;
     for (int i = 0; i < temp.size(); ++i)
         temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
@@ -2032,7 +2025,7 @@ void Constraint::CoordinateCouplerImpl::realizePositionDotErrorsVirtual(const St
     }
 }
 
-void Constraint::CoordinateCouplerImpl::realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const {
+void Constraint::CoordinateCouplerImpl::realizePositionDotDotErrors(const State& s, int mp,  Real* paerr) const {
     paerr[0] = 0.0;
     for (int i = 0; i < temp.size(); ++i)
         temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
@@ -2060,7 +2053,7 @@ void Constraint::CoordinateCouplerImpl::realizePositionDotDotErrorsVirtual(const
     }
 }
 
-void Constraint::CoordinateCouplerImpl::applyPositionConstraintForcesVirtual(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
+void Constraint::CoordinateCouplerImpl::applyPositionConstraintForces(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
     for (int i = 0; i < temp.size(); ++i)
         temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
@@ -2112,12 +2105,12 @@ Constraint::SpeedCouplerImpl::SpeedCouplerImpl(SimbodyMatterSubsystem& matter, c
     }
 }
 
-void Constraint::SpeedCouplerImpl::realizeVelocityErrorsVirtual(const State& s, int mv,  Real* verr) const {
+void Constraint::SpeedCouplerImpl::realizeVelocityErrors(const State& s, int mv,  Real* verr) const {
     findArguments(s);
     verr[0] = function->calcValue(temp)[0];
 }
 
-void Constraint::SpeedCouplerImpl::realizeVelocityDotErrorsVirtual(const State& s, int mv,  Real* vaerr) const {
+void Constraint::SpeedCouplerImpl::realizeVelocityDotErrors(const State& s, int mv,  Real* vaerr) const {
     vaerr[0] = 0.0;
     findArguments(s);
     std::vector<int> components(1);
@@ -2127,7 +2120,7 @@ void Constraint::SpeedCouplerImpl::realizeVelocityDotErrorsVirtual(const State& 
     }
 }
 
-void Constraint::SpeedCouplerImpl::applyVelocityConstraintForcesVirtual(const State& s, int mv, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
+void Constraint::SpeedCouplerImpl::applyVelocityConstraintForces(const State& s, int mv, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
     findArguments(s);
     std::vector<int> components(1);
     for (int i = 0; i < (int) speedBodies.size(); ++i) {
@@ -2153,18 +2146,18 @@ Constraint::PrescribedMotionImpl::PrescribedMotionImpl(SimbodyMatterSubsystem& m
     this->coordBody = addConstrainedMobilizer(matter.getMobilizedBody(coordBody));
 }
 
-void Constraint::PrescribedMotionImpl::realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
+void Constraint::PrescribedMotionImpl::realizePositionErrors(const State& s, int mp,  Real* perr) const {
     temp[0] = s.getTime();
     perr[0] = getOneQ(s, coordBody, coordIndex) - function->calcValue(temp)[0];
 }
 
-void Constraint::PrescribedMotionImpl::realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const {
+void Constraint::PrescribedMotionImpl::realizePositionDotErrors(const State& s, int mp,  Real* pverr) const {
     temp[0] = s.getTime();
     std::vector<int> components(1, 0);
     pverr[0] = getOneQDot(s, coordBody, coordIndex, true) - function->calcDerivative(components, temp)[0];
 }
 
-void Constraint::PrescribedMotionImpl::realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const {
+void Constraint::PrescribedMotionImpl::realizePositionDotDotErrors(const State& s, int mp,  Real* paerr) const {
     const Vector& udot = s.updUDot();
     Vector qdotdot(s.getNQ());
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
@@ -2177,7 +2170,7 @@ void Constraint::PrescribedMotionImpl::realizePositionDotDotErrorsVirtual(const 
     paerr[0] = body.getOneFromQPartition(s, coordIndex, qdotdot) - function->calcDerivative(components, temp)[0];
 }
 
-void Constraint::PrescribedMotionImpl::applyPositionConstraintForcesVirtual(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
+void Constraint::PrescribedMotionImpl::applyPositionConstraintForces(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
     SBStateDigest digest(s, matter.getRep(), Stage::Velocity);
     bool useEuler = matter.getUseEulerAngles(s);

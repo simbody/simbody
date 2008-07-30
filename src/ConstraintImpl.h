@@ -1892,49 +1892,49 @@ public:
     }
 
     // Forward all the virtuals to the Custom::Implementation virtuals.
-    void realizeTopologyVirtual(State& s) const {getImplementation().realizeTopologyVirtual(s);}
-    void realizeModelVirtual   (State& s) const {getImplementation().realizeModelVirtual(s);}
-    void realizeInstanceVirtual(const State& s) const {getImplementation().realizeInstanceVirtual(s);}
-    void realizeTimeVirtual    (const State& s) const {getImplementation().realizeTimeVirtual(s);}
-    void realizePositionVirtual(const State& s) const {getImplementation().realizePositionVirtual(s);}
-    void realizeVelocityVirtual(const State& s) const {getImplementation().realizeVelocityVirtual(s);}
-    void realizeDynamicsVirtual(const State& s) const {getImplementation().realizeDynamicsVirtual(s);}
-    void realizeAccelerationVirtual(const State& s) const {getImplementation().realizeAccelerationVirtual(s);}
-    void realizeReportVirtual  (const State& s) const {getImplementation().realizeReportVirtual(s);}
+    void realizeTopologyVirtual(State& s) const {getImplementation().realizeTopology(s);}
+    void realizeModelVirtual   (State& s) const {getImplementation().realizeModel(s);}
+    void realizeInstanceVirtual(const State& s) const {getImplementation().realizeInstance(s);}
+    void realizeTimeVirtual    (const State& s) const {getImplementation().realizeTime(s);}
+    void realizePositionVirtual(const State& s) const {getImplementation().realizePosition(s);}
+    void realizeVelocityVirtual(const State& s) const {getImplementation().realizeVelocity(s);}
+    void realizeDynamicsVirtual(const State& s) const {getImplementation().realizeDynamics(s);}
+    void realizeAccelerationVirtual(const State& s) const {getImplementation().realizeAcceleration(s);}
+    void realizeReportVirtual  (const State& s) const {getImplementation().realizeReport(s);}
 
     void realizePositionErrorsVirtual      (const State& s, int mp,  Real* perr) const
-       {getImplementation().realizePositionErrorsVirtual(s,mp,perr);}
+       {getImplementation().realizePositionErrors(s,mp,perr);}
     void realizePositionDotErrorsVirtual   (const State& s, int mp,  Real* pverr) const
-       {getImplementation().realizePositionDotErrorsVirtual(s,mp,pverr);}
+       {getImplementation().realizePositionDotErrors(s,mp,pverr);}
     void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const
-       {getImplementation().realizePositionDotDotErrorsVirtual(s,mp,paerr);}
+       {getImplementation().realizePositionDotDotErrors(s,mp,paerr);}
     void applyPositionConstraintForcesVirtual
            (const State& s, int mp, const Real* multipliers,
             Vector_<SpatialVec>& bodyForces,
             Vector&              mobilityForces) const
-       {getImplementation().applyPositionConstraintForcesVirtual(s,mp,multipliers,bodyForces,mobilityForces);}
+       {getImplementation().applyPositionConstraintForces(s,mp,multipliers,bodyForces,mobilityForces);}
 
     void realizeVelocityErrorsVirtual(const State& s, int mv,  Real* verr) const
-       {getImplementation().realizeVelocityErrorsVirtual(s,mv,verr);}
+       {getImplementation().realizeVelocityErrors(s,mv,verr);}
     void realizeVelocityDotErrorsVirtual(const State& s, int mv,  Real* vaerr) const
-       {getImplementation().realizeVelocityDotErrorsVirtual(s,mv,vaerr);}
+       {getImplementation().realizeVelocityDotErrors(s,mv,vaerr);}
     void applyVelocityConstraintForcesVirtual
            (const State& s, int mv, const Real* multipliers,
             Vector_<SpatialVec>& bodyForces,
             Vector&              mobilityForces) const
-       {getImplementation().applyVelocityConstraintForcesVirtual(s,mv,multipliers,bodyForces,mobilityForces);}
+       {getImplementation().applyVelocityConstraintForces(s,mv,multipliers,bodyForces,mobilityForces);}
 
     void realizeAccelerationErrorsVirtual(const State& s, int ma,  Real* aerr) const
-       {getImplementation().realizeAccelerationErrorsVirtual(s,ma,aerr);}
+       {getImplementation().realizeAccelerationErrors(s,ma,aerr);}
     void applyAccelerationConstraintForcesVirtual
            (const State& s, int ma, const Real* multipliers,
             Vector_<SpatialVec>& bodyForces,
             Vector&              mobilityForces) const
-       {getImplementation().applyAccelerationConstraintForcesVirtual(s,ma,multipliers,bodyForces,mobilityForces);}
+       {getImplementation().applyAccelerationConstraintForces(s,ma,multipliers,bodyForces,mobilityForces);}
 
     void calcDecorativeGeometryAndAppendVirtual
           (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
-       {getImplementation().calcDecorativeGeometryAndAppendVirtual(s,stage,geom);}
+       {getImplementation().calcDecorativeGeometryAndAppend(s,stage,geom);}
 
     SimTK_DOWNCAST(CustomImpl, ConstraintImpl);
 private:
@@ -1967,18 +1967,18 @@ public:
         }
     }
     
-    Implementation* cloneVirtual() const {
+    Implementation* clone() const {
         referenceCount[0]++;
         return new CoordinateCouplerImpl(*this);
     }
 
-    void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const;
+    void realizePositionErrors(const State& s, int mp,  Real* perr) const;
 
-    void realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const;
+    void realizePositionDotErrors(const State& s, int mp,  Real* pverr) const;
 
-    void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const;
+    void realizePositionDotDotErrors(const State& s, int mp,  Real* paerr) const;
 
-    void applyPositionConstraintForcesVirtual(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const;
+    void applyPositionConstraintForces(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const;
 
 private:
     const Function<1>* function;
@@ -2004,16 +2004,16 @@ public:
         }
     }
     
-    Implementation* cloneVirtual() const {
+    Implementation* clone() const {
         referenceCount[0]++;
         return new SpeedCouplerImpl(*this);
     }
 
-    void realizeVelocityErrorsVirtual(const State& s, int mv,  Real* verr) const;
+    void realizeVelocityErrors(const State& s, int mv,  Real* verr) const;
 
-    void realizeVelocityDotErrorsVirtual(const State& s, int mv,  Real* vaerr) const;
+    void realizeVelocityDotErrors(const State& s, int mv,  Real* vaerr) const;
 
-    void applyVelocityConstraintForcesVirtual(const State& s, int mv, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const;
+    void applyVelocityConstraintForces(const State& s, int mv, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const;
     
 private:
     void findArguments(const State& s) const {
@@ -2047,18 +2047,18 @@ public:
         }
     }
     
-    Implementation* cloneVirtual() const {
+    Implementation* clone() const {
         referenceCount[0]++;
         return new PrescribedMotionImpl(*this);
     }
 
-    void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const;
+    void realizePositionErrors(const State& s, int mp,  Real* perr) const;
 
-    void realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const;
+    void realizePositionDotErrors(const State& s, int mp,  Real* pverr) const;
 
-    void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const;
+    void realizePositionDotDotErrors(const State& s, int mp,  Real* paerr) const;
 
-    void applyPositionConstraintForcesVirtual(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const;
+    void applyPositionConstraintForces(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const;
 
 private:
     const Function<1>* function;

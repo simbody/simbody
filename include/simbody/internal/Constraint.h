@@ -857,12 +857,11 @@ public:
     /// Destructor is virtual so derived classes get a chance to clean up if necessary.
     virtual ~Implementation() { }
 
-    /// This method produces a deep copy identical to the concrete derived Implementation
-    /// object underlying this Implementation base class object. This method will use
-    /// the derived class's cloneVirtual() method to deal with the concrete object.
+    /// This method should produce a deep copy identical to the concrete derived Implementation
+    /// object underlying this Implementation base class object.
     /// Note that the result is new heap space; the caller must be sure to take ownership
     /// of the returned pointer and call delete on it when done.
-    Implementation* clone() const;
+    virtual Implementation* clone() const = 0;
 
 
     /// This Implementation base class constructor sets the topological defaults for
@@ -928,7 +927,7 @@ public:
     /// Extract from the State the value of a single generalized speed (mobility) u from one
     /// of this Constraint's ConstrainedMobilizers. The State needs to be realized only
     /// as high as Model stage, but don't use this value in a position-level method like
-    /// realizePositionErrorsVirtual() or in any off the applyConstraintForces methods!
+    /// realizePositionErrors() or in any off the applyConstraintForces methods!
     /// Those must be limited to dependencies on time and configuration only.
     Real getOneU(const State&, ConstrainedMobilizerIndex, MobilizerUIndex) const;
 
@@ -1067,17 +1066,14 @@ public:
 
 
 protected:
-    /// Every derived class must implement a method to copy itself.
-    virtual Implementation* cloneVirtual() const = 0;
-
     /// @name Optional realize() Virtual Methods
     /// Provide implementations of these methods if you want to allocate State variables (such
     /// as modeling options or parameters) or want to pre-calculate some expensive quantities and
     /// store them in the State cache for your future use. Note that the Position, Velocity, and
     /// Acceleration-stage realize methods will be called <em>before</em> the constraint error
     /// calculating methods associated with this Constraint's constraint equations. That means,
-    /// for example, you can calculate some distances in realizePositionVirtual() and them use them
-    /// in realizePositionErrorsVirtual().
+    /// for example, you can calculate some distances in realizePosition() and them use them
+    /// in realizePositionErrors().
 
     //@{
     /// The Matter Subsystem's realizeTopology() method will call this method after all MobilizedBody
@@ -1088,7 +1084,7 @@ protected:
     ///   - allocate Model-stage cache entries in the State.
     /// The indices to the Model-stage state & cache entries are stored locally as part of 
     /// the Topology-stage cache.
-    virtual void realizeTopologyVirtual(State&) const { }
+    virtual void realizeTopology(State&) const { }
 
     /// The Matter Subsystem's realizeModel() method will call this method after all MobilizedBody
     /// Model-stage processing has been done. This gives the Constraint a chance to 
@@ -1098,54 +1094,54 @@ protected:
     ///     like lengths or velocities.
     /// The indices to any of the State entries allocated here are stored in the State as part
     /// of the Model-stage cache.
-    virtual void realizeModelVirtual(State&) const { }
+    virtual void realizeModel(State&) const { }
 
     /// The Matter Subsystem's realizeInstance() method will call this method after all MobilizedBody
     /// Instance-stage processing has been done. This gives the Constraint a chance to 
     ///   - pre-calculate Instance stage cache values according to the settings of the Instance variables.
-    virtual void realizeInstanceVirtual(const State&) const { }
+    virtual void realizeInstance(const State&) const { }
 
     /// The Matter Subsystem's realizeTime() method will call this method after any MobilizedBody
     /// Time-stage processing has been done. This gives the Constraint a chance to 
     ///   - pre-calculate Time stage cache values according to the current value of time found
     ///     in the State.
-    virtual void realizeTimeVirtual(const State&) const { }
+    virtual void realizeTime(const State&) const { }
 
     /// The Matter Subsystem's realizePosition() method will call this method after any MobilizedBody
     /// Position-stage processing has been done. This gives the Constraint a chance to 
     ///   - pre-calculate Position stage cache values according to the current values of positions found
     ///     in the State.
-    /// Note that this is called <em>before</em> realizePositionErrorsVirtual() if there are
+    /// Note that this is called <em>before</em> realizePositionErrors() if there are
     /// position-level constraints.
-    virtual void realizePositionVirtual(const State&) const { }
+    virtual void realizePosition(const State&) const { }
 
     /// The Matter Subsystem's realizeVelocity() method will call this method after any MobilizedBody
     /// Velocity-stage processing has been done. This gives the Constraint a chance to 
     ///   - pre-calculate Velocity stage cache values according to the current values of velocities found
     ///     in the State.
-    /// Note that this is called <em>before</em> realizePositionDotErrorsVirtual() and
-    /// realizeVelocityErrorsVirtual() if there are position-level or velocity-level constraints.
-    virtual void realizeVelocityVirtual(const State&) const { }
+    /// Note that this is called <em>before</em> realizePositionDotErrors() and
+    /// realizeVelocityErrors() if there are position-level or velocity-level constraints.
+    virtual void realizeVelocity(const State&) const { }
 
     /// The Matter Subsystem's realizeDynamics() method will call this method after any MobilizedBody
     /// Dynamics-stage processing has been done. This gives the Constraint a chance to 
     ///   - pre-calculate Dynamics stage cache values according to the current values found
     ///     in the State.
-    virtual void realizeDynamicsVirtual(const State&) const { }
+    virtual void realizeDynamics(const State&) const { }
 
     /// The Matter Subsystem's realizeAcceleration() method will call this method after any MobilizedBody
     /// Acceleration-stage processing has been done. This gives the Constraint a chance to 
     ///   - pre-calculate Acceleration stage cache values according to the current values of body
     ///     and mobility accelerations found in the State.
-    /// Note that this is called <em>before</em> realizePositionDotDotErrorsVirtual(),
-    /// realizeVelocityDotErrorsVirtual(), and realizeAccelerationErrorsVirtual().
-    virtual void realizeAccelerationVirtual(const State&) const { }
+    /// Note that this is called <em>before</em> realizePositionDotDotErrors(),
+    /// realizeVelocityDotErrors(), and realizeAccelerationErrors().
+    virtual void realizeAcceleration(const State&) const { }
 
     /// The Matter Subsystem's realizeReport() method will call this method after any MobilizedBody
     /// Report-stage processing has been done. This gives the Constraint a chance to 
     ///   - calculate Report stage cache values according to the current values found
     ///     in the State.
-    virtual void realizeReportVirtual(const State&) const { }
+    virtual void realizeReport(const State&) const { }
     //@}
 
     /// @name Position (Holonomic) Constraint Virtuals
@@ -1159,19 +1155,19 @@ protected:
     /// position-level specification of a holonomic constraint and write them to \p perr.
     /// The State will have been realized to Stage::Time, and the part of the Stage::Position
     /// cache information relating to MobilizedBodies is available.
-    virtual void realizePositionErrorsVirtual      (const State&, int mp,  Real* perr) const;
+    virtual void realizePositionErrors(const State&, int mp,  Real* perr) const;
 
     /// During realizeVelocity(), calculate the \p mp errors arising from the first time derivative
     /// of the position-level specification of a holonomic constraint and write them to
     /// \p pverr. The State will have been realized to Stage::Position, and the part of the
     /// Stage::Velocity cache information relating to MobilizedBodies is available.
-    virtual void realizePositionDotErrorsVirtual   (const State&, int mp,  Real* pverr) const;
+    virtual void realizePositionDotErrors(const State&, int mp,  Real* pverr) const;
 
     /// During realizeAcceleration(), calculate the \p mp errors arising from the second time
     /// derivative of the position-level specification of a holonomic constraint and write them
     /// to \p paerr. The State will have been realized to Stage::Dynamics, and the part of the
     /// Stage::Acceleration cache information relating to MobilizedBodies is available.
-    virtual void realizePositionDotDotErrorsVirtual(const State&, int mp,  Real* paerr) const;
+    virtual void realizePositionDotDotErrors(const State&, int mp,  Real* paerr) const;
 
     /// From the \p mp supplied Lagrange multipliers provided in \p multipliers, calculate the
     /// forces produced by this Constraint on its ConstrainedBodies and ConstrainedMobilizers.
@@ -1181,11 +1177,11 @@ protected:
     /// that is, the number of constrained <em>mobilities</em>, not the number of constrained
     /// <em>mobilizers</em>. The State will have been realize to Stage::Position and all 
     /// Position-stage cache information is available including any that may have been
-    /// calculated during the prior call to this Constraint's realizePositionErrorsVirtual() method
+    /// calculated during the prior call to this Constraint's realizePositionErrors() method
     /// and realizePosition() method. Simbody will already have ensured that the force-return
     /// arrays have been allocated to the right size and initialized to zero; you need only write the
     /// non-zero ones.
-    virtual void applyPositionConstraintForcesVirtual
+    virtual void applyPositionConstraintForces
        (const State&, int mp, const Real* multipliers,
         Vector_<SpatialVec>& bodyForces,
         Vector&              mobilityForces) const;
@@ -1198,13 +1194,13 @@ protected:
     /// specification of a nonholonomic constraint and write them to
     /// \p verr. The State will have been realized to Stage::Position, and the part of the
     /// Stage::Velocity cache information relating to MobilizedBodies is available.
-    virtual void realizeVelocityErrorsVirtual   (const State&, int mv,  Real* verr) const;
+    virtual void realizeVelocityErrors(const State&, int mv,  Real* verr) const;
 
     /// During realizeAcceleration(), calculate the \p mv errors arising from the first time
     /// derivative of the velocity-level specification of a nonholonomic constraint and write them
     /// to \p vaerr. The State will have been realized to Stage::Dynamics, and the part of the
     /// Stage::Acceleration cache information relating to MobilizedBodies is available.
-    virtual void realizeVelocityDotErrorsVirtual(const State&, int mv,  Real* vaerr) const;
+    virtual void realizeVelocityDotErrors(const State&, int mv,  Real* vaerr) const;
 
     /// From the \p mv supplied Lagrange multipliers provided in \p multipliers, calculate the
     /// forces produced by this Constraint on its ConstrainedBodies and ConstrainedMobilizers due
@@ -1219,7 +1215,7 @@ protected:
     /// Simbody will already have ensured that the force-return
     /// arrays have been allocated to the right size and initialized to zero; you need only write the
     /// non-zero ones.
-    virtual void applyVelocityConstraintForcesVirtual
+    virtual void applyVelocityConstraintForces
        (const State&, int mv, const Real* multipliers,
         Vector_<SpatialVec>& bodyForces,
         Vector&              mobilityForces) const;
@@ -1232,7 +1228,7 @@ protected:
     /// specification of an acceleration-only constraint and write them
     /// to \p aerr. The State will have been realized to Stage::Dynamics, and the part of the
     /// Stage::Acceleration cache information relating to MobilizedBodies is available.
-    virtual void realizeAccelerationErrorsVirtual(const State&, int ma,  Real* aerr) const;
+    virtual void realizeAccelerationErrors(const State&, int ma,  Real* aerr) const;
     /// From the \p ma supplied Lagrange multipliers provided in \p multipliers, calculate the
     /// forces produced by this Constraint on its ConstrainedBodies and ConstrainedMobilizers due
     /// to its acceleration-only constraints. Body spatial forces are applied at the
@@ -1246,7 +1242,7 @@ protected:
     /// Simbody will already have ensured that the force-return
     /// arrays have been allocated to the right size and initialized to zero; you need only write the
     /// non-zero ones.
-    virtual void applyAccelerationConstraintForcesVirtual
+    virtual void applyAccelerationConstraintForces
        (const State&, int ma, const Real* multipliers,
         Vector_<SpatialVec>& bodyForces,
         Vector&              mobilityForces) const;
@@ -1258,7 +1254,7 @@ protected:
     /// want to draw a line between those points. You can also generate text labels, and you can
     /// provide methods for controlling the presence or appearance of your generated geometry.
     /// If you don't implement this routine no geometry will be generated.
-    virtual void calcDecorativeGeometryAndAppendVirtual
+    virtual void calcDecorativeGeometryAndAppend
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
     {
     }

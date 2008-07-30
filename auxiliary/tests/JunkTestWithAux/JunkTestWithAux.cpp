@@ -52,7 +52,7 @@ static const Real Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,
 static const Transform GroundFrame;
 
 static const Real m = 1;   // kg
-static const Real g = 9.8; // meters/s^2; apply in –y direction
+static const Real g = 9.8; // meters/s^2; apply in ï¿½y direction
 static const Real d = 0.5; // meters
 
 static const Vec3 hl(1, 0.5, 0.5); // body half lengths
@@ -450,10 +450,10 @@ public:
         F = addConstrainedBody(body2);
     }
 
-    MyHomeMadeWeldImplementation* cloneVirtual() const {return new MyHomeMadeWeldImplementation(*this);}
+    MyHomeMadeWeldImplementation* clone() const {return new MyHomeMadeWeldImplementation(*this);}
 
     // Draw the two frames.
-    void calcDecorativeGeometryAndAppendVirtual
+    void calcDecorativeGeometryAndAppend
        (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
 
     void setAxisDisplayLength(Real len) {
@@ -485,7 +485,7 @@ public:
     // Ball (last 3 equations) theory above. Otherwise just lay back and 
     // enjoy the ride.
 
-    void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
+    void realizePositionErrors(const State& s, int mp,  Real* perr) const {
         assert(mp==6 && perr);
 
         const Rotation& R_AB = getBodyRotation(s, B, true);
@@ -505,7 +505,7 @@ public:
         Vec3::updAs(perr+3) = p_AF2 - p_AF1;
     }
 
-    void realizePositionDotErrorsVirtual(const State& s, int mp,  Real* pverr) const {
+    void realizePositionDotErrors(const State& s, int mp,  Real* pverr) const {
         assert(mp==6 && pverr);
         //TODO: should be able to get p info from State
         const Rotation& R_AB = getBodyRotation(s, B);
@@ -534,7 +534,7 @@ public:
         Vec3::updAs(pverr+3) = v_AF2 - v_AC;
     }
 
-    void realizePositionDotDotErrorsVirtual(const State& s, int mp,  Real* paerr) const {
+    void realizePositionDotDotErrors(const State& s, int mp,  Real* paerr) const {
         assert(mp==6 && paerr);
         //TODO: should be able to get p and v info from State
         const Rotation& R_AB = getBodyRotation(s, B);
@@ -570,7 +570,7 @@ public:
         Vec3::updAs(paerr+3) = a_AF2 - a_AC;
     }
 
-    void applyPositionConstraintForcesVirtual
+    void applyPositionConstraintForces
        (const State& s, int mp, const Real* multipliers,
         Vector_<SpatialVec>& bodyForcesInA,
         Vector&              mobilityForces) const
@@ -624,7 +624,7 @@ MyHomeMadeWeld::MyHomeMadeWeld(MobilizedBody& body1, const Transform& frame1,
 {
 }
 
-void MyHomeMadeWeldImplementation::calcDecorativeGeometryAndAppendVirtual
+void MyHomeMadeWeldImplementation::calcDecorativeGeometryAndAppend
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
     // We can't generate the frames until we know the axis lengths to use, and we can't place

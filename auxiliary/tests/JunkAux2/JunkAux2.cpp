@@ -50,7 +50,7 @@ static const Real Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,
 static const Transform GroundFrame;
 
 static const Real m = 1;   // kg
-static const Real g = 9.8; // meters/s^2; apply in –y direction
+static const Real g = 9.8; // meters/s^2; apply in ï¿½y direction
 static const Real d = 0.5; // meters
 
 static const Vec3 hl(1, 0.5, 0.5); // body half lengths
@@ -65,7 +65,7 @@ public:
         whichMobility = MobilizerUIndex(0);
         prescribedSpeed = speed;
     }
-    MyConstraintImplementation* cloneVirtual() const {return new MyConstraintImplementation(*this);}
+    MyConstraintImplementation* clone() const {return new MyConstraintImplementation(*this);}
 
     // Implementation of virtuals required for nonholonomic constraints.
 
@@ -73,18 +73,18 @@ public:
     //    verr = u - s
     //    aerr = udot
     // 
-    void realizeVelocityErrorsVirtual(const State& s, int mv,  Real* verr) const {
+    void realizeVelocityErrors(const State& s, int mv,  Real* verr) const {
         assert(mv==1 && verr);
         *verr = getOneU(s, theMobilizer, whichMobility) - prescribedSpeed;
     }
 
-    void realizeVelocityDotErrorsVirtual(const State& s, int mv,  Real* vaerr) const {
+    void realizeVelocityDotErrors(const State& s, int mv,  Real* vaerr) const {
         assert(mv==1 && vaerr);
         *vaerr = getOneUDot(s, theMobilizer, whichMobility, true);
     }
 
 	// apply generalized force lambda to the mobility
-    void applyVelocityConstraintForcesVirtual
+    void applyVelocityConstraintForces
        (const State& s, int mv, const Real* multipliers,
         Vector_<SpatialVec>& bodyForcesInA,
         Vector&              mobilityForces) const
