@@ -999,7 +999,7 @@ public:
     
     ~FunctionBasedImpl() {
         if (--referenceCount[0] == 0) {
-            for (int i = 0; i < functions.size(); i++)
+            for (int i = 0; i < (int) functions.size(); i++)
                 delete functions[i];
             delete[] referenceCount;
         }

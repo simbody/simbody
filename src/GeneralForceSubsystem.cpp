@@ -68,7 +68,7 @@ public:
     }
     
     ~GeneralForceSubsystemRep() {
-        for (int i = 0; i <forces.size(); i++)
+        for (int i = 0; i < (int) forces.size(); i++)
             delete forces[i];
     }
     
