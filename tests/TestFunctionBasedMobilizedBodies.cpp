@@ -525,16 +525,14 @@ void testFunctionBasedGimbalUserAxes() {
     std::vector<Vec3> axes(6);
     std::vector<bool> isdof(6,false);
 
-    // Set 3 mobilities: Z rotation and translation along body's X then Y
     isdof[0] = true;  //rot X
     isdof[1] = true;  //rot Y
-    isdof[2] = true;  //rot Z
     int nm = defineMobilizerFunctions(isdof, coordIndices, functions1, functions2);
 
     Random::Gaussian random;
 
     axes[0] = Vec3(random.getValue(),random.getValue(), 0); //Vec3(0,0,1);//
-     axes[1] = Vec3(random.getValue(), 0,random.getValue());
+    axes[1] = Vec3(random.getValue(), 0,random.getValue());
     axes[2] = Vec3(0,random.getValue(), random.getValue());
     axes[3] = Vec3(1,0,0);
     axes[4] = Vec3(0,1,0);
@@ -556,18 +554,12 @@ void testFunctionBasedGimbalUserAxes() {
     Transform parentPinAxis1 = Transform(Rotation(UnitVec3(axes[0]), ZAxis), Vec3(0,0,0));
     Transform childPinAxis1 = Transform(Rotation(UnitVec3(axes[0]), ZAxis), Vec3(0,0,0));
     Transform parentPinAxis2 = Transform(Rotation(UnitVec3(axes[1]), ZAxis), Vec3(0,0,0));
-    Transform childPinAxis2 = Transform(Rotation(UnitVec3(axes[1]), ZAxis), Vec3(0,0,0));
-    Transform parentPinAxis3 = Transform(Rotation(UnitVec3(axes[2]), ZAxis), Vec3(0,0,0));
-    Transform childPinAxis3 = Transform(Rotation(UnitVec3(axes[2]), ZAxis), Vec3(0,1,0));
+    Transform childPinAxis2 = Transform(Rotation(UnitVec3(axes[1]), ZAxis), Vec3(0,1,0));
     
-    //MobilizedBody::Gimbal b1(matter.Ground(), body); 
     MobilizedBody::Pin masslessPin1(matter.Ground(), parentPinAxis1, massLessBody, childPinAxis1);
-    MobilizedBody::Pin masslessPin2(masslessPin1, parentPinAxis2, massLessBody, childPinAxis2);
-    MobilizedBody::Pin b1(masslessPin2, parentPinAxis3, body, childPinAxis3);
-    //MobilizedBody::Gimbal b2(b1, body);
-       MobilizedBody::Pin masslessPin3(b1, parentPinAxis1, massLessBody, childPinAxis1);
-    MobilizedBody::Pin masslessPin4(masslessPin3, parentPinAxis2, massLessBody, childPinAxis2);
-    MobilizedBody::Pin b2(masslessPin4, parentPinAxis3, body, childPinAxis3);
+    MobilizedBody::Pin b1(masslessPin1, parentPinAxis2, body, childPinAxis2);
+    MobilizedBody::Pin masslessPin2(b1, parentPinAxis1, massLessBody, childPinAxis1);
+    MobilizedBody::Pin b2(masslessPin2, parentPinAxis2, body, childPinAxis2);
 
     MobilizedBody::FunctionBased fb1(matter.Ground(), inParent, body, inChild, nm, functions1, coordIndices, axes);
     MobilizedBody::FunctionBased fb2(fb1, inParent, body, inChild, nm, functions2, coordIndices, axes);
@@ -585,13 +577,13 @@ void testFunctionBasedGimbalUserAxes() {
         state.updU()[i] = state.updU()[i+nu] = random.getValue(); //0.0; //
 
     system.realize(state, Stage::Acceleration);
-
+    
     // Simulate it.
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-8);
     TimeStepper ts(system, integ);
     ts.initialize(state);
-    ts.stepTo(1.0);
+        ts.stepTo(1.0);
 
     Vec3 com_bin = b2.getBodyOriginLocation(state);
     Vec3 com_fb = fb2.getBodyOriginLocation(state);
