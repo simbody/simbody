@@ -276,8 +276,6 @@ int main()
 
     std::cout << "ELEMENTWISE ASSIGNMENT:" << std::endl;
     SimTK::Array<double> tryInit(10);
-    for (int i=0; i<tryInit.size(); ++i)
-        std::cout << tryInit[i] << std::endl; 
     tryInit = 1.23;
     for (int i=0; i<tryInit.size(); ++i)
         std::cout << tryInit[i] << std::endl;        
