@@ -382,6 +382,29 @@ public:
     virtual bool dependsOnlyOnPositions() const {
         return false;
     }
+    /**
+     * The following methods may optionally be overridden to do specialized realization for a Force.
+     */
+    //@{
+    virtual void realizeTopology(State& state) const {
+    }
+    virtual void realizeModel(State& state) const {
+    }
+    virtual void realizeInstance(const State& state) const {
+    }
+    virtual void realizeTime(const State& state) const {
+    }
+    virtual void realizePosition(const State& state) const {
+    }
+    virtual void realizeVelocity(const State& state) const {
+    }
+    virtual void realizeDynamics(const State& state) const {
+    }
+    virtual void realizeAcceleration(const State& state) const {
+    }
+    virtual void realizeReport(const State& state) const {
+    }
+    //@}
 };
 
 } // namespace SimTK

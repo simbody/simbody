@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-8 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -106,31 +106,39 @@ public:
         rigidBodyForceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector_<SpatialVec> >());
         mobilityForceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector>());
         particleForceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector_<Vec3> >());
+        for (int i = 0; i < (int) forces.size(); ++i)
+            forces[i]->getImpl().realizeTopology(s);
         return 0;
     }
 
     int realizeSubsystemModelImpl(State& s) const {
-        // Sorry, no choices available at the moment.
+        for (int i = 0; i < (int) forces.size(); ++i)
+            forces[i]->getImpl().realizeModel(s);
         return 0;
     }
 
     int realizeSubsystemInstanceImpl(const State& s) const {
-        // Nothing to compute here.
+        for (int i = 0; i < (int) forces.size(); ++i)
+            forces[i]->getImpl().realizeInstance(s);
         return 0;
     }
 
     int realizeSubsystemTimeImpl(const State& s) const {
-        // Nothing to compute here.
+        for (int i = 0; i < (int) forces.size(); ++i)
+            forces[i]->getImpl().realizeTime(s);
         return 0;
     }
 
     int realizeSubsystemPositionImpl(const State& s) const {
-        return Value<bool>::downcast(s.updCacheEntry(getMySubsystemIndex(), forceValidCacheIndex)).upd() = false;
+        Value<bool>::downcast(s.updCacheEntry(getMySubsystemIndex(), forceValidCacheIndex)).upd() = false;
+        for (int i = 0; i < (int) forces.size(); ++i)
+            forces[i]->getImpl().realizePosition(s);
         return 0;
     }
 
     int realizeSubsystemVelocityImpl(const State& s) const {
-        // Nothing to compute here.
+        for (int i = 0; i < (int) forces.size(); ++i)
+            forces[i]->getImpl().realizeVelocity(s);
         return 0;
     }
 
@@ -172,6 +180,11 @@ public:
         rigidBodyForces += rigidBodyForceCache;
         particleForces += particleForceCache;
         mobilityForces += mobilityForceCache;
+        
+        // Allow forces to do their own realization.
+        for (int i = 0; i < (int) forces.size(); ++i)
+            forces[i]->getImpl().realizeDynamics(s);
+
         return 0;
     }
     
@@ -185,12 +198,14 @@ public:
     }
 
     int realizeSubsystemAccelerationImpl(const State& s) const {
-        // Nothing to compute here.
+        for (int i = 0; i < (int) forces.size(); ++i)
+            forces[i]->getImpl().realizeAcceleration(s);
         return 0;
     }
 
     int realizeSubsystemReportImpl(const State& s) const {
-        // Nothing to compute here.
+        for (int i = 0; i < (int) forces.size(); ++i)
+            forces[i]->getImpl().realizeReport(s);
         return 0;
     }
 };

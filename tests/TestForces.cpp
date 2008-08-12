@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-2008 Stanford University and the Authors.      *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -58,12 +58,44 @@ void verifyForces(const Force& force, const State& state, Vector_<SpatialVec> bo
 
 class MyForceImpl : public Force::Custom::Implementation {
 public:
+    mutable bool hasRealized[Stage::ReportIndex+1];
+    MyForceImpl() {
+        for (int i = 0; i < Stage::size(); i++)
+            hasRealized[i] = false;
+    }
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
         for (int i = 0; i < mobilityForces.size(); ++i)
             mobilityForces[i] += i;
     }
     Real calcPotentialEnergy(const State& state) const {
         return 0.0;
+    }
+    void realizeTopology(State& state) const {
+        hasRealized[Stage::TopologyIndex] = true;
+    }
+    void realizeModel(State& state) const {
+        hasRealized[Stage::ModelIndex] = true;
+    }
+    void realizeInstance(const State& state) const {
+        hasRealized[Stage::InstanceIndex] = true;
+    }
+    void realizeTime(const State& state) const {
+        hasRealized[Stage::TimeIndex] = true;
+    }
+    void realizePosition(const State& state) const {
+        hasRealized[Stage::PositionIndex] = true;
+    }
+    void realizeVelocity(const State& state) const {
+        hasRealized[Stage::VelocityIndex] = true;
+    }
+    void realizeDynamics(const State& state) const {
+        hasRealized[Stage::DynamicsIndex] = true;
+    }
+    void realizeAcceleration(const State& state) const {
+        hasRealized[Stage::AccelerationIndex] = true;
+    }
+    void realizeReport(const State& state) const {
+        hasRealized[Stage::ReportIndex] = true;
     }
 };
 
@@ -260,10 +292,29 @@ void testEnergyConservation() {
     ASSERT(std::abs(initialEnergy/finalEnergy-1.0) < 0.005);
 }
 
+/**
+ * Make sure that all the "realize" methods on a custom force actually get called.
+ */
+
+void testCustomRealization() {
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    MyForceImpl* impl = new MyForceImpl();
+    Force::Custom custom(forces, impl);
+    State state = system.realizeTopology();
+    for (int j = Stage::ModelIndex; j <= Stage::ReportIndex; j++) {
+        system.realize(state, Stage::getValue(j));
+        for (int i = Stage::TopologyIndex; i <= Stage::ReportIndex; i++)
+            ASSERT(impl->hasRealized[i] == (i <= j));
+    }
+}
+
 int main() {
     try {
         testStandardForces();
         testEnergyConservation();
+        testCustomRealization();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
