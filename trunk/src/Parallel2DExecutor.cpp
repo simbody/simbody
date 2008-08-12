@@ -68,7 +68,7 @@ void Parallel2DExecutorImpl::init(int numProcessors) {
         
         // Build the set of squares.
         
-        squares.resize(bins);
+        squares.resize(bins-1);
         addTriangle(0, 0, 0, levels);
     }
     
@@ -85,7 +85,7 @@ Parallel2DExecutorImpl::~Parallel2DExecutorImpl() {
 }
 void Parallel2DExecutorImpl::addSquare(int x, int y, int pass, int level) {
     if (level == 0)
-        squares[pass].push_back(pair<int, int>(x, y));
+        squares[pass-1].push_back(pair<int, int>(x, y));
     else {
         addSquare(2*x+0, 2*y+1, 2*pass+1, level-1);
         addSquare(2*x+1, 2*y+2, 2*pass+1, level-1);
@@ -94,7 +94,7 @@ void Parallel2DExecutorImpl::addSquare(int x, int y, int pass, int level) {
     }
 }
 void Parallel2DExecutorImpl::addTriangle(int x, int y, int pass, int level) {
-    if (level > 0) {
+    if (level > 1) {
         addSquare(2*x, 2*y, 2*pass, level-1);
         addTriangle(2*x, 2*y, 2*pass, level-1);
         addTriangle(2*x+1, 2*y+1, 2*pass, level-1);
@@ -111,12 +111,12 @@ ParallelExecutor& Parallel2DExecutorImpl::getExecutor() {
 
 class Parallel2DExecutorImpl::TriangleTask : public ParallelExecutor::Task {
 public:
-    TriangleTask(const Parallel2DExecutorImpl& executor, Parallel2DExecutor::Task& task, Parallel2DExecutor::RangeType rangeType, bool shouldInitialize, bool shouldFinish) :
-        executor(executor), task(task), rangeType(rangeType), shouldInitialize(shouldInitialize), shouldFinish(shouldFinish) {
+    TriangleTask(const Parallel2DExecutorImpl& executor, Parallel2DExecutor::Task& task, Parallel2DExecutor::RangeType rangeType, int width, bool shouldInitialize, bool shouldFinish) :
+        executor(executor), task(task), rangeType(rangeType), width(width), shouldInitialize(shouldInitialize), shouldFinish(shouldFinish) {
     }
     void execute(int index) {
-        int start = executor.getBinStart(index);
-        int end = executor.getBinStart(index+1);
+        int start = executor.getBinStart(width*index);
+        int end = executor.getBinStart(width*(index+1));
         switch (rangeType) {
         case Parallel2DExecutor::FullMatrix:
             for (int i = start; i < end; ++i)
@@ -147,7 +147,8 @@ private:
     const Parallel2DExecutorImpl& executor;
     Parallel2DExecutor::Task& task;
     const Parallel2DExecutor::RangeType rangeType;
-    bool shouldInitialize, shouldFinish;
+    const int width;
+    const bool shouldInitialize, shouldFinish;
 };
 
 class Parallel2DExecutorImpl::SquareTask : public ParallelExecutor::Task {
@@ -196,7 +197,7 @@ private:
 void Parallel2DExecutorImpl::execute(Parallel2DExecutor::Task& task, Parallel2DExecutor::RangeType rangeType) {
     if (executor == 0) {
         task.initialize();
-        TriangleTask(*this, task, rangeType, false, false).execute(0);
+        TriangleTask(*this, task, rangeType, 1, false, false).execute(0);
         task.finish();
         return;
     }
@@ -204,8 +205,8 @@ void Parallel2DExecutorImpl::execute(Parallel2DExecutor::Task& task, Parallel2DE
     
     // Execute the blocks along the diagonal.
     
-    TriangleTask triangle(*this, task, rangeType, true, false);
-    executor->execute(triangle, bins);
+    TriangleTask triangle(*this, task, rangeType, 2, true, false);
+    executor->execute(triangle, bins/2);
     
     // Execute the square blocks in a series of passes.
     
