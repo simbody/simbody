@@ -56,6 +56,12 @@ void assertEqual(SpatialVec val1, SpatialVec val2) {
     assertEqual(val1[1], val2[1]);
 }
 
+template<>
+void assertEqual(Transform val1, Transform val2) {
+    assertEqual(val1.T(), val2.T());
+    assertEqual(val1.R().convertRotationToBodyFixedXYZ(), val2.R().convertRotationToBodyFixedXYZ());
+}
+
 void testCalculationMethods() {
     
     // Create a system with two bodies.
@@ -106,9 +112,47 @@ void testCalculationMethods() {
     assertEqual(b1.findStationVelocityInGround(state, point), b1.findStationVelocityInAnotherBody(state, point, matter.Ground()));
 }
 
+void testWeld() {
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Force::UniformGravity gravity(forces, matter, Vec3(0, -1, 0));
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+    
+    // Create two pendulums, each with two welded bodies.  One uses a Weld MobilizedBody,
+    // and the other uses a Weld constraint.
+    
+    Transform inboard(Vec3(0.1, 0.5, -1));
+    Transform outboard(Vec3(0.2, -0.2, 0));
+    MobilizedBody::Ball p1(matter.updGround(), Vec3(0), body, Vec3(0, 1, 0));
+    MobilizedBody::Ball p2(matter.updGround(), Vec3(0), body, Vec3(0, 1, 0));
+    MobilizedBody::Weld c1(p1, inboard, body, outboard);
+    MobilizedBody::Free c2(p2, inboard, body, outboard);
+    Constraint::Weld constraint(p2, inboard, c2, outboard);
+    State state = system.realizeTopology();
+    p1.setU(state, Vec3(1, 2, 3));
+    p2.setU(state, Vec3(1, 2, 3));
+    system.realize(state, Stage::Velocity);
+    system.project(state, 1e-10, Vector(state.getNY()), Vector(state.getNYErr()), Vector());
+    system.realize(state, Stage::Velocity);
+    assertEqual(c1.getBodyTransform(state), c2.getBodyTransform(state));
+    assertEqual(c1.getBodyVelocity(state), c2.getBodyVelocity(state));
+    
+    // Simulate it and see if both pendulums behave identically.
+    
+    RungeKuttaMersonIntegrator integ(system);
+    TimeStepper ts(system, integ);
+    ts.initialize(state);
+    ts.stepTo(5.0);
+    system.realize(integ.getState(), Stage::Velocity);
+    assertEqual(c1.getBodyTransform(integ.getState()), c2.getBodyTransform(integ.getState()));
+    assertEqual(c1.getBodyVelocity(integ.getState()), c2.getBodyVelocity(integ.getState()));
+}
+
 int main() {
     try {
         testCalculationMethods();
+        testWeld();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

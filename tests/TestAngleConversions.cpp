@@ -61,7 +61,7 @@ int main() {
     lastBody = MobilizedBody::Free(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
     lastBody = MobilizedBody::LineOrientation(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
     lastBody = MobilizedBody::FreeLine(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
-//    lastBody = MobilizedBody::Weld(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue()))); // TODO Not yet implemented
+    lastBody = MobilizedBody::Weld(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
     lastBody = MobilizedBody::Screw(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())), 0.5);
     lastBody = MobilizedBody::Ellipsoid(lastBody, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(random.getValue(), random.getValue(), random.getValue())));
     mbs.realizeTopology();
