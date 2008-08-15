@@ -2174,7 +2174,7 @@ void SimbodyMatterSubsystemRep::calcMobilizerReactionForces(const State& s, Vect
                 const MobilizedBody& parent = getMobilizedBody(parentIndex);
                 Vec3 parentPos = parent.findStationAtAnotherBodyStation(s, body, body.getOutboardFrame(s).T());
                 parent.applyForceToBodyPoint(s, parentPos, -forces[index][1], otherForces);
-                Vec3 offset = parent.getBodyTransform(s).R()*(body.getMobilizerTransform(s)*body.getOutboardFrame(s).T());
+                Vec3 offset = parent.getBodyTransform(s).R()*(body.getMobilizerTransform(s).R()*body.getOutboardFrame(s).T());
                 otherForces[parentIndex][0] -= forces[index][0]-offset%forces[index][1];
             }
         }
