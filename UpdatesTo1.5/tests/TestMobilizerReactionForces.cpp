@@ -257,7 +257,7 @@ void testByComparingToSDFAST2() {
     
     // Now set it to a different configuration and try again.
     
-    p1.setOneQ(state, 0, -90*M_PI/180);
+    p1.setOneQ(state, 0, -90*NTraits<Real>::getPi()/180);
     p2.setOneQ(state, 0, 0.1);
     system.realize(state, Stage::Acceleration);
     matter.calcMobilizerReactionForces(state, reaction);
