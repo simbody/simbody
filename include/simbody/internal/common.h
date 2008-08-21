@@ -208,8 +208,10 @@ static const SubtreeBodyIndex SubtreeAncestorIndex(0);
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(SubtreeQIndex)
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(SubtreeUIndex)
 
+    // INDEX TYPES FOR OTHER SUBSYSTEMS
 
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ForceIndex)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(ContactSetIndex)
 
 
 namespace Exception {
