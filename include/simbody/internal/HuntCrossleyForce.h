@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_CONTACT_GEOMETRY_H_
-#define SimTK_SIMBODY_CONTACT_GEOMETRY_H_
+#ifndef SimTK_SIMBODY_HUNT_CROSSLEY_FORCE_H_
+#define SimTK_SIMBODY_HUNT_CROSSLEY_FORCE_H_
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
@@ -36,80 +36,26 @@
 #include "SimTKcommon.h"
 
 #include "simbody/internal/common.h"
+#include "simbody/internal/Force.h"
 
 namespace SimTK {
 
-class ContactGeometryImpl;
+class GeneralContactSubsystem;
+class HuntCrossleyForceImpl;
 
-/**
- * A ContactGeometry object describes the physical shape of a body.  It is used with GeneralContactSubsystem
- * for doing collision detection and contact modeling.
- */
-class SimTK_SIMBODY_EXPORT ContactGeometry {
+class SimTK_SIMBODY_EXPORT HuntCrossleyForce : public Force {
 public:
-    class HalfSpace;
-    class Sphere;
-    class HalfSpaceImpl;
-    class SphereImpl;
-    ContactGeometry() : impl(0) {
-    }
-    ContactGeometry(const ContactGeometry& src);
-    explicit ContactGeometry(ContactGeometryImpl* impl) : impl(impl) {
-    }
-    virtual ~ContactGeometry();
-    bool isOwnerHandle() const;
-    bool isEmptyHandle() const;
-    ContactGeometry& ContactGeometry::operator=(const ContactGeometry& src);
-    bool hasImpl() const {
-        return impl != 0;
-    }
-    const ContactGeometryImpl& getImpl() const {
-        assert(impl);
-        return *impl;
-    }
-    ContactGeometryImpl& updImpl() {
-        assert(impl);
-        return *impl;
-    }
     /**
-     * Get a string which uniquely identifies the type of geometry this object represents.
-     * Typically each subclass of ContactGeometry defines its own value.
+     * Create a Hunt-Crossley contact model.
+     * 
+     * @param contacts       the subsystem to which this contact model should be applied
+     * @param contactSet     the index of the contact set to which this contact model will be applied
      */
-    const std::string& getType() const;
-    /**
-     * Get an integer which uniquely identifies the type of geometry this object represents.
-     * A unique index is generated automatically for each unique type value as returned by getType().
-     */
-    int getTypeIndex() const;
-private:
-    ContactGeometryImpl* impl;
-};
-
-/**
- * This ContactGeometry subclass represents an object that occupies the entire half-space x>0.
- * This is useful for representing walls and floors.
- */
-class ContactGeometry::HalfSpace : public ContactGeometry {
-public:
-    HalfSpace();
-};
-
-/**
- * This ContactGeometry subclass represents a sphere centered at the origin.
- */
-class ContactGeometry::Sphere : public ContactGeometry {
-public:
-    Sphere(Real radius);
-    Real getRadius() const;
-    void setRadius(Real radius);
-    const SphereImpl& getImpl() const {
-        return static_cast<const SphereImpl&>(getImpl());
-    }
-    SphereImpl& updImpl() {
-        return static_cast<SphereImpl&>(updImpl());
-    }
+    HuntCrossleyForce(GeneralForceSubsystem& forces, GeneralContactSubsystem& contacts, ContactSetIndex contactSet);
+    void setBodyParameters(int bodyIndex, Real stiffness, Real dissipation);
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(HuntCrossleyForce, HuntCrossleyForceImpl, Force);
 };
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_CONTACT_GEOMETRY_H_
+#endif // SimTK_SIMBODY_HUNT_CROSSLEY_FORCE_H_

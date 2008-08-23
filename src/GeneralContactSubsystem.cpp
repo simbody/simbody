@@ -33,7 +33,7 @@
 #include "simbody/internal/GeneralContactSubsystem.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "simbody/internal/ForceSubsystemGuts.h"
+#include "simtkcommon/internal/SubsystemGuts.h"
 #include "simbody/internal/Contact.h"
 #include "simbody/internal/ContactGeometryImpl.h"
 #include "simbody/internal/CollisionDetectionAlgorithm.h"
@@ -60,9 +60,9 @@ public:
     vector<Transform> transforms;
 };
     
-class GeneralContactSubsystemImpl : public ForceSubsystemRep {
+class GeneralContactSubsystemImpl : public Subsystem::Guts {
 public:
-    GeneralContactSubsystemImpl() : ForceSubsystemRep("GeneralContactSubsystem", "1.0"), contactsCacheIndex(-1), energyCacheIndex(-1)
+    GeneralContactSubsystemImpl() : contactsCacheIndex(-1), contactsValidCacheIndex(-1)
     {
     }
 
@@ -71,6 +71,7 @@ public:
     }
     
     ContactSetIndex createContactSet() {
+        invalidateSubsystemTopologyCache();
         int size = sets.size();
         sets.resize(size+1);
         return ContactSetIndex(size);
@@ -80,62 +81,73 @@ public:
         return sets.size();
     }
     
-    void addBody(ContactSetIndex index, MobilizedBody& body, ContactGeometry geom, Transform& transform) {
-        ContactSet& set = sets[index];
+    void addBody(ContactSetIndex setIndex, MobilizedBody& body, ContactGeometry geom, Transform& transform) {
+        assert(setIndex >= 0 && setIndex < sets.size());
+        invalidateSubsystemTopologyCache();
+        ContactSet& set = sets[setIndex];
         set.bodies.push_back(body);
         set.geometry.push_back(geom);
         set.transforms.push_back(transform);
     }
 
+    int getNumBodies(ContactSetIndex set) const {
+        return sets[set].bodies.size();
+    }
+
     const MobilizedBody& getBody(ContactSetIndex set, int index) const {
+        assert(set >= 0 && set < sets.size());
+        assert(index >= 0 && index < sets[set].bodies.size());
         return sets[set].bodies[index];
     }
 
     const ContactGeometry& getBodyGeometry(ContactSetIndex set, int index) const {
+        assert(set >= 0 && set < sets.size());
+        assert(index >= 0 && index < sets[set].geometry.size());
+        return sets[set].geometry[index];
+    }
+
+    ContactGeometry& updBodyGeometry(ContactSetIndex set, int index) {
+        assert(set >= 0 && set < sets.size());
+        assert(index >= 0 && index < sets[set].geometry.size());
+        invalidateSubsystemTopologyCache();
         return sets[set].geometry[index];
     }
 
     const Transform& getBodyTransform(ContactSetIndex set, int index) const {
+        assert(set >= 0 && set < sets.size());
+        assert(index >= 0 && index < sets[set].transforms.size());
+        return sets[set].transforms[index];
+    }
+
+    Transform& updBodyTransform(ContactSetIndex set, int index) {
+        assert(set >= 0 && set < sets.size());
+        assert(index >= 0 && index < sets[set].transforms.size());
+        invalidateSubsystemTopologyCache();
         return sets[set].transforms[index];
     }
 
     const vector<Contact>& getContacts(const State& state, ContactSetIndex set) const {
+        assert(set >= 0 && set < sets.size());
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSubsystemStage(getMySubsystemIndex()), Stage::Dynamics, "GeneralContactSubsystemImpl::getContacts()");
         vector<vector<Contact> >& contacts = Value<vector<vector<Contact> > >::downcast(updCacheEntry(state, contactsCacheIndex)).upd();
         return contacts[set];
     }
     
-    int realizeSubsystemTopologyImpl(State& s) const {
-        contactsCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<vector<vector<Contact> > >());
-        energyCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Real>());
+    int realizeSubsystemTopologyImpl(State& state) const {
+        contactsCacheIndex = state.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<vector<vector<Contact> > >());
+        contactsValidCacheIndex = state.allocateCacheEntry(getMySubsystemIndex(), Stage::Position, new Value<bool>());
         return 0;
     }
 
-    int realizeSubsystemModelImpl(State& s) const {
-        // Sorry, no choices available at the moment.
-        return 0;
-    }
-
-    int realizeSubsystemInstanceImpl(const State& s) const {
-        // Nothing to compute here.
-        return 0;
-    }
-
-    int realizeSubsystemTimeImpl(const State& s) const {
-        // Nothing to compute here.
-        return 0;
-    }
-
-    int realizeSubsystemPositionImpl(const State& s) const {
-        // Nothing to compute here.
-        return 0;
-    }
-
-    int realizeSubsystemVelocityImpl(const State& s) const {
-        // Nothing to compute here.
+    int realizeSubsystemPositionImpl(const State& state) const {
+        Value<bool>::downcast(state.updCacheEntry(getMySubsystemIndex(), contactsValidCacheIndex)).upd() = false;
         return 0;
     }
 
     int realizeSubsystemDynamicsImpl(const State& state) const {
+        bool& contactsValid = Value<bool>::downcast(state.updCacheEntry(getMySubsystemIndex(), contactsValidCacheIndex)).upd();
+        if (contactsValid)
+            return 0;
         vector<vector<Contact> >& contacts = Value<vector<vector<Contact> > >::downcast(updCacheEntry(state, contactsCacheIndex)).upd();
         int numSets = getNumContactSets();
         contacts.resize(numSets);
@@ -170,26 +182,15 @@ public:
                 }
             }
         }
+        contactsValid = true;
         return 0;
     }
 
-    int realizeSubsystemAccelerationImpl(const State& s) const {
-        // Nothing to compute here.
-        return 0;
-    }
-
-    int realizeSubsystemReportImpl(const State& s) const {
-        // Nothing to compute here.
-        return 0;
-    }
-
-    Real calcPotentialEnergy(const State& state) const {
-        return Value<Real>::downcast(state.getCacheEntry(getMySubsystemIndex(), energyCacheIndex)).get();
-    }
+    SimTK_DOWNCAST(GeneralContactSubsystemImpl, Subsystem::Guts);
 
 private:
     mutable int contactsCacheIndex;
-    mutable int energyCacheIndex;
+    mutable int contactsValidCacheIndex;
     vector<ContactSet> sets;
 };
 
@@ -205,6 +206,10 @@ void GeneralContactSubsystem::addBody(ContactSetIndex index, MobilizedBody& body
     return updImpl().addBody(index, body, geom, transform);
 }
 
+int GeneralContactSubsystem::getNumBodies(ContactSetIndex set) const {
+    return getImpl().getNumBodies(set);
+}
+
 const MobilizedBody& GeneralContactSubsystem::getBody(ContactSetIndex set, int index) const {
     return getImpl().getBody(set, index);
 }
@@ -213,42 +218,50 @@ const ContactGeometry& GeneralContactSubsystem::getBodyGeometry(ContactSetIndex 
     return getImpl().getBodyGeometry(set, index);
 }
 
+ContactGeometry& GeneralContactSubsystem::updBodyGeometry(ContactSetIndex set, int index) {
+    return updImpl().updBodyGeometry(set, index);
+}
+
 const Transform& GeneralContactSubsystem::getBodyTransform(ContactSetIndex set, int index) const {
     return getImpl().getBodyTransform(set, index);
+}
+
+Transform& GeneralContactSubsystem::updBodyTransform(ContactSetIndex set, int index) {
+    return updImpl().updBodyTransform(set, index);
 }
 
 const vector<Contact>& GeneralContactSubsystem::getContacts(const State& state, ContactSetIndex set) const {
     return getImpl().getContacts(state, set);
 }
 
-bool GeneralContactSubsystem::isInstanceOf(const ForceSubsystem& s) {
-    return GeneralContactSubsystemImpl::isA(s.getRep());
+bool GeneralContactSubsystem::isInstanceOf(const Subsystem& s) {
+    return GeneralContactSubsystemImpl::isA(s.getSubsystemGuts());
 }
-const GeneralContactSubsystem& GeneralContactSubsystem::downcast(const ForceSubsystem& s) {
+const GeneralContactSubsystem& GeneralContactSubsystem::downcast(const Subsystem& s) {
     assert(isInstanceOf(s));
     return reinterpret_cast<const GeneralContactSubsystem&>(s);
 }
-GeneralContactSubsystem& GeneralContactSubsystem::updDowncast(ForceSubsystem& s) {
+GeneralContactSubsystem& GeneralContactSubsystem::updDowncast(Subsystem& s) {
     assert(isInstanceOf(s));
     return reinterpret_cast<GeneralContactSubsystem&>(s);
 }
 
 const GeneralContactSubsystemImpl& GeneralContactSubsystem::getImpl() const {
-    return dynamic_cast<const GeneralContactSubsystemImpl&>(ForceSubsystem::getRep());
+    return dynamic_cast<const GeneralContactSubsystemImpl&>(getSubsystemGuts());
 }
 GeneralContactSubsystemImpl& GeneralContactSubsystem::updImpl() {
-    return dynamic_cast<GeneralContactSubsystemImpl&>(ForceSubsystem::updRep());
+    return dynamic_cast<GeneralContactSubsystemImpl&>(updSubsystemGuts());
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use except
 // for making std::vector's, which require a default constructor to be available.
-GeneralContactSubsystem::GeneralContactSubsystem() : ForceSubsystem() {
+GeneralContactSubsystem::GeneralContactSubsystem() {
     adoptSubsystemGuts(new GeneralContactSubsystemImpl());
 }
 
-GeneralContactSubsystem::GeneralContactSubsystem(MultibodySystem& mbs) : ForceSubsystem() {
+GeneralContactSubsystem::GeneralContactSubsystem(MultibodySystem& mbs) {
     adoptSubsystemGuts(new GeneralContactSubsystemImpl());
-    mbs.addForceSubsystem(*this); // steal ownership
+    mbs.setContactSubsystem(*this); // steal ownership
 }
 
 } // namespace SimTK

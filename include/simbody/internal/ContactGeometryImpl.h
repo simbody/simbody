@@ -32,15 +32,10 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-/*
- */
 
 #include "simbody/internal/ContactGeometry.h"
 
 namespace SimTK {
-
-/**
- */
 
 class SimTK_SIMBODY_EXPORT ContactGeometryImpl {
 public:

@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-8 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -45,6 +45,7 @@
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/DecorationSubsystem.h"
+#include "simbody/internal/GeneralContactSubsystem.h"
 
 #include "simbody/internal/ForceSubsystemGuts.h"
 // #include "ForceSubsystemRep.h"
@@ -328,6 +329,11 @@ public:
         decorationSub = adoptSubsystem(d);
         return decorationSub;
     }
+    SubsystemIndex setContactSubsystem(GeneralContactSubsystem& c) {
+        assert(!contactSub.isValid());
+        contactSub = adoptSubsystem(c);
+        return contactSub;
+    }
 
     const SimbodyMatterSubsystem& getMatterSubsystem() const {
         assert(matterSub.isValid());
@@ -342,12 +348,18 @@ public:
     }
 
     bool hasDecorationSubsystem() const {return decorationSub.isValid();}
+    bool hasContactSubsystem() const {return contactSub.isValid();}
     bool hasMatterSubsystem() const {return matterSub.isValid();}
     bool hasGlobalSubsystem() const {return globalSub.isValid();}
 
     const DecorationSubsystem& getDecorationSubsystem() const {
         assert(decorationSub.isValid());
         return DecorationSubsystem::downcast(getSubsystem(decorationSub));
+    }
+
+    const GeneralContactSubsystem& getContactSubsystem() const {
+        assert(contactSub.isValid());
+        return GeneralContactSubsystem::downcast(getSubsystem(contactSub));
     }
 
     SimbodyMatterSubsystem& updMatterSubsystem() {
@@ -364,6 +376,10 @@ public:
     DecorationSubsystem& updDecorationSubsystem() {
         assert(decorationSub.isValid());
         return DecorationSubsystem::updDowncast(updSubsystem(decorationSub));
+    }
+    GeneralContactSubsystem& updContactSubsystem() {
+        assert(contactSub.isValid());
+        return GeneralContactSubsystem::updDowncast(updSubsystem(contactSub));
     }
 
     // Global state cache entries dealing with interaction between forces & matter
@@ -462,6 +478,7 @@ private:
     SubsystemIndex  matterSub;             // index of matter subsystems
     std::vector<SubsystemIndex> forceSubs; // indices of force subsystems
     SubsystemIndex  decorationSub;         // index of DecorationSubsystem if any, else -1
+    SubsystemIndex  contactSub;            // index of contact subsystem if any, else -1
 };
 
 

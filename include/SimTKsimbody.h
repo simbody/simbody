@@ -54,6 +54,7 @@
 #include "simbody/internal/GeneralContactSubsystem.h"
 #include "simbody/internal/GeneralForceSubsystem.h"
 #include "simbody/internal/HuntCrossleyContact.h"
+#include "simbody/internal/HuntCrossleyForce.h"
 #include "simbody/internal/NumericalMethods.h"
 #include "simbody/internal/DecorationSubsystem.h"
 #include "simbody/internal/TextDataEventReporter.h"

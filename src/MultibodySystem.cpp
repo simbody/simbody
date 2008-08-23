@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-8 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -103,6 +103,9 @@ int MultibodySystem::addForceSubsystem(ForceSubsystem& f) {
 int MultibodySystem::setDecorationSubsystem(DecorationSubsystem& m) {
     return updRep().setDecorationSubsystem(m);
 }
+int MultibodySystem::setContactSubsystem(GeneralContactSubsystem& m) {
+    return updRep().setContactSubsystem(m);
+}
 
 const SimbodyMatterSubsystem&       
 MultibodySystem::getMatterSubsystem() const {
@@ -126,6 +129,18 @@ MultibodySystem::updDecorationSubsystem() {
 }
 bool MultibodySystem::hasDecorationSubsystem() const {
     return getRep().hasDecorationSubsystem();
+}
+
+const GeneralContactSubsystem&       
+MultibodySystem::getContactSubsystem() const {
+    return getRep().getContactSubsystem();
+}
+GeneralContactSubsystem&       
+MultibodySystem::updContactSubsystem() {
+    return updRep().updContactSubsystem();
+}
+bool MultibodySystem::hasContactSubsystem() const {
+    return getRep().hasContactSubsystem();
 }
 
 const Real
@@ -246,6 +261,8 @@ int MultibodySystemRep::realizeVelocityImpl(const State& s) const {
 }
 int MultibodySystemRep::realizeDynamicsImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemDynamics(s);
+    if (hasContactSubsystem())
+        getContactSubsystem().getSubsystemGuts().realizeSubsystemDynamics(s);
     // note order: forces first (TODO: does that matter?)
     for (int i=0; i < (int)forceSubs.size(); ++i)
         getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemDynamics(s);
