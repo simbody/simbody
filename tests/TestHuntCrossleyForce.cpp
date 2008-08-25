@@ -61,6 +61,12 @@ void testForces() {
     const Real stiffness2 = 2.0;
     const Real dissipation1 = 0.5;
     const Real dissipation2 = 1.0;
+    const Real us1 = 1.0;
+    const Real us2 = 0.7;
+    const Real ud1 = 0.5;
+    const Real ud2 = 0.2;
+    const Real uv1 = 0.1;
+    const Real uv2 = 0.05;
     Random::Uniform random(0.0, 1.0);
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     ContactSetIndex setIndex = contacts.createContactSet();
@@ -68,8 +74,10 @@ void testForces() {
     contacts.addBody(setIndex, sphere, ContactGeometry::Sphere(radius), Transform());
     contacts.addBody(setIndex, matter.updGround(), ContactGeometry::HalfSpace(), Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0))); // y < 0
     HuntCrossleyForce hc(forces, contacts, setIndex);
-    hc.setBodyParameters(0, stiffness1, dissipation1);
-    hc.setBodyParameters(1, stiffness2, dissipation2);
+    hc.setBodyParameters(0, stiffness1, dissipation1, us1, ud1, uv1);
+    hc.setBodyParameters(1, stiffness2, dissipation2, us2, ud2, uv2);
+    const Real vt = hc.getTransitionVelocity();
+    assertEqual(0.001, vt);
     State state = system.realizeTopology();
     
     // Position the sphere at a variety of positions and check the normal force.
@@ -105,6 +113,31 @@ void testForces() {
     }
     
     // Do it with a horizontal velocity and see if the friction force is correct.
+
+    const Real us = 2.0*us1*us2/(us1+us2);
+    const Real ud = 2.0*ud1*ud2/(ud1+ud2);
+    const Real uv = 2.0*uv1*uv2/(uv1+uv2);
+    Vector_<SpatialVec> expectedForce(matter.getNBodies());
+    for (Real height = radius+0.2; height > 0; height -= 0.1) {
+        sphere.setQToFitTranslation(state, Vec3(0, height, 0));
+        const Real depth = radius-height;
+        Real fh = 0;
+        if (depth > 0)
+            fh = (4.0/3.0)*stiffness*depth*std::sqrt(radius*stiffness*depth);
+        for (Real v = -1.0; v <= 1.0; v += 0.1) {
+            sphere.setUToFitLinearVelocity(state, Vec3(v, 0, 0));
+            system.realize(state, Stage::Dynamics);
+            const Real vrel = std::abs(v/vt);
+            Real ff = (v < 0 ? 1 : -1)*fh*(std::min(vrel, 1.0)*(ud+2*(us-ud)/(1+vrel*vrel))+uv*std::fabs(v));
+            const Vec3 totalForce = gravity+Vec3(ff, fh, 0);
+            expectedForce = SpatialVec(Vec3(0), Vec3(0));
+            Vec3 contactPointInSphere = sphere.findStationAtGroundPoint(state, Vec3(0, -stiffness1*depth/(stiffness1+stiffness2), 0));
+            sphere.applyForceToBodyPoint(state, contactPointInSphere, totalForce, expectedForce);
+            SpatialVec actualForce = system.getRigidBodyForces(state, Stage::Dynamics)[sphere.getMobilizedBodyIndex()];
+            assertEqual(actualForce[0], expectedForce[sphere.getMobilizedBodyIndex()][0]);
+            assertEqual(actualForce[1], expectedForce[sphere.getMobilizedBodyIndex()][1]);
+        }
+    }
 }
 
 int main() {

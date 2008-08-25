@@ -45,24 +45,28 @@ public:
     HuntCrossleyForceImpl* clone() const {
         return new HuntCrossleyForceImpl(*this);
     }
-    void setBodyParameters(int bodyIndex, Real stiffness, Real dissipation);
+    void setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction);
     const Parameters& getParameters(int bodyIndex) const;
     Parameters& updParameters(int bodyIndex);
+    Real getTransitionVelocity() const;
+    void setTransitionVelocity(Real v);
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
     Real calcPotentialEnergy(const State& state) const;
 private:
     const GeneralContactSubsystem& subsystem;
     const ContactSetIndex set;
     std::vector<Parameters> parameters;
+    Real transitionVelocity;
 };
 
 class HuntCrossleyForceImpl::Parameters {
 public:
-    Parameters() : stiffness(1), dissipation(0) {
+    Parameters() : stiffness(1), dissipation(0), staticFriction(0), dynamicFriction(0), viscousFriction(0) {
     }
-    Parameters(Real stiffness, Real dissipation) : stiffness(stiffness), dissipation(dissipation) {
+    Parameters(Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) :
+            stiffness(stiffness), dissipation(dissipation), staticFriction(staticFriction), dynamicFriction(dynamicFriction), viscousFriction(viscousFriction) {
     }
-    Real stiffness, dissipation;
+    Real stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction;
 };
 
 } // namespace SimTK

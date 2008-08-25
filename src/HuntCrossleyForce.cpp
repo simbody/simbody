@@ -49,16 +49,25 @@ HuntCrossleyForce::HuntCrossleyForce(GeneralForceSubsystem& forces, GeneralConta
     updImpl().setForceIndex(forces.adoptForce(*this));
 }
 
-void HuntCrossleyForce::setBodyParameters(int bodyIndex, Real stiffness, Real dissipation) {
-    updImpl().setBodyParameters(bodyIndex, stiffness, dissipation);
+void HuntCrossleyForce::setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) {
+    updImpl().setBodyParameters(bodyIndex, stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction);
+}
+
+Real HuntCrossleyForce::getTransitionVelocity() const {
+    return getImpl().getTransitionVelocity();
+}
+
+void HuntCrossleyForce::setTransitionVelocity(Real v) {
+    updImpl().setTransitionVelocity(v);
 }
 
 HuntCrossleyForceImpl::HuntCrossleyForceImpl(GeneralContactSubsystem& subsystem, ContactSetIndex set) : 
-        subsystem(subsystem), set(set) {
+        subsystem(subsystem), set(set), transitionVelocity(0.001) {
 }
 
-void HuntCrossleyForceImpl::setBodyParameters(int bodyIndex, Real stiffness, Real dissipation) {
-    updParameters(bodyIndex) = Parameters(stiffness, dissipation);
+void HuntCrossleyForceImpl::setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) {
+    updParameters(bodyIndex) = Parameters(stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction);
+    subsystem.invalidateSubsystemTopologyCache();
 }
 
 const HuntCrossleyForceImpl::Parameters& HuntCrossleyForceImpl::getParameters(int bodyIndex) const {
@@ -70,9 +79,20 @@ const HuntCrossleyForceImpl::Parameters& HuntCrossleyForceImpl::getParameters(in
 
 HuntCrossleyForceImpl::Parameters& HuntCrossleyForceImpl::updParameters(int bodyIndex) {
     assert(bodyIndex >= 0 && bodyIndex < subsystem.getNumBodies(set));
+    subsystem.invalidateSubsystemTopologyCache();
     if (bodyIndex >= parameters.size())
         parameters.resize(bodyIndex+1);
     return parameters[bodyIndex];
+}
+
+
+Real HuntCrossleyForceImpl::getTransitionVelocity() const {
+    return transitionVelocity;
+}
+
+void HuntCrossleyForceImpl::setTransitionVelocity(Real v) {
+    transitionVelocity = v;
+    subsystem.invalidateSubsystemTopologyCache();
 }
 
 void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
@@ -106,14 +126,33 @@ void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& b
         const Vec3 v1 = body1.findStationVelocityInGround(state, station1);
         const Vec3 v2 = body2.findStationVelocityInGround(state, station2);
         const Vec3 v = v1-v2;
+        const Real vnormal = dot(v, normal);
+        const Vec3 vtangent = v-vnormal*normal;
         
-        // Calculate the Hunt-Crossley force and apply it to the bodies.
+        // Calculate the Hunt-Crossley force.
         
-        const Real f = fH*(1+1.5*c*dot(v, normal));
-        if (f > 0) {
-            body1.applyForceToBodyPoint(state, station1, -f*normal, bodyForces);
-            body2.applyForceToBodyPoint(state, station2, f*normal, bodyForces);
+        const Real f = fH*(1+1.5*c*vnormal);
+        Vec3 force = (f > 0 ? f*normal : Vec3(0));
+        
+        // Calculate the friction force.
+        
+        const Real vslip = vtangent.norm();
+        if (vslip != 0) {
+            const bool hasStatic = (param1.staticFriction != 0 || param2.staticFriction != 0);
+            const bool hasDynamic= (param1.dynamicFriction != 0 || param2.dynamicFriction != 0);
+            const bool hasViscous = (param1.viscousFriction != 0 || param2.viscousFriction != 0);
+            const Real us = hasStatic ? 2*param1.staticFriction*param2.staticFriction/(param1.staticFriction+param2.staticFriction) : 0;
+            const Real ud = hasDynamic ? 2*param1.dynamicFriction*param2.dynamicFriction/(param1.dynamicFriction+param2.dynamicFriction) : 0;
+            const Real uv = hasViscous ? 2*param1.viscousFriction*param2.viscousFriction/(param1.viscousFriction+param2.viscousFriction) : 0;
+            const Real vrel = vslip/getTransitionVelocity();
+            const Real ffriction = f*(std::min(vrel, 1.0)*(ud+2*(us-ud)/(1+vrel*vrel))+uv*vslip);
+            force += ffriction*vtangent/vslip;
         }
+        
+        // Apply the force to the bodies.
+        
+        body1.applyForceToBodyPoint(state, station1, -force, bodyForces);
+        body2.applyForceToBodyPoint(state, station2, force, bodyForces);
     }
 }
 

@@ -52,7 +52,9 @@ public:
      * @param contactSet     the index of the contact set to which this contact model will be applied
      */
     HuntCrossleyForce(GeneralForceSubsystem& forces, GeneralContactSubsystem& contacts, ContactSetIndex contactSet);
-    void setBodyParameters(int bodyIndex, Real stiffness, Real dissipation);
+    void setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction);
+    Real getTransitionVelocity() const;
+    void setTransitionVelocity(Real v);
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(HuntCrossleyForce, HuntCrossleyForceImpl, Force);
 };
 
