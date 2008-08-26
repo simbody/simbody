@@ -57,8 +57,10 @@ void testForces() {
     const Vec3 gravity = Vec3(0, -9.8, 0);
     Force::UniformGravity(forces, matter, gravity, 0);
     const Real radius = 0.8;
-    const Real stiffness1 = 1.0;
-    const Real stiffness2 = 2.0;
+    const Real k1 = 1.0;
+    const Real k2 = 2.0;
+    const Real stiffness1 = std::pow(k1, 2.0/3.0);
+    const Real stiffness2 = std::pow(k2, 2.0/3.0);
     const Real dissipation1 = 0.5;
     const Real dissipation2 = 1.0;
     const Real us1 = 1.0;
@@ -74,8 +76,8 @@ void testForces() {
     contacts.addBody(setIndex, sphere, ContactGeometry::Sphere(radius), Transform());
     contacts.addBody(setIndex, matter.updGround(), ContactGeometry::HalfSpace(), Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0))); // y < 0
     HuntCrossleyForce hc(forces, contacts, setIndex);
-    hc.setBodyParameters(0, stiffness1, dissipation1, us1, ud1, uv1);
-    hc.setBodyParameters(1, stiffness2, dissipation2, us2, ud2, uv2);
+    hc.setBodyParameters(0, k1, dissipation1, us1, ud1, uv1);
+    hc.setBodyParameters(1, k2, dissipation2, us2, ud2, uv2);
     const Real vt = hc.getTransitionVelocity();
     assertEqual(0.001, vt);
     State state = system.realizeTopology();

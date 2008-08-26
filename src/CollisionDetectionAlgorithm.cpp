@@ -75,12 +75,14 @@ void CollisionDetectionAlgorithm::HalfSpaceSphere::processObjects(int index1, co
     Vec3 location = (~transform1)*transform2.T(); // Location of the sphere in the half-space's coordinate frame
     Real r = sphere.getRadius();
     Real depth = r+location[0];
-    if (depth < 0)
-        return; // No intersection.
-    Real contactRadius = std::sqrt(depth*r);
-    Vec3 normal = transform1.R()*Vec3(-1, 0, 0);
-    Vec3 contactLocation = transform1*Vec3(0.5*depth, location[1], location[2]);
-    contacts.push_back(Contact(index1, index2, contactLocation, normal, contactRadius, depth));
+    if (depth > 0) {
+        // They are overlapping.
+
+        Real contactRadius = std::sqrt(depth*r);
+        Vec3 normal = transform1.R()*Vec3(-1, 0, 0);
+        Vec3 contactLocation = transform1*Vec3(0.5*depth, location[1], location[2]);
+        contacts.push_back(Contact(index1, index2, contactLocation, normal, contactRadius, depth));
+    }
 }
 
 void CollisionDetectionAlgorithm::SphereSphere::processObjects(int index1, const ContactGeometry object1, const Transform& transform1,

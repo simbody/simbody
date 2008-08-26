@@ -89,7 +89,7 @@ private:
  * This ContactGeometry subclass represents an object that occupies the entire half-space x>0.
  * This is useful for representing walls and floors.
  */
-class ContactGeometry::HalfSpace : public ContactGeometry {
+class SimTK_SIMBODY_EXPORT ContactGeometry::HalfSpace : public ContactGeometry {
 public:
     HalfSpace();
 };
@@ -97,7 +97,7 @@ public:
 /**
  * This ContactGeometry subclass represents a sphere centered at the origin.
  */
-class ContactGeometry::Sphere : public ContactGeometry {
+class SimTK_SIMBODY_EXPORT ContactGeometry::Sphere : public ContactGeometry {
 public:
     Sphere(Real radius);
     Real getRadius() const;

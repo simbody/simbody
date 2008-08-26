@@ -81,7 +81,7 @@ public:
         return sets.size();
     }
     
-    void addBody(ContactSetIndex setIndex, MobilizedBody& body, ContactGeometry geom, Transform& transform) {
+    void addBody(ContactSetIndex setIndex, const MobilizedBody& body, ContactGeometry geom, Transform& transform) {
         assert(setIndex >= 0 && setIndex < sets.size());
         invalidateSubsystemTopologyCache();
         ContactSet& set = sets[setIndex];
@@ -202,7 +202,7 @@ int GeneralContactSubsystem::getNumContactSets() const {
     return getImpl().getNumContactSets();
 }
 
-void GeneralContactSubsystem::addBody(ContactSetIndex index, MobilizedBody& body, ContactGeometry geom, Transform transform) {
+void GeneralContactSubsystem::addBody(ContactSetIndex index, const MobilizedBody& body, ContactGeometry geom, Transform transform) {
     return updImpl().addBody(index, body, geom, transform);
 }
 
