@@ -1,0 +1,169 @@
+/* -------------------------------------------------------------------------- *
+ *                      SimTK Core: SimTK Simbody(tm)                         *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org.               *
+ *                                                                            *
+ * Portions copyright (c) 2008 Stanford University and the Authors.           *
+ * Authors: Peter Eastman                                                     *
+ * Contributors:                                                              *
+ *                                                                            *
+ * Permission is hereby granted, free of charge, to any person obtaining a    *
+ * copy of this software and associated documentation files (the "Software"), *
+ * to deal in the Software without restriction, including without limitation  *
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
+ * and/or sell copies of the Software, and to permit persons to whom the      *
+ * Software is furnished to do so, subject to the following conditions:       *
+ *                                                                            *
+ * The above copyright notice and this permission notice shall be included in *
+ * all copies or substantial portions of the Software.                        *
+ *                                                                            *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    *
+ * THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,    *
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR      *
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE  *
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
+ * -------------------------------------------------------------------------- */
+
+#include "SimTKsimbody.h"
+#include <vector>
+#include <exception>
+
+using namespace SimTK;
+using namespace std;
+
+const Real TOL = 1e-10;
+
+#define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
+
+template <class T>
+void assertEqual(T val1, T val2) {
+    ASSERT(abs(val1-val2) < TOL);
+}
+
+template <int N>
+void assertEqual(Vec<N> val1, Vec<N> val2) {
+    for (int i = 0; i < N; ++i)
+        ASSERT(abs(val1[i]-val2[i]) < TOL);
+}
+
+void testTriangleMesh() {
+    // Create a mesh representing a tetrahedron (4 vertices, 4 faces, 6 edges).
+    
+    vector<Vec3> vertices;
+    vertices.push_back(Vec3(0, 0, 0));
+    vertices.push_back(Vec3(1, 0, 0));
+    vertices.push_back(Vec3(0, 1, 0));
+    vertices.push_back(Vec3(0, 0, 1));
+    int faces[4][3] = {{0, 1, 2}, {0, 2, 3}, {0, 3, 1}, {1, 3, 2}};
+    vector<int> faceIndices;
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 3; j++)
+            faceIndices.push_back(faces[i][j]);
+    ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
+    ASSERT(mesh.getNumVertices() == 4);
+    ASSERT(mesh.getNumFaces() == 4);
+    ASSERT(mesh.getNumEdges() == 6);
+    
+    // Verify that all faces and vertices are correct.
+    
+    for (int i = 0; i < vertices.size(); i++)
+        assertEqual(vertices[i], mesh.getVertexPosition(i));
+    for (int i = 0; i < 4; i++) {
+        ASSERT(faces[i][0] == mesh.getFaceVertex(i, 0));
+        ASSERT(faces[i][1] == mesh.getFaceVertex(i, 1));
+        ASSERT(faces[i][2] == mesh.getFaceVertex(i, 2));
+    }
+    
+    // Verify that all indices are consistent.
+    
+    for (int i = 0; i < mesh.getNumFaces(); i++) {
+        for (int j = 0; j < 3; j++) {
+            int edge = mesh.getFaceEdge(i, j);
+            ASSERT(mesh.getEdgeFace(edge, 0) == i || mesh.getEdgeFace(edge, 1) == i);
+            for (int k = 0; k < 2; k++)
+                ASSERT(mesh.getEdgeVertex(edge, k) == mesh.getFaceVertex(i, 0) ||
+                        mesh.getEdgeVertex(edge, k) == mesh.getFaceVertex(i, 1) ||
+                        mesh.getEdgeVertex(edge, k) == mesh.getFaceVertex(i, 2));
+        }
+    }
+    for (int i = 0; i < mesh.getNumEdges(); i++) {
+        for (int j = 0; j < 2; j++) {
+            int face = mesh.getEdgeFace(i, j);
+            ASSERT(mesh.getFaceEdge(face, 0) == i || mesh.getFaceEdge(face, 1) == i || mesh.getFaceEdge(face, 2) == i);
+        }
+    }
+    for (int i = 0; i < mesh.getNumVertices(); i++) {
+        vector<int> edges;
+        mesh.findVertexEdges(i, edges);
+        ASSERT(edges.size() == 3);
+        for (int j = 0; j < edges.size(); j++)
+            ASSERT(mesh.getEdgeVertex(edges[j], 0) == i || mesh.getEdgeVertex(edges[j], 1) == i);
+    }
+}
+
+/**
+ * Given an invalid mesh, verify that the constructor throws an exception.
+ */
+
+void verifyMeshThrowsException(vector<Vec3> vertices, int faces[][3], int numFaces) {
+    vector<int> faceIndices;
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 3; j++)
+            faceIndices.push_back(faces[i][j]);
+    try {
+        ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
+        ASSERT(false);
+    }
+    catch (std::exception& e) {
+    }
+}
+
+void testIncorrectMeshes() {
+    vector<Vec3> vertices;
+    vertices.push_back(Vec3(0, 0, 0));
+    vertices.push_back(Vec3(1, 0, 0));
+    vertices.push_back(Vec3(0, 1, 0));
+    vertices.push_back(Vec3(0, 0, 1));
+    {
+        // The last face has its vertices ordered incorrectly.
+        
+        int faces[4][3] = {{0, 1, 2}, {0, 2, 3}, {0, 3, 1}, {1, 2, 3}};
+        verifyMeshThrowsException(vertices, faces, 4);
+    }
+    {
+        // The last face repeats a vertex.
+        
+        int faces[4][3] = {{0, 1, 2}, {0, 2, 3}, {0, 3, 1}, {1, 3, 3}};
+        verifyMeshThrowsException(vertices, faces, 4);
+    }
+    {
+        // The surface is not closed.
+        
+        int faces[3][3] = {{0, 1, 2}, {0, 2, 3}, {0, 3, 1}};
+        verifyMeshThrowsException(vertices, faces, 3);
+    }
+    {
+        // The last face a vertex that is out of range.
+        
+        int faces[4][3] = {{0, 1, 2}, {0, 2, 3}, {0, 3, 1}, {1, 2, 4}};
+        verifyMeshThrowsException(vertices, faces, 4);
+    }
+}
+
+int main() {
+    try {
+        testTriangleMesh();
+        testIncorrectMeshes();
+    }
+    catch(const std::exception& e) {
+        cout << "exception: " << e.what() << endl;
+        return 1;
+    }
+    cout << "Done" << endl;
+    return 0;
+}

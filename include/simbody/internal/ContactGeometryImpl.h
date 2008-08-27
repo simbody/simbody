@@ -100,6 +100,57 @@ private:
     Real radius;
 };
 
+class ContactGeometry::TriangleMeshImpl : public ContactGeometryImpl {
+public:
+    class Edge;
+    class Face;
+    class Vertex;
+    TriangleMeshImpl(const std::vector<Vec3>& vertexPositions, const std::vector<int>& faceIndices);
+    ContactGeometryImpl* clone() const {
+        return new TriangleMeshImpl(*this);
+    }
+    static const std::string Type() {
+        static std::string type = "triangle mesh";
+        return type;
+    }
+private:
+    friend class ContactGeometry::TriangleMesh;
+    std::vector<Edge> edges;
+    std::vector<Face> faces;
+    std::vector<Vertex> vertices;
+};
+
+class ContactGeometry::TriangleMeshImpl::Edge {
+public:
+    Edge(int vert1, int vert2, int face1, int face2) {
+        vertices[0] = vert1;
+        vertices[1] = vert2;
+        faces[0] = face1;
+        faces[1] = face2;
+    }
+    int vertices[2];
+    int faces[2];
+};
+
+class ContactGeometry::TriangleMeshImpl::Face {
+public:
+    Face(int vert1, int vert2, int vert3) {
+        vertices[0] = vert1;
+        vertices[1] = vert2;
+        vertices[2] = vert3;
+    }
+    int vertices[3];
+    int edges[3];
+};
+
+class ContactGeometry::TriangleMeshImpl::Vertex {
+public:
+    Vertex(Vec3 pos) : pos(pos), firstEdge(-1) {
+    }
+    Vec3 pos;
+    int firstEdge;
+};
+
 } // namespace SimTK
 
 #endif // SimTK_SIMBODY_CONTACT_GEOMETRY_IMPL_H_
