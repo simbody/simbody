@@ -34,11 +34,11 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
+#include "simbody/internal/ContactGeometry.h"
 #include <map>
 
 namespace SimTK {
 
-class ContactGeometry;
 class Contact;
 
 /**
@@ -53,6 +53,7 @@ class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm {
 public:
     class HalfSpaceSphere;
     class SphereSphere;
+    class HalfSpaceTriangleMesh;
     /**
      * Identify contacts between a pair of bodies.
      *
@@ -104,6 +105,17 @@ class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::SphereSphere : public Co
 public:
     void processObjects(int index1, const ContactGeometry object1, const Transform& transform1,
             int index2, const ContactGeometry object2, const Transform& transform2, std::vector<Contact>& contacts) const;
+};
+
+/**
+ * This algorithm detects contacts between a ContactGeometry::HalfSpace and a ContactGeometry::TriangleMesh.
+ */
+class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::HalfSpaceTriangleMesh : public CollisionDetectionAlgorithm {
+public:
+    void processObjects(int index1, const ContactGeometry object1, const Transform& transform1,
+            int index2, const ContactGeometry object2, const Transform& transform2, std::vector<Contact>& contacts) const;
+private:
+    void processVertex(const ContactGeometry::TriangleMesh& mesh, int vertex, const std::vector<Vec3>& vertexPositions, std::vector<Vec2>& points, std::vector<bool>& processed, std::set<int>& insideVertices) const;
 };
 
 } // namespace SimTK

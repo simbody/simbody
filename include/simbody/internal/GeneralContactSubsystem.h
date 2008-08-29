@@ -85,7 +85,7 @@ public:
      * @param geom      a ContactGeometry describing the shape of the body
      * @param transform the location and orientation of the ContactGeometry in the MobilizedBody's reference frame
      */
-    void addBody(ContactSetIndex index, const MobilizedBody& body, ContactGeometry geom, Transform transform);
+    void addBody(ContactSetIndex index, const MobilizedBody& body, const ContactGeometry& geom, Transform transform);
     /**
      * Get the number of bodies in a contact set.
      */

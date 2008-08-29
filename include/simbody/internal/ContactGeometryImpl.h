@@ -73,7 +73,7 @@ public:
     ContactGeometryImpl* clone() const {
         return new HalfSpaceImpl();
     }
-    static const std::string Type() {
+    static const std::string& Type() {
         static std::string type = "halfspace";
         return type;
     }
@@ -92,7 +92,7 @@ public:
     void setRadius(Real r) {
         radius = r;
     }
-    static const std::string Type() {
+    static const std::string& Type() {
         static std::string type = "sphere";
         return type;
     }
@@ -109,7 +109,7 @@ public:
     ContactGeometryImpl* clone() const {
         return new TriangleMeshImpl(*this);
     }
-    static const std::string Type() {
+    static const std::string& Type() {
         static std::string type = "triangle mesh";
         return type;
     }

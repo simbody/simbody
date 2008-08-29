@@ -141,10 +141,78 @@ void testSphereSphere() {
     }
 }
 
+void testHalfSpaceTriangleMesh() {
+    // Create a triangle mesh consisting of two pyramids: one right side up and one upside down.
+    
+    vector<Vec3> vertices;
+    vertices.push_back(Vec3(0, 0, 0));
+    vertices.push_back(Vec3(1, 0, 0));
+    vertices.push_back(Vec3(0, 0, 1));
+    vertices.push_back(Vec3(1, 0, 1));
+    vertices.push_back(Vec3(0.5, 1, 0.5));
+    vertices.push_back(Vec3(2, 1, 0));
+    vertices.push_back(Vec3(2, 1, 1));
+    vertices.push_back(Vec3(3, 1, 1));
+    vertices.push_back(Vec3(3, 1, 0));
+    vertices.push_back(Vec3(2.5, 0, 0.5));
+    vector<int> faceIndices;
+    int faces[6][3] = {{0, 1, 2}, {0, 2, 3}, {1, 0, 4}, {0, 3, 4}, {3, 2, 4}, {2, 1, 4}};
+    for (int i = 0; i < 6; i++)
+        for (int j = 0; j < 3; j++)
+            faceIndices.push_back(faces[i][j]);
+    for (int i = 0; i < 6; i++)
+        for (int j = 0; j < 3; j++)
+            faceIndices.push_back(faces[i][j]+5);
+    ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
+
+    // Create the system.
+    
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralContactSubsystem contacts(system);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+    ContactSetIndex setIndex = contacts.createContactSet();
+    MobilizedBody::Free b(matter.updGround(), Transform(), body, Transform());
+    contacts.addBody(setIndex, b, mesh, Transform());
+    contacts.addBody(setIndex, matter.updGround(), ContactGeometry::HalfSpace(), Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0, 1, 0))); // y < 1
+    State state = system.realizeTopology();
+    for (Real depth = -0.2; depth < 1.0; depth += 0.1) {
+        Vec3 center(0.1, 1-depth, 2.0);
+        b.setQToFitTranslation(state, center);
+        system.realize(state, Stage::Dynamics);
+        const vector<Contact>& contact = contacts.getContacts(state, setIndex);
+        if (depth < 0.0) {
+            ASSERT(contact.size() == 0);
+        }
+        else {
+            ASSERT(contact.size() == 2);
+            Vec3 centers[2] = {Vec3(center[0]+0.5, 1-0.5*depth, center[2]+0.5), Vec3(center[0]+2.5, 1-0.5*depth, center[2]+0.5)};
+            int first, second;
+            if (contact[0].getLocation()[0] < contact[1].getLocation()[0]) {
+                first = 0;
+                second = 1;
+            }
+            else {
+                first = 1;
+                second = 0;
+            }
+            assertEqual(centers[0], contact[first].getLocation());
+            assertEqual(centers[1], contact[second].getLocation());
+            assert(contact[first].getRadius() >= 0.5*(1-depth) && contact[first].getRadius() <= 0.5*Sqrt2);
+            assert(contact[second].getRadius() >= 0.5*depth && contact[second].getRadius() <= 0.5*Sqrt2*depth);
+            assertEqual(Vec3(0, 1, 0), contact[0].getNormal());
+            assertEqual(Vec3(0, 1, 0), contact[1].getNormal());
+            assertEqual(depth, contact[0].getDepth());
+            assertEqual(depth, contact[1].getDepth());
+        }
+    }
+}
+
 int main() {
     try {
         testHalfSpaceSphere();
         testSphereSphere();
+        testHalfSpaceTriangleMesh();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
