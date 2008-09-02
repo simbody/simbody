@@ -61,7 +61,7 @@ public:
     virtual ~ContactGeometry();
     bool isOwnerHandle() const;
     bool isEmptyHandle() const;
-    ContactGeometry& ContactGeometry::operator=(const ContactGeometry& src);
+    ContactGeometry& operator=(const ContactGeometry& src);
     bool hasImpl() const {
         return impl != 0;
     }

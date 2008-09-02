@@ -33,7 +33,7 @@
 #include "simbody/internal/GeneralContactSubsystem.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "simtkcommon/internal/SubsystemGuts.h"
+#include "SimTKcommon/internal/SubsystemGuts.h"
 #include "simbody/internal/Contact.h"
 #include "simbody/internal/ContactGeometryImpl.h"
 #include "simbody/internal/CollisionDetectionAlgorithm.h"
