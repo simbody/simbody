@@ -59,6 +59,7 @@
 #include "simbody/internal/DecorationSubsystem.h"
 #include "simbody/internal/TextDataEventReporter.h"
 #include "simbody/internal/ObservedPointFitter.h"
+#include "simbody/internal/OrientedBoundingBox.h"
 #include "simbody/internal/LocalEnergyMinimizer.h"
 
 #endif // SimTK_SIMBODY_SimTKSIMBODY_H_
