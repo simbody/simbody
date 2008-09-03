@@ -179,12 +179,48 @@ void testIntersectsRay() {
     verifyRayIntersection(OrientedBoundingBox(Rotation(-0.25*Pi, ZAxis), Vec3(2, 2, 2)), Vec3(-1, 0, 0.5), UnitVec3(0, 1, 0), true, 1.0);
 }
 
+void testCreateFromPoints() {
+    Random::Uniform random(0, 1);
+    for (int trial = 0; trial < 100; trial++) {
+        // Select a volume in which to generate points.
+        
+        Vec3 size(10*random.getValue(), 10*random.getValue(), 10*random.getValue());
+        Rotation rotation;
+        rotation.setRotationToBodyFixedXYZ(Vec3(random.getValue(), random.getValue(), random.getValue()));
+        Transform transform(rotation, Vec3(10*random.getValue(), 10*random.getValue(), 10*random.getValue()));
+        
+        // Create a set of points inside it.
+        
+        int numPoints = 50*random.getValue()+4;
+        Vector_<Vec3> points(numPoints);
+        for (int i = 0; i < numPoints; i++)
+            points[i] = transform*Vec3(size[0]*random.getValue(), size[1]*random.getValue(), size[2]*random.getValue());
+        
+        // Create a bounding box from them.
+        
+        OrientedBoundingBox box(points);
+        
+        // Verify that it contains all the points.
+        
+        for (int i = 0; i < numPoints; i++) {
+            ASSERT(box.containsPoint(points[i]));
+        }
+        
+        // Verify that it gives a reasonably tight fit to them.
+        
+        Real expectedVolume = size[0]*size[1]*size[2];
+        Real volume = box.getSize()[0]*box.getSize()[1]*box.getSize()[2];
+        ASSERT(volume < 2*expectedVolume);
+    }
+}
+
 int main() {
     try {
         testContainsPoint();
         testGetCorners();
         testIntersectsBox();
         testIntersectsRay();
+        testCreateFromPoints();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

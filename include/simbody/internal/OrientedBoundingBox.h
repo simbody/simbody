@@ -58,6 +58,10 @@ public:
     OrientedBoundingBox(const Transform& transform, const Vec3& size) : transform(transform), size(size) {
     }
     /**
+     * Create an OrientedBoundingBox which encloses a set of points.
+     */
+    OrientedBoundingBox(const Vector_<Vec3>& points);
+    /**
      * Get the position and orientation of the box.
      */
     const Transform& getTransform() const {

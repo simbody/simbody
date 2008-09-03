@@ -30,8 +30,54 @@
  * -------------------------------------------------------------------------- */
 
 #include "simbody/internal/OrientedBoundingBox.h"
+#include "SimTKmath.h"
 
 using namespace SimTK;
+
+OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
+    SimTK_APIARGCHECK(points.size() > 0, "OrientedBoundingBox", "OrientedBoundingBox", "No points passed to constructor");
+    
+    // Construct the covariance matrix of the points.
+    
+    Vec3 center = mean(points);
+    Vector_<Vec3> p = points-center;
+    Mat33 c(0);
+    for (int i = 0; i < p.size(); i++)
+        for (int j = 0; j < 3; j++)
+            for (int k = 0; k < 3; k++)
+                c(j, k) += p[i][j]*p[i][k];
+    c *= 1.0/p.size();
+    
+    // Find the eigenvectors, which will form the axes of the box.
+    
+    Vector_<std::complex<Real> > eigenvalues;
+    Matrix_<std::complex<Real> > eigenvectors;
+    Eigen(Matrix(c)).getAllEigenValuesAndVectors(eigenvalues, eigenvectors);
+    Vec3 axes[3];
+    for (int i = 0; i < 2; i++)
+        for (int j = 0; j < 3; j++)
+            axes[i][j] = eigenvectors(j, i).real();
+    axes[2] = axes[0]%axes[1];
+    
+    // Find the extent along each axis.
+  
+    Vec3 minExtent = Vec3(MostPositiveReal);
+    Vec3 maxExtent = Vec3(MostNegativeReal);
+    for (int i = 0; i < points.size(); i++) {
+        for (int j = 0; j < 3; j++) {
+            minExtent[j] = std::min(minExtent[j], ~axes[j]*points[i]);
+            maxExtent[j] = std::max(maxExtent[j], ~axes[j]*points[i]);
+        }
+    }
+    
+    // Create the bounding box.
+    
+    size = maxExtent-minExtent;
+    Vec3 tol = 1e-5*size;
+    size += 2*tol;
+    Rotation rot(UnitVec3(axes[0]), XAxis, axes[1], YAxis);
+    transform = Transform(rot, rot*(minExtent-tol));
+}
 
 bool OrientedBoundingBox::containsPoint(const Vec3& point) const {
     Vec3 p = ~transform*point;
