@@ -386,8 +386,10 @@ void IntegratorRep::initialize(const State& initState) {
 }
 
 void IntegratorRep::reinitialize(Stage stage, bool shouldTerminate) {
-    if (stage < Stage::Report)
+    if (stage < Stage::Report) {
         startOfContinuousInterval = true;
+        setUseInterpolatedState(false);
+    }
     if (shouldTerminate) {
         setStepCommunicationStatus(FinalTimeHasBeenReturned);
         terminationReason = Integrator::EventHandlerRequestedTermination;
