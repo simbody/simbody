@@ -155,10 +155,86 @@ void testIncorrectMeshes() {
     }
 }
 
+void addOctohedron(vector<Vec3>& vertices, vector<int>& faceIndices, Vec3 offset) {
+    int start = vertices.size();
+    vertices.push_back(Vec3(0, 1, 0)+offset);
+    vertices.push_back(Vec3(1, 0, 0)+offset);
+    vertices.push_back(Vec3(0, 0, 1)+offset);
+    vertices.push_back(Vec3(-1, 0, 0)+offset);
+    vertices.push_back(Vec3(0, 0, -1)+offset);
+    vertices.push_back(Vec3(0, -1, 0)+offset);
+    int faces[8][3] = {{0, 1, 2}, {0, 2, 3}, {0, 3, 4}, {0, 4, 1}, {5, 2, 1}, {5, 3, 2}, {5, 4, 3}, {5, 1, 4}};
+    for (int i = 0; i < 8; i++)
+        for (int j = 0; j < 3; j++)
+            faceIndices.push_back(faces[i][j]+start);
+
+}
+
+void validateOBBTree(const ContactGeometry::TriangleMesh& mesh, ContactGeometry::TriangleMesh::OBBTreeNode node, ContactGeometry::TriangleMesh::OBBTreeNode parent, vector<int>& faceReferenceCount) {
+    if (node.isLeafNode()) {
+        const vector<int>& triangles = node.getTriangles();
+        ASSERT(triangles.size() > 0);
+        for (int i = 0; i < triangles.size(); i++) {
+            faceReferenceCount[triangles[i]]++;
+            for (int j = 0; j < 3; j++) {
+                ASSERT(node.getBounds().containsPoint(mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], j))));
+                ASSERT(parent.getBounds().containsPoint(mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], j))));
+            }
+        }
+        try {
+            node.getFirstChildNode();
+            ASSERT(false); // This should have produced an exception.
+        }
+        catch (std::exception ex) {
+        }
+        try {
+            node.getFirstChildNode();
+            ASSERT(false); // This should have produced an exception.
+        }
+        catch (std::exception ex) {
+        }
+    }
+    else {
+        try {
+            node.getTriangles();
+            ASSERT(false); // This should have produced an exception.
+        }
+        catch (std::exception ex) {
+        }
+        validateOBBTree(mesh, node.getFirstChildNode(), node, faceReferenceCount);
+        validateOBBTree(mesh, node.getSecondChildNode(), node, faceReferenceCount);
+    }
+}
+
+void testOBBTree() {
+    // Create a mesh consisting of a bunch of octohedra.
+    
+    vector<Vec3> vertices;
+    vector<int> faceIndices;
+    addOctohedron(vertices, faceIndices, Vec3(0, 0, 0));
+    addOctohedron(vertices, faceIndices, Vec3(2.5, 0, 0));
+    addOctohedron(vertices, faceIndices, Vec3(0, 2.5, 0));
+    addOctohedron(vertices, faceIndices, Vec3(2.5, 2.5, 0));
+    addOctohedron(vertices, faceIndices, Vec3(0, 0, 2.5));
+    addOctohedron(vertices, faceIndices, Vec3(2.5, 0, 2.5));
+    addOctohedron(vertices, faceIndices, Vec3(0, 2.5, 2.5));
+    addOctohedron(vertices, faceIndices, Vec3(2.5, 2.5, 2.5));
+    addOctohedron(vertices, faceIndices, Vec3(1.25, 1.25, 1.25));
+    ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
+
+    // Validate the OBBTree.
+    
+    vector<int> faceReferenceCount(mesh.getNumFaces(), 0);
+    validateOBBTree(mesh, mesh.getOBBTreeNode(), mesh.getOBBTreeNode(), faceReferenceCount);
+    for (int i = 0; i < faceReferenceCount.size(); i++)
+        ASSERT(faceReferenceCount[i] == 1);
+}
+
 int main() {
     try {
         testTriangleMesh();
         testIncorrectMeshes();
+        testOBBTree();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

@@ -49,6 +49,8 @@ namespace SimTK {
  */
 class SimTK_SIMBODY_EXPORT OrientedBoundingBox {
 public:
+    OrientedBoundingBox() {
+    }
     /**
      * Create an OrientedBoundingBox.
      *

@@ -100,6 +100,17 @@ private:
     Real radius;
 };
 
+class OBBTreeNodeImpl {
+public:
+    OBBTreeNodeImpl() : child1(NULL), child2(NULL) {
+    }
+    ~OBBTreeNodeImpl();
+    OrientedBoundingBox bounds;
+    OBBTreeNodeImpl* child1;
+    OBBTreeNodeImpl* child2;
+    std::vector<int> triangles;
+};
+
 class ContactGeometry::TriangleMeshImpl : public ContactGeometryImpl {
 public:
     class Edge;
@@ -114,10 +125,13 @@ public:
         return type;
     }
 private:
+    void createObbTree(OBBTreeNodeImpl& node, const std::vector<int>& faceIndices);
+    void splitObbAxis(const std::vector<int>& parentIndices, std::vector<int>& child1Indices, std::vector<int>& child2Indices, int axis);
     friend class ContactGeometry::TriangleMesh;
     std::vector<Edge> edges;
     std::vector<Face> faces;
     std::vector<Vertex> vertices;
+    OBBTreeNodeImpl obb;
 };
 
 class ContactGeometry::TriangleMeshImpl::Edge {

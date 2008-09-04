@@ -32,10 +32,13 @@
 #include "simbody/internal/ContactGeometryImpl.h"
 #include <pthread.h>
 #include <map>
+#include <set>
+#include <vector>
 
 using namespace SimTK;
 using std::map;
 using std::pair;
+using std::set;
 using std::string;
 using std::vector;
 
@@ -199,6 +202,10 @@ void ContactGeometry::TriangleMesh::findVertexEdges(int vertex, std::vector<int>
     } while (previousEdge != firstEdge);
 }
 
+ContactGeometry::TriangleMesh::OBBTreeNode ContactGeometry::TriangleMesh::getOBBTreeNode() const {
+    return OBBTreeNode(getImpl().obb);
+}
+
 const ContactGeometry::TriangleMeshImpl& ContactGeometry::TriangleMesh::getImpl() const {
     assert(impl);
     return static_cast<const TriangleMeshImpl&>(*impl);
@@ -293,5 +300,153 @@ ContactGeometry::TriangleMeshImpl::TriangleMeshImpl(const std::vector<Vec3>& ver
     for (int i = 0; i < vertices.size(); i++)
         SimTK_APIARGCHECK1_ALWAYS(vertices[i].firstEdge >= 0, "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl",
                 "Vertex %d is not part of any face.", i);
+    
+    // Create the OBBTree.
+    
+    vector<int> allFaces(faces.size());
+    for (int i = 0; i < allFaces.size(); i++)
+        allFaces[i] = i;
+    createObbTree(obb, allFaces);
 }
 
+void ContactGeometry::TriangleMeshImpl::createObbTree(OBBTreeNodeImpl& node, const vector<int>& faceIndices) {
+    // Find all vertices in the node and build the OrientedBoundingBox.
+
+    set<int> vertexIndices;
+    for (int i = 0; i < faceIndices.size(); i++) 
+        for (int j = 0; j < 3; j++)
+            vertexIndices.insert(faces[faceIndices[i]].vertices[j]);
+    Vector_<Vec3> points(vertexIndices.size());
+    int index = 0;
+    for (set<int>::iterator iter = vertexIndices.begin(); iter != vertexIndices.end(); ++iter)
+        points[index++] = vertices[*iter].pos;
+    node.bounds = OrientedBoundingBox(points);
+    if (faceIndices.size() > 3) {
+
+        // Order the axes by size.
+
+        int axisOrder[3];
+        const Vec3& size = node.bounds.getSize();
+        if (size[0] > size[1]) {
+            if (size[0] > size[2]) {
+                axisOrder[0] = 0;
+                if (size[1] > size[2]) {
+                    axisOrder[1] = 1;
+                    axisOrder[2] = 2;
+                }
+                else {
+                    axisOrder[1] = 2;
+                    axisOrder[2] = 1;
+                }
+            }
+            else {
+                axisOrder[0] = 2;
+                axisOrder[1] = 0;
+                axisOrder[2] = 1;
+            }
+        }
+        else if (size[0] > size[2]) {
+            axisOrder[0] = 1;
+            axisOrder[1] = 0;
+            axisOrder[2] = 2;
+        }
+        else {
+            if (size[1] > size[2]) {
+                axisOrder[0] = 1;
+                axisOrder[1] = 2;
+            }
+            else {
+                axisOrder[0] = 2;
+                axisOrder[1] = 1;
+            }
+            axisOrder[2] = 0;
+        }
+
+        // Try splitting along each axis.
+
+        for (int i = 0; i < 3; i++) {
+            vector<int> child1Indices;
+            vector<int> child2Indices;
+            splitObbAxis(faceIndices, child1Indices, child2Indices, axisOrder[i]);
+            if (child1Indices.size() > 0 && child2Indices.size() > 0) {
+                // It was successfully split, so create the child nodes.
+
+                node.child1 = new OBBTreeNodeImpl();
+                node.child2 = new OBBTreeNodeImpl();
+                createObbTree(*node.child1, child1Indices);
+                createObbTree(*node.child2, child2Indices);
+                return;
+            }
+        }
+    }
+    
+    // This is a leaf node.
+    
+    node.triangles.insert(node.triangles.begin(), faceIndices.begin(), faceIndices.end());
+}
+
+void ContactGeometry::TriangleMeshImpl::splitObbAxis(const vector<int>& parentIndices, vector<int>& child1Indices, vector<int>& child2Indices, int axis) {
+    // For each face, find its minimum and maximum extent along the axis.
+    
+    Vector minExtent(parentIndices.size());
+    Vector maxExtent(parentIndices.size());
+    for (int i = 0; i < parentIndices.size(); i++) {
+        int* vertexIndices = faces[parentIndices[i]].vertices;
+        Real minVal = vertices[vertexIndices[0]].pos[axis];
+        Real maxVal = vertices[vertexIndices[0]].pos[axis];
+        minVal = std::min(minVal, vertices[vertexIndices[1]].pos[axis]);
+        maxVal = std::max(maxVal, vertices[vertexIndices[1]].pos[axis]);
+        minExtent[i] = std::min(minVal, vertices[vertexIndices[2]].pos[axis]);
+        maxExtent[i] = std::max(maxVal, vertices[vertexIndices[2]].pos[axis]);
+    }
+    
+    // Select a split point that tries to put as many faces as possible entirely on one side or the other.
+    
+    Real split = 0.5*(median(minExtent)+median(maxExtent));
+    
+    // Choose a side for each face.
+    
+    for (int i = 0; i < parentIndices.size(); i++) {
+        if (maxExtent[i] <= split)
+            child1Indices.push_back(parentIndices[i]);
+        else if (minExtent[i] >= split)
+            child2Indices.push_back(parentIndices[i]);
+        else if (0.5*(minExtent[i]+maxExtent[i]) <= split)
+            child1Indices.push_back(parentIndices[i]);
+        else
+            child2Indices.push_back(parentIndices[i]);
+    }
+}
+
+OBBTreeNodeImpl::~OBBTreeNodeImpl() {
+    if (child1 != NULL)
+        delete child1;
+    if (child2 != NULL)
+        delete child2;
+}
+
+ContactGeometry::TriangleMesh::OBBTreeNode::OBBTreeNode(const OBBTreeNodeImpl& impl) : impl(&impl) {
+}
+
+const OrientedBoundingBox& ContactGeometry::TriangleMesh::OBBTreeNode::getBounds() const {
+    return impl->bounds;
+}
+
+bool ContactGeometry::TriangleMesh::OBBTreeNode::isLeafNode() const {
+    return (impl->child1 == NULL);
+}
+
+const ContactGeometry::TriangleMesh::OBBTreeNode ContactGeometry::TriangleMesh::OBBTreeNode::getFirstChildNode() const {
+    SimTK_ASSERT_ALWAYS(impl->child1, "Called getFirstChildNode() on a leaf node");
+    return OBBTreeNode(*impl->child1);
+}
+
+const ContactGeometry::TriangleMesh::OBBTreeNode ContactGeometry::TriangleMesh::OBBTreeNode::getSecondChildNode() const {
+    SimTK_ASSERT_ALWAYS(impl->child2, "Called getFirstChildNode() on a leaf node");
+    return OBBTreeNode(*impl->child2);
+}
+
+const std::vector<int>& ContactGeometry::TriangleMesh::OBBTreeNode::getTriangles() const {
+    SimTK_ASSERT_ALWAYS(impl->child2 == NULL, "Called getTriangles() on a non-leaf node");
+    return impl->triangles;
+}

@@ -36,11 +36,13 @@
 #include "SimTKcommon.h"
 
 #include "simbody/internal/common.h"
+#include "simbody/internal/OrientedBoundingBox.h"
 #include <vector>
 
 namespace SimTK {
 
 class ContactGeometryImpl;
+class OBBTreeNodeImpl;
 
 /**
  * A ContactGeometry object describes the physical shape of a body.  It is used with GeneralContactSubsystem
@@ -130,6 +132,7 @@ public:
  */
 class SimTK_SIMBODY_EXPORT ContactGeometry::TriangleMesh : public ContactGeometry {
 public:
+    class OBBTreeNode;
     /**
      * Create a TriangleMesh.
      *
@@ -198,8 +201,46 @@ public:
      * @param edges   the indices of all edges intersecting the vertex will be added to this
      */
     void findVertexEdges(int vertex, std::vector<int>& edges) const;
+    /**
+     * Get the OBBTreeNode which forms the root of this mesh's Oriented Bounding Box Tree.
+     */
+    OBBTreeNode getOBBTreeNode() const;
     const TriangleMeshImpl& getImpl() const;
     TriangleMeshImpl& updImpl();
+};
+
+/**
+ * This class represents a node in the Oriented Bounding Box Tree for a TriangleMesh.  Each node
+ * has an OrientedBoundingBox that fully encloses all triangles contained within it or its
+ * children.  This is a binary tree: each non-leaf node has two children.  Triangles
+ * are stored only in the leaf nodes.
+ */
+
+class ContactGeometry::TriangleMesh::OBBTreeNode {
+public:
+    OBBTreeNode(const OBBTreeNodeImpl& impl);
+    /**
+     * Get the OrientedBoundingBox which encloses all triangles in this node or its children.
+     */
+    const OrientedBoundingBox& getBounds() const;
+    /**
+     * Get whether this is a leaf node.
+     */
+    bool isLeafNode() const;
+    /**
+     * Get the first child node.  Calling this on a leaf node will produce an exception.
+     */
+    const OBBTreeNode getFirstChildNode() const;
+    /**
+     * Get the second child node.  Calling this on a leaf node will produce an exception.
+     */
+    const OBBTreeNode getSecondChildNode() const;
+    /**
+     * Get the indices of all triangles contained in this node.  Calling this on a non-leaf node will produce an exception.
+     */
+    const std::vector<int>& getTriangles() const;
+private:
+    const OBBTreeNodeImpl* impl;
 };
 
 } // namespace SimTK

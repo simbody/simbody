@@ -74,6 +74,8 @@ OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
     
     size = maxExtent-minExtent;
     Vec3 tol = 1e-5*size;
+    for (int i = 0; i < 3; i++)
+        tol[i] = std::max(tol[i], 1e-10);
     size += 2*tol;
     Rotation rot(UnitVec3(axes[0]), XAxis, axes[1], YAxis);
     transform = Transform(rot, rot*(minExtent-tol));
