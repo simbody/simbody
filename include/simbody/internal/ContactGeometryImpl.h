@@ -104,6 +104,7 @@ class OBBTreeNodeImpl {
 public:
     OBBTreeNodeImpl() : child1(NULL), child2(NULL) {
     }
+    OBBTreeNodeImpl(const OBBTreeNodeImpl& copy);
     ~OBBTreeNodeImpl();
     OrientedBoundingBox bounds;
     OBBTreeNodeImpl* child1;

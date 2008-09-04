@@ -418,6 +418,17 @@ void ContactGeometry::TriangleMeshImpl::splitObbAxis(const vector<int>& parentIn
     }
 }
 
+OBBTreeNodeImpl::OBBTreeNodeImpl(const OBBTreeNodeImpl& copy) : bounds(copy.bounds), triangles(copy.triangles) {
+    if (copy.child1 == NULL) {
+        child1 = NULL;
+        child2 = NULL;
+    }
+    else {
+        child1 = new OBBTreeNodeImpl(*copy.child1);
+        child2 = new OBBTreeNodeImpl(*copy.child2);
+    }
+}
+
 OBBTreeNodeImpl::~OBBTreeNodeImpl() {
     if (child1 != NULL)
         delete child1;

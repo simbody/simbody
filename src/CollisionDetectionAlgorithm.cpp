@@ -115,6 +115,15 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processObjects(int inde
     const ContactGeometry::TriangleMesh& mesh = static_cast<const ContactGeometry::TriangleMesh&>(object2);
     Transform transform = (~transform1)*transform2; // Transform from the mesh's coordinate frame to the half-space's coordinate frame
     
+    // First check against the mesh's bounding box.
+    
+    const Mat33& r = transform.R().asMat33();
+    const Vec3 b = 0.5*mesh.getOBBTreeNode().getBounds().getSize();
+    const Vec3 meshCenter = transform*b;
+    Real radius = ~b*r.col(0).abs();
+    if (meshCenter[0] < -radius)
+        return;
+    
     // Find the location of each vertex in the half-space's coordinate frame, and record which ones overlap it.
     
     vector<Vec3> vertexPos(mesh.getNumVertices());
