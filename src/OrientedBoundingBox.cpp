@@ -183,11 +183,11 @@ bool OrientedBoundingBox::intersectsBox(const OrientedBoundingBox& box) const {
     return true;
 }
 
-bool OrientedBoundingBox::intersectsRay(const Vec3& origin, const UnitVec3 direction, Real& distance) const {
+bool OrientedBoundingBox::intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance) const {
     // Transform the ray to the bounding box's reference frame.
     
-    Vec3 orig = getTransform()*origin;
-    UnitVec3 dir = getTransform().R()*direction;
+    Vec3 orig = ~getTransform()*origin;
+    UnitVec3 dir = ~getTransform().R()*direction;
     
     // Check it against each plane that defines a side of the box.
     

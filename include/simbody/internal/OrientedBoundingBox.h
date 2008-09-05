@@ -92,7 +92,7 @@ public:
      *                   is stored in this.  Otherwise, it is left unchanged.
      * @return true if an intersection is found, false otherwise
      */
-    bool intersectsRay(const Vec3& origin, const UnitVec3 direction, Real& distance) const;
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance) const;
     /**
      * Get the locations of the eight corners of the box.
      *

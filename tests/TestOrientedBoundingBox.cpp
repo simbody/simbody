@@ -175,8 +175,8 @@ void testIntersectsRay() {
     
     // Try a box at an angle.
 
-    verifyRayIntersection(OrientedBoundingBox(Rotation(-0.25*Pi, ZAxis), Vec3(2, 2, 2)), Vec3(0, 0, 0.5), UnitVec3(0, 1, 0), true, 0);
-    verifyRayIntersection(OrientedBoundingBox(Rotation(-0.25*Pi, ZAxis), Vec3(2, 2, 2)), Vec3(-1, 0, 0.5), UnitVec3(0, 1, 0), true, 1.0);
+    verifyRayIntersection(OrientedBoundingBox(Rotation(-0.25*Pi, ZAxis), Vec3(2, 2, 2)), Vec3(0, 0, 0.5), UnitVec3(1, 0, 0), true, 0);
+    verifyRayIntersection(OrientedBoundingBox(Rotation(-0.25*Pi, ZAxis), Vec3(2, 2, 2)), Vec3(-1, 0, 0.5), UnitVec3(1, 0, 0), true, 1.0);
 }
 
 void testCreateFromPoints() {

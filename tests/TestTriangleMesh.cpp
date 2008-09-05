@@ -59,7 +59,7 @@ void testTriangleMesh() {
     vertices.push_back(Vec3(1, 0, 0));
     vertices.push_back(Vec3(0, 1, 0));
     vertices.push_back(Vec3(0, 0, 1));
-    int faces[4][3] = {{0, 1, 2}, {0, 2, 3}, {0, 3, 1}, {1, 3, 2}};
+    int faces[4][3] = {{0, 2, 1}, {0, 3, 2}, {0, 1, 3}, {1, 2, 3}};
     vector<int> faceIndices;
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 3; j++)
@@ -104,6 +104,17 @@ void testTriangleMesh() {
         for (int j = 0; j < edges.size(); j++)
             ASSERT(mesh.getEdgeVertex(edges[j], 0) == i || mesh.getEdgeVertex(edges[j], 1) == i);
     }
+    
+    // Check the face normals and areas.
+    
+    assertEqual(mesh.getFaceArea(0), 0.5);
+    assertEqual(mesh.getFaceArea(1), 0.5);
+    assertEqual(mesh.getFaceArea(2), 0.5);
+    assertEqual(mesh.getFaceArea(3), std::sin(Pi/3.0));
+    assertEqual(mesh.getFaceNormal(0), Vec3(0, 0, -1));
+    assertEqual(mesh.getFaceNormal(1), Vec3(-1, 0, 0));
+    assertEqual(mesh.getFaceNormal(2), Vec3(0, -1, 0));
+    assertEqual(mesh.getFaceNormal(3), Vec3(1, 1, 1)/Sqrt3);
 }
 
 /**
@@ -163,7 +174,7 @@ void addOctohedron(vector<Vec3>& vertices, vector<int>& faceIndices, Vec3 offset
     vertices.push_back(Vec3(-1, 0, 0)+offset);
     vertices.push_back(Vec3(0, 0, -1)+offset);
     vertices.push_back(Vec3(0, -1, 0)+offset);
-    int faces[8][3] = {{0, 1, 2}, {0, 2, 3}, {0, 3, 4}, {0, 4, 1}, {5, 2, 1}, {5, 3, 2}, {5, 4, 3}, {5, 1, 4}};
+    int faces[8][3] = {{0, 2, 1}, {0, 3, 2}, {0, 4, 3}, {0, 1, 4}, {5, 1, 2}, {5, 2, 3}, {5, 3, 4}, {5, 4, 1}};
     for (int i = 0; i < 8; i++)
         for (int j = 0; j < 3; j++)
             faceIndices.push_back(faces[i][j]+start);
@@ -230,11 +241,36 @@ void testOBBTree() {
         ASSERT(faceReferenceCount[i] == 1);
 }
 
+void testRayIntersection() {
+    // Create an octrohedral mesh.
+    
+    vector<Vec3> vertices;
+    vector<int> faceIndices;
+    addOctohedron(vertices, faceIndices, Vec3(0, 0, 0));
+    ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
+    
+    // Check various rays.
+    
+    Real distance;
+    UnitVec3 normal;
+    ASSERT(!mesh.intersectsRay(Vec3(2, 0, 0), UnitVec3(1, 0, 0), distance, normal));
+    ASSERT(mesh.intersectsRay(Vec3(2, 0, 0), UnitVec3(-1, 0, 0), distance, normal));
+    assertEqual(1.0, distance);
+    ASSERT(mesh.intersectsRay(Vec3(0, 0, 0), UnitVec3(1, 1, 1), distance, normal));
+    assertEqual(1.0/Sqrt3, distance);
+    assertEqual(normal, Vec3(1, 1, 1)/Sqrt3);
+    ASSERT(mesh.intersectsRay(Vec3(0.1, 0.1, 0.1), UnitVec3(-1, -1, -1), distance, normal));
+    assertEqual(std::sqrt(3*0.1*0.1)+1.0/Sqrt3, distance);
+    assertEqual(normal, Vec3(-1, -1, -1)/Sqrt3);
+    ASSERT(!mesh.intersectsRay(Vec3(-1, -1, -1), UnitVec3(-1, -1, -1), distance, normal));
+}
+
 int main() {
     try {
         testTriangleMesh();
         testIncorrectMeshes();
         testOBBTree();
+        testRayIntersection();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

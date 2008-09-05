@@ -176,6 +176,16 @@ int ContactGeometry::TriangleMesh::getEdgeVertex(int edge, int vertex) const {
     return getImpl().edges[edge].vertices[vertex];
 }
 
+const UnitVec3& ContactGeometry::TriangleMesh::getFaceNormal(int face) const {
+    assert(face >= 0 && face < getNumFaces());
+    return getImpl().faces[face].normal;
+}
+
+Real ContactGeometry::TriangleMesh::getFaceArea(int face) const {
+    assert(face >= 0 && face < getNumFaces());
+    return getImpl().faces[face].area;
+}
+
 void ContactGeometry::TriangleMesh::findVertexEdges(int vertex, std::vector<int>& edges) const {
     // Begin at an arbitrary edge which intersects the vertex.
     
@@ -200,6 +210,13 @@ void ContactGeometry::TriangleMesh::findVertexEdges(int vertex, std::vector<int>
         previousEdge = nextEdge;
         previousFace = nextFace;
     } while (previousEdge != firstEdge);
+}
+
+bool ContactGeometry::TriangleMesh::intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const {
+    Real boundsDistance;
+    if (!getImpl().obb.bounds.intersectsRay(origin, direction, boundsDistance))
+        return false;
+    return getImpl().obb.intersectsRay(*this, origin, direction, distance, normal);
 }
 
 ContactGeometry::TriangleMesh::OBBTreeNode ContactGeometry::TriangleMesh::getOBBTreeNode() const {
@@ -235,7 +252,12 @@ ContactGeometry::TriangleMeshImpl::TriangleMeshImpl(const std::vector<Vec3>& ver
         SimTK_APIARGCHECK1_ALWAYS(v1 >= 0 && v1 < vertices.size() && v2 >= 0 && v2 < vertices.size() && v3 >= 0 && v3 < vertices.size(),
                 "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl",
                 "Face %d contains a vertex with an illegal index.", i);
-        faces.push_back(Face(v1, v2, v3));
+        Vec3 cross = (vertexPositions[v2]-vertexPositions[v1])%(vertexPositions[v3]-vertexPositions[v1]);
+        Real norm = cross.norm();
+        cross *= 1.0/norm;
+        SimTK_APIARGCHECK1_ALWAYS(norm > 0, "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl",
+                "Face %d is degenerate.", i);
+        faces.push_back(Face(v1, v2, v3, cross, 0.5*norm));
         int edges[3][2] = {{v1, v2}, {v2, v3}, {v3, v1}};
         for (int j = 0; j < 3; j++) {
             SimTK_APIARGCHECK1_ALWAYS(edges[j][0] != edges[j][1], "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl",
@@ -434,6 +456,118 @@ OBBTreeNodeImpl::~OBBTreeNodeImpl() {
         delete child1;
     if (child2 != NULL)
         delete child2;
+}
+
+bool OBBTreeNodeImpl::intersectsRay(const ContactGeometry::TriangleMesh& mesh, const Vec3& origin, const UnitVec3 direction, Real& distance, UnitVec3& normal) const {
+    if (child1 != NULL) {
+        // Recursively check the child nodes.
+        
+        Real child1distance, child2distance;
+        UnitVec3 child1normal, child2normal;
+        bool child1intersects = child1->bounds.intersectsRay(origin, direction, child1distance);
+        bool child2intersects = child2->bounds.intersectsRay(origin, direction, child2distance);
+        if (child1intersects) {
+            if (child2intersects) {
+                // The ray intersects both child nodes.  First check the closer one.
+                
+                if (child1distance < child2distance) {
+                    child1intersects = child1->intersectsRay(mesh, origin,  direction, child1distance, child1normal);
+                    if (!child1intersects || child2distance < child1distance)
+                        child2intersects = child2->intersectsRay(mesh, origin,  direction, child2distance, child2normal);
+                }
+                else {
+                    child2intersects = child2->intersectsRay(mesh, origin,  direction, child2distance, child2normal);
+                    if (!child2intersects || child1distance < child2distance)
+                        child1intersects = child1->intersectsRay(mesh, origin,  direction, child1distance, child1normal);
+                }
+            }
+            else
+                child1intersects = child1->intersectsRay(mesh, origin,  direction, child1distance, child1normal);
+        }
+        else if (child2intersects)
+            child2intersects = child2->intersectsRay(mesh, origin,  direction, child2distance, child2normal);
+        
+        // If either one had an intersection, return the closer one.
+        
+        if (child1intersects && (!child2intersects || child1distance < child2distance)) {
+            distance = child1distance;
+            normal = child1normal;
+            return true;
+        }
+        if (child2intersects) {
+            distance = child2distance;
+            normal = child2normal;
+            return true;
+        }
+        return false;
+    }
+    
+    // This is a leaf node, so check each triangle for an intersection with the ray.
+    
+    bool foundIntersection = false;
+    for (int i = 0; i < triangles.size(); i++) {
+        const UnitVec3& faceNormal = mesh.getFaceNormal(triangles[i]);
+        double vd = ~faceNormal*direction;
+        if (vd == 0.0)
+            break; // The ray is parallel to the plane.
+        const Vec3& vert1 = mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], 0));
+        double v0 = ~faceNormal*(vert1-origin);
+        double t = v0/vd;
+        if (t < 0.0)
+            break; // Ray points away from plane of triangle.
+        if (foundIntersection && t >= distance)
+            break; // We already have a closer intersection.
+
+        // Determine whether the intersection point is inside the triangle by projecting onto
+        // a plane and computing the barycentric coordinates.
+
+        Vec3 ri = origin+direction*t;
+        const Vec3& vert2 = mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], 1));
+        const Vec3& vert3 = mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], 2));
+        int axis1, axis2;
+        if (std::abs(faceNormal[1]) > std::abs(faceNormal[0])) {
+            if (std::abs(faceNormal[2]) > std::abs(faceNormal[1])) {
+                axis1 = 0;
+                axis2 = 1;
+            }
+            else {
+                axis1 = 0;
+                axis2 = 2;
+            }
+        }
+        else {
+            if (std::abs(faceNormal[2]) > std::abs(faceNormal[0])) {
+                axis1 = 0;
+                axis2 = 1;
+            }
+            else {
+                axis1 = 1;
+                axis2 = 2;
+            }
+        }
+        Vec2 pos(ri[axis1]-vert1[axis1], ri[axis2]-vert1[axis2]);
+        Vec2 edge1(vert1[axis1]-vert2[axis1], vert1[axis2]-vert2[axis2]);
+        Vec2 edge2(vert1[axis1]-vert3[axis1], vert1[axis2]-vert3[axis2]);
+        double denom = 1.0/(edge1%edge2);
+        edge2 *= denom;
+        double v = edge2%pos;
+        if (v < 0.0 || v > 1.0)
+            break;
+        edge1 *= denom;
+        double w = pos%edge1;
+        if (w < 0.0 || w > 1.0)
+            break;
+        double u = 1.0-v-w;
+        if (u < 0.0 || u > 1.0)
+            break;
+        
+        // It intersects.
+        
+        distance = t;
+        normal = faceNormal;
+        foundIntersection = true;
+    }
+    return foundIntersection;
 }
 
 ContactGeometry::TriangleMesh::OBBTreeNode::OBBTreeNode(const OBBTreeNodeImpl& impl) : impl(&impl) {

@@ -110,6 +110,7 @@ public:
     OBBTreeNodeImpl* child1;
     OBBTreeNodeImpl* child2;
     std::vector<int> triangles;
+    bool intersectsRay(const ContactGeometry::TriangleMesh& mesh, const Vec3& origin, const UnitVec3 direction, Real& distance, UnitVec3& normal) const;
 };
 
 class ContactGeometry::TriangleMeshImpl : public ContactGeometryImpl {
@@ -149,13 +150,15 @@ public:
 
 class ContactGeometry::TriangleMeshImpl::Face {
 public:
-    Face(int vert1, int vert2, int vert3) {
+    Face(int vert1, int vert2, int vert3, const Vec3& normal, Real area) : normal(normal), area(area) {
         vertices[0] = vert1;
         vertices[1] = vert2;
         vertices[2] = vert3;
     }
     int vertices[3];
     int edges[3];
+    UnitVec3 normal;
+    Real area;
 };
 
 class ContactGeometry::TriangleMeshImpl::Vertex {

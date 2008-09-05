@@ -202,9 +202,33 @@ public:
      */
     void findVertexEdges(int vertex, std::vector<int>& edges) const;
     /**
+     * Get the normal vector for a face.  This points outward from the mesh.
+     *
+     * @param face    the index of the face
+     */
+    const UnitVec3& getFaceNormal(int face) const;
+    /**
+     * Get the area of a face.
+     *
+     * @param face    the index of the face
+     */
+    Real getFaceArea(int face) const;
+    /**
      * Get the OBBTreeNode which forms the root of this mesh's Oriented Bounding Box Tree.
      */
     OBBTreeNode getOBBTreeNode() const;
+    /**
+     * Determine whether this mesh intersects a ray, and if so, find the intersection point.
+     *
+     * @param origin     the position at which the ray begins
+     * @param direction  the ray direction
+     * @param distance   if an intersection is found, the distance from the ray origin to the intersection point
+     *                   is stored in this.  Otherwise, it is left unchanged.
+     * @param normal     if an intersection is found, the surface normal of the intersection point
+     *                   is stored in this.  Otherwise, it is left unchanged.
+     * @return true if an intersection is found, false otherwise
+     */
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
     const TriangleMeshImpl& getImpl() const;
     TriangleMeshImpl& updImpl();
 };
