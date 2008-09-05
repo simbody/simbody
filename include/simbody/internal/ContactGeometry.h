@@ -216,7 +216,7 @@ public:
  * are stored only in the leaf nodes.
  */
 
-class ContactGeometry::TriangleMesh::OBBTreeNode {
+class SimTK_SIMBODY_EXPORT ContactGeometry::TriangleMesh::OBBTreeNode {
 public:
     OBBTreeNode(const OBBTreeNodeImpl& impl);
     /**
