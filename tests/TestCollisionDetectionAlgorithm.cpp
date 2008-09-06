@@ -208,11 +208,84 @@ void testHalfSpaceTriangleMesh() {
     }
 }
 
+
+void testTriangleMeshTriangleMesh() {
+    // Create two triangle meshes, each consisting of a pyramid.
+    
+    vector<Vec3> vertices;
+    vertices.push_back(Vec3(0, 0, 0));
+    vertices.push_back(Vec3(1, 0, 0));
+    vertices.push_back(Vec3(1, 0, 1));
+    vertices.push_back(Vec3(0, 0, 1));
+    vertices.push_back(Vec3(0.5, 1, 0.5));
+    vector<int> faceIndices;
+    int faces[6][3] = {{0, 2, 1}, {0, 3, 2}, {0, 1, 4}, {1, 2, 4}, {2, 3, 4}, {3, 0, 4}};
+    for (int i = 0; i < 6; i++)
+        for (int j = 0; j < 3; j++)
+            faceIndices.push_back(faces[i][j]);
+    ContactGeometry::TriangleMesh mesh1(vertices, faceIndices);
+    ContactGeometry::TriangleMesh mesh2(vertices, faceIndices);
+
+    // Create the system.
+    
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralContactSubsystem contacts(system);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+    ContactSetIndex setIndex = contacts.createContactSet();
+    MobilizedBody::Free b1(matter.updGround(), Transform(), body, Transform());
+    MobilizedBody::Free b2(matter.updGround(), Transform(), body, Transform());
+    contacts.addBody(setIndex, b1, mesh1, Transform());
+    contacts.addBody(setIndex, b2, mesh2, Transform());
+    State state = system.realizeTopology();
+    
+    // Try some configurations that should not intersect.
+    
+    b1.setQToFitTranslation(state, Vec3(0));
+    b2.setQToFitTranslation(state, Vec3(2));
+    system.realize(state, Stage::Dynamics);
+    ASSERT(contacts.getContacts(state, setIndex).size() == 0);
+    b1.setQToFitTranslation(state, Vec3(0));
+    b2.setQToFitTranslation(state, Vec3(1.01, 0, 0));
+    system.realize(state, Stage::Dynamics);
+    ASSERT(contacts.getContacts(state, setIndex).size() == 0);
+    b1.setQToFitTranslation(state, Vec3(0));
+    b2.setQToFitTranslation(state, Vec3(0, 1.01, 0));
+    system.realize(state, Stage::Dynamics);
+    ASSERT(contacts.getContacts(state, setIndex).size() == 0);
+    b1.setQToFitTranslation(state, Vec3(0));
+    b2.setQToFitTranslation(state, Vec3(0, -1.01, 0));
+    system.realize(state, Stage::Dynamics);
+    ASSERT(contacts.getContacts(state, setIndex).size() == 0);
+    
+    // Now try ones that should intersect.
+    
+    b1.setQToFitTranslation(state, Vec3(0));
+    b2.setQToFitTranslation(state, Vec3(0, -0.99, 0));
+    system.realize(state, Stage::Dynamics);
+    vector<Contact> contact = contacts.getContacts(state, setIndex);;
+    ASSERT(contact.size() == 1);  
+    std::cout << contact[0].getLocation()<< std::endl;
+    std::cout << contact[0].getDepth()<< std::endl;
+    std::cout << contact[0].getRadius()<< std::endl;
+    std::cout << contact[0].getNormal()<< std::endl;
+//    assertEqual(contact[0].getLocation(), Vec3(0.5, 0.005, 0.5));
+//    assertEqual(contact[0].getDepth(), 0.01);
+//    if (contact[0].getFirstBody() == 0) {
+//        assertEqual(contact[0].getNormal(), Vec3(0, -1, 0));
+//    }
+//    else {
+//        assertEqual(contact[0].getNormal(), Vec3(0, 1, 0));
+//    }
+    
+}
+
 int main() {
     try {
         testHalfSpaceSphere();
         testSphereSphere();
         testHalfSpaceTriangleMesh();
+        testTriangleMeshTriangleMesh();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

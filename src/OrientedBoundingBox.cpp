@@ -32,7 +32,7 @@
 #include "simbody/internal/OrientedBoundingBox.h"
 #include "SimTKmath.h"
 
-using namespace SimTK;
+namespace SimTK {
 
 OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
     SimTK_APIARGCHECK(points.size() > 0, "OrientedBoundingBox", "OrientedBoundingBox", "No points passed to constructor");
@@ -279,3 +279,10 @@ void OrientedBoundingBox::getCorners(Vec3 corners[8]) const {
     corners[6] = corners[2]+dz;
     corners[7] = corners[3]+dz;
 }
+
+OrientedBoundingBox operator*(const Transform& t, const OrientedBoundingBox& box) {
+    return OrientedBoundingBox(t*box.getTransform(), box.getSize());
+}
+
+} // namespace SimTK
+

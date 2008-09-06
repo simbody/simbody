@@ -104,6 +104,8 @@ private:
     Vec3 size;
 };
 
+SimTK_SIMBODY_EXPORT OrientedBoundingBox operator*(const Transform& t, const OrientedBoundingBox& box);
+
 } // namespace SimTK
 
 #endif // SimTK_SIMBODY_ORIENTED_BOUNDING_BOX_H_

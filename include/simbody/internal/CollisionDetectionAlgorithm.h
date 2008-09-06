@@ -54,6 +54,7 @@ public:
     class HalfSpaceSphere;
     class SphereSphere;
     class HalfSpaceTriangleMesh;
+    class TriangleMeshTriangleMesh;
     /**
      * Identify contacts between a pair of bodies.
      *
@@ -115,7 +116,28 @@ public:
     void processObjects(int index1, const ContactGeometry object1, const Transform& transform1,
             int index2, const ContactGeometry object2, const Transform& transform2, std::vector<Contact>& contacts) const;
 private:
-    void processVertex(const ContactGeometry::TriangleMesh& mesh, int vertex, const std::vector<Vec3>& vertexPositions, std::vector<Vec2>& points, std::vector<bool>& processed, std::set<int>& insideVertices) const;
+    void processVertex(const ContactGeometry::TriangleMesh& mesh, int vertex, const std::vector<Vec3>& vertexPositions,
+            std::vector<Vec2>& points, std::vector<bool>& processed, std::set<int>& insideVertices) const;
+};
+
+/**
+ * This algorithm detects contacts between two ContactGeometry::TriangleMesh objects.
+ */
+class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::TriangleMeshTriangleMesh : public CollisionDetectionAlgorithm {
+public:
+    void processObjects(int index1, const ContactGeometry object1, const Transform& transform1,
+            int index2, const ContactGeometry object2, const Transform& transform2, std::vector<Contact>& contacts) const;
+private:
+    void processNodes(const ContactGeometry::TriangleMesh& mesh1, const ContactGeometry::TriangleMesh& mesh2,
+            const ContactGeometry::TriangleMesh::OBBTreeNode& node1, const ContactGeometry::TriangleMesh::OBBTreeNode& node2,
+            const Transform& transform, std::set<int>& triangles1, std::set<int>& triangles2, std::vector<Vec3>& intersectionPoints) const;
+    void findInsideTrianglesAndVertices(const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh& otherMesh,
+        const Transform& transform, std::set<int>& triangles, std::vector<int>& vertices) const;
+    void tagFaces(const ContactGeometry::TriangleMesh& mesh, std::vector<int>& faceType, std::set<int>& triangles, int index) const;
+    static const int OUTSIDE = -1;
+    static const int UNKNOWN = 0;
+    static const int BOUNDARY = 1;
+    static const int INSIDE = 2;
 };
 
 } // namespace SimTK
