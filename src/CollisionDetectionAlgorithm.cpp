@@ -152,7 +152,8 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processObjects(int inde
         points.clear();
         int firstVertex = *insideVertices.begin();
         processed[firstVertex] = true;
-        processVertex(mesh, firstVertex, vertexPos, points, processed, insideVertices);
+        set<int> insideFaces;
+        processVertex(mesh, firstVertex, vertexPos, points, processed, insideVertices, insideFaces);
         
         // Calculate a center position and radius from the points.
         
@@ -165,11 +166,11 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processObjects(int inde
             radius += (points[i]-center).normSqr();
         radius = std::sqrt(radius/points.size());
         Vec3 contactPoint = transform1*Vec3(0.5*maxDepth, center[0], center[1]);
-        contacts.push_back(Contact(index1, index2, contactPoint, normal, radius, maxDepth));
+        contacts.push_back(TriangleMeshContact(index1, index2, contactPoint, normal, radius, maxDepth, set<int>(), insideFaces));
     }
 }
 
-void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processVertex(const ContactGeometry::TriangleMesh& mesh, int vertex, const vector<Vec3>& vertexPositions, vector<Vec2>& points, vector<bool>& processed, set<int>& insideVertices) const {
+void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processVertex(const ContactGeometry::TriangleMesh& mesh, int vertex, const vector<Vec3>& vertexPositions, vector<Vec2>& points, vector<bool>& processed, set<int>& insideVertices, std::set<int>& insideFaces) const {
     insideVertices.erase(vertex);
     const Vec3& pos = vertexPositions[vertex];
     points.push_back(Vec2(pos[1], pos[2]));
@@ -177,6 +178,8 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processVertex(const Con
     mesh.findVertexEdges(vertex, edges);
     vector<int> needToProcess;
     for (int i = 0; i < edges.size(); i++) {
+        insideFaces.insert(mesh.getEdgeFace(edges[i], 0));
+        insideFaces.insert(mesh.getEdgeFace(edges[i], 1));
         int otherVertex = (mesh.getEdgeVertex(edges[i], 0) == vertex ? mesh.getEdgeVertex(edges[i], 1) : mesh.getEdgeVertex(edges[i], 0));
         const Vec3& otherVertexPos = vertexPositions[otherVertex];
         if (otherVertexPos[0] < 0) {
@@ -196,7 +199,7 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processVertex(const Con
     // Recursively process other vertices.
     
     for (int i = 0; i < needToProcess.size(); i++)
-        processVertex(mesh, needToProcess[i], vertexPositions, points, processed, insideVertices);
+        processVertex(mesh, needToProcess[i], vertexPositions, points, processed, insideVertices, insideFaces);
 }
 
 
@@ -241,8 +244,9 @@ void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::processObjects(int i
         minPosition = std::min(minPosition, position);
     }
     for (int i = 0; i < intersectionPoints.size(); i++) {
-        minPosition = std::min(minPosition, ~normal*intersectionPoints[i]);
-        maxPosition = std::max(maxPosition, ~normal*intersectionPoints[i]);
+        Real position = ~normal*intersectionPoints[i];
+        minPosition = std::min(minPosition, position);
+        maxPosition = std::max(maxPosition, position);
     }
     Real depth = maxPosition-minPosition;
     
@@ -252,6 +256,8 @@ void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::processObjects(int i
     for (int i = 0; i < intersectionPoints.size(); i++)
         center += intersectionPoints[i];
     center /= intersectionPoints.size();
+    Real centerPosition = ~normal*center;
+    center += normal*(0.5*(minPosition+maxPosition)-centerPosition);
     Real radius = 0;
     for (int i = 0; i < intersectionPoints.size(); i++) {
         Vec3 delta = intersectionPoints[i]-center;
@@ -261,7 +267,7 @@ void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::processObjects(int i
     radius = std::sqrt(radius/intersectionPoints.size());
     Vec3 contactPoint = transform1*center;
     Vec3 contactNormal = transform1.R()*normal;
-    contacts.push_back(Contact(index1, index2, contactPoint, contactNormal, radius, depth));
+    contacts.push_back(TriangleMeshContact(index1, index2, contactPoint, contactNormal, radius, depth, triangles1, triangles2));
 }
 
 extern "C" int tri_tri_intersection_test_3d(const Real p1[3], const Real q1[3], const Real r1[3], 

@@ -39,6 +39,7 @@
 namespace SimTK {
 
 class ContactImpl;
+class TriangleMeshContactImpl;
 
 /**
  * A Contact contains information about two bodies that are in contact with each other.
@@ -48,13 +49,15 @@ class ContactImpl;
  * This class provides a set of numbers which are only fully meaningful for point contacts.  That is,
  * it assumes that a contact can be described with a single contact location, a normal vector, a
  * contact radius, and a penetration depth.  CollisionDetectionAlgorithms which characterize contacts
- * in more complex ways may define subclasses of Contact that provide additional information.
+ * in more complex ways may define subclasses of Contact that provide additional information.  Those
+ * subclasses must still provide a location, normal, radius, and depth for the contact, however, even
+ * if those give only a very approximate characterization of the contact area.
  */
 
 class SimTK_SIMBODY_EXPORT Contact {
 public:
     /**
-     * Create a contact object.
+     * Create a Contact object.
      *
      * @param body1    the index of the first body involved in the contact, specified by its index within
      *                 its contact set
@@ -99,8 +102,51 @@ public:
      * one body along the normal vector to make them no longer overlap.
      */
     Real getDepth() const;
+    const ContactImpl& getImpl() const {
+        return *impl;
+    }
 private:
     ContactImpl* impl;
+};
+
+/**
+ * This subclass of Contact is used when one or both of the ContactGeometry objects is a TriangleMesh.
+ * In addition to the standard information provide by a Contact, it stores a list of every face on
+ * each mesh that is partly or completely inside the other one.
+ */
+
+class SimTK_SIMBODY_EXPORT TriangleMeshContact : public Contact {
+public:
+    /**
+     * Create a TriangleMeshContact object.
+     *
+     * @param body1    the index of the first body involved in the contact, specified by its index within
+     *                 its contact set
+     * @param body2    the index of the second body involved in the contact, specified by its index within
+     *                 its contact set
+     * @param location the location where the two bodies touch, specified in the ground frame
+     * @param normal   the surface normal at the contact location.  This is specified in the ground frame,
+     *                 and points outward from body1
+     * @param radius   the radius of the contact patch
+     * @param depth    the penetration depth
+     * @param faces1   the indices of all faces in the first body which are inside the second one
+     * @param faces2   the indices of all faces in the second body which are inside the first one
+     */
+    TriangleMeshContact(int body1, int body2, Vec3& location, Vec3& normal, Real radius, Real depth, const std::set<int>& faces1, const std::set<int>& faces2);
+    /**
+     * Get the indices of all faces of the first body that are partly or completely inside the second one.  If the first body is
+     * not a TriangleMesh, this will return an empty set.
+     */
+    const std::set<int>& getFirstBodyFaces() const;
+    /**
+     * Get the indices of all faces of the second body that are partly or completely inside the first one.  If the second body is
+     * not a TriangleMesh, this will return an empty set.
+     */
+    const std::set<int>& getSecondBodyFaces() const;
+    /**
+     * Determine whether a Contact object is a TriangleMeshContact.
+     */
+    static bool isInstance(const Contact& contact);
 };
 
 } // namespace SimTK

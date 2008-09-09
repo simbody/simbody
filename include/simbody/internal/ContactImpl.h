@@ -40,6 +40,7 @@
 namespace SimTK {
 
 /**
+ * This is the internal implementation class for Contact.
  */
     
 class SimTK_SIMBODY_EXPORT ContactImpl {
@@ -48,12 +49,25 @@ public:
     virtual ~ContactImpl() {
         assert(referenceCount == 0);
     }
-private:
+protected:
     friend class Contact;
     int referenceCount;
     int body1, body2;
     Vec3 location, normal;
     Real radius, depth;
+};
+
+/**
+ * This is the internal implementation class for TriangleMeshContact.
+ */
+
+class SimTK_SIMBODY_EXPORT TriangleMeshContactImpl : public ContactImpl {
+public:
+    TriangleMeshContactImpl(int body1, int body2, Vec3& location, Vec3& normal, Real radius, Real depth, const std::set<int>& faces1, const std::set<int>& faces2);
+private:
+    friend class TriangleMeshContact;
+    const std::set<int> faces1;
+    const std::set<int> faces2;
 };
 
 } // namespace SimTK

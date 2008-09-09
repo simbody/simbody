@@ -117,7 +117,7 @@ public:
             int index2, const ContactGeometry object2, const Transform& transform2, std::vector<Contact>& contacts) const;
 private:
     void processVertex(const ContactGeometry::TriangleMesh& mesh, int vertex, const std::vector<Vec3>& vertexPositions,
-            std::vector<Vec2>& points, std::vector<bool>& processed, std::set<int>& insideVertices) const;
+            std::vector<Vec2>& points, std::vector<bool>& processed, std::set<int>& insideVertices, std::set<int>& insideFaces) const;
 };
 
 /**

@@ -31,15 +31,18 @@
 
 
 #include "simbody/internal/ContactImpl.h"
+#include <set>
 
 using namespace SimTK;
+using std::set;
 
 ContactImpl::ContactImpl(int body1, int body2, Vec3& location, Vec3& normal, Real radius, Real depth) :
-    body1(body1), body2(body2), location(location), normal(normal), radius(radius), depth(depth), referenceCount(1) {
+        body1(body1), body2(body2), location(location), normal(normal), radius(radius), depth(depth), referenceCount(0) {
 }
 
 Contact::Contact(int body1, int body2, Vec3& location, Vec3& normal, Real radius, Real depth) :
-    impl(new ContactImpl(body1, body2, location, normal, radius, depth)) {
+        impl(new ContactImpl(body1, body2, location, normal, radius, depth)) {
+    impl->referenceCount++;
 }
 
 Contact::Contact(ContactImpl* impl) : impl(impl) {
@@ -92,4 +95,25 @@ Real Contact::getRadius() const {
 
 Real Contact::getDepth() const {
     return impl->depth;
+}
+
+TriangleMeshContactImpl::TriangleMeshContactImpl(int body1, int body2, Vec3& location, Vec3& normal, Real radius, Real depth,
+        const set<int>& faces1, const set<int>& faces2) : ContactImpl(body1, body2, location, normal, radius, depth),
+        faces1(faces1), faces2(faces2) {
+}
+
+TriangleMeshContact::TriangleMeshContact(int body1, int body2, Vec3& location, Vec3& normal, Real radius, Real depth, const std::set<int>& faces1, const std::set<int>& faces2) :
+        Contact(new TriangleMeshContactImpl(body1, body2, location, normal, radius, depth, faces1, faces2)) {
+}
+
+const set<int>& TriangleMeshContact::getFirstBodyFaces() const {
+    return dynamic_cast<const TriangleMeshContactImpl&>(getImpl()).faces1;
+}
+
+const set<int>& TriangleMeshContact::getSecondBodyFaces() const {
+    return dynamic_cast<const TriangleMeshContactImpl&>(getImpl()).faces2;
+}
+
+bool TriangleMeshContact::isInstance(const Contact& contact) {
+    return (dynamic_cast<const TriangleMeshContactImpl*>(&contact.getImpl()) != 0);
 }

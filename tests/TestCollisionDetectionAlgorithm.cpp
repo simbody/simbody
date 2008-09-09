@@ -29,6 +29,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include <set>
+
 #include "SimTKsimbody.h"
 
 using namespace SimTK;
@@ -141,6 +143,17 @@ void testSphereSphere() {
     }
 }
 
+/**
+ * Check the set of faces in a contact.
+ */
+
+void verifyContactFaces(int* expected, int numExpected, const set<int>& found) {
+    ASSERT(numExpected == found.size());
+    for (int i = 0; i < numExpected; i++) {
+        ASSERT(found.find(expected[i]) != found.end());
+    }
+}
+
 void testHalfSpaceTriangleMesh() {
     // Create a triangle mesh consisting of two pyramids: one right side up and one upside down.
     
@@ -176,7 +189,9 @@ void testHalfSpaceTriangleMesh() {
     contacts.addBody(setIndex, b, mesh, Transform());
     contacts.addBody(setIndex, matter.updGround(), ContactGeometry::HalfSpace(), Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0, 1, 0))); // y < 1
     State state = system.realizeTopology();
-    for (Real depth = -0.2; depth < 1.0; depth += 0.1) {
+    int baseFaces[6] = {0, 1, 2, 3, 4, 5};
+    int pointFaces[4] = {8, 9, 10, 11};
+    for (Real depth = -0.2; depth < 0.9; depth += 0.1) {
         Vec3 center(0.1, 1-depth, 2.0);
         b.setQToFitTranslation(state, center);
         system.realize(state, Stage::Dynamics);
@@ -204,10 +219,17 @@ void testHalfSpaceTriangleMesh() {
             assertEqual(Vec3(0, 1, 0), contact[1].getNormal());
             assertEqual(depth, contact[0].getDepth());
             assertEqual(depth, contact[1].getDepth());
-        }
+            ASSERT(TriangleMeshContact::isInstance(contact[first]));
+            ASSERT(TriangleMeshContact::isInstance(contact[second]));
+            const TriangleMeshContact& c1 = static_cast<const TriangleMeshContact&>(contact[first]);
+            const TriangleMeshContact& c2 = static_cast<const TriangleMeshContact&>(contact[second]);
+            ASSERT(c1.getFirstBodyFaces().size() == 0);
+            ASSERT(c2.getFirstBodyFaces().size() == 0);
+            verifyContactFaces(baseFaces, 6, c1.getSecondBodyFaces());
+            verifyContactFaces(pointFaces, 4, c2.getSecondBodyFaces());
+         }
     }
 }
-
 
 void testTriangleMeshTriangleMesh() {
     // Create two triangle meshes, each consisting of a pyramid.
@@ -219,7 +241,7 @@ void testTriangleMeshTriangleMesh() {
     vertices.push_back(Vec3(0, 0, 1));
     vertices.push_back(Vec3(0.5, 1, 0.5));
     vector<int> faceIndices;
-    int faces[6][3] = {{0, 2, 1}, {0, 3, 2}, {0, 1, 4}, {1, 2, 4}, {2, 3, 4}, {3, 0, 4}};
+    int faces[6][3] = {{0, 1, 2}, {0, 2, 3}, {1, 0, 4}, {2, 1, 4}, {3, 2, 4}, {0, 3, 4}};
     for (int i = 0; i < 6; i++)
         for (int j = 0; j < 3; j++)
             faceIndices.push_back(faces[i][j]);
@@ -260,24 +282,91 @@ void testTriangleMeshTriangleMesh() {
     
     // Now try ones that should intersect.
     
-    b1.setQToFitTranslation(state, Vec3(0));
-    b2.setQToFitTranslation(state, Vec3(0, -0.99, 0));
-    system.realize(state, Stage::Dynamics);
-    vector<Contact> contact = contacts.getContacts(state, setIndex);;
-    ASSERT(contact.size() == 1);  
-    std::cout << contact[0].getLocation()<< std::endl;
-    std::cout << contact[0].getDepth()<< std::endl;
-    std::cout << contact[0].getRadius()<< std::endl;
-    std::cout << contact[0].getNormal()<< std::endl;
-//    assertEqual(contact[0].getLocation(), Vec3(0.5, 0.005, 0.5));
-//    assertEqual(contact[0].getDepth(), 0.01);
-//    if (contact[0].getFirstBody() == 0) {
-//        assertEqual(contact[0].getNormal(), Vec3(0, -1, 0));
-//    }
-//    else {
-//        assertEqual(contact[0].getNormal(), Vec3(0, 1, 0));
-//    }
-    
+    int baseFaces[2] = {0, 1};
+    int pointFaces[4] = {2, 3, 4, 5};
+    {
+        b1.setQToFitTranslation(state, Vec3(0));
+        b2.setQToFitTranslation(state, Vec3(0, -0.99, 0));
+        system.realize(state, Stage::Dynamics);
+        vector<Contact> contact = contacts.getContacts(state, setIndex);;
+        ASSERT(contact.size() == 1);
+        assertEqual(contact[0].getLocation(), Vec3(0.5, 0.005, 0.5));
+        assertEqual(contact[0].getDepth(), 0.01);
+        ASSERT(contact[0].getRadius() >= 0.005-TOL && contact[0].getRadius() <= 0.005*Sqrt2+TOL);
+        ASSERT(TriangleMeshContact::isInstance(contact[0]));
+        const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contact[0]);
+        if (contact[0].getFirstBody() == 0) {
+            assertEqual(contact[0].getNormal(), Vec3(0, -1, 0));
+            verifyContactFaces(baseFaces, 2, c.getFirstBodyFaces());
+            verifyContactFaces(pointFaces, 4, c.getSecondBodyFaces());
+        }
+        else {
+            assertEqual(contact[0].getNormal(), Vec3(0, 1, 0));
+            verifyContactFaces(pointFaces, 4, c.getFirstBodyFaces());
+            verifyContactFaces(baseFaces, 2, c.getSecondBodyFaces());
+        }
+    }
+    {
+        b1.setQToFitTranslation(state, Vec3(0, -0.5, 0));
+        b2.setQToFitTranslation(state, Vec3(0, 0.49, 0));
+        system.realize(state, Stage::Dynamics);
+        vector<Contact> contact = contacts.getContacts(state, setIndex);;
+        ASSERT(contact.size() == 1);
+        assertEqual(contact[0].getLocation(), Vec3(0.5, 0.495, 0.5));
+        assertEqual(contact[0].getDepth(), 0.01);
+        ASSERT(contact[0].getRadius() >= 0.005-TOL && contact[0].getRadius() <= 0.005*Sqrt2+TOL);
+        ASSERT(TriangleMeshContact::isInstance(contact[0]));
+        const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contact[0]);
+        if (contact[0].getFirstBody() == 0) {
+            assertEqual(contact[0].getNormal(), Vec3(0, 1, 0));
+            verifyContactFaces(pointFaces, 4, c.getFirstBodyFaces());
+            verifyContactFaces(baseFaces, 2, c.getSecondBodyFaces());
+        }
+        else {
+            assertEqual(contact[0].getNormal(), Vec3(0, -1, 0));
+            verifyContactFaces(baseFaces, 2, c.getFirstBodyFaces());
+            verifyContactFaces(pointFaces, 4, c.getSecondBodyFaces());
+        }
+    }
+    {
+        b1.setQToFitTranslation(state, Vec3(0.1, -0.5, 0));
+        b2.setQToFitTranslation(state, Vec3(0, 0.49, 0.1));
+        system.realize(state, Stage::Dynamics);
+        vector<Contact> contact = contacts.getContacts(state, setIndex);;
+        ASSERT(contact.size() == 1);
+        assertEqual(contact[0].getLocation(), Vec3(0.6, 0.495, 0.5));
+        assertEqual(contact[0].getDepth(), 0.01);
+        ASSERT(contact[0].getRadius() >= 0.005-TOL && contact[0].getRadius() <= 0.005*Sqrt2+TOL);
+        ASSERT(TriangleMeshContact::isInstance(contact[0]));
+        if (contact[0].getFirstBody() == 0) {
+            assertEqual(contact[0].getNormal(), Vec3(0, 1, 0));
+        }
+        else {
+            assertEqual(contact[0].getNormal(), Vec3(0, -1, 0));
+        }
+    }
+    {
+        b1.setQToFitTransform(state, Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0, 0.5, 0)));
+        b2.setQToFitTransform(state, Transform(Rotation(0.5*Pi, ZAxis), Vec3(1.9, -0.5, 0)));
+        system.realize(state, Stage::Dynamics);
+        vector<Contact> contact = contacts.getContacts(state, setIndex);;
+        ASSERT(contact.size() == 1);
+        assertEqual(contact[0].getLocation(), Vec3(0.95, 0, 0.5));
+        assertEqual(contact[0].getDepth(), 0.1);
+        ASSERT(contact[0].getRadius() >= 0.025-TOL && contact[0].getRadius() <= 0.025*Sqrt2+TOL);
+        ASSERT(TriangleMeshContact::isInstance(contact[0]));
+        const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contact[0]);
+        if (contact[0].getFirstBody() == 0) {
+            assertEqual(contact[0].getNormal(), Vec3(1, 0, 0));
+            verifyContactFaces(pointFaces, 4, c.getFirstBodyFaces());
+            verifyContactFaces(pointFaces, 4, c.getSecondBodyFaces());
+        }
+        else {
+            assertEqual(contact[0].getNormal(), Vec3(-1, 0, 0));
+            verifyContactFaces(pointFaces, 4, c.getFirstBodyFaces());
+            verifyContactFaces(pointFaces, 4, c.getSecondBodyFaces());
+        }
+    }
 }
 
 int main() {
