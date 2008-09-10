@@ -444,6 +444,40 @@ const DecorativeText& getMyTextHandle() const {
 }
 };
 
+///////////////////////
+// DecorativeMeshRep //
+///////////////////////
+
+class DecorativeMeshRep : public DecorativeGeometryRep {
+public:
+// no default constructor
+explicit DecorativeMeshRep(const PolygonalMesh& mesh) : mesh(mesh) {
+}
+
+const PolygonalMesh& getMesh() const {
+    return  mesh;
+}
+
+// virtuals
+DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
+    DecorativeMeshRep* DGRep = new DecorativeMeshRep(*this);
+    return( DGRep ); 
+}
+
+void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+    geometry.implementMeshGeometry(getMyMeshHandle());
+}
+
+SimTK_DOWNCAST(DecorativeMeshRep, DecorativeGeometryRep);
+private:
+PolygonalMesh mesh;
+
+// This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+const DecorativeMesh& getMyMeshHandle() const {
+    return *reinterpret_cast<const DecorativeMesh*>(myHandle);
+}
+};
+
 
 } // namespace SimTK
 

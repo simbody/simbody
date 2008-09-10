@@ -287,5 +287,17 @@ const std::string& DecorativeText::getText() const {
 return DecorativeTextRep::downcast(*rep).getText();
 }
 
+    /////////////////////
+    // DECORATIVE MESH //
+    /////////////////////
+
+DecorativeMesh::DecorativeMesh(const PolygonalMesh& mesh) {
+    rep = new DecorativeMeshRep(mesh);
+    rep->setMyHandle(*this);
+}
+const PolygonalMesh& DecorativeMesh::getMesh() const {
+    return DecorativeMeshRep::downcast(*rep).getMesh();
+}
+
 } // namespace SimTK
 

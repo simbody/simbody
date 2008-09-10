@@ -97,6 +97,7 @@
  */
 
 #include "SimTKcommon/Simmatrix.h"
+#include "SimTKcommon/internal/PolygonalMesh.h"
 
 #include <cassert>
 
@@ -405,6 +406,19 @@ private:
     const DecorativeTextRep& getRep() const;
 };
 
+/**
+ * This defines a polygonal mesh.
+ */
+class SimTK_SimTKCOMMON_EXPORT DecorativeMesh : public DecorativeGeometry {
+public:
+    explicit DecorativeMesh(const PolygonalMesh& mesh);
+    const PolygonalMesh& getMesh() const;
+
+    SimTK_PIMPL_DOWNCAST(DecorativeMesh, DecorativeGeometry);
+private:
+    class DecorativeMeshRep& updRep();
+    const DecorativeMeshRep& getRep() const;
+};
 
 /**
  * Use this abstract class to connect your implementation of decorative geometry
@@ -421,6 +435,7 @@ public:
     virtual void implementEllipsoidGeometry(const DecorativeEllipsoid&)= 0;
     virtual void implementFrameGeometry(    const DecorativeFrame&)    = 0;
     virtual void implementTextGeometry(     const DecorativeText&)     = 0;
+    virtual void implementMeshGeometry(     const DecorativeMesh&)     = 0;
 
     // TODO: wrappers for binary compatibility
 };
