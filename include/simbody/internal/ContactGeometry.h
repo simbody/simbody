@@ -143,6 +143,11 @@ public:
      */
     TriangleMesh(const std::vector<Vec3>& vertices, const std::vector<int>& faceIndices);
     /**
+     * Create a TriangleMesh based on a PolygonalMesh object.  If any faces of the PolygonalMesh
+     * have more than three vertices, they are automatically triangulated.
+     */
+    TriangleMesh(const PolygonalMesh& mesh);
+    /**
      * Get the number of edges in the mesh.
      */
     int getNumEdges() const;

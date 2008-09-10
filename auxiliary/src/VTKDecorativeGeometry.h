@@ -78,6 +78,7 @@ public:
     /*virtual*/ void implementEllipsoidGeometry(const SimTK::DecorativeEllipsoid&);
     /*virtual*/ void implementFrameGeometry    (const SimTK::DecorativeFrame&);
     /*virtual*/ void implementTextGeometry     (const SimTK::DecorativeText&);
+    /*virtual*/ void implementMeshGeometry     (const SimTK::DecorativeMesh&);
 
     // The last vtkObject is the end of the VTK pipeline -- its output is the
     // final representation of the object.

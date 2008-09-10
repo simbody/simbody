@@ -67,6 +67,7 @@
 #include "vtkCubeSource.h"
 #include "vtkCylinderSource.h"
 #include "vtkVectorText.h"
+#include "vtkCellArray.h"
 
 #include "vtkObject.h"
 
@@ -296,3 +297,31 @@ void VTKDecorativeGeometry::implementTextGeometry(const DecorativeText& dtext) {
                                              vtext->GetOutput());
     // Not using "data" here -- transform also appended to the vtkObjects list.
 }
+
+void VTKDecorativeGeometry::implementMeshGeometry(const DecorativeMesh& dmesh) {
+    vtkPolyData* vmesh = vtkPolyData::New();
+    rememberVTKObject(vmesh);
+
+    vtkPoints *points = vtkPoints::New();
+    vtkCellArray *faces = vtkCellArray::New();
+    const PolygonalMesh& mesh = dmesh.getMesh();
+    for (int i = 0; i < mesh.getNumVertices(); i++) {
+        const Vec3& pos = mesh.getVertexPosition(i);
+        points->InsertNextPoint(pos[0], pos[1], pos[2]);
+    }
+    for (int i = 0; i < mesh.getNumFaces(); i++) {
+        int numVerts = mesh.getNumVerticesForFace(i);
+        faces->InsertNextCell(numVerts);
+        for (int j = 0; j < numVerts; j++)
+            faces->InsertCellPoint(mesh.getFaceVertex(i, j));
+    }
+    vmesh->SetPoints(points);
+    points->Delete();
+    vmesh->SetPolys(faces);
+    faces->Delete();
+    
+    const Real scale = dmesh.getScale() > 0. ? dmesh.getScale() : 1.;
+    vtkPolyData* data = transformVTKPolyData(dmesh.getTransform(), Vec3(scale), vmesh);
+    // Not using "data" here -- transform also appended to the vtkObjects list.
+}
+

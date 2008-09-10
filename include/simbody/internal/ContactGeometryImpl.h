@@ -110,7 +110,7 @@ public:
     OBBTreeNodeImpl* child1;
     OBBTreeNodeImpl* child2;
     std::vector<int> triangles;
-    bool intersectsRay(const ContactGeometry::TriangleMesh& mesh, const Vec3& origin, const UnitVec3 direction, Real& distance, UnitVec3& normal) const;
+    bool intersectsRay(const ContactGeometry::TriangleMesh& mesh, const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
 };
 
 class ContactGeometry::TriangleMeshImpl : public ContactGeometryImpl {
@@ -119,6 +119,7 @@ public:
     class Face;
     class Vertex;
     TriangleMeshImpl(const std::vector<Vec3>& vertexPositions, const std::vector<int>& faceIndices);
+    TriangleMeshImpl(const PolygonalMesh& mesh);
     ContactGeometryImpl* clone() const {
         return new TriangleMeshImpl(*this);
     }
@@ -127,6 +128,7 @@ public:
         return type;
     }
 private:
+    void init(const std::vector<Vec3>& vertexPositions, const std::vector<int>& faceIndices);
     void createObbTree(OBBTreeNodeImpl& node, const std::vector<int>& faceIndices);
     void splitObbAxis(const std::vector<int>& parentIndices, std::vector<int>& child1Indices, std::vector<int>& child2Indices, int axis);
     friend class ContactGeometry::TriangleMesh;

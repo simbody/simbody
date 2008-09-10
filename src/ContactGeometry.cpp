@@ -135,6 +135,35 @@ ContactGeometry::SphereImpl& ContactGeometry::Sphere::updImpl() {
 ContactGeometry::TriangleMesh::TriangleMesh(const vector<Vec3>& vertices, const vector<int>& faceIndices) : ContactGeometry(new TriangleMeshImpl(vertices, faceIndices)) {
 }
 
+ContactGeometry::TriangleMesh::TriangleMesh(const PolygonalMesh& mesh) : ContactGeometry(new TriangleMeshImpl(mesh)) {
+    
+    // Make sure the mesh normals are oriented correctly.
+    
+    Vec3 origin(0);
+    for (int i = 0; i < 3; i++)
+        origin += getImpl().vertices[getImpl().faces[0].vertices[i]].pos;
+    origin /= 3.0;
+    UnitVec3 direction = -getImpl().faces[0].normal;
+    origin -= max(getImpl().obb.bounds.getSize())*direction;
+    UnitVec3 normal;
+    Real distance;
+    intersectsRay(origin, getImpl().faces[0].normal, distance, normal);
+    if (normal[0] > 0) {
+        // We need to invert the mesh topology.
+        
+        for (int i = 0; i < getImpl().faces.size(); i++) {
+            ContactGeometry::TriangleMeshImpl::Face& f = updImpl().faces[i];
+            int temp = f.vertices[0];
+            f.vertices[0] = f.vertices[1];
+            f.vertices[1] = temp;
+            temp = f.edges[1];
+            f.edges[1] = f.edges[2];
+            f.edges[2] = temp;
+            f.normal *= -1;
+        }
+    }
+}
+
 int ContactGeometry::TriangleMesh::getNumEdges() const {
     return getImpl().edges.size();
 }
@@ -233,7 +262,56 @@ ContactGeometry::TriangleMeshImpl& ContactGeometry::TriangleMesh::updImpl() {
     return static_cast<TriangleMeshImpl&>(*impl);
 }
 
-ContactGeometry::TriangleMeshImpl::TriangleMeshImpl(const std::vector<Vec3>& vertexPositions, const vector<int>& faceIndices) : ContactGeometryImpl(Type()) {
+ContactGeometry::TriangleMeshImpl::TriangleMeshImpl(const vector<Vec3>& vertexPositions, const vector<int>& faceIndices) : ContactGeometryImpl(Type()) {
+    init(vertexPositions, faceIndices);
+}
+
+ContactGeometry::TriangleMeshImpl::TriangleMeshImpl(const PolygonalMesh& mesh) : ContactGeometryImpl(Type()) {
+    // Create the mesh, triangulating faces as necessary.
+    
+    vector<Vec3> vertexPositions;
+    vector<int> faceIndices;
+    for (int i = 0; i < mesh.getNumVertices(); i++)
+        vertexPositions.push_back(mesh.getVertexPosition(i));
+    for (int i = 0; i < mesh.getNumFaces(); i++) {
+        int numVert = mesh.getNumVerticesForFace(i);
+        if (numVert < 3)
+            continue; // Ignore it.
+        if (numVert == 3) {
+            faceIndices.push_back(mesh.getFaceVertex(i, 0));
+            faceIndices.push_back(mesh.getFaceVertex(i, 1));
+            faceIndices.push_back(mesh.getFaceVertex(i, 2));
+        }
+        else if (numVert == 4) {
+            // Split it into two triangles.
+            
+            faceIndices.push_back(mesh.getFaceVertex(i, 0));
+            faceIndices.push_back(mesh.getFaceVertex(i, 1));
+            faceIndices.push_back(mesh.getFaceVertex(i, 2));
+            faceIndices.push_back(mesh.getFaceVertex(i, 2));
+            faceIndices.push_back(mesh.getFaceVertex(i, 3));
+            faceIndices.push_back(mesh.getFaceVertex(i, 0));
+        }
+        else {
+            // Add a vertex at the center, then split it into triangles.
+            
+            Vec3 center(0);
+            for (int j = 0; j < numVert; j++)
+                center += vertexPositions[mesh.getFaceVertex(i, j)];
+            center /= numVert;
+            vertexPositions.push_back(center);
+            int newIndex = vertexPositions.size()-1;
+            for (int j = 0; j < numVert-1; j++) {
+                faceIndices.push_back(mesh.getFaceVertex(i, j));
+                faceIndices.push_back(mesh.getFaceVertex(i, j+1));
+                faceIndices.push_back(newIndex);
+            }
+        }
+    }
+    init(vertexPositions, faceIndices);
+}
+
+void ContactGeometry::TriangleMeshImpl::init(const std::vector<Vec3>& vertexPositions, const vector<int>& faceIndices) {
     SimTK_APIARGCHECK_ALWAYS(faceIndices.size()%3 == 0, "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl", "The number of indices must be a multiple of 3.");
     int numFaces = faceIndices.size()/3;
     
@@ -458,7 +536,7 @@ OBBTreeNodeImpl::~OBBTreeNodeImpl() {
         delete child2;
 }
 
-bool OBBTreeNodeImpl::intersectsRay(const ContactGeometry::TriangleMesh& mesh, const Vec3& origin, const UnitVec3 direction, Real& distance, UnitVec3& normal) const {
+bool OBBTreeNodeImpl::intersectsRay(const ContactGeometry::TriangleMesh& mesh, const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const {
     if (child1 != NULL) {
         // Recursively check the child nodes.
         
