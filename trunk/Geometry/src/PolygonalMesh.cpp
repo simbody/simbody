@@ -54,6 +54,7 @@ PolygonalMesh::PolygonalMesh(const PolygonalMesh& copy) : impl(new PolygonalMesh
 PolygonalMesh& PolygonalMesh::operator=(const PolygonalMesh& copy) {
     delete impl;
     impl = new PolygonalMeshImpl(*copy.impl);
+    return *this;
 }
 
 PolygonalMesh::~PolygonalMesh() {
@@ -91,7 +92,7 @@ int PolygonalMesh::addVertex(const Vec3& position) {
 }
 
 int PolygonalMesh::addFace(const std::vector<int>& vertices) {
-    for (int i = 0; i < vertices.size(); i++)
+    for (int i = 0; i < (int) vertices.size(); i++)
         updImpl().faceVertexIndex.push_back(vertices[i]);
     updImpl().faceVertexStart.push_back(getImpl().faceVertexIndex.size());
     return getImpl().faceVertexStart.size()-2;
@@ -99,13 +100,13 @@ int PolygonalMesh::addFace(const std::vector<int>& vertices) {
 
 void PolygonalMesh::scaleMesh(Real scale) {
     vector<Vec3>& vertices = updImpl().vertices;
-    for (int i = 0; i < vertices.size(); i++)
+    for (int i = 0; i < (int) vertices.size(); i++)
         vertices[i] *= scale;
 }
 
 void PolygonalMesh::transformMesh(const Transform& transform) {
     vector<Vec3>& vertices = updImpl().vertices;
-    for (int i = 0; i < vertices.size(); i++)
+    for (int i = 0; i < (int) vertices.size(); i++)
         vertices[i] = transform*vertices[i];
 }
 
