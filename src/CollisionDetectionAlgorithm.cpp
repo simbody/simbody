@@ -348,8 +348,9 @@ void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::findInsideTrianglesA
             origin = transform*(origin/3.0);
             UnitVec3 direction = transform.R()*mesh.getFaceNormal(i);
             Real distance;
-            UnitVec3 normal;
-            if (otherMesh.intersectsRay(origin, direction, distance, normal) && ~direction*normal > 0) {
+            int face;
+            Vec2 uv;
+            if (otherMesh.intersectsRay(origin, direction, distance, face, uv) && ~direction*otherMesh.getFaceNormal(face) > 0) {
                 faceType[i] = INSIDE;
                 triangles.insert(i);
             }
@@ -379,8 +380,9 @@ void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::findInsideTrianglesA
             Vec3 origin = transform*mesh.getVertexPosition(i);
             UnitVec3 direction = UnitVec3(1, 0, 0);
             Real distance;
-            UnitVec3 normal;
-            if (otherMesh.intersectsRay(origin, direction, distance, normal) && ~direction*normal > 0)
+            int face;
+            Vec2 uv;
+            if (otherMesh.intersectsRay(origin, direction, distance, face, uv) && ~direction*otherMesh.getFaceNormal(face) > 0)
                 vertices.push_back(i);
         }
         else if (faceType[i] == INSIDE)

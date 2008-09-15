@@ -61,6 +61,18 @@ public:
     ContactGeometry(const ContactGeometry& src);
     explicit ContactGeometry(ContactGeometryImpl* impl);
     virtual ~ContactGeometry();
+    /**
+     * Determine whether this object intersects a ray, and if so, find the intersection point.
+     *
+     * @param origin     the position at which the ray begins
+     * @param direction  the ray direction
+     * @param distance   if an intersection is found, the distance from the ray origin to the intersection point
+     *                   is stored in this.  Otherwise, it is left unchanged.
+     * @param normal     if an intersection is found, the surface normal of the intersection point
+     *                   is stored in this.  Otherwise, it is left unchanged.
+     * @return true if an intersection is found, false otherwise
+     */
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
     bool isOwnerHandle() const;
     bool isEmptyHandle() const;
     ContactGeometry& operator=(const ContactGeometry& src);
@@ -140,13 +152,21 @@ public:
      * @param faceIndices  the indices of the vertices that make up each face.  The first three
      *                     elements are the vertices in the first face, the next three elements are
      *                     the vertices in the second face, etc.
+     * @param smooth       if true, the mesh will be treated as a smooth surface, and normal vectors
+     *                     will be smoothly interpolated between vertices.  If false, it will be treated
+     *                     as a faceted mesh with a constant normal vector over each face.
      */
-    TriangleMesh(const std::vector<Vec3>& vertices, const std::vector<int>& faceIndices);
+    TriangleMesh(const std::vector<Vec3>& vertices, const std::vector<int>& faceIndices, bool smooth=false);
     /**
      * Create a TriangleMesh based on a PolygonalMesh object.  If any faces of the PolygonalMesh
      * have more than three vertices, they are automatically triangulated.
+     *
+     * @param mesh      the PolygonalMesh from which to construct a triangle mesh
+     * @param smooth    if true, the mesh will be treated as a smooth surface, and normal vectors
+     *                  will be smoothly interpolated between vertices.  If false, it will be treated
+     *                  as a faceted mesh with a constant normal vector over each face.
      */
-    TriangleMesh(const PolygonalMesh& mesh);
+    TriangleMesh(const PolygonalMesh& mesh, bool smooth=false);
     /**
      * Get the number of edges in the mesh.
      */
@@ -219,9 +239,12 @@ public:
      */
     Real getFaceArea(int face) const;
     /**
-     * Get the OBBTreeNode which forms the root of this mesh's Oriented Bounding Box Tree.
+     * Get the normal vector at a point on the surface.
+     *
+     * @param face    the index of the face containing the point
+     * @param uv      the point within the face, specified by its barycentric uv coordinates
      */
-    OBBTreeNode getOBBTreeNode() const;
+    UnitVec3 getNormalAtPoint(int face, const Vec2& uv) const;
     /**
      * Determine whether this mesh intersects a ray, and if so, find the intersection point.
      *
@@ -234,6 +257,24 @@ public:
      * @return true if an intersection is found, false otherwise
      */
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
+    /**
+     * Determine whether this mesh intersects a ray, and if so, find what face it hit.
+     *
+     * @param origin     the position at which the ray begins
+     * @param direction  the ray direction
+     * @param distance   if an intersection is found, the distance from the ray origin to the intersection point
+     *                   is stored in this.  Otherwise, it is left unchanged.
+     * @param face       if an intersection is found, the index of the face hit by the ray
+     *                   is stored in this.  Otherwise, it is left unchanged.
+     * @param uv         if an intersection is found, the barycentric coordinates (u and v) of the intersection point
+     *                   within the hit face are stored in this.  Otherwise, it is left unchanged.
+     * @return true if an intersection is found, false otherwise
+     */
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, int& face, Vec2& uv) const;
+    /**
+     * Get the OBBTreeNode which forms the root of this mesh's Oriented Bounding Box Tree.
+     */
+    OBBTreeNode getOBBTreeNode() const;
     const TriangleMeshImpl& getImpl() const;
     TriangleMeshImpl& updImpl();
 };

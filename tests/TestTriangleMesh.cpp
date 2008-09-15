@@ -51,6 +51,12 @@ void assertEqual(Vec<N> val1, Vec<N> val2) {
         ASSERT(abs(val1[i]-val2[i]) < TOL);
 }
 
+template <int N>
+void assertEqual(UnitVec<N> val1, UnitVec<N> val2) {
+    for (int i = 0; i < N; ++i)
+        ASSERT(abs(val1[i]-val2[i]) < TOL);
+}
+
 void testTriangleMesh() {
     // Create a mesh representing a tetrahedron (4 vertices, 4 faces, 6 edges).
     
@@ -265,12 +271,40 @@ void testRayIntersection() {
     ASSERT(!mesh.intersectsRay(Vec3(-1, -1, -1), UnitVec3(-1, -1, -1), distance, normal));
 }
 
+void testSmoothMesh() {
+    // Create two octrohedral meshes: one smooth and one not.
+    
+    vector<Vec3> vertices;
+    vector<int> faceIndices;
+    addOctohedron(vertices, faceIndices, Vec3(0, 0, 0));
+    ContactGeometry::TriangleMesh mesh1(vertices, faceIndices);
+    ContactGeometry::TriangleMesh mesh2(vertices, faceIndices, true);
+    
+    // At the center of every face, the normals should be identical.
+ 
+    for (int i = 0; i < 8; i++)
+        assertEqual(mesh1.getNormalAtPoint(i, Vec2(1.0/3.0, 1.0/3.0)), mesh2.getNormalAtPoint(i, Vec2(1.0/3.0, 1.0/3.0)));
+    
+    // At the vertices, the smooth mesh normal should point directly outward, while the faceted mesh should
+    // be the same as the face normal.
+    
+    for (int i = 0; i < 8; i++) {
+        assertEqual(mesh1.getNormalAtPoint(i, Vec2(1, 0)), mesh1.getFaceNormal(i));
+        assertEqual(mesh1.getNormalAtPoint(i, Vec2(0, 1)), mesh1.getFaceNormal(i));
+        assertEqual(mesh1.getNormalAtPoint(i, Vec2(0, 0)), mesh1.getFaceNormal(i));
+        assertEqual(mesh2.getNormalAtPoint(i, Vec2(1, 0)), mesh2.getVertexPosition(mesh2.getFaceVertex(i, 0)));
+        assertEqual(mesh2.getNormalAtPoint(i, Vec2(0, 1)), mesh2.getVertexPosition(mesh2.getFaceVertex(i, 1)));
+        assertEqual(mesh2.getNormalAtPoint(i, Vec2(0, 0)), mesh2.getVertexPosition(mesh2.getFaceVertex(i, 2)));
+    }
+}
+
 int main() {
     try {
         testTriangleMesh();
         testIncorrectMeshes();
         testOBBTree();
         testRayIntersection();
+        testSmoothMesh();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

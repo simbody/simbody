@@ -51,6 +51,7 @@ public:
     }
     static int getIndexForType(std::string type);
     virtual ContactGeometryImpl* clone() const = 0;
+    virtual bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const = 0;
     ContactGeometry* getMyHandle() {
         return myHandle;
     }
@@ -77,6 +78,7 @@ public:
         static std::string type = "halfspace";
         return type;
     }
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
 };
 
 class ContactGeometry::SphereImpl : public ContactGeometryImpl {
@@ -96,6 +98,7 @@ public:
         static std::string type = "sphere";
         return type;
     }
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
 private:
     Real radius;
 };
@@ -110,7 +113,7 @@ public:
     OBBTreeNodeImpl* child1;
     OBBTreeNodeImpl* child2;
     std::vector<int> triangles;
-    bool intersectsRay(const ContactGeometry::TriangleMesh& mesh, const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
+    bool intersectsRay(const ContactGeometry::TriangleMeshImpl& mesh, const Vec3& origin, const UnitVec3& direction, Real& distance, int& face, Vec2& uv) const;
 };
 
 class ContactGeometry::TriangleMeshImpl : public ContactGeometryImpl {
@@ -118,8 +121,8 @@ public:
     class Edge;
     class Face;
     class Vertex;
-    TriangleMeshImpl(const std::vector<Vec3>& vertexPositions, const std::vector<int>& faceIndices);
-    TriangleMeshImpl(const PolygonalMesh& mesh);
+    TriangleMeshImpl(const std::vector<Vec3>& vertexPositions, const std::vector<int>& faceIndices, bool smooth);
+    TriangleMeshImpl(const PolygonalMesh& mesh, bool smooth);
     ContactGeometryImpl* clone() const {
         return new TriangleMeshImpl(*this);
     }
@@ -127,15 +130,20 @@ public:
         static std::string type = "triangle mesh";
         return type;
     }
+    UnitVec3 getNormalAtPoint(int face, const Vec2& uv) const;
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, int& face, Vec2& uv) const;
 private:
     void init(const std::vector<Vec3>& vertexPositions, const std::vector<int>& faceIndices);
     void createObbTree(OBBTreeNodeImpl& node, const std::vector<int>& faceIndices);
     void splitObbAxis(const std::vector<int>& parentIndices, std::vector<int>& child1Indices, std::vector<int>& child2Indices, int axis);
     friend class ContactGeometry::TriangleMesh;
+    friend class OBBTreeNodeImpl;
     std::vector<Edge> edges;
     std::vector<Face> faces;
     std::vector<Vertex> vertices;
     OBBTreeNodeImpl obb;
+    bool smooth;
 };
 
 class ContactGeometry::TriangleMeshImpl::Edge {
@@ -168,6 +176,7 @@ public:
     Vertex(Vec3 pos) : pos(pos), firstEdge(-1) {
     }
     Vec3 pos;
+    UnitVec3 normal;
     int firstEdge;
 };
 
