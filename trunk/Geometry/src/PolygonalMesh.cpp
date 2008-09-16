@@ -124,7 +124,7 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
     int initialVertices = getNumVertices();
     while (!file.eof()) {
         getline(file, line);
-        while (line[line.size()-1] == '\\') {
+        while (line.size() > 0 && line[line.size()-1] == '\\') {
             line[line.size()-1] = ' ';
             string continuation;
             getline(file, continuation);
