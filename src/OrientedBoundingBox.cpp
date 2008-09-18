@@ -266,6 +266,31 @@ bool OrientedBoundingBox::intersectsRay(const Vec3& origin, const UnitVec3& dire
     return true;
 }
 
+Vec3 OrientedBoundingBox::findNearestPoint(const Vec3& position) {
+    // Transform the point to the bounding box's reference frame.
+    
+    Vec3 p = ~getTransform()*position;
+    
+    // Find the nearest point in the box.
+    
+    if (p[0] < 0)
+        p[0] = 0;
+    if (p[0] > getSize()[0])
+        p[0] = getSize()[0];
+    if (p[1] < 0)
+        p[1] = 0;
+    if (p[1] > getSize()[1])
+        p[1] = getSize()[1];
+    if (p[2] < 0)
+        p[2] = 0;
+    if (p[2] > getSize()[2])
+        p[2] = getSize()[2];
+    
+    // Transform it back again.
+    
+    return getTransform()*p;
+}
+
 void OrientedBoundingBox::getCorners(Vec3 corners[8]) const {
     Vec3 dx = size[0]*transform.R().col(0);
     Vec3 dy = size[1]*transform.R().col(1);

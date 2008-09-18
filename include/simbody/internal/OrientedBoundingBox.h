@@ -94,6 +94,10 @@ public:
      */
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance) const;
     /**
+     * Given a point in space, find the point inside the bounding box which is nearest to it.
+     */
+    Vec3 findNearestPoint(const Vec3& position);
+    /**
      * Get the locations of the eight corners of the box.
      *
      * @param the corner locations are stored in this array

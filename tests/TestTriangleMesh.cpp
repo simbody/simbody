@@ -298,6 +298,31 @@ void testSmoothMesh() {
     }
 }
 
+void testFindNearestPoint() {
+    // Create an octrohedral mesh.
+    
+    vector<Vec3> vertices;
+    vector<int> faceIndices;
+    addOctohedron(vertices, faceIndices, Vec3(0, 0, 0));
+    ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
+    
+    // Test some points.
+    
+    Random::Gaussian random(0, 1);
+    for (int i = 0; i < 100; i++) {
+        Vec3 pos(random.getValue(), random.getValue(), random.getValue());
+        bool inside;
+        UnitVec3 normal;
+        Vec3 nearest = mesh.findNearestPoint(pos, inside, normal);
+        ASSERT(inside == (~pos*normal < 1/Sqrt3));
+        assertEqual(~nearest*normal, 1/Sqrt3);
+        for (int i = 0; i < 3; i++) {
+            ASSERT(pos[i]*nearest[i] >= 0);
+            ASSERT(pos[i]*normal[i] >= 0);
+        }
+    }
+}
+
 int main() {
     try {
         testTriangleMesh();
@@ -305,6 +330,7 @@ int main() {
         testOBBTree();
         testRayIntersection();
         testSmoothMesh();
+        testFindNearestPoint();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

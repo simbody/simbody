@@ -73,6 +73,19 @@ void testHalfSpace() {
     ASSERT(hs.intersectsRay(Vec3(2, 0, 0), UnitVec3(-1, 0, 1), distance, normal));
     assertEqual(2*Sqrt2, distance);
     assertEqual(Vec3(-1, 0, 0), normal);
+    
+    // Test finding the nearest point.
+    
+    Random::Gaussian random(0, 3);
+    for (int i = 0; i < 100; i++) {
+        Vec3 pos(random.getValue(), random.getValue(), random.getValue());
+        bool inside;
+        UnitVec3 normal;
+        Vec3 nearest = hs.findNearestPoint(pos, inside, normal);
+        assertEqual(nearest, Vec3(0, pos[1], pos[2]));
+        ASSERT(inside == (pos[0] >= 0));
+        assertEqual(normal, Vec3(-1, 0, 0));
+    }
 }
 
 void testSphere() {
@@ -99,6 +112,19 @@ void testSphere() {
     ASSERT(sphere.intersectsRay(Vec3(0, 0, 0), UnitVec3(1, 1, 1), distance, normal));
     assertEqual(3.5, distance);
     assertEqual(Vec3(1.0/Sqrt3), normal);
+
+    // Test finding the nearest point.
+    
+    Random::Gaussian random(0, 3);
+    for (int i = 0; i < 100; i++) {
+        Vec3 pos(random.getValue(), random.getValue(), random.getValue());
+        bool inside;
+        UnitVec3 normal;
+        Vec3 nearest = sphere.findNearestPoint(pos, inside, normal);
+        assertEqual(nearest, pos.normalize()*radius);
+        ASSERT(inside == (pos.norm() <= radius));
+        assertEqual(normal, pos.normalize());
+    }
 }
 
 int main() {

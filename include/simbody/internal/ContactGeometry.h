@@ -62,6 +62,16 @@ public:
     explicit ContactGeometry(ContactGeometryImpl* impl);
     virtual ~ContactGeometry();
     /**
+     * Given a point, find the nearest point on the surface of this object.  If multiple points on the
+     * surface are equally close to the specified point, this may return any of them.
+     *
+     * @param position    the point in question
+     * @param inside      on exit, this is set to true if the specified point is inside this object, false otherwise
+     * @param normal      on exit, this contains the surface normal at the returned point
+     * @return the point on the surface of the object which is closest to the specified point
+     */
+    Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
+    /**
      * Determine whether this object intersects a ray, and if so, find the intersection point.
      *
      * @param origin     the position at which the ray begins

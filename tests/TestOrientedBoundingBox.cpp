@@ -214,6 +214,28 @@ void testCreateFromPoints() {
     }
 }
 
+void testFindNearestPoint() {
+    Vec3 size(1, 1.5, 3);
+    Transform trans(Rotation(0.3, XAxis), Vec3(1, 2, 0.5));
+    OrientedBoundingBox box(trans, size);
+    
+    // First test some points inside the box.
+    
+    Random::Uniform random(0, 1);
+    for (int i = 0; i < 100; i++) {
+        Vec3 p(random.getValue()*size[0], random.getValue()*size[1], random.getValue()*size[2]);
+        p = trans*p;
+        assertEqual(p, box.findNearestPoint(p));
+    }
+    
+    // Try some points outside the box.
+    
+    assertEqual(size, ~trans*box.findNearestPoint(trans*(size+Vec3(1, 2, 3))));
+    assertEqual(Vec3(1, 1.5, 0.25), ~trans*box.findNearestPoint(trans*Vec3(2, 3, 0.25)));
+    assertEqual(Vec3(0, 0, 0), ~trans*box.findNearestPoint(trans*Vec3(-1, -1, -2)));
+    assertEqual(Vec3(0, 0, 0.5), ~trans*box.findNearestPoint(trans*Vec3(-1, -1, 0.5)));
+}
+
 int main() {
     try {
         testContainsPoint();
@@ -221,6 +243,7 @@ int main() {
         testIntersectsBox();
         testIntersectsRay();
         testCreateFromPoints();
+        testFindNearestPoint();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

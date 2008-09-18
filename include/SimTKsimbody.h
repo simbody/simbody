@@ -47,6 +47,7 @@
 #include "simbody/internal/Contact.h"
 #include "simbody/internal/ContactGeometry.h"
 #include "simbody/internal/CollisionDetectionAlgorithm.h"
+#include "simbody/internal/ElasticFoundationForce.h"
 #include "simbody/internal/Force.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"

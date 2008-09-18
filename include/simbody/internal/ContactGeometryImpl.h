@@ -51,6 +51,7 @@ public:
     }
     static int getIndexForType(std::string type);
     virtual ContactGeometryImpl* clone() const = 0;
+    virtual Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const = 0;
     virtual bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const = 0;
     ContactGeometry* getMyHandle() {
         return myHandle;
@@ -78,6 +79,7 @@ public:
         static std::string type = "halfspace";
         return type;
     }
+    Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
 };
 
@@ -98,6 +100,7 @@ public:
         static std::string type = "sphere";
         return type;
     }
+    Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
 private:
     Real radius;
@@ -113,6 +116,7 @@ public:
     OBBTreeNodeImpl* child1;
     OBBTreeNodeImpl* child2;
     std::vector<int> triangles;
+    Vec3 findNearestPoint(const ContactGeometry::TriangleMeshImpl& mesh, const Vec3& position, Real cutoff2, Real& distance2, int& face, Vec2& uv) const;
     bool intersectsRay(const ContactGeometry::TriangleMeshImpl& mesh, const Vec3& origin, const UnitVec3& direction, Real& distance, int& face, Vec2& uv) const;
 };
 
@@ -131,6 +135,7 @@ public:
         return type;
     }
     UnitVec3 getNormalAtPoint(int face, const Vec2& uv) const;
+    Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, int& face, Vec2& uv) const;
 private:

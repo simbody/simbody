@@ -93,6 +93,10 @@ bool ContactGeometry::intersectsRay(const Vec3& origin, const UnitVec3& directio
     return getImpl().intersectsRay(origin, direction, distance, normal);
 }
 
+Vec3 ContactGeometry::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
+    return getImpl().findNearestPoint(position, inside, normal);
+}
+
 ContactGeometryImpl::ContactGeometryImpl(const string& type) : myHandle(0), type(type), typeIndex(getIndexForType(type)) {
 }
 
@@ -115,8 +119,14 @@ int ContactGeometryImpl::getIndexForType(std::string type) {
 ContactGeometry::HalfSpace::HalfSpace() : ContactGeometry(new HalfSpaceImpl()) {
 }
 
+Vec3 ContactGeometry::HalfSpaceImpl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
+    inside = (position[0] >= 0);
+    normal = UnitVec3(-1, 0, 0);
+    return Vec3(0, position[1], position[2]);
+}
+
 bool ContactGeometry::HalfSpaceImpl::intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const {
-    if (direction[0] == 0.0)
+    if (direction[0] < 1e-10 && direction[0] > -1e-10)
         return false;
     Real t = origin[0]/direction[0];
     if (t > 0.0)
@@ -145,6 +155,12 @@ const ContactGeometry::SphereImpl& ContactGeometry::Sphere::getImpl() const {
 ContactGeometry::SphereImpl& ContactGeometry::Sphere::updImpl() {
     assert(impl);
     return static_cast<SphereImpl&>(*impl);
+}
+
+Vec3 ContactGeometry::SphereImpl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
+    inside = (position.normSqr() <= radius*radius);
+    normal = UnitVec3(position);
+    return normal*radius;
 }
 
 bool ContactGeometry::SphereImpl::intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const {
@@ -275,6 +291,17 @@ UnitVec3 ContactGeometry::TriangleMeshImpl::getNormalAtPoint(int face, const Vec
     return f.normal;
 }
 
+Vec3 ContactGeometry::TriangleMeshImpl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
+    int face;
+    Vec2 uv;
+    Real distance2;
+    Vec3 nearestPoint = obb.findNearestPoint(*this, position, MostPositiveReal, distance2, face, uv);
+    Vec3 delta = position-nearestPoint;
+    inside = (~delta*faces[face].normal < 0);
+    normal = getNormalAtPoint(face, uv);
+    return nearestPoint;
+}
+
 bool ContactGeometry::TriangleMeshImpl::intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const {
     int face;
     Vec2 uv;
@@ -365,7 +392,7 @@ ContactGeometry::TriangleMeshImpl::TriangleMeshImpl(const PolygonalMesh& mesh, b
     Real distance;
     int face;
     Vec2 uv;
-    bool intersects = intersectsRay(origin, faces[0].normal, distance, face, uv);
+    bool intersects = intersectsRay(origin, direction, distance, face, uv);
     assert(intersects);
     if (faces[face].normal[0] > 0) {
         // We need to invert the mesh topology.
@@ -380,6 +407,8 @@ ContactGeometry::TriangleMeshImpl::TriangleMeshImpl(const PolygonalMesh& mesh, b
             f.edges[2] = temp;
             f.normal *= -1;
         }
+        for (int i = 0; i < vertices.size(); i++)
+            vertices[i].normal *= -1;
     }
 }
 
@@ -623,6 +652,172 @@ OBBTreeNodeImpl::~OBBTreeNodeImpl() {
         delete child1;
     if (child2 != NULL)
         delete child2;
+}
+
+Vec3 OBBTreeNodeImpl::findNearestPoint(const ContactGeometry::TriangleMeshImpl& mesh, const Vec3& position, Real cutoff2, Real& distance2, int& face, Vec2& uv) const {
+    Real tol = max(bounds.getSize());
+    tol *= tol*1e-12;
+    if (child1 != NULL) {
+        // Recursively check the child nodes.
+        
+        Real child1distance2 = MostPositiveReal, child2distance2 = MostPositiveReal;
+        int child1face, child2face;
+        Vec2 child1uv, child2uv;
+        Vec3 child1point, child2point;
+        Real child1BoundsDist2 = (child1->bounds.findNearestPoint(position)-position).normSqr();
+        Real child2BoundsDist2 = (child2->bounds.findNearestPoint(position)-position).normSqr();
+        if (child1BoundsDist2 < child2BoundsDist2) {
+            if (child1BoundsDist2 < cutoff2) {
+                child1point = child1->findNearestPoint(mesh, position, cutoff2, child1distance2, child1face, child1uv);
+                if (child2BoundsDist2 < child1distance2 && child2BoundsDist2 < cutoff2)
+                    child2point = child2->findNearestPoint(mesh, position, cutoff2, child2distance2, child2face, child2uv);
+            }
+        }
+        else {
+            if (child2BoundsDist2 < cutoff2) {
+                child2point = child2->findNearestPoint(mesh, position, cutoff2, child2distance2, child2face, child2uv);
+                if (child1BoundsDist2 < child2distance2 && child1BoundsDist2 < cutoff2)
+                    child1point = child1->findNearestPoint(mesh, position, cutoff2, child1distance2, child1face, child1uv);
+            }
+        }
+        if (std::abs(child1distance2-child2distance2) < tol) {
+            // Decide based on angle which one to use.
+            
+            if (std::abs(~(child1point-position)*mesh.faces[child1face].normal) > std::abs(~(child2point-position)*mesh.faces[child2face].normal))
+                child2distance2 = MostPositiveReal;
+            else
+                child1distance2 = MostPositiveReal;
+        }
+        if (child1distance2 < child2distance2) {
+            distance2 = child1distance2;
+            face = child1face;
+            uv = child1uv;
+            return child1point;
+        }
+        else {
+            distance2 = child2distance2;
+            face = child2face;
+            uv = child2uv;
+            return child2point;
+        }
+    }    
+    // This is a leaf node, so check each triangle for its distance to the point.  This algorithm is based on a
+    // description by David Eberly found at http://www.geometrictools.com/Documentation/DistancePoint3Triangle3.pdf.
+    
+    distance2 = MostPositiveReal;
+    Vec3 nearestPoint;
+    for (int i = 0; i < triangles.size(); i++) {
+        const ContactGeometry::TriangleMeshImpl::Face& fc = mesh.faces[triangles[i]];
+        const Vec3& vert1 = mesh.vertices[fc.vertices[0]].pos;
+        const Vec3& vert2 = mesh.vertices[fc.vertices[1]].pos;
+        const Vec3& vert3 = mesh.vertices[fc.vertices[2]].pos;
+        const Vec3 e0 = vert2-vert1;
+        const Vec3 e1 = vert3-vert1;
+        const Vec3 delta = vert1-position;
+        const Real a = e0.normSqr();
+        const Real b = ~e0*e1;
+        const Real c = e1.normSqr();
+        const Real d = ~e0*delta;
+        const Real e = ~e1*delta;
+        const Real f = delta.normSqr();
+        const Real det = a*c-b*b;
+        Real s = b*e-c*d;
+        Real t = b*d-a*e;
+        if (s+t <= det) {
+            if (s < 0) {
+                if (t < 0) {
+                    // Region 4
+
+                    if (d < 0) {
+                        s = (-d >= a ? 1 : -d/a);
+                        t = 0;
+                    }
+                    else {
+                        s = 0;
+                        t = (e >= 0 ? 0 : (-e >= c ? 1 : -e/c));
+                    }
+                }
+                else {
+                    // Region 3
+                    
+                    s = 0;
+                    t = (e >= 0 ? 0 : (-e >= c ? 1 : -e/c));
+                }
+            }
+            else if (t < 0) {
+                // Region 5
+                
+                s = (d >= 0 ? 0 : (-d >= a ? 1 : -d/a));
+                t = 0;
+            }
+            else {
+                // Region 0
+                
+                const Real invDet = 1.0/det;
+                s *= invDet;
+                t *= invDet;
+            }
+        }
+        else {
+            if (s < 0) {
+                // Region 2
+
+                Real temp0 = b+d;
+                Real temp1 = c+e;
+                if (temp1 > temp0) {
+                    Real numer = temp1-temp0;
+                    Real denom = a-2*b+c;
+                    s = (numer >= denom ? 1 : numer/denom);
+                    t = 1-s;
+                }
+                else {
+                    s = 0;
+                    t = (temp1 <= 0 ? 1 : (e >= 0 ? 0 : -e/c));
+                }
+            }
+            else if (t < 0) {
+                // Region 6
+
+                Real temp0 = b+e;
+                Real temp1 = a+d;
+                if (temp1 > temp0) {
+                    Real numer = temp1-temp0;
+                    Real denom = a-2*b+c;
+                    t = (numer >= denom ? 1 : numer/denom);
+                    s = 1-t;
+                }
+                else {
+                    s = (temp1 <= 0 ? 1 : (e >= 0 ? 0 : -d/a));
+                    t = 0;
+                }
+            }
+            else {
+                // Region 1
+                
+                const Real numer = c+e-b-d;
+                if (numer <= 0)
+                    s = 0;
+                else {
+                    const Real denom = a-2*b+c;
+                    s = (numer >= denom ? 1 : numer/denom);
+                }
+                t = 1-s;
+            }
+        }
+        
+        // We know u and v.  Calculate the point and its distance.
+
+        Vec3 p = vert1 + s*e0 + t*e1;
+        Vec3 offset = p-position;
+        Real d2 = offset.normSqr();
+        if (d2 < distance2 || (d2 < distance2+tol && std::abs(~offset*mesh.faces[triangles[i]].normal) > std::abs(~offset*mesh.faces[face].normal))) {
+            nearestPoint = p;
+            distance2 = d2;
+            face = triangles[i];
+            uv = Vec2(1-s-t, s);
+        }
+    }
+    return nearestPoint;
 }
 
 bool OBBTreeNodeImpl::intersectsRay(const ContactGeometry::TriangleMeshImpl& mesh, const Vec3& origin, const UnitVec3& direction, Real& distance, int& face, Vec2& uv) const {
