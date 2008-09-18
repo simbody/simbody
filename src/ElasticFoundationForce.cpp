@@ -56,7 +56,7 @@ ElasticFoundationForce::ElasticFoundationForce(GeneralForceSubsystem& forces, Ge
     Vec2 uv(1.0/3.0, 1.0/3.0);
     for (int i = 0; i < getImpl().springPosition.size(); i++) {
         updImpl().springPosition[i] = (mesh.getVertexPosition(mesh.getFaceVertex(i, 0))+mesh.getVertexPosition(mesh.getFaceVertex(i, 1))+mesh.getVertexPosition(mesh.getFaceVertex(i, 2)))/3.0;
-        updImpl().springNormal[i] = -mesh.getNormalAtPoint(i, uv);
+        updImpl().springNormal[i] = -mesh.findNormalAtPoint(i, uv);
         updImpl().springArea[i] = mesh.getFaceArea(i);
     }
 }
@@ -132,31 +132,10 @@ void ElasticFoundationForceImpl::calcForce(const State& state, Vector_<SpatialVe
             const Vec3 displacement = nearestPoint-springPosInGround;
             const Real distance = displacement.norm();
             Vec3 force = k*springArea[face]*displacement;
-            Vec3 location = nearestPoint;
-
-            
-            
-            
-            
-            
-//            UnitVec3 springNormalInOtherBody = t12.R()*springNormal[face];
-//            if (!otherObject.intersectsRay(t12*springPosition[face], springNormalInOtherBody, distance, normal))
-//                continue;
-//            if (~normal*springNormalInOtherBody < 0)
-//                continue; // The spring is outside the other object.
-//            Real f = k*springArea[face]*distance*(~normal*springNormalInOtherBody);
-//            Vec3 normalInMesh = ~t12.R()*normal;
-//            Vec3 force = t1g.R()*f*normalInMesh;
-////            Vec3 force = t1g.R()*k*springArea[face]*distance*springNormal[face];
-//            Vec3 location = t1g*(springPosition[face]+distance*springNormal[face]);
-            const Vec3 station1 = body1.findStationAtGroundPoint(state, location);
-            const Vec3 station2 = body2.findStationAtGroundPoint(state, location);
-//            std::cout << face<<": "<<location<<"   "<<station1<< std::endl;
-//            std::cout << face<<": "<<location<<"   "<<station2<< std::endl;
-//            body1.applyForceToBodyPoint(state, station1, force, bodyForces);
-//            body2.applyForceToBodyPoint(state, station2, -force, bodyForces);
-            bodyForces[body1.getMobilizedBodyIndex()] += SpatialVec((body1.getBodyTransform(state).R()*station1) % force, force);
-            bodyForces[body2.getMobilizedBodyIndex()] += SpatialVec((body2.getBodyTransform(state).R()*station2) % force, force);
+            const Vec3 station1 = body1.findStationAtGroundPoint(state, nearestPoint);
+            const Vec3 station2 = body2.findStationAtGroundPoint(state, nearestPoint);
+            body1.applyForceToBodyPoint(state, station1, force, bodyForces);
+            body2.applyForceToBodyPoint(state, station2, -force, bodyForces);
             pe += 0.5*k*springArea[face]*distance*distance;
         }
         

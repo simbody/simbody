@@ -109,7 +109,7 @@ bool OrientedBoundingBox::intersectsBox(const OrientedBoundingBox& box) const {
     
     for (int i = 0; i < 3; i++) {
         Real ra = a[i];
-        Real rb = ~b*rabs.col(i);
+        Real rb = rabs.row(i)*b;
         if (std::abs(d[i]) > ra+rb)
             return false;
     }

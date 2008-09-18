@@ -249,12 +249,34 @@ public:
      */
     Real getFaceArea(int face) const;
     /**
-     * Get the normal vector at a point on the surface.
+     * Calculate the normal vector at a point on the surface.
      *
      * @param face    the index of the face containing the point
      * @param uv      the point within the face, specified by its barycentric uv coordinates
      */
-    UnitVec3 getNormalAtPoint(int face, const Vec2& uv) const;
+    UnitVec3 findNormalAtPoint(int face, const Vec2& uv) const;
+    /**
+     * Given a point, find the nearest point on the surface of this object.  If multiple points on the
+     * surface are equally close to the specified point, this may return any of them.
+     *
+     * @param position    the point in question
+     * @param inside      on exit, this is set to true if the specified point is inside this object, false otherwise
+     * @param normal      on exit, this contains the surface normal at the returned point
+     * @return the point on the surface of the object which is closest to the specified point
+     */
+    Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
+    /**
+     * Given a point, find the nearest point on the surface of this object.  If multiple points on the
+     * surface are equally close to the specified point, this may return any of them.
+     *
+     * @param position    the point in question
+     * @param inside      on exit, this is set to true if the specified point is inside this object, false otherwise
+     * @param face        on exit, this contains the index of the face containing the returned point
+     * @param uv          on exit, this contains the barycentric coordinates (u and v) of the returned point
+     *                    within its face
+     * @return the point on the surface of the object which is closest to the specified point
+     */
+    Vec3 findNearestPoint(const Vec3& position, bool& inside, int& face, Vec2& uv) const;
     /**
      * Determine whether this mesh intersects a ray, and if so, find the intersection point.
      *

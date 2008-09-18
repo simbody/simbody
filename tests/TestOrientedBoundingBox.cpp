@@ -111,44 +111,59 @@ void testGetCorners() {
     }
 }
 
+void verifyBoxIntersection(bool shouldIntersect, OrientedBoundingBox box1, OrientedBoundingBox box2) {
+    if (box1.intersectsBox(box2) != shouldIntersect)
+        std::cout << "a"<< std::endl;
+    if (box2.intersectsBox(box1) != shouldIntersect)
+        std::cout << "b"<< std::endl;
+    ASSERT(box1.intersectsBox(box2) == shouldIntersect);
+    ASSERT(box2.intersectsBox(box1) == shouldIntersect);
+}
+
 void testIntersectsBox() {
     // Try boxes with identical orientations.
     
-    ASSERT(OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)).intersectsBox(OrientedBoundingBox(Vec3(0), Vec3(3, 2, 1))));
-    ASSERT(OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)).intersectsBox(OrientedBoundingBox(Vec3(1-1e-10, 2-1e-10, 3-1e-10), Vec3(3, 2, 1))));
-    ASSERT(!OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)).intersectsBox(OrientedBoundingBox(Vec3(1+1e-10, 2-1e-10, 3-1e-10), Vec3(3, 2, 1))));
-    ASSERT(!OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)).intersectsBox(OrientedBoundingBox(Vec3(1-1e-10, 2+1e-10, 3-1e-10), Vec3(3, 2, 1))));
-    ASSERT(!OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)).intersectsBox(OrientedBoundingBox(Vec3(1-1e-10, 2-1e-10, 3+1e-10), Vec3(3, 2, 1))));
-    ASSERT(OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)).intersectsBox(OrientedBoundingBox(Vec3(-3+1e-10, -2+1e-10, -1+1e-10), Vec3(3, 2, 1))));
-    ASSERT(!OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)).intersectsBox(OrientedBoundingBox(Vec3(-3-1e-10, -2+1e-10, -1+1e-10), Vec3(3, 2, 1))));
-    ASSERT(!OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)).intersectsBox(OrientedBoundingBox(Vec3(-3+1e-10, -2-1e-10, -1+1e-10), Vec3(3, 2, 1))));
-    ASSERT(!OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)).intersectsBox(OrientedBoundingBox(Vec3(-3+1e-10, -2+1e-10, -1-1e-10), Vec3(3, 2, 1))));
+    verifyBoxIntersection(true, OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)), OrientedBoundingBox(Vec3(0), Vec3(3, 2, 1)));
+    verifyBoxIntersection(true, OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)), OrientedBoundingBox(Vec3(1-1e-10, 2-1e-10, 3-1e-10), Vec3(3, 2, 1)));
+    verifyBoxIntersection(false, OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)), OrientedBoundingBox(Vec3(1+1e-10, 2-1e-10, 3-1e-10), Vec3(3, 2, 1)));
+    verifyBoxIntersection(false, OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)), OrientedBoundingBox(Vec3(1-1e-10, 2+1e-10, 3-1e-10), Vec3(3, 2, 1)));
+    verifyBoxIntersection(false, OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)), OrientedBoundingBox(Vec3(1-1e-10, 2-1e-10, 3+1e-10), Vec3(3, 2, 1)));
+    verifyBoxIntersection(true, OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)), OrientedBoundingBox(Vec3(-3+1e-10, -2+1e-10, -1+1e-10), Vec3(3, 2, 1)));
+    verifyBoxIntersection(false, OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)), OrientedBoundingBox(Vec3(-3-1e-10, -2+1e-10, -1+1e-10), Vec3(3, 2, 1)));
+    verifyBoxIntersection(false, OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)), OrientedBoundingBox(Vec3(-3+1e-10, -2-1e-10, -1+1e-10), Vec3(3, 2, 1)));
+    verifyBoxIntersection(false, OrientedBoundingBox(Vec3(0), Vec3(1, 2, 3)), OrientedBoundingBox(Vec3(-3+1e-10, -2+1e-10, -1-1e-10), Vec3(3, 2, 1)));
     
     // Try some rotations by 90 degrees.
     
-    ASSERT(OrientedBoundingBox(Vec3(-0.5, 0, 0), Vec3(1, 2, 3)).intersectsBox(OrientedBoundingBox(Rotation(0.5*Pi, ZAxis), Vec3(3, 2, 1))));
-    ASSERT(OrientedBoundingBox(Vec3(-0.5, -2+1e-10, 0), Vec3(1, 2, 3)).intersectsBox(OrientedBoundingBox(Rotation(0.5*Pi, ZAxis), Vec3(3, 2, 1))));
-    ASSERT(!OrientedBoundingBox(Vec3(-0.5, -2-1e-10, 0), Vec3(1, 2, 3)).intersectsBox(OrientedBoundingBox(Rotation(0.5*Pi, ZAxis), Vec3(3, 2, 1))));
-    ASSERT(OrientedBoundingBox(Vec3(-0.5, 3-1e-10, 0), Vec3(1, 2, 3)).intersectsBox(OrientedBoundingBox(Rotation(0.5*Pi, ZAxis), Vec3(3, 2, 1))));
-    ASSERT(!OrientedBoundingBox(Vec3(-0.5, 3+1e-10, 0), Vec3(1, 2, 3)).intersectsBox(OrientedBoundingBox(Rotation(0.5*Pi, ZAxis), Vec3(3, 2, 1))));
-    ASSERT(OrientedBoundingBox(Rotation(0.5*Pi, ZAxis), Vec3(1, 2, 3)).intersectsBox(OrientedBoundingBox(Rotation(0.5*Pi, ZAxis), Vec3(3, 2, 1))));
+    verifyBoxIntersection(true, OrientedBoundingBox(Vec3(-0.5, 0, 0), Vec3(1, 2, 3)), OrientedBoundingBox(Rotation(0.5*Pi, ZAxis), Vec3(3, 2, 1)));
+    verifyBoxIntersection(true, OrientedBoundingBox(Vec3(-0.5, -2+1e-10, 0), Vec3(1, 2, 3)), OrientedBoundingBox(Rotation(0.5*Pi, ZAxis), Vec3(3, 2, 1)));
+    verifyBoxIntersection(false, OrientedBoundingBox(Vec3(-0.5, -2-1e-10, 0), Vec3(1, 2, 3)), OrientedBoundingBox(Rotation(0.5*Pi, ZAxis), Vec3(3, 2, 1)));
+    verifyBoxIntersection(true, OrientedBoundingBox(Vec3(-0.5, 3-1e-10, 0), Vec3(1, 2, 3)), OrientedBoundingBox(Rotation(0.5*Pi, ZAxis), Vec3(3, 2, 1)));
+    verifyBoxIntersection(false, OrientedBoundingBox(Vec3(-0.5, 3+1e-10, 0), Vec3(1, 2, 3)), OrientedBoundingBox(Rotation(0.5*Pi, ZAxis), Vec3(3, 2, 1)));
+    verifyBoxIntersection(true, OrientedBoundingBox(Rotation(0.5*Pi, ZAxis), Vec3(1, 2, 3)), OrientedBoundingBox(Rotation(0.5*Pi, ZAxis), Vec3(3, 2, 1)));
     
     // Try rotations by 45 degrees.
 
     const Real d = 0.5*Sqrt2;
-    ASSERT(OrientedBoundingBox(Vec3(-0.5, 0, 0), Vec3(1, 1, 1)).intersectsBox(OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1))));
-    ASSERT(OrientedBoundingBox(Vec3(-0.5, -1+1e-10, 0), Vec3(1, 1, 1)).intersectsBox(OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1))));
-    ASSERT(!OrientedBoundingBox(Vec3(-0.5, -1-1e-10, 0), Vec3(1, 1, 1)).intersectsBox(OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1))));
-    ASSERT(OrientedBoundingBox(Vec3(-0.5, Sqrt2-1e-10, 0), Vec3(1, 1, 1)).intersectsBox(OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1))));
-    ASSERT(!OrientedBoundingBox(Vec3(-0.5, Sqrt2+1e-10, 0), Vec3(1, 1, 1)).intersectsBox(OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1))));
-    ASSERT(OrientedBoundingBox(Vec3(d-1e-10, 0, 0), Vec3(1, 1, 1)).intersectsBox(OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1))));
-    ASSERT(!OrientedBoundingBox(Vec3(d+1e-10, 0, 0), Vec3(1, 1, 1)).intersectsBox(OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1))));
-    ASSERT(OrientedBoundingBox(Vec3(-1-d+1e-10, 0, 0), Vec3(1, 1, 1)).intersectsBox(OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1))));
-    ASSERT(!OrientedBoundingBox(Vec3(-1-d-1e-10, 0, 0), Vec3(1, 1, 1)).intersectsBox(OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1))));
-    ASSERT(OrientedBoundingBox(Vec3(0, 0, d-1e-10), Vec3(1, 1, 1)).intersectsBox(OrientedBoundingBox(Rotation(-0.25*Pi, XAxis), Vec3(1, 1, 1))));
-    ASSERT(!OrientedBoundingBox(Vec3(0, 0, d+1e-10), Vec3(1, 1, 1)).intersectsBox(OrientedBoundingBox(Rotation(-0.25*Pi, XAxis), Vec3(1, 1, 1))));
-    ASSERT(OrientedBoundingBox(Vec3(0, 0, -1-d+1e-10), Vec3(1, 1, 1)).intersectsBox(OrientedBoundingBox(Rotation(-0.25*Pi, XAxis), Vec3(1, 1, 1))));
-    ASSERT(!OrientedBoundingBox(Vec3(0, 0, -1-d-1e-10), Vec3(1, 1, 1)).intersectsBox(OrientedBoundingBox(Rotation(-0.25*Pi, XAxis), Vec3(1, 1, 1))));
+    verifyBoxIntersection(true, OrientedBoundingBox(Vec3(-0.5, 0, 0), Vec3(1, 1, 1)), OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1)));
+    verifyBoxIntersection(true, OrientedBoundingBox(Vec3(-0.5, -1+1e-10, 0), Vec3(1, 1, 1)), OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1)));
+    verifyBoxIntersection(false, OrientedBoundingBox(Vec3(-0.5, -1-1e-10, 0), Vec3(1, 1, 1)), OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1)));
+    verifyBoxIntersection(true, OrientedBoundingBox(Vec3(-0.5, Sqrt2-1e-10, 0), Vec3(1, 1, 1)), OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1)));
+    verifyBoxIntersection(false, OrientedBoundingBox(Vec3(-0.5, Sqrt2+1e-10, 0), Vec3(1, 1, 1)), OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1)));
+    verifyBoxIntersection(true, OrientedBoundingBox(Vec3(d-1e-10, 0, 0), Vec3(1, 1, 1)), OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1)));
+    verifyBoxIntersection(false, OrientedBoundingBox(Vec3(d+1e-10, 0, 0), Vec3(1, 1, 1)), OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1)));
+    verifyBoxIntersection(true, OrientedBoundingBox(Vec3(-1-d+1e-10, 0, 0), Vec3(1, 1, 1)), OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1)));
+    verifyBoxIntersection(false, OrientedBoundingBox(Vec3(-1-d-1e-10, 0, 0), Vec3(1, 1, 1)), OrientedBoundingBox(Rotation(0.25*Pi, ZAxis), Vec3(1, 1, 1)));
+    verifyBoxIntersection(true, OrientedBoundingBox(Vec3(0, 0, d-1e-10), Vec3(1, 1, 1)), OrientedBoundingBox(Rotation(-0.25*Pi, XAxis), Vec3(1, 1, 1)));
+    verifyBoxIntersection(false, OrientedBoundingBox(Vec3(0, 0, d+1e-10), Vec3(1, 1, 1)), OrientedBoundingBox(Rotation(-0.25*Pi, XAxis), Vec3(1, 1, 1)));
+    verifyBoxIntersection(true, OrientedBoundingBox(Vec3(0, 0, -1-d+1e-10), Vec3(1, 1, 1)), OrientedBoundingBox(Rotation(-0.25*Pi, XAxis), Vec3(1, 1, 1)));
+    verifyBoxIntersection(false, OrientedBoundingBox(Vec3(0, 0, -1-d-1e-10), Vec3(1, 1, 1)), OrientedBoundingBox(Rotation(-0.25*Pi, XAxis), Vec3(1, 1, 1)));
+    
+    // The following case detects a bug that came up in a different test case.
+    
+    Rotation r;
+    r.setRotationToBodyFixedXYZ(Vec3(Pi/2, 0, -1.1));;
+    verifyBoxIntersection(true, OrientedBoundingBox(Transform(r, Vec3(-0.95, 1.1, 2.5)), Vec3(2e-10, 1.118, 1)), OrientedBoundingBox(Vec3(0, -50, -50), Vec3(100, 100, 100)));
 }
 
 void verifyRayIntersection(const OrientedBoundingBox& box, const Vec3& origin, const UnitVec3& direction, bool shouldIntersect, Real expectedDistance) {

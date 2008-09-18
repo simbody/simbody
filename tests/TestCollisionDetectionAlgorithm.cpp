@@ -81,13 +81,15 @@ void testHalfSpaceSphere() {
         }
         else {
             ASSERT(contact.size() == 1);
-            assertEqual(contact[0].getFirstBody(), 1);
-            assertEqual(contact[0].getSecondBody(), 0);
-            assertEqual(contact[0].getNormal(), Vec3(0, 1, 0));
+            ASSERT(PointContact::isInstance(contact[0]));
+            const PointContact& c = static_cast<const PointContact&>(contact[0]);
+            assertEqual(c.getFirstBody(), 1);
+            assertEqual(c.getSecondBody(), 0);
+            assertEqual(c.getNormal(), Vec3(0, 1, 0));
             Real depth = radius-centerInGround[1]+1;
-            assertEqual(contact[0].getDepth(), depth);
-            assertEqual(contact[0].getRadius(), std::sqrt(radius*depth));
-            assertEqual(contact[0].getLocation(), Vec3(centerInGround[0], 1-0.5*depth, centerInGround[2]));
+            assertEqual(c.getDepth(), depth);
+            assertEqual(c.getRadius(), std::sqrt(radius*depth));
+            assertEqual(c.getLocation(), Vec3(centerInGround[0], 1-0.5*depth, centerInGround[2]));
         }
     }
 }
@@ -125,11 +127,13 @@ void testSphereSphere() {
         
         const vector<Contact>& contact = contacts.getContacts(state, setIndex);
         for (int i = 0; i < contact.size(); i++) {
-            int body1 = contact[i].getFirstBody();
-            int body2 = contact[i].getSecondBody();
+            ASSERT(PointContact::isInstance(contact[i]));
+            const PointContact& c = static_cast<const PointContact&>(contact[i]);
+            int body1 = c.getFirstBody();
+            int body2 = c.getSecondBody();
             Vec3 delta = centerInGround[body2]-centerInGround[body1];
-            assertEqual(delta.normalize(), contact[i].getNormal());
-            assertEqual(delta.norm(), radius[body1]+radius[body2]-contact[i].getDepth());
+            assertEqual(delta.normalize(), c.getNormal());
+            assertEqual(delta.norm(), radius[body1]+radius[body2]-c.getDepth());
         }
 
         // Make sure no contacts were missed.
@@ -189,9 +193,8 @@ void testHalfSpaceTriangleMesh() {
     contacts.addBody(setIndex, b, mesh, Transform());
     contacts.addBody(setIndex, matter.updGround(), ContactGeometry::HalfSpace(), Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0, 1, 0))); // y < 1
     State state = system.realizeTopology();
-    int baseFaces[6] = {0, 1, 2, 3, 4, 5};
-    int pointFaces[4] = {8, 9, 10, 11};
-    for (Real depth = -0.2; depth < 0.9; depth += 0.1) {
+    int bottomFaces[10] = {0, 1, 2, 3, 4, 5, 8, 9, 10, 11};
+    for (Real depth = -0.25; depth < 1; depth += 0.1) {
         Vec3 center(0.1, 1-depth, 2.0);
         b.setQToFitTranslation(state, center);
         system.realize(state, Stage::Dynamics);
@@ -200,33 +203,11 @@ void testHalfSpaceTriangleMesh() {
             ASSERT(contact.size() == 0);
         }
         else {
-            ASSERT(contact.size() == 2);
-            Vec3 centers[2] = {Vec3(center[0]+0.5, 1-0.5*depth, center[2]+0.5), Vec3(center[0]+2.5, 1-0.5*depth, center[2]+0.5)};
-            int first, second;
-            if (contact[0].getLocation()[0] < contact[1].getLocation()[0]) {
-                first = 0;
-                second = 1;
-            }
-            else {
-                first = 1;
-                second = 0;
-            }
-            assertEqual(centers[0], contact[first].getLocation());
-            assertEqual(centers[1], contact[second].getLocation());
-            assert(contact[first].getRadius() >= 0.5*(1-depth) && contact[first].getRadius() <= 0.5*Sqrt2);
-            assert(contact[second].getRadius() >= 0.5*depth && contact[second].getRadius() <= 0.5*Sqrt2*depth);
-            assertEqual(Vec3(0, 1, 0), contact[0].getNormal());
-            assertEqual(Vec3(0, 1, 0), contact[1].getNormal());
-            assertEqual(depth, contact[0].getDepth());
-            assertEqual(depth, contact[1].getDepth());
-            ASSERT(TriangleMeshContact::isInstance(contact[first]));
-            ASSERT(TriangleMeshContact::isInstance(contact[second]));
-            const TriangleMeshContact& c1 = static_cast<const TriangleMeshContact&>(contact[first]);
-            const TriangleMeshContact& c2 = static_cast<const TriangleMeshContact&>(contact[second]);
-            ASSERT(c1.getFirstBodyFaces().size() == 0);
-            ASSERT(c2.getFirstBodyFaces().size() == 0);
-            verifyContactFaces(baseFaces, 6, c1.getSecondBodyFaces());
-            verifyContactFaces(pointFaces, 4, c2.getSecondBodyFaces());
+            ASSERT(contact.size() == 1);
+            ASSERT(TriangleMeshContact::isInstance(contact[0]));
+            const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contact[0]);
+            ASSERT(c.getFirstBodyFaces().size() == 0);
+            verifyContactFaces(bottomFaces, 10, c.getSecondBodyFaces());
          }
     }
 }
@@ -290,18 +271,13 @@ void testTriangleMeshTriangleMesh() {
         system.realize(state, Stage::Dynamics);
         vector<Contact> contact = contacts.getContacts(state, setIndex);;
         ASSERT(contact.size() == 1);
-        assertEqual(contact[0].getLocation(), Vec3(0.5, 0.005, 0.5));
-        assertEqual(contact[0].getDepth(), 0.01);
-        ASSERT(contact[0].getRadius() >= 0.005-TOL && contact[0].getRadius() <= 0.005*Sqrt2+TOL);
         ASSERT(TriangleMeshContact::isInstance(contact[0]));
         const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contact[0]);
         if (contact[0].getFirstBody() == 0) {
-            assertEqual(contact[0].getNormal(), Vec3(0, -1, 0));
             verifyContactFaces(baseFaces, 2, c.getFirstBodyFaces());
             verifyContactFaces(pointFaces, 4, c.getSecondBodyFaces());
         }
         else {
-            assertEqual(contact[0].getNormal(), Vec3(0, 1, 0));
             verifyContactFaces(pointFaces, 4, c.getFirstBodyFaces());
             verifyContactFaces(baseFaces, 2, c.getSecondBodyFaces());
         }
@@ -312,18 +288,13 @@ void testTriangleMeshTriangleMesh() {
         system.realize(state, Stage::Dynamics);
         vector<Contact> contact = contacts.getContacts(state, setIndex);;
         ASSERT(contact.size() == 1);
-        assertEqual(contact[0].getLocation(), Vec3(0.5, 0.495, 0.5));
-        assertEqual(contact[0].getDepth(), 0.01);
-        ASSERT(contact[0].getRadius() >= 0.005-TOL && contact[0].getRadius() <= 0.005*Sqrt2+TOL);
         ASSERT(TriangleMeshContact::isInstance(contact[0]));
         const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contact[0]);
         if (contact[0].getFirstBody() == 0) {
-            assertEqual(contact[0].getNormal(), Vec3(0, 1, 0));
             verifyContactFaces(pointFaces, 4, c.getFirstBodyFaces());
             verifyContactFaces(baseFaces, 2, c.getSecondBodyFaces());
         }
         else {
-            assertEqual(contact[0].getNormal(), Vec3(0, -1, 0));
             verifyContactFaces(baseFaces, 2, c.getFirstBodyFaces());
             verifyContactFaces(pointFaces, 4, c.getSecondBodyFaces());
         }
@@ -334,16 +305,7 @@ void testTriangleMeshTriangleMesh() {
         system.realize(state, Stage::Dynamics);
         vector<Contact> contact = contacts.getContacts(state, setIndex);;
         ASSERT(contact.size() == 1);
-        assertEqual(contact[0].getLocation(), Vec3(0.6, 0.495, 0.5));
-        assertEqual(contact[0].getDepth(), 0.01);
-        ASSERT(contact[0].getRadius() >= 0.005-TOL && contact[0].getRadius() <= 0.005*Sqrt2+TOL);
         ASSERT(TriangleMeshContact::isInstance(contact[0]));
-        if (contact[0].getFirstBody() == 0) {
-            assertEqual(contact[0].getNormal(), Vec3(0, 1, 0));
-        }
-        else {
-            assertEqual(contact[0].getNormal(), Vec3(0, -1, 0));
-        }
     }
     {
         b1.setQToFitTransform(state, Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0, 0.5, 0)));
@@ -351,18 +313,13 @@ void testTriangleMeshTriangleMesh() {
         system.realize(state, Stage::Dynamics);
         vector<Contact> contact = contacts.getContacts(state, setIndex);;
         ASSERT(contact.size() == 1);
-        assertEqual(contact[0].getLocation(), Vec3(0.95, 0, 0.5));
-        assertEqual(contact[0].getDepth(), 0.1);
-        ASSERT(contact[0].getRadius() >= 0.025-TOL && contact[0].getRadius() <= 0.025*Sqrt2+TOL);
         ASSERT(TriangleMeshContact::isInstance(contact[0]));
         const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contact[0]);
         if (contact[0].getFirstBody() == 0) {
-            assertEqual(contact[0].getNormal(), Vec3(1, 0, 0));
             verifyContactFaces(pointFaces, 4, c.getFirstBodyFaces());
             verifyContactFaces(pointFaces, 4, c.getSecondBodyFaces());
         }
         else {
-            assertEqual(contact[0].getNormal(), Vec3(-1, 0, 0));
             verifyContactFaces(pointFaces, 4, c.getFirstBodyFaces());
             verifyContactFaces(pointFaces, 4, c.getSecondBodyFaces());
         }

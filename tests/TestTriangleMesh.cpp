@@ -283,18 +283,18 @@ void testSmoothMesh() {
     // At the center of every face, the normals should be identical.
  
     for (int i = 0; i < 8; i++)
-        assertEqual(mesh1.getNormalAtPoint(i, Vec2(1.0/3.0, 1.0/3.0)), mesh2.getNormalAtPoint(i, Vec2(1.0/3.0, 1.0/3.0)));
+        assertEqual(mesh1.findNormalAtPoint(i, Vec2(1.0/3.0, 1.0/3.0)), mesh2.findNormalAtPoint(i, Vec2(1.0/3.0, 1.0/3.0)));
     
     // At the vertices, the smooth mesh normal should point directly outward, while the faceted mesh should
     // be the same as the face normal.
     
     for (int i = 0; i < 8; i++) {
-        assertEqual(mesh1.getNormalAtPoint(i, Vec2(1, 0)), mesh1.getFaceNormal(i));
-        assertEqual(mesh1.getNormalAtPoint(i, Vec2(0, 1)), mesh1.getFaceNormal(i));
-        assertEqual(mesh1.getNormalAtPoint(i, Vec2(0, 0)), mesh1.getFaceNormal(i));
-        assertEqual(mesh2.getNormalAtPoint(i, Vec2(1, 0)), mesh2.getVertexPosition(mesh2.getFaceVertex(i, 0)));
-        assertEqual(mesh2.getNormalAtPoint(i, Vec2(0, 1)), mesh2.getVertexPosition(mesh2.getFaceVertex(i, 1)));
-        assertEqual(mesh2.getNormalAtPoint(i, Vec2(0, 0)), mesh2.getVertexPosition(mesh2.getFaceVertex(i, 2)));
+        assertEqual(mesh1.findNormalAtPoint(i, Vec2(1, 0)), mesh1.getFaceNormal(i));
+        assertEqual(mesh1.findNormalAtPoint(i, Vec2(0, 1)), mesh1.getFaceNormal(i));
+        assertEqual(mesh1.findNormalAtPoint(i, Vec2(0, 0)), mesh1.getFaceNormal(i));
+        assertEqual(mesh2.findNormalAtPoint(i, Vec2(1, 0)), mesh2.getVertexPosition(mesh2.getFaceVertex(i, 0)));
+        assertEqual(mesh2.findNormalAtPoint(i, Vec2(0, 1)), mesh2.getVertexPosition(mesh2.getFaceVertex(i, 1)));
+        assertEqual(mesh2.findNormalAtPoint(i, Vec2(0, 0)), mesh2.getVertexPosition(mesh2.getFaceVertex(i, 2)));
     }
 }
 

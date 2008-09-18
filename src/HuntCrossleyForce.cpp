@@ -98,29 +98,32 @@ void HuntCrossleyForceImpl::setTransitionVelocity(Real v) {
 void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
     const vector<Contact>& contacts = subsystem.getContacts(state, set);
     for (int i = 0; i < contacts.size(); i++) {
-        const Parameters& param1 = getParameters(contacts[i].getFirstBody());
-        const Parameters& param2 = getParameters(contacts[i].getSecondBody());
+        if (!PointContact::isInstance(contacts[i]))
+            continue;
+        const PointContact& contact = static_cast<const PointContact&>(contacts[i]);
+        const Parameters& param1 = getParameters(contact.getFirstBody());
+        const Parameters& param2 = getParameters(contact.getSecondBody());
         
         // Adjust the contact location based on the relative stiffness of the two materials.
         
         const Real s1 = param2.stiffness/(param1.stiffness+param2.stiffness);
         const Real s2 = 1-s1;
-        const Real depth = contacts[i].getDepth();
-        const Vec3& normal = contacts[i].getNormal();
-        const Vec3 location = contacts[i].getLocation()+(depth*(0.5-s1))*normal;
+        const Real depth = contact.getDepth();
+        const Vec3& normal = contact.getNormal();
+        const Vec3 location = contact.getLocation()+(depth*(0.5-s1))*normal;
         
         // Calculate the Hertz force.
 
         const Real k = param1.stiffness*s1;
         const Real c = param1.dissipation*s1 + param2.dissipation*s2;
-        const Real radius = contacts[i].getRadius();
+        const Real radius = contact.getRadius();
         const Real curvature = radius*radius/depth;
         const Real fH = (4.0/3.0)*k*depth*std::sqrt(curvature*k*depth);
         
         // Calculate the relative velocity of the two bodies at the contact point.
         
-        const MobilizedBody& body1 = subsystem.getBody(set, contacts[i].getFirstBody());
-        const MobilizedBody& body2 = subsystem.getBody(set, contacts[i].getSecondBody());
+        const MobilizedBody& body1 = subsystem.getBody(set, contact.getFirstBody());
+        const MobilizedBody& body2 = subsystem.getBody(set, contact.getSecondBody());
         const Vec3 station1 = body1.findStationAtGroundPoint(state, location);
         const Vec3 station2 = body2.findStationAtGroundPoint(state, location);
         const Vec3 v1 = body1.findStationVelocityInGround(state, station1);

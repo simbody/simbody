@@ -272,8 +272,16 @@ void ContactGeometry::TriangleMesh::findVertexEdges(int vertex, std::vector<int>
     } while (previousEdge != firstEdge);
 }
 
-UnitVec3 ContactGeometry::TriangleMesh::getNormalAtPoint(int face, const Vec2& uv) const {
-    return getImpl().getNormalAtPoint(face, uv);
+UnitVec3 ContactGeometry::TriangleMesh::findNormalAtPoint(int face, const Vec2& uv) const {
+    return getImpl().findNormalAtPoint(face, uv);
+}
+
+Vec3 ContactGeometry::TriangleMesh::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
+    return getImpl().findNearestPoint(position, inside, normal);
+}
+
+Vec3 ContactGeometry::TriangleMesh::findNearestPoint(const Vec3& position, bool& inside, int& face, Vec2& uv) const {
+    return getImpl().findNearestPoint(position, inside, face, uv);
 }
 
 bool ContactGeometry::TriangleMesh::intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const {
@@ -284,7 +292,7 @@ bool ContactGeometry::TriangleMesh::intersectsRay(const Vec3& origin, const Unit
     return getImpl().intersectsRay(origin, direction, distance, face, uv);
 }
 
-UnitVec3 ContactGeometry::TriangleMeshImpl::getNormalAtPoint(int face, const Vec2& uv) const {
+UnitVec3 ContactGeometry::TriangleMeshImpl::findNormalAtPoint(int face, const Vec2& uv) const {
     const Face& f = faces[face];
     if (smooth)
         return UnitVec3(uv[0]*vertices[f.vertices[0]].normal+uv[1]*vertices[f.vertices[1]].normal+(1.0-uv[0]-uv[1])*vertices[f.vertices[2]].normal);
@@ -294,11 +302,16 @@ UnitVec3 ContactGeometry::TriangleMeshImpl::getNormalAtPoint(int face, const Vec
 Vec3 ContactGeometry::TriangleMeshImpl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
     int face;
     Vec2 uv;
+    Vec3 nearestPoint = findNearestPoint(position, inside, face, uv);
+    normal = findNormalAtPoint(face, uv);
+    return nearestPoint;
+}
+
+Vec3 ContactGeometry::TriangleMeshImpl::findNearestPoint(const Vec3& position, bool& inside, int& face, Vec2& uv) const {
     Real distance2;
     Vec3 nearestPoint = obb.findNearestPoint(*this, position, MostPositiveReal, distance2, face, uv);
     Vec3 delta = position-nearestPoint;
     inside = (~delta*faces[face].normal < 0);
-    normal = getNormalAtPoint(face, uv);
     return nearestPoint;
 }
 
@@ -307,7 +320,7 @@ bool ContactGeometry::TriangleMeshImpl::intersectsRay(const Vec3& origin, const 
     Vec2 uv;
     if (!intersectsRay(origin, direction, distance, face, uv))
         return false;
-    normal = getNormalAtPoint(face, uv);
+    normal = findNormalAtPoint(face, uv);
     return true;
 }
 
@@ -655,8 +668,7 @@ OBBTreeNodeImpl::~OBBTreeNodeImpl() {
 }
 
 Vec3 OBBTreeNodeImpl::findNearestPoint(const ContactGeometry::TriangleMeshImpl& mesh, const Vec3& position, Real cutoff2, Real& distance2, int& face, Vec2& uv) const {
-    Real tol = max(bounds.getSize());
-    tol *= tol*1e-12;
+    Real tol = 100*Eps;
     if (child1 != NULL) {
         // Recursively check the child nodes.
         
@@ -680,7 +692,7 @@ Vec3 OBBTreeNodeImpl::findNearestPoint(const ContactGeometry::TriangleMeshImpl& 
                     child1point = child1->findNearestPoint(mesh, position, cutoff2, child1distance2, child1face, child1uv);
             }
         }
-        if (std::abs(child1distance2-child2distance2) < tol) {
+        if (child1distance2 <= child2distance2*(1+tol) && child2distance2 <= child1distance2*(1+tol)) {
             // Decide based on angle which one to use.
             
             if (std::abs(~(child1point-position)*mesh.faces[child1face].normal) > std::abs(~(child2point-position)*mesh.faces[child2face].normal))
@@ -810,7 +822,7 @@ Vec3 OBBTreeNodeImpl::findNearestPoint(const ContactGeometry::TriangleMeshImpl& 
         Vec3 p = vert1 + s*e0 + t*e1;
         Vec3 offset = p-position;
         Real d2 = offset.normSqr();
-        if (d2 < distance2 || (d2 < distance2+tol && std::abs(~offset*mesh.faces[triangles[i]].normal) > std::abs(~offset*mesh.faces[face].normal))) {
+        if (d2 < distance2 || (d2 < distance2*(1+tol) && std::abs(~offset*mesh.faces[triangles[i]].normal) > std::abs(~offset*mesh.faces[face].normal))) {
             nearestPoint = p;
             distance2 = d2;
             face = triangles[i];

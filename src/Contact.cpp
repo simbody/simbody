@@ -36,12 +36,10 @@
 using namespace SimTK;
 using std::set;
 
-ContactImpl::ContactImpl(int body1, int body2, Vec3& location, Vec3& normal, Real radius, Real depth) :
-        body1(body1), body2(body2), location(location), normal(normal), radius(radius), depth(depth), referenceCount(0) {
+ContactImpl::ContactImpl(int body1, int body2) : body1(body1), body2(body2), referenceCount(0) {
 }
 
-Contact::Contact(int body1, int body2, Vec3& location, Vec3& normal, Real radius, Real depth) :
-        impl(new ContactImpl(body1, body2, location, normal, radius, depth)) {
+Contact::Contact(int body1, int body2) : impl(new ContactImpl(body1, body2)) {
     impl->referenceCount++;
 }
 
@@ -81,29 +79,40 @@ int Contact::getSecondBody() const {
     return impl->body2;
 }
 
-Vec3 Contact::getLocation() const {
-    return impl->location;
+PointContactImpl::PointContactImpl(int body1, int body2, Vec3& location, Vec3& normal, Real radius, Real depth) :
+        ContactImpl(body1, body2), location(location), normal(normal), radius(radius), depth(depth) {
 }
 
-Vec3 Contact::getNormal() const {
-    return impl->normal;
+PointContact::PointContact(int body1, int body2, Vec3& location, Vec3& normal, Real radius, Real depth) :
+        Contact(new PointContactImpl(body1, body2, location, normal, radius, depth)) {
 }
 
-Real Contact::getRadius() const {
-    return impl->radius;
+Vec3 PointContact::getLocation() const {
+    return dynamic_cast<const PointContactImpl&>(getImpl()).location;
 }
 
-Real Contact::getDepth() const {
-    return impl->depth;
+Vec3 PointContact::getNormal() const {
+    return dynamic_cast<const PointContactImpl&>(getImpl()).normal;
 }
 
-TriangleMeshContactImpl::TriangleMeshContactImpl(int body1, int body2, Vec3& location, Vec3& normal, Real radius, Real depth,
-        const set<int>& faces1, const set<int>& faces2) : ContactImpl(body1, body2, location, normal, radius, depth),
+Real PointContact::getRadius() const {
+    return dynamic_cast<const PointContactImpl&>(getImpl()).radius;
+}
+
+Real PointContact::getDepth() const {
+    return dynamic_cast<const PointContactImpl&>(getImpl()).depth;
+}
+
+bool PointContact::isInstance(const Contact& contact) {
+    return (dynamic_cast<const PointContactImpl*>(&contact.getImpl()) != 0);
+}
+
+TriangleMeshContactImpl::TriangleMeshContactImpl(int body1, int body2, const set<int>& faces1, const set<int>& faces2) : ContactImpl(body1, body2),
         faces1(faces1), faces2(faces2) {
 }
 
-TriangleMeshContact::TriangleMeshContact(int body1, int body2, Vec3& location, Vec3& normal, Real radius, Real depth, const std::set<int>& faces1, const std::set<int>& faces2) :
-        Contact(new TriangleMeshContactImpl(body1, body2, location, normal, radius, depth, faces1, faces2)) {
+TriangleMeshContact::TriangleMeshContact(int body1, int body2, const std::set<int>& faces1, const std::set<int>& faces2) :
+        Contact(new TriangleMeshContactImpl(body1, body2, faces1, faces2)) {
 }
 
 const set<int>& TriangleMeshContact::getFirstBodyFaces() const {
