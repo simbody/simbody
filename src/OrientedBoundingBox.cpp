@@ -146,24 +146,38 @@ bool OrientedBoundingBox::intersectsBox(const OrientedBoundingBox& box) const {
     // they overlap.  This is described in Gottschalk, S., Lin, MC, Manocha, D, "OBBTree:
     // a hierarchical structure for rapid interference detection." Proceedings of the 23rd
     // Annual Conference on Computer Graphics and Interactive Techniques, pp. 171-180, 1996.
+    // We also perform an additional check which allows an early acceptance if the center of
+    // one box is inside the other one.
     
     // First check the three axes of this box.
     
+    bool accept = true;
     for (int i = 0; i < 3; i++) {
         Real ra = a[i];
         Real rb = rabs.row(i)*b;
-        if (std::abs(d[i]) > ra+rb)
+        Real distance = std::abs(d[i]);
+        if (distance > ra+rb)
             return false;
+        if (distance > ra)
+            accept = false;
     }
+    if (accept)
+        return true;
     
     // Now check the three axes of the other box.
     
+    accept = true;
     for (int i = 0; i < 3; i++) {
         Real ra = ~a*rabs.col(i);
         Real rb = b[i];
-        if (std::abs(d[0]*r(0, i)+d[1]*r(1, i)+d[2]*r(2, i)) > ra+rb)
+        Real distance = std::abs(d[0]*r(0, i)+d[1]*r(1, i)+d[2]*r(2, i));
+        if (distance > ra+rb)
             return false;
+        if (distance > rb)
+            accept = false;
     }
+    if (accept)
+        return true;
     
     // Now check the nine axes formed from cross products of one axis from each box.
     
