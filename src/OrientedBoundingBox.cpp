@@ -48,7 +48,7 @@ OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
                 c(j, k) += p[i][j]*p[i][k];
     c *= 1.0/p.size();
     
-    // Find the eigenvectors, which will form the axes of the box.
+    // Find the eigenvectors, which will be our initial guess for the axes of the box.
     
     Vector_<std::complex<Real> > eigenvalues;
     Matrix_<std::complex<Real> > eigenvectors;
@@ -57,10 +57,39 @@ OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
     for (int i = 0; i < 2; i++)
         for (int j = 0; j < 3; j++)
             axes[i][j] = eigenvectors(j, i).real();
-    axes[2] = axes[0]%axes[1];
+
+    // Now try optimizing the rotation to give a better fit.
+    
+    Rotation rot(UnitVec3(axes[0]), XAxis, axes[1], YAxis);
+    Real volume = calculateVolume(points, rot);
+    for (Real step = 0.1; step > 0.01; step *= 0.5) {
+        bool improved = true;
+        while (improved) {
+            Rotation trialRotation[6];
+            trialRotation[0].setRotationFromAngleAboutX(step);
+            trialRotation[1].setRotationFromAngleAboutX(-step);
+            trialRotation[2].setRotationFromAngleAboutY(step);
+            trialRotation[3].setRotationFromAngleAboutY(-step);
+            trialRotation[4].setRotationFromAngleAboutZ(step);
+            trialRotation[5].setRotationFromAngleAboutZ(-step);
+            improved = false;
+            for (int i = 0; i < 6; i++) {
+                trialRotation[i] = trialRotation[i]*rot;
+                Real trialVolume = calculateVolume(points, trialRotation[i]);
+                if (trialVolume < volume) {
+                    rot = trialRotation[i];
+                    volume = trialVolume;
+                    improved = true;
+                }
+            }
+        }
+    }
     
     // Find the extent along each axis.
   
+    axes[0] = Vec3(rot.col(0));
+    axes[1] = Vec3(rot.col(1));
+    axes[2] = Vec3(rot.col(2));
     Vec3 minExtent = Vec3(MostPositiveReal);
     Vec3 maxExtent = Vec3(MostNegativeReal);
     for (int i = 0; i < points.size(); i++) {
@@ -77,8 +106,21 @@ OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
     for (int i = 0; i < 3; i++)
         tol[i] = std::max(tol[i], 1e-10);
     size += 2*tol;
-    Rotation rot(UnitVec3(axes[0]), XAxis, axes[1], YAxis);
     transform = Transform(rot, rot*(minExtent-tol));
+}
+
+Real OrientedBoundingBox::calculateVolume(const Vector_<Vec3>& points, const Rotation& rotation) {
+    Vec3 minExtent = Vec3(MostPositiveReal);
+    Vec3 maxExtent = Vec3(MostNegativeReal);
+    for (int i = 0; i < points.size(); i++) {
+        Vec3 p = ~rotation*points[i];
+        for (int j = 0; j < 3; j++) {
+            minExtent[j] = std::min(minExtent[j], p[j]);
+            maxExtent[j] = std::max(maxExtent[j], p[j]);
+        }
+    }
+    Vec3 size = maxExtent-minExtent+Vec3(2e-10);
+    return size[0]*size[1]*size[2];
 }
 
 bool OrientedBoundingBox::containsPoint(const Vec3& point) const {

@@ -104,6 +104,7 @@ public:
      */
     void getCorners(Vec3 corners[8]) const;
 private:
+    Real calculateVolume(const Vector_<Vec3>& points, const Rotation& rotation);
     Transform transform;
     Vec3 size;
 };

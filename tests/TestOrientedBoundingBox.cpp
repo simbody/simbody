@@ -112,10 +112,6 @@ void testGetCorners() {
 }
 
 void verifyBoxIntersection(bool shouldIntersect, OrientedBoundingBox box1, OrientedBoundingBox box2) {
-    if (box1.intersectsBox(box2) != shouldIntersect)
-        std::cout << "a"<< std::endl;
-    if (box2.intersectsBox(box1) != shouldIntersect)
-        std::cout << "b"<< std::endl;
     ASSERT(box1.intersectsBox(box2) == shouldIntersect);
     ASSERT(box2.intersectsBox(box1) == shouldIntersect);
 }
@@ -225,7 +221,7 @@ void testCreateFromPoints() {
         
         Real expectedVolume = size[0]*size[1]*size[2];
         Real volume = box.getSize()[0]*box.getSize()[1]*box.getSize()[2];
-        ASSERT(volume < 2*expectedVolume);
+        ASSERT(volume < 1.5*expectedVolume);
     }
 }
 

@@ -119,7 +119,7 @@ void ElasticFoundationForceImpl::calcForce(const State& state, Vector_<SpatialVe
         // Loop over all the springs, and evaluate the force from each one.
         
         Real k = young*(1-poisson)/((1+poisson)*(1-2*poisson)*thickness);
-        for (std::set<int>::iterator iter = insideFaces.begin(); iter != insideFaces.end(); ++iter) {
+        for (std::set<int>::const_iterator iter = insideFaces.begin(); iter != insideFaces.end(); ++iter) {
             UnitVec3 normal;
             int face = *iter;
             
