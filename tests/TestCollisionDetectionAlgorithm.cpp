@@ -212,6 +212,82 @@ void testHalfSpaceTriangleMesh() {
     }
 }
 
+void testSphereTriangleMesh() {
+    // Create a triangle mesh consisting of two pyramids: one right side up and one upside down.
+    
+    vector<Vec3> vertices;
+    vertices.push_back(Vec3(0, 0, 0));
+    vertices.push_back(Vec3(0, 0, 1));
+    vertices.push_back(Vec3(1, 0, 1));
+    vertices.push_back(Vec3(1, 0, 0));
+    vertices.push_back(Vec3(0.5, 1, 0.5));
+    vertices.push_back(Vec3(2, 1, 0));
+    vertices.push_back(Vec3(2, 1, 1));
+    vertices.push_back(Vec3(3, 1, 1));
+    vertices.push_back(Vec3(3, 1, 0));
+    vertices.push_back(Vec3(2.5, 0, 0.5));
+    vector<int> faceIndices;
+    int faces[6][3] = {{0, 1, 2}, {0, 2, 3}, {1, 0, 4}, {0, 3, 4}, {3, 2, 4}, {2, 1, 4}};
+    for (int i = 0; i < 6; i++)
+        for (int j = 0; j < 3; j++)
+            faceIndices.push_back(faces[i][j]);
+    for (int i = 0; i < 6; i++)
+        for (int j = 0; j < 3; j++)
+            faceIndices.push_back(faces[i][j]+5);
+    ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
+
+    // Create the system.
+    
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralContactSubsystem contacts(system);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+    ContactSetIndex setIndex = contacts.createContactSet();
+    MobilizedBody::Free b(matter.updGround(), Transform(), body, Transform());
+    contacts.addBody(setIndex, b, mesh, Transform());
+    contacts.addBody(setIndex, matter.updGround(), ContactGeometry::Sphere(0.5), Transform(Vec3(0, 1, 0)));
+    State state = system.realizeTopology();
+    
+    // Try various positions and make sure the results are correct.
+    
+    b.setQToFitTranslation(state, Vec3(0, -2, 0));
+    system.realize(state, Stage::Dynamics);
+    ASSERT(contacts.getContacts(state, setIndex).size() == 0);
+    b.setQToFitTranslation(state, Vec3(0, 1.51, 0));
+    system.realize(state, Stage::Dynamics);
+    ASSERT(contacts.getContacts(state, setIndex).size() == 0);
+    {
+        b.setQToFitTranslation(state, Vec3(-0.5, 1.49, -0.5));
+        system.realize(state, Stage::Dynamics);
+        ASSERT(contacts.getContacts(state, setIndex).size() == 1);
+        const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contacts.getContacts(state, setIndex)[0]);
+        int faces[] = {0, 1};
+        verifyContactFaces(faces, 2, c.getSecondBodyFaces());
+    }
+    b.setQToFitTranslation(state, Vec3(-0.5, -0.51, -0.5));
+    system.realize(state, Stage::Dynamics);
+    ASSERT(contacts.getContacts(state, setIndex).size() == 0);
+    {
+        b.setQToFitTranslation(state, Vec3(-0.5, -0.49, -0.5));
+        system.realize(state, Stage::Dynamics);
+        ASSERT(contacts.getContacts(state, setIndex).size() == 1);
+        const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contacts.getContacts(state, setIndex)[0]);
+        int faces[] = {2, 3, 4, 5};
+        verifyContactFaces(faces, 4, c.getSecondBodyFaces());
+    }
+    b.setQToFitTranslation(state, Vec3(-2.5, 1.51, -0.5));
+    system.realize(state, Stage::Dynamics);
+    ASSERT(contacts.getContacts(state, setIndex).size() == 0);
+    {
+        b.setQToFitTranslation(state, Vec3(-2.5, 1.49, -0.5));
+        system.realize(state, Stage::Dynamics);
+        ASSERT(contacts.getContacts(state, setIndex).size() == 1);
+        const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contacts.getContacts(state, setIndex)[0]);
+        int faces[] = {8, 9, 10, 11};
+        verifyContactFaces(faces, 4, c.getSecondBodyFaces());
+    }
+}
+
 void testTriangleMeshTriangleMesh() {
     // Create two triangle meshes, each consisting of a pyramid.
     
@@ -331,6 +407,7 @@ int main() {
         testHalfSpaceSphere();
         testSphereSphere();
         testHalfSpaceTriangleMesh();
+        testSphereTriangleMesh();
         testTriangleMeshTriangleMesh();
     }
     catch(const std::exception& e) {

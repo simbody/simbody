@@ -52,11 +52,13 @@ public:
     void setTransitionVelocity(Real v);
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
     Real calcPotentialEnergy(const State& state) const;
+    void realizeTopology(State& state) const;
 private:
     const GeneralContactSubsystem& subsystem;
     const ContactSetIndex set;
     std::vector<Parameters> parameters;
     Real transitionVelocity;
+    mutable int energyCacheIndex;
 };
 
 class HuntCrossleyForceImpl::Parameters {

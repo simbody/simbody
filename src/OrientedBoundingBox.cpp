@@ -322,7 +322,7 @@ bool OrientedBoundingBox::intersectsRay(const Vec3& origin, const UnitVec3& dire
     return true;
 }
 
-Vec3 OrientedBoundingBox::findNearestPoint(const Vec3& position) {
+Vec3 OrientedBoundingBox::findNearestPoint(const Vec3& position) const {
     // Transform the point to the bounding box's reference frame.
     
     Vec3 p = ~getTransform()*position;

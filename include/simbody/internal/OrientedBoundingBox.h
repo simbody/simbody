@@ -96,7 +96,7 @@ public:
     /**
      * Given a point in space, find the point inside the bounding box which is nearest to it.
      */
-    Vec3 findNearestPoint(const Vec3& position);
+    Vec3 findNearestPoint(const Vec3& position) const;
     /**
      * Get the locations of the eight corners of the box.
      *

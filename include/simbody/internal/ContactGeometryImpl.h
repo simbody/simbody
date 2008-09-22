@@ -137,6 +137,7 @@ public:
     UnitVec3 findNormalAtPoint(int face, const Vec2& uv) const;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, int& face, Vec2& uv) const;
+    Vec3 findNearestPointToFace(const Vec3& position, int face, Vec2& uv) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, int& face, Vec2& uv) const;
 private:

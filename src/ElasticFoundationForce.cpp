@@ -130,13 +130,12 @@ void ElasticFoundationForceImpl::calcForce(const State& state, Vector_<SpatialVe
             nearestPoint = t2g*nearestPoint;
             const Vec3 springPosInGround = t1g*springPosition[face];
             const Vec3 displacement = nearestPoint-springPosInGround;
-            const Real distance = displacement.norm();
             Vec3 force = k*springArea[face]*displacement;
             const Vec3 station1 = body1.findStationAtGroundPoint(state, nearestPoint);
             const Vec3 station2 = body2.findStationAtGroundPoint(state, nearestPoint);
             body1.applyForceToBodyPoint(state, station1, force, bodyForces);
             body2.applyForceToBodyPoint(state, station2, -force, bodyForces);
-            pe += 0.5*k*springArea[face]*distance*distance;
+            pe += 0.5*k*springArea[face]*displacement.normSqr();
         }
         
 //        const Parameters& param1 = getParameters(contacts[i].getFirstBody());

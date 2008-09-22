@@ -54,6 +54,7 @@ public:
     class HalfSpaceSphere;
     class SphereSphere;
     class HalfSpaceTriangleMesh;
+    class SphereTriangleMesh;
     class TriangleMeshTriangleMesh;
     /**
      * Identify contacts between a pair of bodies.
@@ -116,8 +117,20 @@ public:
     void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
             int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const;
 private:
-    void processBox(const ContactGeometry::TriangleMesh& mesh, ContactGeometry::TriangleMesh::OBBTreeNode node,
+    void processBox(const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh::OBBTreeNode& node,
             const Transform& transform, std::set<int>& insideFaces) const;
+};
+
+/**
+ * This algorithm detects contacts between a ContactGeometry::Sphere and a ContactGeometry::TriangleMesh.
+ */
+class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::SphereTriangleMesh : public CollisionDetectionAlgorithm {
+public:
+    void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
+            int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const;
+private:
+    void processBox(const Vec3& center, Real radius2, const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh::OBBTreeNode& node,
+            std::set<int>& insideFaces) const;
 };
 
 /**

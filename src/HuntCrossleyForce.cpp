@@ -97,6 +97,8 @@ void HuntCrossleyForceImpl::setTransitionVelocity(Real v) {
 
 void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
     const vector<Contact>& contacts = subsystem.getContacts(state, set);
+    Real& pe = Value<Real>::downcast(state.updCacheEntry(subsystem.getMySubsystemIndex(), energyCacheIndex)).upd();
+    pe = 0.0;
     for (int i = 0; i < contacts.size(); i++) {
         if (!PointContact::isInstance(contacts[i]))
             continue;
@@ -119,6 +121,7 @@ void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& b
         const Real radius = contact.getRadius();
         const Real curvature = radius*radius/depth;
         const Real fH = (4.0/3.0)*k*depth*std::sqrt(curvature*k*depth);
+        pe += 2.0/5.0*fH*depth;
         
         // Calculate the relative velocity of the two bodies at the contact point.
         
@@ -160,7 +163,11 @@ void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& b
 }
 
 Real HuntCrossleyForceImpl::calcPotentialEnergy(const State& state) const {
-    return 0;
+    return Value<Real>::downcast(state.getCacheEntry(subsystem.getMySubsystemIndex(), energyCacheIndex)).get();
+}
+
+void HuntCrossleyForceImpl::realizeTopology(State& state) const {
+        energyCacheIndex = state.allocateCacheEntry(subsystem.getMySubsystemIndex(), Stage::Dynamics, new Value<Real>());
 }
 
 } // namespace SimTK

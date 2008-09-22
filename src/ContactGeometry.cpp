@@ -649,6 +649,111 @@ void ContactGeometry::TriangleMeshImpl::splitObbAxis(const vector<int>& parentIn
     }
 }
 
+Vec3 ContactGeometry::TriangleMeshImpl::findNearestPointToFace(const Vec3& position, int face, Vec2& uv) const {
+    // Calculate the distance between a point in space and a face of the mesh.  This algorithm is based on a
+    // description by David Eberly found at http://www.geometrictools.com/Documentation/DistancePoint3Triangle3.pdf.
+    
+    const ContactGeometry::TriangleMeshImpl::Face& fc = faces[face];
+    const Vec3& vert1 = vertices[fc.vertices[0]].pos;
+    const Vec3& vert2 = vertices[fc.vertices[1]].pos;
+    const Vec3& vert3 = vertices[fc.vertices[2]].pos;
+    const Vec3 e0 = vert2-vert1;
+    const Vec3 e1 = vert3-vert1;
+    const Vec3 delta = vert1-position;
+    const Real a = e0.normSqr();
+    const Real b = ~e0*e1;
+    const Real c = e1.normSqr();
+    const Real d = ~e0*delta;
+    const Real e = ~e1*delta;
+    const Real f = delta.normSqr();
+    const Real det = a*c-b*b;
+    Real s = b*e-c*d;
+    Real t = b*d-a*e;
+    if (s+t <= det) {
+        if (s < 0) {
+            if (t < 0) {
+                // Region 4
+
+                if (d < 0) {
+                    s = (-d >= a ? 1 : -d/a);
+                    t = 0;
+                }
+                else {
+                    s = 0;
+                    t = (e >= 0 ? 0 : (-e >= c ? 1 : -e/c));
+                }
+            }
+            else {
+                // Region 3
+
+                s = 0;
+                t = (e >= 0 ? 0 : (-e >= c ? 1 : -e/c));
+            }
+        }
+        else if (t < 0) {
+            // Region 5
+
+            s = (d >= 0 ? 0 : (-d >= a ? 1 : -d/a));
+            t = 0;
+        }
+        else {
+            // Region 0
+
+            const Real invDet = 1.0/det;
+            s *= invDet;
+            t *= invDet;
+        }
+    }
+    else {
+        if (s < 0) {
+            // Region 2
+
+            Real temp0 = b+d;
+            Real temp1 = c+e;
+            if (temp1 > temp0) {
+                Real numer = temp1-temp0;
+                Real denom = a-2*b+c;
+                s = (numer >= denom ? 1 : numer/denom);
+                t = 1-s;
+            }
+            else {
+                s = 0;
+                t = (temp1 <= 0 ? 1 : (e >= 0 ? 0 : -e/c));
+            }
+        }
+        else if (t < 0) {
+            // Region 6
+
+            Real temp0 = b+e;
+            Real temp1 = a+d;
+            if (temp1 > temp0) {
+                Real numer = temp1-temp0;
+                Real denom = a-2*b+c;
+                t = (numer >= denom ? 1 : numer/denom);
+                s = 1-t;
+            }
+            else {
+                s = (temp1 <= 0 ? 1 : (e >= 0 ? 0 : -d/a));
+                t = 0;
+            }
+        }
+        else {
+            // Region 1
+
+            const Real numer = c+e-b-d;
+            if (numer <= 0)
+                s = 0;
+            else {
+                const Real denom = a-2*b+c;
+                s = (numer >= denom ? 1 : numer/denom);
+            }
+            t = 1-s;
+        }
+    }
+    uv = Vec2(1-s-t, s);
+    return vert1 + s*e0 + t*e1;
+}
+
 OBBTreeNodeImpl::OBBTreeNodeImpl(const OBBTreeNodeImpl& copy) : bounds(copy.bounds), triangles(copy.triangles) {
     if (copy.child1 == NULL) {
         child1 = NULL;
@@ -713,120 +818,20 @@ Vec3 OBBTreeNodeImpl::findNearestPoint(const ContactGeometry::TriangleMeshImpl& 
             return child2point;
         }
     }    
-    // This is a leaf node, so check each triangle for its distance to the point.  This algorithm is based on a
-    // description by David Eberly found at http://www.geometrictools.com/Documentation/DistancePoint3Triangle3.pdf.
+    // This is a leaf node, so check each triangle for its distance to the point.
     
     distance2 = MostPositiveReal;
     Vec3 nearestPoint;
     for (int i = 0; i < triangles.size(); i++) {
-        const ContactGeometry::TriangleMeshImpl::Face& fc = mesh.faces[triangles[i]];
-        const Vec3& vert1 = mesh.vertices[fc.vertices[0]].pos;
-        const Vec3& vert2 = mesh.vertices[fc.vertices[1]].pos;
-        const Vec3& vert3 = mesh.vertices[fc.vertices[2]].pos;
-        const Vec3 e0 = vert2-vert1;
-        const Vec3 e1 = vert3-vert1;
-        const Vec3 delta = vert1-position;
-        const Real a = e0.normSqr();
-        const Real b = ~e0*e1;
-        const Real c = e1.normSqr();
-        const Real d = ~e0*delta;
-        const Real e = ~e1*delta;
-        const Real f = delta.normSqr();
-        const Real det = a*c-b*b;
-        Real s = b*e-c*d;
-        Real t = b*d-a*e;
-        if (s+t <= det) {
-            if (s < 0) {
-                if (t < 0) {
-                    // Region 4
-
-                    if (d < 0) {
-                        s = (-d >= a ? 1 : -d/a);
-                        t = 0;
-                    }
-                    else {
-                        s = 0;
-                        t = (e >= 0 ? 0 : (-e >= c ? 1 : -e/c));
-                    }
-                }
-                else {
-                    // Region 3
-                    
-                    s = 0;
-                    t = (e >= 0 ? 0 : (-e >= c ? 1 : -e/c));
-                }
-            }
-            else if (t < 0) {
-                // Region 5
-                
-                s = (d >= 0 ? 0 : (-d >= a ? 1 : -d/a));
-                t = 0;
-            }
-            else {
-                // Region 0
-                
-                const Real invDet = 1.0/det;
-                s *= invDet;
-                t *= invDet;
-            }
-        }
-        else {
-            if (s < 0) {
-                // Region 2
-
-                Real temp0 = b+d;
-                Real temp1 = c+e;
-                if (temp1 > temp0) {
-                    Real numer = temp1-temp0;
-                    Real denom = a-2*b+c;
-                    s = (numer >= denom ? 1 : numer/denom);
-                    t = 1-s;
-                }
-                else {
-                    s = 0;
-                    t = (temp1 <= 0 ? 1 : (e >= 0 ? 0 : -e/c));
-                }
-            }
-            else if (t < 0) {
-                // Region 6
-
-                Real temp0 = b+e;
-                Real temp1 = a+d;
-                if (temp1 > temp0) {
-                    Real numer = temp1-temp0;
-                    Real denom = a-2*b+c;
-                    t = (numer >= denom ? 1 : numer/denom);
-                    s = 1-t;
-                }
-                else {
-                    s = (temp1 <= 0 ? 1 : (e >= 0 ? 0 : -d/a));
-                    t = 0;
-                }
-            }
-            else {
-                // Region 1
-                
-                const Real numer = c+e-b-d;
-                if (numer <= 0)
-                    s = 0;
-                else {
-                    const Real denom = a-2*b+c;
-                    s = (numer >= denom ? 1 : numer/denom);
-                }
-                t = 1-s;
-            }
-        }
-        
-        // We know u and v.  Calculate the point and its distance.
-
-        Vec3 p = vert1 + s*e0 + t*e1;
+        Vec2 triangleUV;
+        Vec3 p = mesh.findNearestPointToFace(position, triangles[i], triangleUV);
         Vec3 offset = p-position;
         Real d2 = offset.normSqr();
         if (d2 < distance2 || (d2 < distance2*(1+tol) && std::abs(~offset*mesh.faces[triangles[i]].normal) > std::abs(~offset*mesh.faces[face].normal))) {
             nearestPoint = p;
             distance2 = d2;
             face = triangles[i];
-            uv = Vec2(1-s-t, s);
+            uv = triangleUV;
         }
     }
     return nearestPoint;
