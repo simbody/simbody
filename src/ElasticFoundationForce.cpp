@@ -33,12 +33,14 @@
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/Contact.h"
-#include "simbody/internal/ContactGeometry.h"
+#include "simbody/internal/ContactGeometryImpl.h"
 #include "simbody/internal/GeneralContactSubsystem.h"
 #include "simbody/internal/MobilizedBody.h"
 #include "ElasticFoundationForceImpl.h"
+#include <map>
 #include <set>
 
+using std::map;
 using std::set;
 using std::vector;
 
@@ -46,44 +48,13 @@ namespace SimTK {
 
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(ElasticFoundationForce, ElasticFoundationForceImpl, Force);
 
-ElasticFoundationForce::ElasticFoundationForce(GeneralForceSubsystem& forces, GeneralContactSubsystem& contacts, ContactSetIndex set, int meshIndex) :
-        Force(new ElasticFoundationForceImpl(contacts, set, meshIndex)) {
+ElasticFoundationForce::ElasticFoundationForce(GeneralForceSubsystem& forces, GeneralContactSubsystem& contacts, ContactSetIndex set) :
+        Force(new ElasticFoundationForceImpl(contacts, set)) {
     updImpl().setForceIndex(forces.adoptForce(*this));
-    const ContactGeometry::TriangleMesh& mesh = static_cast<const ContactGeometry::TriangleMesh&>(contacts.getBodyGeometry(set, meshIndex));
-    updImpl().springPosition.resize(mesh.getNumFaces());
-    updImpl().springNormal.resize(mesh.getNumFaces());
-    updImpl().springArea.resize(mesh.getNumFaces());
-    Vec2 uv(1.0/3.0, 1.0/3.0);
-    for (int i = 0; i < getImpl().springPosition.size(); i++) {
-        updImpl().springPosition[i] = (mesh.getVertexPosition(mesh.getFaceVertex(i, 0))+mesh.getVertexPosition(mesh.getFaceVertex(i, 1))+mesh.getVertexPosition(mesh.getFaceVertex(i, 2)))/3.0;
-        updImpl().springNormal[i] = -mesh.findNormalAtPoint(i, uv);
-        updImpl().springArea[i] = mesh.getFaceArea(i);
-    }
 }
 
-Real ElasticFoundationForce::getYoungsModulus() const {
-    return getImpl().young;
-}
-
-void ElasticFoundationForce::setYoungsModulus(Real v) {
-    updImpl().young = v;
-}
-
-Real ElasticFoundationForce::getPoissonsRatio() const {
-    return getImpl().poisson;
-}
-
-void ElasticFoundationForce::setPoissonsRatio(Real v) {
-    SimTK_APIARGCHECK1(v > -1 && v < 0.5, "ElasticFoundationForce", "setPoissonsRatio", "Illegal value: %f", v);
-    updImpl().poisson = v;
-}
-
-Real ElasticFoundationForce::getThickness() const {
-    return getImpl().thickness;
-}
-
-void ElasticFoundationForce::setThickness(Real v) {
-    updImpl().thickness = v;
+void ElasticFoundationForce::setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) {
+    updImpl().setBodyParameters(bodyIndex, stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction);
 }
 
 Real ElasticFoundationForce::getTransitionVelocity() const {
@@ -94,8 +65,28 @@ void ElasticFoundationForce::setTransitionVelocity(Real v) {
     updImpl().transitionVelocity = v;
 }
 
-ElasticFoundationForceImpl::ElasticFoundationForceImpl(GeneralContactSubsystem& subsystem, ContactSetIndex set, int meshIndex) : 
-        subsystem(subsystem), set(set), meshIndex(meshIndex), young(0), poisson(0), thickness(1), transitionVelocity(0.001), energyCacheIndex(-1) {
+ElasticFoundationForceImpl::ElasticFoundationForceImpl(GeneralContactSubsystem& subsystem, ContactSetIndex set) : 
+        subsystem(subsystem), set(set), transitionVelocity(0.001), energyCacheIndex(-1) {
+}
+
+void ElasticFoundationForceImpl::setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) {
+    SimTK_APIARGCHECK1(bodyIndex >= 0 && bodyIndex < subsystem.getNumBodies(set), "ElasticFoundationForceImpl", "setBodyParameters",
+            "Illegal body index: %d", bodyIndex);
+    SimTK_APIARGCHECK1(subsystem.getBodyGeometry(set, bodyIndex).getType() == ContactGeometry::TriangleMeshImpl::Type(), "ElasticFoundationForceImpl", "setBodyParameters",
+            "Body %d is not a triangle mesh", bodyIndex);
+    parameters[bodyIndex] = Parameters(stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction);
+    const ContactGeometry::TriangleMesh& mesh = static_cast<const ContactGeometry::TriangleMesh&>(subsystem.getBodyGeometry(set, bodyIndex));
+    Parameters& param = parameters[bodyIndex];
+    param.springPosition.resize(mesh.getNumFaces());
+    param.springNormal.resize(mesh.getNumFaces());
+    param.springArea.resize(mesh.getNumFaces());
+    Vec2 uv(1.0/3.0, 1.0/3.0);
+    for (int i = 0; i < param.springPosition.size(); i++) {
+        param.springPosition[i] = (mesh.getVertexPosition(mesh.getFaceVertex(i, 0))+mesh.getVertexPosition(mesh.getFaceVertex(i, 1))+mesh.getVertexPosition(mesh.getFaceVertex(i, 2)))/3.0;
+        param.springNormal[i] = -mesh.findNormalAtPoint(i, uv);
+        param.springArea[i] = mesh.getFaceArea(i);
+    }
+    subsystem.invalidateSubsystemTopologyCache();
 }
 
 void ElasticFoundationForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
@@ -103,96 +94,74 @@ void ElasticFoundationForceImpl::calcForce(const State& state, Vector_<SpatialVe
     Real& pe = Value<Real>::downcast(state.updCacheEntry(subsystem.getMySubsystemIndex(), energyCacheIndex)).upd();
     pe = 0.0;
     for (int i = 0; i < contacts.size(); i++) {
-        if (contacts[i].getFirstBody() != meshIndex && contacts[i].getSecondBody() != meshIndex)
-            continue;
-        const TriangleMeshContact& contact = static_cast<const TriangleMeshContact&>(contacts[i]);
-        bool meshIsFirst = (contact.getFirstBody() == meshIndex);
-        const std::set<int>& insideFaces = (meshIsFirst ? contact.getFirstBodyFaces() : contact.getSecondBodyFaces());
-        int otherBodyIndex = meshIsFirst ? contact.getSecondBody() : contact.getFirstBody();
-        const ContactGeometry& otherObject = subsystem.getBodyGeometry(set, otherBodyIndex);
-        const MobilizedBody& body1 = subsystem.getBody(set, meshIndex);
-        const MobilizedBody& body2 = subsystem.getBody(set, otherBodyIndex);
-        const Transform t1g = body1.getBodyTransform(state)*subsystem.getBodyTransform(set, meshIndex); // mesh to ground
-        const Transform t2g = body2.getBodyTransform(state)*subsystem.getBodyTransform(set, otherBodyIndex); // other object to ground
-        const Transform t12 = ~t2g*t1g; // mesh to other object
-
-        // Loop over all the springs, and evaluate the force from each one.
-        
-        Real k = young*(1-poisson)/((1+poisson)*(1-2*poisson)*thickness);
-        for (std::set<int>::const_iterator iter = insideFaces.begin(); iter != insideFaces.end(); ++iter) {
-            UnitVec3 normal;
-            int face = *iter;
-            
-            bool inside;
-            Vec3 nearestPoint = otherObject.findNearestPoint(t12*springPosition[face], inside, normal);
-            if (!inside)
-                continue;
-            nearestPoint = t2g*nearestPoint;
-            const Vec3 springPosInGround = t1g*springPosition[face];
-            const Vec3 displacement = nearestPoint-springPosInGround;
-            Vec3 force = k*springArea[face]*displacement;
-            const Vec3 station1 = body1.findStationAtGroundPoint(state, nearestPoint);
-            const Vec3 station2 = body2.findStationAtGroundPoint(state, nearestPoint);
-            body1.applyForceToBodyPoint(state, station1, force, bodyForces);
-            body2.applyForceToBodyPoint(state, station2, -force, bodyForces);
-            pe += 0.5*k*springArea[face]*displacement.normSqr();
+        map<int, Parameters>::const_iterator iter = parameters.find(contacts[i].getFirstBody());
+        if (iter != parameters.end()) {
+            const TriangleMeshContact& contact = static_cast<const TriangleMeshContact&>(contacts[i]);
+            processContact(state, contact.getFirstBody(), contact.getSecondBody(), iter->second, contact.getFirstBodyFaces(), bodyForces, pe);
         }
+        iter = parameters.find(contacts[i].getSecondBody());
+        if (iter != parameters.end()) {
+            const TriangleMeshContact& contact = static_cast<const TriangleMeshContact&>(contacts[i]);
+            processContact(state, contact.getSecondBody(), contact.getFirstBody(), iter->second, contact.getSecondBodyFaces(), bodyForces, pe);
+        }
+    }
+}
+
+void ElasticFoundationForceImpl::processContact(const State& state, int meshIndex, int otherBodyIndex, const Parameters& param, const std::set<int>& insideFaces, Vector_<SpatialVec>& bodyForces, Real& pe) const {
+    const ContactGeometry& otherObject = subsystem.getBodyGeometry(set, otherBodyIndex);
+    const MobilizedBody& body1 = subsystem.getBody(set, meshIndex);
+    const MobilizedBody& body2 = subsystem.getBody(set, otherBodyIndex);
+    const Transform t1g = body1.getBodyTransform(state)*subsystem.getBodyTransform(set, meshIndex); // mesh to ground
+    const Transform t2g = body2.getBodyTransform(state)*subsystem.getBodyTransform(set, otherBodyIndex); // other object to ground
+    const Transform t12 = ~t2g*t1g; // mesh to other object
+
+    // Loop over all the springs, and evaluate the force from each one.
+
+    for (std::set<int>::const_iterator iter = insideFaces.begin(); iter != insideFaces.end(); ++iter) {
+        int face = *iter;
+        UnitVec3 normal;
+        bool inside;
+        Vec3 nearestPoint = otherObject.findNearestPoint(t12*param.springPosition[face], inside, normal);
+        if (!inside)
+            continue;
         
-//        const Parameters& param1 = getParameters(contacts[i].getFirstBody());
-//        const Parameters& param2 = getParameters(contacts[i].getSecondBody());
-//        
-//        // Adjust the contact location based on the relative stiffness of the two materials.
-//        
-//        const Real s1 = param2.stiffness/(param1.stiffness+param2.stiffness);
-//        const Real s2 = 1-s1;
-//        const Real depth = contacts[i].getDepth();
-//        const Vec3& normal = contacts[i].getNormal();
-//        const Vec3 location = contacts[i].getLocation()+(depth*(0.5-s1))*normal;
-//        
-//        // Calculate the Hertz force.
-//
-//        const Real k = param1.stiffness*s1;
-//        const Real c = param1.dissipation*s1 + param2.dissipation*s2;
-//        const Real radius = contacts[i].getRadius();
-//        const Real curvature = radius*radius/depth;
-//        const Real fH = (4.0/3.0)*k*depth*std::sqrt(curvature*k*depth);
-//        
-//        // Calculate the relative velocity of the two bodies at the contact point.
-//        
-//        const MobilizedBody& body1 = subsystem.getBody(set, contacts[i].getFirstBody());
-//        const MobilizedBody& body2 = subsystem.getBody(set, contacts[i].getSecondBody());
-//        const Vec3 station1 = body1.findStationAtGroundPoint(state, location);
-//        const Vec3 station2 = body2.findStationAtGroundPoint(state, location);
-//        const Vec3 v1 = body1.findStationVelocityInGround(state, station1);
-//        const Vec3 v2 = body2.findStationVelocityInGround(state, station2);
-//        const Vec3 v = v1-v2;
-//        const Real vnormal = dot(v, normal);
-//        const Vec3 vtangent = v-vnormal*normal;
-//        
-//        // Calculate the Hunt-Crossley force.
-//        
-//        const Real f = fH*(1+1.5*c*vnormal);
-//        Vec3 force = (f > 0 ? f*normal : Vec3(0));
-//        
-//        // Calculate the friction force.
-//        
-//        const Real vslip = vtangent.norm();
-//        if (vslip != 0) {
-//            const bool hasStatic = (param1.staticFriction != 0 || param2.staticFriction != 0);
-//            const bool hasDynamic= (param1.dynamicFriction != 0 || param2.dynamicFriction != 0);
-//            const bool hasViscous = (param1.viscousFriction != 0 || param2.viscousFriction != 0);
-//            const Real us = hasStatic ? 2*param1.staticFriction*param2.staticFriction/(param1.staticFriction+param2.staticFriction) : 0;
-//            const Real ud = hasDynamic ? 2*param1.dynamicFriction*param2.dynamicFriction/(param1.dynamicFriction+param2.dynamicFriction) : 0;
-//            const Real uv = hasViscous ? 2*param1.viscousFriction*param2.viscousFriction/(param1.viscousFriction+param2.viscousFriction) : 0;
-//            const Real vrel = vslip/getTransitionVelocity();
-//            const Real ffriction = f*(std::min(vrel, 1.0)*(ud+2*(us-ud)/(1+vrel*vrel))+uv*vslip);
-//            force += ffriction*vtangent/vslip;
-//        }
-//        
-//        // Apply the force to the bodies.
-//        
-//        body1.applyForceToBodyPoint(state, station1, -force, bodyForces);
-//        body2.applyForceToBodyPoint(state, station2, force, bodyForces);
+        // Find how much the spring is displaced.
+        
+        nearestPoint = t2g*nearestPoint;
+        const Vec3 springPosInGround = t1g*param.springPosition[face];
+        const Vec3 displacement = nearestPoint-springPosInGround;
+        const Real distance = displacement.norm();
+        if (distance == 0.0)
+            continue;
+        const Vec3 forceDir = displacement/distance;
+        
+        // Calculate the relative velocity of the two bodies at the contact point.
+        
+        const Vec3 station1 = body1.findStationAtGroundPoint(state, nearestPoint);
+        const Vec3 station2 = body2.findStationAtGroundPoint(state, nearestPoint);
+        const Vec3 v1 = body1.findStationVelocityInGround(state, station1);
+        const Vec3 v2 = body2.findStationVelocityInGround(state, station2);
+        const Vec3 v = v2-v1;
+        const Real vnormal = dot(v, forceDir);
+        const Vec3 vtangent = v-vnormal*forceDir;
+        
+        // Calculate the damping force.
+        
+        const Real f = param.stiffness*param.springArea[face]*(distance+param.dissipation*vnormal);
+        Vec3 force = (f > 0 ? f*forceDir : Vec3(0));
+        
+        // Calculate the friction force.
+        
+        const Real vslip = vtangent.norm();
+        if (f > 0 && vslip != 0) {
+            const Real vrel = vslip/transitionVelocity;
+            const Real ffriction = f*(std::min(vrel, 1.0)*(param.dynamicFriction+2*(param.staticFriction-param.dynamicFriction)/(1+vrel*vrel))+param.viscousFriction*vslip);
+            force += ffriction*vtangent/vslip;
+        }
+
+        body1.applyForceToBodyPoint(state, station1, force, bodyForces);
+        body2.applyForceToBodyPoint(state, station2, -force, bodyForces);
+        pe += 0.5*param.stiffness*param.springArea[face]*displacement.normSqr();
     }
 }
 

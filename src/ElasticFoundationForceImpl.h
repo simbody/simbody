@@ -41,24 +41,35 @@ namespace SimTK {
 class ElasticFoundationForceImpl : public ForceImpl {
 public:
     class Parameters;
-    ElasticFoundationForceImpl(GeneralContactSubsystem& subystem, ContactSetIndex set, int meshIndex);
+    ElasticFoundationForceImpl(GeneralContactSubsystem& subystem, ContactSetIndex set);
     ElasticFoundationForceImpl* clone() const {
         return new ElasticFoundationForceImpl(*this);
     }
+    void setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction);
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
     Real calcPotentialEnergy(const State& state) const;
     void realizeTopology(State& state) const;
+    void processContact(const State& state, int meshIndex, int otherBodyIndex, const Parameters& param, const std::set<int>& insideFaces, Vector_<SpatialVec>& bodyForces, Real& pe) const;
 private:
     friend class ElasticFoundationForce;
     const GeneralContactSubsystem& subsystem;
     const ContactSetIndex set;
-    const int meshIndex;
+    std::map<int, Parameters> parameters;
+    Real transitionVelocity;
+    mutable int energyCacheIndex;
+};
+
+class ElasticFoundationForceImpl::Parameters {
+public:
+    Parameters() : stiffness(1), dissipation(0), staticFriction(0), dynamicFriction(0), viscousFriction(0) {
+    }
+    Parameters(Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) :
+            stiffness(stiffness), dissipation(dissipation), staticFriction(staticFriction), dynamicFriction(dynamicFriction), viscousFriction(viscousFriction) {
+    }
+    Real stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction;
     std::vector<Vec3> springPosition;
     std::vector<UnitVec3> springNormal;
     std::vector<Real> springArea;
-    Real young, poisson, thickness;
-    Real transitionVelocity;
-    mutable int energyCacheIndex;
 };
 
 } // namespace SimTK

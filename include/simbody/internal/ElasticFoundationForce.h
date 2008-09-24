@@ -50,15 +50,9 @@ public:
      * 
      * @param contacts       the subsystem to which this contact model should be applied
      * @param contactSet     the index of the contact set to which this contact model will be applied
-     * @param meshIndex      the index within the contact set of the triangle mesh this force applies to
      */
-    ElasticFoundationForce(GeneralForceSubsystem& forces, GeneralContactSubsystem& contacts, ContactSetIndex contactSet, int meshIndex);
-    Real getYoungsModulus() const;
-    void setYoungsModulus(Real v);
-    Real getPoissonsRatio() const;
-    void setPoissonsRatio(Real v);
-    Real getThickness() const;
-    void setThickness(Real v);
+    ElasticFoundationForce(GeneralForceSubsystem& forces, GeneralContactSubsystem& contacts, ContactSetIndex contactSet);
+    void setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction);
     Real getTransitionVelocity() const;
     void setTransitionVelocity(Real v);
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(ElasticFoundationForce, ElasticFoundationForceImpl, Force);
