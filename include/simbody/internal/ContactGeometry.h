@@ -341,6 +341,11 @@ public:
      * Get the indices of all triangles contained in this node.  Calling this on a non-leaf node will produce an exception.
      */
     const std::vector<int>& getTriangles() const;
+    /**
+     * Get the number of triangles inside this node.  If this is not a leaf node, this is the total number
+     * of triangles contained by all children of this node.
+     */
+    int getNumTriangles() const;
 private:
     const OBBTreeNodeImpl* impl;
 };

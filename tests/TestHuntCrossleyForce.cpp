@@ -78,8 +78,9 @@ void testForces() {
     HuntCrossleyForce hc(forces, contacts, setIndex);
     hc.setBodyParameters(0, k1, dissipation1, us1, ud1, uv1);
     hc.setBodyParameters(1, k2, dissipation2, us2, ud2, uv2);
-    const Real vt = hc.getTransitionVelocity();
-    assertEqual(0.001, vt);
+    const Real vt = 0.001;
+    hc.setTransitionVelocity(vt);
+    assertEqual(vt, hc.getTransitionVelocity());
     State state = system.realizeTopology();
     
     // Position the sphere at a variety of positions and check the normal force.

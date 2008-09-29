@@ -66,7 +66,7 @@ void ElasticFoundationForce::setTransitionVelocity(Real v) {
 }
 
 ElasticFoundationForceImpl::ElasticFoundationForceImpl(GeneralContactSubsystem& subsystem, ContactSetIndex set) : 
-        subsystem(subsystem), set(set), transitionVelocity(0.001), energyCacheIndex(-1) {
+        subsystem(subsystem), set(set), transitionVelocity(0.01), energyCacheIndex(-1) {
 }
 
 void ElasticFoundationForceImpl::setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) {

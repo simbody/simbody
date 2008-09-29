@@ -116,6 +116,7 @@ public:
     OBBTreeNodeImpl* child1;
     OBBTreeNodeImpl* child2;
     std::vector<int> triangles;
+    int numTriangles;
     Vec3 findNearestPoint(const ContactGeometry::TriangleMeshImpl& mesh, const Vec3& position, Real cutoff2, Real& distance2, int& face, Vec2& uv) const;
     bool intersectsRay(const ContactGeometry::TriangleMeshImpl& mesh, const Vec3& origin, const UnitVec3& direction, Real& distance, int& face, Vec2& uv) const;
 };

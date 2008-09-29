@@ -66,8 +66,8 @@ void CollisionDetectionAlgorithm::registerAlgorithm(const std::string& type1, co
 }
 
 CollisionDetectionAlgorithm* CollisionDetectionAlgorithm::getAlgorithm(int typeIndex1, int typeIndex2) {
-    map<pair<int, int>, CollisionDetectionAlgorithm*> algorithmMap = getAlgorithmMap();
-    map<pair<int, int>, CollisionDetectionAlgorithm*>::iterator iter = algorithmMap.find(pair<int, int>(typeIndex1, typeIndex2));
+    const map<pair<int, int>, CollisionDetectionAlgorithm*>& algorithmMap = getAlgorithmMap();
+    map<pair<int, int>, CollisionDetectionAlgorithm*>::const_iterator iter = algorithmMap.find(pair<int, int>(typeIndex1, typeIndex2));
     if (iter == algorithmMap.end())
         return NULL;
     return iter->second;
@@ -117,27 +117,33 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processObjects(int inde
     const ContactGeometry::TriangleMesh& mesh = static_cast<const ContactGeometry::TriangleMesh&>(object2);
     Transform transform = (~transform1)*transform2; // Transform from the mesh's coordinate frame to the half-space's coordinate frame
     set<int> insideFaces;
-    processBox(mesh, mesh.getOBBTreeNode(), transform, insideFaces);
+    Vec3 axisDir = ~transform.R()*Vec3(-1, 0, 0);
+    Real xoffset = ~axisDir*(~transform*Vec3(0));
+    processBox(mesh, mesh.getOBBTreeNode(), transform, axisDir, xoffset, insideFaces);
     if (insideFaces.size() > 0)
         contacts.push_back(TriangleMeshContact(index1, index2, set<int>(), insideFaces));
 }
 
-void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processBox(const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh::OBBTreeNode& node, const Transform& transform, set<int>& insideFaces) const {
+void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processBox(const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh::OBBTreeNode& node, const Transform& transform, const Vec3& axisDir, Real xoffset, set<int>& insideFaces) const {
     // First check against the node's bounding box.
-
-    OrientedBoundingBox bounds = transform*node.getBounds();
-    const Mat33& r = bounds.getTransform().R().asMat33();
+    
+    OrientedBoundingBox bounds = node.getBounds();
     const Vec3 b = 0.5*bounds.getSize();
-    const Vec3 boxCenter = bounds.getTransform()*b;
-    Real radius = r.row(0).abs()*b;
-    if (boxCenter[0] < -radius)
+    Vec3 boxCenter = bounds.getTransform()*b;
+    Real radius = ~b*(~bounds.getTransform().R()*axisDir).abs();
+    Real dist = ~axisDir*boxCenter-xoffset;
+    if (dist > radius)
         return;
+    if (dist < -radius) {
+        addAllTriangles(node, insideFaces);
+        return;
+    }
     
     // If it is not a leaf node, check its children.
     
     if (!node.isLeafNode()) {
-        processBox(mesh, node.getFirstChildNode(), transform, insideFaces);
-        processBox(mesh, node.getSecondChildNode(), transform, insideFaces);
+        processBox(mesh, node.getFirstChildNode(), transform, axisDir, xoffset, insideFaces);
+        processBox(mesh, node.getSecondChildNode(), transform, axisDir, xoffset, insideFaces);
         return;
     }
     
@@ -153,6 +159,18 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processBox(const Contac
             insideFaces.insert(triangles[i]);
         else if (xdir*mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], 2))+tx > 0)
             insideFaces.insert(triangles[i]);
+    }
+}
+
+void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::addAllTriangles(const ContactGeometry::TriangleMesh::OBBTreeNode& node, std::set<int>& insideFaces) const {
+    if (node.isLeafNode()) {
+        const vector<int>& triangles = node.getTriangles();
+        for (int i = 0; i < triangles.size(); i++)
+            insideFaces.insert(triangles[i]);
+    }
+    else {
+        addAllTriangles(node.getFirstChildNode(), insideFaces);
+        addAllTriangles(node.getSecondChildNode(), insideFaces);
     }
 }
 
@@ -201,7 +219,8 @@ void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::processObjects(int i
     Transform transform = (~transform1)*transform2; // Transform from mesh2's coordinate frame to mesh1's coordinate frame
     set<int> triangles1;
     set<int> triangles2;
-    processNodes(mesh1, mesh2, mesh1.getOBBTreeNode(), mesh2.getOBBTreeNode(), transform, triangles1, triangles2);
+    OrientedBoundingBox mesh2Bounds = transform*mesh2.getOBBTreeNode().getBounds();
+    processNodes(mesh1, mesh2, mesh1.getOBBTreeNode(), mesh2.getOBBTreeNode(), mesh2Bounds, transform, triangles1, triangles2);
     if (triangles1.size() == 0)
         return; // No intersection.
     
@@ -216,31 +235,35 @@ extern "C" int tri_tri_overlap_test_3d(const Real p1[3], const Real q1[3], const
 			    const Real p2[3], const Real q2[3], const Real r2[3]);
 
 void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::processNodes(const ContactGeometry::TriangleMesh& mesh1, const ContactGeometry::TriangleMesh& mesh2,
-        const ContactGeometry::TriangleMesh::OBBTreeNode& node1, const ContactGeometry::TriangleMesh::OBBTreeNode& node2,
+        const ContactGeometry::TriangleMesh::OBBTreeNode& node1, const ContactGeometry::TriangleMesh::OBBTreeNode& node2, const OrientedBoundingBox& node2Bounds,
         const Transform& transform, set<int>& triangles1, set<int>& triangles2) const {
     // See if the bounding boxes intersect.
     
-    if (!node1.getBounds().intersectsBox(transform*node2.getBounds()))
+    if (!node1.getBounds().intersectsBox(node2Bounds))
         return;
     
     // If either node is not a leaf node, process the children recursively.
     
     if (!node1.isLeafNode()) {
         if (!node2.isLeafNode()) {
-            processNodes(mesh1, mesh2, node1.getFirstChildNode(), node2.getFirstChildNode(), transform, triangles1, triangles2);
-            processNodes(mesh1, mesh2, node1.getFirstChildNode(), node2.getSecondChildNode(), transform, triangles1, triangles2);
-            processNodes(mesh1, mesh2, node1.getSecondChildNode(), node2.getFirstChildNode(), transform, triangles1, triangles2);
-            processNodes(mesh1, mesh2, node1.getSecondChildNode(), node2.getSecondChildNode(), transform, triangles1, triangles2);
+            OrientedBoundingBox firstChildBounds = transform*node2.getFirstChildNode().getBounds();
+            OrientedBoundingBox secondChildBounds = transform*node2.getSecondChildNode().getBounds();
+            processNodes(mesh1, mesh2, node1.getFirstChildNode(), node2.getFirstChildNode(), firstChildBounds, transform, triangles1, triangles2);
+            processNodes(mesh1, mesh2, node1.getFirstChildNode(), node2.getSecondChildNode(), secondChildBounds, transform, triangles1, triangles2);
+            processNodes(mesh1, mesh2, node1.getSecondChildNode(), node2.getFirstChildNode(), firstChildBounds, transform, triangles1, triangles2);
+            processNodes(mesh1, mesh2, node1.getSecondChildNode(), node2.getSecondChildNode(), secondChildBounds, transform, triangles1, triangles2);
         }
         else {
-            processNodes(mesh1, mesh2, node1.getFirstChildNode(), node2, transform, triangles1, triangles2);
-            processNodes(mesh1, mesh2, node1.getSecondChildNode(), node2, transform, triangles1, triangles2);
+            processNodes(mesh1, mesh2, node1.getFirstChildNode(), node2, node2Bounds, transform, triangles1, triangles2);
+            processNodes(mesh1, mesh2, node1.getSecondChildNode(), node2, node2Bounds, transform, triangles1, triangles2);
         }
         return;
     }
     else if (!node2.isLeafNode()) {
-        processNodes(mesh1, mesh2, node1, node2.getFirstChildNode(), transform, triangles1, triangles2);
-        processNodes(mesh1, mesh2, node1, node2.getSecondChildNode(), transform, triangles1, triangles2);
+        OrientedBoundingBox firstChildBounds = transform*node2.getFirstChildNode().getBounds();
+        OrientedBoundingBox secondChildBounds = transform*node2.getSecondChildNode().getBounds();
+        processNodes(mesh1, mesh2, node1, node2.getFirstChildNode(), firstChildBounds, transform, triangles1, triangles2);
+        processNodes(mesh1, mesh2, node1, node2.getSecondChildNode(), secondChildBounds, transform, triangles1, triangles2);
         return;
     }
     

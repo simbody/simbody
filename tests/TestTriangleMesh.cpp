@@ -191,6 +191,7 @@ void validateOBBTree(const ContactGeometry::TriangleMesh& mesh, ContactGeometry:
     if (node.isLeafNode()) {
         const vector<int>& triangles = node.getTriangles();
         ASSERT(triangles.size() > 0);
+        ASSERT(triangles.size() == node.getNumTriangles());
         for (int i = 0; i < triangles.size(); i++) {
             faceReferenceCount[triangles[i]]++;
             for (int j = 0; j < 3; j++) {
@@ -220,6 +221,7 @@ void validateOBBTree(const ContactGeometry::TriangleMesh& mesh, ContactGeometry:
         }
         validateOBBTree(mesh, node.getFirstChildNode(), node, faceReferenceCount);
         validateOBBTree(mesh, node.getSecondChildNode(), node, faceReferenceCount);
+        ASSERT(node.getNumTriangles() == node.getFirstChildNode().getNumTriangles()+node.getSecondChildNode().getNumTriangles());
     }
 }
 

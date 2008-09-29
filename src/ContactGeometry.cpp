@@ -543,6 +543,7 @@ void ContactGeometry::TriangleMeshImpl::init(const std::vector<Vec3>& vertexPosi
 void ContactGeometry::TriangleMeshImpl::createObbTree(OBBTreeNodeImpl& node, const vector<int>& faceIndices) {
     // Find all vertices in the node and build the OrientedBoundingBox.
 
+    node.numTriangles = faceIndices.size();
     set<int> vertexIndices;
     for (int i = 0; i < faceIndices.size(); i++) 
         for (int j = 0; j < 3; j++)
@@ -754,7 +755,7 @@ Vec3 ContactGeometry::TriangleMeshImpl::findNearestPointToFace(const Vec3& posit
     return vert1 + s*e0 + t*e1;
 }
 
-OBBTreeNodeImpl::OBBTreeNodeImpl(const OBBTreeNodeImpl& copy) : bounds(copy.bounds), triangles(copy.triangles) {
+OBBTreeNodeImpl::OBBTreeNodeImpl(const OBBTreeNodeImpl& copy) : bounds(copy.bounds), triangles(copy.triangles), numTriangles(copy.numTriangles) {
     if (copy.child1 == NULL) {
         child1 = NULL;
         child2 = NULL;
@@ -977,4 +978,8 @@ const ContactGeometry::TriangleMesh::OBBTreeNode ContactGeometry::TriangleMesh::
 const std::vector<int>& ContactGeometry::TriangleMesh::OBBTreeNode::getTriangles() const {
     SimTK_ASSERT_ALWAYS(impl->child2 == NULL, "Called getTriangles() on a non-leaf node");
     return impl->triangles;
+}
+
+int ContactGeometry::TriangleMesh::OBBTreeNode::getNumTriangles() const {
+    return impl->numTriangles;
 }

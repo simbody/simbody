@@ -118,7 +118,8 @@ public:
             int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const;
 private:
     void processBox(const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh::OBBTreeNode& node,
-            const Transform& transform, std::set<int>& insideFaces) const;
+            const Transform& transform, const Vec3& axisDir, Real xoffset, std::set<int>& insideFaces) const;
+    void addAllTriangles(const ContactGeometry::TriangleMesh::OBBTreeNode& node, std::set<int>& insideFaces) const;
 };
 
 /**
@@ -143,7 +144,7 @@ public:
 private:
     void processNodes(const ContactGeometry::TriangleMesh& mesh1, const ContactGeometry::TriangleMesh& mesh2,
             const ContactGeometry::TriangleMesh::OBBTreeNode& node1, const ContactGeometry::TriangleMesh::OBBTreeNode& node2,
-            const Transform& transform, std::set<int>& triangles1, std::set<int>& triangles2) const;
+            const OrientedBoundingBox& node2Bounds, const Transform& transform, std::set<int>& triangles1, std::set<int>& triangles2) const;
     void findInsideTriangles(const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh& otherMesh,
         const Transform& transform, std::set<int>& triangles) const;
     void tagFaces(const ContactGeometry::TriangleMesh& mesh, std::vector<int>& faceType, std::set<int>& triangles, int index) const;

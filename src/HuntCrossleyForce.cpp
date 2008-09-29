@@ -62,7 +62,7 @@ void HuntCrossleyForce::setTransitionVelocity(Real v) {
 }
 
 HuntCrossleyForceImpl::HuntCrossleyForceImpl(GeneralContactSubsystem& subsystem, ContactSetIndex set) : 
-        subsystem(subsystem), set(set), transitionVelocity(0.001) {
+        subsystem(subsystem), set(set), transitionVelocity(0.01) {
 }
 
 void HuntCrossleyForceImpl::setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) {
