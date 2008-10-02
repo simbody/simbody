@@ -227,6 +227,19 @@ void testByComparingToSDFAST() {
     assertEqual(~body2.getBodyTransform(state).R()*reaction[body2.getMobilizedBodyIndex()], SpatialVec(Vec3(1.688077, 0.351125, 0), Vec3(55.399123, 267.455570, 3.342380)), 1e-5);
     assertEqual(~body3.getBodyTransform(state).R()*reaction[body3.getMobilizedBodyIndex()], SpatialVec(Vec3(0, 0, 0), Vec3(-17.757553, 174.663042, -11.383057)), 1e-5);
     assertEqual(~body4.getBodyTransform(state).R()*reaction[body4.getMobilizedBodyIndex()], SpatialVec(Vec3(0.910890, 0.082353, 0), Vec3(-13.977214, 74.444715, 4.943682)), 1e-5);
+    
+    // Try giving it momentum.
+
+    state.updQ() = 0.0;
+    body2.setOneU(state, 0, 1);
+    body3.setUToFitAngularVelocity(state, Vec3(3, 4, 2));
+    body4.setOneU(state, 0, 5);
+    system.realize(state, Stage::Acceleration);
+    matter.calcMobilizerReactionForces(state, reaction);
+    assertEqual(~body1.getBodyTransform(state).R()*reaction[body1.getMobilizedBodyIndex()], SpatialVec(Vec3(-13.549253, 2.723897, -6.355912), Vec3(0, 34.0, -27.088584)), 1e-5);
+    assertEqual(~body2.getBodyTransform(state).R()*reaction[body2.getMobilizedBodyIndex()], SpatialVec(Vec3(-10.840395, 0.015039, 0), Vec3(-0.440882, -64.0, -27.088584)), 1e-5);
+    assertEqual(~body3.getBodyTransform(state).R()*reaction[body3.getMobilizedBodyIndex()], SpatialVec(Vec3(0, 0, 0), Vec3(0.692814, -256.000000, -27.088584)), 1e-5);
+    assertEqual(~body4.getBodyTransform(state).R()*reaction[body4.getMobilizedBodyIndex()], SpatialVec(Vec3(3.276930, -0.281928, 0), Vec3(3.796164, -372.0, 21.472977)), 1e-5);
 }
 
 /**
