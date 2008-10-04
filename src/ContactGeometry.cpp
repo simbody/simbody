@@ -97,6 +97,10 @@ Vec3 ContactGeometry::findNearestPoint(const Vec3& position, bool& inside, UnitV
     return getImpl().findNearestPoint(position, inside, normal);
 }
 
+void ContactGeometry::getBoundingSphere(Vec3& center, Real& radius) const {
+    getImpl().getBoundingSphere(center, radius);
+}
+
 ContactGeometryImpl::ContactGeometryImpl(const string& type) : myHandle(0), type(type), typeIndex(getIndexForType(type)) {
 }
 
@@ -134,6 +138,11 @@ bool ContactGeometry::HalfSpaceImpl::intersectsRay(const Vec3& origin, const Uni
     distance = -t;
     normal = UnitVec3(-1, 0, 0);
     return true;
+}
+
+void ContactGeometry::HalfSpaceImpl::getBoundingSphere(Vec3& center, Real& radius) const {
+    center = Vec3(0);
+    radius = Infinity;
 }
 
 ContactGeometry::Sphere::Sphere(Real radius) : ContactGeometry(new SphereImpl(radius)) {
@@ -187,6 +196,11 @@ bool ContactGeometry::SphereImpl::intersectsRay(const Vec3& origin, const UnitVe
       }
     normal = UnitVec3(origin+distance*direction);
     return true;
+}
+
+void ContactGeometry::SphereImpl::getBoundingSphere(Vec3& center, Real& radius) const {
+    center = Vec3(0);
+    radius = this->radius;
 }
 
 ContactGeometry::TriangleMesh::TriangleMesh(const vector<Vec3>& vertices, const vector<int>& faceIndices, bool smooth) : ContactGeometry(new TriangleMeshImpl(vertices, faceIndices, smooth)) {
@@ -329,6 +343,11 @@ bool ContactGeometry::TriangleMeshImpl::intersectsRay(const Vec3& origin, const 
     if (!obb.bounds.intersectsRay(origin, direction, boundsDistance))
         return false;
     return obb.intersectsRay(*this, origin, direction, distance, face, uv);
+}
+
+void ContactGeometry::TriangleMeshImpl::getBoundingSphere(Vec3& center, Real& radius) const {
+    center = boundingSphereCenter;
+    radius = boundingSphereRadius;
 }
 
 ContactGeometry::TriangleMesh::OBBTreeNode ContactGeometry::TriangleMesh::getOBBTreeNode() const {
@@ -538,6 +557,15 @@ void ContactGeometry::TriangleMeshImpl::init(const std::vector<Vec3>& vertexPosi
     for (int i = 0; i < allFaces.size(); i++)
         allFaces[i] = i;
     createObbTree(obb, allFaces);
+    
+    // Find the bounding sphere.
+    
+    Vec3** points = new Vec3*[vertices.size()];
+    for (int i = 0; i < vertices.size(); i++)
+        points[i] = &vertices[i].pos;
+    findBoundingSphere(points, vertices.size(), 0, boundingSphereCenter, boundingSphereRadius);
+    Real tol = std::max(1e-10, boundingSphereRadius*1e-5);
+    boundingSphereRadius += tol;
 }
 
 void ContactGeometry::TriangleMeshImpl::createObbTree(OBBTreeNodeImpl& node, const vector<int>& faceIndices) {
@@ -753,6 +781,89 @@ Vec3 ContactGeometry::TriangleMeshImpl::findNearestPointToFace(const Vec3& posit
     }
     uv = Vec2(1-s-t, s);
     return vert1 + s*e0 + t*e1;
+}
+
+void  ContactGeometry::TriangleMeshImpl::findBoundingSphere(Vec3* point[], int p, int b, Vec3& center, Real& radius) {
+    // This is called recursively to calculate the bounding sphere for the mesh.  It uses an algorithm developed by
+    // Emo Welzl, and is based on a description by Nicolas Capens at http://www.flipcode.com/archives/Smallest_Enclosing_Spheres.shtml.
+    // As described there, the algorithm is highly susceptible to numerical instabilities.  Bernd Gartner describes
+    // an improved version in "Fast and robust smallest enclosing balls", Proc. 7th Annual European Symposium on Algorithms.
+    // Unfortunately, his method of dealing with the instabilities has the effect of sometimes allowing points to lie
+    // slightly outside the bounding sphere, which is not acceptable for our purposes.  Instead, we fall back to an
+    // approximate method when instability is detected.  This no longer guarantees the smallest possible bounding sphere,
+    // but does guarantee that all points will be inside it.
+    
+    switch (b) {
+        // Create a bounding sphere for 0, 1, 2, 3, or 4 points.
+        
+        case 0:
+            center = Vec3(Infinity); // Ensure that any point will be outside it
+            radius = 0;
+            break;
+        case 1:
+            center = *point[-1];
+            radius = 0;
+            break;
+        case 2:
+            center = 0.5*(*point[-1]+*point[-2]);
+            radius = 0.5*(*point[-1]-*point[-2]).norm();
+            break;
+        case 3: {
+            Vec3 a = *point[-2]-*point[-1];
+            Vec3 b = *point[-3]-*point[-1];
+            Vec3 cross = a%b;
+            Real denom = 2.0*(~cross*cross);
+            if (std::abs(denom) < 1e-10) {
+                // Use an approximate method.
+                
+                center = (*point[-1]+*point[-2]+*point[-3])/3.0;
+                radius = std::sqrt(std::max((*point[-1]-center).normSqr(), std::max((*point[-2]-center).normSqr(), (*point[-3]-center).normSqr())));
+                break;
+            }
+            Vec3 o = (b.normSqr()*(cross%a) +
+                      a.normSqr()*(b%cross))/denom;
+            radius = o.norm();
+            center = *point[-1]+o;
+            break;
+        }
+        case 4: {
+            Vec3 a = *point[-2]-*point[-1];
+            Vec3 b = *point[-3]-*point[-1];
+            Vec3 c = *point[-4]-*point[-1];
+            Real denom = 2.0*(a[0]*b[1]*c[2] + a[1]*b[2]*c[0] + a[2]*b[0]*c[1] - a[2]*b[1]*c[0] - a[0]*b[2]*c[1] - a[1]*b[0]*c[2]);
+            if (std::abs(denom) < 1e-10) {
+                // Use an approximate method.
+                
+                center = (*point[-1]+*point[-2]+*point[-3]+*point[-4])/4.0;
+                radius = std::sqrt(std::max((*point[-1]-center).normSqr(), std::max((*point[-2]-center).normSqr(), std::max((*point[-3]-center).normSqr(), (*point[-4]-center).normSqr()))));
+                return;
+            }
+            Vec3 o = (c.normSqr()*(a%b) +
+                      b.normSqr()*(c%a) +
+                      a.normSqr()*(b%c))/denom;
+            radius = o.norm();
+            center = *point[-1]+o;
+            return;
+        }
+    }
+    
+    // Now add in all the others.
+    
+    for (int i = 0; i < p; ++i) {
+        if ((center-*point[i]).normSqr() > radius*radius) {
+            // This point is outside the current bounding sphere.  Move it to the start of the list.
+            
+            for (int j = i; j > 0; --j) {
+                Vec3* temp = point[j];
+                point[j] = point[j-1];
+                point[j-1] = temp;
+            }
+            
+            // Update the bounding sphere, taking the new point into account.
+            
+            findBoundingSphere(point+1, i, b+1, center, radius);
+        }
+    }
 }
 
 OBBTreeNodeImpl::OBBTreeNodeImpl(const OBBTreeNodeImpl& copy) : bounds(copy.bounds), triangles(copy.triangles), numTriangles(copy.numTriangles) {

@@ -325,6 +325,35 @@ void testFindNearestPoint() {
     }
 }
 
+void testBoundingSphere() {
+    Random::Uniform random(0, 10);
+    for (int i = 0; i < 100; i++) {
+        // Create a mesh consisting of a random number of octohedra at random places.
+        
+        vector<Vec3> vertices;
+        vector<int> faceIndices;
+        int numOctohedra = random.getIntValue()+1;
+        for (int i = 0; i < numOctohedra; i++)
+            addOctohedron(vertices, faceIndices, Vec3(random.getValue(), random.getValue(), random.getValue()));
+        ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
+
+        // Verify that all points are inside the bounding sphere.
+        
+        Vec3 center;
+        Real radius;
+        mesh.getBoundingSphere(center, radius);
+        for (int i = 0; i < mesh.getNumVertices(); i++) {
+            Real dist = (center-mesh.getVertexPosition(i)).norm();
+            ASSERT(dist <= radius);
+        }
+        
+        // Make sure the bounding sphere is reasonably compact.
+        
+        Vec3 boxRadius = 0.5*mesh.getOBBTreeNode().getBounds().getSize();
+        ASSERT(radius <= boxRadius.norm());
+    }
+}
+
 int main() {
     try {
         testTriangleMesh();
@@ -333,6 +362,7 @@ int main() {
         testRayIntersection();
         testSmoothMesh();
         testFindNearestPoint();
+        testBoundingSphere();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

@@ -53,6 +53,7 @@ public:
     virtual ContactGeometryImpl* clone() const = 0;
     virtual Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const = 0;
     virtual bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const = 0;
+    virtual void getBoundingSphere(Vec3& center, Real& radius) const = 0;
     ContactGeometry* getMyHandle() {
         return myHandle;
     }
@@ -81,6 +82,7 @@ public:
     }
     Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
+    void getBoundingSphere(Vec3& center, Real& radius) const;
 };
 
 class ContactGeometry::SphereImpl : public ContactGeometryImpl {
@@ -102,6 +104,7 @@ public:
     }
     Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
+    void getBoundingSphere(Vec3& center, Real& radius) const;
 private:
     Real radius;
 };
@@ -141,15 +144,19 @@ public:
     Vec3 findNearestPointToFace(const Vec3& position, int face, Vec2& uv) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, int& face, Vec2& uv) const;
+    void getBoundingSphere(Vec3& center, Real& radius) const;
 private:
     void init(const std::vector<Vec3>& vertexPositions, const std::vector<int>& faceIndices);
     void createObbTree(OBBTreeNodeImpl& node, const std::vector<int>& faceIndices);
     void splitObbAxis(const std::vector<int>& parentIndices, std::vector<int>& child1Indices, std::vector<int>& child2Indices, int axis);
+    void findBoundingSphere(Vec3* point[], int p, int b, Vec3& center, Real& radius);
     friend class ContactGeometry::TriangleMesh;
     friend class OBBTreeNodeImpl;
     std::vector<Edge> edges;
     std::vector<Face> faces;
     std::vector<Vertex> vertices;
+    Vec3 boundingSphereCenter;
+    Real boundingSphereRadius;
     OBBTreeNodeImpl obb;
     bool smooth;
 };

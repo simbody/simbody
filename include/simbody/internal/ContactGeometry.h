@@ -83,6 +83,13 @@ public:
      * @return true if an intersection is found, false otherwise
      */
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
+    /**
+     * Get a bounding sphere which completely encloses this object.
+     *
+     * @param center     on exit, this contains the location of the center of the bounding sphere
+     * @param radius     on exit, this contains the radius of the bounding sphere
+     */
+    void getBoundingSphere(Vec3& center, Real& radius) const;
     bool isOwnerHandle() const;
     bool isEmptyHandle() const;
     ContactGeometry& operator=(const ContactGeometry& src);

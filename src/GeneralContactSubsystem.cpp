@@ -37,11 +37,13 @@
 #include "simbody/internal/Contact.h"
 #include "simbody/internal/ContactGeometryImpl.h"
 #include "simbody/internal/CollisionDetectionAlgorithm.h"
+#include <algorithm>
 #include <map>
 #include <vector>
 
 using std::map;
 using std::pair;
+using std::sort;
 using std::vector;
 
 namespace SimTK {
@@ -52,14 +54,28 @@ std::ostream& operator<<(std::ostream& o, const vector<vector<Contact> >&) {
     return o;
 }
 
-    
 class ContactSet {
 public:
     vector<MobilizedBody> bodies;
     vector<ContactGeometry> geometry;
     vector<Transform> transforms;
+    mutable vector<Vec3> sphereCenters;
+    mutable vector<Real> sphereRadii;
 };
-    
+
+class ContactBodyExtent {
+public:
+    ContactBodyExtent(Real start, Real end, int index) : start(start), end(end), index(index) {
+    }
+    ContactBodyExtent() {
+    }
+    bool operator<(const ContactBodyExtent& e) const {
+        return start < e.start;
+    }
+    Real start, end;
+    int index;
+};
+
 class GeneralContactSubsystemImpl : public Subsystem::Guts {
 public:
     GeneralContactSubsystemImpl() : contactsCacheIndex(-1), contactsValidCacheIndex(-1)
@@ -136,6 +152,16 @@ public:
     int realizeSubsystemTopologyImpl(State& state) const {
         contactsCacheIndex = state.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<vector<vector<Contact> > >());
         contactsValidCacheIndex = state.allocateCacheEntry(getMySubsystemIndex(), Stage::Position, new Value<bool>());
+        for (int i = 0; i < sets.size(); ++i) {
+            const ContactSet& set = sets[i];
+            int numBodies = set.bodies.size();
+            set.sphereCenters.resize(numBodies);
+            set.sphereRadii.resize(numBodies);
+            for (int j = 0; j < numBodies; j++) {
+                set.geometry[j].getBoundingSphere(set.sphereCenters[j], set.sphereRadii[j]);
+                set.sphereCenters[j] = set.transforms[j]*set.sphereCenters[j];
+            }
+        }
         return 0;
     }
 
@@ -159,25 +185,55 @@ public:
             const ContactSet& set = sets[setIndex];
             int numBodies = set.bodies.size();
             
-            // Loop over all pairs of objects in this set.
+            // Perform a sweep-and-prune on a single axis to identify potential contacts.  First, find which
+            // axis has the most variation in body locations.  That is the axis we will use.
             
-            for (int i = 1; i < numBodies; i++) {
-                Transform transform1 = set.bodies[i].getBodyTransform(state)*set.transforms[i];
-                const ContactGeometry& geom1 = set.geometry[i];
-                int typeIndex1 = geom1.getTypeIndex();
-                for (int j = 0; j < i; j++) {
-                    Transform transform2 = set.bodies[j].getBodyTransform(state)*set.transforms[j];
-                    const ContactGeometry& geom2 = set.geometry[j];
-                    int typeIndex2 = geom2.getTypeIndex();
-                    CollisionDetectionAlgorithm* algorithm = CollisionDetectionAlgorithm::getAlgorithm(typeIndex1, typeIndex2);
-                    if (algorithm == NULL) {
-                        algorithm = CollisionDetectionAlgorithm::getAlgorithm(typeIndex2, typeIndex1);
-                        if (algorithm == NULL)
-                            continue; // No algorithm available for detecting collisions between these two objects.
-                        algorithm->processObjects(j, geom2, transform2, i, geom1, transform1, contacts[setIndex]);
-                    }
-                    else {
-                        algorithm->processObjects(i, geom1, transform1, j, geom2, transform2, contacts[setIndex]);
+            Vector_<Vec3> centers(numBodies);
+            for (int i = 0; i < numBodies; i++)
+                centers[i] = set.bodies[i].getBodyTransform(state)*set.sphereCenters[i];
+            Vec3 average = mean(centers);
+            Vec3 var(0);
+            for (int i = 0; i < numBodies; i++)
+                var += abs(centers[i]-average);
+            int axis = (var[0] > var[1] ? 0 : 1);
+            if (var[2] > var[axis])
+                axis = 2;
+            
+            // Find the extent of each body along the axis and sort them by starting location.
+            
+            vector<ContactBodyExtent> extents(numBodies);
+            for (int i = 0; i < numBodies; i++)
+                extents[i] = ContactBodyExtent(centers[i][axis]-set.sphereRadii[i], centers[i][axis]+set.sphereRadii[i], i);
+            sort(extents.begin(), extents.end());
+            
+            // Now sweep along the axis, finding potential contacts.
+            
+            for (int i = 0; i < numBodies; i++) {
+                const int index1 = extents[i].index;
+                const Transform transform1 = set.bodies[index1].getBodyTransform(state)*set.transforms[index1];
+                const ContactGeometry& geom1 = set.geometry[index1];
+                const int typeIndex1 = geom1.getTypeIndex();
+                for (int j = i+1; extents[j].start <= extents[i].end && j < numBodies; j++) {
+                    // They overlap along this axis.  See if the bounding spheres overlap.
+                    
+                    const int index2 = extents[j].index;
+                    const Real sumRadius = set.sphereRadii[index1]+set.sphereRadii[index2];
+                    if ((centers[index1]-centers[index2]).normSqr() <= sumRadius*sumRadius) {
+                        // Do a full collision detection.
+
+                        const Transform transform2 = set.bodies[index2].getBodyTransform(state)*set.transforms[index2];
+                        const ContactGeometry& geom2 = set.geometry[index2];
+                        const int typeIndex2 = geom2.getTypeIndex();
+                        CollisionDetectionAlgorithm* algorithm = CollisionDetectionAlgorithm::getAlgorithm(typeIndex1, typeIndex2);
+                        if (algorithm == NULL) {
+                            algorithm = CollisionDetectionAlgorithm::getAlgorithm(typeIndex2, typeIndex1);
+                            if (algorithm == NULL)
+                                continue; // No algorithm available for detecting collisions between these two objects.
+                            algorithm->processObjects(index2, geom2, transform2, index1, geom1, transform1, contacts[setIndex]);
+                        }
+                        else {
+                            algorithm->processObjects(index1, geom1, transform1, index2, geom2, transform2, contacts[setIndex]);
+                        }
                     }
                 }
             }
