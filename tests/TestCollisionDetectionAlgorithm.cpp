@@ -126,7 +126,7 @@ void testSphereSphere() {
         // Make sure all contacts are accurate.
         
         const vector<Contact>& contact = contacts.getContacts(state, setIndex);
-        for (int i = 0; i < contact.size(); i++) {
+        for (int i = 0; i < (int) contact.size(); i++) {
             ASSERT(PointContact::isInstance(contact[i]));
             const PointContact& c = static_cast<const PointContact&>(contact[i]);
             int body1 = c.getFirstBody();

@@ -152,7 +152,7 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processBox(const Contac
     const vector<int>& triangles = node.getTriangles();
     const Row3 xdir = transform.R().row(0);
     const Real tx = transform.T()[0];
-    for (int i = 0; i < triangles.size(); i++) {
+    for (int i = 0; i < (int) triangles.size(); i++) {
         if (xdir*mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], 0))+tx > 0)
             insideFaces.insert(triangles[i]);
         else if (xdir*mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], 1))+tx > 0)
@@ -165,7 +165,7 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processBox(const Contac
 void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::addAllTriangles(const ContactGeometry::TriangleMesh::OBBTreeNode& node, std::set<int>& insideFaces) const {
     if (node.isLeafNode()) {
         const vector<int>& triangles = node.getTriangles();
-        for (int i = 0; i < triangles.size(); i++)
+        for (int i = 0; i < (int) triangles.size(); i++)
             insideFaces.insert(triangles[i]);
     }
     else {
@@ -204,7 +204,7 @@ void CollisionDetectionAlgorithm::SphereTriangleMesh::processBox(const Vec3& cen
     
     const vector<int>& triangles = node.getTriangles();
     const ContactGeometry::TriangleMeshImpl& impl = mesh.getImpl();
-    for (int i = 0; i < triangles.size(); i++) {
+    for (int i = 0; i < (int) triangles.size(); i++) {
         Vec2 uv;
         Vec3 nearestPoint = impl.findNearestPointToFace(center, triangles[i], uv);
         if ((nearestPoint-center).normSqr() < radius2)
@@ -271,11 +271,11 @@ void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::processNodes(const C
     
     const vector<int>& node1triangles = node1.getTriangles();
     const vector<int>& node2triangles = node2.getTriangles();
-    for (int i = 0; i < node2triangles.size(); i++) {
+    for (int i = 0; i < (int) node2triangles.size(); i++) {
         Vec3 a1 = transform*mesh2.getVertexPosition(mesh2.getFaceVertex(node2triangles[i], 0));
         Vec3 a2 = transform*mesh2.getVertexPosition(mesh2.getFaceVertex(node2triangles[i], 1));
         Vec3 a3 = transform*mesh2.getVertexPosition(mesh2.getFaceVertex(node2triangles[i], 2));
-        for (int j = 0; j < node1triangles.size(); j++) {
+        for (int j = 0; j < (int) node1triangles.size(); j++) {
             const Vec3& b1 = mesh1.getVertexPosition(mesh1.getFaceVertex(node1triangles[j], 0));
             const Vec3& b2 = mesh1.getVertexPosition(mesh1.getFaceVertex(node1triangles[j], 1));
             const Vec3& b3 = mesh1.getVertexPosition(mesh1.getFaceVertex(node1triangles[j], 2));
@@ -296,7 +296,7 @@ void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::findInsideTriangles(
     vector<int> faceType(mesh.getNumFaces(), UNKNOWN);
     for (set<int>::iterator iter = triangles.begin(); iter != triangles.end(); ++iter)
         faceType[*iter] = BOUNDARY;
-    for (int i = 0; i < faceType.size(); i++) {
+    for (int i = 0; i < (int) faceType.size(); i++) {
         if (faceType[i] == UNKNOWN) {
             // Trace a ray from its center to determine whether it is inside.
             

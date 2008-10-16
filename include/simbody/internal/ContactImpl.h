@@ -43,7 +43,7 @@ namespace SimTK {
  * This is the internal implementation class for Contact.
  */
     
-class SimTK_SIMBODY_EXPORT ContactImpl {
+class ContactImpl {
 public:
     ContactImpl(int body1, int body2);
     virtual ~ContactImpl() {
@@ -59,7 +59,7 @@ protected:
  * This is the internal implementation class for PointContact.
  */
     
-class SimTK_SIMBODY_EXPORT PointContactImpl : public ContactImpl {
+class PointContactImpl : public ContactImpl {
 public:
     PointContactImpl(int body1, int body2, Vec3& location, Vec3& normal, Real radius, Real depth);
 private:
@@ -72,7 +72,7 @@ private:
  * This is the internal implementation class for TriangleMeshContact.
  */
 
-class SimTK_SIMBODY_EXPORT TriangleMeshContactImpl : public ContactImpl {
+class TriangleMeshContactImpl : public ContactImpl {
 public:
     TriangleMeshContactImpl(int body1, int body2, const std::set<int>& faces1, const std::set<int>& faces2);
 private:

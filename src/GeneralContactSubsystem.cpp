@@ -112,32 +112,32 @@ public:
 
     const MobilizedBody& getBody(ContactSetIndex set, int index) const {
         assert(set >= 0 && set < sets.size());
-        assert(index >= 0 && index < sets[set].bodies.size());
+        assert(index >= 0 && index < (int) sets[set].bodies.size());
         return sets[set].bodies[index];
     }
 
     const ContactGeometry& getBodyGeometry(ContactSetIndex set, int index) const {
         assert(set >= 0 && set < sets.size());
-        assert(index >= 0 && index < sets[set].geometry.size());
+        assert(index >= 0 && index < (int) sets[set].geometry.size());
         return sets[set].geometry[index];
     }
 
     ContactGeometry& updBodyGeometry(ContactSetIndex set, int index) {
         assert(set >= 0 && set < sets.size());
-        assert(index >= 0 && index < sets[set].geometry.size());
+        assert(index >= 0 && index < (int) sets[set].geometry.size());
         invalidateSubsystemTopologyCache();
         return sets[set].geometry[index];
     }
 
     const Transform& getBodyTransform(ContactSetIndex set, int index) const {
         assert(set >= 0 && set < sets.size());
-        assert(index >= 0 && index < sets[set].transforms.size());
+        assert(index >= 0 && index < (int) sets[set].transforms.size());
         return sets[set].transforms[index];
     }
 
     Transform& updBodyTransform(ContactSetIndex set, int index) {
         assert(set >= 0 && set < sets.size());
-        assert(index >= 0 && index < sets[set].transforms.size());
+        assert(index >= 0 && index < (int) sets[set].transforms.size());
         invalidateSubsystemTopologyCache();
         return sets[set].transforms[index];
     }
@@ -152,7 +152,7 @@ public:
     int realizeSubsystemTopologyImpl(State& state) const {
         contactsCacheIndex = state.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<vector<vector<Contact> > >());
         contactsValidCacheIndex = state.allocateCacheEntry(getMySubsystemIndex(), Stage::Position, new Value<bool>());
-        for (int i = 0; i < sets.size(); ++i) {
+        for (int i = 0; i < (int) sets.size(); ++i) {
             const ContactSet& set = sets[i];
             int numBodies = set.bodies.size();
             set.sphereCenters.resize(numBodies);

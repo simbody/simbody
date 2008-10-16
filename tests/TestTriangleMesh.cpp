@@ -77,7 +77,7 @@ void testTriangleMesh() {
     
     // Verify that all faces and vertices are correct.
     
-    for (int i = 0; i < vertices.size(); i++)
+    for (int i = 0; i < (int) vertices.size(); i++)
         assertEqual(vertices[i], mesh.getVertexPosition(i));
     for (int i = 0; i < 4; i++) {
         ASSERT(faces[i][0] == mesh.getFaceVertex(i, 0));
@@ -107,7 +107,7 @@ void testTriangleMesh() {
         vector<int> edges;
         mesh.findVertexEdges(i, edges);
         ASSERT(edges.size() == 3);
-        for (int j = 0; j < edges.size(); j++)
+        for (int j = 0; j < (int) edges.size(); j++)
             ASSERT(mesh.getEdgeVertex(edges[j], 0) == i || mesh.getEdgeVertex(edges[j], 1) == i);
     }
     
@@ -192,7 +192,7 @@ void validateOBBTree(const ContactGeometry::TriangleMesh& mesh, ContactGeometry:
         const vector<int>& triangles = node.getTriangles();
         ASSERT(triangles.size() > 0);
         ASSERT(triangles.size() == node.getNumTriangles());
-        for (int i = 0; i < triangles.size(); i++) {
+        for (int i = 0; i < (int) triangles.size(); i++) {
             faceReferenceCount[triangles[i]]++;
             for (int j = 0; j < 3; j++) {
                 ASSERT(node.getBounds().containsPoint(mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], j))));
@@ -245,7 +245,7 @@ void testOBBTree() {
     
     vector<int> faceReferenceCount(mesh.getNumFaces(), 0);
     validateOBBTree(mesh, mesh.getOBBTreeNode(), mesh.getOBBTreeNode(), faceReferenceCount);
-    for (int i = 0; i < faceReferenceCount.size(); i++)
+    for (int i = 0; i < (int) faceReferenceCount.size(); i++)
         ASSERT(faceReferenceCount[i] == 1);
 }
 

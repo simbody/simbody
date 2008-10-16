@@ -429,7 +429,7 @@ ContactGeometry::TriangleMeshImpl::TriangleMeshImpl(const PolygonalMesh& mesh, b
     if (faces[face].normal[0] > 0) {
         // We need to invert the mesh topology.
         
-        for (int i = 0; i < faces.size(); i++) {
+        for (int i = 0; i < (int) faces.size(); i++) {
             Face& f = faces[i];
             int temp = f.vertices[0];
             f.vertices[0] = f.vertices[1];
@@ -439,7 +439,7 @@ ContactGeometry::TriangleMeshImpl::TriangleMeshImpl(const PolygonalMesh& mesh, b
             f.edges[2] = temp;
             f.normal *= -1;
         }
-        for (int i = 0; i < vertices.size(); i++)
+        for (int i = 0; i < (int) vertices.size(); i++)
             vertices[i].normal *= -1;
     }
 }
@@ -450,7 +450,7 @@ void ContactGeometry::TriangleMeshImpl::init(const std::vector<Vec3>& vertexPosi
     
     // Create the vertices.
     
-    for (int i = 0; i < vertexPositions.size(); i++)
+    for (int i = 0; i < (int) vertexPositions.size(); i++)
         vertices.push_back(Vertex(vertexPositions[i]));
     
     // Create the faces and build lists of all the edges.
@@ -460,7 +460,7 @@ void ContactGeometry::TriangleMeshImpl::init(const std::vector<Vec3>& vertexPosi
     for (int i = 0; i < numFaces; i++) {
         int start = i*3;
         int v1 = faceIndices[start], v2 = faceIndices[start+1], v3 = faceIndices[start+2];
-        SimTK_APIARGCHECK1_ALWAYS(v1 >= 0 && v1 < vertices.size() && v2 >= 0 && v2 < vertices.size() && v3 >= 0 && v3 < vertices.size(),
+        SimTK_APIARGCHECK1_ALWAYS(v1 >= 0 && v1 < (int) vertices.size() && v2 >= 0 && v2 < (int) vertices.size() && v3 >= 0 && v3 < (int) vertices.size(),
                 "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl",
                 "Face %d contains a vertex with an illegal index.", i);
         Vec3 cross = (vertexPositions[v2]-vertexPositions[v1])%(vertexPositions[v3]-vertexPositions[v1]);
@@ -505,7 +505,7 @@ void ContactGeometry::TriangleMeshImpl::init(const std::vector<Vec3>& vertexPosi
     
     // Record the edges for each face.
     
-    for (int i = 0; i < edges.size(); i++) {
+    for (int i = 0; i < (int) edges.size(); i++) {
         Edge& edge = edges[i];
         int f[2] = {edge.faces[0], edge.faces[1]};
         for (int j = 0; j < 2; j++) {
@@ -526,18 +526,18 @@ void ContactGeometry::TriangleMeshImpl::init(const std::vector<Vec3>& vertexPosi
     
     // Record a single edge for each vertex.
     
-    for (int i = 0; i < edges.size(); i++) {
+    for (int i = 0; i < (int) edges.size(); i++) {
         vertices[edges[i].vertices[0]].firstEdge = i;
         vertices[edges[i].vertices[1]].firstEdge = i;
     }
-    for (int i = 0; i < vertices.size(); i++)
+    for (int i = 0; i < (int) vertices.size(); i++)
         SimTK_APIARGCHECK1_ALWAYS(vertices[i].firstEdge >= 0, "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl",
                 "Vertex %d is not part of any face.", i);
     
     // Calculate a normal for each vertex.
     
     Vector_<Vec3> vertNorm(vertices.size(), Vec3(0));
-    for (int i = 0; i < faces.size(); i++) {
+    for (int i = 0; i < (int) faces.size(); i++) {
         const Face& f = faces[i];
         UnitVec3 edgeDir[3];
         for (int j = 0; j < 3; j++) {
@@ -548,20 +548,20 @@ void ContactGeometry::TriangleMeshImpl::init(const std::vector<Vec3>& vertexPosi
             vertNorm[f.vertices[j]] += f.normal*angle;
         }
     }
-    for (int i = 0; i < vertices.size(); i++)
+    for (int i = 0; i < (int) vertices.size(); i++)
         vertices[i].normal = UnitVec3(vertNorm[i]);
     
     // Create the OBBTree.
     
     vector<int> allFaces(faces.size());
-    for (int i = 0; i < allFaces.size(); i++)
+    for (int i = 0; i < (int) allFaces.size(); i++)
         allFaces[i] = i;
     createObbTree(obb, allFaces);
     
     // Find the bounding sphere.
     
     Vec3** points = new Vec3*[vertices.size()];
-    for (int i = 0; i < vertices.size(); i++)
+    for (int i = 0; i < (int) vertices.size(); i++)
         points[i] = &vertices[i].pos;
     findBoundingSphere(points, vertices.size(), 0, boundingSphereCenter, boundingSphereRadius);
     Real tol = std::max(1e-10, boundingSphereRadius*1e-5);
@@ -573,7 +573,7 @@ void ContactGeometry::TriangleMeshImpl::createObbTree(OBBTreeNodeImpl& node, con
 
     node.numTriangles = faceIndices.size();
     set<int> vertexIndices;
-    for (int i = 0; i < faceIndices.size(); i++) 
+    for (int i = 0; i < (int) faceIndices.size(); i++) 
         for (int j = 0; j < 3; j++)
             vertexIndices.insert(faces[faceIndices[i]].vertices[j]);
     Vector_<Vec3> points(vertexIndices.size());
@@ -650,7 +650,7 @@ void ContactGeometry::TriangleMeshImpl::splitObbAxis(const vector<int>& parentIn
     
     Vector minExtent(parentIndices.size());
     Vector maxExtent(parentIndices.size());
-    for (int i = 0; i < parentIndices.size(); i++) {
+    for (int i = 0; i < (int) parentIndices.size(); i++) {
         int* vertexIndices = faces[parentIndices[i]].vertices;
         Real minVal = vertices[vertexIndices[0]].pos[axis];
         Real maxVal = vertices[vertexIndices[0]].pos[axis];
@@ -666,7 +666,7 @@ void ContactGeometry::TriangleMeshImpl::splitObbAxis(const vector<int>& parentIn
     
     // Choose a side for each face.
     
-    for (int i = 0; i < parentIndices.size(); i++) {
+    for (int i = 0; i < (int) parentIndices.size(); i++) {
         if (maxExtent[i] <= split)
             child1Indices.push_back(parentIndices[i]);
         else if (minExtent[i] >= split)
@@ -934,7 +934,7 @@ Vec3 OBBTreeNodeImpl::findNearestPoint(const ContactGeometry::TriangleMeshImpl& 
     
     distance2 = MostPositiveReal;
     Vec3 nearestPoint;
-    for (int i = 0; i < triangles.size(); i++) {
+    for (int i = 0; i < (int) triangles.size(); i++) {
         Vec2 triangleUV;
         Vec3 p = mesh.findNearestPointToFace(position, triangles[i], triangleUV);
         Vec3 offset = p-position;
@@ -999,7 +999,7 @@ bool OBBTreeNodeImpl::intersectsRay(const ContactGeometry::TriangleMeshImpl& mes
     // This is a leaf node, so check each triangle for an intersection with the ray.
     
     bool foundIntersection = false;
-    for (int i = 0; i < triangles.size(); i++) {
+    for (int i = 0; i < (int) triangles.size(); i++) {
         const UnitVec3& faceNormal = mesh.faces[triangles[i]].normal;
         double vd = ~faceNormal*direction;
         if (vd == 0.0)

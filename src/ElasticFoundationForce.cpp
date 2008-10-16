@@ -81,7 +81,7 @@ void ElasticFoundationForceImpl::setBodyParameters(int bodyIndex, Real stiffness
     param.springNormal.resize(mesh.getNumFaces());
     param.springArea.resize(mesh.getNumFaces());
     Vec2 uv(1.0/3.0, 1.0/3.0);
-    for (int i = 0; i < param.springPosition.size(); i++) {
+    for (int i = 0; i < (int) param.springPosition.size(); i++) {
         param.springPosition[i] = (mesh.getVertexPosition(mesh.getFaceVertex(i, 0))+mesh.getVertexPosition(mesh.getFaceVertex(i, 1))+mesh.getVertexPosition(mesh.getFaceVertex(i, 2)))/3.0;
         param.springNormal[i] = -mesh.findNormalAtPoint(i, uv);
         param.springArea[i] = mesh.getFaceArea(i);
@@ -93,7 +93,7 @@ void ElasticFoundationForceImpl::calcForce(const State& state, Vector_<SpatialVe
     const vector<Contact>& contacts = subsystem.getContacts(state, set);
     Real& pe = Value<Real>::downcast(state.updCacheEntry(subsystem.getMySubsystemIndex(), energyCacheIndex)).upd();
     pe = 0.0;
-    for (int i = 0; i < contacts.size(); i++) {
+    for (int i = 0; i < (int) contacts.size(); i++) {
         map<int, Parameters>::const_iterator iter = parameters.find(contacts[i].getFirstBody());
         if (iter != parameters.end()) {
             const TriangleMeshContact& contact = static_cast<const TriangleMeshContact&>(contacts[i]);

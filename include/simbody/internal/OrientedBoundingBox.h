@@ -47,42 +47,36 @@ namespace SimTK {
  * that specifies its size.  In the reference frame defined by the Transform, one corner is at the origin and
  * the opposite corner is at the point returned by getSize().
  */
-class SimTK_SIMBODY_EXPORT OrientedBoundingBox {
+class OrientedBoundingBox {
 public:
-    OrientedBoundingBox() {
-    }
+    SimTK_SIMBODY_EXPORT OrientedBoundingBox();
     /**
      * Create an OrientedBoundingBox.
      *
      * @param transform     specifies the position and orientation of the box
      * @param size          specifies the dimensions of the box
      */
-    OrientedBoundingBox(const Transform& transform, const Vec3& size) : transform(transform), size(size) {
-    }
+    SimTK_SIMBODY_EXPORT OrientedBoundingBox(const Transform& transform, const Vec3& size);
     /**
      * Create an OrientedBoundingBox which encloses a set of points.
      */
-    OrientedBoundingBox(const Vector_<Vec3>& points);
+    SimTK_SIMBODY_EXPORT OrientedBoundingBox(const Vector_<Vec3>& points);
     /**
      * Get the position and orientation of the box.
      */
-    const Transform& getTransform() const {
-        return transform;
-    }
+    SimTK_SIMBODY_EXPORT const Transform& getTransform() const;
     /**
      * Get the dimensions of the box.
      */
-    const Vec3& getSize() const {
-        return size;
-    }
+    SimTK_SIMBODY_EXPORT const Vec3& getSize() const;
     /**
      * Determine whether a point is inside the box.
      */
-    bool containsPoint(const Vec3& point) const;
+    SimTK_SIMBODY_EXPORT bool containsPoint(const Vec3& point) const;
     /**
      * Determine whether this box intersects another bounding box at any point.
      */
-    bool intersectsBox(const OrientedBoundingBox& box) const;
+    SimTK_SIMBODY_EXPORT bool intersectsBox(const OrientedBoundingBox& box) const;
     /**
      * Determine whether a ray intersects this bounding box.
      *
@@ -92,17 +86,17 @@ public:
      *                   is stored in this.  Otherwise, it is left unchanged.
      * @return true if an intersection is found, false otherwise
      */
-    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance) const;
+    SimTK_SIMBODY_EXPORT bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance) const;
     /**
      * Given a point in space, find the point inside the bounding box which is nearest to it.
      */
-    Vec3 findNearestPoint(const Vec3& position) const;
+    SimTK_SIMBODY_EXPORT Vec3 findNearestPoint(const Vec3& position) const;
     /**
      * Get the locations of the eight corners of the box.
      *
      * @param the corner locations are stored in this array
      */
-    void getCorners(Vec3 corners[8]) const;
+    SimTK_SIMBODY_EXPORT void getCorners(Vec3 corners[8]) const;
 private:
     Real calculateVolume(const Vector_<Vec3>& points, const Rotation& rotation);
     Transform transform;

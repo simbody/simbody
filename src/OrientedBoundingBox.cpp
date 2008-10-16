@@ -34,6 +34,20 @@
 
 namespace SimTK {
 
+OrientedBoundingBox::OrientedBoundingBox() {
+}
+
+OrientedBoundingBox::OrientedBoundingBox(const Transform& transform, const Vec3& size) : transform(transform), size(size) {
+}
+
+const Transform& OrientedBoundingBox::getTransform() const {
+    return transform;
+}
+
+const Vec3& OrientedBoundingBox::getSize() const {
+    return size;
+}
+
 OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
     SimTK_APIARGCHECK(points.size() > 0, "OrientedBoundingBox", "OrientedBoundingBox", "No points passed to constructor");
     

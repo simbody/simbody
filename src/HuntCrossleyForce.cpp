@@ -72,7 +72,7 @@ void HuntCrossleyForceImpl::setBodyParameters(int bodyIndex, Real stiffness, Rea
 
 const HuntCrossleyForceImpl::Parameters& HuntCrossleyForceImpl::getParameters(int bodyIndex) const {
     assert(bodyIndex >= 0 && bodyIndex < subsystem.getNumBodies(set));
-    if (bodyIndex >= parameters.size())
+    if (bodyIndex >= (int) parameters.size())
         const_cast<vector<Parameters>&>(parameters).resize(bodyIndex+1); // This fills in the default values which the missing entries implicitly had already.
     return parameters[bodyIndex];
 }
@@ -80,7 +80,7 @@ const HuntCrossleyForceImpl::Parameters& HuntCrossleyForceImpl::getParameters(in
 HuntCrossleyForceImpl::Parameters& HuntCrossleyForceImpl::updParameters(int bodyIndex) {
     assert(bodyIndex >= 0 && bodyIndex < subsystem.getNumBodies(set));
     subsystem.invalidateSubsystemTopologyCache();
-    if (bodyIndex >= parameters.size())
+    if (bodyIndex >= (int) parameters.size())
         parameters.resize(bodyIndex+1);
     return parameters[bodyIndex];
 }
@@ -99,7 +99,7 @@ void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& b
     const vector<Contact>& contacts = subsystem.getContacts(state, set);
     Real& pe = Value<Real>::downcast(state.updCacheEntry(subsystem.getMySubsystemIndex(), energyCacheIndex)).upd();
     pe = 0.0;
-    for (int i = 0; i < contacts.size(); i++) {
+    for (int i = 0; i < (int) contacts.size(); i++) {
         if (!PointContact::isInstance(contacts[i]))
             continue;
         const PointContact& contact = static_cast<const PointContact&>(contacts[i]);
