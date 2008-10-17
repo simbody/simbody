@@ -213,7 +213,7 @@ public:
                 const Transform transform1 = set.bodies[index1].getBodyTransform(state)*set.transforms[index1];
                 const ContactGeometry& geom1 = set.geometry[index1];
                 const int typeIndex1 = geom1.getTypeIndex();
-                for (int j = i+1; extents[j].start <= extents[i].end && j < numBodies; j++) {
+                for (int j = i+1; j < numBodies && extents[j].start <= extents[i].end; j++) {
                     // They overlap along this axis.  See if the bounding spheres overlap.
                     
                     const int index2 = extents[j].index;

@@ -88,7 +88,7 @@ public:
      */
     static CollisionDetectionAlgorithm* getAlgorithm(int typeIndex1, int typeIndex2);
 private:
-    static std::map<std::pair<int, int>, CollisionDetectionAlgorithm*>& getAlgorithmMap();
+    static std::map<std::pair<int, int>, CollisionDetectionAlgorithm*> algorithmMap;
 };
 
 /**

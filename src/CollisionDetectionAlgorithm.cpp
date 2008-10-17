@@ -43,6 +43,8 @@ using std::vector;
 
 namespace SimTK {
 
+map<pair<int, int>, CollisionDetectionAlgorithm*> CollisionDetectionAlgorithm::algorithmMap;
+
 static int registerStandardAlgorithms() {
     CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::HalfSpaceImpl::Type(), ContactGeometry::SphereImpl::Type(), new CollisionDetectionAlgorithm::HalfSpaceSphere());
     CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::SphereImpl::Type(), ContactGeometry::SphereImpl::Type(), new CollisionDetectionAlgorithm::SphereSphere());
@@ -54,19 +56,13 @@ static int registerStandardAlgorithms() {
 
 static int staticInitializer = registerStandardAlgorithms();
 
-map<pair<int, int>, CollisionDetectionAlgorithm*>& CollisionDetectionAlgorithm::getAlgorithmMap() {
-    static map<pair<int, int>, CollisionDetectionAlgorithm*> algorithmMap;
-    return algorithmMap;
-}
-
 void CollisionDetectionAlgorithm::registerAlgorithm(const std::string& type1, const std::string& type2, CollisionDetectionAlgorithm* algorithm) {
     int typeIndex1 = ContactGeometryImpl::getIndexForType(type1);
     int typeIndex2 = ContactGeometryImpl::getIndexForType(type2);
-    getAlgorithmMap()[pair<int, int>(typeIndex1, typeIndex2)] = algorithm;
+    algorithmMap[pair<int, int>(typeIndex1, typeIndex2)] = algorithm;
 }
 
 CollisionDetectionAlgorithm* CollisionDetectionAlgorithm::getAlgorithm(int typeIndex1, int typeIndex2) {
-    const map<pair<int, int>, CollisionDetectionAlgorithm*>& algorithmMap = getAlgorithmMap();
     map<pair<int, int>, CollisionDetectionAlgorithm*>::const_iterator iter = algorithmMap.find(pair<int, int>(typeIndex1, typeIndex2));
     if (iter == algorithmMap.end())
         return NULL;

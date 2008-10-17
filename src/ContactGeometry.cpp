@@ -564,6 +564,7 @@ void ContactGeometry::TriangleMeshImpl::init(const std::vector<Vec3>& vertexPosi
     for (int i = 0; i < (int) vertices.size(); i++)
         points[i] = &vertices[i].pos;
     findBoundingSphere(points, vertices.size(), 0, boundingSphereCenter, boundingSphereRadius);
+    delete[] points;
     Real tol = std::max(1e-10, boundingSphereRadius*1e-5);
     boundingSphereRadius += tol;
 }
