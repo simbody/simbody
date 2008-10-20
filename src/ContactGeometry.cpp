@@ -939,7 +939,7 @@ Vec3 OBBTreeNodeImpl::findNearestPoint(const ContactGeometry::TriangleMeshImpl& 
         Vec2 triangleUV;
         Vec3 p = mesh.findNearestPointToFace(position, triangles[i], triangleUV);
         Vec3 offset = p-position;
-        Real d2 = offset.normSqr();
+        volatile Real d2 = offset.normSqr(); // volatile to work around compiler bug
         if (d2 < distance2 || (d2 < distance2*(1+tol) && std::abs(~offset*mesh.faces[triangles[i]].normal) > std::abs(~offset*mesh.faces[face].normal))) {
             nearestPoint = p;
             distance2 = d2;

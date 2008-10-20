@@ -184,7 +184,6 @@ void addOctohedron(vector<Vec3>& vertices, vector<int>& faceIndices, Vec3 offset
     for (int i = 0; i < 8; i++)
         for (int j = 0; j < 3; j++)
             faceIndices.push_back(faces[i][j]+start);
-
 }
 
 void validateOBBTree(const ContactGeometry::TriangleMesh& mesh, ContactGeometry::TriangleMesh::OBBTreeNode node, ContactGeometry::TriangleMesh::OBBTreeNode parent, vector<int>& faceReferenceCount) {
@@ -318,9 +317,9 @@ void testFindNearestPoint() {
         Vec3 nearest = mesh.findNearestPoint(pos, inside, normal);
         ASSERT(inside == (~pos*normal < 1/Sqrt3));
         assertEqual(~nearest*normal, 1/Sqrt3);
-        for (int i = 0; i < 3; i++) {
-            ASSERT(pos[i]*nearest[i] >= 0);
-            ASSERT(pos[i]*normal[i] >= 0);
+        for (int j = 0; j < 3; j++) {
+            ASSERT(pos[j]*nearest[j] >= 0 || std::abs(nearest[j]) < 100*Eps);
+            ASSERT(pos[j]*normal[j] >= 0);
         }
     }
 }
