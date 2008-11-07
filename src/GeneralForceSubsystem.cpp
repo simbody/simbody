@@ -44,11 +44,18 @@
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/MultibodySystem.h"
 
-// #include "ForceSubsystemRep.h"
 #include "ForceImpl.h"
 
+using std::vector;
 
 namespace SimTK {
+
+    
+// Useless, but required by Value<T>.
+std::ostream& operator<<(std::ostream& o, const std::vector<bool>&) {
+    assert(false);
+    return o;
+}
 
 class GeneralForceSubsystemRep : public ForceSubsystemRep {
 
@@ -60,6 +67,7 @@ class GeneralForceSubsystemRep : public ForceSubsystemRep {
     mutable int rigidBodyForceCacheIndex;
     mutable int mobilityForceCacheIndex;
     mutable int particleForceCacheIndex;
+    mutable int forceEnabledIndex;
 
 public:
     GeneralForceSubsystemRep()
@@ -96,6 +104,19 @@ public:
         return *forces[index];
     }
     
+    bool isForceDisabled(const State& state, ForceIndex index) const {
+        const vector<bool>& forceEnabled = Value<vector<bool> >::downcast(state.getDiscreteVariable(getMySubsystemIndex(), forceEnabledIndex)).get();
+        return !forceEnabled[index];
+    }
+    
+    void setForceIsDisabled(State& state, ForceIndex index, bool disabled) const {
+        vector<bool>& forceEnabled = Value<vector<bool> >::downcast(state.updDiscreteVariable(getMySubsystemIndex(), forceEnabledIndex)).upd();
+        bool& forceValid = Value<bool>::downcast(state.updCacheEntry(getMySubsystemIndex(), forceValidCacheIndex)).upd();
+        forceEnabled[index] = !disabled;
+        forceValid = false;
+    }
+
+    
     // These override default implementations of virtual methods in the Subsystem::Guts
     // class.
 
@@ -106,6 +127,7 @@ public:
         rigidBodyForceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector_<SpatialVec> >());
         mobilityForceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector>());
         particleForceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector_<Vec3> >());
+        forceEnabledIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Dynamics, new Value<vector<bool> >(vector<bool>(getNForces(), true)));
         for (int i = 0; i < (int) forces.size(); ++i)
             forces[i]->getImpl().realizeTopology(s);
         return 0;
@@ -152,6 +174,7 @@ public:
         Vector_<SpatialVec>& rigidBodyForceCache = Value<Vector_<SpatialVec> >::downcast(s.updCacheEntry(getMySubsystemIndex(), rigidBodyForceCacheIndex)).upd();
         Vector_<Vec3>& particleForceCache = Value<Vector_<Vec3> >::downcast(s.updCacheEntry(getMySubsystemIndex(), particleForceCacheIndex)).upd();
         Vector& mobilityForceCache = Value<Vector>::downcast(s.updCacheEntry(getMySubsystemIndex(), mobilityForceCacheIndex)).upd();
+        const vector<bool>& forceEnabled = Value<vector<bool> >::downcast(s.getDiscreteVariable(getMySubsystemIndex(), forceEnabledIndex)).get();
 
         if (!forceValid) {
             // We need to calculate the velocity independent forces.
@@ -168,11 +191,13 @@ public:
         Vector_<Vec3>&         particleForces  = mbs.updParticleForces (s, Stage::Dynamics);
         Vector&                mobilityForces  = mbs.updMobilityForces (s, Stage::Dynamics);
         for (int i = 0; i < (int) forces.size(); ++i) {
-            const Force& f = *forces[i];
-            if (!f.getImpl().dependsOnlyOnPositions())
-                f.getImpl().calcForce(s, rigidBodyForces, particleForces, mobilityForces);
-            else if (!forceValid)
-                f.getImpl().calcForce(s, rigidBodyForceCache, particleForceCache, mobilityForceCache);
+            if (forceEnabled[i]) {
+                const Force& f = *forces[i];
+                if (!f.getImpl().dependsOnlyOnPositions())
+                    f.getImpl().calcForce(s, rigidBodyForces, particleForces, mobilityForces);
+                else if (!forceValid)
+                    f.getImpl().calcForce(s, rigidBodyForceCache, particleForceCache, mobilityForceCache);
+            }
         }
 
         // Copy the values from the cache.
@@ -189,10 +214,13 @@ public:
     }
     
     Real calcPotentialEnergy(const State& state) const {
+        const vector<bool>& forceEnabled = Value<vector<bool> >::downcast(state.getDiscreteVariable(getMySubsystemIndex(), forceEnabledIndex)).get();
         Real energy = 0.0;
         for (int i = 0; i < (int) forces.size(); ++i) {
-            const Force& f = *forces[i];
-            energy += f.getImpl().calcPotentialEnergy(state);
+            if (forceEnabled[i]) {
+                const Force& f = *forces[i];
+                energy += f.getImpl().calcPotentialEnergy(state);
+            }
         }
         return energy;
     }
@@ -268,6 +296,14 @@ const Force& GeneralForceSubsystem::getForce(ForceIndex index) const {
 
 Force& GeneralForceSubsystem::updForce(ForceIndex index) {
     return updRep().updForce(index);
+}
+
+bool GeneralForceSubsystem::isForceDisabled(const State& state, ForceIndex index) const {
+    return getRep().isForceDisabled(state, index);
+}
+
+void GeneralForceSubsystem::setForceIsDisabled(State& state, ForceIndex index, bool disabled) {
+    updRep().setForceIsDisabled(state, index, disabled);
 }
 
 } // namespace SimTK

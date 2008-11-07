@@ -40,6 +40,8 @@ const Real BOND_LENGTH = 0.5;
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
+#define ASSERT_EQUAL(val1, val2) {ASSERT(std::abs(val1-val2) < 1e-10);}
+
 void verifyForces(const Force& force, const State& state, Vector_<SpatialVec> bodyForces, Vector_<Vec3> particleForces, Vector mobilityForces) {
     Vector_<SpatialVec> actualBodyForces(bodyForces.size());
     Vector_<Vec3> actualParticleForces(particleForces.size());
@@ -310,11 +312,66 @@ void testCustomRealization() {
     }
 }
 
+/**
+ * Test enabling and disabling forces.
+ */
+
+void testDisabling() {
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+    MobilizedBody::Free body1(matter.updGround(), Vec3(0), body, Vec3(0));
+    MobilizedBody::Free body2(matter.updGround(), Vec3(0), body, Vec3(0));
+    Force::TwoPointLinearSpring spring(forces, body1, Vec3(0), body2, Vec3(0), 2.0, 0.5);
+    Force::UniformGravity gravity(forces, matter, Vec3(0, -2.0, 0));
+
+    // Create an initial state.
+    
+    State state = system.realizeTopology();
+    body1.setQToFitTranslation(state, Vec3(0, 1, 0));
+    body2.setQToFitTranslation(state, Vec3(1, 1, 0));
+    
+    // These are the contribution of each force to the energy and to the force on body1.
+    
+    Real springEnergy = 0.5*2.0*0.5*0.5;
+    SpatialVec springForce(Vec3(0), Vec3(2.0*0.5, 0, 0));
+    Real gravityEnergy = 2*2.0;
+    SpatialVec gravityForce(Vec3(0), Vec3(0, -2.0, 0));
+    
+    // Verify the force and energy for each combination of the forces being enabled or disabled.
+    
+    system.realize(state, Stage::Dynamics);
+    ASSERT_EQUAL(springEnergy+gravityEnergy, system.calcEnergy(state));
+    ASSERT((springForce+gravityForce-system.getRigidBodyForces(state, Stage::Dynamics)[1]).norm() < 1e-10);
+    ASSERT(!forces.isForceDisabled(state, gravity.getForceIndex()));
+    ASSERT(!forces.isForceDisabled(state, spring.getForceIndex()));
+    forces.setForceIsDisabled(state, spring.getForceIndex(), true);
+    system.realize(state, Stage::Dynamics);
+    ASSERT_EQUAL(gravityEnergy, system.calcEnergy(state));
+    ASSERT((gravityForce-system.getRigidBodyForces(state, Stage::Dynamics)[1]).norm() < 1e-10);
+    ASSERT(!forces.isForceDisabled(state, gravity.getForceIndex()));
+    ASSERT(forces.isForceDisabled(state, spring.getForceIndex()));
+    forces.setForceIsDisabled(state, gravity.getForceIndex(), true);
+    system.realize(state, Stage::Dynamics);
+    ASSERT_EQUAL(0, system.calcEnergy(state));
+    ASSERT((system.getRigidBodyForces(state, Stage::Dynamics)[1]).norm() < 1e-10);
+    ASSERT(forces.isForceDisabled(state, gravity.getForceIndex()));
+    ASSERT(forces.isForceDisabled(state, spring.getForceIndex()));
+    forces.setForceIsDisabled(state, spring.getForceIndex(), false);
+    system.realize(state, Stage::Dynamics);
+    ASSERT_EQUAL(springEnergy, system.calcEnergy(state));
+    ASSERT((springForce-system.getRigidBodyForces(state, Stage::Dynamics)[1]).norm() < 1e-10);
+    ASSERT(forces.isForceDisabled(state, gravity.getForceIndex()));
+    ASSERT(!forces.isForceDisabled(state, spring.getForceIndex()));
+}
+
 int main() {
     try {
         testStandardForces();
         testEnergyConservation();
         testCustomRealization();
+        testDisabling();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

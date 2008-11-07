@@ -71,7 +71,12 @@ public:
 
     /// Get a modifiable reference to a Force by index.
     Force& updForce(ForceIndex index);
+
+    /// Get whether a force is disabled.
+    bool isForceDisabled(const State& state, ForceIndex index) const;
     
+    /// Set whether a force is disabled.
+    void setForceIsDisabled(State& state, ForceIndex index, bool disabled);
     SimTK_PIMPL_DOWNCAST(GeneralForceSubsystem, ForceSubsystem);
 private:
     class GeneralForceSubsystemRep& updRep();
