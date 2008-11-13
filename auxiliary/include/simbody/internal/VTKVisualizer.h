@@ -47,6 +47,7 @@
 #include <exception>
 #include <vector>
 
+class vtkRenderer;
 
 namespace SimTK {
 
@@ -112,11 +113,16 @@ public:
     bool isOwnerHandle() const;
     bool isEmptyHandle() const;
 
+    /// Exposes underlying vtkRenderer object.  For advanced use only.
+    const vtkRenderer* getVtkRenderer() const;
+    vtkRenderer* updVtkRenderer();
+
     // Internal use only
     explicit VTKVisualizer(class VTKVisualizerRep* r) : rep(r) { }
     bool                  hasRep() const {return rep!=0;}
     const VTKVisualizerRep& getRep() const {assert(rep); return *rep;}
     VTKVisualizerRep&       updRep() const {assert(rep); return *rep;}
+
 protected:
     class VTKVisualizerRep* rep;
 };

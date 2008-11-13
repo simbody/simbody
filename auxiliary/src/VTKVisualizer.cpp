@@ -654,3 +654,10 @@ void VTKVisualizerRep::setRubberBandLine(int dgeom, const Vec3& p1, const Vec3& 
     vtkPolyDataMapper::SafeDownCast(actor->GetMapper())->SetInput(poly);
 }
 
+const vtkRenderer* VTKVisualizer::getVtkRenderer() const {
+  return getRep().renderer;
+}
+
+vtkRenderer* VTKVisualizer::updVtkRenderer() {
+  return updRep().renderer;
+}

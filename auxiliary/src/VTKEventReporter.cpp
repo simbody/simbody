@@ -37,7 +37,10 @@ class VTKEventReporter::VTKEventReporterRep {
 public:
     VTKEventReporterRep(MultibodySystem& system) : vtk(VTKVisualizer(system)) {
     }
-    VTKVisualizer& getVisualizer() {
+    const VTKVisualizer& getVisualizer() const {
+        return vtk;
+    }
+    VTKVisualizer& updVisualizer() {
         return vtk;
     }
     void handleEvent(const State& state) const {
@@ -57,8 +60,12 @@ VTKEventReporter::~VTKEventReporter() {
         delete rep;
 }
 
-VTKVisualizer& VTKEventReporter::getVisualizer() {
-    return updRep().getVisualizer();
+VTKVisualizer& VTKEventReporter::updVisualizer() {
+    return updRep().updVisualizer();
+}
+
+const VTKVisualizer& VTKEventReporter::getVisualizer() const {
+    return getRep().getVisualizer();
 }
 
 void VTKEventReporter::handleEvent(const State& state) const {

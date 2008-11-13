@@ -53,7 +53,8 @@ public:
     /**
      * Get the VTKVisualizer which generates the images.  It may be used to configure the display.
      */
-    VTKVisualizer& getVisualizer();
+    const VTKVisualizer& getVisualizer() const;
+    VTKVisualizer& updVisualizer();
     void handleEvent(const State& state) const;
     class VTKEventReporterRep;
 protected:
