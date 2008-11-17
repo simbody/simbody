@@ -438,8 +438,10 @@ public:
                 // we'll report that as negative-to-positive.
                 transitionSeen = eventTriggerInfo[e].calcTransitionToReport(transitionSeen);
                 candidates.push_back(e);
-                narrowestWindow = std::min(narrowestWindow, 
-                                           accuracyInUse*timeScaleInUse*eventTriggerInfo[e].getRequiredLocalizationTimeWindow());
+				narrowestWindow = std::max(
+					std::min(narrowestWindow, 
+					         accuracyInUse*timeScaleInUse*eventTriggerInfo[e].getRequiredLocalizationTimeWindow()),
+				    minWindow);
 
                 // Set estimated event trigger time for the viable candidates.
                 timeEstimates.push_back(estimateRootTime(tLow, eLow[e], tHigh, eHigh[e],

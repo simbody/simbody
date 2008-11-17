@@ -342,7 +342,7 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     const Vector& e1 = getAdvancedState().getEvents();
     assert(e0.size() == e1.size() && e0.size() == getAdvancedState().getNEvents());
 
-    const Real MinWindow = SignificantReal*getAdvancedTime();
+	const Real MinWindow = std::max(SignificantReal, SignificantReal*getAdvancedTime());
     std::vector<int> eventCandidates, newEventCandidates;
     std::vector<EventStatus::EventTrigger> 
         eventCandidateTransitions, newEventCandidateTransitions;
