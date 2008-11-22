@@ -291,7 +291,7 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
                 // just set the time while leaving the rest of the state unchanged.
                 
                 tret = tMax;
-                yout = getAdvancedState().getTime();
+                yout = getAdvancedState().getY();
                 res = 0;
             }
             long newSteps = 0, newTestFailures = 0, newNonlinConvFailures = 0, newProjections = 0, newProjectionFailures = 0;
