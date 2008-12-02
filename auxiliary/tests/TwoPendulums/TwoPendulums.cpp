@@ -181,6 +181,8 @@ int main(int argc, char** argv) {
     //twoPends.setUseEulerAngles(s, true);
     mbs.realizeModel(s); // define appropriate states for this System
 
+	mbs.realize(s, Stage::Instance); // instantiate constraints
+
     if (cid.isValid()) {
 		int mp, mv, ma;
 		twoPends.getConstraint(cid).getNumConstraintEquationsInUse(s, mp, mv, ma);
