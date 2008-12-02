@@ -477,7 +477,12 @@ VTKVisualizerRep::VTKVisualizerRep(const MultibodySystem& m, VTKVisualizer* repo
     renderer->SetActiveCamera(camera);
     camera->Delete();
 
+    // Use modern renderer base camera lights in preference to deprecated interactor version
+    iren->LightFollowCameraOn();
+    renderer->LightFollowCameraOn();
+
     vtkLight* light = vtkLight::New();
+    light->SetLightTypeToCameraLight();
     light->SetPosition(-1,0,0);
     light->SetFocalPoint(0,0,0);
     light->SetColor(1,1,1);
@@ -486,6 +491,7 @@ VTKVisualizerRep::VTKVisualizerRep(const MultibodySystem& m, VTKVisualizer* repo
     light->Delete();
 
     light = vtkLight::New();
+    light->SetLightTypeToCameraLight();
     light->SetPosition(1,0,0);
     light->SetFocalPoint(0,0,0);
     light->SetColor(1,1,1);
@@ -494,6 +500,7 @@ VTKVisualizerRep::VTKVisualizerRep(const MultibodySystem& m, VTKVisualizer* repo
     light->Delete();
 
     light = vtkLight::New();
+    light->SetLightTypeToCameraLight();
     light->SetPosition(0,1,1);
     light->SetFocalPoint(0,0,0);
     light->SetColor(1,1,1);
@@ -660,4 +667,12 @@ const vtkRenderer* VTKVisualizer::getVtkRenderer() const {
 
 vtkRenderer* VTKVisualizer::updVtkRenderer() {
   return updRep().renderer;
+}
+
+const vtkRenderWindow* VTKVisualizer::getVtkRenderWindow() const {
+  return getRep().renWin;
+}
+
+vtkRenderWindow* VTKVisualizer::updVtkRenderWindow() {
+  return updRep().renWin;
 }

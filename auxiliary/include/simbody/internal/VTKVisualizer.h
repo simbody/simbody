@@ -48,6 +48,7 @@
 #include <vector>
 
 class vtkRenderer;
+class vtkRenderWindow;
 
 namespace SimTK {
 
@@ -116,6 +117,8 @@ public:
     /// Exposes underlying vtkRenderer object.  For advanced use only.
     const vtkRenderer* getVtkRenderer() const;
     vtkRenderer* updVtkRenderer();
+    const vtkRenderWindow* getVtkRenderWindow() const;
+    vtkRenderWindow* updVtkRenderWindow();
 
     // Internal use only
     explicit VTKVisualizer(class VTKVisualizerRep* r) : rep(r) { }
