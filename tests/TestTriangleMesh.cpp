@@ -136,7 +136,7 @@ void verifyMeshThrowsException(vector<Vec3> vertices, int faces[][3], int numFac
         ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
         ASSERT(false);
     }
-    catch (std::exception& e) {
+    catch (std::exception&) {
     }
 }
 

@@ -202,7 +202,7 @@ void testCreateFromPoints() {
         
         // Create a set of points inside it.
         
-        int numPoints = 50*random.getValue()+1;
+        int numPoints = (int)(50*random.getValue()+1);
         Vector_<Vec3> points(numPoints);
         for (int i = 0; i < numPoints; i++)
             points[i] = transform*Vec3(size[0]*random.getValue(), size[1]*random.getValue(), size[2]*random.getValue());

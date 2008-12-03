@@ -29,9 +29,9 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include <set>
-
 #include "SimTKsimbody.h"
+
+#include <set>
 
 using namespace SimTK;
 using namespace std;
