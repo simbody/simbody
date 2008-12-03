@@ -35,8 +35,6 @@
 #include "simbody/internal/common.h"
 #include "SimbodyTreeState.h"
 
-#include "internalDynamics.h"
-
 #include <cassert>
 #include <vector>
 
