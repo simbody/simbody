@@ -20,6 +20,19 @@
 #ifndef __IPOPTCONFIG_H__
 #define __IPOPTCONFIG_H__
 
+// VC++ tries to be secure by leaving bounds checking on for STL containers
+// even in Release mode. This macro exists to disable that feature and can
+// result in a considerable speedup.
+// CAUTION: every linked-together compilation unit must have this set the same
+// way. Everyone who properly includes SimTKcommon/internal/common.h
+// first is fine but IpOpt doesn't do that. (TODO: it should)
+#ifdef WIN32
+	#ifdef NDEBUG
+		#undef _SECURE_SCL
+		#define _SECURE_SCL 0
+	#endif
+#endif
+
 #ifdef HAVE_CONFIG_H
 #include "config_ipopt.h"
 
