@@ -120,6 +120,7 @@
 #ifdef WIN32
     #ifdef _MSC_VER
     #pragma warning(disable:4231) // need to use 'extern' template explicit instantiation
+    #pragma warning(disable:4251) // no DLL interface for type of member of exported class
     #endif
     #if defined(SimTK_SimTKCOMMON_BUILDING_SHARED_LIBRARY)
         #define SimTK_SimTKCOMMON_EXPORT __declspec(dllexport)
@@ -132,6 +133,16 @@
     #else
         #define SimTK_SimTKCOMMON_EXPORT __declspec(dllimport)   // i.e., a client of a shared library
     #endif
+	// VC++ tries to be secure by leaving bounds checking on for STL containers
+	// even in Release mode. This macro exists to disable that feature and can
+	// result in a considerable speedup.
+	// CAUTION: every linked-together compilation unit must have this set the same
+	// way. Everyone who properly includes this file first is fine; but as of this
+	// writing Simmath's IpOpt doesn't do so.
+	#ifdef NDEBUG
+		#undef _SECURE_SCL
+		#define _SECURE_SCL 0
+	#endif
 #else
     #define SimTK_SimTKCOMMON_EXPORT // Linux, Mac
 #endif

@@ -29,11 +29,14 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include <cassert>
+
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/internal/Random.h"
 #include "SimTKcommon/internal/AtomicInteger.h"
 #include "SFMT.h"
+
+#include <cassert>
+
 using namespace SimTK_SFMT;
 
 namespace SimTK {

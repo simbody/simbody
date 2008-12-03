@@ -23,6 +23,13 @@
 # or           .../SimTKcommon/lib ?
 #----------------------------------------------------
 
+cmake_minimum_required(VERSION 2.4.6)
+
+if(COMMAND cmake_policy)
+        cmake_policy(SET CMP0003 NEW)
+        cmake_policy(SET CMP0005 NEW)
+endif(COMMAND cmake_policy)
+
 PROJECT (SimTKcommon)
 SUBDIRS (staticTarget sharedTarget tests)
 
@@ -290,39 +297,7 @@ INCLUDE (Dart)
 #
 # Testing
 #
-
 ENABLE_TESTING()
-
-IF (EXECUTABLE_OUTPUT_PATH)
-  SET (TEST_PATH ${EXECUTABLE_OUTPUT_PATH})
-ELSE (EXECUTABLE_OUTPUT_PATH)
-  SET (TEST_PATH .)
-ENDIF (EXECUTABLE_OUTPUT_PATH)
-
-ADD_TEST(ListTest                 ${TEST_PATH}/ListTest)
-ADD_TEST(ListTestStatic           ${TEST_PATH}/ListTestStatic)
-ADD_TEST(BNTTest                  ${TEST_PATH}/BNTTest)
-ADD_TEST(BNTTestStatic            ${TEST_PATH}/BNTTestStatic)
-ADD_TEST(MatVecTest               ${TEST_PATH}/MatVecTest)
-ADD_TEST(MatVecTestStatic         ${TEST_PATH}/MatVecTestStatic)
-ADD_TEST(SpatialAlgebraTest       ${TEST_PATH}/SpatialAlgebraTest)
-ADD_TEST(SpatialAlgebraTestStatic ${TEST_PATH}/SpatialAlgebraTestStatic)
-ADD_TEST(OrientationTest          ${TEST_PATH}/OrientationTest)
-ADD_TEST(OrientationTestStatic    ${TEST_PATH}/OrientationTestStatic)
-#ADD_TEST(BigMatrixTest            ${TEST_PATH}/BigMatrixTest)
-#ADD_TEST(BigMatrixTestStatic      ${TEST_PATH}/BigMatrixTestStatic)
-ADD_TEST(StateTest                ${TEST_PATH}/StateTest)
-ADD_TEST(StateTestStatic          ${TEST_PATH}/StateTestStatic)
-ADD_TEST(RandomTest               ${TEST_PATH}/RandomTest)
-ADD_TEST(RandomTestStatic         ${TEST_PATH}/RandomTestStatic)
-ADD_TEST(SFMTTest                 ${TEST_PATH}/SFMTTest)
-ADD_TEST(SFMTTestStatic           ${TEST_PATH}/SFMTTestStatic)
-ADD_TEST(PolynomialTest           ${TEST_PATH}/PolynomialTest)
-ADD_TEST(PolynomialTestStatic     ${TEST_PATH}/PolynomialTestStatic)
-ADD_TEST(EnumerationTest          ${TEST_PATH}/EnumerationTest)
-ADD_TEST(EnumerationTestStatic    ${TEST_PATH}/EnumerationTestStatic)
-ADD_TEST(RotationTest             ${TEST_PATH}/RotationTest)
-ADD_TEST(RotationTestStatic       ${TEST_PATH}/RotationTestStatic)
 
 #
 # Installation
