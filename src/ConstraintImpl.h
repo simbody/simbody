@@ -251,7 +251,7 @@ public:
     // the appropriate cache entry rather than ask the State for it.
 
     const SBInstanceCache&		getInstanceCache(const State&) const;
-    const SBModelCache&                 getModelCache(const State&) const;
+    const SBModelCache&         getModelCache(const State&) const;
     const SBPositionCache&		getPositionCache(const State&) const;
     const SBVelocityCache&		getVelocityCache(const State&) const;
     const SBAccelerationCache&	getAccelerationCache(const State&) const;
@@ -591,6 +591,7 @@ public:
 
     // Implementation of virtuals required for holonomic constraints.
 
+	// TODO: this is badly scaled; consider using length instead of length^2
     // perr = (p^2 - d^2)/2
     void realizePositionErrorsVirtual(const State& s, int mp,  Real* perr) const {
         assert(mp==1 && perr);
@@ -736,7 +737,7 @@ public:
     //  
     // Then, from examination of verr noting that v_CS_A=v_AS-v_AC:
     //       ~v_AS*n                  (body F at point S) 
-	//     - ~v_AC*n                  (body B at pointC)
+	//     - ~v_AC*n                  (body B at point C)
     // so we apply a forces lambda*n to F at S, -lambda*n to B at C.
     //
 	//    --------------------------------

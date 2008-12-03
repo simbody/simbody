@@ -109,7 +109,7 @@ class Constraint;
  *
  * When working in a weighted norm with weights W on the state variables and
  * weights T (1/tolerance) on the constraint errors, the matrices we need are
- * actually [Tp PQ^1 Wq^1], [Tpv [P;V] Wu^-1], etc. with T and W diagonal
+ * actually [Tp PQ^-1 Wq^-1], [Tpv [P;V] Wu^-1], etc. with T and W diagonal
  * weighting matrices. These can then be used to find least squares solutions
  * in the weighted norms.
  *
