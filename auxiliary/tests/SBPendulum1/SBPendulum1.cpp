@@ -235,11 +235,6 @@ try {
     vtk.addDecoration(aPendulum, Transform(Vec3(3, 5, 0)), DecorativeSphere().setColor(Purple));
 
 
-    //ExplicitEuler ee(mbs, s);
-    bool suppressProjection = false;
-    OLDRungeKuttaMerson ee(mbs, s, suppressProjection);
-    ee.setProjectEveryStep(false);
-
     vtk.report(s);
 
     // set Modeling stuff (s)
@@ -347,19 +342,35 @@ try {
     const Real tstart = 0.;
     const Real tmax = 100;
 
+
+    //ExplicitEuler ee(mbs, s);
+    //bool suppressProjection = false;
+    //OLDRungeKuttaMerson ee(mbs, s, suppressProjection);
+
+    RungeKuttaMersonIntegrator ee(mbs);
+    ee.setProjectEveryStep(false);
     ee.setAccuracy(1e-4);
     ee.setConstraintTolerance(1e-4);
+	ee.setFinalTime(tmax);
 
-    ee.initialize(); 
-    vtk.report(s);
     s.updTime() = tstart;
+    ee.initialize(s);	// assemble if needed
+	s = ee.getState();
+    vtk.report(s);
+
+    Integrator::SuccessfulStepStatus status;
     int step = 0;
-    while (s.getTime() < tmax) {
-        ee.step(s.getTime() + h);
+    while ((status=ee.stepTo(step*h)) != Integrator::EndOfSimulation) {
+		const State& s = ee.getState();
+
+		// This is so we can calculate potential energy (although logically
+		// one should be able to do that at Stage::Position).
+		mbs.realize(s, Stage::Dynamics);
+
         cout << " E=" << mbs.calcEnergy(s)
              << " (pe=" << mbs.calcPotentialEnergy(s)
              << ", ke=" << mbs.calcKineticEnergy(s)
-             << ") hNext=" << ee.getPredictedNextStep() << endl;
+             << ") hNext=" << ee.getPredictedNextStepSize() << endl;
 
         const Vector qdot = pend.getQDot(s);
 
@@ -378,7 +389,7 @@ try {
         if (!(step % 10)) {
             cout << s.getTime() << " " 
                  << s.getQ() << " " << s.getU() 
-                 << " hNext=" << ee.getPredictedNextStep() << endl;
+                 << " hNext=" << ee.getPredictedNextStepSize() << endl;
             cout << "body config=" << x;
             cout << "body velocity=" << v << endl;
             //cout << "err=" << err << " |err|=" << d << endl;
@@ -387,7 +398,9 @@ try {
             
             vtk.report(s);
         }
-        ++step;
+
+		if (status == Integrator::ReachedReportTime)
+			++step;
 
 
         mbs.realize(s, Stage::Acceleration);

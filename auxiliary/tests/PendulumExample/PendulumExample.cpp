@@ -114,10 +114,8 @@ try { // If anything goes wrong, an exception will be thrown.
     mbs.realize(s);
 
     // Create a study using the Runge Kutta Merson integrator
-    OLDRungeKuttaMerson myStudy(mbs, s);
+	RungeKuttaMersonIntegrator myStudy(mbs);
     myStudy.setAccuracy(1e-6);
-    //OLDCPodesIntegrator myStudy(mbs, s);
-    //myStudy.setAccuracy(1e-4);
 
     // Visualize with VTK. This will pick up decorative geometry from
     // each subsystem that generates any, including of course the 
@@ -135,25 +133,33 @@ try { // If anything goes wrong, an exception will be thrown.
         s = mbs.getDefaultState();
         connector.setQToFitRotation(s, Rotation(Pi/4, Vec3(1,1,1)) );
 
-
         printf("time  theta      energy           *************\n");
-        s.updTime() = 0;
-
 
         swinger.setQToFitTransform(s, Transform( Rotation( BodyRotationSequence, 0*Pi/2, XAxis, 0*Pi/2, YAxis ), Vec3(0,0,0) ));
         swinger.setUToFitVelocity(s, SpatialVec(0*Vec3(1.1,1.2,1.3),Vec3(0,0,-1)));
 
-        myStudy.initialize();
+		s.updTime() = 0;
+        myStudy.initialize(s);
 
-        cout << "MassProperties in B=" << swinger.expressMassPropertiesInAnotherBodyFrame(s,swinger);
-        cout << "MassProperties in G=" << swinger.expressMassPropertiesInGroundFrame(s);
-        cout << "Spatial Inertia    =" << swinger.calcBodySpatialInertiaMatrixInGround(s);
+        cout << "MassProperties in B=" << swinger.expressMassPropertiesInAnotherBodyFrame(myStudy.getState(),swinger);
+        cout << "MassProperties in G=" << swinger.expressMassPropertiesInGroundFrame(myStudy.getState());
+        cout << "Spatial Inertia    =" << swinger.calcBodySpatialInertiaMatrixInGround(myStudy.getState());
 
         for (;;) {
-            //printf("%5g %10.4g %10.8g\n", s.getTime(), swinger.getQ(s)*Rad2Deg, mbs.getEnergy(s));
+			// Should check for errors and other interesting status returns.
+			myStudy.stepTo(myStudy.getTime() + dt);
+			const State& s = myStudy.getState(); // s is now the integrator's internal state
+
+			// This is so we can calculate potential energy (although logically
+			// one should be able to do that at Stage::Position).
+			mbs.realize(s, Stage::Dynamics);
+
             cout << s.getTime() << ": E=" << mbs.calcEnergy(s) 
                  << " connector q=" << connector.getQ(s) 
                  << ": swinger q=" << swinger.getQ(s) << endl;
+
+			// This is so we can look at the UDots.
+			mbs.realize(s, Stage::Acceleration);
 
             cout << "q =" << pend.getQ(s) << endl;
             cout << "u =" << pend.getU(s) << endl;
@@ -171,9 +177,6 @@ try { // If anything goes wrong, an exception will be thrown.
             display.report(s);
             if (s.getTime() >= finalTime)
                 break;
-
-            // TODO: should check for errors or have or teach RKM to throw. 
-            myStudy.step(s.getTime() + dt);
         }
     }
 } 
