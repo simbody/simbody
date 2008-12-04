@@ -139,10 +139,13 @@
 	// CAUTION: every linked-together compilation unit must have this set the same
 	// way. Everyone who properly includes this file first is fine; but as of this
 	// writing Simmath's IpOpt doesn't do so.
-	#ifdef NDEBUG
-		#undef _SECURE_SCL
-		#define _SECURE_SCL 0
-	#endif
+	// (sherm 081204 disabling for now: doesn't work on VC++ 8 and is 
+	// tricky on VC++ 9 because all libraries, including 3rd party, must
+	// be built the same way)
+	//#ifdef NDEBUG
+	//	#undef _SECURE_SCL
+	//	#define _SECURE_SCL 0
+	//#endif
 #else
     #define SimTK_SimTKCOMMON_EXPORT // Linux, Mac
 #endif
