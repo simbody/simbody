@@ -1,6 +1,8 @@
 #ifndef SimTK_SIMBODY_NEWTON_RAPHSON_H_
 #define SimTK_SIMBODY_NEWTON_RAPHSON_H_
 
+#ifdef NOTDEF
+
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
  * -------------------------------------------------------------------------- *
@@ -148,5 +150,7 @@ public:
         }
     }
 };
+
+#endif
 
 #endif // SimTK_SIMBODY_NEWTON_RAPHSON_H_

@@ -46,10 +46,6 @@
 #include <vector>
 #include <algorithm>
 
-#ifdef USE_OLD_CONSTRAINTS
-    #include "LengthConstraints.h"
-#endif
-
 namespace SimTK {
 
 
@@ -551,7 +547,6 @@ Constraint::Rod::Rod(MobilizedBody& body1, MobilizedBody& body2, Real defaultRod
     SimTK_ASSERT_ALWAYS(defaultRodLength > 0,
         "Constraint::Rod(): Rod length must always be greater than zero");
 
-    //rep = new RodImpl(); rep->setMyHandle(*this);
     body1.updMatterSubsystem().adoptConstraint(*this);
 
     updImpl().B1 = updImpl().addConstrainedBody(body1);
@@ -571,7 +566,6 @@ Constraint::Rod::Rod(MobilizedBody& body1, const Vec3& point1,
     SimTK_ASSERT_ALWAYS(defaultRodLength > 0,
         "Constraint::Rod(): Rod length must always be greater than zero");
 
-    //rep = new RodImpl(); rep->setMyHandle(*this);
     body1.updMatterSubsystem().adoptConstraint(*this);
 
     updImpl().B1 = updImpl().addConstrainedBody(body1);
@@ -641,20 +635,6 @@ Real Constraint::Rod::getMultiplier(const State& s) const {
 
 
     // RodImpl
-
-void Constraint::Rod::RodImpl::realizeTopologyVirtual(State& s) const { 
-#ifdef USE_OLD_CONSTRAINTS
-    SimbodyMatterSubsystemRep& matter = 
-        const_cast<RodImpl*>(this)->updMyMatterSubsystemRep();
-    const MobilizedBodyIndex mobilizedBody1 = getMobilizedBodyIndexOfConstrainedBody(B1);
-    const MobilizedBodyIndex mobilizedBody2 = getMobilizedBodyIndexOfConstrainedBody(B2);
-    const RigidBodyNode& rbn1 = matter.getRigidBodyNode(mobilizedBody1);
-    const RigidBodyNode& rbn2 = matter.getRigidBodyNode(mobilizedBody2);
-    const RBStation s1(rbn1, defaultPoint1);
-    const RBStation s2(rbn2, defaultPoint2);
-    matter.addOneDistanceConstraintEquation(s1,s2,defaultRodLength);
-#endif
-}
 
 void Constraint::Rod::RodImpl::calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
@@ -1221,24 +1201,6 @@ Vec3 Constraint::Ball::getMultipliers(const State& s) const {
 
     // BallImpl
 
-void Constraint::Ball::BallImpl::realizeTopologyVirtual(State& s) const { 
-#ifdef USE_OLD_CONSTRAINTS
-    SimbodyMatterSubsystemRep& matter = 
-        const_cast<BallRep*>(this)->updMyMatterSubsystemRep();
-    const MobilizedBodyIndex mobilizedBody1 = getMobilizedBodyIndexOfConstrainedBody(B1);
-    const MobilizedBodyIndex mobilizedBody2 = getMobilizedBodyIndexOfConstrainedBody(B2);
-    const RigidBodyNode& rbn1 = matter.getRigidBodyNode(mobilizedBody1);
-    const RigidBodyNode& rbn2 = matter.getRigidBodyNode(mobilizedBody2);
-    const RBStation s1x(rbn1, defaultPoint1+Vec3(1,0,0));
-    const RBStation s1y(rbn1, defaultPoint1+Vec3(0,1,0));       
-    const RBStation s1z(rbn1, defaultPoint1+Vec3(0,0,1));
-    const RBStation s2(rbn2, defaultPoint2);
-    matter.addOneDistanceConstraintEquation(s1x,s2,1.);
-    matter.addOneDistanceConstraintEquation(s1y,s2,1.);
-    matter.addOneDistanceConstraintEquation(s1z,s2,1.);
-#endif
-}
-
 void Constraint::Ball::BallImpl::calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
 {
@@ -1463,45 +1425,6 @@ Vec6 Constraint::Weld::getMultipliers(const State& s) const {
 }
 
     // WeldImpl
-
-void Constraint::Weld::WeldImpl::realizeTopologyVirtual(State& s) const { 
-#ifdef USE_OLD_CONSTRAINTS
-    SimbodyMatterSubsystemRep& matter = 
-        const_cast<WeldRep*>(this)->updMyMatterSubsystemRep();
-    const MobilizedBodyIndex mobilizedBody1 = getMobilizedBodyIndexOfConstrainedBody(B);
-    const MobilizedBodyIndex mobilizedBody2 = getMobilizedBodyIndexOfConstrainedBody(F);
-    const Vec3& station1 = defaultFrameB.T();
-    const Vec3& station2 = defaultFrameF.T();
-    const RigidBodyNode& rbn1 = matter.getRigidBodyNode(mobilizedBody1);
-    const RigidBodyNode& rbn2 = matter.getRigidBodyNode(mobilizedBody2);
-    const RBStation s1 (rbn1, station1);
-    const RBStation s1x(rbn1, station1+defaultFrameB.x());
-    const RBStation s1y(rbn1, station1+defaultFrameB.y());       
-    const RBStation s1z(rbn1, station1+defaultFrameB.z());
-
-    const RBStation s2 (rbn2, station2);
-    const RBStation s2x(rbn2, station2+defaultFrameF.x());
-    const RBStation s2y(rbn2, station2+defaultFrameF.y());       
-    const RBStation s2z(rbn2, station2+defaultFrameF.z());
-
-    // This is a "coincident station" constraint holding the frame
-    // origins together (see above).
-    matter.addOneDistanceConstraintEquation(s1x,s2,1.);
-    matter.addOneDistanceConstraintEquation(s1y,s2,1.);
-    matter.addOneDistanceConstraintEquation(s1z,s2,1.);
-
-    // This is an "align axes" constraint. This has an unfortunate
-    // symmetry when rotating 180 degrees about any axis.
-    // This set of constraint equations is fine for *projection* but
-    // not enough for *assembly*. You need to add another one to
-    // eliminate the rotational symmetries when assembling from
-    // far away.
-    const Real d = std::sqrt(2.);
-    matter.addOneDistanceConstraintEquation(s1y,s2z,d); // restrain x rot
-    matter.addOneDistanceConstraintEquation(s1z,s2x,d); // restrain y rot
-    matter.addOneDistanceConstraintEquation(s1x,s2y,d); // restrain z rot  
-#endif
-}
 
 void Constraint::Weld::WeldImpl::calcDecorativeGeometryAndAppendVirtual
    (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const

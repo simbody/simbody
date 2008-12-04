@@ -125,7 +125,6 @@ public:
     void clear() {
         nBodies = nParticles = nConstraints = nAncestorConstrainedBodies =
             nDOFs = maxNQs = sumSqDOFs =
-            nDistanceConstraints = // TODO: OBSOLETE
             modelingVarsIndex = modelingCacheIndex = -1;
         valid = false;
     }
@@ -146,9 +145,6 @@ public:
     int nDOFs;
     int maxNQs;
     int sumSqDOFs;
-
-    // TODO: OBSOLETE -- part of the old IVM constraint system
-    int nDistanceConstraints;
 
     int modelingVarsIndex;
     int modelingCacheIndex;
@@ -448,17 +444,6 @@ public:
     // rather than Ground.
     std::vector<Transform> constrainedBodyConfigInAncestor;     // nacb (X_AB)
 
-        // OBSOLETE: These are used only when USE_OLD_CONSTRAINTS is enabled.
-        // They aren't commented out here so the old code will still compile.
-
-    // Distance constraint calculations. These are indexed by
-    // *distance constraint* number, not *constraint* number.
-    Vector_<Vec3> station_G[2];   // vec from body origin OB to station, expr. in G
-    Vector_<Vec3> pos_G[2];       // vec from ground origin to station, expr. in G
-
-    Vector_<Vec3> fromTip1ToTip2_G; // tip2.pos-tip1.pos
-    Vector_<Vec3> unitDirection_G;  // fromTip1ToTip2/|fromTip1ToTip2|
-
 public:
     void allocate(const SBTopologyCache& tree) {
         // Pull out construction-stage information from the tree.
@@ -466,10 +451,6 @@ public:
         const int nDofs   = tree.nDOFs;   // this is the number of u's (nu)
         const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need
         const int nacb    = tree.nAncestorConstrainedBodies;
-
-        // TODO: OBSOLETE
-        const int ndistc  = tree.nDistanceConstraints;
-        const int npc     = ndistc;       // all the position constraints
 
         // These contain uninitialized junk. Body-indexed entries get their
         // ground elements set appropriately now and forever.
@@ -502,14 +483,6 @@ public:
         bodyCOMStationInGround[0] = 0.;
 
         constrainedBodyConfigInAncestor.resize(nacb);
-
-        // TODO: OBSOLETE
-
-        station_G[0].resize(ndistc); station_G[1].resize(ndistc);
-        pos_G[0].resize(ndistc); pos_G[1].resize(ndistc);
-
-        fromTip1ToTip2_G.resize(ndistc);
-        unitDirection_G.resize(ndistc);
     }
 };
 
@@ -529,13 +502,6 @@ public:
     // rather than Ground.
     std::vector<SpatialVec> constrainedBodyVelocityInAncestor; // nacb (V_AB)
 
-    // TODO: OBSOLETE
-    // Distance constraint calculations. These are indexed by
-    // *distance constraint* number, not *constraint* number.
-    Vector_<Vec3> stationVel_G[2]; // vel of station relative to body origin, expr. in G
-    Vector_<Vec3> vel_G[2];        // tip velocities relative to G, expr. in G
-    Vector_<Vec3> relVel_G;        // spatial relative velocity tip2.velG-tip1.velG
-
 public:
     void allocate(const SBTopologyCache& tree) {
         // Pull out construction-stage information from the tree.
@@ -543,10 +509,6 @@ public:
         const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
         const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need
         const int nacb    = tree.nAncestorConstrainedBodies;
-
-        //TODO: OBSOLETE
-        const int ndistc  = tree.nDistanceConstraints;
-        const int nvc     = ndistc;      // all the velocity constraints
 
         mobilizerRelativeVelocity.resize(nBodies);       
         mobilizerRelativeVelocity[0] = SpatialVec(Vec3(0),Vec3(0));
@@ -558,11 +520,6 @@ public:
         bodyVelocityInGround[0] = SpatialVec(Vec3(0),Vec3(0));
 
         constrainedBodyVelocityInAncestor.resize(nacb);
-
-        //TODO: OBSOLETE
-        stationVel_G[0].resize(ndistc); stationVel_G[1].resize(ndistc);
-        vel_G[0].resize(ndistc); vel_G[1].resize(ndistc);
-        relVel_G.resize(ndistc);
     }
 };
 
@@ -596,10 +553,7 @@ public:
         const int nBodies = tree.nBodies;
         const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
         const int nSqDofs = tree.sumSqDOFs;   // sum(ndof^2) for each joint
-        const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need
-
-        // TODO: OBSOLETE
-        const int nac     = tree.nDistanceConstraints; // acceleration constraints        
+        const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need     
         
         articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
         storageForHtFMDot.resize(2,nDofs);
@@ -655,12 +609,6 @@ public:
     // rather than Ground.
     std::vector<SpatialVec> constrainedBodyAccelerationInAncestor; // nacb (A_AB)
 
-    // TODO: OBSOLETE
-    // Distance constraint calculations. These are indexed by
-    // *distance constraint* number, not *constraint* number.
-    Vector_<Vec3> acc_G[2];   // acc of tip relative to ground, expr. in G
-    Vector_<Vec3> force_G[2]; // the constraint forces applied to each point
-
 public:
     void allocate(const SBTopologyCache& tree) {
         // Pull out construction-stage information from the tree.
@@ -669,10 +617,6 @@ public:
         const int nSqDofs = tree.sumSqDOFs; // sum(ndof^2) for each joint
         const int maxNQs  = tree.maxNQs;    // allocate the max # q's we'll ever need
         const int nacb    = tree.nAncestorConstrainedBodies;
-
-        // TODO: OBSOLETE
-        const int ndistc  = tree.nDistanceConstraints;
-        const int nac     = ndistc;         // all the acceleration constraints
 
         bodyAccelerationInGround.resize(nBodies);   
         bodyAccelerationInGround[0] = SpatialVec(Vec3(0),Vec3(0));;
@@ -686,10 +630,6 @@ public:
         Gepsilon.resize(nBodies); // TODO: ground initialization
 
         constrainedBodyAccelerationInAncestor.resize(nacb);
-
-        // TODO: OBSOLETE
-        acc_G[0].resize(ndistc); acc_G[1].resize(ndistc);
-        force_G[0].resize(ndistc); force_G[1].resize(ndistc);
     }
 };
 

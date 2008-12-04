@@ -50,13 +50,6 @@
 #include <iostream>
 using std::cout; using std::endl;
 
-// Use this to enable the old IVM constraint system which is now obsolete.
-// This consisted only of built-in distance constraints, and those are used
-// to fake up Rod, Ball, and Weld constraints so those three kinds of 
-// constraints, and only those three, should work with the old system engaged.
-
-//#define USE_OLD_CONSTRAINTS
-
 class SimbodyMatterSubsystemRep;
 class SBInstanceCache;
 class SBModelCache;
@@ -586,8 +579,6 @@ public:
         pointRadius= r > 0 ? r : 0;
     }
     Real getPointDisplayRadius() const {return pointRadius;}
-
-    void realizeTopologyVirtual(State& s) const;
 
     // Implementation of virtuals required for holonomic constraints.
 
@@ -1166,8 +1157,6 @@ public:
     }
     Real getDefaultRadius() const {return defaultRadius;}
 
-    void realizeTopologyVirtual(State& s) const;
-
     // Implementation of virtuals required for holonomic constraints.
 
     // We have a ball joint between base body B and follower body F, located at a point P fixed to B
@@ -1480,8 +1469,6 @@ public:
         if (which==0) return frameBColor[0] < 0 ? getDefaultFrameColor(0) : frameBColor;
         else          return frameFColor[0] < 0 ? getDefaultFrameColor(1) : frameFColor;
     }
-
-    void realizeTopologyVirtual(State& s) const;
 
     // Implementation of virtuals required for holonomic constraints.
 

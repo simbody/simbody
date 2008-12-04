@@ -29,6 +29,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#ifdef NOTDEF
+
 
 /**@file
  *
@@ -1384,4 +1386,7 @@ void RBDistanceConstraint::calcAccInfo(
     const Vec3 relAcc_G = getAcc_G(ac,2) - getAcc_G(ac,1);
     updAccErr(udotErr) = getRelVel_G(vc).normSqr() + (~relAcc_G * getFromTip1ToTip2_G(pc));
 }
+
+
+#endif
 

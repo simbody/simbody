@@ -255,7 +255,6 @@ public:
 private:
 };
 
-
 class LoopConstraintConstructionFailure : public Base {
 public:
     LoopConstraintConstructionFailure(const char* fn, int ln, String msg) : Base(fn,ln)

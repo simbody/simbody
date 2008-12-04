@@ -1,6 +1,8 @@
 #ifndef SimTK_SIMBODY_LENGTH_CONSTRAINTS_H_
 #define SimTK_SIMBODY_LENGTH_CONSTRAINTS_H_
 
+#ifdef NOTDEF
+
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
  * -------------------------------------------------------------------------- *
@@ -463,6 +465,8 @@ inline const SimbodyMatterSubsystemRep&
 LengthSet::getRBTree()  const {return lConstraints->rbTree;}
 inline int                  
 LengthSet::getVerbose() const {return lConstraints->verbose;}
+
+#endif
 
 
 #endif // SimTK_SIMBODY_LENGTH_CONSTRAINTS_H_

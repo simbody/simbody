@@ -32,7 +32,6 @@
 /**@file
  *
  * Implementation of SimbodyMatterSubsystemRep.
- * Note: there must be no mention of atoms anywhere in this code.
  */
 
 #include "SimTKcommon.h"
@@ -42,7 +41,6 @@
 #include "SimbodyMatterSubsystemRep.h"
 #include "SimbodyTreeState.h"
 #include "RigidBodyNode.h"
-#include "LengthConstraints.h"
 #include "MultibodySystemRep.h"
 #include "MobilizedBodyImpl.h"
 #include "ConstraintImpl.h"
@@ -50,8 +48,6 @@
 #include <string>
 #include <iostream>
 using std::cout; using std::endl;
-
-//#define USE_OLD_CONSTRAINTS
 
 SimbodyMatterSubsystemRep::SimbodyMatterSubsystemRep(const SimbodyMatterSubsystemRep& src)
   : SimTK::Subsystem::Guts("SimbodyMatterSubsystemRep", "X.X.X")
@@ -98,13 +94,6 @@ void SimbodyMatterSubsystemRep::clearTopologyCache() {
     velocityCoupledConstraints.clear();
     accelerationCoupledConstraints.clear();
     dynamicallyCoupledConstraints.clear();
-
-
-    // TODO: this old constraint stuff is OBSOLETE
-    delete lConstraints; lConstraints=0;
-    for (int i=0; i<(int)distanceConstraints.size(); ++i)
-        delete distanceConstraints[i];
-    distanceConstraints.clear();
 
     // RigidBodyNodes themselves are owned by the MobilizedBodyImpls and will
     // be deleted when the MobilizedBodyImpl objects are.
@@ -160,28 +149,12 @@ void SimbodyMatterSubsystemRep::createGroundBody() {
                                                       MobilizedBodyIndex(0));
 }
 
-// Add a distance constraint and assign it to use a particular slot in the
-// qErr, uErr, and multiplier arrays.
-// Return the assigned distance constraint index for caller's use.
-// TODO: OBSOLETE
-int SimbodyMatterSubsystemRep::addOneDistanceConstraintEquation(
-    const RBStation& s1, const RBStation& s2, const Real& d)
-{
-    const int nxtIndex = (int)distanceConstraints.size();
-    RBDistanceConstraint* dc = new RBDistanceConstraint(s1,s2,d);
-    dc->setQErrIndex(nxtIndex);
-    dc->setUErrIndex(nxtIndex);
-    dc->setMultIndex(nxtIndex);
-    dc->setDistanceConstraintNum(distanceConstraints.size());
-    distanceConstraints.push_back(dc);
-    return nxtIndex;
-}
-
 MobilizedBodyIndex SimbodyMatterSubsystemRep::getParent(MobilizedBodyIndex body) const { 
     return getRigidBodyNode(body).getParent()->getNodeNum();
 }
 
-std::vector<MobilizedBodyIndex> SimbodyMatterSubsystemRep::getChildren(MobilizedBodyIndex body) const {
+std::vector<MobilizedBodyIndex>
+SimbodyMatterSubsystemRep::getChildren(MobilizedBodyIndex body) const {
     const RigidBodyNode& node = getRigidBodyNode(body);
     std::vector<MobilizedBodyIndex> children;
     for (MobilizedBodyIndex bx(0); bx < node.getNChildren(); ++bx)
@@ -315,15 +288,6 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
         }
         */
     }
-    
-    // Now create the computational data structure for the length constraint
-    // equations which currently are used to implement all the Constraints.
-    // This is owned by the SimbodyMatterSubsystemRep.
-    // TODO: OBSOLETE -- part of the old IVM constraint system
-#ifdef USE_OLD_CONSTRAINTS
-    lConstraints = new LengthConstraints(*this, 0);
-    lConstraints->construct(distanceConstraints);
-#endif
 }
 
 int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
@@ -350,7 +314,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     mutableThis->topologyCache.nDOFs        = DOFTotal;
     mutableThis->topologyCache.maxNQs       = maxNQTotal;
     mutableThis->topologyCache.sumSqDOFs    = SqDOFTotal;
-    mutableThis->topologyCache.nDistanceConstraints     = distanceConstraints.size();
 
     SBModelVars mvars;
     mvars.allocate(topologyCache);
@@ -634,7 +597,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
         getConstraint(cx).getImpl().realizePosition(s);
 
     //cout << "BEFORE qErr=" << qErr << endl;
-#ifndef USE_OLD_CONSTRAINTS
     // Put position constraint equation errors in qErr
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
         if (isConstraintDisabled(s,cx))
@@ -644,12 +606,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
         if (pseg.length)
             constraints[cx]->getImpl().realizePositionErrors(s, pseg.length, &qErr[pseg.offset]);
     }
-#else // USE_OLD_CONSTRAINTS
-    for (int i=0; i < (int)distanceConstraints.size(); ++i)
-        distanceConstraints[i]->calcPosInfo(qErr,pc);
-#endif
-
     //cout << "AFTER qErr=" << qErr << endl;
+
     return 0;
 }
 
@@ -675,7 +633,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
         getConstraint(cx).getImpl().realizeVelocity(s);
 
-#ifndef USE_OLD_CONSTRAINTS
     // Put velocity constraint equation errors in uErr
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
         if (isConstraintDisabled(s,cx))
@@ -692,11 +649,6 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
                (s, mNonholo, &uErr[ic.totalNHolonomicConstraintEquationsInUse + nonholoseg.offset]);
     }
     //cout << "NEW UERR=" << uErr << endl;
-#else // USE_OLD_CONSTRAINTS
-    for (int i=0; i < (int)distanceConstraints.size(); ++i)
-        distanceConstraints[i]->calcVelInfo(pc,uErr,vc);
-    //cout << "OLD UERR=" << uErr << endl;
-#endif
 
     return 0;
 }
@@ -1356,7 +1308,6 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     //   (Tp P Wu^-1) dqhat_WLS = T perr, q -= Q*Wu^-1*dqhat_WLS
     // until perr(q)_TRMS <= 0.1*accuracy.
     //
-#ifndef USE_OLD_CONSTRAINTS
     // This is a nonlinear least squares problem. This is a full Newton iteration since we
     // recalculate the iteration matrix each time around the loop. TODO: a solution could
     // be found using the same iteration matrix, since we are projecting from (presumably)
@@ -1443,11 +1394,6 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
 
     //cout << "!!!! perr TRMS achieved " << normAchievedTRMS << " in " << nItsUsed << " iterations"  << endl;
     //cout << "!!!! ... PERR=" << pErrs << endl;
-#else // USE_OLD_CONSTRAINTS
-    // First, fix the position constraints produced by defined length constraints.
-    if (lConstraints->enforcePositionConstraints(s, consAccuracy, 0.1*consAccuracy))
-        anyChange = true;
-#endif
 
     // By design, normalization of quaternions can't have any effect on the length
     // constraints we just fixed (because we normalize internally for calculations).
@@ -1507,8 +1453,7 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
     // of u, we do not need to refactor the matrix since it does not depend on u.
     // TODO: Tp P Wu^-1 should already have been calculated for position projection (at least
     // if any position projection occurred)
-
-#ifndef USE_OLD_CONSTRAINTS
+	//
     // This is a nonlinear least squares problem, but we only need to factor once since only
     // the RHS is dependent on u. 
     Vector scaledVerrs = vErrs.rowScale(ooPVTols);
@@ -1576,11 +1521,6 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
     
     //cout << "!!!! verr achieved " << normAchievedTRMS << " in " << nItsUsed << " iterations" << endl;
     //cout << "!!!! ... VERR=" << vErrs << endl;
-#else // USE_OLD_CONSTRAINTS
-    // Fix the velocity constraints produced by defined length constraints.
-    if (lConstraints->enforceVelocityConstraints(s, consAccuracy, 0.1*consAccuracy))
-        anyChange = true;
-#endif
 
     if (anyChange)
         s.invalidateAll(Stage::Velocity);
@@ -1653,7 +1593,6 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
         getConstraint(cx).getImpl().realizeAcceleration(s);
 
-#ifndef USE_OLD_CONSTRAINTS
     // Put acceleration constraint equation errors in uErr
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
         if (isConstraintDisabled(s,cx))
@@ -1678,16 +1617,6 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
                          + acconlyseg.offset]);
     }
     //cout << "Tree:NEW UDOT ERR=" << udotErr << endl;
-
-#else // USE_OLD_CONSTRAINTS
-    Vector oldUDotErr = udotErr; oldUDotErr = NaN;
-    // Calculate constraint acceleration errors.
-    for (int i=0; i < (int)distanceConstraints.size(); ++i)
-        distanceConstraints[i]->calcAccInfo(pc,vc,oldUDotErr,ac);
-
-    //cout << "Tree:OLD UDOT ERR=" << oldUDotErr << endl;
-    udotErr=oldUDotErr;
-#endif
 }
 
 
@@ -1731,8 +1660,6 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
 
     //cout << "---> BEFORE udotErr=" << udotErr << endl;
 
-
-#ifndef USE_OLD_CONSTRAINTS
     Matrix Gt(nu,ma); // Gt==~P ~V ~A
     // Fill in all the columns of Gt
     calcHolonomicVelocityConstraintMatrixPt(s, Gt(0,     0,          nu, mHolo));
@@ -1772,9 +1699,8 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
     calcConstraintForcesFromMultipliers(s,lambda,bodyF,mobilityF);
     //TODO: the constraint forces here have the right sign, but the
     //      older Schwieters code calculated them with the wrong sign
-    //      which is then compensated for when they are used. Better would
-    //      be to fix the USE_OLD_CONSTRAINTS stuff to generate the opposite
-    //      sign (rather than changing the sign here) and then fix the use.
+    //      which is then compensated for when they are used. NEED TO
+	//		FIX THE SIGN WHERE IT IS USED AND GET RID OF THIS WASTEFUL NEGATION.
         bodyF *= -1;
         mobilityF *= -1;
 
@@ -1784,21 +1710,6 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
     calcTreeForwardDynamicsOperator(s, mobilityForces, particleForces, bodyForces,
                                     &mobilityF, &bodyF, ac, udot, udotErr);
         //cout << "  NEW UDOTERR=" << udotErr << endl;
-#else // USE_OLD_CONSTRAINTS
-    Vector_<SpatialVec> cFrc(getNBodies()); 
-    cFrc.setToZero();
-
-    if (lConstraints->calcConstraintForces(s, udotErr, multipliers, ac)) {
-        lConstraints->addInCorrectionForces(s, ac, cFrc);
-
-
-        //cout << "  OLD FORCES: " << cFrc << endl;
-
-        calcTreeForwardDynamicsOperator(s, mobilityForces, particleForces, bodyForces,
-                                        0, &cFrc, ac, udot, udotErr);
-        //cout << "  OLD UDOTERR=" << udotErr << endl;
-    }
-#endif
 }
 
 // This is the response version of the above operator; that is, it uses
@@ -1902,7 +1813,7 @@ void SimbodyMatterSubsystemRep::calcArticulatedBodyInertias(const State& s) cons
     const SBPositionCache& pc = getPositionCache(s);
     SBDynamicsCache&       dc = updDynamicsCache(s);
 
-    // level 0 for atoms whose position is fixed
+    // TODO: does this need to do level 0?
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->calcArticulatedBodyInertiasInward(pc,dc);
@@ -1935,7 +1846,7 @@ void SimbodyMatterSubsystemRep::calcZ(const State& s,
 {
     const SBStateDigest sbs(s, *this, Stage::Acceleration);
 
-    // level 0 for atoms whose position is fixed
+    // TODO: does this need to do level 0?
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
@@ -1962,10 +1873,6 @@ void SimbodyMatterSubsystemRep::calcTreeAccel(const State& s) const {
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->calcAccel(sbs,udot,qdotdot);
-}
-
-void SimbodyMatterSubsystemRep::fixVel0(State& s, Vector& vel) const {
-    lConstraints->fixVel0(s, vel);
 }
 
 Real SimbodyMatterSubsystemRep::calcKineticEnergy(const State& s) const {
@@ -2389,11 +2296,6 @@ void SimbodyMatterSubsystemRep::calcTreeEquivalentMobilityForces(const State& s,
                 bodyForces, allZ,
                 mobilityForces);
         }
-}
-
-// Pass in a set of internal forces in T; we'll modify them here.
-void SimbodyMatterSubsystemRep::calcConstraintCorrectedInternalForces(const State& s, Vector& T) {
-    lConstraints->projectUVecOntoMotionConstraints(s, T);
 }
 
 bool SimbodyMatterSubsystemRep::getShowDefaultGeometry() const {
