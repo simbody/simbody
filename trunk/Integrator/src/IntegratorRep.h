@@ -852,6 +852,18 @@ private:
     Vector  ydotPrev;
     Vector  eventsPrev;
 
+    // We'll leave the various arrays above sized as they are and full
+    // of garbage. They'll be resized when first assigned to something
+    // meaningful.
+	void invalidateIntegratorInternalState() {
+		stepCommunicationStatus = InvalidStepCommunicationStatus;
+		nextStepSizeToTry       = NaN;
+		idealNextStepSize       = NaN;
+        tLow = tHigh            = NaN;
+        useInterpolatedState    = false;
+        tPrev                   = NaN;
+	}
+
     // suppress
     IntegratorRep(const IntegratorRep&);
     IntegratorRep& operator=(const IntegratorRep&);

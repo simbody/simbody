@@ -57,9 +57,7 @@ void Integrator::resetAllStatistics() {
 }
 
 void Integrator::initialize(const State& initState) {
-    updRep().updAdvancedState() = initState;
-    getRep().getSystem().realize(getRep().getAdvancedState(), Stage::Model);
-    updRep().initialize(getRep().getAdvancedState());
+    updRep().initialize(initState);
 }
 
 void Integrator::reinitialize(Stage g, bool shouldTerminate) {
@@ -296,13 +294,9 @@ int Integrator::getMethodMaxOrder() {
 IntegratorRep::IntegratorRep
        (Integrator*               handle,
         const System&             system)
-  : myHandle(handle), sys(system),
-    stepCommunicationStatus(InvalidStepCommunicationStatus),
-    nextStepSizeToTry(NaN), idealNextStepSize(NaN),
-    tLow(NaN), tHigh(NaN),
-    useInterpolatedState(false),
-    tPrev(NaN)
+  : myHandle(handle), sys(system)
 {
+    invalidateIntegratorInternalState();
     initializeUserStuff();
     resetIntegratorStatistics();
     resetMethodStatistics();
@@ -311,7 +305,9 @@ IntegratorRep::IntegratorRep
 
 void IntegratorRep::initialize(const State& initState) {
   try
-  { updAdvancedState() = initState;
+  { invalidateIntegratorInternalState();
+    updAdvancedState() = initState;
+    getSystem().realizeModel(updAdvancedState());
      
     // Freeze problem dimensions.
     getSystem().realize(getAdvancedState(), Stage::Instance);
