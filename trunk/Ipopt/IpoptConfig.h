@@ -26,12 +26,15 @@
 // CAUTION: every linked-together compilation unit must have this set the same
 // way. Everyone who properly includes SimTKcommon/internal/common.h
 // first is fine but IpOpt doesn't do that. (TODO: it should)
-#ifdef WIN32
-	#ifdef NDEBUG
-		#undef _SECURE_SCL
-		#define _SECURE_SCL 0
-	#endif
-#endif
+// (sherm 081204 disabling for now: doesn't work on VC++ 8 and is 
+// tricky on VC++ 9 because all libraries, including 3rd party, must
+// be built the same way)
+//#ifdef WIN32
+//	#ifdef NDEBUG
+//		#undef _SECURE_SCL
+//		#define _SECURE_SCL 0
+//	#endif
+//#endif
 
 #ifdef HAVE_CONFIG_H
 #include "config_ipopt.h"
