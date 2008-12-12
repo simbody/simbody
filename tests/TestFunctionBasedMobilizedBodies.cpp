@@ -580,7 +580,7 @@ void testFunctionBasedGimbalUserAxes() {
         state.updQ()[i] = state.updQ()[i+nq] = random.getValue();
     int nu = state.getNU()/2;
     for (int i = 0; i < nu; ++i)
-        state.updU()[i] = state.updU()[i+nu] = random.getValue(); //0.0; //
+        state.updU()[i] = state.updU()[i+nu] = random.getValue(); 
 
     system.realize(state, Stage::Acceleration);
 
@@ -726,15 +726,20 @@ void testFunctionBasedFree() {
 	// Get random q's and u's and set equivalent on both bodies
 	for (int i = 0; i < nm; ++i){
 		// Free has slots for 4 rot q's and fb only has 3
-        state.updQ()[i] = state.updQ()[i+nq] = random.getValue(); //0.0; //
-		// speeds
-        state.updU()[i] = state.updU()[i+nm] = random.getValue(); //0.0; //
+        state.updQ()[i] = state.updQ()[i+nq] = random.getValue(); //
 	}
+
+	system.realize(state, Stage::Position);
+    SpatialVec inputVelocity(Vec3(random.getValue(),random.getValue(),random.getValue()),
+                             Vec3(random.getValue(),random.getValue(),random.getValue()));
+
+    b1.setUToFitVelocity(state, inputVelocity);
+    fb1.setUToFitVelocity(state, inputVelocity);
 
     system.realize(state, Stage::Acceleration);
 
-	cout << system.getRigidBodyForces(state, Stage::Dynamics)[b1.getMobilizedBodyIndex()] << endl;
-	cout << system.getRigidBodyForces(state, Stage::Dynamics)[fb1.getMobilizedBodyIndex()] << endl;
+	//cout << system.getRigidBodyForces(state, Stage::Dynamics)[b1.getMobilizedBodyIndex()] << endl;
+	//cout << system.getRigidBodyForces(state, Stage::Dynamics)[fb1.getMobilizedBodyIndex()] << endl;
 
 	Transform Xb1 = b1.getBodyTransform(state);
 	Transform Xfb1 = fb1.getBodyTransform(state);
@@ -754,6 +759,10 @@ void testFunctionBasedFree() {
     ts.stepTo(1.0);
 	const State &result = ts.getState();
 
+	//cout << "Free and Function-based Us" << endl;
+	//cout << result.getU()(0, 6) << endl;
+	//cout << result.getU()(6, 6) << endl;
+
 	Xb1 = b1.getBodyTransform(result);
 	Xfb1 = fb1.getBodyTransform(result);
 
@@ -764,7 +773,6 @@ void testFunctionBasedFree() {
 	assertEqual(b1.getBodyVelocity(result), fb1.getBodyVelocity(result));
     assertEqual(b1.getBodyAcceleration(result), fb1.getBodyAcceleration(result));
 }
-
 
 void testFunctionBasedFreeVsTranslationGimbal() {
 	// Test function-based free against a combination of Translation and Gimbal mobilizer
@@ -853,9 +861,6 @@ void testFunctionBasedFreeVsTranslationGimbal() {
 	assertEqual(fb1.getBodyVelocity(result), b1.getBodyVelocity(result));
     assertEqual(fb1.getBodyAcceleration(result), b1.getBodyAcceleration(result));
 }
-
-
-
 
 
 void testFunctionBasedFreeVs2FunctionBased() {
