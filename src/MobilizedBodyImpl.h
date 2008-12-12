@@ -1482,6 +1482,8 @@ private:
     Mat33 Arot, Atrans;
     template <int N> class CacheInfo {
     public:
+        CacheInfo() : isValidH(false), isValidHdot(false) { }
+
         void buildH(Vector& q, Vector& u, const Transform& X_FM, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const Mat33 Arot, const Mat33 Atrans)
         {
             // Build the Fq and Fqq matrices of partials of the spatial functions with respect to the gen coordinates, q    
