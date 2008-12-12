@@ -52,32 +52,24 @@ namespace SimTK {
 
 class System::Guts::GutsRep {
 public:
-    GutsRep() 
-      : systemName("<NONAME>"), systemVersion("0.0.0"), 
-        myHandle(0),
-        systemTopologyRealized(false), hasTimeAdvancedEventsFlag(false)
-    {
-        clearAllFunctionPointers();
-        resetAllCounters();
-    }
+    GutsRep() {new (this) GutsRep("<NONAME>", "0.0.0");}
+
     GutsRep(const String& name, const String& version) 
       : systemName(name), systemVersion(version), 
         myHandle(0),
         systemTopologyRealized(false), hasTimeAdvancedEventsFlag(false)
     {
-        clearAllFunctionPointers();
         resetAllCounters();
     }
 
-    GutsRep(const GutsRep& src) {
-        systemName = src.systemName;
-        systemVersion = src.systemVersion;
-        myHandle = 0;
-        subsystems = src.subsystems;
-        copyAllFunctionPointers(src);
-        hasTimeAdvancedEventsFlag = src.hasTimeAdvancedEventsFlag;
-        systemTopologyRealized = false;
-
+    GutsRep(const GutsRep& src)
+    :   systemName(src.systemName),
+        systemVersion(src.systemVersion),
+        myHandle(0),
+        subsystems(src.subsystems),
+        hasTimeAdvancedEventsFlag(src.hasTimeAdvancedEventsFlag),
+        systemTopologyRealized(false)
+    {
         resetAllCounters();
     }
 
@@ -144,86 +136,6 @@ private:
     friend class System;
     friend class System::Guts;
     System* myHandle;     // the owner handle of these guts
-
-        // POINTERS TO CLIENT-SIDE FUNCTION LOCATORS
-
-        // This is a virtual function table, but the addresses are
-        // determined at run time so that we don't have to depend on a
-        // particular ordering in the client side virtual function table.
-
-    System::Guts::DestructImplLocator                     destructp;
-    System::Guts::CloneImplLocator                        clonep;
-
-    System::Guts::RealizeWritableStateImplLocator         realizeTopologyp;
-    System::Guts::RealizeWritableStateImplLocator         realizeModelp;
-    System::Guts::RealizeConstStateImplLocator            realizeInstancep;
-    System::Guts::RealizeConstStateImplLocator            realizeTimep;
-    System::Guts::RealizeConstStateImplLocator            realizePositionp;
-    System::Guts::RealizeConstStateImplLocator            realizeVelocityp;
-    System::Guts::RealizeConstStateImplLocator            realizeDynamicsp;
-    System::Guts::RealizeConstStateImplLocator            realizeAccelerationp;
-    System::Guts::RealizeConstStateImplLocator            realizeReportp;
-
-    System::Guts::CalcTimescaleImplLocator                calcTimescalep;
-    System::Guts::CalcUnitWeightsImplLocator              calcYUnitWeightsp;
-    System::Guts::ProjectImplLocator                      projectp;
-    System::Guts::CalcUnitWeightsImplLocator              calcYErrUnitTolerancesp;
-    System::Guts::HandleEventsImplLocator                 handleEventsp;
-    System::Guts::ReportEventsImplLocator                 reportEventsp;
-    System::Guts::CalcEventTriggerInfoImplLocator         calcEventTriggerInfop;
-    System::Guts::CalcTimeOfNextScheduledEventImplLocator calcTimeOfNextScheduledEventp;
-    System::Guts::CalcTimeOfNextScheduledReportImplLocator calcTimeOfNextScheduledReportp;
-
-    void clearAllFunctionPointers() {
-        destructp = 0;
-        clonep    = 0;
-
-        realizeTopologyp = 0;
-        realizeModelp = 0;
-        realizeInstancep = 0;
-        realizeTimep = 0;
-        realizePositionp = 0;
-        realizeVelocityp = 0;
-        realizeDynamicsp = 0;
-        realizeAccelerationp = 0;
-        realizeReportp = 0;
-
-        calcTimescalep = 0;
-        calcYUnitWeightsp = 0;
-        projectp = 0;
-        calcYErrUnitTolerancesp = 0;
-        handleEventsp = 0;
-        reportEventsp = 0;
-        calcEventTriggerInfop = 0;
-        calcTimeOfNextScheduledEventp = 0;
-        calcTimeOfNextScheduledReportp = 0;
-    }
-
-    void copyAllFunctionPointers(const GutsRep& src) {
-        destructp = src.destructp;
-        clonep    = src.clonep;
-
-        realizeTopologyp = src.realizeTopologyp;
-        realizeModelp    = src.realizeModelp;
-        realizeInstancep = src.realizeInstancep;
-        realizeTimep     = src.realizeTimep;
-        realizePositionp = src.realizePositionp;
-        realizeVelocityp = src.realizeVelocityp;
-        realizeDynamicsp = src.realizeDynamicsp;
-        realizeAccelerationp = src.realizeAccelerationp;
-        realizeReportp   = src.realizeReportp;
-
-        calcTimescalep                  = src.calcTimescalep;
-        calcYUnitWeightsp               = src.calcYUnitWeightsp;
-        projectp                        = src.projectp;
-        calcYErrUnitTolerancesp         = src.calcYErrUnitTolerancesp;
-        handleEventsp                   = src.handleEventsp;
-        reportEventsp                   = src.reportEventsp;
-        calcEventTriggerInfop           = src.calcEventTriggerInfop;
-        calcTimeOfNextScheduledEventp   = src.calcTimeOfNextScheduledEventp;
-        calcTimeOfNextScheduledReportp  = src.calcTimeOfNextScheduledReportp;
-    }
-
 
         // TOPOLOGY STAGE STATE //
 
