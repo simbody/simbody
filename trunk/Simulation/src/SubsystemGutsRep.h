@@ -54,17 +54,16 @@ public:
         mySystem(0), mySubsystemIndex(InvalidSubsystemIndex), myHandle(0),
         subsystemTopologyRealized(false)
     { 
-        clearAllFunctionPointers();
     }
 
-    GutsRep(const GutsRep& src) {
-        subsystemName = src.subsystemName;
-        subsystemVersion = src.subsystemVersion;
-        mySystem = 0;
-        mySubsystemIndex = InvalidSubsystemIndex;
-        myHandle = 0;
-        subsystemTopologyRealized = false;
-        copyAllFunctionPointers(src);
+    GutsRep(const GutsRep& src)
+    :   subsystemName(src.subsystemName),
+        subsystemVersion(src.subsystemVersion),
+        mySystem(0),
+        mySubsystemIndex(InvalidSubsystemIndex),
+        myHandle(0),
+        subsystemTopologyRealized(false)
+    {
     }
 
     ~GutsRep() { 
@@ -120,76 +119,6 @@ private:
 
     friend class Subsystem;
     Subsystem* myHandle;	// the owner handle of this rep
-
-        // POINTERS TO CLIENT-SIDE FUNCTION LOCATORS
-
-        // This is a virtual function table, but the addresses are
-        // determined at run time so that we don't have to depend on a
-        // particular ordering in the client side virtual function table.
-
-    Subsystem::Guts::DestructImplLocator                     destructp;
-    Subsystem::Guts::CloneImplLocator                        clonep;
-
-    Subsystem::Guts::RealizeWritableStateImplLocator         realizeTopologyp;
-    Subsystem::Guts::RealizeWritableStateImplLocator         realizeModelp;
-    Subsystem::Guts::RealizeConstStateImplLocator            realizeInstancep;
-    Subsystem::Guts::RealizeConstStateImplLocator            realizeTimep;
-    Subsystem::Guts::RealizeConstStateImplLocator            realizePositionp;
-    Subsystem::Guts::RealizeConstStateImplLocator            realizeVelocityp;
-    Subsystem::Guts::RealizeConstStateImplLocator            realizeDynamicsp;
-    Subsystem::Guts::RealizeConstStateImplLocator            realizeAccelerationp;
-    Subsystem::Guts::RealizeConstStateImplLocator            realizeReportp;
-
-    Subsystem::Guts::CalcUnitWeightsImplLocator                   calcQUnitWeightsp;
-    Subsystem::Guts::CalcUnitWeightsImplLocator                   calcUUnitWeightsp;
-    Subsystem::Guts::CalcUnitWeightsImplLocator                   calcZUnitWeightsp;
-    Subsystem::Guts::CalcUnitWeightsImplLocator                   calcQErrUnitTolerancesp;
-    Subsystem::Guts::CalcUnitWeightsImplLocator                   calcUErrUnitTolerancesp;
-    Subsystem::Guts::CalcDecorativeGeometryAndAppendImplLocator   calcDecorativeGeometryAndAppendp;
-
-    void clearAllFunctionPointers() {
-        destructp = 0;
-        clonep    = 0;
-
-        realizeTopologyp = 0;
-        realizeModelp = 0;
-        realizeInstancep = 0;
-        realizeTimep = 0;
-        realizePositionp = 0;
-        realizeVelocityp = 0;
-        realizeDynamicsp = 0;
-        realizeAccelerationp = 0;
-        realizeReportp = 0;
-
-        calcQUnitWeightsp = 0;
-        calcUUnitWeightsp = 0;
-        calcZUnitWeightsp = 0;
-        calcQErrUnitTolerancesp = 0;
-        calcUErrUnitTolerancesp = 0;
-        calcDecorativeGeometryAndAppendp = 0;
-    }
-
-    void copyAllFunctionPointers(const GutsRep& src) {
-        destructp = src.destructp;
-        clonep    = src.clonep;
-
-        realizeTopologyp = src.realizeTopologyp;
-        realizeModelp = src.realizeModelp;
-        realizeInstancep = src.realizeInstancep;
-        realizeTimep = src.realizeTimep;
-        realizePositionp = src.realizePositionp;
-        realizeVelocityp = src.realizeVelocityp;
-        realizeDynamicsp = src.realizeDynamicsp;
-        realizeAccelerationp = src.realizeAccelerationp;
-        realizeReportp = src.realizeReportp;
-
-        calcQUnitWeightsp = src.calcQUnitWeightsp;
-        calcUUnitWeightsp = src.calcUUnitWeightsp;
-        calcZUnitWeightsp = src.calcZUnitWeightsp;
-        calcQErrUnitTolerancesp = src.calcQErrUnitTolerancesp;
-        calcUErrUnitTolerancesp = src.calcUErrUnitTolerancesp;
-        calcDecorativeGeometryAndAppendp = src.calcDecorativeGeometryAndAppendp;
-    }
 
         // TOPOLOGY CACHE
 

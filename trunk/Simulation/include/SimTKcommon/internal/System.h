@@ -582,7 +582,7 @@ public:
     }
 
 private:
-    // opaque implementation for future binary compatibility
+    // opaque implementation for binary compatibility
     System::EventTriggerInfoRep* rep;
 
     const System::EventTriggerInfoRep& getRep() const {assert(rep); return *rep;}

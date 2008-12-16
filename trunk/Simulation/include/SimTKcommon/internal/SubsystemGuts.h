@@ -44,26 +44,6 @@ namespace SimTK {
 class System;
 class DecorativeGeometry;
 
-// See below for definitions.
-static void subsystemDestructImplLocator(Subsystem::Guts*);
-static Subsystem::Guts* subsystemCloneImplLocator(const Subsystem::Guts&);
-static int subsystemRealizeTopologyImplLocator(const Subsystem::Guts&, State&);
-static int subsystemRealizeModelImplLocator(const Subsystem::Guts&, State&);
-static int subsystemRealizeInstanceImplLocator(const Subsystem::Guts&, const State&);
-static int subsystemRealizeTimeImplLocator(const Subsystem::Guts&, const State&);
-static int subsystemRealizePositionImplLocator(const Subsystem::Guts&, const State&);
-static int subsystemRealizeVelocityImplLocator(const Subsystem::Guts&, const State&);
-static int subsystemRealizeDynamicsImplLocator(const Subsystem::Guts&, const State&);
-static int subsystemRealizeAccelerationImplLocator(const Subsystem::Guts&, const State&);
-static int subsystemRealizeReportImplLocator(const Subsystem::Guts&, const State&);
-static int subsystemCalcQUnitWeightsImplLocator(const Subsystem::Guts&, const State&, Vector&);
-static int subsystemCalcUUnitWeightsImplLocator(const Subsystem::Guts&, const State&, Vector&);
-static int subsystemCalcZUnitWeightsImplLocator(const Subsystem::Guts&, const State&, Vector&);
-static int subsystemCalcQErrUnitTolerancesImplLocator(const Subsystem::Guts&, const State&, Vector&);
-static int subsystemCalcUErrUnitTolerancesImplLocator(const Subsystem::Guts&, const State&, Vector&);
-static int subsystemCalcDecorativeGeometryAndAppendImplLocator
-                (const Subsystem::Guts&, const State&, Stage, std::vector<DecorativeGeometry>&);
-
 /**
  * The abstract parent of all Subsystems.
  *
@@ -95,16 +75,11 @@ public:
     Guts(const Guts&);
     Guts& operator=(const Guts&);
 
-    // This constructor is for use by concrete Subsystems.
-    // Constructor must be inline for binary compatibility. Note that this
+    // This constructor is for use by concrete Subsystems. Note that this
     // serves as a default constructor since both arguments have defaults.
-    inline explicit Guts(const String& name="<NONAME>", 
-                         const String& version="0.0.0");
-
-    // This won't be called directly from library-side code. Instead,
-    // a method from the explicit virtual function table will be invoked
-    // which will know where to find this on in the C++ VFT on the client side.
-    virtual ~Guts() {librarySideDestruction();}
+    explicit Guts(const String& name="<NONAME>", 
+                  const String& version="0.0.0");
+    virtual ~Guts();
 
     const String& getName()    const;
     const String& getVersion() const;
@@ -218,14 +193,8 @@ public:
     bool subsystemTopologyHasBeenRealized() const;
     void invalidateSubsystemTopologyCache() const;
 
-    // Call this routine to invoke the client-side virtual destructor,
-    // by going through the library-side explicit virtual function table.
-    static void destruct(Subsystem::Guts*);
-
     // These are wrappers for the virtual methods defined below. They
-    // are used to ensure good behavior, and most importantly only
-    // access the virtual methods through the explicitly-built
-    // virtual function table stored in the GutsRep class.
+    // are used to ensure good behavior.
 
     Subsystem::Guts* clone() const;
 
@@ -364,142 +333,7 @@ protected:
     int allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const;
     int allocateCacheEntry(State& s, Stage g, AbstractValue* v) const;
     void advanceToStage(const State& s, Stage g) const;
-
-
-private:
-
-    // These typedefs are used internally to manage the binary-compatible
-    // handling of the virtual function table.
-
-    typedef void (*DestructImplLocator)(Subsystem::Guts*);
-    typedef Subsystem::Guts* (*CloneImplLocator)(const Subsystem::Guts&);
-    typedef int (*RealizeWritableStateImplLocator)(const Subsystem::Guts&, State&);
-    typedef int (*RealizeConstStateImplLocator)(const Subsystem::Guts&, const State&);
-    typedef int (*CalcUnitWeightsImplLocator)(const Subsystem::Guts&, const State&, Vector& weights);
-    typedef int (*CalcDecorativeGeometryAndAppendImplLocator)
-       (const Subsystem::Guts&, const State&, Stage, std::vector<DecorativeGeometry>&);
-
-    void librarySideConstruction(const String& name, const String& version);
-    void librarySideDestruction();
-
-    void registerDestructImpl(DestructImplLocator);
-    void registerCloneImpl(CloneImplLocator);
-
-    void registerRealizeTopologyImpl    (RealizeWritableStateImplLocator);
-    void registerRealizeModelImpl       (RealizeWritableStateImplLocator);
-    void registerRealizeInstanceImpl    (RealizeConstStateImplLocator);
-    void registerRealizeTimeImpl        (RealizeConstStateImplLocator);
-    void registerRealizePositionImpl    (RealizeConstStateImplLocator);
-    void registerRealizeVelocityImpl    (RealizeConstStateImplLocator);
-    void registerRealizeDynamicsImpl    (RealizeConstStateImplLocator);
-    void registerRealizeAccelerationImpl(RealizeConstStateImplLocator);
-    void registerRealizeReportImpl      (RealizeConstStateImplLocator);
-
-    void registerCalcQUnitWeightsImpl(CalcUnitWeightsImplLocator);
-    void registerCalcUUnitWeightsImpl(CalcUnitWeightsImplLocator);
-    void registerCalcZUnitWeightsImpl(CalcUnitWeightsImplLocator);
-    void registerCalcQErrUnitTolerancesImpl(CalcUnitWeightsImplLocator);
-    void registerCalcUErrUnitTolerancesImpl(CalcUnitWeightsImplLocator);
-    void registerCalcDecorativeGeometryAndAppendImpl(CalcDecorativeGeometryAndAppendImplLocator);
-
-    // We want the locator functions to have access to the protected "Impl"
-    // virtual methods, so we make them friends.
-
-    friend void subsystemDestructImplLocator(Subsystem::Guts*);
-    friend Subsystem::Guts* subsystemCloneImplLocator(const Subsystem::Guts&);
-
-    friend int subsystemRealizeTopologyImplLocator(const Subsystem::Guts&, State&);
-    friend int subsystemRealizeModelImplLocator(const Subsystem::Guts&, State&);
-    friend int subsystemRealizeInstanceImplLocator(const Subsystem::Guts&, const State&);
-    friend int subsystemRealizeTimeImplLocator(const Subsystem::Guts&, const State&);
-    friend int subsystemRealizePositionImplLocator(const Subsystem::Guts&, const State&);
-    friend int subsystemRealizeVelocityImplLocator(const Subsystem::Guts&, const State&);
-    friend int subsystemRealizeDynamicsImplLocator(const Subsystem::Guts&, const State&);
-    friend int subsystemRealizeAccelerationImplLocator(const Subsystem::Guts&, const State&);
-    friend int subsystemRealizeReportImplLocator(const Subsystem::Guts&, const State&);
-
-    friend int subsystemCalcQUnitWeightsImplLocator(const Subsystem::Guts&, const State&, Vector&);
-    friend int subsystemCalcUUnitWeightsImplLocator(const Subsystem::Guts&, const State&, Vector&);
-    friend int subsystemCalcZUnitWeightsImplLocator(const Subsystem::Guts&, const State&, Vector&);
-    friend int subsystemCalcQErrUnitTolerancesImplLocator(const Subsystem::Guts&, const State&, Vector&);
-    friend int subsystemCalcUErrUnitTolerancesImplLocator(const Subsystem::Guts&, const State&, Vector&);
-    friend int subsystemCalcDecorativeGeometryAndAppendImplLocator
-                (const Subsystem::Guts&, const State&, Stage, std::vector<DecorativeGeometry>&);
 };
-
-
-// These are used to supply the client-side virtual function to the library, without
-// the client and library having to agree on the layout of the virtual function tables.
-
-static void subsystemDestructImplLocator(Subsystem::Guts* sysp)
-  { delete sysp; } // invokes virtual destructor
-static Subsystem::Guts* subsystemCloneImplLocator(const Subsystem::Guts& sys)
-  { return sys.cloneImpl(); }
-
-static int subsystemRealizeTopologyImplLocator(const Subsystem::Guts& sys, State& state)
-  { return sys.realizeSubsystemTopologyImpl(state); }
-static int subsystemRealizeModelImplLocator(const Subsystem::Guts& sys, State& state)
-  { return sys.realizeSubsystemModelImpl(state); }
-static int subsystemRealizeInstanceImplLocator(const Subsystem::Guts& sys, const State& state)
-  { return sys.realizeSubsystemInstanceImpl(state); }
-static int subsystemRealizeTimeImplLocator(const Subsystem::Guts& sys, const State& state)
-  { return sys.realizeSubsystemTimeImpl(state); }
-static int subsystemRealizePositionImplLocator(const Subsystem::Guts& sys, const State& state)
-  { return sys.realizeSubsystemPositionImpl(state); }
-static int subsystemRealizeVelocityImplLocator(const Subsystem::Guts& sys, const State& state)
-  { return sys.realizeSubsystemVelocityImpl(state); }
-static int subsystemRealizeDynamicsImplLocator(const Subsystem::Guts& sys, const State& state)
-  { return sys.realizeSubsystemDynamicsImpl(state); }
-static int subsystemRealizeAccelerationImplLocator(const Subsystem::Guts& sys, const State& state)
-  { return sys.realizeSubsystemAccelerationImpl(state); }
-static int subsystemRealizeReportImplLocator(const Subsystem::Guts& sys, const State& state)
-  { return sys.realizeSubsystemReportImpl(state); }
-
-static int subsystemCalcQUnitWeightsImplLocator(const Subsystem::Guts& sys, const State& s, Vector& weights)
-  { return sys.calcQUnitWeightsImpl(s,weights); }
-static int subsystemCalcUUnitWeightsImplLocator(const Subsystem::Guts& sys, const State& s, Vector& weights)
-  { return sys.calcUUnitWeightsImpl(s,weights); }
-static int subsystemCalcZUnitWeightsImplLocator(const Subsystem::Guts& sys, const State& s, Vector& weights)
-  { return sys.calcZUnitWeightsImpl(s,weights); }
-static int subsystemCalcQErrUnitTolerancesImplLocator(const Subsystem::Guts& sys, const State& s, Vector& tolerances)
-  { return sys.calcQErrUnitTolerancesImpl(s,tolerances); }
-static int subsystemCalcUErrUnitTolerancesImplLocator(const Subsystem::Guts& sys, const State& s, Vector& tolerances)
-  { return sys.calcUErrUnitTolerancesImpl(s,tolerances); }
-static int subsystemCalcDecorativeGeometryAndAppendImplLocator
-   (const Subsystem::Guts& sys, const State& s, Stage g, std::vector<DecorativeGeometry>& geom)
-  { return sys.calcDecorativeGeometryAndAppendImpl(s,g,geom); }
-
-
-// Default constructor must be inline so that it has access to the above static
-// functions which are private to the client-side compilation unit in which the
-// client-side virtual function table is understood.
-inline Subsystem::Guts::Guts(const String& name, const String& version) : rep(0)
-{
-    librarySideConstruction(name, version);
-
-    // Teach the library code how to call client side virtual functions by
-    // calling through the client side compilation unit's private static
-    // locator functions.
-    registerDestructImpl(subsystemDestructImplLocator);
-    registerCloneImpl(subsystemCloneImplLocator);
-
-    registerRealizeTopologyImpl    (subsystemRealizeTopologyImplLocator);
-    registerRealizeModelImpl       (subsystemRealizeModelImplLocator);
-    registerRealizeInstanceImpl    (subsystemRealizeInstanceImplLocator);
-    registerRealizeTimeImpl        (subsystemRealizeTimeImplLocator);
-    registerRealizePositionImpl    (subsystemRealizePositionImplLocator);
-    registerRealizeVelocityImpl    (subsystemRealizeVelocityImplLocator);
-    registerRealizeDynamicsImpl    (subsystemRealizeDynamicsImplLocator);
-    registerRealizeAccelerationImpl(subsystemRealizeAccelerationImplLocator);
-    registerRealizeReportImpl      (subsystemRealizeReportImplLocator);
-
-    registerCalcQUnitWeightsImpl(subsystemCalcQUnitWeightsImplLocator);
-    registerCalcUUnitWeightsImpl(subsystemCalcUUnitWeightsImplLocator);
-    registerCalcZUnitWeightsImpl(subsystemCalcZUnitWeightsImplLocator);
-    registerCalcQErrUnitTolerancesImpl(subsystemCalcQErrUnitTolerancesImplLocator);
-    registerCalcUErrUnitTolerancesImpl(subsystemCalcUErrUnitTolerancesImplLocator);
-    registerCalcDecorativeGeometryAndAppendImpl(subsystemCalcDecorativeGeometryAndAppendImplLocator);
-}
 
 } // namespace SimTK
 

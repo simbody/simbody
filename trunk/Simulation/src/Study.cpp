@@ -52,18 +52,17 @@ public:
     GutsRep() 
       : studyName("<NONAME>"), studyVersion("0.0.0"), myHandle(0)
     {
-        clearAllFunctionPointers();
     }
     GutsRep(const String& name, const String& version) 
       : studyName(name), studyVersion(version), myHandle(0)
     {
     }
 
-    GutsRep(const GutsRep& src) {
-        studyName = src.studyName;
-        studyVersion = src.studyVersion;
-        myHandle = 0;
-        copyAllFunctionPointers(src);
+    GutsRep(const GutsRep& src)
+    :   studyName(src.studyName),
+        studyVersion(src.studyVersion),
+        myHandle(0)
+    {
     }
 
     ~GutsRep() {
@@ -84,25 +83,6 @@ private:
     friend class Study;
     friend class Study::Guts;
     Study* myHandle;     // the owner handle of these guts
-
-        // POINTERS TO CLIENT-SIDE FUNCTION LOCATORS
-
-        // This is a virtual function table, but the addresses are
-        // determined at run time so that we don't have to depend on a
-        // particular ordering in the client side virtual function table.
-
-    Study::Guts::DestructImplLocator destructp;
-    Study::Guts::CloneImplLocator    clonep;
-
-    void clearAllFunctionPointers() {
-        destructp = 0;
-        clonep    = 0;
-    }
-
-    void copyAllFunctionPointers(const GutsRep& src) {
-        destructp = src.destructp;
-        clonep    = src.clonep;
-    }
 };
 
     ///////////
@@ -122,13 +102,10 @@ Study::Study(const Study& src) : guts(0) {
     }
 }
 
-// Don't use ordinary delete, assignment, or copy here. Must go
-// through the library-side VFT to get access to the correct client-side
-// virtual destructor and clone method.
 Study& Study::operator=(const Study& src) {
     if (!isSameStudy(src)) {
         if (isOwnerHandle())
-            Study::Guts::destruct(guts);
+            delete guts;
         guts=0;
         if (src.guts) {
             guts = src.guts->clone();
@@ -139,11 +116,8 @@ Study& Study::operator=(const Study& src) {
 }
 
 Study::~Study() {
-    // Must delete using the library-side VFT, so that we can get access
-    // to the client side virtual destructor to destruct this client-side
-    // Study::Guts object.
     if (guts && isOwnerHandle())
-        Study::Guts::destruct(guts);
+        delete guts;
     guts=0;
 }
 
@@ -162,14 +136,13 @@ const String& Study::getVersion() const {return getStudyGuts().getVersion();}
     // STUDY::GUTS //
     /////////////////
 
-// Default constructor is inline, but calls librarySideConstuction() here.
-void Study::Guts::librarySideConstruction(const String& name, const String& version) {
+// This is also the default constructor.
+Study::Guts::Guts(const String& name, const String& version) {
     rep = new GutsRep(name,version);
     // note that the GutsRep object currently has no owner handle
 }
 
-// Destructor is inline, but calls librarySideDestruction() here.
-void Study::Guts::librarySideDestruction() {
+Study::Guts::~Guts() {
     delete rep;
     rep=0;
 }
@@ -207,22 +180,10 @@ bool Study::Guts::hasOwnerHandle() const {
 const String& Study::Guts::getName()    const {return getRep().getName();}
 const String& Study::Guts::getVersion() const {return getRep().getVersion();}
 
-void Study::Guts::registerDestructImpl(DestructImplLocator f) {
-    updRep().destructp = f;
-}
-void Study::Guts::registerCloneImpl(CloneImplLocator f) {
-    updRep().clonep = f;
-}
-
 Study::Guts* Study::Guts::clone() const {
-    return getRep().clonep(*this);
+    return cloneImpl();
 }
 
-
-/*static*/void Study::Guts::destruct(Study::Guts* gutsp) {
-    if (gutsp)
-        gutsp->getRep().destructp(gutsp);
-}
 
     //////////////////////////
     // STUDY::GUTS::GUTSREP //

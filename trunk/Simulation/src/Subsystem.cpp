@@ -75,7 +75,7 @@ Subsystem::Subsystem(const Subsystem& src) : guts(0) {
 Subsystem& Subsystem::operator=(const Subsystem& src) {
     if (!isSameSubsystem(src)) {
         if (isOwnerHandle())
-            Subsystem::Guts::destruct(guts); 
+            delete guts;
         guts=0;
         if (src.guts) {
             guts = src.guts->clone();
@@ -86,11 +86,8 @@ Subsystem& Subsystem::operator=(const Subsystem& src) {
 }
 
 Subsystem::~Subsystem() {
-    // Must delete using the library-side VFT, so that we can get access
-    // to the client side virtual destructor to destruct this client-side
-    // System::Guts object.
     if (guts && isOwnerHandle())
-        Subsystem::Guts::destruct(guts);
+        delete guts;
     guts=0;
 }
 
@@ -187,14 +184,13 @@ int Subsystem::getNMultipliers    (const State& s) const {return getSubsystemGut
     // SUBSYSTEM::GUTS //
     /////////////////////
 
-// Default constructor is inline, but calls librarySideConstuction() here.
-void Subsystem::Guts::librarySideConstruction(const String& name, const String& version) {
+// This is also the default constructor.
+Subsystem::Guts::Guts(const String& name, const String& version) {
     rep = new GutsRep(name,version);
     // note that the GutsRep object currently has no owner handle
 }
 
-// Destructor is inline, but calls librarySideDestruction() here.
-void Subsystem::Guts::librarySideDestruction() {
+Subsystem::Guts::~Guts() {
     delete rep; 
     rep=0;
 }
@@ -203,7 +199,7 @@ void Subsystem::Guts::librarySideDestruction() {
 // Copy constructor
 Subsystem::Guts::Guts(const Guts& src) : rep(0) {
     if (src.rep) {
-        rep = new Subsystem::Guts::GutsRep(*src.rep);
+        rep = new GutsRep(*src.rep);
         // note that the GutsRep object currently has no owner handle
     }
 }
@@ -236,61 +232,6 @@ void Subsystem::Guts::setSystem(System& sys, SubsystemIndex id) {
 
 const String& Subsystem::Guts::getName()    const {return getRep().getName();}
 const String& Subsystem::Guts::getVersion() const {return getRep().getVersion();}
-
-
-void Subsystem::Guts::registerDestructImpl(DestructImplLocator f) {
-    updRep().destructp = f;
-}
-void Subsystem::Guts::registerCloneImpl(CloneImplLocator f) {
-    updRep().clonep = f;
-}
-
-void Subsystem::Guts::registerRealizeTopologyImpl(RealizeWritableStateImplLocator f) {
-    updRep().realizeTopologyp = f;
-}
-void Subsystem::Guts::registerRealizeModelImpl(RealizeWritableStateImplLocator f) {
-    updRep().realizeModelp = f;
-}
-void Subsystem::Guts::registerRealizeInstanceImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeInstancep = f;
-}
-void Subsystem::Guts::registerRealizeTimeImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeTimep = f;
-}
-void Subsystem::Guts::registerRealizePositionImpl(RealizeConstStateImplLocator f) {
-    updRep().realizePositionp = f;
-}
-void Subsystem::Guts::registerRealizeVelocityImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeVelocityp = f;
-}
-void Subsystem::Guts::registerRealizeDynamicsImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeDynamicsp = f;
-}
-void Subsystem::Guts::registerRealizeAccelerationImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeAccelerationp = f;
-}
-void Subsystem::Guts::registerRealizeReportImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeReportp = f;
-}
-
-void Subsystem::Guts::registerCalcQUnitWeightsImpl(CalcUnitWeightsImplLocator f) {
-    updRep().calcQUnitWeightsp = f;
-}
-void Subsystem::Guts::registerCalcUUnitWeightsImpl(CalcUnitWeightsImplLocator f) {
-    updRep().calcUUnitWeightsp = f;
-}
-void Subsystem::Guts::registerCalcZUnitWeightsImpl(CalcUnitWeightsImplLocator f) {
-    updRep().calcZUnitWeightsp = f;
-}
-void Subsystem::Guts::registerCalcQErrUnitTolerancesImpl(CalcUnitWeightsImplLocator f) {
-    updRep().calcQErrUnitTolerancesp = f;
-}
-void Subsystem::Guts::registerCalcUErrUnitTolerancesImpl(CalcUnitWeightsImplLocator f) {
-    updRep().calcUErrUnitTolerancesp = f;
-}
-void Subsystem::Guts::registerCalcDecorativeGeometryAndAppendImpl(CalcDecorativeGeometryAndAppendImplLocator f) {
-    updRep().calcDecorativeGeometryAndAppendp = f;
-}
 
 bool Subsystem::Guts::isInSystem() const {return getRep().isInSystem();}
 bool Subsystem::Guts::isInSameSystem(const Subsystem& otherSubsystem) const {
@@ -446,19 +387,13 @@ void Subsystem::Guts::createTriggeredEvent(const State& state, EventId& eventId,
 
 
 Subsystem::Guts* Subsystem::Guts::clone() const {
-    return getRep().clonep(*this);
-}
-
-
-/*static*/void Subsystem::Guts::destruct(Subsystem::Guts* gutsp) {
-    if (gutsp)
-        gutsp->getRep().destructp(gutsp);
+    return cloneImpl();
 }
 
 void Subsystem::Guts::realizeSubsystemTopology(State& s) const {
     SimTK_STAGECHECK_EQ_ALWAYS(getStage(s), Stage::Empty, 
         "Subsystem::Guts::realizeSubsystemTopology()");
-    getRep().realizeTopologyp(*this,s);
+    realizeSubsystemTopologyImpl(s);
     getRep().subsystemTopologyRealized = true; // mark the subsystem itself (mutable)
     advanceToStage(s, Stage::Topology);  // mark the State as well
 }
@@ -469,7 +404,7 @@ void Subsystem::Guts::realizeSubsystemModel(State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage::Topology, 
         "Subsystem::Guts::realizeSubsystemModel()");
     if (getStage(s) < Stage::Model) {
-        getRep().realizeModelp(*this,s);
+        realizeSubsystemModelImpl(s);
         advanceToStage(s, Stage::Model);
     }
 }
@@ -477,7 +412,7 @@ void Subsystem::Guts::realizeSubsystemInstance(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Instance).prev(), 
         "Subsystem::Guts::realizeSubsystemInstance()");
     if (getStage(s) < Stage::Instance) {
-        getRep().realizeInstancep(*this,s);
+        realizeSubsystemInstanceImpl(s);
         advanceToStage(s, Stage::Instance);
     }
 }
@@ -485,7 +420,7 @@ void Subsystem::Guts::realizeSubsystemTime(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Time).prev(), 
         "Subsystem::Guts::realizeTime()");
     if (getStage(s) < Stage::Time) {
-        getRep().realizeTimep(*this,s);
+        realizeSubsystemTimeImpl(s);
         advanceToStage(s, Stage::Time);
     }
 }
@@ -493,7 +428,7 @@ void Subsystem::Guts::realizeSubsystemPosition(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Position).prev(), 
         "Subsystem::Guts::realizeSubsystemPosition()");
     if (getStage(s) < Stage::Position) {
-        getRep().realizePositionp(*this,s);
+        realizeSubsystemPositionImpl(s);
         advanceToStage(s, Stage::Position);
     }
 }
@@ -501,7 +436,7 @@ void Subsystem::Guts::realizeSubsystemVelocity(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Velocity).prev(), 
         "Subsystem::Guts::realizeSubsystemVelocity()");
     if (getStage(s) < Stage::Velocity) {
-        getRep().realizeVelocityp(*this,s);
+        realizeSubsystemVelocityImpl(s);
         advanceToStage(s, Stage::Velocity);
     }
 }
@@ -509,7 +444,7 @@ void Subsystem::Guts::realizeSubsystemDynamics(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Dynamics).prev(), 
         "Subsystem::Guts::realizeSubsystemDynamics()");
     if (getStage(s) < Stage::Dynamics) {
-        getRep().realizeDynamicsp(*this,s);
+        realizeSubsystemDynamicsImpl(s);
         advanceToStage(s, Stage::Dynamics);
     }
 }
@@ -517,7 +452,7 @@ void Subsystem::Guts::realizeSubsystemAcceleration(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Acceleration).prev(), 
         "Subsystem::Guts::realizeSubsystemAcceleration()");
     if (getStage(s) < Stage::Acceleration) {
-        getRep().realizeAccelerationp(*this,s);
+        realizeSubsystemAccelerationImpl(s);
         advanceToStage(s, Stage::Acceleration);
     }
 }
@@ -525,30 +460,30 @@ void Subsystem::Guts::realizeSubsystemReport(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Report).prev(), 
         "Subsystem::Guts::realizeSubsystemReport()");
     if (getStage(s) < Stage::Report) {
-        getRep().realizeReportp(*this,s);
+        realizeSubsystemReportImpl(s);
         advanceToStage(s, Stage::Report);
     }
 }
 
 
 void Subsystem::Guts::calcQUnitWeights(const State& s, Vector& weights) const {
-    getRep().calcQUnitWeightsp(*this,s,weights);
+    calcQUnitWeightsImpl(s,weights);
 }
 void Subsystem::Guts::calcUUnitWeights(const State& s, Vector& weights) const {
-    getRep().calcUUnitWeightsp(*this,s,weights);
+    calcUUnitWeightsImpl(s,weights);
 }
 void Subsystem::Guts::calcZUnitWeights(const State& s, Vector& weights) const {
-    getRep().calcZUnitWeightsp(*this,s,weights);
+    calcZUnitWeightsImpl(s,weights);
 }
 void Subsystem::Guts::calcQErrUnitTolerances(const State& s, Vector& tolerances) const {
-    getRep().calcQErrUnitTolerancesp(*this,s,tolerances);
+    calcQErrUnitTolerancesImpl(s,tolerances);
 }
 void Subsystem::Guts::calcUErrUnitTolerances(const State& s, Vector& tolerances) const {
-    getRep().calcUErrUnitTolerancesp(*this,s,tolerances);
+    calcUErrUnitTolerancesImpl(s,tolerances);
 }
 
 void Subsystem::Guts::calcDecorativeGeometryAndAppend(const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const {
-    getRep().calcDecorativeGeometryAndAppendp(*this,s,stage,geom);
+    calcDecorativeGeometryAndAppendImpl(s,stage,geom);
 }
 
 
@@ -633,9 +568,9 @@ void Subsystem::Guts::calcTimeOfNextScheduledReport(const State&, Real& tNextEve
     eventIds.clear();
 }
 
-    ///////////////////
-    // SUBSYSTEM REP //
-    ///////////////////
+    //////////////////////////////
+    // SUBSYSTEM::GUTS::GUTSREP //
+    //////////////////////////////
 
 void Subsystem::Guts::GutsRep::invalidateSubsystemTopologyCache() const {
     subsystemTopologyRealized = false;

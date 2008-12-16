@@ -436,8 +436,6 @@ public:
     virtual void implementFrameGeometry(    const DecorativeFrame&)    = 0;
     virtual void implementTextGeometry(     const DecorativeText&)     = 0;
     virtual void implementMeshGeometry(     const DecorativeMesh&)     = 0;
-
-    // TODO: wrappers for binary compatibility
 };
 
 } // namespace SimTK

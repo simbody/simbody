@@ -66,9 +66,6 @@ System::System(const System& src) : guts(0) {
     }
 }
 
-// Don't use ordinary delete, assignment, or copy here. Must go
-// through the library-side VFT to get access to the correct client-side
-// virtual destructor and clone method.
 System& System::operator=(const System& src) {
     if (!isSameSystem(src)) {
         if (isOwnerHandle())
@@ -184,6 +181,7 @@ const char* System::getEventCauseName(System::EventCause cause) {
     // SYSTEM::GUTS //
     //////////////////
 
+// This is also the default constructor.
 System::Guts::Guts(const String& name, const String& version) {
     rep = new GutsRep(name,version);
     // note that the GutsRep object currently has no owner handle
@@ -527,12 +525,8 @@ SubsystemIndex System::Guts::adoptSubsystem(Subsystem& src) {
     return updRep().adoptSubsystem(src);
 }
 
-
-// These are the default implementations for the System virtual functions.
-// Note that this DOES NOT cause binary compatibility problems. The addresses of
-// these functions will be supplied from the library side, but these addresses will
-// get filled in to the default virtual function table on the *client* side which
-// knows where to put each function by name.
+// Default implementations of virtual methods. These quietly succeed
+// at doing nothing.
 
 int System::Guts::realizeTopologyImpl(State& s) const { 
     return 0;

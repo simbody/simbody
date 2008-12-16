@@ -39,10 +39,10 @@
 
 namespace SimTK {
 
-/**
- * The handle class which serves as the abstract parent of all Studies.
+/* TODO: THIS CLASS IS NOT CURRENTLY USED AND IS JUST A SKELETON.
+ *       PLEASE IGNORE FOR NOW.
  *
- * TODO!
+ * The handle class which serves as the abstract parent of all Studies.
  *
  * There are two distinct users of this class:
  *   - Study Users: people who are making use of a concrete Study (which will
