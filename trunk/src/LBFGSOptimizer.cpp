@@ -29,50 +29,46 @@ using std::endl;
 
 namespace SimTK {
 
-    OptimizerRep* LBFGSOptimizer::clone() const {
-        return( new LBFGSOptimizer(*this) );
-    }
+Optimizer::OptimizerRep* LBFGSOptimizer::clone() const {
+    return( new LBFGSOptimizer(*this) );
+}
 
 
-     LBFGSOptimizer::LBFGSOptimizer( const OptimizerSystem& sys )
-        : OptimizerRep( sys ) ,
-          xtol(1e-16)
+LBFGSOptimizer::LBFGSOptimizer( const OptimizerSystem& sys )
+    : OptimizerRep( sys ) ,
+      xtol(1e-16)
 
 {
-      /* internal flags for LBFGS */
-         iprint[0] = iprint[1] = 0; // no output generated
+     /* internal flags for LBFGS */
+     iprint[0] = iprint[1] = 0; // no output generated
 
-         if( sys.getNumParameters() < 1 ) {
-             const char* where = "Optimizer Initialization";
-             const char* szName = "dimension";
-             SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  sys.getNumParameters(), INT_MAX, where); 
-         }
-     } 
+     if( sys.getNumParameters() < 1 ) {
+        const char* where = "Optimizer Initialization";
+        const char* szName = "dimension";
+        SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  sys.getNumParameters(), INT_MAX, where); 
+     }
+} 
 
-     Real LBFGSOptimizer::optimize(  Vector &results ) {
+Real LBFGSOptimizer::optimize(  Vector &results ) {
+    int iflag[1] = {0};
+    Real f;
+    const OptimizerSystem& sys = getOptimizerSystem();
+    int n = sys.getNumParameters();
+    int m = limitedMemoryHistory;
 
-         int iflag[1] = {0};
-         Real f;
-         const OptimizerSystem& sys = getOptimizerSystem();
-         int n = sys.getNumParameters();
-         int m = limitedMemoryHistory;
+    iprint[0] = iprint[1] = iprint[2] = diagnosticsLevel; 
 
-//printf("\n ***** LBFGSOptimizer ***** \n\n");
+    double tol;
+    if( getAdvancedRealOption("xtol", tol ) ) {
+        SimTK_APIARGCHECK_ALWAYS(tol > 0,"LBFGSOptimizer","optimize",
+        "xtol must be positive \n");
+        xtol = tol;
+    }
 
-         iprint[0] = iprint[1] = iprint[2] = diagnosticsLevel; 
- 
-          double tol;
-          if( getAdvancedRealOption("xtol", tol ) ) {
-              SimTK_APIARGCHECK_ALWAYS(tol > 0,"LBFGSOptimizer","optimize",
-              "xtol must be positive \n");
-              xtol = tol;
-          }
+    lbfgs_( n, m, &results[0], &f, iprint, &convergenceTolerance,  &xtol );
 
-          lbfgs_( n, m, &results[0], &f, iprint, &convergenceTolerance,  &xtol );
-
-          objectiveFuncWrapper( n, &results[0], true, &f, (void*)this );
-          return f;
-
-   }
+    objectiveFuncWrapper(n, &results[0], true, &f, this);
+    return f;
+}
 
 } // namespace SimTK

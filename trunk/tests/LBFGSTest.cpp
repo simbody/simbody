@@ -22,8 +22,6 @@
  */
 
 #include "SimTKmath.h"
-#include "simmath/Optimizer.h"
-#include "SimTKcommon.h"
 
 #include <iostream>
 using std::cout;

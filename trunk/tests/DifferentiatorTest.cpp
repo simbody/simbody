@@ -26,10 +26,7 @@
  * This is a test program which uses the Differentiator class in various ways.
  */
 
-//#define SimTK_USE_STATIC_LIBRARIES
-
 #include "SimTKmath.h"
-#include "simmath/Differentiator.h"
 
 // Just so we can get the version number:
 #include "SimTKlapack.h"

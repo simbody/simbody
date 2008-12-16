@@ -291,8 +291,8 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
     point = 0;
 
     /* compute initial function and gradient values */
-    objectiveFuncWrapper( n, x, true, f, (void*)this );
-    gradientFuncWrapper( n,  x, false, gradient, (void*)this );
+    objectiveFuncWrapper( n, x, true, f, this);
+    gradientFuncWrapper( n,  x, false, gradient, this);
 
     converged = true;
     for(int i=0;i<n;i++ ) {
@@ -423,8 +423,8 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
        do {
           SimTK::LBFGSOptimizer::mcsrch_(&n, x, f, gradient, &w[ispt + point * n], &stp, &ftol, xtol, eps, &maxfev, &info, &nfev, diag);
           if (info == -1) {
-              objectiveFuncWrapper( n, x, true, f, (void*)this );
-              gradientFuncWrapper( n,  x, false, gradient, (void*)this );
+              objectiveFuncWrapper( n, x, true, f, this);
+              gradientFuncWrapper( n,  x, false, gradient, this);
           } else if (info != 1) {
 	      delete [] diag;
               delete [] gradient;
@@ -821,8 +821,8 @@ L30:
         x[j] = wa[j] + *stp * s[j];
     }
     
-    objectiveFuncWrapper( *n, x, true, f, (void*)this );
-    gradientFuncWrapper( *n,  x, false, g, (void*)this );
+    objectiveFuncWrapper( *n, x, true, f, this);
+    gradientFuncWrapper( *n,  x, false, g, this);
 
     *info = 0;
     ++(*nfev);

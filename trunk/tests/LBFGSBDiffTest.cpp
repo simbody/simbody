@@ -22,10 +22,6 @@
  */
 
 #include "SimTKmath.h"
-#include "SimTKcommon.h"
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/BigMatrix.h"
-#include "Optimizer.h"
 
 #include <iostream>
 using std::cout;
@@ -50,7 +46,7 @@ class ProblemSystem : public OptimizerSystem {
       const Real *x = &coefficients[0];
 
       f = .25 *(x[0]-1.0)*(x[0]-1.0);
-      for(i=1;i<numParameters;i++) {
+      for(i=1;i<getNumParameters();i++) {
          f = f + pow(x[i]-x[i-1]*x[i-1], 2.0);
       }
 
@@ -67,12 +63,12 @@ class ProblemSystem : public OptimizerSystem {
 
       t1 = x[1]-(x[0]*x[0]);
       gradient[0] = 2.0*(x[0]-1.0)-16.0*x[0]*t1;
-      for(i=1;i<numParameters-1;i++) {
+      for(i=1;i<getNumParameters()-1;i++) {
          t2=t1;
          t1=x[i+1]-(x[i]*x[i]);
          gradient[i]=8.0*t2-16.0*x[i]*t1;
       }
-      gradient[numParameters-1]=8.0*t1;
+      gradient[getNumParameters()-1]=8.0*t1;
 
     return(0);
 

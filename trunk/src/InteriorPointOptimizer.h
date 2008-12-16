@@ -35,31 +35,31 @@
 namespace SimTK {
 
 
-class InteriorPointOptimizer: public OptimizerRep {
-
-     public:
-
-     ~InteriorPointOptimizer() {
+class InteriorPointOptimizer: public Optimizer::OptimizerRep {
+public:
+    ~InteriorPointOptimizer() {
         delete [] g_U;
         delete [] g_L;
         delete [] mult_x_L;
         delete [] mult_x_U;
         delete [] mult_g;
-     }
+    }
 
-     InteriorPointOptimizer(const OptimizerSystem& sys); 
-     Real optimize(  Vector &results );
-     OptimizerRep* clone() const;
+    InteriorPointOptimizer(const OptimizerSystem& sys); 
 
-     private:
-     Real         *mult_x_L;
-     Real         *mult_x_U;
-     Real         *mult_g;
-     Real         *g_L;
-     Real         *g_U;
-     bool          firstOptimization; 
+    Real optimize(  Vector &results );
+    OptimizerRep* clone() const;
 
+private:
+    Real         *mult_x_L;
+    Real         *mult_x_U;
+    Real         *mult_g;
+    Real         *g_L;
+    Real         *g_U;
+    bool          firstOptimization; 
 };
+
 } // namespace SimTK
+
 #endif //_SimTK_INTERIOR_POINT_OPTIMIZER_H_
 

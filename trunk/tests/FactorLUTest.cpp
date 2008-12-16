@@ -70,11 +70,6 @@ A =   5.25  -2.95  -0.95   -3.80   and B = 24.35
 
 */
 
-
-
-//#define SimTK_USE_STATIC_LIBRARIES
-
-#include "SimTKcommon.h"
 #include "SimTKmath.h"
 
 #include <iostream>

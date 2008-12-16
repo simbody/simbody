@@ -81,11 +81,6 @@ Singular values
 
 */
 
-
-
-//#define SimTK_USE_STATIC_LIBRARIES
-
-#include "SimTKcommon.h"
 #include "SimTKmath.h"
 
 #include <cstdio>

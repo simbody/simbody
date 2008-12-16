@@ -50,30 +50,30 @@ extern "C"
 
   /** A pointer for anything that is to be passed between the called
    *  and individual callback function */
-  typedef void * UserDataPtr;
+  typedef void* UserDataPtr;
 
   /** Type defining the callback function for evaluating the value of
    *  the objective function.  Return value should be set to false if
    *  there was a problem doing the evaluation. */
-  typedef Bool (*Eval_F_CB)(Index n, Number* x, Bool new_x,
+  typedef Bool (*Eval_F_CB)(Index n, const Number* x, Bool new_x,
                             Number* obj_value, UserDataPtr user_data);
 
   /** Type defining the callback function for evaluating the gradient of
    *  the objective function.  Return value should be set to false if
    *  there was a problem doing the evaluation. */
-  typedef Bool (*Eval_Grad_F_CB)(Index n, Number* x, Bool new_x,
+  typedef Bool (*Eval_Grad_F_CB)(Index n, const Number* x, Bool new_x,
                                  Number* grad_f, UserDataPtr user_data);
 
   /** Type defining the callback function for evaluating the value of
    *  the constraint functions.  Return value should be set to false if
    *  there was a problem doing the evaluation. */
-  typedef Bool (*Eval_G_CB)(Index n, Number* x, Bool new_x,
+  typedef Bool (*Eval_G_CB)(Index n, const Number* x, Bool new_x,
                             Index m, Number* g, UserDataPtr user_data);
 
   /** Type defining the callback function for evaluating the Jacobian of
    *  the constrant functions.  Return value should be set to false if
    *  there was a problem doing the evaluation. */
-  typedef Bool (*Eval_Jac_G_CB)(Index n, Number *x, Bool new_x,
+  typedef Bool (*Eval_Jac_G_CB)(Index n, const Number *x, Bool new_x,
                                 Index m, Index nele_jac,
                                 Index *iRow, Index *jCol, Number *values,
                                 UserDataPtr user_data);
@@ -81,7 +81,7 @@ extern "C"
   /** Type defining the callback function for evaluating the Hessian of
    *  the Lagrangian function.  Return value should be set to false if
    *  there was a problem doing the evaluation. */
-  typedef Bool (*Eval_H_CB)(Index n, Number *x, Bool new_x, Number obj_factor,
+  typedef Bool (*Eval_H_CB)(Index n, const Number *x, Bool new_x, Number obj_factor,
                             Index m, Number *lambda, Bool new_lambda,
                             Index nele_hess, Index *iRow, Index *jCol,
                             Number *values, UserDataPtr user_data);

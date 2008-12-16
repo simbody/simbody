@@ -82,7 +82,7 @@ CFSQPOptimizer::
     delete[] _lambda;
 }
 
-OptimizerRep* CFSQPOptimizer::clone() const {
+Optimizer::OptimizerRep* CFSQPOptimizer::clone() const {
     return( new CFSQPOptimizer(*this) );
 }
 
@@ -240,7 +240,7 @@ pFunc(int nparam,int j,double *x,double *p,void *cd)
 {
     CFSQPOptimizer *cfsqp = (CFSQPOptimizer *)cd;
     int nx=cfsqp->getOptimizerSystem().getNumParameters();
-    cfsqp->objectiveFunc(cfsqp->getOptimizerSystem(),Vector(nx,x,true),true,*p);
+    cfsqp->getOptimizerSystem().objectiveFunc(Vector(nx,x,true),true,*p);
 }
 //______________________________________________________________________________
 /**
@@ -253,7 +253,7 @@ dpdxFunc(int nparam,int j,double *x,double *dpdx,
     // TODO; support numerical gradients
     CFSQPOptimizer *cfsqp = (CFSQPOptimizer *)cd;
     int nx=cfsqp->getOptimizerSystem().getNumParameters();
-    cfsqp->gradientFunc(cfsqp->getOptimizerSystem(),Vector(nx,x,true),true,Vector(nx,dpdx,true));
+    cfsqp->getOptimizerSystem().gradientFunc(Vector(nx,x,true),true,Vector(nx,dpdx,true));
 }
 
 //______________________________________________________________________________
@@ -381,7 +381,7 @@ computeConstraint(const SimTK::Vector &x, const bool new_coefficients, double &c
 	}
 
 	if(!cached_value_available) {
-		status = constraintFunc(getOptimizerSystem(),x,new_coefficients,_cachedConstraint);
+		status = getOptimizerSystem().constraintFunc(x,new_coefficients,_cachedConstraint);
 		_cachedConstraintParameters.resize(nx);
 		_cachedConstraintParameters = x;
 	} 
@@ -411,7 +411,7 @@ computeConstraintGradient(const SimTK::Vector &x, const bool new_coefficients, S
 	}
 
 	if(!cached_value_available) {
-		status = constraintJacobian(getOptimizerSystem(),x,new_coefficients,_cachedConstraintJacobian);
+		status = getOptimizerSystem().constraintJacobian(x,new_coefficients,_cachedConstraintJacobian);
 		_cachedConstraintJacobianParameters.resize(nx);
 		_cachedConstraintJacobianParameters = x;
 	} 

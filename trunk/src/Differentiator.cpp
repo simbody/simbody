@@ -106,6 +106,8 @@ static Differentiator::Method getMethodOrThrow
     // REP CLASS DECLARATIONS FOR DIFFERENTIATOR & FUNCTIONS //
     ///////////////////////////////////////////////////////////
 
+// These classes are just local definitions in this compilation unit; they
+// aren't visible anywhere else.
 class ScalarFunctionRep;
 class GradientFunctionRep;
 class JacobianFunctionRep;
@@ -113,18 +115,16 @@ class JacobianFunctionRep;
 // This is used as a value for y in calculating the step size when
 // the actual y is smaller.
 static const Real YMin = Real(0.1);
-class DifferentiatorRep {
+class Differentiator::DifferentiatorRep {
 public:
     DifferentiatorRep(Differentiator* handle,
-                      const Differentiator::FunctionRep&,
+                      const Differentiator::Function::FunctionRep&,
                       Differentiator::Method defaultMethod);
     // default destructor, no default constructor, no copy or copy assign
 
     // This constant is the algorithm we'll use by default.
     static const Differentiator::Method DefaultDefaultMethod 
         = Differentiator::ForwardDifference;
-
-
 
     void calcDerivative(const ScalarFunctionRep&, Differentiator::Method, 
                         Real y0, Real fy0, Real& dfdy) const;
@@ -155,7 +155,7 @@ private:
     // Problem dimensions. These are obtained from the Function at
     // Differentiator construction time and cannot change afterwards.
 
-    const Differentiator::FunctionRep& frep;
+    const Differentiator::Function::FunctionRep& frep;
     const int  NFunctions, NParameters;
     const Real EstimatedAccuracy;
 
@@ -182,7 +182,7 @@ Differentiator::~Differentiator() {
     delete rep;
 }
 
-class Differentiator::FunctionRep {
+class Differentiator::Function::FunctionRep {
     friend class Differentiator::Function;
 public:
     FunctionRep(int nf, int np, Real acc)
@@ -232,16 +232,15 @@ private:
 
 };
 
-class ScalarFunctionRep : public Differentiator::FunctionRep {
+class ScalarFunctionRep : public Differentiator::Function::FunctionRep {
 public:
-    ScalarFunctionRep(const Differentiator::ScalarFunction& handle, Real acc)
-      : Differentiator::FunctionRep(1,1,acc), client(handle) 
-      { }
+    ScalarFunctionRep(const Differentiator::ScalarFunction& func, Real acc)
+    :   FunctionRep(1,1,acc), sf(func) {}
 
     // Virtuals (from FunctionRep)
     String functionKind() const {return "ScalarFunction";}
 
-    void calcDerivative(const DifferentiatorRep& diff, Differentiator::Method m,
+    void calcDerivative(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
                         Real y0, const Real* fy0p, Real& dfdy) const
     { 
         Real fy0;
@@ -250,7 +249,7 @@ public:
         diff.calcDerivative(*this,m,y0,fy0,dfdy);
     }
 
-    void calcGradient(const DifferentiatorRep& diff, Differentiator::Method m, 
+    void calcGradient(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m, 
                       const Vector& y0, const Real* fy0p, Vector& gf) const 
     { 
         assert(y0.size()==1);
@@ -262,7 +261,7 @@ public:
         diff.calcDerivative(*this,m,y0[0],fy0,gf[0]);
     }
 
-    void calcJacobian(const DifferentiatorRep& diff, Differentiator::Method m, 
+    void calcJacobian(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m, 
                       const Vector& y0, const Vector* fy0p, Matrix& dfdy) const
     {
         assert(y0.size()==1 && (!fy0p || (*fy0p).size()==1));
@@ -281,7 +280,7 @@ public:
 
         int status;
         try 
-          { status = f(client,y,fy);  }
+          { status = sf.f(y,fy);  }
         catch (const std::exception& e)
           { SimTK_THROW1(Differentiator::UserFunctionThrewAnException, e.what()); }
         catch (...)
@@ -293,19 +292,18 @@ public:
         nFailures--;
     }
 
-    const Differentiator::ScalarFunction&       client;
-    Differentiator::ScalarFunction::FuncWrapper f;
+    const Differentiator::ScalarFunction&       sf;
 };
 
-class GradientFunctionRep : public Differentiator::FunctionRep {
+class GradientFunctionRep : public Differentiator::Function::FunctionRep {
 public:
-    GradientFunctionRep(const Differentiator::GradientFunction& handle, int np, Real acc)
-      : Differentiator::FunctionRep(1,np,acc), client(handle) { }
+    GradientFunctionRep(const Differentiator::GradientFunction& func, int np, Real acc)
+    :   FunctionRep(1,np,acc), gf(func) {}
 
     // Virtuals (from FunctionRep)
     String functionKind() const {return "GradientFunction";}
 
-    void calcDerivative(const DifferentiatorRep& diff, Differentiator::Method m,
+    void calcDerivative(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
                         Real y0, const Real* fy0p, Real& dfdy) const
     {
         if (getNParameters() != 1)
@@ -320,7 +318,7 @@ public:
         diff.calcGradient(*this,m,y0v,fy0,dfdyv); 
     }
 
-    void calcGradient(const DifferentiatorRep& diff, Differentiator::Method m,
+    void calcGradient(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
                       const Vector& y0, const Real* fy0p, Vector& gf) const 
     { 
         Real fy0;
@@ -329,7 +327,7 @@ public:
         diff.calcGradient(*this,m,y0,fy0,gf);
     }
 
-    void calcJacobian(const DifferentiatorRep& diff, Differentiator::Method m,
+    void calcJacobian(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
                       const Vector& y0, const Vector* fy0p, Matrix& dfdy) const
     {
         assert(!fy0p || (*fy0p).size()==1);
@@ -347,7 +345,7 @@ public:
 
         int status;
         try 
-          { status = f(client,y,fy); } 
+          { status = gf.f(y,fy); } 
         catch (const std::exception& e)
           { SimTK_THROW1(Differentiator::UserFunctionThrewAnException, e.what()); }
         catch (...)
@@ -360,19 +358,18 @@ public:
         --nFailures;
     }
 
-    const Differentiator::GradientFunction&       client;
-    Differentiator::GradientFunction::FuncWrapper f;
+    const Differentiator::GradientFunction&       gf;
 };
 
-class JacobianFunctionRep : public Differentiator::FunctionRep {
+class JacobianFunctionRep : public Differentiator::Function::FunctionRep {
 public:
-    JacobianFunctionRep(const Differentiator::JacobianFunction& handle, int nf, int np, Real acc)
-      : Differentiator::FunctionRep(nf,np,acc), client(handle) { }
+    JacobianFunctionRep(const Differentiator::JacobianFunction& func, int nf, int np, Real acc)
+    :   FunctionRep(nf,np,acc), jf(func) {}
 
     // Virtuals (from FunctionRep)
     String functionKind() const {return "JacobianFunction";}
 
-    void calcDerivative(const DifferentiatorRep& diff, Differentiator::Method m,
+    void calcDerivative(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
                         Real y0, const Real* fy0p, Real& dfdy) const
     {
         if (getNFunctions() != 1 || getNParameters() != 1)
@@ -387,7 +384,7 @@ public:
         diff.calcJacobian(*this,m,y0v,fy0v,dfdym); 
     }
 
-    void calcGradient(const DifferentiatorRep& diff, Differentiator::Method m,
+    void calcGradient(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
                       const Vector& y0, const Real* fy0p, Vector& gf) const 
     { 
         if (getNFunctions() != 1)
@@ -400,7 +397,7 @@ public:
         diff.calcJacobian(*this,m,y0,fy0v,gf);
     }
 
-    void calcJacobian(const DifferentiatorRep& diff, Differentiator::Method m,
+    void calcJacobian(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
                       const Vector& y0, const Vector* fy0p, Matrix& dfdy) const
     {
         if (fy0p)
@@ -418,7 +415,7 @@ public:
 
         int status;
         try 
-          { status = f(client,y,fy); } 
+          { status = jf.f(y,fy); } 
         catch (const std::exception& e)
           { SimTK_THROW1(Differentiator::UserFunctionThrewAnException, e.what()); }
         catch (...)
@@ -431,9 +428,7 @@ public:
         nFailures--;
     }
 
-    const Differentiator::JacobianFunction&       client;
-    Differentiator::JacobianFunction::FuncWrapper f;
-
+    const Differentiator::JacobianFunction&       jf;
 };
 
     //////////////////////////////////////
@@ -664,45 +659,27 @@ long Differentiator::Function::getNFailures() const {
     // IMPLEMENTATION OF SCALAR, GRADIENT, JACOBIAN FUNCTION CLASSES //
     ///////////////////////////////////////////////////////////////////
 
-void Differentiator::ScalarFunction::librarySideConstruction(Real acc) {
+Differentiator::ScalarFunction::ScalarFunction(Real acc) {
     rep = new ScalarFunctionRep(*this, acc);
 }
-void Differentiator::GradientFunction::librarySideConstruction(int np, Real acc) {
+Differentiator::GradientFunction::GradientFunction(int np, Real acc) {
     rep = new GradientFunctionRep(*this, np, acc);
 }
-void Differentiator::JacobianFunction::librarySideConstruction(int nf, int np, Real acc) {
+Differentiator::JacobianFunction::JacobianFunction(int nf, int np, Real acc) {
     rep = new JacobianFunctionRep(*this, nf, np, acc);
 }
 
-
-void Differentiator::ScalarFunction::registerFunction
-   (Differentiator::ScalarFunction::FuncWrapper fp) 
-{ 
-    ScalarFunctionRep& r = dynamic_cast<ScalarFunctionRep&>(*rep);
-    r.f = fp;
-}
-void Differentiator::GradientFunction::registerFunction
-   (Differentiator::GradientFunction::FuncWrapper fp) 
-{ 
-    GradientFunctionRep& r = dynamic_cast<GradientFunctionRep&>(*rep);
-    r.f = fp;
-}
-void Differentiator::JacobianFunction::registerFunction
-   (Differentiator::JacobianFunction::FuncWrapper fp) 
-{ 
-    JacobianFunctionRep& r = dynamic_cast<JacobianFunctionRep&>(*rep);
-    r.f = fp;
-}
 
     //////////////////////////////////////////
     // IMPLEMENTATION OF DIFFERENTIATOR REP //
     //////////////////////////////////////////
 
-DifferentiatorRep::DifferentiatorRep
-       (Differentiator*                    handle,
-        const Differentiator::FunctionRep& fr,
-        Differentiator::Method             defMthd)
-  : myHandle(handle), frep(fr),
+Differentiator::DifferentiatorRep::DifferentiatorRep
+(   Differentiator*                                 handle,
+    const Differentiator::Function::FunctionRep&    fr,
+    Differentiator::Method                          defMthd
+)
+:   myHandle(handle), frep(fr),
     NParameters(fr.getNParameters()), 
     NFunctions(fr.getNFunctions()), 
     EstimatedAccuracy(fr.getEstimatedAccuracy()),
@@ -719,11 +696,9 @@ DifferentiatorRep::DifferentiatorRep
     fymtmp.resize(NFunctions);
 }
 
-void DifferentiatorRep::calcDerivative
+void Differentiator::DifferentiatorRep::calcDerivative
    (const ScalarFunctionRep& f, Differentiator::Method m, Real y0, Real fy0, Real& dfdy) const 
 {
-
-
     // This won't return if the method is bad.
     const Differentiator::Method method = getMethodOrThrow(m, defaultMethod, "calcDerivative");
 
@@ -746,7 +721,7 @@ void DifferentiatorRep::calcDerivative
     }
 }
 
-void DifferentiatorRep::calcGradient
+void Differentiator::DifferentiatorRep::calcGradient
    (const GradientFunctionRep& f, Differentiator::Method m, const Vector& y0, Real fy0, Vector& gradf) const 
 {
     // This won't return if the method is bad.
@@ -779,7 +754,7 @@ void DifferentiatorRep::calcGradient
     }
 }
 
-void DifferentiatorRep::calcJacobian
+void Differentiator::DifferentiatorRep::calcJacobian
    (const JacobianFunctionRep& f, Differentiator::Method m, 
     const Vector& y0, const Vector& fy0, Matrix& dfdy) const 
 {

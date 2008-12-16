@@ -66,11 +66,6 @@ estimated rank = 4
 
 */
 
-
-
-//#define SimTK_USE_STATIC_LIBRARIES
-
-#include "SimTKcommon.h"
 #include "SimTKmath.h"
 
 #include <cstdio>

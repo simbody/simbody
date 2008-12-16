@@ -24,26 +24,15 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "SimTKcommon.h"
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/BigMatrix.h"
 #include "Optimizer.h"
 #include "Differentiator.h"
 #include <map>
 
-
 namespace SimTK {
-extern int objectiveFuncWrapper( int n, Real *x, int new_x,  Real *f, void*user_data);
-extern int gradientFuncWrapper( int n,  Real *x, int new_x, Real *gradient, void*user_data);
-extern int constraintFuncWrapper( int n, Real *x, int new_x, int m, Real *g,  void*user_data);
-extern int constraintJacobianWrapper( int n, Real *x, int new_x,int m, int nele_jac,
-                int *iRow, int *jCol, Real *values, void *user_data);
-extern int hessianWrapper(int n, Real *x, int new_x, Real obj_factor,
-            int m, Real *lambda, int new_lambda,
-            int nele_hess, int *iRow, int *jCol,
-            Real *values, void *user_data);
 
-    /*  class for Diff jacobian */
-    class SysObjectiveFunc  : public Differentiator::GradientFunction {
+
+/*  class for Diff jacobian */
+class SysObjectiveFunc : public Differentiator::GradientFunction {
 public:
     SysObjectiveFunc(int ny, const OptimizerSystem* sysPtr )
         : Differentiator::GradientFunction(ny) { sysp = sysPtr; }
@@ -56,9 +45,9 @@ public:
 };
 
 
-    /*  class for Diff gradient */
-    class SysConstraintFunc : public Differentiator::JacobianFunction {
-       public:
+/*  class for Diff gradient */
+class SysConstraintFunc : public Differentiator::JacobianFunction {
+    public:
     SysConstraintFunc(int nf, int ny, const OptimizerSystem* sysPtr)
         : Differentiator::JacobianFunction(nf,ny) { sysp = sysPtr; }
 
@@ -70,7 +59,7 @@ public:
 };
 
 
-class OptimizerRep {
+class Optimizer::OptimizerRep {
 public:
     virtual ~OptimizerRep();
     OptimizerRep(const OptimizerSystem& sys) 
@@ -89,7 +78,6 @@ public:
          numericalJacobian(false)
 
     {
-       zeroFunctionPointers();
     }
     OptimizerRep()
        : sysp(0), 
@@ -107,7 +95,6 @@ public:
          numericalJacobian(false)
 
     {
-       zeroFunctionPointers();
     }
 
     virtual OptimizerRep* clone() const { return 0; };
@@ -117,23 +104,7 @@ public:
 
     const OptimizerSystem& getOptimizerSystem() const {return *sysp;}
 
-    // Client-side function pointers
-    Optimizer::ObjectiveFunc       objectiveFunc; // points to objectiveFunc_static
-    Optimizer::GradientFunc        gradientFunc;
-    Optimizer::ConstraintFunc      constraintFunc;
-    Optimizer::ConstraintJacobian  constraintJacobian;
-    Optimizer::Hessian             hessian;
-
-    void zeroFunctionPointers() {
-        objectiveFunc      = 0;
-        gradientFunc       = 0;
-        constraintFunc     = 0;
-        constraintJacobian = 0;
-        hessian            = 0;
-    }
-
-    Differentiator *gradDiff;   
-    Differentiator *jacDiff;   
+  
     void setDiagnosticsLevel( const int  level );
     void setConvergenceTolerance( const Real tolerance );
     void setMaxIterations( const int iter );
@@ -155,23 +126,51 @@ public:
     void  clearMyHandle() {myHandle=0;} 
     void useNumericalGradient( const bool flag ); 
     void useNumericalJacobian( const bool flag );  
-    bool getNumericalGradient() const { return( numericalGradient ); }
-    bool getNumericalJacobian() const { return( numericalJacobian ); }
+    bool isUsingNumericalGradient() const { return numericalGradient; }
+    bool isUsingNumericalJacobian() const { return numericalJacobian; }
+
+    const Differentiator& getGradientDifferentiator() const {
+        assert(gradDiff);
+        return *gradDiff;
+    }
+
+    const Differentiator& getJacobianDifferentiator() const {
+        assert(jacDiff);
+        return *jacDiff;
+    }
+
     static int numericalGradient_static( const OptimizerSystem&, const Vector & parameters,  const bool new_parameters,  Vector &gradient );
     static int numericalJacobian_static(const OptimizerSystem&,
                                    const Vector& parameters, const bool new_parameters, Matrix& jacobian );
 
-    protected:
+protected:
+    // These methods are to be called by derived classes as an interface
+    // to the OptimizerSystem virtuals. The signature must match that required by
+    // IpOpt's matching callbacks. We're using the "user data" argument to pass in
+    // the current OptimizerRep, making these behave like non-static members.
+
+    static int objectiveFuncWrapper ( int n, const Real* x, int new_x, Real* f, void* rep);
+    static int gradientFuncWrapper  ( int n, const Real* x, int new_x, Real* gradient, void* rep);
+    static int constraintFuncWrapper( int n, const Real* x, int new_x, int m, Real* g, void* rep);
+    static int constraintJacobianWrapper( int n, const Real* x, int new_x,int m, int nele_jac,
+                                          int* iRow, int* jCol, Real* values, void* rep);
+    static int hessianWrapper(  int n, const Real* x, int new_x, Real obj_factor,
+                                int m, Real* lambda, int new_lambda,
+                                int nele_hess, int* iRow, int* jCol,
+                                Real* values, void* rep);
+
     int diagnosticsLevel;
     Real convergenceTolerance;
     int maxIterations;
     int limitedMemoryHistory;
     Differentiator::Method   diffMethod;
 
-    private:
+private:
     const OptimizerSystem* sysp;
     bool numericalGradient; // true if optimizer will compute an numerical gradient
-    bool numericalJacobian; // true if optimizer will compute an numerical gradient
+    bool numericalJacobian; // true if optimizer will compute an numerical Jacobian
+    Differentiator *gradDiff;   
+    Differentiator *jacDiff; 
 
     SysObjectiveFunc  *of;   
     SysConstraintFunc *cf; 
@@ -189,9 +188,13 @@ public:
     Optimizer* myHandle;   // The owner handle of this Rep.
     
 }; // end class OptimizerRep
-class DefaultOptimizer: public OptimizerRep {
+
+class DefaultOptimizer: public Optimizer::OptimizerRep {
     Real optimize(  Vector &results );
     OptimizerRep* clone() const;
 };
+
 } // namespace SimTK
+
+
 #endif  //_SimTK_OPTIMIZER_REP_H_

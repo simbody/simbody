@@ -38,7 +38,7 @@
  */
 namespace SimTK { 
 
-class CFSQPOptimizer: public OptimizerRep {
+class CFSQPOptimizer: public Optimizer::OptimizerRep {
 //=============================================================================
 // DATA
 //=============================================================================

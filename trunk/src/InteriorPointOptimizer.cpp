@@ -52,7 +52,7 @@ static std::string applicationReturnStatusToString(int status) {
         default: return "Unknown Ipopt return status";
     }
 }
-OptimizerRep* InteriorPointOptimizer::clone() const {
+Optimizer::OptimizerRep* InteriorPointOptimizer::clone() const {
 	return( new InteriorPointOptimizer(*this) );
 }
 

@@ -29,12 +29,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon.h"
-
 #include "SimTKmath.h"
-#include "simmath/Integrator.h" // will be Simmath
-#include "simmath/TimeStepper.h" // will be Simmath
-#include "simmath/RungeKuttaMersonIntegrator.h" // will be Simmath
 
 #include "PendulumSystem.h"
 

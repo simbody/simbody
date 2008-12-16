@@ -22,10 +22,6 @@
  */
 
 #include "SimTKmath.h"
-#include "SimTKcommon.h"
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/BigMatrix.h"
-#include "Optimizer.h"
 
 #include <iostream>
 using std::cout;

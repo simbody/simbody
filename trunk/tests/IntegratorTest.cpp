@@ -33,14 +33,10 @@
  * This is a test program which uses the Integrator class in various ways.
  */
 
-//#define SimTK_USE_STATIC_LIBRARIES
-
 #include "SimTKcommon.h"
 #include "SimTKcommon/internal/SystemGuts.h"
 
 #include "SimTKmath.h"
-#include "simmath/Integrator.h" // will be Simmath
-#include "simmath/RungeKuttaMersonIntegrator.h" // will be Simmath
 
 #include <cstdio>
 #include <cassert>

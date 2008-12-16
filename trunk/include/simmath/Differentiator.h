@@ -100,12 +100,12 @@ public:
     long getNDifferentiations() const;        // total # calls of calcWhatever
     long getNDifferentiationFailures() const; // # of those that failed
     long getNCallsToUserFunction() const;     // total # calls to user function
-    
-    class FunctionRep;
+
+    // This is a local class.
+    class DifferentiatorRep;
 private:
     // opaque implementation for binary compatibility
-    class DifferentiatorRep* rep;
-    friend class DifferentiatorRep;
+    DifferentiatorRep* rep;
 };
 
 /**
@@ -137,19 +137,21 @@ public:
     long getNCalls()    const; // # evaluations of this function since reset
     long getNFailures() const; // # of calls which failed
 
+    // This is the declaration of a local class name.
+    class FunctionRep;
 protected:
     Function();
     ~Function();
 
     // opaque implementation for binary compatibility
-    Differentiator::FunctionRep* rep;
+    FunctionRep* rep;
 
 private:
     // suppress copy constructor and copy assignment
     Function(const Function&);
     Function& operator=(const Function&);
-    friend class Differentiator;
-    friend class Differentiator::FunctionRep;
+
+friend class Differentiator;
 };
 
 /**
@@ -159,17 +161,12 @@ private:
 class SimTK_SIMMATH_EXPORT Differentiator::ScalarFunction : public Differentiator::Function {
 public:
     virtual int f(Real x, Real& fx) const=0;
-    typedef int (*FuncWrapper)(const ScalarFunction&, Real, Real&);
 
 protected:
-    // must be inline for binary compatibility
-    inline explicit ScalarFunction(Real acc=-1);
+    explicit ScalarFunction(Real acc=-1);
     virtual ~ScalarFunction() { }
 
 private:
-    void librarySideConstruction(Real acc);
-    void registerFunction(FuncWrapper);
-
     // suppress copy constructor and copy assignment
     ScalarFunction(const Function&);
     ScalarFunction& operator=(const Function&);
@@ -183,17 +180,12 @@ private:
 class SimTK_SIMMATH_EXPORT Differentiator::GradientFunction : public Differentiator::Function {
 public:
     virtual int f(const Vector& y, Real& fy) const=0;
-    typedef int (*FuncWrapper)(const GradientFunction&, const Vector&, Real&);
 
 protected:
-    // must be inline for binary compatibility
-    inline explicit GradientFunction(int ny=-1, Real acc=-1);
+    explicit GradientFunction(int ny=-1, Real acc=-1);
     virtual ~GradientFunction() { }
 
 private:
-    void librarySideConstruction(int ny, Real acc);
-    void registerFunction(FuncWrapper);
-
     // suppress copy constructor and copy assignment
     GradientFunction(const GradientFunction&);
     GradientFunction& operator=(const GradientFunction&);
@@ -207,54 +199,16 @@ private:
 class SimTK_SIMMATH_EXPORT Differentiator::JacobianFunction : public Differentiator::Function {
 public:
     virtual int f(const Vector& y, Vector& fy) const=0;
-    typedef int (*FuncWrapper)(const JacobianFunction&, const Vector&, Vector&);
 
 protected:
-    // must be inline for binary compatibility
-    inline explicit JacobianFunction(int nf=-1, int ny=-1, Real acc=-1); 
+    explicit JacobianFunction(int nf=-1, int ny=-1, Real acc=-1); 
     virtual ~JacobianFunction() { }
 
 private:
-    void librarySideConstruction(int nf, int ny, Real acc);
-    void registerFunction(FuncWrapper);
-
     // suppress copy constructor and copy assignment
     JacobianFunction(const JacobianFunction&);
     JacobianFunction& operator=(const JacobianFunction&);
 };
-
-
-// These are used to supply the client-side virtual function to the library, without
-// the client and library having to agree on the layout of the virtual function tables.
-static int differentiatorScalarFunctionWrapper
-   (const Differentiator::ScalarFunction& func, 
-    Real y, Real& fy) { return func.f(y,fy); }
-
-inline Differentiator::ScalarFunction::ScalarFunction(Real acc)
-  : Function() {
-    librarySideConstruction(acc);
-    registerFunction(differentiatorScalarFunctionWrapper);
-}
-
-static int differentiatorGradientFunctionWrapper
-   (const Differentiator::GradientFunction& func, 
-    const Vector& y, Real& fy) { return func.f(y,fy); }
-
-inline Differentiator::GradientFunction::GradientFunction(int ny, Real acc)
-  : Function() {
-    librarySideConstruction(ny,acc);
-    registerFunction(differentiatorGradientFunctionWrapper);
-}
-
-static int differentiatorJacobianFunctionWrapper
-   (const Differentiator::JacobianFunction& func, const Vector& y, Vector& fy) 
-  { return func.f(y,fy); }
-
-inline Differentiator::JacobianFunction::JacobianFunction(int nf, int ny, Real acc) 
-  : Function() {
-    librarySideConstruction(nf,ny,acc);
-    registerFunction(differentiatorJacobianFunctionWrapper);
-}
 
 } // namespace SimTK
 

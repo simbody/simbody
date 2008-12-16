@@ -22,7 +22,6 @@
  */
 
 #include "SimTKmath.h"
-#include "SimTKcommon.h"
 
 #include <iostream>
 using std::cout;
