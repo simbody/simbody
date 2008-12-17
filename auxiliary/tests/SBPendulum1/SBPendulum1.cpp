@@ -342,11 +342,6 @@ try {
     const Real tstart = 0.;
     const Real tmax = 100;
 
-
-    //ExplicitEuler ee(mbs, s);
-    //bool suppressProjection = false;
-    //OLDRungeKuttaMerson ee(mbs, s, suppressProjection);
-
     RungeKuttaMersonIntegrator ee(mbs);
     ee.setProjectEveryStep(false);
     ee.setAccuracy(1e-4);
