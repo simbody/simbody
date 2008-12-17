@@ -78,10 +78,12 @@ void testCalculationMethods() {
     system.realizeTopology();
     State state = system.getDefaultState();
     Random::Gaussian random;
+
     for (int i = 0; i < state.getNY(); ++i)
         state.updY()[i] = random.getValue();
+
     system.realize(state, Stage::Acceleration);
-    
+   
     // Test the low level methods for transforming points and vectors.
     
     const Vec3 point(0.5, 1, -1.5);
@@ -133,7 +135,7 @@ void testWeld() {
     p1.setU(state, Vec3(1, 2, 3));
     p2.setU(state, Vec3(1, 2, 3));
     system.realize(state, Stage::Velocity);
-    system.project(state, 1e-10, Vector(state.getNY()), Vector(state.getNYErr()), Vector());
+    system.project(state, 1e-10, Vector(state.getNY(), Real(1)), Vector(state.getNYErr(), Real(1)), Vector());
     system.realize(state, Stage::Velocity);
     assertEqual(c1.getBodyTransform(state), c2.getBodyTransform(state));
     assertEqual(c1.getBodyVelocity(state), c2.getBodyVelocity(state));
