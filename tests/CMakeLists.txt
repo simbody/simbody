@@ -1,4 +1,3 @@
-
 # Automatically create tests using files named "Test*.cpp"
 FILE(GLOB TEST_PROGS "Test*.cpp")
 FOREACH(TEST_PROG ${TEST_PROGS})
@@ -21,6 +20,6 @@ FOREACH(TEST_PROG ${TEST_PROGS})
 
 ENDFOREACH(TEST_PROG ${TEST_PROGS})
 
-
+# Adhoc tests
 SUBDIRS (JunkMain)
 

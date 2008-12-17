@@ -32,14 +32,23 @@ endif(COMMAND cmake_policy)
 
 PROJECT (Simbody)
 
-SET( BUILD_AUX OFF CACHE BOOL "OFF does not build Simbody aux library ")
-MARK_AS_ADVANCED( BUILD_AUX  )
+SET( BUILD_AUX OFF CACHE BOOL
+	"Control building of Simbody aux library and tests" )
 
+# Caution: this variable is automatically created by the CMake
+# ENABLE_TESTING() command, but we'll take it over here for
+# our own purposes too.
+SET( BUILD_TESTING ON CACHE BOOL
+	"Control building of Simbody test programs." )
+
+SUBDIRS (staticTarget sharedTarget)
 IF( BUILD_AUX )
-  SUBDIRS (staticTarget sharedTarget auxiliary tests )
-ELSE ( BUILD_AUX )
-  SUBDIRS (staticTarget sharedTarget tests)
+  SUBDIRS (auxiliary)
 ENDIF( BUILD_AUX )
+
+IF( BUILD_TESTING )
+  SUBDIRS (tests)
+ENDIF( BUILD_TESTING )
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
@@ -311,30 +320,30 @@ ENDFOREACH(subdir)
 
 INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/src)
 
-#
-# Allow automated build and dashboard.
-#
-INCLUDE (Dart)
+IF (BUILD_TESTING)
+    #
+    # Allow automated build and dashboard.
+    #
+    INCLUDE (Dart)
 
-#IF (UNIX AND NOT CYGWIN AND NOT APPLE)
-#  IF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
-#    ADD_DEFINITIONS(-fprofile-arcs -ftest-coverage)
-#    LINK_LIBRARIES(gcov)
-#  ENDIF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
-#ENDIF (UNIX AND NOT CYGWIN AND NOT APPLE)
+    #IF (UNIX AND NOT CYGWIN AND NOT APPLE)
+    #  IF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
+    #    ADD_DEFINITIONS(-fprofile-arcs -ftest-coverage)
+    #    LINK_LIBRARIES(gcov)
+    #  ENDIF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
+    #ENDIF (UNIX AND NOT CYGWIN AND NOT APPLE)
 
+    #
+    # Testing
+    #
+    ENABLE_TESTING()
 
-#
-# Testing
-#
-
-ENABLE_TESTING()
-
-IF (EXECUTABLE_OUTPUT_PATH)
-  SET (TEST_PATH ${EXECUTABLE_OUTPUT_PATH})
-ELSE (EXECUTABLE_OUTPUT_PATH)
-  SET (TEST_PATH .)
-ENDIF (EXECUTABLE_OUTPUT_PATH)
+    IF (EXECUTABLE_OUTPUT_PATH)
+      SET (TEST_PATH ${EXECUTABLE_OUTPUT_PATH})
+    ELSE (EXECUTABLE_OUTPUT_PATH)
+      SET (TEST_PATH .)
+    ENDIF (EXECUTABLE_OUTPUT_PATH)
+ENDIF (BUILD_TESTING)
 
 INCLUDE(ApiDoxygen.cmake)
 
