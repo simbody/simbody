@@ -28,7 +28,8 @@
 namespace SimTK {
 
 class FactorQTZRepBase {
-    public:
+public:
+    FactorQTZRepBase() : isFactored(false), rank(0) {}
 
     virtual ~FactorQTZRepBase(){};
 
@@ -99,10 +100,7 @@ class FactorQTZRepBase {
            SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",
            "solve called before the matrix was factored \n");
        }
-       
-       return;
    }
-
 
 }; // class FactorQTZRepBase
 
@@ -114,8 +112,8 @@ class FactorQTZDefault : public FactorQTZRepBase {
 
 template <typename T>
 class FactorQTZRep : public FactorQTZRepBase {
-   public:
-   template <class ELT> FactorQTZRep( const Matrix_<ELT>&, typename CNT<T>::TReal  );
+public:
+   template <class ELT> FactorQTZRep( const Matrix_<ELT>&, typename CNT<T>::TReal );
    FactorQTZRep();
 
    ~FactorQTZRep();
@@ -127,23 +125,24 @@ class FactorQTZRep : public FactorQTZRepBase {
 
    FactorQTZRepBase* clone() const;
  
-   private:
-  
+private:
    void doSolve( Matrix_<T>& b, Matrix_<T>& x ) const;
 
-   int mn;           // min of number of rows or columns
-   int maxmn;        // max of number of rows or columns
-   int nRow;         // number of rows in original matrix
-   int nCol;         // number of columns in original matrix
-   bool scaleLinSys; // true if matrix was scaled during factorization
-   typename CNT<T>::TReal linSysScaleF; // scale factor applied to matrix 
-   typename CNT<T>::TReal anrm;
-   typename CNT<T>::TReal rcond;   // reciprocol condition number
-   TypedWorkSpace<int>    pivots;
-   TypedWorkSpace<T>      qtz;     // factored matrix
-   TypedWorkSpace<T>      tauGEQP3;
-   TypedWorkSpace<T>      tauORMQR;
+   int                      mn;           // min of number of rows or columns
+   int                      maxmn;        // max of number of rows or columns
+   int                      nRow;         // number of rows in original matrix
+   int                      nCol;         // number of columns in original matrix
+   bool                     scaleLinSys; // true if matrix was scaled during factorization
+   typename CNT<T>::TReal   linSysScaleF; // scale factor applied to matrix 
+   typename CNT<T>::TReal   anrm;
+   typename CNT<T>::TReal   rcond;   // reciprocol condition number
+   TypedWorkSpace<int>      pivots;
+   TypedWorkSpace<T>        qtz;     // factored matrix
+   TypedWorkSpace<T>        tauGEQP3;
+   TypedWorkSpace<T>        tauORMQR;
 
 }; // end class FactorQTZRep
+
 } // namespace SimTK
+
 #endif   //  _FACTOR_QTZ_REP_H_

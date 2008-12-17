@@ -130,31 +130,26 @@ class TypedWorkSpace {
        
     }
     TypedWorkSpace& operator=(const TypedWorkSpace& rhs) {
-        
+        if (&rhs == this)
+            return *this;
+
+        delete [] data;
+        data = 0;
         size = rhs.size;
 
-        if( size == 0 ) {
-             data = 0;
-         } else {
+        if( size > 0) {
              data = new T[size];
              for(int i=0;i<size;i++) data[i] = rhs.data[i];
-         }
-         return *this;
-    }
- TypedWorkSpace( long n ) {
-        size = n;
-        if( n == 0 ) {
-            data = 0;
-        } else {
-            data = new T[n];
         }
+        return *this;
     }
 
-    TypedWorkSpace() {
-        size = 0;
-        data = 0;
+    explicit TypedWorkSpace( long n ) {
+        size = n;
+        data = (n==0 ? 0 : new T[n]);
     }
 
+    TypedWorkSpace() : size(0), data(0) { }
 
     ~TypedWorkSpace() {
         delete [] data;
@@ -163,7 +158,7 @@ class TypedWorkSpace {
     void resize( long n ) {
         delete [] data;
         size = n;
-        data = new T[n];
+        data = (n==0 ? 0 : new T[n]);
     }
 
     long size;

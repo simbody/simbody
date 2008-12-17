@@ -131,37 +131,41 @@ void FactorQTZ::solve(  const Matrix_<ELT>& b, Matrix_<ELT>& x ) const {
    /////////////////
 template <typename T >
 FactorQTZRep<T>::FactorQTZRep() 
-      : nRow(0),
-        nCol(0),
-        qtz(0),
-        pivots(0),
-        mn(0),
-        maxmn(0 ),
-        tauGEQP3(0),
-        tauORMQR(0),
-        scaleLinSys(false) { 
-     rank = 0;
-     rcond = NTraits<typename CNT<T>::Precision>::getSignificant();
+:   mn(0),
+    maxmn(0),
+    nRow(0),
+    nCol(0),
+    scaleLinSys(false),
+    linSysScaleF(NTraits<typename CNT<T>::Precision>::getNaN()),
+    anrm(NTraits<typename CNT<T>::Precision>::getNaN()),
+    rcond(NTraits<typename CNT<T>::Precision>::getSignificant()),
+    pivots(0),
+    qtz(0),
+    tauGEQP3(0),
+    tauORMQR(0)
+{ 
 } 
 
 template <typename T >
     template < typename ELT >
 FactorQTZRep<T>::FactorQTZRep( const Matrix_<ELT>& mat, typename CNT<T>::TReal rc) 
-      : nRow( mat.nrow() ),
-        nCol( mat.ncol() ),
-        qtz( mat.nrow()*mat.ncol() ),
-        pivots(mat.ncol()),
-        mn( (mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol() ),
-        maxmn( (mat.nrow() > mat.ncol()) ? mat.nrow() : mat.ncol() ),
-        tauGEQP3(mn),
-        tauORMQR(mn),
-        scaleLinSys(false)             { 
-        
-        rank = 0;
-        rcond = rc;
-        for(int i=0;i<mat.ncol();i++) pivots.data[i] = 0;
+:   mn( (mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol() ),
+    maxmn( (mat.nrow() > mat.ncol()) ? mat.nrow() : mat.ncol() ),
+    nRow( mat.nrow() ),
+    nCol( mat.ncol() ),
+    scaleLinSys(false),
+    linSysScaleF(NTraits<typename CNT<T>::Precision>::getNaN()),
+    anrm(NTraits<typename CNT<T>::Precision>::getNaN()),
+    rcond(rc),
+    pivots(mat.ncol()),
+    qtz( mat.nrow()*mat.ncol() ),
+    tauGEQP3(mn),
+    tauORMQR(mn)    
+{ 
+    for(int i=0; i<mat.ncol(); ++i) 
+        pivots.data[i] = 0;
 	FactorQTZRep<T>::factor( mat );
-        isFactored = true;
+    isFactored = true;
 }
 
 template <typename T >
@@ -191,11 +195,10 @@ void FactorQTZRep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) const {
     Matrix_<T> r(nCol, 1 );
     doSolve( m, r );
     x.copyAssign(r);
-    return;
 }
+
 template <typename T >
 void FactorQTZRep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) const {
-
     SimTK_APIARGCHECK_ALWAYS(0 == nRow,"FactorQTZ","solve",
        "No matrix was passed to FactorQTZ. \n"  );
 
