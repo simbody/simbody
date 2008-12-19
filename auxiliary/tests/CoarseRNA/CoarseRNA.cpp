@@ -40,6 +40,7 @@
 #include <cstdio>
 #include <exception>
 #include <vector>
+#include <ctime>
 
 using namespace std;
 using namespace SimTK;
@@ -351,10 +352,15 @@ try // If anything goes wrong, an exception will be thrown.
     for (int i=0; i<50; ++i)
         saveEm.push_back(myStudy.getState());    // delay
     display.report(myStudy.getState());
+
+
+    const clock_t start = clock();
     for (;;) {
         const State& ss = myStudy.getState();
 
         mbs.realize(ss);
+
+
         printf("%5g qerr=%10.4g uerr=%10.4g hNext=%g\n", ss.getTime(), 
             myRNA.getQErr(ss).normRMS(), myRNA.getUErr(ss).normRMS(),
             myStudy.getPredictedNextStepSize());
@@ -370,9 +376,6 @@ try // If anything goes wrong, an exception will be thrown.
         display.report(ss);
         saveEm.push_back(ss);
 
-       // if (myStudy.getT() >= 10*expectedPeriod)
-         //   break;
-
         if (ss.getTime() >= 10)
             break;
 
@@ -380,6 +383,7 @@ try // If anything goes wrong, an exception will be thrown.
         myStudy.stepTo(ss.getTime() + dt, Infinity);
     }
 
+    printf("CPU time=%gs\n", (double)(clock()-start)/CLOCKS_PER_SEC);
     printf("Using Integrator %s:\n", myStudy.getMethodName());
     printf("# STEPS/ATTEMPTS = %d/%d\n", myStudy.getNStepsTaken(), myStudy.getNStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", myStudy.getNErrorTestFailures());
