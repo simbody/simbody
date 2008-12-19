@@ -41,6 +41,15 @@ SET( BUILD_AUX OFF CACHE BOOL
 SET( BUILD_TESTING ON CACHE BOOL
 	"Control building of Simbody test programs." )
 
+# Turning this off reduces the build time (and space) substantially,
+# but you may miss the occasional odd bug. Also currently on Windows it
+# is easier to debug the static tests than the DLL-liked ones.
+SET( BUILD_TESTING_STATIC ON CACHE BOOL
+	"If building test programs, include statically-linked ones?" )
+
+SET( BUILD_TESTING_SHARED ON CACHE BOOL
+ 	"If building test programs, include dynamically-linked ones?" )
+
 SUBDIRS (staticTarget sharedTarget)
 IF( BUILD_AUX )
   SUBDIRS (auxiliary)
@@ -146,13 +155,13 @@ ENDIF (NOT CMAKE_CXX_FLAGS_RELEASE)
 
 SET(SIMBODY_LIBRARY_NAME SimTKsimbody)
 SET(SIMBODY_MAJOR_VERSION 1)
-SET(SIMBODY_MINOR_VERSION 1)
+SET(SIMBODY_MINOR_VERSION 6)
 SET(SIMBODY_BUILD_VERSION 0)
 
-SET(SIMBODY_COPYRIGHT_YEARS "2005-8")
+SET(SIMBODY_COPYRIGHT_YEARS "2005-9")
 
 # underbar separated list of dotted authors, no spaces or commas
-SET(SIMBODY_AUTHORS "Michael.Sherman")
+SET(SIMBODY_AUTHORS "Michael.Sherman_Peter.Eastman")
 
 # Get the subversion revision number if we can
 # It's possible that WIN32 installs use svnversion through cygwin
