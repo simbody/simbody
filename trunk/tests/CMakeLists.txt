@@ -1,63 +1,56 @@
-# Adhoc tests
-SUBDIRS(BigMatrixTest)
+# Adhoc tests are those test or demo programs which are not intended,
+# or not ready, to be part of the regression suite.
+SUBDIRS(adhoc)
 
-# Old-style regression tests
-# TODO: convert these to the quiet, automated regressiosn we've come
-# to know and love
-SUBDIRS (ListTest BNTTest MatVecTest SpatialAlgebraTest OrientationTest 
-          StateTest RandomTest SFMTTest PolynomialTest 
-         EnumerationTest RotationTest)
+# Generate regression tests.
+#
+# This is boilerplate code for generating a set of executables, one per
+# .cpp file in a "tests" directory. These are for test cases which 
+# have been engineered to be suitable as part of the nightly regression
+# test suite. Ideally, they know their correct answers and return
+# a simple thumbs-up/thumbs-down result, although some regressions 
+# may be present and useful just to determine if they compile and
+# run to completion.
+#
+# For IDEs that can deal with PROJECT_LABEL properties (at least
+# Visual Studio) the projects for building each of these adhoc
+# executables will be labeled "Regr - TheTestName" if a file
+# TheTestName.cpp is found in this directory.
+#
+# We check the BUILD_TESTING_{SHARED,STATIC} variables to determine
+# whether to build dynamically linked, statically linked, or both
+# versions of the executable.
 
-
-ADD_TEST(ListTest                 ${EXECUTABLE_OUTPUT_PATH}/ListTest)
-ADD_TEST(ListTestStatic           ${EXECUTABLE_OUTPUT_PATH}/ListTestStatic)
-ADD_TEST(BNTTest                  ${EXECUTABLE_OUTPUT_PATH}/BNTTest)
-ADD_TEST(BNTTestStatic            ${EXECUTABLE_OUTPUT_PATH}/BNTTestStatic)
-ADD_TEST(MatVecTest               ${EXECUTABLE_OUTPUT_PATH}/MatVecTest)
-ADD_TEST(MatVecTestStatic         ${EXECUTABLE_OUTPUT_PATH}/MatVecTestStatic)
-ADD_TEST(SpatialAlgebraTest      	${EXECUTABLE_OUTPUT_PATH}/SpatialAlgebraTest)
-ADD_TEST(SpatialAlgebraTestStatic 	${EXECUTABLE_OUTPUT_PATH}/SpatialAlgebraTestStatic)
-ADD_TEST(OrientationTest          ${EXECUTABLE_OUTPUT_PATH}/OrientationTest)
-ADD_TEST(OrientationTestStatic    	${EXECUTABLE_OUTPUT_PATH}/OrientationTestStatic)
-ADD_TEST(StateTest                ${EXECUTABLE_OUTPUT_PATH}/StateTest)
-ADD_TEST(StateTestStatic          ${EXECUTABLE_OUTPUT_PATH}/StateTestStatic)
-ADD_TEST(RandomTest               ${EXECUTABLE_OUTPUT_PATH}/RandomTest)
-ADD_TEST(RandomTestStatic         ${EXECUTABLE_OUTPUT_PATH}/RandomTestStatic)
-ADD_TEST(SFMTTest                 ${EXECUTABLE_OUTPUT_PATH}/SFMTTest)
-ADD_TEST(SFMTTestStatic           ${EXECUTABLE_OUTPUT_PATH}/SFMTTestStatic)
-ADD_TEST(PolynomialTest           ${EXECUTABLE_OUTPUT_PATH}/PolynomialTest)
-ADD_TEST(PolynomialTestStatic     	${EXECUTABLE_OUTPUT_PATH}/PolynomialTestStatic)
-ADD_TEST(EnumerationTest          ${EXECUTABLE_OUTPUT_PATH}/EnumerationTest)
-ADD_TEST(EnumerationTestStatic    	${EXECUTABLE_OUTPUT_PATH}/EnumerationTestStatic)
-ADD_TEST(RotationTest             ${EXECUTABLE_OUTPUT_PATH}/RotationTest)
-ADD_TEST(RotationTestStatic       	${EXECUTABLE_OUTPUT_PATH}/RotationTestStatic)
-
-# Regression tests
-
-# Thanks to Chris Bruns for this next part. Use this only for
-# actual CTest tests, that is, quiet tests that know the right
-# answers and either succeed or fail.
-
-# Automatically create tests using files named "Test*.cpp"
-FILE(GLOB TEST_PROGS "Test*.cpp")
-FOREACH(TEST_PROG ${TEST_PROGS})
+FILE(GLOB REGR_TESTS "*.cpp")
+FOREACH(TEST_PROG ${REGR_TESTS})
     GET_FILENAME_COMPONENT(TEST_ROOT ${TEST_PROG} NAME_WE)
 
-    # Link with shared library
-    ADD_EXECUTABLE(${TEST_ROOT} ${TEST_PROG})
-    TARGET_LINK_LIBRARIES(${TEST_ROOT} ${SHARED_TARGET})
-    ADD_TEST(${TEST_ROOT} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ROOT})
+    IF (BUILD_TESTING_SHARED)
+        # Link with shared library
+        ADD_EXECUTABLE(${TEST_ROOT} ${TEST_PROG})
+        SET_TARGET_PROPERTIES(${TEST_ROOT}
+		PROPERTIES
+	      PROJECT_LABEL "Regr - ${TEST_ROOT}")
+        TARGET_LINK_LIBRARIES(${TEST_ROOT} 
+					${SHARED_TARGET})
+        ADD_TEST(${TEST_ROOT} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ROOT})
+    ENDIF (BUILD_TESTING_SHARED)
 
-    # Link with static library
-    SET(TEST_STATIC ${TEST_ROOT}Static)
-    ADD_EXECUTABLE(${TEST_STATIC} ${TEST_PROG})
-    SET_TARGET_PROPERTIES(${TEST_STATIC}
+    IF (BUILD_TESTING_STATIC)
+        # Link with static library
+        SET(TEST_STATIC ${TEST_ROOT}Static)
+        ADD_EXECUTABLE(${TEST_STATIC} ${TEST_PROG})
+        SET_TARGET_PROPERTIES(${TEST_STATIC}
 		PROPERTIES
 		COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
-		)
-    TARGET_LINK_LIBRARIES(${TEST_STATIC} ${STATIC_TARGET})
-    ADD_TEST(${TEST_STATIC} ${EXECUTABLE_OUTPUT_PATH}/${TEST_STATIC})
+		PROJECT_LABEL "Regr - ${TEST_STATIC}")
+        TARGET_LINK_LIBRARIES(${TEST_STATIC}
+					${STATIC_TARGET})
+        ADD_TEST(${TEST_STATIC} ${EXECUTABLE_OUTPUT_PATH}/${TEST_STATIC})
+    ENDIF (BUILD_TESTING_STATIC)
 
-ENDFOREACH(TEST_PROG ${TEST_PROGS})
+ENDFOREACH(TEST_PROG ${REGR_TESTS})
+
+
 
 

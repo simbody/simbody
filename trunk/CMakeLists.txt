@@ -31,11 +31,33 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 PROJECT (SimTKcommon)
-SUBDIRS (staticTarget sharedTarget tests)
+
+# Caution: this variable is automatically created by the CMake
+# ENABLE_TESTING() command, but we'll take it over here for
+# our own purposes too.
+SET( BUILD_TESTING ON CACHE BOOL
+	"Control building of SimTKcommon test programs." )
+
+# Turning this off reduces the build time (and space) substantially,
+# but you may miss the occasional odd bug. Also currently on Windows it
+# is easier to debug the static tests than the DLL-liked ones.
+SET( BUILD_TESTING_STATIC ON CACHE BOOL
+	"If building test programs, include statically-linked ones?" )
+
+SET( BUILD_TESTING_SHARED ON CACHE BOOL
+ 	"If building test programs, include dynamically-linked ones?" )
+
+SUBDIRS (staticTarget sharedTarget)
+
+IF( BUILD_TESTING )
+  SUBDIRS (tests)
+ENDIF( BUILD_TESTING )
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
-SET(SimTKCOMMON_SOURCE_SUBDIRS . Scalar SmallMatrix Mechanics BigMatrix Geometry Simulation Random Polynomial)
+SET(SimTKCOMMON_SOURCE_SUBDIRS
+	. Scalar SmallMatrix Mechanics BigMatrix
+	Geometry Simulation Random Polynomial)
 
 
 # 
@@ -96,8 +118,6 @@ ENDIF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
 #ENDIF (ARCH64)
 
 
-
-
 IF( APPLE )
    SET( CMAKE_CXX_FLAGS "-mmacosx-version-min=10.4" )
 ENDIF( APPLE )
@@ -116,20 +136,18 @@ IF (NOT CMAKE_CXX_FLAGS_RELEASE)
 ENDIF (NOT CMAKE_CXX_FLAGS_RELEASE)
 
 
-
-
 # Collect up information about the version of the SimTKcommon library we're building
 # and make it available to the code so it can be built into the binaries.
 
 SET(SimTKCOMMON_LIBRARY_NAME SimTKcommon)
-SET(SimTKCOMMON_MAJOR_VERSION 0)
+SET(SimTKCOMMON_MAJOR_VERSION 1)
 SET(SimTKCOMMON_MINOR_VERSION 6)
-SET(SimTKCOMMON_BUILD_VERSION 3)
+SET(SimTKCOMMON_BUILD_VERSION 0)
 
-SET(SimTKCOMMON_COPYRIGHT_YEARS "2005-7")
+SET(SimTKCOMMON_COPYRIGHT_YEARS "2005-9")
 
 # underbar separated list of dotted authors, no spaces or commas
-SET(SimTKCOMMON_AUTHORS "Michael.Sherman")
+SET(SimTKCOMMON_AUTHORS "Michael.Sherman_Peter.Eastman")
 
 # Get the subversion revision number if we can
 # It's possible that WIN32 installs use svnversion through cygwin
@@ -150,6 +168,7 @@ ELSE (SVNVERSION_EXE)
                       ARGS \"${PROJECT_SOURCE_DIR}\"
                       OUTPUT_VARIABLE SimTKCOMMON_SVN_REVISION)
     ELSE (SVNVERSION)
+
         MESSAGE (STATUS 
           "Could not find 'svnversion' executable; 'about' will be wrong. (Cygwin provides one on Windows.)"
         )
@@ -279,25 +298,26 @@ FOREACH(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
     INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
 
+IF (BUILD_TESTING)
+    #
+    # Allow automated build and dashboard.
+    #
+    INCLUDE (Dart)
 
+    #IF (UNIX AND NOT CYGWIN AND NOT APPLE)
+    #  IF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
+    #    ADD_DEFINITIONS(-fprofile-arcs -ftest-coverage)
+    #    LINK_LIBRARIES(gcov)
+    #  ENDIF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
+    #ENDIF (UNIX AND NOT CYGWIN AND NOT APPLE)
 
-#
-# Allow automated build and dashboard.
-#
-INCLUDE (Dart)
+    #
+    # Testing
+    #
+    ENABLE_TESTING()
 
-#IF (UNIX AND NOT CYGWIN AND NOT APPLE)
-#  IF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
-#    ADD_DEFINITIONS(-fprofile-arcs -ftest-coverage)
-#    LINK_LIBRARIES(gcov)
-#  ENDIF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
-#ENDIF (UNIX AND NOT CYGWIN AND NOT APPLE)
+ENDIF (BUILD_TESTING)
 
-
-#
-# Testing
-#
-ENABLE_TESTING()
 
 #
 # Installation
