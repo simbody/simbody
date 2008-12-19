@@ -1,9 +1,9 @@
 # Generate adhoc tests.
 #
 # This is boilerplate code for generating a set of executables, one per
-# .cpp file in the "adhoc" directory. These are for "loose" test cases,
-# not suitable as regression tests but perhaps useful to the developer
-# or as demos. Unlike the similar boilerplate code in the "tests"
+# .cpp file in a "tests/adhoc" subdirectory. These are for "loose" test
+# cases, not suitable as regression tests but perhaps useful to the
+# developer or as demos. Unlike the similar boilerplate code in the "tests"
 # directory, this does not generate CMake ADD_TEST commands so these
 # will never run automatically.
 #
@@ -27,7 +27,8 @@ FOREACH(TEST_PROG ${ADHOC_TESTS})
         SET_TARGET_PROPERTIES(${TEST_ROOT}
 		PROPERTIES
 	      PROJECT_LABEL "Adhoc - ${TEST_ROOT}")
-        TARGET_LINK_LIBRARIES(${TEST_ROOT} ${SHARED_TARGET})
+        TARGET_LINK_LIBRARIES(${TEST_ROOT} 
+					${SHARED_TARGET} ${AUX_SHARED_TARGET})
     ENDIF (BUILD_TESTING_SHARED)
 
     IF (BUILD_TESTING_STATIC)
@@ -38,7 +39,8 @@ FOREACH(TEST_PROG ${ADHOC_TESTS})
 		PROPERTIES
 		COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
 		PROJECT_LABEL "Adhoc - ${TEST_STATIC}")
-        TARGET_LINK_LIBRARIES(${TEST_STATIC} ${STATIC_TARGET})
+        TARGET_LINK_LIBRARIES(${TEST_STATIC}
+					${STATIC_TARGET} ${AUX_STATIC_TARGET})
     ENDIF (BUILD_TESTING_STATIC)
 
 ENDFOREACH(TEST_PROG ${ADHOC_TESTS})
