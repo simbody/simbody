@@ -50,14 +50,6 @@ SET( BUILD_TESTING_STATIC ON CACHE BOOL
 SET( BUILD_TESTING_SHARED ON CACHE BOOL
  	"If building test programs, include dynamically-linked ones?" )
 
-SUBDIRS (staticTarget sharedTarget)
-IF( BUILD_AUX )
-  SUBDIRS (auxiliary)
-ENDIF( BUILD_AUX )
-
-IF( BUILD_TESTING )
-  SUBDIRS (tests)
-ENDIF( BUILD_TESTING )
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
@@ -345,11 +337,6 @@ IF (BUILD_TESTING)
     #
     ENABLE_TESTING()
 
-    IF (EXECUTABLE_OUTPUT_PATH)
-      SET (TEST_PATH ${EXECUTABLE_OUTPUT_PATH})
-    ELSE (EXECUTABLE_OUTPUT_PATH)
-      SET (TEST_PATH .)
-    ENDIF (EXECUTABLE_OUTPUT_PATH)
 ENDIF (BUILD_TESTING)
 
 INCLUDE(ApiDoxygen.cmake)
@@ -382,4 +369,15 @@ INSTALL_FILES(/core/include/simbody/internal FILES ${INTERNAL_HEADERS})
 # newer (recommended) INSTALL(dir FILES ...) command
 # when the target directory starts with a slash
 INSTALL( FILES ${PROJECT_SOURCE_DIR}/doc/SimbodyUserGuide.pdf DESTINATION core/doc/simbody )
+
+
+ADD_SUBDIRECTORY( staticTarget )
+ADD_SUBDIRECTORY( sharedTarget )
+IF( BUILD_AUX )
+  ADD_SUBDIRECTORY( auxiliary )
+ENDIF( BUILD_AUX )
+
+IF( BUILD_TESTING )
+  ADD_SUBDIRECTORY( tests )
+ENDIF( BUILD_TESTING )
 
