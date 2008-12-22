@@ -1,86 +1,53 @@
-ADD_EXECUTABLE(FactorSVDTest       FactorSVDTest.cpp)
-ADD_EXECUTABLE(FactorSVDTestStatic FactorSVDTestStatic.cpp)
-ADD_EXECUTABLE(EigenTest       EigenTest.cpp)
-ADD_EXECUTABLE(EigenTestStatic EigenTestStatic.cpp)
-ADD_EXECUTABLE(FactorLUTest       FactorLUTest.cpp)
-ADD_EXECUTABLE(FactorLUTestStatic FactorLUTestStatic.cpp)
-ADD_EXECUTABLE(FactorQTZTest       FactorQTZTest.cpp)
-ADD_EXECUTABLE(FactorQTZTestStatic FactorQTZTestStatic.cpp)
-ADD_EXECUTABLE(IpoptTest          IpoptTest.cpp)
-ADD_EXECUTABLE(IpoptTestStatic    IpoptTestStatic.cpp)
-ADD_EXECUTABLE(LBFGSTest          LBFGSTest.cpp)
-ADD_EXECUTABLE(LBFGSTestStatic    LBFGSTestStatic.cpp)
-ADD_EXECUTABLE(LBFGSBTest         LBFGSBTest.cpp)
-ADD_EXECUTABLE(LBFGSBTestStatic   LBFGSBTestStatic.cpp)
-ADD_EXECUTABLE(IpoptDiffTest          IpoptDiffTest.cpp)
-ADD_EXECUTABLE(IpoptDiffTestStatic    IpoptDiffTestStatic.cpp)
-ADD_EXECUTABLE(LBFGSDiffTest          LBFGSDiffTest.cpp)
-ADD_EXECUTABLE(LBFGSDiffTestStatic    LBFGSDiffTestStatic.cpp)
-ADD_EXECUTABLE(LBFGSBDiffTest         LBFGSBDiffTest.cpp)
-ADD_EXECUTABLE(LBFGSBDiffTestStatic   LBFGSBDiffTestStatic.cpp)
-ADD_EXECUTABLE(DifferentiatorTest         DifferentiatorTest.cpp)
-ADD_EXECUTABLE(DifferentiatorTestStatic   DifferentiatorTestStatic.cpp)
-ADD_EXECUTABLE(SimpleDifferentiatorTest         SimpleDifferentiatorTest.cpp)
-ADD_EXECUTABLE(SimpleDifferentiatorTestStatic   SimpleDifferentiatorTestStatic.cpp)
-ADD_EXECUTABLE(IntegratorTest IntegratorTest.cpp)
-ADD_EXECUTABLE(IntegratorTestStatic IntegratorTestStatic.cpp)
-ADD_EXECUTABLE(TimeStepperTest TimeStepperTest.cpp)
-ADD_EXECUTABLE(TimeStepperTestStatic TimeStepperTestStatic.cpp)
-ADD_EXECUTABLE(CPodesIntegratorTest CPodesIntegratorTest.cpp)
-ADD_EXECUTABLE(CPodesIntegratorTestStatic CPodesIntegratorTestStatic.cpp)
-ADD_EXECUTABLE(RungeKuttaMersonIntegratorTest RungeKuttaMersonIntegratorTest.cpp)
-ADD_EXECUTABLE(RungeKuttaMersonIntegratorTestStatic RungeKuttaMersonIntegratorTestStatic.cpp)
-ADD_EXECUTABLE(RungeKuttaFeldbergIntegratorTest RungeKuttaFeldbergIntegratorTest.cpp)
-ADD_EXECUTABLE(RungeKuttaFeldbergIntegratorTestStatic RungeKuttaFeldbergIntegratorTestStatic.cpp)
-ADD_EXECUTABLE(ExplicitEulerIntegratorTest ExplicitEulerIntegratorTest.cpp)
-ADD_EXECUTABLE(ExplicitEulerIntegratorTestStatic ExplicitEulerIntegratorTestStatic.cpp)
-ADD_EXECUTABLE(VerletIntegratorTest VerletIntegratorTest.cpp)
-ADD_EXECUTABLE(VerletIntegratorTestStatic VerletIntegratorTestStatic.cpp)
-ADD_EXECUTABLE(TestSpline TestSpline.cpp)
-ADD_EXECUTABLE(TestSplineStatic TestSplineStatic.cpp)
-ADD_EXECUTABLE(TestFunction TestFunction.cpp)
-ADD_EXECUTABLE(TestFunctionStatic TestFunctionStatic.cpp)
-TARGET_LINK_LIBRARIES(FactorSVDTest       ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(FactorSVDTestStatic ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(EigenTest       ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(EigenTestStatic ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(FactorQTZTest       ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(FactorQTZTestStatic ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(FactorLUTest       ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(FactorLUTestStatic ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(IpoptTest          ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(IpoptTestStatic    ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(LBFGSTest          ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(LBFGSTestStatic    ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(LBFGSBTest         ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(LBFGSBTestStatic   ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(IpoptDiffTest          ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(IpoptDiffTestStatic    ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(LBFGSDiffTest          ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(LBFGSDiffTestStatic    ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(LBFGSBDiffTest         ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(LBFGSBDiffTestStatic   ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(DifferentiatorTest         ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(DifferentiatorTestStatic   ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(SimpleDifferentiatorTest         ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(SimpleDifferentiatorTestStatic   ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(IntegratorTest ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(IntegratorTestStatic ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(TimeStepperTest ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(TimeStepperTestStatic ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(CPodesIntegratorTest ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(CPodesIntegratorTestStatic ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(RungeKuttaMersonIntegratorTest ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(RungeKuttaMersonIntegratorTestStatic ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(RungeKuttaFeldbergIntegratorTest ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(RungeKuttaFeldbergIntegratorTestStatic ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(ExplicitEulerIntegratorTest ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(ExplicitEulerIntegratorTestStatic ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(VerletIntegratorTest ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(VerletIntegratorTestStatic ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(TestSpline ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(TestSplineStatic ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(TestFunction ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(TestFunctionStatic ${STATIC_TARGET})
+# Adhoc tests are those test or demo programs which are not intended,
+# or not ready, to be part of the regression suite.
+ADD_SUBDIRECTORY(adhoc)
 
-INSTALL( TARGETS LBFGSBTest DESTINATION core/bin )
+# Generate regression tests.
+#
+# This is boilerplate code for generating a set of executables, one per
+# .cpp file in a "tests" directory. These are for test cases which 
+# have been engineered to be suitable as part of the nightly regression
+# test suite. Ideally, they know their correct answers and return
+# a simple thumbs-up/thumbs-down result, although some regressions 
+# may be present and useful just to determine if they compile and
+# run to completion.
+#
+# For IDEs that can deal with PROJECT_LABEL properties (at least
+# Visual Studio) the projects for building each of these adhoc
+# executables will be labeled "Regr - TheTestName" if a file
+# TheTestName.cpp is found in this directory.
+#
+# We check the BUILD_TESTING_{SHARED,STATIC} variables to determine
+# whether to build dynamically linked, statically linked, or both
+# versions of the executable.
+
+FILE(GLOB REGR_TESTS "*.cpp")
+FOREACH(TEST_PROG ${REGR_TESTS})
+    GET_FILENAME_COMPONENT(TEST_ROOT ${TEST_PROG} NAME_WE)
+
+    IF (BUILD_TESTING_SHARED)
+        # Link with shared library
+        ADD_EXECUTABLE(${TEST_ROOT} ${TEST_PROG})
+        SET_TARGET_PROPERTIES(${TEST_ROOT}
+		PROPERTIES
+	      PROJECT_LABEL "Regr - ${TEST_ROOT}")
+        TARGET_LINK_LIBRARIES(${TEST_ROOT} 
+					${SHARED_TARGET})
+        ADD_TEST(${TEST_ROOT} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ROOT})
+    ENDIF (BUILD_TESTING_SHARED)
+
+    IF (BUILD_TESTING_STATIC)
+        # Link with static library
+        SET(TEST_STATIC ${TEST_ROOT}Static)
+        ADD_EXECUTABLE(${TEST_STATIC} ${TEST_PROG})
+        SET_TARGET_PROPERTIES(${TEST_STATIC}
+		PROPERTIES
+		COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
+		PROJECT_LABEL "Regr - ${TEST_STATIC}")
+        TARGET_LINK_LIBRARIES(${TEST_STATIC}
+					${STATIC_TARGET})
+        ADD_TEST(${TEST_STATIC} ${EXECUTABLE_OUTPUT_PATH}/${TEST_STATIC})
+    ENDIF (BUILD_TESTING_STATIC)
+
+ENDFOREACH(TEST_PROG ${REGR_TESTS})
+

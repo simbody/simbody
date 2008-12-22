@@ -1,36 +1,34 @@
 
+
+#include "SimTKmath.h"
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
 #include <math.h>
 #include <limits>
-#include "SimTKmath.h"
-#include "SimTKcommon.h"
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/BigMatrix.h"
 
 #include "nlpqlp.h"
 
 static int pow_ii(int *ap, int *bp) {
-int pow, x, n;
+    int pow, x, n;
 
-pow = 1;
-x = *ap;
-n = *bp;
+    pow = 1;
+    x = *ap;
+    n = *bp;
 
-if(n < 0)
-	{ }
-else if(n > 0)
-	for( ; ; )
-		{
-		if(n & 01)
-			pow *= x;
-		if(n >>= 1)
-			x *= x;
-		else
-			break;
-		}
-return(pow);
+    if(n < 0)
+	    { }
+    else if(n > 0)
+	    for( ; ; )
+		    {
+		    if(n & 01)
+			    pow *= x;
+		    if(n >>= 1)
+			    x *= x;
+		    else
+			    break;
+		    }
+    return(pow);
 }
 
 static const Real log10e = 0.43429448190325182765;
@@ -218,115 +216,109 @@ using namespace SimTK;
 class ProblemSystem : public OptimizerSystem {
 public:
 
-  int m;
+    int m;
 
-  int objectiveFunc(  const Vector &coefficients, const bool new_coefficients, Real& f ) const {
+    int objectiveFunc(  const Vector &coefficients, const bool new_coefficients, Real& f ) const {
+        int mode = 2;
+        int i;
 
-     int mode = 2;
-     int i;
+        Real *nx = (Real *)&l2_;
+        for(i=0;i<getNumParameters();i++) nx[i] = coefficients(i);
+        current_test(&mode);
 
-     Real *nx = (Real *)&l2_;
-     for(i=0;i<numParameters;i++) nx[i] = coefficients(i);
-     current_test(&mode);
+        f = l6_.fx;
+        if( !isFinite(f) ) {
+            printf(" objective is not finite \n");
+            exit(0);
+        }
+        /*
+        printf("f = %f   x=",f);
+        for(i=0;i<numParameters;i++)printf(" %f",coefficients(i)); printf("\n");
+        */
 
-     f = l6_.fx;
-     if( !std::isfinite(f) ) {
-          printf(" objective is not finite \n");
-          exit(0);
-     }
-/*
-printf("f = %f   x=",f);
-for(i=0;i<numParameters;i++)printf(" %f",coefficients(i)); printf("\n");
-*/
-
-     return (0);
-}
-
-int gradientFunc( const Vector &coefficients, const bool new_coefficients, Vector &gradient ) const {
-
-
-  int i,mode = 3;
-  int fmode = 2;
-
-  Real *nx = (Real *)&l2_;
-  for(i=0;i<numParameters;i++) nx[i] = coefficients(i);
-
-  current_test(&fmode);   // bug in tp260_ assumes objective has been calculated prior to gradient calc.
-  current_test(&mode);
-
-  Real *g = (Real*)&l4_;
-  for(i=0;i<numParameters;i++)  {
-     if( !std::isfinite(g[i]) ) {
-          printf(" gradient is not finite i=%d g[i]=%f\n",i,g[i]);
-          exit(0);
-     }
-     gradient(i) = g[i];
-  }
-
-  return(0);
-}
-
-int constraintFunc( const Vector &coefficients, const bool new_coefficients, Vector &constraints)  const {
-
-  int i,mode = 4;
-
-  Real *nx = (Real *)&l2_;
-  for(i=0;i<numParameters;i++) nx[i] = coefficients[i]; 
-  current_test(&mode);
-
-  Real *cv = (Real*)&l3_;
-  for(i=0;i<m;i++)  {
-     if( !std::isfinite(cv[i]) ) {
-          printf(" constraint is not finite \n");
-          exit(0);
-     }
-     constraints(i) = cv[i];
-  }
-  
-
-  return(0);
-}
-
-int constraintJacobian( const Vector& coefficients, const bool new_coefficients, Matrix& jac)  const {
-
-  int i,j;
-  int mode = 5;
-
-
-    Real *nx = (Real *)&l2_;
-    for(i=0;i<numParameters;i++) nx[i] = coefficients(i); 
-
-    current_test(&mode);
-    Real *jv = (Real*)&l5_;
-    for(j=0;j<numEqualityConstraints;j++) {
-       for(i=0;i<numParameters;i++) {
-          if( !std::isfinite(jv[i*m+j]) ) {
-             printf(" jacobian(%d,%d) is not finite index=%d\n",j,i,i*numEqualityConstraints+j);
-             exit(0);
-          }
-          jac(j,i) = jv[i*m+j];   // original
-//          jac(j,i) = jv[i+numParameters*j];
-       }
+        return (0);
     }
-  return (0);
-}
-   ProblemSystem( const int numParams, const int numEqualityConstraints, const int numInEqualityConstraints) :
-         OptimizerSystem( numParams ) { 
-         setNumEqualityConstraints( numEqualityConstraints );
-         setNumInequalityConstraints( numInEqualityConstraints );
-         
-             m = numEqualityConstraints+ numInEqualityConstraints;
-         } 
-   ProblemSystem( const int numParams) :
-         OptimizerSystem( numParams ) {}
 
+    int gradientFunc( const Vector &coefficients, const bool new_coefficients, Vector &gradient ) const {
+        int i,mode = 3;
+        int fmode = 2;
+
+        Real *nx = (Real *)&l2_;
+        for(i=0;i<getNumParameters();i++) nx[i] = coefficients(i);
+
+        current_test(&fmode);   // bug in tp260_ assumes objective has been calculated prior to gradient calc.
+        current_test(&mode);
+
+        Real *g = (Real*)&l4_;
+        for(i=0;i<getNumParameters();i++)  {
+            if( !isFinite(g[i]) ) {
+                printf(" gradient is not finite i=%d g[i]=%f\n",i,g[i]);
+                exit(0);
+            }
+            gradient(i) = g[i];
+        }
+
+        return(0);
+    }
+
+    int constraintFunc( const Vector &coefficients, const bool new_coefficients, Vector &constraints)  const {
+        int i,mode = 4;
+
+        Real *nx = (Real *)&l2_;
+        for(i=0;i<getNumParameters();i++) nx[i] = coefficients[i]; 
+        current_test(&mode);
+
+        Real *cv = (Real*)&l3_;
+        for(i=0;i<m;i++)  {
+            if( !isFinite(cv[i]) ) {
+                printf(" constraint is not finite \n");
+                exit(0);
+            }
+            constraints(i) = cv[i];
+        }
+
+        return(0);
+    }
+
+    int constraintJacobian( const Vector& coefficients, const bool new_coefficients, Matrix& jac)  const {
+        int i,j;
+        int mode = 5;
+
+
+        Real *nx = (Real *)&l2_;
+        for(i=0;i<getNumParameters();i++) nx[i] = coefficients(i); 
+
+        current_test(&mode);
+        Real *jv = (Real*)&l5_;
+        for(j=0;j<getNumEqualityConstraints();j++) {
+            for(i=0;i<getNumParameters();i++) {
+                if( !isFinite(jv[i*m+j]) ) {
+                    printf(" jacobian(%d,%d) is not finite index=%d\n",j,i,i*getNumEqualityConstraints()+j);
+                    exit(0);
+                }
+                jac(j,i) = jv[i*m+j];   // original
+                //          jac(j,i) = jv[i+getNumParameters()*j];
+            }
+        }
+        return (0);
+    }
+
+    ProblemSystem( const int numParams, const int numEqualityConstraints, const int numInEqualityConstraints)
+    :   OptimizerSystem( numParams ) { 
+        setNumEqualityConstraints( numEqualityConstraints );
+        setNumInequalityConstraints( numInEqualityConstraints );
+
+        m = numEqualityConstraints+ numInEqualityConstraints;
+    } 
+
+    ProblemSystem( const int numParams) : OptimizerSystem( numParams ) {}
 
 }; 
 
 /* Main Program */
 int main()
 {
-  int l,j, mode,num_tests=0,num_passed=0;
+  int j, num_tests=0,num_passed=0;
   bool run_test( int );
   void init_common_blocks();
   int failures [] = { 27, 74, 75, 76, 97, 99, 103, 107, 112, 114, 133, 135, 136, 
@@ -445,7 +437,7 @@ bool run_test(int j ) {
     /* compute  optimization */
     f = opt.optimize( results );
   }
-  catch (const std::exception& e) {
+  catch (const std::exception&) {
     converged = false;
   }
 
@@ -557,13 +549,13 @@ struct {
     Real d__1, d__2, d__3;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -582,7 +574,7 @@ L1:
     l20_1.xex[1] = 1.;
     l20_1.fex = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -591,12 +583,12 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = d__1 * d__1 * 100. + d__3 * d__3;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * d__1) * 200.;
     l4_1.gf[0] = (l2_1.x[0] * (l4_1.gf[1] - 1.) + 1.) * -2.;
-L4:
+labelL4:
     return 0;
 } /* tp1_ */
 
@@ -611,13 +603,13 @@ L4:
     static Real w1;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -645,7 +637,7 @@ L1:
     d__3 = 1. - l20_1.xex[0];
     l20_1.fex = d__1 * d__1 * 100. + d__3 * d__3;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -654,12 +646,12 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = d__1 * d__1 * 100. + d__3 * d__3;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * d__1) * 200.;
     l4_1.gf[0] = (l2_1.x[0] * (l4_1.gf[1] - 1.) + 1.) * -2.;
-L4:
+labelL4:
     return 0;
 } /* tp2_ */
 
@@ -670,13 +662,13 @@ L4:
     Real d__1;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -695,15 +687,15 @@ L1:
     l20_1.fex = 0.;
     l20_1.nex = 1;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[1] - l2_1.x[0];
     l6_1.fx = l2_1.x[1] + d__1 * d__1 * 1e-5;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = (l2_1.x[1] - l2_1.x[0]) * -2. * 1e-5;
     l4_1.gf[1] = 1. - l4_1.gf[0];
-L4:
+labelL4:
     return 0;
 } /* tp3_ */
 
@@ -717,13 +709,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -733,7 +725,7 @@ L1:
     l2_1.x[1] = .125;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = true;
     }
     l13_1.xl[0] = 1.;
@@ -745,16 +737,16 @@ L1:
     l20_1.fex = 2.6666666666666665;
     l4_1.gf[1] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 3rd power */
     d__1 = l2_1.x[0] + 1.;
     l6_1.fx = d__1 * (d__1 * d__1) / 3. + l2_1.x[1];
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] + 1.;
     l4_1.gf[0] = d__1 * d__1;
-L4:
+labelL4:
     return 0;
 } /* tp4_ */
 
@@ -770,13 +762,13 @@ L4:
     static Real v1, v2;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -786,7 +778,7 @@ L1:
     l2_1.x[1] = 0.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = true;
     }
     l13_1.xl[0] = -1.5;
@@ -800,18 +792,18 @@ L1:
     l20_1.xex[1] = l20_1.xex[0] - 1.;
     l20_1.fex = -std::sqrt(3.) / 2. - a / 3.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - l2_1.x[1];
     l6_1.fx = std::sin(l2_1.x[0] + l2_1.x[1]) + d__1 * d__1 - l2_1.x[0] * 1.5 + 
 	    l2_1.x[1] * 2.5 + 1.;
     return 0;
-L3:
+labelL3:
     v1 = std::cos(l2_1.x[0] + l2_1.x[1]);
     v2 = (l2_1.x[0] - l2_1.x[1]) * 2.;
     l4_1.gf[0] = v1 + v2 - 1.5;
     l4_1.gf[1] = v1 - v2 + 2.5;
-L4:
+labelL4:
     return 0;
 } /* tp5_ */
 
@@ -825,13 +817,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -841,7 +833,7 @@ L1:
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -852,22 +844,22 @@ L1:
     l5_1.gg[1] = 10.;
     l4_1.gf[1] = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = 1. - l2_1.x[0];
     l6_1.fx = d__1 * d__1;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * 2. - 2.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
 	l3_1.g[0] = (l2_1.x[1] - d__1 * d__1) * 10.;
     }
     return 0;
-L5:
+labelL5:
     if (l10_2.index2[0]) {
 	l5_1.gg[0] = l2_1.x[0] * -20.;
     }
@@ -884,13 +876,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -900,7 +892,7 @@ L1:
     l2_1.x[1] = 2.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -910,17 +902,17 @@ L1:
     l20_1.nex = 1;
     l4_1.gf[1] = -1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l6_1.fx = std::log(d__1 * d__1 + 1.) - l2_1.x[1];
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = l2_1.x[0] * 2. / (d__1 * d__1 + 1.);
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__2 = l2_1.x[0];
@@ -931,7 +923,7 @@ L4:
 	l3_1.g[0] = d__1 * d__1 + d__3 * d__3 - 4.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -954,13 +946,13 @@ L7:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L3;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL3;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -972,7 +964,7 @@ L1:
     b = std::sqrt((25. - std::sqrt(301.)) / 2.);
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_2.lex = true;
@@ -991,9 +983,9 @@ L1:
     l4_1.gf[0] = 0.;
     l4_1.gf[1] = 0.;
     l6_1.fx = -1.;
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -1005,7 +997,7 @@ L4:
 	l3_2.g[1] = l2_1.x[0] * l2_1.x[1] - 9.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -1030,13 +1022,13 @@ L8:
 
     v = std::atan(1.) * 4.;
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -1046,7 +1038,7 @@ L1:
     l2_1.x[1] = 0.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -1057,10 +1049,10 @@ L1:
     l5_1.gg[0] = 4.;
     l5_1.gg[1] = -3.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = std::sin(v * l2_1.x[0] / 12.) * std::cos(v * l2_1.x[1] / 16.);
     return 0;
-L3:
+labelL3:
     v3 = v / 12.;
     v4 = v / 16.;
     v1 = v3 * l2_1.x[0];
@@ -1068,11 +1060,11 @@ L3:
     l4_1.gf[0] = v3 * std::cos(v1) * std::cos(v2);
     l4_1.gf[1] = -v4 * std::sin(v1) * std:: sin(v2);
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = l2_1.x[0] * 4. - l2_1.x[1] * 3.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp9_ */
 
@@ -1086,13 +1078,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -1102,7 +1094,7 @@ L1:
     l2_1.x[1] = 10.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -1113,11 +1105,11 @@ L1:
     l4_1.gf[0] = 1.;
     l4_1.gf[1] = -1.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_1.x[0] - l2_1.x[1];
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -1127,7 +1119,7 @@ L4:
 		d__2 + 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -1148,13 +1140,13 @@ L7:
     static Real aw, aex, qaw;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -1162,7 +1154,7 @@ L1:
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l2_1.x[0] = 4.9;
@@ -1186,25 +1178,25 @@ L1:
     l20_1.fex = d__1 * d__1 + d__2 * d__2 - 25.;
     l5_1.gg[1] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 5.;
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     l6_1.fx = d__1 * d__1 + d__2 * d__2 - 25.;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = (l2_1.x[0] - 5.) * 2.;
     l4_1.gf[1] = l2_1.x[1] * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
 	l3_1.g[0] = -(d__1 * d__1) + l2_1.x[1];
     }
     return 0;
-L5:
+labelL5:
     if (l10_2.index2[0]) {
 	l5_1.gg[0] = l2_1.x[0] * -2.;
     }
@@ -1221,13 +1213,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -1237,7 +1229,7 @@ L1:
     l2_1.x[1] = 0.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -1246,7 +1238,7 @@ L1:
     l20_1.xex[1] = 3.;
     l20_1.fex = -30.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
@@ -1254,11 +1246,11 @@ L2:
     l6_1.fx = d__1 * d__1 * .5 + d__2 * d__2 - l2_1.x[0] * l2_1.x[1] - l2_1.x[
 	    0] * 7. - l2_1.x[1] * 7.;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] - l2_1.x[1] - 7.;
     l4_1.gf[1] = l2_1.x[1] * 2. - l2_1.x[0] - 7.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -1267,7 +1259,7 @@ L4:
 	l3_1.g[0] = 25. - d__1 * d__1 * 4. - d__2 * d__2;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -1287,13 +1279,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -1304,7 +1296,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
 	l11_1.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_1.xl[i__ - 1] = 0.;
     }
     l20_1.lex = true;
@@ -1314,25 +1306,25 @@ L1:
     l20_1.fex = 1.;
     l5_1.gg[1] = -1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 2.;
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = (l2_1.x[0] - 2.) * 2.;
     l4_1.gf[1] = l2_1.x[1] * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 3rd power */
 	d__1 = 1. - l2_1.x[0];
 	l3_1.g[0] = d__1 * (d__1 * d__1) - l2_1.x[1];
     }
     return 0;
-L5:
+labelL5:
     if (l10_2.index2[0]) {
 /* Computing 2nd power */
 	d__1 = 1. - l2_1.x[0];
@@ -1352,13 +1344,13 @@ L5:
     static Real w7;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -1368,7 +1360,7 @@ L1:
     l2_1.x[1] = 2.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -1380,18 +1372,18 @@ L1:
     l5_2.gg[1] = 1.;
     l5_2.gg[3] = -2.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 2.;
 /* Computing 2nd power */
     d__2 = l2_1.x[1] - 1.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = (l2_1.x[0] - 2.) * 2.;
     l4_1.gf[1] = (l2_1.x[1] - 1.) * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -1403,7 +1395,7 @@ L4:
 	l3_2.g[1] = l2_1.x[0] - l2_1.x[1] * 2. + 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -1420,13 +1412,13 @@ L7:
     Real d__1, d__2, d__3;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -1446,7 +1438,7 @@ L1:
     l20_1.nex = 1;
     l5_2.gg[1] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -1455,13 +1447,13 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = d__1 * d__1 + d__3 * d__3 * (float).01;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * d__1) * (float)2.;
     l4_1.gf[0] = (l2_1.x[0] * (l4_1.gf[1] - 1.) + 1.) * -.02;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_1.x[0] * l2_1.x[1] - 1.;
     }
@@ -1471,7 +1463,7 @@ L4:
 	l3_2.g[1] = d__1 * d__1 + l2_1.x[0];
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -1491,13 +1483,13 @@ L7:
     Real d__1, d__2, d__3;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -1520,7 +1512,7 @@ L1:
     l5_2.gg[0] = 1.;
     l5_2.gg[3] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -1529,13 +1521,13 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = d__1 * d__1 * 100. + d__3 * d__3;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * d__1) * 200.;
     l4_1.gf[0] = (l2_1.x[0] * (l4_1.gf[1] - 1.) + 1.) * -2.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[1];
@@ -1547,7 +1539,7 @@ L4:
 	l3_2.g[1] = d__1 * d__1 + l2_1.x[1];
     }
     return 0;
-L5:
+labelL5:
     if (l10_3.index2[0]) {
 	l5_2.gg[2] = l2_1.x[1] * 2.;
     }
@@ -1564,13 +1556,13 @@ L5:
     Real d__1, d__2, d__3;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -1593,7 +1585,7 @@ L1:
     l5_2.gg[0] = -1.;
     l5_2.gg[3] = -1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -1602,13 +1594,13 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = (d__1 * d__1 * 100. + d__3 * d__3) * (float).01;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * d__1) * 200. * (float).01;
     l4_1.gf[0] = (l2_1.x[0] * (l4_1.gf[1] - 1.) + 1.) * -2. * (float).01;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[1];
@@ -1620,7 +1612,7 @@ L4:
 	l3_2.g[1] = d__1 * d__1 - l2_1.x[1];
     }
     return 0;
-L5:
+labelL5:
     if (l10_3.index2[0]) {
 	l5_2.gg[2] = l2_1.x[1] * 2.;
     }
@@ -1640,13 +1632,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -1657,7 +1649,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = true;
 	l12_1.lxu[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l14_1.xu[i__ - 1] = 50.;
     }
     l13_1.xl[0] = 2.;
@@ -1668,18 +1660,18 @@ L1:
     l20_1.xex[1] = l20_1.xex[0] * .1;
     l20_1.fex = 5.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     l6_1.fx = d__1 * d__1 * .01 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * .02;
     l4_1.gf[1] = l2_1.x[1] * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_1.x[0] * l2_1.x[1] - 25.;
     }
@@ -1691,7 +1683,7 @@ L4:
 	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 - 25.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -1719,13 +1711,13 @@ L8:
     static Real aex;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -1736,7 +1728,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = true;
 	l12_1.lxu[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l14_1.xu[i__ - 1] = 100.;
     }
     l13_1.xl[0] = 13.;
@@ -1751,14 +1743,14 @@ L1:
     d__1 = aex + 15.;
     l20_1.fex = (68.669157374999998 - d__1 * (d__1 * d__1)) * (float)1e-4;
     return 0;
-L2:
+labelL2:
 /* Computing 3rd power */
     d__1 = l2_1.x[0] - 10.;
 /* Computing 3rd power */
     d__2 = l2_1.x[1] - 20.;
     l6_1.fx = (d__1 * (d__1 * d__1) + d__2 * (d__2 * d__2)) * (float)1e-4;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 10.;
     l4_1.gf[0] = d__1 * d__1 * 3. * (float)1e-4;
@@ -1766,7 +1758,7 @@ L3:
     d__1 = l2_1.x[1] - 20.;
     l4_1.gf[1] = d__1 * d__1 * 3. * (float)1e-4;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0] - 5.;
@@ -1782,7 +1774,7 @@ L4:
 	l3_2.g[1] = 82.81 - d__1 * d__1 - d__2 * d__2;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -1805,13 +1797,13 @@ L8:
     Real d__1, d__2, d__3;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 3;
@@ -1833,7 +1825,7 @@ L1:
     l5_3.gg[0] = 1.;
     l5_3.gg[4] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -1842,13 +1834,13 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = d__1 * d__1 * 100. + d__3 * d__3;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * d__1) * 200. * (float).01;
     l4_1.gf[0] = (l2_1.x[0] * (l4_1.gf[1] - 1.) + 1.) * -2. * (float).01;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[1];
@@ -1867,7 +1859,7 @@ L4:
 	l3_3.g[2] = d__1 * d__1 + d__2 * d__2 - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (l10_4.index2[0]) {
 	l5_3.gg[3] = l2_1.x[1] * 2.;
     }
@@ -1875,11 +1867,11 @@ L5:
 	l5_3.gg[1] = l2_1.x[0] * 2.;
     }
     if (! l10_4.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
     l5_3.gg[2] = l2_1.x[0] * 2.;
     l5_3.gg[5] = l2_1.x[1] * 2.;
-L9:
+labelL9:
     return 0;
 } /* tp20_ */
 
@@ -1893,13 +1885,13 @@ L9:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 1;
     l1_1.ninl = 0;
@@ -1910,7 +1902,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = true;
 	l12_1.lxu[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l14_1.xu[i__ - 1] = 50.;
     }
     l13_1.xl[0] = 2.;
@@ -1923,22 +1915,22 @@ L1:
     l5_1.gg[0] = 10.;
     l5_1.gg[1] = -1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     l6_1.fx = (d__1 * d__1 * (float).01 + d__2 * d__2 - 100.) * (float).01;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * (float).02 * (float).01;
     l4_1.gf[1] = l2_1.x[1] * (float)2. * (float).01;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = l2_1.x[0] * 10. - l2_1.x[1] - 10.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp21_ */
 
@@ -1952,13 +1944,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 1;
     l1_1.ninl = 1;
@@ -1968,7 +1960,7 @@ L1:
     l2_1.x[1] = 2.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -1980,18 +1972,18 @@ L1:
     l5_2.gg[2] = -1.;
     l5_2.gg[3] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 2.;
 /* Computing 2nd power */
     d__2 = l2_1.x[1] - 1.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = (l2_1.x[0] - 2.) * 2.;
     l4_1.gf[1] = (l2_1.x[1] - 1.) * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = 2. - l2_1.x[0] - l2_1.x[1];
     }
@@ -2001,7 +1993,7 @@ L4:
 	l3_2.g[1] = l2_1.x[1] - d__1 * d__1;
     }
     return 0;
-L5:
+labelL5:
     if (l10_3.index2[1]) {
 	l5_2.gg[1] = l2_1.x[0] * -2.;
     }
@@ -2018,13 +2010,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 1;
     l1_1.ninl = 4;
@@ -2036,7 +2028,7 @@ L1:
 	l11_1.lxl[i__ - 1] = true;
 	l12_1.lxu[i__ - 1] = true;
 	l13_1.xl[i__ - 1] = -50.;
-/* L6: */
+/* labelL6: */
 	l14_1.xu[i__ - 1] = 50.;
     }
     l20_1.lex = true;
@@ -2049,18 +2041,18 @@ L1:
     l5_4.gg[8] = -1.;
     l5_4.gg[4] = -1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * 2.;
     l4_1.gf[1] = l2_1.x[1] * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_5.index1[0]) {
 	l3_4.g[0] = l2_1.x[0] + l2_1.x[1] - 1.;
     }
@@ -2089,7 +2081,7 @@ L4:
 	l3_4.g[4] = d__1 * d__1 - l2_1.x[0];
     }
     return 0;
-L5:
+labelL5:
     if (! l10_5.index2[1]) {
 	goto L8;
     }
@@ -2097,11 +2089,11 @@ L5:
     l5_4.gg[6] = l2_1.x[1] * 2.;
 L8:
     if (! l10_5.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
     l5_4.gg[2] = l2_1.x[0] * 18.;
     l5_4.gg[7] = l2_1.x[1] * 2.;
-L9:
+labelL9:
     if (l10_5.index2[3]) {
 	l5_4.gg[3] = l2_1.x[0] * 2.;
     }
@@ -2123,13 +2115,13 @@ L9:
 
     a = std::sqrt(3.);
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 3;
     l1_1.ninl = 0;
@@ -2140,7 +2132,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = true;
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l13_1.xl[i__ - 1] = 0.;
     }
     l20_1.lex = true;
@@ -2155,14 +2147,14 @@ L1:
     l5_3.gg[2] = -1.;
     l5_3.gg[5] = -a;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 3.;
 /* Computing 3rd power */
     d__2 = l2_1.x[1];
     l6_1.fx = (d__1 * d__1 - 9.) * (d__2 * (d__2 * d__2)) / (a * 27.);
     return 0;
-L3:
+labelL3:
 /* Computing 3rd power */
     d__1 = l2_1.x[1];
     l4_1.gf[0] = (l2_1.x[0] - 3.) * 2. * (d__1 * (d__1 * d__1)) / (a * 27.);
@@ -2172,7 +2164,7 @@ L3:
     d__2 = l2_1.x[1];
     l4_1.gf[1] = (d__1 * d__1 - 9.) * (d__2 * d__2) / (a * 9.);
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = l2_1.x[0] / a - l2_1.x[1];
     }
@@ -2182,7 +2174,7 @@ L4:
     if (l9_4.index1[2]) {
 	l3_3.g[2] = 6. - l2_1.x[1] * a - l2_1.x[0];
     }
-L5:
+labelL5:
     return 0;
 } /* tp24_ */
 
@@ -2199,13 +2191,13 @@ L5:
 	    v11, v22;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -2216,7 +2208,7 @@ L1:
     l2_2.x[2] = 3.;
     for (i__ = 1; i__ <= 3; ++i__) {
 	l11_2.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = true;
     }
     l13_2.xl[0] = .1;
@@ -2232,7 +2224,7 @@ L1:
     l20_3.xex[2] = 3.;
     l20_3.fex = 0.;
     return 0;
-L2:
+labelL2:
     for (i__ = 1; i__ <= 99; ++i__) {
 	v1 = .66666666666666663;
 	d__1 = std::log((Real) i__ * .01) * -50.;
@@ -2265,14 +2257,14 @@ L7:
     }
     l6_1.fx = s;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 99; ++i__) {
 	v1 = .66666666666666663;
 	d__1 = std::log((Real) i__ * .01) * -50.;
 	u[i__ - 1] = pow_dd(&d__1, &v1) + 25.;
 	v2 = u[i__ - 1] - l2_2.x[1];
 	if (v2 <= 0.) {
-	    goto L9;
+	    goto labelL9;
 	}
 	v22 = -pow_dd(&v2, &l2_2.x[2]) / l2_2.x[0];
 	if (v22 > -150.) {
@@ -2304,12 +2296,12 @@ L43:
 	l4_2.gf[i__ - 1] = t;
     }
     return 0;
-L9:
+labelL9:
     for (i__ = 1; i__ <= 3; ++i__) {
-/* L10: */
+/* labelL10: */
 	l4_2.gf[i__ - 1] = (l2_2.x[i__ - 1] - 5.) * 2.;
     }
-L4:
+labelL4:
     return 0;
 } /* tp25_ */
 
@@ -2324,13 +2316,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -2341,7 +2333,7 @@ L1:
     l2_2.x[2] = 2.;
     for (i__ = 1; i__ <= 3; ++i__) {
 	l11_2.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = false;
     }
     l20_4.lex = true;
@@ -2358,21 +2350,21 @@ L1:
     l20_4.xex[5] = l20_4.xex[3];
     l20_4.fex = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0] - l2_2.x[1];
 /* Computing 4th power */
     d__2 = l2_2.x[1] - l2_2.x[2], d__2 *= d__2;
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = (l2_2.x[0] - l2_2.x[1]) * 2.;
 /* Computing 3rd power */
     d__1 = l2_2.x[1] - l2_2.x[2];
     l4_2.gf[2] = d__1 * (d__1 * d__1) * -4.;
     l4_2.gf[1] = -l4_2.gf[0] - l4_2.gf[2];
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[1];
@@ -2381,7 +2373,7 @@ L4:
 	l3_1.g[0] = l2_2.x[0] * (d__1 * d__1 + 1.) + d__2 * d__2 - 3.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -2406,13 +2398,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -2421,7 +2413,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l2_2.x[i__ - 1] = 2.;
 	l11_2.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = false;
     }
     l20_3.lex = true;
@@ -2434,7 +2426,7 @@ L1:
     l5_5.gg[0] = 1.;
     l5_5.gg[1] = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0] - 1.;
 /* Computing 2nd power */
@@ -2443,20 +2435,20 @@ L2:
     d__2 = l2_2.x[1] - d__3 * d__3;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 * (float)100.;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
     l4_2.gf[1] = (l2_2.x[1] - d__1 * d__1) * 200.;
     l4_2.gf[0] = (l2_2.x[0] * (.01 - l4_2.gf[1]) - .01) * 200.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[2];
 	l3_1.g[0] = l2_2.x[0] + d__1 * d__1 + 1.;
     }
     return 0;
-L5:
+labelL5:
     if (l10_2.index2[0]) {
 	l5_5.gg[2] = l2_2.x[2] * 2.;
     }
@@ -2473,13 +2465,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -2490,7 +2482,7 @@ L1:
     l2_2.x[2] = 1.;
     for (i__ = 1; i__ <= 3; ++i__) {
 	l11_2.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = false;
     }
     l20_3.lex = true;
@@ -2503,23 +2495,23 @@ L1:
     l5_5.gg[1] = 2.;
     l5_5.gg[2] = 3.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0] + l2_2.x[1];
 /* Computing 2nd power */
     d__2 = l2_2.x[1] + l2_2.x[2];
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = (l2_2.x[0] + l2_2.x[1]) * 2.;
     l4_2.gf[2] = (l2_2.x[1] + l2_2.x[2]) * 2.;
     l4_2.gf[1] = l4_2.gf[0] + l4_2.gf[2];
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = l2_2.x[0] + l2_2.x[1] * 2. + l2_2.x[2] * 3. - 1.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp28_ */
 
@@ -2533,13 +2525,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -2548,7 +2540,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l2_2.x[i__ - 1] = 1.;
 	l11_2.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = false;
     }
     l20_5.lex = true;
@@ -2567,15 +2559,15 @@ L1:
     l20_5.xex[11] = l20_5.xex[2];
     l20_5.fex = std::sqrt(2.) * -16.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_2.x[0] * l2_2.x[1] * l2_2.x[2];
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = -l2_2.x[1] * l2_2.x[2];
     l4_2.gf[1] = -l2_2.x[0] * l2_2.x[2];
     l4_2.gf[2] = -l2_2.x[0] * l2_2.x[1];
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[0];
@@ -2586,7 +2578,7 @@ L4:
 	l3_1.g[0] = 48. - d__1 * d__1 - d__2 * d__2 * 2. - d__3 * d__3 * 4.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -2607,13 +2599,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -2623,7 +2615,7 @@ L1:
 	l2_2.x[i__ - 1] = 1.;
 	l11_2.lxl[i__ - 1] = true;
 	l12_2.lxu[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l14_2.xu[i__ - 1] = 10.;
     }
     l13_2.xl[0] = 1.;
@@ -2637,7 +2629,7 @@ L1:
     l20_3.fex = 1.;
     l5_5.gg[2] = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
 /* Computing 2nd power */
@@ -2646,12 +2638,12 @@ L2:
     d__3 = l2_2.x[2];
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3;
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = l2_2.x[0] * 2.;
     l4_2.gf[1] = l2_2.x[1] * 2.;
     l4_2.gf[2] = l2_2.x[2] * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[0];
@@ -2660,7 +2652,7 @@ L4:
 	l3_1.g[0] = d__1 * d__1 + d__2 * d__2 - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -2680,13 +2672,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -2695,7 +2687,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l2_2.x[i__ - 1] = 1.;
 	l11_2.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = true;
     }
     l13_2.xl[0] = -10.;
@@ -2712,7 +2704,7 @@ L1:
     l20_3.fex = 6.;
     l5_5.gg[2] = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
 /* Computing 2nd power */
@@ -2721,17 +2713,17 @@ L2:
     d__3 = l2_2.x[2];
     l6_1.fx = d__1 * d__1 * 9. + d__2 * d__2 + d__3 * d__3 * 9.;
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = l2_2.x[0] * 18.;
     l4_2.gf[1] = l2_2.x[1] * 2.;
     l4_2.gf[2] = l2_2.x[2] * 18.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = l2_2.x[0] * l2_2.x[1] - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -2751,13 +2743,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -2769,7 +2761,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l11_2.lxl[i__ - 1] = true;
 	l12_2.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l13_2.xl[i__ - 1] = 0.;
     }
     l20_3.lex = true;
@@ -2784,19 +2776,19 @@ L1:
     l5_3.gg[3] = -1.;
     l5_3.gg[5] = -1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0] + l2_2.x[1] * 3. + l2_2.x[2];
 /* Computing 2nd power */
     d__2 = l2_2.x[0] - l2_2.x[1];
     l6_1.fx = d__1 * d__1 + d__2 * d__2 * 4.;
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = l2_2.x[0] * 10. - l2_2.x[1] * 2. + l2_2.x[2] * 2.;
     l4_2.gf[1] = l2_2.x[0] * -2. + l2_2.x[1] * 26. + l2_2.x[2] * 6.;
     l4_2.gf[2] = (l2_2.x[0] + l2_2.x[1] * 3. + l2_2.x[2]) * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 3rd power */
 	d__1 = l2_2.x[0];
@@ -2807,7 +2799,7 @@ L4:
 	l3_2.g[1] = 1. - l2_2.x[0] - l2_2.x[1] - l2_2.x[2];
     }
     return 0;
-L5:
+labelL5:
     if (l10_3.index2[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[0];
@@ -2827,13 +2819,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -2844,7 +2836,7 @@ L1:
     l2_2.x[2] = 3.;
     for (i__ = 1; i__ <= 3; ++i__) {
 	l11_2.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_2.xl[i__ - 1] = 0.;
     }
     l12_2.lxu[0] = false;
@@ -2860,16 +2852,16 @@ L1:
     l4_2.gf[1] = 0.;
     l4_2.gf[2] = 1.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = (l2_2.x[0] - 1.) * (l2_2.x[0] - 2.) * (l2_2.x[0] - 3.) + l2_2.x[
 	    2];
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
     l4_2.gf[0] = d__1 * d__1 * 3. - l2_2.x[0] * 12. + 11.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[2];
@@ -2889,7 +2881,7 @@ L4:
 	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 - 4.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -2914,13 +2906,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -2932,7 +2924,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l11_2.lxl[i__ - 1] = true;
 	l12_2.lxu[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_2.xl[i__ - 1] = 0.;
     }
     l14_2.xu[0] = 100.;
@@ -2952,11 +2944,11 @@ L1:
     l5_3.gg[1] = 0.;
     l5_3.gg[5] = 1.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_2.x[0];
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_2.x[1] - std::exp(l2_2.x[0]);
     }
@@ -2964,7 +2956,7 @@ L4:
 	l3_2.g[1] = l2_2.x[2] - std::exp(l2_2.x[1]);
     }
     return 0;
-L5:
+labelL5:
     if (l10_3.index2[0]) {
 	l5_3.gg[0] = -std::exp(l2_2.x[0]);
     }
@@ -2984,13 +2976,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 1;
     l1_1.ninl = 0;
@@ -3000,7 +2992,7 @@ L1:
 	l2_2.x[i__ - 1] = .5;
 	l11_2.lxl[i__ - 1] = true;
 	l12_2.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l13_2.xl[i__ - 1] = 0.;
     }
     l20_3.lex = true;
@@ -3013,7 +3005,7 @@ L1:
     l5_5.gg[1] = -1.;
     l5_5.gg[2] = -2.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
 /* Computing 2nd power */
@@ -3024,16 +3016,16 @@ L2:
 	    d__1 * 2. + d__2 * d__2 * 2. + d__3 * d__3 + l2_2.x[0] * 2. * 
 	    l2_2.x[1] + l2_2.x[0] * 2. * l2_2.x[2];
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = l2_2.x[0] * 4. - 8. + l2_2.x[1] * 2. + l2_2.x[2] * 2.;
     l4_2.gf[1] = l2_2.x[1] * 4. - 6. + l2_2.x[0] * 2.;
     l4_2.gf[2] = l2_2.x[2] * 2. - 4. + l2_2.x[0] * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = -l2_2.x[0] - l2_2.x[1] - l2_2.x[2] * 2. + 3.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp35_ */
 
@@ -3043,13 +3035,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 1;
     l1_1.ninl = 0;
@@ -3059,7 +3051,7 @@ L1:
 	l2_2.x[i__ - 1] = 10.;
 	l11_2.lxl[i__ - 1] = true;
 	l12_2.lxu[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_2.xl[i__ - 1] = 0.;
     }
     l14_2.xu[0] = 20.;
@@ -3075,20 +3067,20 @@ L1:
     l5_5.gg[1] = -2.;
     l5_5.gg[2] = -2.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_2.x[0] * l2_2.x[1] * l2_2.x[2];
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = -l2_2.x[1] * l2_2.x[2];
     l4_2.gf[1] = -l2_2.x[0] * l2_2.x[2];
     l4_2.gf[2] = -l2_2.x[0] * l2_2.x[1];
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = 72. - l2_2.x[0] - l2_2.x[1] * 2. - l2_2.x[2] * 2.;
     }
     return 0;
-L5:
+labelL5:
     return 0;
 } /* tp36_ */
 
@@ -3098,13 +3090,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 2;
     l1_1.ninl = 0;
@@ -3115,7 +3107,7 @@ L1:
 	l11_2.lxl[i__ - 1] = true;
 	l12_2.lxu[i__ - 1] = true;
 	l14_2.xu[i__ - 1] = 42.;
-/* L6: */
+/* labelL6: */
 	l13_2.xl[i__ - 1] = 0.;
     }
     l20_3.lex = true;
@@ -3131,22 +3123,22 @@ L1:
     l5_3.gg[3] = 2.;
     l5_3.gg[5] = 2.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_2.x[0] * l2_2.x[1] * l2_2.x[2];
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = -l2_2.x[1] * l2_2.x[2];
     l4_2.gf[1] = -l2_2.x[0] * l2_2.x[2];
     l4_2.gf[2] = -l2_2.x[0] * l2_2.x[1];
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = 72. - l2_2.x[0] - l2_2.x[1] * 2. - l2_2.x[2] * 2.;
     }
     if (l9_3.index1[1]) {
 	l3_2.g[1] = l2_2.x[0] + l2_2.x[1] * 2. + l2_2.x[2] * 2.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp37_ */
 
@@ -3160,13 +3152,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -3180,7 +3172,7 @@ L1:
 	l11_3.lxl[i__ - 1] = true;
 	l12_3.lxu[i__ - 1] = true;
 	l13_3.xl[i__ - 1] = -10.;
-/* L6: */
+/* labelL6: */
 	l14_3.xu[i__ - 1] = 10.;
     }
     l20_6.lex = true;
@@ -3191,7 +3183,7 @@ L1:
     }
     l20_6.fex = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_3.x[0];
 /* Computing 2nd power */
@@ -3212,7 +3204,7 @@ L2:
 	    d__6 + (d__7 * d__7 + d__8 * d__8) * 10.1 + (l2_3.x[1] - 1.) * 
 	    19.8 * (l2_3.x[3] - 1.)) * 1e-5;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
     l4_3.gf[0] = (l2_3.x[0] * -400. * (l2_3.x[1] - d__1 * d__1) - (1. - 
@@ -3229,7 +3221,7 @@ L3:
     d__1 = l2_3.x[2];
     l4_3.gf[3] = ((l2_3.x[3] - d__1 * d__1) * 180. + (l2_3.x[3] - 1.) * 20.2 
 	    + (l2_3.x[1] - 1.) * 19.8) * 1e-5;
-L4:
+labelL4:
     return 0;
 } /* tp38_ */
 
@@ -3243,13 +3235,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -3258,7 +3250,7 @@ L1:
     for (i__ = 1; i__ <= 4; ++i__) {
 	l2_3.x[i__ - 1] = 2.;
 	l11_3.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_3.lxu[i__ - 1] = false;
     }
     l20_6.nex = 1;
@@ -3277,11 +3269,11 @@ L1:
     l5_6.gg[3] = -1.;
     l5_6.gg[5] = 0.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_3.x[0];
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 3rd power */
 	d__1 = l2_3.x[0];
@@ -3297,7 +3289,7 @@ L4:
 	l3_2.g[1] = d__1 * d__1 - l2_3.x[1] - d__2 * d__2;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -3325,13 +3317,13 @@ L8:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -3340,7 +3332,7 @@ L1:
     for (i__ = 1; i__ <= 4; ++i__) {
 	l2_3.x[i__ - 1] = .8;
 	l11_3.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_3.lxu[i__ - 1] = false;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
@@ -3363,16 +3355,16 @@ L1:
     l20_2.fex = -.25;
     l20_2.nex = 2;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_3.x[0] * l2_3.x[1] * l2_3.x[2] * l2_3.x[3];
     return 0;
-L3:
+labelL3:
     l4_3.gf[0] = -l2_3.x[1] * l2_3.x[2] * l2_3.x[3];
     l4_3.gf[1] = -l2_3.x[0] * l2_3.x[2] * l2_3.x[3];
     l4_3.gf[2] = -l2_3.x[0] * l2_3.x[1] * l2_3.x[3];
     l4_3.gf[3] = -l2_3.x[0] * l2_3.x[1] * l2_3.x[2];
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 /* Computing 3rd power */
 	d__1 = l2_3.x[0];
@@ -3391,7 +3383,7 @@ L4:
 	l3_3.g[2] = d__1 * d__1 - l2_3.x[1];
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[0]) {
 	goto L7;
     }
@@ -3409,10 +3401,10 @@ L7:
     l5_7.gg[10] = d__1 * d__1;
 L8:
     if (! l10_4.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
     l5_7.gg[11] = l2_3.x[3] * 2.;
-L9:
+labelL9:
     return 0;
 } /* tp40_ */
 
@@ -3422,13 +3414,13 @@ L9:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -3438,7 +3430,7 @@ L1:
 	l2_3.x[i__ - 1] = 2.;
 	l11_3.lxl[i__ - 1] = true;
 	l12_3.lxu[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_3.xl[i__ - 1] = 0.;
     }
     l14_3.xu[0] = 1.;
@@ -3458,19 +3450,19 @@ L1:
     l20_6.xex[3] = 2.;
     l20_6.fex = 1.9259259259259258;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 2. - l2_3.x[0] * l2_3.x[1] * l2_3.x[2];
     return 0;
-L3:
+labelL3:
     l4_3.gf[0] = -l2_3.x[1] * l2_3.x[2];
     l4_3.gf[1] = -l2_3.x[0] * l2_3.x[2];
     l4_3.gf[2] = -l2_3.x[0] * l2_3.x[1];
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = l2_3.x[0] + l2_3.x[1] * 2. + l2_3.x[2] * 2. - l2_3.x[3];
     }
-L5:
+labelL5:
     return 0;
 } /* tp41_ */
 
@@ -3484,13 +3476,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -3499,7 +3491,7 @@ L1:
     for (i__ = 1; i__ <= 4; ++i__) {
 	l2_3.x[i__ - 1] = 1.;
 	l12_3.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_3.lxl[i__ - 1] = false;
     }
     l5_6.gg[0] = 1.;
@@ -3516,7 +3508,7 @@ L1:
     l20_6.xex[3] = std::sqrt(1.28);
     l20_6.fex = 28. - std::sqrt(2.) * 10.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_3.x[0] - 1.;
 /* Computing 2nd power */
@@ -3527,13 +3519,13 @@ L2:
     d__4 = l2_3.x[3] - 4.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L21: */
 	l4_3.gf[i__ - 1] = (l2_3.x[i__ - 1] - (Real) i__) * 2.;
     }
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_3.x[0] - 2.;
     }
@@ -3545,7 +3537,7 @@ L4:
 	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 - 2.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[1]) {
 	goto L8;
     }
@@ -3565,13 +3557,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 3;
@@ -3580,7 +3572,7 @@ L1:
     for (i__ = 1; i__ <= 4; ++i__) {
 	l2_3.x[i__ - 1] = 0.;
 	l11_3.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_3.lxu[i__ - 1] = false;
     }
     l20_6.lex = true;
@@ -3592,7 +3584,7 @@ L1:
     l20_6.fex = -44.;
     l5_7.gg[11] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
 /* Computing 2nd power */
@@ -3605,13 +3597,13 @@ L2:
 	    l2_3.x[0] * 5. - l2_3.x[1] * 5. - l2_3.x[2] * 21. + l2_3.x[3] * 
 	    7.;
     return 0;
-L3:
+labelL3:
     l4_3.gf[0] = l2_3.x[0] * 2. - 5.;
     l4_3.gf[1] = l2_3.x[1] * 2. - 5.;
     l4_3.gf[2] = l2_3.x[2] * 4. - 21.;
     l4_3.gf[3] = l2_3.x[3] * 2. + 7.;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_3.x[0];
@@ -3647,7 +3639,7 @@ L4:
 		* 2. + l2_3.x[1] + l2_3.x[3] + 5.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[0]) {
 	goto L7;
     }
@@ -3665,12 +3657,12 @@ L7:
     l5_7.gg[10] = l2_3.x[3] * -4. + 1.;
 L8:
     if (! l10_4.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
     l5_7.gg[2] = l2_3.x[0] * -4. - 2.;
     l5_7.gg[5] = l2_3.x[1] * -2. + 1.;
     l5_7.gg[8] = l2_3.x[2] * -2.;
-L9:
+labelL9:
     return 0;
 } /* tp43_ */
 
@@ -3680,13 +3672,13 @@ L9:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 6;
     l1_1.ninl = 0;
@@ -3696,7 +3688,7 @@ L1:
 	l2_3.x[i__ - 1] = 0.;
 	l13_3.xl[i__ - 1] = 0.;
 	l11_3.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_3.lxu[i__ - 1] = false;
     }
     for (i__ = 1; i__ <= 6; ++i__) {
@@ -3725,18 +3717,18 @@ L1:
     l20_6.xex[3] = 4.;
     l20_6.fex = -15.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_3.x[0] - l2_3.x[1] - l2_3.x[2] - l2_3.x[0] * l2_3.x[2] + 
 	    l2_3.x[0] * l2_3.x[3] + l2_3.x[1] * l2_3.x[2] - l2_3.x[1] * 
 	    l2_3.x[3];
     return 0;
-L3:
+labelL3:
     l4_3.gf[0] = 1. - l2_3.x[2] + l2_3.x[3];
     l4_3.gf[1] = l2_3.x[2] - 1. - l2_3.x[3];
     l4_3.gf[2] = -1. - l2_3.x[0] + l2_3.x[1];
     l4_3.gf[3] = l2_3.x[0] - l2_3.x[1];
     return 0;
-L4:
+labelL4:
     if (l9_6.index1[0]) {
 	l3_5.g[0] = 8. - l2_3.x[0] - l2_3.x[1] * 2.;
     }
@@ -3755,7 +3747,7 @@ L4:
     if (l9_6.index1[5]) {
 	l3_5.g[5] = 5. - l2_3.x[2] - l2_3.x[3];
     }
-L5:
+labelL5:
     return 0;
 } /* tp44_ */
 
@@ -3765,13 +3757,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -3782,7 +3774,7 @@ L1:
 	l11_4.lxl[i__ - 1] = true;
 	l12_4.lxu[i__ - 1] = true;
 	l13_4.xl[i__ - 1] = 0.;
-/* L6: */
+/* labelL6: */
 	l14_4.xu[i__ - 1] = (Real) i__;
     }
     l20_7.lex = true;
@@ -3793,17 +3785,17 @@ L1:
     }
     l20_7.fex = 1.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 2. - l2_4.x[0] * l2_4.x[1] * l2_4.x[2] * l2_4.x[3] * l2_4.x[4] /
 	     120.;
     return 0;
-L3:
+labelL3:
     l4_4.gf[0] = -l2_4.x[1] * l2_4.x[2] * l2_4.x[3] * l2_4.x[4] / 120.;
     l4_4.gf[1] = -l2_4.x[0] * l2_4.x[2] * l2_4.x[3] * l2_4.x[4] / 120.;
     l4_4.gf[2] = -l2_4.x[0] * l2_4.x[1] * l2_4.x[3] * l2_4.x[4] / 120.;
     l4_4.gf[3] = -l2_4.x[0] * l2_4.x[1] * l2_4.x[2] * l2_4.x[4] / 120.;
     l4_4.gf[4] = -l2_4.x[0] * l2_4.x[1] * l2_4.x[2] * l2_4.x[3] / 120.;
-L4:
+labelL4:
     return 0;
 } /* tp45_ */
 
@@ -3817,13 +3809,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -3836,7 +3828,7 @@ L1:
     l2_4.x[4] = 2.;
     for (i__ = 1; i__ <= 5; ++i__) {
 	l11_4.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = false;
     }
     l5_4.gg[2] = 0.;
@@ -3852,7 +3844,7 @@ L1:
     }
     l20_7.fex = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_4.x[0] - l2_4.x[1];
 /* Computing 2nd power */
@@ -3863,7 +3855,7 @@ L2:
     d__4 = l2_4.x[4] - 1., d__4 *= d__4;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * (d__4 * d__4);
     return 0;
-L3:
+labelL3:
     l4_4.gf[0] = (l2_4.x[0] - l2_4.x[1]) * 2.;
     l4_4.gf[1] = -l4_4.gf[0];
     l4_4.gf[2] = (l2_4.x[2] - 1.) * 2.;
@@ -3874,7 +3866,7 @@ L3:
     d__1 = l2_4.x[4] - 1., d__2 = d__1, d__1 *= d__1;
     l4_4.gf[4] = d__2 * (d__1 * d__1) * 6.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_4.x[0];
@@ -3888,7 +3880,7 @@ L4:
 	l3_2.g[1] = l2_4.x[1] + d__1 * d__1 * (d__2 * d__2) - 2.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -3924,13 +3916,13 @@ L8:
     static Real v1, v2, v3, v4;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -3943,7 +3935,7 @@ L1:
     l2_4.x[4] = .5;
     for (i__ = 1; i__ <= 5; ++i__) {
 	l11_4.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = false;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
@@ -3963,7 +3955,7 @@ L1:
     }
     l20_7.fex = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_4.x[0] - l2_4.x[1];
 /* Computing 2nd power */
@@ -3974,7 +3966,7 @@ L2:
     d__4 = l2_4.x[3] - l2_4.x[4], d__4 *= d__4;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4;
     return 0;
-L3:
+labelL3:
     v1 = (l2_4.x[0] - l2_4.x[1]) * 2.;
     v2 = (l2_4.x[1] - l2_4.x[2]) * 2.;
 /* Computing 3rd power */
@@ -3989,7 +3981,7 @@ L3:
     l4_4.gf[3] = -v3 + v4;
     l4_4.gf[4] = -v4;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_4.x[1];
@@ -4006,7 +3998,7 @@ L4:
 	l3_3.g[2] = l2_4.x[0] * l2_4.x[4] - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[0]) {
 	goto L7;
     }
@@ -4020,11 +4012,11 @@ L7:
     }
 /* L8: */
     if (! l10_4.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
     l5_9.gg[2] = l2_4.x[4];
     l5_9.gg[14] = l2_4.x[0];
-L9:
+labelL9:
     return 0;
 } /* tp47_ */
 
@@ -4038,13 +4030,13 @@ L9:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -4057,13 +4049,13 @@ L1:
     l2_4.x[4] = -2.;
     for (i__ = 1; i__ <= 5; ++i__) {
 	l11_4.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = false;
     }
     l5_4.gg[1] = 0.;
     l5_4.gg[3] = 0.;
     for (i__ = 1; i__ <= 5; ++i__) {
-/* L20: */
+/* labelL20: */
 	l5_4.gg[(i__ << 1) - 2] = 1.;
     }
     l5_4.gg[5] = 1.;
@@ -4077,7 +4069,7 @@ L1:
     }
     l20_7.fex = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_4.x[0] - 1.;
 /* Computing 2nd power */
@@ -4086,14 +4078,14 @@ L2:
     d__3 = l2_4.x[3] - l2_4.x[4];
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3;
     return 0;
-L3:
+labelL3:
     l4_4.gf[0] = (l2_4.x[0] - 1.) * 2.;
     l4_4.gf[1] = (l2_4.x[1] - l2_4.x[2]) * 2.;
     l4_4.gf[2] = -l4_4.gf[1];
     l4_4.gf[3] = (l2_4.x[3] - l2_4.x[4]) * 2.;
     l4_4.gf[4] = -l4_4.gf[3];
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_4.x[0] + l2_4.x[1] + l2_4.x[2] + l2_4.x[3] + l2_4.x[4] 
 		- 5.;
@@ -4101,7 +4093,7 @@ L4:
     if (l9_3.index1[1]) {
 	l3_2.g[1] = l2_4.x[2] - (l2_4.x[3] + l2_4.x[4]) * 2. + 3.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp48_ */
 
@@ -4115,13 +4107,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -4134,7 +4126,7 @@ L1:
     l2_4.x[4] = .8;
     for (i__ = 1; i__ <= 5; ++i__) {
 	l11_4.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = false;
     }
     l5_4.gg[8] = 0.;
@@ -4155,7 +4147,7 @@ L1:
     }
     l20_7.fex = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_4.x[0] - l2_4.x[1];
 /* Computing 2nd power */
@@ -4167,7 +4159,7 @@ L2:
     l6_1.fx = (d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * (d__4 * d__4))
 	     * .001;
     return 0;
-L3:
+labelL3:
     l4_4.gf[0] = (l2_4.x[0] - l2_4.x[1]) * 2. * .001;
     l4_4.gf[1] = -l4_4.gf[0];
     l4_4.gf[2] = (l2_4.x[2] - 1.) * 2. * .001;
@@ -4178,14 +4170,14 @@ L3:
     d__1 = l2_4.x[4] - 1., d__2 = d__1, d__1 *= d__1;
     l4_4.gf[4] = d__2 * (d__1 * d__1) * 6. * .001;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_4.x[0] + l2_4.x[1] + l2_4.x[2] + l2_4.x[3] * 4. - 7.;
     }
     if (l9_3.index1[1]) {
 	l3_2.g[1] = l2_4.x[2] + l2_4.x[4] * 5. - 6.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp49_ */
 
@@ -4200,13 +4192,13 @@ L5:
     static Real v1, v2, v3, v4;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -4219,7 +4211,7 @@ L1:
     l2_4.x[4] = -5.;
     for (i__ = 1; i__ <= 5; ++i__) {
 	l11_4.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = false;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
@@ -4245,7 +4237,7 @@ L1:
     }
     l20_7.fex = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_4.x[0] - l2_4.x[1];
 /* Computing 2nd power */
@@ -4256,7 +4248,7 @@ L2:
     d__4 = l2_4.x[3] - l2_4.x[4], d__4 *= d__4;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4;
     return 0;
-L3:
+labelL3:
     v1 = (l2_4.x[0] - l2_4.x[1]) * 2.;
     v2 = (l2_4.x[1] - l2_4.x[2]) * 2.;
 /* Computing 3rd power */
@@ -4271,7 +4263,7 @@ L3:
     l4_4.gf[3] = -v3 + v4;
     l4_4.gf[4] = -v4;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = l2_4.x[0] + l2_4.x[1] * 2. + l2_4.x[2] * 3. - 6.;
     }
@@ -4281,7 +4273,7 @@ L4:
     if (l9_4.index1[2]) {
 	l3_3.g[2] = l2_4.x[2] + l2_4.x[3] * 2. + l2_4.x[4] * 3. - 6.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp50_ */
 
@@ -4295,13 +4287,13 @@ L5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -4314,7 +4306,7 @@ L1:
     l2_4.x[4] = .5;
     for (i__ = 1; i__ <= 5; ++i__) {
 	l11_4.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = false;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
@@ -4338,7 +4330,7 @@ L1:
     }
     l20_7.fex = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_4.x[0] - l2_4.x[1];
 /* Computing 2nd power */
@@ -4349,14 +4341,14 @@ L2:
     d__4 = l2_4.x[4] - 1.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4;
     return 0;
-L3:
+labelL3:
     l4_4.gf[0] = (l2_4.x[0] - l2_4.x[1]) * 2.;
     l4_4.gf[2] = (l2_4.x[1] + l2_4.x[2] - 2.) * 2.;
     l4_4.gf[1] = l4_4.gf[2] - l4_4.gf[0];
     l4_4.gf[3] = (l2_4.x[3] - 1.) * 2.;
     l4_4.gf[4] = (l2_4.x[4] - 1.) * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = l2_4.x[0] + l2_4.x[1] * 3. - 4.;
     }
@@ -4366,7 +4358,7 @@ L4:
     if (l9_4.index1[2]) {
 	l3_3.g[2] = l2_4.x[1] - l2_4.x[4];
     }
-L5:
+labelL5:
     return 0;
 } /* tp51_ */
 
@@ -4380,13 +4372,13 @@ L5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -4395,7 +4387,7 @@ L1:
     for (i__ = 1; i__ <= 5; ++i__) {
 	l2_4.x[i__ - 1] = 2.;
 	l11_4.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = false;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
@@ -4420,7 +4412,7 @@ L1:
     l20_7.xex[4] = l20_7.xex[1];
     l20_7.fex = 5.3266475644699138;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_4.x[0] * 4. - l2_4.x[1];
 /* Computing 2nd power */
@@ -4431,14 +4423,14 @@ L2:
     d__4 = l2_4.x[4] - 1.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4;
     return 0;
-L3:
+labelL3:
     l4_4.gf[0] = (l2_4.x[0] * 4. - l2_4.x[1]) * 8.;
     l4_4.gf[2] = (l2_4.x[1] + l2_4.x[2] - 2.) * 2.;
     l4_4.gf[1] = l4_4.gf[0] * -.25 + l4_4.gf[2];
     l4_4.gf[3] = (l2_4.x[3] - 1.) * 2.;
     l4_4.gf[4] = (l2_4.x[4] - 1.) * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = l2_4.x[0] + l2_4.x[1] * 3.;
     }
@@ -4448,7 +4440,7 @@ L4:
     if (l9_4.index1[2]) {
 	l3_3.g[2] = l2_4.x[1] - l2_4.x[4];
     }
-L5:
+labelL5:
     return 0;
 } /* tp52_ */
 
@@ -4462,13 +4454,13 @@ L5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -4479,7 +4471,7 @@ L1:
 	l11_4.lxl[i__ - 1] = true;
 	l12_4.lxu[i__ - 1] = true;
 	l13_4.xl[i__ - 1] = -10.;
-/* L6: */
+/* labelL6: */
 	l14_4.xu[i__ - 1] = 10.;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
@@ -4504,7 +4496,7 @@ L1:
     l20_7.xex[4] = .2558139534883721;
     l20_7.fex = 4.0930232558139537;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_4.x[0] - l2_4.x[1];
 /* Computing 2nd power */
@@ -4515,14 +4507,14 @@ L2:
     d__4 = l2_4.x[4] - 1.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4;
     return 0;
-L3:
+labelL3:
     l4_4.gf[0] = (l2_4.x[0] - l2_4.x[1]) * 2.;
     l4_4.gf[2] = (l2_4.x[1] + l2_4.x[2] - 2.) * 2.;
     l4_4.gf[1] = l4_4.gf[2] - l4_4.gf[0];
     l4_4.gf[3] = (l2_4.x[3] - 1.) * 2.;
     l4_4.gf[4] = (l2_4.x[4] - 1.) * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = l2_4.x[0] + l2_4.x[1] * 3.;
     }
@@ -4532,7 +4524,7 @@ L4:
     if (l9_4.index1[2]) {
 	l3_3.g[2] = l2_4.x[1] - l2_4.x[4];
     }
-L5:
+labelL5:
     return 0;
 } /* tp53_ */
 
@@ -4547,13 +4539,13 @@ L5:
     static Real q, v1, v2, v3, v4, v5, v6, v7, v8, v9, dq[6];
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 6;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -4567,7 +4559,7 @@ L1:
     l2_5.x[5] = 5e7;
     for (i__ = 1; i__ <= 6; ++i__) {
 	l11_5.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_5.lxu[i__ - 1] = true;
     }
     l13_5.xl[0] = 0.;
@@ -4598,7 +4590,7 @@ L1:
     l20_4.xex[5] = 1e8;
     l20_4.fex = -std::exp(-.096428571428571433);
     return 0;
-L2:
+labelL2:
     v1 = l2_5.x[0] - 1e4;
     v2 = l2_5.x[1] - 1.;
     v3 = l2_5.x[2] - 2e6;
@@ -4629,7 +4621,7 @@ L2:
 /*     /       + (X(6)-1.0D8)**2/2.5D17 */
     l6_1.fx = -std::exp(q * -.5);
     return 0;
-L3:
+labelL3:
     v1 = l2_5.x[0] - 1e4;
     v2 = l2_5.x[1] - 1.;
     v3 = l2_5.x[2] - 2e6;
@@ -4665,11 +4657,11 @@ L3:
 	l4_5.gf[i__ - 1] = std::exp(q * -.5) * .5 * dq[i__ - 1];
     }
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = l2_5.x[0] + l2_5.x[1] * 4e3 - 17600.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp54_ */
 
@@ -4681,13 +4673,13 @@ L5:
     static Real v1;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 6;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -4702,7 +4694,7 @@ L1:
     for (i__ = 1; i__ <= 6; ++i__) {
 	l11_5.lxl[i__ - 1] = true;
 	l12_5.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l13_5.xl[i__ - 1] = 0.;
     }
     l12_5.lxu[0] = true;
@@ -4744,16 +4736,16 @@ L1:
     l20_4.xex[5] = .33333333333333331;
     l20_4.fex = 6.333333333333333;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_5.x[0] + l2_5.x[1] * 2. + l2_5.x[4] * 4. + std::exp(l2_5.x[0] * 
 	    l2_5.x[3]);
     return 0;
-L3:
+labelL3:
     v1 = std::exp(l2_5.x[0] * l2_5.x[3]);
     l4_5.gf[0] = l2_5.x[3] * v1 + 1.;
     l4_5.gf[3] = l2_5.x[0] * v1;
     return 0;
-L4:
+labelL4:
     if (l9_6.index1[0]) {
 	l3_5.g[0] = l2_5.x[0] + l2_5.x[1] * 2. + l2_5.x[4] * 5. - 6.;
     }
@@ -4772,7 +4764,7 @@ L4:
     if (l9_6.index1[5]) {
 	l3_5.g[5] = l2_5.x[2] + l2_5.x[5] - 2.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp55_ */
 
@@ -4786,13 +4778,13 @@ L5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 7;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -4803,7 +4795,7 @@ L1:
     l2_6.x[2] = 1.;
     for (i__ = 1; i__ <= 7; ++i__) {
 	l11_6.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_6.lxu[i__ - 1] = false;
     }
     l2_6.x[3] = std::asin(std::sqrt(.23809523809523808));
@@ -4837,15 +4829,15 @@ L1:
     l20_8.xex[6] = std::atan(1.) * 2.;
     l20_8.fex = -3.456;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_6.x[0] * l2_6.x[1] * l2_6.x[2];
     return 0;
-L3:
+labelL3:
     l4_6.gf[0] = -l2_6.x[1] * l2_6.x[2];
     l4_6.gf[1] = -l2_6.x[0] * l2_6.x[2];
     l4_6.gf[2] = -l2_6.x[0] * l2_6.x[1];
     return 0;
-L4:
+labelL4:
     if (l9_7.index1[0]) {
 /* Computing 2nd power */
 	d__1 = std::sin(l2_6.x[3]);
@@ -4868,7 +4860,7 @@ L4:
 		* 7.2;
     }
     return 0;
-L5:
+labelL5:
     if (l10_7.index2[0]) {
 	l5_11.gg[12] = std::sin(l2_6.x[3]) * -8.4 * std::cos(l2_6.x[3]);
     }
@@ -4899,9 +4891,9 @@ L5:
     if (*mode - 2 >= 0) {
 	goto L18;
     } else {
-	goto L1;
+	goto labelL1;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -4911,7 +4903,7 @@ L1:
     l2_1.x[1] = 5.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l13_1.xl[0] = .4;
@@ -4939,7 +4931,7 @@ L18:
 	b[i__ + 28] = .41;
 	b[i__ + 35] = .4;
 	b[i__ + 39] = .4;
-/* L20: */
+/* labelL20: */
 	b[i__ + 41] = .39;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
@@ -4983,9 +4975,9 @@ L18:
     if ((i__1 = *mode - 4) < 0) {
 	goto L17;
     } else if (i__1 == 0) {
-	goto L4;
+	goto labelL4;
     } else {
-	goto L5;
+	goto labelL5;
     }
 L17:
     for (i__ = 1; i__ <= 44; ++i__) {
@@ -4994,11 +4986,11 @@ L17:
 		1] * (a[i__ - 1] - 8.));
     }
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
     }
-L2:
+labelL2:
     t = 0.;
     for (i__ = 1; i__ <= 44; ++i__) {
 /* L19: */
@@ -5008,7 +5000,7 @@ L2:
     }
     l6_1.fx = t * (float)100.;
     return 0;
-L3:
+labelL3:
     s[0] = 0.;
     s[1] = 0.;
     for (i__ = 1; i__ <= 44; ++i__) {
@@ -5024,12 +5016,12 @@ L3:
     l4_1.gf[0] = s[0] * (float)100.;
     l4_1.gf[1] = s[1] * (float)100.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = -l2_1.x[0] * l2_1.x[1] + l2_1.x[1] * .49 - .09;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -5046,13 +5038,13 @@ L7:
     Real d__1, d__2, d__3;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 3;
@@ -5073,7 +5065,7 @@ L1:
     l20_1.xex[1] = .618034533851;
     l20_1.fex = 3.19033354957;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -5082,13 +5074,13 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = d__1 * d__1 * 100. + d__3 * d__3;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * d__1) * 200.;
     l4_1.gf[0] = (l2_1.x[0] * (l4_1.gf[1] - 1.) + 1.) * -2.;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[1];
@@ -5107,7 +5099,7 @@ L4:
 	l3_3.g[2] = d__1 * d__1 + d__2 * d__2 - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (l10_4.index2[0]) {
 	l5_3.gg[3] = l2_1.x[1] * 2.;
     }
@@ -5115,11 +5107,11 @@ L5:
 	l5_3.gg[1] = l2_1.x[0] * 2.;
     }
     if (! l10_4.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
     l5_3.gg[2] = l2_1.x[0] * 2.;
     l5_3.gg[5] = l2_1.x[1] * 2.;
-L9:
+labelL9:
     return 0;
 } /* tp58_ */
 
@@ -5136,13 +5128,13 @@ L9:
     static Real xx11;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 3;
@@ -5153,7 +5145,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = true;
 	l12_1.lxu[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_1.xl[i__ - 1] = 0.;
     }
     l14_1.xu[0] = 75.;
@@ -5168,7 +5160,7 @@ L1:
     l20_1.xex[1] = 51.6601812877;
     l20_1.fex = -7.80422632408;
     return 0;
-L2:
+labelL2:
     x11 = l2_1.x[0];
     x12 = x11 * x11;
     x13 = x12 * x11;
@@ -5185,7 +5177,7 @@ L2:
 	    x11 * 3.4054e-4 * x22 + x11 * 1.6638e-6 * x23 + std::exp(x11 * 5e-4 * 
 	    x21) * 2.8673;
     return 0;
-L3:
+labelL3:
     x11 = l2_1.x[0];
     x12 = x11 * x11;
     x13 = x12 * x11;
@@ -5210,7 +5202,7 @@ L3:
 	     2.1e-9 * x22 - xx11 * 6.8108e-4 + xx12 * 4.9914e-6 + x11 * 
 	    .00143365 * std::exp(xx11 * 5e-4);
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = l2_1.x[0] * l2_1.x[1] - 700.;
     }
@@ -5225,7 +5217,7 @@ L4:
 	l3_3.g[2] = d__1 * d__1 - (l2_1.x[0] - 55.) * 5.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[0]) {
 	goto L7;
     }
@@ -5252,13 +5244,13 @@ L7:
     static Real v1;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -5269,7 +5261,7 @@ L1:
 	l11_2.lxl[i__ - 1] = true;
 	l12_2.lxu[i__ - 1] = true;
 	l13_2.xl[i__ - 1] = -10.;
-/* L6: */
+/* labelL6: */
 	l14_2.xu[i__ - 1] = 10.;
     }
     l20_3.lex = false;
@@ -5278,7 +5270,7 @@ L1:
     l20_3.xex[2] = 1.53526225739;
     l20_3.fex = .0325682002513;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0] - 1.;
 /* Computing 2nd power */
@@ -5287,7 +5279,7 @@ L2:
     d__3 = l2_2.x[1] - l2_2.x[2], d__3 *= d__3;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3;
     return 0;
-L3:
+labelL3:
     v1 = (l2_2.x[0] - l2_2.x[1]) * 2.;
     l4_2.gf[0] = (l2_2.x[0] - 1.) * 2. + v1;
 /* Computing 3rd power */
@@ -5295,7 +5287,7 @@ L3:
     l4_2.gf[2] = d__1 * (d__1 * d__1) * -4.;
     l4_2.gf[1] = -l4_2.gf[2] - v1;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[1];
@@ -5304,7 +5296,7 @@ L4:
 	l3_1.g[0] = l2_2.x[0] * (d__1 * d__1 + 1.) + d__2 * d__2 - 4. - std::sqrt( 2.) * 3.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -5329,13 +5321,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -5344,7 +5336,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l2_2.x[i__ - 1] = 0.;
 	l11_2.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = false;
     }
     l20_3.lex = false;
@@ -5353,7 +5345,7 @@ L1:
     l20_3.xex[2] = 3.21046423906;
     l20_3.fex = -143.646142201;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
 /* Computing 2nd power */
@@ -5363,12 +5355,12 @@ L2:
     l6_1.fx = d__1 * d__1 * 4. + d__2 * d__2 * 2. + d__3 * d__3 * 2. - l2_2.x[
 	    0] * 33. + l2_2.x[1] * 16. - l2_2.x[2] * 24.;
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = l2_2.x[0] * 8. - 33.;
     l4_2.gf[1] = l2_2.x[1] * 4. + 16.;
     l4_2.gf[2] = l2_2.x[2] * 4. - 24.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[1];
@@ -5380,7 +5372,7 @@ L4:
 	l3_2.g[1] = l2_2.x[0] * 4. - d__1 * d__1 - 11.;
     }
     return 0;
-L5:
+labelL5:
     if (l10_3.index2[0]) {
 	l5_3.gg[2] = l2_2.x[1] * -4.;
     }
@@ -5409,9 +5401,9 @@ L5:
     if (*mode - 2 >= 0) {
 	goto L17;
     } else {
-	goto L1;
+	goto labelL1;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -5425,7 +5417,7 @@ L1:
 	l12_2.lxu[i__ - 1] = true;
 	l13_2.xl[i__ - 1] = 0.;
 	l14_2.xu[i__ - 1] = 1.;
-/* L6: */
+/* labelL6: */
 	l5_5.gg[i__ - 1] = 1.;
     }
     l20_3.lex = false;
@@ -5438,9 +5430,9 @@ L17:
     if ((i__1 = *mode - 4) < 0) {
 	goto L18;
     } else if (i__1 == 0) {
-	goto L4;
+	goto labelL4;
     } else {
-	goto L5;
+	goto labelL5;
     }
 L18:
     b3 = l2_2.x[2] + .03;
@@ -5450,11 +5442,11 @@ L18:
     b1 = b2 + l2_2.x[0];
     c1 = b2 + l2_2.x[0] * .09;
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
     }
-L2:
+labelL2:
     v5 = b1 / c1;
     v6 = b2 / c2;
     v7 = b3 / c3;
@@ -5473,7 +5465,7 @@ L7:
     }
     l6_1.fx = s + 1e3 - 26700.;
     return 0;
-L3:
+labelL3:
     rb1 = 1. / b1;
     rb2 = 1. / b2;
     rb3 = 1. / b3;
@@ -5488,11 +5480,11 @@ L3:
     l4_2.gf[1] = v4 + v2 * (rb2 - rc2 * .07);
     l4_2.gf[2] = v4 + v2 * (rb2 - rc2) + v3 * (rb3 - rc3 * .13);
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = l2_2.x[0] + l2_2.x[1] + l2_2.x[2] - 1.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp62_ */
 
@@ -5506,13 +5498,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -5522,7 +5514,7 @@ L1:
 	l2_2.x[i__ - 1] = 2.;
 	l11_2.lxl[i__ - 1] = true;
 	l12_2.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l13_2.xl[i__ - 1] = 0.;
     }
     l5_3.gg[0] = 8.;
@@ -5534,7 +5526,7 @@ L1:
     l20_3.xex[2] = 3.55217403459;
     l20_3.fex = 961.715172127;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
 /* Computing 2nd power */
@@ -5544,12 +5536,12 @@ L2:
     l6_1.fx = 1e3 - d__1 * d__1 - d__2 * d__2 * 2. - d__3 * d__3 - l2_2.x[0] *
 	     l2_2.x[1] - l2_2.x[0] * l2_2.x[2];
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = l2_2.x[0] * -2. - l2_2.x[1] - l2_2.x[2];
     l4_2.gf[1] = l2_2.x[1] * -4. - l2_2.x[0];
     l4_2.gf[2] = l2_2.x[2] * -2. - l2_2.x[0];
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_2.x[0] * 8. + l2_2.x[1] * 14. + l2_2.x[2] * 7. - 56.;
     }
@@ -5563,7 +5555,7 @@ L4:
 	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 - 25.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[1]) {
 	goto L8;
     }
@@ -5584,13 +5576,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -5600,7 +5592,7 @@ L1:
 	l2_2.x[i__ - 1] = 1.;
 	l11_2.lxl[i__ - 1] = true;
 	l12_2.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l13_2.xl[i__ - 1] = 1e-5;
     }
     l20_3.lex = false;
@@ -5609,11 +5601,11 @@ L1:
     l20_3.xex[2] = 204.324707858;
     l20_3.fex = 6299.84242821;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_2.x[0] * 5. + 5e4 / l2_2.x[0] + l2_2.x[1] * 20. + 7.2e4 / 
 	    l2_2.x[1] + l2_2.x[2] * 10. + 1.44e5 / l2_2.x[2];
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
     l4_2.gf[0] = 5. - 5e4 / (d__1 * d__1);
@@ -5624,12 +5616,12 @@ L3:
     d__1 = l2_2.x[2];
     l4_2.gf[2] = 10. - 1.44e5 / (d__1 * d__1);
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = 1. - 4. / l2_2.x[0] - 32. / l2_2.x[1] - 120. / l2_2.x[2];
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -5657,13 +5649,13 @@ L7:
     static Real v1, v2;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -5674,7 +5666,7 @@ L1:
     l2_2.x[2] = 0.;
     for (i__ = 1; i__ <= 3; ++i__) {
 	l11_2.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = true;
     }
     l13_2.xl[0] = -4.5;
@@ -5689,7 +5681,7 @@ L1:
     l20_3.xex[2] = 4.62041750754;
     l20_3.fex = .953528856757;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0] - l2_2.x[1];
 /* Computing 2nd power */
@@ -5698,14 +5690,14 @@ L2:
     d__3 = l2_2.x[2] - 5.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3;
     return 0;
-L3:
+labelL3:
     v1 = (l2_2.x[0] - l2_2.x[1]) * 2.;
     v2 = (l2_2.x[0] + l2_2.x[1] - 10.) * 2. / 9.;
     l4_2.gf[0] = v1 + v2;
     l4_2.gf[1] = -v1 + v2;
     l4_2.gf[2] = (l2_2.x[2] - 5.) * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[0];
@@ -5716,7 +5708,7 @@ L4:
 	l3_1.g[0] = 48. - d__1 * d__1 - d__2 * d__2 - d__3 * d__3;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -5734,13 +5726,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -5753,7 +5745,7 @@ L1:
 	l11_2.lxl[i__ - 1] = true;
 	l12_2.lxu[i__ - 1] = true;
 	l13_2.xl[i__ - 1] = 0.;
-/* L6: */
+/* labelL6: */
 	l14_2.xu[i__ - 1] = 100.;
     }
     l14_2.xu[2] = 10.;
@@ -5770,11 +5762,11 @@ L1:
     l20_3.xex[2] = 3.32732232258;
     l20_3.fex = .518163274159;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_2.x[2] * .2 - l2_2.x[0] * .8;
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_2.x[1] - std::exp(l2_2.x[0]);
     }
@@ -5782,7 +5774,7 @@ L4:
 	l3_2.g[1] = l2_2.x[2] - std::exp(l2_2.x[1]);
     }
     return 0;
-L5:
+labelL5:
     if (l10_3.index2[0]) {
 	l5_3.gg[0] = -std::exp(l2_2.x[0]);
     }
@@ -5807,9 +5799,9 @@ L5:
     if (*mode - 2 >= 0) {
 	goto L17;
     } else {
-	goto L1;
+	goto labelL1;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 14;
@@ -5821,7 +5813,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l11_2.lxl[i__ - 1] = true;
 	l12_2.lxu[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_2.xl[i__ - 1] = 1e-5;
     }
     l14_2.xu[0] = 2e3;
@@ -5914,17 +5906,17 @@ L108:
     goto L105;
 L109:
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L2:
+labelL2:
     l6_1.fx = -(y[1] * .063 * y[4] - l2_2.x[0] * 5.04 - y[2] * 3.36 - l2_2.x[
 	    1] * .035 - l2_2.x[2] * 10.);
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L120: */
 	a[i__ - 1] = (dy[(i__ << 3) - 7] * y[4] + dy[(i__ << 3) - 4] * y[1]) *
@@ -5934,7 +5926,7 @@ L3:
     l4_2.gf[1] = a[1] + .035;
     l4_2.gf[2] = a[2] + 10.;
     return 0;
-L4:
+labelL4:
     if (l9_8.index1[0]) {
 	l3_7.g[0] = y[1];
     }
@@ -5978,7 +5970,7 @@ L4:
 	l3_7.g[13] = 162. - y[7];
     }
     return 0;
-L5:
+labelL5:
     for (j = 1; j <= 7; ++j) {
 	if (! l10_8.index2[j - 1]) {
 	    goto L131;
@@ -6024,7 +6016,7 @@ L133:
     l20_6.xex[2] = 2.66175189694e-4;
     l20_6.xex[3] = .894862212037;
     l20_6.fex = -.920425020704;
-    goto L9;
+    goto labelL9;
 
 L_tp69:
     kn1 = 2;
@@ -6033,15 +6025,15 @@ L_tp69:
     l20_6.xex[2] = .233946796758;
     l20_6.xex[3] = .791667815694;
     l20_6.fex = -956.712887064;
-L9:
+labelL9:
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -6056,7 +6048,7 @@ L1:
 	l12_3.lxu[i__ + 1] = true;
 	l13_3.xl[i__ + 1] = 0.;
 	l14_3.xu[i__ - 1] = 100.;
-/* L6: */
+/* labelL6: */
 	l14_3.xu[i__ + 1] = 2.;
     }
     l13_3.xl[0] = 1e-4;
@@ -6078,12 +6070,12 @@ L1:
     l4_3.gf[1] = 0.;
     l20_6.lex = false;
     return 0;
-L2:
+labelL2:
     v1 = std::exp(l2_3.x[0]) - 1.;
     l6_1.fx = (a[kn1 - 1] * z__[kn1 - 1] - l2_3.x[3] * (b[kn1 - 1] * v1 - 
 	    l2_3.x[2]) / (v1 + l2_3.x[3])) / l2_3.x[0];
     return 0;
-L3:
+labelL3:
     v1 = std::exp(l2_3.x[0]);
     v2 = v1 - 1.;
     v3 = 1. / (v2 + l2_3.x[3]);
@@ -6096,7 +6088,7 @@ L3:
     d__1 = v3;
     l4_3.gf[3] = -v5 * v2 * (d__1 * d__1);
     return 0;
-L4:
+labelL4:
     if (! l9_3.index1[0]) {
 	goto L30;
     }
@@ -6113,7 +6105,7 @@ L30:
     mdnord_(&d__1, &h2);
     l3_2.g[1] = l2_3.x[3] - h1 - h2;
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -6167,9 +6159,9 @@ L8:
     if (*mode - 2 >= 0) {
 	goto L17;
     } else {
-	goto L1;
+	goto labelL1;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -6183,7 +6175,7 @@ L1:
 	l12_3.lxu[i__ - 1] = true;
 	l11_3.lxl[i__ - 1] = true;
 	l13_3.xl[i__ - 1] = 1e-5;
-/* L6: */
+/* labelL6: */
 	l14_3.xu[i__ - 1] = 100.;
     }
     l14_3.xu[2] = 1.;
@@ -6199,7 +6191,7 @@ L1:
 L17:
     c__[0] = .1;
     for (i__ = 2; i__ <= 19; ++i__) {
-/* L20: */
+/* labelL20: */
 	c__[i__ - 1] = (Real) (i__ - 1);
     }
     yo[0] = .00189;
@@ -6224,9 +6216,9 @@ L17:
     if ((i__1 = *mode - 4) < 0) {
 	goto L18;
     } else if (i__1 == 0) {
-	goto L4;
+	goto labelL4;
     } else {
-	goto L5;
+	goto labelL5;
     }
 L18:
     b = l2_3.x[2] + (1. - l2_3.x[2]) * l2_3.x[3];
@@ -6249,7 +6241,7 @@ L18:
 	goto L8;
     }
     if (log__ && *mode == 3) {
-	goto L9;
+	goto labelL9;
     }
     z1 = l2_3.x[2] * pow_dd(&b, &l2_3.x[1]);
     z2 = pow_dd(&v10, &c_b590);
@@ -6270,11 +6262,11 @@ L18:
 	f[i__ - 1] = yc[i__ - 1] - yo[i__ - 1];
     }
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
     }
-L2:
+labelL2:
     t = 0.;
     for (i__ = 1; i__ <= 19; ++i__) {
 /* L31: */
@@ -6284,7 +6276,7 @@ L2:
     }
     l6_1.fx = t;
     return 0;
-L3:
+labelL3:
     h8 = l2_3.x[3] - 1.;
     h9 = l2_3.x[2] - 1.;
     h10 = 1. / b;
@@ -6309,23 +6301,23 @@ L3:
 	h14 = h4 * c__[j - 1];
 	h15 = h5 * c__[j - 1];
 	if (h14 > 0.) {
-	    goto L10;
+	    goto labelL10;
 	}
 	l4_3.gf[0] = (l2_3.x[0] - 5.) * 2.;
 	h30 = 1.;
-	goto L11;
-L10:
+	goto labelL11;
+labelL10:
 	df[j - 1] = u2[j - 1] * (h12 - h14 + std::log(h14));
-L11:
+labelL11:
 	if (h15 > 0.) {
-	    goto L12;
+	    goto labelL12;
 	}
 	l4_3.gf[1] = (l2_3.x[1] - 5.) * 2.;
 	h40 = 1.;
-	goto L13;
-L12:
+	goto labelL13;
+labelL12:
 	df[j + 18] = u1[j - 1] * (h13 - h15 + std::log(h15));
-L13:
+labelL13:
 	df[j + 37] = u1[j - 1] * (h18 + c__[j - 1] * h16) + u2[j - 1] * (h19 
 		+ c__[j - 1] * h17);
 /* L33: */
@@ -6333,7 +6325,7 @@ L13:
 		 c__[j - 1] - h21);
     }
     if (h30 == 1. || h40 == 1.) {
-	goto L14;
+	goto labelL14;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
 	s = 0.;
@@ -6345,7 +6337,7 @@ L13:
 /* L37: */
     }
     return 0;
-L14:
+labelL14:
     for (i__ = 1; i__ <= 4; ++i__) {
 	if (i__ == 1 && h30 == 1.) {
 	    goto L38;
@@ -6376,19 +6368,19 @@ L8:
     }
     l6_1.fx = sum + 1e3 + .0075;
     return 0;
-L9:
+labelL9:
     log__ = false;
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L41: */
 	l4_3.gf[i__ - 1] = (l2_3.x[i__ - 1] - 5.) * 2.;
     }
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = l2_3.x[2] + (1. - l2_3.x[2]) * l2_3.x[3];
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -6408,13 +6400,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -6424,7 +6416,7 @@ L1:
 	l11_3.lxl[i__ - 1] = true;
 	l12_3.lxu[i__ - 1] = true;
 	l13_3.xl[i__ - 1] = 1.;
-/* L6: */
+/* labelL6: */
 	l14_3.xu[i__ - 1] = 5.;
     }
     l2_3.x[0] = 1.;
@@ -6438,17 +6430,17 @@ L1:
     l20_6.fex = 17.0140172895;
     l20_6.lex = false;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_3.x[0] * l2_3.x[3] * (l2_3.x[0] + l2_3.x[1] + l2_3.x[2]) + 
 	    l2_3.x[2];
     return 0;
-L3:
+labelL3:
     l4_3.gf[0] = l2_3.x[3] * (l2_3.x[0] * 2. + l2_3.x[1] + l2_3.x[2]);
     l4_3.gf[1] = l2_3.x[0] * l2_3.x[3];
     l4_3.gf[2] = l4_3.gf[1] + 1.;
     l4_3.gf[3] = l2_3.x[0] * (l2_3.x[0] + l2_3.x[1] + l2_3.x[2]);
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = (l2_3.x[0] * l2_3.x[1] * l2_3.x[2] * l2_3.x[3] - 25.) / 
 		25.;
@@ -6466,7 +6458,7 @@ L4:
 		40.) / 40.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -6479,7 +6471,7 @@ L7:
 	goto L8;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
-/* L20: */
+/* labelL20: */
 	l5_6.gg[(i__ << 1) - 1] = l2_3.x[i__ - 1] * 2. / 40.;
     }
 L8:
@@ -6496,13 +6488,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -6513,7 +6505,7 @@ L1:
 	l13_3.xl[i__ - 1] = .001;
 	l14_3.xu[i__ - 1] = (5. - (Real) i__) * 1e5;
 	l11_3.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_3.lxu[i__ - 1] = true;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
@@ -6527,11 +6519,11 @@ L1:
     l20_6.xex[3] = 168.706233485;
     l20_6.fex = 727.679376021;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_3.x[0] + 1. + l2_3.x[1] + l2_3.x[2] + l2_3.x[3];
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = -4. / l2_3.x[0] - 2.25 / l2_3.x[1] - 1. / l2_3.x[2] - .25 
 		/ l2_3.x[3] + .0401;
@@ -6541,7 +6533,7 @@ L4:
 		/ l2_3.x[3]) * .64 + .010085;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -6589,13 +6581,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 1;
     l1_1.ninl = 1;
@@ -6605,7 +6597,7 @@ L1:
 	l2_3.x[i__ - 1] = 1.;
 	l13_3.xl[i__ - 1] = 0.;
 	l11_3.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_3.lxu[i__ - 1] = false;
     }
     l4_3.gf[0] = 24.55;
@@ -6627,12 +6619,12 @@ L1:
     l20_6.xex[3] = .0517765506011;
     l20_6.fex = 29.8943781573;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_3.x[0] * 24.55 + l2_3.x[1] * 26.75 + l2_3.x[2] * 39. + 
 	    l2_3.x[3] * 40.5;
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = l2_3.x[0] * 2.3 + l2_3.x[1] * 5.6 + l2_3.x[2] * 11.1 + 
 		l2_3.x[3] * 1.3 - 5.;
@@ -6655,7 +6647,7 @@ L4:
 	l3_3.g[2] = l2_3.x[0] + l2_3.x[1] + l2_3.x[2] + l2_3.x[3] - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[1]) {
 	goto L8;
     }
@@ -6714,13 +6706,13 @@ L_tp75:
     l20_6.fex = 5174.41288686;
 L7:
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 2;
     l1_1.ninl = 0;
@@ -6731,7 +6723,7 @@ L1:
     for (i__ = 1; i__ <= 4; ++i__) {
 	l2_3.x[i__ - 1] = 0.;
 	l11_3.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_3.lxu[i__ - 1] = true;
     }
     l13_3.xl[0] = 0.;
@@ -6760,7 +6752,7 @@ L1:
     l5_13.gg[9] = 0.;
     l20_6.lex = false;
     return 0;
-L2:
+labelL2:
 /* Computing 3rd power */
     d__1 = l2_3.x[0];
 /* Computing 3rd power */
@@ -6768,7 +6760,7 @@ L2:
     l6_1.fx = l2_3.x[0] * 3. + d__1 * (d__1 * d__1) * 1e-6 + l2_3.x[1] * 2. + 
 	    d__2 * (d__2 * d__2) * 6.666666666666666e-7;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
     l4_3.gf[0] = d__1 * d__1 * 3e-6 + 3.;
@@ -6776,7 +6768,7 @@ L3:
     d__1 = l2_3.x[1];
     l4_3.gf[1] = d__1 * d__1 * 2e-6 + 2.;
     return 0;
-L4:
+labelL4:
     if (l9_5.index1[0]) {
 	l3_4.g[0] = l2_3.x[3] - l2_3.x[2] + a[kn1 - 1];
     }
@@ -6796,27 +6788,27 @@ L4:
 		* 1e3 + 1294.8;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_5.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
     l5_13.gg[12] = std::cos(-l2_3.x[2] - .25) * -1e3;
     l5_13.gg[17] = std::cos(-l2_3.x[3] - .25) * -1e3;
-L9:
+labelL9:
     if (! l10_5.index2[3]) {
-	goto L10;
+	goto labelL10;
     }
     v1 = std::cos(l2_3.x[2] - l2_3.x[3] - .25);
     l5_13.gg[13] = (std::cos(l2_3.x[2] - .25) + v1) * 1e3;
     l5_13.gg[18] = v1 * -1e3;
-L10:
+labelL10:
     if (! l10_5.index2[4]) {
-	goto L11;
+	goto labelL11;
     }
     v2 = std::cos(l2_3.x[3] - l2_3.x[2] - .25);
     l5_13.gg[14] = v2 * -1e3;
     l5_13.gg[19] = (std::cos(l2_3.x[3] - .25) + v2) * 1e3;
-L11:
+labelL11:
     return 0;
 } /* tp74_ */
 
@@ -6840,13 +6832,13 @@ L11:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 3;
     l1_1.ninl = 0;
@@ -6856,7 +6848,7 @@ L1:
 	l11_3.lxl[i__ - 1] = true;
 	l12_3.lxu[i__ - 1] = false;
 	l2_3.x[i__ - 1] = .5;
-/* L6: */
+/* labelL6: */
 	l13_3.xl[i__ - 1] = 0.;
     }
     l5_7.gg[0] = -1.;
@@ -6878,7 +6870,7 @@ L1:
     l20_6.xex[3] = .545454545496;
     l20_6.fex = -4.68181818182;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
 /* Computing 2nd power */
@@ -6891,13 +6883,13 @@ L2:
 	    l2_3.x[0] * l2_3.x[2] + l2_3.x[2] * l2_3.x[3] - l2_3.x[0] - 
 	    l2_3.x[1] * 3. + l2_3.x[2] - l2_3.x[3];
     return 0;
-L3:
+labelL3:
     l4_3.gf[0] = l2_3.x[0] * 2. - l2_3.x[2] - 1.;
     l4_3.gf[1] = l2_3.x[1] - 3.;
     l4_3.gf[2] = l2_3.x[2] * 2. - l2_3.x[0] + l2_3.x[3] + 1.;
     l4_3.gf[3] = l2_3.x[3] + l2_3.x[2] - 1.;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = -l2_3.x[0] - l2_3.x[1] * 2. - l2_3.x[2] - l2_3.x[3] + 5.;
     }
@@ -6908,7 +6900,7 @@ L4:
     if (l9_4.index1[2]) {
 	l3_3.g[2] = l2_3.x[1] + l2_3.x[2] * 4. - 1.5;
     }
-L5:
+labelL5:
     return 0;
 } /* tp76_ */
 
@@ -6923,13 +6915,13 @@ L5:
     static Real v1;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -6938,7 +6930,7 @@ L1:
     for (i__ = 1; i__ <= 5; ++i__) {
 	l2_4.x[i__ - 1] = 2.;
 	l11_4.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = false;
     }
     l5_4.gg[2] = 0.;
@@ -6954,7 +6946,7 @@ L1:
     l20_7.xex[4] = .610920257517;
     l20_7.fex = .241505128786;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_4.x[0] - 1.;
 /* Computing 2nd power */
@@ -6968,7 +6960,7 @@ L2:
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 + d__5 * (
 	    d__5 * d__5);
     return 0;
-L3:
+labelL3:
     l4_4.gf[0] = (l2_4.x[0] * 2. - l2_4.x[1] - 1.) * 2.;
     l4_4.gf[1] = (l2_4.x[0] - l2_4.x[1]) * -2.;
     l4_4.gf[2] = (l2_4.x[2] - 1.) * 2.;
@@ -6979,7 +6971,7 @@ L3:
     d__1 = l2_4.x[4] - 1., d__2 = d__1, d__1 *= d__1;
     l4_4.gf[4] = d__2 * (d__1 * d__1) * 6.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_4.x[0];
@@ -6994,7 +6986,7 @@ L4:
 	l3_2.g[1] = l2_4.x[1] + d__1 * d__1 * (d__2 * d__2) - 8. - std::sqrt(2.);
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -7030,13 +7022,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -7044,7 +7036,7 @@ L1:
     l1_1.nenl = 3;
     for (i__ = 1; i__ <= 5; ++i__) {
 	l11_4.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = false;
     }
     l2_4.x[0] = -2.;
@@ -7064,17 +7056,17 @@ L1:
     l20_7.xex[4] = -.763643482853;
     l20_7.fex = -2.91970040911;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_4.x[0] * l2_4.x[1] * l2_4.x[2] * l2_4.x[3] * l2_4.x[4];
     return 0;
-L3:
+labelL3:
     l4_4.gf[0] = l2_4.x[1] * l2_4.x[2] * l2_4.x[3] * l2_4.x[4];
     l4_4.gf[1] = l2_4.x[0] * l2_4.x[2] * l2_4.x[3] * l2_4.x[4];
     l4_4.gf[2] = l2_4.x[0] * l2_4.x[1] * l2_4.x[3] * l2_4.x[4];
     l4_4.gf[3] = l2_4.x[0] * l2_4.x[1] * l2_4.x[2] * l2_4.x[4];
     l4_4.gf[4] = l2_4.x[0] * l2_4.x[1] * l2_4.x[2] * l2_4.x[3];
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_4.x[0];
@@ -7100,7 +7092,7 @@ L4:
 	l3_3.g[2] = d__1 * (d__1 * d__1) + d__2 * (d__2 * d__2) + 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[0]) {
 	goto L7;
     }
@@ -7118,7 +7110,7 @@ L7:
     l5_9.gg[13] = l2_4.x[3] * -5.;
 L8:
     if (! l10_4.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
 /* Computing 2nd power */
     d__1 = l2_4.x[0];
@@ -7126,7 +7118,7 @@ L8:
 /* Computing 2nd power */
     d__1 = l2_4.x[1];
     l5_9.gg[5] = d__1 * d__1 * 3.;
-L9:
+labelL9:
     return 0;
 } /* tp78_ */
 
@@ -7141,13 +7133,13 @@ L9:
     static Real v1, v2, v3, v4;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -7156,7 +7148,7 @@ L1:
     for (i__ = 1; i__ <= 5; ++i__) {
 	l2_4.x[i__ - 1] = 2.;
 	l11_4.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = false;
     }
     l5_9.gg[0] = 1.;
@@ -7177,7 +7169,7 @@ L1:
     l20_7.xex[4] = 1.67908143619;
     l20_7.fex = .0787768208538;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_4.x[0] - 1.;
 /* Computing 2nd power */
@@ -7191,7 +7183,7 @@ L2:
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 + d__5 * 
 	    d__5;
     return 0;
-L3:
+labelL3:
     v1 = l2_4.x[0] - l2_4.x[1];
     v2 = l2_4.x[1] - l2_4.x[2];
     v3 = l2_4.x[2] - l2_4.x[3];
@@ -7210,7 +7202,7 @@ L3:
     d__1 = v4;
     l4_4.gf[4] = d__1 * (d__1 * d__1) * -4.;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_4.x[1];
@@ -7228,7 +7220,7 @@ L4:
 	l3_3.g[2] = l2_4.x[0] * l2_4.x[4] - 2.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[0]) {
 	goto L7;
     }
@@ -7241,11 +7233,11 @@ L7:
 	l5_9.gg[7] = l2_4.x[2] * -2.;
     }
     if (! l10_4.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
     l5_9.gg[2] = l2_4.x[4];
     l5_9.gg[14] = l2_4.x[0];
-L9:
+labelL9:
     return 0;
 } /* tp79_ */
 
@@ -7260,13 +7252,13 @@ L9:
     static Real t, v1, v2;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -7274,7 +7266,7 @@ L1:
     l1_1.nenl = 3;
     for (i__ = 1; i__ <= 5; ++i__) {
 	l11_4.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = true;
     }
     l2_4.x[0] = -2.;
@@ -7284,7 +7276,7 @@ L1:
     l2_4.x[4] = -1.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l13_4.xl[i__ - 1] = -2.3;
-/* L20: */
+/* labelL20: */
 	l14_4.xu[i__ - 1] = 2.3;
     }
     for (i__ = 3; i__ <= 5; ++i__) {
@@ -7304,10 +7296,10 @@ L1:
     l20_7.xex[4] = -.763645016315;
     l20_7.fex = .0539498477624;
     return 0;
-L2:
+labelL2:
     l6_1.fx = std::exp(l2_4.x[0] * l2_4.x[1] * l2_4.x[2] * l2_4.x[3] * l2_4.x[4]);
     return 0;
-L3:
+labelL3:
     v1 = l2_4.x[3] * l2_4.x[4];
     v2 = l2_4.x[0] * l2_4.x[1];
     t = std::exp(v2 * l2_4.x[2] * v1);
@@ -7317,7 +7309,7 @@ L3:
     l4_4.gf[3] = v2 * l2_4.x[2] * l2_4.x[4] * t;
     l4_4.gf[4] = v2 * l2_4.x[2] * l2_4.x[3] * t;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_4.x[0];
@@ -7343,7 +7335,7 @@ L4:
 	l3_3.g[2] = d__1 * (d__1 * d__1) + d__2 * (d__2 * d__2) + 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[0]) {
 	goto L7;
     }
@@ -7361,7 +7353,7 @@ L7:
     l5_9.gg[13] = l2_4.x[3] * -5.;
 L8:
     if (! l10_4.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
 /* Computing 2nd power */
     d__1 = l2_4.x[0];
@@ -7369,7 +7361,7 @@ L8:
 /* Computing 2nd power */
     d__1 = l2_4.x[1];
     l5_9.gg[5] = d__1 * d__1 * 3.;
-L9:
+labelL9:
     return 0;
 } /* tp80_ */
 
@@ -7384,13 +7376,13 @@ L9:
     static Real t, v1, v2, v3;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -7398,17 +7390,17 @@ L1:
     l1_1.nenl = 3;
     for (i__ = 1; i__ <= 5; ++i__) {
 	l11_4.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = true;
     }
     for (i__ = 1; i__ <= 2; ++i__) {
 	l13_4.xl[i__ - 1] = -2.3;
-/* L10: */
+/* labelL10: */
 	l14_4.xu[i__ - 1] = 2.3;
     }
     for (i__ = 3; i__ <= 5; ++i__) {
 	l13_4.xl[i__ - 1] = -3.2;
-/* L20: */
+/* labelL20: */
 	l14_4.xu[i__ - 1] = 3.2;
     }
     l2_4.x[0] = -2.;
@@ -7428,7 +7420,7 @@ L1:
     l20_7.xex[4] = -.763638975604;
     l20_7.fex = .0539498477749;
     return 0;
-L2:
+labelL2:
 /* Computing 3rd power */
     d__2 = l2_4.x[0];
 /* Computing 3rd power */
@@ -7438,7 +7430,7 @@ L2:
     l6_1.fx = std::exp(l2_4.x[0] * l2_4.x[1] * l2_4.x[2] * l2_4.x[3] * l2_4.x[4]) 
 	    - d__1 * d__1 * .5;
     return 0;
-L3:
+labelL3:
 /* Computing 3rd power */
     d__1 = l2_4.x[0];
 /* Computing 3rd power */
@@ -7457,7 +7449,7 @@ L3:
     l4_4.gf[3] = v2 * l2_4.x[2] * l2_4.x[4] * t;
     l4_4.gf[4] = v2 * l2_4.x[2] * l2_4.x[3] * t;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_4.x[0];
@@ -7483,7 +7475,7 @@ L4:
 	l3_3.g[2] = d__1 * (d__1 * d__1) + d__2 * (d__2 * d__2) + 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[0]) {
 	goto L7;
     }
@@ -7501,7 +7493,7 @@ L7:
     l5_9.gg[13] = l2_4.x[3] * -5.;
 L8:
     if (! l10_4.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
 /* Computing 2nd power */
     d__1 = l2_4.x[0];
@@ -7509,7 +7501,7 @@ L8:
 /* Computing 2nd power */
     d__1 = l2_4.x[1];
     l5_9.gg[5] = d__1 * d__1 * 3.;
-L9:
+labelL9:
     return 0;
 } /* tp81_ */
 
@@ -7526,13 +7518,13 @@ L9:
 	    a11, a12;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 6;
@@ -7545,7 +7537,7 @@ L1:
     l2_4.x[4] = 27.;
     for (i__ = 1; i__ <= 5; ++i__) {
 	l11_4.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = true;
     }
     l13_4.xl[0] = 78.;
@@ -7587,18 +7579,18 @@ L1:
     l20_7.xex[4] = 36.7758129081;
     l20_7.fex = -30665.5386717;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_4.x[2];
     l6_1.fx = a * (d__1 * d__1) + b * l2_4.x[0] * l2_4.x[4] + c__ * l2_4.x[0] 
 	    - d__;
     return 0;
-L3:
+labelL3:
     l4_4.gf[0] = b * l2_4.x[4] + c__;
     l4_4.gf[2] = a * 2. * l2_4.x[2];
     l4_4.gf[4] = b * l2_4.x[0];
     return 0;
-L4:
+labelL4:
     if (! (l9_6.index1[0] || l9_6.index1[3])) {
 	goto L41;
     }
@@ -7638,7 +7630,7 @@ L42:
     }
 L43:
     return 0;
-L5:
+labelL5:
     if (! l10_6.index2[0]) {
 	goto L7;
     }
@@ -7657,38 +7649,38 @@ L7:
     l5_14.gg[25] = a6 * l2_4.x[1];
 L8:
     if (! l10_6.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
     l5_14.gg[2] = a11 * l2_4.x[2];
     l5_14.gg[14] = a10 * l2_4.x[4] + a11 * l2_4.x[0] + a12 * l2_4.x[3];
     l5_14.gg[20] = a12 * l2_4.x[2];
     l5_14.gg[26] = a10 * l2_4.x[2];
-L9:
+labelL9:
     if (! l10_6.index2[3]) {
-	goto L10;
+	goto labelL10;
     }
     l5_14.gg[3] = -a3 * l2_4.x[3];
     l5_14.gg[9] = -a2 * l2_4.x[4];
     l5_14.gg[15] = a4 * l2_4.x[4];
     l5_14.gg[21] = -a3 * l2_4.x[0];
     l5_14.gg[27] = -a2 * l2_4.x[1] + a4 * l2_4.x[2];
-L10:
+labelL10:
     if (! l10_6.index2[4]) {
-	goto L11;
+	goto labelL11;
     }
     l5_14.gg[4] = -a7 * l2_4.x[1];
     l5_14.gg[10] = -a6 * l2_4.x[4] - a7 * l2_4.x[0];
     l5_14.gg[16] = a8 * -2. * l2_4.x[2];
     l5_14.gg[28] = -a6 * l2_4.x[1];
-L11:
+labelL11:
     if (! l10_6.index2[5]) {
-	goto L12;
+	goto labelL12;
     }
     l5_14.gg[5] = -a11 * l2_4.x[2];
     l5_14.gg[17] = -a10 * l2_4.x[4] - a11 * l2_4.x[0] - a12 * l2_4.x[3];
     l5_14.gg[23] = -a12 * l2_4.x[2];
     l5_14.gg[29] = -a10 * l2_4.x[2];
-L12:
+labelL12:
     return 0;
 } /* tp83_ */
 
@@ -7724,13 +7716,13 @@ L12:
     b[1] = 2.94e5;
     b[2] = 277200.;
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 6;
@@ -7743,7 +7735,7 @@ L1:
     l2_4.x[4] = 6.8;
     for (i__ = 1; i__ <= 5; ++i__) {
 	l12_4.lxu[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l11_4.lxl[i__ - 1] = true;
     }
     l13_4.xl[0] = 0.;
@@ -7764,12 +7756,12 @@ L1:
     l20_7.xex[4] = 7.;
     l20_7.fex = -52.803351330600002;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -(a[0] + l2_4.x[0] * (a[1] + a[2] * l2_4.x[1] + a[3] * l2_4.x[2]
 	     + a[4] * l2_4.x[3] + a[5] * l2_4.x[4]));
     l6_1.fx *= 1e-5;
     return 0;
-L3:
+labelL3:
     l4_4.gf[0] = -(a[1] + a[2] * l2_4.x[1] + a[3] * l2_4.x[2] + a[4] * l2_4.x[
 	    3] + a[5] * l2_4.x[4]) * 1e-5;
     for (i__ = 2; i__ <= 5; ++i__) {
@@ -7777,7 +7769,7 @@ L3:
 	l4_4.gf[i__ - 1] = -a[i__] * l2_4.x[0] * 1e-5;
     }
     return 0;
-L4:
+labelL4:
     for (i__ = 1; i__ <= 3; ++i__) {
 	if (! (l9_6.index1[i__ - 1] || l9_6.index1[i__ + 2])) {
 	    goto L80;
@@ -7795,7 +7787,7 @@ L80:
 	;
     }
     return 0;
-L5:
+labelL5:
     for (i__ = 1; i__ <= 3; ++i__) {
 	if (! (l10_6.index2[i__ - 1] || l10_6.index2[i__ + 2])) {
 	    goto L90;
@@ -7846,9 +7838,9 @@ L90:
     if (*mode - 2 >= 0) {
 	goto L17;
     } else {
-	goto L1;
+	goto labelL1;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 3;
     l1_1.ninl = 35;
@@ -7861,7 +7853,7 @@ L1:
     l2_4.x[4] = 27.;
     for (i__ = 1; i__ <= 5; ++i__) {
 	l11_4.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = true;
     }
     l13_4.xl[0] = 704.4148;
@@ -7981,11 +7973,11 @@ L17:
 	goto L71;
     }
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
 L71:
     for (i__ = 1; i__ <= 5; ++i__) {
@@ -8133,18 +8125,18 @@ L71:
     }
     dc[84] = dy[76] + 1.;
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L2:
+labelL2:
     l6_1.fx = -(y[16] * 5.843e-7 - y[13] * 1.17e-4 - .1365 - y[12] * 2.358e-5 
 	    - y[15] * 1.502e-6 - y[11] * .0321 - y[4] * .004324 - c__[14] * 
 	    1e-4 / c__[15] - y[1] * 37.48 / c__[11]);
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 5; ++i__) {
 /* Computing 2nd power */
 	d__1 = c__[15];
@@ -8159,7 +8151,7 @@ L3:
 /* L47: */
     }
     return 0;
-L4:
+labelL4:
     if (l9_9.index1[0]) {
 	l3_8.g[0] = l2_4.x[1] * 1.5 - l2_4.x[2];
     }
@@ -8188,7 +8180,7 @@ L4:
 	l3_8.g[37] = 62212. / c__[16] - 110.6 - y[0];
     }
     return 0;
-L5:
+labelL5:
     for (i__ = 1; i__ <= 16; ++i__) {
 	if (! l10_9.index2[i__ + 2]) {
 	    goto L52;
@@ -8256,13 +8248,13 @@ L60:
     static Real t1;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 10;
     l1_1.ninl = 0;
@@ -8276,7 +8268,7 @@ L1:
     for (i__ = 1; i__ <= 5; ++i__) {
 	l11_4.lxl[i__ - 1] = true;
 	l12_4.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l13_4.xl[i__ - 1] = 0.;
     }
     e[0] = -15.;
@@ -8376,7 +8368,7 @@ L1:
     l20_7.xex[4] = .223964873676;
     l20_7.fex = -32.3486789716;
     return 0;
-L2:
+labelL2:
     t = 0.;
     for (i__ = 1; i__ <= 5; ++i__) {
 	t1 = 0.;
@@ -8384,7 +8376,7 @@ L2:
 /* L21: */
 	    t1 += c__[j + i__ * 5 - 6] * l2_4.x[i__ - 1] * l2_4.x[j - 1];
 	}
-/* L20: */
+/* labelL20: */
 /* Computing 3rd power */
 	d__1 = l2_4.x[i__ - 1];
 	t = t + e[i__ - 1] * l2_4.x[i__ - 1] + d__[i__ - 1] * (d__1 * (d__1 * 
@@ -8392,7 +8384,7 @@ L2:
     }
     l6_1.fx = t;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 5; ++i__) {
 	t = 0.;
 	for (j = 1; j <= 5; ++j) {
@@ -8406,7 +8398,7 @@ L3:
 	l4_4.gf[i__ - 1] = e[i__ - 1] + t + d__[i__ - 1] * 3. * (d__1 * d__1);
     }
     return 0;
-L4:
+labelL4:
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L24: */
 	if (l9_10.index1[i__ - 1]) {
@@ -8415,7 +8407,7 @@ L4:
 		    i__ + 39] * l2_4.x[4] - b[i__ - 1];
 	}
     }
-L5:
+labelL5:
     return 0;
 } /* tp86_ */
 
@@ -8431,13 +8423,13 @@ L5:
     static Real f1, f2, v1, v2, v3, v4, v5;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 6;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -8451,7 +8443,7 @@ L1:
     l2_5.x[5] = .5;
     for (i__ = 1; i__ <= 6; ++i__) {
 	l11_5.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_5.lxu[i__ - 1] = true;
     }
     l13_5.xl[0] = 0.;
@@ -8496,7 +8488,7 @@ L1:
     l20_4.xex[5] = .153291953422;
     l20_4.fex = 8927.59773493;
     return 0;
-L2:
+labelL2:
     if (l2_5.x[0] - 300. >= 0.) {
 	goto L32;
     } else {
@@ -8530,7 +8522,7 @@ L37:
 L46:
     l6_1.fx = f1 + f2;
     return 0;
-L3:
+labelL3:
     if (l2_5.x[0] - 300. >= 0.) {
 	goto L39;
     } else {
@@ -8563,7 +8555,7 @@ L44:
     l4_5.gf[1] = 30.;
 L45:
     return 0;
-L4:
+labelL4:
     if (l9_7.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_5.x[2];
@@ -8589,7 +8581,7 @@ L4:
 		c__ * (d__1 * d__1) / a * e;
     }
     return 0;
-L5:
+labelL5:
     v1 = 1. / a;
     if (! (l10_7.index2[0] || l10_7.index2[3])) {
 	goto L8;
@@ -8613,26 +8605,26 @@ L7:
     l5_8.gg[23] = l2_5.x[2] * l2_5.x[3] * v3;
 L8:
     if (! (l10_7.index2[1] || l10_7.index2[2])) {
-	goto L10;
+	goto labelL10;
     }
     v2 = b + l2_5.x[5];
     v3 =std::cos(v2) * v1;
     v4 = std::sin(v2) * v1;
     v5 = c__ * 2. * l2_5.x[3] * v1;
     if (! l10_7.index2[1]) {
-	goto L9;
+	goto labelL9;
     }
     l5_8.gg[9] = -l2_5.x[3] * v3;
     l5_8.gg[13] = -l2_5.x[2] * v3 + v5 * d__;
     l5_8.gg[21] = l2_5.x[2] * l2_5.x[3] * v4;
-L9:
+labelL9:
     if (! l10_7.index2[2]) {
-	goto L10;
+	goto labelL10;
     }
     l5_8.gg[10] = -l2_5.x[3] * v4;
     l5_8.gg[14] = -l2_5.x[2] * v4 + v5 * e;
     l5_8.gg[22] = -l2_5.x[2] * l2_5.x[3] * v3;
-L10:
+labelL10:
     return 0;
 } /* tp87_ */
 
@@ -8711,9 +8703,9 @@ L7:
     if (*mode - 2 >= 0) {
 	goto L17;
     } else {
-	goto L1;
+	goto labelL1;
     }
-L1:
+labelL1:
     l1_1.n = kn1 + 1;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -8721,14 +8713,14 @@ L1:
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
 	l2_5.x[(i__ << 1) - 2] = .5;
-/* L11: */
+/* labelL11: */
 	l2_5.x[(i__ << 1) - 1] = -.5;
     }
     for (i__ = 1; i__ <= 6; ++i__) {
 	l11_5.lxl[i__ - 1] = true;
 	l12_5.lxu[i__ - 1] = true;
 	l13_5.xl[i__ - 1] = -10.;
-/* L6: */
+/* labelL6: */
 	l14_5.xu[i__ - 1] = 10.;
     }
     pi = std::atan(1.) * 4.;
@@ -8740,7 +8732,7 @@ L1:
 /* Computing 2nd power */
 	d__1 = mue[i__ - 1];
 	dcosko[i__ - 1] = (v1 / mue[i__ - 1] - v2) / (d__1 * d__1);
-/* L10: */
+/* labelL10: */
 	a[i__ - 1] = v1 * 2. / (mue[i__ - 1] + v1 * v2);
     }
     intko = .13333333333333333;
@@ -8778,7 +8770,7 @@ L18:
 	    if (a1 > -100.) {
 		ep1 = std::exp(a1);
 	    }
-/* L14: */
+/* labelL14: */
 	    i__2 = l1_1.n - i__;
 	    rho[j - 1] += (Real) pow_ii(&c_n1, &i__2) * 2. * ep1;
 	}
@@ -8788,40 +8780,40 @@ L18:
 	    ep1 = std::exp(a1);
 	}
 	rho[j - 1] = (rho[j - 1] + ep1) / v3;
-/* L13: */
+/* labelL13: */
 	v1 -= v3 * a[j - 1] * rho[j - 1] * (v2 * std::sin(v2) * rho[j - 1] - 
 		dcosko[j - 1] * 2.);
     }
 L19:
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L2:
+labelL2:
     u = 0.;
     i__2 = l1_1.n;
     for (i__ = 1; i__ <= i__2; ++i__) {
-/* L20: */
+/* labelL20: */
 /* Computing 2nd power */
 	d__1 = l2_5.x[i__ - 1];
 	u += d__1 * d__1;
     }
     l6_1.fx = u;
     return 0;
-L3:
+labelL3:
     i__2 = l1_1.n;
     for (i__ = 1; i__ <= i__2; ++i__) {
 /* L21: */
 	l4_5.gf[i__ - 1] = l2_5.x[i__ - 1] * 2.;
     }
     return 0;
-L4:
+labelL4:
     l3_1.g[0] = 1e-4 - v1 - intko;
     return 0;
-L5:
+labelL5:
     i__2 = l1_1.n;
     for (i__ = 1; i__ <= i__2; ++i__) {
 /* L22: */
@@ -8903,13 +8895,13 @@ L5:
     static Real v1, v2, v3, v4, v5, v6, v7, v8, v9;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 6;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -8924,7 +8916,7 @@ L1:
     for (i__ = 1; i__ <= 6; ++i__) {
 	l11_5.lxl[i__ - 1] = true;
 	l12_5.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l13_5.xl[i__ - 1] = 0.;
     }
     l20_4.lex = false;
@@ -8936,7 +8928,7 @@ L1:
     l20_4.xex[5] = .87865083685;
     l20_4.fex = 135.075961229;
     return 0;
-L2:
+labelL2:
     v1 = l2_5.x[0] + l2_5.x[1] + l2_5.x[2];
     v2 = l2_5.x[0] + l2_5.x[1] * 1.57 + l2_5.x[3];
     v3 = l2_5.x[0] * l2_5.x[3];
@@ -8948,7 +8940,7 @@ L2:
     l6_1.fx = v3 * .0204 * v1 + v4 * .0187 * v2 + v3 * .0607 * v1 * (d__1 * 
 	    d__1) + v4 * .0437 * v2 * (d__2 * d__2);
     return 0;
-L3:
+labelL3:
     v1 = l2_5.x[0] * l2_5.x[3];
     v2 = l2_5.x[1] * l2_5.x[2];
     v3 = l2_5.x[1] + l2_5.x[2];
@@ -8977,7 +8969,7 @@ L3:
     l4_5.gf[4] = v1 * .1214 * l2_5.x[4] * v5;
     l4_5.gf[5] = l2_5.x[5] * .0874 * v2 * v6;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_5.x[0] * .001 * l2_5.x[1] * l2_5.x[2] * l2_5.x[3] * 
 		l2_5.x[4] * l2_5.x[5] - 2.07;
@@ -8993,7 +8985,7 @@ L4:
 		l2_5.x[3]);
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -9055,7 +9047,7 @@ L8:
     l20_4.xex[4] = -7.48993551642e-11;
     l20_4.xex[5] = .00332330328254;
     l20_4.fex = .0156195144282;
-    goto L11;
+    goto labelL11;
 
 L_tp96:
     kn1 = 2;
@@ -9066,7 +9058,7 @@ L_tp96:
     l20_4.xex[4] = -8.17535626869e-11;
     l20_4.xex[5] = .00332330328612;
     l20_4.fex = .0156195134384;
-    goto L11;
+    goto labelL11;
 
 L_tp97:
     kn1 = 3;
@@ -9077,7 +9069,7 @@ L_tp97:
     l20_4.xex[4] = .028;
     l20_4.xex[5] = .0134000000001;
     l20_4.fex = 3.13580912311;
-    goto L11;
+    goto labelL11;
 
 L_tp98:
     kn1 = 4;
@@ -9088,15 +9080,15 @@ L_tp98:
     l20_4.xex[4] = .028;
     l20_4.xex[5] = .0134000000001;
     l20_4.fex = 3.13580912299;
-L11:
+labelL11:
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 6;
     l1_1.nili = 0;
     l1_1.ninl = 4;
@@ -9106,7 +9098,7 @@ L1:
 	l2_5.x[i__ - 1] = 0.;
 	l11_5.lxl[i__ - 1] = true;
 	l12_5.lxu[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_5.xl[i__ - 1] = 0.;
     }
     l14_5.xu[0] = .31;
@@ -9132,11 +9124,11 @@ L1:
     l5_8.gg[15] = 587.;
     l5_8.gg[19] = 391.;
     if (kn1 - 2 <= 0) {
-	goto L20;
+	goto labelL20;
     } else {
 	goto L21;
     }
-L20:
+labelL20:
     b[0] = 4.97;
     b[1] = -1.88;
     goto L22;
@@ -9171,12 +9163,12 @@ L26:
 L27:
     l20_4.lex = false;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_5.x[0] * 4.3 + l2_5.x[1] * 31.8 + l2_5.x[2] * 63.3 + l2_5.x[
 	    3] * 15.8 + l2_5.x[4] * 68.5 + l2_5.x[5] * 4.7;
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_7.index1[0]) {
 	l3_6.g[0] = l2_5.x[0] * (float)17.1 + l2_5.x[1] * (float)38.2 + 
 		l2_5.x[2] * (float)204.2 + l2_5.x[3] * (float)212.3 + l2_5.x[
@@ -9203,7 +9195,7 @@ L4:
 		1.4e4 * l2_5.x[5] - b[3];
     }
     return 0;
-L5:
+labelL5:
     if (! l10_7.index2[0]) {
 	goto L7;
     }
@@ -9224,17 +9216,17 @@ L7:
     l5_8.gg[21] = 1385.2 - l2_5.x[3] * 16600. - l2_5.x[4] * 17200.;
 L8:
     if (! l10_7.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
     l5_8.gg[14] = l2_5.x[4] * 2.6e4 - 70.;
     l5_8.gg[18] = l2_5.x[3] * 2.6e4 - 819.;
-L9:
+labelL9:
     if (! l10_7.index2[3]) {
-	goto L10;
+	goto labelL10;
     }
     l5_8.gg[3] = (float)159.9 - l2_5.x[5] * 1.4e4;
     l5_8.gg[23] = 2198. - l2_5.x[0] * 1.4e4;
-L10:
+labelL10:
     return 0;
 } /* tp95_ */
 
@@ -9275,13 +9267,13 @@ L10:
 	    was [8][7] */;
 
     if ((i__1 = *mode - 2) < 0) {
-	goto L1;
+	goto labelL1;
     } else if (i__1 == 0) {
 	goto L18;
     } else {
 	goto L17;
     }
-L1:
+labelL1:
     l1_1.n = 7;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -9292,7 +9284,7 @@ L1:
 	l11_6.lxl[i__ - 1] = true;
 	l12_6.lxu[i__ - 1] = true;
 	l13_6.xl[i__ - 1] = 0.;
-/* L6: */
+/* labelL6: */
 	l14_6.xu[i__ - 1] = 1.58;
     }
     a[0] = 0.;
@@ -9401,24 +9393,24 @@ L34:
     }
 L40:
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = r__[7];
     l6_1.fx = -(d__1 * d__1);
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 7; ++i__) {
 /* L35: */
 	l4_6.gf[i__ - 1] = r__[7] * -2. * dr[(i__ << 3) - 1];
     }
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = q[7] - 1e5;
     }
@@ -9426,7 +9418,7 @@ L4:
 	l3_2.g[1] = s[7] - 1e3;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -9457,13 +9449,13 @@ L8:
     static Real v1, v2;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 7;
     l1_1.nili = 0;
     l1_1.ninl = 4;
@@ -9471,7 +9463,7 @@ L1:
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 7; ++i__) {
 	l11_6.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_6.lxu[i__ - 1] = false;
     }
     l2_6.x[0] = 1.;
@@ -9510,7 +9502,7 @@ L1:
     l20_8.xex[6] = 1.59422671137;
     l20_8.fex = 680.630057275;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_6.x[0] - 10.;
 /* Computing 2nd power */
@@ -9529,7 +9521,7 @@ L2:
 	    + d__5 * (d__5 * d__5) * 10. + d__6 * d__6 * 7. + d__7 * d__7 - 
 	    l2_6.x[5] * 4. * l2_6.x[6] - l2_6.x[5] * 10. - l2_6.x[6] * 8.;
     return 0;
-L3:
+labelL3:
     l4_6.gf[0] = (l2_6.x[0] - 10.) * 2.;
     l4_6.gf[1] = (l2_6.x[1] - 12.) * 10.;
 /* Computing 3rd power */
@@ -9544,7 +9536,7 @@ L3:
     d__1 = l2_6.x[6];
     l4_6.gf[6] = d__1 * (d__1 * d__1) * 4. - l2_6.x[5] * 4. - 8.;
     return 0;
-L4:
+labelL4:
 /* Computing 2nd power */
     d__1 = l2_6.x[0];
     v1 = d__1 * d__1 * 2.;
@@ -9578,7 +9570,7 @@ L4:
 		 2. - l2_6.x[5] * 5. + l2_6.x[6] * 11.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_7.index2[0]) {
 	goto L7;
     }
@@ -9592,18 +9584,18 @@ L7:
 	l5_11.gg[9] = l2_6.x[2] * -20.;
     }
     if (! l10_7.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
     l5_11.gg[6] = l2_6.x[1] * -2.;
     l5_11.gg[22] = l2_6.x[5] * -12.;
-L9:
+labelL9:
     if (! l10_7.index2[3]) {
-	goto L10;
+	goto labelL10;
     }
     l5_11.gg[3] = l2_6.x[0] * -8. + l2_6.x[1] * 3.;
     l5_11.gg[7] = l2_6.x[1] * -2. + l2_6.x[0] * 3.;
     l5_11.gg[11] = l2_6.x[2] * -4.;
-L10:
+labelL10:
     return 0;
 } /* tp100_ */
 
@@ -9638,7 +9630,7 @@ L10:
     l20_8.xex[5] = 1.34750750498;
     l20_8.xex[6] = .0316527664991;
     l20_8.fex = 1809.76476556;
-    goto L13;
+    goto labelL13;
 
 L_tp102:
     kn1 = 2;
@@ -9650,7 +9642,7 @@ L_tp102:
     l20_8.xex[5] = 1.09528744459;
     l20_8.xex[6] = .0273104596581;
     l20_8.fex = 911.880571336;
-    goto L13;
+    goto labelL13;
 
 L_tp103:
     kn1 = 3;
@@ -9662,15 +9654,15 @@ L_tp103:
     l20_8.xex[5] = .87040638184;
     l20_8.xex[6] = .0246388263302;
     l20_8.fex = 543.667958424;
-L13:
+labelL13:
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 7;
     m = kn1;
     a[0] = -.25;
@@ -9685,7 +9677,7 @@ L1:
 	l13_6.xl[i__ - 1] = .1;
 	l14_6.xu[i__ - 1] = 10.;
 	l11_6.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_6.lxu[i__ - 1] = true;
     }
     l13_6.xl[6] = .01;
@@ -9695,11 +9687,11 @@ L1:
     l5_12.gg[33] = 0.;
     l20_8.lex = false;
     return 0;
-L2:
+labelL2:
     for (k = 1; k <= 7; ++k) {
 /* L200: */
 	if (l2_6.x[k - 1] < 0.) {
-	    goto L14;
+	    goto labelL14;
 	}
     }
 /* Computing 2nd power */
@@ -9725,7 +9717,7 @@ L2:
 	    * (d__5 * d__5)) + d__6 * d__6 * 25. * (d__7 * d__7) * pow_dd(&
 	    l2_6.x[4], &c_b590) * l2_6.x[6] / (l2_6.x[2] * (d__8 * d__8));
     return 0;
-L14:
+labelL14:
     sum = 0.;
     for (i__ = 1; i__ <= 7; ++i__) {
 /* L40: */
@@ -9738,7 +9730,7 @@ L14:
     fmin[2] = 540.;
     l6_1.fx = sum + 1e3 + fmin[kn1 - 1];
     return 0;
-L3:
+labelL3:
     for (k = 1; k <= 7; ++k) {
 /* L201: */
 	if (l2_6.x[k - 1] < 0.) {
@@ -9796,7 +9788,7 @@ L15:
 	l4_6.gf[i__ - 1] = (l2_6.x[i__ - 1] - 5.) * 2.;
     }
     return 0;
-L4:
+labelL4:
     if (l9_6.index1[0]) {
 	d__1 = std::abs(l2_6.x[0]);
 /* Computing 2nd power */
@@ -9926,7 +9918,7 @@ L4:
 		d__11 * d__11))) + 3e3;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_6.index2[0]) {
 	goto L7;
     }
@@ -10013,7 +10005,7 @@ L7:
 	    ;
 L8:
     if (! l10_6.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
 /* Computing 2nd power */
     d__1 = l2_6.x[1];
@@ -10051,9 +10043,9 @@ L8:
 	    l2_6.x[5] * (d__1 * d__1)) + l2_6.x[1] * .05 * l2_6.x[4] / (v18 * 
 	    l2_6.x[5] * v22 * l2_6.x[6]) - l2_6.x[2] * .65 * l2_6.x[4] / (v17 
 	    * l2_6.x[5]);
-L9:
+labelL9:
     if (! l10_6.index2[3]) {
-	goto L10;
+	goto labelL10;
     }
     d__1 = std::abs(l2_6.x[0]);
     v23 = pow_dd(&d__1, &c_b590);
@@ -10106,9 +10098,9 @@ L9:
 	     (d__1 * d__1)) - v23 * .075 * v26 * l2_6.x[2] * v28 / (v29 * v33)
 	     - l2_6.x[2] * .3 * l2_6.x[4] / (v25 * v26 * v31) - l2_6.x[3] * 
 	    .25 / (v27 * v32);
-L10:
+labelL10:
     if (! l10_6.index2[4] && ! l10_6.index2[5]) {
-	goto L12;
+	goto labelL12;
     }
 /* Computing 2nd power */
     d__1 = l2_6.x[3];
@@ -10159,21 +10151,21 @@ L10:
 	    .5 / (v39 * l2_6.x[6]) + v42 * l2_6.x[0] * l2_6.x[1] / (l2_6.x[6] 
 	    * v43);
     if (! l10_6.index2[4]) {
-	goto L11;
+	goto labelL11;
     }
     for (i__ = 1; i__ <= 7; ++i__) {
-/* L20: */
+/* labelL20: */
 	l5_12.gg[i__ * 6 - 2] = gv[i__ - 1];
     }
-L11:
+labelL11:
     if (! l10_6.index2[5]) {
-	goto L12;
+	goto labelL12;
     }
     for (i__ = 1; i__ <= 7; ++i__) {
 /* L30: */
 	l5_12.gg[i__ * 6 - 1] = -gv[i__ - 1];
     }
-L12:
+labelL12:
     return 0;
 } /* tp101_ */
 
@@ -10204,13 +10196,13 @@ L12:
     static Real s, v1, v2, bx;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 8;
     l1_1.nili = 0;
     l1_1.ninl = 6;
@@ -10256,26 +10248,26 @@ L1:
     l20_2.xex[7] = .400668229166;
     l20_2.fex = 3.95116343955;
     return 0;
-L2:
+labelL2:
     if (l2_7.x[0] / l2_7.x[6] < 0. || l2_7.x[1] / l2_7.x[7] < 0.) {
-	goto L13;
+	goto labelL13;
     }
     d__1 = l2_7.x[0] / l2_7.x[6];
     d__2 = l2_7.x[1] / l2_7.x[7];
     l6_1.fx = (pow_dd(&d__1, &c_b993) + pow_dd(&d__2, &c_b993)) * .4 + 10. - 
 	    l2_7.x[0] - l2_7.x[1];
     return 0;
-L13:
+labelL13:
     s = 0.;
     for (i__ = 1; i__ <= 8; ++i__) {
-/* L14: */
+/* labelL14: */
 /* Computing 2nd power */
 	d__1 = l2_7.x[i__ - 1] - 5.;
 	s += d__1 * d__1;
     }
     l6_1.fx = s + 1e3 + 3.9;
     return 0;
-L3:
+labelL3:
     if (l2_7.x[0] < 0. || l2_7.x[1] < 0. || l2_7.x[6] < 0. || l2_7.x[7] < 0.) 
 	    {
 	goto L15;
@@ -10296,7 +10288,7 @@ L15:
 	l4_7.gf[i__ + 5] = (l2_7.x[i__ + 5] - 5.) * 2.;
     }
     return 0;
-L4:
+labelL4:
     d__3 = (d__1 = l2_7.x[0] / l2_7.x[6], std::abs(d__1));
     d__4 = (d__2 = l2_7.x[1] / l2_7.x[7], std::abs(d__2));
     bx = (pow_dd(&d__3, &c_b993) + pow_dd(&d__4, &c_b993)) * .4 + 10. - 
@@ -10327,7 +10319,7 @@ L4:
 	l3_5.g[5] = 4.2 - bx;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_6.index2[0]) {
 	goto L7;
     }
@@ -10341,7 +10333,7 @@ L7:
     l5_18.gg[43] = -a * l2_7.x[5];
 L8:
     if (! l10_6.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
 /* Computing 2nd power */
     d__1 = l2_7.x[4];
@@ -10354,9 +10346,9 @@ L8:
     l5_18.gg[26] = (l2_7.x[2] * 4. + pow_dd(&d__1, &c_b1008) * 2.) / v1;
     d__1 = std::abs(l2_7.x[2]);
     l5_18.gg[38] = -a * pow_dd(&d__1, &c_b1009);
-L9:
+labelL9:
     if (! l10_6.index2[3]) {
-	goto L10;
+	goto labelL10;
     }
 /* Computing 2nd power */
     d__1 = l2_7.x[5];
@@ -10369,9 +10361,9 @@ L9:
     l5_18.gg[33] = (l2_7.x[3] * 4. + pow_dd(&d__1, &c_b1008) * 2.) / v2;
     d__1 = std::abs(l2_7.x[3]);
     l5_18.gg[45] = -a * pow_dd(&d__1, &c_b1009);
-L10:
+labelL10:
     if (! l10_6.index2[4] && ! l10_6.index2[5]) {
-	goto L12;
+	goto labelL12;
     }
     d__1 = std::abs(l2_7.x[0]);
     d__2 = std::abs(l2_7.x[6]);
@@ -10386,21 +10378,21 @@ L10:
     d__2 = std::abs(l2_7.x[7]);
     l4_7.gf[7] = pow_dd(&d__1, &c_b993) * -.268 * pow_dd(&d__2, &c_b1002);
     if (! l10_6.index2[4]) {
-	goto L11;
+	goto labelL11;
     }
     for (i__ = 1; i__ <= 8; ++i__) {
 /* L31: */
 	l5_18.gg[i__ * 6 - 2] = l4_7.gf[i__ - 1];
     }
-L11:
+labelL11:
     if (! l10_6.index2[5]) {
-	goto L12;
+	goto labelL12;
     }
     for (i__ = 1; i__ <= 8; ++i__) {
 /* L32: */
 	l5_18.gg[i__ * 6 - 1] = -l4_7.gf[i__ - 1];
     }
-L12:
+labelL12:
     return 0;
 } /* tp104_ */
 
@@ -10420,11 +10412,11 @@ L12:
     static Real sum;
 
     if (*mode - 1 <= 0) {
-	goto L1;
+	goto labelL1;
     } else {
-	goto L20;
+	goto labelL20;
     }
-L1:
+labelL1:
     l1_1.n = 8;
     l1_1.nili = 1;
     l1_1.ninl = 0;
@@ -10578,13 +10570,13 @@ L1:
     l20_2.xex[7] = 20.7468249193;
     l20_2.fex = 1138.4162396;
     return 0;
-L20:
+labelL20:
     if ((i__1 = *mode - 4) < 0) {
 	goto L21;
     } else if (i__1 == 0) {
-	goto L4;
+	goto labelL4;
     } else {
-	goto L5;
+	goto labelL5;
     }
 L21:
     s = 0.;
@@ -10619,12 +10611,12 @@ L21:
 	s += std::log(v11);
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
-/* L2: */
+/* labelL2: */
     l6_1.fx = -s;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 235; ++i__) {
 	for (j = 1; j <= 8; ++j) {
 	    da[i__ + j * 235 - 236] = 0.;
@@ -10702,11 +10694,11 @@ L70:
     }
     l6_1.fx = sum + 2090.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = 1. - l2_7.x[0] - l2_7.x[1];
     }
-L5:
+labelL5:
     return 0;
 } /* tp105_ */
 
@@ -10716,13 +10708,13 @@ L5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 8;
     l1_1.nili = 3;
     l1_1.ninl = 3;
@@ -10747,7 +10739,7 @@ L1:
     l2_7.x[7] = 425.;
     for (i__ = 1; i__ <= 8; ++i__) {
 	l11_7.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_7.lxu[i__ - 1] = true;
     }
     for (i__ = 1; i__ <= 6; ++i__) {
@@ -10760,7 +10752,7 @@ L1:
     l4_7.gf[1] = 1.;
     l4_7.gf[2] = 1.;
     for (i__ = 4; i__ <= 8; ++i__) {
-/* L20: */
+/* labelL20: */
 	l4_7.gf[i__ - 1] = 0.;
     }
     l5_18.gg[18] = -.0025;
@@ -10783,11 +10775,11 @@ L1:
     l20_2.xex[7] = 395.597851351;
     l20_2.fex = 7049.33092308;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_7.x[0] + l2_7.x[1] + l2_7.x[2];
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_6.index1[0]) {
 	l3_5.g[0] = (l2_7.x[3] + l2_7.x[5]) * -.0025 + 1.;
     }
@@ -10810,27 +10802,27 @@ L4:
 		l2_7.x[2] * l2_7.x[7]) * 1e-5;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_6.index2[3]) {
-	goto L10;
+	goto labelL10;
     }
     l5_18.gg[3] = (l2_7.x[5] - 100.) * 1e-5;
     l5_18.gg[33] = l2_7.x[0] * 1e-5;
-L10:
+labelL10:
     if (! l10_6.index2[4]) {
-	goto L11;
+	goto labelL11;
     }
     l5_18.gg[10] = (-l2_7.x[3] + l2_7.x[6]) * 1e-5;
     l5_18.gg[22] = (-l2_7.x[1] + 1250.) * 1e-5;
     l5_18.gg[40] = l2_7.x[1] * 1e-5;
-L11:
+labelL11:
     if (! l10_6.index2[5]) {
-	goto L12;
+	goto labelL12;
     }
     l5_18.gg[17] = (-l2_7.x[4] + l2_7.x[7]) * 1e-5;
     l5_18.gg[29] = (-l2_7.x[2] + 2500.) * 1e-5;
     l5_18.gg[47] = l2_7.x[2] * 1e-5;
-L12:
+labelL12:
     return 0;
 } /* tp106_ */
 
@@ -10847,13 +10839,13 @@ L12:
 	    y6, v10, v11, v12, v13, v14, v15;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 9;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -10873,7 +10865,7 @@ L1:
     d__ = v1 *std::cos(.25);
     for (i__ = 1; i__ <= 6; ++i__) {
 	for (j = 1; j <= 9; ++j) {
-/* L20: */
+/* labelL20: */
 	    l5_19.gg[i__ + j * 6 - 7] = 0.;
 	}
     }
@@ -10920,7 +10912,7 @@ L1:
     l20_9.xex[8] = -.338786658776;
     l20_9.fex = 5055.01180339;
     return 0;
-L2:
+labelL2:
 /* Computing 3rd power */
     d__1 = l2_8.x[0];
 /* Computing 3rd power */
@@ -10928,7 +10920,7 @@ L2:
     l6_1.fx = l2_8.x[0] * 3e3 + d__1 * (d__1 * d__1) * 1e3 + l2_8.x[1] * 2e3 
 	    + d__2 * (d__2 * d__2) * 666.667;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_8.x[0];
     l4_8.gf[0] = d__1 * d__1 * 3e3 + 3e3;
@@ -10936,7 +10928,7 @@ L3:
     d__1 = l2_8.x[1];
     l4_8.gf[1] = d__1 * d__1 * 2000.001 + 2e3;
     return 0;
-L4:
+labelL4:
     y1 = std::sin(l2_8.x[7]);
     y2 =std::cos(l2_8.x[7]);
     y3 = std::sin(l2_8.x[8]);
@@ -10944,7 +10936,7 @@ L4:
     y5 = std::sin(l2_8.x[7] - l2_8.x[8]);
     y6 =std::cos(l2_8.x[7] - l2_8.x[8]);
     if (*mode == 5) {
-	goto L5;
+	goto labelL5;
     }
     if (l9_6.index1[0]) {
 /* Computing 2nd power */
@@ -10989,7 +10981,7 @@ L4:
 		d__ * y6);
     }
     return 0;
-L5:
+labelL5:
     if (! l10_6.index2[0]) {
 	goto L7;
     }
@@ -11015,7 +11007,7 @@ L7:
     l5_19.gg[49] = -l2_8.x[5] * l2_8.x[6] * v3;
 L8:
     if (! l10_6.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
     v5 = d__ * y3 - c__ * y4;
     v6 = -d__ * y5 - c__ * y6;
@@ -11026,9 +11018,9 @@ L8:
     l5_19.gg[44] = l2_8.x[5] * l2_8.x[6] * v7;
     l5_19.gg[50] = l2_8.x[4] * l2_8.x[6] * (d__ * y4 + c__ * y3) - l2_8.x[5] *
 	     l2_8.x[6] * v7;
-L9:
+labelL9:
     if (! l10_6.index2[3]) {
-	goto L10;
+	goto labelL10;
     }
     v8 = -c__ * y1 + d__ * y2;
     v9 = -c__ * y3 + d__ * y4;
@@ -11037,9 +11029,9 @@ L9:
     l5_19.gg[39] = -l2_8.x[4] * v9;
     l5_19.gg[45] = l2_8.x[4] * l2_8.x[5] * (c__ * y2 + d__ * y1);
     l5_19.gg[51] = l2_8.x[4] * l2_8.x[6] * (c__ * y4 + d__ * y3);
-L10:
+labelL10:
     if (! l10_6.index2[4]) {
-	goto L11;
+	goto labelL11;
     }
     v10 = c__ * y1 + d__ * y2;
     v11 = c__ * y5 + d__ * y6;
@@ -11050,9 +11042,9 @@ L10:
     l5_19.gg[46] = -l2_8.x[4] * l2_8.x[5] * (c__ * y2 - d__ * y1) - l2_8.x[6] 
 	    * v12;
     l5_19.gg[52] = l2_8.x[6] * v12;
-L11:
+labelL11:
     if (! l10_6.index2[5]) {
-	goto L12;
+	goto labelL12;
     }
     v13 = c__ * y3 + d__ * y4;
     v14 = -c__ * y5 + d__ * y6;
@@ -11062,7 +11054,7 @@ L11:
     l5_19.gg[41] = d__ * 4. * l2_8.x[6] - l2_8.x[4] * v13 - l2_8.x[5] * v14;
     l5_19.gg[47] = v15;
     l5_19.gg[53] = -l2_8.x[4] * l2_8.x[6] * (c__ * y4 - d__ * y3) - v15;
-L12:
+labelL12:
     return 0;
 } /* tp107_ */
 
@@ -11076,13 +11068,13 @@ L12:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 9;
     l1_1.nili = 0;
     l1_1.ninl = 13;
@@ -11113,12 +11105,12 @@ L1:
     l20_9.xex[8] = 2.61984643608e-20;
     l20_9.fex = -.866025403841;
     return 0;
-L2:
+labelL2:
     l6_1.fx = (l2_8.x[0] * l2_8.x[3] - l2_8.x[1] * l2_8.x[2] + l2_8.x[2] * 
 	    l2_8.x[8] - l2_8.x[4] * l2_8.x[8] + l2_8.x[4] * l2_8.x[7] - 
 	    l2_8.x[5] * l2_8.x[6]) * -.5;
     return 0;
-L3:
+labelL3:
     l4_8.gf[0] = l2_8.x[3] * -.5;
     l4_8.gf[1] = l2_8.x[2] * .5;
     l4_8.gf[2] = (l2_8.x[1] - l2_8.x[8]) * .5;
@@ -11129,7 +11121,7 @@ L3:
     l4_8.gf[7] = l2_8.x[4] * -.5;
     l4_8.gf[8] = -l4_8.gf[7] - l4_8.gf[1];
     return 0;
-L4:
+labelL4:
     if (l9_11.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_8.x[2];
@@ -11204,7 +11196,7 @@ L4:
 	l3_10.g[12] = l2_8.x[4] * l2_8.x[7] - l2_8.x[5] * l2_8.x[6];
     }
     return 0;
-L5:
+labelL5:
     for (i__ = 1; i__ <= 13; ++i__) {
 	for (j = 1; j <= 9; ++j) {
 /* L23: */
@@ -11223,50 +11215,50 @@ L7:
     l5_20.gg[105] = l2_8.x[8] * -2.;
 L8:
     if (! l10_11.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
     l5_20.gg[54] = l2_8.x[4] * -2.;
     l5_20.gg[67] = l2_8.x[5] * -2.;
-L9:
+labelL9:
     if (! l10_11.index2[3]) {
-	goto L10;
+	goto labelL10;
     }
     l5_20.gg[3] = l2_8.x[0] * -2.;
     l5_20.gg[16] = (l2_8.x[1] - l2_8.x[8]) * -2.;
     l5_20.gg[107] = -l5_20.gg[16];
-L10:
+labelL10:
     if (! l10_11.index2[4]) {
-	goto L11;
+	goto labelL11;
     }
     l5_20.gg[4] = (l2_8.x[0] - l2_8.x[4]) * -2.;
     l5_20.gg[17] = (l2_8.x[1] - l2_8.x[5]) * -2.;
     l5_20.gg[56] = -l5_20.gg[4];
     l5_20.gg[69] = -l5_20.gg[17];
-L11:
+labelL11:
     if (! l10_11.index2[5]) {
-	goto L12;
+	goto labelL12;
     }
     l5_20.gg[5] = (l2_8.x[0] - l2_8.x[6]) * -2.;
     l5_20.gg[18] = (l2_8.x[1] - l2_8.x[7]) * -2.;
     l5_20.gg[83] = -l5_20.gg[5];
     l5_20.gg[96] = -l5_20.gg[18];
-L12:
+labelL12:
     if (! l10_11.index2[6]) {
-	goto L13;
+	goto labelL13;
     }
     l5_20.gg[32] = (l2_8.x[2] - l2_8.x[4]) * -2.;
     l5_20.gg[45] = (l2_8.x[3] - l2_8.x[5]) * -2.;
     l5_20.gg[58] = -l5_20.gg[32];
     l5_20.gg[71] = -l5_20.gg[45];
-L13:
+labelL13:
     if (! l10_11.index2[7]) {
-	goto L14;
+	goto labelL14;
     }
     l5_20.gg[33] = (l2_8.x[2] - l2_8.x[6]) * -2.;
     l5_20.gg[46] = (l2_8.x[3] - l2_8.x[7]) * -2.;
     l5_20.gg[85] = -l5_20.gg[33];
     l5_20.gg[98] = -l5_20.gg[46];
-L14:
+labelL14:
     if (! l10_11.index2[8]) {
 	goto L15;
     }
@@ -11318,13 +11310,13 @@ L19:
 	    v13, v14, v15, v16, v17, v18, v19, v20, hv1;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 9;
     l1_1.nili = 2;
     l1_1.ninl = 2;
@@ -11344,7 +11336,7 @@ L1:
 	l14_8.xu[i__ + 6] = 800.;
 	l13_8.xl[i__ + 3] = 196.;
 	l14_8.xu[i__ + 3] = 252.;
-/* L20: */
+/* labelL20: */
     }
     l13_8.xl[6] = 196.;
     l14_8.xu[6] = 252.;
@@ -11384,7 +11376,7 @@ L1:
     l20_9.xex[8] = 368.494083867;
     l20_9.fex = 5362.06927538;
     return 0;
-L2:
+labelL2:
 /* Computing 3rd power */
     d__1 = l2_8.x[0];
 /* Computing 3rd power */
@@ -11392,7 +11384,7 @@ L2:
     l6_1.fx = l2_8.x[0] * 3. + d__1 * (d__1 * d__1) * 1e-6 + d__2 * (d__2 * 
 	    d__2) * 5.22074e-7 + l2_8.x[1] * 2.;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_8.x[0];
     l4_8.gf[0] = d__1 * d__1 * 3e-6 + 3.;
@@ -11400,7 +11392,7 @@ L3:
     d__1 = l2_8.x[1];
     l4_8.gf[1] = d__1 * d__1 * 1.566222e-6 + 2.;
     return 0;
-L4:
+labelL4:
     if (l9_10.index1[0]) {
 	l3_9.g[0] = l2_8.x[3] - l2_8.x[2] + .55;
     }
@@ -11470,22 +11462,22 @@ L4:
 		 2. * c__) * ra + d__2 * d__2 * 7.533e-4 - 22.938;
     }
     return 0;
-L5:
+labelL5:
 /* L8: */
     if (! l10_10.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
     l5_21.gg[2] = l2_8.x[0] * -2.;
     l5_21.gg[72] = l2_8.x[7] * -2.;
-L9:
+labelL9:
     if (! l10_10.index2[3]) {
-	goto L10;
+	goto labelL10;
     }
     l5_21.gg[13] = l2_8.x[1] * -2.;
     l5_21.gg[83] = l2_8.x[8] * -2.;
-L10:
+labelL10:
     if (! l10_10.index2[4]) {
-	goto L11;
+	goto labelL11;
     }
     v1 = std::sin(-l2_8.x[2] - .25);
     v2 = std::sin(-l2_8.x[3] - .25);
@@ -11496,9 +11488,9 @@ L10:
 	    ra;
     l5_21.gg[54] = v3 * v1;
     l5_21.gg[64] = v3 * v2;
-L11:
+labelL11:
     if (! l10_10.index2[5]) {
-	goto L12;
+	goto labelL12;
     }
     hv1 = l2_8.x[2] - l2_8.x[3] - .25;
     v3 =std::cos(hv1);
@@ -11511,9 +11503,9 @@ L11:
     l5_21.gg[45] = v5 * v4;
     l5_21.gg[55] = (l2_8.x[4] * v4 + l2_8.x[6] * v6) * ra + v5 * 4. * b;
     l5_21.gg[65] = v5 * v6;
-L12:
+labelL12:
     if (! l10_10.index2[6]) {
-	goto L13;
+	goto labelL13;
     }
     hv1 = l2_8.x[3] - l2_8.x[2] - .25;
     v7 = l2_8.x[6] * ra;
@@ -11526,9 +11518,9 @@ L12:
     l5_21.gg[46] = v7 * v9;
     l5_21.gg[56] = v7 * v10;
     l5_21.gg[66] = (l2_8.x[4] * v9 + l2_8.x[5] * v10) * ra + v7 * 4. * b;
-L13:
+labelL13:
     if (! l10_10.index2[7]) {
-	goto L14;
+	goto labelL14;
     }
     v11 = l2_8.x[4] * ra;
     v12 =std::cos(-l2_8.x[2] - .25) * ra;
@@ -11539,7 +11531,7 @@ L13:
 	    l2_8.x[4] * .0015066;
     l5_21.gg[57] = l2_8.x[4] * v12;
     l5_21.gg[67] = l2_8.x[4] * v13;
-L14:
+labelL14:
     if (! l10_10.index2[8]) {
 	goto L15;
     }
@@ -11585,13 +11577,13 @@ L16:
     static Real s, t, u, sum;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 10;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -11603,7 +11595,7 @@ L1:
 	l13_9.xl[i__ - 1] = 2.001;
 	l14_9.xu[i__ - 1] = 9.999;
 	l2_9.x[i__ - 1] = 9.;
-/* L20: */
+/* labelL20: */
     }
     l20_10.lex = false;
     l20_10.xex[0] = 9.35025654733;
@@ -11618,7 +11610,7 @@ L1:
     l20_10.xex[9] = 9.35025654733;
     l20_10.fex = -45.7784697153;
     return 0;
-L2:
+labelL2:
     t = 1.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L30: */
@@ -11628,7 +11620,7 @@ L2:
     s = pow_dd(&d__1, &c_b1157);
     s = d_sign(&s, &t);
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     u = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
@@ -11654,7 +11646,7 @@ L33:
     }
     l6_1.fx = sum + 1e3 - 45.8;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 10; ++i__) {
 	if (l2_9.x[i__ - 1] - 2. <= 0. || 10. - l2_9.x[i__ - 1] <= 0.) {
 	    goto L35;
@@ -11668,7 +11660,7 @@ L35:
 L32:
 	;
     }
-L4:
+labelL4:
     return 0;
 } /* tp110_ */
 
@@ -11681,13 +11673,13 @@ L4:
     static Real s, t;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 10;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -11696,7 +11688,7 @@ L1:
     for (j = 1; j <= 10; ++j) {
 	l2_9.x[j - 1] = -2.3;
 	for (i__ = 1; i__ <= 3; ++i__) {
-/* L20: */
+/* labelL20: */
 	    l5_14.gg[i__ + j * 3 - 4] = 0.;
 	}
     }
@@ -11714,7 +11706,7 @@ L1:
 	l13_9.xl[i__ - 1] = -100.;
 	l14_9.xu[i__ - 1] = 100.;
 	l11_9.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_9.lxu[i__ - 1] = true;
     }
     l20_10.lex = false;
@@ -11730,14 +11722,14 @@ L1:
     l20_10.xex[9] = -2.33558183059;
     l20_10.fex = -47.7610902637;
     return 0;
-L2:
+labelL2:
     t = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L30: */
 	t += std::exp(l2_9.x[i__ - 1]);
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     s = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
@@ -11746,14 +11738,14 @@ L2:
     }
     l6_1.fx = s;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L33: */
 	l4_9.gf[i__ - 1] = std::exp(l2_9.x[i__ - 1]) * (c__[i__ - 1] + l2_9.x[i__ 
 		- 1] - std::log(t));
     }
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = std::exp(l2_9.x[0]) + std::exp(l2_9.x[1]) * 2. + std::exp(l2_9.x[2]) * 
 		2. + std::exp(l2_9.x[5]) + std::exp(l2_9.x[9]) - 2.;
@@ -11767,7 +11759,7 @@ L4:
 		l2_9.x[8]) * 2. + std::exp(l2_9.x[9]) - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[0]) {
 	goto L7;
     }
@@ -11786,14 +11778,14 @@ L7:
     l5_14.gg[19] = std::exp(l2_9.x[6]);
 L8:
     if (! l10_4.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
     l5_14.gg[8] = std::exp(l2_9.x[2]);
     l5_14.gg[20] = std::exp(l2_9.x[6]);
     l5_14.gg[23] = std::exp(l2_9.x[7]);
     l5_14.gg[26] = std::exp(l2_9.x[8]) * 2.;
     l5_14.gg[29] = std::exp(l2_9.x[9]);
-L9:
+labelL9:
     return 0;
 } /* tp111_ */
 
@@ -11809,13 +11801,13 @@ L9:
     static Real s, t, dlogt;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 10;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -11824,7 +11816,7 @@ L1:
     for (i__ = 1; i__ <= 10; ++i__) {
 	l13_9.xl[i__ - 1] = 1e-4;
 	l11_9.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_9.lxu[i__ - 1] = false;
     }
     c__[0] = -6.089;
@@ -11840,7 +11832,7 @@ L1:
     for (j = 1; j <= 10; ++j) {
 	l2_9.x[j - 1] = .1;
 	for (i__ = 1; i__ <= 3; ++i__) {
-/* L20: */
+/* labelL20: */
 	    l5_14.gg[i__ + j * 3 - 4] = 0.;
 	}
     }
@@ -11871,14 +11863,14 @@ L1:
     l20_10.xex[9] = .0526982611793;
     l20_10.fex = -.47761086;
     return 0;
-L2:
+labelL2:
     t = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L30: */
 	t += l2_9.x[i__ - 1];
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     if (t < 1e-5) {
 	goto L34;
@@ -11906,7 +11898,7 @@ L34:
     }
     l6_1.fx = (s + 1e3 - 47.8) * (float).01;
     return 0;
-L3:
+labelL3:
     if (t < 1e-5) {
 	goto L36;
     }
@@ -11929,7 +11921,7 @@ L36:
 	}
     }
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = l2_9.x[0] + l2_9.x[1] * 2. + l2_9.x[2] * 2. + l2_9.x[5] + 
 		l2_9.x[9] - (float)2.;
@@ -11942,7 +11934,7 @@ L4:
 	l3_3.g[2] = l2_9.x[2] + l2_9.x[6] + l2_9.x[7] + l2_9.x[8] * 2. + 
 		l2_9.x[9] - (float)1.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp112_ */
 
@@ -11956,13 +11948,13 @@ L5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 10;
     l1_1.nili = 3;
     l1_1.ninl = 5;
@@ -11970,7 +11962,7 @@ L1:
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 8; ++i__) {
 	for (j = 1; j <= 10; ++j) {
-/* L20: */
+/* labelL20: */
 	    l5_22.gg[i__ + (j << 3) - 9] = 0.;
 	}
     }
@@ -11986,7 +11978,7 @@ L1:
     l2_9.x[9] = 10.;
     for (i__ = 1; i__ <= 10; ++i__) {
 	l11_9.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_9.lxu[i__ - 1] = false;
     }
     l5_22.gg[0] = -4.;
@@ -12023,7 +12015,7 @@ L1:
     l20_10.xex[9] = 8.37592666387;
     l20_10.fex = 24.3062090641;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_9.x[0];
 /* Computing 2nd power */
@@ -12049,7 +12041,7 @@ L2:
 	    d__5 + d__6 * d__6 * 2. + d__7 * d__7 * 5. + d__8 * d__8 * 7. + 
 	    d__9 * d__9 * 2. + d__10 * d__10 + 45.;
     return 0;
-L3:
+labelL3:
     l4_9.gf[0] = l2_9.x[0] * 2. + l2_9.x[1] - 14.;
     l4_9.gf[1] = l2_9.x[1] * 2. + l2_9.x[0] - 16.;
     l4_9.gf[2] = (l2_9.x[2] - 10.) * 2.;
@@ -12061,7 +12053,7 @@ L3:
     l4_9.gf[8] = (l2_9.x[8] - 10.) * 4.;
     l4_9.gf[9] = (l2_9.x[9] - 7.) * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_12.index1[0]) {
 	l3_11.g[0] = l2_9.x[0] * -4. - l2_9.x[1] * 5. + l2_9.x[6] * 3. - 
 		l2_9.x[7] * 9. + 105.;
@@ -12117,33 +12109,33 @@ L4:
 		l2_9.x[9] * 7.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_12.index2[3]) {
-	goto L10;
+	goto labelL10;
     }
     l5_22.gg[3] = (l2_9.x[0] - 2.) * -6.;
     l5_22.gg[11] = (l2_9.x[1] - 3.) * -8.;
     l5_22.gg[19] = l2_9.x[2] * -4.;
-L10:
+labelL10:
     if (! l10_12.index2[4]) {
-	goto L11;
+	goto labelL11;
     }
     l5_22.gg[4] = l2_9.x[0] * -10.;
     l5_22.gg[20] = (l2_9.x[2] - 6.) * -2.;
-L11:
+labelL11:
     if (! l10_12.index2[5]) {
-	goto L12;
+	goto labelL12;
     }
     l5_22.gg[5] = 8. - l2_9.x[0];
     l5_22.gg[13] = (l2_9.x[1] - 4.) * -4.;
     l5_22.gg[37] = l2_9.x[4] * -6.;
-L12:
+labelL12:
     if (! l10_12.index2[6]) {
-	goto L13;
+	goto labelL13;
     }
     l5_22.gg[6] = l2_9.x[0] * -2. + l2_9.x[1] * 2.;
     l5_22.gg[14] = (l2_9.x[1] - 2.) * -4. + l2_9.x[0] * 2.;
-L13:
+labelL13:
     if (l10_12.index2[7]) {
 	l5_22.gg[71] = (l2_9.x[8] - 8.) * -24.;
     }
@@ -12161,13 +12153,13 @@ L13:
     static Real v1, v2, v3;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 10;
     l1_1.nili = 4;
     l1_1.ninl = 4;
@@ -12206,7 +12198,7 @@ L1:
 	l11_9.lxl[i__ - 1] = true;
 	l12_9.lxu[i__ - 1] = true;
 	for (j = 1; j <= 11; ++j) {
-/* L6: */
+/* labelL6: */
 	    l5_23.gg[j + i__ * 11 - 12] = 0.;
 	}
     }
@@ -12250,15 +12242,15 @@ L1:
     l20_10.xex[9] = 153.535353535;
     l20_10.fex = -17.688069634399998;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_9.x[0] * 5.04 + l2_9.x[1] * .035 + l2_9.x[2] * 10. + l2_9.x[
 	    4] * 3.36 - l2_9.x[3] * .063 * l2_9.x[6];
     l6_1.fx *= .01;
-L3:
+labelL3:
     l4_9.gf[3] = l2_9.x[6] * -.063 * .01;
     l4_9.gf[6] = l2_9.x[3] * -.063 * .01;
     return 0;
-L4:
+labelL4:
     if (l9_13.index1[0]) {
 	l3_12.g[0] = 35.82 - l2_9.x[9] * .222 - l2_9.x[8] * .9;
     }
@@ -12307,28 +12299,28 @@ L4:
 	l3_12.g[10] = (l2_9.x[1] + l2_9.x[4]) / l2_9.x[0] - l2_9.x[7];
     }
     return 0;
-L5:
+labelL5:
     if (! l10_13.index2[4]) {
-	goto L11;
+	goto labelL11;
     }
 /* Computing 2nd power */
     d__1 = l2_9.x[7];
     l5_23.gg[4] = l2_9.x[7] * .13167 + 1.12 - d__1 * d__1 * .00667;
     l5_23.gg[81] = l2_9.x[0] * .13167 - l2_9.x[0] * .013339999999999999 * 
 	    l2_9.x[7];
-L11:
+labelL11:
     if (l10_13.index2[5]) {
 	l5_23.gg[82] = 1.098 - l2_9.x[7] * .076;
     }
     if (! l10_13.index2[6]) {
-	goto L13;
+	goto labelL13;
     }
     l5_23.gg[83] = l2_9.x[0] * -.13167 + l2_9.x[0] * .013339999999999999 * 
 	    l2_9.x[7];
 /* Computing 2nd power */
     d__1 = l2_9.x[7];
     l5_23.gg[6] = l2_9.x[7] * -.13167 + d__1 * d__1 * .00667 - 1.12;
-L13:
+labelL13:
     if (l10_13.index2[7]) {
 	l5_23.gg[84] = l2_9.x[7] * .076 - 1.098;
     }
@@ -12366,13 +12358,13 @@ L17:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 13;
     l1_1.nili = 5;
     l1_1.ninl = 10;
@@ -12392,7 +12384,7 @@ L1:
     l2_10.x[11] = 150.;
     l2_10.x[12] = 150.;
     for (i__ = 1; i__ <= 10; ++i__) {
-/* L6: */
+/* labelL6: */
 	l13_10.xl[i__ - 1] = .1;
     }
     l13_10.xl[3] = 1e-4;
@@ -12457,11 +12449,11 @@ L1:
     l20_11.xex[12] = .00673039736648;
     l20_11.fex = 97.5884089805;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_10.x[10] + l2_10.x[11] + l2_10.x[12];
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_14.index1[0]) {
 	l3_13.g[0] = l2_10.x[2] - l2_10.x[1];
     }
@@ -12526,25 +12518,25 @@ L4:
 		1.231059 * l2_10.x[8];
     }
     return 0;
-L5:
+labelL5:
     if (! l10_14.index2[5]) {
-	goto L12;
+	goto labelL12;
     }
     l5_24.gg[35] = l2_10.x[9] * 1.231059;
     l5_24.gg[140] = l2_10.x[2] * 1.231059 - 1.262626;
-L12:
+labelL12:
     if (! l10_14.index2[6]) {
-	goto L13;
+	goto labelL13;
     }
     l5_24.gg[21] = -.03475 - l2_10.x[4] * .975 + l2_10.x[1] * .0195;
     l5_24.gg[66] = 1. - l2_10.x[1] * .975;
-L13:
+labelL13:
     if (! l10_14.index2[7]) {
-	goto L14;
+	goto labelL14;
     }
     l5_24.gg[37] = -.03475 - l2_10.x[5] * .975 + l2_10.x[2] * .0195;
     l5_24.gg[82] = 1. - l2_10.x[2] * .975;
-L14:
+labelL14:
     if (! l10_14.index2[8]) {
 	goto L15;
     }
@@ -12587,11 +12579,11 @@ L18:
     l5_24.gg[57] = 1. - l2_10.x[0] * .975;
 L19:
     if (! l10_14.index2[13]) {
-	goto L20;
+	goto labelL20;
     }
     l5_24.gg[13] = l2_10.x[7] * 1.231059;
     l5_24.gg[118] = l2_10.x[0] * 1.231059 - 1.262626;
-L20:
+labelL20:
     if (! l10_14.index2[14]) {
 	goto L21;
     }
@@ -12614,20 +12606,20 @@ L21:
     static Real t1, t2, t3, t4[5], t5[5], t6[5];
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L2;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL2;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 15;
     l1_1.nili = 0;
     l1_1.ninl = 5;
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 15; ++i__) {
-/* L20: */
+/* labelL20: */
 	l2_11.x[i__ - 1] = .001;
     }
     l2_11.x[6] = 60.;
@@ -12757,7 +12749,7 @@ L42:
     l20_12.xex[14] = .223960749729;
     l20_12.fex = 32.3486789791;
     return 0;
-L2:
+labelL2:
     t1 = 0.;
     t2 = 0.;
     for (j = 1; j <= 5; ++j) {
@@ -12788,11 +12780,11 @@ L2:
 /* L34: */
     }
     if (*mode == 4) {
-	goto L4;
+	goto labelL4;
     }
     l6_1.fx = -(t3 - t1 - t2 * 2.);
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 5; ++i__) {
 	t6[i__ - 1] = 0.;
 	for (j = 1; j <= 5; ++j) {
@@ -12808,7 +12800,7 @@ L3:
 	l4_11.gf[i__ + 9] = t6[i__ - 1] + d__[i__ - 1] * 6. * (d__1 * d__1);
     }
     return 0;
-L4:
+labelL4:
     for (j = 1; j <= 5; ++j) {
 	if (l9_5.index1[j - 1]) {
 /* Computing 2nd power */
@@ -12819,7 +12811,7 @@ L4:
 /* L38: */
     }
     return 0;
-L5:
+labelL5:
     for (j = 1; j <= 5; ++j) {
 	if (! l10_5.index2[j - 1]) {
 	    goto L39;
@@ -12842,20 +12834,20 @@ L39:
     static Real t;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 15;
     l1_1.nili = 29;
     l1_1.ninl = 0;
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 15; ++i__) {
-/* L6: */
+/* labelL6: */
 	l2_11.x[i__ - 1] = 20.;
     }
     l2_11.x[1] = 55.;
@@ -12893,7 +12885,7 @@ L1:
 	    l5_26.gg[k + (i__ << 2) - 4 + (k * 3 + i__ - 3) * 29 - 30] = -1.;
 	    l5_26.gg[k + 8 + (i__ << 2) + (k * 3 + i__) * 29 - 30] = -1.;
 	    l5_26.gg[k + 8 + (i__ << 2) + (k * 3 + i__ - 3) * 29 - 30] = 1.;
-/* L20: */
+/* labelL20: */
 	}
     }
     for (k = 1; k <= 5; ++k) {
@@ -12920,7 +12912,7 @@ L1:
     l20_12.xex[14] = 18.;
     l20_12.fex = 664.820449993;
     return 0;
-L2:
+labelL2:
     t = 0.;
     for (m = 1; m <= 5; ++m) {
 	i__ = m - 1;
@@ -12937,7 +12929,7 @@ L2:
     }
     l6_1.fx = t;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 5; ++i__) {
 	l4_11.gf[i__ * 3 - 3] = l2_11.x[i__ * 3 - 3] * 2e-4 + 2.3;
 	l4_11.gf[i__ * 3 - 2] = l2_11.x[i__ * 3 - 2] * 2e-4 + 1.7;
@@ -12945,7 +12937,7 @@ L3:
 	l4_11.gf[i__ * 3 - 1] = l2_11.x[i__ * 3 - 1] * 3e-4 + 2.2;
     }
     return 0;
-L4:
+labelL4:
     for (i__ = 1; i__ <= 4; ++i__) {
 	if (l9_15.index1[i__ - 1]) {
 	    l3_14.g[i__ - 1] = l2_11.x[i__ * 3] - l2_11.x[i__ * 3 - 3] + 7.;
@@ -12986,7 +12978,7 @@ L4:
     if (l9_15.index1[28]) {
 	l3_14.g[28] = l2_11.x[12] + l2_11.x[13] + l2_11.x[14] - 100.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp118_ */
 
@@ -13002,13 +12994,13 @@ L5:
     static Real s[16], t;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 16;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -13028,7 +13020,7 @@ L1:
     }
     for (i__ = 1; i__ <= 8; ++i__) {
 /* L22: */
-	b[i__ + (i__ + 8 << 3) - 9] = 1.;
+	b[i__ + ((i__ + 8) << 3) - 9] = 1.;
     }
     a[48] = 1.;
     a[96] = 1.;
@@ -13120,7 +13112,7 @@ L1:
 	l13_12.xl[i__ - 1] = 0.;
 	l14_12.xu[i__ - 1] = 5.;
 	for (j = 1; j <= 8; ++j) {
-/* L20: */
+/* labelL20: */
 	    l5_27.gg[j + (i__ << 3) - 9] = b[j + (i__ << 3) - 9];
 	}
     }
@@ -13143,7 +13135,7 @@ L1:
     l20_13.xex[15] = -1.10433723798e-11;
     l20_13.fex = 244.899697515;
     return 0;
-L2:
+labelL2:
     t = 0.;
     for (i__ = 1; i__ <= 16; ++i__) {
 	for (j = 1; j <= 16; ++j) {
@@ -13158,7 +13150,7 @@ L2:
     }
     l6_1.fx = t;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 16; ++i__) {
 	s[i__ - 1] = 0.;
 	for (j = 1; j <= 16; ++j) {
@@ -13173,7 +13165,7 @@ L3:
 	l4_12.gf[i__ - 1] = s[i__ - 1];
     }
     return 0;
-L4:
+labelL4:
     for (i__ = 1; i__ <= 8; ++i__) {
 	if (! l9_12.index1[i__ - 1]) {
 	    goto L33;
@@ -13187,7 +13179,7 @@ L4:
 L33:
 	;
     }
-L5:
+labelL5:
     return 0;
 } /* tp119_ */
 
@@ -13201,13 +13193,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -13217,7 +13209,7 @@ L1:
     l2_1.x[1] = 9.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -13226,17 +13218,17 @@ L1:
     l20_1.xex[0] = 5.;
     l20_1.xex[1] = 6.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 5.;
 /* Computing 2nd power */
     d__2 = l2_1.x[1] - 6.;
     l6_1.fx = d__1 * d__1 * 4. + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = (l2_1.x[0] - 5.) * 8.;
     l4_1.gf[1] = (l2_1.x[1] - 6.) * 2.;
-L4:
+labelL4:
     return 0;
 } /* tp201_ */
 
@@ -13250,13 +13242,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -13266,7 +13258,7 @@ L1:
     l2_1.x[1] = -2.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = true;
     }
     l14_1.xu[0] = (float)20.;
@@ -13282,7 +13274,7 @@ L1:
     l20_6.xex[3] = -.89681;
     l15_1.lsum = 2;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[1];
 /* Computing 3rd power */
@@ -13301,7 +13293,7 @@ L2:
     d__2 = l16_1.f[1];
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[1];
 /* Computing 3rd power */
@@ -13327,7 +13319,7 @@ L3:
 	l4_1.gf[i__ - 1] = l16_1.f[0] * 2. * l17_1.df[(i__ << 1) - 2] + 
 		l16_1.f[1] * 2. * l17_1.df[(i__ << 1) - 1];
     }
-L4:
+labelL4:
     return 0;
 } /* tp202_ */
 
@@ -13348,13 +13340,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -13364,7 +13356,7 @@ L1:
     l2_1.x[1] = .2;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -13374,7 +13366,7 @@ L1:
     l20_1.xex[1] = .5;
     l15_1.lsum = 3;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 3; ++i__) {
 	l16_2.f[i__ - 1] = c__[i__ - 1] - l2_1.x[0] * (1. - pow_di(&l2_1.x[1],
@@ -13385,7 +13377,7 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L8: */
 	l16_2.f[i__ - 1] = c__[i__ - 1] - l2_1.x[0] * (1. - pow_di(&l2_1.x[1],
@@ -13404,12 +13396,12 @@ L3:
     d__1 = l2_1.x[1];
     l17_2.df[5] = l2_1.x[0] * 3. * (d__1 * d__1);
     for (i__ = 1; i__ <= 2; ++i__) {
-/* L9: */
+/* labelL9: */
 	l4_1.gf[i__ - 1] = l16_2.f[0] * 2. * l17_2.df[i__ * 3 - 3] + l16_2.f[
 		1] * 2. * l17_2.df[i__ * 3 - 2] + l16_2.f[2] * 2. * l17_2.df[
 		i__ * 3 - 1];
     }
-L4:
+labelL4:
     return 0;
 } /* tp203_ */
 
@@ -13431,13 +13423,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -13447,7 +13439,7 @@ L1:
     l2_1.x[1] = .1;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -13457,10 +13449,10 @@ L1:
     l20_1.xex[1] = 0.;
     l15_1.lsum = 3;
     return 0;
-L2:
+labelL2:
     for (i__ = 1; i__ <= 3; ++i__) {
 	prod = h__[i__ - 1] * l2_1.x[0] + h__[i__ + 2] * l2_1.x[1];
-/* L10: */
+/* labelL10: */
 /* Computing 2nd power */
 	d__1 = prod;
 	l16_2.f[i__ - 1] = a[i__ - 1] + prod + d__1 * d__1 * .5 * d__[i__ - 1]
@@ -13474,10 +13466,10 @@ L2:
     d__3 = l16_2.f[2];
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 	prod = h__[i__ - 1] * l2_1.x[0] + h__[i__ + 2] * l2_1.x[1];
-/* L11: */
+/* labelL11: */
 /* Computing 2nd power */
 	d__1 = prod;
 	l16_2.f[i__ - 1] = a[i__ - 1] + prod + d__1 * d__1 * .5 * d__[i__ - 1]
@@ -13494,12 +13486,12 @@ L3:
 		i__ + 2] * l2_1.x[1]) * h__[i__ + 2] * d__[i__ - 1];
     }
     for (i__ = 1; i__ <= 2; ++i__) {
-/* L9: */
+/* labelL9: */
 	l4_1.gf[i__ - 1] = (l16_2.f[0] * l17_2.df[i__ * 3 - 3] + l16_2.f[1] * 
 		l17_2.df[i__ * 3 - 2] + l16_2.f[2] * l17_2.df[i__ * 3 - 1]) * 
 		2.;
     }
-L4:
+labelL4:
     return 0;
 } /* tp204_ */
 
@@ -13513,13 +13505,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -13529,7 +13521,7 @@ L1:
     l2_1.x[1] = 0.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -13539,7 +13531,7 @@ L1:
     l20_1.xex[1] = .5;
     l15_1.lsum = 3;
     return 0;
-L2:
+labelL2:
     l16_2.f[0] = 1.5 - l2_1.x[0] * (1. - l2_1.x[1]);
 /* Computing 2nd power */
     d__1 = l2_1.x[1];
@@ -13555,7 +13547,7 @@ L2:
     d__3 = l16_2.f[2];
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3;
     return 0;
-L3:
+labelL3:
     l16_2.f[0] = 1.5 - l2_1.x[0] * (1. - l2_1.x[1]);
 /* Computing 2nd power */
     d__1 = l2_1.x[1];
@@ -13581,7 +13573,7 @@ L3:
 		1] * 2. * l17_2.df[i__ * 3 - 2] + l16_2.f[2] * 2. * l17_2.df[
 		i__ * 3 - 1];
     }
-L4:
+labelL4:
     return 0;
 } /* tp205_ */
 
@@ -13595,13 +13587,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -13611,7 +13603,7 @@ L1:
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -13620,7 +13612,7 @@ L1:
     l20_1.xex[0] = 1.;
     l20_1.xex[1] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -13629,7 +13621,7 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = d__1 * d__1 + d__3 * d__3 * 100.;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = (l2_1.x[1] - d__1 * d__1) * -2. * 2. * l2_1.x[0] - (1. - 
@@ -13637,7 +13629,7 @@ L3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * d__1) * 2.;
-L4:
+labelL4:
     return 0;
 } /* tp206_ */
 
@@ -13655,13 +13647,13 @@ L4:
     static int lsum, i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -13671,7 +13663,7 @@ L1:
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -13681,7 +13673,7 @@ L1:
     l20_1.xex[1] = 1.;
     lsum = 2;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -13690,7 +13682,7 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = c__ * (d__1 * d__1) + d__3 * d__3;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = c__ * -4. * (l2_1.x[1] - d__1 * d__1) * l2_1.x[0] - (1. - 
@@ -13698,7 +13690,7 @@ L3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = c__ * 2. * (l2_1.x[1] - d__1 * d__1);
-L4:
+labelL4:
     return 0;
 } /* tp207_ */
 
@@ -13716,13 +13708,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -13732,7 +13724,7 @@ L1:
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -13741,7 +13733,7 @@ L1:
     l20_1.xex[0] = 1.;
     l20_1.xex[1] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -13750,7 +13742,7 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = c__ * (d__1 * d__1) + d__3 * d__3;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = c__ * -4. * (l2_1.x[1] - d__1 * d__1) * l2_1.x[0] - (1. - 
@@ -13758,7 +13750,7 @@ L3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = c__ * 2. * (l2_1.x[1] - d__1 * d__1);
-L4:
+labelL4:
     return 0;
 } /* tp208_ */
 
@@ -13775,13 +13767,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -13791,7 +13783,7 @@ L1:
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -13800,7 +13792,7 @@ L1:
     l20_1.xex[0] = 1.;
     l20_1.xex[1] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -13809,7 +13801,7 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = c__ * (d__1 * d__1) + d__3 * d__3;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = c__ * -4. * (l2_1.x[1] - d__1 * d__1) * l2_1.x[0] - (1. - 
@@ -13817,7 +13809,7 @@ L3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = c__ * 2. * (l2_1.x[1] - d__1 * d__1);
-L4:
+labelL4:
     return 0;
 } /* tp209_ */
 
@@ -13834,13 +13826,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -13850,7 +13842,7 @@ L1:
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -13859,7 +13851,7 @@ L1:
     l20_1.xex[0] = 1.;
     l20_1.xex[1] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -13868,7 +13860,7 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = (c__ * (d__1 * d__1) + d__3 * d__3) / c__;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = (c__ * -4. * (l2_1.x[1] - d__1 * d__1) * l2_1.x[0] - (1. - 
@@ -13876,7 +13868,7 @@ L3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = c__ * 2. * (l2_1.x[1] - d__1 * d__1) / c__;
-L4:
+labelL4:
     return 0;
 } /* tp210_ */
 
@@ -13889,13 +13881,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -13905,7 +13897,7 @@ L1:
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -13914,7 +13906,7 @@ L1:
     l20_1.xex[0] = 1.;
     l20_1.xex[1] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 3rd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -13923,7 +13915,7 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = d__1 * d__1 * 100. + d__3 * d__3;
     return 0;
-L3:
+labelL3:
 /* Computing 3rd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
@@ -13933,7 +13925,7 @@ L3:
 /* Computing 3rd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * (d__1 * d__1)) * 200.;
-L4:
+labelL4:
     return 0;
 } /* tp211_ */
 
@@ -13946,13 +13938,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -13962,7 +13954,7 @@ L1:
     l2_1.x[1] = 0.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -13971,7 +13963,7 @@ L1:
     l20_1.xex[0] = 0.;
     l20_1.xex[1] = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = (l2_1.x[0] + l2_1.x[1]) * 4.;
 /* Computing 2nd power */
@@ -13983,7 +13975,7 @@ L2:
 	    d__3 + d__4 * d__4 - 1.);
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 2.;
 /* Computing 2nd power */
@@ -14008,7 +14000,7 @@ L3:
 	    4. + (l2_1.x[0] - l2_1.x[1]) * (d__1 * d__1 + d__2 * d__2 - 1.)) *
 	     2. * (4. - d__3 * d__3 + d__4 * d__4 - 1. + (l2_1.x[0] - l2_1.x[
 	    1]) * 2. * l2_1.x[1]);
-L4:
+labelL4:
     return 0;
 } /* tp212_ */
 
@@ -14022,13 +14014,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -14038,7 +14030,7 @@ L1:
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -14047,7 +14039,7 @@ L1:
     l20_1.xex[0] = 1.;
     l20_1.xex[1] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0] - l2_1.x[1];
 /* Computing 2nd power */
@@ -14056,7 +14048,7 @@ L2:
     d__1 = d__2 * d__2 * 10. + d__3 * d__3, d__1 *= d__1;
     l6_1.fx = d__1 * d__1 * 1e-6;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__2 = l2_1.x[0] - l2_1.x[1];
 /* Computing 2nd power */
@@ -14073,7 +14065,7 @@ L3:
     d__1 = d__2 * d__2 * 10. + d__3 * d__3;
     l4_1.gf[1] = d__1 * (d__1 * d__1) * 4. * 20. * (l2_1.x[1] - l2_1.x[0]) * 
 	    1e-6;
-L4:
+labelL4:
     return 0;
 } /* tp213_ */
 
@@ -14087,13 +14079,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -14103,7 +14095,7 @@ L1:
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
@@ -14112,7 +14104,7 @@ L1:
     l20_1.xex[0] = 1.;
     l20_1.xex[1] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0] - l2_1.x[1];
 /* Computing 2nd power */
@@ -14120,7 +14112,7 @@ L2:
     d__1 = d__2 * d__2 * 10. + d__3 * d__3;
     l6_1.fx = pow_dd(&d__1, &c_b934) * (float)100.;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__2 = l2_1.x[0] - l2_1.x[1];
 /* Computing 2nd power */
@@ -14135,7 +14127,7 @@ L3:
     d__1 = d__2 * d__2 * 10. + d__3 * d__3;
     l4_1.gf[1] = .25 / pow_dd(&d__1, &c_b949) * 20. * (l2_1.x[1] - l2_1.x[0]) 
 	    * (float)100.;
-L4:
+labelL4:
     return 0;
 } /* tp214_ */
 
@@ -14146,13 +14138,13 @@ L4:
     Real d__1;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -14172,21 +14164,21 @@ L1:
     l20_1.xex[0] = 0.;
     l20_1.xex[1] = 0.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_1.x[1];
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = 0.;
     l4_1.gf[1] = 1.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
 	l3_1.g[0] = l2_1.x[1] - d__1 * d__1;
     }
     return 0;
-L5:
+labelL5:
     if (l10_2.index2[0]) {
 	l5_1.gg[0] = l2_1.x[0] * -2.;
     }
@@ -14203,13 +14195,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -14221,7 +14213,7 @@ L1:
 	l14_1.xu[i__ - 1] = (float)10.;
 	l12_1.lxu[i__ - 1] = true;
 	l13_1.xl[i__ - 1] = (float)-3.;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = true;
     }
     l5_1.gg[1] = -2.;
@@ -14231,7 +14223,7 @@ L1:
     l20_1.xex[0] = 2.;
     l20_1.xex[1] = 4.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -14240,7 +14232,7 @@ L2:
     d__3 = l2_1.x[0] - 1.;
     l6_1.fx = d__1 * d__1 * 100. + d__3 * d__3;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = (d__1 * d__1 - l2_1.x[1]) * 400. * l2_1.x[0] + (l2_1.x[0] - 
@@ -14249,12 +14241,12 @@ L3:
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (d__1 * d__1 - l2_1.x[1]) * -200.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = l2_1.x[0] * (l2_1.x[0] - 4.) - l2_1.x[1] * 2. + 12.;
     }
     return 0;
-L5:
+labelL5:
     if (l10_2.index2[0]) {
 	l5_1.gg[0] = l2_1.x[0] * 2. - 4.;
     }
@@ -14268,13 +14260,13 @@ L5:
     Real d__1, d__2;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 1;
     l1_1.ninl = 0;
@@ -14295,14 +14287,14 @@ L1:
     l20_1.xex[0] = .6;
     l20_1.xex[1] = .8;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_1.x[1];
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = 0.;
     l4_1.gf[1] = -1.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_1.x[0] + 1. - l2_1.x[1] * 2.;
     }
@@ -14314,7 +14306,7 @@ L4:
 	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[1]) {
 	goto L8;
     }
@@ -14331,13 +14323,13 @@ L8:
     Real d__1;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -14357,21 +14349,21 @@ L1:
     l20_1.xex[0] = 0.;
     l20_1.xex[1] = 0.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_1.x[1];
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = 0.;
     l4_1.gf[1] = 1.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
 	l3_1.g[0] = l2_1.x[1] - d__1 * d__1;
     }
     return 0;
-L5:
+labelL5:
     if (l10_2.index2[0]) {
 	l5_1.gg[0] = l2_1.x[0] * -2.;
     }
@@ -14388,13 +14380,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -14418,16 +14410,16 @@ L1:
     l20_6.xex[2] = 0.;
     l20_6.xex[3] = 0.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_3.x[0];
     return 0;
-L3:
+labelL3:
     l4_3.gf[0] = -1.0;
     l4_3.gf[1] = 0.0;
     l4_3.gf[2] = 0.0;
     l4_3.gf[3] = 0.0;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 3rd power */
 	d__1 = l2_3.x[0];
@@ -14443,15 +14435,15 @@ L4:
 	l3_2.g[1] = d__1 * d__1 - l2_3.x[1] - d__2 * d__2;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
-	goto L6;
+	goto labelL6;
     }
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
     l5_6.gg[0] = d__1 * d__1 * -3.;
     l5_6.gg[4] = l2_3.x[2] * -2.;
-L6:
+labelL6:
     if (! l10_3.index2[1]) {
 	goto L7;
     }
@@ -14471,13 +14463,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -14486,7 +14478,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = (float)2.5e4;
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = true;
     }
     l13_1.xl[0] = (float)1.;
@@ -14497,21 +14489,21 @@ L1:
     l20_1.xex[0] = (float)1.;
     l20_1.xex[1] = (float)0.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_1.x[0];
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = (float)1.;
     l4_1.gf[1] = (float)0.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 3rd power */
 	d__1 = l2_1.x[0] - (float)1.;
 	l3_1.g[0] = d__1 * (d__1 * d__1) - l2_1.x[1];
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -14533,13 +14525,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -14550,7 +14542,7 @@ L1:
 	l12_1.lxu[i__ - 1] = true;
 	l14_1.xu[i__ - 1] = (float)1.;
 	l11_1.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_1.xl[i__ - 1] = (float)0.;
     }
     l5_1.gg[1] = (float)-1.;
@@ -14560,21 +14552,21 @@ L1:
     l20_1.xex[0] = 1.;
     l20_1.xex[1] = 0.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_1.x[0];
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = -1.;
     l4_1.gf[1] = 0.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 3rd power */
 	d__1 = l2_1.x[0] - 1.;
 	l3_1.g[0] = -(d__1 * (d__1 * d__1)) - l2_1.x[1];
     }
     return 0;
-L5:
+labelL5:
     if (l10_2.index2[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0] - 1.;
@@ -14593,13 +14585,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -14610,7 +14602,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
 	l11_1.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_1.xl[i__ - 1] = 0.;
     }
     l5_1.gg[1] = -1.;
@@ -14620,21 +14612,21 @@ L1:
     l20_1.xex[0] = 1.5;
     l20_1.xex[1] = 0.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_1.x[0];
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = -1.;
     l4_1.gf[1] = 0.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 3rd power */
 	d__1 = l2_1.x[0] - 1.;
 	l3_1.g[0] = .125 - d__1 * (d__1 * d__1) - l2_1.x[1];
     }
     return 0;
-L5:
+labelL5:
     if (l10_2.index2[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0] - 1.;
@@ -14649,13 +14641,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -14667,7 +14659,7 @@ L1:
 	l12_1.lxu[i__ - 1] = true;
 	l11_1.lxl[i__ - 1] = true;
 	l14_1.xu[i__ - 1] = 10.;
-/* L6: */
+/* labelL6: */
 	l13_1.xl[i__ - 1] = 0.;
     }
     l14_1.xu[0] = (float)1.;
@@ -14679,14 +14671,14 @@ L1:
     l20_1.xex[0] = std::log(std::log(10.));
     l20_1.xex[1] = 10.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_1.x[0];
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = -1.;
     l4_1.gf[1] = 0.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = std::exp(std::exp(l2_1.x[0]));
     }
@@ -14694,7 +14686,7 @@ L4:
 	l3_2.g[1] = l2_1.x[1] - std::exp(std::exp(l2_1.x[0]));
     }
     return 0;
-L5:
+labelL5:
     if (l10_3.index2[0]) {
 	l5_2.gg[0] = std::exp(l2_1.x[0]) * std::exp(std::exp(l2_1.x[0]));
     }
@@ -14713,13 +14705,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 4;
     l1_1.ninl = 0;
@@ -14730,7 +14722,7 @@ L1:
 	l12_1.lxu[i__ - 1] = true;
 	l11_1.lxl[i__ - 1] = true;
 	l14_1.xu[i__ - 1] = 6.;
-/* L6: */
+/* labelL6: */
 	l13_1.xl[i__ - 1] = 0.;
     }
     l5_6.gg[0] = 1.;
@@ -14747,7 +14739,7 @@ L1:
     l20_1.xex[0] = 4.;
     l20_1.xex[1] = 4.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
@@ -14755,11 +14747,11 @@ L2:
     l6_1.fx = d__1 * d__1 * 2. + d__2 * d__2 - l2_1.x[0] * 48. - l2_1.x[1] * 
 	    40.;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * 4. - 48.;
     l4_1.gf[1] = l2_1.x[1] * 2. - 40.;
     return 0;
-L4:
+labelL4:
     if (l9_7.index1[0]) {
 	l3_6.g[0] = l2_1.x[0] + l2_1.x[1] * 3.;
     }
@@ -14772,7 +14764,7 @@ L4:
     if (l9_7.index1[3]) {
 	l3_6.g[3] = 8. - l2_1.x[0] - l2_1.x[1];
     }
-L5:
+labelL5:
     return 0;
 } /* tp224_ */
 
@@ -14785,13 +14777,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 5;
@@ -14801,7 +14793,7 @@ L1:
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l5_4.gg[0] = 1.;
@@ -14814,18 +14806,18 @@ L1:
     l20_1.xex[0] = 1.;
     l20_1.xex[1] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * 2.;
     l4_1.gf[1] = l2_1.x[1] * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_5.index1[0]) {
 	l3_4.g[0] = l2_1.x[0] + l2_1.x[1] - 1.;
     }
@@ -14850,7 +14842,7 @@ L4:
 	l3_4.g[4] = pow_dd(&l2_1.x[1], &c_b305) - l2_1.x[0];
     }
     return 0;
-L5:
+labelL5:
     if (! l10_5.index2[1]) {
 	goto L7;
     }
@@ -14881,13 +14873,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -14899,20 +14891,20 @@ L1:
 	l12_1.lxu[i__ - 1] = false;
 	l11_1.lxl[i__ - 1] = true;
 	l13_1.xl[i__ - 1] = 0.;
-/* L6: */
+/* labelL6: */
 	l20_1.xex[i__ - 1] = 1. / std::sqrt(2.);
     }
     l20_1.lex = true;
     l20_1.fex = -.5;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_1.x[0] * l2_1.x[1];
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = -l2_1.x[1];
     l4_1.gf[1] = -l2_1.x[0];
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -14928,7 +14920,7 @@ L4:
 	l3_2.g[1] = 1. - d__1 * d__1 - d__2 * d__2;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -14953,13 +14945,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -14969,7 +14961,7 @@ L1:
 	l2_1.x[i__ - 1] = .5;
 	l12_1.lxu[i__ - 1] = false;
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l20_1.xex[i__ - 1] = 1.;
     }
     l5_2.gg[2] = 1.;
@@ -14978,18 +14970,18 @@ L1:
     l20_1.nex = 1;
     l20_1.fex = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 2.;
 /* Computing 2nd power */
     d__2 = l2_1.x[1] - 1.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = (l2_1.x[0] - 2.) * 2.;
     l4_1.gf[1] = (l2_1.x[1] - 1.) * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -15001,7 +14993,7 @@ L4:
 	l3_2.g[1] = l2_1.x[0] - d__1 * d__1;
     }
     return 0;
-L5:
+labelL5:
     if (l10_3.index2[0]) {
 	l5_2.gg[0] = l2_1.x[0] * -2.;
     }
@@ -15020,13 +15012,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 1;
     l1_1.ninl = 1;
@@ -15035,7 +15027,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = 0.;
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.xex[0] = 0.;
@@ -15046,16 +15038,16 @@ L1:
     l20_1.nex = 1;
     l20_1.fex = -3.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l6_1.fx = d__1 * d__1 + l2_1.x[1];
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * 2.;
     l4_1.gf[1] = 1.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = -l2_1.x[0] - l2_1.x[1] + 1.;
     }
@@ -15067,7 +15059,7 @@ L4:
 	l3_2.g[1] = -(d__1 * d__1 + d__2 * d__2) + 9.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[1]) {
 	goto L7;
     }
@@ -15086,13 +15078,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -15105,14 +15097,14 @@ L1:
 	l11_1.lxl[i__ - 1] = true;
 	l14_1.xu[i__ - 1] = 2.;
 	l13_1.xl[i__ - 1] = -2.;
-/* L6: */
+/* labelL6: */
 	l20_1.xex[i__ - 1] = 1.;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
     l20_1.fex = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -15121,7 +15113,7 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = d__1 * d__1 * 100. + d__3 * d__3;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = l2_1.x[0] * -400. * (l2_1.x[1] - d__1 * d__1) - (1. - l2_1.x[
@@ -15129,7 +15121,7 @@ L3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * d__1) * 200.;
-L4:
+labelL4:
     return 0;
 } /* tp229_ */
 
@@ -15142,13 +15134,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -15157,7 +15149,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = 0.;
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.xex[0] = .5;
@@ -15168,14 +15160,14 @@ L1:
     l20_1.nex = 1;
     l20_1.fex = .375;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_1.x[1];
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = 0.;
     l4_1.gf[1] = 1.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -15191,7 +15183,7 @@ L4:
 	l3_2.g[1] = d__1 * d__1 * -2. + d__2 * (d__2 * d__2) + l2_1.x[1];
     }
     return 0;
-L5:
+labelL5:
     if (l10_3.index2[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -15214,13 +15206,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 2;
     l1_1.ninl = 0;
@@ -15231,7 +15223,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l20_1.xex[i__ - 1] = 1.;
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l5_2.gg[0] = .33333333333333331;
@@ -15242,7 +15234,7 @@ L1:
     l20_1.nex = 1;
     l20_1.fex = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -15251,7 +15243,7 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = d__1 * d__1 * 100. + d__3 * d__3;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = l2_1.x[0] * -400. * (l2_1.x[1] - d__1 * d__1) - (1. - l2_1.x[
@@ -15260,14 +15252,14 @@ L3:
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * d__1) * 200.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_1.x[0] / 3. + l2_1.x[1] + .1;
     }
     if (l9_3.index1[1]) {
 	l3_2.g[1] = -l2_1.x[0] / 3. + l2_1.x[1] + .1;
     }
-L5:
+labelL5:
     return 0;
 } /* tp231_ */
 
@@ -15282,13 +15274,13 @@ L5:
 
     hv = std::sqrt(3.);
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 3;
     l1_1.ninl = 0;
@@ -15299,7 +15291,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
 	l11_1.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_1.xl[i__ - 1] = 0.;
     }
     l5_3.gg[0] = 1 / hv;
@@ -15313,14 +15305,14 @@ L1:
     l20_1.fex = (float)-1.;
     l20_1.xex[0] = 3.;
     l20_1.xex[1] = hv;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 3.;
 /* Computing 3rd power */
     d__2 = l2_1.x[1];
     l6_1.fx = -(9. - d__1 * d__1) * (d__2 * (d__2 * d__2)) / (hv * 27.);
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = (l2_1.x[0] - 3.) * 2. * pow_dd(&l2_1.x[1], &c_b1523) / (hv * 
 	    27.);
 /* Computing 2nd power */
@@ -15329,7 +15321,7 @@ L3:
     d__2 = l2_1.x[1];
     l4_1.gf[1] = -(9. - d__1 * d__1) * (d__2 * d__2) / (hv * 9.);
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = l2_1.x[0] / hv - l2_1.x[1];
     }
@@ -15339,7 +15331,7 @@ L4:
     if (l9_4.index1[2]) {
 	l3_3.g[2] = 6. - l2_1.x[0] - hv * l2_1.x[1];
     }
-L5:
+labelL5:
     return 0;
 } /* tp232_ */
 
@@ -15352,13 +15344,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -15369,14 +15361,14 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l20_1.xex[i__ - 1] = 1.;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
     l20_1.fex = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -15385,7 +15377,7 @@ L2:
     d__3 = 1. - l2_1.x[0];
     l6_1.fx = d__1 * d__1 * 100. + d__3 * d__3;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = l2_1.x[0] * -400. * (l2_1.x[1] - d__1 * d__1) - (1. - l2_1.x[
@@ -15394,7 +15386,7 @@ L3:
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * d__1) * 200.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -15403,7 +15395,7 @@ L4:
 	l3_1.g[0] = d__1 * d__1 + d__2 * d__2 - .25;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -15423,13 +15415,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -15441,19 +15433,19 @@ L1:
 	l11_1.lxl[i__ - 1] = true;
 	l13_1.xl[i__ - 1] = .2;
 	l14_1.xu[i__ - 1] = 2.;
-/* L6: */
+/* labelL6: */
 	l20_1.xex[i__ - 1] = .2;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
     l20_1.fex = -.8;
     return 0;
-L2:
+labelL2:
 /* Computing 4th power */
     d__1 = l2_1.x[1] - l2_1.x[0], d__1 *= d__1;
     l6_1.fx = d__1 * d__1 - (1. - l2_1.x[0]);
     return 0;
-L3:
+labelL3:
 /* Computing 3rd power */
     d__1 = l2_1.x[1] - l2_1.x[0];
     l4_1.gf[0] = d__1 * (d__1 * d__1) * -4. + 1.;
@@ -15461,7 +15453,7 @@ L3:
     d__1 = l2_1.x[1] - l2_1.x[0];
     l4_1.gf[1] = d__1 * (d__1 * d__1) * 4.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -15470,7 +15462,7 @@ L4:
 	l3_1.g[0] = -(d__1 * d__1) - d__2 * d__2 + 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -15490,13 +15482,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -15507,7 +15499,7 @@ L1:
     l2_2.x[2] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_2.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_2.lxl[i__ - 1] = false;
     }
     l5_5.gg[0] = 1.;
@@ -15519,7 +15511,7 @@ L1:
     l20_3.nex = 1;
     l20_3.fex = .04;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_2.x[0];
 /* Computing 2nd power */
@@ -15528,7 +15520,7 @@ L2:
     d__3 = l2_2.x[0] - 1.;
     l6_1.fx = d__1 * d__1 + d__3 * d__3 * .01;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
     l4_2.gf[0] = l2_2.x[0] * -4. * (l2_2.x[1] - d__1 * d__1) + (l2_2.x[0] - 
@@ -15539,14 +15531,14 @@ L3:
     l4_2.gf[2] = 0.0;
 
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[2];
 	l3_1.g[0] = l2_2.x[0] + d__1 * d__1 + 1.;
     }
     return 0;
-L5:
+labelL5:
     if (l10_2.index2[0]) {
 	l5_5.gg[2] = l2_2.x[2] * 2.;
     }
@@ -15570,10 +15562,10 @@ L5:
 
 
     switch ((int)*imode) {
-	case 1:  goto L2;
-	case 2:  goto L3;
+	case 1:  goto labelL2;
+	case 2:  goto labelL3;
     }
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 3rd power */
@@ -15621,7 +15613,7 @@ L2:
 	    l2_1.x[0] * 5e-4 * l2_1.x[1]);
     l6_1.fx = -l6_1.fx;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 3rd power */
@@ -15699,13 +15691,13 @@ L3:
     int tp236239_(int *);
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -15716,7 +15708,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = true;
 	l11_1.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_1.xl[i__ - 1] = 0.;
     }
     l14_1.xu[0] = 75.;
@@ -15728,13 +15720,13 @@ L1:
     l20_1.xex[0] = 75.;
     l20_1.xex[1] = 65.;
     return 0;
-L2:
+labelL2:
     tp236239_(&c__1);
     return 0;
-L3:
+labelL3:
     tp236239_(&c__2);
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_1.x[0] * l2_1.x[1] - 700.;
     }
@@ -15744,7 +15736,7 @@ L4:
 	l3_2.g[1] = l2_1.x[1] - d__1 * d__1 * 5.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -15767,13 +15759,13 @@ L7:
     int tp236239_(int *);
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 3;
@@ -15796,13 +15788,13 @@ L1:
     l20_1.xex[0] = 75.;
     l20_1.xex[1] = 65.;
     return 0;
-L2:
+labelL2:
     tp236239_(&c__1);
     return 0;
-L3:
+labelL3:
     tp236239_(&c__2);
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = l2_1.x[0] * l2_1.x[1] - 700.;
     }
@@ -15817,13 +15809,13 @@ L4:
 	l3_3.g[2] = d__1 * d__1 - (l2_1.x[0] - 55.) * 5.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[0]) {
-	goto L6;
+	goto labelL6;
     }
     l5_3.gg[0] = l2_1.x[1];
     l5_3.gg[3] = l2_1.x[0];
-L6:
+labelL6:
     if (l10_4.index2[1]) {
 	l5_3.gg[1] = l2_1.x[0] * -.016;
     }
@@ -15844,13 +15836,13 @@ L6:
     int tp236239_(int *);
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 3;
@@ -15860,7 +15852,7 @@ L1:
     l2_1.x[1] = 10.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l14_1.xu[0] = 75.;
@@ -15873,13 +15865,13 @@ L1:
     l20_1.xex[0] = 75.;
     l20_1.xex[1] = 65.;
     return 0;
-L2:
+labelL2:
     tp236239_(&c__1);
     return 0;
-L3:
+labelL3:
     tp236239_(&c__2);
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = l2_1.x[0] * l2_1.x[1] - 700.;
     }
@@ -15894,7 +15886,7 @@ L4:
 	l3_3.g[2] = d__1 * d__1 - (l2_1.x[0] - 55.) * 5.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[0]) {
 	goto L7;
     }
@@ -15917,13 +15909,13 @@ L7:
     int tp236239_(int *);
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -15934,7 +15926,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = true;
 	l11_1.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_1.xl[i__ - 1] = 0.;
     }
     l14_1.xu[0] = 75.;
@@ -15945,18 +15937,18 @@ L1:
     l20_1.xex[0] = (float)75.;
     l20_1.xex[1] = (float)65.;
     return 0;
-L2:
+labelL2:
     tp236239_(&c__1);
     return 0;
-L3:
+labelL3:
     tp236239_(&c__2);
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = l2_1.x[0] * l2_1.x[1] - 700.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -15976,13 +15968,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -15994,14 +15986,14 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l11_2.lxl[i__ - 1] = false;
 	l12_2.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l20_3.xex[i__ - 1] = 0.;
     }
     l20_3.lex = true;
     l20_3.nex = 1;
     l20_3.fex = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0] - l2_2.x[1] + l2_2.x[2];
 /* Computing 2nd power */
@@ -16009,7 +16001,7 @@ L2:
 /* Computing 2nd power */
     d__3 = l2_2.x[0] + l2_2.x[1] - l2_2.x[2];
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3;
-L3:
+labelL3:
     l4_2.gf[0] = (l2_2.x[0] - l2_2.x[1] + l2_2.x[2]) * 2. - (l2_2.x[1] - 
 	    l2_2.x[0] + l2_2.x[2]) * 2. + (l2_2.x[0] + l2_2.x[1] - l2_2.x[2]) 
 	    * 2.;
@@ -16019,7 +16011,7 @@ L3:
     l4_2.gf[2] = (l2_2.x[0] - l2_2.x[1] + l2_2.x[2]) * 2. + (l2_2.x[1] - 
 	    l2_2.x[0] + l2_2.x[2]) * 2. - (l2_2.x[0] + l2_2.x[1] - l2_2.x[2]) 
 	    * 2.;
-L4:
+labelL4:
     return 0;
 } /* tp240_ */
 
@@ -16032,13 +16024,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -16050,7 +16042,7 @@ L1:
     l2_2.x[2] = 0.;
     for (i__ = 1; i__ <= 3; ++i__) {
 	l11_2.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = false;
     }
     l20_3.lex = true;
@@ -16060,7 +16052,7 @@ L1:
     l20_3.xex[1] = 0.;
     l20_3.xex[2] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
 /* Computing 2nd power */
@@ -16085,7 +16077,7 @@ L2:
     d__3 = l2_2.x[2] * 5. - l2_2.x[0] + 1.;
     l16_3.f[4] = d__1 * (d__1 * d__1) + d__2 * d__2 * 3. + d__3 * d__3 - 36.;
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
 /* Computing 2nd power */
     d__1 = l16_3.f[0];
@@ -16100,7 +16092,7 @@ L2:
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 + d__5 * 
 	    d__5;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l17_3.df[i__ * 5 - 5] = l2_2.x[i__ - 1] * 2.;
 /* L7: */
@@ -16126,7 +16118,7 @@ L3:
 /* L8: */
 	l4_2.gf[2] += l16_3.f[i__ - 1] * l17_3.df[i__ + 9] * 2.;
     }
-L4:
+labelL4:
     return 0;
 } /* tp241_ */
 
@@ -16140,13 +16132,13 @@ L4:
     static Real ti;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -16159,7 +16151,7 @@ L1:
 	l11_2.lxl[i__ - 1] = true;
 	l12_2.lxu[i__ - 1] = true;
 	l13_2.xl[i__ - 1] = 0.;
-/* L6: */
+/* labelL6: */
 	l14_2.xu[i__ - 1] = 10.;
     }
     l15_1.lsum = 10;
@@ -16170,7 +16162,7 @@ L1:
     l20_3.xex[1] = 10.;
     l20_3.xex[2] = 1.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 	ti = (Real) i__ * .1;
@@ -16179,7 +16171,7 @@ L2:
 		l2_2.x[2] * (std::exp(-ti) - std::exp(ti * -10.));
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L8: */
@@ -16188,7 +16180,7 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = 0.;
     l4_2.gf[1] = 0.;
     l4_2.gf[2] = 0.;
@@ -16201,10 +16193,10 @@ L3:
 	l17_4.df[i__ + 19] = std::exp(ti * -10.) - std::exp(-ti);
 	l4_2.gf[0] += l16_4.f[i__ - 1] * l17_4.df[i__ - 1] * 2.;
 	l4_2.gf[1] += l16_4.f[i__ - 1] * l17_4.df[i__ + 9] * 2.;
-/* L9: */
+/* labelL9: */
 	l4_2.gf[2] += l16_4.f[i__ - 1] * l17_4.df[i__ + 19] * 2.;
     }
-L4:
+labelL4:
     return 0;
 } /* tp242_ */
 
@@ -16238,13 +16230,13 @@ L4:
     g[7] = .586387;
     g[11] = .289826;
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -16255,14 +16247,14 @@ L1:
 	l11_2.lxl[i__ - 1] = false;
 	l12_2.lxu[i__ - 1] = false;
 	l2_2.x[i__ - 1] = .1;
-/* L6: */
+/* labelL6: */
 	l20_3.xex[i__ - 1] = 0.;
     }
     l20_3.lex = true;
     l20_3.nex = 1;
     l20_3.fex = .7966;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     xbx = (l2_2.x[0] * b[0] + l2_2.x[1] * b[1] + l2_2.x[2] * b[2]) * l2_2.x[0]
 	     + (l2_2.x[0] * b[3] + l2_2.x[1] * b[4] + l2_2.x[2] * b[5]) * 
@@ -16274,21 +16266,21 @@ L2:
 		l2_2.x[1] + g[i__ + 7] * l2_2.x[2] + xbx * .5 * d__[i__ - 1];
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
-/* L10: */
+/* labelL10: */
 /* Computing 2nd power */
 	d__1 = l16_5.f[i__ - 1];
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     dxbx[0] = (l2_2.x[0] * b[0] + l2_2.x[1] * b[1] + l2_2.x[2] * b[2]) * 2.;
     dxbx[1] = (l2_2.x[0] * b[3] + l2_2.x[1] * b[4] + l2_2.x[2] * b[5]) * 2.;
     dxbx[2] = (l2_2.x[0] * b[6] + l2_2.x[1] * b[7] + l2_2.x[2] * b[8]) * 2.;
     for (i__ = 1; i__ <= 3; ++i__) {
-/* L9: */
+/* labelL9: */
 	l4_2.gf[i__ - 1] = 0.;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
@@ -16300,7 +16292,7 @@ L3:
 /* L8: */
 	l4_2.gf[2] += l16_5.f[i__ - 1] * l17_5.df[i__ + 7] * 2.;
     }
-L4:
+labelL4:
     return 0;
 } /* tp243_ */
 
@@ -16315,13 +16307,13 @@ L4:
     static Real yi, zi;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -16336,7 +16328,7 @@ L1:
 	l13_2.xl[i__ - 1] = (float)0.;
 	l14_2.xu[i__ - 1] = 1e10;
 	l11_2.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = true;
     }
     l20_3.lex = true;
@@ -16345,7 +16337,7 @@ L1:
     l20_3.xex[1] = 10.;
     l20_3.xex[2] = 5.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 	zi = (Real) i__ * .1;
@@ -16355,16 +16347,16 @@ L2:
 		 zi) - yi;
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     for (i__ = 1; i__ <= 8; ++i__) {
-/* L10: */
+/* labelL10: */
 /* Computing 2nd power */
 	d__1 = l16_4.f[i__ - 1];
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L8: */
 	l4_2.gf[i__ - 1] = 0.;
@@ -16377,10 +16369,10 @@ L3:
 	l17_4.df[i__ + 19] = -exp(-l2_2.x[1] * zi);
 	l4_2.gf[0] += l16_4.f[i__ - 1] * l17_4.df[i__ - 1] * 2.;
 	l4_2.gf[1] += l16_4.f[i__ - 1] * l17_4.df[i__ + 9] * 2.;
-/* L9: */
+/* labelL9: */
 	l4_2.gf[2] += l16_4.f[i__ - 1] * l17_4.df[i__ + 19] * 2.;
     }
-L4:
+labelL4:
     return 0;
 } /* tp244_ */
 
@@ -16395,13 +16387,13 @@ L4:
     static Real di;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -16415,7 +16407,7 @@ L1:
 	l13_13.xl[i__ - 1] = (float)0.;
 	l11_2.lxl[i__ - 1] = true;
 	l14_13.xu[i__ - 1] = (float)20.;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = true;
     }
     l14_13.xu[0] = (float)12.;
@@ -16427,7 +16419,7 @@ L1:
     l20_3.xex[2] = 1.;
     l15_1.lsum = 10;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 	di = (Real) i__;
@@ -16436,16 +16428,16 @@ L2:
 		10.) - l2_2.x[2] * (exp(-di / 10.) - std::exp(-di));
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     for (i__ = 1; i__ <= 10; ++i__) {
-/* L10: */
+/* labelL10: */
 /* Computing 2nd power */
 	d__1 = l16_4.f[i__ - 1];
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L8: */
 	l4_2.gf[i__ - 1] = 0.;
@@ -16457,10 +16449,10 @@ L3:
 	l17_4.df[i__ + 19] = std::exp(-di) - std::exp(-di / 10.);
 	l4_2.gf[0] += l16_4.f[i__ - 1] * l17_4.df[i__ - 1] * 2.;
 	l4_2.gf[1] += l16_4.f[i__ - 1] * l17_4.df[i__ + 9] * 2.;
-/* L9: */
+/* labelL9: */
 	l4_2.gf[2] += l16_4.f[i__ - 1] * l17_4.df[i__ + 19] * 2.;
     }
-L4:
+labelL4:
     return 0;
 } /* tp245_ */
 
@@ -16474,13 +16466,13 @@ L4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -16496,7 +16488,7 @@ L1:
 	}
 	l11_2.lxl[i__ - 1] = false;
 	l12_2.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l20_3.xex[i__ - 1] = 1.;
     }
     l17_6.df[6] = 10.;
@@ -16507,14 +16499,14 @@ L1:
     l20_3.fex = 0.;
     l15_1.lsum = 3;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = (l2_2.x[0] + l2_2.x[1]) / 2.;
     l16_2.f[0] = (l2_2.x[2] - d__1 * d__1) * 10.;
     l16_2.f[1] = 1. - l2_2.x[0];
     l16_2.f[2] = 1. - l2_2.x[1];
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
 /* Computing 2nd power */
     d__1 = l16_2.f[0];
@@ -16524,7 +16516,7 @@ L2:
     d__3 = l16_2.f[2];
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3;
     return 0;
-L3:
+labelL3:
     l17_6.df[0] = (l2_2.x[0] + l2_2.x[1]) * -10.;
     l17_6.df[3] = (l2_2.x[0] + l2_2.x[1]) * -10.;
     for (i__ = 1; i__ <= 3; ++i__) {
@@ -16535,7 +16527,7 @@ L3:
 		    4];
 	}
     }
-L4:
+labelL4:
     return 0;
 } /* tp246_ */
 
@@ -16550,13 +16542,13 @@ L4:
     static Real theta, dtheta[3], xpi;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -16565,7 +16557,7 @@ L1:
     l20_3.nex = 1;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_2.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = false;
     }
     l11_2.lxl[2] = true;
@@ -16583,7 +16575,7 @@ L1:
     l20_3.xex[1] = 0.;
     l20_3.xex[2] = 0.;
     return 0;
-L2:
+labelL2:
     xpi = std::asin(1.) * 2.;
     theta = 1. / (xpi * 2.) * std::atan(l2_2.x[1] / l2_2.x[0]);
     if (l2_2.x[0] < 0.) {
@@ -16601,7 +16593,7 @@ L2:
     d__5 = l2_2.x[2];
     l6_1.fx = (d__1 * d__1 + d__2 * d__2) * 100. + d__5 * d__5;
     return 0;
-L3:
+labelL3:
     xpi = std::asin(1.) * 2.;
     theta = 1. / (xpi * 2.) * std::atan(l2_2.x[1] / l2_2.x[0]);
 /* Computing 2nd power */
@@ -16639,7 +16631,7 @@ L3:
 	    d__1 + d__2 * d__2) - 1.) * 2. / std::sqrt(d__3 * d__3 + d__4 * d__4) *
 	     l2_2.x[1]) * 100.;
     l4_2.gf[2] = (l2_2.x[2] - theta * 10.) * 2. * 100. + l2_2.x[2] * 2.;
-L4:
+labelL4:
     return 0;
 } /* tp247_ */
 
@@ -16652,13 +16644,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 1;
     l1_1.ninl = 0;
@@ -16669,7 +16661,7 @@ L1:
     l2_2.x[2] = .1;
     for (i__ = 1; i__ <= 3; ++i__) {
 	l11_2.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = false;
     }
     l5_3.gg[0] = 1.;
@@ -16685,11 +16677,11 @@ L1:
     l4_2.gf[1] = -1.;
     l4_2.gf[2] = 0.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_2.x[1];
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = 1. - l2_2.x[1] * 2. + l2_2.x[0];
     }
@@ -16703,12 +16695,12 @@ L4:
 	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[1]) {
 	goto L8;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
-/* L9: */
+/* labelL9: */
 	l5_3.gg[(i__ << 1) - 1] = l2_2.x[i__ - 1] * 2.;
     }
 L8:
@@ -16724,13 +16716,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -16739,7 +16731,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l2_2.x[i__ - 1] = 1.;
 	l11_2.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = false;
     }
     l11_2.lxl[0] = true;
@@ -16752,7 +16744,7 @@ L1:
     l20_3.xex[1] = 0.;
     l20_3.xex[2] = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
 /* Computing 2nd power */
@@ -16761,13 +16753,13 @@ L2:
     d__3 = l2_2.x[2];
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L7: */
 	l4_2.gf[i__ - 1] = l2_2.x[i__ - 1] * 2.;
     }
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[0];
@@ -16776,7 +16768,7 @@ L4:
 	l3_1.g[0] = d__1 * d__1 + d__2 * d__2 - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L8;
     }
@@ -16791,13 +16783,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 2;
     l1_1.ninl = 0;
@@ -16808,7 +16800,7 @@ L1:
 	l11_2.lxl[i__ - 1] = true;
 	l12_2.lxu[i__ - 1] = true;
 	l13_2.xl[i__ - 1] = 0.;
-/* L6: */
+/* labelL6: */
 	l2_2.x[i__ - 1] = 10.;
     }
     l14_2.xu[0] = 20.;
@@ -16826,22 +16818,22 @@ L1:
     l5_3.gg[3] = -2.;
     l5_3.gg[5] = -2.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_2.x[0] * l2_2.x[1] * l2_2.x[2];
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = -l2_2.x[1] * l2_2.x[2];
     l4_2.gf[1] = -l2_2.x[0] * l2_2.x[2];
     l4_2.gf[2] = -l2_2.x[0] * l2_2.x[1];
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_2.x[0] + l2_2.x[1] * 2. + l2_2.x[2] * 2.;
     }
     if (l9_3.index1[1]) {
 	l3_2.g[1] = 72. - l2_2.x[0] - l2_2.x[1] * 2. - l2_2.x[2] * 2.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp250_ */
 
@@ -16850,13 +16842,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 1;
     l1_1.ninl = 0;
@@ -16867,7 +16859,7 @@ L1:
 	l11_2.lxl[i__ - 1] = true;
 	l12_2.lxu[i__ - 1] = true;
 	l13_2.xl[i__ - 1] = 0.;
-/* L6: */
+/* labelL6: */
 	l14_2.xu[i__ - 1] = 42.;
     }
     l5_5.gg[0] = -1.;
@@ -16880,19 +16872,19 @@ L1:
     l20_3.xex[1] = 12.;
     l20_3.xex[2] = 12.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_2.x[0] * l2_2.x[1] * l2_2.x[2];
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = -l2_2.x[1] * l2_2.x[2];
     l4_2.gf[1] = -l2_2.x[0] * l2_2.x[2];
     l4_2.gf[2] = -l2_2.x[0] * l2_2.x[1];
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = 72. - l2_2.x[0] - l2_2.x[1] * 2. - l2_2.x[2] * 2.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp251_ */
 
@@ -16905,13 +16897,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -16922,7 +16914,7 @@ L1:
     l2_2.x[2] = 2.;
     for (i__ = 1; i__ <= 3; ++i__) {
 	l11_2.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = false;
     }
     l12_2.lxu[0] = true;
@@ -16937,7 +16929,7 @@ L1:
     l20_3.xex[2] = 0.;
     l4_2.gf[2] = 0.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0] - 1.;
 /* Computing 2nd power */
@@ -16946,7 +16938,7 @@ L2:
     d__2 = l2_2.x[1] - d__3 * d__3;
     l6_1.fx = d__1 * d__1 * .01 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
     l4_2.gf[0] = (l2_2.x[0] - 1.) * .02 - (l2_2.x[1] - d__1 * d__1) * 4. * 
@@ -16955,14 +16947,14 @@ L3:
     d__1 = l2_2.x[0];
     l4_2.gf[1] = (l2_2.x[1] - d__1 * d__1) * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[2];
 	l3_1.g[0] = l2_2.x[0] + d__1 * d__1 + 1.;
     }
     return 0;
-L5:
+labelL5:
     if (l10_2.index2[0]) {
 	l5_5.gg[2] = l2_2.x[2] * 2.;
     }
@@ -16985,13 +16977,13 @@ L5:
 
 /*      DATA ((A(I,J),J=1,8),I=1,3) */
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 1;
     l1_1.ninl = 0;
@@ -17003,7 +16995,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l12_2.lxu[i__ - 1] = false;
 	l11_2.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_2.xl[i__ - 1] = 0.;
     }
     l5_5.gg[0] = -3.;
@@ -17017,7 +17009,7 @@ L1:
 	l20_3.xex[i__ - 1] = (float).5;
     }
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (j = 1; j <= 8; ++j) {
 /* L8: */
@@ -17030,11 +17022,11 @@ L2:
 	l6_1.fx += std::sqrt(d__1 * d__1 + d__2 * d__2 + d__3 * d__3);
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l4_2.gf[i__ - 1] = 0.;
 	for (j = 1; j <= 8; ++j) {
-/* L9: */
+/* labelL9: */
 /* Computing 2nd power */
 	    d__1 = a[j * 3 - 3] - l2_2.x[0];
 /* Computing 2nd power */
@@ -17046,11 +17038,11 @@ L3:
 	}
     }
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = 30. - l2_2.x[0] * 3. - l2_2.x[2] * 3.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp253_ */
 
@@ -17065,13 +17057,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -17082,7 +17074,7 @@ L1:
     l2_2.x[2] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_2.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_2.lxl[i__ - 1] = false;
     }
     l12_2.lxu[2] = false;
@@ -17100,13 +17092,13 @@ L1:
     l4_2.gf[0] = 0.;
     l4_2.gf[1] = -1.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = d_lg10(&l2_2.x[2]) - l2_2.x[1];
     return 0;
-L3:
+labelL3:
     l4_2.gf[2] = 1. / (l2_2.x[2] * std::log(10.));
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[1];
@@ -17120,7 +17112,7 @@ L4:
 	l3_2.g[1] = l2_2.x[2] - 1. - d__1 * d__1;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -17143,13 +17135,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -17163,7 +17155,7 @@ L1:
 	l14_3.xu[i__ - 1] = (float)10.;
 	l12_3.lxu[i__ - 1] = true;
 	l13_3.xl[i__ - 1] = (float)-10.;
-/* L6: */
+/* labelL6: */
 	l11_3.lxl[i__ - 1] = true;
     }
     l20_6.lex = true;
@@ -17174,7 +17166,7 @@ L1:
 	l20_6.xex[i__ - 1] = 1.;
     }
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
 /* Computing 2nd power */
@@ -17195,7 +17187,7 @@ L2:
     d__1 = l6_1.fx;
     l6_1.fx = d__1 * d__1 * (float).5;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
 /* Computing 2nd power */
@@ -17216,7 +17208,7 @@ L3:
     l4_3.gf[1] = l6_1.fx * (l2_3.x[1] * 20.2 + l2_3.x[3] * 19.8 + 60.);
     l4_3.gf[2] = l6_1.fx * (l2_3.x[2] * -178. - 2.);
     l4_3.gf[3] = l6_1.fx * (l2_3.x[1] * 19.8 + l2_3.x[3] * 20.2 + 50.);
-L4:
+labelL4:
     return 0;
 } /* tp255_ */
 
@@ -17230,13 +17222,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -17248,7 +17240,7 @@ L1:
     l2_3.x[3] = 1.;
     for (i__ = 1; i__ <= 4; ++i__) {
 	l12_3.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_3.lxl[i__ - 1] = false;
     }
     l20_6.lex = true;
@@ -17259,7 +17251,7 @@ L1:
 	l20_6.xex[i__ - 1] = 0.;
     }
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_3.x[0] + l2_3.x[1] * 10.;
 /* Computing 2nd power */
@@ -17271,7 +17263,7 @@ L2:
     l6_1.fx = (d__1 * d__1 + d__2 * d__2 * 5. + d__3 * d__3 + d__4 * d__4 * 
 	    10.) * 1e-4;
     return 0;
-L3:
+labelL3:
 /* Computing 3rd power */
     d__1 = l2_3.x[0] - l2_3.x[3];
     l4_3.gf[0] = ((l2_3.x[0] + l2_3.x[1] * 10.) * 2. + d__1 * (d__1 * d__1) * 
@@ -17288,7 +17280,7 @@ L3:
     d__1 = l2_3.x[0] - l2_3.x[3];
     l4_3.gf[3] = ((l2_3.x[2] - l2_3.x[3]) * -10. - d__1 * (d__1 * d__1) * 40.)
 	     * 1e-4;
-L4:
+labelL4:
     return 0;
 } /* tp256_ */
 
@@ -17302,13 +17294,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -17319,7 +17311,7 @@ L1:
     l2_3.x[2] = -3.;
     l2_3.x[3] = -1.;
     for (i__ = 1; i__ <= 4; ++i__) {
-/* L6: */
+/* labelL6: */
 	l12_3.lxu[i__ - 1] = false;
     }
     l11_3.lxl[0] = true;
@@ -17336,7 +17328,7 @@ L1:
 	l20_6.xex[i__ - 1] = 1.;
     }
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_3.x[0];
 /* Computing 2nd power */
@@ -17357,7 +17349,7 @@ L2:
 	    d__6 + (d__7 * d__7 + d__8 * d__8) * 10.1 + (l2_3.x[0] - 1.) * 
 	    19.8 * (l2_3.x[3] - 1.);
     return 0;
-L3:
+labelL3:
 /* Computing 3rd power */
     d__1 = l2_3.x[0];
     l4_3.gf[0] = (d__1 * (d__1 * d__1) - l2_3.x[0] * l2_3.x[1]) * 400. + 
@@ -17373,7 +17365,7 @@ L3:
     d__1 = l2_3.x[2];
     l4_3.gf[3] = d__1 * d__1 * -180. + l2_3.x[3] * 200.2 + l2_3.x[0] * 19.8 - 
 	    40.;
-L4:
+labelL4:
     return 0;
 } /* tp257_ */
 
@@ -17387,13 +17379,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -17405,7 +17397,7 @@ L1:
     l2_3.x[3] = -1.;
     for (i__ = 1; i__ <= 4; ++i__) {
 	l12_3.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_3.lxl[i__ - 1] = false;
     }
     l20_6.lex = true;
@@ -17416,7 +17408,7 @@ L1:
 	l20_6.xex[i__ - 1] = 1.;
     }
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_3.x[0];
 /* Computing 2nd power */
@@ -17437,7 +17429,7 @@ L2:
 	    d__6 + (d__7 * d__7 + d__8 * d__8) * 10.1 + (l2_3.x[1] - 1.) * 
 	    19.8 * (l2_3.x[3] - 1.)) * 1e-4;
     return 0;
-L3:
+labelL3:
 /* Computing 3rd power */
     d__1 = l2_3.x[0];
     l4_3.gf[0] = ((d__1 * (d__1 * d__1) - l2_3.x[0] * l2_3.x[1]) * 400. + 
@@ -17454,7 +17446,7 @@ L3:
     d__1 = l2_3.x[2];
     l4_3.gf[3] = (d__1 * d__1 * -180. + l2_3.x[3] * 200.2 + l2_3.x[1] * 19.8 
 	    - 40.) * 1e-4;
-L4:
+labelL4:
     return 0;
 } /* tp258_ */
 
@@ -17468,13 +17460,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -17483,7 +17475,7 @@ L1:
     for (i__ = 1; i__ <= 4; ++i__) {
 	l2_3.x[i__ - 1] = 0.;
 	l12_3.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_3.lxl[i__ - 1] = false;
     }
     l12_3.lxu[3] = true;
@@ -17496,7 +17488,7 @@ L1:
 	l20_6.xex[i__ - 1] = 1.;
     }
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_3.x[0];
 /* Computing 2nd power */
@@ -17517,7 +17509,7 @@ L2:
 	    d__6 * d__6) + d__7 * d__7 * 10.1 + d__8 * d__8 + (l2_3.x[1] - 1.)
 	     * 19.8 * (l2_3.x[3] - 1.);
     return 0;
-L3:
+labelL3:
 /* Computing 3rd power */
     d__1 = l2_3.x[0];
     l4_3.gf[0] = (d__1 * (d__1 * d__1) - l2_3.x[0] * l2_3.x[1]) * 400. + 
@@ -17536,7 +17528,7 @@ L3:
     d__1 = l2_3.x[2];
     l4_3.gf[3] = d__1 * d__1 * -180. + l2_3.x[3] * 182. + l2_3.x[1] * 19.8 - 
 	    21.8;
-L4:
+labelL4:
     return 0;
 } /* tp259_ */
 
@@ -17550,13 +17542,13 @@ L4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -17568,7 +17560,7 @@ L1:
     l2_3.x[3] = -1.;
     for (i__ = 1; i__ <= 4; ++i__) {
 	l12_3.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_3.lxl[i__ - 1] = false;
     }
     l20_6.lex = true;
@@ -17594,7 +17586,7 @@ L1:
     l17_7.df[12] = std::sqrt(.2);
     l17_7.df[27] = std::sqrt(.2);
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
     l16_6.f[0] = (l2_3.x[1] - d__1 * d__1) * 10.;
@@ -17607,29 +17599,29 @@ L2:
     l16_6.f[5] = std::sqrt(.2) * (l2_3.x[1] - 1.);
     l16_6.f[6] = std::sqrt(.2) * (l2_3.x[3] - 1.);
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 7; ++i__) {
-/* L9: */
+/* labelL9: */
 /* Computing 2nd power */
 	d__1 = l16_6.f[i__ - 1];
 	l6_1.fx += d__1 * d__1;
     }
     l6_1.fx *= 1e-4;
     return 0;
-L3:
+labelL3:
     l17_7.df[0] = l2_3.x[0] * -20. * 1e-4;
     l17_7.df[16] = -std::sqrt(90.) * (float)2. * l2_3.x[2] * 1e-4;
     for (i__ = 1; i__ <= 4; ++i__) {
 	l4_3.gf[i__ - 1] = 0.;
 	for (j = 1; j <= 7; ++j) {
-/* L10: */
+/* labelL10: */
 	    l4_3.gf[i__ - 1] += l16_6.f[j - 1] * 2. * l17_7.df[j + i__ * 7 - 
 		    8];
 	}
     }
-L4:
+labelL4:
     return 0;
 } /* tp260_ */
 
@@ -17644,13 +17636,13 @@ L4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l15_1.lsum = 5;
     l1_1.nili = 0;
@@ -17664,7 +17656,7 @@ L1:
 	l12_3.lxu[i__ - 1] = true;
 	l2_3.x[i__ - 1] = 0.;
 	for (j = 1; j <= 5; ++j) {
-/* L6: */
+/* labelL6: */
 	    l17_8.df[j + i__ * 5 - 6] = 0.;
 	}
     }
@@ -17678,7 +17670,7 @@ L1:
 	l20_6.xex[i__ - 1] = 1.;
     }
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = std::exp(l2_3.x[0]) - l2_3.x[1];
     l16_3.f[0] = d__1 * d__1;
@@ -17693,7 +17685,7 @@ L2:
     l16_3.f[3] = d__1 * d__1;
     l16_3.f[4] = l2_3.x[3] - 1.;
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 5; ++i__) {
@@ -17703,7 +17695,7 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     a = std::exp(l2_3.x[0]) - l2_3.x[1];
     b = std::tan(l2_3.x[2] - l2_3.x[3]);
 /* Computing 2nd power */
@@ -17735,7 +17727,7 @@ L3:
     d__1 = l2_3.x[1] - l2_3.x[2], d__2 = d__1, d__1 *= d__1;
     l4_3.gf[2] = b * 4. * b * c__ - d__2 * (d__1 * d__1) * 600.;
     l4_3.gf[3] = b * -4. * b * c__ + (l2_3.x[3] - 1.) * 2.;
-L4:
+labelL4:
     return 0;
 } /* tp261_ */
 
@@ -17750,13 +17742,13 @@ L4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L3;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL3;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 3;
     l1_1.ninl = 0;
@@ -17769,7 +17761,7 @@ L1:
 	l13_3.xl[i__ - 1] = 0.;
 	for (j = 1; j <= 4; ++j) {
 	    l5_28.gg[i__ + (j << 2) - 5] = hgg[i__ + (j << 2) - 5];
-/* L6: */
+/* labelL6: */
 	}
     }
     for (i__ = 1; i__ <= 3; i__ += 2) {
@@ -17785,11 +17777,11 @@ L1:
     l20_6.xex[2] = 0.;
     l20_6.xex[3] = 1.3333333333333333;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_3.x[0] * -.5 - l2_3.x[1] - l2_3.x[2] * .5 - l2_3.x[3];
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_7.index1[0]) {
 	l3_6.g[0] = 10. - l2_3.x[0] - l2_3.x[1] - l2_3.x[2] - l2_3.x[3];
     }
@@ -17817,13 +17809,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -17832,7 +17824,7 @@ L1:
     for (i__ = 1; i__ <= 4; ++i__) {
 	l2_3.x[i__ - 1] = 10.;
 	l11_3.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_3.lxu[i__ - 1] = false;
     }
     l5_28.gg[4] = 1.;
@@ -17857,11 +17849,11 @@ L1:
 	l20_6.xex[i__ + 1] = 0.;
     }
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_3.x[0];
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_7.index1[0]) {
 /* Computing 3rd power */
 	d__1 = l2_3.x[0];
@@ -17887,7 +17879,7 @@ L4:
 	l3_6.g[3] = d__1 * d__1 - l2_3.x[1] - d__2 * d__2;
     }
     return 0;
-L5:
+labelL5:
     if (l10_7.index2[0]) {
 /* Computing 2nd power */
 	d__1 = l2_3.x[0];
@@ -17897,19 +17889,19 @@ L5:
 	l5_28.gg[1] = l2_3.x[0] * 2.;
     }
     if (! l10_7.index2[2]) {
-	goto L9;
+	goto labelL9;
     }
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
     l5_28.gg[2] = d__1 * d__1 * -3.;
     l5_28.gg[10] = l2_3.x[2] * -2.;
-L9:
+labelL9:
     if (! l10_7.index2[3]) {
-	goto L10;
+	goto labelL10;
     }
     l5_28.gg[3] = l2_3.x[0] * 2.;
     l5_28.gg[15] = l2_3.x[3] * -2.;
-L10:
+labelL10:
     return 0;
 } /* tp263_ */
 
@@ -17923,13 +17915,13 @@ L10:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 3;
@@ -17938,7 +17930,7 @@ L1:
     for (i__ = 1; i__ <= 4; ++i__) {
 	l2_3.x[i__ - 1] = 0.;
 	l11_3.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_3.lxu[i__ - 1] = false;
     }
     l5_7.gg[11] = 1.;
@@ -17950,7 +17942,7 @@ L1:
     l20_6.xex[2] = 2.;
     l20_6.xex[3] = -1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
 /* Computing 2nd power */
@@ -17963,13 +17955,13 @@ L2:
 	    l2_3.x[0] * 5. - l2_3.x[1] * 5. - l2_3.x[2] * 21. + l2_3.x[3] * 
 	    7.) * (float).01;
     return 0;
-L3:
+labelL3:
     l4_3.gf[0] = (l2_3.x[0] * 2. - 5.) * (float).01;
     l4_3.gf[1] = (l2_3.x[1] * 2. - 5.) * (float).01;
     l4_3.gf[2] = (l2_3.x[2] * 4. - 21.) * (float).01;
     l4_3.gf[3] = (l2_3.x[3] * 2. + 7.) * (float).01;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_3.x[0];
@@ -18005,30 +17997,30 @@ L4:
 		l2_3.x[0] * 2. + l2_3.x[1] + l2_3.x[3];
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[0]) {
-	goto L9;
+	goto labelL9;
     }
     l5_7.gg[0] = -1. - l2_3.x[0] * 2.;
     l5_7.gg[3] = 1. - l2_3.x[1] * 2.;
     l5_7.gg[6] = -1. - l2_3.x[2] * 2.;
     l5_7.gg[9] = 1. - l2_3.x[3] * 2.;
-L9:
+labelL9:
     if (! l10_4.index2[1]) {
-	goto L10;
+	goto labelL10;
     }
     l5_7.gg[1] = 1. - l2_3.x[0] * 2.;
     l5_7.gg[4] = l2_3.x[1] * -4.;
     l5_7.gg[7] = l2_3.x[2] * -2.;
     l5_7.gg[10] = -1. - l2_3.x[3] * 4.;
-L10:
+labelL10:
     if (! l10_4.index2[2]) {
-	goto L11;
+	goto labelL11;
     }
     l5_7.gg[2] = -2. - l2_3.x[0] * 4.;
     l5_7.gg[5] = 1. - l2_3.x[1] * 2.;
     l5_7.gg[8] = l2_3.x[2] * -2.;
-L11:
+labelL11:
     return 0;
 } /* tp264_ */
 
@@ -18044,13 +18036,13 @@ L11:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -18064,7 +18056,7 @@ L1:
 	l14_3.xu[i__ - 1] = 1.;
 	for (j = 1; j <= 2; ++j) {
 	    l5_6.gg[j + (i__ << 1) - 3] = hgg[j + (i__ << 1) - 3];
-/* L6: */
+/* labelL6: */
 	}
     }
     l20_2.lex = true;
@@ -18080,29 +18072,29 @@ L1:
 	l20_2.xex[i__ - 1] = l20_2.xex[9 - i__ - 1];
     }
     return 0;
-L2:
+labelL2:
     l6_1.fx = 2.;
     for (i__ = 1; i__ <= 2; ++i__) {
-/* L9: */
+/* labelL9: */
 	l6_1.fx -= std::exp(l2_3.x[i__ - 1] * -10. * std::exp(-l2_3.x[i__ + 1]));
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l4_3.gf[i__ - 1] = std::exp(l2_3.x[i__ - 1] * -10. * std::exp(-l2_3.x[i__ + 1]) 
 		- l2_3.x[i__ + 1]) * 10.;
-/* L10: */
+/* labelL10: */
 	l4_3.gf[i__ + 1] = -l2_3.x[i__ - 1] * l4_3.gf[i__ - 1];
     }
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_3.x[0] + l2_3.x[1] - 1.;
     }
     if (l9_3.index1[1]) {
 	l3_2.g[1] = l2_3.x[2] + l2_3.x[3] - 1.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp265_ */
 
@@ -18139,13 +18131,13 @@ L5:
     static Real hf;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_2.n = 5;
     l15_1.lsum = 10;
     l1_2.nili = 0;
@@ -18156,7 +18148,7 @@ L1:
 	l2_4.x[i__ - 1] = .1;
 	l11_4.lxl[i__ - 1] = false;
 	l12_4.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l20_7.xex[i__ - 1] = 0.;
     }
     l20_7.nex = 1;
@@ -18167,14 +18159,14 @@ L1:
 /*      ENDDO */
     l20_7.fex = 1e4;
     return 0;
-L2:
+labelL2:
     for (i__ = 1; i__ <= 10; ++i__) {
-/* L20: */
+/* labelL20: */
 	l16_4.f[i__ - 1] = tp266a_(&a[i__ - 1], b, c__, &d__[i__ - 1], &i__, 
 		l2_4.x);
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
@@ -18185,13 +18177,13 @@ L2:
     }
     l6_1.fx *= 1e4;
     return 0;
-L3:
+labelL3:
     for (k = 1; k <= 5; ++k) {
 	l4_4.gf[k - 1] = 0.;
 	for (i__ = 1; i__ <= 10; ++i__) {
 	    hf = 0.;
 	    for (l = 1; l <= 5; ++l) {
-/* L10: */
+/* labelL10: */
 		hf += (b[k + l * 5 - 6] + b[l + k * 5 - 6]) * l2_4.x[l - 1];
 	    }
 	    l17_9.df[i__ + k * 10 - 11] = c__[i__ + k * 10 - 11] + d__[i__ - 
@@ -18202,7 +18194,7 @@ L3:
 	    l4_4.gf[k - 1] *= 1e4;
 	}
     }
-L4:
+labelL4:
     return 0;
 } /* tp266_ */
 
@@ -18230,11 +18222,11 @@ Real tp266a_(Real *ai, Real *b, Real *c__, Real *di, int *i__, Real *x)
     for (k = 1; k <= 5; ++k) {
 	hf = 0.;
 	for (l = 1; l <= 5; ++l) {
-/* L20: */
+/* labelL20: */
 	    hf += b[k + l * 5] * x[l];
 	}
 	ret_val += x[k] * (c__[*i__ + k * 10] + *di * .5 * hf);
-/* L10: */
+/* labelL10: */
     }
     return ret_val;
 } /* tp266a_ */
@@ -18250,13 +18242,13 @@ Real tp266a_(Real *ai, Real *b, Real *c__, Real *di, int *i__, Real *x)
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -18266,7 +18258,7 @@ L1:
 	l2_4.x[i__ - 1] = 2.;
 	l11_4.lxl[i__ - 1] = false;
 	l14_4.xu[i__ - 1] = (float)15.;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = true;
     }
     l11_4.lxl[0] = true;
@@ -18290,7 +18282,7 @@ L1:
     l20_10.xex[8] = -1.;
     l20_10.xex[9] = 4.;
     return 0;
-L2:
+labelL2:
     for (i__ = 1; i__ <= 11; ++i__) {
 	h__ = (Real) i__ * .1;
 /*      HF(1)=X(3)*DEXP(-X(1)*H) */
@@ -18298,13 +18290,13 @@ L2:
 /*      HF(3)=3.D+0*DEXP(-X(5)*H) */
 /*      HF(4)=-DEXP(-H)+5.D+0*DEXP(-1.D+1*H)-3.D+0*DEXP(-4.D+0*H) */
 /*      F(I)=HF(1)-HF(2)+HF(3)+HF(4) */
-/* L20: */
+/* labelL20: */
 	l16_7.f[i__ - 1] = l2_4.x[2] * std::exp(-l2_4.x[0] * h__) - l2_4.x[3] * 
 		exp(-l2_4.x[1] * h__) + std::exp(-l2_4.x[4] * h__) * 3. - (exp(
 		-h__) - std::exp(h__ * -10.) * 5. + std::exp(h__ * -4.) * 3.);
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 11; ++i__) {
@@ -18314,7 +18306,7 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (j = 1; j <= 11; ++j) {
 	h__ = (Real) j * .1;
 	l17_10.df[j + 21] = std::exp(-l2_4.x[0] * h__);
@@ -18327,12 +18319,12 @@ L3:
     for (i__ = 1; i__ <= 5; ++i__) {
 	l4_4.gf[i__ - 1] = 0.;
 	for (j = 1; j <= 11; ++j) {
-/* L13: */
+/* labelL13: */
 	    l4_4.gf[i__ - 1] += l16_7.f[j - 1] * 2. * l17_10.df[j + i__ * 11 
 		    - 12];
 	}
     }
-L4:
+labelL4:
     return 0;
 } /* tp267_ */
 
@@ -18368,13 +18360,13 @@ L4:
 
 /*     DVEKT=( 51, -61, -56, 69, 10, -12 )' */
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_2.n = 5;
     l1_2.nili = 5;
     ninl = 0;
@@ -18385,7 +18377,7 @@ L1:
 	l11_4.lxl[i__ - 1] = false;
 	l12_4.lxu[i__ - 1] = false;
 	for (j = 1; j <= 5; ++j) {
-/* L6: */
+/* labelL6: */
 	    l5_29.gg[i__ + j * 5 - 6] = (Real) hgg[i__ + j * 5 - 6];
 	}
     }
@@ -18398,7 +18390,7 @@ L1:
     l20_7.xex[3] = 3.;
     l20_7.xex[4] = -4.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = (Real) dvdv;
     for (i__ = 1; i__ <= 5; ++i__) {
 	hf = 0.;
@@ -18410,17 +18402,17 @@ L2:
 	l6_1.fx += l2_4.x[i__ - 1] * (hf - (Real) ddvekt[i__ - 1] * 2.);
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 5; ++i__) {
 	l4_4.gf[i__ - 1] = (Real) ddvekt[i__ - 1] * -2.;
 	for (j = 1; j <= 5; ++j) {
-/* L9: */
+/* labelL9: */
 	    l4_4.gf[i__ - 1] += (Real) (dd[i__ + j * 5 - 6] + dd[j + 
 		    i__ * 5 - 6]) * l2_4.x[j - 1];
 	}
     }
     return 0;
-L4:
+labelL4:
     if (l9_5.index1[0]) {
 	l3_4.g[0] = -l2_4.x[0] - l2_4.x[1] - l2_4.x[2] - l2_4.x[3] - l2_4.x[4]
 		 + 5;
@@ -18441,7 +18433,7 @@ L4:
 	l3_4.g[4] = l2_4.x[0] * -4. - l2_4.x[1] * 2. + l2_4.x[2] * 3. - 
 		l2_4.x[3] * 5. + l2_4.x[4] + 30.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp268_ */
 
@@ -18462,13 +18454,13 @@ L5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l15_1.lsum = 4;
     l1_1.nili = 0;
@@ -18484,7 +18476,7 @@ L1:
 /* L7: */
 	    l17_8.df[j + (i__ << 2) - 5] = hdf[j + (i__ << 2) - 5];
 	}
-/* L6: */
+/* labelL6: */
 	l17_8.df[(i__ << 2) - 1] = hdf[(i__ << 2) - 1];
     }
     l20_7.lex = true;
@@ -18496,13 +18488,13 @@ L1:
     l20_7.xex[3] = -.11627906976744186;
     l20_7.xex[4] = .2558139534883721;
     return 0;
-L2:
+labelL2:
     l16_3.f[0] = l2_4.x[0] - l2_4.x[1];
     l16_3.f[1] = l2_4.x[1] + l2_4.x[2] - 2.;
     l16_3.f[2] = l2_4.x[3] - 1.;
     l16_3.f[3] = l2_4.x[4] - 1.;
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 4; ++i__) {
@@ -18512,14 +18504,14 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     l4_4.gf[0] = (l2_4.x[0] - l2_4.x[1]) * 2.;
     l4_4.gf[1] = (l2_4.x[1] * 2. + l2_4.x[2] - l2_4.x[0] - 2.) * 2.;
     l4_4.gf[2] = (l2_4.x[1] + l2_4.x[2] - 2.) * 2.;
     l4_4.gf[3] = (l2_4.x[3] - 1.) * 2.;
     l4_4.gf[4] = (l2_4.x[4] - 1.) * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = l2_4.x[0] + l2_4.x[1] * 3.;
     }
@@ -18529,7 +18521,7 @@ L4:
     if (l9_4.index1[2]) {
 	l3_3.g[2] = l2_4.x[1] - l2_4.x[4];
     }
-L5:
+labelL5:
     return 0;
 } /* tp269_ */
 
@@ -18542,13 +18534,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -18559,7 +18551,7 @@ L1:
 	l20_7.xex[i__ - 1] = (Real) i__;
 	l11_4.lxl[i__ - 1] = true;
 	l12_4.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l13_4.xl[i__ - 1] = (Real) i__;
     }
     l11_4.lxl[4] = false;
@@ -18570,7 +18562,7 @@ L1:
     l20_7.lex = true;
     l20_7.fex = -1.;
     return 0;
-L2:
+labelL2:
 /* Computing 4th power */
     d__1 = l2_4.x[4], d__1 *= d__1;
 /* Computing 3rd power */
@@ -18587,7 +18579,7 @@ L2:
 	    24. + d__1 * d__1 * 1.5 - d__2 * (d__2 * d__2) * 5.75 + d__3 * 
 	    d__3 * 5.25;
     return 0;
-L3:
+labelL3:
     l4_4.gf[0] = l2_4.x[1] * l2_4.x[2] * l2_4.x[3] - l2_4.x[1] * 3. * l2_4.x[
 	    3] - l2_4.x[1] * 4. * l2_4.x[2] + l2_4.x[1] * 12. - l2_4.x[2] * 
 	    2. * l2_4.x[3] + l2_4.x[3] * 6. + l2_4.x[2] * 8. - 24.;
@@ -18607,7 +18599,7 @@ L3:
     l4_4.gf[4] = l2_4.x[4] * 10.5 - d__1 * d__1 * 17.25 + d__2 * (d__2 * d__2)
 	     * 6.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_4.x[0];
@@ -18623,7 +18615,7 @@ L4:
 		d__4 - d__5 * d__5;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -18644,13 +18636,13 @@ L7:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 6;
     l15_1.lsum = 6;
     l1_1.nili = 0;
@@ -18661,20 +18653,20 @@ L1:
 	l11_5.lxl[i__ - 1] = false;
 	l12_5.lxu[i__ - 1] = false;
 	l2_5.x[i__ - 1] = 0.;
-/* L6: */
+/* labelL6: */
 	l20_4.xex[i__ - 1] = 1.;
     }
     l20_4.lex = true;
     l20_4.fex = 0.;
     return 0;
-L2:
+labelL2:
     for (i__ = 1; i__ <= 6; ++i__) {
-/* L10: */
+/* labelL10: */
 	l16_8.f[i__ - 1] = std::sqrt((Real) ((16 - i__) * 10)) * (l2_5.x[i__ 
 		- 1] - 1.);
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 6; ++i__) {
@@ -18684,18 +18676,18 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 6; ++i__) {
 	l4_5.gf[i__ - 1] = (Real) ((16 - i__) * 20) * (l2_5.x[i__ - 1] 
 		- 1.);
 	for (j = 1; j <= 6; ++j) {
-/* L9: */
+/* labelL9: */
 	    l17_11.df[i__ + j * 6 - 7] = 0.;
 	}
 /* L8: */
 	l17_11.df[i__ + i__ * 6 - 7] = std::sqrt((Real) ((16 - i__) * 10));
     }
-L4:
+labelL4:
     return 0;
 } /* tp271_ */
 
@@ -18709,13 +18701,13 @@ L4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 6;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -18725,7 +18717,7 @@ L1:
 	l2_5.x[i__ - 1] = 1.;
 	l13_5.xl[i__ - 1] = (float)0.;
 	l11_5.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_5.lxu[i__ - 1] = false;
     }
     l2_5.x[1] = 2.;
@@ -18740,16 +18732,16 @@ L1:
     l20_4.xex[4] = 5.;
     l20_4.xex[5] = 3.;
     return 0;
-L2:
+labelL2:
     for (i__ = 1; i__ <= 13; ++i__) {
 	h__ = (Real) i__ * .1;
-/* L20: */
+/* labelL20: */
 	l16_9.f[i__ - 1] = l2_5.x[3] * std::exp(-l2_5.x[0] * h__) - l2_5.x[4] * 
 		exp(-l2_5.x[1] * h__) + l2_5.x[5] * std::exp(-l2_5.x[2] * h__) - 
 		exp(-h__) + std::exp(h__ * -10.) * 5. - std::exp(h__ * -4.) * 3.;
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
@@ -18759,7 +18751,7 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (j = 1; j <= 13; ++j) {
 	h__ = (Real) j * .1;
 	l17_12.df[j + 38] = std::exp(-l2_5.x[0] * h__);
@@ -18774,12 +18766,12 @@ L3:
     for (i__ = 1; i__ <= 6; ++i__) {
 	l4_5.gf[i__ - 1] = 0.;
 	for (j = 1; j <= 13; ++j) {
-/* L13: */
+/* labelL13: */
 	    l4_5.gf[i__ - 1] += l17_12.df[j + i__ * 13 - 14] * 2. * l16_9.f[j 
 		    - 1];
 	}
     }
-L4:
+labelL4:
     return 0;
 } /* tp272_ */
 
@@ -18791,13 +18783,13 @@ L4:
     static Real hx;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_2.n = 6;
     l1_2.nili = 0;
     ninl = 0;
@@ -18807,25 +18799,25 @@ L1:
 	l2_5.x[i__ - 1] = 0.;
 	l20_4.xex[i__ - 1] = 1.;
 	l11_5.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_5.lxu[i__ - 1] = false;
     }
     l20_4.lex = true;
     l20_4.nex = 1;
     l20_4.fex = 0.;
     return 0;
-L2:
+labelL2:
     hx = tp273a_(l2_5.x);
     l6_1.fx = hx * 10. * (hx + 1.);
     return 0;
-L3:
+labelL3:
     hx = tp273a_(l2_5.x);
     for (i__ = 1; i__ <= 6; ++i__) {
 /* L7: */
 	l4_5.gf[i__ - 1] = (16. - (Real) i__) * 20. * (l2_5.x[i__ - 1] 
 		- 1.) * (hx * 2. + 1.);
     }
-L4:
+labelL4:
     return 0;
 } /* tp273_ */
 
@@ -18847,7 +18839,7 @@ Real tp273a_(Real *x)
     /* Function Body */
     ret_val = 0.;
     for (i__ = 1; i__ <= 6; ++i__) {
-/* L10: */
+/* labelL10: */
 /* Computing 2nd power */
 	d__1 = x[i__] - 1.;
 	ret_val += (16. - (Real) i__) * (d__1 * d__1);
@@ -18870,23 +18862,23 @@ Real tp273a_(Real *x)
 	}
 
     l1_1.n = 2;
-    goto L10;
+    goto labelL10;
 
 L_tp275:
     l1_1.n = 4;
-    goto L10;
+    goto labelL10;
 
 L_tp276:
     l1_1.n = 6;
-L10:
+labelL10:
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.nili = 0;
     l1_1.ninl = 0;
     l1_1.neli = 0;
@@ -18896,19 +18888,19 @@ L1:
 	l2_5.x[i__ - 1] = -4. / (Real) i__;
 	i__2 = l1_1.n;
 	for (j = 1; j <= i__2; ++j) {
-/* L11: */
+/* labelL11: */
 	    a[i__ + j * 6 - 7] = 1. / (Real) (i__ + j - 1);
 	}
 	l20_4.xex[i__ - 1] = 0.;
 	l11_5.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_5.lxu[i__ - 1] = false;
     }
     l20_4.lex = true;
     l20_4.nex = 1;
     l20_4.fex = 0.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
@@ -18919,7 +18911,7 @@ L2:
 	}
     }
     return 0;
-L3:
+labelL3:
     i__2 = l1_1.n;
     for (i__ = 1; i__ <= i__2; ++i__) {
 	l4_5.gf[i__ - 1] = 0.;
@@ -18930,7 +18922,7 @@ L3:
 		    i__ * 6 - 7]);
 	}
     }
-L4:
+labelL4:
     return 0;
 } /* tp274_ */
 
@@ -18965,27 +18957,27 @@ L4:
 	}
 
     l1_1.n = 4;
-    goto L10;
+    goto labelL10;
 
 L_tp278:
     l1_1.n = 6;
-    goto L10;
+    goto labelL10;
 
 L_tp279:
     l1_1.n = 8;
-    goto L10;
+    goto labelL10;
 
 L_tp280:
     l1_1.n = 10;
-L10:
+labelL10:
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.nili = l1_1.n;
     l1_1.ninl = 0;
     l1_1.neli = 0;
@@ -19004,13 +18996,13 @@ L1:
 	l11_9.lxl[i__ - 1] = true;
 	l12_9.lxu[i__ - 1] = false;
 	l13_9.xl[i__ - 1] = 0.;
-/* L6: */
+/* labelL6: */
 	l20_10.xex[i__ - 1] = 1.;
     }
     l20_10.lex = true;
     l20_10.nex = 1;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
@@ -19024,7 +19016,7 @@ L2:
 	l6_1.fx += h__ * l2_9.x[i__ - 1];
     }
     return 0;
-L3:
+labelL3:
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
 	h__ = 0.;
@@ -19037,7 +19029,7 @@ L3:
 	l4_9.gf[i__ - 1] = h__;
     }
     return 0;
-L4:
+labelL4:
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
 	h__ = 0.;
@@ -19046,12 +19038,12 @@ L4:
 /* L19: */
 	    h__ += (l2_9.x[j - 1] - 1.) / (Real) (i__ + j - 1);
 	}
-/* L9: */
+/* labelL9: */
 	if (l9_10.index1[i__ - 1]) {
 	    l3_9.g[i__ - 1] = h__;
 	}
     }
-L5:
+labelL5:
     return 0;
 } /* tp277_ */
 
@@ -19091,13 +19083,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 10;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -19107,14 +19099,14 @@ L1:
 	l2_9.x[i__ - 1] = 0.;
 	l11_9.lxl[i__ - 1] = false;
 	l12_9.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l20_10.xex[i__ - 1] = 1.;
     }
     l20_10.lex = true;
     l20_10.nex = 1;
     l20_10.fex = 0.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L7: */
@@ -19126,7 +19118,7 @@ L2:
     }
     l6_1.fx = pow_dd(&l6_1.fx, &c_b74);
     return 0;
-L3:
+labelL3:
     h__ = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L8: */
@@ -19137,15 +19129,15 @@ L3:
 	h__ += (Real) (i__1 * (i__1 * i__1)) * (d__1 * d__1);
     }
     for (i__ = 1; i__ <= 10; ++i__) {
-/* L13: */
+/* labelL13: */
 /* Computing 3rd power */
 	i__1 = i__;
 	l4_9.gf[i__ - 1] = (Real) (i__1 * (i__1 * i__1)) * 
 		.66666666666666663 * (l2_9.x[i__ - 1] - 1.) * pow_dd(&h__, &
 		c_b1920);
-   if( !std::isfinite(l4_9.gf[i__ - 1])) l4_9.gf[i__ - 1] = 0.0; 
+   if( !isFinite(l4_9.gf[i__ - 1])) l4_9.gf[i__ - 1] = 0.0; 
     }
-L4:
+labelL4:
     return 0;
 } /* tp281_ */
 
@@ -19160,13 +19152,13 @@ L4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 10;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -19176,7 +19168,7 @@ L1:
 	l2_9.x[i__ - 1] = 0.;
 	l11_9.lxl[i__ - 1] = false;
 	l12_9.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l20_10.xex[i__ - 1] = 1.;
     }
     l2_9.x[0] = -1.2;
@@ -19185,18 +19177,18 @@ L1:
     l20_10.fex = 0.;
     l15_1.lsum = 11;
     return 0;
-L2:
+labelL2:
     l16_7.f[9] = l2_9.x[0] - 1.;
     l16_7.f[10] = l2_9.x[9] - 1.;
     for (i__ = 1; i__ <= 9; ++i__) {
-/* L20: */
+/* labelL20: */
 /* Computing 2nd power */
 	d__1 = l2_9.x[i__ - 1];
 	l16_7.f[i__ - 1] = std::sqrt((10. - (Real) i__) * 10.) * (d__1 * 
 		d__1 - l2_9.x[i__]);
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
 /* Computing 2nd power */
     d__1 = l16_7.f[9];
@@ -19210,7 +19202,7 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 11; ++i__) {
 	for (j = 1; j <= 10; ++j) {
 /* L8: */
@@ -19220,7 +19212,7 @@ L3:
     for (i__ = 1; i__ <= 9; ++i__) {
 	h__ = std::sqrt((10. - (Real) i__) * 10.);
 	l17_13.df[i__ + i__ * 11 - 12] = h__ * 2. * l2_9.x[i__ - 1];
-/* L13: */
+/* labelL13: */
 	l17_13.df[i__ + (i__ + 1) * 11 - 12] = -h__;
     }
     l17_13.df[9] = 1.;
@@ -19233,7 +19225,7 @@ L3:
 		    - 1];
 	}
     }
-L4:
+labelL4:
     return 0;
 } /* tp282_ */
 
@@ -19249,13 +19241,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 10;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -19265,14 +19257,14 @@ L1:
 	l2_9.x[i__ - 1] = 0.;
 	l11_9.lxl[i__ - 1] = false;
 	l12_9.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l20_10.xex[i__ - 1] = 1.;
     }
     l20_10.lex = true;
     l20_10.nex = 1;
     l20_10.fex = 0.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L7: */
@@ -19286,7 +19278,7 @@ L2:
     d__1 = l6_1.fx;
     l6_1.fx = d__1 * (d__1 * d__1) * 1e-5;
     return 0;
-L3:
+labelL3:
     h__ = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L8: */
@@ -19297,7 +19289,7 @@ L3:
 	h__ += (Real) (i__1 * (i__1 * i__1)) * (d__1 * d__1);
     }
     for (i__ = 1; i__ <= 10; ++i__) {
-/* L13: */
+/* labelL13: */
 /* Computing 3rd power */
 	i__1 = i__;
 /* Computing 2nd power */
@@ -19305,7 +19297,7 @@ L3:
 	l4_9.gf[i__ - 1] = (Real) (i__1 * (i__1 * i__1)) * (float)6. * (
 		l2_9.x[i__ - 1] - 1.) * (d__1 * d__1) * 1e-5;
     }
-L4:
+labelL4:
     return 0;
 } /* tp283_ */
 
@@ -19334,13 +19326,13 @@ L4:
     static Real sum;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 15;
     l1_1.nili = 0;
     l1_1.ninl = 10;
@@ -19352,51 +19344,51 @@ L1:
 	l20_12.xex[i__ - 1] = 1.;
 	l20_12.fex -= (Real) c__[i__ - 1];
 	l12_11.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_11.lxl[i__ - 1] = false;
     }
     l20_12.lex = true;
     l20_12.nex = 1;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
 /* L7: */
 	l6_1.fx -= (Real) c__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
 /* L8: */
 	l4_11.gf[i__ - 1] = -((Real) c__[i__ - 1]);
     }
     return 0;
-L4:
+labelL4:
     for (i__ = 1; i__ <= 10; ++i__) {
 	sum = 0.;
 	for (j = 1; j <= 15; ++j) {
-/* L9: */
+/* labelL9: */
 /* Computing 2nd power */
 	    d__1 = l2_11.x[j - 1];
 	    sum += (Real) a[i__ + j * 10 - 11] * (d__1 * d__1);
 	}
-/* L10: */
+/* labelL10: */
 	if (l9_10.index1[i__ - 1]) {
 	    l3_9.g[i__ - 1] = (Real) b[i__ - 1] - sum;
 	}
     }
     return 0;
-L5:
+labelL5:
     for (j = 1; j <= 10; ++j) {
 	for (i__ = 1; i__ <= 15; ++i__) {
 	    if (! l10_10.index2[j - 1]) {
-		goto L12;
+		goto labelL12;
 	    }
-/* L11: */
+/* labelL11: */
 	    l5_32.gg[(i__ - 1) * 10 + j - 1] = (Real) a[j + i__ * 10 - 
 		    11] * -2. * l2_11.x[i__ - 1];
 	}
-L12:
+labelL12:
 	;
     }
     return 0;
@@ -19426,13 +19418,13 @@ L12:
     static Real sum;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 15;
     l1_1.nili = 0;
     l1_1.ninl = 10;
@@ -19444,51 +19436,51 @@ L1:
 	l20_12.xex[i__ - 1] = 1.;
 	l20_12.fex -= (Real) c__[i__ - 1];
 	l12_11.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_11.lxl[i__ - 1] = false;
     }
     l20_12.lex = true;
     l20_12.nex = 1;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
 /* L7: */
 	l6_1.fx -= (Real) c__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
 /* L8: */
 	l4_11.gf[i__ - 1] = -((Real) c__[i__ - 1]);
     }
     return 0;
-L4:
+labelL4:
     for (i__ = 1; i__ <= 10; ++i__) {
 	sum = 0.;
 	for (j = 1; j <= 15; ++j) {
-/* L9: */
+/* labelL9: */
 /* Computing 2nd power */
 	    d__1 = l2_11.x[j - 1];
 	    sum += (Real) a[i__ + j * 10 - 11] * (d__1 * d__1);
 	}
-/* L10: */
+/* labelL10: */
 	if (l9_10.index1[i__ - 1]) {
 	    l3_9.g[i__ - 1] = (Real) b[i__ - 1] - sum;
 	}
     }
     return 0;
-L5:
+labelL5:
     for (j = 1; j <= 10; ++j) {
 	for (i__ = 1; i__ <= 15; ++i__) {
 	    if (! l10_10.index2[j - 1]) {
-		goto L12;
+		goto labelL12;
 	    }
-/* L11: */
+/* labelL11: */
 	    l5_32.gg[(i__ - 1) * 10 + j - 1] = (Real) a[j + i__ * 10 - 
 		    11] * -2. * l2_11.x[i__ - 1];
 	}
-L12:
+labelL12:
 	;
     }
     return 0;
@@ -19503,13 +19495,13 @@ L12:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L3;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL3;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 20;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -19519,7 +19511,7 @@ L1:
 	l2_13.x[i__ - 1] = -1.2;
 	l20_14.xex[i__ - 1] = 1.;
 	l12_13.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_13.lxl[i__ - 1] = false;
     }
     for (i__ = 11; i__ <= 20; ++i__) {
@@ -19531,7 +19523,7 @@ L1:
     l20_14.fex = 0.;
     l15_1.lsum = 20;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 20; ++i__) {
 /* L8: */
@@ -19540,16 +19532,16 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 10; ++i__) {
 	l16_10.f[i__ - 1] = l2_13.x[i__ - 1] - 1.;
-/* L12: */
+/* labelL12: */
 /* Computing 2nd power */
 	d__1 = l2_13.x[i__ - 1];
 	l16_10.f[i__ + 9] = (d__1 * d__1 - l2_13.x[i__ + 9]) * 10.;
     }
     if (*mode == 2) {
-	goto L2;
+	goto labelL2;
     }
     for (i__ = 1; i__ <= 10; ++i__) {
 	for (j = 1; j <= 20; ++j) {
@@ -19561,7 +19553,7 @@ L3:
 	    if (i__ == j) {
 		l17_14.df[i__ + 10 + j * 198 - 199] = l2_13.x[i__ - 1] * 20.;
 	    }
-/* L9: */
+/* labelL9: */
 	    if (j == i__ + 10) {
 		l17_14.df[i__ + 10 + j * 198 - 199] = -10.;
 	    }
@@ -19570,12 +19562,12 @@ L3:
     for (j = 1; j <= 20; ++j) {
 	l4_13.gf[j - 1] = 0.;
 	for (i__ = 1; i__ <= 20; ++i__) {
-/* L11: */
+/* labelL11: */
 	    l4_13.gf[j - 1] += l16_10.f[i__ - 1] * 2. * l17_14.df[i__ + j * 
 		    198 - 199];
 	}
     }
-L4:
+labelL4:
     return 0;
 } /* tp286_ */
 
@@ -19588,13 +19580,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 20;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -19604,7 +19596,7 @@ L1:
 	l2_13.x[i__ - 1] = -3.;
 	l2_13.x[i__ + 4] = -1.;
 	l2_13.x[i__ + 9] = -3.;
-/* L6: */
+/* labelL6: */
 	l2_13.x[i__ + 14] = -1.;
     }
     for (i__ = 1; i__ <= 20; ++i__) {
@@ -19617,7 +19609,7 @@ L1:
     l20_14.nex = 1;
     l20_14.fex = 0.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L8: */
@@ -19643,7 +19635,7 @@ L2:
     }
     l6_1.fx *= 1e-5;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 5; ++i__) {
 /* Computing 2nd power */
 	d__1 = l2_13.x[i__ - 1];
@@ -19666,10 +19658,10 @@ L3:
 	l4_13.gf[i__ + 14] = (d__1 * d__1 - l2_13.x[i__ + 14]) * -180. + (
 		l2_13.x[i__ + 14] - 1.) * 20.2 + (l2_13.x[i__ + 4] - 1.) * 
 		19.8;
-/* L9: */
+/* labelL9: */
 	l4_13.gf[i__ + 14] *= 1e-5;
     }
-L4:
+labelL4:
     return 0;
 } /* tp287_ */
 
@@ -19682,13 +19674,13 @@ L4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L3;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL3;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 20;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -19698,7 +19690,7 @@ L1:
 	l2_13.x[i__ - 1] = 3.;
 	l2_13.x[i__ + 4] = -1.;
 	l2_13.x[i__ + 9] = 0.;
-/* L6: */
+/* labelL6: */
 	l2_13.x[i__ + 14] = 1.;
     }
     for (i__ = 1; i__ <= 20; ++i__) {
@@ -19712,16 +19704,16 @@ L1:
     l20_14.nex = 1;
     l15_1.lsum = 20;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 20; ++i__) {
-/* L9: */
+/* labelL9: */
 /* Computing 2nd power */
 	d__1 = l16_10.f[i__ - 1];
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 5; ++i__) {
 	l16_10.f[i__ - 1] = l2_13.x[i__ - 1] + l2_13.x[i__ + 4] * 10.;
 	l16_10.f[i__ + 4] = std::sqrt(5.) * (l2_13.x[i__ + 9] - l2_13.x[i__ + 14]);
@@ -19734,7 +19726,7 @@ L3:
 	l16_10.f[i__ + 14] = std::sqrt(10.) * (d__1 * d__1);
     }
     if (*mode == 2) {
-	goto L2;
+	goto labelL2;
     }
     for (i__ = 1; i__ <= 5; ++i__) {
 	for (j = 1; j <= 20; ++j) {
@@ -19766,7 +19758,7 @@ L3:
 		l17_14.df[i__ + 15 + j * 198 - 199] = std::sqrt(10.) * 2. * (
 			l2_13.x[i__ - 1] - l2_13.x[i__ + 14]);
 	    }
-/* L11: */
+/* labelL11: */
 	    if (j == i__ + 15) {
 		l17_14.df[i__ + 15 + j * 198 - 199] = -std::sqrt(10.) * 2. * (
 			l2_13.x[i__ - 1] - l2_13.x[i__ + 14]);
@@ -19776,12 +19768,12 @@ L3:
     for (j = 1; j <= 20; ++j) {
 	l4_13.gf[j - 1] = 0.;
 	for (i__ = 1; i__ <= 20; ++i__) {
-/* L10: */
+/* labelL10: */
 	    l4_13.gf[j - 1] += l16_10.f[i__ - 1] * 2. * l17_14.df[i__ + j * 
 		    198 - 199];
 	}
     }
-L4:
+labelL4:
     return 0;
 } /* tp288_ */
 
@@ -19795,13 +19787,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 30;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -19812,14 +19804,14 @@ L1:
 		1.);
 	l20_15.xex[i__ - 1] = 0.;
 	l12_14.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_14.lxl[i__ - 1] = false;
     }
     l20_15.lex = true;
     l20_15.nex = 1;
     l20_15.fex = 0.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 30; ++i__) {
 /* L7: */
@@ -19835,7 +19827,7 @@ L2:
 /* L8: */
 	l4_14.gf[i__ - 1] = (l6_1.fx - 1.) * (l2_14.x[i__ - 1] * -2. / 60.);
     }
-L4:
+labelL4:
     return 0;
 } /* tp289_ */
 
@@ -19855,27 +19847,27 @@ L4:
 	}
 
     l1_1.n = 2;
-    goto L10;
+    goto labelL10;
 
 L_tp291:
     l1_1.n = 10;
-    goto L10;
+    goto labelL10;
 
 L_tp292:
     l1_1.n = 30;
-    goto L10;
+    goto labelL10;
 
 L_tp293:
     l1_1.n = 50;
-L10:
+labelL10:
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L3;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL3;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.nili = 0;
     l1_1.ninl = 0;
     l1_1.neli = 0;
@@ -19885,7 +19877,7 @@ L1:
 	l2_15.x[i__ - 1] = 1.;
 	l20_16.xex[i__ - 1] = 0.;
 	l12_15.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_15.lxl[i__ - 1] = false;
     }
     l20_16.fex = 0.;
@@ -19893,12 +19885,12 @@ L1:
     l20_16.nex = 1;
     l15_1.lsum = 1;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l16_11.f[0];
     l6_1.fx = d__1 * d__1;
     return 0;
-L3:
+labelL3:
     l16_11.f[0] = 0.;
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
@@ -19908,7 +19900,7 @@ L3:
 	l16_11.f[0] += (Real) i__ * (d__1 * d__1);
     }
     if (*mode == 2) {
-	goto L2;
+	goto labelL2;
     }
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
@@ -19917,10 +19909,10 @@ L3:
     }
     i__1 = l1_1.n;
     for (j = 1; j <= i__1; ++j) {
-/* L9: */
+/* labelL9: */
 	l4_15.gf[j - 1] = l16_11.f[0] * 2. * l17_9.df[j - 1];
     }
-L4:
+labelL4:
     return 0;
 } /* tp290_ */
 
@@ -19963,36 +19955,36 @@ L4:
 	}
 
     l1_1.n = 6;
-    goto L20;
+    goto labelL20;
 
 L_tp295:
     l1_1.n = 10;
-    goto L20;
+    goto labelL20;
 
 L_tp296:
     l1_1.n = 16;
-    goto L20;
+    goto labelL20;
 
 L_tp297:
     l1_1.n = 30;
-    goto L20;
+    goto labelL20;
 
 L_tp298:
     l1_1.n = 50;
-    goto L20;
+    goto labelL20;
 
 L_tp299:
     l1_1.n = 100;
-L20:
+labelL20:
     k = l1_1.n - 1;
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L3;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL3;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.nili = 0;
     l1_1.ninl = 0;
     l1_1.neli = 0;
@@ -20002,7 +19994,7 @@ L1:
 	l2_16.x[i__ - 1] = -1.2;
 	l20_17.xex[i__ - 1] = 1.;
 	l12_16.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_16.lxl[i__ - 1] = false;
     }
     i__1 = l1_1.n / 2;
@@ -20015,7 +20007,7 @@ L1:
     l20_17.nex = 1;
     l15_1.lsum = k << 1;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     i__1 = k;
     for (i__ = 1; i__ <= i__1; ++i__) {
@@ -20028,17 +20020,17 @@ L2:
     }
     l6_1.fx *= 1e-4;
     return 0;
-L3:
+labelL3:
     i__1 = k;
     for (i__ = 1; i__ <= i__1; ++i__) {
 /* Computing 2nd power */
 	d__1 = l2_16.x[i__ - 1];
 	l16_12.f[i__ - 1] = (l2_16.x[i__] - d__1 * d__1) * 10.;
-/* L12: */
+/* labelL12: */
 	l16_12.f[i__ + k - 1] = 1. - l2_16.x[i__ - 1];
     }
     if (*mode == 2) {
-	goto L2;
+	goto labelL2;
     }
     i__1 = k;
     for (i__ = 1; i__ <= i__1; ++i__) {
@@ -20052,7 +20044,7 @@ L3:
 		l17_14.df[i__ + j * 198 - 199] = 10.;
 	    }
 	    l17_14.df[i__ + k + j * 198 - 199] = 0.;
-/* L9: */
+/* labelL9: */
 	    if (j == i__) {
 		l17_14.df[i__ + k + j * 198 - 199] = -1.;
 	    }
@@ -20063,14 +20055,14 @@ L3:
 	l4_16.gf[j - 1] = 0.;
 	i__1 = l15_1.lsum;
 	for (i__ = 1; i__ <= i__1; ++i__) {
-/* L13: */
+/* labelL13: */
 	    l4_16.gf[j - 1] += l16_12.f[i__ - 1] * 2. * l17_14.df[i__ + j * 
 		    198 - 199];
 	}
 	l4_16.gf[j - 1] *= 1e-4;
-/* L11: */
+/* labelL11: */
     }
-L4:
+labelL4:
     return 0;
 } /* tp294_ */
 
@@ -20121,25 +20113,25 @@ L4:
 
     l1_1.n = 20;
     l20_17.fex = -20.;
-    goto L10;
+    goto labelL10;
 
 L_tp301:
     l1_1.n = 50;
     l20_17.fex = -50.;
-    goto L10;
+    goto labelL10;
 
 L_tp302:
     l1_1.n = 100;
     l20_17.fex = -100.;
-L10:
+labelL10:
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.nili = 0;
     l1_1.ninl = 0;
     l1_1.neli = 0;
@@ -20149,13 +20141,13 @@ L1:
 	l2_16.x[i__ - 1] = 0.;
 	l20_17.xex[i__ - 1] = (Real) (l1_1.n - i__) + 1.;
 	l12_16.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_16.lxl[i__ - 1] = false;
     }
     l20_17.lex = true;
     l20_17.nex = 1;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_16.x[0];
     l6_1.fx = d__1 * d__1 - l2_16.x[0] * 2.;
@@ -20168,7 +20160,7 @@ L2:
 		l2_16.x[i__ - 1];
     }
     return 0;
-L3:
+labelL3:
     l4_16.gf[0] = l2_16.x[0] * 2. - l2_16.x[1] * 2. - 2.;
     i__1 = l1_1.n - 1;
     for (i__ = 2; i__ <= i__1; ++i__) {
@@ -20178,7 +20170,7 @@ L3:
     }
     l4_16.gf[l1_1.n - 1] = l2_16.x[l1_1.n - 1] * 4. - l2_16.x[l1_1.n - 2] * 
 	    2.;
-L4:
+labelL4:
     return 0;
 } /* tp300_ */
 
@@ -20214,23 +20206,23 @@ L4:
 	}
 
     l1_1.n = 20;
-    goto L10;
+    goto labelL10;
 
 L_tp304:
     l1_1.n = 50;
-    goto L10;
+    goto labelL10;
 
 L_tp305:
     l1_1.n = 100;
-L10:
+labelL10:
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.nili = 0;
     l1_1.ninl = 0;
     l1_1.neli = 0;
@@ -20240,14 +20232,14 @@ L1:
 	l2_16.x[i__ - 1] = .1;
 	l20_17.xex[i__ - 1] = 0.;
 	l12_16.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_16.lxl[i__ - 1] = false;
     }
     l20_17.lex = true;
     l20_17.nex = 1;
     l20_17.fex = 0.;
     return 0;
-L2:
+labelL2:
     pom = 0.;
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
@@ -20267,16 +20259,16 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
-/* L9: */
+/* labelL9: */
 /* Computing 3rd power */
 	d__1 = pom;
 	l4_16.gf[i__ - 1] = l2_16.x[i__ - 1] * 2. + pom * (Real) i__ + (
 		Real) i__ * 2. * (d__1 * (d__1 * d__1));
     }
-L4:
+labelL4:
     return 0;
 } /* tp303_ */
 
@@ -20306,13 +20298,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -20321,7 +20313,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = 1.;
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_6.lex = false;
@@ -20332,7 +20324,7 @@ L1:
 /*      XEX(3)=.0D+0 */
 /*      XEX(4)=-.1D+1 */
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
@@ -20340,7 +20332,7 @@ L2:
     l6_1.fx = -exp(-l2_1.x[0] - l2_1.x[1]) * (d__1 * d__1 * 2. + d__2 * d__2 *
 	     3.);
     return 0;
-L3:
+labelL3:
     a = std::exp(-l2_1.x[0] - l2_1.x[1]);
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
@@ -20349,7 +20341,7 @@ L3:
     b = d__1 * d__1 * 2. + d__2 * d__2 * 3.;
     l4_1.gf[0] = a * (b - l2_1.x[0] * 4.);
     l4_1.gf[1] = a * (b - l2_1.x[1] * 6.);
-L4:
+labelL4:
     return 0;
 } /* tp306_ */
 
@@ -20364,13 +20356,13 @@ L4:
     static Real wi, xi1, xi2;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -20383,7 +20375,7 @@ L1:
 	l13_1.xl[i__ - 1] = (float)0.;
 	l12_1.lxu[i__ - 1] = true;
 	l14_20.xu[i__ - 1] = (float).26;
-/* L6: */
+/* labelL6: */
 	l20_1.xex[i__ - 1] = .25783;
     }
     l20_1.nex = 1;
@@ -20392,13 +20384,13 @@ L1:
     l20_1.fex = (float)0.;
     l15_1.lsum = 10;
     return 0;
-L2:
+labelL2:
     l6_1.fx = (float)0.;
-    goto L9;
-L3:
+    goto labelL9;
+labelL3:
     l4_1.gf[0] = (float)0.;
     l4_1.gf[1] = (float)0.;
-L9:
+labelL9:
     for (i__ = 1; i__ <= 10; ++i__) {
 	wi = (Real) i__;
 	xi1 = wi * l2_1.x[0];
@@ -20428,7 +20420,7 @@ L7:
     }
     l4_1.gf[0] *= (float).001;
     l4_1.gf[1] *= (float).001;
-L4:
+labelL4:
     return 0;
 } /* tp307_ */
 
@@ -20442,13 +20434,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -20467,7 +20459,7 @@ L1:
     l20_1.xex[0] = -.15543724;
     l20_1.xex[1] = .69456378;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
@@ -20476,17 +20468,17 @@ L2:
     l16_2.f[1] = std::sin(l2_1.x[0]);
     l16_2.f[2] =std::cos(l2_1.x[1]);
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 3; ++i__) {
-/* L5: */
+/* labelL5: */
 /* Computing 2nd power */
 	d__1 = l16_2.f[i__ - 1];
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     l17_2.df[0] = l2_1.x[0] * 2. + l2_1.x[1];
     l17_2.df[3] = l2_1.x[1] * 2. + l2_1.x[0];
     l17_2.df[1] = std::sin(l2_1.x[0]) * 2. *std::cos(l2_1.x[0]);
@@ -20497,10 +20489,10 @@ L3:
     l4_1.gf[1] = 0.;
     for (i__ = 1; i__ <= 3; ++i__) {
 	l4_1.gf[0] += l16_2.f[i__ - 1] * 2. * l17_2.df[i__ - 1];
-/* L6: */
+/* labelL6: */
 	l4_1.gf[1] += l16_2.f[i__ - 1] * 2. * l17_2.df[i__ + 2];
     }
-L4:
+labelL4:
     return 0;
 } /* tp308_ */
 
@@ -20513,13 +20505,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -20528,7 +20520,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = 0.;
 	l11_1.lxl[i__ - 1] = false;
-/* L5: */
+/* labelL5: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
@@ -20536,9 +20528,9 @@ L1:
     l20_1.xex[0] = 3.4826826;
     l20_1.xex[1] = 3.9;
     l20_1.fex = -3.9871708;
-L4:
+labelL4:
     return 0;
-L2:
+labelL2:
 /* Computing 4th power */
     d__1 = l2_1.x[0], d__1 *= d__1;
 /* Computing 3rd power */
@@ -20550,7 +20542,7 @@ L2:
     l6_1.fx = d__1 * d__1 * 1.41 - d__2 * (d__2 * d__2) * 12.76 + d__3 * d__3 
 	    * 39.91 - l2_1.x[0] * 51.93 + 24.37 + d__4 * d__4;
     return 0;
-L3:
+labelL3:
 /* Computing 3rd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
@@ -20571,13 +20563,13 @@ L3:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -20596,7 +20588,7 @@ L1:
     l20_1.xex[0] = -1.2;
     l20_1.xex[1] = 1.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] * l2_1.x[1];
 /* Computing 2nd power */
@@ -20607,7 +20599,7 @@ L2:
     d__3 = 1. - l2_1.x[0] - l2_1.x[1] * (d__5 * (d__4 * d__4));
     l6_1.fx = d__1 * d__1 * (d__2 * d__2) * (d__3 * d__3);
     return 0;
-L3:
+labelL3:
     a = l2_1.x[0] * l2_1.x[1];
     b = 1. - l2_1.x[0];
 /* Computing 5th power */
@@ -20620,7 +20612,7 @@ L3:
 /* Computing 5th power */
     d__1 = b, d__2 = d__1, d__1 *= d__1;
     l4_1.gf[1] = a * 2. * b * c__ * (l2_1.x[0] - d__2 * (d__1 * d__1));
-L4:
+labelL4:
     return 0;
 } /* tp310_ */
 
@@ -20633,13 +20625,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -20648,7 +20640,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = 1.;
 	l11_1.lxl[i__ - 1] = false;
-/* L5: */
+/* labelL5: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_6.lex = false;
@@ -20658,9 +20650,9 @@ L1:
     l20_6.xex[2] = 3.58443;
     l20_6.xex[3] = -1.84813;
     l20_6.fex = 0.;
-L4:
+labelL4:
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
 /* Computing 2nd power */
@@ -20671,7 +20663,7 @@ L2:
     d__3 = l2_1.x[0] + d__4 * d__4 - 7.;
     l6_1.fx = d__1 * d__1 + d__3 * d__3;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
@@ -20697,13 +20689,13 @@ L3:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -20712,7 +20704,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = 1.;
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = false;
@@ -20721,7 +20713,7 @@ L1:
     l20_1.xex[0] = -21.026652;
     l20_1.xex[1] = -36.760009;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     a = d__1 * d__1 + l2_1.x[1] * 12. - 1.;
@@ -20738,7 +20730,7 @@ L2:
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     l6_1.fx *= 1e-4;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     a = d__1 * d__1 + l2_1.x[1] * 12. - 1.;
@@ -20751,7 +20743,7 @@ L3:
     l4_1.gf[0] = (l2_1.x[0] * 2. * a + b * (l2_1.x[0] * 98. + 84.)) * 2. * 
 	    1e-4;
     l4_1.gf[1] = (a * 12. + b * (l2_1.x[1] * 98. + 2324.)) * 2. * 1e-4;
-L4:
+labelL4:
     return 0;
 } /* tp312_ */
 
@@ -20765,13 +20757,13 @@ L4:
     static Real xh;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -20781,7 +20773,7 @@ L1:
     l2_1.x[1] = -1.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_1.lxl[i__ - 1] = false;
-/* L5: */
+/* labelL5: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
@@ -20790,17 +20782,17 @@ L1:
     l20_1.xex[0] = 3.;
     l20_1.xex[1] = 2.850214;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 3.;
     l6_1.fx = d__1 * d__1 * 1e-4 - (l2_1.x[1] - l2_1.x[0]) + std::exp((l2_1.x[1] - 
 	    l2_1.x[0]) * 20.);
     return 0;
-L3:
+labelL3:
     xh = std::exp((l2_1.x[1] - l2_1.x[0]) * 20.) * 20.;
     l4_1.gf[0] = (l2_1.x[0] - 3.) * 2e-4 + 1. - xh;
     l4_1.gf[1] = xh - 1.;
-L4:
+labelL4:
     return 0;
 } /* tp313_ */
 
@@ -20815,13 +20807,13 @@ L4:
     static Real g1, h1;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -20830,7 +20822,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = 2.;
 	l12_1.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = false;
@@ -20839,7 +20831,7 @@ L1:
     l20_1.xex[0] = 1.789039;
     l20_1.xex[1] = 1.3740024;
     return 0;
-L2:
+labelL2:
     a = l2_1.x[0] - 2.;
     b = l2_1.x[1] - 1.;
 /* Computing 2nd power */
@@ -20856,7 +20848,7 @@ L2:
     d__3 = h1;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + .04 / g1 + d__3 * d__3 / .2;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
@@ -20871,7 +20863,7 @@ L3:
     d__1 = g1;
     l4_1.gf[1] = (l2_1.x[1] - 1. + l2_1.x[1] * .04 / (d__1 * d__1) - h1 * 10.)
 	     * 2.;
-L4:
+labelL4:
     return 0;
 } /* tp314_ */
 
@@ -20881,13 +20873,13 @@ L4:
     Real d__1, d__2;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 1;
     l1_1.ninl = 2;
@@ -20909,11 +20901,11 @@ L1:
     l20_1.xex[0] = .6;
     l20_1.xex[1] = .8;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_1.x[1];
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = 1. - l2_1.x[1] * 2. + l2_1.x[0];
     }
@@ -20932,13 +20924,13 @@ L4:
 	l3_3.g[2] = 1. - d__1 * d__1 - d__2 * d__2;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[1]) {
-	goto L6;
+	goto labelL6;
     }
     l5_3.gg[1] = l2_1.x[0] * 2.;
     l5_3.gg[4] = l2_1.x[1] * 2.;
-L6:
+labelL6:
     if (! l10_4.index2[2]) {
 	goto L7;
     }
@@ -20957,13 +20949,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -20972,7 +20964,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = 0.;
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
@@ -20981,18 +20973,18 @@ L1:
     l20_1.xex[0] = 7.0710678;
     l20_1.xex[1] = -7.0710678;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 20.;
 /* Computing 2nd power */
     d__2 = l2_1.x[1] + 20.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * 2. - 40.;
     l4_1.gf[1] = l2_1.x[1] * 2. + 40.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -21001,7 +20993,7 @@ L4:
 	l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 * .01 - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	return 0;
     }
@@ -21019,13 +21011,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -21034,7 +21026,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = 0.;
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
@@ -21043,18 +21035,18 @@ L1:
     l20_1.xex[0] = 7.3519262;
     l20_1.xex[1] = -5.422866;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 20.;
 /* Computing 2nd power */
     d__2 = l2_1.x[1] + 20.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * 2. - 40.;
     l4_1.gf[1] = l2_1.x[1] * 2. + 40.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -21063,7 +21055,7 @@ L4:
 	l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 / 64. - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	return 0;
     }
@@ -21081,13 +21073,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -21096,7 +21088,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = 0.;
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
@@ -21105,18 +21097,18 @@ L1:
     l20_1.xex[0] = 7.8091266;
     l20_1.xex[1] = -3.7478414;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 20.;
 /* Computing 2nd power */
     d__2 = l2_1.x[1] + 20.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * 2. - 40.;
     l4_1.gf[1] = l2_1.x[1] * 2. + 40.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -21125,7 +21117,7 @@ L4:
 	l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 / 36. - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	return 0;
     }
@@ -21143,13 +21135,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -21158,7 +21150,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = 0.;
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
@@ -21167,18 +21159,18 @@ L1:
     l20_1.xex[0] = 8.4922857;
     l20_1.xex[1] = -2.1121017;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 20.;
 /* Computing 2nd power */
     d__2 = l2_1.x[1] + 20.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * 2. - 40.;
     l4_1.gf[1] = l2_1.x[1] * 2. + 40.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -21187,7 +21179,7 @@ L4:
 	l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 / 16. - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	return 0;
     }
@@ -21205,13 +21197,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -21220,7 +21212,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = 0.;
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
@@ -21229,18 +21221,18 @@ L1:
     l20_1.xex[0] = 9.39525;
     l20_1.xex[1] = -.68459019;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 20.;
 /* Computing 2nd power */
     d__2 = l2_1.x[1] + 20.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * 2. - 40.;
     l4_1.gf[1] = l2_1.x[1] * 2. + 40.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -21249,7 +21241,7 @@ L4:
 	l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 / 4. - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	return 0;
     }
@@ -21267,13 +21259,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -21282,7 +21274,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = 0.;
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
@@ -21291,18 +21283,18 @@ L1:
     l20_1.xex[0] = 9.8160292;
     l20_1.xex[1] = -.19093377;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 20.;
 /* Computing 2nd power */
     d__2 = l2_1.x[1] + 20.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * 2. - 40.;
     l4_1.gf[1] = l2_1.x[1] * 2. + 40.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -21311,7 +21303,7 @@ L4:
 	l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	return 0;
     }
@@ -21330,13 +21322,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -21345,7 +21337,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = (float)1e-4;
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
@@ -21354,18 +21346,18 @@ L1:
     l20_1.xex[0] = 9.9980018;
     l20_1.xex[1] = -.0019990011;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - (float)20.;
 /* Computing 2nd power */
     d__2 = l2_1.x[1] + (float)20.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * 2. - 40.;
     l4_1.gf[1] = l2_1.x[1] * 2. + 40.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -21374,7 +21366,7 @@ L4:
 	l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 * 100. - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	return 0;
     }
@@ -21389,13 +21381,13 @@ L5:
     Real d__1, d__2;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 1;
     l1_1.ninl = 1;
@@ -21418,18 +21410,18 @@ L1:
     l20_1.xex[0] = .55357378;
     l20_1.xex[1] = 1.3064439;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     l6_1.fx = d__1 * d__1 + d__2 * d__2 - l2_1.x[0] * 4. + 4.;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * 2. - 4.;
     l4_1.gf[1] = l2_1.x[1] * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_1.x[0] - l2_1.x[1] + 2.;
     }
@@ -21439,7 +21431,7 @@ L4:
 	l3_2.g[1] = d__1 * d__1 * -1. + l2_1.x[1] - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (l10_3.index2[1]) {
 	l5_2.gg[1] = l2_1.x[0] * -2.;
     }
@@ -21455,13 +21447,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -21469,7 +21461,7 @@ L1:
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l2_1.x[i__ - 1] = 2.;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l11_1.lxl[0] = true;
@@ -21481,18 +21473,18 @@ L1:
     l20_1.xex[0] = 15.811389;
     l20_1.xex[1] = 1.5811387;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     l6_1.fx = d__1 * d__1 * .01 + d__2 * d__2;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * .02;
     l4_1.gf[1] = l2_1.x[1] * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_1.x[0] * l2_1.x[1] - 25.;
     }
@@ -21504,7 +21496,7 @@ L4:
 	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 - 25.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -21528,13 +21520,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 1;
     l1_1.ninl = 1;
@@ -21545,7 +21537,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l5_3.gg[i__ * 3 - 3] = -1.;
 	l11_1.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_1.lxu[i__ - 1] = false;
     }
     l5_3.gg[1] = -1.;
@@ -21556,15 +21548,15 @@ L1:
     l20_1.xex[0] = -2.3722813;
     l20_1.xex[1] = -1.8363772;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l6_1.fx = d__1 * d__1 + l2_1.x[1];
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * 2.;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = -(l2_1.x[0] + l2_1.x[1]) + 1.;
     }
@@ -21581,7 +21573,7 @@ L4:
 	l3_3.g[2] = d__1 * d__1 + d__2 * d__2 - 9.;
     }
     return 0;
-L5:
+labelL5:
     if (l10_4.index2[1]) {
 	l5_3.gg[4] = l2_1.x[1] * -2.;
     }
@@ -21602,13 +21594,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -21620,7 +21612,7 @@ L1:
 	l11_1.lxl[i__ - 1] = true;
 	l12_1.lxu[i__ - 1] = true;
 	l14_1.xu[i__ - 1] = (float)10.;
-/* L6: */
+/* labelL6: */
 	l13_1.xl[i__ - 1] = 0.;
     }
     l5_2.gg[2] = -4.;
@@ -21630,18 +21622,18 @@ L1:
     l20_1.xex[0] = 5.2396091;
     l20_1.xex[1] = 3.7460378;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     l6_1.fx = d__1 * d__1 + d__2 * d__2 - l2_1.x[0] * 16. - l2_1.x[1] * 10.;
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = l2_1.x[0] * 2. - 16.;
     l4_1.gf[1] = l2_1.x[1] * 2. - 10.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0];
@@ -21652,7 +21644,7 @@ L4:
 		3.) + 1.;
     }
     return 0;
-L5:
+labelL5:
     if (l10_3.index2[0]) {
 	l5_2.gg[0] = l2_1.x[0] * -2. + 6.;
     }
@@ -21684,13 +21676,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -21701,7 +21693,7 @@ L1:
     for (i__ = 1; i__ <= 2; ++i__) {
 	l12_1.lxu[i__ - 1] = false;
 	l11_1.lxl[i__ - 1] = true;
-/* L12: */
+/* labelL12: */
 	l13_1.xl[i__ - 1] = .4;
     }
     l20_1.lex = false;
@@ -21711,14 +21703,14 @@ L1:
     l20_1.xex[1] = 5.0000526;
     l15_1.lsum = 44;
     return 0;
-L2:
+labelL2:
     for (i__ = 1; i__ <= 44; ++i__) {
-/* L6: */
+/* labelL6: */
 	l16_13.f[i__ - 1] = y[i__ - 1] - l2_1.x[0] - (.49 - l2_1.x[0]) * std::exp(
 		-l2_1.x[1] * (z__[i__ - 1] - 8.));
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 44; ++i__) {
@@ -21728,7 +21720,7 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     l4_1.gf[0] = 0.;
     l4_1.gf[1] = 0.;
     for (i__ = 1; i__ <= 44; ++i__) {
@@ -21740,12 +21732,12 @@ L3:
 	l4_1.gf[1] += l17_15.df[i__ + 43] * l16_13.f[i__ - 1] * 2.;
     }
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = -.09 - l2_1.x[0] * l2_1.x[1] + l2_1.x[1] * .49;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	return 0;
     }
@@ -21764,13 +21756,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -21781,7 +21773,7 @@ L1:
 	l12_1.lxu[i__ - 1] = true;
 	l14_1.xu[i__ - 1] = 3.;
 	l11_1.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_1.xl[i__ - 1] = 1.;
     }
     l20_1.lex = false;
@@ -21790,7 +21782,7 @@ L1:
     l20_1.xex[0] = 1.743439;
     l20_1.xex[1] = 2.0297056;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[1];
 /* Computing 2nd power */
@@ -21805,7 +21797,7 @@ L2:
     d__1 = l2_1.x[0];
     l6_1.fx = (d__1 * d__1 + 12. + a + b) / 10.;
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[1];
 /* Computing 3rd power */
@@ -21835,7 +21827,7 @@ L3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] / (d__1 * d__1) - a) / 5.;
-L4:
+labelL4:
     return 0;
 } /* tp328_ */
 
@@ -21845,13 +21837,13 @@ L4:
     Real d__1, d__2;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 3;
@@ -21873,14 +21865,14 @@ L1:
     l20_1.xex[0] = 14.095;
     l20_1.xex[1] = .84296079;
     return 0;
-L2:
+labelL2:
 /* Computing 3rd power */
     d__1 = l2_1.x[0] - 10.;
 /* Computing 3rd power */
     d__2 = l2_1.x[1] - 20.;
     l6_1.fx = d__1 * (d__1 * d__1) + d__2 * (d__2 * d__2);
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 10.;
     l4_1.gf[0] = d__1 * d__1 * 3.;
@@ -21888,7 +21880,7 @@ L3:
     d__1 = l2_1.x[1] - 20.;
     l4_1.gf[1] = d__1 * d__1 * 3.;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_1.x[0] - 5.;
@@ -21911,13 +21903,13 @@ L4:
 	l3_3.g[2] = 82.81 - d__1 * d__1 - d__2 * d__2;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[0]) {
-	goto L6;
+	goto labelL6;
     }
     l5_3.gg[0] = l2_1.x[0] * 2. - 10.;
     l5_3.gg[3] = l2_1.x[1] * 2. - 10.;
-L6:
+labelL6:
     if (! l10_4.index2[1]) {
 	goto L7;
     }
@@ -21941,13 +21933,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -21958,7 +21950,7 @@ L1:
 	l11_1.lxl[i__ - 1] = true;
 	l12_1.lxu[i__ - 1] = true;
 	l13_1.xl[i__ - 1] = 0.;
-/* L6: */
+/* labelL6: */
 	l14_1.xu[i__ - 1] = 5.;
     }
     l20_1.lex = false;
@@ -21967,7 +21959,7 @@ L1:
     l20_1.xex[0] = 1.2866773;
     l20_1.xex[1] = .53046181;
     return 0;
-L2:
+labelL2:
 /* Computing 3rd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
@@ -21977,7 +21969,7 @@ L2:
     l6_1.fx = d__1 * (d__1 * d__1) * .044 / (d__2 * d__2) + 1. / l2_1.x[0] + 
 	    l2_1.x[0] * .0592 / (d__3 * (d__3 * d__3));
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
@@ -21997,14 +21989,14 @@ L3:
     l4_1.gf[1] = d__1 * (d__1 * d__1) * -.088 / (d__2 * (d__2 * d__2)) - 
 	    l2_1.x[0] * .1776 / (d__3 * d__3);
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 3rd power */
 	d__1 = l2_1.x[1];
 	l3_1.g[0] = 1. - d__1 * (d__1 * d__1) * 8.62 / l2_1.x[0];
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	return 0;
     }
@@ -22027,13 +22019,13 @@ L5:
     static Real a, b, c__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 1;
     l1_1.ninl = 0;
@@ -22057,22 +22049,22 @@ L1:
     l20_1.xex[0] = .6175;
     l20_1.xex[1] = .1039;
     return 0;
-L2:
+labelL2:
     l6_1.fx = std::log(std::log(l2_1.x[1]) * (float)2. / std::log(l2_1.x[0] + l2_1.x[1])) / 
 	    l2_1.x[0];
     return 0;
-L3:
+labelL3:
     a = l2_1.x[0] + l2_1.x[1];
     b = std::log(a);
     c__ = std::log(l2_1.x[1]) * (float)2.;
     l4_1.gf[0] = -1. / l2_1.x[0] * (std::log(c__ / b) / l2_1.x[0] + 1. / (b * a));
     l4_1.gf[1] = (b * 2. / l2_1.x[1] - c__ / a) / (c__ * b * l2_1.x[0]);
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_1.g[0] = (float)1. - l2_1.x[0] - l2_1.x[1];
     }
-L5:
+labelL5:
     return 0;
 } /* tp331_ */
 
@@ -22092,13 +22084,13 @@ L5:
     static Real tr, pangle, pim, xxx, yyy;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L3;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL3;
     }
-L1:
+labelL1:
     l1_1.n = 2;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -22109,7 +22101,7 @@ L1:
 	l12_1.lxu[i__ - 1] = true;
 	l14_1.xu[i__ - 1] = 1.5;
 	l11_1.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_1.xl[i__ - 1] = 0.;
     }
     l20_1.lex = false;
@@ -22117,9 +22109,9 @@ L1:
     l20_1.fex = 114.95015;
     l20_1.xex[0] = .91139872;
     l20_1.xex[1] = .029280207;
-L3:
+labelL3:
     return 0;
-L2:
+labelL2:
     pim = pi / 3.6;
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 100; ++i__) {
@@ -22137,7 +22129,7 @@ L2:
 	l6_1.fx += pim * (d__1 * d__1 + d__2 * d__2);
     }
     return 0;
-L4:
+labelL4:
     pbig = -360.;
     pim = 180. / pi;
     for (i__ = 1; i__ <= 100; ++i__) {
@@ -22174,13 +22166,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -22191,7 +22183,7 @@ L1:
     l2_2.x[2] = 3.;
     for (i__ = 1; i__ <= 3; ++i__) {
 	l12_2.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_2.lxl[i__ - 1] = false;
     }
     l11_2.lxl[1] = true;
@@ -22206,14 +22198,14 @@ L1:
     l20_3.xex[2] = .47809;
     l15_1.lsum = 8;
     return 0;
-L2:
+labelL2:
     for (i__ = 1; i__ <= 8; ++i__) {
 /* L7: */
 	l16_14.f[i__ - 1] = (y[i__ - 1] - l2_2.x[0] * std::exp(-l2_2.x[1] * a[i__ 
 		- 1]) - l2_2.x[2]) / y[i__ - 1];
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 8; ++i__) {
@@ -22224,7 +22216,7 @@ L2:
     }
     l6_1.fx *= (float)1e3;
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = 0.;
     l4_2.gf[1] = 0.;
     l4_2.gf[2] = 0.;
@@ -22235,13 +22227,13 @@ L3:
 	l17_16.df[i__ + 15] = -1. / y[i__ - 1];
 	l4_2.gf[0] += l17_16.df[i__ - 1] * l16_14.f[i__ - 1] * 2.;
 	l4_2.gf[1] += l17_16.df[i__ + 7] * l16_14.f[i__ - 1] * 2.;
-/* L9: */
+/* labelL9: */
 	l4_2.gf[2] += l17_16.df[i__ + 15] * l16_14.f[i__ - 1] * 2.;
     }
     for (i__ = 1; i__ <= 8; ++i__) {
 	l4_2.gf[i__ - 1] *= (float)1e3;
     }
-L4:
+labelL4:
     return 0;
 } /* tp333_ */
 
@@ -22261,13 +22253,13 @@ L4:
     static Real ui, vi, wi;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -22277,7 +22269,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l2_2.x[i__ - 1] = 1.;
 	l11_2.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = false;
     }
     l20_3.lex = false;
@@ -22287,7 +22279,7 @@ L1:
     l20_3.xex[2] = 2.3413942;
     l20_3.fex = .0082149184;
     return 0;
-L2:
+labelL2:
     for (i__ = 1; i__ <= 15; ++i__) {
 	ui = (Real) i__;
 	vi = (Real) (16 - i__);
@@ -22297,17 +22289,17 @@ L2:
 		l2_2.x[2] * wi));
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
-/* L10: */
+/* labelL10: */
 /* Computing 2nd power */
 	d__1 = l16_15.f[i__ - 1];
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L8: */
 	l4_2.gf[i__ - 1] = 0.;
@@ -22325,10 +22317,10 @@ L3:
 	l17_17.df[i__ + 29] = ui * wi / (d__1 * d__1);
 	l4_2.gf[0] += l17_17.df[i__ - 1] * l16_15.f[i__ - 1] * 2.;
 	l4_2.gf[1] += l17_17.df[i__ + 14] * l16_15.f[i__ - 1] * 2.;
-/* L9: */
+/* labelL9: */
 	l4_2.gf[2] += l17_17.df[i__ + 29] * l16_15.f[i__ - 1] * 2.;
     }
-L4:
+labelL4:
     return 0;
 } /* tp334_ */
 
@@ -22341,13 +22333,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -22356,7 +22348,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l2_2.x[i__ - 1] = 1.;
 	l11_2.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = false;
     }
     l5_3.gg[4] = -1.;
@@ -22368,15 +22360,15 @@ L1:
     l20_3.xex[2] = .0020000032;
     l20_3.fex = -.004472137;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -(l2_2.x[0] * .001 + l2_2.x[1]);
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = -.001;
     l4_2.gf[1] = -1.;
     l4_2.gf[2] = 0.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[0];
@@ -22392,7 +22384,7 @@ L4:
 	l3_2.g[1] = d__1 * d__1 * 100. + d__2 * d__2 * 400. + l2_2.x[2] - .01;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -22416,13 +22408,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -22431,7 +22423,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l2_2.x[i__ - 1] = 0.;
 	l12_2.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_2.lxl[i__ - 1] = false;
     }
     l5_3.gg[0] = 5.;
@@ -22444,15 +22436,15 @@ L1:
     l20_3.xex[2] = -.21905778;
     l20_3.fex = -.33789573;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_2.x[0] * 7. - l2_2.x[1] * 6. + l2_2.x[2] * 4.;
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = 7.;
     l4_2.gf[1] = -6.;
     l4_2.gf[2] = 4.;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_2.x[0] * 5. + l2_2.x[1] * 5. - l2_2.x[2] * 3. - 6.;
     }
@@ -22466,7 +22458,7 @@ L4:
 	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 * 2. + d__3 * d__3 * 3. - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[1]) {
 	goto L8;
     }
@@ -22486,20 +22478,20 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 1;
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-/* L6: */
+/* labelL6: */
 	l2_2.x[i__ - 1] = 1.;
     }
     l12_2.lxu[0] = false;
@@ -22518,7 +22510,7 @@ L1:
     l20_3.xex[2] = -2.0256839e-6;
     l20_3.fex = 6.;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
 /* Computing 2nd power */
@@ -22527,17 +22519,17 @@ L2:
     d__3 = l2_2.x[2];
     l6_1.fx = d__1 * d__1 * 9. + d__2 * d__2 + d__3 * d__3 * 9.;
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = l2_2.x[0] * 18.;
     l4_2.gf[1] = l2_2.x[1] * 2.;
     l4_2.gf[2] = l2_2.x[2] * 18.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = l2_2.x[0] * l2_2.x[1] - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -22556,13 +22548,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -22571,7 +22563,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l2_2.x[i__ - 1] = 0.;
 	l11_2.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = false;
     }
     l5_3.gg[0] = .5;
@@ -22584,7 +22576,7 @@ L1:
     l20_3.xex[2] = -1.4271674;
     l20_3.fex = -7.2056984;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
 /* Computing 2nd power */
@@ -22593,13 +22585,13 @@ L2:
     d__3 = l2_2.x[2];
     l6_1.fx = -(d__1 * d__1 + d__2 * d__2 + d__3 * d__3);
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L7: */
 	l4_2.gf[i__ - 1] = l2_2.x[i__ - 1] * -2.;
     }
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 	l3_2.g[0] = l2_2.x[0] * .5 + l2_2.x[1] + l2_2.x[2] - 1.;
     }
@@ -22614,7 +22606,7 @@ L4:
 		d__3 * .25 - 4.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[1]) {
 	goto L8;
     }
@@ -22634,13 +22626,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -22650,7 +22642,7 @@ L1:
 	l2_2.x[i__ - 1] = 1.;
 	l12_2.lxu[i__ - 1] = false;
 	l11_2.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_2.xl[i__ - 1] = 0.;
     }
     l20_3.lex = false;
@@ -22660,11 +22652,11 @@ L1:
     l20_3.xex[2] = 1.9429359;
     l20_3.fex = 3.3616797;
     return 0;
-L2:
+labelL2:
     l6_1.fx = .2 / (l2_2.x[0] * l2_2.x[1] * l2_2.x[2]) + 4. / l2_2.x[0] + 3. /
 	     l2_2.x[2];
     return 0;
-L3:
+labelL3:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
 /* Computing 2nd power */
@@ -22681,12 +22673,12 @@ L3:
     l4_2.gf[2] = -.2 / (l2_2.x[0] * l2_2.x[1] * (d__1 * d__1)) - 3. / (d__2 * 
 	    d__2);
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = 10. - l2_2.x[0] * 2. * l2_2.x[2] - l2_2.x[0] * l2_2.x[1];
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L8;
     }
@@ -22702,13 +22694,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 1;
     l1_1.ninl = 0;
@@ -22717,7 +22709,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l2_2.x[i__ - 1] = 1.;
 	l12_2.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_2.lxl[i__ - 1] = false;
     }
     l12_2.lxu[0] = true;
@@ -22732,19 +22724,19 @@ L1:
     l20_3.xex[2] = .29999998;
     l20_3.fex = -.054;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_2.x[0] * l2_2.x[1] * l2_2.x[2];
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = -l2_2.x[1] * l2_2.x[2];
     l4_2.gf[1] = -l2_2.x[0] * l2_2.x[2];
     l4_2.gf[2] = -l2_2.x[0] * l2_2.x[1];
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = 1.8 - l2_2.x[0] - l2_2.x[1] * 2. - l2_2.x[2] * 2.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp340_ */
 
@@ -22757,13 +22749,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -22773,7 +22765,7 @@ L1:
 	l2_2.x[i__ - 1] = 1.;
 	l11_2.lxl[i__ - 1] = true;
 	l12_2.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l13_2.xl[i__ - 1] = 0.;
     }
     l20_3.lex = false;
@@ -22783,15 +22775,15 @@ L1:
     l20_3.xex[2] = 2.;
     l20_3.fex = -22.627417;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_2.x[0] * l2_2.x[1] * l2_2.x[2];
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = -l2_2.x[1] * l2_2.x[2];
     l4_2.gf[1] = -l2_2.x[0] * l2_2.x[2];
     l4_2.gf[2] = -l2_2.x[0] * l2_2.x[1];
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[0];
@@ -22803,7 +22795,7 @@ L4:
 		48.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -22823,13 +22815,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 1;
@@ -22839,7 +22831,7 @@ L1:
 	l2_2.x[i__ - 1] = 1.;
 	l12_2.lxu[i__ - 1] = false;
 	l11_2.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_2.xl[i__ - 1] = 0.;
     }
     l20_3.lex = false;
@@ -22849,15 +22841,15 @@ L1:
     l20_3.xex[2] = 2.;
     l20_3.fex = -22.627417;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -l2_2.x[0] * l2_2.x[1] * l2_2.x[2];
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = -l2_2.x[1] * l2_2.x[2];
     l4_2.gf[1] = -l2_2.x[0] * l2_2.x[2];
     l4_2.gf[2] = -l2_2.x[0] * l2_2.x[1];
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[0];
@@ -22868,7 +22860,7 @@ L4:
 	l3_1.g[0] = 48. - d__1 * d__1 - d__2 * d__2 * 2. - d__3 * d__3 * 4.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L8;
     }
@@ -22888,13 +22880,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -22903,7 +22895,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l12_2.lxu[i__ - 1] = true;
 	l11_2.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_2.xl[i__ - 1] = 0.;
     }
     l2_2.x[0] = 22.3;
@@ -22921,14 +22913,14 @@ L1:
     l20_3.xex[2] = 123.99452;
     l20_3.fex = -5.6847825;
     return 0;
-L2:
+labelL2:
 /* Computing 4th power */
     d__1 = l2_2.x[0], d__1 *= d__1;
 /* Computing 2nd power */
     d__2 = l2_2.x[2];
     l6_1.fx = d__1 * d__1 * -.0201 * l2_2.x[1] * (d__2 * d__2) * 1e-7;
     return 0;
-L3:
+labelL3:
 /* Computing 3rd power */
     d__1 = l2_2.x[0];
 /* Computing 2nd power */
@@ -22944,7 +22936,7 @@ L3:
     d__1 = l2_2.x[0], d__1 *= d__1;
     l4_2.gf[2] = d__1 * d__1 * -.0402 * l2_2.x[1] * l2_2.x[2] * 1e-7;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[0];
@@ -22958,7 +22950,7 @@ L4:
 	l3_2.g[1] = .419 - d__1 * d__1 * (d__2 * d__2) * 1e-7;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -22989,13 +22981,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -23004,7 +22996,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l2_2.x[i__ - 1] = 2.;
 	l11_2.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = false;
     }
     l20_3.lex = false;
@@ -23014,7 +23006,7 @@ L1:
     l20_3.xex[2] = 1.5352623;
     l20_3.fex = .0325682;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0] - 1.;
 /* Computing 2nd power */
@@ -23023,7 +23015,7 @@ L2:
     d__3 = l2_2.x[1] - l2_2.x[2], d__3 *= d__3;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3;
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = (l2_2.x[0] - 1.) * 2. + (l2_2.x[0] - l2_2.x[1]) * 2.;
 /* Computing 3rd power */
     d__1 = l2_2.x[1] - l2_2.x[2];
@@ -23032,7 +23024,7 @@ L3:
     d__1 = l2_2.x[1] - l2_2.x[2];
     l4_2.gf[2] = d__1 * (d__1 * d__1) * -4.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[1];
@@ -23042,7 +23034,7 @@ L4:
 		2.) * 3.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -23066,13 +23058,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -23081,7 +23073,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l2_2.x[i__ - 1] = 0.;
 	l12_2.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_2.lxl[i__ - 1] = false;
     }
     l20_3.lex = false;
@@ -23091,7 +23083,7 @@ L1:
     l20_3.xex[2] = 1.5352622;
     l20_3.fex = .0325682;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_2.x[0] - 1.;
 /* Computing 2nd power */
@@ -23100,7 +23092,7 @@ L2:
     d__3 = l2_2.x[1] - l2_2.x[2], d__3 *= d__3;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3;
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = (l2_2.x[0] - 1) * 2. + (l2_2.x[0] - l2_2.x[1]) * 2.;
 /* Computing 3rd power */
     d__1 = l2_2.x[1] - l2_2.x[2];
@@ -23109,7 +23101,7 @@ L3:
     d__1 = l2_2.x[1] - l2_2.x[2];
     l4_2.gf[2] = d__1 * (d__1 * d__1) * -4.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[1];
@@ -23119,7 +23111,7 @@ L4:
 		18.);
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L8;
     }
@@ -23143,13 +23135,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -23158,7 +23150,7 @@ L1:
     for (i__ = 1; i__ <= 3; ++i__) {
 	l12_2.lxu[i__ - 1] = true;
 	l11_2.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_2.xl[i__ - 1] = 0.;
     }
     l2_2.x[0] = 22.3;
@@ -23176,14 +23168,14 @@ L1:
     l20_3.xex[2] = 123.99452;
     l20_3.fex = -5.6847825;
     return 0;
-L2:
+labelL2:
 /* Computing 4th power */
     d__1 = l2_2.x[0], d__1 *= d__1;
 /* Computing 2nd power */
     d__2 = l2_2.x[2];
     l6_1.fx = d__1 * d__1 * -.0201 * l2_2.x[1] * (d__2 * d__2) * 1e-7;
     return 0;
-L3:
+labelL3:
 /* Computing 3rd power */
     d__1 = l2_2.x[0];
 /* Computing 2nd power */
@@ -23199,7 +23191,7 @@ L3:
     d__1 = l2_2.x[0], d__1 *= d__1;
     l4_2.gf[2] = d__1 * d__1 * -.0402 * l2_2.x[1] * l2_2.x[2] * 1e-7;
     return 0;
-L4:
+labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_2.x[0];
@@ -23213,7 +23205,7 @@ L4:
 	l3_2.g[1] = .419 - d__1 * d__1 * (d__2 * d__2) * 1e-7;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_3.index2[0]) {
 	goto L7;
     }
@@ -23247,13 +23239,13 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_3.n = 3;
     l1_3.nili = 0;
     ninl = 0;
@@ -23277,7 +23269,7 @@ L1:
     l20_3.xex[2] = 1.;
     l20_3.fex = 17374.625;
     return 0;
-L2:
+labelL2:
     h__[0] = l2_2.x[0] + l2_2.x[1] + l2_2.x[2] + .03;
     h__[1] = l2_2.x[0] * .09 + l2_2.x[1] + l2_2.x[2] + .03;
     h__[2] = h__[0] * h__[1];
@@ -23287,23 +23279,23 @@ L2:
     h__[6] = l2_2.x[2] + .03;
     h__[7] = l2_2.x[2] * .13 + .03;
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = a[0] * std::log(h__[0] / h__[1]) + a[1] * std::log(h__[3] / h__[4]) + a[2]
 	     * std::log(h__[6] / h__[7]);
     return 0;
-L3:
+labelL3:
     l4_2.gf[0] = a[0] * (h__[1] - h__[0] * .09) / h__[2];
     l4_2.gf[1] = a[0] * (h__[1] - h__[0]) / h__[2] + a[1] * (h__[4] - h__[3] *
 	     .07) / h__[5];
     l4_2.gf[2] = a[0] * (h__[1] - h__[0]) / h__[2] + a[1] * (h__[4] - h__[3]) 
 	    / h__[5] + a[2] * (h__[7] - h__[6] * .13) / (h__[6] * h__[7]);
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = l2_2.x[0] + l2_2.x[1] + l2_2.x[2] - 1.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp347_ */
 
@@ -23335,13 +23327,13 @@ L5:
 	    ho, hef;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -23349,7 +23341,7 @@ L1:
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 3; ++i__) {
 	l11_2.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = true;
     }
     l11_2.lxl[1] = true;
@@ -23367,7 +23359,7 @@ L1:
     l20_3.xex[2] = 85.607576;
     l20_3.fex = 36.97084;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = d__;
     af = l2_2.x[1] / l2_2.x[0] * 2. * (w * h__ - pi * 30. * (d__1 * d__1) / 
@@ -23411,16 +23403,16 @@ L2:
     costf = h__ * .47 * w * .006 * rhoa / 1728. * l2_2.x[1] / l2_2.x[0];
     costt = costt * rhoc / 1728.;
     l6_1.fx = costm + costt + costf;
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (! l9_2.index1[0]) {
-	goto L5;
+	goto labelL5;
     }
-    goto L2;
+    goto labelL2;
 L7:
     l3_1.g[0] = 6e3 - q;
-L5:
+labelL5:
     return 0;
 } /* tp348_ */
 
@@ -23450,13 +23442,13 @@ L5:
 	    are, phi[9];
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L3;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL3;
     }
-L1:
+labelL1:
     l1_1.n = 3;
     l1_1.nili = 0;
     l1_1.ninl = 9;
@@ -23467,7 +23459,7 @@ L1:
     l2_2.x[2] = 100.;
     for (i__ = 1; i__ <= 2; ++i__) {
 	l11_2.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_2.lxu[i__ - 1] = true;
     }
     l11_2.lxl[2] = false;
@@ -23482,7 +23474,7 @@ L1:
     l20_3.xex[1] = 188.81406;
     l20_3.xex[2] = 113.81406;
     return 0;
-L2:
+labelL2:
     p1 = 100.;
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L35: */
@@ -23576,9 +23568,9 @@ L47:
 	    6.95e-4) * l2_2.x[0] * 61.1 + heat * .00115 + heat * 6.92 + 
 	    l2_2.x[0] * 574. * (c1f - c1) + 114800.;
     l6_1.fx = (6.88e5 - c0) / (vest * 2.) * -.001;
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     p1 = 100.;
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L37: */
@@ -23676,19 +23668,19 @@ L51:
     static int i__, j;
 
     for (i__ = 1; i__ <= 11; ++i__) {
-/* L12: */
+/* labelL12: */
 /* Computing 2nd power */
 	d__1 = u[i__ - 1];
 	h__[i__ - 1] = d__1 * d__1 + l2_3.x[2] * u[i__ - 1] + l2_3.x[3];
     }
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -23700,7 +23692,7 @@ L1:
     l2_3.x[3] = .39;
     for (i__ = 1; i__ <= 4; ++i__) {
 	l12_3.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_3.lxl[i__ - 1] = false;
     }
     l15_1.lsum = 11;
@@ -23712,16 +23704,16 @@ L1:
     l20_6.xex[2] = .12305098;
     l20_6.xex[3] = .13605235;
     return 0;
-L2:
+labelL2:
     for (i__ = 1; i__ <= 11; ++i__) {
-/* L20: */
+/* labelL20: */
 /* Computing 2nd power */
 	d__1 = u[i__ - 1];
 	l16_7.f[i__ - 1] = y[i__ - 1] - l2_3.x[0] / h__[i__ - 1] * (d__1 * 
 		d__1 + l2_3.x[1] * u[i__ - 1]);
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 11; ++i__) {
@@ -23732,7 +23724,7 @@ L2:
     }
     l6_1.fx *= 1e4;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 11; ++i__) {
 /* Computing 2nd power */
 	d__1 = u[i__ - 1];
@@ -23756,14 +23748,14 @@ L3:
     for (j = 1; j <= 4; ++j) {
 	l4_3.gf[j - 1] = 0.;
 	for (i__ = 1; i__ <= 11; ++i__) {
-/* L10: */
+/* labelL10: */
 	    l4_3.gf[j - 1] += l16_7.f[i__ - 1] * 2. * l17_18.df[i__ + j * 11 
 		    - 12];
 	}
 	l4_3.gf[j - 1] *= 1e4;
-/* L9: */
+/* labelL9: */
     }
-L4:
+labelL4:
     return 0;
 } /* tp350_ */
 
@@ -23795,13 +23787,13 @@ L4:
     d__1 = l2_3.x[3];
     xh4 = d__1 * d__1;
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -23813,7 +23805,7 @@ L1:
     l2_3.x[3] = 10.;
     for (i__ = 1; i__ <= 4; ++i__) {
 	l12_3.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_3.lxl[i__ - 1] = false;
     }
     l20_6.lex = false;
@@ -23825,15 +23817,15 @@ L1:
     l20_6.xex[3] = 31.51;
     l15_1.lsum = 7;
     return 0;
-L2:
+labelL2:
     for (i__ = 1; i__ <= 7; ++i__) {
-/* L20: */
+/* labelL20: */
 	l16_6.f[i__ - 1] = ((xh1 + a[i__ - 1] * xh2 + a[i__ - 1] * a[i__ - 1] 
 		* xh3) / (a[i__ - 1] * xh4 + 1.) - b[i__ - 1]) / b[i__ - 1] * 
 		100.;
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 7; ++i__) {
@@ -23843,7 +23835,7 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (j = 1; j <= 4; ++j) {
 /* L8: */
 	l4_3.gf[j - 1] = 0.;
@@ -23862,12 +23854,12 @@ L3:
 	l17_7.df[i__ + 20] = l2_3.x[3] * -200. * a[i__ - 1] * b[i__ - 1] * (
 		xh1 + xh2 * a[i__ - 1] + xh3 * (d__1 * d__1)) / (d__2 * d__2);
 	for (j = 1; j <= 4; ++j) {
-/* L10: */
+/* labelL10: */
 	    l4_3.gf[j - 1] += l16_6.f[i__ - 1] * 2. * l17_7.df[i__ + j * 7 - 
 		    8];
 	}
     }
-L4:
+labelL4:
     return 0;
 } /* tp351_ */
 
@@ -23881,13 +23873,13 @@ L4:
     static Real ti;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -23899,7 +23891,7 @@ L1:
     l2_3.x[3] = -1.;
     for (i__ = 1; i__ <= 4; ++i__) {
 	l12_3.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_3.lxl[i__ - 1] = false;
     }
     l20_6.lex = false;
@@ -23911,15 +23903,15 @@ L1:
     l20_6.xex[3] = .58031996;
     l15_1.lsum = 40;
     return 0;
-L2:
+labelL2:
     for (i__ = 1; i__ <= 20; ++i__) {
 	ti = i__ * .2;
 	l16_16.f[i__ - 1] = l2_3.x[0] + l2_3.x[1] * ti - std::exp(ti);
-/* L20: */
+/* labelL20: */
 	l16_16.f[i__ + 19] = l2_3.x[2] + l2_3.x[3] * std::sin(ti) -std::cos(ti);
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 20; ++i__) {
@@ -23931,7 +23923,7 @@ L2:
 	l6_1.fx = l6_1.fx + d__1 * d__1 + d__2 * d__2;
     }
     return 0;
-L3:
+labelL3:
     for (j = 1; j <= 4; ++j) {
 /* L8: */
 	l4_3.gf[j - 1] = 0.;
@@ -23947,13 +23939,13 @@ L3:
 	l17_19.df[i__ + 119] = 0.;
 	l17_19.df[i__ + 139] = std::sin(ti);
 	for (j = 1; j <= 4; ++j) {
-/* L10: */
+/* labelL10: */
 	    l4_3.gf[j - 1] = l4_3.gf[j - 1] + l16_16.f[i__ - 1] * 2. * 
 		    l17_19.df[i__ + j * 40 - 41] + l16_16.f[i__ + 19] * 2. * 
 		    l17_19.df[i__ + 20 + j * 40 - 41];
 	}
     }
-L4:
+labelL4:
     return 0;
 } /* tp352_ */
 
@@ -23967,13 +23959,13 @@ L4:
     static Real q;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 1;
     l1_1.ninl = 1;
@@ -23991,7 +23983,7 @@ L1:
 	l5_7.gg[i__ * 3 - 1] = 1.;
 	l11_3.lxl[i__ - 1] = true;
 	l12_3.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l13_3.xl[i__ - 1] = 0.;
     }
     l20_6.lex = false;
@@ -24002,18 +23994,18 @@ L1:
     l20_6.xex[2] = .37755102;
     l20_6.xex[3] = .62244898;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_3.x[0] * 24.55 + l2_3.x[1] * 26.75 + l2_3.x[2] * 39. + 
 	    l2_3.x[3] * 40.5;
     l6_1.fx = -l6_1.fx;
     return 0;
-L3:
+labelL3:
     l4_3.gf[0] = -24.55;
     l4_3.gf[1] = -26.75;
     l4_3.gf[2] = -39.;
     l4_3.gf[3] = -40.5;
     return 0;
-L4:
+labelL4:
 /* Computing 2nd power */
     d__1 = l2_3.x[0] * .53;
 /* Computing 2nd power */
@@ -24024,7 +24016,7 @@ L4:
     d__4 = l2_3.x[3] * .79;
     q = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4;
     if (*mode == 5) {
-	goto L5;
+	goto labelL5;
     }
     if (l9_4.index1[0]) {
 	l3_3.g[0] = l2_3.x[0] * 2.3 + l2_3.x[1] * 5.6 + l2_3.x[2] * 11.1 + 
@@ -24038,7 +24030,7 @@ L4:
 	l3_3.g[2] = l2_3.x[0] + l2_3.x[1] + l2_3.x[2] + l2_3.x[3] - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[1]) {
 	goto L7;
     }
@@ -24059,13 +24051,13 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 1;
     l1_1.ninl = 0;
@@ -24079,7 +24071,7 @@ L1:
 	l5_2.gg[i__ - 1] = 1.;
 	l12_3.lxu[i__ - 1] = true;
 	l11_3.lxl[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l14_3.xu[i__ - 1] = 20.;
     }
     l20_6.lex = false;
@@ -24090,7 +24082,7 @@ L1:
     l20_6.xex[2] = .23580504;
     l20_6.xex[3] = .30639882;
     return 0;
-L2:
+labelL2:
 /* Computing 2nd power */
     d__1 = l2_3.x[0] + l2_3.x[1] * 10.;
 /* Computing 2nd power */
@@ -24102,7 +24094,7 @@ L2:
     l6_1.fx = d__1 * d__1 + d__2 * d__2 * 5. + d__3 * d__3 + d__4 * d__4 * 
 	    10.;
     return 0;
-L3:
+labelL3:
 /* Computing 3rd power */
     d__1 = l2_3.x[0] - l2_3.x[3];
     l4_3.gf[0] = l2_3.x[0] * 2. + l2_3.x[1] * 20. + d__1 * (d__1 * d__1) * 
@@ -24120,11 +24112,11 @@ L3:
     l4_3.gf[3] = l2_3.x[2] * -10. + l2_3.x[3] * 10. - d__1 * (d__1 * d__1) * 
 	    40.;
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 	l3_1.g[0] = l2_3.x[0] + l2_3.x[1] + l2_3.x[2] + l2_3.x[3] - 1.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp354_ */
 
@@ -24153,13 +24145,13 @@ L5:
     h5 = h1 * l2_3.x[3];
     h6 = h2 * (1. - h0);
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -24168,7 +24160,7 @@ L1:
     for (i__ = 1; i__ <= 4; ++i__) {
 	l12_3.lxu[i__ - 1] = false;
 	l11_3.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l2_3.x[i__ - 1] = 0.;
     }
     l13_3.xl[0] = .1;
@@ -24183,17 +24175,17 @@ L1:
     l20_6.xex[2] = 0.;
     l20_6.xex[3] = 1.9718118;
     return 0;
-L2:
+labelL2:
     l6_1.fx = r__[0] * r__[0] + r__[1] * r__[1];
     return 0;
-L3:
+labelL3:
     l4_3.gf[0] = -h5 + h6;
     l4_3.gf[1] = -h5 + h2 * (l2_3.x[3] * (l2_3.x[2] - l2_3.x[0]) + 10.);
     l4_3.gf[2] = h5 - h6;
     l4_3.gf[3] = h1 * (-l2_3.x[0] - l2_3.x[1] + l2_3.x[2]) + h2 * (l2_3.x[1] *
 	     (l2_3.x[2] - l2_3.x[0]) + 1.);
     return 0;
-L4:
+labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
 	d__1 = r__[0];
@@ -24206,7 +24198,7 @@ L4:
 	l3_1.g[0] = d__1 * d__1 + d__2 * d__2 - d__3 * d__3 - d__4 * d__4;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
 	goto L7;
     }
@@ -24236,13 +24228,13 @@ L7:
 	    pc, td, wp, del, phi[5], sig;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L3;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL3;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 1;
     l1_1.ninl = 4;
@@ -24254,7 +24246,7 @@ L1:
     l2_3.x[3] = 1.;
     for (i__ = 1; i__ <= 3; ++i__) {
 	l12_3.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_3.lxl[i__ - 1] = true;
     }
     l11_3.lxl[3] = false;
@@ -24270,12 +24262,12 @@ L1:
     l20_6.xex[2] = 8.2914714;
     l20_6.xex[3] = .24436898;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_3.x[0] * 1.10471 * l2_3.x[0] * l2_3.x[1] + l2_3.x[2] * 
 	    .04811 * l2_3.x[3] * (l2_3.x[1] + 14.);
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     l = 14.;
     load = 6e3;
     td = 13600.;
@@ -24370,13 +24362,13 @@ L4:
 	    dalpha, pi, qi, ri, si, sp, sql, sum, aabb;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L3;
-	case 5:  goto L3;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL3;
+	case 5:  goto labelL3;
     }
-L1:
+labelL1:
     l1_1.n = 4;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -24388,7 +24380,7 @@ L1:
     l2_3.x[3] = 75.7;
     for (i__ = 1; i__ <= 4; ++i__) {
 	l11_3.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_3.lxu[i__ - 1] = true;
     }
     l20_6.lex = false;
@@ -24407,7 +24399,7 @@ L1:
     l14_3.xu[2] = 100.;
     l14_3.xu[3] = 100.;
     return 0;
-L2:
+labelL2:
     dalpha = .17452927777777777;
     sum = 0.;
     p1 = l2_3.x[0];
@@ -24495,7 +24487,7 @@ L53:
     sql = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 + d__5 * d__5 
 	    + d__6 * d__6;
     l6_1.fx = sum / 100. + sql / 62500.;
-L3:
+labelL3:
     return 0;
 } /* tp357_ */
 
@@ -24516,13 +24508,13 @@ L3:
     static Real ti;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -24535,7 +24527,7 @@ L1:
     l2_4.x[4] = .02;
     for (i__ = 1; i__ <= 5; ++i__) {
 	l12_4.lxu[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l11_4.lxl[i__ - 1] = true;
     }
     l13_4.xl[0] = -.5;
@@ -24558,15 +24550,15 @@ L1:
     l20_7.xex[4] = .02212;
     l15_1.lsum = 33;
     return 0;
-L2:
+labelL2:
     for (i__ = 1; i__ <= 33; ++i__) {
 	ti = (Real) (i__ - 1) * 10.;
-/* L20: */
+/* labelL20: */
 	l16_17.f[i__ - 1] = y[i__ - 1] - (l2_4.x[0] + l2_4.x[1] * std::exp(-l2_4.x[
 		3] * ti) + l2_4.x[2] * std::exp(-l2_4.x[4] * ti));
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 33; ++i__) {
@@ -24576,7 +24568,7 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (j = 1; j <= 5; ++j) {
 /* L8: */
 	l4_4.gf[j - 1] = 0.;
@@ -24589,12 +24581,12 @@ L3:
 	l17_20.df[i__ + 98] = l2_4.x[1] * std::exp(-l2_4.x[3] * ti) * ti;
 	l17_20.df[i__ + 131] = l2_4.x[2] * std::exp(-l2_4.x[4] * ti) * ti;
 	for (j = 1; j <= 5; ++j) {
-/* L10: */
+/* labelL10: */
 	    l4_4.gf[j - 1] += l16_17.f[i__ - 1] * 2. * l17_20.df[i__ + j * 33 
 		    - 34];
 	}
     }
-L4:
+labelL4:
     return 0;
 } /* tp358_ */
 
@@ -24616,13 +24608,13 @@ L4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 14;
     l1_1.ninl = 0;
@@ -24634,12 +24626,12 @@ L1:
     l2_4.x[3] = 23.31;
     l2_4.x[4] = 17.136;
     for (i__ = 1; i__ <= 5; ++i__) {
-/* L10: */
+/* labelL10: */
 	l4_4.gf[i__ - 1] = -a[i__ - 1];
     }
     for (j = 1; j <= 8; ++j) {
 	for (i__ = 1; i__ <= 5; ++i__) {
-/* L6: */
+/* labelL6: */
 	    l5_33.gg[j + i__ * 14 - 15] = 0.;
 	}
     }
@@ -24676,16 +24668,16 @@ L1:
     l20_7.xex[3] = 42.198;
     l20_7.xex[4] = 31.762;
     return 0;
-L2:
+labelL2:
     l6_1.fx = -24345.;
     for (i__ = 1; i__ <= 5; ++i__) {
-/* L9: */
+/* labelL9: */
 	l6_1.fx += a[i__ - 1] * l2_4.x[i__ - 1];
     }
     l6_1.fx = -l6_1.fx;
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_8.index1[0]) {
 	l3_7.g[0] = l2_4.x[0] * 2.4 - l2_4.x[1];
     }
@@ -24711,7 +24703,7 @@ L4:
 	l3_7.g[7] = l2_4.x[0] * -6.5 + l2_4.x[4];
     }
     for (i__ = 1; i__ <= 3; ++i__) {
-/* L11: */
+/* labelL11: */
 	h__[i__ - 1] = 0.;
     }
     h__[3] = 2.94e5;
@@ -24723,16 +24715,16 @@ L4:
 	h__[2] += d__[i__ - 1] * l2_4.x[i__ - 1];
 	h__[3] -= b[i__ - 1] * l2_4.x[i__ - 1];
 	h__[4] -= c__[i__ - 1] * l2_4.x[i__ - 1];
-/* L12: */
+/* labelL12: */
 	h__[5] -= d__[i__ - 1] * l2_4.x[i__ - 1];
     }
     for (i__ = 9; i__ <= 14; ++i__) {
-/* L13: */
+/* labelL13: */
 	if (l9_8.index1[i__ - 1]) {
 	    l3_7.g[i__ - 1] = h__[i__ - 9];
 	}
     }
-L5:
+labelL5:
     return 0;
 } /* tp359_ */
 
@@ -24750,13 +24742,13 @@ L5:
     static Real hh[5];
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 2;
@@ -24771,7 +24763,7 @@ L1:
     l12_4.lxu[0] = false;
     for (i__ = 2; i__ <= 5; ++i__) {
 	l11_4.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__ - 1] = true;
     }
     l13_4.xl[0] = 0.;
@@ -24792,11 +24784,11 @@ L1:
     l20_7.xex[3] = 9.3;
     l20_7.xex[4] = 7.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = (-c__[0] - c__[1] * l2_4.x[1] - c__[2] * l2_4.x[2] - c__[3] * 
 	    l2_4.x[3] - c__[4] * l2_4.x[4]) * l2_4.x[0] + 24345.;
     return 0;
-L3:
+labelL3:
     l4_4.gf[0] = -c__[0] - c__[1] * l2_4.x[1] - c__[2] * l2_4.x[2] - c__[3] * 
 	    l2_4.x[3] - c__[4] * l2_4.x[4];
     for (i__ = 2; i__ <= 5; ++i__) {
@@ -24804,7 +24796,7 @@ L3:
 	l4_4.gf[i__ - 1] = -c__[i__ - 1] * l2_4.x[0];
     }
     return 0;
-L4:
+labelL4:
     h__ = (c__[5] + c__[6] * l2_4.x[1] + c__[7] * l2_4.x[2] + c__[8] * l2_4.x[
 	    3] + c__[9] * l2_4.x[4]) * l2_4.x[0];
     if (l9_3.index1[0]) {
@@ -24814,7 +24806,7 @@ L4:
 	l3_2.g[1] = 277200. - h__;
     }
     return 0;
-L5:
+labelL5:
     hh[0] = c__[5] + c__[6] * l2_4.x[1] + c__[7] * l2_4.x[2] + c__[8] * 
 	    l2_4.x[3] + c__[9] * l2_4.x[4];
     for (i__ = 2; i__ <= 5; ++i__) {
@@ -24822,21 +24814,21 @@ L5:
 	hh[i__ - 1] = c__[i__ + 4] * l2_4.x[0];
     }
     if (! l10_3.index2[0]) {
-	goto L11;
+	goto labelL11;
     }
     for (i__ = 1; i__ <= 5; ++i__) {
-/* L9: */
+/* labelL9: */
 	l5_4.gg[(i__ << 1) - 2] = hh[i__ - 1];
     }
-L11:
+labelL11:
     if (! l10_3.index2[1]) {
-	goto L12;
+	goto labelL12;
     }
     for (i__ = 1; i__ <= 5; ++i__) {
-/* L10: */
+/* labelL10: */
 	l5_4.gg[(i__ << 1) - 1] = -hh[i__ - 1];
     }
-L12:
+labelL12:
     return 0;
 } /* tp360_ */
 
@@ -24859,13 +24851,13 @@ L12:
     static Real hh[15]	/* was [3][5] */;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 6;
@@ -24880,7 +24872,7 @@ L1:
     l12_4.lxu[0] = false;
     for (i__ = 1; i__ <= 4; ++i__) {
 	l11_4.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l12_4.lxu[i__] = true;
     }
     l13_4.xl[0] = 0.;
@@ -24900,7 +24892,7 @@ L1:
     l20_7.xex[3] = 9.3;
     l20_7.xex[4] = 7.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = a[0];
     for (i__ = 2; i__ <= 5; ++i__) {
 /* L7: */
@@ -24909,7 +24901,7 @@ L2:
     l6_1.fx = l2_4.x[0] * l6_1.fx - 24345.;
     l6_1.fx = -l6_1.fx;
     return 0;
-L3:
+labelL3:
     l4_4.gf[0] = a[0];
     for (i__ = 2; i__ <= 5; ++i__) {
 	l4_4.gf[0] += a[i__ - 1] * l2_4.x[i__ - 1];
@@ -24917,26 +24909,26 @@ L3:
 	l4_4.gf[i__ - 1] = a[i__ - 1] * l2_4.x[0];
     }
     for (i__ = 1; i__ <= 5; ++i__) {
-/* L20: */
+/* labelL20: */
 	l4_4.gf[i__ - 1] = -l4_4.gf[i__ - 1];
     }
     return 0;
-L4:
+labelL4:
     h__[0] = b[0];
     h__[1] = c__[0];
     h__[2] = d__[0];
     for (i__ = 2; i__ <= 5; ++i__) {
 	h__[0] += b[i__ - 1] * l2_4.x[i__ - 1];
 	h__[1] += c__[i__ - 1] * l2_4.x[i__ - 1];
-/* L9: */
+/* labelL9: */
 	h__[2] += d__[i__ - 1] * l2_4.x[i__ - 1];
     }
     for (i__ = 1; i__ <= 3; ++i__) {
-/* L10: */
+/* labelL10: */
 	h__[i__ - 1] = l2_4.x[0] * h__[i__ - 1];
     }
     for (i__ = 1; i__ <= 3; ++i__) {
-/* L11: */
+/* labelL11: */
 	if (l9_6.index1[i__ - 1]) {
 	    l3_5.g[i__ - 1] = h__[i__ - 1];
 	}
@@ -24951,7 +24943,7 @@ L4:
 	l3_5.g[5] = 277200. - h__[2];
     }
     return 0;
-L5:
+labelL5:
     hh[0] = b[0];
     hh[1] = c__[0];
     hh[2] = d__[0];
@@ -24961,29 +24953,29 @@ L5:
 	hh[2] += d__[i__ - 1] * l2_4.x[i__ - 1];
 	hh[i__ * 3 - 3] = b[i__ - 1] * l2_4.x[0];
 	hh[i__ * 3 - 2] = c__[i__ - 1] * l2_4.x[0];
-/* L12: */
+/* labelL12: */
 	hh[i__ * 3 - 1] = d__[i__ - 1] * l2_4.x[0];
     }
     for (j = 1; j <= 3; ++j) {
 	if (! l10_6.index2[j - 1]) {
-	    goto L13;
+	    goto labelL13;
 	}
 	for (i__ = 1; i__ <= 5; ++i__) {
 /* L130: */
 	    l5_14.gg[j + i__ * 6 - 7] = hh[j + i__ * 3 - 4];
 	}
-L13:
+labelL13:
 	;
     }
     for (j = 4; j <= 6; ++j) {
 	if (! l10_6.index2[j - 1]) {
-	    goto L14;
+	    goto labelL14;
 	}
 	for (i__ = 1; i__ <= 5; ++i__) {
 /* L140: */
 	    l5_14.gg[j + i__ * 6 - 7] = -hh[j - 3 + i__ * 3 - 4];
 	}
-L14:
+labelL14:
 	;
     }
     return 0;
@@ -24996,13 +24988,13 @@ L14:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 4;
     l1_1.ninl = 0;
@@ -25015,7 +25007,7 @@ L1:
     l2_4.x[4] = 3.61;
     for (i__ = 2; i__ <= 4; ++i__) {
 	l11_4.lxl[i__ - 1] = false;
-/* L14: */
+/* labelL14: */
 	l12_4.lxu[i__ - 1] = false;
     }
     l11_4.lxl[0] = true;
@@ -25034,19 +25026,19 @@ L1:
     l20_7.xex[3] = 4.860481;
     l20_7.xex[4] = 4.399269;
     return 0;
-L2:
+labelL2:
     l6_1.fx = tp362a_(l2_4.x);
     l6_1.fx = l6_1.fx;
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L41: */
 	if (l9_7.index1[i__ - 1]) {
 	    l3_6.g[i__ - 1] = l2_4.x[i__ - 1] - l2_4.x[i__];
 	}
     }
-L5:
+labelL5:
     return 0;
 } /* tp362_ */
 
@@ -25080,7 +25072,7 @@ Real tp362a_(Real *x)
     --x;
 
     /* Function Body */
-/* L13: */
+/* labelL13: */
     it = 0;
     acc = 0.;
     v = v0;
@@ -25192,13 +25184,13 @@ L311:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 5;
     l1_1.nili = 0;
     l1_1.ninl = 3;
@@ -25212,7 +25204,7 @@ L1:
     for (i__ = 1; i__ <= 5; ++i__) {
 	l11_4.lxl[i__ - 1] = true;
 	l12_4.lxu[i__ - 1] = true;
-/* L11: */
+/* labelL11: */
 	l14_4.xu[i__ - 1] = 10.;
     }
     l13_4.xl[0] = -10.;
@@ -25229,13 +25221,13 @@ L1:
     l20_7.xex[4] = 10.;
     l20_7.fex = (float)-5.55840576;
     return 0;
-L2:
+labelL2:
     l6_1.fx = tp363a_(l2_4.x);
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     tp363b_(l9_4.index1, l2_4.x, l3_3.g);
-L5:
+labelL5:
     return 0;
 } /* tp363_ */
 
@@ -25321,9 +25313,9 @@ Real tp363a_(Real *x)
 	x[i__] = x[i__ - 1] + dr / (Real) b_1.kkk;
     }
     tp363c_(x, b_1.thick, b_1.dthick, &c__[1], &b_1.kkk, &c__[4], &xi);
-/* L5: */
+/* labelL5: */
     y1i = 1e5;
-/* L2: */
+/* labelL2: */
     tp363e_(&y1i, &yi, &xi, &c__[5], &ii, y, y1, x);
     fxl = -y[ii - 1];
     xl = y1i;
@@ -25401,14 +25393,14 @@ Real tp363a_(Real *x)
 	i__2 = nfst;
 	for (lm = 1; lm <= i__2; ++lm) {
 	    jkl = lm + 1;
-/* L9: */
+/* labelL9: */
 	    thick[i__ + 1] += c__[jkl] * std::sin(((Real) jkl * (float)2. - (
 		    float)3.) * 3.1415926535897932 * (x[i__] - x[1]) / xl);
 	}
 	if (thick[i__ + 1] > tfn1_1.tmax) {
 	    tfn1_1.tmax = thick[i__ + 1];
 	}
-/* L10: */
+/* labelL10: */
 	dthick[i__] = (thick[i__ + 1] - thick[i__]) / (x[i__ + 1] - x[i__]);
     }
     return 0;
@@ -25434,7 +25426,7 @@ Real tp363a_(Real *x)
     *xke = 0.;
     i__1 = b_2.kkk;
     for (i__ = 1; i__ <= i__1; ++i__) {
-/* L10: */
+/* labelL10: */
 /* Computing 3rd power */
 	d__1 = x[i__];
 	*xke += d__1 * (d__1 * d__1) * b_2.thick[i__ - 1] * (x[i__ + 1] - x[
@@ -25488,7 +25480,7 @@ Real tp363a_(Real *x)
 	m3 = h__ * tp363h_(&xr, &yr, &y1r, &ll);
 	y[j + 1] = y[j] + h__ * y1[j] + h__ / 6. * (m0 + m1 + m2);
 	y1[j + 1] = y1[j] + (m0 + m1 * 2. + m2 * 2. + m3) / 6.;
-/* L10: */
+/* labelL10: */
 	x[j + 1] = x[j] + h__;
     }
     return 0;
@@ -25562,7 +25554,7 @@ L250:
 	r1 = (x[i__ + 1] + x[i__]) / 2.;
 	r2 = (x[i__ + 1] + x[i__ + 2]) / 2.;
 	r3 = (r1 + r2) / 2.;
-/* L10: */
+/* labelL10: */
 	*v += pi * 2. * deltx / 3. * (thick[i__] * r1 + thick[i__ + 1] * 4. * 
 		r3 + thick[i__ + 2] * r2);
     }
@@ -25594,13 +25586,13 @@ Real tp363h_(Real *xr, Real *yr, Real *y1r, int *i__)
     static Real xmu1, xmu2;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 6;
     l1_1.nili = 2;
     l1_1.ninl = 2;
@@ -25613,7 +25605,7 @@ L1:
     l2_5.x[4] = 3.;
     l2_5.x[5] = 3.;
     for (i__ = 1; i__ <= 4; ++i__) {
-/* L11: */
+/* labelL11: */
 	l11_5.lxl[i__ - 1] = true;
     }
     l11_5.lxl[4] = false;
@@ -25640,11 +25632,11 @@ L1:
     l20_4.xex[4] = 1.6536702;
     l20_4.xex[5] = 1.2543998;
     return 0;
-L2:
+labelL2:
     l6_1.fx = tp364a_(l2_5.x);
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     xmu1 = .7853981633;
     xmu2 = 2.356194491;
     if (l9_7.index1[0]) {
@@ -25663,7 +25655,7 @@ L4:
 		 + l2_5.x[0]) * (l2_5.x[3] + l2_5.x[0]) - l2_5.x[1] * 2. * 
 		l2_5.x[2] *std::cos(xmu2);
     }
-L5:
+labelL5:
     return 0;
 } /* tp364_ */
 
@@ -25685,7 +25677,7 @@ Real tp364a_(Real *x)
     pi = 3.141592654;
     xinc = pi * 2. / 30.;
     for (i__ = 1; i__ <= 31; ++i__) {
-/* L1: */
+/* labelL1: */
 	phi[i__ - 1] = xinc * (Real) (i__ - 1);
     }
     tp364b_(phi, x1, y1);
@@ -25702,7 +25694,7 @@ Real tp364a_(Real *x)
 	siny = (x[3] * sins - x[1] * std::sin(phi[i__ - 1])) / x[2];
 	x1a[i__ - 1] = x[1] *std::cos(phi[i__ - 1]) + x[5] * cosy - x[6] * siny;
 	y1a[i__ - 1] = x[1] * std::sin(phi[i__ - 1]) + x[5] * siny + x[6] * cosy;
-/* L2: */
+/* labelL2: */
 /* Computing 2nd power */
 	d__1 = x1a[i__ - 1] - x1[i__ - 1];
 /* Computing 2nd power */
@@ -25733,7 +25725,7 @@ Real tp364a_(Real *x)
     pi = 3.141592654;
     for (i__ = 1; i__ <= 31; ++i__) {
 	x1[i__] = std::sin(pi * 2. * ((pi - phi[i__]) / (pi * 2.) - .16)) + .4;
-/* L1: */
+/* labelL1: */
 	y1[i__] = std::sin(pi - phi[i__]) * .9 + 2.;
     }
     return 0;
@@ -25778,13 +25770,13 @@ Real tp364a_(Real *x)
     static Real p, q;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 7;
     l1_1.nili = 0;
     l1_1.ninl = 5;
@@ -25799,12 +25791,12 @@ L1:
     l2_6.x[6] = 0.;
     for (i__ = 1; i__ <= 3; ++i__) {
 	l11_6.lxl[(i__ << 1) - 1] = false;
-/* L11: */
+/* labelL11: */
 	l11_6.lxl[(i__ << 1) - 2] = true;
     }
     l11_6.lxl[6] = true;
     for (i__ = 1; i__ <= 7; ++i__) {
-/* L12: */
+/* labelL12: */
 	l12_6.lxu[i__ - 1] = false;
     }
     l13_6.xl[0] = 0.;
@@ -25822,11 +25814,11 @@ L1:
     l20_8.xex[5] = 2.4142151;
     l20_8.xex[6] = 1.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_6.x[0] * l2_6.x[2];
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
 /* Computing 2nd power */
     d__1 = l2_6.x[1];
 /* Computing 2nd power */
@@ -25858,7 +25850,7 @@ L4:
 	l3_4.g[4] = (l2_6.x[0] * l2_6.x[2] + (l2_6.x[1] - l2_6.x[0]) * l2_6.x[
 		6] - l2_6.x[2] * l2_6.x[5]) / q - 1.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp365_ */
 
@@ -25881,13 +25873,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 7;
     l1_1.nili = 0;
     l1_1.ninl = 14;
@@ -25902,7 +25894,7 @@ L1:
     l2_6.x[6] = 145.;
     for (i__ = 1; i__ <= 7; ++i__) {
 	l11_6.lxl[i__ - 1] = true;
-/* L11: */
+/* labelL11: */
 	l12_6.lxu[i__ - 1] = true;
     }
     l13_6.xl[0] = 1.;
@@ -25930,12 +25922,12 @@ L1:
     l20_8.xex[5] = 12.;
     l20_8.xex[6] = 153.53535;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_6.x[0] * 1.715 + l2_6.x[0] * .035 * l2_6.x[5] + l2_6.x[2] * 
 	    4.0565 + l2_6.x[1] * 10. + 3e3 - l2_6.x[2] * .063 * l2_6.x[4];
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_8.index1[0]) {
 /* Computing 2nd power */
 	d__1 = l2_6.x[5];
@@ -26001,7 +25993,7 @@ L4:
 	l3_7.g[13] = 1. - c__[35] / l2_6.x[0] * l2_6.x[2] - c__[36] / l2_6.x[
 		0] - c__[37] * l2_6.x[5];
     }
-L5:
+labelL5:
     return 0;
 } /* tp366_ */
 
@@ -26015,13 +26007,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 7;
     l1_1.nili = 2;
     l1_1.ninl = 1;
@@ -26031,7 +26023,7 @@ L1:
 	l2_6.x[i__ - 1] = .1;
 	l11_6.lxl[i__ - 1] = true;
 	l12_6.lxu[i__ - 1] = false;
-/* L11: */
+/* labelL11: */
 	l13_6.xl[i__ - 1] = 0.;
     }
     l20_8.lex = false;
@@ -26045,15 +26037,15 @@ L1:
     l20_8.xex[5] = .78474478;
     l20_8.xex[6] = 1.4121216;
     for (i__ = 1; i__ <= 7; ++i__) {
-/* L12: */
+/* labelL12: */
 	l5_34.gg[i__ * 5 - 5] = -1.;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
-/* L13: */
+/* labelL13: */
 	l5_34.gg[i__ * 5 - 4] = -1.;
     }
     for (i__ = 5; i__ <= 7; ++i__) {
-/* L14: */
+/* labelL14: */
 	l5_34.gg[i__ * 5 - 4] = 0.;
     }
     l5_34.gg[2] = -1.;
@@ -26074,13 +26066,13 @@ L1:
     l4_6.gf[1] = -5.;
     l4_6.gf[3] = -6.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_6.x[0] * -5. - l2_6.x[1] * 5. - l2_6.x[2] * 4. - l2_6.x[0] * 
 	    l2_6.x[2] - l2_6.x[3] * 6. - l2_6.x[4] * 5. / (l2_6.x[4] + 1.) - 
 	    l2_6.x[5] * 8. / (l2_6.x[5] + 1.) - (1. - std::exp(-l2_6.x[6]) * 2. + 
 	    std::exp(l2_6.x[6] * -2.)) * 10.;
     return 0;
-L3:
+labelL3:
     l4_6.gf[0] = -5. - l2_6.x[2];
     l4_6.gf[2] = -4. - l2_6.x[0];
 /* Computing 2nd power */
@@ -26091,7 +26083,7 @@ L3:
     l4_6.gf[5] = -8. / (d__1 * d__1);
     l4_6.gf[6] = (exp(-l2_6.x[6]) - std::exp(l2_6.x[6] * -2.)) * -20.;
     return 0;
-L4:
+labelL4:
     if (l9_5.index1[0]) {
 	l3_4.g[0] = 10. - l2_6.x[0] - l2_6.x[1] - l2_6.x[2] - l2_6.x[3] - 
 		l2_6.x[4] - l2_6.x[5] - l2_6.x[6];
@@ -26124,7 +26116,7 @@ L4:
 		5.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_5.index2[2]) {
 	goto L51;
     }
@@ -26153,13 +26145,13 @@ L52:
     static Real s2, s3, s4;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 8;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -26170,7 +26162,7 @@ L1:
 	l11_7.lxl[i__ - 1] = true;
 	l12_7.lxu[i__ - 1] = true;
 	l13_7.xl[i__ - 1] = 0.;
-/* L11: */
+/* labelL11: */
 	l14_7.xu[i__ - 1] = 1.;
     }
     l2_7.x[6] = (float).7;
@@ -26198,7 +26190,7 @@ L1:
     l20_2.xex[6] = 1.;
     l20_2.xex[7] = 1.;
     return 0;
-L2:
+labelL2:
     s2 = 0.;
     s3 = 0.;
     s4 = 0.;
@@ -26209,19 +26201,19 @@ L2:
 /* Computing 3rd power */
 	d__1 = l2_7.x[i__ - 1];
 	s3 += d__1 * (d__1 * d__1);
-/* L10: */
+/* labelL10: */
 /* Computing 4th power */
 	d__1 = l2_7.x[i__ - 1], d__1 *= d__1;
 	s4 += d__1 * d__1;
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
 /* Computing 2nd power */
     d__1 = s3;
     l6_1.fx = -s2 * s4 + d__1 * d__1;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 8; ++i__) {
 /* L31: */
 /* Computing 3rd power */
@@ -26231,7 +26223,7 @@ L3:
 	l4_7.gf[i__ - 1] = l2_7.x[i__ - 1] * -2. * s4 - d__1 * (d__1 * d__1) *
 		 4. * s2 + d__2 * d__2 * 6. * s3;
     }
-L4:
+labelL4:
     return 0;
 } /* tp368_ */
 
@@ -26246,13 +26238,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 8;
     l1_1.nili = 3;
     l1_1.ninl = 3;
@@ -26268,19 +26260,19 @@ L1:
     l2_7.x[7] = 425.;
     for (i__ = 1; i__ <= 8; ++i__) {
 	l12_7.lxu[i__ - 1] = true;
-/* L11: */
+/* labelL11: */
 	l11_7.lxl[i__ - 1] = true;
     }
     l13_7.xl[0] = 100.;
     l13_7.xl[1] = 1e3;
     l13_7.xl[2] = 1e3;
     for (i__ = 1; i__ <= 3; ++i__) {
-/* L12: */
+/* labelL12: */
 	l14_7.xu[i__ - 1] = 1e4;
     }
     for (i__ = 4; i__ <= 8; ++i__) {
 	l13_7.xl[i__ - 1] = 10.;
-/* L13: */
+/* labelL13: */
 	l14_7.xu[i__ - 1] = 1e3;
     }
     l20_2.lex = false;
@@ -26295,11 +26287,11 @@ L1:
     l20_2.xex[6] = 286.41653;
     l20_2.xex[7] = 395.60116;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_7.x[0] + l2_7.x[1] + l2_7.x[2];
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_6.index1[0]) {
 	l3_5.g[0] = (float)1. - c__[9] * l2_7.x[3] - c__[10] * l2_7.x[5];
     }
@@ -26324,7 +26316,7 @@ L4:
 		l2_7.x[4] / l2_7.x[7] - c__[8] / l2_7.x[2] * l2_7.x[4] / 
 		l2_7.x[7];
     }
-L5:
+labelL5:
     return 0;
 } /* tp369_ */
 
@@ -26356,7 +26348,7 @@ L5:
     l20_9.xex[3] = -1.26043;
     l20_9.xex[4] = -1.513729;
     l20_9.xex[5] = .992996;
-    goto L10;
+    goto labelL10;
 
 L_tp371:
     l1_1.n = 9;
@@ -26371,15 +26363,15 @@ L_tp371:
     l20_9.xex[6] = 4.104403;
     l20_9.xex[7] = -2.143612;
     l20_9.xex[8] = 1.052627;
-L10:
+labelL10:
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L4;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL4;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.nili = 0;
     l1_1.ninl = 0;
     l1_1.neli = 0;
@@ -26388,14 +26380,14 @@ L1:
     for (i__ = 1; i__ <= i__1; ++i__) {
 	l2_8.x[i__ - 1] = 0.;
 	l11_8.lxl[i__ - 1] = false;
-/* L11: */
+/* labelL11: */
 	l12_8.lxu[i__ - 1] = false;
     }
     l15_1.lsum = 31;
     l20_9.lex = false;
     l20_9.nex = 1;
     return 0;
-L2:
+labelL2:
     l16_18.f[0] = l2_8.x[0];
 /* Computing 2nd power */
     d__1 = l2_8.x[0];
@@ -26418,7 +26410,7 @@ L2:
 	    sum += l2_8.x[j - 1] * pow_di(&basis, &i__1);
 	}
 	sum2[i__] = sum;
-/* L20: */
+/* labelL20: */
 /* Computing 2nd power */
 	d__1 = sum2[i__];
 	l16_18.f[i__] = sum1 - d__1 * d__1 - 1.;
@@ -26431,7 +26423,7 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     l6_1.fx *= scale;
-L4:
+labelL4:
     return 0;
 } /* tp370_ */
 
@@ -26456,13 +26448,13 @@ L4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 9;
     l1_1.nili = 0;
     l1_1.ninl = 12;
@@ -26479,7 +26471,7 @@ L1:
     l2_8.x[8] = 426.;
     for (i__ = 1; i__ <= 12; ++i__) {
 	for (j = 4; j <= 9; ++j) {
-/* L12: */
+/* labelL12: */
 	    l5_36.gg[i__ + j * 12 - 13] = 0.;
 	}
     }
@@ -26490,7 +26482,7 @@ L1:
     }
     for (i__ = 7; i__ <= 12; ++i__) {
 	l5_36.gg[i__ - 1] = -1.;
-/* L13: */
+/* labelL13: */
 	l5_36.gg[i__ + (i__ - 3) * 12 - 13] = 1.;
     }
     l4_8.gf[0] = 0.;
@@ -26499,7 +26491,7 @@ L1:
     for (i__ = 4; i__ <= 9; ++i__) {
 	l11_8.lxl[i__ - 1] = true;
 	l12_8.lxu[i__ - 1] = false;
-/* L14: */
+/* labelL14: */
 	l13_8.xl[i__ - 1] = 0.;
     }
     for (i__ = 1; i__ <= 2; ++i__) {
@@ -26525,7 +26517,7 @@ L1:
     l20_9.fex = 13390.093;
     l15_1.lsum = 6;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 4; i__ <= 9; ++i__) {
 	l16_8.f[i__ - 4] = l2_8.x[i__ - 1];
@@ -26535,7 +26527,7 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 4; i__ <= 9; ++i__) {
 /* L35: */
 	l16_8.f[i__ - 4] = l2_8.x[i__ - 1];
@@ -26555,7 +26547,7 @@ L3:
 	l17_22.df[i__ + (i__ + 3) * 6 - 7] = 1.;
     }
     return 0;
-L4:
+labelL4:
     if (l9_17.index1[0]) {
 	l3_16.g[0] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * -5.) + l2_8.x[3] 
 		- 127.;
@@ -26605,7 +26597,7 @@ L4:
 		 + 426.;
     }
     return 0;
-L5:
+labelL5:
     for (i__ = 1; i__ <= 6; ++i__) {
 	if (! l10_16.index2[i__ + 5]) {
 	    goto L51;
@@ -26639,13 +26631,13 @@ L52:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.nili = 0;
     l1_1.ninl = 0;
     l1_1.neli = 0;
@@ -26653,7 +26645,7 @@ L1:
     l1_1.n = 9;
     for (i__ = 1; i__ <= 9; ++i__) {
 	l11_8.lxl[i__ - 1] = false;
-/* L11: */
+/* labelL11: */
 	l12_8.lxu[i__ - 1] = false;
     }
     l11_8.lxl[2] = true;
@@ -26697,7 +26689,7 @@ L1:
     l20_9.xex[8] = -39.470718;
     l15_1.lsum = 6;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 4; i__ <= 9; ++i__) {
 	l16_8.f[i__ - 4] = l2_8.x[i__ - 1];
@@ -26707,7 +26699,7 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 4; i__ <= 9; ++i__) {
 /* L35: */
 	l16_8.f[i__ - 4] = l2_8.x[i__ - 1];
@@ -26727,7 +26719,7 @@ L3:
 	l17_22.df[i__ + (i__ + 3) * 6 - 7] = 1.;
     }
     return 0;
-L4:
+labelL4:
     if (l9_6.index1[0]) {
 	l3_5.g[0] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * -5.) + l2_8.x[3] 
 		- 127.;
@@ -26752,7 +26744,7 @@ L4:
 		426.;
     }
     return 0;
-L5:
+labelL5:
     for (i__ = 1; i__ <= 6; ++i__) {
 	if (! l10_6.index2[i__ - 1]) {
 	    goto L52;
@@ -26778,13 +26770,13 @@ L52:
     static Real z__, pi;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 10;
     l1_1.nili = 0;
     l1_1.ninl = 35;
@@ -26793,7 +26785,7 @@ L1:
     for (i__ = 1; i__ <= 10; ++i__) {
 	l2_9.x[i__ - 1] = .1;
 	l12_9.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_9.lxl[i__ - 1] = false;
     }
     l20_14.lex = false;
@@ -26825,11 +26817,11 @@ L1:
     }
     l4_9.gf[9] = 1.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = l2_9.x[9];
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     pi = std::atan(1.) * 4.;
     for (i__ = 1; i__ <= 10; ++i__) {
 	z__ = pi / 4. * ((Real) (i__ - 1) * .1);
@@ -26842,7 +26834,7 @@ L4:
     }
     for (i__ = 11; i__ <= 20; ++i__) {
 	z__ = pi / 4. * ((Real) (i__ - 11) * .1);
-/* L9: */
+/* labelL9: */
 	if (l9_18.index1[i__ - 1]) {
 /* Computing 2nd power */
 	    d__1 = l2_9.x[9] + 1.;
@@ -26851,7 +26843,7 @@ L4:
     }
     for (i__ = 21; i__ <= 35; ++i__) {
 	z__ = pi / 4. * ((Real) (i__ - 21) * .2 + 1.2);
-/* L10: */
+/* labelL10: */
 	if (l9_18.index1[i__ - 1]) {
 /* Computing 2nd power */
 	    d__1 = l2_9.x[9];
@@ -26859,7 +26851,7 @@ L4:
 	}
     }
     return 0;
-L5:
+labelL5:
     pi = std::atan(1.) * 4.;
     for (i__ = 1; i__ <= 10; ++i__) {
 	if (! l10_17.index2[i__ - 1]) {
@@ -26941,7 +26933,7 @@ Real tp374a_(Real *a, Real *x)
     /* Function Body */
     ret_val = 0.;
     for (k = 1; k <= 9; ++k) {
-/* L10: */
+/* labelL10: */
 	ret_val += x[k] *std::cos(k * *a);
     }
     return ret_val;
@@ -26961,7 +26953,7 @@ Real tp374b_(Real *a, Real *x)
     /* Function Body */
     ret_val = 0.;
     for (k = 1; k <= 9; ++k) {
-/* L10: */
+/* labelL10: */
 	ret_val += x[k] * std::sin(k * *a);
     }
     return ret_val;
@@ -26978,13 +26970,13 @@ Real tp374b_(Real *a, Real *x)
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 10;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -26993,7 +26985,7 @@ L1:
     for (i__ = 1; i__ <= 10; ++i__) {
 	l2_9.x[i__ - 1] = 1.;
 	l12_9.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_9.lxl[i__ - 1] = false;
     }
     l20_10.lex = false;
@@ -27024,39 +27016,39 @@ L1:
 	}
     }
     return 0;
-L2:
+labelL2:
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L16: */
 	l16_4.f[i__ - 1] = -l2_9.x[i__ - 1];
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
-/* L9: */
+/* labelL9: */
 /* Computing 2nd power */
 	d__1 = l2_9.x[i__ - 1];
 	l6_1.fx -= d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 10; ++i__) {
-/* L10: */
+/* labelL10: */
 	l4_9.gf[i__ - 1] = l2_9.x[i__ - 1] * -2.;
     }
-L4:
+labelL4:
     for (j = 1; j <= 8; ++j) {
 	if (! l9_16.index1[j - 1]) {
-	    goto L11;
+	    goto labelL11;
 	}
 	l3_15.g[j - 1] = 0.;
 	for (i__ = 1; i__ <= 10; ++i__) {
-/* L12: */
+/* labelL12: */
 	    l3_15.g[j - 1] += l2_9.x[i__ - 1] / tp375a_(&i__, &j);
 	}
 	l3_15.g[j - 1] += -1.;
-L11:
+labelL11:
 	;
     }
     if (! l9_16.index1[8]) {
@@ -27064,19 +27056,19 @@ L11:
     }
     l3_15.g[8] = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
-/* L13: */
+/* labelL13: */
 	l3_15.g[8] += pow_dd(&l2_9.x[i__ - 1], &c_b305) / ((Real) (i__ 
 		- 1) / 3. + 1.);
     }
     l3_15.g[8] += -4.;
 L18:
     return 0;
-L5:
+labelL5:
     if (! l10_18.index2[8]) {
 	goto L15;
     }
     for (i__ = 1; i__ <= 10; ++i__) {
-/* L14: */
+/* labelL14: */
 	l5_21.gg[i__ * 9 - 1] = l2_9.x[i__ - 1] * 2. / ((Real) (i__ - 1)
 		 / 3. + 1.);
     }
@@ -27106,13 +27098,13 @@ Real tp375a_(int *i__, int *j)
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 10;
     l1_1.nili = 0;
     l1_1.ninl = 14;
@@ -27130,7 +27122,7 @@ L1:
     l2_9.x[9] = .105;
     for (i__ = 1; i__ <= 10; ++i__) {
 	l12_9.lxu[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l11_9.lxl[i__ - 1] = true;
     }
     l13_9.xl[0] = 0.;
@@ -27154,14 +27146,14 @@ L1:
     l5_32.gg[0] = 1.;
     l5_32.gg[15] = 0.;
     for (i__ = 5; i__ <= 10; ++i__) {
-/* L9: */
+/* labelL9: */
 	l5_32.gg[i__ * 15 - 15] = 0.;
     }
     l5_32.gg[1] = 1.;
     l5_32.gg[16] = 0.;
     l5_32.gg[31] = 0.;
     for (i__ = 6; i__ <= 8; ++i__) {
-/* L10: */
+/* labelL10: */
 	l5_32.gg[i__ * 15 - 14] = 0.;
     }
     l5_32.gg[136] = 0.;
@@ -27170,7 +27162,7 @@ L1:
     l5_32.gg[32] = 0.;
     l5_32.gg[62] = 0.;
     for (i__ = 7; i__ <= 9; ++i__) {
-/* L11: */
+/* labelL11: */
 	l5_32.gg[i__ * 15 - 13] = 0.;
     }
     l5_32.gg[3] = 1.;
@@ -27179,14 +27171,14 @@ L1:
     l5_32.gg[63] = 0.;
     l5_32.gg[78] = 0.;
     for (i__ = 8; i__ <= 10; ++i__) {
-/* L12: */
+/* labelL12: */
 	l5_32.gg[i__ * 15 - 12] = 0.;
     }
     l5_32.gg[4] = 1.;
     l5_32.gg[19] = 0.;
     l5_32.gg[34] = 0.;
     for (i__ = 5; i__ <= 7; ++i__) {
-/* L13: */
+/* labelL13: */
 	l5_32.gg[i__ * 15 - 11] = 0.;
     }
     l5_32.gg[124] = 0.;
@@ -27195,7 +27187,7 @@ L1:
     l5_32.gg[20] = 1e4;
     l5_32.gg[35] = 0.;
     for (i__ = 6; i__ <= 8; ++i__) {
-/* L14: */
+/* labelL14: */
 	l5_32.gg[i__ * 15 - 10] = 0.;
     }
     l5_32.gg[140] = 0.;
@@ -27240,7 +27232,7 @@ L1:
     l5_32.gg[11] = 0.;
     l5_32.gg[26] = 1e4;
     for (i__ = 5; i__ <= 10; ++i__) {
-/* L20: */
+/* labelL20: */
 	l5_32.gg[i__ * 15 - 4] = 0.;
     }
     l5_32.gg[12] = 0.;
@@ -27278,12 +27270,12 @@ L1:
 	l4_9.gf[i__ - 1] = 0.;
     }
     return 0;
-L2:
+labelL2:
     l6_1.fx = (l2_9.x[0] * .15 + l2_9.x[1] * 14. - .06) * 2e4 / (l2_9.x[0] + 
 	    .002 + l2_9.x[1] * 60.);
     l6_1.fx = -l6_1.fx;
     return 0;
-L3:
+labelL3:
     d__1 = l2_9.x[0] + .002 + l2_9.x[1] * 60.;
     l4_9.gf[0] = ((l2_9.x[0] + .002 + l2_9.x[1] * 60.) * .15 - (l2_9.x[0] * 
 	    .15 + l2_9.x[1] * 14. - .06)) * 2e4 / pow_dd(&d__1, &c_b305);
@@ -27294,7 +27286,7 @@ L3:
     l4_9.gf[0] = -l4_9.gf[0];
     l4_9.gf[1] = -l4_9.gf[1];
     return 0;
-L4:
+labelL4:
     if (l9_14.index1[0]) {
 	l3_13.g[0] = l2_9.x[0] - .75 / l2_9.x[2] / l2_9.x[3];
     }
@@ -27355,7 +27347,7 @@ L4:
 	l3_13.g[14] = l2_9.x[8] + l2_9.x[9] - .255;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_14.index2[0]) {
 	goto L50;
     }
@@ -27485,13 +27477,13 @@ L63:
     static Real sum;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 10;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -27502,7 +27494,7 @@ L1:
 	l12_9.lxu[i__ - 1] = true;
 	l11_9.lxl[i__ - 1] = true;
 	l13_9.xl[i__ - 1] = 1e-5;
-/* L6: */
+/* labelL6: */
 	l14_9.xu[i__ - 1] = 10.;
     }
     l5_14.gg[0] = 1.;
@@ -27525,14 +27517,14 @@ L1:
     l5_14.gg[16] = 1.;
     l5_14.gg[19] = 1.;
     for (i__ = 8; i__ <= 10; ++i__) {
-/* L9: */
+/* labelL9: */
 	l5_14.gg[i__ * 3 - 2] = 0.;
     }
     l5_14.gg[2] = 0.;
     l5_14.gg[5] = 0.;
     l5_14.gg[8] = 1.;
     for (i__ = 4; i__ <= 6; ++i__) {
-/* L10: */
+/* labelL10: */
 	l5_14.gg[i__ * 3 - 1] = 0.;
     }
     l5_14.gg[20] = 1.;
@@ -27553,19 +27545,19 @@ L1:
     l20_10.xex[8] = 1e-4;
     l20_10.xex[9] = 1e-4;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     sum = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
-/* L11: */
+/* labelL11: */
 	sum += l2_9.x[i__ - 1];
     }
     for (i__ = 1; i__ <= 10; ++i__) {
-/* L12: */
+/* labelL12: */
 	l6_1.fx += l2_9.x[i__ - 1] * (a[i__ - 1] + std::log(l2_9.x[i__ - 1] / sum))
 		;
     }
-L3:
+labelL3:
     return 0;
     sum = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
@@ -27577,7 +27569,7 @@ L3:
 	l4_9.gf[i__ - 1] = a[i__ - 1] + std::log(l2_9.x[i__ - 1] / sum);
     }
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = l2_9.x[0] - l2_9.x[1] * 2. + l2_9.x[2] * 2. + l2_9.x[5] + 
 		l2_9.x[9] - 2.;
@@ -27589,7 +27581,7 @@ L4:
 	l3_3.g[2] = l2_9.x[2] + l2_9.x[6] + l2_9.x[7] + l2_9.x[8] * 2. + 
 		l2_9.x[9] - 1.;
     }
-L5:
+labelL5:
     return 0;
 } /* tp377_ */
 
@@ -27606,13 +27598,13 @@ L5:
     static Real con;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 10;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -27623,7 +27615,7 @@ L1:
 	l14_9.xu[i__ - 1] = (float)-.1;
 	l12_9.lxu[i__ - 1] = true;
 	l13_9.xl[i__ - 1] = (float)-16.;
-/* L6: */
+/* labelL6: */
 	l11_9.lxl[i__ - 1] = true;
     }
     l20_10.lex = false;
@@ -27656,7 +27648,7 @@ L1:
     l5_14.gg[14] = 0.;
     l5_14.gg[17] = 0.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     con = 0.;
     for (j = 1; j <= 10; ++j) {
@@ -27669,7 +27661,7 @@ L2:
 	l6_1.fx += std::exp(l2_9.x[i__ - 1]) * (a[i__ - 1] + l2_9.x[i__ - 1] - con)
 		;
     }
-L3:
+labelL3:
     return 0;
     con = 0.;
     for (j = 1; j <= 10; ++j) {
@@ -27683,7 +27675,7 @@ L3:
 /* L46: */
     }
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = std::exp(l2_9.x[0]) + std::exp(l2_9.x[1]) * 2. + std::exp(l2_9.x[2]) * 
 		2. + std::exp(l2_9.x[5]) + std::exp(l2_9.x[9]) - 2.;
@@ -27697,7 +27689,7 @@ L4:
 		l2_9.x[8]) * 2. + std::exp(l2_9.x[9]) - 1.;
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[0]) {
 	goto L47;
     }
@@ -27746,13 +27738,13 @@ L49:
     static Real t;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L2;
-	case 4:  goto L4;
-	case 5:  goto L4;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL2;
+	case 4:  goto labelL4;
+	case 5:  goto labelL4;
     }
-L1:
+labelL1:
     l1_1.n = 11;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -27773,7 +27765,7 @@ L1:
     for (i__ = 1; i__ <= 11; ++i__) {
 	l12_17.lxu[i__ - 1] = false;
 	l13_21.xl[i__ - 1] = (float)0.;
-/* L6: */
+/* labelL6: */
 	l11_17.lxl[i__ - 1] = true;
     }
     l20_18.lex = false;
@@ -27791,7 +27783,7 @@ L1:
     l20_18.xex[9] = 4.56887;
     l20_18.xex[10] = 5.67534;
     return 0;
-L2:
+labelL2:
     for (i__ = 1; i__ <= 65; ++i__) {
 	t = (Real) (i__ - 1) * .1;
 /* L7: */
@@ -27807,7 +27799,7 @@ L2:
 		7] * (d__3 * d__3)));
     }
     if (*mode == 3) {
-	goto L3;
+	goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 65; ++i__) {
@@ -27817,7 +27809,7 @@ L2:
 	l6_1.fx += d__1 * d__1;
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 65; ++i__) {
 	t = (Real) (i__ - 1) * .1;
 	l17_24.df[i__ - 1] = -exp(-l2_17.x[4] * t);
@@ -27869,12 +27861,12 @@ L3:
     }
     for (j = 1; j <= 11; ++j) {
 	for (i__ = 1; i__ <= 65; ++i__) {
-/* L20: */
+/* labelL20: */
 	    l4_17.gf[j - 1] += l16_19.f[i__ - 1] * 2. * l17_24.df[i__ + j * 
 		    65 - 66];
 	}
     }
-L4:
+labelL4:
     return 0;
 } /* tp379_ */
 
@@ -27898,13 +27890,13 @@ L4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 12;
     l1_1.nili = 0;
     l1_1.ninl = 3;
@@ -27915,7 +27907,7 @@ L1:
 	l12_18.lxu[i__ - 1] = true;
 	l11_18.lxl[i__ - 1] = true;
 	l13_22.xl[i__ - 1] = .1;
-/* L6: */
+/* labelL6: */
 	l14_22.xu[i__ - 1] = 100.;
     }
     l5_10.gg[0] = -c__[0];
@@ -27954,31 +27946,31 @@ L1:
     l20_5.xex[10] = 5.12343515;
     l20_5.xex[11] = 6.659338016;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 1e5;
     for (i__ = 1; i__ <= 11; ++i__) {
 	temp = l2_18.x[i__ - 1];
 	if (l2_18.x[i__ - 1] < 1e-15) {
 	    temp = 1e-15;
 	}
-/* L20: */
+/* labelL20: */
 	l6_1.fx *= pow_dd(&temp, &a[i__ - 1]);
     }
     l6_1.fx *= 1e5;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 11; ++i__) {
 	temp = l2_18.x[i__ - 1];
 	if (l2_18.x[i__ - 1] < 1e-15) {
 	    temp = 1e-15;
 	}
 	l4_18.gf[i__ - 1] = l6_1.fx * (a[i__ - 1] / temp);
-/* L10: */
+/* labelL10: */
 	l4_18.gf[i__ - 1] *= 1e5;
     }
     l4_18.gf[11] = 0.;
     return 0;
-L4:
+labelL4:
     if (l9_4.index1[0]) {
 	l3_3.g[0] = 1. - c__[0] * l2_18.x[0] - c__[1] * l2_18.x[1] - c__[2] * 
 		l2_18.x[2] - c__[3] * l2_18.x[3] * l2_18.x[4];
@@ -28005,7 +27997,7 @@ L4:
 		c__[28] * l2_18.x[0] * l2_18.x[8] - c__[29] * l2_18.x[10];
     }
     return 0;
-L5:
+labelL5:
     if (! l10_4.index2[0]) {
 	goto L50;
     }
@@ -28082,13 +28074,13 @@ L52:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 13;
     l1_1.nili = 3;
     l1_1.ninl = 0;
@@ -28098,7 +28090,7 @@ L1:
 	l2_10.x[i__ - 1] = .1;
 	l12_10.lxu[i__ - 1] = false;
 	l11_10.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_10.xl[i__ - 1] = 0.;
     }
     for (i__ = 1; i__ <= 13; ++i__) {
@@ -28128,31 +28120,31 @@ L1:
     l20_11.xex[11] = 0.;
     l20_11.xex[12] = .019853;
     for (i__ = 1; i__ <= 13; ++i__) {
-/* L11: */
+/* labelL11: */
 	l4_10.gf[i__ - 1] = r__[i__ - 1];
     }
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
-/* L10: */
+/* labelL10: */
 	l6_1.fx += r__[i__ - 1] * l2_10.x[i__ - 1];
     }
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (! l9_7.index1[0]) {
-	goto L12;
+	goto labelL12;
     }
     l3_6.g[0] = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
-/* L13: */
+/* labelL13: */
 	l3_6.g[0] += s[i__ - 1] * l2_10.x[i__ - 1];
     }
     l3_6.g[0] += -18.;
-L12:
+labelL12:
     if (! l9_7.index1[1]) {
-	goto L14;
+	goto labelL14;
     }
     l3_6.g[1] = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
@@ -28160,7 +28152,7 @@ L12:
 	l3_6.g[1] += u[i__ - 1] * l2_10.x[i__ - 1];
     }
     l3_6.g[1] += -1.;
-L14:
+labelL14:
     if (! l9_7.index1[2]) {
 	goto L16;
     }
@@ -28172,7 +28164,7 @@ L14:
     l3_6.g[2] += -.9;
 L16:
     if (! l9_7.index1[3]) {
-	goto L5;
+	goto labelL5;
     }
     l3_6.g[3] = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
@@ -28180,7 +28172,7 @@ L16:
 	l3_6.g[3] += l2_10.x[i__ - 1];
     }
     l3_6.g[3] += -1.;
-L5:
+labelL5:
     return 0;
 } /* tp381_ */
 
@@ -28211,14 +28203,14 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
 
-L1:
+labelL1:
     l1_1.n = 13;
     l1_1.nili = 0;
     l1_1.ninl = 3;
@@ -28229,7 +28221,7 @@ L1:
 	l12_10.lxu[i__ - 1] = false;
 	l11_10.lxl[i__ - 1] = true;
 	l13_10.xl[i__ - 1] = 0.;
-/* L6: */
+/* labelL6: */
 	l5_38.gg[(i__ << 2) - 1] = 1.;
     }
     l20_11.lex = false;
@@ -28253,47 +28245,47 @@ L1:
 	l4_10.gf[i__ - 1] = r__[i__ - 1];
     }
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L7: */
 	l6_1.fx += r__[i__ - 1] * l2_10.x[i__ - 1];
     }
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (! l9_7.index1[0]) {
-	goto L9;
+	goto labelL9;
     }
     l3_6.g[0] = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
-/* L10: */
+/* labelL10: */
 /* Computing 2nd power */
 	d__1 = l2_10.x[i__ - 1];
 	l3_6.g[0] += z1[i__ - 1] * (d__1 * d__1);
     }
     l3_6.g[0] = -std::sqrt(l3_6.g[0]) * 1.645 - 18.;
     for (i__ = 1; i__ <= 13; ++i__) {
-/* L11: */
+/* labelL11: */
 	l3_6.g[0] += s[i__ - 1] * l2_10.x[i__ - 1];
     }
-L9:
+labelL9:
     if (! l9_7.index1[1]) {
-	goto L12;
+	goto labelL12;
     }
     l3_6.g[1] = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
-/* L13: */
+/* labelL13: */
 /* Computing 2nd power */
 	d__1 = l2_10.x[i__ - 1];
 	l3_6.g[1] += z2[i__ - 1] * (d__1 * d__1);
     }
     l3_6.g[1] = -std::sqrt(l3_6.g[1]) * 1.645 - 1.;
     for (i__ = 1; i__ <= 13; ++i__) {
-/* L14: */
+/* labelL14: */
 	l3_6.g[1] += u[i__ - 1] * l2_10.x[i__ - 1];
     }
-L12:
+labelL12:
     if (! l9_7.index1[2]) {
 	goto L15;
     }
@@ -28320,7 +28312,7 @@ L15:
     }
 L18:
     return 0;
-L5:
+labelL5:
     if (! l10_7.index2[0]) {
 	goto L27;
     }
@@ -28356,7 +28348,7 @@ L27:
     }
 L28:
     if (! l10_7.index2[2]) {
-	goto L20;
+	goto labelL20;
     }
     help = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
@@ -28371,7 +28363,7 @@ L28:
 	l5_38.gg[(i__ << 2) - 2] = v[i__ - 1] + help * 2. * z3[i__ - 1] * 
 		l2_10.x[i__ - 1];
     }
-L20:
+labelL20:
     return 0;
 } /* tp382_ */
 
@@ -28395,13 +28387,13 @@ L20:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 14;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -28413,7 +28405,7 @@ L1:
 	l11_19.lxl[i__ - 1] = true;
 	l13_23.xl[i__ - 1] = 0.;
 	l14_23.xu[i__ - 1] = 1. / b[i__ - 1];
-/* L6: */
+/* labelL6: */
 	l5_17.gg[i__ - 1] = c__[i__ - 1];
     }
     l20_19.lex = false;
@@ -28434,7 +28426,7 @@ L1:
     l20_19.xex[12] = .0203;
     l20_19.xex[13] = .0253;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 14; ++i__) {
 /* L7: */
@@ -28442,7 +28434,7 @@ L2:
     }
     l6_1.fx *= 1e-5;
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 14; ++i__) {
 /* L8: */
 /* Computing 2nd power */
@@ -28450,17 +28442,17 @@ L3:
 	l4_19.gf[i__ - 1] = -a[i__ - 1] / (d__1 * d__1) * 1e-5;
     }
     return 0;
-L4:
+labelL4:
     if (! l9_2.index1[0]) {
-	goto L5;
+	goto labelL5;
     }
     l3_1.g[0] = 0.;
     for (i__ = 1; i__ <= 14; ++i__) {
-/* L10: */
+/* labelL10: */
 	l3_1.g[0] += c__[i__ - 1] * l2_19.x[i__ - 1];
     }
     l3_1.g[0] += -1.;
-L5:
+labelL5:
     return 0;
 } /* tp383_ */
 
@@ -28492,13 +28484,13 @@ L5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 15;
     l1_1.nili = 0;
     l1_1.ninl = 10;
@@ -28507,7 +28499,7 @@ L1:
     for (i__ = 1; i__ <= 15; ++i__) {
 	l2_11.x[i__ - 1] = 0.;
 	l12_11.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_11.lxl[i__ - 1] = false;
     }
     l20_12.lex = false;
@@ -28529,27 +28521,27 @@ L1:
     l20_12.xex[13] = .84682383;
     l20_12.xex[14] = 1.172372;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
 /* L15: */
 	l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
-/* L11: */
+/* labelL11: */
 	l4_11.gf[i__ - 1] = -d__[i__ - 1];
     }
     return 0;
-L4:
+labelL4:
     for (i__ = 1; i__ <= 10; ++i__) {
 	if (! l9_10.index1[i__ - 1]) {
 	    goto L7;
 	}
 	c__ = 0.;
 	for (j = 1; j <= 15; ++j) {
-/* L9: */
+/* labelL9: */
 /* Computing 2nd power */
 	    d__1 = l2_11.x[j - 1];
 	    c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
@@ -28559,17 +28551,17 @@ L7:
 	;
     }
     return 0;
-L5:
+labelL5:
     for (i__ = 1; i__ <= 10; ++i__) {
 	if (! l10_10.index2[i__ - 1]) {
-	    goto L10;
+	    goto labelL10;
 	}
 	for (j = 1; j <= 15; ++j) {
-/* L13: */
+/* labelL13: */
 	    l5_32.gg[i__ + j * 10 - 11] = a[i__ + j * 10 - 11] * -2. * 
 		    l2_11.x[j - 1];
 	}
-L10:
+labelL10:
 	;
     }
     return 0;
@@ -28602,13 +28594,13 @@ L10:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 15;
     l1_1.nili = 0;
     l1_1.ninl = 10;
@@ -28617,7 +28609,7 @@ L1:
     for (i__ = 1; i__ <= 15; ++i__) {
 	l2_11.x[i__ - 1] = 0.;
 	l12_11.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_11.lxl[i__ - 1] = false;
     }
     l20_12.lex = false;
@@ -28639,27 +28631,27 @@ L1:
     l20_12.xex[13] = 1.0411266;
     l20_12.xex[14] = 1.1860995;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
 /* L15: */
 	l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
-/* L11: */
+/* labelL11: */
 	l4_11.gf[i__ - 1] = -d__[i__ - 1];
     }
     return 0;
-L4:
+labelL4:
     for (i__ = 1; i__ <= 10; ++i__) {
 	if (! l9_10.index1[i__ - 1]) {
 	    goto L7;
 	}
 	c__ = 0.;
 	for (j = 1; j <= 15; ++j) {
-/* L9: */
+/* labelL9: */
 /* Computing 2nd power */
 	    d__1 = l2_11.x[j - 1];
 	    c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
@@ -28669,17 +28661,17 @@ L7:
 	;
     }
     return 0;
-L5:
+labelL5:
     for (i__ = 1; i__ <= 10; ++i__) {
 	if (! l10_10.index2[i__ - 1]) {
-	    goto L10;
+	    goto labelL10;
 	}
 	for (j = 1; j <= 15; ++j) {
-/* L13: */
+/* labelL13: */
 	    l5_32.gg[i__ + j * 10 - 11] = a[i__ + j * 10 - 11] * -2. * 
 		    l2_11.x[j - 1];
 	}
-L10:
+labelL10:
 	;
     }
     return 0;
@@ -28712,13 +28704,13 @@ L10:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 15;
     l1_1.nili = 0;
     l1_1.ninl = 11;
@@ -28727,7 +28719,7 @@ L1:
     for (i__ = 1; i__ <= 15; ++i__) {
 	l2_11.x[i__ - 1] = 0.;
 	l12_11.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_11.lxl[i__ - 1] = false;
     }
     l20_12.lex = false;
@@ -28749,27 +28741,27 @@ L1:
     l20_12.xex[13] = .83804049;
     l20_12.xex[14] = .80932365;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
-/* L20: */
+/* labelL20: */
 	l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
-/* L11: */
+/* labelL11: */
 	l4_11.gf[i__ - 1] = -d__[i__ - 1];
     }
     return 0;
-L4:
+labelL4:
     for (i__ = 1; i__ <= 10; ++i__) {
 	if (! l9_13.index1[i__ - 1]) {
 	    goto L7;
 	}
 	c__ = 0.;
 	for (j = 1; j <= 15; ++j) {
-/* L9: */
+/* labelL9: */
 /* Computing 2nd power */
 	    d__1 = l2_11.x[j - 1];
 	    c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
@@ -28779,29 +28771,29 @@ L7:
 	;
     }
     if (! l9_13.index1[10]) {
-	goto L12;
+	goto labelL12;
     }
     c__ = 0.;
     for (j = 1; j <= 15; ++j) {
-/* L14: */
+/* labelL14: */
 /* Computing 2nd power */
 	d__1 = l2_11.x[j - 1] - 2.;
 	c__ += (Real) j * (d__1 * d__1);
     }
     l3_12.g[10] = c__ / 2. - 70.;
-L12:
+labelL12:
     return 0;
-L5:
+labelL5:
     for (i__ = 1; i__ <= 10; ++i__) {
 	if (! l10_13.index2[i__ - 1]) {
-	    goto L10;
+	    goto labelL10;
 	}
 	for (j = 1; j <= 15; ++j) {
-/* L13: */
+/* labelL13: */
 	    l5_39.gg[i__ + j * 11 - 12] = a[i__ + j * 10 - 11] * -2. * 
 		    l2_11.x[j - 1];
 	}
-L10:
+labelL10:
 	;
     }
     if (! l10_13.index2[10]) {
@@ -28842,13 +28834,13 @@ L15:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 15;
     l1_1.nili = 0;
     l1_1.ninl = 11;
@@ -28857,7 +28849,7 @@ L1:
     for (i__ = 1; i__ <= 15; ++i__) {
 	l2_11.x[i__ - 1] = 0.;
 	l12_11.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_11.lxl[i__ - 1] = false;
     }
     l20_12.lex = false;
@@ -28879,27 +28871,27 @@ L1:
     l20_12.xex[13] = .99057993;
     l20_12.xex[14] = .97760168;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
-/* L20: */
+/* labelL20: */
 	l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
-/* L11: */
+/* labelL11: */
 	l4_11.gf[i__ - 1] = -d__[i__ - 1];
     }
     return 0;
-L4:
+labelL4:
     for (i__ = 1; i__ <= 10; ++i__) {
 	if (! l9_13.index1[i__ - 1]) {
 	    goto L7;
 	}
 	c__ = 0.;
 	for (j = 1; j <= 15; ++j) {
-/* L9: */
+/* labelL9: */
 /* Computing 2nd power */
 	    d__1 = l2_11.x[j - 1];
 	    c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
@@ -28909,29 +28901,29 @@ L7:
 	;
     }
     if (! l9_13.index1[10]) {
-	goto L12;
+	goto labelL12;
     }
     c__ = 0.;
     for (j = 1; j <= 15; ++j) {
-/* L14: */
+/* labelL14: */
 /* Computing 2nd power */
 	d__1 = l2_11.x[j - 1] - 2.;
 	c__ += (Real) j * (d__1 * d__1);
     }
     l3_12.g[10] = c__ / 2. - 61.;
-L12:
+labelL12:
     return 0;
-L5:
+labelL5:
     for (i__ = 1; i__ <= 10; ++i__) {
 	if (! l10_13.index2[i__ - 1]) {
-	    goto L10;
+	    goto labelL10;
 	}
 	for (j = 1; j <= 15; ++j) {
-/* L13: */
+/* labelL13: */
 	    l5_39.gg[i__ + j * 11 - 12] = a[i__ + j * 10 - 11] * -2. * 
 		    l2_11.x[j - 1];
 	}
-L10:
+labelL10:
 	;
     }
     if (! l10_13.index2[10]) {
@@ -28977,13 +28969,13 @@ L15:
     static int i__, j, l;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 15;
     l1_1.nili = 4;
     l1_1.ninl = 11;
@@ -28992,7 +28984,7 @@ L1:
     for (i__ = 1; i__ <= 15; ++i__) {
 	l2_11.x[i__ - 1] = 0.;
 	l12_11.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_11.lxl[i__ - 1] = false;
     }
     for (i__ = 12; i__ <= 15; ++i__) {
@@ -29020,20 +29012,20 @@ L1:
     l20_12.xex[13] = -.33986164;
     l20_12.xex[14] = .68589012;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
-/* L20: */
+/* labelL20: */
 	l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
-/* L11: */
+/* labelL11: */
 	l4_11.gf[i__ - 1] = -d__[i__ - 1];
     }
     return 0;
-L4:
+labelL4:
     for (i__ = 12; i__ <= 15; ++i__) {
 	l = i__ - 11;
 	if (! l9_14.index1[l - 1]) {
@@ -29041,7 +29033,7 @@ L4:
 	}
 	c__ = 0.;
 	for (j = 1; j <= 15; ++j) {
-/* L9: */
+/* labelL9: */
 	    c__ += a1[l + (j << 2) - 5] * l2_11.x[j - 1];
 	}
 	l3_13.g[l - 1] = b[i__ - 1] - c__;
@@ -29050,7 +29042,7 @@ L7:
     }
     for (i__ = 1; i__ <= 10; ++i__) {
 	if (! l9_14.index1[i__ + 3]) {
-	    goto L14;
+	    goto labelL14;
 	}
 	c__ = 0.;
 	for (j = 1; j <= 15; ++j) {
@@ -29060,7 +29052,7 @@ L7:
 	    c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
 	}
 	l3_13.g[i__ + 3] = b[i__ - 1] - c__;
-L14:
+labelL14:
 	;
     }
     if (! l9_14.index1[14]) {
@@ -29076,7 +29068,7 @@ L14:
     l3_13.g[14] = c__ / 2. - 193.121;
 L17:
     return 0;
-L5:
+labelL5:
     for (i__ = 1; i__ <= 10; ++i__) {
 	if (! l10_14.index2[i__ + 3]) {
 	    goto L22;
@@ -29132,13 +29124,13 @@ L25:
     static int i__, j, l;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 15;
     l1_1.nili = 4;
     l1_1.ninl = 11;
@@ -29147,7 +29139,7 @@ L1:
     for (i__ = 1; i__ <= 15; ++i__) {
 	l2_11.x[i__ - 1] = 0.;
 	l12_11.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_11.lxl[i__ - 1] = false;
     }
     for (i__ = 12; i__ <= 15; ++i__) {
@@ -29175,20 +29167,20 @@ L1:
     l20_12.xex[13] = -.58120082;
     l20_12.xex[14] = .72096897;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
-/* L20: */
+/* labelL20: */
 	l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
-/* L11: */
+/* labelL11: */
 	l4_11.gf[i__ - 1] = -d__[i__ - 1];
     }
     return 0;
-L4:
+labelL4:
     for (i__ = 12; i__ <= 15; ++i__) {
 	l = i__ - 11;
 	if (! l9_14.index1[l - 1]) {
@@ -29196,7 +29188,7 @@ L4:
 	}
 	c__ = 0.;
 	for (j = 1; j <= 15; ++j) {
-/* L9: */
+/* labelL9: */
 	    c__ += a1[l + (j << 2) - 5] * l2_11.x[j - 1];
 	}
 	l3_13.g[l - 1] = b[i__ - 1] - c__;
@@ -29205,7 +29197,7 @@ L7:
     }
     for (i__ = 1; i__ <= 10; ++i__) {
 	if (! l9_14.index1[i__ + 3]) {
-	    goto L14;
+	    goto labelL14;
 	}
 	c__ = 0.;
 	for (j = 1; j <= 15; ++j) {
@@ -29215,7 +29207,7 @@ L7:
 	    c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
 	}
 	l3_13.g[i__ + 3] = b[i__ - 1] - c__;
-L14:
+labelL14:
 	;
     }
     if (! l9_14.index1[14]) {
@@ -29231,7 +29223,7 @@ L14:
     l3_13.g[14] = c__ / 2. - 200.;
 L17:
     return 0;
-L5:
+labelL5:
     for (i__ = 1; i__ <= 10; ++i__) {
 	if (! l10_14.index2[i__ + 3]) {
 	    goto L22;
@@ -29266,13 +29258,13 @@ L25:
     static Real zi1, zi2, zi3, psi[11];
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L3;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL3;
     }
-L1:
+labelL1:
     l1_1.n = 19;
     l1_1.nili = 1;
     l1_1.ninl = 0;
@@ -29301,7 +29293,7 @@ L1:
 	l12_20.lxu[i__ - 1] = true;
 	l11_20.lxl[i__ - 1] = true;
 	l14_24.xu[i__ - 1] = 1e5;
-/* L6: */
+/* labelL6: */
 	l13_24.xl[i__ - 1] = 1e-5;
     }
     for (i__ = 1; i__ <= 2; ++i__) {
@@ -29310,11 +29302,11 @@ L1:
 	l14_24.xu[i__ + 14] = 50.;
     }
     for (i__ = 3; i__ <= 6; ++i__) {
-/* L9: */
+/* labelL9: */
 	l14_24.xu[i__ - 1] = 100.;
     }
     for (i__ = 12; i__ <= 15; ++i__) {
-/* L10: */
+/* labelL10: */
 	l14_24.xu[i__ - 1] = 1.;
     }
     l20_20.lex = false;
@@ -29340,7 +29332,7 @@ L1:
     l20_20.xex[17] = 8305.1515;
     l20_20.xex[18] = .0014797356;
     return 0;
-L2:
+labelL2:
     d__1 = l2_20.x[15] * 2268. * l2_20.x[0];
     zi1 = pow_dd(&d__1, &c_b3046) * 25.;
     zi2 = l2_20.x[16] * 1.75e5 + pow_dd(&l2_20.x[16], &c_b3047) * 36500.;
@@ -29350,9 +29342,9 @@ L2:
 	    l2_20.x[13]) + l2_20.x[1] * (l2_20.x[11] + 1.) - (1. - l2_20.x[18]
 	    ) * 3.) * 1150.) * 1.4;
     l6_1.fx /= 1e4;
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (l9_17.index1[0]) {
 	l3_16.g[0] = 1. - l2_20.x[12] - l2_20.x[13];
     }
@@ -29426,13 +29418,13 @@ int tp390a_(Real *x, Real *psi)
     static Real sum;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L3;
-	case 5:  goto L3;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL3;
+	case 5:  goto labelL3;
     }
-L1:
+labelL1:
     l1_1.n = 30;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -29458,7 +29450,7 @@ L60:
 	l2_14.x[i__ - 1] = ((Real) (i__1 * (i__1 * i__1)) + sum) * 
 		-2.8742711;
 	l12_14.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_14.lxl[i__ - 1] = false;
     }
     l20_15.lex = false;
@@ -29495,7 +29487,7 @@ L60:
     l20_15.xex[28] = -7992.0568;
     l20_15.xex[29] = -9806.7206;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 30; ++i__) {
 	sum = 0.;
@@ -29522,7 +29514,7 @@ L70:
 		+ sum;
 	l6_1.fx += d__1 * d__1;
     }
-L3:
+labelL3:
     return 0;
 } /* tp391_ */
 
@@ -29563,13 +29555,13 @@ L3:
     static Real sum, sum1;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 30;
     l1_1.nili = 45;
     l1_1.ninl = 0;
@@ -29608,7 +29600,7 @@ L1:
     for (i__ = 1; i__ <= 30; ++i__) {
 	l12_14.lxu[i__ - 1] = false;
 	l11_14.lxl[i__ - 1] = true;
-/* L6: */
+/* labelL6: */
 	l13_17.xl[i__ - 1] = 0.;
     }
     l20_15.lex = false;
@@ -29645,7 +29637,7 @@ L1:
     l20_15.xex[28] = 125.12;
     l20_15.xex[29] = 600.;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 5; ++i__) {
 	sum = 0.;
@@ -29672,9 +29664,9 @@ L2:
 	l6_1.fx -= sum;
     }
     l6_1.fx *= .001;
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     for (i__ = 1; i__ <= 5; ++i__) {
 	for (j = 1; j <= 3; ++j) {
 	    l = (i__ - 1) * 3 + j;
@@ -29688,15 +29680,15 @@ L4:
 	for (j = 1; j <= 3; ++j) {
 	    l = (i__ - 1) * 3 + j + 15;
 	    if (! l9_19.index1[l - 1]) {
-		goto L9;
+		goto labelL9;
 	    }
 	    l3_18.g[l - 1] = b[j + i__ * 3 - 4];
 	    for (k = 1; k <= 3; ++k) {
-/* L10: */
+/* labelL10: */
 		l3_18.g[l - 1] -= t[j + k * 3 - 4] * l2_14.x[i__ * 3 + 12 + k 
 			- 1];
 	    }
-L9:
+labelL9:
 	    ;
 	}
     }
@@ -29704,20 +29696,20 @@ L9:
 	for (j = 1; j <= 3; ++j) {
 	    l = (i__ - 1) * 3 + j + 30;
 	    if (! l9_19.index1[l - 1]) {
-		goto L11;
+		goto labelL11;
 	    }
 	    l3_18.g[l - 1] = 0.;
 	    i__1 = i__;
 	    for (k = 1; k <= i__1; ++k) {
-/* L12: */
+/* labelL12: */
 		l3_18.g[l - 1] = l3_18.g[l - 1] + l2_14.x[k * 3 + 12 + j - 1] 
 			- l2_14.x[j - 3 + k * 3 - 1];
 	    }
-L11:
+labelL11:
 	    ;
 	}
     }
-L5:
+labelL5:
     return 0;
 } /* tp392_ */
 
@@ -29731,20 +29723,20 @@ L5:
     static Real phi[1];
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 48;
     l1_1.nili = 0;
     l1_1.ninl = 1;
     l1_1.neli = 2;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 24; ++i__) {
-/* L6: */
+/* labelL6: */
 	l2_21.x[i__ - 1] = 1.;
     }
     for (i__ = 25; i__ <= 30; ++i__) {
@@ -29757,16 +29749,16 @@ L1:
     }
     for (i__ = 1; i__ <= 48; ++i__) {
 	l11_21.lxl[i__ - 1] = true;
-/* L9: */
+/* labelL9: */
 	l13_25.xl[i__ - 1] = .002;
     }
     for (i__ = 1; i__ <= 24; ++i__) {
 	l12_21.lxu[i__ - 1] = true;
-/* L10: */
+/* labelL10: */
 	l14_25.xu[i__ - 1] = 2.;
     }
     for (i__ = 25; i__ <= 48; ++i__) {
-/* L11: */
+/* labelL11: */
 	l12_21.lxu[i__ - 1] = false;
     }
     l20_21.lex = false;
@@ -29821,7 +29813,7 @@ L1:
     l20_21.xex[46] = .002;
     l20_21.xex[47] = 1.1163321536;
     return 0;
-L2:
+labelL2:
     e = 0.;
     for (i__ = 1; i__ <= 12; ++i__) {
 	c__ = 1. - l2_21.x[i__ - 1];
@@ -29843,33 +29835,33 @@ L2:
 	e += l2_21.x[i__ - 1] * 100.;
     }
     l6_1.fx = e / 1e3;
-L3:
+labelL3:
     return 0;
-L4:
+labelL4:
     if (! l9_4.index1[0]) {
-	goto L12;
+	goto labelL12;
     }
     tp393b_(l2_21.x, phi);
     l3_3.g[0] = phi[0];
-L12:
+labelL12:
     if (! l9_4.index1[1]) {
-	goto L14;
+	goto labelL14;
     }
     l3_3.g[1] = 12.;
     for (i__ = 1; i__ <= 12; ++i__) {
-/* L13: */
+/* labelL13: */
 	l3_3.g[1] -= l2_21.x[i__ - 1];
     }
-L14:
+labelL14:
     if (! l9_4.index1[2]) {
-	goto L5;
+	goto labelL5;
     }
     l3_3.g[2] = 12.;
     for (i__ = 1; i__ <= 12; ++i__) {
 /* L15: */
 	l3_3.g[2] -= l2_21.x[i__ + 11];
     }
-L5:
+labelL5:
     return 0;
 } /* tp393_ */
 
@@ -29897,7 +29889,7 @@ L5:
 	k2 = i__ + 42;
 	k3 = i__ + 12;
 	alp = x[k1] * x[k1] * a[i__ - 1] * 2. * x[k2] / (x[k2] + 1.) * x[k3];
-/* L20: */
+/* labelL20: */
 	u[i__ - 1] = x[i__] * x[i__] / (x[i__] + alp);
     }
 /*     2ND TIER OF GASFIERS */
@@ -29912,7 +29904,7 @@ L5:
     }
 /*     1ST TIER OF METHANATORS */
     for (i__ = 13; i__ <= 15; ++i__) {
-	k1 = (i__ - 10 << 1) + 1;
+	k1 = ((i__ - 10) << 1) + 1;
 	k2 = i__ + 24;
 	alp = x[k2] * x[k2] * a[i__ - 1];
 	sum = u[k1 - 1] + u[k1];
@@ -29942,13 +29934,13 @@ L5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 20;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -29957,7 +29949,7 @@ L1:
     for (i__ = 1; i__ <= 20; ++i__) {
 	l2_13.x[i__ - 1] = 2.;
 	l12_13.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_13.lxl[i__ - 1] = false;
     }
     l20_14.lex = false;
@@ -29984,7 +29976,7 @@ L1:
     l20_14.xex[18] = -1.0142804e-5;
     l20_14.xex[19] = -1.3788343e-6;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 20; ++i__) {
 /* L8: */
@@ -29995,38 +29987,38 @@ L2:
 	l6_1.fx += (Real) i__ * (d__1 * d__1 + d__2 * d__2);
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 20; ++i__) {
-/* L9: */
+/* labelL9: */
 /* Computing 3rd power */
 	d__1 = l2_13.x[i__ - 1];
 	l4_13.gf[i__ - 1] = (Real) i__ * (l2_13.x[i__ - 1] * 2. + d__1 *
 		 (d__1 * d__1) * 4.);
     }
     return 0;
-L4:
+labelL4:
     if (! l9_2.index1[0]) {
-	goto L10;
+	goto labelL10;
     }
     l3_1.g[0] = 0.;
     for (i__ = 1; i__ <= 20; ++i__) {
-/* L11: */
+/* labelL11: */
 /* Computing 2nd power */
 	d__1 = l2_13.x[i__ - 1];
 	l3_1.g[0] += d__1 * d__1;
     }
     l3_1.g[0] += -1.;
-L10:
+labelL10:
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
-	goto L12;
+	goto labelL12;
     }
     for (i__ = 1; i__ <= 20; ++i__) {
-/* L13: */
+/* labelL13: */
 	l5_13.gg[i__ - 1] = l2_13.x[i__ - 1] * 2.;
     }
-L12:
+labelL12:
     return 0;
 } /* tp394_ */
 
@@ -30039,13 +30031,13 @@ L12:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto L1;
-	case 2:  goto L2;
-	case 3:  goto L3;
-	case 4:  goto L4;
-	case 5:  goto L5;
+	case 1:  goto labelL1;
+	case 2:  goto labelL2;
+	case 3:  goto labelL3;
+	case 4:  goto labelL4;
+	case 5:  goto labelL5;
     }
-L1:
+labelL1:
     l1_1.n = 50;
     l1_1.nili = 0;
     l1_1.ninl = 0;
@@ -30054,7 +30046,7 @@ L1:
     for (i__ = 1; i__ <= 50; ++i__) {
 	l2_15.x[i__ - 1] = 2.;
 	l12_15.lxu[i__ - 1] = false;
-/* L6: */
+/* labelL6: */
 	l11_15.lxl[i__ - 1] = false;
     }
     l20_16.lex = false;
@@ -30111,7 +30103,7 @@ L1:
     l20_16.xex[48] = -1.0972677e-6;
     l20_16.xex[49] = -2.131277e-6;
     return 0;
-L2:
+labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 50; ++i__) {
 /* L8: */
@@ -30122,39 +30114,39 @@ L2:
 	l6_1.fx += (Real) i__ * (d__1 * d__1 + d__2 * d__2);
     }
     return 0;
-L3:
+labelL3:
     for (i__ = 1; i__ <= 50; ++i__) {
 /* Computing 3rd power */
 	d__1 = l2_15.x[i__ - 1];
 	l4_15.gf[i__ - 1] = (Real) i__ * (l2_15.x[i__ - 1] * 2. + d__1 *
 		 (d__1 * d__1) * 4.);
-/* L9: */
+/* labelL9: */
 	l4_15.gf[i__ - 1] = l4_15.gf[i__ - 1];
     }
     return 0;
-L4:
+labelL4:
     if (! l9_2.index1[0]) {
-	goto L10;
+	goto labelL10;
     }
     l3_1.g[0] = 0.;
     for (i__ = 1; i__ <= 50; ++i__) {
-/* L11: */
+/* labelL11: */
 /* Computing 2nd power */
 	d__1 = l2_15.x[i__ - 1];
 	l3_1.g[0] += d__1 * d__1;
     }
     l3_1.g[0] += -1.;
-L10:
+labelL10:
     return 0;
-L5:
+labelL5:
     if (! l10_2.index2[0]) {
-	goto L12;
+	goto labelL12;
     }
     for (i__ = 1; i__ <= 50; ++i__) {
-/* L13: */
+/* labelL13: */
 	l5_16.gg[i__ - 1] = l2_15.x[i__ - 1] * 2.;
     }
-L12:
+labelL12:
     return 0;
 } /* tp395_ */
 
@@ -30170,16 +30162,16 @@ Real gleich_(Real *p)
 
     eps = 1e-5;
     y = *p + 1.;
-L2:
+labelL2:
     f = y - *p - std::atan(1. / y);
     if (std::abs(f) <= eps) {
-	goto L1;
+	goto labelL1;
     }
     a = y * y + 1.;
     a = (a + 1.) / a;
     y -= f / a;
-    goto L2;
-L1:
+    goto labelL2;
+labelL1:
 /* Computing 2nd power */
     d__1 = eps;
     eps2 = d__1 * d__1;

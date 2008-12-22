@@ -31,6 +31,24 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 PROJECT ( SimTKsimmath )
+
+# Caution: this variable is automatically created by the CMake
+# ENABLE_TESTING() command, but we'll take it over here for
+# our own purposes too.
+SET( BUILD_TESTING ON CACHE BOOL
+	"Control building of Simmath test programs." )
+
+# Turning this off reduces the build time (and space) substantially,
+# but you may miss the occasional odd bug. Also currently on Windows it
+# is easier to debug the static tests than the DLL-liked ones.
+SET( BUILD_TESTING_STATIC ON CACHE BOOL
+	"If building test programs, include statically-linked ones?" )
+
+SET( BUILD_TESTING_SHARED ON CACHE BOOL
+ 	"If building test programs, include dynamically-linked ones?" )
+
+
+
 SUBDIRS (staticTarget sharedTarget Integrator tests examples)
 
 # Some test run longer than the timeout limit, so give it more time. <RJR>
@@ -84,11 +102,11 @@ SET(SIMMATH_SOURCE_SUBDIRS  src Ipopt include include/simmath include/simmath/in
 # and make it available to the code so it can be built into the binaries.
 
 SET(SIMMATH_LIBRARY_NAME SimTKmath)
-SET(SIMMATH_MAJOR_VERSION 0)
-SET(SIMMATH_MINOR_VERSION 7)
-SET(SIMMATH_BUILD_VERSION 1)
+SET(SIMMATH_MAJOR_VERSION 1)
+SET(SIMMATH_MINOR_VERSION 6)
+SET(SIMMATH_BUILD_VERSION 0)
 
-SET(SIMMATH_COPYRIGHT_YEARS "2005-6")
+SET(SIMMATH_COPYRIGHT_YEARS "2005-9")
 
 # underbar separated list of dotted authors, no spaces or commas
 SET(SIMMATH_AUTHORS         "Jack.Middleton_Michael.Sherman")
@@ -288,48 +306,6 @@ ELSE (EXECUTABLE_OUTPUT_PATH)
   SET (TEST_PATH .)
 ENDIF (EXECUTABLE_OUTPUT_PATH)
 
-ADD_TEST(FactorSVDTest                  ${TEST_PATH}/FactorSVDTest)
-ADD_TEST(FactorSVDTestStatic            ${TEST_PATH}/FactorSVDTestStatic)
-ADD_TEST(EigenTest                      ${TEST_PATH}/EigenTest)
-ADD_TEST(EigenTestStatic                ${TEST_PATH}/EigenTestStatic)
-ADD_TEST(FactorQTZTest                  ${TEST_PATH}/FactorQTZTest)
-ADD_TEST(FactorQTZTestStatic            ${TEST_PATH}/FactorQTZTestStatic)
-ADD_TEST(FactorLUTest                   ${TEST_PATH}/FactorLUTest)
-ADD_TEST(FactorLUTestStatic             ${TEST_PATH}/FactorLUTestStatic)
-ADD_TEST(IpoptTest                      ${TEST_PATH}/IpoptTest)
-ADD_TEST(IpoptTestStatic                ${TEST_PATH}/IpoptTestStatic)
-ADD_TEST(LBFGSTest                      ${TEST_PATH}/LBFGSTest)
-ADD_TEST(LBFGSTestStatic                ${TEST_PATH}/LBFGSTestStatic)
-ADD_TEST(LBFGSBTest                     ${TEST_PATH}/LBFGSBTest)
-ADD_TEST(LBFGSBTestStatic               ${TEST_PATH}/LBFGSBTestStatic)
-ADD_TEST(IpoptDiffTest                  ${TEST_PATH}/IpoptDiffTest)
-ADD_TEST(IpoptDiffTestStatic            ${TEST_PATH}/IpoptDiffTestStatic)
-ADD_TEST(LBFGSDiffTest                  ${TEST_PATH}/LBFGSDiffTest)
-ADD_TEST(LBFGSDiffTestStatic            ${TEST_PATH}/LBFGSDiffTestStatic)
-ADD_TEST(LBFGSBDiffTest                 ${TEST_PATH}/LBFGSBDiffTest)
-ADD_TEST(LBFGSBDiffTestStatic           ${TEST_PATH}/LBFGSBDiffTestStatic)
-ADD_TEST(DifferentiatorTest             ${TEST_PATH}/DifferentiatorTest)
-ADD_TEST(DifferentiatorTestStatic       ${TEST_PATH}/DifferentiatorTestStatic)
-ADD_TEST(SimpleDifferentiatorTest       ${TEST_PATH}/SimpleDifferentiatorTest)
-ADD_TEST(SimpleDifferentiatorTestStatic ${TEST_PATH}/SimpleDifferentiatorTestStatic )
-ADD_TEST(IntegratorTest			${TEST_PATH}/IntegratorTest)
-ADD_TEST(IntegratorTestStatic		${TEST_PATH}/IntegratorTestStatic)
-ADD_TEST(TimeStepperTest		${TEST_PATH}/TimeStepperTest)
-ADD_TEST(TimeStepperTestStatic		${TEST_PATH}/TimeStepperTestStatic)
-ADD_TEST(CPodesIntegratorTest		${TEST_PATH}/CPodesIntegratorTest)
-ADD_TEST(CPodesIntegratorTestStatic	${TEST_PATH}/CPodesIntegratorTestStatic)
-ADD_TEST(RungeKuttaMersonIntegratorTest       ${TEST_PATH}/RungeKuttaMersonIntegratorTest)
-ADD_TEST(RungeKuttaMersonIntegratorTestStatic ${TEST_PATH}/RungeKuttaMersonIntegratorTestStatic)
-ADD_TEST(RungeKuttaFeldbergIntegratorTest       ${TEST_PATH}/RungeKuttaFeldbergIntegratorTest)
-ADD_TEST(RungeKuttaFeldbergIntegratorTestStatic ${TEST_PATH}/RungeKuttaFeldbergIntegratorTestStatic)
-ADD_TEST(ExplicitEulerIntegratorTest       ${TEST_PATH}/ExplicitEulerIntegratorTest)
-ADD_TEST(ExplicitEulerIntegratorTestStatic ${TEST_PATH}/ExplicitEulerIntegratorTestStatic)
-ADD_TEST(VerletIntegratorTest       ${TEST_PATH}/VerletIntegratorTest)
-ADD_TEST(VerletIntegratorTestStatic ${TEST_PATH}/VerletIntegratorTestStatic)
-ADD_TEST(TestSpline       ${TEST_PATH}/TestSpline)
-ADD_TEST(TestSplineStatic ${TEST_PATH}/TestSplineStatic)
-ADD_TEST(TestFunction       ${TEST_PATH}/TestFunction)
-ADD_TEST(TestFunctionStatic ${TEST_PATH}/TestFunctionStatic)
 
 #
 # Installation
