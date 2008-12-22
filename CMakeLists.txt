@@ -103,24 +103,11 @@ MARK_AS_ADVANCED( SimTK_INSTALL_PREFIX  )
 
 INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
 
-
-# The build system will set ARCH64 for 64 bit builds, which require
-# use of the lib64/ library directories rather than lib/.
-#SET( ARCH64 OFF CACHE BOOL "ON for 64bit builds, OFF for 32bit builds")
-#MARK_AS_ADVANCED( ARCH64  )
-#IF (ARCH64)
-#    SET(LIB64 64)
-#ELSE (ARCH64)
-#    SET(LIB64) # nothing
-#ENDIF (ARCH64)
-
 IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
   SET( LIB64 64 )
 ELSE( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
   SET( LIB64  )
 ENDIF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
-
-
 
 IF( APPLE )
    SET( CMAKE_CXX_FLAGS "-mmacosx-version-min=10.4" )
@@ -371,6 +358,8 @@ INSTALL_FILES(/core/include/simbody/internal FILES ${INTERNAL_HEADERS})
 # when the target directory starts with a slash
 INSTALL( FILES ${PROJECT_SOURCE_DIR}/doc/SimbodyUserGuide.pdf DESTINATION core/doc/simbody )
 
+# These are at the end because we want them processed after
+# all the various variables have been set above.
 
 ADD_SUBDIRECTORY( staticTarget )
 ADD_SUBDIRECTORY( sharedTarget )
