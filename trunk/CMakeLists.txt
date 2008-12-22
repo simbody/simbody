@@ -47,11 +47,7 @@ SET( BUILD_TESTING_STATIC ON CACHE BOOL
 SET( BUILD_TESTING_SHARED ON CACHE BOOL
  	"If building test programs, include dynamically-linked ones?" )
 
-SUBDIRS (staticTarget sharedTarget)
 
-IF( BUILD_TESTING )
-  SUBDIRS (tests)
-ENDIF( BUILD_TESTING )
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
@@ -105,18 +101,6 @@ IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
 ELSE( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
   SET( LIB64  )
 ENDIF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
-
-# The build system will set ARCH64 for 64 bit builds, which require
-# use of the lib64/ library directories rather than lib/.
-# uncomment the folloing lines to support cross compiling 32/64 bit builds
-#SET( ARCH64 OFF CACHE BOOL "ON for 64bit builds, OFF for 32bit builds")
-#MARK_AS_ADVANCED( ARCH64  )
-#IF (ARCH64)
-#    SET(LIB64 64)
-#ELSE (ARCH64)
-#    SET(LIB64) # nothing
-#ENDIF (ARCH64)
-
 
 IF( APPLE )
    SET( CMAKE_CXX_FLAGS "-mmacosx-version-min=10.4" )
@@ -211,8 +195,6 @@ ENDIF(NEED_QUOTES)
 # -DSimTK_SimTKCOMMON_LIBRARY_TYPE has to be defined in the target subdirectories.
 # -DSimTKcommon_EXPORTS defined automatically when Windows DLL build is being done.
 
-
-
 # Report the version number to the CMake UI
 SET(SimTKCOMMON_VERSION
     "${SimTKCOMMON_MAJOR_VERSION}.${SimTKCOMMON_MINOR_VERSION}.${SimTKCOMMON_BUILD_VERSION}"
@@ -294,7 +276,7 @@ FOREACH(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
     SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 
     ## Make sure we find these locally before looking in SimTK/core/include if
-    ## Simbody was previously installed there.
+    ## SimTK was previously installed there.
     INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
 
@@ -345,4 +327,14 @@ INSTALL_FILES("/core/include"                      FILES ${CORE_HEADERS})
 INSTALL_FILES("/core/include/SimTKcommon"          FILES ${TOP_HEADERS})
 INSTALL_FILES("/core/include/SimTKcommon/internal" FILES ${INTERNAL_HEADERS})
 INSTALL( FILES ${PROJECT_SOURCE_DIR}/doc/Simmatrix.pdf DESTINATION core/doc/simtkcommon )
+
+# These are at the end because we want them processed after
+# all the various variables have been set above.
+
+ADD_SUBDIRECTORY( staticTarget )
+ADD_SUBDIRECTORY( sharedTarget )
+
+IF( BUILD_TESTING )
+  ADD_SUBDIRECTORY( tests )
+ENDIF( BUILD_TESTING )
 
