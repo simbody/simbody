@@ -1,6 +1,6 @@
 # Adhoc tests are those test or demo programs which are not intended,
 # or not ready, to be part of the regression suite.
-SUBDIRS(adhoc)
+ADD_SUBDIRECTORY(adhoc)
 
 # Generate regression tests.
 #
