@@ -86,10 +86,10 @@ int main() {
     ASSERT(isNaN(0./getRealZero()));
     ASSERT(!isNaN(1./getRealZero())); // Infinity
 
-    ASSERT(isNaN(fnan)); ASSERT(isNaN(dnan)); ASSERT(isNaN(lnan)); // float,double,long double
-    ASSERT(isNaN(cfnan)); ASSERT(isNaN(cdnan)); ASSERT(isNaN(clnan)); // complex<float,double,long double>
+    ASSERT(isNaN(fnan)); ASSERT(isNaN(dnan)); // float,double
+    ASSERT(isNaN(cfnan)); ASSERT(isNaN(cdnan)); // complex<float,double>
     ASSERT(!isNaN(fcinf)); // complex infinity, not NaN
-    ASSERT(isNaN(jfnan)); ASSERT(isNaN(jdnan)); ASSERT(isNaN(jlnan)); // conjugate<float,double,long double>
+    ASSERT(isNaN(jfnan)); ASSERT(isNaN(jdnan)); // conjugate<float,double>
 
     // Check negator behavior
     ASSERT(nzero == zero); ASSERT(-nzero == zero);
@@ -97,7 +97,6 @@ int main() {
     ASSERT(isNaN(nfnan));  ASSERT(isNaN(-nfnan));
     ASSERT(!isNaN(nzero)); ASSERT(!isNaN(-ntwo));
     ASSERT(isNaN(ncfnan)); ASSERT(isNaN(-ncfnan));
-    ASSERT(isNaN(njlnan)); ASSERT(isNaN(-njlnan));
 
     
     cout << "one=" << one << " two=" << two << endl;
