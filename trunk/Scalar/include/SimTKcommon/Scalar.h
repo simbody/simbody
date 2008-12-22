@@ -51,6 +51,13 @@
 
 #include <complex>
 
+// For isNaN() and isFinite().
+#ifdef _MSC_VER
+#include <cfloat>   // Visual Studio
+#else
+#include <ieeefp.h> // gcc
+#endif
+
 namespace SimTK {
 
     /////////////////////////////////////////
@@ -161,24 +168,29 @@ inline bool canStoreInNonnegativeInt(unsigned long u)  {return canStoreInInt(u);
  * return false, even (NaN==NaN)! We use this latter fact to detect
  * NaN since no other floating point values have that property.
  * This routine is specialized for all SimTK scalar types:
- * float, double, long double, std::complex<P>, SimTK::conjugate<P>,
+ * float, double std::complex<P>, SimTK::conjugate<P>,
  * and SimTK::negator<T>, where T is any of the above. For
  * complex and conjugate types, isNaN() returns true if either
  * the real or imaginary part or both are NaN.
  */
 inline bool isNaN(const float& x) {
-    volatile float xx = x; // prevent clever optimizations
-    return x != xx;
+#ifdef _MSC_VER
+    return _isnan(x) != 0;
+#else
+    return isnanf(x) != 0;
+#endif
+    //volatile float xx = x; // prevent clever optimizations
+    //return x != xx;
 }
 
 inline bool isNaN(const double& x) {
-    volatile double xx = x; // prevent clever optimizations
-    return x != xx;
-}
-
-inline bool isNaN(const long double& x) {
-    volatile long double xx = x; // prevent clever optimizations
-    return x != xx;
+#ifdef _MSC_VER
+    return _isnan(x) != 0;
+#else
+    return isnan(x) != 0;
+#endif
+    //volatile double xx = x; // prevent clever optimizations
+    //return x != xx;
 }
 
 
@@ -194,12 +206,54 @@ isNaN(const conjugate<P>& x) {
 
 inline bool isNaN(const negator<float>&       x) {return isNaN(-x);}
 inline bool isNaN(const negator<double>&      x) {return isNaN(-x);}
-inline bool isNaN(const negator<long double>& x) {return isNaN(-x);}
 
 template <class P> inline bool
 isNaN(const negator< std::complex<P> >& x) {return isNaN(-x);}
 template <class P> inline bool
 isNaN(const negator< conjugate<P> >&    x) {return isNaN(-x);}
+
+/**
+ * isFinite(x) provides a reliable way to determine if x is a "normal"
+ * floating point number, meaning not a NaN or +/- Infinity.
+ * This routine is specialized for all SimTK scalar types:
+ * float, double, std::complex<P>, SimTK::conjugate<P>,
+ * and SimTK::negator<T>, where T is any of the above. For
+ * complex and conjugate types, isFinite() returns true if
+ * the real and imaginary parts are both finite.
+ */
+inline bool isFinite(const float& x) {
+#ifdef _MSC_VER
+    return _finite(x) != 0;
+#else
+    return finitef(x) != 0;
+#endif
+}
+
+inline bool isFinite(const double& x) {
+#ifdef _MSC_VER
+    return _finite(x) != 0;
+#else
+    return finite(x) != 0;
+#endif
+}
+
+template <class P> inline bool
+isFinite(const std::complex<P>& x) {
+    return isFinite(x.real()) && isFinite(x.imag());
+}
+
+template <class P> inline bool
+isFinite(const conjugate<P>& x) {
+    return isFinite(x.real()) && isFinite(x.negImag());
+}
+
+inline bool isFinite(const negator<float>&       x) {return isFinite(-x);}
+inline bool isFinite(const negator<double>&      x) {return isFinite(-x);}
+
+template <class P> inline bool
+isFinite(const negator< std::complex<P> >& x) {return isFinite(-x);}
+template <class P> inline bool
+isFinite(const negator< conjugate<P> >&    x) {return isFinite(-x);}
 
 /**
  * s=sign(n) returns int -1,0,1 according to n<0, n==0, n>0 for any integer
