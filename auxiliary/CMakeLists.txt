@@ -1,9 +1,3 @@
-SUBDIRS (staticTarget sharedTarget)
-
-IF (BUILD_TESTING)
-    SUBDIRS (tests)
-ENDIF (BUILD_TESTING)
-
 SET(AUX_SHARED_TARGET ${SIMBODY_LIBRARY_NAME}_aux)
 SET(AUX_STATIC_TARGET ${SIMBODY_LIBRARY_NAME}_aux_static)
 
@@ -40,4 +34,15 @@ ${PROJECT_SOURCE_DIR}/auxiliary/include/*.h )
      vtkGraphics
      vtkCommon
    )
+
+ADD_SUBDIRECTORY(staticTarget)
+ADD_SUBDIRECTORY(sharedTarget)
+
+IF (BUILD_TESTING)
+    ADD_SUBDIRECTORY(tests)
+ENDIF (BUILD_TESTING)
+
+IF (BUILD_EXAMPLES)
+    ADD_SUBDIRECTORY(examples)
+ENDIF (BUILD_EXAMPLES)
 
