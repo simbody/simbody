@@ -21,16 +21,13 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "Simmath.h"
-#include "Optimizer.h"
+#include "SimTKmath.h"
 
 #include <iostream>
 using std::cout;
 using std::endl;
-using SimTK::Vector;
-using SimTK::Real;
-using SimTK::Optimizer;
-using SimTK::OptimizerSystem;
+
+using namespace SimTK;
 
 /* adapted from itkLBFGSOptimizerTest.cxx */
 
@@ -53,15 +50,12 @@ class ProblemSystem : public OptimizerSystem {
    }
 };
 
-main() {
-
-    Real f;
-    int i;
-
+int main() {
     ProblemSystem sys(NUMBER_OF_PARAMETERS);
 
     Vector results(NUMBER_OF_PARAMETERS);
 
+    Real f = NaN;
     try {
        Optimizer opt( sys ); 
 
@@ -78,5 +72,7 @@ main() {
        cout << e.what() << endl;
     }
 
-    printf(" Optimial solution: f = %f   parameters = %f %f \n",f,results[0],results[1]); 
+    printf(" Optimial solution: f = %f   parameters = %f %f \n",f,results[0],results[1]);
+
+    return 0;
 }

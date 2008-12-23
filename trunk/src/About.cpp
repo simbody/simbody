@@ -27,6 +27,7 @@
 
 
 #include "SimTKcommon.h"
+#include "simmath/internal/common.h"
 
 #include <string>
 #include <cstring>

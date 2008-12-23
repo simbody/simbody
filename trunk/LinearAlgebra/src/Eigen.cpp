@@ -27,19 +27,22 @@
  */
 
 
-#include <iostream> 
-#include <cstdio>
-#include <malloc.h>
-#include <math.h>
-#include <complex>
+
 #include "SimTKcommon.h"
+
+#include "simmath/internal/common.h"
+#include "simmath/LinearAlgebra.h"
+
 #include "LapackInterface.h"
-#include "LinearAlgebra.h"
 #include "EigenRep.h"
 #include "WorkSpace.h"
 #include "LATraits.h"
 #include "LapackConvert.h"
 
+#include <iostream> 
+#include <cstdio>
+#include <cmath>
+#include <complex>
 
 namespace SimTK {
 

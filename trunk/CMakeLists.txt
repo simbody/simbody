@@ -38,22 +38,60 @@ PROJECT ( SimTKsimmath )
 SET( BUILD_TESTING ON CACHE BOOL
 	"Control building of Simmath test programs." )
 
+SET( BUILD_EXAMPLES ON CACHE BOOL
+	"Control building of Simmath example programs.")
+
 # Turning this off reduces the build time (and space) substantially,
 # but you may miss the occasional odd bug. Also currently on Windows it
 # is easier to debug the static tests than the DLL-liked ones.
 SET( BUILD_TESTING_STATIC ON CACHE BOOL
-	"If building test programs, include statically-linked ones?" )
+	"If building test or example programs, include statically-linked ones?" )
 
 SET( BUILD_TESTING_SHARED ON CACHE BOOL
- 	"If building test programs, include dynamically-linked ones?" )
+ 	"If building test or example programs, include dynamically-linked ones?" )
 
-
-
-SUBDIRS (staticTarget sharedTarget Integrator tests examples)
 
 # Some test run longer than the timeout limit, so give it more time. <RJR>
-SET(DART_TESTING_TIMEOUT 15000)
+# sherm 081222: is this needed?
+#SET(DART_TESTING_TIMEOUT 15000)
 #SET(CTEST_TESTING_TIMEOUT 15000)
+
+# 
+# Make sure "sandbox" input & output directories are set. During
+# SimTK Core build, the build system will set them. Otherwise, we'll
+# set them to sensible local values.
+# If SimTK_INSTALL_PREFIX is set then
+# it is a sandbox installation area, otherwise we want to install
+# in /usr/local/SimTK or c:\program files\SimTK. Similarly, SimTK_SDK
+# tells us where to find other SimTK Core modules on which this one
+# depends. If it is not set, we'll look in /usr/local/SimTK or
+# c:\program files\SimTK *regardless* of SimTK_INSTALL_PREFIX.
+#
+
+IF(${CMAKE_C_COMPILER} MATCHES "gcc")
+
+    IF(NOT SimTK_INSTALL_PREFIX)
+        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK")
+    ENDIF(NOT SimTK_INSTALL_PREFIX)
+
+    IF(NOT SimTK_SDK)
+        SET(SimTK_SDK "/usr/local/SimTK")
+    ENDIF(NOT SimTK_SDK)
+
+ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
+
+    IF(NOT SimTK_INSTALL_PREFIX)
+        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK")
+    ENDIF(NOT SimTK_INSTALL_PREFIX)
+
+    IF(NOT SimTK_SDK)
+        SET(SimTK_SDK "C:/Program Files/SimTK")
+    ENDIF(NOT SimTK_SDK)
+
+ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
+
+
+INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
 
 IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
   SET( LIB64 64 )
@@ -91,12 +129,7 @@ IF (NOT CMAKE_CXX_FLAGS_RELEASE)
           "To use when CMAKE_BUILD_TYPE=Release" FORCE)
 ENDIF (NOT CMAKE_CXX_FLAGS_RELEASE)
 
-# The source is organized into subdirectories, but we handle them all from
-# this CMakeLists file rather than letting CMake visit them as SUBDIRS.
-SET(SIMMATH_SOURCE_SUBDIRS  src Ipopt include include/simmath include/simmath/internal 
-    LinearAlgebra/src LinearAlgebra/include LinearAlgebra/include/simmath LinearAlgebra/include/simmath/internal
-    Integrator/src Integrator/include Integrator/include/simmath Integrator/include/simmath/internal)
-
+SET(SIMMATH_SOURCE_SUBDIRS  . Ipopt LinearAlgebra Integrator)
 
 # Collect up information about the version of the simmath library we're building
 # and make it available to the code so it can be built into the binaries.
@@ -176,6 +209,8 @@ SET(SIMMATH_VERSION
     "${SIMMATH_MAJOR_VERSION}.${SIMMATH_MINOR_VERSION}.${SIMMATH_BUILD_VERSION}"
      CACHE STRING "This is the version of Simmath which will be built." FORCE)
 
+SET(SHARED_TARGET ${SIMMATH_LIBRARY_NAME})
+SET(STATIC_TARGET ${SIMMATH_LIBRARY_NAME}_static)
 
 ## If no one says otherwise, change the executable path to drop into the same binary
 ## location as the DLLs so that the test cases will use the just-build DLLs.
@@ -190,8 +225,6 @@ ENDIF(NOT LIBRARY_OUTPUT_PATH)
 SET(${PROJECT_NAME}_EXECUTABLE_DIR ${EXECUTABLE_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
 SET(${PROJECT_NAME}_LIBRARY_DIR    ${LIBRARY_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
 
-SET(SHARED_TARGET ${SIMMATH_LIBRARY_NAME})
-SET(STATIC_TARGET ${SIMMATH_LIBRARY_NAME}_static)
 
 # Ensure that debug libraries have "_d" appended to their names.
 # CMake gets this right on Windows automatically with this definition.
@@ -213,12 +246,6 @@ SET(SimTKCPODES_LIBRARY_NAME SimTKcpodes)
 SET(SimTKCPODES_SHARED_LIBRARY ${SimTKCPODES_LIBRARY_NAME})
 SET(SimTKCPODES_STATIC_LIBRARY ${SimTKCPODES_LIBRARY_NAME}_static)
 
-# Choose a LAPACK to link with.
-SET(SimTK_LAPACK SimTK CACHE STRING "What LAPACK to link with (ACML or SimTK)")
-IF(NOT SimTK_LAPACK)
-    SET(SimTK_LAPACK SimTK)
-ENDIF(NOT SimTK_LAPACK)
-STRING(TOLOWER ${SimTK_LAPACK} SimTK_LAPACK_DOWNSHIFT)
 
 #
 # Find the right place to look for dependency resolution (which
@@ -244,8 +271,14 @@ ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
 # These are all the places to search for header files which are
 # to be part of the API.
-
-SET(API_INCLUDE_DIRS ${PROJECT_SRC_DIR}/include ${PROJECT_SRC_DIR}/Integrator/include) 
+SET(API_INCLUDE_DIRS) # start empty
+FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
+    # append
+    SET(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
+                         ${subdir}/include 
+                         ${subdir}/include/simmath 
+                         ${subdir}/include/simmath/internal)
+ENDFOREACH(subdir)
 
 # We'll need both *relative* path names, starting with their API_INCLUDE_DIRS,
 # and absolute pathnames.
@@ -267,109 +300,86 @@ SET(SOURCE_FILES) # empty
 SET(SOURCE_INCLUDE_FILES)
 
 FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
-    FILE(GLOB src_files  ${subdir}/*.cpp)
-    FILE(GLOB incl_files ${subdir}/*.h)
+    FILE(GLOB src_files  ${subdir}/src/*.cpp ${subdir}/src/*.c
+		             ${subdir}/src/*/*.cpp ${subdir}/src/*/*.c)
+    FILE(GLOB incl_files ${subdir}/src/*.h)
     SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
     SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 
-    INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/${subdir})
+    ## Make sure we find these locally before looking in
+    ## SimTK/core/include if Simmath was previously installed there.
+    INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
+INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/src)
 
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/Integrator/include)
+## Special cases for IpOpt since it doesn't have a src subdirectory.
+FILE(GLOB src_files  IpOpt/*.cpp IpOpt/*.c)
+FILE(GLOB incl_files IpOpt/*.h)
+SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
+SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
+INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/IpOpt)
+
+## Watch out -- this next line will cause CMake to find installed versions of
+## simmath libraries before the local one. Be sure to delete installed ones first.
+LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
+
 
 IF( APPLE )
   INCLUDE_DIRECTORIES( "/usr/include/malloc")
 ENDIF( APPLE )
 
-#
-# Allow automated build and dashboard.
-#
-INCLUDE (Dart)
+IF (BUILD_TESTING)
+    #
+    # Allow automated build and dashboard.
+    #
+    INCLUDE (Dart)
 
-#IF (UNIX AND NOT CYGWIN AND NOT APPLE)
-#  IF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
-#    ADD_DEFINITIONS(-fprofile-arcs -ftest-coverage)
-#    LINK_LIBRARIES(gcov)
-#  ENDIF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
-#ENDIF (UNIX AND NOT CYGWIN AND NOT APPLE)
+    #IF (UNIX AND NOT CYGWIN AND NOT APPLE)
+    #  IF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
+    #    ADD_DEFINITIONS(-fprofile-arcs -ftest-coverage)
+    #    LINK_LIBRARIES(gcov)
+    #  ENDIF (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
+    #ENDIF (UNIX AND NOT CYGWIN AND NOT APPLE)
 
+    #
+    # Testing
+    #
+    ENABLE_TESTING()
 
-#
-# Testing
-#
+ENDIF (BUILD_TESTING)
 
-ENABLE_TESTING()
-
-IF (EXECUTABLE_OUTPUT_PATH)
-  SET (TEST_PATH ${EXECUTABLE_OUTPUT_PATH})
-ELSE (EXECUTABLE_OUTPUT_PATH)
-  SET (TEST_PATH .)
-ENDIF (EXECUTABLE_OUTPUT_PATH)
-
+INCLUDE(ApiDoxygen.cmake)
 
 #
 # Installation
 #
 # CMake installs go into CMAKE_INSTALL_PREFIX, which is always
-# set to something incorrect by CMake. If SimTK_INSTALL_PREFIX is set then
-# it is a sandbox installation area, otherwise we want to install
-# in /usr/local/SimTK or c:\program files\SimTK. Similarly, SimTK_SDK
-# tells us where to find other SimTK Core modules on which this one
-# depends. If it is not set, we'll look in /usr/local/SimTK or
-# c:\program files\SimTK *regardless* of SimTK_INSTALL_PREFIX.
-
-IF(${CMAKE_C_COMPILER} MATCHES "gcc")
-
-    IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK" CACHE PATH "Install Directory")
-    ENDIF(NOT SimTK_INSTALL_PREFIX)
-
-    # unix or cygwin; cygwin requires some trickery
-    IF(CYGWIN)
-        SET(SimTK_INSTALL_PREFIX C:/cygwin${SimTK_INSTALL_PREFIX} CACHE PATH "Install Directory")
-    ENDIF(CYGWIN)
-
-    IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "/usr/local/SimTK" CACHE PATH "SimTK Dependency path")
-    ENDIF(NOT SimTK_SDK)
-
-ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
-
-    IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK" CACHE PATH "Install Directory")
-#        SET(SimTK_INSTALL_PREFIX "C:/Documents and Settings/jacklm/SimTK" CACHE PATH "Install Directory")
-    ENDIF(NOT SimTK_INSTALL_PREFIX)
-
-    IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "C:/Program Files/SimTK" CACHE PATH "SimTK Dependency path")
-#        SET(SimTK_SDK "C:/Documents and Settings/jacklm/SimTK" CACHE PATH "SimTK Dependency path")
-    ENDIF(NOT SimTK_SDK)
-
-ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
-
-MARK_AS_ADVANCED( SimTK_SDK )
-MARK_AS_ADVANCED( SimTK_INSTALL_PREFIX )
+# set to something incorrect by CMake. We'll use SimTK_INSTALL_PREFIX
+# instead which is passed in by the build system or set above.
 
 SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path prefix." FORCE)
 
-INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
-
-## Watch out -- this next line will cause CMake to find installed versions of
-## simmath libraries before the local one. Be sure to delete installed ones first.
-
-LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
-
-INCLUDE(ApiDoxygen.cmake)
-
-# libraries are installed from their subdirectories; headers here
+# libraries and examples are installed from their subdirectories; headers here
 
 # install headers
 FILE(GLOB CORE_HEADERS     include/*.h                  */include/*.h)
 FILE(GLOB TOP_HEADERS      include/simmath/*.h          */include/simmath/*.h)
 FILE(GLOB INTERNAL_HEADERS include/simmath/internal/*.h */include/simmath/internal/*.h)
 
-INSTALL( FILES ${CORE_HEADERS}     DESTINATION core/include     )
-INSTALL( FILES ${TOP_HEADERS}      DESTINATION core/include/simmath)
-INSTALL( FILES ${INTERNAL_HEADERS} DESTINATION core/include/simmath/internal )
+INSTALL_FILES(/core/include/                 FILES ${CORE_HEADERS})
+INSTALL_FILES(/core/include/simmath/         FILES ${TOP_HEADERS})
+INSTALL_FILES(/core/include/simmath/internal FILES ${INTERNAL_HEADERS})
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/doc/SimmathUserGuide.pdf DESTINATION core/doc/simmath)
 
-INSTALL( FILES ${PROJECT_SOURCE_DIR}/doc/SimmathUserGuide.pdf DESTINATION core/doc/simmath )
+# These are at the end because we want them processed after
+# all the various variables have been set above.
+
+ADD_SUBDIRECTORY( staticTarget )
+ADD_SUBDIRECTORY( sharedTarget )
+IF( BUILD_EXAMPLES )
+  ADD_SUBDIRECTORY( examples )
+ENDIF( BUILD_EXAMPLES )
+
+IF( BUILD_TESTING )
+  ADD_SUBDIRECTORY( tests )
+ENDIF( BUILD_TESTING )

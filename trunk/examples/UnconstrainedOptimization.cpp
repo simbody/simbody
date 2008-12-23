@@ -21,9 +21,10 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+
+#include "SimTKmath.h"
+
 #include <iostream>
-#include "Simmath.h"
-#include "Optimizer.h"
 
 using namespace SimTK;
 
@@ -59,15 +60,12 @@ class ProblemSystem : public OptimizerSystem {
    }
 };
 
-main() {
-
-    Real f;
-    int i;
-
+int main() {
     ProblemSystem sys(NUMBER_OF_PARAMETERS);
 
     Vector results(NUMBER_OF_PARAMETERS);
 
+    Real f = NaN;
     try {
        Optimizer opt( sys ); 
 
@@ -84,4 +82,6 @@ main() {
     }
 
     printf(" Optimial solution: f = %f   parameters = %f %f \n",f,results[0],results[1]);
+
+    return 0;
 }

@@ -24,8 +24,8 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "SimTKcommon.h"
-#include "Optimizer.h"
-#include "Differentiator.h"
+#include "simmath/Optimizer.h"
+#include "simmath/Differentiator.h"
 #include <map>
 
 namespace SimTK {

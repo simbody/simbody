@@ -8,6 +8,8 @@ TARGET_LINK_LIBRARIES(${STATIC_TARGET}
              debug ${SimTKCOMMON_STATIC_LIBRARY}_d optimized ${SimTKCOMMON_STATIC_LIBRARY}
              ${MATH_LIBS_TO_USE})
 
+SET_TARGET_PROPERTIES(${STATIC_TARGET} PROPERTIES
+	PROJECT_LABEL "Library - ${STATIC_TARGET}")
 
 # install the library; on Windows both .lib and .dll go in the lib directory.
 INSTALL(TARGETS ${STATIC_TARGET}

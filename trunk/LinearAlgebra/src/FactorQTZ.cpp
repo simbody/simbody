@@ -26,18 +26,20 @@
  * Factors systems of linear algebra equations.
  */
 
-
-#include <iostream> 
-#include <malloc.h>
-#include <math.h>
-#include <complex>
 #include "SimTKcommon.h"
+
+#include "simmath/internal/common.h"
+#include "simmath/LinearAlgebra.h"
+
 #include "LapackInterface.h"
-#include "LinearAlgebra.h"
 #include "FactorQTZRep.h"
 #include "WorkSpace.h"
 #include "LATraits.h"
 #include "LapackConvert.h"
+
+#include <iostream> 
+#include <cmath>
+#include <complex>
 
 
 namespace SimTK {

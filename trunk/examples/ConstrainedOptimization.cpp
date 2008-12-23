@@ -22,10 +22,8 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "SimTKmath.h"
 #include <iostream>
-
-#include "Simmath.h"
-#include "Optimizer.h"
 
 using namespace SimTK;
 
@@ -59,7 +57,6 @@ public:
 
    int objectiveFunc(  const Vector &coefficients, const bool new_coefficients, Real& f ) const {
       const Real *x;
-      int i;
 
       x = &coefficients[0];
 
@@ -127,11 +124,7 @@ public:
 };
 
 
-main() {
-
-    Real f;
-    int i;
-
+int main() {
     /* create the system to be optimized */
     ProblemSystem sys(NUMBER_OF_PARAMETERS, NUMBER_OF_EQUALITY_CONSTRAINTS, NUMBER_OF_INEQUALITY_CONSTRAINTS);
 
@@ -146,29 +139,29 @@ main() {
     results[3] = 1.0;
 
     /* set bounds */
-    for(i=0;i<NUMBER_OF_PARAMETERS;i++) {   
+    for(int i=0;i<NUMBER_OF_PARAMETERS;i++) {   
        lower_bounds[i] = 1.0;
        upper_bounds[i] = 5.0;
     }
 
     sys.setParameterLimits( lower_bounds, upper_bounds );
 
-   try {
+    Real f = NaN;
+    try {
+        Optimizer opt( sys ); 
 
-      Optimizer opt( sys ); 
+        opt.setConvergenceTolerance( .0001 );
 
-      opt.setConvergenceTolerance( .0001 );
-
-      /* compute  optimization */ 
-      f = opt.optimize( results );
-   }
-   catch (const std::exception& e) {
-      std::cout << "ConstrainedOptimization.cpp Caught exception:" << std::endl;
-      std::cout << e.what() << std::endl;
-   }
+        /* compute  optimization */ 
+        f = opt.optimize( results );
+    }
+    catch (const std::exception& e) {
+        std::cout << "ConstrainedOptimization.cpp Caught exception:" << std::endl;
+        std::cout << e.what() << std::endl;
+    }
 
 
     printf("Optimal Solution: f = %f   parameters = %f %f %f %f \n",f,results[0],results[1],results[2],results[3]);
 
-
+    return 0;
 }

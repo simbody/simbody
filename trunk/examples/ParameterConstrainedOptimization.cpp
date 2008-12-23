@@ -21,9 +21,9 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <iostream>
+
 #include "SimTKmath.h"
-#include "Optimizer.h"
+#include <iostream>
 
 using namespace SimTK;
 
@@ -36,12 +36,10 @@ class ProblemSystem : public OptimizerSystem {
    ProblemSystem( const int numParameters ) : OptimizerSystem( numParameters ) {}
 
    int objectiveFunc(   const Vector &coefficients, const bool new_coefficients,  Real& f  ) const  {
-      int i;
-
       const Real *x = &coefficients[0];
 
       f = .25 *(x[0]-1.0)*(x[0]-1.0);
-      for(i=1;i<numParameters;i++) {
+      for(int i=1;i<getNumParameters();i++) {
          f = f + pow(x[i]-x[i-1]*x[i-1], 2.0);
       }
 
@@ -52,18 +50,17 @@ class ProblemSystem : public OptimizerSystem {
    int gradientFunc( const Vector &coefficients, const bool new_coefficients,  Vector &gradient ) const {
       const Real *x;
       Real t1,t2;
-      int i;
 
       x = &coefficients[0]; 
 
       t1 = x[1]-(x[0]*x[0]);
       gradient[0] = 2.0*(x[0]-1.0)-16.0*x[0]*t1;
-      for(i=1;i<numParameters-1;i++) {
+      for(int i=1;i<getNumParameters()-1;i++) {
          t2=t1;
          t1=x[i+1]-(x[i]*x[i]);
          gradient[i]=8.0*t2-16.0*x[i]*t1;
       }
-      gradient[numParameters-1]=8.0*t1;
+      gradient[getNumParameters()-1]=8.0*t1;
 
     return(0);
 
@@ -72,10 +69,7 @@ class ProblemSystem : public OptimizerSystem {
 };
 
 /* adapted from driver1.f of Lbfgsb.2.1.tar.gz  */
-main() {
-
-    Real f;
-    int i;
+int main() {
     int n = NUMBER_OF_PARAMETERS;
 
     Vector results(NUMBER_OF_PARAMETERS);
@@ -86,29 +80,29 @@ main() {
 
 
     /* set initial conditions */
-    for(i=0;i<n;i++) {
+    for(int i=0;i<n;i++) {
        results[i] = 3.0;
     }
 
     /* set bounds */
-    for(i=0;i<n;i=i+2) {   // even numbered 
+    for(int i=0;i<n;i=i+2) {   // even numbered 
        lower_bounds[i] = 1.0;
        upper_bounds[i] = 100.0;
     }
-    for(i=1;i<n;i=i+2) { // odd numbered
+    for(int i=1;i<n;i=i+2) { // odd numbered
        lower_bounds[i] = -100.0;
        upper_bounds[i] = 100.0;
     }
 
     sys.setParameterLimits( lower_bounds, upper_bounds );
 
+    Real f = NaN;
     try {
        Optimizer opt( sys ); 
 
        opt.setConvergenceTolerance( .0001 );
 
        f = opt.optimize( results );
-
     }
 
     catch (SimTK::Exception::Base e) {
@@ -117,9 +111,10 @@ main() {
     }
 
     printf("f = %f params = ",f);
-    for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
+    for(int i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        printf(" %f",results[i]); 
     }
     printf("\n");
 
+    return 0;
 }

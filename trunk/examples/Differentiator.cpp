@@ -27,8 +27,7 @@
 
 //#define SimTK_USE_STATIC_LIBRARIES
 
-#include "Simmath.h"
-#include "simmath/Differentiator.h"
+#include "SimTKmath.h"
 
 // Just so we can get the version number:
 #include "SimTKlapack.h"
@@ -151,8 +150,8 @@ static void doSinOmegaExample() {
   for (int digits=0; digits<=41; ++digits) {
     Real acc;
     if (digits < 40) acc = std::pow(10., -(digits/(1.5*sizeof(double)/sizeof(PREC))));
-    else if (digits==40) acc=SimTK::NTraits<PREC>::Eps_78;
-    else if (digits==41) acc=SimTK::NTraits<PREC>::Eps;
+    else if (digits==40) acc=SimTK::NTraits<PREC>::getSignificant();
+    else if (digits==41) acc=SimTK::NTraits<PREC>::getEps();
 
     const Real w = .01;
     SinOmegaX func(w, acc);
@@ -208,11 +207,11 @@ static void showSimTKAboutInfo() {
         std::printf("      about(%s)='%s'\n", *p, out);
     }
 
-    SimTK_version_SimTKsimmath(&major,&minor,&build);
-    std::printf("==> SimTKsimmath library version: %d.%d.%d\n", major, minor, build);
-    std::printf("    SimTK_about_SimTKsimmath():\n");
+    SimTK_version_simmath(&major,&minor,&build);
+    std::printf("==> SimTKmath library version: %d.%d.%d\n", major, minor, build);
+    std::printf("    SimTK_about_simmath():\n");
     for (const char** p = keylist; *p; ++p) {
-        SimTK_about_SimTKsimmath(*p, 100, out);
+        SimTK_about_simmath(*p, 100, out);
         std::printf("      about(%s)='%s'\n", *p, out);
     }
     std::printf("\n");
