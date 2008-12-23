@@ -138,8 +138,10 @@ void testIsNaN() {
     ASSERT(!isNaN(ncjflt) && !isNaN(ncjdbl));
 
     // Should be NaN if either or both parts are NaN.
-    cflt.imag(fltNaN);  cdbl.imag(dblNaN);
-    cjflt.imag() = fltNaN; cjdbl.imag() = dblNaN;
+    cflt = std::complex<float>(cflt.real(), fltNaN);
+    cdbl = std::complex<double>(cdbl.real(), dblNaN);
+    cjflt = conjugate<float>(cjflt.real(), fltNaN);
+    cjdbl = conjugate<double>(cjdbl.real(), dblNaN);
 
     // Imaginary only is NaN.
     ASSERT(isNaN(cflt) && isNaN(cdbl));
@@ -147,8 +149,10 @@ void testIsNaN() {
     ASSERT(isNaN(ncflt) && isNaN(ncdbl));
     ASSERT(isNaN(ncjflt) && isNaN(ncjdbl));
 
-    cflt.real(fltNaN);  cdbl.real(dblNaN);
-    cjflt.real() = fltNaN; cjdbl.real() = dblNaN;
+    cflt = std::complex<float>(fltNaN, cflt.imag());
+    cdbl = std::complex<double>(dblNaN, cdbl.imag());
+    cjflt = conjugate<float>(fltNaN, cjflt.imag());
+    cjdbl = conjugate<double>(dblNaN, cjdbl.imag());
 
     // Both parts are NaN.
     ASSERT(isNaN(cflt) && isNaN(cdbl));
@@ -157,8 +161,10 @@ void testIsNaN() {
     ASSERT(isNaN(ncjflt) && isNaN(ncjdbl));
 
     // Restore imaginary part to normal.
-    cflt.imag(fltRegular); cdbl.imag(dblRegular);
-    cjflt.imag() = fltRegular; cjdbl.imag() = dblRegular;
+    cflt = std::complex<float>(cflt.real(), fltRegular);
+    cdbl = std::complex<double>(cdbl.real(), dblRegular);
+    cjflt = conjugate<float>(cjflt.real(), fltRegular);
+    cjdbl = conjugate<double>(cjdbl.real(), dblRegular);
 
     // Real part only is NaN;
     ASSERT(isNaN(cflt) && isNaN(cdbl));
@@ -215,8 +221,10 @@ void testIsInf() {
 
     // Should be Inf if either or both parts are Inf, as long as neither
     // part is NaN.
-    cflt.imag(fltInf);  cdbl.imag(dblInf);
-    cjflt.imag() = fltInf; cjdbl.imag() = dblInf;
+    cflt = std::complex<float>(cflt.real(), fltInf);
+    cdbl = std::complex<double>(cdbl.real(), dblInf);
+    cjflt = conjugate<float>(cjflt.real(), fltInf);
+    cjdbl = conjugate<double>(cjdbl.real(), dblInf);
 
     // Imaginary only is Inf.
     ASSERT(isInf(cflt) && isInf(cdbl));
@@ -224,8 +232,10 @@ void testIsInf() {
     ASSERT(isInf(ncflt) && isInf(ncdbl));
     ASSERT(isInf(ncjflt) && isInf(ncjdbl));
 
-    cflt.real(fltInf);  cdbl.real(dblInf);
-    cjflt.real() = fltInf; cjdbl.real() = dblInf;
+    cflt = std::complex<float>(fltInf, cflt.imag());
+    cdbl = std::complex<double>(dblInf, cdbl.imag());
+    cjflt = conjugate<float>(fltInf, cjflt.imag());
+    cjdbl = conjugate<double>(dblInf, cjdbl.imag());
 
     // Both parts are Inf.
     ASSERT(isInf(cflt) && isInf(cdbl));
@@ -234,8 +244,10 @@ void testIsInf() {
     ASSERT(isInf(ncjflt) && isInf(ncjdbl));
 
     // Restore imaginary part to normal.
-    cflt.imag(fltRegular); cdbl.imag(dblRegular);
-    cjflt.imag() = fltRegular; cjdbl.imag() = dblRegular;
+    cflt = std::complex<float>(cflt.real(), fltRegular);
+    cdbl = std::complex<double>(cdbl.real(), dblRegular);
+    cjflt = conjugate<float>(cjflt.real(), fltRegular);
+    cjdbl = conjugate<double>(cjdbl.real(), dblRegular);
 
     // Real part only is Inf;
     ASSERT(isInf(cflt) && isInf(cdbl));
@@ -244,8 +256,10 @@ void testIsInf() {
     ASSERT(isInf(ncjflt) && isInf(ncjdbl));
 
     // Set real part to minus infinity.
-    cflt.real(mfltInf);  cdbl.real(mdblInf);
-    cjflt.real() = mfltInf; cjdbl.real() = mdblInf;
+    cflt = std::complex<float>(mfltInf, cflt.imag());
+    cdbl = std::complex<double>(mdblInf, cdbl.imag());
+    cjflt = conjugate<float>(mfltInf, cjflt.imag());
+    cjdbl = conjugate<double>(mdblInf, cjdbl.imag());
 
     ASSERT(isInf(cflt) && isInf(cdbl));
     ASSERT(isInf(cjflt) && isInf(cjdbl));
@@ -255,8 +269,10 @@ void testIsInf() {
     // Set real part to NaN.
     const float fltNaN = NTraits<float>::getNaN();
     const double dblNaN = NTraits<double>::getNaN();
-    cflt.real(fltNaN);  cdbl.real(dblNaN);
-    cjflt.real() = fltNaN; cjdbl.real() = dblNaN;
+    cflt = std::complex<float>(fltNaN, cflt.imag());
+    cdbl = std::complex<double>(dblNaN, cdbl.imag());
+    cjflt = conjugate<float>(fltNaN, cjflt.imag());
+    cjdbl = conjugate<double>(dblNaN, cjdbl.imag());
 
     ASSERT(!isInf(cflt) && !isInf(cdbl));
     ASSERT(!isInf(cjflt) && !isInf(cjdbl));
@@ -273,13 +289,13 @@ void testIsFinite() {
     const double ndblNaN = -dblNaN;
     const float fltInf = NTraits<float>::getInfinity();
     const double dblInf = NTraits<double>::getInfinity();
-    const float nfltInf = -fltInf;
-    const double ndblInf = -dblInf;
+    const float mfltInf = -fltInf;
+    const double mdblInf = -dblInf;
 
     ASSERT(isFinite(fltRegular) && isFinite(dblRegular));
     ASSERT(!isFinite(fltNaN) && !isFinite(dblNaN));
     ASSERT(!isFinite(fltInf) && !isFinite(dblInf));
-    ASSERT(!isFinite(nfltInf) && !isFinite(ndblInf));
+    ASSERT(!isFinite(mfltInf) && !isFinite(mdblInf));
 
     std::complex<float> cflt(fltRegular, -2*fltRegular);
     std::complex<double> cdbl(dblRegular, -2*dblRegular);
@@ -310,8 +326,10 @@ void testIsFinite() {
     ASSERT(isFinite(ncjflt) && isFinite(ncjdbl));
 
     // Should be finite only if both parts are finite.
-    cflt.imag(fltInf);  cdbl.imag(nfltInf);
-    cjflt.imag() = fltNaN; cjdbl.imag() = dblInf;
+    cflt = std::complex<float>(cflt.real(),  fltInf);
+    cdbl = std::complex<double>(cdbl.real(), mdblInf);
+    cjflt = conjugate<float>(cjflt.real(),   fltNaN);
+    cjdbl = conjugate<double>(cjdbl.real(),  dblInf);
 
     // Imaginary only is NaN.
     ASSERT(!isFinite(cflt) && !isFinite(cdbl));
@@ -319,8 +337,10 @@ void testIsFinite() {
     ASSERT(!isFinite(ncflt) && !isFinite(ncdbl));
     ASSERT(!isFinite(ncjflt) && !isFinite(ncjdbl));
 
-    cflt.real(fltInf);  cdbl.real(nfltInf);
-    cjflt.real() = fltNaN; cjdbl.real() = dblInf;
+    cflt = std::complex<float> (fltInf, cflt.imag());
+    cdbl = std::complex<double>(mdblInf, cdbl.imag());
+    cjflt = conjugate<float>   (fltNaN, cjflt.imag());
+    cjdbl = conjugate<double>  (dblInf, cjdbl.imag());
 
     // Both parts are non-finite.
     ASSERT(!isFinite(cflt) && !isFinite(cdbl));
@@ -329,8 +349,10 @@ void testIsFinite() {
     ASSERT(!isFinite(ncjflt) && !isFinite(ncjdbl));
 
     // Restore imaginary part to normal.
-    cflt.imag(fltRegular); cdbl.imag(dblRegular);
-    cjflt.imag() = fltRegular; cjdbl.imag() = dblRegular;
+    cflt = std::complex<float>(cflt.real(), fltRegular);
+    cdbl = std::complex<double>(cdbl.real(), dblRegular);
+    cjflt = conjugate<float>(cjflt.real(), fltRegular);
+    cjdbl = conjugate<double>(cjdbl.real(), dblRegular);
 
     // Real part only is non-finite;
     ASSERT(!isFinite(cflt) && !isFinite(cdbl));
@@ -358,7 +380,7 @@ void testSignBit() {
     const short sm=-1234, sz=0, sp=23423;
     const int im=-2342343, iz=0, ip=29472383;
     const long lm=-43488, lz=0, lp=3454545;
-    const long long llm=-2342342343433, llz=0, llp=874578478478574;
+    const long long llm=-2342342343433LL, llz=0, llp=874578478478574LL;
 
     ASSERT(signBit(cm) && !(signBit(cz)||signBit(cp)));
     ASSERT(signBit(sm) && !(signBit(sz)||signBit(sp)));
@@ -420,7 +442,7 @@ void testSign() {
     const short sm=-1234, sz=0, sp=23423;
     const int im=-2342343, iz=0, ip=29472383;
     const long lm=-43488, lz=0, lp=3454545;
-    const long long llm=-2342342343433, llz=0, llp=874578478478574;
+    const long long llm=-2342342343433LL, llz=0, llp=874578478478574LL;
 
     ASSERT(sign(cm)==-1 && sign(cz)==0 && sign(cp)==1);
     ASSERT(sign(sm)==-1 && sign(sz)==0 && sign(sp)==1);
