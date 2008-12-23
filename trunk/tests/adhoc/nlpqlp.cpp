@@ -1,10 +1,18 @@
 
 
 #include "SimTKmath.h"
-#include <stdlib.h>
-#include <assert.h>
-#include <stdio.h>
-#include <math.h>
+using SimTK::Real;
+using SimTK::Vector;
+using SimTK::Matrix;
+using SimTK::isNaN;
+using SimTK::isFinite;
+using SimTK::Optimizer;
+using SimTK::OptimizerSystem;
+
+#include <cstdlib>
+#include <cassert>
+#include <cstdio>
+#include <cmath>
 #include <limits>
 
 #include "nlpqlp.h"
@@ -209,8 +217,6 @@ void init_common_blocks() {
 
   return;
 }
-
-using namespace SimTK;
 
 /* Function Implementations */
 class ProblemSystem : public OptimizerSystem {
