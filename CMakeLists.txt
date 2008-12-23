@@ -307,6 +307,10 @@ ENDFOREACH(subdir)
 
 INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/src)
 
+## Watch out -- this next line will cause CMake to find installed versions of
+## simmatrix libraries before the local one. Be sure to delete installed ones first.
+LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
+
 IF (BUILD_TESTING)
     #
     # Allow automated build and dashboard.
@@ -339,9 +343,7 @@ INCLUDE(ApiDoxygen.cmake)
 
 SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path prefix." FORCE)
 
-## Watch out -- this next line will cause CMake to find installed versions of
-## simmatrix libraries before the local one. Be sure to delete installed ones first.
-LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
+
 
 # libraries are installed from their subdirectories; headers here
 
