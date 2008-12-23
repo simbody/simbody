@@ -50,13 +50,8 @@
 #include "SimTKcommon/internal/negator.h"
 
 #include <complex>
-
-// For isNaN() and isFinite().
-#ifdef _MSC_VER
-#include <cfloat>   // Visual Studio
-#else
-#include <ieeefp.h> // gcc
-#endif
+#include <cmath>
+#include <climits>
 
 namespace SimTK {
 
@@ -165,52 +160,32 @@ inline bool canStoreInNonnegativeInt(unsigned long u)  {return canStoreInInt(u);
  * isNaN(x) provides a reliable way to determine if x is one of the
  * "not a number" floating point forms. Comparing x==NaN does not
  * work because any relational operation involving NaN always
- * return false, even (NaN==NaN)! We use this latter fact to detect
- * NaN since no other floating point values have that property.
+ * return false, even (NaN==NaN)! 
  * This routine is specialized for all SimTK scalar types:
  * float, double std::complex<P>, SimTK::conjugate<P>,
  * and SimTK::negator<T>, where T is any of the above. For
  * complex and conjugate types, isNaN() returns true if either
  * the real or imaginary part or both are NaN.
  */
-inline bool isNaN(const float& x) {
-#ifdef _MSC_VER
-    return _isnan(x) != 0;
-#else
-    return isnanf(x) != 0;
-#endif
-    //volatile float xx = x; // prevent clever optimizations
-    //return x != xx;
-}
+inline bool isNaN(const float& x)  {return std::isnan(x);}
+inline bool isNaN(const double& x) {return std::isnan(x);}
 
-inline bool isNaN(const double& x) {
-#ifdef _MSC_VER
-    return _isnan(x) != 0;
-#else
-    return isnan(x) != 0;
-#endif
-    //volatile double xx = x; // prevent clever optimizations
-    //return x != xx;
-}
-
+inline bool isNaN(const negator<float>&  x) {return isNaN(-x);}
+inline bool isNaN(const negator<double>& x) {return isNaN(-x);}
 
 template <class P> inline bool
-isNaN(const std::complex<P>& x) {
-    return isNaN(x.real()) || isNaN(x.imag());
-}
+isNaN(const std::complex<P>& x)
+{   return isNaN(x.real()) || isNaN(x.imag());}
 
 template <class P> inline bool
-isNaN(const conjugate<P>& x) {
-    return isNaN(x.real()) || isNaN(x.negImag());
-}
-
-inline bool isNaN(const negator<float>&       x) {return isNaN(-x);}
-inline bool isNaN(const negator<double>&      x) {return isNaN(-x);}
+isNaN(const conjugate<P>& x)
+{   return isNaN(x.real()) || isNaN(x.negImag());}
 
 template <class P> inline bool
 isNaN(const negator< std::complex<P> >& x) {return isNaN(-x);}
 template <class P> inline bool
 isNaN(const negator< conjugate<P> >&    x) {return isNaN(-x);}
+
 
 /**
  * isFinite(x) provides a reliable way to determine if x is a "normal"
@@ -221,39 +196,105 @@ isNaN(const negator< conjugate<P> >&    x) {return isNaN(-x);}
  * complex and conjugate types, isFinite() returns true if
  * the real and imaginary parts are both finite.
  */
-inline bool isFinite(const float& x) {
-#ifdef _MSC_VER
-    return _finite(x) != 0;
-#else
-    return finitef(x) != 0;
-#endif
-}
-
-inline bool isFinite(const double& x) {
-#ifdef _MSC_VER
-    return _finite(x) != 0;
-#else
-    return finite(x) != 0;
-#endif
-}
+inline bool isFinite(const float&  x) {return std::isfinite(x);}
+inline bool isFinite(const double& x) {return std::isfinite(x);}
 
 template <class P> inline bool
-isFinite(const std::complex<P>& x) {
-    return isFinite(x.real()) && isFinite(x.imag());
-}
+isFinite(const std::complex<P>& x)
+{   return isFinite(x.real()) && isFinite(x.imag());}
 
 template <class P> inline bool
-isFinite(const conjugate<P>& x) {
-    return isFinite(x.real()) && isFinite(x.negImag());
-}
+isFinite(const conjugate<P>& x)
+{   return isFinite(x.real()) && isFinite(x.negImag());}
 
-inline bool isFinite(const negator<float>&       x) {return isFinite(-x);}
-inline bool isFinite(const negator<double>&      x) {return isFinite(-x);}
+inline bool isFinite(const negator<float>&  x) {return isFinite(-x);}
+inline bool isFinite(const negator<double>& x) {return isFinite(-x);}
 
 template <class P> inline bool
 isFinite(const negator< std::complex<P> >& x) {return isFinite(-x);}
 template <class P> inline bool
 isFinite(const negator< conjugate<P> >&    x) {return isFinite(-x);}
+
+/**
+ * isInf(x) provides a reliable way to determine if x is one of
+ * the two infinities (either negative or positive).
+ * This routine is specialized for all SimTK scalar types:
+ * float, double std::complex<P>, SimTK::conjugate<P>,
+ * and SimTK::negator<T>, where T is any of the above. For
+ * complex and conjugate types, isInf() returns true if both
+ * components are infinite, or one is infinite and the other
+ * finite. That is, isInf() will never return true if one
+ * component is NaN.
+ */
+inline bool isInf(const float&  x) {return std::isinf(x);}
+inline bool isInf(const double& x) {return std::isinf(x);}
+
+inline bool isInf(const negator<float>&  x) {return isInf(-x);}
+inline bool isInf(const negator<double>& x) {return isInf(-x);}
+
+template <class P> inline bool
+isInf(const std::complex<P>& x) {
+    return (isInf(x.real()) && !isNaN(x.imag()))
+        || (isInf(x.imag()) && !isNaN(x.real()));
+}
+
+template <class P> inline bool
+isInf(const conjugate<P>& x) {
+    return (isInf(x.real())    && !isNaN(x.negImag()))
+        || (isInf(x.negImag()) && !isNaN(x.real()));
+}
+
+template <class P> inline bool
+isInf(const negator< std::complex<P> >& x) {return isInf(-x);}
+template <class P> inline bool
+isInf(const negator< conjugate<P> >&    x) {return isInf(-x);}
+
+/**
+ * signBit(x) provides a fast way to determine the value of the sign
+ * bit (as a bool) for integral and floating types. Note that this is
+ * significantly different than sign(x); be sure you know what you're doing
+ * if you use this method. signBit() refers to the underlying representation
+ * rather than the numerical value. For example, for floating types there
+ * are two zeroes, +0 and -0 which have opposite sign bits but the same
+ * sign (0). Also, unsigned types have sign() of 0 or 1, but they are 
+ * considered here to have a sign bit of 0 always, since the stored high
+ * bit does not indicate a negative value.
+ *
+ * NOTES:
+ *  - signBit() is overloaded for 'signed char' and 'unsigned char', but not
+ *    for plain 'char' because we don't know whether to interpret the high
+ *    bit as a sign in that case (because the C++ standard leaves it unspecified).
+ *  - complex and conjugate numbers do not have sign bits.
+ *  - negator<float> and negator<double> have the *same* sign bit as the
+ *    underlying representation -- it's up to you to realize that it is
+ *    interpreted differently!
+ */
+inline bool signBit(unsigned char)      {return 0;}
+inline bool signBit(unsigned short)     {return 0;}
+inline bool signBit(unsigned int)       {return 0;}
+inline bool signBit(unsigned long)      {return 0;}
+inline bool signBit(unsigned long long) {return 0;}
+
+// Note that plain 'char' type is not overloaded -- see above.
+
+// We're assuming sizeof(char)==1, short==2, int==4, long long==8 which is safe
+// for all our anticipated platforms. But some 64 bit implementations have
+// sizeof(long)==4 while others have sizeof(long)==8 so we'll use the ANSI
+// standard value LONG_MIN which is a long value with just the high bit set.
+// (We're assuming two's complement integers here; I haven't seen anything
+// else in decades.)
+inline bool signBit(signed char i) {return ((unsigned char)i      & 0x80U) != 0;}
+inline bool signBit(short       i) {return ((unsigned short)i     & 0x8000U) != 0;}
+inline bool signBit(int         i) {return ((unsigned int)i       & 0x80000000U) != 0;}
+inline bool signBit(long long   i) {return ((unsigned long long)i & 0x8000000000000000ULL) != 0;}
+
+inline bool signBit(long        i) {return ((unsigned long)i
+                                            & (unsigned long)LONG_MIN) != 0;}
+
+inline bool signBit(const float&  f) {return std::signbit(f);}
+inline bool signBit(const double& d) {return std::signbit(d);}
+inline bool signBit(const negator<float>&  nf) {return std::signbit(-nf);} // !!
+inline bool signBit(const negator<double>& nd) {return std::signbit(-nd);} // !!
 
 /**
  * s=sign(n) returns int -1,0,1 according to n<0, n==0, n>0 for any integer
@@ -263,10 +304,11 @@ isFinite(const negator< conjugate<P> >&    x) {return isFinite(-x);}
  * not plain "char" since the language leaves unspecified whether that is
  * a signed or unsigned type. Sign is not defined for complex or conjugate.
  */
-inline unsigned int sign(unsigned char  u) {return u==0 ? 0 : 1;}
-inline unsigned int sign(unsigned short u) {return u==0 ? 0 : 1;}
-inline unsigned int sign(unsigned int   u) {return u==0 ? 0 : 1;}
-inline unsigned int sign(unsigned long  u) {return u==0 ? 0 : 1;}
+inline unsigned int sign(unsigned char      u) {return u==0 ? 0 : 1;}
+inline unsigned int sign(unsigned short     u) {return u==0 ? 0 : 1;}
+inline unsigned int sign(unsigned int       u) {return u==0 ? 0 : 1;}
+inline unsigned int sign(unsigned long      u) {return u==0 ? 0 : 1;}
+inline unsigned int sign(unsigned long long u) {return u==0 ? 0 : 1;}
 
 // Don't overload for plain "char" because it may be signed or unsigned
 // depending on the compiler.
@@ -275,6 +317,7 @@ inline int sign(signed char i) {return i>0 ? 1 : (i<0 ? -1 : 0);}
 inline int sign(short       i) {return i>0 ? 1 : (i<0 ? -1 : 0);}
 inline int sign(int         i) {return i>0 ? 1 : (i<0 ? -1 : 0);}
 inline int sign(long        i) {return i>0 ? 1 : (i<0 ? -1 : 0);}
+inline int sign(long long   i) {return i>0 ? 1 : (i<0 ? -1 : 0);}
 
 inline int sign(const float&       x) {return x>0 ? 1 : (x<0 ? -1 : 0);}
 inline int sign(const double&      x) {return x>0 ? 1 : (x<0 ? -1 : 0);}
@@ -397,9 +440,27 @@ std::complex<P> cube(const std::complex<P>& x) {
 // sign changes in both parts. 8 flops here.
 template <class P> inline
 std::complex<P> cube(const negator< std::complex<P> >& x) {
-    const P nre=(-x).real(), nim=(-x).imag(), // -x is free for negator
-            rr=nre*nre, ii=nim*nim;
+    // -x is free for a negator
+    const P nre=(-x).real(), nim=(-x).imag(), rr=nre*nre, ii=nim*nim;
     return std::complex<P>(nre*(3*ii-rr), nim*(ii-3*rr));
+}
+
+// Cubing a conjugate this way saves a lot over multiplying, and
+// also lets us convert the result to complex for free.
+template <class P> inline
+std::complex<P> cube(const conjugate<P>& x) {
+    const P re=x.real(), nim=x.negImag(), rr=re*re, ii=nim*nim;
+    return std::complex<P>(re*(rr-3*ii), nim*(ii-3*rr));
+}
+
+
+// Cubing a negated conjugate this way saves a lot over multiplying, and
+// also lets us convert the result to non-negated complex for free.
+template <class P> inline
+std::complex<P> cube(const negator< conjugate<P> >& x) {
+    // -x is free for a negator
+    const P nre=(-x).real(), im=(-x).negImag(), rr=nre*nre, ii=im*im;
+    return std::complex<P>(nre*(3*ii-rr), im*(3*rr-ii));
 }
 
 } // namespace SimTK

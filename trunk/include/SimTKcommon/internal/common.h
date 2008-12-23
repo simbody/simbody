@@ -170,8 +170,29 @@ extern "C" {
 
 #include <cstddef>
 #include <cassert>
+#include <cmath>
+#include <cfloat>
 #include <complex>
 #include <limits>
+
+
+/* Currently (Microsoft VC++ 9) these C99-compatible floating point functions are
+ * missing. We'll create them here and install them into namespace std.
+ * TODO: This should be removed when these are available.
+ */
+#ifdef _MSC_VER
+namespace std {
+inline bool isfinite(float f) {return _finite(f) != 0;}
+inline bool isfinite(double d) {return _finite(d) != 0;}
+inline bool isnan(float f) {return _isnan(f) != 0;}
+inline bool isnan(double d) {return _isnan(d) != 0;}
+inline bool isinf(float f) {return std::abs(f)==std::numeric_limits<float>::infinity();}
+inline bool isinf(double d) {return std::abs(d)==std::numeric_limits<double>::infinity();}
+inline bool signbit(float f) {return (*reinterpret_cast<unsigned*>(&f) & 0x80000000U) != 0;}
+inline bool signbit(double d) {return (*reinterpret_cast<unsigned long long*>(&d)
+                                & 0x8000000000000000ULL) != 0;}
+}
+#endif
 
 /**
  * Use this macro to define a unique "Index" type which is just a type-safe
