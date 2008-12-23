@@ -41,14 +41,17 @@ SET( BUILD_AUX OFF CACHE BOOL
 SET( BUILD_TESTING ON CACHE BOOL
 	"Control building of Simbody test programs." )
 
+SET( BUILD_EXAMPLES ON CACHE BOOL
+	"Control building of Simbody example programs.")
+
 # Turning this off reduces the build time (and space) substantially,
 # but you may miss the occasional odd bug. Also currently on Windows it
 # is easier to debug the static tests than the DLL-liked ones.
 SET( BUILD_TESTING_STATIC ON CACHE BOOL
-	"If building test programs, include statically-linked ones?" )
+	"If building test or example programs, include statically-linked ones?" )
 
 SET( BUILD_TESTING_SHARED ON CACHE BOOL
- 	"If building test programs, include dynamically-linked ones?" )
+ 	"If building test or example programs, include dynamically-linked ones?" )
 
 
 # The source is organized into subdirectories, but we handle them all from
@@ -345,7 +348,7 @@ SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path pref
 
 
 
-# libraries are installed from their subdirectories; headers here
+# libraries and examples are installed from their subdirectories; headers here
 
 # install headers
 FILE(GLOB CORE_HEADERS     include/*.h                  */include/*.h)
@@ -368,6 +371,10 @@ ADD_SUBDIRECTORY( sharedTarget )
 IF( BUILD_AUX )
   ADD_SUBDIRECTORY( auxiliary )
 ENDIF( BUILD_AUX )
+
+IF( BUILD_EXAMPLES )
+  ADD_SUBDIRECTORY( examples )
+ENDIF( BUILD_EXAMPLES )
 
 IF( BUILD_TESTING )
   ADD_SUBDIRECTORY( tests )
