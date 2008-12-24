@@ -37,64 +37,71 @@ using std::endl;
 
 using namespace SimTK;
 
-#define ASSERT(cond) {SimTK_ASSERT_ALWAYS((cond), "Assertion failed");}
+#define ASSERT(cond) {SimTK_ASSERT_ALWAYS((cond), "Assertion failed.");}
+#define ASSERT_EQ(v1,v2)    \
+    {SimTK_ASSERT_ALWAYS(numericallyEqual((v1),(v2)),   \
+     "Values should have been numerically equivalent.");}
 
-// These are only valid for numbers near 1.
-void assertEqual(float v1, float v2) {
+// Scale by the magnitude of the quantities being compared, so that we don't
+// ask for unreasonable precision. For magnitudes near zero, we'll be satisfied
+// if both are very small without demanding that they must also be relatively
+// close. That is, we use a relative tolerance for big numbers and an absolute
+// tolerance for small ones.
+bool numericallyEqual(float v1, float v2) {
     const float scale = std::max(std::max(std::abs(v1), std::abs(v2)), 0.1f);
-    ASSERT(std::abs(v1-v2) < scale*NTraits<float>::getSignificant());
+    return std::abs(v1-v2) < scale*NTraits<float>::getSignificant();
 }
-void assertEqual(double v1, double v2) {
+bool numericallyEqual(double v1, double v2) {
     const double scale = std::max(std::max(std::abs(v1), std::abs(v2)), 0.1);
-    ASSERT(std::abs(v1-v2) < scale*NTraits<double>::getSignificant());
+    return std::abs(v1-v2) < scale*NTraits<double>::getSignificant();
 }
 template <class P>
-void assertEqual(const std::complex<P>& v1, const std::complex<P>& v2) {
-    assertEqual(v1.real(), v2.real());
-    assertEqual(v1.imag(), v2.imag());
+bool numericallyEqual(const std::complex<P>& v1, const std::complex<P>& v2) {
+    return numericallyEqual(v1.real(), v2.real())
+            && numericallyEqual(v1.imag(), v2.imag());
 }
 template <class P>
-void assertEqual(const conjugate<P>& v1, const conjugate<P>& v2) {
-    assertEqual(v1.real(), v2.real());
-    assertEqual(v1.imag(), v2.imag());
+bool numericallyEqual(const conjugate<P>& v1, const conjugate<P>& v2) {
+    return numericallyEqual(v1.real(), v2.real())
+            && numericallyEqual(v1.imag(), v2.imag());
 }
 template <class P>
-void assertEqual(const std::complex<P>& v1, const conjugate<P>& v2) {
-    assertEqual(v1.real(), v2.real());
-    assertEqual(v1.imag(), v2.imag());
+bool numericallyEqual(const std::complex<P>& v1, const conjugate<P>& v2) {
+    return numericallyEqual(v1.real(), v2.real())
+            && numericallyEqual(v1.imag(), v2.imag());
 }
 template <class P>
-void assertEqual(const conjugate<P>& v1, const std::complex<P>& v2) {
-    assertEqual(v1.real(), v2.real());
-    assertEqual(v1.imag(), v2.imag());
+bool numericallyEqual(const conjugate<P>& v1, const std::complex<P>& v2) {
+    return numericallyEqual(v1.real(), v2.real())
+            && numericallyEqual(v1.imag(), v2.imag());
 }
 template <class P>
-void assertEqual(const negator<P>& v1, const negator<P>& v2) {
-    assertEqual(-v1, -v2);  // P, P
+bool numericallyEqual(const negator<P>& v1, const negator<P>& v2) {
+    return numericallyEqual(-v1, -v2);  // P, P
 }
 template <class P>
-void assertEqual(const P& v1, const negator<P>& v2) {
-    assertEqual(-v1, -v2);  // P, P
+bool numericallyEqual(const P& v1, const negator<P>& v2) {
+    return numericallyEqual(-v1, -v2);  // P, P
 }
 template <class P>
-void assertEqual(const negator<P>& v1, const P& v2) {
-    assertEqual(-v1, -v2);  // P, P
+bool numericallyEqual(const negator<P>& v1, const P& v2) {
+    return numericallyEqual(-v1, -v2);  // P, P
 }
 template <class P>
-void assertEqual(const negator<std::complex<P> >& v1, const conjugate<P>& v2) {
-    assertEqual(-v1, -v2);  // complex, conjugate
+bool numericallyEqual(const negator<std::complex<P> >& v1, const conjugate<P>& v2) {
+    return numericallyEqual(-v1, -v2);  // complex, conjugate
 }
 template <class P>
-void assertEqual(const negator<conjugate<P> >& v1, const std::complex<P>& v2) {
-    assertEqual(-v1, -v2);  // conjugate, complex
+bool numericallyEqual(const negator<conjugate<P> >& v1, const std::complex<P>& v2) {
+    return numericallyEqual(-v1, -v2);  // conjugate, complex
 }
 template <class P>
-void assertEqual(const std::complex<P>& v1, const negator<conjugate<P> >& v2) {
-    assertEqual(-v1, -v2); // complex, conjugate
+bool numericallyEqual(const std::complex<P>& v1, const negator<conjugate<P> >& v2) {
+    return numericallyEqual(-v1, -v2); // complex, conjugate
 }
 template <class P>
-void assertEqual(const conjugate<P>& v1, const negator<std::complex<P> >& v2) {
-    assertEqual(-v1, -v2); // conjugate, complex
+bool numericallyEqual(const conjugate<P>& v1, const negator<std::complex<P> >& v2) {
+    return numericallyEqual(-v1, -v2); // conjugate, complex
 }
 
 void testIsNaN() {
@@ -126,12 +133,12 @@ void testIsNaN() {
     negator<conjugate<double> >&     ncjdbl = reinterpret_cast<negator<conjugate<double> >&>   (cjdbl);
 
     // Test that negators are working properly.
-    assertEqual(nflt, -fltRegular);
-    assertEqual(ndbl, -dblRegular);
-    assertEqual(ncflt, -cflt);
-    assertEqual(-ncflt, cflt);
-    assertEqual(ncjflt, -cjflt);
-    assertEqual(-ncjflt, cjflt);
+    ASSERT_EQ(nflt, -fltRegular);
+    ASSERT_EQ(ndbl, -dblRegular);
+    ASSERT_EQ(ncflt, -cflt);
+    ASSERT_EQ(-ncflt, cflt);
+    ASSERT_EQ(ncjflt, -cjflt);
+    ASSERT_EQ(-ncjflt, cjflt);
 
     ASSERT(!isNaN(nflt) && !isNaN(ndbl));
     ASSERT(!isNaN(ncflt) && !isNaN(ncdbl));
@@ -208,12 +215,12 @@ void testIsInf() {
     negator<conjugate<double> >&     ncjdbl = reinterpret_cast<negator<conjugate<double> >&>   (cjdbl);
 
     // Test that negators are working properly.
-    assertEqual(nflt, -fltRegular);
-    assertEqual(ndbl, -dblRegular);
-    assertEqual(ncflt, -cflt);
-    assertEqual(-ncflt, cflt);
-    assertEqual(ncjflt, -cjflt);
-    assertEqual(-ncjflt, cjflt);
+    ASSERT_EQ(nflt, -fltRegular);
+    ASSERT_EQ(ndbl, -dblRegular);
+    ASSERT_EQ(ncflt, -cflt);
+    ASSERT_EQ(-ncflt, cflt);
+    ASSERT_EQ(ncjflt, -cjflt);
+    ASSERT_EQ(-ncjflt, cjflt);
 
     ASSERT(!isInf(nflt) && !isInf(ndbl));
     ASSERT(!isInf(ncflt) && !isInf(ncdbl));
@@ -314,12 +321,12 @@ void testIsFinite() {
     negator<conjugate<double> >&     ncjdbl = reinterpret_cast<negator<conjugate<double> >&>   (cjdbl);
 
     // Test that negators are working properly.
-    assertEqual(nflt, -fltRegular);
-    assertEqual(ndbl, -dblRegular);
-    assertEqual(ncflt, -cflt);
-    assertEqual(-ncflt, cflt);
-    assertEqual(ncjflt, -cjflt);
-    assertEqual(-ncjflt, cjflt);
+    ASSERT_EQ(nflt, -fltRegular);
+    ASSERT_EQ(ndbl, -dblRegular);
+    ASSERT_EQ(ncflt, -cflt);
+    ASSERT_EQ(-ncflt, cflt);
+    ASSERT_EQ(ncjflt, -cjflt);
+    ASSERT_EQ(-ncjflt, cjflt);
 
     ASSERT(isFinite(nflt) && isFinite(ndbl));
     ASSERT(isFinite(ncflt) && isFinite(ncdbl));
@@ -492,20 +499,20 @@ void testSquareAndCube() {
     const negator<double>& ndval = reinterpret_cast<const negator<double>&>(dval);
 
     // Basic test.
-    assertEqual(square(fval), fval*fval);
-    assertEqual(square(dval), dval*dval);
-    assertEqual(cube(fval), fval*fval*fval);
-    assertEqual(cube(dval), dval*dval*dval);
+    ASSERT_EQ(square(fval), fval*fval);
+    ASSERT_EQ(square(dval), dval*dval);
+    ASSERT_EQ(cube(fval), fval*fval*fval);
+    ASSERT_EQ(cube(dval), dval*dval*dval);
 
     // Test scalar negators.
-    assertEqual(square(nfval), nfval*nfval);
-    assertEqual(square(nfval), fval*fval);
-    assertEqual(square(ndval), ndval*ndval);
-    assertEqual(square(ndval), dval*dval);
-    assertEqual(cube(nfval), nfval*nfval*nfval);
-    assertEqual(cube(nfval), -fval*fval*fval);
-    assertEqual(cube(ndval), ndval*ndval*ndval);
-    assertEqual(cube(ndval), -dval*dval*dval);
+    ASSERT_EQ(square(nfval), nfval*nfval);
+    ASSERT_EQ(square(nfval), fval*fval);
+    ASSERT_EQ(square(ndval), ndval*ndval);
+    ASSERT_EQ(square(ndval), dval*dval);
+    ASSERT_EQ(cube(nfval), nfval*nfval*nfval);
+    ASSERT_EQ(cube(nfval), -fval*fval*fval);
+    ASSERT_EQ(cube(ndval), ndval*ndval*ndval);
+    ASSERT_EQ(cube(ndval), -dval*dval*dval);
 
     // Create complex and conjugate values.
 
@@ -517,12 +524,12 @@ void testSquareAndCube() {
     // Manual conjugates
     std::complex<float>  fcmj(fcj.real(), fcj.imag());
     std::complex<double> dcmj(dcj.real(), dcj.imag());
-    ASSERT(fcj == fcmj);
+    ASSERT(fcj == fcmj);    // sign change only; should be exact
     ASSERT(dcj == dcmj);
-    ASSERT(fcj*fcj == fcmj*fcmj);
-    ASSERT(dcj*dcj == dcmj*dcmj);
-    ASSERT(fcj*fcj*fcj == fcmj*fcmj*fcmj);
-    ASSERT(dcj*dcj*dcj == dcmj*dcmj*dcmj);
+    ASSERT_EQ(fcj*fcj, fcmj*fcmj);
+    ASSERT_EQ(dcj*dcj, dcmj*dcmj);
+    ASSERT_EQ(fcj*fcj*fcj, fcmj*fcmj*fcmj);
+    ASSERT_EQ(dcj*dcj*dcj, dcmj*dcmj*dcmj);
 
     // Negators of complex an conjugate.
     negator<std::complex<float> >&   nfc  = reinterpret_cast<negator<std::complex<float> >&> (fc);
@@ -530,6 +537,7 @@ void testSquareAndCube() {
     negator<conjugate<float> >&      nfcj = reinterpret_cast<negator<conjugate<float> >&>    (fcj);
     negator<conjugate<double> >&     ndcj = reinterpret_cast<negator<conjugate<double> >&>   (dcj);
 
+    // Change of sign should be exact.
     ASSERT(nfc == -fc);
     ASSERT(ndc == -dc);
     ASSERT(nfcj == -fcj);
@@ -537,35 +545,35 @@ void testSquareAndCube() {
 
 
     // Basic complex and conjugate tests.
-    assertEqual(square(fc), fc*fc);
-    assertEqual(cube(fc), fc*fc*fc);
-    assertEqual(square(dc), dc*dc);
-    assertEqual(cube(dc), dc*dc*dc);
-    assertEqual(square(fcj), fcj*fcj);
-    assertEqual(cube(fcj), fcj*fcj*fcj);
-    assertEqual(square(dcj), dcj*dcj);
-    assertEqual(cube(dcj), dcj*dcj*dcj);
+    ASSERT_EQ(square(fc), fc*fc);
+    ASSERT_EQ(cube(fc), fc*fc*fc);
+    ASSERT_EQ(square(dc), dc*dc);
+    ASSERT_EQ(cube(dc), dc*dc*dc);
+    ASSERT_EQ(square(fcj), fcj*fcj);
+    ASSERT_EQ(cube(fcj), fcj*fcj*fcj);
+    ASSERT_EQ(square(dcj), dcj*dcj);
+    ASSERT_EQ(cube(dcj), dcj*dcj*dcj);
 
     // Tests involving negators of complex and conjugate.
-    assertEqual(square(nfc), nfc*nfc); 
-    assertEqual(square(nfc), fc*fc);
-    assertEqual(square(ndc), ndc*ndc);
-    assertEqual(square(ndc), dc*dc);
+    ASSERT_EQ(square(nfc), nfc*nfc); 
+    ASSERT_EQ(square(nfc), fc*fc);
+    ASSERT_EQ(square(ndc), ndc*ndc);
+    ASSERT_EQ(square(ndc), dc*dc);
 
-    assertEqual(cube(nfc), nfc*nfc*nfc); 
-    assertEqual(cube(nfc), -fc*fc*fc);
-    assertEqual(cube(ndc), ndc*ndc*ndc);
-    assertEqual(cube(ndc), -dc*dc*dc);
+    ASSERT_EQ(cube(nfc), nfc*nfc*nfc); 
+    ASSERT_EQ(cube(nfc), -fc*fc*fc);
+    ASSERT_EQ(cube(ndc), ndc*ndc*ndc);
+    ASSERT_EQ(cube(ndc), -dc*dc*dc);
 
-    assertEqual(square(nfcj), nfcj*nfcj); 
-    assertEqual(square(nfcj), fcj*fcj);
-    assertEqual(square(ndcj), ndcj*ndcj);
-    assertEqual(square(ndcj), dcj*dcj);
+    ASSERT_EQ(square(nfcj), nfcj*nfcj); 
+    ASSERT_EQ(square(nfcj), fcj*fcj);
+    ASSERT_EQ(square(ndcj), ndcj*ndcj);
+    ASSERT_EQ(square(ndcj), dcj*dcj);
 
-    assertEqual(cube(nfcj), nfcj*nfcj*nfcj); 
-    assertEqual(cube(nfcj), -fcj*fcj*fcj);
-    assertEqual(cube(ndcj), ndcj*ndcj*ndcj);
-    assertEqual(cube(ndcj), -dcj*dcj*dcj);
+    ASSERT_EQ(cube(nfcj), nfcj*nfcj*nfcj); 
+    ASSERT_EQ(cube(nfcj), -fcj*fcj*fcj);
+    ASSERT_EQ(cube(ndcj), ndcj*ndcj*ndcj);
+    ASSERT_EQ(cube(ndcj), -dcj*dcj*dcj);
 }
 
 int main() {
