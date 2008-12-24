@@ -313,7 +313,7 @@ ENDFOREACH(subdir)
 INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/src)
 
 ## Special cases for IpOpt since it doesn't have a src subdirectory.
-FILE(GLOB src_files  IpOpt/*.cpp IpOpt/*.c)
+FILE(GLOB src_files  IpOpt/*.cpp)
 FILE(GLOB incl_files IpOpt/*.h)
 SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
 SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
