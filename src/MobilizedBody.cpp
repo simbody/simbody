@@ -236,21 +236,21 @@ Real& MobilizedBody::updOneFromUPartition(const State& s, int which, Vector& uli
 void MobilizedBody::applyBodyForce(const State& s, const SpatialVec& spatialForceInG, 
                                    Vector_<SpatialVec>& bodyForces) const 
 {
-    assert(bodyForces.size() == getMatterSubsystem().getNBodies());
+    assert(bodyForces.size() == getMatterSubsystem().getNumBodies());
     bodyForces[getMobilizedBodyIndex()] += spatialForceInG;
 }
 
 void MobilizedBody::applyBodyTorque(const State& s, const Vec3& torqueInG, 
                      Vector_<SpatialVec>& bodyForces) const 
 {
-    assert(bodyForces.size() == getMatterSubsystem().getNBodies());
+    assert(bodyForces.size() == getMatterSubsystem().getNumBodies());
     bodyForces[getMobilizedBodyIndex()][0] += torqueInG; // don't change force
 }
 
 void MobilizedBody::applyForceToBodyPoint(const State& s, const Vec3& pointInB, const Vec3& forceInG,
                            Vector_<SpatialVec>& bodyForces) const 
 {
-    assert(bodyForces.size() == getMatterSubsystem().getNBodies());
+    assert(bodyForces.size() == getMatterSubsystem().getNumBodies());
     const Rotation& R_GB = getBodyTransform(s).R();
     bodyForces[getMobilizedBodyIndex()] += SpatialVec((R_GB*pointInB) % forceInG, forceInG);
 }
@@ -1782,29 +1782,29 @@ const SpatialVec& MobilizedBody::Custom::Implementation::getMobilizerVelocity(co
     return getImpl().getCustomImpl().getMobilizerVelocity(s);
 }
 
-void MobilizedBody::Custom::Implementation::multiplyByQMatrix(const State& s, bool transposeMatrix, 
+void MobilizedBody::Custom::Implementation::multiplyByN(const State& s, bool transposeMatrix, 
                        int nIn, const Real* in, int nOut, Real* out) const {
     // Default implementation
     assert((nIn==0 || in) && (nOut==0 || out));
-    int nu = getImpl().getNU(), nq = getImpl().getNQ(), nAngles = getImpl().getNAngles();
+    int nu = getImpl().getNU(), nq = getImpl().getNQ(), nAngles = getImpl().getNumAngles();
     assert(nq==nu && nIn==nu && nOut==nu && nAngles < 4);
     for (int i=0; i<nu; ++i) out[i] = in[i];
 }
 
-void MobilizedBody::Custom::Implementation::multiplyByQInverse(const State& s, bool transposeMatrix, 
+void MobilizedBody::Custom::Implementation::multiplyByNInv(const State& s, bool transposeMatrix, 
                                        int nIn, const Real* in, int nOut, Real* out) const {
     // Default implementation
     assert((nIn==0 || in) && (nOut==0 || out));
-    int nu = getImpl().getNU(), nq = getImpl().getNQ(), nAngles = getImpl().getNAngles();
+    int nu = getImpl().getNU(), nq = getImpl().getNQ(), nAngles = getImpl().getNumAngles();
     assert(nq==nu && nIn==nu && nOut==nu && nAngles < 4);
     for (int i=0; i<nu; ++i) out[i] = in[i];
 }
 
-void MobilizedBody::Custom::Implementation::multiplyByQDotMatrix(const State& s, bool transposeMatrix, 
+void MobilizedBody::Custom::Implementation::multiplyByNDot(const State& s, bool transposeMatrix, 
                                          int nIn, const Real* in, int nOut, Real* out) const {
     // Default implementation
     assert((nIn==0 || in) && (nOut==0 || out));
-    int nu = getImpl().getNU(), nq = getImpl().getNQ(), nAngles = getImpl().getNAngles();
+    int nu = getImpl().getNU(), nq = getImpl().getNQ(), nAngles = getImpl().getNumAngles();
     assert(nq==nu && nIn==nu && nOut==nu && nAngles < 4);
     for (int i=0; i<nu; ++i) out[i] = 0;
 }

@@ -855,7 +855,7 @@ public:
         return nq;
     }
     
-    int getNAngles() const {
+    int getNumAngles() const {
         return nAngles;
     }
 
@@ -919,7 +919,7 @@ public:
             "MobilizedBody::Custom::CustomImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         for (int i = 0; i < nq; ++i)
             q[i] = 0.0;
-        if (implementation->getImpl().getNAngles() == 4)
+        if (implementation->getImpl().getNumAngles() == 4)
             q[0] = 1.0;
     }
 

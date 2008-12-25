@@ -111,7 +111,7 @@ void testForces() {
     
     // Do it with a horizontal velocity and see if the friction force is correct.
 
-    Vector_<SpatialVec> expectedForce(matter.getNBodies());
+    Vector_<SpatialVec> expectedForce(matter.getNumBodies());
     for (Real depth = -0.105; depth < 0.1; depth += 0.01) {
         mesh.setQToFitTranslation(state, Vec3(0, -depth, 0));
         Real fh = 0;

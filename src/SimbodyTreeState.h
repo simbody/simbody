@@ -205,7 +205,7 @@ public:
     };
 
     // Use these accessors so that you get type checking on the index types.
-    int getNMobilizedBodies() const {return (int)mobilizedBodyModelInfo.size();}
+    int getNumMobilizedBodies() const {return (int)mobilizedBodyModelInfo.size();}
     PerMobilizedBodyModelInfo& updMobilizedBodyModelInfo(MobilizedBodyIndex mbx) {
         return mobilizedBodyModelInfo[mbx];
     }
@@ -238,8 +238,8 @@ private:
 
 inline std::ostream& operator<<(std::ostream& o, const SBModelCache& c) { 
     o << "SBModelCache:\n";
-    o << "  " << c.getNMobilizedBodies() << " Mobilized Bodies:\n";
-    for (MobilizedBodyIndex mbx(0); mbx < c.getNMobilizedBodies(); ++mbx) {
+    o << "  " << c.getNumMobilizedBodies() << " Mobilized Bodies:\n";
+    for (MobilizedBodyIndex mbx(0); mbx < c.getNumMobilizedBodies(); ++mbx) {
         const SBModelCache::PerMobilizedBodyModelInfo& mInfo = c.getMobilizedBodyModelInfo(mbx);
         o << "  " << mbx << ": nq,nu="   << mInfo.nQInUse << "," << mInfo.nUInUse
                          <<  " qix,uix=" << mInfo.firstQIndex << "," << mInfo.firstUIndex << endl;
@@ -292,7 +292,7 @@ public:
             constrainedU.clear();
         }
 
-        int getNConstrainedMobilizers() const {return (int)constrainedMobilizerInstanceInfo.size();}
+        int getNumConstrainedMobilizers() const {return (int)constrainedMobilizerInstanceInfo.size();}
         const PerConstrainedMobilizerInstanceInfo& getConstrainedMobilizerInstanceInfo(ConstrainedMobilizerIndex M) const {
             return constrainedMobilizerInstanceInfo[M];
         }
@@ -300,8 +300,8 @@ public:
             return constrainedMobilizerInstanceInfo[M];
         }
         
-        int getNConstrainedQ() const {return (int)constrainedQ.size();}
-        int getNConstrainedU() const {return (int)constrainedU.size();}
+        int getNumConstrainedQ() const {return (int)constrainedQ.size();}
+        int getNumConstrainedU() const {return (int)constrainedU.size();}
         ConstrainedQIndex addConstrainedQ(QIndex qx) {
             constrainedQ.push_back(qx);
             return ConstrainedQIndex(constrainedQ.size()-1);
@@ -313,8 +313,8 @@ public:
         QIndex getQIndexFromConstrainedQ(ConstrainedQIndex i) const {return constrainedQ[i];}
         UIndex getUIndexFromConstrainedU(ConstrainedUIndex i) const {return constrainedU[i];}
 
-        int getNParticipatingQ() const {return (int)participatingQ.size();}
-        int getNParticipatingU() const {return (int)participatingU.size();}
+        int getNumParticipatingQ() const {return (int)participatingQ.size();}
+        int getNumParticipatingU() const {return (int)participatingU.size();}
         ParticipatingQIndex addParticipatingQ(QIndex qx) {
             participatingQ.push_back(qx);
             return ParticipatingQIndex(participatingQ.size()-1);
@@ -397,7 +397,7 @@ public:
         constraintInstanceInfo.resize(topology.nConstraints);
         firstQuaternionQErrSlot = qErrIndex = uErrIndex = udotErrIndex = -1;
     }
-    int getNConstraints() const {return (int)constraintInstanceInfo.size();}
+    int getNumConstraints() const {return (int)constraintInstanceInfo.size();}
     PerConstraintInstanceInfo& updConstraintInstanceInfo(ConstraintIndex cx) {
         return constraintInstanceInfo[cx];
     }

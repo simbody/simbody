@@ -272,7 +272,6 @@ public:
     // Constraints are treated similarly to MobilizedBodies here.
 
     ConstraintIndex adoptConstraint(Constraint& child);
-    int getNumConstraints() const {return (int)constraints.size();}
 
     const Constraint& getConstraint(ConstraintIndex id) const {
         assert(id < (int)constraints.size());
@@ -296,11 +295,11 @@ public:
 
     // These counts can be obtained even during construction, where they
     // just return the current counts.
-    // NBodies includes ground.
-    int getNBodies()      const {return mobilizedBodies.size();}
-    int getNParticles()   const {return 0;} // TODO
-    int getNMobilities()  const {return getTotalDOF();}
-    int getNConstraints() const {return constraints.size();}
+    // NumBodies includes ground.
+    int getNumBodies()      const {return mobilizedBodies.size();}
+    int getNumParticles()   const {return 0;} // TODO
+    int getNumMobilities()  const {return getTotalDOF();}
+    int getNumConstraints() const {return constraints.size();}
     MobilizedBodyIndex getParent(MobilizedBodyIndex) const;
     std::vector<MobilizedBodyIndex> getChildren(MobilizedBodyIndex) const;
 
@@ -464,26 +463,26 @@ public:
         Vector&              udot) const; 
 
 
-    // Must be in Stage::Position to calculate out_q = Q(q)*in_u (e.g., qdot=Q*u)
-    // or out_u = in_q * Q(q). Note that one of "in" and "out" is always "q-like" while
+    // Must be in Stage::Position to calculate out_q = N(q)*in_u (e.g., qdot=N*u)
+    // or out_u = in_q * N(q). Note that one of "in" and "out" is always "q-like" while
     // the other is "u-like", but which is which changes if the matrix is on the right.
-    // This is an O(N) operator since Q is block diagonal.
-    void multiplyByQMatrix(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const;
+    // This is an O(n) operator since N is block diagonal.
+    void multiplyByN(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const;
 
-    // Must be in Stage::Position to calculate out_u = QInv(q)*in_q (e.g., u=QInv*qdot)
-    // or out_q = in_u * QInv(q). Note that one of "in" and "out" is always "q-like" while
+    // Must be in Stage::Position to calculate out_u = NInv(q)*in_q (e.g., u=NInv*qdot)
+    // or out_q = in_u * NInv(q). Note that one of "in" and "out" is always "q-like" while
     // the other is "u-like", but which is which changes if the matrix is on the right.
-    // This is an O(N) operator since QInv is block diagonal.
-    void multiplyByQMatrixInverse(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const;
+    // This is an O(n) operator since NInv is block diagonal.
+    void multiplyByNInv(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const;
 
     void calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const;
 
-    // Must be in Stage::Position to calculate qdot = Q*u.
+    // Must be in Stage::Position to calculate qdot = N*u.
     void calcQDot(const State& s,
         const Vector& u,
         Vector&       qdot) const;
 
-    // Must be in Stage::Velocity to calculate qdotdot = Qdot*u + Q*udot.
+    // Must be in Stage::Velocity to calculate qdotdot = Ndot*u + N*udot.
     void calcQDotDot(const State& s,
         const Vector& udot,
         Vector&       qdotdot) const;
@@ -493,13 +492,13 @@ public:
     // These operators deal with an isolated mobilizer and are thus independent of 
     // any other generalized coordinates or speeds.
 
-    // State must be realized to Stage::Position, so that we can extract Q(q) from it to calculate
-    // qdot=Q(q)*u for this mobilizer.
+    // State must be realized to Stage::Position, so that we can extract N(q) from it to calculate
+    // qdot=N(q)*u for this mobilizer.
     void calcMobilizerQDotFromU(const State&, MobilizedBodyIndex, int nu, const Real* u, 
                                 int nq, Real* qdot) const;
 
-    // State must be realized to Stage::Velocity, so that we can extract Q(q), QDot(q,u), and u from it to calculate
-    // qdotdot=Q(q)*udot + QDot(q,u)*u for this mobilizer.
+    // State must be realized to Stage::Velocity, so that we can extract N(q), NDot(q,u), and u from it to calculate
+    // qdotdot=N(q)*udot + NDot(q,u)*u for this mobilizer.
     void calcMobilizerQDotDotFromUDot(const State&, MobilizedBodyIndex, int nu, const Real* udot, 
                                       int nq, Real* qdotdot) const;
 
@@ -548,13 +547,13 @@ public:
     int getTotalSqDOF()  const {assert(subsystemTopologyHasBeenRealized()); return SqDOFTotal;}
     int getTotalQAlloc() const {assert(subsystemTopologyHasBeenRealized()); return maxNQTotal;}
 
-    int getNTopologicalPositionConstraintEquations()     const {
+    int getNumTopologicalPositionConstraintEquations()     const {
         assert(subsystemTopologyHasBeenRealized()); return nextQErrSlot;
     }
-    int getNTopologicalVelocityConstraintEquations()     const {
+    int getNumTopologicalVelocityConstraintEquations()     const {
         assert(subsystemTopologyHasBeenRealized()); return nextUErrSlot;
     }
-    int getNTopologicalAccelerationConstraintEquations() const {
+    int getNumTopologicalAccelerationConstraintEquations() const {
         assert(subsystemTopologyHasBeenRealized()); return nextMultSlot;
     }
 
@@ -576,7 +575,7 @@ public:
 
         // CALLABLE AFTER realizeModel()
 
-    int  getNQuaternionsInUse(const State&) const;						 // mquat
+    int  getNumQuaternionsInUse(const State&) const;				 // mquat
     bool isUsingQuaternion(const State&, MobilizedBodyIndex) const;
     QuaternionPoolIndex getQuaternionPoolIndex(const State&, MobilizedBodyIndex) const; // Invalid if none
     AnglePoolIndex      getAnglePoolIndex     (const State&, MobilizedBodyIndex) const; // Invalid if none
@@ -584,13 +583,13 @@ public:
 	// Note that although holonomic constraints are position-level constraints, they
 	// do *not* include quaternion constraints (although the state's QErr vector does
 	// include both). The total number of position-level constraints is thus
-	// getNHolonomicConstraintEquationsInUse()+getNQuaternionsInUse()==mp+mquat.
+	// getNumHolonomicConstraintEquationsInUse()+getNumQuaternionsInUse()==mp+mquat.
 
-	int getNHolonomicConstraintEquationsInUse       (const State&) const; // mh
-	int getNNonholonomicConstraintEquationsInUse    (const State&) const; // mn
-	int getNAccelerationOnlyConstraintEquationsInUse(const State&) const; // ma
+	int getNumHolonomicConstraintEquationsInUse       (const State&) const; // mh
+	int getNumNonholonomicConstraintEquationsInUse    (const State&) const; // mn
+	int getNumAccelerationOnlyConstraintEquationsInUse(const State&) const; // ma
 
-	void calcHolonomicConstraintMatrixPQInverse(const State&, Matrix&) const; // mh X nq
+	void calcHolonomicConstraintMatrixPNInv    (const State&, Matrix&) const; // mh X nq
 	void calcHolonomicVelocityConstraintMatrixP(const State&, Matrix&) const; // mh X nu
 	void calcHolonomicVelocityConstraintMatrixPt(const State&, Matrix&) const; // nu X mh
 	void calcNonholonomicConstraintMatrixV     (const State&, Matrix&) const; // mn X nu

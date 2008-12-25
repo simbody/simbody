@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
         cout << "CONSTRAINT -- " << twoPends.getConstraint(cid).getSubtree();
     }
 
-    for (MobilizedBodyIndex i(0); i < twoPends.getNBodies(); ++i) {
+    for (MobilizedBodyIndex i(0); i < twoPends.getNumBodies(); ++i) {
         const MobilizedBody& mb = twoPends.getMobilizedBody(i);
         cout << "Body " << i 
              << " base=" << mb.getBaseMobilizedBody().getMobilizedBodyIndex() 
@@ -218,7 +218,7 @@ int main(int argc, char** argv) {
 		cout << "CONSTRAINT perr=" << c.getPositionErrorsAsVector(s)
 			 << endl;
 		cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
-		cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
+		cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPNInv(s);
 	}
 
     cout << "Default configuration shown. Ready? "; cin >> c;
@@ -327,12 +327,12 @@ int main(int argc, char** argv) {
        // cout << "===> qdot =" << qdot << endl;
 
         Vector qdot2;
-        twoPends.multiplyByQMatrix(s, false, s.getU(), qdot2);
+        twoPends.multiplyByN(s, false, s.getU(), qdot2);
        // cout << "===> qdot2=" << qdot2 << endl;
 
         Vector u1,u2;
-        twoPends.multiplyByQMatrixInverse(s, false, qdot, u1);
-        twoPends.multiplyByQMatrixInverse(s, false, qdot2, u2);
+        twoPends.multiplyByNInv(s, false, qdot, u1);
+        twoPends.multiplyByNInv(s, false, qdot2, u2);
       //  cout << "===> u =" << s.getU() << endl;
       //  cout << "===> u1=" << u1 << endl;
       //  cout << "===> u2=" << u2 << endl;

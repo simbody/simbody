@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
     cout << "qErr=" << s.getQErr() << endl;
     cout << "uErr=" << s.getUErr() << endl;
 #ifdef HASC
-    for (ConstraintIndex cid(0); cid < matter.getNConstraints(); ++cid) {
+    for (ConstraintIndex cid(0); cid < matter.getNumConstraints(); ++cid) {
         const Constraint& c = matter.getConstraint(cid);
         int mp,mv,ma;
         c.getNumConstraintEquationsInUse(s, mp,mv,ma);
@@ -225,14 +225,14 @@ int main(int argc, char** argv) {
             cout << "perr=" << c.getPositionErrorsAsVector(s) << endl;
 	        cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
             cout << "  ~d(Pt lambda)/dlambda=" << ~c.calcPositionConstraintMatrixPt(s);
-	        cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
+	        cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPNInv(s);
 
             Matrix P = c.calcPositionConstraintMatrixP(s);
             Matrix PQ(mp,matter.getNQ(s));
             Vector out(matter.getNQ(s));
             for (int i=0; i<mp; ++i) {
                 Vector in = ~P[i];
-                matter.multiplyByQMatrixInverse(s, true, in, out);
+                matter.multiplyByNInv(s, true, in, out);
                 PQ[i] = ~out;
             }
             cout << " calculated d(perr)/dq=" << PQ;
@@ -249,15 +249,15 @@ int main(int argc, char** argv) {
     const Constraint& c = matter.getConstraint(myc.getConstraintIndex());
     
 #endif
-    Matrix Q(matter.getNQ(s), matter.getNU(s));
-    Matrix Qinv(matter.getNU(s),matter.getNQ(s));
+    Matrix N(matter.getNQ(s), matter.getNU(s));
+    Matrix Ninv(matter.getNU(s),matter.getNQ(s));
     Vector u(matter.getNU(s)); u=0;
     for (int i=0; i < matter.getNU(s); ++i) {
         u[i]=1;
-        matter.multiplyByQMatrix(s,false,u,Q(i));
+        matter.multiplyByN(s,false,u,N(i));
         u[i]=0;
     }
-    cout << " BigQ=" << Q;
+    cout << " N=" << N;
 
     char ans;
     cout << "Default configuration shown. Ready? "; cin >> ans;
@@ -373,12 +373,12 @@ int main(int argc, char** argv) {
        // cout << "===> qdot =" << qdot << endl;
 
         Vector qdot2;
-        matter.multiplyByQMatrix(s, false, s.getU(), qdot2);
+        matter.multiplyByN(s, false, s.getU(), qdot2);
        // cout << "===> qdot2=" << qdot2 << endl;
 
         Vector u1,u2;
-        matter.multiplyByQMatrixInverse(s, false, qdot, u1);
-        matter.multiplyByQMatrixInverse(s, false, qdot2, u2);
+        matter.multiplyByNInv(s, false, qdot, u1);
+        matter.multiplyByNInv(s, false, qdot2, u2);
       //  cout << "===> u =" << s.getU() << endl;
       //  cout << "===> u1=" << u1 << endl;
       //  cout << "===> u2=" << u2 << endl;

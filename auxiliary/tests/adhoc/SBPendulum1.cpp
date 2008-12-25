@@ -286,9 +286,9 @@ try {
 
     cout << "after assembly body frame: " << aPendulum.getBodyTransform(s); 
 
-    Vector_<SpatialVec> dEdR(pend.getNBodies());
+    Vector_<SpatialVec> dEdR(pend.getNumBodies());
     dEdR[0] = 0;
-    for (int i=1; i < pend.getNBodies(); ++i)
+    for (int i=1; i < pend.getNumBodies(); ++i)
         dEdR[i] = SpatialVec(Vec3(0), Vec3(0.,2.,0.));
     Vector dEdQ;
     pend.calcInternalGradientFromSpatial(s, dEdR, dEdQ);
@@ -297,9 +297,9 @@ try {
 
     pend.getMobilizedBody(MobilizedBodyIndex(1)).setOneU(s,0,10.);
 
-    Vector_<SpatialVec> bodyForces(pend.getNBodies());
-    Vector_<Vec3>       particleForces(pend.getNParticles());
-    Vector              mobilityForces(pend.getNMobilities());
+    Vector_<SpatialVec> bodyForces(pend.getNumBodies());
+    Vector_<Vec3>       particleForces(pend.getNumParticles());
+    Vector              mobilityForces(pend.getNumMobilities());
 
     bodyForces.setToZero();
     particleForces.setToZero();

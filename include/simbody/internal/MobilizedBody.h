@@ -2472,44 +2472,44 @@ public:
     /// calculated Transform, and getMobilizerVelocity(s) to get the already calculated velocity.
     virtual void multiplyByHDotTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const = 0;
 
-    /// Calculate out_q = Q(q)*in_u (e.g., qdot=Q*u)
-    /// or out_u = ~Q*in_q. Note that one of "in" and "out" is always "q-like" while
+    /// Calculate out_q = N(q)*in_u (e.g., qdot=N*u)
+    /// or out_u = ~N*in_q. Note that one of "in" and "out" is always "q-like" while
     /// the other is "u-like", but which is which changes if the matrix is transposed.
-    /// Note that the transposed operation here is the same as multiplying by Q on
+    /// Note that the transposed operation here is the same as multiplying by N on
     /// the right, with the Vectors viewed as RowVectors instead.
-    /// The default implementation assumes that Q is an identity matrix, and will
+    /// The default implementation assumes that N is an identity matrix, and will
     /// only work if nq=nu=nIn=nOut and nAngles < 4 (i.e., no quaternions). If this
     /// is true for your mobilizer, you do not need to implement this method.
     ///
     /// The state is guaranteed to have been realized to at least Position stage.
-    virtual void multiplyByQMatrix(const State& s, bool transposeMatrix, 
-                           int nIn, const Real* in, int nOut, Real* out) const;
+    virtual void multiplyByN(const State& s, bool transposeMatrix, 
+                             int nIn, const Real* in, int nOut, Real* out) const;
 
-    /// Calculate out_u = QInv(q)*in_q (e.g., u=QInv*qdot)
-    /// or out_q = ~QInv*in_u. Note that one of "in" and "out" is always "q-like" while
+    /// Calculate out_u = NInv(q)*in_q (e.g., u=NInv*qdot)
+    /// or out_q = ~NInv*in_u. Note that one of "in" and "out" is always "q-like" while
     /// the other is "u-like", but which is which changes if the matrix is transposed.
-    /// Note that the transposed operation here is the same as multiplying by QInv on
+    /// Note that the transposed operation here is the same as multiplying by NInv on
     /// the right, with the Vectors viewed as RowVectors instead.
-    /// The default implementation assumes that QInv is an identity matrix, and will
+    /// The default implementation assumes that NInv is an identity matrix, and will
     /// only work if nq=nu=nIn=nOut and nAngles < 4 (i.e., no quaternions). If this
     /// is true for your mobilizer, you do not need to implement this method.
     ///
     /// The state is guaranteed to have been realized to at least Position stage.
-    virtual void multiplyByQInverse(const State& s, bool transposeMatrix, 
-                                           int nIn, const Real* in, int nOut, Real* out) const;
+    virtual void multiplyByNInv(const State& s, bool transposeMatrix, 
+                                int nIn, const Real* in, int nOut, Real* out) const;
 
-    /// Calculate out_q = QDot(q)*in_u
-    /// or out_u = ~QDot*in_q. Note that one of "in" and "out" is always "q-like" while
+    /// Calculate out_q = NDot(q)*in_u
+    /// or out_u = ~NDot*in_q. Note that one of "in" and "out" is always "q-like" while
     /// the other is "u-like", but which is which changes if the matrix is transposed.
-    /// Note that the transposed operation here is the same as multiplying by QDot on
+    /// Note that the transposed operation here is the same as multiplying by NDot on
     /// the right, with the Vectors viewed as RowVectors instead.
-    /// The default implementation assumes that QDot is zero, and will
+    /// The default implementation assumes that NDot is zero, and will
     /// only work if nq=nu=nIn=nOut and nAngles < 4 (i.e., no quaternions) If this
     /// is true for your mobilizer, you do not need to implement this method.
     ///
     /// The state is guaranteed to have been realized to at least Position stage.
-    virtual void multiplyByQDotMatrix(const State& s, bool transposeMatrix, 
-                                             int nIn, const Real* in, int nOut, Real* out) const;
+    virtual void multiplyByNDot(const State& s, bool transposeMatrix, 
+                                int nIn, const Real* in, int nOut, Real* out) const;
 
         // Methods for setting Mobilizer initial conditions. Note -- I've stripped this
         // down to the two basic routines but the built-ins have 8 so that you can 

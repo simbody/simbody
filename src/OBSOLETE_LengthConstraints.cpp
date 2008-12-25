@@ -1217,7 +1217,7 @@ LengthSet::fixVel0(State& s, Vector& iVel)
 
     // Allocate the vector of body impulses so we don't have to do it
     // inside the loop below. No need to initialize them here, though.
-    Vector_<SpatialVec> bodyImpulses(getRBTree().getNBodies());
+    Vector_<SpatialVec> bodyImpulses(getRBTree().getNumBodies());
 
     //TODO
     // Currently we do not have any constraints involving mobilities (u's)

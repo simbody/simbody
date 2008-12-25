@@ -70,7 +70,7 @@ public:
             state.updQ() = parameters;
         system.realize(state, Stage::Position);
         const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
-        Vector_<SpatialVec> dEdR(matter.getNBodies());
+        Vector_<SpatialVec> dEdR(matter.getNumBodies());
         dEdR = SpatialVec(Vec3(0), Vec3(0));
         for (int i = 0; i < (int)bodyIxs.size(); ++i) {
             const MobilizedBodyIndex id = bodyIxs[i];
@@ -82,7 +82,7 @@ public:
         }
         Vector dEdU;
         matter.calcInternalGradientFromSpatial(state, dEdR, dEdU);
-        matter.multiplyByQMatrixInverse(state, true, dEdU, gradient);
+        matter.multiplyByNInv(state, true, dEdU, gradient);
         return 0;
     }
     int constraintFunc(const Vector& parameters, const bool new_parameters, Vector& constraints) const {
@@ -200,7 +200,7 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
     
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
     SimTK_APIARGCHECK(bodyIxs.size() == stations.size() && stations.size() == targetLocations.size(), "ObservedPointFitter", "findBestFit", "bodyIxs, stations, and targetLocations must all be the same length");
-    int numBodies = matter.getNBodies();
+    int numBodies = matter.getNumBodies();
     for (int i = 0; i < (int)stations.size(); ++i) {
         SimTK_APIARGCHECK(bodyIxs[i] >= 0 && bodyIxs[i] < numBodies, "ObservedPointFitter", "findBestFit", "Illegal body ID");
         SimTK_APIARGCHECK(stations[i].size() == targetLocations[i].size(), "ObservedPointFitter", "findBestFit", "Different number of stations and target locations for body");
@@ -208,8 +208,8 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
     
     // Build a list of children for each body.
     
-    vector<vector<MobilizedBodyIndex> > children(matter.getNBodies());
-    for (int i = 0; i < matter.getNBodies(); ++i) {
+    vector<vector<MobilizedBodyIndex> > children(matter.getNumBodies());
+    for (int i = 0; i < matter.getNumBodies(); ++i) {
         const MobilizedBody& body = matter.getMobilizedBody(MobilizedBodyIndex(i));
         if (!body.isGround())
             children[body.getParentMobilizedBody().getMobilizedBodyIndex()].push_back(body.getMobilizedBodyIndex());
@@ -217,7 +217,7 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
 
     // Build a mapping of body IDs to indices.
     
-    vector<int> bodyIndex(matter.getNBodies());
+    vector<int> bodyIndex(matter.getNumBodies());
     for (int i = 0; i < (int) bodyIndex.size(); ++i)
         bodyIndex[i] = -1;
     for (int i = 0; i < (int)bodyIxs.size(); ++i)
@@ -225,7 +225,7 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
     
     // Find the number of stations on each body with a nonzero weight.
     
-    vector<int> numStations(matter.getNBodies());
+    vector<int> numStations(matter.getNumBodies());
     for (int i = 0; i < (int) numStations.size(); ++i)
         numStations[i] = 0;
     for (int i = 0; i < (int)weights.size(); ++i) {
@@ -240,7 +240,7 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
     matter.setUseEulerAngles(tempState, true);
     system.realizeModel(tempState);
     tempState.updQ().setToZero();
-    for (int i = 0; i < matter.getNBodies(); ++i) {
+    for (int i = 0; i < matter.getNumBodies(); ++i) {
         MobilizedBodyIndex id(i);
         const MobilizedBody& body = matter.getMobilizedBody(id);
         if (body.getNumQ(tempState) == 0)
@@ -254,9 +254,9 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
         MultibodySystem copy;
         vector<MobilizedBodyIndex> copyBodyIxs;
         createClonedSystem(system, copy, originalBodyIxs, copyBodyIxs);
-        vector<vector<Vec3> > copyStations(copy.getMatterSubsystem().getNBodies());
-        vector<vector<Vec3> > copyTargetLocations(copy.getMatterSubsystem().getNBodies());
-        vector<vector<Real> > copyWeights(copy.getMatterSubsystem().getNBodies());
+        vector<vector<Vec3> > copyStations(copy.getMatterSubsystem().getNumBodies());
+        vector<vector<Vec3> > copyTargetLocations(copy.getMatterSubsystem().getNumBodies());
+        vector<vector<Real> > copyWeights(copy.getMatterSubsystem().getNumBodies());
         for (int j = 0; j < (int)originalBodyIxs.size(); ++j) {
             int index = bodyIndex[originalBodyIxs[j]];
             if (index != -1) {

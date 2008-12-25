@@ -157,7 +157,7 @@ std::vector<MobilizedBodyIndex>
 SimbodyMatterSubsystemRep::getChildren(MobilizedBodyIndex body) const {
     const RigidBodyNode& node = getRigidBodyNode(body);
     std::vector<MobilizedBodyIndex> children;
-    for (MobilizedBodyIndex bx(0); bx < node.getNChildren(); ++bx)
+    for (MobilizedBodyIndex bx(0); bx < node.getNumChildren(); ++bx)
         children.push_back(node.getChild(bx)->getNodeNum());
     return children;
 }
@@ -484,7 +484,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) cons
             rbNodeLevels[i][j]->realizeInstance(sbs); 
 
     ic.totalMass = iv.particleMasses.sum();
-    for (int i=0; i<getNBodies(); ++i)
+    for (int i=0; i<getNumBodies(); ++i)
         ic.totalMass += iv.bodyMassProperties[i].getMass();
 
     
@@ -790,7 +790,7 @@ void SimbodyMatterSubsystemRep::calcQUnitWeightsRecursively(const State& s, Stat
     // Call this method recursively on the body's children, and build up a bounding box
     // for everything downstream of it.
     
-    for (int i = 0; i < body.getNChildren(); ++i) {
+    for (int i = 0; i < body.getNumChildren(); ++i) {
         Vec6 childBounds;
         calcQUnitWeightsRecursively(s, tempState, weights, childBounds, *body.getChild(i));
         bounds[0] = std::min(bounds[0], childBounds[0]);
@@ -845,7 +845,7 @@ void SimbodyMatterSubsystemRep::calcUUnitWeightsRecursively(const State& s, Stat
     // Call this method recursively on the body's children, and build up a bounding box
     // for everything downstream of it.
     
-    for (int i = 0; i < body.getNChildren(); ++i) {
+    for (int i = 0; i < body.getNumChildren(); ++i) {
         Vec6 childBounds;
         calcUUnitWeightsRecursively(s, tempState, weights, childBounds, *body.getChild(i));
         bounds[0] = std::min(bounds[0], childBounds[0]);
@@ -1074,7 +1074,7 @@ bool SimbodyMatterSubsystemRep::isUsingQuaternion(const State& s, MobilizedBodyI
     return n.isUsingQuaternion(sbs, startOfQuaternion);
 }
 
-int SimbodyMatterSubsystemRep::getNQuaternionsInUse(const State& s) const {
+int SimbodyMatterSubsystemRep::getNumQuaternionsInUse(const State& s) const {
     const SBModelCache& mc = getModelCache(s); // must be >=Model stage
     return mc.totalNQuaternionsInUse;
 }
@@ -1093,25 +1093,25 @@ AnglePoolIndex SimbodyMatterSubsystemRep::getAnglePoolIndex
     return mc.getMobilizedBodyModelInfo(body).anglePoolIndex;
 }
 
-int SimbodyMatterSubsystemRep::getNHolonomicConstraintEquationsInUse(const State& s) const {
+int SimbodyMatterSubsystemRep::getNumHolonomicConstraintEquationsInUse(const State& s) const {
     const SBInstanceCache& ic = getInstanceCache(s);
     return ic.totalNHolonomicConstraintEquationsInUse;
 }
-int SimbodyMatterSubsystemRep::getNNonholonomicConstraintEquationsInUse(const State& s) const {
+int SimbodyMatterSubsystemRep::getNumNonholonomicConstraintEquationsInUse(const State& s) const {
     const SBInstanceCache& ic = getInstanceCache(s);
     return ic.totalNNonholonomicConstraintEquationsInUse;
 }
-int SimbodyMatterSubsystemRep::getNAccelerationOnlyConstraintEquationsInUse(const State& s) const {
+int SimbodyMatterSubsystemRep::getNumAccelerationOnlyConstraintEquationsInUse(const State& s) const {
     const SBInstanceCache& ic = getInstanceCache(s);
     return ic.totalNAccelerationOnlyConstraintEquationsInUse;
 }
 
-void SimbodyMatterSubsystemRep::calcHolonomicConstraintMatrixPQInverse(const State& s, Matrix& PQInv) const {
+void SimbodyMatterSubsystemRep::calcHolonomicConstraintMatrixPNInv(const State& s, Matrix& PNInv) const {
     const SBInstanceCache& ic = getInstanceCache(s);
     const int mp = ic.totalNHolonomicConstraintEquationsInUse;
     const int nq = getNQ(s);
 
-    PQInv.resize(mp,nq);
+    PNInv.resize(mp,nq);
 
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
         if (isConstraintDisabled(s,cx))
@@ -1119,7 +1119,7 @@ void SimbodyMatterSubsystemRep::calcHolonomicConstraintMatrixPQInverse(const Sta
         const SBInstanceCache::PerConstraintInstanceInfo& cInfo = ic.getConstraintInstanceInfo(cx);
         const Segment& holoSeg = cInfo.holoErrSegment; // offset into qErr and mHolo (mp)
 
-        PQInv(holoSeg.offset, 0, holoSeg.length, nq) = constraints[cx]->calcPositionConstraintMatrixPQInverse(s);
+        PNInv(holoSeg.offset, 0, holoSeg.length, nq) = constraints[cx]->calcPositionConstraintMatrixPNInv(s);
     }
 }
 void SimbodyMatterSubsystemRep::calcHolonomicVelocityConstraintMatrixP(const State& s, Matrix& P) const {
@@ -1232,7 +1232,7 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
     const int mAccOnly = ic.totalNAccelerationOnlyConstraintEquationsInUse;
     const int ma = mHolo+mNonholo+mAccOnly;
 
-    bodyForcesInG.resize(getNBodies()); bodyForcesInG.setToZero();
+    bodyForcesInG.resize(getNumBodies()); bodyForcesInG.setToZero();
     mobilityForces.resize(getNU(s));    mobilityForces.setToZero();
 
     Vector_<SpatialVec> bodyF1;          // per constraint
@@ -1272,8 +1272,8 @@ void SimbodyMatterSubsystemRep::calcConstraintForcesFromMultipliers
 
 static Real calcQErrestWeightedNorm(const SimbodyMatterSubsystemRep& matter, const State& s, const Vector& qErrest, const Vector& uWeights) {
     Vector qhatErrest(uWeights.size());
-    matter.multiplyByQMatrixInverse(s, false, qErrest, qhatErrest); // qhatErrest = Q+ qErrest
-    qhatErrest.rowScaleInPlace(uWeights);                    // qhatErrest = Wu Q+ qErrest
+    matter.multiplyByNInv(s, false, qErrest, qhatErrest); // qhatErrest = N+ qErrest
+    qhatErrest.rowScaleInPlace(uWeights);                 // qhatErrest = Wu N+ qErrest
     return qhatErrest.normRMS();
 }
 
@@ -1286,8 +1286,8 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
 
     // First work only with the holonomic (position) constraints, which appear first in the QErr array.
     // Don't work on the quaternion constraints in this first section.
-    const int mHolo  = getNHolonomicConstraintEquationsInUse(s);
-    const int mQuats = getNQuaternionsInUse(s);
+    const int mHolo  = getNumHolonomicConstraintEquationsInUse(s);
+    const int mQuats = getNumQuaternionsInUse(s);
     const int nq     = getNQ(s);
     const int nu     = getNU(s);
 
@@ -1305,7 +1305,7 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     bool anyChange = false;
 
     // Solve 
-    //   (Tp P Wu^-1) dqhat_WLS = T perr, q -= Q*Wu^-1*dqhat_WLS
+    //   (Tp P Wu^-1) dqhat_WLS = T perr, q -= N*Wu^-1*dqhat_WLS
     // until perr(q)_TRMS <= 0.1*accuracy.
     //
     // This is a nonlinear least squares problem. This is a full Newton iteration since we
@@ -1330,7 +1330,7 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
         Vector saveQ = getQ(s);
         Matrix Pt(nu,mHolo);
         Vector dqhat_WLS(nu);
-        Vector dq(nq); // = Q Wu^-1 dqhat_WLS
+        Vector dq(nq); // = N Wu^-1 dqhat_WLS
         FactorQTZ P_qtz;
         const int MaxIterations  = 20;
         do {
@@ -1350,7 +1350,7 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
             //cout << "!!!! dqhat weighted=" << dqhat_WLS << endl;
             dqhat_WLS.rowScaleInPlace(ooUWeights);    // switch back to unweighted dqhat=Wu^-1*dqhat_WLS
             //cout << "!!!! dqhat unweighted=" << dqhat_WLS << endl;
-            multiplyByQMatrix(s, false, dqhat_WLS, dq); // Q*(Wu^-1 dqhat_WLS)
+            multiplyByN(s, false, dqhat_WLS, dq); // N*(Wu^-1 dqhat_WLS)
             //cout << "!!!! dq unweighted=" << dq << endl;
             updQ(s) -= dq; // this is actually unweighted dq
             anyChange = true;
@@ -1374,19 +1374,19 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
 
         // Next, if we projected out the position constraint errors, remove the corresponding
         // error from the integrator's error estimate.
-        //   (Tp P Wu^-1) dqhat_WLS = (Tp P Wu^-1) Wu Q^+ qErrest, qErrest -= Q Wu^-1 dqhat_WLS
+        //   (Tp P Wu^-1) dqhat_WLS = (Tp P Wu^-1) Wu N^+ qErrest, qErrest -= N Wu^-1 dqhat_WLS
         // No iteration is required.
         if (qErrest.size()) {
             // Work in qhat W-norm
             Vector qhatErrest(nu), dqErrest(nq);
-            multiplyByQMatrixInverse(s, false, qErrest, qhatErrest);
-            qhatErrest.rowScaleInPlace(uWeights); // qbarErrest = Wu * Q^+ * qErrest
+            multiplyByNInv(s, false, qErrest, qhatErrest);
+            qhatErrest.rowScaleInPlace(uWeights); // qbarErrest = Wu * N^+ * qErrest
 
             P_qtz.solve(~Pt*qhatErrest, dqhat_WLS);
             const Real normOfAdjustment_WRMS = dqhat_WLS.normRMS();
 
             dqhat_WLS.rowScaleInPlace(ooUWeights); // unscale the result
-            multiplyByQMatrix(s, false, dqhat_WLS, dqErrest);
+            multiplyByN(s, false, dqhat_WLS, dqErrest);
             qErrest -= dqErrest; // unweighted
             //cout << "  !! FIXUP: now WRMS(qerrest)=" << calcQErrestWeightedNorm(*this,s,qErrest,uWeights) << " using WRMS(dq)=" << normOfAdjustment_WRMS << endl;
         }
@@ -1430,8 +1430,8 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
 
     // Here we deal with the nonholonomic (velocity) constraints and the 
     // derivatives of the holonomic constraints.
-    const int mHolo    = getNHolonomicConstraintEquationsInUse(s);
-    const int mNonholo = getNNonholonomicConstraintEquationsInUse(s);
+    const int mHolo    = getNumHolonomicConstraintEquationsInUse(s);
+    const int mNonholo = getNumNonholonomicConstraintEquationsInUse(s);
     const int nq       = getNQ(s);
     const int nu       = getNU(s);
 
@@ -1645,9 +1645,9 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
     calcTreeForwardDynamicsOperator(s, mobilityForces, particleForces, bodyForces,
                                     0, 0, ac, udot, udotErr);
 
-    const int mHolo    = getNHolonomicConstraintEquationsInUse(s);
-    const int mNonholo = getNNonholonomicConstraintEquationsInUse(s);
-    const int mAccOnly = getNAccelerationOnlyConstraintEquationsInUse(s);
+    const int mHolo    = getNumHolonomicConstraintEquationsInUse(s);
+    const int mNonholo = getNumNonholonomicConstraintEquationsInUse(s);
+    const int mAccOnly = getNumAccelerationOnlyConstraintEquationsInUse(s);
     const int ma = mHolo+mNonholo+mAccOnly;
     const int nq       = getNQ(s);
     const int nu       = getNU(s);
@@ -1677,7 +1677,7 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
     // subblocks, this is all very reasonable. One slip up and you'll toss in a
     // factor of mn^2 or m^2n and screw this up -- be careful! (see below)
     Matrix MInvGt(nu, ma);
-    Vector_<SpatialVec> A_GB(getNBodies()); // dummy
+    Vector_<SpatialVec> A_GB(getNumBodies()); // dummy
     for (int j=0; j<ma; ++j) // This is O(mn)
         calcMInverseF(s, Gt(j), A_GB, MInvGt(j));
 
@@ -1785,7 +1785,7 @@ void SimbodyMatterSubsystemRep::calcPositionConstraintMatrix(const State& s,
     MatrixView Pt = ~P;
 
     Vector              multipliers(getNumPositionConstraints());
-    Vector_<SpatialVec> bodyForces(getNBodies());
+    Vector_<SpatialVec> bodyForces(getNumBodies());
     Vector              directMobilityForces(getNumMobilities(s));
 
     multipliers.setToZero();
@@ -1904,15 +1904,15 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     const SBDynamicsCache& dc = sbs.getDynamicsCache();
 
     assert(mobilityForces.size() == getTotalDOF());
-    assert(bodyForces.size() == getNBodies());
+    assert(bodyForces.size() == getNumBodies());
 
     netHingeForces.resize(getTotalDOF());
-    A_GB.resize(getNBodies());
+    A_GB.resize(getNumBodies());
     udot.resize(getTotalDOF());
 
     // Temporaries
-    Vector_<SpatialVec> allZ(getNBodies());
-    Vector_<SpatialVec> allGepsilon(getNBodies());
+    Vector_<SpatialVec> allZ(getNumBodies());
+    Vector_<SpatialVec> allGepsilon(getNumBodies());
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
@@ -1943,13 +1943,13 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
 
     assert(f.size() == getTotalDOF());
 
-    A_GB.resize(getNBodies());
+    A_GB.resize(getNumBodies());
     udot.resize(getTotalDOF());
 
     // Temporaries
     Vector              allEpsilon(getTotalDOF());
-    Vector_<SpatialVec> allZ(getNBodies());
-    Vector_<SpatialVec> allGepsilon(getNBodies());
+    Vector_<SpatialVec> allZ(getNumBodies());
+    Vector_<SpatialVec> allGepsilon(getNumBodies());
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
@@ -1966,8 +1966,8 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
         }
 }
 
-// q=Qu or u=~Qq
-void SimbodyMatterSubsystemRep::multiplyByQMatrix(const State& s, bool transpose, const Vector& in, Vector& out) const
+// q=Nu or u=~Nq
+void SimbodyMatterSubsystemRep::multiplyByN(const State& s, bool transpose, const Vector& in, Vector& out) const
 {
     const SBStateDigest sbState(s, *this, Stage(Stage::Position).next()); // i.e., we must be *done* with Stage::Position
 
@@ -2005,8 +2005,8 @@ void SimbodyMatterSubsystemRep::multiplyByQMatrix(const State& s, bool transpose
         }
 }
 
-// u= Qinv * q or q = ~QInv * u
-void SimbodyMatterSubsystemRep::multiplyByQMatrixInverse(const State& s, bool transpose, const Vector& in, Vector& out) const
+// u= NInv * q or q = ~NInv * u
+void SimbodyMatterSubsystemRep::multiplyByNInv(const State& s, bool transpose, const Vector& in, Vector& out) const
 {
     const SBStateDigest sbState(s, *this, Stage(Stage::Position).next()); // i.e., we must be *done* with Stage::Position
 
@@ -2045,22 +2045,22 @@ void SimbodyMatterSubsystemRep::multiplyByQMatrixInverse(const State& s, bool tr
 }
 
 void SimbodyMatterSubsystemRep::calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const {
-    assert(forces.size() == getNBodies());
+    assert(forces.size() == getNumBodies());
     
     // Find the total body force on every body from all sources *other* than mobilizer reaction forces.
     
     Vector_<SpatialVec> otherForces = getMultibodySystem().getRigidBodyForces(s, Stage::Dynamics);
-    Vector_<SpatialVec> constrainedBodyForces(getNBodies());
+    Vector_<SpatialVec> constrainedBodyForces(getNumBodies());
     Vector constrainedMobilizerForces(s.getNU());
     calcConstraintForcesFromMultipliers(s, s.getMultipliers(), constrainedBodyForces, constrainedMobilizerForces);
     otherForces -= constrainedBodyForces;
-    for (MobilizedBodyIndex index(0); index < getNBodies(); index++)
+    for (MobilizedBodyIndex index(0); index < getNumBodies(); index++)
         otherForces[index] -= getGyroscopicForce(s, index);
     
     // Find the total force that was actually applied.
     
     Vector_<SpatialVec> totalForce(forces.size());
-    for (MobilizedBodyIndex index(0); index < getNBodies(); index++) {
+    for (MobilizedBodyIndex index(0); index < getNumBodies(); index++) {
         const MobilizedBody& body = getMobilizedBody(index);
         const MassProperties& mass = body.getBodyMassProperties(s);
         const SpatialVec& acceleration = body.getBodyAcceleration(s);
@@ -2090,14 +2090,14 @@ void SimbodyMatterSubsystemRep::calcMobilizerReactionForces(const State& s, Vect
     
     // Transform the force to be reported at the outboard joint location.
     
-    for (MobilizedBodyIndex index(0); index < getNBodies(); index++) {
+    for (MobilizedBodyIndex index(0); index < getNumBodies(); index++) {
         const MobilizedBody& body = getMobilizedBody(index);
         Vec3 localForce = ~body.getBodyTransform(s).R()*forces[index][1];
         forces[index][0] -= body.getBodyTransform(s).R()*(body.getOutboardFrame(s).T()%localForce);
     }
 }
 
-// Must be in ConfigurationStage to calculate qdot = Q*u.
+// Must be in ConfigurationStage to calculate qdot = N*u.
 void SimbodyMatterSubsystemRep::calcQDot(const State& s, const Vector& u, Vector& qdot) const {
     SBStateDigest sbs(s, *this, Stage::Velocity);
 
@@ -2110,7 +2110,7 @@ void SimbodyMatterSubsystemRep::calcQDot(const State& s, const Vector& u, Vector
             rbNodeLevels[i][j]->calcQDot(sbs, u, qdot);
 }
 
-// Must be in Stage::Velocity to calculate qdotdot = Qdot*u + Q*udot.
+// Must be in Stage::Velocity to calculate qdotdot = Ndot*u + N*udot.
 void SimbodyMatterSubsystemRep::calcQDotDot(const State& s, const Vector& udot, Vector& qdotdot) const {
     SBStateDigest sbs(s, *this, Stage::Velocity);
 
@@ -2137,8 +2137,8 @@ calcMobilizerQDotFromU(const State& s, MobilizedBodyIndex mb, int nu, const Real
     n.calcLocalQDotFromLocalU(sbState, u, qdot);
 }
 
-// State must be realized to Stage::Velocity, so that we can extract Q(q), QDot(q,u), and u from it to calculate
-// qdotdot=Q(q)*udot + QDot(q,u)*u for this mobilizer.
+// State must be realized to Stage::Velocity, so that we can extract N(q), NDot(q,u), and u from it to calculate
+// qdotdot=N(q)*udot + NDot(q,u)*u for this mobilizer.
 void SimbodyMatterSubsystemRep::
 calcMobilizerQDotDotFromUDot(const State& s, MobilizedBodyIndex mb, int nu, const Real* udot, 
                                   int nq, Real* qdotdot) const
@@ -2239,7 +2239,7 @@ void SimbodyMatterSubsystemRep::calcSpatialKinematicsFromInternal(const State& s
 
     assert(v.size() == getTotalDOF());
 
-    Jv.resize(getNBodies());
+    Jv.resize(getNumBodies());
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
@@ -2259,11 +2259,11 @@ void SimbodyMatterSubsystemRep::calcInternalGradientFromSpatial(const State& s,
                                                     const Vector_<SpatialVec>& X,
                                                     Vector& JX) const
 {
-    assert(X.size() == getNBodies());
+    assert(X.size() == getNumBodies());
 
     const SBPositionCache& pc = getPositionCache(s);
 
-    Vector_<SpatialVec> zTemp(getNBodies()); zTemp.setToZero();
+    Vector_<SpatialVec> zTemp(getNumBodies()); zTemp.setToZero();
     JX.resize(getTotalDOF());
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--)
@@ -2283,10 +2283,10 @@ void SimbodyMatterSubsystemRep::calcTreeEquivalentMobilityForces(const State& s,
     const SBPositionCache& pc = getPositionCache(s);
     const SBDynamicsCache& dc = getDynamicsCache(s);
 
-    assert(bodyForces.size() == getNBodies());
+    assert(bodyForces.size() == getNumBodies());
     mobilityForces.resize(getTotalDOF());
 
-    Vector_<SpatialVec> allZ(getNBodies());
+    Vector_<SpatialVec> allZ(getNumBodies());
 
     // Don't do ground's level since ground has no inboard joint.
     for (int i=rbNodeLevels.size()-1 ; i>0 ; i--) 
@@ -2307,10 +2307,10 @@ void SimbodyMatterSubsystemRep::setShowDefaultGeometry(bool show) {
 }
 
 std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystemRep& tree) {
-    o << "SimbodyMatterSubsystemRep has " << tree.getNBodies() << " bodies (incl. G) in "
+    o << "SimbodyMatterSubsystemRep has " << tree.getNumBodies() << " bodies (incl. G) in "
       << tree.rbNodeLevels.size() << " levels." << std::endl;
     o << "NodeNum->level,offset;stored nodeNum,level (stateOffset:dim)" << std::endl;
-    for (int i=0; i < tree.getNBodies(); ++i) {
+    for (int i=0; i < tree.getNumBodies(); ++i) {
         o << i << "->" << tree.nodeNum2NodeMap[i].level << "," 
                        << tree.nodeNum2NodeMap[i].offset << ";";
         const RigidBodyNode& n = tree.getRigidBodyNode(i);

@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-8 Stanford University and the Authors.         *
+ * Portions copyright (c) 2007-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -182,8 +182,8 @@ public:
 	Matrix calcPositionConstraintMatrixP(const State&) const; // mp X nu
 	Matrix calcPositionConstraintMatrixPt(const State&) const; // nu X mp
 
-	// Matrix PQInv = partial(perr)/partial(q) = P*Q^-1
-	Matrix calcPositionConstraintMatrixPQInverse(const State&) const; // mp X nq
+	// Matrix PNInv = partial(perr)/partial(q) = P*N^-1
+	Matrix calcPositionConstraintMatrixPNInv(const State&) const; // mp X nq
 
     // This operator calculates this constraint's body and mobility forces
     // given the complete set of multipliers lambda. We expect that lambda

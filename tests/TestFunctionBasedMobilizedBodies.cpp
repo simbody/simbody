@@ -127,16 +127,16 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
     Vector tempq(state.getNQ());
     Vector tempu(state.getNU());
     /*
-    matter.multiplyByQMatrix(state, false, state.getU(), tempq);
+    matter.multiplyByN(state, false, state.getU(), tempq);
     for (int i = 0; i < b1.getNumQ(state); ++i)
         assertEqual(b1.getOneFromQPartition(state, i, tempq), b2.getOneFromQPartition(state, i, tempq));
-    matter.multiplyByQMatrix(state, true, state.getQ(), tempu);
+    matter.multiplyByN(state, true, state.getQ(), tempu);
     for (int i = 0; i < b1.getNumU(state); ++i)
         assertEqual(b1.getOneFromUPartition(state, i, tempu), b2.getOneFromUPartition(state, i, tempu));
-    matter.multiplyByQMatrixInverse(state, false, state.getQ(), tempu);
+    matter.multiplyByNInv(state, false, state.getQ(), tempu);
     for (int i = 0; i < b1.getNumU(state); ++i)
         assertEqual(b1.getOneFromUPartition(state, i, tempu), b2.getOneFromUPartition(state, i, tempu));
-    matter.multiplyByQMatrixInverse(state, true, state.getU(), tempq);
+    matter.multiplyByNInv(state, true, state.getU(), tempq);
     for (int i = 0; i < b1.getNumQ(state); ++i)
         assertEqual(b1.getOneFromQPartition(state, i, tempq), b2.getOneFromQPartition(state, i, tempq));
     */

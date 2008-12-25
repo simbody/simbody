@@ -52,7 +52,7 @@ class Constraint;
  * The Simbody low-level multibody tree interface.
  * Equations represented:
  * <pre>
- *                  qdot = Q u
+ *                  qdot = N u
  *                  zdot = zdot(t,q,u,z)
  *
  *      M udot + ~G mult = f(t,q,u,z)
@@ -84,7 +84,7 @@ class Constraint;
  * the coefficient matrix for a(). pdot, pdotdot are obtained
  * by differentiation of p(), vdot by differentiation of v().
  * P=partial(pdot)/partial(u) (yes, that's u, not q), V=partial(v)/partial(u).
- * (We can get partial(p)/partial(q) when we need it as P*Q^-1.)
+ * (We can get partial(p)/partial(q) when we need it as P*N^-1.)
  * n(q) is the set of quaternion normalization constraints, which exist only at the
  * position level and are uncoupled from everything else.
  *
@@ -101,7 +101,7 @@ class Constraint;
  *    [G M^-1 ~G]   to calculate multipliers (square, symmetric: LDL' if
  *                  well conditioned, else pseudoinverse)
  *
- *    [P Q^-1]      for projection onto position manifold (pseudoinverse)
+ *    [P N^-1]      for projection onto position manifold (pseudoinverse)
  *
  *    [P;V]         for projection onto velocity manifold (pseudoinverse)
  *                  (using Matlab notation meaning rows of P over rows of V)
@@ -109,7 +109,7 @@ class Constraint;
  *
  * When working in a weighted norm with weights W on the state variables and
  * weights T (1/tolerance) on the constraint errors, the matrices we need are
- * actually [Tp PQ^-1 Wq^-1], [Tpv [P;V] Wu^-1], etc. with T and W diagonal
+ * actually [Tp PN^-1 Wq^-1], [Tpv [P;V] Wu^-1], etc. with T and W diagonal
  * weighting matrices. These can then be used to find least squares solutions
  * in the weighted norms.
  *
@@ -244,7 +244,7 @@ public:
     /// constraints are consistent. If the position and velocity constraints
     /// aren't already satisified in the State, these accelerations
     /// are harder to interpret physically, but they will still be calculated and
-    /// the acceleration constraints will still be satisified. No attempt
+    /// the acceleration constraints will still be satisfied. No attempt
     /// will be made to satisfy position and velocity constraints, or even to check
     /// whether they are statisfied.
     /// This is an O(n*nc^2) operator worst case where all nc constraint equations
@@ -305,37 +305,38 @@ public:
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    mobilityForces) const;
 
-    /// Must be in Stage::Position to calculate qdot = Q(q)*u.
+    /// Must be in Stage::Position to calculate qdot = N(q)*u.
     void calcQDot(const State& s,
         const Vector& u,
         Vector&       qdot) const;
 
-    /// Must be in Stage::Velocity to calculate qdotdot = Q(q)*udot + Qdot(q,u)*u.
+    /// Must be in Stage::Velocity to calculate qdotdot = N(q)*udot + Ndot(q,u)*u.
     void calcQDotDot(const State& s,
         const Vector& udot,
         Vector&       qdotdot) const;
 
-    /// Must be in Stage::Position to calculate out_q = Q(q)*in_u (e.g., qdot=Q*u)
-    /// or out_u = ~Q*in_q. Note that one of "in" and "out" is always "q-like" while
+    /// Must be in Stage::Position to calculate out_q = N(q)*in_u (e.g., qdot=N*u)
+    /// or out_u = ~N*in_q. Note that one of "in" and "out" is always "q-like" while
     /// the other is "u-like", but which is which changes if the matrix is transposed.
-    /// Note that the transposed operation here is the same as multiplying by Q on
+    /// Note that the transposed operation here is the same as multiplying by N on
     /// the right, with the Vectors viewed as RowVectors instead.
-    /// This is an O(N) operator since Q is block diagonal.
-    void multiplyByQMatrix(const State& s, bool transposeMatrix, const Vector& in, Vector& out) const;
+    /// This is an O(n) operator since N is block diagonal.
+    void multiplyByN(const State& s, bool transpose, const Vector& in, Vector& out) const;
 
-    /// Must be in Stage::Position to calculate out_u = QInv(q)*in_q (e.g., u=QInv*qdot)
-    /// or out_q = ~QInv*in_u. Note that one of "in" and "out" is always "q-like" while
+    /// Must be in Stage::Position to calculate out_u = NInv(q)*in_q (e.g., u=NInv*qdot)
+    /// or out_q = ~NInv*in_u. Note that one of "in" and "out" is always "q-like" while
     /// the other is "u-like", but which is which changes if the matrix is transposed.
-    /// Note that the transposed operation here is the same as multiplying by QInv on
+    /// Note that the transposed operation here is the same as multiplying by NInv on
     /// the right, with the Vectors viewed as RowVectors instead.
-    /// This is an O(N) operator since QInv is block diagonal.
-    void multiplyByQMatrixInverse(const State& s, bool transposeMatrix, const Vector& in, Vector& out) const;
-    
+    /// This is an O(N) operator since NInv is block diagonal.
+    void multiplyByNInv(const State& s, bool transpose, const Vector& in, Vector& out) const;
+
     /// Calculate the mobilizer reaction force generated by each MobilizedBody.  This is the
     /// constraint force that would be required to make the system move in the same way if that
     /// MobilizedBody were converted to a Free body.  A mobilizer exerts equal and opposite reaction
     /// forces on the parent and child bodies.  This method reports the force on the child body.
-    /// The force is applied at the origin of the outboard frame M, and expressed in the ground frame.
+    /// The force is applied at the origin of the outboard frame M (fixed to the child), and expressed
+    /// in the ground frame.
     ///
     /// The State must have been realized to Stage::Acceleration to use this method.
     void calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const;
@@ -350,18 +351,18 @@ public:
     /// is meaningless (or I suppose you could think of it as the weld
     /// joint that attaches ground to the universe), but otherwise 
     /// mobilizer n is the inboard mobilizer of body n.
-    int getNBodies() const;
+    int getNumBodies() const;
 
     /// This is the total number of defined constraints, each of which may
     /// generate more than one constraint equation.
-    int getNConstraints() const;
+    int getNumConstraints() const;
 
     /// TODO: total number of particles.
-    int getNParticles() const;
+    int getNumParticles() const;
 
     /// The sum of all the mobilizer degrees of freedom. This is also the length
     /// of the state variable vector u and the mobility forces array.
-    int getNMobilities() const; 
+    int getNumMobilities() const;
 
     /// The sum of all the q vector allocations for each joint. There may be
     /// some that are not in use for particular modeling options.
@@ -378,7 +379,8 @@ public:
     /// rotation for Euler sequence, with convenient way to say "this is zero".
     void setUseEulerAngles(State&, bool) const;
     bool getUseEulerAngles  (const State&) const;
-    int  getNQuaternionsInUse(const State&) const;
+
+    int  getNumQuaternionsInUse(const State&) const;
 
     void setMobilizerIsPrescribed(State&, MobilizedBodyIndex, bool) const;
     bool isMobilizerPrescribed  (const State&, MobilizedBodyIndex) const;
@@ -498,9 +500,9 @@ public:
         // POSITION STAGE solvers //
 
     /// This is a solver you can call after the State has been realized
-    /// to stage Position. It will project the Q constraints
+    /// to stage Position. It will project the q constraints
     /// along the error norm so that getQConstraintNorm() <= consAccuracy, and will
-    /// project out the corresponding component of yErrest so that yErrest's Q norm
+    /// project out the corresponding component of yErrest so that yErrest's q norm
     /// is reduced. Returns true if it does anything at all to State or yErrest.
     bool projectQConstraints(State& s, Real consAccuracy, const Vector& yWeights,
 							 const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
@@ -512,9 +514,9 @@ public:
         // VELOCITY STAGE solvers //
 
     /// This is a solver you can call after the State has been realized
-    /// to stage Velocity. It will project the U constraints
+    /// to stage Velocity. It will project the u constraints
     /// along the error norm so that getUConstraintNorm() <= consAccuracy, and will
-    /// project out the corresponding component of yErrest so that yErrest's U norm
+    /// project out the corresponding component of yErrest so that yErrest's u norm
     /// is reduced. Returns true if it does anything at all to State or yErrest.
     bool projectUConstraints(State& s, Real consAccuracy, const Vector& yWeights,
 							 const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
@@ -526,6 +528,21 @@ public:
     SimTK_PIMPL_DOWNCAST(SimbodyMatterSubsystem, Subsystem);
     const SimbodyMatterSubsystemRep& getRep() const;
     SimbodyMatterSubsystemRep&       updRep();
+
+    // OBSOLETE; TODO: remove in SimTK 2.0
+    void multiplyByQMatrix(const State& s, bool transposeMatrix, const Vector& in, Vector& out) const
+    {   multiplyByN(s,transposeMatrix,in,out);}
+    // OBSOLETE; TODO: remove in SimTK 2.0
+    void multiplyByQMatrixInverse(const State& s, bool transposeMatrix, const Vector& in, Vector& out) const
+    {   multiplyByNInv(s,transposeMatrix,in,out);}
+    // OBSOLETE; TODO: remove in SimTK 2.0
+    int getNBodies() const {return getNumBodies();}
+    // OBSOLETE; TODO: remove in SimTK 2.0
+    int getNConstraints() const {return getNumConstraints();}
+    // OBSOLETE; TODO: remove in SimTK 2.0
+    int getNMobilities() const {return getNumMobilities();}
+
+private:
 };
 
 SimTK_SIMBODY_EXPORT std::ostream& 

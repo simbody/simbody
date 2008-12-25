@@ -119,7 +119,7 @@ void createGimbalSystem(MultibodySystem& system) {
     Force::UniformGravity gravity(forces, matter, Vec3(0, -1, 0), 0);
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     for (int i = 0; i < NUM_BODIES; ++i) {
-        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNBodies()-1));
+        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNumBodies()-1));
         MobilizedBody::Gimbal b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
     }
 }
@@ -134,7 +134,7 @@ void createBallSystem(MultibodySystem& system) {
     Force::UniformGravity gravity(forces, matter, Vec3(0, -1, 0), 0);
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     for (int i = 0; i < NUM_BODIES; ++i) {
-        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNBodies()-1));
+        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNumBodies()-1));
         MobilizedBody::Ball b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
     }
 }
@@ -149,7 +149,7 @@ void createPlanarSystem(MultibodySystem& system) {
     Force::UniformGravity gravity(forces, matter, Vec3(0, -1, 0), 0);
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     for (int i = 0; i < NUM_BODIES; ++i) {
-        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNBodies()-1));
+        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNumBodies()-1));
         MobilizedBody::Planar b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
     }
 }
@@ -164,7 +164,7 @@ void createCylinderSystem(MultibodySystem& system) {
     Force::UniformGravity gravity(forces, matter, Vec3(0, -1, 0), 0);
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     for (int i = 0; i < NUM_BODIES; ++i) {
-        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNBodies()-1));
+        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNumBodies()-1));
         MobilizedBody::Cylinder b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
     }
 }

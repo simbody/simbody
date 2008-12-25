@@ -233,7 +233,7 @@ Matrix Constraint::calcPositionConstraintMatrixPt(const State& s) const {
 	const System&                 system = matter.getSystem();
 
 	const int nu = matter.getNU(s);
-	const int nb = matter.getNBodies();
+	const int nb = matter.getNumBodies();
 
 
 	Matrix Pt(nu, mp);
@@ -331,7 +331,7 @@ Matrix Constraint::calcVelocityConstraintMatrixVt(const State& s) const {
 	const System&                 system = matter.getSystem();
 
 	const int nu = matter.getNU(s);
-	const int nb = matter.getNBodies();
+	const int nb = matter.getNumBodies();
 
 
 	Matrix Vt(nu, mv);
@@ -431,7 +431,7 @@ Matrix Constraint::calcAccelerationConstraintMatrixAt(const State& s) const {
 	const System&                 system = matter.getSystem();
 
 	const int nu = matter.getNU(s);
-	const int nb = matter.getNBodies();
+	const int nb = matter.getNumBodies();
 
 
 	Matrix At(nu, ma);
@@ -487,7 +487,7 @@ Matrix Constraint::calcAccelerationConstraintMatrixAt(const State& s) const {
 	return At;
 }
 
-Matrix Constraint::calcPositionConstraintMatrixPQInverse(const State& s) const {
+Matrix Constraint::calcPositionConstraintMatrixPNInv(const State& s) const {
 	int mp,mv,ma;
 	getNumConstraintEquationsInUse(s, mp, mv, ma);
 
@@ -500,20 +500,20 @@ Matrix Constraint::calcPositionConstraintMatrixPQInverse(const State& s) const {
 	const Matrix P = calcPositionConstraintMatrixP(s);
 	assert(P.nrow()==mp && P.ncol()==nu);
 
-	Matrix PQInv(mp, nq); // = P*Q^-1
+	Matrix PNInv(mp, nq); // = P*N^-1
 	if (mp && nq) {
-		// The routine below calculates qlikeRow = ulikeRow * Q^-1 which is what
+		// The routine below calculates qlikeRow = ulikeRow * N^-1 which is what
 		// we need but it actually works with Vectors (transpose of RowVectors)
 		// and at the moment they have to be contiguous so we'll have to copy.
 		Vector uin(nu);
 		Vector qout(nq);
 		for (int i=0; i < mp; ++i) {
 			uin = ~P[i];
-			matter.multiplyByQMatrixInverse(s, true, uin, qout);
-			PQInv[i] = ~qout;
+			matter.multiplyByNInv(s, true, uin, qout);
+			PNInv[i] = ~qout;
 		}
 	}
-	return PQInv;
+	return PNInv;
 }
 
 void Constraint::calcConstraintForcesFromMultipliers(
@@ -2606,7 +2606,7 @@ UIndex ConstraintImpl::getUIndexOfConstrainedU(const State& s, ConstrainedUIndex
 }
 
 int ConstraintImpl::getNumConstrainedQ(const State& s) const {
-    return getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getNConstrainedQ();
+    return getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getNumConstrainedQ();
 }
 
 int ConstraintImpl::getNumConstrainedQ
@@ -2628,7 +2628,7 @@ ConstrainedQIndex ConstraintImpl::getConstrainedQIndex
 }       
 
 int ConstraintImpl::getNumConstrainedU(const State& s) const {
-    return getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getNConstrainedU();
+    return getInstanceCache(s).getConstraintInstanceInfo(myConstraintIndex).getNumConstrainedU();
 }
 
 int ConstraintImpl::getNumConstrainedU

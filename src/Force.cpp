@@ -348,8 +348,8 @@ Force::UniformGravityImpl::UniformGravityImpl(const SimbodyMatterSubsystem& matt
 }
 
 void Force::UniformGravityImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
-    const int nBodies    = matter.getNBodies();
-    const int nParticles = matter.getNParticles();
+    const int nBodies    = matter.getNumBodies();
+    const int nParticles = matter.getNumParticles();
 
     if (nParticles) {
         const Vector& m = matter.getAllParticleMasses(state);
@@ -373,8 +373,8 @@ void Force::UniformGravityImpl::calcForce(const State& state, Vector_<SpatialVec
 }
 
 Real Force::UniformGravityImpl::calcPotentialEnergy(const State& state) const {
-    const int nBodies    = matter.getNBodies();
-    const int nParticles = matter.getNParticles();
+    const int nBodies    = matter.getNumBodies();
+    const int nParticles = matter.getNumParticles();
     Real pe = 0.0;
 
     if (nParticles) {

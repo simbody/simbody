@@ -200,9 +200,9 @@ public:
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
         ForceCacheEntry& modelForces = updForceCacheEntry(s, Stage::Model);
-        modelForces.ensureAllocatedTo(matter.getNBodies(),
-                                      matter.getNParticles(),
-                                      matter.getNMobilities());
+        modelForces.ensureAllocatedTo(matter.getNumBodies(),
+                                      matter.getNumParticles(),
+                                      matter.getNumMobilities());
         modelForces.setAllForcesToZero();
 
         return 0;
@@ -216,9 +216,9 @@ public:
 
         const ForceCacheEntry& modelForces = getForceCacheEntry(s, Stage::Model);
         ForceCacheEntry& instanceForces = updForceCacheEntry(s, Stage::Instance);
-        instanceForces.ensureAllocatedTo(matter.getNBodies(),
-                                         matter.getNParticles(),
-                                         matter.getNMobilities());
+        instanceForces.ensureAllocatedTo(matter.getNumBodies(),
+                                         matter.getNumParticles(),
+                                         matter.getNumMobilities());
         instanceForces.initializeFromSimilarForceEntry(modelForces);
 
         return 0;
@@ -230,9 +230,9 @@ public:
 
         const ForceCacheEntry& instanceForces = getForceCacheEntry(s, Stage::Instance);
         ForceCacheEntry& timeForces = updForceCacheEntry(s, Stage::Time);
-        timeForces.ensureAllocatedTo(matter.getNBodies(),
-                                     matter.getNParticles(),
-                                     matter.getNMobilities());
+        timeForces.ensureAllocatedTo(matter.getNumBodies(),
+                                     matter.getNumParticles(),
+                                     matter.getNumMobilities());
         timeForces.initializeFromSimilarForceEntry(instanceForces);
 
         return 0;
@@ -244,9 +244,9 @@ public:
 
         const ForceCacheEntry& timeForces = getForceCacheEntry(s, Stage::Time);
         ForceCacheEntry& positionForces = updForceCacheEntry(s, Stage::Position);
-        positionForces.ensureAllocatedTo(matter.getNBodies(),
-                                         matter.getNParticles(),
-                                         matter.getNMobilities());
+        positionForces.ensureAllocatedTo(matter.getNumBodies(),
+                                         matter.getNumParticles(),
+                                         matter.getNumMobilities());
         positionForces.initializeFromSimilarForceEntry(timeForces);
 
         return 0;
@@ -258,9 +258,9 @@ public:
 
         const ForceCacheEntry& positionForces = getForceCacheEntry(s, Stage::Position);
         ForceCacheEntry& velocityForces = updForceCacheEntry(s, Stage::Velocity);
-        velocityForces.ensureAllocatedTo(matter.getNBodies(),
-                                         matter.getNParticles(),
-                                         matter.getNMobilities());
+        velocityForces.ensureAllocatedTo(matter.getNumBodies(),
+                                         matter.getNumParticles(),
+                                         matter.getNumMobilities());
         velocityForces.initializeFromSimilarForceEntry(positionForces);
         
         return 0;
@@ -272,9 +272,9 @@ public:
 
         const ForceCacheEntry& velocityForces = getForceCacheEntry(s, Stage::Velocity);
         ForceCacheEntry& dynamicsForces = updForceCacheEntry(s, Stage::Dynamics);
-        dynamicsForces.ensureAllocatedTo(matter.getNBodies(),
-                                         matter.getNParticles(),
-                                         matter.getNMobilities());
+        dynamicsForces.ensureAllocatedTo(matter.getNumBodies(),
+                                         matter.getNumParticles(),
+                                         matter.getNumMobilities());
         dynamicsForces.initializeFromSimilarForceEntry(velocityForces);
 
         return 0;

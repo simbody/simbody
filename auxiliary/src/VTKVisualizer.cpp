@@ -522,7 +522,7 @@ void VTKVisualizerRep::initTopology() {
     SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(mbs.systemTopologyHasBeenRealized(), "MultibodySystem", mbs.getName(), "VTKVisualizerRep::initTopology()");
     hasInitialized = true;
     const SimbodyMatterSubsystem& sbs = mbs.getMatterSubsystem();
-    bodies.resize(sbs.getNBodies());
+    bodies.resize(sbs.getNumBodies());
 }
 
 void VTKVisualizerRep::createInstanceGeometry(const State& state) {
@@ -549,7 +549,7 @@ void VTKVisualizerRep::report(const State& s) {
     createInstanceGeometry(s);
 
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
-    for (MobilizedBodyIndex i(1); i<matter.getNBodies(); ++i) {
+    for (MobilizedBodyIndex i(1); i<matter.getNumBodies(); ++i) {
         const Transform& config = matter.getMobilizedBody(i).getBodyTransform(s);
         setConfiguration(i, config);
     }

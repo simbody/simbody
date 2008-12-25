@@ -90,7 +90,7 @@ public:
         return index;
     }
     
-    int getNForces() const {
+    int getNumForces() const {
         return forces.size();
     }
     
@@ -127,7 +127,7 @@ public:
         rigidBodyForceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector_<SpatialVec> >());
         mobilityForceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector>());
         particleForceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector_<Vec3> >());
-        forceEnabledIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Dynamics, new Value<vector<bool> >(vector<bool>(getNForces(), true)));
+        forceEnabledIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Dynamics, new Value<vector<bool> >(vector<bool>(getNumForces(), true)));
         for (int i = 0; i < (int) forces.size(); ++i)
             forces[i]->getImpl().realizeTopology(s);
         return 0;
@@ -178,11 +178,11 @@ public:
 
         if (!forceValid) {
             // We need to calculate the velocity independent forces.
-            rigidBodyForceCache.resize(matter.getNBodies());
+            rigidBodyForceCache.resize(matter.getNumBodies());
             rigidBodyForceCache = SpatialVec(Vec3(0), Vec3(0));
-            particleForceCache.resize(matter.getNParticles());
+            particleForceCache.resize(matter.getNumParticles());
             particleForceCache = Vec3(0);
-            mobilityForceCache.resize(matter.getNMobilities());
+            mobilityForceCache.resize(matter.getNumMobilities());
             mobilityForceCache = 0;
         }
 
@@ -286,8 +286,8 @@ ForceIndex GeneralForceSubsystem::adoptForce(Force& force) {
     return updRep().adoptForce(force);
 }
 
-int GeneralForceSubsystem::getNForces() const {
-    return getRep().getNForces();
+int GeneralForceSubsystem::getNumForces() const {
+    return getRep().getNumForces();
 }
 
 const Force& GeneralForceSubsystem::getForce(ForceIndex index) const {

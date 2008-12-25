@@ -149,7 +149,7 @@ public:
         ASSERT(nu == 3);
         Vec3::updAs(f) = Vec3(0);
     }
-    void multiplyByQMatrix(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
+    void multiplyByN(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
         const Vector q = getQ(s);
         if (getUseEulerAngles(s)) {
             ASSERT(nIn == 3 && nOut == 3);
@@ -169,7 +169,7 @@ public:
             else                 Vec4::updAs(out) = Q * Vec3::getAs(in);
         }
     }
-    void multiplyByQInverse(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
+    void multiplyByNInv(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
         const Vector q = getQ(s);
         if (getUseEulerAngles(s)) {
             ASSERT(nIn == 3 && nOut == 3);
@@ -189,7 +189,7 @@ public:
             else                 Vec3::updAs(out) = Q * Vec4::getAs(in);
         }
     }
-    void multiplyByQDotMatrix(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
+    void multiplyByNDot(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
         const Vector q = getQ(s);
         if (getUseEulerAngles(s)) {
             ASSERT(nIn == 3 && nOut == 3);
@@ -261,7 +261,7 @@ public:
         ASSERT(nu == 6);
         SpatialVec::updAs(reinterpret_cast<Vec3*>(f)) = SpatialVec(Vec3(0), Vec3(0));
     }
-    void multiplyByQMatrix(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
+    void multiplyByN(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
         const Vector q = getQ(s);
         if (getUseEulerAngles(s)) {
             ASSERT(nIn == 6 && nOut == 6);
@@ -282,7 +282,7 @@ public:
         }
         Vec3::updAs(&out[nOut-3]) = Vec3::getAs(&in[nIn-3]);
    }
-    void multiplyByQInverse(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
+    void multiplyByNInv(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
         const Vector q = getQ(s);
         if (getUseEulerAngles(s)) {
             ASSERT(nIn == 6 && nOut == 6);
@@ -303,7 +303,7 @@ public:
         }
         Vec3::updAs(&out[nOut-3]) = Vec3::getAs(&in[nIn-3]);
     }
-    void multiplyByQDotMatrix(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
+    void multiplyByNDot(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
         const Vector q = getQ(s);
         if (getUseEulerAngles(s)) {
             ASSERT(nIn == 6 && nOut == 6);
@@ -392,16 +392,16 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
     
     Vector tempq(state.getNQ());
     Vector tempu(state.getNU());
-    matter.multiplyByQMatrix(state, false, state.getU(), tempq);
+    matter.multiplyByN(state, false, state.getU(), tempq);
     for (int i = 0; i < b1.getNumQ(state); ++i)
         assertEqual(b1.getOneFromQPartition(state, i, tempq), b2.getOneFromQPartition(state, i, tempq));
-    matter.multiplyByQMatrix(state, true, state.getQ(), tempu);
+    matter.multiplyByN(state, true, state.getQ(), tempu);
     for (int i = 0; i < b1.getNumU(state); ++i)
         assertEqual(b1.getOneFromUPartition(state, i, tempu), b2.getOneFromUPartition(state, i, tempu));
-    matter.multiplyByQMatrixInverse(state, false, state.getQ(), tempu);
+    matter.multiplyByNInv(state, false, state.getQ(), tempu);
     for (int i = 0; i < b1.getNumU(state); ++i)
         assertEqual(b1.getOneFromUPartition(state, i, tempu), b2.getOneFromUPartition(state, i, tempu));
-    matter.multiplyByQMatrixInverse(state, true, state.getU(), tempq);
+    matter.multiplyByNInv(state, true, state.getU(), tempq);
     for (int i = 0; i < b1.getNumQ(state); ++i)
         assertEqual(b1.getOneFromQPartition(state, i, tempq), b2.getOneFromQPartition(state, i, tempq));
     

@@ -212,14 +212,14 @@ void SimbodyMatterSubsystem::calcQDotDot(const State& s,
     getRep().calcQDotDot(s, udot, qdotdot);
 }
 
-void SimbodyMatterSubsystem::multiplyByQMatrix(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
+void SimbodyMatterSubsystem::multiplyByN(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
 {
-    getRep().multiplyByQMatrix(s,matrixOnRight,in,out);
+    getRep().multiplyByN(s,matrixOnRight,in,out);
 }
 
-void SimbodyMatterSubsystem::multiplyByQMatrixInverse(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
+void SimbodyMatterSubsystem::multiplyByNInv(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
 {
-    getRep().multiplyByQMatrixInverse(s,matrixOnRight,in,out);
+    getRep().multiplyByNInv(s,matrixOnRight,in,out);
 }
 
 void SimbodyMatterSubsystem::calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const {
@@ -227,10 +227,10 @@ void SimbodyMatterSubsystem::calcMobilizerReactionForces(const State& s, Vector_
 }
 
 // Topological info. Note the lack of a State argument.
-int SimbodyMatterSubsystem::getNBodies()        const {return getRep().getNBodies();}
-int SimbodyMatterSubsystem::getNMobilities()    const {return getRep().getNMobilities();}
-int SimbodyMatterSubsystem::getNConstraints()   const {return getRep().getNConstraints();}
-int SimbodyMatterSubsystem::getNParticles()     const {return getRep().getNParticles();}
+int SimbodyMatterSubsystem::getNumBodies()        const {return getRep().getNumBodies();}
+int SimbodyMatterSubsystem::getNumMobilities()    const {return getRep().getNumMobilities();}
+int SimbodyMatterSubsystem::getNumConstraints()   const {return getRep().getNumConstraints();}
+int SimbodyMatterSubsystem::getNumParticles()     const {return getRep().getNumParticles();}
 
 int SimbodyMatterSubsystem::getTotalQAlloc()    const {return getRep().getTotalQAlloc();}
 
@@ -252,8 +252,8 @@ void SimbodyMatterSubsystem::convertToEulerAngles(const State& inputState, State
 void SimbodyMatterSubsystem::convertToQuaternions(const State& inputState, State& outputState) const
   { return getRep().convertToQuaternions(inputState, outputState); }
 
-int SimbodyMatterSubsystem::getNQuaternionsInUse(const State& s) const {
-    return getRep().getNQuaternionsInUse(s);
+int SimbodyMatterSubsystem::getNumQuaternionsInUse(const State& s) const {
+    return getRep().getNumQuaternionsInUse(s);
 }
 bool SimbodyMatterSubsystem::isUsingQuaternion(const State& s, MobilizedBodyIndex body) const {
     return getRep().isUsingQuaternion(s, body);
@@ -312,20 +312,20 @@ SimbodyMatterSubsystem::getAllParticleAccelerations(const State& s) const {
 void SimbodyMatterSubsystem::addInStationForce(const State& s, MobilizedBodyIndex body, const Vec3& stationInB, 
                                                const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const 
 {
-    assert(bodyForces.size() == getRep().getNBodies());
+    assert(bodyForces.size() == getRep().getNumBodies());
     const Rotation& R_GB = getRep().getBodyTransform(s,body).R();
     bodyForces[body] += SpatialVec((R_GB*stationInB) % forceInG, forceInG);
 }
 void SimbodyMatterSubsystem::addInBodyTorque(const State& s, MobilizedBodyIndex body, const Vec3& torqueInG,
                                              Vector_<SpatialVec>& bodyForces) const 
 {
-    assert(bodyForces.size() == getRep().getNBodies());
+    assert(bodyForces.size() == getRep().getNumBodies());
     bodyForces[body][0] += torqueInG; // no force
 }
 void SimbodyMatterSubsystem::addInMobilityForce(const State& s, MobilizedBodyIndex body, MobilizerUIndex which, Real d,
                                                 Vector& mobilityForces) const 
 { 
-    assert(mobilityForces.size() == getRep().getNMobilities());
+    assert(mobilityForces.size() == getRep().getNumMobilities());
     UIndex uStart; int nu; getRep().findMobilizerUs(s,body,uStart,nu);
     assert(0 <= which && which < nu);
     mobilityForces[uStart+which] += d;
@@ -356,7 +356,7 @@ bool SimbodyMatterSubsystem::projectUConstraints(State& s, Real consAccuracy, co
 ///   \c Stage::Instance
 Real SimbodyMatterSubsystem::calcSystemMass(const State& s) const {
     Real mass = 0;
-    for (MobilizedBodyIndex b(1); b < getNBodies(); ++b)
+    for (MobilizedBodyIndex b(1); b < getNumBodies(); ++b)
         mass += getMobilizedBody(b).getBodyMassProperties(s).getMass();
     return mass;
 }
@@ -371,7 +371,7 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterLocationInGround(const State& s
     Real    mass = 0;
     Vec3    com  = Vec3(0);
 
-    for (MobilizedBodyIndex b(1); b < getNBodies(); ++b) {
+    for (MobilizedBodyIndex b(1); b < getNumBodies(); ++b) {
         const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
         const Transform&      X_GB    = getMobilizedBody(b).getBodyTransform(s);
         const Real            mb      = MB_OB_B.getMass();
@@ -397,7 +397,7 @@ MassProperties SimbodyMatterSubsystem::calcSystemMassPropertiesInGround(const St
     Vec3    com  = Vec3(0);
     Inertia I    = Inertia(0);
 
-    for (MobilizedBodyIndex b(1); b < getNBodies(); ++b) {
+    for (MobilizedBodyIndex b(1); b < getNumBodies(); ++b) {
         const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
         const Transform&      X_GB    = getMobilizedBody(b).getBodyTransform(s);
         const MassProperties  MB_OG_G = MB_OB_B.calcTransformedMassProps(X_GB);
@@ -435,7 +435,7 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterVelocityInGround(const State& s
     Real    mass = 0;
     Vec3    comv = Vec3(0);
 
-    for (MobilizedBodyIndex b(1); b < getNBodies(); ++b) {
+    for (MobilizedBodyIndex b(1); b < getNumBodies(); ++b) {
         const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
         const Vec3 v_G_CB = getMobilizedBody(b).findStationVelocityInGround(s, MB_OB_B.getMassCenter());
         const Real mb     = MB_OB_B.getMass();
@@ -459,7 +459,7 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterAccelerationInGround(const Stat
     Real    mass = 0;
     Vec3    coma = Vec3(0);
 
-    for (MobilizedBodyIndex b(1); b < getNBodies(); ++b) {
+    for (MobilizedBodyIndex b(1); b < getNumBodies(); ++b) {
         const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
         const Vec3 a_G_CB = getMobilizedBody(b).findStationAccelerationInGround(s, MB_OB_B.getMassCenter());
         const Real mb     = MB_OB_B.getMass();
@@ -482,7 +482,7 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterAccelerationInGround(const Stat
 ///   \c Stage::Velocity
 SpatialVec SimbodyMatterSubsystem::calcSystemMomentumAboutGroundOrigin(const State& s) const {
     SpatialVec mom(Vec3(0), Vec3(0));
-    for (MobilizedBodyIndex b(1); b < getNBodies(); ++b) {
+    for (MobilizedBodyIndex b(1); b < getNumBodies(); ++b) {
         const SpatialVec mom_CB_G = getMobilizedBody(b).calcBodyMomentumAboutBodyMassCenterInGround(s);
         const Vec3&      Iw = mom_CB_G[0];
         const Vec3&      mv = mom_CB_G[1];

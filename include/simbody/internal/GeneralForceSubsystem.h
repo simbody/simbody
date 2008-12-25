@@ -64,8 +64,8 @@ public:
     ForceIndex adoptForce(Force& force);
     
     /// Get the number of Forces which have been added.
-    int getNForces() const;
-    
+    int getNumForces() const;
+
     /// Get a const reference to a Force by index.
     const Force& getForce(ForceIndex index) const;
 
@@ -78,6 +78,9 @@ public:
     /// Set whether a force is disabled.
     void setForceIsDisabled(State& state, ForceIndex index, bool disabled);
     SimTK_PIMPL_DOWNCAST(GeneralForceSubsystem, ForceSubsystem);
+
+    // OBSOLETE; TODO: remove in SimTK 2.0
+    int getNForces() const {return getNumForces();}
 private:
     class GeneralForceSubsystemRep& updRep();
     const GeneralForceSubsystemRep& getRep() const;

@@ -68,7 +68,7 @@ MultibodySystem& createSystem() {
     GeneralForceSubsystem forces(*system);
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     for (int i = 0; i < NUM_BODIES; ++i) {
-        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNBodies()-1));
+        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNumBodies()-1));
         MobilizedBody::Gimbal b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
     }
     return *system;

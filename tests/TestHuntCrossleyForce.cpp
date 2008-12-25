@@ -120,7 +120,7 @@ void testForces() {
     const Real us = 2.0*us1*us2/(us1+us2);
     const Real ud = 2.0*ud1*ud2/(ud1+ud2);
     const Real uv = 2.0*uv1*uv2/(uv1+uv2);
-    Vector_<SpatialVec> expectedForce(matter.getNBodies());
+    Vector_<SpatialVec> expectedForce(matter.getNumBodies());
     for (Real height = radius+0.2; height > 0; height -= 0.1) {
         sphere.setQToFitTranslation(state, Vec3(0, height, 0));
         const Real depth = radius-height;

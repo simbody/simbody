@@ -4145,8 +4145,8 @@ public:
     RBNodeCustom(const MobilizedBody::Custom::Implementation& impl, const MassProperties& mProps_B,
             const Transform& X_PF, const Transform& X_BM,UIndex& nextUSlot, USquaredIndex& nextUSqSlot, QIndex& nextQSlot) : 
             RigidBodyNodeSpec<nu>(mProps_B, X_PF, X_BM, nextUSlot, nextUSqSlot, nextQSlot, RigidBodyNode::QDotMayDifferFromU,
-            impl.getImpl().getNAngles() == 4 ? RigidBodyNode::QuaternionMayBeUsed : RigidBodyNode::QuaternionIsNeverUsed),
-            impl(impl), nq(impl.getImpl().getNQ()), nAngles(impl.getImpl().getNAngles()) {
+            impl.getImpl().getNumAngles() == 4 ? RigidBodyNode::QuaternionMayBeUsed : RigidBodyNode::QuaternionIsNeverUsed),
+            impl(impl), nq(impl.getImpl().getNQ()), nAngles(impl.getImpl().getNumAngles()) {
         this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
     const char* type() const {
@@ -4185,16 +4185,16 @@ public:
             q[i] = qIn[i];
     }
     void calcLocalQDotFromLocalU(const SBStateDigest& sbs, const Real* u, Real* qdot) const {
-        impl.multiplyByQMatrix(sbs.getState(), false, nu, u, getNQInUse(sbs.getModelVars()), qdot);
+        impl.multiplyByN(sbs.getState(), false, nu, u, getNQInUse(sbs.getModelVars()), qdot);
     }
     void calcLocalQDotDotFromLocalUDot(const SBStateDigest& sbs, const Real* udot, Real* qdotdot) const {
         const SBModelVars& mv = sbs.getModelVars();
         const SBPositionCache& pc   = sbs.getPositionCache();
         const int nqInUse = getNQInUse(sbs.getModelVars());
         const Real* u = &sbs.getU()[this->getUIndex()];
-        impl.multiplyByQMatrix(sbs.getState(), false, nu, udot, nqInUse, qdotdot);
+        impl.multiplyByN(sbs.getState(), false, nu, udot, nqInUse, qdotdot);
         Real temp[7];
-        impl.multiplyByQDotMatrix(sbs.getState(), false, nu, u, nqInUse, temp);
+        impl.multiplyByNDot(sbs.getState(), false, nu, u, nqInUse, temp);
         for (int i = 0; i < nqInUse; ++i)
             qdotdot[i] += temp[i];
     }
@@ -4210,7 +4210,7 @@ public:
             nIn = getNUInUse(mv);
             nOut = getNQInUse(mv);
         }
-        impl.multiplyByQMatrix(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
+        impl.multiplyByN(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
     }
     void multiplyByQInvBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q, bool matrixOnRight,
                                      const Real* in, Real* out) const {
@@ -4224,7 +4224,7 @@ public:
             nIn = getNQInUse(mv);
             nOut = getNUInUse(mv);
         }
-        impl.multiplyByQInverse(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
+        impl.multiplyByNInv(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
     }
     void multiplyByQDotBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q, const Real* u,
                                      bool matrixOnRight, const Real* in, Real* out) const {
@@ -4238,13 +4238,13 @@ public:
             nIn = getNUInUse(mv);
             nOut = getNQInUse(mv);
         }
-        impl.multiplyByQDotMatrix(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
+        impl.multiplyByNDot(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
     }
 
     void calcQDot(const SBStateDigest& sbs, const Vector& u, Vector& qdot) const {
         const int nqInUse = getNQInUse(sbs.getModelVars());
         const int qindex = this->getQIndex();
-        impl.multiplyByQMatrix(sbs.getState(), false, nu, &u[this->getUIndex()], nqInUse, &qdot[qindex]);
+        impl.multiplyByN(sbs.getState(), false, nu, &u[this->getUIndex()], nqInUse, &qdot[qindex]);
         for (int i = nqInUse; i < nq; ++i)
             qdot[qindex+i] = 0.0;
     }
@@ -4255,9 +4255,9 @@ public:
         const int nqInUse = getNQInUse(sbs.getModelVars());
         const int qindex = this->getQIndex();
         const Real* u = &sbs.getU()[this->getUIndex()];
-        impl.multiplyByQMatrix(sbs.getState(), false, nu, &udot[this->getUIndex()], nqInUse, &qdotdot[qindex]);
+        impl.multiplyByN(sbs.getState(), false, nu, &udot[this->getUIndex()], nqInUse, &qdotdot[qindex]);
         Real temp[7];
-        impl.multiplyByQDotMatrix(sbs.getState(), false, nu, u, nqInUse, temp);
+        impl.multiplyByNDot(sbs.getState(), false, nu, u, nqInUse, temp);
         for (int i = 0; i < nqInUse; ++i)
             qdotdot[qindex+i] += temp[i];
         for (int i = nqInUse; i < nq; ++i)

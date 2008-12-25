@@ -114,7 +114,7 @@ void testStandardForces() {
     GeneralForceSubsystem forces(system);
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     for (int i = 0; i < NUM_BODIES; ++i) {
-        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNBodies()-1));
+        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNumBodies()-1));
         MobilizedBody::Gimbal b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
     }
     
@@ -148,7 +148,7 @@ void testStandardForces() {
     
     // Calculate each force component and see if it is correct.
     
-    Vector_<SpatialVec> bodyForces(matter.getNBodies());
+    Vector_<SpatialVec> bodyForces(matter.getNumBodies());
     Vector_<Vec3> particleForces(0);
     Vector mobilityForces(state.getNU());
     Real pe = 0;
@@ -260,7 +260,7 @@ void testEnergyConservation() {
     GeneralForceSubsystem forces(system);
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     for (int i = 0; i < NUM_BODIES; ++i) {
-        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNBodies()-1));
+        MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNumBodies()-1));
         MobilizedBody::Gimbal b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
     }
     

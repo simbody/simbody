@@ -234,7 +234,7 @@ try // If anything goes wrong, an exception will be thrown.
     const Vec3 attachPt(150, -40, -50);
 
     Force::TwoPointLinearSpring(forces, myRNA.Ground(), attachPt,
-                                   myRNA.getMobilizedBody(MobilizedBodyIndex(myRNA.getNBodies()-1)), Vec3(0),
+                                   myRNA.getMobilizedBody(MobilizedBodyIndex(myRNA.getNumBodies()-1)), Vec3(0),
                                    1000.,  // stiffness
                                    1.);    // natural length
 
@@ -251,7 +251,7 @@ try // If anything goes wrong, an exception will be thrown.
     mbs.realizeModel(s);
     mbs.realize(s, Stage::Position);
 
-    for (ConstraintIndex cid(0); cid < myRNA.getNConstraints(); ++cid) {
+    for (ConstraintIndex cid(0); cid < myRNA.getNumConstraints(); ++cid) {
         const Constraint& c = myRNA.getConstraint(cid);
         int mp,mv,ma;
         c.getNumConstraintEquationsInUse(s, mp,mv,ma);
@@ -282,7 +282,7 @@ try // If anything goes wrong, an exception will be thrown.
 	    cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
 	    cout << "   d(perrdot)/du=" << ~c.calcPositionConstraintMatrixPt(s);
 
-	    cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPQInverse(s);
+	    cout << "   d(perr)/dq=" << c.calcPositionConstraintMatrixPNInv(s);
     }
 
 
@@ -303,8 +303,8 @@ try // If anything goes wrong, an exception will be thrown.
     }
    
 
-    printf("# quaternions in use = %d\n", myRNA.getNQuaternionsInUse(s));
-    for (MobilizedBodyIndex i(0); i<myRNA.getNBodies(); ++i) {
+    printf("# quaternions in use = %d\n", myRNA.getNumQuaternionsInUse(s));
+    for (MobilizedBodyIndex i(0); i<myRNA.getNumBodies(); ++i) {
         printf("body %2d: using quat? %s; quat index=%d\n",
             (int)i, myRNA.isUsingQuaternion(s,i) ? "true":"false", 
             (int)myRNA.getQuaternionPoolIndex(s,i));
@@ -323,13 +323,13 @@ try // If anything goes wrong, an exception will be thrown.
     myStudy.setProjectEveryStep(false);
 
     VTKVisualizer display(mbs);
-    for (MobilizedBodyIndex i(1); i<myRNA.getNBodies(); ++i)
+    for (MobilizedBodyIndex i(1); i<myRNA.getNumBodies(); ++i)
         myRNA.decorateBody(i, display);
     myRNA.decorateGlobal(display);
 
     DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
-    display.addRubberBandLine(GroundIndex, attachPt,MobilizedBodyIndex(myRNA.getNBodies()-1),Vec3(0), rbProto);
-    //display.addRubberBandLine(GroundIndex, -attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
+    display.addRubberBandLine(GroundIndex, attachPt,MobilizedBodyIndex(myRNA.getNumBodies()-1),Vec3(0), rbProto);
+    //display.addRubberBandLine(GroundIndex, -attachPt,myRNA.getNumBodies()-1,Vec3(0), rbProto);
 
     const Real dt = 0.05; // output intervals
 

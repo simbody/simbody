@@ -470,7 +470,7 @@ public:
         // TOPOLOGICAL INFO: no State needed
 
     RigidBodyNode* getParent() const {return parent;}
-    int            getNChildren()  const {return (int)children.size();}
+    int            getNumChildren()  const {return (int)children.size();}
     RigidBodyNode* getChild(int i) const {return (i<(int)children.size()?children[i]:0);}
 
     // Return this node's level, that is, how many ancestors separate it from
