@@ -542,7 +542,7 @@ static Real c_b3054 = .656;
 
 /* Initialized data */
 
-struct {
+static struct {
     Real e_1[2];
     Real fill_2[201];
     int e_3;

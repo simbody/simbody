@@ -1104,13 +1104,13 @@ typedef union common5 {
 #define l5_39 (l5_._39)
 #define l5_40 (l5_._40)
 
-struct {
+static struct {
     int lsum;
 } l15_;
 
 #define l15_1 l15_
 
-union {
+static union {
     struct {
 	Real f[2];
     } _1;
@@ -1190,7 +1190,7 @@ union {
 #define l16_18 (l16_._18)
 #define l16_19 (l16_._19)
 
-union {
+static union {
     struct {
 	Real df[4]	/* was [2][2] */;
     } _1;
@@ -1302,13 +1302,13 @@ struct b_2_ {
 #define b_1 (*(struct b_1_ *) &b_)
 #define b_2 (*(struct b_2_ *) &b_)
 
-struct {
+static struct {
     Real value2;
 } st_;
 
 #define st_1 st_
 
-struct {
+static struct {
     Real tmax;
 } tfn1_;
 
