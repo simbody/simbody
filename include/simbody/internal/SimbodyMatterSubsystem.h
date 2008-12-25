@@ -541,7 +541,8 @@ public:
     int getNConstraints() const {return getNumConstraints();}
     // OBSOLETE; TODO: remove in SimTK 2.0
     int getNMobilities() const {return getNumMobilities();}
-
+    // OBSOLETE; TODO: remove in SimTK 2.0
+    int getNParticles() const {return getNumParticles();}
 private:
 };
 
