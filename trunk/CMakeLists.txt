@@ -50,12 +50,6 @@ SET( BUILD_TESTING_STATIC ON CACHE BOOL
 SET( BUILD_TESTING_SHARED ON CACHE BOOL
  	"If building test or example programs, include dynamically-linked ones?" )
 
-
-# Some test run longer than the timeout limit, so give it more time. <RJR>
-# sherm 081222: is this needed?
-#SET(DART_TESTING_TIMEOUT 15000)
-#SET(CTEST_TESTING_TIMEOUT 15000)
-
 # 
 # Make sure "sandbox" input & output directories are set. During
 # SimTK Core build, the build system will set them. Otherwise, we'll
@@ -213,7 +207,7 @@ SET(SHARED_TARGET ${SIMMATH_LIBRARY_NAME})
 SET(STATIC_TARGET ${SIMMATH_LIBRARY_NAME}_static)
 
 ## If no one says otherwise, change the executable path to drop into the same binary
-## location as the DLLs so that the test cases will use the just-build DLLs.
+## location as the DLLs so that the test cases will use the just-built DLLs.
 IF(NOT EXECUTABLE_OUTPUT_PATH)
   SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR} 
       CACHE INTERNAL "Single output directory for building all executables.")
@@ -259,8 +253,6 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     ## A gcc build
    SET(MATH_LIBS_TO_USE SimTKlapack pthread dl)
 
- ##   LINK_DIRECTORIES(/usr/local/lib${LIB64} /lib${LIB64})
-
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     ## Assume Microsoft Visual Studio
@@ -280,8 +272,8 @@ FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
                          ${subdir}/include/simmath/internal)
 ENDFOREACH(subdir)
 
-# We'll need both *relative* path names, starting with their API_INCLUDE_DIRS,
-# and absolute pathnames.
+# We'll need both *relative* path names, starting with
+# their API_INCLUDE_DIRS, and absolute pathnames.
 SET(API_REL_INCLUDE_FILES)   # start these out empty
 SET(API_ABS_INCLUDE_FILES)
 
@@ -291,13 +283,14 @@ FOREACH(dir ${API_INCLUDE_DIRS})
 
     FOREACH(pathname ${fullpaths})
         GET_FILENAME_COMPONENT(filename ${pathname} NAME)
-        SET(API_REL_INCLUDE_FILES ${API_REL_INCLUDE_FILES} ${dir}/${filename})
+        SET(API_REL_INCLUDE_FILES ${API_REL_INCLUDE_FILES}
+		${dir}/${filename})
     ENDFOREACH(pathname)
 ENDFOREACH(dir)
 
 # collect up source files
 SET(SOURCE_FILES) # empty
-SET(SOURCE_INCLUDE_FILES)
+SET(SOURCE_INCLUDE_FILES) # for dependency tracking only, I believe (sherm)
 
 FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
     FILE(GLOB src_files  ${subdir}/src/*.cpp ${subdir}/src/*.c
@@ -310,14 +303,12 @@ FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
     ## SimTK/core/include if Simmath was previously installed there.
     INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
-INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/src)
 
-## Special cases for IpOpt since it doesn't have a src subdirectory.
-FILE(GLOB src_files  IpOpt/*.cpp)
-FILE(GLOB incl_files IpOpt/*.h)
+## Special cases for Ipopt since it doesn't have a src subdirectory.
+FILE(GLOB src_files  Ipopt/*.cpp)
+FILE(GLOB incl_files Ipopt/*.h)
 SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
 SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
-INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/IpOpt)
 
 ## Watch out -- this next line will cause CMake to find installed versions of
 ## simmath libraries before the local one. Be sure to delete installed ones first.

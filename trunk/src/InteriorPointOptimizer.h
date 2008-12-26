@@ -23,14 +23,14 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-//#include <iostream>
+
 #include "SimTKcommon.h"
 
 #include "simmath/internal/common.h"
+#include "../Ipopt/IpStdCInterface.h"
+#include "../Ipopt/IpReturnCodes.h"
 
 #include "OptimizerRep.h"
-#include "IpStdCInterface.h"
-#include "IpReturnCodes.h"
 
 namespace SimTK {
 
