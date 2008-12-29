@@ -32,6 +32,10 @@ endif(COMMAND cmake_policy)
 
 PROJECT ( SimTKsimmath )
 
+## When in Debug mode and running valgrind, some of the test
+## cases take longer than the default 1500 seconds.
+SET(DART_TESTING_TIMEOUT 7200)
+
 # Caution: this variable is automatically created by the CMake
 # ENABLE_TESTING() command, but we'll take it over here for
 # our own purposes too.
