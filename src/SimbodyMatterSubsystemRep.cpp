@@ -1817,7 +1817,7 @@ void SimbodyMatterSubsystemRep::calcArticulatedBodyInertias(const State& s) cons
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->calcArticulatedBodyInertiasInward(pc,dc);
-    }
+}
 
 // should be:
 //   foreach tip {

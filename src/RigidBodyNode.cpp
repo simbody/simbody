@@ -77,7 +77,7 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
 
     // The Phi matrix conveniently performs child-to-parent (inward) shifting
     // on spatial quantities (forces); its transpose does parent-to-child
-    // (outward) shifting for velocities.
+    // (outward) shifting for velocities and accelerations.
     updPhi(pc) = PhiMatrix(T_PB_G);
 
     // Calculate spatial mass properties. That means we need to transform
