@@ -357,6 +357,17 @@ public:
         const SBVelocityCache& vc,
         const SpatialVec&      sVel, 
         Vector&                u) const {}
+    
+    /*virtual*/ void multiplyByQBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
+                                  bool matrixOnRight, 
+                                  const Real* in, Real* out) const {}
+    /*virtual*/ void multiplyByQInvBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
+                                     bool matrixOnRight,
+                                     const Real* in, Real* out) const {}
+    /*virtual*/ void multiplyByQDotBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q, const Real* u,
+                                     bool matrixOnRight,
+                                     const Real* in, Real* out) const {}
+
 
 };
 

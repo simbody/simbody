@@ -2147,6 +2147,8 @@ void SimbodyMatterSubsystemRep::calcMobilizerReactionForces(const State& s, Vect
     Vector constrainedMobilizerForces(s.getNU());
     calcConstraintForcesFromMultipliers(s, s.getMultipliers(), constrainedBodyForces, constrainedMobilizerForces);
     otherForces -= constrainedBodyForces;
+    for (MobilizedBodyIndex index(0); index < getNBodies(); index++)
+        otherForces[index] -= getGyroscopicForce(s, index);
     
     // Find the total force that was actually applied.
     
