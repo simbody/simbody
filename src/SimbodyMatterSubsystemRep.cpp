@@ -1988,6 +1988,11 @@ void SimbodyMatterSubsystemRep::multiplyByN(const State& s, bool transpose, cons
     for (int i=1; i<(int)rbNodeLevels.size(); i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& rbn = *rbNodeLevels[i][j];
+            const int maxNQ = rbn.getMaxNQ();
+
+            // Skip weld joints: no q's, no work to do here.
+            if (maxNQ == 0)
+                continue;
 
             // Find the right piece of the vectors to work with.
             const int qx = rbn.getQIndex();
@@ -1998,7 +2003,7 @@ void SimbodyMatterSubsystemRep::multiplyByN(const State& s, bool transpose, cons
             // TODO: kludge: for now q-like output may have an unused element because
             // we always allocate the max space. Set the last element to zero in case
             // it doesn't get written.
-            if (!transpose) outp[outpx + rbn.getMaxNQ()-1] = 0;
+            if (!transpose) outp[outpx + maxNQ-1] = 0;
 
             rbn.multiplyByQBlock(sbState, useEulerAngles, &qp[qx], 
                                  transpose, &inp[inpx], &outp[outpx]);
@@ -2027,6 +2032,11 @@ void SimbodyMatterSubsystemRep::multiplyByNInv(const State& s, bool transpose, c
     for (int i=1; i<(int)rbNodeLevels.size(); i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& rbn = *rbNodeLevels[i][j];
+            const int maxNQ = rbn.getMaxNQ();
+
+            // Skip weld joints: no q's, no work to do here.
+            if (maxNQ == 0)
+                continue;
 
             // Find the right piece of the vectors to work with.
             const int qx = rbn.getQIndex();
@@ -2037,7 +2047,7 @@ void SimbodyMatterSubsystemRep::multiplyByNInv(const State& s, bool transpose, c
             // TODO: kludge: for now q-like output may have an unused element because
             // we always allocate the max space. Set the last element to zero in case
             // it doesn't get written.
-            if (transpose) outp[outpx + rbn.getMaxNQ()-1] = 0;
+            if (transpose) outp[outpx + maxNQ-1] = 0;
 
             rbn.multiplyByQInvBlock(sbState, useEulerAngles, &qp[qx],
                                     transpose, &inp[inpx], &outp[outpx]);
