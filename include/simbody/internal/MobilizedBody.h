@@ -1425,10 +1425,10 @@ public:
         // Friendly, mobilizer-specific access to generalized coordinates and speeds.
 
     void setLength(State& s, Real length) {setQ(s, length);}
-    Real getLength(const State& s) {return getQ(s);}
+    Real getLength(const State& s) const {return getQ(s);}
 
     void setRate(State& s, Real rateInLengthPerTime) {setU(s, rateInLengthPerTime);}
-    Real getRate(const State& s) {return getU(s);}
+    Real getRate(const State& s) const {return getU(s);}
 
     // Mobility forces are "u-like", that is, one per dof.
     Real getAppliedForce(const State& s, const Vector& mobilityForces) const {
