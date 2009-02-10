@@ -155,8 +155,13 @@ private:
     vtkRenderWindow* renWin;
     vtkRenderer*     renderer;
 
+    // Don't call the corresponding methods after these flags are set.
+    bool hasInitializedTopology;
+    bool hasCreatedInstanceGeometry;
+
     void initTopology();
     void createInstanceGeometry(const State& state);
+
     void zeroPointers();
     void deletePointers();
     void setConfiguration(MobilizedBodyIndex bodyNum, const Transform& X_GB);
@@ -449,7 +454,7 @@ void VTKVisualizerRep::displayEphemeralGeometry(const State& s)
 }
 
 VTKVisualizerRep::VTKVisualizerRep(const MultibodySystem& m, VTKVisualizer* reporter ) 
-    :  mbs(m), cameraNeedsToBeReset(true)
+    :  mbs(m), cameraNeedsToBeReset(true), hasInitializedTopology(false), hasCreatedInstanceGeometry(false)
 {
     myHandle = reporter;
     const Real cameraScale = 1.0;
@@ -516,20 +521,18 @@ VTKVisualizerRep::VTKVisualizerRep(const MultibodySystem& m, VTKVisualizer* repo
 }
 
 void VTKVisualizerRep::initTopology() {
-    static bool hasInitialized = false;
-    if (hasInitialized)
+    if (hasInitializedTopology)
         return;
     SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(mbs.systemTopologyHasBeenRealized(), "MultibodySystem", mbs.getName(), "VTKVisualizerRep::initTopology()");
-    hasInitialized = true;
+    hasInitializedTopology = true;
     const SimbodyMatterSubsystem& sbs = mbs.getMatterSubsystem();
     bodies.resize(sbs.getNumBodies());
 }
 
 void VTKVisualizerRep::createInstanceGeometry(const State& state) {
-    static bool hasCreated = false;
-    if (hasCreated)
+    if (hasCreatedInstanceGeometry)
         return;
-    hasCreated = true;
+    hasCreatedInstanceGeometry = true;
     
     // Mine the system for any geometry it wants us to show.
 
