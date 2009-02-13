@@ -180,7 +180,28 @@ int main() {
     cout << "x*2.=" << x*2. << endl;
     cout << "x*y=" << x*y << endl;
     cout << "x+y=" << x+y << endl;
+    cout << "x-y=" << x-y << endl;
     cout << "x+(-y)=" << x+(-y) << endl;
+
+    ASSERT(x+y == -((-x)+(-y)));
+    ASSERT(x+y == -(-x)+y);
+    ASSERT(x+y == x-(-y));
+    ASSERT(x-y == x+(-y));
+    ASSERT(x-y == -(y-x));
+    ASSERT(x-y == -(-x+y));
+    ASSERT(-(x+y) == (-x)-y);
+    ASSERT(-(x+y) == -x-y);
+
+    ASSERT(x*y == (-x)*(-y));
+    ASSERT(x*y == -x*-y);
+    ASSERT(-(x*y) == -x*y);
+    ASSERT(-(x*y) == x*-y);
+
+    ASSERT(x/y == (-x)/(-y));
+    ASSERT(x/y == -x/-y);
+    ASSERT(-(x/y) == -x/y);
+    ASSERT(-(x/y) == x/-y);
+
     cout << "x+2=" << x+Complex(2,0) << endl;
     Complex zz = operator+(x,Complex(2,0));
     cout << "zz=op+(x,2)=" << zz << endl;

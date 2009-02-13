@@ -83,12 +83,16 @@ private:
     } 
 };
 
-// This is for reporting internally-detected bugs only, not
-// problems induced by confused users.
+/// This is for reporting internally-detected bugs only, not problems induced by 
+/// confused users (that is, it is for confused developers instead). The exception
+/// message accepts printf-style arguments and should contain lots of useful
+/// information for developers. Don't throw 
+/// this exception directly; use one of the family of SimTK_ASSERT and 
+/// SimTK_ASSERT_ALWAYS macros.
 class Assert : public Base {
 public:
     Assert(const char* fn, int ln, const char* assertion, 
-           const char* fmt ...) : Base(fn,ln)
+             const char* fmt ...) : Base(fn,ln)
     {
         char buf[1024];
         va_list args;
@@ -96,17 +100,52 @@ public:
         vsprintf(buf, fmt, args);
 
         setMessage("Internal SimTK bug detected: " + std::string(buf)
-                   + " (Assertion '" + std::string(assertion) + "' failed). "
-                     "Please report this to the appropriate authorities at SimTK.org.");
+                   + "\n  (Assertion '" + std::string(assertion) + "' failed).\n"
+            "  Please file a SimTKcore bug report at https://simtk.org/home/simtkcore (Advanced tab).\n"
+            "  Include the above information and anything else needed to reproduce the problem.");
+        va_end(args);
+    }
+};
+
+/// This is for reporting errors occurring during execution of SimTK core methods,
+/// beyond those caused by mere improper API arguments, which should be reported with
+/// APIArgcheck instead.  Nor is this intended for detection of internal
+/// bugs; use Assert instead for that. It is expected that this error resulted from 
+/// something the API user did, so the messages should be suitable for reporting to 
+/// that programmer. The exception message accepts printf-style arguments and should 
+/// contain lots of useful information for the API user. Don't throw this exception 
+/// directly; use one of the family SimTK_ERRCHK and SimTK_ERRCHK_ALWAYS macros.
+class ErrorCheck : public Base {
+public:
+    ErrorCheck(const char* fn, int ln, const char* assertion, 
+           const char* whereChecked,    // e.g., ClassName::methodName()
+           const char* fmt ...) : Base(fn,ln)
+    {
+        char buf[1024];
+        va_list args;
+        va_start(args, fmt);
+        vsprintf(buf, fmt, args);
+
+        setMessage("Error detected by SimTK method " 
+            + std::string(whereChecked) + ": "
+            + std::string(buf)
+            + "\n  (Required condition '" + std::string(assertion) + "' was not met.)\n");
         va_end(args);
     }
 private:
 };
 
-
+/// This is for reporting problems detected by checking the caller's supplied arguments
+/// to a SimTK API method. Messages should be suitable for SimTK API users. This is not
+/// intended for detection of internal bugs where a SimTK developer passed bad arguments
+/// to some internal routine -- use Assert instead for that. The exception message 
+/// accepts printf-style arguments and should contain useful information for the API user. 
+/// Don't throw this exception directly; use one of the family SimTK_APIARGCHECK and 
+/// SimTK_APIARGCHECK_ALWAYS macros.
 class APIArgcheckFailed : public Base {
 public:
-    APIArgcheckFailed(const char* fn, int ln, const char* className, const char* methodName,
+    APIArgcheckFailed(const char* fn, int ln, const char* assertion,
+                      const char* className, const char* methodName,
                       const char* fmt ...) : Base(fn,ln)
     {
         char buf[1024];
@@ -115,10 +154,10 @@ public:
         vsprintf(buf, fmt, args);
         setMessage("Bad call to SimTK API method " 
                    + std::string(className) + "::" + std::string(methodName) + "(): "
-                   + std::string(buf) + ".");
+                   + std::string(buf)
+                   + "\n  (Required condition '" + std::string(assertion) + "' was not met.)");
         va_end(args);
     }
-private:
 };
 
 

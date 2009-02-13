@@ -115,6 +115,16 @@ public:
     typedef SymMat<N,ESqHermT>              TSqHermT;   // ~Mat*Mat
     typedef SymMat<M,ESqTHerm>              TSqTHerm;   // Mat*~Mat
 
+    // Here the elements are passed through unchanged but the result matrix
+    // is an ordinary packed, column order matrix.
+    typedef Mat<M,N,E,M,1>                  TPacked;
+    typedef Mat<M-1,N,E,M,1>                TDropRow;
+    typedef Mat<M,N-1,E,M,1>                TDropCol;
+    typedef Mat<M-1,N-1,E,M,1>              TDropRowCol;
+    typedef Mat<M+1,N,E,M,1>                TAppendRow;
+    typedef Mat<M,N+1,E,M,1>                TAppendCol;
+    typedef Mat<M+1,N+1,E,M,1>              TAppendRowCol;
+
     typedef EScalar                         Scalar;
     typedef ENumber                         Number;
     typedef EStdNumber                      StdNumber;
@@ -747,6 +757,146 @@ public:
         assert(0 <= i && i + MM <= M);
         assert(0 <= j && j + NN <= N);
         return SubMat<MM,NN>::Type::updAs(&(*this)(i,j));
+    }
+
+
+    /// Return a matrix one row smaller than this one by dropping row
+    /// i. The result is packed but has same element type as this one.
+    TDropRow dropRow(int i) const {
+        assert(0 <= i && i < M);
+        TDropRow out;
+        for (int r=0, nxt=0; r<M-1; ++r, ++nxt) {
+            if (nxt==i) ++nxt;  // skip the loser
+            out[r] = (*this)[nxt];
+        }
+        return out;
+    }
+
+    /// Return a matrix one column smaller than this one by dropping column
+    /// j. The result is packed but has same element type as this one.
+    TDropCol dropCol(int j) const {
+        assert(0 <= j && j < N);
+        TDropCol out;
+        for (int c=0, nxt=0; c<N-1; ++c, ++nxt) {
+            if (nxt==j) ++nxt;  // skip the loser
+            out(c) = (*this)(nxt);
+        }
+        return out;
+    }
+
+    /// Return a matrix one row and one column smaller than this one by 
+    /// dropping row i and column j. The result is packed but has same 
+    /// element type as this one.
+    TDropRowCol dropRowCol(int i, int j) const {
+        assert(0 <= i && i < M);
+        assert(0 <= j && j < N);
+        TDropRowCol out;
+        for (int c=0, nxtc=0; c<N-1; ++c, ++nxtc) { 
+            if (nxtc==j) ++nxtc;
+            for (int r=0, nxtr=0; r<M-1; ++r, ++nxtr) {
+                if (nxtr==i) ++nxtr;
+                out(r,c) = (*this)(nxtr,nxtc);
+            }
+        }
+        return out;
+    }
+
+    /// Return a matrix one row larger than this one by adding a row
+    /// to the end. The result is packed but has same element type as
+    /// this one. Works for any assignment compatible row.
+    template <class EE, int SS> 
+    TAppendRow appendRow(const Row<N,EE,SS>& row) const {
+        TAppendRow out;
+        out.updSubMat<M,N>(0,0) = (*this);
+        out[M] = row;
+        return out;
+    }
+
+    /// Return a matrix one column larger than this one by adding a column
+    /// to the end. The result is packed but has same element type as
+    /// this one. Works for any assignment compatible column.
+    template <class EE, int SS> 
+    TAppendCol appendCol(const Vec<M,EE,SS>& col) const {
+        TAppendCol out;
+        out.updSubMat<M,N>(0,0) = (*this);
+        out(N) = col;
+        return out;
+    }
+
+    /// Return a matrix one row and one column larger than this one by 
+    /// adding a row to the bottom and a column to the right. The final
+    /// element of the row is ignored; that value is taken from the 
+    /// final element of the column instead. The result is packed
+    /// but has same element type as this one. Works for any assignment 
+    /// compatible row and column.
+    template <class ER, int SR, class EC, int SC> 
+    TAppendRowCol appendRowCol(const Row<N+1,ER,SR>& row,
+                               const Vec<M+1,EC,SC>& col) const 
+    {
+        TAppendRowCol out;
+        out.updSubMat<M,N>(0,0) = (*this);
+        out[M].updSubRow<N>(0) = row.updSubRow<N>; // ignore last element
+        out(N) = col;
+        return out;
+    }
+
+    /// Return a matrix one row larger than this one by inserting a row
+    /// *before* row i. The result is packed but has same element type as
+    /// this one. Works for any assignment compatible row. The index
+    /// can be one greater than normally allowed in which case the row
+    /// is appended.
+    template <class EE, int SS> 
+    TAppendRow insertRow(int i, const Row<N,EE,SS>& row) const {
+        assert(0 <= i && i <= M);
+        if (i==M) return appendRow(row);
+        TAppendRow out;
+        for (int r=0, nxt=0; r<M; ++r, ++nxt) {
+            if (nxt==i) out[nxt++] = row;
+            out[nxt] = (*this)[r];
+        }
+        return out;
+    }
+
+    /// Return a matrix one column larger than this one by inserting a column
+    /// *before* column j. The result is packed but has same element type as
+    /// this one. Works for any assignment compatible column. The index
+    /// can be one greater than normally allowed in which case the column
+    /// is appended.
+    template <class EE, int SS> 
+    TAppendCol insertCol(int j, const Vec<M,EE,SS>& col) const {
+        assert(0 <= j && j <= N);
+        if (j==N) return appendCol(col);
+        TAppendCol out;
+        for (int c=0, nxt=0; c<N; ++c, ++nxt) {
+            if (nxt==j) out(nxt++) = col;
+            out(nxt) = (*this)(c);
+        }
+        return out;
+    }
+
+    /// Return a matrix one row and one column larger than this one by 
+    /// inserting a row *before* row i and a column *before* column j. 
+    /// The intersecting element of the row is ignored; that element is
+    /// taken from the column. The result is packed but has same element 
+    /// type as this one. Works for any assignment compatible row and 
+    /// column. The indices can be one greater than normally allowed 
+    /// in which case the row or column is appended.
+    template <class ER, int SR, class EC, int SC>
+    TAppendRowCol insertRowCol(int i, int j, const Row<N+1,ER,SR>& row,
+                                             const Vec<M+1,EC,SC>& col) const {
+        assert(0 <= i && i <= M);
+        assert(0 <= j && j <= N);
+        TAppendRowCol out;
+        for (int c=0, nxtc=0; c<N; ++c, ++nxtc) { 
+            if (nxtc==i) ++nxtc;   // leave room
+            for (int r=0, nxtr=0; r<M; ++r, ++nxtr) {
+                if (nxtr==i) ++nxtr;
+                out(nxtr,nxtc) = (*this)(r,c);
+            }
+        }
+        out[i] = row;
+        out(j) = col; // overwrites row's j'th element
+        return out;
     }
 
     // These assume we are given a pointer to d[0] of a Mat<M,N,E,CS,RS> like this one.

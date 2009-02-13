@@ -475,6 +475,13 @@ public:
     conjugate& operator/=(const float& r)
       { re /= r; negIm /= r; return *this; }
 
+    // Disambiguate int to be a double.
+    conjugate& operator =(int i) {*this =double(i); return *this;}
+    conjugate& operator+=(int i) {*this+=double(i); return *this;}
+    conjugate& operator-=(int i) {*this-=double(i); return *this;}
+    conjugate& operator*=(int i) {*this*=double(i); return *this;}
+    conjugate& operator/=(int i) {*this/=double(i); return *this;}
+
     conjugate& operator+=(const conjugate<double>& c)
       { re += c.re; negIm += c.negIm; return *this; }
     conjugate& operator-=(const conjugate<double>& c)
@@ -651,6 +658,13 @@ public:
       { re *= r; negIm *= r; return *this; }
     conjugate& operator/=(const float& r)
       { re /= r; negIm /= r; return *this; }
+
+    // Disambiguate int to be a long double.
+    conjugate& operator =(int i) {*this =long double(i); return *this;}
+    conjugate& operator+=(int i) {*this+=long double(i); return *this;}
+    conjugate& operator-=(int i) {*this-=long double(i); return *this;}
+    conjugate& operator*=(int i) {*this*=long double(i); return *this;}
+    conjugate& operator/=(int i) {*this/=long double(i); return *this;}
 
     conjugate& operator+=(const conjugate<long double>& c)
       { re += c.re; negIm += c.negIm; return *this; }
@@ -962,6 +976,16 @@ operator*(const conjugate<R>& a, const complex<S>& r) {
 template <class R, class S> inline typename Wider<R,S>::WCplx
 operator*(const complex<R>& a, const conjugate<S>& r)
   { return r*a; }
+
+// If there's a negator on the complex number, move it to the conjugate
+// one which will change to complex with just one flop; then this
+// is an ordinary complex mutiply.
+template <class R, class S> inline typename Wider<R,S>::WCplx
+operator*(const negator< complex<R> >& a, const conjugate<S>& r)
+  { return (-a)*(-r); } // -a is free here
+template <class R, class S> inline typename Wider<R,S>::WCplx
+operator*(const conjugate<R>& a, const negator< complex<S> >& r)
+  { return (-a)*(-r); } // -r is free here
 
 // Division is tricky and there is little to gain by trying to exploit
 // the conjugate class, so we'll just convert to complex. (Remember that

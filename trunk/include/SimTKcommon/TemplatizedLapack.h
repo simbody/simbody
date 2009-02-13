@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -40,6 +40,9 @@
 
 #include "SimTKcommon/internal/common.h"
 #include "SimTKlapack.h"
+
+#include <complex>
+using std::complex;
 
 namespace SimTK {
 
@@ -76,6 +79,7 @@ public:
 
 };
 
+    // xGEMM //
 
 template <> inline void Lapack::gemm<float>
    (char transa, char transb,
@@ -101,30 +105,32 @@ template <> inline void Lapack::gemm<double>
         m,n,k,alpha,a,lda,b,ldb,beta,c,ldc
     );
 }
-template <> inline void Lapack::gemm< std::complex<float> >
+template <> inline void Lapack::gemm< complex<float> >
    (char transa, char transb,
     int m, int n, int k,
-    const std::complex<float>& alpha, const std::complex<float> a[], int lda,
-    const std::complex<float> b[], int ldb,
-    const std::complex<float>& beta, std::complex<float> c[], int ldc)
+    const complex<float>& alpha, const complex<float> a[], int lda,
+    const complex<float> b[], int ldb,
+    const complex<float>& beta, complex<float> c[], int ldc)
 {
     cgemm_(
         transa, transb,
         m,n,k,alpha,a,lda,b,ldb,beta,c,ldc
     );
 }
-template <> inline void Lapack::gemm< std::complex<double> >
+template <> inline void Lapack::gemm< complex<double> >
    (char transa, char transb,
     int m, int n, int k,
-    const std::complex<double>& alpha, const std::complex<double> a[], int lda,
-    const std::complex<double> b[], int ldb,
-    const std::complex<double>& beta, std::complex<double> c[], int ldc)
+    const complex<double>& alpha, const complex<double> a[], int lda,
+    const complex<double> b[], int ldb,
+    const complex<double>& beta, complex<double> c[], int ldc)
 {
     zgemm_(
         transa, transb,
         m,n,k,alpha,a,lda,b,ldb,beta,c,ldc
     );
 }
+
+    // xGETRI //
 
 template <> inline void Lapack::getri<float>
    (int          n,
@@ -133,7 +139,7 @@ template <> inline void Lapack::getri<float>
     const int    ipiv[], 
     float        work[], 
     int          lwork, 
-    int         &info )
+    int&         info )
 {
     sgetri_(n,a,lda,ipiv,work,lwork,info);
 }
@@ -145,10 +151,35 @@ template <> inline void Lapack::getri<double>
     const int    ipiv[], 
     double       work[], 
     int          lwork, 
-    int         &info )
+    int&         info )
 {
     dgetri_(n,a,lda,ipiv,work,lwork,info);
 }
+
+template <> inline void Lapack::getri< complex<float> >
+   (int             n,
+    complex<float>  a[],
+    int             lda,
+    const int       ipiv[], 
+    complex<float>  work[], 
+    int             lwork, 
+    int&            info )
+{
+    cgetri_(n,a,lda,ipiv,work,lwork,info);
+}
+
+template <> inline void Lapack::getri< complex<double> >
+   (int             n,
+    complex<double> a[],
+    int             lda,
+    const int       ipiv[], 
+    complex<double> work[], 
+    int             lwork, 
+    int&            info )
+{
+    zgetri_(n,a,lda,ipiv,work,lwork,info);
+}
+    // xGETRF //
 
 template <> inline void Lapack::getrf<float>
    (int          m,
@@ -156,7 +187,7 @@ template <> inline void Lapack::getrf<float>
     float        a[],
     int          lda, 
     int          ipiv[], 
-    int         &info )
+    int&         info )
 {
     sgetrf_(m,n,a,lda,ipiv,info);
 }
@@ -167,118 +198,35 @@ template <> inline void Lapack::getrf<double>
     double       a[],
     int          lda, 
     int          ipiv[], 
-    int         &info )
+    int&         info )
 {
     dgetrf_(m,n,a,lda,ipiv,info);
 }
+
+template <> inline void Lapack::getrf< complex<float> >
+   (int             m,
+    int             n, 
+    complex<float>  a[],
+    int             lda, 
+    int             ipiv[], 
+    int&            info )
+{
+    cgetrf_(m,n,a,lda,ipiv,info);
+}
+
+template <> inline void Lapack::getrf< complex<double> >
+   (int             m,
+    int             n, 
+    complex<double> a[],
+    int             lda, 
+    int             ipiv[], 
+    int&            info )
+{
+    zgetrf_(m,n,a,lda,ipiv,info);
+}
+
+
 /*
-template <> inline void Lapack::gemm<float>
-   (char transa, char transb,
-    int m, int n, int k,
-    const float& alpha, const float a[], int lda,
-    const float b[], int ldb,
-    const float& beta, float c[], int ldc)
-{
-    SimTK_LAPACK(sgemm,SGEMM)(
-        transa SimTK_LAPACK_STRLEN_FOLLOWS_CALL(1),
-        transb SimTK_LAPACK_STRLEN_FOLLOWS_CALL(1),
-        m,n,k,alpha,a,lda,b,ldb,beta,c,ldc
-        SimTK_LAPACK_STRLEN_ATEND_CALL(1)
-        SimTK_LAPACK_STRLEN_ATEND_CALL(1)
-    );
-}
-template <> inline void Lapack::gemm<double>
-   (char transa, char transb,
-    int m, int n, int k,
-    const double& alpha, const double a[], int lda,
-    const double b[], int ldb,
-    const double& beta, double c[], int ldc)
-{
-    SimTK_LAPACK(dgemm,DGEMM)(
-        transa SimTK_LAPACK_STRLEN_FOLLOWS_CALL(1),
-        transb SimTK_LAPACK_STRLEN_FOLLOWS_CALL(1),
-        m,n,k,alpha,a,lda,b,ldb,beta,c,ldc
-        SimTK_LAPACK_STRLEN_ATEND_CALL(1)
-        SimTK_LAPACK_STRLEN_ATEND_CALL(1)
-    );
-}
-template <> inline void Lapack::gemm< std::complex<float> >
-   (char transa, char transb,
-    int m, int n, int k,
-    const std::complex<float>& alpha, const std::complex<float> a[], int lda,
-    const std::complex<float> b[], int ldb,
-    const std::complex<float>& beta, std::complex<float> c[], int ldc)
-{
-    SimTK_LAPACK(cgemm,CGEMM)(
-        transa SimTK_LAPACK_STRLEN_FOLLOWS_CALL(1),
-        transb SimTK_LAPACK_STRLEN_FOLLOWS_CALL(1),
-        m,n,k,alpha,a,lda,b,ldb,beta,c,ldc
-        SimTK_LAPACK_STRLEN_ATEND_CALL(1)
-        SimTK_LAPACK_STRLEN_ATEND_CALL(1)
-    );
-}
-template <> inline void Lapack::gemm< std::complex<double> >
-   (char transa, char transb,
-    int m, int n, int k,
-    const std::complex<double>& alpha, const std::complex<double> a[], int lda,
-    const std::complex<double> b[], int ldb,
-    const std::complex<double>& beta, std::complex<double> c[], int ldc)
-{
-    SimTK_LAPACK(zgemm,ZGEMM)(
-        transa SimTK_LAPACK_STRLEN_FOLLOWS_CALL(1),
-        transb SimTK_LAPACK_STRLEN_FOLLOWS_CALL(1),
-        m,n,k,alpha,a,lda,b,ldb,beta,c,ldc
-        SimTK_LAPACK_STRLEN_ATEND_CALL(1)
-        SimTK_LAPACK_STRLEN_ATEND_CALL(1)
-    );
-}
-
-template <> inline void Lapack::getri<float>
-   (int          n,
-    float        a[],
-    int          lda,
-    const int    ipiv[], 
-    float        work[], 
-    int          lwork, 
-    int         &info )
-{
-    SimTK_LAPACK(sgetri,SGETRI)(n,a,lda,ipiv,work,lwork,info);
-}
-
-template <> inline void Lapack::getri<double>
-   (int          n,
-    double       a[],
-    int          lda,
-    const int    ipiv[], 
-    double       work[], 
-    int          lwork, 
-    int         &info )
-{
-    SimTK_LAPACK(dgetri,DGETRI)(n,a,lda,ipiv,work,lwork,info);
-}
-
-template <> inline void Lapack::getrf<float>
-   (int          m,
-    int          n, 
-    float        a[],
-    int          lda, 
-    int          ipiv[], 
-    int         &info )
-{
-    SimTK_LAPACK(sgetrf,SGETRF)(m,n,a,lda,ipiv,info);
-}
-
-template <> inline void Lapack::getrf<double>
-   (int          m,
-    int          n, 
-    double       a[],
-    int          lda, 
-    int          ipiv[], 
-    int         &info )
-{
-    SimTK_LAPACK(dgetrf,DGETRF)(m,n,a,lda,ipiv,info);
-}
-
 void SimTK_STDCALL
 SimTK_LAPACK(dgeev,DGEEV)
    (const char  &jobvl SimTK_LAPACK_STRLEN_FOLLOWS_DECL, 

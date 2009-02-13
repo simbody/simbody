@@ -86,6 +86,7 @@ class SimTK_SimTKCOMMON_EXPORT negator {
     typedef typename NTraits<N>::TImag      NImag;
     typedef typename NTraits<N>::TComplex   NComplex;
     typedef typename NTraits<N>::THerm      NHerm;
+    typedef typename NTraits<N>::TInvert    NInvert;
 public:
     typedef negator<N>                                          T;
     typedef NUMBER                                              TNeg;   // negator evaporates
@@ -103,7 +104,7 @@ public:
 
     typedef typename NTraits<N>::TAbs                           TAbs;
     typedef typename NTraits<N>::TStandard                      TStandard;
-    typedef typename NTraits<N>::TInvert                        TInvert;
+    typedef typename CNT<NInvert>::TNeg                         TInvert;
     typedef typename NTraits<N>::TStandard                      TNormalize; // neg<conj> -> complex
 
 
@@ -173,7 +174,12 @@ public:
     TAbs       abs()           const {return NTraits<N>::abs(v);}
     TStandard  standardize()   const {return -NTraits<N>::standardize(v);}
     TNormalize normalize()     const {return -NTraits<N>::normalize(v);}
-    TInvert    invert()        const {return -NTraits<N>::invert(v);}
+
+    // Inverse (1/x) of a non-negated type N will return a non-negated type, so we
+    // can cast it to a negated type here to save a flop. The return type might
+    // not be N (a negated conjugate comes back as a complex), so there may be
+    // a flop done in the final conversion to TInvert.
+    TInvert invert() const {return recast(NTraits<N>::invert(v));}
 
     negator() {
     #ifndef NDEBUG
@@ -231,33 +237,40 @@ private:
 // Handle all binary numerical operators involving a negator<A> and a B, or negator<A>
 // and negator<B>, obtaining results by stripping away the negator<>s and fiddling
 // with signs appropriately.
+// Careful: don't remove both negators in one step because Result isn't specialized
+// for negators so it might not predict the same result type as you actually get.
+// Be patient and let it strip one negator at a time -- in Release mode that won't
+// add any code since all this stuff drops away.
+//
 // To appreciate the beauty of these operators, remember that -x is free when x
 // is a negator.
 
 template <class DEST, class SRC> static inline const DEST&
 negRecast(const SRC& s) { return reinterpret_cast<const DEST&>(s); }
 
-// Binary '+' with a negator as one or both arguments
+    // Binary '+' with a negator as one or both arguments //
 template <class A, class B> inline typename negator<A>::template Result<B>::Add
 operator+(const negator<A>& l, const B& r)
   {return negRecast<typename negator<A>::template Result<B>::Add>(r-(-l));}
 template <class A, class B> inline typename CNT<A>::template Result<negator<B> >::Add
 operator+(const A& l, const negator<B>& r)
   {return negRecast<typename CNT<A>::template Result<negator<B> >::Add>(l-(-r));}
+// One step at a time here (see above).
 template <class A, class B> inline typename negator<A>::template Result<negator<B> >::Add
 operator+(const negator<A>& l, const negator<B>& r) 
-  {return negRecast<typename negator<A>::template Result<negator<B> >::Add>((-l)+(-r)); }
+  {return negRecast<typename negator<A>::template Result<negator<B> >::Add>(r-(-l)); }
 
-// Binary '-' with a negator as one or both arguments
+    // Binary '-' with a negator as one or both arguments //
 template <class A, class B> inline typename negator<A>::template Result<B>::Sub
 operator-(const negator<A>& l, const B& r)
-  {return negRecast<typename negator<A>::template Result<B>::Sub>((-l)+r);}
+  {return negRecast<typename negator<A>::template Result<B>::Sub>(r+(-l));}
 template <class A, class B> inline typename CNT<A>::template Result<negator<B> >::Sub
 operator-(const A& l, const negator<B>& r)
   {return negRecast<typename CNT<A>::template Result<negator<B> >::Sub>(l+(-r));}
+// One step at a time here (see above).
 template <class A, class B> inline typename negator<A>::template Result<negator<B> >::Sub
 operator-(const negator<A>& l, const negator<B>& r) 
-  {return negRecast<typename negator<A>::template Result<negator<B> >::Sub>((-r)-(-l));}
+  {return negRecast<typename negator<A>::template Result<negator<B> >::Sub>(r+(-l));}
 
 // Binary '*' with a negator as one or both arguments
 template <class A, class B> inline typename negator<A>::template Result<B>::Mul
@@ -266,9 +279,10 @@ operator*(const negator<A>& l, const B& r)
 template <class A, class B> inline typename CNT<A>::template Result<negator<B> >::Mul
 operator*(const A& l, const negator<B>& r)
   {return negRecast<typename CNT<A>::template Result<negator<B> >::Mul>(l*(-r));}
+// One step at a time here (see above).
 template <class A, class B> inline typename negator<A>::template Result<negator<B> >::Mul
 operator*(const negator<A>& l, const negator<B>& r)
-  {return negRecast<typename negator<A>::template Result<negator<B> >::Mul>((-l)*(-r));}
+  {return negRecast<typename negator<A>::template Result<negator<B> >::Mul>((-l)*r);}
 
 // Binary '/' with a negator as one or both arguments
 template <class A, class B> inline typename negator<A>::template Result<B>::Dvd
@@ -277,9 +291,10 @@ operator/(const negator<A>& l, const B& r)
 template <class A, class B> inline typename CNT<A>::template Result<negator<B> >::Dvd
 operator/(const A& l, const negator<B>& r)
   {return negRecast<typename CNT<A>::template Result<negator<B> >::Dvd>(l/(-r));}
+// One step at a time here (see above).
 template <class A, class B> inline typename negator<A>::template Result<negator<B> >::Dvd
 operator/(const negator<A>& l, const negator<B>& r)
-  {return negRecast<typename negator<A>::template Result<negator<B> >::Dvd>((-l)/(-r));}
+  {return negRecast<typename negator<A>::template Result<negator<B> >::Dvd>((-l)/r);}
 
 // Binary '==' with a negator as one or both arguments
 template <class A, class B> inline bool

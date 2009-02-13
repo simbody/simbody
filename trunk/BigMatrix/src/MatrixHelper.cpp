@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -31,404 +31,440 @@
 
 #include "SimTKcommon/Scalar.h"
 #include "SimTKcommon/SmallMatrix.h"
+#include "SimTKcommon/TemplatizedLapack.h"
 
 #include "SimTKcommon/internal/MatrixHelper.h"
+#include "SimTKcommon/internal/MatrixCharacteristics.h"
 
-#include "ElementFilter.h"
-#include "DataDescriptor.h"
+#include "MatrixHelperRep.h"
+#include "MatrixHelperRep_Full.h"
+#include "MatrixHelperRep_Tri.h"
+#include "MatrixHelperRep_Vector.h"
 
 #include <iostream>
 #include <cstdio>
+#include <vector>
 
 namespace SimTK {
 
-/**
- * This is the private implementation of the MatrixHelper<S> class. Note that this
- * must be explicitly instantiated in library-side source code for all possible
- * values of the template parameter S, which is just the set of all SimTK scalar
- * types.
- */
-template <class S> 
-class MatrixHelperRep {
-    typedef typename CNT<S>::Number     Number;     // strips off negator from S
-    typedef typename CNT<S>::StdNumber  StdNumber;  // turns conjugate to complex
-    typedef typename CNT<S>::Precision  Precision;  // strips off complex from StdNumber
-public:     
-    // no default constructor, copy constructor suppressed
 
-    // Local types for directing us to the right constructor at compile time.
-    class ShallowCopy   { };
-    class DeepCopy      { };
-    class TransposeView { };
-    
-    // Matrix owner constructors
-    
-    // 0x0, fully resizable
-    explicit MatrixHelperRep(int esz, int cppEsz) 
-      : eltSize(esz),cppEltSize(cppEsz),view(0),data(0),myHandle(0) 
-    {
-        SimTK_ASSERT2(esz > 0 && cppEsz >= esz, 
-            "MatrixHelper constructor was given a bad element size esz=%d, cppEsz=%d", esz, cppEsz); 
-    }
+//----------------------------- MATRIX HELPER ----------------------------------
+//
+// Implementations of MatrixHelper methods. Most are just pass throughs to
+// MatrixHelperRep, but some may involve replacing the current MatrixHelperRep
+// with a different one.
+//------------------------------------------------------------------------------
 
-    // Restore helper to its just-constructed state. We forget everything except
-    // the element size, which can never change.
-    void clear();
-
-    // (m*esz) x n, resizable with optional restrictions 
-    MatrixHelperRep(int esz, int cppEsz, int m, int n, bool lockNrow, bool lockNcol);
-    
-    // This is a non-resizeable owner (of the data descriptor) but shares pre-existing raw data.
-    MatrixHelperRep(int esz, int cppEsz, int m, int n, int leadingDim, const S*); // read only
-    MatrixHelperRep(int esz, int cppEsz, int m, int n, int leadingDim, S*);       // writable
-
-    // Behavior of copy assignment depends on whether this is an owner or view. If
-    // it's an owner it is resized and ends up a new, dense copy of rhs. If
-    // it's a view, sizes must match and we copy elements from rhs to corresponding
-    // elements of lhs.  
-    MatrixHelperRep& copyAssign(const MatrixHelper<S>&);
-    MatrixHelperRep& negatedCopyAssign(const MatrixHelper<typename CNT<S>::TNeg>&);
-
-    // View assign always disconnects this helper from whatever view & data
-    // it used to have (destructing as appropriate) and then makes it a new view
-    // of the source. Writability is lost if the source is const, otherwise 
-    // writability is inherited from the source.
-    MatrixHelperRep& readOnlyViewAssign(const MatrixHelper<S>&);
-    MatrixHelperRep& writableViewAssign(MatrixHelper<S>&);
-
-    // These are like constructors for heap allocated MatrixHelperReps
-    MatrixHelperRep* createReadOnlyShallowCopy() const;
-    MatrixHelperRep* createWritableShallowCopy();
-
-    MatrixHelperRep*                        createDeepCopy() const;
-    MatrixHelperRep<typename CNT<S>::TNeg>* createNegatedDeepCopy() const;
-
-    MatrixHelperRep* createReadOnlyBlockView(int i, int j, int m, int n) const;
-    MatrixHelperRep* createWritableBlockView(int i, int j, int m, int n);
-
-    MatrixHelperRep* createReadOnlyDiagonalView() const;
-    MatrixHelperRep* createWritableDiagonalView();
-
-    MatrixHelperRep<typename CNT<S>::THerm>* createReadOnlyTransposedView() const;
-    MatrixHelperRep<typename CNT<S>::THerm>* createWritableTransposedView();
-
-    // Using *element* indices, obtain a pointer to the beginning of a particular
-    // element. This is always a slow operation compared to raw array access;
-    // use sparingly.    
-    const S* getElt(int i, int j) const;
-    S*       updElt(int i, int j);
-
-    // Add up all the *elements*, returning the answer in the element given
-    // by pointer to its first scalar.
-    void sum(S* eltp) const;
-    void colSum(int j, S* eltp) const;
-    void rowSum(int i, S* eltp) const;
-        
-    // addition and subtraction (+= and -=)
-    void addIn(const MatrixHelper<S>&);   
-    void addIn(const MatrixHelper<typename CNT<S>::TNeg>&);   
-    void subIn(const MatrixHelper<S>&); 
-    void subIn(const MatrixHelper<typename CNT<S>::TNeg>&); 
-    
-    void fillWith(const S* eltp);
-    void copyInByRows(const S* elts);
-    
-        // Scalar operations //
-
-    // Fill every element with repeated copies of a single scalar value.
-    void fillWithScalar(const StdNumber&);
-            
-    // Scalar multiply (and divide). This is useful no matter what the
-    // element structure and will produce the correct result.
-    void scaleBy(const StdNumber&);
-    
-    // Sums of scalars, regardless of element structure. Not much use except
-    // when the elements are themselves scalars.
-    S scalarSum() const;
-    S scalarColSum(int j) const;
-    S scalarRowSum(int i) const; 
-
-    // This is only allowed for a matrix of real or complex or neg of those,
-    // which is square, well-conditioned, and for which we have no view,
-    // and element size 1.
-    void invertInPlace();
-
-    void dump(const char* msg) const;
-
-    // See comment in MatrixBase::matmul for an explanation.
-    template <class SA, class SB>
-    void matmul(const StdNumber& beta,   // applied to 'this'
-                const StdNumber& alpha, const MatrixHelper<SA>& A, const MatrixHelper<SB>& B);
-    
-    // Here we use element indices but return the first scalar we find there.
-    // This is useless except when the elements are scalars.
-    const S& getScalar(int i, int j) const;
-    S&       updScalar(int i, int j);      
-    
-        // Bookkeeping //
-        
-    int  nrow() const;
-    int  ncol() const;
-    long size() const; // nrow*ncol  
-
-    void resize(int m, int n);
-    void resizeKeep(int m, int n);
-
-    void lockNRows();
-    void lockNCols();
-    void lockShape();
-    void unlockNRows();
-    void unlockNCols();
-    void unlockShape();
-
-     void setMatrixStructure(MatrixStructures::Structure );
-     MatrixStructures::Structure getMatrixStructure() const;
-     void setMatrixShape(MatrixShapes::Shape );
-     MatrixShapes::Shape getMatrixShape() const;
-     void setMatrixSparsity(MatrixSparseFormats::Sparsity );
-     MatrixSparseFormats::Sparsity getMatrixSparsity() const;
-     void setMatrixStorage(MatrixStorageFormats::Storage );
-     MatrixStorageFormats::Storage getMatrixStorage() const;
-     void setMatrixCondition(MatrixConditions::Condition );
-     MatrixConditions::Condition getMatrixCondition() const;
-
-    ~MatrixHelperRep();
-
-
-    void setMyHandle(MatrixHelper<S>& h) {myHandle = &h;}
-    const MatrixHelper<S>& getMyHandle() const {assert(myHandle); return *myHandle;}
-    void clearMyHandle() {myHandle=0;}
-
-private:
-    // Matrix handle commitments.
-
-    // We are always committed to a particular size element (size is minimum
-    // # scalars required). We also make note here of the size that C++
-    // allocates for one of these for use in communicating with ordinary
-    // arrays when that is necessary.
-    const int eltSize;      // # scalars per packed element
-    const int cppEltSize;   // # scalars when C++ pads out the element
-
-    // These are by default "Uncommitted", meaning we're happy to take on
-    // matrices in any format. Otherwise the settings here limit what we'll
-    // find acceptable in view & data.
-    // Note: don't look at these to find out anything about the current
-    // matrix. These are used only when the matrix is being created or
-    // changed structurally. If there is a view, then that defines the
-    // current matrix properties. Otherwise, the data descriptor does so.
-    MatrixShape     shapeCommitment;
-    MatrixSize      sizeCommitment;
-    MatrixStructure structureCommitment;
-    MatrixSparsity  sparsityCommitment;
-    MatrixStorage   storageCommitment;
-    MatrixCondition conditionCommitment;
-
-
-    ElementFilter*     view;    // details are opaque
-    DataDescriptor<S>* data;    // TODO: should be <StdNumber>?
-
-    MatrixHelper<S>* myHandle; // point back to the owner handle
-    friend class MatrixHelper<S>;
-
-    // suppress assignment & copy
-    MatrixHelperRep& operator=(const MatrixHelperRep&);
-    MatrixHelperRep(const MatrixHelperRep&);
-
-    MatrixHelperRep(int esz, ElementFilter* v, DataDescriptor<S>* d)
-      : eltSize(esz), view(v), data(d) {
-    }
-
-    template <class T> friend class MatrixHelperRep;
-
-    int getElementSize() const { return eltSize; }
-    bool isDataOwned() const;
-};
-
-    ///////////////////
-    // MATRIX HELPER //
-    ///////////////////
-
-// These are all pass-throughs to the MatrixHelperRep class.
-
-    template <class S> void
-    MatrixHelper<S>::setMatrixStructure(MatrixStructures::Structure structure) {
-        rep->setMatrixStructure( structure );
-    }
-
-    template <class S> MatrixStructures::Structure
-    MatrixHelper<S>::getMatrixStructure() const {
-        return rep->getMatrixStructure();
-    }
-    template <class S> void
-    MatrixHelper<S>::setMatrixShape(MatrixShapes::Shape shape) {
-        rep->setMatrixShape( shape );
-    }
-    template <class S> MatrixShapes::Shape
-    MatrixHelper<S>::getMatrixShape() const {
-        return rep->getMatrixShape();
-    }
-    template <class S> void
-    MatrixHelper<S>::setMatrixSparsity(MatrixSparseFormats::Sparsity sparsity) {
-        rep->setMatrixSparsity( sparsity );
-    }
-    template <class S> MatrixSparseFormats::Sparsity
-    MatrixHelper<S>::getMatrixSparsity() const {
-        return rep->getMatrixSparsity();
-    }
-    template <class S> void
-    MatrixHelper<S>::setMatrixStorage(MatrixStorageFormats::Storage storage) {
-        rep->setMatrixStorage( storage );
-    }
-    template <class S> MatrixStorageFormats::Storage
-    MatrixHelper<S>::getMatrixStorage() const {
-        return rep->getMatrixStorage();
-    }
-    template <class S> void
-    MatrixHelper<S>::setMatrixCondition(MatrixConditions::Condition condition) {
-        rep->setMatrixCondition( condition );
-    }
-    template <class S> MatrixConditions::Condition
-    MatrixHelper<S>::getMatrixCondition() const {
-        return rep->getMatrixCondition();
-    }
-
-
-template <class S> void
-MatrixHelper<S>::clear() {
-    rep->clear();
-}
-
-// Destructor. If we own the MatrixHelperRep it will point back here.
-template <class S> 
-MatrixHelper<S>::~MatrixHelper() {
-    if (&rep->getMyHandle() == this)
+template <class S> void 
+MatrixHelper<S>::deleteRepIfOwner() {
+    if (rep && &rep->getMyHandle() == this)
         delete rep;
     rep=0;
 }
 
-template <class S> 
-MatrixHelper<S>::MatrixHelper(int esz, int cppEsz) : rep(0) { 
-    rep = new MatrixHelperRep<S>(esz,cppEsz);
-    rep->setMyHandle(*this);
-}
-template <class S> 
-MatrixHelper<S>::MatrixHelper(int esz, int cppEsz, int m, int n, bool lockNrow, bool lockNcol) : rep(0) { 
-    rep = new MatrixHelperRep<S>(esz,cppEsz,m,n,lockNrow,lockNcol);
-    rep->setMyHandle(*this);
-}
-// These are non-resizeable owners (of the data descriptor) but share pre-existing raw data.
-// We have read-only and writable varieties.
-template <class S> 
-MatrixHelper<S>::MatrixHelper(int esz, int cppEsz, int m, int n, int leadingDim, const S* s) : rep(0) {
-    rep = new MatrixHelperRep<S>(esz,cppEsz,m,n,leadingDim,s);
-    rep->setMyHandle(*this);
-}
-template <class S> 
-MatrixHelper<S>::MatrixHelper(int esz, int cppEsz, int m, int n, int leadingDim, S* s) : rep(0) {
-    rep = new MatrixHelperRep<S>(esz,cppEsz,m,n,leadingDim,s);
+// Rep replacement. Delete the existing rep if we're the owner of it.
+// We are going to be the owner of the new rep regardless.
+template <class S> void 
+MatrixHelper<S>::replaceRep(MatrixHelperRep<S>* hrep) {
+    deleteRepIfOwner();
+    rep=hrep;
     rep->setMyHandle(*this);
 }
 
-// copy constructor is suppressed; these are closest things but require
-// specification of deep or shallow copy
+// Space-stealing constructor. We're going to take over ownership
+// of this rep.
+template <class S> 
+MatrixHelper<S>::MatrixHelper(MatrixHelperRep<S>* hrep) : rep(hrep)
+{   if (rep) rep->setMyHandle(*this); }
+
+template <class S> const MatrixCommitment& 
+MatrixHelper<S>::getCharacterCommitment() const
+{   return getRep().getCharacterCommitment(); }
+
+template <class S> const MatrixCharacter& 
+MatrixHelper<S>::getMatrixCharacter() const
+{   return getRep().getMatrixCharacter(); }
+
+
+
+// This is the constructor for a Matrix in which only the handle commitment has been
+// supplied. The allocated matrix will have the smallest size that satisfies the
+// commitment, typically 0x0 or 0x1.
+template <class S> 
+MatrixHelper<S>::MatrixHelper(int esz, int cppEsz, const MatrixCommitment& mc) : rep(0) {
+    // Determine the best actual matrix to allocate to satisfy this commitment.
+    const MatrixCharacter actual = mc.calcDefaultCharacter(0,0); 
+
+    rep = MatrixHelperRep<S>::createOwnerMatrixHelperRep(esz, cppEsz, actual);
+    assert(rep);
+    rep->setMyHandle(*this);
+
+    rep->m_commitment = mc;
+}
+
+// This is effectively the default constructor. It creates a writable, fully resizable 0x0
+// matrix, with the handle committed only to the given element size.
+// Just calls the above constructor with a default commitment.
+template <class S> 
+MatrixHelper<S>::MatrixHelper(int esz, int cppEsz) : rep(0) {
+    new (this) MatrixHelper(esz, cppEsz, MatrixCommitment());
+}
+
+// This is the constructor for a Matrix in which the handle commitment has been
+// supplied, along with an initial allocation size. Provided the size satisfies the
+// commitment, the resulting matrix will have that size.
+template <class S> 
+MatrixHelper<S>::MatrixHelper
+   (int esz, int cppEsz, const MatrixCommitment& commitment, 
+    int m, int n) : rep(0) 
+{
+    SimTK_ERRCHK2(commitment.isSizeOK(m,n),  "MatrixHelper::ctor()", 
+        "The initial size allocation %s x %s didn't satisfy the supplied commitment.",
+        m, n);
+
+    // Determine the best actual matrix to allocate to satisfy this commitment.
+    const MatrixCharacter actual = commitment.calcDefaultCharacter(m,n);
+
+    rep = MatrixHelperRep<S>::createOwnerMatrixHelperRep(esz, cppEsz, actual);
+    assert(rep);
+    rep->setMyHandle(*this);
+
+    rep->m_commitment = commitment;
+}
+
+// Create a read-only view into existing data.
+template <class S> 
+MatrixHelper<S>::MatrixHelper
+   (int esz, int cppEsz, const MatrixCommitment& commitment,
+    const MatrixCharacter& actual, int spacing, const S* data) : rep(0) 
+{
+    SimTK_ERRCHK(commitment.isSatisfiedBy(actual), "MatrixHelper::ctor(external data)",
+    "The supplied actual matrix character for the external data did not "
+    "satisfy the specified handle character commitment.");
+
+    rep = MatrixHelperRep<S>::createExternalMatrixHelperRep
+                (esz, cppEsz, actual, spacing, const_cast<S*>(data), false); 
+    assert(rep);
+    rep->setMyHandle(*this);
+
+    rep->m_commitment = commitment;
+}
+
+// Create a writable view into existing data.
+template <class S> 
+MatrixHelper<S>::MatrixHelper
+   (int esz, int cppEsz, const MatrixCommitment& commitment, 
+    const MatrixCharacter& actual, int spacing, S* data) : rep(0) 
+{
+    SimTK_ERRCHK(commitment.isSatisfiedBy(actual), "MatrixHelper::ctor(external data)",
+        "The supplied actual matrix character for the external data did not "
+        "satisfy the specified handle character commitment.");
+
+    rep = MatrixHelperRep<S>::createExternalMatrixHelperRep
+                (esz, cppEsz, actual, spacing, data, true); 
+    assert(rep);
+    rep->setMyHandle(*this);
+
+    rep->m_commitment = commitment;
+}
+
+/*
+// This is the basic constructor for an mXn matrix. Here we allocate a handle locked to the
+// given element size, and allocate uninitialized mXn writable data elements and whether
+// the data can be resized in one or both dimensions.
+template <class S> 
+MatrixHelper<S>::MatrixHelper(int esz, int cppEsz, int m, int n, bool lockNrow, bool lockNcol) : rep(0) { 
+    SimTK_ASSERT2((esz==1&&cppEsz==1) || (esz>1&&cppEsz>=esz),
+        "MatrixHelper constructor was given a bad element size esz=%d, cppEsz=%d", esz, cppEsz); 
+
+
+    if (lockNcol && n==1)
+        rep = (esz==1 ? (FullVectorHelper<S>*)new ContiguousVectorScalarHelper<S>(m,false)
+                      : (FullVectorHelper<S>*)new ContiguousVectorHelper<S>(esz,cppEsz,m,false));
+    else if (lockNrow && m==1)
+        rep = (esz==1 ? (FullVectorHelper<S>*)new ContiguousVectorScalarHelper<S>(m,true)
+                      : (FullVectorHelper<S>*)new ContiguousVectorHelper<S>(esz,cppEsz,m,true));
+    else {
+        // Allocate a full, writable, owner helper with allocated, column-ordered but 
+        // uninitialized data.
+        rep = (esz == 1 ? (RegularFullHelper<S>*)new FullColOrderScalarHelper<S>(m,n) 
+                        : (RegularFullHelper<S>*)new FullColOrderEltHelper<S>(esz,cppEsz, m,n));
+    }
+
+    if (lockNrow) rep->m_commitment.commitNumRows(m);
+    if (lockNcol) rep->m_commitment.commitNumCols(n);
+    rep->setMyHandle(*this);
+}
+*/
+
+// clear() restores this matrix to the state it would be in if it were constructed
+// using its current character commitment. We'll replace the current HelperRep with
+// a fresh one. Note that this is more expensive than resize(0,0) which doesn't
+// require replacement of the HelperRep.
+template <class S> void
+MatrixHelper<S>::clear() {
+    // Determine the best actual matrix to allocate to satisfy this commitment.
+    const MatrixCharacter actual = getCharacterCommitment().calcDefaultCharacter(0,0); 
+    const int             esz    = getRep().getElementSize();
+    const int             cppEsz = getRep().getCppElementSize();
+
+    MatrixHelperRep<S>* newRep = 
+        MatrixHelperRep<S>::createOwnerMatrixHelperRep(esz, cppEsz, actual);
+    assert(newRep);
+
+    newRep->m_commitment = getRep().m_commitment;
+    if (!getRep().m_canBeOwner) {
+        newRep->m_canBeOwner = false;
+        newRep->m_owner      = false;
+    }
+
+    replaceRep(newRep);
+}
+
+template <class S> bool
+MatrixHelper<S>::isClear() const {return getRep().isClear();}
+
+
+template <class S> void
+MatrixHelper<S>::commitTo(const MatrixCommitment& mc) {
+        SimTK_ERRCHK_ALWAYS(isClear(), "MatrixHelper::commitTo()",
+            "You can only replace the character commitment in an empty Matrix handle."
+            "  Call clear() first to empty the handle.");
+        updRep().m_commitment = mc;
+        clear(); // reallocate to satisfy the new commitment
+}
+
+// Copy constructor is suppressed; these are closest things but require
+// specification of deep or shallow copy.
 
 // Create a read-only view of existing data.
 template <class S>
-MatrixHelper<S>::MatrixHelper(const MatrixHelper& h, const ShallowCopy&) : rep(0) {
-    rep = h.rep->createReadOnlyShallowCopy();
+MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h, const ShallowCopy&) : rep(0) {
+    SimTK_ERRCHK(mc.isSatisfiedBy(h.getMatrixCharacter()), "MatrixHelper::ctor(const,shallow)",
+        "The actual matrix character of the source did not "
+        "satisfy the specified handle character commitment.");
+    rep = h.rep->createWholeView(false);
     rep->setMyHandle(*this);
+    rep->m_commitment = mc;
 }
+
 // Create a (possibly) writable view of existing data. 
 template <class S>
-MatrixHelper<S>::MatrixHelper(MatrixHelper& h, const ShallowCopy&) : rep(0) {
-    rep = h.rep->createWritableShallowCopy();
+MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h, const ShallowCopy&) : rep(0) {
+    SimTK_ERRCHK(mc.isSatisfiedBy(h.getMatrixCharacter()), "MatrixHelper::ctor(writable,shallow)",
+        "The actual matrix character of the source did not "
+        "satisfy the specified handle character commitment.");
+    rep = h.rep->createWholeView(true);
     rep->setMyHandle(*this);
+    rep->m_commitment = mc;
 }
-// Deep copy. "This" will have no view, and the result is always writable, packed storage.
+
+// Deep copy. "This" be always writable and in densely packed storage.
 template <class S>
-MatrixHelper<S>::MatrixHelper(const MatrixHelper& h, const DeepCopy&) : rep(0) {
+MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h, const DeepCopy&) : rep(0) {
+    SimTK_ERRCHK(mc.isSatisfiedBy(h.getMatrixCharacter()), "MatrixHelper::ctor(deep)",
+        "The actual matrix character of the source did not "
+        "satisfy the specified handle character commitment.");
     rep = h.rep->createDeepCopy();
     rep->setMyHandle(*this);
+    rep->m_commitment = mc;
 }
-// Negated deep copy. We'll get a brand new, viewless, writable, packed copy with 
+
+// Negated deep copy. We'll get a brand new, filterless, writable, packed copy with 
 // the same values as the original (duh, that's what "copy" means) -- BUT, the
 // physical floating point representations will all have been negated since we're
-// copying a Matrix whose elements are of type negator<S> while ours are type S.
+// copying a Matrix whose elements are of type negator<S> while ours are type S (or
+// vice versa).
 template <class S>
-MatrixHelper<S>::MatrixHelper(const MatrixHelper<typename CNT<S>::TNeg>& h, const DeepCopy&) : rep(0) {
+MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper<typename CNT<S>::TNeg>& h, const DeepCopy&) : rep(0) {
+    SimTK_ERRCHK(mc.isSatisfiedBy(h.getMatrixCharacter()), "MatrixHelper::ctor(negated,deep)",
+        "The actual matrix character of the source did not "
+        "satisfy the specified handle character commitment.");
     rep = h.rep->createNegatedDeepCopy();
     rep->setMyHandle(*this);
+    rep->m_commitment = mc;
 }
-// construct read-only view
+
+// construct read-only block view
 template <class S> 
-MatrixHelper<S>::MatrixHelper(const MatrixHelper& h, int i, int j, int m, int n) : rep(0) {
-    rep = h.rep->createReadOnlyBlockView(i,j,m,n);
+MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h, int i, int j, int m, int n) : rep(0) {
+    if (n==1)
+        rep = h.rep->createColumnView(j,i,m,false); // column j, from i to i+m-1
+    else if (m==1)
+        rep = h.rep->createRowView(i,j,n,false); // row i, from j to j+n-1
+    else 
+        rep = h.rep->createBlockView(EltBlock(i,j,m,n), false);
+
+    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), "MatrixHelper::ctor(const,block)",
+        "The actual matrix character of the source block did not "
+        "satisfy the specified handle character commitment.");
+
     rep->setMyHandle(*this);
+    rep->m_commitment = mc;
 }
-// construct writable view
+
+// construct (possibly) writable block view
 template <class S> 
-MatrixHelper<S>::MatrixHelper(MatrixHelper& h, int i, int j, int m, int n) : rep(0) {
-    rep = h.rep->createWritableBlockView(i,j,m,n);
+MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h, int i, int j, int m, int n) : rep(0) {
+    if (n==1)
+        rep = h.rep->createColumnView(j,i,m,true); // column j, from i to i+m-1
+    else if (m==1)
+        rep = h.rep->createRowView(i,j,n,true); // row i, from j to j+n-1
+    else 
+        rep = h.rep->createBlockView(EltBlock(i,j,m,n),true);
+
+    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), "MatrixHelper::ctor(writable,block)",
+        "The actual matrix character of the source block did not "
+        "satisfy the specified handle character commitment.");
+
     rep->setMyHandle(*this);
+    rep->m_commitment = mc;
 }
+
 // Construct read only transposed view of passed-in helper.
 template <class S>
-MatrixHelper<S>::MatrixHelper(const MatrixHelper<typename CNT<S>::THerm>& h,
+MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper<typename CNT<S>::THerm>& h,
                               const TransposeView&) : rep(0) {
-    rep = h.rep->createReadOnlyTransposedView();
+    rep = h.rep->createHermitianView(false);
+
+    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), "MatrixHelper::ctor(const,transpose)",
+        "The actual matrix character of the transposed source did not "
+        "satisfy the specified handle character commitment.");
+
     rep->setMyHandle(*this);
+    rep->m_commitment = mc;
 }
 
 // Construct (possibly) writable transposed view of passed-in helper.
 template <class S>
-MatrixHelper<S>::MatrixHelper(MatrixHelper<typename CNT<S>::THerm>& h,
+MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper<typename CNT<S>::THerm>& h,
                               const TransposeView&) : rep(0) {
-    rep = h.rep->createWritableTransposedView();
+    rep = h.rep->createHermitianView(true);
+
+    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), "MatrixHelper::ctor(writable,transpose)",
+        "The actual matrix character of the transposed source did not "
+        "satisfy the specified handle character commitment.");
+
     rep->setMyHandle(*this);
+    rep->m_commitment = mc;
 }
 
 // Construct read only diagonal view of passed-in helper.
 template <class S>
-MatrixHelper<S>::MatrixHelper(const MatrixHelper& h,
+MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h,
                               const DiagonalView&) : rep(0) {
-    rep = h.rep->createReadOnlyDiagonalView();
+    rep = h.rep->createDiagonalView(false);
+
+    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), "MatrixHelper::ctor(const,diagonal)",
+        "The actual matrix character of the diagonal of the source did not "
+        "satisfy the specified handle character commitment.");
+
     rep->setMyHandle(*this);
+    rep->m_commitment = mc;
 }
 
 // Construct (possibly) writable diagonal view of passed-in helper.
 template <class S>
-MatrixHelper<S>::MatrixHelper(MatrixHelper& h,
+MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h,
                               const DiagonalView&) : rep(0) {
-    rep = h.rep->createWritableDiagonalView();
+    rep = h.rep->createDiagonalView(true);
+
+    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), "MatrixHelper::ctor(writable,diagonal)",
+        "The actual matrix character of the diagonal of the source did not "
+        "satisfy the specified handle character commitment.");
+
     rep->setMyHandle(*this);
+    rep->m_commitment = mc;
 }
 
+// Construct a read-only indexed view of a Vector.
+template <class S>
+MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h, int n, const int* ix) : rep(0) {
+    const VectorHelper<S>& vh = *dynamic_cast<const VectorHelper<S>*>(h.rep);
+    rep = new IndexedVectorHelper<S>(vh.getElementSize(), vh.getCppElementSize(), n,
+                                     vh.preferRowOrder_(), ix, n ? vh.getElt_(0) : 0, false);
+
+    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), "MatrixHelper::ctor(const,indexed)",
+        "The actual matrix character of the indexed source did not "
+        "satisfy the specified handle character commitment.");
+
+    rep->setMyHandle(*this);
+    rep->m_commitment = mc;
+}
+
+// Construct a writable indexed view of a Vector.
+template <class S>
+MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h, int n, const int* ix) : rep(0) {
+    VectorHelper<S>& vh = *dynamic_cast<VectorHelper<S>*>(h.rep);
+    rep = new IndexedVectorHelper<S>(vh.getElementSize(), vh.getCppElementSize(), n,
+                                     vh.preferRowOrder_(), ix, n ? vh.updElt_(0) : 0, true);
+
+    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), "MatrixHelper::ctor(writable,indexed)",
+        "The actual matrix character of the indexed source did not "
+        "satisfy the specified handle character commitment.");
+
+    rep->setMyHandle(*this);
+    rep->m_commitment = mc;
+}
+
+// Perform deep assignment. "This" gets reallocated if necessary if it's an
+// owner, but if this is a view the source and destination sizes must match.
 template <class S> MatrixHelper<S>&
 MatrixHelper<S>::copyAssign(const MatrixHelper& h) {
-    rep->copyAssign(h);
+    if (rep->isOwner())
+        rep->resize(h.nrow(), h.ncol(), false);
+    else {
+        // OK if the sizes match.
+        assert(nrow()==h.nrow() && ncol()==h.ncol());
+    }
+
+    rep->copyInFromCompatibleSource(*h.rep);
     return *this;
 }
 // Like copy assign but the source has elements with the opposite interpretation
 // of sign. Note that the result still has the original value, but the in-memory
-// representation will be different.
+// representation will be different, meaning flops will be burned here.
 template <class S> MatrixHelper<S>&
 MatrixHelper<S>::negatedCopyAssign(const MatrixHelper<typename CNT<S>::TNeg>& h) {
-    rep->negatedCopyAssign(h);
+    if (rep->isOwner())
+        rep->resize(h.nrow(), h.ncol(), false);
+    else {
+        // OK if the sizes match.
+        assert(nrow()==h.nrow() && ncol()==h.ncol());
+    }
+
+    rep->negatedCopyInFromCompatibleSource(*h.rep);
     return *this;
 }
+
 // Create a read-only view of existing data. Element size of source and destination
-// must match.
+// must match. The result will have no element filter unless the source already does.
 template <class S> MatrixHelper<S>&
 MatrixHelper<S>::readOnlyViewAssign(const MatrixHelper& h) {
-    rep->readOnlyViewAssign(h);
+    SimTK_ERRCHK(getCharacterCommitment().isSatisfiedBy(h.getMatrixCharacter()),
+        "MatrixHelper<S>::readOnlyViewAssign()",
+        "The source matrix does not satisfy this handle's character commitment.");
+
+    MatrixHelperRep<S>* newRep = h.getRep().createWholeView(false);
+    newRep->m_commitment = getRep().m_commitment;   // preserve commitment
+    newRep->m_canBeOwner = getRep().m_canBeOwner;
+    replaceRep(newRep);
     return *this;
 }
 // Create a (possibly) writable view of existing data. 
 template <class S> MatrixHelper<S>&
 MatrixHelper<S>::writableViewAssign(MatrixHelper& h) {
-    rep->writableViewAssign(h);
+    SimTK_ERRCHK(getCharacterCommitment().isSatisfiedBy(h.getMatrixCharacter()),
+        "MatrixHelper<S>::writableViewAssign()",
+        "The source matrix does not satisfy this handle's character commitment.");
+
+    MatrixHelperRep<S>* newRep = h.getRep().createWholeView(true);
+    newRep->m_commitment = getRep().m_commitment;   // preserve commitment
+    newRep->m_canBeOwner = getRep().m_canBeOwner;
+    replaceRep(newRep);
     return *this;
 }
+
 template <class S> void
 MatrixHelper<S>::scaleBy(const typename CNT<S>::StdNumber& s) {
     rep->scaleBy(s);
@@ -454,8 +490,8 @@ MatrixHelper<S>::fillWith(const S* eltp) {
     rep->fillWith(eltp);
 }
 template <class S> void 
-MatrixHelper<S>::copyInByRows(const S* elts) {
-    rep->copyInByRows(elts);
+MatrixHelper<S>::copyInByRowsFromCpp(const S* elts) {
+    rep->copyInByRowsFromCpp(elts);
 }
 
 template <class S> void
@@ -469,56 +505,37 @@ MatrixHelper<S>::dump(const char* msg) const {
 }
 
 template <class S> const S* 
-MatrixHelper<S>::getElt(int i, int j) const {
-    return rep->getElt(i,j);
-}
+MatrixHelper<S>::getElt(int i, int j) const {return rep->getElt(i,j);}
 template <class S> S* 
-MatrixHelper<S>::updElt(int i, int j) {
-    return rep->updElt(i,j);
-}
-template <class S> const S& 
-MatrixHelper<S>::getScalar(int i, int j) const {
-    return rep->getScalar(i,j);
-} 
+MatrixHelper<S>::updElt(int i, int j)       {return rep->updElt(i,j);}
+template <class S> void 
+MatrixHelper<S>::getAnyElt(int i, int j, S* value) const
+{   return rep->getAnyElt(i,j,value); }
 
-template <class S> S& 
-MatrixHelper<S>::updScalar(const int i, const int j) {
-    return rep->updScalar(i,j);
-}
+template <class S> const S* 
+MatrixHelper<S>::getElt(int i) const {return rep->getElt(i);}
+template <class S> S* 
+MatrixHelper<S>::updElt(int i)       {return rep->updElt(i);}
+template <class S> void 
+MatrixHelper<S>::getAnyElt(int i, S* value) const
+{   return rep->getAnyElt(i,value); }
+
 template <class S> int 
 MatrixHelper<S>::nrow() const {return rep->nrow();}
 template <class S> int 
 MatrixHelper<S>::ncol() const {return rep->ncol();} 
-template <class S> long 
-MatrixHelper<S>::size() const {return rep->size();}
+template <class S> ptrdiff_t 
+MatrixHelper<S>::nelt() const {return rep->nelt();}
+template <class S> int 
+MatrixHelper<S>::length() const {return rep->length();}
 
 template <class S> void 
-MatrixHelper<S>::resize(int m, int n) {
-    rep->resize(m,n);         
-} 
-
+MatrixHelper<S>::resize    (int m, int n) {rep->resize(m,n,false);} 
 template <class S> void 
-MatrixHelper<S>::resizeKeep(int m, int n) {
-    rep->resizeKeep(m,n);     
-} 
+MatrixHelper<S>::resizeKeep(int m, int n) {rep->resize(m,n,true);} 
  
-// "Lock" operations are only allowed on owners, since the caller is
-// probably confused if they are calling this on a view. However,
-// it is fine to lock a dimension of an unresizable owner, just
-// don't try to unlock it!
-template <class S> void MatrixHelper<S>::lockNRows() {rep->lockNRows();}
-template <class S> void MatrixHelper<S>::lockNCols() {rep->lockNCols();}
-template <class S> void MatrixHelper<S>::lockShape() {rep->lockShape();}
-
-//
-// These are very fussy. You can only call them on data descriptor owners, and
-// then only on those which were originally unlocked in the indicated dimension.
-// For example, you can lock and unlock the number of rows in a Vector, but
-// you can never "unlock" the number of columns which was frozen at 1 on construction.
-//
-template <class S> void MatrixHelper<S>::unlockNRows() {rep->unlockNRows();}
-template <class S> void MatrixHelper<S>::unlockNCols() {rep->unlockNCols();}
-template <class S> void MatrixHelper<S>::unlockShape() {rep->unlockShape();}
+template <class S> void MatrixHelper<S>::lockShape() {rep->lockHandle();}
+template <class S> void MatrixHelper<S>::unlockShape() {rep->unlockHandle();}
 
 template <class S> void
 MatrixHelper<S>::sum(S* const answer) const {
@@ -536,434 +553,265 @@ template <class S> void
 MatrixHelper<S>::fillWithScalar(const typename CNT<S>::StdNumber& s) {
     rep->fillWithScalar(s);
 }
-template <class S> S
-MatrixHelper<S>::scalarColSum(int j) const {
-    return rep->scalarColSum(j);
-}
-template <class S> S
-MatrixHelper<S>::scalarRowSum(int i) const {
-    return rep->scalarRowSum(i);
-}
-template <class S> S
-MatrixHelper<S>::scalarSum() const {
-    return rep->scalarSum();
-}     
 
 template <class S> bool 
 MatrixHelper<S>::hasContiguousData() const {
-    return rep->view==0 && rep->data && rep->data->hasContiguousData();
+    return rep->hasContiguousData();
 }
-template <class S> long 
+template <class S> ptrdiff_t 
 MatrixHelper<S>::getContiguousDataLength() const {
     assert(hasContiguousData());
-    return rep->data->getContiguousDataLength();
+    return rep->nScalars();
 }
 template <class S> const S* 
 MatrixHelper<S>::getContiguousData() const {
     assert(hasContiguousData());
-    return rep->data->getContiguousData();
+    return rep->m_data;
 }
 template <class S> S* 
 MatrixHelper<S>::updContiguousData() {
     assert(hasContiguousData());
-    return rep->data->updContiguousData();
+    return rep->m_data;
 }
 template <class S> void 
-MatrixHelper<S>::replaceContiguousData(S* newData, long length, bool takeOwnership) {
-    assert(hasContiguousData());
-    return rep->data->replaceContiguousData(newData,length,takeOwnership);
+MatrixHelper<S>::replaceContiguousData(S* newData, ptrdiff_t length, bool takeOwnership) {
+    assert(length == getContiguousDataLength());
+    if (rep->m_owner) {delete[] rep->m_data; rep->m_data=0;}
+    rep->m_data = newData;
+    rep->m_owner = takeOwnership;
 }
 template <class S> void 
-MatrixHelper<S>::replaceContiguousData(const S* newData, long length) {
-    assert(hasContiguousData());
-    return rep->data->replaceContiguousData(newData,length);
+MatrixHelper<S>::replaceContiguousData(const S* newData, ptrdiff_t length) {
+    replaceContiguousData(const_cast<S*>(newData), length, false);
+    rep->m_writable = false;
 }
 template <class S> void 
-MatrixHelper<S>::swapOwnedContiguousData(S* newData, int length, S*& oldData) {
-    assert(hasContiguousData());
-    return rep->data->swapOwnedContiguousData(newData,length,oldData);
+MatrixHelper<S>::swapOwnedContiguousData(S* newData, ptrdiff_t length, S*& oldData) {
+    assert(length == getContiguousDataLength());
+    assert(rep->m_owner);
+    oldData = rep->m_data;
+    rep->m_data = newData;
 }
 
 
-    ///////////////////////
-    // MATRIX HELPER REP //
-    ///////////////////////
 
-// These are the non-inline implementations for all the MatrixHelper pass-throughs,
-// plus other routines which have no client-side equivalents.
 
-// Element size and handle remain unchanged by clear().
-template <class S> void
-MatrixHelperRep<S>::clear() {
-	if (view) {
-		// just a view; break the connection and forget everything
-        data=0;
-        delete view; view=0;
-		return;
-	}
+//----------------------------- MATRIX HELPER REP ------------------------------
+//
+//------------------------------------------------------------------------------
 
-	// owner
-	if (data) {
-		const bool mustLockRows = data->rowsWereLockedOnConstruction();
-		const bool mustLockCols = data->colsWereLockedOnConstruction();
-		const int m = mustLockRows ? data->nrowElt(eltSize) : 0;
-		const int n = mustLockCols ? data->ncolElt(eltSize) : 0;
-		delete data; data = 0;
-		if (m || n)
-			data = new DataDescriptor<S>(eltSize,m,n,mustLockRows,mustLockCols);
-	}
-}
-
-template <class S> 
-MatrixHelperRep<S>::MatrixHelperRep(int esz, int cppEsz, int m, int n, bool lockNrow, bool lockNcol)
-  : eltSize(esz), cppEltSize(cppEsz), view(0), data(0), myHandle(0)
-{ 
-    SimTK_ASSERT2(esz > 0 && cppEsz >= esz, 
-        "MatrixHelper constructor was given a bad element size esz=%d, cppEsz=%d", esz, cppEsz); 
-
-    data = new DataDescriptor<S>(esz,m,n,lockNrow,lockNcol);
-}
-
-// These are non-resizeable owners (of the data descriptor) but share pre-existing raw data.
-// We have read-only and writable varieties.
-template <class S> 
-MatrixHelperRep<S>::MatrixHelperRep(int esz, int cppEsz, int m, int n, int leadingDim, const S* s)
-  : eltSize(esz), cppEltSize(cppEsz), view(0), data(0), myHandle(0)
-{ 
-    SimTK_ASSERT2(esz > 0 && cppEsz >= esz, 
-        "MatrixHelper constructor was given a bad element size esz=%d, cppEsz=%d", esz, cppEsz); 
-
-    data = new DataDescriptor<S>(esz,m,n,leadingDim,s);
-}
-template <class S> 
-MatrixHelperRep<S>::MatrixHelperRep(int esz, int cppEsz, int m, int n, int leadingDim, S* s)
-  : eltSize(esz), cppEltSize(cppEsz), view(0), data(0), myHandle(0)
-{ 
-    SimTK_ASSERT2(esz > 0 && cppEsz >= esz, 
-        "MatrixHelper constructor was given a bad element size esz=%d, cppEsz=%d", esz, cppEsz);
-
-    data = new DataDescriptor<S>(esz,m,n,leadingDim,s);
-}
-
-// copy constructor is suppressed; these are closest things but require
-// specification of deep or shallow copy
-
-// Create a read-only view of existing data.
 template <class S> MatrixHelperRep<S>*
-MatrixHelperRep<S>::createReadOnlyShallowCopy() const
-{
-    assert(data);
+MatrixHelperRep<S>::createOwnerMatrixHelperRep(int esz, int cppEsz, const MatrixCharacter& want) {
+    SimTK_ASSERT2((esz==1&&cppEsz==1) || (esz>1&&cppEsz>=esz),
+        "MatrixHelperRep::createOwnerMatrixHelperRep(): bad element size esz=%d, cppEsz=%d", esz, cppEsz);
 
-    MatrixHelperRep* copy = new MatrixHelperRep(eltSize,cppEltSize);
+    MatrixHelperRep<S>* rep = 0;
 
-    copy->view = view 
-        ? new ElementFilter(*view) // loses writability
-        : new ElementFilter(false,data->nrowElt(eltSize),data->ncolElt(eltSize),
-                             ElementFilter::Indexer(0,0));
-    copy->data = data;
-    return copy;
-}
+    const int nr = want.nrow();
+    const int nc = want.ncol();
+    const MatrixStructure& structure = want.getStructure();
+    const MatrixStorage&   storage   = want.getStorage();
+    const bool rowOrder = (storage.getOrder() == MatrixStorage::RowOrder);
 
-// Create a (possibly) writable view of existing data. 
-template <class S> MatrixHelperRep<S>*
-MatrixHelperRep<S>::createWritableShallowCopy() 
-{
-    assert(data);
+    switch (structure.getStructure()) {
 
-    MatrixHelperRep* copy = new MatrixHelperRep(eltSize,cppEltSize);
+      case MatrixStructure::Full:
+        if (rowOrder)
+            rep = (esz == 1 ? (RegularFullHelper<S>*)new FullRowOrderScalarHelper<S>(nr,nc) 
+                            : (RegularFullHelper<S>*)new FullRowOrderEltHelper<S>(esz, cppEsz,nr,nc));
+        else
+            rep = (esz == 1 ? (RegularFullHelper<S>*)new FullColOrderScalarHelper<S>(nr,nc) 
+                            : (RegularFullHelper<S>*)new FullColOrderEltHelper<S>(esz, cppEsz,nr,nc));
+        break;
 
-    copy->view = view 
-        ? new ElementFilter(*view, true)    // keep writability if possible
-        : new ElementFilter(true,data->nrowElt(eltSize),data->ncolElt(eltSize),
-                             ElementFilter::Indexer(0,0));
-    copy->data = data;
-    return copy;
-}
+      case MatrixStructure::Triangular:
+      case MatrixStructure::Symmetric:
+      case MatrixStructure::Hermitian:
+      case MatrixStructure::SkewSymmetric:
+      case MatrixStructure::SkewHermitian: {
+        const bool triangular = structure.getStructure() == MatrixStructure::Triangular;
+        const bool hermitian  =    structure.getStructure() == MatrixStructure::Hermitian
+                                || structure.getStructure() == MatrixStructure::SkewHermitian;
+        const bool skew       =    structure.getStructure() == MatrixStructure::SkewSymmetric
+                                || structure.getStructure() == MatrixStructure::SkewHermitian;
 
-// Deep copy. Copy will have no view, and the result is always writable, packed storage.
-template <class S> MatrixHelperRep<S>*
-MatrixHelperRep<S>::createDeepCopy() const
-{
-    MatrixHelperRep* copy = new MatrixHelperRep(eltSize,cppEltSize);
+        if (/*storage.getPlacement() == MatrixStorage::Upper*/true)
+            rep = (esz == 1 ? (TriInFullHelper<S>*)new TriInFullUpperHelper<S>(1,1,nr,nc,
+                                                            triangular,hermitian,skew,rowOrder) 
+                            : (TriInFullHelper<S>*)new TriInFullUpperHelper<S>(esz,cppEsz,nr,nc,
+                                                            triangular,hermitian,skew,rowOrder));
+        //else
+        //  rep = (esz == 1 ? (TriInFullHelper<S>*)new TriInFullLowerHelper<S>(1,1,nr,nc,
+         //                                               false,true,false,rowOrder) 
+         //                 : (TriInFullHelper<S>*)new TriInFullLowerHelper<S>(esz,cppEsz,nr,nc,
+         //                                               false,true,false,rowOrder));
+        break;
+      }
 
-    if (data)
-        copy->data = view 
-            ? new DataDescriptor<S>(eltSize,*view,*data)
-            : new DataDescriptor<S>(*data);
-
-    return copy;
-}
-
-template <class S> MatrixHelperRep<typename CNT<S>::TNeg>*
-MatrixHelperRep<S>::createNegatedDeepCopy() const
-{
-    MatrixHelperRep<typename CNT<S>::TNeg>* copy = 
-        new MatrixHelperRep<typename CNT<S>::TNeg>(eltSize,cppEltSize);
-
-    if (data) {
-        const DataDescriptor<typename CNT<S>::TNeg>* negSrc = 
-            reinterpret_cast<const DataDescriptor<typename CNT<S>::TNeg>*>(data);
-        copy->data = view 
-            ? new DataDescriptor<typename CNT<S>::TNeg>(eltSize,*view,*negSrc)
-            : new DataDescriptor<typename CNT<S>::TNeg>(*negSrc);
-        copy->scaleBy(typename CNT<S>::StdNumber(-1));
+      case MatrixStructure::Matrix1d: {
+        assert(nr==1 || nc==1);
+        const int length = nr*nc;
+        rep = (esz==1 ? (FullVectorHelper<S>*)new ContiguousVectorScalarHelper<S>(length,rowOrder)
+                      : (FullVectorHelper<S>*)new ContiguousVectorHelper<S>(esz,cppEsz,length,rowOrder));
+        break;
+      }
+                                        
+      default:
+          SimTK_ERRCHK1(!"not implemented", "MatrixHelperRep::createOwnerMatrixHelperRep()",
+              "Matrix structure commitment %s not implemented yet.", 
+              MatrixStructure::name(structure.getStructure()));
     }
 
-    return copy;
+    return rep;
 }
-
-template <class S> MatrixHelperRep<S>*
-MatrixHelperRep<S>::createReadOnlyBlockView(int i, int j, int m, int n) const
-{
-    MatrixHelperRep* copy = new MatrixHelperRep(eltSize,cppEltSize);
-
-    const ElementFilter::Indexer ix(i,j);
-
-    copy->view = view 
-        ? new ElementFilter(*view,false,m,n,ix)
-        : new ElementFilter(false,m,n,ix);
-
-    copy->data = data;
-    return copy;
-}
-
 
 
 template <class S> MatrixHelperRep<S>*
-MatrixHelperRep<S>::createWritableBlockView(int i, int j, int m, int n)
+MatrixHelperRep<S>::createExternalMatrixHelperRep
+   (int esz, int cppEsz, const MatrixCharacter& actual,
+    int spacing, S* data, bool canWrite)
 {
-    MatrixHelperRep* copy = new MatrixHelperRep(eltSize,cppEltSize);
+    SimTK_ASSERT2((esz==1&&cppEsz==1) || (esz>1&&cppEsz>=esz),
+        "MatrixHelperRep::createExternalMatrixHelperRep(): bad element size esz=%d, cppEsz=%d", esz, cppEsz);
 
-    const ElementFilter::Indexer ix(i,j);
+    MatrixHelperRep<S>* rep = 0;
 
-    copy->view = view 
-        ? new ElementFilter(*view,true,m,n,ix)
-        : new ElementFilter(true,m,n,ix);
+    const int nr = actual.nrow();
+    const int nc = actual.ncol();
+    const MatrixStructure& structure = actual.getStructure();
+    const MatrixStorage&   storage   = actual.getStorage();
+    const bool rowOrder = (storage.getOrder() == MatrixStorage::RowOrder);
 
-    copy->data = data;
-    return copy;
-}
+    switch (structure.getStructure()) {
 
-// This will create a column Vector which is a view of the main diagonal of
-// the leading square part of the current Matrix (that is, a square whose dimension
-// is the shorter of (nrow,ncol)).
-template <class S> MatrixHelperRep<S>*
-MatrixHelperRep<S>::createReadOnlyDiagonalView() const
-{
-    MatrixHelperRep* copy = new MatrixHelperRep(eltSize,cppEltSize);
+      case MatrixStructure::Full:
+        if (rowOrder)
+            rep = (esz == 1 ? (RegularFullHelper<S>*)new FullRowOrderScalarHelper<S>(nr,nc,
+                                                            spacing,data,canWrite) 
+                            : (RegularFullHelper<S>*)new FullRowOrderEltHelper<S>(esz, cppEsz,nr,nc,
+                                                            spacing,data,canWrite));
+        else
+            rep = (esz == 1 ? (RegularFullHelper<S>*)new FullColOrderScalarHelper<S>(nr,nc,
+                                                            spacing,data,canWrite) 
+                            : (RegularFullHelper<S>*)new FullColOrderEltHelper<S>(esz, cppEsz,nr,nc,
+                                                            spacing,data,canWrite));
+        break;
 
-    // Incrementing the row index should increment both the row and
-    // column indices into the underlying matrix to move along the
-    // diagonal:
-    //                                  drdx drdy dcdx dcdy
-    const ElementFilter::Indexer ix(0,0,  1,   0,   1,   0);
+      case MatrixStructure::Triangular:
+      case MatrixStructure::Symmetric:
+      case MatrixStructure::Hermitian:
+      case MatrixStructure::SkewSymmetric:
+      case MatrixStructure::SkewHermitian: {
+        const bool triangular = structure.getStructure() == MatrixStructure::Triangular;
+        const bool hermitian  =    structure.getStructure() == MatrixStructure::Hermitian
+                                || structure.getStructure() == MatrixStructure::SkewHermitian;
+        const bool skew       =    structure.getStructure() == MatrixStructure::SkewSymmetric
+                                || structure.getStructure() == MatrixStructure::SkewHermitian;
 
-    const int length = std::min(nrow(), ncol());
+        if (/*storage.getPlacement() == MatrixStorage::Upper*/true)
+            rep = (esz == 1 ? (TriInFullHelper<S>*)new TriInFullUpperHelper<S>(1,1,nr,nc,
+                                                            triangular,hermitian,skew,rowOrder,
+                                                            spacing,data,canWrite) 
+                            : (TriInFullHelper<S>*)new TriInFullUpperHelper<S>(esz,cppEsz,nr,nc,
+                                                            triangular,hermitian,skew,rowOrder,
+                                                            spacing,data,canWrite));
+        //else
+        //  rep = (esz == 1 ? (TriInFullHelper<S>*)new TriInFullLowerHelper<S>(1,1,nr,nc,
+         //                                               false,true,false,rowOrder) 
+         //                 : (TriInFullHelper<S>*)new TriInFullLowerHelper<S>(esz,cppEsz,nr,nc,
+         //                                               false,true,false,rowOrder));
+        break;
+      }
 
-    copy->view = view 
-        ? new ElementFilter(*view,false,length,1,ix)
-        : new ElementFilter(false,length,1,ix);
-
-    copy->data = data;
-    return copy;
-}
-
-// See previous method; this one is writable.
-template <class S> MatrixHelperRep<S>*
-MatrixHelperRep<S>::createWritableDiagonalView()
-{
-    MatrixHelperRep* copy = new MatrixHelperRep(eltSize,cppEltSize);
-
-    // Incrementing the row index should increment both the row and
-    // column indices into the underlying matrix to move along the
-    // diagonal:
-    //                                  drdx drdy dcdx dcdy
-    const ElementFilter::Indexer ix(0,0,  1,   0,   1,   0);
-
-    const int length = std::min(nrow(), ncol());
-
-    copy->view = view 
-        ? new ElementFilter(*view,true,length,1,ix)
-        : new ElementFilter(true,length,1,ix);
-
-    copy->data = data;
-    return copy;
-}
-
-template <class S> MatrixHelperRep<typename CNT<S>::THerm>*
-MatrixHelperRep<S>::createReadOnlyTransposedView() const
-{
-    MatrixHelperRep<typename CNT<S>::THerm>* copy = 
-        new MatrixHelperRep<typename CNT<S>::THerm>(eltSize,cppEltSize);
-
-    const ElementFilter::Indexer ix(ElementFilter::Indexer(0,0).transpose());
-
-    copy->view = view
-        ? new ElementFilter(*view,false,ncol(),nrow(),ix)
-        : new ElementFilter(false,ncol(),nrow(),ix);
-
-    copy->data = reinterpret_cast<DataDescriptor<typename CNT<S>::THerm>*>(data);
-    return copy;
-}
-
-template <class S> MatrixHelperRep<typename CNT<S>::THerm>*
-MatrixHelperRep<S>::createWritableTransposedView()
-{
-    MatrixHelperRep<typename CNT<S>::THerm>* copy = 
-        new MatrixHelperRep<typename CNT<S>::THerm>(eltSize,cppEltSize);
-
-    const ElementFilter::Indexer ix(ElementFilter::Indexer(0,0).transpose());
-
-    copy->view = (view ? new ElementFilter(*view,true,ncol(),nrow(),ix)
-                       : new ElementFilter(true,ncol(),nrow(),ix));
-
-    copy->data = reinterpret_cast<DataDescriptor<typename CNT<S>::THerm>*>(data);
-    return copy;
-}
-
-// assignment depends on whether lhs (this) is a view
-template <class S> MatrixHelperRep<S>&
-MatrixHelperRep<S>::copyAssign(const MatrixHelper<S>& h) {
-    const MatrixHelperRep& hrep = *h.rep;
-    if (&hrep == this) return *this;
-
-    assert(getElementSize()==hrep.getElementSize());
-
-    // OK if we can reassign, or if the sizes match, or if
-    // this is an empty Vector (0x1) or RowVector (1x0) and
-    // the source is just an empty handle (0x0).
-    assert(view==0 
-           || (nrow()==hrep.nrow() && ncol()==hrep.ncol())
-           || (nrow()*ncol()==0 && hrep.nrow()==0 && hrep.ncol()==0));
-
-    if (view == 0) { // 'this' is the owner
-        resize(hrep.nrow(), hrep.ncol());
-        if (hrep.data) {
-            if (hrep.view) data->copyFromCompatibleSourceView(getElementSize(),*hrep.view,*hrep.data);
-            else data->copyFromCompatibleSourceData(*hrep.data);
-        }
-    } else {
-        // "this" has a view. TODO: this is really bad!
-        for (int j=0; j<ncol(); ++j)
-            for (int i=0; i<nrow(); ++i) 
-                DataDescriptor<S>::copyElement(getElementSize(),
-                                               updElt(i,j), hrep.getElt(i,j));
+      case MatrixStructure::Matrix1d: {
+        assert(nr==1 || nc==1);
+        const int length = nr*nc;
+        if (spacing > 1)
+            rep = (esz==1 ? (FullVectorHelper<S>*)new StridedVectorScalarHelper<S>(length,rowOrder,
+                                                            spacing,data,canWrite)
+                          : (FullVectorHelper<S>*)new StridedVectorHelper<S>(esz,cppEsz,length,rowOrder,
+                                                            spacing,data,canWrite));
+        else 
+            rep = (esz==1 ? (FullVectorHelper<S>*)new ContiguousVectorScalarHelper<S>(length,rowOrder,
+                                                            data,canWrite)
+                          : (FullVectorHelper<S>*)new ContiguousVectorHelper<S>(esz,cppEsz,length,rowOrder,
+                                                            data,canWrite));
+        break;
+      }
+                                        
+      default:
+          SimTK_ERRCHK1(!"not implemented", "MatrixHelperRep::createOwnerMatrixHelperRep()",
+              "Matrix structure commitment %s not implemented yet.", 
+              MatrixStructure::name(structure.getStructure()));
     }
 
-    return *this;
-}
-
-template <class S> MatrixHelperRep<S>&
-MatrixHelperRep<S>::negatedCopyAssign(const MatrixHelper<typename CNT<S>::TNeg>& src) {
-    // TODO: avoid making two passes through the data here
-    copyAssign(reinterpret_cast<const MatrixHelper<S>&>(src));
-    scaleBy(typename CNT<S>::StdNumber(-1));
-    return *this;
-}
-
-// Create a read-only view of existing data. Element size of source and destination
-// must match.
-template <class S> MatrixHelperRep<S>&
-MatrixHelperRep<S>::readOnlyViewAssign(const MatrixHelper<S>& h)
-{
-    const MatrixHelperRep& hrep = *h.rep;
-
-    assert((eltSize == hrep.eltSize) && hrep.data);
-    clear();
-
-    view = hrep.view 
-        ? new ElementFilter(*hrep.view) // loses writability
-        : new ElementFilter(false,hrep.data->nrowElt(eltSize),hrep.data->ncolElt(eltSize),
-                             ElementFilter::Indexer(0,0));
-    delete data;
-    data = hrep.data;
-    return *this;
-}
-
-// Create a (possibly) writable view of existing data. 
-template <class S> MatrixHelperRep<S>&
-MatrixHelperRep<S>::writableViewAssign(MatrixHelper<S>& h) 
-{
-    MatrixHelperRep& hrep = *h.rep;
-
-    assert((eltSize == hrep.eltSize) && hrep.data);
-    clear();
-
-    view = hrep.view 
-        ? new ElementFilter(*hrep.view, true)    // keep writability if possible
-        : new ElementFilter(true,hrep.data->nrowElt(eltSize),hrep.data->ncolElt(eltSize),
-                             ElementFilter::Indexer(0,0));
-    delete data;
-    data = hrep.data;
-    return *this;
+    return rep;
 }
 
 template <class S> void
 MatrixHelperRep<S>::scaleBy(const typename CNT<S>::StdNumber& s) {
-    if (!view) { data->scaleBy(s); return; }
     // XXX -- really, really bad! Optimize for contiguous data!
-    const int sz = getElementSize();
-    for (int j=0; j<view->ncol(); ++j)
-        for (int i=0; i<view->nrow(); ++i) 
-            DataDescriptor<S>::scaleElement(sz,updElt(i,j),s);
+    for (int j=0; j<ncol(); ++j)
+        for (int i=0; i<nrow(); ++i) 
+            scaleElt(updElt(i,j),s);
 }  
      
 template <class S> void
 MatrixHelperRep<S>::addIn(const MatrixHelper<S>& h) {
-    const MatrixHelperRep& hrep = *h.rep;
+    const MatrixHelperRep& hrep = h.getRep();
 
     assert(nrow()==hrep.nrow() && ncol()==hrep.ncol());
     assert(getElementSize()==hrep.getElementSize());
     // XXX -- really, really bad! Optimize for contiguous data, missing views, etc.!
-    const int sz = getElementSize();
     for (int j=0; j<ncol(); ++j)
         for (int i=0; i<nrow(); ++i)
-            DataDescriptor<S>::addToElement(sz,updElt(i,j),hrep.getElt(i,j));
+            addToElt(updElt(i,j),hrep.getElt(i,j));
 } 
+template <class S> void
+MatrixHelperRep<S>::addIn(const MatrixHelper<typename CNT<S>::TNeg>& nh) {
+    subIn(reinterpret_cast<const MatrixHelper<S>&>(nh));
+}
      
 template <class S> void
 MatrixHelperRep<S>::subIn(const MatrixHelper<S>& h) {
-    const MatrixHelperRep& hrep = *h.rep;
+    const MatrixHelperRep& hrep = h.getRep();
 
     assert(nrow()==hrep.nrow() && ncol()==hrep.ncol());
     assert(getElementSize()==hrep.getElementSize());
     // XXX -- really, really bad! Optimize for contiguous data, missing views, etc.!
-    const int sz = getElementSize();
     for (int j=0; j<ncol(); ++j)
         for (int i=0; i<nrow(); ++i)
-            DataDescriptor<S>::subFromElement(sz,updElt(i,j),hrep.getElt(i,j));
+            subFromElt(updElt(i,j),hrep.getElt(i,j));
 }  
+template <class S> void
+MatrixHelperRep<S>::subIn(const MatrixHelper<typename CNT<S>::TNeg>& nh) {
+    addIn(reinterpret_cast<const MatrixHelper<S>&>(nh));
+}
 
 template <class S> void
 MatrixHelperRep<S>::fillWith(const S* eltp) {
     // XXX -- really, really bad! Optimize for contiguous data, missing views, etc.!
-    const int sz = getElementSize();
     for (int j=0; j<ncol(); ++j)
         for (int i=0; i<nrow(); ++i)
-            DataDescriptor<S>::copyElement(sz,updElt(i,j),eltp);
+            copyElt(updElt(i,j),eltp);
 } 
 
+// We're copying data from a C++ row-oriented matrix into our general
+// Matrix. In addition to the row ordering, C++ may use different spacing
+// for elements than Simmatrix does. Lucky we know that value!
 template <class S> void 
-MatrixHelperRep<S>::copyInByRows(const S* elts) {
+MatrixHelperRep<S>::copyInByRowsFromCpp(const S* elts) {
+    const int cppRowSz = m_cppEltSize * ncol();
     // XXX -- really, really bad! Optimize for contiguous data, missing views, etc.!
-    const int sz = getElementSize();
     for (int j=0; j<ncol(); ++j)
         for (int i=0; i<nrow(); ++i)
-            DataDescriptor<S>::copyElement(sz,updElt(i,j),elts+i*ncol()+j);
+            copyElt(updElt(i,j), elts + i*cppRowSz + j*m_cppEltSize);
 }
 
 template <class S> 
 MatrixHelperRep<S>::~MatrixHelperRep()
 {
-    if (view==0) delete data;
-    delete view;
-}
-
-template <class S> void
-MatrixHelperRep<S>::invertInPlace() {
-    assert(view==0 && eltSize == 1);
-    if (data)
-        data->invertInPlace();
+    if (isOwner()) delete m_data;
 }
 
 template <class S> static void
@@ -987,254 +835,164 @@ MatrixHelperRep<S>::dump(const char* msg) const {
         return;
     }
 
+    S* elt = new S[getElementSize()];
     const std::streamsize oldsz = std::cout.precision(20); 
     for (int i=0; i<nrow(); ++i) {
         for (int j=0; j<ncol(); ++j) {
             if (j>0) std::cout << "\t";
-            dumpElt(getElt(i,j), getElementSize());
+            getAnyElt(i,j,elt);
+            dumpElt(elt, getElementSize());
         }
         std::cout << std::endl;
     }
     std::cout.precision(oldsz);
-
+    delete[] elt;
 }
 
-template <class S> const S* 
-MatrixHelperRep<S>::getElt(int i, int j) const {
-    assert(0<=i && i<nrow() && 0<=j && j<ncol());
-    if (view) return data->getElt(getElementSize(),view->r(i,j), view->c(i,j));
-    else return data->getElt(getElementSize(),i,j);
-}       
-    
-template <class S> S* 
-MatrixHelperRep<S>::updElt(int i, int j) {
-    assert(0<=i && i<nrow() && 0<=j && j<ncol());
-    if (view) {
-        assert(view->isViewWritable());
-        return data->updElt(getElementSize(), view->r(i,j), view->c(i,j));
+//----------------------------- RegularFullHelper ------------------------------
+//------------------------------------------------------------------------------
+
+template <class S> VectorHelper<S>* 
+RegularFullHelper<S>::createDiagonalView_() {
+    VectorHelper<S>* p = 0;
+    const int length = std::min(nrow(), ncol());
+    S*        data   = length ? updElt_(0,0) : 0;
+
+    const int strideInScalars = length > 1 ? int(getElt_(1,1)-getElt_(0,0)) : m_eltSize;
+    const int strideInElements = strideInScalars / m_eltSize;
+
+    // No need for a stride if there's 0 or 1 element, or if the stride is 1. TODO: scalar helper
+    if (strideInElements == 1) {
+        p = (m_eltSize==1) 
+            ? (VectorHelper<S>*)new ContiguousVectorScalarHelper<S>(length, false, data, false)
+            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(m_eltSize, m_cppEltSize, length, 
+                                                              false, data, false);
+        return p;
     }
-    return data->updElt(getElementSize(),i,j);
+
+    p = (m_eltSize==1)
+        ? (VectorHelper<S>*)new StridedVectorScalarHelper<S>(length, false, strideInElements, data, false)
+        : (VectorHelper<S>*)new StridedVectorHelper<S>(m_eltSize, m_cppEltSize, length, 
+                                                       false, strideInElements, data, false);
+    return p;
 }
 
-template <class S> const S& 
-MatrixHelperRep<S>::getScalar(const int i, const int j) const {
-    assert(0<=i && i<nrow() && 0<=j && j<ncol());
-    if (view) return data->getScalar(view->r(i,j), view->c(i,j));
-    else return data->getScalar(i,j);
-} 
+template <class S> VectorHelper<S>* 
+RegularFullHelper<S>::createColumnView_(int j, int i, int m) {
+    VectorHelper<S>* p = 0;
+    S* data = m ? updElt_(i,j) : 0;
 
-template <class S> S& 
-MatrixHelperRep<S>::updScalar(const int i, const int j) {
-    assert(0<=i && i<nrow() && 0<=j && j<ncol());
-    if (view) {
-        assert(view->isViewWritable());
-        return data->updScalar(view->r(i,j), view->c(i,j));
+    const int strideInScalars = m > 1 ? int(getElt_(i+1,j)-getElt_(i,j)) : m_eltSize;
+    const int strideInElements = strideInScalars / m_eltSize;
+
+    // No need for a stride if there's 0 or 1 element, or if the stride is 1. TODO: scalar helper
+    if (strideInElements == 1) {
+        p = (m_eltSize==1) 
+            ? (VectorHelper<S>*)new ContiguousVectorScalarHelper<S>(m, false, data, false)
+            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(m_eltSize, m_cppEltSize, m, 
+                                                              false, data, false);
+        return p;
     }
-    return data->updScalar(i,j);
+
+    p = (m_eltSize==1)
+        ? (VectorHelper<S>*)new StridedVectorScalarHelper<S>(m, false, strideInElements, data, false)
+        : (VectorHelper<S>*)new StridedVectorHelper<S>(m_eltSize, m_cppEltSize, m, 
+                                                       false, strideInElements, data, false);
+    return p;
 }
 
-template <class S> int 
-MatrixHelperRep<S>::nrow() const {return view?view->nrow():(data?data->nrowElt(eltSize):0);}
+template <class S> VectorHelper<S>* 
+RegularFullHelper<S>::createRowView_(int i, int j, int n) {
+    VectorHelper<S>* p = 0;
+    S* data = n ? updElt_(i,j) : 0;
 
-template <class S> int 
-MatrixHelperRep<S>::ncol() const {return view?view->ncol():(data?data->ncolElt(eltSize):0);} 
+    const int strideInScalars = n > 1 ? int(getElt_(i,j+1)-getElt_(i,j)) : m_eltSize;
+    const int strideInElements = strideInScalars / m_eltSize;
 
-template <class S> long 
-MatrixHelperRep<S>::size() const {return view?view->size():(data?data->sizeElt(eltSize):0);}
+    // No need for a stride if there's 0 or 1 element, or if the stride is 1. TODO: scalar helper
+    if (strideInElements == 1) {
+        p = (m_eltSize==1) 
+            ? (VectorHelper<S>*)new ContiguousVectorScalarHelper<S>(n, true, data, false)
+            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(m_eltSize, m_cppEltSize, n, 
+                                                              true, data, false);
+        return p;
+    }
 
-template <class S> bool
-MatrixHelperRep<S>::isDataOwned() const {return view==0;} 
-
-template <class S> void 
-MatrixHelperRep<S>::resize(int m, int n) {
-    if (nrow()==m && ncol()==n) return;
-    assert(isDataOwned());
-    if (data) data->resize(getElementSize(),m,n);
-    else data=new DataDescriptor<S>(getElementSize(),m,n,false,false);          
-} 
-
-template <class S> void 
-MatrixHelperRep<S>::resizeKeep(int m, int n) {
-    if (nrow()==m && ncol()==n) return;
-    assert(isDataOwned());
-    if (data) data->resizeKeep(getElementSize(),m,n);
-    else data=new DataDescriptor<S>(getElementSize(),m,n,false,false);          
-} 
- 
-// "Lock" operations are only allowed on owners, since the caller is
-// probably confused if they are calling this on a view. However,
-// it is fine to lock a dimension of an unresizable owner, just
-// don't try to unlock it!
-template <class S> void MatrixHelperRep<S>::lockNRows() {
-    assert(data && isDataOwned());
-    data->lockNRows();
-}
-template <class S> void MatrixHelperRep<S>::lockNCols() {
-    assert(data && isDataOwned());
-    data->lockNCols();
-}
-template <class S> void MatrixHelperRep<S>::lockShape() {
-    assert(data && isDataOwned());
-    data->lockNRows(); 
-    data->lockNCols();
+    p = (m_eltSize==1)
+        ? (VectorHelper<S>*)new StridedVectorScalarHelper<S>(n, true, strideInElements, data, false)
+        : (VectorHelper<S>*)new StridedVectorHelper<S>(m_eltSize, m_cppEltSize, n, 
+                                                       true, strideInElements, data, false);
+    return p;
 }
 
-//
-// These are very fussy. You can only call them on data descriptor owners, and
-// then only on those which were originally unlocked in the indicated dimension.
-// For example, you can lock and unlock the number of rows in a Vector, but
-// you can never "unlock" the number of columns which was frozen at 1 on construction.
-//
-template <class S> void MatrixHelperRep<S>::unlockNRows() {
-    assert(data && isDataOwned());
-    data->unlockNRows();
+
+//------------------------------ TriInFullHelper -------------------------------
+//------------------------------------------------------------------------------
+
+template <class S> VectorHelper<S>* 
+TriInFullHelper<S>::createDiagonalView_() {
+    SimTK_ERRCHK_ALWAYS(!hasKnownDiagonal(), "TriInFullHelper::createDiagonalView_()", 
+        "Diagonal view of a known-diagonal matrix is not yet implemented. Sorry.");
+
+    VectorHelper<S>* p = 0;
+    const int length = std::min(nrow(), ncol());
+    S*        data   = length ? updElt_(0,0) : 0;
+
+    const int strideInScalars = length > 1 ? int(getElt_(1,1)-getElt_(0,0)) : m_eltSize;
+    const int strideInElements = strideInScalars / m_eltSize;
+
+    // No need for a stride if there's 0 or 1 element, or if the stride is 1. TODO: scalar helper
+    if (strideInElements == 1) {
+        p = (m_eltSize==1) 
+            ? (VectorHelper<S>*)new ContiguousVectorScalarHelper<S>(length, false, data, false)
+            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(m_eltSize, m_cppEltSize, length, 
+                                                              false, data, false);
+        return p;
+    }
+
+    p = (m_eltSize==1)
+        ? (VectorHelper<S>*)new StridedVectorScalarHelper<S>(length, false, strideInElements, data, false)
+        : (VectorHelper<S>*)new StridedVectorHelper<S>(m_eltSize, m_cppEltSize, length, 
+                                                       false, strideInElements, data, false);
+    return p;
 }
-template <class S> void MatrixHelperRep<S>::unlockNCols() {
-    assert(data && isDataOwned());
-    data->unlockNCols();
-}
 
-// This is less fussy; it just unlocks anything that was locked after construction.
-template <class S> void MatrixHelperRep<S>::unlockShape() {
-    assert(data && isDataOwned());
-    if (!data->rowsWereLockedOnConstruction()) data->unlockNRows(); 
-    if (!data->colsWereLockedOnConstruction()) data->unlockNCols();
-}
+//------------------------------ INSTANTIATIONS --------------------------------
+// Instantiations for each of the 12 Scalar types.
+// It isn't actually necessary to instantiate these classes since they
+// are only used internally. However, this is a good way to make sure that
+// everything supplied at least compiles. Otherwise you won't find errors
+// until all the code is actually used.
 
-template <class S> void
-MatrixHelperRep<S>::sum(S* const answer) const {
-    const int sz = getElementSize();
-    if (sz==1) *answer = scalarSum();
-    else {
-        S* csum = new S[sz];
-        DataDescriptor<S>::fillElement(sz, answer, typename CNT<S>::StdNumber(0));
-        for (int j=0; j<ncol(); ++j) {
-            colSum(j, csum);
-            DataDescriptor<S>::addToElement(sz, answer, csum); // answer+=csum
-        }
-        delete[] csum;
-    }
-}        
-
-template <class S> void
-MatrixHelperRep<S>::colSum(const int j, S* const answer) const {
-    const int sz = getElementSize();
-    if (sz==1) *answer = scalarColSum(j);
-    else {
-        DataDescriptor<S>::fillElement(sz, answer, typename CNT<S>::StdNumber(0));
-        for (int i=0; i<nrow(); ++i)
-            DataDescriptor<S>::addToElement(sz, answer, getElt(i,j));
-    }
-} 
-
-template <class S> void
-MatrixHelperRep<S>::rowSum(const int i, S* const answer) const {
-    const int sz = getElementSize();
-    if (sz==1) *answer = scalarRowSum(i);
-    else {
-        DataDescriptor<S>::fillElement(sz, answer, typename CNT<S>::StdNumber(0));
-        for (int j=0; j<ncol(); ++j)
-            DataDescriptor<S>::addToElement(sz, answer, getElt(i,j));
-    }
-} 
-
-template <class S> void
-MatrixHelperRep<S>::fillWithScalar(const typename CNT<S>::StdNumber& s) {
-    // XXX -- really, really bad! Optimize for contiguous data, missing views, etc.!
-    const int sz = getElementSize();
-    for (int j=0; j<ncol(); ++j)
-        for (int i=0; i<nrow(); ++i)
-            DataDescriptor<S>::fillElement(sz,updElt(i,j),s);
-} 
-
-template <class S> S
-MatrixHelperRep<S>::scalarColSum(const int j) const {
-    assert(getElementSize()==1);
-    S sum = S(0);
-    for (int i=0; i<nrow(); ++i) sum += getScalar(i,j);
-    return sum;
-} 
-
-template <class S> S
-MatrixHelperRep<S>::scalarRowSum(const int i) const {
-    assert(getElementSize()==1);
-    S sum = S(0);
-    for (int j=0; j<ncol(); ++j) sum += getScalar(i,j);
-    return sum;
-} 
-
-template <class S> S
-MatrixHelperRep<S>::scalarSum() const {
-    assert(getElementSize()==1);
-    S sum = S(0);
-    for (int j=0; j<ncol(); ++j) sum += scalarColSum(j);
-    return sum;
-}     
-
-    template <class S> void
-    MatrixHelperRep<S>::setMatrixStructure(MatrixStructures::Structure structure) {
-        structureCommitment.structure = structure;
-    }
-
-    template <class S> MatrixStructures::Structure
-    MatrixHelperRep<S>::getMatrixStructure() const {
-        return structureCommitment.structure;
-    }
-    template <class S> void
-    MatrixHelperRep<S>::setMatrixShape(MatrixShapes::Shape shape) {
-        shapeCommitment.shape = shape;
-    }
-    template <class S> MatrixShapes::Shape
-    MatrixHelperRep<S>::getMatrixShape() const {
-        return shapeCommitment.shape;
-    }
-    template <class S> void
-    MatrixHelperRep<S>::setMatrixSparsity(MatrixSparseFormats::Sparsity sparsity) {
-        sparsityCommitment.sparsity = sparsity;
-    }
-    template <class S> MatrixSparseFormats::Sparsity
-    MatrixHelperRep<S>::getMatrixSparsity() const {
-        return sparsityCommitment.sparsity;
-    }
-    template <class S> void
-    MatrixHelperRep<S>::setMatrixStorage(MatrixStorageFormats::Storage storage) {
-         storageCommitment.storage = storage;
-    }
-    template <class S> MatrixStorageFormats::Storage
-    MatrixHelperRep<S>::getMatrixStorage() const {
-        return storageCommitment.storage;
-    }
-    template <class S> void
-    MatrixHelperRep<S>::setMatrixCondition(MatrixConditions::Condition condition) {
-         conditionCommitment.condition = condition;
-    }
-    template <class S> MatrixConditions::Condition
-    MatrixHelperRep<S>::getMatrixCondition() const {
-        return conditionCommitment.condition;
-    }
+#define INSTANTIATE(Helper)         \
+template class Helper< float >;     \
+template class Helper< double >;    \
+template class Helper< std::complex<float> >;   \
+template class Helper< std::complex<double> >;  \
+template class Helper< conjugate<float> >;      \
+template class Helper< conjugate<double> >;     \
+template class Helper< negator< float > >;      \
+template class Helper< negator< double > >;     \
+template class Helper< negator< std::complex<float> > >;    \
+template class Helper< negator< std::complex<double> > >;   \
+template class Helper< negator< conjugate<float> > >;       \
+template class Helper< negator< conjugate<double> > >
 
 
-// Instantiations for each of the 18 Scalar types. (These will instantiate
-// the MatrixHelperRep<S> classes also.
+INSTANTIATE(MatrixHelper);
+INSTANTIATE(MatrixHelperRep);
 
-template class MatrixHelper< float >;
-template class MatrixHelper< double >;
-template class MatrixHelper< long double >;
-template class MatrixHelper< std::complex<float> >;
-template class MatrixHelper< std::complex<double> >;
-template class MatrixHelper< std::complex<long double> >;
-template class MatrixHelper< conjugate<float> >;
-template class MatrixHelper< conjugate<double> >;
-template class MatrixHelper< conjugate<long double> >;
+INSTANTIATE(FullHelper);
+INSTANTIATE(RegularFullHelper);
 
-template class MatrixHelper<negator< float > >;
-template class MatrixHelper<negator< double > >;
-template class MatrixHelper<negator< long double > >;
-template class MatrixHelper<negator< std::complex<float> > >;
-template class MatrixHelper<negator< std::complex<double> > >;
-template class MatrixHelper<negator< std::complex<long double> > >;
-template class MatrixHelper<negator< conjugate<float> > >;
-template class MatrixHelper<negator< conjugate<double> > >;
-template class MatrixHelper<negator< conjugate<long double> > >;
-   
+INSTANTIATE(TriHelper);
+
+INSTANTIATE(VectorHelper);
+INSTANTIATE(FullVectorHelper);
+INSTANTIATE(ContiguousVectorHelper);
+INSTANTIATE(ContiguousVectorScalarHelper);
+INSTANTIATE(StridedVectorHelper);
+INSTANTIATE(StridedVectorScalarHelper);
+INSTANTIATE(IndexedVectorHelper);
+
 } // namespace SimTK   

@@ -31,9 +31,18 @@
 
 #include "SimTKcommon/internal/common.h"
 
+#include "ElementFilter.h"
+
 namespace SimTK {
 
-    // no non-inline stuff yet
+
+std::ostream& operator<<(std::ostream& o, const RowCol& rc) {
+    return o << "(" << rc.row << "," << rc.col << ")";
+}
+
+std::ostream& operator<<(std::ostream& o, const NRowCol& s) {
+    return o << "[" << s.nrow << "x" << s.ncol << "]";
+}
 
 } // namespace SimTK
 

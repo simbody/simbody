@@ -250,6 +250,52 @@ template <class P> inline bool
 isInf(const negator< conjugate<P> >&    x) {return isInf(-x);}
 
 /**
+ * atMostOneBitIsSet() provides an extremely fast way to determine whether
+ * an integral type is either zero or consists of a single set bit. This
+ * question arises when using bits to represent set membership where one
+ * may wish to verify that an integer represents a single element rather
+ * than a set of elements.
+ *
+ * @see exactlyOneBitIsSet()
+ */
+
+// We use the trick that v & v-1 returns the value that is v with its
+// rightmost bit cleared (if it has a rightmost bit set).
+inline bool atMostOneBitIsSet(unsigned char v)      {return (v&v-1)==0;}
+inline bool atMostOneBitIsSet(unsigned short v)     {return (v&v-1)==0;}
+inline bool atMostOneBitIsSet(unsigned int v)       {return (v&v-1)==0;}
+inline bool atMostOneBitIsSet(unsigned long v)      {return (v&v-1)==0;}
+inline bool atMostOneBitIsSet(unsigned long long v) {return (v&v-1)==0;}
+inline bool atMostOneBitIsSet(signed char v)        {return (v&v-1)==0;}
+inline bool atMostOneBitIsSet(char v)               {return (v&v-1)==0;}
+inline bool atMostOneBitIsSet(short v)              {return (v&v-1)==0;}
+inline bool atMostOneBitIsSet(int v)                {return (v&v-1)==0;}
+inline bool atMostOneBitIsSet(long v)               {return (v&v-1)==0;}
+inline bool atMostOneBitIsSet(long long v)          {return (v&v-1)==0;}
+
+/**
+ * exactlyOneBitIsSet() provides an very fast way to determine whether
+ * an integral type has exactly one bit set. For unsigned and positive
+ * signed values, this is equivalent to the value being a power of two.
+ * Note that negative powers of two are <em>not</em> represented with
+ * a single bit set -- negate it first if you want to use this routine
+ * to determine if a signed value is a negative power of two.
+ *
+ * @see atMostOneBitIsSet()
+ */
+inline bool exactlyOneBitIsSet(unsigned char v)      {return v && atMostOneBitIsSet(v);}
+inline bool exactlyOneBitIsSet(unsigned short v)     {return v && atMostOneBitIsSet(v);}
+inline bool exactlyOneBitIsSet(unsigned int v)       {return v && atMostOneBitIsSet(v);}
+inline bool exactlyOneBitIsSet(unsigned long v)      {return v && atMostOneBitIsSet(v);}
+inline bool exactlyOneBitIsSet(unsigned long long v) {return v && atMostOneBitIsSet(v);}
+inline bool exactlyOneBitIsSet(signed char v)        {return v && atMostOneBitIsSet(v);}
+inline bool exactlyOneBitIsSet(char v)               {return v && atMostOneBitIsSet(v);}
+inline bool exactlyOneBitIsSet(short v)              {return v && atMostOneBitIsSet(v);}
+inline bool exactlyOneBitIsSet(int v)                {return v && atMostOneBitIsSet(v);}
+inline bool exactlyOneBitIsSet(long v)               {return v && atMostOneBitIsSet(v);}
+inline bool exactlyOneBitIsSet(long long v)          {return v && atMostOneBitIsSet(v);}
+
+/**
  * signBit(x) provides a fast way to determine the value of the sign
  * bit (as a bool) for integral and floating types. Note that this is
  * significantly different than sign(x); be sure you know what you're doing

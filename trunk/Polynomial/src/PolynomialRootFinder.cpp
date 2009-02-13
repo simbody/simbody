@@ -195,11 +195,4 @@ template SimTK_SimTKCOMMON_EXPORT void PolynomialRootFinder::findRoots<double>(c
 template SimTK_SimTKCOMMON_EXPORT void PolynomialRootFinder::findRoots<double>(const Vector_<double>& coefficients, Vector_<complex<double> >& roots);
 template SimTK_SimTKCOMMON_EXPORT void PolynomialRootFinder::findRoots<double>(const Vector_<complex<double> >& coefficients, Vector_<complex<double> >& roots);
 
-template SimTK_SimTKCOMMON_EXPORT void PolynomialRootFinder::findRoots<long double>(const Vec<3,long double>& coefficients, Vec<2,complex<long double> >& roots);
-template SimTK_SimTKCOMMON_EXPORT void PolynomialRootFinder::findRoots<long double>(const Vec<3,complex<long double> >& coefficients, Vec<2,complex<long double> >& roots);
-template SimTK_SimTKCOMMON_EXPORT void PolynomialRootFinder::findRoots<long double>(const Vec<4,long double>& coefficients, Vec<3,complex<long double> >& roots);
-template SimTK_SimTKCOMMON_EXPORT void PolynomialRootFinder::findRoots<long double>(const Vec<4,complex<long double> >& coefficients, Vec<3,complex<long double> >& roots);
-template SimTK_SimTKCOMMON_EXPORT void PolynomialRootFinder::findRoots<long double>(const Vector_<long double>& coefficients, Vector_<complex<long double> >& roots);
-template SimTK_SimTKCOMMON_EXPORT void PolynomialRootFinder::findRoots<long double>(const Vector_<complex<long double> >& coefficients, Vector_<complex<long double> >& roots);
-
 } // namespace SimTK

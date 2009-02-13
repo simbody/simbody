@@ -299,7 +299,7 @@ template <class R> class NTraits< conjugate<R> > {
 public:
     typedef conjugate<R>        T;
     typedef negator<T>          TNeg;            // type of this after *cast* to its negative
-    typedef T                   TWithoutNegator; // type of this ignoring negator (there isn't one!)
+    typedef conjugate<R>        TWithoutNegator; // type of this ignoring negator (there isn't one!)
     typedef R                   TReal;
     typedef negator<R>          TImag;
     typedef conjugate<R>        TComplex;     
@@ -312,13 +312,13 @@ public:
     typedef conjugate<R>        TCol;
 
     typedef R                   TAbs;
-    typedef C                   TStandard;
-    typedef complex<R>          TInvert;
-    typedef T                   TNormalize;
+    typedef complex<R>          TStandard;
+    typedef conjugate<R>        TInvert;
+    typedef conjugate<R>        TNormalize;
 
     typedef conjugate<R>        Scalar;
     typedef conjugate<R>        Number;
-    typedef C                   StdNumber;
+    typedef complex<R>          StdNumber;
     typedef R                   Precision;
     typedef R                   ScalarSq;
 
@@ -367,8 +367,8 @@ public:
     static const TNeg& negate(const T& t) {return reinterpret_cast<const TNeg&>(t);}
     static       TNeg& negate(T& t)       {return reinterpret_cast<TNeg&>(t);}
 
-    static const THerm& transpose(const T& t) {return reinterpret_cast<const THerm&>(t);}
-    static       THerm& transpose(T& t)       {return reinterpret_cast<THerm&>(t);}
+    static const THerm& transpose(const T& t) {return t.conj();}
+    static       THerm& transpose(T& t)       {return t.conj();}
 
     static const TPosTrans& positionalTranspose(const T& t)
         {return reinterpret_cast<const TPosTrans&>(t);}
@@ -387,7 +387,10 @@ public:
     static TStandard standardize(const T& t)
         { return TStandard(t); }        // i.e., convert to complex
     static TNormalize normalize(const T& t) {return TNormalize(t/abs(t));}
-    static TInvert    invert(const T& t)    {return TReal(1)/t;}
+
+    // 1/conj(z) = conj(1/z), for complex z.
+    static TInvert invert(const T& t)    
+    {   return reinterpret_cast<const T&>(NTraits<THerm>::invert(t.conj()));}
 
     // We want a "conjugate NaN", NaN - NaN*i, meaning both reals should
     // be positive NaN.

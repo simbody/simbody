@@ -63,7 +63,7 @@ template class Vector_<Complex>;
 template class RowVector_< conjugate<float> >;
 //template class MatrixBase< Mat<3,4,Vec2> >;
 
-template class MatrixView_< complex<long double> >;
+template class MatrixView_< complex<double> >;
 template class VectorView_< negator<float> >;
 template class RowVectorView_< negator< conjugate<float> > >;
 
@@ -86,10 +86,80 @@ extern "C" {
     void SimTK_about_SimTKlapack(const char* key, int maxlen, char* value);
 }
 
+void testCharacter() {
+    MatrixCommitment mc;
+   // mc = MatrixCommitment::Symmetric();
+    //mc.commitOutline(MatrixOutline::Square);
+    cout << mc;
+    cout << mc.calcDefaultCharacter(0,0);
+    Matrix m(mc);
+    m.resize(2,3);
+    m = 5;
+    m.dump("m");
+    cout << "NOW: " << m.getMatrixCharacter();
+    cout << "m.diag()=" << m.diag() << endl;
+    cout << "m.diag() " << m.diag().getMatrixCharacter();
+    cout << "m[1]=" << m[1] << endl;
+    Matrix mm = m*3;
+    cout << "mm=" << mm;
+
+    MatrixView mmv = mm(0,1,2,2);
+    cout << "mmv(mm(0,1,2,2):" << mmv;
+    cout << "mm(0,0,2,2):" << mm(0,0,2,2);
+    mmv.clear();
+    mmv = mm(0,0,1,2);
+    cout << "mmv.clear(), then mmv=mm(0,0,1,2): " << mmv;
+
+
+    mc = MatrixCommitment( MatrixStructure(MatrixStructure::Triangular, MatrixStructure::Upper) );
+    cout << "mc=" << mc << " actual=" << mc.calcDefaultCharacter(0,0);
+    Matrix t(mc);
+    t.resize(5,3);
+    t.dump("t");
+
+    t.clear(); 
+    t.commitTo(MatrixStructure(MatrixStructure::Hermitian, MatrixStructure::Upper));
+    t.dump("t now hermitian, prior to resize");
+    cout << "t commit=" << t.getCharacterCommitment() << "t actual=" << t.getMatrixCharacter();
+    t.resize(3,5);
+    t.dump("t after resize");
+    cout << "t commit=" << t.getCharacterCommitment() << "t actual=" << t.getMatrixCharacter();
+    t = 123;
+    t(0,2)=-2;
+    t.dump("t now hermitian");
+    cout << "t commit=" << t.getCharacterCommitment() << "t actual=" << t.getMatrixCharacter();
+
+    Vector v(10);
+    for (int i=0; i<10; ++i) v[i] = i;
+    cout << "v commitment: " << v.getCharacterCommitment();
+    cout << "v character: " << v.getMatrixCharacter();
+    cout << "v=" << v << endl;
+
+    std::vector<int> vx;
+    vx.push_back(2); vx.push_back(5); vx.push_back(7); vx.push_back(8);
+
+    VectorView vxx = v(vx);
+    cout << "vxx character: " << vxx.getMatrixCharacter();
+    cout << "vxx=" << vxx << endl;
+    cout << "vxx(1,2)=" << vxx(1,2) << endl;
+
+    Complex cmplx[] = {Complex(1,2), Complex(3,4), Complex(-.2,.3),
+                       Complex(-100,200), Complex(20,40), Complex(-.001,.002)};
+
+    ComplexMatrix cm(2,3,2,cmplx);
+    cout << "cm=" << cm;
+
+
+    exit(0);
+
+}
+
 int main()
 {
   try {
     SimTK_DEBUG("Running BigMatrixTest ...\n");
+
+    testCharacter();
 
     int major,minor,build;
     char out[100];
@@ -179,16 +249,17 @@ int main()
         
     Matrix_<Complex> mm(3,4);
     mm = 2390.; 
+    cout << "after [3x4 complex] mm = 2390, mm: " << mm << endl;
     for (int i=0; i<mm.nrow(); ++i) {
         for (int j=0; j<mm.ncol(); ++j)
-            mm(i,j)=(i+1)*(j+1), cout << mm(i,j) << " ";
-        cout << endl;
+            mm(i,j)=(i+1)*(j+1);
     }
+    cout << "after mm(i,j)=(i+1)*(j+1), mm: " << mm << endl;
 
 	Vector mmColScale(4), mmRowScale(3);
 	mmColScale[0]=1; mmColScale[1]=10; mmColScale[2]=100; mmColScale[3]=1000;
 	mmRowScale[0]=-1000; mmRowScale[1]=-100; mmRowScale[2]=-10;
-	Vector_<long double> mmRowScaleR(3); for(int i=0;i<3;++i) mmRowScaleR[i]=(float)mmRowScale[i];
+	Vector_<double> mmRowScaleR(3); for(int i=0;i<3;++i) mmRowScaleR[i]=(float)mmRowScale[i];
 
 	cout << "mm=" << mm << " mmColScale=" << mmColScale << endl;
 	mm.colScaleInPlace(mmColScale);
@@ -207,8 +278,8 @@ int main()
 	mm.rowScaleInPlace(mmRowScaleR);
 	cout << "after LONG DOUBLE row scale mm=" << mm;
 
-	cout << "mm.rowScale(long double)=" << mm.rowScale(mmRowScaleR);
-	cout << "type(mm.rowScale(long double))=" << typeid(mm.rowScale(mmRowScaleR)).name() << endl;
+	cout << "mm.rowScale(double)=" << mm.rowScale(mmRowScaleR);
+	cout << "type(mm.rowScale(double))=" << typeid(mm.rowScale(mmRowScaleR)).name() << endl;
 
 	Vector_<Vec2> mmVCol(4); for (int i=0; i<4; ++i) mmVCol[i] = Vec2(4*i, 4*i+1);
 	cout << "mm Vec2 colScale=" << mmVCol << endl;
@@ -358,16 +429,79 @@ int main()
     Matrix AI = A.invert();
     cout << "A=" << A << "AI=" << AI << " A*AI=" << A*AI;
 
+    cout << "A(1,2).real()=" << A(1,2).real() << endl;
+
+    cout << "~A=" << ~A << "inv(~A)=" << (~A).invert() << "~(inv(A))=" << ~AI;
+
+    A.invertInPlace();
+    cout << "after A=inv(A), A=" << A << "norm(A-AI)=" << (A-AI).norm() << endl;
+
     A.dump("*** A ***");
     AI.dump("*** AI ***");
 
-    Mat<3,3,negator<Real> > smallA((negator<Real>*)rdata);
-    Mat<3,3,negator<Real> >::TInvert smallAI(smallA.invert());
+    Mat<3,3,negator<Real> > smallNegA((negator<Real>*)rdata);
+    Mat<3,3,negator<Real> >::TInvert smallNegAI(smallNegA.invert());
 
-    cout << "smallA=" << smallA << " inv(smallA)=" << smallAI;
-    cout << "smallA*inv(smallA)=" << smallA*smallAI << "NORM="
-         << (smallA*smallAI).norm() << endl;
-    
+    cout << "smallNegA=" << smallNegA << " inv(smallNegA)=" << smallNegAI;
+    cout << "smallNegA*inv(smallNegA)=" << smallNegA*smallNegAI << "NORM="
+         << (smallNegA*smallNegAI).norm() << endl;
+    cout << "inverse(smallNegA)=" << inverse(smallNegA) << endl;
+
+    negator<Real> nnn  = smallNegA(0,0)-smallNegA(1,1);
+    Real          nnnr = smallNegA(0,0)-smallNegA(1,1);
+    cout << "negator nnn=" << nnn << " real nnnr=" << nnnr << endl;
+
+    nnn  = smallNegA(0,1)-smallNegA(1,0);
+    nnnr = smallNegA(0,1)-smallNegA(1,0);
+    cout << "negator nnn=" << nnn << " real nnnr=" << nnnr << endl;
+
+    cout << "det(smallNegA)=" << det(smallNegA) 
+         << " det(inv(smallNegA))=" << det(smallNegAI) << endl;
+
+    const Real cjdata[]={1,1,  2,2,   3,3, 4,4,
+                         9,9, .1,.1, 14,14, 22,22,
+                         2,2,  6,6,   9,9,  11,11,
+                         .2,.2, .7,.7, 5,5, 10,10};
+
+    // General Lapack inverse.
+    Mat<4,4,conjugate<Real> > smallConjA4((conjugate<Real>*)cjdata);
+    Mat<4,4,conjugate<Real> >::TInvert smallConjAI4(smallConjA4.invert());
+
+
+    cout << "smallConjA4=" << smallConjA4 << " inv(smallConjA4)=" << smallConjAI4;
+    cout << "smallConjA4*inv(smallConjA4)=" << smallConjA4*smallConjAI4;
+    cout << "NORM=" << (smallConjA4*smallConjAI4).norm() << endl;
+    cout << "inverse(smallConjA4)=" << inverse(smallConjA4) << endl;
+    cout << "norm(inverse-lapackInverse4)=" << (inverse(smallConjA4)-lapackInverse(smallConjA4)).norm() << endl;
+
+    cout << "det(smallConjA4)=" << det(smallConjA4) 
+         << " det(inv(smallConjA4))=" << det(smallConjAI4) << endl;
+
+    // Specialized inverse.
+    Mat<3,3,conjugate<Real> > smallConjA3((conjugate<Real>*)cjdata);
+    Mat<3,3,conjugate<Real> >::TInvert smallConjAI3(smallConjA3.invert());
+
+    cout << "smallConjA3=" << smallConjA3 << " inv(smallConjA3)=" << smallConjAI3;
+
+    cout << "smallConjA3*inv(smallConjA3)=" << smallConjA3*smallConjAI3 << "NORM="
+         << (smallConjA3*smallConjAI3).norm() << endl;
+
+    cout << "inverse(smallNegA3)=" << inverse(smallConjA3) << endl;
+
+    cout << "norm(inverse-lapackInverse3)=" << (inverse(smallConjA3)-lapackInverse(smallConjA3)).norm() << endl;
+
+    cout << "det(smallConjA3)=" << det(smallConjA3) 
+         << " det(inv(smallConjA3))=" << det(smallConjAI3) << endl;
+
+    cout << "Mat<1,1,conj>=" << smallConjA3.getSubMat<1,1>(1,0) << "inv(...)=" <<
+        smallConjA3.getSubMat<1,1>(1,0).invert();
+    cout << "Mat11*inv(Mat11)=" << 
+        smallConjA3.getSubMat<1,1>(1,0)*smallConjA3.getSubMat<1,1>(1,0).invert();
+    cout << "Mat<2,2,conj>=" << smallConjA3.getSubMat<2,2>(0,0) << "inv(...)=" <<
+        smallConjA3.getSubMat<2,2>(0,0).invert();
+    cout << "Mat22*inv(Mat22)=" << 
+        smallConjA3.getSubMat<2,2>(0,0)*smallConjA3.getSubMat<2,2>(0,0).invert();
+
     try {
     const double ddd[] = { 11, 12, 13, 14, 15, 16 }; 
     const float fddd[] = { 11, 12, 13, 14, 15, 16 }; 
@@ -438,7 +572,7 @@ int main()
     }  
 
     typedef double P;
-    const int N = 500;
+    const int N = 1000;
     const int LUP = 1;
     Matrix_<P> big(N,N);
     for (int j=0; j<N; ++j)

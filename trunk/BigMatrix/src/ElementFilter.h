@@ -50,6 +50,146 @@
 namespace SimTK {
 
 
+
+struct RowCol {
+    RowCol(int r, int c) : row(r), col(c) {}
+
+    RowCol transpose() const {return RowCol(col,row);}
+
+    int row, col;
+
+    RowCol& operator+=(const RowCol& rc) {row+=rc.row; col+=rc.col; return *this;}
+    RowCol& operator-=(const RowCol& rc) {row-=rc.row; col-=rc.col; return *this;}
+};
+
+std::ostream& operator<<(std::ostream&, const RowCol&);
+
+struct NRowCol {
+    NRowCol() : nrow(0), ncol(0) {}
+    NRowCol(int nr, int nc) : nrow(nr), ncol(nc) {}
+
+    RowCol firstElt() const {return RowCol(0,0);}
+    RowCol lastElt()  const {return RowCol(nrow-1,ncol-1);}
+
+    NRowCol transpose() const {return NRowCol(ncol,nrow);}
+
+    int nrow, ncol;
+};
+
+inline bool operator==(const NRowCol& left, const NRowCol& right) 
+{   return left.nrow == right.nrow && left.ncol == right.ncol; }
+inline bool operator!=(const NRowCol& left, const NRowCol& right) 
+{   return left.nrow != right.nrow || left.ncol != right.ncol; }
+inline bool operator<(const NRowCol& left, const NRowCol& right) 
+{   return left.nrow < right.nrow && left.ncol < right.ncol; }
+inline bool operator<=(const NRowCol& left, const NRowCol& right) 
+{   return left.nrow <= right.nrow && left.ncol <= right.ncol; }
+inline bool operator>(const NRowCol& left, const NRowCol& right) 
+{   return left.nrow > right.nrow && left.ncol > right.ncol; }
+inline bool operator>=(const NRowCol& left, const NRowCol& right) 
+{   return left.nrow >= right.nrow && left.ncol >= right.ncol; }
+
+std::ostream& operator<<(std::ostream&, const NRowCol&);
+
+inline RowCol operator+(const RowCol& left, const RowCol& right) {
+    return RowCol(left) += right;
+}
+
+inline RowCol operator-(const RowCol& left, const RowCol& right) {
+    return RowCol(left) -= right;
+}
+
+inline bool operator==(const RowCol& left, const RowCol& right) 
+{   return left.row == right.row && left.col == right.col; }
+inline bool operator!=(const RowCol& left, const RowCol& right) 
+{   return left.row != right.row || left.col != right.col; }
+inline bool operator<(const RowCol& left, const RowCol& right) 
+{   return left.row < right.row && left.col < right.col; }
+inline bool operator<=(const RowCol& left, const RowCol& right) 
+{   return left.row <= right.row && left.col <= right.col; }
+inline bool operator>(const RowCol& left, const RowCol& right) 
+{   return left.row > right.row && left.col > right.col; }
+inline bool operator>=(const RowCol& left, const RowCol& right) 
+{   return left.row >= right.row && left.col >= right.col; }
+
+//------------------------------- EltIndexer -----------------------------------
+//
+// For a matrix whose elements are regularly spaced with respect to row and
+// column indices (i,j), this class captures the spacing *in elements* between
+// elements accessed by element index. We represent these like partial
+// derivatives dr/di, dr/dj, dc/di, dc/dj where the row and column spacings
+// (r,c) are in elements. Note that to be regular each of these values must
+// be independent of the current values of i and j.
+//------------------------------------------------------------------------------
+class EltIndexer {
+public:
+    EltIndexer() : drdi(1), drdj(0), dcdi(0), dcdj(1) {} // no-op
+
+    EltIndexer(int drdi, int drdj, int dcdi, int dcdj)
+    :   drdi(drdi), drdj(drdj), dcdi(dcdi), dcdj(dcdj) {}
+
+    // Return an indexer in which the dependencies on i and j are reversed.
+    EltIndexer transpose() const
+    {   return EltIndexer(drdj,drdi,dcdj,dcdi); }
+
+    // Apply a new indexer to this one to produce a single indexer with
+    // the composite effect (r,c) = post( this(i,j) ).
+    EltIndexer postIndexBy(const EltIndexer& post) const {
+        return EltIndexer(drdi*post.drdi + drdj*post.dcdi,
+                          drdj*post.dcdj + drdi*post.drdj,
+                          dcdi*post.drdi + dcdj*post.dcdi,
+                          dcdj*post.dcdj + dcdi*post.drdj);
+    }
+
+    // Returns true if this indexer maps (i,j)->(i,j) and is thus a no-op.
+    bool doesNothing() const
+    {   return drdi==1 && drdj==0 && dcdi==0 && dcdj==1; }
+
+    // Returns true if this indexer maps (i,j)->(j,i) and is thus a pure transpose.
+    bool isTransposeOnly() const
+    {   return drdi==0 && drdj==1 && dcdi==1 && dcdj==0; }
+
+    // Given element index (i,j) relative to this view, return element
+    // indices (row,col) from which the data object can retrieve the
+    // desired element.        
+    int row(int i, int j) const {return drdi*i + drdj*j;}
+    int col(int i, int j) const {return dcdi*i + dcdj*j;}
+    
+private:             
+    int drdi, drdj;   // row selection
+    int dcdi, dcdj;   // column selection
+};
+
+//---------------------------------- EltBlock ----------------------------------
+//
+// This selects a sub-block of a matrix by giving the element index of its
+// upper-left-hand element, and the size of the block.
+//------------------------------------------------------------------------------
+class EltBlock {
+public:
+    EltBlock(int nr, int nc)
+    :   r0(0), c0(0), nr(nr), nc(nc)
+    {   assert(nr>=0 && nc>=0); }
+    EltBlock(int r0, int c0, int nr, int nc)
+    :   r0(r0), c0(c0), nr(nr), nc(nc) 
+    {   assert(r0>=0 && c0>=0 && nr>=0 && nc>=0); }
+
+    // Returns true if, for a matrix of the supplied dimensions, this block
+    // would show the whole thing.
+    bool isWholeMatrix(int nrow, int ncol) const 
+    {   return r0==0 && c0==0 && nr==nrow && nc==ncol; }
+
+    int row0() const {return r0;}
+    int col0() const {return c0;}
+    int nrow() const {return nr;}
+    int ncol() const {return nc;}
+    ptrdiff_t nelt() const {return ptrdiff_t(nr)*nc;}
+
+private:
+    int r0, c0;
+    int nr, nc;
+};
+
 /**
  * Describe a subset of the elements of a DataDescriptor object referenced by
  * the same MatrixHelper that references this ElementFilter object. Note that
@@ -83,8 +223,8 @@ public:
     class Indexer {
     public:
         // All arguments refer to *elements*, not *scalars*.
-        Indexer(int r, int c, int drdx_=1, int drdy_=0, int dcdx_=0, int dcdy_=1)
-          : r0(r), c0(c), drdx(drdx_), drdy(drdy_), dcdx(dcdx_), dcdy(dcdy_) 
+        Indexer(int r, int c, int drdx=1, int drdy=0, int dcdx=0, int dcdy=1)
+          : r0(r), c0(c), drdx(drdx), drdy(drdy), dcdx(dcdx), dcdy(dcdy) 
         { 
         }
  
@@ -135,7 +275,7 @@ public:
     }
 
     // This is the basic constructor, giving the logical shape, writability
-    // and an indexer to use to extract the elements from the orginal data.
+    // and an indexer to use to extract the elements from the original data.
     ElementFilter(bool wrt, int m, int n, const Indexer& ix)
       : writable(wrt), nr(m), nc(n), indexer(ix) 
     { 
@@ -148,10 +288,16 @@ public:
       : writable(wrt), nr(m), nc(n), indexer(old.indexer, ix) 
     { 
     } 
+
+    ElementFilter* clone() const {return new ElementFilter(*this);}
         
-    int  nrow() const { return nr; }
-    int  ncol() const { return nc; } 
-    long size() const { return nr*nc; }    
+    int    nrow() const { return nr; }
+    int    ncol() const { return nc; } 
+    size_t nelt() const { return (size_t)nr*nc; }
+
+    const Indexer& getIndexer() const {return indexer;}
+
+    void setIndexer(const Indexer& newIndexer) {indexer=newIndexer;}
         
     bool isViewWritable() const { return writable; }
     
@@ -159,6 +305,11 @@ public:
     int c(int i, int j) const { assert(i<nr&&j<nc); return indexer.col(i,j); }
     void  rc(int i, int j, int& r, int& c) const 
         { assert(i<nr&&j<nc); r=indexer.row(i,j); c=indexer.col(i,j); }   
+
+    RowCol rowcol(int i, int j) const {
+        assert(i<nr&&j<nc);
+        return RowCol(indexer.row(i,j), indexer.col(i,j));
+    }
                        
 private:
     bool    writable;           // does this view allow writing?

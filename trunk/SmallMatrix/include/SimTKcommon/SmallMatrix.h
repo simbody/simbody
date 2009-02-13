@@ -94,6 +94,7 @@
  */
 
 #include "SimTKcommon/Scalar.h"
+#include "SimTKcommon/TemplatizedLapack.h"
 
 // Forward declarations.
 namespace SimTK {

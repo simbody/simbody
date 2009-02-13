@@ -34,54 +34,14 @@
 
 /**@file
  * This file defines leftover SmallMatrix implementations which need to know
- * about Lapack.
+ * about our BigMatrix classes.
  */
 
-#include "SimTKcommon/TemplatizedLapack.h"
-#include <vector>
 
 namespace SimTK {
 
-template <int M, int N, class ELT, int CS, int RS>
-typename Mat<M,N,ELT,CS,RS>::TInvert 
-Mat<M,N,ELT,CS,RS>::invert() const {
-    // We don't care if this is negated, but conjugated won't work.
-    assert(CNT<ELT>::IsStdNumber || CNT<typename CNT<ELT>::TNeg>::IsStdNumber);
-    assert(M == N);
-    typedef typename CNT<ELT>::StdNumber Raw;
-    
-    // Handle very small matrices directly.
-    
-    if (M == 1) {
-        assert((*this)(0, 0) != 0.0);
-        TInvert mat(1.0/(*this)(0, 0));
-        return mat;
-    }
-    if (M == 2) {
-        Raw d = (*this)(0, 0)*(*this)(1, 1) - (*this)(0, 1)*(*this)(1, 0);
-        assert(d != 0.0);
-        Raw dinv = 1.0/d;
-        TInvert mat(dinv*(*this)(1, 1), -dinv*(*this)(0, 1), -dinv*(*this)(1, 0), dinv*(*this)(0, 0));
-        return mat;
-    }
+        // none currently
 
-    TInvert mat = *this;
-    Raw* rawData = reinterpret_cast<Raw*>(&mat);
-    int ipiv[M];
-    int info;
-    Lapack::getrf<Raw>(M,M,rawData,M,&ipiv[0],info);
-    assert(info==0);
-
-    // Calculate optimal size for work
-    Raw workSz;
-    Lapack::getri<Raw>(M,rawData,M,&ipiv[0],&workSz,-1,info);
-    const int wsz = (int)CNT<Raw>::real(workSz);
-
-    std::vector<Raw> work(wsz);
-    Lapack::getri<Raw>(M,rawData,M,&ipiv[0],&work[0],wsz,info);
-    assert(info==0);
-    return mat;
-}
 
 } //namespace SimTK
 

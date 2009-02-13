@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-8 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -33,8 +33,9 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * This file defines globals which use a mix of Vec, Row, and Mat
- * types and hence need to wait until everything is defined.
+ * This file defines global functions and class members which use a mix 
+ * of Vec, Row, and Mat types and hence need to wait until everything is 
+ * defined. Some of them may depend on Lapack also.
  */
 
 namespace SimTK {
@@ -375,6 +376,176 @@ crossMat(const Vec<2,E,S>& v) {
 }
 template <class E, int S> inline
 Row<2,E> crossMat(const Row<2,E,S>& r) {return crossMat(r.positionalTranspose());}
+
+    // DETERMINANT
+
+/// Special case 1x1 determinant. No computation.
+template <class E, int CS, int RS> inline
+const E& det(const Mat<1,1,E,CS,RS>& m) {
+    return m(0,0);
+}
+
+/// Special case 2x2 determinant. 3 flops.
+template <class E, int CS, int RS> inline
+E det(const Mat<2,2,E,CS,RS>& m) {
+    return E(m(0,0)*m(1,1) - m(0,1)*m(1,0));
+}
+
+/// Special case 3x3 determinant. 14 flops.
+template <class E, int CS, int RS> inline
+E det(const Mat<3,3,E,CS,RS>& m) {
+    return E(  m(0,0)*(m(1,1)*m(2,2)-m(1,2)*m(2,1))
+             - m(0,1)*(m(1,0)*m(2,2)-m(1,2)*m(2,0))
+             + m(0,2)*(m(1,0)*m(2,1)-m(1,1)*m(2,0)));
+}
+
+/// Calculate the determinant of a square matrix larger than 3x3
+/// by recursive template expansion. The matrix elements must be 
+/// multiplication compatible for this to compile successfully. 
+/// All scalar element types are acceptable; some composite types 
+/// will also work but the result is probably meaningless.
+/// The determinant suffers from increasingly bad scaling as the
+/// matrices get bigger; you should consider an alternative if
+/// possible (see Golub and van Loan, "Matrix Computations").
+/// This uses M*det(M-1) + 4*M flops. For 4x4 that's 60 flops,
+/// for 5x5 it's 320, and it grows really fast from there!
+/// TODO: this is not the right way to calculate determinant --
+/// should calculate LU factorization at 2/3 n^3 flops, then
+/// determinant is product of LU's diagonals.
+template <int M, class E, int CS, int RS> inline
+E det(const Mat<M,M,E,CS,RS>& m) {
+    CNT<E>::StdNumber sign = 1;
+    E                 result(0);
+    // We're always going to drop the first row.
+    const Mat<M-1,M,E,CS,RS>& m2 = m.getSubMat<M-1,M>(1,0);
+    for (int j=0; j < M; ++j) {
+        // det() here is recursive but terminates at 3x3 above.
+        result += sign*m(0,j)*det(m2.dropCol(j));
+        sign = -sign;
+    }
+    return result;
+}
+
+    // INVERSE
+
+/// Specialized 1x1 lapackInverse(): costs one divide.
+template <class E, int CS, int RS> inline
+typename Mat<1,1,E,CS,RS>::TInvert lapackInverse(const Mat<1,1,E,CS,RS>& m) {
+    typedef typename Mat<1,1,E,CS,RS>::TInvert MInv;
+    return MInv( E(CNT<E>::StdNumber(1)/m(0,0)) );
+}
+
+/// General inverse of small, fixed-size, square (mXm), non-singular matrix with 
+/// scalar elements: use Lapack's LU routine with pivoting. This will only work 
+/// if the element type E is a scalar type, although negator<> and conjugate<> 
+/// are OK. This routine is <em>not</em> specialized for small matrix sizes other
+/// than 1x1, while the inverse() method is specialized for other small sizes
+/// for speed, possibly losing some numerical stability. The inverse() function
+/// ends up calling this one at sizes for which it has no specialization. 
+/// Normally you should call inverse(), but you can call lapackInverse() 
+/// explicitly if you want to ensure that the most stable algorithm is used.
+/// @see inverse()
+template <int M, class E, int CS, int RS> inline
+typename Mat<M,M,E,CS,RS>::TInvert lapackInverse(const Mat<M,M,E,CS,RS>& m) {
+    // Copy the source matrix, which has arbitrary row and column spacing,
+    // into the type for its inverse, which must be dense, columnwise
+    // storage. That means its column spacing will be M and row spacing
+    // will be 1, as Lapack expects for a Full matrix.
+    Mat<M,M,E,CS,RS>::TInvert inv = m; // dense, columnwise storage
+
+    // We'll perform the inversion ignoring negation and conjugation altogether, 
+    // but the TInvert Mat type negates or conjugates the result. And because 
+    // of the famous Sherman-Eastman theorem, we know that 
+    // conj(inv(m))==inv(conj(m)), and of course -inv(m)==inv(-m).
+    typedef typename CNT<E>::StdNumber Raw;   // Raw is E without negator or conjugate.
+    Raw* rawData = reinterpret_cast<Raw*>(&inv(0,0));
+    int ipiv[M], info;
+
+    // This replaces "inv" with its LU facorization and pivot matrix P, such that
+    // P*L*U = m (ignoring negation and conjugation).
+    Lapack::getrf<Raw>(M,M,rawData,M,&ipiv[0],info);
+    SimTK_ASSERT1(info>=0, "Argument %d to Lapack getrf routine was bad", -info);
+    SimTK_ERRCHK1_ALWAYS(info==0, "lapackInverse(Mat<>)",
+        "Matrix is singular so can't be inverted (Lapack getrf info=%d).", info);
+
+    // The workspace size must be at least M. For larger matrices, Lapack wants
+    // to do factorization in blocks of size NB in which case the workspace should
+    // be M*NB. However, we will assume that this matrix is small (in the sense
+    // that it fits entirely in cache) so the minimum workspace size is fine and
+    // we don't need an extra getri call to find the workspace size nor any heap
+    // allocation.
+
+    Raw work[M];
+    Lapack::getri<Raw>(M,rawData,M,&ipiv[0],&work[0],M,info);
+    SimTK_ASSERT1(info>=0, "Argument %d to Lapack getri routine was bad", -info);
+    SimTK_ERRCHK1_ALWAYS(info==0, "lapackInverse(Mat<>)",
+        "Matrix is singular so can't be inverted (Lapack getri info=%d).", info);
+    return inv;
+}
+
+
+/// Specialized 1x1 inverse: costs one divide.
+template <class E, int CS, int RS> inline
+typename Mat<1,1,E,CS,RS>::TInvert inverse(const Mat<1,1,E,CS,RS>& m) {
+    typedef typename Mat<1,1,E,CS,RS>::TInvert MInv;
+    return MInv( E(CNT<E>::StdNumber(1)/m(0,0)) );
+}
+
+/// Specialized 2x2 inverse: costs one divide plus 9 flops.
+template <class E, int CS, int RS> inline
+typename Mat<2,2,E,CS,RS>::TInvert inverse(const Mat<2,2,E,CS,RS>& m) {
+    const E               d  ( det(m) );
+    const CNT<E>::TInvert ood( CNT<E>::StdNumber(1)/d );
+    return Mat<2,2,E,CS,RS>::TInvert( E( ood*m(1,1)), E(-ood*m(0,1)),
+                                      E(-ood*m(1,0)), E( ood*m(0,0)));
+}
+
+/// Specialized 3x3 inverse: costs one divide plus 45 flops (for real-valued
+/// matrices). No pivoting done here so this may be subject to numerical errors 
+/// that Lapack would avoid. Call lapackInverse() instead if you're worried.
+/// @see lapackInverse()
+template <class E, int CS, int RS> inline
+typename Mat<3,3,E,CS,RS>::TInvert inverse(const Mat<3,3,E,CS,RS>& m) {
+    // Calculate determinants for each 2x2 submatrix with first row removed.
+    // (See the specialized 3x3 determinant routine above.) We're calculating
+    // this explicitly here because we can re-use the intermediate terms.
+    const E d00(m(1,1)*m(2,2)-m(1,2)*m(2,1)),
+            d01(m(1,0)*m(2,2)-m(1,2)*m(2,0)),
+            d02(m(1,0)*m(2,1)-m(1,1)*m(2,0));
+
+    // This is the 3x3 determinant and its inverse.
+    const E               d  (m(0,0)*d00 - m(0,1)*d01 + m(0,2)*d02);
+    const CNT<E>::TInvert ood(CNT<E>::StdNumber(1)/d);
+
+    // The other six 2x2 determinants we can't re-use, but we can still
+    // avoid some copying by calculating them explicitly here.
+    const E d10(m(0,1)*m(2,2)-m(0,2)*m(2,1)),
+            d11(m(0,0)*m(2,2)-m(0,2)*m(2,0)),
+            d12(m(0,0)*m(2,1)-m(0,1)*m(2,0)),
+            d20(m(0,1)*m(1,2)-m(0,2)*m(1,1)),
+            d21(m(0,0)*m(1,2)-m(0,2)*m(1,0)),
+            d22(m(0,0)*m(1,1)-m(0,1)*m(1,0));
+
+    return Mat<3,3,E,CS,RS>::TInvert
+       ( E( ood*d00), E(-ood*d10), E( ood*d20),
+         E(-ood*d01), E( ood*d11), E(-ood*d21),
+         E( ood*d02), E(-ood*d12), E( ood*d22) ); 
+}
+
+/// For any matrix larger than 3x3, we just punt to the Lapack implementation.
+/// @see lapackInverse()
+template <int M, class E, int CS, int RS> inline
+typename Mat<M,M,E,CS,RS>::TInvert inverse(const Mat<M,M,E,CS,RS>& m) {
+    return lapackInverse(m);
+}
+
+// Implement the Mat<>::invert() method using the above specialized 
+// inverse functions. This will only compile if M==N.
+template <int M, int N, class ELT, int CS, int RS> inline
+typename Mat<M,N,ELT,CS,RS>::TInvert 
+Mat<M,N,ELT,CS,RS>::invert() const {
+    return SimTK::inverse(*this);
+}
 
 } //namespace SimTK
 
