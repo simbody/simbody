@@ -390,7 +390,8 @@ public:
 
     // 1/conj(z) = conj(1/z), for complex z.
     static TInvert invert(const T& t)    
-    {   return reinterpret_cast<const T&>(NTraits<THerm>::invert(t.conj()));}
+    {   const typename NTraits<THerm>::TInvert cmplx(NTraits<THerm>::invert(t.conj()));
+        return reinterpret_cast<const TInvert&>(cmplx); } // recast complex to conjugate it
 
     // We want a "conjugate NaN", NaN - NaN*i, meaning both reals should
     // be positive NaN.
