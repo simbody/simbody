@@ -476,11 +476,11 @@ public:
       { re /= r; negIm /= r; return *this; }
 
     // Disambiguate int to be a double.
-    conjugate& operator =(int i) {*this =double(i); return *this;}
-    conjugate& operator+=(int i) {*this+=double(i); return *this;}
-    conjugate& operator-=(int i) {*this-=double(i); return *this;}
-    conjugate& operator*=(int i) {*this*=double(i); return *this;}
-    conjugate& operator/=(int i) {*this/=double(i); return *this;}
+    conjugate& operator =(int i) {*this =(double)i; return *this;}
+    conjugate& operator+=(int i) {*this+=(double)i; return *this;}
+    conjugate& operator-=(int i) {*this-=(double)i; return *this;}
+    conjugate& operator*=(int i) {*this*=(double)i; return *this;}
+    conjugate& operator/=(int i) {*this/=(double)i; return *this;}
 
     conjugate& operator+=(const conjugate<double>& c)
       { re += c.re; negIm += c.negIm; return *this; }
@@ -660,11 +660,11 @@ public:
       { re /= r; negIm /= r; return *this; }
 
     // Disambiguate int to be a long double.
-    conjugate& operator =(int i) {*this =long double(i); return *this;}
-    conjugate& operator+=(int i) {*this+=long double(i); return *this;}
-    conjugate& operator-=(int i) {*this-=long double(i); return *this;}
-    conjugate& operator*=(int i) {*this*=long double(i); return *this;}
-    conjugate& operator/=(int i) {*this/=long double(i); return *this;}
+    conjugate& operator =(int i) {*this =(long double)i; return *this;}
+    conjugate& operator+=(int i) {*this+=(long double)i; return *this;}
+    conjugate& operator-=(int i) {*this-=(long double)i; return *this;}
+    conjugate& operator*=(int i) {*this*=(long double)i; return *this;}
+    conjugate& operator/=(int i) {*this/=(long double)i; return *this;}
 
     conjugate& operator+=(const conjugate<long double>& c)
       { re += c.re; negIm += c.negIm; return *this; }
