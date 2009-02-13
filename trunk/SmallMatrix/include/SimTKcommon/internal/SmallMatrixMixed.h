@@ -495,7 +495,7 @@ typename Mat<1,1,E,CS,RS>::TInvert inverse(const Mat<1,1,E,CS,RS>& m) {
 template <class E, int CS, int RS> inline
 typename Mat<2,2,E,CS,RS>::TInvert inverse(const Mat<2,2,E,CS,RS>& m) {
     const E               d  ( det(m) );
-    const typename CNT<E>::TInvert ood( CNT<E>::StdNumber(1)/d );
+    const typename CNT<E>::TInvert ood( typename CNT<E>::StdNumber(1)/d );
     return typename Mat<2,2,E,CS,RS>::TInvert( E( ood*m(1,1)), E(-ood*m(0,1)),
                                                E(-ood*m(1,0)), E( ood*m(0,0)));
 }
