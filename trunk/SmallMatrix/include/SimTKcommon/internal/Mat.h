@@ -835,7 +835,7 @@ public:
     {
         TAppendRowCol out;
         out.updSubMat<M,N>(0,0) = (*this);
-        out[M].updSubRow<N>(0) = row.updSubRow<N>; // ignore last element
+        out[M].updSubRow<N>(0) = row.updSubRow<N>(0); // ignore last element
         out(N) = col;
         return out;
     }
