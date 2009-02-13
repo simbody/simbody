@@ -414,8 +414,8 @@ E det(const Mat<3,3,E,CS,RS>& m) {
 /// determinant is product of LU's diagonals.
 template <int M, class E, int CS, int RS> inline
 E det(const Mat<M,M,E,CS,RS>& m) {
-    CNT<E>::StdNumber sign = 1;
-    E                 result(0);
+    typename CNT<E>::StdNumber sign(1);
+    E                          result(0);
     // We're always going to drop the first row.
     const Mat<M-1,M,E,CS,RS>& m2 = m.getSubMat<M-1,M>(1,0);
     for (int j=0; j < M; ++j) {
@@ -432,7 +432,7 @@ E det(const Mat<M,M,E,CS,RS>& m) {
 template <class E, int CS, int RS> inline
 typename Mat<1,1,E,CS,RS>::TInvert lapackInverse(const Mat<1,1,E,CS,RS>& m) {
     typedef typename Mat<1,1,E,CS,RS>::TInvert MInv;
-    return MInv( E(CNT<E>::StdNumber(1)/m(0,0)) );
+    return MInv( E(typename CNT<E>::StdNumber(1)/m(0,0)) );
 }
 
 /// General inverse of small, fixed-size, square (mXm), non-singular matrix with 
@@ -451,7 +451,7 @@ typename Mat<M,M,E,CS,RS>::TInvert lapackInverse(const Mat<M,M,E,CS,RS>& m) {
     // into the type for its inverse, which must be dense, columnwise
     // storage. That means its column spacing will be M and row spacing
     // will be 1, as Lapack expects for a Full matrix.
-    Mat<M,M,E,CS,RS>::TInvert inv = m; // dense, columnwise storage
+    typename Mat<M,M,E,CS,RS>::TInvert inv = m; // dense, columnwise storage
 
     // We'll perform the inversion ignoring negation and conjugation altogether, 
     // but the TInvert Mat type negates or conjugates the result. And because 
@@ -488,16 +488,16 @@ typename Mat<M,M,E,CS,RS>::TInvert lapackInverse(const Mat<M,M,E,CS,RS>& m) {
 template <class E, int CS, int RS> inline
 typename Mat<1,1,E,CS,RS>::TInvert inverse(const Mat<1,1,E,CS,RS>& m) {
     typedef typename Mat<1,1,E,CS,RS>::TInvert MInv;
-    return MInv( E(CNT<E>::StdNumber(1)/m(0,0)) );
+    return MInv( E(typename CNT<E>::StdNumber(1)/m(0,0)) );
 }
 
 /// Specialized 2x2 inverse: costs one divide plus 9 flops.
 template <class E, int CS, int RS> inline
 typename Mat<2,2,E,CS,RS>::TInvert inverse(const Mat<2,2,E,CS,RS>& m) {
     const E               d  ( det(m) );
-    const CNT<E>::TInvert ood( CNT<E>::StdNumber(1)/d );
-    return Mat<2,2,E,CS,RS>::TInvert( E( ood*m(1,1)), E(-ood*m(0,1)),
-                                      E(-ood*m(1,0)), E( ood*m(0,0)));
+    const typename CNT<E>::TInvert ood( CNT<E>::StdNumber(1)/d );
+    return typename Mat<2,2,E,CS,RS>::TInvert( E( ood*m(1,1)), E(-ood*m(0,1)),
+                                               E(-ood*m(1,0)), E( ood*m(0,0)));
 }
 
 /// Specialized 3x3 inverse: costs one divide plus 45 flops (for real-valued
@@ -514,8 +514,9 @@ typename Mat<3,3,E,CS,RS>::TInvert inverse(const Mat<3,3,E,CS,RS>& m) {
             d02(m(1,0)*m(2,1)-m(1,1)*m(2,0));
 
     // This is the 3x3 determinant and its inverse.
-    const E               d  (m(0,0)*d00 - m(0,1)*d01 + m(0,2)*d02);
-    const CNT<E>::TInvert ood(CNT<E>::StdNumber(1)/d);
+    const E d  (m(0,0)*d00 - m(0,1)*d01 + m(0,2)*d02);
+    const typename CNT<E>::TInvert 
+            ood(typename CNT<E>::StdNumber(1)/d);
 
     // The other six 2x2 determinants we can't re-use, but we can still
     // avoid some copying by calculating them explicitly here.
@@ -526,7 +527,7 @@ typename Mat<3,3,E,CS,RS>::TInvert inverse(const Mat<3,3,E,CS,RS>& m) {
             d21(m(0,0)*m(1,2)-m(0,2)*m(1,0)),
             d22(m(0,0)*m(1,1)-m(0,1)*m(1,0));
 
-    return Mat<3,3,E,CS,RS>::TInvert
+    return typename Mat<3,3,E,CS,RS>::TInvert
        ( E( ood*d00), E(-ood*d10), E( ood*d20),
          E(-ood*d01), E( ood*d11), E(-ood*d21),
          E( ood*d02), E(-ood*d12), E( ood*d22) ); 
