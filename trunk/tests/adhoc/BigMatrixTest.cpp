@@ -148,10 +148,6 @@ void testCharacter() {
 
     ComplexMatrix cm(2,3,2,cmplx);
     cout << "cm=" << cm;
-
-
-    exit(0);
-
 }
 
 int main()

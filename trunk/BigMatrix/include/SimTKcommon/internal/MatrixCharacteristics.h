@@ -713,7 +713,8 @@ private:
 };
 
 /// Output a textual description of a MatrixCharacter; handy for debugging.
-std::ostream& operator<<(std::ostream& o, const MatrixCharacter&);
+SimTK_SimTKCOMMON_EXPORT std::ostream& 
+operator<<(std::ostream& o, const MatrixCharacter&);
 
 /// Predefined MatrixCharacter for an ordinary Lapack-style full matrix
 /// of a particular dimension m x n (#rows X #cols). Note that the storage
@@ -1099,7 +1100,8 @@ public:
 };
 
 /// Output a textual description of a MatrixCommitment; handy for debugging.
-std::ostream& operator<<(std::ostream& o, const MatrixCommitment&);
+SimTK_SimTKCOMMON_EXPORT std::ostream& 
+operator<<(std::ostream& o, const MatrixCommitment&);
 
 //  End of MatrixCharacteristics group.
 /// @}
