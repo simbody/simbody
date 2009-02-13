@@ -218,7 +218,7 @@ public:
 
     static const TWithoutNegator& castAwayNegatorIfAny(const T& t)
         {return reinterpret_cast<const TWithoutNegator&>(t);}
-    static       TWithoutNegator& updCastAwayNegatorIfAny(const T& t)
+    static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)
         {return reinterpret_cast<TWithoutNegator&>(t);}
 
     static ScalarSq scalarNormSqr(const T& t)
@@ -377,7 +377,7 @@ public:
 
     static const TWithoutNegator& castAwayNegatorIfAny(const T& t)
         {return reinterpret_cast<const TWithoutNegator&>(t);}
-    static       TWithoutNegator& updCastAwayNegatorIfAny(const T& t)
+    static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)
         {return reinterpret_cast<TWithoutNegator&>(t);}
 
     static ScalarSq scalarNormSqr(const T& t)
