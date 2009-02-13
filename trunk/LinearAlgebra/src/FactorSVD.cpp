@@ -155,7 +155,7 @@ FactorSVDRep<T>::FactorSVDRep( const Matrix_<ELT>& mat, typename CNT<T>::TReal r
     singularValues(mn),
     inputMatrix(nCol*nRow),
     rank(0),
-    structure(mat.getMatrixStructure())  {
+    structure(mat.getMatrixCharacter().getStructure())  {
     
     LapackInterface::getMachineUnderflow( abstol );
     abstol *= 0.5;
@@ -227,9 +227,9 @@ void FactorSVDRep<T>::solve( const Matrix_<T>& b, Matrix_<T> &x ) {
 
     SimTK_APIARGCHECK2_ALWAYS(b.nrow()==nRow,"FactorSVD","solve",
        "number of rows in right hand side=%d does not match number of rows in original matrix=%d \n",
-        b.size(), nRow );
+        b.nrow(), nRow );
 
-    if( inputMatrix.size == 0 || b.size() == 0 ) {
+    if( inputMatrix.size == 0 || b.nelt() == 0 ) {
         x.resize(0,0);
     } else { 
         x.resize( nCol, b.ncol() );
@@ -248,7 +248,7 @@ void FactorSVDRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) {
     int info;
     typedef typename CNT<T>::TReal RealType;
 
-    if( b.size() == 0 || inputMatrix.size == 0) return;
+    if( b.nelt() == 0 || inputMatrix.size == 0) return;
 
     TypedWorkSpace<T> tempMatrix = inputMatrix;
 

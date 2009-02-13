@@ -183,7 +183,7 @@ class FactorSVDRep : public FactorSVDRepBase {
     int rank;
     RType rcond;   // reciprocol condition number
     RType abstol;
-    MatrixStructures::Structure structure;
+    MatrixStructure structure;
     TypedWorkSpace<T> inputMatrix;
     TypedWorkSpace<RType> singularValues;
 

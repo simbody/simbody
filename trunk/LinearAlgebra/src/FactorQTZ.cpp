@@ -317,7 +317,7 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
     typedef typename CNT<T>::TReal  RealType;
     RealType smlnum, bignum, smin, smax;
 
-    if( mat.size() == 0 ) return;
+    if( mat.nelt() == 0 ) return;
 
 
     // compute optimal block size

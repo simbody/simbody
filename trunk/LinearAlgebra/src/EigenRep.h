@@ -303,7 +303,7 @@ class EigenRep : public EigenRepBase {
     bool vectorsInMatrix;    // true if eigen vectors stored in inputMatrix
     int valuesFound;         // number of eigen values found when computing few values
     EigenRange range;
-    MatrixStructures::Structure structure;
+    MatrixStructure structure;
     TypedWorkSpace<T> inputMatrix;
     TypedWorkSpace< RType> realEigenValues;
     TypedWorkSpace< std::complex<RType> > complexEigenValues;

@@ -140,7 +140,7 @@ template <typename T >        // constructor
 EigenRep<T>::EigenRep( const Matrix_<ELT>& mat):
     n(mat.ncol()),  
     inputMatrix(n*n),
-    structure(mat.getMatrixStructure()),
+    structure(mat.getMatrixCharacter().getStructure()),
     range(AllValues),
     valuesFound(0),
     vectorsInMatrix(false),
@@ -252,7 +252,7 @@ void EigenRep<std::complex<float> >::copyVectors(Matrix_<std::complex<float> >& 
 
     vectors.resize(n,valuesFound);
 /*
-    if( structure ==  MatrixStructures::Symmetric ) {
+    if( structure ==  MatrixStructure::Symmetric ) {
         if( vectorsInMatrix ) {
             for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = inputMatrix.data[j*n+i];
         } else {
@@ -270,7 +270,7 @@ void EigenRep<std::complex<double> >::copyVectors(Matrix_<std::complex<double> >
     int i,j;
 /*
     vectors.resize(n,valuesFound);
-    if( structure ==  MatrixStructures::Symmetric ) {
+    if( structure ==  MatrixStructure::Symmetric ) {
         if( vectorsInMatrix ) {
             for(j=0;j<valuesFound;j++) for(i=0;i<n;i++) vectors(i,j) = inputMatrix.data[j*n+i];
         } else {
@@ -306,7 +306,7 @@ void EigenRep<T>::computeValues(bool computeVectors) {
     int computeLwork = -1;
     T size[1];
 /*
-    if( structure ==  MatrixStructures::Symmetric ) {
+    if( structure ==  MatrixStructure::Symmetric ) {
          char useUpper = 'U'; // matrix is stored in upper triangle
          realEigenValues.resize(n);
          if( range == AllValues ) {
@@ -404,7 +404,7 @@ void EigenRep<T>::getAllEigenValuesAndVectors( Vector_<RType>& values,  Matrix_<
          SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
          "getAllEigenValuesAndVectors(Real, Real) called with for a complex matrix   \n");
     }
-    if( structure != MatrixStructures::Symmetric ) {
+    if( structure.getStructure() != MatrixStructure::Symmetric ) {
          SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
          "getAllEigenValuesAndVectors(Real, Real) called with   for a non symmetric matrix   \n");
     }
@@ -426,7 +426,7 @@ void EigenRep<T>::getAllEigenValuesAndVectors( Vector_<RType>& values,  Matrix_<
          SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
          "getAllEigenValuesAndVectors(Real, complex) called for a real matrix   \n");
     }
-    if( structure != MatrixStructures::Symmetric ) {
+    if( structure.getStructure() != MatrixStructure::Symmetric ) {
          SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
          "getAllEigenValuesAndVectors(Real, complex) called for a non symmetric matrix   \n");
     }
@@ -444,7 +444,7 @@ template < class T >
 void EigenRep<T>::getAllEigenValues( Vector_<RType>& values ) {
 
     // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
-    if(  structure != MatrixStructures::Symmetric ) {
+    if(  structure.getStructure() != MatrixStructure::Symmetric ) {
          SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getAllEigenValues",
          "getAllEigenValues called with value of type real for a non symmetric matrix   \n");
     }
@@ -467,7 +467,7 @@ template < class T >
 void EigenRep<T>::getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<RType>& vectors,  typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi ) {
 
     // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
-    if(  structure != MatrixStructures::Symmetric ) {
+    if(  structure.getStructure() != MatrixStructure::Symmetric ) {
          SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
          "getFewEigenValuesAndVectors(real, real ) called for a non symmetric matrix   \n");
     }
@@ -486,7 +486,7 @@ template < class T >
 void EigenRep<T>::getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<std::complex<RType> >& vectors,  typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi ) {
 
     // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
-    if(  structure != MatrixStructures::Symmetric ) {
+    if(  structure.getStructure() != MatrixStructure::Symmetric ) {
          SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
          "getFewEigenValuesAndVectors(real, complex ) called for a non symmetric matrix   \n");
     }
@@ -524,7 +524,7 @@ template < class T >
 void EigenRep<T>::getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<RType>& vectors,  int ilow, int ihi ) {
 
     // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
-    if(  structure != MatrixStructures::Symmetric ) {
+    if(  structure.getStructure() != MatrixStructure::Symmetric ) {
          SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
          "getFewEigenValuesAndVectors(real, complex ) called for a non symmetric matrix   \n");
     }
@@ -546,7 +546,7 @@ template < class T >
 void EigenRep<T>::getFewEigenValuesAndVectors( Vector_<RType>& values, Matrix_<std::complex<RType> >& vectors,  int ilow, int ihi ) {
 
     // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
-    if(  structure != MatrixStructures::Symmetric ) {
+    if(  structure.getStructure() != MatrixStructure::Symmetric ) {
          SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValuesAndVectors",
          "getFewEigenValuesAndVectors(real, complex ) called for a non symmetric matrix   \n");
     }
@@ -581,7 +581,7 @@ template < class T >
 void EigenRep<T>::getFewEigenValues( Vector_<RType>& values,  typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi ) {
 
     // symmetric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
-    if(  structure != MatrixStructures::Symmetric ) {
+    if(  structure.getStructure() != MatrixStructure::Symmetric ) {
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
        "getFewEigenValues(real) called for a non symmetric matrix   \n");
     }
@@ -610,7 +610,7 @@ template < class T >
 void EigenRep<T>::getFewEigenValues( Vector_<RType>& values,  int ilow, int ihi ) {
 
     // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
-    if( structure != MatrixStructures::Symmetric ) {
+    if( structure.getStructure() != MatrixStructure::Symmetric ) {
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
        "getFewEigenValues(real) called for a non symmetric matrix   \n");
     }
@@ -661,7 +661,7 @@ template < class T >
 void EigenRep<T>::getFewEigenVectors( Matrix_<RType>& vectors,  int ilow, int ihi ) {
 
     // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
-    if( structure != MatrixStructures::Symmetric ) {
+    if( structure.getStructure() != MatrixStructure::Symmetric ) {
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
        "getFewEigenVectors(real) called for a non symmetric matrix   \n");
     } 
@@ -681,7 +681,7 @@ template < class T >
 void EigenRep<T>::getFewEigenVectors( Matrix_<RType>& vectors,  RType rlow, RType rhi ) {
 
     // symmtric matrices return real eigen values,  nonsymmetric matrices return complex eigen values
-    if( structure != MatrixStructures::Symmetric ) {
+    if( structure.getStructure() != MatrixStructure::Symmetric ) {
        SimTK_APIARGCHECK_ALWAYS(false,"Eigen","getFewEigenValues",
        "getFewEigenVectors(real) called for a non symmetric matrix   \n");
     } 

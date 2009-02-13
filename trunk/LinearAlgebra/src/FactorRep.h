@@ -229,12 +229,7 @@ class FactorLURep : public FactorLURepBase {
    int singularIndex;
    int elementSize;
    int imagOffset;
-   MatrixStructures::Structure structure;
-   MatrixConditions::Condition condition; 
-   MatrixShapes::Shape shape;  
-   MatrixSparseFormats::Sparsity sparsity;
-   MatrixStorageFormats::Storage storage;
-
+   MatrixCharacter character;
 
    TypedWorkSpace<int>  pivots;
    TypedWorkSpace<T>    lu;

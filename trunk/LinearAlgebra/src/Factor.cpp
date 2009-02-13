@@ -153,11 +153,7 @@ FactorLURep<T>::FactorLURep( const Matrix_<ELT>& mat )
         mn( (mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol() ),
         positiveDefinite( false ),
         lu( mat.nrow()*mat.ncol() ),
-        structure(mat.getMatrixStructure() ),
-        condition(mat.getMatrixCondition() ),
-        shape(mat.getMatrixShape() ),
-        sparsity(mat.getMatrixSparsity() ),
-        storage(mat.getMatrixStorage() ),
+        character( mat.getMatrixCharacter() ),
         pivots(mat.ncol())              { 
 
 	FactorLURep<T>::factor( mat );
