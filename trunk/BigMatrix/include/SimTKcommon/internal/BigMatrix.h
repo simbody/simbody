@@ -1028,7 +1028,12 @@ public:
     /// for internal use only -- don't call this constructor unless you really 
     /// know what you're doing.
     explicit MatrixBase(MatrixHelperRep<Scalar>* hrep) : helper(hrep) {}
+
 protected:
+    const MatrixHelper<Scalar>& getHelper() const {return helper;}
+    MatrixHelper<Scalar>&       updHelper()       {return helper;}
+
+private:
     MatrixHelper<Scalar> helper; // this is just one pointer
 
     template <class EE> friend class MatrixBase;
@@ -1272,10 +1277,10 @@ public:
     TAbs abs() const {TAbs result; Base::abs(result); return result;}
     
     // Override MatrixBase indexing operators          
-    const ELT& operator[](int i) const {return *reinterpret_cast<const ELT*>(helper.getElt(i));}
-    ELT&       operator[](int i)       {return *reinterpret_cast<ELT*>(helper.updElt(i));}
-    const ELT& operator()(int i) const {return *reinterpret_cast<const ELT*>(helper.getElt(i));}
-    ELT&       operator()(int i)       {return *reinterpret_cast<ELT*>(helper.updElt(i));}
+    const ELT& operator[](int i) const {return *reinterpret_cast<const ELT*>(Base::getHelper().getElt(i));}
+    ELT&       operator[](int i)       {return *reinterpret_cast<ELT*>      (Base::updHelper().updElt(i));}
+    const ELT& operator()(int i) const {return *reinterpret_cast<const ELT*>(Base::getHelper().getElt(i));}
+    ELT&       operator()(int i)       {return *reinterpret_cast<ELT*>      (Base::updHelper().updElt(i));}
          
     // Block (contiguous subvector) view creation      
     VectorView_<ELT> operator()(int i, int m) const {return Base::operator()(i,0,m,1).getAsVectorView();}
@@ -1283,11 +1288,11 @@ public:
 
     // Indexed view creation (arbitrary subvector). Indices must be monotonically increasing.
     VectorView_<ELT> index(const std::vector<int>& indices) const {
-        MatrixHelper<Scalar> h(helper.getCharacterCommitment(), helper, indices);
+        MatrixHelper<Scalar> h(Base::getHelper().getCharacterCommitment(), Base::getHelper(), indices);
         return VectorView_<ELT>(h);
     }
     VectorView_<ELT> updIndex(const std::vector<int>& indices) {
-        MatrixHelper<Scalar> h(helper.getCharacterCommitment(), helper, indices);
+        MatrixHelper<Scalar> h(Base::getHelper().getCharacterCommitment(), Base::updHelper(), indices);
         return VectorView_<ELT>(h);
     }
 
@@ -1317,7 +1322,7 @@ public:
 	//TODO: this is not re-locking the number of columns at 1.
 	void clear() {Base::clear(); Base::resize(0,1);}
 
-    ELT sum() const {ELT s; Base::helper.sum(reinterpret_cast<Scalar*>(&s)); return s; } // add all the elements        
+    ELT sum() const {ELT s; Base::getHelper().sum(reinterpret_cast<Scalar*>(&s)); return s; } // add all the elements        
     VectorIterator<ELT, VectorBase<ELT> > begin() {
         return VectorIterator<ELT, VectorBase<ELT> >(*this, 0);
     }
@@ -1557,10 +1562,10 @@ public:
     }
 
     // Override MatrixBase indexing operators          
-    const ELT& operator[](int j) const {return *reinterpret_cast<const ELT*>(helper.getElt(j));}
-    ELT&       operator[](int j)       {return *reinterpret_cast<ELT*>(helper.updElt(j));}
-    const ELT& operator()(int j) const {return *reinterpret_cast<const ELT*>(helper.getElt(j));}
-    ELT&       operator()(int j)       {return *reinterpret_cast<ELT*>(helper.updElt(j));}
+    const ELT& operator[](int j) const {return *reinterpret_cast<const ELT*>(Base::getHelper().getElt(j));}
+    ELT&       operator[](int j)       {return *reinterpret_cast<ELT*>      (Base::updHelper().updElt(j));}
+    const ELT& operator()(int j) const {return *reinterpret_cast<const ELT*>(Base::getHelper().getElt(j));}
+    ELT&       operator()(int j)       {return *reinterpret_cast<ELT*>      (Base::updHelper().updElt(j));}
          
     // Block (contiguous subvector) creation      
     RowVectorView_<ELT> operator()(int j, int n) const {return Base::operator()(0,j,1,n).getAsRowVectorView();}
@@ -1568,11 +1573,11 @@ public:
 
     // Indexed view creation (arbitrary subvector). Indices must be monotonically increasing.
     RowVectorView_<ELT> index(const std::vector<int>& indices) const {
-        MatrixHelper<Scalar> h(helper, indices);
+        MatrixHelper<Scalar> h(Base::getHelper(), indices);
         return RowVectorView_<ELT>(h);
     }
     RowVectorView_<ELT> updIndex(const std::vector<int>& indices) {
-        MatrixHelper<Scalar> h(helper, indices);
+        MatrixHelper<Scalar> h(Base::updHelper(), indices);
         return RowVectorView_<ELT>(h);
     }
 
@@ -1602,7 +1607,7 @@ public:
 	//TODO: this is not re-locking the number of rows at 1.
 	void clear() {Base::clear(); Base::resize(1,0);}
 
-    ELT sum() const {ELT s; Base::helper.sum(reinterpret_cast<Scalar*>(&s)); return s; } // add all the elements        
+    ELT sum() const {ELT s; Base::getHelper().sum(reinterpret_cast<Scalar*>(&s)); return s; } // add all the elements        
     VectorIterator<ELT, RowVectorBase<ELT> > begin() {
         return VectorIterator<ELT, RowVectorBase<ELT> >(*this, 0);
     }
@@ -1643,7 +1648,7 @@ public:
     // created and used as lvalues.
     MatrixView_(const MatrixView_& m) 
       : Base(MatrixCommitment(),
-             const_cast<MatrixHelper<S>&>(m.helper), 
+             const_cast<MatrixHelper<S>&>(m.getHelper()), 
              typename MatrixHelper<S>::ShallowCopy()) {}
 
     // Copy assignment is deep but not reallocating.
@@ -1699,8 +1704,8 @@ public:
     
     // All functionality is passed through to MatrixView_.
     explicit DeadMatrixView_(MatrixHelperRep<S>* hrep) : Base(hrep) {}
-    DeadMatrixView_(const MatrixView_& m) : Base(m) {}
-    DeadMatrixView_& operator=(const MatrixView_& m) {
+    DeadMatrixView_(const Base& m) : Base(m) {}
+    DeadMatrixView_& operator=(const Base& m) {
         Base::operator=(m); return *this;
     }
 
@@ -1730,12 +1735,12 @@ private:
 
 template <class ELT> inline 
 MatrixView_<ELT>::MatrixView_(DeadMatrixView_<ELT>& dead) 
-:   Base(dead.helper.stealRep()) {}
+:   Base(dead.updHelper().stealRep()) {}
 
 template <class ELT> inline MatrixView_<ELT>& 
 MatrixView_<ELT>::operator=(DeadMatrixView_<ELT>& dead) {
-    if (helper.getCharacterCommitment().isSatisfiedBy(dead.getMatrixCharacter()))
-        helper.replaceRep(dead.helper.stealRep());
+    if (Base::getHelper().getCharacterCommitment().isSatisfiedBy(dead.getMatrixCharacter()))
+        Base::updHelper().replaceRep(dead.updHelper().stealRep());
     else
         Base::operator=(dead);
     return *this;
@@ -1846,7 +1851,7 @@ public:
     // if it was present in the source. This is necessary to allow temporary views to be
     // created and used as lvalues.
     VectorView_(const VectorView_& v) 
-      : Base(const_cast<MatrixHelper<S>&>(v.helper), typename MatrixHelper<S>::ShallowCopy()) { }
+      : Base(const_cast<MatrixHelper<S>&>(v.getHelper()), typename MatrixHelper<S>::ShallowCopy()) { }
 
     // Copy assignment is deep but not reallocating.
     VectorView_& operator=(const VectorView_& v) {
@@ -1913,8 +1918,8 @@ public:
     /// element-to-element stride equal to the C++ element spacing.
     /// Last parameter is a dummy to avoid overload conflicts when ELT=S;
     /// pass it as "true".
-    Vector_(int m, const S* cppData, bool): Base(m, CppNScalarsPerElement, cppData) {}
-    Vector_(int m,       S* cppData, bool): Base(m, CppNScalarsPerElement, cppData) {}
+    Vector_(int m, const S* cppData, bool): Base(m, Base::CppNScalarsPerElement, cppData) {}
+    Vector_(int m,       S* cppData, bool): Base(m, Base::CppNScalarsPerElement, cppData) {}
 
     /// Borrowed-space construction with explicit stride supplied as
     /// "number of scalars between elements". Last parameter is a 
@@ -1975,7 +1980,7 @@ public:
     // if it was present in the source. This is necessary to allow temporary views to be
     // created and used as lvalues.
     RowVectorView_(const RowVectorView_& r) 
-      : Base(const_cast<MatrixHelper<S>&>(r.helper), typename MatrixHelper<S>::ShallowCopy()) { }
+      : Base(const_cast<MatrixHelper<S>&>(r.getHelper()), typename MatrixHelper<S>::ShallowCopy()) { }
 
     // Copy assignment is deep but not reallocating.
     RowVectorView_& operator=(const RowVectorView_& r) {
@@ -2043,8 +2048,8 @@ public:
     /// element-to-element stride equal to the C++ element spacing.
     /// Last parameter is a dummy to avoid overload conflicts when ELT=S;
     /// pass it as "true".
-    RowVector_(int n, const S* cppData, bool): Base(n, CppNScalarsPerElement, cppData) {}
-    RowVector_(int n,       S* cppData, bool): Base(n, CppNScalarsPerElement, cppData) {}
+    RowVector_(int n, const S* cppData, bool): Base(n, Base::CppNScalarsPerElement, cppData) {}
+    RowVector_(int n,       S* cppData, bool): Base(n, Base::CppNScalarsPerElement, cppData) {}
 
     /// Borrowed-space construction with explicit stride supplied as
     /// "number of scalars between elements". Last parameter is a 

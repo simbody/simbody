@@ -389,8 +389,8 @@ public:
     ptrdiff_t nScalars() const {return nelt()*m_eltSize;}
 
     // Does this handle own the data descriptor it points to?
-    int     getElementSize()    const {return m_eltSize;}
-    int     getCppElementSize() const {return m_cppEltSize;}
+    int     getEltSize()        const {return m_eltSize;}
+    int     getCppEltSize()     const {return m_cppEltSize;}
     bool    isWritable()        const {return m_writable;}
     bool    isOwner()           const {return m_owner;}
     bool    isClear()           const {return m_data==0;}
@@ -736,8 +736,8 @@ private:
     void                   clearMyHandle() {m_handle=0;}
 
 
-friend class ThisNeg;
-friend class ThisHerm;
+friend class MatrixHelperRep<typename CNT<S>::TNeg>;
+friend class MatrixHelperRep<typename CNT<S>::THerm>;
 friend class MatrixHelper<S>;
 };
 

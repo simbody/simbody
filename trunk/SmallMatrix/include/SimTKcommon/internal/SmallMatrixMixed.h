@@ -417,7 +417,7 @@ E det(const Mat<M,M,E,CS,RS>& m) {
     typename CNT<E>::StdNumber sign(1);
     E                          result(0);
     // We're always going to drop the first row.
-    const Mat<M-1,M,E,CS,RS>& m2 = m.getSubMat<M-1,M>(1,0);
+    const Mat<M-1,M,E,CS,RS>& m2 = m.template getSubMat<M-1,M>(1,0);
     for (int j=0; j < M; ++j) {
         // det() here is recursive but terminates at 3x3 above.
         result += sign*m(0,j)*det(m2.dropCol(j));

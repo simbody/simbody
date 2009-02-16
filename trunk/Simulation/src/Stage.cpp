@@ -54,7 +54,7 @@ const Stage Stage::HighestRuntime  = Report;
 Stage::Stage() : Enumeration<Stage>() {
 }
 
-Stage::Stage(const Stage& thisElement, int index, char* name) : Enumeration<Stage>(thisElement, index, name) {
+Stage::Stage(const Stage& thisElement, int index, const char* name) : Enumeration<Stage>(thisElement, index, name) {
 }
 
 void Stage::initValues() {

@@ -90,10 +90,12 @@ template <class S>
 class TriHelper : public MatrixHelperRep<S> {
     typedef TriHelper<S>            This;
     typedef MatrixHelperRep<S>      Base;
+    typedef typename CNT<S>::TNeg   SNeg;
+    typedef typename CNT<S>::THerm  SHerm;
     typedef TriHelper<SNeg>         ThisNeg;
     typedef TriHelper<SHerm>        ThisHerm;
 public:
-    This(int esz, int cppesz) : Base(esz,cppesz) {}
+    TriHelper(int esz, int cppesz) : Base(esz,cppesz) {}
 
     // Override in derived classes with assumed-unit diagonals.
     virtual bool hasUnitDiagonal() const {return false;}
@@ -150,36 +152,37 @@ protected:
 //------------------------------------------------------------------------------
 template <class S>
 class TriInFullHelper : public TriHelper<S> {
-    typedef TriInFullHelper<S>  This;
-    typedef TriHelper<S>        Base;
+    typedef typename CNT<S>::StdNumber  StdNumber;
+    typedef TriInFullHelper<S>          This;
+    typedef TriHelper<S>                Base;
 public:
     // If we're allocating the space, we'll just allocate a square even if the
     // matrix is trapezoidal.
-    This(int esz, int cppesz, int m, int n, 
+    TriInFullHelper(int esz, int cppesz, int m, int n, 
          bool triangular, bool hermitian, bool skew, bool rowOrder) 
     :   Base(esz,cppesz), m_minmn(std::min(m,n)), m_leadingDim(m_minmn*esz), 
         m_triangular(triangular), m_hermitian(hermitian), 
         m_skew(skew), m_rowOrder(rowOrder), m_unstored(new S[NumUnstored*esz])
     {
-        m_owner     = true;
-        m_writable  = true;
-        allocateData(m_minmn, m_minmn);
-        m_actual.setActualSize(m, n); // the apparent size
+        this->m_owner     = true;
+        this->m_writable  = true;
+        this->allocateData(m_minmn, m_minmn);
+        this->m_actual.setActualSize(m, n); // the apparent size
     }
 
     // Use someone else's memory, which we assume to be the right size. 
-    This(int esz, int cppesz, int m, int n,
+    TriInFullHelper(int esz, int cppesz, int m, int n,
          bool triangular, bool hermitian, bool skew, bool rowOrder,
          int ldim, const S* shared, bool canWrite) 
     :   Base(esz,cppesz), m_minmn(std::min(m,n)), m_leadingDim(ldim), 
         m_triangular(triangular), m_hermitian(hermitian), 
         m_skew(skew), m_rowOrder(rowOrder), m_unstored(new S[NumUnstored*esz])
     {        
-        assert(m_leadingDim >= m_minmn*m_eltSize);
-        m_owner     = false;
-        m_writable  = canWrite;
-        setData(const_cast<S*>(shared));
-        m_actual.setActualSize(m, n);
+        assert(m_leadingDim >= m_minmn*this->m_eltSize);
+        this->m_owner     = false;
+        this->m_writable  = canWrite;
+        this->setData(const_cast<S*>(shared));
+        this->m_actual.setActualSize(m, n);
     }
 
     ~TriInFullHelper() {delete[] m_unstored;}
@@ -199,8 +202,8 @@ public:
 
     // Compute the missing elements.
     void getAnyElt_(int i, int j, S* value) const { 
-        if (i==j || eltIsStored_(i,j)) {
-            copyElt(value, getElt_(i,j)); 
+        if (i==j || this->eltIsStored_(i,j)) {
+            copyElt(value, this->getElt_(i,j)); 
             return; 
         }
         // Missing elements are all zero for triangular matrices, or if
@@ -213,7 +216,7 @@ public:
 
         // Symmetric or hermitian. The returned (i,j)th element is some
         // function of the stored (j,i)th element.
-        const S* e = getElt_(j,i);
+        const S* e = this->getElt_(j,i);
 
         if (m_hermitian) {
             if (m_skew) copyAndNegConjugateElt(value, e);
@@ -240,18 +243,18 @@ public:
 
         const bool shortFirst = (m_rowOrder&&!isUpper()) || (!m_rowOrder&&isUpper());
         const int  known = hasKnownDiagonal() ? 1 : 0;
-        const int  eltBytes = m_eltSize*sizeof(S);
+        const int  eltBytes = this->m_eltSize*sizeof(S);
 
         // Copy 1/2 of a square of this size, possibly excluding diagonals.
         const int nToCopy = m_minmn;
-        S*       const dest = p->m_data + known*m_eltSize; // skip diag if known
-        const S* const src  = m_data    + known*m_eltSize;
+        S*       const dest = p->m_data    + known*this->m_eltSize; // skip diag if known
+        const S* const src  = this->m_data + known*this->m_eltSize;
         if (shortFirst) {
             // column or row begins at (k,j) and has length (j+1)-k
             int lengthInBytes = eltBytes; // 1st row/col has 1 element to copy
             // skip 0-length row or col if diag is known
             for (ptrdiff_t j=known; j < nToCopy; ++j, lengthInBytes += eltBytes) {
-                std::memcpy(dest+j*p->m_leadingDim, src+j*m_leadingDim, lengthInBytes);
+                std::memcpy(dest+j*p->m_leadingDim, src+j*this->m_leadingDim, lengthInBytes);
             }
         } else { // longFirst
             // column or row begins at (j+k,j), length m-j-k
@@ -260,8 +263,8 @@ public:
             for (ptrdiff_t j=0; j < nToCopy-known; ++j) {
                 std::memcpy(dest + j*p->m_leadingDim + startInScalars, 
                             src  + j*m_leadingDim    + startInScalars, lengthInBytes);
-                startInScalars += m_eltSize;
-                lengthInBytes -= eltBytes;
+                startInScalars += this->m_eltSize;
+                lengthInBytes  -= eltBytes;
             }
         }
         return p;
@@ -274,10 +277,10 @@ public:
     void resize_(int m, int n) {
         const int newMinmn = std::min(m,n);
         if (newMinmn == m_minmn) return;
-        clearData();
+        this->clearData();
         m_minmn = newMinmn;
-        allocateData(m_minmn, m_minmn);
-        m_leadingDim = m_minmn*m_eltSize; // number of scalars in a column
+        this->allocateData(m_minmn, m_minmn);
+        m_leadingDim = m_minmn*this->m_eltSize; // number of scalars in a column
     }
 
     // OK for any size elements. We'll move along the fast direction; columns
@@ -293,19 +296,19 @@ public:
         const bool shortFirst = (m_rowOrder&&!isUpper()) || (!m_rowOrder&&isUpper());
         const int  newLeadingDim = newMinmn;
         const int  known = hasKnownDiagonal() ? 1 : 0;
-        const int  eltBytes = m_eltSize*sizeof(S);
+        const int  eltBytes = this->m_eltSize*sizeof(S);
 
         // Copy 1/2 of a square of this size, possibly excluding diagonals.
-        S* const newData = allocateMemory(newMinmn, newMinmn);
+        S* const newData = this->allocateMemory(newMinmn, newMinmn);
         const int nToCopy = std::min(m_minmn, newMinmn);
-        S*       const dest = newData + known*m_eltSize; // skip diag if known
-        const S* const src  = m_data  + known*m_eltSize;
+        S*       const dest = newData + known*this->m_eltSize; // skip diag if known
+        const S* const src  = this->m_data  + known*this->m_eltSize;
         if (shortFirst) {
             // column or row begins at (k,j) and has length (j+1)-k
             int lengthInBytes = eltBytes; // 1st row/col has 1 element to copy
             // skip 0-length row or col if diag is known
             for (ptrdiff_t j=known; j < nToCopy; ++j, lengthInBytes += eltBytes) {
-                std::memcpy(dest+j*newLeadingDim, src+j*m_leadingDim, lengthInBytes);
+                std::memcpy(dest+j*newLeadingDim, src+j*this->m_leadingDim, lengthInBytes);
             }
         } else { // longFirst
             // column or row begins at (j+k,j), length m-j-k
@@ -313,13 +316,13 @@ public:
             int lengthInBytes = (nToCopy-known)*eltBytes;
             for (ptrdiff_t j=0; j < nToCopy-known; ++j) {
                 std::memcpy(dest + j*newLeadingDim + startInScalars, 
-                            src  + j*m_leadingDim  + startInScalars, lengthInBytes);
-                startInScalars += m_eltSize;
-                lengthInBytes -= eltBytes;
+                            src  + j*this->m_leadingDim  + startInScalars, lengthInBytes);
+                startInScalars += this->m_eltSize;
+                lengthInBytes  -= eltBytes;
             }
         }
-        clearData();
-        setData(newData);
+        this->clearData();
+        this->setData(newData);
         m_minmn      = newMinmn;
         m_leadingDim = newLeadingDim;
     }
@@ -354,58 +357,58 @@ class TriInFullUpperHelper : public TriInFullHelper<S> {
     typedef TriInFullUpperHelper<S> This;
     typedef TriInFullHelper<S>      Base;
 public:
-    This(int esz, int cppesz, int m, int n, 
+    TriInFullUpperHelper(int esz, int cppesz, int m, int n, 
          bool triangular, bool hermitian, bool skew, bool rowOrder) 
     :   Base(esz,cppesz,m,n,triangular,hermitian,skew,rowOrder) 
-    {   m_actual.setStructure(calcUpperTriStructure()); }
+    {   this->m_actual.setStructure(calcUpperTriStructure()); }
 
     // Use someone else's memory, which we assume to be the right size. 
-    This(int esz, int cppesz, int m, int n,
+    TriInFullUpperHelper(int esz, int cppesz, int m, int n,
          bool triangular, bool hermitian, bool skew, bool rowOrder,
          int ldim, const S* shared, bool canWrite) 
     :   Base(esz,cppesz,m,n,triangular,hermitian,skew,rowOrder,ldim,shared,canWrite)
-    {   m_actual.setStructure(calcUpperTriStructure()); }
+    {   this->m_actual.setStructure(calcUpperTriStructure()); }
 
     bool isUpper() const {return true;}
 
     virtual This* cloneHelper_() const {return new This(*this);}
 
     // override for unit diagonal
-    virtual bool eltIsStored_(int i, int j) const {return i <= j && j < m_minmn;}
+    virtual bool eltIsStored_(int i, int j) const {return i <= j && j < this->m_minmn;}
 
     // override for unit diagonals and scalar elements
     virtual const S* getElt_(int i, int j) const {
-        SimTK_ERRCHK2(i <= j && j < m_minmn, "TriInFullUpperHelper::getElt_()",
+        SimTK_ERRCHK2(i <= j && j < this->m_minmn, "TriInFullUpperHelper::getElt_()",
             "Element index was (i,j)=(%d,%d) which refers to an element which is\n"
             " not available. Only the upper triangle and diagonal of this matrix are stored.",
             i, j);
-        if (m_rowOrder) std::swap(i,j);
-        return m_data + j*m_leadingDim + i*m_eltSize;
+        if (this->m_rowOrder) std::swap(i,j);
+        return this->m_data + j*this->m_leadingDim + i*this->m_eltSize;
     }
 
     // override for unit diagonals and scalar elements
     virtual S* updElt_(int i, int j) {
-        SimTK_ERRCHK2(i <= j && j < m_minmn, "TriInFullUpperHelper::updElt_()",
+        SimTK_ERRCHK2(i <= j && j < this->m_minmn, "TriInFullUpperHelper::updElt_()",
             "Element index was (i,j)=(%d,%d) which refers to an element which is\n"
             " not stored. Only the upper triangle and diagonal of this matrix are stored.",
             i, j);
-        if (m_rowOrder) std::swap(i,j);
-        return m_data + j*m_leadingDim + i*m_eltSize;
+        if (this->m_rowOrder) std::swap(i,j);
+        return this->m_data + j*this->m_leadingDim + i*this->m_eltSize;
     }
 
 private:
     MatrixStructure calcUpperTriStructure() const {
         MatrixStructure ms;
         ms.setPosition(MatrixStructure::Upper);
-        ms.setDiagValue(hasKnownDiagonal() ? MatrixStructure::UnitDiag : MatrixStructure::StoredDiag);
-        if (m_triangular) ms.setStructure(MatrixStructure::Triangular);
+        ms.setDiagValue(this->hasKnownDiagonal() ? MatrixStructure::UnitDiag : MatrixStructure::StoredDiag);
+        if (this->m_triangular) ms.setStructure(MatrixStructure::Triangular);
         else {
-            if (m_hermitian) 
-                ms.setStructure(m_skew ? MatrixStructure::SkewHermitian 
-                                       : MatrixStructure::Hermitian);
+            if (this->m_hermitian) 
+                ms.setStructure(this->m_skew ? MatrixStructure::SkewHermitian 
+                                             : MatrixStructure::Hermitian);
             else // symmetric
-                ms.setStructure(m_skew ? MatrixStructure::SkewSymmetric 
-                : MatrixStructure::Symmetric);
+                ms.setStructure(this->m_skew ? MatrixStructure::SkewSymmetric 
+                                             : MatrixStructure::Symmetric);
         }
         return ms;
     }
@@ -419,19 +422,19 @@ class TriInFullUpperKnownDiagHelper : public TriInFullUpperHelper<S> {
     typedef TriInFullUpperKnownDiagHelper<S>    This;
     typedef TriInFullUpperHelper<S>             Base;
 public:
-    This(int esz, int cppesz, int m, int n, 
+    TriInFullUpperKnownDiagHelper(int esz, int cppesz, int m, int n, 
          bool triangular, bool hermitian, bool skew, bool rowOrder, const S* knownDiag) 
     :   Base(esz,cppesz,m,n,triangular,hermitian,skew,rowOrder) 
     {
-        copyElt(&m_unknown[UnstoredDiag*m_eltSize], knownDiag);
+        copyElt(&this->m_unknown[this->UnstoredDiag*this->m_eltSize], knownDiag);
     }
 
-    This(int esz, int cppesz, int m, int n,
+    TriInFullUpperKnownDiagHelper(int esz, int cppesz, int m, int n,
          bool triangular, bool hermitian, bool skew, bool rowOrder, const S* knownDiag,
          int ldim, const S* shared, bool canWrite) 
     :   Base(esz,cppesz,m,n,triangular,hermitian,skew,rowOrder,ldim,shared,canWrite) 
     {
-        copyElt(&m_unknown[UnstoredDiag*m_eltSize], knownDiag);
+        copyElt(&this->m_unknown[this->UnstoredDiag*this->m_eltSize], knownDiag);
     }
 
     bool hasKnownDiagonal() const {return true;}
@@ -439,26 +442,26 @@ public:
     This* cloneHelper_() const {return new This(*this);}
 
     // We're overriding since only i<j is stored.
-    bool eltIsStored_(int i, int j) const {return i<j && j < m_minmn;}
+    bool eltIsStored_(int i, int j) const {return i<j && j < this->m_minmn;}
 
     // These should be overwritten for scalars, although they will work as is.
     virtual const S* getElt_(int i, int j) const {
-        SimTK_ERRCHK2(i<=j && j < m_minmn, "TriInFullUpperKnownDiagHelper::getElt_()",
+        SimTK_ERRCHK2(i<=j && j < this->m_minmn, "TriInFullUpperKnownDiagHelper::getElt_()",
             "Element index (i,j)=(%d,%d) which refers to an element which is\n"
             " not available. Only the upper triangle of this matrix is stored.",
             i, j);
-        if (i==j) return &m_unknown[UnstoredDiag*m_eltSize];
-        if (m_rowOrder) std::swap(i,j);
-        return m_data + j*m_leadingDim + i*m_eltSize;
+        if (i==j) return &this->m_unknown[this->UnstoredDiag*this->m_eltSize];
+        if (this->m_rowOrder) std::swap(i,j);
+        return this->m_data + j*this->m_leadingDim + i*this->m_eltSize;
     }
 
     // override for unit diagonals and scalar elements
     virtual S* updElt_(int i, int j) {
-        SimTK_ERRCHK2(i<j && j < m_minmn, "TriInFullUpperKnownDiagHelper::updElt_()",
+        SimTK_ERRCHK2(i<j && j < this->m_minmn, "TriInFullUpperKnownDiagHelper::updElt_()",
             "Element index (i,j)=(%d,%d) which refers to the lower triangle, but\n"
             " only the upper triangle (i<j) of this matrix are stored.", i, j);
-        if (m_rowOrder) std::swap(i,j);
-        return m_data + j*m_leadingDim + i*m_eltSize;
+        if (this->m_rowOrder) std::swap(i,j);
+        return this->m_data + j*this->m_leadingDim + i*this->m_eltSize;
     }
 };
 

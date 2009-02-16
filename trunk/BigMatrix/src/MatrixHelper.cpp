@@ -205,8 +205,8 @@ template <class S> void
 MatrixHelper<S>::clear() {
     // Determine the best actual matrix to allocate to satisfy this commitment.
     const MatrixCharacter actual = getCharacterCommitment().calcDefaultCharacter(0,0); 
-    const int             esz    = getRep().getElementSize();
-    const int             cppEsz = getRep().getCppElementSize();
+    const int             esz    = getRep().getEltSize();
+    const int             cppEsz = getRep().getCppEltSize();
 
     MatrixHelperRep<S>* newRep = 
         MatrixHelperRep<S>::createOwnerMatrixHelperRep(esz, cppEsz, actual);
@@ -381,7 +381,7 @@ MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h,
 template <class S>
 MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h, int n, const int* ix) : rep(0) {
     const VectorHelper<S>& vh = *dynamic_cast<const VectorHelper<S>*>(h.rep);
-    rep = new IndexedVectorHelper<S>(vh.getElementSize(), vh.getCppElementSize(), n,
+    rep = new IndexedVectorHelper<S>(vh.getEltSize(), vh.getCppEltSize(), n,
                                      vh.preferRowOrder_(), ix, n ? vh.getElt_(0) : 0, false);
 
     SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), "MatrixHelper::ctor(const,indexed)",
@@ -396,7 +396,7 @@ MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h,
 template <class S>
 MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h, int n, const int* ix) : rep(0) {
     VectorHelper<S>& vh = *dynamic_cast<VectorHelper<S>*>(h.rep);
-    rep = new IndexedVectorHelper<S>(vh.getElementSize(), vh.getCppElementSize(), n,
+    rep = new IndexedVectorHelper<S>(vh.getEltSize(), vh.getCppEltSize(), n,
                                      vh.preferRowOrder_(), ix, n ? vh.updElt_(0) : 0, true);
 
     SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), "MatrixHelper::ctor(writable,indexed)",
@@ -761,7 +761,7 @@ MatrixHelperRep<S>::addIn(const MatrixHelper<S>& h) {
     const MatrixHelperRep& hrep = h.getRep();
 
     assert(nrow()==hrep.nrow() && ncol()==hrep.ncol());
-    assert(getElementSize()==hrep.getElementSize());
+    assert(getEltSize()==hrep.getEltSize());
     // XXX -- really, really bad! Optimize for contiguous data, missing views, etc.!
     for (int j=0; j<ncol(); ++j)
         for (int i=0; i<nrow(); ++i)
@@ -777,7 +777,7 @@ MatrixHelperRep<S>::subIn(const MatrixHelper<S>& h) {
     const MatrixHelperRep& hrep = h.getRep();
 
     assert(nrow()==hrep.nrow() && ncol()==hrep.ncol());
-    assert(getElementSize()==hrep.getElementSize());
+    assert(getEltSize()==hrep.getEltSize());
     // XXX -- really, really bad! Optimize for contiguous data, missing views, etc.!
     for (int j=0; j<ncol(); ++j)
         for (int i=0; i<nrow(); ++i)
@@ -829,19 +829,19 @@ MatrixHelperRep<S>::dump(const char* msg) const {
     if (msg) 
         std::cout << std::string(msg) << std::endl;
     std::cout << "Matrix " << nrow() << " X " << ncol() << " "
-              << getElementSize() << "-scalar entries:" << std::endl;
+              << getEltSize() << "-scalar entries:" << std::endl;
     if (nrow()*ncol() == 0) {
         std::cout << "<EMPTY>" << std::endl;
         return;
     }
 
-    S* elt = new S[getElementSize()];
+    S* elt = new S[getEltSize()];
     const std::streamsize oldsz = std::cout.precision(20); 
     for (int i=0; i<nrow(); ++i) {
         for (int j=0; j<ncol(); ++j) {
             if (j>0) std::cout << "\t";
             getAnyElt(i,j,elt);
-            dumpElt(elt, getElementSize());
+            dumpElt(elt, getEltSize());
         }
         std::cout << std::endl;
     }
@@ -855,73 +855,75 @@ MatrixHelperRep<S>::dump(const char* msg) const {
 template <class S> VectorHelper<S>* 
 RegularFullHelper<S>::createDiagonalView_() {
     VectorHelper<S>* p = 0;
-    const int length = std::min(nrow(), ncol());
-    S*        data   = length ? updElt_(0,0) : 0;
+    const int length = std::min(this->nrow(), this->ncol());
+    S*        data   = length ? this->updElt_(0,0) : 0;
 
-    const int strideInScalars = length > 1 ? int(getElt_(1,1)-getElt_(0,0)) : m_eltSize;
-    const int strideInElements = strideInScalars / m_eltSize;
+    const int strideInScalars = length > 1 ? int(this->getElt_(1,1) - this->getElt_(0,0)) 
+                                           : this->m_eltSize;
+    const int strideInElements = strideInScalars / this->m_eltSize;
 
     // No need for a stride if there's 0 or 1 element, or if the stride is 1. TODO: scalar helper
     if (strideInElements == 1) {
-        p = (m_eltSize==1) 
+        p = (this->m_eltSize==1) 
             ? (VectorHelper<S>*)new ContiguousVectorScalarHelper<S>(length, false, data, false)
-            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(m_eltSize, m_cppEltSize, length, 
-                                                              false, data, false);
+            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+                                                              length, false, data, false);
         return p;
     }
 
-    p = (m_eltSize==1)
+    p = (this->m_eltSize==1)
         ? (VectorHelper<S>*)new StridedVectorScalarHelper<S>(length, false, strideInElements, data, false)
-        : (VectorHelper<S>*)new StridedVectorHelper<S>(m_eltSize, m_cppEltSize, length, 
-                                                       false, strideInElements, data, false);
+        : (VectorHelper<S>*)new StridedVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+                                                       length, false, strideInElements, data, false);
     return p;
 }
 
 template <class S> VectorHelper<S>* 
 RegularFullHelper<S>::createColumnView_(int j, int i, int m) {
     VectorHelper<S>* p = 0;
-    S* data = m ? updElt_(i,j) : 0;
+    S* data = m ? this->updElt_(i,j) : 0;
 
-    const int strideInScalars = m > 1 ? int(getElt_(i+1,j)-getElt_(i,j)) : m_eltSize;
-    const int strideInElements = strideInScalars / m_eltSize;
+    const int strideInScalars = m > 1 ? int(this->getElt_(i+1,j) - this->getElt_(i,j)) : this->m_eltSize;
+    const int strideInElements = strideInScalars / this->m_eltSize;
 
     // No need for a stride if there's 0 or 1 element, or if the stride is 1. TODO: scalar helper
     if (strideInElements == 1) {
-        p = (m_eltSize==1) 
+        p = (this->m_eltSize==1) 
             ? (VectorHelper<S>*)new ContiguousVectorScalarHelper<S>(m, false, data, false)
-            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(m_eltSize, m_cppEltSize, m, 
-                                                              false, data, false);
+            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+                                                              m, false, data, false);
         return p;
     }
 
-    p = (m_eltSize==1)
+    p = (this->m_eltSize==1)
         ? (VectorHelper<S>*)new StridedVectorScalarHelper<S>(m, false, strideInElements, data, false)
-        : (VectorHelper<S>*)new StridedVectorHelper<S>(m_eltSize, m_cppEltSize, m, 
-                                                       false, strideInElements, data, false);
+        : (VectorHelper<S>*)new StridedVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+                                                       m, false, strideInElements, data, false);
     return p;
 }
 
 template <class S> VectorHelper<S>* 
 RegularFullHelper<S>::createRowView_(int i, int j, int n) {
     VectorHelper<S>* p = 0;
-    S* data = n ? updElt_(i,j) : 0;
+    S* data = n ? this->updElt_(i,j) : 0;
 
-    const int strideInScalars = n > 1 ? int(getElt_(i,j+1)-getElt_(i,j)) : m_eltSize;
-    const int strideInElements = strideInScalars / m_eltSize;
+    const int strideInScalars = n > 1 ? int(this->getElt_(i,j+1) - this->getElt_(i,j)) 
+                                      : this->m_eltSize;
+    const int strideInElements = strideInScalars / this->m_eltSize;
 
     // No need for a stride if there's 0 or 1 element, or if the stride is 1. TODO: scalar helper
     if (strideInElements == 1) {
-        p = (m_eltSize==1) 
+        p = (this->m_eltSize==1) 
             ? (VectorHelper<S>*)new ContiguousVectorScalarHelper<S>(n, true, data, false)
-            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(m_eltSize, m_cppEltSize, n, 
-                                                              true, data, false);
+            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize,
+                                                              n, true, data, false);
         return p;
     }
 
-    p = (m_eltSize==1)
+    p = (this->m_eltSize==1)
         ? (VectorHelper<S>*)new StridedVectorScalarHelper<S>(n, true, strideInElements, data, false)
-        : (VectorHelper<S>*)new StridedVectorHelper<S>(m_eltSize, m_cppEltSize, n, 
-                                                       true, strideInElements, data, false);
+        : (VectorHelper<S>*)new StridedVectorHelper<S>(this->m_eltSize, this->m_cppEltSize,
+                                                       n, true, strideInElements, data, false);
     return p;
 }
 
@@ -935,25 +937,26 @@ TriInFullHelper<S>::createDiagonalView_() {
         "Diagonal view of a known-diagonal matrix is not yet implemented. Sorry.");
 
     VectorHelper<S>* p = 0;
-    const int length = std::min(nrow(), ncol());
-    S*        data   = length ? updElt_(0,0) : 0;
+    const int length = std::min(this->nrow(), this->ncol());
+    S*        data   = length ? this->updElt_(0,0) : 0;
 
-    const int strideInScalars = length > 1 ? int(getElt_(1,1)-getElt_(0,0)) : m_eltSize;
-    const int strideInElements = strideInScalars / m_eltSize;
+    const int strideInScalars = length > 1 ? int(this->getElt_(1,1) - this->getElt_(0,0)) 
+                                           : this->m_eltSize;
+    const int strideInElements = strideInScalars / this->m_eltSize;
 
     // No need for a stride if there's 0 or 1 element, or if the stride is 1. TODO: scalar helper
     if (strideInElements == 1) {
-        p = (m_eltSize==1) 
+        p = (this->m_eltSize==1) 
             ? (VectorHelper<S>*)new ContiguousVectorScalarHelper<S>(length, false, data, false)
-            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(m_eltSize, m_cppEltSize, length, 
-                                                              false, data, false);
+            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+                                                              length, false, data, false);
         return p;
     }
 
-    p = (m_eltSize==1)
+    p = (this->m_eltSize==1)
         ? (VectorHelper<S>*)new StridedVectorScalarHelper<S>(length, false, strideInElements, data, false)
-        : (VectorHelper<S>*)new StridedVectorHelper<S>(m_eltSize, m_cppEltSize, length, 
-                                                       false, strideInElements, data, false);
+        : (VectorHelper<S>*)new StridedVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+                                                       length, false, strideInElements, data, false);
     return p;
 }
 

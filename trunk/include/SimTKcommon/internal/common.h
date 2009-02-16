@@ -174,6 +174,7 @@ extern "C" {
 #include <cfloat>
 #include <complex>
 #include <limits>
+#include <typeinfo>
 
 
 /* Currently (Microsoft VC++ 9) these C99-compatible floating point functions are

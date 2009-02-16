@@ -365,8 +365,8 @@ private:
     // Suppress copy constructor.
     MatrixHelper(const MatrixHelper&);
 
-friend class ThisNeg;
-friend class ThisHerm;
+friend class MatrixHelper<typename CNT<S>::TNeg>;
+friend class MatrixHelper<typename CNT<S>::THerm>;
 };
      
 } //namespace SimTK

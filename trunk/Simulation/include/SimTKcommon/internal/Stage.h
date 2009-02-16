@@ -115,7 +115,7 @@ public:
 
 private:
     Stage();
-    Stage(const Stage& thisElement, int index, char* name);
+    Stage(const Stage& thisElement, int index, const char* name);
     static void initValues();
     friend class Enumeration<Stage>;
 

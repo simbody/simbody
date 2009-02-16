@@ -211,7 +211,7 @@ MatrixStorage::calcDefaultStorage(const MatrixStructure& structure,
     // matrices and Upper storage for upper-triangular ones. (There is no
     // real necessity to do that, it's just more pleasant.)
     Placement placement = Lower;
-    if (structure.getPosition()==Upper) placement = Upper;
+    if (structure.getPosition()==MatrixStructure::Upper) placement = Upper;
 
     // Default order is Lapack-standard column order except for rows.
     // TODO: probably should use row order for "Wide" outlines too, but need
