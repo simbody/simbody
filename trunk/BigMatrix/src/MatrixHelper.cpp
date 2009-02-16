@@ -168,35 +168,6 @@ MatrixHelper<S>::MatrixHelper
     rep->m_commitment = commitment;
 }
 
-/*
-// This is the basic constructor for an mXn matrix. Here we allocate a handle locked to the
-// given element size, and allocate uninitialized mXn writable data elements and whether
-// the data can be resized in one or both dimensions.
-template <class S> 
-MatrixHelper<S>::MatrixHelper(int esz, int cppEsz, int m, int n, bool lockNrow, bool lockNcol) : rep(0) { 
-    SimTK_ASSERT2((esz==1&&cppEsz==1) || (esz>1&&cppEsz>=esz),
-        "MatrixHelper constructor was given a bad element size esz=%d, cppEsz=%d", esz, cppEsz); 
-
-
-    if (lockNcol && n==1)
-        rep = (esz==1 ? (FullVectorHelper<S>*)new ContiguousVectorScalarHelper<S>(m,false)
-                      : (FullVectorHelper<S>*)new ContiguousVectorHelper<S>(esz,cppEsz,m,false));
-    else if (lockNrow && m==1)
-        rep = (esz==1 ? (FullVectorHelper<S>*)new ContiguousVectorScalarHelper<S>(m,true)
-                      : (FullVectorHelper<S>*)new ContiguousVectorHelper<S>(esz,cppEsz,m,true));
-    else {
-        // Allocate a full, writable, owner helper with allocated, column-ordered but 
-        // uninitialized data.
-        rep = (esz == 1 ? (RegularFullHelper<S>*)new FullColOrderScalarHelper<S>(m,n) 
-                        : (RegularFullHelper<S>*)new FullColOrderEltHelper<S>(esz,cppEsz, m,n));
-    }
-
-    if (lockNrow) rep->m_commitment.commitNumRows(m);
-    if (lockNcol) rep->m_commitment.commitNumCols(n);
-    rep->setMyHandle(*this);
-}
-*/
-
 // clear() restores this matrix to the state it would be in if it were constructed
 // using its current character commitment. We'll replace the current HelperRep with
 // a fresh one. Note that this is more expensive than resize(0,0) which doesn't

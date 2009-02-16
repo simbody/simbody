@@ -120,10 +120,6 @@ public:
     // particular initial size.
     MatrixHelper(int esz, int cppEsz, const MatrixCommitment&, int m, int n);
 
-    // (m*esz) x n, resizable with optional restrictions 
-    //OBSOLETE
-    //MatrixHelper(int esz, int cppEsz, int m, int n, bool lockNrow=false, bool lockNcol=false);
-
     // Copy constructor that produces a new owner whose logical shape and contents are
     // the same as the source, but with a possibly better storage layout. Data will
     // be contiguous in the copy regardless of how spread out it was in the source.

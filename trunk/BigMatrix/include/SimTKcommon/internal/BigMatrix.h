@@ -1076,6 +1076,9 @@ public:
     /// initialized from the source object.
     VectorBase(const VectorBase& source) : Base(source) {}
 
+    /// Implicit conversion from compatible vector with negated elements.
+    VectorBase(const TNeg& source) : Base(source) {}
+
     /// Construct an owner vector of length m, with each element initialized to
     /// the given value.
     VectorBase(int m, const ELT& initialValue)
@@ -1088,13 +1091,6 @@ public:
     VectorBase(int m, const ELT* cppInitialValues)
     :   Base(MatrixCommitment::Vector(),m,1,cppInitialValues) {}
     /// @}
-
-    //explicit VectorBase(int m, bool lockNrow=false)
-    //  : Base(m,1,lockNrow,true) { }
-    //VectorBase(int m, bool lockNrow, const ELT& t) 
-    //  : Base(m,1,lockNrow,true,t) { }
-    //VectorBase(int m, bool lockNrow, const ELT* p) 
-    //  : Base(m, 1, lockNrow, true, p) { } 
 
     //  ------------------------------------------------------------------------
     /// @name       VectorBase construction from pre-existing data
@@ -1373,7 +1369,10 @@ public:
     /// Copy constructor is a deep copy (not appropriate for views!). That
     /// means it creates a new, densely packed vector whose elements are
     /// initialized from the source object.    
-    RowVectorBase(const RowVectorBase& source) : Base(source) { }
+    RowVectorBase(const RowVectorBase& source) : Base(source) {}
+
+    /// Implicit conversion from compatible row vector with negated elements.
+    RowVectorBase(const TNeg& source) : Base(source) {}
 
     /// Construct an owner row vector of length n, with each element initialized to
     /// the given value.
@@ -1387,15 +1386,6 @@ public:
     RowVectorBase(int n, const ELT* cppInitialValues)
     :   Base(MatrixCommitment::RowVector(),1,n,cppInitialValues) {}
     /// @}
-
-
-
-    //explicit RowVectorBase(int n, bool lockNcol=false)
-    //  : Base(1,n,true,lockNcol) { }
-    //RowVectorBase(int n, bool lockNcol, const ELT& t) 
-    //  : Base(1,n,true,lockNcol,t) { }
-    //RowVectorBase(int n, bool lockNcol, const ELT* p) 
-    //  : Base(1, n, true, lockNcol, p) { }
 
     //  ------------------------------------------------------------------------
     /// @name       RowVectorBase construction from pre-existing data
@@ -1752,14 +1742,20 @@ MatrixView_<ELT>::operator=(DeadMatrixView_<ELT>& dead) {
 /// fixed-size view of someone else's data, or can be a resizable data owner itself.
 //  ----------------------------------------------------------------------------
 template <class ELT> class Matrix_ : public MatrixBase<ELT> {
-    typedef MatrixBase<ELT> Base;
-    typedef typename CNT<ELT>::Scalar            S;
-    typedef typename CNT<ELT>::Number            Number;
-    typedef typename CNT<ELT>::StdNumber         StdNumber;
+    typedef typename CNT<ELT>::Scalar       S;
+    typedef typename CNT<ELT>::Number       Number;
+    typedef typename CNT<ELT>::StdNumber    StdNumber;
 
-    typedef Matrix_<ELT>                         T;
-    typedef MatrixView_<ELT>                     TView;
-    typedef Matrix_< typename CNT<ELT>::TNeg >   TNeg;
+    typedef typename CNT<ELT>::TNeg         ENeg;
+    typedef typename CNT<ELT>::THerm        EHerm;
+
+    typedef MatrixBase<ELT>     Base;
+    typedef MatrixBase<ENeg>    BaseNeg;
+    typedef MatrixBase<EHerm>   BaseHerm;
+
+    typedef Matrix_<ELT>        T;
+    typedef MatrixView_<ELT>    TView;
+    typedef Matrix_<ENeg>       TNeg;
 
 public:
     Matrix_() : Base() { }
@@ -1774,8 +1770,17 @@ public:
         Base::operator=(src); return *this;
     }
 
-    // Force a deep copy of the view or whatever this is.    
-    /*explicit*/ Matrix_(const Base& v) : Base(v) {}   // e.g., MatrixView
+    // Force a deep copy of the view or whatever this is.
+    // Note that this is an implicit conversion.
+    Matrix_(const Base& v) : Base(v) {}   // e.g., MatrixView
+
+    // Allow implicit conversion from a source matrix that
+    // has a negated version of ELT.
+    Matrix_(const BaseNeg& v) : Base(v) {}
+
+    // TODO: implicit conversion from conjugate. This is trickier
+    // since real elements are their own conjugate so you'll get
+    // duplicate methods defined from Matrix_(BaseHerm) and Matrix_(Base).
 
     Matrix_(int m, int n) : Base(MatrixCommitment(), m, n) {}
 
@@ -1891,10 +1896,12 @@ private:
 /// itself, although of course it will always have just one column.
 //  ----------------------------------------------------------------------------
 template <class ELT> class Vector_ : public VectorBase<ELT> {
-    typedef VectorBase<ELT>                 Base;
     typedef typename CNT<ELT>::Scalar       S;
     typedef typename CNT<ELT>::Number       Number;
     typedef typename CNT<ELT>::StdNumber    StdNumber;
+    typedef typename CNT<ELT>::TNeg         ENeg;
+    typedef VectorBase<ELT>                 Base;
+    typedef VectorBase<ENeg>                BaseNeg;
 public:
     Vector_() : Base() {}  // 0x1 reallocatable
     // Uses default destructor.
@@ -1909,6 +1916,7 @@ public:
     }
 
     explicit Vector_(const Base& src) : Base(src) {}    // e.g., VectorView
+    explicit Vector_(const BaseNeg& src) : Base(src) {}
 
     explicit Vector_(int m) : Base(m) { }
     Vector_(int m, const ELT* cppInitialValues) : Base(m, cppInitialValues) {}
@@ -2021,16 +2029,19 @@ private:
 /// itself, although of course it will always have just one row.
 //  ----------------------------------------------------------------------------
 template <class ELT> class RowVector_ : public RowVectorBase<ELT> {
-    typedef RowVectorBase<ELT>              Base;
     typedef typename CNT<ELT>::Scalar       S;
     typedef typename CNT<ELT>::Number       Number;
     typedef typename CNT<ELT>::StdNumber    StdNumber;
+    typedef typename CNT<ELT>::TNeg         ENeg;
+
+    typedef RowVectorBase<ELT>              Base;
+    typedef RowVectorBase<ENeg>             BaseNeg;
 public:
-    RowVector_() : Base() { }   // 1x0 reallocatable
+    RowVector_() : Base() {}   // 1x0 reallocatable
     // Uses default destructor.
 
     // Copy constructor is deep.
-    RowVector_(const RowVector_& src) : Base(src) { }
+    RowVector_(const RowVector_& src) : Base(src) {}
 
     // Copy assignment is deep and can be reallocating if this RowVector
     // has no View.
@@ -2038,11 +2049,12 @@ public:
         Base::operator=(src); return*this;
     }
 
-    explicit RowVector_(const Base& src) : Base(src) { }    // e.g., RowVectorView
+    explicit RowVector_(const Base& src) : Base(src) {}    // e.g., RowVectorView
+    explicit RowVector_(const BaseNeg& src) : Base(src) {}  
 
     explicit RowVector_(int n) : Base(n) { }
-    RowVector_(int n, const ELT* cppInitialValues) : Base(n, cppInitialValues) { }
-    RowVector_(int n, const ELT& initialValue)     : Base(n, initialValue) { }
+    RowVector_(int n, const ELT* cppInitialValues) : Base(n, cppInitialValues) {}
+    RowVector_(int n, const ELT& initialValue)     : Base(n, initialValue) {}
 
     /// Construct a Vector which uses borrowed space with assumed
     /// element-to-element stride equal to the C++ element spacing.

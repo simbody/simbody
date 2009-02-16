@@ -387,6 +387,11 @@ int main()
     cout << "cMatrix34*cVector4=" << cMatrix34*cVector4 << endl;
     cout << "cMatrix34*cMatrix43=" << cMatrix34*~cMatrix34;
 
+    Matrix_<Complex> cMatrix34N = -cMatrix34;
+
+    //TODO: not allowed yet
+    //Matrix_<Complex> cMatrix34H = ~cMatrix34;
+
     Vector vv(4), ww;
     vv[0] = 1.; vv[1] = 2.; vv[2] = 3.; vv[3] = 4.;
     cout << "vv(4)=" << vv << endl;
@@ -427,6 +432,7 @@ int main()
 
     cout << "A(1,2).real()=" << A(1,2).real() << endl;
 
+    Matrix AH = ~A;
     cout << "~A=" << ~A << "inv(~A)=" << (~A).invert() << "~(inv(A))=" << ~AI;
 
     A.invertInPlace();
