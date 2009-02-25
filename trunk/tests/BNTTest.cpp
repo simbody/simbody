@@ -40,6 +40,7 @@
 #include <limits>
 #include <complex>
 #include <cstdio>
+#include <cmath>
 
 using std::cout;
 using std::endl;
@@ -47,6 +48,13 @@ using std::setprecision;
 using std::complex;
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS((cond), "Assertion failed");}
+// Assert that two real-valued calculations should produce the same result to within a few 
+// machine roundoff errors.
+#define ASSERT_EPS(x,y) {ASSERT(std::abs((x)-(y))<=(4*Eps));}
+// Assert that two complex-valued calculations should produce the same result (in both real and
+// imaginary components) to within a few machine roundoff errors.
+#define ASSERT_EPSX(x,y) {ASSERT_EPS((x).real(),(y).real()); \
+                          ASSERT_EPS((x).imag(),(y).imag());}
 
 using namespace SimTK;
 
@@ -183,24 +191,24 @@ int main() {
     cout << "x-y=" << x-y << endl;
     cout << "x+(-y)=" << x+(-y) << endl;
 
-    ASSERT(x+y == -((-x)+(-y)));
-    ASSERT(x+y == -(-x)+y);
-    ASSERT(x+y == x-(-y));
-    ASSERT(x-y == x+(-y));
-    ASSERT(x-y == -(y-x));
-    ASSERT(x-y == -(-x+y));
-    ASSERT(-(x+y) == (-x)-y);
-    ASSERT(-(x+y) == -x-y);
+    ASSERT_EPSX(x+y, -((-x)+(-y)));
+    ASSERT_EPSX(x+y, -(-x)+y);
+    ASSERT_EPSX(x+y, x-(-y));
+    ASSERT_EPSX(x-y, x+(-y));
+    ASSERT_EPSX(x-y, -(y-x));
+    ASSERT_EPSX(x-y, -(-x+y));
+    ASSERT_EPSX(-(x+y), (-x)-y);
+    ASSERT_EPSX(-(x+y), -x-y);
 
-    ASSERT(x*y == (-x)*(-y));
-    ASSERT(x*y == -x*-y);
-    ASSERT(-(x*y) == -x*y);
-    ASSERT(-(x*y) == x*-y);
+    ASSERT_EPSX(x*y, (-x)*(-y));
+    ASSERT_EPSX(x*y, -x*-y);
+    ASSERT_EPSX(-(x*y), -x*y);
+    ASSERT_EPSX(-(x*y), x*-y);
 
-    ASSERT(x/y == (-x)/(-y));
-    ASSERT(x/y == -x/-y);
-    ASSERT(-(x/y) == -x/y);
-    ASSERT(-(x/y) == x/-y);
+    ASSERT_EPSX(x/y, (-x)/(-y));
+    ASSERT_EPSX(x/y, -x/-y);
+    ASSERT_EPSX(-(x/y), -x/y);
+    ASSERT_EPSX(-(x/y), x/-y);
 
     cout << "x+2=" << x+Complex(2,0) << endl;
     Complex zz = operator+(x,Complex(2,0));
