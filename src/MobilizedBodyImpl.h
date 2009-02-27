@@ -100,10 +100,10 @@ public:
         if (myMobilizedBodyIndex != 0) {
             const Real pscale = 1.0;
             const Transform& M = getDefaultOutboardFrame(); // TODO: get from state
-            if (M.T() != Vec3(0) || M.R() != Mat33(1)) {
+            if (M.p() != Vec3(0) || M.R() != Mat33(1)) {
                 geom.push_back(DecorativeFrame(scale*0.25).setBodyId(myMobilizedBodyIndex));
-                if (M.T() != Vec3(0))
-                    geom.push_back(DecorativeLine(Vec3(0), M.T()).setBodyId(myMobilizedBodyIndex));
+                if (M.p() != Vec3(0))
+                    geom.push_back(DecorativeLine(Vec3(0), M.p()).setBodyId(myMobilizedBodyIndex));
             }
             const Transform& Mb = getDefaultInboardFrame(); // TODO: from state
             DecorativeFrame frameOnParent(pscale*0.25);
@@ -111,8 +111,8 @@ public:
             frameOnParent.setColor(Black);
             frameOnParent.setTransform(Mb);
             geom.push_back(frameOnParent);
-            if (Mb.T() != Vec3(0))
-                geom.push_back(DecorativeLine(Vec3(0),Mb.T()).setBodyId(myParentIndex));
+            if (Mb.p() != Vec3(0))
+                geom.push_back(DecorativeLine(Vec3(0),Mb.p()).setBodyId(myParentIndex));
         }
 
         // Put a little purple wireframe sphere at the COM, and add a line from 
@@ -183,7 +183,7 @@ public:
     // Invalidate Stage::Position.
     void setQToFitTransform(State& s, const Transform& X_FM) const;
     void setQToFitRotation(State& s, const Rotation& R_FM) const;
-    void setQToFitTranslation(State& s, const Vec3& T_FM) const;
+    void setQToFitTranslation(State& s, const Vec3& p_FM) const;
 
     // Invalidate Stage::Velocity.
     void setUToFitVelocity(State& s, const SpatialVec& V_FM) const;
@@ -1040,7 +1040,7 @@ public:
         //X.updR().setRotationToBodyFixedXYZ(spatialCoords.getSubVec<3>(0));
         X.updR().setRotationFromMat33TrustMe(Rotation(spatialCoords(0), UnitVec3::getAs(&Arot(0,0)))*
             Rotation(spatialCoords(1), UnitVec3::getAs(&Arot(0,1)))*Rotation(spatialCoords(2), UnitVec3::getAs(&Arot(0,2))));
-        X.updT() = spatialCoords(3)*UnitVec3::getAs(&Atrans(0,0))+spatialCoords(4)*UnitVec3::getAs(&Atrans(0,1))
+        X.updP() = spatialCoords(3)*UnitVec3::getAs(&Atrans(0,0))+spatialCoords(4)*UnitVec3::getAs(&Atrans(0,1))
                     +spatialCoords(5)*UnitVec3::getAs(&Atrans(0,2));
 
         return X;

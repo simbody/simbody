@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors: Derived from NIH IVM code written by Charles Schwieters      *
  *                                                                            *
@@ -58,7 +58,7 @@ using SimTK::Array;
  * so can perform inline floating point operations using stack-allocated variables.
  *
  * Every body has a body frame B, and an inboard mobilizer frame M. For convenience, we
- * refer to the body frame of a body's unique parent as the 'P' frame. There is
+ * refer to the body frame of a body's unique parent as the P frame. There is
  * a frame F on P which is where B's inboard mobilizer attaches. The transform X_FM(q) tracks the
  * across-mobilizer change in configuration induced by the generalized coordinates q. When
  * all the mobilizer coordinates are 0 (=1000 for quaternions), M and F take on their
@@ -68,10 +68,10 @@ using SimTK::Array;
  *
  * The mobilizer frame M is fixed with respect to B, and F is fixed with
  * respect to P. In some cases M and B or F and P will be the same, but not always.
- * The constant (TODO: Instance stage) transforms X_BM and X_PF provide the configuration of the mobilizer
- * frames with respect to the body and parent frames. With these definitions we can
- * easily calculate X_PB as X_PB = X_PF*X_FM*X_MB, where X_FM is the q-dependent
- * cross-mobilizer transform calculated at Position stage.
+ * The constant (TODO: Instance stage) transforms X_BM and X_PF provide the 
+ * configuration of the mobilizer frames with respect to the body and parent frames. 
+ * With these definitions we can easily calculate X_PB as X_PB = X_PF*X_FM*X_MB, 
+ * where X_FM is the q-dependent cross-mobilizer transform calculated at Position stage.
  *
  * RigidBodyNodes know how to extract and deposit their own information from and
  * to the Simbody state variables and cache entries, but they don't know anything
@@ -196,65 +196,74 @@ public:
     virtual SpatialVec calcParentToChildVelocityFromU       (const SBStateDigest&,    const Real* u)    const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcParentToChildVelocityFromU");}
     virtual SpatialVec calcParentToChildAccelerationFromUDot(const SBStateDigest&,    const Real* udot) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcParentToChildAccelerationFromUDot");}
 
-    // Operators involving kinematics matrix Q and related matrices QInv and QDot. 
-    // These methods perform operations involving
-    // just the block on the diagonal of the matrix that corresponds to this mobilizer. These
-    // blocks can be rectangular, in which case the u-dimension is always the number
+    // Operators involving kinematics matrix N and related matrices NInv and
+    // NDot. These methods perform operations involving just the block on the 
+    // diagonal of the matrix that corresponds to this mobilizer. These blocks
+    // can be rectangular, in which case the u-dimension is always the number
     // of mobilizers dofs (generalized speeds) but the q-dimension may depend on 
-    // modeling options (specifically, whether the mobilizer orientation is modeled
-    // with 4 quaternions or 3 euler angles). These normally treat the input as a
-    // column vector and multiply with the matrix on the left. Optionally they will
-    // treat the input as a row vector and multiply with the matrix on the right. (The
-    // latter is equivalent to multiplication on the left by the transpose of the
-    // matrix.)
+    // modeling options (specifically, whether the mobilizer orientation is
+    // modeled with 4 quaternions or 3 euler angles). These normally treat the
+    // input as a column vector and multiply with the matrix on the left.
+    // Optionally they will treat the input as a row vector and multiply with 
+    // the matrix on the right. (The latter is equivalent to multiplication on 
+    // the left by the transpose of the matrix.)
     //
-    //   multiplyByQBlock
-    //     Left   out_q = Q * in_u
-    //     Right  out_u = in_q * Q
+    //   multiplyByN
+    //     Left   out_q = N * in_u
+    //     Right  out_u = in_q * N
     //
-    //   multiplyByQInvBlock
-    //     Left  u = inv(Q) q
-    //     Right q = u inv(Q)
+    //   multiplyByNInv
+    //     Left  u = inv(N) q
+    //     Right q = u inv(N)
     //
-    //   multiplyByQDotBlock
-    //     Left   q = QDot u
-    //     Right  u = q QDot
+    //   multiplyByNDot
+    //     Left   q = NDot u
+    //     Right  u = q NDot
     //      (not invertible but inverse isn't needed; see below)
     //
-    // where 'in_q' and 'in_u' etc. indicate q-like and u-like vectors or row vectors, not the
-    // actual state variables of the same names. Note that the interpretation of the in and out
-    // arrays is different depending on whether we're multiplying on the left or right; which
-    // is q-like and which is u-like reverses.
+    // where 'in_q' and 'in_u' etc. indicate q-like and u-like vectors or row 
+    // vectors, not the actual state variables of the same names. Note that the
+    // interpretation of the in and out arrays is different depending on whether 
+    // we're multiplying on the left or right; which is q-like and which is
+    // u-like reverses.
     //
-    // Note that Q=Q(q), QInv=Qinv(q), and QDot=QDot(q,u) where now I am talking about
-    // the real set of generalized coordinates q and generalized speeds u but *just for this
-    // mobilizer*.
+    // Note that N=N(q), NInv=Ninv(q), and NDot=NDot(q,u) where now I am talking 
+    // about the real set of generalized coordinates q and generalized speeds u 
+    // but *just for this mobilizer*.
     //
-    // In typical usage qdot=Q*u, qdotdot=Q*udot + QDot*u. These can be
-    // inverted as u=inv(Q)*qdot, and udot=inv(Q)*(qdotdot - QDot*u); note that
-    // inv(QDot) is not needed (a good thing since it is likely to be singular!).
+    // In typical usage qdot=N*u, qdotdot=N*udot + NDot*u. These can be
+    // inverted as u=inv(N)*qdot, and udot=inv(N)*(qdotdot - NDot*u); note that
+    // inv(NDot) is not needed (a good thing since it is likely to be singular!).
     //
-    // WARNING: these routines do not normalize quaternions before using them, so the resulting
-    // matrices are scaled by the quaternion norm (if it isn't 1). This is important for 
-    // correct calculation of qdots because otherwise they would not be the correct derivatives
-    // for unnormalized q's. 
+    // WARNING: these routines do not normalize quaternions before using them, 
+    // so the resulting matrices are scaled by the quaternion norm (if it 
+    // isn't 1). That's a feature not a bug! This is important for correct 
+    // calculation of qdots because otherwise they would not be the correct 
+    // derivatives for unnormalized q's. 
 
-    virtual void multiplyByQBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
-                                  bool matrixOnRight, 
-                                  const Real* in, Real* out) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "multiplyByQBlock");}
-    virtual void multiplyByQInvBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
-                                     bool matrixOnRight,
-                                     const Real* in, Real* out) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "multiplyByQInvBlock");}
-    virtual void multiplyByQDotBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q, const Real* u,
-                                     bool matrixOnRight,
-                                     const Real* in, Real* out) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "multiplyByQDotBlock");}
+    virtual void multiplyByN(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
+                             bool matrixOnRight, 
+                             const Real* in, Real* out) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "multiplyByN");}
+    virtual void multiplyByNInv(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
+                                bool matrixOnRight,
+                                const Real* in, Real* out) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "multiplyByNInv");}
+    virtual void multiplyByNDot(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q, const Real* u,
+                                bool matrixOnRight,
+                                const Real* in, Real* out) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "multiplyByNDot");}
 
+    // This operator pulls N(q) from the StateDigest if necessary and calculates 
+    // qdot=N(q)*u from the supplied "u-like" argument. For many mobilizers it 
+    // can simply copy u to qdot without referencing the state at all.
     virtual void calcQDot(
         const SBStateDigest&   sbs,
         const Vector&          u,
         Vector&                qdot) const
       { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcQDot"); }
 
+    // This operator pulls N(q) and NDot(q,u) from the StateDigest if necessary
+    // and calculates qdotdot=N*udot + NDot*u from the supplied "udot-like" argument.
+    // For many mobilizers it can simply copy udot to qdotdot without referencing
+    // the state at all.
     virtual void calcQDotDot(
         const SBStateDigest&   sbs,
         const Vector&          udot, 
@@ -308,7 +317,7 @@ public:
     virtual void setQToFitRotation
        (const SBStateDigest&, const Rotation& R_FM, Vector& q) const = 0;
     virtual void setQToFitTranslation
-       (const SBStateDigest&, const Vec3& T_FM, Vector& q) const = 0;
+       (const SBStateDigest&, const Vec3& p_FM, Vector& q) const = 0;
 
     virtual void setUToFitVelocity
        (const SBStateDigest&, const Vector& q, const SpatialVec& V_FM, Vector& u) const = 0;
@@ -357,14 +366,6 @@ public:
     virtual void calcArticulatedBodyInertiasInward(
         const SBPositionCache& pc,
         SBDynamicsCache&       dc) const=0;
-
-    /*virtual void calcZ(
-        const SBPositionCache&     pc,
-        const SBDynamicsCache&     dc,
-        const Vector&              mobilityForces,
-        const Vector_<SpatialVec>& bodyForces,
-        SBAccelerationCache&       ac) const 
-      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcZ"); }*/
 
     virtual void calcZ(
         const SBStateDigest&,

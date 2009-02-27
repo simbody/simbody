@@ -277,7 +277,7 @@ int main(int argc, char** argv) {
     cout << "u=" << s.getU() << endl;
     cout << "qErr=" << s.getQErr() << endl;
     cout << "uErr=" << s.getUErr() << endl;
-    cout << "T_MbM=" << mobilizedBody.getMobilizerTransform(s).T() << endl;
+    cout << "p_MbM=" << mobilizedBody.getMobilizerTransform(s).p() << endl;
     cout << "v_MbM=" << mobilizedBody.getMobilizerVelocity(s)[1] << endl;
     cout << "Unassembled configuration shown. Ready to assemble? "; cin >> ans;
 
@@ -329,7 +329,7 @@ int main(int argc, char** argv) {
         cout << "u=" << s.getU() << endl;
         cout << "qErr=" << s.getQErr() << endl;
         cout << "uErr=" << s.getUErr() << endl;
-        cout << "T_MbM=" << mobilizedBody.getMobilizerTransform(s).T() << endl;
+        cout << "p_MbM=" << mobilizedBody.getMobilizerTransform(s).p() << endl;
         cout << "PE=" << mbs.calcPotentialEnergy(s) << " KE=" << mbs.calcKineticEnergy(s) << " E=" << mbs.calcEnergy(s) << endl;
         cout << "angle=" << std::acos(~mobilizedBody.expressVectorInGroundFrame(s, Vec3(0,1,0)) * UnitVec3(1,1,1)) << endl;
         cout << "Assembled configuration shown. Ready to simulate? "; cin >> ans;
@@ -498,8 +498,8 @@ public:
                                  ~RF.y()*RB.z(),
                                  ~RF.z()*RB.x());
 
-        const Vec3 p_AF1 = findStationLocation(s, B, defaultFrameB.T(), true);
-        const Vec3 p_AF2 = findStationLocation(s, F, defaultFrameF.T(), true);
+        const Vec3 p_AF1 = findStationLocation(s, B, defaultFrameB.p(), true);
+        const Vec3 p_AF2 = findStationLocation(s, F, defaultFrameF.p(), true);
 
         // position error
         Vec3::updAs(perr+3) = p_AF2 - p_AF1;
@@ -524,10 +524,10 @@ public:
 
         //TODO: should be able to get p info from State
         const Transform&  X_AB   = getBodyTransform(s, B);
-        const Vec3        p_AF2  = findStationLocation(s, F, defaultFrameF.T());
+        const Vec3        p_AF2  = findStationLocation(s, F, defaultFrameF.p());
         const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
 
-        const Vec3        v_AF2   = findStationVelocity(s, F, defaultFrameF.T(), true);
+        const Vec3        v_AF2   = findStationVelocity(s, F, defaultFrameF.p(), true);
         const Vec3        v_AC    = findStationVelocity(s, B, p_BC, true);
  
         // position error
@@ -560,10 +560,10 @@ public:
                         + dot( w_BF, (w_AF%RF.z()) % RB.x() - (w_AB%RB.x()) % RF.z()));
 
         const Transform&  X_AB   = getBodyTransform(s, B);
-        const Vec3        p_AF2  = findStationLocation(s, F, defaultFrameF.T());
+        const Vec3        p_AF2  = findStationLocation(s, F, defaultFrameF.p());
         const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
 
-        const Vec3        a_AF2  = findStationAcceleration(s, F, defaultFrameF.T(), true);
+        const Vec3        a_AF2  = findStationAcceleration(s, F, defaultFrameF.p(), true);
         const Vec3        a_AC   = findStationAcceleration(s, B, p_BC, true);
 
         // position error
@@ -594,7 +594,7 @@ public:
         addInBodyTorque(s, B, -torque_F_A, bodyForcesInA);
 
         const Transform& X_AB  = getBodyTransform(s,B);
-        const Vec3&      p_FF2 = defaultFrameF.T();
+        const Vec3&      p_FF2 = defaultFrameF.p();
         const Vec3       p_AF2 = findStationLocation(s, F, p_FF2);
         const Vec3       p_BC = ~X_AB * p_AF2;
 
@@ -640,8 +640,8 @@ void MyHomeMadeWeldImplementation::calcDecorativeGeometryAndAppend
                                             .setTransform(defaultFrameB));
 
         // Draw connector line back to body origin.
-        if (defaultFrameB.T().norm() >= SignificantReal)
-            geom.push_back(DecorativeLine(Vec3(0), defaultFrameB.T())
+        if (defaultFrameB.p().norm() >= SignificantReal)
+            geom.push_back(DecorativeLine(Vec3(0), defaultFrameB.p())
                              .setColor(getFrameColor(0))
                              .setLineThickness(2)
                              .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B)));
@@ -653,8 +653,8 @@ void MyHomeMadeWeldImplementation::calcDecorativeGeometryAndAppend
                                             .setBodyId(getMobilizedBodyIndexOfConstrainedBody(F))
                                             .setTransform(defaultFrameF));
 
-        if (defaultFrameF.T().norm() >= SignificantReal)
-            geom.push_back(DecorativeLine(Vec3(0), defaultFrameF.T())
+        if (defaultFrameF.p().norm() >= SignificantReal)
+            geom.push_back(DecorativeLine(Vec3(0), defaultFrameF.p())
                              .setColor(getFrameColor(1))
                              .setLineThickness(4)
                              .setBodyId(getMobilizedBodyIndexOfConstrainedBody(F)));

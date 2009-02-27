@@ -365,7 +365,7 @@ void OrientedBoundingBox::getCorners(Vec3 corners[8]) const {
     Vec3 dx = size[0]*transform.R().col(0);
     Vec3 dy = size[1]*transform.R().col(1);
     Vec3 dz = size[2]*transform.R().col(2);
-    corners[0] = transform.T();
+    corners[0] = transform.p();
     corners[1] = corners[0]+dx;
     corners[2] = corners[0]+dy;
     corners[3] = corners[1]+dy;

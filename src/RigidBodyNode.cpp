@@ -73,12 +73,12 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
     SBPositionCache&   pc) const
 {
     // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
-    const Vec3 T_PB_G = getX_GP(pc).R() * getX_PB(pc).T();
+    const Vec3 p_PB_G = getX_GP(pc).R() * getX_PB(pc).p();
 
     // The Phi matrix conveniently performs child-to-parent (inward) shifting
     // on spatial quantities (forces); its transpose does parent-to-child
     // (outward) shifting for velocities and accelerations.
-    updPhi(pc) = PhiMatrix(T_PB_G);
+    updPhi(pc) = PhiMatrix(p_PB_G);
 
     // Calculate spatial mass properties. That means we need to transform
     // the local mass moments into the Ground frame and reconstruct the
@@ -87,7 +87,7 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
     updInertia_OB_G(pc) = getInertia_OB_B().reexpress(~getX_GB(pc).R());
     updCB_G(pc)         = getX_GB(pc).R()*getCOM_B();
 
-    updCOM_G(pc) = getX_GB(pc).T() + getCB_G(pc);
+    updCOM_G(pc) = getX_GB(pc).p() + getCB_G(pc);
 
     // Calc Mk: the spatial inertia matrix about the body origin.
     // Note that this is symmetric; offDiag is *skew* symmetric so
@@ -229,7 +229,7 @@ public:
     /*virtual*/ void setQToFitRotation
        (const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {}
     /*virtual*/ void setQToFitTranslation
-       (const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {}
+       (const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {}
 
     /*virtual*/ void setUToFitVelocity
        (const SBStateDigest& sbs, const Vector& q, const SpatialVec& V_FM, Vector& u) const {}
@@ -357,13 +357,13 @@ public:
         const SpatialVec&      sVel, 
         Vector&                u) const {}
     
-    /*virtual*/ void multiplyByQBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
+    /*virtual*/ void multiplyByN(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
                                   bool matrixOnRight, 
                                   const Real* in, Real* out) const {}
-    /*virtual*/ void multiplyByQInvBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
+    /*virtual*/ void multiplyByNInv(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
                                      bool matrixOnRight,
                                      const Real* in, Real* out) const {}
-    /*virtual*/ void multiplyByQDotBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q, const Real* u,
+    /*virtual*/ void multiplyByNDot(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q, const Real* u,
                                      bool matrixOnRight,
                                      const Real* in, Real* out) const {}
 
@@ -420,7 +420,7 @@ public:
 
     virtual void setQToFitTransform(const SBStateDigest& sbs, const Transform& X_FM, Vector& q) const {
         setQToFitRotation   (sbs,X_FM.R(),q);
-        setQToFitTranslation(sbs,X_FM.T(),q);
+        setQToFitTranslation(sbs,X_FM.p(),q);
     }
 
     virtual void setUToFitVelocity(const SBStateDigest& sbs, const Vector& q, const SpatialVec& V_FM, Vector& u) const {
@@ -737,14 +737,14 @@ public:
     // either operation (regardless of side) just copies nu numbers from in to out.
     //
     // THIS MUST BE OVERRIDDEN by any mobilizer for which nq != nu, or qdot != u.
-    virtual void multiplyByQBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
+    virtual void multiplyByN(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
                                   bool matrixOnRight,  const Real* in, Real* out) const
     {
         assert(qdotHandling == QDotIsAlwaysTheSameAsU);
         Vec<dof>::updAs(out) = Vec<dof>::getAs(in);
     }
 
-    virtual void multiplyByQInvBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
+    virtual void multiplyByNInv(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
                                      bool matrixOnRight, const Real* in, Real* out) const
     {
         assert(qdotHandling == QDotIsAlwaysTheSameAsU);
@@ -759,7 +759,7 @@ public:
     //
     // THIS MUST BE OVERRIDDEN by any mobilizer for which nq != nu, or qdot != u.
     /* TODO
-    virtual void multiplyByQDotBlock(const SBStateDigest&, bool useEulerAnglesIfPossible, 
+    virtual void multiplyByNDot(const SBStateDigest&, bool useEulerAnglesIfPossible, 
                                      const Real* q, const Real* u,
                                      bool matrixOnRight, const Real* in, Real* out) const
     {
@@ -1052,9 +1052,9 @@ public:
     void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {
         // the only rotation this mobilizer can represent is identity
     }
-    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3&  T_FM, Vector& q) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3&  p_FM, Vector& q) const {
         // here's what this joint is really good at!
-        toQ(q) = T_FM;
+        toQ(q) = p_FM;
     }
 
     void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM, Vector& u) const {
@@ -1147,9 +1147,9 @@ public:
         // The only rotation a slider can represent is identity.
     }
 
-    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
         // We can only represent the x coordinate with this joint.
-        to1Q(q) = T_FM[0];
+        to1Q(q) = p_FM[0];
     }
 
     void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM, Vector& u) const {
@@ -1243,7 +1243,7 @@ public:
         to1Q(q) = angles123[2];
     }
 
-    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
@@ -1296,7 +1296,7 @@ public:
         // We're only updating the orientation here because a torsion joint
         // can't translate (it is defined as a rotation about the z axis).
         X_FM.updR().setRotationFromAngleAboutZ(theta);
-        X_FM.updT() = 0.;
+        X_FM.updP() = 0.;
     }
 
 
@@ -1360,8 +1360,8 @@ public:
         to1Q(q) = angles123[2];
     }
 
-    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
-        to1Q(q) = T_FM[2]/pitch;
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
+        to1Q(q) = p_FM[2]/pitch;
     }
 
     void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM, Vector& u) const {
@@ -1410,7 +1410,7 @@ public:
         const Real& theta  = from1Q(q);    // angular coordinate
 
         X_FM.updR().setRotationFromAngleAboutZ(theta);
-        X_FM.updT() = Vec3(0,0,theta*pitch);
+        X_FM.updP() = Vec3(0,0,theta*pitch);
     }
 
 
@@ -1467,11 +1467,11 @@ public:
         toQ(q)[0] = angles123[2];
     }
 
-    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
         // Because the M and F origins must lie along their shared z axis, there is no way to
         // create a translation by rotating around z. So the only translation we can represent
         // is that component which is along z.
-        toQ(q)[1] = T_FM[2];
+        toQ(q)[1] = p_FM[2];
     }
 
     void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM, Vector& u) const {
@@ -1521,7 +1521,7 @@ public:
         const Vec2& coords  = fromQ(q);
 
         X_FM.updR().setRotationFromAngleAboutZ(coords[0]);
-        X_FM.updT() = Vec3(0,0,coords[1]);
+        X_FM.updP() = Vec3(0,0,coords[1]);
     }
 
 
@@ -1582,10 +1582,10 @@ public:
         toQ(q)[0] = angles123[2];
     }
 
-    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
         // We can represent any translation that puts the M origin in the x-y plane of F,
         // by a suitable rotation around z followed by translation along x.
-        const Vec2 r = T_FM.getSubVec<2>(0); // (rx, ry)
+        const Vec2 r = p_FM.getSubVec<2>(0); // (rx, ry)
 
         // If we're not allowed to change rotation then we can only move along Mx.
 //        if (only) {
@@ -1674,7 +1674,7 @@ public:
         const Vec2& coords  = fromQ(q);    // angular coordinate
 
         X_FM.updR().setRotationFromAngleAboutZ(coords[0]);
-        X_FM.updT() = X_FM.R()*Vec3(coords[1],0,0); // because translation is in M frame
+        X_FM.updP() = X_FM.R()*Vec3(coords[1],0,0); // because translation is in M frame
     }
 
     // The generalized speeds for this bend-stretch joint are (1) the angular
@@ -1689,8 +1689,8 @@ public:
         const Rotation& R_FM = getX_FM(pc).R();
         const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
 
-        const Vec3&     T_FM = getX_FM(pc).T();
-        H_FM[0] = SpatialRow( Row3(0,0,1), ~(Vec3(0,0,1) % T_FM)   );
+        const Vec3&     p_FM = getX_FM(pc).p();
+        H_FM[0] = SpatialRow( Row3(0,0,1), ~(Vec3(0,0,1) % p_FM)   );
         H_FM[1] = SpatialRow( Row3(0),              ~Mx_F          );
     }
 
@@ -1764,7 +1764,7 @@ public:
         toQ(q) = angles12;
     }
 
-    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
@@ -1820,7 +1820,7 @@ public:
     {
         // We're only updating the orientation here because a U-joint can't translate.
         X_FM.updR() = Rotation( BodyRotationSequence, fromQ(q)[0], XAxis, fromQ(q)[1], YAxis );  // body fixed 1-2 sequence
-        X_FM.updT() = 0.;
+        X_FM.updP() = 0.;
     }
 
     // The generalized speeds for this 2-dof rotational joint are the time derivatlves of
@@ -1895,10 +1895,10 @@ public:
         const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
         toQ(q)[0] = angles123[2];
     }
-    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3&  T_FM, Vector& q) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3&  p_FM, Vector& q) const {
         // Ignore translation in the z direction.
-        toQ(q)[1] = T_FM[0]; // x
-        toQ(q)[2] = T_FM[1]; // y
+        toQ(q)[1] = p_FM[0]; // x
+        toQ(q)[2] = p_FM[1]; // y
     }
 
     void setUToFitAngularVelocity(const SBStateDigest& sbs, const Vector&, const Vec3& w_FM, Vector& u) const {
@@ -2008,7 +2008,7 @@ public:
         toQ(q) = R_FM.convertRotationToBodyFixedXYZ();
     }
 
-    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
@@ -2057,7 +2057,7 @@ public:
         const Vector&        q,
         Transform&           X_FM) const
     {
-        X_FM.updT() = 0.; // This joint can't translate.
+        X_FM.updP() = 0.; // This joint can't translate.
         X_FM.updR().setRotationToBodyFixedXYZ( fromQ(q) );
     }
 
@@ -2110,7 +2110,7 @@ public:
 
     // Compute out_q = Q * in_u
     //   or    out_u = in_q * Q
-    void multiplyByQBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+    void multiplyByN(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                           bool matrixOnRight, const Real* in, Real* out) const
     {
         assert(sbs.getStage() >= Stage::Model);
@@ -2129,7 +2129,7 @@ public:
 
     // Compute out_u = inv(Q) * in_q
     //   or    out_q = in_u * inv(Q)
-    void multiplyByQInvBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+    void multiplyByNInv(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                              bool matrixOnRight, const Real* in, Real* out) const
     {
         assert(sbs.getStage() >= Stage::Position);
@@ -2231,7 +2231,7 @@ public:
             toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
     }
 
-    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
@@ -2295,7 +2295,7 @@ public:
         Transform&           X_FM) const
     {
         const SBModelVars& mv = sbs.getModelVars();
-        X_FM.updT() = 0.; // This joint can't translate.
+        X_FM.updP() = 0.; // This joint can't translate.
         if (getUseEulerAngles(mv))
             X_FM.updR().setRotationToBodyFixedXYZ( fromQ(q) );
         else {
@@ -2362,7 +2362,7 @@ public:
 
     // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
     // is up to the caller to do that if it is necessary.
-    void multiplyByQBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+    void multiplyByN(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                           bool matrixOnRight, const Real* in, Real* out) const
     {
         assert(sbs.getStage() >= Stage::Model);
@@ -2388,7 +2388,7 @@ public:
 
     // Compute out_u = inv(Q) * in_q
     //   or    out_q = in_u * inv(Q)
-    void multiplyByQInvBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+    void multiplyByNInv(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                              bool matrixOnRight, const Real* in, Real* out) const
     {
         assert(sbs.getStage() >= Stage::Position);
@@ -2619,10 +2619,10 @@ public:
     // a direction to align with. And of course we can't do anything if "only" is true
     // here -- that means we aren't allowed to touch the rotations, and for this
     // joint that's all there is.
-    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
-        if (T_FM.norm() < Eps) return;
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
+        if (p_FM.norm() < Eps) return;
 
-        const UnitVec3 e(T_FM); // direction from F origin towards desired M origin
+        const UnitVec3 e(p_FM); // direction from F origin towards desired M origin
         const Real latitude  = std::atan2(-e[1],e[2]); // project onto F's yz plane
         const Real longitude = std::atan2( e[0],e[2]); // project onto F's xz plane
 
@@ -2666,7 +2666,7 @@ public:
         calcAcrossJointTransform(sbs,q,X_FM);
 
         const Vec3 v_FM_M    = ~X_FM.R()*v_FM; // we can only do vx and vy in this frame
-        const Vec3 r_FM_M    = ~X_FM.R()*X_FM.T(); 
+        const Vec3 r_FM_M    = ~X_FM.R()*X_FM.p(); 
         const Vec3 wnow_FM_M = ~X_FM.R()*fromU(u); // preserve z component
 
         // Now vx can only result from angular velocity about y, vy from x.
@@ -2739,7 +2739,7 @@ public:
         }
 
 		const Vec3& n = X_FM.R().z();
-		X_FM.updT() = Vec3(semi[0]*n[0], semi[1]*n[1], semi[2]*n[2]);
+		X_FM.updP() = Vec3(semi[0]*n[0], semi[1]*n[1], semi[2]*n[2]);
 	}
 
     // Generalized speeds are the angular velocity expressed in F, so they
@@ -2774,7 +2774,7 @@ public:
 
     // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
     // is up to the caller to do that if it is necessary.
-    void multiplyByQBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+    void multiplyByN(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                           bool matrixOnRight, const Real* in, Real* out) const
     {
         assert(sbs.getStage() >= Stage::Model);
@@ -2800,7 +2800,7 @@ public:
 
     // Compute out_u = inv(Q) * in_q
     //   or    out_q = in_u * inv(Q)
-    void multiplyByQInvBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+    void multiplyByNInv(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                              bool matrixOnRight, const Real* in, Real* out) const
     {
         assert(sbs.getStage() >= Stage::Position);
@@ -2970,11 +2970,11 @@ public:
     // The user gives us the translation vector from OF to OM as a vector expressed in F, which
     // is what we use as translational generalized coordinates. Also, with a free joint 
     // we never have to change orientation coordinates in order to achieve a translation.
-    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
         if (getUseEulerAngles(sbs.getModelVars()))
-            toQVec3(q,3) = T_FM; // skip the 3 Euler angles
+            toQVec3(q,3) = p_FM; // skip the 3 Euler angles
         else
-            toQVec3(q,4) = T_FM; // skip the 4 quaternions
+            toQVec3(q,4) = p_FM; // skip the 4 quaternions
     }
 
     // Our 3 rotational generalized speeds are just the angular velocity vector of M in F,
@@ -3040,10 +3040,10 @@ public:
         const SBModelVars& mv = sbs.getModelVars();
         if (getUseEulerAngles(mv)) {
             X_FM.updR().setRotationToBodyFixedXYZ( fromQVec3(q,0) );
-            X_FM.updT() = fromQVec3(q,3); // translation is in F already
+            X_FM.updP() = fromQVec3(q,3); // translation is in F already
         } else {
             X_FM.updR().setRotationFromQuaternion( Quaternion(fromQuat(q)) ); // normalize
-            X_FM.updT() = fromQVec3(q,4); // translation is in F already
+            X_FM.updP() = fromQVec3(q,4); // translation is in F already
         }
     }
 
@@ -3080,7 +3080,7 @@ public:
 
     // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
     // is up to the caller to do that if it is necessary.
-    void multiplyByQBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+    void multiplyByN(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                           bool matrixOnRight, const Real* in, Real* out) const
     {
         assert(sbs.getStage() >= Stage::Model);
@@ -3113,7 +3113,7 @@ public:
 
     // Compute out_u = inv(Q) * in_q
     //   or    out_q = in_u * inv(Q)
-    void multiplyByQInvBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+    void multiplyByNInv(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                              bool matrixOnRight, const Real* in, Real* out) const
     {
         assert(sbs.getStage() >= Stage::Position);
@@ -3323,7 +3323,7 @@ public:
             toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
     }
 
-    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
         // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
@@ -3395,7 +3395,7 @@ public:
         Transform&           X_FM) const
     {
         const SBModelVars& mv = sbs.getModelVars();
-        X_FM.updT() = 0.; // This joint can't translate.
+        X_FM.updP() = 0.; // This joint can't translate.
         if (getUseEulerAngles(mv))
             X_FM.updR().setRotationToBodyFixedXYZ( fromQVec3(q,0) );
         else {
@@ -3443,7 +3443,7 @@ public:
 
     // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
     // is up to the caller to do that if it is necessary.
-    void multiplyByQBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+    void multiplyByN(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                           bool matrixOnRight, const Real* in, Real* out) const
     {
         assert(sbs.getStage() >= Stage::Model);
@@ -3467,7 +3467,7 @@ public:
 
     // Compute out_u = inv(Q) * in_q
     //   or    out_q = in_u * inv(Q)
-    void multiplyByQInvBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+    void multiplyByNInv(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                              bool matrixOnRight, const Real* in, Real* out) const
     {
         assert(sbs.getStage() >= Stage::Position);
@@ -3618,7 +3618,7 @@ public:
 //
 // To summarize, the generalized coordinates are:
 //   * 4 quaternions or 3 1-2-3 body fixed Euler angles (that is, fixed in M)
-//   * 3 components of the translation vector T_FM (that is, vector from origin
+//   * 3 components of the translation vector p_FM (that is, vector from origin
 //     of F to origin of M, expressed in F)
 // and generalized speeds are:
 //   * the x,y components of the angular velocity w_FM_M, that is, the angular
@@ -3656,11 +3656,11 @@ public:
     // With a free joint we never have to *change* orientation coordinates in order to achieve a translation.
     // Note: a quaternion from a state is not necessarily normalized so can't be used
     // direction as though it were a set of Euler parameters; it must be normalized first.
-    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
         if (getUseEulerAngles(sbs.getModelVars()))
-            toQVec3(q,3) = T_FM; // skip the 3 Euler angles
+            toQVec3(q,3) = p_FM; // skip the 3 Euler angles
         else
-            toQVec3(q,4) = T_FM; // skip the 4 quaternions
+            toQVec3(q,4) = p_FM; // skip the 4 quaternions
     }
 
     // Our 2 rotational generalized speeds are just the (x,y) components of the
@@ -3734,10 +3734,10 @@ public:
         const SBModelVars& mv = sbs.getModelVars();
         if (getUseEulerAngles(mv)) {
             X_FM.updR().setRotationToBodyFixedXYZ( fromQVec3(q,0) );
-            X_FM.updT() = fromQVec3(q,3); // translation is in F
+            X_FM.updP() = fromQVec3(q,3); // translation is in F
         } else {
             X_FM.updR().setRotationFromQuaternion( Quaternion(fromQuat(q)) ); // normalize
-            X_FM.updT() = fromQVec3(q,4);  // translation is in F
+            X_FM.updP() = fromQVec3(q,4);  // translation is in F
         }
     }
 
@@ -3790,7 +3790,7 @@ public:
 
     // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
     // is up to the caller to do that if it is necessary.
-    void multiplyByQBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+    void multiplyByN(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                           bool matrixOnRight, const Real* in, Real* out) const
     {
         assert(sbs.getStage() >= Stage::Model);
@@ -3825,7 +3825,7 @@ public:
 
     // Compute out_u = inv(Q) * in_q
     //   or    out_q = in_u * inv(Q)
-    void multiplyByQInvBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+    void multiplyByNInv(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                              bool matrixOnRight, const Real* in, Real* out) const
     {
         assert(sbs.getStage() >= Stage::Position);
@@ -3993,12 +3993,12 @@ public:
         updX_FM(pc).setToZero();
         updX_PB(pc) = X_PF * ~X_BM; // TODO: precalculate X_MB
         updX_GB(pc) = X_GP * getX_PB(pc);
-        const Vec3 T_PB_G = getX_GP(pc).R() * getX_PB(pc).T();
+        const Vec3 p_PB_G = getX_GP(pc).R() * getX_PB(pc).p();
 
         // The Phi matrix conveniently performs child-to-parent (inward) shifting
         // on spatial quantities (forces); its transpose does parent-to-child
         // (outward) shifting for velocities.
-        updPhi(pc) = PhiMatrix(T_PB_G);
+        updPhi(pc) = PhiMatrix(p_PB_G);
 
         // Calculate spatial mass properties. That means we need to transform
         // the local mass moments into the Ground frame and reconstruct the
@@ -4006,7 +4006,7 @@ public:
 
         updInertia_OB_G(pc) = getInertia_OB_B().reexpress(~getX_GB(pc).R());
         updCB_G(pc)         = getX_GB(pc).R()*getCOM_B();
-        updCOM_G(pc) = getX_GB(pc).T() + getCB_G(pc);
+        updCOM_G(pc) = getX_GB(pc).p() + getCB_G(pc);
 
         // Calc Mk: the spatial inertia matrix about the body origin.
         // Note that this is symmetric; offDiag is *skew* symmetric so
@@ -4198,7 +4198,7 @@ public:
         for (int i = 0; i < nqInUse; ++i)
             qdotdot[i] += temp[i];
     }
-    void multiplyByQBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q, bool matrixOnRight, 
+    void multiplyByN(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q, bool matrixOnRight, 
                                   const Real* in, Real* out) const {
         const SBModelVars& mv = sbs.getModelVars();
         int nIn, nOut;
@@ -4212,7 +4212,7 @@ public:
         }
         impl.multiplyByN(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
     }
-    void multiplyByQInvBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q, bool matrixOnRight,
+    void multiplyByNInv(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q, bool matrixOnRight,
                                      const Real* in, Real* out) const {
         const SBModelVars& mv = sbs.getModelVars();
         int nIn, nOut;
@@ -4226,7 +4226,7 @@ public:
         }
         impl.multiplyByNInv(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
     }
-    void multiplyByQDotBlock(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q, const Real* u,
+    void multiplyByNDot(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q, const Real* u,
                                      bool matrixOnRight, const Real* in, Real* out) const {
         const SBModelVars& mv = sbs.getModelVars();
         int nIn, nOut;
@@ -4311,8 +4311,8 @@ public:
     void setQToFitRotation(const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const {
         setQToFitTransform(sbs, Transform(R_FM), q);
     }
-    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& T_FM, Vector& q) const {
-        setQToFitTransform(sbs, Transform(T_FM), q);
+    void setQToFitTranslation(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
+        setQToFitTransform(sbs, Transform(p_FM), q);
     }
 
     void setUToFitVelocity(const SBStateDigest& sbs, const Vector& q, const SpatialVec& V_FM, Vector& u) const {
@@ -4437,7 +4437,7 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
     const HType& H_FM = getH_FM(pc);
 
     // want r_MB_F, that is, the vector from OM to OB, expressed in F
-    const Vec3&     r_MB   = getX_MB().T();    // fixed
+    const Vec3&     r_MB   = getX_MB().p();    // fixed
     const Rotation& R_FM   = getX_FM(pc).R(); // just calculated
     const Vec3      r_MB_F = R_FM*r_MB;
 
@@ -4473,7 +4473,7 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     HType H_MB, H_MB_Dot;
 
     // want r_MB_F, that is, the vector from OM to OB, expressed in F
-    const Vec3&     r_MB   = getX_MB().T();    // fixed
+    const Vec3&     r_MB   = getX_MB().p();    // fixed
     const Rotation& R_FM   = getX_FM(pc).R(); // just calculated
     const Vec3      r_MB_F = R_FM*r_MB;
 

@@ -381,7 +381,7 @@ int HuntCrossleyContactRep::realizeSubsystemDynamicsImpl(const State& s) const
             // Find the heights of the half space surface and sphere center measured 
             // along the contact normal from the ground origin. Then we can get the
             // height of the sphere center over the half space surface.
-            const Real h_G   = ~X_GB2.T()*normal_G + halfSpace.height; // 6 flops
+            const Real h_G   = ~X_GB2.p()*normal_G + halfSpace.height; // 6 flops
             const Real hc1_G = ~center1_G*normal_G;                    // 5 flops
             const Real d = hc1_G - h_G;                                // 1 flop
             if (d >= r1) continue;                                     // 1 flop
@@ -459,8 +459,8 @@ void HuntCrossleyContactRep::processContact
 
     // Find the body stations coincident with the contact point so that we can calculate
     // their velocities.
-    const Vec3 contactPt1_G = contactPt_G - X_GB1.T();                  // 3 flops
-    const Vec3 contactPt2_G = contactPt_G - X_GB2.T();                  // 3 flops
+    const Vec3 contactPt1_G = contactPt_G - X_GB1.p();                  // 3 flops
+    const Vec3 contactPt2_G = contactPt_G - X_GB2.p();                  // 3 flops
     const Vec3 vContactPt1_G = V_GB1[1] + V_GB1[0] % contactPt1_G;      // 12 flops
     const Vec3 vContactPt2_G = V_GB2[1] + V_GB2[0] % contactPt2_G;      // 12 flops
 

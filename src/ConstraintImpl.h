@@ -287,7 +287,7 @@ public:
 
     // Extract just the translational (linear) quantities from the spatial quantities above.
     const Vec3& getBodyOriginLocation    (const State& s, ConstrainedBodyIndex B, bool realizingPosition=false)     const // p_AB
-       {return getBodyTransform(s,B,realizingPosition).T();}  
+       {return getBodyTransform(s,B,realizingPosition).p();}  
     const Vec3& getBodyOriginVelocity    (const State& s, ConstrainedBodyIndex B, bool realizingVelocity=false)     const // v_AB
        {return getBodyVelocity(s,B,realizingVelocity)[1];}     
     const Vec3& getBodyOriginAcceleration(const State& s, ConstrainedBodyIndex B, bool realizingAcceleration=false) const // a_AB
@@ -1489,8 +1489,8 @@ public:
                                  ~RF.y()*RB.z(),
                                  ~RF.z()*RB.x());
 
-        const Vec3 p_AF1 = findStationLocation(s, B, defaultFrameB.T(), true);
-        const Vec3 p_AF2 = findStationLocation(s, F, defaultFrameF.T(), true);
+        const Vec3 p_AF1 = findStationLocation(s, B, defaultFrameB.p(), true);
+        const Vec3 p_AF2 = findStationLocation(s, F, defaultFrameF.p(), true);
 
         // position error
         Vec3::updAs(perr+3) = p_AF2 - p_AF1;
@@ -1515,10 +1515,10 @@ public:
 
         //TODO: should be able to get p info from State
         const Transform&  X_AB   = getBodyTransform(s, B);
-        const Vec3        p_AF2  = findStationLocation(s, F, defaultFrameF.T());
+        const Vec3        p_AF2  = findStationLocation(s, F, defaultFrameF.p());
         const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
 
-        const Vec3        v_AF2   = findStationVelocity(s, F, defaultFrameF.T(), true);
+        const Vec3        v_AF2   = findStationVelocity(s, F, defaultFrameF.p(), true);
         const Vec3        v_AC    = findStationVelocity(s, B, p_BC, true);
  
         // position error
@@ -1551,10 +1551,10 @@ public:
                         + dot( w_BF, (w_AF%RF.z()) % RB.x() - (w_AB%RB.x()) % RF.z()));
 
         const Transform&  X_AB   = getBodyTransform(s, B);
-        const Vec3        p_AF2  = findStationLocation(s, F, defaultFrameF.T());
+        const Vec3        p_AF2  = findStationLocation(s, F, defaultFrameF.p());
         const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
 
-        const Vec3        a_AF2  = findStationAcceleration(s, F, defaultFrameF.T(), true);
+        const Vec3        a_AF2  = findStationAcceleration(s, F, defaultFrameF.p(), true);
         const Vec3        a_AC   = findStationAcceleration(s, B, p_BC, true);
 
         // position error
@@ -1585,7 +1585,7 @@ public:
         addInBodyTorque(s, B, -torque_F_A, bodyForcesInA);
 
         const Transform& X_AB  = getBodyTransform(s,B);
-        const Vec3&      p_FF2 = defaultFrameF.T();
+        const Vec3&      p_FF2 = defaultFrameF.p();
         const Vec3       p_AF2 = findStationLocation(s, F, p_FF2);
         const Vec3       p_BC = ~X_AB * p_AF2;
 

@@ -187,8 +187,8 @@ void MobilizedBody::setQToFitTransform(State& s, const Transform& X_MbM) const {
 void MobilizedBody::setQToFitRotation(State& s, const Rotation& R_MbM) const { 
     getImpl().setQToFitRotation(s,R_MbM); 
 }
-void MobilizedBody::setQToFitTranslation(State& s, const Vec3& T_MbM) const { 
-    getImpl().setQToFitTranslation(s,T_MbM);
+void MobilizedBody::setQToFitTranslation(State& s, const Vec3& p_MbM) const { 
+    getImpl().setQToFitTranslation(s,p_MbM);
 }
 void MobilizedBody::setUToFitVelocity(State& s, const SpatialVec& V_MbM) const { 
     getImpl().setUToFitVelocity(s,V_MbM);
@@ -370,12 +370,12 @@ void MobilizedBodyImpl::setQToFitRotation(State& s, const Rotation& R_MbM) const
     Vector& q = matterRep.updQ(s);
     return getMyRigidBodyNode().setQToFitRotation(digest, R_MbM, q);
 }
-void MobilizedBodyImpl::setQToFitTranslation(State& s, const Vec3& T_MbM) const
+void MobilizedBodyImpl::setQToFitTranslation(State& s, const Vec3& p_MbM) const
 {
     const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
     const SBStateDigest digest(s, matterRep, Stage::Instance);
     Vector& q = matterRep.updQ(s);
-    return getMyRigidBodyNode().setQToFitTranslation(digest, T_MbM, q);
+    return getMyRigidBodyNode().setQToFitTranslation(digest, p_MbM, q);
 }
 
 void MobilizedBodyImpl::setUToFitVelocity(State& s, const SpatialVec& V_MbM) const {
@@ -1190,7 +1190,7 @@ void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl
         */
 
         // raise up so bottom is on xy plane
-        const Transform X_BFollower(X_BM.R(), X_BM.T() + Vec3(0,0,hh));
+        const Transform X_BFollower(X_BM.R(), X_BM.p() + Vec3(0,0,hh));
         geom.push_back(DecorativeBrick(Vec3(hw,2*hw/3.,hh))
             .setColor(Orange)
             .setBodyId(getMyMobilizedBodyIndex())
@@ -1339,7 +1339,7 @@ MobilizedBody::Free& MobilizedBody::Free::setDefaultRotation(const Rotation& R_F
 }
 
 MobilizedBody::Free& MobilizedBody::Free::setDefaultTransform(const Transform& X_FM) {
-    setDefaultTranslation(X_FM.T());
+    setDefaultTranslation(X_FM.p());
     setDefaultQuaternion(X_FM.R().convertRotationToQuaternion());
     return *this;
 }
@@ -1817,7 +1817,7 @@ void MobilizedBody::Custom::Implementation::setQToFitTransform(const State& stat
         }
         int objectiveFunc(const Vector& parameters, const bool new_parameters, Real& f) const {
             Transform transform = impl.calcMobilizerTransformFromQ(state, parameters.size(), &parameters[0]);
-            f = (transform.T()-X_FM.T()).norm();
+            f = (transform.p()-X_FM.p()).norm();
             f += std::abs((~transform.R()*X_FM.R()).convertRotationToAngleAxis()[0]);
             return 0;
         }

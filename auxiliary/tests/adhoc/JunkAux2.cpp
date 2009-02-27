@@ -275,7 +275,7 @@ int main(int argc, char** argv) {
     cout << "u=" << s.getU() << endl;
     cout << "qErr=" << s.getQErr() << endl;
     cout << "uErr=" << s.getUErr() << endl;
-    cout << "T_MbM=" << mobilizedBody.getMobilizerTransform(s).T() << endl;
+    cout << "p_MbM=" << mobilizedBody.getMobilizerTransform(s).p() << endl;
     cout << "v_MbM=" << mobilizedBody.getMobilizerVelocity(s)[1] << endl;
     cout << "Unassembled configuration shown. Ready to assemble? "; cin >> ans;
 
@@ -327,7 +327,7 @@ int main(int argc, char** argv) {
         cout << "u=" << s.getU() << endl;
         cout << "qErr=" << s.getQErr() << endl;
         cout << "uErr=" << s.getUErr() << endl;
-        cout << "T_MbM=" << mobilizedBody.getMobilizerTransform(s).T() << endl;
+        cout << "p_MbM=" << mobilizedBody.getMobilizerTransform(s).p() << endl;
         cout << "PE=" << mbs.calcPotentialEnergy(s) << " KE=" << mbs.calcKineticEnergy(s) << " E=" << mbs.calcEnergy(s) << endl;
         cout << "angle=" << std::acos(~mobilizedBody.expressVectorInGroundFrame(s, Vec3(0,1,0)) * UnitVec3(1,1,1)) << endl;
         cout << "Assembled configuration shown. Ready to simulate? "; cin >> ans;

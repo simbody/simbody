@@ -66,7 +66,7 @@ void assertEqual(SpatialVec val1, SpatialVec val2, Real tol) {
 
 template<>
 void assertEqual(Transform val1, Transform val2, Real tol) {
-    assertEqual(val1.T(), val2.T(), tol);
+    assertEqual(val1.p(), val2.p(), tol);
     ASSERT(val1.R().isSameRotationToWithinAngle(val2.R(), tol));
 }
 

@@ -58,7 +58,7 @@ void assertEqual(SpatialVec val1, SpatialVec val2) {
 
 template<>
 void assertEqual(Transform val1, Transform val2) {
-    assertEqual(val1.T(), val2.T());
+    assertEqual(val1.p(), val2.p());
     assertEqual(val1.R().convertRotationToBodyFixedXYZ(), val2.R().convertRotationToBodyFixedXYZ());
 }
 

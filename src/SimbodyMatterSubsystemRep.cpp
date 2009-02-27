@@ -802,7 +802,7 @@ void SimbodyMatterSubsystemRep::calcQUnitWeightsRecursively(const State& s, Stat
     }
     const SBPositionCache& pc = getPositionCache(s);
     const SBModelVars& mv = getModelVars(s);
-    Vec3 origin = body.getX_GB(pc).T();
+    Vec3 origin = body.getX_GB(pc).p();
     bounds[0] = std::min(bounds[0], origin[0]);
     bounds[2] = std::min(bounds[2], origin[1]);
     bounds[4] = std::min(bounds[4], origin[2]);
@@ -857,7 +857,7 @@ void SimbodyMatterSubsystemRep::calcUUnitWeightsRecursively(const State& s, Stat
     }
     const SBPositionCache& pc = getPositionCache(s);
     const SBModelVars& mv = getModelVars(s);
-    Vec3 origin = body.getX_GB(pc).T();
+    Vec3 origin = body.getX_GB(pc).p();
     bounds[0] = std::min(bounds[0], origin[0]);
     bounds[2] = std::min(bounds[2], origin[1]);
     bounds[4] = std::min(bounds[4], origin[2]);
@@ -2005,7 +2005,7 @@ void SimbodyMatterSubsystemRep::multiplyByN(const State& s, bool transpose, cons
             // it doesn't get written.
             if (!transpose) outp[outpx + maxNQ-1] = 0;
 
-            rbn.multiplyByQBlock(sbState, useEulerAngles, &qp[qx], 
+            rbn.multiplyByN(sbState, useEulerAngles, &qp[qx], 
                                  transpose, &inp[inpx], &outp[outpx]);
         }
 }
@@ -2049,7 +2049,7 @@ void SimbodyMatterSubsystemRep::multiplyByNInv(const State& s, bool transpose, c
             // it doesn't get written.
             if (transpose) outp[outpx + maxNQ-1] = 0;
 
-            rbn.multiplyByQInvBlock(sbState, useEulerAngles, &qp[qx],
+            rbn.multiplyByNInv(sbState, useEulerAngles, &qp[qx],
                                     transpose, &inp[inpx], &outp[outpx]);
         }
 }
@@ -2091,9 +2091,9 @@ void SimbodyMatterSubsystemRep::calcMobilizerReactionForces(const State& s, Vect
                 const MobilizedBody& body = getMobilizedBody(index);
                 MobilizedBodyIndex parentIndex = rbNodeLevels[i][j]->getParent()->getNodeNum();
                 const MobilizedBody& parent = getMobilizedBody(parentIndex);
-                Vec3 parentPos = parent.findStationAtAnotherBodyStation(s, body, body.getOutboardFrame(s).T());
+                Vec3 parentPos = parent.findStationAtAnotherBodyStation(s, body, body.getOutboardFrame(s).p());
                 parent.applyForceToBodyPoint(s, parentPos, -forces[index][1], otherForces);
-                Vec3 offset = parent.getBodyTransform(s).R()*(body.getMobilizerTransform(s).R()*body.getOutboardFrame(s).T());
+                Vec3 offset = parent.getBodyTransform(s).R()*(body.getMobilizerTransform(s).R()*body.getOutboardFrame(s).p());
                 otherForces[parentIndex][0] -= forces[index][0]-offset%forces[index][1];
             }
         }
@@ -2103,7 +2103,7 @@ void SimbodyMatterSubsystemRep::calcMobilizerReactionForces(const State& s, Vect
     for (MobilizedBodyIndex index(0); index < getNumBodies(); index++) {
         const MobilizedBody& body = getMobilizedBody(index);
         Vec3 localForce = ~body.getBodyTransform(s).R()*forces[index][1];
-        forces[index][0] -= body.getBodyTransform(s).R()*(body.getOutboardFrame(s).T()%localForce);
+        forces[index][0] -= body.getBodyTransform(s).R()*(body.getOutboardFrame(s).p()%localForce);
     }
 }
 

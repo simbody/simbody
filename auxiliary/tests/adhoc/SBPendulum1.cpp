@@ -179,8 +179,8 @@ try {
     MobilizedBody::Cartesian aBall2(pend.Ground(), Transform(ballPos+Vec3(0.1,10,0)),
                                     Body::Rigid(ballMProps), Transform());
 
-    Constraint::Ball ballConstraint(pend.Ground(), Transform().T(),
-                                    aPendulum, jointFrame.T());
+    Constraint::Ball ballConstraint(pend.Ground(), Transform().p(),
+                                    aPendulum, jointFrame.p());
 
     const Vec3 attachPt(1.5, 1, 0);
     Force::TwoPointLinearSpring(springs, pend.Ground(), attachPt, 
@@ -372,7 +372,7 @@ try {
         Transform  x = aPendulum.getBodyTransform(s);
         SpatialVec v = aPendulum.getBodyVelocity(s);
 
-        //Vec3 err = x.T()-Vec3(2.5,0.,0.);
+        //Vec3 err = x.p()-Vec3(2.5,0.,0.);
         //Real d = err.norm();
         //Real k = m*gravity.norm(); // stiffness, should balance at 1
         // Real c = 10.; // damping

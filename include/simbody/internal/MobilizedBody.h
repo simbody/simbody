@@ -152,7 +152,7 @@ public:
     /// expressed in the Ground frame, as the position vector p_GB (== p_OG_OB).
     /// This response is available at Position stage.
     const Vec3& getBodyOriginLocation(const State& s) const {
-        return getBodyTransform(s).T();
+        return getBodyTransform(s).p();
     }
 
     /// At stage Position or higher, return the cross-mobilizer transform X_FM,
@@ -495,7 +495,7 @@ public:
         // Angular velocity was easy, but for linear velocity we have to add in an wXr term.
         const Transform&  X_GB       = getBodyTransform(s);
         const Transform&  X_GA       = inBodyA.getBodyTransform(s);
-        const Vec3        p_AB_G     = X_GB.T() - X_GA.T(); // vector from OA to OB, exp in G ( 3 flops)
+        const Vec3        p_AB_G     = X_GB.p() - X_GA.p(); // vector from OA to OB, exp in G ( 3 flops)
         const Vec3        p_AB_G_dot = V_GB[1]  - V_GA[1];  // d/dt p taken in G              ( 3 flops)
 
         const Vec3 v_AB_G = p_AB_G_dot - V_GA[0] % p_AB_G;  // d/dt p taken in A, exp in G    (12 flops)
@@ -543,7 +543,7 @@ public:
         const SpatialVec& V_GA = inBodyA.getBodyVelocity(s);
         const SpatialVec& A_GB = this->getBodyAcceleration(s);
         const SpatialVec& A_GA = inBodyA.getBodyAcceleration(s);
-        const Vec3&       p_GA = X_GA.T();
+        const Vec3&       p_GA = X_GA.p();
         const Vec3&       w_GA = V_GA[0];
         const Vec3&       w_GB = V_GB[0];
         const Vec3&       b_GA = A_GA[0];

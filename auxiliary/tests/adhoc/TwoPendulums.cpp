@@ -65,8 +65,8 @@ public:
               Vector_<Vec3>&       particleForces,
               Vector&              mobilityForces) const
     {
-        const Vec3& pos1 = body1.getBodyTransform(state).T();
-        const Vec3& pos2 = body2.getBodyTransform(state).T();
+        const Vec3& pos1 = body1.getBodyTransform(state).p();
+        const Vec3& pos2 = body2.getBodyTransform(state).p();
         const Real d = (pos2-pos1).norm();
         const Real k = 1000, d0 = 1;
         const Vec3 f = k*(d-d0)*(pos2-pos1)/d;
@@ -211,7 +211,7 @@ int main(int argc, char** argv) {
     display.report(s);
     cout << "q=" << s.getQ() << endl;
     cout << "qErr=" << s.getQErr() << endl;
-    cout << "T_MbM=" << rightPendulum.getMobilizerTransform(s).T() << endl;
+    cout << "p_MbM=" << rightPendulum.getMobilizerTransform(s).p() << endl;
 
 	if (cid.isValid()) {
 		const Constraint& c = twoPends.getConstraint(cid);
@@ -248,7 +248,7 @@ int main(int argc, char** argv) {
 
     cout << "q=" << s.getQ() << endl;
     cout << "qErr=" << s.getQErr() << endl;
-    cout << "T_MbM=" << rightPendulum.getMobilizerTransform(s).T() << endl;
+    cout << "p_MbM=" << rightPendulum.getMobilizerTransform(s).p() << endl;
     cout << "v_MbM=" << rightPendulum.getMobilizerVelocity(s)[1] << endl;
     cout << "Unassembled configuration shown. Ready to assemble? "; cin >> c;
 
@@ -286,7 +286,7 @@ int main(int argc, char** argv) {
         display.report(s);
         cout << "q=" << s.getQ() << endl;
         cout << "qErr=" << s.getQErr() << endl;
-        cout << "T_MbM=" << rightPendulum.getMobilizerTransform(s).T() << endl;
+        cout << "p_MbM=" << rightPendulum.getMobilizerTransform(s).p() << endl;
         cout << "Assembled configuration shown. Ready to simulate? "; cin >> c;
     }
 

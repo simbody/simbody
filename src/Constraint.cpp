@@ -1441,8 +1441,8 @@ void Constraint::Weld::WeldImpl::calcDecorativeGeometryAndAppendVirtual
                                             .setTransform(defaultFrameB));
 
         // Draw connector line back to body origin.
-        if (defaultFrameB.T().norm() >= SignificantReal)
-            geom.push_back(DecorativeLine(Vec3(0), defaultFrameB.T())
+        if (defaultFrameB.p().norm() >= SignificantReal)
+            geom.push_back(DecorativeLine(Vec3(0), defaultFrameB.p())
                              .setColor(getFrameColor(0))
                              .setLineThickness(2)
                              .setBodyId(getMobilizedBodyIndexOfConstrainedBody(B)));
@@ -1454,8 +1454,8 @@ void Constraint::Weld::WeldImpl::calcDecorativeGeometryAndAppendVirtual
                                             .setBodyId(getMobilizedBodyIndexOfConstrainedBody(F))
                                             .setTransform(defaultFrameF));
 
-        if (defaultFrameF.T().norm() >= SignificantReal)
-            geom.push_back(DecorativeLine(Vec3(0), defaultFrameF.T())
+        if (defaultFrameF.p().norm() >= SignificantReal)
+            geom.push_back(DecorativeLine(Vec3(0), defaultFrameF.p())
                              .setColor(getFrameColor(1))
                              .setLineThickness(4)
                              .setBodyId(getMobilizedBodyIndexOfConstrainedBody(F)));
@@ -1992,7 +1992,7 @@ void Constraint::CoordinateCouplerImpl::applyPositionConstraintForces(const Stat
         Vector grad(body.getNumQ(s), 0.0);
         Vector forces(body.getNumU(s));
         grad[coordIndices[i]] = force;
-        node.multiplyByQBlock(digest, useEuler, &q[0], true, &grad[0], &forces[0]);
+        node.multiplyByN(digest, useEuler, &q[0], true, &grad[0], &forces[0]);
         for (MobilizerUIndex index(0); index < forces.size(); index++)
             addInOneMobilityForce(s, coordBodies[i], index, forces[index], mobilityForces);
     }
@@ -2104,7 +2104,7 @@ void Constraint::PrescribedMotionImpl::applyPositionConstraintForces(const State
     Vector grad(body.getNumQ(s), 0.0);
     Vector forces(body.getNumU(s));
     grad[coordIndex] = force;
-    node.multiplyByQBlock(digest, useEuler, &q[0], true, &grad[0], &forces[0]);
+    node.multiplyByN(digest, useEuler, &q[0], true, &grad[0], &forces[0]);
     for (MobilizerUIndex index(0); index < forces.size(); index++)
         addInOneMobilityForce(s, coordBody, index, forces[index], mobilityForces);
 }
@@ -2466,7 +2466,7 @@ SpatialVec ConstraintImpl::precalcConstrainedBodyVelocityInAncestor(const State&
     const Transform&  X_GA = matter.getBodyTransform(s, ancestorA);
     const SpatialVec& V_GB = matter.getBodyVelocity(s, bodyB,     true);
     const SpatialVec& V_GA = matter.getBodyVelocity(s, ancestorA, true);
-    const Vec3 p_AB_G     = X_GB.T() - X_GA.T();
+    const Vec3 p_AB_G     = X_GB.p() - X_GA.p();
     const Vec3 p_AB_G_dot = V_GB[1]  - V_GA[1];        // d/dt p taken in G
 
     const Vec3 w_AB_G = V_GB[0] - V_GA[0];             // relative angular velocity of B in A, exp. in G
@@ -2483,9 +2483,9 @@ SpatialVec ConstraintImpl::precalcConstrainedBodyAccelerationInAncestor(const St
     const MobilizedBodyIndex         bodyB     = myConstrainedBodies[B];
     const MobilizedBodyIndex         ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
 
-    const Vec3&       p_GB = matter.getBodyTransform(s, bodyB).T();
+    const Vec3&       p_GB = matter.getBodyTransform(s, bodyB).p();
     const Transform&  X_GA = matter.getBodyTransform(s, ancestorA);
-    const Vec3&       p_GA = X_GA.T();
+    const Vec3&       p_GA = X_GA.p();
     const SpatialVec& V_GB = matter.getBodyVelocity(s, bodyB);
     const SpatialVec& V_GA = matter.getBodyVelocity(s, ancestorA);
     const SpatialVec& A_GB = matter.getBodyAcceleration(s, bodyB,     true);

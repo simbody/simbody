@@ -1190,7 +1190,7 @@ copyVelocitiesFromState(const State& s, SimbodyMatterSubtreeResults::SubtreeResu
             const Transform&  X_GB = matter.getBodyTransform(s,mb);
             const SpatialVec& V_GB = matter.getBodyVelocity(s,mb);
 
-            const Vec3 p_AB_G     = X_GB.T() - X_GA.T();
+            const Vec3 p_AB_G     = X_GB.p() - X_GA.p();
             const Vec3 p_AB_G_dot = V_GB[1]  - V_GA[1];        // time deriv of p taken in G
 
             const Vec3 w_AB_G = V_GB[0] - V_GA[0];             // relative angular velocity
@@ -1267,7 +1267,7 @@ copyAccelerationsFromState(const State& s, SimbodyMatterSubtreeResults::SubtreeR
             const SpatialVec& V_GB = matter.getBodyVelocity(s,mb);
             const SpatialVec& A_GB = matter.getBodyAcceleration(s,mb);
 
-            const Vec3 p_AB_G        = X_GB.T() - X_GA.T();
+            const Vec3 p_AB_G        = X_GB.p() - X_GA.p();
             const Vec3 p_AB_G_dot    = V_GB[1]  - V_GA[1];     // taken in G
             const Vec3 p_AB_G_dotdot = A_GB[1]  - A_GA[1];     // taken in G
 

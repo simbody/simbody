@@ -64,7 +64,7 @@ void assertEqual(SpatialVec val1, SpatialVec val2) {
 
 template<>
 void assertEqual(Transform val1, Transform val2) {
-    assertEqual(val1.T(), val2.T());
+    assertEqual(val1.p(), val2.p());
     ASSERT(val1.R().isSameRotationToWithinAngle(val2.R(), TOL));
 }
 
@@ -101,7 +101,7 @@ public:
     }
     void setQToFitTransform(const State&, const Transform& X_FM, int nq, Real* q) const {
         ASSERT(nq == 3);
-        Vec3::updAs(q) = X_FM.T();
+        Vec3::updAs(q) = X_FM.p();
     }
     void setUToFitVelocity(const State&, const SpatialVec& V_FM, int nu, Real* u) const {
         ASSERT(nu == 3);
@@ -329,7 +329,7 @@ public:
             ASSERT(nq == 7);
             Vec4::updAs(q) = X_FM.R().convertRotationToQuaternion().asVec4();
         }
-        Vec3::updAs(&q[nq-3]) = X_FM.T();
+        Vec3::updAs(&q[nq-3]) = X_FM.p();
     }
     void setUToFitVelocity(const State& s, const SpatialVec& V_FM, int nu, Real* u) const {
         ASSERT(nu == 6);

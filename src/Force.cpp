@@ -67,8 +67,8 @@ void Force::TwoPointLinearSpringImpl::calcForce(const State& state, Vector_<Spat
     const Vec3 s1_G = X_GB1.R() * station1;
     const Vec3 s2_G = X_GB2.R() * station2;
 
-    const Vec3 p1_G = X_GB1.T() + s1_G; // station measured from ground origin
-    const Vec3 p2_G = X_GB2.T() + s2_G;
+    const Vec3 p1_G = X_GB1.p() + s1_G; // station measured from ground origin
+    const Vec3 p2_G = X_GB2.p() + s2_G;
 
     const Vec3 r_G = p2_G - p1_G; // vector from point1 to point2
     const Real d   = r_G.norm();  // distance between the points
@@ -87,8 +87,8 @@ Real Force::TwoPointLinearSpringImpl::calcPotentialEnergy(const State& state) co
     const Vec3 s1_G = X_GB1.R() * station1;
     const Vec3 s2_G = X_GB2.R() * station2;
 
-    const Vec3 p1_G = X_GB1.T() + s1_G; // station measured from ground origin
-    const Vec3 p2_G = X_GB2.T() + s2_G;
+    const Vec3 p1_G = X_GB1.p() + s1_G; // station measured from ground origin
+    const Vec3 p2_G = X_GB2.p() + s2_G;
 
     const Vec3 r_G = p2_G - p1_G; // vector from point1 to point2
     const Real d   = r_G.norm();  // distance between the points
@@ -121,8 +121,8 @@ void Force::TwoPointLinearDamperImpl::calcForce(const State& state, Vector_<Spat
     const Vec3 s1_G = X_GB1.R() * station1;
     const Vec3 s2_G = X_GB2.R() * station2;
 
-    const Vec3 p1_G = X_GB1.T() + s1_G; // station measured from ground origin
-    const Vec3 p2_G = X_GB2.T() + s2_G;
+    const Vec3 p1_G = X_GB1.p() + s1_G; // station measured from ground origin
+    const Vec3 p2_G = X_GB2.p() + s2_G;
 
     const Vec3 v1_G = matter.getMobilizedBody(body1).findStationVelocityInGround(state, station1);
     const Vec3 v2_G = matter.getMobilizedBody(body2).findStationVelocityInGround(state, station2);
@@ -163,8 +163,8 @@ void Force::TwoPointConstantForceImpl::calcForce(const State& state, Vector_<Spa
     const Vec3 s1_G = X_GB1.R() * station1;
     const Vec3 s2_G = X_GB2.R() * station2;
 
-    const Vec3 p1_G = X_GB1.T() + s1_G; // station measured from ground origin
-    const Vec3 p2_G = X_GB2.T() + s2_G;
+    const Vec3 p1_G = X_GB1.p() + s1_G; // station measured from ground origin
+    const Vec3 p2_G = X_GB2.p() + s2_G;
 
     const Vec3 r_G = p2_G - p1_G; // vector from point1 to point2
     const Real x   = r_G.norm();  // distance between the points
@@ -392,7 +392,7 @@ Real Force::UniformGravityImpl::calcPotentialEnergy(const State& state) const {
         const Vec3&      com_B   = mprops.getMassCenter();
         const Transform& X_GB    = matter.getMobilizedBody(i).getBodyTransform(state);
         const Vec3       com_B_G = X_GB.R()*com_B;
-        const Vec3       com_G   = X_GB.T() + com_B_G;
+        const Vec3       com_G   = X_GB.p() + com_B_G;
 
         pe -= m*(~g*com_G + zeroHeight); // odd signs because height is in -g direction
     }

@@ -66,7 +66,7 @@ void assertEqual(SpatialVec val1, SpatialVec val2, double tol) {
 
 template<>
 void assertEqual(Transform val1, Transform val2, double tol) {
-    assertEqual(val1.T(), val2.T(), tol);
+    assertEqual(val1.p(), val2.p(), tol);
     ASSERT(val1.R().isSameRotationToWithinAngle(val2.R(), tol));
 }
 
@@ -79,7 +79,7 @@ void compareReactionToConstraint(SpatialVec reactionForce, const Constraint& con
     
     const MobilizedBody& body = constraint.getMobilizedBodyFromConstrainedBody(ConstrainedBodyIndex(1));
     Vec3 localForce = ~body.getBodyTransform(state).R()*reactionForce[1];
-    reactionForce[0] += body.getBodyTransform(state).R()*(body.getOutboardFrame(state).T()%localForce);
+    reactionForce[0] += body.getBodyTransform(state).R()*(body.getOutboardFrame(state).p()%localForce);
     assertEqual(reactionForce, -1*constraint.getAncestorMobilizedBody().getBodyRotation(state)*constraintForce[1]);
 }
 

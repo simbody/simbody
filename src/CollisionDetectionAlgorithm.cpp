@@ -73,7 +73,7 @@ CollisionDetectionAlgorithm* CollisionDetectionAlgorithm::getAlgorithm(int typeI
 void CollisionDetectionAlgorithm::HalfSpaceSphere::processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
         int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const {
     const ContactGeometry::SphereImpl& sphere = dynamic_cast<const ContactGeometry::SphereImpl&>(object2.getImpl());
-    Vec3 location = (~transform1)*transform2.T(); // Location of the sphere in the half-space's coordinate frame
+    Vec3 location = (~transform1)*transform2.p(); // Location of the sphere in the half-space's coordinate frame
     Real r = sphere.getRadius();
     Real depth = r+location[0];
     if (depth > 0) {
@@ -90,7 +90,7 @@ void CollisionDetectionAlgorithm::SphereSphere::processObjects(int index1, const
         int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const {
     const ContactGeometry::SphereImpl& sphere1 = dynamic_cast<const ContactGeometry::SphereImpl&>(object1.getImpl());
     const ContactGeometry::SphereImpl& sphere2 = dynamic_cast<const ContactGeometry::SphereImpl&>(object2.getImpl());
-    Vec3 delta = transform2.T()-transform1.T();
+    Vec3 delta = transform2.p()-transform1.p();
     Real dist = delta.norm();
     if (dist == 0)
         return; // No sensible way to deal with this.
@@ -103,7 +103,7 @@ void CollisionDetectionAlgorithm::SphereSphere::processObjects(int index1, const
         Real curvature = r1*r2/(r1+r2);
         Real contactRadius = std::sqrt(depth*curvature);
         Vec3 normal = delta/dist;
-        Vec3 location = transform1.T()+(r1-0.5*depth)*normal;
+        Vec3 location = transform1.p()+(r1-0.5*depth)*normal;
         contacts.push_back(PointContact(index1, index2, location, normal, contactRadius, depth));
     }
 }
@@ -147,7 +147,7 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processBox(const Contac
     
     const vector<int>& triangles = node.getTriangles();
     const Row3 xdir = transform.R().row(0);
-    const Real tx = transform.T()[0];
+    const Real tx = transform.p()[0];
     for (int i = 0; i < (int) triangles.size(); i++) {
         if (xdir*mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], 0))+tx > 0)
             insideFaces.insert(triangles[i]);
@@ -174,7 +174,7 @@ void CollisionDetectionAlgorithm::SphereTriangleMesh::processObjects(int index1,
         int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const {
     const ContactGeometry::Sphere& sphere = static_cast<const ContactGeometry::Sphere&>(object1);
     const ContactGeometry::TriangleMesh& mesh = static_cast<const ContactGeometry::TriangleMesh&>(object2);
-    Vec3 center = ~transform2*transform1.T();
+    Vec3 center = ~transform2*transform1.p();
     set<int> insideFaces;
     processBox(center, sphere.getRadius()*sphere.getRadius(), mesh, mesh.getOBBTreeNode(), insideFaces);
     if (insideFaces.size() > 0)

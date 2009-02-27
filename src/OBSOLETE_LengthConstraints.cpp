@@ -772,7 +772,7 @@ LengthSet::calcGrad(const State& s) const
         for (int b=1 ; b<=2 ; b++)
             // TODO: get rid of this b-1; make tips 0-based
             J[b-1] = Row<2,Mat33>(-crossMat(l.tipPos(pc,b) -
-                                            l.tips(b).getNode().getX_GB(pc).T()),   one);
+                                            l.tips(b).getNode().getX_GB(pc).p()),   one);
         int g_indx=0;
         for (int j=0 ; j<(int)nodeMap.size() ; j++) {
             Real elem=0.0;
@@ -982,8 +982,8 @@ computeA(const SBPositionCache& cc,
 
     const Mat33 one(1);
 
-    SpatialRow t1 = ~v1 * Row<2,Mat33>(crossMat(n1->getX_GB(cc).T() - loop1.tipPos(cc,s1)), one);
-    SpatialVec t2 = Vec<2,Mat33>(crossMat(loop2.tipPos(cc,s2) - n2->getX_GB(cc).T()), one) * v2;
+    SpatialRow t1 = ~v1 * Row<2,Mat33>(crossMat(n1->getX_GB(cc).p() - loop1.tipPos(cc,s1)), one);
+    SpatialVec t2 = Vec<2,Mat33>(crossMat(loop2.tipPos(cc,s2) - n2->getX_GB(cc).p()), one) * v2;
 
     while ( n1->getLevel() > n2->getLevel() ) {
         t1 = t1 * ~n1->getPsi(dc);
@@ -1095,7 +1095,7 @@ void LengthSet::addInCorrectionForces(const State& s, const SBAccelerationCache&
         for (int t=1; t<=2; ++t) {
             const RigidBodyNode& node = loops[i].tipNode(t);
             const Vec3 force = loops[i].tipForce(ac,t);
-            const Vec3 moment = cross(loops[i].tipPos(pc,t) - node.getX_GB(pc).T(), force);
+            const Vec3 moment = cross(loops[i].tipPos(pc,t) - node.getX_GB(pc).p(), force);
             spatialForces[node.getNodeNum()] += SpatialVec(moment, force);
         }
     }
@@ -1251,8 +1251,8 @@ LengthSet::fixVel0(State& s, Vector& iVel)
 
         const RigidBodyNode& node1 = loops[m].tipNode(1);
         const RigidBodyNode& node2 = loops[m].tipNode(2);
-        const Vec3 moment1 = cross(loops[m].tipPos(pc,1)-node1.getX_GB(pc).T(), force1);
-        const Vec3 moment2 = cross(loops[m].tipPos(pc,2)-node2.getX_GB(pc).T(), force2);
+        const Vec3 moment1 = cross(loops[m].tipPos(pc,1)-node1.getX_GB(pc).p(), force1);
+        const Vec3 moment2 = cross(loops[m].tipPos(pc,2)-node2.getX_GB(pc).p(), force2);
 
         // Convert the probe impulses at the stations to spatial impulses at
         // the body origin.
@@ -1316,7 +1316,7 @@ void RBDistanceConstraint::calcStationPosInfo(int i,
         SBPositionCache& pc) const
 {
     updStation_G(pc,i) = getNode(i).getX_GB(pc).R() * getPoint(i);
-    updPos_G(pc,i)     = getNode(i).getX_GB(pc).T() + getStation_G(pc,i);
+    updPos_G(pc,i)     = getNode(i).getX_GB(pc).p() + getStation_G(pc,i);
 }
 
 void RBDistanceConstraint::calcStationVelInfo(int i, 

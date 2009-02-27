@@ -643,7 +643,7 @@ void VTKVisualizerRep::setConfiguration(MobilizedBodyIndex bodyNum, const Transf
     const std::vector<vtkProp3D*>& actors = bodies[bodyNum].aList;
     for (int i=0; i < (int)actors.size(); ++i) {
         vtkProp3D*       actor = actors[i];
-        actor->SetPosition(X_GB.T()[0], X_GB.T()[1], X_GB.T()[2]);
+        actor->SetPosition(X_GB.p()[0], X_GB.p()[1], X_GB.p()[2]);
         const Vec4 av = X_GB.R().convertRotationToAngleAxis();
         actor->SetOrientation(0,0,0);
         if (!actor->IsA("vtkFollower"))

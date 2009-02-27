@@ -1001,7 +1001,7 @@ public:
     /// or if you are currently realizing that stage set \p realizingPosition true in which case State need
     /// only have been realized to the previous (Time) stage.
     const Vec3& getBodyOriginLocation    (const State& s, ConstrainedBodyIndex B, bool realizingPosition=false) const
-       {return getBodyTransform(s,B,realizingPosition).T();}   // p_AB
+       {return getBodyTransform(s,B,realizingPosition).p();}   // p_AB
     /// Extract from the State cache the linear velocity v_AB (or more explicitly, v_A_OB) giving the linear velocity of a Constrained Body B's
     /// body frame origin OB measured and expressed in this Constraint's Ancestor frame A. The State must already be realized to the Velocity stage,
     /// or if you are currently realizing that stage set \p realizingVelocity true in which case State need
