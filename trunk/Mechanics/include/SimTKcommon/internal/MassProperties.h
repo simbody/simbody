@@ -425,7 +425,7 @@ public:
         return calcCentralInertia() + Inertia(newOriginB-comInB, mass);
     }
     Inertia calcTransformedInertia(const Transform& X_BC) const {
-        return calcShiftedInertia(X_BC.T()).reexpress(X_BC.R());
+        return calcShiftedInertia(X_BC.p()).reexpress(X_BC.R());
     }
     MassProperties calcShiftedMassProps(const Vec3& newOriginB) const {
         return MassProperties(mass, comInB-newOriginB,

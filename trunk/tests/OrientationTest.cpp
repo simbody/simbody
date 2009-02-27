@@ -178,10 +178,10 @@ try {
 
     X = Transform(R, Vec3(-1, 2, 20));
     cout << "Transform X=" << X;
-    cout << "   X.R=" << X.R() << "  X.T=" << X.T() << "  X.TInv=" << X.TInv() << endl;
+    cout << "   X.R=" << X.R() << "  X.p=" << X.p() << "  X.pInv=" << X.pInv() << endl;
     cout << "   X.x=" << X.x() << "  y=" << X.y() << "  z=" << X.z() << endl;
     cout << "Transform ~X=" << ~X;
-    cout << "   (~X).R=" << (~X).R() << "  (~X).T=" << (~X).T() << "  (~X).TInv=" << (~X).TInv() << endl;
+    cout << "   (~X).R=" << (~X).R() << "  (~X).p=" << (~X).p() << "  (~X).pInv=" << (~X).pInv() << endl;
     cout << "   (~X).x=" << (~X).x() << "  y=" << (~X).y() << "  z=" << (~X).z() << endl;    
     cout << "Transform X asMat34():" << X.asMat34();
     cout << "Transform X toMat34():" << X.toMat34();
