@@ -152,15 +152,18 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
     // Calc a: coriolis acceleration.
     // The coriolis acceleration "a" is a 
     // "remainder" term in the spatial acceleration, depending only on velocities,
-    // but involving time derivatives of the Phi and H matrices. Specifically,
-    //   a = ~PhiDot * V_GP + ~HDot * u
+    // but involving time derivatives of the Phi and H matrices. 
+    // CAUTION: our definition of H is transposed from Jain's and Schwieters'.
+    //
+    // Specifically,
+    //   a = ~PhiDot * V_GP + HDot * u
     // As correctly calculated in Schwieters' paper, Eq [16], the first term above
     // simplifies to SpatialVec( 0, w_GP % (v_GB-v_GP) ). However, Schwieters' second
     // term in [16] is correct only if H is constant in P, in which case the derivative
     // just accounts for the rotation of P in G. In general H is not constant in P,
-    // so we don't try to calculate the derivative here but assume that ~HDot*u has
+    // so we don't try to calculate the derivative here but assume that HDot*u has
     // already been calculated for us and stored in VD_PB_G. (That is,
-    // V_PB_G = ~H*u, VD_PB_G = ~HDot*u.)
+    // V_PB_G = H*u, VD_PB_G = HDot*u.)
 
     updCoriolisAcceleration(dc) =
         SpatialVec( Vec3(0), w_GP % (v_GB-v_GP) ) + getVD_PB_G(dc);
@@ -258,15 +261,6 @@ public:
     /*virtual*/void calcArticulatedBodyInertiasInward(
         const SBPositionCache& pc,
         SBDynamicsCache&       dc) const {}
-
-
-    /*virtual* void calcZ(
-        const SBPositionCache&,
-        const SBDynamicsCache&,
-        const Vector&              mobilityForces,
-        const Vector_<SpatialVec>& bodyForces,
-        SBAccelerationCache&) const {} */
-
 
     /*virtual*/void calcZ(
         const SBStateDigest&,
@@ -404,11 +398,13 @@ public:
 
     virtual ~RigidBodyNodeSpec() {}
 
-    // This is the type of the joint transition matrix H, which we're
-    // viewing as the transpose of the "more important" ~H, whose type
-    // is consequently nicer: Mat<2,dof,Vec3>.
-    typedef Mat<dof,2,Row3,1,2> HType;
-
+    // This is the type of the joint transition matrix H, but our definition
+    // of H is transposed from Jain's or Schwieters'. That is, what we're 
+    // calling H here is what Jain calls H* and Schwieters calls H^T. So
+    // our H matrix is 6 x nu, or more usefully it is 2 rows of Vec3's.
+    // The first row define how u's contribute to angular velocities; the
+    // second defines how u's contribute to linear velocities.
+    typedef Mat<2,dof,Vec3> HType;
 
     // Provide default implementations for setQToFitTransform() and setQToFitVelocity() 
     // which are implemented using the rotational and translational quantity routines. These assume
@@ -476,6 +472,7 @@ public:
     // This routine can depend on X_FM having already
     // been calculated and available in the PositionCache but must NOT depend
     // on any quantities involving Ground or other bodies.
+    // CAUTION: our definition of H is transposed from Jain and Schwieters.
     virtual void calcAcrossJointVelocityJacobian(
         const SBStateDigest& sbs,
         HType&               H_FM) const=0;
@@ -486,6 +483,7 @@ public:
     // This routine can depend on X_FM and H_FM being available already in
     // the state PositionCache, and V_FM being already in the state VelocityCache.
     // However, it must NOT depend on any quantities involving Ground or other bodies.
+    // CAUTION: our definition of H is transposed from Jain and Schwieters.
     virtual void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
         HType&               H_FM_Dot) const = 0;
@@ -506,13 +504,16 @@ public:
         X_GB = X_GP * X_PB;
     }
 
-    // Same for all mobilizers.
+    // Same for all mobilizers. The return matrix here is precisely the 
+    // one used by Jain and Schwieters, but transposed.
     void calcParentToChildVelocityJacobianInGround(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         HType& H_PB_G) const;
 
-    // Same for all mobilizers.
+    // Same for all mobilizers. This is the time derivative of 
+    // the matrix H_PB_G above, with the derivative taken in the 
+    // Ground frame.
     void calcParentToChildVelocityJacobianInGroundDot(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
@@ -537,8 +538,8 @@ public:
         const Vector&          u,
         SBVelocityCache&       vc) const 
     {
-        updV_FM(vc)  = ~getH_FM(pc) * fromU(u);
-        updV_PB_G(vc) = ~getH(pc) * fromU(u);
+        updV_FM(vc)   = getH_FM(pc) * fromU(u);
+        updV_PB_G(vc) = getH(pc)    * fromU(u);
     }
 
     // Calculate joint-specific dynamics quantities dependent on velocities.
@@ -551,7 +552,7 @@ public:
         const SBVelocityCache& vc, 
         SBDynamicsCache&       dc) const 
     {
-        updVD_PB_G(dc) = ~getHDot(dc) * fromU(u);
+        updVD_PB_G(dc) = getHDot(dc) * fromU(u);
     }
 
     // These next two routines are optional, but if you supply one you
@@ -600,7 +601,8 @@ public:
         calcAcrossJointTransform (sbs, sbs.getQ(), updX_FM(pc));
         calcBodyTransforms       (pc, updX_PB(pc), updX_GB(pc));
 
-        calcAcrossJointVelocityJacobian(sbs, updH_FM(pc));
+        // REMINDER: our H matrix definition is transposed from Jain and Schwieters.
+        calcAcrossJointVelocityJacobian          (sbs, updH_FM(pc));
         calcParentToChildVelocityJacobianInGround(mv,pc, updH(pc));
 
         calcJointIndependentKinematicsPos(pc);
@@ -624,6 +626,8 @@ public:
         const SBPositionCache& pc = sbs.getPositionCache();
         const SBVelocityCache& vc = sbs.getVelocityCache();
         SBDynamicsCache& dc = sbs.updDynamicsCache();
+
+        // REMINDER: our H matrix definition is transposed from Jain and Schwieters.
         calcAcrossJointVelocityJacobianDot          (sbs, updH_FM_Dot(dc));
         calcParentToChildVelocityJacobianInGroundDot(mv,pc,vc, dc, updHDot(dc));
 
@@ -805,8 +809,9 @@ public:
         toQ(outputQ) = fromQ(inputQ);
     }
 
-    const SpatialRow& getHRow(const SBPositionCache& pc, int i) const {
-        return getH(pc)[i];
+    // Get a column of H_PB_G, which is what Jain calls H* and Schwieters calls H^T.
+    const SpatialVec& getHCol(const SBPositionCache& pc, int j) const {
+        return getH(pc)(j);
     }
 
     // Access to body-oriented state and cache entries is the same for all nodes,
@@ -880,19 +885,19 @@ public:
         // Position
 
 
-    // TODO: should store as H_FM or else always reference Ht_FM
-    const Mat<dof,2,Row3,1,2>& getH_FM(const SBPositionCache& pc) const
-      { return ~Mat<2,dof,Vec3>::getAs(&pc.storageForHtFM(0,uIndex)); }
-    Mat<dof,2,Row3,1,2>&       updH_FM(SBPositionCache& pc) const
-      { return ~Mat<2,dof,Vec3>::updAs(&pc.storageForHtFM(0,uIndex)); }
+    // CAUTION: our H definition is transposed from Jain and Schwieters.
+    const HType& getH_FM(const SBPositionCache& pc) const
+      { return HType::getAs(&pc.storageForHtFM(0,uIndex)); }
+    HType&       updH_FM(SBPositionCache& pc) const
+      { return HType::updAs(&pc.storageForHtFM(0,uIndex)); }
 
     // "H" here should really be H_PB_G, that is, cross joint transition
     // matrix relating parent and body frames, but expressed in Ground.
-    // TODO: should store as H or else always reference Ht
-    const Mat<dof,2,Row3,1,2>& getH(const SBPositionCache& pc) const
-      { return ~Mat<2,dof,Vec3>::getAs(&pc.storageForHt(0,uIndex)); }
-    Mat<dof,2,Row3,1,2>&       updH(SBPositionCache& pc) const
-      { return ~Mat<2,dof,Vec3>::updAs(&pc.storageForHt(0,uIndex)); }
+    // CAUTION: our H definition is transposed from Jain and Schwieters.
+    const HType& getH(const SBPositionCache& pc) const
+      { return HType::getAs(&pc.storageForHt(0,uIndex)); }
+    HType&       updH(SBPositionCache& pc) const
+      { return HType::updAs(&pc.storageForHt(0,uIndex)); }
 
     // These are sines and cosines of angular qs. The rest of the slots are garbage.
     const Vec<dof>&   getSinQ (const SBPositionCache& pc) const {return fromQ (pc.sq);}
@@ -913,15 +918,17 @@ public:
 
         // Dynamics
 
-    const Mat<dof,2,Row3,1,2>& getH_FM_Dot(const SBDynamicsCache& dc) const
-      { return ~Mat<2,dof,Vec3>::getAs(&dc.storageForHtFMDot(0,uIndex)); }
-    Mat<dof,2,Row3,1,2>&       updH_FM_Dot(SBDynamicsCache& dc) const
-      { return ~Mat<2,dof,Vec3>::updAs(&dc.storageForHtFMDot(0,uIndex)); }
+    // CAUTION: our H definition is transposed from Jain and Schwieters.
+    const HType& getH_FM_Dot(const SBDynamicsCache& dc) const
+      { return HType::getAs(&dc.storageForHtFMDot(0,uIndex)); }
+    HType&       updH_FM_Dot(SBDynamicsCache& dc) const
+      { return HType::updAs(&dc.storageForHtFMDot(0,uIndex)); }
 
-    const Mat<dof,2,Row3,1,2>& getHDot(const SBDynamicsCache& dc) const
-      { return ~Mat<2,dof,Vec3>::getAs(&dc.storageForHtDot(0,uIndex)); }
-    Mat<dof,2,Row3,1,2>&       updHDot(SBDynamicsCache& dc) const
-      { return ~Mat<2,dof,Vec3>::updAs(&dc.storageForHtDot(0,uIndex)); }
+    // CAUTION: our H definition is transposed from Jain and Schwieters.
+    const HType& getHDot(const SBDynamicsCache& dc) const
+      { return HType::getAs(&dc.storageForHtDot(0,uIndex)); }
+    HType&       updHDot(SBDynamicsCache& dc) const
+      { return HType::updAs(&dc.storageForHtDot(0,uIndex)); }
 
     const Mat<dof,dof>& getD(const SBDynamicsCache& dc) const {return fromUSq(dc.storageForD);}
     Mat<dof,dof>&       updD(SBDynamicsCache&       dc) const {return toUSq  (dc.storageForD);}
@@ -1102,9 +1109,9 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM) const
     {
-        H_FM[0] = SpatialRow( Row3(0), Row3(1,0,0) );
-        H_FM[1] = SpatialRow( Row3(0), Row3(0,1,0) );
-        H_FM[2] = SpatialRow( Row3(0), Row3(0,0,1) );
+        H_FM(0) = SpatialVec( Vec3(0), Vec3(1,0,0) );
+        H_FM(1) = SpatialVec( Vec3(0), Vec3(0,1,0) );
+        H_FM(2) = SpatialVec( Vec3(0), Vec3(0,0,1) );
     }
 
     // Since the Jacobian above is constant in F, its time derivative is zero.
@@ -1112,9 +1119,9 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM_Dot) const
     {
-        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
-        H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
-        H_FM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
+        H_FM_Dot(1) = SpatialVec( Vec3(0), Vec3(0) );
+        H_FM_Dot(2) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
 };
@@ -1197,7 +1204,7 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM) const
     {
-        H_FM[0] = SpatialRow( Row3(0), Row3(1,0,0) );
+        H_FM(0) = SpatialVec( Vec3(0), Vec3(1,0,0) );
     }
 
     // Since the Jacobian above is constant in F, its time derivative is zero.
@@ -1205,7 +1212,7 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM_Dot) const
     {
-        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
 };
@@ -1306,7 +1313,7 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM) const
     {
-        H_FM[0] = SpatialRow( Row3(0,0,1), Row3(0) );
+        H_FM(0) = SpatialVec( Vec3(0,0,1), Vec3(0) );
     }
 
     // Since the Jacobian above is constant in F, its time derivative in F is zero.
@@ -1314,7 +1321,7 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM_Dot) const
     {
-        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
 };
@@ -1420,7 +1427,7 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM) const
     {
-        H_FM[0] = SpatialRow( Row3(0,0,1), Row3(0,0,pitch) );
+        H_FM(0) = SpatialVec( Vec3(0,0,1), Vec3(0,0,pitch) );
     }
 
     // Since the Jacobian above is constant in F, its time derivative in F is zero.
@@ -1428,7 +1435,7 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM_Dot) const
     {
-        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
 };
@@ -1532,8 +1539,8 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM) const
     {
-        H_FM[0] = SpatialRow( Row3(0,0,1), Row3(0)     );
-        H_FM[1] = SpatialRow( Row3(0),     Row3(0,0,1) );
+        H_FM(0) = SpatialVec( Vec3(0,0,1), Vec3(0)     );
+        H_FM(1) = SpatialVec( Vec3(0),     Vec3(0,0,1) );
     }
 
     // Since the Jacobian above is constant in F, its time derivative in F is zero.
@@ -1541,8 +1548,8 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM_Dot) const
     {
-        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
-        H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
+        H_FM_Dot(1) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
 };
@@ -1690,8 +1697,8 @@ public:
         const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
 
         const Vec3&     p_FM = getX_FM(pc).p();
-        H_FM[0] = SpatialRow( Row3(0,0,1), ~(Vec3(0,0,1) % p_FM)   );
-        H_FM[1] = SpatialRow( Row3(0),              ~Mx_F          );
+        H_FM(0) = SpatialVec( Vec3(0,0,1), Vec3(0,0,1) % p_FM   );
+        H_FM(1) = SpatialVec( Vec3(0),            Mx_F          );
     }
 
     // Since the the Jacobian above is not constant in F,
@@ -1711,8 +1718,8 @@ public:
         const Vec3&     w_FM = getV_FM(vc)[0]; // angular velocity of M in F
         const Vec3&     v_FM = getV_FM(vc)[1]; // linear velocity of OM in F
 
-        H_FM_Dot[0] = SpatialRow( Row3(0), ~(Vec3(0,0,1) % v_FM) );
-        H_FM_Dot[1] = SpatialRow( Row3(0), ~(w_FM % Mx_F) );
+        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0,0,1) % v_FM );
+        H_FM_Dot(1) = SpatialVec( Vec3(0),    w_FM % Mx_F );
     }
 
 };
@@ -1834,8 +1841,8 @@ public:
         const SBPositionCache& pc = sbs.updPositionCache();
         const Rotation& R_FM = getX_FM(pc).R();
 
-        H_FM[0] = SpatialRow(  Row3(1,0,0) , Row3(0) );
-        H_FM[1] = SpatialRow( ~(R_FM.y()) , Row3(0) );
+        H_FM(0) = SpatialVec(  Vec3(1,0,0) , Vec3(0) );
+        H_FM(1) = SpatialVec(    R_FM.y()  , Vec3(0) );
     }
 
     // Since the second row of the Jacobian H_FM above is not constant in F,
@@ -1852,8 +1859,8 @@ public:
         const Rotation& R_FM = getX_FM(pc).R();
         const Vec3&     w_FM = getV_FM(vc)[0]; // angular velocity of M in F
 
-        H_FM_Dot[0] = SpatialRow(        Row3(0)      , Row3(0) );
-        H_FM_Dot[1] = SpatialRow( ~(w_FM % R_FM.y()), Row3(0) );
+        H_FM_Dot(0) = SpatialVec(     Vec3(0)     , Vec3(0) );
+        H_FM_Dot(1) = SpatialVec( w_FM % R_FM.y() , Vec3(0) );
     }
 
 };
@@ -1954,9 +1961,9 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM) const
     {
-        H_FM[0] = SpatialRow( Row3(0,0,1),   Row3(0) );
-        H_FM[1] = SpatialRow(   Row3(0),   Row3(1,0,0) );
-        H_FM[2] = SpatialRow(   Row3(0),   Row3(0,1,0) );
+        H_FM(0) = SpatialVec( Vec3(0,0,1),   Vec3(0) );
+        H_FM(1) = SpatialVec(   Vec3(0),   Vec3(1,0,0) );
+        H_FM(2) = SpatialVec(   Vec3(0),   Vec3(0,1,0) );
     }
 
     // Since the Jacobian above is constant in F, its time derivative is zero.
@@ -1964,9 +1971,9 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM_Dot) const
     {
-        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
-        H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
-        H_FM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
+        H_FM_Dot(1) = SpatialVec( Vec3(0), Vec3(0) );
+        H_FM_Dot(2) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
 };
@@ -2067,18 +2074,18 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM) const
     {
-        H_FM[0] = SpatialRow( Row3(1,0,0), Row3(0) );
-        H_FM[1] = SpatialRow( Row3(0,1,0), Row3(0) );
-        H_FM[2] = SpatialRow( Row3(0,0,1), Row3(0) );
+        H_FM(0) = SpatialVec( Vec3(1,0,0), Vec3(0) );
+        H_FM(1) = SpatialVec( Vec3(0,1,0), Vec3(0) );
+        H_FM(2) = SpatialVec( Vec3(0,0,1), Vec3(0) );
     }
 
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
         HType&               H_FM_Dot) const
     {
-        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
-        H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
-        H_FM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
+        H_FM_Dot(1) = SpatialVec( Vec3(0), Vec3(0) );
+        H_FM_Dot(2) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
     void calcQDot(
@@ -2108,27 +2115,27 @@ public:
                                          ~R_FM*w_FM); // need w in *body*, not parent
     }
 
-    // Compute out_q = Q * in_u
-    //   or    out_u = in_q * Q
+    // Compute out_q = N * in_u
+    //   or    out_u = in_q * N
     void multiplyByN(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                           bool matrixOnRight, const Real* in, Real* out) const
     {
         assert(sbs.getStage() >= Stage::Model);
         assert(q && in && out);
 
-        // TODO: it's annoying that this Q block is only available in the Body (M) frame,
+        // TODO: it's annoying that this N block is only available in the Body (M) frame,
         // because this mobilizer uses angular velocity in the Parent (F) frame
         // as generalized speeds. So we have to do an expensive conversion here. It
         // would be just as easy to compute this matrix in the Parent frame in 
         // the first place.
         const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
-        const Mat33    Q = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
-        if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * Q;
-        else               Vec3::updAs(out) = Q * Vec3::getAs(in);
+        const Mat33    N = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
+        if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * N;
+        else               Vec3::updAs(out) = N * Vec3::getAs(in);
     }
 
-    // Compute out_u = inv(Q) * in_q
-    //   or    out_q = in_u * inv(Q)
+    // Compute out_u = inv(N) * in_q
+    //   or    out_q = in_u * inv(N)
     void multiplyByNInv(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                              bool matrixOnRight, const Real* in, Real* out) const
     {
@@ -2137,9 +2144,9 @@ public:
 
         // TODO: see above regarding the need for this R_FM kludge
         const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
-        const Mat33    QInv(R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q)));
-        if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * QInv;
-        else               Vec3::updAs(out) = QInv * Vec3::getAs(in);
+        const Mat33    NInv(R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q)));
+        if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * NInv;
+        else               Vec3::updAs(out) = NInv * Vec3::getAs(in);
     }
  
     void calcQDotDot(
@@ -2310,18 +2317,18 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM) const
     {
-        H_FM[0] = SpatialRow( Row3(1,0,0), Row3(0) );
-        H_FM[1] = SpatialRow( Row3(0,1,0), Row3(0) );
-        H_FM[2] = SpatialRow( Row3(0,0,1), Row3(0) );
+        H_FM(0) = SpatialVec( Vec3(1,0,0), Vec3(0) );
+        H_FM(1) = SpatialVec( Vec3(0,1,0), Vec3(0) );
+        H_FM(2) = SpatialVec( Vec3(0,0,1), Vec3(0) );
     }
 
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
         HType&               H_FM_Dot) const
     {
-        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
-        H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
-        H_FM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
+        H_FM_Dot(1) = SpatialVec( Vec3(0), Vec3(0) );
+        H_FM_Dot(2) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
     void calcQDot(
@@ -2369,25 +2376,25 @@ public:
         assert(q && in && out);
 
         if (useEulerAnglesIfPossible) {
-            // TODO: it's annoying that this Q block is only available in the Body (M) frame,
+            // TODO: it's annoying that this N block is only available in the Body (M) frame,
             // because this mobilizer uses angular velocity in the Parent (F) frame
             // as generalized speeds. So we have to do an expensive conversion here. It
             // would be just as easy to compute this matrix in the Parent frame in 
             // the first place.
             const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
-            const Mat33    Q = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
-            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * Q;
-            else               Vec3::updAs(out) = Q * Vec3::getAs(in);
+            const Mat33    N = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
+            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * N;
+            else               Vec3::updAs(out) = N * Vec3::getAs(in);
         } else {
             // Quaternion
-            const Mat43 Q = Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q));
-            if (matrixOnRight) Row3::updAs(out) = Row4::getAs(in) * Q;
-            else               Vec4::updAs(out) = Q * Vec3::getAs(in);
+            const Mat43 N = Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q));
+            if (matrixOnRight) Row3::updAs(out) = Row4::getAs(in) * N;
+            else               Vec4::updAs(out) = N * Vec3::getAs(in);
         }
     }
 
-    // Compute out_u = inv(Q) * in_q
-    //   or    out_q = in_u * inv(Q)
+    // Compute out_u = inv(N) * in_q
+    //   or    out_q = in_u * inv(N)
     void multiplyByNInv(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                              bool matrixOnRight, const Real* in, Real* out) const
     {
@@ -2397,15 +2404,15 @@ public:
         if (useEulerAnglesIfPossible) {
             // TODO: see above regarding the need for this R_FM kludge
             const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
-            const Mat33    QInv(R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q)));
-            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * QInv;
-            else               Vec3::updAs(out) = QInv * Vec3::getAs(in);
+            const Mat33    NInv(R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q)));
+            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * NInv;
+            else               Vec3::updAs(out) = NInv * Vec3::getAs(in);
         } else {
             
             // Quaternion
-            const Mat34 QInv = Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q));
-            if (matrixOnRight) Row4::updAs(out) = Row3::getAs(in) * QInv;
-            else               Vec3::updAs(out) = QInv * Vec4::getAs(in);
+            const Mat34 NInv = Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q));
+            if (matrixOnRight) Row4::updAs(out) = Row3::getAs(in) * NInv;
+            else               Vec3::updAs(out) = NInv * Vec4::getAs(in);
         }
     }
  
@@ -2751,9 +2758,9 @@ public:
         const SBPositionCache& pc = sbs.updPositionCache();
 		const Vec3& n = getX_FM(pc).z();
 
-		H_FM[0] = SpatialRow( Row3(1,0,0), Row3(      0,      -n[2]*semi[1], n[1]*semi[2]) );
-		H_FM[1] = SpatialRow( Row3(0,1,0), Row3( n[2]*semi[0],       0,     -n[0]*semi[2]) );
-		H_FM[2] = SpatialRow( Row3(0,0,1), Row3(-n[1]*semi[0], n[0]*semi[1],       0     ) );
+		H_FM(0) = SpatialVec( Vec3(1,0,0), Vec3(      0,      -n[2]*semi[1], n[1]*semi[2]) );
+		H_FM(1) = SpatialVec( Vec3(0,1,0), Vec3( n[2]*semi[0],       0,     -n[0]*semi[2]) );
+		H_FM(2) = SpatialVec( Vec3(0,0,1), Vec3(-n[1]*semi[0], n[0]*semi[1],       0     ) );
     }
 
     void calcAcrossJointVelocityJacobianDot(
@@ -2767,9 +2774,9 @@ public:
 
 		const Vec3 ndot = w_FM % n; // time derivative of n in F
 
-		H_FM_Dot[0] = SpatialRow( Row3(0), Row3(      0,         -ndot[2]*semi[1], ndot[1]*semi[2]) );
-		H_FM_Dot[1] = SpatialRow( Row3(0), Row3( ndot[2]*semi[0],       0,        -ndot[0]*semi[2]) );
-		H_FM_Dot[2] = SpatialRow( Row3(0), Row3(-ndot[1]*semi[0], ndot[0]*semi[1],       0        ) );
+		H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(      0,         -ndot[2]*semi[1], ndot[1]*semi[2]) );
+		H_FM_Dot(1) = SpatialVec( Vec3(0), Vec3( ndot[2]*semi[0],       0,        -ndot[0]*semi[2]) );
+		H_FM_Dot(2) = SpatialVec( Vec3(0), Vec3(-ndot[1]*semi[0], ndot[0]*semi[1],       0        ) );
     }
 
     // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
@@ -2781,25 +2788,25 @@ public:
         assert(q && in && out);
 
         if (useEulerAnglesIfPossible) {
-            // TODO: it's annoying that this Q block is only available in the Body (M) frame,
+            // TODO: it's annoying that this N block is only available in the Body (M) frame,
             // because this mobilizer uses angular velocity in the Parent (F) frame
             // as generalized speeds. So we have to do an expensive conversion here. It
             // would be just as easy to compute this matrix in the Parent frame in 
             // the first place.
             const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
-            const Mat33    Q = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
-            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * Q;
-            else               Vec3::updAs(out) = Q * Vec3::getAs(in);
+            const Mat33    N = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
+            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * N;
+            else               Vec3::updAs(out) = N * Vec3::getAs(in);
         } else {
             // Quaternion
-            const Mat43 Q = Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q));
-            if (matrixOnRight) Row3::updAs(out) = Row4::getAs(in) * Q;
-            else               Vec4::updAs(out) = Q * Vec3::getAs(in);
+            const Mat43 N = Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q));
+            if (matrixOnRight) Row3::updAs(out) = Row4::getAs(in) * N;
+            else               Vec4::updAs(out) = N * Vec3::getAs(in);
         }
     }
 
-    // Compute out_u = inv(Q) * in_q
-    //   or    out_q = in_u * inv(Q)
+    // Compute out_u = inv(N) * in_q
+    //   or    out_q = in_u * inv(N)
     void multiplyByNInv(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                              bool matrixOnRight, const Real* in, Real* out) const
     {
@@ -2809,15 +2816,15 @@ public:
         if (useEulerAnglesIfPossible) {
             // TODO: see above regarding the need for this R_FM kludge
             const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
-            const Mat33    QInv(R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q)));
-            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * QInv;
-            else               Vec3::updAs(out) = QInv * Vec3::getAs(in);
+            const Mat33    NInv(R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q)));
+            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * NInv;
+            else               Vec3::updAs(out) = NInv * Vec3::getAs(in);
         } else {
             
             // Quaternion
-            const Mat34 QInv = Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q));
-            if (matrixOnRight) Row4::updAs(out) = Row3::getAs(in) * QInv;
-            else               Vec3::updAs(out) = QInv * Vec4::getAs(in);
+            const Mat34 NInv = Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q));
+            if (matrixOnRight) Row4::updAs(out) = Row3::getAs(in) * NInv;
+            else               Vec3::updAs(out) = NInv * Vec4::getAs(in);
         }
     }
 
@@ -3055,13 +3062,13 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM) const
     {
-        H_FM[0] = SpatialRow( Row3(1,0,0),   Row3(0)   );  // rotations
-        H_FM[1] = SpatialRow( Row3(0,1,0),   Row3(0)   );
-        H_FM[2] = SpatialRow( Row3(0,0,1),   Row3(0)   );
+        H_FM(0) = SpatialVec( Vec3(1,0,0),   Vec3(0)   );  // rotations
+        H_FM(1) = SpatialVec( Vec3(0,1,0),   Vec3(0)   );
+        H_FM(2) = SpatialVec( Vec3(0,0,1),   Vec3(0)   );
 
-        H_FM[3] = SpatialRow(   Row3(0),   Row3(1,0,0) );  // translations
-        H_FM[4] = SpatialRow(   Row3(0),   Row3(0,1,0) );
-        H_FM[5] = SpatialRow(   Row3(0),   Row3(0,0,1) );
+        H_FM(3) = SpatialVec(   Vec3(0),   Vec3(1,0,0) );  // translations
+        H_FM(4) = SpatialVec(   Vec3(0),   Vec3(0,1,0) );
+        H_FM(5) = SpatialVec(   Vec3(0),   Vec3(0,0,1) );
     }
 
     // Since the Jacobian above is constant in F, its derivative in F is 0.
@@ -3069,13 +3076,13 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM_Dot) const
     {
-        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
-        H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
-        H_FM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
+        H_FM_Dot(1) = SpatialVec( Vec3(0), Vec3(0) );
+        H_FM_Dot(2) = SpatialVec( Vec3(0), Vec3(0) );
 
-        H_FM_Dot[3] = SpatialRow( Row3(0), Row3(0) );
-        H_FM_Dot[4] = SpatialRow( Row3(0), Row3(0) );
-        H_FM_Dot[5] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot(3) = SpatialVec( Vec3(0), Vec3(0) );
+        H_FM_Dot(4) = SpatialVec( Vec3(0), Vec3(0) );
+        H_FM_Dot(5) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
     // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
@@ -3093,26 +3100,26 @@ public:
             // would be just as easy to compute this matrix in the Parent frame in 
             // the first place.
             const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
-            const Mat33    Q = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
-            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * Q;
-            else               Vec3::updAs(out) = Q * Vec3::getAs(in);
+            const Mat33    N = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
+            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * N;
+            else               Vec3::updAs(out) = N * Vec3::getAs(in);
             // translational part of Q block is identity
             Vec3::updAs(out+3) = Vec3::getAs(in+3);
         } else {
             // Quaternion
-            const Mat43 Q = Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q));
+            const Mat43 N = Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q));
             if (matrixOnRight) {
-                Row3::updAs(out)   = Row4::getAs(in) * Q;
-                Row3::updAs(out+3) = Row3::getAs(in+4); // translational part of Q block is identity
+                Row3::updAs(out)   = Row4::getAs(in) * N;
+                Row3::updAs(out+3) = Row3::getAs(in+4); // translational part of N block is identity
             } else { // matrix on left
-                Vec4::updAs(out) = Q * Vec3::getAs(in);
-                Vec3::updAs(out+4) = Vec3::getAs(in+3); // translational part of Q block is identity
+                Vec4::updAs(out) = N * Vec3::getAs(in);
+                Vec3::updAs(out+4) = Vec3::getAs(in+3); // translational part of N block is identity
             }
         }
     }
 
-    // Compute out_u = inv(Q) * in_q
-    //   or    out_q = in_u * inv(Q)
+    // Compute out_u = inv(N) * in_q
+    //   or    out_q = in_u * inv(N)
     void multiplyByNInv(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                              bool matrixOnRight, const Real* in, Real* out) const
     {
@@ -3122,20 +3129,20 @@ public:
         if (useEulerAnglesIfPossible) {
             // TODO: see above regarding the need for this R_FM kludge
             const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
-            const Mat33    QInv(R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q)));
-            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * QInv;
-            else               Vec3::updAs(out) = QInv * Vec3::getAs(in);
-            // translational part of QInv block is identity
+            const Mat33    NInv(R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q)));
+            if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * NInv;
+            else               Vec3::updAs(out) = NInv * Vec3::getAs(in);
+            // translational part of NInv block is identity
             Vec3::updAs(out+3) = Vec3::getAs(in+3);
         } else {           
             // Quaternion
-            const Mat34 QInv = Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q));
+            const Mat34 NInv = Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q));
             if (matrixOnRight) {
-                Row4::updAs(out) = Row3::getAs(in) * QInv;
-                Row3::updAs(out+4) = Row3::getAs(in+3); // translational part of QInv block is identity
+                Row4::updAs(out) = Row3::getAs(in) * NInv;
+                Row3::updAs(out+4) = Row3::getAs(in+3); // translational part of NInv block is identity
             } else { // matrix on left
-                Vec3::updAs(out) = QInv * Vec4::getAs(in);
-                Vec3::updAs(out+3) = Vec3::getAs(in+4); // translational part of QInv block is identity
+                Vec3::updAs(out) = NInv * Vec4::getAs(in);
+                Vec3::updAs(out+3) = Vec3::getAs(in+4); // translational part of NInv block is identity
             }
         }
     }
@@ -3416,8 +3423,8 @@ public:
         const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
         const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
 
-        H_FM[0] = SpatialRow( ~Mx_F, Row3(0) );
-        H_FM[1] = SpatialRow( ~My_F, Row3(0) );
+        H_FM(0) = SpatialVec( Mx_F, Vec3(0) );
+        H_FM(1) = SpatialVec( My_F, Vec3(0) );
     }
 
     // Since the Jacobian above is not constant in F,
@@ -3437,8 +3444,8 @@ public:
 
         const Vec3&     w_FM = getV_FM(vc)[0]; // angular velocity of M in F
 
-        H_FM_Dot[0] = SpatialRow( ~(w_FM % Mx_F), Row3(0) );
-        H_FM_Dot[1] = SpatialRow( ~(w_FM % My_F), Row3(0) );
+        H_FM_Dot(0) = SpatialVec( w_FM % Mx_F, Vec3(0) );
+        H_FM_Dot(1) = SpatialVec( w_FM % My_F, Vec3(0) );
     }
 
     // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
@@ -3450,23 +3457,23 @@ public:
         assert(q && in && out);
 
         if (useEulerAnglesIfPossible) {
-            const Mat32    Q = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
+            const Mat32    N = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
                                     .getSubMat<3,2>(0,0); // drop 3rd column
-            if (matrixOnRight) Row2::updAs(out) = Row3::getAs(in) * Q;
-            else               Vec3::updAs(out) = Q * Vec2::getAs(in);
+            if (matrixOnRight) Row2::updAs(out) = Row3::getAs(in) * N;
+            else               Vec3::updAs(out) = N * Vec2::getAs(in);
         } else {
-            // Quaternion: Q block is only available expecting angular velocity in the
+            // Quaternion: N block is only available expecting angular velocity in the
             // parent frame F, but we have it in M for this joint.
             const Rotation R_FM(Quaternion(Vec4::getAs(q)));
-            const Mat42 Q = (Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q))*R_FM)
+            const Mat42 N = (Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q))*R_FM)
                                 .getSubMat<4,2>(0,0); // drop 3rd column
-            if (matrixOnRight) Row2::updAs(out) = Row4::getAs(in) * Q;
-            else               Vec4::updAs(out) = Q * Vec2::getAs(in);
+            if (matrixOnRight) Row2::updAs(out) = Row4::getAs(in) * N;
+            else               Vec4::updAs(out) = N * Vec2::getAs(in);
         }
     }
 
-    // Compute out_u = inv(Q) * in_q
-    //   or    out_q = in_u * inv(Q)
+    // Compute out_u = inv(N) * in_q
+    //   or    out_q = in_u * inv(N)
     void multiplyByNInv(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                              bool matrixOnRight, const Real* in, Real* out) const
     {
@@ -3474,18 +3481,18 @@ public:
         assert(in && out);
 
         if (useEulerAnglesIfPossible) {
-            const Mat23    QInv = Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
+            const Mat23    NInv = Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
                                         .getSubMat<2,3>(0,0); // drop 3rd row
-            if (matrixOnRight) Row3::updAs(out) = Row2::getAs(in) * QInv;
-            else               Vec2::updAs(out) = QInv * Vec3::getAs(in);
+            if (matrixOnRight) Row3::updAs(out) = Row2::getAs(in) * NInv;
+            else               Vec2::updAs(out) = NInv * Vec3::getAs(in);
         } else {
             // Quaternion: QInv block is only available expecting angular velocity in the
             // parent frame F, but we have it in M for this joint.
             const Rotation R_FM(Quaternion(Vec4::getAs(q)));
-            const Mat24 QInv = (~R_FM*Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q)))
+            const Mat24 NInv = (~R_FM*Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q)))
                                     .getSubMat<2,4>(0,0);   // drop 3rd row
-            if (matrixOnRight) Row4::updAs(out) = Row2::getAs(in) * QInv;
-            else               Vec2::updAs(out) = QInv * Vec4::getAs(in);
+            if (matrixOnRight) Row4::updAs(out) = Row2::getAs(in) * NInv;
+            else               Vec2::updAs(out) = NInv * Vec4::getAs(in);
         }
     }
 
@@ -3754,12 +3761,12 @@ public:
         const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
         const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
 
-        H_FM[0] = SpatialRow( ~Mx_F, Row3(0) );        // x,y angular velocity in M, re-expressed im F
-        H_FM[1] = SpatialRow( ~My_F, Row3(0) );
+        H_FM(0) = SpatialVec( Mx_F, Vec3(0) );        // x,y angular velocity in M, re-expressed im F
+        H_FM(1) = SpatialVec( My_F, Vec3(0) );
 
-        H_FM[2] = SpatialRow( Row3(0), Row3(1,0,0) );   // translations in F
-        H_FM[3] = SpatialRow( Row3(0), Row3(0,1,0) );
-        H_FM[4] = SpatialRow( Row3(0), Row3(0,0,1) );
+        H_FM(2) = SpatialVec( Vec3(0), Vec3(1,0,0) );   // translations in F
+        H_FM(3) = SpatialVec( Vec3(0), Vec3(0,1,0) );
+        H_FM(4) = SpatialVec( Vec3(0), Vec3(0,0,1) );
     }
 
     // Since the first two rows of the Jacobian above are not constant in F,
@@ -3779,13 +3786,13 @@ public:
 
         const Vec3&     w_FM = getV_FM(vc)[0]; // angular velocity of M in F
 
-        H_FM_Dot[0] = SpatialRow( ~(w_FM % Mx_F), Row3(0) );
-        H_FM_Dot[1] = SpatialRow( ~(w_FM % My_F), Row3(0) );
+        H_FM_Dot(0) = SpatialVec( w_FM % Mx_F, Vec3(0) );
+        H_FM_Dot(1) = SpatialVec( w_FM % My_F, Vec3(0) );
 
         // For translation in F.
-        H_FM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
-        H_FM_Dot[3] = SpatialRow( Row3(0), Row3(0) );
-        H_FM_Dot[4] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot(2) = SpatialVec( Vec3(0), Vec3(0) );
+        H_FM_Dot(3) = SpatialVec( Vec3(0), Vec3(0) );
+        H_FM_Dot(4) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
     // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
@@ -3797,34 +3804,34 @@ public:
         assert(q && in && out);
 
         if (useEulerAnglesIfPossible) {
-            const Mat32    Q = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
+            const Mat32    N = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
                                     .getSubMat<3,2>(0,0); // drop 3rd column
             if (matrixOnRight) {
-                Row2::updAs(out)   = Row3::getAs(in) * Q;
-                Row3::updAs(out+2) = Row3::getAs(in+3);// translational part of Q block is identity
+                Row2::updAs(out)   = Row3::getAs(in) * N;
+                Row3::updAs(out+2) = Row3::getAs(in+3);// translational part of N block is identity
             } else {
-                Vec3::updAs(out)   = Q * Vec2::getAs(in);        
-                Vec3::updAs(out+3) = Vec3::getAs(in+2);// translational part of Q block is identity
+                Vec3::updAs(out)   = N * Vec2::getAs(in);        
+                Vec3::updAs(out+3) = Vec3::getAs(in+2);// translational part of N block is identity
             }
 
         } else {
-            // Quaternion: Q block is only available expecting angular velocity in the
+            // Quaternion: N block is only available expecting angular velocity in the
             // parent frame F, but we have it in M for this joint.
             const Rotation R_FM(Quaternion(Vec4::getAs(q)));
-            const Mat42 Q = (Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q))*R_FM)
+            const Mat42 N = (Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q))*R_FM)
                                 .getSubMat<4,2>(0,0); // drop 3rd column
             if (matrixOnRight) {
-                Row2::updAs(out)   = Row4::getAs(in) * Q;
-                Row3::updAs(out+2) = Row3::getAs(in+4); // translational part of Q block is identity
+                Row2::updAs(out)   = Row4::getAs(in) * N;
+                Row3::updAs(out+2) = Row3::getAs(in+4); // translational part of N block is identity
             } else { // matrix on left
-                Vec4::updAs(out)   = Q * Vec2::getAs(in);
-                Vec3::updAs(out+4) = Vec3::getAs(in+2); // translational part of Q block is identity
+                Vec4::updAs(out)   = N * Vec2::getAs(in);
+                Vec3::updAs(out+4) = Vec3::getAs(in+2); // translational part of N block is identity
             }
         }
     }
 
-    // Compute out_u = inv(Q) * in_q
-    //   or    out_q = in_u * inv(Q)
+    // Compute out_u = inv(N) * in_q
+    //   or    out_q = in_u * inv(N)
     void multiplyByNInv(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
                              bool matrixOnRight, const Real* in, Real* out) const
     {
@@ -3832,27 +3839,27 @@ public:
         assert(in && out);
 
         if (useEulerAnglesIfPossible) {
-            const Mat23    QInv = Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
+            const Mat23    NInv = Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
                                     .getSubMat<2,3>(0,0);   // drop 3rd row
             if (matrixOnRight) {
-                Row3::updAs(out)   = Row2::getAs(in) * QInv;
-                Row3::updAs(out+3) = Row3::getAs(in+2); // translational part of QInv block is identity
+                Row3::updAs(out)   = Row2::getAs(in) * NInv;
+                Row3::updAs(out+3) = Row3::getAs(in+2); // translational part of NInv block is identity
             } else {
-                Vec2::updAs(out)   = QInv * Vec3::getAs(in);
-                Vec3::updAs(out+2) = Vec3::getAs(in+3); // translational part of QInv block is identity
+                Vec2::updAs(out)   = NInv * Vec3::getAs(in);
+                Vec3::updAs(out+2) = Vec3::getAs(in+3); // translational part of NInv block is identity
             }
         } else {           
             // Quaternion: QInv block is only available expecting angular velocity in the
             // parent frame F, but we have it in M for this joint.
             const Rotation R_FM(Quaternion(Vec4::getAs(q)));
-            const Mat24 QInv = (~R_FM*Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q)))
+            const Mat24 NInv = (~R_FM*Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q)))
                                     .getSubMat<2,4>(0,0);   // drop 3rd row
             if (matrixOnRight) {
-                Row4::updAs(out)   = Row2::getAs(in) * QInv;
-                Row3::updAs(out+4) = Row3::getAs(in+2); // translational part of QInv block is identity
+                Row4::updAs(out)   = Row2::getAs(in) * NInv;
+                Row3::updAs(out+4) = Row3::getAs(in+2); // translational part of NInv block is identity
             } else { // matrix on left
-                Vec2::updAs(out)   = QInv * Vec4::getAs(in);
-                Vec3::updAs(out+2) = Vec3::getAs(in+4); // translational part of QInv block is identity
+                Vec2::updAs(out)   = NInv * Vec4::getAs(in);
+                Vec3::updAs(out+2) = Vec3::getAs(in+4); // translational part of NInv block is identity
             }
         }
     }
@@ -4141,6 +4148,7 @@ public:
 
 template <int nu>
 class RBNodeCustom : public RigidBodyNodeSpec<nu> {
+    typedef typename RigidBodyNodeSpec<nu>::HType HType;
 public:
     RBNodeCustom(const MobilizedBody::Custom::Implementation& impl, const MassProperties& mProps_B,
             const Transform& X_PF, const Transform& X_BM,UIndex& nextUSlot, USquaredIndex& nextUSqSlot, QIndex& nextQSlot) : 
@@ -4399,21 +4407,21 @@ public:
     
     void calcAcrossJointVelocityJacobian(
         const SBStateDigest& sbs,
-        Mat<nu,2,Row3,1,2>&  H_FM) const {
+        HType&  H_FM) const {
         for (int i = 0; i < nu; ++i) {
             Vec<nu> u(0);
             u[i] = 1;
-            H_FM.row(i) = ~impl.multiplyByHMatrix(sbs.getState(), nu, &u[0]);
+            H_FM(i) = impl.multiplyByHMatrix(sbs.getState(), nu, &u[0]);
         }
     }
 
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        Mat<nu,2,Row3,1,2>&  H_FM_Dot) const {
+        HType&  H_FM_Dot) const {
         for (int i = 0; i < nu; ++i) {
             Vec<nu> u(0);
             u[i] = 1;
-            H_FM_Dot.row(i) = ~impl.multiplyByHDotMatrix(sbs.getState(), nu, &u[0]);
+            H_FM_Dot(i) = impl.multiplyByHDotMatrix(sbs.getState(), nu, &u[0]);
         }
     }
 
@@ -4428,6 +4436,7 @@ private:
 
 
 // Same for all mobilizers.
+// CAUTION: our H matrix definition is transposed from Jain and Schwieters.
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
     const SBModelVars&     mv,
@@ -4441,10 +4450,9 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
     const Rotation& R_FM   = getX_FM(pc).R(); // just calculated
     const Vec3      r_MB_F = R_FM*r_MB;
 
-    // Reminder: round brackets () applied to a matrix select columns.
     HType H_MB;
-    H_MB(0) = Row3(0); // fills column with zero
-    H_MB(1) = H_FM(0) * crossMat(r_MB_F);
+    H_MB[0] = Vec3(0); // fills top row with zero
+    H_MB[1] = ~crossMat(r_MB_F) * H_FM[0];
 
     // Now we want R_GF so we can reexpress the cross-joint velocity V_FB (==V_PB)
     // in the ground frame, to get V_PB_G.
@@ -4455,10 +4463,11 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
     const Rotation& R_GP = getX_GP(pc).R(); // parent orientation in ground
     const Rotation  R_GF = R_GP * R_PF;
 
-    H_PB_G = (H_FM + H_MB) * ~R_GF;
+    H_PB_G =  R_GF * (H_FM + H_MB);
 }
 
 // Same for all mobilizers.
+// CAUTION: our H matrix definition is transposed from Jain and Schwieters.
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     const SBModelVars&     mv,
@@ -4479,13 +4488,12 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
 
     const Vec3& w_FM = getV_FM(vc)[0]; // local angular velocity
 
-    // Reminder: round brackets () applied to a matrix select columns.
-    H_MB(0) = Row3(0); // fills column with zero
-    H_MB(1) = H_FM(0) * crossMat(r_MB_F);
+    H_MB[0] = Vec3(0); // fills top row with zero
+    H_MB[1] = ~crossMat(r_MB_F) * H_FM[0];
 
-    H_MB_Dot(0) = Row3(0);
-    H_MB_Dot(1) =   H_FM_Dot(0) * crossMat(r_MB_F) 
-                  + H_FM(0)     * crossMat(w_FM % r_MB_F);
+    H_MB_Dot[0] = Vec3(0);
+    H_MB_Dot[1] =   ~crossMat(r_MB_F)        * H_FM_Dot[0] 
+                  + ~crossMat(w_FM % r_MB_F) * H_FM[0];
 
     // Now we want R_GF so we can reexpress the cross-joint velocity V_FB (==V_PB)
     // in the ground frame, to get V_PB_G.
@@ -4498,13 +4506,11 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
 
     const Vec3& w_GF = getV_GP(vc)[0]; // F and P have same angular velocity
 
-    // Note: time derivative of R_GF is crossMat(w_GF)*R_GF, so derivative
-    // of ~R_GF is ~(crossMat(w_GF)*R_GF) = - ~R_GF*crossMat(w_GF) since
-    // crossMat's are skew-symmetric.
-    //      H_PB_G = (H_FM + H_MB) * ~R_GF (see above method)
+    // Note: time derivative of R_GF is crossMat(w_GF)*R_GF.
+    //      H = H_PB_G =  R_GF * (H_FM + H_MB) (see above method)
     const HType& H_PB_G = getH(pc);
-    H_PB_G_Dot =  (H_FM_Dot + H_MB_Dot) * ~R_GF
-                 - H_PB_G * crossMat(w_GF);
+    H_PB_G_Dot =   R_GF * (H_FM_Dot + H_MB_Dot)
+                 + crossMat(w_GF) * H_PB_G;
 }
 
 //
@@ -4517,21 +4523,21 @@ RigidBodyNodeSpec<dof>::setVelFromSVel(
     const SpatialVec&      sVel, 
     Vector&                u) const 
 {
-    toU(u) = getH(pc) * (sVel - (~getPhi(pc) * parent->getV_GB(mc)));
+    toU(u) = ~getH(pc) * (sVel - (~getPhi(pc) * parent->getV_GB(mc)));
 }
 
 //
 // Given only position-related quantities from the State 
 //      Mk  (this body's spatial inertia matrix)
 //      Phi (composite body child-to-parent shift matrix)
-//      H   (joint transition matrix)
+//      H   (joint transition matrix; sense is transposed from Jain and Schwieters)
 // we calculate dynamic quantities 
 //      P   (articulated body inertia)
-//      D   (factored mass matrix LDL' diagonal part D=H*P*~H)
+//      D   (factored mass matrix LDL' diagonal part D=~H*P*H)
 //      DI  (inverse of D)
-//      G   (P * ~H * DI)
-//   tauBar (I-G*H, a temporary not reused elsewhere)
-//      Psi (Phi*(I-G*H), articulated body child-to-parent shift matrix)
+//      G   (P * H * DI)
+//   tauBar (I-G*~H, a temporary not reused elsewhere)
+//      Psi (Phi*(I-G*~H), articulated body child-to-parent shift matrix)
 // and put them in the state cache.
 // This must be called tip-to-base (inward).
 //
@@ -4551,17 +4557,17 @@ RigidBodyNodeSpec<dof>::calcArticulatedBodyInertiasInward(
         updP(dc) += phiChild * (tauBarChild * PChild) * ~phiChild;
     }
 
-    const Mat<2,dof,Vec3> PHt = getP(dc) * ~getH(pc);
-    updD(dc)  = getH(pc) * PHt;
+    const Mat<2,dof,Vec3> PH = getP(dc) * getH(pc);
+    updD(dc)  = ~getH(pc) * PH;
     // this will throw an exception if the matrix is ill conditioned
     updDI(dc) = getD(dc).invert();
-    updG(dc)  = PHt * getDI(dc);
+    updG(dc)  = PH * getDI(dc);
 
-    // TODO: change sign on taubar to make it GH-I instead, which only requires
+    // TODO: change sign on taubar to make it G*~H - I instead, which only requires
     // subtractions on the diagonal rather than negating all the off-diag stuff.
     // That would save 30 flops here (I know, not much).
     updTauBar(dc)  = 1.; // identity matrix
-    updTauBar(dc) -= getG(dc) * getH(pc);
+    updTauBar(dc) -= getG(dc) * ~getH(pc);
     updPsi(dc)     = getPhi(pc) * getTauBar(dc);
 }
 
@@ -4582,7 +4588,7 @@ RigidBodyNodeSpec<dof>::calcYOutward(
     // by exploiting symmetry. Also, does Psi have special structure?
     // And does this need to be computed for every body or only those
     // which are loop "base" bodies or some such?
-    updY(dc) = (~getH(pc) * getDI(dc) * getH(pc)) 
+    updY(dc) = (getH(pc) * getDI(dc) * ~getH(pc)) 
                 + (~getPsi(dc) * parent->getY(dc) * getPsi(dc));
 }
 
@@ -4610,35 +4616,11 @@ RigidBodyNodeSpec<dof>::calcZ(
         z += phiChild * (zChild + GepsChild);
     }
 
-    updEpsilon(ac)  = fromU(mobilityForces) - getH(pc)*z;
+    updEpsilon(ac)  = fromU(mobilityForces) - ~getH(pc)*z;
     updNu(ac)       = getDI(dc) * getEpsilon(ac);
     updGepsilon(ac) = getG(dc)  * getEpsilon(ac);
 }
-/*
-template<int dof> void
-RigidBodyNodeSpec<dof>::calcZ(
-    const SBPositionCache&     pc,
-    const SBDynamicsCache&     dc,
-    const Vector&              mobilityForces,
-    const Vector_<SpatialVec>& bodyForces,
-    SBAccelerationCache&       ac) const 
-{
-    SpatialVec& z = updZ(ac);
-    z = getCentrifugalForces(dc) - fromB(bodyForces);
 
-    for (int i=0 ; i<(int)children.size() ; i++) {
-        const SpatialVec& zChild    = children[i]->getZ(ac);
-        const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-        const SpatialVec& GepsChild = children[i]->getGepsilon(ac);
-
-        z += phiChild * (zChild + GepsChild);
-    }
-
-    updEpsilon(ac)  = fromU(mobilityForces) - getH(pc)*z;
-    updNu(ac)       = getDI(dc) * getEpsilon(ac);
-    updGepsilon(ac) = getG(dc)  * getEpsilon(ac);
-}
-*/
 //
 // Calculate acceleration in internal coordinates, based on the last set
 // of forces that were fed to calcZ (as embodied in 'nu').
@@ -4657,7 +4639,7 @@ RigidBodyNodeSpec<dof>::calcAccel(
     const SpatialVec alphap = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
 
     udot        = getNu(ac) - (~getG(dc)*alphap);
-    updA_GB(ac) = alphap + ~getH(pc)*udot + getCoriolisAcceleration(dc);  
+    updA_GB(ac) = alphap + getH(pc)*udot + getCoriolisAcceleration(dc);  
 
     calcQDotDot(sbs, allUdot, allQdotdot);  
 }
@@ -4693,7 +4675,7 @@ RigidBodyNodeSpec<dof>::calcUDotPass1Inward(
         z += phiChild * (zChild + GepsChild);
     }
 
-    eps  = myJointForce - getH(pc)*z;
+    eps  = myJointForce - ~getH(pc)*z;
     Geps = getG(dc)  * eps;
 }
 
@@ -4721,7 +4703,7 @@ RigidBodyNodeSpec<dof>::calcUDotPass2Outward(
         : ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
     udot = getDI(dc) * eps - (~getG(dc)*A_GP);
-    A_GB = A_GP + ~getH(pc)*udot + getCoriolisAcceleration(dc);  
+    A_GB = A_GP + getH(pc)*udot + getCoriolisAcceleration(dc);  
 }
 
  
@@ -4759,7 +4741,7 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass1Inward(
         z += phiChild * (zChild + GepsChild);
     }
 
-    eps  = myJointForce - getH(pc)*z;
+    eps  = myJointForce - ~getH(pc)*z;
     Geps = getG(dc)  * eps;
 }
 
@@ -4787,11 +4769,11 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass2Outward(
         : ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
     udot = getDI(dc) * eps - (~getG(dc)*A_GP);
-    A_GB = A_GP + ~getH(pc)*udot;  
+    A_GB = A_GP + getH(pc)*udot;  
 }
 
 //
-// Calculate product of kinematic Jacobian J=~Phi*~H and a mobility-space vector. Requires 
+// Calculate product of kinematic Jacobian J=~Phi*H and a mobility-space vector. Requires 
 // that Phi and H are available, so this should only be called in Stage::Position or higher.
 // This does not change the cache at all.
 //
@@ -4814,18 +4796,18 @@ RigidBodyNodeSpec<dof>::calcSpatialKinematicsFromInternal(
         ? SpatialVec(Vec3(0), Vec3(0))
         : ~getPhi(pc) * parent->fromB(Jv);
 
-    out = outP + ~getH(pc)*in;  
+    out = outP + getH(pc)*in;  
 }
 
 //
-// Calculate product of kinematic Jacobian transpose ~J=H*Phi and a gradient vector on each of the
+// Calculate product of kinematic Jacobian transpose ~J=~H*Phi and a gradient vector on each of the
 // outboard bodies. Requires that Phi and H are available, so this
 // should only be called in Stage::Position or higher. This does not change the cache at all.
 // NOTE (sherm 060214): I reworked this from the original. This one no longer incorporates
 // applied hinge gradients if there are any; just add those in at the end if you want them.
 //
-// (sherm 060727) In spatial operators, this calculates H*Phi*F where F are the spatial forces
-// applied to each body. See Schwieters Eq. 41.
+// (sherm 060727) In spatial operators, this calculates ~H*Phi*F where F are the spatial forces
+// applied to each body. See Schwieters Eq. 41. (But with sense of H transposed.)
 //
 // Call tip to base.
 //
@@ -4849,13 +4831,13 @@ RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial(
         z += phiChild * zChild;
     }
 
-    out = getH(pc) * z; 
+    out = ~getH(pc) * z; 
 }
 
 //
 // To be called from tip to base.
 // Temps do not need to be initialized.
-// (sherm 060727) In spatial operators, this calculates H*Phi*(F-(Pa+b))
+// (sherm 060727) In spatial operators, this calculates ~H*Phi*(F-(Pa+b))
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcEquivalentJointForces(
@@ -4880,7 +4862,7 @@ RigidBodyNodeSpec<dof>::calcEquivalentJointForces(
         z += phiChild * zChild; 
     }
 
-    eps  = getH(pc) * z;
+    eps  = ~getH(pc) * z;
 }
 
 
