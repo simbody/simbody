@@ -887,17 +887,17 @@ public:
 
     // CAUTION: our H definition is transposed from Jain and Schwieters.
     const HType& getH_FM(const SBPositionCache& pc) const
-      { return HType::getAs(&pc.storageForHtFM(0,uIndex)); }
+      { return HType::getAs(&pc.storageForH_FM(0,uIndex)); }
     HType&       updH_FM(SBPositionCache& pc) const
-      { return HType::updAs(&pc.storageForHtFM(0,uIndex)); }
+      { return HType::updAs(&pc.storageForH_FM(0,uIndex)); }
 
     // "H" here should really be H_PB_G, that is, cross joint transition
     // matrix relating parent and body frames, but expressed in Ground.
     // CAUTION: our H definition is transposed from Jain and Schwieters.
     const HType& getH(const SBPositionCache& pc) const
-      { return HType::getAs(&pc.storageForHt(0,uIndex)); }
+      { return HType::getAs(&pc.storageForH(0,uIndex)); }
     HType&       updH(SBPositionCache& pc) const
-      { return HType::updAs(&pc.storageForHt(0,uIndex)); }
+      { return HType::updAs(&pc.storageForH(0,uIndex)); }
 
     // These are sines and cosines of angular qs. The rest of the slots are garbage.
     const Vec<dof>&   getSinQ (const SBPositionCache& pc) const {return fromQ (pc.sq);}
@@ -920,15 +920,15 @@ public:
 
     // CAUTION: our H definition is transposed from Jain and Schwieters.
     const HType& getH_FM_Dot(const SBDynamicsCache& dc) const
-      { return HType::getAs(&dc.storageForHtFMDot(0,uIndex)); }
+      { return HType::getAs(&dc.storageForH_FM_Dot(0,uIndex)); }
     HType&       updH_FM_Dot(SBDynamicsCache& dc) const
-      { return HType::updAs(&dc.storageForHtFMDot(0,uIndex)); }
+      { return HType::updAs(&dc.storageForH_FM_Dot(0,uIndex)); }
 
     // CAUTION: our H definition is transposed from Jain and Schwieters.
     const HType& getHDot(const SBDynamicsCache& dc) const
-      { return HType::getAs(&dc.storageForHtDot(0,uIndex)); }
+      { return HType::getAs(&dc.storageForHDot(0,uIndex)); }
     HType&       updHDot(SBDynamicsCache& dc) const
-      { return HType::updAs(&dc.storageForHtDot(0,uIndex)); }
+      { return HType::updAs(&dc.storageForHDot(0,uIndex)); }
 
     const Mat<dof,dof>& getD(const SBDynamicsCache& dc) const {return fromUSq(dc.storageForD);}
     Mat<dof,dof>&       updD(SBDynamicsCache&       dc) const {return toUSq  (dc.storageForD);}

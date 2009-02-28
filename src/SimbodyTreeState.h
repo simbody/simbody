@@ -421,8 +421,11 @@ public:
     Vector qnorm;   // nq  Contains normalized quaternions in appropriate slots;
                     //       all else is garbage.
 
-    Matrix_<Vec3> storageForHtFM; // 2 x ndof (~H_FM)
-    Matrix_<Vec3> storageForHt;    // 2 x ndof (~H_PB_G)
+    // CAUTION: our definition of the H matrix is transposed from those used
+    // by Jain and by Schwieters. Jain would call these H* and Schwieters
+    // would call them H^T, but we call them H.
+    Matrix_<Vec3> storageForH_FM; // 2 x ndof (H_FM)
+    Matrix_<Vec3> storageForH;    // 2 x ndof (H_PB_G)
 
     std::vector<Transform>    bodyJointInParentJointFrame;  // nb (X_FM)
 
@@ -458,8 +461,8 @@ public:
         cq.resize(maxNQs);
         qnorm.resize(maxNQs);
 
-        storageForHtFM.resize(2,nDofs);
-        storageForHt.resize(2,nDofs);
+        storageForH_FM.resize(2,nDofs);
+        storageForH.resize(2,nDofs);
 
         bodyJointInParentJointFrame.resize(nBodies); 
         bodyJointInParentJointFrame[0].setToZero();
@@ -528,8 +531,10 @@ public:
     // Dynamics
     Vector_<SpatialMat> articulatedBodyInertia;   // nb (P)
 
-    Matrix_<Vec3> storageForHtFMDot; // 2 x ndof (~H_FM_Dot)
-    Matrix_<Vec3> storageForHtDot;    // 2 x ndof (~H_PB_G_Dot)
+    // CAUTION: our definition of the H matrix is transposed from those used
+    // by Jain and by Schwieters.
+    Matrix_<Vec3> storageForH_FM_Dot; // 2 x ndof (~H_FM_Dot)
+    Matrix_<Vec3> storageForHDot;     // 2 x ndof (~H_PB_G_Dot)
 
     Vector_<SpatialVec> bodyVelocityInParentDerivRemainder; // VB_PB_G=~H_PB_G_Dot*u
 
@@ -556,8 +561,8 @@ public:
         const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need     
         
         articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
-        storageForHtFMDot.resize(2,nDofs);
-        storageForHtDot.resize(2,nDofs);
+        storageForH_FM_Dot.resize(2,nDofs);
+        storageForHDot.resize(2,nDofs);
 
         bodyVelocityInParentDerivRemainder.resize(nBodies);       
         bodyVelocityInParentDerivRemainder[0] = SpatialVec(Vec3(0),Vec3(0));
