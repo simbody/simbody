@@ -336,12 +336,57 @@ void testByComparingToSDFASTWithConstraint() {
     assertEqual(~body5.getBodyTransform(state).R()*reaction[body5.getMobilizedBodyIndex()], SpatialVec(Vec3(0, 0, 0), Vec3(10.471620, 0.963822, -4.640161)), 1e-5);
 }
 
+// Create a free body in space and apply some forces to it.
+// As long as we don't apply mobility forces, the reaction force
+// in the mobilizer should be zero.
+// It is important to do this with a full inertia, offset com,
+// non-unit mass, twisted frames, non-zero velocities, etc.
+
+const Real d = 1.5; // length (m)
+const Real mass = 2; // kg
+const Transform X_GF(Rotation(Pi/3, Vec3(.1,-.3,.3)), Vec3(-4,-5,-1));
+const Transform X_BM(Rotation(-Pi/10, Vec3(7,5,3)), Vec3(0,d,0));
+
+void testFreeMobilizer() {
+    MultibodySystem forward;
+    SimbodyMatterSubsystem fwdMatter(forward);
+    GeneralForceSubsystem fwdForces(forward);
+    Force::UniformGravity(fwdForces, fwdMatter, Vec3(0, -1, 0));
+
+    const Vec3 com(1,2,3);
+    const Inertia centralGyration(1, 1.5, 2, .1, .2, .3);
+    Body::Rigid body(MassProperties(mass, com, mass*centralGyration.shiftFromMassCenter(com, 1)));
+
+    MobilizedBody::Free fwdA (fwdMatter.Ground(),  X_GF, body, X_BM);
+
+    Force::ConstantForce(fwdForces, fwdA, Vec3(-1,.27,4), Vec3(5,.6,-1));
+    Force::ConstantTorque(fwdForces, fwdA, Vec3(-5.5,1.6,-1.1));
+
+    State fwdState  = forward.realizeTopology();
+    fwdA.setQToFitTransform(fwdState, Transform(Rotation(Pi/9,Vec3(-1.8,4,2.2)), Vec3(.1,.2,.7)));
+
+    forward.realize (fwdState,  Stage::Position);
+
+    fwdA.setUToFitVelocity(fwdState, SpatialVec(Vec3(.99,2,4), Vec3(-1.2,4,.000333)));
+    forward.realize (fwdState,  Stage::Velocity);
+    forward.realize (fwdState,  Stage::Acceleration);
+
+    Vector_<SpatialVec> fwdReac;
+    fwdMatter.calcMobilizerReactionForces(fwdState, fwdReac);
+
+    // We expect no reaction from a Free joint.
+    assertEqual(fwdReac[0], SpatialVec(Vec3(0)));
+    assertEqual(fwdReac[1], SpatialVec(Vec3(0)));
+}
+
 int main() {
     try {
         testByComparingToConstraints();
         testByComparingToSDFAST();
         testByComparingToSDFAST2();
         testByComparingToSDFASTWithConstraint();
+
+        testFreeMobilizer();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
