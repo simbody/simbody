@@ -2055,7 +2055,7 @@ void SimbodyMatterSubsystemRep::multiplyByNInv(const State& s, bool transpose, c
 }
 
 void SimbodyMatterSubsystemRep::calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const {
-    assert(forces.size() == getNumBodies());
+    forces.resize(getNumBodies());
     
     // Find the total body force on every body from all sources *other* than mobilizer reaction forces.
     
