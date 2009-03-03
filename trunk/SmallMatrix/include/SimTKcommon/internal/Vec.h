@@ -296,6 +296,15 @@ public:
     Vec(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,const E& e5)
       { assert(M==6);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;
         (*this)[3]=e3;(*this)[4]=e4;(*this)[5]=e5; }
+    Vec(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,const E& e5, const E& e6)
+      { assert(M==7);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;
+        (*this)[3]=e3;(*this)[4]=e4;(*this)[5]=e5;(*this)[6]=e6; }
+    Vec(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,const E& e5, const E& e6, const E& e7)
+      { assert(M==8);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;
+        (*this)[3]=e3;(*this)[4]=e4;(*this)[5]=e5;(*this)[6]=e6;(*this)[7]=e7; }
+    Vec(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,const E& e5, const E& e6, const E& e7, const E& e8)
+      { assert(M==9);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;
+        (*this)[3]=e3;(*this)[4]=e4;(*this)[5]=e5;(*this)[6]=e6;(*this)[7]=e7;(*this)[8]=e8; }
 
     // Construction or assignment from a pointer to anything assumes we're pointing
     // at an element list of the right length.

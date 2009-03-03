@@ -292,6 +292,15 @@ public:
     Row(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,const E& e5)
       { assert(N==6);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;
         (*this)[3]=e3;(*this)[4]=e4;(*this)[5]=e5; }
+    Row(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,const E& e5,const E& e6)
+      { assert(N==7);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;
+        (*this)[3]=e3;(*this)[4]=e4;(*this)[5]=e5;(*this)[6]=e6; }
+    Row(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,const E& e5,const E& e6,const E& e7)
+      { assert(N==8);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;
+        (*this)[3]=e3;(*this)[4]=e4;(*this)[5]=e5;(*this)[6]=e6;(*this)[7]=e7; }
+    Row(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,const E& e5,const E& e6,const E& e7,const E& e8)
+      { assert(N==9);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;
+        (*this)[3]=e3;(*this)[4]=e4;(*this)[5]=e5;(*this)[6]=e6;(*this)[7]=e7;(*this)[8]=e8; }
 
     // Construction from a pointer to anything assumes we're pointing
     // at an element list of the right length.
