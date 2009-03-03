@@ -457,7 +457,7 @@ public:
     SpatialMat toSpatialMat() const {
         SpatialMat M;
         M(0,0) = inertia_OB_B.toMat33();
-        M(0,1) = crossMat(comInB);
+        M(0,1) = mass*crossMat(comInB);
         M(1,0) = ~M(0,1);
         M(1,1) = mass; // a diagonal matrix
         return M;
@@ -468,7 +468,7 @@ public:
     Mat66 toMat66() const {
         Mat66 M;
         M.updSubMat<3,3>(0,0) = inertia_OB_B.toMat33();
-        M.updSubMat<3,3>(0,3) = crossMat(comInB);
+        M.updSubMat<3,3>(0,3) = mass*crossMat(comInB);
         M.updSubMat<3,3>(3,0) = ~M.getSubMat<3,3>(0,3);
         M.updSubMat<3,3>(3,3) = mass; // a diagonal matrix
         return M;
