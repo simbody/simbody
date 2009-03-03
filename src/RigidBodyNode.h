@@ -474,6 +474,8 @@ public:
     int            getNumChildren()  const {return (int)children.size();}
     RigidBodyNode* getChild(int i) const {return (i<(int)children.size()?children[i]:0);}
 
+    bool           isReversed() const {return reversed;}
+
     // Return this node's level, that is, how many ancestors separate it from
     // the Ground node at level 0. Level 1 nodes (directly connected to the
     // Ground node) are called 'base' nodes.
@@ -555,75 +557,75 @@ public:
     // mobilizer frame F attached to the parent. This transformation is defined to be zero (that is, F=M)
     // in the reference configuration where the joint coordinates are all 0 (or 1,0,0,0 for quaternions).
     // This is NOT a spatial (ground frame) transformation.
-    const Transform& getX_FM(const SBPositionCache& cc) const {return fromB(cc.bodyJointInParentJointFrame);}
-    Transform&       updX_FM(SBPositionCache&       cc) const {return toB  (cc.bodyJointInParentJointFrame);}
+    const Transform& getX_FM(const SBPositionCache& pc) const {return fromB(pc.bodyJointInParentJointFrame);}
+    Transform&       updX_FM(SBPositionCache&       pc) const {return toB  (pc.bodyJointInParentJointFrame);}
 
     // Extract from the cache  X_PB, the cross-joint transformation matrix giving the configuration
     // of this body's frame B measured from and expressed in its *parent* frame P. Thus this is NOT
     // a spatial (ground frame) transformation.
-    const Transform& getX_PB(const SBPositionCache& cc) const {return fromB(cc.bodyConfigInParent);}
-    Transform&       updX_PB(SBPositionCache&       cc) const {return toB  (cc.bodyConfigInParent);}
+    const Transform& getX_PB(const SBPositionCache& pc) const {return fromB(pc.bodyConfigInParent);}
+    Transform&       updX_PB(SBPositionCache&       pc) const {return toB  (pc.bodyConfigInParent);}
 
     // Extract from the cache X_GB, the transformation matrix giving the spatial configuration of this
     // body's frame B measured from and expressed in ground. This consists of a rotation matrix
     // R_GB, and a ground-frame vector r_OG_OB from ground's origin to the origin point of frame B.
-    const Transform& getX_GB(const SBPositionCache& cc) const {
-        return fromB(cc.bodyConfigInGround);
+    const Transform& getX_GB(const SBPositionCache& pc) const {
+        return fromB(pc.bodyConfigInGround);
     }
-    Transform& updX_GB(SBPositionCache& cc) const {
-        return toB(cc.bodyConfigInGround);
+    Transform& updX_GB(SBPositionCache& pc) const {
+        return toB(pc.bodyConfigInGround);
     }
 
     // Extract from the cache the body-to-parent shift matrix "phi". 
-    const PhiMatrix& getPhi(const SBPositionCache& cc) const {return fromB(cc.bodyToParentShift);}
-    PhiMatrix&       updPhi(SBPositionCache&       cc) const {return toB  (cc.bodyToParentShift);}
+    const PhiMatrix& getPhi(const SBPositionCache& pc) const {return fromB(pc.bodyToParentShift);}
+    PhiMatrix&       updPhi(SBPositionCache&       pc) const {return toB  (pc.bodyToParentShift);}
 
     // Extract this body's spatial inertia matrix from the cache. This contains the mass properties
     // measured from (and about) the body frame origin, but expressed in the *ground* frame.
-    const SpatialMat& getMk(const SBPositionCache& cc) const {return fromB(cc.bodySpatialInertia);}
-    SpatialMat&       updMk(SBPositionCache&       cc) const {return toB  (cc.bodySpatialInertia);}
+    const SpatialMat& getMk(const SBPositionCache& pc) const {return fromB(pc.bodySpatialInertia);}
+    SpatialMat&       updMk(SBPositionCache&       pc) const {return toB  (pc.bodySpatialInertia);}
 
     // Extract from the cache the location of the body's center of mass, measured from the ground
     // origin and expressed in ground.
-    const Vec3& getCOM_G(const SBPositionCache& cc) const {return fromB(cc.bodyCOMInGround);}
-    Vec3&       updCOM_G(SBPositionCache&       cc) const {return toB  (cc.bodyCOMInGround);}
+    const Vec3& getCOM_G(const SBPositionCache& pc) const {return fromB(pc.bodyCOMInGround);}
+    Vec3&       updCOM_G(SBPositionCache&       pc) const {return toB  (pc.bodyCOMInGround);}
 
     // Extract from the cache the vector from body B's origin to its center of mass, reexpressed in Ground.
-    const Vec3& getCB_G(const SBPositionCache& cc) const {return fromB(cc.bodyCOMStationInGround);}
-    Vec3&       updCB_G(SBPositionCache&       cc) const {return toB  (cc.bodyCOMStationInGround);}
+    const Vec3& getCB_G(const SBPositionCache& pc) const {return fromB(pc.bodyCOMStationInGround);}
+    Vec3&       updCB_G(SBPositionCache&       pc) const {return toB  (pc.bodyCOMStationInGround);}
 
     // Extract from the cache the body's inertia about the body origin OB, but reexpressed in Ground.
-    const Inertia& getInertia_OB_G(const SBPositionCache& cc) const {return fromB(cc.bodyInertiaInGround);}
-    Inertia&       updInertia_OB_G(SBPositionCache&       cc) const {return toB  (cc.bodyInertiaInGround);}
+    const Inertia& getInertia_OB_G(const SBPositionCache& pc) const {return fromB(pc.bodyInertiaInGround);}
+    Inertia&       updInertia_OB_G(SBPositionCache&       pc) const {return toB  (pc.bodyInertiaInGround);}
 
     // Extract from the cache the spatial (ground-relative) location and orientation of this body's
     // *parent's* body frame P.
-    const Transform& getX_GP(const SBPositionCache& cc) const {assert(parent); return parent->getX_GB(cc);}
+    const Transform& getX_GP(const SBPositionCache& pc) const {assert(parent); return parent->getX_GB(pc);}
 
             // VELOCITY INFO
 
-    const SpatialVec& getV_FM(const SBVelocityCache& mc) const {return fromB(mc.mobilizerRelativeVelocity);}
-    SpatialVec&       updV_FM(SBVelocityCache&       mc) const {return toB  (mc.mobilizerRelativeVelocity);}
+    const SpatialVec& getV_FM(const SBVelocityCache& vc) const {return fromB(vc.mobilizerRelativeVelocity);}
+    SpatialVec&       updV_FM(SBVelocityCache&       vc) const {return toB  (vc.mobilizerRelativeVelocity);}
 
 
     // Extract from the cache V_GB, the spatial velocity of this body's frame B measured in and
     // expressed in ground. This contains the angular velocity of B in G, and the linear velocity
     // of B's origin point OB in G, with both vectors expressed in G.
-    const SpatialVec& getV_GB   (const SBVelocityCache& mc) const {return fromB(mc.bodyVelocityInGround);}
-    SpatialVec&       updV_GB   (SBVelocityCache&       mc) const {return toB  (mc.bodyVelocityInGround);}
+    const SpatialVec& getV_GB   (const SBVelocityCache& vc) const {return fromB(vc.bodyVelocityInGround);}
+    SpatialVec&       updV_GB   (SBVelocityCache&       vc) const {return toB  (vc.bodyVelocityInGround);}
 
     // Extract from the cache V_PB_G, the *spatial* velocity of this body's frame B, that is the
     // cross-joint velocity measured with respect to the parent frame, but then expressed in the
     // *ground* frame. This contains the angular velocity of B in P, and the linear velocity
     // of B's origin point OB in P, with both vectors expressed in *G*.
-    const SpatialVec& getV_PB_G (const SBVelocityCache& mc) const {return fromB(mc.bodyVelocityInParent);}
-    SpatialVec&       updV_PB_G (SBVelocityCache&       mc) const {return toB  (mc.bodyVelocityInParent);}
+    const SpatialVec& getV_PB_G (const SBVelocityCache& vc) const {return fromB(vc.bodyVelocityInParent);}
+    SpatialVec&       updV_PB_G (SBVelocityCache&       vc) const {return toB  (vc.bodyVelocityInParent);}
 
     const SpatialVec& getV_GP(const SBVelocityCache& vc) const {assert(parent); return parent->getV_GB(vc);}
 
-    const SpatialVec& getSpatialVel   (const SBVelocityCache& mc) const {return getV_GB(mc);}
-    const Vec3&       getSpatialAngVel(const SBVelocityCache& mc) const {return getV_GB(mc)[0];}
-    const Vec3&       getSpatialLinVel(const SBVelocityCache& mc) const {return getV_GB(mc)[1];}
+    const SpatialVec& getSpatialVel   (const SBVelocityCache& vc) const {return getV_GB(vc);}
+    const Vec3&       getSpatialAngVel(const SBVelocityCache& vc) const {return getV_GB(vc)[0];}
+    const Vec3&       getSpatialLinVel(const SBVelocityCache& vc) const {return getV_GB(vc)[1];}
 
         // DYNAMICS INFO
     // Extract from the cache VD_PB_G, the *spatial* velocity derivative remainder term
@@ -762,11 +764,12 @@ protected:
                   const Transform&      xform_PF,
                   const Transform&      xform_BM,
                   QDotHandling          qdotType,
-                  QuaternionUse         quatUse)
+                  QuaternionUse         quatUse,
+                  bool                  reverse=false)
       : parent(0), children(), level(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentralInertia()),
         X_BM(xform_BM), X_PF(xform_PF), X_MB(~xform_BM),
-        qdotHandling(qdotType), quaternionUse(quatUse)
+        qdotHandling(qdotType), quaternionUse(quatUse), reversed(reverse)
     {
         // If a quaternion might be used, it can't possibly be true that qdot is
         // always the same as u.
@@ -821,6 +824,10 @@ protected:
     // can guarantee never to use a quaternion in their generailized coordinates for any set
     // of modeling options.
     const QuaternionUse quaternionUse;
+
+    // This is true if the mobilizer is specified in the reverse direction,
+    // that is from child to parent.
+    const bool reversed;
 
     template<int dof> friend class RigidBodyNodeSpec;
 

@@ -430,10 +430,10 @@ const RigidBodyNode& MobilizedBodyImpl::realizeTopology
     // MOBILIZED BODY::PIN //
     /////////////////////////
 
-MobilizedBody::Pin::Pin() : MobilizedBody(new PinImpl()) {
+MobilizedBody::Pin::Pin(Direction d) : MobilizedBody(new PinImpl(d)) {
 }
 
-MobilizedBody::Pin::Pin(MobilizedBody& parent, const Body& body) : MobilizedBody(new PinImpl()) {
+MobilizedBody::Pin::Pin(MobilizedBody& parent, const Body& body, Direction d) : MobilizedBody(new PinImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -442,7 +442,8 @@ MobilizedBody::Pin::Pin(MobilizedBody& parent, const Body& body) : MobilizedBody
 }
 
 MobilizedBody::Pin::Pin(MobilizedBody& parent, const Transform& inbFrame,
-                        const Body& body, const Transform& outbFrame) : MobilizedBody(new PinImpl()) {
+                        const Body& body, const Transform& outbFrame,
+                        Direction d) : MobilizedBody(new PinImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -704,10 +705,11 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::BendStretch, MobilizedBod
     // MOBILIZED BODY::PLANAR //
     ////////////////////////////
 
-MobilizedBody::Planar::Planar() : MobilizedBody(new PlanarImpl()) {
+MobilizedBody::Planar::Planar(Direction d) : MobilizedBody(new PlanarImpl(d)) {
 }
 
-MobilizedBody::Planar::Planar(MobilizedBody& parent, const Body& body) : MobilizedBody(new PlanarImpl()) {
+MobilizedBody::Planar::Planar(MobilizedBody& parent, const Body& body, Direction d) 
+:   MobilizedBody(new PlanarImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -716,7 +718,9 @@ MobilizedBody::Planar::Planar(MobilizedBody& parent, const Body& body) : Mobiliz
 }
 
 MobilizedBody::Planar::Planar(MobilizedBody& parent, const Transform& inbFrame,
-                                  const Body& body, const Transform& outbFrame) : MobilizedBody(new PlanarImpl()) {
+                              const Body& body, const Transform& outbFrame,
+                              Direction d) 
+:   MobilizedBody(new PlanarImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1299,10 +1303,11 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Translation, MobilizedBod
     // MOBILIZED BODY::FREE //
     //////////////////////////
 
-MobilizedBody::Free::Free() : MobilizedBody(new FreeImpl()) {
+MobilizedBody::Free::Free(Direction d) : MobilizedBody(new FreeImpl(d)) {
 }
 
-MobilizedBody::Free::Free(MobilizedBody& parent, const Body& body) : MobilizedBody(new FreeImpl()) {
+MobilizedBody::Free::Free(MobilizedBody& parent, const Body& body, Direction d) 
+:   MobilizedBody(new FreeImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -1311,7 +1316,8 @@ MobilizedBody::Free::Free(MobilizedBody& parent, const Body& body) : MobilizedBo
 }
 
 MobilizedBody::Free::Free(MobilizedBody& parent, const Transform& inbFrame,
-                          const Body& body, const Transform& outbFrame) : MobilizedBody(new FreeImpl()) {
+                          const Body& body, const Transform& outbFrame, Direction d) 
+:   MobilizedBody(new FreeImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);

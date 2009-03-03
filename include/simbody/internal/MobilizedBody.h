@@ -112,6 +112,15 @@ class MobilizedBodyImpl;
 class SimTK_SIMBODY_EXPORT MobilizedBody : public PIMPLHandle<MobilizedBody, MobilizedBodyImpl, true> {
 public:
 
+    /// Constructors can take an argument of this type to indicate that the 
+    /// mobilizer is being defined in the reverse direction, meaning from 
+    /// child to parent. That means that the mobilizer coordinates and speeds
+    /// will be defined as though the tree had been built in the opposite
+    /// direction.
+    enum Direction {
+        Forward = 0,
+        Reverse = 1
+    };
 
         //////////////////////////
         // STATE ACCESS METHODS //
@@ -1373,10 +1382,11 @@ public:
         // STANDARDIZED MOBILIZED BODY INTERFACE
 
         // required constructors
-    Pin();
-    Pin(MobilizedBody& parent, const Body&);
+    explicit Pin(Direction=Forward);
+    Pin(MobilizedBody& parent, const Body&, Direction=Forward);
     Pin(MobilizedBody& parent, const Transform& inbFrame,
-        const Body&,           const Transform& outbFrame);
+        const Body&,           const Transform& outbFrame,
+        Direction=Forward);
 
         // access to generalized coordinates q and generalized speeds u
     Pin& setDefaultQ(Real);
@@ -1655,16 +1665,17 @@ public:
 /// its y axis, in that order.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Planar : public MobilizedBody {
 public:
-    Planar();
+    explicit Planar(Direction=Forward);
 
     /// By default the parent body frame and the body's own frame are
     /// used as the inboard and outboard mobilizer frames, resp.
-    Planar(MobilizedBody& parent, const Body&);
+    Planar(MobilizedBody& parent, const Body&, Direction=Forward);
 
     /// Use this constructor to specify mobilizer frames which are
     /// not coincident with the body frames.
     Planar(MobilizedBody& parent, const Transform& inbFrame,
-           const Body&,           const Transform& outbFrame);
+           const Body&,           const Transform& outbFrame,
+           Direction=Forward);
 
     Planar& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
@@ -2018,16 +2029,17 @@ public:
 /// x,y,z translations along the F (inboard) axes.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Free : public MobilizedBody {
 public:
-    Free();
+    Free(Direction=Forward);
 
     /// By default the parent body frame and the body's own frame are
     /// used as the inboard and outboard mobilizer frames, resp.
-    Free(MobilizedBody& parent, const Body&);
+    Free(MobilizedBody& parent, const Body&, Direction=Forward);
 
     /// Use this constructor to specify mobilizer frames which are
     /// not coincident with the body frames.
     Free(MobilizedBody& parent, const Transform& inbFrame,
-         const Body&,           const Transform& outbFrame);
+         const Body&,           const Transform& outbFrame,
+         Direction=Forward);
 
     Free& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;

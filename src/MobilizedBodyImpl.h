@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-2008 Stanford University and the Authors.      *
+ * Portions copyright (c) 2007-2009 Stanford University and the Authors.      *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -56,7 +56,8 @@ namespace SimTK {
 
 class MobilizedBodyImpl : public PIMPLImplementation<MobilizedBody,MobilizedBodyImpl> {
 public:
-    MobilizedBodyImpl() : myMatterSubsystemRep(0), myLevel(-1), myRBnode(0) {
+    explicit MobilizedBodyImpl(MobilizedBody::Direction d=MobilizedBody::Forward) 
+    :   reversed(d==MobilizedBody::Reverse), myMatterSubsystemRep(0), myLevel(-1), myRBnode(0) {
     }
     MobilizedBodyImpl(const MobilizedBodyImpl& clone) {
         *this = clone;
@@ -261,6 +262,8 @@ public:
         return theBody.getDefaultRigidBodyMassProperties();
     }
 
+    bool isReversed() const {return reversed;}
+
     const SimbodyMatterSubsystemRep& getMyMatterSubsystemRep() const {
         SimTK_ASSERT(myMatterSubsystemRep,
             "An operation was illegal because a MobilizedBody was not in a Subsystem.");
@@ -358,6 +361,8 @@ private:
     Transform defaultInboardFrame;  // default for F (in Parent frame)
     Transform defaultOutboardFrame; // default for M (in Body frame)
 
+    bool reversed; // is the mobilizer defined from M to F?
+
     std::vector<DecorativeGeometry> outboardGeometry;
     std::vector<DecorativeGeometry> inboardGeometry;
 
@@ -388,7 +393,7 @@ private:
 
 class MobilizedBody::PinImpl : public MobilizedBodyImpl {
 public:
-    PinImpl() : defaultQ(0) { }
+    explicit PinImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
     PinImpl* clone() const { return new PinImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -499,7 +504,7 @@ private:
 
 class MobilizedBody::PlanarImpl : public MobilizedBodyImpl {
 public:
-    PlanarImpl() : defaultQ(0) { }
+    explicit PlanarImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
     PlanarImpl* clone() const { return new PlanarImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -648,7 +653,7 @@ private:
 
 class MobilizedBody::FreeImpl : public MobilizedBodyImpl {
 public:
-    FreeImpl() : defaultQOrientation(), defaultQTranslation(0) { }
+    explicit FreeImpl(Direction d) : MobilizedBodyImpl(d), defaultQOrientation(), defaultQTranslation(0) { }
     FreeImpl* clone() const { return new FreeImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
