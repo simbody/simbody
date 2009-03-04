@@ -4541,7 +4541,7 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     // Note: time derivative of R_GF is crossMat(w_GF)*R_GF.
     //      H = H_PB_G =  R_GF * (H_FM + H_MB) (see above method)
     const HType& H_PB_G = getH(pc);
-    H_PB_G_Dot =   R_GF * (H_FM_Dot + H_MB_Dot)     // 66*dof + 3
+    H_PB_G_Dot =   R_GF * (H_FM_Dot + H_MB_Dot) // 66*dof + 3 flops
                  + crossMat(w_GF) * H_PB_G;
 }
 
