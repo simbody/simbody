@@ -1014,7 +1014,6 @@ const Vec4& MobilizedBody::Ball::getQDotDot(const State& s) const {
     return Vec4::getAs(&mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart]);
 }
 
-
 const Vec3& MobilizedBody::Ball::getU(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
     UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
@@ -1103,10 +1102,11 @@ void MobilizedBody::BallImpl::calcDecorativeGeometryAndAppendImpl
     // MOBILIZED BODY::ELLIPSOID //
     ///////////////////////////////
 
-MobilizedBody::Ellipsoid::Ellipsoid() : MobilizedBody(new EllipsoidImpl()) {
+MobilizedBody::Ellipsoid::Ellipsoid(Direction d) : MobilizedBody(new EllipsoidImpl(d)) {
 }
 
-MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Body& body) : MobilizedBody(new EllipsoidImpl()) {
+MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Body& body, Direction d) 
+:   MobilizedBody(new EllipsoidImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -1115,10 +1115,25 @@ MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Body& body) : M
 }
 
 MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Transform& inbFrame,
-                          const Body& body, const Transform& outbFrame) : MobilizedBody(new EllipsoidImpl()) {
+                                    const Body& body,      const Transform& outbFrame,
+                                    Direction d)
+                                    :   MobilizedBody(new EllipsoidImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
+                                                   *this);
+}
+
+MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Transform& inbFrame,
+                                    const Body& body,      const Transform& outbFrame,
+                                    const Vec3& radii, Direction d)
+                                    :   MobilizedBody(new EllipsoidImpl(d)) {
+    setDefaultInboardFrame(inbFrame);
+    setDefaultOutboardFrame(outbFrame);
+    setBody(body);
+    setDefaultRadii(radii);
 
     parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
@@ -1138,6 +1153,63 @@ const Quaternion& MobilizedBody::Ellipsoid::getDefaultQ() const {
 }
 Quaternion& MobilizedBody::Ellipsoid::updDefaultQ() {
     return updImpl().defaultQ;
+}
+
+const Vec4& MobilizedBody::Ellipsoid::getQ(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    return Vec4::getAs(&mbr.getMyMatterSubsystemRep().getQ(s)[qStart]);
+}
+void MobilizedBody::Ellipsoid::setQ(State& s, const Vec4& q) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    Vec4::updAs(&mbr.getMyMatterSubsystemRep().updQ(s)[qStart]) = q;
+}
+const Vec4& MobilizedBody::Ellipsoid::getQDot(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    return Vec4::getAs(&mbr.getMyMatterSubsystemRep().getQDot(s)[qStart]);
+}
+const Vec4& MobilizedBody::Ellipsoid::getQDotDot(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    return Vec4::getAs(&mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart]);
+}
+
+const Vec3& MobilizedBody::Ellipsoid::getU(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getU(s)[uStart]);
+}
+void MobilizedBody::Ellipsoid::setU(State& s, const Vec3& u) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    Vec3::updAs(&mbr.getMyMatterSubsystemRep().updU(s)[uStart]) = u;
+}
+const Vec3& MobilizedBody::Ellipsoid::getUDot(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getUDot(s)[uStart]);
+}
+
+const Vec4& MobilizedBody::Ellipsoid::getMyPartQ(const State& s, const Vector& qlike) const {
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    return Vec4::getAs(&qlike[qStart]);
+}
+
+const Vec3& MobilizedBody::Ellipsoid::getMyPartU(const State& s, const Vector& ulike) const {
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::getAs(&ulike[uStart]);
+}
+
+Vec4& MobilizedBody::Ellipsoid::updMyPartQ(const State& s, Vector& qlike) const {
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    return Vec4::updAs(&qlike[qStart]);
+}
+
+Vec3& MobilizedBody::Ellipsoid::updMyPartU(const State& s, Vector& ulike) const {
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::updAs(&ulike[uStart]);
 }
 
 void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl

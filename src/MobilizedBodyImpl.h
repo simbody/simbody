@@ -595,7 +595,8 @@ private:
 
 class MobilizedBody::EllipsoidImpl : public MobilizedBodyImpl {
 public:
-    EllipsoidImpl() : defaultRadii(0.5,1/3.,0.25), defaultQ() { } // default is (1,0,0,0), the identity rotation
+    explicit EllipsoidImpl(Direction d) 
+    :   MobilizedBodyImpl(d), defaultRadii(0.5,1/3.,0.25), defaultQ() { } // default is (1,0,0,0), the identity rotation
     EllipsoidImpl* clone() const { return new EllipsoidImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(

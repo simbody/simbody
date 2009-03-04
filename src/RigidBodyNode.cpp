@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *    Charles Schwieters (NIH): wrote the public domain IVM code from which   *
@@ -2612,11 +2612,12 @@ public:
                   const Transform&      X_PF,
                   const Transform&      X_BM,
                   const Vec3&           radii, // x,y,z
+                  bool                  isReversed,
                   UIndex&               nextUSlot,
                   USquaredIndex&        nextUSqSlot,
                   QIndex&               nextQSlot)
       : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                             QDotMayDifferFromU, QuaternionMayBeUsed),
+                             QDotMayDifferFromU, QuaternionMayBeUsed, isReversed),
         semi(radii)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
@@ -2778,7 +2779,7 @@ public:
         HType&               H_FM) const
     {
         const SBPositionCache& pc = sbs.updPositionCache();
-		const Vec3& n = getX_FM(pc).z();
+        const Vec3 n = isReversed() ? (~getX_FM(pc)).z() : getX_FM(pc).z();
 
 		H_FM(0) = SpatialVec( Vec3(1,0,0), Vec3(      0,      -n[2]*semi[1], n[1]*semi[2]) );
 		H_FM(1) = SpatialVec( Vec3(0,1,0), Vec3( n[2]*semi[0],       0,     -n[0]*semi[2]) );
@@ -2791,10 +2792,18 @@ public:
     {
         const SBPositionCache& pc = sbs.getPositionCache();
         const SBVelocityCache& vc = sbs.getVelocityCache();
-		const Vec3& n     = getX_FM(pc).z(); // ellipsoid normal
-		const Vec3& w_FM = getV_FM(vc)[0];  // angular velocity of M in F
 
-		const Vec3 ndot = w_FM % n; // time derivative of n in F
+        Vec3 ndot;
+        if (isReversed()) {
+            const Transform X_FM = ~getX_FM(pc);
+            const Vec3& n = X_FM.z();
+            const Vec3 w_FM = -(X_FM.R()*getV_FM(vc)[0]);
+            ndot = w_FM % n;
+        } else {
+		    const Vec3& n    = getX_FM(pc).z(); // ellipsoid normal
+		    const Vec3& w_FM = getV_FM(vc)[0];  // angular velocity of M in F
+            ndot = w_FM % n; // time derivative of n in F
+        }
 
 		H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(      0,         -ndot[2]*semi[1], ndot[1]*semi[2]) );
 		H_FM_Dot(1) = SpatialVec( Vec3(0), Vec3( ndot[2]*semi[0],       0,        -ndot[0]*semi[2]) );
@@ -4469,13 +4478,13 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
     const HType& H_FM = getH_FM(pc);
 
     // want r_MB_F, that is, the vector from OM to OB, expressed in F
-    const Vec3&     r_MB   = getX_MB().p();    // fixed
-    const Rotation& R_FM   = getX_FM(pc).R(); // just calculated
-    const Vec3      r_MB_F = R_FM*r_MB;
+    const Vec3&     r_MB   = getX_MB().p();     // fixed
+    const Rotation& R_FM   = getX_FM(pc).R();   // just calculated
+    const Vec3      r_MB_F = R_FM*r_MB;         // 15 flops
 
     HType H_MB;
     H_MB[0] = Vec3(0); // fills top row with zero
-    H_MB[1] = ~crossMat(r_MB_F) * H_FM[0];
+    H_MB[1] = ~crossMat(r_MB_F) * H_FM[0];      // 15*dof + 3 flops
 
     // Now we want R_GF so we can reexpress the cross-joint velocity V_FB (==V_PB)
     // in the ground frame, to get V_PB_G.
@@ -4484,9 +4493,9 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
 
     // Calculated already since we're going base to tip.
     const Rotation& R_GP = getX_GP(pc).R(); // parent orientation in ground
-    const Rotation  R_GF = R_GP * R_PF;
+    const Rotation  R_GF = R_GP * R_PF;     // 45 flops
 
-    H_PB_G =  R_GF * (H_FM + H_MB);
+    H_PB_G =  R_GF * (H_FM + H_MB);         // 36*dof flops
 }
 
 // Same for all mobilizers.
@@ -4505,34 +4514,34 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     HType H_MB, H_MB_Dot;
 
     // want r_MB_F, that is, the vector from OM to OB, expressed in F
-    const Vec3&     r_MB   = getX_MB().p();    // fixed
-    const Rotation& R_FM   = getX_FM(pc).R(); // just calculated
-    const Vec3      r_MB_F = R_FM*r_MB;
+    const Vec3&     r_MB   = getX_MB().p();     // fixed
+    const Rotation& R_FM   = getX_FM(pc).R();   // just calculated
+    const Vec3      r_MB_F = R_FM*r_MB;         // 15 flops
 
     const Vec3& w_FM = getV_FM(vc)[0]; // local angular velocity
 
     H_MB[0] = Vec3(0); // fills top row with zero
-    H_MB[1] = ~crossMat(r_MB_F) * H_FM[0];
+    H_MB[1] = ~crossMat(r_MB_F) * H_FM[0];      // 15*dof + 3 flops
 
     H_MB_Dot[0] = Vec3(0);
-    H_MB_Dot[1] =   ~crossMat(r_MB_F)        * H_FM_Dot[0] 
+    H_MB_Dot[1] =   ~crossMat(r_MB_F)        * H_FM_Dot[0] // 30*dof + 18 flops
                   + ~crossMat(w_FM % r_MB_F) * H_FM[0];
 
     // Now we want R_GF so we can reexpress the cross-joint velocity V_FB (==V_PB)
     // in the ground frame, to get V_PB_G.
 
-    const Rotation& R_PF = getX_PF().R();      // fixed config of F in P
+    const Rotation& R_PF = getX_PF().R();       // fixed config of F in P
 
     // Calculated already since we're going base to tip.
-    const Rotation& R_GP = getX_GP(pc).R(); // parent orientation in ground
-    const Rotation  R_GF = R_GP * R_PF;
+    const Rotation& R_GP = getX_GP(pc).R();     // parent orientation in ground
+    const Rotation  R_GF = R_GP * R_PF;         // 45 flops
 
     const Vec3& w_GF = getV_GP(vc)[0]; // F and P have same angular velocity
 
     // Note: time derivative of R_GF is crossMat(w_GF)*R_GF.
     //      H = H_PB_G =  R_GF * (H_FM + H_MB) (see above method)
     const HType& H_PB_G = getH(pc);
-    H_PB_G_Dot =   R_GF * (H_FM_Dot + H_MB_Dot)
+    H_PB_G_Dot =   R_GF * (H_FM_Dot + H_MB_Dot)     // 66*dof + 3
                  + crossMat(w_GF) * H_PB_G;
 }
 
@@ -4557,11 +4566,12 @@ RigidBodyNodeSpec<dof>::calcReverseMobilizerH_FM(
     const Rotation& R_FM = getX_FM(pc).R();
     const Vec3&     p_FM = getX_FM(pc).p();
 
-    // Make cross product matrix.
-    const Mat33     p_FM_x  = crossMat(p_FM);
+    // Make cross product matrix (3 flops). Saves a few flops (3*dof) to
+    // transpose this and get the negative of the cross product matrix.
+    const Mat33     np_FM_x  = ~crossMat(p_FM);
 
-    H_FM[0] = -(R_FM * H_MF[0]);
-    H_FM[1] = -(R_FM * H_MF[1] + p_FM_x * H_FM[0]);
+    H_FM[0] = -(R_FM * H_MF[0]);                // 18*dof flops
+    H_FM[1] = np_FM_x * H_FM[0] - R_FM*H_MF[1]; // 33*dof flops
 }
 
 // This is the default implementation for turning HDot_MF into HDot_FM. 
@@ -4596,16 +4606,16 @@ RigidBodyNodeSpec<dof>::calcReverseMobilizerHDot_FM(
     const Vec3&     v_FM    = getV_FM(vc)[1];
     
     // Make cross product matrices.
-    const Mat33     p_FM_x  = crossMat(p_FM);
-    const Mat33     w_FM_x  = crossMat(w_FM);
-    const Mat33     v_FM_x  = crossMat(v_FM);
-    const Mat33     vwp     = v_FM_x - w_FM_x*p_FM_x;
+    const Mat33     p_FM_x  = crossMat(p_FM);   // 3 flops
+    const Mat33     w_FM_x  = crossMat(w_FM);   // 3 flops
+    const Mat33     v_FM_x  = crossMat(v_FM);   // 3 flops
+    const Mat33     vwp     = v_FM_x - w_FM_x*p_FM_x;   // 54 flops
 
     // Initialize both rows with the first two terms above.
-    HDot_FM = -(R_FM * HDot_MF) + w_FM_x * H_FM;
+    HDot_FM = w_FM_x*H_FM - R_FM*HDot_MF;               // 66*dof flops
 
     // Add in the additional terms in the second row.
-    HDot_FM[1] -= p_FM_x * HDot_FM[0] + vwp * H_FM[0];
+    HDot_FM[1] -= p_FM_x * HDot_FM[0] + vwp * H_FM[0];  // 36*dof flops
 }
 
 //
@@ -5067,6 +5077,7 @@ RigidBodyNode* MobilizedBody::EllipsoidImpl::createRigidBodyNode(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
         getDefaultRadii(),
+        isReversed(),
         nextUSlot,nextUSqSlot,nextQSlot);
 }
 

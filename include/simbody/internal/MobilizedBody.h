@@ -1876,20 +1876,27 @@ public:
 /// joint, that is, a quaternion or 1-2-3 Euler sequence.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Ellipsoid : public MobilizedBody {
 public:
-    // The ellipsoid is placed on the mobilizer's inboard frame F, with
-    // half-axis dimensions along F's x,y,z respectively.
-    Ellipsoid(); // not very useful until radii are set, but has some defaults
-    explicit Ellipsoid(const Vec3& radii);
-    Ellipsoid(Real a, Real b, Real c);
+    /// The ellipsoid is placed on the mobilizer's inboard frame F, with
+    /// half-axis dimensions along F's x,y,z respectively.
+    explicit Ellipsoid(Direction=Forward); // not very useful until radii are set, but has some defaults
 
     /// By default the parent body frame and the body's own frame are
     /// used as the inboard and outboard mobilizer frames, resp.
-    Ellipsoid(MobilizedBody& parent, const Body&);
+    Ellipsoid(MobilizedBody& parent, const Body&, Direction=Forward);
 
     /// Use this constructor to specify mobilizer frames which are
     /// not coincident with the body frames.
     Ellipsoid(MobilizedBody& parent, const Transform& inbFrame,
-              const Body&,           const Transform& outbFrame);
+              const Body&,           const Transform& outbFrame,
+              Direction=Forward);
+
+    /// Use this constructor to specify mobilizer frames which are
+    /// not coincident with the body frames, and give the radii at
+    /// the same time.
+    Ellipsoid(MobilizedBody& parent, const Transform& inbFrame,
+              const Body&,           const Transform& outbFrame,
+              const Vec3& radii,
+              Direction=Forward);
 
     Ellipsoid& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
@@ -1922,6 +1929,22 @@ public:
     const Quaternion& getDefaultQ() const;
     Quaternion& updDefaultQ();
     Ellipsoid& setDefaultQ(const Quaternion& q) {updDefaultQ()=q; return *this;}
+
+    const Vec4& getQ(const State&) const;
+    const Vec4& getQDot(const State&) const;
+    const Vec4& getQDotDot(const State&) const;
+    const Vec3& getU(const State&) const;
+    const Vec3& getUDot(const State&) const;
+
+    void setQ(State&, const Vec4&) const;
+    void setU(State&, const Vec3&) const;
+
+    const Vec4& getMyPartQ(const State&, const Vector& qlike) const;
+    const Vec3& getMyPartU(const State&, const Vector& ulike) const;
+   
+    Vec4& updMyPartQ(const State&, Vector& qlike) const;
+    Vec3& updMyPartU(const State&, Vector& ulike) const;
+
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Ellipsoid, EllipsoidImpl, MobilizedBody);
 };
 
