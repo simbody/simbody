@@ -188,9 +188,8 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
  */
 class RBGroundBody : public RigidBodyNode {
 public:
-    RBGroundBody() : RigidBodyNode(
-        MassProperties(Infinity, Vec3(0), Infinity*Inertia(1)),
-        Transform(), Transform(), QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed) 
+    RBGroundBody(const MassProperties& mProps_B, const Transform& X_PF, const Transform& X_BM) : 
+        RigidBodyNode(mProps_B, X_PF, X_BM, QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed) 
     {
         uIndex   = UIndex(0);
         uSqIndex = USquaredIndex(0);
@@ -3973,6 +3972,169 @@ public:
 };
 
 
+    // WELD //
+
+// This is a "joint" with no degrees of freedom, that simply forces
+// the two reference frames to be identical.
+class RBNodeWeld : public RBGroundBody {
+public:
+    const char* type() { return "weld"; }
+
+    RBNodeWeld(const MassProperties& mProps_B, const Transform& X_PF, const Transform& X_BM) : RBGroundBody(mProps_B, X_PF, X_BM) {
+    }
+
+    void realizePosition(SBStateDigest& sbs) const {
+        SBPositionCache& pc = sbs.updPositionCache();
+
+        const Transform& X_BM = getX_BM();   // fixed
+        const Transform& X_PF = getX_PF();   // fixed
+        const Transform& X_GP = getX_GP(pc); // already calculated
+
+        updX_FM(pc).setToZero();
+        updX_PB(pc) = X_PF * ~X_BM; // TODO: precalculate X_MB
+        updX_GB(pc) = X_GP * getX_PB(pc);
+        const Vec3 T_PB_G = getX_GP(pc).R() * getX_PB(pc).T();
+
+        // The Phi matrix conveniently performs child-to-parent (inward) shifting
+        // on spatial quantities (forces); its transpose does parent-to-child
+        // (outward) shifting for velocities.
+        updPhi(pc) = PhiMatrix(T_PB_G);
+
+        // Calculate spatial mass properties. That means we need to transform
+        // the local mass moments into the Ground frame and reconstruct the
+        // spatial inertia matrix Mk.
+
+        updInertia_OB_G(pc) = getInertia_OB_B().reexpress(~getX_GB(pc).R());
+        updCB_G(pc)         = getX_GB(pc).R()*getCOM_B();
+        updCOM_G(pc) = getX_GB(pc).T() + getCB_G(pc);
+
+        // Calc Mk: the spatial inertia matrix about the body origin.
+        // Note that this is symmetric; offDiag is *skew* symmetric so
+        // that transpose(offDiag) = -offDiag.
+        // Note: we need to calculate this now so that we'll be able to calculate
+        // kinetic energy without going past the Velocity stage.
+        
+        const Mat33 offDiag = getMass()*crossMat(getCB_G(pc));
+        updMk(pc) = SpatialMat( getInertia_OB_G(pc).toMat33() ,     offDiag ,
+                                       -offDiag             , getMass()*Mat33(1) );
+    }
+    
+    void realizeVelocity(SBStateDigest& sbs) const {
+        const SBPositionCache& pc = sbs.getPositionCache();
+        SBVelocityCache& vc = sbs.updVelocityCache();
+
+        updV_FM(vc) = 0;
+        updV_PB_G(vc) = 0;
+        calcJointIndependentKinematicsVel(pc,vc);
+    }
+
+    void realizeDynamics(SBStateDigest& sbs) const {
+        // Mobilizer-specific.
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBVelocityCache& vc = sbs.getVelocityCache();
+        SBDynamicsCache& dc = sbs.updDynamicsCache();
+        
+        updVD_PB_G(dc) = 0;
+
+        // Mobilizer independent.
+        calcJointIndependentDynamicsVel(pc,vc,dc);
+    }
+
+    void calcArticulatedBodyInertiasInward(const SBPositionCache& pc, SBDynamicsCache& dc) const {
+        updP(dc) = getMk(pc);
+        updTauBar(dc)  = 1.; // identity matrix
+        updPsi(dc)     = getPhi(pc) * getTauBar(dc);
+    }
+    
+    void calcQDotDot(const SBStateDigest& sbs, const Vector& udot, Vector& qdotdot) const {
+    }
+    
+    void calcUDotPass1Inward(
+        const SBPositionCache&      pc,
+        const SBDynamicsCache&      dc,
+        const Vector&               jointForces,
+        const Vector_<SpatialVec>&  bodyForces,
+        Vector_<SpatialVec>&        allZ,
+        Vector_<SpatialVec>&        allGepsilon,
+        Vector&                     allEpsilon) const 
+    {
+        const SpatialVec& myBodyForce  = fromB(bodyForces);
+        SpatialVec&       z            = toB(allZ);
+        SpatialVec&       Geps         = toB(allGepsilon);
+
+        z = getCentrifugalForces(dc) - myBodyForce;
+
+        for (int i=0 ; i<(int)children.size() ; i++) {
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
+            const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
+
+            z += phiChild * (zChild + GepsChild);
+        }
+
+        Geps = 0;
+    }
+
+    void calcUDotPass2Outward(
+        const SBPositionCache& pc,
+        const SBDynamicsCache& dc,
+        const Vector&          allEpsilon,
+        Vector_<SpatialVec>&   allA_GB,
+        Vector&                allUDot) const
+    {
+        SpatialVec&     A_GB = toB(allA_GB);
+
+        // Shift parent's A_GB outward. (Ground A_GB is zero.)
+        const SpatialVec A_GP = parent->getNodeNum()== 0 
+            ? SpatialVec(Vec3(0), Vec3(0))
+            : ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+
+        A_GB = A_GP + getCoriolisAcceleration(dc);  
+    }
+    
+    void calcMInverseFPass1Inward(
+        const SBPositionCache& pc,
+        const SBDynamicsCache& dc,
+        const Vector&          f,
+        Vector_<SpatialVec>&   allZ,
+        Vector_<SpatialVec>&   allGepsilon,
+        Vector&                allEpsilon) const 
+    {
+        SpatialVec&       z            = toB(allZ);
+        SpatialVec&       Geps         = toB(allGepsilon);
+
+        z = SpatialVec(Vec3(0), Vec3(0));
+
+        for (int i=0 ; i<(int)children.size() ; i++) {
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
+            const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
+
+            z += phiChild * (zChild + GepsChild);
+        }
+
+        Geps = 0;
+    }
+
+    void calcMInverseFPass2Outward(
+        const SBPositionCache& pc,
+        const SBDynamicsCache& dc,
+        const Vector&          allEpsilon,
+        Vector_<SpatialVec>&   allA_GB,
+        Vector&                allUDot) const
+    {
+        SpatialVec&     A_GB = toB(allA_GB);
+
+        // Shift parent's A_GB outward. (Ground A_GB is zero.)
+        const SpatialVec A_GP = parent->getNodeNum()== 0 
+            ? SpatialVec(Vec3(0), Vec3(0))
+            : ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+
+        A_GB = A_GP;
+    }
+};
+
+
 /////////////////////////////////////////
 // RigidBodyNode for custom mobilizers //
 /////////////////////////////////////////
@@ -4725,7 +4887,7 @@ RigidBodyNodeSpec<dof>::calcEquivalentJointForces(
 // The Ground node is special because it doesn't need a mobilizer.
 /*static*/ RigidBodyNode*
 RigidBodyNode::createGroundNode() {
-    return new RBGroundBody();
+    return new RBGroundBody(MassProperties(Infinity, Vec3(0), Infinity*Inertia(1)), Transform(), Transform());
 }
 
 
@@ -4890,11 +5052,9 @@ RigidBodyNode* MobilizedBody::WeldImpl::createRigidBodyNode(
     USquaredIndex& nextUSqSlot,
     QIndex&        nextQSlot) const
 {
-    assert(!"Weld (im)MobilizedBody not implemented yet"); return 0;
-    // return new RBNodeWeld(
-    //     getDefaultRigidBodyMassProperties(),
-    //     getDefaultInboardFrame(),getDefaultOutboardFrame(),
-    //     nextUSlot,nextUSqSlot,nextQSlot);
+    return new RBNodeWeld(
+        getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame());
 }
 
 
@@ -4903,7 +5063,7 @@ RigidBodyNode* MobilizedBody::GroundImpl::createRigidBodyNode(
     USquaredIndex& nextUSqSlot,
     QIndex&        nextQSlot) const
 {
-    return new RBGroundBody();
+    return RigidBodyNode::createGroundNode();
 }
 
 RigidBodyNode* MobilizedBody::CustomImpl::createRigidBodyNode(
