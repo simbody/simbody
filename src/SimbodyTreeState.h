@@ -533,10 +533,10 @@ public:
 
     // CAUTION: our definition of the H matrix is transposed from those used
     // by Jain and by Schwieters.
-    Matrix_<Vec3> storageForH_FM_Dot; // 2 x ndof (~H_FM_Dot)
-    Matrix_<Vec3> storageForHDot;     // 2 x ndof (~H_PB_G_Dot)
+    Matrix_<Vec3> storageForHDot_FM;  // 2 x ndof (HDot_FM)
+    Matrix_<Vec3> storageForHDot;     // 2 x ndof (HDot_PB_G)
 
-    Vector_<SpatialVec> bodyVelocityInParentDerivRemainder; // VB_PB_G=~H_PB_G_Dot*u
+    Vector_<SpatialVec> bodyVelocityInParentDerivRemainder; // VB_PB_G=HDot_PB_G*u
 
     Vector_<SpatialVec> coriolisAcceleration;     // nb (a)
     Vector_<SpatialVec> totalCoriolisAcceleration;// nb (A)
@@ -561,7 +561,7 @@ public:
         const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need     
         
         articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
-        storageForH_FM_Dot.resize(2,nDofs);
+        storageForHDot_FM.resize(2,nDofs);
         storageForHDot.resize(2,nDofs);
 
         bodyVelocityInParentDerivRemainder.resize(nBodies);       

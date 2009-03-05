@@ -433,7 +433,8 @@ const RigidBodyNode& MobilizedBodyImpl::realizeTopology
 MobilizedBody::Pin::Pin(Direction d) : MobilizedBody(new PinImpl(d)) {
 }
 
-MobilizedBody::Pin::Pin(MobilizedBody& parent, const Body& body, Direction d) : MobilizedBody(new PinImpl(d)) {
+MobilizedBody::Pin::Pin(MobilizedBody& parent, const Body& body, Direction d) 
+:   MobilizedBody(new PinImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -442,8 +443,8 @@ MobilizedBody::Pin::Pin(MobilizedBody& parent, const Body& body, Direction d) : 
 }
 
 MobilizedBody::Pin::Pin(MobilizedBody& parent, const Transform& inbFrame,
-                        const Body& body, const Transform& outbFrame,
-                        Direction d) : MobilizedBody(new PinImpl(d)) {
+                        const Body& body, const Transform& outbFrame, Direction d) 
+:   MobilizedBody(new PinImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -527,10 +528,11 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Pin, MobilizedBody::PinIm
     // MOBILIZED BODY::SLIDER //
     ////////////////////////////
 
-MobilizedBody::Slider::Slider() : MobilizedBody(new SliderImpl()) {
+MobilizedBody::Slider::Slider(Direction d) : MobilizedBody(new SliderImpl(d)) {
 }
 
-MobilizedBody::Slider::Slider(MobilizedBody& parent, const Body& body) : MobilizedBody(new SliderImpl()) {
+MobilizedBody::Slider::Slider(MobilizedBody& parent, const Body& body, Direction d) 
+:   MobilizedBody(new SliderImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -539,7 +541,8 @@ MobilizedBody::Slider::Slider(MobilizedBody& parent, const Body& body) : Mobiliz
 }
 
 MobilizedBody::Slider::Slider(MobilizedBody& parent, const Transform& inbFrame,
-                        const Body& body, const Transform& outbFrame) : MobilizedBody(new SliderImpl()) {
+                              const Body& body, const Transform& outbFrame, Direction d) 
+:   MobilizedBody(new SliderImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -622,11 +625,12 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Slider, MobilizedBody::Sl
     // MOBILIZED BODY::UNIVERSAL //
     ///////////////////////////////
 
-MobilizedBody::Universal::Universal() : MobilizedBody(new UniversalImpl()) {
+MobilizedBody::Universal::Universal(Direction d) : MobilizedBody(new UniversalImpl(d)) {
 }
 
 
-MobilizedBody::Universal::Universal(MobilizedBody& parent, const Body& body) : MobilizedBody(new UniversalImpl()) {
+MobilizedBody::Universal::Universal(MobilizedBody& parent, const Body& body, Direction d) 
+:   MobilizedBody(new UniversalImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -635,7 +639,8 @@ MobilizedBody::Universal::Universal(MobilizedBody& parent, const Body& body) : M
 }
 
 MobilizedBody::Universal::Universal(MobilizedBody& parent, const Transform& inbFrame,
-                                    const Body& body, const Transform& outbFrame) : MobilizedBody(new UniversalImpl()) {
+                                    const Body& body, const Transform& outbFrame, Direction d) 
+:   MobilizedBody(new UniversalImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -650,10 +655,11 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Universal, MobilizedBody:
     // MOBILIZED BODY::CYLINDER //
     //////////////////////////////
 
-MobilizedBody::Cylinder::Cylinder() : MobilizedBody(new CylinderImpl()) {
+MobilizedBody::Cylinder::Cylinder(Direction d) : MobilizedBody(new CylinderImpl(d)) {
 }
 
-MobilizedBody::Cylinder::Cylinder(MobilizedBody& parent, const Body& body) : MobilizedBody(new CylinderImpl()) {
+MobilizedBody::Cylinder::Cylinder(MobilizedBody& parent, const Body& body, Direction d) 
+:   MobilizedBody(new CylinderImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -662,7 +668,8 @@ MobilizedBody::Cylinder::Cylinder(MobilizedBody& parent, const Body& body) : Mob
 }
 
 MobilizedBody::Cylinder::Cylinder(MobilizedBody& parent, const Transform& inbFrame,
-                                  const Body& body, const Transform& outbFrame) : MobilizedBody(new CylinderImpl()) {
+                                  const Body& body, const Transform& outbFrame, Direction d) 
+:   MobilizedBody(new CylinderImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -677,11 +684,12 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Cylinder, MobilizedBody::
     // MOBILIZED BODY::BEND STRETCH //
     //////////////////////////////////
 
-MobilizedBody::BendStretch::BendStretch() : MobilizedBody(new BendStretchImpl()) {
+MobilizedBody::BendStretch::BendStretch(Direction d) : MobilizedBody(new BendStretchImpl(d)) {
 }
 
 
-MobilizedBody::BendStretch::BendStretch(MobilizedBody& parent, const Body& body) : MobilizedBody(new BendStretchImpl()) {
+MobilizedBody::BendStretch::BendStretch(MobilizedBody& parent, const Body& body, Direction d) 
+:   MobilizedBody(new BendStretchImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -690,7 +698,8 @@ MobilizedBody::BendStretch::BendStretch(MobilizedBody& parent, const Body& body)
 }
 
 MobilizedBody::BendStretch::BendStretch(MobilizedBody& parent, const Transform& inbFrame,
-                                        const Body& body, const Transform& outbFrame) : MobilizedBody(new BendStretchImpl()) {
+                                        const Body& body, const Transform& outbFrame, Direction d) 
+:   MobilizedBody(new BendStretchImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -802,11 +811,12 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Planar, MobilizedBody::Pl
     // MOBILIZED BODY::GIMBAL //
     ////////////////////////////
 
-MobilizedBody::Gimbal::Gimbal() : MobilizedBody(new GimbalImpl()) {
+MobilizedBody::Gimbal::Gimbal(Direction d) : MobilizedBody(new GimbalImpl(d)) {
 }
 
 
-MobilizedBody::Gimbal::Gimbal(MobilizedBody& parent, const Body& body) : MobilizedBody(new GimbalImpl()) {
+MobilizedBody::Gimbal::Gimbal(MobilizedBody& parent, const Body& body, Direction d) 
+:   MobilizedBody(new GimbalImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -815,7 +825,8 @@ MobilizedBody::Gimbal::Gimbal(MobilizedBody& parent, const Body& body) : Mobiliz
 }
 
 MobilizedBody::Gimbal::Gimbal(MobilizedBody& parent, const Transform& inbFrame,
-                                    const Body& body, const Transform& outbFrame) : MobilizedBody(new GimbalImpl()) {
+                                    const Body& body, const Transform& outbFrame, Direction d) 
+:   MobilizedBody(new GimbalImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -953,10 +964,11 @@ void MobilizedBody::GimbalImpl::calcDecorativeGeometryAndAppendImpl
     // MOBILIZED BODY::BALL (ORIENTATION, SPHERICAL) //
     ///////////////////////////////////////////////////
 
-MobilizedBody::Ball::Ball() : MobilizedBody(new BallImpl()) {
+MobilizedBody::Ball::Ball(Direction d) : MobilizedBody(new BallImpl(d)) {
 }
 
-MobilizedBody::Ball::Ball(MobilizedBody& parent, const Body& body) : MobilizedBody(new BallImpl()) {
+MobilizedBody::Ball::Ball(MobilizedBody& parent, const Body& body, Direction d) 
+:   MobilizedBody(new BallImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -965,7 +977,8 @@ MobilizedBody::Ball::Ball(MobilizedBody& parent, const Body& body) : MobilizedBo
 }
 
 MobilizedBody::Ball::Ball(MobilizedBody& parent, const Transform& inbFrame,
-                          const Body& body, const Transform& outbFrame) : MobilizedBody(new BallImpl()) {
+                          const Body& body, const Transform& outbFrame, Direction d) 
+:   MobilizedBody(new BallImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1115,9 +1128,8 @@ MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Body& body, Dir
 }
 
 MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Transform& inbFrame,
-                                    const Body& body,      const Transform& outbFrame,
-                                    Direction d)
-                                    :   MobilizedBody(new EllipsoidImpl(d)) {
+                                    const Body& body,      const Transform& outbFrame, Direction d)
+:   MobilizedBody(new EllipsoidImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1129,7 +1141,7 @@ MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Transform& inbF
 MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Transform& inbFrame,
                                     const Body& body,      const Transform& outbFrame,
                                     const Vec3& radii, Direction d)
-                                    :   MobilizedBody(new EllipsoidImpl(d)) {
+:   MobilizedBody(new EllipsoidImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1280,11 +1292,12 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ellipsoid, MobilizedBody:
     // MOBILIZED BODY::TRANSLATION //
     /////////////////////////////////
 
-MobilizedBody::Translation::Translation() : MobilizedBody(new TranslationImpl()) {
+MobilizedBody::Translation::Translation(Direction d) : MobilizedBody(new TranslationImpl(d)) {
 }
 
 
-MobilizedBody::Translation::Translation(MobilizedBody& parent, const Body& body) : MobilizedBody(new TranslationImpl()) {
+MobilizedBody::Translation::Translation(MobilizedBody& parent, const Body& body, Direction d) 
+:   MobilizedBody(new TranslationImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -1293,7 +1306,8 @@ MobilizedBody::Translation::Translation(MobilizedBody& parent, const Body& body)
 }
 
 MobilizedBody::Translation::Translation(MobilizedBody& parent, const Transform& inbFrame,
-                          const Body& body, const Transform& outbFrame) : MobilizedBody(new TranslationImpl()) {
+                          const Body& body, const Transform& outbFrame, Direction d) 
+:   MobilizedBody(new TranslationImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1505,11 +1519,12 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Free, MobilizedBody::Free
     // MOBILIZED BODY::LINE ORIENTATION //
     //////////////////////////////////////
 
-MobilizedBody::LineOrientation::LineOrientation() : MobilizedBody(new LineOrientationImpl()) {
+MobilizedBody::LineOrientation::LineOrientation(Direction d) : MobilizedBody(new LineOrientationImpl(d)) {
 }
 
 
-MobilizedBody::LineOrientation::LineOrientation(MobilizedBody& parent, const Body& body) : MobilizedBody(new LineOrientationImpl()) {
+MobilizedBody::LineOrientation::LineOrientation(MobilizedBody& parent, const Body& body, Direction d) 
+:   MobilizedBody(new LineOrientationImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -1518,7 +1533,8 @@ MobilizedBody::LineOrientation::LineOrientation(MobilizedBody& parent, const Bod
 }
 
 MobilizedBody::LineOrientation::LineOrientation(MobilizedBody& parent, const Transform& inbFrame,
-                          const Body& body, const Transform& outbFrame) : MobilizedBody(new LineOrientationImpl()) {
+                          const Body& body, const Transform& outbFrame, Direction d) 
+:   MobilizedBody(new LineOrientationImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1533,11 +1549,12 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::LineOrientation, Mobilize
     // MOBILIZED BODY::FREE LINE //
     ///////////////////////////////
 
-MobilizedBody::FreeLine::FreeLine() : MobilizedBody(new FreeLineImpl()) {
+MobilizedBody::FreeLine::FreeLine(Direction d) : MobilizedBody(new FreeLineImpl(d)) {
 }
 
 
-MobilizedBody::FreeLine::FreeLine(MobilizedBody& parent, const Body& body) : MobilizedBody(new FreeLineImpl()) {
+MobilizedBody::FreeLine::FreeLine(MobilizedBody& parent, const Body& body, Direction d) 
+:   MobilizedBody(new FreeLineImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -1546,7 +1563,8 @@ MobilizedBody::FreeLine::FreeLine(MobilizedBody& parent, const Body& body) : Mob
 }
 
 MobilizedBody::FreeLine::FreeLine(MobilizedBody& parent, const Transform& inbFrame,
-                                  const Body& body, const Transform& outbFrame) : MobilizedBody(new FreeLineImpl()) {
+                                  const Body& body, const Transform& outbFrame, Direction d) 
+:   MobilizedBody(new FreeLineImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1560,11 +1578,12 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::FreeLine, MobilizedBody::
     // MOBILIZED BODY::WELD //
     //////////////////////////
 
-MobilizedBody::Weld::Weld() : MobilizedBody(new WeldImpl()) {
+MobilizedBody::Weld::Weld() : MobilizedBody(new WeldImpl(MobilizedBody::Forward)) {
 }
 
 
-MobilizedBody::Weld::Weld(MobilizedBody& parent, const Body& body) : MobilizedBody(new WeldImpl()) {
+MobilizedBody::Weld::Weld(MobilizedBody& parent, const Body& body) 
+:   MobilizedBody(new WeldImpl(MobilizedBody::Forward)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -1573,7 +1592,8 @@ MobilizedBody::Weld::Weld(MobilizedBody& parent, const Body& body) : MobilizedBo
 }
 
 MobilizedBody::Weld::Weld(MobilizedBody& parent, const Transform& inbFrame,
-                                  const Body& body, const Transform& outbFrame) : MobilizedBody(new WeldImpl()) {
+                          const Body& body, const Transform& outbFrame) 
+:   MobilizedBody(new WeldImpl(MobilizedBody::Forward)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1598,10 +1618,11 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ground, MobilizedBody::Gr
     // MOBILIZED BODY::SCREW //
     ///////////////////////////
 
-MobilizedBody::Screw::Screw(Real pitch) : MobilizedBody(new ScrewImpl(pitch)) {
+MobilizedBody::Screw::Screw(Real pitch, Direction d) : MobilizedBody(new ScrewImpl(pitch,d)) {
 }
 
-MobilizedBody::Screw::Screw(MobilizedBody& parent, const Body& body, Real pitch) : MobilizedBody(new ScrewImpl(pitch)) {
+MobilizedBody::Screw::Screw(MobilizedBody& parent, const Body& body, Real pitch, Direction d) 
+:   MobilizedBody(new ScrewImpl(pitch,d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
 
@@ -1611,7 +1632,8 @@ MobilizedBody::Screw::Screw(MobilizedBody& parent, const Body& body, Real pitch)
 
 MobilizedBody::Screw::Screw(MobilizedBody& parent, const Transform& inbFrame,
                             const Body& body, const Transform& outbFrame,
-                            Real pitch) : MobilizedBody(new ScrewImpl(pitch)) {
+                            Real pitch, Direction d) 
+:   MobilizedBody(new ScrewImpl(pitch,d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);
@@ -1706,12 +1728,16 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Screw, MobilizedBody::Scr
 // We are given an Implementation object which is already holding a CustomImpl
 // object for us. We'll first take away ownership of the CustomImpl, then
 // make the CustomImpl take over ownership of the Implementation object.
-MobilizedBody::Custom::Custom(MobilizedBody& parent, MobilizedBody::Custom::Implementation* implementation, const Body& body)
-    : MobilizedBody(implementation ? implementation->updImpl().removeOwnershipOfCustomImpl() : 0)
+MobilizedBody::Custom::Custom
+   (MobilizedBody& parent, MobilizedBody::Custom::Implementation* implementation, 
+    const Body& body, Direction d)
+:   MobilizedBody(implementation ? implementation->updImpl().removeOwnershipOfCustomImpl() : 0)
 {
     SimTK_ASSERT_ALWAYS(implementation,
         "MobilizedBody::Custom::Custom(): Implementation pointer was NULL.");
     setBody(body);
+
+    updImpl().setDirection(d);
     
     // Now store the Implementation pointer in our CustomImpl. The Implementation
     // object retains its original pointer to the CustomImpl object so it can
@@ -1722,14 +1748,19 @@ MobilizedBody::Custom::Custom(MobilizedBody& parent, MobilizedBody::Custom::Impl
     updImpl().updMyMatterSubsystemRep().adoptMobilizedBody(parent.getMobilizedBodyIndex(), *this);
 }
 
-MobilizedBody::Custom::Custom(MobilizedBody& parent, MobilizedBody::Custom::Implementation* implementation, const Transform& inbFrame, const Body& body, const Transform& outbFrame)
-    : MobilizedBody(implementation ? implementation->updImpl().removeOwnershipOfCustomImpl() : 0)
+MobilizedBody::Custom::Custom
+   (MobilizedBody& parent, MobilizedBody::Custom::Implementation* implementation, 
+    const Transform& inbFrame, const Body& body, const Transform& outbFrame,
+    Direction d)
+:   MobilizedBody(implementation ? implementation->updImpl().removeOwnershipOfCustomImpl() : 0)
 {
     SimTK_ASSERT_ALWAYS(implementation,
         "MobilizedBody::Custom::Custom(): Implementation pointer was NULL.");
     setBody(body);
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
+
+    updImpl().setDirection(d);
     
     // Now store the Implementation pointer in our CustomImpl. The Implementation
     // object retains its original pointer to the CustomImpl object so it can
@@ -1765,8 +1796,10 @@ void MobilizedBody::CustomImpl::takeOwnershipOfImplementation(Custom::Implementa
 // MOBILIZED BODY::CUSTOM::IMPLEMENTATION //
 ////////////////////////////////////////////
 
+// We create the initial CustomImpl as though it the mobilizer will be in the forward direction.
+// However, that may be changed later when this implementation is put to use.
 MobilizedBody::Custom::Implementation::Implementation(SimbodyMatterSubsystem& matter, int nu, int nq, int nAngles) 
-: PIMPLHandle<Implementation,ImplementationImpl>(new ImplementationImpl(new CustomImpl(), nu, nq, nAngles)) {
+: PIMPLHandle<Implementation,ImplementationImpl>(new ImplementationImpl(new CustomImpl(MobilizedBody::Forward), nu, nq, nAngles)) {
     assert(nu > 0);
     assert(nq > 0);
     assert(nAngles >= 0);
@@ -1850,14 +1883,21 @@ Vector MobilizedBody::Custom::Implementation::getQDotDot(const State& state) con
     return qdotdot;
 }
 
-const Transform&  MobilizedBody::Custom::Implementation::getMobilizerTransform(const State& s) const {
+// Careful: must return the transform X_F0M0 using the "as defined" frames, rather than
+// X_FM which might be reversed due to mobilizer reversal.
+Transform MobilizedBody::Custom::Implementation::getMobilizerTransform(const State& s) const {
     const SBPositionCache& pc = getImpl().getCustomImpl().getMyMatterSubsystemRep().getPositionCache(s, s.getSystemStage() < Stage::Position);
     const RigidBodyNode& node = getImpl().getCustomImpl().getMyRigidBodyNode();
-    return node.getX_FM(pc);
+    return node.findX_F0M0(pc);
 }
 
-const SpatialVec& MobilizedBody::Custom::Implementation::getMobilizerVelocity(const State& s) const {
-    return getImpl().getCustomImpl().getMobilizerVelocity(s);
+// Careful: must return the velocity V_F0M0 using the "as defined" frames, rather than
+// V_FM which might be reversed due to mobilizer reversal.
+SpatialVec MobilizedBody::Custom::Implementation::getMobilizerVelocity(const State& s) const {
+    const SBPositionCache& pc = getImpl().getCustomImpl().getMyMatterSubsystemRep().getPositionCache(s);
+    const SBVelocityCache& vc = getImpl().getCustomImpl().getMyMatterSubsystemRep().getVelocityCache(s, s.getSystemStage() < Stage::Velocity);
+    const RigidBodyNode& node = getImpl().getCustomImpl().getMyRigidBodyNode();
+    return node.findV_F0M0(pc,vc);
 }
 
 void MobilizedBody::Custom::Implementation::multiplyByN(const State& s, bool transposeMatrix, 
@@ -1956,23 +1996,43 @@ void MobilizedBody::Custom::Implementation::setUToFitVelocity(const State& state
 }
 
 // Constructors without user-specified axes for function-based mobilized body
-MobilizedBody::FunctionBased::FunctionBased(MobilizedBody& parent, const Body& body, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices)
-        : Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices), body) {
+MobilizedBody::FunctionBased::FunctionBased
+   (MobilizedBody& parent, const Body& body, 
+    int nmobilities, const std::vector<const Function<1>*>& functions, 
+    const std::vector<std::vector<int> >& coordIndices,
+    Direction direction)
+:   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices), body, direction) 
+{
 }
 
-MobilizedBody::FunctionBased::FunctionBased(MobilizedBody& parent, const Transform& inbFrame, const Body& body, const Transform& outbFrame, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices)
-        : Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices), body) {
+MobilizedBody::FunctionBased::FunctionBased
+   (MobilizedBody& parent, const Transform& inbFrame, 
+    const Body& body, const Transform& outbFrame, 
+    int nmobilities, const std::vector<const Function<1>*>& functions, 
+    const std::vector<std::vector<int> >& coordIndices,
+    Direction direction)
+:   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices), body, direction) 
+{
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
 }
 
 // Constructors that allow user-specified axes for function-based mobilized body
-MobilizedBody::FunctionBased::FunctionBased(MobilizedBody& parent, const Body& body, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes)
-        : Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices, axes), body) {
+MobilizedBody::FunctionBased::FunctionBased
+   (MobilizedBody& parent, const Body& body, 
+    int nmobilities, const std::vector<const Function<1>*>& functions, 
+    const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes,
+    Direction direction)
+:   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices, axes), body, direction) {
 }
 
-MobilizedBody::FunctionBased::FunctionBased(MobilizedBody& parent, const Transform& inbFrame, const Body& body, const Transform& outbFrame, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes)
-        : Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices, axes), body) {
+MobilizedBody::FunctionBased::FunctionBased
+   (MobilizedBody& parent, const Transform& inbFrame, 
+    const Body& body, const Transform& outbFrame, 
+    int nmobilities, const std::vector<const Function<1>*>& functions, 
+    const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes,
+    Direction direction)
+:   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices, axes), body, direction) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
 }

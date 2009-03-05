@@ -56,9 +56,18 @@ namespace SimTK {
 
 class MobilizedBodyImpl : public PIMPLImplementation<MobilizedBody,MobilizedBodyImpl> {
 public:
-    explicit MobilizedBodyImpl(MobilizedBody::Direction d=MobilizedBody::Forward) 
+    explicit MobilizedBodyImpl(MobilizedBody::Direction d) 
     :   reversed(d==MobilizedBody::Reverse), myMatterSubsystemRep(0), myLevel(-1), myRBnode(0) {
     }
+
+    void setDirection(MobilizedBody::Direction d) {
+        const bool wantReversed = (d==MobilizedBody::Reverse);
+        if (wantReversed != reversed) {
+            invalidateTopologyCache();
+            reversed = wantReversed;
+        }
+    }
+
     MobilizedBodyImpl(const MobilizedBodyImpl& clone) {
         *this = clone;
         myRBnode = 0;
@@ -416,7 +425,7 @@ private:
 
 class MobilizedBody::SliderImpl : public MobilizedBodyImpl {
 public:
-    SliderImpl() : defaultQ(0) { }
+    explicit SliderImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
     SliderImpl* clone() const { return new SliderImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -438,7 +447,7 @@ private:
 
 class MobilizedBody::UniversalImpl : public MobilizedBodyImpl {
 public:
-    UniversalImpl() : defaultQ(0) { }
+    explicit UniversalImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
     UniversalImpl* clone() const { return new UniversalImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -460,7 +469,7 @@ private:
 
 class MobilizedBody::CylinderImpl : public MobilizedBodyImpl {
 public:
-    CylinderImpl() : defaultQ(0) { }
+    explicit CylinderImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
     CylinderImpl* clone() const { return new CylinderImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -482,7 +491,7 @@ private:
 
 class MobilizedBody::BendStretchImpl : public MobilizedBodyImpl {
 public:
-    BendStretchImpl() : defaultQ(0) { }
+    explicit BendStretchImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
     BendStretchImpl* clone() const { return new BendStretchImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -526,7 +535,7 @@ private:
 
 class MobilizedBody::GimbalImpl : public MobilizedBodyImpl {
 public:
-    GimbalImpl() : defaultQ(0) { }
+    explicit GimbalImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
     GimbalImpl* clone() const { return new GimbalImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -559,7 +568,7 @@ private:
 
 class MobilizedBody::BallImpl : public MobilizedBodyImpl {
 public:
-    BallImpl() : defaultRadius(0.1), defaultQ() { } // default is (1,0,0,0), the identity rotation
+    explicit BallImpl(Direction d) : MobilizedBodyImpl(d), defaultRadius(0.1), defaultQ() { } // default is (1,0,0,0), the identity rotation
     BallImpl* clone() const { return new BallImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -632,7 +641,7 @@ private:
 
 class MobilizedBody::TranslationImpl : public MobilizedBodyImpl {
 public:
-    TranslationImpl() : defaultQ(0) { }
+    explicit TranslationImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
     TranslationImpl* clone() const { return new TranslationImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -683,7 +692,7 @@ private:
 
 class MobilizedBody::LineOrientationImpl : public MobilizedBodyImpl {
 public:
-    LineOrientationImpl() : defaultQ() { } // 1,0,0,0
+    explicit LineOrientationImpl(Direction d) : MobilizedBodyImpl(d), defaultQ() { } // 1,0,0,0
     LineOrientationImpl* clone() const { return new LineOrientationImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -708,7 +717,7 @@ private:
 
 class MobilizedBody::FreeLineImpl : public MobilizedBodyImpl {
 public:
-    FreeLineImpl() : defaultQOrientation(), defaultQTranslation(0) { }
+    explicit FreeLineImpl(Direction d) : MobilizedBodyImpl(d), defaultQOrientation(), defaultQTranslation(0) { }
     FreeLineImpl* clone() const { return new FreeLineImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -737,7 +746,7 @@ private:
 
 class MobilizedBody::WeldImpl : public MobilizedBodyImpl {
 public:
-    WeldImpl() { }
+    explicit WeldImpl(Direction d) : MobilizedBodyImpl(d) { }
     WeldImpl* clone() const { return new WeldImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -758,7 +767,7 @@ private:
 
 class MobilizedBody::GroundImpl : public MobilizedBodyImpl {
 public:
-    GroundImpl() { }
+    GroundImpl() : MobilizedBodyImpl(MobilizedBody::Forward) { }
     GroundImpl* clone() const { return new GroundImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -779,7 +788,7 @@ private:
 
 class MobilizedBody::ScrewImpl : public MobilizedBodyImpl {
 public:
-    explicit ScrewImpl(Real p) : defaultPitch(p), defaultQ(0) { }
+    ScrewImpl(Real p, Direction d) : MobilizedBodyImpl(d), defaultPitch(p), defaultQ(0) { }
 
     Real getDefaultPitch() const {return defaultPitch;}
     void setDefaultPitch(Real p) {
@@ -880,18 +889,20 @@ private:
 
 class MobilizedBody::CustomImpl : public MobilizedBodyImpl {
 public:
-    CustomImpl() : implementation(0) { }
+    explicit CustomImpl(Direction d) : MobilizedBodyImpl(d), implementation(0) { }
     
     void takeOwnershipOfImplementation(Custom::Implementation* userImpl);
     
-    explicit CustomImpl(Custom::Implementation* userImpl) : implementation(0) { 
+    explicit CustomImpl(Custom::Implementation* userImpl, Direction d)
+    :   MobilizedBodyImpl(d), implementation(0) { 
         assert(userImpl);
         implementation = userImpl;
         implementation->updImpl().setReferenceToCustomImpl(this);
     }    
     
     // Copy constructor
-    CustomImpl(const CustomImpl& src) : implementation(0) {
+    CustomImpl(const CustomImpl& src)
+    :   MobilizedBodyImpl(src), implementation(0) {
         if (src.implementation) {
             implementation = src.implementation->clone();
             implementation->updImpl().setReferenceToCustomImpl(this);

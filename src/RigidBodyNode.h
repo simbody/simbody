@@ -560,6 +560,13 @@ public:
     const Transform& getX_FM(const SBPositionCache& pc) const {return fromB(pc.bodyJointInParentJointFrame);}
     Transform&       updX_FM(SBPositionCache&       pc) const {return toB  (pc.bodyJointInParentJointFrame);}
 
+    // Return X_F0M0, the cross-joint mobilizer transform *as it was defined* in the mobilizer 
+    // specification. If the mobilizer has been reversed, then X_F0M0=~X_FM, otherwise it is 
+    // just X_FM.
+    Transform findX_F0M0(const SBPositionCache& pc) const 
+    {   return isReversed() ? Transform(~getX_FM(pc))
+                            : getX_FM(pc); }
+
     // Extract from the cache  X_PB, the cross-joint transformation matrix giving the configuration
     // of this body's frame B measured from and expressed in its *parent* frame P. Thus this is NOT
     // a spatial (ground frame) transformation.
@@ -607,6 +614,46 @@ public:
     const SpatialVec& getV_FM(const SBVelocityCache& vc) const {return fromB(vc.mobilizerRelativeVelocity);}
     SpatialVec&       updV_FM(SBVelocityCache&       vc) const {return toB  (vc.mobilizerRelativeVelocity);}
 
+    // Given V_AB, the spatial velocity of frame B in A expressed in A, return V_BA, the spatial 
+    // velocity of frame A in B, expressed in B. The reversal also requires knowing X_AB, the spatial 
+    // position and orientation of B in A. Theory:
+    //      V_BA = -R_BA * [        w_AB        ]
+    //                     [ v_AB + p_AB x w_AB ]
+    // This costs 45 flops. See reverseAngularVelocity() if that's all you need; it's a lot cheaper.
+    static SpatialVec reverseSpatialVelocity(const Transform& X_AB, const SpatialVec& V_AB) {
+        const Rotation& R_AB = X_AB.R();
+        const Vec3&     p_AB = X_AB.p();
+        const Vec3&     w_AB = V_AB[0];
+        const Vec3&     v_AB = V_AB[1];
+
+        return ~R_AB * SpatialVec( -w_AB,   (w_AB % p_AB) - v_AB );
+    }
+
+    // Given w_AB, the angular velocity of frame B in A expressed in A, return w_BA, the angular 
+    // velocity of frame A in B, expressed in B. The reversal also requires knowing R_AB, the 
+    // orientation of B in A. Theory:
+    //      w_BA = -R_BA*w_AB
+    // This is just a subset of what reverseSpatialVelocity does, but it is cheap and
+    // often all you need is the angular velocity.
+    // This costs 18 flops.
+    static Vec3 reverseAngularVelocity(const Rotation& R_AB, const Vec3& w_AB) {
+        return ~R_AB * (-w_AB);
+    }
+
+    // Return V_F0M0, the cross-joint mobilizer velocity *as it was defined* in the mobilizer 
+    // specification. If the mobilizer has not been reversed, this is just V_FM.
+    SpatialVec findV_F0M0(const SBPositionCache& pc, const SBVelocityCache& vc) const {
+        return isReversed() ? reverseSpatialVelocity(getX_FM(pc), getV_FM(vc))
+                            : getV_FM(vc);
+    }
+
+    // Return w_F0M0, the cross-joint mobilizer angular velocity *as it was defined* 
+    // in the mobilizer specification. If the mobilizer has not been reversed, this is just w_FM.
+    // This is a useful and much cheaper subset of findV_F0M0.
+    Vec3 find_w_F0M0(const SBPositionCache& pc, const SBVelocityCache& vc) const {
+        return isReversed() ? reverseAngularVelocity(getX_FM(pc).R(), getV_FM(vc)[0])
+                            : getV_FM(vc)[0];
+    }
 
     // Extract from the cache V_GB, the spatial velocity of this body's frame B measured in and
     // expressed in ground. This contains the angular velocity of B in G, and the linear velocity

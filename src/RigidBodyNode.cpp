@@ -381,7 +381,7 @@ public:
                       QIndex&               nextQSlot,
                       QDotHandling          qdotHandling,
                       QuaternionUse         quaternionUse,
-                      bool                  isReversed=false)
+                      bool                  isReversed)
       : RigidBodyNode(mProps_B, X_PF, X_BM, qdotHandling, quaternionUse, isReversed)
     {
         // don't call any virtual methods in here!
@@ -458,10 +458,13 @@ public:
     // quaternions already being available in the State cache.
     // This method constitutes the *definition* of the generalized coordinates for
     // a particular joint.
+    // Note: this calculates the transform between the *as defined* frames; we 
+    // might reverse the frames in use. So we call this X_F0M0 while the possibly reversed
+    // version is X_FM.
     virtual void calcAcrossJointTransform(
         const SBStateDigest& sbs,
         const Vector&        q,
-        Transform&           X_FM) const=0;
+        Transform&           X_F0M0) const=0;
 
 
     // This mandatory routine calculates the joint transition matrix H_FM, giving
@@ -473,28 +476,36 @@ public:
     // This routine can depend on X_FM having already
     // been calculated and available in the PositionCache but must NOT depend
     // on any quantities involving Ground or other bodies.
+    // Note: this calculates the H matrix *as defined*; we might reverse
+    // the frames in use. So we call this H_F0M0 while the possibly reversed
+    // version is H_FM. Be sure to use X_F0M0 in your calculation for H_F0M0
+    // if you need access to the cross-mobilizer transform.
     // CAUTION: our definition of H is transposed from Jain and Schwieters.
     virtual void calcAcrossJointVelocityJacobian(
         const SBStateDigest& sbs,
-        HType&               H_FM) const=0;
+        HType&               H_F0M0) const=0;
 
     // This mandatory routine calculates the time derivative taken in F of
-    // the matrix H_FM (call it H_FM_Dot). This is zero if the generalized
+    // the matrix H_FM (call it HDot_FM). This is zero if the generalized
     // speeds are all defined in terms of the F frame, which is often the case.
     // This routine can depend on X_FM and H_FM being available already in
     // the state PositionCache, and V_FM being already in the state VelocityCache.
     // However, it must NOT depend on any quantities involving Ground or other bodies.
+    // Note: this calculates the HDot matrix *as defined*; we might reverse
+    // the frames in use. So we call this HDot_F0M0 while the possibly reversed
+    // version is HDot_FM. Be sure to use X_F0M0 and V_F0M0 in your calculation
+    // of HDot_F0M0 if you need access to the cross-mobilizer transform and/or velocity.
     // CAUTION: our definition of H is transposed from Jain and Schwieters.
     virtual void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&               H_FM_Dot) const = 0;
+        HType&               HDot_F0M0) const = 0;
 
     // We allow a mobilizer to be defined in reverse when that is more
-    // convenient. That is, the H matrix can be defined by giving H_MF and 
-    // H_MF_Dot instead of H_FM(_Dot). In that case the following methods are
-    // called instead of the above; the default implementation postprocesses
-    // the output from the above methods, but a mobilizer can override it if
-    // it knows how to get the job done faster.
+    // convenient. That is, the H matrix can be defined by giving H_F0M0=H_MF and 
+    // HDot_F0M0=HDot_MF instead of H_FM and HDot_FM. In that case the 
+    // following methods are called instead of the above; the default 
+    // implementation postprocesses the output from the above methods, but a 
+    // mobilizer can override it if it knows how to get the job done faster.
     virtual void calcReverseMobilizerH_FM(
         const SBStateDigest& sbs,
         HType&               H_FM) const;
@@ -510,12 +521,12 @@ public:
         Transform&             X_PB, 
         Transform&             X_GB) const 
     {
-        const Transform& X_BM = getX_BM();   // fixed
+        const Transform& X_MB = getX_MB();   // fixed
         const Transform& X_PF = getX_PF();   // fixed
         const Transform& X_FM = getX_FM(pc); // just calculated
         const Transform& X_GP = getX_GP(pc); // already calculated
 
-        X_PB = X_PF * X_FM * ~X_BM; // TODO: precalculate X_MB
+        X_PB = X_PF * X_FM * X_MB;
         X_GB = X_GP * X_PB;
     }
 
@@ -534,7 +545,7 @@ public:
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
         const SBDynamicsCache& dc, 
-        HType& H_PB_G_Dot) const;
+        HType& HDot_PB_G) const;
 
 
     // Calculate joint-specific kinematic quantities dependent on
@@ -618,16 +629,15 @@ public:
             calcAcrossJointTransform(sbs, sbs.getQ(), X_MF);
             updX_FM(pc) = ~X_MF;
         } else 
-            calcAcrossJointTransform (sbs, sbs.getQ(), updX_FM(pc));
+            calcAcrossJointTransform(sbs, sbs.getQ(), updX_FM(pc));
 
-        calcBodyTransforms       (pc, updX_PB(pc), updX_GB(pc));
+        calcBodyTransforms(pc, updX_PB(pc), updX_GB(pc));
 
         // REMINDER: our H matrix definition is transposed from Jain and Schwieters.
         if (isReversed()) calcReverseMobilizerH_FM       (sbs, updH_FM(pc));
         else              calcAcrossJointVelocityJacobian(sbs, updH_FM(pc));
 
         calcParentToChildVelocityJacobianInGround(mv,pc, updH(pc));
-
         calcJointIndependentKinematicsPos(pc);
     }
 
@@ -651,11 +661,10 @@ public:
         SBDynamicsCache& dc = sbs.updDynamicsCache();
 
         // REMINDER: our H matrix definition is transposed from Jain and Schwieters.
-        if (isReversed()) calcReverseMobilizerHDot_FM       (sbs, updH_FM_Dot(dc));
-        else              calcAcrossJointVelocityJacobianDot(sbs, updH_FM_Dot(dc));
+        if (isReversed()) calcReverseMobilizerHDot_FM       (sbs, updHDot_FM(dc));
+        else              calcAcrossJointVelocityJacobianDot(sbs, updHDot_FM(dc));
 
         calcParentToChildVelocityJacobianInGroundDot(mv,pc,vc, dc, updHDot(dc));
-
         calcJointDynamics(pc,sbs.getU(),vc,dc);
 
         // Mobilizer independent.
@@ -944,10 +953,10 @@ public:
         // Dynamics
 
     // CAUTION: our H definition is transposed from Jain and Schwieters.
-    const HType& getH_FM_Dot(const SBDynamicsCache& dc) const
-      { return HType::getAs(&dc.storageForH_FM_Dot(0,uIndex)); }
-    HType&       updH_FM_Dot(SBDynamicsCache& dc) const
-      { return HType::updAs(&dc.storageForH_FM_Dot(0,uIndex)); }
+    const HType& getHDot_FM(const SBDynamicsCache& dc) const
+      { return HType::getAs(&dc.storageForHDot_FM(0,uIndex)); }
+    HType&       updHDot_FM(SBDynamicsCache& dc) const
+      { return HType::updAs(&dc.storageForHDot_FM(0,uIndex)); }
 
     // CAUTION: our H definition is transposed from Jain and Schwieters.
     const HType& getHDot(const SBDynamicsCache& dc) const
@@ -1064,11 +1073,12 @@ public:
     RBNodeTranslate(const MassProperties& mProps_B,
                     const Transform&      X_PF,
                     const Transform&      X_BM,
+                    bool                  isReversed,
                     UIndex&               nextUSlot,
                     USquaredIndex&        nextUSqSlot,
                     QIndex&               nextQSlot)
       : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
+                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, isReversed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1136,11 +1146,31 @@ public:
     // Since the Jacobian above is constant in F, its time derivative is zero.
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&               H_FM_Dot) const
+        HType&               HDot_FM) const
     {
-        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
-        H_FM_Dot(1) = SpatialVec( Vec3(0), Vec3(0) );
-        H_FM_Dot(2) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(1) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(2) = SpatialVec( Vec3(0), Vec3(0) );
+    }
+
+    // Override the computation of reverse-H for this simple mobilizer.
+    void calcReverseMobilizerH_FM(
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
+    {
+        H_FM(0) = SpatialVec( Vec3(0), Vec3(-1, 0, 0) );
+        H_FM(1) = SpatialVec( Vec3(0), Vec3( 0,-1, 0) );
+        H_FM(2) = SpatialVec( Vec3(0), Vec3( 0, 0,-1) );
+    }
+
+    // Override the computation of reverse-HDot for this simple mobilizer.
+    void calcReverseMobilizerHDot_FM(
+        const SBStateDigest& sbs,
+        HType&               HDot_FM) const
+    {
+        HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(1) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(2) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
 };
@@ -1159,11 +1189,12 @@ public:
     RBNodeSlider(const MassProperties& mProps_B,
                  const Transform&      X_PF,
                  const Transform&      X_BM,
+                 bool                  isReversed,
                  UIndex&               nextUSlot,
                  USquaredIndex&        nextUSqSlot,
                  QIndex&               nextQSlot)
       : RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
+                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, isReversed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1229,11 +1260,26 @@ public:
     // Since the Jacobian above is constant in F, its time derivative is zero.
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&               H_FM_Dot) const
+        HType&               HDot_FM) const
     {
-        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
+    // Override the computation of reverse-H for this simple mobilizer.
+    void calcReverseMobilizerH_FM(
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
+    {
+        H_FM(0) = SpatialVec( Vec3(0), Vec3(-1,0,0) );
+    }
+
+    // Override the computation of reverse-HDot for this simple mobilizer.
+    void calcReverseMobilizerHDot_FM(
+        const SBStateDigest& sbs,
+        HType&               HDot_FM) const
+    {
+        HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
+    }
 };
 
     // PIN (TORSION) //
@@ -1336,14 +1382,30 @@ public:
         H_FM(0) = SpatialVec( Vec3(0,0,1), Vec3(0) );
     }
 
+
     // Since the Jacobian above is constant in F, its time derivative in F is zero.
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&               H_FM_Dot) const
+        HType&               HDot_FM) const
     {
-        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
+    // Override the computation of reverse-H for this simple mobilizer.
+    void calcReverseMobilizerH_FM(
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
+    {
+        H_FM(0) = SpatialVec( Vec3(0,0,-1), Vec3(0) );
+    }
+
+    // Override the computation of reverse-HDot for this simple mobilizer.
+    void calcReverseMobilizerHDot_FM(
+        const SBStateDigest& sbs,
+        HType&               HDot_FM) const
+    {
+        HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) ); // doesn't get better than this!
+    }
 };
 
 
@@ -1366,11 +1428,12 @@ public:
                 const Transform&      X_PF,
                 const Transform&      X_BM,
                 Real                  p,  // the pitch
+                bool                  isReversed,
                 UIndex&               nextUSlot,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
       : RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed),
+                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, isReversed),
         pitch(p)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
@@ -1453,11 +1516,26 @@ public:
     // Since the Jacobian above is constant in F, its time derivative in F is zero.
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&               H_FM_Dot) const
+        HType&               HDot_FM) const
     {
-        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
+    // Override the computation of reverse-H for this simple mobilizer.
+    void calcReverseMobilizerH_FM(
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
+    {
+        H_FM(0) = SpatialVec( Vec3(0,0,-1), Vec3(0,0,-pitch) );
+    }
+
+    // Override the computation of reverse-HDot for this simple mobilizer.
+    void calcReverseMobilizerHDot_FM(
+        const SBStateDigest& sbs,
+        HType&               HDot_FM) const
+    {
+        HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
+    }
 };
 
     // CYLINDER //
@@ -1477,11 +1555,12 @@ public:
     RBNodeCylinder(const MassProperties& mProps_B,
                    const Transform&      X_PF,
                    const Transform&      X_BM,
+                   bool                  isReversed,
                    UIndex&               nextUSlot,
                    USquaredIndex&        nextUSqSlot,
                    QIndex&               nextQSlot)
       : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
+                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, isReversed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1566,12 +1645,29 @@ public:
     // Since the Jacobian above is constant in F, its time derivative in F is zero.
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&               H_FM_Dot) const
+        HType&               HDot_FM) const
     {
-        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
-        H_FM_Dot(1) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(1) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
+    // Override the computation of reverse-H for this simple mobilizer.
+    void calcReverseMobilizerH_FM(
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
+    {
+        H_FM(0) = SpatialVec( Vec3(0,0,-1), Vec3(0)     );
+        H_FM(1) = SpatialVec( Vec3(0),      Vec3(0,0,-1) );
+    }
+
+    // Override the computation of reverse-HDot for this simple mobilizer.
+    void calcReverseMobilizerHDot_FM(
+        const SBStateDigest& sbs,
+        HType&               HDot_FM) const
+    {
+        HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(1) = SpatialVec( Vec3(0), Vec3(0) );
+    }
 };
 
 
@@ -1592,11 +1688,12 @@ public:
     RBNodeBendStretch(const MassProperties& mProps_B,
                       const Transform&      X_PF,
                       const Transform&      X_BM,
+                      bool                  isReversed,
                       UIndex&               nextUSlot,
                       USquaredIndex&        nextUSqSlot,
                       QIndex&               nextQSlot)
       : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
+                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, isReversed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1696,12 +1793,12 @@ public:
     void calcAcrossJointTransform(
         const SBStateDigest& sbs,
         const Vector&        q,
-        Transform&           X_FM) const
+        Transform&           X_F0M0) const
     {
         const Vec2& coords  = fromQ(q);    // angular coordinate
 
-        X_FM.updR().setRotationFromAngleAboutZ(coords[0]);
-        X_FM.updP() = X_FM.R()*Vec3(coords[1],0,0); // because translation is in M frame
+        X_F0M0.updR().setRotationFromAngleAboutZ(coords[0]);
+        X_F0M0.updP() = X_F0M0.R()*Vec3(coords[1],0,0); // because translation is in M frame
     }
 
     // The generalized speeds for this bend-stretch joint are (1) the angular
@@ -1713,10 +1810,13 @@ public:
         HType&               H_FM) const
     {
         const SBPositionCache& pc = sbs.updPositionCache();
-        const Rotation& R_FM = getX_FM(pc).R();
-        const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
+        const Transform X_F0M0 = findX_F0M0(pc);
+        const Rotation& R_F0M0 = X_F0M0.R();
 
-        const Vec3&     p_FM = getX_FM(pc).p();
+        // Dropping the 0's here.
+        const Vec3&     p_FM = X_F0M0.p();
+        const Vec3&     Mx_F = R_F0M0.x(); // M's x axis, expressed in F
+
         H_FM(0) = SpatialVec( Vec3(0,0,1), Vec3(0,0,1) % p_FM   );
         H_FM(1) = SpatialVec( Vec3(0),            Mx_F          );
     }
@@ -1728,18 +1828,22 @@ public:
     // the vector, i.e., d_A/dt r_B_A = w_AB % r_B_A.
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&               H_FM_Dot) const
+        HType&               HDot_FM) const
     {
         const SBPositionCache& pc = sbs.getPositionCache();
         const SBVelocityCache& vc = sbs.getVelocityCache();
-        const Rotation& R_FM = getX_FM(pc).R();
-        const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
 
-        const Vec3&     w_FM = getV_FM(vc)[0]; // angular velocity of M in F
-        const Vec3&     v_FM = getV_FM(vc)[1]; // linear velocity of OM in F
+        const Transform  X_F0M0 = findX_F0M0(pc);
+        const Rotation&  R_F0M0 = X_F0M0.R();
+        const SpatialVec V_F0M0 = findV_F0M0(pc,vc);
 
-        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0,0,1) % v_FM );
-        H_FM_Dot(1) = SpatialVec( Vec3(0),    w_FM % Mx_F );
+        // Dropping the 0's here.
+        const Vec3&     Mx_F = R_F0M0.x(); // M's x axis, expressed in F
+        const Vec3&     w_FM = V_F0M0[0]; // angular velocity of M in F
+        const Vec3&     v_FM = V_F0M0[1]; // linear velocity of OM in F
+
+        HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0,0,1) % v_FM );
+        HDot_FM(1) = SpatialVec( Vec3(0),    w_FM % Mx_F );
     }
 
 };
@@ -1773,11 +1877,12 @@ public:
     RBNodeUJoint(const MassProperties& mProps_B,
                  const Transform&      X_PF,
                  const Transform&      X_BM,
+                 bool                  isReversed,
                  UIndex&               nextUSlot,
                  USquaredIndex&        nextUSqSlot,
                  QIndex&               nextQSlot)
       : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed)
+                             QDotIsAlwaysTheSameAsU, QuaternionIsNeverUsed, isReversed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1859,7 +1964,10 @@ public:
         HType&               H_FM) const
     {
         const SBPositionCache& pc = sbs.updPositionCache();
-        const Rotation& R_FM = getX_FM(pc).R();
+        const Transform  X_F0M0 = findX_F0M0(pc);
+
+        // Dropping the 0's here.
+        const Rotation& R_FM = X_F0M0.R();
 
         H_FM(0) = SpatialVec(  Vec3(1,0,0) , Vec3(0) );
         H_FM(1) = SpatialVec(    R_FM.y()  , Vec3(0) );
@@ -1872,15 +1980,19 @@ public:
     // the vector, i.e., d_A/dt r_B_A = w_AB % r_B_A.
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&               H_FM_Dot) const
+        HType&               HDot_FM) const
     {
         const SBPositionCache& pc = sbs.getPositionCache();
         const SBVelocityCache& vc = sbs.getVelocityCache();
-        const Rotation& R_FM = getX_FM(pc).R();
-        const Vec3&     w_FM = getV_FM(vc)[0]; // angular velocity of M in F
 
-        H_FM_Dot(0) = SpatialVec(     Vec3(0)     , Vec3(0) );
-        H_FM_Dot(1) = SpatialVec( w_FM % R_FM.y() , Vec3(0) );
+        const Transform  X_F0M0 = findX_F0M0(pc);
+
+        // Dropping the 0's here.
+        const Rotation& R_FM = X_F0M0.R();
+        const Vec3      w_FM = find_w_F0M0(pc,vc); // angular velocity of M in F
+
+        HDot_FM(0) = SpatialVec(     Vec3(0)     , Vec3(0) );
+        HDot_FM(1) = SpatialVec( w_FM % R_FM.y() , Vec3(0) );
     }
 
 };
@@ -1990,11 +2102,11 @@ public:
     // Since the Jacobian above is constant in F, its time derivative is zero.
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&               H_FM_Dot) const
+        HType&               HDot_FM) const
     {
-        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
-        H_FM_Dot(1) = SpatialVec( Vec3(0), Vec3(0) );
-        H_FM_Dot(2) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(1) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(2) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
 };
@@ -2021,11 +2133,12 @@ public:
     RBNodeGimbal( const MassProperties& mProps_B,
                   const Transform&      X_PF,
                   const Transform&      X_BM,
+                  bool                  isReversed,
                   UIndex&               nextUSlot,
                   USquaredIndex&        nextUSqSlot,
                   QIndex&               nextQSlot)
       : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                             QDotMayDifferFromU, QuaternionIsNeverUsed)
+                             QDotMayDifferFromU, QuaternionIsNeverUsed, isReversed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -2102,11 +2215,11 @@ public:
 
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&               H_FM_Dot) const
+        HType&               HDot_FM) const
     {
-        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
-        H_FM_Dot(1) = SpatialVec( Vec3(0), Vec3(0) );
-        H_FM_Dot(2) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(1) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(2) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
     void calcQDot(
@@ -2241,11 +2354,12 @@ public:
     RBNodeBall(const MassProperties& mProps_B,
                const Transform&      X_PF,
                const Transform&      X_BM,
+               bool                  isReversed,
                UIndex&               nextUSlot,
                USquaredIndex&        nextUSqSlot,
                QIndex&               nextQSlot)
       : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                             QDotMayDifferFromU, QuaternionMayBeUsed)
+                             QDotMayDifferFromU, QuaternionMayBeUsed, isReversed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -2345,11 +2459,11 @@ public:
 
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&               H_FM_Dot) const
+        HType&               HDot_FM) const
     {
-        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
-        H_FM_Dot(1) = SpatialVec( Vec3(0), Vec3(0) );
-        H_FM_Dot(2) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(1) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(2) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
     void calcQDot(
@@ -2693,7 +2807,6 @@ public:
     {
         Transform X_FM;
         calcAcrossJointTransform(sbs,q,X_FM);
-        if (isReversed()) X_FM = ~X_FM;
 
         const Vec3 v_FM_M    = ~X_FM.R()*v_FM; // we can only do vx and vy in this frame
         const Vec3 r_FM_M    = ~X_FM.R()*X_FM.p(); 
@@ -2753,23 +2866,23 @@ public:
     void calcAcrossJointTransform(
         const SBStateDigest& sbs,
         const Vector&        q,
-        Transform&           X_FM) const
+        Transform&           X_F0M0) const
     {
 		// Calcuate the rotation R_FM first.
         const SBModelVars& mv = sbs.getModelVars();
 		if (getUseEulerAngles(mv)){
 			const Vec3& a = fromQ(q);		
-			X_FM.updR().setRotationToBodyFixedXYZ(a);
+			X_F0M0.updR().setRotationToBodyFixedXYZ(a);
 		} else {
             // TODO: should use qnorm pool
             //       Conversion to Quaternion here involves expensive normalization
             //       because state variables q can never be assumed normalized.
 			Quaternion quat = Quaternion(fromQuat(q));
-            X_FM.updR().setRotationFromQuaternion(quat);
+            X_F0M0.updR().setRotationFromQuaternion(quat);
         }
 
-		const Vec3& n = X_FM.R().z();
-		X_FM.updP() = Vec3(semi[0]*n[0], semi[1]*n[1], semi[2]*n[2]);
+		const Vec3& n = X_F0M0.z();
+		X_F0M0.updP() = Vec3(semi[0]*n[0], semi[1]*n[1], semi[2]*n[2]);
 	}
 
     // Generalized speeds are the angular velocity expressed in F, so they
@@ -2779,7 +2892,11 @@ public:
         HType&               H_FM) const
     {
         const SBPositionCache& pc = sbs.updPositionCache();
-        const Vec3 n = isReversed() ? (~getX_FM(pc)).z() : getX_FM(pc).z();
+
+        // The normal is M's z axis, expressed in F but only in the frames we
+        // used to *define* this mobilizer, not necessarily the ones used after
+        // handling mobilizer reversal.
+        const Vec3 n = findX_F0M0(pc).z();
 
 		H_FM(0) = SpatialVec( Vec3(1,0,0), Vec3(      0,      -n[2]*semi[1], n[1]*semi[2]) );
 		H_FM(1) = SpatialVec( Vec3(0,1,0), Vec3( n[2]*semi[0],       0,     -n[0]*semi[2]) );
@@ -2788,26 +2905,21 @@ public:
 
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&               H_FM_Dot) const
+        HType&               HDot_FM) const
     {
         const SBPositionCache& pc = sbs.getPositionCache();
         const SBVelocityCache& vc = sbs.getVelocityCache();
 
-        Vec3 ndot;
-        if (isReversed()) {
-            const Transform X_FM = ~getX_FM(pc);
-            const Vec3& n = X_FM.z();
-            const Vec3 w_FM = -(X_FM.R()*getV_FM(vc)[0]);
-            ndot = w_FM % n;
-        } else {
-		    const Vec3& n    = getX_FM(pc).z(); // ellipsoid normal
-		    const Vec3& w_FM = getV_FM(vc)[0];  // angular velocity of M in F
-            ndot = w_FM % n; // time derivative of n in F
-        }
+        // We need the normal and cross-joint velocity in the frames we're 
+        // using to *define* the mobilizer, not necessarily the frames we're 
+        // using to compute it it (if it has been reversed).
+        const Vec3       n      = findX_F0M0(pc).z();
+        const Vec3       w_F0M0 = find_w_F0M0(pc, vc);
+        const Vec3       ndot   = w_F0M0 % n; // w_FM x n
 
-		H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(      0,         -ndot[2]*semi[1], ndot[1]*semi[2]) );
-		H_FM_Dot(1) = SpatialVec( Vec3(0), Vec3( ndot[2]*semi[0],       0,        -ndot[0]*semi[2]) );
-		H_FM_Dot(2) = SpatialVec( Vec3(0), Vec3(-ndot[1]*semi[0], ndot[0]*semi[1],       0        ) );
+		HDot_FM(0) = SpatialVec( Vec3(0), Vec3(      0,         -ndot[2]*semi[1], ndot[1]*semi[2]) );
+		HDot_FM(1) = SpatialVec( Vec3(0), Vec3( ndot[2]*semi[0],       0,        -ndot[0]*semi[2]) );
+		HDot_FM(2) = SpatialVec( Vec3(0), Vec3(-ndot[1]*semi[0], ndot[0]*semi[1],       0        ) );
     }
 
     // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
@@ -3106,15 +3218,15 @@ public:
     // Since the Jacobian above is constant in F, its derivative in F is 0.
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&               H_FM_Dot) const
+        HType&               HDot_FM) const
     {
-        H_FM_Dot(0) = SpatialVec( Vec3(0), Vec3(0) );
-        H_FM_Dot(1) = SpatialVec( Vec3(0), Vec3(0) );
-        H_FM_Dot(2) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(1) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(2) = SpatialVec( Vec3(0), Vec3(0) );
 
-        H_FM_Dot(3) = SpatialVec( Vec3(0), Vec3(0) );
-        H_FM_Dot(4) = SpatialVec( Vec3(0), Vec3(0) );
-        H_FM_Dot(5) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(3) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(4) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(5) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
     // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
@@ -3344,11 +3456,12 @@ public:
     RBNodeLineOrientation(const MassProperties& mProps_B,
                           const Transform&      X_PF,
                           const Transform&      X_BM,
+                          bool                  isReversed,
                           UIndex&               nextUSlot,
                           USquaredIndex&        nextUSqSlot,
                           QIndex&               nextQSlot)
       : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                             QDotMayDifferFromU, QuaternionMayBeUsed)
+                             QDotMayDifferFromU, QuaternionMayBeUsed, isReversed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -3427,19 +3540,19 @@ public:
         }
     }
 
-    // Calculate X_FM.
+    // Calculate X_F0M0.
     void calcAcrossJointTransform(
         const SBStateDigest& sbs,
         const Vector&        q,
-        Transform&           X_FM) const
+        Transform&           X_F0M0) const
     {
         const SBModelVars& mv = sbs.getModelVars();
-        X_FM.updP() = 0.; // This joint can't translate.
+        X_F0M0.updP() = 0.; // This joint can't translate.
         if (getUseEulerAngles(mv))
-            X_FM.updR().setRotationToBodyFixedXYZ( fromQVec3(q,0) );
+            X_F0M0.updR().setRotationToBodyFixedXYZ( fromQVec3(q,0) );
         else {
             // TODO: should use qnorm pool
-            X_FM.updR().setRotationFromQuaternion( Quaternion(fromQuat(q)) ); // normalize
+            X_F0M0.updR().setRotationFromQuaternion( Quaternion(fromQuat(q)) ); // normalize
         }
     }
 
@@ -3451,7 +3564,10 @@ public:
         HType&               H_FM) const
     {
         const SBPositionCache& pc = sbs.updPositionCache();
-        const Rotation& R_FM = getX_FM(pc).R();
+        const Transform X_F0M0 = findX_F0M0(pc);
+
+        // Dropping the 0's here.
+        const Rotation& R_FM = X_F0M0.R();
         const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
         const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
 
@@ -3466,18 +3582,21 @@ public:
     // the vector, i.e., d_A/dt r_B_A = w_AB % r_B_A.
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&               H_FM_Dot) const
+        HType&               HDot_FM) const
     {
         const SBPositionCache& pc = sbs.getPositionCache();
         const SBVelocityCache& vc = sbs.getVelocityCache();
-        const Rotation& R_FM = getX_FM(pc).R();
+        const Transform  X_F0M0 = findX_F0M0(pc);
+
+        // Dropping the 0's here.
+        const Rotation& R_FM = X_F0M0.R();
         const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
         const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
 
-        const Vec3&     w_FM = getV_FM(vc)[0]; // angular velocity of M in F
+        const Vec3      w_FM = find_w_F0M0(pc,vc); // angular velocity of M in F
 
-        H_FM_Dot(0) = SpatialVec( w_FM % Mx_F, Vec3(0) );
-        H_FM_Dot(1) = SpatialVec( w_FM % My_F, Vec3(0) );
+        HDot_FM(0) = SpatialVec( w_FM % Mx_F, Vec3(0) );
+        HDot_FM(1) = SpatialVec( w_FM % My_F, Vec3(0) );
     }
 
     // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
@@ -3673,11 +3792,12 @@ public:
     RBNodeFreeLine(const MassProperties& mProps_B,
                    const Transform&      X_PF,
                    const Transform&      X_BM,
+                   bool                  isReversed,
                    UIndex&               nextUSlot,
                    USquaredIndex&        nextUSqSlot,
                    QIndex&               nextQSlot)
       : RigidBodyNodeSpec<5>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                             QDotMayDifferFromU, QuaternionMayBeUsed)
+                             QDotMayDifferFromU, QuaternionMayBeUsed, isReversed)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -3764,19 +3884,19 @@ public:
         }
     }
 
-    // Calculate X_FM.
+    // Calculate X_F0M0.
     void calcAcrossJointTransform(
         const SBStateDigest& sbs,
         const Vector&        q,
-        Transform&           X_FM) const 
+        Transform&           X_F0M0) const 
     {
         const SBModelVars& mv = sbs.getModelVars();
         if (getUseEulerAngles(mv)) {
-            X_FM.updR().setRotationToBodyFixedXYZ( fromQVec3(q,0) );
-            X_FM.updP() = fromQVec3(q,3); // translation is in F
+            X_F0M0.updR().setRotationToBodyFixedXYZ( fromQVec3(q,0) );
+            X_F0M0.updP() = fromQVec3(q,3); // translation is in F
         } else {
-            X_FM.updR().setRotationFromQuaternion( Quaternion(fromQuat(q)) ); // normalize
-            X_FM.updP() = fromQVec3(q,4);  // translation is in F
+            X_F0M0.updR().setRotationFromQuaternion( Quaternion(fromQuat(q)) ); // normalize
+            X_F0M0.updP() = fromQVec3(q,4);  // translation is in F
         }
     }
 
@@ -3789,7 +3909,10 @@ public:
         HType&               H_FM) const
     {
         const SBPositionCache& pc = sbs.updPositionCache();
-        const Rotation& R_FM = getX_FM(pc).R();
+        const Transform  X_F0M0 = findX_F0M0(pc);
+
+        // Dropping the 0's here.
+        const Rotation& R_FM = X_F0M0.R();
         const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
         const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
 
@@ -3808,23 +3931,26 @@ public:
     // the vector, i.e., d_A/dt r_B_A = w_AB % r_B_A.
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&               H_FM_Dot) const
+        HType&               HDot_FM) const
     {
         const SBPositionCache& pc = sbs.getPositionCache();
         const SBVelocityCache& vc = sbs.getVelocityCache();
-        const Rotation& R_FM = getX_FM(pc).R();
+        const Transform  X_F0M0 = findX_F0M0(pc);
+
+        // Dropping the 0's here.
+        const Rotation& R_FM = X_F0M0.R();
         const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
         const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
 
-        const Vec3&     w_FM = getV_FM(vc)[0]; // angular velocity of M in F
+        const Vec3      w_FM = find_w_F0M0(pc,vc); // angular velocity of M in F
 
-        H_FM_Dot(0) = SpatialVec( w_FM % Mx_F, Vec3(0) );
-        H_FM_Dot(1) = SpatialVec( w_FM % My_F, Vec3(0) );
+        HDot_FM(0) = SpatialVec( w_FM % Mx_F, Vec3(0) );
+        HDot_FM(1) = SpatialVec( w_FM % My_F, Vec3(0) );
 
         // For translation in F.
-        H_FM_Dot(2) = SpatialVec( Vec3(0), Vec3(0) );
-        H_FM_Dot(3) = SpatialVec( Vec3(0), Vec3(0) );
-        H_FM_Dot(4) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(2) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(3) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(4) = SpatialVec( Vec3(0), Vec3(0) );
     }
 
     // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
@@ -4025,12 +4151,12 @@ public:
     void realizePosition(SBStateDigest& sbs) const {
         SBPositionCache& pc = sbs.updPositionCache();
 
-        const Transform& X_BM = getX_BM();   // fixed
+        const Transform& X_MB = getX_MB();   // fixed
         const Transform& X_PF = getX_PF();   // fixed
         const Transform& X_GP = getX_GP(pc); // already calculated
 
         updX_FM(pc).setToZero();
-        updX_PB(pc) = X_PF * ~X_BM; // TODO: precalculate X_MB
+        updX_PB(pc) = X_PF * X_MB;
         updX_GB(pc) = X_GP * getX_PB(pc);
         const Vec3 p_PB_G = getX_GP(pc).R() * getX_PB(pc).p();
 
@@ -4182,11 +4308,21 @@ template <int nu>
 class RBNodeCustom : public RigidBodyNodeSpec<nu> {
     typedef typename RigidBodyNodeSpec<nu>::HType HType;
 public:
-    RBNodeCustom(const MobilizedBody::Custom::Implementation& impl, const MassProperties& mProps_B,
-            const Transform& X_PF, const Transform& X_BM,UIndex& nextUSlot, USquaredIndex& nextUSqSlot, QIndex& nextQSlot) : 
-            RigidBodyNodeSpec<nu>(mProps_B, X_PF, X_BM, nextUSlot, nextUSqSlot, nextQSlot, RigidBodyNode::QDotMayDifferFromU,
-            impl.getImpl().getNumAngles() == 4 ? RigidBodyNode::QuaternionMayBeUsed : RigidBodyNode::QuaternionIsNeverUsed),
-            impl(impl), nq(impl.getImpl().getNQ()), nAngles(impl.getImpl().getNumAngles()) {
+    RBNodeCustom(const MobilizedBody::Custom::Implementation& impl,
+                 const MassProperties&  mProps_B, 
+                 const Transform&       X_PF, 
+                 const Transform&       X_BM,
+                 bool                   isReversed,
+                 UIndex&                nextUSlot, 
+                 USquaredIndex&         nextUSqSlot, 
+                 QIndex&                nextQSlot)
+    :   RigidBodyNodeSpec<nu>(mProps_B, X_PF, X_BM, nextUSlot, nextUSqSlot, nextQSlot, 
+                              RigidBodyNode::QDotMayDifferFromU,
+                              impl.getImpl().getNumAngles() == 4 ? RigidBodyNode::QuaternionMayBeUsed 
+                                                                 : RigidBodyNode::QuaternionIsNeverUsed,
+                              isReversed),
+        impl(impl), nq(impl.getImpl().getNQ()), nAngles(impl.getImpl().getNumAngles()) 
+    {
         this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
     const char* type() const {
@@ -4426,34 +4562,34 @@ public:
     void calcAcrossJointTransform(
         const SBStateDigest& sbs,
         const Vector&        q,
-        Transform&           X_FM) const {
+        Transform&           X_F0M0) const {
         int nq = getNQInUse(sbs.getModelVars());
         if (nAngles == 4 && !this->getUseEulerAngles(sbs.getModelVars())) {
             Vec<nu+1> localQ = Vec<nu+1>::getAs(&q[this->getQIndex()]);
             Vec4::updAs(&localQ[0]) = Vec4::getAs(&localQ[0]).normalize(); // Normalize the quaternion
-            X_FM = impl.calcMobilizerTransformFromQ(sbs.getState(), nq, &(localQ[0]));
+            X_F0M0 = impl.calcMobilizerTransformFromQ(sbs.getState(), nq, &(localQ[0]));
         }
         else
-            X_FM = impl.calcMobilizerTransformFromQ(sbs.getState(), nq, &(q[this->getQIndex()]));
+            X_F0M0 = impl.calcMobilizerTransformFromQ(sbs.getState(), nq, &(q[this->getQIndex()]));
     }
     
     void calcAcrossJointVelocityJacobian(
         const SBStateDigest& sbs,
-        HType&  H_FM) const {
+        HType&  H_F0M0) const {
         for (int i = 0; i < nu; ++i) {
             Vec<nu> u(0);
             u[i] = 1;
-            H_FM(i) = impl.multiplyByHMatrix(sbs.getState(), nu, &u[0]);
+            H_F0M0(i) = impl.multiplyByHMatrix(sbs.getState(), nu, &u[0]);
         }
     }
 
     void calcAcrossJointVelocityJacobianDot(
         const SBStateDigest& sbs,
-        HType&  H_FM_Dot) const {
+        HType&  HDot_F0M0) const {
         for (int i = 0; i < nu; ++i) {
             Vec<nu> u(0);
             u[i] = 1;
-            H_FM_Dot(i) = impl.multiplyByHDotMatrix(sbs.getState(), nu, &u[0]);
+            HDot_F0M0(i) = impl.multiplyByHDotMatrix(sbs.getState(), nu, &u[0]);
         }
     }
 
@@ -4506,12 +4642,12 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     const SBPositionCache& pc, 
     const SBVelocityCache& vc, 
     const SBDynamicsCache& dc,
-    HType& H_PB_G_Dot) const
+    HType& HDot_PB_G) const
 {
     const HType& H_FM     = getH_FM(pc);
-    const HType& H_FM_Dot = getH_FM_Dot(dc);
+    const HType& HDot_FM = getHDot_FM(dc);
 
-    HType H_MB, H_MB_Dot;
+    HType H_MB, HDot_MB;
 
     // want r_MB_F, that is, the vector from OM to OB, expressed in F
     const Vec3&     r_MB   = getX_MB().p();     // fixed
@@ -4523,9 +4659,9 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     H_MB[0] = Vec3(0); // fills top row with zero
     H_MB[1] = ~crossMat(r_MB_F) * H_FM[0];      // 15*dof + 3 flops
 
-    H_MB_Dot[0] = Vec3(0);
-    H_MB_Dot[1] =   ~crossMat(r_MB_F)        * H_FM_Dot[0] // 30*dof + 18 flops
-                  + ~crossMat(w_FM % r_MB_F) * H_FM[0];
+    HDot_MB[0] = Vec3(0);
+    HDot_MB[1] =   ~crossMat(r_MB_F)        * HDot_FM[0] // 30*dof + 18 flops
+                 + ~crossMat(w_FM % r_MB_F) * H_FM[0];
 
     // Now we want R_GF so we can reexpress the cross-joint velocity V_FB (==V_PB)
     // in the ground frame, to get V_PB_G.
@@ -4541,7 +4677,7 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     // Note: time derivative of R_GF is crossMat(w_GF)*R_GF.
     //      H = H_PB_G =  R_GF * (H_FM + H_MB) (see above method)
     const HType& H_PB_G = getH(pc);
-    H_PB_G_Dot =   R_GF * (H_FM_Dot + H_MB_Dot) // 66*dof + 3 flops
+    HDot_PB_G = R_GF * (HDot_FM + HDot_MB) // 66*dof + 3 flops
                  + crossMat(w_GF) * H_PB_G;
 }
 
@@ -5002,6 +5138,7 @@ RigidBodyNode* MobilizedBody::SliderImpl::createRigidBodyNode(
     return new RBNodeSlider(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        isReversed(),
         nextUSlot,nextUSqSlot,nextQSlot);
 }
 
@@ -5013,6 +5150,7 @@ RigidBodyNode* MobilizedBody::UniversalImpl::createRigidBodyNode(
     return new RBNodeUJoint(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        isReversed(),
         nextUSlot,nextUSqSlot,nextQSlot);
 }
 
@@ -5023,6 +5161,7 @@ RigidBodyNode* MobilizedBody::CylinderImpl::createRigidBodyNode(
 {
     return new RBNodeCylinder(getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        isReversed(),
         nextUSlot,nextUSqSlot,nextQSlot);
 }
 
@@ -5033,6 +5172,7 @@ RigidBodyNode* MobilizedBody::BendStretchImpl::createRigidBodyNode(
 {
     return new RBNodeBendStretch(getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        isReversed(),
         nextUSlot,nextUSqSlot,nextQSlot);
 }
 
@@ -5054,6 +5194,7 @@ RigidBodyNode* MobilizedBody::GimbalImpl::createRigidBodyNode(
 {
     return new RBNodeGimbal(getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        isReversed(),
         nextUSlot,nextUSqSlot,nextQSlot);
 }
 
@@ -5065,6 +5206,7 @@ RigidBodyNode* MobilizedBody::BallImpl::createRigidBodyNode(
     return new RBNodeBall(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        isReversed(),
         nextUSlot,nextUSqSlot,nextQSlot);
 }
 
@@ -5089,6 +5231,7 @@ RigidBodyNode* MobilizedBody::TranslationImpl::createRigidBodyNode(
     return new RBNodeTranslate(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        isReversed(),
         nextUSlot,nextUSqSlot,nextQSlot);
 }
 
@@ -5112,6 +5255,7 @@ RigidBodyNode* MobilizedBody::LineOrientationImpl::createRigidBodyNode(
     return new RBNodeLineOrientation(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        isReversed(),
         nextUSlot,nextUSqSlot,nextQSlot);
 }
 
@@ -5123,6 +5267,7 @@ RigidBodyNode* MobilizedBody::FreeLineImpl::createRigidBodyNode(
     return new RBNodeFreeLine(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        isReversed(),
         nextUSlot,nextUSqSlot,nextQSlot);
 }
 
@@ -5135,7 +5280,9 @@ RigidBodyNode* MobilizedBody::ScrewImpl::createRigidBodyNode(
     return new RBNodeScrew(
         getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
-        getDefaultPitch(),nextUSlot,nextUSqSlot,nextQSlot);
+        getDefaultPitch(),
+        isReversed(),
+        nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 RigidBodyNode* MobilizedBody::WeldImpl::createRigidBodyNode(
@@ -5165,22 +5312,22 @@ RigidBodyNode* MobilizedBody::CustomImpl::createRigidBodyNode(
     switch (getImplementation().getImpl().getNU()) {
     case 1:
         return new RBNodeCustom<1>(getImplementation(), getDefaultRigidBodyMassProperties(),
-            getDefaultInboardFrame(), getDefaultOutboardFrame(), nextUSlot, nextUSqSlot, nextQSlot);
+            getDefaultInboardFrame(), getDefaultOutboardFrame(), isReversed(), nextUSlot, nextUSqSlot, nextQSlot);
     case 2:
         return new RBNodeCustom<2>(getImplementation(), getDefaultRigidBodyMassProperties(),
-            getDefaultInboardFrame(), getDefaultOutboardFrame(), nextUSlot, nextUSqSlot, nextQSlot);
+            getDefaultInboardFrame(), getDefaultOutboardFrame(), isReversed(), nextUSlot, nextUSqSlot, nextQSlot);
     case 3:
         return new RBNodeCustom<3>(getImplementation(), getDefaultRigidBodyMassProperties(),
-            getDefaultInboardFrame(), getDefaultOutboardFrame(), nextUSlot, nextUSqSlot, nextQSlot);
+            getDefaultInboardFrame(), getDefaultOutboardFrame(), isReversed(), nextUSlot, nextUSqSlot, nextQSlot);
     case 4:
         return new RBNodeCustom<4>(getImplementation(), getDefaultRigidBodyMassProperties(),
-            getDefaultInboardFrame(), getDefaultOutboardFrame(), nextUSlot, nextUSqSlot, nextQSlot);
+            getDefaultInboardFrame(), getDefaultOutboardFrame(), isReversed(), nextUSlot, nextUSqSlot, nextQSlot);
     case 5:
         return new RBNodeCustom<5>(getImplementation(), getDefaultRigidBodyMassProperties(),
-            getDefaultInboardFrame(), getDefaultOutboardFrame(), nextUSlot, nextUSqSlot, nextQSlot);
+            getDefaultInboardFrame(), getDefaultOutboardFrame(), isReversed(), nextUSlot, nextUSqSlot, nextQSlot);
     case 6:
         return new RBNodeCustom<6>(getImplementation(), getDefaultRigidBodyMassProperties(),
-            getDefaultInboardFrame(), getDefaultOutboardFrame(), nextUSlot, nextUSqSlot, nextQSlot);
+            getDefaultInboardFrame(), getDefaultOutboardFrame(), isReversed(), nextUSlot, nextUSqSlot, nextQSlot);
     default:
         assert(!"Illegal number of degrees of freedom for custom MobilizedBody");
         return 0;

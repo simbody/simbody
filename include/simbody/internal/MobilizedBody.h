@@ -1451,10 +1451,10 @@ public:
         // STANDARDIZED MOBILIZED BODY INTERFACE
 
         // required constructors
-    Slider();
-    Slider(MobilizedBody& parent, const Body&);
+    explicit Slider(Direction=Forward);
+    Slider(MobilizedBody& parent, const Body&, Direction=Forward);
     Slider(MobilizedBody& parent, const Transform& inbFrame,
-        const Body&,           const Transform& outbFrame);
+           const Body&,           const Transform& outbFrame, Direction=Forward);
 
         // access to generalized coordinates q and generalized speeds u
     Slider& setDefaultQ(Real);
@@ -1496,17 +1496,17 @@ public:
 /// pitch*q.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Screw : public MobilizedBody {
 public:
-    Screw(Real pitch);
+    explicit Screw(Real pitch, Direction=Forward);
 
     /// By default the parent body frame and the body's own frame are
     /// used as the inboard and outboard mobilizer frames, resp.
-    Screw(MobilizedBody& parent, const Body&, Real pitch);
+    Screw(MobilizedBody& parent, const Body&, Real pitch, Direction=Forward);
 
     /// Use this constructor to specify mobilizer frames which are
     /// not coincident with the body frames.
     Screw(MobilizedBody& parent, const Transform& inbFrame,
          const Body&,           const Transform& outbFrame,
-         Real pitch);
+         Real pitch, Direction=Forward);
 
     Screw& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
@@ -1554,16 +1554,16 @@ public:
 /// second rotation is near 90 degrees.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Universal : public MobilizedBody {
 public:
-    Universal();
+    explicit Universal(Direction=Forward);
 
     /// By default the parent body frame and the body's own frame are
     /// used as the inboard and outboard mobilizer frames, resp.
-    Universal(MobilizedBody& parent, const Body&);
+    Universal(MobilizedBody& parent, const Body&, Direction=Forward);
 
     /// Use this constructor to specify mobilizer frames which are
     /// not coincident with the body frames.
     Universal(MobilizedBody& parent, const Transform& inbFrame,
-              const Body&,           const Transform& outbFrame);
+              const Body&,           const Transform& outbFrame, Direction=Forward);
 
     Universal& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
@@ -1589,16 +1589,16 @@ public:
 /// of the inboard and outboard mobilizer frames.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Cylinder : public MobilizedBody {
 public:
-    Cylinder();
+    explicit Cylinder(Direction=Forward);
 
     /// By default the parent body frame and the body's own frame are
     /// used as the inboard and outboard mobilizer frames, resp.
-    Cylinder(MobilizedBody& parent, const Body&);
+    Cylinder(MobilizedBody& parent, const Body&, Direction=Forward);
 
     /// Use this constructor to specify mobilizer frames which are
     /// not coincident with the body frames.
     Cylinder(MobilizedBody& parent, const Transform& inbFrame,
-         const Body&,           const Transform& outbFrame);
+             const Body&,           const Transform& outbFrame, Direction=Forward);
 
     Cylinder& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
@@ -1628,16 +1628,16 @@ public:
 /// rotation and the translation, in that order.
 class SimTK_SIMBODY_EXPORT MobilizedBody::BendStretch : public MobilizedBody {
 public:
-    BendStretch();
+    explicit BendStretch(Direction=Forward);
 
     /// By default the parent body frame and the body's own frame are
     /// used as the inboard and outboard mobilizer frames, resp.
-    BendStretch(MobilizedBody& parent, const Body&);
+    BendStretch(MobilizedBody& parent, const Body&, Direction=Forward);
 
     /// Use this constructor to specify mobilizer frames which are
     /// not coincident with the body frames.
     BendStretch(MobilizedBody& parent, const Transform& inbFrame,
-                const Body&,           const Transform& outbFrame);
+                const Body&,           const Transform& outbFrame, Direction=Forward);
 
     BendStretch& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
@@ -1740,16 +1740,16 @@ public:
 /// angle is 90 degrees.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Gimbal : public MobilizedBody {
 public:
-    Gimbal();
+    explicit Gimbal(Direction=Forward);
 
     /// By default the parent body frame and the body's own frame are
     /// used as the inboard and outboard mobilizer frames, resp.
-    Gimbal(MobilizedBody& parent, const Body&);
+    Gimbal(MobilizedBody& parent, const Body&, Direction=Forward);
 
     /// Use this constructor to specify mobilizer frames which are
     /// not coincident with the body frames.
     Gimbal(MobilizedBody& parent, const Transform& inbFrame,
-           const Body&,           const Transform& outbFrame);
+           const Body&,           const Transform& outbFrame, Direction=Forward);
 
     Gimbal& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
@@ -1810,16 +1810,16 @@ public:
 /// instead.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Ball : public MobilizedBody {
 public:
-    explicit Ball();
+    explicit Ball(Direction=Forward);
 
     /// By default the parent body frame and the body's own frame are
     /// used as the inboard and outboard mobilizer frames, resp.
-    Ball(MobilizedBody& parent, const Body&);
+    Ball(MobilizedBody& parent, const Body&, Direction=Forward);
 
     /// Use this constructor to specify mobilizer frames which are
     /// not coincident with the body frames.
     Ball(MobilizedBody& parent, const Transform& inbFrame,
-         const Body&,           const Transform& outbFrame);
+         const Body&,           const Transform& outbFrame, Direction=Forward);
 
     Ball& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
@@ -1952,16 +1952,16 @@ public:
 /// x,y,z translations along the parent (inboard) F frame axes.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Translation : public MobilizedBody {
 public:
-    Translation();
+    explicit Translation(Direction=Forward);
 
     /// By default the parent body frame and the body's own frame are
     /// used as the inboard and outboard mobilizer frames, resp.
-    Translation(MobilizedBody& parent, const Body&);
+    Translation(MobilizedBody& parent, const Body&, Direction=Forward);
 
     /// Use this constructor to specify mobilizer frames which are
     /// not coincident with the body frames.
     Translation(MobilizedBody& parent, const Transform& inbFrame,
-         const Body&,           const Transform& outbFrame);
+                const Body&,           const Transform& outbFrame, Direction=Forward);
 
     Translation& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
@@ -2052,7 +2052,7 @@ public:
 /// x,y,z translations along the F (inboard) axes.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Free : public MobilizedBody {
 public:
-    Free(Direction=Forward);
+    explicit Free(Direction=Forward);
 
     /// By default the parent body frame and the body's own frame are
     /// used as the inboard and outboard mobilizer frames, resp.
@@ -2164,17 +2164,16 @@ public:
 /// of frame M in F, but expressed in the *M* (outboard frame).
 class SimTK_SIMBODY_EXPORT MobilizedBody::LineOrientation : public MobilizedBody {
 public:
-    LineOrientation();
-
+    explicit LineOrientation(Direction=Forward);
 
     /// By default the parent body frame and the body's own frame are
     /// used as the inboard and outboard mobilizer frames, resp.
-    LineOrientation(MobilizedBody& parent, const Body&);
+    LineOrientation(MobilizedBody& parent, const Body&, Direction=Forward);
 
     /// Use this constructor to specify mobilizer frames which are
     /// not coincident with the body frames.
     LineOrientation(MobilizedBody& parent, const Transform& inbFrame,
-                    const Body&,           const Transform& outbFrame);
+                    const Body&,           const Transform& outbFrame, Direction=Forward);
 
     LineOrientation& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
@@ -2202,16 +2201,16 @@ public:
 /// the same as in a Free mobilizer, or a Cartesian (Translation) mobilizer.
 class SimTK_SIMBODY_EXPORT MobilizedBody::FreeLine : public MobilizedBody {
 public:
-    FreeLine();
+    explicit FreeLine(Direction=Forward);
 
     /// By default the parent body frame and the body's own frame are
     /// used as the inboard and outboard mobilizer frames, resp.
-    FreeLine(MobilizedBody& parent, const Body&);
+    FreeLine(MobilizedBody& parent, const Body&, Direction=Forward);
 
     /// Use this constructor to specify mobilizer frames which are
     /// not coincident with the body frames.
     FreeLine(MobilizedBody& parent, const Transform& inbFrame,
-             const Body&,           const Transform& outbFrame);
+             const Body&,           const Transform& outbFrame, Direction=Forward);
 
     FreeLine& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
@@ -2235,11 +2234,11 @@ public:
 
 /// Zero mobilities. This degenerate "mobilizer" serves only to weld together
 /// the M frame of a body to the F frame on its parent.
-/// TODO: not implemented yet.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Weld : public MobilizedBody {
 public:
+    /// Note: there is no "reverse" weld, because "reverse" refers to
+    /// how the q's and u's are defined and there are none.
     Weld();
-
 
     /// By default the parent body frame and the body's own frame are
     /// used as the inboard and outboard mobilizer frames, resp.
@@ -2276,6 +2275,7 @@ public:
 /// The body type will also be Ground.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Ground : public MobilizedBody {
 public:
+    /// There is no "reverse" Ground.
     Ground();
     Ground& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
@@ -2327,8 +2327,9 @@ public:
      *                       ownership of the implementation object, and deletes it when the MobilizedBody itself
      *                       is deleted.
      * @param body           describes this MobilizedBody's physical properties
+     * @param direction      whether you want the coordinates defined as though parent & child were swapped
      */
-    explicit Custom(MobilizedBody& parent, Implementation* implementation, const Body& body);
+    Custom(MobilizedBody& parent, Implementation* implementation, const Body& body, Direction direction=Forward);
     /* Create a Custom MobilizedBody.
      * 
      * @param parent         the MobilizedBody's parent body
@@ -2338,8 +2339,11 @@ public:
      * @param inbFrame       the MobilizedBody's inboard reference frame
      * @param body           describes this MobilizedBody's physical properties
      * @param outbFrame      the MobilizedBody's outboard reference frame
+     * @param direction      whether you want the coordinates defined as though parent & child were swapped
      */
-    explicit Custom(MobilizedBody& parent, Implementation* implementation, const Transform& inbFrame, const Body& body, const Transform& outbFrame);
+    Custom(MobilizedBody& parent, Implementation* implementation, 
+           const Transform& inbFrame, const Body& body, const Transform& outbFrame,
+           Direction direction=Forward);
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Custom, CustomImpl, MobilizedBody);
 protected:
     const Implementation& getImplementation() const;
@@ -2418,14 +2422,17 @@ public:
 
     /// Get the cross-mobilizer transform X_FM, the body's inboard mobilizer frame M measured and expressed in
     /// the parent body's corresponding outboard frame F.  The state must have been realized to at least
-    /// Position stage.
-    const Transform& getMobilizerTransform(const State& s) const;
+    /// Position stage. Note: this refers to F and M <em>as defined</em>, not as they are if the 
+    /// mobilizer has been reversed (that is, we're really returning X_F0M0 here).
+    Transform getMobilizerTransform(const State& s) const;
 
     /// Get the cross-mobilizer velocity V_FM, the relative velocity of this body's "moving" mobilizer
     /// frame M in the parent body's corresponding "fixed" frame F, measured and expressed in F.
     /// Note that this isn't the usual spatial velocity since it isn't expressed in G.
-    /// The state must have been realized to at least Velocity stage.
-    const SpatialVec& getMobilizerVelocity(const State& s) const;
+    /// The state must have been realized to at least Velocity stage. Note: this refers to 
+    /// F and M <em>as defined</em>, not as they are if the 
+    /// mobilizer has been reversed (that is, we're really returning V_F0M0 here).
+    SpatialVec getMobilizerVelocity(const State& s) const;
 
     /// Get whether rotations are being represented as quaternions or Euler angles.
     /// This method is only relevant if the constructor was invoked with nAngles==4.
@@ -2700,8 +2707,12 @@ public:
      *                       and automatically deletes them when the MobilizedBody is deleted.
      * @param coordIndices   the indices of the generalized coordinates that are inputs to each function.  For example, if coordIndices[2] = {0, 1},
      *                       that means that functions[2] takes two input arguments, and q[0] and q[1] respectively should be passed as those arguments.
+     * @param direction      whether you want the coordinates defined as though parent & child were swapped
      */
-    FunctionBased(MobilizedBody& parent, const Body& body, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices);
+    FunctionBased(MobilizedBody& parent, const Body& body, 
+                  int nmobilities, const std::vector<const Function<1>*>& functions, 
+                  const std::vector<std::vector<int> >& coordIndices,
+                  Direction direction=Forward);
     /* Create a FunctionBased MobilizedBody.
      * 
      * @param parent         the MobilizedBody's parent body
@@ -2715,8 +2726,13 @@ public:
      *                       and automatically deletes them when the MobilizedBody is deleted.
      * @param coordIndices   the indices of the generalized coordinates that are inputs to each function.  For example, if coordIndices[2] = {0, 1},
      *                       that means that functions[2] takes two input arguments, and q[0] and q[1] respectively should be passed as those arguments.
+     * @param direction      whether you want the coordinates defined as though parent & child were swapped
      */
-    FunctionBased(MobilizedBody& parent, const Transform& inbFrame, const Body& body, const Transform& outbFrame, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices);
+    FunctionBased(MobilizedBody& parent, const Transform& inbFrame, 
+                  const Body& body, const Transform& outbFrame, 
+                  int nmobilities, const std::vector<const Function<1>*>& functions, 
+                  const std::vector<std::vector<int> >& coordIndices,
+                  Direction direction=Forward);
     /* Create a FunctionBased MobilizedBody.
      * 
      * @param parent         the MobilizedBody's parent body
@@ -2730,8 +2746,12 @@ public:
      *                       that means that functions[2] takes two input arguments, and q[0] and q[1] respectively should be passed as those arguments.
 	 * @param axes			 the axes directions (as Vec3's) for each spatial coordinate, which each function describes, and is therefore length 6.
 	 *						 First 3 and last 3 axes must be linearly independent, otherwise there will be redundant speeds for the same motion.
+     * @param direction      whether you want the coordinates defined as though parent & child were swapped
      */
-    FunctionBased(MobilizedBody& parent, const Body& body, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes);
+    FunctionBased(MobilizedBody& parent, const Body& body, 
+                  int nmobilities, const std::vector<const Function<1>*>& functions, 
+                  const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes,
+                  Direction direction=Forward);
     /* Create a FunctionBased MobilizedBody.
      * 
      * @param parent         the MobilizedBody's parent body
@@ -2747,8 +2767,13 @@ public:
      *                       that means that functions[2] takes two input arguments, and q[0] and q[1] respectively should be passed as those arguments.
      * @param axes			 the axes directions (as Vec3's) for each spatial coordinate, which each function describes, and is therefore length 6.
 	 *						 First 3 and last 3 axes must be linearly independent, otherwise there will be redundant speeds for the same motion.
+     * @param direction      whether you want the coordinates defined as though parent & child were swapped
 	 */
-    FunctionBased(MobilizedBody& parent, const Transform& inbFrame, const Body& body, const Transform& outbFrame, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes);
+    FunctionBased(MobilizedBody& parent, const Transform& inbFrame, 
+                  const Body& body, const Transform& outbFrame, 
+                  int nmobilities, const std::vector<const Function<1>*>& functions, 
+                  const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes,
+                  Direction direction=Forward);
 };
 
 } // namespace SimTK
