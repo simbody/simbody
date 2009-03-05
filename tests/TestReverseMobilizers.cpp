@@ -171,7 +171,7 @@ void testPin() {
                            -X_BA.R()*(V_AB[1] + X_AB.p() % V_AB[0]) );
 
     rev1A.setUToFitVelocity(rev1State, V_BA);
-    rev2A.setUToFitVelocity(rev2State, -V_BA); // KLUDGE; should be V_BA 
+    rev2A.setUToFitVelocity(rev2State, V_BA); // KLUDGE; should be V_BA 
 
     assertEqual(fwdB.getU(fwdState), rev2A.getU(rev2State));
 
@@ -317,7 +317,7 @@ void testPlanar() {
     const SpatialVec V_BA( -X_BA.R()* V_AB[0], 
                            -X_BA.R()*(V_AB[1] + X_AB.p() % V_AB[0]) );
 
-    rev2A.setUToFitVelocity(rev2State, V_AB); // KLUDGE (should be V_BA)
+    rev2A.setUToFitVelocity(rev2State, V_BA);
     cout << "rev2A.getU()=" << rev2A.getU(rev2State) << endl;
 
     assertEqual(fwdB.getU(fwdState), rev2A.getU(rev2State));
@@ -456,7 +456,7 @@ void testEllipsoid() {
     const SpatialVec V_BA( -X_BA.R()* V_AB[0], 
                            -X_BA.R()*(V_AB[1] + X_AB.p() % V_AB[0]) );
 
-    rev2A.setUToFitAngularVelocity(rev2State, V_AB[0]); // KLUDGE (should be V_BA[0])
+    rev2A.setUToFitAngularVelocity(rev2State, V_BA[0]);
     cout << "rev2A.getU()=" << rev2A.getU(rev2State) << endl;
 
     assertEqual(fwdB.getU(fwdState), rev2A.getU(rev2State));
@@ -609,7 +609,7 @@ void testFree() {
     const SpatialVec V_BA( -X_BA.R()* V_AB[0], 
                            -X_BA.R()*(V_AB[1] + X_AB.p() % V_AB[0]) );
 
-    rev2A.setUToFitVelocity(rev2State, V_AB); // KLUDGE (should be V_BA)
+    rev2A.setUToFitVelocity(rev2State, V_BA);
     cout << "rev2A.getU()=" << rev2A.getU(rev2State) << endl;
 
     assertEqual(fwdB.getU(fwdState), rev2A.getU(rev2State));

@@ -185,6 +185,39 @@ public:
         SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "copyU");
     }
 
+    // This mandatory routine performs expensive floating point operations sin,cos,sqrt
+    // in one place so we don't end up repeating them. sin&cos are used only
+    // for mobilizers which have angular coordinates, and qErr and qnorm are only for
+    // mobilizers using quaternions. Other mobilizers can provide a null routine.
+    // Each of the passed-in Vectors is a "q-like" object, that is, allocated
+    // to the bodies in a manner parallel to the q state variable, except that qErr
+    // has just one slot per quaternion and must be accessed using the node's 
+    // quaternionIndex which is in the Model cache.
+    virtual void calcJointSinCosQNorm(
+        const SBModelVars&  mv, 
+        const SBModelCache& mc,
+        const SBInstanceCache& ic,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const=0;
+
+    // This mandatory routine calculates the across-joint transform X_FM generated
+    // by the current q values. This may depend on sines & cosines or normalized
+    // quaternions already being available in the State cache.
+    // TODO: NOT TRUE -- we are depending in places on this method being stand alone!!
+    //       This needs to be worked out so we don't have to duplicate sines, etc.
+    // This method constitutes the *definition* of the generalized coordinates for
+    // a particular joint.
+    // Note: this calculates the transform between the *as defined* frames; we 
+    // might reverse the frames in use. So we call this X_F0M0 while the possibly reversed
+    // version is X_FM.
+    virtual void calcAcrossJointTransform(
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_F0M0) const=0;
+
 
     // Mobilizer-local operators.
     virtual void calcLocalQDotFromLocalU      (const SBStateDigest&, const Real* u,    Real* qdot)      const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcLocalQDotFromLocalU");}
@@ -312,19 +345,56 @@ public:
     // do nothing or the best it can, with the only general rule being that it shouldn't
     // make things worse. In particular, it does not need to work hard on an approximate solution.
 
-    virtual void setQToFitTransform
-       (const SBStateDigest&, const Transform& X_FM, Vector& q) const = 0;
-    virtual void setQToFitRotation
-       (const SBStateDigest&, const Rotation& R_FM, Vector& q) const = 0;
-    virtual void setQToFitTranslation
-       (const SBStateDigest&, const Vec3& p_FM, Vector& q) const = 0;
+    // Note: these are non-virtual wrappers which arrange to reverse the request
+    // for reversed mobilizers, so that the mobilizers themselves do not need to
+    // know they have been reversed. The corresponding pure virtuals are protected.
 
-    virtual void setUToFitVelocity
-       (const SBStateDigest&, const Vector& q, const SpatialVec& V_FM, Vector& u) const = 0;
-    virtual void setUToFitAngularVelocity
-       (const SBStateDigest&, const Vector& q, const Vec3& w_FM, Vector& u)       const = 0;
-    virtual void setUToFitLinearVelocity
-       (const SBStateDigest&, const Vector& q, const Vec3& v_FM, Vector& u) const = 0;
+    void setQToFitTransform
+       (const SBStateDigest& sbs, const Transform& X_FM, Vector& q) const
+    {   setQToFitTransformImpl(sbs, isReversed() ? Transform(~X_FM) : X_FM, q); }
+
+    void setQToFitRotation
+       (const SBStateDigest& sbs, const Rotation& R_FM, Vector& q) const
+    {   setQToFitRotationImpl(sbs, isReversed() ? Rotation(~R_FM) : R_FM, q); }
+
+    // Reversing a translation requires that we obtain the current orientation,
+    // which we'll do assuming there is something meaningful in the rotational
+    // part of the q's.
+    void setQToFitTranslation
+       (const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const
+    {   if (!isReversed()) {setQToFitTranslationImpl(sbs, p_FM, q); return;}
+        Transform X_MF; // note reversal of frames
+        calcAcrossJointTransform(sbs, q, X_MF);
+        setQToFitTranslationImpl(sbs, X_MF.R()*(-p_FM), q);
+    }
+
+    void setUToFitVelocity
+       (const SBStateDigest& sbs, const Vector& q, const SpatialVec& V_FM, Vector& u) const
+    {   if (!isReversed()) {setUToFitVelocityImpl(sbs, q, V_FM, u); return;}
+        Transform X_MF; // note reversal of frames
+        calcAcrossJointTransform(sbs, q, X_MF);
+        setUToFitVelocityImpl(sbs, q, reverseSpatialVelocity(~X_MF,V_FM), u);
+    }
+
+    void setUToFitAngularVelocity
+       (const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM, Vector& u)       const
+    {   if (!isReversed()) {setUToFitAngularVelocityImpl(sbs, q, w_FM, u); return;}
+        Transform X_MF; // note reversal of frames
+        calcAcrossJointTransform(sbs, q, X_MF);
+        setUToFitAngularVelocityImpl(sbs, q, reverseAngularVelocity(~X_MF.R(),w_FM), u);
+    }
+
+    void setUToFitLinearVelocity
+       (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const
+    {   if (!isReversed()) {setUToFitLinearVelocityImpl(sbs, q, v_FM, u); return;}
+        Transform X_MF; // note reversal of frames
+        calcAcrossJointTransform(sbs, q, X_MF);
+        //TODO: we have to assume angular velocity is zero here. Should be some
+        // way to get the joint to compute w_FM.
+        const SpatialVec V_FM( Vec3(0), v_FM );
+        setUToFitLinearVelocityImpl(sbs, q, reverseSpatialVelocity(~X_MF,V_FM)[1], u);
+    }
+
 
         // VIRTUAL METHODS FOR SINGLE-NODE OPERATOR CONTRIBUTIONS //
 
@@ -822,6 +892,26 @@ protected:
         // always the same as u.
         assert(!(quatUse==QuaternionMayBeUsed && qdotType==QDotIsAlwaysTheSameAsU));
     }
+
+    // These have wrappers above which call them and should not be
+    // called directly from outside this class and its descendents. Note that
+    // the requests are couched in terms of the way the mobilizer was
+    // *defined*, not as it is after reversal (hence F0 instead of F and
+    // M0 instead of M). The q's and u's have identical meanings for both
+    // forward and reverse mobilizers.
+    virtual void setQToFitTransformImpl
+       (const SBStateDigest&, const Transform& X_F0M0, Vector& q) const = 0;
+    virtual void setQToFitRotationImpl
+       (const SBStateDigest&, const Rotation& R_F0M0, Vector& q) const = 0;
+    virtual void setQToFitTranslationImpl
+       (const SBStateDigest&, const Vec3& p_F0M0, Vector& q) const = 0;
+
+    virtual void setUToFitVelocityImpl
+       (const SBStateDigest&, const Vector& q, const SpatialVec& V_F0M0, Vector& u) const = 0;
+    virtual void setUToFitAngularVelocityImpl
+       (const SBStateDigest&, const Vector& q, const Vec3& w_F0M0, Vector& u)       const = 0;
+    virtual void setUToFitLinearVelocityImpl
+       (const SBStateDigest&, const Vector& q, const Vec3& v_F0M0, Vector& u) const = 0;
 
     typedef std::vector<RigidBodyNode*> RigidBodyNodeList;
 
