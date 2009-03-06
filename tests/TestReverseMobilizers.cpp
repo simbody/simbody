@@ -367,7 +367,7 @@ void testPlanar() {
     cout << "  Rev2:  " << reacBA2 << endl;
     cout << "  Fwd-Rev2:" << reacBA-reacBA2 << endl;
 
-    assertEqual(reacBA, reacBA2, 5e-7);
+    assertEqual(reacBA, reacBA2, 5e-6);
 }
 
 
@@ -506,7 +506,7 @@ void testEllipsoid() {
     cout << "  Rev2:  " << reacBA2 << endl;
     cout << "  Fwd-Rev2:" << reacBA-reacBA2 << endl;
 
-    assertEqual(reacBA, reacBA2, reacBA.norm()*1e-10);
+    assertEqual(reacBA, reacBA2, reacBA.norm()*1e-8);
 }
 
 // This one should test all the mobilizer reversal equations.
