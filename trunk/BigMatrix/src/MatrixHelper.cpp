@@ -547,7 +547,10 @@ MatrixHelper<S>::updContiguousData() {
 template <class S> void 
 MatrixHelper<S>::replaceContiguousData(S* newData, ptrdiff_t length, bool takeOwnership) {
     assert(length == getContiguousDataLength());
-    if (rep->m_owner) {delete[] rep->m_data; rep->m_data=0;}
+    if (rep->m_owner) {
+        MatrixHelperRep<S>::deleteAllocatedMemory(rep->m_data); 
+        rep->m_data=0;
+    }
     rep->m_data = newData;
     rep->m_owner = takeOwnership;
 }
@@ -782,7 +785,8 @@ MatrixHelperRep<S>::copyInByRowsFromCpp(const S* elts) {
 template <class S> 
 MatrixHelperRep<S>::~MatrixHelperRep()
 {
-    if (isOwner()) delete m_data;
+    if (isOwner()) 
+        deleteAllocatedMemory(m_data);
 }
 
 template <class S> static void

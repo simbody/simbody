@@ -478,7 +478,7 @@ public:
     // above. We recast it back to the form in which it was allocated before deleting
     // which will keep the heap system happy and also prevent the calling of any
     // element destructor that might be present for the fancier scalar types.
-    void deleteAllocatedMemory(S* mem) const {
+    static void deleteAllocatedMemory(S* mem) {
         Precision* p = reinterpret_cast<Precision*>(mem);
         delete[] p;
     }
