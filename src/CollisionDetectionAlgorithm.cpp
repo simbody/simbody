@@ -43,7 +43,15 @@ using std::vector;
 
 namespace SimTK {
 
-map<pair<int, int>, CollisionDetectionAlgorithm*> CollisionDetectionAlgorithm::algorithmMap;
+
+CollisionDetectionAlgorithm::AlgorithmMap::~AlgorithmMap() {
+    // Clean up algorithms to satisfy valgrind
+    for (iterator i = begin(); i != end(); ++i)
+        delete i->second;
+}
+
+// map<pair<int, int>, CollisionDetectionAlgorithm*> CollisionDetectionAlgorithm::algorithmMap;
+CollisionDetectionAlgorithm::AlgorithmMap CollisionDetectionAlgorithm::algorithmMap;
 
 static int registerStandardAlgorithms() {
     CollisionDetectionAlgorithm::registerAlgorithm(ContactGeometry::HalfSpaceImpl::Type(), ContactGeometry::SphereImpl::Type(), new CollisionDetectionAlgorithm::HalfSpaceSphere());
