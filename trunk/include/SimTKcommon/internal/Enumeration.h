@@ -44,7 +44,7 @@ template <class T> class EnumerationSet;
  * This class defines an enumerated type.  It works like the "enum" keyword, but has several advantages:
  * 
  * - It is fully typesafe.  If an Enumeration defines a list of allowed values, it is absolutely guaranteed that any
- *   variableof that type will contain one of the allowed values, and no other type can be assigned to it.  In contrast,
+ *   variable of that type will contain one of the allowed values, and no other type can be assigned to it.  In contrast,
  *   "enum" simply defines integer values, and it is possible for a variable of that type to contain any integer, not
  *   just one of the allowed values.
  * - It defines static methods which can be queried at runtime to programmatically determine the list of possible values
@@ -53,6 +53,10 @@ template <class T> class EnumerationSet;
  * - Because the values are objects, they can be extended in arbitrary ways.  You can define new methods or
  *   new metadata which should be associated with each value.
  * 
+ * One drawback is that there is no way to provide default construction for objects of Enumeration type, because
+ * default construction is necessary internally to get the static values initialized properly. Consequently
+ * you must declare the default constructor as private in your derived class.
+ *
  * To create an enumeration, define a subclass of Enumeration which is parameterized by itself.  For example:
  * 
  * <pre>
@@ -239,6 +243,11 @@ public:
         return current;
     }
 protected:
+    // Default construction must not do anything to memory, because the static members
+    // may already have been initialized before they get default constructed. If you
+    // touch any data here, say by initializing "index" to -1, you may be wiping out a
+    // static member constants. The constant will not then get fixed because the init() 
+    // call will think it is already done.
     Enumeration() {
         init();
     }
