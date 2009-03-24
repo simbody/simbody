@@ -67,17 +67,25 @@ operator<<(std::ostream& o, const AbstractValue& v) { o << v.getValueAsString();
 
 /** 
  * Templatized version of the abstract class, providing generic type-specific
- * functionality that does not require specialization.
+ * functionality that does not require specialization, with automatic conversion
+ * to the underlying type.
+ *
+ * Note that this class requires that type T supports an output operator "<<"
+ * so that we can serialize abstract values.
  */
-template <class T> class ValueHelper : public AbstractValue {
+template <class T> class Value : public AbstractValue {
 public:
-    ValueHelper() { } // contained value is default-constructed
-    explicit ValueHelper(const T& t) : thing(t) { }
+    Value() { } // contained value is default-constructed
+    explicit Value(const T& t) : thing(t) { }
     // default copy, destructor
 
     // Define assignment explicitly here to avoid implicitly calling AbstractValue's
     // assignment operator.    
-    ValueHelper& operator=(const ValueHelper& v) { thing = v.thing; return *this; }
+    Value& operator=(const Value& v) { thing = v.thing; return *this; }
+ 
+    Value& operator=(const T& t) { thing=t; return *this; }
+    operator const T&() const    { return thing; } // automatic conversion to T
+    operator T&()                { return thing; } // automatic conversion to T
     
     const T& get()      const { return thing; }
   
@@ -94,31 +102,12 @@ public:
     String getValueAsString() const 
     { std::ostringstream s; s << thing; return s.str(); }
     
-    AbstractValue* clone() const { return new ValueHelper(*this); }
-    SimTK_DOWNCAST(ValueHelper,AbstractValue);
+    AbstractValue* clone() const { return new Value(*this); }
+    SimTK_DOWNCAST(Value,AbstractValue);
 protected:
     T thing;
 };
 
-/** 
- * A particular kind of AbstractValue, with automatic converstion
- * to the underlying type.
- */
-template <class T> class Value : public ValueHelper<T> {
-public:
-    Value() { }
-    explicit Value(const T& t) : ValueHelper<T>(t) { }
-    // default copy, assignment, destructor
- 
- 	// "this->" kludge below appears to be required by gcc 3.4.4.   
-    Value& operator=(const T& t) { this->thing=t; return *this; }
-    operator const T&() const    { return this->thing; } // automatic conversion to T
-    operator T&()                { return this->thing; } // automatic conversion to T
-             
-    SimTK_DOWNCAST2(Value,ValueHelper<T>,AbstractValue);
-private:
-    // NO DATA MEMBERS ALLOWED
-};
 
 
 } // namespace SimTK
