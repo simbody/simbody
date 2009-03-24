@@ -195,6 +195,32 @@ inline bool signbit(double d) {return (*reinterpret_cast<unsigned long long*>(&d
 }
 #endif
 
+
+// This utility answers the question "if I put this integral value in an int and then
+// get it back, will its value be the same?".
+inline bool canStoreInInt(char)            {return true;}
+inline bool canStoreInInt(unsigned char)   {return true;}
+inline bool canStoreInInt(signed char)     {return true;}
+inline bool canStoreInInt(short)           {return true;}
+inline bool canStoreInInt(unsigned short)  {return true;}
+inline bool canStoreInInt(int)             {return true;}
+inline bool canStoreInInt(unsigned int  u) {return (unsigned int)(int(u)) == u;}
+inline bool canStoreInInt(long i)          {return long(int(i)) == i;}
+inline bool canStoreInInt(unsigned long u) {return (unsigned long)(int(u)) == u;}
+
+// This utility answers the question "is this integral value a nonnegative number
+// that can be stored in an int?".
+inline bool canStoreInNonnegativeInt(char c)           {return c >= 0;}
+inline bool canStoreInNonnegativeInt(unsigned char c)  {return true;}
+inline bool canStoreInNonnegativeInt(signed char c)    {return c >= 0;}
+inline bool canStoreInNonnegativeInt(short s)          {return s >= 0;}
+inline bool canStoreInNonnegativeInt(unsigned short s) {return true;}
+inline bool canStoreInNonnegativeInt(int  i)           {return i >= 0;}
+inline bool canStoreInNonnegativeInt(long l)           {return canStoreInInt(l) && l >= 0;}
+inline bool canStoreInNonnegativeInt(unsigned int  u)  {return canStoreInInt(u);}
+inline bool canStoreInNonnegativeInt(unsigned long u)  {return canStoreInInt(u);}
+
+
 /**
  * Use this macro to define a unique "Index" type which is just a type-safe
  * non-negative int, augmented with a "NaN" value given by the predefined
