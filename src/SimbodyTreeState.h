@@ -124,8 +124,7 @@ public:
 
     void clear() {
         nBodies = nParticles = nConstraints = nAncestorConstrainedBodies =
-            nDOFs = maxNQs = sumSqDOFs =
-            modelingVarsIndex = modelingCacheIndex = -1;
+            nDOFs = maxNQs = sumSqDOFs = -1;
         valid = false;
     }
 
@@ -146,8 +145,8 @@ public:
     int maxNQs;
     int sumSqDOFs;
 
-    int modelingVarsIndex;
-    int modelingCacheIndex;
+    DiscreteVariableIndex modelingVarsIndex;
+    CacheEntryIndex       modelingCacheIndex;
 
     bool valid;
 };
@@ -164,13 +163,7 @@ public:
 
     // Restore this cache entry to its just-constructed condition.
     void clear() {
-        instanceVarsIndex = instanceCacheIndex
-        = timeVarsIndex = timeCacheIndex
-        = qIndex = qVarsIndex = qCacheIndex
-        = uIndex = uVarsIndex = uCacheIndex
-        = dynamicsVarsIndex = dynamicsCacheIndex
-        = accelerationVarsIndex = accelerationCacheIndex
-        = totalNQInUse = totalNUInUse = totalNQuaternionsInUse = totalNAnglesInUse = -1;
+        totalNQInUse = totalNUInUse = totalNQuaternionsInUse = totalNAnglesInUse = -1;
 
         mobilizedBodyModelInfo.clear();
     }
@@ -219,14 +212,12 @@ public:
     // a subset of State variables and State Cache entries belong to it. Here we record the indices
     // we were given when we asked the State for some resources.
 
-    int instanceVarsIndex, instanceCacheIndex;
-    int timeVarsIndex, timeCacheIndex;
-    int qIndex; // maxNQs of these 
-    int qVarsIndex, qCacheIndex;
-    int uIndex; // nDOFs of these 
-    int uVarsIndex, uCacheIndex;
-    int dynamicsVarsIndex, dynamicsCacheIndex;
-    int accelerationVarsIndex, accelerationCacheIndex;
+    QIndex qIndex;
+    UIndex uIndex;
+    DiscreteVariableIndex instanceVarsIndex, timeVarsIndex, qVarsIndex, uVarsIndex, 
+                          dynamicsVarsIndex, accelerationVarsIndex;
+    CacheEntryIndex       instanceCacheIndex, timeCacheIndex, qCacheIndex, uCacheIndex, 
+                          dynamicsCacheIndex, accelerationCacheIndex;
 
     // These are sums over the per-MobilizedBody counts above.
     int totalNQInUse, totalNUInUse, totalNQuaternionsInUse, totalNAnglesInUse;

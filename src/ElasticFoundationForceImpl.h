@@ -56,7 +56,7 @@ private:
     const ContactSetIndex set;
     std::map<int, Parameters> parameters;
     Real transitionVelocity;
-    mutable int energyCacheIndex;
+    mutable CacheEntryIndex energyCacheIndex;
 };
 
 class ElasticFoundationForceImpl::Parameters {

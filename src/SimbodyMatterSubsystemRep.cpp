@@ -86,7 +86,7 @@ void SimbodyMatterSubsystemRep::clearTopologyCache() {
     nextQErrSlot = nextUErrSlot = nextMultSlot = 0; // TODO: are these being used?
 
     topologyCache.clear();
-    topologyCacheIndex = -1;
+    topologyCacheIndex.invalidate();
 
     // New constraint fields (TODO not used yet)
     branches.clear();
@@ -406,8 +406,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
         allocateCacheEntry(s, Stage::Instance, new Value<SBInstanceCache>());
 
     // No time vars or cache
-    mc.timeVarsIndex = -1;
-    mc.timeCacheIndex = -1;
+    mc.timeVarsIndex.invalidate();
+    mc.timeCacheIndex.invalidate();
 
     // Position variables are just q's, which the State knows how to deal with. 
 
@@ -423,7 +423,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     }
 
     mc.qIndex = s.allocateQ(getMySubsystemIndex(), qInit);
-    mc.qVarsIndex = -1; // no config vars other than q
+    mc.qVarsIndex.invalidate(); // no config vars other than q
     mc.qCacheIndex = allocateCacheEntry(s, Stage::Position, new Value<SBPositionCache>());
 
     // Velocity variables are just the generalized speeds u, which the State knows how to deal
@@ -433,7 +433,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     setDefaultVelocityValues(mv, uInit);
 
     mc.uIndex = s.allocateU(getMySubsystemIndex(), uInit);
-    mc.uVarsIndex = -1; // no velocity vars other than u
+    mc.uVarsIndex.invalidate(); // no velocity vars other than u
     mc.uCacheIndex = allocateCacheEntry(s, Stage::Velocity, new Value<SBVelocityCache>());
     // Note that qdots are automatically allocated in the Velocity stage cache.
 
@@ -2349,48 +2349,48 @@ void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, St
         mc = &matter.updModelCache(state);
     }
     if (g >= Stage::Instance) {
-        if (mc->instanceVarsIndex >= 0)
+        if (mc->instanceVarsIndex.isValid())
             iv = &matter.getInstanceVars(state);
-        if (mc->instanceCacheIndex >= 0)
+        if (mc->instanceCacheIndex.isValid())
             ic = &matter.updInstanceCache(state);
     }
     if (g >= Stage::Time) {
-        if (mc->timeVarsIndex >= 0)
+        if (mc->timeVarsIndex.isValid())
             tv = &matter.getTimeVars(state);
-        if (mc->timeCacheIndex >= 0)
+        if (mc->timeCacheIndex.isValid())
             tc = &matter.updTimeCache(state);
     }
     if (g >= Stage::Position) {
-        if (mc->qVarsIndex >= 0)
+        if (mc->qVarsIndex.isValid())
             pv = &matter.getPositionVars(state);
 
         qErr = &matter.updQErr(state);
-        if (mc->qCacheIndex >= 0)
+        if (mc->qCacheIndex.isValid())
             pc = &matter.updPositionCache(state);
     }
     if (g >= Stage::Velocity) {
-        if (mc->uVarsIndex >= 0)
+        if (mc->uVarsIndex.isValid())
             vv = &matter.getVelocityVars(state);
 
         qdot = &matter.updQDot(state);
         uErr = &matter.updUErr(state);
-        if (mc->uCacheIndex >= 0)
+        if (mc->uCacheIndex.isValid())
             vc = &matter.updVelocityCache(state);
     }
     if (g >= Stage::Dynamics) {
-        if (mc->dynamicsVarsIndex >= 0)
+        if (mc->dynamicsVarsIndex.isValid())
             dv = &matter.getDynamicsVars(state);
-        if (mc->dynamicsCacheIndex >= 0)
+        if (mc->dynamicsCacheIndex.isValid())
             dc = &matter.updDynamicsCache(state);
     }
     if (g >= Stage::Acceleration) {
-        if (mc->accelerationVarsIndex >= 0)
+        if (mc->accelerationVarsIndex.isValid())
             av = &matter.getAccelerationVars(state);
 
         udot = &matter.updUDot(state);
         qdotdot = &matter.updQDotDot(state);
         udotErr = &matter.updUDotErr(state);
-        if (mc->accelerationCacheIndex >= 0)
+        if (mc->accelerationCacheIndex.isValid())
             ac = &matter.updAccelerationCache(state);
     }
 

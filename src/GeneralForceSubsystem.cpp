@@ -63,11 +63,11 @@ class GeneralForceSubsystemRep : public ForceSubsystemRep {
     
     // This must be filled in during realizeTopology and treated
     // as const thereafter.
-    mutable int forceValidCacheIndex;
-    mutable int rigidBodyForceCacheIndex;
-    mutable int mobilityForceCacheIndex;
-    mutable int particleForceCacheIndex;
-    mutable int forceEnabledIndex;
+    mutable CacheEntryIndex forceValidCacheIndex;
+    mutable CacheEntryIndex rigidBodyForceCacheIndex;
+    mutable CacheEntryIndex mobilityForceCacheIndex;
+    mutable CacheEntryIndex particleForceCacheIndex;
+    mutable DiscreteVariableIndex forceEnabledIndex;
 
 public:
     GeneralForceSubsystemRep()

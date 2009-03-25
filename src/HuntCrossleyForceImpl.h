@@ -58,7 +58,7 @@ private:
     const ContactSetIndex set;
     std::vector<Parameters> parameters;
     Real transitionVelocity;
-    mutable int energyCacheIndex;
+    mutable CacheEntryIndex energyCacheIndex;
 };
 
 class HuntCrossleyForceImpl::Parameters {

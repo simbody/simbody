@@ -927,7 +927,7 @@ public:
     /// Extract from the State the value of a single generalized speed (mobility) u from one
     /// of this Constraint's ConstrainedMobilizers. The State needs to be realized only
     /// as high as Model stage, but don't use this value in a position-level method like
-    /// realizePositionErrors() or in any off the applyConstraintForces methods!
+    /// realizePositionErrors() or in any of the applyConstraintForces methods!
     /// Those must be limited to dependencies on time and configuration only.
     Real getOneU(const State&, ConstrainedMobilizerIndex, MobilizerUIndex) const;
 

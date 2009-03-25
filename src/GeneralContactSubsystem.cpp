@@ -78,9 +78,7 @@ public:
 
 class GeneralContactSubsystemImpl : public Subsystem::Guts {
 public:
-    GeneralContactSubsystemImpl() : contactsCacheIndex(-1), contactsValidCacheIndex(-1)
-    {
-    }
+    GeneralContactSubsystemImpl() {}
 
     GeneralContactSubsystemImpl* cloneImpl() const {
         return new GeneralContactSubsystemImpl(*this);
@@ -245,8 +243,8 @@ public:
     SimTK_DOWNCAST(GeneralContactSubsystemImpl, Subsystem::Guts);
 
 private:
-    mutable int contactsCacheIndex;
-    mutable int contactsValidCacheIndex;
+    mutable CacheEntryIndex contactsCacheIndex;
+    mutable CacheEntryIndex contactsValidCacheIndex;
     vector<ContactSet> sets;
 };
 

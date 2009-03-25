@@ -89,7 +89,7 @@ void stateTest() {
     printf("q1,2=%d,%d\n", q1, q2);
     cout << s;
 
-    long dv = s.allocateDiscreteVariable(SubsystemIndex(0), Stage::Dynamics, new Value<int>(5));
+    DiscreteVariableIndex dv = s.allocateDiscreteVariable(SubsystemIndex(0), Stage::Dynamics, new Value<int>(5));
 
     s.advanceSubsystemToStage(SubsystemIndex(0), Stage::Model);
         //long dv2 = s.allocateDiscreteVariable(SubsystemIndex(0), Stage::Position, new Value<int>(5));

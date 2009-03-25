@@ -174,11 +174,22 @@ int main(int argc, char** argv) {
 
     cout << "HAS TIME ADVANCED EVENTS=" << mbs.hasTimeAdvancedEvents() << endl;
 
+    Measure::Constant meas1(twoPends, 20);
+    const Real amp = 3, freq = 100, phase = Pi/2;
+    Measure::Sinusoid sint(twoPends, amp, freq, phase);
+
+    Measure::Integrate twentyPlus10t(mbs, Measure::Constant(mbs, 10), meas1);
+
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     //twoPends.setUseEulerAngles(s, true);
     mbs.realizeModel(s); // define appropriate states for this System
 
+    twentyPlus10t.setValue(s, 20);
+
 	mbs.realize(s, Stage::Instance); // instantiate constraints
+
+    cout << "meas1=" << meas1.getValue(s) << endl;
+
 
     if (cid.isValid()) {
 		int mp, mv, ma;
@@ -310,6 +321,11 @@ int main(int argc, char** argv) {
             twoPends.getQErr(s).normRMS(),
             twoPends.getUErr(s).normRMS(),
             twoPends.getUDotErr(s).normRMS());
+
+        cout << "t=" << s.getTime() << "sint=" << sint.getValue(s) << "a*sin(wt+p)=" 
+            << amp*std::sin(freq*s.getTime() + phase) << endl;
+
+        cout << "20+10t=" << twentyPlus10t.getValue(s) << endl;
 
 		if (cid.isValid()) {
 			const Constraint& c = twoPends.getConstraint(cid);

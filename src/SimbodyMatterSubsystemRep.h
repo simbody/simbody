@@ -963,7 +963,7 @@ private:
     int maxNQTotal; // sum of dofs with room for quaternions
 
     SBTopologyCache topologyCache;
-    int topologyCacheIndex; // topologyCache is copied here in the State
+    CacheEntryIndex topologyCacheIndex; // topologyCache is copied here in the State
     
     // Specifies whether default decorative geometry should be shown.
     bool showDefaultGeometry;

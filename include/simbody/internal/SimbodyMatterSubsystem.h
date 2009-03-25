@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-8 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy                                                 *
  *                                                                            *
@@ -247,6 +247,11 @@ public:
     /// the acceleration constraints will still be satisfied. No attempt
     /// will be made to satisfy position and velocity constraints, or even to check
     /// whether they are statisfied.
+    /// This operator solves the two equations
+    ///     M udot + G^T lambda = F
+    ///     G udot              = b
+    /// for udot and lambda, but does not return lambda. F includes both the 
+    /// applied forces and the "bias" forces due to rigid body rotations.
     /// This is an O(n*nc^2) operator worst case where all nc constraint equations
     /// are coupled.
     /// Requires prior realization through Stage::Dynamics.
@@ -256,11 +261,14 @@ public:
         Vector&                    udot,
         Vector_<SpatialVec>&       A_GB) const;
 
-
     /// This operator is similar to calcAcceleration but ignores the effects of
     /// acceleration constraints. The supplied forces and velocity-induced centrifugal
     /// effects are properly accounted for, but any forces that would have resulted
     /// from enforcing the contraints are not present.
+    /// This operator solves the equation
+    ///     M udot = F
+    /// for udot. F includes both the applied forces and the "bias" forces due
+    /// to rigid body rotations, but does not include any constraint forces.
     /// This is an O(N) operator.
     /// Requires prior realization through Stage::Dynamics.
     void calcAccelerationIgnoringConstraints(const State&,
@@ -282,6 +290,125 @@ public:
         const Vector&        v,
         Vector&              MinvV,
         Vector_<SpatialVec>& A_GB) const; // <-- TODO: get rid of this A
+
+    /// This is the primary dynamics residual operator. Using position and velocity
+    /// from the given state, a set of applied forces, and a known set of mobility
+    /// accelerations and constraint multipliers, it calculates the additional
+    /// mobility forces that would be required to satisfy Newton's 2nd law.
+    /// That is, this operator returns
+    ///     f_residual = M udot + G^T lambda - F
+    /// where F includes the applied forces plus forces due
+    /// to rigid body rotations (coriolis and gyroscopic forces).
+    /// TODO
+    void calcResidualForces(const State&,
+        const Vector&              appliedMobilityForces,
+        const Vector_<SpatialVec>& appliedBodyForces,
+        const Vector&              knownUdot,
+        const Vector&              knownMultipliers,
+        Vector&                    residualMobilityForces) const;
+
+    /// Returns
+    ///     constraintErr = G udot - b
+    /// the residual error in the acceleration constraint equation given
+    /// a generalized acceleration udot.
+    /// Requires velocites to have been realized so that b(t,q,u) is 
+    /// available.
+    void calcAccConstraintErr(const State&,
+        const Vector&   knownUdot,
+        Vector&         constraintErr) const;
+
+    /// Returns G*v, the product of the mXn acceleration constraint Jacobian
+    /// and a vector of length n. m is the number of active acceleration constraint equations,
+    /// n is the number of mobilities.
+    /// This is an O(n) operation.
+    void calcGV(const State&,
+        const Vector&   v,
+        Vector&         Gv) const;
+
+    /// Returns G^T*v, the product of the nXm transpose of the acceleration constraint Jacobian
+    /// G and a vector v of length m. m is the number of active acceleration constraint equations,
+    /// n is the number of mobilities. If v is a set of constraint multipliers, then
+    /// f=G^T*v is the set of equivalent generalized forces they generate.
+    /// This is an O(n) operation.
+    void calcGtV(const State&,
+        const Vector&   v,
+        Vector&         GtV) const;
+
+    /// Returns
+    ///     f_residual = M udot - F
+    /// where F includes the applied forces plus forces due
+    /// to rigid body rotations (coriolis and gyroscopic forces).
+    /// TODO
+    void calcResidualForcesIgnoringConstraints(const State&,
+        const Vector&              appliedMobilityForces,
+        const Vector_<SpatialVec>& appliedBodyForces,
+        const Vector&              knownUdot,
+        Vector&                    residualMobilityForces) const;
+
+
+    /// This operator calculate M*v where M is the system mass matrix and
+    /// v is a supplied vector with one entry per mobility. If v is a set
+    /// of mobility accelerations (generalized accelerations), then the
+    /// result is a generalized force (f=M*a). Only the supplied vector
+    /// is used, and M depends only on position states, so the result
+    /// here is not affected by velocities in the State.
+    /// Requires prior realization through Stage::Position ??? TODO
+    void calcMV(const State&, const Vector& v, Vector& MV) const;
+
+    /// This operator explictly calcuates the n X n mass matrix M. Note that
+    /// this is inherently an O(n^2) operation since the mass matrix has
+    /// n^2 elements (although only n(n+1)/2 are unique due to symmetry).
+    /// <em>DO NOT USE THIS CALL DURING NORMAL DYNAMICS</em>. To
+    /// do so would change an O(n) operation into an O(n^2) one. Instead,
+    /// see if you can accomplish what you need with O(n) operators like
+    /// calcMV() which calculates the matrix-vector product M*v in O(n)
+    /// without explicitly forming M.
+    /// Also, don't invert this matrix numerically to get M^-1. Instead, call
+    /// the method calcMInv() which can produce M^-1 directly.
+    /// @see calcMV()
+    /// @see calcMInv()
+    void calcM(const State&, Matrix& M) const;
+
+    /// This operator explicitly calculates the n X n mass matrix inverse
+    /// M^-1. This is an O(n^2) operation, which is of course within a 
+    /// constant factor of optimal for returning a matrix with n^2 
+    /// elements explicitly. (There are actually only n(n+1)/2 unique
+    /// elements since the matrix is symmetric.)
+    /// <em>DO NOT USE THIS CALL DURING NORMAL DYNAMICS</em>. To
+    /// do so would change an O(n) operation into an O(n^2) one. Instead,
+    /// see if you can accomplish what you need with O(n) operators like
+    /// calcMInvV() which calculates the matrix-vector product M^-1*v in O(n)
+    /// without explicitly forming M or M^-1.
+    /// If you need M explicitly, you can get it with the calcM() method.
+    /// @see calcMInvV()
+    /// @see calcM()
+    void calcMInv(const State&, Matrix& MInv) const;
+
+    /// This O(nm) operator explicitly calculates the m X n acceleration-level constraint
+    /// Jacobian G = [P;V;A] which appears in the system equations of motion.
+    /// This method generates G columnwise use the acceleration-level
+    /// constraint error equations.
+    /// To within numerical error, this should be identical to the transpose of
+    /// the matrix returned by calcGt() which uses a different method.
+    /// Consider using the calcGV() method instead of this one, which forms the
+    /// matrix-vector product G*v in O(n) time without explicitly forming G.
+    /// @see calcGt()
+    /// @see calcGV()
+    void calcG(const State&, Matrix& G) const;
+
+    /// This O(nm) operator explicitly calculates the n X m transpose of the acceleration-
+    /// level constraint Jacobian G = [P;V;A] which appears in the system equations
+    /// of motion. This method generates G^T columnwise use the constraint force
+    /// generating methods which map constraint multipliers to constraint forces.
+    /// To within numerical error, this should be identical to the transpose of
+    /// the matrix returned by calcG() which uses a different method.
+    /// Consider using the calcGtV() method instead of this one, which forms the
+    /// matrix-vector product G^T*v in O(n) time without explicitly forming G^T.
+    /// @see calcG()
+    /// @see calcGtV()
+    void calcGt(const State&, Matrix& Gt) const;
+
+
 
     /// Requires realization through Stage::Position.
     void calcSpatialKinematicsFromInternal(const State&,

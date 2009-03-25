@@ -73,7 +73,8 @@ int main() {
     for (int i = 0; i < s.getNQ(); ++i)
         s.updQ()[i] = random.getValue();
     mbs.realize(s, Stage::Instance);
-    mbs.project(s, 0.01, Vector(s.getNY()), Vector(s.getNYErr()), Vector(s.getNY())); // Normalize the quaternions
+    // The only constraints are the quaternions -- normalize them.
+    mbs.project(s, 0.01, Vector(s.getNY(),1), Vector(s.getNYErr(),1), Vector());
     mbs.realize(s, Stage::Position);
     
     // Convert to Euler angles and make sure the positions are all the same.

@@ -128,15 +128,6 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(ParticleIndex)
 // allocated a slot in pools of that data. Those pools are indexed by this type.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(AncestorConstrainedBodyPoolIndex)
 
-// This is for "q-like" arrays, that is, arrays which inherently have the same dimension as
-// the totoal number of generalized coordinates for the whole Matter Subsystem.
-SimTK_DEFINE_UNIQUE_INDEX_TYPE(QIndex)    // an index into generalized coordinates q
-
-// This is for "u-like" arrays, that is, arrays which inherently have the same dimension as
-// the total number of mobilities (generalized speeds) for the whole Matter Subsystem. This
-// includes both u and udot.
-SimTK_DEFINE_UNIQUE_INDEX_TYPE(UIndex)    // an index into generalized speeds u (and accelerations udot)
-
 // This is for "u-squared" arrays, that is, arrays which allocate space for an nuXnu block
 // for each MobilizedBody.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(USquaredIndex)

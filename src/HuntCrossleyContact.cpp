@@ -100,8 +100,7 @@ class HuntCrossleyContactRep : public ForceSubsystemRep {
 
 public:
     HuntCrossleyContactRep()
-     : ForceSubsystemRep("HuntCrossleyContact", "0.0.1"), 
-       instanceVarsIndex(-1), energyCacheIndex(-1)
+     : ForceSubsystemRep("HuntCrossleyContact", "0.0.1")
     {
     }
     int addSphere(MobilizedBodyIndex body, const Vec3& center,
@@ -199,8 +198,8 @@ private:
 
     // This must be filled in during realizeTopology and treated
     // as const thereafter. These are garbage unless built=true.
-    mutable int instanceVarsIndex;
-    mutable int energyCacheIndex;
+    mutable DiscreteVariableIndex instanceVarsIndex;
+    mutable CacheEntryIndex       energyCacheIndex;
 
     const Parameters& getParameters(const State& s) const {
         assert(subsystemTopologyHasBeenRealized());

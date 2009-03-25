@@ -1491,7 +1491,7 @@ public:
 private:
     const SubsystemIndex subsystem;
     const int nu;
-    mutable int cacheIndex;
+    mutable CacheEntryIndex cacheIndex;
     const std::vector<const Function<1>*> functions;
     const std::vector<std::vector<int> > coordIndices;
     int* referenceCount;

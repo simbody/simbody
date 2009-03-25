@@ -114,7 +114,7 @@ class MultibodySystemGlobalSubsystemRep : public Subsystem::Guts {
     // Topological variables
 
     static const int NumForceCacheEntries = (Stage::DynamicsIndex-Stage::ModelIndex+1);
-    mutable int forceCacheIndices[NumForceCacheEntries]; // where in state to find our stuff
+    mutable CacheEntryIndex forceCacheIndices[NumForceCacheEntries]; // where in state to find our stuff
 
     const ForceCacheEntry& getForceCacheEntry(const State& s, Stage g) const {
         assert(subsystemTopologyHasBeenRealized());
@@ -136,12 +136,8 @@ public:
     MultibodySystemGlobalSubsystemRep()
       : Subsystem::Guts("MultibodySystemGlobalSubsystem", "0.0.2")
     {
-        for (int i=0; i<NumForceCacheEntries; ++i)
-            forceCacheIndices[i] = -1;
         invalidateSubsystemTopologyCache();
     }
-
-
 
     const MultibodySystem& getMultibodySystem() const {
         return MultibodySystem::downcast(getSystem());
@@ -175,7 +171,7 @@ public:
         MultibodySystemGlobalSubsystemRep* p = 
             new MultibodySystemGlobalSubsystemRep(*this);
         for (int i=0; i<NumForceCacheEntries; ++i)
-            p->forceCacheIndices[i] = -1;
+            p->forceCacheIndices[i].invalidate();
         p->invalidateSubsystemTopologyCache();
         return p;
     }
