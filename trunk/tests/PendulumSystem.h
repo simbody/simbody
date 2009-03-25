@@ -49,15 +49,17 @@ class PendulumSystemGuts: public System::Guts {
     SubsystemIndex subsysIndex;
 
     // TOPOLOGY CACHE
-    mutable int massIndex, lengthIndex, gravityIndex;
-    mutable int q0, u0, qerr0, uerr0, udoterr0, event0;
-    mutable int mgForceIndex; // a cache entry m*g calculated at Dynamics stage
+    mutable DiscreteVariableIndex massIndex, lengthIndex, gravityIndex;
+    mutable QIndex q0;
+    mutable UIndex u0;
+    mutable QErrIndex qerr0;
+    mutable UErrIndex uerr0;
+    mutable UDotErrIndex udoterr0;
+    mutable EventTriggerByStageIndex event0;
+    mutable CacheEntryIndex mgForceIndex; // a cache entry m*g calculated at Dynamics stage
 public:
     PendulumSystemGuts() : Guts() {
-        subsysIndex = InvalidSubsystemIndex;
-        massIndex = lengthIndex = gravityIndex = -1;
-        q0 = u0 = qerr0 = uerr0 = udoterr0 = event0 = -1;
-        mgForceIndex = -1;
+        // Index types set themselves invalid on construction.
     }
 
     const PendulumSystem& getPendulumSystem() const {

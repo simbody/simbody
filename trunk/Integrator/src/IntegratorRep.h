@@ -400,14 +400,14 @@ public:
     // For purposes of this method, events are specified by their indices in the array
     // of trigger functions, NOT by their event IDs.
     void findEventCandidates(int nEvents, 
-                             const std::vector<int>*                       viableCandidates,
-                             const std::vector<EventStatus::EventTrigger>* viableCandidateTransitions,
+                             const std::vector<SystemEventTriggerIndex>*   viableCandidates,
+                             const std::vector<Event::Trigger>* viableCandidateTransitions,
                              Real tLow,  const Vector& eLow, 
                              Real tHigh, const Vector& eHigh,
                              Real bias, Real minWindow,
-                             std::vector<int>&                       candidates,
+                             std::vector<SystemEventTriggerIndex>&   candidates,
                              std::vector<Real>&                      timeEstimates,
-                             std::vector<EventStatus::EventTrigger>& transitions,
+                             std::vector<Event::Trigger>& transitions,
                              Real& earliestTimeEst, 
                              Real& narrowestWindow) const
     {
@@ -425,13 +425,14 @@ public:
         transitions.clear();
         earliestTimeEst = narrowestWindow = Infinity;
         for (int i=0; i<nCandidates; ++i) {
-            const int e = viableCandidates ? (*viableCandidates)[i] : i;
-            EventStatus::EventTrigger transitionSeen =
-                EventStatus::maskTransition(
-                    EventStatus::classifyTransition(sign(eLow[e]), sign(eHigh[e])),
+            const SystemEventTriggerIndex e = viableCandidates ? (*viableCandidates)[i] 
+                                                                 : SystemEventTriggerIndex(i);
+            Event::Trigger transitionSeen =
+                Event::maskTransition(
+                    Event::classifyTransition(sign(eLow[e]), sign(eHigh[e])),
                     eventTriggerInfo[e].calcTransitionMask());
 
-            if (transitionSeen != EventStatus::NoEventTrigger) {
+            if (transitionSeen != Event::NoEventTrigger) {
                 // Replace the transition we just saw with the appropriate one for
                 // reporting purposes. For example, if the event trigger only wants
                 // negative-to-positive transitions but we just saw negative-to-zero
@@ -454,7 +455,7 @@ public:
     
     /// Given a list of events, specified by their indices in the list of trigger functions,
     /// convert them to the corresponding event IDs.
-    void findEventIds(const std::vector<int>& indices, std::vector<EventId>& ids) {
+    void findEventIds(const std::vector<SystemEventTriggerIndex>& indices, std::vector<EventId>& ids) {
         for (int i = 0; i < (int)indices.size(); ++i)
             ids.push_back(eventTriggerInfo[indices[i]].getEventId());
     }
@@ -513,7 +514,7 @@ protected:
     void setTriggeredEvents(Real tlo, Real thi,
                             const std::vector<EventId>&  eventIds,
                             const std::vector<Real>& estEventTimes,
-                            const std::vector<EventStatus::EventTrigger>& transitionsSeen)
+                            const std::vector<Event::Trigger>& transitionsSeen)
     {
         assert(tPrev <= tlo && tlo < thi && thi <= advancedState.getTime());
         tLow = tlo;
@@ -541,7 +542,7 @@ protected:
 
     const std::vector<EventId>&  getTriggeredEvents()  const {return triggeredEvents;}
     const std::vector<Real>& getEstimatedEventTimes()  const {return estimatedEventTimes;}
-    const std::vector<EventStatus::EventTrigger>&
+    const std::vector<Event::Trigger>&
                        getEventTransitionsSeen() const {return eventTransitionsSeen;}
 
     // This determines which state will be returned by getState().
@@ -560,21 +561,21 @@ protected:
     const Real&   getPreviousTime()   const {return tPrev;}
     const Vector& getPreviousY()      const {return yPrev;}
     const Vector& getPreviousYDot()   const {return ydotPrev;}
-    const Vector& getPreviousEvents() const {return eventsPrev;}
+    const Vector& getPreviousEventTriggers() const {return triggersPrev;}
     Real&   updPreviousTime()   {return tPrev;}
     Vector& updPreviousY()      {return yPrev;}
     Vector& updPreviousYDot()   {return ydotPrev;}
-    Vector& updPreviousEvents() {return eventsPrev;}
+    Vector& updPreviousEventTriggers() {return triggersPrev;}
     std::vector<System::EventTriggerInfo>& updEventTriggerInfo() {return eventTriggerInfo;}
     Vector& updConstraintWeightsInUse() {return constraintWeightsInUse;}
 
     // State must already have been evaluated through Stage::Acceleration
     // or this will throw a stage violation.
     void saveStateAsPrevious(const State& s) {
-        tPrev      = s.getTime();
-        yPrev      = s.getY();
-        ydotPrev   = s.getYDot();
-        eventsPrev = s.getEvents();
+        tPrev        = s.getTime();
+        yPrev        = s.getY();
+        ydotPrev     = s.getYDot();
+        triggersPrev = s.getEventTriggers();
     }
 
     // collect user requests
@@ -830,7 +831,7 @@ private:
     // the integrator's algorithmic determination of the transition to
     // be reported -- you might not get the same answer just looking
     // at the event trigger functions at tLow and tHigh.
-    std::vector<EventStatus::EventTrigger> eventTransitionsSeen;
+    std::vector<Event::Trigger> eventTransitionsSeen;
 
     // When we have successfully localized a triggering event into
     // the time interval (tLow,tHigh] we record the bounds here.
@@ -850,7 +851,7 @@ private:
     // from previous accepted state also so we don't have to
     // recalculate for restarts.
     Vector  ydotPrev;
-    Vector  eventsPrev;
+    Vector  triggersPrev;
 
     // We'll leave the various arrays above sized as they are and full
     // of garbage. They'll be resized when first assigned to something

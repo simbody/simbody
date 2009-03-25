@@ -338,13 +338,13 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     // trajectory, since it is invalid until the event handler is called to fix it.
 
     realizeStateDerivatives(getAdvancedState());
-    const Vector& e0 = getPreviousEvents();
-    const Vector& e1 = getAdvancedState().getEvents();
-    assert(e0.size() == e1.size() && e0.size() == getAdvancedState().getNEvents());
+    const Vector& e0 = getPreviousEventTriggers();
+    const Vector& e1 = getAdvancedState().getEventTriggers();
+    assert(e0.size() == e1.size() && e0.size() == getAdvancedState().getNEventTriggers());
 
 	const Real MinWindow = std::max(SignificantReal, SignificantReal*getAdvancedTime());
-    std::vector<int> eventCandidates, newEventCandidates;
-    std::vector<EventStatus::EventTrigger> 
+    std::vector<SystemEventTriggerIndex> eventCandidates, newEventCandidates;
+    std::vector<Event::Trigger> 
         eventCandidateTransitions, newEventCandidateTransitions;
     std::vector<Real> eventTimeEstimates, newEventTimeEstimates;
 
@@ -405,7 +405,7 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         // an exception if it fails.
         realizeStateDerivatives(getInterpolatedState());
 
-        const Vector& eMid = getInterpolatedState().getEvents();
+        const Vector& eMid = getInterpolatedState().getEventTriggers();
 
         // TODO: should search in the wider interval first
 

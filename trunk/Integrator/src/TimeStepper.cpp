@@ -137,7 +137,7 @@ Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
             case Integrator::ReachedReportTime: {
                 if (integ->getTime() >= nextScheduledReport) {
                     system.reportEvents(integ->getState(),
-                        System::ScheduledEvents,
+                        Event::Cause::Scheduled,
                         scheduledReportIds);
                     lastReportTime = integ->getTime();
                 }
@@ -147,7 +147,7 @@ Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
             }
             case Integrator::ReachedScheduledEvent: {
                 system.handleEvents(integ->updAdvancedState(),
-                    System::ScheduledEvents,
+                    Event::Cause::Scheduled,
                     scheduledEventIds,
                     integ->getAccuracyInUse(),
                     integ->getStateWeightsInUse(),
@@ -158,7 +158,7 @@ Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
             }
             case Integrator::TimeHasAdvanced: {
                 system.handleEvents(integ->updAdvancedState(),
-                    System::TimeAdvancedEvent,
+                    Event::Cause::TimeAdvanced,
                     std::vector<EventId>(),
                     integ->getAccuracyInUse(),
                     integ->getStateWeightsInUse(),
@@ -168,7 +168,7 @@ Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
             }
             case Integrator::ReachedEventTrigger: {
                 system.handleEvents(integ->updAdvancedState(),
-                    System::TriggeredEvents,
+                    Event::Cause::Triggered,
                     integ->getTriggeredEvents(),
                     integ->getAccuracyInUse(),
                     integ->getStateWeightsInUse(),
@@ -178,7 +178,7 @@ Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
             }
             case Integrator::EndOfSimulation: {
                 system.handleEvents(integ->updAdvancedState(),
-                    System::TerminationEvent,
+                    Event::Cause::Termination,
                     std::vector<EventId>(),
                     integ->getAccuracyInUse(),
                     integ->getStateWeightsInUse(),

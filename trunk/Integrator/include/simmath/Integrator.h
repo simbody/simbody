@@ -259,7 +259,7 @@ public:
     const std::vector<Real>& getEstimatedEventTimes() const;
     /// Get EventTriggers describing the events which have been localized within the event window.  This may only be called
     /// when stepTo() or stepBy() has returned ReachedEventTrigger.
-    const std::vector<EventStatus::EventTrigger>& getEventTransitionsSeen() const;
+    const std::vector<Event::Trigger>& getEventTransitionsSeen() const;
 
 
         // TERMINATION //

@@ -131,7 +131,7 @@ Integrator::getEstimatedEventTimes() const {
     return getRep().getEstimatedEventTimes();
 }
 
-const std::vector<EventStatus::EventTrigger>&
+const std::vector<Event::Trigger>&
 Integrator::getEventTransitionsSeen() const {
     if (getRep().getStepCommunicationStatus() != IntegratorRep::StepHasBeenReturnedWithEvent) {
         SimTK_THROW2(CantAskForEventInfoWhenNoEventTriggered, "getEventTransitionsSeen",
@@ -319,7 +319,7 @@ void IntegratorRep::initialize(const State& initState) {
     // Allocate data structures now that we know the sizes.
     const int ny = getAdvancedState().getNY();
     const int nc = getAdvancedState().getNYErr();
-    const int ne = getAdvancedState().getNEvents();
+    const int ne = getAdvancedState().getNEventTriggers();
     stateWeightsInUse.resize(ny);
     constraintWeightsInUse.resize(nc);
     timeScaleInUse = getSystem().calcTimescale(getAdvancedState());

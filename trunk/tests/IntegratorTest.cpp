@@ -57,16 +57,18 @@ class MyPendulumGuts: public System::Guts {
     SubsystemIndex subsysIndex;
 
     // TOPOLOGY CACHE
-    mutable int massIndex, lengthIndex, gravityIndex;
-    mutable int q0, u0, qerr0, uerr0, udoterr0, event0;
-    mutable int mgForceIndex; // a cache entry m*g calculated at Dynamics stage
-    mutable EventId eventId0, eventId1, eventId2;
+    mutable DiscreteVariableIndex       massIndex, lengthIndex, gravityIndex;
+    mutable QIndex                      q0;
+    mutable UIndex                      u0;
+    mutable QErrIndex                   qerr0;
+    mutable UErrIndex                   uerr0;
+    mutable UDotErrIndex                udoterr0;
+    mutable EventTriggerByStageIndex    trigger0;
+    mutable CacheEntryIndex             mgForceIndex; // a cache entry m*g calculated at Dynamics stage
+    mutable EventId                     eventId0, eventId1, eventId2;
 public:
     MyPendulumGuts() : Guts() {
-        subsysIndex = InvalidSubsystemIndex;
-        massIndex = lengthIndex = gravityIndex = -1;
-        q0 = u0 = qerr0 = uerr0 = udoterr0 = event0 = -1;
-        mgForceIndex = -1;
+        // Index types set themselves invalid on construction.
     }
 
     const MyPendulum& getMyPendulum() const {
@@ -148,15 +150,14 @@ public:
     // a discontinuity (event trigger) has been detected. The current
     // state is inconsistent in some way and we expect the event handlers
     // to correct that. Time will be the same before and after, but the
-    // state may have changed discontinuously. At least the discrete state
-    // variables which indicate unhandled triggers must be cleared.
+    // state may have changed discontinuously.
     /*virtual*/int handleEventsImpl
-       (State& s, System::EventCause cause, const std::vector<int>& eventIds,
+       (State& s, Event::Cause cause, const std::vector<int>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const
     {
         cout << "===> t=" << s.getTime() << ": HANDLING " 
-             << System::getEventCauseName(cause) << " EVENT!!!" << endl;
+             << Event::getCauseName(cause) << " EVENT!!!" << endl;
 //        if (eventIds.size())
 //            cout << "  EVENT IDS: " << eventIds << endl;
 
@@ -296,7 +297,7 @@ int main () {
                 bool shouldTerminate;
                 printf("SCHEDULED EVENT\n");
                 sys.handleEvents(integ.updAdvancedState(),
-                    System::ScheduledEvents,
+                    Event::Cause::Scheduled,
                     scheduledEventIds,
                     integ.getAccuracyInUse(),
                     integ.getStateWeightsInUse(),
@@ -311,7 +312,7 @@ int main () {
                 bool shouldTerminate;
                 printf("TIME HAS ADVANCED TO %g\n", integ.getTime()); 
                 sys.handleEvents(integ.updAdvancedState(),
-                    System::TimeAdvancedEvent,
+                    Event::Cause::TimeAdvanced,
                     std::vector<EventId>(),
                     integ.getAccuracyInUse(),
                     integ.getStateWeightsInUse(),
@@ -331,13 +332,13 @@ int main () {
 //                cout << "Triggered events: " << integ.getTriggeredEvents();
                 cout << "Transitions seen:";
                 for (int i=0; i<(int)integ.getEventTransitionsSeen().size(); ++i)
-                    cout << " " << EventStatus::eventTriggerString(integ.getEventTransitionsSeen()[i]);
+                    cout << " " << Event::eventTriggerString(integ.getEventTransitionsSeen()[i]);
                 cout << endl;
 //                cout << "Est event times:  " << integ.getEstimatedEventTimes();
 
                 // state(t-) => state(t+)
                 sys.handleEvents(integ.updAdvancedState(),
-                    System::TriggeredEvents,
+                    Event::Cause::Triggered,
                     integ.getTriggeredEvents(),
                     integ.getAccuracyInUse(),
                     integ.getStateWeightsInUse(),
@@ -353,7 +354,7 @@ int main () {
 
                 printf("SIMULATION IS OVER. TERMINATION REASON=<TODO>\n");
                 sys.handleEvents(integ.updAdvancedState(),
-                    System::TerminationEvent,
+                    Event::Cause::Termination,
                     std::vector<EventId>(),
                     integ.getAccuracyInUse(),
                     integ.getStateWeightsInUse(),
@@ -376,8 +377,8 @@ int main () {
             s.getTime(), integ.getAdvancedTime(),
             s.getY()[0], s.getY()[1], s.getY()[2], s.getY()[3],
             s.getYErr()[0], s.getYErr()[1], 
-            s.getEventsByStage(SubsystemIndex(0),Stage::Position)[0], s.getEventsByStage(SubsystemIndex(0),Stage::Position)[1], 
-            s.getEventsByStage(SubsystemIndex(0),Stage::Position)[2]);
+            s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[0], s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[1], 
+            s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[2]);
 
         cout << "YDot:        " << s.getYDot() << endl;
         cout << "Multipliers: " << s.getMultipliers() << endl;
@@ -504,7 +505,7 @@ int MyPendulumGuts::realizeInstanceImpl(const State& s) const {
     qerr0 = s.allocateQErr(subsysIndex, 1);
     uerr0 = s.allocateUErr(subsysIndex, 1);
     udoterr0 = s.allocateUDotErr(subsysIndex, 1); // and multiplier
-    event0 = s.allocateEvent(subsysIndex, Stage::Position, 3);
+    trigger0 = s.allocateEventTrigger(subsysIndex, Stage::Position, 3);
     eventId0 = getSystem().getDefaultSubsystem().createEventId(subsysIndex, s);
     eventId1 = getSystem().getDefaultSubsystem().createEventId(subsysIndex, s);
     eventId2 = getSystem().getDefaultSubsystem().createEventId(subsysIndex, s);
@@ -517,12 +518,12 @@ int MyPendulumGuts::realizePositionImpl(const State& s) const {
     // This is the perr() equation.
     s.updQErr(subsysIndex)[0] = (q[0]*q[0] + q[1]*q[1] - d*d)/2;
     
-    s.updEventsByStage(subsysIndex, Stage::Position)[0] = 100*q[0]-q[1];
+    s.updEventTriggersByStage(subsysIndex, Stage::Position)[0] = 100*q[0]-q[1];
 
-    s.updEventsByStage(subsysIndex, Stage::Position)[1] = 
+    s.updEventTriggersByStage(subsysIndex, Stage::Position)[1] = 
         s.getTime() > 1.49552 && s.getTime() < 12.28937;
 
-    s.updEventsByStage(subsysIndex, Stage::Position)[2] = s.getTime()-1.495508;
+    s.updEventTriggersByStage(subsysIndex, Stage::Position)[2] = s.getTime()-1.495508;
     System::Guts::realizePositionImpl(s);
     return 0;
 }

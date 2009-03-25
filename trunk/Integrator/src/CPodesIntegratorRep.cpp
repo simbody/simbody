@@ -97,7 +97,7 @@ public:
             integ.realizeStateDerivatives(advanced); 
         }
         catch(...) { return CPodes::RecoverableError; } // assume recoverable
-        gout = advanced.getEvents();
+        gout = advanced.getEventTriggers();
         return CPodes::Success;
     }
 private:
@@ -154,8 +154,8 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
     else {
         cpodes->projDefine();
     }
-    cpodes->rootInit(state.getNEvents());
-    if (state.getNEvents() > 0) {
+    cpodes->rootInit(state.getNEventTriggers());
+    if (state.getNEventTriggers() > 0) {
         std::vector<System::EventTriggerInfo> triggerInfo;
         getSystem().calcEventTriggerInfo(state, triggerInfo);
         std::vector<int> rootDir(triggerInfo.size());
@@ -377,17 +377,17 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
             
             // An event was triggered.
             
-            std::vector<int> eventIndices;
+            std::vector<SystemEventTriggerIndex> eventIndices;
             std::vector<Real> eventTimes;
-            std::vector<EventStatus::EventTrigger> eventTransitions;
-            int nevents = getAdvancedState().getNEvents();
+            std::vector<Event::Trigger> eventTransitions;
+            int nevents = getAdvancedState().getNEventTriggers();
             int* eventFlags = new int[nevents];
             cpodes->getRootInfo(eventFlags);
-            for (int i = 0; i < nevents; ++i)
+            for (SystemEventTriggerIndex i(0); i < nevents; ++i)
                 if (eventFlags[i] != 0) {
                     eventIndices.push_back(i);
                     eventTimes.push_back(tret);
-                    eventTransitions.push_back(eventFlags[i] == 1 ? EventStatus::Rising : EventStatus::Falling);
+                    eventTransitions.push_back(eventFlags[i] == 1 ? Event::Rising : Event::Falling);
                 }
             delete[] eventFlags;
             std::vector<EventId> ids;
