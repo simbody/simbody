@@ -48,30 +48,20 @@ namespace SimTK {
  * This class is basically a glorified enumerated type, type-safe and range
  * checked but permitting convenient (if limited) arithmetic.
  * Constants look like Stage::Position, and loops can be written like
- * 		for(Stage s=Stage::Lowest; s <= Stage::Highest; ++s) ...
+ * 		for(Stage s=Stage::LowestValid; s <= Stage::HighestValid; ++s) ...
  * Stage constants (of type Stage::Num) are implicitly converted to type
- * Stage when necessary.
+ * Stage when necessary. If you want to use a Stage in a switch statement
+ * you have to use the Stage::Num indices rather than a Stage constant
+ * as case labels.
+ *
+ * There is no default construction -- all Stage variables must be
+ * initialized explicitly. (I would like them to initialize to
+ * Stage::Empty but the Enumeration<> template doesn't allow that.)
  */	
 class SimTK_SimTKCOMMON_EXPORT Stage : public Enumeration<Stage> {
 public:
-    // sherm 060720
-    // Noun version          Verb version
-    //  Invalid                InvalidType
-    //  Empty                  Allocate    Allocated
-    //  Topology               Build       Built
-    //
-    //  Model                  Model       Modeled
-    //  Instance               Specify     Specified
-    //  Time                   Time        Timed
-    //  Position               Position    Positioned
-    //  Velocity               Move        Moving
-    //  Dynamics               ?
-    //  Acceleration           Accelerate  Accelerated
-    //
-    //  Report                 Report      Reported
-    
 	enum Num {
-        EmptyIndex          =  0, // TODO: Initialized, Unbuilt, Empty, Vacant?
+        EmptyIndex          =  0, // Lower than any legitimate Stage.
         TopologyIndex       =  1, // TODO: Constructed, Finalized?
         ModelIndex          =  2, // TODO: Instantiated, Resourced, Provisioned, Specialized?
         InstanceIndex       =  3, // TODO: Instanced, Specified?
@@ -80,7 +70,8 @@ public:
         VelocityIndex       =  6, // TODO: Velocity, Speed, Rate?
         DynamicsIndex       =  7, // forces, dynamic properties & operators available
         AccelerationIndex   =  8, // TODO: Accelerated?
-        ReportIndex         =  9  // TODO: Output?
+        ReportIndex         =  9, // TODO: Output?
+        InfinityIndex       = 10  // Higher than any legitimate Stage.
 	};
     static const Stage Empty;
     static const Stage Topology;
@@ -92,10 +83,11 @@ public:
     static const Stage Dynamics;
     static const Stage Acceleration;
     static const Stage Report;
+    static const Stage Infinity;
 
     static const Stage LowestValid;
     static const Stage HighestValid;
-    static const int NValid = ReportIndex-EmptyIndex+1;
+    static const int NValid = InfinityIndex-EmptyIndex+1;
 
     // LowestRuntime->HighestRuntime cover the post-construction stages only.
 	static const Stage LowestRuntime;
@@ -118,8 +110,8 @@ private:
     Stage(const Stage& thisElement, int index, const char* name);
     static void initValues();
     friend class Enumeration<Stage>;
-
 };
+
 
 namespace Exception {
 

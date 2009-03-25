@@ -45,32 +45,9 @@ class System;
 class DecorativeGeometry;
 
 /**
- * The abstract parent of all Subsystems.
- *
- * A Subsystem is expected to be part of a larger System and to have
- * interdependencies with other subsystems of that same system. It
- * must NOT have dependencies on objects which are outside the System.
- * Consequently construction of any concrete subsystem requires
- * specification of a system at that time.
- * Subsystems go through an extended construction phase in which
- * their contents and interdependencies are created. Thus all
- * of a System's Subsystems generally need to be available simultaneously 
- * during construction, so that they can reference each other.
- *
- * There are three distinct users of this class:
- *    - the System class
- *    - the concrete Subsystems derived from this class
- *    - the end user of a concrete Subsystem
- * Only end user methods are public here. Methods intended for
- * use by the concrete Subsystem class are protected; anything
- * else is private.
+ * The abstract parent of all Subsystem "Guts" implementation classes.
  */
 class SimTK_SimTKCOMMON_EXPORT Subsystem::Guts {
-    class GutsRep;
-    friend class GutsRep;
-
-    // this is the only data member in the base class
-    GutsRep* rep; // opaque implementation of Subsystem::Guts base class.
 public:
     Guts(const Guts&);
     Guts& operator=(const Guts&);
@@ -83,6 +60,27 @@ public:
 
     const String& getName()    const;
     const String& getVersion() const;
+
+    // Use these to allocate state variables and cache entries that are owned
+    // by this Subsystem.
+
+    // qdot, qdotdot also allocated in cache
+    QIndex allocateQ(State& s, const Vector& qInit) const;
+    // udot is also allocated in the cache
+    UIndex allocateU(State& s, const Vector& uInit) const;
+    // zdot is also allocated in the cache
+    ZIndex allocateZ(State& s, const Vector& zInit) const;
+    DiscreteVariableIndex allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const;
+
+    // Cache entries
+    CacheEntryIndex allocateCacheEntry(const State& s, Stage g, AbstractValue* v) const;
+    // qerr, uerr, udoterr are all cache entries, not variables
+    // allocating udoterr also allocates matching multipliers
+    QErrIndex allocateQErr(const State& s, int nqerr) const;
+    UErrIndex allocateUErr(const State& s, int nuerr) const;
+    UDotErrIndex allocateUDotErr(const State& s, int nudoterr) const;
+    EventTriggerByStageIndex allocateEventTriggersByStage(const State&, Stage, int ntriggers) const;
+
 
     // These return views on State shared global resources. The views
     // are private to this subsystem, but the global resources themselves
@@ -102,6 +100,7 @@ public:
     const Vector& getUErr(const State&) const;
     const Vector& getUDotErr(const State&) const;
     const Vector& getMultipliers(const State&) const;
+    const Vector& getEventTriggersByStage(const State&, Stage) const;
 
     // These return writable access to this subsystem's partition in the
     // State pool of continuous variables. These can be called at Stage::Model
@@ -137,36 +136,44 @@ public:
     Vector& updUErr(const State&) const;
     Vector& updUDotErr(const State&) const;
     Vector& updMultipliers(const State&) const;
+    Vector& updEventTriggersByStage(const State&, Stage) const;
 
     // These pull out the State entries which belong exclusively to
     // this Subsystem. These variables and cache entries are available
     // as soon as this subsystem is at stage Model.
     Stage getStage(const State&) const;
-    const AbstractValue& getDiscreteVariable(const State&, int index) const;
+    const AbstractValue& getDiscreteVariable(const State&, DiscreteVariableIndex) const;
     // State is *not* mutable here -- must have write access to change state variables.
-    AbstractValue& updDiscreteVariable(State&, int index) const;
-    const AbstractValue& getCacheEntry(const State&, int index) const;
+    AbstractValue& updDiscreteVariable(State&, DiscreteVariableIndex) const;
+    const AbstractValue& getCacheEntry(const State&, CacheEntryIndex) const;
     // State is mutable here.
-    AbstractValue& updCacheEntry(const State&, int index) const;
+    AbstractValue& updCacheEntry(const State&, CacheEntryIndex) const;
 
     // Dimensions. These are valid at System Stage::Model while access to the various
     // arrays may have stricter requirements. Hence it is better to use these
     // routines than to get a reference to a Vector above and ask for its size().
 
-    int getQStart      (const State&) const;
+    SystemQIndex getQStart      (const State&) const;
     int getNQ          (const State&) const;
-    int getUStart      (const State&) const;
+    SystemUIndex getUStart      (const State&) const;
     int getNU          (const State&) const;
-    int getZStart      (const State&) const;
+    SystemZIndex getZStart      (const State&) const;
     int getNZ          (const State&) const;
-    int getQErrStart   (const State&) const;
+    SystemQErrIndex getQErrStart   (const State&) const;
     int getNQErr       (const State&) const;
-    int getUErrStart   (const State&) const;
+    SystemUErrIndex getUErrStart   (const State&) const;
     int getNUErr       (const State&) const;
-    int getUDotErrStart(const State&) const;
+    SystemUDotErrIndex getUDotErrStart(const State&) const;
     int getNUDotErr    (const State&) const;
-    int getMultipliersStart(const State&) const;
-    int getNMultipliers    (const State&) const;
+    SystemMultiplierIndex getMultipliersStart(const State&) const;
+    int getNMultipliers(const State&) const;
+    SystemEventTriggerByStageIndex   getEventTriggerStartByStage(const State&, Stage) const;
+    int getNEventTriggersByStage(const State&, Stage) const;
+
+    MeasureIndex adoptMeasure(Measure& m);
+    Measure getMeasure(MeasureIndex) const;
+    template <class T> Measure_<T> getMeasure_(MeasureIndex mx) const
+    {   return Measure_<T>::getAs(getMeasure(mx));}
 
 	bool isInSystem() const;
 	bool isInSameSystem(const Subsystem& otherSubsystem) const;
@@ -184,7 +191,8 @@ public:
 
     void setSystem(System&, SubsystemIndex);
 
-    explicit Guts(class GutsRep* r) : rep(r) { }
+    class GutsRep;
+    explicit Guts(GutsRep* r) : rep(r) { }
     bool                hasRep() const {return rep!=0;}
     const GutsRep& getRep() const {assert(rep); return *rep;}
     GutsRep&       updRep() const {assert(rep); return *rep;}
@@ -213,8 +221,6 @@ public:
     void realizeSubsystemDynamics    (const State&) const;
     void realizeSubsystemAcceleration(const State&) const;
     void realizeSubsystemReport      (const State&) const;
-
-
 
     // Calculate weights and tolerances.
 
@@ -265,7 +271,7 @@ public:
     void calcDecorativeGeometryAndAppend(const State&, Stage, std::vector<DecorativeGeometry>&) const;
     
     void createScheduledEvent(const State& state, EventId& eventId) const;
-    void createTriggeredEvent(const State& state, EventId& eventId, int& triggerFunctionIndex, Stage stage) const;
+    void createTriggeredEvent(const State& state, EventId& eventId, EventTriggerByStageIndex& triggerFunctionIndex, Stage stage) const;
 
     // These methods are called by the corresponding methods of System.
     // Each subsystem is responsible for defining its own events, and
@@ -274,10 +280,11 @@ public:
     virtual void calcEventTriggerInfo(const State&, std::vector<System::EventTriggerInfo>&) const;
     virtual void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
     virtual void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
-    virtual void handleEvents(State&, System::EventCause, const std::vector<EventId>& eventIds,
+    virtual void handleEvents(State&, Event::Cause, const std::vector<EventId>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
-    virtual void reportEvents(const State&, System::EventCause, const std::vector<EventId>& eventIds) const;
+    virtual void reportEvents(const State&, Event::Cause, const std::vector<EventId>& eventIds) const;
+
 protected:
     // These virtual methods should be overridden in concrete Subsystems as
     // necessary. They should never be called directly; instead call the
@@ -316,23 +323,13 @@ protected:
     virtual int calcDecorativeGeometryAndAppendImpl
        (const State&, Stage, std::vector<DecorativeGeometry>&) const;
 
-    // Use these to allocate state variables and cache entries that are owned
-    // by this Subsystem.
-
-    // qdot, qdotdot also allocated in cache
-    int allocateQ(State& s, const Vector& qInit) const;
-    // udot is also allocated in the cache
-    int allocateU(State& s, const Vector& uInit) const;
-    // zdot is also allocated in the cache
-    int allocateZ(State& s, const Vector& zInit) const;
-    // qerr, uerr, udoterr are all cache entries, not variables
-    // allocating udoterr also allocates matching multipliers
-    int allocateQErr(const State& s, int nqerr) const;
-    int allocateUErr(const State& s, int nuerr) const;
-    int allocateUDotErr(const State& s, int nudoterr) const;
-    int allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const;
-    int allocateCacheEntry(State& s, Stage g, AbstractValue* v) const;
     void advanceToStage(const State& s, Stage g) const;
+
+private:
+    // this is the only data member in the base class
+    GutsRep* rep; // opaque implementation of Subsystem::Guts base class.
+
+friend class GutsRep;
 };
 
 } // namespace SimTK

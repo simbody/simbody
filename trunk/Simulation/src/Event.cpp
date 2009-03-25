@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2008-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -29,45 +29,67 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/String.h"
-#include "SimTKcommon/internal/Stage.h"
 
-using SimTK::Stage;
+/**@file
+ *
+ * Implementation of non-inline methods from the Event classes.
+ */
 
-const Stage Stage::Empty;
-const Stage Stage::Topology;
-const Stage Stage::Model;
-const Stage Stage::Instance;
-const Stage Stage::Time;
-const Stage Stage::Position;
-const Stage Stage::Velocity;
-const Stage Stage::Dynamics;
-const Stage Stage::Acceleration;
-const Stage Stage::Report;
-const Stage Stage::Infinity;
+#include "SimTKcommon/basics.h"
+#include "SimTKcommon/internal/Event.h"
 
-const Stage Stage::LowestValid     = Empty;
-const Stage Stage::HighestValid    = Infinity;
-const Stage Stage::LowestRuntime   = Model;
-const Stage Stage::HighestRuntime  = Report;
+#include <cassert>
+#include <string>
 
-Stage::Stage() : Enumeration<Stage>() {
+namespace SimTK {
+
+
+const char* Event::getCauseName(Cause cause) {
+    switch(cause) {
+    case Cause::Initialization:    return "Initialization";
+    case Cause::Triggered:         return "Triggered";
+    case Cause::Scheduled:         return "Scheduled";
+    case Cause::TimeAdvanced:      return "TimeAdvanced";
+    case Cause::Signaled:          return "Signaled";
+    case Cause::Termination:       return "Termination";
+    case Cause::Invalid:           return "Invalid";
+    }
+    return "UNRECOGNIZED EVENT CAUSE";
 }
 
-Stage::Stage(const Stage& thisElement, int index, const char* name) : Enumeration<Stage>(thisElement, index, name) {
+
+std::string Event::eventTriggerString(Trigger e) {
+    // Catch special combos first
+    if (e==NoEventTrigger)        return "NoEventTrigger";
+    if (e==Falling)               return "Falling";
+    if (e==Rising)                return "Rising";
+    if (e==AnySignChange)         return "AnySignChange";
+
+    // Not a special combo; unmask one at a time.
+    const Trigger triggers[] =
+     { PositiveToNegative,NegativeToPositive,NoEventTrigger };
+    const char *triggerNames[] =
+     { "PositiveToNegative","NegativeToPositive" };
+
+    String s;
+    for (int i=0; triggers[i] != NoEventTrigger; ++i)
+        if (e & triggers[i]) {
+            if (s.size()) s += "|";
+            s += triggerNames[i];
+            e = Trigger((unsigned)e & ~((unsigned)triggers[i])); 
+        }
+
+    // should have accounted for everything by now
+    if (e != NoEventTrigger) {
+        char buf[128];
+        std::sprintf(buf, "0x%x", (unsigned)e);
+        if (s.size()) s += " + ";
+        s += "UNRECOGNIZED EVENT TRIGGER GARBAGE ";
+        s += buf;
+    }
+    return s;
 }
 
-void Stage::initValues() {
-    new(&const_cast<Stage&>(Empty)) Stage(Empty, EmptyIndex, "Empty");
-    new(&const_cast<Stage&>(Topology)) Stage(Topology, TopologyIndex, "Topology");
-    new(&const_cast<Stage&>(Model)) Stage(Model, ModelIndex, "Model");
-    new(&const_cast<Stage&>(Instance)) Stage(Instance, InstanceIndex, "Instance");
-    new(&const_cast<Stage&>(Time)) Stage(Time, TimeIndex, "Time");
-    new(&const_cast<Stage&>(Position)) Stage(Position, PositionIndex, "Position");
-    new(&const_cast<Stage&>(Velocity)) Stage(Velocity, VelocityIndex, "Velocity");
-    new(&const_cast<Stage&>(Dynamics)) Stage(Dynamics, DynamicsIndex, "Dynamics");
-    new(&const_cast<Stage&>(Acceleration)) Stage(Acceleration, AccelerationIndex, "Acceleration");
-    new(&const_cast<Stage&>(Report)) Stage(Report, ReportIndex, "Report");
-    new(&const_cast<Stage&>(Infinity)) Stage(Infinity, InfinityIndex, "Infinity");
-}
+
+} // namespace SimTK
+

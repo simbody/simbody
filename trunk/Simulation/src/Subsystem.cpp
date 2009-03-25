@@ -6,9 +6,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Peter Eastman                                                *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -37,10 +37,14 @@
 
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
+#include "SimTKcommon/internal/Measure.h"
+#include "SimTKcommon/internal/State.h"
 #include "SimTKcommon/internal/EventHandler.h"
 #include "SimTKcommon/internal/EventReporter.h"
 #include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/Subsystem.h"
+
+#include "SimTKcommon/internal/MeasureGuts.h"
 
 #include "SystemGutsRep.h"
 #include "SubsystemGutsRep.h"
@@ -111,8 +115,14 @@ bool Subsystem::subsystemTopologyHasBeenRealized() const {
 }
 
 void Subsystem::invalidateSubsystemTopologyCache() const {
-    return getSubsystemGuts().invalidateSubsystemTopologyCache(); // mutable
+    getSubsystemGuts().invalidateSubsystemTopologyCache(); // mutable
 }
+
+MeasureIndex Subsystem::adoptMeasure(Measure& m)
+{   return updSubsystemGuts().adoptMeasure(m); }
+Measure Subsystem::getMeasure(MeasureIndex mx) const
+{   return getSubsystemGuts().getMeasure(mx); }
+
 
 bool Subsystem::isInSystem() const {return getSubsystemGuts().isInSystem();}
 bool Subsystem::isInSameSystem(const Subsystem& otherSubsystem) const {
@@ -126,6 +136,17 @@ SubsystemIndex Subsystem::getMySubsystemIndex() const {
     return getSubsystemGuts().getMySubsystemIndex();
 }
 
+QIndex Subsystem::allocateQ(State& s, const Vector& qInit)const {return getSubsystemGuts().allocateQ(s,qInit);}
+UIndex Subsystem::allocateU(State& s, const Vector& uInit)const {return getSubsystemGuts().allocateU(s,uInit);}
+ZIndex Subsystem::allocateZ(State& s, const Vector& zInit)const {return getSubsystemGuts().allocateZ(s,zInit);}
+DiscreteVariableIndex Subsystem::allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const {return getSubsystemGuts().allocateDiscreteVariable(s,g,v);}
+
+CacheEntryIndex Subsystem::allocateCacheEntry   (const State& s, Stage g, AbstractValue* v) const {return getSubsystemGuts().allocateCacheEntry(s,g,v);}
+QErrIndex       Subsystem::allocateQErr         (const State& s, int nqerr)    const {return getSubsystemGuts().allocateQErr(s,nqerr);}
+UErrIndex       Subsystem::allocateUErr         (const State& s, int nuerr)    const {return getSubsystemGuts().allocateUErr(s,nuerr);}
+UDotErrIndex    Subsystem::allocateUDotErr      (const State& s, int nudoterr) const {return getSubsystemGuts().allocateUDotErr(s,nudoterr);}
+EventTriggerByStageIndex Subsystem::allocateEventTriggersByStage(const State& s, Stage g, int ntriggers) const {return getSubsystemGuts().allocateEventTriggersByStage(s,g,ntriggers);}
+
 const Vector& Subsystem::getQ(const State& s) const {return getSubsystemGuts().getQ(s);}
 const Vector& Subsystem::getU(const State& s) const {return getSubsystemGuts().getU(s);}
 const Vector& Subsystem::getZ(const State& s) const {return getSubsystemGuts().getZ(s);}
@@ -137,6 +158,8 @@ const Vector& Subsystem::getQErr(const State& s) const {return getSubsystemGuts(
 const Vector& Subsystem::getUErr(const State& s) const {return getSubsystemGuts().getUErr(s);}
 const Vector& Subsystem::getUDotErr(const State& s) const {return getSubsystemGuts().getUDotErr(s);}
 const Vector& Subsystem::getMultipliers(const State& s) const {return getSubsystemGuts().getMultipliers(s);}
+const Vector& Subsystem::getEventTriggersByStage(const State& s, Stage g) const {return getSubsystemGuts().getEventTriggersByStage(s,g);}
+
 
 Vector& Subsystem::updQ(State& s) const {return getSubsystemGuts().updQ(s);}
 Vector& Subsystem::updU(State& s) const {return getSubsystemGuts().updU(s);}
@@ -150,35 +173,38 @@ Vector& Subsystem::updQErr(const State& s) const {return getSubsystemGuts().updQ
 Vector& Subsystem::updUErr(const State& s) const {return getSubsystemGuts().updUErr(s);}
 Vector& Subsystem::updUDotErr(const State& s) const {return getSubsystemGuts().updUDotErr(s);}
 Vector& Subsystem::updMultipliers(const State& s) const {return getSubsystemGuts().updMultipliers(s);}
+Vector& Subsystem::updEventTriggersByStage(const State& s, Stage g) const {return getSubsystemGuts().updEventTriggersByStage(s,g);}
 
 Stage Subsystem::getStage(const State& s) const {return getSubsystemGuts().getStage(s);}
-const AbstractValue& Subsystem::getDiscreteVariable(const State& s, int index) const {
+const AbstractValue& Subsystem::getDiscreteVariable(const State& s, DiscreteVariableIndex index) const {
     return getSubsystemGuts().getDiscreteVariable(s, index);
 }
-AbstractValue& Subsystem::updDiscreteVariable(State& s, int index) const {
+AbstractValue& Subsystem::updDiscreteVariable(State& s, DiscreteVariableIndex index) const {
     return getSubsystemGuts().updDiscreteVariable(s, index);
 }
-const AbstractValue& Subsystem::getCacheEntry(const State& s, int index) const {
+const AbstractValue& Subsystem::getCacheEntry(const State& s, CacheEntryIndex index) const {
     return getSubsystemGuts().getCacheEntry(s, index);
 }
-AbstractValue& Subsystem::updCacheEntry(const State& s, int index) const {
+AbstractValue& Subsystem::updCacheEntry(const State& s, CacheEntryIndex index) const {
     return getSubsystemGuts().updCacheEntry(s, index);
 }
 
-int Subsystem::getQStart      (const State& s) const {return getSubsystemGuts().getQStart(s);}
+SystemQIndex Subsystem::getQStart      (const State& s) const {return getSubsystemGuts().getQStart(s);}
 int Subsystem::getNQ          (const State& s) const {return getSubsystemGuts().getNQ(s);}
-int Subsystem::getUStart      (const State& s) const {return getSubsystemGuts().getUStart(s);}
+SystemUIndex Subsystem::getUStart      (const State& s) const {return getSubsystemGuts().getUStart(s);}
 int Subsystem::getNU          (const State& s) const {return getSubsystemGuts().getNU(s);}
-int Subsystem::getZStart      (const State& s) const {return getSubsystemGuts().getZStart(s);}
+SystemZIndex Subsystem::getZStart      (const State& s) const {return getSubsystemGuts().getZStart(s);}
 int Subsystem::getNZ          (const State& s) const {return getSubsystemGuts().getNZ(s);}
-int Subsystem::getQErrStart   (const State& s) const {return getSubsystemGuts().getQErrStart(s);}
+SystemQErrIndex Subsystem::getQErrStart   (const State& s) const {return getSubsystemGuts().getQErrStart(s);}
 int Subsystem::getNQErr       (const State& s) const {return getSubsystemGuts().getNQErr(s);}
-int Subsystem::getUErrStart   (const State& s) const {return getSubsystemGuts().getUErrStart(s);}
+SystemUErrIndex Subsystem::getUErrStart   (const State& s) const {return getSubsystemGuts().getUErrStart(s);}
 int Subsystem::getNUErr       (const State& s) const {return getSubsystemGuts().getNUErr(s);}
-int Subsystem::getUDotErrStart(const State& s) const {return getSubsystemGuts().getUDotErrStart(s);}
+SystemUDotErrIndex Subsystem::getUDotErrStart(const State& s) const {return getSubsystemGuts().getUDotErrStart(s);}
 int Subsystem::getNUDotErr    (const State& s) const {return getSubsystemGuts().getNUDotErr(s);}
-int Subsystem::getMultipliersStart(const State& s) const {return getSubsystemGuts().getMultipliersStart(s);}
+SystemMultiplierIndex Subsystem::getMultipliersStart(const State& s) const {return getSubsystemGuts().getMultipliersStart(s);}
 int Subsystem::getNMultipliers    (const State& s) const {return getSubsystemGuts().getNMultipliers(s);}
+SystemEventTriggerByStageIndex Subsystem::getEventTriggerStartByStage(const State& s, Stage g) const {return getSubsystemGuts().getEventTriggerStartByStage(s,g);}
+int Subsystem::getNEventTriggersByStage   (const State& s, Stage g) const {return getSubsystemGuts().getNEventTriggersByStage(s,g);}
 
     /////////////////////
     // SUBSYSTEM::GUTS //
@@ -233,6 +259,11 @@ void Subsystem::Guts::setSystem(System& sys, SubsystemIndex id) {
 const String& Subsystem::Guts::getName()    const {return getRep().getName();}
 const String& Subsystem::Guts::getVersion() const {return getRep().getVersion();}
 
+MeasureIndex Subsystem::Guts::adoptMeasure(Measure& m)
+{   return updRep().adoptMeasure(m); }
+Measure Subsystem::Guts::getMeasure(MeasureIndex mx) const
+{   return getRep().getMeasure(mx); }
+
 bool Subsystem::Guts::isInSystem() const {return getRep().isInSystem();}
 bool Subsystem::Guts::isInSameSystem(const Subsystem& otherSubsystem) const {
 	return getRep().isInSameSystem(otherSubsystem);
@@ -241,37 +272,40 @@ const System& Subsystem::Guts::getSystem() const {return getRep().getSystem();}
 System&       Subsystem::Guts::updSystem()	     {return updRep().updSystem();}
 SubsystemIndex   Subsystem::Guts::getMySubsystemIndex() const {return getRep().getMySubsystemIndex();}
 
-int Subsystem::Guts::allocateQ(State& s, const Vector& qInit) const {
+QIndex Subsystem::Guts::allocateQ(State& s, const Vector& qInit) const {
     return s.allocateQ(getRep().getMySubsystemIndex(), qInit);
 }
 
-int Subsystem::Guts::allocateU(State& s, const Vector& uInit) const {
+UIndex Subsystem::Guts::allocateU(State& s, const Vector& uInit) const {
     return s.allocateU(getRep().getMySubsystemIndex(), uInit);
 }
 
-int Subsystem::Guts::allocateZ(State& s, const Vector& zInit) const {
+ZIndex Subsystem::Guts::allocateZ(State& s, const Vector& zInit) const {
     return s.allocateZ(getRep().getMySubsystemIndex(), zInit);
 }
 
-int Subsystem::Guts::allocateQErr(const State& s, int nqerr) const {
-    return s.allocateQErr(getRep().getMySubsystemIndex(), nqerr);
-}
-
-int Subsystem::Guts::allocateUErr(const State& s, int nuerr) const {
-    return s.allocateUErr(getRep().getMySubsystemIndex(), nuerr);
-}
-
-// Multipliers are added as a side effect.
-int Subsystem::Guts::allocateUDotErr(const State& s, int nudoterr) const {
-    return s.allocateUDotErr(getRep().getMySubsystemIndex(), nudoterr);
-}
-
-int Subsystem::Guts::allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const {
+DiscreteVariableIndex Subsystem::Guts::allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const {
     return s.allocateDiscreteVariable(getRep().getMySubsystemIndex(), g, v);
 }
 
-int Subsystem::Guts::allocateCacheEntry(State& s, Stage g, AbstractValue* v) const {
+CacheEntryIndex Subsystem::Guts::allocateCacheEntry(const State& s, Stage g, AbstractValue* v) const {
     return s.allocateCacheEntry(getRep().getMySubsystemIndex(), g, v);
+}
+
+QErrIndex Subsystem::Guts::allocateQErr(const State& s, int nqerr) const {
+    return s.allocateQErr(getRep().getMySubsystemIndex(), nqerr);
+}
+
+UErrIndex Subsystem::Guts::allocateUErr(const State& s, int nuerr) const {
+    return s.allocateUErr(getRep().getMySubsystemIndex(), nuerr);
+}
+
+UDotErrIndex Subsystem::Guts::allocateUDotErr(const State& s, int nudoterr) const {
+    return s.allocateUDotErr(getRep().getMySubsystemIndex(), nudoterr);
+}
+
+EventTriggerByStageIndex Subsystem::Guts::allocateEventTriggersByStage(const State& s, Stage g, int ntriggers) const {
+    return s.allocateEventTrigger(getRep().getMySubsystemIndex(),g,ntriggers);
 }
 
 void Subsystem::Guts::advanceToStage(const State& s, Stage g) const {
@@ -281,19 +315,19 @@ void Subsystem::Guts::advanceToStage(const State& s, Stage g) const {
 Stage Subsystem::Guts::getStage(const State& s) const {
     return s.getSubsystemStage(getRep().getMySubsystemIndex());
 }
-const AbstractValue& Subsystem::Guts::getDiscreteVariable(const State& s, int index) const {
+const AbstractValue& Subsystem::Guts::getDiscreteVariable(const State& s, DiscreteVariableIndex index) const {
     return s.getDiscreteVariable(getRep().getMySubsystemIndex(), index);
 }
 
-AbstractValue& Subsystem::Guts::updDiscreteVariable(State& s, int index) const {
+AbstractValue& Subsystem::Guts::updDiscreteVariable(State& s, DiscreteVariableIndex index) const {
     return s.updDiscreteVariable(getRep().getMySubsystemIndex(), index);
 }
 
-const AbstractValue& Subsystem::Guts::getCacheEntry(const State& s, int index) const {
+const AbstractValue& Subsystem::Guts::getCacheEntry(const State& s, CacheEntryIndex index) const {
     return s.getCacheEntry(getRep().getMySubsystemIndex(), index);
 }
 
-AbstractValue& Subsystem::Guts::updCacheEntry(const State& s, int index) const {
+AbstractValue& Subsystem::Guts::updCacheEntry(const State& s, CacheEntryIndex index) const {
     return s.updCacheEntry(getRep().getMySubsystemIndex(), index);
 }
 
@@ -319,32 +353,39 @@ const Vector& Subsystem::Guts::getQErr(const State& s) const {return s.getQErr(g
 const Vector& Subsystem::Guts::getUErr(const State& s) const {return s.getUErr(getRep().getMySubsystemIndex());}
 const Vector& Subsystem::Guts::getUDotErr(const State& s) const {return s.getUDotErr(getRep().getMySubsystemIndex());}
 const Vector& Subsystem::Guts::getMultipliers(const State& s) const {return s.getMultipliers(getRep().getMySubsystemIndex());}
+const Vector& Subsystem::Guts::getEventTriggersByStage(const State& s, Stage g) const
+{   return s.getEventTriggersByStage(getRep().getMySubsystemIndex(),g); }
 
 Vector& Subsystem::Guts::updQErr(const State& s) const {return s.updQErr(getRep().getMySubsystemIndex());}
 Vector& Subsystem::Guts::updUErr(const State& s) const {return s.updUErr(getRep().getMySubsystemIndex());}
 Vector& Subsystem::Guts::updUDotErr(const State& s) const {return s.updUDotErr(getRep().getMySubsystemIndex());}
 Vector& Subsystem::Guts::updMultipliers(const State& s) const {return s.updMultipliers(getRep().getMySubsystemIndex());}
+Vector& Subsystem::Guts::updEventTriggersByStage(const State& s, Stage g) const
+{   return s.updEventTriggersByStage(getRep().getMySubsystemIndex(),g); }
 
-int Subsystem::Guts::getQStart(const State& s) const {return s.getQStart(getRep().getMySubsystemIndex());}
+SystemQIndex Subsystem::Guts::getQStart(const State& s) const {return s.getQStart(getRep().getMySubsystemIndex());}
 int Subsystem::Guts::getNQ(const State& s)     const {return s.getNQ(getRep().getMySubsystemIndex());}
 
-int Subsystem::Guts::getUStart(const State& s) const {return s.getUStart(getRep().getMySubsystemIndex());}
+SystemUIndex Subsystem::Guts::getUStart(const State& s) const {return s.getUStart(getRep().getMySubsystemIndex());}
 int Subsystem::Guts::getNU(const State& s)     const {return s.getNU(getRep().getMySubsystemIndex());}
 
-int Subsystem::Guts::getZStart(const State& s) const {return s.getZStart(getRep().getMySubsystemIndex());}
+SystemZIndex Subsystem::Guts::getZStart(const State& s) const {return s.getZStart(getRep().getMySubsystemIndex());}
 int Subsystem::Guts::getNZ(const State& s)     const {return s.getNZ(getRep().getMySubsystemIndex());}
 
-int Subsystem::Guts::getQErrStart(const State& s) const {return s.getQErrStart(getRep().getMySubsystemIndex());}
+SystemQErrIndex Subsystem::Guts::getQErrStart(const State& s) const {return s.getQErrStart(getRep().getMySubsystemIndex());}
 int Subsystem::Guts::getNQErr(const State& s)     const {return s.getNQErr(getRep().getMySubsystemIndex());}
 
-int Subsystem::Guts::getUErrStart(const State& s) const {return s.getUErrStart(getRep().getMySubsystemIndex());}
+SystemUErrIndex Subsystem::Guts::getUErrStart(const State& s) const {return s.getUErrStart(getRep().getMySubsystemIndex());}
 int Subsystem::Guts::getNUErr(const State& s)     const {return s.getNUErr(getRep().getMySubsystemIndex());}
 
-int Subsystem::Guts::getUDotErrStart(const State& s) const {return s.getUDotErrStart(getRep().getMySubsystemIndex());}
+SystemUDotErrIndex Subsystem::Guts::getUDotErrStart(const State& s) const {return s.getUDotErrStart(getRep().getMySubsystemIndex());}
 int Subsystem::Guts::getNUDotErr(const State& s)     const {return s.getNUDotErr(getRep().getMySubsystemIndex());}
 
-int Subsystem::Guts::getMultipliersStart(const State& s) const {return s.getMultipliersStart(getRep().getMySubsystemIndex());}
+SystemMultiplierIndex Subsystem::Guts::getMultipliersStart(const State& s) const {return s.getMultipliersStart(getRep().getMySubsystemIndex());}
 int Subsystem::Guts::getNMultipliers(const State& s)     const {return s.getNMultipliers(getRep().getMySubsystemIndex());}
+
+SystemEventTriggerByStageIndex Subsystem::Guts::getEventTriggerStartByStage(const State& s, Stage g) const {return s.getEventTriggerStartByStage(getRep().getMySubsystemIndex(),g);}
+int Subsystem::Guts::getNEventTriggersByStage   (const State& s, Stage g) const {return s.getNEventTriggersByStage(getRep().getMySubsystemIndex(),g);}
 
 void Subsystem::Guts::invalidateSubsystemTopologyCache() const {
     getRep().invalidateSubsystemTopologyCache();
@@ -374,13 +415,13 @@ void Subsystem::Guts::createScheduledEvent(const State& state, EventId& eventId)
  * @param state     the State which is being realized
  * @param eventId   on exit, the newly allocated event ID is stored here
  * @param triggerFunctionIndex  on exit, the index corresponding to the event's trigger function
- *                              is stored here
+ *                              is stored here (this is a local, per-Subsystem, per-Stage index)
  * @param stage     the Stage at which the event will be evaluated
  */
 
-void Subsystem::Guts::createTriggeredEvent(const State& state, EventId& eventId, int& triggerFunctionIndex, Stage stage) const {
+void Subsystem::Guts::createTriggeredEvent(const State& state, EventId& eventId, EventTriggerByStageIndex& triggerFunctionIndex, Stage stage) const {
     eventId = getSystem().getDefaultSubsystem().createEventId(getMySubsystemIndex(), state);
-    triggerFunctionIndex = state.allocateEvent(getMySubsystemIndex(), stage, 1);
+    triggerFunctionIndex = state.allocateEventTrigger(getMySubsystemIndex(), stage, 1);
 }
 
     // wrappers for Subsystem::Guts virtuals
@@ -394,6 +435,11 @@ void Subsystem::Guts::realizeSubsystemTopology(State& s) const {
     SimTK_STAGECHECK_EQ_ALWAYS(getStage(s), Stage::Empty, 
         "Subsystem::Guts::realizeSubsystemTopology()");
     realizeSubsystemTopologyImpl(s);
+
+    // Realize this Subsystem's Measures.
+    for (MeasureIndex mx(0); mx < getRep().measures.size(); ++mx)
+        getRep().measures[mx]->realizeTopology(s);
+
     getRep().subsystemTopologyRealized = true; // mark the subsystem itself (mutable)
     advanceToStage(s, Stage::Topology);  // mark the State as well
 }
@@ -405,6 +451,11 @@ void Subsystem::Guts::realizeSubsystemModel(State& s) const {
         "Subsystem::Guts::realizeSubsystemModel()");
     if (getStage(s) < Stage::Model) {
         realizeSubsystemModelImpl(s);
+
+        // Realize this Subsystem's Measures.
+        for (MeasureIndex mx(0); mx < getRep().measures.size(); ++mx)
+            getRep().measures[mx]->realizeModel(s);
+
         advanceToStage(s, Stage::Model);
     }
 }
@@ -413,6 +464,11 @@ void Subsystem::Guts::realizeSubsystemInstance(const State& s) const {
         "Subsystem::Guts::realizeSubsystemInstance()");
     if (getStage(s) < Stage::Instance) {
         realizeSubsystemInstanceImpl(s);
+
+        // Realize this Subsystem's Measures.
+        for (MeasureIndex mx(0); mx < getRep().measures.size(); ++mx)
+            getRep().measures[mx]->realizeInstance(s);
+
         advanceToStage(s, Stage::Instance);
     }
 }
@@ -421,6 +477,11 @@ void Subsystem::Guts::realizeSubsystemTime(const State& s) const {
         "Subsystem::Guts::realizeTime()");
     if (getStage(s) < Stage::Time) {
         realizeSubsystemTimeImpl(s);
+
+        // Realize this Subsystem's Measures.
+        for (MeasureIndex mx(0); mx < getRep().measures.size(); ++mx)
+            getRep().measures[mx]->realizeTime(s);
+
         advanceToStage(s, Stage::Time);
     }
 }
@@ -429,6 +490,11 @@ void Subsystem::Guts::realizeSubsystemPosition(const State& s) const {
         "Subsystem::Guts::realizeSubsystemPosition()");
     if (getStage(s) < Stage::Position) {
         realizeSubsystemPositionImpl(s);
+
+        // Realize this Subsystem's Measures.
+        for (MeasureIndex mx(0); mx < getRep().measures.size(); ++mx)
+            getRep().measures[mx]->realizePosition(s);
+
         advanceToStage(s, Stage::Position);
     }
 }
@@ -437,6 +503,11 @@ void Subsystem::Guts::realizeSubsystemVelocity(const State& s) const {
         "Subsystem::Guts::realizeSubsystemVelocity()");
     if (getStage(s) < Stage::Velocity) {
         realizeSubsystemVelocityImpl(s);
+
+        // Realize this Subsystem's Measures.
+        for (MeasureIndex mx(0); mx < getRep().measures.size(); ++mx)
+            getRep().measures[mx]->realizeVelocity(s);
+
         advanceToStage(s, Stage::Velocity);
     }
 }
@@ -445,6 +516,11 @@ void Subsystem::Guts::realizeSubsystemDynamics(const State& s) const {
         "Subsystem::Guts::realizeSubsystemDynamics()");
     if (getStage(s) < Stage::Dynamics) {
         realizeSubsystemDynamicsImpl(s);
+
+        // Realize this Subsystem's Measures.
+        for (MeasureIndex mx(0); mx < getRep().measures.size(); ++mx)
+            getRep().measures[mx]->realizeDynamics(s);
+
         advanceToStage(s, Stage::Dynamics);
     }
 }
@@ -453,6 +529,11 @@ void Subsystem::Guts::realizeSubsystemAcceleration(const State& s) const {
         "Subsystem::Guts::realizeSubsystemAcceleration()");
     if (getStage(s) < Stage::Acceleration) {
         realizeSubsystemAccelerationImpl(s);
+
+        // Realize this Subsystem's Measures.
+        for (MeasureIndex mx(0); mx < getRep().measures.size(); ++mx)
+            getRep().measures[mx]->realizeAcceleration(s);
+
         advanceToStage(s, Stage::Acceleration);
     }
 }
@@ -461,6 +542,11 @@ void Subsystem::Guts::realizeSubsystemReport(const State& s) const {
         "Subsystem::Guts::realizeSubsystemReport()");
     if (getStage(s) < Stage::Report) {
         realizeSubsystemReportImpl(s);
+
+        // Realize this Subsystem's Measures.
+        for (MeasureIndex mx(0); mx < getRep().measures.size(); ++mx)
+            getRep().measures[mx]->realizeReport(s);
+
         advanceToStage(s, Stage::Report);
     }
 }
@@ -547,13 +633,13 @@ void Subsystem::Guts::calcDecorativeGeometryAndAppend(const State& s, Stage stag
 {
     return 0;
 }
-void Subsystem::Guts::handleEvents(State&, System::EventCause, const std::vector<EventId>& eventIds,
+void Subsystem::Guts::handleEvents(State&, Event::Cause, const std::vector<EventId>& eventIds,
     Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
     Stage& lowestModified, bool& shouldTerminate) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Subsystem", "handleEvents"); 
 }
-void Subsystem::Guts::reportEvents(const State&, System::EventCause, const std::vector<EventId>& eventIds) const
+void Subsystem::Guts::reportEvents(const State&, Event::Cause, const std::vector<EventId>& eventIds) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Subsystem", "reportEvents"); 
 }
@@ -594,10 +680,10 @@ public:
         mutable int eventIdCounter;
         mutable std::map<int, SubsystemIndex> eventOwnerMap;
         std::vector<EventId> scheduledEventIds;
-        std::vector<int> triggeredEventIndices;
+        std::vector<EventTriggerByStageIndex> triggeredEventIndices;
         std::vector<EventId> triggeredEventIds;
         std::vector<EventId> scheduledReportIds;
-        std::vector<int> triggeredReportIndices;
+        std::vector<EventTriggerByStageIndex> triggeredReportIndices;
         std::vector<EventId> triggeredReportIds;
     };
     DefaultSystemSubsystemGuts() : Guts("DefaultSystemSubsystemGuts", "0.0.1") { }
@@ -666,16 +752,16 @@ public:
         return 0;
     }
 
-    int realizeEvents(const State& s, Stage g) const {
+    int realizeEventTriggers(const State& s, Stage g) const {
         const CacheInfo& info = getCacheInfo(s);
-        Vector& events = s.updEventsByStage(getMySubsystemIndex(), g);
+        Vector& triggers = s.updEventTriggersByStage(getMySubsystemIndex(), g);
         for (int i = 0; i < (int)triggeredEventHandlers.size(); ++i) {
             if (g == triggeredEventHandlers[i]->getRequiredStage())
-                events[info.triggeredEventIndices[i]] = triggeredEventHandlers[i]->getValue(s);
+                triggers[info.triggeredEventIndices[i]] = triggeredEventHandlers[i]->getValue(s);
         }
         for (int i = 0; i < (int)triggeredEventReporters.size(); ++i) {
             if (g == triggeredEventReporters[i]->getRequiredStage())
-                events[info.triggeredReportIndices[i]] = triggeredEventReporters[i]->getValue(s);
+                triggers[info.triggeredReportIndices[i]] = triggeredEventReporters[i]->getValue(s);
         }
         return 0;
     }
@@ -698,7 +784,7 @@ public:
         if (triggeredEventHandlers.size() > 0)
             for (vector<TriggeredEventHandler*>::const_iterator e = triggeredEventHandlers.begin(); e != triggeredEventHandlers.end(); e++) {
                 EventId id;
-                int index;
+                EventTriggerByStageIndex index;
                 createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
                 info.triggeredEventIds.push_back(id);
                 info.triggeredEventIndices.push_back(index);
@@ -712,7 +798,7 @@ public:
         if (triggeredEventReporters.size() > 0)
             for (vector<TriggeredEventReporter*>::const_iterator e = triggeredEventReporters.begin(); e != triggeredEventReporters.end(); e++) {
                 EventId id;
-                int index;
+                EventTriggerByStageIndex index;
                 createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
                 info.triggeredReportIds.push_back(id);
                 info.triggeredReportIndices.push_back(index);
@@ -720,41 +806,47 @@ public:
         return 0;
     }
     int realizeSubsystemTimeImpl(const State& s) const {
-        return realizeEvents(s, Stage::Time);
+        return realizeEventTriggers(s, Stage::Time);
     }
     int realizeSubsystemPositionImpl(const State& s) const {
-        return realizeEvents(s, Stage::Position);
+        return realizeEventTriggers(s, Stage::Position);
     }
     int realizeSubsystemVelocityImpl(const State& s) const {
-        return realizeEvents(s, Stage::Velocity);
+        return realizeEventTriggers(s, Stage::Velocity);
     }
     int realizeSubsystemDynamicsImpl(const State& s) const {
-        return realizeEvents(s, Stage::Dynamics);
+        return realizeEventTriggers(s, Stage::Dynamics);
     }
     int realizeSubsystemAccelerationImpl(const State& s) const {
-        return realizeEvents(s, Stage::Acceleration);
+        return realizeEventTriggers(s, Stage::Acceleration);
     }
     int realizeSubsystemReportImpl(const State& s) const {
-        return realizeEvents(s, Stage::Report);
+        return realizeEventTriggers(s, Stage::Report);
     }
-    void calcEventTriggerInfo(const State& s, std::vector<System::EventTriggerInfo>& triggers) const {
+    void calcEventTriggerInfo(const State& s, std::vector<System::EventTriggerInfo>& trigInfo) const {
         
         // Loop over all registered TriggeredEventHandlers and TriggeredEventReporters, and ask
         // each one for its EventTriggerInfo.
         
         const CacheInfo& info = getCacheInfo(s);
-        triggers.resize(triggeredEventHandlers.size()+triggeredEventReporters.size());
+        trigInfo.resize(triggeredEventHandlers.size()+triggeredEventReporters.size());
         for (int i = 0; i < (int)triggeredEventHandlers.size(); ++i) {
             Stage stage = triggeredEventHandlers[i]->getRequiredStage();
-            int index = info.triggeredEventIndices[i]+s.getEventStartByStage(stage)+s.getEventStartByStage(getMySubsystemIndex(), stage);
-            triggers[index] = triggeredEventHandlers[i]->getTriggerInfo();
-            triggers[index].setEventId(info.triggeredEventIds[i]);
+            SystemEventTriggerIndex index = SystemEventTriggerIndex
+                                                     (info.triggeredEventIndices[i]
+                                                      + s.getEventTriggerStartByStage(stage)
+                                                      + s.getEventTriggerStartByStage(getMySubsystemIndex(), stage));
+            trigInfo[index] = triggeredEventHandlers[i]->getTriggerInfo();
+            trigInfo[index].setEventId(info.triggeredEventIds[i]);
         }
         for (int i = 0; i < (int)triggeredEventReporters.size(); ++i) {
             Stage stage = triggeredEventReporters[i]->getRequiredStage();
-            int index = info.triggeredReportIndices[i]+s.getEventStartByStage(stage)+s.getEventStartByStage(getMySubsystemIndex(), stage);
-            triggers[index] = triggeredEventReporters[i]->getTriggerInfo();
-            triggers[index].setEventId(info.triggeredReportIds[i]);
+            SystemEventTriggerIndex index = SystemEventTriggerIndex
+                                                     (info.triggeredReportIndices[i]
+                                                      + s.getEventTriggerStartByStage(stage)
+                                                      + s.getEventTriggerStartByStage(getMySubsystemIndex(), stage));
+            trigInfo[index] = triggeredEventReporters[i]->getTriggerInfo();
+            trigInfo[index].setEventId(info.triggeredReportIds[i]);
         }
     }
     void calcTimeOfNextScheduledEvent(const State& s, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const {
@@ -789,10 +881,10 @@ public:
             }
         }
     }
-    void handleEvents(State& s, System::EventCause cause, const std::vector<EventId>& eventIds, Real accuracy, const Vector& yWeights,
+    void handleEvents(State& s, Event::Cause cause, const std::vector<EventId>& eventIds, Real accuracy, const Vector& yWeights,
             const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) const {
         const CacheInfo& info = getCacheInfo(s);
-        lowestModified = Stage::HighestValid;
+        lowestModified = Stage::Infinity;
         shouldTerminate = false;
         
         // Build a set of the ids for quick lookup.
@@ -803,10 +895,10 @@ public:
         
         // Process triggered events.
         
-        if (cause == System::TriggeredEvents) {
+        if (cause == Event::Cause::Triggered) {
             for (int i = 0; i < (int)triggeredEventHandlers.size(); ++i) {
                 if (idSet.find(info.triggeredEventIds[i]) != idSet.end()) {
-                    Stage eventLowestModified = Stage::HighestValid;
+                    Stage eventLowestModified = Stage::Infinity;
                     bool eventShouldTerminate = false;
                     triggeredEventHandlers[i]->handleEvent(s, accuracy, yWeights, ooConstraintTols, eventLowestModified, eventShouldTerminate);
                     if (eventLowestModified < lowestModified)
@@ -823,10 +915,10 @@ public:
         
         // Process scheduled events.
         
-        if (cause == System::ScheduledEvents) {
+        if (cause == Event::Cause::Scheduled) {
             for (int i = 0; i < (int)scheduledEventHandlers.size(); ++i) {
                 if (idSet.find(info.scheduledEventIds[i]) != idSet.end()) {
-                    Stage eventLowestModified = Stage::HighestValid;
+                    Stage eventLowestModified = Stage::Infinity;
                     bool eventShouldTerminate = false;
                     scheduledEventHandlers[i]->handleEvent(s, accuracy, yWeights, ooConstraintTols, eventLowestModified, eventShouldTerminate);
                     if (eventLowestModified < lowestModified)
@@ -842,7 +934,7 @@ public:
         }
     }
 
-    void reportEvents(const State& s, System::EventCause cause, const std::vector<EventId>& eventIds) const {
+    void reportEvents(const State& s, Event::Cause cause, const std::vector<EventId>& eventIds) const {
         const CacheInfo& info = getCacheInfo(s);
         
         // Build a set of the ids for quick lookup.
@@ -853,7 +945,7 @@ public:
         
         // Process triggered events.
         
-        if (cause == System::TriggeredEvents) {
+        if (cause == Event::Cause::Triggered) {
             for (int i = 0; i < (int)triggeredEventReporters.size(); ++i) {
                 if (idSet.find(info.triggeredReportIds[i]) != idSet.end())
                     triggeredEventReporters[i]->handleEvent(s);
@@ -862,7 +954,7 @@ public:
         
         // Process scheduled events.
         
-        if (cause == System::ScheduledEvents) {
+        if (cause == Event::Cause::Scheduled) {
             for (int i = 0; i < (int)scheduledEventReporters.size(); ++i) {
                 if (idSet.find(info.scheduledReportIds[i]) != idSet.end())
                     scheduledEventReporters[i]->handleEvent(s);
@@ -871,9 +963,9 @@ public:
     }
 
 private:
-    mutable int cacheInfoIndex;
-    mutable vector<ScheduledEventHandler*> scheduledEventHandlers;
-    mutable vector<TriggeredEventHandler*> triggeredEventHandlers;
+    mutable CacheEntryIndex                 cacheInfoIndex;
+    mutable vector<ScheduledEventHandler*>  scheduledEventHandlers;
+    mutable vector<TriggeredEventHandler*>  triggeredEventHandlers;
     mutable vector<ScheduledEventReporter*> scheduledEventReporters;
     mutable vector<TriggeredEventReporter*> triggeredEventReporters;
 };

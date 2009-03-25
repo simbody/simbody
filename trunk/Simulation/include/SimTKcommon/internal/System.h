@@ -268,7 +268,7 @@ public:
     /// If the state has already been realized to the requested stage
     /// or higher, nothing happens here. Otherwise, the state is realized
     /// one stage at a time until it reaches the requested stage. 
-    void realize(const State& s, Stage g = Stage::HighestValid) const;
+    void realize(const State& s, Stage g = Stage::HighestRuntime) const;
 
     // Generate all decorative geometry computable at a specific stage. This will
     // throw an exception if the state hasn't already been realized
@@ -357,45 +357,6 @@ public:
     void setHasTimeAdvancedEvents(bool); // default=false
     bool hasTimeAdvancedEvents() const;
 
-    /// These are all the possible causes for events. (1) An event trigger
-    /// function may have undergone a monitored sign transition, (2) we
-    /// may have reached the time for a scheduled event, (3) the integrator
-    /// may have completed an internal step (assuming we registered our
-    /// interest in those), (4) or a termination condition may have been
-    /// detected. In case several of these causes are detected in 
-    /// a single step, they are sequentialized in the order shown,
-    /// like this:
-    ///    1. The occurrence of triggered events is reported and
-    ///       the triggering state and a list of triggered events
-    ///       are passed to the event handler for processing (meaning
-    ///       the state, but not the time, is modified). [Note that
-    ///       simultaneity *within* the set of triggered events may
-    ///       also require special handling; we're not talking about
-    ///       that here, just simultaneity of *causes*.]
-    ///    2. Next, using the state resulting from step 1, the time is checked
-    ///       to see if scheduled events have occurred. If so, a list of
-    ///       those events is passed to the event handler for processing.
-    ///    3. Next, if this system has requested time-advanced events,
-    ///       the event handler is called with the state that resulted
-    ///       from step 2 and the "time advanced" cause noted. No event
-    ///       list is passed in that case. The state may be modified.
-    ///    4. Last, if the final time has been reached or if any of
-    ///       the event handlers asked for termination, we pass the
-    ///       state to the event handler again noting that we have
-    ///       reached termination. The state may be modified and the
-    ///       result will be the final state of the simulation.
-
-    enum EventCause {
-        TriggeredEvents    =1,
-        ScheduledEvents    =2,
-        TimeAdvancedEvent  =3,
-        TerminationEvent   =4,
-
-        InvalidEventCause  = -1
-    };
-    static const char* getEventCauseName(EventCause);
-
-
     /// This solver handles a set of events which a TimeStepper has
     /// denoted as having occurred. The event handler may make discontinuous
     /// changes in the State, in general both to discrete and continuous variables,
@@ -414,14 +375,14 @@ public:
     /// to true before returning.
 
     void handleEvents
-       (State&, EventCause, const std::vector<EventId>& eventIds,
+        (State&, Event::Cause, const std::vector<EventId>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
     
     /// This method is similar to handleEvents(), but does not allow the State to be
     /// modified.  It is used for scheduled events that were marked as being reports.
     
-    void reportEvents(const State& s, EventCause cause, const std::vector<EventId>& eventIds) const;
+    void reportEvents(const State& s, Event::Cause cause, const std::vector<EventId>& eventIds) const;
 
     /// This routine provides the Integrator with information it needs about the
     /// individual event trigger functions, such as which sign transitions are
@@ -447,7 +408,7 @@ public:
     void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
     
     //TODO: these operators should be provided by the Vector class where they
-    //can be perfomed more efficiently.
+    //can be performed more efficiently.
 
     static Real calcWeightedRMSNorm(const Vector& values, const Vector& weights) {
         assert(weights.size() == values.size());
@@ -557,28 +518,27 @@ public:
     EventTriggerInfo& setTriggerOnFallingSignTransition(bool);
     EventTriggerInfo& setRequiredLocalizationTimeWindow(Real);
 
-    // TODO: switch to SignTransitionSet and trash EventStatus altogether.
-    EventStatus::EventTrigger calcTransitionMask() const {
+    Event::Trigger calcTransitionMask() const {
         unsigned mask = 0;
         if (shouldTriggerOnRisingSignTransition()) {
-            mask |= EventStatus::NegativeToPositive;
+            mask |= Event::NegativeToPositive;
         }
         if (shouldTriggerOnFallingSignTransition()) {
-            mask |= EventStatus::PositiveToNegative;
+            mask |= Event::PositiveToNegative;
         }
-        return EventStatus::EventTrigger(mask);
+        return Event::Trigger(mask);
     }
 
-    EventStatus::EventTrigger calcTransitionToReport
-       (EventStatus::EventTrigger transitionSeen) const
+    Event::Trigger calcTransitionToReport
+       (Event::Trigger transitionSeen) const
     {
         // report -1 to 1 or 1 to -1 as appropriate
-        if (transitionSeen & EventStatus::Rising)
-            return EventStatus::NegativeToPositive;
-        if (transitionSeen & EventStatus::Falling)
-            return EventStatus::PositiveToNegative;
+        if (transitionSeen & Event::Rising)
+            return Event::NegativeToPositive;
+        if (transitionSeen & Event::Falling)
+            return Event::PositiveToNegative;
         assert(!"impossible event transition situation");
-        return EventStatus::NoEventTrigger;
+        return Event::NoEventTrigger;
     }
 
 private:

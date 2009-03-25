@@ -44,6 +44,67 @@ using std::endl;
 
 using namespace SimTK;
 
+#define ASSERT(cond) {SimTK_ASSERT_ALWAYS((cond), "Assertion failed.");}
+
+
+void testLowestModified() {
+    const SubsystemIndex Sub0(0), Sub1(1);
+    State s;
+    s.setNSubsystems(2);
+    ASSERT(s.getSystemStage()==Stage::Empty);
+    ASSERT(s.getSubsystemStage(Sub0)==Stage::Empty && s.getSubsystemStage(Sub1)==Stage::Empty);
+    ASSERT(s.getLowestStageModified()==Stage::Topology);
+
+    const DiscreteVariableIndex dvxModel = s.allocateDiscreteVariable(Sub1, Stage::Model, new Value<Real>(2));
+
+    // "realize" Topology stage
+    s.advanceSubsystemToStage(Sub0, Stage::Topology);
+    s.advanceSubsystemToStage(Sub1, Stage::Topology);
+    s.advanceSystemToStage(Stage::Topology);
+    ASSERT(s.getLowestStageModified()==Stage::Topology);    // shouldn't have changed
+
+    const DiscreteVariableIndex dvxInstance = s.allocateDiscreteVariable(Sub0, Stage::Instance, new Value<int>(-4));
+
+    // A Model-stage variable must be allocated before Topology is realized, and this condition
+    // should be tested even in Release mode.
+    try {
+        s.allocateDiscreteVariable(Sub0, Stage::Model, new Value<int>(0));
+        ASSERT(!"Shouldn't have allowed allocation of Model-stage var here");
+    } catch (...) {}
+
+    // "realize" Model stage
+    s.advanceSubsystemToStage(Sub0, Stage::Model);
+    s.advanceSubsystemToStage(Sub1, Stage::Model);
+    s.advanceSystemToStage(Stage::Model);
+    ASSERT(s.getSystemStage() == Stage::Model);
+
+    ASSERT(s.getLowestStageModified()==Stage::Topology); // shouldn't have changed
+    s.resetLowestStageModified();
+    ASSERT(s.getLowestStageModified()==Stage::Instance);  // i.e., lowest invalid stage
+
+    // This variable invalidates Instance stage, so shouldn't change anything now.
+    ASSERT(Value<int>::downcast(s.getDiscreteVariable(Sub0, dvxInstance))==-4);
+    Value<int>::downcast(s.updDiscreteVariable(Sub0, dvxInstance)) = 123;
+    ASSERT(Value<int>::downcast(s.getDiscreteVariable(Sub0, dvxInstance))== 123);
+
+    ASSERT(s.getSystemStage()==Stage::Model);
+    ASSERT(s.getLowestStageModified()==Stage::Instance);
+
+    // This variable invalidates Model Stage, so should back up the stage to Topology,
+    // invalidating Model.
+    Value<Real>::downcast(s.updDiscreteVariable(Sub1, dvxModel)) = 29;
+    ASSERT(s.getSubsystemStage(Sub1)==Stage::Topology);
+    ASSERT(s.getLowestStageModified()==Stage::Model);
+
+    // Now realize Model stage again; shouldn't affect lowestStageModified.
+    s.advanceSubsystemToStage(Sub0, Stage::Model);
+    s.advanceSubsystemToStage(Sub1, Stage::Model);
+    s.advanceSystemToStage(Stage::Model);
+    ASSERT(s.getSystemStage() == Stage::Model);
+
+    ASSERT(s.getLowestStageModified()==Stage::Model); // shouldn't have changed
+}
+
 int main() {
     int major,minor,build;
     char out[100];
@@ -59,24 +120,33 @@ int main() {
 
 
   try {
+    testLowestModified();
+
     State s;
     s.setNSubsystems(1);
     s.advanceSubsystemToStage(SubsystemIndex(0), Stage::Topology);
+
+    // Can't ask for the time before Stage::Topology, but if you could it would be NaN.
     s.advanceSystemToStage(Stage::Topology);
 
-    Vector v3(3), v2(2);
-    int q1 = s.allocateQ(SubsystemIndex(0), v3);
-    int q2 = s.allocateQ(SubsystemIndex(0), v2);
+    // Advancing to Stage::Topology sets t=0.
+    cout << "AFTER ADVANCE TO TOPOLOGY, t=" << s.getTime() << endl;
 
-    int e1 = s.allocateEvent(SubsystemIndex(0), Stage::Position, 3);
-    int e2 = s.allocateEvent(SubsystemIndex(0), Stage::Instance, 2);
+    ASSERT(s.getTime()==0);
+
+    Vector v3(3), v2(2);
+    QIndex q1 = s.allocateQ(SubsystemIndex(0), v3);
+    QIndex q2 = s.allocateQ(SubsystemIndex(0), v2);
+
+    EventTriggerByStageIndex e1 = s.allocateEventTrigger(SubsystemIndex(0), Stage::Position, 3);
+    EventTriggerByStageIndex e2 = s.allocateEventTrigger(SubsystemIndex(0), Stage::Instance, 2);
 
     printf("q1,2=%d,%d\n", q1, q2);
     printf("e1,2=%d,%d\n", e1, e2);
 
     cout << s;
 
-    long dv = s.allocateDiscreteVariable(SubsystemIndex(0), Stage::Dynamics, new Value<int>(5));
+    DiscreteVariableIndex dv = s.allocateDiscreteVariable(SubsystemIndex(0), Stage::Dynamics, new Value<int>(5));
 
     s.advanceSubsystemToStage(SubsystemIndex(0), Stage::Model);
         //long dv2 = s.allocateDiscreteVariable(SubsystemIndex(0), Stage::Position, new Value<int>(5));
@@ -84,24 +154,21 @@ int main() {
     Value<int>::downcast(s.updDiscreteVariable(SubsystemIndex(0), dv)) = 71;
     cout << s.getDiscreteVariable(SubsystemIndex(0), dv) << endl;
 
-    // Can't ask for the time before Stage::Model, but if you could it would be NaN.
-    // Advancing to Stage::Model sets t=0.
-    //cout << "BEFORE ADVANCE TO MODEL, t=" << s.getTime() << endl;
 
     s.advanceSystemToStage(Stage::Model);
 
     cout << "AFTER ADVANCE TO MODEL, t=" << s.getTime() << endl;
 
-    printf("nevents=%d, by stage:\n", s.getNEvents());
+    printf("ntriggers=%d, by stage:\n", s.getNEventTriggers());
     for (int j=0; j<Stage::NValid; ++j) {
         Stage g = Stage::getValue(j);
-        cout << g.getName() << ": " << s.getNEventsByStage(g) << endl;
+        cout << g.getName() << ": " << s.getNEventTriggersByStage(g) << endl;
     }
 
     printf("subsys 0 by stage:\n");
     for (int j=0; j<Stage::NValid; ++j) {
         Stage g = Stage::getValue(j);
-        cout << g.getName() << ": " << s.getNEventsByStage(SubsystemIndex(0),g) << endl;
+        cout << g.getName() << ": " << s.getNEventTriggersByStage(SubsystemIndex(0),g) << endl;
     }
     cout << "State s=" << s;
 

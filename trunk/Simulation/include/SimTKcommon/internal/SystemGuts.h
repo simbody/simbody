@@ -102,7 +102,7 @@ public:
     const State& getDefaultState() const;
     State&       updDefaultState();
 
-    void realize(const State& s, Stage g = Stage::HighestValid) const;
+    void realize(const State& s, Stage g = Stage::HighestRuntime) const;
 
     SubsystemIndex adoptSubsystem(Subsystem& child);
 
@@ -150,10 +150,10 @@ public:
                  const Vector& ootols, Vector& yerrest, System::ProjectOptions) const;
     void calcYErrUnitTolerances(const State&, Vector& tolerances) const;
     void handleEvents
-       (State&, EventCause, const std::vector<EventId>& eventIds,
+        (State&, Event::Cause, const std::vector<EventId>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
-    void reportEvents(const State&, EventCause, const std::vector<EventId>& eventIds) const;
+    void reportEvents(const State&, Event::Cause, const std::vector<EventId>& eventIds) const;
     void calcEventTriggerInfo(const State&, std::vector<EventTriggerInfo>&) const;
     void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
     void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
@@ -197,11 +197,11 @@ protected:
     virtual int calcYErrUnitTolerancesImpl(const State&, Vector& tolerances) const;
 
     virtual int handleEventsImpl
-       (State&, EventCause, const std::vector<EventId>& eventIds,
+        (State&, Event::Cause, const std::vector<EventId>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
 
-    virtual int reportEventsImpl(const State&, EventCause, const std::vector<EventId>& eventIds) const;
+    virtual int reportEventsImpl(const State&, Event::Cause, const std::vector<EventId>& eventIds) const;
 
     virtual int calcEventTriggerInfoImpl(const State&, std::vector<EventTriggerInfo>&) const;
 

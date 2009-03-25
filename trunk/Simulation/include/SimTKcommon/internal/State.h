@@ -34,6 +34,7 @@
 
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
+#include "SimTKcommon/internal/Event.h"
 
 #include <ostream>
 #include <cassert>
@@ -41,123 +42,106 @@
 
 namespace SimTK {
 
-SimTK_DEFINE_UNIQUE_INDEX_TYPE(SubsystemIndex)
 
-// TODO: these need an option to have associated "update" variables in the cache,
-// analogous to the derivative variables qdot,udot,zdot that we create
-// for the continuous variables. Consider whether "discrete variable" should
-// be reserved for those that are updated in time, with something else like
-// "parameter variable" for those that just hold externally set data.
+/// Provide a unique integer type for identifying Subsystems.
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(SubsystemIndex);
 
-class SimTK_SimTKCOMMON_EXPORT DiscreteVariable {
-public:
-    DiscreteVariable() : rep(0) { }
-    DiscreteVariable(const DiscreteVariable&);
-    DiscreteVariable& operator=(const DiscreteVariable&);
-    ~DiscreteVariable();
+/// This unique integer type is for indexing the global, System-level "y-like"
+/// arrays, that is, the arrays in which all of the various Subsystems' continuous
+/// state variables q, u, and z have been collected into contiguous memory.
+/// This type should be used for the global y and its global time derivative yDot.
+/// Note that there is no Subsystem-local equivalent of the y array.
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemYIndex);
 
-    // This takes ownership of the AbstractValue pointer.
-    DiscreteVariable(Stage, AbstractValue* vp);
+/// This unique integer type is for indexing global "q-like" arrays, that is, arrays
+/// that inherently have the same dimension as the total number of second
+/// order state variables (generalized coordinates) in the full System-level
+/// view of the State. This type should be used for the global q and its global
+/// time derivatives qDot and qDotDot.
+/// @see QIndex for Subsystem-local q indexing
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemQIndex);
+/// Unique integer type for Subsystem-local q indexing
+/// @see SystemQIndex
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(QIndex);
 
-    Stage getStage() const;
-    const AbstractValue& getValue() const;
-    AbstractValue&       updValue();
+/// This unique integer type is for indexing global "u-like" arrays, that is, arrays
+/// that inherently have the same dimension as the total number of mobilities
+/// (generalized speeds) in the full System-level view of the State. This type
+/// should be used for the global u and its global time derivative uDot.
+/// @see UIndex for Subsystem-local u indexing
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemUIndex);
+/// Unique integer type for Subsystem-local u indexing
+/// @see SystemUIndex
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(UIndex);
 
-private:
-    class DiscreteVariableRep* rep;
-};
+/// This unique integer type is for indexing global "z-like" arrays, that is, arrays
+/// that inherently have the same dimension as the total number of auxiliary
+/// state variables in the full System-level view of the State. This type
+/// should be used for the global z and its global time derivative zDot.
+/// @see ZIndex for Subsystem-local z indexing
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemZIndex);
+/// Unique integer type for Subsystem-local u indexing
+/// @see SystemZIndex
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(ZIndex);
 
-class SimTK_SimTKCOMMON_EXPORT CacheEntry : public DiscreteVariable {
-public:
-    CacheEntry() : DiscreteVariable() { }
+/// This unique integer type is for selecting discrete variables. These indices
+/// are always Subsystem-local, that is, the first discrete variable belonging
+/// to each Subsystem has index 0.
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(DiscreteVariableIndex);
 
-    // This takes ownership of the AbstractValue pointer.
-    CacheEntry(Stage g, AbstractValue* vp)
-        : DiscreteVariable(g,vp) { }
+/// This unique integer type is for selecting non-shared cache entries. These indices
+/// are always Subsystem-local, that is, the first explicitly-allocated cache
+/// entry belonging to each Subsystem has index 0.
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(CacheEntryIndex);
 
-    CacheEntry(const CacheEntry& ce) : DiscreteVariable(ce) { }
-    CacheEntry& operator=(const CacheEntry& ce) {
-        DiscreteVariable::operator=(ce);
-        return *this;
-    }
-};
+/// This unique integer type is for indexing the global, System-level "yErr-like"
+/// arrays, that is, the arrays in which all of the various Subsystems' qErr and
+/// uErr constraint equation slots have been collected together.
+/// Note that there is no Subsystem-local equivalent of the yErr array.
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemYErrIndex);
 
-class EventStatus {
-public:
-    EventStatus() { initialize(); }
-    // default destructor, copy constructor, copy assignment
+/// This unique integer type is for indexing global "qErr-like" arrays, that is, arrays
+/// that inherently have the same dimension as the total number of position-level
+/// constraint equations in the full System-level view of the State.
+/// @see QErrIndex for Subsystem-local qErr indexing
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemQErrIndex);
+/// Unique integer type for Subsystem-local qErr indexing
+/// @see SystemQErrIndex
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(QErrIndex);
 
-    // Event trigger (which zero crossings cause triggering). Can be
-    // OR'ed together to make a mask.
-    enum EventTrigger {
-        NoEventTrigger          =0x0000,    // must be 0
+/// This unique integer type is for indexing global "uErr-like" arrays, that is, arrays
+/// that inherently have the same dimension as the total number of velocity-level
+/// constraint equations in the full System-level view of the State.
+/// @see UErrIndex for Subsystem-local uErr indexing
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemUErrIndex);
+/// Unique integer type for Subsystem-local uErr indexing
+/// @see SystemUErrIndex
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(UErrIndex);
 
-        PositiveToNegative      =0x0001,    // 1
-        NegativeToPositive      =0x0002,    // 2
+/// This unique integer type is for indexing global "uDotErr-like" arrays, that is, arrays
+/// that inherently have the same dimension as the total number of acceleration-level
+/// constraint equations in the full System-level view of the State.
+/// @see UDotErrIndex for Subsystem-local uDotErr indexing
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemUDotErrIndex);
+/// Unique integer type for Subsystem-local uDotErr indexing
+/// @see SystemUDotErrIndex
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(UDotErrIndex);
 
-        Falling                 =(PositiveToNegative), // 1
-        Rising                  =(NegativeToPositive), // 2
-        AnySignChange           =(PositiveToNegative|NegativeToPositive)    // 3
-    };
+/// This unique integer type is for indexing global "multiplier-like" arrays, that is, arrays
+/// that inherently have the same dimension as the total number of Lagrange multipliers
+/// in the full System-level view of the State.
+/// @see MultiplierIndex for Subsystem-local multiplier indexing
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemMultiplierIndex);
+/// Unique integer type for Subsystem-local multiplier indexing
+/// @see SystemMultiplierIndex
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(MultiplierIndex);
 
-    bool isEventPending() const {return transitionSeen != NoEventTrigger;}
-    EventTrigger getEventTrigger() const {return transitionSeen;}
-    Real getLastTriggerTime() const {return lastTriggerTime;}
-    Real getLastTriggerTimeBestGuess() const {return lastTriggerTimeBestGuess;}
-    Real getBeforeValue() const {return beforeValue;}
-    Real getAfterValue() const {return afterValue;}
-    Real getLocalizationWindow() const {return localizationWindow;}
+/// This is the type to use for Stage version numbers. Whenever any state variable is
+/// modified, we increment the stage version for the stage(s) that depend on it.
+/// -1 means "unintialized". 0 is never used as a stage version, but is allowed as
+/// a cache value which is guaranteed never to look valid. 
+typedef int StageVersion;
 
-    void setEventTriggered(EventTrigger transition, Real triggerTime,
-                           Real actualTimeEst, Real window,
-                           Real before, Real after)
-    {
-        assert(transition != NoEventTrigger);
-        assert(triggerTime >= 0 && actualTimeEst >= 0 
-               && triggerTime >= actualTimeEst);
-
-        transitionSeen = transition;
-        lastTriggerTime = triggerTime;
-        lastTriggerTimeBestGuess = actualTimeEst;
-        localizationWindow = window;
-        beforeValue = before;
-        afterValue  = after;
-    }
-
-    void clearEventTrigger() {
-        transitionSeen = NoEventTrigger;
-    }
-
-    // Classify a before/after sign transition.
-    static EventTrigger classifyTransition(int before, int after) {
-        if (before==after)
-            return NoEventTrigger;
-        if (before==0)
-            return NoEventTrigger; // Do not report transitions away from zero.
-        if (before==1)
-            return PositiveToNegative;
-        // before==-1
-        return NegativeToPositive;
-    }
-
-    static EventTrigger maskTransition(EventTrigger transition, EventTrigger mask) {
-        return EventTrigger(transition & mask); // we're depending on NoEventTrigger==0
-    }
-
-    SimTK_SimTKCOMMON_EXPORT static String eventTriggerString(EventTrigger e);
-private:
-    void initialize() {
-        transitionSeen = NoEventTrigger;
-        lastTriggerTime = lastTriggerTimeBestGuess = localizationWindow
-            = beforeValue = afterValue = NaN;
-    }
-
-    EventTrigger transitionSeen;
-    Real         lastTriggerTime; // digital
-    Real         lastTriggerTimeBestGuess; // analog, <=lastTriggerTime
-    Real         localizationWindow;
-    Real         beforeValue, afterValue;
-};
 
 /**
  * This is the handle class for the hidden State implementation.
@@ -180,6 +164,7 @@ private:
  *    - the System as a whole
  *    - Subsystems contained in the System
  *    - numerical methods operating on the state
+ *
  * Typically numerical methods have a much less nuanced view of the state
  * than do the System or Subsystems.
  *
@@ -191,9 +176,11 @@ private:
  * The continuous part is an ODE-on-a-manifold system suitable for solution
  * via coordinate projection, structured like this for the view taken
  * by numerical methods:
- *         (1)  y' = f(d;t,y)         differential equations
- *         (2)  c  = c(d;t,y)         algebraic equations (manifold is c=0)
- *         (3)  e  = e(d;t,y)         event triggers (watch for zero crossings)
+ * <pre>
+ *      (1)  y' = f(d;t,y)         differential equations
+ *      (2)  c  = c(d;t,y)         algebraic equations (manifold is c=0)
+ *      (3)  e  = e(d;t,y)         event triggers (watch for zero crossings)
+ * </pre>
  * with initial conditions t0,y0,d0 such that c=0. The discrete variables d
  * are updated upon occurence of specific events, which are
  * detected using the set of scalar-valued event trigger functions e (3).
@@ -203,15 +190,15 @@ private:
  * auxiliary variables z. There will be algebraic constraints involving q, u,
  * and u's time derivatives udot. The system is now assumed to look like this:
  * <pre>
- *      (4) qdot    = Q(q) u
+ *      (4) qdot    = N(q) u
  *      (5) zdot    = zdot(d;t,q,u,z)
  *
  *      (6) M(q) udot + ~G(q) mult = f(d;t,q,u,z)
  *          G(q) udot              = b(d;t,q,u)
  *
- *      (7) udotErr = [ pdotdot(d;t,q,u) ]      = 0
- *                    [ vdot(d;t,q,u)    ]
- *                    [ a(d;t,q,u)       ] 
+ *      (7) udotErr = [ pdotdot(d;t,q,u,udot) ] = 0
+ *                    [ vdot(d;t,q,u,udot)    ]
+ *                    [ a(d;t,q,u,udot)       ] 
  *
  *      (8) uErr    = [ pdot(d;t,q,u) ]
  *                    [ v(d;t,q,u)    ]         = 0
@@ -219,6 +206,11 @@ private:
  *      (9) qErr    = [ p(d;t,q) ]              = 0
  *                    [ n(q)     ]
  * </pre>
+ * The q's can also be dealt with directly as second order variables via
+ * <pre>
+ *     (10) qdotdot = Ndot(q,qdot) u + N(q) udot
+ * </pre>
+ *
  * Here G = [P;V;A] with A(q) being the coefficient matrix for constraints
  * appearing only at the acceleration level, and V(q)=partial(v)/partial(u)
  * the coefficient matrix for the velocity (nonholonomic) constraints, and
@@ -256,12 +248,13 @@ private:
  *
  * Note that there is a global Stage for the state as a whole, and individual
  * Stages for each subsystem. The global stage can never be higher than
- * the lowest subsystem stage. Global resources are allocated when the
+ * the lowest subsystem stage. Global state resources are allocated when the
  * global Stage advances to "Model" and tossed out if that stage is
- * invalidated. Note that subsystems will "register" their use of the
- * global variable pools during their own modeling stages, but that the
- * actual global resources won't exist until the *system* has been
- * advanced to Model stage.
+ * invalidated. Similarly cache resources are allocated at stage Instance
+ * and forgotten when Instance is invalidated. Note that subsystems will
+ * "register" their use of the global variable pools during their own modeling
+ * stages, but that the actual global resources won't exist until the *System* 
+ * has been advanced to Model or Instance stage.
  */
 class SimTK_SimTKCOMMON_EXPORT State {
 public:
@@ -274,7 +267,7 @@ public:
 
     /// Set the number of subsystems in this state. This is done during
     /// initialization of the State by a System; it completely wipes out
-    /// anything that used to be in the state so use cautiously!
+    /// anything that used to be in the State so use cautiously!
     void setNSubsystems(int i);
 
     /// Set the name and version for a given subsystem, which must already
@@ -299,7 +292,7 @@ public:
     /// perform "sanity checks" on deserialized States to make
     /// sure they match the currently instantiated System.
     /// The subsystem index (a small integer) is returned.
-    int addSubsystem(const String& name, const String& version);
+    SubsystemIndex addSubsystem(const String& name, const String& version);
 
     int getNSubsystems() const;
     const String& getSubsystemName   (SubsystemIndex) const;
@@ -314,93 +307,338 @@ public:
     /// Otherwise do nothing.
     void invalidateAll(Stage) const;  // cache is mutable
 
-    /// Advance the current stage by one to the indicated stage.
-    /// The stage is passed in just to give us a chance to verify
-    /// that all is as expected. You can only advance one stage at
-    /// a time. Advancing to "Topology" and "Model" stages affect
+    /// Advance a particular Subsystem's current stage by one to
+    /// the indicated stage. The stage is passed in just to give us a
+    /// chance to verify that all is as expected. You can only advance one stage at
+    /// a time. Advancing to Topology, Model, or Instance stage affects
     /// what you can do later.
+    /// @see advanceSystemToStage()
     void advanceSubsystemToStage(SubsystemIndex, Stage) const;
+    /// Advance the System-level current stage by one to the indicated stage.
+    /// This can only be done if <em>all</em> Subsystem have already been
+    /// advanced to this Stage.
+    /// @see advanceSubsystemToStage()
     void advanceSystemToStage(Stage) const;
 
-    /// These are shared among all the subsystems and are not allocated until
-    /// the *System* is advanced to Stage::Model. The returned index is
-    /// local to each subsystem. After the System is modeled, we guarantee that
-    /// all the q's for a subsystem will be contiguous, and similarly for u's
-    /// and z's. However, q,u,z will *not* be contiguous with each other.
-    /// The *global* y is contiguous, and global q,u,z are contiguous within
-    /// y, in that order.
+    /// These continuous state variables are shared among all the Subsystems
+    /// and are not allocated until the *System* is advanced to Stage::Model.
+    /// The returned index is local to each Subsystem. After the System is modeled,
+    /// we guarantee that all the q's for a Subsystem will be contiguous, and
+    /// similarly for u's and z's. However, q,u,z will *not* be contiguous with
+    /// each other. The *global* y={q,u,z} is contiguous, and global q,u,z are
+    /// contiguous within y, in that order. Corresponding cache entries for
+    /// the derivatives of these variables are allocated at Model stage also.
 
-    int allocateQ(SubsystemIndex, const Vector& qInit); // qdot, qdotdot also allocated in cache
-    int allocateU(SubsystemIndex, const Vector& uInit); // udot                    "
-    int allocateZ(SubsystemIndex, const Vector& zInit); // zdot                    "
+    QIndex allocateQ(SubsystemIndex, const Vector& qInit); // qdot, qdotdot also allocated in cache
+    UIndex allocateU(SubsystemIndex, const Vector& uInit); // udot                    "
+    ZIndex allocateZ(SubsystemIndex, const Vector& zInit); // zdot                    "
 
-    /// Slots for constraint errors are handled similarly, although these are
-    /// just cache entries not state variables. Q errors and U errors
-    /// will each be contiguous for a given subsystem, but *not* with each other.
-    /// However, yerr={qerr,uerr} *is* a single contiguous vector.
+    /// These constraint error cache entries are shared among all the subsystems
+    /// and are not allocated until the *System* is advanced to Stage::Instance.
+    /// The returned index is local to each Subsystem. Q errors and U errors will
+    /// each be contiguous for a given subsystem, but *not* with each other. However,
+    /// the System-level yerr={qerr,uerr} *is* a single contiguous vector.
     /// UDotErr is a separate quantity, not part of yerr. Again the UDotErr's for
     /// each subsystem will be contiguous within the larger UDotErr Vector.
     /// Allocating a UDotErr has the side effect of allocating another Vector
     /// of the same size in the cache for the corresponding Lagrange multipliers,
     /// and these are partitioned identically to UDotErrs.
 
-    int allocateQErr   (SubsystemIndex, int nqerr) const;    // these are cache entries
-    int allocateUErr   (SubsystemIndex, int nuerr) const;
-    int allocateUDotErr(SubsystemIndex, int nudoterr) const;
+    QErrIndex    allocateQErr   (SubsystemIndex, int nqerr) const;    // these are cache entries
+    UErrIndex    allocateUErr   (SubsystemIndex, int nuerr) const;
+    UDotErrIndex allocateUDotErr(SubsystemIndex, int nudoterr) const;
 
-    /// Slots for event witness values are similar to constraint errors.
-    /// However, this also allocates a discrete state variable to hold
-    /// the "triggered" indication. The Stage here is the stage at which
-    /// the event witness function can first be examined.
-    int allocateEvent(SubsystemIndex, Stage, int nevent) const;
+    /// This method is used to obtain one or more consecutive EventIndex's which are
+    /// unique within the indicated Subsystem. These can be allocated in a State that
+    /// has not yet been advanced to Instance stage, and the stage at which they
+    /// are allocated is remembered so that reducing the stage below that causes
+    /// the more-recently-allocated EventIndex's to be forgotten. When Instance stage is
+    /// realized, global SystemEventIndex's will be allocated such that each
+    /// (Subsystem,EventIndex) pair has a unique SystemEventIndex. Also, SystemEventIndex's
+    /// are doled out consecutively within each Subsystem so finding the first one allows
+    /// you to compute the rest for a given Subsystem.
+    EventIndex allocateEventIndex(SubsystemIndex, int nevent=1) const;
 
-    /// DiscreteVariables and CacheEntries are private to each subsystem and are allocated immediately.
-    /// Ownership of the AbstractValue object is taken over by the State -- don't
-    /// delete the object after this call!
-    int allocateDiscreteVariable(SubsystemIndex, Stage, AbstractValue* v);
+    /// Some Events require a slot in the State cache to hold the current value
+    /// of the event trigger function (a.k.a. event "witness" function).
+    /// The Stage here is the stage at which the trigger function's value
+    /// should be examined by a TimeStepper. The returned index is local to
+    /// the Subsystem and also to the Stage. These can be allocated in a State
+    /// that has not yet been realized to Instance stage, and will be forgotten
+    /// appropriately if the State is later backed up to an earlier Stage.
+    /// When this State is realized to Instance stage, global event trigger slots
+    /// will be allocated, collecting all same-Stage event triggers together
+    /// consecutively for the convenience of the TimeStepper. Within a stage,
+    /// a given Subsystem's event trigger slots for that stage are consecutive.
+    EventTriggerByStageIndex allocateEventTrigger(SubsystemIndex, Stage, EventIndex, int nevent=1) const;
+
+    //OBSOLETE
+    EventTriggerByStageIndex allocateEventTrigger(SubsystemIndex, Stage, int nevent) const;
+
+    /// You can allocate a new DiscreteVariable in any State whose stage has not yet been
+    /// advanced to Model stage. The stage at allocation (Empty or Topology) is remembered
+    /// so that the appropriate discrete variables can be forgotten if the State's stage
+    /// is reduced back to that stage later after advancing past it. DiscreteVariables are
+    /// private to each Subsystem and allocated immediately. The returned
+    /// index is unique within the Subsystem but there is no corresponding global index.
+    ///
+    /// The Stage supplied here in the call is the lowest subsystem stage which is invalidated
+    /// by a change made to this discrete variable. You may access the value of the discrete
+    /// variable for reading (via getDiscreteVariable()) or writing (via updDiscreteVariable())
+    /// any time after it has been allocated. Access for writing has the side effect of
+    /// reducing the subsystem and system stages for this State to one stage below the one
+    /// supplied here, that is, the stage supplied here is invalidated. Note that you must
+    /// have write access to the State in order to change the value of any state variable.
+    ///
+    /// Ownership of the AbstractValue object supplied here is taken over by the State --
+    /// don't delete the object after this call!
+    /// @see getDiscreteVariable()
+    /// @see updDiscreteVariable()
+    DiscreteVariableIndex allocateDiscreteVariable(SubsystemIndex, Stage invalidates, AbstractValue*);
+
+
+    /// This method allocates a DiscreteVariable and a CacheEntry of the same value type.
+    /// This can be done if the State hasn't yet been advanced to Model stage.
+    /// The discrete variable is allocated as described for allocateDiscreteVariable(),
+    /// except that the \a invalidates stage must be higher than Stage::Time.
+    /// The cache entry is allocated as described for allocateCacheEntry() without an
+    /// automatic calculation (\a latest) stage. The cache entry is then considered to be the
+    /// "update" value for the discrete variable. Update values play a similar role for
+    /// discrete variables as derivatives play for continuous variables. That is, they
+    /// define how the variable is to be updated when a TimeStepper accepts a step.
+    ///
+    /// Whenever the value of the discrete variable is accessed, the value of the 
+    /// update cache entry is returned instead if it is valid. In that way the results
+    /// are always calculated using the value as it will be \e after an update. That
+    /// means that no results will change when the swap occurs, so no stage needs
+    /// to be invalidated upon updating. However, any \e explicit change to the discrete variable
+    /// will invalidate the \a invalidates stage just as for a non-updating discrete
+    /// variable. Note that this is entirely analogous to the treatment of continuous
+    /// variables like q: the integrator ensures that only updated values of q are
+    /// seen when evaluations are made at intermediate or trial steps.
+    ///
+    /// Update occurs as follows: at the start of every continuous interval, after all
+    /// other pending events have been handled, a time stepper should call the State
+    /// method updateDiscreteVariables(). That method looks at all the
+    /// updating discrete variables to see which ones have valid update values. For
+    /// each valid value, the discrete variable and its update value are swapped, and
+    /// the new cache value is marked invalid. No stage is invalidated by the swap; see
+    /// above for why that isn't necessary.
+    ///
+    /// Ownership of the AbstractValue object supplied here is taken over by the State --
+    /// don't delete the object after this call!
     /// @see allocateDiscreteVariable()
-    int allocateCacheEntry      (SubsystemIndex, Stage, AbstractValue* v);
+    /// @see allocateCacheEntry()
+    std::pair<DiscreteVariableIndex, CacheEntryIndex>
+        allocateUpdatingDiscreteVariable(SubsystemIndex, Stage invalidates, AbstractValue*,
+                                         Stage earliestUpdate); 
+
+    /// You can allocate a new CacheEntry in any State whose stage has not yet been
+    /// advanced to Instance stage. The stage at allocation (Empty, Topology, or Model)
+    /// is remembered so that the appropriate cache entries can be forgotten if the
+    /// State's stage is reduced back to that stage later after advancing past it. CacheEntries
+    /// are private to each Subsystem and allocated immediately. The returned index is
+    /// unique within the Subsystem and there is no corresponding global index.
+    ///
+    /// There are two Stages supplied explicitly as arguments to this method: \a earliest
+    /// and \a latest. The \a earliest Stage is the stage at which the cache entry
+    /// \e could be calculated. Hence if the Subsystem stage is reduced below \a earliest
+    /// the cache entry is known to be invalid. The \a latest Stage, if any, is the stage at
+    /// which the cache entry is \e guaranteed to have been calculated. For stages
+    /// \a earliest through \a latest-1, the cache entry \e may be valid, if it has 
+    /// already been calculated. In that case an explicit validity indicator will have
+    /// been set at the time it was computed. That indicator is cleared automatically
+    /// whenever the Subsystem stage is reduced below \a earliest. The validity indicator
+    /// need not have been set in order for the cache entry to be deemed valid at
+    /// \a latest stage.
+    ///
+    /// If \a latest is given as Stage::Empty then there is no guarantee that this Subsystem
+    /// will automatically calculate a value for this cache entry. In that case the only
+    /// way the cache entry can become valid is if the calculation is performed and the
+    /// validity indicator is set explicitly.
+    ///
+    /// Prior to the Subsystem advancing to \a earliest stage, and prior to \a latest 
+    /// stage unless the validity indicator is set, attempts to look at the value via
+    /// getCacheEntry() will throw an exception. However, you may access the cache entry
+    /// for writing via updCacheEntry() any time after stage \a earliest-1. If you 
+    /// evaluate it prior to \a latest, be sure to explicitly mark it valid.
+    /// Note that cache entries are mutable so you do not need write
+    /// access to the State in order to access a cache entry for writing.
+    ///
+    /// Ownership of the AbstractValue object supplied here is taken over by the State --
+    /// don't delete the object after this call! 
+    /// @see getCacheEntry()
+    /// @see updCacheEntry()
+    CacheEntryIndex allocateCacheEntry(SubsystemIndex, Stage earliest, Stage latest,
+                                       AbstractValue*) const;
+
+    /// This is an abbreviation for allocation of a cache entry whose earliest
+    /// and latest Stages are the same. That is, this cache entry is guaranteed to
+    /// be valid if its Subsystem has advanced to the supplied Stage or later, and
+    /// is guaranteed to be invalid below that Stage.
+    CacheEntryIndex allocateCacheEntry(SubsystemIndex sx, Stage g, AbstractValue* v) const;
+    /* should be ->  {   return allocateCacheEntry(sx,g,g,v); } */
+
     
-    /// Dimensions. These are valid at Stage::Model while access to the various
-    /// arrays may have stricter requirements. Hence it is better to use these
-    /// routines than to get a reference to a Vector and ask for its size().
+    /// @name Global Resource Dimensions
+    ///
+    /// These are the dimensions of the global shared state and cache resources,
+    /// as well as the dimensions of the per-Subsystem partioning of those
+    /// resources. State resource dimensions (including cache resources directly
+    /// related to state variables) are known after the System has been
+    /// realized to Model stage. Other cache resource dimensions are known after
+    /// the System has been realized to Instance stage. Access to the actual data arrays
+    /// may have stricter requirements (for example, you can't ask to look at UErr
+    /// arrays until Velocity stage). Hence it is better to use these explicit 
+    /// dimension-providing methods than to get a reference to a Vector and ask
+    /// for its size().
+    ///
+    /// @see Per-Subsystem Dimensions group
+    /// @see Global-to-Subsystem Maps group
+    /// @{
 
-    int getNY() const; // = nq+nu+nz
-    int getQStart() const; int getNQ() const;
-    int getUStart() const; int getNU() const;
-    int getZStart() const; int getNZ() const;
-
-    int getNYErr() const; // = nqerr+nuerr
-    int getQErrStart() const; int getNQErr() const; // =mp + #quaternions
-    int getUErrStart() const; int getNUErr() const; // =mp+mv
-
-    int getNUDotErr() const;     // =mp+mv+ma
+    /// Get the total number ny=nq+nu+nz of shared continuous state variables.
+    /// This is also the number of state derivatives in the cache entry ydot.
+    /// Callable at Model stage.
+    int getNY() const;
+    /// Get total number of shared q's (generalized coordinates; second order
+    /// state variables). This is also the number of first and second q time
+    /// derivatives in the cache entries qdot and qdotdot.
+    /// Callable at Model stage.
+    int getNQ() const;
+    /// Returns the y index at which the q's begin. Callable at Model stage.
+    SystemYIndex getQStart() const;
+    /// Get total number of shared u's (generalized speeds; mobilities). 
+    /// This is also the number of u time derivatives in the cache entry udot.
+    /// Callable at Model stage.
+    int getNU() const;
+    /// Returns the y index at which the u's begin. Callable at Model stage.
+    SystemYIndex getUStart() const;
+    /// Get total number of shared z's (auxiliary state variables). 
+    /// This is also the number of z time derivatives in the cache entry zdot.
+    /// Callable at Model stage.
+    int getNZ() const;
+    /// Returns the y index at which the z's begin. Callable at Model stage.
+    SystemYIndex getZStart() const;
+    /// Get the total number nyerr=nqerr+nuerr of shared cache entries for
+    /// position-level and velocity-level constraint errors.
+    /// Callable at Instance stage.
+    int getNYErr() const;
+    /// Return the total number nqerr=mp+nQuaternions of cache entries for
+    /// position-level constraint errors. Callable at Instance stage.
+    int getNQErr() const;
+    /// Returns the yErr index at which the qErr's begin. Callable at Instance stage.
+    SystemYErrIndex getQErrStart() const; 
+    /// Return the total number nuerr=mp+mv of cache entries for
+    /// velocity-level constraint errors (including also errors in the 
+    /// time derivatives of position-level constraints). Callable at Instance stage.
+    int getNUErr() const;
+    /// Returns the yErr index at which the uErr's begin. Callable at Instance stage.
+    SystemYErrIndex getUErrStart() const; 
+    /// Return the total number nudotErr=mp+mv+ma of cache entries for
+    /// acceleration-level constraint errors (including also errors in the 
+    /// second time derivatives of position-level constraints and the first
+    /// time derivatives of velocity-level constraints). Callable at Instance stage.
+    int getNUDotErr() const;
+    /// Return the total number of constraint multipliers; necessarily the same
+    /// as the number of acceleration-level constraint errors nUDotErr. Callable
+    /// at Instance stage.
+    /// @see getNUDotErr()
     int getNMultipliers() const; // =mp+mv+ma, necessarily the same as NUDotErr
+    /// Return the total number of event trigger function slots in the cache.
+    /// Callable at Instance stage.
+    int getNEventTriggers() const;
+    /// Return the size of the partition of event trigger functions which are 
+    /// evaluated at a given Stage. Callable at Instance stage.
+    int getNEventTriggersByStage(Stage) const;
+    /// Return the index within the global event trigger array at which the
+    /// first of the event triggers associated with a particular Stage are stored;
+    /// the rest follow contiguously. Callable at Instance stage.
+    SystemEventTriggerIndex getEventTriggerStartByStage(Stage) const; // per-stage
 
-    int getQStart(SubsystemIndex)       const; int getNQ(SubsystemIndex)       const;
-    int getUStart(SubsystemIndex)       const; int getNU(SubsystemIndex)       const;
-    int getZStart(SubsystemIndex)       const; int getNZ(SubsystemIndex)       const;
+    /// @}
 
-    int getQErrStart(SubsystemIndex)    const; int getNQErr(SubsystemIndex)    const;
-    int getUErrStart(SubsystemIndex)    const; int getNUErr(SubsystemIndex)    const;
-    int getUDotErrStart(SubsystemIndex) const; int getNUDotErr(SubsystemIndex) const;
-    int getMultipliersStart(SubsystemIndex i) const;
-    int getNMultipliers(SubsystemIndex i)     const;
+    /// @name Per-Subsystem Dimensions
+    ///
+    /// These are the dimensions and locations within the global resource arrays
+    /// of state and cache resources allocated to a particular Subsystem. Note
+    /// that a Subsystem has contiguous q's, contiguous u's, and contiguous z's
+    /// but that the q-, u-, and z-partitions are not contiguous. Hence there is
+    /// no Subsystem equivalent of the global y vector.
+    ///
+    /// These serve as a mapping from Subsystem-local indices for the various
+    /// shared resources to their global resource indices.
+    ///
+    /// @see Global Resource Dimensions 
+    /// @{
 
-        // Event handling
-    int getNEvents() const; // total
-    int getEventStartByStage(Stage) const; // per-stage
-    int getNEventsByStage(Stage) const;
-    int getEventStartByStage(SubsystemIndex, Stage) const;
-    int getNEventsByStage(SubsystemIndex, Stage) const;
+    SystemQIndex getQStart(SubsystemIndex)       const; int getNQ(SubsystemIndex)       const;
+    SystemUIndex getUStart(SubsystemIndex)       const; int getNU(SubsystemIndex)       const;
+    SystemZIndex getZStart(SubsystemIndex)       const; int getNZ(SubsystemIndex)       const;
 
-    const Vector& getEvents() const;
-    const Vector& getEventsByStage(Stage) const;
-    const Vector& getEventsByStage(SubsystemIndex, Stage) const;
+    SystemQErrIndex       getQErrStart(SubsystemIndex)    const; int getNQErr(SubsystemIndex)    const;
+    SystemUErrIndex       getUErrStart(SubsystemIndex)    const; int getNUErr(SubsystemIndex)    const;
+    SystemUDotErrIndex    getUDotErrStart(SubsystemIndex) const; int getNUDotErr(SubsystemIndex) const;
+    SystemMultiplierIndex getMultipliersStart(SubsystemIndex) const;
+    int getNMultipliers(SubsystemIndex)     const;
 
-    Vector& updEvents() const; // mutable
-    Vector& updEventsByStage(Stage) const;
-    Vector& updEventsByStage(SubsystemIndex, Stage) const;
+    SystemEventTriggerByStageIndex getEventTriggerStartByStage(SubsystemIndex, Stage) const;
+    int getNEventTriggersByStage(SubsystemIndex, Stage) const;
+
+    /// @}
+
+    /// @name Global-to-Subsystem Maps
+    ///
+    /// Once the dimensions and allocations of the global shared resources
+    /// are known, you can call these methods to map a global resource index
+    /// to Subsystem to which it belongs and the index by which that resource
+    /// is known locally to the Subsystem.
+    ///
+    /// @see Global Resource Dimensions 
+    /// @see Per-Subsystem Dimensions group
+    /// @{
+
+    /// For a given global q, return the Subsystem that allocated it and the Subsystem-local
+    /// index by which it is known; callable at Model stage.
+    void mapQToSubsystem(SystemQIndex, SubsystemIndex&, QIndex&) const;
+    /// For a given global u, return the Subsystem that allocated it and the Subsystem-local
+    /// index by which it is known; callable at Model stage.
+    void mapUToSubsystem(SystemUIndex, SubsystemIndex&, UIndex&) const;
+    /// For a given global z, return the Subsystem that allocated it and the Subsystem-local
+    /// index by which it is known; callable at Model stage.
+    void mapZToSubsystem(SystemZIndex, SubsystemIndex&, ZIndex&) const;
+    /// For a given global qErr index, return the Subsystem that allocated it and the Subsystem-local
+    /// index by which it is known; callable at Instance stage.
+    void mapQErrToSubsystem(SystemQErrIndex, SubsystemIndex&, QErrIndex&) const;
+    /// For a given global uErr index, return the Subsystem that allocated it and the Subsystem-local
+    /// index by which it is known; callable at Instance stage.
+    void mapUErrToSubsystem(SystemUErrIndex, SubsystemIndex&, UErrIndex&) const;
+    /// For a given global uDotErr index, return the Subsystem that allocated it and the Subsystem-local
+    /// index by which it is known; callable at Instance stage.
+    void mapUDotErrToSubsystem(SystemUDotErrIndex, SubsystemIndex&, UDotErrIndex&) const;
+    /// For a given global multiplier index, return the Subsystem that allocated it and the Subsystem-local
+    /// index by which it is known; callable at Instance stage. This is necessarily the same Subsystme
+    /// and index as for the corresponding global uDotErr.
+    void mapMultiplierToSubsystem(SystemMultiplierIndex, SubsystemIndex&, MultiplierIndex&) const;
+    /// For a given global event trigger function index, return the Subsystem that allocated it and
+    /// the Subsystem-local index by which it is known; callable at Instance stage.
+    void mapEventTriggerToSubsystem(SystemEventTriggerIndex, SubsystemIndex&, EventTriggerIndex&) const;
+    /// For a given global event trigger function index, return the Stage at which that
+    /// trigger function should be evaluated; callable at Instance stage.
+    void mapEventTriggerToStage(SystemEventTriggerIndex, Stage&, SystemEventTriggerByStageIndex&) const;
+    /// Given a Subsystem-wide event index, map that to a particular Stage and an index
+    /// within that Stage.
+    void mapSubsystemEventTriggerToStage(EventTriggerIndex, Stage&, EventTriggerByStageIndex&) const;
+
+    /// @}
+
+    const Vector& getEventTriggers() const;
+    const Vector& getEventTriggersByStage(Stage) const;
+    const Vector& getEventTriggersByStage(SubsystemIndex, Stage) const;
+
+    Vector& updEventTriggers() const; // mutable
+    Vector& updEventTriggersByStage(Stage) const;
+    Vector& updEventTriggersByStage(SubsystemIndex, Stage) const;
 
     /// Per-subsystem access to the global shared variables.
     const Vector& getQ(SubsystemIndex) const;
@@ -440,7 +678,7 @@ public:
     const Vector& getU() const;
     const Vector& getZ() const;
 
-    /// You can call these as long as stage >= Model, but the
+    /// You can call these as long as System stage >= Model, but the
     /// stage will be backed up if necessary to the indicated stage.
     Real&   updTime();  // Back up to Stage::Time-1
     Vector& updY();     // Back up to Stage::Congfigured-1
@@ -500,19 +738,34 @@ public:
     Vector& updMultipliers() const; // Stage::Acceleration-1 (not a view)
 
     /// OK if dv.stage==Model or stage >= Model
-    const AbstractValue& getDiscreteVariable(SubsystemIndex, int index) const;
+    const AbstractValue& getDiscreteVariable         (SubsystemIndex, DiscreteVariableIndex) const;
+    Real                 getDiscreteVarLastUpdateTime(SubsystemIndex, DiscreteVariableIndex) const;
+    CacheEntryIndex      getDiscreteVarUpdateEntry   (SubsystemIndex, DiscreteVariableIndex) const;
+    const AbstractValue& getDiscreteVarPrevValue     (SubsystemIndex, DiscreteVariableIndex) const;
 
     /// OK if dv.stage==Model or stage >= Model; set stage to dv.stage-1
-    AbstractValue&       updDiscreteVariable(SubsystemIndex, int index);
+    AbstractValue&       updDiscreteVariable(SubsystemIndex, DiscreteVariableIndex);
 
     /// Alternate interface to updDiscreteVariable.
-    void setDiscreteVariable(SubsystemIndex i, int index, const AbstractValue& v);
+    void setDiscreteVariable(SubsystemIndex, DiscreteVariableIndex, const AbstractValue&);
 
     /// Stage >= ce.stage
-    const AbstractValue& getCacheEntry(SubsystemIndex, int index) const;
+    const AbstractValue& getCacheEntry(SubsystemIndex, CacheEntryIndex) const;
 
     /// Stage >= ce.stage-1; does not change stage
-    AbstractValue& updCacheEntry(SubsystemIndex, int index) const; // mutable
+    AbstractValue& updCacheEntry(SubsystemIndex, CacheEntryIndex) const; // mutable
+
+    bool isCacheValueValid(SubsystemIndex, CacheEntryIndex) const;
+    void markCacheValueValid(SubsystemIndex, CacheEntryIndex) const;
+
+    /// Return the lowest System Stage that was invalidated since the last time this
+    /// "low water mark" was reset. The returned value is never higher than the
+    /// one just following the State's current System Stage, but can be lower.
+    const Stage& getLowestStageModified() const;
+
+    /// Reset the invalid System Stage "low water mark" to the one just above the
+    /// State's current System Stage.
+    void resetLowestStageModified() const;
     
     /// Transform a State into one which shares all the same data as this one,
     /// such that modifying either one will modify both of them.  The new State
@@ -524,15 +777,17 @@ public:
     /// itself created by createRestrictedState(), the new state will inherit
     /// all of the restrictions from this one, in addition to any that are specified
     /// in the arguments.
-    void createRestrictedState(State& restrictedState, EnumerationSet<Stage> restrictedStages, std::set<SubsystemIndex> restrictedSubsystems);
+    void createRestrictedState(State&                       restrictedState, 
+                               EnumerationSet<Stage>        restrictedStages,
+                               std::set<SubsystemIndex>     restrictedSubsystems);
 
     /// Get the set of stages which cannot be modified in this State.  Attempting
     /// to modify any of these stages will produce an exception.
-    EnumerationSet<Stage> getRestrictedStages() const;
+    const EnumerationSet<Stage>& getRestrictedStages() const;
 
     /// Get the set of subsystems which cannot be modified in this State.  Attempting
     /// to modify any of these subsystems will produce an exception.
-    std::set<SubsystemIndex> getRestrictedSubsystems() const;
+    const std::set<SubsystemIndex>& getRestrictedSubsystems() const;
 
     String toString() const;
     String cacheToString() const;

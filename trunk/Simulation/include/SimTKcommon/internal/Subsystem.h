@@ -35,6 +35,7 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/State.h"
+#include "SimTKcommon/internal/Measure.h"
 #include "SimTKcommon/internal/System.h"
 
 #include <cassert>
@@ -88,6 +89,19 @@ public:
     const String& getName()    const;
     const String& getVersion() const;
 
+    // These call the corresponding State method, supplying this Subsystem's
+    // SubsystemIndex. The returned indices are local to this Subsystem.
+    QIndex allocateQ(State&, const Vector& qInit) const;
+    UIndex allocateU(State&, const Vector& uInit) const;
+    ZIndex allocateZ(State&, const Vector& zInit) const;
+    DiscreteVariableIndex allocateDiscreteVariable(State&, Stage, AbstractValue* v) const;
+
+    CacheEntryIndex allocateCacheEntry   (const State&, Stage, AbstractValue* v) const;
+    QErrIndex allocateQErr         (const State&, int nqerr) const;
+    UErrIndex allocateUErr         (const State&, int nuerr) const;
+    UDotErrIndex allocateUDotErr      (const State&, int nudoterr) const;
+    EventTriggerByStageIndex allocateEventTriggersByStage(const State&, Stage, int ntriggers) const;
+
     // These return views on State shared global resources. The views
     // are private to this subsystem, but the global resources themselves
     // are not allocated until the *System* advances to stage Model.
@@ -106,6 +120,7 @@ public:
     const Vector& getUErr(const State&) const;
     const Vector& getUDotErr(const State&) const;
     const Vector& getMultipliers(const State&) const;
+    const Vector& getEventTriggersByStage(const State&, Stage) const;
 
     // These return writable access to this subsystem's partition in the
     // State pool of continuous variables. These can be called at Stage::Model
@@ -141,36 +156,39 @@ public:
     Vector& updUErr(const State&) const;
     Vector& updUDotErr(const State&) const;
     Vector& updMultipliers(const State&) const;
+    Vector& updEventTriggersByStage(const State&, Stage) const;
 
     // These pull out the State entries which belong exclusively to
     // this Subsystem. These variables and cache entries are available
     // as soon as this subsystem is at stage Model.
     Stage getStage(const State&) const;
-    const AbstractValue& getDiscreteVariable(const State&, int index) const;
+    const AbstractValue& getDiscreteVariable(const State&, DiscreteVariableIndex) const;
     // State is *not* mutable here -- must have write access to change state variables.
-    AbstractValue& updDiscreteVariable(State&, int index) const;
-    const AbstractValue& getCacheEntry(const State&, int index) const;
+    AbstractValue& updDiscreteVariable(State&, DiscreteVariableIndex) const;
+    const AbstractValue& getCacheEntry(const State&, CacheEntryIndex) const;
     // State is mutable here.
-    AbstractValue& updCacheEntry(const State&, int index) const;
+    AbstractValue& updCacheEntry(const State&, CacheEntryIndex) const;
 
     // Dimensions. These are valid at System Stage::Model while access to the various
     // arrays may have stricter requirements. Hence it is better to use these
     // routines than to get a reference to a Vector above and ask for its size().
 
-    int getQStart      (const State&) const;
+    SystemQIndex getQStart      (const State&) const;
     int getNQ          (const State&) const;
-    int getUStart      (const State&) const;
+    SystemUIndex getUStart      (const State&) const;
     int getNU          (const State&) const;
-    int getZStart      (const State&) const;
+    SystemZIndex getZStart      (const State&) const;
     int getNZ          (const State&) const;
-    int getQErrStart   (const State&) const;
+    SystemQErrIndex getQErrStart   (const State&) const;
     int getNQErr       (const State&) const;
-    int getUErrStart   (const State&) const;
+    SystemUErrIndex getUErrStart   (const State&) const;
     int getNUErr       (const State&) const;
-    int getUDotErrStart(const State&) const;
+    SystemUDotErrIndex getUDotErrStart(const State&) const;
     int getNUDotErr    (const State&) const;
-    int getMultipliersStart(const State&) const;
-    int getNMultipliers    (const State&) const;
+    SystemMultiplierIndex getMultipliersStart (const State&) const;
+    int getNMultipliers     (const State&) const;
+    SystemEventTriggerByStageIndex getEventTriggerStartByStage(const State&, Stage) const;
+    int getNEventTriggersByStage   (const State&, Stage) const;
 
 	bool isInSystem() const;
 	bool isInSameSystem(const Subsystem& otherSubsystem) const;
@@ -190,6 +208,14 @@ public:
 
     bool subsystemTopologyHasBeenRealized() const;
     void invalidateSubsystemTopologyCache() const;
+
+    // Add a new Measure to this Subsystem. This method is generally used by Measure
+    // constructors to install a newly-constructed Measure into its Subsystem.
+    MeasureIndex adoptMeasure(Measure&);
+
+    Measure getMeasure(MeasureIndex) const;
+    template <class T> Measure_<T> getMeasure_(MeasureIndex mx) const
+    {   return Measure_<T>::getAs(getMeasure(mx));}
 
     // dynamic_cast the returned reference to a reference to your concrete Guts
     // class.

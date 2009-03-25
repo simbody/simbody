@@ -43,6 +43,10 @@
 #include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/Subsystem.h"
 #include "SimTKcommon/internal/SubsystemGuts.h"
+#include "SimTKcommon/internal/Measure.h"
+#include "SimTKcommon/internal/MeasureGuts.h"
+
+#include <algorithm>
 
 namespace SimTK {
 
@@ -66,7 +70,9 @@ public:
     {
     }
 
-    ~GutsRep() { 
+    ~GutsRep() {
+        for (MeasureIndex mx(0); mx < measures.size(); ++mx)
+            if (measures[mx]->decrRefCount()==0) delete measures[mx];
         clearMyHandle();
         invalidateSubsystemTopologyCache();
     }
@@ -111,6 +117,25 @@ public:
     Subsystem& updMyHandle() {assert(myHandle); return *myHandle;}
     void clearMyHandle() {myHandle=0;}
 
+    Measure getMeasure(MeasureIndex mx) const {
+        assert(0 <= mx && mx < measures.size());
+        return Measure(measures[mx]);
+    }
+
+    MeasureIndex adoptMeasure(Measure& m) {
+        assert(m.hasGuts());
+        // This is an expensive check if there are lots of measures.
+        assert(std::find(measures.begin(), measures.end(), &m.getGuts())
+                == measures.end());
+
+        invalidateSubsystemTopologyCache();
+        const MeasureIndex mx(measures.size());
+        measures.push_back(&m.updGuts());
+        measures.back()->incrRefCount();
+        measures.back()->setSubsystem(updMyHandle(), mx);
+        return mx;
+    }
+
 private:
     String      subsystemName;
     String      subsystemVersion;
@@ -119,6 +144,8 @@ private:
 
     friend class Subsystem;
     Subsystem* myHandle;	// the owner handle of this rep
+
+    std::vector<Measure::Guts*> measures;
 
         // TOPOLOGY CACHE
 

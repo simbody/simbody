@@ -149,12 +149,12 @@ void System::project(State& s, Real consAccuracy, const Vector& yweights,
   { getSystemGuts().project(s,consAccuracy,yweights,ootols,yerrest, opts); }
 void System::calcYErrUnitTolerances(const State& s, Vector& tolerances) const
   { getSystemGuts().calcYErrUnitTolerances(s,tolerances); }
-void System::handleEvents(State& s, EventCause cause, const std::vector<EventId>& eventIds,
+void System::handleEvents(State& s, Event::Cause cause, const std::vector<EventId>& eventIds,
                           Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
                           Stage& lowestModified, bool& shouldTerminate) const
   { getSystemGuts().handleEvents(s,cause,eventIds,accuracy,yWeights,ooConstraintTols,
                                lowestModified,shouldTerminate); }
-void System::reportEvents(const State& s, EventCause cause, const std::vector<EventId>& eventIds) const
+void System::reportEvents(const State& s, Event::Cause cause, const std::vector<EventId>& eventIds) const
   { getSystemGuts().reportEvents(s,cause,eventIds); }
 void System::calcEventTriggerInfo(const State& s, std::vector<EventTriggerInfo>& info) const
   { getSystemGuts().calcEventTriggerInfo(s,info); }
@@ -165,16 +165,6 @@ void System::calcTimeOfNextScheduledReport(const State& s, Real& tNextEvent,
                                           std::vector<EventId>& eventIds, bool includeCurrentTime) const
   { getSystemGuts().calcTimeOfNextScheduledReport(s,tNextEvent,eventIds,includeCurrentTime); }
 
-const char* System::getEventCauseName(System::EventCause cause) {
-    switch(cause) {
-    case TriggeredEvents:   return "TriggeredEvents";
-    case ScheduledEvents:   return "ScheduledEvents";
-    case TimeAdvancedEvent: return "TimeAdvancedEvent";
-    case TerminationEvent:  return "TerminationEvent";
-    case InvalidEventCause: return "InvalidEventCause";
-    }
-    return "UNRECOGNIZED EVENT CAUSE";
-}
 
 
     //////////////////
@@ -273,16 +263,11 @@ const State& System::Guts::realizeTopology() const {
                 getRep().subsystems[i].getSubsystemGuts().realizeSubsystemTopology(defaultState);
         getRep().systemTopologyRealized = true; // mutable
         defaultState.advanceSystemToStage(Stage::Topology);
+        getRep().nRealizationsOfStage[Stage::Topology]++; // mutable counter
 
         // Realize the model using the default settings of the Model variables.
         // This allocates all the later-stage State variables.
         realizeModel(defaultState);
-
-        // Now realize the default state to the highest Stage.
-        // TODO: this is problematic if the default state is not a valid one.
-        //realize(defaultState, Stage::HighestValid);
-
-        getRep().nRealizationsOfStage[Stage::Topology]++; // mutable counter
     }
     return defaultState;
 }
@@ -442,7 +427,7 @@ void System::Guts::project(State& s, Real consAccuracy, const Vector& yweights,
 }
 
 void System::Guts::handleEvents
-   (State& s, EventCause cause, const std::vector<EventId>& eventIds,
+   (State& s, Event::Cause cause, const std::vector<EventId>& eventIds,
     Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
     Stage& lowestModified, bool& shouldTerminate) const
 {
@@ -460,7 +445,7 @@ void System::Guts::handleEvents
 }
 
 void System::Guts::reportEvents
-   (const State& s, EventCause cause, const std::vector<EventId>& eventIds) const
+   (const State& s, Event::Cause cause, const std::vector<EventId>& eventIds) const
 {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Model, // TODO: is this the right stage?
         "System::Guts::reportEvents()");
@@ -597,7 +582,7 @@ int System::Guts::calcYErrUnitTolerancesImpl(const State& s, Vector& ootols) con
 }
 
 int System::Guts::handleEventsImpl
-   (State& s, EventCause cause, const std::vector<EventId>& eventIds,
+(State& s, Event::Cause cause, const std::vector<EventId>& eventIds,
     Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
     Stage& lowestModified, bool& shouldTerminate) const
 {
@@ -609,11 +594,11 @@ int System::Guts::handleEventsImpl
     
     // Loop over each subsystem, see which events belong to it, and allow it to handle those events.
     
-    lowestModified = Stage::HighestValid;
+    lowestModified = Stage::Infinity;
     shouldTerminate = false;
     std::vector<EventId> eventsForSubsystem;
     for (SubsystemIndex i(0); i<getNSubsystems(); ++i) {
-        Stage subsysLowestModified = Stage::HighestValid;
+        Stage subsysLowestModified = Stage::Infinity;
         bool subsysShouldTerminate = false;
         getSystem().getDefaultSubsystem().findSubsystemEventIds(getRep().subsystems[i].getMySubsystemIndex(), restricted, eventIds, eventsForSubsystem);
         if (eventsForSubsystem.size() > 0) {
@@ -627,7 +612,7 @@ int System::Guts::handleEventsImpl
     return 0;
 }
 
-int System::Guts::reportEventsImpl(const State& s, EventCause cause, const std::vector<EventId>& eventIds) const
+int System::Guts::reportEventsImpl(const State& s, Event::Cause cause, const std::vector<EventId>& eventIds) const
 {
     // Loop over each subsystem, see which events belong to it, and allow it to handle those events.
     
