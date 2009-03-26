@@ -63,7 +63,7 @@
 #define SimTK_MEASURE_HANDLE_PREAMBLE(MH,PH)    \
     class Guts;                                 \
     explicit MH(Guts* g=0) : PH(g) {}           \
-    MH(Subsystem& sub, Guts* g) : PH(sub,g) {}
+    MH(Subsystem& sub, Guts* g, const SetHandle& sh) : PH(sub,g,sh) {}
 
 /**
  * Every measure handle class "MH" derived directly or indirectly from the
@@ -124,11 +124,16 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(MeasureIndex);
  * always concrete (meaning they have no virtual methods).
  */
 class SimTK_SimTKCOMMON_EXPORT Measure {
+protected:
+	// This is used to make sure the automatically-generated handle
+	// constructor doesn't conflict with an explicitly-defined one.
+	class SetHandle {};
+
 public:
     class Guts; // local; name is Measure::Guts
 
     explicit Measure(Guts* g=0);
-    Measure(Subsystem&, Guts* g);
+    Measure(Subsystem&, Guts* g, const SetHandle&);
     Measure(const Measure&);
     Measure& operator=(const Measure&);
     ~Measure();
@@ -220,10 +225,7 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Constant_, Measure_<T>);
 
     Constant_(Subsystem& sub, const T& value)
-    :   Measure_<T>(sub, new Guts(value)) {}
-
-    Constant_(System& sys, const T& value)
-    {   new (this) Constant_(sys.updDefaultSubsystem(), value); }
+    :   Measure_<T>(sub, new Guts(value), SetHandle()) {}
 
     /// Note that this does not require a State since it is a Topology-stage change.
     Constant_& setValue(const T& value) {updGuts().setValue(value); return *this;}
@@ -250,13 +252,7 @@ public:
               const T& amplitude, 
               const T& frequency,
               const T& phase=T(0))
-    :   Measure_<T>(sub, new Guts(amplitude,frequency,phase)) {}
-
-    Sinusoid_(System& sys,
-              const T& amplitude, 
-              const T& frequency,
-              const T& phase=T(0))
-    {   new (this) Sinusoid(sys.updDefaultSubsystem(), amplitude, frequency, phase); }
+    :   Measure_<T>(sub, new Guts(amplitude,frequency,phase), SetHandle()) {}
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Sinusoid_, Measure_<T>);
 };
@@ -272,9 +268,7 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Integrate_, Measure_<T>);
 
     Integrate_(Subsystem& sub, const Measure_<T>& deriv, const Measure_<T>& ic)
-    :   Measure_<T>(sub, new Guts(deriv,ic)) {}
-    Integrate_(System& sys, const Measure_<T>& deriv, const Measure_<T>& ic)
-    {   new (this) Integrate_(sys.updDefaultSubsystem(), deriv, ic);}
+    :   Measure_<T>(sub, new Guts(deriv,ic), SetHandle()) {}
 
     void setValue(State& s, const T& value) const {return getGuts().setValue(s, value);}
     const Measure_<T>& getDerivativeMeasure() const {return getGuts().getDerivativeMeasure();}
@@ -333,9 +327,7 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Minimum_, Measure_<T>);
 
     Minimum_(Subsystem& sub, const Measure_<T>& source, const Measure_<T>& sourceDot)
-    :   Measure_<T>(sub, new Guts(source, sourceDot)) {}
-    Minimum_(System& sys, const Measure_<T>& source, const Measure_<T>& sourceDot)
-    {   new (this) Minimum_(sys.updDefaultSubsystem(), source, sourceDot);}
+    :   Measure_<T>(sub, new Guts(source, sourceDot), SetHandle()) {}
 
     void setValue(State& s, const T& value) const {return getGuts().setValue(s, value);}
     const Measure_<T>& getSourceMeasure() const {return getGuts().getSourceMeasure();}
@@ -369,7 +361,6 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(SampleAndHold_, Measure_<T>);
 
     SampleAndHold_(Subsystem& sub, const Measure_<T>& source, EventIndex e);
-    SampleAndHold_(System&    sys, const Measure_<T>& source, EventIndex e);
 
     /// Set the held value to a particular value, unrelated to the source.
     /// The time stamp will be taken from the supplied State.

@@ -452,13 +452,13 @@ void testOne() {
     TestSystem sys;
     TestSubsystem subsys(sys);
 
-    Measure::Constant zero(sys, 0);
-    Measure::Constant three(sys, 3);
+    Measure::Constant zero(subsys, 0);
+    Measure::Constant three(subsys, 3);
     Measure::Constant_<Vec3> v3const(subsys, Vec3(1,2,3));
-    Measure::Sinusoid cos2pit(sys, 1, 2*Pi, Pi/2);
+    Measure::Sinusoid cos2pit(subsys, 1, 2*Pi, Pi/2);
 
     // Integrate the cos(2pi*t) measure with IC=0; should give sin(2pi*t)/2pi.
-    Measure::Integrate sin2pitOver2pi(sys, cos2pit, zero);
+    Measure::Integrate sin2pitOver2pi(subsys, cos2pit, zero);
 
     State state = sys.realizeTopology();
 

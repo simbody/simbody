@@ -141,7 +141,7 @@ friend class Subsystem::Guts::GutsRep;
 
 inline Measure::Measure(Guts* g) : guts(g)
 {   if (guts) guts->incrRefCount();}
-inline Measure::Measure(Subsystem& sub, Guts* g) : guts(g) {
+inline Measure::Measure(Subsystem& sub, Guts* g, const SetHandle&) : guts(g) {
     SimTK_ASSERT_ALWAYS(guts, "An empty Measure handle can't be put in a Subsystem.");
     guts->incrRefCount();
     sub.adoptMeasure(*this);
@@ -200,7 +200,7 @@ public:
 
     void setValue(const T& v) {
         value = v;
-        invalidateTopologyCache();
+        this->invalidateTopologyCache();
     }
 
     // Implementations of virtual methods.
@@ -276,9 +276,9 @@ public:
     {   assert(icMeasure); return *icMeasure; }
 
     void setDerivativeMeasure(const Measure_<T>& d)
-    {   derivMeasure = &d; invalidateTopologyCache(); }
+    {   derivMeasure = &d; this->invalidateTopologyCache(); }
     void setInitialConditionMeasure(const Measure_<T>& ic)
-    {   icMeasure = &ic; invalidateTopologyCache(); }
+    {   icMeasure = &ic; this->invalidateTopologyCache(); }
 
     // Implementations of virtuals.
     Guts* cloneImpl() const {return new Guts(*this);}
