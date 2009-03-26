@@ -283,24 +283,24 @@ public:
     // Implementations of virtuals.
     Guts* cloneImpl() const {return new Guts(*this);}
     const T& getValueImpl(const State& s) const
-    {   assert(zIndex.isValid()); return getSubsystem().getZ(s)[zIndex]; }
+    {   assert(zIndex.isValid()); return this->getSubsystem().getZ(s)[zIndex]; }
     Stage getValueDependenceImpl(const State&) const {return Stage::Time;}
 
     void initializeImpl(State& s) const {
         assert(zIndex >= 0);
-        Real& z = getSubsystem().updZ(s)[zIndex];
+        Real& z = this->getSubsystem().updZ(s)[zIndex];
         if (icMeasure) z = icMeasure->getValue(s);
         else z = 0;
     }
 
     void realizeMeasureTopologyImpl(State& s) const {
         static const Vector zero(1, Real(0));
-        zIndex = getSubsystem().allocateZ(s, zero);
+        zIndex = this->getSubsystem().allocateZ(s, zero);
     }
 
     void realizeMeasureAccelerationImpl(const State& s) const {
         assert(zIndex.isValid());
-        Real& zdot = getSubsystem().updZDot(s)[zIndex];
+        Real& zdot = this->getSubsystem().updZDot(s)[zIndex];
         if (derivMeasure) zdot = derivMeasure->getValue(s);
         else zdot = 0;
     }
