@@ -233,7 +233,7 @@ public:
     Stage getValueDependenceImpl(const State&) const {return Stage::Time;}
 
     void realizeMeasureTopologyImpl(State& s) const {
-        cacheEntryIndex = getSubsystem().allocateCacheEntry
+        cacheEntryIndex = this->getSubsystem().allocateCacheEntry
             (s, Stage::Time, new Value<T>(CNT<T>::getNaN()));
     }
     void realizeMeasureTimeImpl(const State& s) const {
@@ -244,10 +244,10 @@ public:
 private:
     const T& getValueEntry(const State& s) const
     {   assert(cacheEntryIndex >= 0);
-        return Value<T>::downcast(getSubsystem().getCacheEntry(s, cacheEntryIndex));}
+        return Value<T>::downcast(this->getSubsystem().getCacheEntry(s, cacheEntryIndex));}
     T& updValueEntry(const State& s) const
     {   assert(cacheEntryIndex >= 0);
-        return Value<T>::downcast(getSubsystem().updCacheEntry(s, cacheEntryIndex));}
+        return Value<T>::downcast(this->getSubsystem().updCacheEntry(s, cacheEntryIndex));}
 
     // TOPOLOGY STATE
     T a, w, p;
@@ -268,7 +268,7 @@ public:
     :   derivMeasure(&deriv), icMeasure(&ic) {}
 
     void setValue(State& s, const T& value) const
-    {    assert(zIndex >= 0); getSubsystem().updZ(s)[zIndex] = value; }
+    {    assert(zIndex >= 0); this->getSubsystem().updZ(s)[zIndex] = value; }
     
     const Measure_<T>& getDerivativeMeasure() const
     {   assert(derivMeasure); return *derivMeasure; }
