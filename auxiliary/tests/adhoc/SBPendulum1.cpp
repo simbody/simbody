@@ -244,21 +244,21 @@ try {
     cout << "mbs State as modeled: " << s;
 
     printf("GLOBAL ny=%d q:y(%d,%d) u:y(%d,%d) z:y(%d,%d)\n",
-        s.getNY(), s.getQStart(), s.getNQ(), 
-        s.getUStart(), s.getNU(), s.getZStart(), s.getNZ());
+        (int)s.getNY(), (int)s.getQStart(), (int)s.getNQ(), 
+        (int)s.getUStart(), (int)s.getNU(), (int)s.getZStart(), (int)s.getNZ());
     printf("  nyerr=%d qerr:yerr(%d,%d) uerr:yerr(%d,%d)\n",
-        s.getNYErr(), s.getQErrStart(), s.getNQErr(),
-        s.getUErrStart(), s.getNUErr());
+        (int)s.getNYErr(), (int)s.getQErrStart(), (int)s.getNQErr(),
+        (int)s.getUErrStart(), (int)s.getNUErr());
     printf("  nudoterr=%d\n", s.getNUDotErr());
     for (SubsystemIndex i(0); i<s.getNSubsystems(); ++i) {
         printf("Subsys %d: q:y(%d,%d) u:y(%d,%d) z:y(%d,%d)\n",
-            (int)i,s.getQStart()+s.getQStart(i),s.getNQ(i),
-              s.getUStart()+s.getUStart(i),s.getNU(i),
-              s.getZStart()+s.getZStart(i),s.getNZ(i));
+            (int)i,(int)s.getQStart()+(int)s.getQStart(i),(int)s.getNQ(i),
+              (int)s.getUStart()+(int)s.getUStart(i),(int)s.getNU(i),
+              (int)s.getZStart()+(int)s.getZStart(i),(int)s.getNZ(i));
         printf("  qerr:yerr(%d,%d) uerr:yerr(%d,%d) uderr(%d,%d)\n",
-            s.getQErrStart()+s.getQErrStart(i),s.getNQErr(i),
-            s.getUErrStart()+s.getUErrStart(i),s.getNUErr(i),
-            s.getUDotErrStart(i),s.getNUDotErr(i));
+            (int)s.getQErrStart()+(int)s.getQErrStart(i),(int)s.getNQErr(i),
+            (int)s.getUErrStart()+(int)s.getUErrStart(i),(int)s.getNUErr(i),
+            (int)s.getUDotErrStart(i),(int)s.getNUDotErr(i));
     }
 
 

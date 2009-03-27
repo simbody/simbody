@@ -49,7 +49,7 @@ public:
 // Used as a target function for equality coupling constraint
 class DifferenceFunction : public Function<1>::Linear {
 public:
-    DifferenceFunction() : Function<1>::Linear(createCoefficients()) {}
+    DifferenceFunction() : Function<1>::Linear( createCoefficients() ) {}
 
 private:
     static Vector_< Vec<1> > createCoefficients() {
