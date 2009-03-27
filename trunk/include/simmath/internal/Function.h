@@ -132,7 +132,7 @@ public:
      *                      the first argument, coefficients[1] is the coefficient for the second argument, etc.
      *                      The final element of coefficients contains the constant term.
      */
-    Linear(const Vector_<Vec<N> >& coefficients) : coefficients(coefficients) {
+    explicit Linear(const Vector_<Vec<N> >& coefficients) : coefficients(coefficients) {
     }
     Vec<N> calcValue(const Vector& x) const {
         assert(x.size() == coefficients.size()-1);
