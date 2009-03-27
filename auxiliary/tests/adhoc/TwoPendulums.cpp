@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
     const Real amp = 3, freq = 100, phase = Pi/2;
     Measure::Sinusoid sint(twoPends, amp, freq, phase);
 
-    Measure::Integrate twentyPlus10t(mbs, Measure::Constant(mbs, 10), meas1);
+    Measure::Integrate twentyPlus10t(twoPends, Measure::Constant(twoPends, 10), meas1);
 
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     //twoPends.setUseEulerAngles(s, true);

@@ -510,10 +510,9 @@ void testRiboseMobilizer()
     ts.initialize(state);
     ts.stepTo(50.0);
 }
-extern __declspec(dllimport) int _crtDbgFlag;
+
 int main() 
 {
-    _crtDbgFlag = 1;
     testRiboseMobilizer();
 
     return 0;
