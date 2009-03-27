@@ -141,8 +141,8 @@ int main() {
     EventTriggerByStageIndex e1 = s.allocateEventTrigger(SubsystemIndex(0), Stage::Position, 3);
     EventTriggerByStageIndex e2 = s.allocateEventTrigger(SubsystemIndex(0), Stage::Instance, 2);
 
-    printf("q1,2=%d,%d\n", q1, q2);
-    printf("e1,2=%d,%d\n", e1, e2);
+    printf("q1,2=%d,%d\n", (int)q1, (int)q2);
+    printf("e1,2=%d,%d\n", (int)e1, (int)e2);
 
     cout << s;
 

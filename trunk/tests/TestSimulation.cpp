@@ -247,13 +247,13 @@ class TestSubsystemGuts : public Subsystem::Guts {
     struct StateVars {
         QIndex myQs;
         UIndex myUs;
-        friend std::ostream& operator<<(std::ostream& o, const StateVars&);
     };
     struct CacheEntries {
         CacheEntryIndex qSumCacheIx, uSumCacheIx;
         EventTriggerByStageIndex timeTriggerIx, velTriggerIx;
-        friend std::ostream& operator<<(std::ostream& o, const CacheEntries&);
     };
+    friend std::ostream& operator<<(std::ostream& o, const CacheEntries&);
+    friend std::ostream& operator<<(std::ostream& o, const StateVars&);
 public:
     TestSubsystemGuts() {}
 
