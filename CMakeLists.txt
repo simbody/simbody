@@ -74,21 +74,25 @@ SET(SIMBODY_SOURCE_SUBDIRS .)
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK")
+        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK" 
+            CACHE PATH "Install directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
     IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "/usr/local/SimTK")
+        SET(SimTK_SDK "/usr/local/SimTK" 
+            CACHE PATH "SimTK dependency path" )
     ENDIF(NOT SimTK_SDK)
 
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "$ENV{ProgramFiles}/SimTK")
+        SET(SimTK_INSTALL_PREFIX "$ENV{ProgramFiles}/SimTK" 
+            CACHE PATH "Install directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
     IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "$ENV{ProgramFiles}/SimTK")
+        SET(SimTK_SDK "$ENV{ProgramFiles}/SimTK" 
+            CACHE PATH "SimTK dependency path")
     ENDIF(NOT SimTK_SDK)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
@@ -104,7 +108,7 @@ ELSE( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
   SET( LIB64  )
 ENDIF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
 
-# Allow simbody to build binaries on Leopard that work on Tiger
+# Allow build of binaries on Leopard that work on Tiger
 IF( APPLE )
    SET( CMAKE_CXX_FLAGS "-mmacosx-version-min=10.4" )
    SET( CMAKE_C_FLAGS "-mmacosx-version-min=10.4" )
