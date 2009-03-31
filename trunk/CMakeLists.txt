@@ -14,7 +14,7 @@
 #   libsimmath_static[_d].a
 #
 # All libraries are installed in 
-#   C:\Program Files\SimTK\core\lib  (Windows)
+#   %ProgramFiles%\SimTK\core\lib  (Windows)
 #   /usr/local/SimTK/core/lib        (UNIX)
 #
 # TODO: should we just install the default libraries
@@ -60,34 +60,40 @@ SET( BUILD_TESTING_SHARED ON CACHE BOOL
 # set them to sensible local values.
 # If SimTK_INSTALL_PREFIX is set then
 # it is a sandbox installation area, otherwise we want to install
-# in /usr/local/SimTK or c:\program files\SimTK. Similarly, SimTK_SDK
+# in /usr/local/SimTK or %ProgramFiles%\SimTK. Similarly, SimTK_SDK
 # tells us where to find other SimTK Core modules on which this one
 # depends. If it is not set, we'll look in /usr/local/SimTK or
-# c:\program files\SimTK *regardless* of SimTK_INSTALL_PREFIX.
+# %ProgramFiles%\SimTK *regardless* of SimTK_INSTALL_PREFIX.
 #
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK")
+        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK" 
+            CACHE PATH "Install directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
     IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "/usr/local/SimTK")
+        SET(SimTK_SDK "/usr/local/SimTK" 
+            CACHE PATH "SimTK dependency path" )
     ENDIF(NOT SimTK_SDK)
 
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK")
+        SET(SimTK_INSTALL_PREFIX "$ENV{ProgramFiles}/SimTK" 
+            CACHE PATH "Install directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
     IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "C:/Program Files/SimTK")
+        SET(SimTK_SDK "$ENV{ProgramFiles}/SimTK" 
+            CACHE PATH "SimTK dependency path")
     ENDIF(NOT SimTK_SDK)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
+MARK_AS_ADVANCED( SimTK_SDK  )
+MARK_AS_ADVANCED( SimTK_INSTALL_PREFIX  )
 
 INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
 
@@ -109,23 +115,89 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
-
+# Allow build of binaries on Leopard that work on Tiger
 IF( APPLE )
    SET( CMAKE_CXX_FLAGS "-mmacosx-version-min=10.4" )
+   SET( CMAKE_C_FLAGS "-mmacosx-version-min=10.4" )
 ENDIF( APPLE )
 
 IF(UNIX AND NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Debug CACHE STRING "Debug or Release build" FORCE)
 ENDIF (UNIX AND NOT CMAKE_BUILD_TYPE)
 
-IF (NOT CMAKE_CXX_FLAGS_DEBUG)
-    SET(CMAKE_CXX_FLAGS_DEBUG "-g" CACHE STRING "To use when CMAKE_BUILD_TYPE=Debug" FORCE)
-ENDIF (NOT CMAKE_CXX_FLAGS_DEBUG)
+## Choose the maximum level of x86 instruction set that the compiler is 
+## allowed to use. SSE2 is ubiquitous enough now that we don't mind
+## abandoning machines that can't handle those instructions. SSE3 migh
+## also be reasonable by now (April 2009) so this default should be
+## revisited soon. This can be set to a different value by the person
+## running CMake.
+SET(BUILD_INST_SET "sse2"  # use SSE2 instruction set by default
+    CACHE STRING "CPU instruction level compiler is permitted to use.")
+MARK_AS_ADVANCED( BUILD_INST_SET )
 
-IF (NOT CMAKE_CXX_FLAGS_RELEASE)
-    SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG" CACHE STRING 
-          "To use when CMAKE_BUILD_TYPE=Release" FORCE)
-ENDIF (NOT CMAKE_CXX_FLAGS_RELEASE)
+## When building in any of the Release modes, tell gcc to use full optimization and
+## to generate SSE2 floating point instructions. Here we are specifying *all* of the
+## Release flags, overriding CMake's defaults.
+
+IF(${CMAKE_C_COMPILER} MATCHES "gcc")
+    STRING(TOLOWER ${BUILD_INST_SET} GCC_INST_SET)
+    # C++
+    SET(CMAKE_CXX_FLAGS_DEBUG          "-g -m${GCC_INST_SET}" 
+        CACHE STRING "g++ Debug build compile flags" FORCE)
+    SET(CMAKE_CXX_FLAGS_RELEASE        "-DNDEBUG -O3 -m${GCC_INST_SET}" 
+        CACHE STRING "g++ Release build compile flags" FORCE)
+    SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-DNDEBUG -O3 -g -m${GCC_INST_SET}" 
+        CACHE STRING "g++ RelWithDebInfo build compile flags" FORCE)
+    SET(CMAKE_CXX_FLAGS_MINSIZEREL     "-DNDEBUG -Os -m${GCC_INST_SET}" 
+        CACHE STRING "g++ MinSizeRel build compile flags" FORCE)
+
+    # C
+    SET(CMAKE_C_FLAGS_DEBUG            "-g -m${GCC_INST_SET}" 
+        CACHE STRING "gcc Debug build compile flags" FORCE)
+    SET(CMAKE_C_FLAGS_RELEASE          "-DNDEBUG -O3 -m${GCC_INST_SET}" 
+        CACHE STRING "gcc Release build compile flags" FORCE)
+    SET(CMAKE_C_FLAGS_RELWITHDEBINFO   "-DNDEBUG -O3 -g -m${GCC_INST_SET}" 
+        CACHE STRING "gcc RelWithDebInfo build compile flags" FORCE)
+    SET(CMAKE_C_FLAGS_MINSIZEREL       "-DNDEBUG -Os -m${GCC_INST_SET}" 
+        CACHE STRING "gcc MinSizeRel build compile flags" FORCE)
+
+ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
+
+## When building in any of the Release modes, tell VC++ cl compiler to use intrinsics 
+## (i.e. sqrt instruction rather than sqrt subroutine) with flag /Oi.
+
+IF(${CMAKE_C_COMPILER} MATCHES "cl")
+    STRING(TOUPPER ${BUILD_INST_SET} CL_INST_SET)
+
+    ## C++
+    SET(CMAKE_CXX_FLAGS_DEBUG        
+	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /arch:${CL_INST_SET}" 
+        CACHE STRING "VC++ Debug build compile flags" FORCE)
+    SET(CMAKE_CXX_FLAGS_RELEASE        
+	"/D NDEBUG /MD  /O2 /Ob2 /Oi /arch:${CL_INST_SET}" 
+        CACHE STRING "VC++ Release build compile flags" FORCE)
+    SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO 
+	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /arch:${CL_INST_SET}" 
+        CACHE STRING "VC++ RelWithDebInfo build compile flags" FORCE)
+    SET(CMAKE_CXX_FLAGS_MINSIZEREL 
+	"/D NDEBUG /MD  /O1 /Ob1 /Oi /arch:${CL_INST_SET}" 
+        CACHE STRING "VC++ MinSizeRel build compile flags" FORCE)
+
+    ## C
+    SET(CMAKE_C_FLAGS_DEBUG        
+	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /arch:${CL_INST_SET}" 
+        CACHE STRING "VC++ Debug build compile flags" FORCE)
+    SET(CMAKE_C_FLAGS_RELEASE        
+	"/D NDEBUG /MD  /O2 /Ob2 /Oi /arch:${CL_INST_SET}" 
+        CACHE STRING "VC++ Release build compile flags" FORCE)
+    SET(CMAKE_C_FLAGS_RELWITHDEBINFO 
+	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /arch:${CL_INST_SET}" 
+        CACHE STRING "VC++ RelWithDebInfo build compile flags" FORCE)
+    SET(CMAKE_C_FLAGS_MINSIZEREL 
+	"/D NDEBUG /MD  /O1 /Ob1 /Oi /arch:${CL_INST_SET}" 
+        CACHE STRING "VC++ MinSizeRel build compile flags" FORCE)
+
+ENDIF(${CMAKE_C_COMPILER} MATCHES "cl")
 
 SET(SIMMATH_SOURCE_SUBDIRS  . Ipopt LinearAlgebra Integrator)
 
