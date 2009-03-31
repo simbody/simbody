@@ -65,10 +65,10 @@ SET(SIMBODY_SOURCE_SUBDIRS .)
 # set them to sensible local values.
 # If SimTK_INSTALL_PREFIX is set then
 # it is a sandbox installation area, otherwise we want to install
-# in /usr/local/SimTK or c:\program files\SimTK. Similarly, SimTK_SDK
+# in /usr/local/SimTK or %ProgramFiles%\SimTK. Similarly, SimTK_SDK
 # tells us where to find other SimTK Core modules on which this one
 # depends. If it is not set, we'll look in /usr/local/SimTK or
-# c:\program files\SimTK *regardless* of SimTK_INSTALL_PREFIX.
+# %ProgramFiles%\SimTK *regardless* of SimTK_INSTALL_PREFIX.
 #
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
@@ -87,7 +87,7 @@ ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
         FIND_PATH(SimTK_INSTALL_PREFIX
             NAME core
             PATHS
-                "C:/Program Files/SimTK"
+                "$ENV{ProgramFiles}/SimTK"
     )
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
@@ -95,7 +95,7 @@ ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
         FIND_PATH(SimTK_SDK
             NAME core
             PATHS
-                "C:/Program Files/SimTK"
+                "$ENV{ProgramFiles}/SimTK"
     )
     ENDIF(NOT SimTK_SDK)
 
@@ -120,15 +120,75 @@ IF(UNIX AND NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Debug CACHE STRING "Debug or Release build" FORCE)
 ENDIF (UNIX AND NOT CMAKE_BUILD_TYPE)
 
-IF (NOT CMAKE_CXX_FLAGS_DEBUG)
-    SET(CMAKE_CXX_FLAGS_DEBUG "-g" CACHE STRING "To use when CMAKE_BUILD_TYPE=Debug" FORCE)
-ENDIF (NOT CMAKE_CXX_FLAGS_DEBUG)
+## Choose the maximum level of x86 instruction set that the compiler is 
+## allowed to use. SSE2 is ubiquitous enough now that we don't mind
+## abandoning machines that can't handle those instructions. SSE3 migh
+## also be reasonable by now (April 2009) so this default should be
+## revisited soon. This can be set to a different value by the person
+## running CMake.
+SET(BUILD_INST_SET "sse2"  # use SSE2 instruction set by default
+    CACHE STRING "CPU instruction level compiler is permitted to use.")
+MARK_AS_ADVANCED( BUILD_INST_SET )
 
-IF (NOT CMAKE_CXX_FLAGS_RELEASE)
-    SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG" CACHE STRING 
-          "To use when CMAKE_BUILD_TYPE=Release" FORCE)
-ENDIF (NOT CMAKE_CXX_FLAGS_RELEASE)
+## When building in any of the Release modes, tell gcc to use full optimization and
+## to generate SSE2 floating point instructions. Here we are specifying *all* of the
+## Release flags, overriding CMake's defaults.
 
+IF(${CMAKE_C_COMPILER} MATCHES "gcc")
+
+    # C++
+    SET(CMAKE_CXX_FLAGS_DEBUG          "-g -m${BUILD_INST_SET}" 
+        CACHE STRING "g++ Debug build compile flags" FORCE)
+    SET(CMAKE_CXX_FLAGS_RELEASE        "-DNDEBUG -O3 -m${BUILD_INST_SET}" 
+        CACHE STRING "g++ Release build compile flags" FORCE)
+    SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-DNDEBUG -O3 -g -m${BUILD_INST_SET}" 
+        CACHE STRING "g++ RelWithDebInfo build compile flags" FORCE)
+    SET(CMAKE_CXX_FLAGS_MINSIZEREL     "-DNDEBUG -Os -m${BUILD_INST_SET}" 
+        CACHE STRING "g++ MinSizeRel build compile flags" FORCE)
+
+    # C
+    SET(CMAKE_C_FLAGS_DEBUG            "-g -m${BUILD_INST_SET}" 
+        CACHE STRING "gcc Debug build compile flags" FORCE)
+    SET(CMAKE_C_FLAGS_RELEASE          "-DNDEBUG -O3 -m${BUILD_INST_SET}" 
+        CACHE STRING "gcc Release build compile flags" FORCE)
+    SET(CMAKE_C_FLAGS_RELWITHDEBINFO   "-DNDEBUG -O3 -g -m${BUILD_INST_SET}" 
+        CACHE STRING "gcc RelWithDebInfo build compile flags" FORCE)
+    SET(CMAKE_C_FLAGS_MINSIZEREL       "-DNDEBUG -Os -m${BUILD_INST_SET}" 
+        CACHE STRING "gcc MinSizeRel build compile flags" FORCE)
+
+ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
+
+## When building in any of the Release modes, tell VC++ cl compiler to use intrinsics 
+## (i.e. sqrt instruction rather than sqrt subroutine), and to generate SSE2 floating 
+## point instructions (meaning our binaries won't run on earlier Intel or AMD cpus).
+
+IF((${CMAKE_CXX_COMPILER} MATCHES "cl") AND 
+         NOT (${CMAKE_CXX_FLAGS_RELEASE} MATCHES ${BUILD_INST_SET}))
+
+    ## C++
+    SET(CMAKE_CXX_FLAGS_RELEASE        
+	"${CMAKE_CXX_FLAGS_RELEASE}         /Oi /arch:${BUILD_INST_SET}" 
+        CACHE STRING "VC++ Release build compile flags" FORCE)
+    SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO 
+	"${CMAKE_CXX_FLAGS_RELWITHDEBINFO}  /Oi /arch:${BUILD_INST_SET}" 
+        CACHE STRING "VC++ RelWithDebInfo build compile flags" FORCE)
+    SET(CMAKE_CXX_FLAGS_MINSIZEREL 
+	"${CMAKE_CXX_FLAGS_MINSIZEREL}      /Oi /arch:${BUILD_INST_SET}" 
+        CACHE STRING "VC++ MinSizeRel build compile flags" FORCE)
+
+    ## C
+    SET(CMAKE_C_FLAGS_RELEASE        
+	"${CMAKE_C_FLAGS_RELEASE}         /Oi /arch:${BUILD_INST_SET}" 
+        CACHE STRING "VC++ Release build compile flags" FORCE)
+    SET(CMAKE_C_FLAGS_RELWITHDEBINFO 
+	"${CMAKE_C_FLAGS_RELWITHDEBINFO}  /Oi /arch:${BUILD_INST_SET}" 
+        CACHE STRING "VC++ RelWithDebInfo build compile flags" FORCE)
+    SET(CMAKE_C_FLAGS_MINSIZEREL 
+	"${CMAKE_C_FLAGS_MINSIZEREL}      /Oi /arch:${BUILD_INST_SET}" 
+        CACHE STRING "VC++ MinSizeRel build compile flags" FORCE)
+
+ENDIF((${CMAKE_CXX_COMPILER} MATCHES "cl") AND 
+         NOT (${CMAKE_CXX_FLAGS_RELEASE} MATCHES ${BUILD_INST_SET}))
 
 
 # Collect up information about the version of the simbody library we're building
