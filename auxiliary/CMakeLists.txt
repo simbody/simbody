@@ -13,18 +13,18 @@ FILE(GLOB_RECURSE AUX_INCLUDE_FILES ${PROJECT_SOURCE_DIR}/auxiliary/src/*.h
 ${PROJECT_SOURCE_DIR}/auxiliary/include/*.h )
 
 
-   ## Find VTK
-   SET(VTK_DIR ${SimTK_SDK}/core/lib/vtk-5.0 CACHE PATH "VTK installation")
+## Find VTK
+SET(VTK_VERSION 5.0               CACHE STRING "VTK version to use")
+SET(VTK_DIR     ${SimTK_SDK}/core CACHE PATH   "VTK installation directory")
 
-   FIND_PACKAGE(VTK)
-   IF (VTK_FOUND)
-     INCLUDE(${VTK_USE_FILE})
-   ELSE(VTK_FOUND)
-     MESSAGE(FATAL_ERROR
-        "Cannot build without VTK.  Please set VTK_DIR.")
-   ENDIF (VTK_FOUND)
 
-   LINK_LIBRARIES(
+SET(VTK_INCLUDE_DIR ${VTK_DIR}/include/vtk-${VTK_VERSION})
+SET(VTK_LIB_DIR     ${VTK_DIR}/lib/vtk-${VTK_VERSION})
+
+INCLUDE_DIRECTORIES(${VTK_INCLUDE_DIR})
+LINK_DIRECTORIES(${VTK_LIB_DIR})
+
+SET(VTK_LIBS_TO_USE
      vtkHybrid
      vtkFiltering
      vtkGenericFiltering
@@ -33,7 +33,7 @@ ${PROJECT_SOURCE_DIR}/auxiliary/include/*.h )
      vtkIO
      vtkGraphics
      vtkCommon
-   )
+)
 
 ADD_SUBDIRECTORY(staticTarget)
 ADD_SUBDIRECTORY(sharedTarget)
