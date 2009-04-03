@@ -35,6 +35,11 @@ SET(VTK_LIBS_TO_USE
      vtkCommon
 )
 
+# explicitly add Carbon framework as one part of weaning ourselves from accursed include($USE_VTK) fiasco
+if(APPLE)
+    find_library(CARBON_FRAMEWORK Carbon)
+endif(APPLE)
+
 ADD_SUBDIRECTORY(staticTarget)
 ADD_SUBDIRECTORY(sharedTarget)
 
