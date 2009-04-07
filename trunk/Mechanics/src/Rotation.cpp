@@ -493,12 +493,11 @@ Rotation&  Rotation::setRotationFromTwoAxes( const UnitVec3& uveci, const Coordi
    CoordinateAxis axisj = axisi.getNextAxis();
    CoordinateAxis axisk = axisj.getNextAxis();
 
-   // If axisj is axisjApprox, all is good, otherwise switch axisj and axisk and negate both vectors
+   // If axisj is axisjApprox, all is good, otherwise switch axisj and axisk and negate the k'th axis.
    if( axisj.isDifferentAxis(axisjApprox) )
    {
       std::swap( axisj, axisk );
-      uvecj.negate();
-      uveck.negate();
+      uveck = -uveck;
    }
 
    // Fill in the correct elements of the Rotation matrix

@@ -105,6 +105,8 @@ bool  exhaustiveTestof3AngleTwoAxesRotationNearSingularity();
 bool  exhaustiveTestof3AngleThreeAxesRotationNearSingularity();
 bool  exhaustiveTestofQuaternions();
 
+bool testRotationFromTwoGivenAxes( const Vec3& vi, const CoordinateAxis& ai, const Vec3& vj, const CoordinateAxis& aj);
+
 //-------------------------------------------------------------------
 bool  doRequiredTasks( ) {
 
@@ -165,6 +167,19 @@ bool  doRequiredTasks( ) {
     test = test && testRotationTwoAxes( SpaceRotationSequence,  2.2, ZAxis,-1.3, YAxis );
     test = test && testRotationTwoAxes(  BodyRotationSequence, -3.1, ZAxis, 1.2, ZAxis );
     test = test && testRotationTwoAxes( SpaceRotationSequence, -3.1, ZAxis, 1.2, ZAxis );
+
+	// Test the construction of rotations from two given axes.
+	const UnitVec3	vi(0.01, 0.02, .9);
+	const Vec3		vj(-0.5, 0.5, 0.2);
+
+	test = test && testRotationFromTwoGivenAxes(vi, XAxis, vj, YAxis);
+	test = test && testRotationFromTwoGivenAxes(vi, YAxis, vj, XAxis);
+
+	test = test && testRotationFromTwoGivenAxes(vi, YAxis, vj, ZAxis);
+	test = test && testRotationFromTwoGivenAxes(vi, ZAxis, vj, YAxis);
+
+	test = test && testRotationFromTwoGivenAxes(vi, ZAxis, vj, XAxis);
+	test = test && testRotationFromTwoGivenAxes(vi, XAxis, vj, ZAxis);
 
     // Test rotation with three angles and three axes XXX, XXY, XXZ, XYX, XYY, XYZ, XZX, XZY, XZZ
     test = test && testRotationThreeAxes(  BodyRotationSequence,  0.2, XAxis, 0.3, XAxis, 0.4, XAxis );
@@ -236,7 +251,7 @@ bool  doRequiredTasks( ) {
     test = test && testRotationThreeAxes(  BodyRotationSequence, -3.2288591161895095, XAxis, -3.1415926535897931, YAxis, -3.1415926535897931, XAxis );
     test = test && testRotationThreeAxes( SpaceRotationSequence, -3.2288591161895095, XAxis, -3.1415926535897931, YAxis, -3.1415926535897931, XAxis );
 
-    // Test Rotation quaterion methods.
+    // Test Rotation quaternion methods.
     test = test && testQuaternion( 0.5, 0.1, 0.2,  0.3 );
     test = test && testQuaternion(-0.5, 0.1, 0.2, -0.3 );
 
@@ -255,6 +270,7 @@ bool  doRequiredTasks( ) {
 
     // Exhaustive test of Quaterions
     test = test && exhaustiveTestofQuaternions();
+
 
     return test;
 }
@@ -633,5 +649,21 @@ bool  exhaustiveTestofQuaternions() {
    return test;
 }
 
+//-------------------------------------------------------------------
+// Here we need to check that the resulting rotation has determinant 1 (a previous bug
+// left it with determinant -1) and that the j'th axis is at least pointing in the
+// direction of the given vj.
+bool testRotationFromTwoGivenAxes( const Vec3& vi, const CoordinateAxis& ai, const Vec3& vj, const CoordinateAxis& aj) {
+	bool test = true;
 
+	// This makes a Rotation with vi as axis i, but axis j will only be in the general direction of vj.
+	const Rotation testRotation(UnitVec3(vi), ai, vj, aj);
+
+	test = test && std::fabs(det(testRotation) - 1) <= SignificantReal;
+
+	test = test && dot(testRotation(ai), vi) > 0;
+	test = test && dot(testRotation(aj), vj) > 0;
+
+	return test;
+}
 
