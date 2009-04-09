@@ -510,6 +510,18 @@ public:
         Vector&                     allUDot) const
       { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMInverseFPass2Outward"); }
 
+	virtual void calcMAPass1Outward(
+		const SBPositionCache& pc,
+		const Vector&          allUDot,
+		Vector_<SpatialVec>&   allA_GB) const
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMAPass1Outward"); }
+	virtual void calcMAPass2Inward(
+		const SBPositionCache& pc,
+		const Vector_<SpatialVec>& allA_GB,
+		Vector_<SpatialVec>&       allFTmp,
+		Vector&                    allTau) const
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMAPass2Inward"); }
+
 
     virtual void setVelFromSVel(const SBStateDigest&,
                                 const SpatialVec&, Vector& u) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "setVelFromSVel");}

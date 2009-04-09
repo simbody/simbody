@@ -360,6 +360,23 @@ public:
         allA_GB[0] = SpatialVec(Vec3(0), Vec3(0));
     }
 
+	/*virtual*/void calcMAPass1Outward(
+		const SBPositionCache& pc,
+		const Vector&          allUDot,
+		Vector_<SpatialVec>&   allA_GB) const
+    {
+        allA_GB[0] = SpatialVec(Vec3(0), Vec3(0));
+    }
+
+	/*virtual*/void calcMAPass2Inward(
+		const SBPositionCache& pc,
+		const Vector_<SpatialVec>& allA_GB,
+		Vector_<SpatialVec>&       allFTmp,
+		Vector&                    allTau) const
+    {
+        allFTmp[0] = SpatialVec(Vec3(0), Vec3(0));
+    }
+
     /*virtual*/void setVelFromSVel(
         const SBPositionCache& pc, 
         const SBVelocityCache& vc,
@@ -1037,6 +1054,16 @@ public:
         const Vector&               epsilonTmp,
         Vector_<SpatialVec>&        allA_GB,
         Vector&                     allUDot) const;
+
+	void calcMAPass1Outward(
+		const SBPositionCache& pc,
+		const Vector&          allUDot,
+		Vector_<SpatialVec>&   allA_GB) const;
+	void calcMAPass2Inward(
+		const SBPositionCache& pc,
+		const Vector_<SpatialVec>& allA_GB,
+		Vector_<SpatialVec>&       allFTmp,
+		Vector&                    allTau) const;
 
 };
 
@@ -4193,6 +4220,16 @@ public:
 
     void calcArticulatedBodyInertiasInward(const SBPositionCache& pc, SBDynamicsCache& dc) const {
         updP(dc) = getMk(pc);
+		for (int i=0 ; i<(int)children.size() ; i++) {
+			const SpatialMat& tauBarChild = children[i]->getTauBar(dc);
+			const SpatialMat& PChild      = children[i]->getP(dc);
+			const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
+
+			// TODO: this is around 450 flops but could be cut in half by
+			// exploiting symmetry.
+			updP(dc) += phiChild * (tauBarChild * PChild) * ~phiChild;
+		}
+
         updTauBar(dc)  = 1.; // identity matrix
         updPsi(dc)     = getPhi(pc) * getTauBar(dc);
     }
@@ -4283,6 +4320,41 @@ public:
 
         A_GB = A_GP;
     }
+
+	void calcMAPass1Outward(
+		const SBPositionCache& pc,
+		const Vector&          allUDot,
+		Vector_<SpatialVec>&   allA_GB) const
+	{
+		SpatialVec&     A_GB = toB(allA_GB);
+
+		// Shift parent's A_GB outward. (Ground A_GB is zero.)
+		const SpatialVec A_GP = parent->getNodeNum()== 0 
+			? SpatialVec(Vec3(0), Vec3(0))
+			: ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+
+		A_GB = A_GP;  
+	}
+
+	void calcMAPass2Inward(
+		const SBPositionCache& pc,
+		const Vector_<SpatialVec>& allA_GB,
+		Vector_<SpatialVec>&       allF,	// temp
+		Vector&                    allTau) const 
+	{
+		const SpatialVec& A_GB  = fromB(allA_GB);
+		SpatialVec&       F		= toB(allF);
+
+		F = SpatialVec(Vec3(0), Vec3(0));
+
+		for (int i=0 ; i<(int)children.size() ; i++) {
+			const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+			const SpatialVec& FChild    = allF[children[i]->getNodeNum()];
+			F += phiChild * FChild;
+		}
+
+		F += getMk(pc)*A_GB;
+	}
 };
 
 
@@ -4997,6 +5069,52 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass2Outward(
 
     udot = getDI(dc) * eps - (~getG(dc)*A_GP);
     A_GB = A_GP + getH(pc)*udot;  
+}
+
+
+// The next two methods calculate f=M*a in O(N) time, given a.
+// The first one is called base to tip.
+template<int dof> void 
+RigidBodyNodeSpec<dof>::calcMAPass1Outward(
+    const SBPositionCache& pc,
+    const Vector&          allUDot,
+    Vector_<SpatialVec>&   allA_GB) const
+{
+    const Vec<dof>& udot = fromU(allUDot);
+    SpatialVec&     A_GB = toB(allA_GB);
+
+    // Shift parent's A_GB outward. (Ground A_GB is zero.)
+    const SpatialVec A_GP = parent->getNodeNum()== 0 
+        ? SpatialVec(Vec3(0), Vec3(0))
+        : ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+
+    A_GB = A_GP + getH(pc)*udot;  
+}
+
+// Call tip to base after calling calcMAPass1Outward() for each
+// rigid body.
+template<int dof> void
+RigidBodyNodeSpec<dof>::calcMAPass2Inward(
+    const SBPositionCache& pc,
+    const Vector_<SpatialVec>& allA_GB,
+    Vector_<SpatialVec>&       allF,	// temp
+    Vector&                    allTau) const 
+{
+    const SpatialVec& A_GB  = fromB(allA_GB);
+    SpatialVec&       F		= toB(allF);
+    Vec<dof>&         tau	= toU(allTau);
+
+    F = SpatialVec(Vec3(0), Vec3(0));
+
+    for (int i=0 ; i<(int)children.size() ; i++) {
+        const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+        const SpatialVec& FChild    = allF[children[i]->getNodeNum()];
+        F += phiChild * FChild;
+    }
+
+	F += getMk(pc)*A_GB;
+
+    tau = ~getH(pc)*F;
 }
 
 //

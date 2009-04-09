@@ -1966,6 +1966,38 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
         }
 }
 
+//
+// Calculate f = M a. We also get spatial accelerations A_GB for 
+// each body as a side effect.
+//
+void SimbodyMatterSubsystemRep::calcMA(const State& s,
+    const Vector&              udot,
+    Vector_<SpatialVec>&       A_GB,
+    Vector&                    f) const 
+{
+    const SBPositionCache& pc = getPositionCache(s);
+
+    assert(udot.size() == getTotalDOF());
+
+    A_GB.resize(getNumBodies());
+    f.resize(getTotalDOF());
+
+    // Temporary
+    Vector_<SpatialVec> allFTmp(getNumBodies());
+
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.calcMAPass1Outward(pc, udot, A_GB);
+        }
+
+    for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.calcMAPass2Inward(pc,A_GB,allFTmp,f);
+        }
+}
+
 // q=Nu or u=~Nq
 void SimbodyMatterSubsystemRep::multiplyByN(const State& s, bool transpose, const Vector& in, Vector& out) const
 {

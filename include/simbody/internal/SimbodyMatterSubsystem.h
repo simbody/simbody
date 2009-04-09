@@ -352,7 +352,7 @@ public:
     /// result is a generalized force (f=M*a). Only the supplied vector
     /// is used, and M depends only on position states, so the result
     /// here is not affected by velocities in the State.
-    /// Requires prior realization through Stage::Position ??? TODO
+    /// Requires prior realization through Stage::Position.
     void calcMV(const State&, const Vector& v, Vector& MV) const;
 
     /// This operator explictly calcuates the n X n mass matrix M. Note that

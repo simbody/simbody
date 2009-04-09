@@ -263,10 +263,13 @@ int MultibodySystemRep::realizeDynamicsImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemDynamics(s);
     if (hasContactSubsystem())
         getContactSubsystem().getSubsystemGuts().realizeSubsystemDynamics(s);
-    // note order: forces first (TODO: does that matter?)
+
+	// This realizes the matter subsystem's dynamic operators; not yet accelerations.
+    getMatterSubsystem().getRep().realizeSubsystemDynamics(s);
+
+    // Now do forces in case any of them need dynamics-stage operators.
     for (int i=0; i < (int)forceSubs.size(); ++i)
         getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemDynamics(s);
-    getMatterSubsystem().getRep().realizeSubsystemDynamics(s);
 
     if (hasDecorationSubsystem())
         getDecorationSubsystem().getGuts().realizeSubsystemDynamics(s);

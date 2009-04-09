@@ -462,6 +462,11 @@ public:
         Vector_<SpatialVec>& A_GB,
         Vector&              udot) const; 
 
+	void calcMA(const State& s,
+		const Vector&			udot,
+		Vector_<SpatialVec>&	A_GB,
+		Vector&					f) const;
+
 
     // Must be in Stage::Position to calculate out_q = N(q)*in_u (e.g., qdot=N*u)
     // or out_u = in_q * N(q). Note that one of "in" and "out" is always "q-like" while
