@@ -1318,29 +1318,29 @@ public:
     
     int getNYErr() const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNYErr()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNYErr()");
         return data->yerr.size();
     }
     
     SystemYErrIndex getQErrStart() const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getQErrStart()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getQErrStart()");
         return SystemYErrIndex(0); // qerr's come first
     }
     int getNQErr() const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNQErr()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNQErr()");
         return data->qerr.size();
     }
     
     SystemYErrIndex getUErrStart() const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getUErrStart()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getUErrStart()");
         return SystemYErrIndex(data->qerr.size()); // uerr's follow qerrs
     }
     int getNUErr() const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNUErr()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNUErr()");
         return data->uerr.size();
     }
     
@@ -1348,19 +1348,19 @@ public:
     // This is used for multipliers also.
     int getNUDotErr() const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNUDotErr()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNUDotErr()");
         return data->udoterr.size();
     }
     
     int getNEventTriggers() const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNEventTriggers()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNEventTriggers()");
         return data->allTriggers.size();
     }
     
     SystemEventTriggerIndex getEventTriggerStartByStage(Stage g) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getEventTriggerStartByStage()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getEventTriggerStartByStage()");
         int nxt = 0;
         for (int j=0; j<g; ++j)
             nxt += data->triggers[j].size();
@@ -1369,7 +1369,7 @@ public:
     
     int getNEventTriggersByStage(Stage g) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNEventTriggersByStage()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNEventTriggersByStage()");
         return data->triggers[g].size();
     }
     
@@ -1410,47 +1410,47 @@ public:
     
     SystemQErrIndex getQErrStart(SubsystemIndex subsys) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getQErrStart(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getQErrStart(subsys)");
         return data->getSubsystem(subsys).qerrstart;
     }
     int getNQErr(SubsystemIndex subsys) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNQErr(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNQErr(subsys)");
         return data->getSubsystem(subsys).qerr.size();
     }
     
     SystemUErrIndex getUErrStart(SubsystemIndex subsys) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getUErrStart(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getUErrStart(subsys)");
         return data->getSubsystem(subsys).uerrstart;
     }
     int getNUErr(SubsystemIndex subsys) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNUErr(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNUErr(subsys)");
         return data->getSubsystem(subsys).uerr.size();
     }
     
     // These are used for multipliers also.
     SystemUDotErrIndex getUDotErrStart(SubsystemIndex subsys) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getUDotErrStart(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getUDotErrStart(subsys)");
         return data->getSubsystem(subsys).udoterrstart;
     }
     int getNUDotErr(SubsystemIndex subsys) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNUDotErr(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNUDotErr(subsys)");
         return data->getSubsystem(subsys).udoterr.size();
     }
     
     SystemEventTriggerByStageIndex getEventTriggerStartByStage(SubsystemIndex subsys, Stage g) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getEventTriggerStartByStage(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getEventTriggerStartByStage(subsys)");
         return data->getSubsystem(subsys).triggerstart[g];
     }
     
     int getNEventTriggersByStage(SubsystemIndex subsys, Stage g) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNEventTriggersByStage(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNEventTriggersByStage(subsys)");
         return data->getSubsystem(subsys).triggers[g].size();
     }
     
@@ -1552,65 +1552,65 @@ public:
     
     const Vector& getQErr(SubsystemIndex subsys) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getQErr(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getQErr(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Position, "StateRep::getQErr(subsys)");
         return data->getSubsystem(subsys).qerr;
     }
     const Vector& getUErr(SubsystemIndex subsys) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getUErr(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getUErr(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Velocity, "StateRep::getUErr(subsys)");
         return data->getSubsystem(subsys).uerr;
     }
     const Vector& getUDotErr(SubsystemIndex subsys) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getUDotErr(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getUDotErr(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "StateRep::getUDotErr(subsys)");
         return data->getSubsystem(subsys).udoterr;
     }
     const Vector& getMultipliers(SubsystemIndex subsys) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getMultipliers(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getMultipliers(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "StateRep::getMultipliers(subsys)");
         return data->getSubsystem(subsys).multipliers;
     }
     
     const Vector& getEventTriggersByStage(SubsystemIndex subsys, Stage g) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getEventTriggersByStage(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getEventTriggersByStage(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), g, "StateRep::getEventTriggersByStage(subsys)");
         return data->getSubsystem(subsys).triggers[g];
     }
     
     Vector& updQErr(SubsystemIndex subsys) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQErr(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updQErr(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Position).prev(), "StateRep::updQErr(subsys)");
         return data->getSubsystem(subsys).qerr;
     }
     Vector& updUErr(SubsystemIndex subsys) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updUErr(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updUErr(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Velocity).prev(), "StateRep::updUErr(subsys)");
         return data->getSubsystem(subsys).uerr;
     }
     Vector& updUDotErr(SubsystemIndex subsys) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updUDotErr(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updUDotErr(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), 
                             "StateRep::updUDotErr(subsys)");
         return data->getSubsystem(subsys).udoterr;
     }
     Vector& updMultipliers(SubsystemIndex subsys) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updMultipliers(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updMultipliers(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), 
                             "StateRep::updMultipliers(subsys)");
         return data->getSubsystem(subsys).multipliers;
     }
     Vector& updEventTriggersByStage(SubsystemIndex subsys, Stage g) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updEventTriggersByStage(subsys)");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updEventTriggersByStage(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), g.prev(), "StateRep::updEventTriggersByStage(subsys)");
         return data->getSubsystem(subsys).triggers[g];
     }

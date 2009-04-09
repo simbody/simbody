@@ -159,6 +159,10 @@ int main() {
 
     cout << "AFTER ADVANCE TO MODEL, t=" << s.getTime() << endl;
 
+	// Event triggers are available at Instance stage.
+    s.advanceSubsystemToStage(SubsystemIndex(0), Stage::Instance);
+    s.advanceSystemToStage(Stage::Instance);
+
     printf("ntriggers=%d, by stage:\n", s.getNEventTriggers());
     for (int j=0; j<Stage::NValid; ++j) {
         Stage g = Stage::getValue(j);
