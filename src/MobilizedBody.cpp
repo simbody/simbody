@@ -1543,6 +1543,72 @@ MobilizedBody::LineOrientation::LineOrientation(MobilizedBody& parent, const Tra
                                                    *this);
 }
 
+const Quaternion& MobilizedBody::LineOrientation::getDefaultQ() const {
+    return getImpl().defaultQ;
+}
+MobilizedBody::LineOrientation& MobilizedBody::LineOrientation::setDefaultQ(const Quaternion& quat) {
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultQ = quat;
+    return *this;
+}
+
+const Vec4& MobilizedBody::LineOrientation::getQ(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    return Vec4::getAs(&mbr.getMyMatterSubsystemRep().getQ(s)[qStart]);
+}
+void MobilizedBody::LineOrientation::setQ(State& s, const Vec4& q) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    Vec4::updAs(&mbr.getMyMatterSubsystemRep().updQ(s)[qStart]) = q;
+}
+const Vec4& MobilizedBody::LineOrientation::getQDot(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    return Vec4::getAs(&mbr.getMyMatterSubsystemRep().getQDot(s)[qStart]);
+}
+const Vec4& MobilizedBody::LineOrientation::getQDotDot(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    return Vec4::getAs(&mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart]);
+}
+
+const Vec2& MobilizedBody::LineOrientation::getU(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec2::getAs(&mbr.getMyMatterSubsystemRep().getU(s)[uStart]);
+}
+void MobilizedBody::LineOrientation::setU(State& s, const Vec2& u) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    Vec2::updAs(&mbr.getMyMatterSubsystemRep().updU(s)[uStart]) = u;
+}
+const Vec2& MobilizedBody::LineOrientation::getUDot(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec2::getAs(&mbr.getMyMatterSubsystemRep().getUDot(s)[uStart]);
+}
+
+const Vec4& MobilizedBody::LineOrientation::getMyPartQ(const State& s, const Vector& qlike) const {
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    return Vec4::getAs(&qlike[qStart]);
+}
+
+const Vec2& MobilizedBody::LineOrientation::getMyPartU(const State& s, const Vector& ulike) const {
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec2::getAs(&ulike[uStart]);
+}
+
+Vec4& MobilizedBody::LineOrientation::updMyPartQ(const State& s, Vector& qlike) const {
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 4);
+    return Vec4::updAs(&qlike[qStart]);
+}
+
+Vec2& MobilizedBody::LineOrientation::updMyPartU(const State& s, Vector& ulike) const {
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec2::updAs(&ulike[uStart]);
+}
+
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::LineOrientation, MobilizedBody::LineOrientationImpl, MobilizedBody);
 
     ///////////////////////////////

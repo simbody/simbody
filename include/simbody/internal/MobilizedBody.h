@@ -1317,10 +1317,12 @@ public:
     class Universal;
     class Cylinder;
     class BendStretch;
+    class TorsionStretch;
     class Planar;
     class Gimbal;
     class Ball; typedef Ball Orientation, Spherical;
     class Translation; typedef Translation Cartesian;
+    class SphericalCoord;
     class Free;
     class LineOrientation;
     class FreeLine;
@@ -1336,10 +1338,12 @@ public:
     class UniversalImpl;
     class CylinderImpl;
     class BendStretchImpl;
+    class TorsionStretchImpl;
     class PlanarImpl;
     class GimbalImpl;
     class BallImpl;
     class TranslationImpl;
+    class SphericalCoordImpl;
     class FreeImpl;
     class LineOrientationImpl;
     class FreeLineImpl;
@@ -2192,6 +2196,31 @@ public:
     LineOrientation& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
+
+    // This is just a nicer name for the generalized coordinate.
+    LineOrientation& setDefaultRotation(const Rotation& R_FM) {
+        return setDefaultQ(R_FM.convertRotationToQuaternion());
+    }
+    Rotation getDefaultRotation() const {return Rotation(getDefaultQ());}
+
+    // Generic default state Topology methods.
+    const Quaternion& getDefaultQ() const;
+    LineOrientation& setDefaultQ(const Quaternion& q);
+
+    const Vec4& getQ(const State&) const;
+    const Vec4& getQDot(const State&) const;
+    const Vec4& getQDotDot(const State&) const;
+    const Vec2& getU(const State&) const;
+    const Vec2& getUDot(const State&) const;
+
+    void setQ(State&, const Vec4&) const;
+    void setU(State&, const Vec2&) const;
+
+    const Vec4& getMyPartQ(const State&, const Vector& qlike) const;
+    const Vec2& getMyPartU(const State&, const Vector& ulike) const;
+   
+    Vec4& updMyPartQ(const State&, Vector& qlike) const;
+    Vec2& updMyPartU(const State&, Vector& ulike) const;
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(LineOrientation, LineOrientationImpl, MobilizedBody);
 };
 
