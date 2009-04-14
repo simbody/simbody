@@ -345,7 +345,9 @@ public:                                     \
         { return dynamic_cast<const Derived*>(&p) != 0; }   \
     static const Derived& downcast(const Parent& p)         \
         { return dynamic_cast<const Derived&>(p); }         \
-    static Derived& downcast(Parent& p)                     \
+    static Derived& updDowncast(Parent& p)                  \
+        { return dynamic_cast<Derived&>(p); }				\
+	static Derived& downcast(Parent& p)                     \
         { return dynamic_cast<Derived&>(p); }
 
 /**
@@ -357,7 +359,9 @@ public:                                     \
         { return Helper::isA(p); }                                          \
     static const Derived& downcast(const Parent& p)                         \
         { return reinterpret_cast<const Derived&>(Helper::downcast(p)); }   \
-    static Derived& downcast(Parent& p)                                     \
+    static Derived& updDowncast(Parent& p)									\
+        { return reinterpret_cast<Derived&>(Helper::downcast(p)); }		    \
+	static Derived& downcast(Parent& p)                                     \
         { return reinterpret_cast<Derived&>(Helper::downcast(p)); }
 
 
