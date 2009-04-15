@@ -8,8 +8,8 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
- * Authors: Peter Eastman                                                     *
+ * Portions copyright (c) 2008-9 Stanford University and the Authors.         *
+ * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
@@ -39,7 +39,7 @@ namespace SimTK {
 
 class ForceImpl : public PIMPLImplementation<Force, ForceImpl> {
 public:
-    ForceImpl() {
+	ForceImpl() : forces(0) {
     }
     ForceImpl(const ForceImpl& clone) {
         *this = clone;
@@ -50,12 +50,16 @@ public:
     virtual bool dependsOnlyOnPositions() const {
         return false;
     }
-    ForceIndex getForceIndex() const {
-        return index;
-    }
-    void setForceIndex(ForceIndex ind) {
-        index = ind;
-    }
+    ForceIndex getForceIndex() const {return index;}
+	const GeneralForceSubsystem& getForceSubsystem() const {assert(forces); return *forces;}
+	void setForceSubsystem(GeneralForceSubsystem& frcsub, ForceIndex ix) {
+		forces = &frcsub;
+		index  = ix;
+	}
+	void invalidateTopologyCache() const {
+		if (forces) forces->invalidateSubsystemTopologyCache();
+	}
+
     virtual void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const = 0;
     virtual Real calcPotentialEnergy(const State& state) const = 0;
     virtual void realizeTopology(State& state) const {
@@ -77,7 +81,8 @@ public:
     virtual void realizeReport(const State& state) const {
     }
 private:
-    ForceIndex index;
+    GeneralForceSubsystem* forces;	// just a reference; don't delete on destruction
+    ForceIndex			   index;
 };
 
 class Force::TwoPointLinearSpringImpl : public ForceImpl {
@@ -229,6 +234,134 @@ private:
     Real damping;
 };
 
+class Force::ThermostatImpl : public ForceImpl {
+public:
+    ThermostatImpl(const SimbodyMatterSubsystem& matter, 
+				   Real boltzmannsConstant, Real defBathTemp, Real defRelaxationTime)
+    :   matter(matter), Kb(boltzmannsConstant), defaultNumChains(DefaultDefaultNumChains),
+        defaultBathTemp(defBathTemp), defaultRelaxationTime(defRelaxationTime)
+	{}
+
+    ThermostatImpl* clone() const {return new ThermostatImpl(*this);}
+    bool dependsOnlyOnPositions() const {return false;}
+
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
+				   Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
+
+	// Temperature does not contribute to potential energy.
+	Real calcPotentialEnergy(const State& state) const {return 0;}
+
+    void realizeTopology(State& state) const;
+    void realizeModel(State& state) const;
+    void realizeVelocity(const State& state) const;
+    void realizeDynamics(const State& state) const;
+
+	// Get the current number of chains.
+	int getNumChains(const State& s) const {
+		assert(dvNumChains.isValid());
+		return Value<int>::downcast(getForceSubsystem().getDiscreteVariable(s, dvNumChains));
+	}
+	int& updNumChains(State& s) const {
+		assert(dvNumChains.isValid());
+		return Value<int>::updDowncast(getForceSubsystem().updDiscreteVariable(s, dvNumChains));
+	}
+
+	int getNumDOFs(const State& s) const;
+
+	// Get the auxiliary continuous state index of the 0'th thermostat state variable z.
+	ZIndex getZ0Index(const State& s) const {
+		assert(cacheZ0Index.isValid());
+		return Value<ZIndex>::downcast(getForceSubsystem().getCacheEntry(s, cacheZ0Index));
+	}
+	ZIndex& updZ0Index(State& s) const {
+		assert(cacheZ0Index.isValid());
+		return Value<ZIndex>::updDowncast(getForceSubsystem().updCacheEntry(s, cacheZ0Index));
+	}
+
+	// Get the current bath temperature (i.e., the desired temperature).
+	Real getBathTemp(const State& s) const {
+		assert(dvBathTemp.isValid());
+		return Value<Real>::downcast(getForceSubsystem().getDiscreteVariable(s, dvBathTemp));
+	}
+	Real& updBathTemp(State& s) const {
+		assert(dvBathTemp.isValid());
+		return Value<Real>::updDowncast(getForceSubsystem().updDiscreteVariable(s, dvBathTemp));
+	}
+
+	// Get the current bath temperature (i.e., the desired temperature).
+	Real getRelaxationTime(const State& s) const {
+		assert(dvRelaxationTime.isValid());
+		return Value<Real>::downcast(getForceSubsystem().getDiscreteVariable(s, dvRelaxationTime));
+	}
+	Real& updRelaxationTime(State& s) const {
+		assert(dvRelaxationTime.isValid());
+		return Value<Real>::updDowncast(getForceSubsystem().updDiscreteVariable(s, dvRelaxationTime));
+	}
+
+	// Get the calculated momentum M*u (after Stage::Velocity).
+	const Vector& getMomentum(const State& s) const {
+		assert(cacheMomentumIndex.isValid());
+		return Value<Vector>::downcast(getForceSubsystem().getCacheEntry(s, cacheMomentumIndex));
+	}
+	Vector& updMomentum(const State& s) const {
+		assert(cacheMomentumIndex.isValid());
+		return Value<Vector>::updDowncast(getForceSubsystem().updCacheEntry(s, cacheMomentumIndex));
+	}
+
+	// Get the calculated system kinetic energy ~u*M*u/2 (after Stage::Velocity).
+	const Real& getKE(const State& s) const {
+		assert(cacheKEIndex.isValid());
+		return Value<Real>::downcast(getForceSubsystem().getCacheEntry(s, cacheKEIndex));
+	}
+	Real& updKE(const State& s) const {
+		assert(cacheKEIndex.isValid());
+		return Value<Real>::updDowncast(getForceSubsystem().updCacheEntry(s, cacheKEIndex));
+	}
+
+	// Get the current value of one of the thermostat state variables.
+	Real getZ(const State& s, int i) const {
+		assert(0 <= i && i < 2*getNumChains(s));
+		const ZIndex z0 = getZ0Index(s);
+		return getForceSubsystem().getZ(s)[z0+i];
+	}
+	Real& updZ(State& s, int i) const {
+		assert(0 <= i && i < 2*getNumChains(s));
+		const ZIndex z0 = getZ0Index(s);
+		return getForceSubsystem().updZ(s)[z0+i];
+	}
+	Real getZDot(const State& s, int i) const {
+		assert(0 <= i && i < 2*getNumChains(s));
+		const ZIndex z0 = getZ0Index(s);
+		return getForceSubsystem().getZDot(s)[z0+i];
+	}
+	// State is const here because ZDot is a cache entry.
+	Real& updZDot(const State& s, int i) const {
+		assert(0 <= i && i < 2*getNumChains(s));
+		const ZIndex z0 = getZ0Index(s);
+		return getForceSubsystem().updZDot(s)[z0+i];
+	}
+
+	static const int DefaultDefaultNumChains = 3;
+private:
+    const SimbodyMatterSubsystem& matter;
+    const Real  Kb;		// Boltzmann's constant in compatible units
+
+	// Topology-stage "state" variables.
+	int			defaultNumChains;		// # chains in a new State
+	Real		defaultBathTemp;		// bath temperature
+	Real		defaultRelaxationTime;	// relaxation time
+
+	// These indices are Topology-stage "cache" variables.
+	DiscreteVariableIndex dvNumChains;		// integer
+	DiscreteVariableIndex dvBathTemp;		// Real
+	DiscreteVariableIndex dvRelaxationTime;	// Real
+	CacheEntryIndex		  cacheZ0Index;		// ZIndex
+	CacheEntryIndex		  cacheMomentumIndex;	// M*u
+	CacheEntryIndex		  cacheKEIndex;			// ~u*M*u/2
+
+friend class Force::Thermostat;
+};
+
 class Force::UniformGravityImpl : public ForceImpl {
 public:
     UniformGravityImpl(const SimbodyMatterSubsystem& matter, const Vec3& g, Real zeroHeight);
@@ -252,7 +385,6 @@ public:
         invalidateTopologyCache();
     }
 private:
-    void invalidateTopologyCache();
     const SimbodyMatterSubsystem& matter;
     Vec3 g;
     Real zeroHeight;

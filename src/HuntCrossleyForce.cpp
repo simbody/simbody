@@ -46,7 +46,7 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(HuntCrossleyForce, HuntCrossleyForceImpl
 
 HuntCrossleyForce::HuntCrossleyForce(GeneralForceSubsystem& forces, GeneralContactSubsystem& contacts, ContactSetIndex set) :
         Force(new HuntCrossleyForceImpl(contacts, set)) {
-    updImpl().setForceIndex(forces.adoptForce(*this));
+    updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
 
 void HuntCrossleyForce::setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) {

@@ -50,7 +50,7 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(ElasticFoundationForce, ElasticFoundatio
 
 ElasticFoundationForce::ElasticFoundationForce(GeneralForceSubsystem& forces, GeneralContactSubsystem& contacts, ContactSetIndex set) :
         Force(new ElasticFoundationForceImpl(contacts, set)) {
-    updImpl().setForceIndex(forces.adoptForce(*this));
+    updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
 
 void ElasticFoundationForce::setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) {
