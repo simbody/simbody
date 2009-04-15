@@ -978,7 +978,7 @@ protected:
     // that is from child to parent.
     const bool reversed;
 
-    template<int dof> friend class RigidBodyNodeSpec;
+    //template<int dof> friend class RigidBodyNodeSpec;
 
 };
 

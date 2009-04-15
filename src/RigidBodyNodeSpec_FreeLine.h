@@ -1,0 +1,432 @@
+#ifndef SimTK_SIMBODY_RIGID_BODY_NODE_SPEC_FREELINE_H_
+#define SimTK_SIMBODY_RIGID_BODY_NODE_SPEC_FREELINE_H_
+
+/* -------------------------------------------------------------------------- *
+ *                      SimTK Core: SimTK Simbody(tm)                         *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org.               *
+ *                                                                            *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Authors: Michael Sherman                                                   *
+ * Contributors: Paul Mitiguy                                                 *
+ *                                                                            *
+ * Permission is hereby granted, free of charge, to any person obtaining a    *
+ * copy of this software and associated documentation files (the "Software"), *
+ * to deal in the Software without restriction, including without limitation  *
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
+ * and/or sell copies of the Software, and to permit persons to whom the      *
+ * Software is furnished to do so, subject to the following conditions:       *
+ *                                                                            *
+ * The above copyright notice and this permission notice shall be included in *
+ * all copies or substantial portions of the Software.                        *
+ *                                                                            *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    *
+ * THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,    *
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR      *
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE  *
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
+ * -------------------------------------------------------------------------- */
+
+
+/**@file
+ * Define the RigidBodyNode that implements a Translation mobilizer, also
+ * known as a Cartesian joint.
+ */
+
+#include "SimbodyMatterSubsystemRep.h"
+#include "RigidBodyNode.h"
+#include "RigidBodyNodeSpec.h"
+
+
+    // FREE LINE //
+
+// FreeLine joint. Like a Free joint, this provides full rotational and
+// translational freedom, but for a degenerate body which is thin (inertialess)
+// along its own z axis. These arise in molecular modeling for linear molecules formed
+// by pairs of atoms, or by multiple atoms in a linear arrangement like
+// carbon dioxide (CO2) whose structure is O=C=O in a straight line. We are
+// assuming that there is no meaning to a rotation about the linear axis,
+// so free orientation requires just *two* degrees of freedom, not *three*
+// as is required for general rigid bodies. And in fact we can get away with
+// just two rotational generalized speeds so this joint provides only 5 mobilities.
+// But so far, no one has been able to come up
+// with a way to manage with only two rotational generalized *coordinates*, so this joint
+// has the same q's as a regular Free joint: either a quaternion
+// for unconditional stability, or a three-angle (body fixed 1-2-3)
+// Euler sequence which will be dynamically singular when the middle (y) axis
+// is 90 degrees. Use the Euler sequence only for small motions or for kinematics
+// problems (and note that only the first two are meaningful). Translations here
+// are treated exactly as for a Free joint (or for a Cartesian joint for that matter).
+//
+// To summarize, the generalized coordinates are:
+//   * 4 quaternions or 3 1-2-3 body fixed Euler angles (that is, fixed in M)
+//   * 3 components of the translation vector p_FM (that is, vector from origin
+//     of F to origin of M, expressed in F)
+// and generalized speeds are:
+//   * the x,y components of the angular velocity w_FM_M, that is, the angular
+//     velocity of M in F expressed in *M* (where we want wz=0).
+//   * 3 components of the linear velocity of origin of M in F, expressed in F.
+//     NOTE: THAT IS NOT THE SAME FRAME AS FOR A FREE JOINT
+// Thus the qdots have to be derived from the generalized speeds to
+// be turned into either 4 quaternion derivatives or 3 Euler angle derivatives.
+class RBNodeFreeLine : public RigidBodyNodeSpec<5> {
+public:
+    virtual const char* type() { return "full"; }
+
+    RBNodeFreeLine(const MassProperties& mProps_B,
+                   const Transform&      X_PF,
+                   const Transform&      X_BM,
+                   bool                  isReversed,
+                   UIndex&               nextUSlot,
+                   USquaredIndex&        nextUSqSlot,
+                   QIndex&               nextQSlot)
+      : RigidBodyNodeSpec<5>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
+                             QDotMayDifferFromU, QuaternionMayBeUsed, isReversed)
+    {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    }
+
+    void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
+                              Vector& q) const 
+    {
+        if (getUseEulerAngles(sbs.getModelVars()))
+            toQVec3(q,0) = R_FM.convertRotationToBodyFixedXYZ();
+        else
+            toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
+    }
+
+    // The user gives us the translation vector from OF to OM as a vector expressed in F.
+    // With a free joint we never have to *change* orientation coordinates in order to achieve a translation.
+    // Note: a quaternion from a state is not necessarily normalized so can't be used
+    // direction as though it were a set of Euler parameters; it must be normalized first.
+    void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
+        if (getUseEulerAngles(sbs.getModelVars()))
+            toQVec3(q,3) = p_FM; // skip the 3 Euler angles
+        else
+            toQVec3(q,4) = p_FM; // skip the 4 quaternions
+    }
+
+    // Our 2 rotational generalized speeds are just the (x,y) components of the
+    // angular velocity vector of M in F, expressed in M.
+    void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM,
+                                     Vector& u) const
+    {
+        Rotation R_FM;
+        if (getUseEulerAngles(sbs.getModelVars()))
+            R_FM.setRotationToBodyFixedXYZ( fromQVec3(q,0) );
+        else {
+            // TODO: should use qnorm pool
+            R_FM.setRotationFromQuaternion( Quaternion(fromQuat(q)) ); // normalize
+        }
+        const Vec3 w_FM_M = ~R_FM*w_FM;
+        toU(u).updSubVec<2>(0) = Vec2(w_FM_M[0], w_FM_M[1]); // (x,y) of relative angular velocity always used as generalized speeds
+    }
+
+    // Our 3 translational generalized speeds are the linear velocity of M's origin in F,
+    // expressed in F. The user gives us that same vector.
+    void setUToFitLinearVelocityImpl
+       (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const
+    {
+        toUVec3(u,2) = v_FM;
+    }
+
+    // This is required for all mobilizers.
+    bool isUsingAngles(const SBStateDigest& sbs, MobilizerQIndex& startOfAngles, int& nAngles) const {
+        // FreeLine joint has three angular coordinates when Euler angles are being used, 
+        // none when quaternions are being used.
+        if (!getUseEulerAngles(sbs.getModelVars())) {startOfAngles.invalidate(); nAngles=0; return false;} 
+        startOfAngles = MobilizerQIndex(0);
+        nAngles = 3;
+        return true;
+    }
+
+    // Precalculate sines and cosines.
+    void calcJointSinCosQNorm(
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const SBInstanceCache& ic,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const
+    {
+        const SBModelCache::PerMobilizedBodyModelInfo& bInfo = mc.getMobilizedBodyModelInfo(nodeNum);
+
+        if (getUseEulerAngles(mv)) {
+            const Vec3& a = fromQ(q).getSubVec<3>(0); // angular coordinates
+            toQ(sine).updSubVec<3>(0)   = Vec3(std::sin(a[0]), std::sin(a[1]), std::sin(a[2]));
+            toQ(cosine).updSubVec<3>(0) = Vec3(std::cos(a[0]), std::cos(a[1]), std::cos(a[2]));
+            // no quaternions
+        } else {
+            // no angles
+            const Vec4& quat = fromQuat(q); // unnormalized quaternion from state
+            const Real  quatLen = quat.norm();
+            assert(bInfo.hasQuaternionInUse && bInfo.quaternionPoolIndex.isValid());
+            qErr[ic.firstQuaternionQErrSlot+bInfo.quaternionPoolIndex] = quatLen - Real(1);
+            toQuat(qnorm) = quat / quatLen;
+        }
+    }
+
+    // Calculate X_F0M0.
+    void calcAcrossJointTransform(
+        const SBStateDigest& sbs,
+        const Vector&        q,
+        Transform&           X_F0M0) const 
+    {
+        const SBModelVars& mv = sbs.getModelVars();
+        if (getUseEulerAngles(mv)) {
+            X_F0M0.updR().setRotationToBodyFixedXYZ( fromQVec3(q,0) );
+            X_F0M0.updP() = fromQVec3(q,3); // translation is in F
+        } else {
+            X_F0M0.updR().setRotationFromQuaternion( Quaternion(fromQuat(q)) ); // normalize
+            X_F0M0.updP() = fromQVec3(q,4);  // translation is in F
+        }
+    }
+
+
+    // The generalized speeds for this 5-dof ("free line") joint are 
+    //   (1) the (x,y) components of angular velocity of M in the F frame, expressed in M, and
+    //   (2) the (linear) velocity of M's origin in F, expressed in F.
+    void calcAcrossJointVelocityJacobian(
+        const SBStateDigest& sbs,
+        HType&               H_FM) const
+    {
+        const SBPositionCache& pc = sbs.updPositionCache();
+        const Transform  X_F0M0 = findX_F0M0(pc);
+
+        // Dropping the 0's here.
+        const Rotation& R_FM = X_F0M0.R();
+        const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
+        const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
+
+        H_FM(0) = SpatialVec( Mx_F, Vec3(0) );        // x,y angular velocity in M, re-expressed im F
+        H_FM(1) = SpatialVec( My_F, Vec3(0) );
+
+        H_FM(2) = SpatialVec( Vec3(0), Vec3(1,0,0) );   // translations in F
+        H_FM(3) = SpatialVec( Vec3(0), Vec3(0,1,0) );
+        H_FM(4) = SpatialVec( Vec3(0), Vec3(0,0,1) );
+    }
+
+    // Since the first two rows of the Jacobian above are not constant in F,
+    // its time derivative is non zero. Here we use the fact that for
+    // a vector r_B_A fixed in a moving frame B but expressed in another frame A,
+    // its time derivative in A is the angular velocity of B in A crossed with
+    // the vector, i.e., d_A/dt r_B_A = w_AB % r_B_A.
+    void calcAcrossJointVelocityJacobianDot(
+        const SBStateDigest& sbs,
+        HType&               HDot_FM) const
+    {
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBVelocityCache& vc = sbs.getVelocityCache();
+        const Transform  X_F0M0 = findX_F0M0(pc);
+
+        // Dropping the 0's here.
+        const Rotation& R_FM = X_F0M0.R();
+        const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
+        const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
+
+        const Vec3      w_FM = find_w_F0M0(pc,vc); // angular velocity of M in F
+
+        HDot_FM(0) = SpatialVec( w_FM % Mx_F, Vec3(0) );
+        HDot_FM(1) = SpatialVec( w_FM % My_F, Vec3(0) );
+
+        // For translation in F.
+        HDot_FM(2) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(3) = SpatialVec( Vec3(0), Vec3(0) );
+        HDot_FM(4) = SpatialVec( Vec3(0), Vec3(0) );
+    }
+
+    // CAUTION: we do not zero the unused 4th element of q for Euler angles; it
+    // is up to the caller to do that if it is necessary.
+    void multiplyByN(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+                          bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(sbs.getStage() >= Stage::Model);
+        assert(q && in && out);
+
+        if (useEulerAnglesIfPossible) {
+            const Mat32    N = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
+                                    .getSubMat<3,2>(0,0); // drop 3rd column
+            if (matrixOnRight) {
+                Row2::updAs(out)   = Row3::getAs(in) * N;
+                Row3::updAs(out+2) = Row3::getAs(in+3);// translational part of N block is identity
+            } else {
+                Vec3::updAs(out)   = N * Vec2::getAs(in);        
+                Vec3::updAs(out+3) = Vec3::getAs(in+2);// translational part of N block is identity
+            }
+
+        } else {
+            // Quaternion: N block is only available expecting angular velocity in the
+            // parent frame F, but we have it in M for this joint.
+            const Rotation R_FM(Quaternion(Vec4::getAs(q)));
+            const Mat42 N = (Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q))*R_FM)
+                                .getSubMat<4,2>(0,0); // drop 3rd column
+            if (matrixOnRight) {
+                Row2::updAs(out)   = Row4::getAs(in) * N;
+                Row3::updAs(out+2) = Row3::getAs(in+4); // translational part of N block is identity
+            } else { // matrix on left
+                Vec4::updAs(out)   = N * Vec2::getAs(in);
+                Vec3::updAs(out+4) = Vec3::getAs(in+2); // translational part of N block is identity
+            }
+        }
+    }
+
+    // Compute out_u = inv(N) * in_q
+    //   or    out_q = in_u * inv(N)
+    void multiplyByNInv(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q,
+                             bool matrixOnRight, const Real* in, Real* out) const
+    {
+        assert(sbs.getStage() >= Stage::Position);
+        assert(in && out);
+
+        if (useEulerAnglesIfPossible) {
+            const Mat23    NInv = Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
+                                    .getSubMat<2,3>(0,0);   // drop 3rd row
+            if (matrixOnRight) {
+                Row3::updAs(out)   = Row2::getAs(in) * NInv;
+                Row3::updAs(out+3) = Row3::getAs(in+2); // translational part of NInv block is identity
+            } else {
+                Vec2::updAs(out)   = NInv * Vec3::getAs(in);
+                Vec3::updAs(out+2) = Vec3::getAs(in+3); // translational part of NInv block is identity
+            }
+        } else {           
+            // Quaternion: QInv block is only available expecting angular velocity in the
+            // parent frame F, but we have it in M for this joint.
+            const Rotation R_FM(Quaternion(Vec4::getAs(q)));
+            const Mat24 NInv = (~R_FM*Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q)))
+                                    .getSubMat<2,4>(0,0);   // drop 3rd row
+            if (matrixOnRight) {
+                Row4::updAs(out)   = Row2::getAs(in) * NInv;
+                Row3::updAs(out+4) = Row3::getAs(in+2); // translational part of NInv block is identity
+            } else { // matrix on left
+                Vec2::updAs(out)   = NInv * Vec4::getAs(in);
+                Vec3::updAs(out+2) = Vec3::getAs(in+4); // translational part of NInv block is identity
+            }
+        }
+    }
+
+    void calcQDot(
+        const SBStateDigest&   sbs,
+        const Vector&          u,
+        Vector&                qdot) const
+    {
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const Vec3  w_FM_M = Vec3(fromU(u)[0], fromU(u)[1], 0); // Angular velocity in M
+        const Vec3& v_FM   = fromUVec3(u,2);                    // Linear velocity in F
+
+        if (getUseEulerAngles(mv)) {
+            const Vec3& theta = fromQVec3(sbs.getQ(),0); // Euler angles
+            toQVec3(qdot,0) = Rotation::convertAngVelToBodyFixed123Dot(theta,
+                                            w_FM_M); // need w in *body*, not parent
+            toQVec3(qdot,4) = Vec3(0); // TODO: kludge, clear unused element
+            toQVec3(qdot,3) = v_FM;
+        } else {
+            const Rotation& R_FM = getX_FM(pc).R();
+            const Vec4& quat = fromQuat(sbs.getQ());
+            toQuat (qdot)   = Rotation::convertAngVelToQuaternionDot(quat,
+                                            R_FM*w_FM_M); // need w in *parent* frame here
+            toQVec3(qdot,4) = v_FM;
+        }
+    }
+ 
+    void calcQDotDot(
+        const SBStateDigest&   sbs,
+        const Vector&          udot, 
+        Vector&                qdotdot) const 
+    {
+        const SBModelVars& mv = sbs.getModelVars();
+        const SBPositionCache& pc = sbs.getPositionCache();
+        const Vec3  w_FM_M     = Vec3(fromU(sbs.getU())[0], fromU(sbs.getU())[1], 0); // Angular velocity of M in F, exp. in M
+        const Vec3& v_FM       = fromUVec3(sbs.getU(),2); // linear velocity of M in F, expressed in M
+        const Vec3  w_FM_M_dot = Vec3(fromU(udot)[0], fromU(udot)[1], 0);
+        const Vec3& v_FM_dot   = fromUVec3(udot,2);
+
+        if (getUseEulerAngles(mv)) {
+            const Vec3& theta  = fromQVec3(sbs.getQ(),0); // Euler angles
+            toQVec3(qdotdot,0) = Rotation::convertAngVelDotToBodyFixed123DotDot
+                                             (theta, w_FM_M, w_FM_M_dot); // needed in body frame here
+            toQVec3(qdotdot,4) = Vec3(0); // TODO: kludge, clear unused element
+            toQVec3(qdotdot,3) = v_FM_dot;
+        } else {
+            const Rotation& R_FM = getX_FM(pc).R();
+            const Vec4& quat  = fromQuat(sbs.getQ());
+            toQuat(qdotdot)   = Rotation::convertAngVelDotToQuaternionDotDot
+                                             (quat,R_FM*w_FM_M,R_FM*w_FM_M_dot); // needed in parent frame
+            toQVec3(qdotdot,4) = v_FM_dot;
+        }
+    }
+
+    void copyQ(const SBModelVars& mv, const Vector& qIn, Vector& q) const {
+        if (getUseEulerAngles(mv)) {
+            toQVec3(q,0) = fromQVec3(qIn,0); // euler angles
+            toQVec3(q,3) = fromQVec3(qIn,3); // translations
+        } else {
+            toQuat(q)    = fromQuat(qIn);    // quaternion
+            toQVec3(q,4) = fromQVec3(qIn,4); // translations
+        }
+    }
+
+    int  getMaxNQ()                   const {return 7;}
+    int  getNQInUse(const SBModelVars& mv) const {return getUseEulerAngles(mv) ? 6 : 7;} 
+    bool isUsingQuaternion(const SBStateDigest& sbs, MobilizerQIndex& startOfQuaternion) const {
+        if (getUseEulerAngles(sbs.getModelVars())) {startOfQuaternion.invalidate(); return false;}
+        startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
+        return true;
+    }
+
+    void setMobilizerDefaultPositionValues(const SBModelVars& mv, Vector& q) const 
+    {
+        if (getUseEulerAngles(mv)) {
+            toQVec3(q,4) = Vec3(0); // TODO: kludge, clear unused element
+            toQ(q) = 0.;
+        } else {
+            toQuat(q) = Vec4(1.,0.,0.,0.);
+            toQVec3(q,4) = 0.;
+        }
+    }
+
+    bool enforceQuaternionConstraints(
+        const SBStateDigest& sbs, 
+        Vector&             q,
+        Vector&             qErrest) const 
+    {
+        if (getUseEulerAngles(sbs.getModelVars())) 
+            return false; // no change
+
+        Vec4& quat = toQuat(q);
+        quat = quat / quat.norm();
+
+        if (qErrest.size()) {
+            Vec4& qerr = toQuat(qErrest);
+            qerr -= dot(qerr,quat) * quat;
+        }
+
+        return true;
+    }
+
+    void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {
+        toQVec3(outputQ, 4) = Vec3(0); // clear unused element
+        toQVec3(outputQ, 3) = fromQVec3(inputQ, 4);
+        toQVec3(outputQ, 0) = Rotation(Quaternion(fromQuat(inputQ))).convertRotationToBodyFixedXYZ();
+    }
+    
+    void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {
+        toQVec3(outputQ, 4) = fromQVec3(inputQ, 3);
+        Rotation rot;
+        rot.setRotationToBodyFixedXYZ(fromQVec3(inputQ, 0));
+        toQuat(outputQ) = rot.convertRotationToQuaternion().asVec4();
+    }
+};
+
+
+
+
+#endif // SimTK_SIMBODY_RIGID_BODY_NODE_SPEC_FREELINE_H_
+

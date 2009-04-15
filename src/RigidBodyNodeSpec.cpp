@@ -42,6 +42,14 @@
 #include "RigidBodyNode.h"
 #include "RigidBodyNodeSpec.h"
 
+#include "RigidBodyNodeSpec_Pin.h"
+#include "RigidBodyNodeSpec_Slider.h"
+#include "RigidBodyNodeSpec_Ball.h"
+#include "RigidBodyNodeSpec_Free.h"
+#include "RigidBodyNodeSpec_Custom.h"
+
+
+
 
 // Same for all mobilizers.
 // CAUTION: our H matrix definition is transposed from Jain and Schwieters.

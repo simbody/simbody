@@ -1,3 +1,6 @@
+#ifndef SimTK_SIMBODY_RIGID_BODY_NODE_SPEC_H_
+#define SimTK_SIMBODY_RIGID_BODY_NODE_SPEC_H_
+
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
  * -------------------------------------------------------------------------- *
@@ -11,6 +14,7 @@
  * Contributors:                                                              *
  *    Charles Schwieters (NIH): wrote the public domain IVM code from which   *
  *                              this was derived.                             *
+ *    Peter Eastman: wrote the Euler Angle<->Quaternion conversion            *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -37,6 +41,16 @@
  * is used as the base class for most of the RigidBodyNodes (that is, the
  * implementations of Mobilizers). The only exceptions are nodes whose 
  * mobilizers provide no degrees of freedom -- Ground and Weld.
+ *
+ * This file contains all the multibody mechanics method declarations that 
+ * involve a single body and its mobilizer (inboard joint), that is, one node 
+ * in the multibody tree. These methods constitute the inner loops of the 
+ * multibody calculations, and much suffering is undergone here to make them 
+ * run fast. In particular most calculations are templatized by the number of 
+ * mobilities, so that compile-time sizes are known for everything.
+ *
+ * Most methods here expect to be called in a particular order during traversal 
+ * of the tree -- either base to tip or tip to base.
  */
 
 #include "SimbodyMatterSubsystemRep.h"
@@ -714,3 +728,5 @@ public:
 		Vector&                    allTau) const;
 
 };
+
+#endif // SimTK_SIMBODY_RIGID_BODY_NODE_SPEC_H_
