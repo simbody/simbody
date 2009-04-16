@@ -40,6 +40,7 @@
 #include "SimbodyMatterSubsystemRep.h"
 #include "RigidBodyNode.h"
 #include "RigidBodyNodeSpec.h"
+#include "MobilizedBodyImpl.h" // need Custom::ImplementationImpl
 
 
 /**
