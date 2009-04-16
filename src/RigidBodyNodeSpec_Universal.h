@@ -151,7 +151,7 @@ public:
         X_FM.updP() = 0.;
     }
 
-    // The generalized speeds for this 2-dof rotational joint are the time derivatlves of
+    // The generalized speeds for this 2-dof rotational joint are the time derivatives of
     // the body-fixed 1-2 rotation sequence defining the orientation. That is, the first speed
     // is just a rotation rate about Fx. The second is a rotation rate about the current My, so
     // we have to transform it into F to make H_FM uniformly expressed in F.
