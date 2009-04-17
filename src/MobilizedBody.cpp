@@ -850,6 +850,9 @@ MobilizedBody::SphericalCoords::SphericalCoords
                                           radialAxis,    radialNegated,
                                           d))
 {
+    SimTK_APIARGCHECK_ALWAYS(radialAxis != YAxis, "MobilizedBody::SphericalCoords", "ctor",
+        "SphericalCoords translation (radial) axis must be X or Z; Y is not allowed.");
+
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
     setBody(body);

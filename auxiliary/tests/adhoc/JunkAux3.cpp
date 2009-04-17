@@ -77,8 +77,10 @@ int main(int argc, char** argv) {
 
     MobilizedBody::SphericalCoords
         anAtom(matter.Ground(), Transform(ZUp, TestLoc),
-                     particle,
-                         Transform());
+               particle, Transform(),
+               0*Deg2Rad,  false,   // azimuth offset, negated
+               0,          false,   // zenith offset, negated
+               ZAxis,      true);  // translation axis, negated
 
     anAtom.setDefaultRadius(.1);
     anAtom.setDefaultAngles(Vec2(0, 30*Deg2Rad));
