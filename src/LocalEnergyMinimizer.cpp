@@ -46,18 +46,21 @@ using namespace std;
 
 class LocalEnergyMinimizer::OptimizerFunction : public OptimizerSystem {
 public:
-    OptimizerFunction(const MultibodySystem& system, const State& state) :
-        OptimizerSystem(state.getNQ()), system(system), state(state) {
+    // stateIn must be realized to Model stage already.
+    OptimizerFunction(const MultibodySystem& system, const State& stateIn)
+    :   OptimizerSystem(stateIn.getNQ()), system(system), state(stateIn) {
+        state.updU() = 0;   // no velocities
+        system.realize(state, Stage::Time); // we'll only change Position stage and above
         setNumEqualityConstraints(state.getNQErr());
     }
     int objectiveFunc(const Vector& parameters, const bool new_parameters, Real& f) const {
         if (new_parameters)
             state.updQ() = parameters;
         system.realize(state, Stage::Dynamics);
-        f = system.calcEnergy(state);
+        f = system.calcPotentialEnergy(state);
         return 0;
     }
-    int gradientFunc(const Vector &parameters, const bool new_parameters, Vector &gradient) const  {
+    int gradientFunc(const Vector& parameters, const bool new_parameters, Vector& gradient) const  {
         if (new_parameters)
             state.updQ() = parameters;
         system.realize(state, Stage::Dynamics);
@@ -71,7 +74,7 @@ public:
     }
     int constraintFunc(const Vector& parameters, const bool new_parameters, Vector& constraints) const {
         state.updQ() = parameters;
-        system.realize(state, Stage::Velocity);
+        system.realize(state, Stage::Position);
         constraints = state.getQErr();
         return 0;
     }

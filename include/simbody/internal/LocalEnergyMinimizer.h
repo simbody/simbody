@@ -39,17 +39,19 @@
 namespace SimTK {
 
 /**
- * This class performs local energy minimization of a MultibodySystem.
+ * This class performs local potential energy minimization of a MultibodySystem.
+ * Only positions (generalized coordinates q) are changed; velocities are ignored.
  */
 
 class SimTK_SIMBODY_EXPORT LocalEnergyMinimizer {
 public:
     /**
-     * Find the local energy minimum of a MultibodySystem.
+     * Find the local potential energy minimum of a MultibodySystem.
      * 
      * @param system       the system whose energy should be minimized
      * @param state        on entry, this should contain the starting state from which to begin the search.
-     *                     On exit, it contains a (usually nearby) state at which the energy is a local minimum.
+     *                     On exit, it contains a (usually nearby) state with revised generalized coordinate
+     *                     values q at which the energy is a local minimum.
      * @param tolerance    a tolerance for the energy minimization.  The search ends when no component of the
      *                     energy gradient is larger than this.
      */
