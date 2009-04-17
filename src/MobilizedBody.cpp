@@ -807,6 +807,159 @@ Vec3& MobilizedBody::Planar::updMyPartU(const State& s, Vector& ulike) const {
 
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Planar, MobilizedBody::PlanarImpl, MobilizedBody);
 
+
+    //////////////////////////////////////
+    // MOBILIZED BODY::SPHERICAL COORDS //
+    //////////////////////////////////////
+
+MobilizedBody::SphericalCoords::SphericalCoords(Direction d) 
+:   MobilizedBody(new SphericalCoordsImpl(d)) {}
+
+MobilizedBody::SphericalCoords::SphericalCoords
+   (MobilizedBody& parent, const Body& body, Direction d) 
+:   MobilizedBody(new SphericalCoordsImpl(d)) {
+    // inb & outb frames are just the parent body's frame and new body's frame
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
+                                                   *this);
+}
+
+MobilizedBody::SphericalCoords::SphericalCoords
+   (MobilizedBody&  parent, const Transform& inbFrame,
+    const Body&     body,   const Transform& outbFrame,
+    Direction       d) 
+:   MobilizedBody(new SphericalCoordsImpl(d)) {
+    setDefaultInboardFrame(inbFrame);
+    setDefaultOutboardFrame(outbFrame);
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
+                                                   *this);
+}
+
+MobilizedBody::SphericalCoords::SphericalCoords
+   (MobilizedBody&  parent,         const Transform&    inbFrame,
+    const Body&     body,           const Transform&    outbFrame,
+    Real            azimuthOffset,  bool                azimuthNegated,
+    Real            zenithOffset,   bool                zenithNegated,
+    CoordinateAxis  radialAxis,     bool                radialNegated,
+    Direction       d) 
+:   MobilizedBody(new SphericalCoordsImpl(azimuthOffset, azimuthNegated,
+                                          zenithOffset,  zenithNegated,
+                                          radialAxis,    radialNegated,
+                                          d))
+{
+    setDefaultInboardFrame(inbFrame);
+    setDefaultOutboardFrame(outbFrame);
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
+                                                   *this);
+}
+
+MobilizedBody::SphericalCoords& 
+MobilizedBody::SphericalCoords::setRadialAxis(CoordinateAxis axis) {
+    SimTK_APIARGCHECK_ALWAYS(axis != YAxis, "MobilizedBody::SphericalCoords", "setRadialAxis",
+        "SphericalCoords translation (radial) axis must be X or Z; Y is not allowed.");
+    getImpl().invalidateTopologyCache();
+    updImpl().axisT = axis;
+    return *this;
+}
+
+MobilizedBody::SphericalCoords& 
+MobilizedBody::SphericalCoords::setNegateAzimuth(bool shouldNegate) {
+    getImpl().invalidateTopologyCache();
+    updImpl().negAz = shouldNegate;
+    return *this;
+}
+MobilizedBody::SphericalCoords& 
+MobilizedBody::SphericalCoords::setNegateZenith(bool shouldNegate) {
+    getImpl().invalidateTopologyCache();
+    updImpl().negZe = shouldNegate;
+    return *this;
+}
+MobilizedBody::SphericalCoords& 
+MobilizedBody::SphericalCoords::setNegateRadial(bool shouldNegate) {
+    getImpl().invalidateTopologyCache();
+    updImpl().negT = shouldNegate;
+    return *this;
+}
+
+CoordinateAxis MobilizedBody::SphericalCoords::getRadialAxis()    const {return getImpl().axisT;}
+bool           MobilizedBody::SphericalCoords::isAzimuthNegated() const {return getImpl().negAz;}
+bool           MobilizedBody::SphericalCoords::isZenithNegated()  const {return getImpl().negZe;}
+bool           MobilizedBody::SphericalCoords::isRadialNegated()  const {return getImpl().negT;}
+
+const Vec3& MobilizedBody::SphericalCoords::getDefaultQ() const {
+    return getImpl().defaultQ;
+}
+MobilizedBody::SphericalCoords& MobilizedBody::SphericalCoords::setDefaultQ(const Vec3& q) {
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultQ = q;
+    return *this;
+}
+
+const Vec3& MobilizedBody::SphericalCoords::getQ(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQ(s)[qStart]);
+}
+void MobilizedBody::SphericalCoords::setQ(State& s, const Vec3& q) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    Vec3::updAs(&mbr.getMyMatterSubsystemRep().updQ(s)[qStart]) = q;
+}
+const Vec3& MobilizedBody::SphericalCoords::getQDot(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDot(s)[qStart]);
+}
+const Vec3& MobilizedBody::SphericalCoords::getQDotDot(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    QIndex qStart; int nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart]);
+}
+
+
+const Vec3& MobilizedBody::SphericalCoords::getU(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getU(s)[uStart]);
+}
+void MobilizedBody::SphericalCoords::setU(State& s, const Vec3& u) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    Vec3::updAs(&mbr.getMyMatterSubsystemRep().updU(s)[uStart]) = u;
+}
+const Vec3& MobilizedBody::SphericalCoords::getUDot(const State& s) const {
+    const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();
+    UIndex uStart; int nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getUDot(s)[uStart]);
+}
+
+const Vec3& MobilizedBody::SphericalCoords::getMyPartQ(const State& s, const Vector& qlike) const {
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    return Vec3::getAs(&qlike[qStart]);
+}
+
+const Vec3& MobilizedBody::SphericalCoords::getMyPartU(const State& s, const Vector& ulike) const {
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::getAs(&ulike[uStart]);
+}
+
+Vec3& MobilizedBody::SphericalCoords::updMyPartQ(const State& s, Vector& qlike) const {
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    return Vec3::updAs(&qlike[qStart]);
+}
+
+Vec3& MobilizedBody::SphericalCoords::updMyPartU(const State& s, Vector& ulike) const {
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::updAs(&ulike[uStart]);
+}
+
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::SphericalCoords, MobilizedBody::SphericalCoordsImpl, MobilizedBody);
+
     ////////////////////////////
     // MOBILIZED BODY::GIMBAL //
     ////////////////////////////

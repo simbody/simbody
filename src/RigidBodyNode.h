@@ -646,7 +646,7 @@ public:
     // specification. If the mobilizer has been reversed, then X_F0M0=~X_FM, otherwise it is 
     // just X_FM.
     Transform findX_F0M0(const SBPositionCache& pc) const 
-    {   return isReversed() ? Transform(~getX_FM(pc))
+    {   return isReversed() ? Transform(~getX_FM(pc))   // 18 flops
                             : getX_FM(pc); }
 
     // Extract from the cache  X_PB, the cross-joint transformation matrix giving the configuration
@@ -724,6 +724,7 @@ public:
 
     // Return V_F0M0, the cross-joint mobilizer velocity *as it was defined* in the mobilizer 
     // specification. If the mobilizer has not been reversed, this is just V_FM.
+    // 45 flops if reversed.
     SpatialVec findV_F0M0(const SBPositionCache& pc, const SBVelocityCache& vc) const {
         return isReversed() ? reverseSpatialVelocity(getX_FM(pc), getV_FM(vc))
                             : getV_FM(vc);
@@ -732,6 +733,7 @@ public:
     // Return w_F0M0, the cross-joint mobilizer angular velocity *as it was defined* 
     // in the mobilizer specification. If the mobilizer has not been reversed, this is just w_FM.
     // This is a useful and much cheaper subset of findV_F0M0.
+    // 18 flops if reversed.
     Vec3 find_w_F0M0(const SBPositionCache& pc, const SBVelocityCache& vc) const {
         return isReversed() ? reverseAngularVelocity(getX_FM(pc).R(), getV_FM(vc)[0])
                             : getV_FM(vc)[0];

@@ -41,6 +41,7 @@
 #include "RigidBodyNodeSpec_Slider.h"
 #include "RigidBodyNodeSpec_Cylinder.h"
 #include "RigidBodyNodeSpec_Translation.h"
+#include "RigidBodyNodeSpec_SphericalCoords.h"
 #include "RigidBodyNodeSpec_Ball.h"
 #include "RigidBodyNodeSpec_Ellipsoid.h"
 #include "RigidBodyNodeSpec_Free.h"
@@ -178,6 +179,18 @@ RigidBodyNode* MobilizedBody::PlanarImpl::createRigidBodyNode(
 {
     return new RBNodePlanar(getDefaultRigidBodyMassProperties(),
         getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        isReversed(),
+        nextUSlot,nextUSqSlot,nextQSlot);
+}
+
+RigidBodyNode* MobilizedBody::SphericalCoordsImpl::createRigidBodyNode(
+    UIndex&        nextUSlot,
+    USquaredIndex& nextUSqSlot,
+    QIndex&        nextQSlot) const
+{
+    return new RBNodeSphericalCoords(getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        az0, negAz, ze0, negZe, axisT, negT,
         isReversed(),
         nextUSlot,nextUSqSlot,nextQSlot);
 }

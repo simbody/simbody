@@ -533,6 +533,45 @@ private:
     Vec3 defaultQ;  // the angle in radians followed by the two displacements
 };
 
+class MobilizedBody::SphericalCoordsImpl : public MobilizedBodyImpl {
+public:
+    explicit SphericalCoordsImpl(Direction d) 
+    :   MobilizedBodyImpl(d), az0(0), ze0(0), axisT(ZAxis), 
+        negAz(false), negZe(false), negT(false), 
+        defaultQ(0) {}
+
+    SphericalCoordsImpl(Real az0, bool negAz, 
+                        Real ze0, bool negZe,
+                        CoordinateAxis axisT, bool negT,
+                        Direction d) 
+    :   MobilizedBodyImpl(d), az0(az0), ze0(ze0), axisT(axisT), 
+        negAz(negAz), negZe(negZe), negT(negT), 
+        defaultQ(0) {}
+
+    SphericalCoordsImpl* clone() const { return new SphericalCoordsImpl(*this); }
+
+    RigidBodyNode* createRigidBodyNode(
+        UIndex&        nextUSlot,
+        USquaredIndex& nextUSqSlot,
+        QIndex&        nextQSlot) const;
+
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==3, 
+            "MobilizedBody::SphericalCoords::SphericalCoordsImpl::copyOutDefaultQImpl(): wrong number of q's expected");
+        Vec3::updAs(q) = defaultQ;
+    }
+
+    SimTK_DOWNCAST(SphericalCoordsImpl, MobilizedBodyImpl);
+private:
+    friend class MobilizedBody::SphericalCoords;
+
+    Real              az0, ze0;               // angle offsets
+    CoordinateAxis    axisT;                  // translation axis (X or Z)
+    bool              negAz, negZe, negT;     // true if we should negate the corresponding coordinate
+
+    Vec3 defaultQ;  // two angles in radians followed by a displacement
+};
+
 class MobilizedBody::GimbalImpl : public MobilizedBodyImpl {
 public:
     explicit GimbalImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }

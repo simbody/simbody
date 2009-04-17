@@ -1312,21 +1312,26 @@ public:
     //      
 
 
-    class Pin;         typedef Pin    Torsion;
-    class Slider;      typedef Slider Prismatic;
+    class Pin;              typedef Pin             Torsion;
     class Universal;
     class Cylinder;
-    class BendStretch;
-    class TorsionStretch;
+
+    class Weld;
+    class Slider;           typedef Slider          Prismatic;
+    class Translation2D;    typedef Translation2D   Cartesian2D, CartesianCoords2D;
+    class Translation;      typedef Translation     Cartesian, CartesianCoords;
+    class BendStretch;      typedef BendStretch     PolarCoords;
+    class TorsionStretch;   typedef TorsionStretch  ConicalCoords2D;
+    class SphericalCoords;
+    class CylindricalCoords;
+    class LineOrientation;
+
+
     class Planar;
     class Gimbal;
-    class Ball; typedef Ball Orientation, Spherical;
-    class Translation; typedef Translation Cartesian;
-    class SphericalCoord;
+    class Ball;             typedef Ball            Orientation, Spherical;
     class Free;
-    class LineOrientation;
     class FreeLine;
-    class Weld;
     class Screw;
     class Ellipsoid;
     class Custom;
@@ -1343,7 +1348,7 @@ public:
     class GimbalImpl;
     class BallImpl;
     class TranslationImpl;
-    class SphericalCoordImpl;
+    class SphericalCoordsImpl;
     class FreeImpl;
     class LineOrientationImpl;
     class FreeLineImpl;
@@ -1737,6 +1742,121 @@ public:
     Vec3& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Planar, PlanarImpl, MobilizedBody);
+};
+
+/**
+ * Three mobilities -- body fixed 3-2 (z-y) rotation followed by translation
+ * along body z or body x. Interpreted as spherical coordinates the first rotation
+ * is the azimuth angle, the second is the zenith, and the translation is
+ * the radius. We permit a simple mapping from generalized coordinates to
+ * (azimuth, zenith, radius):
+ * <pre>
+ *     azimuth = s0*q0 + az0   (about Fz==Mz)
+ *     zenith  = s1*q1 + ze0   (about My)
+ *     radius  = s2*q2         (along Mz or Mx; Mz is default)
+ * </pre>
+ * where s0,s1,s2 are signs (1 or -1) and az0 and ze0 are offset angles. The
+ * F and M frames are coincident when azimuth==zenith==radius==0. But note
+ * that with non-zero offsets the F and M frames will not be aligned in
+ * the reference configuration where q0==q1==q2==0. The F and M origins
+ * will always be coincident when q2=0, however.
+ *
+ * This mobilizer can be used to give unrestricted 3-d motion to inertialess 
+ * particles (as with a Cartesian mobilizer) but in this case you
+ * must watch for two possible singularities: (1) radius==0, and
+ * (2) zenith==n*Pi (or equivalently q1=n*Pi-s1*ze0). If your operating range 
+ * steers clear of those singularities, you're fine.
+ */
+class SimTK_SIMBODY_EXPORT MobilizedBody::SphericalCoords : public MobilizedBody {
+public:
+    explicit SphericalCoords(Direction=Forward);
+
+    /// By default the parent body frame and the body's own frame are
+    /// used as the inboard and outboard mobilizer frames, resp.
+    SphericalCoords(MobilizedBody& parent, const Body&, Direction=Forward);
+
+    /// Use this constructor to specify mobilizer frames which are
+    /// not coincident with the body frames. This gives you a pure spherical
+    /// coordinate system in which q0=azimuth about Fz(==Mz), q1=zenith about My, 
+    /// and q2=radius along Mz.
+    SphericalCoords(MobilizedBody& parent, const Transform& inbFrame,
+                    const Body&,           const Transform& outbFrame,
+                    Direction=Forward);
+
+    /// Use this constructor to specify the general case described above.
+    SphericalCoords(MobilizedBody& parent,      const Transform& inbFrame,
+                    const Body&,                const Transform& outbFrame,
+                    Real azimuthOffset,         bool azimuthNegated,
+                    Real zenithOffset,          bool zenithNegated,
+                    CoordinateAxis radialAxis,  bool radialNegated,
+                    Direction=Forward);
+
+    SphericalCoords& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    SphericalCoords& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    SphericalCoords& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this;
+    }
+
+    SphericalCoords& setDefaultInboardFrame(const Transform& X_PF) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this;
+    }
+
+    SphericalCoords& setDefaultOutboardFrame(const Transform& X_BM) {
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
+    }
+
+    // Friendly, mobilizer-specific access to coordinates and speeds.
+    SphericalCoords& setDefaultAngles(const Vec2& a) {
+        Vec3 q = getDefaultQ(); q.updSubVec<2>(0) = a; setDefaultQ(q);
+        return *this;
+    }
+    SphericalCoords& setDefaultRadius(Real r) {
+        Vec3 q = getDefaultQ(); q[2] = r; setDefaultQ(q);
+        return *this;
+    }
+    SphericalCoords& setRadialAxis(CoordinateAxis);
+    SphericalCoords& setNegateAzimuth(bool);
+    SphericalCoords& setNegateZenith(bool);
+    SphericalCoords& setNegateRadial(bool);
+
+    const Vec2&    getDefaultAngles()      const {return getDefaultQ().getSubVec<2>(0);}
+    Real           getDefaultTranslation() const {return getDefaultQ()[2];}
+    
+    CoordinateAxis getRadialAxis()    const;
+    bool           isAzimuthNegated() const;
+    bool           isZenithNegated()  const;
+    bool           isRadialNegated()  const;
+
+    void setAngles(State& s, const Vec2& a) {setOneQ(s,0,a[0]); setOneQ(s,1,a[1]);}
+    void setRadius(State& s, Real        r) {setOneQ(s,2,r);}
+
+    const Vec2& getAngles(const State& s) const {return getQ(s).getSubVec<2>(0);}
+    Real        getRadius(const State& s) const {return getQ(s)[2];}
+
+    // Generic default state Topology methods.
+    const Vec3& getDefaultQ() const;
+    SphericalCoords& setDefaultQ(const Vec3& q);
+
+    const Vec3& getQ(const State&) const;
+    const Vec3& getQDot(const State&) const;
+    const Vec3& getQDotDot(const State&) const;
+    const Vec3& getU(const State&) const;
+    const Vec3& getUDot(const State&) const;
+
+    void setQ(State&, const Vec3&) const;
+    void setU(State&, const Vec3&) const;
+
+    const Vec3& getMyPartQ(const State&, const Vector& qlike) const;
+    const Vec3& getMyPartU(const State&, const Vector& ulike) const;
+   
+    Vec3& updMyPartQ(const State&, Vector& qlike) const;
+    Vec3& updMyPartU(const State&, Vector& ulike) const;
+
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(SphericalCoords, SphericalCoordsImpl, MobilizedBody);
 };
 
 /// Three mobilities -- unrestricted orientation modeled as a 1-2-3
