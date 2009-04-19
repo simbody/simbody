@@ -41,7 +41,7 @@ bool VerletIntegratorRep::attemptAStep(Real t0, Real t1,
                                        const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
                                        const Vector& u0, const Vector& udot0, 
                                        const Vector& z0, const Vector& zdot0, 
-                                       Vector& yErrEst, int& errOrder)
+                                       Vector& yErrEst, int& errOrder, int& numIterations)
 {
     // We will catch any exceptions thrown by realize() or project() and simply treat that
     // as a failure to take a step due to the step size being too big. The idea is that the
@@ -52,6 +52,7 @@ bool VerletIntegratorRep::attemptAStep(Real t0, Real t1,
   {
     statsStepsAttempted++;
     errOrder = 3;
+    numIterations = 0;
     const Real h = t1-t0;
     State& advanced = updAdvancedState();
 
@@ -97,7 +98,9 @@ bool VerletIntegratorRep::attemptAStep(Real t0, Real t1,
     const Real tol = std::min(1e-4, 0.1*getAccuracyInUse());
     Vector usave(nu), zsave(nz); // temporaries
     bool converged = false;
+    Real prevChange = Infinity; // use this to quit early
     for (int i = 0; !converged && i < 10; ++i) {
+        ++numIterations;
         // At this point we know that the advanced state has been realized
         // through the Acceleration level, so its uDot and zDot reflect
         // the u and z state values it contains.
@@ -128,7 +131,11 @@ bool VerletIntegratorRep::attemptAStep(Real t0, Real t1,
         
         const Real convergenceU = (advanced.getU()-usave).norm()/(usave.norm()+TinyReal);
         const Real convergenceZ = (advanced.getZ()-zsave).norm()/(zsave.norm()+TinyReal);
-        converged = std::max(convergenceU,convergenceZ) <= tol;
+        const Real change = std::max(convergenceU,convergenceZ);
+        converged = (change <= tol);
+        if (i > 1 && (change > prevChange))
+            break; // we're headed in the wrong direction after two iterations -- give up
+        prevChange = change;
     }
 
     // Now that we have achieved 2nd order estimates of u and z, we can use them to calculate a 3rd order

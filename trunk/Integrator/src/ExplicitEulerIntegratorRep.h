@@ -43,7 +43,7 @@ protected:
     bool attemptAStep(Real t0, Real t1, 
                       const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
                       const Vector& u0, const Vector& udot0, const Vector& z0, 
-                      const Vector& zdot0, Vector& yErrEst, int& errOrder);
+                      const Vector& zdot0, Vector& yErrEst, int& errOrder, int& numIterations);
     void createInterpolatedState(Real t);
     void backUpAdvancedStateByInterpolation(Real t);
 };

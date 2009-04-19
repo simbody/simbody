@@ -296,8 +296,17 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         bool hWasArtificiallyLimited = (tMax < t0+currentStepSize);
         t1 = std::min(tMax, t0+currentStepSize);
         int errOrder;
-        bool converged = attemptAStep(t0, t1, q0, qdot0, qdotdot0, u0, udot0, z0, zdot0, err, errOrder);
-        Real rmsErr = (converged ? calcWeightedRMSNorm(err, getDynamicSystemWeights()) : Infinity);
+        int numIterations=1; // non-iterative methods can ignore this
+        bool converged = attemptAStep(t0, t1, q0, qdot0, qdotdot0, u0, udot0, z0, zdot0, err, errOrder, numIterations);
+        Real rmsErr;
+        if (converged) {
+            rmsErr = calcWeightedRMSNorm(err, getDynamicSystemWeights());
+            statsConvergentIterations += numIterations;
+        } else {
+            rmsErr = Infinity; // step didn't converge so error is *very* bad!
+            ++statsConvergenceTestFailures;
+            statsDivergentIterations += numIterations;
+        }
         if (hasErrorControl)
             stepSucceeded = adjustStepSize(rmsErr, errOrder, hWasArtificiallyLimited);
         else
@@ -519,24 +528,39 @@ Real AbstractIntegratorRep::getPredictedNextStepSize() const {
     return currentStepSize;
 }
 
-long AbstractIntegratorRep::getNStepsAttempted() const {
+long AbstractIntegratorRep::getNumStepsAttempted() const {
     assert(initialized);
     return statsStepsAttempted;
 }
 
-long AbstractIntegratorRep::getNStepsTaken() const {
+long AbstractIntegratorRep::getNumStepsTaken() const {
     assert(initialized);
     return statsStepsTaken;
 }
 
-long AbstractIntegratorRep::getNErrorTestFailures() const {
+long AbstractIntegratorRep::getNumErrorTestFailures() const {
     return statsErrorTestFailures;
+}
+long AbstractIntegratorRep::getNumConvergenceTestFailures() const {
+    return statsConvergenceTestFailures;
+}
+long AbstractIntegratorRep::getNumConvergentIterations() const {
+    return statsConvergentIterations;
+}
+long AbstractIntegratorRep::getNumDivergentIterations() const {
+    return statsDivergentIterations;
+}
+long AbstractIntegratorRep::getNumIterations() const {
+    return statsConvergentIterations + statsDivergentIterations;
 }
 
 void AbstractIntegratorRep::resetMethodStatistics() {
     statsStepsTaken = 0;
     statsStepsAttempted = 0;
     statsErrorTestFailures = 0;
+    statsConvergenceTestFailures = 0;
+    statsConvergentIterations = 0;
+    statsDivergentIterations = 0;
 }
 
 const char* AbstractIntegratorRep::getMethodName() const {

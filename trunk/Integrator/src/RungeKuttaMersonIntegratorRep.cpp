@@ -55,7 +55,7 @@ RungeKuttaMersonIntegratorRep::RungeKuttaMersonIntegratorRep(Integrator* handle,
 bool RungeKuttaMersonIntegratorRep::attemptAStep(Real t0, Real t1, 
                   const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
                   const Vector& u0, const Vector& udot0, const Vector& z0, 
-                  const Vector& zdot0, Vector& y1err, int& errOrder)
+                  const Vector& zdot0, Vector& y1err, int& errOrder, int& numIterations)
 {
     assert(t1 > t0);
 
@@ -122,6 +122,6 @@ bool RungeKuttaMersonIntegratorRep::attemptAStep(Real t0, Real t1,
 
     // Don't do final evaluation yet because we won't need it if
     // we fail the error test.
-
+    numIterations = 1;
     return true;
 }

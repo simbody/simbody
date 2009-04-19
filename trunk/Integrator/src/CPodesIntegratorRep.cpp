@@ -276,9 +276,11 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
             previousStartTime = getAdvancedTime();
             Vector yout(getAdvancedState().getY().size());
             Vector ypout(getAdvancedState().getY().size()); // ignored
-            long oldSteps = 0, oldTestFailures = 0, oldNonlinConvFailures = 0, oldProjections = 0, oldProjectionFailures = 0;
+            long oldSteps=0, oldTestFailures=0, oldNonlinIterations=0, oldNonlinConvFailures=0, 
+                 oldProjections=0, oldProjectionFailures=0;
             cpodes->getNumSteps(&oldSteps);
             cpodes->getNumErrTestFails(&oldTestFailures);
+            cpodes->getNumNonlinSolvIters(&oldNonlinIterations);
             cpodes->getNumNonlinSolvConvFails(&oldNonlinConvFailures);
             cpodes->getProjNumProj(&oldProjections);
             cpodes->getProjNumFailures(&oldProjectionFailures);
@@ -294,9 +296,11 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
                 yout = getAdvancedState().getY();
                 res = 0;
             }
-            long newSteps = 0, newTestFailures = 0, newNonlinConvFailures = 0, newProjections = 0, newProjectionFailures = 0;
+            long newSteps=0, newTestFailures=0, newNonlinIterations=0, newNonlinConvFailures=0,
+                 newProjections=0, newProjectionFailures=0;
             cpodes->getNumSteps(&newSteps);
             cpodes->getNumErrTestFails(&newTestFailures);
+            cpodes->getNumNonlinSolvIters(&newNonlinIterations);
             cpodes->getNumNonlinSolvConvFails(&newNonlinConvFailures);
             cpodes->getProjNumProj(&newProjections);
             cpodes->getProjNumFailures(&newProjectionFailures);
@@ -304,7 +308,8 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
             statsErrorTestFailures += newTestFailures-oldTestFailures;
             statsProjections += newProjections-oldProjections;
             statsProjectionFailures += newProjectionFailures-oldProjectionFailures;
-            statsOtherFailures += newNonlinConvFailures-oldNonlinConvFailures;
+            statsIterations += newNonlinIterations-oldNonlinIterations;
+            statsConvergenceTestFailures += newNonlinConvFailures-oldNonlinConvFailures;
             updAdvancedState().updY() = yout;
             previousTimeReturned = tret;
         }
@@ -427,25 +432,36 @@ Real CPodesIntegratorRep::getPredictedNextStepSize() const {
     return size;
 }
 
-long CPodesIntegratorRep::getNStepsAttempted() const {
+long CPodesIntegratorRep::getNumStepsAttempted() const {
     assert(initialized);
-    return statsStepsTaken+statsErrorTestFailures+statsProjectionFailures+statsOtherFailures;
+    return statsStepsTaken+statsErrorTestFailures+statsConvergenceTestFailures+statsProjectionFailures;
 }
 
-long CPodesIntegratorRep::getNStepsTaken() const {
+long CPodesIntegratorRep::getNumStepsTaken() const {
     assert(initialized);
     return statsStepsTaken;
 }
 
-long CPodesIntegratorRep::getNErrorTestFailures() const {
+long CPodesIntegratorRep::getNumErrorTestFailures() const {
     assert(initialized);
     return statsErrorTestFailures;
+}
+
+long CPodesIntegratorRep::getNumConvergenceTestFailures() const {
+    assert(initialized);
+    return statsConvergenceTestFailures;
+}
+
+long CPodesIntegratorRep::getNumIterations() const {
+    assert(initialized);
+    return statsIterations;
 }
 
 void CPodesIntegratorRep::resetMethodStatistics() {
     statsStepsTaken = 0;
     statsErrorTestFailures = 0;
-    statsOtherFailures = 0;
+    statsConvergenceTestFailures = 0;
+    statsIterations = 0;
 }
 
 const char* CPodesIntegratorRep::getMethodName() const {

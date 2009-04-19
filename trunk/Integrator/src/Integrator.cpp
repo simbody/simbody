@@ -187,28 +187,36 @@ Real Integrator::getPreviousStepSizeTaken() const {
 Real Integrator::getPredictedNextStepSize() const {
     return getRep().getPredictedNextStepSize();
 }
-long Integrator::getNStepsAttempted() const {
-    return getRep().getNStepsAttempted();
+long Integrator::getNumStepsAttempted() const {
+    return getRep().getNumStepsAttempted();
 }
-long Integrator::getNStepsTaken() const {
-    return getRep().getNStepsTaken();
+long Integrator::getNumStepsTaken() const {
+    return getRep().getNumStepsTaken();
 }
-long Integrator::getNRealizations() const {
-    return getRep().getNRealizations();
+long Integrator::getNumRealizations() const {
+    return getRep().getNumRealizations();
 }
-long Integrator::getNProjections() const {
-    return getRep().getNProjections();
+long Integrator::getNumProjections() const {
+    return getRep().getNumProjections();
 }
-long Integrator::getNErrorTestFailures() const {
-    return getRep().getNErrorTestFailures();
+long Integrator::getNumErrorTestFailures() const {
+    return getRep().getNumErrorTestFailures();
 }
-long Integrator::getNRealizationFailures() const {
-    return getRep().getNRealizationFailures();
+long Integrator::getNumRealizationFailures() const {
+    return getRep().getNumRealizationFailures();
 }
-long Integrator::getNProjectionFailures() const {
-    return getRep().getNProjectionFailures();
+long Integrator::getNumProjectionFailures() const {
+    return getRep().getNumProjectionFailures();
 }
-
+long Integrator::getNumConvergentIterations() const {
+    return getRep().getNumConvergentIterations();
+}
+long Integrator::getNumDivergentIterations() const {
+    return getRep().getNumDivergentIterations();
+}
+long Integrator::getNumIterations() const {
+    return getRep().getNumIterations();
+}
 
 void Integrator::setFinalTime(Real tFinal) {
     assert(tFinal == -1. || (0. <= tFinal));

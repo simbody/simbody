@@ -55,25 +55,33 @@ public:
     Real getActualInitialStepSizeTaken() const;
     Real getPreviousStepSizeTaken() const;
     Real getPredictedNextStepSize() const;
-    long getNStepsAttempted() const;
-    long getNStepsTaken() const;
-    long getNErrorTestFailures() const;
+    long getNumStepsAttempted() const;
+    long getNumStepsTaken() const;
+    long getNumErrorTestFailures() const;
+    long getNumConvergenceTestFailures() const;
+    long getNumConvergentIterations() const;
+    long getNumDivergentIterations() const;
+    long getNumIterations() const;
     void resetMethodStatistics();
     const char* getMethodName() const;
     int getMethodMinOrder() const;
     int getMethodMaxOrder() const;
     bool methodHasErrorControl() const;
+
 protected:
     /**
      * Given initial values for all the continuous variables y=(q,u,z) and their derivatives
      * (not necessarily what's in advancedState currently), take a trial step of size 
      * h=(t1-t0), optimistically storing the result in advancedState.
      * Also estimate the absolute error in each element of y, and store them in yErrEst.
+     * Returns true if the step converged (always true for non-iterative methods), false otherwise.
+     * The number of internal iterations just for this step is return in numIterations, which
+     * should always be 1 for non-iterative methods.
      */
     virtual bool attemptAStep(Real t0, Real t1, 
                       const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
                       const Vector& u0, const Vector& udot0, const Vector& z0, 
-                      const Vector& zdot0, Vector& yErrEst, int& errOrder) = 0;
+                      const Vector& zdot0, Vector& yErrEst, int& errOrder, int& numIterations) = 0;
     /**
      * Evaluate the error that occurred in the step we just attempted, and select a new
      * step size accordingly.  The default implementation should work well for most integrators.
@@ -99,7 +107,11 @@ protected:
      * spline interpolation.
      */
     virtual void backUpAdvancedStateByInterpolation(Real t);
-    long statsStepsTaken, statsStepsAttempted, statsErrorTestFailures;
+    long statsStepsTaken, statsStepsAttempted, statsErrorTestFailures, statsConvergenceTestFailures;
+
+    // Iterative methods should count iterations and then classify them as 
+    // iterations that led to successful convergence and those that didn't.
+    long statsConvergentIterations, statsDivergentIterations;
 private:
     bool takeOneStep(Real tMax, Real tReport);
     bool initialized, hasErrorControl;

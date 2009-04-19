@@ -298,22 +298,35 @@ public:
 
     /// Get the total number of steps that have been attempted (successfully or unsuccessfully) since
     /// the last call to resetAllStatistics().
-    long getNStepsAttempted() const;
+    long getNumStepsAttempted() const;
     /// Get the total number of steps that have been successfully taken since the last call to resetAllStatistics().
-    long getNStepsTaken() const; 
+    long getNumStepsTaken() const; 
     /// Get the total number of state realizations that have been performed since the last call to resetAllStatistics().
-    long getNRealizations() const;
+    long getNumRealizations() const;
     /// Get the total number of times a state has been projected since the last call to resetAllStatistics().
-    long getNProjections() const;
+    long getNumProjections() const;
     /// Get the number of attempted steps that have failed due to the error being unacceptably high since
     /// the last call to resetAllStatistics().
-    long getNErrorTestFailures() const;
+    long getNumErrorTestFailures() const;
+    /// Get the number of attempted steps that failed due to non-convergence of internal step iterations.
+    /// This applies only to iterative methods and is reset to zero by resetAllStatistics.
+    long getNumConvergenceTestFailures() const;
     /// Get the number of attempted steps that have failed due to an error when realizing the state since
     /// the last call to resetAllStatistics().
-    long getNRealizationFailures() const;
+    long getNumRealizationFailures() const;
     /// Get the number of attempted steps that have failed due to an error when projecting the state since
     /// the last call to resetAllStatistics().
-    long getNProjectionFailures() const;
+    long getNumProjectionFailures() const;
+    /// For iterative methods, get the number of internal step iterations in steps that led to 
+    /// convergence (not necessarily successful steps). Reset to zero by resetAllStatistics().
+    long getNumConvergentIterations() const;
+    /// For iterative methods, get the number of internal step iterations in steps that did not lead 
+    /// to convergence. Reset to zero by resetAllStatistics().
+    long getNumDivergentIterations() const;
+    /// For iterative methods, this is the total number of internal step iterations taken regardless
+    /// of whether those iterations led to convergence or to successful steps. This is the sum of
+    /// the number of convergent and divergent iterations which are available separately.
+    long getNumIterations() const;
 
     /// Set the time at which the simulation should end.  The default is infinity.  Some integrators may
     /// not support this option.
@@ -375,6 +388,15 @@ public:
     /// Set whether interpolated states should be projected back to the constraint manifold after
     /// interpolation is performed.
     void setProjectInterpolatedStates(bool shouldProject);
+
+    // OBSOLETE
+    long getNStepsAttempted() const {return getNumStepsAttempted();}
+    long getNStepsTaken() const {return getNumStepsTaken();} 
+    long getNRealizations() const {return getNumRealizations();}
+    long getNProjections() const {return getNumProjections();}
+    long getNErrorTestFailures() const {return getNumErrorTestFailures();}
+    long getNRealizationFailures() const {return getNumRealizationFailures();}
+    long getNProjectionFailures() const {return getNumProjectionFailures();}
 
 protected:
     const IntegratorRep& getRep() const {assert(rep); return *rep;}

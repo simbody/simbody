@@ -286,9 +286,12 @@ public:
     // What step size will be attempted first on the next step() call?
     virtual Real getPredictedNextStepSize() const = 0;
 
-    virtual long getNStepsAttempted() const = 0;
-    virtual long getNStepsTaken() const = 0; 
-    virtual long getNErrorTestFailures() const = 0;
+    virtual long getNumStepsAttempted() const = 0;
+    virtual long getNumStepsTaken() const = 0; 
+    virtual long getNumErrorTestFailures() const = 0;
+    virtual long getNumConvergentIterations() const = 0;
+    virtual long getNumDivergentIterations() const = 0;
+    virtual long getNumIterations() const = 0;
 
     virtual void resetMethodStatistics() {
     }
@@ -679,16 +682,16 @@ protected:
         statsProjectionFailures = 0;
     }
 
-    long getNRealizations() const {
+    long getNumRealizations() const {
         return statsRealizations;
     } 
-    long getNProjections() const {
+    long getNumProjections() const {
         return statsProjections;
     } 
-    long getNRealizationFailures() const {
+    long getNumRealizationFailures() const {
         return statsRealizationFailures;
     } 
-    long getNProjectionFailures() const {
+    long getNumProjectionFailures() const {
         return statsProjectionFailures;
     } 
 

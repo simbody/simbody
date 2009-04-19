@@ -65,7 +65,7 @@ bool ExplicitEulerIntegratorRep::attemptAStep(Real t0, Real t1,
                                        const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
                                        const Vector& u0, const Vector& udot0, 
                                        const Vector& z0, const Vector& zdot0, 
-                                       Vector& yErrEst, int& errOrder)
+                                       Vector& yErrEst, int& errOrder, int& numIterations)
 {
     statsStepsAttempted++;
     State& advanced = updAdvancedState();
@@ -81,6 +81,7 @@ bool ExplicitEulerIntegratorRep::attemptAStep(Real t0, Real t1,
     
     yErrEst -= getPreviousY() + (t1-t0)*0.5*(getPreviousYDot()+advanced.getYDot());
     errOrder = 2;
+    numIterations = 1;
     return true;
 }
 
