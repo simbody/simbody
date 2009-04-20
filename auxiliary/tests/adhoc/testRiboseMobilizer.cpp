@@ -17,27 +17,27 @@ Real angstroms = 0.10;
 Real nanometers = 1.0;
 Real daltons = 1.0;
 
-class ZeroFunction : public Function<1>::Constant {
+class ZeroFunction : public Function::Constant {
 public:
-        ZeroFunction() : Function<1>::Constant(Vec1(0), 0) {}
+        ZeroFunction() : Function::Constant(0, 0) {}
 };
 
-class UnityFunction : public Function<1>::Constant {
+class UnityFunction : public Function::Constant {
 public:
-    UnityFunction() : Function<1>::Constant(Vec1(1.0), 0) {}
+    UnityFunction() : Function::Constant(1.0, 0) {}
 };
 
-class IdentityFunction : public Function<1> {
+class IdentityFunction : public Function {
 public:
     IdentityFunction() {}
 
-	Vec<1> calcValue(const Vector& x) const{
-        return Vec<1>(x[0]);
+	Real calcValue(const Vector& x) const{
+        return x[0];
     }
 
-	Vec<1> calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
-        if (derivComponents.size() == 1) return Vec<1>(1.0);
-        else return Vec<1>(0.0);
+	Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
+        if (derivComponents.size() == 1) return 1.0;
+        else return 0.0;
     }
 
 	int getArgumentSize() const {return 1;}
@@ -47,16 +47,16 @@ public:
 
 // Difference between two components of a two component vector
 // Used as a target function for equality coupling constraint
-class DifferenceFunction : public Function<1>::Linear {
+class DifferenceFunction : public Function::Linear {
 public:
-    DifferenceFunction() : Function<1>::Linear( createCoefficients() ) {}
+    DifferenceFunction() : Function::Linear( createCoefficients() ) {}
 
 private:
-    static Vector_< Vec<1> > createCoefficients() {
-        Vector_< Vec<1> > answer(3);
-        answer[0] = Vec<1>(1.0); // ax
-        answer[1] = Vec<1>(-1.0); // -by
-        answer[2] = Vec<1>(0.0); // +c
+    static Vector createCoefficients() {
+        Vector answer(3);
+        answer[0] = 1.0; // ax
+        answer[1] = -1.0; // -by
+        answer[2] = 0.0; // +c
         return answer;
     }
 };
@@ -67,9 +67,9 @@ private:
 /// df/dx = 2(x-y) + 2(x-z)
 /// df/dx^2 = 4
 /// df/dxdy = -2
-class ThreeDifferencesFunction : public Function<1> {
+class ThreeDifferencesFunction : public Function {
 public:
-    Vec<1> calcValue(const Vector& x) const 
+    Real calcValue(const Vector& x) const
     {
         assert( 3 == x.size() );
 
@@ -77,12 +77,12 @@ public:
         Real dxz(x[0] - x[2]);
         Real dyz(x[1] - x[2]);
 
-        return Vec<1>(dxy*dxy + dxz*dxz + dyz*dyz);
+        return dxy*dxy + dxz*dxz + dyz*dyz;
     }
 
-	Vec<1> calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const
+	Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const
     {
-		Vec<1> deriv(0);
+		Real deriv = 0;
 	
 		assert(3 == x.size());
 		
@@ -121,7 +121,7 @@ public:
 };
 
 /// Implements a simple functional relationship, y = amplitude * sin(x - phase)
-class SinusoidFunction : public Function<1> {
+class SinusoidFunction : public Function {
 private:
 	angle_t amplitude;
 	angle_t phase;
@@ -135,13 +135,13 @@ public:
 	SinusoidFunction(angle_t amp, angle_t phi)
 	: amplitude(amp), phase(phi) {}
 	
-	Vec<1> calcValue(const Vector& x) const{
+	Real calcValue(const Vector& x) const{
         assert( 1 == x.size() );
-        return Vec<1>( angle_t(amplitude*sin(x[0]*radians - phase)) );
+        return angle_t(amplitude*sin(x[0]*radians - phase));
 	}
 	
-	Vec<1> calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
-		Vec<1> deriv(0);
+	Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
+		Real deriv = 0;
 	
 		assert(1 == x.size());
 		
@@ -150,19 +150,19 @@ public:
 
 		// Derivatives 1, 5, 9, 13, ... are cos()
 		if      ( 1 == derivOrder ) {
-			deriv[0] = angle_t(amplitude*cos(x[0]*radians - phase));
+			deriv = angle_t(amplitude*cos(x[0]*radians - phase));
 		}
 		// Derivatives 2, 6, 10, 14, ... are -sin()
 		else if ( 2 == derivOrder ) {
-			deriv[0] = angle_t(-amplitude*sin(x[0]*radians - phase));
+			deriv = angle_t(-amplitude*sin(x[0]*radians - phase));
 		}
 		// Derivatives 3, 7, 11, 15, ... are -cos()
 		else if ( 3 == derivOrder ) {
-			deriv[0] = angle_t(-amplitude*cos(x[0]*radians - phase));
+			deriv = angle_t(-amplitude*cos(x[0]*radians - phase));
 		}
 		// Derivatives 0, 4, 8, 12, ... are sin()
 		else if ( 0 == derivOrder ) {
-			deriv[0] = angle_t(amplitude*sin(x[0]*radians - phase));
+			deriv = angle_t(amplitude*sin(x[0]*radians - phase));
 		}
 		else assert(false);
 		
@@ -201,8 +201,8 @@ public:
         {}
 
 private:
-    static std::vector< const Function<1>* > createFunctions() {
-        std::vector< const Function<1>* > functions;
+    static std::vector< const Function* > createFunctions() {
+        std::vector< const Function* > functions;
         functions.push_back(new ZeroFunction ); // x rotation
         functions.push_back(new ZeroFunction ); // y rotation
 
@@ -256,8 +256,8 @@ public:
         {}
 
 private:
-    static std::vector< const Function<1>* > createFunctions(angle_t amplitude, angle_t phase) {
-        std::vector< const Function<1>* > functions;
+    static std::vector< const Function* > createFunctions(angle_t amplitude, angle_t phase) {
+        std::vector< const Function* > functions;
         functions.push_back(new ZeroFunction ); // x rotation
         functions.push_back(new ZeroFunction ); // y rotation
 

@@ -2220,7 +2220,7 @@ void MobilizedBody::Custom::Implementation::setUToFitVelocity(const State& state
 // Constructors without user-specified axes for function-based mobilized body
 MobilizedBody::FunctionBased::FunctionBased
    (MobilizedBody& parent, const Body& body, 
-    int nmobilities, const std::vector<const Function<1>*>& functions, 
+    int nmobilities, const std::vector<const Function*>& functions,
     const std::vector<std::vector<int> >& coordIndices,
     Direction direction)
 :   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices), body, direction) 
@@ -2230,7 +2230,7 @@ MobilizedBody::FunctionBased::FunctionBased
 MobilizedBody::FunctionBased::FunctionBased
    (MobilizedBody& parent, const Transform& inbFrame, 
     const Body& body, const Transform& outbFrame, 
-    int nmobilities, const std::vector<const Function<1>*>& functions, 
+    int nmobilities, const std::vector<const Function*>& functions,
     const std::vector<std::vector<int> >& coordIndices,
     Direction direction)
 :   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices), body, direction) 
@@ -2242,7 +2242,7 @@ MobilizedBody::FunctionBased::FunctionBased
 // Constructors that allow user-specified axes for function-based mobilized body
 MobilizedBody::FunctionBased::FunctionBased
    (MobilizedBody& parent, const Body& body, 
-    int nmobilities, const std::vector<const Function<1>*>& functions, 
+    int nmobilities, const std::vector<const Function*>& functions,
     const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes,
     Direction direction)
 :   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices, axes), body, direction) {
@@ -2251,7 +2251,7 @@ MobilizedBody::FunctionBased::FunctionBased
 MobilizedBody::FunctionBased::FunctionBased
    (MobilizedBody& parent, const Transform& inbFrame, 
     const Body& body, const Transform& outbFrame, 
-    int nmobilities, const std::vector<const Function<1>*>& functions, 
+    int nmobilities, const std::vector<const Function*>& functions,
     const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes,
     Direction direction)
 :   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices, axes), body, direction) {

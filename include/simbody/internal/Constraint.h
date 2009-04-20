@@ -1283,7 +1283,7 @@ public:
      * @param coordBody   the MobilizedBody corresponding to each generalized coordinate that should be passed as a function argument
      * @param coordIndex  the index corresponding to each generalized coordinate that should be passed as a function argument
      */
-    CoordinateCoupler(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
+    CoordinateCoupler(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
 };
 
 /**
@@ -1311,7 +1311,7 @@ public:
      * @param speedBody   the MobilizedBody corresponding to each generalized speed that should be passed as a function argument
      * @param speedIndex  the index corresponding to each generalized speed that should be passed as a function argument
      */
-    SpeedCoupler(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex);
+    SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex);
     /**
      * Create a SpeedCoupler.  You specify a Function and a list of generalized coordinates and speeds to pass to it as arguments.
      * Each generalized speed is specified by a MobilizedBody and the index of the speeds within that body.  For example
@@ -1328,7 +1328,7 @@ public:
      * @param coordBody   the MobilizedBody corresponding to each generalized coordinate that should be passed as a function argument
      * @param coordIndex  the index corresponding to each generalized coordinate that should be passed as a function argument
      */
-    SpeedCoupler(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
+    SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
             const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
 };
 
@@ -1350,7 +1350,7 @@ public:
      * @param coordBody   the MobilizedBody corresponding to the generalized coordinate which will be constrained
      * @param coordIndex  the index of the generalized coordinate which will be constrained
      */
-    PrescribedMotion(SimbodyMatterSubsystem& matter, const Function<1>* function, MobilizedBodyIndex coordBody, MobilizerQIndex coordIndex);
+    PrescribedMotion(SimbodyMatterSubsystem& matter, const Function* function, MobilizedBodyIndex coordBody, MobilizerQIndex coordIndex);
 };
 
 } // namespace SimTK

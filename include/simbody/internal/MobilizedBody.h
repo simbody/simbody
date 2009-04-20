@@ -2859,7 +2859,7 @@ public:
      * @param direction      whether you want the coordinates defined as though parent & child were swapped
      */
     FunctionBased(MobilizedBody& parent, const Body& body, 
-                  int nmobilities, const std::vector<const Function<1>*>& functions, 
+                  int nmobilities, const std::vector<const Function*>& functions,
                   const std::vector<std::vector<int> >& coordIndices,
                   Direction direction=Forward);
     /* Create a FunctionBased MobilizedBody.
@@ -2879,7 +2879,7 @@ public:
      */
     FunctionBased(MobilizedBody& parent, const Transform& inbFrame, 
                   const Body& body, const Transform& outbFrame, 
-                  int nmobilities, const std::vector<const Function<1>*>& functions, 
+                  int nmobilities, const std::vector<const Function*>& functions,
                   const std::vector<std::vector<int> >& coordIndices,
                   Direction direction=Forward);
     /* Create a FunctionBased MobilizedBody.
@@ -2898,7 +2898,7 @@ public:
      * @param direction      whether you want the coordinates defined as though parent & child were swapped
      */
     FunctionBased(MobilizedBody& parent, const Body& body, 
-                  int nmobilities, const std::vector<const Function<1>*>& functions, 
+                  int nmobilities, const std::vector<const Function*>& functions,
                   const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes,
                   Direction direction=Forward);
     /* Create a FunctionBased MobilizedBody.
@@ -2920,7 +2920,7 @@ public:
 	 */
     FunctionBased(MobilizedBody& parent, const Transform& inbFrame, 
                   const Body& body, const Transform& outbFrame, 
-                  int nmobilities, const std::vector<const Function<1>*>& functions, 
+                  int nmobilities, const std::vector<const Function*>& functions,
                   const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes,
                   Direction direction=Forward);
 };

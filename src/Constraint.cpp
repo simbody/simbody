@@ -1913,11 +1913,11 @@ applyAccelerationConstraintForces
     // CONSTRAINT::COORDINATE COUPLER //
     ////////////////////////////////////
 
-Constraint::CoordinateCoupler::CoordinateCoupler(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
+Constraint::CoordinateCoupler::CoordinateCoupler(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
         : Custom(new CoordinateCouplerImpl(matter, function, coordBody, coordIndex)) {
 }
 
-Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
+Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
         : Implementation(matter, 1, 0, 0), function(function), coordBodies(coordBody.size()), coordIndices(coordIndex), temp(coordBodies.size()), referenceCount(new int[1]) {
     assert(coordBodies.size() == coordIndices.size());
     assert(coordIndices.size() == function->getArgumentSize());
@@ -1934,7 +1934,7 @@ Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl(SimbodyMatterSubsystem&
 void Constraint::CoordinateCouplerImpl::realizePositionErrors(const State& s, int mp,  Real* perr) const {
     for (int i = 0; i < temp.size(); ++i)
         temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
-    perr[0] = function->calcValue(temp)[0];
+    perr[0] = function->calcValue(temp);
 }
 
 void Constraint::CoordinateCouplerImpl::realizePositionDotErrors(const State& s, int mp,  Real* pverr) const {
@@ -1944,7 +1944,7 @@ void Constraint::CoordinateCouplerImpl::realizePositionDotErrors(const State& s,
     std::vector<int> components(1);
     for (int i = 0; i < temp.size(); ++i) {
         components[0] = i;
-        pverr[0] += function->calcDerivative(components, temp)[0]*getOneQDot(s, coordBodies[i], coordIndices[i], true);
+        pverr[0] += function->calcDerivative(components, temp)*getOneQDot(s, coordBodies[i], coordIndices[i], true);
     }
 }
 
@@ -1959,7 +1959,7 @@ void Constraint::CoordinateCouplerImpl::realizePositionDotDotErrors(const State&
         Real qdoti = getOneQDot(s, coordBodies[i], coordIndices[i], true);
         for (int j = 0; j < temp.size(); ++j) {
             components[1] = j;
-            paerr[0] += function->calcDerivative(components, temp)[0]*qdoti*getOneQDot(s, coordBodies[j], coordIndices[j], true);
+            paerr[0] += function->calcDerivative(components, temp)*qdoti*getOneQDot(s, coordBodies[j], coordIndices[j], true);
         }
     }
     std::vector<int> component(1);
@@ -1972,7 +1972,7 @@ void Constraint::CoordinateCouplerImpl::realizePositionDotDotErrors(const State&
         const MobilizedBody& body = matter.getMobilizedBody(getMobilizedBodyIndexOfConstrainedMobilizer(coordBodies[i]));
         const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
         node.calcQDotDot(digest, udot, qdotdot);
-        paerr[0] += function->calcDerivative(component, temp)[0]*body.getOneFromQPartition(s, coordIndices[i], qdotdot);
+        paerr[0] += function->calcDerivative(component, temp)*body.getOneFromQPartition(s, coordIndices[i], qdotdot);
     }
 }
 
@@ -1985,7 +1985,7 @@ void Constraint::CoordinateCouplerImpl::applyPositionConstraintForces(const Stat
     std::vector<int> components(1);
     for (int i = 0; i < temp.size(); ++i) {
         components[0] = i;
-        Real force = multipliers[0]*function->calcDerivative(components, temp)[0];
+        Real force = multipliers[0]*function->calcDerivative(components, temp);
         const MobilizedBody& body = matter.getMobilizedBody(getMobilizedBodyIndexOfConstrainedMobilizer(coordBodies[i]));
         const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
         Vector q = body.getQAsVector(s);
@@ -2002,16 +2002,16 @@ void Constraint::CoordinateCouplerImpl::applyPositionConstraintForces(const Stat
     // CONSTRAINT::SPEED COUPLER //
     ///////////////////////////////
 
-Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex)
+Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex)
         : Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, std::vector<MobilizedBodyIndex>(0), std::vector<MobilizerQIndex>(0))) {
 }
 
-Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
+Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
         const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
         : Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, coordBody, coordIndex)) {
 }
 
-Constraint::SpeedCouplerImpl::SpeedCouplerImpl(SimbodyMatterSubsystem& matter, const Function<1>* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
+Constraint::SpeedCouplerImpl::SpeedCouplerImpl(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
         const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
         : Implementation(matter, 0, 1, 0), function(function), speedBodies(speedBody.size()), speedIndices(speedIndex), coordBodies(coordBody), coordIndices(coordIndex),
         temp(speedBody.size()+coordBody.size()), referenceCount(new int[1]) {
@@ -2030,7 +2030,7 @@ Constraint::SpeedCouplerImpl::SpeedCouplerImpl(SimbodyMatterSubsystem& matter, c
 
 void Constraint::SpeedCouplerImpl::realizeVelocityErrors(const State& s, int mv,  Real* verr) const {
     findArguments(s);
-    verr[0] = function->calcValue(temp)[0];
+    verr[0] = function->calcValue(temp);
 }
 
 void Constraint::SpeedCouplerImpl::realizeVelocityDotErrors(const State& s, int mv,  Real* vaerr) const {
@@ -2039,7 +2039,7 @@ void Constraint::SpeedCouplerImpl::realizeVelocityDotErrors(const State& s, int 
     std::vector<int> components(1);
     for (int i = 0; i < (int) speedBodies.size(); ++i) {
         components[0] = i;
-        vaerr[0] += function->calcDerivative(components, temp)[0]*getOneUDot(s, speedBodies[i], speedIndices[i], true);
+        vaerr[0] += function->calcDerivative(components, temp)*getOneUDot(s, speedBodies[i], speedIndices[i], true);
     }
 }
 
@@ -2048,7 +2048,7 @@ void Constraint::SpeedCouplerImpl::applyVelocityConstraintForces(const State& s,
     std::vector<int> components(1);
     for (int i = 0; i < (int) speedBodies.size(); ++i) {
         components[0] = i;
-        Real force = multipliers[0]*function->calcDerivative(components, temp)[0];
+        Real force = multipliers[0]*function->calcDerivative(components, temp);
         addInOneMobilityForce(s, speedBodies[i], speedIndices[i], force, mobilityForces);
     }
 }
@@ -2057,11 +2057,11 @@ void Constraint::SpeedCouplerImpl::applyVelocityConstraintForces(const State& s,
     // CONSTRAINT::PRESCRIBED MOTION //
     ///////////////////////////////////
 
-Constraint::PrescribedMotion::PrescribedMotion(SimbodyMatterSubsystem& matter, const Function<1>* function, MobilizedBodyIndex coordBody, MobilizerQIndex coordIndex)
+Constraint::PrescribedMotion::PrescribedMotion(SimbodyMatterSubsystem& matter, const Function* function, MobilizedBodyIndex coordBody, MobilizerQIndex coordIndex)
         : Custom(new PrescribedMotionImpl(matter, function, coordBody, coordIndex)) {
 }
 
-Constraint::PrescribedMotionImpl::PrescribedMotionImpl(SimbodyMatterSubsystem& matter, const Function<1>* function, MobilizedBodyIndex coordBody, MobilizerQIndex coordIndex)
+Constraint::PrescribedMotionImpl::PrescribedMotionImpl(SimbodyMatterSubsystem& matter, const Function* function, MobilizedBodyIndex coordBody, MobilizerQIndex coordIndex)
         : Implementation(matter, 1, 0, 0), function(function), coordIndex(coordIndex), temp(1), referenceCount(new int[1]) {
     assert(function->getArgumentSize() == 1);
     assert(function->getMaxDerivativeOrder() >= 2);
@@ -2071,13 +2071,13 @@ Constraint::PrescribedMotionImpl::PrescribedMotionImpl(SimbodyMatterSubsystem& m
 
 void Constraint::PrescribedMotionImpl::realizePositionErrors(const State& s, int mp,  Real* perr) const {
     temp[0] = s.getTime();
-    perr[0] = getOneQ(s, coordBody, coordIndex) - function->calcValue(temp)[0];
+    perr[0] = getOneQ(s, coordBody, coordIndex) - function->calcValue(temp);
 }
 
 void Constraint::PrescribedMotionImpl::realizePositionDotErrors(const State& s, int mp,  Real* pverr) const {
     temp[0] = s.getTime();
     std::vector<int> components(1, 0);
-    pverr[0] = getOneQDot(s, coordBody, coordIndex, true) - function->calcDerivative(components, temp)[0];
+    pverr[0] = getOneQDot(s, coordBody, coordIndex, true) - function->calcDerivative(components, temp);
 }
 
 void Constraint::PrescribedMotionImpl::realizePositionDotDotErrors(const State& s, int mp,  Real* paerr) const {
@@ -2090,7 +2090,7 @@ void Constraint::PrescribedMotionImpl::realizePositionDotDotErrors(const State& 
     node.calcQDotDot(digest, udot, qdotdot);
     temp[0] = s.getTime();
     std::vector<int> components(2, 0);
-    paerr[0] = body.getOneFromQPartition(s, coordIndex, qdotdot) - function->calcDerivative(components, temp)[0];
+    paerr[0] = body.getOneFromQPartition(s, coordIndex, qdotdot) - function->calcDerivative(components, temp);
 }
 
 void Constraint::PrescribedMotionImpl::applyPositionConstraintForces(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {

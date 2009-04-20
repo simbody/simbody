@@ -69,15 +69,15 @@ void assertEqual(Vector val1, Vector val2, double tol) {
  * A Function that takes a single argument and returns it.
  */
 
-class LinearFunction : public Function<1> {
+class LinearFunction : public Function {
 public:
-    Vec<1> calcValue(const Vector& x) const {
-        return Vec1(x[0]);
+    Real calcValue(const Vector& x) const {
+        return x[0];
     }
-    Vec<1> calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const {
+    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const {
         if (derivComponents.size() == 1)
-            return Vec1(1);
-        return Vec1(0);
+            return 1;
+        return 0;
     }
     int getArgumentSize() const {
         return 1;
@@ -91,15 +91,15 @@ public:
  * A Function that relates three different arguments.
  */
 
-class CompoundFunction : public Function<1> {
+class CompoundFunction : public Function {
 public:
-    Vec<1> calcValue(const Vector& x) const {
-        return Vec1(x[0]+x[1]+x[2]);
+    Real calcValue(const Vector& x) const {
+        return x[0]+x[1]+x[2];
     }
-    Vec<1> calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const {
+    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const {
         if (derivComponents.size() == 1)
-            return Vec1(1);
-        return Vec1(0);
+            return 1;
+        return 0;
     }
     int getArgumentSize() const {
         return 3;
@@ -242,7 +242,7 @@ void testCoordinateCoupler2() {
     coordinates[0] = MobilizerQIndex(0);
     coordinates[1] = MobilizerQIndex(1);
     coordinates[2] = MobilizerQIndex(1);
-    Function<1>* function = new CompoundFunction();
+    Function* function = new CompoundFunction();
     Constraint::CoordinateCoupler coupler(matter, function, bodies, coordinates);
     State state;
     createState(system, state);
@@ -252,7 +252,7 @@ void testCoordinateCoupler2() {
     Vector args(function->getArgumentSize());
     for (int i = 0; i < args.size(); ++i)
         args[i] = matter.getMobilizedBody(bodies[i]).getOneQ(state, coordinates[i]);
-    assertEqual(0.0, function->calcValue(args)[0]);
+    assertEqual(0.0, function->calcValue(args));
     
     // Simulate it and make sure the constraint is working correctly and energy is being conserved.
     
@@ -264,7 +264,7 @@ void testCoordinateCoupler2() {
         integ.stepTo(10.0);
         for (int i = 0; i < args.size(); ++i)
             args[i] = matter.getMobilizedBody(bodies[i]).getOneQ(integ.getState(), coordinates[i]);
-        assertEqual(0.0, function->calcValue(args)[0], integ.getConstraintToleranceInUse());
+        assertEqual(0.0, function->calcValue(args), integ.getConstraintToleranceInUse());
         assertEqual(energy, system.calcEnergy(integ.getState()), energy*0.01);
     }
 }
@@ -285,7 +285,7 @@ void testCoordinateCoupler3() {
     coordinates[0] = MobilizerQIndex(0);
     coordinates[1] = MobilizerQIndex(1);
     coordinates[2] = MobilizerQIndex(2);
-    Function<1>* function = new CompoundFunction();
+    Function* function = new CompoundFunction();
     Constraint::CoordinateCoupler coupler(matter, function, bodies, coordinates);
     State state;
     createState(system, state);
@@ -295,7 +295,7 @@ void testCoordinateCoupler3() {
     Vector args(function->getArgumentSize());
     for (int i = 0; i < args.size(); ++i)
         args[i] = matter.getMobilizedBody(bodies[i]).getOneQ(state, coordinates[i]);
-    assertEqual(0.0, function->calcValue(args)[0]);
+    assertEqual(0.0, function->calcValue(args));
     
     // Simulate it and make sure the constraint is working correctly and energy is being conserved.
     
@@ -309,7 +309,7 @@ void testCoordinateCoupler3() {
             args[i] = matter.getMobilizedBody(bodies[i]).getOneQ(integ.getState(), coordinates[i]);
         // Constraints are applied to unnormalized quaternions.  When they are normalized, that can
         // increase the constraint error.  That is why we need the factor of 3 in the next line.
-        assertEqual(0.0, function->calcValue(args)[0], 3*integ.getConstraintToleranceInUse());
+        assertEqual(0.0, function->calcValue(args), 3*integ.getConstraintToleranceInUse());
         assertEqual(energy, system.calcEnergy(integ.getState()), energy*0.01);
     }
 }
@@ -364,7 +364,7 @@ void testSpeedCoupler2() {
     speeds[0] = MobilizerUIndex(0);
     speeds[1] = MobilizerUIndex(0);
     speeds[2] = MobilizerUIndex(1);
-    Function<1>* function = new CompoundFunction();
+    Function* function = new CompoundFunction();
     Constraint::SpeedCoupler coupler(matter, function, bodies, speeds);
     State state;
     createState(system, state);
@@ -374,7 +374,7 @@ void testSpeedCoupler2() {
     Vector args(function->getArgumentSize());
     for (int i = 0; i < args.size(); ++i)
         args[i] = matter.getMobilizedBody(bodies[i]).getOneU(state, speeds[i]);
-    assertEqual(0.0, function->calcValue(args)[0]);
+    assertEqual(0.0, function->calcValue(args));
     
     // Simulate it and make sure the constraint is working correctly and energy is being conserved.
     
@@ -386,7 +386,7 @@ void testSpeedCoupler2() {
         integ.stepTo(10.0);
         for (int i = 0; i < args.size(); ++i)
             args[i] = matter.getMobilizedBody(bodies[i]).getOneU(integ.getState(), speeds[i]);
-        assertEqual(0.0, function->calcValue(args)[0], integ.getConstraintToleranceInUse());
+        assertEqual(0.0, function->calcValue(args), integ.getConstraintToleranceInUse());
         assertEqual(energy, system.calcEnergy(integ.getState()), energy*0.01);
     }
 }
@@ -408,7 +408,7 @@ void testSpeedCoupler3() {
     uindex[0] = MobilizerUIndex(0);
     uindex[1] = MobilizerUIndex(1);
     qindex[0] = MobilizerQIndex(1);
-    Function<1>* function = new CompoundFunction();
+    Function* function = new CompoundFunction();
     Constraint::SpeedCoupler coupler(matter, function, ubody, uindex, qbody, qindex);
     State state;
     createState(system, state);
@@ -419,7 +419,7 @@ void testSpeedCoupler3() {
     args[0] = matter.getMobilizedBody(ubody[0]).getOneU(state, uindex[0]);
     args[1] = matter.getMobilizedBody(ubody[1]).getOneU(state, uindex[1]);
     args[2] = matter.getMobilizedBody(qbody[0]).getOneQ(state, qindex[0]);
-    assertEqual(0.0, function->calcValue(args)[0]);
+    assertEqual(0.0, function->calcValue(args));
     
     // Simulate it and make sure the constraint is working correctly.
     
@@ -431,7 +431,7 @@ void testSpeedCoupler3() {
         args[0] = matter.getMobilizedBody(ubody[0]).getOneU(state, uindex[0]);
         args[1] = matter.getMobilizedBody(ubody[1]).getOneU(state, uindex[1]);
         args[2] = matter.getMobilizedBody(qbody[0]).getOneQ(state, qindex[0]);
-        assertEqual(0.0, function->calcValue(args)[0], integ.getConstraintToleranceInUse());
+        assertEqual(0.0, function->calcValue(args), integ.getConstraintToleranceInUse());
     }
 }
 
@@ -444,10 +444,10 @@ void testPrescribedMotion1() {
     createCylinderSystem(system);
     MobilizedBodyIndex body = MobilizedBodyIndex(2);
     MobilizerQIndex coordinate = MobilizerQIndex(1);
-    Vector_<Vec1> coefficients(2);
-    coefficients[0] = Vec1(0.1);
-    coefficients[1] = Vec1(0.0);
-    Function<1>* function = new Function<1>::Linear(coefficients);
+    Vector coefficients(2);
+    coefficients[0] = 0.1;
+    coefficients[1] = 0.0;
+    Function* function = new Function::Linear(coefficients);
     Constraint::PrescribedMotion constraint(matter, function, body, coordinate);
     State state;
     createState(system, state);
@@ -455,7 +455,7 @@ void testPrescribedMotion1() {
     // Make sure the constraint is satisfied.
     
     Vector args(1, state.getTime());
-    assertEqual(function->calcValue(args)[0], matter.getMobilizedBody(body).getOneQ(state, coordinate));
+    assertEqual(function->calcValue(args), matter.getMobilizedBody(body).getOneQ(state, coordinate));
     
     // Simulate it and make sure the constraint is working correctly.
     
@@ -465,7 +465,7 @@ void testPrescribedMotion1() {
     while (integ.getTime() < 10.0) {
         integ.stepTo(10.0);
         Vector args(1, state.getTime());
-        assertEqual(function->calcValue(args)[0], matter.getMobilizedBody(body).getOneQ(state, coordinate), integ.getConstraintToleranceInUse());
+        assertEqual(function->calcValue(args), matter.getMobilizedBody(body).getOneQ(state, coordinate), integ.getConstraintToleranceInUse());
     }
 }
 
@@ -478,18 +478,18 @@ void testPrescribedMotion2() {
     createCylinderSystem(system);
     MobilizedBodyIndex body1 = MobilizedBodyIndex(2);
     MobilizerQIndex coordinate1 = MobilizerQIndex(1);
-    Vector_<Vec1> coefficients1(2);
-    coefficients1[0] = Vec1(0.1);
-    coefficients1[1] = Vec1(0.0);
-    Function<1>* function1 = new Function<1>::Linear(coefficients1);
+    Vector coefficients1(2);
+    coefficients1[0] = 0.1;
+    coefficients1[1] = 0.0;
+    Function* function1 = new Function::Linear(coefficients1);
     Constraint::PrescribedMotion constraint1(matter, function1, body1, coordinate1);
     MobilizedBodyIndex body2 = MobilizedBodyIndex(2);
     MobilizerQIndex coordinate2 = MobilizerQIndex(0);
-    Vector_<Vec1> coefficients2(3);
-    coefficients2[0] = Vec1(0.5);
-    coefficients2[1] = Vec1(-0.2);
-    coefficients2[2] = Vec1(1.1);
-    Function<1>* function2 = new Function<1>::Polynomial(coefficients2);
+    Vector coefficients2(3);
+    coefficients2[0] = 0.5;
+    coefficients2[1] = -0.2;
+    coefficients2[2] = 1.1;
+    Function* function2 = new Function::Polynomial(coefficients2);
     Constraint::PrescribedMotion constraint2(matter, function2, body2, coordinate2);
     State state;
     createState(system, state);
@@ -497,8 +497,8 @@ void testPrescribedMotion2() {
     // Make sure the constraint is satisfied.
     
     Vector args(1, state.getTime());
-    assertEqual(function1->calcValue(args)[0], matter.getMobilizedBody(body1).getOneQ(state, coordinate1));
-    assertEqual(function2->calcValue(args)[0], matter.getMobilizedBody(body2).getOneQ(state, coordinate2));
+    assertEqual(function1->calcValue(args), matter.getMobilizedBody(body1).getOneQ(state, coordinate1));
+    assertEqual(function2->calcValue(args), matter.getMobilizedBody(body2).getOneQ(state, coordinate2));
     
     // Simulate it and make sure the constraint is working correctly and energy is being conserved.
     
@@ -508,8 +508,8 @@ void testPrescribedMotion2() {
     while (integ.getTime() < 10.0) {
         integ.stepTo(10.0);
         Vector args(1, state.getTime());
-        assertEqual(function1->calcValue(args)[0], matter.getMobilizedBody(body1).getOneQ(state, coordinate1), integ.getConstraintToleranceInUse());
-        assertEqual(function2->calcValue(args)[0], matter.getMobilizedBody(body2).getOneQ(state, coordinate2), integ.getConstraintToleranceInUse());
+        assertEqual(function1->calcValue(args), matter.getMobilizedBody(body1).getOneQ(state, coordinate1), integ.getConstraintToleranceInUse());
+        assertEqual(function2->calcValue(args), matter.getMobilizedBody(body2).getOneQ(state, coordinate2), integ.getConstraintToleranceInUse());
     }
 }
 

@@ -1017,7 +1017,7 @@ inline MobilizedBody::Custom::ImplementationImpl::~ImplementationImpl() {
 class MobilizedBody::FunctionBasedImpl : public MobilizedBody::Custom::Implementation {
 public:
     //Constructor that uses default axes
-    FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices)
+    FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const std::vector<const Function*>& functions, const std::vector<std::vector<int> >& coordIndices)
             : Implementation(matter, nmobilities, nmobilities, 0), subsystem(matter.getMySubsystemIndex()), nu(nmobilities), cacheIndex(0), functions(functions), coordIndices(coordIndices), referenceCount(new int[1]) {
         assert(functions.size() == 6);
         assert(coordIndices.size() == 6);
@@ -1029,7 +1029,7 @@ public:
         Arot = Mat33(1);
         Atrans = Mat33(1);
     }
-    FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes)
+    FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const std::vector<const Function*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes)
             : Implementation(matter, nmobilities, nmobilities, 0), subsystem(matter.getMySubsystemIndex()), nu(nmobilities), cacheIndex(0), functions(functions), coordIndices(coordIndices), referenceCount(new int[1]) {
         assert(functions.size() == 6);
         assert(coordIndices.size() == 6);
@@ -1081,7 +1081,7 @@ public:
                 fcoords(j) = q[coordIndices[i][j]];            
             
             //default behavior of constant function should take a Vector of length 0
-            spatialCoords(i) = (functions[i]->calcValue(fcoords))[0];
+            spatialCoords(i) = functions[i]->calcValue(fcoords);
         }
 
 /*
@@ -1531,7 +1531,7 @@ private:
     const SubsystemIndex subsystem;
     const int nu;
     mutable CacheEntryIndex cacheIndex;
-    const std::vector<const Function<1>*> functions;
+    const std::vector<const Function*> functions;
     const std::vector<std::vector<int> > coordIndices;
     int* referenceCount;
     //const std::vector<Vec3> axes;
@@ -1540,7 +1540,7 @@ private:
     public:
         CacheInfo() : isValidH(false), isValidHdot(false) { }
 
-        void buildH(Vector& q, Vector& u, const Transform& X_FM, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const Mat33 Arot, const Mat33 Atrans)
+        void buildH(Vector& q, Vector& u, const Transform& X_FM, const std::vector<const Function*>& functions, const std::vector<std::vector<int> >& coordIndices, const Mat33 Arot, const Mat33 Atrans)
         {
             // Build the Fq and Fqq matrices of partials of the spatial functions with respect to the gen coordinates, q    
             // Cycle through each row (function describing spatial coordinate)
@@ -1562,10 +1562,10 @@ private:
 
                     for (int j = 0; j < nc; j++) {
                         deriv[0] = j;
-                        Fq(i, coordIndices[i][j]) = functions[i]->calcDerivative(deriv, fcoords)[0];
+                        Fq(i, coordIndices[i][j]) = functions[i]->calcDerivative(deriv, fcoords);
                     }
                     //default behavior of constant function should take a Vector of length 0
-                    spatialCoords(i) = (functions[i]->calcValue(fcoords))[0];
+                    spatialCoords(i) = functions[i]->calcValue(fcoords);
                 }
 
             }
@@ -1591,7 +1591,7 @@ private:
             }
         }
 
-        void buildHdot(Vector& q, Vector& u, const Transform& X_FM, const std::vector<const Function<1>*>& functions, const std::vector<std::vector<int> >& coordIndices, const Mat33 Arot, const Mat33 Atrans)
+        void buildHdot(Vector& q, Vector& u, const Transform& X_FM, const std::vector<const Function*>& functions, const std::vector<std::vector<int> >& coordIndices, const Mat33 Arot, const Mat33 Atrans)
         {
             Mat<6,N> Fqdot(0);
             Vec6 spatialCoords;
@@ -1615,12 +1615,12 @@ private:
                         derivs[0] = j;
                         for (int k = 0; k < nc; k++) {
                             derivs[1] = k;
-                            Fqdot(i, coordIndices[i][j]) += functions[i]->calcDerivative(derivs, fcoords)[0]*u[coordIndices[i][k]];
+                            Fqdot(i, coordIndices[i][j]) += functions[i]->calcDerivative(derivs, fcoords)*u[coordIndices[i][k]];
                         }
                     }
                 }
                 //default behavior of constant function should take a Vector of length 0
-                spatialCoords(i) = (functions[i]->calcValue(fcoords))[0];
+                spatialCoords(i) = functions[i]->calcValue(fcoords);
             }
 
             Rotation R_F1 = Rotation(spatialCoords(0), UnitVec3::getAs(&Arot(0,0)));

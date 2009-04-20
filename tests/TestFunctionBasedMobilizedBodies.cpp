@@ -173,7 +173,7 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
     assertEqual(b1.getQDotAsVector(integ.getState()), b2.getQDotAsVector(integ.getState()));
 }
 
-class ConstantFunction : public Function<1> {
+class ConstantFunction : public Function {
 // Implements a simple constant function, y = C
 private:
     Real C;
@@ -189,14 +189,12 @@ public:
         C = constant;
     }
 
-    Vec<1> calcValue(const Vector& x) const{
-        return Vec<1>(C);
+    Real calcValue(const Vector& x) const{
+        return C;
     }
 
-    Vec<1> calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
-        Vec<1> deriv(0);
-        
-        return deriv;
+    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
+        return 0;
     }
 
     int getArgumentSize() const{
@@ -209,7 +207,7 @@ public:
     }
 };
 
-class LinearFunction : public Function<1> {
+class LinearFunction : public Function {
 // Implements a simple linear functional relationship, y = m*x + b
 private:
     Real m;
@@ -228,18 +226,14 @@ public:
         b = intercept;
     }
 
-    Vec<1> calcValue(const Vector& x) const{
-        return Vec<1>(m*x[0]+b);
+    Real calcValue(const Vector& x) const{
+        return m*x[0]+b;
     }
 
-    Vec<1> calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
-        Vec<1> deriv(0);
-
-        if (derivComponents.size() == 1){
-            deriv[0] = m;
-        }
-        
-        return deriv;
+    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
+        if (derivComponents.size() == 1)
+            return m;
+        return 0;
     }
 
     int getArgumentSize() const{
@@ -251,21 +245,21 @@ public:
     }
 };
 
-class NonlinearFunction : public Function<1> {
+class NonlinearFunction : public Function {
 public:
     NonlinearFunction(){
     }
-    Vec1 calcValue(const Vector& x) const{
-        return Vec<1>(x[0]+x[1]*x[1]);
+    Real calcValue(const Vector& x) const{
+        return x[0]+x[1]*x[1];
     }
-    Vec1 calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
+    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
         switch (derivComponents.size()) {
             case 1:
-                return (derivComponents[0] == 0 ? Vec1(1.0) : Vec1(x[1]));
+                return (derivComponents[0] == 0 ? 1.0 : x[1]);
             case 2:
-                return (derivComponents[0] == 1 && derivComponents[1] == 1 ? Vec1(1.0) : Vec1(0.0));
+                return (derivComponents[0] == 1 && derivComponents[1] == 1 ? 1.0 : 0.0);
         }
-        return Vec1(0.0);
+        return 0.0;
     }
     int getArgumentSize() const{
         return 2;
@@ -275,7 +269,7 @@ public:
     }
 };
 
-int defineMobilizerFunctions(std::vector<bool> &isdof, std::vector<std::vector<int> > &coordIndices, std::vector<const Function<1>*> &functions1, std::vector<const Function<1>*> &functions2)
+int defineMobilizerFunctions(std::vector<bool> &isdof, std::vector<std::vector<int> > &coordIndices, std::vector<const Function*> &functions1, std::vector<const Function*> &functions2)
 {
     int nm = 0;
     for(int i=0; i<6; i++){
@@ -299,7 +293,7 @@ int defineMobilizerFunctions(std::vector<bool> &isdof, std::vector<std::vector<i
 void testFunctionBasedPin() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions1, functions2;
+    std::vector<const Function*> functions1, functions2;
     std::vector<bool> isdof(6,false);
 
     // Set the 1 spatial rotation about Z to be mobility
@@ -322,7 +316,7 @@ void testFunctionBasedPin() {
 void testFunctionBasedSkewedPin() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions1, functions2;
+    std::vector<const Function*> functions1, functions2;
     std::vector<bool> isdof(6,false);
     std::vector<Vec3> axes(6);
 
@@ -365,7 +359,7 @@ void testFunctionBasedSkewedPin() {
 void testFunctionBasedSlider() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions1, functions2;
+    std::vector<const Function*> functions1, functions2;
     std::vector<bool> isdof(6,false);
 
     // Set the 1 spatial translation along X to be mobility
@@ -389,7 +383,7 @@ void testFunctionBasedSlider() {
 void testFunctionBasedSkewedSlider() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions1, functions2;
+    std::vector<const Function*> functions1, functions2;
     std::vector<bool> isdof(6,false);
     std::vector<Vec3> axes(6);
     //axes[0] = Vec3(1/sqrt(2.0),0, -1/sqrt(2.0));
@@ -422,7 +416,7 @@ void testFunctionBasedSkewedSlider() {
 void testFunctionBasedCylinder() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions1, functions2;
+    std::vector<const Function*> functions1, functions2;
     std::vector<bool> isdof(6,false);
 
     // Set 2 mobilities: rotation about and translation along Z
@@ -446,7 +440,7 @@ void testFunctionBasedCylinder() {
 void testFunctionBasedUniversal() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions1, functions2;
+    std::vector<const Function*> functions1, functions2;
     std::vector<bool> isdof(6,false);
 
     // Set 2 rotation mobilities about body's X then Y
@@ -470,7 +464,7 @@ void testFunctionBasedUniversal() {
 void testFunctionBasedPlanar() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions1, functions2;
+    std::vector<const Function*> functions1, functions2;
     std::vector<bool> isdof(6,false);
 
     // Set 3 mobilities: Z rotation and translation along body's X then Y
@@ -496,7 +490,7 @@ void testFunctionBasedPlanar() {
 void testFunctionBasedGimbal() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions1, functions2;
+    std::vector<const Function*> functions1, functions2;
     std::vector<bool> isdof(6,false);
 
     // Set 3 mobilities: Z rotation and translation along body's X then Y
@@ -521,7 +515,7 @@ void testFunctionBasedGimbal() {
 void testFunctionBasedGimbalUserAxes() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions1, functions2;
+    std::vector<const Function*> functions1, functions2;
     std::vector<Vec3> axes(6);
     std::vector<bool> isdof(6,false);
 
@@ -616,7 +610,7 @@ void testFunctionBasedTranslation() {
 
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions1, functions2;
+    std::vector<const Function*> functions1, functions2;
 
     // Set 6 mobilities: rotation and translation about body's X, Y, and then Z axes
 	std::vector<bool> isdof(6,true);
@@ -691,7 +685,7 @@ void testFunctionBasedFree() {
 
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices;
-    std::vector<const Function<1>*> functions1, functions2;
+    std::vector<const Function*> functions1, functions2;
 
     // Set 6 mobilities: rotation and translation about body's X, Y, and then Z axes
 	std::vector<bool> isdof(6,true);
@@ -780,7 +774,7 @@ void testFunctionBasedFreeVsTranslationGimbal() {
 
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices1, coordIndices2a, coordIndices2b;
-	std::vector<const Function<1>*> functions1, temp;
+	std::vector<const Function*> functions1, temp;
 
     // Set 6 mobilities: rotation and translation about body's X, Y, and then Z axes
 	std::vector<bool> isdof1(6,true), isdof2a(6,true), isdof2b(6,true);
@@ -869,8 +863,8 @@ void testFunctionBasedFreeVs2FunctionBased() {
 
     // Define the functions that specify the FunctionBased Mobilized Body.
     std::vector<std::vector<int> > coordIndices1, coordIndices2a, coordIndices2b;
-    std::vector<const Function<1>*> functions1, temp;
-	std::vector<const Function<1>*> functions2a, functions2b;
+    std::vector<const Function*> functions1, temp;
+	std::vector<const Function*> functions2a, functions2b;
 
     // Set 6 mobilities: rotation and translation about body's X, Y, and then Z axes
 	std::vector<bool> isdof1(6,true), isdof2a(6,true), isdof2b(6,true);
@@ -968,17 +962,17 @@ void testMultipleArguments() {
     // Define the functions that specify the FunctionBased Mobilized Body.
     
     std::vector<std::vector<int> > coordIndices(6);
-    std::vector<const Function<1>*> functions(6);
-    Vector_<Vec1> coeff(3);
-    coeff[0] = Vec1(0.5);
-    coeff[1] = Vec1(-0.5);
-    coeff[2] = Vec1(1.0);
-    functions[0] = new Function<1>::Constant(Vec1(0.0), 0);
-    functions[1] = new Function<1>::Constant(Vec1(0.0), 0);
-    functions[2] = new Function<1>::Constant(Vec1(0.0), 0);
+    std::vector<const Function*> functions(6);
+    Vector coeff(3);
+    coeff[0] = 0.5;
+    coeff[1] = -0.5;
+    coeff[2] = 1.0;
+    functions[0] = new Function::Constant(0.0, 0);
+    functions[1] = new Function::Constant(0.0, 0);
+    functions[2] = new Function::Constant(0.0, 0);
     functions[3] = new NonlinearFunction();
-    functions[4] = new Function<1>::Linear(coeff);
-    functions[5] = new Function<1>::Constant(Vec1(0.0), 0);
+    functions[4] = new Function::Linear(coeff);
+    functions[5] = new Function::Constant(0.0, 0);
     coordIndices[3].push_back(0);
     coordIndices[3].push_back(1);
     coordIndices[4].push_back(0);
