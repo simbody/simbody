@@ -38,9 +38,9 @@
 namespace SimTK {
 
 /**
- * Given a set of data points, this class creates a Spline which interpolates or approximates them.  The
+ * Given a set of data points, this class creates a Spline_ which interpolates or approximates them.  The
  * data points are assumed to represent a smooth curve plus uncorrelated additive noise.  It attempts to
- * separate these from each other and return a Spline which represents the original curve without noise.
+ * separate these from each other and return a Spline_ which represents the original curve without noise.
  * 
  * The fitting is done based on a <i>smoothing parameter</i>.  When the parameter is 0, the spline will exactly
  * interpolate the data points.  Larger values of the smoothing parameter produce smoother curves that may vary
@@ -50,8 +50,8 @@ namespace SimTK {
  * If you have no prior information about the structure of the input data, call fitFromGCV():
  * 
  * <pre>
- * SplineFitter<1> fitter = SplineFitter::fitFromGCV(degree, x, y);
- * Spline<1> spline = fitter.getSpline();
+ * SplineFitter<Vec3> fitter = SplineFitter::fitFromGCV(degree, x, y);
+ * Spline_<Vec3> spline = fitter.getSpline();
  * </pre>
  * 
  * This chooses a value of the smoothing parameter to minimize the <i>Generalized Cross Validation</i> function.
@@ -69,7 +69,7 @@ namespace SimTK {
  * GCVSPLUtil class.
  */
 
-template <int N>
+template <class T>
 class SplineFitter {
 public:
     SplineFitter(const SplineFitter& copy) : impl(copy.impl) {
@@ -92,12 +92,12 @@ public:
      * @param x      the values of the independent variable for each data point
      * @param y      the values of the dependent variables for each data point
      */
-    static SplineFitter fitFromGCV(int degree, const Vector& x, const Vector_<Vec<N> >& y) {
-        Vector_<Vec<N> > coeff;
+    static SplineFitter fitFromGCV(int degree, const Vector& x, const Vector_<T>& y) {
+        Vector_<T> coeff;
         Vector wk;
         int ier;
-        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), Vec<N>(1.0), degree, 2, 0, coeff, wk, ier);
-        return SplineFitter<N>(new SplineFitterImpl(degree, Spline<N>(degree, x, coeff), wk[3], wk[4], wk[2]));
+        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), static_cast<T>(1), degree, 2, 0, coeff, wk, ier);
+        return SplineFitter<T>(new SplineFitterImpl(degree, Spline_<T>(degree, x, coeff), wk[3], wk[4], wk[2]));
     }
     /**
      * Perform a fit, choosing a value of the smoothing parameter based on the known error variance in the data.
@@ -107,12 +107,12 @@ public:
      * @param y      the values of the dependent variables for each data point
      * @param error  the variance of the error in the data
      */
-    static SplineFitter fitFromErrorVariance(int degree, const Vector& x, const Vector_<Vec<N> >& y, Real error) {
-        Vector_<Vec<N> > coeff;
+    static SplineFitter fitFromErrorVariance(int degree, const Vector& x, const Vector_<T>& y, Real error) {
+        Vector_<T> coeff;
         Vector wk;
         int ier;
-        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), Vec<N>(1.0), degree, 3, error, coeff, wk, ier);
-        return SplineFitter<N>(new SplineFitterImpl(degree, Spline<N>(degree, x, coeff), wk[3], wk[4], wk[2]));
+        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), 1, degree, 3, error, coeff, wk, ier);
+        return SplineFitter<T>(new SplineFitterImpl(degree, Spline_<T>(degree, x, coeff), wk[3], wk[4], wk[2]));
     }
     /**
      * Perform a fit, choosing a value of the smoothing parameter based on the expect number of degrees of
@@ -123,12 +123,12 @@ public:
      * @param y      the values of the dependent variables for each data point
      * @param dof    the expected number of degrees of freedom
      */
-    static SplineFitter fitFromDOF(int degree, const Vector& x, const Vector_<Vec<N> >& y, Real dof) {
-        Vector_<Vec<N> > coeff;
+    static SplineFitter fitFromDOF(int degree, const Vector& x, const Vector_<T>& y, Real dof) {
+        Vector_<T> coeff;
         Vector wk;
         int ier;
-        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), Vec<N>(1.0), degree, 4, dof, coeff, wk, ier);
-        return SplineFitter<N>(new SplineFitterImpl(degree, Spline<N>(degree, x, coeff), wk[3], wk[4], wk[2]));
+        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), static_cast<T>(1), degree, 4, dof, coeff, wk, ier);
+        return SplineFitter<T>(new SplineFitterImpl(degree, Spline_<T>(degree, x, coeff), wk[3], wk[4], wk[2]));
     }
     /**
      * Perform a fit, using a specified fixed value for the smoothing parameter based.
@@ -138,17 +138,17 @@ public:
      * @param y      the values of the dependent variables for each data point
      * @param p      the value of the smoothing parameter
      */
-    static SplineFitter fitForSmoothingParameter(int degree, const Vector& x, const Vector_<Vec<N> >& y, Real p) {
-        Vector_<Vec<N> > coeff;
+    static SplineFitter fitForSmoothingParameter(int degree, const Vector& x, const Vector_<T>& y, Real p) {
+        Vector_<T> coeff;
         Vector wk;
         int ier;
-        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), Vec<N>(1.0), degree, 1, p, coeff, wk, ier);
-        return SplineFitter<N>(new SplineFitterImpl(degree, Spline<N>(degree, x, coeff), wk[3], wk[4], wk[2]));
+        GCVSPLUtil::gcvspl(x, y, Vector(x.size(), 1.0), static_cast<T>(1), degree, 1, p, coeff, wk, ier);
+        return SplineFitter<T>(new SplineFitterImpl(degree, Spline_<T>(degree, x, coeff), wk[3], wk[4], wk[2]));
     }
     /**
-     * Get the Spline that was generated by the fitting.
+     * Get the Spline_ that was generated by the fitting.
      */
-    const Spline<N>& getSpline() {
+    const Spline_<T>& getSpline() {
         return impl->spline;
     }
     /**
@@ -176,17 +176,17 @@ private:
     SplineFitterImpl* impl;
 };
 
-template <int N>
-class SplineFitter<N>::SplineFitterImpl {
+template <class T>
+class SplineFitter<T>::SplineFitterImpl {
 public:
-    SplineFitterImpl(int degree, const Spline<N>& spline, Real p, Real error, Real dof) : degree(degree), spline(spline), p(p), error(error), dof(dof), referenceCount(1) {
+    SplineFitterImpl(int degree, const Spline_<T>& spline, Real p, Real error, Real dof) : degree(degree), spline(spline), p(p), error(error), dof(dof), referenceCount(1) {
     }
     ~SplineFitterImpl() {
         assert(referenceCount == 0);
     }
     int referenceCount;
     int degree;
-    Spline<N> spline;
+    Spline_<T> spline;
     Real p, error, dof;
 };
 

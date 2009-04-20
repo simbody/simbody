@@ -42,28 +42,29 @@ namespace SimTK {
 /**
  * This class implements a non-uniform B-spline curve.  It requires the spline degree to be odd (linear, cubic, quintic, etc.), but
  * supports arbitrarily high degrees.  Only spline curves are supported, not surfaces or higher dimensional objects, but the curve
- * may be defined in an arbitrary dimensional space.  That is, a Spline is a Function that calculates an arbitrary number of output
- * values based on a single input value.
+ * may be defined in an arbitrary dimensional space.  That is, a Spline_ is a Function_ that calculates an arbitrary number of output
+ * values based on a single input value.  The template argument must be either Real or Vec<N> from some integer N.  The name "Spline"
+ * (with no trailing _) may be used as a synonym for Spline_<Real>.
  */
 
-template <int N>
-class Spline : public Function<N> {
+template <class T>
+class Spline_ : public Function_<T> {
 public:
     /**
-     * Create a Spline object based on a set of control points.
+     * Create a Spline_ object based on a set of control points.
      * 
      * @param degree the degree of the spline to create.  This must be a positive odd value.
      * @param x      the values of the independent variable for each control point
      * @param y      the values of the dependent variables for each control point
      */
-    Spline(int degree, const Vector& x, const Vector_<Vec<N> >& y) : impl(new SplineImpl(degree, x, y)) {
+    Spline_(int degree, const Vector& x, const Vector_<T>& y) : impl(new SplineImpl(degree, x, y)) {
     }
-    Spline(const Spline& copy) : impl(copy.impl) {
+    Spline_(const Spline_& copy) : impl(copy.impl) {
         impl->referenceCount++;
     }
-    Spline() : impl(NULL) {
+    Spline_() : impl(NULL) {
     }
-    Spline& operator=(const Spline& copy) {
+    Spline_& operator=(const Spline_& copy) {
         if (impl) {
             impl->referenceCount--;
             if (impl->referenceCount == 0)
@@ -74,7 +75,7 @@ public:
         impl->referenceCount++;
         return *this;
     }
-    ~Spline() {
+    ~Spline_() {
         if (impl) {
             impl->referenceCount--;
             if (impl->referenceCount == 0)
@@ -86,17 +87,17 @@ public:
      * 
      * @param x a Vector of length 1 containing the value of the independent variable.
      */
-    Vec<N> calcValue(const Vector& x) const {
+    T calcValue(const Vector& x) const {
         assert(impl);
         assert(x.size() == 1);
         return impl->getValue(x[0]);
     }
     /**
-     * Calculate a derivative of the spline function.  See the Function class for details.  Because Spline
+     * Calculate a derivative of the spline function.  See the Function_ class for details.  Because Spline_
      * only allows a single independent variable, all elements of derivComponents should be 0, and its
      * length determines the order of the derivative to calculate.
      */
-    Vec<N> calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const {
+    T calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const {
         assert(impl);
         assert(x.size() == 1);
         assert(derivComponents.size() > 0);
@@ -118,7 +119,7 @@ public:
     /**
      * Get the values of the dependent variables at the control points.
      */
-    const Vector_<Vec<N> >& getControlPointValues() const {
+    const Vector_<T>& getControlPointValues() const {
         assert(impl);
         return impl->y;
     }
@@ -134,24 +135,46 @@ private:
     SplineImpl* impl;
 };
 
-template <int N>
-class Spline<N>::SplineImpl {
+typedef Spline_<Real> Spline;
+
+template <class T>
+class Spline_<T>::SplineImpl {
 public:
-    SplineImpl(int degree, const Vector& x, const Vector_<Vec<N> >& y) : degree(degree), x(x), y(y), referenceCount(1) {
+    SplineImpl(int degree, const Vector& x, const Vector_<T>& y) : degree(degree), x(x), y(y), referenceCount(1) {
     }
     ~SplineImpl() {
         assert(referenceCount == 0);
     }
-    Vec<N> getValue(Real t) const {
+    T getValue(Real t) const {
         return GCVSPLUtil::splder(0, degree, t, x, y);
     }
-    Vec<N> getDerivative(int derivOrder, Real t) const {
+    T getDerivative(int derivOrder, Real t) const {
         return GCVSPLUtil::splder(derivOrder, degree, t, x, y);
     }
     int referenceCount;
     int degree;
     Vector x;
-    Vector_<Vec<N> > y;
+    Vector_<T> y;
+};
+
+template <>
+class Spline_<Real>::SplineImpl {
+public:
+    SplineImpl(int degree, const Vector& x, const Vector_<Real>& y) : degree(degree), x(x), y(reinterpret_cast<const Vector_<Vec1>&>(y)), referenceCount(1) {
+    }
+    ~SplineImpl() {
+        assert(referenceCount == 0);
+    }
+    Real getValue(Real t) const {
+        return GCVSPLUtil::splder(0, degree, t, x, y)[0];
+    }
+    Real getDerivative(int derivOrder, Real t) const {
+        return GCVSPLUtil::splder(derivOrder, degree, t, x, y)[0];
+    }
+    int referenceCount;
+    int degree;
+    Vector x;
+    Vector_<Vec1> y;
 };
 
 } // namespace SimTK

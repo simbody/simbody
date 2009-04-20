@@ -39,6 +39,10 @@ const Real TOL = 1e-9;
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
+void assertEqual(Real val1, Real val2, double tol=TOL) {
+    ASSERT(abs(val1-val2) < tol);
+}
+
 template <int N>
 void assertEqual(Vec<N> val1, Vec<N> val2, double tol=TOL) {
     for (int i = 0; i < N; ++i)
@@ -63,7 +67,7 @@ void testSpline() {
     
     // Create a linear spline, and verify that it interpolates linearly between the control points.
     
-    Spline<3> spline(1, x, coeff);
+    Spline_<Vec3> spline(1, x, coeff);
     for (int i = 0; i < x.size(); ++i)
         assertEqual(coeff[i], spline.calcValue(Vector(1, x[i])));
     vector<int> deriv;
@@ -79,7 +83,7 @@ void testSpline() {
     
     // Create a cubic spline and verify the derivative calculations.
     
-    spline = Spline<3>(3, x, coeff);
+    spline = Spline_<Vec3>(3, x, coeff);
     Real delta = 1e-10;
     for (int i = 0; i < x.size()-1; ++i) {
         for (int j = 0; j < 10; ++j) {
@@ -104,8 +108,8 @@ void testSplineFitter() {
         truey[i] = Vec3(sin(x[i]), 3.0*sin(2*x[i]), cos(x[i]));
         y[i] = truey[i] + Vec3(random.getValue(), random.getValue(), random.getValue());
     }
-    SplineFitter<3> fitter = SplineFitter<3>::fitFromGCV(3, x, y);
-    Spline<3> spline1 = fitter.getSpline();
+    SplineFitter<Vec3> fitter = SplineFitter<Vec3>::fitFromGCV(3, x, y);
+    Spline_<Vec3> spline1 = fitter.getSpline();
     
     // The fitting should have reduced the error.
     
@@ -118,23 +122,50 @@ void testSplineFitter() {
     // If we perform the fitting again, explicitly specifying the same value for the smoothing parameter,
     // it should produce identical results.
     
-    assertEqual(SplineFitter<3>::fitForSmoothingParameter(3, x, y, fitter.getSmoothingParameter()).getSpline().getControlPointValues(), spline1.getControlPointValues());
+    assertEqual(SplineFitter<Vec3>::fitForSmoothingParameter(3, x, y, fitter.getSmoothingParameter()).getSpline().getControlPointValues(), spline1.getControlPointValues());
     
     // Likewise, specifying the same number of degrees of freedom should produce identical results.
     
-    assertEqual(SplineFitter<3>::fitFromDOF(3, x, y, fitter.getDegreesOfFreedom()).getSpline().getControlPointValues(), spline1.getControlPointValues());
+    assertEqual(SplineFitter<Vec3>::fitFromDOF(3, x, y, fitter.getDegreesOfFreedom()).getSpline().getControlPointValues(), spline1.getControlPointValues());
     
     // If we specify a smoothing parameter of 0, it should exactly reproduce the original data.
 
-    Spline<3> nosmoothing = SplineFitter<3>::fitForSmoothingParameter(3, x, y, 0.0).getSpline();
+    Spline_<Vec3> nosmoothing = SplineFitter<Vec3>::fitForSmoothingParameter(3, x, y, 0.0).getSpline();
     for (int i = 0; i < x.size(); ++i)
         assertEqual(y[i], nosmoothing.calcValue(Vector(1, x[i])));
+}
+
+void testRealSpline() {
+    Vector coeff(5);
+    coeff[0] = 0;
+    coeff[1] = 1;
+    coeff[2] = 2;
+    coeff[3] = 1;
+    coeff[4] = 0;
+    Vector x(Vec5(0, 1, 2, 5, 10));
+
+    // Create a linear spline, and verify that it interpolates linearly between the control points.
+
+    Spline spline(1, x, coeff);
+    for (int i = 0; i < x.size(); ++i)
+        assertEqual(coeff[i], spline.calcValue(Vector(1, x[i])));
+    vector<int> deriv;
+    deriv.push_back(0);
+    for (int i = 0; i < x.size()-1; ++i) {
+        for (int j = 0; j < 10; ++j) {
+            Real fract = (i+1.0)/12.0;
+            Real t = x[i]+fract*(x[i+1]-x[i]);
+            assertEqual(spline.calcValue(Vector(1, t)), coeff[i]+fract*(coeff[i+1]-coeff[i]));
+            assertEqual(spline.calcDerivative(deriv, Vector(1, t)), (coeff[i+1]-coeff[i])/(x[i+1]-x[i]));
+        }
+    }
 }
 
 int main () {
     try {
         testSpline();
         testSplineFitter();
+        testRealSpline();
         cout << "Done" << endl;
         return 0;
     }

@@ -39,6 +39,10 @@ const Real TOL = 1e-10;
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
+void assertEqual(Real val1, Real val2, double tol=TOL) {
+    ASSERT(abs(val1-val2) < tol);
+}
+
 template <int N>
 void assertEqual(Vec<N> val1, Vec<N> val2, double tol=TOL) {
     for (int i = 0; i < N; ++i)
@@ -53,7 +57,7 @@ void assertEqual(Vector_<T> val1, Vector_<T> val2, double tol=TOL) {
 }
 
 void testConstant() {
-    Function<3>::Constant f(Vec3(1, 2, 3), 2);
+    Function_<Vec3>::Constant f(Vec3(1, 2, 3), 2);
     ASSERT(f.getArgumentSize() == 2);
     Vector x(2);
     assertEqual(Vec3(1, 2, 3), f.calcValue(x));
@@ -66,7 +70,7 @@ void testLinear() {
     coeff[0] = Vec3(1, 2, 3);
     coeff[1] = Vec3(4, 3, 2);
     coeff[2] = Vec3(-1, -2, -3);
-    Function<3>::Linear f(coeff);
+    Function_<Vec3>::Linear f(coeff);
     ASSERT(f.getArgumentSize() == 2);
     assertEqual(Vec3(-1, -2, -3), f.calcValue(Vector(Vec2(0, 0))));
     assertEqual(Vec3(0, 0, 0), f.calcValue(Vector(Vec2(1, 0))));
@@ -83,7 +87,7 @@ void testPolynomial() {
     coeff[0] = Vec3(1, 2, 3);
     coeff[1] = Vec3(4, 3, 2);
     coeff[2] = Vec3(-1, -2, -3);
-    Function<3>::Polynomial f(coeff);
+    Function_<Vec3>::Polynomial f(coeff);
     ASSERT(f.getArgumentSize() == 1);
     assertEqual(Vec3(-1, -2, -3), f.calcValue(Vector(Vec1(0))));
     assertEqual(Vec3(4, 3, 2), f.calcValue(Vector(Vec1(1))));
@@ -99,11 +103,29 @@ void testPolynomial() {
     assertEqual(Vec3(0, 0, 0), f.calcDerivative(derivComponents3, Vector(Vec1(1))));
 }
 
+void testRealFunction() {
+    Vector coeff(3);
+    coeff[0] = 1.0;
+    coeff[1] = 4.0;
+    coeff[2] = -1.0;
+    Function::Linear f(coeff);
+    ASSERT(f.getArgumentSize() == 2);
+    assertEqual(-1, f.calcValue(Vector(Vec2(0, 0))));
+    assertEqual(0, f.calcValue(Vector(Vec2(1, 0))));
+    assertEqual(-2.5, f.calcValue(Vector(Vec2(0.5, -0.5))));
+    vector<int> derivComponents(1);
+    derivComponents[0] = 1;
+    assertEqual(4, f.calcDerivative(derivComponents, Vector(Vec2(1, 0))));
+    vector<int> derivComponents2(2);
+    assertEqual(0, f.calcDerivative(derivComponents2, Vector(Vec2(1, 0))));
+}
+
 int main () {
     try {
         testConstant();
         testLinear();
         testPolynomial();
+        testRealFunction();
         cout << "Done" << endl;
         return 0;
     }
