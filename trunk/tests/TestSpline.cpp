@@ -159,6 +159,7 @@ void testRealSpline() {
             assertEqual(spline.calcDerivative(deriv, Vector(1, t)), (coeff[i+1]-coeff[i])/(x[i+1]-x[i]));
         }
     }
+    assertEqual(1, spline.getControlPointValues()[1]);
 }
 
 int main () {

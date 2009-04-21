@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
+ * Portions copyright (c) 2008-2009 Stanford University and the Authors.      *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -160,21 +160,21 @@ public:
 template <>
 class Spline_<Real>::SplineImpl {
 public:
-    SplineImpl(int degree, const Vector& x, const Vector_<Real>& y) : degree(degree), x(x), y(reinterpret_cast<const Vector_<Vec1>&>(y)), referenceCount(1) {
+    SplineImpl(int degree, const Vector& x, const Vector_<Real>& y) : degree(degree), x(x), y(y), referenceCount(1) {
     }
     ~SplineImpl() {
         assert(referenceCount == 0);
     }
     Real getValue(Real t) const {
-        return GCVSPLUtil::splder(0, degree, t, x, y)[0];
+        return GCVSPLUtil::splder(0, degree, t, x, reinterpret_cast<const Vector_<Vec1>&>(y))[0];
     }
     Real getDerivative(int derivOrder, Real t) const {
-        return GCVSPLUtil::splder(derivOrder, degree, t, x, y)[0];
+        return GCVSPLUtil::splder(derivOrder, degree, t, x, reinterpret_cast<const Vector_<Vec1>&>(y))[0];
     }
     int referenceCount;
     int degree;
     Vector x;
-    Vector_<Vec1> y;
+    Vector_<Real> y;
 };
 
 } // namespace SimTK
