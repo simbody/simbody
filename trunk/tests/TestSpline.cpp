@@ -160,6 +160,12 @@ void testRealSpline() {
         }
     }
     assertEqual(1, spline.getControlPointValues()[1]);
+
+    // Try using a SplineFitter.
+
+    SplineFitter<Real> fitter = SplineFitter<Real>::fitFromGCV(3, x, coeff);
+    Spline spline2 = fitter.getSpline();
+    assertEqual(3, spline2.getSplineDegree());
 }
 
 int main () {

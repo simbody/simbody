@@ -157,26 +157,6 @@ public:
     Vector_<T> y;
 };
 
-template <>
-class Spline_<Real>::SplineImpl {
-public:
-    SplineImpl(int degree, const Vector& x, const Vector_<Real>& y) : degree(degree), x(x), y(y), referenceCount(1) {
-    }
-    ~SplineImpl() {
-        assert(referenceCount == 0);
-    }
-    Real getValue(Real t) const {
-        return GCVSPLUtil::splder(0, degree, t, x, reinterpret_cast<const Vector_<Vec1>&>(y))[0];
-    }
-    Real getDerivative(int derivOrder, Real t) const {
-        return GCVSPLUtil::splder(derivOrder, degree, t, x, reinterpret_cast<const Vector_<Vec1>&>(y))[0];
-    }
-    int referenceCount;
-    int degree;
-    Vector x;
-    Vector_<Real> y;
-};
-
 } // namespace SimTK
 
 #endif // SimTK_SIMMATH_SPLINE_H_

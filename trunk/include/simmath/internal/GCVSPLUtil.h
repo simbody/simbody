@@ -50,14 +50,16 @@ namespace SimTK {
 
 class SimTK_SIMMATH_EXPORT GCVSPLUtil {
 public:
+    static void gcvspl(const Vector& x, const Vector& y, const Vector& wx, Real wy, int m, int md, Real val, Vector& c, Vector& wk, int& ier);
     template <int K>
-    static void gcvspl(const Vector& x, const Vector_<Vec<K> >& y, const Vector& wx, Vec<K> wy, int m, int md, Real val, Vector_<Vec<K> >&c, Vector& wk, int& ier);
+    static void gcvspl(const Vector& x, const Vector_<Vec<K> >& y, const Vector& wx, Vec<K> wy, int m, int md, Real val, Vector_<Vec<K> >& c, Vector& wk, int& ier);
+    static Real splder(int derivOrder, int degree, Real t, const Vector& x, const Vector& coeff);
     template <int K>
-    static Vec<K> splder(int derivOrder, int degree, Real t, const Vector& x, const Vector_<Vec<K> >&coeff);
+    static Vec<K> splder(int derivOrder, int degree, Real t, const Vector& x, const Vector_<Vec<K> >& coeff);
 };
 
 template <int K>
-void GCVSPLUtil::gcvspl(const Vector& x, const Vector_<Vec<K> >& y, const Vector& wx, Vec<K> wy, int degree, int md, Real val, Vector_<Vec<K> >&c, Vector& wk, int& ier) {
+void GCVSPLUtil::gcvspl(const Vector& x, const Vector_<Vec<K> >& y, const Vector& wx, Vec<K> wy, int degree, int md, Real val, Vector_<Vec<K> >& c, Vector& wk, int& ier) {
     SimTK_APIARGCHECK_ALWAYS(degree > 0 && degree%2==1, "GCVSPLUtil", "gcvspl", "degree must be positive and odd");
     SimTK_APIARGCHECK_ALWAYS(y.size() >= x.size(), "GCVSPLUtil", "gcvspl", "y is shorter than x");
     SimTK_APIARGCHECK_ALWAYS(wx.size() >= x.size(), "GCVSPLUtil", "gcvspl", "wx and x must be the same size");
@@ -95,7 +97,7 @@ void GCVSPLUtil::gcvspl(const Vector& x, const Vector_<Vec<K> >& y, const Vector
 }
 
 template <int K>
-Vec<K> GCVSPLUtil::splder(int derivOrder, int degree, Real t, const Vector& x, const Vector_<Vec<K> >&coeff) {
+Vec<K> GCVSPLUtil::splder(int derivOrder, int degree, Real t, const Vector& x, const Vector_<Vec<K> >& coeff) {
     assert(derivOrder >= 0);
     assert(t >= x[0] && t <= x[x.size()-1]);
     assert(x.size() == coeff.size());
