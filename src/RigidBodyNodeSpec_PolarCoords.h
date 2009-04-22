@@ -183,7 +183,7 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM) const
     {
-        const SBPositionCache& pc = sbs.updPositionCache();
+        const SBPositionCache& pc = sbs.updPositionCache(); // use "upd" because we're realizing positions now
         const Transform X_F0M0 = findX_F0M0(pc);
         const Rotation& R_F0M0 = X_F0M0.R();
 
@@ -205,7 +205,7 @@ public:
         HType&               HDot_FM) const
     {
         const SBPositionCache& pc = sbs.getPositionCache();
-        const SBVelocityCache& vc = sbs.getVelocityCache();
+        const SBVelocityCache& vc = sbs.updVelocityCache(); // use "upd" because we're realizing velocities now
 
         const Transform  X_F0M0 = findX_F0M0(pc);
         const Rotation&  R_F0M0 = X_F0M0.R();

@@ -142,6 +142,10 @@ try
     GeneralForceSubsystem   forces(mbs);
     Force::UniformGravity gravityForces(forces, bouncers, gravity);
 
+    Force::Thermostat thermostat(forces, bouncers, 6000/*boltzmann??*/,
+        500, 1);
+    thermostat.setDefaultNumChains(3);
+
     // No, thank you.
     bouncers.setShowDefaultGeometry(false);
 
@@ -298,7 +302,8 @@ try
         const State& ss = ee.getState();
         if (!(step % 10)) {
             mbs.realize(ss);
-            cout << ss.getTime() << ": E=" << mbs.calcEnergy(ss)
+            cout << ss.getTime() << ": T=" << thermostat.getCurrentTemperature(ss)
+             << " E=" << mbs.calcEnergy(ss)
              << " (pe=" << mbs.calcPotentialEnergy(ss)
              << ", ke=" << mbs.calcKineticEnergy(ss)
              << ") qerr=" << bouncers.getQErr(ss).normRMS()
@@ -310,6 +315,11 @@ try
         ee.stepTo(ss.getTime() + h);
         vtk.report(ss);
         saveEm.push_back(ss);
+
+        if (std::abs(ss.getTime()-30) < .001)
+            thermostat.setBathTemperature(ee.updAdvancedState(), 10);
+        if (std::abs(ss.getTime()-80) < .001)
+            thermostat.setBathTemperature(ee.updAdvancedState(), 200);
     }
 
     //printFinalStats(ee.getCPodes());

@@ -126,45 +126,103 @@ Constraint& SimbodyMatterSubsystem::updConstraint(ConstraintIndex id) {
     return updRep().updConstraint(id);
 }
 
-void SimbodyMatterSubsystem::calcAcceleration(const State& s,
-    const Vector&              mobilityForces,
-    const Vector_<SpatialVec>& bodyForces,
-    Vector&                    udot,
-    Vector_<SpatialVec>&       A_GB) const
+//TODO: should allow zero-length force arrays to stand for zeroes.
+void SimbodyMatterSubsystem::calcAcceleration
+   (const State&                state,
+    const Vector&               appliedMobilityForces,
+    const Vector_<SpatialVec>&  appliedBodyForces,
+    Vector&                     udot,
+    Vector_<SpatialVec>&        A_GB) const
 {
-    Vector_<Vec3> particleForces; // TODO
+    SimTK_APIARGCHECK2_ALWAYS(
+        appliedMobilityForces.size()==getNumMobilities(),
+        "SimbodyMatterSubsystem", "calcAcceleration",
+        "Got %d appliedMobilityForces but there are %d mobilities.",
+        appliedMobilityForces.size(), getNumMobilities());
+    SimTK_APIARGCHECK2_ALWAYS(
+        appliedBodyForces.size()==getNumBodies(),
+        "SimbodyMatterSubsystem", "calcAcceleration",
+        "Got %d appliedBodyForces but there are %d bodies (including Ground).",
+        appliedBodyForces.size(), getNumBodies());
+
+    Vector_<Vec3> appliedParticleForces; // TODO
     SBAccelerationCache ac;
     ac.allocate(getRep().topologyCache);
 
-    Vector udotErr(getNUDotErr(s)); // unwanted return value
-    Vector multipliers(getNMultipliers(s)); // unwanted return value
+    Vector udotErr(getNUDotErr(state)); // unwanted return value
+    Vector multipliers(getNMultipliers(state)); // unwanted return value
 
-    getRep().calcLoopForwardDynamicsOperator(s, mobilityForces, particleForces, bodyForces,
-                                             ac, udot, multipliers, udotErr);
+    getRep().calcLoopForwardDynamicsOperator(state, 
+        appliedMobilityForces, appliedParticleForces, appliedBodyForces,
+        ac, udot, multipliers, udotErr);
 
     A_GB = ac.bodyAccelerationInGround;
 }
 
-
-void SimbodyMatterSubsystem::calcAccelerationIgnoringConstraints(const State& s,
-    const Vector&              mobilityForces,
-    const Vector_<SpatialVec>& bodyForces,
-    Vector&                    udot,
-    Vector_<SpatialVec>&       A_GB) const
+//TODO: should allow zero-length force arrays to stand for zeroes.
+void SimbodyMatterSubsystem::calcAccelerationIgnoringConstraints
+   (const State&                state,
+    const Vector&               appliedMobilityForces,
+    const Vector_<SpatialVec>&  appliedBodyForces,
+    Vector&                     udot,
+    Vector_<SpatialVec>&        A_GB) const
 {
-    Vector              netHingeForces; // unwanted side effect
+    SimTK_APIARGCHECK2_ALWAYS(
+        appliedMobilityForces.size()==getNumMobilities(),
+        "SimbodyMatterSubsystem", "calcAccelerationIgnoringConstraints",
+        "Got %d appliedMobilityForces but there are %d mobilities.",
+        appliedMobilityForces.size(), getNumMobilities());
+    SimTK_APIARGCHECK2_ALWAYS(
+        appliedBodyForces.size()==getNumBodies(),
+        "SimbodyMatterSubsystem", "calcAccelerationIgnoringConstraints",
+        "Got %d appliedBodyForces but there are %d bodies (including Ground).",
+        appliedBodyForces.size(), getNumBodies());
 
-    getRep().calcTreeAccelerations(s,mobilityForces,bodyForces,
+    Vector netHingeForces(getNumMobilities()); // unwanted side effect
+
+    getRep().calcTreeAccelerations(state,
+        appliedMobilityForces, appliedBodyForces,
         netHingeForces, A_GB, udot);
 }
 
 
 void SimbodyMatterSubsystem::calcMInverseV(const State& s,
     const Vector&        v,
-    Vector&              MinvV,
-    Vector_<SpatialVec>& A_GB) const
+    Vector&              MinvV) const
 {
+	Vector_<SpatialVec> A_GB;
     getRep().calcMInverseF(s,v, A_GB, MinvV);
+}
+
+void SimbodyMatterSubsystem::calcResidualForcesIgnoringConstraints
+   (const State&               state,
+    const Vector&              appliedMobilityForces,
+    const Vector_<SpatialVec>& appliedBodyForces,
+    const Vector&              knownUdot,
+    Vector&                    residualMobilityForces) const
+{
+    SimTK_APIARGCHECK2_ALWAYS(
+        appliedMobilityForces.size()==0 || appliedMobilityForces.size()==getNumMobilities(),
+        "SimbodyMatterSubsystem", "calcResidualForcesIgnoringConstraints",
+        "Got %d appliedMobilityForces but there are %d mobilities.",
+        appliedMobilityForces.size(), getNumMobilities());
+    SimTK_APIARGCHECK2_ALWAYS(
+        appliedBodyForces.size()==0 || appliedBodyForces.size()==getNumBodies(),
+        "SimbodyMatterSubsystem", "calcResidualForcesIgnoringConstraints",
+        "Got %d appliedBodyForces but there are %d bodies (including Ground).",
+        appliedBodyForces.size(), getNumBodies());
+    SimTK_APIARGCHECK2_ALWAYS(
+        knownUdot.size()==0 || knownUdot.size()==getNumMobilities(),
+        "SimbodyMatterSubsystem", "calcResidualForcesIgnoringConstraints",
+        "Got %d knownUdots but there are %d mobilities.",
+        knownUdot.size(), getNumMobilities());
+
+    residualMobilityForces.resize(getNumMobilities());
+
+	Vector_<SpatialVec> A_GB(getNumBodies());
+    getRep().calcTreeResidualForces(state,
+        appliedMobilityForces, appliedBodyForces, knownUdot,
+        A_GB, residualMobilityForces);
 }
 
 void SimbodyMatterSubsystem::calcMV(const State& s, 
@@ -172,7 +230,7 @@ void SimbodyMatterSubsystem::calcMV(const State& s,
 	Vector& MV) const
 {
 	Vector_<SpatialVec> A_GB;
-    getRep().calcMA(s,v, A_GB, MV);
+    getRep().calcMV(s,v, A_GB, MV);
 }
 
 // Convert internal kinematics to spatial equivalent, ignoring velocity and constraints.

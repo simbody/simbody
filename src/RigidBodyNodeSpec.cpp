@@ -49,8 +49,6 @@
 #include "RigidBodyNodeSpec_Custom.h"
 
 
-
-
 // Same for all mobilizers.
 // CAUTION: our H matrix definition is transposed from Jain and Schwieters.
 template<int dof> void
@@ -88,12 +86,11 @@ template<int dof> void
 RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     const SBModelVars&     mv,
     const SBPositionCache& pc, 
-    const SBVelocityCache& vc, 
-    const SBDynamicsCache& dc,
+    const SBVelocityCache& vc,
     HType& HDot_PB_G) const
 {
     const HType& H_FM     = getH_FM(pc);
-    const HType& HDot_FM = getHDot_FM(dc);
+    const HType& HDot_FM = getHDot_FM(vc);
 
     HType H_MB, HDot_MB;
 
@@ -177,7 +174,9 @@ RigidBodyNodeSpec<dof>::calcReverseMobilizerHDot_FM(
     HType&               HDot_FM) const
 {
     const SBPositionCache& pc = sbs.getPositionCache();
-    const SBVelocityCache& vc = sbs.getVelocityCache();
+    // Must use "upd" here rather than "get" because this is
+    // called during realize(Velocity).
+    const SBVelocityCache& vc = sbs.updVelocityCache();
 
     HType HDot_MF;
     calcAcrossJointVelocityJacobianDot(sbs, HDot_MF);
@@ -322,13 +321,14 @@ RigidBodyNodeSpec<dof>::calcAccel(
     Vector&                allQdotdot) const 
 {
     const SBPositionCache& pc = sbs.getPositionCache();
+    const SBVelocityCache& vc = sbs.getVelocityCache();
     const SBDynamicsCache& dc = sbs.getDynamicsCache();
     SBAccelerationCache&   ac = sbs.updAccelerationCache();
     Vec<dof>&        udot   = toU(allUdot);
     const SpatialVec alphap = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
 
     udot        = getNu(ac) - (~getG(dc)*alphap);
-    updA_GB(ac) = alphap + getH(pc)*udot + getCoriolisAcceleration(dc);  
+    updA_GB(ac) = alphap + getH(pc)*udot + getCoriolisAcceleration(vc);  
 
     calcQDotDot(sbs, allUdot, allQdotdot);  
 }
@@ -377,6 +377,7 @@ RigidBodyNodeSpec<dof>::calcUDotPass1Inward(
 template<int dof> void 
 RigidBodyNodeSpec<dof>::calcUDotPass2Outward(
     const SBPositionCache& pc,
+    const SBVelocityCache& vc,
     const SBDynamicsCache& dc,
     const Vector&          allEpsilon,
     Vector_<SpatialVec>&   allA_GB,
@@ -392,7 +393,7 @@ RigidBodyNodeSpec<dof>::calcUDotPass2Outward(
         : ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
     udot = getDI(dc) * eps - (~getG(dc)*A_GP);
-    A_GB = A_GP + getH(pc)*udot + getCoriolisAcceleration(dc);  
+    A_GB = A_GP + getH(pc)*udot + getCoriolisAcceleration(vc);  
 }
 
  
@@ -461,11 +462,72 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass2Outward(
     A_GB = A_GP + getH(pc)*udot;  
 }
 
+// The next two methods calculate 
+//      f = M*udot + C(u) - f_applied 
+// in O(N) time, where C(u) are the velocity-dependent coriolis, centrifugal and gyroscopic forces,
+// f_applied are the applied body and joint forces, and udot is given.
+//
+// Pass 1 is base to tip and calculates the body accelerations arising
+// from udot and the coriolis accelerations.
+template<int dof> void 
+RigidBodyNodeSpec<dof>::calcInverseDynamicsPass1Outward(
+    const SBPositionCache& pc,
+    const SBVelocityCache& vc,
+    const Vector&          allUDot,
+    Vector_<SpatialVec>&   allA_GB) const
+{
+    const Vec<dof>& udot = fromU(allUDot);
+    SpatialVec&     A_GB = toB(allA_GB);
 
-// The next two methods calculate f=M*a in O(N) time, given a.
+    // Shift parent's A_GB outward. (Ground A_GB is zero.)
+    const SpatialVec A_GP = parent->getNodeNum()== 0 
+        ? SpatialVec(Vec3(0), Vec3(0))
+        : ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+
+    A_GB = A_GP + getH(pc)*udot + getCoriolisAcceleration(vc); 
+}
+
+// Pass 2 is tip to base. It takes body accelerations from pass 1 (including coriolis
+// accelerations as well as hinge accelerations), and the applied forces,
+// and calculates the additional hinge forces that would be necessary to produce 
+// the observed accelerations.
+template<int dof> void
+RigidBodyNodeSpec<dof>::calcInverseDynamicsPass2Inward(
+    const SBPositionCache&      pc,
+    const SBVelocityCache&      vc,
+    const Vector_<SpatialVec>&  allA_GB,
+    const Vector&               jointForces,
+    const Vector_<SpatialVec>&  bodyForces,
+    Vector_<SpatialVec>&        allF,	// temp
+    Vector&                     allTau) const 
+{
+    const Vec<dof>&   myJointForce  = fromU(jointForces);
+    const SpatialVec& myBodyForce   = fromB(bodyForces);
+    const SpatialVec& A_GB          = fromB(allA_GB);
+    SpatialVec&       F		        = toB(allF);
+    Vec<dof>&         tau	        = toU(allTau);
+
+    // Start with rigid body force from desired body acceleration and
+    // gyroscopic forces due to angular velocity, minus external forces
+    // applied directly to this body.
+	F = getMk(pc)*A_GB + getGyroscopicForce(vc) - myBodyForce;
+
+    // Add in forces on children, shifted to this body.
+    for (int i=0 ; i<(int)children.size() ; i++) {
+        const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+        const SpatialVec& FChild    = allF[children[i]->getNodeNum()];
+        F += phiChild * FChild;
+    }
+
+    // Project body forces into hinge space and subtract any hinge forces already
+    // being applied to get the remaining hinge forces needed.
+    tau = ~getH(pc)*F - myJointForce;
+}
+
+// The next two methods calculate x=M*v (or f=M*a) in O(N) time, given v.
 // The first one is called base to tip.
 template<int dof> void 
-RigidBodyNodeSpec<dof>::calcMAPass1Outward(
+RigidBodyNodeSpec<dof>::calcMVPass1Outward(
     const SBPositionCache& pc,
     const Vector&          allUDot,
     Vector_<SpatialVec>&   allA_GB) const
@@ -481,10 +543,10 @@ RigidBodyNodeSpec<dof>::calcMAPass1Outward(
     A_GB = A_GP + getH(pc)*udot;  
 }
 
-// Call tip to base after calling calcMAPass1Outward() for each
+// Call tip to base after calling calcMVPass1Outward() for each
 // rigid body.
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcMAPass2Inward(
+RigidBodyNodeSpec<dof>::calcMVPass2Inward(
     const SBPositionCache& pc,
     const Vector_<SpatialVec>& allA_GB,
     Vector_<SpatialVec>&       allF,	// temp
@@ -503,7 +565,6 @@ RigidBodyNodeSpec<dof>::calcMAPass2Inward(
     }
 
 	F += getMk(pc)*A_GB;
-
     tau = ~getH(pc)*F;
 }
 

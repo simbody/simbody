@@ -462,8 +462,15 @@ public:
         Vector_<SpatialVec>& A_GB,
         Vector&              udot) const; 
 
-	void calcMA(const State& s,
-		const Vector&			udot,
+    void calcTreeResidualForces(const State&,
+        const Vector&               appliedMobilityForces,
+        const Vector_<SpatialVec>&  appliedBodyForces,
+        const Vector&               knownUdot,
+		Vector_<SpatialVec>&	    A_GB,
+        Vector&                     residualMobilityForces) const;
+
+	void calcMV(const State& s,
+		const Vector&			v,
 		Vector_<SpatialVec>&	A_GB,
 		Vector&					f) const;
 

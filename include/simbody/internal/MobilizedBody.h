@@ -1635,6 +1635,8 @@ public:
 /// that is, first we rotate around z, which moves M's x with respect to F's x. Then
 /// we slide along the rotated x axis. The two generalized coordinates are the
 /// rotation and the translation, in that order.
+/// This can also be viewed a a 2D polar coordinate mobilizer since the coordinates
+/// are (theta, r) about perpendicular axes.
 class SimTK_SIMBODY_EXPORT MobilizedBody::BendStretch : public MobilizedBody {
 public:
     explicit BendStretch(Direction=Forward);
@@ -1759,13 +1761,14 @@ public:
  * F and M frames are coincident when azimuth==zenith==radius==0. But note
  * that with non-zero offsets the F and M frames will not be aligned in
  * the reference configuration where q0==q1==q2==0. The F and M origins
- * will always be coincident when q2=0, however.
+ * will always be coincident when q2==0, however.
  *
  * This mobilizer can be used to give unrestricted 3-d motion to inertialess 
- * particles (as with a Cartesian mobilizer) but in this case you
- * must watch for two possible singularities: (1) radius==0, and
- * (2) zenith==n*Pi (or equivalently q1=n*Pi-s1*ze0). If your operating range 
- * steers clear of those singularities, you're fine.
+ * particles (as with a Cartesian mobilizer but parameterized torsion,bend,stretch
+ * instead of x,y,z) but in this case you must watch for two possible 
+ * singularities: (1) radius==0, and (2) zenith==n*Pi (or equivalently 
+ * q1==n*Pi-s1*ze0). If your operating range steers clear of those singularities, 
+ * you're fine.
  */
 class SimTK_SIMBODY_EXPORT MobilizedBody::SphericalCoords : public MobilizedBody {
 public:

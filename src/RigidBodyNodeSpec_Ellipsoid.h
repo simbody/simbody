@@ -256,7 +256,7 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM) const
     {
-        const SBPositionCache& pc = sbs.updPositionCache();
+        const SBPositionCache& pc = sbs.updPositionCache(); // "upd" because we're realizing positions now
 
         // The normal is M's z axis, expressed in F but only in the frames we
         // used to *define* this mobilizer, not necessarily the ones used after
@@ -273,7 +273,7 @@ public:
         HType&               HDot_FM) const
     {
         const SBPositionCache& pc = sbs.getPositionCache();
-        const SBVelocityCache& vc = sbs.getVelocityCache();
+        const SBVelocityCache& vc = sbs.updVelocityCache(); // "upd" because we're realizing velocities now
 
         // We need the normal and cross-joint velocity in the frames we're 
         // using to *define* the mobilizer, not necessarily the frames we're 

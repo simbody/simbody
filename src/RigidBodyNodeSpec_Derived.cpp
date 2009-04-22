@@ -285,3 +285,4 @@ RigidBodyNode* MobilizedBody::CustomImpl::createRigidBodyNode(
         return 0;
     }
 }
+

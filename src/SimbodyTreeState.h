@@ -487,6 +487,16 @@ public:
     Vector_<SpatialVec> bodyVelocityInParent;      // nb (V_PB) 
     Vector_<SpatialVec> bodyVelocityInGround;      // nb (V_GB)
 
+    // CAUTION: our definition of the H matrix is transposed from those used
+    // by Jain and by Schwieters.
+    Matrix_<Vec3> storageForHDot_FM;  // 2 x ndof (HDot_FM)
+    Matrix_<Vec3> storageForHDot;     // 2 x ndof (HDot_PB_G)
+
+    Vector_<SpatialVec> bodyVelocityInParentDerivRemainder; // VB_PB_G=HDot_PB_G*u
+
+    Vector_<SpatialVec> coriolisAcceleration;     // nb (a)
+    Vector_<SpatialVec> totalCoriolisAcceleration;// nb (A)
+    Vector_<SpatialVec> gyroscopicForces;         // nb (b)
 
         // Ancestor Constrained Body Pool
 
@@ -513,6 +523,21 @@ public:
         bodyVelocityInGround.resize(nBodies);       
         bodyVelocityInGround[0] = SpatialVec(Vec3(0),Vec3(0));
 
+        storageForHDot_FM.resize(2,nDofs);
+        storageForHDot.resize(2,nDofs);
+
+        bodyVelocityInParentDerivRemainder.resize(nBodies);       
+        bodyVelocityInParentDerivRemainder[0] = SpatialVec(Vec3(0),Vec3(0));
+
+        coriolisAcceleration.resize(nBodies);       
+        coriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));
+
+        totalCoriolisAcceleration.resize(nBodies);       
+        totalCoriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));
+
+        gyroscopicForces.resize(nBodies);           
+        gyroscopicForces[0] = SpatialVec(Vec3(0),Vec3(0));
+
         constrainedBodyVelocityInAncestor.resize(nacb);
     }
 };
@@ -522,16 +547,6 @@ public:
     // Dynamics
     Vector_<SpatialMat> articulatedBodyInertia;   // nb (P)
 
-    // CAUTION: our definition of the H matrix is transposed from those used
-    // by Jain and by Schwieters.
-    Matrix_<Vec3> storageForHDot_FM;  // 2 x ndof (HDot_FM)
-    Matrix_<Vec3> storageForHDot;     // 2 x ndof (HDot_PB_G)
-
-    Vector_<SpatialVec> bodyVelocityInParentDerivRemainder; // VB_PB_G=HDot_PB_G*u
-
-    Vector_<SpatialVec> coriolisAcceleration;     // nb (a)
-    Vector_<SpatialVec> totalCoriolisAcceleration;// nb (A)
-    Vector_<SpatialVec> gyroscopicForces;         // nb (b)
     Vector_<SpatialVec> centrifugalForces;        // nb (P*a+b)
     Vector_<SpatialVec> totalCentrifugalForces;   // nb (P*A+b)
 
@@ -552,20 +567,6 @@ public:
         const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need     
         
         articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
-        storageForHDot_FM.resize(2,nDofs);
-        storageForHDot.resize(2,nDofs);
-
-        bodyVelocityInParentDerivRemainder.resize(nBodies);       
-        bodyVelocityInParentDerivRemainder[0] = SpatialVec(Vec3(0),Vec3(0));
-
-        coriolisAcceleration.resize(nBodies);       
-        coriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));
-
-        totalCoriolisAcceleration.resize(nBodies);       
-        totalCoriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));
-
-        gyroscopicForces.resize(nBodies);           
-        gyroscopicForces[0] = SpatialVec(Vec3(0),Vec3(0));
 
         centrifugalForces.resize(nBodies);           
         centrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));

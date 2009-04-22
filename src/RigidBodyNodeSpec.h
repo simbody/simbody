@@ -209,42 +209,7 @@ public:
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
-        const SBDynamicsCache& dc, 
         HType& HDot_PB_G) const;
-
-
-    // Calculate joint-specific kinematic quantities dependent on
-    // velocities. This routine may assume that *all* position 
-    // kinematics (not just joint-specific) has been done for this node,
-    // that all velocity kinematics has been done for the parent, and
-    // that the velocity state variables (u) are available. The
-    // quanitites that must be computed are:
-    //   V_FM   relative velocity of B's M frame in P's F frame, 
-    //             expressed in F (note: this is also V_PM_F since
-    //             F is fixed on P).
-    //   V_PB_G  relative velocity of B in P, expr. in G
-    // The code is the same for all joints, although parametrized by ndof.
-    void calcJointKinematicsVel(
-        const SBPositionCache& pc,
-        const Vector&          u,
-        SBVelocityCache&       vc) const 
-    {
-        updV_FM(vc)   = getH_FM(pc) * fromU(u);
-        updV_PB_G(vc) = getH(pc)    * fromU(u);
-    }
-
-    // Calculate joint-specific dynamics quantities dependent on velocities.
-    // This method may assume that *all* position & velocity kinematics
-    // (not just joint-specific) has been done for this node, and that
-    // dynamics has been done for the parent.
-    void calcJointDynamics(
-        const SBPositionCache& pc,
-        const Vector&          u,
-        const SBVelocityCache& vc, 
-        SBDynamicsCache&       dc) const 
-    {
-        updVD_PB_G(dc) = getHDot(dc) * fromU(u);
-    }
 
     // These next two routines are optional, but if you supply one you
     // must supply the other. (That is, ball-containing joints provide
@@ -283,18 +248,21 @@ public:
     // Must call base-to-tip.
     void realizePosition(SBStateDigest& sbs) const 
     {
-        const SBModelVars& mv = sbs.getModelVars();
-        const SBModelCache& mc = sbs.getModelCache();
-        const SBInstanceCache& ic = sbs.getInstanceCache();
-        SBPositionCache& pc = sbs.updPositionCache();
-        calcJointSinCosQNorm(mv, mc, ic, sbs.getQ(), pc.sq, pc.cq, sbs.updQErr(), pc.qnorm);
+        const SBModelVars&      mv = sbs.getModelVars();
+        const SBModelCache&     mc = sbs.getModelCache();
+        const SBInstanceCache&  ic = sbs.getInstanceCache();
+        const Vector&           allQ = sbs.getQ();
+        SBPositionCache&        pc = sbs.updPositionCache();
+
+        // Mobilizer specific.
+        calcJointSinCosQNorm(mv, mc, ic, allQ, pc.sq, pc.cq, sbs.updQErr(), pc.qnorm);
 
         if (isReversed()) {
             Transform X_MF;
-            calcAcrossJointTransform(sbs, sbs.getQ(), X_MF);
+            calcAcrossJointTransform(sbs, allQ, X_MF);
             updX_FM(pc) = ~X_MF;
         } else 
-            calcAcrossJointTransform(sbs, sbs.getQ(), updX_FM(pc));
+            calcAcrossJointTransform(sbs, allQ, updX_FM(pc));
 
         calcBodyTransforms(pc, updX_PB(pc), updX_GB(pc));
 
@@ -303,34 +271,59 @@ public:
         else              calcAcrossJointVelocityJacobian(sbs, updH_FM(pc));
 
         calcParentToChildVelocityJacobianInGround(mv,pc, updH(pc));
+
+        // Mobilizer independent.
         calcJointIndependentKinematicsPos(pc);
     }
 
     // Set new velocities for the current configuration, and calculate
     // all the velocity-dependent terms. Must call base-to-tip.
+    // This routine may assume that *all* position 
+    // kinematics (not just joint-specific) has been done for this node,
+    // that all velocity kinematics has been done for the parent, and
+    // that the velocity state variables (u) are available. The
+    // quantities that must be computed are:
+    //   V_FM   relative velocity of B's M frame in P's F frame, 
+    //             expressed in F (note: this is also V_PM_F since
+    //             F is fixed on P). (This is H_FM*u.)
+    //   V_PB_G  relative velocity of B in P (==H*u), expr. in G
+    //   HDot_FM time derivative of hinge matrix H_FM
+    //   HDot    time derivative of H (==H_PB) hinge matrix relating body frames
+    //   VD_PB_G acceleration remainder term HDot*u, expr. in G
+    // The code is the same for all joints, although parametrized by ndof.
     void realizeVelocity(SBStateDigest& sbs) const 
     {
-        const SBPositionCache& pc = sbs.getPositionCache();
-        SBVelocityCache& vc = sbs.updVelocityCache();
-        calcQDot(sbs, sbs.getU(), sbs.updQDot());
-        calcJointKinematicsVel(pc,sbs.getU(),vc);
+        const SBModelVars&      mv = sbs.getModelVars();
+        const SBPositionCache&  pc = sbs.getPositionCache();
+        SBVelocityCache&        vc = sbs.updVelocityCache();
+        const Vector&           allU = sbs.getU();
+        const Vec<dof>&         u = fromU(allU);
+
+        // Mobilizer specific.
+        calcQDot(sbs, allU, sbs.updQDot());
+
+        updV_FM(vc)    = getH_FM(pc) * u;
+        updV_PB_G(vc)  = getH(pc)    * u;
+
+        // REMINDER: our H matrix definition is transposed from Jain and Schwieters.
+        if (isReversed()) calcReverseMobilizerHDot_FM       (sbs, updHDot_FM(vc));
+        else              calcAcrossJointVelocityJacobianDot(sbs, updHDot_FM(vc));
+
+        calcParentToChildVelocityJacobianInGroundDot(mv,pc,vc, updHDot(vc));
+        updVD_PB_G(vc) = getHDot(vc) * u;
+
+        // Mobilizer independent.
         calcJointIndependentKinematicsVel(pc,vc);
     }
 
     void realizeDynamics(SBStateDigest& sbs) const
     {
-        // Mobilizer-specific.
-        const SBModelVars& mv = sbs.getModelVars();
         const SBPositionCache& pc = sbs.getPositionCache();
         const SBVelocityCache& vc = sbs.getVelocityCache();
-        SBDynamicsCache& dc = sbs.updDynamicsCache();
+        SBDynamicsCache&       dc = sbs.updDynamicsCache();
 
-        // REMINDER: our H matrix definition is transposed from Jain and Schwieters.
-        if (isReversed()) calcReverseMobilizerHDot_FM       (sbs, updHDot_FM(dc));
-        else              calcAcrossJointVelocityJacobianDot(sbs, updHDot_FM(dc));
-
-        calcParentToChildVelocityJacobianInGroundDot(mv,pc,vc, dc, updHDot(dc));
-        calcJointDynamics(pc,sbs.getU(),vc,dc);
+        // Mobilizer-specific.
+        // None.
 
         // Mobilizer independent.
         calcJointIndependentDynamicsVel(pc,vc,dc);
@@ -615,19 +608,19 @@ public:
 
         // Velocity
 
+    // CAUTION: our H definition is transposed from Jain and Schwieters.
+    const HType& getHDot_FM(const SBVelocityCache& vc) const
+      { return HType::getAs(&vc.storageForHDot_FM(0,uIndex)); }
+    HType&       updHDot_FM(SBVelocityCache& vc) const
+      { return HType::updAs(&vc.storageForHDot_FM(0,uIndex)); }
+
+    // CAUTION: our H definition is transposed from Jain and Schwieters.
+    const HType& getHDot(const SBVelocityCache& vc) const
+      { return HType::getAs(&vc.storageForHDot(0,uIndex)); }
+    HType&       updHDot(SBVelocityCache& vc) const
+      { return HType::updAs(&vc.storageForHDot(0,uIndex)); }
+
         // Dynamics
-
-    // CAUTION: our H definition is transposed from Jain and Schwieters.
-    const HType& getHDot_FM(const SBDynamicsCache& dc) const
-      { return HType::getAs(&dc.storageForHDot_FM(0,uIndex)); }
-    HType&       updHDot_FM(SBDynamicsCache& dc) const
-      { return HType::updAs(&dc.storageForHDot_FM(0,uIndex)); }
-
-    // CAUTION: our H definition is transposed from Jain and Schwieters.
-    const HType& getHDot(const SBDynamicsCache& dc) const
-      { return HType::getAs(&dc.storageForHDot(0,uIndex)); }
-    HType&       updHDot(SBDynamicsCache& dc) const
-      { return HType::updAs(&dc.storageForHDot(0,uIndex)); }
 
     const Mat<dof,dof>& getD(const SBDynamicsCache& dc) const {return fromUSq(dc.storageForD);}
     Mat<dof,dof>&       updD(SBDynamicsCache&       dc) const {return toUSq  (dc.storageForD);}
@@ -697,6 +690,7 @@ public:
 
     void calcUDotPass2Outward(
         const SBPositionCache&      pc,
+        const SBVelocityCache&      vc,
         const SBDynamicsCache&      dc,
         const Vector&               epsilonTmp,
         Vector_<SpatialVec>&        allA_GB,
@@ -717,11 +711,26 @@ public:
         Vector_<SpatialVec>&        allA_GB,
         Vector&                     allUDot) const;
 
-	void calcMAPass1Outward(
+    void calcInverseDynamicsPass1Outward(
+        const SBPositionCache& pc,
+        const SBVelocityCache& vc,
+        const Vector&          allUDot,
+        Vector_<SpatialVec>&   allA_GB) const;
+
+    void calcInverseDynamicsPass2Inward(
+        const SBPositionCache&      pc,
+        const SBVelocityCache&      vc,
+        const Vector_<SpatialVec>&  allA_GB,
+        const Vector&               jointForces,
+        const Vector_<SpatialVec>&  bodyForces,
+        Vector_<SpatialVec>&        allFTmp,
+        Vector&                     allTau) const; 
+
+	void calcMVPass1Outward(
 		const SBPositionCache& pc,
 		const Vector&          allUDot,
 		Vector_<SpatialVec>&   allA_GB) const;
-	void calcMAPass2Inward(
+	void calcMVPass2Inward(
 		const SBPositionCache& pc,
 		const Vector_<SpatialVec>& allA_GB,
 		Vector_<SpatialVec>&       allFTmp,

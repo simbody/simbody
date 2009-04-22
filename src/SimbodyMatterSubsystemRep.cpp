@@ -191,15 +191,15 @@ SimbodyMatterSubsystemRep::getBodyAcceleration(const State& s, MobilizedBodyInde
 
 const SpatialVec&
 SimbodyMatterSubsystemRep::getCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
-  return getRigidBodyNode(body).getCoriolisAcceleration(getDynamicsCache(s));
+  return getRigidBodyNode(body).getCoriolisAcceleration(getVelocityCache(s));
 }
 const SpatialVec&
 SimbodyMatterSubsystemRep::getTotalCoriolisAcceleration(const State& s, MobilizedBodyIndex body) const {
-  return getRigidBodyNode(body).getTotalCoriolisAcceleration(getDynamicsCache(s));
+  return getRigidBodyNode(body).getTotalCoriolisAcceleration(getVelocityCache(s));
 }
 const SpatialVec&
 SimbodyMatterSubsystemRep::getGyroscopicForce(const State& s, MobilizedBodyIndex body) const {
-  return getRigidBodyNode(body).getGyroscopicForce(getDynamicsCache(s));
+  return getRigidBodyNode(body).getGyroscopicForce(getVelocityCache(s));
 }
 const SpatialVec&
 SimbodyMatterSubsystemRep::getCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
@@ -1890,7 +1890,7 @@ Real SimbodyMatterSubsystemRep::calcKineticEnergy(const State& s) const {
 }
 
 //
-// Operator for open-loop dynamics.
+// Operator for open-loop forward dynamics.
 //
 void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     const Vector&              mobilityForces,
@@ -1901,6 +1901,7 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
 {
     const SBStateDigest sbs(s, *this, Stage::Acceleration);
     const SBPositionCache& pc = sbs.getPositionCache();
+    const SBVelocityCache& vc = sbs.getVelocityCache();
     const SBDynamicsCache& dc = sbs.getDynamicsCache();
 
     assert(mobilityForces.size() == getTotalDOF());
@@ -1925,7 +1926,7 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcUDotPass2Outward(pc,dc, netHingeForces, A_GB, udot);
+            node.calcUDotPass2Outward(pc,vc,dc, netHingeForces, A_GB, udot);
         }
 }
 
@@ -1967,17 +1968,86 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
 }
 
 //
-// Calculate f = M a. We also get spatial accelerations A_GB for 
+// Operator for tree system inverse dynamics. 
+// Note that this includes the effects of inertial forces.
+//
+void SimbodyMatterSubsystemRep::calcTreeResidualForces(const State& s,
+    const Vector&              appliedMobilityForces,
+    const Vector_<SpatialVec>& appliedBodyForces,
+    const Vector&              knownUdot,
+    Vector_<SpatialVec>&       A_GB,
+    Vector&                    residualMobilityForces) const
+{
+    const SBPositionCache& pc = getPositionCache(s);
+    const SBVelocityCache& vc = getVelocityCache(s);
+
+    // We allow the input Vectors to be zero length. For now we have
+    // to make explicit Vectors of zero for them in that case; better would
+    // be to have a special operator.
+    const Vector*              pAppliedMobForces  = &appliedMobilityForces;
+    const Vector_<SpatialVec>* pAppliedBodyForces = &appliedBodyForces;
+    const Vector*              pKnownUdot         = &knownUdot;
+
+    Vector              zeroPerMobility;
+    Vector_<SpatialVec> zeroPerBody;
+    if (appliedMobilityForces.size()==0 || knownUdot.size()==0) {
+        zeroPerMobility.resize(getNumMobilities());
+        zeroPerMobility = 0;
+        if (appliedMobilityForces.size()==0) pAppliedMobForces = &zeroPerMobility;
+        if (knownUdot.size()==0)             pKnownUdot        = &zeroPerMobility;
+    }
+    if (appliedBodyForces.size()==0) {
+        zeroPerBody.resize(getNumBodies());
+        zeroPerBody = SpatialVec(Vec3(0),Vec3(0));
+        pAppliedBodyForces = &zeroPerBody;
+    }
+
+    // At this point the three pointers point either to the original arguments
+    // or to appropriate-sized arrays of zero. Any non-zero length original 
+    // arguments should already have been verified by the caller (a method
+    // in the SimTK API) to be the correct length.
+
+    // Check input sizes.
+    assert(pAppliedMobForces->size()  == getNumMobilities());
+    assert(pAppliedBodyForces->size() == getNumBodies());
+    assert(pKnownUdot->size()         == getNumMobilities());
+
+    // Resize outputs if necessary.
+    A_GB.resize(getNumBodies());
+    residualMobilityForces.resize(getNumMobilities());
+
+    // Allocate temporary.
+    Vector_<SpatialVec> allFTmp(getNumBodies());
+
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.calcInverseDynamicsPass1Outward(pc,vc,*pKnownUdot,A_GB);
+        }
+
+    for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.calcInverseDynamicsPass2Inward(
+                pc,vc,A_GB,
+                *pAppliedMobForces,*pAppliedBodyForces,
+                allFTmp,residualMobilityForces);
+        }
+}
+
+//
+// Calculate x = M v. If the vector v is a generalized acceleration
+// udot, then we also get spatial accelerations A_GB for 
 // each body as a side effect.
 //
-void SimbodyMatterSubsystemRep::calcMA(const State& s,
-    const Vector&              udot,
+void SimbodyMatterSubsystemRep::calcMV(const State& s,
+    const Vector&              v,
     Vector_<SpatialVec>&       A_GB,
     Vector&                    f) const 
 {
     const SBPositionCache& pc = getPositionCache(s);
 
-    assert(udot.size() == getTotalDOF());
+    assert(v.size() == getTotalDOF());
 
     A_GB.resize(getNumBodies());
     f.resize(getTotalDOF());
@@ -1988,13 +2058,13 @@ void SimbodyMatterSubsystemRep::calcMA(const State& s,
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMAPass1Outward(pc, udot, A_GB);
+            node.calcMVPass1Outward(pc, v, A_GB);
         }
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMAPass2Inward(pc,A_GB,allFTmp,f);
+            node.calcMVPass2Inward(pc,A_GB,allFTmp,f);
         }
 }
 

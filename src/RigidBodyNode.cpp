@@ -87,15 +87,61 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
                                    -offDiag             , getMass()*Mat33(1) );
 }
 
-// Calculate velocity-related quantities: spatial velocity (V_GB). This must be
+// Calculate velocity-related quantities: spatial velocity (V_GB), 
+// gyroscopic forces, coriolis acceleration. This must be
 // called base to tip: depends on parent's spatial velocity, and
-// the just-calculated cross-joint spatial velocity V_PB_G.
+// the just-calculated cross-joint spatial velocity V_PB_G and
+// velocity-dependent acceleration remainder term VD_PB_G.
 void 
 RigidBodyNode::calcJointIndependentKinematicsVel(
     const SBPositionCache& pc,
-    SBVelocityCache&       mc) const
+    SBVelocityCache&       vc) const
 {
-    updV_GB(mc) = ~getPhi(pc)*parent->getV_GB(mc) + getV_PB_G(mc);
+    if (nodeNum == 0) { // ground, just in case
+        updV_GB(vc)                      = SpatialVec(Vec3(0), Vec3(0));
+        updGyroscopicForce(vc)           = SpatialVec(Vec3(0), Vec3(0));
+        updCoriolisAcceleration(vc)      = SpatialVec(Vec3(0), Vec3(0));
+        updTotalCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
+        return;
+    }
+
+    // 18 flops
+    updV_GB(vc) = ~getPhi(pc)*parent->getV_GB(vc) + getV_PB_G(vc);
+
+    const Vec3& w_GB = getV_GB(vc)[0];  // spatial angular velocity
+    const Vec3& v_GB = getV_GB(vc)[1];  // spatial linear velocity (of B origin in G)
+
+    updGyroscopicForce(vc) = 
+        SpatialVec(    w_GB % (getInertia_OB_G(pc)*w_GB),     // gyroscopic moment (24 flops)
+                    getMass()*(w_GB % (w_GB % getCB_G(pc)))); // gyroscopic force  (21 flops)
+
+    // Parent velocity.
+    const Vec3& w_GP = parent->getV_GB(vc)[0];
+    const Vec3& v_GP = parent->getV_GB(vc)[1];
+
+    // Calc a: coriolis acceleration.
+    // The coriolis acceleration "a" is a 
+    // "remainder" term in the spatial acceleration, depending only on velocities,
+    // but involving time derivatives of the Phi and H matrices. 
+    // CAUTION: our definition of H is transposed from Jain's and Schwieters'.
+    //
+    // Specifically,
+    //   a = ~PhiDot * V_GP + HDot * u
+    // As correctly calculated in Schwieters' paper, Eq [16], the first term above
+    // simplifies to SpatialVec( 0, w_GP % (v_GB-v_GP) ). However, Schwieters' second
+    // term in [16] is correct only if H is constant in P, in which case the derivative
+    // just accounts for the rotation of P in G. In general H is not constant in P,
+    // so we don't try to calculate the derivative here but assume that HDot*u has
+    // already been calculated for us and stored in VD_PB_G. (That is,
+    // V_PB_G = H*u, VD_PB_G = HDot*u.)
+
+    updCoriolisAcceleration(vc) =
+        SpatialVec( Vec3(0), w_GP % (v_GB-v_GP) ) + getVD_PB_G(vc); // 18 flops
+
+    // 18 flops
+    updTotalCoriolisAcceleration(vc) =
+        ~getPhi(pc) * parent->getTotalCoriolisAcceleration(vc)
+        + getCoriolisAcceleration(vc); // just calculated above
 }
 
 Real RigidBodyNode::calcKineticEnergy(
@@ -114,57 +160,22 @@ Real RigidBodyNode::calcKineticEnergy(
 void 
 RigidBodyNode::calcJointIndependentDynamicsVel(
     const SBPositionCache& pc,
-    const SBVelocityCache& mc,
+    const SBVelocityCache& vc,
     SBDynamicsCache&       dc) const
 {
     if (nodeNum == 0) { // ground, just in case
-        updGyroscopicForce(dc)           = SpatialVec(Vec3(0), Vec3(0));
-        updCoriolisAcceleration(dc)      = SpatialVec(Vec3(0), Vec3(0));
-        updTotalCoriolisAcceleration(dc) = SpatialVec(Vec3(0), Vec3(0));
         updCentrifugalForces(dc)         = SpatialVec(Vec3(0), Vec3(0));
         updTotalCentrifugalForces(dc)    = SpatialVec(Vec3(0), Vec3(0));
         return;
     }
 
-    const Vec3& w_GB = getV_GB(mc)[0];  // spatial angular velocity
-    const Vec3& v_GB = getV_GB(mc)[1];  // spatial linear velocity (of B origin in G)
-
-    updGyroscopicForce(dc) = 
-        SpatialVec(    w_GB % (getInertia_OB_G(pc)*w_GB),     // gyroscopic moment
-                    getMass()*(w_GB % (w_GB % getCB_G(pc)))); // gyroscopic force
-
-    // Parent velocity.
-    const Vec3& w_GP = parent->getV_GB(mc)[0];
-    const Vec3& v_GP = parent->getV_GB(mc)[1];
-
-    // Calc a: coriolis acceleration.
-    // The coriolis acceleration "a" is a 
-    // "remainder" term in the spatial acceleration, depending only on velocities,
-    // but involving time derivatives of the Phi and H matrices. 
-    // CAUTION: our definition of H is transposed from Jain's and Schwieters'.
-    //
-    // Specifically,
-    //   a = ~PhiDot * V_GP + HDot * u
-    // As correctly calculated in Schwieters' paper, Eq [16], the first term above
-    // simplifies to SpatialVec( 0, w_GP % (v_GB-v_GP) ). However, Schwieters' second
-    // term in [16] is correct only if H is constant in P, in which case the derivative
-    // just accounts for the rotation of P in G. In general H is not constant in P,
-    // so we don't try to calculate the derivative here but assume that HDot*u has
-    // already been calculated for us and stored in VD_PB_G. (That is,
-    // V_PB_G = H*u, VD_PB_G = HDot*u.)
-
-    updCoriolisAcceleration(dc) =
-        SpatialVec( Vec3(0), w_GP % (v_GB-v_GP) ) + getVD_PB_G(dc);
-
-    updTotalCoriolisAcceleration(dc) =
-        ~getPhi(pc) * parent->getTotalCoriolisAcceleration(dc)
-        + getCoriolisAcceleration(dc); // just calculated above
-
+    // 72 flops
     updCentrifugalForces(dc) =
-        getP(dc) * getCoriolisAcceleration(dc) + getGyroscopicForce(dc);
+        getP(dc) * getCoriolisAcceleration(vc) + getGyroscopicForce(vc);
 
+    // 72 flops
     updTotalCentrifugalForces(dc) = 
-        getP(dc) * getTotalCoriolisAcceleration(dc) + getGyroscopicForce(dc);
+        getP(dc) * getTotalCoriolisAcceleration(vc) + getGyroscopicForce(vc);
 
 }
 
