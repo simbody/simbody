@@ -221,9 +221,9 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
 
     // Check self consistency: compute residual, apply it, should be no remaining residual.
     Vector residualForces, shouldBeZeroResidualForces;
-    matter.calcResidualForcesIgnoringConstraints(state,
+    matter.calcResidualForceIgnoringConstraints(state,
         mobilityForces, bodyForces, knownUdots, residualForces);
-    matter.calcResidualForcesIgnoringConstraints(state,
+    matter.calcResidualForceIgnoringConstraints(state,
         mobilityForces+residualForces, bodyForces, knownUdots, shouldBeZeroResidualForces);
     ASSERT(shouldBeZeroResidualForces.norm() <= Slop);
 
@@ -239,55 +239,55 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
 
     // Verify that leaving out arguments makes them act like zeroes.
     Vector residualForces1, residualForces2;
-    matter.calcResidualForcesIgnoringConstraints(state,
+    matter.calcResidualForceIgnoringConstraints(state,
         0*mobilityForces, 0*bodyForces, 0*knownUdots, residualForces1);
     // no, the residual is not zero here because of the angular velocities
-    matter.calcResidualForcesIgnoringConstraints(state,
+    matter.calcResidualForceIgnoringConstraints(state,
         Vector(), Vector_<SpatialVec>(), Vector(), residualForces2);
     ASSERT((residualForces2-residualForces1).norm() <= Slop);
 
     // Same, but leave out combinations of arguments.
-    matter.calcResidualForcesIgnoringConstraints(state,
+    matter.calcResidualForceIgnoringConstraints(state,
         0*mobilityForces, bodyForces, knownUdots, residualForces1);
-    matter.calcResidualForcesIgnoringConstraints(state,
+    matter.calcResidualForceIgnoringConstraints(state,
         Vector(), bodyForces, knownUdots, residualForces2);
     ASSERT((residualForces2-residualForces1).norm() <= Slop);
-    matter.calcResidualForcesIgnoringConstraints(state,
+    matter.calcResidualForceIgnoringConstraints(state,
         mobilityForces, 0*bodyForces, knownUdots, residualForces1);
-    matter.calcResidualForcesIgnoringConstraints(state,
+    matter.calcResidualForceIgnoringConstraints(state,
         mobilityForces, Vector_<SpatialVec>(), knownUdots, residualForces2);
     ASSERT((residualForces2-residualForces1).norm() <= Slop);
-    matter.calcResidualForcesIgnoringConstraints(state,
+    matter.calcResidualForceIgnoringConstraints(state,
         mobilityForces, bodyForces, 0*knownUdots, residualForces1);
-    matter.calcResidualForcesIgnoringConstraints(state,
+    matter.calcResidualForceIgnoringConstraints(state,
         mobilityForces, bodyForces, Vector(), residualForces2);
     ASSERT((residualForces2-residualForces1).norm() <= Slop);
-    matter.calcResidualForcesIgnoringConstraints(state,
+    matter.calcResidualForceIgnoringConstraints(state,
         0*mobilityForces, bodyForces, 0*knownUdots, residualForces1);
-    matter.calcResidualForcesIgnoringConstraints(state,
+    matter.calcResidualForceIgnoringConstraints(state,
         Vector(), bodyForces, Vector(), residualForces2);
     ASSERT((residualForces2-residualForces1).norm() <= Slop);
-    matter.calcResidualForcesIgnoringConstraints(state,
+    matter.calcResidualForceIgnoringConstraints(state,
         mobilityForces, 0*bodyForces, 0*knownUdots, residualForces1);
-    matter.calcResidualForcesIgnoringConstraints(state,
+    matter.calcResidualForceIgnoringConstraints(state,
         mobilityForces, Vector_<SpatialVec>(), Vector(), residualForces2);
     ASSERT((residualForces2-residualForces1).norm() <= Slop);
 
     // Check that we object to wrong-length arguments.
     bool badArgsRejected;
-    try {badArgsRejected=false; matter.calcResidualForcesIgnoringConstraints(state,
+    try {badArgsRejected=false; matter.calcResidualForceIgnoringConstraints(state,
          Vector(3,Zero), bodyForces, knownUdots, residualForces2);}
     catch(const std::exception& e)
     {   cout << "\nARGCHECK MESSAGE IS EXPECTED HERE:\n" << e.what() << endl;
         badArgsRejected=true; }
     ASSERT(badArgsRejected);
-    try {badArgsRejected=false; matter.calcResidualForcesIgnoringConstraints(state,
+    try {badArgsRejected=false; matter.calcResidualForceIgnoringConstraints(state,
          mobilityForces, Vector_<SpatialVec>(5), knownUdots, residualForces2);}
     catch(const std::exception& e)
     {   cout << "\nARGCHECK MESSAGE IS EXPECTED HERE:\n" << e.what() << endl;
         badArgsRejected=true; }
     ASSERT(badArgsRejected);
-    try {badArgsRejected=false; matter.calcResidualForcesIgnoringConstraints(state,
+    try {badArgsRejected=false; matter.calcResidualForceIgnoringConstraints(state,
          mobilityForces, bodyForces, Vector(2), residualForces2);}
     catch(const std::exception& e)
     {   cout << "\nARGCHECK MESSAGE IS EXPECTED HERE:\n" << e.what() << endl;

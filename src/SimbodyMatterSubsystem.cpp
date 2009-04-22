@@ -194,7 +194,7 @@ void SimbodyMatterSubsystem::calcMInverseV(const State& s,
     getRep().calcMInverseF(s,v, A_GB, MinvV);
 }
 
-void SimbodyMatterSubsystem::calcResidualForcesIgnoringConstraints
+void SimbodyMatterSubsystem::calcResidualForceIgnoringConstraints
    (const State&               state,
     const Vector&              appliedMobilityForces,
     const Vector_<SpatialVec>& appliedBodyForces,
@@ -203,17 +203,17 @@ void SimbodyMatterSubsystem::calcResidualForcesIgnoringConstraints
 {
     SimTK_APIARGCHECK2_ALWAYS(
         appliedMobilityForces.size()==0 || appliedMobilityForces.size()==getNumMobilities(),
-        "SimbodyMatterSubsystem", "calcResidualForcesIgnoringConstraints",
+        "SimbodyMatterSubsystem", "calcResidualForceIgnoringConstraints",
         "Got %d appliedMobilityForces but there are %d mobilities.",
         appliedMobilityForces.size(), getNumMobilities());
     SimTK_APIARGCHECK2_ALWAYS(
         appliedBodyForces.size()==0 || appliedBodyForces.size()==getNumBodies(),
-        "SimbodyMatterSubsystem", "calcResidualForcesIgnoringConstraints",
+        "SimbodyMatterSubsystem", "calcResidualForceIgnoringConstraints",
         "Got %d appliedBodyForces but there are %d bodies (including Ground).",
         appliedBodyForces.size(), getNumBodies());
     SimTK_APIARGCHECK2_ALWAYS(
         knownUdot.size()==0 || knownUdot.size()==getNumMobilities(),
-        "SimbodyMatterSubsystem", "calcResidualForcesIgnoringConstraints",
+        "SimbodyMatterSubsystem", "calcResidualForceIgnoringConstraints",
         "Got %d knownUdots but there are %d mobilities.",
         knownUdot.size(), getNumMobilities());
 

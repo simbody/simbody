@@ -235,77 +235,91 @@ public:
         // Operators make use of the State but do not write their results back
         // into the State, not even into the State cache.
 
-    /// This is the primary forward dynamics operator. It takes a state which
-    /// has been realized to the Dynamics stage, a complete set of forces to apply,
-    /// and returns the accelerations that result. Only the forces supplied here,
-    /// and those resulting from centrifugal effects, affect the results. Everything
-    /// in the matter subsystem is accounted for including velocities and 
-    /// acceleration constraints, which will always be satisified as long as the
-    /// constraints are consistent. If the position and velocity constraints
-    /// aren't already satisified in the State, these accelerations
-    /// are harder to interpret physically, but they will still be calculated and
-    /// the acceleration constraints will still be satisfied. No attempt
-    /// will be made to satisfy position and velocity constraints, or even to check
-    /// whether they are statisfied.
-    /// This operator solves the two equations
-    ///     M udot + G^T lambda = F
-    ///     G udot              = b
-    /// for udot and lambda, but does not return lambda. F includes both the 
-    /// applied forces and the "bias" forces due to rigid body rotations.
-    /// This is an O(n*nc^2) operator worst case where all nc constraint equations
-    /// are coupled.
-    /// Requires prior realization through Stage::Dynamics.
+    /**
+     * This is the primary forward dynamics operator. It takes a state which
+     * has been realized to the Dynamics stage, a complete set of forces to apply,
+     * and returns the accelerations that result. Only the forces supplied here,
+     * and those resulting from centrifugal effects, affect the results. Everything
+     * in the matter subsystem is accounted for including velocities and 
+     * acceleration constraints, which will always be satisified as long as the
+     * constraints are consistent. If the position and velocity constraints
+     * aren't already satisified in the State, these accelerations
+     * are harder to interpret physically, but they will still be calculated and
+     * the acceleration constraints will still be satisfied. No attempt
+     * will be made to satisfy position and velocity constraints, or even to check
+     * whether they are statisfied.
+     * This operator solves the two equations
+     * <pre>
+     *      M udot + G^T lambda = F
+     *      G udot              = b
+     * </pre>
+     * for udot and lambda, but does not return lambda. F includes both the 
+     * applied forces and the "bias" forces due to rigid body rotations.
+     * This is an O(n*nc^2) operator worst case where all nc constraint equations
+     * are coupled.
+     * Requires prior realization through Stage::Dynamics.
+     */
     void calcAcceleration(const State&,
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    udot,
         Vector_<SpatialVec>&       A_GB) const;
 
-    /// This operator is similar to calcAcceleration but ignores the effects of
-    /// acceleration constraints. The supplied forces and velocity-induced centrifugal
-    /// effects are properly accounted for, but any forces that would have resulted
-    /// from enforcing the contraints are not present.
-    /// This operator solves the equation
-    ///     M udot = F
-    /// for udot. F includes both the applied forces and the "bias" forces due
-    /// to rigid body rotations, but does not include any constraint forces.
-    /// This is an O(N) operator.
-    /// Requires prior realization through Stage::Dynamics.
+    /**
+     * This operator is similar to calcAcceleration but ignores the effects of
+     * acceleration constraints. The supplied forces and velocity-induced centrifugal
+     * effects are properly accounted for, but any forces that would have resulted
+     * from enforcing the contraints are not present.
+     * This operator solves the equation
+     * <pre>
+     *     M udot = F
+     * </pre>
+     * for udot. F includes both the applied forces and the "bias" forces due
+     * to rigid body rotations, but does not include any constraint forces.
+     * This is an O(N) operator.
+     * Requires prior realization through Stage::Dynamics.
+     */
     void calcAccelerationIgnoringConstraints(const State&,
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    udot,
         Vector_<SpatialVec>&       A_GB) const;
 
-    /// This operator calculates M^-1 v where M is the system mass matrix and v
-    /// is a supplied vector with one entry per mobility. If v is a set of 
-    /// mobility forces f, the result is a generalized acceleration (udot=M^-1 f). Only 
-    /// the supplied vector is used, and M depends only on position states,
-    /// so the result here is not affected by velocities in the State.
-    /// However, this fast O(N) operator requires that the Dynamics stage operators
-    /// are already available, so the State must be realized to Stage::Dynamics
-    /// even though velocities are ignored.
-    /// Requires prior realization through Stage::Dynamics.
+    /**
+     * This operator calculates M^-1 v where M is the system mass matrix and v
+     * is a supplied vector with one entry per mobility. If v is a set of 
+     * mobility forces f, the result is a generalized acceleration (udot=M^-1 f). Only 
+     * the supplied vector is used, and M depends only on position states,
+     * so the result here is not affected by velocities in the State.
+     * However, this fast O(N) operator requires that the Dynamics stage operators
+     * are already available, so the State must be realized to Stage::Dynamics
+     * even though velocities are ignored.
+     * Requires prior realization through Stage::Dynamics.
+     */
     void calcMInverseV(const State&,
         const Vector&        v,
         Vector&              MinvV) const;
 
-    /// This is the primary inverse dynamics operator. Using position and velocity
-    /// from the given state, a set of applied forces, and a known set of mobility
-    /// accelerations and constraint multipliers, it calculates the additional
-    /// mobility forces that would be required to satisfy Newton's 2nd law.
-    /// That is, this operator returns
-    /// <pre>
-    ///     f_residual = M udot + G^T lambda - (f_applied + f_inertial)
-    /// </pre>
-    /// where f_applied is the mobility-space equivalent to all the
-    /// applied forces (including mobility and body forces), f_inertial 
-    /// is the mobility-space equivalent of the velocity-dependent
-    /// inertial forces due to rigid body rotations (coriolis  
-    /// and gyroscopic forces), and the udots and lambdas are given values of the 
-    /// generalized accelerations and constraint multipliers, resp.
-    /// TODO
-    void calcResidualForces
+    /**
+     * NOT IMPLEMENTED YET --
+     * This is the primary inverse dynamics operator. Using position and velocity
+     * from the given state, a set of applied forces, and a known set of mobility
+     * accelerations and constraint multipliers, it calculates the additional
+     * mobility forces that would be required to satisfy Newton's 2nd law.
+     * That is, this operator returns
+     * <pre>
+     *     f_residual = M udot + G^T lambda + f_inertial - f_applied
+     * </pre>
+     * where f_applied is the mobility-space equivalent to all the
+     * applied forces (including mobility and body forces), f_inertial 
+     * is the mobility-space equivalent of the velocity-dependent
+     * inertial forces due to rigid body rotations (coriolis  
+     * and gyroscopic forces), and the udots and lambdas are given values of the 
+     * generalized accelerations and constraint multipliers, resp.
+     * TODO
+     * @see calcResidualForceIgnoringConstraints()
+     */
+    void calcResidualForce
        (const State&               state,
         const Vector&              appliedMobilityForces,
         const Vector_<SpatialVec>& appliedBodyForces,
@@ -313,48 +327,56 @@ public:
         const Vector&              knownMultipliers,
         Vector&                    residualMobilityForces) const;
 
-    /// This is inverse dynamics for the tree system; if there are any
-    /// constraints they are ignored. This method solves
-    /// <pre>
-    ///     f_residual = M udot - (f_applied + f_inertial)
-    /// </pre>
-    /// where f_applied is the mobility-space equivalent to all the
-    /// applied forces (including mobility and body forces), f_inertial 
-    /// is the mobility-space equivalent of the velocity-dependent
-    /// inertial forces due to rigid body rotations (coriolis  
-    /// and gyroscopic forces), and the udots are given values of the 
-    /// generalized accelerations.
-    /// The returned f_residual is the additional generalized force
-    /// (that is, mobilizer force) that would have to be applied at 
-    /// each mobility to give the observe udots.
-    /// The inertial forces depend on the velocities already realized
-    /// in the State. Otherwise, only the explicitly-supplied forces
-    /// affect the results of this operator; any forces that may be
-    /// present elsewhere in the System are ignored.
-    /// Requires prior realization through Stage::Velocity.
-    ///
-    /// @param[in] state
-    ///     A State valid for the containing System, already realized
-    ///     to Stage::Velocity.
-    /// @param[in] appliedMobilityForces
-    ///     One scalar generalized force applied per mobility. Can be zero
-    ///     length if there are no mobility forces; otherwise must have
-    ///     exactly one entry per mobility in the matter subsystem.
-    /// @param[in] appliedBodyForces
-    ///     One spatial force for each body. A spatial force is a force
-    ///     applied to the body origin and a torque on the body, each
-    ///     expressed in the Ground frame. The supplied Vector must be
-    ///     either zero length or have exactly one entry per body in 
-    ///     the matter subsystem.
-    /// @param[in] knownUdot
-    ///     One generalized acceleration per mobility. If this is zero
-    ///     length it will be treated as all-zero; otherwise it must
-    ///     have exactly one entry per mobility in the matter subsystem.
-    /// @param[out] residualMobilityForces
-    ///     This will be resized if necessary to have one scalar 
-    ///     entry per mobility. These are the residual generalized forces
-    ///     which, if applied, would produce the \p knownUdots.
-    void calcResidualForcesIgnoringConstraints(const State&,
+    /**
+     * This is the inverse dynamics operator for the tree system; if there are
+     * any constraints they are ignored. This method solves
+     * <pre>
+     *      f_residual = M udot + f_inertial - f_applied
+     * </pre> 
+     * in O(n) time, meaning that the mass matrix M is never formed. Inverse
+     * dynamics is considerably faster than forward dynamics (even though that
+     * is also O(n) in Simbody).
+     *
+     * In the above equation we solve for the residual forces \c f_residual given
+     * desired accelerations and (optionally) a set of applied forces. Here 
+     * \c f_applied is the mobility-space equivalent of all the applied forces
+     * (including mobility and body forces), \c f_inertial is the mobility-space
+     * equivalent of the velocity-dependent inertial forces due to rigid 
+     * body rotations (coriolis and gyroscopic forces), and \c udot is the 
+     * given set of values for the desired generalized accelerations. The returned 
+     * \c f_residual is the additional generalized force (that is, mobilizer 
+     * force) that would have to be applied at each mobility to give the desired
+     * \c udot. The inertial forces depend on the velocities \c u already realized 
+     * in the State. Otherwise, only the explicitly-supplied forces affect the 
+     * results of this operator; any forces that may be present elsewhere in 
+     * the System are ignored.
+     *
+     * @param[in] state
+     *      A State valid for the containing System, already realized to
+     *      Stage::Velocity.
+     * @param[in] appliedMobilityForces
+     *      One scalar generalized force applied per mobility. Can be zero
+     *      length if there are no mobility forces; otherwise must have exactly 
+     *      one entry per mobility in the matter subsystem.
+     * @param[in] appliedBodyForces
+     *      One spatial force for each body. A spatial force is a force applied
+     *      to the body origin and a torque on the body, each expressed in the 
+     *      Ground frame. The supplied Vector must be either zero length or have 
+     *      exactly one entry per body in the matter subsystem.
+     * @param[in] knownUdot
+     *      These are the desired generalized accelerations, one per mobility. 
+     *      If this is zero length it will be treated as all-zero; otherwise 
+     *      it must have exactly one entry per mobility in the matter subsystem.
+     * @param[out] residualMobilityForces
+     *      These are the residual generalized forces which, if applied, would 
+     *      produce the \p knownUdot. This will be resized if necessary to have 
+     *      one scalar entry per mobility. 
+     *
+     * @see calcResidualForce(), calcMV()
+     * @see calcAcceleration(), calcAccelerationIgnoringConstraints()
+     */
+    void calcResidualForceIgnoringConstraints
+       (const State&               state,
         const Vector&              appliedMobilityForces,
         const Vector_<SpatialVec>& appliedBodyForces,
         const Vector&              knownUdot,
