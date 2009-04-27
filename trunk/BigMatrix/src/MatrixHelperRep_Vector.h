@@ -52,13 +52,13 @@ namespace SimTK {
 /// efficient and direction-agnostic.
 ///
 /// The most common layout is that all elements are stored, either consecutively
-/// in memory or with an even stride. However, there are several other important
+/// in memory or with a regular stride. However, there are several other important
 /// layouts that arise most commonly from row and column selections performed
 /// on non-full matrices, like triangular or symmetric matrices. Supporting such
 /// selections allows simple (if inefficient) implementations of operations on
 /// mixed types of matrices by breaking them into row and column operations.
 /// Vectors selected in this way can be repetitions of the same element (often
-/// zero), negations or conjugations of stored elements, and may sometines have
+/// zero), negations or conjugations of stored elements, and may sometimes have
 /// a single "distinguished" element whose value is known (this occurs for example
 /// when crossing a non-stored unit diagonal).
 ///
@@ -80,7 +80,9 @@ class VectorHelper : public MatrixHelperRep<S> {
     typedef VectorHelper<SHerm>     ThisHerm;
 public:
     VectorHelper(int esz, int cppesz, bool isRow) 
-    :   Base(esz,cppesz),m_row(isRow) {}
+    :   Base(esz,cppesz),m_row(isRow) 
+    {
+    }
 
 
     // A deep copy of a Vector will always return another Vector, so we'll change
@@ -115,8 +117,8 @@ public:
     This* createTransposeView_() {
         This* p = cloneHelper_();
         p->m_data = this->m_data;
-        m_row = !m_row;
-        p->m_actual.updStorage().setOrder(m_row ? MatrixStorage::RowOrder : MatrixStorage::ColumnOrder);
+        p->m_row = !m_row;
+        p->m_actual.updStorage().setOrder(p->m_row ? MatrixStorage::RowOrder : MatrixStorage::ColumnOrder);
         return p;
     }
 

@@ -103,6 +103,37 @@ int main() {
         testVector(r+1, Vec3(2, 3, 4));
         testVector(1-r, Vec3(0, -1, -2));
         testVector(1+r, Vec3(2, 3, 4));
+
+        Matrix mm( Mat23( 1, 2, 3,
+                          7, 8, 9 ) );
+        testMatrix<Matrix,2,3>(mm, Mat23(1,2,3,7,8,9));
+
+            // Test copying a column or row of a Matrix into
+            // a Vector or RowVector.
+
+        // Test assignment constructor
+        Vector vv = mm(1); testVector(vv, Vec2(2,8));
+        // Test copy assignment
+        vv = mm(0); testVector(vv, Vec2(1,7));
+        // Test assignment constructor
+        RowVector rr = mm[1]; testVector(rr, Vec3(7,8,9));
+        // Test copy assignment
+        rr = mm[0]; testVector(rr, Vec3(1,2,3));
+
+            // Test copying a row into a Vector and column into RowVector.
+
+        // Test assignment (copy) constructor
+        RowVector rrr = ~mm(1); 
+        testVector(rrr, Vec2(2,8));
+        // Test copy assignment
+        rrr = ~mm(0); testVector(rrr, Vec2(1,7));
+
+        // Test assignment (copy) constructor
+        Vector vvv = ~mm[1]; 
+        testVector(vvv, Vec3(7,8,9));
+        // Test copy assignment
+        vvv = ~mm[0]; testVector(vvv, Vec3(1,2,3));
+
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;
