@@ -1840,6 +1840,18 @@ void SimbodyMatterSubsystemRep::calcZ(const State& s,
         }
 }
 */
+
+
+// Y is used for length constraints: sweep from base to tip.
+void SimbodyMatterSubsystemRep::calcY(const State& s) const {
+    SBStateDigest sbs(s, *this, Stage::Dynamics);
+
+    for (int i=0; i < (int)rbNodeLevels.size(); i++)
+        for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
+            rbNodeLevels[i][j]->calcYOutward(sbs);
+}
+
+// Process forces for subsequent use by calcTreeAccel() below.
 void SimbodyMatterSubsystemRep::calcZ(const State& s, 
     const Vector&              mobilityForces,
     const Vector_<SpatialVec>& bodyForces) const
@@ -1854,16 +1866,8 @@ void SimbodyMatterSubsystemRep::calcZ(const State& s,
         }
 }
 
-// Y is used for length constraints: sweep from base to tip.
-void SimbodyMatterSubsystemRep::calcY(const State& s) const {
-    SBStateDigest sbs(s, *this, Stage::Dynamics);
-
-    for (int i=0; i < (int)rbNodeLevels.size(); i++)
-        for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
-            rbNodeLevels[i][j]->calcYOutward(sbs);
-}
-
-// Calc acceleration: sweep from base to tip.
+// Calc acceleration: sweep from base to tip. This uses the forces
+// that were last supplied to calcZ()above.
 void SimbodyMatterSubsystemRep::calcTreeAccel(const State& s) const {
     SBStateDigest sbs(s, *this, Stage::Acceleration);
 

@@ -992,9 +992,6 @@ protected:
     // This is true if the mobilizer is specified in the reverse direction,
     // that is from child to parent.
     const bool reversed;
-
-    //template<int dof> friend class RigidBodyNodeSpec;
-
 };
 
 #endif // SimTK_SIMBODY_RIGID_BODY_NODE_H_

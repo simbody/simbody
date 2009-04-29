@@ -82,9 +82,9 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
     // that transpose(offDiag) = -offDiag.
     // Note: we need to calculate this now so that we'll be able to calculate
     // kinetic energy without going past the Velocity stage.
-    const Mat33 offDiag = getMass()*crossMat(getCB_G(pc));
+    const Mat33 offDiag = crossMat(getMass()*getCB_G(pc));
     updMk(pc) = SpatialMat( getInertia_OB_G(pc).toMat33() ,     offDiag ,
-                                   -offDiag             , getMass()*Mat33(1) );
+                                   -offDiag               , Mat33(getMass()) );
 }
 
 // Calculate velocity-related quantities: spatial velocity (V_GB), 

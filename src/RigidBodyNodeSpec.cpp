@@ -201,18 +201,6 @@ RigidBodyNodeSpec<dof>::calcReverseMobilizerHDot_FM(
     HDot_FM[1] -= p_FM_x * HDot_FM[0] + vwp * H_FM[0];  // 36*dof flops
 }
 
-//
-// to be called from base to tip.
-//
-template<int dof> void
-RigidBodyNodeSpec<dof>::setVelFromSVel(
-    const SBPositionCache& pc, 
-    const SBVelocityCache& mc,
-    const SpatialVec&      sVel, 
-    Vector&                u) const 
-{
-    toU(u) = ~getH(pc) * (sVel - (~getPhi(pc) * parent->getV_GB(mc)));
-}
 
 //
 // Given only position-related quantities from the State 
@@ -235,7 +223,7 @@ RigidBodyNodeSpec<dof>::calcArticulatedBodyInertiasInward(
     SBDynamicsCache&       dc) const 
 {
     updP(dc) = getMk(pc);
-    for (int i=0 ; i<(int)children.size() ; i++) {
+    for (unsigned i=0; i<children.size(); ++i) {
         const SpatialMat& tauBarChild = children[i]->getTauBar(dc);
         const SpatialMat& PChild      = children[i]->getP(dc);
         const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
@@ -296,9 +284,9 @@ RigidBodyNodeSpec<dof>::calcZ(
     SpatialVec& z = updZ(ac);
     z = getCentrifugalForces(dc) - fromB(bodyForces);
 
-    for (int i=0 ; i<(int)children.size() ; i++) {
-        const SpatialVec& zChild    = children[i]->getZ(ac);
+    for (unsigned i=0; i<children.size(); ++i) {
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+        const SpatialVec& zChild    = children[i]->getZ(ac);
         const SpatialVec& GepsChild = children[i]->getGepsilon(ac);
 
         z += phiChild * (zChild + GepsChild);
@@ -324,11 +312,12 @@ RigidBodyNodeSpec<dof>::calcAccel(
     const SBVelocityCache& vc = sbs.getVelocityCache();
     const SBDynamicsCache& dc = sbs.getDynamicsCache();
     SBAccelerationCache&   ac = sbs.updAccelerationCache();
-    Vec<dof>&        udot   = toU(allUdot);
-    const SpatialVec alphap = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
 
-    udot        = getNu(ac) - (~getG(dc)*alphap);
-    updA_GB(ac) = alphap + getH(pc)*udot + getCoriolisAcceleration(vc);  
+    Vec<dof>&        udot   = toU(allUdot);
+    const SpatialVec A_GP = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
+
+    udot        = getNu(ac) - (~getG(dc)*A_GP);
+    updA_GB(ac) = A_GP + getH(pc)*udot + getCoriolisAcceleration(vc);  
 
     calcQDotDot(sbs, allUdot, allQdotdot);  
 }
@@ -356,7 +345,7 @@ RigidBodyNodeSpec<dof>::calcUDotPass1Inward(
 
     z = getCentrifugalForces(dc) - myBodyForce;
 
-    for (int i=0 ; i<(int)children.size() ; i++) {
+    for (unsigned i=0; i<children.size(); ++i) {
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
         const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
         const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
@@ -388,9 +377,7 @@ RigidBodyNodeSpec<dof>::calcUDotPass2Outward(
     Vec<dof>&       udot = toU(allUDot); // pull out this node's udot
 
     // Shift parent's A_GB outward. (Ground A_GB is zero.)
-    const SpatialVec A_GP = parent->getNodeNum()== 0 
-        ? SpatialVec(Vec3(0), Vec3(0))
-        : ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+    const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
     udot = getDI(dc) * eps - (~getG(dc)*A_GP);
     A_GB = A_GP + getH(pc)*udot + getCoriolisAcceleration(vc);  
@@ -421,9 +408,9 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass1Inward(
     SpatialVec&       Geps         = toB(allGepsilon);
     Vec<dof>&         eps          = toU(allEpsilon);
 
-    z = SpatialVec(Vec3(0), Vec3(0));
+    z = 0;
 
-    for (int i=0 ; i<(int)children.size() ; i++) {
+    for (unsigned i=0; i<children.size(); i++) {
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
         const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
         const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
@@ -454,9 +441,7 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass2Outward(
     Vec<dof>&       udot = toU(allUDot); // pull out this node's udot
 
     // Shift parent's A_GB outward. (Ground A_GB is zero.)
-    const SpatialVec A_GP = parent->getNodeNum()== 0 
-        ? SpatialVec(Vec3(0), Vec3(0))
-        : ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+    const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
     udot = getDI(dc) * eps - (~getG(dc)*A_GP);
     A_GB = A_GP + getH(pc)*udot;  
@@ -480,9 +465,7 @@ RigidBodyNodeSpec<dof>::calcInverseDynamicsPass1Outward(
     SpatialVec&     A_GB = toB(allA_GB);
 
     // Shift parent's A_GB outward. (Ground A_GB is zero.)
-    const SpatialVec A_GP = parent->getNodeNum()== 0 
-        ? SpatialVec(Vec3(0), Vec3(0))
-        : ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+    const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
     A_GB = A_GP + getH(pc)*udot + getCoriolisAcceleration(vc); 
 }
@@ -513,7 +496,7 @@ RigidBodyNodeSpec<dof>::calcInverseDynamicsPass2Inward(
 	F = getMk(pc)*A_GB + getGyroscopicForce(vc) - myBodyForce;
 
     // Add in forces on children, shifted to this body.
-    for (int i=0 ; i<(int)children.size() ; i++) {
+    for (unsigned i=0; i<children.size(); ++i) {
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
         const SpatialVec& FChild    = allF[children[i]->getNodeNum()];
         F += phiChild * FChild;
@@ -536,9 +519,7 @@ RigidBodyNodeSpec<dof>::calcMVPass1Outward(
     SpatialVec&     A_GB = toB(allA_GB);
 
     // Shift parent's A_GB outward. (Ground A_GB is zero.)
-    const SpatialVec A_GP = parent->getNodeNum()== 0 
-        ? SpatialVec(Vec3(0), Vec3(0))
-        : ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+    const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
     A_GB = A_GP + getH(pc)*udot;  
 }
@@ -556,15 +537,14 @@ RigidBodyNodeSpec<dof>::calcMVPass2Inward(
     SpatialVec&       F		= toB(allF);
     Vec<dof>&         tau	= toU(allTau);
 
-    F = SpatialVec(Vec3(0), Vec3(0));
+    F = getMk(pc)*A_GB;
 
-    for (int i=0 ; i<(int)children.size() ; i++) {
+    for (unsigned i=0; i<children.size(); ++i) {
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
         const SpatialVec& FChild    = allF[children[i]->getNodeNum()];
         F += phiChild * FChild;
     }
 
-	F += getMk(pc)*A_GB;
     tau = ~getH(pc)*F;
 }
 
@@ -588,9 +568,7 @@ RigidBodyNodeSpec<dof>::calcSpatialKinematicsFromInternal(
     SpatialVec&     out = toB(Jv);
 
     // Shift parent's result outward (ground result is 0).
-    const SpatialVec outP = parent->getNodeNum()== 0 
-        ? SpatialVec(Vec3(0), Vec3(0))
-        : ~getPhi(pc) * parent->fromB(Jv);
+    const SpatialVec outP = ~getPhi(pc) * parent->fromB(Jv);
 
     out = outP + getH(pc)*in;  
 }
@@ -620,7 +598,7 @@ RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial(
 
     z = in;
 
-    for (int i=0 ; i<(int)children.size() ; i++) {
+    for (unsigned i=0; i<children.size(); ++i) {
         const SpatialVec& zChild   = zTmp[children[i]->getNodeNum()];
         const PhiMatrix&  phiChild = children[i]->getPhi(pc);
 
@@ -651,7 +629,7 @@ RigidBodyNodeSpec<dof>::calcEquivalentJointForces(
     // A is total coriolis acceleration, and b is gyroscopic force.
     z = myBodyForce - getTotalCentrifugalForces(dc);
 
-    for (int i=0 ; i<(int)children.size() ; i++) {
+    for (unsigned i=0; i<children.size(); ++i) {
         const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
 
@@ -659,6 +637,19 @@ RigidBodyNodeSpec<dof>::calcEquivalentJointForces(
     }
 
     eps  = ~getH(pc) * z;
+}
+
+//
+// to be called from base to tip.
+//
+template<int dof> void
+RigidBodyNodeSpec<dof>::setVelFromSVel(
+    const SBPositionCache& pc, 
+    const SBVelocityCache& mc,
+    const SpatialVec&      sVel, 
+    Vector&                u) const 
+{
+    toU(u) = ~getH(pc) * (sVel - (~getPhi(pc) * parent->getV_GB(mc)));
 }
 
 	////////////////////
