@@ -84,6 +84,11 @@ public:
     void setToZero() { l_ = 0.; }
     void setToNaN()  { l_.setToNaN(); }
 
+    SpatialMat toSpatialMat() const {
+        return SpatialMat(Mat33(1), crossMat(l_),
+                          Mat33(0),   Mat33(1));
+    }
+
     const Vec3& l() const { return l_; }
 private:
     Vec3 l_;
@@ -91,8 +96,14 @@ private:
 
 class PhiMatrixTranspose {
 public:
-  PhiMatrixTranspose(const PhiMatrix& phi) : phi(phi) {}
-  const Vec3& l() const {return phi.l();}
+    PhiMatrixTranspose(const PhiMatrix& phi) : phi(phi) {}
+
+    SpatialMat toSpatialMat() const {
+        return SpatialMat(   Mat33(1)    , Mat33(0),
+                          crossMat(-l()) , Mat33(1));
+    }
+
+    const Vec3& l() const {return phi.l();}
 private:
   const PhiMatrix& phi;
 };

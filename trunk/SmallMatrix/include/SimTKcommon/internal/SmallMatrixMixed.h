@@ -364,18 +364,36 @@ crossMat(const Vec<3,E,S>& v) {
                       Row<3,E>( v[2],  E(0), -v[0]),
                       Row<3,E>(-v[1],  v[0],  E(0)));
 }
+// Specialize above for negated types. Returned matrix loses negator.
+template <class E, int S> inline
+Mat<3,3,E>
+crossMat(const Vec<3,negator<E>,S>& v) {
+    return Mat<3,3,E>(Row<3,E>( E(0),   -v[2],    E(v[1])),
+                      Row<3,E>( E(v[2]), E(0),   -v[0]),
+                      Row<3,E>(-v[1],    E(v[0]), E(0)));
+}
+
 template <class E, int S> inline
 Mat<3,3,E> crossMat(const Row<3,E,S>& r) {return crossMat(r.positionalTranspose());}
+template <class E, int S> inline
+Mat<3,3,E> crossMat(const Row<3,negator<E>,S>& r) {return crossMat(r.positionalTranspose());}
 
 // Calculate M(v) such that M(v)*w = v0*w1-v1*w0 = v % w (a scalar). Whether v is column
 // or row we create the same M, which must be a row.
 template <class E, int S> inline
-Row<2,E>
-crossMat(const Vec<2,E,S>& v) {
+Row<2,E> crossMat(const Vec<2,E,S>& v) {
     return Row<2,E>(-v[1], v[0]);
 }
+// Specialize above for negated types.
+template <class E, int S> inline
+Row<2,E> crossMat(const Vec<2,negator<E>,S>& v) {
+    return Row<2,E>(-v[1], E(v[0]));
+}
+
 template <class E, int S> inline
 Row<2,E> crossMat(const Row<2,E,S>& r) {return crossMat(r.positionalTranspose());}
+template <class E, int S> inline
+Row<2,E> crossMat(const Row<2,negator<E>,S>& r) {return crossMat(r.positionalTranspose());}
 
     // DETERMINANT
 

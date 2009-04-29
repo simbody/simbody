@@ -30,6 +30,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon.h"
+#include "SimTKcommon/Testing.h"
 
 #include <iostream>
 using std::cout;
@@ -37,72 +38,6 @@ using std::endl;
 
 using namespace SimTK;
 
-#define ASSERT(cond) {SimTK_ASSERT_ALWAYS((cond), "Assertion failed.");}
-#define ASSERT_EQ(v1,v2)    \
-    {SimTK_ASSERT_ALWAYS(numericallyEqual((v1),(v2)),   \
-     "Values should have been numerically equivalent.");}
-
-// Scale by the magnitude of the quantities being compared, so that we don't
-// ask for unreasonable precision. For magnitudes near zero, we'll be satisfied
-// if both are very small without demanding that they must also be relatively
-// close. That is, we use a relative tolerance for big numbers and an absolute
-// tolerance for small ones.
-bool numericallyEqual(float v1, float v2) {
-    const float scale = std::max(std::max(std::abs(v1), std::abs(v2)), 0.1f);
-    return std::abs(v1-v2) < scale*NTraits<float>::getSignificant();
-}
-bool numericallyEqual(double v1, double v2) {
-    const double scale = std::max(std::max(std::abs(v1), std::abs(v2)), 0.1);
-    return std::abs(v1-v2) < scale*NTraits<double>::getSignificant();
-}
-template <class P>
-bool numericallyEqual(const std::complex<P>& v1, const std::complex<P>& v2) {
-    return numericallyEqual(v1.real(), v2.real())
-            && numericallyEqual(v1.imag(), v2.imag());
-}
-template <class P>
-bool numericallyEqual(const conjugate<P>& v1, const conjugate<P>& v2) {
-    return numericallyEqual(v1.real(), v2.real())
-            && numericallyEqual(v1.imag(), v2.imag());
-}
-template <class P>
-bool numericallyEqual(const std::complex<P>& v1, const conjugate<P>& v2) {
-    return numericallyEqual(v1.real(), v2.real())
-            && numericallyEqual(v1.imag(), v2.imag());
-}
-template <class P>
-bool numericallyEqual(const conjugate<P>& v1, const std::complex<P>& v2) {
-    return numericallyEqual(v1.real(), v2.real())
-            && numericallyEqual(v1.imag(), v2.imag());
-}
-template <class P>
-bool numericallyEqual(const negator<P>& v1, const negator<P>& v2) {
-    return numericallyEqual(-v1, -v2);  // P, P
-}
-template <class P>
-bool numericallyEqual(const P& v1, const negator<P>& v2) {
-    return numericallyEqual(-v1, -v2);  // P, P
-}
-template <class P>
-bool numericallyEqual(const negator<P>& v1, const P& v2) {
-    return numericallyEqual(-v1, -v2);  // P, P
-}
-template <class P>
-bool numericallyEqual(const negator<std::complex<P> >& v1, const conjugate<P>& v2) {
-    return numericallyEqual(-v1, -v2);  // complex, conjugate
-}
-template <class P>
-bool numericallyEqual(const negator<conjugate<P> >& v1, const std::complex<P>& v2) {
-    return numericallyEqual(-v1, -v2);  // conjugate, complex
-}
-template <class P>
-bool numericallyEqual(const std::complex<P>& v1, const negator<conjugate<P> >& v2) {
-    return numericallyEqual(-v1, -v2); // complex, conjugate
-}
-template <class P>
-bool numericallyEqual(const conjugate<P>& v1, const negator<std::complex<P> >& v2) {
-    return numericallyEqual(-v1, -v2); // conjugate, complex
-}
 
 void testIsNaN() {
     const float  fltRegular = -12.34f;
@@ -112,17 +47,17 @@ void testIsNaN() {
     const float nfltNaN = -fltNaN;
     const double ndblNaN = -dblNaN;
 
-    ASSERT(isNaN(fltNaN) && isNaN(dblNaN));
-    ASSERT(isNaN(nfltNaN) && isNaN(ndblNaN));
-    ASSERT(!isNaN(fltRegular) && !isNaN(dblRegular));
+    SimTK_TEST(isNaN(fltNaN) && isNaN(dblNaN));
+    SimTK_TEST(isNaN(nfltNaN) && isNaN(ndblNaN));
+    SimTK_TEST(!isNaN(fltRegular) && !isNaN(dblRegular));
 
     std::complex<float> cflt(fltRegular, -2*fltRegular);
     std::complex<double> cdbl(dblRegular, -2*dblRegular);
     conjugate<float> cjflt(fltRegular, -2*fltRegular);
     conjugate<double> cjdbl(dblRegular, -2*dblRegular);
 
-    ASSERT(!isNaN(cflt) && !isNaN(cdbl));
-    ASSERT(!isNaN(cjflt) && !isNaN(cjdbl));
+    SimTK_TEST(!isNaN(cflt) && !isNaN(cdbl));
+    SimTK_TEST(!isNaN(cjflt) && !isNaN(cjdbl));
 
     // Reference the same memory as a negator of its contents.
     const negator<float>&           nflt   = reinterpret_cast<const negator<float>&>(fltRegular);
@@ -133,16 +68,16 @@ void testIsNaN() {
     negator<conjugate<double> >&     ncjdbl = reinterpret_cast<negator<conjugate<double> >&>   (cjdbl);
 
     // Test that negators are working properly.
-    ASSERT_EQ(nflt, -fltRegular);
-    ASSERT_EQ(ndbl, -dblRegular);
-    ASSERT_EQ(ncflt, -cflt);
-    ASSERT_EQ(-ncflt, cflt);
-    ASSERT_EQ(ncjflt, -cjflt);
-    ASSERT_EQ(-ncjflt, cjflt);
+    SimTK_TEST_NUMEQ(nflt, -fltRegular);
+    SimTK_TEST_NUMEQ(ndbl, -dblRegular);
+    SimTK_TEST_NUMEQ(ncflt, -cflt);
+    SimTK_TEST_NUMEQ(-ncflt, cflt);
+    SimTK_TEST_NUMEQ(ncjflt, -cjflt);
+    SimTK_TEST_NUMEQ(-ncjflt, cjflt);
 
-    ASSERT(!isNaN(nflt) && !isNaN(ndbl));
-    ASSERT(!isNaN(ncflt) && !isNaN(ncdbl));
-    ASSERT(!isNaN(ncjflt) && !isNaN(ncjdbl));
+    SimTK_TEST(!isNaN(nflt) && !isNaN(ndbl));
+    SimTK_TEST(!isNaN(ncflt) && !isNaN(ncdbl));
+    SimTK_TEST(!isNaN(ncjflt) && !isNaN(ncjdbl));
 
     // Should be NaN if either or both parts are NaN.
     cflt = std::complex<float>(cflt.real(), fltNaN);
@@ -151,10 +86,10 @@ void testIsNaN() {
     cjdbl = conjugate<double>(cjdbl.real(), dblNaN);
 
     // Imaginary only is NaN.
-    ASSERT(isNaN(cflt) && isNaN(cdbl));
-    ASSERT(isNaN(cjflt) && isNaN(cjdbl));
-    ASSERT(isNaN(ncflt) && isNaN(ncdbl));
-    ASSERT(isNaN(ncjflt) && isNaN(ncjdbl));
+    SimTK_TEST(isNaN(cflt) && isNaN(cdbl));
+    SimTK_TEST(isNaN(cjflt) && isNaN(cjdbl));
+    SimTK_TEST(isNaN(ncflt) && isNaN(ncdbl));
+    SimTK_TEST(isNaN(ncjflt) && isNaN(ncjdbl));
 
     cflt = std::complex<float>(fltNaN, cflt.imag());
     cdbl = std::complex<double>(dblNaN, cdbl.imag());
@@ -162,10 +97,10 @@ void testIsNaN() {
     cjdbl = conjugate<double>(dblNaN, cjdbl.imag());
 
     // Both parts are NaN.
-    ASSERT(isNaN(cflt) && isNaN(cdbl));
-    ASSERT(isNaN(cjflt) && isNaN(cjdbl));
-    ASSERT(isNaN(ncflt) && isNaN(ncdbl));
-    ASSERT(isNaN(ncjflt) && isNaN(ncjdbl));
+    SimTK_TEST(isNaN(cflt) && isNaN(cdbl));
+    SimTK_TEST(isNaN(cjflt) && isNaN(cjdbl));
+    SimTK_TEST(isNaN(ncflt) && isNaN(ncdbl));
+    SimTK_TEST(isNaN(ncjflt) && isNaN(ncjdbl));
 
     // Restore imaginary part to normal.
     cflt = std::complex<float>(cflt.real(), fltRegular);
@@ -174,10 +109,10 @@ void testIsNaN() {
     cjdbl = conjugate<double>(cjdbl.real(), dblRegular);
 
     // Real part only is NaN;
-    ASSERT(isNaN(cflt) && isNaN(cdbl));
-    ASSERT(isNaN(cjflt) && isNaN(cjdbl));
-    ASSERT(isNaN(ncflt) && isNaN(ncdbl));
-    ASSERT(isNaN(ncjflt) && isNaN(ncjdbl));
+    SimTK_TEST(isNaN(cflt) && isNaN(cdbl));
+    SimTK_TEST(isNaN(cjflt) && isNaN(cjdbl));
+    SimTK_TEST(isNaN(ncflt) && isNaN(ncdbl));
+    SimTK_TEST(isNaN(ncjflt) && isNaN(ncjdbl));
 }
 
 void testIsInf() {
@@ -190,21 +125,21 @@ void testIsInf() {
     const negator<float>& nfltInf = reinterpret_cast<const negator<float>&>(fltInf);
     const negator<double>& ndblInf = reinterpret_cast<const negator<double>&>(dblInf);
 
-    ASSERT(nfltInf == -fltInf);
-    ASSERT(ndblInf == -dblInf);
+    SimTK_TEST(nfltInf == -fltInf);
+    SimTK_TEST(ndblInf == -dblInf);
 
-    ASSERT(isInf(fltInf) && isInf(dblInf));
-    ASSERT(isInf(mfltInf) && isInf(mdblInf));
-    ASSERT(isInf(nfltInf) && isInf(ndblInf));
-    ASSERT(!isInf(fltRegular) && !isInf(dblRegular));
+    SimTK_TEST(isInf(fltInf) && isInf(dblInf));
+    SimTK_TEST(isInf(mfltInf) && isInf(mdblInf));
+    SimTK_TEST(isInf(nfltInf) && isInf(ndblInf));
+    SimTK_TEST(!isInf(fltRegular) && !isInf(dblRegular));
 
     std::complex<float> cflt(fltRegular, -2*fltRegular);
     std::complex<double> cdbl(dblRegular, -2*dblRegular);
     conjugate<float> cjflt(fltRegular, -2*fltRegular);
     conjugate<double> cjdbl(dblRegular, -2*dblRegular);
 
-    ASSERT(!isInf(cflt) && !isInf(cdbl));
-    ASSERT(!isInf(cjflt) && !isInf(cjdbl));
+    SimTK_TEST(!isInf(cflt) && !isInf(cdbl));
+    SimTK_TEST(!isInf(cjflt) && !isInf(cjdbl));
 
     // Reference the same memory as a negator of its contents.
     const negator<float>&           nflt   = reinterpret_cast<const negator<float>&>(fltRegular);
@@ -215,16 +150,16 @@ void testIsInf() {
     negator<conjugate<double> >&     ncjdbl = reinterpret_cast<negator<conjugate<double> >&>   (cjdbl);
 
     // Test that negators are working properly.
-    ASSERT_EQ(nflt, -fltRegular);
-    ASSERT_EQ(ndbl, -dblRegular);
-    ASSERT_EQ(ncflt, -cflt);
-    ASSERT_EQ(-ncflt, cflt);
-    ASSERT_EQ(ncjflt, -cjflt);
-    ASSERT_EQ(-ncjflt, cjflt);
+    SimTK_TEST_NUMEQ(nflt, -fltRegular);
+    SimTK_TEST_NUMEQ(ndbl, -dblRegular);
+    SimTK_TEST_NUMEQ(ncflt, -cflt);
+    SimTK_TEST_NUMEQ(-ncflt, cflt);
+    SimTK_TEST_NUMEQ(ncjflt, -cjflt);
+    SimTK_TEST_NUMEQ(-ncjflt, cjflt);
 
-    ASSERT(!isInf(nflt) && !isInf(ndbl));
-    ASSERT(!isInf(ncflt) && !isInf(ncdbl));
-    ASSERT(!isInf(ncjflt) && !isInf(ncjdbl));
+    SimTK_TEST(!isInf(nflt) && !isInf(ndbl));
+    SimTK_TEST(!isInf(ncflt) && !isInf(ncdbl));
+    SimTK_TEST(!isInf(ncjflt) && !isInf(ncjdbl));
 
     // Should be Inf if either or both parts are Inf, as long as neither
     // part is NaN.
@@ -234,10 +169,10 @@ void testIsInf() {
     cjdbl = conjugate<double>(cjdbl.real(), dblInf);
 
     // Imaginary only is Inf.
-    ASSERT(isInf(cflt) && isInf(cdbl));
-    ASSERT(isInf(cjflt) && isInf(cjdbl));
-    ASSERT(isInf(ncflt) && isInf(ncdbl));
-    ASSERT(isInf(ncjflt) && isInf(ncjdbl));
+    SimTK_TEST(isInf(cflt) && isInf(cdbl));
+    SimTK_TEST(isInf(cjflt) && isInf(cjdbl));
+    SimTK_TEST(isInf(ncflt) && isInf(ncdbl));
+    SimTK_TEST(isInf(ncjflt) && isInf(ncjdbl));
 
     cflt = std::complex<float>(fltInf, cflt.imag());
     cdbl = std::complex<double>(dblInf, cdbl.imag());
@@ -245,10 +180,10 @@ void testIsInf() {
     cjdbl = conjugate<double>(dblInf, cjdbl.imag());
 
     // Both parts are Inf.
-    ASSERT(isInf(cflt) && isInf(cdbl));
-    ASSERT(isInf(cjflt) && isInf(cjdbl));
-    ASSERT(isInf(ncflt) && isInf(ncdbl));
-    ASSERT(isInf(ncjflt) && isInf(ncjdbl));
+    SimTK_TEST(isInf(cflt) && isInf(cdbl));
+    SimTK_TEST(isInf(cjflt) && isInf(cjdbl));
+    SimTK_TEST(isInf(ncflt) && isInf(ncdbl));
+    SimTK_TEST(isInf(ncjflt) && isInf(ncjdbl));
 
     // Restore imaginary part to normal.
     cflt = std::complex<float>(cflt.real(), fltRegular);
@@ -257,10 +192,10 @@ void testIsInf() {
     cjdbl = conjugate<double>(cjdbl.real(), dblRegular);
 
     // Real part only is Inf;
-    ASSERT(isInf(cflt) && isInf(cdbl));
-    ASSERT(isInf(cjflt) && isInf(cjdbl));
-    ASSERT(isInf(ncflt) && isInf(ncdbl));
-    ASSERT(isInf(ncjflt) && isInf(ncjdbl));
+    SimTK_TEST(isInf(cflt) && isInf(cdbl));
+    SimTK_TEST(isInf(cjflt) && isInf(cjdbl));
+    SimTK_TEST(isInf(ncflt) && isInf(ncdbl));
+    SimTK_TEST(isInf(ncjflt) && isInf(ncjdbl));
 
     // Set real part to minus infinity.
     cflt = std::complex<float>(mfltInf, cflt.imag());
@@ -268,10 +203,10 @@ void testIsInf() {
     cjflt = conjugate<float>(mfltInf, cjflt.imag());
     cjdbl = conjugate<double>(mdblInf, cjdbl.imag());
 
-    ASSERT(isInf(cflt) && isInf(cdbl));
-    ASSERT(isInf(cjflt) && isInf(cjdbl));
-    ASSERT(isInf(ncflt) && isInf(ncdbl));
-    ASSERT(isInf(ncjflt) && isInf(ncjdbl));
+    SimTK_TEST(isInf(cflt) && isInf(cdbl));
+    SimTK_TEST(isInf(cjflt) && isInf(cjdbl));
+    SimTK_TEST(isInf(ncflt) && isInf(ncdbl));
+    SimTK_TEST(isInf(ncjflt) && isInf(ncjdbl));
 
     // Set real part to NaN.
     const float fltNaN = NTraits<float>::getNaN();
@@ -281,10 +216,10 @@ void testIsInf() {
     cjflt = conjugate<float>(fltNaN, cjflt.imag());
     cjdbl = conjugate<double>(dblNaN, cjdbl.imag());
 
-    ASSERT(!isInf(cflt) && !isInf(cdbl));
-    ASSERT(!isInf(cjflt) && !isInf(cjdbl));
-    ASSERT(!isInf(ncflt) && !isInf(ncdbl));
-    ASSERT(!isInf(ncjflt) && !isInf(ncjdbl));
+    SimTK_TEST(!isInf(cflt) && !isInf(cdbl));
+    SimTK_TEST(!isInf(cjflt) && !isInf(cjdbl));
+    SimTK_TEST(!isInf(ncflt) && !isInf(ncdbl));
+    SimTK_TEST(!isInf(ncjflt) && !isInf(ncjdbl));
 }
 
 void testIsFinite() {
@@ -299,18 +234,18 @@ void testIsFinite() {
     const float mfltInf = -fltInf;
     const double mdblInf = -dblInf;
 
-    ASSERT(isFinite(fltRegular) && isFinite(dblRegular));
-    ASSERT(!isFinite(fltNaN) && !isFinite(dblNaN));
-    ASSERT(!isFinite(fltInf) && !isFinite(dblInf));
-    ASSERT(!isFinite(mfltInf) && !isFinite(mdblInf));
+    SimTK_TEST(isFinite(fltRegular) && isFinite(dblRegular));
+    SimTK_TEST(!isFinite(fltNaN) && !isFinite(dblNaN));
+    SimTK_TEST(!isFinite(fltInf) && !isFinite(dblInf));
+    SimTK_TEST(!isFinite(mfltInf) && !isFinite(mdblInf));
 
     std::complex<float> cflt(fltRegular, -2*fltRegular);
     std::complex<double> cdbl(dblRegular, -2*dblRegular);
     conjugate<float> cjflt(fltRegular, -2*fltRegular);
     conjugate<double> cjdbl(dblRegular, -2*dblRegular);
 
-    ASSERT(isFinite(cflt) && isFinite(cdbl));
-    ASSERT(isFinite(cjflt) && isFinite(cjdbl));
+    SimTK_TEST(isFinite(cflt) && isFinite(cdbl));
+    SimTK_TEST(isFinite(cjflt) && isFinite(cjdbl));
 
     // Reference the same memory as a negator of its contents.
     const negator<float>&           nflt   = reinterpret_cast<const negator<float>&>(fltRegular);
@@ -321,16 +256,16 @@ void testIsFinite() {
     negator<conjugate<double> >&     ncjdbl = reinterpret_cast<negator<conjugate<double> >&>   (cjdbl);
 
     // Test that negators are working properly.
-    ASSERT_EQ(nflt, -fltRegular);
-    ASSERT_EQ(ndbl, -dblRegular);
-    ASSERT_EQ(ncflt, -cflt);
-    ASSERT_EQ(-ncflt, cflt);
-    ASSERT_EQ(ncjflt, -cjflt);
-    ASSERT_EQ(-ncjflt, cjflt);
+    SimTK_TEST_NUMEQ(nflt, -fltRegular);
+    SimTK_TEST_NUMEQ(ndbl, -dblRegular);
+    SimTK_TEST_NUMEQ(ncflt, -cflt);
+    SimTK_TEST_NUMEQ(-ncflt, cflt);
+    SimTK_TEST_NUMEQ(ncjflt, -cjflt);
+    SimTK_TEST_NUMEQ(-ncjflt, cjflt);
 
-    ASSERT(isFinite(nflt) && isFinite(ndbl));
-    ASSERT(isFinite(ncflt) && isFinite(ncdbl));
-    ASSERT(isFinite(ncjflt) && isFinite(ncjdbl));
+    SimTK_TEST(isFinite(nflt) && isFinite(ndbl));
+    SimTK_TEST(isFinite(ncflt) && isFinite(ncdbl));
+    SimTK_TEST(isFinite(ncjflt) && isFinite(ncjdbl));
 
     // Should be finite only if both parts are finite.
     cflt = std::complex<float>(cflt.real(),  fltInf);
@@ -339,10 +274,10 @@ void testIsFinite() {
     cjdbl = conjugate<double>(cjdbl.real(),  dblInf);
 
     // Imaginary only is NaN.
-    ASSERT(!isFinite(cflt) && !isFinite(cdbl));
-    ASSERT(!isFinite(cjflt) && !isFinite(cjdbl));
-    ASSERT(!isFinite(ncflt) && !isFinite(ncdbl));
-    ASSERT(!isFinite(ncjflt) && !isFinite(ncjdbl));
+    SimTK_TEST(!isFinite(cflt) && !isFinite(cdbl));
+    SimTK_TEST(!isFinite(cjflt) && !isFinite(cjdbl));
+    SimTK_TEST(!isFinite(ncflt) && !isFinite(ncdbl));
+    SimTK_TEST(!isFinite(ncjflt) && !isFinite(ncjdbl));
 
     cflt = std::complex<float> (fltInf, cflt.imag());
     cdbl = std::complex<double>(mdblInf, cdbl.imag());
@@ -350,10 +285,10 @@ void testIsFinite() {
     cjdbl = conjugate<double>  (dblInf, cjdbl.imag());
 
     // Both parts are non-finite.
-    ASSERT(!isFinite(cflt) && !isFinite(cdbl));
-    ASSERT(!isFinite(cjflt) && !isFinite(cjdbl));
-    ASSERT(!isFinite(ncflt) && !isFinite(ncdbl));
-    ASSERT(!isFinite(ncjflt) && !isFinite(ncjdbl));
+    SimTK_TEST(!isFinite(cflt) && !isFinite(cdbl));
+    SimTK_TEST(!isFinite(cjflt) && !isFinite(cjdbl));
+    SimTK_TEST(!isFinite(ncflt) && !isFinite(ncdbl));
+    SimTK_TEST(!isFinite(ncjflt) && !isFinite(ncjdbl));
 
     // Restore imaginary part to normal.
     cflt = std::complex<float>(cflt.real(), fltRegular);
@@ -362,10 +297,10 @@ void testIsFinite() {
     cjdbl = conjugate<double>(cjdbl.real(), dblRegular);
 
     // Real part only is non-finite;
-    ASSERT(!isFinite(cflt) && !isFinite(cdbl));
-    ASSERT(!isFinite(cjflt) && !isFinite(cjdbl));
-    ASSERT(!isFinite(ncflt) && !isFinite(ncdbl));
-    ASSERT(!isFinite(ncjflt) && !isFinite(ncjdbl));
+    SimTK_TEST(!isFinite(cflt) && !isFinite(cdbl));
+    SimTK_TEST(!isFinite(cjflt) && !isFinite(cjdbl));
+    SimTK_TEST(!isFinite(ncflt) && !isFinite(ncdbl));
+    SimTK_TEST(!isFinite(ncjflt) && !isFinite(ncjdbl));
 }
 
 void testSignBit() {
@@ -375,11 +310,11 @@ void testSignBit() {
     const unsigned long ulm=(unsigned long)-23423L, ulz=0, ulp=234234UL;
     const unsigned long long ullm=(unsigned long long)-234234234LL, ullz=0, ullp=234234234ULL;
 
-    ASSERT(!(signBit(ucm)||signBit(ucz)||signBit(ucp)));
-    ASSERT(!(signBit(usm)||signBit(usz)||signBit(usp)));
-    ASSERT(!(signBit(uim)||signBit(uiz)||signBit(uip)));
-    ASSERT(!(signBit(ulm)||signBit(ulz)||signBit(ulp)));
-    ASSERT(!(signBit(ullm)||signBit(ullz)||signBit(ullp)));
+    SimTK_TEST(!(signBit(ucm)||signBit(ucz)||signBit(ucp)));
+    SimTK_TEST(!(signBit(usm)||signBit(usz)||signBit(usp)));
+    SimTK_TEST(!(signBit(uim)||signBit(uiz)||signBit(uip)));
+    SimTK_TEST(!(signBit(ulm)||signBit(ulz)||signBit(ulp)));
+    SimTK_TEST(!(signBit(ullm)||signBit(ullz)||signBit(ullp)));
     
     // Note that signBit(char) doesn't exist.
 
@@ -389,19 +324,19 @@ void testSignBit() {
     const long lm=-43488, lz=0, lp=3454545;
     const long long llm=-2342342343433LL, llz=0, llp=874578478478574LL;
 
-    ASSERT(signBit(cm) && !(signBit(cz)||signBit(cp)));
-    ASSERT(signBit(sm) && !(signBit(sz)||signBit(sp)));
-    ASSERT(signBit(im) && !(signBit(iz)||signBit(ip)));
-    ASSERT(signBit(lm) && !(signBit(lz)||signBit(lp)));
-    ASSERT(signBit(llm) && !(signBit(llz)||signBit(llp)));
+    SimTK_TEST(signBit(cm) && !(signBit(cz)||signBit(cp)));
+    SimTK_TEST(signBit(sm) && !(signBit(sz)||signBit(sp)));
+    SimTK_TEST(signBit(im) && !(signBit(iz)||signBit(ip)));
+    SimTK_TEST(signBit(lm) && !(signBit(lz)||signBit(lp)));
+    SimTK_TEST(signBit(llm) && !(signBit(llz)||signBit(llp)));
 
     const float fm=-12398.34f, fz=0, fp=4354.331f;
     const double dm=-234234.454, dz=0, dp=345345.2342;
     float mfz=-fz; double mdz=-dz;// -0
 
-    ASSERT(signBit(fm) && !(signBit(fz)||signBit(fp)));
-    ASSERT(signBit(dm) && !(signBit(dz)||signBit(dp)));
-    ASSERT(signBit(mfz) && signBit(mdz));
+    SimTK_TEST(signBit(fm) && !(signBit(fz)||signBit(fp)));
+    SimTK_TEST(signBit(dm) && !(signBit(dz)||signBit(dp)));
+    SimTK_TEST(signBit(mfz) && signBit(mdz));
 
     // Note: signBit of negated float or double should be the
     // *same* as the underlying float or double; it is the
@@ -416,17 +351,17 @@ void testSignBit() {
     const negator<double>& ndp=reinterpret_cast<const negator<double>&>(dp);
     const negator<double>& nmdz=reinterpret_cast<const negator<double>&>(mdz);
 
-    ASSERT(signBit(nfm) && !(signBit(nfz)||signBit(nfp)));
-    ASSERT(signBit(ndm) && !(signBit(ndz)||signBit(ndp)));
-    ASSERT(signBit(nmfz) && signBit(nmdz));
+    SimTK_TEST(signBit(nfm) && !(signBit(nfz)||signBit(nfp)));
+    SimTK_TEST(signBit(ndm) && !(signBit(ndz)||signBit(ndp)));
+    SimTK_TEST(signBit(nmfz) && signBit(nmdz));
 
     const float fltInf = NTraits<float>::getInfinity();
     const double dblInf = NTraits<double>::getInfinity();
     const float mfltInf = -fltInf;
     const double mdblInf = -dblInf;
 
-    ASSERT(!signBit(fltInf) && !signBit(dblInf));
-    ASSERT(signBit(mfltInf) && signBit(mdblInf));
+    SimTK_TEST(!signBit(fltInf) && !signBit(dblInf));
+    SimTK_TEST(signBit(mfltInf) && signBit(mdblInf));
 }
 
 
@@ -437,11 +372,11 @@ void testSign() {
     const unsigned long ulm=(unsigned long)-23423L, ulz=0, ulp=234234UL;
     const unsigned long long ullm=(unsigned long long)-234234234LL, ullz=0, ullp=234234234ULL;
 
-    ASSERT(sign(ucm)==1 && sign(ucz)==0 && sign(ucp)==1);
-    ASSERT(sign(usm)==1 && sign(usz)==0 && sign(usp)==1);
-    ASSERT(sign(uim)==1 && sign(uiz)==0 && sign(uip)==1);
-    ASSERT(sign(ulm)==1 && sign(ulz)==0 && sign(ulp)==1);
-    ASSERT(sign(ullm)==1 && sign(ullz)==0 && sign(ullp)==1);
+    SimTK_TEST(sign(ucm)==1 && sign(ucz)==0 && sign(ucp)==1);
+    SimTK_TEST(sign(usm)==1 && sign(usz)==0 && sign(usp)==1);
+    SimTK_TEST(sign(uim)==1 && sign(uiz)==0 && sign(uip)==1);
+    SimTK_TEST(sign(ulm)==1 && sign(ulz)==0 && sign(ulp)==1);
+    SimTK_TEST(sign(ullm)==1 && sign(ullz)==0 && sign(ullp)==1);
 
     // Note that sign(char) doesn't exist.
 
@@ -451,19 +386,19 @@ void testSign() {
     const long lm=-43488, lz=0, lp=3454545;
     const long long llm=-2342342343433LL, llz=0, llp=874578478478574LL;
 
-    ASSERT(sign(cm)==-1 && sign(cz)==0 && sign(cp)==1);
-    ASSERT(sign(sm)==-1 && sign(sz)==0 && sign(sp)==1);
-    ASSERT(sign(im)==-1 && sign(iz)==0 && sign(ip)==1);
-    ASSERT(sign(lm)==-1 && sign(lz)==0 && sign(lp)==1);
-    ASSERT(sign(llm)==-1 && sign(llz)==0 && sign(llp)==1);
+    SimTK_TEST(sign(cm)==-1 && sign(cz)==0 && sign(cp)==1);
+    SimTK_TEST(sign(sm)==-1 && sign(sz)==0 && sign(sp)==1);
+    SimTK_TEST(sign(im)==-1 && sign(iz)==0 && sign(ip)==1);
+    SimTK_TEST(sign(lm)==-1 && sign(lz)==0 && sign(lp)==1);
+    SimTK_TEST(sign(llm)==-1 && sign(llz)==0 && sign(llp)==1);
 
     const float fm=-12398.34f, fz=0, fp=4354.331f;
     const double dm=-234234.454, dz=0, dp=345345.2342;
     float mfz=-fz; double mdz=-dz;// -0
 
-    ASSERT(sign(fm)==-1 && sign(fz)==0 && sign(fp)==1);
-    ASSERT(sign(dm)==-1 && sign(dz)==0 && sign(dp)==1);
-    ASSERT(sign(mfz)==0 && sign(mdz)==0); // doesn't matter if it's -0
+    SimTK_TEST(sign(fm)==-1 && sign(fz)==0 && sign(fp)==1);
+    SimTK_TEST(sign(dm)==-1 && sign(dz)==0 && sign(dp)==1);
+    SimTK_TEST(sign(mfz)==0 && sign(mdz)==0); // doesn't matter if it's -0
 
     // Note: sign of negated float or double should be the
     // *opposite* as the underlying float or double.
@@ -476,9 +411,9 @@ void testSign() {
     const negator<double>& ndp=reinterpret_cast<const negator<double>&>(dp);
     const negator<double>& nmdz=reinterpret_cast<const negator<double>&>(mdz);
 
-    ASSERT(sign(nfm)==1 && sign(nfz)==0 && sign(nfp)==-1);
-    ASSERT(sign(ndm)==1 && sign(ndz)==0 && sign(ndp)==-1);
-    ASSERT(sign(nmfz)==0 && sign(nmdz)==0); // doesn't matter if it's -0
+    SimTK_TEST(sign(nfm)==1 && sign(nfz)==0 && sign(nfp)==-1);
+    SimTK_TEST(sign(ndm)==1 && sign(ndz)==0 && sign(ndp)==-1);
+    SimTK_TEST(sign(nmfz)==0 && sign(nmdz)==0); // doesn't matter if it's -0
 
     const float fltInf = NTraits<float>::getInfinity();
     const double dblInf = NTraits<double>::getInfinity();
@@ -487,9 +422,9 @@ void testSign() {
     const negator<float>& nfltInf = reinterpret_cast<const negator<float>&>(fltInf);
     const negator<double>& ndblInf = reinterpret_cast<const negator<double>&>(dblInf);
 
-    ASSERT(sign(fltInf)==1 && sign(dblInf)==1);
-    ASSERT(sign(mfltInf)==-1 && sign(mdblInf)==-1);
-    ASSERT(sign(nfltInf)==-1 && sign(ndblInf)==-1);
+    SimTK_TEST(sign(fltInf)==1 && sign(dblInf)==1);
+    SimTK_TEST(sign(mfltInf)==-1 && sign(mdblInf)==-1);
+    SimTK_TEST(sign(nfltInf)==-1 && sign(ndblInf)==-1);
 }
 
 void testSquareAndCube() {
@@ -499,20 +434,20 @@ void testSquareAndCube() {
     const negator<double>& ndval = reinterpret_cast<const negator<double>&>(dval);
 
     // Basic test.
-    ASSERT_EQ(square(fval), fval*fval);
-    ASSERT_EQ(square(dval), dval*dval);
-    ASSERT_EQ(cube(fval), fval*fval*fval);
-    ASSERT_EQ(cube(dval), dval*dval*dval);
+    SimTK_TEST_NUMEQ(square(fval), fval*fval);
+    SimTK_TEST_NUMEQ(square(dval), dval*dval);
+    SimTK_TEST_NUMEQ(cube(fval), fval*fval*fval);
+    SimTK_TEST_NUMEQ(cube(dval), dval*dval*dval);
 
     // Test scalar negators.
-    ASSERT_EQ(square(nfval), nfval*nfval);
-    ASSERT_EQ(square(nfval), fval*fval);
-    ASSERT_EQ(square(ndval), ndval*ndval);
-    ASSERT_EQ(square(ndval), dval*dval);
-    ASSERT_EQ(cube(nfval), nfval*nfval*nfval);
-    ASSERT_EQ(cube(nfval), -fval*fval*fval);
-    ASSERT_EQ(cube(ndval), ndval*ndval*ndval);
-    ASSERT_EQ(cube(ndval), -dval*dval*dval);
+    SimTK_TEST_NUMEQ(square(nfval), nfval*nfval);
+    SimTK_TEST_NUMEQ(square(nfval), fval*fval);
+    SimTK_TEST_NUMEQ(square(ndval), ndval*ndval);
+    SimTK_TEST_NUMEQ(square(ndval), dval*dval);
+    SimTK_TEST_NUMEQ(cube(nfval), nfval*nfval*nfval);
+    SimTK_TEST_NUMEQ(cube(nfval), -fval*fval*fval);
+    SimTK_TEST_NUMEQ(cube(ndval), ndval*ndval*ndval);
+    SimTK_TEST_NUMEQ(cube(ndval), -dval*dval*dval);
 
     // Create complex and conjugate values.
 
@@ -524,12 +459,12 @@ void testSquareAndCube() {
     // Manual conjugates
     std::complex<float>  fcmj(fcj.real(), fcj.imag());
     std::complex<double> dcmj(dcj.real(), dcj.imag());
-    ASSERT(fcj == fcmj);    // sign change only; should be exact
-    ASSERT(dcj == dcmj);
-    ASSERT_EQ(fcj*fcj, fcmj*fcmj);
-    ASSERT_EQ(dcj*dcj, dcmj*dcmj);
-    ASSERT_EQ(fcj*fcj*fcj, fcmj*fcmj*fcmj);
-    ASSERT_EQ(dcj*dcj*dcj, dcmj*dcmj*dcmj);
+    SimTK_TEST(fcj == fcmj);    // sign change only; should be exact
+    SimTK_TEST(dcj == dcmj);
+    SimTK_TEST_NUMEQ(fcj*fcj, fcmj*fcmj);
+    SimTK_TEST_NUMEQ(dcj*dcj, dcmj*dcmj);
+    SimTK_TEST_NUMEQ(fcj*fcj*fcj, fcmj*fcmj*fcmj);
+    SimTK_TEST_NUMEQ(dcj*dcj*dcj, dcmj*dcmj*dcmj);
 
     // Negators of complex an conjugate.
     negator<std::complex<float> >&   nfc  = reinterpret_cast<negator<std::complex<float> >&> (fc);
@@ -538,57 +473,54 @@ void testSquareAndCube() {
     negator<conjugate<double> >&     ndcj = reinterpret_cast<negator<conjugate<double> >&>   (dcj);
 
     // Change of sign should be exact.
-    ASSERT(nfc == -fc);
-    ASSERT(ndc == -dc);
-    ASSERT(nfcj == -fcj);
-    ASSERT(ndcj == -dcj);
+    SimTK_TEST(nfc == -fc);
+    SimTK_TEST(ndc == -dc);
+    SimTK_TEST(nfcj == -fcj);
+    SimTK_TEST(ndcj == -dcj);
 
 
     // Basic complex and conjugate tests.
-    ASSERT_EQ(square(fc), fc*fc);
-    ASSERT_EQ(cube(fc), fc*fc*fc);
-    ASSERT_EQ(square(dc), dc*dc);
-    ASSERT_EQ(cube(dc), dc*dc*dc);
-    ASSERT_EQ(square(fcj), fcj*fcj);
-    ASSERT_EQ(cube(fcj), fcj*fcj*fcj);
-    ASSERT_EQ(square(dcj), dcj*dcj);
-    ASSERT_EQ(cube(dcj), dcj*dcj*dcj);
+    SimTK_TEST_NUMEQ(square(fc), fc*fc);
+    SimTK_TEST_NUMEQ(cube(fc), fc*fc*fc);
+    SimTK_TEST_NUMEQ(square(dc), dc*dc);
+    SimTK_TEST_NUMEQ(cube(dc), dc*dc*dc);
+    SimTK_TEST_NUMEQ(square(fcj), fcj*fcj);
+    SimTK_TEST_NUMEQ(cube(fcj), fcj*fcj*fcj);
+    SimTK_TEST_NUMEQ(square(dcj), dcj*dcj);
+    SimTK_TEST_NUMEQ(cube(dcj), dcj*dcj*dcj);
 
     // Tests involving negators of complex and conjugate.
-    ASSERT_EQ(square(nfc), nfc*nfc); 
-    ASSERT_EQ(square(nfc), fc*fc);
-    ASSERT_EQ(square(ndc), ndc*ndc);
-    ASSERT_EQ(square(ndc), dc*dc);
+    SimTK_TEST_NUMEQ(square(nfc), nfc*nfc); 
+    SimTK_TEST_NUMEQ(square(nfc), fc*fc);
+    SimTK_TEST_NUMEQ(square(ndc), ndc*ndc);
+    SimTK_TEST_NUMEQ(square(ndc), dc*dc);
 
-    ASSERT_EQ(cube(nfc), nfc*nfc*nfc); 
-    ASSERT_EQ(cube(nfc), -fc*fc*fc);
-    ASSERT_EQ(cube(ndc), ndc*ndc*ndc);
-    ASSERT_EQ(cube(ndc), -dc*dc*dc);
+    SimTK_TEST_NUMEQ(cube(nfc), nfc*nfc*nfc); 
+    SimTK_TEST_NUMEQ(cube(nfc), -fc*fc*fc);
+    SimTK_TEST_NUMEQ(cube(ndc), ndc*ndc*ndc);
+    SimTK_TEST_NUMEQ(cube(ndc), -dc*dc*dc);
 
-    ASSERT_EQ(square(nfcj), nfcj*nfcj); 
-    ASSERT_EQ(square(nfcj), fcj*fcj);
-    ASSERT_EQ(square(ndcj), ndcj*ndcj);
-    ASSERT_EQ(square(ndcj), dcj*dcj);
+    SimTK_TEST_NUMEQ(square(nfcj), nfcj*nfcj); 
+    SimTK_TEST_NUMEQ(square(nfcj), fcj*fcj);
+    SimTK_TEST_NUMEQ(square(ndcj), ndcj*ndcj);
+    SimTK_TEST_NUMEQ(square(ndcj), dcj*dcj);
 
-    ASSERT_EQ(cube(nfcj), nfcj*nfcj*nfcj); 
-    ASSERT_EQ(cube(nfcj), -fcj*fcj*fcj);
-    ASSERT_EQ(cube(ndcj), ndcj*ndcj*ndcj);
-    ASSERT_EQ(cube(ndcj), -dcj*dcj*dcj);
+    SimTK_TEST_NUMEQ(cube(nfcj), nfcj*nfcj*nfcj); 
+    SimTK_TEST_NUMEQ(cube(nfcj), -fcj*fcj*fcj);
+    SimTK_TEST_NUMEQ(cube(ndcj), ndcj*ndcj*ndcj);
+    SimTK_TEST_NUMEQ(cube(ndcj), -dcj*dcj*dcj);
 }
 
 int main() {
-    try {
-        testIsNaN();
-        testIsInf();
-        testIsFinite();
-        testSignBit();
-        testSign();
-        testSquareAndCube();
-    } catch(const std::exception& e) {
-        cout << "exception: " << e.what() << endl;
-        return 1;
-    }
-    cout << "Done" << endl;
-    return 0;
+    SimTK_START_TEST("TestScalar");
+
+        SimTK_SUBTEST(testIsNaN);
+        SimTK_SUBTEST(testIsInf);
+        SimTK_SUBTEST(testIsFinite);
+        SimTK_SUBTEST(testSignBit);
+        SimTK_SUBTEST(testSign);
+        SimTK_SUBTEST(testSquareAndCube);
+
+    SimTK_END_TEST();
 }
 
