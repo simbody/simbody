@@ -40,12 +40,13 @@
 #include <algorithm> 
 #include <iostream>
 
-/**
+/** @file
  * This file defines a SimTK::Test class and some related macros which
- * provide functionality useful in regression tests. Here's how you use
- * this facility:
+ * provide functionality useful in regression tests. This header file is
+ * <em>not</em> automatically included with SimTKcommon.h; you have to
+ * ask for it explicilty. Here's how you use this facility:
  * <pre>
- * #include "SimTKcommon/Testing.h"
+ * \#include "SimTKcommon/Testing.h"
  * void myFirstSubtest() {...}
  * void myNextSubtest() {...}
  * int main() {
@@ -59,7 +60,19 @@
  * the overall test and the individual subtests, and arrange for 
  * any exceptions raised in the tests to be caught, properly reported,
  * and cause a non-zero return from main(). If everything runs
- * successfully, main() will return 0.
+ * successfully, main() will return 0. Here is an example of the
+ * output produced:
+ * <pre>
+ * Starting test TestScalar ...
+ *   testIsNaN            ... done. testIsNaN            time: 0s.
+ *   testIsInf            ... done. testIsInf            time: 0s.
+ *   testIsFinite         ... done. testIsFinite         time: 0s.
+ *   testSignBit          ... done. testSignBit          time: 0s.
+ *   testSign             ... done. testSign             time: 0s.
+ *   testSquareAndCube    ... done. testSquareAndCube    time: 0s.
+ * Done. TestScalar time: 0s.
+ * </pre>
+ * (Admittedly the timings aren't much use in that example!)
  *
  * Within your subtests, several useful macros and static functions
  * are available. By using these macros, the resulting message will 
