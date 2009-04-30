@@ -208,40 +208,40 @@ public:
         return numericallyEqual(-v1, -v2, tol); // conjugate, complex
     }
     template <int M, class E1, int S1, class E2, int S2>
-    static bool numericallyEqual(const Vec<M,E1,S1>& v1, const Vec<M,E2,S2>& v2, double tol=defTol2<E1,E2>()) {
+    static bool numericallyEqual(const Vec<M,E1,S1>& v1, const Vec<M,E2,S2>& v2, double tol=(defTol2<E1,E2>())) {
         for (int i=0; i<M; ++i) if (!numericallyEqual(v1[i],v2[i], tol)) return false;
         return true;
     }
     template <int N, class E1, int S1, class E2, int S2>
-    static bool numericallyEqual(const Row<N,E1,S1>& v1, const Row<N,E2,S2>& v2, double tol=defTol2<E1,E2>()) {
+    static bool numericallyEqual(const Row<N,E1,S1>& v1, const Row<N,E2,S2>& v2, double tol=(defTol2<E1,E2>())) {
         for (int j=0; j<N; ++j) if (!numericallyEqual(v1[j],v2[j], tol)) return false;
         return true;
     }
     template <int M, int N, class E1, int CS1, int RS1, class E2, int CS2, int RS2>
-    static bool numericallyEqual(const Mat<N,M,E1,CS1,RS1>& v1, const Mat<N,M,E2,CS2,RS2>& v2, double tol=defTol2<E1,E2>()) {
+    static bool numericallyEqual(const Mat<N,M,E1,CS1,RS1>& v1, const Mat<N,M,E2,CS2,RS2>& v2, double tol=(defTol2<E1,E2>())) {
         for (int j=0; j<N; ++j) if (!numericallyEqual(v1(j),v2(j), tol)) return false;
         return true;
     }
     template <int N, class E1, int S1, class E2, int S2>
-    static bool numericallyEqual(const SymMat<N,E1,S1>& v1, const SymMat<N,E2,S2>& v2, double tol=defTol2<E1,E2>()) {
+    static bool numericallyEqual(const SymMat<N,E1,S1>& v1, const SymMat<N,E2,S2>& v2, double tol=(defTol2<E1,E2>())) {
         return numericallyEqual(v1.getAsVec(), v2.getAsVec(), tol);
     }
     template <class E1, class E2>
-    static bool numericallyEqual(const Vector_<E1>& v1, const Vector_<E2>& v2, double tol=defTol2<E1,E2>()) {
+    static bool numericallyEqual(const Vector_<E1>& v1, const Vector_<E2>& v2, double tol=(defTol2<E1,E2>())) {
         if (v1.size() != v2.size()) return false;
         for (int i=0; i < v1.size(); ++i)
             if (!numericallyEqual(v1[i], v2[i], tol)) return false;
         return true;
     }
     template <class E1, class E2>
-    static bool numericallyEqual(const RowVector_<E1>& v1, const RowVector_<E2>& v2, double tol=defTol2<E1,E2>()) {
+    static bool numericallyEqual(const RowVector_<E1>& v1, const RowVector_<E2>& v2, double tol=(defTol2<E1,E2>())) {
         if (v1.size() != v2.size()) return false;
         for (int i=0; i < v1.size(); ++i)
             if (!numericallyEqual(v1[i], v2[i], tol)) return false;
         return true;
     }
     template <class E1, class E2>
-    static bool numericallyEqual(const Matrix_<E1>& v1, const Matrix_<E2>& v2, double tol=defTol2<E1,E2>()) {
+    static bool numericallyEqual(const Matrix_<E1>& v1, const Matrix_<E2>& v2, double tol=(defTol2<E1,E2>())) {
         if (v1.nrow() != v2.nrow() || v1.ncol() != v2.ncol()) return false;
         for (int j=0; j < v1.ncol(); ++j)
             if (!numericallyEqual(v1(j), v2(j), tol)) return false;
