@@ -224,12 +224,15 @@ public:
            (*this)(j) = src(j);
         return *this;
     }
-    // Convert a SymMat to a Mat.
+
+    // Convert a SymMat to a Mat. Caution: with complex elements the
+    // upper triangle values are conjugates of the lower triangle ones.
     explicit Mat(const SymMat<M, ELT>& src) {
-        for (int i = 0; i < M; ++i)
-            for (int j = 0; j <= i; ++j) {
-                (*this)(i, j) = src(i, j);
-                (*this)(j, i) = src(i, j);
+        diag() = src.diag();
+        for (int j = 0; j < M; ++j)
+            for (int i = j+1; i < M; ++i) {
+                (*this)(i, j) = src.getEltLower(i, j);
+                (*this)(j, i) = src.getEltUpper(j, i);
             }
     }
 

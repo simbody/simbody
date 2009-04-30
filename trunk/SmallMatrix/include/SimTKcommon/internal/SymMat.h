@@ -273,6 +273,69 @@ public:
     explicit SymMat(const E& e)
       { updDiag() = e; updLower() = E(0); }
 
+    /// A bevy of constructors from individual exact-match elements IN ROW ORDER,
+    /// giving the LOWER TRIANGLE, like this:
+    /// <pre>
+    ///     a
+    ///     b c
+    ///     d e f
+    ///     g h i j
+    /// </pre>
+    /// Note that this will be mapped to our diagonal/lower layout, which in
+    /// the above example would be:
+    /// <pre>
+    ///     [a c f j][b d g e h i]
+    /// </pre>
+
+    SymMat(const E& e0,
+           const E& e1,const E& e2)
+    {   assert(M==2); TDiag& d=updDiag(); TLower& l=updLower();
+        d[0]=CNT<E>::real(e0); d[1]=CNT<E>::real(e2); 
+        l[0]=e1; }
+
+    SymMat(const E& e0,
+           const E& e1,const E& e2,
+           const E& e3,const E& e4, const E& e5)
+    {   assert(M==3); TDiag& d=updDiag(); TLower& l=updLower();
+        d[0]=CNT<E>::real(e0);d[1]=CNT<E>::real(e2);d[2]=CNT<E>::real(e5); 
+        l[0]=e1;l[1]=e3;
+        l[2]=e4; }
+
+    SymMat(const E& e0,
+           const E& e1,const E& e2,
+           const E& e3,const E& e4, const E& e5,
+           const E& e6,const E& e7, const E& e8, const E& e9)
+    {   assert(M==4); TDiag& d=updDiag(); TLower& l=updLower();
+        d[0]=CNT<E>::real(e0);d[1]=CNT<E>::real(e2);d[2]=CNT<E>::real(e5);d[3]=CNT<E>::real(e9); 
+        l[0]=e1;l[1]=e3;l[2]=e6;
+        l[3]=e4;l[4]=e7;
+        l[5]=e8; }
+
+    SymMat(const E& e0,
+           const E& e1, const E& e2,
+           const E& e3, const E& e4,  const E& e5,
+           const E& e6, const E& e7,  const E& e8,  const E& e9,
+           const E& e10,const E& e11, const E& e12, const E& e13, const E& e14)
+    {   assert(M==5); TDiag& d=updDiag(); TLower& l=updLower();
+        d[0]=CNT<E>::real(e0);d[1]=CNT<E>::real(e2);d[2]=CNT<E>::real(e5);d[3]=CNT<E>::real(e9);d[4]=CNT<E>::real(e14); 
+        l[0]=e1;l[1]=e3;l[2]=e6;l[3]=e10;
+        l[4]=e4;l[5]=e7;l[6]=e11;
+        l[7]=e8;l[8]=e12;
+        l[9]=e13; }
+
+    SymMat(const E& e0,
+           const E& e1, const E& e2,
+           const E& e3, const E& e4,  const E& e5,
+           const E& e6, const E& e7,  const E& e8,  const E& e9,
+           const E& e10,const E& e11, const E& e12, const E& e13, const E& e14,
+           const E& e15,const E& e16, const E& e17, const E& e18, const E& e19, const E& e20)
+    {   assert(M==6); TDiag& d=updDiag(); TLower& l=updLower();
+        d[0]=e0;d[1]=e2;d[2]=e5;d[3]=e9;d[4]=e14;d[5]=e20; 
+        l[0] =e1; l[1] =e3; l[2] =e6;  l[3]=e10; l[4]=e15;
+        l[5] =e4; l[6] =e7; l[7] =e11; l[8]=e16;
+        l[9] =e8; l[10]=e12;l[11]=e17;
+        l[12]=e13;l[13]=e18;
+        l[14]=e19; }
 
     // Construction from a pointer to anything assumes we're pointing
     // at a packed element list of the right length, providing the

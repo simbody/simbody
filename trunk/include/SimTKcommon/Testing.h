@@ -80,12 +80,14 @@
  * <pre>
  *      SimTK_TEST(cond)       -- this is like assert(cond)
  *      SimTK_TEST_EQ(a,b)     -- like assert(a==b)
- *      SimTK_TEST_NUMEQ(a,b)  -- like assert(numericallyEqual(a,b))
+ *      SimTK_TEST_NUMEQ(a,b)  -- equal to within a default tolerance
+ *      SimTK_TEST_NUMEQ_TOL(a,b,tol) -- same but with specified tolerance
  * </pre>
  * The NUMEQ macro tests scalar and composite numerical values for
  * equality to within a numerical tolerance, using both relative
- * and absolute tolerances. TODO: currently there is no way to 
- * specify your own tolerance.
+ * and absolute tolerances. The default is the value of SignificantReal
+ * for the underlying numerical type. The NUMEQ_TOL form allows you
+ * to override that default tolerance.
  *
  * The SimTK::Test class has a number of static methods that are useful
  * in tests. Currently these are all for generating numerical objects
@@ -120,105 +122,129 @@ public:
                   << (std::clock()-startTime)/CLOCKS_PER_SEC << "s.\n";
     }
 
+    template <class T>
+    static double defTol() {return (double)NTraits<typename CNT<T>::Precision>::getSignificant();}
+
+    // For dissimilar types, the default tolerance is the narrowest of the two.
+    template <class T1, class T2>
+    static double defTol2() {return std::max(defTol<T1>(), defTol<T2>());}
+
     // Scale by the magnitude of the quantities being compared, so that we don't
     // ask for unreasonable precision. For magnitudes near zero, we'll be satisfied
     // if both are very small without demanding that they must also be relatively
     // close. That is, we use a relative tolerance for big numbers and an absolute
     // tolerance for small ones.
-    static bool numericallyEqual(float v1, float v2) {
+    static bool numericallyEqual(float v1, float v2, double tol=defTol<float>()) {
         const float scale = std::max(std::max(std::abs(v1), std::abs(v2)), 0.1f);
-        return std::abs(v1-v2) < scale*NTraits<float>::getSignificant();
+        return std::abs(v1-v2) < scale*(float)tol;
     }
-    static bool numericallyEqual(double v1, double v2) {
+    static bool numericallyEqual(double v1, double v2, double tol=defTol<double>()) {
         const double scale = std::max(std::max(std::abs(v1), std::abs(v2)), 0.1);
-        return std::abs(v1-v2) < scale*NTraits<double>::getSignificant();
+        return std::abs(v1-v2) < scale*(double)tol;
+    }
+    static bool numericallyEqual(long double v1, long double v2, double tol=defTol<long double>()) {
+        const long double scale = std::max(std::max(std::abs(v1), std::abs(v2)), 0.1l);
+        return std::abs(v1-v2) < scale*(long double)tol;
+    }
+    static bool numericallyEqual(float v1, double v2, double tol=defTol<float>())
+    {   return numericallyEqual((double)v1, v2, tol); }
+    static bool numericallyEqual(double v1, float v2, double tol=defTol<float>())
+    {   return numericallyEqual(v1, (double)v2, tol); }
+    static bool numericallyEqual(float v1, long double v2, double tol=defTol<float>())
+    {   return numericallyEqual((long double)v1, v2, tol); }
+    static bool numericallyEqual(long double v1, float v2, double tol=defTol<float>())
+    {   return numericallyEqual(v1, (long double)v2, tol); }
+    static bool numericallyEqual(double v1, long double v2, double tol=defTol<double>())
+    {   return numericallyEqual((long double)v1, v2, tol); }
+    static bool numericallyEqual(long double v1, double v2, double tol=defTol<double>())
+    {   return numericallyEqual(v1, (long double)v2, tol); }
+
+    template <class P>
+    static bool numericallyEqual(const std::complex<P>& v1, const std::complex<P>& v2, double tol=defTol<P>()) {
+        return numericallyEqual(v1.real(), v2.real(), tol)
+            && numericallyEqual(v1.imag(), v2.imag(), tol);
     }
     template <class P>
-    static bool numericallyEqual(const std::complex<P>& v1, const std::complex<P>& v2) {
-        return numericallyEqual(v1.real(), v2.real())
-                && numericallyEqual(v1.imag(), v2.imag());
+    static bool numericallyEqual(const conjugate<P>& v1, const conjugate<P>& v2, double tol=defTol<P>()) {
+        return numericallyEqual(v1.real(), v2.real(), tol)
+            && numericallyEqual(v1.imag(), v2.imag(), tol);
     }
     template <class P>
-    static bool numericallyEqual(const conjugate<P>& v1, const conjugate<P>& v2) {
-        return numericallyEqual(v1.real(), v2.real())
-                && numericallyEqual(v1.imag(), v2.imag());
+    static bool numericallyEqual(const std::complex<P>& v1, const conjugate<P>& v2, double tol=defTol<P>()) {
+        return numericallyEqual(v1.real(), v2.real(), tol)
+            && numericallyEqual(v1.imag(), v2.imag(), tol);
     }
     template <class P>
-    static bool numericallyEqual(const std::complex<P>& v1, const conjugate<P>& v2) {
-        return numericallyEqual(v1.real(), v2.real())
-                && numericallyEqual(v1.imag(), v2.imag());
+    static bool numericallyEqual(const conjugate<P>& v1, const std::complex<P>& v2, double tol=defTol<P>()) {
+        return numericallyEqual(v1.real(), v2.real(), tol)
+            && numericallyEqual(v1.imag(), v2.imag(), tol);
     }
     template <class P>
-    static bool numericallyEqual(const conjugate<P>& v1, const std::complex<P>& v2) {
-        return numericallyEqual(v1.real(), v2.real())
-                && numericallyEqual(v1.imag(), v2.imag());
+    static bool numericallyEqual(const negator<P>& v1, const negator<P>& v2, double tol=defTol<P>()) {
+        return numericallyEqual(-v1, -v2, tol);  // P, P
     }
     template <class P>
-    static bool numericallyEqual(const negator<P>& v1, const negator<P>& v2) {
-        return numericallyEqual(-v1, -v2);  // P, P
+    static bool numericallyEqual(const P& v1, const negator<P>& v2, double tol=defTol<P>()) {
+        return numericallyEqual(-v1, -v2, tol);  // P, P
     }
     template <class P>
-    static bool numericallyEqual(const P& v1, const negator<P>& v2) {
-        return numericallyEqual(-v1, -v2);  // P, P
+    static bool numericallyEqual(const negator<P>& v1, const P& v2, double tol=defTol<P>()) {
+        return numericallyEqual(-v1, -v2, tol);  // P, P
     }
     template <class P>
-    static bool numericallyEqual(const negator<P>& v1, const P& v2) {
-        return numericallyEqual(-v1, -v2);  // P, P
+    static bool numericallyEqual(const negator<std::complex<P> >& v1, const conjugate<P>& v2, double tol=defTol<P>()) {
+        return numericallyEqual(-v1, -v2, tol);  // complex, conjugate
     }
     template <class P>
-    static bool numericallyEqual(const negator<std::complex<P> >& v1, const conjugate<P>& v2) {
-        return numericallyEqual(-v1, -v2);  // complex, conjugate
+    static bool numericallyEqual(const negator<conjugate<P> >& v1, const std::complex<P>& v2, double tol=defTol<P>()) {
+        return numericallyEqual(-v1, -v2, tol);  // conjugate, complex
     }
     template <class P>
-    static bool numericallyEqual(const negator<conjugate<P> >& v1, const std::complex<P>& v2) {
-        return numericallyEqual(-v1, -v2);  // conjugate, complex
+    static bool numericallyEqual(const std::complex<P>& v1, const negator<conjugate<P> >& v2, double tol=defTol<P>()) {
+        return numericallyEqual(-v1, -v2, tol); // complex, conjugate
     }
     template <class P>
-    static bool numericallyEqual(const std::complex<P>& v1, const negator<conjugate<P> >& v2) {
-        return numericallyEqual(-v1, -v2); // complex, conjugate
-    }
-    template <class P>
-    static bool numericallyEqual(const conjugate<P>& v1, const negator<std::complex<P> >& v2) {
-        return numericallyEqual(-v1, -v2); // conjugate, complex
+    static bool numericallyEqual(const conjugate<P>& v1, const negator<std::complex<P> >& v2, double tol=defTol<P>()) {
+        return numericallyEqual(-v1, -v2, tol); // conjugate, complex
     }
     template <int M, class E1, int S1, class E2, int S2>
-    static bool numericallyEqual(const Vec<M,E1,S1>& v1, const Vec<M,E2,S2>& v2) {
-        for (int i=0; i<M; ++i) if (!numericallyEqual(v1[i],v2[i])) return false;
+    static bool numericallyEqual(const Vec<M,E1,S1>& v1, const Vec<M,E2,S2>& v2, double tol=defTol2<E1,E2>()) {
+        for (int i=0; i<M; ++i) if (!numericallyEqual(v1[i],v2[i], tol)) return false;
         return true;
     }
     template <int N, class E1, int S1, class E2, int S2>
-    static bool numericallyEqual(const Row<N,E1,S1>& v1, const Row<N,E2,S2>& v2) {
-        for (int j=0; j<N; ++j) if (!numericallyEqual(v1[j],v2[j])) return false;
+    static bool numericallyEqual(const Row<N,E1,S1>& v1, const Row<N,E2,S2>& v2, double tol=defTol2<E1,E2>()) {
+        for (int j=0; j<N; ++j) if (!numericallyEqual(v1[j],v2[j], tol)) return false;
         return true;
     }
     template <int M, int N, class E1, int CS1, int RS1, class E2, int CS2, int RS2>
-    static bool numericallyEqual(const Mat<N,M,E1,CS1,RS1>& v1, const Mat<N,M,E2,CS2,RS2>& v2) {
-        for (int j=0; j<N; ++j) if (!numericallyEqual(v1(j),v2(j))) return false;
+    static bool numericallyEqual(const Mat<N,M,E1,CS1,RS1>& v1, const Mat<N,M,E2,CS2,RS2>& v2, double tol=defTol2<E1,E2>()) {
+        for (int j=0; j<N; ++j) if (!numericallyEqual(v1(j),v2(j), tol)) return false;
         return true;
     }
     template <int N, class E1, int S1, class E2, int S2>
-    static bool numericallyEqual(const SymMat<N,E1,S1>& v1, const SymMat<N,E2,S2>& v2) {
-        return numericallyEqual(v1.getAsVec(), v2.getAsVec());
+    static bool numericallyEqual(const SymMat<N,E1,S1>& v1, const SymMat<N,E2,S2>& v2, double tol=defTol2<E1,E2>()) {
+        return numericallyEqual(v1.getAsVec(), v2.getAsVec(), tol);
     }
-    template <class E>
-    static bool numericallyEqual(const Vector_<E>& v1, const Vector_<E>& v2) {
+    template <class E1, class E2>
+    static bool numericallyEqual(const Vector_<E1>& v1, const Vector_<E2>& v2, double tol=defTol2<E1,E2>()) {
         if (v1.size() != v2.size()) return false;
         for (int i=0; i < v1.size(); ++i)
-            if (!numericallyEqual(v1[i], v2[i])) return false;
+            if (!numericallyEqual(v1[i], v2[i], tol)) return false;
         return true;
     }
-    template <class E>
-    static bool numericallyEqual(const RowVector_<E>& v1, const RowVector_<E>& v2) {
+    template <class E1, class E2>
+    static bool numericallyEqual(const RowVector_<E1>& v1, const RowVector_<E2>& v2, double tol=defTol2<E1,E2>()) {
         if (v1.size() != v2.size()) return false;
         for (int i=0; i < v1.size(); ++i)
-            if (!numericallyEqual(v1[i], v2[i])) return false;
+            if (!numericallyEqual(v1[i], v2[i], tol)) return false;
         return true;
     }
-    template <class E>
-    static bool numericallyEqual(const Matrix_<E>& v1, const Matrix_<E>& v2) {
+    template <class E1, class E2>
+    static bool numericallyEqual(const Matrix_<E1>& v1, const Matrix_<E2>& v2, double tol=defTol2<E1,E2>()) {
         if (v1.nrow() != v2.nrow() || v1.ncol() != v2.ncol()) return false;
         for (int j=0; j < v1.ncol(); ++j)
-            if (!numericallyEqual(v1(j), v2(j))) return false;
+            if (!numericallyEqual(v1(j), v2(j), tol)) return false;
         return true;
     }
 
@@ -327,6 +353,13 @@ private:
 /// case of composite types, the test is performed elementwise.
 #define SimTK_TEST_NUMEQ(v1,v2)    \
     {SimTK_ASSERT_ALWAYS(SimTK::Test::numericallyEqual((v1),(v2)),   \
+     "Test values should have been numerically equivalent.");}
+
+/// Test that two numerical values are equal to within a specified numerical
+/// error tolerance, using a relative and absolute error tolerance. In the
+/// case of composite types, the test is performed elementwise.
+#define SimTK_TEST_NUMEQ_TOL(v1,v2,tol)    \
+    {SimTK_ASSERT_ALWAYS(SimTK::Test::numericallyEqual((v1),(v2),(tol)),   \
      "Test values should have been numerically equivalent.");}
 
 #endif // SimTK_SimTKCOMMON_TESTING_H_

@@ -174,6 +174,102 @@ operator*(const Row<M,E,S>& r, const Mat<M,N,ME,CS,RS>& m) {
     return result;
 }
 
+    // SYMMAT*VEC, ROW*SYMMAT (conforming)
+
+// vec = sym * vec (conforming)
+template <int N, class ME, int RS, class E, int S> inline
+typename SymMat<N,ME,RS>::template Result<Vec<N,E,S> >::Mul
+operator*(const SymMat<N,ME,RS>& m,const Vec<N,E,S>& v) {
+    typename SymMat<N,ME,RS>::template Result<Vec<N,E,S> >::Mul result;
+    for (int i=0; i<N; ++i) {
+        result[i] = m.getDiag()[i]*v[i];
+        for (int j=0; j<i; ++j)
+            result[i] += m.getEltLower(i,j)*v[j];
+        for (int j=i+1; j<N; ++j)
+            result[i] += m.getEltUpper(i,j)*v[j];
+    }
+    return result;
+}
+
+// Unroll loops for small cases.
+
+// 1 flop.
+template <class ME, int RS, class E, int S> inline
+typename SymMat<1,ME,RS>::template Result<Vec<1,E,S> >::Mul
+operator*(const SymMat<1,ME,RS>& m,const Vec<1,E,S>& v) {
+    typename SymMat<1,ME,RS>::template Result<Vec<1,E,S> >::Mul result;
+    result[0] = m.getDiag()[0]*v[0];
+    return result;
+}
+
+// 6 flops.
+template <class ME, int RS, class E, int S> inline
+typename SymMat<2,ME,RS>::template Result<Vec<2,E,S> >::Mul
+operator*(const SymMat<2,ME,RS>& m,const Vec<2,E,S>& v) {
+    typename SymMat<2,ME,RS>::template Result<Vec<2,E,S> >::Mul result;
+    result[0] = m.getDiag()[0]    *v[0] + m.getEltUpper(0,1)*v[1];
+    result[1] = m.getEltLower(1,0)*v[0] + m.getDiag()[1]    *v[1];
+    return result;
+}
+
+// 15 flops.
+template <class ME, int RS, class E, int S> inline
+typename SymMat<3,ME,RS>::template Result<Vec<3,E,S> >::Mul
+operator*(const SymMat<3,ME,RS>& m,const Vec<3,E,S>& v) {
+    typename SymMat<3,ME,RS>::template Result<Vec<3,E,S> >::Mul result;
+    result[0] = m.getDiag()[0]    *v[0] + m.getEltUpper(0,1)*v[1] + m.getEltUpper(0,2)*v[2];
+    result[1] = m.getEltLower(1,0)*v[0] + m.getDiag()[1]    *v[1] + m.getEltUpper(1,2)*v[2];
+    result[2] = m.getEltLower(2,0)*v[0] + m.getEltLower(2,1)*v[1] + m.getDiag()[2]    *v[2];
+    return result;
+}
+
+// row = row * sym (conforming)
+template <int M, class E, int S, class ME, int RS> inline
+typename Row<M,E,S>::template Result<SymMat<M,ME,RS> >::Mul
+operator*(const Row<M,E,S>& r, const SymMat<M,ME,RS>& m) {
+    typename Row<M,E,S>::template Result<SymMat<M,ME,RS> >::Mul result;
+    for (int j=0; j<M; ++j) {
+        result[j] = r[j]*m.getDiag()[j];
+        for (int i=0; i<j; ++i)
+            result[j] += r[i]*m.getEltUpper(i,j);
+        for (int i=j+1; i<M; ++i)
+            result[j] += r[i]*m.getEltLower(i,j);
+    }
+    return result;
+}
+
+// Unroll loops for small cases.
+
+// 1 flop.
+template <class E, int S, class ME, int RS> inline
+typename Row<1,E,S>::template Result<SymMat<1,ME,RS> >::Mul
+operator*(const Row<1,E,S>& r, const SymMat<1,ME,RS>& m) {
+    typename Row<1,E,S>::template Result<SymMat<1,ME,RS> >::Mul result;
+    result[0] = r[0]*m.getDiag()[0];
+    return result;
+}
+
+// 6 flops.
+template <class E, int S, class ME, int RS> inline
+typename Row<2,E,S>::template Result<SymMat<2,ME,RS> >::Mul
+operator*(const Row<2,E,S>& r, const SymMat<2,ME,RS>& m) {
+    typename Row<2,E,S>::template Result<SymMat<2,ME,RS> >::Mul result;
+    result[0] = r[0]*m.getDiag()[0]     + r[1]*m.getEltLower(1,0);
+    result[1] = r[0]*m.getEltUpper(0,1) + r[1]*m.getDiag()[1];
+    return result;
+}
+
+// 15 flops.
+template <class E, int S, class ME, int RS> inline
+typename Row<3,E,S>::template Result<SymMat<3,ME,RS> >::Mul
+operator*(const Row<3,E,S>& r, const SymMat<3,ME,RS>& m) {
+    typename Row<3,E,S>::template Result<SymMat<3,ME,RS> >::Mul result;
+    result[0] = r[0]*m.getDiag()[0]     + r[1]*m.getEltLower(1,0) + r[2]*m.getEltLower(2,0);
+    result[1] = r[0]*m.getEltUpper(0,1) + r[1]*m.getDiag()[1]     + r[2]*m.getEltLower(2,1);
+    result[2] = r[0]*m.getEltUpper(0,2) + r[1]*m.getEltUpper(1,2) + r[2]*m.getDiag()[2];
+    return result;
+}
+
     // NONCONFORMING MULTIPLY
 
     // Nonconforming: Vec on left: v*r v*m v*sym v*v
@@ -355,8 +451,9 @@ operator%(const Row<2,E1,S1>& a, const Row<2,E2,S2>& b) {return cross(a,b);}
 
     // CROSS MAT
 
-// Calculate matrix M(v) such that M(v)*w = v % w. We produce the
-// same M regardless of whether v is a column or row.
+/// Calculate matrix M(v) such that M(v)*w = v % w. We produce the
+/// same M regardless of whether v is a column or row.
+/// Requires 3 flops to form.
 template <class E, int S> inline
 Mat<3,3,E>
 crossMat(const Vec<3,E,S>& v) {
@@ -364,36 +461,98 @@ crossMat(const Vec<3,E,S>& v) {
                       Row<3,E>( v[2],  E(0), -v[0]),
                       Row<3,E>(-v[1],  v[0],  E(0)));
 }
-// Specialize above for negated types. Returned matrix loses negator.
+/// Specialize crossMat() for negated scalar types. Returned matrix loses negator.
+/// Requires 3 flops to form.
 template <class E, int S> inline
 Mat<3,3,E>
 crossMat(const Vec<3,negator<E>,S>& v) {
+    // Here the "-" operators are just recasts, but the casts
+    // to type E have to perform floating point negations.
     return Mat<3,3,E>(Row<3,E>( E(0),   -v[2],    E(v[1])),
                       Row<3,E>( E(v[2]), E(0),   -v[0]),
                       Row<3,E>(-v[1],    E(v[0]), E(0)));
 }
 
+/// Form cross product matrix from a Row vector; 3 flops.
 template <class E, int S> inline
 Mat<3,3,E> crossMat(const Row<3,E,S>& r) {return crossMat(r.positionalTranspose());}
+/// Form cross product matrix from a Row vector whose elements are negated scalars; 3 flops.
 template <class E, int S> inline
 Mat<3,3,E> crossMat(const Row<3,negator<E>,S>& r) {return crossMat(r.positionalTranspose());}
 
-// Calculate M(v) such that M(v)*w = v0*w1-v1*w0 = v % w (a scalar). Whether v is column
-// or row we create the same M, which must be a row.
+/// Calculate 2D cross product matrix M(v) such that M(v)*w = v0*w1-v1*w0 = v % w (a scalar). 
+/// Whether v is a Vec<2> or Row<2> we create the same M, which will be a 2-element Row.
+/// Requires 1 flop to form.
 template <class E, int S> inline
 Row<2,E> crossMat(const Vec<2,E,S>& v) {
     return Row<2,E>(-v[1], v[0]);
 }
-// Specialize above for negated types.
+/// Specialize 2D cross product matrix for negated scalar types; 1 flop.
 template <class E, int S> inline
 Row<2,E> crossMat(const Vec<2,negator<E>,S>& v) {
     return Row<2,E>(-v[1], E(v[0]));
 }
 
+/// Form 2D cross product matrix from a Row<2>; 1 flop.
 template <class E, int S> inline
 Row<2,E> crossMat(const Row<2,E,S>& r) {return crossMat(r.positionalTranspose());}
+/// Form 2D cross product matrix from a Row<2> with negated scalar elements; 1 flop.
 template <class E, int S> inline
 Row<2,E> crossMat(const Row<2,negator<E>,S>& r) {return crossMat(r.positionalTranspose());}
+
+    // CROSS MAT SQ
+
+/// Calculate matrix S(v) such that S(v)*w = -v % (v % w) = (v%w)%v. S is a symmetric,
+/// 3x3 matrix with nonnegative diagonals. If M(v) = crossMat(v), then 
+/// S(v) = square(M(v)) = ~M(v)*M(v) = -M(v)*M(v) since M is skew symmetric.
+/// Also, S(v) = dot(v,v)*I - outer(v,v) = ~v*v*I - v*~v, where I is the identity
+/// matrix. This is the form necessary for shifting inertia matrices using
+/// the parallel axis theorem, something we do a lot of in multibody dynamics.
+/// Consequently we want to calculate S very efficiently, which we can do because
+/// it has the following very simple form. Assume v=[x y z]. Then
+/// <pre>
+///          y^2+z^2      T         T
+///  S(v) =    -xy     x^2+z^2      T
+///            -xz       -yz     x^2+y^2
+/// </pre>
+/// where "T" indicates that the element is identical to the symmetric one.
+/// This requires 11 flops to form.
+/// We produce the same S(v) regardless of whether v is a column or row.
+/// Note that there is no 2D equivalent of this operator.
+template <class E, int S> inline
+SymMat<3,E>
+crossMatSq(const Vec<3,E,S>& v) {
+    const E xx = square(v[0]);
+    const E yy = square(v[1]);
+    const E zz = square(v[2]);
+    const E nx = -v[0];
+    const E ny = -v[1];
+    return SymMat<3,E>( yy+zz,
+                        nx*v[1], xx+zz,
+                        nx*v[2], ny*v[2], xx+yy );
+}
+// Specialize above for negated types. Returned matrix loses negator.
+// The total number of flops here is the same as above: 11 flops.
+template <class E, int S> inline
+SymMat<3,E>
+crossMatSq(const Vec<3,negator<E>,S>& v) {
+    const E xx = square(v[0]);
+    const E yy = square(v[1]);
+    const E zz = square(v[2]);
+    const E y = v[1]; // requires a negation to convert to E
+    const E z = v[2];
+    // The negations in the arguments below are not floating point
+    // operations because the element type is already negated.
+    return SymMat<3,E>( yy+zz,
+                        -v[0]*y,  xx+zz,
+                        -v[0]*z, -v[1]*z, xx+yy );
+}
+
+template <class E, int S> inline
+SymMat<3,E> crossMatSq(const Row<3,E,S>& r) {return crossMatSq(r.positionalTranspose());}
+template <class E, int S> inline
+SymMat<3,E> crossMatSq(const Row<3,negator<E>,S>& r) {return crossMatSq(r.positionalTranspose());}
+
 
     // DETERMINANT
 

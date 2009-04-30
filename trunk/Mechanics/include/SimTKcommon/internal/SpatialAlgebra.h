@@ -122,7 +122,7 @@ inline SpatialVec
 operator*(const PhiMatrix&  phi,
           const SpatialVec& v)
 {
-    return SpatialVec(v[0] + phi.l() % v[1],
+    return SpatialVec(v[0] + phi.l() % v[1], // 12 flops
                       v[1]);
 }
 
@@ -130,8 +130,8 @@ inline SpatialMat
 operator*(const PhiMatrix&  phi,
           const SpatialMat& m)
 {
-    const Mat33 x = crossMat(phi.l());
-    return SpatialMat( m(0,0) + x*m(1,0), m(0,1) + x*m(1,1),
+    const Mat33 x = crossMat(phi.l());  // 3 flops
+    return SpatialMat( m(0,0) + x*m(1,0), m(0,1) + x*m(1,1), // 108 flops
                            m(1,0)       ,     m(1,1));
 }
 
@@ -140,7 +140,7 @@ operator*(const PhiMatrixTranspose& phiT,
           const SpatialVec&         v)
 {
     return SpatialVec(v[0],
-                      v[1] + v[0] % phiT.l());
+                      v[1] + v[0] % phiT.l());  // 12 flops
 }
 
 
@@ -148,18 +148,18 @@ inline SpatialMat
 operator*(const SpatialMat::THerm&  m,
           const PhiMatrixTranspose& phiT)
 {
-    const Mat33 x = crossMat(phiT.l());
-    return SpatialMat( m(0,0) - m(0,1) * x, m(0,1),
-                       m(1,0) - m(1,1) * x, m(1,1) );
+    const Mat33 x = crossMat(phiT.l()); // 3 flops
+    return SpatialMat( m(0,0) - m(0,1) * x, m(0,1),     // 54 flops
+                       m(1,0) - m(1,1) * x, m(1,1) );   // 54 flops
 }
 
 inline SpatialMat
 operator*(const SpatialMat&         m,
           const PhiMatrixTranspose& phiT)
 {
-    const Mat33 x = crossMat(phiT.l());
-    return SpatialMat( m(0,0) - m(0,1) * x, m(0,1),
-                       m(1,0) - m(1,1) * x, m(1,1) );
+    const Mat33 x = crossMat(phiT.l()); // 3 flops
+    return SpatialMat( m(0,0) - m(0,1) * x, m(0,1),     // 54 flops
+                       m(1,0) - m(1,1) * x, m(1,1) );   // 54 flops
 }
 
 inline bool
