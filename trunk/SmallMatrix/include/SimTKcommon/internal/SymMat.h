@@ -330,7 +330,8 @@ public:
            const E& e10,const E& e11, const E& e12, const E& e13, const E& e14,
            const E& e15,const E& e16, const E& e17, const E& e18, const E& e19, const E& e20)
     {   assert(M==6); TDiag& d=updDiag(); TLower& l=updLower();
-        d[0]=e0;d[1]=e2;d[2]=e5;d[3]=e9;d[4]=e14;d[5]=e20; 
+        d[0]=CNT<E>::real(e0);d[1]=CNT<E>::real(e2);d[2]=CNT<E>::real(e5);
+        d[3]=CNT<E>::real(e9);d[4]=CNT<E>::real(e14);d[5]=CNT<E>::real(e20); 
         l[0] =e1; l[1] =e3; l[2] =e6;  l[3]=e10; l[4]=e15;
         l[5] =e4; l[6] =e7; l[7] =e11; l[8]=e16;
         l[9] =e8; l[10]=e12;l[11]=e17;
@@ -355,7 +356,7 @@ public:
         assert(p);
         for (int i=0; i<M; ++i) {
             const int rowStart = (i*(i+1))/2;
-            updDiag()[i] = p[rowStart + i];
+            updDiag()[i] = CNT<EE>::real(p[rowStart + i]);
             for (int j=0; j<i; ++j)
                 updEltLower(i,j) = p[rowStart + j];
         }
@@ -367,7 +368,7 @@ public:
         assert(p);
         for (int i=0; i<M; ++i) {
             const int rowStart = (i*(i+1))/2;
-            updDiag()[i] = p[rowStart + i];
+            updDiag()[i] = CNT<EE>::real(p[rowStart + i]);
             for (int j=0; j<i; ++j)
                 updEltLower(i,j) = p[rowStart + j];
         }
