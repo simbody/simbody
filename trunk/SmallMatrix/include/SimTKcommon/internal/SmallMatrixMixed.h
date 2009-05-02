@@ -369,6 +369,21 @@ operator*(const Mat<M,N,ME,CS,RS>& m,const SymMat<Dim,E,S>& sy) {
 // a good idea! Note that the definition of crossMat means crossMat(r)*v
 // will yield a column, while r%v is a Row.
 
+// We define v % m where v is a 3-vector and m is a 3xN matrix.
+// This returns a matrix c of the same dimensions as m where
+// column c(i) = v % m(i), that is, each column of c is the cross
+// product of v and the corresponding column of m. This definition means that
+//      v % m == crossMat(v)*m
+// which seems like a good idea. (But note that v%m takes 9*N flops while
+// crossMat(v)*m takes 15*N flops.) If we have a row vector r instead,
+// we define r % m == v % m so again r%m==crossMat(r)*m. We also
+// define the cross product operator with an Mx3 matrix on the left,
+// defined so that c[i] = m[i]%v, that is, the rows of c are the
+// cross products of the corresonding rows of m and vector v. Again,
+// we allow v to be a row without any change to the results or return type.
+// This definition means m % v = m * crossMat(v), but again it is faster.
+
+// v = v % v
 template <class E1, int S1, class E2, int S2> inline
 Vec<3,typename CNT<E1>::template Result<E2>::Mul>
 cross(const Vec<3,E1,S1>& a, const Vec<3,E2,S2>& b) {
@@ -379,6 +394,7 @@ template <class E1, int S1, class E2, int S2> inline
 Vec<3,typename CNT<E1>::template Result<E2>::Mul>
 operator%(const Vec<3,E1,S1>& a, const Vec<3,E2,S2>& b) {return cross(a,b);}
 
+// r = v % r
 template <class E1, int S1, class E2, int S2> inline
 Row<3,typename CNT<E1>::template Result<E2>::Mul>
 cross(const Vec<3,E1,S1>& a, const Row<3,E2,S2>& b) {
@@ -389,6 +405,7 @@ template <class E1, int S1, class E2, int S2> inline
 Row<3,typename CNT<E1>::template Result<E2>::Mul>
 operator%(const Vec<3,E1,S1>& a, const Row<3,E2,S2>& b) {return cross(a,b);}
 
+// r = r % v
 template <class E1, int S1, class E2, int S2> inline
 Row<3,typename CNT<E1>::template Result<E2>::Mul>
 cross(const Row<3,E1,S1>& a, const Vec<3,E2,S2>& b) {
@@ -399,6 +416,7 @@ template <class E1, int S1, class E2, int S2> inline
 Row<3,typename CNT<E1>::template Result<E2>::Mul>
 operator%(const Row<3,E1,S1>& a, const Vec<3,E2,S2>& b) {return cross(a,b);}
 
+// r = r % r 
 template <class E1, int S1, class E2, int S2> inline
 Row<3,typename CNT<E1>::template Result<E2>::Mul>
 cross(const Row<3,E1,S1>& a, const Row<3,E2,S2>& b) {
@@ -408,6 +426,55 @@ cross(const Row<3,E1,S1>& a, const Row<3,E2,S2>& b) {
 template <class E1, int S1, class E2, int S2> inline
 Row<3,typename CNT<E1>::template Result<E2>::Mul>
 operator%(const Row<3,E1,S1>& a, const Row<3,E2,S2>& b) {return cross(a,b);}
+
+// m = v % m
+template <class E1, int S1, int N, class E2, int CS, int RS> inline
+Mat<3,N,typename CNT<E1>::template Result<E2>::Mul> // packed
+cross(const Vec<3,E1,S1>& v, const Mat<3,N,E2,CS,RS>& m) {
+    Mat<3,N,typename CNT<E1>::template Result<E2>::Mul> result;
+    for (int j=0; j < N; ++j)
+        result(j) = v % m(j);
+    return result;
+}
+template <class E1, int S1, int N, class E2, int CS, int RS> inline
+Mat<3,N,typename CNT<E1>::template Result<E2>::Mul>
+operator%(const Vec<3,E1,S1>& v, const Mat<3,N,E2,CS,RS>& m) {return cross(v,m);}
+
+// m = r % m
+template <class E1, int S1, int N, class E2, int CS, int RS> inline
+Mat<3,N,typename CNT<E1>::template Result<E2>::Mul> // packed
+cross(const Row<3,E1,S1>& r, const Mat<3,N,E2,CS,RS>& m) {
+    return cross(r.positionalTranspose(), m);
+}
+template <class E1, int S1, int N, class E2, int CS, int RS> inline
+Mat<3,N,typename CNT<E1>::template Result<E2>::Mul>
+operator%(const Row<3,E1,S1>& r, const Mat<3,N,E2,CS,RS>& m) {return cross(r,m);}
+
+
+// m = m % v
+template <int M, class EM, int CS, int RS, class EV, int S> inline
+Mat<M,3,typename CNT<EM>::template Result<EV>::Mul> // packed
+cross(const Mat<M,3,EM,CS,RS>& m, const Vec<3,EV,S>& v) {
+    Mat<M,3,typename CNT<EM>::template Result<EV>::Mul> result;
+    for (int i=0; i < M; ++i)
+        result[i] = m[i] % v;
+    return result;
+}
+template <int M, class EM, int CS, int RS, class EV, int S> inline
+Mat<M,3,typename CNT<EM>::template Result<EV>::Mul> // packed
+operator%(const Mat<M,3,EM,CS,RS>& m, const Vec<3,EV,S>& v) {return cross(m,v);}
+
+// m = m % r
+template <int M, class EM, int CS, int RS, class ER, int S> inline
+Mat<M,3,typename CNT<EM>::template Result<ER>::Mul> // packed
+cross(const Mat<M,3,EM,CS,RS>& m, const Row<3,ER,S>& r) {
+    return cross(m,r.positionalTranspose());
+}
+template <int M, class EM, int CS, int RS, class ER, int S> inline
+Mat<M,3,typename CNT<EM>::template Result<ER>::Mul> // packed
+operator%(const Mat<M,3,EM,CS,RS>& m, const Row<3,ER,S>& r) {return cross(m,r);}
+
+
 
 // 2d cross product just returns a scalar. This is the z-value you
 // would get if the arguments were treated as 3-vectors with 0

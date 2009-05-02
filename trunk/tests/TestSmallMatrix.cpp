@@ -70,8 +70,20 @@ void testDotProducts() {
 }
 
 void testCrossProducts() {
-    Vec3 w = Test::randVec3();
-    Vec3 v = Test::randVec3();
+    const Vec3 w = Test::randVec3();
+    const Vec3 v = Test::randVec3();
+    const Vec3 wp = UnitVec3(w).perp() * Test::randReal();
+    const Vec3 vp = UnitVec3(v).perp() * Test::randReal();
+    const Mat33 vx = crossMat(v);
+    const Mat33 wx = crossMat(w);
+    const Mat33 vpx = crossMat(vp);
+    const Mat33 wpx = crossMat(wp);
+
+    const Mat33 m33 = Test::randMat33();
+    const Mat34 m = Test::randMat<3,4>();
+    const Mat43 mt = ~m;
+    const Mat<3,1> m1 = Test::randMat<3,1>();
+
 
     SimTK_TEST_NUMEQ( w%v, Vec3(w[1]*v[2]-w[2]*v[1],
                                 w[2]*v[0]-w[0]*v[2],
@@ -80,10 +92,33 @@ void testCrossProducts() {
     SimTK_TEST_NUMEQ(  w %  v,  cross(  w,  v));
     SimTK_TEST_NUMEQ( ~w % ~v, -cross( ~v, ~w));
 
-    SimTK_TEST_NUMEQ( crossMat(w)*v, w % v );
-    SimTK_TEST_NUMEQ( crossMat(~w), crossMat(w) );
-    SimTK_TEST_NUMEQ( crossMat(-w), ~crossMat(w) );
+    SimTK_TEST_NUMEQ( wx*v, w % v );
+    SimTK_TEST_NUMEQ( crossMat(~w), wx );
+    SimTK_TEST_NUMEQ( crossMat(-w), ~wx );
     SimTK_TEST_NUMEQ( crossMatSq(w)*v, -w % (w%v) );
+
+    // cross(vector, matrix) (columnwise)
+    Mat34 c = v % m;
+    SimTK_TEST_NUMEQ(c(0), v%m(0));
+    SimTK_TEST_NUMEQ(c(1), v%m(1));
+    SimTK_TEST_NUMEQ(c(2), v%m(2));
+    SimTK_TEST_NUMEQ(c(3), v%m(3));
+    SimTK_TEST_NUMEQ(c, vx*m);
+    SimTK_TEST_NUMEQ(c, (~v)%m); // row same as col here
+
+    Mat<3,1> c1 = v % m1;
+    SimTK_TEST_NUMEQ(c1(0), v%m1(0));
+
+    // cross(matrix, vector) (rowwise)
+    Mat43 cr = mt % w;
+    SimTK_TEST_NUMEQ(cr[0], mt[0]%w);
+    SimTK_TEST_NUMEQ(cr[1], mt[1]%w);
+    SimTK_TEST_NUMEQ(cr[2], mt[2]%w);
+    SimTK_TEST_NUMEQ(cr[3], mt[3]%w);
+    SimTK_TEST_NUMEQ(cr, mt*wx);
+    SimTK_TEST_NUMEQ(cr, mt % (~w)); // row same as col here
+
+    SimTK_TEST_NUMEQ( vx * m33 * vx, v % m33 % v );
 }
 
 // Individually test 2x2, 3x3, and 4x4 because the

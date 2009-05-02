@@ -119,7 +119,7 @@ public:
     }
     ~Test() {
         std::clog << "Done. " << testName << " time: " 
-                  << (std::clock()-startTime)/CLOCKS_PER_SEC << "s.\n";
+                  << 1000*(std::clock()-startTime)/CLOCKS_PER_SEC << "ms.\n";
     }
 
     template <class T>
@@ -218,7 +218,7 @@ public:
         return true;
     }
     template <int M, int N, class E1, int CS1, int RS1, class E2, int CS2, int RS2>
-    static bool numericallyEqual(const Mat<N,M,E1,CS1,RS1>& v1, const Mat<N,M,E2,CS2,RS2>& v2, double tol=(defTol2<E1,E2>())) {
+    static bool numericallyEqual(const Mat<M,N,E1,CS1,RS1>& v1, const Mat<M,N,E2,CS2,RS2>& v2, double tol=(defTol2<E1,E2>())) {
         for (int j=0; j<N; ++j) if (!numericallyEqual(v1(j),v2(j), tol)) return false;
         return true;
     }
@@ -297,7 +297,7 @@ public:
     }
     ~Subtest() {
         std::clog << "done. " << paddedName << " time: " 
-                  << (std::clock()-startTime)/CLOCKS_PER_SEC << "s.\n";
+                  << 1000*(std::clock()-startTime)/CLOCKS_PER_SEC << "ms.\n";
     }
 private:
     std::clock_t startTime;
