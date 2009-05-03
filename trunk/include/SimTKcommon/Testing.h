@@ -42,7 +42,29 @@
 
 /** @file
  * This file defines a SimTK::Test class and some related macros which
- * provide functionality useful in regression tests. This header file is
+ * provide functionality useful in regression tests.
+ */
+
+namespace SimTK {
+
+/**@defgroup RegressionTesting    SimTK Regression Testing
+ *
+ * SimTK defines some utilities to facilitate the creation of regression
+ * tests for SimTK facilities. These utilities consist of a SimTK::Test
+ * class and related support macros.
+ *
+ * Features include:
+ *      - uniform, readable output including execution times
+ *      - identical comparison tests for all numerical types, scalar and composite
+ *      - careful treatment of numerical tolerances using relative and absolute
+ *          comparisons, with provision for size-dependent, reduced accuracy
+ *          expectations for matrix operations
+ *      - default tolerance varies with precision (caller can override)
+ *      - convenient generation of random test data
+ *      - convenient testing of required argument checking (i.e., test
+ *          fails unless an exception is thrown)
+ *
+ * The Testing.h header file is
  * <em>not</em> automatically included with SimTKcommon.h; you have to
  * ask for it explicilty. Here's how you use this facility:
  * <pre>
@@ -56,6 +78,11 @@
  *      SimTK_END_TEST();
  * }
  * </pre>
+ * The arguments to SimTK_SUBTEST are function names and will be
+ * called with "()" appended. If your subtest functions have arguments,
+ * use SimTK_SUBTEST1(name,arg) or SimTK_SUBTEST2(name,arg1,arg2) which
+ * will call name(arg) or name(arg1,arg2) as appropriate.
+ *
  * This will result in nice output including execution times for
  * the overall test and the individual subtests, and arrange for 
  * any exceptions raised in the tests to be caught, properly reported,
@@ -64,13 +91,13 @@
  * output produced:
  * <pre>
  * Starting test TestScalar ...
- *   testIsNaN            ... done. testIsNaN            time: 0s.
- *   testIsInf            ... done. testIsInf            time: 0s.
- *   testIsFinite         ... done. testIsFinite         time: 0s.
- *   testSignBit          ... done. testSignBit          time: 0s.
- *   testSign             ... done. testSign             time: 0s.
- *   testSquareAndCube    ... done. testSquareAndCube    time: 0s.
- * Done. TestScalar time: 0s.
+ *   testIsNaN            ... done. testIsNaN            time: 0ms.
+ *   testIsInf            ... done. testIsInf            time: 0ms.
+ *   testIsFinite         ... done. testIsFinite         time: 0ms.
+ *   testSignBit          ... done. testSignBit          time: 0ms.
+ *   testSign             ... done. testSign             time: 0ms.
+ *   testSquareAndCube    ... done. testSquareAndCube    time: 0ms.
+ * Done. TestScalar time: 15ms.
  * </pre>
  * (Admittedly the timings aren't much use in that example!)
  *
@@ -78,16 +105,39 @@
  * are available. By using these macros, the resulting message will 
  * include the actual line number at which the test failure occurred.
  * <pre>
- *      SimTK_TEST(cond)       -- this is like assert(cond)
- *      SimTK_TEST_EQ(a,b)     -- like assert(a==b)
- *      SimTK_TEST_NUMEQ(a,b)  -- equal to within a default tolerance
- *      SimTK_TEST_NUMEQ_TOL(a,b,tol) -- same but with specified tolerance
+ *      SimTK_TEST(cond)             -- this is like assert(cond)
+ *      SimTK_TEST_FAILED("message") -- like assert(!"message")
+ *
+ *      SimTK_TEST_EQ(a,b)           -- equal to within a default tolerance
+ *      SimTK_TEST_NOTEQ(a,b)        -- not equal to within a default tolerance
+ *
+ *      SimTK_TEST_EQ_SIZE(a,b,n)    -- equal to within n * default tolerance
+ *      SimTK_TEST_NOTEQ_SIZE(a,b,n) -- not equal to within n * default tolerance
+ *
+ *      SimTK_TEST_EQ_TOL(a,b,tol)   -- same as above with specified tolerance
+ *      SimTK_TEST_NOTEQ_TOL(a,b,tol)
+ *
+ *      SimTK_TEST_MUST_THROW(statement)    -- we expect the statement to throw some exception
+ *      SimTK_TEST_MUST_THROW_EXC(statement, exception) -- we expect a particular exception type
  * </pre>
- * The NUMEQ macro tests scalar and composite numerical values for
+ * The SimTK_TEST_EQ macros test scalar and composite numerical values for
  * equality to within a numerical tolerance, using both relative
  * and absolute tolerances. The default is the value of SignificantReal
- * for the underlying numerical type. The NUMEQ_TOL form allows you
- * to override that default tolerance.
+ * for the underlying numerical type. For composite types the equality test is done
+ * elementwise; that is, we apply it strictly to each pair of elements not
+ * to an overall norm.
+ *
+ * The SimTK_TEST_EQ_SIZE macros allows you to specify a multiple of default
+ * tolerance to be used. This is necessary for most Matrix operations since 
+ * attainable accuracy falls off with the size of the matrix. Typically, if 
+ * the smallest dimension of the Matrix is n, then the tolerance you should allow
+ * is n*scalarTol where scalarTol is the default tolerance for a scalar
+ * operation. Note that you still need to specify size when comparing 
+ * Vector or scalar values if those values were produced using a matrix
+ * computation.
+ *
+ * The SimTK_TEST_EQ_TOL macros take a user-specified tolerance value for 
+ * the elementwise tests, overriding the default.
  *
  * The SimTK::Test class has a number of static methods that are useful
  * in tests. Currently these are all for generating numerical objects
@@ -99,11 +149,13 @@
  *      randVector(m)   randMatrix(m,n)
  *      randVec3()      randMat33()
  *      randSpatialVec() randSpatialMat()
+ *      randRotation()  randTransform()
  * </pre>
  * These are invoked Test::randReal() etc.
+ *
+ * @{
  */
 
-namespace SimTK {
 
 /// This is the main class to support testing. Objects of this type are
 /// created by the SimTK_START_TEST macro; don't allocate them directly.
@@ -134,118 +186,171 @@ public:
     // if both are very small without demanding that they must also be relatively
     // close. That is, we use a relative tolerance for big numbers and an absolute
     // tolerance for small ones.
-    static bool numericallyEqual(float v1, float v2, double tol=defTol<float>()) {
-        const float scale = std::max(std::max(std::abs(v1), std::abs(v2)), 0.1f);
+    static bool numericallyEqual(float v1, float v2, int n, double tol=defTol<float>()) {
+        const float scale = n*std::max(std::max(std::abs(v1), std::abs(v2)), 0.1f);
         return std::abs(v1-v2) < scale*(float)tol;
     }
-    static bool numericallyEqual(double v1, double v2, double tol=defTol<double>()) {
-        const double scale = std::max(std::max(std::abs(v1), std::abs(v2)), 0.1);
+    static bool numericallyEqual(double v1, double v2, int n, double tol=defTol<double>()) {
+        const double scale = n*std::max(std::max(std::abs(v1), std::abs(v2)), 0.1);
         return std::abs(v1-v2) < scale*(double)tol;
     }
-    static bool numericallyEqual(long double v1, long double v2, double tol=defTol<long double>()) {
-        const long double scale = std::max(std::max(std::abs(v1), std::abs(v2)), 0.1l);
+    static bool numericallyEqual(long double v1, long double v2, int n, double tol=defTol<long double>()) {
+        const long double scale = n*std::max(std::max(std::abs(v1), std::abs(v2)), 0.1l);
         return std::abs(v1-v2) < scale*(long double)tol;
     }
-    static bool numericallyEqual(float v1, double v2, double tol=defTol<float>())
-    {   return numericallyEqual((double)v1, v2, tol); }
-    static bool numericallyEqual(double v1, float v2, double tol=defTol<float>())
-    {   return numericallyEqual(v1, (double)v2, tol); }
-    static bool numericallyEqual(float v1, long double v2, double tol=defTol<float>())
-    {   return numericallyEqual((long double)v1, v2, tol); }
-    static bool numericallyEqual(long double v1, float v2, double tol=defTol<float>())
-    {   return numericallyEqual(v1, (long double)v2, tol); }
-    static bool numericallyEqual(double v1, long double v2, double tol=defTol<double>())
-    {   return numericallyEqual((long double)v1, v2, tol); }
-    static bool numericallyEqual(long double v1, double v2, double tol=defTol<double>())
-    {   return numericallyEqual(v1, (long double)v2, tol); }
+
+    // For integers we ignore tolerance.
+    static bool numericallyEqual(int i1, int i2, int n, double tol=0) {return i1==i2;}
+    static bool numericallyEqual(unsigned u1, unsigned u2, int n, double tol=0) {return u1==u2;}
+
+    // Mixed floating types use default tolerance for the narrower type.
+    static bool numericallyEqual(float v1, double v2, int n, double tol=defTol<float>())
+    {   return numericallyEqual((double)v1, v2, n, tol); }
+    static bool numericallyEqual(double v1, float v2, int n, double tol=defTol<float>())
+    {   return numericallyEqual(v1, (double)v2, n, tol); }
+    static bool numericallyEqual(float v1, long double v2, int n, double tol=defTol<float>())
+    {   return numericallyEqual((long double)v1, v2, n, tol); }
+    static bool numericallyEqual(long double v1, float v2, int n, double tol=defTol<float>())
+    {   return numericallyEqual(v1, (long double)v2, n, tol); }
+    static bool numericallyEqual(double v1, long double v2, int n, double tol=defTol<double>())
+    {   return numericallyEqual((long double)v1, v2, n, tol); }
+    static bool numericallyEqual(long double v1, double v2, int n, double tol=defTol<double>())
+    {   return numericallyEqual(v1, (long double)v2, n, tol); }
+
+    // Mixed int/floating just upgrades int to floating type.
+    static bool numericallyEqual(int i1, float f2, int n, double tol=defTol<float>())
+    {   return numericallyEqual((float)i1,f2,n,tol); }
+    static bool numericallyEqual(float f1, int i2, int n, double tol=defTol<float>())
+    {   return numericallyEqual(f1,(float)i2,n,tol); }
+    static bool numericallyEqual(unsigned i1, float f2, int n, double tol=defTol<float>())
+    {   return numericallyEqual((float)i1,f2,n,tol); }
+    static bool numericallyEqual(float f1, unsigned i2, int n, double tol=defTol<float>())
+    {   return numericallyEqual(f1,(float)i2,n,tol); }
+    static bool numericallyEqual(int i1, double f2, int n, double tol=defTol<double>())
+    {   return numericallyEqual((double)i1,f2,n,tol); }
+    static bool numericallyEqual(double f1, int i2, int n, double tol=defTol<double>())
+    {   return numericallyEqual(f1,(double)i2,n,tol); }
+    static bool numericallyEqual(unsigned i1, double f2, int n, double tol=defTol<double>())
+    {   return numericallyEqual((double)i1,f2,n,tol); }
+    static bool numericallyEqual(double f1, unsigned i2, int n, double tol=defTol<double>())
+    {   return numericallyEqual(f1,(double)i2,n,tol); }
+    static bool numericallyEqual(int i1, long double f2, int n, double tol=defTol<long double>())
+    {   return numericallyEqual((long double)i1,f2,n,tol); }
+    static bool numericallyEqual(long double f1, int i2, int n, double tol=defTol<long double>())
+    {   return numericallyEqual(f1,(long double)i2,n,tol); }
+    static bool numericallyEqual(unsigned i1, long double f2, int n, double tol=defTol<long double>())
+    {   return numericallyEqual((long double)i1,f2,n,tol); }
+    static bool numericallyEqual(long double f1, unsigned i2, int n, double tol=defTol<long double>())
+    {   return numericallyEqual(f1,(long double)i2,n,tol); }
 
     template <class P>
-    static bool numericallyEqual(const std::complex<P>& v1, const std::complex<P>& v2, double tol=defTol<P>()) {
-        return numericallyEqual(v1.real(), v2.real(), tol)
-            && numericallyEqual(v1.imag(), v2.imag(), tol);
+    static bool numericallyEqual(const std::complex<P>& v1, const std::complex<P>& v2, int n, double tol=defTol<P>()) {
+        return numericallyEqual(v1.real(), v2.real(), n, tol)
+            && numericallyEqual(v1.imag(), v2.imag(), n, tol);
     }
     template <class P>
-    static bool numericallyEqual(const conjugate<P>& v1, const conjugate<P>& v2, double tol=defTol<P>()) {
-        return numericallyEqual(v1.real(), v2.real(), tol)
-            && numericallyEqual(v1.imag(), v2.imag(), tol);
+    static bool numericallyEqual(const conjugate<P>& v1, const conjugate<P>& v2, int n, double tol=defTol<P>()) {
+        return numericallyEqual(v1.real(), v2.real(), n, tol)
+            && numericallyEqual(v1.imag(), v2.imag(), n, tol);
     }
     template <class P>
-    static bool numericallyEqual(const std::complex<P>& v1, const conjugate<P>& v2, double tol=defTol<P>()) {
-        return numericallyEqual(v1.real(), v2.real(), tol)
-            && numericallyEqual(v1.imag(), v2.imag(), tol);
+    static bool numericallyEqual(const std::complex<P>& v1, const conjugate<P>& v2, int n, double tol=defTol<P>()) {
+        return numericallyEqual(v1.real(), v2.real(), n, tol)
+            && numericallyEqual(v1.imag(), v2.imag(), n, tol);
     }
     template <class P>
-    static bool numericallyEqual(const conjugate<P>& v1, const std::complex<P>& v2, double tol=defTol<P>()) {
-        return numericallyEqual(v1.real(), v2.real(), tol)
-            && numericallyEqual(v1.imag(), v2.imag(), tol);
+    static bool numericallyEqual(const conjugate<P>& v1, const std::complex<P>& v2, int n, double tol=defTol<P>()) {
+        return numericallyEqual(v1.real(), v2.real(), n, tol)
+            && numericallyEqual(v1.imag(), v2.imag(), n, tol);
     }
     template <class P>
-    static bool numericallyEqual(const negator<P>& v1, const negator<P>& v2, double tol=defTol<P>()) {
-        return numericallyEqual(-v1, -v2, tol);  // P, P
+    static bool numericallyEqual(const negator<P>& v1, const negator<P>& v2, int n, double tol=defTol<P>()) {
+        return numericallyEqual(-v1, -v2, n, tol);  // P, P
     }
     template <class P>
-    static bool numericallyEqual(const P& v1, const negator<P>& v2, double tol=defTol<P>()) {
-        return numericallyEqual(-v1, -v2, tol);  // P, P
+    static bool numericallyEqual(const P& v1, const negator<P>& v2, int n, double tol=defTol<P>()) {
+        return numericallyEqual(-v1, -v2, n, tol);  // P, P
     }
     template <class P>
-    static bool numericallyEqual(const negator<P>& v1, const P& v2, double tol=defTol<P>()) {
-        return numericallyEqual(-v1, -v2, tol);  // P, P
+    static bool numericallyEqual(const negator<P>& v1, const P& v2, int n, double tol=defTol<P>()) {
+        return numericallyEqual(-v1, -v2, n, tol);  // P, P
     }
     template <class P>
-    static bool numericallyEqual(const negator<std::complex<P> >& v1, const conjugate<P>& v2, double tol=defTol<P>()) {
-        return numericallyEqual(-v1, -v2, tol);  // complex, conjugate
+    static bool numericallyEqual(const negator<std::complex<P> >& v1, const conjugate<P>& v2, int n, double tol=defTol<P>()) {
+        return numericallyEqual(-v1, -v2, n, tol);  // complex, conjugate
     }
     template <class P>
-    static bool numericallyEqual(const negator<conjugate<P> >& v1, const std::complex<P>& v2, double tol=defTol<P>()) {
-        return numericallyEqual(-v1, -v2, tol);  // conjugate, complex
+    static bool numericallyEqual(const negator<conjugate<P> >& v1, const std::complex<P>& v2, int n, double tol=defTol<P>()) {
+        return numericallyEqual(-v1, -v2, n, tol);  // conjugate, complex
     }
     template <class P>
-    static bool numericallyEqual(const std::complex<P>& v1, const negator<conjugate<P> >& v2, double tol=defTol<P>()) {
-        return numericallyEqual(-v1, -v2, tol); // complex, conjugate
+    static bool numericallyEqual(const std::complex<P>& v1, const negator<conjugate<P> >& v2, int n, double tol=defTol<P>()) {
+        return numericallyEqual(-v1, -v2, n, tol); // complex, conjugate
     }
     template <class P>
-    static bool numericallyEqual(const conjugate<P>& v1, const negator<std::complex<P> >& v2, double tol=defTol<P>()) {
-        return numericallyEqual(-v1, -v2, tol); // conjugate, complex
+    static bool numericallyEqual(const conjugate<P>& v1, const negator<std::complex<P> >& v2, int n, double tol=defTol<P>()) {
+        return numericallyEqual(-v1, -v2, n, tol); // conjugate, complex
     }
     template <int M, class E1, int S1, class E2, int S2>
-    static bool numericallyEqual(const Vec<M,E1,S1>& v1, const Vec<M,E2,S2>& v2, double tol=(defTol2<E1,E2>())) {
-        for (int i=0; i<M; ++i) if (!numericallyEqual(v1[i],v2[i], tol)) return false;
+    static bool numericallyEqual(const Vec<M,E1,S1>& v1, const Vec<M,E2,S2>& v2, int n, double tol=(defTol2<E1,E2>())) {
+        for (int i=0; i<M; ++i) if (!numericallyEqual(v1[i],v2[i], n, tol)) return false;
         return true;
     }
     template <int N, class E1, int S1, class E2, int S2>
-    static bool numericallyEqual(const Row<N,E1,S1>& v1, const Row<N,E2,S2>& v2, double tol=(defTol2<E1,E2>())) {
-        for (int j=0; j<N; ++j) if (!numericallyEqual(v1[j],v2[j], tol)) return false;
+    static bool numericallyEqual(const Row<N,E1,S1>& v1, const Row<N,E2,S2>& v2, int n, double tol=(defTol2<E1,E2>())) {
+        for (int j=0; j<N; ++j) if (!numericallyEqual(v1[j],v2[j], n, tol)) return false;
         return true;
     }
     template <int M, int N, class E1, int CS1, int RS1, class E2, int CS2, int RS2>
-    static bool numericallyEqual(const Mat<M,N,E1,CS1,RS1>& v1, const Mat<M,N,E2,CS2,RS2>& v2, double tol=(defTol2<E1,E2>())) {
-        for (int j=0; j<N; ++j) if (!numericallyEqual(v1(j),v2(j), tol)) return false;
+    static bool numericallyEqual(const Mat<M,N,E1,CS1,RS1>& v1, const Mat<M,N,E2,CS2,RS2>& v2, int n, double tol=(defTol2<E1,E2>())) {
+        for (int j=0; j<N; ++j) if (!numericallyEqual(v1(j),v2(j), n, tol)) return false;
         return true;
     }
     template <int N, class E1, int S1, class E2, int S2>
-    static bool numericallyEqual(const SymMat<N,E1,S1>& v1, const SymMat<N,E2,S2>& v2, double tol=(defTol2<E1,E2>())) {
-        return numericallyEqual(v1.getAsVec(), v2.getAsVec(), tol);
+    static bool numericallyEqual(const SymMat<N,E1,S1>& v1, const SymMat<N,E2,S2>& v2, int n, double tol=(defTol2<E1,E2>())) {
+        return numericallyEqual(v1.getAsVec(), v2.getAsVec(), n, tol);
     }
     template <class E1, class E2>
-    static bool numericallyEqual(const Vector_<E1>& v1, const Vector_<E2>& v2, double tol=(defTol2<E1,E2>())) {
+    static bool numericallyEqual(const VectorView_<E1>& v1, const VectorView_<E2>& v2, int n, double tol=(defTol2<E1,E2>())) {
         if (v1.size() != v2.size()) return false;
         for (int i=0; i < v1.size(); ++i)
-            if (!numericallyEqual(v1[i], v2[i], tol)) return false;
+            if (!numericallyEqual(v1[i], v2[i], n, tol)) return false;
         return true;
     }
     template <class E1, class E2>
-    static bool numericallyEqual(const RowVector_<E1>& v1, const RowVector_<E2>& v2, double tol=(defTol2<E1,E2>())) {
+    static bool numericallyEqual(const Vector_<E1>& v1, const Vector_<E2>& v2, int n, double tol=(defTol2<E1,E2>()))
+    {   return numericallyEqual((const VectorView_<E1>&)v1, (const VectorView_<E2>&)v2, n, tol); }
+
+    template <class E1, class E2>
+    static bool numericallyEqual(const RowVectorView_<E1>& v1, const RowVectorView_<E2>& v2, int n, double tol=(defTol2<E1,E2>())) {
         if (v1.size() != v2.size()) return false;
         for (int i=0; i < v1.size(); ++i)
-            if (!numericallyEqual(v1[i], v2[i], tol)) return false;
+            if (!numericallyEqual(v1[i], v2[i], n, tol)) return false;
         return true;
     }
     template <class E1, class E2>
-    static bool numericallyEqual(const Matrix_<E1>& v1, const Matrix_<E2>& v2, double tol=(defTol2<E1,E2>())) {
+    static bool numericallyEqual(const RowVector_<E1>& v1, const RowVector_<E2>& v2, int n, double tol=(defTol2<E1,E2>()))
+    {   return numericallyEqual((const RowVectorView_<E1>&)v1, (const RowVectorView_<E2>&)v2, n, tol); }
+
+    template <class E1, class E2>
+    static bool numericallyEqual(const MatrixView_<E1>& v1, const MatrixView_<E2>& v2, int n, double tol=(defTol2<E1,E2>())) {
         if (v1.nrow() != v2.nrow() || v1.ncol() != v2.ncol()) return false;
         for (int j=0; j < v1.ncol(); ++j)
-            if (!numericallyEqual(v1(j), v2(j), tol)) return false;
+            if (!numericallyEqual(v1(j), v2(j), n, tol)) return false;
         return true;
+    }
+    template <class E1, class E2>
+    static bool numericallyEqual(const Matrix_<E1>& m1, const Matrix_<E2>& m2, int n, double tol=(defTol2<E1,E2>()))
+    {   return numericallyEqual((const MatrixView_<E1>&)m1, (const MatrixView_<E2>&)m2, n, tol); }
+
+
+    static bool numericallyEqual(const Rotation& R1, const Rotation& R2, int n, double tol=defTol<Real>()) {
+        return R1.isSameRotationToWithinAngle(R2, (Real)(n*tol));
+    }
+
+    static bool numericallyEqual(const Transform& T1, const Transform& T2, int n, double tol=defTol<Real>()) {
+        return numericallyEqual(T1.R(), T2.R(), n, tol)
+            && numericallyEqual(T1.p(), T2.p(), n, tol);
     }
 
     // Random numbers
@@ -278,6 +383,13 @@ public:
     static SpatialMat randSpatialMat() {
         return SpatialMat(randMat33(), randMat33(),
                           randMat33(), randMat33());
+    }
+    static Rotation randRotation() {
+        // Generate random angle and random axis to rotate around.
+        return Rotation((Pi/2)*randReal(), randVec3());
+    }
+    static Transform randTransform() {
+        return Transform(randRotation(), randVec3());
     }
 private:
     std::clock_t startTime;
@@ -340,26 +452,80 @@ private:
 /// Test that some condition holds and complain if it doesn't.
 #define SimTK_TEST(cond) {SimTK_ASSERT_ALWAYS((cond), "Test condition failed.");}
 
-/// Test that two values are exactly equal, using whatever operator==() is defined
-/// for their comparison. If these are numerical values this is an extremely 
-/// stringent test; consider using SimTK_TEST_NUMEQ() instead to compare them
-/// to a tolerance.
-#define SimTK_TEST_EQ(v1,v2)    \
-    {SimTK_ASSERT_ALWAYS((v1)==(v2)),   \
-     "Test values should have been exactly equal.");}
+/// Call this if you have determined that a test case has failed and just need
+/// to report it and die. Pass the message as a string in quotes.
+#define SimTK_TEST_FAILED(msg) {SimTK_ASSERT_ALWAYS(!"Test case failed.", msg);}
+
+/// Call this if you have determined that a test case has failed and just need
+/// to report it and die. The message is a printf format string in quotes; here
+/// with one argument expected.
+#define SimTK_TEST_FAILED1(fmt,a1) {SimTK_ASSERT1_ALWAYS(!"Test case failed.",fmt,a1);}
+
+/// Call this if you have determined that a test case has failed and just need
+/// to report it and die. The message is a printf format string in quotes; here
+/// with two arguments expected.
+#define SimTK_TEST_FAILED2(fmt,a1,a2) {SimTK_ASSERT2_ALWAYS(!"Test case failed.",fmt,a1,a2);}
 
 /// Test that two numerical values are equal to within a reasonable numerical
 /// error tolerance, using a relative and absolute error tolerance. In the
 /// case of composite types, the test is performed elementwise.
-#define SimTK_TEST_NUMEQ(v1,v2)    \
-    {SimTK_ASSERT_ALWAYS(SimTK::Test::numericallyEqual((v1),(v2)),   \
-     "Test values should have been numerically equivalent.");}
+#define SimTK_TEST_EQ(v1,v2)    \
+    {SimTK_ASSERT_ALWAYS(SimTK::Test::numericallyEqual((v1),(v2),1),   \
+     "Test values should have been numerically equivalent at default tolerance.");}
+
+/// Test that two numerical values are equal to within a specified multiple of the
+/// default error tolerance.
+#define SimTK_TEST_EQ_SIZE(v1,v2,n)    \
+    {SimTK_ASSERT1_ALWAYS(SimTK::Test::numericallyEqual((v1),(v2),(n)),   \
+     "Test values should have been numerically equivalent at size=%d times default tolerance.",(n));}
 
 /// Test that two numerical values are equal to within a specified numerical
 /// error tolerance, using a relative and absolute error tolerance. In the
 /// case of composite types, the test is performed elementwise.
-#define SimTK_TEST_NUMEQ_TOL(v1,v2,tol)    \
-    {SimTK_ASSERT_ALWAYS(SimTK::Test::numericallyEqual((v1),(v2),(tol)),   \
-     "Test values should have been numerically equivalent.");}
+#define SimTK_TEST_EQ_TOL(v1,v2,tol)    \
+    {SimTK_ASSERT1_ALWAYS(SimTK::Test::numericallyEqual((v1),(v2),1,(tol)),   \
+     "Test values should have been numerically equivalent at tolerance=%g.",(tol));}
+
+/// Test that two numerical values are NOT equal to within a reasonable numerical
+/// error tolerance, using a relative and absolute error tolerance. In the
+/// case of composite types, the equality test is performed elementwise.
+#define SimTK_TEST_NOTEQ(v1,v2)    \
+    {SimTK_ASSERT_ALWAYS(!SimTK::Test::numericallyEqual((v1),(v2),1),   \
+     "Test values should NOT have been numerically equivalent (at default tolerance).");}
+
+/// Test that two numerical values are NOT equal to within a specified multiple of
+/// the default error tolerance, using a relative and absolute error tolerance. In the
+/// case of composite types, the equality test is performed elementwise.
+#define SimTK_TEST_NOTEQ_SIZE(v1,v2,n)    \
+    {SimTK_ASSERT1_ALWAYS(!SimTK::Test::numericallyEqual((v1),(v2),(n)),   \
+     "Test values should NOT have been numerically equivalent at size=%d times default tolerance.",(n));}
+
+/// Test that two numerical values are NOT equal to within a specified numerical
+/// error tolerance, using a relative and absolute error tolerance. In the
+/// case of composite types, the equality test is performed elementwise.
+#define SimTK_TEST_NOTEQ_TOL(v1,v2,tol)    \
+    {SimTK_ASSERT1_ALWAYS(!SimTK::Test::numericallyEqual((v1),(v2),1,(tol)),   \
+     "Test values should NOT have been numerically equivalent at tolerance=%g.",(tol));}
+
+#define SimTK_TEST_MUST_THROW(stmt)             \
+    do {int threw=0; try {stmt;}                \
+        catch(const std::exception&){threw=1;}  \
+        catch(...){threw=2;}                    \
+        if (threw==0) SimTK_TEST_FAILED1("Expected statement\n----\n%s\n----\n  to throw an exception but it did not.",#stmt); \
+        if (threw==2) SimTK_TEST_FAILED1("Expected statement\n%s\n  to throw an std::exception but it threw something else.",#stmt); \
+    }while(false)
+
+#define SimTK_TEST_MUST_THROW_EXC(stmt,exc)     \
+    do {int threw=0; try {stmt;}                \
+        catch(const exc&){threw=1;}             \
+        catch(...){threw=2;}                    \
+        if (threw==0) SimTK_TEST_FAILED1("Expected statement\n----\n%s\n----\n  to throw an exception but it did not.",#stmt); \
+        if (threw==2) SimTK_TEST_FAILED2("Expected statement\n----\n%s\n----\n  to throw exception type %s but it threw something else.",#stmt,#exc); \
+    }while(false)
+
+
+
+//  End of Regression testing group.
+/// @}
 
 #endif // SimTK_SimTKCOMMON_TESTING_H_

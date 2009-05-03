@@ -68,12 +68,12 @@ void testIsNaN() {
     negator<conjugate<double> >&     ncjdbl = reinterpret_cast<negator<conjugate<double> >&>   (cjdbl);
 
     // Test that negators are working properly.
-    SimTK_TEST_NUMEQ(nflt, -fltRegular);
-    SimTK_TEST_NUMEQ(ndbl, -dblRegular);
-    SimTK_TEST_NUMEQ(ncflt, -cflt);
-    SimTK_TEST_NUMEQ(-ncflt, cflt);
-    SimTK_TEST_NUMEQ(ncjflt, -cjflt);
-    SimTK_TEST_NUMEQ(-ncjflt, cjflt);
+    SimTK_TEST_EQ(nflt, -fltRegular);
+    SimTK_TEST_EQ(ndbl, -dblRegular);
+    SimTK_TEST_EQ(ncflt, -cflt);
+    SimTK_TEST_EQ(-ncflt, cflt);
+    SimTK_TEST_EQ(ncjflt, -cjflt);
+    SimTK_TEST_EQ(-ncjflt, cjflt);
 
     SimTK_TEST(!isNaN(nflt) && !isNaN(ndbl));
     SimTK_TEST(!isNaN(ncflt) && !isNaN(ncdbl));
@@ -150,12 +150,12 @@ void testIsInf() {
     negator<conjugate<double> >&     ncjdbl = reinterpret_cast<negator<conjugate<double> >&>   (cjdbl);
 
     // Test that negators are working properly.
-    SimTK_TEST_NUMEQ(nflt, -fltRegular);
-    SimTK_TEST_NUMEQ(ndbl, -dblRegular);
-    SimTK_TEST_NUMEQ(ncflt, -cflt);
-    SimTK_TEST_NUMEQ(-ncflt, cflt);
-    SimTK_TEST_NUMEQ(ncjflt, -cjflt);
-    SimTK_TEST_NUMEQ(-ncjflt, cjflt);
+    SimTK_TEST_EQ(nflt, -fltRegular);
+    SimTK_TEST_EQ(ndbl, -dblRegular);
+    SimTK_TEST_EQ(ncflt, -cflt);
+    SimTK_TEST_EQ(-ncflt, cflt);
+    SimTK_TEST_EQ(ncjflt, -cjflt);
+    SimTK_TEST_EQ(-ncjflt, cjflt);
 
     SimTK_TEST(!isInf(nflt) && !isInf(ndbl));
     SimTK_TEST(!isInf(ncflt) && !isInf(ncdbl));
@@ -256,12 +256,12 @@ void testIsFinite() {
     negator<conjugate<double> >&     ncjdbl = reinterpret_cast<negator<conjugate<double> >&>   (cjdbl);
 
     // Test that negators are working properly.
-    SimTK_TEST_NUMEQ(nflt, -fltRegular);
-    SimTK_TEST_NUMEQ(ndbl, -dblRegular);
-    SimTK_TEST_NUMEQ(ncflt, -cflt);
-    SimTK_TEST_NUMEQ(-ncflt, cflt);
-    SimTK_TEST_NUMEQ(ncjflt, -cjflt);
-    SimTK_TEST_NUMEQ(-ncjflt, cjflt);
+    SimTK_TEST_EQ(nflt, -fltRegular);
+    SimTK_TEST_EQ(ndbl, -dblRegular);
+    SimTK_TEST_EQ(ncflt, -cflt);
+    SimTK_TEST_EQ(-ncflt, cflt);
+    SimTK_TEST_EQ(ncjflt, -cjflt);
+    SimTK_TEST_EQ(-ncjflt, cjflt);
 
     SimTK_TEST(isFinite(nflt) && isFinite(ndbl));
     SimTK_TEST(isFinite(ncflt) && isFinite(ncdbl));
@@ -434,20 +434,20 @@ void testSquareAndCube() {
     const negator<double>& ndval = reinterpret_cast<const negator<double>&>(dval);
 
     // Basic test.
-    SimTK_TEST_NUMEQ(square(fval), fval*fval);
-    SimTK_TEST_NUMEQ(square(dval), dval*dval);
-    SimTK_TEST_NUMEQ(cube(fval), fval*fval*fval);
-    SimTK_TEST_NUMEQ(cube(dval), dval*dval*dval);
+    SimTK_TEST_EQ(square(fval), fval*fval);
+    SimTK_TEST_EQ(square(dval), dval*dval);
+    SimTK_TEST_EQ(cube(fval), fval*fval*fval);
+    SimTK_TEST_EQ(cube(dval), dval*dval*dval);
 
     // Test scalar negators.
-    SimTK_TEST_NUMEQ(square(nfval), nfval*nfval);
-    SimTK_TEST_NUMEQ(square(nfval), fval*fval);
-    SimTK_TEST_NUMEQ(square(ndval), ndval*ndval);
-    SimTK_TEST_NUMEQ(square(ndval), dval*dval);
-    SimTK_TEST_NUMEQ(cube(nfval), nfval*nfval*nfval);
-    SimTK_TEST_NUMEQ(cube(nfval), -fval*fval*fval);
-    SimTK_TEST_NUMEQ(cube(ndval), ndval*ndval*ndval);
-    SimTK_TEST_NUMEQ(cube(ndval), -dval*dval*dval);
+    SimTK_TEST_EQ(square(nfval), nfval*nfval);
+    SimTK_TEST_EQ(square(nfval), fval*fval);
+    SimTK_TEST_EQ(square(ndval), ndval*ndval);
+    SimTK_TEST_EQ(square(ndval), dval*dval);
+    SimTK_TEST_EQ(cube(nfval), nfval*nfval*nfval);
+    SimTK_TEST_EQ(cube(nfval), -fval*fval*fval);
+    SimTK_TEST_EQ(cube(ndval), ndval*ndval*ndval);
+    SimTK_TEST_EQ(cube(ndval), -dval*dval*dval);
 
     // Create complex and conjugate values.
 
@@ -461,10 +461,10 @@ void testSquareAndCube() {
     std::complex<double> dcmj(dcj.real(), dcj.imag());
     SimTK_TEST(fcj == fcmj);    // sign change only; should be exact
     SimTK_TEST(dcj == dcmj);
-    SimTK_TEST_NUMEQ(fcj*fcj, fcmj*fcmj);
-    SimTK_TEST_NUMEQ(dcj*dcj, dcmj*dcmj);
-    SimTK_TEST_NUMEQ(fcj*fcj*fcj, fcmj*fcmj*fcmj);
-    SimTK_TEST_NUMEQ(dcj*dcj*dcj, dcmj*dcmj*dcmj);
+    SimTK_TEST_EQ(fcj*fcj, fcmj*fcmj);
+    SimTK_TEST_EQ(dcj*dcj, dcmj*dcmj);
+    SimTK_TEST_EQ(fcj*fcj*fcj, fcmj*fcmj*fcmj);
+    SimTK_TEST_EQ(dcj*dcj*dcj, dcmj*dcmj*dcmj);
 
     // Negators of complex an conjugate.
     negator<std::complex<float> >&   nfc  = reinterpret_cast<negator<std::complex<float> >&> (fc);
@@ -480,35 +480,35 @@ void testSquareAndCube() {
 
 
     // Basic complex and conjugate tests.
-    SimTK_TEST_NUMEQ(square(fc), fc*fc);
-    SimTK_TEST_NUMEQ(cube(fc), fc*fc*fc);
-    SimTK_TEST_NUMEQ(square(dc), dc*dc);
-    SimTK_TEST_NUMEQ(cube(dc), dc*dc*dc);
-    SimTK_TEST_NUMEQ(square(fcj), fcj*fcj);
-    SimTK_TEST_NUMEQ(cube(fcj), fcj*fcj*fcj);
-    SimTK_TEST_NUMEQ(square(dcj), dcj*dcj);
-    SimTK_TEST_NUMEQ(cube(dcj), dcj*dcj*dcj);
+    SimTK_TEST_EQ(square(fc), fc*fc);
+    SimTK_TEST_EQ(cube(fc), fc*fc*fc);
+    SimTK_TEST_EQ(square(dc), dc*dc);
+    SimTK_TEST_EQ(cube(dc), dc*dc*dc);
+    SimTK_TEST_EQ(square(fcj), fcj*fcj);
+    SimTK_TEST_EQ(cube(fcj), fcj*fcj*fcj);
+    SimTK_TEST_EQ(square(dcj), dcj*dcj);
+    SimTK_TEST_EQ(cube(dcj), dcj*dcj*dcj);
 
     // Tests involving negators of complex and conjugate.
-    SimTK_TEST_NUMEQ(square(nfc), nfc*nfc); 
-    SimTK_TEST_NUMEQ(square(nfc), fc*fc);
-    SimTK_TEST_NUMEQ(square(ndc), ndc*ndc);
-    SimTK_TEST_NUMEQ(square(ndc), dc*dc);
+    SimTK_TEST_EQ(square(nfc), nfc*nfc); 
+    SimTK_TEST_EQ(square(nfc), fc*fc);
+    SimTK_TEST_EQ(square(ndc), ndc*ndc);
+    SimTK_TEST_EQ(square(ndc), dc*dc);
 
-    SimTK_TEST_NUMEQ(cube(nfc), nfc*nfc*nfc); 
-    SimTK_TEST_NUMEQ(cube(nfc), -fc*fc*fc);
-    SimTK_TEST_NUMEQ(cube(ndc), ndc*ndc*ndc);
-    SimTK_TEST_NUMEQ(cube(ndc), -dc*dc*dc);
+    SimTK_TEST_EQ(cube(nfc), nfc*nfc*nfc); 
+    SimTK_TEST_EQ(cube(nfc), -fc*fc*fc);
+    SimTK_TEST_EQ(cube(ndc), ndc*ndc*ndc);
+    SimTK_TEST_EQ(cube(ndc), -dc*dc*dc);
 
-    SimTK_TEST_NUMEQ(square(nfcj), nfcj*nfcj); 
-    SimTK_TEST_NUMEQ(square(nfcj), fcj*fcj);
-    SimTK_TEST_NUMEQ(square(ndcj), ndcj*ndcj);
-    SimTK_TEST_NUMEQ(square(ndcj), dcj*dcj);
+    SimTK_TEST_EQ(square(nfcj), nfcj*nfcj); 
+    SimTK_TEST_EQ(square(nfcj), fcj*fcj);
+    SimTK_TEST_EQ(square(ndcj), ndcj*ndcj);
+    SimTK_TEST_EQ(square(ndcj), dcj*dcj);
 
-    SimTK_TEST_NUMEQ(cube(nfcj), nfcj*nfcj*nfcj); 
-    SimTK_TEST_NUMEQ(cube(nfcj), -fcj*fcj*fcj);
-    SimTK_TEST_NUMEQ(cube(ndcj), ndcj*ndcj*ndcj);
-    SimTK_TEST_NUMEQ(cube(ndcj), -dcj*dcj*dcj);
+    SimTK_TEST_EQ(cube(nfcj), nfcj*nfcj*nfcj); 
+    SimTK_TEST_EQ(cube(nfcj), -fcj*fcj*fcj);
+    SimTK_TEST_EQ(cube(ndcj), ndcj*ndcj*ndcj);
+    SimTK_TEST_EQ(cube(ndcj), -dcj*dcj*dcj);
 }
 
 int main() {

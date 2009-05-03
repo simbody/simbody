@@ -42,16 +42,15 @@ using namespace std;
 // A matrix operation of size N can be expected to achieve an
 // accuracy of about N*tol where tol is the expected accuracy
 // of a scalar operation.
-static double NTol(int N) {return N*Test::defTol<Real>();}
 
 template <int N>
 void testInverse() {
     Mat<N,N> identity(1);
     Mat<N,N> mat = Test::randMat<N,N>();
-    SimTK_TEST_NUMEQ_TOL(mat*mat.invert(), identity, NTol(N));
+    SimTK_TEST_EQ_SIZE(mat*mat.invert(), identity, N);
     mat = ~mat;
-    SimTK_TEST_NUMEQ_TOL(mat*mat.invert(), identity, NTol(N));
-    SimTK_TEST_NUMEQ_TOL((-mat)*(-mat).invert(), identity, NTol(N));
+    SimTK_TEST_EQ_SIZE(mat*mat.invert(), identity, N);
+    SimTK_TEST_EQ_SIZE((-mat)*(-mat).invert(), identity, N);
 }
 
 void testDotProducts() {
@@ -59,14 +58,14 @@ void testDotProducts() {
     Vec3 v2(-1, -2, -3);
     Row3 r1(0.1, 0.2, 0.3);
     Row3 r2(-0.1, -0.2, -0.3);
-    SimTK_TEST_NUMEQ(dot(v1, v2), -14.0);
-    SimTK_TEST_NUMEQ(dot(r1, r2), -0.14);
-    SimTK_TEST_NUMEQ(dot(v1, r2), -1.4);
-    SimTK_TEST_NUMEQ(dot(r1, v2), -1.4);
-    SimTK_TEST_NUMEQ(r1*v2, -1.4);
+    SimTK_TEST_EQ(dot(v1, v2), -14.0);
+    SimTK_TEST_EQ(dot(r1, r2), -0.14);
+    SimTK_TEST_EQ(dot(v1, r2), -1.4);
+    SimTK_TEST_EQ(dot(r1, v2), -1.4);
+    SimTK_TEST_EQ(r1*v2, -1.4);
     SpatialVec sv(Vec3(1, 2, 3), Vec3(4, 5, 6));
     SpatialRow sr(Row3(1, 2, 3), Row3(4, 5, 6));
-    SimTK_TEST_NUMEQ(sr*sv, 91.0);
+    SimTK_TEST_EQ(sr*sv, 91.0);
 }
 
 void testCrossProducts() {
@@ -85,40 +84,40 @@ void testCrossProducts() {
     const Mat<3,1> m1 = Test::randMat<3,1>();
 
 
-    SimTK_TEST_NUMEQ( w%v, Vec3(w[1]*v[2]-w[2]*v[1],
+    SimTK_TEST_EQ( w%v, Vec3(w[1]*v[2]-w[2]*v[1],
                                 w[2]*v[0]-w[0]*v[2],
                                 w[0]*v[1]-w[1]*v[0]) );
 
-    SimTK_TEST_NUMEQ(  w %  v,  cross(  w,  v));
-    SimTK_TEST_NUMEQ( ~w % ~v, -cross( ~v, ~w));
+    SimTK_TEST_EQ(  w %  v,  cross(  w,  v));
+    SimTK_TEST_EQ( ~w % ~v, -cross( ~v, ~w));
 
-    SimTK_TEST_NUMEQ( wx*v, w % v );
-    SimTK_TEST_NUMEQ( crossMat(~w), wx );
-    SimTK_TEST_NUMEQ( crossMat(-w), ~wx );
-    SimTK_TEST_NUMEQ( crossMatSq(w)*v, -w % (w%v) );
+    SimTK_TEST_EQ( wx*v, w % v );
+    SimTK_TEST_EQ( crossMat(~w), wx );
+    SimTK_TEST_EQ( crossMat(-w), ~wx );
+    SimTK_TEST_EQ( crossMatSq(w)*v, -w % (w%v) );
 
     // cross(vector, matrix) (columnwise)
     Mat34 c = v % m;
-    SimTK_TEST_NUMEQ(c(0), v%m(0));
-    SimTK_TEST_NUMEQ(c(1), v%m(1));
-    SimTK_TEST_NUMEQ(c(2), v%m(2));
-    SimTK_TEST_NUMEQ(c(3), v%m(3));
-    SimTK_TEST_NUMEQ(c, vx*m);
-    SimTK_TEST_NUMEQ(c, (~v)%m); // row same as col here
+    SimTK_TEST_EQ(c(0), v%m(0));
+    SimTK_TEST_EQ(c(1), v%m(1));
+    SimTK_TEST_EQ(c(2), v%m(2));
+    SimTK_TEST_EQ(c(3), v%m(3));
+    SimTK_TEST_EQ(c, vx*m);
+    SimTK_TEST_EQ(c, (~v)%m); // row same as col here
 
     Mat<3,1> c1 = v % m1;
-    SimTK_TEST_NUMEQ(c1(0), v%m1(0));
+    SimTK_TEST_EQ(c1(0), v%m1(0));
 
     // cross(matrix, vector) (rowwise)
     Mat43 cr = mt % w;
-    SimTK_TEST_NUMEQ(cr[0], mt[0]%w);
-    SimTK_TEST_NUMEQ(cr[1], mt[1]%w);
-    SimTK_TEST_NUMEQ(cr[2], mt[2]%w);
-    SimTK_TEST_NUMEQ(cr[3], mt[3]%w);
-    SimTK_TEST_NUMEQ(cr, mt*wx);
-    SimTK_TEST_NUMEQ(cr, mt % (~w)); // row same as col here
+    SimTK_TEST_EQ(cr[0], mt[0]%w);
+    SimTK_TEST_EQ(cr[1], mt[1]%w);
+    SimTK_TEST_EQ(cr[2], mt[2]%w);
+    SimTK_TEST_EQ(cr[3], mt[3]%w);
+    SimTK_TEST_EQ(cr, mt*wx);
+    SimTK_TEST_EQ(cr, mt % (~w)); // row same as col here
 
-    SimTK_TEST_NUMEQ( vx * m33 * vx, v % m33 % v );
+    SimTK_TEST_EQ( vx * m33 * vx, v % m33 % v );
 }
 
 // Individually test 2x2, 3x3, and 4x4 because the
@@ -132,11 +131,11 @@ void testSymMat() {
     Mat<2,2>   m( a[0], a[1],
                   a[1], a[2] );
 
-    SimTK_TEST_NUMEQ( (Mat<2,2>(sm)), m );
-    SimTK_TEST_NUMEQ( sm, SymMat<2>(m) );
+    SimTK_TEST_EQ( (Mat<2,2>(sm)), m );
+    SimTK_TEST_EQ( sm, SymMat<2>(m) );
 
-    SimTK_TEST_NUMEQ( sm*v, m*v );
-    SimTK_TEST_NUMEQ( ~v*sm, ~v*m );
+    SimTK_TEST_EQ( sm*v, m*v );
+    SimTK_TEST_EQ( ~v*sm, ~v*m );
 
     // 3x3
     const Vec<6> a3 = Test::randVec<6>();
@@ -148,11 +147,11 @@ void testSymMat() {
                    a3[1], a3[2], a3[4],
                    a3[3], a3[4], a3[5]);
 
-    SimTK_TEST_NUMEQ( (Mat<3,3>(sm3)), m3 );
-    SimTK_TEST_NUMEQ( sm3, SymMat<3>(m3) );
+    SimTK_TEST_EQ( (Mat<3,3>(sm3)), m3 );
+    SimTK_TEST_EQ( sm3, SymMat<3>(m3) );
 
-    SimTK_TEST_NUMEQ( sm3*v3, m3*v3 );
-    SimTK_TEST_NUMEQ( ~v3*sm3, ~v3*m3 );
+    SimTK_TEST_EQ( sm3*v3, m3*v3 );
+    SimTK_TEST_EQ( ~v3*sm3, ~v3*m3 );
 
     // 4x4 (hopefully the general case)
     const Vec<10> a4 = Test::randVec<10>();
@@ -166,11 +165,11 @@ void testSymMat() {
                    a4[3], a4[4], a4[5], a4[8],
                    a4[6], a4[7], a4[8], a4[9]);
 
-    SimTK_TEST_NUMEQ( (Mat<4,4>(sm4)), m4 );
-    SimTK_TEST_NUMEQ( sm4, SymMat<4>(m4) );
+    SimTK_TEST_EQ( (Mat<4,4>(sm4)), m4 );
+    SimTK_TEST_EQ( sm4, SymMat<4>(m4) );
 
-    SimTK_TEST_NUMEQ( sm4*v4, m4*v4 );
-    SimTK_TEST_NUMEQ( ~v4*sm4, ~v4*m4 );
+    SimTK_TEST_EQ( sm4*v4, m4*v4 );
+    SimTK_TEST_EQ( ~v4*sm4, ~v4*m4 );
 
 
     // Complex is tricky for symmetric (really Hermitian) matrices because
@@ -187,14 +186,14 @@ void testSymMat() {
     // This constructor has to figure out how to generate a conjugate 
     // element for the upper right in the full Mat.
     Mat<2,2,Complex> sm2mc(smc);
-    SimTK_TEST_NUMEQ( sm2mc, mc );
-    SimTK_TEST_NUMEQ( smc, (SymMat<2,Complex>(mc)) );
+    SimTK_TEST_EQ( sm2mc, mc );
+    SimTK_TEST_EQ( smc, (SymMat<2,Complex>(mc)) );
 
-    SimTK_TEST_NUMEQ( smc*vc, mc*vc );
-    SimTK_TEST_NUMEQ( ~vc*smc, ~vc*mc );
+    SimTK_TEST_EQ( smc*vc, mc*vc );
+    SimTK_TEST_EQ( ~vc*smc, ~vc*mc );
 
-    SimTK_TEST_NUMEQ( ~smc*vc, ~mc*vc );
-    SimTK_TEST_NUMEQ( ~smc*vc, smc*vc );    
+    SimTK_TEST_EQ( ~smc*vc, ~mc*vc );
+    SimTK_TEST_EQ( ~smc*vc, smc*vc );    
 }
 
 int main() {

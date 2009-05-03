@@ -46,14 +46,14 @@ void testPhiMatrix() {
     SpatialVec v1(Test::randSpatialVec());
     SpatialMat m1(Test::randSpatialMat());
 
-    SimTK_TEST_NUMEQ( phi*v1, SpatialVec(v1[0] + p%v1[1], v1[1]));
-    SimTK_TEST_NUMEQ(~phi*v1, SpatialVec(v1[0], v1[1] - p%v1[0]));
+    SimTK_TEST_EQ( phi*v1, SpatialVec(v1[0] + p%v1[1], v1[1]));
+    SimTK_TEST_EQ(~phi*v1, SpatialVec(v1[0], v1[1] - p%v1[0]));
 
-    SimTK_TEST_NUMEQ(phi*v1, phi.toSpatialMat()*v1);
-    SimTK_TEST_NUMEQ(phi*m1, phi.toSpatialMat()*m1);
+    SimTK_TEST_EQ(phi*v1, phi.toSpatialMat()*v1);
+    SimTK_TEST_EQ(phi*m1, phi.toSpatialMat()*m1);
 
-    SimTK_TEST_NUMEQ(~phi*v1, (~phi).toSpatialMat()*v1);
-    SimTK_TEST_NUMEQ(m1*~phi, m1*(~phi).toSpatialMat());
+    SimTK_TEST_EQ(~phi*v1, (~phi).toSpatialMat()*v1);
+    SimTK_TEST_EQ(m1*~phi, m1*(~phi).toSpatialMat());
 }
 
 // TODO: this isn't a real regression test but it does catch
