@@ -40,10 +40,10 @@ namespace SimTK {
  * This class defines the interface for pseudo-random number generators.  Subclasses generate numbers according to specific
  * distributions.  Currently, there are two such subclasses: Random::Uniform and Random::Gaussian.  For example, to generate
  * a series of pseudo-random numbers uniformly distributed between 0 and 100, you would call:
- * 
- * Random::Uniform random(0.0, 100.0);
- * Real nextValue = random.getValue(); // Each time you call this, it will return a different value.
- * 
+ * <pre>
+ *   Random::Uniform random(0.0, 100.0);
+ *   Real nextValue = random.getValue(); // Each time you call this, it will return a different value.
+ * </pre>
  * Although the numbers are distributed in a seemingly random way, they are nonetheless deterministic, so you can create
  * several random number generators that each returns exactly the same sequence of numbers.  The sequence is determined
  * by the seed value with which the Random object is initialized.  By default, a different seed is used for every object.
@@ -54,7 +54,9 @@ namespace SimTK {
  * good performance, excellent statistical properties, and a very long period.
  * 
  * The methods of this class do not provide any synchronization or other mechanism to ensure thread safety.
- * It is therefore important that a single Random object not be accessed from multiple threads.
+ * It is therefore important that a single Random object not be accessed from multiple threads. One minor
+ * concession to threads: even if you don't set the seed explicitly, each thread's Random object will
+ * use a different seed so you'll get a unique series of numbers in each thread.
  */
 
 class SimTK_SimTKCOMMON_EXPORT Random {
