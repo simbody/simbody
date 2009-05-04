@@ -218,7 +218,7 @@ RigidBodyNodeSpec<dof>::calcReverseMobilizerHDot_FM(
 // This must be called tip-to-base (inward).
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcArticulatedBodyInertiasInward(
+RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
     const SBPositionCache& pc,
     SBDynamicsCache&       dc) const 
 {
@@ -228,26 +228,29 @@ RigidBodyNodeSpec<dof>::calcArticulatedBodyInertiasInward(
         const SpatialMat& PChild      = children[i]->getP(dc);
         const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
 
-        // TODO: this is around 450 flops but could be cut in half by
-        // exploiting symmetry.
+        // TODO: this is around 650 flops, 396 due to the 6x6
+        // multiply in the middle, about 100 each for the shifts, and 36
+        // for the +=. We can cut each of these in half by
+        // exploiting symmetry. (tauBar is a projection operator; it is
+        // not symmetric but the result tauBar*P = P-(P H DI ~H P) is symmetric.)
         updP(dc) += phiChild * (tauBarChild * PChild) * ~phiChild;
     }
 
-    const Mat<2,dof,Vec3> PH = getP(dc) * getH(pc);
-    updD(dc)  = ~getH(pc) * PH;
+
+    const Mat<2,dof,Vec3> PH = getP(dc) * getH(pc); // 66*dof   flops
+    updD(dc)  = ~getH(pc) * PH;                     // 11*dof^2 flops (symmetric result)
+
     // this will throw an exception if the matrix is ill conditioned
-    updDI(dc) = getD(dc).invert();
-    updG(dc)  = PH * getDI(dc);
+    updDI(dc) = getD(dc).invert();                  // ~dof^3 flops (symmetric)
+    updG(dc)  = PH * getDI(dc);                     // 11*dof^2 flops
 
     // TODO: change sign on taubar to make it G*~H - I instead, which only requires
     // subtractions on the diagonal rather than negating all the off-diag stuff.
     // That would save 30 flops here (I know, not much).
     updTauBar(dc)  = 1.; // identity matrix
-    updTauBar(dc) -= getG(dc) * ~getH(pc);
-    updPsi(dc)     = getPhi(pc) * getTauBar(dc);
+    updTauBar(dc) -= getG(dc) * ~getH(pc);          // 11*dof^2 + 36 flops
+    updPsi(dc)     = getPhi(pc) * getTauBar(dc);    // ~100 flops
 }
-
-
 
 // To be called base to tip.
 // sherm 060723: As best I can tell this is calculating the inverse of
@@ -256,7 +259,7 @@ RigidBodyNodeSpec<dof>::calcArticulatedBodyInertiasInward(
 // for manipulator modeling and control. Intl. J. Robotics Research 
 // 10(4):371-381 (1991).
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcYOutward(
+RigidBodyNodeSpec<dof>::realizeYOutward(
     const SBPositionCache& pc,
     SBDynamicsCache&       dc) const 
 {
@@ -272,7 +275,7 @@ RigidBodyNodeSpec<dof>::calcYOutward(
 // To be called from tip to base.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcZ(
+RigidBodyNodeSpec<dof>::realizeZ(
     const SBStateDigest&       sbs,
     const Vector&              mobilityForces,
     const Vector_<SpatialVec>& bodyForces) const 
@@ -299,11 +302,11 @@ RigidBodyNodeSpec<dof>::calcZ(
 
 //
 // Calculate acceleration in internal coordinates, based on the last set
-// of forces that were fed to calcZ (as embodied in 'nu').
+// of forces that were fed to realizeZ (as embodied in 'nu').
 // (Base to tip)
 //
 template<int dof> void 
-RigidBodyNodeSpec<dof>::calcAccel(
+RigidBodyNodeSpec<dof>::realizeAccel(
     const SBStateDigest&   sbs,
     Vector&                allUdot,
     Vector&                allQdotdot) const 

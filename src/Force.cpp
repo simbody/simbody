@@ -353,18 +353,18 @@ Force::Thermostat::Thermostat
     Real boltzmannsConstant, Real bathTemperature, Real relaxationTime) 
 :   Force(new ThermostatImpl(matter, boltzmannsConstant, bathTemperature, relaxationTime))
 {
-	SimTK_APIARGCHECK1(boltzmannsConstant > 0, 
+	SimTK_APIARGCHECK1_ALWAYS(boltzmannsConstant > 0, 
 		"Force::Thermostat","ctor", "Illegal Boltzmann's constant %g.", boltzmannsConstant);
-	SimTK_APIARGCHECK1(bathTemperature > 0, 
+	SimTK_APIARGCHECK1_ALWAYS(bathTemperature > 0, 
 		"Force::Thermostat","ctor", "Illegal bath temperature %g.", bathTemperature);
-	SimTK_APIARGCHECK1(relaxationTime > 0, 
+	SimTK_APIARGCHECK1_ALWAYS(relaxationTime > 0, 
 		"Force::Thermostat","ctor", "Illegal relaxation time %g.", relaxationTime);
 
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
 
 Force::Thermostat& Force::Thermostat::setDefaultNumChains(int numChains) {
-	SimTK_APIARGCHECK1(numChains > 0, 
+	SimTK_APIARGCHECK1_ALWAYS(numChains > 0, 
 		"Force::Thermostat","setDefaultNumChains", 
 		"Illegal number of chains %d.", numChains);
 
@@ -374,7 +374,7 @@ Force::Thermostat& Force::Thermostat::setDefaultNumChains(int numChains) {
 }
 
 Force::Thermostat& Force::Thermostat::setDefaultBathTemperature(Real bathTemperature) {
-	SimTK_APIARGCHECK1(bathTemperature > 0, 
+	SimTK_APIARGCHECK1_ALWAYS(bathTemperature > 0, 
 		"Force::Thermostat","setDefaultBathTemperature", 
 		"Illegal bath temperature %g.", bathTemperature);
 
@@ -384,7 +384,7 @@ Force::Thermostat& Force::Thermostat::setDefaultBathTemperature(Real bathTempera
 }
 
 Force::Thermostat& Force::Thermostat::setDefaultRelaxationTime(Real relaxationTime) {
-	SimTK_APIARGCHECK1(relaxationTime > 0, 
+	SimTK_APIARGCHECK1_ALWAYS(relaxationTime > 0, 
 		"Force::Thermostat","setDefaultRelaxationTime", 
 		"Illegal bath temperature %g.", relaxationTime);
 
@@ -399,7 +399,7 @@ Real Force::Thermostat::getDefaultRelaxationTime() const {return getImpl().defau
 Real Force::Thermostat::getBoltzmannsConstant() const {return getImpl().Kb;}
 
 void Force::Thermostat::setNumChains(State& s, int numChains) const {
-	SimTK_APIARGCHECK1(numChains > 0, 
+	SimTK_APIARGCHECK1_ALWAYS(numChains > 0, 
 		"Force::Thermostat","setNumChains", 
 		"Illegal number of chains %d.", numChains);
 
@@ -407,7 +407,7 @@ void Force::Thermostat::setNumChains(State& s, int numChains) const {
 }
 
 void Force::Thermostat::setBathTemperature(State& s, Real bathTemperature) const {
-	SimTK_APIARGCHECK1(bathTemperature > 0, 
+	SimTK_APIARGCHECK1_ALWAYS(bathTemperature > 0, 
 		"Force::Thermostat","setBathTemperature", 
 		"Illegal bath temperature %g.", bathTemperature);
 
@@ -415,7 +415,7 @@ void Force::Thermostat::setBathTemperature(State& s, Real bathTemperature) const
 }
 
 void Force::Thermostat::setRelaxationTime(State& s, Real relaxationTime) const {
-	SimTK_APIARGCHECK1(relaxationTime > 0, 
+	SimTK_APIARGCHECK1_ALWAYS(relaxationTime > 0, 
 		"Force::Thermostat","setRelaxationTime", 
 		"Illegal bath temperature %g.", relaxationTime);
 
@@ -436,7 +436,7 @@ void Force::Thermostat::initializeChainState(State& s) const {
 void Force::Thermostat::setChainState(State& s, const Vector& z) const {
 	const ThermostatImpl& impl = getImpl();
 	const int nChains = impl.getNumChains(s);
-	SimTK_APIARGCHECK2(z.size() == 2*nChains,
+	SimTK_APIARGCHECK2_ALWAYS(z.size() == 2*nChains,
 		"Force::Thermostat", "setChainState", 
 		"Number of values supplied (%d) didn't match the number of chains %d.", z.size(), nChains);
 	for (int i=0; i < 2*nChains; ++i)

@@ -671,7 +671,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  con
     dc.allocate(topologyCache);
 
     // tip-to-base calculation
-    calcArticulatedBodyInertias(s);
+    realizeArticulatedBodyInertias(s);
 
     // base-to-tip
     for (int i=0; i < (int)rbNodeLevels.size(); i++)
@@ -1805,54 +1805,48 @@ void SimbodyMatterSubsystemRep::calcPositionConstraintMatrix(const State& s,
 }
 */
 
+
+//
+// Given a State realized to Position stage, calculate the composite
+// body inertias seen by each mobilizer. A composite body inertia is
+// the inertia of the rigid body created by locking all joints outboard
+// of a particular mobilized body. (Constraints have no effect on the result.)
+//
+void SimbodyMatterSubsystemRep::calcCompositeBodyInertias(const State& s,
+    Vector_<SpatialMat>& R) const 
+{
+    const SBPositionCache& pc = getPositionCache(s);
+    R.resize(getNumBodies());
+
+    for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            rbNodeLevels[i][j]->calcCompositeBodyInertiasInward(pc,R);
+}
+
 // should be:
 //   foreach tip {
 //     traverse back to node which has more than one child hinge.
 //   }
-void SimbodyMatterSubsystemRep::calcArticulatedBodyInertias(const State& s) const {
+void SimbodyMatterSubsystemRep::realizeArticulatedBodyInertias(const State& s) const {
     const SBPositionCache& pc = getPositionCache(s);
     SBDynamicsCache&       dc = updDynamicsCache(s);
 
-    // TODO: does this need to do level 0?
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcArticulatedBodyInertiasInward(pc,dc);
+            rbNodeLevels[i][j]->realizeArticulatedBodyInertiasInward(pc,dc);
 }
-
-// should be:
-//   foreach tip {
-//     traverse back to node which has more than one child hinge.
-//   }
-/*
-void SimbodyMatterSubsystemRep::calcZ(const State& s, 
-    const Vector&              mobilityForces,
-    const Vector_<SpatialVec>& bodyForces) const
-{
-    const SBPositionCache&    pc = getPositionCache(s);
-    const SBDynamicsCache&    dc = getDynamicsCache(s);
-    SBAccelerationCache&      ac = updAccelerationCache(s);
-
-    // level 0 for atoms whose position is fixed
-    for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
-            const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcZ(pc,dc,mobilityForces,bodyForces,ac);
-        }
-}
-*/
-
 
 // Y is used for length constraints: sweep from base to tip.
-void SimbodyMatterSubsystemRep::calcY(const State& s) const {
+void SimbodyMatterSubsystemRep::realizeY(const State& s) const {
     SBStateDigest sbs(s, *this, Stage::Dynamics);
 
     for (int i=0; i < (int)rbNodeLevels.size(); i++)
         for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
-            rbNodeLevels[i][j]->calcYOutward(sbs);
+            rbNodeLevels[i][j]->realizeYOutward(sbs);
 }
 
 // Process forces for subsequent use by calcTreeAccel() below.
-void SimbodyMatterSubsystemRep::calcZ(const State& s, 
+void SimbodyMatterSubsystemRep::realizeZ(const State& s, 
     const Vector&              mobilityForces,
     const Vector_<SpatialVec>& bodyForces) const
 {
@@ -1862,13 +1856,13 @@ void SimbodyMatterSubsystemRep::calcZ(const State& s,
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcZ(sbs,mobilityForces,bodyForces);
+            node.realizeZ(sbs,mobilityForces,bodyForces);
         }
 }
 
 // Calc acceleration: sweep from base to tip. This uses the forces
-// that were last supplied to calcZ()above.
-void SimbodyMatterSubsystemRep::calcTreeAccel(const State& s) const {
+// that were last supplied to realizeZ()above.
+void SimbodyMatterSubsystemRep::realizeTreeAccel(const State& s) const {
     SBStateDigest sbs(s, *this, Stage::Acceleration);
 
     Vector&                udot    = updUDot(s);
@@ -1876,7 +1870,7 @@ void SimbodyMatterSubsystemRep::calcTreeAccel(const State& s) const {
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcAccel(sbs,udot,qdotdot);
+            rbNodeLevels[i][j]->realizeAccel(sbs,udot,qdotdot);
 }
 
 Real SimbodyMatterSubsystemRep::calcKineticEnergy(const State& s) const {
@@ -2363,6 +2357,7 @@ void SimbodyMatterSubsystemRep::calcSpatialKinematicsFromInternal(const State& s
             node.calcSpatialKinematicsFromInternal(pc,v, Jv);
         }
 }
+
 
 // If V is a spatial velocity, and you have an X=d(something)/dV (one per body)
 // this routine will return d(something)/du for internal generalized speeds u. If

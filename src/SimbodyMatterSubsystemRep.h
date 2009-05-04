@@ -413,6 +413,9 @@ public:
 
     Real calcKineticEnergy(const State&) const;
 
+    void calcCompositeBodyInertias(const State&,
+        Vector_<SpatialMat>& R) const;
+
     // Calculate the product J*v where J is the kinematic Jacobian dV/du=~Phi*~H and
     // v is a vector in mobility space (internal coordinates). If v==u, that is,
     // it is a vector of generalized speeds, then the result will be V_GB, the
@@ -629,19 +632,19 @@ public:
     void enforceVelocityConstraints(State& s, Real consAccuracy, const Vector& yWeights,
 									const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
 
-    // Unconstrained (tree) dynamics 
+    // Unconstrained (tree) dynamics methods for use during realization.
 
     // articulated body inertias
-    void calcArticulatedBodyInertias(const State&) const;
+    void realizeArticulatedBodyInertias(const State&) const;
 
      // articulated body remainder forces
-    void calcZ(const State&, 
+    void realizeZ(const State&, 
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces) const;
-    void calcTreeAccel(const State&) const;                // accels with forces from last calcZ
+    void realizeTreeAccel(const State&) const; // accels with forces from last realizeZ
 
     // Part of OLD constrained dynamics; TODO: may be useful in op space inertia calcs.
-    void calcY(const State&) const;
+    void realizeY(const State&) const;
 
     const RigidBodyNode& getRigidBodyNode(int nodeNum) const {
         const RigidBodyNodeIndex& ix = nodeNum2NodeMap[nodeNum];

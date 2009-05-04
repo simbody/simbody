@@ -391,6 +391,15 @@ public:
     /// Requires prior realization through Stage::Position.
     void calcMV(const State&, const Vector& v, Vector& MV) const;
 
+    /// This operator calculates the composite body inertias R given
+    /// a State realized to Position stage. Composite body inertias
+    /// are the spatial mass properties of the rigid body formed by
+    /// a particular body and all bodies outboard of that body if
+    /// all the outboard mobilizers were welded in their current
+    /// orientations.
+    void calcCompositeBodyInertias(const State&,
+        Vector_<SpatialMat>& R) const;
+
     /// Returns
     ///     constraintErr = G udot - b
     /// the residual error in the acceleration constraint equation given

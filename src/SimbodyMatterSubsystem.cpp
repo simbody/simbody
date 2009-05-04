@@ -233,6 +233,12 @@ void SimbodyMatterSubsystem::calcMV(const State& s,
     getRep().calcMV(s,v, A_GB, MV);
 }
 
+void SimbodyMatterSubsystem::calcCompositeBodyInertias(const State& s,
+    Vector_<SpatialMat>& R) const
+{
+    getRep().calcCompositeBodyInertias(s,R);
+}
+
 // Convert internal kinematics to spatial equivalent, ignoring velocity and constraints.
 void SimbodyMatterSubsystem::calcSpatialKinematicsFromInternal(const State& s,
     const Vector&        v,

@@ -180,3 +180,31 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
 }
 
 
+//
+// Given only position-related quantities from the State 
+//      Mk  (this body's spatial inertia matrix)
+//      Phi (composite body child-to-parent shift matrix)
+// calculate the inverse dynamics quantity
+//      R   (composite body inertia)
+// This must be called tip-to-base (inward).
+//
+// Note that this method does not depend on the mobilities of
+// the joint so can be implemented here rather than in RigidBodyNodeSpec.
+// Ground should override this implementation though.
+//
+void
+RigidBodyNode::calcCompositeBodyInertiasInward(
+    const SBPositionCache& pc,
+    Vector_<SpatialMat>&   allR) const 
+{
+    SpatialMat& R = toB(allR);
+    R = getMk(pc);
+    for (unsigned i=0; i<children.size(); ++i) {
+        const SpatialMat& RChild      = children[i]->fromB(allR);
+        const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
+
+        // TODO: this is around 260 flops but should be a small fraction 
+        // of that.
+        R += phiChild * RChild * ~phiChild;
+    }
+}

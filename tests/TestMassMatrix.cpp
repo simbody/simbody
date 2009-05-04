@@ -35,63 +35,11 @@
 // *as though* they used the mass matrix, without actually forming it.
 
 #include "SimTKsimbody.h"
+#include "SimTKcommon/Testing.h"
 
 using namespace SimTK;
 using namespace std;
 
-const Real TOL = 1e-10;
-
-#define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
-
-template <class T>
-void assertEqual(T val1, T val2, Real tol) {
-    ASSERT(abs(val1-val2) < tol);
-}
-
-template <int N>
-void assertEqual(Vec<N> val1, Vec<N> val2, Real tol) {
-    for (int i = 0; i < N; ++i)
-        ASSERT(abs(val1[i]-val2[i]) < tol);
-}
-
-template<>
-void assertEqual(SpatialVec val1, SpatialVec val2, Real tol) {
-    assertEqual(val1[0], val2[0], tol);
-    assertEqual(val1[1], val2[1], tol);
-}
-
-template<>
-void assertEqual(Transform val1, Transform val2, Real tol) {
-    assertEqual(val1.p(), val2.p(), tol);
-    assertEqual(val1.R().convertRotationToBodyFixedXYZ(), 
-                val2.R().convertRotationToBodyFixedXYZ(), tol);
-}
-
-
-template<class T>
-void assertEqual(Vector_<T> val1, Vector_<T> val2, Real tol) {
-    for (int i=0; i < val1.size(); ++i)
-        assertEqual(val1[i], val2[i], tol);
-}
-
-template <class T>
-void assertEqual(T val1, T val2) {
-    assertEqual(val1, val2, TOL);
-}
-
-// Require this to be an identity matrix to within n*eps where
-// n is the size of the matrix.
-void assertIsIdentity(const Matrix& m) {
-	const int minD = std::min(m.nrow(), m.ncol());
-	const Real Slop =  minD * SignificantReal;
-
-	const RowVector colSums = m.sum();
-	for (int j=0; j < minD; ++j) {
-		ASSERT( std::fabs(m(j,j)-1) <= Slop );
-		ASSERT( std::fabs(colSums[j]-1) <= Slop );
-	}
-
-}
 
 class MyForceImpl : public Force::Custom::Implementation {
 public:
@@ -99,7 +47,7 @@ public:
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, 
 				   Vector& mobilityForces) const 
 	{
-		ASSERT( f.size() == 0 || f.size() == mobilityForces.size() );
+		SimTK_TEST( f.size() == 0 || f.size() == mobilityForces.size() );
 		if (f.size() > 0)
 			mobilityForces += f;
     }
@@ -124,30 +72,23 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
 
 	system.realizeModel(state);
 	// Randomize state.
-	Random::Uniform rand(-1,1);
-	for (int i=0; i < nq; ++i)
-		state.updQ()[i] = rand.getValue();
-	for (int i=0; i < nu; ++i)
-		state.updU()[i] = rand.getValue();
+    state.updQ() = Test::randVector(nq);
+    state.updU() = Test::randVector(nu);
 
-	Vector randVec(nu);
-	for (int i=0; i<nu; ++i) randVec[i] = 100*rand.getValue();
-
+    Vector randVec = 100*Test::randVector(nu);
 	Vector result1, result2;
 
 	// result1 = M*v
 	system.realize(state, Stage::Position);
 	matter.calcMV(state, randVec, result1);
-	ASSERT(result1.size() == nu);
+	SimTK_TEST_EQ(result1.size(), nu);
 
 	// result2 = M^-1 * result1 == M^-1 * M * v == v
 	system.realize(state, Stage::Dynamics);
 	matter.calcMInverseV(state, result1, result2);
-	ASSERT(result2.size() == nu);
+	SimTK_TEST_EQ(result2.size(), nu);
 
-	//cout << "|v - M^-1*M*v|=" << (randVec - result2).norm() << endl;
-
-	assertEqual(result2, randVec, Slop);
+    SimTK_TEST_EQ_TOL(result2, randVec, Slop);
 
 	Matrix M(nu,nu), MInv(nu,nu);
 
@@ -159,10 +100,12 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
 		v[j] = 0;
 	}
 
-	Matrix eye = M*MInv;
+    Matrix identity(nu,nu); identity=1;
+    SimTK_TEST_EQ_SIZE(M*MInv, identity, nu);
+    SimTK_TEST_EQ_SIZE(MInv*M, identity, nu);
 
-	assertIsIdentity(eye);
-	assertIsIdentity(MInv*M);
+	//assertIsIdentity(eye);
+	//assertIsIdentity(MInv*M);
 
 	frcp->setForce(randVec);
 	//cout << "f=" << randVec << endl;
@@ -173,7 +116,8 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
 	matter.calcMInverseV(state, randVec, result1);
 	//cout << "With velocities, |a - M^-1*f|=" << (accel-result1).norm() << endl;
 
-	ASSERT((accel-result1).norm() > SignificantReal); // because of velocities
+    SimTK_TEST_NOTEQ(accel, result1); // because of the velocities
+	//SimTK_TEST((accel-result1).norm() > SignificantReal); // because of velocities
 
 	// With no velocities M^-1*f should match calculated acceleration.
 	state.updU() = 0;
@@ -183,7 +127,7 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
 
 	//cout << "With v=0, |a - M^-1*f|=" << (accel-result1).norm() << endl;
 
-	ASSERT((accel-result1).norm() <= Slop); // because no velocities
+    SimTK_TEST_EQ(accel, result1); // because no velocities
 
 	// And then M*a should = f.
 	matter.calcMV(state, accel, result2);
@@ -197,10 +141,9 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
     // should result in zero residual, and applying them. 
 
 	// Randomize state.
-	for (int i=0; i < nq; ++i)
-		state.updQ()[i] = rand.getValue();
-	for (int i=0; i < nu; ++i)
-		state.updU()[i] = rand.getValue();
+    state.updQ() = Test::randVector(nq);
+    state.updU() = Test::randVector(nu);
+
 
     // Inverse dynamics should require realization only to Velocity stage.
     system.realize(state, Stage::Velocity);
@@ -208,16 +151,11 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
     // Randomize body forces.
     Vector_<SpatialVec> bodyForces(matter.getNumBodies());
     for (int i=0; i < matter.getNumBodies(); ++i)
-        bodyForces[i] = SpatialVec( Vec3(rand.getValue(), rand.getValue(), rand.getValue()),
-                                    Vec3(rand.getValue(), rand.getValue(), rand.getValue()));
+        bodyForces[i] = Test::randSpatialVec();
 
     // Random mobility forces and known udots.
-    Vector mobilityForces(matter.getNumMobilities());
-    Vector knownUdots(matter.getNumMobilities());
-    for (int i=0; i < nu; ++i) {
-        mobilityForces[i] = rand.getValue();
-        knownUdots[i] = rand.getValue();
-    }
+    Vector mobilityForces = Test::randVector(matter.getNumMobilities());
+    Vector knownUdots = Test::randVector(matter.getNumMobilities());
 
     // Check self consistency: compute residual, apply it, should be no remaining residual.
     Vector residualForces, shouldBeZeroResidualForces;
@@ -225,7 +163,8 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
         mobilityForces, bodyForces, knownUdots, residualForces);
     matter.calcResidualForceIgnoringConstraints(state,
         mobilityForces+residualForces, bodyForces, knownUdots, shouldBeZeroResidualForces);
-    ASSERT(shouldBeZeroResidualForces.norm() <= Slop);
+
+    SimTK_TEST(shouldBeZeroResidualForces.norm() <= Slop);
 
     // Now apply these forces in forward dynamics and see if we get the desired
     // acceleration. State must be realized to Dynamics stage.
@@ -235,7 +174,7 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
     matter.calcAccelerationIgnoringConstraints(state, 
         mobilityForces+residualForces, bodyForces, udots, bodyAccels);
 
-    ASSERT((udots-knownUdots).norm() <= Slop);
+    SimTK_TEST_EQ_TOL(udots, knownUdots, Slop);
 
     // Verify that leaving out arguments makes them act like zeroes.
     Vector residualForces1, residualForces2;
@@ -244,55 +183,44 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
     // no, the residual is not zero here because of the angular velocities
     matter.calcResidualForceIgnoringConstraints(state,
         Vector(), Vector_<SpatialVec>(), Vector(), residualForces2);
-    ASSERT((residualForces2-residualForces1).norm() <= Slop);
+
+    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
 
     // Same, but leave out combinations of arguments.
     matter.calcResidualForceIgnoringConstraints(state,
         0*mobilityForces, bodyForces, knownUdots, residualForces1);
     matter.calcResidualForceIgnoringConstraints(state,
         Vector(), bodyForces, knownUdots, residualForces2);
-    ASSERT((residualForces2-residualForces1).norm() <= Slop);
+    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
     matter.calcResidualForceIgnoringConstraints(state,
         mobilityForces, 0*bodyForces, knownUdots, residualForces1);
     matter.calcResidualForceIgnoringConstraints(state,
         mobilityForces, Vector_<SpatialVec>(), knownUdots, residualForces2);
-    ASSERT((residualForces2-residualForces1).norm() <= Slop);
+    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
     matter.calcResidualForceIgnoringConstraints(state,
         mobilityForces, bodyForces, 0*knownUdots, residualForces1);
     matter.calcResidualForceIgnoringConstraints(state,
         mobilityForces, bodyForces, Vector(), residualForces2);
-    ASSERT((residualForces2-residualForces1).norm() <= Slop);
+    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
     matter.calcResidualForceIgnoringConstraints(state,
         0*mobilityForces, bodyForces, 0*knownUdots, residualForces1);
     matter.calcResidualForceIgnoringConstraints(state,
         Vector(), bodyForces, Vector(), residualForces2);
-    ASSERT((residualForces2-residualForces1).norm() <= Slop);
+    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
     matter.calcResidualForceIgnoringConstraints(state,
         mobilityForces, 0*bodyForces, 0*knownUdots, residualForces1);
     matter.calcResidualForceIgnoringConstraints(state,
         mobilityForces, Vector_<SpatialVec>(), Vector(), residualForces2);
-    ASSERT((residualForces2-residualForces1).norm() <= Slop);
+    SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
 
     // Check that we object to wrong-length arguments.
-    bool badArgsRejected;
-    try {badArgsRejected=false; matter.calcResidualForceIgnoringConstraints(state,
-         Vector(3,Zero), bodyForces, knownUdots, residualForces2);}
-    catch(const std::exception& e)
-    {   cout << "\nARGCHECK MESSAGE IS EXPECTED HERE:\n" << e.what() << endl;
-        badArgsRejected=true; }
-    ASSERT(badArgsRejected);
-    try {badArgsRejected=false; matter.calcResidualForceIgnoringConstraints(state,
-         mobilityForces, Vector_<SpatialVec>(5), knownUdots, residualForces2);}
-    catch(const std::exception& e)
-    {   cout << "\nARGCHECK MESSAGE IS EXPECTED HERE:\n" << e.what() << endl;
-        badArgsRejected=true; }
-    ASSERT(badArgsRejected);
-    try {badArgsRejected=false; matter.calcResidualForceIgnoringConstraints(state,
-         mobilityForces, bodyForces, Vector(2), residualForces2);}
-    catch(const std::exception& e)
-    {   cout << "\nARGCHECK MESSAGE IS EXPECTED HERE:\n" << e.what() << endl;
-        badArgsRejected=true; }
-    ASSERT(badArgsRejected);
+    SimTK_TEST_MUST_THROW(matter.calcResidualForceIgnoringConstraints(state,
+        Vector(3,Zero), bodyForces, knownUdots, residualForces2));
+    SimTK_TEST_MUST_THROW(matter.calcResidualForceIgnoringConstraints(state,
+         mobilityForces, Vector_<SpatialVec>(5), knownUdots, residualForces2));
+    SimTK_TEST_MUST_THROW(matter.calcResidualForceIgnoringConstraints(state,
+         mobilityForces, bodyForces, Vector(2), residualForces2));
+
 }
 
 void testTreeSystem() {
@@ -302,14 +230,11 @@ void testTreeSystem() {
 	MyForceImpl* frcp = new MyForceImpl();
 	Force::Custom(forces, frcp);
 
-	Random::Uniform rand(-1,1);
-
-	const Real randomAngle1 = (Pi/2)*(rand.getValue());
-	const Real randomAngle2 = (Pi/2)*(rand.getValue());
+    const Real randomAngle1 = (Pi/2)*Test::randReal();
+    const Real randomAngle2 = (Pi/2)*Test::randReal();
 	Vector_<Vec3> randomVecs(10);
 	for (int i=0; i<10; ++i) 
-		randomVecs[i] = 
-			Vec3( rand.getValue(), rand.getValue(), rand.getValue() );
+        randomVecs[i] = Test::randVec3();
 
 	const Real mass = 2.3;
 	const Vec3 com = randomVecs[5];
@@ -392,18 +317,46 @@ void testTreeSystem() {
 	testSystem(mbs, frcp);
 }
 
+void testCompositeInertia() {
+	MultibodySystem			mbs;
+    SimbodyMatterSubsystem  pend(mbs);
 
+    Body::Rigid pointMass(MassProperties(3, Vec3(0), Inertia(0)));
+
+    // Point mass at x=1.5 rotating about (0,0,0).
+    MobilizedBody::Pin
+        body1( pend.Ground(), Transform(), 
+               pointMass, Vec3(1.5,0,0));
+
+    // A second body 2 units further along x, rotating about the
+    // first point mass origin.
+    MobilizedBody::Pin
+        body2( body1, Transform(), 
+               pointMass, Vec3(2,0,0));
+
+    State state = mbs.realizeTopology();
+    mbs.realize(state, Stage::Position);
+
+    Vector_<SpatialMat> R(pend.getNumBodies());
+    pend.calcCompositeBodyInertias(state, R);
+
+    // Calculate expected inertias about the joint axes.
+    Real expInertia2 = body2.getBodyMassProperties(state).getMass()*square(2);
+    Real expInertia1 = body1.getBodyMassProperties(state).getMass()*square(1.5)
+                           + body2.getBodyMassProperties(state).getMass()*square(3.5);
+
+    // Should be able to recover these inertias by projecting the composite
+    // body inertias onto the joint axes using H matrices.
+    const SpatialVec H1 = body1.getHCol(state, UIndex(0));
+    const SpatialVec H2 = body2.getHCol(state, UIndex(0));
+    SimTK_TEST_EQ(~H2*R[2]*H2, expInertia2);
+    SimTK_TEST_EQ(~H1*R[1]*H1, expInertia1);
+}
 
 int main() {
-    try {
-        cout << "*** TEST MASS MATRIX CALCS  ***\n\n"; 
-		testTreeSystem();
-    }
-    catch(const std::exception& e) {
-        cout << "exception: " << e.what() << endl;
-        return 1;
-    }
-    cout << "\nDone" << endl;
-    return 0;
+    SimTK_START_TEST("TestMassMatrix");
+        SimTK_SUBTEST(testCompositeInertia);
+        SimTK_SUBTEST(testTreeSystem);
+    SimTK_END_TEST();
 }
 

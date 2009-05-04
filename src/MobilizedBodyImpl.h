@@ -246,6 +246,11 @@ public:
         return getMyRigidBodyNode().getV_FM(vc);
     }
 
+    SpatialVec getHCol(const State& s, UIndex ux) const {
+        const SBPositionCache& pc = getMyMatterSubsystemRep().getPositionCache(s);
+        return getMyRigidBodyNode().getHCol(pc,ux);
+    }
+
     const RigidBodyNode& realizeTopology(State& s, UIndex& nxtU, USquaredIndex& nxtUSq, QIndex& nxtQ) const;
 
     void invalidateTopologyCache() const {

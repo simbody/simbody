@@ -433,24 +433,30 @@ public:
     virtual void realizeReport(
         SBStateDigest&         sbs) const=0;
 
-    virtual void calcArticulatedBodyInertiasInward(
+    virtual void realizeArticulatedBodyInertiasInward(
         const SBPositionCache& pc,
         SBDynamicsCache&       dc) const=0;
 
-    virtual void calcZ(
+    virtual void realizeZ(
         const SBStateDigest&,
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces) const 
-      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcZ"); }
-    virtual void calcAccel(
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "realizeZ"); }
+    virtual void realizeAccel(
         const SBStateDigest&   sbs,
         Vector&                udot,
         Vector&                qdotdot) const 
-      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcAccel"); }
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "realizeAccel"); }
 
-    virtual void calcYOutward(
+    virtual void realizeYOutward(
         const SBStateDigest& sbs) const                     
-      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcYOutward"); }
+      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "realizeYOutward"); }
+
+    // This has a default implementation that is good for everything
+    // but Ground.
+    virtual void calcCompositeBodyInertiasInward(
+        const SBPositionCache& pc,
+        Vector_<SpatialMat>&   R) const;
 
     virtual void calcSpatialKinematicsFromInternal(
         const SBPositionCache&      pc,
@@ -545,7 +551,7 @@ public:
         Vector& tau) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getInternalForce");}
 
     // Note that this requires columns of H to be packed like SpatialVec.
-    virtual const SpatialVec& getHCol(const SBStateDigest&, int j) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getHCol");}
+    virtual const SpatialVec& getHCol(const SBPositionCache&, int j) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getHCol");}
 
     //TODO (does this even belong here?)
     virtual void velFromCartesian() {}

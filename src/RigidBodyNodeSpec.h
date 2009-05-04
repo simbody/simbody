@@ -337,8 +337,11 @@ public:
     {
     }
 
+    // Use base class implementation of calcCompositeBodyInertiasInward() since
+    // that is independent of mobilities.
+
     // This is a dynamics-stage calculation and must be called tip-to-base (inward).
-    void calcArticulatedBodyInertiasInward(
+    void realizeArticulatedBodyInertiasInward(
         const SBPositionCache& pc,
         SBDynamicsCache&       dc) const;
 
@@ -346,9 +349,19 @@ public:
 
     // This dynamics-stage calculation is needed for handling constraints. It
     // must be called base-to-tip (outward);
-    void calcYOutward(
+    void realizeYOutward(
         const SBPositionCache& pc,
         SBDynamicsCache&       dc) const;
+
+    void realizeZ(
+        const SBStateDigest&,
+        const Vector&              mobilityForces,
+        const Vector_<SpatialVec>& bodyForces) const;
+
+    void realizeAccel(
+        const SBStateDigest&   sbs,
+        Vector&                udot,
+        Vector&                qdotdot) const;
 
     // These routines give each node a chance to set appropriate defaults in a piece
     // of the state corresponding to a particular stage. Default implementations here
@@ -651,15 +664,6 @@ public:
     const Real&       get1Epsilon(const SBAccelerationCache& rc) const {return from1U(rc.epsilon);}
     Real&             upd1Epsilon(SBAccelerationCache&       rc) const {return to1U  (rc.epsilon);}
 
-    void calcZ(
-        const SBStateDigest&,
-        const Vector&              mobilityForces,
-        const Vector_<SpatialVec>& bodyForces) const;
-
-    void calcAccel(
-        const SBStateDigest&   sbs,
-        Vector&                udot,
-        Vector&                qdotdot) const;
 
     void calcSpatialKinematicsFromInternal(
         const SBPositionCache&      pc,

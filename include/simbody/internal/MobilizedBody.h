@@ -418,6 +418,10 @@ public:
     /// @see setUToFitVelocity()
     void setUToFitLinearVelocity    (State&, const Vec3&       v_FM) const;
 
+    /// Expert use only: obtain a column of the hinge matrix H corresponding to
+    /// one of this mobilizer's mobilities.
+    SpatialVec getHCol(const State& s, UIndex ux) const;
+
     // End of State Access Methods.
     //@} 
 
@@ -2552,7 +2556,7 @@ public:
     Implementation(SimbodyMatterSubsystem&, int nu, int nq, int nAngles=0);
 
     /// Return a Vector containing all the generalized coordinates q currently in use by this mobilizer.
-    /// Note that if this mobilizer uses quaternions, the number of q's will depened on whether
+    /// Note that if this mobilizer uses quaternions, the number of q's will depend on whether
     /// quaternions are currently enabled.  Call getUseEulerAngles() to check this.
     Vector getQ(const State& s) const;
     
@@ -2560,7 +2564,7 @@ public:
     Vector getU(const State& s) const;
 
     /// Return a Vector containing all the generalized coordinate derivatives qdot currently in use by this mobilizer.
-    /// Note that if this mobilizer uses quaternions, the number of q's will depened on whether
+    /// Note that if this mobilizer uses quaternions, the number of q's will depend on whether
     /// quaternions are currently enabled.  Call getUseEulerAngles() to check this.
     Vector getQDot(const State& s) const;
 
@@ -2568,12 +2572,12 @@ public:
     Vector getUDot(const State& s) const;
     
     /// Return a Vector containing all the generalized coordinate second derivatives qdotdot currently in use by this mobilizer.
-    /// Note that if this mobilizer uses quaternions, the number of q's will depened on whether
+    /// Note that if this mobilizer uses quaternions, the number of q's will depend on whether
     /// quaternions are currently enabled.  Call getUseEulerAngles() to check this.
     Vector getQDotDot(const State& s) const;
 
-    /// Get the cross-mobilizer transform X_FM, the body's inboard mobilizer frame M measured and expressed in
-    /// the parent body's corresponding outboard frame F.  The state must have been realized to at least
+    /// Get the cross-mobilizer transform X_FM, the body's "moving" mobilizer frame M measured and expressed in
+    /// the parent body's corresponding "fixed" frame F.  The state must have been realized to at least
     /// Position stage. Note: this refers to F and M <em>as defined</em>, not as they are if the 
     /// mobilizer has been reversed (that is, we're really returning X_F0M0 here).
     Transform getMobilizerTransform(const State& s) const;
@@ -2624,17 +2628,15 @@ public:
     /// IMPORTANT -- H should depend only on X_FM(q), not directly on q, since different sets
     /// of q's can generate the same Transform (e.g. quaternions and Euler angles). You can
     /// call getMobilizerTransform(s) to get the already calculated Transform.
-
-    // TODO: UGLY CAVEAT -- I believe that the "H" I'm using here is the transpose of what
-    // is used in the code internally. That's because unfortunately for historical reasons
-    // Abhi Jain used H^T as the joint kinematics Jacobian, with H being the force transmission
-    // matrix which no mobilizer-writing user is going to care about. It would be best to 
-    // use the matrix in this friendlier way (or perhaps call it something else like "J" for
-    // Jacobian, although that is heavily overloaded) at least here in the interface but 
-    // ideally we would change the sense of the matrix everywhere. In Schwieters' paper he
-    // reversed Jain's body numbering scheme but not the sense of H. Perhaps I'm wrong and
-    // we ought just to leave the sense alone since users have to give us both H and H^T 
-    // operators here.
+    ///
+    /// EVEN MORE IMPORTANT -- H here must be the same as the H^T used in multiplyByHTranspose(),
+    /// and the HDot methods must use the time derivative of H.
+    ///
+    /// Note: the "H" we're using here is the transpose of what is used in Schwieter's IVM
+    /// paper and in all of Abhi Jain's papers. That's because Jain used H^T as the joint 
+    /// kinematics Jacobian, with H being the force transmission matrix which no 
+    /// mobilizer-writing user is going to be thinking about.
+    /// @see multiplyByHTranspose()
     virtual SpatialVec multiplyByHMatrix(const State& s, int nu, const Real* u) const = 0;
 
     /// Calculate f = ~H*F where F is a spatial force (torque+force) and f is its mapping onto
@@ -2643,6 +2645,8 @@ public:
     /// IMPORTANT -- H should depend only on X_FM(q), not directly on q, since different sets
     /// of q's can generate the same Transform (e.g. quaternions and Euler angles). You can
     /// call getMobilizerTransform(s) to get the already calculated Transform.
+    /// H here must match H and HDot in the other methods for this mobilizer.
+    /// @see multiplyByHMatrix()
     virtual void multiplyByHTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const = 0;
 
     /// Calculate A0_FM = HDot*u where HDot=HDot(q,u) is the time derivative of H. This calculates
@@ -2797,15 +2801,15 @@ public:
     ///   - pre-calculate Position stage cache values according to the current values of positions found
     ///     in the State.
     /// Note that this is called <em>before</em> methods which implement operators involving position-dependent
-    /// matrices Q and H.
+    /// matrices N and H.
     virtual void realizePosition(const State&) const { }
 
     /// The Matter Subsystem's realizeVelocity() method will call this method along with the built-in
     /// MobilizedBodies' realizeVelocity() methods. This gives the MobilizedBody a chance to 
     ///   - pre-calculate Velocity stage cache values according to the current values of velocities found
     ///     in the State.
-    /// Note that this is called <em>before</em> methods which implement operators involving position-dependent
-    /// matrices QDot and HDot.
+    /// Note that this is called <em>before</em> methods which implement operators involving velocity-dependent
+    /// matrices NDot and HDot.
     virtual void realizeVelocity(const State&) const { }
 
     /// The Matter Subsystem's realizeDynamics() method will call this method along with the built-in

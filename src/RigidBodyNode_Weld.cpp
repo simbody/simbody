@@ -171,19 +171,27 @@ public:
     void realizeAcceleration(SBStateDigest& sbs) const {}
     void realizeReport(SBStateDigest& sbs) const {}
 
+    // Ground's "composite" body inertia is still the infinite mass
+    // and inertia it started with; no need to look at the children.
+    // This overrides the base class default implementation.
+    void calcCompositeBodyInertiasInward(
+        const SBPositionCache& pc,
+        Vector_<SpatialMat>&   R) const
+    {   R[0] = SpatialMat(Mat33(Infinity)); }
+
     // Ground's "articulated" body inertia is still the infinite mass and
-    // inertia it started with.
-    void calcArticulatedBodyInertiasInward(
+    // inertia it started with; no need to look at the children.
+    void realizeArticulatedBodyInertiasInward(
         const SBPositionCache&,
         SBDynamicsCache&       dc) const 
     {   updP(dc) = SpatialMat(Mat33(Infinity)); }
 
-    void calcYOutward(
+    void realizeYOutward(
         const SBPositionCache& pc,
         SBDynamicsCache&       dc) const 
     {   updY(dc) = SpatialMat(Mat33(0)); }
 
-    void calcZ(
+    void realizeZ(
         const SBStateDigest&       sbs,
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces) const 
@@ -199,7 +207,7 @@ public:
         }
         updGepsilon(ac) = SpatialVec(Vec3(0));
     }
-    void calcAccel(
+    void realizeAccel(
             const SBStateDigest&   sbs,
             Vector&                udot,
             Vector&                qdotdot) const 
@@ -451,7 +459,10 @@ public:
     void realizeAcceleration(SBStateDigest& sbs) const {}
     void realizeReport(SBStateDigest& sbs) const {}
 
-    void calcArticulatedBodyInertiasInward(const SBPositionCache& pc, SBDynamicsCache& dc) const {
+    // Weld uses base class implementation of calcCompositeBodyInertiasInward() since
+    // that is independent of mobilities.
+
+    void realizeArticulatedBodyInertiasInward(const SBPositionCache& pc, SBDynamicsCache& dc) const {
         updP(dc) = getMk(pc);
 		for (int i=0 ; i<(int)children.size() ; i++) {
 			const SpatialMat& tauBarChild = children[i]->getTauBar(dc);
@@ -463,19 +474,19 @@ public:
 			updP(dc) += phiChild * (tauBarChild * PChild) * ~phiChild;
 		}
 
-        updTauBar(dc) = 1; // identityy
+        updTauBar(dc) = 1; // identity
         updPsi(dc) = getPhi(pc).toSpatialMat();
     }
 
 
-    void calcYOutward(
+    void realizeYOutward(
         const SBPositionCache& pc,
         SBDynamicsCache&       dc) const
     {
         updY(dc) = ~getPsi(dc) * parent->getY(dc) * getPsi(dc);
     }
 
-    void calcZ(
+    void realizeZ(
         const SBStateDigest&       sbs,
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces) const 
@@ -498,7 +509,7 @@ public:
     }
 
 
-    void calcAccel(
+    void realizeAccel(
             const SBStateDigest&   sbs,
             Vector&                udot,
             Vector&                qdotdot) const

@@ -200,6 +200,12 @@ void MobilizedBody::setUToFitLinearVelocity(State& s, const Vec3& v_MbM) const {
     getImpl().setUToFitLinearVelocity(s,v_MbM);
 }
 
+SpatialVec MobilizedBody::getHCol(const State& s, UIndex ux) const {
+    SimTK_INDEXCHECK(0, ux, getNumU(s), "MobilizedBody::getHCol()");
+    return getImpl().getHCol(s,ux);
+}
+
+
 int MobilizedBody::getNumQ(const State& s) const {
     QIndex qStart; int nq; getImpl().findMobilizerQs(s, qStart, nq);
     return nq;

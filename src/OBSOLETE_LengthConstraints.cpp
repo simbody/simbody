@@ -1267,8 +1267,8 @@ LengthSet::fixVel0(State& s, Vector& iVel)
         // calc deltaVa from k-th constraint condition
         //FIX: make sure that nodeMap is ordered by level
         // get all nodes in given molecule, ordered by level
-        getRBTree().calcZ(s, zeroMobilityImpulses, bodyImpulses);
-        getRBTree().calcTreeAccel(s);
+        getRBTree().realizeZ(s, zeroMobilityImpulses, bodyImpulses);
+        getRBTree().realizeTreeAccel(s);
         deltaIVel[m] = getRBTree().getUDot(s);
 
         // Set the new velocities.
