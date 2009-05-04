@@ -222,34 +222,53 @@ RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
     const SBPositionCache& pc,
     SBDynamicsCache&       dc) const 
 {
-    updP(dc) = getMk(pc);
-    for (unsigned i=0; i<children.size(); ++i) {
-        const SpatialMat& tauBarChild = children[i]->getTauBar(dc);
-        const SpatialMat& PChild      = children[i]->getP(dc);
-        const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
+    SpatialMat& P = updP(dc);
+    // Start with the spatial inertia of the current body.
+    P = getMk(pc);
 
-        // TODO: this is around 650 flops, 396 due to the 6x6
-        // multiply in the middle, about 100 each for the shifts, and 36
-        // for the +=. We can cut each of these in half by
-        // exploiting symmetry. (tauBar is a projection operator; it is
-        // not symmetric but the result tauBar*P = P-(P H DI ~H P) is symmetric.)
-        updP(dc) += phiChild * (tauBarChild * PChild) * ~phiChild;
+    // For each child, take its articulated body inertia P and 
+    // remove the portion of that inertia that can't be felt from 
+    // the parent because of the joint mobilities. That is, we
+    // calculate Pnew = P - P H DI ~H P, where I believe the
+    // second term is the projection of P into the mobility space.
+    // Then we shift Pnew from child to parent: Pparent += Phi*Pnew*~Phi.
+    for (unsigned i=0; i<children.size(); ++i) {
+        const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
+        const SpatialMat& PChild      = children[i]->getP(dc);
+        const SpatialMat& psiChild    = children[i]->getPsi(dc);
+
+        // TODO: this is around 550 flops, 396 due to the 6x6
+        // multiply with Psi, about 100 for the P*Phi shift, and 36
+        // for the +=. The 6x6 multiply yields a symmetric result
+        // so can be cut almost in half:
+        // Psi is -Phi*(1 - P H DI ~H) so the multiply by P*Phi gives
+        // the negative of the projected result we want,
+        // Phi*(P - P H DI ~H P)*Phi. Subtracting here fixes the sign.
+        P -= psiChild * (PChild * ~phiChild);
     }
 
+    const HType&  H  = getH(pc);
+    HType&        G  = updG(dc);
+    Mat<dof,dof>& D  = updD(dc);
+    Mat<dof,dof>& DI = updDI(dc);
 
-    const Mat<2,dof,Vec3> PH = getP(dc) * getH(pc); // 66*dof   flops
-    updD(dc)  = ~getH(pc) * PH;                     // 11*dof^2 flops (symmetric result)
+    const Mat<2,dof,Vec3> PH = P * H;       // 66*dof   flops
+    D  = ~H * PH;                           // 11*dof^2 flops (symmetric result)
 
     // this will throw an exception if the matrix is ill conditioned
-    updDI(dc) = getD(dc).invert();                  // ~dof^3 flops (symmetric)
-    updG(dc)  = PH * getDI(dc);                     // 11*dof^2 flops
+    DI = D.invert();                        // ~dof^3 flops (symmetric)
+    G  = PH * DI;                           // 11*dof^2 flops
 
-    // TODO: change sign on taubar to make it G*~H - I instead, which only requires
-    // subtractions on the diagonal rather than negating all the off-diag stuff.
-    // That would save 30 flops here (I know, not much).
-    updTauBar(dc)  = 1.; // identity matrix
-    updTauBar(dc) -= getG(dc) * ~getH(pc);          // 11*dof^2 + 36 flops
-    updPsi(dc)     = getPhi(pc) * getTauBar(dc);    // ~100 flops
+    // Note: Jain has TauBar=I-G*~H but we're negating that to G*~H-I because we
+    // can save 30 flops by just subtracting 1 from the diagonals rather than having
+    // to negate all the off-diagonals. Then Psi ends up with the wrong sign here
+    // also, which gets handled in the shifting loop above by subtracting instead
+    // of adding. So the P's we calculate all have the right sign in the end.
+    SpatialMat& tauBar = updTauBar(dc);
+    tauBar = G * ~H;                        // 11*dof^2 flops
+    tauBar(0,0) -= 1; // subtract identity matrix (only touches diagonals -- 3 flops)
+    tauBar(1,1) -= 1; //    "    (3 flops)
+    updPsi(dc)   = getPhi(pc) * tauBar;     // ~100 flops
 }
 
 // To be called base to tip.
@@ -267,6 +286,9 @@ RigidBodyNodeSpec<dof>::realizeYOutward(
     // by exploiting symmetry. Also, does Psi have special structure?
     // And does this need to be computed for every body or only those
     // which are loop "base" bodies or some such?
+
+    // Psi here has the opposite sign from Jain's, but we're multiplying twice
+    // by it here so it doesn't matter.
     updY(dc) = (getH(pc) * getDI(dc) * ~getH(pc)) 
                 + (~getPsi(dc) * parent->getY(dc) * getPsi(dc));
 }

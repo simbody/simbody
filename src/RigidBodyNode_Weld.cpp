@@ -464,18 +464,23 @@ public:
 
     void realizeArticulatedBodyInertiasInward(const SBPositionCache& pc, SBDynamicsCache& dc) const {
         updP(dc) = getMk(pc);
-		for (int i=0 ; i<(int)children.size() ; i++) {
-			const SpatialMat& tauBarChild = children[i]->getTauBar(dc);
-			const SpatialMat& PChild      = children[i]->getP(dc);
-			const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
+		for (unsigned i=0 ; i<children.size() ; i++) {
+            const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
+            const SpatialMat& tauBarChild = children[i]->getTauBar(dc);
+            const SpatialMat& PChild      = children[i]->getP(dc);
+            const SpatialMat& psiChild    = children[i]->getPsi(dc);
 
-			// TODO: this is around 450 flops but could be cut in half by
-			// exploiting symmetry.
-			updP(dc) += phiChild * (tauBarChild * PChild) * ~phiChild;
+			// TODO: too slow -- can get a 50% speedup by exploiting
+            // symmetry; see the RigidBodyNodeSpec<dof> 
+            // implementation for more info.
+            // (Subtracting here because our Psi has reverse sign convention
+            // from Jain's.)
+            updP(dc) -= psiChild * (PChild * ~phiChild);
 		}
 
-        updTauBar(dc) = 1; // identity
-        updPsi(dc) = getPhi(pc).toSpatialMat();
+        // Note our backwards sign convention for TauBar and Psi (from Jain's).
+        updTauBar(dc) = -1; // -identity
+        updPsi(dc) = -getPhi(pc).toSpatialMat();
     }
 
 
