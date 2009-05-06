@@ -480,6 +480,7 @@ public:
 
         // Note our backwards sign convention for TauBar and Psi (from Jain's).
         updTauBar(dc) = -1; // -identity
+        // TODO: wasting 33 flops negating; just re-create from -p.
         updPsi(dc) = -getPhi(pc).toSpatialMat();
     }
 

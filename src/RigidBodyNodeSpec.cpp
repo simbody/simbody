@@ -212,8 +212,8 @@ RigidBodyNodeSpec<dof>::calcReverseMobilizerHDot_FM(
 //      D   (factored mass matrix LDL' diagonal part D=~H*P*H)
 //      DI  (inverse of D)
 //      G   (P * H * DI)
-//   tauBar (I-G*~H, a temporary not reused elsewhere)
-//      Psi (Phi*(I-G*~H), articulated body child-to-parent shift matrix)
+//   tauBar (G*~H - I, a temporary not reused elsewhere)
+//      Psi (Phi*(G*~H - I), articulated body child-to-parent shift matrix)
 // and put them in the state cache.
 // This must be called tip-to-base (inward).
 //
