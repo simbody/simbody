@@ -357,7 +357,8 @@ void MobilizedBodyImpl::copyOutDefaultQ(const State& s, Vector& qDefault) const 
         "MobilizedBody::copyOutDefaultQ()");
     QIndex qStart; int nq;
     findMobilizerQs(s, qStart, nq);
-    copyOutDefaultQImpl(nq, &qDefault[qStart]);
+    if (nq)
+        copyOutDefaultQImpl(nq, &qDefault[qStart]);
 }
 
     // TODO: currently we delegate these requests to the RigidBodyNodes. 

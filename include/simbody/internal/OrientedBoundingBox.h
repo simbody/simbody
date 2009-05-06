@@ -94,7 +94,7 @@ public:
     /**
      * Get the locations of the eight corners of the box.
      *
-     * @param the corner locations are stored in this array
+     * @param corners   the corner locations are stored in this array
      */
     SimTK_SIMBODY_EXPORT void getCorners(Vec3 corners[8]) const;
 private:
