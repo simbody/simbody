@@ -51,19 +51,21 @@ template <int M, int N, class ELT, int CS, int RS> class Mat {
     typedef typename CNT<E>::TComplex           EComplex;
     typedef typename CNT<E>::THerm              EHerm;
     typedef typename CNT<E>::TPosTrans          EPosTrans;
+    typedef typename CNT<E>::TSqHermT           ESqHermT;
+    typedef typename CNT<E>::TSqTHerm           ESqTHerm;
 
+    typedef typename CNT<E>::TSqrt              ESqrt;
     typedef typename CNT<E>::TAbs               EAbs;
     typedef typename CNT<E>::TStandard          EStandard;
     typedef typename CNT<E>::TInvert            EInvert;
     typedef typename CNT<E>::TNormalize         ENormalize;
-    typedef typename CNT<E>::TSqHermT           ESqHermT;
-    typedef typename CNT<E>::TSqTHerm           ESqTHerm;
 
     typedef typename CNT<E>::Scalar             EScalar;
+    typedef typename CNT<E>::ULessScalar        EULessScalar;
     typedef typename CNT<E>::Number             ENumber;
     typedef typename CNT<E>::StdNumber          EStdNumber;
     typedef typename CNT<E>::Precision          EPrecision;
-    typedef typename CNT<E>::ScalarSq           EScalarSq;
+    typedef typename CNT<E>::ScalarNormSq       EScalarNormSq;
 
 public:
 
@@ -84,6 +86,7 @@ public:
                                 ? CNT<E>::ArgDepth + 1 
                                 : MAX_RESOLVED_DEPTH),
         IsScalar            = 0,
+        IsULessScalar       = 0,
         IsNumber            = 0,
         IsStdNumber         = 0,
         IsPrecision         = 0,
@@ -108,10 +111,12 @@ public:
 
     // These are the results of calculations, so are returned in new, packed
     // memory. Be sure to refer to element types here which are also packed.
+    typedef Mat<M,N,ESqrt,M,1>              TSqrt;      // Note strides are packed
     typedef Mat<M,N,EAbs,M,1>               TAbs;       // Note strides are packed
     typedef Mat<M,N,EStandard,M,1>          TStandard;
     typedef Mat<N,M,EInvert,N,1>            TInvert;    // like THerm but packed
     typedef Mat<M,N,ENormalize,M,1>         TNormalize;
+
     typedef SymMat<N,ESqHermT>              TSqHermT;   // ~Mat*Mat
     typedef SymMat<M,ESqTHerm>              TSqTHerm;   // Mat*~Mat
 
@@ -126,10 +131,11 @@ public:
     typedef Mat<M+1,N+1,E,M,1>              TAppendRowCol;
 
     typedef EScalar                         Scalar;
+    typedef EULessScalar                    ULessScalar;
     typedef ENumber                         Number;
     typedef EStdNumber                      StdNumber;
     typedef EPrecision                      Precision;
-    typedef EScalarSq                       ScalarSq;
+    typedef EScalarNormSq                   ScalarNormSq;
 
     typedef THerm                           TransposeType; // TODO
 
@@ -138,10 +144,19 @@ public:
     int ncol() const { return N; }
 
     // Scalar norm square is sum( squares of all scalars )
-    ScalarSq scalarNormSqr() const { 
-        ScalarSq sum(0);
+    ScalarNormSq scalarNormSqr() const { 
+        ScalarNormSq sum(0);
         for(int j=0;j<N;++j) sum += CNT<TCol>::scalarNormSqr((*this)(j));
         return sum;
+    }
+
+    // sqrt() is elementwise square root; that is, the return value has the same
+    // dimension as this Mat but with each element replaced by whatever it thinks
+    // its square root is.
+    TSqrt sqrt() const { 
+        TSqrt msqrt;
+        for(int j=0;j<N;++j) msqrt(j) = (*this)(j).sqrt();
+        return msqrt;
     }
 
     // abs() is elementwise absolute value; that is, the return value has the same
@@ -551,8 +566,9 @@ public:
     E&       operator()(int i,int j)       { return d[i*RS+j*CS]; }
 
     // This is the scalar Frobenius norm.
-    ScalarSq normSqr() const { return scalarNormSqr(); }
-    ScalarSq norm()    const { return std::sqrt(scalarNormSqr()); }
+    ScalarNormSq normSqr() const { return scalarNormSqr(); }
+    typename CNT<ScalarNormSq>::TSqrt 
+        norm() const { return CNT<ScalarNormSq>::sqrt(scalarNormSqr()); }
 
     // There is no conventional meaning for normalize() applied to a matrix. We
     // choose to define it as follows:
@@ -642,7 +658,7 @@ public:
     const TDiag& diag() const { return *reinterpret_cast<const TDiag*>(d); }
     TDiag&       diag()       { return *reinterpret_cast<TDiag*>(d); }
 
-    StdNumber trace() const {return diag().sum();}
+    EStandard trace() const {return diag().sum();}
 
     // These are elementwise binary operators, (this op ee) by default but (ee op this) if
     // 'FromLeft' appears in the name. The result is a packed Mat<M,N> but the element type

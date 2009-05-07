@@ -92,16 +92,18 @@ class Vec {
     typedef typename CNT<E>::TSqHermT           ESqHermT;
     typedef typename CNT<E>::TSqTHerm           ESqTHerm;
 
+    typedef typename CNT<E>::TSqrt              ESqrt;
     typedef typename CNT<E>::TAbs               EAbs;
     typedef typename CNT<E>::TStandard          EStandard;
     typedef typename CNT<E>::TInvert            EInvert;
     typedef typename CNT<E>::TNormalize         ENormalize;
 
     typedef typename CNT<E>::Scalar             EScalar;
+    typedef typename CNT<E>::ULessScalar        EULessScalar;
     typedef typename CNT<E>::Number             ENumber;
     typedef typename CNT<E>::StdNumber          EStdNumber;
     typedef typename CNT<E>::Precision          EPrecision;
-    typedef typename CNT<E>::ScalarSq           EScalarSq;
+    typedef typename CNT<E>::ScalarNormSq       EScalarNormSq;
 
 public:
 
@@ -120,6 +122,7 @@ public:
                                 ? CNT<E>::ArgDepth + 1 
                                 : MAX_RESOLVED_DEPTH),
         IsScalar            = 0,
+        IsULessScalar       = 0,
         IsNumber            = 0,
         IsStdNumber         = 0,
         IsPrecision         = 0,
@@ -145,32 +148,43 @@ public:
 
     // These are the results of calculations, so are returned in new, packed
     // memory. Be sure to refer to element types here which are also packed.
+    typedef Vec<M,ESqrt,1>                  TSqrt;      // Note stride
     typedef Vec<M,EAbs,1>                   TAbs;       // Note stride
     typedef Vec<M,EStandard,1>              TStandard;
     typedef Row<M,EInvert,1>                TInvert;
     typedef Vec<M,ENormalize,1>             TNormalize;
 
-    typedef EScalarSq                       TSqHermT;   // result of self dot product
+    typedef ESqHermT                        TSqHermT;   // result of self dot product
     typedef SymMat<M,ESqTHerm>              TSqTHerm;   // result of self outer product
 
     // These recurse right down to the underlying scalar type no matter how
     // deep the elements are.
     typedef EScalar                         Scalar;
+    typedef EULessScalar                    ULessScalar;
     typedef ENumber                         Number;
     typedef EStdNumber                      StdNumber;
     typedef EPrecision                      Precision;
-    typedef EScalarSq                       ScalarSq;
+    typedef EScalarNormSq                   ScalarNormSq;
 
     int size()   const  { return M; }
     int nrow()   const  { return M; }
     int ncol()   const  { return 1; }
 
 
-    // Scalar norm square is sum( squares of all scalars )
-    ScalarSq scalarNormSqr() const { 
-        ScalarSq sum(0);
+    // Scalar norm square is sum( conjugate squares of all scalars )
+    ScalarNormSq scalarNormSqr() const { 
+        ScalarNormSq sum(0);
         for(int i=0;i<M;++i) sum += CNT<E>::scalarNormSqr(d[i*STRIDE]);
         return sum;
+    }
+
+    // sqrt() is elementwise square root; that is, the return value has the same
+    // dimension as this Vec but with each element replaced by whatever it thinks
+    // its square root is.
+    TSqrt sqrt() const {
+        TSqrt vsqrt;
+        for(int i=0;i<M;++i) vsqrt[i] = CNT<E>::sqrt(d[i*STRIDE]);
+        return vsqrt;
     }
 
     // abs() is elementwise absolute value; that is, the return value has the same
@@ -353,8 +367,9 @@ public:
     const E& operator()(int i) const { return (*this)[i]; }
 	E&       operator()(int i)	     { return (*this)[i]; }
 
-    ScalarSq normSqr() const { return scalarNormSqr(); }
-    ScalarSq norm()    const { return std::sqrt(scalarNormSqr()); }
+    ScalarNormSq normSqr() const { return scalarNormSqr(); }
+    typename CNT<ScalarNormSq>::TSqrt 
+        norm() const { return CNT<ScalarNormSq>::sqrt(scalarNormSqr()); }
 
     // If the elements of this Vec are scalars, the result is what you get by
     // dividing each element by the norm() calculated above. If the elements are

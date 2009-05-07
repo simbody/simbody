@@ -102,6 +102,7 @@ public:
     typedef negator<N>                                          TRow;
     typedef negator<N>                                          TCol;
 
+    typedef typename NTraits<N>::TSqrt                          TSqrt;
     typedef typename NTraits<N>::TAbs                           TAbs;
     typedef typename NTraits<N>::TStandard                      TStandard;
     typedef typename CNT<NInvert>::TNeg                         TInvert;
@@ -109,10 +110,11 @@ public:
 
 
     typedef negator<N>                                          Scalar;
+    typedef negator<N>                                          ULessScalar;
     typedef NUMBER                                              Number;
     typedef typename NTraits<N>::StdNumber                      StdNumber;
     typedef typename NTraits<N>::Precision                      Precision;
-    typedef typename NTraits<N>::ScalarSq                       ScalarSq;
+    typedef typename NTraits<N>::ScalarNormSq                   ScalarNormSq;
 
     // negator may be used in combination with any composite numerical type, not just
     // numbers. Hence we must use CNT<P> here rather than NTraits<P> (they are 
@@ -154,14 +156,12 @@ public:
         RealStrideFactor    = NTraits<N>::RealStrideFactor,
         ArgDepth            = SCALAR_DEPTH,
         IsScalar            = 1,
+        IsULessScalar       = 1,
         IsNumber            = 0,
         IsStdNumber         = 0,
         IsPrecision         = 0,
         SignInterpretation  = -1 // if you cast away the negator, don't forget this!
     };
-    static negator<N> getNaN()      {return recast(NTraits<N>::getNaN());}
-	static negator<N> getInfinity() {return recast(NTraits<N>::getInfinity());}
-
     const negator<N>* getData() const {return this;}
     negator<N>*       updData()       {return this;}
 
@@ -170,16 +170,20 @@ public:
     const TImag& imag() const {return reinterpret_cast<const TImag&>(NTraits<N>::imag(v));}
     TImag&       imag()       {return reinterpret_cast<      TImag&>(NTraits<N>::imag(v));}
 
-    ScalarSq   scalarNormSqr() const {return NTraits<N>::scalarNormSqr(v);}
-    TAbs       abs()           const {return NTraits<N>::abs(v);}
-    TStandard  standardize()   const {return -NTraits<N>::standardize(v);}
-    TNormalize normalize()     const {return -NTraits<N>::normalize(v);}
+    ScalarNormSq    scalarNormSqr() const {return NTraits<N>::scalarNormSqr(v);}
+    TSqrt           sqrt()          const {return NTraits<N>::sqrt(N(v));}
+    TAbs            abs()           const {return NTraits<N>::abs(v);}
+    TStandard       standardize()   const {return -NTraits<N>::standardize(v);}
+    TNormalize      normalize()     const {return -NTraits<N>::normalize(v);}
 
     // Inverse (1/x) of a non-negated type N will return a non-negated type, so we
     // can cast it to a negated type here to save a flop. The return type might
     // not be N (a negated conjugate comes back as a complex), so there may be
     // a flop done in the final conversion to TInvert.
     TInvert invert() const {return recast(NTraits<N>::invert(v));}
+
+    static negator<N> getNaN()      {return recast(NTraits<N>::getNaN());}
+	static negator<N> getInfinity() {return recast(NTraits<N>::getInfinity());}
 
     negator() {
     #ifndef NDEBUG

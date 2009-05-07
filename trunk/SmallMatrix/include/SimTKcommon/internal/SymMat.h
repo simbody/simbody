@@ -88,16 +88,18 @@ template <int M, class ELT, int RS> class SymMat {
     typedef typename CNT<E>::TSqHermT           ESqHermT;
     typedef typename CNT<E>::TSqTHerm           ESqTHerm;
 
+    typedef typename CNT<E>::TSqrt              ESqrt;
     typedef typename CNT<E>::TAbs               EAbs;
     typedef typename CNT<E>::TStandard          EStandard;
     typedef typename CNT<E>::TInvert            EInvert;
     typedef typename CNT<E>::TNormalize         ENormalize;
 
     typedef typename CNT<E>::Scalar             EScalar;
+    typedef typename CNT<E>::ULessScalar        EULessScalar;
     typedef typename CNT<E>::Number             ENumber;
     typedef typename CNT<E>::StdNumber          EStdNumber;
     typedef typename CNT<E>::Precision          EPrecision;
-    typedef typename CNT<E>::ScalarSq           EScalarSq;
+    typedef typename CNT<E>::ScalarNormSq       EScalarNormSq;
 
 public:
 
@@ -116,6 +118,7 @@ public:
                                 ? CNT<E>::ArgDepth + 1 
                                 : MAX_RESOLVED_DEPTH),
         IsScalar            = 0,
+        IsULessScalar       = 0,
         IsNumber            = 0,
         IsStdNumber         = 0,
         IsPrecision         = 0,
@@ -143,6 +146,7 @@ public:
     // memory. Be sure to refer to element types here which are also packed.
     typedef Row<M,E,1>                  TRow; // packed since we have to copy
     typedef Vec<M,E,1>                  TCol;
+    typedef SymMat<M,ESqrt,1>           TSqrt;
     typedef SymMat<M,EAbs,1>            TAbs;
     typedef SymMat<M,EStandard,1>       TStandard;
     typedef SymMat<M,EInvert,1>         TInvert;
@@ -152,10 +156,11 @@ public:
     typedef SymMat<M,E,1>               TPacked;  // no extra row spacing for new data
     
     typedef EScalar                     Scalar;
+    typedef EULessScalar                ULessScalar;
     typedef ENumber                     Number;
     typedef EStdNumber                  StdNumber;
     typedef EPrecision                  Precision;
-    typedef EScalarSq                   ScalarSq;
+    typedef EScalarNormSq               ScalarNormSq;
 
     int size() const { return (M*(M+1))/2; }
     int nrow() const { return M; }
@@ -163,12 +168,19 @@ public:
 
     // Scalar norm square is sum( squares of all scalars ). The off-diagonals
     // come up twice.
-    ScalarSq scalarNormSqr() const { 
+    ScalarNormSq scalarNormSqr() const { 
         return getDiag().scalarNormSqr() + 2.*getLower().scalarNormSqr();
     }
 
+    // sqrt() is elementwise square root; that is, the return value has the same
+    // dimension as this SymMat but with each element replaced by whatever it thinks
+    // its square root is.
+    TSqrt sqrt() const { 
+        return TSqrt(getAsVec().sqrt());
+    }
+
     // abs() is elementwise absolute value; that is, the return value has the same
-    // dimension as this Mat but with each element replaced by whatever it thinks
+    // dimension as this SymMat but with each element replaced by whatever it thinks
     // its absolute value is.
     TAbs abs() const { 
         return TAbs(getAsVec().abs());
@@ -178,7 +190,7 @@ public:
         return TStandard(getAsVec().standardize());
     }
 
-    StdNumber trace() const {return getDiag().sum();}
+    EStandard trace() const {return getDiag().sum();}
 
     // This gives the resulting SymMat type when (m[i] op P) is applied to each element of m.
     // It is a SymMat of dimension M, spacing 1, and element types which are the regular
@@ -442,8 +454,9 @@ public:
       { return i==j ? updDiag()[i] : updEltLower(i,j); }
 
     // This is the scalar Frobenius norm.
-    ScalarSq normSqr() const { return scalarNormSqr(); }
-    ScalarSq norm()    const { return std::sqrt(scalarNormSqr()); }
+    ScalarNormSq normSqr() const { return scalarNormSqr(); }
+    typename CNT<ScalarNormSq>::TSqrt 
+        norm() const { return CNT<ScalarNormSq>::sqrt(scalarNormSqr()); }
 
     // There is no conventional meaning for normalize() applied to a matrix. We
     // choose to define it as follows:

@@ -41,6 +41,9 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/internal/Rotation.h"
 
+#include <cmath>
+#include <utility>
+
 //-------------------------------------------------------------------
 namespace SimTK {
 
@@ -299,12 +302,12 @@ Vec2  Rotation::convertTwoAxesBodyFixedRotationToTwoAngles( const CoordinateAxis
    // Can use either direct method (fast) or all matrix elements with the overhead of two additional square roots (possibly more accurate)
    const Real sinTheta1Direct = R[k][j];
    const Real signSinTheta1 = sinTheta1Direct > 0 ? 1.0 : -1.0;
-   const Real sinTheta1Alternate = signSinTheta1 * sqrt( square(R[j][i]) + square(R[j][k]) );
+   const Real sinTheta1Alternate = signSinTheta1 * std::sqrt( square(R[j][i]) + square(R[j][k]) );
    const Real sinTheta1 = 0.5*( sinTheta1Direct + sinTheta1Alternate );
 
    const Real cosTheta1Direct = R[j][j];
    const Real signCosTheta1 = cosTheta1Direct > 0 ? 1.0 : -1.0;
-   const Real cosTheta1Alternate = signCosTheta1 * sqrt( square(R[k][i]) + square(R[k][k]) );
+   const Real cosTheta1Alternate = signCosTheta1 * std::sqrt( square(R[k][i]) + square(R[k][k]) );
    const Real cosTheta1 = 0.5*( cosTheta1Direct + cosTheta1Alternate );
 
    Real theta1 = std::atan2( sinTheta1, cosTheta1 );
@@ -312,12 +315,12 @@ Vec2  Rotation::convertTwoAxesBodyFixedRotationToTwoAngles( const CoordinateAxis
    // Repeat for theta2
    const Real sinTheta2Direct = R[i][k];
    const Real signSinTheta2 = sinTheta2Direct > 0 ? 1.0 : -1.0;
-   const Real sinTheta2Alternate = signSinTheta2 * sqrt( square(R[j][i]) + square(R[k][i]) );
+   const Real sinTheta2Alternate = signSinTheta2 * std::sqrt( square(R[j][i]) + square(R[k][i]) );
    const Real sinTheta2 = 0.5*( sinTheta2Direct + sinTheta2Alternate );
 
    const Real cosTheta2Direct = R[i][i];
    const Real signCosTheta2 = cosTheta2Direct > 0 ? 1.0 : -1.0;
-   const Real cosTheta2Alternate = signCosTheta2 * sqrt( square(R[j][k]) + square(R[k][k]) );
+   const Real cosTheta2Alternate = signCosTheta2 * std::sqrt( square(R[j][k]) + square(R[k][k]) );
    const Real cosTheta2 = 0.5*( cosTheta2Direct + cosTheta2Alternate );
 
    Real theta2 = std::atan2( sinTheta2, cosTheta2 );
@@ -353,7 +356,7 @@ Vec3  Rotation::convertTwoAxesBodyFixedRotationToThreeAngles( const CoordinateAx
    const Mat33& R =  asMat33();
 
    // Calculate theta2 using lots of information in the rotation matrix
-   const Real Rsum = sqrt( 0.5*( square(R[i][j]) + square(R[i][k]) + square(R[j][i]) + square(R[k][i]) ) );  
+   const Real Rsum = std::sqrt( 0.5*( square(R[i][j]) + square(R[i][k]) + square(R[j][i]) + square(R[k][i]) ) );  
    const Real theta2 =  atan2( Rsum, R[i][i] );  // Rsum = abs(sin(theta2)) is inherently positive
    Real theta1, theta3;
 
@@ -405,7 +408,7 @@ Vec3  Rotation::convertThreeAxesBodyFixedRotationToThreeAngles( const Coordinate
    const Mat33& R =  asMat33();
 
    // Calculate theta2 using lots of information in the rotation matrix
-   Real Rsum   =  sqrt( 0.5*( square(R[i][i]) + square(R[i][j]) + square(R[j][k]) + square(R[k][k])) );
+   Real Rsum   =  std::sqrt( 0.5*( square(R[i][i]) + square(R[i][j]) + square(R[j][k]) + square(R[k][k])) );
    Real theta2 =  atan2( plusMinus*R[i][k], Rsum ); // Rsum = abs(cos(theta2)) is inherently positive
    Real theta1, theta3;
 

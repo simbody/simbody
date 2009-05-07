@@ -152,16 +152,18 @@ public:
     typedef C                TRow;
     typedef C                TCol;
 
+    typedef C                TSqrt;
     typedef R                TAbs;
     typedef C                TStandard; // complex is a standard type
     typedef C                TInvert;   // this is a calculation, so use standard number
     typedef C                TNormalize;
 
     typedef C                Scalar;
+    typedef C                ULessScalar;
     typedef C                Number;
     typedef C                StdNumber;
     typedef R                Precision;
-    typedef R                ScalarSq;
+    typedef R                ScalarNormSq;
 
     // For complex scalar C, op result types are:
     //   Typeof(C*P) = Typeof(P*C)
@@ -193,6 +195,7 @@ public:
         RealStrideFactor    = 2,      // double stride when casting to real or imaginary
         ArgDepth            = SCALAR_DEPTH,
         IsScalar            = 1,
+        IsULessScalar       = 1,
         IsNumber            = 1,
         IsStdNumber         = 1,
         IsPrecision         = 0,
@@ -221,8 +224,10 @@ public:
     static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)
         {return reinterpret_cast<TWithoutNegator&>(t);}
 
-    static ScalarSq scalarNormSqr(const T& t)
+    static ScalarNormSq scalarNormSqr(const T& t)
         { return t.real()*t.real() + t.imag()*t.imag(); }
+    static TSqrt    sqrt(const T& t)
+        { return std::sqrt(t); }
     static TAbs     abs(const T& t)
         { return std::abs(t); } // no, not just sqrt of scalarNormSqr()!
     static const TStandard& standardize(const T& t) {return t;} // already standard
@@ -311,16 +316,18 @@ public:
     typedef conjugate<R>        TRow;
     typedef conjugate<R>        TCol;
 
+    typedef complex<R>          TSqrt;
     typedef R                   TAbs;
     typedef complex<R>          TStandard;
     typedef conjugate<R>        TInvert;
     typedef conjugate<R>        TNormalize;
 
     typedef conjugate<R>        Scalar;
+    typedef conjugate<R>        ULessScalar;
     typedef conjugate<R>        Number;
     typedef complex<R>          StdNumber;
     typedef R                   Precision;
-    typedef R                   ScalarSq;
+    typedef R                   ScalarNormSq;
 
     // Typeof( Conj<S>*P ) is Typeof(P*Conj<S>)
     // Typeof( Conj<S>/P ) is Typeof(inv(P)*Conj<S>)
@@ -351,6 +358,7 @@ public:
         RealStrideFactor    = 2,      // double stride when casting to real or imaginary
         ArgDepth            = SCALAR_DEPTH,
         IsScalar            = 1,
+        IsULessScalar       = 1,
         IsNumber            = 1,
         IsStdNumber         = 0,
         IsPrecision         = 0,
@@ -380,8 +388,10 @@ public:
     static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)
         {return reinterpret_cast<TWithoutNegator&>(t);}
 
-    static ScalarSq scalarNormSqr(const T& t)
+    static ScalarNormSq scalarNormSqr(const T& t)
         { return t.real()*t.real() + t.negImag()*t.negImag(); }
+    static TSqrt    sqrt(const T& t)
+        { return std::sqrt(C(t)); } // cast to complex (one negation)
     static TAbs     abs(const T& t)
         { return std::abs(t.conj()); }  // no, not just sqrt of scalarNormSqr()!
     static TStandard standardize(const T& t)
@@ -502,15 +512,17 @@ public:                                         \
     typedef T                TElement;          \
     typedef T                TRow;              \
     typedef T                TCol;              \
+    typedef T                TSqrt;             \
     typedef T                TAbs;              \
     typedef T                TStandard;         \
     typedef T                TInvert;           \
     typedef T                TNormalize;        \
     typedef T                Scalar;            \
+    typedef T                ULessScalar;       \
     typedef T                Number;            \
     typedef T                StdNumber;         \
     typedef T                Precision;         \
-    typedef T                ScalarSq;          \
+    typedef T                ScalarNormSq;      \
     template <class P> struct Result {          \
         typedef typename CNT<P>::template Result<R>::Mul Mul;   \
         typedef typename CNT< typename CNT<P>::THerm >::template Result<R>::Mul Dvd;    \
@@ -532,6 +544,7 @@ public:                                         \
         RealStrideFactor    = 1,                \
         ArgDepth            = SCALAR_DEPTH,     \
         IsScalar            = 1,                \
+        IsULessScalar       = 1,                \
         IsNumber            = 1,                \
         IsStdNumber         = 1,                \
         IsPrecision         = 1,                \
@@ -555,8 +568,9 @@ public:                                         \
         {return reinterpret_cast<const TWithoutNegator&>(t);}               \
     static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)             \
         {return reinterpret_cast<TWithoutNegator&>(t);}                     \
-    static ScalarSq   scalarNormSqr(const T& t) {return t*t;}               \
-    static TAbs       abs(const T& t) {return std::abs(t);}                 \
+    static ScalarNormSq scalarNormSqr(const T& t) {return t*t;}             \
+    static TSqrt        sqrt(const T& t) {return std::sqrt(t);}             \
+    static TAbs         abs(const T& t) {return std::abs(t);}               \
     static const TStandard& standardize(const T& t) {return t;}             \
     static TNormalize normalize(const T& t) {return (t>0?T(1):(t<0?T(-1):getNaN()));} \
     static TInvert invert(const T& t) {return T(1)/t;}                      \

@@ -138,6 +138,8 @@ int main()
                          6, 7, 8, 9, 10 );
     cout << "Mat<2,5,float>=" << m25f;
     cout << "Mat<2,5,float>.normalize()=" << m25f.normalize();
+    cout << "Mat<2,5,float>.sqrt()=" << m25f.sqrt();
+
     const Mat<1,5,Vec<2,float> >& m15v2f = 
         *reinterpret_cast<const Mat<1,5,Vec<2,float> >*>(&m25f);
     cout << "  m25f@" << &m25f << " m15v2f@" << &m15v2f << endl;

@@ -251,13 +251,13 @@ public:
     typedef typename CNT<E>::Number             ENumber;
     typedef typename CNT<E>::StdNumber          EStdNumber;
     typedef typename CNT<E>::Precision          EPrecision;
-    typedef typename CNT<E>::ScalarSq           EScalarSq;
+    typedef typename CNT<E>::ScalarNormSq       EScalarNormSq;
 
     typedef EScalar    Scalar;        // the underlying Scalar type
     typedef ENumber    Number;        // negator removed from Scalar
     typedef EStdNumber StdNumber;     // conjugate goes to complex
     typedef EPrecision Precision;     // complex removed from StdNumber
-    typedef EScalarSq  ScalarSq;      // type of scalar^2
+    typedef EScalarNormSq  ScalarNormSq;      // type of scalar^2
 
     typedef MatrixBase<E>                T;
     typedef MatrixBase<ENeg>             TNeg;
@@ -852,9 +852,9 @@ public:
     /// is not very useful unless the elements are themselves scalars.
     // TODO: very slow! Should be optimized at least for the case
     //       where ELT is a Scalar.
-    ScalarSq scalarNormSqr() const {
+    ScalarNormSq scalarNormSqr() const {
         const int nr=nrow(), nc=ncol();
-        ScalarSq sum(0);
+        ScalarNormSq sum(0);
         for(int j=0;j<nc;++j) 
             for (int i=0; i<nr; ++i)
                 sum += CNT<E>::scalarNormSqr((*this)(i,j));
@@ -899,17 +899,20 @@ public:
 
     /// This is the scalar Frobenius norm, and its square. Note: if this is a Matrix then the Frobenius
     /// norm is NOT the same as the 2-norm, although they are equivalent for Vectors.
-    ScalarSq normSqr() const { return scalarNormSqr(); }
-    ScalarSq norm()    const { return std::sqrt(scalarNormSqr()); } // TODO -- not good; unnecessary overflow
+    ScalarNormSq normSqr() const { return scalarNormSqr(); }
+    // TODO -- not good; unnecessary overflow
+    typename CNT<ScalarNormSq>::TSqrt 
+        norm() const { return CNT<ScalarNormSq>::sqrt(scalarNormSqr()); }
 
     /// We only allow RMS norm if the elements are scalars. If there are no elements in this Matrix,
     /// we'll define its RMS norm to be 0, although NaN might be a better choice.
-    ScalarSq normRMS() const {
+    typename CNT<ScalarNormSq>::TSqrt 
+    normRMS() const {
         if (!CNT<ELT>::IsScalar)
             SimTK_THROW1(Exception::Cant, "normRMS() only defined for scalar elements");
         if (nelt() == 0)
-            return ScalarSq(0);
-        return std::sqrt(scalarNormSqr()/nelt());
+            return typename CNT<ScalarNormSq>::TSqrt(0);
+        return CNT<ScalarNormSq>::sqrt(scalarNormSqr()/nelt());
     }
 
     /// Form the column sums of this matrix, returned as a RowVector.

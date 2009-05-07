@@ -125,7 +125,7 @@
  *     TSqTHerm     type of T*~T (row square; symmetric)
  *
  *     Scalar       the underlying <scalar> type (see below)
- *     ScalarSq     type of square of underlying scalar (always real)
+ *     ScalarNormSq type of the "conjugate square" ~s*s of underlying scalar (always real)
  *
  *     Substitute<E>::Type
  *                    a CNT of the same shape and container type as this one,
@@ -155,13 +155,14 @@
  * ----------------
  * Here is a complete taxonomy of the scalar types we support.
  *
- * <scalar>    ::= <number> | negator< <number> >
- * <number>    ::= <standard> | <conjugate>
- * <standard>  ::= <real> | <complex>
+ * <scalar>         ::= quantity< unitType, <unitlessScalar> >
+ * <unitlessScalar> ::= <number> | negator< <number> >
+ * <number>         ::= <standard> | <conjugate>
+ * <standard>       ::= <real> | <complex>
  *
- * <real>      ::= float | double | long double
- * <complex>   ::= std::complex< <real> >
- * <conjugate> ::= SimTK::conjugate< <real> >
+ * <real>           ::= float | double | long double
+ * <complex>        ::= std::complex< <real> >
+ * <conjugate>      ::= SimTK::conjugate< <real> >
  *
  * @endverbatim
  *
@@ -218,18 +219,20 @@ public:
 
     // These are the results of calculations and should be packed regardless
     // of the spacing of this CNT.
+    typedef typename K::TSqrt        TSqrt;         // also turns unit^2 to unit
     typedef typename K::TAbs         TAbs;
     typedef typename K::TStandard    TStandard;     // packed, StdNumbers
-    typedef typename K::TInvert      TInvert;
-    typedef typename K::TNormalize   TNormalize;
+    typedef typename K::TInvert      TInvert;       // also turns units into 1/units
+    typedef typename K::TNormalize   TNormalize;    // TODO: what effect on units?
 
-    typedef typename K::Scalar       Scalar;        // <number> or negator<number>
+    typedef typename K::Scalar       Scalar;        // quantity< units, <unitlessScalar> >
+    typedef typename K::ULessScalar  ULessScalar;   // <number> or negator<number>
     typedef typename K::Number       Number;        // <real>, <complex> or <conjugate>
     typedef typename K::StdNumber    StdNumber;     // <real>, <complex>
     typedef typename K::Precision    Precision;     // float, double, long double
 
-    typedef typename K::ScalarSq     ScalarSq;      // type of square of scalar or
-                                                    //   numeric value
+    typedef typename K::ScalarNormSq ScalarNormSq;  // type of conjugate square of underlying scalar or
+                                                    //   numeric value (squares the units too)
 
     template <class P> struct Result {
         typedef typename K::template Result<P>::Mul Mul;
@@ -254,7 +257,8 @@ public:
         ImagOffset          = K::ImagOffset,
         RealStrideFactor    = K::RealStrideFactor,
         ArgDepth            = K::ArgDepth,
-        IsScalar            = K::IsScalar,          // real, complex, conjugate, negator
+        IsScalar            = K::IsScalar,          // scalar with units, real, complex, conjugate, negator
+        IsULessScalar       = K::IsULessScalar,     // real, complex, conjugate, negator
         IsNumber            = K::IsNumber,          // real, complex, conjugate
         IsStdNumber         = K::IsStdNumber,       // real, complex
         IsPrecision         = K::IsPrecision,       // real (float, double, long double)
@@ -268,9 +272,6 @@ public:
     static       TReal& real(T& t)       { return t.real(); }
     static const TImag& imag(const T& t) { return t.imag(); }
     static       TImag& imag(T& t)       { return t.imag(); }
-
-    static K getInfinity() { return K::getInfinity(); }
-    static K getNaN()      { return K::getNaN();      }
 
     // We expect to be able to negate and transpose (hermitian or
     // positional) with just type casting; no need for help from class
@@ -301,11 +302,16 @@ public:
     static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)
         {return reinterpret_cast<TWithoutNegator&>(t);}
 
-    static ScalarSq   scalarNormSqr(const K& t) {return t.scalarNormSqr();}
+    static ScalarNormSq scalarNormSqr(const K& t) {return t.scalarNormSqr();}
+
+    static TSqrt      sqrt(const K& t)          {return t.sqrt();}
     static TAbs       abs(const K& t)           {return t.abs();}
     static TStandard  standardize(const K& t)   {return t.standardize();}
     static TNormalize normalize(const K& t)     {return t.normalize();}
     static TInvert    invert(const K& t)        {return t.invert();}
+
+    static K getInfinity() { return K::getInfinity(); }
+    static K getNaN()      { return K::getNaN();      }
 };
 
 } // namespace SimTK
