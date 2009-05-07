@@ -36,6 +36,7 @@
 #include "WorkSpace.h"
 #include "LATraits.h"
 #include "LapackConvert.h"
+#include "SimTKcommon.h"
 
 #include <iostream> 
 #include <cmath>
@@ -43,8 +44,6 @@
 
 
 namespace SimTK {
-static const double ZERO = 0.0;
-static const double ONE  = 1.0;
 
    //////////////////////
    // FactorQTZDefault //
@@ -241,7 +240,7 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) const {
     LapackInterface::getMachinePrecision<RealType>( smlnum, bignum);
  
     // compute scale for RHS
-    if( bnrm > ZERO  && bnrm < smlnum ) {
+    if( bnrm > Zero  && bnrm < smlnum ) {
         scaleRHS = true;
         rhsScaleF = smlnum;
     } else if( bnrm > bignum ) {

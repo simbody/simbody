@@ -348,7 +348,7 @@ void EigenRep<T>::computeValues(bool computeVectors) {
 */
           complexEigenVectors.resize(n*n);
           complexEigenValues.resize(n);
-
+/*
           LapackInterface::geev<T>( calcLeftEigenVectors, calcRightEigenVectors,
                n, inputMatrix.data, n, complexEigenValues.data, leftVectors, 
                n, complexEigenVectors.data, n, size, computeLwork, info);
@@ -358,9 +358,11 @@ void EigenRep<T>::computeValues(bool computeVectors) {
                "QR algorithm" );
           }
 
-          valuesFound = n;
 
           int lwork = LapackInterface::getLWork( size );
+*/
+          int lwork = 2000;
+          valuesFound = n;
           TypedWorkSpace<T> workSpace(lwork);
     
           // compute all eigen values and eigen vectors of a general matrix
