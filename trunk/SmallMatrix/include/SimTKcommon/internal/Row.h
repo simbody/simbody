@@ -109,11 +109,11 @@ public:
     enum {
         NRows               = 1,
         NCols               = N,
-        RowSpacing          = 1,
-        ColSpacing          = STRIDE,
         NPackedElements     = N,
         NActualElements     = N * STRIDE,   // includes trailing gap
         NActualScalars      = CNT<E>::NActualScalars * NActualElements,
+        RowSpacing          = NActualElements,
+        ColSpacing          = STRIDE,
         ImagOffset          = NTraits<ENumber>::ImagOffset,
         RealStrideFactor    = 1, // composite types don't change size when
                                  // cast from complex to real or imaginary
