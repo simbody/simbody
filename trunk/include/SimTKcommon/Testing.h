@@ -187,15 +187,15 @@ public:
     // close. That is, we use a relative tolerance for big numbers and an absolute
     // tolerance for small ones.
     static bool numericallyEqual(float v1, float v2, int n, double tol=defTol<float>()) {
-        const float scale = n*std::max(std::max(std::abs(v1), std::abs(v2)), 0.1f);
+        const float scale = n*std::max(std::max(std::abs(v1), std::abs(v2)), 1.0f);
         return std::abs(v1-v2) < scale*(float)tol;
     }
     static bool numericallyEqual(double v1, double v2, int n, double tol=defTol<double>()) {
-        const double scale = n*std::max(std::max(std::abs(v1), std::abs(v2)), 0.1);
+        const double scale = n*std::max(std::max(std::abs(v1), std::abs(v2)), 1.0);
         return std::abs(v1-v2) < scale*(double)tol;
     }
     static bool numericallyEqual(long double v1, long double v2, int n, double tol=defTol<long double>()) {
-        const long double scale = n*std::max(std::max(std::abs(v1), std::abs(v2)), 0.1l);
+        const long double scale = n*std::max(std::max(std::abs(v1), std::abs(v2)), 1.0l);
         return std::abs(v1-v2) < scale*(long double)tol;
     }
 
