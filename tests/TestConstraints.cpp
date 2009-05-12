@@ -30,6 +30,8 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKsimbody.h"
+#include "SimTKcommon/Testing.h"
+
 #include "../src/ConstraintImpl.h"
 
 using namespace SimTK;
@@ -37,26 +39,17 @@ using namespace std;
 
 const int NUM_BODIES = 10;
 const Real BOND_LENGTH = 0.5;
-const Real TOL = 1e-10;
 
-#define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
+// Keep constraints satisfied to this tolerance during testing.
+static const Real ConstraintTol = 1e-10;
 
-template <class T>
-void assertEqual(T val1, T val2) {
-    ASSERT(abs(val1-val2) < TOL);
-}
+// Compare two quantities that are expected to agree to constraint tolerance.
+#define CONSTRAINT_TEST(a,b) SimTK_TEST_EQ_TOL(a,b, ConstraintTol)
 
-template <int N>
-void assertEqual(Vec<N> val1, Vec<N> val2) {
-    for (int i = 0; i < N; ++i)
-        ASSERT(abs(val1[i]-val2[i]) < TOL);
-}
+// Compare two quantities that should have been calculated to machine tolerance
+// given the problem size, which we'll characterize by the number of mobilities.
+#define MACHINE_TEST(a,b) SimTK_TEST_EQ_SIZE(a,b, state.getNU())
 
-template<>
-void assertEqual(SpatialVec val1, SpatialVec val2) {
-    assertEqual(val1[0], val2[0]);
-    assertEqual(val1[1], val2[1]);
-}
 
 /**
  * Create a system consisting of a chain of bodies.
@@ -87,7 +80,8 @@ void createState(MultibodySystem& system, State& state, const Vector& qOverride=
     if (qOverride.size())
         state.updQ() = qOverride;
     system.realize(state, Stage::Velocity);
-    system.project(state, TOL, Vector(state.getNY(), 1), Vector(state.getNYErr(), 1), Vector(state.getNY()));
+
+    system.project(state, ConstraintTol, Vector(state.getNY(), 1), Vector(state.getNYErr(), 1), Vector(state.getNY()));
     system.realize(state, Stage::Acceleration);
 }
 
@@ -109,12 +103,14 @@ void testBallConstraint() {
     Vec3 a1 = first.getBodyOriginAcceleration(state);
     Vec3 a2 = last.getBodyOriginAcceleration(state);
     Vec3 da = a1-a2;
-    assertEqual(dr.norm(), 0.0);
-    assertEqual(dr, constraint.getPositionErrors(state));
-    assertEqual(dv.norm(), 0.0);
-    assertEqual(dv, constraint.getVelocityErrors(state));
-    assertEqual(da.norm(), 0.0);
-    assertEqual(da, constraint.getAccelerationErrors(state));
+    CONSTRAINT_TEST(dr.norm(), 0.0);
+    CONSTRAINT_TEST(dr, constraint.getPositionErrors(state));
+    CONSTRAINT_TEST(dv.norm(), 0.0);
+    CONSTRAINT_TEST(dv, constraint.getVelocityErrors(state));
+    // Accelerations should be satisfied to machine tolerance times the
+    // size of the problem.
+    MACHINE_TEST(da.norm(), 0);
+    MACHINE_TEST(da, constraint.getAccelerationErrors(state));
     delete &system;
 }
 
@@ -132,10 +128,10 @@ void testConstantAngleConstraint() {
     Vec3 perpDir = dir1%dir2;
     Vec3 v1 = first.getBodyAngularVelocity(state);
     Vec3 v2 = last.getBodyAngularVelocity(state);
-    assertEqual(dot(dir1, dir2), cos(1.1));
-    assertEqual(dot(dir1, dir2)-cos(1.1), constraint.getPositionError(state));
-    assertEqual(dot(v1-v2, perpDir), 0.0);
-    assertEqual(dot(v1-v2, perpDir), constraint.getVelocityError(state));
+    CONSTRAINT_TEST(dot(dir1, dir2), cos(1.1));
+    CONSTRAINT_TEST(dot(dir1, dir2)-cos(1.1), constraint.getPositionError(state));
+    CONSTRAINT_TEST(dot(v1-v2, perpDir), 0.0);
+    CONSTRAINT_TEST(dot(v1-v2, perpDir), constraint.getVelocityError(state));
     delete &system;
 }
 
@@ -162,11 +158,12 @@ void testConstantOrientationConstraint() {
     
     // Careful: constraint is x2 perp y1, y2 perp z1, z2 perp x1; this isn't the
     // same if bodies are interchanged.
-    assertEqual(dot(R_G2*r2*Vec3(1, 0, 0), R_G1*r1*Vec3(0, 1, 0)), 0.0);
-    assertEqual(dot(R_G2*r2*Vec3(0, 1, 0), R_G1*r1*Vec3(0, 0, 1)), 0.0);
-    assertEqual(dot(R_G2*r2*Vec3(0, 0, 1), R_G1*r1*Vec3(1, 0, 0)), 0.0);
-    assertEqual(v1, v2);
-    assertEqual(a1, a2);
+    CONSTRAINT_TEST(dot(R_G2*r2*Vec3(1, 0, 0), R_G1*r1*Vec3(0, 1, 0)), 0.0);
+    CONSTRAINT_TEST(dot(R_G2*r2*Vec3(0, 1, 0), R_G1*r1*Vec3(0, 0, 1)), 0.0);
+    CONSTRAINT_TEST(dot(R_G2*r2*Vec3(0, 0, 1), R_G1*r1*Vec3(1, 0, 0)), 0.0);
+    CONSTRAINT_TEST(v1, v2);
+    // Should match to machine precision for this size problem.
+    MACHINE_TEST(a1, a2);
     delete &system;
 }
 
@@ -178,10 +175,10 @@ void testConstantSpeedConstraint() {
     MobilizedBody& first = matter.updMobilizedBody(MobilizedBodyIndex(1));
     Constraint::ConstantSpeed constraint(first, MobilizerUIndex(1), 0.8);
     createState(system, state);
-    assertEqual(first.getOneU(state, 1), 0.8);
-    assertEqual(first.getOneU(state, 1)-0.8, constraint.getVelocityError(state));
-    assertEqual(first.getOneUDot(state, 1), 0.0);
-    assertEqual(first.getOneUDot(state, 1), constraint.getAccelerationError(state));
+    CONSTRAINT_TEST(first.getOneU(state, 1), 0.8);
+    CONSTRAINT_TEST(first.getOneU(state, 1)-0.8, constraint.getVelocityError(state));
+    MACHINE_TEST(first.getOneUDot(state, 1), 0.0);
+    MACHINE_TEST(first.getOneUDot(state, 1), constraint.getAccelerationError(state));
     delete &system;
 }
 
@@ -202,10 +199,10 @@ void testNoSlip1DConstraint() {
     Vec3 v2 = last.findStationVelocityInGround(state, p2);
     Vec3 a1 = first.findStationAccelerationInGround(state, p1);
     Vec3 a2 = last.findStationAccelerationInGround(state, p2);
-    assertEqual(dot(v1, n), dot(v2, n));
-    assertEqual(dot(v1-v2, n), constraint.getVelocityError(state));
-    assertEqual(dot(a1-a2, n), 0.0);
-    assertEqual(dot(a1-a2, n), constraint.getAccelerationError(state));
+    CONSTRAINT_TEST(dot(v1, n), dot(v2, n));
+    CONSTRAINT_TEST(dot(v1-v2, n), constraint.getVelocityError(state));
+    MACHINE_TEST(dot(a1-a2, n), 0.0);
+    MACHINE_TEST(dot(a1-a2, n), constraint.getAccelerationError(state));
     delete &system;
 }
 
@@ -223,10 +220,10 @@ void testPointInPlaneConstraint() {
     createState(system, state);
     Vec3 p1 = last.findStationLocationInAnotherBody(state, p, first);
     Vec3 v1 = last.findStationVelocityInAnotherBody(state, p, first);
-    assertEqual(dot(p1, normal), height);
-    assertEqual(dot(p1, normal)-height, constraint.getPositionError(state));
-    assertEqual(dot(v1, normal), 0.0);
-    assertEqual(dot(v1, normal), constraint.getVelocityError(state));    
+    CONSTRAINT_TEST(dot(p1, normal), height);
+    CONSTRAINT_TEST(dot(p1, normal)-height, constraint.getPositionError(state));
+    CONSTRAINT_TEST(dot(v1, normal), 0.0);
+    CONSTRAINT_TEST(dot(v1, normal), constraint.getVelocityError(state));    
     delete &system;
 }
 
@@ -244,8 +241,8 @@ void testPointOnLineConstraint() {
     createState(system, state);
     Vec3 p1 = last.findStationLocationInAnotherBody(state, p, first);
     Vec3 v1 = last.findStationVelocityInAnotherBody(state, p, first);
-    assertEqual(cross(p1-base, dir).norm(), 0.0);
-    assertEqual(cross(v1, dir).norm(), 0.0);
+    CONSTRAINT_TEST(cross(p1-base, dir).norm(), 0.0);
+    CONSTRAINT_TEST(cross(v1, dir).norm(), 0.0);
     delete &system;
 }
 
@@ -267,12 +264,12 @@ void testRodConstraint() {
     Vec3 a1 = first.getBodyOriginAcceleration(state);
     Vec3 a2 = last.getBodyOriginAcceleration(state);
     Vec3 da = a1-a2;
-    assertEqual(dr.norm(), 3.0);
-    assertEqual(dr.norm()-3.0, constraint.getPositionError(state));
-    assertEqual(dot(dv, dr), 0.0);
-    assertEqual(dot(dv, dr), constraint.getVelocityError(state));
-    assertEqual(dot(da, dr), -dv.normSqr());
-    assertEqual(dot(da, dr)+dv.normSqr(), constraint.getAccelerationError(state));
+    CONSTRAINT_TEST(dr.norm(), 3.0);
+    CONSTRAINT_TEST(dr.norm()-3.0, constraint.getPositionError(state));
+    CONSTRAINT_TEST(dot(dv, dr), 0.0);
+    CONSTRAINT_TEST(dot(dv, dr), constraint.getVelocityError(state));
+    MACHINE_TEST(dot(da, dr), -dv.normSqr());
+    MACHINE_TEST(dot(da, dr)+dv.normSqr(), constraint.getAccelerationError(state));
     delete &system;
 }
 
@@ -285,9 +282,9 @@ void testWeldConstraint() {
     MobilizedBody& last = matter.updMobilizedBody(MobilizedBodyIndex(NUM_BODIES));
     Constraint::Weld constraint(first, last);
     createState(system, state);
-    assertEqual(first.getBodyOriginLocation(state), last.getBodyOriginLocation(state));
-    assertEqual(first.getBodyVelocity(state), last.getBodyVelocity(state));
-    assertEqual(first.getBodyAcceleration(state), last.getBodyAcceleration(state));
+    CONSTRAINT_TEST(first.getBodyOriginLocation(state), last.getBodyOriginLocation(state));
+    CONSTRAINT_TEST(first.getBodyVelocity(state), last.getBodyVelocity(state));
+    MACHINE_TEST(first.getBodyAcceleration(state), last.getBodyAcceleration(state));
 
     const Rotation& R_G1 = first.getBodyRotation(state);
     const Rotation& R_G2 = last.getBodyRotation(state);
@@ -297,9 +294,9 @@ void testWeldConstraint() {
     
     // Careful: constraint is x2 perp y1, y2 perp z1, z2 perp x1; this isn't the
     // same if bodies are interchanged.
-    assertEqual(dot(R_G2*Vec3(1, 0, 0), R_G1*Vec3(0, 1, 0)), 0.0);
-    assertEqual(dot(R_G2*Vec3(0, 1, 0), R_G1*Vec3(0, 0, 1)), 0.0);
-    assertEqual(dot(R_G2*Vec3(0, 0, 1), R_G1*Vec3(1, 0, 0)), 0.0);
+    CONSTRAINT_TEST(dot(R_G2*Vec3(1, 0, 0), R_G1*Vec3(0, 1, 0)), 0.0);
+    CONSTRAINT_TEST(dot(R_G2*Vec3(0, 1, 0), R_G1*Vec3(0, 0, 1)), 0.0);
+    CONSTRAINT_TEST(dot(R_G2*Vec3(0, 0, 1), R_G1*Vec3(1, 0, 0)), 0.0);
     delete &system;
 }
 
@@ -331,21 +328,22 @@ void testWeldConstraintWithPreAssembly() {
     MobilizedBody& last = matter.updMobilizedBody(MobilizedBodyIndex(NUM_BODIES));
     Constraint::Weld constraint(first, last);
     createState(system, state, assemblyState.getQ());
-    assertEqual(first.getBodyOriginLocation(state), last.getBodyOriginLocation(state));
-    assertEqual(first.getBodyVelocity(state), last.getBodyVelocity(state));
-    assertEqual(first.getBodyAcceleration(state), last.getBodyAcceleration(state));
+    CONSTRAINT_TEST(first.getBodyOriginLocation(state), last.getBodyOriginLocation(state));
+    CONSTRAINT_TEST(first.getBodyVelocity(state), last.getBodyVelocity(state));
+    MACHINE_TEST(first.getBodyAcceleration(state), last.getBodyAcceleration(state));
 
     const Rotation& R_G1 = first.getBodyRotation(state);
     const Rotation& R_G2 = last.getBodyRotation(state);
 
     // This is a much more stringent requirement than the one we can ask for without
     // the preassembly step. Here we expect the frames to be perfectly aligned.
-    assertEqual(~R_G1.x()*R_G2.x(), 1.);
-    assertEqual(~R_G1.y()*R_G2.y(), 1.);
-    assertEqual(~R_G1.z()*R_G2.z(), 1.);
+    CONSTRAINT_TEST(~R_G1.x()*R_G2.x(), 1.);
+    CONSTRAINT_TEST(~R_G1.y()*R_G2.y(), 1.);
+    CONSTRAINT_TEST(~R_G1.z()*R_G2.z(), 1.);
 
     // Just for fun -- compare Rotation matrices using pointing error.
-    ASSERT(R_G1.isSameRotationToWithinAngle(R_G2, TOL));
+   // ASSERT(R_G1.isSameRotationToWithinAngle(R_G2, TOL));
+    CONSTRAINT_TEST(R_G1, R_G2);
 
     delete &system;
 }
@@ -374,51 +372,94 @@ void testDisablingConstraints() {
     };
     system.updDefaultSubsystem().addEventHandler(new DisableHandler(constraint));
     RungeKuttaMersonIntegrator integ(system);
-    integ.setConstraintTolerance(TOL);
+    integ.setConstraintTolerance(ConstraintTol);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     for (int i = 0; i < 10; i++) {
         ts.stepTo(i+1);
         if (i < 4) {
-            assertEqual(ts.getState().getNQErr(), 1);
-            assertEqual(ts.getState().getNUErr(), 1);
-            assertEqual(ts.getState().getNUDotErr(), 1);
+            CONSTRAINT_TEST(ts.getState().getNQErr(), 1);
+            CONSTRAINT_TEST(ts.getState().getNUErr(), 1);
+            MACHINE_TEST(ts.getState().getNUDotErr(), 1);
             Vec3 r1 = first.getBodyOriginLocation(ts.getState());
             Vec3 r2 = last.getBodyOriginLocation(ts.getState());
             Vec3 dr = r1-r2;
-            assertEqual(dr.norm(), 3.0);
+            // Verify that the constraint is enforced while enabled.
+            CONSTRAINT_TEST(dr.norm(), 3.0);
         }
         else {
-            assertEqual(ts.getState().getNQErr(), 0);
-            assertEqual(ts.getState().getNUErr(), 0);
-            assertEqual(ts.getState().getNUDotErr(), 0);
+            CONSTRAINT_TEST(ts.getState().getNQErr(), 0);
+            CONSTRAINT_TEST(ts.getState().getNUErr(), 0);
+            MACHINE_TEST(ts.getState().getNUDotErr(), 0);
             Vec3 r1 = first.getBodyOriginLocation(ts.getState());
             Vec3 r2 = last.getBodyOriginLocation(ts.getState());
             Vec3 dr = r1-r2;
-            ASSERT(abs(dr.norm()-3.0) > TOL);
+            // Verify that the constraint is *not* being enforced any more.
+            SimTK_TEST_NOTEQ_TOL(dr.norm(), Real(3), ConstraintTol);
         }
     }
     delete &system;
 }
 
+void testConstraintForces() {
+    // Weld one body to ground, push on it, verify that it reacts to match the load.
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+
+    MobilizedBody::Weld welded(matter.Ground(), Transform(),
+                               body, Transform());
+
+    MobilizedBody::Free loose(matter.Ground(), Transform(),
+                               body, Transform());
+    Constraint::Weld glue(matter.Ground(), Transform(),
+                          loose, Transform());
+
+    // Apply forces to the body welded straight to ground.
+    Force::ConstantForce(forces, welded, Vec3(0,0,0), Vec3(1,2,3));
+    Force::ConstantTorque(forces, welded, Vec3(20,30,40));
+
+    // Apply the same forces to the "free" body which is welded by constraint.
+    Force::ConstantForce(forces, loose, Vec3(0,0,0), Vec3(1,2,3));
+    Force::ConstantTorque(forces, loose, Vec3(20,30,40));
+
+    State state = system.realizeTopology();
+    system.realize(state, Stage::Acceleration);
+
+    Vector_<SpatialVec> mobilizerReactions;
+    matter.calcMobilizerReactionForces(state, mobilizerReactions);
+
+    //NOT IMPLEMENTED YET:
+    //cout << "Weld constraint reaction on Ground: " << glue.getWeldReactionOnBody1(state) << endl;
+    //cout << "Weld constraint reaction on Body: " << glue.getWeldReactionOnBody2(state) << endl;
+
+
+    // Note that constraint forces have opposite sign to applied forces, because
+    // we calculate the multiplier lambda from M udot + ~G lambda = f_applied. We'll negate
+    // the calculated multipliers to turn these into applied forces.
+    const Vector mults = -state.getMultipliers();
+    Vector_<SpatialVec> bodyForces;
+    Vector mobilityForces;
+    matter.calcConstraintForcesFromMultipliers(state, mults,
+        bodyForces, mobilityForces);
+
+    MACHINE_TEST(bodyForces[loose.getMobilizedBodyIndex()], mobilizerReactions[welded.getMobilizedBodyIndex()]);
+}
+
 int main() {
-    try {
-        testBallConstraint();
-        testConstantAngleConstraint();
-        testConstantOrientationConstraint();
-        testConstantSpeedConstraint();
-        testNoSlip1DConstraint();
-        testPointInPlaneConstraint();
-        testPointOnLineConstraint();
-        testRodConstraint();
-        testWeldConstraint();
-        testWeldConstraintWithPreAssembly();
-        testDisablingConstraints();
-    }
-    catch(const std::exception& e) {
-        cout << "exception: " << e.what() << endl;
-        return 1;
-    }
-    cout << "Done" << endl;
-    return 0;
+    SimTK_START_TEST("TestConstraints");
+        SimTK_SUBTEST(testBallConstraint);
+        SimTK_SUBTEST(testConstantAngleConstraint);
+        SimTK_SUBTEST(testConstantOrientationConstraint);
+        SimTK_SUBTEST(testConstantSpeedConstraint);
+        SimTK_SUBTEST(testNoSlip1DConstraint);
+        SimTK_SUBTEST(testPointInPlaneConstraint);
+        SimTK_SUBTEST(testPointOnLineConstraint);
+        SimTK_SUBTEST(testRodConstraint);
+        SimTK_SUBTEST(testWeldConstraint);
+        SimTK_SUBTEST(testWeldConstraintWithPreAssembly);
+        SimTK_SUBTEST(testDisablingConstraints);
+        SimTK_SUBTEST(testConstraintForces);
+    SimTK_END_TEST();
 }

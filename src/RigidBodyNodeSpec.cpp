@@ -232,6 +232,9 @@ RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
     // calculate Pnew = P - P H DI ~H P, where I believe the
     // second term is the projection of P into the mobility space.
     // Then we shift Pnew from child to parent: Pparent += Phi*Pnew*~Phi.
+    // TODO: can this be optimized for the common case where the
+    // child is a terminal body and hence its P is an ordinary
+    // rigid body inertia?
     for (unsigned i=0; i<children.size(); ++i) {
         const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
         const SpatialMat& PChild      = children[i]->getP(dc);
@@ -239,7 +242,7 @@ RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
 
         // TODO: this is around 550 flops, 396 due to the 6x6
         // multiply with Psi, about 100 for the P*Phi shift, and 36
-        // for the +=. The 6x6 multiply yields a symmetric result
+        // for the -=. The 6x6 multiply yields a symmetric result
         // so can be cut almost in half:
         // Psi is -Phi*(1 - P H DI ~H) so the multiply by P*Phi gives
         // the negative of the projected result we want,

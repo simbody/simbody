@@ -321,7 +321,7 @@ public:
         Segment nonholoErrSegment; // (offset,mNonholo) same, but for uErr slots (after holo derivs)
         Segment accOnlyErrSegment; // (offset,mAccOnly) same, but for udotErr slots (after holo/nonholo derivs)
     public:
-        // Better to access using accessor methods below so you'll get type checking on the index type.
+        // Better to access using accessor methods above so you'll get type checking on the index type.
         std::vector<PerConstrainedMobilizerInstanceInfo> constrainedMobilizerInstanceInfo;
 
         // The ConstrainedBodies and ConstrainedMobilizers are set at Topology stage, but the

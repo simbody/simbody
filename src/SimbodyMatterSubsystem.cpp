@@ -269,6 +269,17 @@ Real SimbodyMatterSubsystem::calcKineticEnergy(const State& s) const {
     return getRep().calcKineticEnergy(s);
 }
 
+void SimbodyMatterSubsystem::calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const {
+    getRep().calcMobilizerReactionForces(s, forces);
+}
+
+void SimbodyMatterSubsystem::calcConstraintForcesFromMultipliers
+   (const State& s, const Vector& lambda,
+    Vector_<SpatialVec>& bodyForcesInG,
+    Vector&              mobilityForces) const
+{
+    getRep().calcConstraintForcesFromMultipliers(s,lambda,bodyForcesInG,mobilityForces);
+}
 
 void SimbodyMatterSubsystem::calcQDot(const State& s,
     const Vector& u,
@@ -294,9 +305,6 @@ void SimbodyMatterSubsystem::multiplyByNInv(const State& s, bool matrixOnRight, 
     getRep().multiplyByNInv(s,matrixOnRight,in,out);
 }
 
-void SimbodyMatterSubsystem::calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const {
-    getRep().calcMobilizerReactionForces(s, forces);
-}
 
 // Topological info. Note the lack of a State argument.
 int SimbodyMatterSubsystem::getNumBodies()        const {return getRep().getNumBodies();}

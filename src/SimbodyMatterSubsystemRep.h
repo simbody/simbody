@@ -490,8 +490,6 @@ public:
     // This is an O(n) operator since NInv is block diagonal.
     void multiplyByNInv(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const;
 
-    void calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const;
-
     // Must be in Stage::Position to calculate qdot = N*u.
     void calcQDot(const State& s,
         const Vector& u,
@@ -611,6 +609,8 @@ public:
 	void calcNonholonomicConstraintMatrixVt    (const State&, Matrix&) const; // nu X mn
 	void calcAccelerationOnlyConstraintMatrixA (const State&, Matrix&) const; // ma X nu
 	void calcAccelerationOnlyConstraintMatrixAt(const State&, Matrix&) const; // nu X ma
+
+    void calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const;
 
     // Treating all constraints together, given a comprehensive set of multipliers lambda,
     // generate the complete set of body and mobility forces applied by all the 
@@ -841,7 +841,7 @@ private:
     // that these will be used to deal with internal forces generated
     // by constraints; set the pointers to zero if you don't have any
     // extras to pass in.
-    void calcTreeForwardDynamics (const State& s,
+    void realizeTreeForwardDynamics (const State& s,
         const Vector&              mobilityForces,
         const Vector_<Vec3>&       particleForces,
         const Vector_<SpatialVec>& bodyForces,
@@ -851,7 +851,7 @@ private:
     // Given a set of forces, calculate acclerations resulting from
     // those forces and enforcement of acceleration constraints, and update 
     // the state cache with the results.
-    void calcLoopForwardDynamics(const State&,
+    void realizeLoopForwardDynamics(const State&,
         const Vector&              mobilityForces,
         const Vector_<Vec3>&       particleForces,
         const Vector_<SpatialVec>& bodyForces) const;
