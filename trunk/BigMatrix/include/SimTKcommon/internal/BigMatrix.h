@@ -341,6 +341,12 @@ public:
     MatrixBase(const MatrixBase& b)
       : helper(b.helper.getCharacterCommitment(), 
                b.helper, typename MatrixHelper<Scalar>::DeepCopy()) { }
+
+    /// Implicit conversion from matrix with negated elements (otherwise this
+    /// is just like the copy constructor.
+    MatrixBase(const TNeg& b)
+      : helper(b.helper.getCharacterCommitment(),
+               b.helper, typename MatrixHelper<Scalar>::DeepCopy()) { }
     
     /// Copy assignment is a deep copy but behavior depends on type of lhs: if view, rhs
     /// must match. If owner, we reallocate and copy rhs.
@@ -365,22 +371,6 @@ public:
     }
 
     // default destructor
-
-    // OBSOLETE
-    //MatrixBase(int m, int n, bool lockNrow=false, bool lockNcol=false) 
-    //:   helper(NScalarsPerElement, CppNScalarsPerElement, m, n, lockNrow, lockNcol) {}
-    //MatrixBase(int m, int n, bool lockNrow, bool lockNcol, const ELT& t) 
-    //:   helper(NScalarsPerElement, CppNScalarsPerElement, m, n, lockNrow, lockNcol)
-    //{   helper.fillWith(reinterpret_cast<const Scalar*>(&t)); }
-    //MatrixBase(int m, int n,  bool lockNrow, bool lockNcol, const ELT* p) 
-    //:   helper(NScalarsPerElement, CppNScalarsPerElement, m, n, lockNrow, lockNcol)
-    //{   helper.copyInByRows(reinterpret_cast<const Scalar*>(p)); }
-    //MatrixBase(int m, int n, int leadingDim, const Scalar* s) // read only
-    //:   helper(NScalarsPerElement, CppNScalarsPerElement, 
-    //           MatrixCharacter::LapackFull(m,n), leadingDim, s) {}  
-    //MatrixBase(int m, int n, int leadingDim, Scalar* s) // writable
-    //:   helper(NScalarsPerElement, CppNScalarsPerElement, 
-    //           MatrixCharacter::LapackFull(m,n), leadingDim, s) {}  
 
     /// Initializing constructor with all of the initially-allocated elements
     /// initialized to the same value. The given dimensions are treated as
@@ -1912,14 +1902,16 @@ public:
     // Copy constructor is deep.
     Vector_(const Vector_& src) : Base(src) {}
 
+    // Implicit conversions.
+    Vector_(const Base& src) : Base(src) {}    // e.g., VectorView
+    Vector_(const BaseNeg& src) : Base(src) {}
+
     // Copy assignment is deep and can be reallocating if this Vector
     // has no View.
     Vector_& operator=(const Vector_& src) {
         Base::operator=(src); return*this;
     }
 
-    explicit Vector_(const Base& src) : Base(src) {}    // e.g., VectorView
-    explicit Vector_(const BaseNeg& src) : Base(src) {}
 
     explicit Vector_(int m) : Base(m) { }
     Vector_(int m, const ELT* cppInitialValues) : Base(m, cppInitialValues) {}
@@ -2046,14 +2038,16 @@ public:
     // Copy constructor is deep.
     RowVector_(const RowVector_& src) : Base(src) {}
 
+    // Implicit conversions.
+    RowVector_(const Base& src) : Base(src) {}    // e.g., RowVectorView
+    RowVector_(const BaseNeg& src) : Base(src) {}  
+
     // Copy assignment is deep and can be reallocating if this RowVector
     // has no View.
     RowVector_& operator=(const RowVector_& src) {
         Base::operator=(src); return*this;
     }
 
-    explicit RowVector_(const Base& src) : Base(src) {}    // e.g., RowVectorView
-    explicit RowVector_(const BaseNeg& src) : Base(src) {}  
 
     explicit RowVector_(int n) : Base(n) { }
     RowVector_(int n, const ELT* cppInitialValues) : Base(n, cppInitialValues) {}
