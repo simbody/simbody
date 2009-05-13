@@ -476,9 +476,8 @@ public:
     /// and latest Stages are the same. That is, this cache entry is guaranteed to
     /// be valid if its Subsystem has advanced to the supplied Stage or later, and
     /// is guaranteed to be invalid below that Stage.
-    CacheEntryIndex allocateCacheEntry(SubsystemIndex sx, Stage g, AbstractValue* v) const;
-    /* should be ->  {   return allocateCacheEntry(sx,g,g,v); } */
-
+    CacheEntryIndex allocateCacheEntry(SubsystemIndex sx, Stage g, AbstractValue* v) const
+    {   return allocateCacheEntry(sx, g, g, v); }
     
     /// @name Global Resource Dimensions
     ///

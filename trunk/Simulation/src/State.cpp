@@ -332,6 +332,8 @@ public:
         if (current <  dependsOnStage)  return false;
         return versions[dependsOnStage] == versionWhenLastComputed;}
 
+    StageVersion getVersionWhenLastComputed() const {return versionWhenLastComputed;}
+
     // These affect only the explicit validity flag which does not fully
     // determine validity; see isValid() above.
     void invalidate() {versionWhenLastComputed = -1;}
@@ -1263,15 +1265,17 @@ public:
     }
     
     // Cache entries can be allocated while stage < Instance.
-    CacheEntryIndex allocateCacheEntry(SubsystemIndex subsys, Stage g, AbstractValue* vp) const {
-        SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), g, Stage::HighestRuntime, 
+    CacheEntryIndex allocateCacheEntry(SubsystemIndex subsys, Stage dependsOn, Stage computedBy, AbstractValue* vp) const {
+        SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), dependsOn, Stage::HighestRuntime, 
+            "StateRep::allocateCacheEntry()");
+        SimTK_STAGECHECK_RANGE_ALWAYS(dependsOn, computedBy, Stage::HighestRuntime, 
             "StateRep::allocateCacheEntry()");
         SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), 
             Stage::Instance, "StateRep::allocateCacheEntry()");
 
         const PerSubsystemInfo& ss = data->subsystems[subsys];
         const CacheEntryIndex nxt(ss.cacheInfo.size());
-        ss.cacheInfo.push_back(CacheEntryInfo(getSubsystemStage(subsys).next(),g,g,vp)); // mutable
+        ss.cacheInfo.push_back(CacheEntryInfo(getSubsystemStage(subsys).next(),dependsOn,computedBy,vp)); // mutable
         return nxt;
     }
     
@@ -1884,9 +1888,26 @@ public:
         SimTK_INDEXCHECK(0,index,(int)ss.cacheInfo.size(),"StateRep::getCacheEntry()");
         const CacheEntryInfo& ce = ss.cacheInfo[index];
     
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), 
-            ce.getComputedByStage(), "StateRep::getCacheEntry()");
-    
+        const Stage stageNow = getSubsystemStage(subsys);
+        SimTK_STAGECHECK_GE_ALWAYS(stageNow, 
+            ce.getDependsOnStage(), "StateRep::getCacheEntry()");
+
+        if (stageNow < ce.getComputedByStage()) {
+            const StageVersion currentDependsOnVersion = 
+                getSubsystemStageVersions(subsys)[ce.getDependsOnStage()];
+            const StageVersion lastCacheVersion = 
+                ce.getVersionWhenLastComputed();
+
+            if (lastCacheVersion != currentDependsOnVersion) {
+                SimTK_THROW4(Exception::CacheEntryOutOfDate,
+                    stageNow, ce.getDependsOnStage(), currentDependsOnVersion, lastCacheVersion);
+            }
+        }
+
+        // If we get here then we're either past the "computed by" stage, or we're
+        // past "depends on" with an explicit validation having been made at the
+        // "depends on" stage's current version.
+
         return ce.getValue();
     }
     
@@ -1898,8 +1919,8 @@ public:
         SimTK_INDEXCHECK(0,index,(int)ss.cacheInfo.size(),"StateRep::updCacheEntry()");
         CacheEntryInfo& ce = ss.cacheInfo[index];
     
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), 
-            ce.getComputedByStage().prev(), "StateRep::updCacheEntry()");
+        SimTK_STAGECHECK_GE_ALWAYS(getSubsystemStage(subsys), 
+            ce.getDependsOnStage().prev(), "StateRep::updCacheEntry()");
     
         return ce.updValue();
     }
@@ -2172,8 +2193,8 @@ EventTriggerByStageIndex State::allocateEventTrigger(SubsystemIndex subsys, Stag
 DiscreteVariableIndex State::allocateDiscreteVariable(SubsystemIndex subsys, Stage stage, AbstractValue* v) {
     return rep->allocateDiscreteVariable(subsys, stage, v);
 }
-CacheEntryIndex State::allocateCacheEntry(SubsystemIndex subsys, Stage stage, AbstractValue* v) const {
-    return rep->allocateCacheEntry(subsys, stage, v);
+CacheEntryIndex State::allocateCacheEntry(SubsystemIndex subsys, Stage dependsOn, Stage computedBy, AbstractValue* v) const {
+    return rep->allocateCacheEntry(subsys, dependsOn, computedBy, v);
 }
 int State::getNY() const {
     return rep->getNY();

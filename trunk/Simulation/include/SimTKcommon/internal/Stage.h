@@ -166,6 +166,19 @@ public:
     }
 };
 
+class CacheEntryOutOfDate : public Base {
+public:
+    CacheEntryOutOfDate(const char* fn, int ln,
+        Stage currentStage, Stage dependsOn, int dependsOnVersion, int lastCalculatedVersion) 
+    :   Base(fn,ln)
+    {
+        setMessage("State Cache entry was out of date at Stage " + currentStage.getName() 
+           + ". This entry depends on version " + String(dependsOnVersion) 
+           + " of Stage " + dependsOn.getName() 
+           + " but was last updated at version " + String(lastCalculatedVersion));
+    }
+};
+
 // An attempt to realize a particular subsystem to a particular stage failed.
 class RealizeCheckFailed : public Base {
 public:
