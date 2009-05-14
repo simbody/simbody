@@ -1268,7 +1268,7 @@ public:
     CacheEntryIndex allocateCacheEntry(SubsystemIndex subsys, Stage dependsOn, Stage computedBy, AbstractValue* vp) const {
         SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), dependsOn, Stage::HighestRuntime, 
             "StateRep::allocateCacheEntry()");
-        SimTK_STAGECHECK_RANGE_ALWAYS(dependsOn, computedBy, Stage::HighestRuntime, 
+        SimTK_STAGECHECK_RANGE_ALWAYS(dependsOn, computedBy, Stage::Infinity, 
             "StateRep::allocateCacheEntry()");
         SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), 
             Stage::Instance, "StateRep::allocateCacheEntry()");

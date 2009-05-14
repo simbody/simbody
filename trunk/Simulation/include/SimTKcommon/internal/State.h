@@ -452,7 +452,7 @@ public:
     /// need not have been set in order for the cache entry to be deemed valid at
     /// \a latest stage.
     ///
-    /// If \a latest is given as Stage::Empty then there is no guarantee that this Subsystem
+    /// If \a latest is given as Stage::Infinity then there is no guarantee that this Subsystem
     /// will automatically calculate a value for this cache entry. In that case the only
     /// way the cache entry can become valid is if the calculation is performed and the
     /// validity indicator is set explicitly.
