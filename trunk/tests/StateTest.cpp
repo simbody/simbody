@@ -144,7 +144,7 @@ void testCacheValidity() {
     SimTK_TEST_MUST_THROW(s.getCacheEntry(Sub0, cx));
 
     // If we say it is valid, we should be able to obtain its value.
-    s.markCacheValueValid(Sub0, cx);
+    s.markCacheValueRealized(Sub0, cx);
     SimTK_TEST(Value<int>::downcast(s.getCacheEntry(Sub0, cx)) == 41);
 
     // Now modify a Model-stage state variable and realize again. This
@@ -155,12 +155,14 @@ void testCacheValidity() {
     s.advanceSubsystemToStage(Sub1, Stage::Model);
     s.advanceSystemToStage(Stage::Model);
 
+    SimTK_TEST(!s.isCacheValueCurrent(Sub0, cx));
+
     SimTK_TEST_MUST_THROW(s.getCacheEntry(Sub0, cx));
 
     // "calculate" the cache entry and mark it valid.
     Value<int>::updDowncast(s.updCacheEntry(Sub0,cx)) = 
         (int)(2 * Value<Real>::downcast(s.getDiscreteVariable(Sub1, dvxModel)));
-    s.markCacheValueValid(Sub0, cx);
+    s.markCacheValueRealized(Sub0, cx);
 
     SimTK_TEST(Value<int>::downcast(s.getCacheEntry(Sub0, cx)) == 18);
 

@@ -175,7 +175,7 @@ public:
         setMessage("State Cache entry was out of date at Stage " + currentStage.getName() 
            + ". This entry depends on version " + String(dependsOnVersion) 
            + " of Stage " + dependsOn.getName() 
-           + " but was last updated at version " + String(lastCalculatedVersion));
+           + " but was last updated at version " + String(lastCalculatedVersion) + ".");
     }
 };
 

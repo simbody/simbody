@@ -754,8 +754,8 @@ public:
     /// Stage >= ce.stage-1; does not change stage
     AbstractValue& updCacheEntry(SubsystemIndex, CacheEntryIndex) const; // mutable
 
-    bool isCacheValueValid(SubsystemIndex, CacheEntryIndex) const;
-    void markCacheValueValid(SubsystemIndex, CacheEntryIndex) const;
+    bool isCacheValueCurrent(SubsystemIndex, CacheEntryIndex) const;
+    void markCacheValueRealized(SubsystemIndex, CacheEntryIndex) const;
 
     /// Return the lowest System Stage that was invalidated since the last time this
     /// "low water mark" was reset. The returned value is never higher than the

@@ -73,7 +73,9 @@ public:
     DiscreteVariableIndex allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const;
 
     // Cache entries
-    CacheEntryIndex allocateCacheEntry(const State& s, Stage g, AbstractValue* v) const;
+    CacheEntryIndex allocateCacheEntry   (const State&, Stage dependsOn, Stage computedBy, AbstractValue* v) const;
+    CacheEntryIndex allocateCacheEntry   (const State& state, Stage g, AbstractValue* v) const 
+    {   return allocateCacheEntry(state, g, g, v); }
     // qerr, uerr, udoterr are all cache entries, not variables
     // allocating udoterr also allocates matching multipliers
     QErrIndex allocateQErr(const State& s, int nqerr) const;
@@ -148,6 +150,9 @@ public:
     const AbstractValue& getCacheEntry(const State&, CacheEntryIndex) const;
     // State is mutable here.
     AbstractValue& updCacheEntry(const State&, CacheEntryIndex) const;
+
+    bool isCacheValueCurrent(const State&, CacheEntryIndex) const;
+    void markCacheValueRealized(const State&, CacheEntryIndex) const;
 
     // Dimensions. These are valid at System Stage::Model while access to the various
     // arrays may have stricter requirements. Hence it is better to use these

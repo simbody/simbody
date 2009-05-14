@@ -141,7 +141,10 @@ UIndex Subsystem::allocateU(State& s, const Vector& uInit)const {return getSubsy
 ZIndex Subsystem::allocateZ(State& s, const Vector& zInit)const {return getSubsystemGuts().allocateZ(s,zInit);}
 DiscreteVariableIndex Subsystem::allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const {return getSubsystemGuts().allocateDiscreteVariable(s,g,v);}
 
-CacheEntryIndex Subsystem::allocateCacheEntry   (const State& s, Stage g, AbstractValue* v) const {return getSubsystemGuts().allocateCacheEntry(s,g,v);}
+CacheEntryIndex Subsystem::allocateCacheEntry   
+   (const State& s, Stage dependsOn, Stage computedBy, AbstractValue* v) const 
+{   return getSubsystemGuts().allocateCacheEntry(s,dependsOn,computedBy,v); }
+
 QErrIndex       Subsystem::allocateQErr         (const State& s, int nqerr)    const {return getSubsystemGuts().allocateQErr(s,nqerr);}
 UErrIndex       Subsystem::allocateUErr         (const State& s, int nuerr)    const {return getSubsystemGuts().allocateUErr(s,nuerr);}
 UDotErrIndex    Subsystem::allocateUDotErr      (const State& s, int nudoterr) const {return getSubsystemGuts().allocateUDotErr(s,nudoterr);}
@@ -187,6 +190,12 @@ const AbstractValue& Subsystem::getCacheEntry(const State& s, CacheEntryIndex in
 }
 AbstractValue& Subsystem::updCacheEntry(const State& s, CacheEntryIndex index) const {
     return getSubsystemGuts().updCacheEntry(s, index);
+}
+bool Subsystem::isCacheValueCurrent(const State& s, CacheEntryIndex cx) const {
+    return getSubsystemGuts().isCacheValueCurrent(s, cx);
+}
+void Subsystem::markCacheValueRealized(const State& s, CacheEntryIndex cx) const {
+    getSubsystemGuts().markCacheValueRealized(s, cx);
 }
 
 SystemQIndex Subsystem::getQStart      (const State& s) const {return getSubsystemGuts().getQStart(s);}
@@ -288,8 +297,8 @@ DiscreteVariableIndex Subsystem::Guts::allocateDiscreteVariable(State& s, Stage 
     return s.allocateDiscreteVariable(getRep().getMySubsystemIndex(), g, v);
 }
 
-CacheEntryIndex Subsystem::Guts::allocateCacheEntry(const State& s, Stage g, AbstractValue* v) const {
-    return s.allocateCacheEntry(getRep().getMySubsystemIndex(), g, v);
+CacheEntryIndex Subsystem::Guts::allocateCacheEntry(const State& s, Stage dependsOn, Stage computedBy, AbstractValue* v) const {
+    return s.allocateCacheEntry(getRep().getMySubsystemIndex(), dependsOn, computedBy, v);
 }
 
 QErrIndex Subsystem::Guts::allocateQErr(const State& s, int nqerr) const {
@@ -329,6 +338,13 @@ const AbstractValue& Subsystem::Guts::getCacheEntry(const State& s, CacheEntryIn
 
 AbstractValue& Subsystem::Guts::updCacheEntry(const State& s, CacheEntryIndex index) const {
     return s.updCacheEntry(getRep().getMySubsystemIndex(), index);
+}
+
+bool Subsystem::Guts::isCacheValueCurrent(const State& s, CacheEntryIndex cx) const {
+    return s.isCacheValueCurrent(getRep().getMySubsystemIndex(), cx);
+}
+void Subsystem::Guts::markCacheValueRealized(const State& s, CacheEntryIndex cx) const {
+    s.markCacheValueRealized(getRep().getMySubsystemIndex(), cx);
 }
 
 const Vector& Subsystem::Guts::getQ(const State& s) const {return s.getQ(getRep().getMySubsystemIndex());}

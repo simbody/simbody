@@ -96,7 +96,9 @@ public:
     ZIndex allocateZ(State&, const Vector& zInit) const;
     DiscreteVariableIndex allocateDiscreteVariable(State&, Stage, AbstractValue* v) const;
 
-    CacheEntryIndex allocateCacheEntry   (const State&, Stage, AbstractValue* v) const;
+    CacheEntryIndex allocateCacheEntry   (const State&, Stage dependsOn, Stage computedBy, AbstractValue* v) const;
+    CacheEntryIndex allocateCacheEntry   (const State& state, Stage g, AbstractValue* v) const 
+    {   return allocateCacheEntry(state, g, g, v); }
     QErrIndex allocateQErr         (const State&, int nqerr) const;
     UErrIndex allocateUErr         (const State&, int nuerr) const;
     UDotErrIndex allocateUDotErr      (const State&, int nudoterr) const;
@@ -168,6 +170,9 @@ public:
     const AbstractValue& getCacheEntry(const State&, CacheEntryIndex) const;
     // State is mutable here.
     AbstractValue& updCacheEntry(const State&, CacheEntryIndex) const;
+
+    bool isCacheValueCurrent(const State&, CacheEntryIndex) const;
+    void markCacheValueRealized(const State&, CacheEntryIndex) const;
 
     // Dimensions. These are valid at System Stage::Model while access to the various
     // arrays may have stricter requirements. Hence it is better to use these

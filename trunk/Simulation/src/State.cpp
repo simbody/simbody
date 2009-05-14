@@ -327,17 +327,17 @@ public:
         value(v), versionWhenLastComputed(0) 
     {   assert(isReasonable()); }
 
-    bool isValid(const Stage& current, const StageVersion versions[]) const 
+    bool isCurrent(const Stage& current, const StageVersion versions[]) const 
     {   if (current >= computedByStage) return true;
         if (current <  dependsOnStage)  return false;
         return versions[dependsOnStage] == versionWhenLastComputed;}
 
     StageVersion getVersionWhenLastComputed() const {return versionWhenLastComputed;}
 
-    // These affect only the explicit validity flag which does not fully
-    // determine validity; see isValid() above.
+    // These affect only the explicit "last computed" flag which does not fully
+    // determine whether the value is current; see isCurrent() above.
     void invalidate() {versionWhenLastComputed = -1;}
-    void markAsValid(const StageVersion versions[])
+    void markAsComputed(const StageVersion versions[])
     {   versionWhenLastComputed = versions[dependsOnStage];}
 
     // Default copy constructor, copy assignment, destructor are shallow.
@@ -1925,15 +1925,15 @@ public:
         return ce.updValue();
     }
 
-    bool isCacheValueValid(SubsystemIndex subx, CacheEntryIndex cx) const {
+    bool isCacheValueCurrent(SubsystemIndex subx, CacheEntryIndex cx) const {
         const PerSubsystemInfo& ss = data->subsystems[subx];
-        SimTK_INDEXCHECK(0,cx,(int)ss.cacheInfo.size(),"StateRep::isCacheValueValid()");
+        SimTK_INDEXCHECK(0,cx,(int)ss.cacheInfo.size(),"StateRep::isCacheValueCurrent()");
         const CacheEntryInfo& ce = ss.cacheInfo[cx];
-        return ce.isValid(getSubsystemStage(subx), getSubsystemStageVersions(subx));
+        return ce.isCurrent(getSubsystemStage(subx), getSubsystemStageVersions(subx));
     }
-    void markCacheValueValid(SubsystemIndex subx, CacheEntryIndex cx) const {
+    void markCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
         const PerSubsystemInfo& ss = data->subsystems[subx];
-        SimTK_INDEXCHECK(0,cx,(int)ss.cacheInfo.size(),"StateRep::markCacheValueValid()");
+        SimTK_INDEXCHECK(0,cx,(int)ss.cacheInfo.size(),"StateRep::markCacheValueRealized()");
         CacheEntryInfo& ce = ss.cacheInfo[cx];
     
         // If this cache entry depends on anything, it can't be valid unless we're
@@ -1941,9 +1941,9 @@ public:
         // have to be the one before that. The depends-on stage is required to be at
         // least Stage::Topology, so its prev() stage exists.
         SimTK_STAGECHECK_GE(getSubsystemStage(subx), 
-            ce.getDependsOnStage().prev(), "StateRep::markCacheValueValid()");
+            ce.getDependsOnStage().prev(), "StateRep::markCacheValueRealized()");
 
-        ce.markAsValid(getSubsystemStageVersions(subx));
+        ce.markAsComputed(getSubsystemStageVersions(subx));
     }
     const Stage& getLowestStageModified() const {
         return data->lowestModifiedSystemStage;
@@ -2501,11 +2501,11 @@ AbstractValue& State::updCacheEntry(SubsystemIndex subsys, CacheEntryIndex index
 }
 
 
-bool State::isCacheValueValid(SubsystemIndex subx, CacheEntryIndex cx) const {
-    return rep->isCacheValueValid(subx, cx); 
+bool State::isCacheValueCurrent(SubsystemIndex subx, CacheEntryIndex cx) const {
+    return rep->isCacheValueCurrent(subx, cx); 
 }
-void State::markCacheValueValid(SubsystemIndex subx, CacheEntryIndex cx) const {
-    rep->markCacheValueValid(subx, cx); 
+void State::markCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
+    rep->markCacheValueRealized(subx, cx); 
 }
 const Stage& State::getLowestStageModified() const {
     return rep->getLowestStageModified(); 
