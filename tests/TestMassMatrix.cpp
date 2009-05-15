@@ -351,6 +351,23 @@ void testCompositeInertia() {
     const SpatialVec H2 = body2.getHCol(state, UIndex(0));
     SimTK_TEST_EQ(~H2*R[2]*H2, expInertia2);
     SimTK_TEST_EQ(~H1*R[1]*H1, expInertia1);
+
+    // This should force realization of the composite body inertias.
+    SpatialMat cbi = pend.getCompositeBodyInertia(state, body1);
+
+    body2.setAngle(state, Pi/4);
+    // This is not allowed until Position stage.
+    SimTK_TEST_MUST_THROW(pend.getCompositeBodyInertia(state, body1));
+    mbs.realize(state, Stage::Position);
+    // Now it should be OK.
+    cbi = pend.getCompositeBodyInertia(state, body1);
+
+    mbs.realize(state, Stage::Acceleration);
+    cout << "udots=" << state.getUDot() << endl;
+
+    body1.setRate(state, 27);
+    mbs.realize(state, Stage::Acceleration);
+    cout << "udots=" << state.getUDot() << endl;
 }
 
 int main() {

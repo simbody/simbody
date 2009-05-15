@@ -159,9 +159,10 @@ Real RigidBodyNode::calcKineticEnergy(
 // Must be called base to tip.
 void 
 RigidBodyNode::calcJointIndependentDynamicsVel(
-    const SBPositionCache& pc,
-    const SBVelocityCache& vc,
-    SBDynamicsCache&       dc) const
+    const SBPositionCache&                  pc,
+    const SBArticulatedBodyInertiaCache&    abc,
+    const SBVelocityCache&                  vc,
+    SBDynamicsCache&                        dc) const
 {
     if (nodeNum == 0) { // ground, just in case
         updCentrifugalForces(dc)         = SpatialVec(Vec3(0), Vec3(0));
@@ -171,11 +172,11 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
 
     // 72 flops
     updCentrifugalForces(dc) =
-        getP(dc) * getCoriolisAcceleration(vc) + getGyroscopicForce(vc);
+        getP(abc) * getCoriolisAcceleration(vc) + getGyroscopicForce(vc);
 
     // 72 flops
     updTotalCentrifugalForces(dc) = 
-        getP(dc) * getTotalCoriolisAcceleration(vc) + getGyroscopicForce(vc);
+        getP(abc) * getTotalCoriolisAcceleration(vc) + getGyroscopicForce(vc);
 
 }
 

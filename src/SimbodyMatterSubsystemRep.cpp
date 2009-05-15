@@ -206,11 +206,6 @@ SimbodyMatterSubsystemRep::getCentrifugalForces(const State& s, MobilizedBodyInd
   return getRigidBodyNode(body).getCentrifugalForces(getDynamicsCache(s));
 }
 
-const SpatialMat&
-SimbodyMatterSubsystemRep::getArticulatedBodyInertia(const State& s, MobilizedBodyIndex body) const {
-  return getRigidBodyNode(body).getArticulatedBodyInertia(getDynamicsCache(s));
-}
-
 // Here we lock in the topological structure of the multibody system,
 // and compute allocation sizes we're going to need later for state
 // variables and cache entries. We allocate and initialize all the
@@ -290,6 +285,10 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
     }
 }
 
+//------------------------------------------------------------------------------
+//                               REALIZE TOPOLOGY
+//------------------------------------------------------------------------------
+
 int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     SimTK_STAGECHECK_EQ_ALWAYS(getStage(s), Stage::Empty, 
         "SimbodyMatterSubsystem::realizeTopology()");
@@ -333,6 +332,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     return 0;
 }
 
+//------------------------------------------------------------------------------
+//                                 REALIZE MODEL
+//------------------------------------------------------------------------------
 // Here we lock in modeling choices like whether to use quaternions or Euler
 // angles; what joints are prescribed, etc.
 int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
@@ -426,6 +428,18 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     mc.qVarsIndex.invalidate(); // no position-stage vars other than q
     mc.qCacheIndex = allocateCacheEntry(s, Stage::Position, new Value<SBPositionCache>());
 
+    // Composite body inertias *can* be calculated any time 
+    // after Position stage but we want to put them off as long as possible since
+    // they may never be needed. These will only be valid if they are 
+    // explicitly realized at some point.
+    mc.compositeBodyInertiaCacheIndex =
+        allocateCacheEntry(s, Stage::Position, Stage::Infinity, new Value<SBCompositeBodyInertiaCache>());
+
+    // Articulated body inertias *can* be calculated any time 
+    // after Position stage but we want to put them off until Dynamics stage if possible.
+    mc.articulatedBodyInertiaCacheIndex =
+        allocateCacheEntry(s, Stage::Position, Stage::Dynamics, new Value<SBArticulatedBodyInertiaCache>());
+
     // Velocity variables are just the generalized speeds u, which the State knows how to deal
     // with. Zero is always a reasonable value for velocity, so we'll initialize it here.
 
@@ -465,18 +479,21 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     return 0;
 }
 
+//------------------------------------------------------------------------------
+//                               REALIZE INSTANCE
+//------------------------------------------------------------------------------
 // Here we lock in parameterization of the model, such as body masses.
 int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Instance).prev(), 
         "SimbodyMatterSubsystem::realizeInstance()");
 
     SBStateDigest sbs(s, *this, Stage::Instance);
-    const SBInstanceVars& iv = sbs.
-    getInstanceVars();
+    const SBInstanceVars& iv = sbs.getInstanceVars();
 
     // Get the Instance-stage cache and make sure it has been allocated and initialized if needed.
     SBInstanceCache& ic = sbs.updInstanceCache();
     ic.allocate(topologyCache);
+
     const SBModelCache& mc = getModelCache(s);
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
@@ -556,6 +573,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) cons
     return 0;
 }
 
+//------------------------------------------------------------------------------
+//                                REALIZE TIME
+//------------------------------------------------------------------------------
 int SimbodyMatterSubsystemRep::realizeSubsystemTimeImpl(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Time).prev(), 
         "SimbodyMatterSubsystem::realizeTime()");
@@ -570,6 +590,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTimeImpl(const State& s) const {
     return 0;
 }
 
+//------------------------------------------------------------------------------
+//                               REALIZE POSITION
+//------------------------------------------------------------------------------
 // Set generalized coordinates: sweep from base to tips.
 int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Position).prev(), 
@@ -585,6 +608,11 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
     // Get the Position-stage cache and make sure it has been allocated and initialized if needed.
     SBPositionCache& pc = updPositionCache(s);
     pc.allocate(topologyCache);
+
+    // We can allocate the other position-dependent cache entries now too.
+    updCompositeBodyInertiaCache(s).allocate(topologyCache);
+    updArticulatedBodyInertiaCache(s).allocate(topologyCache);
+
 
     // Any body which is using quaternions should calculate the quaternion
     // constraint here and put it in the appropriate slot of qErr.
@@ -611,6 +639,53 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
     return 0;
 }
 
+//------------------------------------------------------------------------------
+//                      REALIZE COMPOSITE BODY INERTIAS
+//------------------------------------------------------------------------------
+void SimbodyMatterSubsystemRep::realizeCompositeBodyInertias(const State& state) const {
+    const CacheEntryIndex cbx = getModelCache(state).compositeBodyInertiaCacheIndex;
+
+    if (isCacheValueCurrent(state, cbx))
+        return; // already realized
+
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Position, 
+        "SimbodyMatterSubsystem::realizeCompositeBodyInertias()");
+
+    SBCompositeBodyInertiaCache& cbc = 
+        Value<SBCompositeBodyInertiaCache>::updDowncast(updCacheEntry(state, cbx));
+
+    calcCompositeBodyInertias(state, cbc.compositeBodyInertia);
+    markCacheValueRealized(state, cbx);
+}
+
+
+//------------------------------------------------------------------------------
+//                     REALIZE ARTICULATED BODY INERTIAS
+//------------------------------------------------------------------------------
+void SimbodyMatterSubsystemRep::realizeArticulatedBodyInertias(const State& state) const {
+    const CacheEntryIndex abx = getModelCache(state).articulatedBodyInertiaCacheIndex;
+
+    if (isCacheValueCurrent(state, abx))
+        return; // already realized
+
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Position, 
+        "SimbodyMatterSubsystem::realizeArticulatedBodyInertias()");
+
+    const SBPositionCache& pc = getPositionCache(state);
+
+    SBArticulatedBodyInertiaCache& abc = 
+        Value<SBArticulatedBodyInertiaCache>::updDowncast(updCacheEntry(state, abx));
+
+    for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            rbNodeLevels[i][j]->realizeArticulatedBodyInertiasInward(pc,abc);
+
+    markCacheValueRealized(state, abx);
+}
+
+//------------------------------------------------------------------------------
+//                               REALIZE VELOCITY
+//------------------------------------------------------------------------------
 // Set generalized speeds: sweep from base to tip.
 // realizePosition() must have been called already.
 int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) const {
@@ -654,6 +729,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
 }
 
 
+//------------------------------------------------------------------------------
+//                               REALIZE DYNAMICS
+//------------------------------------------------------------------------------
 // Prepare for dynamics by calculating position-dependent quantities
 // like the articulated body inertias P, and velocity-dependent
 // quantities like the Coriolis acceleration.
@@ -664,19 +742,20 @@ int SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  con
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Dynamics).prev(), 
         "SimbodyMatterSubsystem::realizeDynamics()");
 
+    // tip-to-base calculation
+    realizeArticulatedBodyInertias(s); // (may already have been realized)
+    const SBArticulatedBodyInertiaCache& abc = getArticulatedBodyInertiaCache(s);
+
     SBStateDigest sbs(s, *this, Stage::Dynamics);
 
     // Get the Dynamics-stage cache and make sure it has been allocated and initialized if needed.
     SBDynamicsCache& dc = sbs.updDynamicsCache();
     dc.allocate(topologyCache);
 
-    // tip-to-base calculation
-    realizeArticulatedBodyInertias(s);
-
     // base-to-tip
     for (int i=0; i < (int)rbNodeLevels.size(); i++)
         for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
-            rbNodeLevels[i][j]->realizeDynamics(sbs);
+            rbNodeLevels[i][j]->realizeDynamics(abc, sbs);
 
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
         getConstraint(cx).getImpl().realizeDynamics(s);
@@ -684,6 +763,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  con
     return 0;
 }
 
+//------------------------------------------------------------------------------
+//                             REALIZE ACCELERATION
+//------------------------------------------------------------------------------
 int SimbodyMatterSubsystemRep::realizeSubsystemAccelerationImpl(const State& s)  const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Acceleration).prev(), 
         "SimbodyMatterSubsystem::realizeAcceleration()");
@@ -714,6 +796,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemAccelerationImpl(const State& s) 
 }
 
 
+//------------------------------------------------------------------------------
+//                               REALIZE REPORT
+//------------------------------------------------------------------------------
 int SimbodyMatterSubsystemRep::realizeSubsystemReportImpl(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Report).prev(), 
         "SimbodyMatterSubsystem::realizeReport()");
@@ -1220,6 +1305,10 @@ void SimbodyMatterSubsystemRep::calcAccelerationOnlyConstraintMatrixAt(const Sta
         At(0, accOnlySeg.offset, nu, accOnlySeg.length) = constraints[cx]->calcAccelerationConstraintMatrixAt(s);
     }
 }
+
+//------------------------------------------------------------------------------
+//                  CALC CONSTRAINT FORCES FROM MULTIPLIERS
+//------------------------------------------------------------------------------
 // Must be realized to Stage::Position.
 // Note that constraint forces have the opposite sign from applied forces,
 // because we calculate multipliers from
@@ -1284,6 +1373,9 @@ static Real calcQErrestWeightedNorm(const SimbodyMatterSubsystemRep& matter, con
     return qhatErrest.normRMS();
 }
 
+//------------------------------------------------------------------------------
+//                       ENFORCE POSITION CONSTRAINTS
+//------------------------------------------------------------------------------
 void SimbodyMatterSubsystemRep::enforcePositionConstraints
    (State& s, Real consAccuracy, const Vector& yWeights,
     const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
@@ -1428,6 +1520,9 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
         s.invalidateAll(Stage::Position);
 }
 
+//------------------------------------------------------------------------------
+//                          ENFORCE VELOCITY CONSTRAINTS
+//------------------------------------------------------------------------------
 void SimbodyMatterSubsystemRep::enforceVelocityConstraints
    (State& s, Real consAccuracy, const Vector& yWeights,
     const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
@@ -1532,8 +1627,9 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
     if (anyChange)
         s.invalidateAll(Stage::Velocity);
 }
-
-// TREE FORWARD DYNAMICS OPERATOR
+//------------------------------------------------------------------------------
+//                        CALC TREE FORWARD DYNAMICS
+//------------------------------------------------------------------------------
 //
 // Given a State realized through Stage::Dynamics, and a complete
 // set of applied forces, calculate all acceleration results into
@@ -1628,8 +1724,9 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
     //cout << "Tree:NEW UDOT ERR=" << udotErr << endl;
 }
 
-
-// LOOP FORWARD DYNAMICS OPERATOR
+//------------------------------------------------------------------------------
+//                          CALC LOOP FORWARD DYNAMICS
+//------------------------------------------------------------------------------
 // 
 // Given a State realized through Stage::Dynamics, and a complete
 // set of applied forces, calculate all acceleration results resulting
@@ -1807,7 +1904,9 @@ void SimbodyMatterSubsystemRep::calcPositionConstraintMatrix(const State& s,
 */
 
 
-//
+//------------------------------------------------------------------------------
+//                        CALC COMPOSITE BODY INERTIAS
+//------------------------------------------------------------------------------
 // Given a State realized to Position stage, calculate the composite
 // body inertias seen by each mobilizer. A composite body inertia is
 // the inertia of the rigid body created by locking all joints outboard
@@ -1824,26 +1923,19 @@ void SimbodyMatterSubsystemRep::calcCompositeBodyInertias(const State& s,
             rbNodeLevels[i][j]->calcCompositeBodyInertiasInward(pc,R);
 }
 
-// should be:
-//   foreach tip {
-//     traverse back to node which has more than one child hinge.
-//   }
-void SimbodyMatterSubsystemRep::realizeArticulatedBodyInertias(const State& s) const {
-    const SBPositionCache& pc = getPositionCache(s);
-    SBDynamicsCache&       dc = updDynamicsCache(s);
 
-    for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->realizeArticulatedBodyInertiasInward(pc,dc);
-}
-
-// Y is used for length constraints: sweep from base to tip.
+// Y is used for length constraints: sweep from base to tip. You can call this
+// after Position stage but it may have to realize articulated bodies first.
 void SimbodyMatterSubsystemRep::realizeY(const State& s) const {
-    SBStateDigest sbs(s, *this, Stage::Dynamics);
+    realizeArticulatedBodyInertias(s);
+
+    const SBPositionCache&                pc  = getPositionCache(s);
+    const SBArticulatedBodyInertiaCache&  abc = getArticulatedBodyInertiaCache(s);
+    SBDynamicsCache&                      dc  = updDynamicsCache(s);
 
     for (int i=0; i < (int)rbNodeLevels.size(); i++)
         for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
-            rbNodeLevels[i][j]->realizeYOutward(sbs);
+            rbNodeLevels[i][j]->realizeYOutward(pc,abc,dc);
 }
 
 // Process forces for subsequent use by calcTreeAccel() below.
@@ -1852,26 +1944,42 @@ void SimbodyMatterSubsystemRep::realizeZ(const State& s,
     const Vector_<SpatialVec>& bodyForces) const
 {
     const SBStateDigest sbs(s, *this, Stage::Acceleration);
+    const SBPositionCache&  pc  = sbs.getPositionCache();
+    const SBVelocityCache&  vc  = sbs.getVelocityCache();
+    const SBDynamicsCache&  dc  = sbs.getDynamicsCache();
+    SBAccelerationCache&    ac  = sbs.updAccelerationCache();
+
+    const SBArticulatedBodyInertiaCache&    
+            abc = getArticulatedBodyInertiaCache(s);
 
     // TODO: does this need to do level 0?
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.realizeZ(sbs,mobilityForces,bodyForces);
+            node.realizeZ(pc,abc,vc,dc,ac,mobilityForces,bodyForces);
         }
 }
 
 // Calc acceleration: sweep from base to tip. This uses the forces
 // that were last supplied to realizeZ()above.
 void SimbodyMatterSubsystemRep::realizeTreeAccel(const State& s) const {
-    SBStateDigest sbs(s, *this, Stage::Acceleration);
 
-    Vector&                udot    = updUDot(s);
-    Vector&                qdotdot = updQDotDot(s);
+    SBStateDigest sbs(s, *this, Stage::Acceleration);
+    const SBPositionCache&  pc  = sbs.getPositionCache();
+    const SBVelocityCache&  vc  = sbs.getVelocityCache();
+    const SBDynamicsCache&  dc  = sbs.getDynamicsCache();
+    SBAccelerationCache&    ac  = sbs.updAccelerationCache();
+
+    const SBArticulatedBodyInertiaCache&    
+            abc     = getArticulatedBodyInertiaCache(s);
+    Vector& udot    = updUDot(s);
+    Vector& qdotdot = updQDotDot(s);
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->realizeAccel(sbs,udot,qdotdot);
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            rbNodeLevels[i][j]->realizeAccel(pc,abc,vc,dc,ac,udot);
+            rbNodeLevels[i][j]->calcQDotDot(sbs, udot, qdotdot);
+        }
 }
 
 Real SimbodyMatterSubsystemRep::calcKineticEnergy(const State& s) const {
@@ -1903,6 +2011,8 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     const SBVelocityCache& vc = sbs.getVelocityCache();
     const SBDynamicsCache& dc = sbs.getDynamicsCache();
 
+    const SBArticulatedBodyInertiaCache& abc = getArticulatedBodyInertiaCache(s);
+
     assert(mobilityForces.size() == getTotalDOF());
     assert(bodyForces.size() == getNumBodies());
 
@@ -1917,7 +2027,7 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcUDotPass1Inward(pc,dc,
+            node.calcUDotPass1Inward(pc,abc,dc,
                 mobilityForces, bodyForces, allZ, allGepsilon,
                 netHingeForces);
         }
@@ -1925,7 +2035,7 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcUDotPass2Outward(pc,vc,dc, netHingeForces, A_GB, udot);
+            node.calcUDotPass2Outward(pc,abc,vc,dc, netHingeForces, A_GB, udot);
         }
 }
 
@@ -1938,8 +2048,9 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
     Vector_<SpatialVec>&       A_GB,
     Vector&                    udot) const 
 {
-    const SBPositionCache& pc = getPositionCache(s);
-    const SBDynamicsCache& dc = getDynamicsCache(s);
+    const SBPositionCache&                  pc  = getPositionCache(s);
+    const SBArticulatedBodyInertiaCache&    abc = getArticulatedBodyInertiaCache(s);
+    const SBDynamicsCache&                  dc  = getDynamicsCache(s);
 
     assert(f.size() == getTotalDOF());
 
@@ -1954,7 +2065,7 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMInverseFPass1Inward(pc,dc,
+            node.calcMInverseFPass1Inward(pc,abc,dc,
                 f, allZ, allGepsilon,
                 allEpsilon);
         }
@@ -1962,7 +2073,7 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMInverseFPass2Outward(pc,dc, allEpsilon, A_GB, udot);
+            node.calcMInverseFPass2Outward(pc,abc,dc, allEpsilon, A_GB, udot);
         }
 }
 

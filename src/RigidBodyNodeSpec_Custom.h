@@ -271,8 +271,8 @@ public:
         RigidBodyNodeSpec<nu>::realizeVelocity(sbs);
     }
 
-    void realizeDynamics(SBStateDigest& sbs) const {
-        RigidBodyNodeSpec<nu>::realizeDynamics(sbs);
+    void realizeDynamics(const SBArticulatedBodyInertiaCache& abc, SBStateDigest& sbs) const {
+        RigidBodyNodeSpec<nu>::realizeDynamics(abc, sbs);
         impl.realizeDynamics(sbs.getState());
     }
 

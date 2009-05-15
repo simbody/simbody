@@ -162,14 +162,14 @@ public:
     {   mv.prescribed[0] = true; }
 
     // TODO: should ground set the various cache entries here?
-    void realizeModel(SBStateDigest& sbs) const {}
-    void realizeInstance(SBStateDigest& sbs) const {}
-    void realizeTime(SBStateDigest& sbs) const {}
-    void realizePosition(SBStateDigest& sbs) const {}
-    void realizeVelocity(SBStateDigest& sbs) const {}
-    void realizeDynamics(SBStateDigest& sbs) const {}
-    void realizeAcceleration(SBStateDigest& sbs) const {}
-    void realizeReport(SBStateDigest& sbs) const {}
+    void realizeModel   (SBStateDigest&) const {}
+    void realizeInstance(SBStateDigest&) const {}
+    void realizeTime    (SBStateDigest&) const {}
+    void realizePosition(SBStateDigest&) const {}
+    void realizeVelocity(SBStateDigest&) const {}
+    void realizeDynamics(const SBArticulatedBodyInertiaCache&, SBStateDigest&) const {}
+    void realizeAcceleration(SBStateDigest&) const {}
+    void realizeReport  (SBStateDigest&) const {}
 
     // Ground's "composite" body inertia is still the infinite mass
     // and inertia it started with; no need to look at the children.
@@ -183,21 +183,24 @@ public:
     // inertia it started with; no need to look at the children.
     void realizeArticulatedBodyInertiasInward(
         const SBPositionCache&,
-        SBDynamicsCache&       dc) const 
-    {   updP(dc) = SpatialMat(Mat33(Infinity)); }
+        SBArticulatedBodyInertiaCache& abc) const 
+    {   updP(abc) = SpatialMat(Mat33(Infinity)); }
 
     void realizeYOutward(
-        const SBPositionCache& pc,
-        SBDynamicsCache&       dc) const 
+        const SBPositionCache&,
+        const SBArticulatedBodyInertiaCache&,
+        SBDynamicsCache&                        dc) const
     {   updY(dc) = SpatialMat(Mat33(0)); }
 
     void realizeZ(
-        const SBStateDigest&       sbs,
-        const Vector&              mobilityForces,
-        const Vector_<SpatialVec>& bodyForces) const 
+        const SBPositionCache&                  pc,
+        const SBArticulatedBodyInertiaCache&,
+        const SBVelocityCache&,
+        const SBDynamicsCache&,
+        SBAccelerationCache&                    ac,
+        const Vector&,
+        const Vector_<SpatialVec>&              bodyForces) const 
     {   
-        const SBPositionCache& pc = sbs.getPositionCache();
-        SBAccelerationCache&   ac = sbs.updAccelerationCache(); 
         updZ(ac) = -bodyForces[0];
         for (unsigned i=0; i<children.size(); ++i) {
             const SpatialVec& zChild    = children[i]->getZ(ac);
@@ -208,14 +211,17 @@ public:
         updGepsilon(ac) = SpatialVec(Vec3(0));
     }
     void realizeAccel(
-            const SBStateDigest&   sbs,
-            Vector&                udot,
-            Vector&                qdotdot) const 
-    {   SBAccelerationCache& ac = sbs.updAccelerationCache(); 
-        updA_GB(ac) = 0; }
+        const SBPositionCache&,
+        const SBArticulatedBodyInertiaCache&,
+        const SBVelocityCache&,
+        const SBDynamicsCache&,
+        SBAccelerationCache&                    ac,
+        Vector&) const 
+    {   updA_GB(ac) = 0; }
 
     void calcUDotPass1Inward(
         const SBPositionCache&     pc,
+        const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&,
         const Vector&              jointForces,
         const Vector_<SpatialVec>& bodyForces,
@@ -234,6 +240,7 @@ public:
     } 
     void calcUDotPass2Outward(
         const SBPositionCache&,
+        const SBArticulatedBodyInertiaCache&,
         const SBVelocityCache&,
         const SBDynamicsCache&,
         const Vector&              epsilonTmp,
@@ -245,6 +252,7 @@ public:
 
     void calcMInverseFPass1Inward(
         const SBPositionCache&     pc,
+        const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&,
         const Vector&              f,
         Vector_<SpatialVec>&       allZ,
@@ -263,6 +271,7 @@ public:
 
     void calcMInverseFPass2Outward(
         const SBPositionCache&,
+        const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&,
         const Vector&               epsilonTmp,
         Vector_<SpatialVec>&        allA_GB,
@@ -445,14 +454,15 @@ public:
         calcJointIndependentKinematicsVel(pc,vc);
     }
 
-    void realizeDynamics(SBStateDigest& sbs) const {
+    void realizeDynamics(const SBArticulatedBodyInertiaCache&   abc,
+                         SBStateDigest&                         sbs) const {
         // Mobilizer-specific.
         const SBPositionCache& pc = sbs.getPositionCache();
         const SBVelocityCache& vc = sbs.getVelocityCache();
         SBDynamicsCache& dc = sbs.updDynamicsCache();
         
         // Mobilizer independent.
-        calcJointIndependentDynamicsVel(pc,vc,dc);
+        calcJointIndependentDynamicsVel(pc,abc,vc,dc);
     }
 
 
@@ -462,45 +472,50 @@ public:
     // Weld uses base class implementation of calcCompositeBodyInertiasInward() since
     // that is independent of mobilities.
 
-    void realizeArticulatedBodyInertiasInward(const SBPositionCache& pc, SBDynamicsCache& dc) const {
-        updP(dc) = getMk(pc);
+    void realizeArticulatedBodyInertiasInward
+       (const SBPositionCache&          pc, 
+        SBArticulatedBodyInertiaCache&  abc) const 
+    {
+        SpatialMat& P = updP(abc);
+        P = getMk(pc);
 		for (unsigned i=0 ; i<children.size() ; i++) {
             const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
-            const SpatialMat& tauBarChild = children[i]->getTauBar(dc);
-            const SpatialMat& PChild      = children[i]->getP(dc);
-            const SpatialMat& psiChild    = children[i]->getPsi(dc);
+            const SpatialMat& tauBarChild = children[i]->getTauBar(abc);
+            const SpatialMat& PChild      = children[i]->getP(abc);
+            const SpatialMat& psiChild    = children[i]->getPsi(abc);
 
 			// TODO: too slow -- can get a 50% speedup by exploiting
             // symmetry; see the RigidBodyNodeSpec<dof> 
             // implementation for more info.
             // (Subtracting here because our Psi has reverse sign convention
             // from Jain's.)
-            updP(dc) -= psiChild * (PChild * ~phiChild);
+            P -= psiChild * (PChild * ~phiChild);
 		}
 
         // Note our backwards sign convention for TauBar and Psi (from Jain's).
-        updTauBar(dc) = -1; // -identity
+        updTauBar(abc) = -1; // -identity
         // TODO: wasting 33 flops negating; just re-create from -p.
-        updPsi(dc) = -getPhi(pc).toSpatialMat();
+        updPsi(abc)    = -getPhi(pc).toSpatialMat();
     }
 
 
     void realizeYOutward(
-        const SBPositionCache& pc,
-        SBDynamicsCache&       dc) const
+        const SBPositionCache&                  pc,
+        const SBArticulatedBodyInertiaCache&    abc,
+        SBDynamicsCache&                        dc) const
     {
-        updY(dc) = ~getPsi(dc) * parent->getY(dc) * getPsi(dc);
+        updY(dc) = ~getPsi(abc) * parent->getY(dc) * getPsi(abc);
     }
 
     void realizeZ(
-        const SBStateDigest&       sbs,
-        const Vector&              mobilityForces,
-        const Vector_<SpatialVec>& bodyForces) const 
+        const SBPositionCache&                  pc,
+        const SBArticulatedBodyInertiaCache&,
+        const SBVelocityCache&,
+        const SBDynamicsCache&                  dc,
+        SBAccelerationCache&                    ac,
+        const Vector&,
+        const Vector_<SpatialVec>&              bodyForces) const 
     {
-        const SBPositionCache& pc = sbs.getPositionCache();
-        const SBDynamicsCache& dc = sbs.getDynamicsCache();
-        SBAccelerationCache&   ac = sbs.updAccelerationCache();
-
         SpatialVec& z = updZ(ac);
         z = getCentrifugalForces(dc) - fromB(bodyForces);
 
@@ -516,21 +531,21 @@ public:
 
 
     void realizeAccel(
-            const SBStateDigest&   sbs,
-            Vector&                udot,
-            Vector&                qdotdot) const
+        const SBPositionCache&                  pc,
+        const SBArticulatedBodyInertiaCache&,
+        const SBVelocityCache&                  vc,
+        const SBDynamicsCache&,
+        SBAccelerationCache&                    ac,
+        Vector&) const
     {
-        const SBPositionCache& pc = sbs.getPositionCache();
-        const SBVelocityCache& vc = sbs.getVelocityCache();
-        SBAccelerationCache&   ac = sbs.updAccelerationCache();
         const SpatialVec alphap = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
-
         updA_GB(ac) = alphap + getCoriolisAcceleration(vc);  
     }
 
     
     void calcUDotPass1Inward(
         const SBPositionCache&      pc,
+        const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&      dc,
         const Vector&               jointForces,
         const Vector_<SpatialVec>&  bodyForces,
@@ -556,6 +571,7 @@ public:
 
     void calcUDotPass2Outward(
         const SBPositionCache& pc,
+        const SBArticulatedBodyInertiaCache&,
         const SBVelocityCache& vc,
         const SBDynamicsCache& dc,
         const Vector&          allEpsilon,
@@ -572,6 +588,7 @@ public:
     
     void calcMInverseFPass1Inward(
         const SBPositionCache& pc,
+        const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache& dc,
         const Vector&          f,
         Vector_<SpatialVec>&   allZ,
@@ -593,6 +610,7 @@ public:
 
     void calcMInverseFPass2Outward(
         const SBPositionCache& pc,
+        const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache& dc,
         const Vector&          allEpsilon,
         Vector_<SpatialVec>&   allA_GB,

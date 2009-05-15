@@ -613,17 +613,6 @@ public:
     /// representation based on quaternions and store the result in another state.
     void convertToQuaternions(const State& inputState, State& outputState) const; 
 
-    // Dynamics stage responses.
-
-    // Cross joint
-    const SpatialVec& getCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
-
-    // Including parent
-    const SpatialVec& getTotalCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
-
-    const SpatialVec& getGyroscopicForce(const State&, MobilizedBodyIndex) const;
-    const SpatialVec& getCentrifugalForces(const State&, MobilizedBodyIndex) const;
-    const SpatialMat& getArticulatedBodyInertia(const State& s, MobilizedBodyIndex) const;
 
         // PARTICLES
         // TODO: not currently implemented. Use a point mass with a Cartesian (translation)
@@ -692,7 +681,49 @@ public:
         return getAllParticleAccelerations(s)[p];
     }
 
+        // POSITION STAGE realizations //
+
+    /// This method checks whether composite body inertias have already
+    /// been computed since the last change to a Position stage state 
+    /// variable (q) and if so returns immediately at little cost; otherwise,
+    /// it initiates computation of composite body inertias for all of
+    /// the mobilized bodies. These are not otherwise
+    /// computed unless specifically requested. You cannot call
+    /// this method unless the State has already been realized through
+    /// Position stage.
+    void realizeCompositeBodyInertias(const State&) const;
+
+    /// This method checks whether articulated body inertias have already
+    /// been computed since the last change to a Position stage state 
+    /// variable (q) and if so returns immediately at little cost; otherwise,
+    /// it initiates the relatively expensive computation of articulated 
+    /// body inertias for all of the mobilized bodies. These are not otherwise
+    /// computed until they are needed at Dynamics stage. You cannot call
+    /// this method unless the State has already been realized through
+    /// Position stage.
+    void realizeArticulatedBodyInertias(const State&) const;
+
+
         // POSITION STAGE responses //
+ 
+    /// Return the composite body inertia for a particular mobilized body. You
+    /// can call this any time after the State has been realized to Position
+    /// stage, however it will first trigger realization of all the composite body
+    /// inertias if they have not already been calculated. Ground is mobilized body 
+    /// zero; its composite body inertia has infinite mass and principle moments of
+    /// inertia, and zero center of mass.
+    /// @see realizeCompositeBodyInertias()
+    const SpatialMat& getCompositeBodyInertia(const State&, MobilizedBodyIndex) const;
+
+    /// Return the articulated body inertia for a particular mobilized body. You
+    /// can call this any time after the State has been realized to Position
+    /// stage, however it will first trigger expensive realization of all the articulated body
+    /// inertias if they have not already been calculated. Ground is mobilized body 
+    /// zero; its articulated body inertia is the same as its composite body inertia --
+    /// an ordinary Spatial Inertia but with infinite mass and principle moments of
+    /// inertia, and zero center of mass.
+    /// @see realizeArticulatedBodyInertias()
+    const SpatialMat& getArticulatedBodyInertia(const State&, MobilizedBodyIndex) const;
 
         // POSITION STAGE operators //
 
@@ -723,6 +754,15 @@ public:
 							 const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
 
         // VELOCITY STAGE responses //
+
+    // Cross joint
+    const SpatialVec& getCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
+
+    // Including parent
+    const SpatialVec& getTotalCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
+
+    const SpatialVec& getGyroscopicForce(const State&, MobilizedBodyIndex) const;
+    const SpatialVec& getCentrifugalForces(const State&, MobilizedBodyIndex) const;
 
         // VELOCITY STAGE operators //
 

@@ -219,10 +219,10 @@ RigidBodyNodeSpec<dof>::calcReverseMobilizerHDot_FM(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
-    const SBPositionCache& pc,
-    SBDynamicsCache&       dc) const 
+    const SBPositionCache&          pc,
+    SBArticulatedBodyInertiaCache&  abc) const 
 {
-    SpatialMat& P = updP(dc);
+    SpatialMat& P = updP(abc);
     // Start with the spatial inertia of the current body.
     P = getMk(pc);
 
@@ -237,8 +237,8 @@ RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
     // rigid body inertia?
     for (unsigned i=0; i<children.size(); ++i) {
         const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
-        const SpatialMat& PChild      = children[i]->getP(dc);
-        const SpatialMat& psiChild    = children[i]->getPsi(dc);
+        const SpatialMat& PChild      = children[i]->getP(abc);
+        const SpatialMat& psiChild    = children[i]->getPsi(abc);
 
         // TODO: this is around 550 flops, 396 due to the 6x6
         // multiply with Psi, about 100 for the P*Phi shift, and 36
@@ -251,9 +251,9 @@ RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
     }
 
     const HType&  H  = getH(pc);
-    HType&        G  = updG(dc);
-    Mat<dof,dof>& D  = updD(dc);
-    Mat<dof,dof>& DI = updDI(dc);
+    HType&        G  = updG(abc);
+    Mat<dof,dof>& D  = updD(abc);
+    Mat<dof,dof>& DI = updDI(abc);
 
     const Mat<2,dof,Vec3> PH = P * H;       // 66*dof   flops
     D  = ~H * PH;                           // 11*dof^2 flops (symmetric result)
@@ -267,11 +267,11 @@ RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
     // to negate all the off-diagonals. Then Psi ends up with the wrong sign here
     // also, which gets handled in the shifting loop above by subtracting instead
     // of adding. So the P's we calculate all have the right sign in the end.
-    SpatialMat& tauBar = updTauBar(dc);
+    SpatialMat& tauBar = updTauBar(abc);
     tauBar = G * ~H;                        // 11*dof^2 flops
     tauBar(0,0) -= 1; // subtract identity matrix (only touches diagonals -- 3 flops)
     tauBar(1,1) -= 1; //    "    (3 flops)
-    updPsi(dc)   = getPhi(pc) * tauBar;     // ~100 flops
+    updPsi(abc)  = getPhi(pc) * tauBar;     // ~100 flops
 }
 
 // To be called base to tip.
@@ -281,9 +281,10 @@ RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
 // for manipulator modeling and control. Intl. J. Robotics Research 
 // 10(4):371-381 (1991).
 template<int dof> void
-RigidBodyNodeSpec<dof>::realizeYOutward(
-    const SBPositionCache& pc,
-    SBDynamicsCache&       dc) const 
+RigidBodyNodeSpec<dof>::realizeYOutward
+   (const SBPositionCache&                  pc,
+    const SBArticulatedBodyInertiaCache&    abc,
+    SBDynamicsCache&                        dc) const
 {
     // TODO: this is very expensive (~1000 flops?) Could cut be at least half
     // by exploiting symmetry. Also, does Psi have special structure?
@@ -292,8 +293,8 @@ RigidBodyNodeSpec<dof>::realizeYOutward(
 
     // Psi here has the opposite sign from Jain's, but we're multiplying twice
     // by it here so it doesn't matter.
-    updY(dc) = (getH(pc) * getDI(dc) * ~getH(pc)) 
-                + (~getPsi(dc) * parent->getY(dc) * getPsi(dc));
+    updY(dc) = (getH(pc) * getDI(abc) * ~getH(pc)) 
+                + (~getPsi(abc) * parent->getY(dc) * getPsi(abc));
 }
 
 //
@@ -301,14 +302,14 @@ RigidBodyNodeSpec<dof>::realizeYOutward(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::realizeZ(
-    const SBStateDigest&       sbs,
-    const Vector&              mobilityForces,
-    const Vector_<SpatialVec>& bodyForces) const 
+    const SBPositionCache&                  pc,
+    const SBArticulatedBodyInertiaCache&    abc,
+    const SBVelocityCache&                  vc,
+    const SBDynamicsCache&                  dc,
+    SBAccelerationCache&                    ac,
+    const Vector&                           mobilityForces,
+    const Vector_<SpatialVec>&              bodyForces) const 
 {
-    const SBPositionCache& pc = sbs.getPositionCache();
-    const SBDynamicsCache& dc = sbs.getDynamicsCache();
-    SBAccelerationCache&   ac = sbs.updAccelerationCache();
-
     SpatialVec& z = updZ(ac);
     z = getCentrifugalForces(dc) - fromB(bodyForces);
 
@@ -321,8 +322,8 @@ RigidBodyNodeSpec<dof>::realizeZ(
     }
 
     updEpsilon(ac)  = fromU(mobilityForces) - ~getH(pc)*z;
-    updNu(ac)       = getDI(dc) * getEpsilon(ac);
-    updGepsilon(ac) = getG(dc)  * getEpsilon(ac);
+    updNu(ac)       = getDI(abc) * getEpsilon(ac);
+    updGepsilon(ac) = getG(abc)  * getEpsilon(ac);
 }
 
 //
@@ -332,22 +333,18 @@ RigidBodyNodeSpec<dof>::realizeZ(
 //
 template<int dof> void 
 RigidBodyNodeSpec<dof>::realizeAccel(
-    const SBStateDigest&   sbs,
-    Vector&                allUdot,
-    Vector&                allQdotdot) const 
+    const SBPositionCache&                  pc,
+    const SBArticulatedBodyInertiaCache&    abc,
+    const SBVelocityCache&                  vc,
+    const SBDynamicsCache&                  dc,
+    SBAccelerationCache&                    ac,
+    Vector&                                 allUdot) const 
 {
-    const SBPositionCache& pc = sbs.getPositionCache();
-    const SBVelocityCache& vc = sbs.getVelocityCache();
-    const SBDynamicsCache& dc = sbs.getDynamicsCache();
-    SBAccelerationCache&   ac = sbs.updAccelerationCache();
-
     Vec<dof>&        udot   = toU(allUdot);
     const SpatialVec A_GP = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
 
-    udot        = getNu(ac) - (~getG(dc)*A_GP);
+    udot        = getNu(ac) - (~getG(abc)*A_GP);
     updA_GB(ac) = A_GP + getH(pc)*udot + getCoriolisAcceleration(vc);  
-
-    calcQDotDot(sbs, allUdot, allQdotdot);  
 }
 
  
@@ -357,13 +354,14 @@ RigidBodyNodeSpec<dof>::realizeAccel(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcUDotPass1Inward(
-    const SBPositionCache&      pc,
-    const SBDynamicsCache&      dc,
-    const Vector&               jointForces,
-    const Vector_<SpatialVec>&  bodyForces,
-    Vector_<SpatialVec>&        allZ,
-    Vector_<SpatialVec>&        allGepsilon,
-    Vector&                     allEpsilon) const 
+    const SBPositionCache&                  pc,
+    const SBArticulatedBodyInertiaCache&    abc,
+    const SBDynamicsCache&                  dc,
+    const Vector&                           jointForces,
+    const Vector_<SpatialVec>&              bodyForces,
+    Vector_<SpatialVec>&                    allZ,
+    Vector_<SpatialVec>&                    allGepsilon,
+    Vector&                                 allEpsilon) const 
 {
     const Vec<dof>&   myJointForce = fromU(jointForces);
     const SpatialVec& myBodyForce  = fromB(bodyForces);
@@ -382,7 +380,7 @@ RigidBodyNodeSpec<dof>::calcUDotPass1Inward(
     }
 
     eps  = myJointForce - ~getH(pc)*z;
-    Geps = getG(dc)  * eps;
+    Geps = getG(abc)  * eps;
 }
 
 //
@@ -393,12 +391,13 @@ RigidBodyNodeSpec<dof>::calcUDotPass1Inward(
 //
 template<int dof> void 
 RigidBodyNodeSpec<dof>::calcUDotPass2Outward(
-    const SBPositionCache& pc,
-    const SBVelocityCache& vc,
-    const SBDynamicsCache& dc,
-    const Vector&          allEpsilon,
-    Vector_<SpatialVec>&   allA_GB,
-    Vector&                allUDot) const
+    const SBPositionCache&                  pc,
+    const SBArticulatedBodyInertiaCache&    abc,
+    const SBVelocityCache&                  vc,
+    const SBDynamicsCache&                  dc,
+    const Vector&                           allEpsilon,
+    Vector_<SpatialVec>&                    allA_GB,
+    Vector&                                 allUDot) const
 {
     const Vec<dof>& eps  = fromU(allEpsilon);
     SpatialVec&     A_GB = toB(allA_GB);
@@ -407,7 +406,7 @@ RigidBodyNodeSpec<dof>::calcUDotPass2Outward(
     // Shift parent's A_GB outward. (Ground A_GB is zero.)
     const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
-    udot = getDI(dc) * eps - (~getG(dc)*A_GP);
+    udot = getDI(abc) * eps - (~getG(abc)*A_GP);
     A_GB = A_GP + getH(pc)*udot + getCoriolisAcceleration(vc);  
 }
 
@@ -424,12 +423,13 @@ RigidBodyNodeSpec<dof>::calcUDotPass2Outward(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcMInverseFPass1Inward(
-    const SBPositionCache& pc,
-    const SBDynamicsCache& dc,
-    const Vector&          f,
-    Vector_<SpatialVec>&   allZ,
-    Vector_<SpatialVec>&   allGepsilon,
-    Vector&                allEpsilon) const 
+    const SBPositionCache&               pc,
+    const SBArticulatedBodyInertiaCache& abc,
+    const SBDynamicsCache&               dc,
+    const Vector&                        f,
+    Vector_<SpatialVec>&                 allZ,
+    Vector_<SpatialVec>&                 allGepsilon,
+    Vector&                              allEpsilon) const 
 {
     const Vec<dof>&   myJointForce = fromU(f);
     SpatialVec&       z            = toB(allZ);
@@ -447,7 +447,7 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass1Inward(
     }
 
     eps  = myJointForce - ~getH(pc)*z;
-    Geps = getG(dc)  * eps;
+    Geps = getG(abc)  * eps;
 }
 
 //
@@ -458,11 +458,12 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass1Inward(
 //
 template<int dof> void 
 RigidBodyNodeSpec<dof>::calcMInverseFPass2Outward(
-    const SBPositionCache& pc,
-    const SBDynamicsCache& dc,
-    const Vector&          allEpsilon,
-    Vector_<SpatialVec>&   allA_GB,
-    Vector&                allUDot) const
+    const SBPositionCache&                  pc,
+    const SBArticulatedBodyInertiaCache&    abc,
+    const SBDynamicsCache&                  dc,
+    const Vector&                           allEpsilon,
+    Vector_<SpatialVec>&                    allA_GB,
+    Vector&                                 allUDot) const
 {
     const Vec<dof>& eps  = fromU(allEpsilon);
     SpatialVec&     A_GB = toB(allA_GB);
@@ -471,7 +472,7 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass2Outward(
     // Shift parent's A_GB outward. (Ground A_GB is zero.)
     const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
-    udot = getDI(dc) * eps - (~getG(dc)*A_GP);
+    udot = getDI(abc) * eps - (~getG(abc)*A_GP);
     A_GB = A_GP + getH(pc)*udot;  
 }
 

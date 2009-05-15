@@ -362,6 +362,20 @@ public:
     const SpatialVec& getBodyVelocity    (const State&, MobilizedBodyIndex, bool realizingVelocity=false) const;
     const SpatialVec& getBodyAcceleration(const State&, MobilizedBodyIndex, bool realizingAcceleration=false) const;
 
+    // Call at Position stage or later. If necessary, composite body inertias will be
+    // realized first.
+    const Vector_<SpatialMat>& getCompositeBodyInertias(const State& s) const {
+        realizeCompositeBodyInertias(s);
+        return getCompositeBodyInertiaCache(s).compositeBodyInertia;
+    }
+
+    // Call at Position stage or later. If necessary, articulated body inertias will be
+    // realized first.
+    const Vector_<SpatialMat>& getArticulatedBodyInertias(const State& s) const {
+        realizeArticulatedBodyInertias(s);
+        return getArticulatedBodyInertiaCache(s).articulatedBodyInertia;
+    }
+
     // velocity dependent
     const SpatialVec& getCoriolisAcceleration     (const State&, MobilizedBodyIndex) const;
     const SpatialVec& getTotalCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
@@ -408,6 +422,13 @@ public:
         return true;
     }
 
+        // REALIZATIONS //
+
+    // Call at Position Stage or later.
+    void realizeCompositeBodyInertias(const State&) const;
+
+    // Call at Position Stage or later.
+    void realizeArticulatedBodyInertias(const State&) const;
 
         // OPERATORS //
 
@@ -620,8 +641,6 @@ public:
 	   Vector_<SpatialVec>& bodyForcesInG,
 	   Vector&              mobilityForces) const;
 
-    // Call after realizeDynamics()
-    const SpatialMat& getArticulatedBodyInertia(const State& s, MobilizedBodyIndex) const;
 
 
     // This is a solver which generates internal velocities from spatial ones.
@@ -634,8 +653,6 @@ public:
 
     // Unconstrained (tree) dynamics methods for use during realization.
 
-    // articulated body inertias
-    void realizeArticulatedBodyInertias(const State&) const;
 
      // articulated body remainder forces
     void realizeZ(const State&, 
@@ -706,6 +723,24 @@ public:
     SBPositionCache& updPositionCache(const State& s) const { //mutable
         return Value<SBPositionCache>::downcast
             (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).qCacheIndex)).upd();
+    }
+
+    const SBCompositeBodyInertiaCache& getCompositeBodyInertiaCache(const State& s) const {
+        return Value<SBCompositeBodyInertiaCache>::downcast
+            (getCacheEntry(s,getModelCache(s).compositeBodyInertiaCacheIndex));
+    }
+    SBCompositeBodyInertiaCache& updCompositeBodyInertiaCache(const State& s) const { //mutable
+        return Value<SBCompositeBodyInertiaCache>::updDowncast
+            (updCacheEntry(s,getModelCache(s).compositeBodyInertiaCacheIndex));
+    }
+
+    const SBArticulatedBodyInertiaCache& getArticulatedBodyInertiaCache(const State& s) const {
+        return Value<SBArticulatedBodyInertiaCache>::downcast
+            (getCacheEntry(s,getModelCache(s).articulatedBodyInertiaCacheIndex));
+    }
+    SBArticulatedBodyInertiaCache& updArticulatedBodyInertiaCache(const State& s) const { //mutable
+        return Value<SBArticulatedBodyInertiaCache>::updDowncast
+            (updCacheEntry(s,getModelCache(s).articulatedBodyInertiaCacheIndex));
     }
 
     const SBVelocityCache& getVelocityCache(const State& s, bool realizingVelocity=false) const {

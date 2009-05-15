@@ -316,7 +316,8 @@ public:
         calcJointIndependentKinematicsVel(pc,vc);
     }
 
-    void realizeDynamics(SBStateDigest& sbs) const
+    void realizeDynamics(const SBArticulatedBodyInertiaCache&   abc,
+                         SBStateDigest&                         sbs) const 
     {
         const SBPositionCache& pc = sbs.getPositionCache();
         const SBVelocityCache& vc = sbs.getVelocityCache();
@@ -326,7 +327,7 @@ public:
         // None.
 
         // Mobilizer independent.
-        calcJointIndependentDynamicsVel(pc,vc,dc);
+        calcJointIndependentDynamicsVel(pc,abc,vc,dc);
     }
 
     void realizeAcceleration(SBStateDigest& sbs) const
@@ -342,26 +343,34 @@ public:
 
     // This is a dynamics-stage calculation and must be called tip-to-base (inward).
     void realizeArticulatedBodyInertiasInward(
-        const SBPositionCache& pc,
-        SBDynamicsCache&       dc) const;
+        const SBPositionCache&          pc,
+        SBArticulatedBodyInertiaCache&  abc) const;
 
     // calcJointIndependentDynamicsVel() must be called after ArticulatedBodyInertias.
 
     // This dynamics-stage calculation is needed for handling constraints. It
     // must be called base-to-tip (outward);
     void realizeYOutward(
-        const SBPositionCache& pc,
-        SBDynamicsCache&       dc) const;
+        const SBPositionCache&                  pc,
+        const SBArticulatedBodyInertiaCache&    abc,
+        SBDynamicsCache&                        dc) const;
 
     void realizeZ(
-        const SBStateDigest&,
-        const Vector&              mobilityForces,
-        const Vector_<SpatialVec>& bodyForces) const;
+        const SBPositionCache&                  pc,
+        const SBArticulatedBodyInertiaCache&    abc,
+        const SBVelocityCache&                  vc,
+        const SBDynamicsCache&                  dc,
+        SBAccelerationCache&                    ac,
+        const Vector&                           mobilityForces,
+        const Vector_<SpatialVec>&              bodyForces) const;
 
     void realizeAccel(
-        const SBStateDigest&   sbs,
-        Vector&                udot,
-        Vector&                qdotdot) const;
+        const SBPositionCache&                  pc,
+        const SBArticulatedBodyInertiaCache&    abc,
+        const SBVelocityCache&                  vc,
+        const SBDynamicsCache&                  dc,
+        SBAccelerationCache&                    ac,
+        Vector&                                 udot) const;
 
     // These routines give each node a chance to set appropriate defaults in a piece
     // of the state corresponding to a particular stage. Default implementations here
@@ -635,16 +644,17 @@ public:
 
         // Dynamics
 
-    const Mat<dof,dof>& getD(const SBDynamicsCache& dc) const {return fromUSq(dc.storageForD);}
-    Mat<dof,dof>&       updD(SBDynamicsCache&       dc) const {return toUSq  (dc.storageForD);}
+    // These are calculated with articulated body inertias.
+    const Mat<dof,dof>& getD(const SBArticulatedBodyInertiaCache& abc) const {return fromUSq(abc.storageForD);}
+    Mat<dof,dof>&       updD(SBArticulatedBodyInertiaCache&       abc) const {return toUSq  (abc.storageForD);}
 
-    const Mat<dof,dof>& getDI(const SBDynamicsCache& dc) const {return fromUSq(dc.storageForDI);}
-    Mat<dof,dof>&       updDI(SBDynamicsCache&       dc) const {return toUSq  (dc.storageForDI);}
+    const Mat<dof,dof>& getDI(const SBArticulatedBodyInertiaCache& abc) const {return fromUSq(abc.storageForDI);}
+    Mat<dof,dof>&       updDI(SBArticulatedBodyInertiaCache&       abc) const {return toUSq  (abc.storageForDI);}
 
-    const Mat<2,dof,Vec3>& getG(const SBDynamicsCache& dc) const
-      { return Mat<2,dof,Vec3>::getAs(&dc.storageForG(0,uIndex)); }
-    Mat<2,dof,Vec3>&       updG(SBDynamicsCache&       dc) const
-      { return Mat<2,dof,Vec3>::updAs(&dc.storageForG(0,uIndex)); }
+    const Mat<2,dof,Vec3>& getG(const SBArticulatedBodyInertiaCache& abc) const
+      { return Mat<2,dof,Vec3>::getAs(&abc.storageForG(0,uIndex)); }
+    Mat<2,dof,Vec3>&       updG(SBArticulatedBodyInertiaCache&       abc) const
+      { return Mat<2,dof,Vec3>::updAs(&abc.storageForG(0,uIndex)); }
 
         // Acceleration
 
@@ -685,6 +695,7 @@ public:
 
     void calcUDotPass1Inward(
         const SBPositionCache&      pc,
+        const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&      dc,
         const Vector&               jointForces,
         const Vector_<SpatialVec>&  bodyForces,
@@ -694,6 +705,7 @@ public:
 
     void calcUDotPass2Outward(
         const SBPositionCache&      pc,
+        const SBArticulatedBodyInertiaCache&,
         const SBVelocityCache&      vc,
         const SBDynamicsCache&      dc,
         const Vector&               epsilonTmp,
@@ -702,6 +714,7 @@ public:
 
     void calcMInverseFPass1Inward(
         const SBPositionCache&      pc,
+        const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&      dc,
         const Vector&               f,
         Vector_<SpatialVec>&        allZ,
@@ -710,6 +723,7 @@ public:
 
     void calcMInverseFPass2Outward(
         const SBPositionCache&      pc,
+        const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&      dc,
         const Vector&               epsilonTmp,
         Vector_<SpatialVec>&        allA_GB,

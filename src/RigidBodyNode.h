@@ -290,8 +290,7 @@ public:
     virtual void calcQDot(
         const SBStateDigest&   sbs,
         const Vector&          u,
-        Vector&                qdot) const
-      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcQDot"); }
+        Vector&                qdot) const=0;
 
     // This operator pulls N(q) and NDot(q,u) from the StateDigest if necessary
     // and calculates qdotdot=N*udot + NDot*u from the supplied "udot-like" argument.
@@ -300,8 +299,7 @@ public:
     virtual void calcQDotDot(
         const SBStateDigest&   sbs,
         const Vector&          udot, 
-        Vector&                qdotdot) const
-      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcQDotDot"); }
+        Vector&                qdotdot) const=0;
 
     // This will do nothing unless the mobilizer is using a quaternion. Otherwise it
     // will normalize its quaternion in q, and if qErrest has non-zero length then
@@ -425,7 +423,8 @@ public:
     // stage calculations which must go tip-to-base (e.g. articulated
     // body inertias).
     virtual void realizeDynamics(
-        SBStateDigest&         sbs) const=0;
+        const SBArticulatedBodyInertiaCache&    abc,
+        SBStateDigest&                          sbs) const=0;
 
     virtual void realizeAcceleration(
         SBStateDigest&         sbs) const=0;
@@ -434,23 +433,29 @@ public:
         SBStateDigest&         sbs) const=0;
 
     virtual void realizeArticulatedBodyInertiasInward(
-        const SBPositionCache& pc,
-        SBDynamicsCache&       dc) const=0;
+        const SBPositionCache&          pc,
+        SBArticulatedBodyInertiaCache&  abc) const=0;
 
     virtual void realizeZ(
-        const SBStateDigest&,
-        const Vector&              mobilityForces,
-        const Vector_<SpatialVec>& bodyForces) const 
-      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "realizeZ"); }
+        const SBPositionCache&                  pc,
+        const SBArticulatedBodyInertiaCache&    abc,
+        const SBVelocityCache&                  vc,
+        const SBDynamicsCache&                  dc,
+        SBAccelerationCache&                    ac,
+        const Vector&                           mobilityForces,
+        const Vector_<SpatialVec>&              bodyForces) const=0;
     virtual void realizeAccel(
-        const SBStateDigest&   sbs,
-        Vector&                udot,
-        Vector&                qdotdot) const 
-      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "realizeAccel"); }
+        const SBPositionCache&                  pc,
+        const SBArticulatedBodyInertiaCache&    abc,
+        const SBVelocityCache&                  vc,
+        const SBDynamicsCache&                  dc,
+        SBAccelerationCache&                    ac,
+        Vector&                                 udot) const=0;
 
     virtual void realizeYOutward(
-        const SBStateDigest& sbs) const                     
-      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "realizeYOutward"); }
+        const SBPositionCache&                pc,
+        const SBArticulatedBodyInertiaCache&  abc,
+        SBDynamicsCache&                      dc) const=0;
 
     // This has a default implementation that is good for everything
     // but Ground.
@@ -480,38 +485,38 @@ public:
       { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcEquivalentJointForces"); }
 
     virtual void calcUDotPass1Inward(
-        const SBPositionCache&      pc,
-        const SBDynamicsCache&      dc,
-        const Vector&               jointForces,
-        const Vector_<SpatialVec>&  bodyForces,
-        Vector_<SpatialVec>&        allZ,
-        Vector_<SpatialVec>&        allGepsilon,
-        Vector&                     allEpsilon) const
-      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcUDotPass1Inward"); } 
+        const SBPositionCache&                  pc,
+        const SBArticulatedBodyInertiaCache&    abc,
+        const SBDynamicsCache&                  dc,
+        const Vector&                           jointForces,
+        const Vector_<SpatialVec>&              bodyForces,
+        Vector_<SpatialVec>&                    allZ,
+        Vector_<SpatialVec>&                    allGepsilon,
+        Vector&                                 allEpsilon) const=0;
     virtual void calcUDotPass2Outward(
-        const SBPositionCache&      pc,
-        const SBVelocityCache&      vc,
-        const SBDynamicsCache&      dc,
-        const Vector&               epsilonTmp,
-        Vector_<SpatialVec>&        allA_GB,
-        Vector&                     allUDot) const
-      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcUDotPass2Outward"); }
+        const SBPositionCache&                  pc,
+        const SBArticulatedBodyInertiaCache&    abc,
+        const SBVelocityCache&                  vc,
+        const SBDynamicsCache&                  dc,
+        const Vector&                           epsilonTmp,
+        Vector_<SpatialVec>&                    allA_GB,
+        Vector&                                 allUDot) const=0;
 
     virtual void calcMInverseFPass1Inward(
-        const SBPositionCache&      pc,
-        const SBDynamicsCache&      dc,
-        const Vector&               f,
-        Vector_<SpatialVec>&        allZ,
-        Vector_<SpatialVec>&        allGepsilon,
-        Vector&                     allEpsilon) const
-      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMInverseFPass1Inward"); } 
+        const SBPositionCache&                  pc,
+        const SBArticulatedBodyInertiaCache&    abc,
+        const SBDynamicsCache&                  dc,
+        const Vector&                           f,
+        Vector_<SpatialVec>&                    allZ,
+        Vector_<SpatialVec>&                    allGepsilon,
+        Vector&                                 allEpsilon) const=0;
     virtual void calcMInverseFPass2Outward(
-        const SBPositionCache&      pc,
-        const SBDynamicsCache&      dc,
-        const Vector&               epsilonTmp,
-        Vector_<SpatialVec>&        allA_GB,
-        Vector&                     allUDot) const
-      { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMInverseFPass2Outward"); }
+        const SBPositionCache&                  pc,
+        const SBArticulatedBodyInertiaCache&    abc,
+        const SBDynamicsCache&                  dc,
+        const Vector&                           epsilonTmp,
+        Vector_<SpatialVec>&                    allA_GB,
+        Vector&                                 allUDot) const=0;
 
     virtual void calcInverseDynamicsPass1Outward(
         const SBPositionCache& pc,
@@ -797,17 +802,26 @@ public:
 
         // DYNAMICS INFO
 
-    const SpatialMat& getP    (const SBDynamicsCache& dc) const {return fromB(dc.articulatedBodyInertia);}
-    SpatialMat&       updP    (SBDynamicsCache&       dc) const {return toB  (dc.articulatedBodyInertia);}
+    // Composite body inertias.
+    const SpatialMat& getR(const SBCompositeBodyInertiaCache& cbc) const {return fromB(cbc.compositeBodyInertia);}
+    SpatialMat&       updR(SBCompositeBodyInertiaCache&       cbc) const {return toB  (cbc.compositeBodyInertia);}
 
+    // Articulated body inertias and related calculations
+    const SpatialMat& getP(const SBArticulatedBodyInertiaCache& abc) const {return fromB(abc.articulatedBodyInertia);}
+    SpatialMat&       updP(SBArticulatedBodyInertiaCache&       abc) const {return toB  (abc.articulatedBodyInertia);}
+
+    const SpatialMat& getPsi(const SBArticulatedBodyInertiaCache& abc) const {return fromB(abc.psi);}
+    SpatialMat&       updPsi(SBArticulatedBodyInertiaCache&       abc) const {return toB  (abc.psi);}
+
+    const SpatialMat& getTauBar(const SBArticulatedBodyInertiaCache& abc) const {return fromB(abc.tauBar);}
+    SpatialMat&       updTauBar(SBArticulatedBodyInertiaCache&       abc) const {return toB  (abc.tauBar);}
+
+    // Others
     const SpatialVec& getCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.centrifugalForces);}
     SpatialVec&       updCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.centrifugalForces);}
 
     const SpatialVec& getTotalCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.totalCentrifugalForces);}
     SpatialVec&       updTotalCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.totalCentrifugalForces);}
-
-    const SpatialMat& getArticulatedBodyInertia(const SBDynamicsCache& dc) const {return fromB(dc.articulatedBodyInertia);}
-    SpatialMat&       updArticulatedBodyInertia(SBDynamicsCache&       dc) const {return toB  (dc.articulatedBodyInertia);}
 
     const SpatialVec& getZ(const SBAccelerationCache& rc) const {return fromB(rc.z);}
     SpatialVec&       updZ(SBAccelerationCache&       rc) const {return toB  (rc.z);}
@@ -815,11 +829,6 @@ public:
     const SpatialVec& getGepsilon(const SBAccelerationCache& rc) const {return fromB(rc.Gepsilon);}
     SpatialVec&       updGepsilon(SBAccelerationCache&       rc) const {return toB  (rc.Gepsilon);}
 
-    const SpatialMat& getPsi(const SBDynamicsCache& dc) const {return fromB(dc.psi);}
-    SpatialMat&       updPsi(SBDynamicsCache&       dc) const {return toB  (dc.psi);}
-
-    const SpatialMat& getTauBar(const SBDynamicsCache& dc) const {return fromB(dc.tauBar);}
-    SpatialMat&       updTauBar(SBDynamicsCache&       dc) const {return toB  (dc.tauBar);}
 
     const SpatialMat& getY(const SBDynamicsCache& dc) const {return fromB(dc.Y);}
     SpatialMat&       updY(SBDynamicsCache&       dc) const {return toB  (dc.Y);}
@@ -902,9 +911,10 @@ public:
     // Calculate velocity-dependent quantities which will be needed for
     // computing accelerations.
     void calcJointIndependentDynamicsVel(
-        const SBPositionCache& pc,
-        const SBVelocityCache& vc,
-        SBDynamicsCache&       dc) const;
+        const SBPositionCache&                  pc,
+        const SBArticulatedBodyInertiaCache&    abc,
+        const SBVelocityCache&                  vc,
+        SBDynamicsCache&                        dc) const;
 
 
 protected:

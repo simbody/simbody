@@ -361,11 +361,6 @@ SimbodyMatterSubsystem::getCentrifugalForces(const State& s, MobilizedBodyIndex 
     return getRep().getCentrifugalForces(s,body);
 }
 
-const SpatialMat& 
-SimbodyMatterSubsystem::getArticulatedBodyInertia(const State& s, MobilizedBodyIndex body) const {
-    return getRep().getArticulatedBodyInertia(s,body);
-}
-
 const Vector& 
 SimbodyMatterSubsystem::getAllParticleMasses(const State& s) const { 
     return getRep().getAllParticleMasses(s); 
@@ -396,6 +391,25 @@ void SimbodyMatterSubsystem::addInStationForce(const State& s, MobilizedBodyInde
     const Rotation& R_GB = getRep().getBodyTransform(s,body).R();
     bodyForces[body] += SpatialVec((R_GB*stationInB) % forceInG, forceInG);
 }
+
+void SimbodyMatterSubsystem::realizeCompositeBodyInertias(const State& s) const {
+    getRep().realizeCompositeBodyInertias(s);
+}
+
+void SimbodyMatterSubsystem::realizeArticulatedBodyInertias(const State& s) const {
+    getRep().realizeArticulatedBodyInertias(s);
+}
+
+const SpatialMat& 
+SimbodyMatterSubsystem::getCompositeBodyInertia(const State& s, MobilizedBodyIndex mbx) const {
+    return getRep().getCompositeBodyInertias(s)[mbx]; // will lazy-evaluate if necessary
+}
+
+const SpatialMat& 
+SimbodyMatterSubsystem::getArticulatedBodyInertia(const State& s, MobilizedBodyIndex mbx) const {
+    return getRep().getArticulatedBodyInertias(s)[mbx]; // will lazy-evaluate if necessary
+}
+
 void SimbodyMatterSubsystem::addInBodyTorque(const State& s, MobilizedBodyIndex body, const Vec3& torqueInG,
                                              Vector_<SpatialVec>& bodyForces) const 
 {

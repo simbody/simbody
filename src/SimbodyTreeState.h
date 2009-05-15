@@ -216,7 +216,9 @@ public:
     UIndex uIndex;
     DiscreteVariableIndex instanceVarsIndex, timeVarsIndex, qVarsIndex, uVarsIndex, 
                           dynamicsVarsIndex, accelerationVarsIndex;
-    CacheEntryIndex       instanceCacheIndex, timeCacheIndex, qCacheIndex, uCacheIndex, 
+    CacheEntryIndex       instanceCacheIndex, timeCacheIndex, 
+                          qCacheIndex, compositeBodyInertiaCacheIndex, articulatedBodyInertiaCacheIndex,
+                          uCacheIndex, 
                           dynamicsCacheIndex, accelerationCacheIndex;
 
     // These are sums over the per-MobilizedBody counts above.
@@ -480,6 +482,62 @@ public:
     }
 };
 
+// Composite body inertias depend only on positions but are often
+// not needed at all. So we give them their own cache entry and expect
+// explicit realization some time after Position stage, if at all.
+
+class SBCompositeBodyInertiaCache {
+public:
+    // Dynamics
+    Vector_<SpatialMat> compositeBodyInertia;     // nb (R)
+
+public:
+    void allocate(const SBTopologyCache& tree) {
+        // Pull out construction-stage information from the tree.
+        const int nBodies = tree.nBodies; 
+        
+        compositeBodyInertia.resize(nBodies); // TODO: ground initialization
+    }
+};
+
+// Articulated body inertias depend only on positions but are
+// not usually needed until dynamics stage. Several intermediate
+// quantities are calculated here which are separately useful.
+// This cache entry should have dependsOn stage Position, and
+// computedBy stage Dynamics. However, it can be realized any
+// time after Position.
+
+class SBArticulatedBodyInertiaCache {
+public:
+    // Dynamics
+    Vector_<SpatialMat> articulatedBodyInertia;   // nb (P)
+
+    Vector_<SpatialMat> psi;                      // nb
+    Vector_<SpatialMat> tauBar;                   // nb
+
+    Vector_<Real>       storageForD;              // sum(nu[j]^2)
+    Vector_<Real>       storageForDI;             // sum(nu[j]^2)
+    Matrix_<Vec3>       storageForG;              // 2 X ndof
+
+public:
+    void allocate(const SBTopologyCache& tree) {
+        // Pull out construction-stage information from the tree.
+        const int nBodies = tree.nBodies;
+        const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
+        const int nSqDofs = tree.sumSqDOFs;   // sum(ndof^2) for each joint
+        const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need     
+        
+        articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
+
+        psi.resize(nBodies); // TODO: ground initialization
+        tauBar.resize(nBodies); // TODO: ground initialization
+
+        storageForD.resize(nSqDofs);
+        storageForDI.resize(nSqDofs);
+        storageForG.resize(2,nDofs);
+    }
+};
+
 class SBVelocityCache {
 public:
     // qdot cache space is supplied directly by the State
@@ -545,18 +603,10 @@ public:
 class SBDynamicsCache {
 public:
     // Dynamics
-    Vector_<SpatialMat> articulatedBodyInertia;   // nb (P)
-
     Vector_<SpatialVec> centrifugalForces;        // nb (P*a+b)
     Vector_<SpatialVec> totalCentrifugalForces;   // nb (P*A+b)
 
-    Vector_<SpatialMat> psi;                      // nb
-    Vector_<SpatialMat> tauBar;                   // nb
     Vector_<SpatialMat> Y;                        // nb
-
-    Vector_<Real>       storageForD;              // sum(nu[j]^2)
-    Vector_<Real>       storageForDI;             // sum(nu[j]^2)
-    Matrix_<Vec3>       storageForG;              // 2 X ndof
 
 public:
     void allocate(const SBTopologyCache& tree) {
@@ -566,23 +616,14 @@ public:
         const int nSqDofs = tree.sumSqDOFs;   // sum(ndof^2) for each joint
         const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need     
         
-        articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
-
         centrifugalForces.resize(nBodies);           
         centrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));
 
         totalCentrifugalForces.resize(nBodies);           
         totalCentrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));
 
-        psi.resize(nBodies); // TODO: ground initialization
-        tauBar.resize(nBodies); // TODO: ground initialization
-
         Y.resize(nBodies);
         Y[0] = SpatialMat(Mat33(0));
-
-        storageForD.resize(nSqDofs);
-        storageForDI.resize(nSqDofs);
-        storageForG.resize(2,nDofs);
     }
 };
 
@@ -750,6 +791,10 @@ inline std::ostream& operator<<(std::ostream& o, const SBTimeCache& c)
   { return o << "TODO: SBTimeCache"; }
 inline std::ostream& operator<<(std::ostream& o, const SBPositionCache& c)
   { return o << "TODO: SBPositionCache"; }
+inline std::ostream& operator<<(std::ostream& o, const SBCompositeBodyInertiaCache& c)
+  { return o << "TODO: SBCompositeBodyInertiaCache"; }
+inline std::ostream& operator<<(std::ostream& o, const SBArticulatedBodyInertiaCache& c)
+  { return o << "TODO: SBArticulatedBodyInertiaCache"; }
 inline std::ostream& operator<<(std::ostream& o, const SBVelocityCache& c)
   { return o << "TODO: SBVelocityCache"; }
 inline std::ostream& operator<<(std::ostream& o, const SBDynamicsCache& c)
