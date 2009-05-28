@@ -434,3 +434,4 @@ string Plugin::getEnvironmentVariable(const string& name) {
     value = getenv(name.c_str());
     return value ? string(value) : string();
 }
+

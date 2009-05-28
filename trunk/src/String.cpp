@@ -84,3 +84,5 @@ String String::trimWhiteSpace(const std::string& in) {
 
     return String(in, firstNonWhite, (lastNonWhite+1) - firstNonWhite);
 }
+
+
