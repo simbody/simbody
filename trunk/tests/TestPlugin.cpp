@@ -122,13 +122,6 @@ void testDeconstructFileName() {
     //    isAbsPath?"ABS":"REL", directory.c_str(), libPrefix.c_str(), baseName.c_str(), 
     //    debugSuffix.c_str(), extension.c_str());
 
-    directory=libPrefix=baseName=debugSuffix=extension="junk";
-    name = "  c:\\Program Files\\lib\\libMyPlugIn_d.dll \n ";   // OK
-    SimTK_TEST(Plugin::deconstructLibraryName(name,
-        isAbsPath, directory, libPrefix, baseName, debugSuffix, extension));
-    SimTK_TEST(isAbsPath && 
-        directory==("c:"+s+"Program Files"+s+"lib"+s) && libPrefix=="lib"
-        && baseName=="MyPlugIn" && debugSuffix=="_d" && extension==".dll");
 
     directory=libPrefix=baseName=debugSuffix=extension="junk";
     name = "  \t \n \r ";   // Illegal because nothing but white space
@@ -196,6 +189,15 @@ void testDeconstructFileName() {
                &&debugSuffix.empty()&&extension.empty());
 
 #ifdef _WIN32
+    // Disk specifiers are only recognized on Windows.
+    directory=libPrefix=baseName=debugSuffix=extension="junk";
+    name = "  c:\\Program Files\\lib\\libMyPlugIn_d.dll \n ";   // OK
+    SimTK_TEST(Plugin::deconstructLibraryName(name,
+        isAbsPath, directory, libPrefix, baseName, debugSuffix, extension));
+    SimTK_TEST(isAbsPath && 
+        directory==("c:"+s+"Program Files"+s+"lib"+s) && libPrefix=="lib"
+        && baseName=="MyPlugIn" && debugSuffix=="_d" && extension==".dll");
+
     directory=libPrefix=baseName=debugSuffix=extension="junk";
     name = dd + "mydir/relative.txt"; // cwd relative to specified disk
     SimTK_TEST(Plugin::deconstructLibraryName(name,
