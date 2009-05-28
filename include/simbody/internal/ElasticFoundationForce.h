@@ -106,6 +106,7 @@ public:
     /**
      * Create an elastic foundation contact model.
      * 
+     * @param forces         the subsystem which will own this ElasticFoundationForce element
      * @param contacts       the subsystem to which this contact model should be applied
      * @param contactSet     the index of the contact set to which this contact model will be applied
      */

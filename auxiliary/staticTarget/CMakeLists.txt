@@ -19,9 +19,9 @@ SET_TARGET_PROPERTIES(${AUX_STATIC_TARGET}  PROPERTIES
 
 # install the library; on Windows both .lib and .dll go in the lib directory.
 INSTALL(TARGETS ${AUX_STATIC_TARGET}
-                 ARCHIVE DESTINATION ${SimTK_INSTALL_PREFIX}/core/lib${LIB64}
-                 LIBRARY DESTINATION ${SimTK_INSTALL_PREFIX}/core/lib${LIB64}
-                 RUNTIME DESTINATION ${SimTK_INSTALL_PREFIX}/core/lib${LIB64}
+                 ARCHIVE DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64}
+                 LIBRARY DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64}
+                 RUNTIME DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64}
 )
 
 

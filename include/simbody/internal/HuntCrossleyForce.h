@@ -133,6 +133,7 @@ public:
     /**
      * Create a Hunt-Crossley contact model.
      * 
+     * @param forces         the subsystem which will own this HuntCrossleyForce element
      * @param contacts       the subsystem to which this contact model should be applied
      * @param contactSet     the index of the contact set to which this contact model will be applied
      */
