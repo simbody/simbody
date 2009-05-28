@@ -14,13 +14,9 @@
 #   libsimmath_static[_d].a
 #
 # All libraries are installed in 
-#   %ProgramFiles%\SimTK\core\lib  (Windows)
-#   /usr/local/SimTK/core/lib        (UNIX)
+#   %ProgramFiles%\SimTK\lib  (Windows)
+#   /usr/local/SimTK/lib        (UNIX)
 #
-# TODO: should we just install the default libraries
-# at the top level, and install the static & debug
-# libraries in .../core/lib/simmath/lib
-# or           .../simmath/lib ?
 #----------------------------------------------------
 
 cmake_minimum_required(VERSION 2.4.6)
@@ -95,7 +91,7 @@ ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 MARK_AS_ADVANCED( SimTK_SDK  )
 MARK_AS_ADVANCED( SimTK_INSTALL_PREFIX  )
 
-INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
+INCLUDE_DIRECTORIES(${SimTK_SDK}/include)
 
 IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
   SET( LIB64 64 )
@@ -376,7 +372,7 @@ FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
     SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 
     ## Make sure we find these locally before looking in
-    ## SimTK/core/include if Simmath was previously installed there.
+    ## SimTK/include if Simmath was previously installed there.
     INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
 
@@ -388,7 +384,7 @@ SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 
 ## Watch out -- this next line will cause CMake to find installed versions of
 ## simmath libraries before the local one. Be sure to delete installed ones first.
-LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
+LINK_DIRECTORIES(${SimTK_SDK}/lib${LIB64})
 
 
 IF( APPLE )
@@ -433,10 +429,10 @@ FILE(GLOB CORE_HEADERS     include/*.h                  */include/*.h)
 FILE(GLOB TOP_HEADERS      include/simmath/*.h          */include/simmath/*.h)
 FILE(GLOB INTERNAL_HEADERS include/simmath/internal/*.h */include/simmath/internal/*.h)
 
-INSTALL_FILES(/core/include/                 FILES ${CORE_HEADERS})
-INSTALL_FILES(/core/include/simmath/         FILES ${TOP_HEADERS})
-INSTALL_FILES(/core/include/simmath/internal FILES ${INTERNAL_HEADERS})
-INSTALL(FILES ${CMAKE_SOURCE_DIR}/doc/SimmathUserGuide.pdf DESTINATION core/doc/simmath)
+INSTALL_FILES(/include/                 FILES ${CORE_HEADERS})
+INSTALL_FILES(/include/simmath/         FILES ${TOP_HEADERS})
+INSTALL_FILES(/include/simmath/internal FILES ${INTERNAL_HEADERS})
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/doc/SimmathUserGuide.pdf DESTINATION doc/simmath)
 
 # These are at the end because we want them processed after
 # all the various variables have been set above.
