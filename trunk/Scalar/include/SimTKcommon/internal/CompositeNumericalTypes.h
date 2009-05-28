@@ -124,7 +124,7 @@
  *     TSqHermT     type of ~T*T (default vector and matrix square; symmetric)
  *     TSqTHerm     type of T*~T (row square; symmetric)
  *
- *     Scalar       the underlying <scalar> type (see below)
+ *     Scalar       the underlying scalar type (see below)
  *     ScalarNormSq type of the "conjugate square" ~s*s of underlying scalar (always real)
  *
  *     Substitute<E>::Type
@@ -138,12 +138,12 @@
  *
  *          ENUMS (all sizes are in units of T's elements)
  *
- *     NRows           logical number of rows in type T (i.e., # elements in a column)
+ *     NRows           logical number of rows in type T (i.e., num elements in a column)
  *     NCols           logical number of columns in type T
- *     RowSpacing      # elements from one row to the next (default 1)
- *     ColSpacing      # elements from one col to the next (default NRows for Mat)
- *     NPackedElements minimum #elements it would take to store this data
- *     NActualElements #elements covered by T due to element spacing
+ *     RowSpacing      num elements from one row to the next (default 1)
+ *     ColSpacing      num elements from one col to the next (default NRows for Mat)
+ *     NPackedElements minimum num elements it would take to store this data
+ *     NActualElements num elements covered by T due to element spacing
  *     NActualScalars  NActualElements * CNT<ElementType>::NActualScalars. This should
  *                       be the physical spacing between array elements in an array
  *                       containing this kind of CNT. Our big Matrix/Vector types guarantee

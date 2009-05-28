@@ -14,13 +14,9 @@
 #   libSimTKcommon_static[_d].a
 #
 # All libraries are installed in 
-#   %ProgramFiles%\SimTK\core\lib[64]   (Windows)
-#   /usr/local/SimTK/core/lib[64]        (UNIX)
+#   %ProgramFiles%\SimTK\lib[64]   (Windows)
+#   /usr/local/SimTK/lib[64]        (UNIX)
 #
-# TODO: should we just install the default libraries
-# at the top level, and install the static & debug
-# libraries in .../core/lib/SimTKcommon/lib
-# or           .../SimTKcommon/lib ?
 #----------------------------------------------------
 
 cmake_minimum_required(VERSION 2.4.6)
@@ -97,7 +93,7 @@ ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 MARK_AS_ADVANCED( SimTK_SDK  )
 MARK_AS_ADVANCED( SimTK_INSTALL_PREFIX  )
 
-INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
+INCLUDE_DIRECTORIES(${SimTK_SDK}/include)
 
 IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
   SET( LIB64 64 )
@@ -344,7 +340,7 @@ FOREACH(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
     SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
     SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 
-    ## Make sure we find these locally before looking in SimTK/core/include if
+    ## Make sure we find these locally before looking in SimTK/include if
     ## SimTK was previously installed there.
     INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
@@ -382,7 +378,7 @@ SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path pref
 
 ## Watch out -- this next line will cause CMake to find installed versions of
 ## SimTKcommon library before the local one. Be sure to delete installed one first.
-LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
+LINK_DIRECTORIES(${SimTK_SDK}/lib${LIB64})
 
 INCLUDE(ApiDoxygen.cmake)
 
@@ -392,10 +388,10 @@ INCLUDE(ApiDoxygen.cmake)
 FILE(GLOB CORE_HEADERS     include/*.h                      */include/*.h)
 FILE(GLOB TOP_HEADERS      include/SimTKcommon/*.h          */include/SimTKcommon/*.h)
 FILE(GLOB INTERNAL_HEADERS include/SimTKcommon/internal/*.h */include/SimTKcommon/internal/*.h)
-INSTALL_FILES("/core/include"                      FILES ${CORE_HEADERS})
-INSTALL_FILES("/core/include/SimTKcommon"          FILES ${TOP_HEADERS})
-INSTALL_FILES("/core/include/SimTKcommon/internal" FILES ${INTERNAL_HEADERS})
-INSTALL( FILES ${PROJECT_SOURCE_DIR}/doc/Simmatrix.pdf DESTINATION core/doc/simtkcommon )
+INSTALL_FILES("/include"                      FILES ${CORE_HEADERS})
+INSTALL_FILES("/include/SimTKcommon"          FILES ${TOP_HEADERS})
+INSTALL_FILES("/include/SimTKcommon/internal" FILES ${INTERNAL_HEADERS})
+INSTALL( FILES ${PROJECT_SOURCE_DIR}/doc/Simmatrix.pdf DESTINATION doc/simtkcommon )
 
 # These are at the end because we want them processed after
 # all the various variables have been set above.

@@ -54,7 +54,7 @@ namespace SimTK {
  * which allocated a piece of memory can access it. Exception: both
  * the client and library side must agree on the virtual function
  * table (VFT) ordering of the client's virtual functions.
- *
+ * @verbatim
  *               CLIENT SIDE                    .  LIBRARY SIDE
  *                                              .
  *        Study               Study::Guts       . Study::Guts::GutsRep
@@ -67,6 +67,7 @@ namespace SimTK {
  *   Concrete Study        ------------------   .  |             |
  *    adds no data                              .   -------------
  *       members   
+ * @endverbatim
  *
  * If the concrete Study::Guts class also has an opaque implementation,
  * as it will for concrete Studies provided by the SimTK Core, then

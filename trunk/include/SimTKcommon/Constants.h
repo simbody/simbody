@@ -42,7 +42,7 @@
  * classes in the manner of the C++ std::numeric_limits<T> class.
  *
  * These constants are provided at extremely high precision as compile-time 
- * #define macros in long double precision. By using very high precision
+ * macros in long double precision. By using very high precision
  * we ensure sufficient accuracy for any IEEE long double precision 
  * implementation (they can be 64, 80, or 128 bits). These constants can
  * be used as raw material for providing nicer templatized constants in

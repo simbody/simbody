@@ -717,7 +717,7 @@ SimTK_SimTKCOMMON_EXPORT std::ostream&
 operator<<(std::ostream& o, const MatrixCharacter&);
 
 /// Predefined MatrixCharacter for an ordinary Lapack-style full matrix
-/// of a particular dimension m x n (#rows X #cols). Note that the storage
+/// of a particular dimension m x n (nrows X ncols). Note that the storage
 /// format allows for a "leading dimension" larger than m, but that the 
 /// leading dimension is not considered part of the matrix character. It is 
 /// dealt with separately.

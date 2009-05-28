@@ -104,7 +104,7 @@ public:
      *                              If false, only return events after (not at) the current time.
      */
     
-    virtual Real getNextEventTime(const State&, bool includeCurrentTime) const = 0;
+    virtual Real getNextEventTime(const State& state, bool includeCurrentTime) const = 0;
 };
 
 /**

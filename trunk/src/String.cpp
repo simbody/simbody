@@ -1,6 +1,3 @@
-#ifndef SimTK_SimTKCOMMON_H_
-#define SimTK_SimTKCOMMON_H_
-
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTKcommon                               *
  * -------------------------------------------------------------------------- *
@@ -9,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2009 Stanford University and the Authors.           *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -32,35 +29,58 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-/**@file
- * Includes internal headers providing declarations for the basic SimTK
- * Core classes, including Simmatrix.
+/** @file
+ * This file contains the non-inline implementations of the SimTK::String
+ * class.
  */
 
-#include "SimTKcommon/basics.h"
+#include "SimTKcommon/internal/common.h"
+#include "SimTKcommon/internal/String.h"
 
-#if defined(__cplusplus)
-#include "SimTKcommon/Simmatrix.h"
-#include "SimTKcommon/internal/State.h"
-#include "SimTKcommon/internal/Measure.h"
-#include "SimTKcommon/internal/MeasureGuts.h"
-#include "SimTKcommon/internal/DecorativeGeometry.h"
-#include "SimTKcommon/internal/System.h"
-#include "SimTKcommon/internal/Subsystem.h"
-#include "SimTKcommon/internal/Study.h"
-#include "SimTKcommon/internal/Random.h"
-#include "SimTKcommon/internal/PolynomialRootFinder.h"
-#include "SimTKcommon/internal/Enumeration.h"
-#include "SimTKcommon/internal/PrivateImplementation.h"
-#include "SimTKcommon/internal/EventHandler.h"
-#include "SimTKcommon/internal/EventReporter.h"
-#include "SimTKcommon/internal/UserFunction.h"
-#include "SimTKcommon/internal/ParallelExecutor.h"
-#include "SimTKcommon/internal/Parallel2DExecutor.h"
-#include "SimTKcommon/internal/ThreadLocal.h"
-#include "SimTKcommon/internal/AtomicInteger.h"
-#include "SimTKcommon/internal/Plugin.h"
-#endif
+#include <string>
+#include <cctype>
 
+using SimTK::String;
 
-#endif /* SimTK_SimTKCOMMON_H_ */
+String& String::toUpper() {
+    for (int i=0; i < size(); ++i)
+        (*this)[i] = (char)std::toupper((*this)[i]);
+    return *this;
+}
+
+String& String::toLower() {
+    for (int i=0; i < size(); ++i)
+        (*this)[i] = (char)std::tolower((*this)[i]);
+    return *this;
+}
+
+String& String::replaceAllChar(char oldChar, char newChar) {
+    for (int i=0; i < size(); ++i)
+        if ((*this)[i] == oldChar)
+            (*this)[i] = newChar;
+    return *this;
+}
+
+String& String::trimWhiteSpace() {
+    *this = trimWhiteSpace(*this);
+    return *this;
+}
+
+String String::trimWhiteSpace(const std::string& in) {
+    const int inz = (int)in.size();
+
+    // Find first non-white character position of "in".
+    int firstNonWhite = 0;
+    for ( ; firstNonWhite < inz; ++firstNonWhite)
+        if (!std::isspace(in[firstNonWhite])) break;
+
+    if (firstNonWhite == inz)
+        return String();    // "in" was all white space
+
+    // Find last non-white character position of "in".
+    int lastNonWhite = inz-1;
+    for ( ; lastNonWhite >= 0; --lastNonWhite)
+        if (!std::isspace(in[lastNonWhite])) break;
+
+    return String(in, firstNonWhite, (lastNonWhite+1) - firstNonWhite);
+}

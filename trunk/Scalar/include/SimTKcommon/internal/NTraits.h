@@ -41,7 +41,7 @@
  * negates the *interpretation*. Thus there are 18 distinct scalar
  * types: 3 precisions each of real, complex, and conjugate and their
  * negators.
- *
+ * @verbatim
  *      The Scalar Types
  *      ----------------
  *      Here is a complete taxonomy of the scalar types we support.
@@ -53,6 +53,7 @@
  *      <real>      ::= float | double | long double
  *      <complex>   ::= complex< <real> >
  *      <conjugate> ::= conjugate< <real> >
+ * @endverbatim
  */
 
 #include <cstddef>

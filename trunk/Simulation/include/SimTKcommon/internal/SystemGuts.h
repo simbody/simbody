@@ -56,7 +56,7 @@ class DecorativeGeometry;
  * which allocated a piece of memory can access it. Exception: both
  * the client and library side must agree on the virtual function
  * table (VFT) ordering of the client's virtual functions.
- *
+ * @verbatim
  *               CLIENT SIDE                    .  LIBRARY SIDE
  *                                              .
  *       System              System::Guts       . System::Guts::GutsRep
@@ -69,6 +69,7 @@ class DecorativeGeometry;
  *   Concrete System       ------------------   .  |             |
  *     adds no data                             .   -------------
  *       members
+ * @endverbatim
  *
  * If the concrete System::Guts class also has an opaque implementation,
  * as it will for concrete Systems provided by the SimTK Core, then
