@@ -49,15 +49,15 @@ class MyPlugin : public Plugin {
 public:
     explicit MyPlugin(const std::string& name)
     :   Plugin(name) {
-        std::string defaultLocation = getEnvironmentVariable("SimTK_INSTALL_DIR");
+        std::string defaultLocation = Pathname::getEnvironmentVariable("SimTK_INSTALL_DIR");
         if (defaultLocation.empty()) {
-            std::string pfiles = getEnvironmentVariable("PROGRAMFILES");
+            std::string pfiles = Pathname::getEnvironmentVariable("PROGRAMFILES");
             if (pfiles.empty())
                 pfiles = "c:/Program Files";
             defaultLocation = pfiles + "/SimTK";
         }
 
-        defaultLocation += "/core/lib/plugins/";
+        defaultLocation += "/lib/plugins/";
         addSearchDirectory(defaultLocation);
     }
 
@@ -111,11 +111,11 @@ private:
 void testDeconstructFileName() {
     string name, directory, libPrefix, baseName, debugSuffix, extension;
     bool isAbsPath;
-    const std::string s = Plugin::getPathSeparator();
-    const std::string d = Plugin::getCurrentDriveLetter();
+    const std::string s = Pathname::getPathSeparator();
+    const std::string d = Pathname::getCurrentDriveLetter();
     const std::string dd = d.empty() ? std::string() : d + ":";
-    const std::string cwd = Plugin::getCurrentWorkingDirectory();
-    const std::string xd = Plugin::getThisExecutableDirectory();
+    const std::string cwd = Pathname::getCurrentWorkingDirectory();
+    const std::string xd = Pathname::getThisExecutableDirectory();
 
 
     //printf("'%s': %s %s|%s|%s|%s|%s\n", name.c_str(),
@@ -211,38 +211,38 @@ void testDeconstructFileName() {
 
 void testPathname() {
 #ifdef _WIN32
-    SimTK_TEST(Plugin::getPathSeparatorChar()=='\\');
-    SimTK_TEST(Plugin::getPathSeparator()=="\\");
-    SimTK_TEST(Plugin::getCurrentDriveLetter().size() == 1);
-    SimTK_TEST(Plugin::getCurrentDrive()==Plugin::getCurrentDriveLetter()+":");
-    SimTK_TEST(Plugin::getRootDirectory() == Plugin::getCurrentDrive() + "\\");
+    SimTK_TEST(Pathname::getPathSeparatorChar()=='\\');
+    SimTK_TEST(Pathname::getPathSeparator()=="\\");
+    SimTK_TEST(Pathname::getCurrentDriveLetter().size() == 1);
+    SimTK_TEST(Pathname::getCurrentDrive()==Pathname::getCurrentDriveLetter()+":");
+    SimTK_TEST(Pathname::getRootDirectory() == Pathname::getCurrentDrive() + "\\");
 #else
-    SimTK_TEST(Plugin::getPathSeparatorChar()=='/');
-    SimTK_TEST(Plugin::getPathSeparator()=="/");
-    SimTK_TEST(Plugin::getCurrentDriveLetter().size() == 0);
-    SimTK_TEST(Plugin::getCurrentDrive()=="");
-    SimTK_TEST(Plugin::getRootDirectory() == "/");
+    SimTK_TEST(Pathname::getPathSeparatorChar()=='/');
+    SimTK_TEST(Pathname::getPathSeparator()=="/");
+    SimTK_TEST(Pathname::getCurrentDriveLetter().size() == 0);
+    SimTK_TEST(Pathname::getCurrentDrive()=="");
+    SimTK_TEST(Pathname::getRootDirectory() == "/");
 #endif
 
     std::string name;
     bool isAbsPath;
     std::string directory, fileName, extension;
     const std::string curDrive = 
-        Plugin::getCurrentDriveLetter().empty() 
+        Pathname::getCurrentDriveLetter().empty() 
             ? std::string() 
-            : Plugin::getCurrentDriveLetter()+":";
-    const std::string sep = Plugin::getPathSeparator();
+            : Pathname::getCurrentDriveLetter()+":";
+    const std::string sep = Pathname::getPathSeparator();
 
     directory=fileName=extension="junk"; isAbsPath=false;
     name = "/topdir/seconddir/myFileName.ext";
-    Plugin::deconstructPathname(name, isAbsPath, directory, fileName, extension);
+    Pathname::deconstructPathname(name, isAbsPath, directory, fileName, extension);
     SimTK_TEST(isAbsPath
         && directory==curDrive+sep+"topdir"+sep+"seconddir"+sep
         && fileName=="myFileName" && extension==".ext");
 
     directory=fileName=extension="junk"; isAbsPath=true;
     name = "topdir/seconddir/myFileName.ext";
-    Plugin::deconstructPathname(name, isAbsPath, directory, fileName, extension);
+    Pathname::deconstructPathname(name, isAbsPath, directory, fileName, extension);
     SimTK_TEST(!isAbsPath
         && directory=="topdir"+sep+"seconddir"+sep
         && fileName=="myFileName" && extension==".ext");
@@ -251,19 +251,24 @@ void testPathname() {
 void testPlugin() {
     MyPlugin myPlug("c:\\temp\\TestRuntimeDLL_d.dll");
 
-    std::cout << "fellas length is " << myPlug.sayHi("fellas") << std::endl;
+    //std::cout << "fellas length is " << myPlug.sayHi("fellas") << std::endl;
 
 
-    myPlug.TestRuntimeDLL_makeExportedClass();
+    //myPlug.TestRuntimeDLL_makeExportedClass();
 }
 
 int main() {
-    cout << "Path of this executable: '" << Plugin::getThisExecutablePath() << "'\n";
-    cout << "Executable directory: '" << Plugin::getThisExecutableDirectory() << "'\n";
-    cout << "Current working directory: '" << Plugin::getCurrentWorkingDirectory() << "'\n";
-    cout << "Current drive letter: '" << Plugin::getCurrentDriveLetter() << "'\n";
-    cout << "Current drive: '" << Plugin::getCurrentDrive() << "'\n";
-    cout << "Path separator: '" << Plugin::getPathSeparator() << "'\n";
+    cout << "Path of this executable: '" << Pathname::getThisExecutablePath() << "'\n";
+    cout << "Executable directory: '" << Pathname::getThisExecutableDirectory() << "'\n";
+    cout << "Current working directory: '" << Pathname::getCurrentWorkingDirectory() << "'\n";
+    cout << "Current drive letter: '" << Pathname::getCurrentDriveLetter() << "'\n";
+    cout << "Current drive: '" << Pathname::getCurrentDrive() << "'\n";
+    cout << "Path separator: '" << Pathname::getPathSeparator() << "'\n";
+    cout << "Default install dir: '" << Pathname::getDefaultInstallDir() << "'\n";
+    cout << "installDir(SimTK_INSTALL_DIR,/LunchTime/snacks): '"
+        << Pathname::getInstallDir("SimTK_INSTALL_DIR", "/LunchTime/snacks") << "'\n";
+    cout << "installDir(LocalAppData,SimTK): '"
+        << Pathname::getInstallDir("LocalAppData", "SimTK") << "'\n";
     SimTK_START_TEST("TestPlugin");
 
         SimTK_SUBTEST(testPathname);

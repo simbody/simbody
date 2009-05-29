@@ -39,17 +39,21 @@ using std::string;
 #include <cctype>
 using std::tolower;
 
+#ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN
+    #define NOMINMAX
+    #include <windows.h>
+    #include <direct.h>
+    #pragma warning(disable:4996) // getenv() is apparently unsafe
+#else
+    #include <dlfcn.h>
+    #include <dirent.h>
+    #include <unistd.h>
+#endif
+
 
 using namespace SimTK;
 
-Plugin::Plugin(const string& name) : m_handle(0) {
-    m_handle = loadPluginByFileName(name, m_lastMessage);
-}
-
-Plugin::~Plugin() {
-    if (m_handle)
-        unloadPlugin(m_handle);
-}
 
 #ifdef _WIN32
     static const bool IsWindows          = true;
@@ -61,16 +65,25 @@ Plugin::~Plugin() {
     static const char OtherPathSeparator = '\\';
 #endif
 
-char Plugin::getPathSeparatorChar() {
+char Pathname::getPathSeparatorChar() {
     return MyPathSeparator;
 }
 
-string Plugin::getPathSeparator() {
+string Pathname::getPathSeparator() {
     return String(getPathSeparatorChar());
 }
 
 static void makeNativeSlashesInPlace(string& inout) {
     String::updAs(inout).replaceAllChar(OtherPathSeparator, MyPathSeparator);
+}
+
+static void addFinalSeparatorInPlace(string& inout) {
+    if (!inout.empty() && !Pathname::isPathSeparator(inout[inout.size()-1]))
+        inout += MyPathSeparator;
+}
+
+static bool beginsWithPathSeparator(const string& in) {
+    return !in.empty() && Pathname::isPathSeparator(in[0]);
 }
 
 // Remove the last segment of a path name and the separator. The 
@@ -126,11 +139,11 @@ static void removeDriveInPlace(string& inout, string& drive) {
 // ill formed.)
 // If there is something ill-formed about the file name we'll return
 // false.
-void Plugin::deconstructPathname(   const string& name,
-                                    bool&   isAbsolutePath,
-                                    string& directory,
-                                    string& fileName,
-                                    string& extension)
+void Pathname::deconstructPathname( const string&   name,
+                                    bool&           isAbsolutePath,
+                                    string&         directory,
+                                    string&         fileName,
+                                    string&         extension)
 {
     isAbsolutePath = false;
     directory.erase(); fileName.erase(); extension.erase();
@@ -225,6 +238,123 @@ void Plugin::deconstructPathname(   const string& name,
     }
 }
 
+string Pathname::getDefaultInstallDir() {
+    string installDir;
+    #ifdef _WIN32
+        installDir = getEnvironmentVariable("ProgramFiles");
+        if (!installDir.empty()) {
+            makeNativeSlashesInPlace(installDir);
+            addFinalSeparatorInPlace(installDir);
+        } else
+            installDir = "c:\\Program Files\\";
+    #else
+        installDir = "/usr/local/";
+    #endif
+    return installDir;
+}
+
+string Pathname::addDirectoryOffset(const string& base, const string& offset) {
+    string cleanOffset = beginsWithPathSeparator(offset)
+        ? offset.substr(1) : offset; // remove leading path separator
+    addFinalSeparatorInPlace(cleanOffset); // add trailing / if non-empty
+    string result = base;
+    addFinalSeparatorInPlace(result);
+    result += cleanOffset;
+    return result;
+}
+
+string Pathname::getThisExecutablePath() {
+    char buf[1024];
+    #ifdef _WIN32
+        const DWORD nBytes = GetModuleFileName((HMODULE)0, (LPTSTR)buf, sizeof(buf));
+        buf[0] = (char)tolower(buf[0]); // drive name
+    #else
+        // This isn't automatically null terminated.
+        const size_t nBytes = readlink("/proc/self/exe", buf, sizeof(buf));
+        buf[nBytes] = '\0';
+    #endif
+    return string(buf);
+}
+
+string Pathname::getThisExecutableDirectory() {
+    string path = getThisExecutablePath();
+    string component;
+    removeLastPathComponentInPlace(path, component);
+    path += MyPathSeparator;
+    return path;
+}
+
+string Pathname::getCurrentDriveLetter() {
+    #ifdef _WIN32
+        const int which = _getdrive();
+        return string() + (char)('a' + which-1);
+    #else
+        return string();
+    #endif
+}
+
+string Pathname::getCurrentDrive() {
+    #ifdef _WIN32
+        return getCurrentDriveLetter() + ":";
+    #else
+        return string();
+    #endif
+}
+
+
+string Pathname::getCurrentWorkingDirectory(const string& drive) {
+    char buf[1024];
+
+    #ifdef _WIN32
+        const int which = drive.empty() ? 0 : (tolower(drive[0]) - 'a') + 1;
+        assert(which >= 0);
+        if (which != 0) {
+            // Make sure this drive exists.
+            const ULONG mask = _getdrives();
+            if (!(mask & (1<<(which-1))))
+                return getRootDirectory(drive);
+        }
+        _getdcwd(which, buf, sizeof(buf));
+        buf[0] = (char)tolower(buf[0]); // drive letter
+    #else
+        getcwd(buf, sizeof(buf));
+    #endif
+
+    string cwd(buf);
+    if (cwd.size() && cwd[cwd.size()-1] != MyPathSeparator)
+        cwd += MyPathSeparator;
+    return cwd;
+}
+
+string Pathname::getRootDirectory(const string& drive) {
+    #ifdef _WIN32
+        if (drive.empty()) 
+            return getCurrentDrive() + getPathSeparator();
+        return String(drive[0]).toLower() + ":" + getPathSeparator();
+    #else
+        return getPathSeparator();
+    #endif
+}
+
+bool Pathname::environmentVariableExists(const string& name) {
+    return getenv(name.c_str()) != 0;
+}
+
+string Pathname::getEnvironmentVariable(const string& name) {
+    char* value;
+    value = getenv(name.c_str());
+    return value ? string(value) : string();
+}
+
+
+Plugin::Plugin(const string& name) : m_handle(0) {
+    m_handle = loadPluginByFileName(name, m_lastMessage);
+}
+
+Plugin::~Plugin() {
+    if (m_handle)
+        unloadPlugin(m_handle);
+}
 // This is like deconstructPathname() but adds the assumption that
 // the pathname represents a library file. We assume further structure
 // for the "fileName" part: it may have a "lib" prefix and "_d"
@@ -243,7 +373,7 @@ bool Plugin::deconstructLibraryName(const string& name,
 {
     libPrefix.erase(); baseName.erase(); debugSuffix.erase();
 
-    deconstructPathname(name, isAbsolutePath, directory, baseName, extension);
+    Pathname::deconstructPathname(name, isAbsolutePath, directory, baseName, extension);
 
     // If there is a "lib" prefix, strip it off.
     if (baseName.substr(0,3) == "lib") {
@@ -268,17 +398,6 @@ bool Plugin::deconstructLibraryName(const string& name,
     return !baseName.empty();
 }
 
-#ifdef _WIN32
-    #define WIN32_LEAN_AND_MEAN
-    #define NOMINMAX
-    #include <windows.h>
-    #include <direct.h>
-    #pragma warning(disable:4996) // getenv() is apparently unsafe
-#else
-    #include <dlfcn.h>
-    #include <dirent.h>
-    #include <unistd.h>
-#endif
 
 #ifdef _WIN32
 static string getWindowsSystemMessage() {
@@ -352,86 +471,20 @@ void* Plugin::getSymbolAddress(void* handle, const string& name, string& errorMe
     return address;
 }
 
-string Plugin::getThisExecutablePath() {
-    char buf[1024];
-#ifdef _WIN32
-    const DWORD nBytes = GetModuleFileName((HMODULE)0, (LPTSTR)buf, sizeof(buf));
-    buf[0] = (char)tolower(buf[0]); // drive name
-#else
-    // This isn't automatically null terminated.
-    const size_t nBytes = readlink("/proc/self/exe", buf, sizeof(buf));
-    buf[nBytes] = '\0';
-#endif
-    return string(buf);
-}
-
-string Plugin::getThisExecutableDirectory() {
-    string path = getThisExecutablePath();
-    string component;
-    removeLastPathComponentInPlace(path, component);
-    path += MyPathSeparator;
-    return path;
-}
-
-string Plugin::getCurrentDriveLetter() {
+std::string Plugin::getDynamicLibPrefix() {
     #ifdef _WIN32
-        const int which = _getdrive();
-        return string() + (char)('a' + which-1);
-    #else
         return string();
-    #endif
-}
-
-string Plugin::getCurrentDrive() {
-    #ifdef _WIN32
-        return getCurrentDriveLetter() + ":";
     #else
-        return string();
+        return "lib";
     #endif
 }
 
-
-string Plugin::getCurrentWorkingDirectory(const string& drive) {
-    char buf[1024];
-
+std::string Plugin::getDynamicLibExtension() {
     #ifdef _WIN32
-        const int which = drive.empty() ? 0 : (tolower(drive[0]) - 'a') + 1;
-        assert(which >= 0);
-        if (which != 0) {
-            // Make sure this drive exists.
-            const ULONG mask = _getdrives();
-            if (!(mask & (1<<(which-1))))
-                return getRootDirectory(drive);
-        }
-        _getdcwd(which, buf, sizeof(buf));
-        buf[0] = (char)tolower(buf[0]); // drive letter
+        return ".dll";
+    #elif APPLE
+        return ".dylib";
     #else
-        getcwd(buf, sizeof(buf));
-    #endif
-
-    string cwd(buf);
-    if (cwd.size() && cwd[cwd.size()-1] != MyPathSeparator)
-        cwd += MyPathSeparator;
-    return cwd;
-}
-
-string Plugin::getRootDirectory(const string& drive) {
-    #ifdef _WIN32
-        if (drive.empty()) 
-            return getCurrentDrive() + getPathSeparator();
-        return String(drive[0]).toLower() + ":" + getPathSeparator();
-    #else
-        return getPathSeparator();
+        return ".so"
     #endif
 }
-
-bool Plugin::environmentVariableExists(const string& name) {
-    return getenv(name.c_str()) != 0;
-}
-
-string Plugin::getEnvironmentVariable(const string& name) {
-    char* value;
-    value = getenv(name.c_str());
-    return value ? string(value) : string();
-}
-
