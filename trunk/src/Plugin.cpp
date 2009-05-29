@@ -480,11 +480,12 @@ std::string Plugin::getDynamicLibPrefix() {
 }
 
 std::string Plugin::getDynamicLibExtension() {
-    #ifdef _WIN32
+    #if defined(_WIN32)
         return ".dll";
-    #elif APPLE
+    #elif defined(APPLE)
         return ".dylib";
-    #else
-        return ".so"
+    #else   // linux
+        return ".so";
     #endif
 }
+
