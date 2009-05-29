@@ -14,8 +14,8 @@ ${PROJECT_SOURCE_DIR}/auxiliary/include/*.h )
 
 
 ## Find VTK
-SET(VTK_VERSION 5.0               CACHE STRING "VTK version to use")
-SET(VTK_DIR     ${SimTK_SDK}/core CACHE PATH   "VTK installation directory")
+SET(VTK_VERSION 5.0          CACHE STRING "VTK version to use")
+SET(VTK_DIR     ${SimTK_SDK} CACHE PATH   "VTK installation directory")
 
 
 SET(VTK_INCLUDE_DIR ${VTK_DIR}/include/vtk-${VTK_VERSION})
