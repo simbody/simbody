@@ -35,6 +35,7 @@
 #include "SimTKcommon/internal/common.h"
 #include <string>
 #include <vector>
+#include <exception>
 
 namespace SimTK {
 
