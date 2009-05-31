@@ -44,7 +44,7 @@
 #include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/Subsystem.h"
 
-#include "SimTKcommon/internal/MeasureGuts.h"
+#include "SimTKcommon/internal/MeasureImplementation.h"
 
 #include "SystemGutsRep.h"
 #include "SubsystemGutsRep.h"

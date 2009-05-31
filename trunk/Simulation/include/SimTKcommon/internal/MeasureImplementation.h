@@ -1,5 +1,5 @@
-#ifndef SimTK_SimTKCOMMON_MEASURE_GUTS_H_
-#define SimTK_SimTKCOMMON_MEASURE_GUTS_H_
+#ifndef SimTK_SimTKCOMMON_MEASURE_IMPLEMENTATION_H_
+#define SimTK_SimTKCOMMON_MEASURE_IMPLEMENTATION_H_
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTKcommon                               *
@@ -42,24 +42,24 @@
 
 namespace SimTK {
 
-    ///////////////////
-    // MEASURE::GUTS //
-    ///////////////////
+    /////////////////////////////
+    // MEASURE::IMPLEMENTATION //
+    /////////////////////////////
 
 /**
- * The abstract parent of all Measure_ Guts classes.
+ * The abstract parent of all Measure_ Implementation classes.
  */
-class SimTK_SimTKCOMMON_EXPORT Measure::Guts {
+class SimTK_SimTKCOMMON_EXPORT Measure::Implementation {
 protected:
     // This constructor is for use by concrete Subsystems. Note that this
     // serves as a default constructor since the argument has a default.
-    explicit Guts(const std::string& name="<NONAME>")
+    explicit Implementation(const std::string& name="<NONAME>")
     :   measureName(name), refCount(0), mySubsystem(0) {}
 
-    Guts(const Guts& src)
+    Implementation(const Implementation& src)
     :   measureName(src.measureName), refCount(0), mySubsystem(0) {}
         
-    Guts& operator=(const Guts& src)
+    Implementation& operator=(const Implementation& src)
     {   if (&src != this) {measureName=src.measureName; refCount=0; mySubsystem=0;}
         return *this; }
 
@@ -72,7 +72,7 @@ protected:
     int decrRefCount() const {return --refCount;}
 
     const std::string& getName() const {return measureName;}
-    Guts* clone() const {return cloneImpl();}
+    Implementation* clone() const {return cloneImpl();}
 
     void realizeTopology    (State& s)       const {realizeMeasureTopologyImpl(s);}
     void realizeModel       (State& s)       const {realizeMeasureModelImpl(s);}
@@ -103,8 +103,8 @@ protected:
     // Ordinals must retain the same meaning from release to release
     // to preserve binary compatibility.
 
-    /* 0*/virtual ~Guts() {}
-    /* 1*/virtual Guts* cloneImpl() const = 0;
+    /* 0*/virtual ~Implementation() {}
+    /* 1*/virtual Implementation* cloneImpl() const = 0;
 
     /* 2*/virtual void realizeMeasureTopologyImpl(State&) const {}
     /* 3*/virtual void realizeMeasureModelImpl(State&) const {}
@@ -126,7 +126,7 @@ private:
     Subsystem*      mySubsystem;
     MeasureIndex    myIndex;
 
-    // Measures have shallow copy semantics so they share the Guts objects,
+    // Measures have shallow copy semantics so they share the Implementation objects,
     // which are only deleted when the refCount goes to zero.
     mutable int     refCount;
 
@@ -139,64 +139,64 @@ friend class Subsystem::Guts::GutsRep;
     // MEASURE IMPLEMENTATION //
     ////////////////////////////
 
-inline Measure::Measure(Guts* g) : guts(g)
-{   if (guts) guts->incrRefCount();}
-inline Measure::Measure(Subsystem& sub, Guts* g, const SetHandle&) : guts(g) {
-    SimTK_ASSERT_ALWAYS(guts, "An empty Measure handle can't be put in a Subsystem.");
-    guts->incrRefCount();
+inline Measure::Measure(Implementation* g) : impl(g)
+{   if (impl) impl->incrRefCount();}
+inline Measure::Measure(Subsystem& sub, Implementation* g, const SetHandle&) : impl(g) {
+    SimTK_ASSERT_ALWAYS(impl, "An empty Measure handle can't be put in a Subsystem.");
+    impl->incrRefCount();
     sub.adoptMeasure(*this);
 }
-inline Measure::Measure(const Measure& src) : guts(0) {
-    if (src.guts) {
-        guts = src.guts->mySubsystem ? src.guts : src.guts->clone();
-        guts->incrRefCount();
+inline Measure::Measure(const Measure& src) : impl(0) {
+    if (src.impl) {
+        impl = src.impl->mySubsystem ? src.impl : src.impl->clone();
+        impl->incrRefCount();
     }
 }
 inline Measure& Measure::operator=(const Measure& src) {
     if (&src != this) {
-        if (guts && guts->decrRefCount()==0) delete guts;
-        guts = src.guts->mySubsystem ? src.guts : src.guts->clone();
-        guts->incrRefCount();
+        if (impl && impl->decrRefCount()==0) delete impl;
+        impl = src.impl->mySubsystem ? src.impl : src.impl->clone();
+        impl->incrRefCount();
     }
     return *this;
 }
 inline Measure::~Measure()
-{   if (guts && guts->decrRefCount()==0) delete guts;}
+{   if (impl && impl->decrRefCount()==0) delete impl;}
 inline bool Measure::isInSubsystem() const
-{   return guts && guts->isInSubsystem();}
+{   return impl && impl->isInSubsystem();}
 inline const Subsystem& Measure::getSubsystem() const
-{   assert(guts); return guts->getSubsystem();}
+{   assert(impl); return impl->getSubsystem();}
 inline MeasureIndex Measure::getSubsystemMeasureIndex() const
-{   assert(guts); return guts->getSubsystemMeasureIndex();}
+{   assert(impl); return impl->getSubsystemMeasureIndex();}
 
 inline Stage Measure::getValueDependence(const State& s) const
-{   assert(guts); return guts->getValueDependence(s);}
+{   assert(impl); return impl->getValueDependence(s);}
 
-    ///////////////////////
-    // MEASURE_<T>::GUTS //
-    ///////////////////////
+    /////////////////////////////////
+    // MEASURE_<T>::IMPLEMENTATION //
+    /////////////////////////////////
 
 /**
- * This is the base Guts class for all Measures whose value type is known. Logically
+ * This is the base Implementation class for all Measures whose value type is known. Logically
  * this is an abstract base class. However, you can create an empty Measure<T> handle
  * that can be assigned to any derived concrete Measure.
  */
 template <class T>
-class Measure_<T>::Guts : public Measure::Guts {
+class Measure_<T>::Implementation : public Measure::Implementation {
 public:
     const T& getValue(const State& s) const {return getValueImpl(s);}
 
     virtual const T& getValueImpl(const State& s) const = 0;
 };
 
-    ///////////////////////
-    // CONSTANT<T>::GUTS //
-    ///////////////////////
+    /////////////////////////////////
+    // CONSTANT<T>::IMPLEMENTATION //
+    /////////////////////////////////
 
 template <class T>
-class Measure::Constant_<T>::Guts : public Measure_<T>::Guts {
+class Measure::Constant_<T>::Implementation : public Measure_<T>::Implementation {
 public:
-    Guts(const T& value) : value(value) {}
+    Implementation(const T& value) : value(value) {}
 
     void setValue(const T& v) {
         value = v;
@@ -204,7 +204,7 @@ public:
     }
 
     // Implementations of virtual methods.
-    Guts* cloneImpl() const {return new Guts(*this);}
+    Implementation* cloneImpl() const {return new Implementation(*this);}
     const T& getValueImpl(const State&) const {return value;}
     Stage   getValueDependenceImpl(const State&) const {return Stage::Topology;}
 
@@ -213,20 +213,20 @@ private:
 };
 
 
-    ///////////////////////
-    // SINUSOID<T>::GUTS //
-    ///////////////////////
+    /////////////////////////////////
+    // SINUSOID<T>::IMPLEMENTATION //
+    /////////////////////////////////
 
 template <class T>
-class Measure::Sinusoid_<T>::Guts : public Measure_<T>::Guts {
+class Measure::Sinusoid_<T>::Implementation : public Measure_<T>::Implementation {
 public:
-    Guts(const T& amplitude, 
-         const T& frequency, 
-         const T& phase=T(0))
+    Implementation(const T& amplitude, 
+                   const T& frequency, 
+                   const T& phase=T(0))
     :   a(amplitude), w(frequency), p(phase) {}
 
     // Implementations of virtual methods.
-    Guts* cloneImpl() const {return new Guts(*this);}
+    Implementation* cloneImpl() const {return new Implementation(*this);}
     const T& getValueImpl(const State& s) const
     {   return getValueEntry(s);}
 
@@ -256,15 +256,15 @@ private:
     mutable CacheEntryIndex cacheEntryIndex;
 };
 
-    ////////////////////////
-    // INTEGRATE<T>::GUTS //
-    ////////////////////////
+    //////////////////////////////////
+    // INTEGRATE<T>::IMPLEMENTATION //
+    //////////////////////////////////
 
 template <class T>
-class Measure::Integrate_<T>::Guts : public Measure_<T>::Guts {
+class Measure::Integrate_<T>::Implementation : public Measure_<T>::Implementation {
 public:
-    Guts() : derivMeasure(0), icMeasure(0) {}
-    Guts(const Measure_<T>& deriv, const Measure_<T>& ic)
+    Implementation() : derivMeasure(0), icMeasure(0) {}
+    Implementation(const Measure_<T>& deriv, const Measure_<T>& ic)
     :   derivMeasure(&deriv), icMeasure(&ic) {}
 
     void setValue(State& s, const T& value) const
@@ -281,7 +281,7 @@ public:
     {   icMeasure = &ic; this->invalidateTopologyCache(); }
 
     // Implementations of virtuals.
-    Guts* cloneImpl() const {return new Guts(*this);}
+    Implementation* cloneImpl() const {return new Implementation(*this);}
     const T& getValueImpl(const State& s) const
     {   assert(zIndex.isValid()); return this->getSubsystem().getZ(s)[zIndex]; }
     Stage getValueDependenceImpl(const State&) const {return Stage::Time;}
@@ -317,4 +317,4 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_SimTKCOMMON_MEASURE_GUTS_H_
+#endif // SimTK_SimTKCOMMON_MEASURE_IMPLEMENTATION_H_

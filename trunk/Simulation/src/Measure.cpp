@@ -38,7 +38,7 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/Measure.h"
-#include "SimTKcommon/internal/MeasureGuts.h"
+#include "SimTKcommon/internal/MeasureImplementation.h"
 
 #include <cassert>
 

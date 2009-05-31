@@ -44,7 +44,7 @@
 #include "SimTKcommon/internal/Subsystem.h"
 #include "SimTKcommon/internal/SubsystemGuts.h"
 #include "SimTKcommon/internal/Measure.h"
-#include "SimTKcommon/internal/MeasureGuts.h"
+#include "SimTKcommon/internal/MeasureImplementation.h"
 
 #include <algorithm>
 
@@ -123,14 +123,14 @@ public:
     }
 
     MeasureIndex adoptMeasure(Measure& m) {
-        assert(m.hasGuts());
+        assert(m.hasImpl());
         // This is an expensive check if there are lots of measures.
-        assert(std::find(measures.begin(), measures.end(), &m.getGuts())
+        assert(std::find(measures.begin(), measures.end(), &m.getImpl())
                 == measures.end());
 
         invalidateSubsystemTopologyCache();
         const MeasureIndex mx(measures.size());
-        measures.push_back(&m.updGuts());
+        measures.push_back(&m.updImpl());
         measures.back()->incrRefCount();
         measures.back()->setSubsystem(updMyHandle(), mx);
         return mx;
@@ -145,7 +145,7 @@ private:
     friend class Subsystem;
     Subsystem* myHandle;	// the owner handle of this rep
 
-    std::vector<Measure::Guts*> measures;
+    std::vector<Measure::Implementation*> measures;
 
         // TOPOLOGY CACHE
 

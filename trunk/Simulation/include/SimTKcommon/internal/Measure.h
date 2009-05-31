@@ -36,9 +36,10 @@
  *
  * This file declares the base class Measure for all derived Measure 
  * handle classes, and the handle classes for built-in Measures. Measure handles
- * provide the end user API, while the implementations ("Guts") of Measures
- * derive from the abstract Measure::Guts class defined in MeasureGuts.h.
- * Measure Guts classes provide the Measure developer's API.
+ * provide the end user API, while the implementations of Measures
+ * derive from the abstract Measure::Implementation class defined in 
+ * MeasureImplementation.h.
+ * Measure Implementation classes provide the Measure developer's API.
  */
 
 #include "SimTKcommon/basics.h"
@@ -50,50 +51,55 @@
  * the beginning of the "public" section of its declaration. It performs
  * the following declarations:
  * <pre>
- *   MH::Guts                   the handle's local implementation class
+ *   MH::Implementation         the handle's local implementation class
  *   MH::MH()                   default constructor creates an empty handle
- *   MH::MH(Guts*)              create a handle referencing an existing object
- *   MH::MH(Subsystem&, Guts*)  create a handle referencing an existing but
+ *   MH::MH(Implementation*)    create a handle referencing an existing object
+ *   MH::MH(Subsystem&, Implementation*)  
+ *                              create a handle referencing an existing but
  *                                unowned object, then installs that in the
  *                                given Subsystem which becomes the owner
  * </pre>
  *
- * MH::Guts must be defined elsewhere as a class derived from Measure::Guts.
+ * MH::Implementation must be defined elsewhere as a class derived 
+ * from Measure::Implementation.
  */
 #define SimTK_MEASURE_HANDLE_PREAMBLE(MH,PH)    \
-    class Guts;                                 \
-    explicit MH(Guts* g=0) : PH(g) {}           \
-    MH(Subsystem& sub, Guts* g, const SetHandle& sh) : PH(sub,g,sh) {}
+    class Implementation;                                 \
+    explicit MH(Implementation* imp=0) : PH(g) {}           \
+    MH(Subsystem& sub, Implementation* imp, const SetHandle& sh) : PH(sub,imp,sh) {}
 
 /**
  * Every measure handle class "MH" derived directly or indirectly from the
  * abstract measure handle class "Measure" should include this macro at
  * the end of the "public" section of its declaration. The macro expects
- * there to be a local class, MH::Guts,
- * already declared. (MH::Guts is the type of MH's implementation object to be
- * derived from Measure::Guts and defined elsewhere.) Then the following
+ * there to be a local class, MH::Implementation,
+ * already declared. (MH::Implementation is the type of MH's 
+ * implementation object to be derived from Measure::Implementation 
+ * and defined elsewhere.) Then the following
  * type-safe downcast methods will be added to MH's definition:
  * <pre>
- *   MH::getAs(const Measure&)      generic handle to const MH (static)
- *   MH::updAs(Measure&)            generic handle to writable MH (static)
- *   MH::isA(Measure&)              test if generic handle is of type MH
- *   getGuts(const Measure::Guts&)  generic implementation to const MH::Guts
- *   updGuts(Measure::Guts&)        generic implementation to writable MH::Guts
+ *   MH::getAs(const Measure&)  generic handle to const MH (static)
+ *   MH::updAs(Measure&)        generic handle to writable MH (static)
+ *   MH::isA(Measure&)          test if generic handle is of type MH
+ *   getImpl(const Measure::Implementation&)  
+ *                              generic implementation to const MH::Implementation
+ *   updImpl(Measure::Implementation&)
+ *                              generic implementation to writable MH::Implementation
  * </pre>
  * Type checking for the handle class conversions is done only in Debug
  * builds.
  */
 #define SimTK_MEASURE_HANDLE_POSTSCRIPT(MH,PH)                  \
     static bool isA(const Measure& m)                           \
-    {   return dynamic_cast<const Guts*>(&m.getGuts()) != 0; }  \
+    {   return dynamic_cast<const Implementation*>(&m.getImpl()) != 0; }  \
     static const MH& getAs(const Measure& m)                    \
     {   assert(isA(m)); return static_cast<const MH&>(m); }     \
     static MH& updAs(Measure& m)                                \
     {   assert(isA(m)); return static_cast<MH&>(m); }           \
-    const Guts& getGuts() const                                 \
-    {   return dynamic_cast<const Guts&>(Measure::getGuts());}  \
-    Guts& updGuts()                                             \
-    {   return dynamic_cast<Guts&>(Measure::updGuts());} 
+    const Implementation& getImpl() const                                 \
+    {   return dynamic_cast<const Implementation&>(Measure::getImpl());}  \
+    Implementation& updImpl()                                             \
+    {   return dynamic_cast<Implementation&>(Measure::updImpl());} 
 
 namespace SimTK {
 
@@ -130,10 +136,10 @@ protected:
 	class SetHandle {};
 
 public:
-    class Guts; // local; name is Measure::Guts
+    class Implementation; // local; name is Measure::Implementation
 
-    explicit Measure(Guts* g=0);
-    Measure(Subsystem&, Guts* g, const SetHandle&);
+    explicit Measure(Implementation* g=0);
+    Measure(Subsystem&, Implementation* g, const SetHandle&);
     Measure(const Measure&);
     Measure& operator=(const Measure&);
     ~Measure();
@@ -143,7 +149,7 @@ public:
 
     // There can be multiple handles on the same Measure_.
     bool isSameMeasure(const Measure& other) const
-    {   return guts && guts==other.guts;}
+    {   return impl && impl==other.impl;}
 
     bool isInSubsystem() const;
     const Subsystem& getSubsystem() const;
@@ -151,12 +157,12 @@ public:
 
     // Internal use only
 
-    // dynamic_cast the returned reference to a reference to your concrete Guts
-    // class.
-    const Guts& getGuts() const {assert(guts); return *guts;}
-    Guts&       updGuts()       {assert(guts); return *guts;}
+    // dynamic_cast the returned reference to a reference to your concrete
+    // Implementation class.
+    const Implementation& getImpl() const {assert(impl); return *impl;}
+    Implementation&       updImpl()       {assert(impl); return *impl;}
 
-    bool hasGuts() const {return guts!=0;}
+    bool hasImpl() const {return impl!=0;}
 
 public:
     // These are built-in Measures with local class names. 
@@ -185,10 +191,10 @@ public:
 
 private:
     // This is the only data member in this class. Also, any class derived from
-    // Measure must have *NO* data members at all (data goes in the Guts class).
-    Guts* guts;
+    // Measure must have *NO* data members at all (data goes in the Implementation class).
+    Implementation* impl;
 
-friend class Guts;
+friend class Implementation;
 };
 
 
@@ -204,7 +210,7 @@ class Measure_ : public Measure {
 public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Measure_, Measure);
 
-    const T& getValue(const State& s) const {return getGuts().getValue(s);}
+    const T& getValue(const State& s) const {return getImpl().getValue(s);}
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Measure_, Measure);
 };
@@ -225,10 +231,10 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Constant_, Measure_<T>);
 
     Constant_(Subsystem& sub, const T& value)
-    :   Measure_<T>(sub, new Guts(value), SetHandle()) {}
+    :   Measure_<T>(sub, new Implementation(value), SetHandle()) {}
 
     /// Note that this does not require a State since it is a Topology-stage change.
-    Constant_& setValue(const T& value) {updGuts().setValue(value); return *this;}
+    Constant_& setValue(const T& value) {updImpl().setValue(value); return *this;}
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Constant_, Measure_<T>);
 };
@@ -252,7 +258,7 @@ public:
               const T& amplitude, 
               const T& frequency,
               const T& phase=T(0))
-    :   Measure_<T>(sub, new Guts(amplitude,frequency,phase), SetHandle()) {}
+    :   Measure_<T>(sub, new Implementation(amplitude,frequency,phase), SetHandle()) {}
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Sinusoid_, Measure_<T>);
 };
@@ -268,16 +274,16 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Integrate_, Measure_<T>);
 
     Integrate_(Subsystem& sub, const Measure_<T>& deriv, const Measure_<T>& ic)
-    :   Measure_<T>(sub, new Guts(deriv,ic), SetHandle()) {}
+    :   Measure_<T>(sub, new Implementation(deriv,ic), SetHandle()) {}
 
-    void setValue(State& s, const T& value) const {return getGuts().setValue(s, value);}
-    const Measure_<T>& getDerivativeMeasure() const {return getGuts().getDerivativeMeasure();}
-    const Measure_<T>& getInitialConditionMeasure() const {return getGuts().getInitialConditionMeasure();}
+    void setValue(State& s, const T& value) const {return getImpl().setValue(s, value);}
+    const Measure_<T>& getDerivativeMeasure() const {return getImpl().getDerivativeMeasure();}
+    const Measure_<T>& getInitialConditionMeasure() const {return getImpl().getInitialConditionMeasure();}
 
     Integrate_& setDerivativeMeasure(const Measure_<T>& d)
-    {   updGuts().setDerivativeMeasure(d); return *this; }
+    {   updImpl().setDerivativeMeasure(d); return *this; }
     Integrate_& setInitialConditionMeasure(const Measure_<T>& ic)
-    {   updGuts().setInitialConditionMeasure(ic); return *this; }
+    {   updImpl().setInitialConditionMeasure(ic); return *this; }
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Integrate_, Measure_<T>);
 };
@@ -327,16 +333,16 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Minimum_, Measure_<T>);
 
     Minimum_(Subsystem& sub, const Measure_<T>& source, const Measure_<T>& sourceDot)
-    :   Measure_<T>(sub, new Guts(source, sourceDot), SetHandle()) {}
+    :   Measure_<T>(sub, new Implementation(source, sourceDot), SetHandle()) {}
 
-    void setValue(State& s, const T& value) const {return getGuts().setValue(s, value);}
-    const Measure_<T>& getSourceMeasure() const {return getGuts().getSourceMeasure();}
-    const Measure_<T>& getSourceDerivativeMeasure() const {return getGuts().getSourceDerivativeMeasure();}
+    void setValue(State& s, const T& value) const {return getImpl().setValue(s, value);}
+    const Measure_<T>& getSourceMeasure() const {return getImpl().getSourceMeasure();}
+    const Measure_<T>& getSourceDerivativeMeasure() const {return getImpl().getSourceDerivativeMeasure();}
 
     Minimum_& setSourceMeasure(const Measure_<T>& s)
-    {   updGuts().setSourceMeasure(s); return *this; }
+    {   updImpl().setSourceMeasure(s); return *this; }
     Minimum_& setSourceDerivativeMeasure(const Measure_<T>& sdot)
-    {   updGuts().setSourceDerivativeMeasure(sdot); return *this; }
+    {   updImpl().setSourceDerivativeMeasure(sdot); return *this; }
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Minimum_, Measure_<T>);
 };

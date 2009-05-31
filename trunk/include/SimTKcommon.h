@@ -43,7 +43,7 @@
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/State.h"
 #include "SimTKcommon/internal/Measure.h"
-#include "SimTKcommon/internal/MeasureGuts.h"
+#include "SimTKcommon/internal/MeasureImplementation.h"
 #include "SimTKcommon/internal/DecorativeGeometry.h"
 #include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/Subsystem.h"
