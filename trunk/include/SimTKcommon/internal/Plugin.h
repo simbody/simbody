@@ -89,15 +89,15 @@ namespace SimTK {
  */
 class SimTK_SimTKCOMMON_EXPORT Pathname {
 public:
-    /// Dismantle a supplied library's file or pathname into its component
+    /// Dismantle a supplied pathname into its component
     /// parts. This can take pathnames like <pre>   
     ///     /usr/local/libMyDll_d.so
     ///     e:\\Program Files\\Something\\myLibrary_d.dll
     /// </pre> and chop them into <pre>
-    /// directory                       libPrefix baseName    debug extension
-    /// ------------------------------- --------- ----------- ----- ---------
-    /// /usr/local/                     lib       MyDll         _d    .so 
-    /// e:\\Program Files\\Something\\     (none)    myLibrary     _d    .dll
+    /// directory                       fileName       extension
+    /// ------------------------------- -------------- ---------
+    /// /usr/local/                     libMyDll_d     .so 
+    /// e:\\Program Files\\Something\\  myLibrary_d    .dll
     /// </pre>
     /// as well as tell you whether the given pathname is absolute or relative 
     /// (and thus subject to search rules). At the beginning of the pathname
@@ -126,9 +126,6 @@ public:
     /// in the directory are changed to the appropriate slash
     /// for the currently running platform (i.e. backslash for
     /// Windows and forward slash everywhere else).
-    /// The return value is false if the input path name is
-    /// ill-formed; in that case it still tries to parse as
-    /// much as it can.
     static void deconstructPathname(    const std::string& name,
                                         bool&        isAbsolutePath,
                                         std::string& directory,
@@ -183,12 +180,7 @@ public:
     /// installation directory environment variable if it exists, otherwise
     /// by appending the supplied path offset to the default install directory.
     static std::string getInstallDir(const std::string& envInstallDir,
-                                     const std::string& offsetFromDefaultInstallDir) 
-    {   std::string installDir = getEnvironmentVariable(envInstallDir);
-        if (installDir.empty())
-            installDir = addDirectoryOffset(getDefaultInstallDir(), offsetFromDefaultInstallDir);
-        return installDir;
-    }
+                                     const std::string& offsetFromDefaultInstallDir);
 
 
     /// Get the absolute pathname of the currently executing program.
@@ -272,6 +264,11 @@ public:
     /// Is there currently a DLL associated with this Plugin object? If so you
     /// can call getLoadedPathname() to find out which one.
     bool isLoaded()                   const {return m_handle != 0;}
+
+    const std::string& getLoadedPathname() const {
+        return m_loadedPathname; // empty if nothing loaded
+    }
+
     /// If anything goes wrong the last error message is stored so you can
     /// retrieve it with this method.
     std::string getLastErrorMessage() const {return m_lastMessage;}
@@ -312,6 +309,12 @@ public:
     /// If this fails the return value will be null and the system's human-readable
     /// error message is in errMsg.
     static void* loadPluginByFileName(const std::string& name, std::string& errMsg);
+    /// If we're in Debug mode then this method attempts first to load the Debug
+    /// version of the indicated library which it constructs as base+"_d"+extension.
+    /// If that fails (or if we're not in Debug mode) it will try to load the 
+    /// Release version (base+extension) instead.
+    static void* loadDebugOrReleasePlugin(const std::string& base, const std::string& extension,
+                                          std::string& loadedFileName, std::string& errMsg);
     /// If this fails the return value will be null and the system's human-readable
     /// error message is in errMsg.
     static void* getSymbolAddress(void* handle, const std::string& name, std::string& errMsg);
@@ -377,88 +380,76 @@ public:
     /// Linux, ".dylib" on Apple, and ".dll" on Windows.
     static std::string getDynamicLibExtension();
 
-protected:
-    void*               m_handle;
-    mutable std::string m_lastMessage;
+    /// Obtain the appropriate debug suffix to use. This is not platform
+    /// dependent but rather depends on whether this compilation unit
+    /// was built in Debug or Release modes. If Debug, then the string
+    /// "_d" is returned, otherwise the empty string.
+    static std::string getDynamicLibDebugSuffix();
 
-    std::vector<std::string> m_searchPath;
+protected:
+    std::string                 m_defaultName; // if any
+    std::vector<std::string>    m_searchPath;
+
+    std::string                 m_loadedPathname; // absolute
+    void*                       m_handle;
+    mutable std::string         m_lastMessage;
+
 };
 
 
 #define SimTK_PLUGIN_XXX_MAKE_HOLDER(FuncName)          \
     struct FuncName##__Holder__ {                       \
         FuncName##__Holder__() : fp(0) {}               \
+        bool loadSym(void* h, std::string& msg) const { \
+            if(!fp) fp =(FuncName##__Type__)            \
+                Plugin::getSymbolAddress(h, #FuncName, msg);   \
+            return (fp!=0);                             \
+        }                                               \
         mutable FuncName##__Type__ fp;                  \
     } FuncName##__Ref__
 #define SimTK_PLUGIN_XXX_MAKE_BODY(FuncName)            \
-    if (FuncName##__Ref__.fp==0)                        \
-        FuncName##__Ref__.fp = (FuncName##__Type__)     \
-        Plugin::getSymbolAddress(m_handle, #FuncName, m_lastMessage);    \
+    if (!FuncName##__Ref__.loadSym(m_handle,m_lastMessage)) \
+    throw std::runtime_error                            \
+      ("Plugin function " #FuncName " not found: " + m_lastMessage); \
     return FuncName##__Ref__.fp
+#define SimTK_PLUGIN_XXX_MAKE_SYMTEST(Symbol)           \
+    bool has_##Symbol() const {                          \
+        return Symbol##__Ref__.loadSym(m_handle,m_lastMessage);   \
+    }
 
-#define SimTK_DEFINE_PLUGIN_FUNCTION(RetType, FuncName) \
+#define SimTK_PLUGIN_DEFINE_SYMBOL(Type, SymName)   \
+    typedef Type SymName##__Type__;                 \
+    SimTK_PLUGIN_XXX_MAKE_HOLDER(SymName);          \
+    const Type& SymName() const {                   \
+        if (!SymName##__Ref__.loadSym(m_handle,m_lastMessage))  \
+        throw std::runtime_error                                \
+          ("Plugin symbol " #SymName " not found: " + m_lastMessage); \
+        return *(SymName##__Ref__.fp);              \
+    }
+
+#define SimTK_PLUGIN_DEFINE_FUNCTION(RetType, FuncName) \
     typedef RetType (*FuncName##__Type__)();            \
     SimTK_PLUGIN_XXX_MAKE_HOLDER(FuncName);             \
     RetType FuncName() const {                          \
         SimTK_PLUGIN_XXX_MAKE_BODY(FuncName)();         \
-    }
+    }                                                   \
+    SimTK_PLUGIN_XXX_MAKE_SYMTEST(FuncName)
 
-#define SimTK_DEFINE_PLUGIN_FUNCTION1(RetType, FuncName, Arg1) \
+#define SimTK_PLUGIN_DEFINE_FUNCTION1(RetType, FuncName, Arg1) \
     typedef RetType (*FuncName##__Type__)(Arg1);        \
     SimTK_PLUGIN_XXX_MAKE_HOLDER(FuncName);             \
     RetType FuncName(Arg1 a1) const {                   \
         SimTK_PLUGIN_XXX_MAKE_BODY(FuncName)(a1);       \
-    }
+    }                                                   \
+    SimTK_PLUGIN_XXX_MAKE_SYMTEST(FuncName)
 
-#define SimTK_DEFINE_PLUGIN_FUNCTION2(RetType, FuncName, Arg1, Arg2) \
+#define SimTK_PLUGIN_DEFINE_FUNCTION2(RetType, FuncName, Arg1, Arg2) \
     typedef RetType (*FuncName##__Type__)(Arg1,Arg2);   \
     SimTK_PLUGIN_XXX_MAKE_HOLDER(FuncName);             \
     RetType FuncName(Arg1 a1, Arg2 a2) const {          \
         SimTK_PLUGIN_XXX_MAKE_BODY(FuncName)(a1,a2);    \
-    }
-
-
-/**
- * The plugin library's SimTK_registerPlugin() function allocates one
- * of these and passes it to the supplied PluginManager.
- */
-class ManagedPluginInterface {
-public:
-    virtual ~ManagedPluginInterface() {}
-    virtual std::string type() const = 0;
-    virtual std::string version() const = 0;
-private:
-};
-
-/**
- * 
- */
-class PluginManager {
-public:
-
-};
-
-/**
- * 
- */
-template <class Interface>
-class PluginManager_ : public PluginManager {
-public:
-    PluginManager_();
-
-    bool registerInterface(Interface*) {
-    }
-
-    class ManagedPlugin : public Plugin {
-    public:
-        SimTK_DEFINE_PLUGIN_FUNCTION1(bool,SimTK_registerPlugin,PluginManager_&);
-    };
-
-private:
-    static std::vector<Interface*> loadedPlugins;
-};
-
-
+    }                                                   \
+    SimTK_PLUGIN_XXX_MAKE_SYMTEST(FuncName)
 
 
 } // namespace SimTK

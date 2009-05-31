@@ -49,64 +49,16 @@ class MyPlugin : public Plugin {
 public:
     explicit MyPlugin(const std::string& name)
     :   Plugin(name) {
-        std::string defaultLocation = Pathname::getEnvironmentVariable("SimTK_INSTALL_DIR");
-        if (defaultLocation.empty()) {
-            std::string pfiles = Pathname::getEnvironmentVariable("PROGRAMFILES");
-            if (pfiles.empty())
-                pfiles = "c:/Program Files";
-            defaultLocation = pfiles + "/SimTK";
-        }
-
-        defaultLocation += "/lib/plugins/";
-        addSearchDirectory(defaultLocation);
+        addSearchDirectory(Pathname::getInstallDir("SimTK_INSTALL_DIR", "SimTK") 
+                            + "/lib/plugins/");
     }
 
-    SimTK_DEFINE_PLUGIN_FUNCTION1(int,sayHi,const std::string&);
-    SimTK_DEFINE_PLUGIN_FUNCTION(ExportedClass*,TestRuntimeDLL_makeExportedClass);
+    SimTK_PLUGIN_DEFINE_FUNCTION1(int,sayHi,const std::string&);
+    SimTK_PLUGIN_DEFINE_FUNCTION(ExportedClass*,TestRuntimeDLL_makeExportedClass);
+    SimTK_PLUGIN_DEFINE_FUNCTION(void, NotPresent);
 
 private:
 };
-
-class MyThingInterface : public ManagedPluginInterface {
-public:
-    std::string type() const {return "MyThing";}
-    std::string version() const {return "0.0";}
-
-    class Thing {
-    public:
-        Thing(const std::string& s) : thingString(s) {}
-        std::string thingString;
-    };
-
-    virtual Thing* createThing(const std::string&) const = 0;
-private:
-};
-
-//class MyPlugin2 : public Plugin {
-//public:
-//    explicit MyPlugin(const std::string& name)
-//    :   Plugin() {
-//        setInstallDirFromEnvVar("SimTK_INSTALL_DIR", "core");
-//        setInstallDirFromDefault("SimTK/core");
-//        setOffsetFromInstallDir("lib/plugins");
-//
-//        std::string defaultLocation = getEnvironmentVariable("SimTK_INSTALL_DIR");
-//        if (defaultLocation.empty()) {
-//            std::string pfiles = getEnvironmentVariable("PROGRAMFILES");
-//            if (pfiles.empty())
-//                pfiles = "c:/Program Files";
-//            defaultLocation = pfiles + "/SimTK";
-//        }
-//
-//        defaultLocation += "/core/lib/plugins/";
-//        addSearchDirectory(defaultLocation);
-//    }
-//
-//    SimTK_DEFINE_PLUGIN_FUNCTION1(int,sayHi,const std::string&);
-//    SimTK_DEFINE_PLUGIN_FUNCTION(ExportedClass*,TestRuntimeDLL_makeExportedClass);
-//
-//private:
-//};
 
 void testDeconstructFileName() {
     string name, directory, libPrefix, baseName, debugSuffix, extension;
@@ -251,10 +203,26 @@ void testPathname() {
 void testPlugin() {
     MyPlugin myPlug("c:\\temp\\TestRuntimeDLL_d.dll");
 
-    //std::cout << "fellas length is " << myPlug.sayHi("fellas") << std::endl;
+    if (myPlug.load()) {
+        std::cout << "fellas length is " << myPlug.sayHi("fellas") << std::endl;
+        myPlug.TestRuntimeDLL_makeExportedClass();
+    } else
+        std::cout << "Plugin load failed, err=" << myPlug.getLastErrorMessage() << std::endl;
 
+    SimTK_TEST_MUST_THROW(myPlug.NotPresent());
 
-    //myPlug.TestRuntimeDLL_makeExportedClass();
+    if (myPlug.isLoaded()) {
+        SimTK_TEST(myPlug.has_TestRuntimeDLL_makeExportedClass());
+        SimTK_TEST(!myPlug.has_NotPresent());
+    }
+
+    myPlug.unload();
+    myPlug.addSearchDirectory("@");
+    myPlug.addSearchDirectory(".");
+    myPlug.addSearchDirectory("..");
+    myPlug.addSearchDirectory("/temp");
+    myPlug.addSearchDirectory("c:/temp");
+    myPlug.load("TestRuntimeDLL.so");
 }
 
 int main() {

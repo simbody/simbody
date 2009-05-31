@@ -39,6 +39,8 @@ using std::string;
 #include <cctype>
 using std::tolower;
 
+#include <iostream>
+
 #ifdef _WIN32
     #define WIN32_LEAN_AND_MEAN
     #define NOMINMAX
@@ -263,6 +265,17 @@ string Pathname::addDirectoryOffset(const string& base, const string& offset) {
     return result;
 }
 
+string Pathname::getInstallDir(const std::string& envInstallDir,
+                                 const std::string& offsetFromDefaultInstallDir) 
+{   std::string installDir = getEnvironmentVariable(envInstallDir);
+    if (!installDir.empty()) {
+        makeNativeSlashesInPlace(installDir);
+        addFinalSeparatorInPlace(installDir);
+    } else
+        installDir = addDirectoryOffset(getDefaultInstallDir(), offsetFromDefaultInstallDir);
+    return installDir;
+}
+
 string Pathname::getThisExecutablePath() {
     char buf[1024];
     #ifdef _WIN32
@@ -348,13 +361,56 @@ string Pathname::getEnvironmentVariable(const string& name) {
 
 
 Plugin::Plugin(const string& name) : m_handle(0) {
-    m_handle = loadPluginByFileName(name, m_lastMessage);
+    m_defaultName = name; // might be empty
 }
 
 Plugin::~Plugin() {
-    if (m_handle)
-        unloadPlugin(m_handle);
+    unload();
 }
+
+bool Plugin::load(const string& name) {
+    if (m_handle) {
+        m_lastMessage = "Plugin::load(): already loaded " + m_loadedPathname;
+        return false;
+    }
+
+    const string nameToUse = name.empty() ? m_defaultName : name;
+
+    if (nameToUse.empty()) {
+        m_lastMessage = "Plugin::load(): no pathname was supplied and there was no default.";
+        return false;
+    }
+
+    bool isAbsolutePath;
+    string directory, libPrefix, baseName, debugSuffix, extension;
+    if (!deconstructLibraryName(nameToUse, isAbsolutePath,
+        directory, libPrefix, baseName, debugSuffix, extension)) 
+    {
+        m_lastMessage = "Plugin::load(): illegal library name '" + nameToUse + "'.";
+        return false;
+    }
+
+    const std::string base = directory + getDynamicLibPrefix() + baseName;
+    if (isAbsolutePath) {
+        m_handle = loadDebugOrReleasePlugin(base, extension, m_loadedPathname, m_lastMessage);
+    } else {
+        for (unsigned i=0; !m_handle && i < m_searchPath.size(); ++i)
+            m_handle = loadDebugOrReleasePlugin(
+                            m_searchPath[i] + base, extension, m_loadedPathname, m_lastMessage);
+    }
+
+    return m_handle != 0;
+}
+
+void Plugin::unload() {
+    if (m_handle) {
+        std::cout << "UNLOADING '" << m_loadedPathname << "'.\n";
+        unloadPlugin(m_handle);
+        m_handle = 0;
+        m_loadedPathname.clear();
+    }
+}
+
 // This is like deconstructPathname() but adds the assumption that
 // the pathname represents a library file. We assume further structure
 // for the "fileName" part: it may have a "lib" prefix and "_d"
@@ -424,6 +480,8 @@ static string getWindowsSystemMessage() {
 void* Plugin::loadPluginByFileName(const string& name, string& errorMessage) {
     errorMessage.clear();
 
+    std::cout << "LOAD ATTEMPT: '" << name << "' ... ";
+
     #ifdef _WIN32
         // Tell Windows not to bother the user with ugly error boxes.
         const UINT oldErrorMode = SetErrorMode(SEM_FAILCRITICALERRORS);
@@ -438,6 +496,32 @@ void* Plugin::loadPluginByFileName(const string& name, string& errorMessage) {
             if (msg) errorMessage = string(msg);
         }
     #endif
+
+    std::cout << (handle ? "SUCCEEDED." : "FAILED!") << std::endl;
+
+    return handle;
+}
+
+// This attempts first to load the debug version of the library if we're
+// in Debug mode, but falls back to the Release if no Debug library is
+// available. If we're running in Release mode then no attempt is made
+// to load the Debug library.
+void* Plugin::loadDebugOrReleasePlugin(const string& base, const string& extension,
+                                       string& loadedFileName, string& errorMessage)
+{
+    void* handle = 0;
+    if (!getDynamicLibDebugSuffix().empty()) {
+        // Attempt to load the Debug library if it exists.
+        loadedFileName = base + getDynamicLibDebugSuffix() + getDynamicLibExtension();
+        handle = loadPluginByFileName(loadedFileName, errorMessage);
+    }
+    if (!handle) {
+        // Attempt to load the Release library.
+        loadedFileName = base + getDynamicLibExtension();
+        handle = loadPluginByFileName(loadedFileName, errorMessage);
+    }
+    if (!handle)
+        loadedFileName.clear();
 
     return handle;
 }
@@ -473,7 +557,7 @@ void* Plugin::getSymbolAddress(void* handle, const string& name, string& errorMe
 
 std::string Plugin::getDynamicLibPrefix() {
     #ifdef _WIN32
-        return string();
+        return "";
     #else
         return "lib";
     #endif
@@ -486,6 +570,14 @@ std::string Plugin::getDynamicLibExtension() {
         return ".dylib";
     #else   // linux
         return ".so";
+    #endif
+}
+
+std::string Plugin::getDynamicLibDebugSuffix() {
+    #ifdef NDEBUG
+        return "";      // running in Release mode
+    #else
+        return "_d";    // running in Debug mode
     #endif
 }
 
