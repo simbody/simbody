@@ -65,7 +65,7 @@
  */
 #define SimTK_MEASURE_HANDLE_PREAMBLE(MH,PH)    \
     class Implementation;                                 \
-    explicit MH(Implementation* imp=0) : PH(g) {}           \
+    explicit MH(Implementation* imp=0) : PH(imp) {}           \
     MH(Subsystem& sub, Implementation* imp, const SetHandle& sh) : PH(sub,imp,sh) {}
 
 /**
