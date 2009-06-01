@@ -41,9 +41,9 @@ namespace SimTK {
 
 /**
  * This class encapsulates the handling of file and directory pathnames
- * in a platform-indpendent manner. We consider a pathname to consist
+ * in a platform-independent manner. We consider a pathname to consist
  * of three components:
- *      [directory] [filename [extension]]
+ * <pre> [directory] [filename [extension]] </pre>
  * where the directory may be an absolute location or relative to a
  * current working directory. 
  *
@@ -53,6 +53,7 @@ namespace SimTK {
  *  - current executable directory (@)
  *  - platform default installation directory
  *  - parent directory (..)
+ *
  * On Windows root and current working directory are drive-specific, referring
  * to the current drive if none is specified. The current executable 
  * directory is the absolute directory name containing the executable
@@ -98,7 +99,7 @@ public:
     /// directory                       fileName       extension
     /// ------------------------------- -------------- ---------
     /// /usr/local/                     libMyDll_d     .so 
-    /// e:\\Program Files\\Something\\  myLibrary_d    .dll
+    /// e:\\Program Files\\Something\\     myLibrary_d    .dll
     /// </pre>
     /// as well as tell you whether the given pathname is absolute or relative 
     /// (and thus subject to search rules). At the beginning of the pathname
@@ -110,6 +111,7 @@ public:
     ///   current working directory (or drive's cwd on Windows).
     /// - "@" starts an absolute path name which is relative to the
     ///   directory in which the currently running executable is located.
+    ///
     /// Anywhere in the pathname, the name ".." means "go up one level from
     /// the prior directory. ".." at the start is interpreted as "./..".
     /// A "." appearing anywhere in the path name except the begining is
@@ -146,6 +148,7 @@ public:
     ///   - separators are made all-forward slash or all-backslash
     ///   - on Windows, the returned pathname begins with an explicit
     ///     disk designator in lower case, e.g. "c:".
+    ///
     /// The result here is what you get by reassembling the components
     /// from deconstructPathname(), plus inserting the current working
     /// directory in front if the path name was relative.
@@ -169,8 +172,8 @@ public:
     }
 
     /// Get the default installation directory for this platform. This will
-    /// be /usr/local/ for Linux and Apple, and the value of the %ProgramFiles%
-    /// registry entry on Windows (typically c:\Program Files\).
+    /// be /usr/local/ for Linux and Apple, and the value of the \%ProgramFiles\%
+    /// registry entry on Windows (typically c:\\Program Files\\).
     static std::string getDefaultInstallDir();
 
     /// Append a subdirectory offset to an existing pathname (relative or absolute).
@@ -182,7 +185,6 @@ public:
     /// by appending the supplied path offset to the default install directory.
     static std::string getInstallDir(const std::string& envInstallDir,
                                      const std::string& offsetFromDefaultInstallDir);
-
 
     /// Get the absolute pathname of the currently executing program.
     static std::string getThisExecutablePath();
@@ -211,7 +213,7 @@ public:
     /// in the environment.
     static bool environmentVariableExists(const std::string& name);
     /// Return the value of the named environment variable or 
-    /// the empty string if the variable is not found. (Note that that
+    /// the empty string if the variable is not found. Note that that
     /// is indistinguishable from a variable that is present but with
     /// a null value -- use environmentVariableExists() if you really
     /// need to know the difference.
@@ -234,7 +236,58 @@ public:
  * This is the base class for representing a runtime-linked dynamic library,
  * also known as a "plugin", in a platform-independent manner. For any particular 
  * kind of plugin, derive a concrete class from this one and use the macros 
- * to describe the functions or data you expect to find there.
+ * to describe the functions or data you expect to find there. Then each 
+ * plugin library you load of that type is an object of the concrete class
+ * you defined. The derived class constructor sets the search policy for
+ * plugin libraries of that type. For example:
+ * <pre>
+ * class MyPlugin : public Plugin {
+ * public:
+ *     explicit MyPlugin() : Plugin() {
+ *         addSearchDirectory(Pathname::getInstallDir("SimTK_INSTALL_DIR", "SimTK") 
+ *                             + "/lib/plugins/");
+ *     }
+ * 
+ *     SimTK_PLUGIN_DEFINE_FUNCTION1(int,exportedFunctionWithOneArg,const std::string&);
+ *     SimTK_PLUGIN_DEFINE_FUNCTION(SomeObjectType*,anExportedFunctionNoArgs);
+ *     SimTK_PLUGIN_DEFINE_FUNCTION(void, someFunction);
+ *     SimTK_PLUGIN_DEFINE_SYMBOL(SymbolType, nameOfExportedSymbol);
+ * };
+ * </pre>
+ *
+ * Then this class is used as follows:
+ * <pre>
+ *     MyPlugin lib1;
+ *     if (!lib1.load("libraryName")) {
+ *         std::cerr << lib1.getLastErrorMessage() << std::endl;
+ *         // exit, retry or whatever
+ *     }
+ *     // At this point you can call the functions and access
+ *     // the symbols, e.g.
+ *     int i = lib1.exportedFunctionWithOneArg("hi");
+ * </pre>
+ *
+ * The currently available macros are:
+ *  - SimTK_PLUGIN_DEFINE_SYMBOL(type, name)
+ *  - SimTK_PLUGIN_DEFINE_FUNCTION(returnType, name)
+ *  - SimTK_PLUGIN_DEFINE_FUNCTION1(returnType, name, typeOfArg)
+ *  - SimTK_PLUGIN_DEFINE_FUNCTION2(returnType, name, typeOfArg1, typeOfArg2)
+ *
+ * These define methods in the derived class which can obtain the symbol
+ * address from the plugin library as needed. The methods will have the
+ * same signature as the library's exported function. In the case of the
+ * symbol, a no-argument method named the same as the symbol will be
+ * created. For example,
+ * <pre> SimTK_PLUGIN_DEFINE_SYMBOL(int, myCounter); </pre>
+ * says the library contains an exported external symbol of type int
+ * named "myCounter". If the Plugin object is "plugin" then you can
+ * access this symbol (read only) as
+ * <pre> const int& counter = plugin.myCounter(); </pre>
+ * The macros also define another method of the same name as the symbol
+ * or function, but prepended with "has_". This returns true if the 
+ * named object is exported by the library, otherwise false. If you try
+ * to access a method or symbol without checking first, an exception
+ * will be thrown if the library doesn't export the symbol.
  */
 class SimTK_SimTKCOMMON_EXPORT Plugin {
 public:
@@ -343,6 +396,7 @@ public:
     ///   current working directory (or drive's cwd on Windows).
     /// - "@" starts an absolute path name which is relative to the
     ///   directory in which the currently running executable is located.
+    ///
     /// Anywhere in the pathname, the name ".." means "go up one level from
     /// the prior directory. ".." at the start is interpreted as "./..".
     /// A "." appearing anywhere in the path name except the begining is
