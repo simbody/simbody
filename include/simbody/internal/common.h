@@ -62,7 +62,7 @@
 // affect only the simbody library, meaning that other libraries can
 // be clients of this one. However, we are assuming all-static or all-shared.
 
-#ifdef WIN32
+#ifdef _WIN32
     #ifdef _MSC_VER
     #pragma warning(disable:4231) // need to use 'extern' template explicit instantiation
     #endif
