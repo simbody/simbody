@@ -29,7 +29,7 @@
 // (sherm 081204 disabling for now: doesn't work on VC++ 8 and is 
 // tricky on VC++ 9 because all libraries, including 3rd party, must
 // be built the same way)
-//#ifdef WIN32
+//#ifdef _WIN32
 //	#ifdef NDEBUG
 //		#undef _SECURE_SCL
 //		#define _SECURE_SCL 0

@@ -50,7 +50,7 @@
  * be clients of this one. However, we are assuming all-static or all-shared.
 */
 
-#ifdef WIN32
+#ifdef _WIN32
     #if defined(SimTK_SIMMATH_BUILDING_SHARED_LIBRARY)
         #define SimTK_SIMMATH_EXPORT __declspec(dllexport)
     #elif defined(SimTK_SIMMATH_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
