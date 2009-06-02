@@ -117,7 +117,7 @@
  * be clients of this one. However, we are assuming all-static or all-shared.
  */
 
-#ifdef WIN32
+#ifdef _WIN32
     #ifdef _MSC_VER
     #pragma warning(disable:4231) // need to use 'extern' template explicit instantiation
     #pragma warning(disable:4251) // no DLL interface for type of member of exported class

@@ -58,7 +58,7 @@
 // These macros should be used for whatever the expected default
 // Fortran behavior is for whatever Fortran is typically used in
 // conjunction with the current C++ compiler.
-#ifdef WIN32
+#ifdef _WIN32
     #define SimTK_FORTRAN_STDCALL __stdcall
     #define SimTK_FORTRAN(x,X) X
     #define SimTK_FORTRAN_STRLEN_FOLLOWS_DECL       ,int
@@ -77,7 +77,7 @@
 // These macros should be used for whatever our chosen LAPACK and
 // BLAS libraries will look like from here.
 #ifdef SimTK_USE_ACML_LAPACK
-  #ifdef WIN32
+  #ifdef _WIN32
     #define SimTK_LAPACK_STDCALL __stdcall
     #define SimTK_LAPACK(x,X) X
     #define SimTK_LAPACK_STRLEN_FOLLOWS_DECL       ,int
