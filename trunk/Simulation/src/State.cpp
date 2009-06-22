@@ -42,7 +42,7 @@
 namespace SimTK {
 
 // These static methods implement a specialized stacking mechanism for State
-// resources that can be allocated a different stages, which we'll call an
+// resources that can be allocated at different stages, which we'll call an
 // "allocation stack". A resource that was
 // allocated at a later stage must be forgotten again when that stage is
 // subsequently invalidated, and keeping their allocations stacked by
@@ -50,7 +50,7 @@ namespace SimTK {
 //
 // The method are templatized and expect the stacks to be in std::vectors
 // of the same template. The template value must be a type that supports
-// three methods (the tempate analog to virtual functions):
+// three methods (the template analog to virtual functions):
 //      deepAssign()            a non-shallow assignment, i.e. clone the value
 //      deepDestruct()          destroy any owned heap space
 //      getAllocationStage()    return the stage being worked on when this was allocated
@@ -156,7 +156,7 @@ public:
     // Default copy constructor, copy assignment, destructor are fine since there
     // is no heap object owned here.
 
-    // These the the "virtual" methods required by template methods elsewhere.
+    // These are the "virtual" methods required by template methods elsewhere.
     MechanicalStateInfo&   deepAssign(const MechanicalStateInfo& src) {return operator=(src);}
     void         deepDestruct() {}
     const Stage& getAllocationStage() const {return allocationStage;}
@@ -202,7 +202,7 @@ private:
 //      - nz slots in the global zdot Vector
 //
 // By the end of the Subsystem's realization of Instance stage, we must know
-// the number nz_integ of the z's are defined by differential equations and
+// the number nz_integ of the z's that are defined by differential equations and
 // thus require integration of zdots. Then:
 //
 //  System-level resources allocated upon realize(Instance):

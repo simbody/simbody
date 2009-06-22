@@ -80,7 +80,7 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(UIndex);
 /// should be used for the global z and its global time derivative zDot.
 /// @see ZIndex for Subsystem-local z indexing
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemZIndex);
-/// Unique integer type for Subsystem-local u indexing
+/// Unique integer type for Subsystem-local z indexing
 /// @see SystemZIndex
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ZIndex);
 
@@ -182,8 +182,9 @@ typedef int StageVersion;
  *      (3)  e  = e(d;t,y)         event triggers (watch for zero crossings)
  * </pre>
  * with initial conditions t0,y0,d0 such that c=0. The discrete variables d
- * are updated upon occurence of specific events, which are
- * detected using the set of scalar-valued event trigger functions e (3).
+ * are updated upon occurence of specific events. When those events are
+ * functions of time or state, they are detected using the set of 
+ * scalar-valued event trigger functions e (3).
  *
  * In the more detailed view as seen from the System, we consider y={q,u,z}
  * to be partitioned into position variables q, velocity variables u, and
@@ -244,13 +245,13 @@ typedef int StageVersion;
  * at Stage::Topology. Then the Subsystems realize their Model stages, during which 
  * variables at any stage > Model, and cache entries at any stage
  * >= Model can be allocated. After that call advanceSubsystemToStage(Model)
- * which sets the stage to Stage::Model and disallows further allocation.
+ * which sets the stage to Stage::Model and disallows further state allocation.
  *
  * Note that there is a global Stage for the state as a whole, and individual
  * Stages for each subsystem. The global stage can never be higher than
  * the lowest subsystem stage. Global state resources are allocated when the
  * global Stage advances to "Model" and tossed out if that stage is
- * invalidated. Similarly cache resources are allocated at stage Instance
+ * invalidated. Similarly, cache resources are allocated at stage Instance
  * and forgotten when Instance is invalidated. Note that subsystems will
  * "register" their use of the global variable pools during their own modeling
  * stages, but that the actual global resources won't exist until the *System* 
@@ -680,7 +681,7 @@ public:
     /// You can call these as long as System stage >= Model, but the
     /// stage will be backed up if necessary to the indicated stage.
     Real&   updTime();  // Back up to Stage::Time-1
-    Vector& updY();     // Back up to Stage::Congfigured-1
+    Vector& updY();     // Back up to Stage::Dynamics-1
 
     /// An alternate syntax equivalent to updTime() and updY().
     void setTime(Real t);
@@ -717,19 +718,20 @@ public:
     /// (twice) to get Q.
     Vector& updQDotDot() const; // Stage::Acceleration-1
 
-    /// Return the current constraint errors for all constraints.
-    const Vector& getYErr() const; // {QErr,UErr} packed and in that order
+    /// Return the current constraint errors for all constraints. This
+    /// is {QErr,UErr} packed and in that order.
+    const Vector& getYErr() const;  // Stage::Velocity
 
     /// These are just views into YErr.
     const Vector& getQErr() const;  // Stage::Position (index 3 constraints)
     const Vector& getUErr() const;  // Stage::Velocity (index 2 constraints)
 
-    /// These have their own space, the are not views.
+    /// These have their own space, they are not views.
     const Vector& getUDotErr()     const; // Stage::Acceleration (index 1 constraints)
     const Vector& getMultipliers() const; // Stage::Acceleration
 
     /// These are mutable
-    Vector& updYErr() const; // Stage::Dynamics-1
+    Vector& updYErr() const; // Stage::Velocity-1
     Vector& updQErr() const; // Stage::Position-1 (view into YErr)
     Vector& updUErr() const; // Stage::Velocity-1        "
 
