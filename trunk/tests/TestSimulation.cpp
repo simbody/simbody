@@ -502,6 +502,16 @@ void testOne() {
         const Vector triggers0 = state.getEventTriggers();
         std::vector<EventId> triggered;
 
+        // Commit the values for the discrete variable updates calculated
+        // at the end of the previous step. This includes both explicitly
+        // discrete variables and continuous variables which are defined
+        // by algebraic rather than differential equations, such as
+        // prescribed motions. This requires that all calculations have
+        // been performed already using the *updated* values, *not* the
+        // state values; that permits us to perform this update without
+        // invalidating any cache entries.
+        //state.updateDiscreteVariables();
+
         // First integrator stage: unconstrained continuous system only.
         state.updY()    += h2*ydot0;
         state.updTime() += h2;

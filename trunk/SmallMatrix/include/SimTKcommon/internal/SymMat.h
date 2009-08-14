@@ -700,7 +700,7 @@ operator-(const SymMat<M,E1,S1>& l, const SymMat<M,E2,S2>& r) {
 // The result will not be symmetric.
 template <int M, class E1, int S1, class E2, int S2> inline
 typename SymMat<M,E1,S1>::template Result< SymMat<M,E2,S2> >::Mul
-operator-(const SymMat<M,E1,S1>& l, const SymMat<M,E2,S2>& r) {
+operator*(const SymMat<M,E1,S1>& l, const SymMat<M,E2,S2>& r) {
     return SymMat<M,E1,S1>::template Result< SymMat<M,E2,S2> >
         ::MulOp::perform(l,r);
 }

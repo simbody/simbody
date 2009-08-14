@@ -51,8 +51,8 @@ namespace SimTK {
  */
 class SimTK_SimTKCOMMON_EXPORT Measure::Implementation {
 protected:
-    // This constructor is for use by concrete Subsystems. Note that this
-    // serves as a default constructor since the argument has a default.
+    // This constructor is for use by concrete Measure::Implementations. Note that
+    // this serves as a default constructor since the argument has a default.
     explicit Implementation(const std::string& name="<NONAME>")
     :   measureName(name), refCount(0), mySubsystem(0) {}
 

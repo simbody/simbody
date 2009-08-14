@@ -535,11 +535,14 @@ int main()
     
     cout << "dv2=" << dv2 << " dv2.norm()=" << dv2.norm() << endl;
     cout << "cv2=" << cv2 << " cv2.norm()=" << cv2.norm() << endl; 
+
+    dv2 = 100*dv2;
        
     const Vec<3,float> v3c[] = {Vec<3,float>(fddd),Vec<3,float>(fddd+1)};
 
     Vector_< Vec<2, Vec<3,float> > > vflt(2);
     vflt[0] = Vec<2, Vec<3,float> >(v3c); 
+    vflt[1] = vflt[0]*100; 
     vflt[1] = 100*vflt[0]; 
     cout << "vflt 2xvec3=" << vflt << endl;
 

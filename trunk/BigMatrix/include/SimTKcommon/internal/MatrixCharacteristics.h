@@ -782,8 +782,8 @@ public:
 
     bool isLowerBandwidthLocked()  const {return lband!=SizeUncommitted;}
     bool isUpperBandwidthLocked()  const {return uband!=SizeUncommitted;}
-    int getDefaultLowerBandwidth() const {isLowerBandwidthLocked() ? lband : 0;}
-    int getDefaultUpperBandwidth() const {isUpperBandwidthLocked() ? uband : 0;}
+    int getDefaultLowerBandwidth() const {return isLowerBandwidthLocked() ? lband : 0;}
+    int getDefaultUpperBandwidth() const {return isUpperBandwidthLocked() ? uband : 0;}
 
     /// Set all bits to one ("Uncommitted").
     Mask& setToUncommitted() {

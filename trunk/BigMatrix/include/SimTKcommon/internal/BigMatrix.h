@@ -2504,6 +2504,19 @@ template <class E> Matrix_<E>
 operator/(const MatrixBase<E>& l, const typename CNT<E>::StdNumber& r) 
   { return Matrix_<E>(l)/=r; }
 
+// Handle ints explicitly.
+template <class E> Matrix_<E>
+operator*(const MatrixBase<E>& l, int r) 
+  { return Matrix_<E>(l)*=CNT<E>::StdNumber(r); }
+
+template <class E> Matrix_<E>
+operator*(int l, const MatrixBase<E>& r) 
+  { return Matrix_<E>(r)*=CNT<E>::StdNumber(l); }
+
+template <class E> Matrix_<E>
+operator/(const MatrixBase<E>& l, int r) 
+  { return Matrix_<E>(l)/=CNT<E>::StdNumber(r); }
+
 /// @}
 
 /// @name Global operators involving Vector objects
@@ -2551,6 +2564,19 @@ template <class E> Vector_<E>
 operator/(const VectorBase<E>& l, const typename CNT<E>::StdNumber& r) 
   { return Vector_<E>(l)/=r; }
 
+// Handle ints explicitly
+template <class E> Vector_<E>
+operator*(const VectorBase<E>& l, int r) 
+  { return Vector_<E>(l)*=CNT<E>::StdNumber(r); }
+
+template <class E> Vector_<E>
+operator*(int l, const VectorBase<E>& r) 
+  { return Vector_<E>(r)*=CNT<E>::StdNumber(l); }
+
+template <class E> Vector_<E>
+operator/(const VectorBase<E>& l, int r) 
+  { return Vector_<E>(l)/=CNT<E>::StdNumber(r); }
+
 /// @}
 
 /// @name Global operators involving RowVector objects
@@ -2597,6 +2623,19 @@ operator*(const typename CNT<E>::StdNumber& l, const RowVectorBase<E>& r)
 template <class E> RowVector_<E>
 operator/(const RowVectorBase<E>& l, const typename CNT<E>::StdNumber& r) 
   { return RowVector_<E>(l)/=r; }
+
+// Handle ints explicitly.
+template <class E> RowVector_<E>
+operator*(const RowVectorBase<E>& l, int r) 
+  { return RowVector_<E>(l)*=CNT<E>::StdNumber(r); }
+
+template <class E> RowVector_<E>
+operator*(int l, const RowVectorBase<E>& r) 
+  { return RowVector_<E>(r)*=CNT<E>::StdNumber(l); }
+
+template <class E> RowVector_<E>
+operator/(const RowVectorBase<E>& l, int r) 
+  { return RowVector_<E>(l)/=CNT<E>::StdNumber(r); }
 
 /// @}
 

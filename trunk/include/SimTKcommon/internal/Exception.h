@@ -53,7 +53,7 @@ class Base : public std::exception {
 public:
 	explicit Base(const char* fn="<UNKNOWN>", int ln=0) 
       : fileName(fn), lineNo(ln) { } 
-	virtual ~Base() throw() { }
+	virtual ~Base() { }
 	const std::string& getMessage()     const { return msg; }
     const std::string& getMessageText() const { return text; }
 

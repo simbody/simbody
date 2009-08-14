@@ -151,7 +151,7 @@ public:
         operator Num() const {return value;} // implicit conversion
         Cause& operator=(Num n) {value=n; return *this;}
 
-        bool isValid() const {Initialization<=value && value<=Termination;}
+        bool isValid() const {return Initialization<=value && value<=Termination;}
 
     private:
         Num value;

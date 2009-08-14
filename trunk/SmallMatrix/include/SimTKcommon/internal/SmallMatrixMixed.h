@@ -570,8 +570,10 @@ Row<2,E> crossMat(const Row<2,negator<E>,S>& r) {return crossMat(r.positionalTra
     // CROSS MAT SQ
 
 /// Calculate matrix S(v) such that S(v)*w = -v % (v % w) = (v%w)%v. S is a symmetric,
-/// 3x3 matrix with nonnegative diagonals. If M(v) = crossMat(v), then 
-/// S(v) = square(M(v)) = ~M(v)*M(v) = -M(v)*M(v) since M is skew symmetric.
+/// 3x3 matrix with nonnegative diagonals that obey the triangle inequality. 
+/// If M(v) = crossMat(v), then S(v) = square(M(v)) = ~M(v)*M(v) = -M(v)*M(v) 
+/// since M is skew symmetric.
+///
 /// Also, S(v) = dot(v,v)*I - outer(v,v) = ~v*v*I - v*~v, where I is the identity
 /// matrix. This is the form necessary for shifting inertia matrices using
 /// the parallel axis theorem, something we do a lot of in multibody dynamics.
