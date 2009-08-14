@@ -198,6 +198,15 @@ public:
     /// Special case of convertThreeAxesRotationToThreeAngles().
     Vec3  convertRotationToBodyFixedXYZ() const  { return convertThreeAxesRotationToThreeAngles( BodyRotationSequence, XAxis, YAxis, ZAxis ); }
 
+    /// Perform an efficient transform of a symmetric matrix that must be re-expressed with
+    /// a multiply from both left and right, such as an inertia matrix. Details: assuming
+    /// this Rotation is R_AB, and given a symmetric dyadic matrix S_BB expressed in B,
+    /// we can reexpress it in A using S_AA=R_AB*S_BB*R_BA. The matrix should be one that
+    /// is formed as products of vectors expressed in A, such as inertia, gyration or
+    /// covariance matrices. This can be done efficiently exploiting properties of R
+    /// (orthogonal) and S (symmetric). Total cost is 57 flops.
+    SimTK_SimTKCOMMON_EXPORT SymMat33 reexpressSymMat33(const SymMat33& S_BB) const;
+
     /// Return true if "this" Rotation is nearly identical to "R" within a specified pointing angle error
     //@{
     SimTK_SimTKCOMMON_EXPORT bool  isSameRotationToWithinAngle( const Rotation& R, Real okPointingAngleErrorRads ) const;
@@ -465,7 +474,7 @@ public:
     /// expect the angular velocity in the parent frame, i.e. w==w_PB_P.
     /// We don't normalize, so Q=|q|Q' where Q' is the normalized version.
     static Mat43 calcUnnormalizedQBlockForQuaternion(const Vec4& q) {
-        const Vec4 e = q/2;
+        const Vec4 e = Real(0.5)*q;
         return Mat43(-e[1],-e[2],-e[3],
                       e[0], e[3],-e[2],
                      -e[3], e[0], e[1],
@@ -480,7 +489,7 @@ public:
     /// |q|*inv(Q')=|q|^2*inv(Q). That is, QInv*Q =|q|^2*I, which is I
     /// if the original q was normalized. (Note: Q*QInv != I, not even close.)
     static Mat34 calcUnnormalizedQInvBlockForQuaternion(const Vec4& q) {
-        const Vec4 e = 2*q;
+        const Vec4 e = Real(2)*q;
         return Mat34(-e[1], e[0],-e[3], e[2],
                      -e[2], e[3], e[0],-e[1],
                      -e[3],-e[2], e[1], e[0]);
@@ -505,7 +514,7 @@ public:
         (const Vec4& q, const Vec3& w_PB_P, const Vec3& wdot)
     {
         const Mat43 Q = calcUnnormalizedQBlockForQuaternion(q);
-        const Vec4  edot = (Q*w_PB_P)/2; // i.e., edot=qdot/2
+        const Vec4  edot = Real(0.5)*(Q*w_PB_P); // i.e., edot=qdot/2
         const Mat43 QDot(-edot[1],-edot[2],-edot[3],
                           edot[0], edot[3],-edot[2],
                          -edot[3], edot[0], edot[1],
@@ -553,6 +562,14 @@ public:
     // Default constructor and copy constructor
     InverseRotation( const InverseRotation& R ) : BaseMat(R) {}
     InverseRotation&  operator=( const InverseRotation& R )  { BaseMat::operator=( R.asMat33() );  return *this; }
+
+    /// Assuming this InverseRotation is R_AB, and given a symmetric dyadic matrix S_BB expressed 
+    /// in B, we can reexpress it in A using S_AA=R_AB*S_BB*R_BA. The matrix should be one
+    /// that is formed as products of vectors expressed in A, such as inertia, gyration or
+    /// covariance matrices. This can be done efficiently exploiting properties of R and S.
+    /// Cost is 57 flops.
+    /// @see Rotation::reexpressSymMat33()
+    SimTK_SimTKCOMMON_EXPORT SymMat33 reexpressSymMat33(const SymMat33& S_BB) const;
 
     // Convert from InverseRotation to Rotation (no cost)
     const Rotation&  invert() const { return *reinterpret_cast<const Rotation*>(this); }

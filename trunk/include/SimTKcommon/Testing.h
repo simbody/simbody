@@ -368,7 +368,8 @@ public:
     template <int N> static Row<N> randRow() {return ~randVec<N>();}
     template <int M, int N> static Mat<M,N> randMat()
     {   Mat<M,N> m; for (int j=0; j<N; ++j) m(j)=randVec<M>(); return m;}
-    template <int N> static SymMat<N> randSymMat() {SymMat<N> s; s.updAsVec() = randVec<N*(N+1)/2>(); return s;}
+    template <int N> static SymMat<N> randSymMat() 
+    {   SymMat<N> s; s.updAsVec() = randVec<N*(N+1)/2>(); return s; }
 
     static Vector randVector(int m)
     {   Vector v(m); for (int i=0; i<m; ++i) v[i]=randReal(); return v;}

@@ -625,6 +625,118 @@ Rotation&  Rotation::setRotationFromAngleAboutUnitVector( Real angleInRad, const
     return setRotationFromQuaternion( q );
 }
 
+//-------------------------------------------------------------------
+// Use sneaky tricks from Featherstone to rotate a symmetric dyadic
+// matrix. Consider the current Rotation matrix to be R_AB. We want
+// to return S_AA=R_AB*S_BB*R_BA. Would be 90 flops for 3x3s, 75
+// since we only need six elements in final result. Here we'll get
+// it done in 57 flops.
+// Consider S=[ a d e ]
+//            [ d b f ]
+//            [ e f c ]
+//
+// First, factor S into S=L+D+vx with v=~[-f e 0] (x means cross 
+// product matrix):
+//        [a-c   d   0]     [c 0 0]       [ 0  0  e]
+//    L = [ d   b-c  0] D = [0 c 0]  vx = [ 0  0  f]
+//        [2e   2f   0]     [0 0 c]       [-e -f  0]
+// (4 flops to calculate L)
+//
+// A cross product matrix identity says R*vx*R'=(R*v)x, so:
+//    S'=R*S*~R = R*L*~R + D + (R*v)x. 
+// Let Y'=R*L, Z=Y'*~R. We only need the lower triangle of Z and a 
+// 2x2 square of Y'.
+//
+// Don't-care's below are marked "-". Reminder: square bracket [i]
+// index of a matrix means "row i", round bracket (j) means "col j".
+//
+//        [  -   -  0 ]
+//   Y' = [ Y00 Y01 0 ]   Y = [ R[1]*L(0)  R[1]*L(1) ]  20 flops
+//        [ Y10 Y11 0 ]       [ R[2]*L(0)  R[2]*L(1) ]
+//
+//   Z = [   Z00           -           -      ]
+//       [ Y[0]*~R[0]  Y[0]*~R[1]      -      ]   15 flops (use only 2
+//       [ Y[1]*~R[0]  Y[1]*~R[1]  Y[1]*~R[2] ]   elements of R's rows)
+//
+//   Z00 = (L00+L11)-(Z11+Z22)  3 flops ( because rotation preserves trace)
+//
+//        [R01*c-R00*e]            [  0       -    -  ]
+//   R*v =[R11*c-R10*e]   (R*v)x = [ Rv[2]    0    -  ]
+//        [R21*c-R20*e]            [-Rv[1]  Rv[0]  0  ]
+// (R*v is 9 flops)
+//
+//        [  Z00 + c          -           -    ]
+//   S' = [ Z10 + Rv[2]   Z11 + c         -    ]
+//        [ Z20 - Rv[1]  Z21 + Rv[0]   Z22 + c ]
+//
+// which takes 6 more flops. Total 6+9Rv+18Z+20Y+4L=57.
+//
+// (I actually looked at the generated code in VC++ 2005 and Intel C++
+//  version 11.1 and counted exactly 57 inline flops.)
+//
+// NOTE: there are two implementations of this routine that have
+// to be kept in sync -- this one and the identical one for 
+// InverseRotation right below.
+//-------------------------------------------------------------------
+SymMat33 Rotation::reexpressSymMat33(const SymMat33& S_BB) const {
+    const Real a=S_BB(0,0), b=S_BB(1,1), c=S_BB(2,2);
+    const Real d=S_BB(1,0), e=S_BB(2,0), f=S_BB(2,1);
+    const Mat33& R   = this->asMat33();
+    const Mat32& RR  = R.getSubMat<3,2>(0,0); // first two columns of R
+
+    const Mat32 L( a-c ,  d,
+                    d  , b-c,
+                   2*e , 2*f );
+
+    const Mat22 Y( R[1]*L(0), R[1]*L(1),
+                   R[2]*L(0), R[2]*L(1) );
+
+    const Real Z10 = Y[0]*~RR[0], Z11 = Y[0]*~RR[1],
+               Z20 = Y[1]*~RR[0], Z21 = Y[1]*~RR[1], Z22= Y[1]*~RR[2];
+    const Real Z00 = (L(0,0)+L(1,1)) - (Z11+Z22);
+
+    const Vec3 Rv( R(0,1)*e-R(0,0)*f,
+                   R(1,1)*e-R(1,0)*f,
+                   R(2,1)*e-R(2,0)*f );
+
+    return SymMat33( Z00 + c,
+                     Z10 + Rv[2], Z11 + c,
+                     Z20 - Rv[1], Z21 + Rv[0], Z22 + c );
+}
+
+// See above method for details. This method is identical except that
+// the layout of the matrix used to store the rotation matrix has
+// changed. Note that all the indexing here is identical to the normal
+// case above; but the rotation matrix elements are drawn from different
+// memory locations so that the net effect is to use the transpose of
+// the original rotation from which this was created.
+SymMat33 InverseRotation::reexpressSymMat33(const SymMat33& S_BB) const {
+    const Real a=S_BB(0,0), b=S_BB(1,1), c=S_BB(2,2);
+    const Real d=S_BB(1,0), e=S_BB(2,0), f=S_BB(2,1);
+    // Note reversal of row and column spacing here (normal is 3,1).
+    const Mat<3,3,Real,1,3>& R   = this->asMat33();
+    const Mat<3,2,Real,1,3>& RR  = R.getSubMat<3,2>(0,0); // first two columns of R
+
+    const Mat32 L( a-c ,  d,
+                    d  , b-c,
+                   2*e , 2*f );
+
+    const Mat22 Y( R[1]*L(0), R[1]*L(1),
+                   R[2]*L(0), R[2]*L(1) );
+
+    const Real Z10 = Y[0]*~RR[0], Z11 = Y[0]*~RR[1],
+               Z20 = Y[1]*~RR[0], Z21 = Y[1]*~RR[1], Z22= Y[1]*~RR[2];
+    const Real Z00 = (L(0,0)+L(1,1)) - (Z11+Z22);
+
+    const Vec3 Rv( R(0,1)*e-R(0,0)*f,
+                   R(1,1)*e-R(1,0)*f,
+                   R(2,1)*e-R(2,0)*f );
+
+    return SymMat33( Z00 + c,
+                     Z10 + Rv[2], Z11 + c,
+                     Z20 - Rv[1], Z21 + Rv[0], Z22 + c );
+}
+
 
 //------------------------------------------------------------------------------
 std::ostream&  operator<<( std::ostream& o, const Rotation& m )  { return o << m.asMat33(); }

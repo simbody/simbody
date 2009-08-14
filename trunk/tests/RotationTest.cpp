@@ -13,9 +13,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
  * Authors: Paul Mitiguy                                                      *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -41,9 +41,11 @@
  */
 
 //-----------------------------------------------------------------------------
-#include "SimTKcommon/Orientation.h"
+#include "SimTKcommon.h"
+#include "SimTKcommon/Testing.h"
 
 #include <iostream>
+using std::cout; using std::endl;
 
 //-----------------------------------------------------------------------------
 using namespace SimTK;
@@ -78,6 +80,9 @@ int main() {
       WriteStringToScreen( "\n\n Error: Programming error encountered.\n An unhandled exception was thrown.\n\n" );
    }
 
+   if (!programSucceeded)
+       WriteStringToScreen("\nError: a test failed.\n");
+
    // The value returned by the main function is the exit status of the program.
    // A normal program exit returns 0 (other return values usually signal an error).
    return programSucceeded == true ? 0 : 1;
@@ -106,6 +111,7 @@ bool  exhaustiveTestof3AngleThreeAxesRotationNearSingularity();
 bool  exhaustiveTestofQuaternions();
 
 bool testRotationFromTwoGivenAxes( const Vec3& vi, const CoordinateAxis& ai, const Vec3& vj, const CoordinateAxis& aj);
+bool testReexpressSymMat33();
 
 //-------------------------------------------------------------------
 bool  doRequiredTasks( ) {
@@ -271,6 +277,8 @@ bool  doRequiredTasks( ) {
     // Exhaustive test of Quaterions
     test = test && exhaustiveTestofQuaternions();
 
+    // Test out special code for rotating symmetric matrices.
+    test = test && testReexpressSymMat33();
 
     return test;
 }
@@ -667,3 +675,38 @@ bool testRotationFromTwoGivenAxes( const Vec3& vi, const CoordinateAxis& ai, con
 	return test;
 }
 
+//-------------------------------------------------------------------
+// Test the tricked-out code used to rotation a symmetric dyadic
+// matrix S_AA=R_AB*S_BB*R_BA.
+bool testReexpressSymMat33() {
+    bool test = true;
+
+    const Rotation R_AB(Test::randRotation());
+    const SymMat33 S_BB(Test::randSymMat<3>());
+    const Mat33 M_BB(S_BB);
+
+    const SymMat33 S_AA = R_AB.reexpressSymMat33(S_BB);
+    const Mat33 M_AA = R_AB*M_BB*~R_AB;
+
+    const Mat33 MS_AA(S_AA);
+    test = test && (MS_AA-M_AA).norm() <= SignificantReal;
+
+    // Now put it back with an InverseRotation.
+    const SymMat33 isS_BB = (~R_AB).reexpressSymMat33(S_AA);
+    test = test && (S_BB-isS_BB).norm() <= SignificantReal;
+
+    const Rotation I; // identity
+    const SymMat33 S_BB_still = I.reexpressSymMat33(S_BB);
+    test = test && (S_BB_still-S_BB).norm() <= SignificantReal;
+
+    // Test symmetric matrix multiply (doesn't belong here).
+    //const SymMat33 S1(Test::randSymMat<3>()), S2(Test::randSymMat<3>());
+    //const Mat33 M1(S1), M2(S2);
+    //const SymMat33 S(S1*S2);
+    //const Mat33 M(M1*M2);
+    //cout << "S=" << S << endl;
+    //cout << "M=" << M << endl;
+
+
+    return test;
+}
