@@ -54,10 +54,10 @@ protected:
     // This constructor is for use by concrete Measure::Implementations. Note that
     // this serves as a default constructor since the argument has a default.
     explicit Implementation(const std::string& name="<NONAME>")
-    :   measureName(name), refCount(0), mySubsystem(0) {}
+    :   measureName(name), mySubsystem(0), refCount(0) {}
 
     Implementation(const Implementation& src)
-    :   measureName(src.measureName), refCount(0), mySubsystem(0) {}
+    :   measureName(src.measureName), mySubsystem(0), refCount(0) {}
         
     Implementation& operator=(const Implementation& src)
     {   if (&src != this) {measureName=src.measureName; refCount=0; mySubsystem=0;}
