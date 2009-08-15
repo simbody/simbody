@@ -2507,15 +2507,15 @@ operator/(const MatrixBase<E>& l, const typename CNT<E>::StdNumber& r)
 // Handle ints explicitly.
 template <class E> Matrix_<E>
 operator*(const MatrixBase<E>& l, int r) 
-  { return Matrix_<E>(l)*=CNT<E>::StdNumber(r); }
+  { return Matrix_<E>(l)*= typename CNT<E>::StdNumber(r); }
 
 template <class E> Matrix_<E>
 operator*(int l, const MatrixBase<E>& r) 
-  { return Matrix_<E>(r)*=CNT<E>::StdNumber(l); }
+  { return Matrix_<E>(r)*= typename CNT<E>::StdNumber(l); }
 
 template <class E> Matrix_<E>
 operator/(const MatrixBase<E>& l, int r) 
-  { return Matrix_<E>(l)/=CNT<E>::StdNumber(r); }
+  { return Matrix_<E>(l)/= typename CNT<E>::StdNumber(r); }
 
 /// @}
 
