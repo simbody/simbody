@@ -2567,15 +2567,15 @@ operator/(const VectorBase<E>& l, const typename CNT<E>::StdNumber& r)
 // Handle ints explicitly
 template <class E> Vector_<E>
 operator*(const VectorBase<E>& l, int r) 
-  { return Vector_<E>(l)*=CNT<E>::StdNumber(r); }
+  { return Vector_<E>(l)*= typename CNT<E>::StdNumber(r); }
 
 template <class E> Vector_<E>
 operator*(int l, const VectorBase<E>& r) 
-  { return Vector_<E>(r)*=CNT<E>::StdNumber(l); }
+  { return Vector_<E>(r)*= typename CNT<E>::StdNumber(l); }
 
 template <class E> Vector_<E>
 operator/(const VectorBase<E>& l, int r) 
-  { return Vector_<E>(l)/=CNT<E>::StdNumber(r); }
+  { return Vector_<E>(l)/= typename CNT<E>::StdNumber(r); }
 
 /// @}
 
@@ -2627,15 +2627,15 @@ operator/(const RowVectorBase<E>& l, const typename CNT<E>::StdNumber& r)
 // Handle ints explicitly.
 template <class E> RowVector_<E>
 operator*(const RowVectorBase<E>& l, int r) 
-  { return RowVector_<E>(l)*=CNT<E>::StdNumber(r); }
+  { return RowVector_<E>(l)*= typename CNT<E>::StdNumber(r); }
 
 template <class E> RowVector_<E>
 operator*(int l, const RowVectorBase<E>& r) 
-  { return RowVector_<E>(r)*=CNT<E>::StdNumber(l); }
+  { return RowVector_<E>(r)*= typename CNT<E>::StdNumber(l); }
 
 template <class E> RowVector_<E>
 operator/(const RowVectorBase<E>& l, int r) 
-  { return RowVector_<E>(l)/=CNT<E>::StdNumber(r); }
+  { return RowVector_<E>(l)/= typename CNT<E>::StdNumber(r); }
 
 /// @}
 
