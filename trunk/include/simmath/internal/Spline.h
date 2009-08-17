@@ -140,7 +140,7 @@ typedef Spline_<Real> Spline;
 template <class T>
 class Spline_<T>::SplineImpl {
 public:
-    SplineImpl(int degree, const Vector& x, const Vector_<T>& y) : degree(degree), x(x), y(y), referenceCount(1) {
+    SplineImpl(int degree, const Vector& x, const Vector_<T>& y) : referenceCount(1), degree(degree), x(x), y(y) {
     }
     ~SplineImpl() {
         assert(referenceCount == 0);

@@ -99,7 +99,7 @@ public:
      * @param value        the value which should be returned by calcValue();
      * @param argumentSize the value which should be returned by getArgumentSize();
      */
-    Constant(T value, int argumentSize) : value(value), argumentSize(argumentSize) {
+    Constant(T value, int argumentSize) : argumentSize(argumentSize), value(value) {
     }
     T calcValue(const Vector& x) const {
         assert(x.size() == argumentSize);

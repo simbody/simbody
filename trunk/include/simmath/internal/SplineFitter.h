@@ -179,7 +179,7 @@ private:
 template <class T>
 class SplineFitter<T>::SplineFitterImpl {
 public:
-    SplineFitterImpl(int degree, const Spline_<T>& spline, Real p, Real error, Real dof) : degree(degree), spline(spline), p(p), error(error), dof(dof), referenceCount(1) {
+    SplineFitterImpl(int degree, const Spline_<T>& spline, Real p, Real error, Real dof) : referenceCount(1), degree(degree), spline(spline), p(p), error(error), dof(dof) {
     }
     ~SplineFitterImpl() {
         assert(referenceCount == 0);
