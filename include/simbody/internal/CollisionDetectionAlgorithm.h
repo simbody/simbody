@@ -56,6 +56,7 @@ public:
     class HalfSpaceTriangleMesh;
     class SphereTriangleMesh;
     class TriangleMeshTriangleMesh;
+    virtual ~CollisionDetectionAlgorithm() {}
     /**
      * Identify contacts between a pair of bodies.
      *
@@ -101,6 +102,7 @@ private:
  */
 class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::HalfSpaceSphere : public CollisionDetectionAlgorithm {
 public:
+    virtual ~HalfSpaceSphere() {}
     void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
             int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const;
 };
@@ -110,6 +112,7 @@ public:
  */
 class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::SphereSphere : public CollisionDetectionAlgorithm {
 public:
+    virtual ~SphereSphere() {}
     void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
             int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const;
 };
@@ -119,6 +122,7 @@ public:
  */
 class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::HalfSpaceTriangleMesh : public CollisionDetectionAlgorithm {
 public:
+    virtual ~HalfSpaceTriangleMesh() {}
     void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
             int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const;
 private:
@@ -132,6 +136,7 @@ private:
  */
 class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::SphereTriangleMesh : public CollisionDetectionAlgorithm {
 public:
+    virtual ~SphereTriangleMesh() {}
     void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
             int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const;
 private:
@@ -144,6 +149,7 @@ private:
  */
 class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::TriangleMeshTriangleMesh : public CollisionDetectionAlgorithm {
 public:
+    virtual ~TriangleMeshTriangleMesh() {}
     void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
             int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const;
 private:
