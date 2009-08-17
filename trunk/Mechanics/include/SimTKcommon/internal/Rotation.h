@@ -364,8 +364,6 @@ public:
     static Vec3 convertBodyFixed321DotToAngVel(const Vec3& q, const Vec3& qd) {
         const Real s1 = std::sin(q[1]), c1 = std::cos(q[1]);
         const Real s2 = std::sin(q[2]), c2 = std::cos(q[2]);
-        const Real ooc1  = 1/c1;
-        const Real s2oc1 = s2*ooc1, c2oc1 = c2*ooc1;
 
         const Mat33 Einv(  -s1  ,  0  ,  1 ,
                           c1*s2 ,  c2 ,  0 ,
