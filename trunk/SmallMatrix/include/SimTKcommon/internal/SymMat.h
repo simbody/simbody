@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -106,7 +106,9 @@ public:
     enum {
         NRows               = M,
         NCols               = M,
-        NPackedElements     = (M*(M+1))/2,
+        NDiagElements       = M,
+        NLowerElements      = (M*(M-1))/2,
+        NPackedElements     = NDiagElements+NLowerElements,
         NActualElements     = RS * NPackedElements,
         NActualScalars      = CNT<E>::NActualScalars * NActualElements,
         RowSpacing          = RS,
@@ -282,8 +284,10 @@ public:
     // Construction using an element repeats that element on the diagonal
     // but sets the rest of the matrix to zero.
     // TODO: diag should just use real part
-    explicit SymMat(const E& e)
-      { updDiag() = e; updLower() = E(0); }
+    explicit SymMat(const E& e) {
+        updDiag() = e; 
+        for (int i=0; i < NLowerElements; ++i) updlowerE(i) = E(0); 
+    }
 
     /// A bevy of constructors from individual exact-match elements IN ROW ORDER,
     /// giving the LOWER TRIANGLE, like this:
@@ -607,7 +611,8 @@ public:
     template <class EE> SymMat& scalarDivideEqFromLeft(const EE& ee)
       { updAsVec().scalarDivideEqFromLeft(ee); return *this; } 
 
-    void setToNaN() { updAsVec().setToNaN(); }
+    void setToNaN()  { updAsVec().setToNaN();  }
+    void setToZero() { updAsVec().setToZero(); }
 
     // These assume we are given a pointer to d[0] of a SymMat<M,E,RS> like this one.
     static const SymMat& getAs(const ELT* p)  {return *reinterpret_cast<const SymMat*>(p);}
@@ -635,6 +640,9 @@ public:
     const TAsVec& getAsVec() const {return TAsVec::getAs(d);}
     TAsVec&       updAsVec()       {return TAsVec::updAs(d);}
 
+    const E& getEltDiag(int i) const {return getDiag()[i];}
+    E&       updEltDiag(int i)       {return updDiag()[i];}
+
     // must be i > j
     const E& getEltLower(int i, int j) const {return getLower()[lowerIx(i,j)];}
     E&       updEltLower(int i, int j)       {return updLower()[lowerIx(i,j)];}
@@ -656,6 +664,11 @@ public:
 
 private:
     E d[NActualElements];
+
+    // This utility doesn't turn lower or upper into a Vec which could turn
+    // out to have zero length if this is a 1x1 matrix.
+    const E& getlowerE(int i) const {return d[(M+i)*RS];}
+    E& updlowerE(int i) {return d[(M+i)*RS];}
 
     SymMat(const TDiag& di, const TLower& low) {
         updDiag() = di; updLower() = low;

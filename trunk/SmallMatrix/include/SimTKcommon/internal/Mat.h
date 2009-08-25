@@ -758,6 +758,11 @@ public:
             (*this)(j).setToNaN();
     }
 
+    void setToZero() {
+        for (int j=0; j<N; ++j)
+            (*this)(j).setToZero();
+    }
+
     // Extract a sub-Mat with size known at compile time. These have to be
     // called with explicit template arguments, e.g. getSubMat<3,4>(i,j).
 

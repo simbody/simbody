@@ -378,6 +378,7 @@ public:
 
     static Vec3 randVec3() {return randVec<3>();}
     static Mat33 randMat33() {return randMat<3,3>();}
+    static SymMat33 randSymMat33() {return randSymMat<3>();}
     static SpatialVec randSpatialVec() {
         return SpatialVec(randVec3(), randVec3());
     }
@@ -449,6 +450,14 @@ private:
 /// friendly output and timing information.
 #define SimTK_SUBTEST2(testFunction,arg1,arg2) \
     do {SimTK::Test::Subtest sub(#testFunction); (testFunction)(arg1,arg2);} while(false)
+/// Invoke a subtest in the form of a 3-argument function, arranging for some 
+/// friendly output and timing information.
+#define SimTK_SUBTEST3(testFunction,arg1,arg2,arg3) \
+    do {SimTK::Test::Subtest sub(#testFunction); (testFunction)(arg1,arg2,arg3);} while(false)
+/// Invoke a subtest in the form of a 4-argument function, arranging for some 
+/// friendly output and timing information.
+#define SimTK_SUBTEST4(testFunction,arg1,arg2,arg3,arg4) \
+    do {SimTK::Test::Subtest sub(#testFunction); (testFunction)(arg1,arg2,arg3,arg4);} while(false)
 
 /// Test that some condition holds and complain if it doesn't.
 #define SimTK_TEST(cond) {SimTK_ASSERT_ALWAYS((cond), "Test condition failed.");}

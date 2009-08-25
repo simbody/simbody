@@ -522,6 +522,10 @@ public:
         (*this) = CNT<ELT>::getNaN();
     }
 
+    void setToZero() {
+        (*this) = ELT(0);
+    }
+
     // Extract a sub-Vec with size known at compile time. These have to be
     // called with explicit template arguments, e.g. getSubVec<3>(i).
     template <int MM>

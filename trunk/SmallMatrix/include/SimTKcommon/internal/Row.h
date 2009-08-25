@@ -521,6 +521,10 @@ public:
         (*this) = CNT<ELT>::getNaN();
     }
 
+    void setToZero() {
+        (*this) = ELT(0);
+    }
+
     // Extract a sub-Row with size known at compile time. These have to be
     // called with explicit template arguments, e.g. getSubRow<3>(j).
     template <int NN>
