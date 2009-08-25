@@ -154,7 +154,7 @@ public:
     /// will be diagonal). TODO: should check validity.
     Gyration_& setGyration(const RealP& xx, const RealP& yy, const RealP& zz) {
         assert(!"check validity");
-        I_OF_F = 0.; I_OF_F(0,0) = xx; I_OF_F(1,1) = yy;  I_OF_F(2,2) = zz;
+        G_OF_F = 0.; G_OF_F(0,0) = xx; G_OF_F(1,1) = yy;  G_OF_F(2,2) = zz;
         return *this;
     }
 

@@ -68,3 +68,5 @@ template Mat<3,3,Real>::TInvert     SimTK::inverse(const Mat<3,3,Real>&);
 template SymMat<3,Real>::TInvert    SimTK::inverse(const SymMat<3,Real>&);
 template Mat<5,5,Real>::TInvert     SimTK::inverse(const Mat<5,5,Real>&);
 //template SymMat<5,Complex>::TInvert SimTK::inverse(const SymMat<5,Complex>&);
+
+
