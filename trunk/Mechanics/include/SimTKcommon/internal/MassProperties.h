@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -153,7 +153,7 @@ public:
     /// Set a gyration matrix to have only principal moments (that is, it
     /// will be diagonal). TODO: should check validity.
     Gyration_& setGyration(const RealP& xx, const RealP& yy, const RealP& zz) {
-        XXX
+        assert(!"check validity");
         I_OF_F = 0.; I_OF_F(0,0) = xx; I_OF_F(1,1) = yy;  I_OF_F(2,2) = zz;
         return *this;
     }
@@ -163,7 +163,7 @@ public:
     Gyration_& setGyration(const Vec3P& moments, const Vec3P& products=Vec3P(0)) {
         G_OF_F.updDiag()  = moments;
         G_OF_F.updLower() = products;
-        XXX check
+        assert(!"check validity");
         return *this;
     }
 
@@ -206,14 +206,14 @@ public:
     /// a trick reported in Featherstone's 2008 book.
     /// @see reexpressInPlace()
     Gyration_ reexpress(const Rotation& R_BF) const {
-        return Gyration_(R_FB.reexpressSymMat33(G_OF_F));
+        return Gyration_(R_BF.reexpressSymMat33(G_OF_F));
     }
 
     /// Re-express this gyration matrix in another frame, changing the object
     /// in place; see reexpress() if you want to leave this object unmolested
     /// and get a new one instead.
     Gyration_& reexpressInPlace(const Rotation& R_BF) {
-        G_OF_F = R_FB.reexpressSymMat33(G_OF_F);
+        G_OF_F = R_BF.reexpressSymMat33(G_OF_F);
     }
 
     RealP trace() const {return G_OF_F.trace();}
@@ -322,7 +322,7 @@ public:
     /// The default constructor fills everything with NaN, even in Release mode.
     SpatialInertia_() 
     :   m(nanP()), p(nanP()) {} // gyration is already NaN
-    SpatialInertia_(RealP m, const Vec3P& com, const GyrationP& gyration) 
+    SpatialInertia_(RealP mass, const Vec3P& com, const GyrationP& gyration) 
     :   m(mass), p(com), G(gyration) {}
 
     // default copy constructor, copy assignment, destructor
