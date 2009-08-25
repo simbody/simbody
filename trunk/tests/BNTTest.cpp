@@ -191,8 +191,12 @@ int main() {
     cout << "x-y=" << x-y << endl;
     cout << "x+(-y)=" << x+(-y) << endl;
 
-    ASSERT_EPSX(x+y, -((-x)+(-y)));
+    // In gcc 4.1.2, if you remove this output line then the
+    // corresponding ASSERT below it will fail! 
+    cout << "-(-x)+y=" << -(-x)+y << endl;
     ASSERT_EPSX(x+y, -(-x)+y);
+
+    ASSERT_EPSX(x+y, -((-x)+(-y)));
     ASSERT_EPSX(x+y, x-(-y));
     ASSERT_EPSX(x-y, x+(-y));
     ASSERT_EPSX(x-y, -(y-x));
