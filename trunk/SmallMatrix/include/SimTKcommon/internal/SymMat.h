@@ -716,7 +716,7 @@ public:
             for (int j = 0; j < i; ++j) {
                 const E& value = getEltLower(i, j);;
                 temp[i] += value;
-                temp[j] += reinterpret_cast<const EHerm&>(value);
+                temp[j] += E(reinterpret_cast<const EHerm&>(value));
             }
         return temp;
     }
