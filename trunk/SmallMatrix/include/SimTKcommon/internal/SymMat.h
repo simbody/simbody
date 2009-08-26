@@ -449,6 +449,19 @@ public:
             (getAsVec().conformingSubtract(r.getAsVec()));
     }
 
+    // symmetric * symmetric produces a full result
+    // m= this * s
+    // TODO: this is not a good implementation
+    template <class E2, int RS2>
+    typename Result<SymMat<M,E2,RS2> >::Mul
+    conformingMultiply(const SymMat<M,E2,RS2>& s) const {
+        typename Result<SymMat<M,E2,RS2> >::Mul result;
+        for (int j=0;j<M;++j)
+            for (int i=0;i<M;++i)
+                result(i,j) = (*this)[i] * s(j);
+        return result;
+    }
+
     // TODO: need the rest of the SymMat operators
     
     // Must be i >= j.
@@ -456,6 +469,12 @@ public:
       { return i==j ? getDiag()[i] : getEltLower(i,j); }
     E& operator()(int i,int j)
       { return i==j ? updDiag()[i] : updEltLower(i,j); }
+
+    // These are slow for a symmetric matrix, requiring copying and
+    // possibly floating point operations for conjugation.
+    TRow operator[](int i) const {return row(i);}
+    TCol operator()(int j) const {return col(j);}
+
 
     // This is the scalar Frobenius norm.
     ScalarNormSq normSqr() const { return scalarNormSqr(); }
@@ -624,6 +643,46 @@ public:
                        CNT<typename TPacked::TLower>::getNaN());
     }
 
+    // Rows and columns have to be copied and Hermitian elements have to
+    // be conjugated at a floating point cost. This isn't the best way
+    // to work with a symmetric matrix.
+    TRow row(int i) const {
+        SimTK_INDEXCHECK(0,i,M,"SymMat::row()");
+        TRow rowi;
+        // Columns left of diagonal are lower.
+        for (int j=0; j<i; ++j)
+            rowi[j] = getEltLower(i,j);
+        rowi[i] = getEltDiag(i);
+        for (int j=i+1; j<M; ++j)
+            rowi[j] = getEltUpper(i,j); // conversion from EHerm to E may cost flops
+        return rowi;
+    }
+
+    TCol col(int j) const {
+        SimTK_INDEXCHECK(0,j,M,"SymMat::col()");
+        TCol colj;
+        // Rows above diagonal are upper (with conjugated elements).
+        for (int i=0; i<j; ++i)
+            colj[i] = getEltUpper(i,j); // conversion from EHerm to E may cost flops
+        colj[j] = getEltDiag(j);
+        for (int i=j+1; i<M; ++i)
+            colj[i] = getEltLower(i,j);
+        return colj;
+    }
+
+    /// Return a value for \e any element of a symmetric matrix, even those
+    /// in the upper triangle which aren't actually stored anywhere. For elements
+    /// whose underlying numeric types are complex, this will require computation
+    /// in order to return the conjugates. So we always have to copy out the
+    /// element, and may also have to conjugate it (one flop per complex number).
+    E elt(int i, int j) const {
+        SimTK_INDEXCHECK(0,i,M,"SymMat::elt()");
+        SimTK_INDEXCHECK(0,j,M,"SymMat::elt()");
+        if      (i>j)  return getEltLower(i,j); // copy element
+        else if (i==j) return getEltDiag(i);    // copy element
+        else           return getEltUpper(i,j); // conversion from EHerm to E may cost flops 
+    }
+
     const TDiag&  getDiag()  const {return TDiag::getAs(d);}
     TDiag&        updDiag()        {return TDiag::updAs(d);}
 
@@ -655,9 +714,9 @@ public:
         TRow temp(~getDiag());
         for (int i = 1; i < M; ++i)
             for (int j = 0; j < i; ++j) {
-                E value = getEltLower(i, j);;
+                const E& value = getEltLower(i, j);;
                 temp[i] += value;
-                temp[j] += value;
+                temp[j] += reinterpret_cast<const EHerm&>(value);
             }
         return temp;
     }

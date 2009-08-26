@@ -700,13 +700,27 @@ bool testReexpressSymMat33() {
     test = test && (S_BB_still-S_BB).norm() <= SignificantReal;
 
     // Test symmetric matrix multiply (doesn't belong here).
-    //const SymMat33 S1(Test::randSymMat<3>()), S2(Test::randSymMat<3>());
-    //const Mat33 M1(S1), M2(S2);
-    //const SymMat33 S(S1*S2);
-    //const Mat33 M(M1*M2);
-    //cout << "S=" << S << endl;
-    //cout << "M=" << M << endl;
+    const SymMat33 S1(Test::randSymMat<3>()), S2(Test::randSymMat<3>());
+    const Mat33 M1(S1), M2(S2);
+    const Mat33 S(S1*S2);
+    const Mat33 M(M1*M2);
+    test = test && (S-M).norm() <= SignificantReal;
 
+    const SymMat<3,Complex> SC1(Test::randComplex(),
+                                Test::randComplex(), Test::randComplex(),
+                                Test::randComplex(), Test::randComplex(), Test::randComplex() );
+    const SymMat<3,Complex> SC2(Test::randComplex(),
+                                Test::randComplex(), Test::randComplex(),
+                                Test::randComplex(), Test::randComplex(), Test::randComplex() );
+
+    SimTK_TEST_EQ(SC1.elt(1,0), conj(SC1.elt(0,1)));
+    SimTK_TEST_EQ(SC1.elt(2,0), conj(SC1.elt(0,2)));
+    SimTK_TEST_EQ(SC1.elt(1,2), conj(SC1.elt(2,1)));
+
+    const Mat<3,3,Complex> MC1(SC1), MC2(SC2);
+    const Mat<3,3,Complex> SC(SC1*SC2);
+    const Mat<3,3,Complex> MC(MC1*MC2);
+    SimTK_TEST_EQ(SC, MC);
 
     return test;
 }
