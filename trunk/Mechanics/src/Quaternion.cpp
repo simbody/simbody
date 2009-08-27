@@ -13,7 +13,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman and Paul Mitiguy                                  *
  * Contributors:                                                              *
  *                                                                            *
@@ -44,32 +44,38 @@
 #include "SimTKcommon/internal/Quaternion.h"
 #include "SimTKcommon/internal/Rotation.h"
 
-//-------------------------------------------------------------------
+//------------------------------------------------------------------------------
 namespace SimTK {
 
 
-//-------------------------------------------------------------------
-// Constructs a canonical quaternion from a rotation matrix (cost is about 60 flops).
-//-------------------------------------------------------------------
-Quaternion::Quaternion( const Rotation& r ) : Vec4( r.convertRotationToQuaternion() )  {}
+//------------------------------------------------------------------------------
+// Constructs a canonical quaternion from a rotation matrix (cost is ~60 flops).
+//------------------------------------------------------------------------------
+template <class P>
+Quaternion_<P>::Quaternion_(const Rotation_<P>& r) 
+:   Vec<4,P>(r.convertRotationToQuaternion()) {}
 
 
-//-------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Returns [ a vx vy vz ] with (a,v) in canonical form, i.e., -180 < a <= 180 and |v|=1.
 // The cost of this operation is roughly one atan2, one sqrt, and one divide (about 100 flops).
-//-------------------------------------------------------------------
-Vec4  Quaternion::convertQuaternionToAngleAxis() const {
-    const Real& ca2  = (*this)[0];       // cos(a/2)
-    const Vec3& sa2v = getSubVec<3>(1);  // sin(a/2) * v
-    Real        sa2  = sa2v.norm();      // sa2 is always >= 0
+//------------------------------------------------------------------------------
+template <class P> Vec<4,P>
+Quaternion_<P>::convertQuaternionToAngleAxis() const {
+    const RealP& ca2  = (*this)[0];       // cos(a/2)
+    const Vec3P& sa2v = getSubVec<3>(1);  // sin(a/2) * v
+    RealP        sa2  = sa2v.norm();      // sa2 is always >= 0
+
+    const RealP Eps = NTraits<P>::getEps();
+    const RealP Pi  = NTraits<P>::getPi();
 
     // TODO: what is the right value to use here?? Norms can be
     // much less than eps and still OK -- this is 1e-32 in double.
-    if( sa2 < square(Eps) )  return Vec4(0,1,0,0); // no rotation, x axis
+    if( sa2 < square(Eps) )  return Vec4P(0,1,0,0); // no rotation, x axis
 
     // Use atan2.  Do NOT just use acos(q[0]) to calculate the rotation angle!!!
     // Otherwise results are numerical garbage anywhere near zero (or less near).
-    Real angle = 2.0 * std::atan2(sa2,ca2);
+    RealP angle = 2 * std::atan2(sa2,ca2);
 
     // Since sa2>=0, atan2 returns a value between 0 and pi, which is then
     // multiplied by 2 which means the angle is between 0 and 2pi.
@@ -78,37 +84,39 @@ Vec4  Quaternion::convertQuaternionToAngleAxis() const {
     if( angle > Pi ) angle -= 2*Pi;
 
     // Normalize the axis part of the return value
-    Vec3 axis = sa2v / sa2;
+    const Vec3P axis = sa2v / sa2;
 
 	// Return (angle/axis)
-    return Vec4( angle, axis[0], axis[1], axis[2] );
+    return Vec4P( angle, axis[0], axis[1], axis[2] );
 }
 
 
 //-------------------------------------------------------------------
-void  Quaternion::setQuaternionFromAngleAxis( const Vec4& av ) {
+template <class P> void
+Quaternion_<P>::setQuaternionFromAngleAxis( const Vec4P& av ) {
     // av = [ a vx vy vz ]
     // If |a| < machine precision,  we treat as a zero rotation which produces quaternion q=[1 0 0 0].
-    const Real eps = std::numeric_limits<Real>::epsilon();
-    const Real& a = av[0];  // the angle
-    if( std::fabs(a) < eps ) { Vec4::operator=( Vec4(1,0,0,0) );  return; }
+    const RealP eps = std::numeric_limits<RealP>::epsilon();
+    const RealP& a = av[0];  // the angle
+    if( std::fabs(a) < eps ) { Vec4P::operator=( Vec4P(1,0,0,0) );  return; }
 
     // The vector v must have length at least machine precision (or return NaN).
-    const Vec3& vIn = av.getSubVec<3>(1);
-    const Real vnorm = vIn.norm();
+    const Vec3P& vIn = av.getSubVec<3>(1);
+    const RealP vnorm = vIn.norm();
     if( vnorm < eps ) setQuaternionToNaN();
 
     // Otherwise, the vector v is normalized and used as the rotation axis.
     // Note: The cost of this method is 120 flops, including normalization (about 40 flops)
     //       and the sine and cosine calculations (80 flops) used in the next method.
-    else setToAngleAxis( a, UnitVec3(vIn/vnorm, true) );
+    else setToAngleAxis( a, UnitVec<P,1>(vIn/vnorm, true) );
 }
 
 
 //-------------------------------------------------------------------
-void  Quaternion::setQuaternionFromAngleAxis( const Real& a, const UnitVec3& v ) {
+template <class P> void
+Quaternion_<P>::setQuaternionFromAngleAxis( const RealP& a, const UnitVec<P,1>& v ) {
     /// The cost of this method is approximately 80 flops (one sin and one cos).
-    Real ca2 = std::cos(0.5*a), sa2 = std::sin(0.5*a);
+    RealP ca2 = std::cos(a/2), sa2 = std::sin(a/2);
 
     // Multiplying an entire quaternion by -1 produces the same Rotation matrix
     // (each element of the Rotation element involves the product of two quaternion elements).
@@ -118,7 +126,9 @@ void  Quaternion::setQuaternionFromAngleAxis( const Real& a, const UnitVec3& v )
     (*this).updSubVec<3>(1) = sa2*v;
 }
 
-
+// Instantiate now to catch bugs.
+template class Quaternion_<float>;
+template class Quaternion_<double>;
 
 //------------------------------------------------------------------------------
 }  // End of namespace SimTK

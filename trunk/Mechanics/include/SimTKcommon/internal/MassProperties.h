@@ -73,10 +73,13 @@ typedef ArticulatedInertia_<Real>   ArticulatedInertia;
 class Inertia;
 
 /**
- * A Gyration matrix is a mass covariance matrix with units of length squared.
- * This can also be considered a unit-mass inertia matrix. Gyration is measured 
+ * A Gyration matrix is a unit-mass inertia matrix (second mass moment, mass
+ * covariance matrix). It is a symmetric, 3x3 matrix that is positive definite
+ * for nonsingular rigid bodies. It has units of length squared. Gyration is measured 
  * about some point OF and expressed in some frame F, but we don't know anything
- * about that frame here.
+ * about that frame here. The diagonal elements are called the \e moments of gyration;
+ * off-diagonals are \e products of gyration. If all products of gyration are zero,
+ * the matrix is called a \e principal gyration matrix.
  */
 template <class P>
 class SimTK_SimTKCOMMON_EXPORT Gyration_ {
@@ -84,32 +87,34 @@ class SimTK_SimTKCOMMON_EXPORT Gyration_ {
     typedef Vec<3,P>    Vec3P;
     typedef SymMat<3,P> SymMat33P;
     typedef Mat<3,3,P>  Mat33P;
+    typedef Rotation    RotationP;
 public:
     /// Default is a NaN-ed out mess to avoid accidents, even in Release mode.
-    Gyration_() : G_OF_F(NaN) {}
+    Gyration_() : G_OF_F(NTraits<P>::getNaN()) {}
 
     // Default copy constructor, copy assignment, destructor.
 
     /// Create a principal gyration matrix with identical diagonal elements.
-    explicit Gyration_(const RealP& r) : G_OF_F(r) { }
+    /// This is the Gyration matrix of a unit mass sphere of radius 
+    /// r = sqrt(5/2 * moment) centered on the origin.
+    explicit Gyration_(const RealP& moment) : G_OF_F(moment) { }
 
     /// Create a gyration matrix from a vector of the *moments* of
     /// gyration (the gyration matrix diagonal) and optionally a vector of
     /// the *products* of gyration (the off-diagonals). Moments are
     /// in the order xx,yy,zz; products are xy,xz,yz.
-    explicit Gyration_(const Vec3P& moments, const Vec3P& products=Vec3P(0)) {
-        setGyration(moments,products);
-    }
+    explicit Gyration_(const Vec3P& moments, const Vec3P& products=Vec3P(0)) 
+    {   setGyration(moments,products); }
+
     /// Create a principal gyration matrix (only non-zero on diagonal).
-    Gyration_(const RealP& xx, const RealP& yy, const RealP& zz) {
-        setGyration(Vec3P(xx,yy,zz)); 
-    }
+    Gyration_(const RealP& xx, const RealP& yy, const RealP& zz) 
+    {   setGyration(Vec3P(xx,yy,zz)); }
+
     /// This is a general gyration matrix. Note the order of these
     /// arguments: moments of gyration first, then products of gyration.
     Gyration_(const RealP& xx, const RealP& yy, const RealP& zz,
-              const RealP& xy, const RealP& xz, const RealP& yz) {
-        setGyration(xx,yy,zz,xy,xz,yz); 
-    }
+              const RealP& xy, const RealP& xz, const RealP& yz) 
+    {   setGyration(xx,yy,zz,xy,xz,yz); }
 
     /// Construct a Gyration from a symmetric 3x3 matrix. The diagonals must
     /// be nonnegative and satisfy the triangle inequality.
@@ -133,22 +138,16 @@ public:
                      && close(s(1,2),s(2,1),s.diag().norm()), 
                      "Gyration(Mat33)", "The supplied matrix was not symmetric.");
         setGyration(s(0,0),s(1,1),s(2,2),
-            0.5*(s(1,0)+s(0,1)),0.5*(s(2,0)+s(0,2)),0.5*(s(2,1)+s(1,2)));
+            (s(1,0)+s(0,1))/2,(s(2,0)+s(0,2))/2,(s(2,1)+s(1,2))/2);
     }
 
     /// Add in another gyration matrix. Frames and reference point must be the same but
     /// we can't check. (6 flops)
-    Gyration_& operator+=(const Gyration_& G) {
-        G_OF_F += G;
-        return *this;
-    }
+    Gyration_& operator+=(const Gyration_& G) {G_OF_F += G.G_OF_F; return *this;}
 
     /// Subtract off another gyration matrix. Frames and reference point must 
     /// be the same but we can't check. (6 flops)
-    Gyration_& operator-=(const Gyration_& G) {
-        G_OF_F -= G;
-        return *this;
-    }
+    Gyration_& operator-=(const Gyration_& G) {G_OF_F -= G.G_OF_F; return *this;}
 
     /// Set a gyration matrix to have only principal moments (that is, it
     /// will be diagonal). TODO: should check validity.
@@ -184,7 +183,7 @@ public:
     /// gyration". G' = G - Gcom where Gcom is the gyration of a fictitious
     /// point located at CF (measured in F) taken about OF. (17 flops)
     Gyration_ shiftToCentroid(const Vec3P& CF) const 
-    {   return G_OF_F - Gyration_(CF); }
+    {   return Gyration_(*this) -= pointMassAt(CF); }
 
     /// Assuming that the current Gyration G is a central gyration (that is, it is
     /// gyration about the body centroid CF), shift it to some other point p
@@ -192,7 +191,7 @@ public:
     /// point p given by G' = G + Gp where Gp is the gyration of a fictitious
     /// point located at p, taken about CF. (17 flops)
     Gyration_ shiftFromCentroid(const Vec3P& p) const
-    {   return G_OF_F + Gyration_(p); }
+    {   return Gyration_(*this) += pointMassAt(p); }
 
     /// Return a new gyration matrix like this one but re-expressed in another 
     /// frame (leaving the origin point unchanged). Call this gyration matrix
@@ -200,26 +199,29 @@ public:
     /// expressed in F. We want to return G_OF_B, the same gyration matrix,
     /// still taken about the origin of F, but expressed in the B frame, given
     /// by G_OF_B=R_BF*G_OF_F*R_FB where R_BF is the rotation matrix giving
-    /// the orientation of frame F in B. As a pair of 3x3 multiplies, this 
-    /// computation would be 90 flops, but we can take advantage of the 
-    /// symmetry of G and orthogonality of R to get it down to 57 flops using
-    /// a trick reported in Featherstone's 2008 book.
+    /// the orientation of frame F in B. This is handled here by a special
+    /// method of the Rotation class which rotates a symmetric tensor
+    /// at a cost of 57 flops.
     /// @see reexpressInPlace()
-    Gyration_ reexpress(const Rotation& R_BF) const {
-        return Gyration_(R_BF.reexpressSymMat33(G_OF_F));
-    }
+    Gyration_ reexpress(const RotationP& R_BF) const 
+    {   return Gyration_(R_BF.reexpressSymMat33(G_OF_F)); }
 
     /// Re-express this gyration matrix in another frame, changing the object
     /// in place; see reexpress() if you want to leave this object unmolested
-    /// and get a new one instead.
-    Gyration_& reexpressInPlace(const Rotation& R_BF) {
-        G_OF_F = R_BF.reexpressSymMat33(G_OF_F);
-    }
+    /// and get a new one instead. Cost is 57 flops.
+    /// @see reexpress()
+    Gyration_& reexpressInPlace(const RotationP& R_BF)
+    {   G_OF_F = R_BF.reexpressSymMat33(G_OF_F); return *this; }
 
     RealP trace() const {return G_OF_F.trace();}
 
     /// Obtain a reference to the underlying symmetric matrix type.
     const SymMat33P& asSymMat33() const {return G_OF_F;}
+
+    /// Expand the internal packed representation into a full 3x3 matrix 
+    /// with all elements set.
+    Mat33P toMat33() const {return Mat33P(G_OF_F);}
+
     /// Obtain the gyration moments (diagonal of the Gyration matrix) as a Vec3.
     const Vec3P& getMoments()  const {return G_OF_F.getDiag();}
     /// Obtain the gyration products (off-diagonal of the Gyration matrix)
@@ -229,7 +231,7 @@ public:
     // Gyration matrix factories for some common mass elements. Each defines its
     // own frame aligned (when possible) with principal moments. Each has unit
     // mass and its center of mass located at the origin (usually). Use this with 
-    // shiftFromMassCenter() to move it somewhere else, and with reexpress() to 
+    // shiftFromCentroid() to move it somewhere else, and with reexpress() to 
     // express the Gyration matrix in another frame.
 
     /// Create a Gyration matrix for a point located at the origin -- that is,
@@ -237,9 +239,12 @@ public:
     static Gyration_ pointMassAtOrigin() {return Gyration_(0);}
 
     /// Create a Gyration matrix for a point located at a given location.
-    static Gyration_ pointMassAt(const Vec3P& p) {return Gyration_(p);}
+    /// Cost is 11 flops.
+    static Gyration_ pointMassAt(const Vec3P& p) 
+    {   return Gyration_(crossMatSq(p)); }
 
-    /// Create a Gyration matrix for a sphere of radius \a r.
+    /// Create a Gyration matrix for a sphere of radius \a r centered
+    /// at the origin.
     static Gyration_ sphere(const RealP& r) {return Gyration_(0.4*r*r);}
 
     /// Cylinder is aligned along z axis, use radius and half-length.
@@ -275,8 +280,17 @@ public:
     /// Ellipsoid given by half-lengths in each direction.
     static Gyration_ ellipsoid(const RealP& hx, const RealP& hy, const RealP& hz) {
         const RealP hx2=hx*hx, hy2=hy*hy, hz2=hz*hz;
-        return Gyration_(0.2*(hy2+hz2), 0.2*(hx2+hz2), 0.2*(hx2+hy2));
+        return Gyration_(RealP(0.2)*(hy2+hz2), RealP(0.2)*(hx2+hz2), RealP(0.2)*(hx2+hy2));
     }
+private:
+    // Check whether a and b are the same except for numerical error which
+    // is a reasonable fraction of the overall scale, which is passed in.
+    static bool close(const Real& a, const Real& b, const Real& scale) {
+        const Real okErr = SignificantReal*std::abs(scale);
+        const Real err = std::abs(a-b);
+        return err <= okErr;
+    }
+
 
 private:
     SymMat33P G_OF_F; 

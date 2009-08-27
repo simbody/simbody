@@ -13,7 +13,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy                                                 *
  *                                                                            *
@@ -47,6 +47,12 @@ namespace SimTK {
 
 // Currently this is EMPTY as all methods are inline
 
+// Instantiate here so we catch all compile-time bugs when we build.
+template class UnitVec<float,1>;
+template class UnitVec<double,1>;
+
+template class UnitRow<float,1>;
+template class UnitRow<double,1>;
 
 //------------------------------------------------------------------------------
 }  // End of namespace SimTK

@@ -623,18 +623,72 @@ operator-(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) {
         ::SubOp::perform(l,r);
 }
 
-// bool = v1 == v2, v1 and v2 have the same length M
+/// bool = v1[i] == v2[i], for all elements i
 template <int M, class E1, int S1, class E2, int S2> inline bool
-operator==(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) { 
-    for (int i=0; i < M; ++i)
-        if (l[i] != r[i]) return false;
-    return true;
-}
-
-// bool = v1 != v2, v1 and v2 have the same length M
+operator==(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) 
+{   for (int i=0; i < M; ++i) if (l[i] != r[i]) return false;
+    return true; }
+/// bool = v1[i] != v2[i], for any element i
 template <int M, class E1, int S1, class E2, int S2> inline bool
 operator!=(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) {return !(l==r);} 
 
+/// bool = v[i] == e, for all elements v[i] and element e
+template <int M, class E1, int S1, class E2> inline bool
+operator==(const Vec<M,E1,S1>& v, const E2& e) 
+{   for (int i=0; i < M; ++i) if (v[i] != e) return false;
+    return true; }
+/// bool = v[i] != e, for any element v[i] and element e
+template <int M, class E1, int S1, class E2> inline bool
+operator!=(const Vec<M,E1,S1>& v, const E2& e) {return !(l==e);} 
+
+
+/// bool = v1[i] < v2[i], for all elements i
+template <int M, class E1, int S1, class E2, int S2> inline bool
+operator<(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) 
+{   for (int i=0; i < M; ++i) if (l[i] >= r[i]) return false;
+    return true; }
+/// bool = v[i] < e, for all elements v[i] and element e
+template <int M, class E1, int S1, class E2> inline bool
+operator<(const Vec<M,E1,S1>& v, const E2& e) 
+{   for (int i=0; i < M; ++i) if (v[i] >= e) return false;
+    return true; }
+
+/// bool = v1[i] > v2[i], for all elements i
+template <int M, class E1, int S1, class E2, int S2> inline bool
+operator>(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) 
+{   for (int i=0; i < M; ++i) if (l[i] <= r[i]) return false;
+    return true; }
+/// bool = v[i] > e, for all elements v[i] and element e
+template <int M, class E1, int S1, class E2> inline bool
+operator>(const Vec<M,E1,S1>& v, const E2& e) 
+{   for (int i=0; i < M; ++i) if (v[i] <= e) return false;
+    return true; }
+
+/// bool = v1[i] <= v2[i], for all elements i.
+/// This is not the same as !(v1>v2).
+template <int M, class E1, int S1, class E2, int S2> inline bool
+operator<=(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) 
+{   for (int i=0; i < M; ++i) if (l[i] > r[i]) return false;
+    return true; }
+/// bool = v[i] <= e, for all elements v[i] and element e.
+/// This is not the same as !(v1>e).
+template <int M, class E1, int S1, class E2> inline bool
+operator<=(const Vec<M,E1,S1>& v, const E2& e) 
+{   for (int i=0; i < M; ++i) if (v[i] > e) return false;
+    return true; }
+
+/// bool = v1[i] >= v2[i], for all elements i
+/// This is not the same as !(v1<v2).
+template <int M, class E1, int S1, class E2, int S2> inline bool
+operator>=(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) 
+{   for (int i=0; i < M; ++i) if (l[i] < r[i]) return false;
+    return true; }
+/// bool = v[i] >= e, for all elements v[i] and element e.
+/// This is not the same as !(v1<e).
+template <int M, class E1, int S1, class E2> inline bool
+operator>=(const Vec<M,E1,S1>& v, const E2& e) 
+{   for (int i=0; i < M; ++i) if (v[i] < e) return false;
+    return true; }
 
 ///////////////////////////////////////////////////////
 // Global operators involving a vector and a scalar. //
