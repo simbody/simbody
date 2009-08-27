@@ -92,8 +92,9 @@ protected:
      */
     const RandomImpl& getConstImpl() const;
 private:
-    Random(Random& r);
-    Random operator=(Random& r);
+    // Suppress copy constructor and copy assignment.
+    Random(const Random& r);
+    Random operator=(const Random& r);
 };
 
 /**
@@ -134,6 +135,10 @@ public:
 protected:
     UniformImpl& getImpl();
     const UniformImpl& getConstImpl() const;
+private:
+    // Must suppress here if base class members are suppressed.
+    Uniform(const Uniform& r);
+    Uniform operator=(const Uniform& r);
 };
 
 /**
@@ -171,6 +176,10 @@ public:
 protected:
     GaussianImpl& getImpl();
     const GaussianImpl& getConstImpl() const;
+private:
+    // Must suppress here if base class members are suppressed.
+    Gaussian(const Gaussian& r);
+    Gaussian operator=(const Gaussian& r);
 };
 
 } // namespace SimTK

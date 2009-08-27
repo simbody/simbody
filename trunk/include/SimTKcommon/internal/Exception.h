@@ -105,6 +105,7 @@ public:
             "  Include the above information and anything else needed to reproduce the problem.");
         va_end(args);
     }
+    virtual ~Assert() throw() { }
 };
 
 /// This is for reporting errors occurring during execution of SimTK core methods,
@@ -132,7 +133,7 @@ public:
             + "\n  (Required condition '" + std::string(assertion) + "' was not met.)\n");
         va_end(args);
     }
-private:
+    virtual ~ErrorCheck() throw() { }
 };
 
 /// This is for reporting problems detected by checking the caller's supplied arguments
@@ -158,6 +159,7 @@ public:
                    + "\n  (Required condition '" + std::string(assertion) + "' was not met.)");
         va_end(args);
     }
+    virtual ~APIArgcheckFailed() throw() { }
 };
 
 
@@ -173,7 +175,7 @@ public:
             where,lb,indexName,ub,indexName,index);
         setMessage(std::string(buf));
     }
-private:
+    virtual ~IndexOutOfRange() throw() { }
 };
 
 class SizeOutOfRange : public Base {
@@ -188,7 +190,7 @@ public:
             where,szName,maxsz,szName,sz);
         setMessage(std::string(buf));
     }
-private:
+    virtual ~SizeOutOfRange() throw() { }
 };
 
 class SizeWasNegative : public Base {
@@ -203,7 +205,7 @@ public:
             where,szName,szName,sz);
         setMessage(std::string(buf));
     }
-private:
+    virtual ~SizeWasNegative() throw() { }
 };
 
 class ValueOutOfRange : public Base {
@@ -219,7 +221,7 @@ public:
             where,lowerBound,valueName,upperBound,valueName,value);
         setMessage(std::string(buf));
     }
-private:
+    virtual ~ValueOutOfRange() throw() { }
 };
 
 class ValueWasNegative : public Base {
@@ -234,7 +236,7 @@ public:
             valueName,where,value);
         setMessage(std::string(buf));
     }
-private:
+    virtual ~ValueWasNegative() throw() { }
 };
 
 class UnimplementedVirtualMethod : public Base {
@@ -247,6 +249,7 @@ public:
             " dummy implementation of method " + methodName
             + "() was invoked because a derived class did not provide an implementation.");
 	}
+    virtual ~UnimplementedVirtualMethod() throw() { }
 };
 
 class IncompatibleValues : public Base {
@@ -255,7 +258,7 @@ public:
     {
         setMessage("Attempt to assign a Value<"+src+"> to a Value<"+dest+">");
     }
-private:
+    virtual ~IncompatibleValues() throw() { }
 };
 
 class OperationNotAllowedOnView : public Base {
@@ -264,6 +267,7 @@ public:
     {
         setMessage("Operation '" + op + "' allowed only for owners, not views");
     }   
+    virtual ~OperationNotAllowedOnView() throw() { }
 };
 
 class OperationNotAllowedOnOwner : public Base {
@@ -272,6 +276,7 @@ public:
     {
         setMessage("Operation '" + op + "' allowed only for views, not owners");
     }   
+    virtual ~OperationNotAllowedOnOwner() throw() { }
 };
 
 class OperationNotAllowedOnNonconstReadOnlyView : public Base {
@@ -280,6 +285,7 @@ public:
     {
         setMessage("Operation '" + op + "' not allowed on non-const readonly view");
     }   
+    virtual ~OperationNotAllowedOnNonconstReadOnlyView() throw() { }
 };
 
 // SimTK::Exception::Cant
@@ -289,6 +295,7 @@ public:
 	{
 		setMessage("Can't perform operation: " + s);
 	}	
+    virtual ~Cant() throw() { }
 };
 
 } // namespace Exception

@@ -589,7 +589,6 @@ class InverseRotation_ : public Mat<3,3,P>::TransposeType {
     typedef Vec<2,P>        Vec2P;
     typedef Vec<3,P>        Vec3P;
     typedef Vec<4,P>        Vec4P;
-    typedef SymMat<3,P>     SymMat33P;
     typedef Quaternion_<P>  QuaternionP;
 public:
     /// This is the type of the underlying 3x3 matrix; note that it will have

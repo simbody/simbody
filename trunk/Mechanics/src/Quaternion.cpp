@@ -63,7 +63,7 @@ Quaternion_<P>::Quaternion_(const Rotation_<P>& r)
 template <class P> Vec<4,P>
 Quaternion_<P>::convertQuaternionToAngleAxis() const {
     const RealP& ca2  = (*this)[0];       // cos(a/2)
-    const Vec3P& sa2v = getSubVec<3>(1);  // sin(a/2) * v
+    const Vec3P& sa2v = this->getSubVec<3>(1);  // sin(a/2) * v
     RealP        sa2  = sa2v.norm();      // sa2 is always >= 0
 
     const RealP Eps = NTraits<P>::getEps();

@@ -126,6 +126,7 @@ public:
     ZeroLeadingCoefficient(const char* fn, int ln) : Base(fn,ln) {
         setMessage("Attempting to find roots of a polynomial whose leading coefficient is 0.");
     }
+    virtual ~ZeroLeadingCoefficient() throw() { }
 };
 
 } // namespace SimTK

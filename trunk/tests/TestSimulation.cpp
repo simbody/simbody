@@ -472,6 +472,8 @@ void testOne() {
     const int outputInterval = 100;
     state.setTime(0);
 
+    ASSERT(state.getTime()==0);
+
     //initialize()
     sys.realize(state, Stage::Position);
 

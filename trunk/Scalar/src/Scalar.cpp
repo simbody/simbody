@@ -41,6 +41,21 @@ namespace SimTK {
 
 // These instantiations are just here to make sure everything is working. We would
 // rather have these fail to compile here than in some poor user's program.
+// (sherm 090827: also, the Intel compiler 11.1.038 seems to need some of these to be
+// present in the library)
+
+template class negator<float>;
+template class negator<double>;
+template class negator<long double>;
+
+template class negator< complex<float> >;
+template class negator< complex<double> >;
+template class negator< complex<long double> >;
+
+template class negator< conjugate<float> >;
+template class negator< conjugate<double> >;
+template class negator< conjugate<long double> >;
+
 template class CNT< negator<float> >;
 template class CNT< negator<double> >;
 template class CNT< negator<long double> >;

@@ -197,15 +197,16 @@ public:
     // be unchanged, so we must negate. Note that NN==N is a certainty for one of these cases.
 
     explicit negator(int t) {v = -N((typename NTraits<N>::Precision)t);}
-    explicit negator(const float& t) {v = -N(t);}
-    explicit negator(const double& t) {v = -N(t);}
-    explicit negator(const long double& t) {v = -N(t);}
-    explicit negator(const std::complex<float>& t) {v = -N(t);}
-    explicit negator(const std::complex<double>& t) {v = -N(t);}
-    explicit negator(const std::complex<long double>& t) {v = -N(t);}
-    explicit negator(const conjugate<float>& t) {v = -N(t);}
-    explicit negator(const conjugate<double>& t) {v = -N(t);}
-    explicit negator(const conjugate<long double>& t) {v = -N(t);}
+    explicit negator(const float& t) {v = -N((typename NTraits<N>::Precision)t);}
+    explicit negator(const double& t) {v = -N((typename NTraits<N>::Precision)t);}
+    explicit negator(const long double& t) {v = -N((typename NTraits<N>::Precision)t);}
+
+    // Some of these may not compile if instantiated -- you can't cast a complex
+    // to a float, for example.
+    template <class P>
+    explicit negator(const std::complex<P>& t) {v = -N(t);}
+    template <class P>
+    explicit negator(const conjugate<P>& t) {v = -N(t);}
 
     // This can be used to negate a value of type N at zero cost. It is typically
     // used for recasting temporary expressions to apply a final negation. Note that

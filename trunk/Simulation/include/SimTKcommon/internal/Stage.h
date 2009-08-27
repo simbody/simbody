@@ -124,6 +124,7 @@ public:
         setMessage(String(methodName) + ": " + String(objectType) + " " + String(objectName)
            + " topology has not yet been realized -- must call realizeTopology() first");
     }
+    virtual ~RealizeTopologyMustBeCalledFirst() throw() { }
 };
 
 class StageTooLow : public Base {
@@ -134,6 +135,7 @@ public:
         setMessage("Expected stage to be at least " + targetStage.getName() + " in " + String(where)
            + " but current stage was " + currentStage.getName());
     }
+    virtual ~StageTooLow() throw() { }
 };
 
 class StageIsWrong : public Base {
@@ -144,6 +146,7 @@ public:
         setMessage("Expected stage to be " + targetStage.getName() + " in " + String(where)
            + " but current stage was " + currentStage.getName());
     }
+    virtual ~StageIsWrong() throw() { }
 };
 
 class StageTooHigh : public Base {
@@ -154,6 +157,7 @@ public:
         setMessage("Expected stage to be less than " + targetStage.getName() + " in " + String(where)
            + " but current stage was " + currentStage.getName());
     }
+    virtual ~StageTooHigh() throw() { }
 };
 
 class StageOutOfRange : public Base {
@@ -164,6 +168,7 @@ public:
         setMessage("Expected (" + lower.getName() + " <= stage <= " + upper.getName() + ") in " + String(where)
            + " but stage was " + currentStage.getName());
     }
+    virtual ~StageOutOfRange() throw() { }
 };
 
 class CacheEntryOutOfDate : public Base {
@@ -177,6 +182,7 @@ public:
            + " of Stage " + dependsOn.getName() 
            + " but was last updated at version " + String(lastCalculatedVersion) + ".");
     }
+    virtual ~CacheEntryOutOfDate() throw() { }
 };
 
 // An attempt to realize a particular subsystem to a particular stage failed.
@@ -195,9 +201,11 @@ public:
                    + g.getName() + ": " + String(buf) + ".");
         va_end(args);
     }
-private:
+    virtual ~RealizeCheckFailed() throw() { }
 };
-}
+
+
+} // namespace Exception
 
 inline std::ostream& operator<<(std::ostream& o, Stage g) { o << g.getName(); return o; }	
 

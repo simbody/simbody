@@ -332,11 +332,14 @@ void testSignBit() {
 
     const float fm=-12398.34f, fz=0, fp=4354.331f;
     const double dm=-234234.454, dz=0, dp=345345.2342;
-    float mfz=-fz; double mdz=-dz;// -0
+    float mfz=-fz; double mdz=-dz;// -0 for some compilers
 
     SimTK_TEST(signBit(fm) && !(signBit(fz)||signBit(fp)));
     SimTK_TEST(signBit(dm) && !(signBit(dz)||signBit(dp)));
-    SimTK_TEST(signBit(mfz) && signBit(mdz));
+
+    // Can't be sure whether the compiler will actually have produced
+    // a minus zero here.
+    // SimTK_TEST(signBit(mfz) && signBit(mdz));
 
     // Note: signBit of negated float or double should be the
     // *same* as the underlying float or double; it is the
@@ -353,7 +356,7 @@ void testSignBit() {
 
     SimTK_TEST(signBit(nfm) && !(signBit(nfz)||signBit(nfp)));
     SimTK_TEST(signBit(ndm) && !(signBit(ndz)||signBit(ndp)));
-    SimTK_TEST(signBit(nmfz) && signBit(nmdz));
+    SimTK_TEST(signBit(nmfz)==signBit(mfz) && signBit(nmdz)==signBit(mdz));
 
     const float fltInf = NTraits<float>::getInfinity();
     const double dblInf = NTraits<double>::getInfinity();
