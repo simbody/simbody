@@ -751,7 +751,7 @@ Rotation_<P>::reexpressSymMat33(const SymMat33P& S_BB) const {
     const RealP a=S_BB(0,0), b=S_BB(1,1), c=S_BB(2,2);
     const RealP d=S_BB(1,0), e=S_BB(2,0), f=S_BB(2,1);
     const Mat33P& R   = this->asMat33();
-    const Mat32P& RR  = R.getSubMat<3,2>(0,0); // first two columns of R
+    const Mat32P& RR  = R.template getSubMat<3,2>(0,0); // first two columns of R
 
     const Mat32P L( a-c ,  d,
                      d  , b-c,
@@ -785,7 +785,7 @@ InverseRotation_<P>::reexpressSymMat33(const SymMat33P& S_BB) const {
     const RealP d=S_BB(1,0), e=S_BB(2,0), f=S_BB(2,1);
     // Note reversal of row and column spacing here (normal is 3,1).
     const Mat<3,3,RealP,1,3>& R   = this->asMat33();
-    const Mat<3,2,RealP,1,3>& RR  = R.getSubMat<3,2>(0,0); // first two columns of R
+    const Mat<3,2,RealP,1,3>& RR  = R.template getSubMat<3,2>(0,0); // first two columns of R
 
     const Mat32P L( a-c ,  d,
                      d  , b-c,
