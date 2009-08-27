@@ -83,11 +83,11 @@ class Inertia;
  */
 template <class P>
 class SimTK_SimTKCOMMON_EXPORT Gyration_ {
-    typedef P           RealP;
-    typedef Vec<3,P>    Vec3P;
-    typedef SymMat<3,P> SymMat33P;
-    typedef Mat<3,3,P>  Mat33P;
-    typedef Rotation    RotationP;
+    typedef P               RealP;
+    typedef Vec<3,P>        Vec3P;
+    typedef SymMat<3,P>     SymMat33P;
+    typedef Mat<3,3,P>      Mat33P;
+    typedef Rotation_<P>    RotationP;
 public:
     /// Default is a NaN-ed out mess to avoid accidents, even in Release mode.
     Gyration_() : G_OF_F(NTraits<P>::getNaN()) {}
@@ -153,7 +153,7 @@ public:
     /// will be diagonal). TODO: should check validity.
     Gyration_& setGyration(const RealP& xx, const RealP& yy, const RealP& zz) {
         assert(!"check validity");
-        G_OF_F = 0.; G_OF_F(0,0) = xx; G_OF_F(1,1) = yy;  G_OF_F(2,2) = zz;
+        G_OF_F = RealP(0); G_OF_F(0,0) = xx; G_OF_F(1,1) = yy;  G_OF_F(2,2) = zz;
         return *this;
     }
 
@@ -245,27 +245,27 @@ public:
 
     /// Create a Gyration matrix for a sphere of radius \a r centered
     /// at the origin.
-    static Gyration_ sphere(const RealP& r) {return Gyration_(0.4*r*r);}
+    static Gyration_ sphere(const RealP& r) {return Gyration_(RealP(0.4)*r*r);}
 
     /// Cylinder is aligned along z axis, use radius and half-length.
     /// If r==0 this is a thin rod; hz=0 it is a thin disk.
     static Gyration_ cylinderAlongZ(const RealP& r, const RealP& hz) {
-        const RealP Ixx = 0.25*r*r + (RealP(1)/RealP(3))*hz*hz;
-        return Gyration_(Ixx,Ixx,0.5*r*r);
+        const RealP Ixx = (r*r)/4 + (hz*hz)/3;
+        return Gyration_(Ixx,Ixx,(r*r)/2);
     }
 
     /// Cylinder is aligned along y axis, use radius and half-length.
     /// If r==0 this is a thin rod; hy=0 it is a thin disk.
     static Gyration_ cylinderAlongY(const RealP& r, const RealP& hy) {
-        const RealP Ixx = 0.25*r*r + (RealP(1)/RealP(3))*hy*hy;
-        return Gyration_(Ixx,0.5*r*r,Ixx);
+        const RealP Ixx = (r*r)/4 + (hy*hy)/3;
+        return Gyration_(Ixx,(r*r)/2,Ixx);
     }
 
     /// Cylinder is aligned along x axis, use radius and half-length.
     /// If r==0 this is a thin rod; hx=0 it is a thin disk.
     static Gyration_ cylinderAlongX(const RealP& r, const RealP& hx) {
-        const RealP Iyy = 0.25*r*r + (RealP(1)/RealP(3))*hx*hx;
-        return Gyration_(0.5*r*r,Iyy,Iyy);
+        const RealP Iyy = (r*r)/4 + (hx*hx)/3;
+        return Gyration_((r*r)/2,Iyy,Iyy);
     }
 
     /// Brick given by half-lengths in each direction. One dimension zero
@@ -280,7 +280,7 @@ public:
     /// Ellipsoid given by half-lengths in each direction.
     static Gyration_ ellipsoid(const RealP& hx, const RealP& hy, const RealP& hz) {
         const RealP hx2=hx*hx, hy2=hy*hy, hz2=hz*hz;
-        return Gyration_(RealP(0.2)*(hy2+hz2), RealP(0.2)*(hx2+hz2), RealP(0.2)*(hx2+hy2));
+        return Gyration_((hy2+hz2)/5, (hx2+hz2)/5, (hx2+hy2)/5);
     }
 private:
     // Check whether a and b are the same except for numerical error which
@@ -329,7 +329,7 @@ class SimTK_SimTKCOMMON_EXPORT SpatialInertia_ {
     typedef Vec<3,P>        Vec3P;
     typedef Gyration_<P>    GyrationP;
     typedef Mat<3,3,P>      Mat33P;
-    typedef Rotation        RotationP;  // TODO: need template argument
+    typedef Rotation_<P>    RotationP;  // TODO: need template argument
     typedef Transform       TransformP; //   "
     typedef Inertia         InertiaP;   //   "
 public:
@@ -498,7 +498,7 @@ class ArticulatedInertia_ {
     typedef Mat<3,3,P>      Mat33P;
     typedef SymMat<3,P>     SymMat33P;
     typedef Mat<2,2,Mat33P> SpatialMatP;
-    typedef Rotation        RotationP;  // TODO: need template argument
+    typedef Rotation_<P>    RotationP;  // TODO: need template argument
     typedef Transform       TransformP; //   "
     typedef Inertia         InertiaP;   //   "
 public:

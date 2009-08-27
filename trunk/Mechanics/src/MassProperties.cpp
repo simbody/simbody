@@ -44,8 +44,8 @@ namespace SimTK {
     /////////////////////////
 
 // Instantiate so we catch bugs now.
-//template Gyration_<float>;
-template Gyration_<double>;
+template class Gyration_<float>;
+template class Gyration_<double>;
 
     /////////////////////////
     // ARTICULATED INERTIA //
