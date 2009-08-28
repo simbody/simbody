@@ -275,7 +275,7 @@ public:
     /// Return the equivalent 4x4 transformation matrix.
     Mat<4,4,P> toMat44() const {
         Mat<4,4,P> tmp;
-        tmp.updSubMat<3,4>(0,0) = asMat34();
+        tmp.template updSubMat<3,4>(0,0) = asMat34();
         tmp[3]                  = Row<4,P>(0,0,0,1);
         return tmp;
     }
