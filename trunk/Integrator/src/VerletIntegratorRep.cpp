@@ -113,8 +113,8 @@ bool VerletIntegratorRep::attemptAStep(Real t0, Real t1,
         const Vector& zdot1 = advanced.getZDot();
         
         // Refine u and z estimates.
-        advanced.setU(u0 + 0.5*(udot0 + udot1)*h);
-        advanced.setZ(z0 + 0.5*(zdot0 + zdot1)*h);
+        advanced.setU(u0 + 0.5*h*(udot0 + udot1));
+        advanced.setZ(z0 + 0.5*h*(zdot0 + zdot1));
 
         // Project only the velocities; we're done with the q's for good.
         getSystem().realize(advanced, Stage::Velocity);
@@ -142,7 +142,7 @@ bool VerletIntegratorRep::attemptAStep(Real t0, Real t1,
     // error estimate for q and 2nd order error estimates for u and z. Note that we have already
     // realized the state with the new values, so QDot reflects the new u's.
 
-    qErrEst = q0 + 0.5*(qdot0+advanced.getQDot())*h // implicit trapezoid rule integral
+    qErrEst = q0 + 0.5*h*(qdot0+advanced.getQDot()) // implicit trapezoid rule integral
               - advanced.getQ();                    // Verlet integral
 
     uErrEst = u1_est                    // explicit Euler integral
@@ -150,7 +150,9 @@ bool VerletIntegratorRep::attemptAStep(Real t0, Real t1,
     zErrEst = z1_est - advanced.getZ(); // ditto for z's
 
     // TODO: because we're only projecting velocities here, we aren't going to get our
-    // position errors reduced here, which is a shame.
+    // position errors reduced here, which is a shame. Should be able to do this even
+    // though we had to project q's earlier, because the projection matrix should still
+    // be around.
     if (userProjectEveryStep == 1 || IntegratorRep::calcWeightedRMSNorm(advanced.getYErr(), getDynamicSystemOneOverTolerances()) > consTol)
         projectStateAndErrorEstimate(advanced, yErrEst, System::ProjectOptions::VelocityOnly);
     
