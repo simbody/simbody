@@ -51,8 +51,8 @@ void assertEqual(Vec<N> val1, Vec<N> val2) {
         ASSERT(abs(val1[i]-val2[i]) < TOL);
 }
 
-template <int N>
-void assertEqual(UnitVec<N> val1, UnitVec<N> val2) {
+template <class P, int N>
+void assertEqual(UnitVec<P,N> val1, UnitVec<P,N> val2) {
     for (int i = 0; i < N; ++i)
         ASSERT(abs(val1[i]-val2[i]) < TOL);
 }
