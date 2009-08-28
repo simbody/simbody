@@ -816,9 +816,14 @@ template class InverseRotation_<double>;
 //------------------------------------------------------------------------------
 template <class P> std::ostream&  
 operator<<( std::ostream& o, const Rotation_<P>& m )  { return o << m.asMat33(); }
+template <class P> std::ostream&  
+operator<<( std::ostream& o, const InverseRotation_<P>& m )  { return o << Rotation_<P>(m); }
 
 template SimTK_SimTKCOMMON_EXPORT std::ostream& operator<<(std::ostream&, const Rotation_<float>&);
 template SimTK_SimTKCOMMON_EXPORT std::ostream& operator<<(std::ostream&, const Rotation_<double>&);
+
+template SimTK_SimTKCOMMON_EXPORT std::ostream& operator<<(std::ostream&, const InverseRotation_<float>&);
+template SimTK_SimTKCOMMON_EXPORT std::ostream& operator<<(std::ostream&, const InverseRotation_<double>&);
 
 
 

@@ -45,8 +45,6 @@
 #include <iostream>
 
 namespace SimTK {
-typedef Mat<2,2, Mat33> SpatialMat;
-
 // Spatial vectors are used for (orientation,translation) quantities.
 // These include
 //      spatial velocity     = (angularVelocity,linearVelocity)
@@ -55,9 +53,17 @@ typedef Mat<2,2, Mat33> SpatialMat;
 // Spatial configuration has to be handled differently though since
 // orientation is not a vector quantity. (We use "Transform" for this concept
 // which includes an orientation matrix and a translation vector.)
-typedef Vec<2,   Vec3>  SpatialVec;
-typedef Row<2,   Row3>  SpatialRow;
-typedef Mat<2,2, Mat33> SpatialMat;
+typedef Vec<2,   Vec3>              SpatialVec;
+typedef Vec<2,   Vec<3,float> >    fSpatialVec;
+typedef Vec<2,   Vec<3,double> >   dSpatialVec;
+
+typedef Row<2,   Row3>              SpatialRow;
+typedef Row<2,   Row<3,float> >    fSpatialRow;
+typedef Row<2,   Row<3,double> >   dSpatialRow;
+
+typedef Mat<2,2, Mat33>              SpatialMat;
+typedef Mat<2,2, Mat<3,3,float> >   fSpatialMat;
+typedef Mat<2,2, Mat<3,3,double> >  dSpatialMat;
 
 // These are templatized by precision (float or double).
 template <class P> class Gyration_;
@@ -66,9 +72,17 @@ template <class P> class ArticulatedInertia_;
 
 // These "no trailing underscore" typedefs use whatever the 
 // compile-time precision is set to.
-typedef Gyration_<Real>             Gyration;
-typedef SpatialInertia_<Real>       SpatialInertia;
-typedef ArticulatedInertia_<Real>   ArticulatedInertia;
+typedef Gyration_<Real>              Gyration;
+typedef Gyration_<float>            fGyration;
+typedef Gyration_<double>           dGyration;
+
+typedef SpatialInertia_<Real>        SpatialInertia;
+typedef SpatialInertia_<float>      fSpatialInertia;
+typedef SpatialInertia_<double>     dSpatialInertia;
+
+typedef ArticulatedInertia_<Real>    ArticulatedInertia;
+typedef ArticulatedInertia_<float>  fArticulatedInertia;
+typedef ArticulatedInertia_<double> dArticulatedInertia;
 
 class Inertia;
 
@@ -285,12 +299,11 @@ public:
 private:
     // Check whether a and b are the same except for numerical error which
     // is a reasonable fraction of the overall scale, which is passed in.
-    static bool close(const Real& a, const Real& b, const Real& scale) {
-        const Real okErr = SignificantReal*std::abs(scale);
-        const Real err = std::abs(a-b);
+    static bool close(const RealP& a, const RealP& b, const RealP& scale) {
+        const RealP okErr = NTraits<P>::getSignificant()*std::abs(scale);
+        const RealP err = std::abs(a-b);
         return err <= okErr;
     }
-
 
 private:
     SymMat33P G_OF_F; 
@@ -330,7 +343,7 @@ class SimTK_SimTKCOMMON_EXPORT SpatialInertia_ {
     typedef Gyration_<P>    GyrationP;
     typedef Mat<3,3,P>      Mat33P;
     typedef Rotation_<P>    RotationP;  // TODO: need template argument
-    typedef Transform       TransformP; //   "
+    typedef Transform_<P>   TransformP; //   "
     typedef Inertia         InertiaP;   //   "
 public:
     /// The default constructor fills everything with NaN, even in Release mode.
@@ -439,7 +452,7 @@ operator-(const SpatialInertia_<P>& l, const SpatialInertia_<P>& r)
 /// is just a rotation of the assumed frame; the origin point is unchanged.
 /// Cost is 72 flops.
 template <class P> inline SpatialInertia_<P> 
-operator*(const Rotation& R_BF, const SpatialInertia_<P>& I_OF_F)
+operator*(const Rotation_<P>& R_BF, const SpatialInertia_<P>& I_OF_F)
 {   return I_OF_F.reexpress(R_BF); } 
 
 /// This operator allows you to efficiently transform (shift origin 
@@ -448,7 +461,7 @@ operator*(const Rotation& R_BF, const SpatialInertia_<P>& I_OF_F)
 /// transform is really I_OB_B = X_BF*I_OF_F*~X_BF.
 /// Cost is 109 flops.
 template <class P> inline SpatialInertia_<P> 
-operator*(const Transform& X_BF, const SpatialInertia_<P>& I_OF_F)
+operator*(const Transform_<P>& X_BF, const SpatialInertia_<P>& I_OF_F)
 {   return I_OF_F.transform(X_BF); } 
 
 /**
@@ -499,7 +512,7 @@ class ArticulatedInertia_ {
     typedef SymMat<3,P>     SymMat33P;
     typedef Mat<2,2,Mat33P> SpatialMatP;
     typedef Rotation_<P>    RotationP;  // TODO: need template argument
-    typedef Transform       TransformP; //   "
+    typedef Transform_<P>   TransformP; //   "
     typedef Inertia         InertiaP;   //   "
 public:
     ArticulatedInertia_() {}

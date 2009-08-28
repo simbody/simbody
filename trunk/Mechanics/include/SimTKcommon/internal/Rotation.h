@@ -60,9 +60,13 @@ enum BodyOrSpaceType { BodyRotationSequence=0, SpaceRotationSequence=1 };
 template <class P> class Rotation_;
 template <class P> class InverseRotation_;
 
-typedef Rotation_<Real>         Rotation;
-typedef InverseRotation_<Real>  InverseRotation;
+typedef Rotation_<Real>             Rotation;
+typedef Rotation_<float>           fRotation;
+typedef Rotation_<double>          dRotation;
 
+typedef InverseRotation_<Real>      InverseRotation;
+typedef InverseRotation_<float>    fInverseRotation;
+typedef InverseRotation_<double>   dInverseRotation;
 
 //-----------------------------------------------------------------------------
 /**
@@ -664,6 +668,9 @@ public:
 /// Write a Rotation matrix to an output stream by writing out its underlying Mat33.
 template <class P> SimTK_SimTKCOMMON_EXPORT std::ostream& 
 operator<<(std::ostream&, const Rotation_<P>&);
+/// Write an InverseRotation matrix to an output stream by writing out its underlying Mat33.
+template <class P> SimTK_SimTKCOMMON_EXPORT std::ostream& 
+operator<<(std::ostream&, const InverseRotation_<P>&);
 
 /// Rotating a unit vector leaves it unit length, saving us from having to perform
 /// an expensive normalization. So we override the multiply operators here changing
