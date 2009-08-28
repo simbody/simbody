@@ -293,7 +293,7 @@ private:
 
 //-----------------------------------------------------------------------------
 /**
- * %Transform_<P> from frame B to frame F, but with the internal representation 
+ * %Transform from frame B to frame F, but with the internal representation 
  * inverted. That is, we store R*,p* here but the transform this represents is
  * <pre>
  *
