@@ -226,6 +226,122 @@ template <class P> inline bool
 isInf(const negator< conjugate<P> >&    x) {return isInf(-x);}
 
 /**
+ * @name isNumericallyEqual()
+ *
+ * isNumericallyEqual() compares two scalar types using a tolerance
+ * and returns true if they are close enough. The default tolerance
+ * used is the NTraits<P>::getSignificant() value (about 1e-14 in
+ * double precision) for the narrower of the types being compared but 
+ * you can override that. The tolerance is both a relative and absolute 
+ * tolerance; for two numbers a and b and tolerance tol we compute the 
+ * following condition:
+ * <pre>
+ *      scale = max(|a|,|b|,1)
+ *      isNumericallyEqual = |a-b| <= scale*tol
+ * </pre>
+ * For complex or conjugate numbers we insist that both the real and
+ * imaginary parts independently satisfy the above condition.
+ *
+ * We support mixed argument types here in which case the default
+ * tolerance used is the one appropriate to the \e lower-precision
+ * argument. When one argument is an integer, the default tolerance
+ * used is that of the floating point argument.
+ */
+//@{
+inline bool isNumericallyEqual(const float& a, const float& b, 
+                               const float tol = NTraits<float>::getSignificant())
+{   const float scale = std::max(std::max(std::abs(a),std::abs(b)), 1.f);
+    return std::abs(a-b) <= scale*tol; }
+
+inline bool isNumericallyEqual(const double& a, const double& b, 
+                               const double tol = NTraits<double>::getSignificant())
+{   const double scale = std::max(std::max(std::abs(a),std::abs(b)), 1.);
+    return std::abs(a-b) <= scale*tol; }
+
+inline bool isNumericallyEqual(const long double& a, const long double& b, 
+                               const long double tol = NTraits<long double>::getSignificant())
+{   const long double scale = std::max(std::max(std::abs(a),std::abs(b)), 1.L);
+    return std::abs(a-b) <= scale*tol; }
+
+// For mixed precision, use the default tolerance for the narrower precision, but
+// perform the comparison at the wider precision so that we don't accidentally
+// truncate very large numbers.
+inline bool isNumericallyEqual(const float& a, const double& b, 
+                               const float tol = NTraits<float>::getSignificant())
+{   return isNumericallyEqual((double)a, b, (double)tol); }
+inline bool isNumericallyEqual(const double& a, const float& b, 
+                               const float tol = NTraits<float>::getSignificant())
+{   return isNumericallyEqual(a, (double)b, (double)tol); }
+inline bool isNumericallyEqual(const float& a, const long double& b, 
+                               const float tol = NTraits<float>::getSignificant())
+{   return isNumericallyEqual((long double)a, b, (long double)tol); }
+inline bool isNumericallyEqual(const long double& a, const float& b, 
+                               const float tol = NTraits<float>::getSignificant())
+{   return isNumericallyEqual(a, (long double)b, (long double)tol); }
+inline bool isNumericallyEqual(const double& a, const long double& b, 
+                               const double tol = NTraits<double>::getSignificant())
+{   return isNumericallyEqual((long double)a, b, (long double)tol); }
+inline bool isNumericallyEqual(const long double& a, const double& b, 
+                               const double tol = NTraits<double>::getSignificant())
+{   return isNumericallyEqual(a, (long double)b, (long double)tol); }
+
+// When one argument is an int, convert it to a double or long double since float 
+// can't hold all the integers.
+inline bool isNumericallyEqual(const float& a, int b,
+                               const float tol = NTraits<float>::getSignificant())
+{   return isNumericallyEqual(a, (double)b, tol); }
+inline bool isNumericallyEqual(int a, const float& b,
+                               const float tol = NTraits<float>::getSignificant())
+{   return isNumericallyEqual((double)a, b, tol); }
+inline bool isNumericallyEqual(const double& a, int b,
+                               const double tol = NTraits<double>::getSignificant())
+{   return isNumericallyEqual(a, (double)b, tol); }
+inline bool isNumericallyEqual(int a, const double& b,
+                               const double tol = NTraits<double>::getSignificant())
+{   return isNumericallyEqual((double)a, b, tol); }
+inline bool isNumericallyEqual(const long double& a, int b,
+                               const long double tol = NTraits<long double>::getSignificant())
+{   return isNumericallyEqual(a, (long double)b, tol); }
+inline bool isNumericallyEqual(int a, const long double& b,
+                               const long double tol = NTraits<long double>::getSignificant())
+{   return isNumericallyEqual((long double)a, b, tol); }
+
+// Complex and conjugate numbers of different precisions can be compared, but
+// we only use a tolerance appropriate for the narrower of the two precisions.
+template <class P, class Q>
+inline bool isNumericallyEqual
+  ( const std::complex<P>& a, const std::complex<Q>& b, 
+    const typename Narrowest<P,Q>::Type tol = 
+        NTraits<typename Narrowest<P,Q>::Type>::getSignificant())
+{   return isNumericallyEqual(a.real(),b.real(),tol)
+        && isNumericallyEqual(a.imag(),b.imag(),tol); }
+
+template <class P, class Q>
+inline bool isNumericallyEqual
+  ( const conjugate<P>& a, const conjugate<Q>& b, 
+    const typename Narrowest<P,Q>::Type tol = 
+        NTraits<typename Narrowest<P,Q>::Type>::getSignificant())
+{   return isNumericallyEqual(a.real(),b.real(),tol)
+        && isNumericallyEqual(a.imag(),b.imag(),tol); }
+
+template <class P, class Q>
+inline bool isNumericallyEqual
+  ( const std::complex<P>& a, const conjugate<Q>& b, 
+    const typename Narrowest<P,Q>::Type tol = 
+        NTraits<typename Narrowest<P,Q>::Type>::getSignificant())
+{   return isNumericallyEqual(a.real(),b.real(),tol)
+        && isNumericallyEqual(a.imag(),b.imag(),tol); }
+
+template <class P, class Q>
+inline bool isNumericallyEqual
+  ( const conjugate<P>& a, const std::complex<Q>& b, 
+    const typename Narrowest<P,Q>::Type tol = 
+        NTraits<typename Narrowest<P,Q>::Type>::getSignificant())
+{   return isNumericallyEqual(a.real(),b.real(),tol)
+        && isNumericallyEqual(a.imag(),b.imag(),tol); }
+//@}
+
+/**
  * atMostOneBitIsSet() provides an extremely fast way to determine whether
  * an integral type is either zero or consists of a single set bit. This
  * question arises when using bits to represent set membership where one

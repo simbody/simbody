@@ -106,12 +106,12 @@ template <class N> class negator;      // Only defined for numbers
 // (or conjugate<long double>).
 static const complex<long double> zeroes(0);
 
-// This class is specialized for all 36 combinations of standard types
-// (that is, real and complex types in each of three precisions)
-// and has a single typedef "Type" which is the appropriate "widened"
-// type for use when R1 & R2 appear in an operation together. For example,
-// if R1=complex<float> and R2=long double, Widest<R1,R2>::Type is
-// complex<long double>.
+/// This class is specialized for all 36 combinations of standard types
+/// (that is, real and complex types in each of three precisions)
+/// and has a single typedef "Type" which is the appropriate "widened"
+/// type for use when R1 & R2 appear in an operation together. For example,
+/// if R1=complex<float> and R2=long double, Widest<R1,R2>::Type is
+/// complex<long double>.
 template <class R1, class R2> struct Widest {/* Only defined for built-ins. */};
 template <> struct Widest<float,float>              {typedef float Type;};
 template <> struct Widest<float,double>             {typedef double Type;};
@@ -128,6 +128,30 @@ template <class R1, class R2> struct Widest< complex<R1>,R2 >
   { typedef complex< typename Widest<R1,R2>::Type > Type; };
 template <class R1, class R2> struct Widest< R1,complex<R2> >
   { typedef complex< typename Widest<R1,R2>::Type > Type; };
+
+/// This class is specialized for all 36 combinations of standard types
+/// (that is, real and complex types in each of three precisions)
+/// and has a single typedef "Type" which is the appropriate "narrowed"
+/// type for use when R1 & R2 appear in an operation together where the
+/// result must be of the narrower precision. For example,
+/// if R1=complex<double> and R2=float, Narrowest<R1,R2>::Type is
+/// complex<float>.
+template <class R1, class R2> struct Narrowest {/* Only defined for built-ins. */};
+template <> struct Narrowest<float,float>              {typedef float Type;};
+template <> struct Narrowest<float,double>             {typedef float Type;};
+template <> struct Narrowest<float,long double>        {typedef float Type;};
+template <> struct Narrowest<double,float>             {typedef float Type;};
+template <> struct Narrowest<double,double>            {typedef double Type;};
+template <> struct Narrowest<double,long double>       {typedef double Type;};
+template <> struct Narrowest<long double,float>        {typedef float Type;};
+template <> struct Narrowest<long double,double>       {typedef double Type;};
+template <> struct Narrowest<long double,long double>  {typedef long double Type;};
+template <class R1, class R2> struct Narrowest< complex<R1>,complex<R2> >
+  { typedef complex< typename Narrowest<R1,R2>::Type > Type; };
+template <class R1, class R2> struct Narrowest< complex<R1>,R2 >
+  { typedef complex< typename Narrowest<R1,R2>::Type > Type; };
+template <class R1, class R2> struct Narrowest< R1,complex<R2> >
+  { typedef complex< typename Narrowest<R1,R2>::Type > Type; };
 
 template <class N> class NTraits { 
     // only the specializations below are allowed 

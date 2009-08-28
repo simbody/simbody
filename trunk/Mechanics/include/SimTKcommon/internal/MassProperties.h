@@ -134,11 +134,11 @@ public:
     /// be nonnegative and satisfy the triangle inequality.
     explicit Gyration_(const SymMat33P& G) : G_OF_F(G) {
         const Vec3P& d = G.diag();
-        SimTK_ERRCHK3(d >= 0, "Gyration(SymMat3)",
+        SimTK_ERRCHK3(d >= 0, "Gyration(SymMat33)",
             "Diagonals of a Gyration matrix must be nonnegative; got %g,%g,%g.",
             (double)d[0],(double)d[1],(double)d[2]);
         SimTK_ERRCHK3(d[0]+d[1]>=d[2] && d[0]+d[2]>=d[1] && d[1]+d[2]>=d[0],
-            "Gyration(SymMat3)",
+            "Gyration(SymMat33)",
             "Diagonals of a Gyration matrix must satisfy the triangle inequality; got %g,%g,%g.",
             (double)d[0],(double)d[1],(double)d[2]);
     }
@@ -232,8 +232,8 @@ public:
     /// Obtain a reference to the underlying symmetric matrix type.
     const SymMat33P& asSymMat33() const {return G_OF_F;}
 
-    /// Expand the internal packed representation into a full 3x3 matrix 
-    /// with all elements set.
+    /// Expand the internal packed representation into a full 3x3 symmetric
+    /// matrix with all elements set.
     Mat33P toMat33() const {return Mat33P(G_OF_F);}
 
     /// Obtain the gyration moments (diagonal of the Gyration matrix) as a Vec3.

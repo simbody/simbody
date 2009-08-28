@@ -132,7 +132,7 @@ void testSymMat() {
                   a[1], a[2] );
 
     SimTK_TEST_EQ( (Mat<2,2>(sm)), m );
-    SimTK_TEST_EQ( sm, SymMat<2>(m) );
+    SimTK_TEST_EQ( sm, SymMat<2>::fromSymmetric(m) );
 
     SimTK_TEST_EQ( sm*v, m*v );
     SimTK_TEST_EQ( ~v*sm, ~v*m );
@@ -148,7 +148,7 @@ void testSymMat() {
                    a3[3], a3[4], a3[5]);
 
     SimTK_TEST_EQ( (Mat<3,3>(sm3)), m3 );
-    SimTK_TEST_EQ( sm3, SymMat<3>(m3) );
+    SimTK_TEST_EQ( sm3, SymMat<3>::fromSymmetric(m3) );
 
     SimTK_TEST_EQ( sm3*v3, m3*v3 );
     SimTK_TEST_EQ( ~v3*sm3, ~v3*m3 );
@@ -166,7 +166,7 @@ void testSymMat() {
                    a4[6], a4[7], a4[8], a4[9]);
 
     SimTK_TEST_EQ( (Mat<4,4>(sm4)), m4 );
-    SimTK_TEST_EQ( sm4, SymMat<4>(m4) );
+    SimTK_TEST_EQ( sm4, SymMat<4>::fromSymmetric(m4) );
 
     SimTK_TEST_EQ( sm4*v4, m4*v4 );
     SimTK_TEST_EQ( ~v4*sm4, ~v4*m4 );
@@ -187,7 +187,7 @@ void testSymMat() {
     // element for the upper right in the full Mat.
     Mat<2,2,Complex> sm2mc(smc);
     SimTK_TEST_EQ( sm2mc, mc );
-    SimTK_TEST_EQ( smc, (SymMat<2,Complex>(mc)) );
+    SimTK_TEST_EQ( smc, (SymMat<2,Complex>::fromSymmetric(mc)) );
 
     SimTK_TEST_EQ( smc*vc, mc*vc );
     SimTK_TEST_EQ( ~vc*smc, ~vc*mc );

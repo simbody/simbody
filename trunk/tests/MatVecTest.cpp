@@ -168,7 +168,7 @@ int main()
     cout << "m33sm3+=100:" << (m33sm3+=100.);
 
     Mat<3,3,Complex> whole(mdc);
-    SymMat<3,Complex,9> sym(whole);
+    SymMat<3,Complex,9> sym = SymMat<3,Complex,9>::fromLower(whole);
     cout << "whole=" << whole << endl;
     cout << "sym  =" << sym << "(pos~)sym  =" << sym.positionalTranspose() << endl;
 

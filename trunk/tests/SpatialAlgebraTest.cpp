@@ -162,9 +162,9 @@ void testMiscSpatialAlgebra() {
     cout << "r*vec(1,2,3)=" << rnew << endl;
 
     // SYMMAT
-    SymMat<3> sy3(Mat<3,3>(2, 99, 99,
-                           3,  4, 99,
-                           5,  6,  7));
+    SymMat<3> sy3 = SymMat<3>::fromLower(Mat<3,3>(2, 99, 99,
+                                                  3,  4, 99,
+                                                  5,  6,  7));
     SymMat<3> sy3d(-5);
     cout << "sy3=" << sy3 << "  sy3d=" << sy3d;
     cout << "sy3+sy3d=" << sy3+sy3d;

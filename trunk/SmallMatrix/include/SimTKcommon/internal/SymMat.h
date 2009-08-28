@@ -239,45 +239,95 @@ public:
         typedef SymMat<M,P> Type;
     };
 
-    // Default construction initializes to NaN when debugging but
-    // is left uninitialized otherwise.
+    /// Default construction initializes to NaN when debugging but
+    /// is left uninitialized otherwise.
 	SymMat(){ 
     #ifndef NDEBUG
         setToNaN();
     #endif
     }
 
+    /// Copy constructor.
     SymMat(const SymMat& src) {
         updAsVec() = src.getAsVec();
     }
 
-    SymMat& operator=(const SymMat& src) {    // no harm if src and 'this' are the same
+    /// Copy assignment; no harm if source and this are the same matrix.
+    SymMat& operator=(const SymMat& src) {
         updAsVec() = src.getAsVec();
         return *this;
     }
 
-    // Allow an explicit conversion from square Mat of right size, looking only at lower
-    // elements and real part of diagonal elements.
+    /// This is an \e explicit conversion from square Mat of right size, looking 
+    /// only at lower elements and real part of diagonal elements.
+    //template <class EE, int CSS, int RSS>
+    //explicit SymMat(const Mat<M,M,EE,CSS,RSS>& m) {
+    //    updDiag() = m.diag().real();
+    //    for (int j=0; j<M; ++j)
+    //        for (int i=j+1; i<M; ++i)
+    //            updEltLower(i,j) = m(i,j);
+    //}
+
+    /// Create a new SymMat of this type from a square Mat of the right
+    /// size, looking only at lower elements and the real part of the
+    /// diagonal.
     template <class EE, int CSS, int RSS>
-    explicit SymMat(const Mat<M,M,EE,CSS,RSS>& m) {
-        updDiag() = m.diag().real();
+    static SymMat fromLower(const Mat<M,M,EE,CSS,RSS>& m) {
+        SymMat result;
+        result.updDiag() = m.diag().real();
         for (int j=0; j<M; ++j)
             for (int i=j+1; i<M; ++i)
-                updEltLower(i,j) = m(i,j);
+                result.updEltLower(i,j) = m(i,j);
+        return result;
     }
 
-    // We want an implicit conversion from a SymMat of the same length
-    // and element type but with different spacings.
+    /// Create a new SymMat of this type from a square Mat of the right
+    /// size, looking only at upper elements and the real part of the
+    /// diagonal. Note that the SymMat's stored elements are still in
+    /// its \e lower triangle; they are just initialized from the Mat's
+    /// \e upper triangle. There is no transposing of elements here;
+    /// we simply copy the upper elements of the Mat to the corresponding
+    /// lower elements of the SymMat.
+    template <class EE, int CSS, int RSS>
+    static SymMat fromUpper(const Mat<M,M,EE,CSS,RSS>& m) {
+        SymMat result;
+        result.updDiag() = m.diag().real();
+        for (int j=0; j<M; ++j)
+            for (int i=j+1; i<M; ++i)
+                result.updEltLower(i,j) = m(j,i);
+        return result;
+    }
+
+    /// Create a new SymMat of this type from a square Mat of the right
+    /// size, that is expected to be symmetric (hermitian) to within
+    /// a tolerance. All elements are used; we average the upper and
+    /// lower elements of the Mat to produce the corresponding element
+    /// of the SymMat.
+    /// TODO: check that Mat is symmetric when in Debug mode.
+    template <class EE, int CSS, int RSS>
+    static SymMat fromSymmetric(const Mat<M,M,EE,CSS,RSS>& m) {
+        SymMat result;
+        result.updDiag() = m.diag().real();
+        for (int j=0; j<M; ++j)
+            for (int i=j+1; i<M; ++i)
+                result.updEltLower(i,j) = 
+                    (m(i,j) + CNT<EE>::transpose(m(j,i)))/2;
+        return result;
+    }
+
+    /// This is an \e implicit conversion from a SymMat of the same length
+    /// and element type but with different spacing.
     template <int RSS> SymMat(const SymMat<M,E,RSS>& src) 
       { updAsVec() = src.getAsVec(); }
 
-    // We want an implicit conversion from a SymMat of the same length
-    // and *negated* element type, possibly with different spacings.
+    /// This is an \e implicit conversion from a SymMat of the same length
+    /// and \e negated element type, possibly with different spacing.
     template <int RSS> SymMat(const SymMat<M,ENeg,RSS>& src)
       { updAsVec() = src.getAsVec(); }
 
-    // Construct a SymMat from a SymMat of the same dimensions, with any
-    // spacings. Works as long as the element types are assignment compatible.
+    /// Construct a SymMat from a SymMat of the same dimensions, with any
+    /// element type and spacing. Works as long as the element types are 
+    /// assignment compatible.
     template <class EE, int RSS> explicit SymMat(const SymMat<M,EE,RSS>& src)
       { updAsVec() = src.getAsVec(); }
 
