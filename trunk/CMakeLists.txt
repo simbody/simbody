@@ -102,9 +102,10 @@ ELSE( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
 ENDIF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
 
 # Allow build of binaries on Leopard that work on Tiger
+# Plus, -m32 is required for building on Snow Leopard, until we have a 64-bit Mac Lapack
 IF( APPLE )
-   SET( CMAKE_CXX_FLAGS "-mmacosx-version-min=10.4" )
-   SET( CMAKE_C_FLAGS "-mmacosx-version-min=10.4" )
+   SET( CMAKE_CXX_FLAGS "-mmacosx-version-min=10.4 -m32" )
+   SET( CMAKE_C_FLAGS "-mmacosx-version-min=10.4 -m32" )
 ENDIF( APPLE )
 
 IF(UNIX AND NOT CMAKE_BUILD_TYPE)
