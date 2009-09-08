@@ -514,6 +514,39 @@ void testSquareAndCube() {
     SimTK_TEST_EQ(cube(ndcj), -dcj*dcj*dcj);
 }
 
+void testIsNumericallyEqual() {
+    const float  f=1.234f, fn=1.234f+1e-5f, fe=1.234f+1e-9f;
+    const double d=1.234,  dn=1.234 +1e-12, de=1.234 +1e-15;
+
+    SimTK_TEST(isNumericallyEqual(f,f))
+    SimTK_TEST(isNumericallyEqual(f,fe));
+    SimTK_TEST(!isNumericallyEqual(f,fn));
+    SimTK_TEST(isNumericallyEqual(f,fn,1e-4f));
+    SimTK_TEST(!isNumericallyEqual(f,fn,1e-6f));
+
+    SimTK_TEST(isNumericallyEqual(1000*f,1234));
+    SimTK_TEST(isNumericallyEqual(1234,1000*f));
+    SimTK_TEST(isNumericallyEqual(1000*fe,1234));
+    SimTK_TEST(isNumericallyEqual(1234,1000*fe));
+    SimTK_TEST(!isNumericallyEqual(1000*fn,1234));
+    SimTK_TEST(!isNumericallyEqual(1234,1000*fn));
+
+    SimTK_TEST(isNumericallyEqual(d,d));
+    SimTK_TEST(isNumericallyEqual(d,de));
+    SimTK_TEST(!isNumericallyEqual(d,dn));
+    SimTK_TEST(isNumericallyEqual(1000*d,1234));
+    SimTK_TEST(isNumericallyEqual(1234,1000*d));
+    SimTK_TEST(isNumericallyEqual(1000*de,1234));
+    SimTK_TEST(isNumericallyEqual(1234,1000*de));
+    SimTK_TEST(!isNumericallyEqual(1000*dn,1234));
+    SimTK_TEST(!isNumericallyEqual(1234,1000*dn));
+
+    // Mixed should use float tolerance
+    SimTK_TEST(isNumericallyEqual(fe,de));
+    SimTK_TEST(!isNumericallyEqual((double)fe,de));
+
+}
+
 int main() {
     SimTK_START_TEST("TestScalar");
 
@@ -523,6 +556,7 @@ int main() {
         SimTK_SUBTEST(testSignBit);
         SimTK_SUBTEST(testSign);
         SimTK_SUBTEST(testSquareAndCube);
+        SimTK_SUBTEST(testIsNumericallyEqual);
 
     SimTK_END_TEST();
 }

@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -133,6 +133,8 @@ static const Complex& I = NTraits<Complex>::getI();
     ///////////////////////////
 
 /**
+ * @name isNaN()
+ *
  * isNaN(x) provides a reliable way to determine if x is one of the
  * "not a number" floating point forms. Comparing x==NaN does not
  * work because any relational operation involving NaN always
@@ -143,6 +145,7 @@ static const Complex& I = NTraits<Complex>::getI();
  * complex and conjugate types, isNaN() returns true if either
  * the real or imaginary part or both are NaN.
  */
+//@{
 inline bool isNaN(const float& x)  {return std::isnan(x);}
 inline bool isNaN(const double& x) {return std::isnan(x);}
 
@@ -161,9 +164,11 @@ template <class P> inline bool
 isNaN(const negator< std::complex<P> >& x) {return isNaN(-x);}
 template <class P> inline bool
 isNaN(const negator< conjugate<P> >&    x) {return isNaN(-x);}
-
+//@}
 
 /**
+ * @name isFinite()
+ *
  * isFinite(x) provides a reliable way to determine if x is a "normal"
  * floating point number, meaning not a NaN or +/- Infinity.
  * This routine is specialized for all SimTK scalar types:
@@ -172,6 +177,7 @@ isNaN(const negator< conjugate<P> >&    x) {return isNaN(-x);}
  * complex and conjugate types, isFinite() returns true if
  * the real and imaginary parts are both finite.
  */
+//@{
 inline bool isFinite(const float&  x) {return std::isfinite(x);}
 inline bool isFinite(const double& x) {return std::isfinite(x);}
 
@@ -190,8 +196,11 @@ template <class P> inline bool
 isFinite(const negator< std::complex<P> >& x) {return isFinite(-x);}
 template <class P> inline bool
 isFinite(const negator< conjugate<P> >&    x) {return isFinite(-x);}
+//@}
 
 /**
+ * @name isInf()
+ *
  * isInf(x) provides a reliable way to determine if x is one of
  * the two infinities (either negative or positive).
  * This routine is specialized for all SimTK scalar types:
@@ -202,6 +211,7 @@ isFinite(const negator< conjugate<P> >&    x) {return isFinite(-x);}
  * finite. That is, isInf() will never return true if one
  * component is NaN.
  */
+//@{
 inline bool isInf(const float&  x) {return std::isinf(x);}
 inline bool isInf(const double& x) {return std::isinf(x);}
 
@@ -224,17 +234,17 @@ template <class P> inline bool
 isInf(const negator< std::complex<P> >& x) {return isInf(-x);}
 template <class P> inline bool
 isInf(const negator< conjugate<P> >&    x) {return isInf(-x);}
+//@}
 
 /**
  * @name isNumericallyEqual()
  *
- * isNumericallyEqual() compares two scalar types using a tolerance
- * and returns true if they are close enough. The default tolerance
- * used is the NTraits<P>::getSignificant() value (about 1e-14 in
- * double precision) for the narrower of the types being compared but 
- * you can override that. The tolerance is both a relative and absolute 
- * tolerance; for two numbers a and b and tolerance tol we compute the 
- * following condition:
+ * isNumericallyEqual() compares two scalar types using a tolerance and returns
+ * true if they are close enough. The default tolerance used is the 
+ * NTraits<P>::getSignificant() value (about 1e-14 in double precision, 1e-6 in 
+ * float) for the narrower of the types being compared but you can override that. 
+ * The tolerance is both a relative and absolute tolerance; for two numbers a and 
+ * b and tolerance tol we compute the following condition:
  * <pre>
  *      scale = max(|a|,|b|,1)
  *      isNumericallyEqual = |a-b| <= scale*tol
@@ -245,69 +255,80 @@ isInf(const negator< conjugate<P> >&    x) {return isInf(-x);}
  * We support mixed argument types here in which case the default
  * tolerance used is the one appropriate to the \e lower-precision
  * argument. When one argument is an integer, the default tolerance
- * used is that of the floating point argument.
+ * used is that of the floating point argument. Comparisons may be performed
+ * at a higher precision than the tolerance to avoid incorrect truncation; for
+ * example an int cannot generally be contained in a float so an int/float
+ * comparison is done as double/double, but to float tolerance.
  */
 //@{
+/// Compare two floats for approximate equality.
 inline bool isNumericallyEqual(const float& a, const float& b, 
                                const float tol = NTraits<float>::getSignificant())
 {   const float scale = std::max(std::max(std::abs(a),std::abs(b)), 1.f);
     return std::abs(a-b) <= scale*tol; }
-
+/// Compare two doubles for approximate equality.
 inline bool isNumericallyEqual(const double& a, const double& b, 
                                const double tol = NTraits<double>::getSignificant())
 {   const double scale = std::max(std::max(std::abs(a),std::abs(b)), 1.);
     return std::abs(a-b) <= scale*tol; }
-
+/// Compare two long doubles for approximate equality.
 inline bool isNumericallyEqual(const long double& a, const long double& b, 
                                const long double tol = NTraits<long double>::getSignificant())
 {   const long double scale = std::max(std::max(std::abs(a),std::abs(b)), 1.L);
     return std::abs(a-b) <= scale*tol; }
-
-// For mixed precision, use the default tolerance for the narrower precision, but
-// perform the comparison at the wider precision so that we don't accidentally
-// truncate very large numbers.
+/// Compare a float and a double for approximate equality at float precision.
 inline bool isNumericallyEqual(const float& a, const double& b, 
                                const float tol = NTraits<float>::getSignificant())
 {   return isNumericallyEqual((double)a, b, (double)tol); }
+/// Compare a float and a double for approximate equality at float precision.
 inline bool isNumericallyEqual(const double& a, const float& b, 
                                const float tol = NTraits<float>::getSignificant())
 {   return isNumericallyEqual(a, (double)b, (double)tol); }
+/// Compare a float and a long double for approximate equality at float precision.
 inline bool isNumericallyEqual(const float& a, const long double& b, 
                                const float tol = NTraits<float>::getSignificant())
 {   return isNumericallyEqual((long double)a, b, (long double)tol); }
+/// Compare a float and a long double for approximate equality at float precision.
 inline bool isNumericallyEqual(const long double& a, const float& b, 
                                const float tol = NTraits<float>::getSignificant())
 {   return isNumericallyEqual(a, (long double)b, (long double)tol); }
+/// Compare a double and a long double for approximate equality at double precision.
 inline bool isNumericallyEqual(const double& a, const long double& b, 
                                const double tol = NTraits<double>::getSignificant())
 {   return isNumericallyEqual((long double)a, b, (long double)tol); }
+/// Compare a double and a long double for approximate equality at double precision.
 inline bool isNumericallyEqual(const long double& a, const double& b, 
                                const double tol = NTraits<double>::getSignificant())
 {   return isNumericallyEqual(a, (long double)b, (long double)tol); }
 
-// When one argument is an int, convert it to a double or long double since float 
-// can't hold all the integers.
+/// %Test a float for aproximate equality to an integer.
 inline bool isNumericallyEqual(const float& a, int b,
                                const float tol = NTraits<float>::getSignificant())
 {   return isNumericallyEqual(a, (double)b, tol); }
+/// %Test a float for aproximate equality to an integer.
 inline bool isNumericallyEqual(int a, const float& b,
                                const float tol = NTraits<float>::getSignificant())
 {   return isNumericallyEqual((double)a, b, tol); }
+/// %Test a double for aproximate equality to an integer.
 inline bool isNumericallyEqual(const double& a, int b,
                                const double tol = NTraits<double>::getSignificant())
 {   return isNumericallyEqual(a, (double)b, tol); }
+/// %Test a double for aproximate equality to an integer.
 inline bool isNumericallyEqual(int a, const double& b,
                                const double tol = NTraits<double>::getSignificant())
 {   return isNumericallyEqual((double)a, b, tol); }
+/// %Test a long double for aproximate equality to an integer.
 inline bool isNumericallyEqual(const long double& a, int b,
                                const long double tol = NTraits<long double>::getSignificant())
 {   return isNumericallyEqual(a, (long double)b, tol); }
+/// %Test a long double for aproximate equality to an integer.
 inline bool isNumericallyEqual(int a, const long double& b,
                                const long double tol = NTraits<long double>::getSignificant())
 {   return isNumericallyEqual((long double)a, b, tol); }
 
-// Complex and conjugate numbers of different precisions can be compared, but
-// we only use a tolerance appropriate for the narrower of the two precisions.
+/// Compare two complex numbers for approximate equality, using the numerical 
+/// accuracy expectation of the narrower of the two precisions in the case of mixed 
+/// precision.
 template <class P, class Q>
 inline bool isNumericallyEqual
   ( const std::complex<P>& a, const std::complex<Q>& b, 
@@ -316,6 +337,9 @@ inline bool isNumericallyEqual
 {   return isNumericallyEqual(a.real(),b.real(),tol)
         && isNumericallyEqual(a.imag(),b.imag(),tol); }
 
+/// Compare two conjugate numbers for approximate equality, using the numerical 
+/// accuracy expectation of the narrower of the two precisions in the case of mixed 
+/// precision.
 template <class P, class Q>
 inline bool isNumericallyEqual
   ( const conjugate<P>& a, const conjugate<Q>& b, 
@@ -324,6 +348,9 @@ inline bool isNumericallyEqual
 {   return isNumericallyEqual(a.real(),b.real(),tol)
         && isNumericallyEqual(a.imag(),b.imag(),tol); }
 
+/// Compare a complex and a conjugate number for approximate equality, using the 
+/// numerical accuracy expectation of the narrower of the two precisions in the 
+/// case of mixed precision.
 template <class P, class Q>
 inline bool isNumericallyEqual
   ( const std::complex<P>& a, const conjugate<Q>& b, 
@@ -332,6 +359,9 @@ inline bool isNumericallyEqual
 {   return isNumericallyEqual(a.real(),b.real(),tol)
         && isNumericallyEqual(a.imag(),b.imag(),tol); }
 
+/// Compare a complex and a conjugate number for approximate equality, using the 
+/// numerical accuracy expectation of the narrower of the two precisions in the 
+/// case of mixed precision.
 template <class P, class Q>
 inline bool isNumericallyEqual
   ( const conjugate<P>& a, const std::complex<Q>& b, 
@@ -342,6 +372,8 @@ inline bool isNumericallyEqual
 //@}
 
 /**
+ * @name atMostOneBitIsSet()
+ *
  * atMostOneBitIsSet() provides an extremely fast way to determine whether
  * an integral type is either zero or consists of a single set bit. This
  * question arises when using bits to represent set membership where one
@@ -350,7 +382,7 @@ inline bool isNumericallyEqual
  *
  * @see exactlyOneBitIsSet()
  */
-
+//@{
 // We use the trick that v & v-1 returns the value that is v with its
 // rightmost bit cleared (if it has a rightmost bit set).
 inline bool atMostOneBitIsSet(unsigned char v)      {return (v&v-1)==0;}
@@ -364,8 +396,11 @@ inline bool atMostOneBitIsSet(short v)              {return (v&v-1)==0;}
 inline bool atMostOneBitIsSet(int v)                {return (v&v-1)==0;}
 inline bool atMostOneBitIsSet(long v)               {return (v&v-1)==0;}
 inline bool atMostOneBitIsSet(long long v)          {return (v&v-1)==0;}
+//@}
 
 /**
+ * @name exactlyOneBitIsSet()
+ *
  * exactlyOneBitIsSet() provides an very fast way to determine whether
  * an integral type has exactly one bit set. For unsigned and positive
  * signed values, this is equivalent to the value being a power of two.
@@ -375,6 +410,7 @@ inline bool atMostOneBitIsSet(long long v)          {return (v&v-1)==0;}
  *
  * @see atMostOneBitIsSet()
  */
+//@{
 inline bool exactlyOneBitIsSet(unsigned char v)      {return v && atMostOneBitIsSet(v);}
 inline bool exactlyOneBitIsSet(unsigned short v)     {return v && atMostOneBitIsSet(v);}
 inline bool exactlyOneBitIsSet(unsigned int v)       {return v && atMostOneBitIsSet(v);}
@@ -386,8 +422,11 @@ inline bool exactlyOneBitIsSet(short v)              {return v && atMostOneBitIs
 inline bool exactlyOneBitIsSet(int v)                {return v && atMostOneBitIsSet(v);}
 inline bool exactlyOneBitIsSet(long v)               {return v && atMostOneBitIsSet(v);}
 inline bool exactlyOneBitIsSet(long long v)          {return v && atMostOneBitIsSet(v);}
+//@}
 
 /**
+ * @name signBit()
+ *
  * signBit(x) provides a fast way to determine the value of the sign
  * bit (as a bool) for integral and floating types. Note that this is
  * significantly different than sign(x); be sure you know what you're doing
@@ -407,6 +446,7 @@ inline bool exactlyOneBitIsSet(long long v)          {return v && atMostOneBitIs
  *    underlying representation -- it's up to you to realize that it is
  *    interpreted differently!
  */
+//@{
 inline bool signBit(unsigned char)      {return 0;}
 inline bool signBit(unsigned short)     {return 0;}
 inline bool signBit(unsigned int)       {return 0;}
@@ -433,8 +473,11 @@ inline bool signBit(const float&  f) {return std::signbit(f);}
 inline bool signBit(const double& d) {return std::signbit(d);}
 inline bool signBit(const negator<float>&  nf) {return std::signbit(-nf);} // !!
 inline bool signBit(const negator<double>& nd) {return std::signbit(-nd);} // !!
+//@}
 
 /**
+ * @name sign()
+ *
  * s=sign(n) returns int -1,0,1 according to n<0, n==0, n>0 for any integer
  * or real numeric type, unsigned 0 or 1 for any unsigned argument. This
  * routine is specialized for each of the int, unsigned, and real types
@@ -442,6 +485,7 @@ inline bool signBit(const negator<double>& nd) {return std::signbit(-nd);} // !!
  * not plain "char" since the language leaves unspecified whether that is
  * a signed or unsigned type. Sign is not defined for complex or conjugate.
  */
+//@{
 inline unsigned int sign(unsigned char      u) {return u==0 ? 0 : 1;}
 inline unsigned int sign(unsigned short     u) {return u==0 ? 0 : 1;}
 inline unsigned int sign(unsigned int       u) {return u==0 ? 0 : 1;}
@@ -464,15 +508,23 @@ inline int sign(const long double& x) {return x>0 ? 1 : (x<0 ? -1 : 0);}
 inline int sign(const negator<float>&       x) {return -sign(-x);} // -x is free
 inline int sign(const negator<double>&      x) {return -sign(-x);}
 inline int sign(const negator<long double>& x) {return -sign(-x);}
+//@}
 
 /**
+ * @name square()
+ *
  * y=square(x) returns the square of the argument for any numeric type.
  * We promise to evaluate x only once. We assume is is acceptable for
  * the result type to be the same as the argument type; if it won't
  * fit caller must cast argument to a wider type first. This is an
  * inline routine which will run as fast as an explicit multiply
- * (x*x) in optimized code, and somewhat faster for complex types.
+ * (x*x) in optimized code, and somewhat faster for complex and 
+ * conjugate types (5 flops instead of the usual 6).
+ *
+ * Squaring a negated number loses the negator at no cost; squaring
+ * a conjugate number returns a complex result at no additional cost.
  */
+//@{
 inline unsigned char  square(unsigned char  u) {return u*u;}
 inline unsigned short square(unsigned short u) {return u*u;}
 inline unsigned int   square(unsigned int   u) {return u*u;}
@@ -524,16 +576,25 @@ template <class P> inline
 std::complex<P> square(const negator< conjugate<P> >& x) {
     return square(-x); // negation is free for negators
 }
+//@}
 
 /**
+ * @name cube()
+ *
  * y=cube(x) returns the cube of the argument for any numeric type,
  * integral or floating point. We promise to evaluate x only once.
  * We assume is is acceptable for the result type to be the same
  * as the argument type; if it won't fit caller must cast argument
  * to a wider type first. This is an inline routine which will run
  * as fast as explicit multiplies (x*x*x) in optimized code, and
- * even faster for complex types.
+ * significantly faster for complex or conjugate types (8 flops
+ * vs. 11).
+ *
+ * Cubing a negated real type returns a negated result. Cubing
+ * a negated complex or conjugate returns a non-negated complex
+ * result since that can be done with no additional cost.
  */
+//@{
 inline unsigned char  cube(unsigned char  u) {return u*u*u;}
 inline unsigned short cube(unsigned short u) {return u*u*u;}
 inline unsigned int   cube(unsigned int   u) {return u*u*u;}
@@ -600,6 +661,7 @@ std::complex<P> cube(const negator< conjugate<P> >& x) {
     const P nre=(-x).real(), im=(-x).negImag(), rr=nre*nre, ii=im*im;
     return std::complex<P>(nre*(3*ii-rr), im*(3*rr-ii));
 }
+//@}
 
 } // namespace SimTK
 
