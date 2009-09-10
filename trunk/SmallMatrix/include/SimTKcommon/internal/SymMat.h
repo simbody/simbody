@@ -693,11 +693,46 @@ public:
                        CNT<typename TPacked::TLower>::getNaN());
     }
 
+
+    /// For approximate comparisions, the default tolerance to use for a matrix is
+    /// its shortest dimension times its elements' default tolerance.
+    static double getDefaultTolerance() {return M*CNT<ELT>::getDefaultTolerance();}
+
+    /// %Test whether this matrix is numerically equal to some other matrix with
+    /// the same shape, using a specified tolerance.
+    template <class E2, int RS2>
+    bool isNumericallyEqual(const SymMat<M,E2,RS2>& m, double tol) const {
+        return getAsVec().isNumericallyEqual(m.getAsVec(), tol);
+    }
+
+    /// %Test whether this matrix is numerically equal to some other matrix with
+    /// the same shape, using a default tolerance which is the looser of the
+    /// default tolerances of the two objects being compared.
+    template <class E2, int RS2>
+    bool isNumericallyEqual(const SymMat<M,E2,RS2>& m) const {
+        const double tol = std::max(getDefaultTolerance(),m.getDefaultTolerance());
+        return isNumericallyEqual(m, tol);
+    }
+
+    /// %Test whether this is numerically a "scalar" matrix, meaning that it is 
+    /// a diagonal matrix in which each diagonal element is numerically equal to 
+    /// the same scalar, using either a specified tolerance or the matrix's 
+    /// default tolerance (which is always the same or looser than the default
+    /// tolerance for one of its elements).
+    bool isNumericallyEqual
+       (const ELT& e,
+        double     tol = getDefaultTolerance()) const 
+    {
+        if (!diag().isNumericallyEqual(e, tol))
+            return false;
+        return getLower().isNumericallyEqual(ELT(0), tol);
+    }
+
     // Rows and columns have to be copied and Hermitian elements have to
     // be conjugated at a floating point cost. This isn't the best way
     // to work with a symmetric matrix.
     TRow row(int i) const {
-        SimTK_INDEXCHECK(0,i,M,"SymMat::row()");
+        SimTK_INDEXCHECK(0,i,M,"SymMat::row[i]");
         TRow rowi;
         // Columns left of diagonal are lower.
         for (int j=0; j<i; ++j)
@@ -709,7 +744,7 @@ public:
     }
 
     TCol col(int j) const {
-        SimTK_INDEXCHECK(0,j,M,"SymMat::col()");
+        SimTK_INDEXCHECK(0,j,M,"SymMat::col(j)");
         TCol colj;
         // Rows above diagonal are upper (with conjugated elements).
         for (int i=0; i<j; ++i)
@@ -726,8 +761,8 @@ public:
     /// in order to return the conjugates. So we always have to copy out the
     /// element, and may also have to conjugate it (one flop per complex number).
     E elt(int i, int j) const {
-        SimTK_INDEXCHECK(0,i,M,"SymMat::elt()");
-        SimTK_INDEXCHECK(0,j,M,"SymMat::elt()");
+        SimTK_INDEXCHECK(0,i,M,"SymMat::elt(i,j)");
+        SimTK_INDEXCHECK(0,j,M,"SymMat::elt(i,j)");
         if      (i>j)  return getEltLower(i,j); // copy element
         else if (i==j) return getEltDiag(i);    // copy element
         else           return getEltUpper(i,j); // conversion from EHerm to E may cost flops 

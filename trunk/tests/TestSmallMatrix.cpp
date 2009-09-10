@@ -196,6 +196,60 @@ void testSymMat() {
     SimTK_TEST_EQ( ~smc*vc, smc*vc );    
 }
 
+void testNumericallyEqual() {
+    Mat<3,4,float> fm1(1), fm1e(1), fm1n(1), fm1nz(1);
+    fm1e(1,1) += (float)(0.5*fm1.getDefaultTolerance()); // should test equal
+    fm1n(2,2) += (float)(2  *fm1.getDefaultTolerance()); // should test not equal
+    fm1nz(1,3) = (float)(2  *fm1.getDefaultTolerance()); // should test not equal
+
+    const Mat<3,4,float> fident34( 1, 0, 0, 0,
+                                   0, 1, 0, 0,
+                                   0, 0, 1, 0 );
+
+    SymMat<3,float> fs1(1), fs1e(1), fs1n(1), fs1nz(1);
+    fs1e(1,1) += (float)(0.5*fs1.getDefaultTolerance()); // should test equal
+    fs1n(2,2) += (float)(2  *fs1.getDefaultTolerance()); // should test not equal
+    fs1nz(2,1) = (float)(2  *fs1.getDefaultTolerance()); // should test not equal
+
+    const SymMat<3,float> fsident3( 1, 
+                                    0, 1, 
+                                    0, 0, 1 );
+
+    SimTK_TEST(fs1==fsident3); // exact
+    SimTK_TEST(fs1.isNumericallyEqual(fs1));
+    SimTK_TEST(fs1.isNumericallyEqual(fs1e));
+    SimTK_TEST(!fs1.isNumericallyEqual(fs1n));
+    SimTK_TEST(!fs1.isNumericallyEqual(fs1nz));
+    // Tightening tolerance should make fs1e not equal.
+    SimTK_TEST(!fs1.isNumericallyEqual(fs1e, .3*fs1.getDefaultTolerance()));
+    SimTK_TEST(fs1.isNumericallyEqual(1.f));
+    SimTK_TEST(fs1e.isNumericallyEqual(1.f));
+    SimTK_TEST(!fs1n.isNumericallyEqual(1.f));
+
+    SymMat<3,double> ds1(1), dfs1e(fs1e);
+    // Try mixed-precision.
+    SimTK_TEST(ds1.isNumericallyEqual(fs1));
+    SimTK_TEST(ds1.isNumericallyEqual(fs1e)); // because should use float tolerance
+    SimTK_TEST(!ds1.isNumericallyEqual(dfs1e)); // because should use double tolerance
+    SimTK_TEST(ds1.isNumericallyEqual(dfs1e, fs1e.getDefaultTolerance())); // force float tolerance
+
+    Vec<3,float> fv1(1), fv1e(1), fv1n(1); // should be 1 1 1
+    Row<3,float> fr1(1);
+    fv1e[1] += (float)(0.5*fv1.getDefaultTolerance()); // should test equal
+    fv1n[0] += (float)(2  *fv1.getDefaultTolerance()); // should test not equal
+
+    const Vec<3,float> fone(1,1,1);
+    SimTK_TEST(fv1==fone); // exact
+    SimTK_TEST(fv1.isNumericallyEqual(fv1));
+    SimTK_TEST(fv1.isNumericallyEqual(fv1e));
+    SimTK_TEST(!fv1.isNumericallyEqual(fv1n));
+
+    SimTK_TEST(fr1==~fone); // exact
+    SimTK_TEST(fr1.isNumericallyEqual(~fv1));
+    SimTK_TEST(fr1.isNumericallyEqual(~fv1e));
+    SimTK_TEST(!fr1.isNumericallyEqual(~fv1n));
+}
+
 int main() {
     SimTK_START_TEST("TestSmallMatrix");
         SimTK_SUBTEST(testSymMat);
@@ -206,5 +260,6 @@ int main() {
         SimTK_SUBTEST(testInverse<10>);
         SimTK_SUBTEST(testDotProducts);
         SimTK_SUBTEST(testCrossProducts);
+        SimTK_SUBTEST(testNumericallyEqual);
     SimTK_END_TEST();
 }

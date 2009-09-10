@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -49,105 +49,46 @@
  * Numerical Type T (or faked up for built-ins). Some of these are
  * given friendly names and documented since they are useful in
  * user code.
+ * <pre>
  *
- *     Type           Meaning
- *     -------------  ------------------------------------------------
- *
- *          REFERENCE TYPES
- *
- *     RefType           type of self
- *     RowRefType        type of a row of this CNT
- *     ColumnRefType     type of a column of this CNT
- *     ElementRefType    type of elements
- *     ScalarRefType     type of stored data
- *
- *     TransposeRefType  type returned by (Hermitian) transpose() or the
- *                         operator~; this is a *cast*, not a copy so will
- *                         have weird spacing if Type does.
- *     PositionalTransposeRefType
- *                       type returned by positionalTranspose(). This is
- *                         a *cast*, not a copy, so will have weird
- *                         spacing if Type does.
- *     NegateRefType     a type *cast*, which negates the interpretation
- *                         of the CNT's data
- *     RealPartRefType   the type *cast* which is used by real() to 
- *                         extract the real part of this CNT if it is
- *                         complex (or conjugate).
- *     ImagPartRefType   the type *cast* which is used by imag() to 
- *                         extract the imaginary part of this CNT if
- *                         it is complex (or conjugate). Note that this
- *                         is not necessarily the same type as RealPartType;
- *                         they can differ by a negator<>.
- *
- *          RESULTS (PACKED) TYPES -- these are always packed & use std numbers
- *
- *     PackedType        least weird type that can hold a copy of this
- *                         CNT object. The shape, CNT type, and numerical values
- *                         will be unchanged, but elements will be packed
- *                         together in columns and will use standard numbers (real &
- *                         complex). ElementRefType::PackedType (ElementType) is used
- *                         recursively for the elements.
- *     RowPackedType     same as above but packing by rows instead of columns
- *
- *     RowType           RowRefType::PackedType    
- *     ColumnType        ColumnRefType::PackedType
- *     ElementType       ElementRefType::PackedType
- *     ScalarType        ScalarRefType::PackedType
- *     TransposeType     TransposeRefType::PackedType
- *     PositionalTransposeType
- *                       PositionalTransposeRefType::PackedType
- *
- *     RealType          same shape as CNT, but elements are real
- *                         same as RealPartRefType::PackedType and ImagPartRefType::PackedType
- *     ComplexType       same shape as CNT, but elements are complex
- *
- *     InverseType       result of an invert() applied to this CNT. Looks like
- *                         a cleaned up version of TransposeType.
- *     SquareType        type returned by square()=~T*T; symmetric, scalar
- *                         if T=Vec
- *     RowSquareType     type returned by rowSquare()=T*~T; symmetric, scalar
- *                         if T=Row
- *     ScalarNormType    the type of ~s*s where s is the ScalarType of this CNT.
- *                         This is always a standard real number. This is the
- *                         result type of scalar norms, and abs(s).
- *     AbsType           type returned by elementwise abs() when applied to this
- *                         CNT. It has the same shape but each element is replaced
- *                         by abs() of that element. The result is always real.
+ *     Type             Meaning
+ *     ---------------- --------------------------------------------------------
  *                      
+ *     TNeg             same shape as T, but elements are negated
+ *     TReal            same shape as T, but with real elements
+ *     TImag            same shape as T, with real elements from imaginary part
+ *     TComplex         same shape as T, but with Complex or conjugate elements
+ *     THerm            transpose of T, with Hermitian transposed elements
+ *     TPosTrans        positional transpose of T; i.e., elements not transposed
+ *     TSqHermT         type of ~T*T (default vector & matrix square; symmetric)
+ *     TSqTHerm         type of T*~T (row square; symmetric)
  *
- *     TNeg         same shape as T, but elements are negated
- *     TReal        same shape as T, but with real elements
- *     TImag        same shape as T, with real elements from the imaginary part
- *     TComplex     same shape as T, but with Complex or conjugate elements
- *     THerm        transpose of T, with Hermitian transposed elements
- *     TPosTrans    positional transpose of T, that is, elements not transposed
- *     TSqHermT     type of ~T*T (default vector and matrix square; symmetric)
- *     TSqTHerm     type of T*~T (row square; symmetric)
+ *     Scalar           the underlying scalar type (see below)
+ *     ScalarNormSq     type of the "conjugate square" ~s*s of underlying scalar 
+ *                        (always real)
  *
- *     Scalar       the underlying scalar type (see below)
- *     ScalarNormSq type of the "conjugate square" ~s*s of underlying scalar (always real)
- *
- *     Substitute<E>::Type
- *                    a CNT of the same shape and container type as this one,
- *                      but with elements of type E instead of ElementType.
- *                      Special case: if this CNT is a scalar then 
- *                      Substitute<E>::Type just returns E.
+ *     Substitute<E>::Type  
+ *                      A CNT of the same shape and container type as this one,
+ *                        but with elements of type E instead of ElementType.
+ *                        Special case: if this CNT is a scalar then 
+ *                        Substitute<E>::Type just returns E.
  *     Result<RHS>::Mul ::Dvd
  *                ::Add ::Sub
- *                  the type of the result of T op RHS, where RHS is *any* CNT
+ *                      The type of the result of T op RHS, where RHS is *any* CNT
  *
  *          ENUMS (all sizes are in units of T's elements)
  *
- *     NRows           logical number of rows in type T (i.e., num elements in a column)
- *     NCols           logical number of columns in type T
- *     RowSpacing      num elements from one row to the next (default 1)
- *     ColSpacing      num elements from one col to the next (default NRows for Mat)
- *     NPackedElements minimum num elements it would take to store this data
- *     NActualElements num elements covered by T due to element spacing
- *     NActualScalars  NActualElements * CNT<ElementType>::NActualScalars. This should
- *                       be the physical spacing between array elements in an array
- *                       containing this kind of CNT. Our big Matrix/Vector types guarantee
- *                       this packing.
+ *     NRows            logical num rows in type T (i.e., num elements in a column)
+ *     NCols            logical number of columns in type T
+ *     RowSpacing       num elements from one row to the next (default 1)
+ *     ColSpacing       num elements from one col to the next (default NRows for Mat)
+ *     NPackedElements  minimum num elements it would take to store this data
+ *     NActualElements  num elements covered by T due to element spacing
+ *     NActualScalars   NActualElements * CNT<ElementType>::NActualScalars. This 
+ *                        should be the physical spacing between array elements 
+ *                        in an array containing this kind of CNT. Our big 
+ *                        Matrix/Vector types guarantee this packing.
+ * </pre>
  *
  * @verbatim
  *
@@ -310,8 +251,24 @@ public:
     static TNormalize normalize(const K& t)     {return t.normalize();}
     static TInvert    invert(const K& t)        {return t.invert();}
 
-    static K getInfinity() { return K::getInfinity(); }
-    static K getNaN()      { return K::getNaN();      }
+    static K getInfinity() {return K::getInfinity();}
+    static K getNaN()      {return K::getNaN();}
+
+    /// CNTs are expected to support an "==" operator for exact, bitwise equality.
+    /// This method implements approximate, numerical equality. For scalar types,
+    /// this should boil down to the isNumericallyEqual() scalar method. For 2D composite
+    /// types, the default tolerance should be loosened from the element's default
+    /// tolerance by the shorter of the two dimensions. For example, if element E's
+    /// default numerical tolerance is tol, then a Mat<3,5,E>'s default tolerance
+    /// should be 3*tol.
+    template <class K2> static bool 
+    isNumericallyEqual(const K& t1, const K2& t2) 
+    {   return t1.isNumericallyEqual(t2);}
+    template <class K2> static bool 
+    isNumericallyEqual(const K& t1, const K2& t2, double tol)
+    {   return t1.isNumericallyEqual(t2,tol);}
+    static double getDefaultTolerance() {return K::getDefaultTolerance();}
+
 };
 
 } // namespace SimTK

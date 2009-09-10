@@ -76,4 +76,43 @@ template class CNT< negator< conjugate<float> > >;
 template class CNT< negator< conjugate<double> > >;
 template class CNT< negator< conjugate<long double> > >;
 
+
+#define INSTANTIATE_ALL_LEFT(T) \
+template bool isNumericallyEqual(const T&, const complex<float>&,           double tol); \
+template bool isNumericallyEqual(const T&, const complex<double>&,          double tol); \
+template bool isNumericallyEqual(const T&, const complex<long double>&,     double tol); \
+template bool isNumericallyEqual(const T&, const conjugate<float>&,         double tol); \
+template bool isNumericallyEqual(const T&, const conjugate<double>&,        double tol); \
+template bool isNumericallyEqual(const T&, const conjugate<long double>&,   double tol); \
+template bool isNumericallyEqual(const T&, const float&,                    double tol); \
+template bool isNumericallyEqual(const T&, const double&,                   double tol); \
+template bool isNumericallyEqual(const T&, const long double&,              double tol); \
+template bool isNumericallyEqual(const T&, int,                             double tol)
+
+
+#define INSTANTIATE_ALL_RIGHT(T) \
+template bool isNumericallyEqual(const complex<float>&,         const T&, double tol); \
+template bool isNumericallyEqual(const complex<double>&,        const T&, double tol); \
+template bool isNumericallyEqual(const complex<long double>&,   const T&, double tol); \
+template bool isNumericallyEqual(const conjugate<float>&,       const T&, double tol); \
+template bool isNumericallyEqual(const conjugate<double>&,      const T&, double tol); \
+template bool isNumericallyEqual(const conjugate<long double>&, const T&, double tol); \
+template bool isNumericallyEqual(const float&,                  const T&, double tol); \
+template bool isNumericallyEqual(const double&,                 const T&, double tol); \
+template bool isNumericallyEqual(const long double&,            const T&, double tol); \
+template bool isNumericallyEqual(int,                           const T&, double tol)
+
+INSTANTIATE_ALL_LEFT(complex<float>);
+INSTANTIATE_ALL_LEFT(complex<double>);
+INSTANTIATE_ALL_LEFT(complex<long double>);
+INSTANTIATE_ALL_LEFT(conjugate<float>);
+INSTANTIATE_ALL_LEFT(conjugate<double>);
+INSTANTIATE_ALL_LEFT(conjugate<long double>);
+
+INSTANTIATE_ALL_RIGHT(complex<float>);
+INSTANTIATE_ALL_RIGHT(complex<double>);
+INSTANTIATE_ALL_RIGHT(complex<long double>);
+INSTANTIATE_ALL_RIGHT(conjugate<float>);
+INSTANTIATE_ALL_RIGHT(conjugate<double>);
+INSTANTIATE_ALL_RIGHT(conjugate<long double>);
 }

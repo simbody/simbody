@@ -36,13 +36,18 @@ using namespace SimTK;
 
 template class Vec<3,Real>;
 template class Vec<2,Real>;
-
 template class Vec<3,Complex>;
 template class Vec<2,Complex>;
-
 template class Vec< 3,negator<Real> >;
-
 template class Vec< 3,conjugate<float>,2 >;
+
+template class Mat<3,3,Real>;
+template class Mat<2,2,Real>;
+template class Mat<3,3,Complex>;
+template class Mat<2,2,Complex>;
+template class Mat<5,5,negator< std::complex<double> > >;
+template class Mat< 3,3,negator<Real> >;
+template class Mat< 3,3,conjugate<float>,2 >;
 
 template class SymMat< 4, std::complex<long double>, 7>;
 

@@ -598,6 +598,43 @@ public:
     }
 
     static Vec<M,ELT,1> getNaN() { return Vec<M,ELT,1>(CNT<ELT>::getNaN()); }
+
+    /// For approximate comparisions, the default tolerance to use for a vector is
+    /// the same as its elements' default tolerance.
+    static double getDefaultTolerance() {return CNT<ELT>::getDefaultTolerance();}
+
+    /// %Test whether this vector is numerically equal to some other vector with
+    /// the same shape, using a specified tolerance.
+    template <class E2, int RS2>
+    bool isNumericallyEqual(const Vec<M,E2,RS2>& v, double tol) const {
+        for (int i=0; i<M; ++i)
+            if (!CNT<ELT>::isNumericallyEqual((*this)[i], v[i], tol))
+                return false;
+        return true;
+    }
+
+    /// %Test whether this vector is numerically equal to some other vector with
+    /// the same shape, using a default tolerance which is the looser of the
+    /// default tolerances of the two objects being compared.
+    template <class E2, int RS2>
+    bool isNumericallyEqual(const Vec<M,E2,RS2>& v) const {
+        const double tol = std::max(getDefaultTolerance(),v.getDefaultTolerance());
+        return isNumericallyEqual(v, tol);
+    }
+
+    /// %Test whether every element of this vector is numerically equal to the given
+    /// element, using either a specified tolerance or the vector's 
+    /// default tolerance (which is always the same or looser than the default
+    /// tolerance for one of its elements).
+    bool isNumericallyEqual
+       (const ELT& e,
+        double     tol = getDefaultTolerance()) const 
+    {
+        for (int i=0; i<M; ++i)
+            if (!CNT<ELT>::isNumericallyEqual((*this)[i], e, tol))
+                return false;
+        return true;
+    }
 private:
 	ELT d[NActualElements];    // data
 };

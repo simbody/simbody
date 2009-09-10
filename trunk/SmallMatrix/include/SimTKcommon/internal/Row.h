@@ -597,6 +597,44 @@ public:
     }
 
     static Row<N,ELT,1> getNaN() { return Row<N,ELT,1>(CNT<ELT>::getNaN()); }
+
+
+    /// For approximate comparisions, the default tolerance to use for a vector is
+    /// the same as its elements' default tolerance.
+    static double getDefaultTolerance() {return CNT<ELT>::getDefaultTolerance();}
+
+    /// %Test whether this row vector is numerically equal to some other row with
+    /// the same shape, using a specified tolerance.
+    template <class E2, int CS2>
+    bool isNumericallyEqual(const Row<N,E2,CS2>& r, double tol) const {
+        for (int j=0; j<N; ++j)
+            if (!CNT<ELT>::isNumericallyEqual((*this)(j), r(j), tol))
+                return false;
+        return true;
+    }
+
+    /// %Test whether this row vector is numerically equal to some other row with
+    /// the same shape, using a default tolerance which is the looser of the
+    /// default tolerances of the two objects being compared.
+    template <class E2, int CS2>
+    bool isNumericallyEqual(const Row<N,E2,CS2>& r) const {
+        const double tol = std::max(getDefaultTolerance(),r.getDefaultTolerance());
+        return isNumericallyEqual(r, tol);
+    }
+
+    /// %Test whether every element of this row vector is numerically equal to
+    /// the given element, using either a specified tolerance or the row's 
+    /// default tolerance (which is always the same or looser than the default
+    /// tolerance for one of its elements).
+    bool isNumericallyEqual
+       (const ELT& e,
+        double     tol = getDefaultTolerance()) const 
+    {
+        for (int j=0; j<N; ++j)
+            if (!CNT<ELT>::isNumericallyEqual((*this)(j), e, tol))
+                return false;
+        return true;
+    }
 private:
 	ELT d[NActualElements];    // data
 };

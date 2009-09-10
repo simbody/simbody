@@ -185,6 +185,29 @@ public:
     static negator<N> getNaN()      {return recast(NTraits<N>::getNaN());}
 	static negator<N> getInfinity() {return recast(NTraits<N>::getInfinity());}
 
+    static double getDefaultTolerance() {return NTraits<N>::getDefaultTolerance();}
+
+    /// In the generic case we'll perform the negation here to get a number, 
+    /// and then delegate to the other type which can be any CNT.
+    template <class T2> bool isNumericallyEqual(const T2& t2) const
+    {   return CNT<T2>::isNumericallyEqual(t2, -v); } // perform negation
+
+    /// In this partial specialization we know that both types have negators so we
+    /// can just compare the underlying numbers, each of which has the reversed sign,
+    /// using the global SimTK method available for comparing numbers.
+    template <class N2> bool isNumericallyEqual(const negator<N2>& t2) const 
+    {   return SimTK::isNumericallyEqual(v, t2.v); }
+
+    /// This is the generic case (see above) but with an explicitly-provided tolerance.
+    template <class T2> bool isNumericallyEqual(const T2& t2, double tol) const
+    {   return CNT<T2>::isNumericallyEqual(t2, -v, tol); } // perform negation
+
+    /// This is the partially specialized case again (see above) but with an explicitly-provided
+    /// tolerance.
+    template <class N2> bool isNumericallyEqual(const negator<N2>& t2, double tol) const
+    {   return SimTK::isNumericallyEqual(v, t2.v, tol); }
+
+
     negator() {
     #ifndef NDEBUG
         v = NTraits<N>::getNaN();

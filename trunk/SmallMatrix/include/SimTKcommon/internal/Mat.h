@@ -562,8 +562,8 @@ public:
     const TCol& operator()(int j) const { return col(j); }
     TCol&       operator()(int j)       { return col(j); }
     
-    const E& operator()(int i,int j) const { return d[i*RS+j*CS]; }
-    E&       operator()(int i,int j)       { return d[i*RS+j*CS]; }
+    const E& operator()(int i,int j) const { return elt(i,j); }
+    E&       operator()(int i,int j)       { return elt(i,j); }
 
     // This is the scalar Frobenius norm.
     ScalarNormSq normSqr() const { return scalarNormSqr(); }
@@ -644,16 +644,34 @@ public:
     const TWithoutNegator& castAwayNegatorIfAny() const {return *reinterpret_cast<const TWithoutNegator*>(this);}
     TWithoutNegator&       updCastAwayNegatorIfAny()    {return *reinterpret_cast<TWithoutNegator*>(this);}
 
-    const TRow& row(int i) const 
-      { assert(0<=i&&i<M); return *reinterpret_cast<const TRow*>(&d[i*RS]); }
-    TRow&       row(int i)       
-      { assert(0<=i&&i<M); return *reinterpret_cast<      TRow*>(&d[i*RS]); }
+    const TRow& row(int i) const { 
+        SimTK_INDEXCHECK(0,i,M, "Mat::row[i]");
+        return *reinterpret_cast<const TRow*>(&d[i*RS]); 
+    }
+    TRow& row(int i) { 
+        SimTK_INDEXCHECK(0,i,M, "Mat::row[i]");
+        return *reinterpret_cast<TRow*>(&d[i*RS]); 
+    }
 
-    const TCol& col(int j) const 
-      { assert(0<=j&&j<N); return *reinterpret_cast<const TCol*>(&d[j*CS]); }
-    TCol&       col(int j)       
-      { assert(0<=j&&j<N); return *reinterpret_cast<      TCol*>(&d[j*CS]); }    
-
+    const TCol& col(int j) const { 
+        SimTK_INDEXCHECK(0,j,N, "Mat::col(j)");
+        return *reinterpret_cast<const TCol*>(&d[j*CS]); 
+    }
+    TCol& col(int j) { 
+        SimTK_INDEXCHECK(0,j,N, "Mat::col(j)");
+        return *reinterpret_cast<TCol*>(&d[j*CS]); 
+    }    
+    
+    const E& elt(int i, int j) const {
+        SimTK_INDEXCHECK(0,i,M, "Mat::elt(i,j)");
+        SimTK_INDEXCHECK(0,j,N, "Mat::elt(i,j)");
+        return d[i*RS+j*CS]; 
+    }
+    E& elt(int i, int j) { 
+        SimTK_INDEXCHECK(0,i,M, "Mat::elt(i,j)");
+        SimTK_INDEXCHECK(0,j,N, "Mat::elt(i,j)");
+        return d[i*RS+j*CS]; 
+    }
 
     const TDiag& diag() const { return *reinterpret_cast<const TDiag*>(d); }
     TDiag&       diag()       { return *reinterpret_cast<TDiag*>(d); }
@@ -933,11 +951,57 @@ public:
         m.setToNaN();
         return m;
     }
+
+    /// For approximate comparisions, the default tolerance to use for a matrix is
+    /// its shortest dimension times its elements' default tolerance.
+    static double getDefaultTolerance() {return MinDim*CNT<ELT>::getDefaultTolerance();}
+
+    /// %Test whether this matrix is numerically equal to some other matrix with
+    /// the same shape, using a specified tolerance.
+    template <class E2, int CS2, int RS2>
+    bool isNumericallyEqual(const Mat<M,N,E2,CS2,RS2>& m, double tol) const {
+        for (int j=0; j < N; ++j)
+            if (!(*this)(j).isNumericallyEqual(m(j), tol))
+                return false;
+        return true;
+    }
+
+    /// %Test whether this matrix is numerically equal to some other matrix with
+    /// the same shape, using a default tolerance which is the looser of the
+    /// default tolerances of the two objects being compared.
+    template <class E2, int CS2, int RS2>
+    bool isNumericallyEqual(const Mat<M,N,E2,CS2,RS2>& m) const {
+        const double tol = std::max(getDefaultTolerance(),m.getDefaultTolerance());
+        return isNumericallyEqual(m, tol);
+    }
+
+    /// %Test whether this is numerically a "scalar" matrix, meaning that it is 
+    /// a diagonal matrix in which each diagonal element is numerically equal to 
+    /// the same scalar, using either a specified tolerance or the matrix's 
+    /// default tolerance (which is always the same or looser than the default
+    /// tolerance for one of its elements).
+    bool isNumericallyEqual
+       (const ELT& e,
+        double     tol = getDefaultTolerance()) const 
+    {
+        for (int i=0; i<M; ++i)
+            for (int j=0; j<N; ++j) {
+                if (i==j) {
+                    if (!CNT<ELT>::isNumericallyEqual((*this)(i,i), e, tol))
+                        return false;
+                } else {
+                    // off-diagonals must be zero
+                    if (!CNT<ELT>::isNumericallyEqual((*this)(i,j), ELT(0), tol))
+                        return false;
+                }
+            }
+        return true;
+    }
     
     TRow sum() const {
         TRow temp;
-        for (int i = 0; i < N; ++i)
-            temp[i] = col(i).sum();
+        for (int j = 0; j < N; ++j)
+            temp[j] = col(j).sum();
         return temp;
     }
 

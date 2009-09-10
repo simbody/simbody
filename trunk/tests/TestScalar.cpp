@@ -517,12 +517,25 @@ void testSquareAndCube() {
 void testIsNumericallyEqual() {
     const float  f=1.234f, fn=1.234f+1e-5f, fe=1.234f+1e-9f;
     const double d=1.234,  dn=1.234 +1e-12, de=1.234 +1e-15;
+    const negator<float>& nf=negator<float>::recast(f);
+    const negator<float>& nfn=negator<float>::recast(fn);
+    const negator<float>& nfe=negator<float>::recast(fe);
 
     SimTK_TEST(isNumericallyEqual(f,f))
     SimTK_TEST(isNumericallyEqual(f,fe));
     SimTK_TEST(!isNumericallyEqual(f,fn));
     SimTK_TEST(isNumericallyEqual(f,fn,1e-4f));
     SimTK_TEST(!isNumericallyEqual(f,fn,1e-6f));
+
+    SimTK_TEST(CNT<float>::isNumericallyEqual(f,f));
+    SimTK_TEST(CNT<float>::isNumericallyEqual(f,fe));
+    SimTK_TEST(!CNT<float>::isNumericallyEqual(f,fn));
+    SimTK_TEST(CNT<float>::isNumericallyEqual(f,fn,1e-4f));
+    SimTK_TEST(!CNT<float>::isNumericallyEqual(f,fn,1e-6f));
+
+    SimTK_TEST(nf.isNumericallyEqual(nf));
+    SimTK_TEST(nf.isNumericallyEqual(-f));
+    SimTK_TEST(!nf.isNumericallyEqual(f));
 
     SimTK_TEST(isNumericallyEqual(1000*f,1234));
     SimTK_TEST(isNumericallyEqual(1234,1000*f));
@@ -544,6 +557,7 @@ void testIsNumericallyEqual() {
     // Mixed should use float tolerance
     SimTK_TEST(isNumericallyEqual(fe,de));
     SimTK_TEST(!isNumericallyEqual((double)fe,de));
+
 
 }
 
