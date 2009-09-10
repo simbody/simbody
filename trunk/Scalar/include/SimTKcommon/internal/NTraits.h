@@ -356,7 +356,7 @@ isNumericallyEqual(const long double& a, const std::complex<P>& b,
 template <class P> inline bool 
 isNumericallyEqual(const std::complex<P>& a, int b, 
                    double tol = RTraits<P>::getDefaultTolerance())
-{   typedef Widest<P,double>::Precision W; return isNumericallyEqual(a,(W)b,tol); }
+{   typedef typename Widest<P,double>::Precision W; return isNumericallyEqual(a,(W)b,tol); }
 /// %Test whether a complex number is approximately equal to a particular integer.
 template <class P> inline bool 
 isNumericallyEqual(int a, const std::complex<P>& b, 
@@ -397,7 +397,7 @@ isNumericallyEqual(const long double& a, const conjugate<P>& b,
 template <class P> inline bool 
 isNumericallyEqual(const conjugate<P>& a, int b, 
                    double tol = RTraits<P>::getDefaultTolerance())
-{   typedef Widest<P,double>::Precision W; return isNumericallyEqual(a,(W)b,tol); }
+{   typedef typename Widest<P,double>::Precision W; return isNumericallyEqual(a,(W)b,tol); }
 /// %Test whether a conjugate number is approximately equal to a particular integer.
 template <class P> inline bool 
 isNumericallyEqual(int a, const conjugate<P>& b, 
