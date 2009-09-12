@@ -45,6 +45,31 @@
  * only under C++.
  */
 
+// Define shared doxygen "modules" and sub-modules here. We'll put things 
+// in them at various places when appropriate.
+
+/**@defgroup GlobalFunctions Global Functions in the SimTK namespace
+ *
+ * These are functions at the top level of the SimTK namespace, meaning
+ * that a function named funcName() is invoked as SimTK::funcName(), or
+ * just funcName() if there is a "using SimTK" statement in effect.
+ */
+
+/**@defgroup ScalarFunctions Scalar Functions
+ * @ingroup GlobalFunctions
+ *
+ * These functions are overloaded to act on SimTK scalar types and C++
+ * built-in types, including integral types when appropriate.
+ */
+
+/**@defgroup BitFunctions Bit-twiddling Functions
+ * @ingroup GlobalFunctions
+ *
+ * These functions perform highly optimized bit-twiddling operations on
+ * the built-in integral types, and sometimes on the representations of
+ * floating point types as well.
+ */
+
 /*****************************/
 /* ANSI-C COMPATIBLE SECTION */
 /*****************************/
@@ -185,13 +210,18 @@ extern "C" {
 namespace std {
 inline bool isfinite(float f) {return _finite(f) != 0;}
 inline bool isfinite(double d) {return _finite(d) != 0;}
+inline bool isfinite(long double l) {return _finite(l) != 0;}
 inline bool isnan(float f) {return _isnan(f) != 0;}
 inline bool isnan(double d) {return _isnan(d) != 0;}
+inline bool isnan(long double l) {return _isnan(l) != 0;}
 inline bool isinf(float f) {return std::abs(f)==std::numeric_limits<float>::infinity();}
 inline bool isinf(double d) {return std::abs(d)==std::numeric_limits<double>::infinity();}
+inline bool isinf(long double l) {return std::abs(l)==std::numeric_limits<double>::infinity();}
 inline bool signbit(float f) {return (*reinterpret_cast<unsigned*>(&f) & 0x80000000U) != 0;}
 inline bool signbit(double d) {return (*reinterpret_cast<unsigned long long*>(&d)
-                                & 0x8000000000000000ULL) != 0;}
+                               & 0x8000000000000000ULL) != 0;}
+inline bool signbit(long double l) {return (*reinterpret_cast<unsigned long long*>(&l)
+                                    & 0x8000000000000000ULL) != 0;}
 }
 #endif
 

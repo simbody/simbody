@@ -997,6 +997,37 @@ public:
             }
         return true;
     }
+
+    /// A Matrix is symmetric (actually Hermitian) if it is square and each 
+    /// element (i,j) is the Hermitian transpose of element (j,i). Here we
+    /// are testing for numerical symmetry, meaning that the symmetry condition
+    /// is satisified to within a tolerance (supplied or default). This is 
+    /// a relatively expensive test since all elements must be examined but
+    /// can be very useful in Debug mode to check assumptions.
+    /// @see isExactlySymmetric() for a rarely-used exact equality test
+    bool isNumericallySymmetric(double tol = getDefaultTolerance()) const {
+        if (M != N) return false; // handled at compile time
+        for (int j=0; j<M; ++j)
+            for (int i=j; i<M; ++i)
+                if (!CNT<ELT>::isNumericallyEqual(elt(j,i), CNT<ELT>::transpose(elt(i,j)), tol))
+                    return false;
+        return true;
+    }
+
+    /// A Matrix is symmetric (actually Hermitian) if it is square and each 
+    /// element (i,j) is the Hermitian (conjugate) transpose of element (j,i). This
+    /// method tests for exact (bitwise) equality and is too stringent for most 
+    /// purposes; don't use it unless you know that the corresponding elements
+    /// should be bitwise conjugates, typically because you put them there directly.
+    /// @see isNumericallySymmetric() for a more useful method
+    bool isExactlySymmetric() const {
+        if (M != N) return false; // handled at compile time
+        for (int j=0; j<M; ++j)
+            for (int i=j; i<M; ++i)
+                if (elt(j,i) != CNT<ELT>::transpose(elt(i,j)))
+                    return false;
+        return true;
+    }
     
     TRow sum() const {
         TRow temp;

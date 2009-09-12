@@ -259,7 +259,51 @@ public:
 
 private:
     N v;
+
+template <class N2> friend class negator;
 };
+
+// isNaN() for real, complex, and conjugate numbers is provided in
+// NTraits. Here we add isNaN() for negated scalar types.
+
+/// @addtogroup isNaN
+//@{
+inline bool isNaN(const negator<float>&  x) {return isNaN(-x);}
+inline bool isNaN(const negator<double>& x) {return isNaN(-x);}
+inline bool isNaN(const negator<long double>& x) {return isNaN(-x);}
+template <class P> inline bool
+isNaN(const negator< std::complex<P> >& x) {return isNaN(-x);}
+template <class P> inline bool
+isNaN(const negator< conjugate<P> >&    x) {return isNaN(-x);}
+//@}
+
+// isFinite() for real, complex, and conjugate numbers is provided in
+// NTraits. Here we add isFinite() for negated scalar types.
+
+/// @addtogroup isFinite
+//@{
+inline bool isFinite(const negator<float>&  x) {return isFinite(-x);}
+inline bool isFinite(const negator<double>& x) {return isFinite(-x);}
+inline bool isFinite(const negator<long double>& x) {return isFinite(-x);}
+template <class P> inline bool
+isFinite(const negator< std::complex<P> >& x) {return isFinite(-x);}
+template <class P> inline bool
+isFinite(const negator< conjugate<P> >&    x) {return isFinite(-x);}
+//@}
+
+// isInf(x) for real, complex, and conjugate numbers is provided in
+// NTraits. Here we add isInf() for negated scalar types.
+
+/// @addtogroup isInf
+//@{
+inline bool isInf(const negator<float>&  x) {return isInf(-x);}
+inline bool isInf(const negator<double>& x) {return isInf(-x);}
+inline bool isInf(const negator<long double>& x) {return isInf(-x);}
+template <class P> inline bool
+isInf(const negator< std::complex<P> >& x) {return isInf(-x);}
+template <class P> inline bool
+isInf(const negator< conjugate<P> >&    x) {return isInf(-x);}
+//@}
 
 
 // Handle all binary numerical operators involving a negator<A> and a B, or negator<A>

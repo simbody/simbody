@@ -258,27 +258,30 @@ public:
         return *this;
     }
 
-    /// This is an \e explicit conversion from square Mat of right size, looking 
-    /// only at lower elements and real part of diagonal elements.
-    //template <class EE, int CSS, int RSS>
-    //explicit SymMat(const Mat<M,M,EE,CSS,RSS>& m) {
-    //    updDiag() = m.diag().real();
-    //    for (int j=0; j<M; ++j)
-    //        for (int i=j+1; i<M; ++i)
-    //            updEltLower(i,j) = m(i,j);
-    //}
+    /// This is an \e explicit conversion from square Mat of right size, assuming
+    /// that the source matrix is symmetric to within a reasonable numerical 
+    /// tolerance. In Debug mode we'll test that assumption and throw an exception
+    /// if it is wrong. In Release mode you're on your own. All the elements of
+    /// the source Mat are used; off-diagonal elements (i,j) are averaged with
+    /// their corresponding element (j,i); the imaginary part of the diagonal
+    /// is set exactly to zero. If you don't want to spend the flops to average
+    /// the off-diagonals, and you're sure the source is symmetric, use either
+    /// setFromLower() or setFromUpper() which will just copy the elements.
+    /// @see setFromLower(), setFromUpper()
+    template <class EE, int CSS, int RSS>
+    explicit SymMat(const Mat<M,M,EE,CSS,RSS>& m)
+    {   setFromSymmetric(m); }
 
     /// Create a new SymMat of this type from a square Mat of the right
     /// size, looking only at lower elements and the real part of the
     /// diagonal.
     template <class EE, int CSS, int RSS>
-    static SymMat fromLower(const Mat<M,M,EE,CSS,RSS>& m) {
-        SymMat result;
-        result.updDiag() = m.diag().real();
+    SymMat& setFromLower(const Mat<M,M,EE,CSS,RSS>& m) {
+        this->updDiag() = m.diag().real();
         for (int j=0; j<M; ++j)
             for (int i=j+1; i<M; ++i)
-                result.updEltLower(i,j) = m(i,j);
-        return result;
+                this->updEltLower(i,j) = m(i,j);
+        return *this;
     }
 
     /// Create a new SymMat of this type from a square Mat of the right
@@ -289,13 +292,12 @@ public:
     /// we simply copy the upper elements of the Mat to the corresponding
     /// lower elements of the SymMat.
     template <class EE, int CSS, int RSS>
-    static SymMat fromUpper(const Mat<M,M,EE,CSS,RSS>& m) {
-        SymMat result;
-        result.updDiag() = m.diag().real();
+    SymMat& setFromUpper(const Mat<M,M,EE,CSS,RSS>& m) {
+        this->updDiag() = m.diag().real();
         for (int j=0; j<M; ++j)
             for (int i=j+1; i<M; ++i)
-                result.updEltLower(i,j) = m(j,i);
-        return result;
+                this->updEltLower(i,j) = m(j,i);
+        return *this;
     }
 
     /// Create a new SymMat of this type from a square Mat of the right
@@ -303,16 +305,17 @@ public:
     /// a tolerance. All elements are used; we average the upper and
     /// lower elements of the Mat to produce the corresponding element
     /// of the SymMat.
-    /// TODO: check that Mat is symmetric when in Debug mode.
     template <class EE, int CSS, int RSS>
-    static SymMat fromSymmetric(const Mat<M,M,EE,CSS,RSS>& m) {
-        SymMat result;
-        result.updDiag() = m.diag().real();
+    SymMat& setFromSymmetric(const Mat<M,M,EE,CSS,RSS>& m) {
+        SimTK_ERRCHK1(m.isNumericallySymmetric(), "SymMat::setFromSymmetric()",
+            "The allegedly symmetric source matrix was not symmetric to within "
+            "a tolerance of %g.", m.getDefaultTolerance());
+        this->updDiag() = m.diag().real();
         for (int j=0; j<M; ++j)
             for (int i=j+1; i<M; ++i)
-                result.updEltLower(i,j) = 
+                this->updEltLower(i,j) = 
                     (m(i,j) + CNT<EE>::transpose(m(j,i)))/2;
-        return result;
+        return *this;
     }
 
     /// This is an \e implicit conversion from a SymMat of the same length
@@ -333,9 +336,8 @@ public:
 
     // Construction using an element repeats that element on the diagonal
     // but sets the rest of the matrix to zero.
-    // TODO: diag should just use real part
     explicit SymMat(const E& e) {
-        updDiag() = e; 
+        updDiag() = CNT<E>::real(e); 
         for (int i=0; i < NLowerElements; ++i) updlowerE(i) = E(0); 
     }
 
@@ -531,17 +533,17 @@ public:
     typename CNT<ScalarNormSq>::TSqrt 
         norm() const { return CNT<ScalarNormSq>::sqrt(scalarNormSqr()); }
 
-    // There is no conventional meaning for normalize() applied to a matrix. We
-    // choose to define it as follows:
-    // If the elements of this SymMat are scalars, the result is what you get by
-    // dividing each element by the Frobenius norm() calculated above. If the elements are
-    // *not* scalars, then the elements are *separately* normalized.
-    //
-    // Normalize returns a matrix of the same dimension but in new, packed storage
-    // and with a return type that does not include negator<> even if the original
-    // SymMat<> does, because we can eliminate the negation here almost for free.
-    // But we can't standardize (change conjugate to complex) for free, so we'll retain
-    // conjugates if there are any.
+    /// There is no conventional meaning for normalize() applied to a matrix. We
+    /// choose to define it as follows:
+    /// If the elements of this SymMat are scalars, the result is what you get by
+    /// dividing each element by the Frobenius norm() calculated above. If the elements are
+    /// *not* scalars, then the elements are *separately* normalized.
+    ///
+    /// Normalize returns a matrix of the same dimension but in new, packed storage
+    /// and with a return type that does not include negator<> even if the original
+    /// SymMat<> does, because we can eliminate the negation here almost for free.
+    /// But we can't standardize (change conjugate to complex) for free, so we'll retain
+    /// conjugates if there are any.
     TNormalize normalize() const {
         if (CNT<E>::IsScalar) {
             return castAwayNegatorIfAny() / (SignInterpretation*norm());

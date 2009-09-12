@@ -132,7 +132,7 @@ void testSymMat() {
                   a[1], a[2] );
 
     SimTK_TEST_EQ( (Mat<2,2>(sm)), m );
-    SimTK_TEST_EQ( sm, SymMat<2>::fromSymmetric(m) );
+    SimTK_TEST_EQ( sm, SymMat<2>().setFromSymmetric(m) );
 
     SimTK_TEST_EQ( sm*v, m*v );
     SimTK_TEST_EQ( ~v*sm, ~v*m );
@@ -148,7 +148,7 @@ void testSymMat() {
                    a3[3], a3[4], a3[5]);
 
     SimTK_TEST_EQ( (Mat<3,3>(sm3)), m3 );
-    SimTK_TEST_EQ( sm3, SymMat<3>::fromSymmetric(m3) );
+    SimTK_TEST_EQ( sm3, SymMat<3>().setFromSymmetric(m3) );
 
     SimTK_TEST_EQ( sm3*v3, m3*v3 );
     SimTK_TEST_EQ( ~v3*sm3, ~v3*m3 );
@@ -166,7 +166,7 @@ void testSymMat() {
                    a4[6], a4[7], a4[8], a4[9]);
 
     SimTK_TEST_EQ( (Mat<4,4>(sm4)), m4 );
-    SimTK_TEST_EQ( sm4, SymMat<4>::fromSymmetric(m4) );
+    SimTK_TEST_EQ( sm4, SymMat<4>().setFromSymmetric(m4) );
 
     SimTK_TEST_EQ( sm4*v4, m4*v4 );
     SimTK_TEST_EQ( ~v4*sm4, ~v4*m4 );
@@ -187,7 +187,7 @@ void testSymMat() {
     // element for the upper right in the full Mat.
     Mat<2,2,Complex> sm2mc(smc);
     SimTK_TEST_EQ( sm2mc, mc );
-    SimTK_TEST_EQ( smc, (SymMat<2,Complex>::fromSymmetric(mc)) );
+    SimTK_TEST_EQ( smc, (SymMat<2,Complex>().setFromSymmetric(mc)) );
 
     SimTK_TEST_EQ( smc*vc, mc*vc );
     SimTK_TEST_EQ( ~vc*smc, ~vc*mc );
@@ -202,9 +202,35 @@ void testNumericallyEqual() {
     fm1n(2,2) += (float)(2  *fm1.getDefaultTolerance()); // should test not equal
     fm1nz(1,3) = (float)(2  *fm1.getDefaultTolerance()); // should test not equal
 
-    const Mat<3,4,float> fident34( 1, 0, 0, 0,
-                                   0, 1, 0, 0,
-                                   0, 0, 1, 0 );
+    const Mat<3,4,float> fmident34( 1, 0, 0, 0,
+                                    0, 1, 0, 0,
+                                    0, 0, 1, 0 );
+
+
+
+    SimTK_TEST(fm1==fmident34); // exact
+    SimTK_TEST(fm1.isNumericallyEqual(fm1));
+    SimTK_TEST(fm1.isNumericallyEqual(fm1e));
+    SimTK_TEST(!fm1.isNumericallyEqual(fm1n));
+    SimTK_TEST(!fm1.isNumericallyEqual(fm1nz));
+    SimTK_TEST((fm1.getSubMat<3,3>(0,0).isNumericallyEqual(fm1nz.getSubMat<3,3>(0,0))));
+    SimTK_TEST((fm1e.getSubMat<3,3>(0,0).isNumericallyEqual(fm1nz.getSubMat<3,3>(0,0))));
+    SimTK_TEST(!(fm1n.getSubMat<3,3>(0,0).isNumericallyEqual(fm1nz.getSubMat<3,3>(0,0))));
+
+    // Tightening tolerance should make fm1e not equal.
+    SimTK_TEST(!fm1.isNumericallyEqual(fm1e, .3*fm1.getDefaultTolerance()));
+    SimTK_TEST(fm1.isNumericallyEqual(1.f));
+    SimTK_TEST(fm1e.isNumericallyEqual(1.f));
+    SimTK_TEST(!fm1n.isNumericallyEqual(1.f));
+
+    Mat<3,4,double> dm1(1), dfm1e(fm1e);
+    // Try mixed-precision.
+    SimTK_TEST(dm1.isNumericallyEqual(fm1));
+    SimTK_TEST(dm1.isNumericallyEqual(fm1e)); // because should use float tolerance
+    SimTK_TEST(!dm1.isNumericallyEqual(dfm1e)); // because should use double tolerance
+    SimTK_TEST(dm1.isNumericallyEqual(dfm1e, fm1e.getDefaultTolerance())); // force float tolerance
+
+    // Repeat for symmetric matrix.
 
     SymMat<3,float> fs1(1), fs1e(1), fs1n(1), fs1nz(1);
     fs1e(1,1) += (float)(0.5*fs1.getDefaultTolerance()); // should test equal
@@ -233,6 +259,8 @@ void testNumericallyEqual() {
     SimTK_TEST(!ds1.isNumericallyEqual(dfs1e)); // because should use double tolerance
     SimTK_TEST(ds1.isNumericallyEqual(dfs1e, fs1e.getDefaultTolerance())); // force float tolerance
 
+    // Check Vec and Row.
+
     Vec<3,float> fv1(1), fv1e(1), fv1n(1); // should be 1 1 1
     Row<3,float> fr1(1);
     fv1e[1] += (float)(0.5*fv1.getDefaultTolerance()); // should test equal
@@ -248,6 +276,61 @@ void testNumericallyEqual() {
     SimTK_TEST(fr1.isNumericallyEqual(~fv1));
     SimTK_TEST(fr1.isNumericallyEqual(~fv1e));
     SimTK_TEST(!fr1.isNumericallyEqual(~fv1n));
+
+    // Check symmetry tests in Mat.
+    Mat<2,7,double> notSquare(0); // can't be symmetric
+    SimTK_TEST(!notSquare.isExactlySymmetric());
+    SimTK_TEST(!notSquare.isNumericallySymmetric());
+
+    Mat<3,3,float> f33(1),       // exactly symmetric
+                   f33e(1),      // numerically symmetric
+                   f33n(1);      // too sloppy
+    f33e(1,2) += (float)(0.5*f33.getDefaultTolerance()); // should test equal
+    f33n(2,0) += (float)(2  *f33.getDefaultTolerance()); // should test not equal
+
+    SimTK_TEST(f33.isExactlySymmetric());
+    SimTK_TEST(!f33e.isExactlySymmetric());
+    SimTK_TEST(!f33n.isExactlySymmetric());
+    SimTK_TEST(f33.isNumericallySymmetric());
+    SimTK_TEST(f33e.isNumericallySymmetric());
+    SimTK_TEST(!f33n.isNumericallySymmetric());
+
+    // Things are trickier for complex matrices where symmetry means
+    // Hermitian (conjugate) symmetry.
+    // This one has *positional* symmetry, not Hermitian.
+    Mat<2,2, std::complex<double> > mcp( std::complex<double>(1,2), std::complex<double>(3,4),
+                                         std::complex<double>(3,4), std::complex<double>(5,6) );
+    // This one is Hermitian. 
+    Mat<2,2, std::complex<double> > mch( std::complex<double>(1,0), std::complex<double>(3,-4),
+                                         std::complex<double>(3,4), std::complex<double>(5,0) );
+
+    SimTK_TEST(!mcp.isExactlySymmetric());
+    SimTK_TEST(!mcp.isNumericallySymmetric());
+
+    SimTK_TEST(mch.isExactlySymmetric());
+    SimTK_TEST(mch.isNumericallySymmetric());
+
+    // This should be OK because mch is symmetric.
+    SymMat<2, std::complex<double> > symTest;
+    symTest.setFromSymmetric(mch);
+
+    mch(0,1) += 0.5*mch.getDefaultTolerance();
+    SimTK_TEST(!mch.isExactlySymmetric());
+    SimTK_TEST(mch.isNumericallySymmetric());
+
+    // This should be OK because mch is almost symmetric.
+    symTest.setFromSymmetric(mch);
+
+    mch(0,1) += 5*mch.getDefaultTolerance();
+    SimTK_TEST(!mch.isExactlySymmetric());
+    SimTK_TEST(!mch.isNumericallySymmetric());
+
+
+    // This should throw in Debug mode because mch is too far off.
+    #ifndef NDEBUG
+    SimTK_TEST_MUST_THROW(symTest.setFromSymmetric(mch));
+    #endif
+
 }
 
 int main() {

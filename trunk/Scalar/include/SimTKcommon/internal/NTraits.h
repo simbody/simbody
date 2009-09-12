@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -33,14 +33,13 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This file contains classes and typedefs needed to provide uniform
- * handling of floating point numeric values. There are three numeric
- * classes: real, complex, conjugate and each comes in float, double,
- * and long double precision. Each of these may be modified by a
- * negator, which does not change the in-memory *representation* but 
- * negates the *interpretation*. Thus there are 18 distinct scalar
- * types: 3 precisions each of real, complex, and conjugate and their
- * negators.
+ * This file contains classes and typedefs needed to provide uniform handling of 
+ * floating point numeric values. There are three numeric types: real, complex, 
+ * conjugate and each comes in float, double, and long double precision. Each of 
+ * these may be modified by a negator, which does not change the in-memory 
+ * \e representation but negates the \e interpretation. Thus there are 18 
+ * distinct scalar types: 3 precisions each of real, complex, and conjugate and 
+ * their negators.
  * @verbatim
  *      The Scalar Types
  *      ----------------
@@ -74,11 +73,11 @@ namespace SimTK {
 // our conjugate type and complex type have identical sizes and representations.
 // Together, these defininitions and guarantees permit conjugation
 // to be done by reinterpretation rather than be computation.
-template <class R> class conjugate;    // Only defined for float, double, long double
+template <class R> class conjugate; // Only defined for float, double, long double
 
-// Specializations of this class provide information about Composite Numerical Types
-// in the style of std::numeric_limits<T>. It is specialized for the numeric types
-// but can be invoked on any composite numerical type as well.
+// Specializations of this class provide information about Composite Numerical 
+// Types in the style of std::numeric_limits<T>. It is specialized for the 
+// numeric types but can be invoked on any composite numerical type as well.
 template <class T> class CNT;
 
 // NTraits provides information like CNT, but for numeric types only.
@@ -90,10 +89,10 @@ template <> class NTraits<double>;
 template <> class NTraits<long double>;
 
 // This is an adaptor for numeric types which negates the apparent values. A
-// negator<N> has exactly the same internal representation as a numeric
-// value N, but it is to be interpreted has having the negative of the value
-// it would have if interpreted as an N. This permits negation to be done
-// by reinterpretation rather than compuation. A full set of arithmetic operators
+// negator<N> has exactly the same internal representation as a numeric value N, 
+// but it is to be interpreted has having the negative of the value it would 
+// have if interpreted as an N. This permits negation to be done by 
+// reinterpretation rather than compuation. A full set of arithmetic operators
 // are provided involving negator<N>'s and N's. Sometimes we can save an op or
 // two this way. For example negator<N>*negator<N> can be performed as an N*N
 // since the negations cancel, and we saved two floating point negations.
@@ -102,8 +101,8 @@ template <class N> class negator;      // Only defined for numbers
 // This is here so we can provide references to 0's when needed, e.g.
 // when returning the imaginary part of a real number. These are local to
 // the compilation unit, so the returned addresses will differ in different
-// files. There are enough zeroes here for the widest number, complex<long double>
-// (or conjugate<long double>).
+// files. There are enough zeroes here for the widest number, 
+// complex<long double> (or conjugate<long double>).
 static const complex<long double> zeroes(0);
 
 /// This class is specialized for all 36 combinations of standard types
@@ -193,14 +192,108 @@ public:
 };
 
 /**
- * @name isNumericallyEqual()
+ * @defgroup isNaN isNaN()
+ * @ingroup ScalarFunctions
  *
- * isNumericallyEqual() compares two scalar types using a tolerance and returns
- * true if they are close enough. The default tolerance used is the 
- * NTraits<P>::getSignificant() value (about 1e-14 in double precision, 1e-6 in 
- * float) for the narrower of the types being compared but you can override that. 
- * The tolerance is both a relative and absolute tolerance; for two numbers a and 
- * b and tolerance tol we compute the following condition:
+ * isNaN(x) provides a reliable way to determine if x is one of the "not a 
+ * number" floating point forms. Comparing x==NaN does not work because any 
+ * relational operation involving NaN always return false, even (NaN==NaN)! 
+ * This routine is specialized for all SimTK scalar types:
+ *  - float, double, long double
+ *  - std::complex<P>        (P is one of the above precisions)
+ *  - SimTK::conjugate<P>
+ *  - SimTK::negator<T>      (T is any of the above)
+ *
+ * For complex and conjugate types, isNaN() returns true if either the real or 
+ * imaginary part or both are NaN.
+ */
+// See negator.h for isNaN() applied to negated scalars.
+//@{
+inline bool isNaN(const float& x)  {return std::isnan(x);}
+inline bool isNaN(const double& x) {return std::isnan(x);}
+inline bool isNaN(const long double& x) {return std::isnan(x);}
+
+template <class P> inline bool
+isNaN(const std::complex<P>& x)
+{   return isNaN(x.real()) || isNaN(x.imag());}
+
+template <class P> inline bool
+isNaN(const conjugate<P>& x)
+{   return isNaN(x.real()) || isNaN(x.negImag());}
+//@}
+
+/**
+ * @defgroup isFinite isFinite()
+ * @ingroup ScalarFunctions
+ *
+ * isFinite(x) provides a reliable way to determine if x is a "normal"
+ * floating point number, meaning not a NaN or +/- Infinity.
+ * This routine is specialized for all SimTK scalar types:
+ * float, double, std::complex<P>, SimTK::conjugate<P>,
+ * and SimTK::negator<T>, where T is any of the above. For
+ * complex and conjugate types, isFinite() returns true if
+ * the real and imaginary parts are both finite.
+ */
+// See negator.h for isFinite() applied to negated scalars.
+//@{
+inline bool isFinite(const float&  x) {return std::isfinite(x);}
+inline bool isFinite(const double& x) {return std::isfinite(x);}
+inline bool isFinite(const long double& x) {return std::isfinite(x);}
+
+template <class P> inline bool
+isFinite(const std::complex<P>& x)
+{   return isFinite(x.real()) && isFinite(x.imag());}
+
+template <class P> inline bool
+isFinite(const conjugate<P>& x)
+{   return isFinite(x.real()) && isFinite(x.negImag());}
+//@}
+
+/**
+ * @defgroup isInf isInf()
+ * @ingroup ScalarFunctions
+ *
+ * isInf(x) provides a reliable way to determine if x is one of
+ * the two infinities (either negative or positive).
+ * This routine is specialized for all SimTK scalar types:
+ * float, double std::complex<P>, SimTK::conjugate<P>,
+ * and SimTK::negator<T>, where T is any of the above. For
+ * complex and conjugate types, isInf() returns true if both
+ * components are infinite, or one is infinite and the other
+ * finite. That is, isInf() will never return true if one
+ * component is NaN.
+ */
+// See negator.h for isInf() applied to negated scalars.
+//@{
+inline bool isInf(const float&  x) {return std::isinf(x);}
+inline bool isInf(const double& x) {return std::isinf(x);}
+inline bool isInf(const long double& x) {return std::isinf(x);}
+
+template <class P> inline bool
+isInf(const std::complex<P>& x) {
+    return (isInf(x.real()) && !isNaN(x.imag()))
+        || (isInf(x.imag()) && !isNaN(x.real()));
+}
+
+template <class P> inline bool
+isInf(const conjugate<P>& x) {
+    return (isInf(x.real())    && !isNaN(x.negImag()))
+        || (isInf(x.negImag()) && !isNaN(x.real()));
+}
+//@}
+
+/**
+ * @defgroup isNumericallyEqual isNumericallyEqual()
+ * @ingroup ScalarFunctions
+ *
+ * isNumericallyEqual(x,y) compares two scalar types using a tolerance (default
+ * or explicitly specified) and returns true if they are close enough.
+ *
+ * The default tolerance used is the NTraits<P>::getSignificant() value (about 
+ * 1e-14 in double precision, 1e-6 in float) for the narrower of the types being 
+ * compared but you can override that. The tolerance is both a relative and 
+ * absolute tolerance; for two numbers a and b and tolerance tol we compute the 
+ * following condition:
  * <pre>
  *      scale = max(|a|,|b|,1)
  *      isNumericallyEqual = |a-b| <= scale*tol
@@ -208,6 +301,7 @@ public:
  * For complex or conjugate numbers we insist that both the real and
  * imaginary parts independently satisfy the above condition.
  *
+ * \par Mixed precision
  * We support mixed argument types here in which case the default
  * tolerance used is the one appropriate to the \e lower-precision
  * argument. When one argument is an integer, the default tolerance
@@ -215,23 +309,37 @@ public:
  * at a higher precision than the tolerance to avoid incorrect truncation; for
  * example an int cannot generally be contained in a float so an int/float
  * comparison is done as double/double, but to float tolerance.
+ *
+ * \par Treatment of NaN
+ * When both arguments are NaN they are considered equal here, which is different
+ * than the behavior of the IEEE-sanctioned "==" comparison for which 
+ * NaN==NaN returns false. If only one argument is NaN we return false. When
+ * comparing complex or conjugate numbers the real and imaginary parts are
+ * tested separately, so (NaN,0) and (0,NaN) don't test equal despite the
+ * fact that isNaN() would return true for both of them. We don't distinguish
+ * among *types* of NaNs, though, so NaN and -NaN (if there is such a thing)
+ * will test numerically equal.
  */
 //@{
 /// Compare two floats for approximate equality.
 inline bool isNumericallyEqual(const float& a, const float& b, 
                                double tol = RTraits<float>::getDefaultTolerance())
-{   const float scale = std::max(std::max(std::abs(a),std::abs(b)), 1.f);
+{   if (isNaN(a)) return isNaN(b); else if (isNaN(b)) return false;
+    const float scale = std::max(std::max(std::abs(a),std::abs(b)), 1.f);
     return std::abs(a-b) <= scale*(float)tol; }
 /// Compare two doubles for approximate equality.
 inline bool isNumericallyEqual(const double& a, const double& b, 
                                double tol = RTraits<double>::getDefaultTolerance())
-{   const double scale = std::max(std::max(std::abs(a),std::abs(b)), 1.);
+{   if (isNaN(a)) return isNaN(b); else if (isNaN(b)) return false;
+    const double scale = std::max(std::max(std::abs(a),std::abs(b)), 1.);
     return std::abs(a-b) <= scale*tol; }
 /// Compare two long doubles for approximate equality.
 inline bool isNumericallyEqual(const long double& a, const long double& b, 
                                double tol = RTraits<long double>::getDefaultTolerance())
-{   const long double scale = std::max(std::max(std::abs(a),std::abs(b)), 1.L);
+{   if (isNaN(a)) return isNaN(b); else if (isNaN(b)) return false;
+    const long double scale = std::max(std::max(std::abs(a),std::abs(b)), 1.L);
     return std::abs(a-b) <= scale*(long double)tol; }
+
 /// Compare a float and a double for approximate equality at float precision.
 inline bool isNumericallyEqual(const float& a, const double& b, 
                                double tol = RTraits<float>::getDefaultTolerance())

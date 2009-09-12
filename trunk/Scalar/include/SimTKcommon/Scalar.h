@@ -132,115 +132,12 @@ static const Complex& I = NTraits<Complex>::getI();
     // SOME SCALAR UTILITIES //
     ///////////////////////////
 
-/**
- * @name isNaN()
- *
- * isNaN(x) provides a reliable way to determine if x is one of the
- * "not a number" floating point forms. Comparing x==NaN does not
- * work because any relational operation involving NaN always
- * return false, even (NaN==NaN)! 
- * This routine is specialized for all SimTK scalar types:
- * float, double std::complex<P>, SimTK::conjugate<P>,
- * and SimTK::negator<T>, where T is any of the above. For
- * complex and conjugate types, isNaN() returns true if either
- * the real or imaginary part or both are NaN.
- */
-//@{
-inline bool isNaN(const float& x)  {return std::isnan(x);}
-inline bool isNaN(const double& x) {return std::isnan(x);}
-
-inline bool isNaN(const negator<float>&  x) {return isNaN(-x);}
-inline bool isNaN(const negator<double>& x) {return isNaN(-x);}
-
-template <class P> inline bool
-isNaN(const std::complex<P>& x)
-{   return isNaN(x.real()) || isNaN(x.imag());}
-
-template <class P> inline bool
-isNaN(const conjugate<P>& x)
-{   return isNaN(x.real()) || isNaN(x.negImag());}
-
-template <class P> inline bool
-isNaN(const negator< std::complex<P> >& x) {return isNaN(-x);}
-template <class P> inline bool
-isNaN(const negator< conjugate<P> >&    x) {return isNaN(-x);}
-//@}
 
 /**
- * @name isFinite()
+ * @defgroup atMostOneBitIsSet atMostOneBitIsSet()
+ * @ingroup BitFunctions
  *
- * isFinite(x) provides a reliable way to determine if x is a "normal"
- * floating point number, meaning not a NaN or +/- Infinity.
- * This routine is specialized for all SimTK scalar types:
- * float, double, std::complex<P>, SimTK::conjugate<P>,
- * and SimTK::negator<T>, where T is any of the above. For
- * complex and conjugate types, isFinite() returns true if
- * the real and imaginary parts are both finite.
- */
-//@{
-inline bool isFinite(const float&  x) {return std::isfinite(x);}
-inline bool isFinite(const double& x) {return std::isfinite(x);}
-
-template <class P> inline bool
-isFinite(const std::complex<P>& x)
-{   return isFinite(x.real()) && isFinite(x.imag());}
-
-template <class P> inline bool
-isFinite(const conjugate<P>& x)
-{   return isFinite(x.real()) && isFinite(x.negImag());}
-
-inline bool isFinite(const negator<float>&  x) {return isFinite(-x);}
-inline bool isFinite(const negator<double>& x) {return isFinite(-x);}
-
-template <class P> inline bool
-isFinite(const negator< std::complex<P> >& x) {return isFinite(-x);}
-template <class P> inline bool
-isFinite(const negator< conjugate<P> >&    x) {return isFinite(-x);}
-//@}
-
-/**
- * @name isInf()
- *
- * isInf(x) provides a reliable way to determine if x is one of
- * the two infinities (either negative or positive).
- * This routine is specialized for all SimTK scalar types:
- * float, double std::complex<P>, SimTK::conjugate<P>,
- * and SimTK::negator<T>, where T is any of the above. For
- * complex and conjugate types, isInf() returns true if both
- * components are infinite, or one is infinite and the other
- * finite. That is, isInf() will never return true if one
- * component is NaN.
- */
-//@{
-inline bool isInf(const float&  x) {return std::isinf(x);}
-inline bool isInf(const double& x) {return std::isinf(x);}
-
-inline bool isInf(const negator<float>&  x) {return isInf(-x);}
-inline bool isInf(const negator<double>& x) {return isInf(-x);}
-
-template <class P> inline bool
-isInf(const std::complex<P>& x) {
-    return (isInf(x.real()) && !isNaN(x.imag()))
-        || (isInf(x.imag()) && !isNaN(x.real()));
-}
-
-template <class P> inline bool
-isInf(const conjugate<P>& x) {
-    return (isInf(x.real())    && !isNaN(x.negImag()))
-        || (isInf(x.negImag()) && !isNaN(x.real()));
-}
-
-template <class P> inline bool
-isInf(const negator< std::complex<P> >& x) {return isInf(-x);}
-template <class P> inline bool
-isInf(const negator< conjugate<P> >&    x) {return isInf(-x);}
-//@}
-
-
-/**
- * @name atMostOneBitIsSet()
- *
- * atMostOneBitIsSet() provides an extremely fast way to determine whether
+ * atMostOneBitIsSet(i) provides an extremely fast way to determine whether
  * an integral type is either zero or consists of a single set bit. This
  * question arises when using bits to represent set membership where one
  * may wish to verify that an integer represents a single element rather
@@ -265,9 +162,10 @@ inline bool atMostOneBitIsSet(long long v)          {return (v&v-1)==0;}
 //@}
 
 /**
- * @name exactlyOneBitIsSet()
+ * @defgroup exactlyOneBitIsSet exactlyOneBitIsSet()
+ * @ingroup BitFunctions
  *
- * exactlyOneBitIsSet() provides an very fast way to determine whether
+ * exactlyOneBitIsSet(i) provides a very fast way to determine whether
  * an integral type has exactly one bit set. For unsigned and positive
  * signed values, this is equivalent to the value being a power of two.
  * Note that negative powers of two are <em>not</em> represented with
@@ -291,9 +189,10 @@ inline bool exactlyOneBitIsSet(long long v)          {return v && atMostOneBitIs
 //@}
 
 /**
- * @name signBit()
+ * @defgroup signBit signBit()
+ * @ingroup BitFunctions
  *
- * signBit(x) provides a fast way to determine the value of the sign
+ * signBit(i) provides a fast way to determine the value of the sign
  * bit (as a bool) for integral and floating types. Note that this is
  * significantly different than sign(x); be sure you know what you're doing
  * if you use this method. signBit() refers to the underlying representation
@@ -303,14 +202,16 @@ inline bool exactlyOneBitIsSet(long long v)          {return v && atMostOneBitIs
  * considered here to have a sign bit of 0 always, since the stored high
  * bit does not indicate a negative value.
  *
- * NOTES:
+ * \b Notes
  *  - signBit() is overloaded for 'signed char' and 'unsigned char', but not
  *    for plain 'char' because we don't know whether to interpret the high
  *    bit as a sign in that case (because the C++ standard leaves it unspecified).
  *  - complex and conjugate numbers do not have sign bits.
- *  - negator<float> and negator<double> have the *same* sign bit as the
+ *  - negator<float> and negator<double> have the \e same sign bit as the
  *    underlying representation -- it's up to you to realize that it is
  *    interpreted differently!
+ *
+ * @see sign()
  */
 //@{
 inline bool signBit(unsigned char)      {return 0;}
@@ -342,7 +243,8 @@ inline bool signBit(const negator<double>& nd) {return std::signbit(-nd);} // !!
 //@}
 
 /**
- * @name sign()
+ * @defgroup sign sign()
+ * @ingroup ScalarFunctions
  *
  * s=sign(n) returns int -1,0,1 according to n<0, n==0, n>0 for any integer
  * or real numeric type, unsigned 0 or 1 for any unsigned argument. This
@@ -377,7 +279,8 @@ inline int sign(const negator<long double>& x) {return -sign(-x);}
 //@}
 
 /**
- * @name square()
+ * @defgroup square square()
+ * @ingroup ScalarFunctions
  *
  * y=square(x) returns the square of the argument for any numeric type.
  * We promise to evaluate x only once. We assume is is acceptable for
@@ -445,7 +348,8 @@ std::complex<P> square(const negator< conjugate<P> >& x) {
 //@}
 
 /**
- * @name cube()
+ * @defgroup cube cube()
+ * @ingroup ScalarFunctions
  *
  * y=cube(x) returns the cube of the argument for any numeric type,
  * integral or floating point. We promise to evaluate x only once.
