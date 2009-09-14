@@ -87,13 +87,20 @@ typedef ArticulatedInertia_<double> dArticulatedInertia;
 class Inertia;
 
 /**
- * A Gyration matrix is a unit-mass inertia matrix (second mass moment, mass
+ * A Gyration matrix is a unit-mass inertia tensor (second mass moment, mass
  * covariance matrix). It is a symmetric, 3x3 matrix that is positive definite
  * for nonsingular rigid bodies. It has units of length squared. Gyration is measured 
  * about some point OF and expressed in some frame F, but we don't know anything
  * about that frame here. The diagonal elements are called the \e moments of gyration;
  * off-diagonals are \e products of gyration. If all products of gyration are zero,
  * the matrix is called a \e principal gyration matrix.
+ *
+ * Some attempt is made to check the validity of a Gyration matrix, at least
+ * when running in Debug mode. Some conditions it must satisfy are:
+ *  - must be symmetric
+ *  - all diagonal elements must be nonnegative
+ *  - diagonal elements must satisfy the triangle inequality (sum of any two
+ *    is greater than or equal the other one)
  */
 template <class P>
 class SimTK_SimTKCOMMON_EXPORT Gyration_ {
@@ -104,6 +111,7 @@ class SimTK_SimTKCOMMON_EXPORT Gyration_ {
     typedef Rotation_<P>    RotationP;
 public:
     /// Default is a NaN-ed out mess to avoid accidents, even in Release mode.
+    /// Other than this value, a Gyration matrix should always be valid.
     Gyration_() : G_OF_F(NTraits<P>::getNaN()) {}
 
     // Default copy constructor, copy assignment, destructor.
@@ -111,48 +119,78 @@ public:
     /// Create a principal gyration matrix with identical diagonal elements.
     /// This is the Gyration matrix of a unit mass sphere of radius 
     /// r = sqrt(5/2 * moment) centered on the origin.
-    explicit Gyration_(const RealP& moment) : G_OF_F(moment) { }
+    explicit Gyration_(const RealP& moment) : G_OF_F(moment) 
+    {   errChk("Gyration::Gyration(moment)"); }
 
     /// Create a gyration matrix from a vector of the *moments* of
     /// gyration (the gyration matrix diagonal) and optionally a vector of
     /// the *products* of gyration (the off-diagonals). Moments are
     /// in the order xx,yy,zz; products are xy,xz,yz.
     explicit Gyration_(const Vec3P& moments, const Vec3P& products=Vec3P(0)) 
-    {   setGyration(moments,products); }
+    {   G_OF_F.updDiag()  = moments;
+        G_OF_F.updLower() = products;
+        errChk("Gyration::Gyration(moments,products)"); }
+
 
     /// Create a principal gyration matrix (only non-zero on diagonal).
     Gyration_(const RealP& xx, const RealP& yy, const RealP& zz) 
-    {   setGyration(Vec3P(xx,yy,zz)); }
+    {   G_OF_F = SymMat33P(xx,
+                            0, yy,
+                            0,  0, zz);
+        errChk("Gyration::setGyration(xx,yy,zz)"); }
+
 
     /// This is a general gyration matrix. Note the order of these
     /// arguments: moments of gyration first, then products of gyration.
     Gyration_(const RealP& xx, const RealP& yy, const RealP& zz,
               const RealP& xy, const RealP& xz, const RealP& yz) 
-    {   setGyration(xx,yy,zz,xy,xz,yz); }
+    {   G_OF_F = SymMat33P(xx,
+                           xy, yy,
+                           xz, yz, zz);
+        errChk("Gyration::setGyration(xx,yy,zz,xy,xz,yz)"); }
 
     /// Construct a Gyration from a symmetric 3x3 matrix. The diagonals must
     /// be nonnegative and satisfy the triangle inequality.
-    explicit Gyration_(const SymMat33P& G) : G_OF_F(G) {
-        const Vec3P& d = G.diag();
-        SimTK_ERRCHK3(d >= 0, "Gyration(SymMat33)",
-            "Diagonals of a Gyration matrix must be nonnegative; got %g,%g,%g.",
-            (double)d[0],(double)d[1],(double)d[2]);
-        SimTK_ERRCHK3(d[0]+d[1]>=d[2] && d[0]+d[2]>=d[1] && d[1]+d[2]>=d[0],
-            "Gyration(SymMat33)",
-            "Diagonals of a Gyration matrix must satisfy the triangle inequality; got %g,%g,%g.",
-            (double)d[0],(double)d[1],(double)d[2]);
+    explicit Gyration_(const SymMat33P& G) : G_OF_F(G) 
+    {   errChk("Gyration::Gyration(SymMat33)"); }
+
+    /// Construct a Gyration matrix from a 3x3 symmetric matrix. In Debug mode
+    /// we'll test that the supplied matrix is numerically close to symmetric, and
+    /// that it satisfies other requirements of a Gyration matrix.
+    explicit Gyration_(const Mat33P& m)
+    {   SimTK_ERRCHK(m.isNumericallySymmetric(), 
+                     "Gyration(Mat33)", "The supplied matrix was not symmetric.");
+        G_OF_F = SymMat33P(m);
+        errChk("Gyration(Mat33)"); }
+
+
+    /// Set a gyration matrix to have only principal moments (that is, it
+    /// will be diagonal). Returns a reference to "this" like an assignment operator.
+    Gyration_& setGyration(const RealP& xx, const RealP& yy, const RealP& zz) {
+        G_OF_F = RealP(0); G_OF_F(0,0) = xx; G_OF_F(1,1) = yy;  G_OF_F(2,2) = zz;
+        errChk("Gyration::setGyration(xx,yy,zz)");
+        return *this;
     }
 
-    /// Construct an Inertia from a 3x3 matrix. The matrix must be symmetric
-    /// or very close to symmetric. TODO: there are other tests that should
-    /// be performed here to check validity, such as the triangle inequality test.
-    explicit Gyration_(const Mat33P& s) {
-        SimTK_ERRCHK(   close(s(0,1),s(1,0),s.diag().norm()) 
-                     && close(s(0,2),s(2,0),s.diag().norm())
-                     && close(s(1,2),s(2,1),s.diag().norm()), 
-                     "Gyration(Mat33)", "The supplied matrix was not symmetric.");
-        setGyration(s(0,0),s(1,1),s(2,2),
-            (s(1,0)+s(0,1))/2,(s(2,0)+s(0,2))/2,(s(2,1)+s(1,2))/2);
+    /// Set principal moments and optionally off-diagonal terms.
+    /// Returns a reference to "this" like an assignment operator.
+    Gyration_& setGyration(const Vec3P& moments, const Vec3P& products=Vec3P(0)) {
+        G_OF_F.updDiag()  = moments;
+        G_OF_F.updLower() = products;
+        errChk("Gyration::setGyration(moments,products)");
+        return *this;
+    }
+
+    /// Set this Gyration to a general matrix. Note the order of these
+    /// arguments: moments of gyration first, then products of gyration.
+    /// Behaves like an assignment statement. Will throw an error message
+    /// in Debug mode if the supplied elements do not constitute a valid
+    /// Gyration matrix.
+    Gyration_& setGyration(const RealP& xx, const RealP& yy, const RealP& zz,
+                           const RealP& xy, const RealP& xz, const RealP& yz) {
+        setGyration(Vec3P(xx,yy,zz), Vec3P(xy,xz,yz));
+        errChk("Gyration::setGyration(xx,yy,zz,xy,xz,yz)");
+        return *this;
     }
 
     /// Add in another gyration matrix. Frames and reference point must be the same but
@@ -163,32 +201,6 @@ public:
     /// be the same but we can't check. (6 flops)
     Gyration_& operator-=(const Gyration_& G) {G_OF_F -= G.G_OF_F; return *this;}
 
-    /// Set a gyration matrix to have only principal moments (that is, it
-    /// will be diagonal). TODO: should check validity.
-    Gyration_& setGyration(const RealP& xx, const RealP& yy, const RealP& zz) {
-        assert(!"check validity");
-        G_OF_F = RealP(0); G_OF_F(0,0) = xx; G_OF_F(1,1) = yy;  G_OF_F(2,2) = zz;
-        return *this;
-    }
-
-    /// Set principal moments and optionally off-diagonal terms. Behaves
-    /// like an assignment statement. TODO: should check validity.
-    Gyration_& setGyration(const Vec3P& moments, const Vec3P& products=Vec3P(0)) {
-        G_OF_F.updDiag()  = moments;
-        G_OF_F.updLower() = products;
-        assert(!"check validity");
-        return *this;
-    }
-
-    /// Set this Gyration to a general matrix. Note the order of these
-    /// arguments: moments of gyration first, then products of gyration.
-    /// Behaves like an assignment statement. TODO: should check validity.
-    Gyration_& setGyration(const RealP& xx, const RealP& yy, const RealP& zz,
-                           const RealP& xy, const RealP& xz, const RealP& yz) {
-        setGyration(Vec3P(xx,yy,zz), Vec3P(xy,xz,yz));
-        return *this;
-    }
-
     /// Assume that the current gyration is about the F frame's origin OF, and
     /// expressed in F. Given the vector from OF to the centroid CF,
     /// we can shift the gyration to the center of mass. This produces a new 
@@ -197,7 +209,9 @@ public:
     /// gyration". G' = G - Gcom where Gcom is the gyration of a fictitious
     /// point located at CF (measured in F) taken about OF. (17 flops)
     Gyration_ shiftToCentroid(const Vec3P& CF) const 
-    {   return Gyration_(*this) -= pointMassAt(CF); }
+    {   Gyration_ G(*this); G -= pointMassAt(CF);
+        errChk("Gyration::shiftFromCentroid()");
+        return G; }
 
     /// Assuming that the current Gyration G is a central gyration (that is, it is
     /// gyration about the body centroid CF), shift it to some other point p
@@ -205,7 +219,9 @@ public:
     /// point p given by G' = G + Gp where Gp is the gyration of a fictitious
     /// point located at p, taken about CF. (17 flops)
     Gyration_ shiftFromCentroid(const Vec3P& p) const
-    {   return Gyration_(*this) += pointMassAt(p); }
+    {   Gyration_ G(*this); G += pointMassAt(p);
+        errChk("Gyration::shiftFromCentroid()");
+        return G; }
 
     /// Return a new gyration matrix like this one but re-expressed in another 
     /// frame (leaving the origin point unchanged). Call this gyration matrix
@@ -242,11 +258,25 @@ public:
     /// as a Vec3 with elements ordered xx, xy, yz.
     const Vec3P& getProducts() const {return G_OF_F.getLower();}
 
-    // Gyration matrix factories for some common mass elements. Each defines its
-    // own frame aligned (when possible) with principal moments. Each has unit
-    // mass and its center of mass located at the origin (usually). Use this with 
-    // shiftFromCentroid() to move it somewhere else, and with reexpress() to 
-    // express the Gyration matrix in another frame.
+    /// Test some conditions that must hold for a valid Gyration matrix.
+    /// Cost is about 9 flops.
+    /// TODO: this may not be comprehensive.
+    static bool isValidGyrationMatrix(const SymMat33P& m) {
+        const Vec3P& d = m.diag();
+        if (!(d >= 0)) return false; // diagonals must be nonnegative
+        if (!(d[0]+d[1]>=d[2] && d[0]+d[2]>=d[1] && d[1]+d[2]>=d[0]))
+            return false; // must satisfy triangle inequality
+        //TODO: what else?
+        return true;
+    }
+
+    /// @name Gyration matrix factories
+    /// These are Gyration matrix factories for some common 3D solids. Each 
+    /// defines its own frame aligned (when possible) with principal moments. 
+    /// Each has unit mass and its center of mass located at the origin (usually). 
+    /// Use this with shiftFromCentroid() to move it somewhere else, and with 
+    /// reexpress() to express the Gyration matrix in another frame.
+    //@{
 
     /// Create a Gyration matrix for a point located at the origin -- that is,
     /// an all-zero matrix.
@@ -257,32 +287,32 @@ public:
     static Gyration_ pointMassAt(const Vec3P& p) 
     {   return Gyration_(crossMatSq(p)); }
 
-    /// Create a Gyration matrix for a sphere of radius \a r centered
+    /// Create a Gyration matrix for a unit mass sphere of radius \a r centered
     /// at the origin.
     static Gyration_ sphere(const RealP& r) {return Gyration_(RealP(0.4)*r*r);}
 
-    /// Cylinder is aligned along z axis, use radius and half-length.
+    /// Unit-mass cylinder aligned along z axis;  use radius and half-length.
     /// If r==0 this is a thin rod; hz=0 it is a thin disk.
     static Gyration_ cylinderAlongZ(const RealP& r, const RealP& hz) {
         const RealP Ixx = (r*r)/4 + (hz*hz)/3;
         return Gyration_(Ixx,Ixx,(r*r)/2);
     }
 
-    /// Cylinder is aligned along y axis, use radius and half-length.
+    /// Unit-mass cylinder aligned along y axis;  use radius and half-length.
     /// If r==0 this is a thin rod; hy=0 it is a thin disk.
     static Gyration_ cylinderAlongY(const RealP& r, const RealP& hy) {
         const RealP Ixx = (r*r)/4 + (hy*hy)/3;
         return Gyration_(Ixx,(r*r)/2,Ixx);
     }
 
-    /// Cylinder is aligned along x axis, use radius and half-length.
+    /// Unit-mass cylinder aligned along x axis; use radius and half-length.
     /// If r==0 this is a thin rod; hx=0 it is a thin disk.
     static Gyration_ cylinderAlongX(const RealP& r, const RealP& hx) {
         const RealP Iyy = (r*r)/4 + (hx*hx)/3;
         return Gyration_((r*r)/2,Iyy,Iyy);
     }
 
-    /// Brick given by half-lengths in each direction. One dimension zero
+    /// Unit-mass brick given by half-lengths in each direction. One dimension zero
     /// gives inertia of a thin rectangular sheet; two zero gives inertia
     /// of a thin rod in the remaining direction.
     static Gyration_ brick(const RealP& hx, const RealP& hy, const RealP& hz) {
@@ -291,23 +321,43 @@ public:
         return Gyration_(oo3*(hy2+hz2), oo3*(hx2+hz2), oo3*(hx2+hy2));
     }
 
-    /// Ellipsoid given by half-lengths in each direction.
+    /// Unit-mass ellipsoid given by half-lengths in each direction.
     static Gyration_ ellipsoid(const RealP& hx, const RealP& hy, const RealP& hz) {
         const RealP hx2=hx*hx, hy2=hy*hy, hz2=hz*hz;
         return Gyration_((hy2+hz2)/5, (hx2+hz2)/5, (hx2+hy2)/5);
     }
+
+    //@}
 private:
-    // Check whether a and b are the same except for numerical error which
-    // is a reasonable fraction of the overall scale, which is passed in.
-    static bool close(const RealP& a, const RealP& b, const RealP& scale) {
-        const RealP okErr = NTraits<P>::getSignificant()*std::abs(scale);
-        const RealP err = std::abs(a-b);
-        return err <= okErr;
+    // If error checking is enabled (typically only in Debug mode), this 
+    // method will run some tests on the current contents of this Gyration 
+    // matrix and throw an error message if it is not valid. This should be 
+    // the same set of tests as run by the isValidGyrationMatrix() method above.
+    void errChk(const char* methodName) const {
+        const Vec3P& d = G_OF_F.diag();
+        SimTK_ERRCHK3(d >= 0, methodName,
+            "Diagonals of a Gyration matrix must be nonnegative; got %g,%g,%g.",
+            (double)d[0],(double)d[1],(double)d[2]);
+        SimTK_ERRCHK3(d[0]+d[1]>=d[2] && d[0]+d[2]>=d[1] && d[1]+d[2]>=d[0],
+            methodName,
+            "Diagonals of a Gyration matrix must satisfy the triangle "
+            "inequality; got %g,%g,%g.",
+            (double)d[0],(double)d[1],(double)d[2]);
     }
+
 
 private:
     SymMat33P G_OF_F; 
 };
+
+/// Add two gyration matrices. Frames and reference points must be the same but
+/// we can't check. (6 flops)
+template <class P> inline Gyration_<P> 
+operator+(const Gyration_<P>& l, const Gyration_<P>& r) {return Gyration_<P>(l) += r;}
+/// Subtract one gyration matrix from another. Frames and reference points must 
+/// be the same but we can't check. (6 flops)
+template <class P> inline Gyration_<P> 
+operator-(const Gyration_<P>& l, const Gyration_<P>& r) {return Gyration_<P>(l) -= r;}
 
 /**
  * A spatial inertia contains the mass, center of mass point, and inertia
