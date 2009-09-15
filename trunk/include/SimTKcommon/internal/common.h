@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -33,16 +33,28 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * Mandatory first inclusion for any SimTK source or header file.
+ * Mandatory first inclusion for any %SimTK source or header file.
  * 
- * Every source and most header files using SimTK must include this 
- * header as its <em>first</em> inclusion. Declarations and definitions that 
+ * Every source and most header files using %SimTK must include this 
+ * header as its \e first inclusion. Declarations and definitions that 
  * must be available and compiler-and machine-specific issues are dealt
  * with here.
  *
  * This file must be includable from either C++ or ANSI C. It uses
  * the ANSI-C++ macro "__cplusplus" for any code that will compile
  * only under C++.
+ */
+
+// Provide doxygen documentation for the SimTK namespace.
+
+/**@namespace SimTK
+ *
+ * This is the top-level %SimTK namespace into which all %SimTK names are 
+ * placed to avoid collision with other symbols. If you get tired of prefacing 
+ * every symbol with "SimTK::", include the statement "using namespace SimTK;" 
+ * at the beginning of your %SimTK-using compilation units. Any names which 
+ * cannot be put in the namespace (macro names, for example) begin with the 
+ * prefix "SimTK_" instead. 
  */
 
 // Define shared doxygen "modules" and sub-modules here. We'll put things 
@@ -52,13 +64,13 @@
  *
  * These are functions at the top level of the SimTK namespace, meaning
  * that a function named funcName() is invoked as SimTK::funcName(), or
- * just funcName() if there is a "using SimTK" statement in effect.
+ * just funcName() if there is a "using namespace SimTK;" statement in effect.
  */
 
 /**@defgroup ScalarFunctions Scalar Functions
  * @ingroup GlobalFunctions
  *
- * These functions are overloaded to act on SimTK scalar types and C++
+ * These functions are overloaded to act on %SimTK scalar types and C++
  * built-in types, including integral types when appropriate.
  */
 
@@ -76,23 +88,25 @@
 
 /* Set up a few compile-time options that affect all SimTK Core headers. */
 
-/* 
+/**
  * This compile-time constant determines the default precision used everywhere
- * in SimTK Core code. Wherever a SimTK::Real, SimTK::Vector, SimTK::Matrix,
+ * in %SimTK Core code. Wherever a SimTK::Real, SimTK::Vector, SimTK::Matrix,
  * etc. appears with no precision specified, it will have this underlying precision.
  * We use 1==float, 2==double, 4==long double. Any other value will cause
- * a compile time error. The default is 2.
+ * a compile time error. The default is 2, i.e., double precision.
  */
 #ifndef SimTK_DEFAULT_PRECISION
 #   define SimTK_DEFAULT_PRECISION 2
 #endif
 
-/* This type is for use in C. In C++ use SimTK::Real instead. */
 #if   (SimTK_DEFAULT_PRECISION == 1)
+/** This type is for use in C; in C++ use SimTK::Real instead. */
     typedef float SimTK_Real;
 #elif (SimTK_DEFAULT_PRECISION == 2)
+/** This type is for use in C; in C++ use SimTK::Real instead. */
     typedef double SimTK_Real;
 #elif (SimTK_DEFAULT_PRECISION == 4)
+/** This type is for use in C; in C++ use SimTK::Real instead. */
     typedef long double SimTK_Real;
 #else
     #error ILLEGAL VALUE FOR DEFAULT PRECISION
@@ -149,7 +163,7 @@
     #endif
     #if defined(SimTK_SimTKCOMMON_BUILDING_SHARED_LIBRARY)
         #define SimTK_SimTKCOMMON_EXPORT __declspec(dllexport)
-        // Keep MS VC++ quiet when it tries to instantiate incomplete template classes in a DLL.
+        /* Keep MS VC++ quiet when it tries to instantiate incomplete template classes in a DLL. */
         #ifdef _MSC_VER
         #pragma warning(disable:4661)
         #endif
@@ -158,19 +172,21 @@
     #else
         #define SimTK_SimTKCOMMON_EXPORT __declspec(dllimport)   // i.e., a client of a shared library
     #endif
-	// VC++ tries to be secure by leaving bounds checking on for STL containers
-	// even in Release mode. This macro exists to disable that feature and can
-	// result in a considerable speedup.
-	// CAUTION: every linked-together compilation unit must have this set the same
-	// way. Everyone who properly includes this file first is fine; but as of this
-	// writing Simmath's IpOpt doesn't do so.
-	// (sherm 081204 disabling for now: doesn't work on VC++ 8 and is 
-	// tricky on VC++ 9 because all libraries, including 3rd party, must
-	// be built the same way)
-	//#ifdef NDEBUG
-	//	#undef _SECURE_SCL
-	//	#define _SECURE_SCL 0
-	//#endif
+	/* VC++ tries to be secure by leaving bounds checking on for STL containers
+	 * even in Release mode. This macro exists to disable that feature and can
+	 * result in a considerable speedup.
+	 * CAUTION: every linked-together compilation unit must have this set the same
+	 * way. Everyone who properly includes this file first is fine; but as of this
+	 * writing Simmath's IpOpt doesn't do so.
+     */
+	/* (sherm 081204 disabling for now: doesn't work on VC++ 8 and is 
+	 * tricky on VC++ 9 because all libraries, including 3rd party, must
+	 * be built the same way)
+	 #ifdef NDEBUG
+	 	#undef _SECURE_SCL
+	 	#define _SECURE_SCL 0
+	 #endif
+     */
 #else
     #define SimTK_SimTKCOMMON_EXPORT // Linux, Mac
 #endif
@@ -181,7 +197,14 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
+    /** Obtain version information for the currently-loaded SimTKcommon library. */
     SimTK_SimTKCOMMON_EXPORT void SimTK_version_SimTKcommon(int* major, int* minor, int* build);
+    /** 
+     * Obtain "about" information for the currently-loaded SimTKcommon library.
+     * Available keywords are "version" (major.minor.build), "library", 
+     * "type" (shared or static), "copyright", "svn_revision", "authors", 
+     * "debug" (debug or release).
+     */
     SimTK_SimTKCOMMON_EXPORT void SimTK_about_SimTKcommon(const char* key, int maxlen, char* value);
 #if defined(__cplusplus)
 }
@@ -226,6 +249,7 @@ inline bool signbit(long double l) {return (*reinterpret_cast<unsigned long long
 #endif
 
 
+namespace SimTK {
 // This utility answers the question "if I put this integral value in an int and then
 // get it back, will its value be the same?".
 inline bool canStoreInInt(char)            {return true;}
@@ -250,26 +274,31 @@ inline bool canStoreInNonnegativeInt(long l)           {return canStoreInInt(l) 
 inline bool canStoreInNonnegativeInt(unsigned int  u)  {return canStoreInInt(u);}
 inline bool canStoreInNonnegativeInt(unsigned long u)  {return canStoreInInt(u);}
 
+// A NaN-like value for unique index types created using the macro
+// SimTK_DEFINE_UNIQUE_INDEX_TYPE(). A unique, typed constant with
+// this numerical value is created for each index type.
+static const int InvalidIndex = -1111111111;
+}
 
 /**
  * Use this macro to define a unique "Index" type which is just a type-safe
  * non-negative int, augmented with a "NaN" value given by the predefined
  * int constant SimTK::InvalidIndex. We also allow the Index to take on
- * the value -1 if that is produced by a subtraction
- * operation acting on a previously-valid Index, since that can occur
- * during loops which are processed from the end towards the beginning.
- * -1 is then allowed in comparision operators but not
- * in any other operations, including further decrementing.
+ * the value -1 if that is produced by a subtraction operation acting on a 
+ * previously-valid Index, since that can occur during loops which are 
+ * processed from the end towards the beginning. -1 is then allowed in 
+ * comparision operators but not in any other operations, including further 
+ * decrementing.
  *
- * No namespace is assumed for the newly-
- * defined type; if you want the symbol in a namespace be sure to invoke
- * the macro within that namespace. Make sure that the system include
- * file <cassert> has been included by the point of invocation, because
- * the define Index type uses the assert() macro when in Debug mode.
+ * No namespace is assumed for the newly-defined type; if you want the 
+ * symbol in a namespace be sure to invoke the macro within that namespace. 
+ * Make sure that the statement "#include <cassert>" appears somewhere before 
+ * the point of invocation of this macro, because the defined Index type uses 
+ * the assert() macro when in Debug mode.
  *
  * For most uses it will behave like an int, and it has an implicit
- * conversion *to* int. Importantly though, it has no implicit conversion
- * *from* int so you can't pass some other kind of number where a particular
+ * conversion \e to int. Importantly though, it has no implicit conversion
+ * \e from int so you can't pass some other kind of number where a particular
  * kind of Index was expected. This is used to create Index types
  * which can be used as array indices but which prevent accidental mixing
  * of types. Examples: SubsystemIndex, ConstraintIndex.
@@ -279,9 +308,6 @@ inline bool canStoreInNonnegativeInt(unsigned long u)  {return canStoreInInt(u);
  * value of any objects of type ThingIndex, and will have the same numerical
  * value as SimTK::InvalidIndex.
  */
-namespace SimTK {
-    static const int InvalidIndex = -1111111111;
-}
 
 /// Define a global (that is, SimTK namespace level) Index class that
 /// is not exported in MS VC++ DLLs.
@@ -307,9 +333,9 @@ class EXPORT NAME {                         \
 public:                                     \
     NAME() : ix(SimTK::InvalidIndex) { }       \
     explicit NAME(int i) : ix(i)      {assert(i>=0 || i==SimTK::InvalidIndex);} \
-    explicit NAME(long l): ix((int)l) {assert(canStoreInNonnegativeInt(l));}    \
-    explicit NAME(unsigned int  u)  : ix((int)u)  {assert(canStoreInInt(u));}   \
-    explicit NAME(unsigned long ul) : ix((int)ul) {assert(canStoreInInt(ul));}  \
+    explicit NAME(long l): ix((int)l) {assert(SimTK::canStoreInNonnegativeInt(l));}    \
+    explicit NAME(unsigned int  u)  : ix((int)u)  {assert(SimTK::canStoreInInt(u));}   \
+    explicit NAME(unsigned long ul) : ix((int)ul) {assert(SimTK::canStoreInInt(ul));}  \
     operator int() const {return ix;}               \
     bool isValid() const {return ix>=0;}            \
     bool isValidExtended() const {return ix>=-1;}   \
@@ -349,20 +375,20 @@ public:                                     \
     \
     NAME& operator+=(int i)  {assert(isValid() && isValidExtended(ix+i)); ix+=i; return *this;}     \
     NAME& operator-=(int i)  {assert(isValid() && isValidExtended(ix-i)); ix-=i; return *this;}     \
-    NAME& operator+=(long l) {assert(isValid() && canStoreInInt(l) && isValidExtended(ix+(int)l)); ix+=(int)l; return *this;}     \
-    NAME& operator-=(long l) {assert(isValid() && canStoreInInt(l) && isValidExtended(ix-(int)l)); ix-=(int)l; return *this;}     \
-    NAME& operator+=(unsigned int  u)  {assert(isValid()&& canStoreInInt(u)  && isValid(ix+(int)u));  ix+=(int)u;  return *this;}  \
-    NAME& operator-=(unsigned int  u)  {assert(isValid()&& canStoreInInt(u)  && isValidExtended(ix-(int)u));  ix-=(int)u;  return *this;}  \
-    NAME& operator+=(unsigned long ul) {assert(isValid()&& canStoreInInt(ul) && isValid(ix+(int)ul)); ix+=(int)ul; return *this;}  \
-    NAME& operator-=(unsigned long ul) {assert(isValid()&& canStoreInInt(ul) && isValidExtended(ix-(int)ul)); ix-=(int)ul; return *this;}  \
+    NAME& operator+=(long l) {assert(isValid() && SimTK::canStoreInInt(l) && isValidExtended(ix+(int)l)); ix+=(int)l; return *this;}     \
+    NAME& operator-=(long l) {assert(isValid() && SimTK::canStoreInInt(l) && isValidExtended(ix-(int)l)); ix-=(int)l; return *this;}     \
+    NAME& operator+=(unsigned int  u)  {assert(isValid()&& SimTK::canStoreInInt(u)  && isValid(ix+(int)u));  ix+=(int)u;  return *this;}  \
+    NAME& operator-=(unsigned int  u)  {assert(isValid()&& SimTK::canStoreInInt(u)  && isValidExtended(ix-(int)u));  ix-=(int)u;  return *this;}  \
+    NAME& operator+=(unsigned long ul) {assert(isValid()&& SimTK::canStoreInInt(ul) && isValid(ix+(int)ul)); ix+=(int)ul; return *this;}  \
+    NAME& operator-=(unsigned long ul) {assert(isValid()&& SimTK::canStoreInInt(ul) && isValidExtended(ix-(int)ul)); ix-=(int)ul; return *this;}  \
     \
     static const NAME& Invalid() {static const NAME invalid; return invalid;}       \
     static bool isValid(int  i) {return i>=0;}                                      \
-    static bool isValid(long l) {return canStoreInNonnegativeInt(l);}               \
-    static bool isValid(unsigned int  u)  {return canStoreInInt(u);}                \
-    static bool isValid(unsigned long ul) {return canStoreInInt(ul);}               \
+    static bool isValid(long l) {return SimTK::canStoreInNonnegativeInt(l);}        \
+    static bool isValid(unsigned int  u)  {return SimTK::canStoreInInt(u);}         \
+    static bool isValid(unsigned long ul) {return SimTK::canStoreInInt(ul);}        \
     static bool isValidExtended(int  i) {return i>=-1;}                             \
-    static bool isValidExtended(long l) {return canStoreInInt(l) && l>=-1;}         \
+    static bool isValidExtended(long l) {return SimTK::canStoreInInt(l) && l>=-1;}  \
 };
 
 /**
@@ -408,9 +434,17 @@ namespace SimTK {
 namespace Options { }
 namespace Exception { }
 
+/// This is the default compiled-in floating point type for SimTK, either
+/// float or double.
+/// @see SimTK_DEFAULT_PRECISION
 typedef SimTK_Real              Real;
+/// This is the default complex type for SimTK, with precision for
+/// the real and imaginary parts set to the compiled-in Real type.
+/// @see Real
 typedef std::complex<Real>      Complex;
 
+/// A convenient struct for anything requiring an offset and length
+/// to specify a segment of some larger sequence.
 struct Segment {
     Segment() : length(0), offset(0) { }
     explicit Segment(int l, int ofs=0) : length(l), offset(ofs) { 

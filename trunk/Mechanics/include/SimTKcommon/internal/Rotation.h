@@ -266,8 +266,8 @@ public:
 
     /// In-place composition of Rotation matrices.
     //@{
-    inline Rotation_&  operator*=( const Rotation_& R );
-    inline Rotation_&  operator/=( const Rotation_& R );
+    inline Rotation_&  operator*=( const Rotation_<P>& R );
+    inline Rotation_&  operator/=( const Rotation_<P>& R );
     inline Rotation_&  operator*=( const InverseRotation_<P>& );
     inline Rotation_&  operator/=( const InverseRotation_<P>& );
     //@}

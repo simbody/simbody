@@ -33,13 +33,13 @@
  * -------------------------------------------------------------------------- */
 
 
-/**
- * This template defines a standard interface for objects that calculate a function based on
- * a System and State.
- */
-
 namespace SimTK {
 
+
+/**
+ * This template class defines a standard interface for objects that calculate 
+ * a function based on a System and State.
+ */
 template <class T>
 class UserFunction {
 public:

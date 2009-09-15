@@ -38,9 +38,10 @@
 #include <cmath>     // for std:sin, sqrt, etc.
 #include <algorithm> // for std:sort, nth_element, etc.
 
-/**
- * This file defines a large number of standard math functions that can be applied to vectors and
- * matrices (both the large matrix and small matrix classes).
+/** @file
+ * This file defines a large number of standard math functions that can be 
+ * applied to vectors and matrices (both the large matrix and small matrix 
+ * classes).
  */
 
 namespace SimTK {
@@ -48,7 +49,7 @@ namespace SimTK {
 // We can use a single definition for a number of functions that simply call a function
 // on each element, returning a value of the same type.
 
-#define ELEMENTWISE_FUNCTION(func)                     \
+#define SimTK_ELEMENTWISE_FUNCTION(func)               \
 template <class ELEM>                                  \
 VectorBase<ELEM> func(const VectorBase<ELEM> v) {      \
     const int size = v.size();                         \
@@ -101,20 +102,20 @@ SymMat<N, ELEM> func(SymMat<N, ELEM> v) {              \
     return v;                                          \
 }                                                      \
 
-ELEMENTWISE_FUNCTION(exp)
-ELEMENTWISE_FUNCTION(log)
-ELEMENTWISE_FUNCTION(sqrt)
-ELEMENTWISE_FUNCTION(sin)
-ELEMENTWISE_FUNCTION(cos)
-ELEMENTWISE_FUNCTION(tan)
-ELEMENTWISE_FUNCTION(asin)
-ELEMENTWISE_FUNCTION(acos)
-ELEMENTWISE_FUNCTION(atan)
-ELEMENTWISE_FUNCTION(sinh)
-ELEMENTWISE_FUNCTION(cosh)
-ELEMENTWISE_FUNCTION(tanh)
+SimTK_ELEMENTWISE_FUNCTION(exp)
+SimTK_ELEMENTWISE_FUNCTION(log)
+SimTK_ELEMENTWISE_FUNCTION(sqrt)
+SimTK_ELEMENTWISE_FUNCTION(sin)
+SimTK_ELEMENTWISE_FUNCTION(cos)
+SimTK_ELEMENTWISE_FUNCTION(tan)
+SimTK_ELEMENTWISE_FUNCTION(asin)
+SimTK_ELEMENTWISE_FUNCTION(acos)
+SimTK_ELEMENTWISE_FUNCTION(atan)
+SimTK_ELEMENTWISE_FUNCTION(sinh)
+SimTK_ELEMENTWISE_FUNCTION(cosh)
+SimTK_ELEMENTWISE_FUNCTION(tanh)
 
-#undef ELEMENTWISE_FUNCTION
+#undef SimTK_ELEMENTWISE_FUNCTION
 
 // The abs() function.
 

@@ -72,8 +72,12 @@ template <class P> class ArticulatedInertia_;
 
 // These "no trailing underscore" typedefs use whatever the 
 // compile-time precision is set to.
+
+/// A gyration (unit inertia) tensor at default precision.
 typedef Gyration_<Real>              Gyration;
+/// A gyration (unit inertia) tensor at float precision.
 typedef Gyration_<float>            fGyration;
+/// A gyration (unit inertia) tensor at double precision.
 typedef Gyration_<double>           dGyration;
 
 typedef SpatialInertia_<Real>        SpatialInertia;
@@ -85,6 +89,10 @@ typedef ArticulatedInertia_<float>  fArticulatedInertia;
 typedef ArticulatedInertia_<double> dArticulatedInertia;
 
 class Inertia;
+
+// -----------------------------------------------------------------------------
+//                             GYRATION MATRIX
+// -----------------------------------------------------------------------------
 
 /**
  * A Gyration matrix is a unit-mass inertia tensor (second mass moment, mass
@@ -201,27 +209,61 @@ public:
     /// be the same but we can't check. (6 flops)
     Gyration_& operator-=(const Gyration_& G) {G_OF_F -= G.G_OF_F; return *this;}
 
-    /// Assume that the current gyration is about the F frame's origin OF, and
-    /// expressed in F. Given the vector from OF to the centroid CF,
-    /// we can shift the gyration to the center of mass. This produces a new 
-    /// Gyration matrix G' whose (implicit) frame F' is aligned with F but has 
-    /// origin CF (an gyration matrix like that is called a "central
-    /// gyration". G' = G - Gcom where Gcom is the gyration of a fictitious
-    /// point located at CF (measured in F) taken about OF. (17 flops)
+    /// Assuming that this gyration matrix is currently taken about some (implicit)
+    /// frame F's origin OF, produce a new gyration matrix which is the same as this one
+    /// except measured about the body's centroid CF. We are given the vector from OF to 
+    /// the centroid CF, expressed in F. This produces a new Gyration matrix G' whose 
+    /// (implicit) frame F' is aligned with F but has origin CF (a gyration matrix like 
+    /// that is called "central" or "centroidal"). From the parallel axis theorem for
+    /// inertias, G' = G - Gcom where Gcom is the gyration matrix of a fictitious, 
+    /// unit-mass point located at CF (measured in F) taken about OF. (17 flops)
+    /// @see shiftToCentroidInPlace(), shiftFromCentroid()
     Gyration_ shiftToCentroid(const Vec3P& CF) const 
     {   Gyration_ G(*this); G -= pointMassAt(CF);
-        errChk("Gyration::shiftFromCentroid()");
+        G.errChk("Gyration::shiftToCentroid()");
+        return G; }
+
+    /// Assuming that this gyration matrix is currently taken about some (implicit)
+    /// frame F's origin OF, modify it so that it is instead taken about the body's 
+    /// centroid CF. We are given the vector from OF to 
+    /// the centroid CF, expressed in F. This produces a new Gyration matrix G' whose 
+    /// (implicit) frame F' is aligned with F but has origin CF (a gyration matrix like 
+    /// that is called "central" or "centroidal"). From the parallel axis theorem for
+    /// inertias, G' = G - Gcom where Gcom is the gyration matrix of a fictitious, 
+    /// unit-mass point located at CF (measured in F) taken about OF. A reference
+    /// to the modified object is returned so that you can chain this method in
+    /// the manner of assignment operators. Cost is 17 flops.
+    /// @see shiftToCentroid() if you want to leave this object unmolested.
+    /// @see shiftFromCentroidInPlace()
+    Gyration_& shiftToCentroidInPlace(const Vec3P& CF) 
+    {   (*this) -= pointMassAt(CF);
+        errChk("Gyration::shiftToCentroidInPlace()");
+        return *this; }
+
+    /// Assuming that the current Gyration G is a central gyration (that is, it is
+    /// gyration about the body centroid CF), create a new object that is the same
+    /// as this one except shifted to some other point p measured from the centroid. 
+    /// This produces a new inertia G' about the point p given by G' = G + Gp where 
+    /// Gp is the gyration of a fictitious point located at p, taken about CF. Cost
+    /// is 17 flops.
+    /// @see shiftFromCentroidInPlace(), shiftToCentroid()
+    Gyration_ shiftFromCentroid(const Vec3P& p) const
+    {   Gyration_ G(*this); G += pointMassAt(p);
+        G.errChk("Gyration::shiftFromCentroid()");
         return G; }
 
     /// Assuming that the current Gyration G is a central gyration (that is, it is
-    /// gyration about the body centroid CF), shift it to some other point p
-    /// measured from the centroid. This produces a new inertia G' about the
-    /// point p given by G' = G + Gp where Gp is the gyration of a fictitious
-    /// point located at p, taken about CF. (17 flops)
-    Gyration_ shiftFromCentroid(const Vec3P& p) const
-    {   Gyration_ G(*this); G += pointMassAt(p);
-        errChk("Gyration::shiftFromCentroid()");
-        return G; }
+    /// gyration about the body centroid CF), shift it in place to some other point p
+    /// measured from the centroid. This changes G to a modified gyration G' taken
+    /// about the point p, with the parallel axis theorem for inertia giving 
+    /// G' = G + Gp where Gp is the gyration of a fictitious, unit-mass point located 
+    /// at p, taken about CF. Cost is 17 flops.
+    /// @see shiftFromCentroid() if you want to leave this object unmolested.
+    /// @see shitToCentroidInPlace()
+    Gyration_& shiftFromCentroidInPlace(const Vec3P& p)
+    {   (*this) += pointMassAt(p);
+        errChk("Gyration::shiftFromCentroidInPlace()");
+        return *this; }
 
     /// Return a new gyration matrix like this one but re-expressed in another 
     /// frame (leaving the origin point unchanged). Call this gyration matrix
@@ -239,7 +281,7 @@ public:
     /// Re-express this gyration matrix in another frame, changing the object
     /// in place; see reexpress() if you want to leave this object unmolested
     /// and get a new one instead. Cost is 57 flops.
-    /// @see reexpress()
+    /// @see reexpress() if you want to leave this object unmolested.
     Gyration_& reexpressInPlace(const RotationP& R_BF)
     {   G_OF_F = R_BF.reexpressSymMat33(G_OF_F); return *this; }
 
@@ -258,7 +300,7 @@ public:
     /// as a Vec3 with elements ordered xx, xy, yz.
     const Vec3P& getProducts() const {return G_OF_F.getLower();}
 
-    /// Test some conditions that must hold for a valid Gyration matrix.
+    /// %Test some conditions that must hold for a valid Gyration matrix.
     /// Cost is about 9 flops.
     /// TODO: this may not be comprehensive.
     static bool isValidGyrationMatrix(const SymMat33P& m) {
@@ -352,12 +394,19 @@ private:
 
 /// Add two gyration matrices. Frames and reference points must be the same but
 /// we can't check. (6 flops)
+/// @relates Gyration_
 template <class P> inline Gyration_<P> 
 operator+(const Gyration_<P>& l, const Gyration_<P>& r) {return Gyration_<P>(l) += r;}
 /// Subtract one gyration matrix from another. Frames and reference points must 
 /// be the same but we can't check. (6 flops)
+/// @relates Gyration_
 template <class P> inline Gyration_<P> 
 operator-(const Gyration_<P>& l, const Gyration_<P>& r) {return Gyration_<P>(l) -= r;}
+
+
+// -----------------------------------------------------------------------------
+//                           SPATIAL INERTIA MATRIX
+// -----------------------------------------------------------------------------
 
 /**
  * A spatial inertia contains the mass, center of mass point, and inertia
@@ -456,22 +505,43 @@ public:
     SpatialInertia_& reexpressInPlace(const RotationP& R_BF)
     {   p = R_BF*p; G.reexpressInPlace(R_BF); }
 
-    /// Change origin from OF to OF+S.
-    /// 37 flops
+    /// Return a new SpatialInertia object which is the same as this one except
+    /// the origin ("taken about" point) has changed from OF to OF+S.
+    /// Cost is 37 flops.
+    /// @see shiftInPlace()
     SpatialInertia_ shift(const Vec3P& S) const 
     {   return SpatialInertia_(*this).shiftInPlace(S); }
 
+    /// Change origin from OF to OF+S, modifying the original object in place.
+    /// Returns a reference to the modified object so that you can chain this
+    /// operation in the manner of assignment operators. Cost is 37 flops.
+    /// @see shift() if you want to leave this object unmolested.
     SpatialInertia_& shiftInPlace(const Vec3P& S) {
         G.shiftToCentroidInPlace(p);    // change to central gyration
         G.shiftFromCentroidInPlace(S);  // now gyration is about S
         p -= S; // was p=com-OF, now want p'=com-(OF+S)=p-S
     }
 
-    /// Current G_OF_F, want G_OB_B. Cost is 109 flops.
+    /// Return a new SpatialInertia object which is the same as this
+    /// one but measured about and expressed in a new frame. We consider
+    /// the current spatial inertia M to be measured (implicitly) in some
+    /// frame F, that is, we have M=M_OF_F. We want M_OB_B for some new
+    /// frame B, given the transform X_BF giving the location and orientation
+    /// of B in F. This combines the reexpress() and shift() operations
+    /// available separately. Cost is 109 flops.
+    /// @see transformInPlace()
     SpatialInertia_ transform(const TransformP& X_BF) const 
     {   return SpatialInertia_(*this).transformInPlace(X_BF); }
 
-    /// Current G_OF_F, want G_OB_B. Cost is 109 flops.
+    /// Transform this SpatialInertia object so that it is measured about and
+    /// expressed in a new frame, modifying the object in place. We consider the
+    /// current spatial inertia M to be measured (implicitly) in some frame F, that 
+    /// is, we have M=M_OF_F. We want to change it to M_OB_B for some new frame B, 
+    /// given the transform X_BF giving the location and orientation of B in F. This 
+    /// combines the reexpressInPlace() and shiftInPlace() operations available 
+    /// separately. Returns a reference to the modified object so that you can
+    /// chain this operation in the manner of assignment operators. Cost is 109 flops.
+    /// @see tranform() if you want to leave this object unmolested.
     SpatialInertia_& transformInPlace(const TransformP& X_BF) {
         reexpressInPlace(X_BF.R()); // get everything in B
         shiftInPlace(X_BF.p());   // now shift to the new origin OB.
@@ -496,9 +566,9 @@ template <class P> inline SpatialInertia_<P>
 operator-(const SpatialInertia_<P>& l, const SpatialInertia_<P>& r)
 {   return SpatialInertia_<P>(l) -= r; } 
 
-/// This operator allows you to re-express a spatial inertia I_OF_F in 
-/// assumed frame F into another frame B by writing R_BF*I_OF_F although
-/// the transform is really I_OF_B = R_BF*I_OF_F*~R_BF. Note that this
+/// This operator allows you to re-express a spatial inertia M_OF_F in 
+/// assumed frame F into another frame B by writing R_BF*M_OF_F although
+/// the transform is really M_OF_B = R_BF*M_OF_F*~R_BF. Note that this
 /// is just a rotation of the assumed frame; the origin point is unchanged.
 /// Cost is 72 flops.
 template <class P> inline SpatialInertia_<P> 
@@ -506,14 +576,19 @@ operator*(const Rotation_<P>& R_BF, const SpatialInertia_<P>& I_OF_F)
 {   return I_OF_F.reexpress(R_BF); } 
 
 /// This operator allows you to efficiently transform (shift origin 
-/// and re-express) a spatial inertia I_OF_F in assumed frame F 
-/// into another frame B by writing X_BF*I_OF_F although the 
-/// transform is really I_OB_B = X_BF*I_OF_F*~X_BF.
+/// and re-express) a spatial inertia M_OF_F in assumed frame F 
+/// into another frame B by writing X_BF*M_OF_F although the 
+/// transform is really M_OB_B = X_BF*M_OF_F*~X_BF.
 /// Cost is 109 flops.
 template <class P> inline SpatialInertia_<P> 
 operator*(const Transform_<P>& X_BF, const SpatialInertia_<P>& I_OF_F)
 {   return I_OF_F.transform(X_BF); } 
 
+
+// -----------------------------------------------------------------------------
+//                        ARTICULATED BODY INERTIA MATRIX
+// -----------------------------------------------------------------------------
+    
 /**
  * An articulated body inertia (ABI) matrix P(q) contains the spatial inertia 
  * properties that a body appears to have when it is the free base body of 
@@ -607,6 +682,11 @@ private:
     Mat33P    F;
 };
 
+
+// -----------------------------------------------------------------------------
+//                                INERTIA MATRIX
+// -----------------------------------------------------------------------------
+   
 /**
  * The physical meaning of an inertia is the distribution of
  * a rigid body's mass about a *particular* point. If that point is the
@@ -946,6 +1026,10 @@ SimTK_SimTKCOMMON_EXPORT std::ostream&
 operator<<(std::ostream& o, const Inertia&);
 
 
+// -----------------------------------------------------------------------------
+//                              MASS PROPERTIES
+// -----------------------------------------------------------------------------
+   
 /**
  * This class contains the mass, center of mass, and inertia of a rigid body B.
  * The center of mass is a vector from B's origin, expressed in the B frame.
