@@ -69,7 +69,7 @@ using std::cout;
 using std::endl;
 
 /* Initialized data */
-const struct lb3_1_ lb3_1 = { 6, 6, .9, 1e-20, 1e20, 1. };
+const struct lb3_1_ lb3_1 = { 0, 0, .9, 1e-20, 1e20, 1. };
 
 /* Table of constant values */
 static const integer c__1 = 1;
@@ -856,6 +856,11 @@ L30:
 /*        CHECK FOR TERMINATION. */
 
     if (*info != 0) {
+        // Moved exception handling one level deeper Sept 2009 cmb
+        if (*info != 1) {
+            // Error condition - might want to breakpoint here
+            return;
+        }
         return;
     }
 
