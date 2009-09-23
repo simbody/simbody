@@ -40,12 +40,37 @@
 
 namespace SimTK {
     /////////////////////////
+    //       INERTIA       //
+    /////////////////////////
+
+// Instantiate so we catch bugs now.
+template class Inertia_<float>;
+template class Inertia_<double>;
+
+template <class P> std::ostream& 
+operator<<(std::ostream& o, const Inertia_<P>& I) 
+{   return o << I.toMat33(); }
+template SimTK_SimTKCOMMON_EXPORT std::ostream& 
+operator<<(std::ostream&, const Inertia_<float>&);
+template SimTK_SimTKCOMMON_EXPORT std::ostream& 
+operator<<(std::ostream&, const Inertia_<double>&);
+
+    /////////////////////////
     //      GYRATION       //
     /////////////////////////
 
 // Instantiate so we catch bugs now.
 template class Gyration_<float>;
 template class Gyration_<double>;
+
+
+    /////////////////////////
+    //   SPATIAL INERTIA   //
+    /////////////////////////
+
+// Instantiate so we catch bugs now.
+template class SpatialInertia_<float>;
+template class SpatialInertia_<double>;
 
     /////////////////////////
     // ARTICULATED INERTIA //
@@ -122,9 +147,6 @@ ArticulatedInertia_<P>::shiftInPlace(const Vec3P& s) {
 template class ArticulatedInertia_<float>;
 template class ArticulatedInertia_<double>;
 
-std::ostream& operator<<(std::ostream& o, const Inertia& i) {
-    return o << i.toMat33();
-}
 
 std::ostream& operator<<(std::ostream& o, const MassProperties& mp) {
     return o << "{ mass=" << mp.getMass() 

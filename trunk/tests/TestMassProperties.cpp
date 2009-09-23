@@ -130,6 +130,71 @@ void testCrossProduct() {
     SimTK_TEST_EQ(det(sym22), det(fsym22));
 }
 
+void testInertia() {
+    const Real mass = std::abs(Test::randReal());
+    const Gyration G( Vec3(1,2,2.5),       // moments
+                      Vec3(0.1,0.2,0.3) ); // products
+    const Real Gtrace = 1+2+2.5;
+
+    SimTK_TEST(G.trace() == Gtrace); // should be exact because .5 is power of 2
+
+    const Inertia  I = mass*G;
+    SymMat33 sI = I.asSymMat33();
+    Mat33    mI = I.toMat33();
+
+    SimTK_TEST_EQ( sI, mass*SymMat33(1,
+                                     0.1, 2,
+                                     0.2, 0.3, 2.5) );
+
+    SimTK_TEST(mI.isExactlySymmetric());
+    SimTK_TEST(mI == Mat33(sI));
+    SimTK_TEST(sI == SymMat33(mI));
+
+    SimTK_TEST_EQ( I.trace(), mass*Gtrace );
+
+    // Test inertia rotation
+
+    const Rotation R = Test::randRotation();
+    Inertia mIR = Inertia(R*I.toMat33()*~R);
+
+    SimTK_TEST_EQ(mIR.asSymMat33(), I.reexpress(R).asSymMat33());
+    SimTK_TEST_EQ(I.asSymMat33(),   mIR.reexpress(~R).asSymMat33());
+
+    Inertia J=I;
+    J.reexpressInPlace(R);
+    SimTK_TEST_EQ(J.asSymMat33(), mIR.asSymMat33());
+
+    // Test inertia shifting
+
+    // Calculate the inertia of a point mass with the same mass
+    // we used above.
+    const Vec3     pLoc = Test::randVec3();
+    const SymMat33 psG = crossMatSq(pLoc); // unit inertia
+    const SymMat33 psI = mass*psG; // inertia
+    const Gyration pG(psG);
+    const Inertia  pI(psI);
+
+    // Assuming I and G are central, shifting them to pLoc should be
+    // the same as adding the point inertias above.
+    SimTK_TEST_EQ( G.shiftFromCentroid(pLoc), G + pG );
+    SimTK_TEST_EQ( I.shiftFromMassCenter(pLoc, mass), I + pI );
+
+    // Now try in place shifts and shifting back.
+    Gyration Gshft(G); Gshft.shiftFromCentroidInPlace(pLoc);
+    Inertia  Ishft(I); Ishft.shiftFromMassCenterInPlace(pLoc, mass);
+    SimTK_TEST_EQ(Gshft, G+pG);
+    SimTK_TEST_EQ(Ishft, I+pI);
+
+    SimTK_TEST_EQ(Gshft.shiftToCentroid(pLoc), G);
+    SimTK_TEST_EQ(Ishft.shiftToMassCenter(pLoc, mass), I);
+
+    Gshft.shiftToCentroidInPlace(pLoc);
+    Ishft.shiftToMassCenterInPlace(pLoc, mass);
+    SimTK_TEST_EQ(Gshft, G);
+    SimTK_TEST_EQ(Ishft, I);
+
+}
+
 // Calculate the lower half of vx*F where vx is the cross product matrix
 // of v and F is a full 3x3 matrix. This result would normally be a full 
 // 3x3 but for the uses below we know we're only going to need the diagonal 
@@ -274,6 +339,7 @@ int main() {
     SimTK_START_TEST("TestMassProperties");
 
         SimTK_SUBTEST(testCrossProduct);
+        SimTK_SUBTEST(testInertia);
         SimTK_SUBTEST(testHalfCross);
         SimTK_SUBTEST(testArticulatedInertia);
 
