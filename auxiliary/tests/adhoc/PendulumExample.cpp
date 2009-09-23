@@ -79,7 +79,7 @@ try { // If anything goes wrong, an exception will be thrown.
     const Vec3 COM = (m1*weight1Location+m2*weight2Location)/(m1+m2);
 
     const MassProperties swingerMassProps
-        (m1+m2, COM, 1*Inertia(1,1,1) + m1*Inertia::pointMassAt(weight1Location)+m2*Inertia::pointMassAt(weight2Location));
+        (m1+m2, COM, 1*Inertia(1,1,1) + m1*Gyration::pointMassAt(weight1Location)+m2*Gyration::pointMassAt(weight2Location));
     MobilizedBody::Screw swinger(connector, 
                                     Transform( Rotation( 0*.7, Vec3(9,8,7) ),
                                               1*Vec3(0,-.5,0)),

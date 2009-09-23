@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
     Force::UniformGravity gravity(forces, matter, Vec3(0, -g, 0));
 
         // ADD BODIES AND THEIR MOBILIZERS
-    const Body::Rigid body = Body::Rigid(MassProperties(m, Vec3(0), m*Inertia::brick(hl[0],hl[1],hl[2])))
+    const Body::Rigid body = Body::Rigid(MassProperties(m, Vec3(0), m*Gyration::brick(hl[0],hl[1],hl[2])))
                                   .addDecoration(Transform(), DecorativeBrick(hl).setOpacity(.5))
                                   .addDecoration(Transform(), DecorativeLine(Vec3(0), Vec3(0,1,0)).setColor(Green));
 
@@ -98,10 +98,10 @@ int main(int argc, char** argv) {
     //MobilizedBody::Ball mobilizedBody(mobilizedBody0, Transform(Vec3(1,2,0)), body, Transform(Vec3(0,1,0)));
     MobilizedBody::Free mobilizedBody2(mobilizedBody0, Vec3(-5,0,0), body, Transform());
 
-    const Body::Rigid gear1body = Body::Rigid(MassProperties(m, Vec3(0), m*Inertia::cylinderAlongZ(.5, .1)))
+    const Body::Rigid gear1body = Body::Rigid(MassProperties(m, Vec3(0), m*Gyration::cylinderAlongZ(.5, .1)))
         .addDecoration(Transform(), DecorativeCircle(.5).setColor(Green).setOpacity(.7))
         .addDecoration(Transform(), DecorativeLine(Vec3(0), Vec3(.5,0,0)).setColor(Black).setLineThickness(4));
-    const Body::Rigid gear2body = Body::Rigid(MassProperties(m, Vec3(0), m*Inertia::cylinderAlongZ(1.5, .1)))
+    const Body::Rigid gear2body = Body::Rigid(MassProperties(m, Vec3(0), m*Gyration::cylinderAlongZ(1.5, .1)))
         .addDecoration(Transform(), DecorativeCircle(1.5).setColor(Blue).setOpacity(.7))  
         .addDecoration(Transform(), DecorativeLine(Vec3(0), Vec3(1.5,0,0)).setColor(Black).setLineThickness(4));
     MobilizedBody::Pin gear1(mobilizedBody0, Vec3(-1,0,0), gear1body, Transform()); // along z

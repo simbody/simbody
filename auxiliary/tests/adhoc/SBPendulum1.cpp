@@ -170,7 +170,7 @@ try {
 
     const Real ballMass = 10;
     const Real ballRadius = 2;
-    const MassProperties ballMProps(ballMass, Vec3(0), ballMass*Inertia::sphere(ballRadius));
+    const MassProperties ballMProps(ballMass, Vec3(0), ballMass*Gyration::sphere(ballRadius));
     const Vec3 ballPos = Vec3(-3,5,0);
 
     MobilizedBody::Cartesian aBall(pend.Ground(), Transform(ballPos),

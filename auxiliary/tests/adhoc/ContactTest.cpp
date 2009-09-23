@@ -155,7 +155,7 @@ try
     Real pendMass = rubber_density*(4./3.)*Pi*std::pow(pendBallRadius,3);
     Vec3 pendGroundPt1 = Vec3(-10,50,-10);
     Vec3 pendGroundPt2 = Vec3(20,20,-10);
-    Inertia pendBallInertia(pendMass*Inertia::sphere(pendBallRadius));
+    Inertia pendBallInertia(pendMass*Gyration::sphere(pendBallRadius));
     const MassProperties pendMProps(pendMass, Vec3(0, -linkLength/2, 0), 
         pendBallInertia.shiftFromMassCenter(Vec3(0, -linkLength/2, 0), pendMass));
 
@@ -175,9 +175,9 @@ try
     const Real rubberBallMass = rubber_density*(4./3.)*Pi*std::pow(rubberBallRadius,3);
 
     const MassProperties hardBallMProps(hardBallMass, Vec3(0), 
-        hardBallMass*Inertia::sphere(hardBallRadius));
+        hardBallMass*Gyration::sphere(hardBallRadius));
     const MassProperties rubberBallMProps(rubberBallMass, Vec3(0), 
-        rubberBallMass*Inertia::sphere(rubberBallRadius));
+        rubberBallMass*Gyration::sphere(rubberBallRadius));
     const Vec3 firstHardBallPos = Vec3(-6,30,0), firstRubberBallPos = Vec3(18,30,-18);
     std::vector<MobilizedBodyIndex> balls;
 
