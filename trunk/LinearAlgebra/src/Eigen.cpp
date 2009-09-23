@@ -304,7 +304,7 @@ void EigenRep<T>::computeValues(bool computeVectors) {
         calcRightEigenVectors = 'N'; // don't compute right eigen vectors
     } 
     int computeLwork = -1;
-    T size[1];
+    //T size[1];
 /*
     if( structure ==  MatrixStructure::Symmetric ) {
          char useUpper = 'U'; // matrix is stored in upper triangle
