@@ -343,24 +343,24 @@ public:
     static bool numericallyEqual(const Matrix_<E1>& m1, const Matrix_<E2>& m2, int n, double tol=(defTol2<E1,E2>()))
     {   return numericallyEqual((const MatrixView_<E1>&)m1, (const MatrixView_<E2>&)m2, n, tol); }
 
-    template <class P, class Q>
-    static bool numericallyEqual(const Rotation_<P>& R1, const Rotation_<Q>& R2, int n, double tol=defTol2<P,Q>()) {
+    template <class P>
+    static bool numericallyEqual(const Rotation_<P>& R1, const Rotation_<P>& R2, int n, double tol=defTol<P>()) {
         return R1.isSameRotationToWithinAngle(R2, (Real)(n*tol));
     }
 
-    template <class P, class Q>
-    static bool numericallyEqual(const Transform_<P>& T1, const Transform_<Q>& T2, int n, double tol=defTol2<P,Q>()) {
+    template <class P>
+    static bool numericallyEqual(const Transform_<P>& T1, const Transform_<P>& T2, int n, double tol=defTol<P>()) {
         return numericallyEqual(T1.R(), T2.R(), n, tol)
             && numericallyEqual(T1.p(), T2.p(), n, tol);
     }
 
-    template <class P, class Q>
-    static bool numericallyEqual(const Gyration_<P>& G1, const Gyration_<Q>& G2, int n, double tol=defTol2<P,Q>()) {
+    template <class P>
+    static bool numericallyEqual(const Gyration_<P>& G1, const Gyration_<P>& G2, int n, double tol=defTol<P>()) {
         return numericallyEqual(G1.asSymMat33(),G2.asSymMat33(), n, tol);
     }
 
-    template <class P, class Q>
-    static bool numericallyEqual(const Inertia_<P>& I1, const Inertia_<Q>& I2, int n, double tol=defTol2<P,Q>()) {
+    template <class P>
+    static bool numericallyEqual(const Inertia_<P>& I1, const Inertia_<P>& I2, int n, double tol=defTol<P>()) {
         return numericallyEqual(I1.asSymMat33(),I2.asSymMat33(), n, tol);
     }
 
