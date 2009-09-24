@@ -142,7 +142,7 @@ public:
 class RBGroundBody : public ImmobileRigidBodyNode {
 public:
     RBGroundBody()
-    :   ImmobileRigidBodyNode(MassProperties(Infinity, Vec3(0), Infinity*Inertia(1)), 
+    :   ImmobileRigidBodyNode(MassProperties(Infinity, Vec3(0), Inertia(Infinity)), 
                               Transform(), Transform(),
                               UIndex(0), USquaredIndex(0), QIndex(0)) {}
 
