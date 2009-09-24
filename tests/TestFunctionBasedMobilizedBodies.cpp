@@ -696,7 +696,7 @@ void testFunctionBasedFree() {
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     Force::UniformGravity gravity(forces, matter, Vec3(0, -9.8, 0));
-    Body::Rigid body(MassProperties(1.0, Vec3(0.2, -0.5, 0.1), Inertia(0.5)));
+    Body::Rigid body(MassProperties(1.0, Vec3(0.2, -0.5, 0.1), Inertia(1.2)));
 
 	//Built-in free
 	MobilizedBody::Free b1(matter.Ground(), body);

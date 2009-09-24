@@ -927,7 +927,10 @@ protected:
                   QuaternionUse         quatUse,
                   bool                  reverse=false)
       : parent(0), children(), level(-1),
-        massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentralInertia()),
+        massProps_B(mProps_B), 
+        inertia_CB_B(mProps_B.isFinite()
+                     ? mProps_B.calcCentralInertia()
+                     : (mProps_B.isInf() ? Inertia(Infinity) : Inertia())),
         X_BM(xform_BM), X_PF(xform_PF), X_MB(~xform_BM),
         qdotHandling(qdotType), quaternionUse(quatUse), reversed(reverse)
     {
