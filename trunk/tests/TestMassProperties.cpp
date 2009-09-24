@@ -132,13 +132,13 @@ void testCrossProduct() {
 
 void testInertia() {
     const Real mass = std::abs(Test::randReal());
-    const Gyration G( Vec3(1,2,2.5),       // moments
-                      Vec3(0.1,0.2,0.3) ); // products
+    const Gyration_<Real> G( Vec3(1,2,2.5),       // moments
+                             Vec3(0.1,0.2,0.3) ); // products
     const Real Gtrace = 1+2+2.5;
 
     SimTK_TEST(G.trace() == Gtrace); // should be exact because .5 is power of 2
 
-    const Inertia  I = mass*G;
+    const Inertia_<Real>  I = mass*G;
     SymMat33 sI = I.asSymMat33();
     Mat33    mI = I.toMat33();
 
@@ -152,15 +152,33 @@ void testInertia() {
 
     SimTK_TEST_EQ( I.trace(), mass*Gtrace );
 
+    // Test Inertia*scalar
+    const Real s = std::abs(Test::randReal()) + 1;
+    SimTK_TEST_EQ( (I*s).toMat33(), I.toMat33()*s );
+    SimTK_TEST_EQ( (s*I).toMat33(), I.toMat33()*s );
+    SimTK_TEST_EQ( (G*s).toMat33(), G.toMat33()*s );
+    SimTK_TEST_EQ( (s*G).toMat33(), G.toMat33()*s );
+    SimTK_TEST_EQ( (I*s).asSymMat33(), I.asSymMat33()*s );
+    SimTK_TEST_EQ( (s*I).asSymMat33(), I.asSymMat33()*s );
+    SimTK_TEST_EQ( (G*s).asSymMat33(), G.asSymMat33()*s );
+    SimTK_TEST_EQ( (s*G).asSymMat33(), G.asSymMat33()*s );
+
+    // Test Inertia*vec (I*w)
+    const Vec3 w = Test::randVec3();
+    SimTK_TEST_EQ( I*w, I.toMat33()*w );
+    SimTK_TEST_EQ( G*w, G.toMat33()*w );
+    SimTK_TEST_EQ( I*w, I.asSymMat33()*w );
+    SimTK_TEST_EQ( G*w, G.asSymMat33()*w );
+
     // Test inertia rotation
 
     const Rotation R = Test::randRotation();
-    Inertia mIR = Inertia(R*I.toMat33()*~R);
+    Inertia_<Real> mIR = Inertia_<Real>(~R*I.toMat33()*R);
 
     SimTK_TEST_EQ(mIR.asSymMat33(), I.reexpress(R).asSymMat33());
     SimTK_TEST_EQ(I.asSymMat33(),   mIR.reexpress(~R).asSymMat33());
 
-    Inertia J=I;
+    Inertia_<Real> J=I;
     J.reexpressInPlace(R);
     SimTK_TEST_EQ(J.asSymMat33(), mIR.asSymMat33());
 
@@ -171,8 +189,8 @@ void testInertia() {
     const Vec3     pLoc = Test::randVec3();
     const SymMat33 psG = crossMatSq(pLoc); // unit inertia
     const SymMat33 psI = mass*psG; // inertia
-    const Gyration pG(psG);
-    const Inertia  pI(psI);
+    const Gyration_<Real> pG(psG);
+    const Inertia_<Real>  pI(psI);
 
     // Assuming I and G are central, shifting them to pLoc should be
     // the same as adding the point inertias above.
@@ -180,8 +198,8 @@ void testInertia() {
     SimTK_TEST_EQ( I.shiftFromMassCenter(pLoc, mass), I + pI );
 
     // Now try in place shifts and shifting back.
-    Gyration Gshft(G); Gshft.shiftFromCentroidInPlace(pLoc);
-    Inertia  Ishft(I); Ishft.shiftFromMassCenterInPlace(pLoc, mass);
+    Gyration_<Real> Gshft(G); Gshft.shiftFromCentroidInPlace(pLoc);
+    Inertia_<Real>  Ishft(I); Ishft.shiftFromMassCenterInPlace(pLoc, mass);
     SimTK_TEST_EQ(Gshft, G+pG);
     SimTK_TEST_EQ(Ishft, I+pI);
 

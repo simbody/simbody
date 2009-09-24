@@ -341,20 +341,30 @@ public:
     /// I_OF_F, that is, it is taken about the origin of some frame F, and 
     /// expressed in F. We want to return I_OF_B, the same inertia matrix,
     /// still taken about the origin of F, but expressed in the B frame, given
-    /// by I_OF_B=R_BF*I_OF_F*R_FB where R_BF is the rotation matrix giving
-    /// the orientation of frame F in B. This is handled here by a special
+    /// by I_OF_B=R_BF*I_OF_F*R_FB where R_FB is the rotation matrix giving
+    /// the orientation of frame B in F. This is handled here by a special
     /// method of the Rotation class which rotates a symmetric tensor
     /// at a cost of 57 flops.
     /// @see reexpressInPlace()
-    Inertia_ reexpress(const RotationP& R_BF) const 
-    {   return Inertia_(R_BF.reexpressSymMat33(I_OF_F)); }
+    Inertia_ reexpress(const Rotation_<P>& R_FB) const 
+    {   return Inertia_((~R_FB).reexpressSymMat33(I_OF_F)); }
+
+    /// Rexpress using an inverse rotation to avoid having to convert it.
+    /// @see rexpress(Rotation) for information
+    Inertia_ reexpress(const InverseRotation_<P>& R_FB) const 
+    {   return Inertia_((~R_FB).reexpressSymMat33(I_OF_F)); }
 
     /// Re-express this inertia matrix in another frame, changing the object
     /// in place; see reexpress() if you want to leave this object unmolested
     /// and get a new one instead. Cost is 57 flops.
     /// @see reexpress() if you want to leave this object unmolested.
-    Inertia_& reexpressInPlace(const RotationP& R_BF)
-    {   I_OF_F = R_BF.reexpressSymMat33(I_OF_F); return *this; }
+    Inertia_& reexpressInPlace(const Rotation_<P>& R_FB)
+    {   I_OF_F = (~R_FB).reexpressSymMat33(I_OF_F); return *this; }
+
+    /// Rexpress in place using an inverse rotation to avoid having to convert it.
+    /// @see rexpressInPlace(Rotation) for information
+    Inertia_& reexpressInPlace(const InverseRotation_<P>& R_FB)
+    {   I_OF_F = (~R_FB).reexpressSymMat33(I_OF_F); return *this; }
 
     RealP trace() const {return I_OF_F.trace();}
 
@@ -684,20 +694,31 @@ public:
     /// G_OF_F, that is, it is taken about the origin of some frame F, and 
     /// expressed in F. We want to return G_OF_B, the same gyration matrix,
     /// still taken about the origin of F, but expressed in the B frame, given
-    /// by G_OF_B=R_BF*G_OF_F*R_FB where R_BF is the rotation matrix giving
-    /// the orientation of frame F in B. This is handled here by a special
+    /// by G_OF_B=R_BF*G_OF_F*R_FB where R_FB is the rotation matrix giving
+    /// the orientation of frame B in F. This is handled here by a special
     /// method of the Rotation class which rotates a symmetric tensor
     /// at a cost of 57 flops.
     /// @see reexpressInPlace()
-    Gyration_ reexpress(const RotationP& R_BF) const 
-    {   return Gyration_(R_BF.reexpressSymMat33(this->I_OF_F)); }
+    Gyration_ reexpress(const Rotation_<P>& R_FB) const 
+    {   return Gyration_((~R_FB).reexpressSymMat33(this->I_OF_F)); }
+
+    /// Rexpress using an inverse rotation to avoid having to convert it.
+    /// @see rexpress(Rotation) for information
+    Gyration_ reexpress(const InverseRotation_<P>& R_FB) const 
+    {   return Gyration_((~R_FB).reexpressSymMat33(this->I_OF_F)); }
 
     /// Re-express this gyration matrix in another frame, changing the object
     /// in place; see reexpress() if you want to leave this object unmolested
     /// and get a new one instead. Cost is 57 flops.
     /// @see reexpress() if you want to leave this object unmolested.
-    Gyration_& reexpressInPlace(const RotationP& R_BF)
-    {   InertiaP::reexpressInPlace(R_BF); return *this; }
+    Gyration_& reexpressInPlace(const Rotation_<P>& R_FB)
+    {   InertiaP::reexpressInPlace(R_FB); return *this; }
+
+    /// Rexpress using an inverse rotation to avoid having to convert it.
+    /// @see rexpressInPlace(Rotation) for information
+    Gyration_& reexpressInPlace(const InverseRotation_<P>& R_FB)
+    {   InertiaP::reexpressInPlace(R_FB); return *this; }
+
 
     /// This is an implicit conversion to const SymMat33.
     operator const SymMat33P&() const {return this->I_OF_F;}
@@ -901,18 +922,28 @@ public:
 
     /// Return a new SpatialInertia object which is the same as this one except
     /// re-expressed in another coordinate frame. We consider this object to
-    /// be expressed in some frame F and we're given a rotation matrix we
+    /// be expressed in some frame F and we're given a rotation matrix R_FB we
     /// can use to re-express in a new frame B. Cost is 72 flops.
     /// @see reexpressInPlace()
-    SpatialInertia_ reexpress(const RotationP& R_BF) const
-    {   return SpatialInertia_(*this).reexpressInPlace(R_BF); }
+    SpatialInertia_ reexpress(const Rotation_<P>& R_FB) const
+    {   return SpatialInertia_(*this).reexpressInPlace(R_FB); }
+
+    /// Rexpress using an inverse rotation to avoid having to convert it.
+    /// @see rexpress(Rotation) for information
+    SpatialInertia_ reexpress(const InverseRotation_<P>& R_FB) const
+    {   return SpatialInertia_(*this).reexpressInPlace(R_FB); }
 
     /// Re-express this SpatialInertia in another frame, modifying the original
     /// object. We return a reference to the object so that you can chain this
     /// operation in the manner of assignment operators. Cost is 72 flops.
     /// @see reexpress() if you want to leave this object unmolested.
-    SpatialInertia_& reexpressInPlace(const RotationP& R_BF)
-    {   p = R_BF*p; G.reexpressInPlace(R_BF); return *this; }
+    SpatialInertia_& reexpressInPlace(const Rotation_<P>& R_FB)
+    {   p = (~R_FB)*p; G.reexpressInPlace(R_FB); return *this; }
+
+    /// Rexpress using an inverse rotation to avoid having to convert it.
+    /// @see rexpressInPlace(Rotation) for information
+    SpatialInertia_& reexpressInPlace(const InverseRotation_<P>& R_FB)
+    {   p = (~R_FB)*p; G.reexpressInPlace(R_FB); return *this; }
 
     /// Return a new SpatialInertia object which is the same as this one except
     /// the origin ("taken about" point) has changed from OF to OF+S.
@@ -936,25 +967,38 @@ public:
     /// one but measured about and expressed in a new frame. We consider
     /// the current spatial inertia M to be measured (implicitly) in some
     /// frame F, that is, we have M=M_OF_F. We want M_OB_B for some new
-    /// frame B, given the transform X_BF giving the location and orientation
+    /// frame B, given the transform X_FB giving the location and orientation
     /// of B in F. This combines the reexpress() and shift() operations
     /// available separately. Cost is 109 flops.
     /// @see transformInPlace()
-    SpatialInertia_ transform(const TransformP& X_BF) const 
-    {   return SpatialInertia_(*this).transformInPlace(X_BF); }
+    SpatialInertia_ transform(const Transform_<P>& X_FB) const 
+    {   return SpatialInertia_(*this).transformInPlace(X_FB); }
+
+    /// Transform using an inverse transform to avoid having to convert it.
+    /// @see transform(Transform) for information
+    SpatialInertia_ transform(const InverseTransform_<P>& X_FB) const 
+    {   return SpatialInertia_(*this).transformInPlace(X_FB); }
 
     /// Transform this SpatialInertia object so that it is measured about and
     /// expressed in a new frame, modifying the object in place. We consider the
     /// current spatial inertia M to be measured (implicitly) in some frame F, that 
     /// is, we have M=M_OF_F. We want to change it to M_OB_B for some new frame B, 
-    /// given the transform X_BF giving the location and orientation of B in F. This 
+    /// given the transform X_FB giving the location and orientation of B in F. This 
     /// combines the reexpressInPlace() and shiftInPlace() operations available 
     /// separately. Returns a reference to the modified object so that you can
     /// chain this operation in the manner of assignment operators. Cost is 109 flops.
     /// @see tranform() if you want to leave this object unmolested.
-    SpatialInertia_& transformInPlace(const TransformP& X_BF) {
-        reexpressInPlace(X_BF.R()); // get everything in B
-        shiftInPlace(X_BF.p());     // now shift to the new origin OB.
+    SpatialInertia_& transformInPlace(const Transform_<P>& X_FB) {
+        shiftInPlace(X_FB.p());     // shift to the new origin OB.
+        reexpressInPlace(X_FB.R()); // get everything in B
+        return *this;
+    }
+
+    /// Transform using an inverse transform to avoid having to convert it.
+    /// @see transformInPlace(Transform) for information
+    SpatialInertia_& transformInPlace(const InverseTransform_<P>& X_FB) {
+        shiftInPlace(X_FB.p());     // shift to the new origin OB.
+        reexpressInPlace(X_FB.R()); // get everything in B
         return *this;
     }
 
@@ -978,26 +1022,6 @@ operator+(const SpatialInertia_<P>& l, const SpatialInertia_<P>& r)
 template <class P> inline SpatialInertia_<P> 
 operator-(const SpatialInertia_<P>& l, const SpatialInertia_<P>& r)
 {   return SpatialInertia_<P>(l) -= r; } 
-
-/// This operator allows you to re-express a spatial inertia M_OF_F in 
-/// assumed frame F into another frame B by writing R_BF*M_OF_F although
-/// the transform is really M_OF_B = R_BF*M_OF_F*~R_BF. Note that this
-/// is just a rotation of the assumed frame; the origin point is unchanged.
-/// Cost is 72 flops.
-/// @relates SpatialInertia_
-template <class P> inline SpatialInertia_<P> 
-operator*(const Rotation_<P>& R_BF, const SpatialInertia_<P>& M_OF_F)
-{   return M_OF_F.reexpress(R_BF); } 
-
-/// This operator allows you to efficiently transform (shift origin 
-/// and re-express) a spatial inertia M_OF_F in assumed frame F 
-/// into another frame B by writing X_BF*M_OF_F although the 
-/// transform is really M_OB_B = X_BF*M_OF_F*~X_BF.
-/// Cost is 109 flops.
-/// @relates SpatialInertia_
-template <class P> inline SpatialInertia_<P> 
-operator*(const Transform_<P>& X_BF, const SpatialInertia_<P>& M_OF_F)
-{   return M_OF_F.transform(X_BF); } 
 
 
 // -----------------------------------------------------------------------------
