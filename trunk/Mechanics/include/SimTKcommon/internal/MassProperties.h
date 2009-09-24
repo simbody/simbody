@@ -690,7 +690,7 @@ public:
     /// at a cost of 57 flops.
     /// @see reexpressInPlace()
     Gyration_ reexpress(const RotationP& R_BF) const 
-    {   return Gyration_(R_BF.reexpressSymMat33(asSymMat33())); }
+    {   return Gyration_(R_BF.reexpressSymMat33(this->I_OF_F)); }
 
     /// Re-express this gyration matrix in another frame, changing the object
     /// in place; see reexpress() if you want to leave this object unmolested
@@ -700,7 +700,7 @@ public:
     {   InertiaP::reexpressInPlace(R_BF); return *this; }
 
     /// This is an implicit conversion to const SymMat33.
-    operator const SymMat33P&() const {return asSymMat33();}
+    operator const SymMat33P&() const {return this->I_OF_F;}
 
     /// Recast this Gyration matrix as a unit inertia matrix. This is just for
     /// emphasis; a Gyration matrix is already a kind of Inertia matrix by
