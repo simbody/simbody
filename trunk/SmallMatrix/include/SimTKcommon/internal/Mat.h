@@ -952,6 +952,36 @@ public:
         return m;
     }
 
+    /// Return true if any element of this Mat contains a NaN anywhere.
+    bool isNaN() const {
+        for (int j=0; j<N; ++j)
+            if (this->col(j).isNaN())
+                return true;
+        return false;
+    }
+
+    /// Return true if any element of this Mat contains a +Inf
+    /// or -Inf somewhere but no element contains a NaN anywhere.
+    bool isInf() const {
+        bool seenInf = false;
+        for (int j=0; j<N; ++j) {
+            if (!this->col(j).isFinite()) {
+                if (!this->col(j).isInf()) 
+                    return false; // something bad was found
+                seenInf = true; 
+            }
+        }
+        return seenInf;
+    }
+
+    /// Return true if no element contains an Infinity or a NaN.
+    bool isFinite() const {
+        for (int j=0; j<N; ++j)
+            if (!this->col(j).isFinite())
+                return false;
+        return true;
+    }
+
     /// For approximate comparisions, the default tolerance to use for a matrix is
     /// its shortest dimension times its elements' default tolerance.
     static double getDefaultTolerance() {return MinDim*CNT<ELT>::getDefaultTolerance();}

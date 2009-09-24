@@ -254,6 +254,14 @@ public:
     static K getInfinity() {return K::getInfinity();}
     static K getNaN()      {return K::getNaN();}
 
+    /// This is true if any element contains a NaN anywhere.
+    static bool isNaN(const K& t) {return t.isNaN();}
+    /// This is true if at least one element contains a +Infinity or -Infinity
+    /// and no element contains a NaN.
+    static bool isInf(const K& t) {return t.isInf();}
+    /// This is true only if no element has any entry that it NaN or Infinity.
+    static bool isFinite(const K& t) {return t.isFinite();}
+
     /// CNTs are expected to support an "==" operator for exact, bitwise equality.
     /// This method implements approximate, numerical equality. For scalar types,
     /// this should boil down to the isNumericallyEqual() scalar method. For 2D composite

@@ -635,6 +635,10 @@ public:
         return c;
     }
 
+    static bool isFinite(const T& t) {return SimTK::isFinite(t);}
+    static bool isNaN(const T& t) {return SimTK::isNaN(t);}
+    static bool isInf(const T& t) {return SimTK::isInf(t);}
+
     static double getDefaultTolerance() {return RTraits<R>::getDefaultTolerance();}
 
     template <class R2> static bool isNumericallyEqual(const T& a, const complex<R2>& b)
@@ -830,6 +834,10 @@ public:
         return c;
     }
 
+    static bool isFinite(const T& t) {return SimTK::isFinite(t);}
+    static bool isNaN(const T& t) {return SimTK::isNaN(t);}
+    static bool isInf(const T& t) {return SimTK::isInf(t);}
+
     static double getDefaultTolerance() {return RTraits<R>::getDefaultTolerance();}
 
     template <class R2> static bool isNumericallyEqual(const T& a, const conjugate<R2>& b)
@@ -1013,6 +1021,9 @@ public:                                         \
     static const T& getMostNegative() {static const T c=-std::numeric_limits<T>::max();      return c;} \
     static const T& getSqrtEps()      {static const T c=std::sqrt(getEps());                 return c;} \
     static const T& getTiny()         {static const T c=std::pow(getEps(), (T)1.25L);        return c;} \
+    static bool isFinite(const T& t) {return SimTK::isFinite(t);}   \
+    static bool isNaN   (const T& t) {return SimTK::isNaN(t);}      \
+    static bool isInf   (const T& t) {return SimTK::isInf(t);}      \
     /* Methods to use for approximate comparisons. Perform comparison in the wider of the two */                \
     /* precisions, using the default tolerance from the narrower of the two precisions.       */                \
     static double getDefaultTolerance() {return RTraits<T>::getDefaultTolerance();}                             \

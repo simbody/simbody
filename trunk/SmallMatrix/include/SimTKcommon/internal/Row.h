@@ -598,6 +598,36 @@ public:
 
     static Row<N,ELT,1> getNaN() { return Row<N,ELT,1>(CNT<ELT>::getNaN()); }
 
+    /// Return true if any element of this Row contains a NaN anywhere.
+    bool isNaN() const {
+        for (int j=0; j<N; ++j)
+            if (CNT<ELT>::isNaN((*this)[j]))
+                return true;
+        return false;
+    }
+
+    /// Return true if any element of this Row contains a +Inf
+    /// or -Inf somewhere but no element contains a NaN anywhere.
+    bool isInf() const {
+        bool seenInf = false;
+        for (int j=0; j<N; ++j) {
+            const ELT& e = (*this)[j];
+            if (!CNT<ELT>::isFinite(e)) {
+                if (!CNT<ELT>::isInf(e)) 
+                    return false; // something bad was found
+                seenInf = true; 
+            }
+        }
+        return seenInf;
+    }
+
+    /// Return true if no element contains an Infinity or a NaN.
+    bool isFinite() const {
+        for (int j=0; j<N; ++j)
+            if (!CNT<ELT>::isFinite((*this)[j]))
+                return false;
+        return true;
+    }
 
     /// For approximate comparisions, the default tolerance to use for a vector is
     /// the same as its elements' default tolerance.

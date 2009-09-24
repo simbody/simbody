@@ -374,6 +374,10 @@ public:
     /// as a Vec3 with elements ordered xx, xy, yz.
     const Vec3P& getProducts() const {return I_OF_F.getLower();}
 
+    bool isNaN()    const {return I_OF_F.isNaN();}
+    bool isInf()    const {return I_OF_F.isInf();}
+    bool isFinite() const {return I_OF_F.isFinite();}
+
     /// Compare this inertia matrix with another one and return true if they
     /// are close to within a default numerical tolerance. Cost is about
     /// 30 flops.
@@ -390,6 +394,7 @@ public:
     /// Cost is about 9 flops.
     /// TODO: this may not be comprehensive.
     static bool isValidInertiaMatrix(const SymMat33P& m) {
+        if (m.isNaN()) return false;
         const Vec3P& d = m.diag();
         if (!(d >= 0)) return false; // diagonals must be nonnegative
         if (!(d[0]+d[1]>=d[2] && d[0]+d[2]>=d[1] && d[1]+d[2]>=d[0]))
@@ -432,6 +437,8 @@ protected:
     // matrix and throw an error message if it is not valid. This should be 
     // the same set of tests as run by the isValidInertiaMatrix() method above.
     void errChk(const char* methodName) const {
+        SimTK_ERRCHK(!isNaN(), methodName,
+            "Inertia matrix contains a NaN.");
         const Vec3P& d = I_OF_F.diag();
         SimTK_ERRCHK3(d >= 0, methodName,
             "Diagonals of an Inertia matrix must be nonnegative; got %g,%g,%g.",
@@ -1154,6 +1161,15 @@ public:
     bool isExactlyCentral() const { return comInB==Vec3(0); }
     bool isNearlyCentral(const Real& tol=SignificantReal) const {
         return comInB.normSqr() <= tol*tol;
+    }
+
+    bool isNaN() const {return SimTK::isNaN(mass) || comInB.isNaN() || inertia_OB_B.isNaN();}
+    bool isInf() const {
+        if (isNaN()) return false;
+        return SimTK::isInf(mass) || comInB.isInf() || inertia_OB_B.isInf();
+    }
+    bool isFinite() const {
+        return SimTK::isFinite(mass) && comInB.isFinite() && inertia_OB_B.isFinite();
     }
 
     SpatialMat toSpatialMat() const {

@@ -695,6 +695,15 @@ public:
                        CNT<typename TPacked::TLower>::getNaN());
     }
 
+    /// Return true if any element of this SymMat contains a NaN anywhere.
+    bool isNaN() const {return getAsVec().isNaN();}
+
+    /// Return true if any element of this SymMat contains a +Inf
+    /// or -Inf somewhere but no element contains a NaN anywhere.
+    bool isInf() const {return getAsVec().isInf();}
+
+    /// Return true if no element contains an Infinity or a NaN.
+    bool isFinite() const {return getAsVec().isFinite();}
 
     /// For approximate comparisions, the default tolerance to use for a matrix is
     /// its shortest dimension times its elements' default tolerance.

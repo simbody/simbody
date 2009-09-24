@@ -185,6 +185,14 @@ public:
     static negator<N> getNaN()      {return recast(NTraits<N>::getNaN());}
 	static negator<N> getInfinity() {return recast(NTraits<N>::getInfinity());}
 
+    /// Returns true if the negated value is finite (i.e., not NaN or Inf).
+    inline bool isFinite() const;
+    /// Returns true if the negated value contains a NaN.
+    inline bool isNaN() const;
+    /// Returns true if the negated value contains an Inf or -Inf and does not
+    /// contain a NaN.
+    inline bool isInf() const;
+
     static double getDefaultTolerance() {return NTraits<N>::getDefaultTolerance();}
 
     /// In the generic case we'll perform the negation here to get a number, 
@@ -305,6 +313,13 @@ template <class P> inline bool
 isInf(const negator< conjugate<P> >&    x) {return isInf(-x);}
 //@}
 
+// The member functions call the global ones just defined.
+template <class N> inline bool
+negator<N>::isFinite() const {return SimTK::isFinite(*this);}
+template <class N> inline bool
+negator<N>::isNaN()    const {return SimTK::isNaN(*this);}
+template <class N> inline bool
+negator<N>::isInf()    const {return SimTK::isInf(*this);}
 
 // Handle all binary numerical operators involving a negator<A> and a B, or negator<A>
 // and negator<B>, obtaining results by stripping away the negator<>s and fiddling

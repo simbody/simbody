@@ -599,6 +599,37 @@ public:
 
     static Vec<M,ELT,1> getNaN() { return Vec<M,ELT,1>(CNT<ELT>::getNaN()); }
 
+    /// Return true if any element of this Vec contains a NaN anywhere.
+    bool isNaN() const {
+        for (int i=0; i<M; ++i)
+            if (CNT<ELT>::isNaN((*this)[i]))
+                return true;
+        return false;
+    }
+
+    /// Return true if any element of this Vec contains a +Inf
+    /// or -Inf somewhere but no element contains a NaN anywhere.
+    bool isInf() const {
+        bool seenInf = false;
+        for (int i=0; i<M; ++i) {
+            const ELT& e = (*this)[i];
+            if (!CNT<ELT>::isFinite(e)) {
+                if (!CNT<ELT>::isInf(e)) 
+                    return false; // something bad was found
+                seenInf = true; 
+            }
+        }
+        return seenInf;
+    }
+
+    /// Return true if no element contains an Infinity or a NaN.
+    bool isFinite() const {
+        for (int i=0; i<M; ++i)
+            if (!CNT<ELT>::isFinite((*this)[i]))
+                return false;
+        return true;
+    }
+
     /// For approximate comparisions, the default tolerance to use for a vector is
     /// the same as its elements' default tolerance.
     static double getDefaultTolerance() {return CNT<ELT>::getDefaultTolerance();}
