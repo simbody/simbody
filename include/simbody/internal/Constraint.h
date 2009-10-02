@@ -269,17 +269,19 @@ public:
     ////////////////////////////////////////
 
 /**
- *  One constraint equation. This constraint enforces a constant distance between
- *  a point on one body and a point on another body. This is like connecting them
- *  by a rigid, massless rod with ball joints at either end. The constraint is
- *  enforced by a force acting along the rod with opposite signs at either end.
- *  When positive, this represents tension in the rod pulling the points together;
- *  when negative it represents compression keeping the points separated.
+ * This constraint consists of one constriant equation that enforces a constant 
+ * distance between a point on one body and a point on another body. This is 
+ * like connecting them by a rigid, massless rod with ball joints at either end. 
+ * The constraint is enforced by a force acting along the rod with opposite 
+ * signs at either end. When positive, this represents tension in the rod 
+ * pulling the points together; when negative it represents compression keeping 
+ * the points separated.
  * 
- *  Caution: you can't use this to enforce a distance of zero between two points.
- *  That takes three constraints because there is no restriction on the force direction.
- *  For a distance of zero (i.e., you want the points to be coincident) use a Ball
- *  constraint, a.k.a. CoincidentPoints constraint.
+ * @warning
+ * You can't use this to enforce a distance of zero between two points.
+ * That takes three constraints because there is no restriction on the force direction.
+ * For a distance of zero (i.e., you want the points to be coincident) use a Ball
+ * constraint, a.k.a. CoincidentPoints constraint.
  */
  class SimTK_SIMBODY_EXPORT Constraint::Rod : public Constraint {
 public:
@@ -437,17 +439,32 @@ public:
     ///////////////////////////////
 
 /**
- *  One constraint equation. This constraint enforces that a vector fixed to
- *  one body (the "base body") must maintain a fixed angle with respect to
- *  a vector fixed on the other body (the "follower body"). That is, we have a
- *  single constraint equation that prohibits rotation about the mutual perpendicular
- *  to the two vectors.
+ * This constraint consists of a single constraint equation that enforces that
+ * a unit vector v1 fixed to one body (the "base body") must maintain a fixed 
+ * angle theta with respect to a unit vector v2 fixed on the other body (the 
+ * "follower body"). This can be done with a single constraint equation as long 
+ * as theta is sufficiently far away from 0 and +/-Pi (180 degrees), with the 
+ * numerically best performance at theta=Pi/2 (90 degrees).
+ *
+ * @warning
+ * Do not use this constraint to \e align the vectors, that is for angles near 
+ * 0 or +/- Pi; performance will noticeably degrade within a few degrees of 
+ * these limits and numerical integration will eventually fail at the limits.
  * 
- *  This constraint is enforced by an internal scalar torque applied equal and
- *  opposite on each body, about the mutual perpendicular to the two vectors.
+ * If you want to enforce that two axes are aligned with one another (that 
+ * is, the angle between them is 0 or +/-Pi), that takes \e two constraint 
+ * equations since the only remaining rotation is about the common axis. (That 
+ * is, two rotational degrees of freedom are removed; that can't be done with 
+ * one constraint equation -- the situation is analogous to the inability of
+ * a Rod (distance) constraint to keep to points at 0 distance.) Instead,
+ * you can use two ConstantAngle constraints on pairs of vectors perpendicular 
+ * to the aligned ones, so that each ConstantAngle is set to the optimal 90 degrees.
  * 
- *  The assembly condition is the same as the run-time constraint: the 
- *  bodies must be rotated until the vectors have the right angle between them.
+ * This constraint is enforced by an internal scalar torque applied equal and
+ * opposite on each body, about the mutual perpendicular to the two vectors.
+ * 
+ * The assembly condition is the same as the run-time constraint: the 
+ * bodies must be rotated until the vectors have the right angle between them.
  */
 class SimTK_SIMBODY_EXPORT Constraint::ConstantAngle : public Constraint {
 public:
