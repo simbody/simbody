@@ -456,7 +456,7 @@ public:
  * equations since the only remaining rotation is about the common axis. (That 
  * is, two rotational degrees of freedom are removed; that can't be done with 
  * one constraint equation -- the situation is analogous to the inability of
- * a Rod (distance) constraint to keep to points at 0 distance.) Instead,
+ * a Rod (distance) constraint to keep two points at 0 distance.) Instead,
  * you can use two ConstantAngle constraints on pairs of vectors perpendicular 
  * to the aligned ones, so that each ConstantAngle is set to the optimal 90 degrees.
  * 
