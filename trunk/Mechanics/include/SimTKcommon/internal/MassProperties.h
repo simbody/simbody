@@ -401,13 +401,14 @@ public:
     {   return I_OF_F.isNumericallyEqual(other.I_OF_F, tol); }
 
     /// %Test some conditions that must hold for a valid Inertia matrix.
-    /// Cost is about 9 flops.
+    /// Cost is about 12 flops.
     /// TODO: this may not be comprehensive.
     static bool isValidInertiaMatrix(const SymMat33P& m) {
+        const RealP Slop = NTraits<P>::getSignificant();
         if (m.isNaN()) return false;
         const Vec3P& d = m.diag();
         if (!(d >= 0)) return false; // diagonals must be nonnegative
-        if (!(d[0]+d[1]>=d[2] && d[0]+d[2]>=d[1] && d[1]+d[2]>=d[0]))
+        if (!(d[0]+d[1]+Slop>=d[2] && d[0]+d[2]+Slop>=d[1] && d[1]+d[2]+Slop>=d[0]))
             return false; // must satisfy triangle inequality
         //TODO: what else?
         return true;
@@ -447,13 +448,14 @@ protected:
     // matrix and throw an error message if it is not valid. This should be 
     // the same set of tests as run by the isValidInertiaMatrix() method above.
     void errChk(const char* methodName) const {
+        const RealP Slop = NTraits<P>::getSignificant();
         SimTK_ERRCHK(!isNaN(), methodName,
             "Inertia matrix contains a NaN.");
         const Vec3P& d = I_OF_F.diag();
         SimTK_ERRCHK3(d >= 0, methodName,
             "Diagonals of an Inertia matrix must be nonnegative; got %g,%g,%g.",
             (double)d[0],(double)d[1],(double)d[2]);
-        SimTK_ERRCHK3(d[0]+d[1]>=d[2] && d[0]+d[2]>=d[1] && d[1]+d[2]>=d[0],
+        SimTK_ERRCHK3(d[0]+d[1]+Slop>=d[2] && d[0]+d[2]+Slop>=d[1] && d[1]+d[2]+Slop>=d[0],
             methodName,
             "Diagonals of an Inertia matrix must satisfy the triangle "
             "inequality; got %g,%g,%g.",
