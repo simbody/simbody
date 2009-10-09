@@ -174,9 +174,16 @@ public:
         name = copy.name;
         return *this;
     }
-    Enumeration<T>* operator&() {
+    // Address operator should usually return a Stage*, not a Enumeration<Stage>*
+    // The previous Enumeration<Stage>* return value was causing a problem in 
+    // boost.python headers, in a statment equivalent to:
+    //    "Stage* const p = &const_cast<Stage&>((Stage const&)stage);"
+    // Which looks innocent, except that it fails to compile when that first "&" 
+    // generated an Enumeration<Stage>* instead of a Stage*.  Wrapping now works with
+    // this method returning a T*.
+    T* operator&() {
         init();
-        return this;
+        return static_cast<T*>(this);
     }
     bool operator==(const Enumeration<T>& value) const {
         init();
