@@ -400,22 +400,22 @@ public:
         SBStateDigest& sbs) const=0;
 
     virtual void realizeInstance(
-        SBStateDigest& sbs) const=0;
+        const SBStateDigest& sbs) const=0;
 
-    virtual void realizeTime(
-        SBStateDigest&      sbs) const=0;
+    // The multibody tree cannot have any time dependence; hence no
+    // realizeTime().
 
     // Introduce new values for generalized coordinates and calculate
     // all the position-dependent kinematic terms, including position
     // constraint errors. Must be called base to tip.
     virtual void realizePosition(
-        SBStateDigest&      sbs) const=0;
+        const SBStateDigest&      sbs) const=0;
 
     // Introduce new values for generalized speeds and calculate
     // all the velocity-dependent kinematic terms. Assumes realizePosition()
     // has already been called on all nodes. Must be called base to tip.
     virtual void realizeVelocity(
-        SBStateDigest&         sbs) const=0;
+        const SBStateDigest&         sbs) const=0;
 
     // Calculate base-to-tip velocity-dependent terms which will be used
     // in Dynamics stage operators. Assumes realizeVelocity()
@@ -424,60 +424,62 @@ public:
     // body inertias).
     virtual void realizeDynamics(
         const SBArticulatedBodyInertiaCache&    abc,
-        SBStateDigest&                          sbs) const=0;
+        const SBStateDigest&                    sbs) const=0;
 
     virtual void realizeAcceleration(
-        SBStateDigest&         sbs) const=0;
+        const SBStateDigest&         sbs) const=0;
 
     virtual void realizeReport(
-        SBStateDigest&         sbs) const=0;
+        const SBStateDigest&         sbs) const=0;
 
     virtual void realizeArticulatedBodyInertiasInward(
-        const SBPositionCache&          pc,
+        const SBInstanceCache&          ic,
+        const SBTreePositionCache&      pc,
         SBArticulatedBodyInertiaCache&  abc) const=0;
 
     virtual void realizeZ(
-        const SBPositionCache&                  pc,
+        const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
-        const SBVelocityCache&                  vc,
+        const SBTreeVelocityCache&              vc,
         const SBDynamicsCache&                  dc,
-        SBAccelerationCache&                    ac,
+        SBTreeAccelerationCache&                ac,
         const Vector&                           mobilityForces,
         const Vector_<SpatialVec>&              bodyForces) const=0;
     virtual void realizeAccel(
-        const SBPositionCache&                  pc,
+        const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
-        const SBVelocityCache&                  vc,
+        const SBTreeVelocityCache&              vc,
         const SBDynamicsCache&                  dc,
-        SBAccelerationCache&                    ac,
+        SBTreeAccelerationCache&                ac,
         Vector&                                 udot) const=0;
 
     virtual void realizeYOutward(
-        const SBPositionCache&                pc,
+        const SBInstanceCache&                ic,
+        const SBTreePositionCache&            pc,
         const SBArticulatedBodyInertiaCache&  abc,
         SBDynamicsCache&                      dc) const=0;
 
     // This has a default implementation that is good for everything
     // but Ground.
     virtual void calcCompositeBodyInertiasInward(
-        const SBPositionCache& pc,
-        Vector_<SpatialMat>&   R) const;
+        const SBTreePositionCache&  pc,
+        Vector_<SpatialMat>&        R) const;
 
     virtual void calcSpatialKinematicsFromInternal(
-        const SBPositionCache&      pc,
+        const SBTreePositionCache&  pc,
         const Vector&               v,
         Vector_<SpatialVec>&        Jv) const
       { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcSpatialKinematicsFromInternal"); }
 
     virtual void calcInternalGradientFromSpatial(
-        const SBPositionCache&      pc, 
+        const SBTreePositionCache&  pc, 
         Vector_<SpatialVec>&        zTmp,
         const Vector_<SpatialVec>&  X, 
         Vector&                     JX) const
       { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcInternalGradientFromSpatial"); }
 
     virtual void calcEquivalentJointForces(
-        const SBPositionCache&      pc,
+        const SBTreePositionCache&  pc,
         const SBDynamicsCache&      dc,
         const Vector_<SpatialVec>&  bodyForces,
         Vector_<SpatialVec>&        allZ,
@@ -485,25 +487,29 @@ public:
       { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcEquivalentJointForces"); }
 
     virtual void calcUDotPass1Inward(
-        const SBPositionCache&                  pc,
+        const SBInstanceCache&                  ic,
+        const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
         const SBDynamicsCache&                  dc,
         const Vector&                           jointForces,
         const Vector_<SpatialVec>&              bodyForces,
+        const Vector&                           allUDot,
         Vector_<SpatialVec>&                    allZ,
         Vector_<SpatialVec>&                    allGepsilon,
         Vector&                                 allEpsilon) const=0;
     virtual void calcUDotPass2Outward(
-        const SBPositionCache&                  pc,
+        const SBInstanceCache&                  ic,
+        const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
-        const SBVelocityCache&                  vc,
+        const SBTreeVelocityCache&              vc,
         const SBDynamicsCache&                  dc,
         const Vector&                           epsilonTmp,
         Vector_<SpatialVec>&                    allA_GB,
-        Vector&                                 allUDot) const=0;
+        Vector&                                 allUDot,
+        Vector&                                 allTau) const=0;
 
     virtual void calcMInverseFPass1Inward(
-        const SBPositionCache&                  pc,
+        const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
         const SBDynamicsCache&                  dc,
         const Vector&                           f,
@@ -511,7 +517,7 @@ public:
         Vector_<SpatialVec>&                    allGepsilon,
         Vector&                                 allEpsilon) const=0;
     virtual void calcMInverseFPass2Outward(
-        const SBPositionCache&                  pc,
+        const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
         const SBDynamicsCache&                  dc,
         const Vector&                           epsilonTmp,
@@ -519,14 +525,14 @@ public:
         Vector&                                 allUDot) const=0;
 
     virtual void calcInverseDynamicsPass1Outward(
-        const SBPositionCache& pc,
-        const SBVelocityCache& vc,
-        const Vector&          allUDot,
-        Vector_<SpatialVec>&   allA_GB) const
+        const SBTreePositionCache&  pc,
+        const SBTreeVelocityCache&  vc,
+        const Vector&               allUDot,
+        Vector_<SpatialVec>&        allA_GB) const
       { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcInverseDynamicsPass1Outward"); }
     virtual void calcInverseDynamicsPass2Inward(
-        const SBPositionCache&      pc,
-        const SBVelocityCache&      vc,
+        const SBTreePositionCache&  pc,
+        const SBTreeVelocityCache&  vc,
         const Vector_<SpatialVec>&  allA_GB,
         const Vector&               jointForces,
         const Vector_<SpatialVec>&  bodyForces,
@@ -535,28 +541,23 @@ public:
       { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcInverseDynamicsPass2Inward"); }
 
 	virtual void calcMVPass1Outward(
-		const SBPositionCache& pc,
-		const Vector&          allUDot,
-		Vector_<SpatialVec>&   allA_GB) const
+		const SBTreePositionCache&  pc,
+		const Vector&               allUDot,
+		Vector_<SpatialVec>&        allA_GB) const
       { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMVPass1Outward"); }
 	virtual void calcMVPass2Inward(
-		const SBPositionCache& pc,
-		const Vector_<SpatialVec>& allA_GB,
-		Vector_<SpatialVec>&       allFTmp,
-		Vector&                    allTau) const
+		const SBTreePositionCache&  pc,
+		const Vector_<SpatialVec>&  allA_GB,
+		Vector_<SpatialVec>&        allFTmp,
+		Vector&                     allTau) const
       { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMVPass2Inward"); }
 
 
     virtual void setVelFromSVel(const SBStateDigest&,
                                 const SpatialVec&, Vector& u) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "setVelFromSVel");}
 
-
-    virtual void getInternalForce(
-        const SBStateDigest& sbs, 
-        Vector& tau) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getInternalForce");}
-
     // Note that this requires columns of H to be packed like SpatialVec.
-    virtual const SpatialVec& getHCol(const SBPositionCache&, int j) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getHCol");}
+    virtual const SpatialVec& getHCol(const SBTreePositionCache&, int j) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getHCol");}
 
     //TODO (does this even belong here?)
     virtual void velFromCartesian() {}
@@ -656,6 +657,13 @@ public:
     const Inertia&        getInertia_CB_B  () const {return inertia_CB_B;}
     const Transform&      getX_MB          () const {return X_MB;}
 
+    // This says whether this mobilizer has prescribed *acceleration*, and if so
+    // whether the acceleration is known to be zero.
+    bool isUDotKnown(const SBInstanceCache& ic) const 
+    {   return ic.getMobodInstanceInfo(nodeNum).udotMethod!=Motion::Free; }
+    bool isUDotKnownToBeZero(const SBInstanceCache& ic) const 
+    {   return ic.getMobodInstanceInfo(nodeNum).udotMethod==Motion::Zero; }
+
         // POSITION INFO
 
     // Extract from the cache  X_FM, the cross-mobilizer transformation matrix giving the configuration
@@ -663,62 +671,62 @@ public:
     // mobilizer frame F attached to the parent. This transformation is defined to be zero (that is, F=M)
     // in the reference configuration where the joint coordinates are all 0 (or 1,0,0,0 for quaternions).
     // This is NOT a spatial (ground frame) transformation.
-    const Transform& getX_FM(const SBPositionCache& pc) const {return fromB(pc.bodyJointInParentJointFrame);}
-    Transform&       updX_FM(SBPositionCache&       pc) const {return toB  (pc.bodyJointInParentJointFrame);}
+    const Transform& getX_FM(const SBTreePositionCache& pc) const {return fromB(pc.bodyJointInParentJointFrame);}
+    Transform&       updX_FM(SBTreePositionCache&       pc) const {return toB  (pc.bodyJointInParentJointFrame);}
 
     // Return X_F0M0, the cross-joint mobilizer transform *as it was defined* in the mobilizer 
     // specification. If the mobilizer has been reversed, then X_F0M0=~X_FM, otherwise it is 
     // just X_FM.
-    Transform findX_F0M0(const SBPositionCache& pc) const 
+    Transform findX_F0M0(const SBTreePositionCache& pc) const 
     {   return isReversed() ? Transform(~getX_FM(pc))   // 18 flops
                             : getX_FM(pc); }
 
     // Extract from the cache  X_PB, the cross-joint transformation matrix giving the configuration
     // of this body's frame B measured from and expressed in its *parent* frame P. Thus this is NOT
     // a spatial (ground frame) transformation.
-    const Transform& getX_PB(const SBPositionCache& pc) const {return fromB(pc.bodyConfigInParent);}
-    Transform&       updX_PB(SBPositionCache&       pc) const {return toB  (pc.bodyConfigInParent);}
+    const Transform& getX_PB(const SBTreePositionCache& pc) const {return fromB(pc.bodyConfigInParent);}
+    Transform&       updX_PB(SBTreePositionCache&       pc) const {return toB  (pc.bodyConfigInParent);}
 
     // Extract from the cache X_GB, the transformation matrix giving the spatial configuration of this
     // body's frame B measured from and expressed in ground. This consists of a rotation matrix
     // R_GB, and a ground-frame vector r_OG_OB from ground's origin to the origin point of frame B.
-    const Transform& getX_GB(const SBPositionCache& pc) const {
+    const Transform& getX_GB(const SBTreePositionCache& pc) const {
         return fromB(pc.bodyConfigInGround);
     }
-    Transform& updX_GB(SBPositionCache& pc) const {
+    Transform& updX_GB(SBTreePositionCache& pc) const {
         return toB(pc.bodyConfigInGround);
     }
 
     // Extract from the cache the body-to-parent shift matrix "phi". 
-    const PhiMatrix& getPhi(const SBPositionCache& pc) const {return fromB(pc.bodyToParentShift);}
-    PhiMatrix&       updPhi(SBPositionCache&       pc) const {return toB  (pc.bodyToParentShift);}
+    const PhiMatrix& getPhi(const SBTreePositionCache& pc) const {return fromB(pc.bodyToParentShift);}
+    PhiMatrix&       updPhi(SBTreePositionCache&       pc) const {return toB  (pc.bodyToParentShift);}
 
     // Extract this body's spatial inertia matrix from the cache. This contains the mass properties
     // measured from (and about) the body frame origin, but expressed in the *ground* frame.
-    const SpatialMat& getMk(const SBPositionCache& pc) const {return fromB(pc.bodySpatialInertia);}
-    SpatialMat&       updMk(SBPositionCache&       pc) const {return toB  (pc.bodySpatialInertia);}
+    const SpatialMat& getMk(const SBTreePositionCache& pc) const {return fromB(pc.bodySpatialInertia);}
+    SpatialMat&       updMk(SBTreePositionCache&       pc) const {return toB  (pc.bodySpatialInertia);}
 
     // Extract from the cache the location of the body's center of mass, measured from the ground
     // origin and expressed in ground.
-    const Vec3& getCOM_G(const SBPositionCache& pc) const {return fromB(pc.bodyCOMInGround);}
-    Vec3&       updCOM_G(SBPositionCache&       pc) const {return toB  (pc.bodyCOMInGround);}
+    const Vec3& getCOM_G(const SBTreePositionCache& pc) const {return fromB(pc.bodyCOMInGround);}
+    Vec3&       updCOM_G(SBTreePositionCache&       pc) const {return toB  (pc.bodyCOMInGround);}
 
     // Extract from the cache the vector from body B's origin to its center of mass, reexpressed in Ground.
-    const Vec3& getCB_G(const SBPositionCache& pc) const {return fromB(pc.bodyCOMStationInGround);}
-    Vec3&       updCB_G(SBPositionCache&       pc) const {return toB  (pc.bodyCOMStationInGround);}
+    const Vec3& getCB_G(const SBTreePositionCache& pc) const {return fromB(pc.bodyCOMStationInGround);}
+    Vec3&       updCB_G(SBTreePositionCache&       pc) const {return toB  (pc.bodyCOMStationInGround);}
 
     // Extract from the cache the body's inertia about the body origin OB, but reexpressed in Ground.
-    const Inertia& getInertia_OB_G(const SBPositionCache& pc) const {return fromB(pc.bodyInertiaInGround);}
-    Inertia&       updInertia_OB_G(SBPositionCache&       pc) const {return toB  (pc.bodyInertiaInGround);}
+    const Inertia& getInertia_OB_G(const SBTreePositionCache& pc) const {return fromB(pc.bodyInertiaInGround);}
+    Inertia&       updInertia_OB_G(SBTreePositionCache&       pc) const {return toB  (pc.bodyInertiaInGround);}
 
     // Extract from the cache the spatial (ground-relative) location and orientation of this body's
     // *parent's* body frame P.
-    const Transform& getX_GP(const SBPositionCache& pc) const {assert(parent); return parent->getX_GB(pc);}
+    const Transform& getX_GP(const SBTreePositionCache& pc) const {assert(parent); return parent->getX_GB(pc);}
 
             // VELOCITY INFO
 
-    const SpatialVec& getV_FM(const SBVelocityCache& vc) const {return fromB(vc.mobilizerRelativeVelocity);}
-    SpatialVec&       updV_FM(SBVelocityCache&       vc) const {return toB  (vc.mobilizerRelativeVelocity);}
+    const SpatialVec& getV_FM(const SBTreeVelocityCache& vc) const {return fromB(vc.mobilizerRelativeVelocity);}
+    SpatialVec&       updV_FM(SBTreeVelocityCache&       vc) const {return toB  (vc.mobilizerRelativeVelocity);}
 
     // Given V_AB, the spatial velocity of frame B in A expressed in A, return V_BA, the spatial 
     // velocity of frame A in B, expressed in B. The reversal also requires knowing X_AB, the spatial 
@@ -749,7 +757,7 @@ public:
     // Return V_F0M0, the cross-joint mobilizer velocity *as it was defined* in the mobilizer 
     // specification. If the mobilizer has not been reversed, this is just V_FM.
     // 45 flops if reversed.
-    SpatialVec findV_F0M0(const SBPositionCache& pc, const SBVelocityCache& vc) const {
+    SpatialVec findV_F0M0(const SBTreePositionCache& pc, const SBTreeVelocityCache& vc) const {
         return isReversed() ? reverseSpatialVelocity(getX_FM(pc), getV_FM(vc))
                             : getV_FM(vc);
     }
@@ -758,7 +766,7 @@ public:
     // in the mobilizer specification. If the mobilizer has not been reversed, this is just w_FM.
     // This is a useful and much cheaper subset of findV_F0M0.
     // 18 flops if reversed.
-    Vec3 find_w_F0M0(const SBPositionCache& pc, const SBVelocityCache& vc) const {
+    Vec3 find_w_F0M0(const SBTreePositionCache& pc, const SBTreeVelocityCache& vc) const {
         return isReversed() ? reverseAngularVelocity(getX_FM(pc).R(), getV_FM(vc)[0])
                             : getV_FM(vc)[0];
     }
@@ -766,39 +774,39 @@ public:
     // Extract from the cache V_GB, the spatial velocity of this body's frame B measured in and
     // expressed in ground. This contains the angular velocity of B in G, and the linear velocity
     // of B's origin point OB in G, with both vectors expressed in G.
-    const SpatialVec& getV_GB   (const SBVelocityCache& vc) const {return fromB(vc.bodyVelocityInGround);}
-    SpatialVec&       updV_GB   (SBVelocityCache&       vc) const {return toB  (vc.bodyVelocityInGround);}
+    const SpatialVec& getV_GB   (const SBTreeVelocityCache& vc) const {return fromB(vc.bodyVelocityInGround);}
+    SpatialVec&       updV_GB   (SBTreeVelocityCache&       vc) const {return toB  (vc.bodyVelocityInGround);}
 
     // Extract from the cache V_PB_G, the *spatial* velocity of this body's frame B, that is the
     // cross-joint velocity measured with respect to the parent frame, but then expressed in the
     // *ground* frame. This contains the angular velocity of B in P, and the linear velocity
     // of B's origin point OB in P, with both vectors expressed in *G*.
-    const SpatialVec& getV_PB_G (const SBVelocityCache& vc) const {return fromB(vc.bodyVelocityInParent);}
-    SpatialVec&       updV_PB_G (SBVelocityCache&       vc) const {return toB  (vc.bodyVelocityInParent);}
+    const SpatialVec& getV_PB_G (const SBTreeVelocityCache& vc) const {return fromB(vc.bodyVelocityInParent);}
+    SpatialVec&       updV_PB_G (SBTreeVelocityCache&       vc) const {return toB  (vc.bodyVelocityInParent);}
 
-    const SpatialVec& getV_GP(const SBVelocityCache& vc) const {assert(parent); return parent->getV_GB(vc);}
+    const SpatialVec& getV_GP(const SBTreeVelocityCache& vc) const {assert(parent); return parent->getV_GB(vc);}
 
-    const SpatialVec& getSpatialVel   (const SBVelocityCache& vc) const {return getV_GB(vc);}
-    const Vec3&       getSpatialAngVel(const SBVelocityCache& vc) const {return getV_GB(vc)[0];}
-    const Vec3&       getSpatialLinVel(const SBVelocityCache& vc) const {return getV_GB(vc)[1];}
+    const SpatialVec& getSpatialVel   (const SBTreeVelocityCache& vc) const {return getV_GB(vc);}
+    const Vec3&       getSpatialAngVel(const SBTreeVelocityCache& vc) const {return getV_GB(vc)[0];}
+    const Vec3&       getSpatialLinVel(const SBTreeVelocityCache& vc) const {return getV_GB(vc)[1];}
 
     // Extract from the cache VD_PB_G, the *spatial* velocity derivative remainder term
     // generated by H_PB_G_Dot*u, where H_PB_G_Dot = d/dt H_PB_G with the derivative taken
     // in the Ground frame. This is used in calculation of coriolis acceleration.
     // CAUTION: our definition for the H matrix is transposed from those used by Jain and Schwieters.
-    const SpatialVec& getVD_PB_G (const SBVelocityCache& vc) const 
+    const SpatialVec& getVD_PB_G (const SBTreeVelocityCache& vc) const 
         {return fromB(vc.bodyVelocityInParentDerivRemainder);}
-    SpatialVec&       updVD_PB_G (SBVelocityCache&       vc) const 
+    SpatialVec&       updVD_PB_G (SBTreeVelocityCache&       vc) const 
         {return toB  (vc.bodyVelocityInParentDerivRemainder);}
 
-    const SpatialVec& getCoriolisAcceleration(const SBVelocityCache& vc) const {return fromB(vc.coriolisAcceleration);}
-    SpatialVec&       updCoriolisAcceleration(SBVelocityCache&       vc) const {return toB  (vc.coriolisAcceleration);}
+    const SpatialVec& getCoriolisAcceleration(const SBTreeVelocityCache& vc) const {return fromB(vc.coriolisAcceleration);}
+    SpatialVec&       updCoriolisAcceleration(SBTreeVelocityCache&       vc) const {return toB  (vc.coriolisAcceleration);}
 
-    const SpatialVec& getTotalCoriolisAcceleration(const SBVelocityCache& vc) const {return fromB(vc.totalCoriolisAcceleration);}
-    SpatialVec&       updTotalCoriolisAcceleration(SBVelocityCache&       vc) const {return toB  (vc.totalCoriolisAcceleration);}
+    const SpatialVec& getTotalCoriolisAcceleration(const SBTreeVelocityCache& vc) const {return fromB(vc.totalCoriolisAcceleration);}
+    SpatialVec&       updTotalCoriolisAcceleration(SBTreeVelocityCache&       vc) const {return toB  (vc.totalCoriolisAcceleration);}
 
-    const SpatialVec& getGyroscopicForce(const SBVelocityCache& vc) const {return fromB(vc.gyroscopicForces);}
-    SpatialVec&       updGyroscopicForce(SBVelocityCache&       vc) const {return toB  (vc.gyroscopicForces);}
+    const SpatialVec& getGyroscopicForce(const SBTreeVelocityCache& vc) const {return fromB(vc.gyroscopicForces);}
+    SpatialVec&       updGyroscopicForce(SBTreeVelocityCache&       vc) const {return toB  (vc.gyroscopicForces);}
 
         // DYNAMICS INFO
 
@@ -823,11 +831,11 @@ public:
     const SpatialVec& getTotalCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.totalCentrifugalForces);}
     SpatialVec&       updTotalCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.totalCentrifugalForces);}
 
-    const SpatialVec& getZ(const SBAccelerationCache& rc) const {return fromB(rc.z);}
-    SpatialVec&       updZ(SBAccelerationCache&       rc) const {return toB  (rc.z);}
+    const SpatialVec& getZ(const SBTreeAccelerationCache& rc) const {return fromB(rc.z);}
+    SpatialVec&       updZ(SBTreeAccelerationCache&       rc) const {return toB  (rc.z);}
 
-    const SpatialVec& getGepsilon(const SBAccelerationCache& rc) const {return fromB(rc.Gepsilon);}
-    SpatialVec&       updGepsilon(SBAccelerationCache&       rc) const {return toB  (rc.Gepsilon);}
+    const SpatialVec& getGepsilon(const SBTreeAccelerationCache& rc) const {return fromB(rc.Gepsilon);}
+    SpatialVec&       updGepsilon(SBTreeAccelerationCache&       rc) const {return toB  (rc.Gepsilon);}
 
 
     const SpatialMat& getY(const SBDynamicsCache& dc) const {return fromB(dc.Y);}
@@ -838,12 +846,12 @@ public:
     // Extract from the cache A_GB, the spatial acceleration of this body's frame B measured in and
     // expressed in ground. This contains the inertial angular acceleration of B in G, and the
     // linear acceleration of B's origin point OB in G, with both vectors expressed in G.
-    const SpatialVec& getA_GB (const SBAccelerationCache& ac) const {return fromB(ac.bodyAccelerationInGround);}
-    SpatialVec&       updA_GB (SBAccelerationCache&       ac) const {return toB  (ac.bodyAccelerationInGround);}
+    const SpatialVec& getA_GB (const SBTreeAccelerationCache& ac) const {return fromB(ac.bodyAccelerationInGround);}
+    SpatialVec&       updA_GB (SBTreeAccelerationCache&       ac) const {return toB  (ac.bodyAccelerationInGround);}
 
-    const SpatialVec& getSpatialAcc   (const SBAccelerationCache& ac) const {return getA_GB(ac);}
-    const Vec3&       getSpatialAngAcc(const SBAccelerationCache& ac) const {return getA_GB(ac)[0];}
-    const Vec3&       getSpatialLinAcc(const SBAccelerationCache& ac) const {return getA_GB(ac)[1];}
+    const SpatialVec& getSpatialAcc   (const SBTreeAccelerationCache& ac) const {return getA_GB(ac);}
+    const Vec3&       getSpatialAngAcc(const SBTreeAccelerationCache& ac) const {return getA_GB(ac)[0];}
+    const Vec3&       getSpatialLinAcc(const SBTreeAccelerationCache& ac) const {return getA_GB(ac)[1];}
 
 
 
@@ -894,26 +902,26 @@ public:
 
     // Calculate kinetic energy (from spatial quantities only).
     Real calcKineticEnergy(
-        const SBPositionCache& pc,
-        const SBVelocityCache& vc) const;   
+        const SBTreePositionCache& pc,
+        const SBTreeVelocityCache& vc) const;   
   
     // Calculate all spatial configuration quantities, assuming availability of
     // joint-specific relative quantities.
     void calcJointIndependentKinematicsPos(
-        SBPositionCache& pc) const;
+        SBTreePositionCache& pc) const;
 
     // Calcluate all spatial velocity quantities, assuming availability of
     // joint-specific relative quantities and all position kinematics.
     void calcJointIndependentKinematicsVel(
-        const SBPositionCache& pc,
-        SBVelocityCache&       vc) const;
+        const SBTreePositionCache& pc,
+        SBTreeVelocityCache&       vc) const;
 
     // Calculate velocity-dependent quantities which will be needed for
     // computing accelerations.
     void calcJointIndependentDynamicsVel(
-        const SBPositionCache&                  pc,
+        const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
-        const SBVelocityCache&                  vc,
+        const SBTreeVelocityCache&              vc,
         SBDynamicsCache&                        dc) const;
 
 

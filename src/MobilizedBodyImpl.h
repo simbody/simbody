@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_MOBILIZED_BODY_REP_H_
-#define SimTK_SIMBODY_MOBILIZED_BODY_REP_H_
+#ifndef SimTK_SIMBODY_MOBILIZED_BODY_IMPL_H_
+#define SimTK_SIMBODY_MOBILIZED_BODY_IMPL_H_
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
@@ -34,8 +34,8 @@
 
 /**@file
  *
- * Private implementation of Body and MobilizedBody, and their included subclasses which
- * represent the built-in body and mobilizer types.
+ * Private implementation of Body and MobilizedBody, and their included 
+ * subclasses which represent the built-in body and mobilizer types.
  */
 
 #include "SimTKcommon.h"
@@ -45,6 +45,7 @@
 
 #include "SimbodyMatterSubsystemRep.h"
 #include "BodyRep.h"
+#include "MotionImpl.h"
 
 class RigidBodyNode;
 
@@ -54,6 +55,7 @@ namespace SimTK {
     // MOBILIZED BODY REPS //
     /////////////////////////
 
+// This is what a MobilizedBody handle points to.
 class MobilizedBodyImpl : public PIMPLImplementation<MobilizedBody,MobilizedBodyImpl> {
 public:
     explicit MobilizedBodyImpl(MobilizedBody::Direction d) 
@@ -68,10 +70,28 @@ public:
         }
     }
 
-    MobilizedBodyImpl(const MobilizedBodyImpl& clone) {
-        *this = clone;
+    MobilizedBodyImpl(const MobilizedBodyImpl& src) {
+        *this = src;
         myRBnode = 0;
     }
+
+    // The matter subsystem must issue these MobilizedBody realize() calls in base-to-tip
+    // order, because these methods are allowed to assume that their parent (and 
+    // ancestors) have already been realized.
+
+    // eventually calls realizeTopologyVirtual()
+    const RigidBodyNode& realizeTopology(State& s, UIndex& nxtU, USquaredIndex& nxtUSq, QIndex& nxtQ) const;
+
+    void realizeModel   (State&)       const; // eventually calls realizeModelVirtual()       
+    void realizeInstance(const SBStateDigest&) const; // eventually calls realizeInstanceVirtual() 
+    void realizeTime    (const SBStateDigest&) const; // eventually calls realizeTimeVirtual() 
+    void realizePosition(const SBStateDigest&) const; // eventually calls realizePositionVirtual() 
+    void realizeVelocity(const SBStateDigest&) const; // eventually calls realizeVelocityVirtual() 
+    void realizeDynamics(const SBStateDigest&) const; // eventually calls realizeDynamicsVirtual() 
+    void realizeAcceleration
+                        (const SBStateDigest&) const; // eventually calls realizeAccelerationVirtual() 
+    void realizeReport  (const SBStateDigest&) const; // eventually calls realizeReportVirtual() 
+
     virtual ~MobilizedBodyImpl() {
         delete myRBnode;
     }
@@ -84,7 +104,15 @@ public:
         USquaredIndex& nextUSqSlot,
         QIndex&        nextQSlot) const = 0;
 
-    virtual void realizeTopologyImpl(State&) const { }
+    virtual void realizeTopologyVirtual     (State&)        const {}
+    virtual void realizeModelVirtual        (State&)        const {}
+    virtual void realizeInstanceVirtual     (const State&)  const {}
+    virtual void realizeTimeVirtual         (const State&)  const {}
+    virtual void realizePositionVirtual     (const State&)  const {}
+    virtual void realizeVelocityVirtual     (const State&)  const {}
+    virtual void realizeDynamicsVirtual     (const State&)  const {}
+    virtual void realizeAccelerationVirtual (const State&)  const {}
+    virtual void realizeReportVirtual       (const State&)  const {}
 
     // Copy out nq default values for q, beginning at the indicated address.
     // The concrete class should assert if nq is not a reasonable
@@ -225,33 +253,32 @@ public:
     }
 
     const Transform& getBodyTransform(const State& s) const {
-        const SBPositionCache& pc = getMyMatterSubsystemRep().getPositionCache(s);
+        const SBTreePositionCache& pc = getMyMatterSubsystemRep().getTreePositionCache(s);
         return getMyRigidBodyNode().getX_GB(pc);
     }
     const SpatialVec& getBodyVelocity(const State& s) const {
-        const SBVelocityCache& vc = getMyMatterSubsystemRep().getVelocityCache(s);
+        const SBTreeVelocityCache& vc = getMyMatterSubsystemRep().getTreeVelocityCache(s);
         return getMyRigidBodyNode().getV_GB(vc);
     }
     const SpatialVec& getBodyAcceleration(const State& s) const {
-        const SBAccelerationCache& ac = getMyMatterSubsystemRep().getAccelerationCache(s);
+        const SBTreeAccelerationCache& ac = getMyMatterSubsystemRep().getTreeAccelerationCache(s);
         return getMyRigidBodyNode().getA_GB(ac);
     }
 
     const Transform& getMobilizerTransform(const State& s) const {
-        const SBPositionCache& pc = getMyMatterSubsystemRep().getPositionCache(s);
+        const SBTreePositionCache& pc = getMyMatterSubsystemRep().getTreePositionCache(s);
         return getMyRigidBodyNode().getX_FM(pc);
     }
     const SpatialVec& getMobilizerVelocity(const State& s) const {
-        const SBVelocityCache& vc = getMyMatterSubsystemRep().getVelocityCache(s);
+        const SBTreeVelocityCache& vc = getMyMatterSubsystemRep().getTreeVelocityCache(s);
         return getMyRigidBodyNode().getV_FM(vc);
     }
 
     SpatialVec getHCol(const State& s, UIndex ux) const {
-        const SBPositionCache& pc = getMyMatterSubsystemRep().getPositionCache(s);
+        const SBTreePositionCache& pc = getMyMatterSubsystemRep().getTreePositionCache(s);
         return getMyRigidBodyNode().getHCol(pc,ux);
     }
 
-    const RigidBodyNode& realizeTopology(State& s, UIndex& nxtU, USquaredIndex& nxtUSq, QIndex& nxtQ) const;
 
     void invalidateTopologyCache() const {
         delete myRBnode; myRBnode=0;
@@ -278,6 +305,35 @@ public:
 
     bool isReversed() const {return reversed;}
 
+    void adoptMotion(Motion& ownerHandle) {
+        SimTK_ERRCHK(!hasMotion(), "MobilizedBody::adoptMotion()",
+            "This MobilizedBody already has a Motion object associated with it.\n"
+            "Use clearMotion() first to replace an existing Motion object.");
+        ownerHandle.disown(motion); // transfer ownership to handle "motion"
+        invalidateTopologyCache();
+
+        // Tell the Motion that it belongs to this MobilizedBody.
+        motion.updImpl().setMobilizedBodyImpl(this);
+    }
+
+    void clearMotion() {
+        motion.clearHandle();
+        invalidateTopologyCache();
+    }
+
+    bool hasMotion() const {return !motion.isEmptyHandle();}
+
+    const Motion& getMotion() const {
+        SimTK_ERRCHK(!motion.isEmptyHandle(),
+            "MobilizedBody::getMotion()",
+            "There is no Motion object associated with this MobilizedBody.");
+        return motion;
+    }
+
+    const SimbodyMatterSubsystem& getMySimbodyMatterSubsystem() const {
+        return getMyMatterSubsystemRep().getMySimbodyMatterSubsystemHandle();
+    }
+
     const SimbodyMatterSubsystemRep& getMyMatterSubsystemRep() const {
         SimTK_ASSERT(myMatterSubsystemRep,
             "An operation was illegal because a MobilizedBody was not in a Subsystem.");
@@ -287,6 +343,22 @@ public:
         SimTK_ASSERT(myMatterSubsystemRep,
             "An operation was illegal because a MobilizedBody was not in a Subsystem.");
         return *myMatterSubsystemRep;
+    }
+
+    const MobilizedBody& getMyHandle() const {
+        const MobilizedBody& mobod = 
+            getMyMatterSubsystemRep().getMobilizedBody(getMyMobilizedBodyIndex());
+        SimTK_ASSERT(&mobod.getImpl() == this,
+            "A MobilizedBodyImpl's handle didn't refer back to the same Impl!");
+        return mobod;
+    }
+
+    MobilizedBody& updMyHandle() {
+        MobilizedBody& mobod = 
+            updMyMatterSubsystemRep().updMobilizedBody(getMyMobilizedBodyIndex());
+        SimTK_ASSERT(&mobod.getImpl() == this,
+            "A MobilizedBodyImpl's handle didn't refer back to the same Impl!");
+        return mobod;
     }
 
     MobilizedBodyIndex getMyMobilizedBodyIndex() const {
@@ -371,11 +443,24 @@ private:
     // Base class topological properties. Derived MobilizedBodies may
     // have further topological properties. Whenever these change, be
     // sure to set topologyRealized=false!
-    Body theBody;
-    Transform defaultInboardFrame;  // default for F (in Parent frame)
-    Transform defaultOutboardFrame; // default for M (in Body frame)
 
-    bool reversed; // is the mobilizer defined from M to F?
+    // Body represents the mass structure, mass properties, and possibly some
+    // decorative geometry for the body associated with this (body,mobilizer)
+    // pair.
+    Body        theBody;
+    Transform   defaultInboardFrame;  // default for F (in Parent frame)
+    Transform   defaultOutboardFrame; // default for M (in Body frame)
+
+    // A Motion object, if present, defines how this mobilizer's motion is
+    // to be calculated. Otherwise, the motion is determined dynamically
+    // as a result of forces and constraints. A Motion always prescribes
+    // \e all of the mobilizer's generalized accelerations udot (index 1); 
+    // may also some of the prescribed generalized speeds u (index 2); and 
+    // for speeds that are prescribed it may also prescribe the corresponding
+    // generalized coordinates q (index 3).
+    Motion      motion;
+
+    bool        reversed; // is the mobilizer defined from M to F?
 
     std::vector<DecorativeGeometry> outboardGeometry;
     std::vector<DecorativeGeometry> inboardGeometry;
@@ -388,8 +473,8 @@ private:
     MobilizedBodyIndex  myMobilizedBodyIndex; // index within the subsystem
     MobilizedBodyIndex  myParentIndex;   // Invalid if this body is Ground, otherwise the parent's index
     MobilizedBodyIndex  myBaseBodyIndex; // GroundIndex if this is ground, otherwise a level-1 BodyIndex
-    int              myLevel;      // Distance from ground in multibody graph (0 if this is ground,
-                                   //   1 if a base body, 2 if parent is a base body, etc.)
+    int                 myLevel;      // Distance from ground in multibody graph (0 if this is ground,
+                                      //   1 if a base body, 2 if parent is a base body, etc.)
 
         // TOPOLOGY "CACHE"
 
@@ -985,15 +1070,16 @@ public:
     }
 
     // Forward all the virtuals to the Custom::Implementation virtuals.
-    void realizeTopologyImpl(State& s) const {getImplementation().realizeTopology(s);}
-    void realizeModel   (State& s) const {getImplementation().realizeModel(s);}
-    void realizeInstance(const State& s) const {getImplementation().realizeInstance(s);}
-    void realizeTime    (const State& s) const {getImplementation().realizeTime(s);}
-    void realizePosition(const State& s) const {getImplementation().realizePosition(s);}
-    void realizeVelocity(const State& s) const {getImplementation().realizeVelocity(s);}
-    void realizeDynamics(const State& s) const {getImplementation().realizeDynamics(s);}
-    void realizeAcceleration(const State& s) const {getImplementation().realizeAcceleration(s);}
-    void realizeReport  (const State& s) const {getImplementation().realizeReport(s);}
+    void realizeTopologyVirtual(State& s)       const {getImplementation().realizeTopology(s);}
+    void realizeModelVirtual   (State& s)       const {getImplementation().realizeModel(s);}
+    void realizeInstanceVirtual(const State& s) const {getImplementation().realizeInstance(s);}
+    void realizeTimeVirtual    (const State& s) const {getImplementation().realizeTime(s);}
+    void realizePositionVirtual(const State& s) const {getImplementation().realizePosition(s);}
+    void realizeVelocityVirtual(const State& s) const {getImplementation().realizeVelocity(s);}
+    void realizeDynamicsVirtual(const State& s) const {getImplementation().realizeDynamics(s);}
+    void realizeAccelerationVirtual
+                               (const State& s) const {getImplementation().realizeAcceleration(s);}
+    void realizeReportVirtual  (const State& s) const {getImplementation().realizeReport(s);}
         
     void calcDecorativeGeometryAndAppend(const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
        {getImplementation().calcDecorativeGeometryAndAppend(s,stage,geom);}
@@ -1681,4 +1767,4 @@ std::ostream& operator<<(std::ostream& o, const MobilizedBody::FunctionBasedImpl
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_MOBILIZED_BODY_REP_H_
+#endif // SimTK_SIMBODY_MOBILIZED_BODY_IMPL_H_

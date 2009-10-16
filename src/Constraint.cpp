@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-8 Stanford University and the Authors.         *
+ * Portions copyright (c) 2007-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -31,8 +31,8 @@
 
 /**@file
  *
- * Private implementation of MobilizedBody, and its included subclasses which
- * represent the built-in mobilizer types.
+ * Private implementation of Constraint, and its included subclasses which
+ * represent the built-in constraint types.
  */
 
 #include "SimTKcommon.h"
@@ -1796,21 +1796,21 @@ addInOneMobilityForce(const State& s, ConstrainedMobilizerIndex M, MobilizerUInd
 }
 
 const Transform&  Constraint::Custom::Implementation::
-getBodyTransform(const State& s, ConstrainedBodyIndex B, bool realizingPosition) const
+getBodyTransform(const State& s, ConstrainedBodyIndex B) const
 {
-    return getImpl().getCustomImpl().getBodyTransform(s,B,realizingPosition);
+    return getImpl().getCustomImpl().getBodyTransform(s,B);
 }
 
 const SpatialVec& Constraint::Custom::Implementation::
-getBodyVelocity(const State& s, ConstrainedBodyIndex B, bool realizingVelocity) const
+getBodyVelocity(const State& s, ConstrainedBodyIndex B) const
 {
-    return getImpl().getCustomImpl().getBodyVelocity(s,B,realizingVelocity);
+    return getImpl().getCustomImpl().getBodyVelocity(s,B);
 }
 
 const SpatialVec& Constraint::Custom::Implementation::
-getBodyAcceleration(const State& s, ConstrainedBodyIndex B, bool realizingAcceleration) const
+getBodyAcceleration(const State& s, ConstrainedBodyIndex B) const
 {
-    return getImpl().getCustomImpl().getBodyAcceleration(s,B,realizingAcceleration);
+    return getImpl().getCustomImpl().getBodyAcceleration(s,B);
 }
 
 void Constraint::Custom::Implementation::
@@ -2113,6 +2113,9 @@ void Constraint::PrescribedMotionImpl::applyPositionConstraintForces(const State
     // CONSTRAINT IMPL //
     /////////////////////
 
+// -----------------------------------------------------------------------------
+//                              REALIZE TOPOLOGY
+// -----------------------------------------------------------------------------
 void ConstraintImpl::realizeTopology(State& s) const
 {
     // Calculate the relevant Subtree. There might not be any Constrained Bodies here
@@ -2143,8 +2146,26 @@ void ConstraintImpl::realizeTopology(State& s) const
     realizeTopologyVirtual(s); // delegate to concrete constraint
 }
 
+
+
+// -----------------------------------------------------------------------------
+//                               REALIZE MODEL
+// -----------------------------------------------------------------------------
+void ConstraintImpl::realizeModel(State& s) const
+{
+    SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
+        "ConstraintImpl::realizeModel() can't be called until after realizeToplogy().");
+
+    realizeModelVirtual(s); // delegate to concrete constraint
+}
+
+
+
+// -----------------------------------------------------------------------------
+//                              REALIZE INSTANCE
+// -----------------------------------------------------------------------------
 // There are two main tasks here that can be performed now that we have values
-// for the Model stage state variables:
+// for the Instance stage state variables:
 // (1) Count up the number of holonomic, nonholonomic, and acceleration-only constraint
 //     equations to be contributed by each Constraint, and assign corresponding slots
 //     in constraint-equation ordered arrays, such as the State's constraint error arrays.
@@ -2154,14 +2175,7 @@ void ConstraintImpl::realizeTopology(State& s) const
 //     resulting from ConstrainedMobilizers, and indirectly-constrained ones arising 
 //     from their effects on ConstrainedBodies. Together we call those "participating q's"
 //     and "participating u's" (or "participating mobilities").
-// The results of these computations goes in the Model cache.
-void ConstraintImpl::realizeModel(State& s) const
-{
-    SimTK_ASSERT(subsystemTopologyHasBeenRealized(),
-        "ConstraintImpl::realizeModel() can't be called until after realizeToplogy().");
-
-    realizeModelVirtual(s); // delegate to concrete constraint
-}
+// The results of these computations goes in the Instance cache.
 
 void ConstraintImpl::realizeInstance(const State& s) const {
     const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
@@ -2247,59 +2261,76 @@ void ConstraintImpl::realizeInstance(const State& s) const {
 		std::unique(cInfo.participatingQ.begin(), cInfo.participatingQ.end());
 	cInfo.participatingQ.erase(newEnd, cInfo.participatingQ.end());
 
-    realizeInstanceVirtual(s); // nothing to do at the base class level
+    realizeInstanceVirtual(s); // delegate to concrete constraint
 }
-void ConstraintImpl::realizeTime(const State& s) const {
-    if (isDisabled(s)) return;
-    realizeTimeVirtual(s); // nothing to do in the base class
+
+
+
+// -----------------------------------------------------------------------------
+//                                REALIZE TIME
+// -----------------------------------------------------------------------------
+void ConstraintImpl::realizeTime(const SBStateDigest& sbs) const {
+    const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
+    if (instanceVars.disabled[myConstraintIndex]) return;
+
+    realizeTimeVirtual(sbs.getState()); // nothing to do in the base class
 }
-void ConstraintImpl::realizePosition(const State& s) const {
-    if (isDisabled(s)) return;
-    if (myAncestorBodyIsNotGround) {
-        // Pre-calculate configuration information in the Ancestor frame
-        SBPositionCache& pc = getMyMatterSubsystemRep().updPositionCache(s);
-        for (ConstrainedBodyIndex b(0); b < getNumConstrainedBodies(); ++b) {
-            const AncestorConstrainedBodyPoolIndex bx = myPoolIndex[b];
-            if (bx.isValid())
-                pc.constrainedBodyConfigInAncestor[bx] = precalcConstrainedBodyTransformInAncestor(s,b);
-        }
-    }
-    realizePositionVirtual(s); // delegate to concrete constraint
+
+
+
+// -----------------------------------------------------------------------------
+//                             REALIZE POSITION
+// -----------------------------------------------------------------------------
+void ConstraintImpl::realizePosition(const SBStateDigest& sbs) const {
+    const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
+    if (instanceVars.disabled[myConstraintIndex]) return;
+    realizePositionVirtual(sbs.getState()); // delegate to concrete constraint
 }
-void ConstraintImpl::realizeVelocity(const State& s) const {
-    if (isDisabled(s)) return;
-    if (myAncestorBodyIsNotGround) {
-        // Pre-calculate velocity information in the Ancestor frame
-        SBVelocityCache& vc = getMyMatterSubsystemRep().updVelocityCache(s);
-        for (ConstrainedBodyIndex b(0); b < getNumConstrainedBodies(); ++b) {
-            const AncestorConstrainedBodyPoolIndex bx = myPoolIndex[b];
-            if (bx.isValid())
-                vc.constrainedBodyVelocityInAncestor[bx] = precalcConstrainedBodyVelocityInAncestor(s,b);
-        }
-    }    
-    realizeVelocityVirtual(s); // delegate to concrete constraint
+
+
+
+// -----------------------------------------------------------------------------
+//                              REALIZE VELOCITY
+// -----------------------------------------------------------------------------
+void ConstraintImpl::realizeVelocity(const SBStateDigest& sbs) const {
+    const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
+    if (instanceVars.disabled[myConstraintIndex]) return;
+    realizeVelocityVirtual(sbs.getState()); // delegate to concrete constraint
 }
-void ConstraintImpl::realizeDynamics(const State& s) const {
-    if (isDisabled(s)) return;
-    realizeDynamicsVirtual(s); // nothing to do in the base class
+
+
+
+// -----------------------------------------------------------------------------
+//                              REALIZE DYNAMICS
+// -----------------------------------------------------------------------------
+void ConstraintImpl::realizeDynamics(const SBStateDigest& sbs) const {
+    const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
+    if (instanceVars.disabled[myConstraintIndex]) return;
+    realizeDynamicsVirtual(sbs.getState()); // delegate to concrete constraint
 }
-void ConstraintImpl::realizeAcceleration(const State& s) const {
-    if (isDisabled(s)) return;
-    if (myAncestorBodyIsNotGround) {
-        // Pre-calculate velocity information in the Ancestor frame
-        SBAccelerationCache& ac = getMyMatterSubsystemRep().updAccelerationCache(s);
-        for (ConstrainedBodyIndex b(0); b < getNumConstrainedBodies(); ++b) {
-            const AncestorConstrainedBodyPoolIndex bx = myPoolIndex[b];
-            if (bx.isValid())
-                ac.constrainedBodyAccelerationInAncestor[bx] = precalcConstrainedBodyAccelerationInAncestor(s,b);
-        }
-    }   
-    realizeAccelerationVirtual(s); // delegate to concrete constraint
+
+
+
+// -----------------------------------------------------------------------------
+//                            REALIZE ACCELERATION
+// -----------------------------------------------------------------------------
+void ConstraintImpl::realizeAcceleration(const SBStateDigest& sbs) const {
+    const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
+    if (instanceVars.disabled[myConstraintIndex]) return; 
+    realizeAccelerationVirtual(sbs.getState()); // delegate to concrete constraint
 }
+
+
+
+// -----------------------------------------------------------------------------
+//                             REALIZE REPORT
+// -----------------------------------------------------------------------------
 void ConstraintImpl::realizeReport(const State& s) const {
     if (isDisabled(s)) return;
     realizeReportVirtual(s); // nothing to do in the base class
 }
+
+
 
 void ConstraintImpl::invalidateTopologyCache() const {
     if (myMatterSubsystemRep)
@@ -2391,13 +2422,13 @@ Real ConstraintImpl::getOneQDotDot(const State& s,
 
 // These are used to retrieve the indicated values from the State cache.
 const Transform& ConstraintImpl::getBodyTransform
-   (const State& s, ConstrainedBodyIndex B, bool realizingPosition) const 
+   (const State& s, ConstrainedBodyIndex B) const 
 {
     const SimbodyMatterSubsystemRep& matter    = getMyMatterSubsystemRep();
     const MobilizedBodyIndex         bodyB     = myConstrainedBodies[B];
 
     if (!myAncestorBodyIsNotGround) 
-        return matter.getBodyTransform(s,bodyB,realizingPosition); // X_GB
+        return matter.getBodyTransform(s,bodyB); // X_AB==X_GB
 
     static const Transform X_AA; // identity Transform
     const MobilizedBodyIndex ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
@@ -2405,17 +2436,17 @@ const Transform& ConstraintImpl::getBodyTransform
         return X_AA;
 
     const AncestorConstrainedBodyPoolIndex bx = myPoolIndex[B];
-    return matter.getPositionCache(s,realizingPosition)
+    return matter.getTreePositionCache(s)
                     .constrainedBodyConfigInAncestor[bx]; // X_AB
 }
 const SpatialVec& ConstraintImpl::getBodyVelocity
-   (const State& s, ConstrainedBodyIndex B, bool realizingVelocity) const
+   (const State& s, ConstrainedBodyIndex B) const
 {
     const SimbodyMatterSubsystemRep& matter    = getMyMatterSubsystemRep();
     const MobilizedBodyIndex         bodyB     = myConstrainedBodies[B];
 
     if (!myAncestorBodyIsNotGround) 
-        return matter.getBodyVelocity(s,bodyB,realizingVelocity); // V_GB
+        return matter.getBodyVelocity(s,bodyB); // V_AB==V_GB
 
     static const SpatialVec V_AA(Vec3(0),Vec3(0)); // zero velocity
     const MobilizedBodyIndex ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
@@ -2423,17 +2454,17 @@ const SpatialVec& ConstraintImpl::getBodyVelocity
         return V_AA;
 
     const AncestorConstrainedBodyPoolIndex bx = myPoolIndex[B];
-    return matter.getVelocityCache(s,realizingVelocity)
+    return matter.getTreeVelocityCache(s)
                     .constrainedBodyVelocityInAncestor[bx]; // V_AB
 }
 const SpatialVec& ConstraintImpl::getBodyAcceleration
-   (const State& s, ConstrainedBodyIndex B, bool realizingAcceleration) const
+   (const State& s, ConstrainedBodyIndex B) const
 {
     const SimbodyMatterSubsystemRep& matter    = getMyMatterSubsystemRep();
     const MobilizedBodyIndex         bodyB     = myConstrainedBodies[B];
 
     if (!myAncestorBodyIsNotGround) 
-        return matter.getBodyAcceleration(s,bodyB,realizingAcceleration); // A_GB
+        return matter.getBodyAcceleration(s,bodyB); // A_AB==A_GB
 
     static const SpatialVec A_AA(Vec3(0),Vec3(0)); // zero velocity
     const MobilizedBodyIndex ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
@@ -2441,76 +2472,147 @@ const SpatialVec& ConstraintImpl::getBodyAcceleration
         return A_AA;
 
     const AncestorConstrainedBodyPoolIndex bx = myPoolIndex[B];
-    return matter.getAccelerationCache(s,realizingAcceleration)
+    return matter.getTreeAccelerationCache(s)
                     .constrainedBodyAccelerationInAncestor[bx]; // A_AB
 }
 
+// -----------------------------------------------------------------------------
+//                 REALIZE CONSTRAINED BODY TRANSFORM IN ANCESTOR
+// -----------------------------------------------------------------------------
+// 63 flops per constrained body
+void ConstraintImpl::calcConstrainedBodyTransformInAncestor      // X_AB
+   (const SBStateDigest& sbs, SBTreePositionCache& tpc) const 
+{
+    const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
+    if (instanceVars.disabled[myConstraintIndex]) return;
+    if (!myAncestorBodyIsNotGround) return;
+    const MobilizedBodyIndex ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
 
-// These are measured from and expressed in the ancestor (A) frame.
-Transform ConstraintImpl::precalcConstrainedBodyTransformInAncestor(const State& s, ConstrainedBodyIndex B) const { // X_AB
-    const SimbodyMatterSubsystemRep& matter    = getMyMatterSubsystemRep();
-    const MobilizedBodyIndex         bodyB     = myConstrainedBodies[B];
-    const MobilizedBodyIndex         ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
+    // We expect Ground-relative kinematics already to have been calculated in 
+    // tpc, but we can't verify that.
+    const Transform& X_GA = tpc.getX_GB(ancestorA);
 
-    const Transform& X_GB = matter.getBodyTransform(s, bodyB,     true);
-    const Transform& X_GA = matter.getBodyTransform(s, ancestorA, true);
-    return ~X_GA*X_GB;
+    for (ConstrainedBodyIndex cbx(0); cbx < getNumConstrainedBodies(); ++cbx) {
+        const MobilizedBodyIndex bodyB = myConstrainedBodies[cbx];
+        if (bodyB == ancestorA) continue; // skip ancestor if it's a constrained body also
+        const AncestorConstrainedBodyPoolIndex px = myPoolIndex[cbx];
+        assert(px.isValid());
+
+        const Transform& X_GB = tpc.getX_GB(bodyB);
+        tpc.updX_AB(px) = ~X_GA*X_GB;  // 63 flops
+    }
 }
 
-SpatialVec ConstraintImpl::precalcConstrainedBodyVelocityInAncestor(const State& s, ConstrainedBodyIndex B) const { // V_AB
-    const SimbodyMatterSubsystemRep& matter    = getMyMatterSubsystemRep();
-    const MobilizedBodyIndex         bodyB     = myConstrainedBodies[B];
-    const MobilizedBodyIndex         ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
+// -----------------------------------------------------------------------------
+//                 REALIZE CONSTRAINED BODY VELOCITY IN ANCESTOR
+// -----------------------------------------------------------------------------
+// 51 flops per constrained body
+void ConstraintImpl::calcConstrainedBodyVelocityInAncestor       // V_AB
+   (const SBStateDigest& sbs, SBTreeVelocityCache& tvc) const 
+{
+    const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
+    if (instanceVars.disabled[myConstraintIndex]) return;
+    if (!myAncestorBodyIsNotGround) return;
+    const MobilizedBodyIndex ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
 
-    const Transform&  X_GB = matter.getBodyTransform(s, bodyB);
-    const Transform&  X_GA = matter.getBodyTransform(s, ancestorA);
-    const SpatialVec& V_GB = matter.getBodyVelocity(s, bodyB,     true);
-    const SpatialVec& V_GA = matter.getBodyVelocity(s, ancestorA, true);
-    const Vec3 p_AB_G     = X_GB.p() - X_GA.p();
-    const Vec3 p_AB_G_dot = V_GB[1]  - V_GA[1];        // d/dt p taken in G
+    const SBTreePositionCache& tpc = sbs.getTreePositionCache();
 
-    const Vec3 w_AB_G = V_GB[0] - V_GA[0];             // relative angular velocity of B in A, exp. in G
+    // All position kinematics has been calculated, and we also expect 
+    // Ground-relative velocity kinematics already to have been calculated in tvc, 
+    // but we can't verify that.
+    const Transform&  X_GA = tpc.getX_GB(ancestorA);
+    const SpatialVec& V_GA = tvc.getV_GB(ancestorA); 
 
-    // To get d/dt p taken in A, get derivative in G and remove the contribution generated by
-    // A's velocity in G.
-    const Vec3 v_AB_G = p_AB_G_dot - V_GA[0] % p_AB_G; // time deriv of p in A, exp in G
+    for (ConstrainedBodyIndex cbx(0); cbx < getNumConstrainedBodies(); ++cbx) {
+        const MobilizedBodyIndex bodyB = myConstrainedBodies[cbx];
+        if (bodyB == ancestorA) continue; // skip the ancestor itself if it is a constrained body also
+        const AncestorConstrainedBodyPoolIndex px = myPoolIndex[cbx];
+        assert(px.isValid());
 
-    return ~X_GA.R() * SpatialVec(w_AB_G, v_AB_G);     // re-express in A
+        const Transform&  X_GB = tpc.getX_GB(bodyB);
+        const SpatialVec& V_GB = tvc.getV_GB(bodyB);
+
+        // 6 flops
+        const Vec3 p_AB_G     = X_GB.p() - X_GA.p();
+        const Vec3 p_AB_G_dot = V_GB[1]  - V_GA[1];        // d/dt p taken in G
+
+        // 3 flops
+        const Vec3 w_AB_G = V_GB[0] - V_GA[0];             // relative angular velocity of B in A, exp. in G
+
+        // To get d/dt p taken in A, get derivative in G and remove the contribution generated by
+        // A's velocity in G.
+        // 12 flops
+        const Vec3 v_AB_G = p_AB_G_dot - V_GA[0] % p_AB_G; // time deriv of p in A, exp in G
+
+        // 30 flops
+        tvc.updV_AB(px) = ~X_GA.R() * SpatialVec(w_AB_G, v_AB_G);     // re-express in A
+    }
 }
 
-SpatialVec ConstraintImpl::precalcConstrainedBodyAccelerationInAncestor(const State& s, ConstrainedBodyIndex B) const { // A_AB
-    const SimbodyMatterSubsystemRep& matter    = getMyMatterSubsystemRep();
-    const MobilizedBodyIndex         bodyB     = myConstrainedBodies[B];
-    const MobilizedBodyIndex         ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
 
-    const Vec3&       p_GB = matter.getBodyTransform(s, bodyB).p();
-    const Transform&  X_GA = matter.getBodyTransform(s, ancestorA);
-    const Vec3&       p_GA = X_GA.p();
-    const SpatialVec& V_GB = matter.getBodyVelocity(s, bodyB);
-    const SpatialVec& V_GA = matter.getBodyVelocity(s, ancestorA);
-    const SpatialVec& A_GB = matter.getBodyAcceleration(s, bodyB,     true);
-    const SpatialVec& A_GA = matter.getBodyAcceleration(s, ancestorA, true);
+
+// -----------------------------------------------------------------------------
+//               REALIZE CONSTRAINED BODY ACCELERATION IN ANCESTOR
+// -----------------------------------------------------------------------------
+// 105 flops per constrained body
+void ConstraintImpl::calcConstrainedBodyAccelerationInAncestor      // A_AB
+   (const SBStateDigest& sbs, SBTreeAccelerationCache& tac) const 
+{
+    const SBInstanceVars& instanceVars  = sbs.getInstanceVars();
+    if (instanceVars.disabled[myConstraintIndex]) return;
+    if (!myAncestorBodyIsNotGround) return;
+    const MobilizedBodyIndex ancestorA = mySubtree.getAncestorMobilizedBodyIndex();
+
+    const SBTreePositionCache& tpc = sbs.getTreePositionCache();
+    const SBTreeVelocityCache& tvc = sbs.getTreeVelocityCache();
+
+    // All position & velocity kinematics has been calculated, and we also expect 
+    // Ground-relative acceleration kinematics already to have been calculated in tac, 
+    // but we can't verify that.
+    const Transform&  X_GA = tpc.getX_GB(ancestorA);
+    const SpatialVec& V_GA = tvc.getV_GB(ancestorA); 
+    const SpatialVec& A_GA = tac.getA_GB(ancestorA); 
+
+    const Vec3&       p_GA = X_GA.p();  // convenient abbreviations
     const Vec3&       w_GA = V_GA[0];
-    const Vec3&       w_GB = V_GB[0];
     const Vec3&       b_GA = A_GA[0];
-    const Vec3&       b_GB = A_GB[0];
 
-    const Vec3 p_AB_G        = p_GB     - p_GA;
-    const Vec3 p_AB_G_dot    = V_GB[1]  - V_GA[1];      // d/dt p taken in G
-    const Vec3 p_AB_G_dotdot = A_GB[1]  - A_GA[1];      // d^2/dt^2 taken in G
+    for (ConstrainedBodyIndex cbx(0); cbx < getNumConstrainedBodies(); ++cbx) {
+        const MobilizedBodyIndex bodyB = myConstrainedBodies[cbx];
+        if (bodyB == ancestorA) continue; // skip the ancestor itself if it is a constrained body also
+        const AncestorConstrainedBodyPoolIndex px = myPoolIndex[cbx];
+        assert(px.isValid());
 
-    const Vec3 w_AB_G     = w_GB - w_GA;                // relative angular velocity of B in A, exp. in G
-    const Vec3 v_AB_G     = p_AB_G_dot - w_GA % p_AB_G; // d/dt p taken in A, exp in G
+        const Transform&  X_GB = tpc.getX_GB(bodyB);
+        const SpatialVec& V_GB = tvc.getV_GB(bodyB);
+        const SpatialVec& A_GB = tac.getA_GB(bodyB);
 
-    const Vec3 w_AB_G_dot = b_GB - b_GA;         // d/dt of w_AB_G taken in G
-    const Vec3 v_AB_G_dot = p_AB_G_dotdot - (b_GA % p_AB_G + w_GA % p_AB_G_dot); // d/dt v_AB_G taken in G
+        const Vec3&       p_GB = X_GB.p();  // convenient abbreviations
+        const Vec3&       w_GB = V_GB[0];
+        const Vec3&       b_GB = A_GB[0];
 
-    // We have the derivative in G; change it to derivative in A by adding in contribution caused
-    // by motion of G in A, that is w_AG X w_AB_G. (Note that w_AG=-w_GA.)
-    const Vec3 b_AB_G = w_AB_G_dot - w_GA % w_AB_G;
-    const Vec3 a_AB_G = v_AB_G_dot - w_GA % v_AB_G; // taken in A, exp. in G
+        // 9 flops
+        const Vec3 p_AB_G        = p_GB     - p_GA;
+        const Vec3 p_AB_G_dot    = V_GB[1]  - V_GA[1];      // d/dt p taken in G
+        const Vec3 p_AB_G_dotdot = A_GB[1]  - A_GA[1];      // d^2/dt^2 taken in G
 
-    return ~X_GA.R() * SpatialVec(b_AB_G, a_AB_G); // taken in A, expressed in A
+        // 15 flops
+        const Vec3 w_AB_G     = w_GB - w_GA;                // relative angular velocity of B in A, exp. in G
+        const Vec3 v_AB_G     = p_AB_G_dot - w_GA % p_AB_G; // d/dt p taken in A, exp in G
+
+        // 27 flops
+        const Vec3 w_AB_G_dot = b_GB - b_GA;         // d/dt of w_AB_G taken in G
+        const Vec3 v_AB_G_dot = p_AB_G_dotdot - (b_GA % p_AB_G + w_GA % p_AB_G_dot); // d/dt v_AB_G taken in G
+
+        // We have the derivative in G; change it to derivative in A by adding in contribution caused
+        // by motion of G in A, that is w_AG X w_AB_G. (Note that w_AG=-w_GA.)
+        // 24 flops
+        const Vec3 b_AB_G = w_AB_G_dot - w_GA % w_AB_G;
+        const Vec3 a_AB_G = v_AB_G_dot - w_GA % v_AB_G; // taken in A, exp. in G
+
+        // 30 flops
+        tac.updA_AB(px) = ~X_GA.R() * SpatialVec(b_AB_G, a_AB_G); // taken in A, expressed in A
+    }
 }
 
 // Find out how many holonomic (position), nonholonomic (velocity),
@@ -2704,7 +2806,7 @@ void ConstraintImpl::getVelocityErrors(const State& s, int mpv, Real* pverr) con
         pverr[mHolo+i] = uerr[firstNonholoErr+i];
 }
 
-// Given a State realized to Acceleration stage, extract the accleration constraint errors
+// Given a State realized to Acceleration stage, extract the acceleration constraint errors
 // corresponding to this Constraint. This includes acceleration constraints which were
 // produced by twice differentiation of holonomic (position) constraints, and differentiation
 // of nonholonomic (velocity) constraints, and acceleration-only constraints which are
@@ -2793,14 +2895,14 @@ const SBInstanceCache& ConstraintImpl::getInstanceCache(const State& s) const {
 const SBModelCache& ConstraintImpl::getModelCache(const State& s) const {
     return getMyMatterSubsystemRep().getModelCache(s);
 }
-const SBPositionCache& ConstraintImpl::getPositionCache(const State& s) const {
-    return getMyMatterSubsystemRep().getPositionCache(s);
+const SBTreePositionCache& ConstraintImpl::getTreePositionCache(const State& s) const {
+    return getMyMatterSubsystemRep().getTreePositionCache(s);
 }
-const SBVelocityCache& ConstraintImpl::getVelocityCache(const State& s) const {
-    return getMyMatterSubsystemRep().getVelocityCache(s);
+const SBTreeVelocityCache& ConstraintImpl::getTreeVelocityCache(const State& s) const {
+    return getMyMatterSubsystemRep().getTreeVelocityCache(s);
 }
-const SBAccelerationCache& ConstraintImpl::getAccelerationCache(const State& s) const {
-    return getMyMatterSubsystemRep().getAccelerationCache(s);
+const SBTreeAccelerationCache& ConstraintImpl::getTreeAccelerationCache(const State& s) const {
+    return getMyMatterSubsystemRep().getTreeAccelerationCache(s);
 }
 
 // Default implementations for ConstraintImpl virtuals throw "unimplemented"

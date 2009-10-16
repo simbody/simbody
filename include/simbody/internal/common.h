@@ -144,6 +144,19 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(QuaternionPoolIndex)
 // do that once.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(AnglePoolIndex)
 
+// These are for indexing the pools of prescribed q's, u's, udots, and calculated forces
+// needed to produce the udots. The arrays are allocated in order of MobilizedBodyIndex, and
+// then in q and u order within the mobilizer. A mobilier with prescribed positions q gets
+// slots in the u and udot pools also to hold derivatives, and similarly if it is the
+// velocities u that are prescribed there will be slots in the udot pools. Note that
+// the Q index can be used to index qdot and qdotdot arrays if needed. Note that a 
+// prescribed force is produced whenever there is a udot that is not force driven; that
+// includes prescribed udots but also zero and discrete ones.
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(PresQPoolIndex)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(PresUPoolIndex)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(PresUDotPoolIndex)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(PresForcePoolIndex)
+
     // PER-MOBILIZER INDEX TYPES
 
 // The Mobilizer associated with each MobilizedBody, once modeled, has a specific number
@@ -155,7 +168,7 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(MobilizerUIndex)
     // PER-CONSTRAINT INDEX TYPES
     
 // This is the Constraint-specific index of the MobilizedBodies which are *directly* affected
-// by a constraint, through body forces as body torques on these bodies.
+// by a constraint, through body forces or body torques on these bodies.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstrainedBodyIndex)
 
 // This is the Constraint-specific index of the MobilizedBodies whose mobilizers' mobilities

@@ -107,8 +107,8 @@ public:
         impl.multiplyByN(sbs.getState(), false, nu, u, getNQInUse(sbs.getModelVars()), qdot);
     }
     void calcLocalQDotDotFromLocalUDot(const SBStateDigest& sbs, const Real* udot, Real* qdotdot) const {
-        const SBModelVars& mv = sbs.getModelVars();
-        const SBPositionCache& pc   = sbs.getPositionCache();
+        const SBModelVars&          mv = sbs.getModelVars();
+        const SBTreePositionCache&  pc = sbs.getTreePositionCache();
         const int nqInUse = getNQInUse(sbs.getModelVars());
         const Real* u = &sbs.getU()[this->getUIndex()];
         impl.multiplyByN(sbs.getState(), false, nu, udot, nqInUse, qdotdot);
@@ -169,8 +169,8 @@ public:
     }
 
     void calcQDotDot(const SBStateDigest& sbs, const Vector& udot, Vector& qdotdot) const {
-        const SBModelVars& mv = sbs.getModelVars();
-        const SBPositionCache& pc   = sbs.getPositionCache();
+        const SBModelVars&          mv = sbs.getModelVars();
+        const SBTreePositionCache&  pc = sbs.getTreePositionCache();
         const int nqInUse = getNQInUse(sbs.getModelVars());
         const int qindex = this->getQIndex();
         const Real* u = &sbs.getU()[this->getUIndex()];
@@ -245,50 +245,6 @@ public:
     }
 
         // VIRTUAL METHODS FOR SINGLE-NODE OPERATOR CONTRIBUTIONS //
-
-    void realizeModel(SBStateDigest& sbs) const {
-        RigidBodyNodeSpec<nu>::realizeModel(sbs);
-        impl.realizeModel(sbs.updState());
-    }
-
-    void realizeInstance(SBStateDigest& sbs) const {
-        RigidBodyNodeSpec<nu>::realizeInstance(sbs);
-        impl.realizeInstance(sbs.getState());
-    }
-
-    void realizeTime(SBStateDigest& sbs) const {
-        RigidBodyNodeSpec<nu>::realizeTime(sbs);
-        impl.realizeTime(sbs.getState());
-    }
-
-    void realizePosition(SBStateDigest& sbs) const {
-        impl.realizePosition(sbs.getState());
-        RigidBodyNodeSpec<nu>::realizePosition(sbs);
-    }
-
-    void realizeVelocity(SBStateDigest& sbs) const {
-        impl.realizeVelocity(sbs.getState());
-        RigidBodyNodeSpec<nu>::realizeVelocity(sbs);
-    }
-
-    void realizeDynamics(const SBArticulatedBodyInertiaCache& abc, SBStateDigest& sbs) const {
-        RigidBodyNodeSpec<nu>::realizeDynamics(abc, sbs);
-        impl.realizeDynamics(sbs.getState());
-    }
-
-    void realizeAcceleration(SBStateDigest& sbs) const {
-        RigidBodyNodeSpec<nu>::realizeAcceleration(sbs);
-        impl.realizeAcceleration(sbs.getState());
-    }
-
-    void realizeReport(SBStateDigest& sbs) const {
-        RigidBodyNodeSpec<nu>::realizeReport(sbs);
-        impl.realizeReport(sbs.getState());
-    }
-
-    void getInternalForce(const SBAccelerationCache& ac, Vector& tau) const {
-        assert(false);
-    }
 
     void calcJointSinCosQNorm(
         const SBModelVars&  mv, 

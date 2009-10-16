@@ -197,7 +197,7 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM) const
     {
-        const SBPositionCache& pc = sbs.updPositionCache(); // "upd" because we're realizing positions now
+        const SBTreePositionCache& pc = sbs.updTreePositionCache(); // "upd" because we're realizing positions now
         const Transform  X_F0M0 = findX_F0M0(pc);
 
         // Dropping the 0's here.
@@ -222,8 +222,8 @@ public:
         const SBStateDigest& sbs,
         HType&               HDot_FM) const
     {
-        const SBPositionCache& pc = sbs.getPositionCache();
-        const SBVelocityCache& vc = sbs.updVelocityCache(); // "upd" because we're realizing velocities now
+        const SBTreePositionCache& pc = sbs.getTreePositionCache();
+        const SBTreeVelocityCache& vc = sbs.updTreeVelocityCache(); // "upd" because we're realizing velocities now
         const Transform  X_F0M0 = findX_F0M0(pc);
 
         // Dropping the 0's here.
@@ -316,8 +316,8 @@ public:
         const Vector&          u,
         Vector&                qdot) const
     {
-        const SBModelVars& mv = sbs.getModelVars();
-        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBModelVars&          mv = sbs.getModelVars();
+        const SBTreePositionCache&  pc = sbs.getTreePositionCache();
         const Vec3  w_FM_M = Vec3(fromU(u)[0], fromU(u)[1], 0); // Angular velocity in M
         const Vec3& v_FM   = fromUVec3(u,2);                    // Linear velocity in F
 
@@ -341,8 +341,8 @@ public:
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const SBModelVars& mv = sbs.getModelVars();
-        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBModelVars&          mv = sbs.getModelVars();
+        const SBTreePositionCache&  pc = sbs.getTreePositionCache();
         const Vec3  w_FM_M     = Vec3(fromU(sbs.getU())[0], fromU(sbs.getU())[1], 0); // Angular velocity of M in F, exp. in M
         const Vec3& v_FM       = fromUVec3(sbs.getU(),2); // linear velocity of M in F, expressed in M
         const Vec3  w_FM_M_dot = Vec3(fromU(udot)[0], fromU(udot)[1], 0);

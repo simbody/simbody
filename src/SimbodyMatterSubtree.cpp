@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -649,26 +649,26 @@ private:
     Vector                 subQ;                        // generalized coords for Subtree bodies
     std::vector<Transform> bodyTransforms;              // X_AB, index by SubtreeBodyIndex (unperturbed)
 
-    SubtreeQIndex             perturbedQ;                  // which Q was perturbed? InvalidSubtreeQIndex if none
+    SubtreeQIndex          perturbedQ;                  // which Q was perturbed? InvalidSubtreeQIndex if none
     std::vector<Transform> perturbedBodyTransforms;     // X_AB, after perturbation
 
     Vector                 subU;                        // generalized speeds for Subtree bodies
     Vector_<SpatialVec>    bodyVelocities;              // V_AB, index by SubtreeBodyIndex
 
-    SubtreeUIndex             perturbedU;                  // which u was perturbed? InvalidSubtreeUIndex if none
+    SubtreeUIndex          perturbedU;                  // which u was perturbed? InvalidSubtreeUIndex if none
     Vector_<SpatialVec>    perturbedBodyVelocities;     // V_AB, after perturbation
 
     Vector                 subUDot;                     // generalized accelerations for Subtree bodies
     Vector_<SpatialVec>    bodyAccelerations;           // A_AB, index by SubtreeBodyIndex
 
-    SubtreeUIndex             perturbedUDot;               // which udot was perturbed? InvalidSubtreeUIndex if none
+    SubtreeUIndex          perturbedUDot;               // which udot was perturbed? InvalidSubtreeUIndex if none
     Vector_<SpatialVec>    perturbedBodyAccelerations;  // A_AB, after perturbation
 };
 
 
-    /////////////////////////////////////////
-    // SIMBODY MATTER SUBSYSTEM :: SUBTREE //
-    /////////////////////////////////////////
+    ////////////////////////////
+    // SIMBODY MATTER SUBTREE //
+    ////////////////////////////
 
 // Default constructor -- we don't know the SimbodyMatterSubsystem yet.
 SimbodyMatterSubtree::SimbodyMatterSubtree()
@@ -843,9 +843,9 @@ perturbAccelerations(const State& s, SubtreeUIndex subUDotIndex, Real perturbati
 
 
 
-    /////////////////////////////////////////////////
-    // SIMBODY MATTER SUBSYSTEM :: SUBTREE RESULTS //
-    /////////////////////////////////////////////////
+    ////////////////////////////////////
+    // SIMBODY MATTER SUBTREE RESULTS //
+    ////////////////////////////////////
 
 SimbodyMatterSubtreeResults::SimbodyMatterSubtreeResults() : rep(0) {
     rep = new SubtreeResultsRep(*this);

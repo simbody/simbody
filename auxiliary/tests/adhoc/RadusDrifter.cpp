@@ -65,9 +65,9 @@ int main(int argc, char** argv) {
     MultibodySystem         mbs;
 
     SimbodyMatterSubsystem  crankRocker(mbs);
-    GeneralForceSubsystem    forces(mbs);
+    GeneralForceSubsystem   forces(mbs);
     DecorationSubsystem     viz(mbs);
-    Force::UniformGravity gravity(forces, crankRocker, Vec3(0, -g, 0));
+    Force::UniformGravity   gravity(forces, crankRocker, Vec3(0, -g, 0));
 
         // ADD BODIES AND THEIR MOBILIZERS
     Body::Rigid crankBody  = Body::Rigid(MassProperties(.1, Vec3(0), 0.1*Gyration::brick(1,3,.5)))
@@ -115,8 +115,33 @@ int main(int argc, char** argv) {
     Force::MobilityConstantForce(forces, crank, 0, 1);
     Force::MobilityLinearDamper(forces, crank, 0, 1.0);
 
+
+    //Motion::Linear(crank, Vec3(a,b,c)); // crank(t)=at^2+bt+c
+    //Motion::Linear lmot(rightConn, Vec3(a,b,c)); // both axes follow 
+    //lmot.setAxis(1, Vec3(d,e,f));
+    //Motion::Orientation(someBall, orientFuncOfT);
+    //someBall.prescribeOrientation(orientFunc);
+    //Motion::Relax(crank); // acc=vel=0, pos determined by some default relaxation solver
+
+    // Like this, or should this be an Instance-stage mode of every mobilizer?
+    //Motion::Lock(crank); // acc=vel=0; pos is discrete or fast
+    //Motion::Steady(crank, Vec3(1,2,3)); // acc=0; vel=constant; pos integrated
+    //Motion::Steady crankRate(crank, 1); // acc=0; vel=constant, same for each axis; pos integrated
+    // or ...
+    //crank.lock(state);
+    //crank.setMotionType(state, Regular|Discrete|Fast|Prescribed, stage);
+
+    // need a way to register a mobilizer with a particular relaxation solver,
+    // switch between dynamic, continuous relaxed, end-of-step relaxed, discrete.
+    // what about a "local" (explicit) relaxation, like q=(q1+q2)/2 ?
+
+
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System
+
+    //crankRate.setRate(s, 3);
+    crank.setAngle(s, 5); //q 
+    crank.setRate(s, 3);  //u
 
     VTKVisualizer display(mbs);
 

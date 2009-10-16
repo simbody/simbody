@@ -488,8 +488,8 @@ public:
     void realizePositionErrors(const State& s, int mp,  Real* perr) const {
         assert(mp==6 && perr);
 
-        const Rotation& R_AB = getBodyRotation(s, B, true);
-        const Rotation& R_AF = getBodyRotation(s, F, true);
+        const Rotation& R_AB = getBodyRotation(s, B);
+        const Rotation& R_AF = getBodyRotation(s, F);
         const Rotation  RB = R_AB * defaultFrameB.R(); // now expressed in A
         const Rotation  RF = R_AF * defaultFrameF.R();
 
@@ -498,8 +498,8 @@ public:
                                  ~RF.y()*RB.z(),
                                  ~RF.z()*RB.x());
 
-        const Vec3 p_AF1 = findStationLocation(s, B, defaultFrameB.p(), true);
-        const Vec3 p_AF2 = findStationLocation(s, F, defaultFrameF.p(), true);
+        const Vec3 p_AF1 = findStationLocation(s, B, defaultFrameB.p());
+        const Vec3 p_AF2 = findStationLocation(s, F, defaultFrameF.p());
 
         // position error
         Vec3::updAs(perr+3) = p_AF2 - p_AF1;
@@ -513,8 +513,8 @@ public:
         const Rotation  RB = R_AB * defaultFrameB.R(); // now expressed in A
         const Rotation  RF = R_AF * defaultFrameF.R();
 
-        const Vec3&     w_AB = getBodyAngularVelocity(s, B, true);
-        const Vec3&     w_AF = getBodyAngularVelocity(s, F, true);
+        const Vec3&     w_AB = getBodyAngularVelocity(s, B);
+        const Vec3&     w_AF = getBodyAngularVelocity(s, F);
         const Vec3      w_BF = w_AF-w_AB; // in A
 
         // orientation error
@@ -527,8 +527,8 @@ public:
         const Vec3        p_AF2  = findStationLocation(s, F, defaultFrameF.p());
         const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
 
-        const Vec3        v_AF2   = findStationVelocity(s, F, defaultFrameF.p(), true);
-        const Vec3        v_AC    = findStationVelocity(s, B, p_BC, true);
+        const Vec3        v_AF2   = findStationVelocity(s, F, defaultFrameF.p());
+        const Vec3        v_AC    = findStationVelocity(s, B, p_BC);
  
         // position error
         Vec3::updAs(pverr+3) = v_AF2 - v_AC;
@@ -546,8 +546,8 @@ public:
         const Vec3&     w_AF = getBodyAngularVelocity(s, F);
         const Vec3      w_BF = w_AF-w_AB; // in A
 
-        const Vec3&     b_AB = getBodyAngularAcceleration(s, B, true);
-        const Vec3&     b_AF = getBodyAngularAcceleration(s, F, true);
+        const Vec3&     b_AB = getBodyAngularAcceleration(s, B);
+        const Vec3&     b_AF = getBodyAngularAcceleration(s, F);
         const Vec3      b_BF = b_AF-b_AB; // in A
 
         // orientation error
@@ -563,8 +563,8 @@ public:
         const Vec3        p_AF2  = findStationLocation(s, F, defaultFrameF.p());
         const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
 
-        const Vec3        a_AF2  = findStationAcceleration(s, F, defaultFrameF.p(), true);
-        const Vec3        a_AC   = findStationAcceleration(s, B, p_BC, true);
+        const Vec3        a_AF2  = findStationAcceleration(s, F, defaultFrameF.p());
+        const Vec3        a_AC   = findStationAcceleration(s, B, p_BC);
 
         // position error
         Vec3::updAs(paerr+3) = a_AF2 - a_AC;

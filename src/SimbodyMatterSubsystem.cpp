@@ -146,17 +146,21 @@ void SimbodyMatterSubsystem::calcAcceleration
         appliedBodyForces.size(), getNumBodies());
 
     Vector_<Vec3> appliedParticleForces; // TODO
-    SBAccelerationCache ac;
-    ac.allocate(getRep().topologyCache);
+
+    // Create a dummy acceleration cache to hold the result.
+    const SBModelCache&    mc = getRep().getModelCache(state);
+    const SBInstanceCache& ic = getRep().getInstanceCache(state);
+    SBTreeAccelerationCache tac;
+    tac.allocate(getRep().topologyCache, mc, ic);
 
     Vector udotErr(getNUDotErr(state)); // unwanted return value
     Vector multipliers(getNMultipliers(state)); // unwanted return value
 
     getRep().calcLoopForwardDynamicsOperator(state, 
         appliedMobilityForces, appliedParticleForces, appliedBodyForces,
-        ac, udot, multipliers, udotErr);
+        tac, udot, multipliers, udotErr);
 
-    A_GB = ac.bodyAccelerationInGround;
+    A_GB = tac.bodyAccelerationInGround;
 }
 
 //TODO: should allow zero-length force arrays to stand for zeroes.
@@ -164,7 +168,7 @@ void SimbodyMatterSubsystem::calcAccelerationIgnoringConstraints
    (const State&                state,
     const Vector&               appliedMobilityForces,
     const Vector_<SpatialVec>&  appliedBodyForces,
-    Vector&                     udot,
+    Vector&                     udot, // output only; returns pres. accels
     Vector_<SpatialVec>&        A_GB) const
 {
     SimTK_APIARGCHECK2_ALWAYS(
@@ -178,11 +182,12 @@ void SimbodyMatterSubsystem::calcAccelerationIgnoringConstraints
         "Got %d appliedBodyForces but there are %d bodies (including Ground).",
         appliedBodyForces.size(), getNumBodies());
 
-    Vector netHingeForces(getNumMobilities()); // unwanted side effect
+    Vector netHingeForces(getNumMobilities()); // unwanted side effects
+    Vector tau;
 
     getRep().calcTreeAccelerations(state,
         appliedMobilityForces, appliedBodyForces,
-        netHingeForces, A_GB, udot);
+        netHingeForces, A_GB, udot, tau);
 }
 
 

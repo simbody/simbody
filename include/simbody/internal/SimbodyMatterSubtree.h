@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-8 Stanford University and the Authors.         *
+ * Portions copyright (c) 2007-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -47,19 +47,21 @@ class SimbodyMatterSubtree;
 class SimbodyMatterSubtreeResults;
 
 /**
- * A SimbodyMatterSubtree is a view of a connected subgraph of the tree of mobilized bodies
- * in a SimbodyMatterSubsystem. It is used to perform kinematic operations on
- * the subgraph to facilitate the handling of constraints, which typically
- * involve only small subgraphs.
+ * A SimbodyMatterSubtree is a view of a connected subgraph of the tree of 
+ * mobilized bodies in a SimbodyMatterSubsystem. It is used to perform kinematic 
+ * operations on the subgraph to facilitate the handling of constraints, which 
+ * typically involve only small subgraphs.
  *
- * A SimbodyMatterSubtree is characterized by a single ancestor body A and a set of terminal
- * mobilized bodies T={Ti}, where A is the outmost body which is on the inboard
- * path of each Ti. Note that a SimbodyMatterSubtree's "terminal" bodies do not have to be terminal
- * in the full tree. The SimbodyMatterSubtree includes T and all "branch" mobilized bodies
- * B={Bij} found on any path from a Ti to A, and A itself which serves as Ground.
- * A may be one of the terminal bodies. A's mobilizer is *not* part of the SimbodyMatterSubtree.
- * The path from Ti to A is called the ith branch of the SimbodyMatterSubtree; branches can overlap.
- *                                                          @verbatim
+ * A SimbodyMatterSubtree is characterized by a single ancestor body A and a set
+ * of terminal mobilized bodies T={Ti}, where A is the outmost body that is on 
+ * the inboard path of each Ti. Note that a SimbodyMatterSubtree's "terminal" 
+ * bodies do not have to be terminal in the full tree. The SimbodyMatterSubtree 
+ * includes T and all "branch" mobilized bodies B={Bij} found on any path from a 
+ * Ti to A, and A itself which serves as Ground. A may be one of the terminal 
+ * bodies. A's mobilizer is *not* part of the SimbodyMatterSubtree. The path 
+ * from Ti to A is called the ith branch of the SimbodyMatterSubtree; branches 
+ * can overlap.
+ * <pre>
  *                           . .
  *      .    .                .
  *       .  .                 .
@@ -75,40 +77,43 @@ class SimbodyMatterSubtreeResults;
  *                    .
  *                    .
  *                   ...
- *                  Ground                                  @endverbatim
+ *                  Ground
+ * </pre>
+ * Each body in the SimbodyMatterSubtree is assigned an index called a 
+ * SubtreeBodyIndex, with the Ancestor being SubtreeBodyIndex 0 and other ids 
+ * assigned such that ids increase going outwards along a branch. Maps are kept
+ * in the SimbodyMatterSubtree object to track its relationship to the full tree. 
  *
- * Each body in the SimbodyMatterSubtree is assigned an index called a SubtreeBodyIndex,
- * with the Ancestor being SubtreeBodyIndex 0 and other ids assigned such
- * that ids increase going outwards along a branch. Maps are
- * kept in the SimbodyMatterSubtree object to track its relationship to the full tree.
+ * A SimbodyMatterSubtree can be constructed at Topology stage and needed ones 
+ * can thus be precalculated and stored in the SimbodyMatterSubsystem Topology
+ * Cache (i.e., in the System not the State). Calculations done on the 
+ * SimbodyMatterSubtree, on the other hand, require further state information 
+ * and cannot be stored as part of the System. For those, we define a companion 
+ * class below called SimbodyMatterSubtreeResults.
  *
- * A SimbodyMatterSubtree can be constructed at Topology stage and needed ones can
- * thus be precalculated and stored in the SimbodyMatterSubsystem Topology
- * Cache (i.e., in the System not the State). Calculations done on the SimbodyMatterSubtree,
- * on the other hand, require further state information and cannot be stored
- * as part of the System. For those, we define a companion class below called
- * SimbodyMatterSubtreeResults.
+ * A SimbodyMatterSubtreeResults object is initialized at Model stage, at which 
+ * point we can determine the mobilities u and generalized coordinates q. These 
+ * are assigned SubtreeUIndex's and SubtreeQIndex's in the same order that the 
+ * SimbodyMatterSubtree bodies are numbered. Maps are kept in the 
+ * SimbodyMatterSubtreeResults object to track the relationship between the 
+ * SimbodyMatterSubtree mobilities and those in the full tree.
  *
- * A SimbodyMatterSubtreeResults object is initialized at Model stage, at which point
- * we can determine the mobilities u and generalized coordinates q. These are
- * assigned SubtreeUIndex's and SubtreeQIndex's in the same order that the SimbodyMatterSubtree
- * bodies are numbered. Maps are kept in the SimbodyMatterSubtreeResults object to track
- * the relationship between the SimbodyMatterSubtree mobilities and those in the full tree.
+ * Note that SimbodyMatterSubtree operations are elaborate *operators*, not 
+ * *responses*. That means the results are not stored in the State, but rather 
+ * in the private SimbodyMatterSubtreeResults objects.
  *
- * Note that SimbodyMatterSubtree operations are elaborate *operators*, not *responses*.
- * That means the results are not stored in the State, but rather in the
- * private SimbodyMatterSubtreeResults objects.
- *
- * Operators here perform kinematic operations based on perturbations of
- * the global System State values. The supported perturbations are: 
+ * Operators here perform kinematic operations based on perturbations of the
+ * global System State values. The supported perturbations are: 
  *   General
  *   1a same as global System state (except answers are in A rather than G)
  *   1b all mobility variables set
- *   2 all mobility variables from 1a or 1b, except for one which is perturbed (q,u,udot)
+ *   2  all mobility variables from 1a or 1b, except for one which is perturbed 
+ *      (q,u,udot)
  *
  *   Linear
- *   3 all mobility variables are zero (u,udot)
- *   4 all mobility variables are zero *again*, except for one which is 1 (u,udot)
+ *   3  all mobility variables are zero (u,udot)
+ *   4  all mobility variables are zero *again*, except for one which is 1 
+ *      (u,udot)
  * Steps 1 and 2 are designed to work together, as are 3 and 4: first evaluate
  * nominal kinematics; then perturb.
  */
@@ -142,8 +147,8 @@ public:
     // of branch i.
     const std::vector<MobilizedBodyIndex>& getTerminalBodies() const;
 
-    // These are indexed by SubtreeBodyIndex starting with 0 for the ancestor body
-    // and monotonically increasing outwards along a branch.
+    // These are indexed by SubtreeBodyIndex starting with 0 for the ancestor
+    // body and monotonically increasing outwards along a branch.
     const std::vector<MobilizedBodyIndex>& getAllBodies() const;
 
     SubtreeBodyIndex getParentSubtreeBodyIndex(SubtreeBodyIndex) const; // 0 returns an invalid Index

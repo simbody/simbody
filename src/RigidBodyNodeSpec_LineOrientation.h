@@ -182,7 +182,7 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM) const
     {
-        const SBPositionCache& pc = sbs.updPositionCache(); // "upd" because we're realizing positions now
+        const SBTreePositionCache& pc = sbs.updTreePositionCache(); // "upd" because we're realizing positions now
         const Transform X_F0M0 = findX_F0M0(pc);
 
         // Dropping the 0's here.
@@ -203,8 +203,8 @@ public:
         const SBStateDigest& sbs,
         HType&               HDot_FM) const
     {
-        const SBPositionCache& pc = sbs.getPositionCache();
-        const SBVelocityCache& vc = sbs.updVelocityCache(); // "upd" because we're realizing velocities now
+        const SBTreePositionCache& pc = sbs.getTreePositionCache();
+        const SBTreeVelocityCache& vc = sbs.updTreeVelocityCache(); // "upd" because we're realizing velocities now
         const Transform  X_F0M0 = findX_F0M0(pc);
 
         // Dropping the 0's here.
@@ -272,7 +272,7 @@ public:
         Vector&                qdot) const 
     {
         const SBModelVars& mv = sbs.getModelVars();
-        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBTreePositionCache& pc = sbs.getTreePositionCache();
         const Vec3 w_FM_M = fromU(u).append1(0); // angular velocity of M in F, exp in M (with wz=0) 
         if (getUseEulerAngles(mv)) {
             toQuat(qdot)    = Vec4(0); // TODO: kludge, clear unused element
@@ -290,8 +290,8 @@ public:
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const SBModelVars& mv = sbs.getModelVars();
-        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBModelVars&          mv = sbs.getModelVars();
+        const SBTreePositionCache&  pc = sbs.getTreePositionCache();
         const Vec3 w_FM_M     = fromU(sbs.getU()).append1(0); // angular velocity of M in F, exp in M (with wz=0)
         const Vec3 w_FM_M_dot = fromU(udot).append1(0);
 

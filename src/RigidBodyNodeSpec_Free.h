@@ -264,8 +264,8 @@ public:
         const Vector&          u,
         Vector&                qdot) const
     {
-        const SBModelVars& mv = sbs.getModelVars();
-        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBModelVars&          mv = sbs.getModelVars();
+        const SBTreePositionCache&  pc = sbs.getTreePositionCache();
         const Vec3& w_FM = fromUVec3(u,0); // Angular velocity in F
         const Vec3& v_FM = fromUVec3(u,3); // Linear velocity in F
         if (getUseEulerAngles(mv)) {
@@ -287,8 +287,8 @@ public:
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const SBModelVars& mv = sbs.getModelVars();
-        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBModelVars&          mv = sbs.getModelVars();
+        const SBTreePositionCache&  pc = sbs.getTreePositionCache();
         const Vec3& w_FM     = fromUVec3(sbs.getU(),0); // angular velocity of M in F
         const Vec3& v_FM     = fromUVec3(sbs.getU(),3); // linear velocity of M in F, expressed in F
         const Vec3& w_FM_dot = fromUVec3(udot,0);
@@ -366,28 +366,6 @@ public:
         Rotation rot;
         rot.setRotationToBodyFixedXYZ(fromQVec3(inputQ, 0));
         toQuat(outputQ) = rot.convertRotationToQuaternion().asVec4();
-    }
-
-    void getInternalForce(const SBAccelerationCache&, Vector&) const {
-        assert(false); // TODO: decompose cross-joint torque into 123 gimbal torques
-        /* OLD BALL CODE:
-        Vector& f = s.cache->netHingeForces;
-        //dependency: calcR_PB must be called first
-        assert( useEuler );
-
-        const Vec<3,Vec2>& scq = getSinCosQ(s);
-        const Real sPhi   = scq[0][0], cPhi   = scq[0][1];
-        const Real sTheta = scq[1][0], cTheta = scq[1][1];
-        const Real sPsi   = scq[2][0], cPsi   = scq[2][1];
-
-        Vec3 torque = forceInternal;
-        const Mat33 M( 0.          , 0.          , 1.    ,
-                      -sPhi        , cPhi        , 0.    ,
-                       cPhi*cTheta , sPhi*cTheta ,-sTheta );
-        Vec3 eTorque = RigidBodyNode::DEG2RAD * M * torque;
-
-        Vec3::updAs(&v[uIndex]) = eTorque;
-        */
     }
 };
 

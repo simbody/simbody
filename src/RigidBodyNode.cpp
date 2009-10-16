@@ -58,7 +58,7 @@ void RigidBodyNode::addChild(RigidBodyNode* child) {
 // Should be calc'd from base to tip.
 // We depend on transforms X_PB and X_GB being available.
 void RigidBodyNode::calcJointIndependentKinematicsPos(
-    SBPositionCache&   pc) const
+    SBTreePositionCache&    pc) const
 {
     // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
     const Vec3 p_PB_G = getX_GP(pc).R() * getX_PB(pc).p();
@@ -94,8 +94,8 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
 // velocity-dependent acceleration remainder term VD_PB_G.
 void 
 RigidBodyNode::calcJointIndependentKinematicsVel(
-    const SBPositionCache& pc,
-    SBVelocityCache&       vc) const
+    const SBTreePositionCache& pc,
+    SBTreeVelocityCache&       vc) const
 {
     if (nodeNum == 0) { // ground, just in case
         updV_GB(vc)                      = SpatialVec(Vec3(0), Vec3(0));
@@ -145,10 +145,10 @@ RigidBodyNode::calcJointIndependentKinematicsVel(
 }
 
 Real RigidBodyNode::calcKineticEnergy(
-    const SBPositionCache& pc,
-    const SBVelocityCache& mc) const 
+    const SBTreePositionCache& pc,
+    const SBTreeVelocityCache& vc) const 
 {
-    const Real ret = dot(getV_GB(mc) , getMk(pc)*getV_GB(mc));
+    const Real ret = dot(getV_GB(vc) , getMk(pc)*getV_GB(vc));
     return 0.5*ret;
 }
 
@@ -159,9 +159,9 @@ Real RigidBodyNode::calcKineticEnergy(
 // Must be called base to tip.
 void 
 RigidBodyNode::calcJointIndependentDynamicsVel(
-    const SBPositionCache&                  pc,
+    const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
-    const SBVelocityCache&                  vc,
+    const SBTreeVelocityCache&              vc,
     SBDynamicsCache&                        dc) const
 {
     if (nodeNum == 0) { // ground, just in case
@@ -195,8 +195,8 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
 //
 void
 RigidBodyNode::calcCompositeBodyInertiasInward(
-    const SBPositionCache& pc,
-    Vector_<SpatialMat>&   allR) const 
+    const SBTreePositionCache&  pc,
+    Vector_<SpatialMat>&        allR) const 
 {
     SpatialMat& R = toB(allR);
     R = getMk(pc);
@@ -205,7 +205,9 @@ RigidBodyNode::calcCompositeBodyInertiasInward(
         const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
 
         // TODO: this is around 260 flops but should be a small fraction 
-        // of that.
+        // of that because (1) RChild is a rigid-body spatial inertia so has 
+        // exploitable structure including symmetry, and (2) the shifted
+        // result is also a rigid-body inertia as is the final sum.
         R += phiChild * RChild * ~phiChild;
     }
 }

@@ -227,7 +227,7 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM) const
     {
-        const SBPositionCache& pc = sbs.updPositionCache(); // "upd" because we're realizing positions now
+        const SBTreePositionCache& pc = sbs.updTreePositionCache(); // "upd" because we're realizing positions now
         const Transform  X_F0M0 = findX_F0M0(pc);   // 18 flops if reversed
 
         // Dropping the 0's here.
@@ -256,8 +256,8 @@ public:
         const SBStateDigest& sbs,
         HType&               HDot_FM) const
     {
-        const SBPositionCache& pc = sbs.getPositionCache();
-        const SBVelocityCache& vc = sbs.updVelocityCache(); // "upd" because we're realizing velocities now
+        const SBTreePositionCache& pc = sbs.getTreePositionCache();
+        const SBTreeVelocityCache& vc = sbs.updTreeVelocityCache(); // "upd" because we're realizing velocities now
 
         const Transform  X_F0M0 = findX_F0M0(pc);       // 18 flops if reversed
         const SpatialVec V_F0M0 = findV_F0M0(pc,vc);    // 45 flops if reversed

@@ -339,9 +339,25 @@ MobilizedBody& MobilizedBody::cloneForNewParent(MobilizedBody& parent) const {
     return parent.updMatterSubsystem().updMobilizedBody(copyBody.getMobilizedBodyIndex());
 }
 
-    ////////////////////////
-    // MOBILIZED BODY REP //
-    ////////////////////////
+void MobilizedBody::adoptMotion(Motion& ownerHandle) {
+   updImpl().adoptMotion(ownerHandle);
+}
+
+void MobilizedBody::clearMotion() {
+   updImpl().clearMotion();
+}
+
+bool MobilizedBody::hasMotion() const {
+    return getImpl().hasMotion();
+}
+
+const Motion& MobilizedBody::getMotion() const {
+    return getImpl().getMotion();
+}
+
+    /////////////////////////
+    // MOBILIZED BODY IMPL //
+    /////////////////////////
 
 void MobilizedBodyImpl::findMobilizerQs(const State& s, QIndex& qStart, int& nq) const {
     getMyMatterSubsystemRep()
@@ -408,7 +424,7 @@ void MobilizedBodyImpl::setUToFitLinearVelocity(State& s, const Vec3& v_MbM)  co
     return getMyRigidBodyNode().setUToFitLinearVelocity(digest, q, v_MbM, u);
 }
 
-
+    // REALIZE TOPOLOGY
 const RigidBodyNode& MobilizedBodyImpl::realizeTopology
    (State& s, UIndex& nxtU, USquaredIndex& nxtUSq, QIndex& nxtQ) const
 {
@@ -429,8 +445,70 @@ const RigidBodyNode& MobilizedBodyImpl::realizeTopology
 
     myRBnode->setLevel(myLevel);
     myRBnode->setNodeNum(myMobilizedBodyIndex);
-    realizeTopologyImpl(s);
+
+    // Realize Motion topology.
+    if (hasMotion())
+        getMotion().getImpl().realizeTopology(s);
+
+    // Realize MobilizedBody-specific topology.
+    realizeTopologyVirtual(s);
     return *myRBnode;
+}
+
+    // REALIZE MODEL
+void MobilizedBodyImpl::realizeModel(State& s) const {
+    if (hasMotion())
+        getMotion().getImpl().realizeModel(s);
+    realizeModelVirtual(s);
+}
+
+    // REALIZE INSTANCE
+void MobilizedBodyImpl::realizeInstance(const SBStateDigest& sbs) const {
+    if (hasMotion())
+        getMotion().getImpl().realizeInstance(sbs.getState());
+    realizeInstanceVirtual(sbs.getState());
+}
+
+    // REALIZE TIME
+void MobilizedBodyImpl::realizeTime(const SBStateDigest& sbs) const {
+    if (hasMotion())
+        getMotion().getImpl().realizeTime(sbs.getState());
+    realizeTimeVirtual(sbs.getState());
+}
+
+    // REALIZE POSITION
+void MobilizedBodyImpl::realizePosition(const SBStateDigest& sbs) const {
+    if (hasMotion())
+        getMotion().getImpl().realizePosition(sbs.getState());
+    realizePositionVirtual(sbs.getState());
+}
+
+    // REALIZE VELOCITY
+void MobilizedBodyImpl::realizeVelocity(const SBStateDigest& sbs) const {
+    if (hasMotion())
+        getMotion().getImpl().realizeVelocity(sbs.getState());
+    realizeVelocityVirtual(sbs.getState());
+}
+
+    // REALIZE DYNAMICS
+void MobilizedBodyImpl::realizeDynamics(const SBStateDigest& sbs) const {
+    if (hasMotion())
+        getMotion().getImpl().realizeDynamics(sbs.getState());
+    realizeDynamicsVirtual(sbs.getState());
+}
+
+    // REALIZE ACCELERATION
+void MobilizedBodyImpl::realizeAcceleration(const SBStateDigest& sbs) const {
+    if (hasMotion())
+        getMotion().getImpl().realizeAcceleration(sbs.getState());
+    realizeAccelerationVirtual(sbs.getState());
+}
+
+    // REALIZE REPORT
+void MobilizedBodyImpl::realizeReport(const SBStateDigest& sbs) const {
+    if (hasMotion())
+        getMotion().getImpl().realizeReport(sbs.getState());
+    realizeReportVirtual(sbs.getState());
 }
 
     /////////////////////////
@@ -2115,7 +2193,9 @@ Vector MobilizedBody::Custom::Implementation::getQDotDot(const State& state) con
 // Careful: must return the transform X_F0M0 using the "as defined" frames, rather than
 // X_FM which might be reversed due to mobilizer reversal.
 Transform MobilizedBody::Custom::Implementation::getMobilizerTransform(const State& s) const {
-    const SBPositionCache& pc = getImpl().getCustomImpl().getMyMatterSubsystemRep().getPositionCache(s, s.getSystemStage() < Stage::Position);
+    // Use "upd" instead of "get" here because the custom mobilizer definition needs access to
+    // this local information during realizePosition() so get would throw a stage violation.
+    const SBTreePositionCache& pc = getImpl().getCustomImpl().getMyMatterSubsystemRep().updTreePositionCache(s);
     const RigidBodyNode& node = getImpl().getCustomImpl().getMyRigidBodyNode();
     return node.findX_F0M0(pc);
 }
@@ -2123,8 +2203,10 @@ Transform MobilizedBody::Custom::Implementation::getMobilizerTransform(const Sta
 // Careful: must return the velocity V_F0M0 using the "as defined" frames, rather than
 // V_FM which might be reversed due to mobilizer reversal.
 SpatialVec MobilizedBody::Custom::Implementation::getMobilizerVelocity(const State& s) const {
-    const SBPositionCache& pc = getImpl().getCustomImpl().getMyMatterSubsystemRep().getPositionCache(s);
-    const SBVelocityCache& vc = getImpl().getCustomImpl().getMyMatterSubsystemRep().getVelocityCache(s, s.getSystemStage() < Stage::Velocity);
+    const SBTreePositionCache& pc = getImpl().getCustomImpl().getMyMatterSubsystemRep().getTreePositionCache(s);
+    // Use "upd" instead of "get" here because the custom mobilizer definition needs access to
+    // this local information during realizeVelocity() so get would throw a stage violation.
+    const SBTreeVelocityCache& vc = getImpl().getCustomImpl().getMyMatterSubsystemRep().updTreeVelocityCache(s);
     const RigidBodyNode& node = getImpl().getCustomImpl().getMyRigidBodyNode();
     return node.findV_F0M0(pc,vc);
 }

@@ -256,7 +256,7 @@ public:
         const SBStateDigest& sbs,
         HType&               H_FM) const
     {
-        const SBPositionCache& pc = sbs.updPositionCache(); // "upd" because we're realizing positions now
+        const SBTreePositionCache& pc = sbs.updTreePositionCache(); // "upd" because we're realizing positions now
 
         // The normal is M's z axis, expressed in F but only in the frames we
         // used to *define* this mobilizer, not necessarily the ones used after
@@ -272,8 +272,8 @@ public:
         const SBStateDigest& sbs,
         HType&               HDot_FM) const
     {
-        const SBPositionCache& pc = sbs.getPositionCache();
-        const SBVelocityCache& vc = sbs.updVelocityCache(); // "upd" because we're realizing velocities now
+        const SBTreePositionCache& pc = sbs.getTreePositionCache();
+        const SBTreeVelocityCache& vc = sbs.updTreeVelocityCache(); // "upd" because we're realizing velocities now
 
         // We need the normal and cross-joint velocity in the frames we're 
         // using to *define* the mobilizer, not necessarily the frames we're 
@@ -341,8 +341,8 @@ public:
         const Vector&          u, 
         Vector&                qdot) const 
     {
-        const SBModelVars& mv = sbs.getModelVars();
-        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBModelVars&          mv = sbs.getModelVars();
+        const SBTreePositionCache&  pc = sbs.getTreePositionCache();
         const Vec3& w_FM = fromU(u); // angular velocity of M in F 
         if (getUseEulerAngles(mv)) {
             toQuat(qdot) = Vec4(0); // TODO: kludge, clear unused element
@@ -358,8 +358,8 @@ public:
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const SBModelVars& mv = sbs.getModelVars();
-        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBModelVars&          mv = sbs.getModelVars();
+        const SBTreePositionCache&  pc = sbs.getTreePositionCache();
         const Vec3& w_FM     = fromU(sbs.getU()); // angular velocity of J in Jb, expr in Jb
         const Vec3& w_FM_dot = fromU(udot);
 
@@ -434,10 +434,6 @@ public:
         Rotation rot;
         rot.setRotationToBodyFixedXYZ(fromQ(inputQ));
         toQuat(outputQ) = rot.convertRotationToQuaternion().asVec4();
-    }
-
-    void getInternalForce(const SBAccelerationCache&, Vector&) const {
-        assert(false); // TODO: decompose cross-joint torque into 123 gimbal torques
     }
 };
 

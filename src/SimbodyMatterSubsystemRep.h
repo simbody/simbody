@@ -63,25 +63,10 @@ class RBDistanceConstraint;
 class RBStation;
 class RBDirection;
 
-class SBModelVars;
-class SBInstanceVars;
-class SBTimeVars;
-class SBPositionVars;
-class SBVelocityVars;
-class SBDynamicsVars;
-class SBAccelerationVars;
-class SBModelCache;
-class SBInstanceCache;
-class SBTimeCache;
-class SBPositionCache;
-class SBVelocityCache;
-class SBDynamicsCache;
-class SBAccelerationCache;
-
 using namespace SimTK;
 
 typedef std::vector<const RigidBodyNode*>   RBNodePtrList;
-typedef Vector_<SpatialVec>           SpatialVecList;
+typedef Vector_<SpatialVec>                 SpatialVecList;
 
 /*
  * A CoupledConstraintSet is a set of Simbody Constraints which must be
@@ -353,14 +338,11 @@ public:
     }
 
     // Extract position, velocity, and acceleration information for MobilizedBodies out of the 
-    // State cache. Normally the State already has to have been realized to the Position, Velocity,
-    // or Acceleration stage resp., but if you are calling one of these *during* realization of
-    // that stage (say, from a Constraint error-calculation routine) then set the indicated flag
-    // and the routine will allow you to retrieve the cache value one stage earlier. In that case you are on
-    // the honor system not to reference the value before it is available.
-    const Transform&  getBodyTransform   (const State&, MobilizedBodyIndex, bool realizingPosition=false) const;
-    const SpatialVec& getBodyVelocity    (const State&, MobilizedBodyIndex, bool realizingVelocity=false) const;
-    const SpatialVec& getBodyAcceleration(const State&, MobilizedBodyIndex, bool realizingAcceleration=false) const;
+    // State cache, accessing only the Tree cache entries at each level, which should already
+    // have been marked valid.
+    const Transform&  getBodyTransform   (const State&, MobilizedBodyIndex) const;
+    const SpatialVec& getBodyVelocity    (const State&, MobilizedBodyIndex) const;
+    const SpatialVec& getBodyAcceleration(const State&, MobilizedBodyIndex) const;
 
     // Call at Position stage or later. If necessary, composite body inertias will be
     // realized first.
@@ -479,7 +461,8 @@ public:
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    netHingeForces,
         Vector_<SpatialVec>&       A_GB,
-        Vector&                    udot) const; 
+        Vector&                    udot, // in/out (in for prescribed udots)
+        Vector&                    tau) const; 
 
     void calcMInverseF(const State& s,
         const Vector&        f,
@@ -714,15 +697,22 @@ public:
             (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).timeCacheIndex)).upd();
     }
 
-    const SBPositionCache& getPositionCache(const State& s, bool realizingPosition=false) const {
-        const AbstractValue& cacheEntry = 
-            realizingPosition ? (const AbstractValue&)s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).qCacheIndex)
-                              : s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).qCacheIndex);
-        return Value<SBPositionCache>::downcast(cacheEntry).get();
+    const SBTreePositionCache& getTreePositionCache(const State& s) const {
+        return Value<SBTreePositionCache>::downcast
+            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).treePositionCacheIndex)).get();
     }
-    SBPositionCache& updPositionCache(const State& s) const { //mutable
-        return Value<SBPositionCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).qCacheIndex)).upd();
+    SBTreePositionCache& updTreePositionCache(const State& s) const { //mutable
+        return Value<SBTreePositionCache>::downcast
+            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).treePositionCacheIndex)).upd();
+    }
+
+    const SBConstrainedPositionCache& getConstrainedPositionCache(const State& s) const {
+        return Value<SBConstrainedPositionCache>::downcast
+            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).constrainedPositionCacheIndex)).get();
+    }
+    SBConstrainedPositionCache& updConstrainedPositionCache(const State& s) const { //mutable
+        return Value<SBConstrainedPositionCache>::downcast
+            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).constrainedPositionCacheIndex)).upd();
     }
 
     const SBCompositeBodyInertiaCache& getCompositeBodyInertiaCache(const State& s) const {
@@ -743,15 +733,22 @@ public:
             (updCacheEntry(s,getModelCache(s).articulatedBodyInertiaCacheIndex));
     }
 
-    const SBVelocityCache& getVelocityCache(const State& s, bool realizingVelocity=false) const {
-        const AbstractValue& cacheEntry = 
-            realizingVelocity ? (const AbstractValue&)s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).uCacheIndex)
-                              : s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).uCacheIndex);
-        return Value<SBVelocityCache>::downcast(cacheEntry).get();
+    const SBTreeVelocityCache& getTreeVelocityCache(const State& s) const {
+        return Value<SBTreeVelocityCache>::downcast
+            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).treeVelocityCacheIndex)).get();
     }
-    SBVelocityCache& updVelocityCache(const State& s) const { //mutable
-        return Value<SBVelocityCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).uCacheIndex)).upd();
+    SBTreeVelocityCache& updTreeVelocityCache(const State& s) const { //mutable
+        return Value<SBTreeVelocityCache>::downcast
+            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).treeVelocityCacheIndex)).upd();
+    }
+
+    const SBConstrainedVelocityCache& getConstrainedVelocityCache(const State& s) const {
+        return Value<SBConstrainedVelocityCache>::downcast
+            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).constrainedVelocityCacheIndex)).get();
+    }
+    SBConstrainedVelocityCache& updConstrainedVelocityCache(const State& s) const { //mutable
+        return Value<SBConstrainedVelocityCache>::downcast
+            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).constrainedVelocityCacheIndex)).upd();
     }
 
     const SBDynamicsCache& getDynamicsCache(const State& s, bool realizingDynamics=false) const {
@@ -765,15 +762,22 @@ public:
             (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).dynamicsCacheIndex)).upd();
     }
 
-    const SBAccelerationCache& getAccelerationCache(const State& s, bool realizingAcceleration=false) const {
-        const AbstractValue& cacheEntry = 
-            realizingAcceleration ? (const AbstractValue&)s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).accelerationCacheIndex)
-                                  : s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).accelerationCacheIndex);
-        return Value<SBAccelerationCache>::downcast(cacheEntry).get();
+    const SBTreeAccelerationCache& getTreeAccelerationCache(const State& s) const {
+        return Value<SBTreeAccelerationCache>::downcast
+            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).treeAccelerationCacheIndex)).get();
     }
-    SBAccelerationCache& updAccelerationCache(const State& s) const { //mutable
-        return Value<SBAccelerationCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).accelerationCacheIndex)).upd();
+    SBTreeAccelerationCache& updTreeAccelerationCache(const State& s) const { //mutable
+        return Value<SBTreeAccelerationCache>::downcast
+            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).treeAccelerationCacheIndex)).upd();
+    }
+
+    const SBConstrainedAccelerationCache& getConstrainedAccelerationCache(const State& s) const {
+        return Value<SBConstrainedAccelerationCache>::downcast
+            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).constrainedAccelerationCacheIndex)).get();
+    }
+    SBConstrainedAccelerationCache& updConstrainedAccelerationCache(const State& s) const { //mutable
+        return Value<SBConstrainedAccelerationCache>::downcast
+            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).constrainedAccelerationCacheIndex)).upd();
     }
 
 
@@ -840,34 +844,32 @@ public:
             (s.updDiscreteVariable(getMySubsystemIndex(),getModelCache(s).accelerationVarsIndex)).upd();
     }
 
-    const SimbodyMatterSubsystem& getMySimbodyMatterSubsystemHandle() const {
-        return SimbodyMatterSubsystem::downcast(getOwnerSubsystemHandle());
-    }
-    SimbodyMatterSubsystem& updMySimbodyMatterSubsystemHandle() {
-        return SimbodyMatterSubsystem::updDowncast(updOwnerSubsystemHandle());
-    }
+    const SimbodyMatterSubsystem& getMySimbodyMatterSubsystemHandle() const 
+    {   return SimbodyMatterSubsystem::downcast(getOwnerSubsystemHandle()); }
+    SimbodyMatterSubsystem& updMySimbodyMatterSubsystemHandle() 
+    {   return SimbodyMatterSubsystem::updDowncast(updOwnerSubsystemHandle()); }
     bool getShowDefaultGeometry() const;
     void setShowDefaultGeometry(bool show);
 
 private:
     void calcTreeForwardDynamicsOperator(const State&,
-        const Vector&              mobilityForces,
-        const Vector_<Vec3>&       particleForces,
-        const Vector_<SpatialVec>& bodyForces,
-        const Vector*              extraMobilityForces,
-        const Vector_<SpatialVec>* extraBodyForces,
-        SBAccelerationCache&       ac,
-        Vector&                    udot,
-        Vector&                    udotErr) const;
+        const Vector&                   mobilityForces,
+        const Vector_<Vec3>&            particleForces,
+        const Vector_<SpatialVec>&      bodyForces,
+        const Vector*                   extraMobilityForces,
+        const Vector_<SpatialVec>*      extraBodyForces,
+        SBTreeAccelerationCache&        tac,    // kinematics and prescribed forces into here
+        Vector&                         udot,   // in/out (in for prescribed udot)
+        Vector&                         udotErr) const;
 
     void calcLoopForwardDynamicsOperator(const State&, 
-        const Vector&              mobilityForces,
-        const Vector_<Vec3>&       particleForces,
-        const Vector_<SpatialVec>& bodyForces,
-        SBAccelerationCache&       ac,
-        Vector&                    udot,
-        Vector&                    multipliers,
-        Vector&                    udotErr) const;
+        const Vector&                   mobilityForces,
+        const Vector_<Vec3>&            particleForces,
+        const Vector_<SpatialVec>&      bodyForces,
+        SBTreeAccelerationCache&        tac,    // kinematics and prescribed forces into here
+        Vector&                         udot,   // in/out (in for prescribed udot)
+        Vector&                         multipliers,
+        Vector&                         udotErr) const;
 
     // Given a set of forces, calculate accelerations ignoring
     // constraints, and leave the results in the state cache. 

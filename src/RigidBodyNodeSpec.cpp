@@ -53,9 +53,9 @@
 // CAUTION: our H matrix definition is transposed from Jain and Schwieters.
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
-    const SBModelVars&     mv,
-    const SBPositionCache& pc, 
-    HType& H_PB_G) const
+    const SBModelVars&          mv,
+    const SBTreePositionCache&  pc, 
+    HType&                      H_PB_G) const
 {
     const HType& H_FM = getH_FM(pc);
 
@@ -84,10 +84,10 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
 // CAUTION: our H matrix definition is transposed from Jain and Schwieters.
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
-    const SBModelVars&     mv,
-    const SBPositionCache& pc, 
-    const SBVelocityCache& vc,
-    HType& HDot_PB_G) const
+    const SBModelVars&          mv,
+    const SBTreePositionCache&  pc, 
+    const SBTreeVelocityCache&  vc,
+    HType&                      HDot_PB_G) const
 {
     const HType& H_FM     = getH_FM(pc);
     const HType& HDot_FM = getHDot_FM(vc);
@@ -139,7 +139,7 @@ RigidBodyNodeSpec<dof>::calcReverseMobilizerH_FM(
 {
     // Must use "upd" here rather than "get" because this is
     // called during realize(Position).
-    const SBPositionCache& pc = sbs.updPositionCache();
+    const SBTreePositionCache& pc = sbs.updTreePositionCache();
 
     HType H_MF;
     calcAcrossJointVelocityJacobian(sbs, H_MF);
@@ -173,10 +173,10 @@ RigidBodyNodeSpec<dof>::calcReverseMobilizerHDot_FM(
     const SBStateDigest& sbs,
     HType&               HDot_FM) const
 {
-    const SBPositionCache& pc = sbs.getPositionCache();
+    const SBTreePositionCache& pc = sbs.getTreePositionCache();
     // Must use "upd" here rather than "get" because this is
     // called during realize(Velocity).
-    const SBVelocityCache& vc = sbs.updVelocityCache();
+    const SBTreeVelocityCache& vc = sbs.updTreeVelocityCache();
 
     HType HDot_MF;
     calcAcrossJointVelocityJacobianDot(sbs, HDot_MF);
@@ -219,7 +219,8 @@ RigidBodyNodeSpec<dof>::calcReverseMobilizerHDot_FM(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
-    const SBPositionCache&          pc,
+    const SBInstanceCache&          ic,
+    const SBTreePositionCache&      pc,
     SBArticulatedBodyInertiaCache&  abc) const 
 {
     SpatialMat& P = updP(abc);
@@ -240,15 +241,29 @@ RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
         const SpatialMat& PChild      = children[i]->getP(abc);
         const SpatialMat& psiChild    = children[i]->getPsi(abc);
 
+        // If the accelerations are prescribed, this is just a
+        // rigid body (composite) inertia shift, which is much
+        // cheaper than an articulated body shift.
+        // Can be done in 93 flops (72 for the shift and 21 to add it in).
+        if (children[i]->isUDotKnown(ic)) {
+            P += phiChild * (PChild * ~phiChild); // ~250 flops; TODO: symmetric result
+            continue;
+        }
+
         // TODO: this is around 550 flops, 396 due to the 6x6
         // multiply with Psi, about 100 for the P*Phi shift, and 36
         // for the -=. The 6x6 multiply yields a symmetric result
         // so can be cut almost in half:
-        // Psi is -Phi*(1 - P H DI ~H) so the multiply by P*Phi gives
+        // Psi is -Phi*(1 - P H DI ~H) so the multiply by P*~Phi gives
         // the negative of the projected result we want,
-        // Phi*(P - P H DI ~H P)*Phi. Subtracting here fixes the sign.
+        // Phi*(P - P H DI ~H P)*~Phi. Subtracting here fixes the sign.
         P -= psiChild * (PChild * ~phiChild);
     }
+
+    // If this is a prescribed mobilizer, leave G, D, DI, tauBar, and psi
+    // untouched -- they should have been set to NaN at Instance stage.
+    if (isUDotKnown(ic))
+        return;
 
     const HType&  H  = getH(pc);
     HType&        G  = updG(abc);
@@ -260,7 +275,7 @@ RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
 
     // this will throw an exception if the matrix is ill conditioned
     DI = D.invert();                        // ~dof^3 flops (symmetric)
-    G  = PH * DI;                           // 11*dof^2 flops
+    G  = PH * DI;                           // 12*dof^2-6*dof flops
 
     // Note: Jain has TauBar=I-G*~H but we're negating that to G*~H-I because we
     // can save 30 flops by just subtracting 1 from the diagonals rather than having
@@ -282,14 +297,23 @@ RigidBodyNodeSpec<dof>::realizeArticulatedBodyInertiasInward(
 // 10(4):371-381 (1991).
 template<int dof> void
 RigidBodyNodeSpec<dof>::realizeYOutward
-   (const SBPositionCache&                  pc,
+   (const SBInstanceCache&                  ic,
+    const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
     SBDynamicsCache&                        dc) const
 {
+    if (isUDotKnown(ic)) {
+        //TODO: (sherm 090810) is this right?
+        assert(false);
+        //updY(dc) = (~getPhi(pc) * parent->getY(dc)) * getPhi(pc); // rigid shift
+        return;
+    }
+
     // TODO: this is very expensive (~1000 flops?) Could cut be at least half
     // by exploiting symmetry. Also, does Psi have special structure?
     // And does this need to be computed for every body or only those
     // which are loop "base" bodies or some such?
+
 
     // Psi here has the opposite sign from Jain's, but we're multiplying twice
     // by it here so it doesn't matter.
@@ -302,11 +326,11 @@ RigidBodyNodeSpec<dof>::realizeYOutward
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::realizeZ(
-    const SBPositionCache&                  pc,
+    const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
-    const SBVelocityCache&                  vc,
+    const SBTreeVelocityCache&              vc,
     const SBDynamicsCache&                  dc,
-    SBAccelerationCache&                    ac,
+    SBTreeAccelerationCache&                ac,
     const Vector&                           mobilityForces,
     const Vector_<SpatialVec>&              bodyForces) const 
 {
@@ -322,28 +346,27 @@ RigidBodyNodeSpec<dof>::realizeZ(
     }
 
     updEpsilon(ac)  = fromU(mobilityForces) - ~getH(pc)*z;
-    updNu(ac)       = getDI(abc) * getEpsilon(ac);
     updGepsilon(ac) = getG(abc)  * getEpsilon(ac);
 }
 
 //
 // Calculate acceleration in internal coordinates, based on the last set
-// of forces that were fed to realizeZ (as embodied in 'nu').
+// of forces that were fed to realizeZ (as embodied in 'epsilon').
 // (Base to tip)
 //
 template<int dof> void 
 RigidBodyNodeSpec<dof>::realizeAccel(
-    const SBPositionCache&                  pc,
+    const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
-    const SBVelocityCache&                  vc,
+    const SBTreeVelocityCache&              vc,
     const SBDynamicsCache&                  dc,
-    SBAccelerationCache&                    ac,
+    SBTreeAccelerationCache&                ac,
     Vector&                                 allUdot) const 
 {
     Vec<dof>&        udot   = toU(allUdot);
     const SpatialVec A_GP = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
 
-    udot        = getNu(ac) - (~getG(abc)*A_GP);
+    udot        = getDI(abc) * getEpsilon(ac) - (~getG(abc)*A_GP);
     updA_GB(ac) = A_GP + getH(pc)*udot + getCoriolisAcceleration(vc);  
 }
 
@@ -354,11 +377,13 @@ RigidBodyNodeSpec<dof>::realizeAccel(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcUDotPass1Inward(
-    const SBPositionCache&                  pc,
+    const SBInstanceCache&                  ic,
+    const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
     const SBDynamicsCache&                  dc,
     const Vector&                           jointForces,
     const Vector_<SpatialVec>&              bodyForces,
+    const Vector&                           allUDot,
     Vector_<SpatialVec>&                    allZ,
     Vector_<SpatialVec>&                    allGepsilon,
     Vector&                                 allEpsilon) const 
@@ -369,18 +394,30 @@ RigidBodyNodeSpec<dof>::calcUDotPass1Inward(
     SpatialVec&       Geps         = toB(allGepsilon);
     Vec<dof>&         eps          = toU(allEpsilon);
 
-    z = getCentrifugalForces(dc) - myBodyForce;
+    // Pa+b - F (TODO: include P*udot_p here also?)
+    z = getCentrifugalForces(dc) - myBodyForce; // 6 flops
+
+    if (isUDotKnown(ic) && !isUDotKnownToBeZero(ic)) {
+        const Vec<dof>& udot = fromU(allUDot);
+        z += getP(abc)*(getH(pc)*udot); // add in P*udot_p (66+12*dof flops)
+    }
 
     for (unsigned i=0; i<children.size(); ++i) {
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
         const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
-        const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
 
-        z += phiChild * (zChild + GepsChild);
+        if (children[i]->isUDotKnown(ic))
+            z += phiChild * zChild;
+        else {
+            const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
+            z += phiChild * (zChild + GepsChild);
+        }
     }
 
-    eps  = myJointForce - ~getH(pc)*z;
-    Geps = getG(abc)  * eps;
+    eps  = myJointForce - ~getH(pc)*z; // 12*dof flops
+
+    if (!isUDotKnown(ic))
+        Geps = getG(abc) * eps; // 12*dof-6 flops
 }
 
 //
@@ -391,22 +428,29 @@ RigidBodyNodeSpec<dof>::calcUDotPass1Inward(
 //
 template<int dof> void 
 RigidBodyNodeSpec<dof>::calcUDotPass2Outward(
-    const SBPositionCache&                  pc,
+    const SBInstanceCache&                  ic,
+    const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
-    const SBVelocityCache&                  vc,
+    const SBTreeVelocityCache&              vc,
     const SBDynamicsCache&                  dc,
     const Vector&                           allEpsilon,
     Vector_<SpatialVec>&                    allA_GB,
-    Vector&                                 allUDot) const
+    Vector&                                 allUDot,
+    Vector&                                 allTau) const
 {
     const Vec<dof>& eps  = fromU(allEpsilon);
     SpatialVec&     A_GB = toB(allA_GB);
-    Vec<dof>&       udot = toU(allUDot); // pull out this node's udot
+    Vec<dof>&       udot = toU(allUDot);    // pull out this node's udot
 
     // Shift parent's A_GB outward. (Ground A_GB is zero.)
     const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
-    udot = getDI(abc) * eps - (~getG(abc)*A_GP);
+    if (isUDotKnown(ic)) {
+        Vec<dof>& tau = updTau(ic,allTau);  // pull out this node's tau
+        tau = ~getH(pc)*(getP(abc)*A_GP) - eps; // 66 + 12*dof flops
+    } else
+        udot = getDI(abc) * eps - (~getG(abc)*A_GP); // 2*dof^2 + 11*dof
+
     A_GB = A_GP + getH(pc)*udot + getCoriolisAcceleration(vc);  
 }
 
@@ -423,7 +467,7 @@ RigidBodyNodeSpec<dof>::calcUDotPass2Outward(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcMInverseFPass1Inward(
-    const SBPositionCache&               pc,
+    const SBTreePositionCache&           pc,
     const SBArticulatedBodyInertiaCache& abc,
     const SBDynamicsCache&               dc,
     const Vector&                        f,
@@ -443,11 +487,11 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass1Inward(
         const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
         const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
 
-        z += phiChild * (zChild + GepsChild);
+        z += phiChild * (zChild + GepsChild);   // 24 flops
     }
 
-    eps  = myJointForce - ~getH(pc)*z;
-    Geps = getG(abc)  * eps;
+    eps  = myJointForce - ~getH(pc)*z;          // 12*dof flops
+    Geps = getG(abc) * eps;                     // 12*dof-6 flops
 }
 
 //
@@ -458,7 +502,7 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass1Inward(
 //
 template<int dof> void 
 RigidBodyNodeSpec<dof>::calcMInverseFPass2Outward(
-    const SBPositionCache&                  pc,
+    const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
     const SBDynamicsCache&                  dc,
     const Vector&                           allEpsilon,
@@ -470,10 +514,10 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass2Outward(
     Vec<dof>&       udot = toU(allUDot); // pull out this node's udot
 
     // Shift parent's A_GB outward. (Ground A_GB is zero.)
-    const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+    const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()]; // 12 flops
 
-    udot = getDI(abc) * eps - (~getG(abc)*A_GP);
-    A_GB = A_GP + getH(pc)*udot;  
+    udot = getDI(abc) * eps - (~getG(abc)*A_GP);    // 2dof^2 + 11 dof flops
+    A_GB = A_GP + getH(pc)*udot;                    // 12 dof flops
 }
 
 // The next two methods calculate 
@@ -485,10 +529,10 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass2Outward(
 // from udot and the coriolis accelerations.
 template<int dof> void 
 RigidBodyNodeSpec<dof>::calcInverseDynamicsPass1Outward(
-    const SBPositionCache& pc,
-    const SBVelocityCache& vc,
-    const Vector&          allUDot,
-    Vector_<SpatialVec>&   allA_GB) const
+    const SBTreePositionCache&  pc,
+    const SBTreeVelocityCache&  vc,
+    const Vector&               allUDot,
+    Vector_<SpatialVec>&        allA_GB) const
 {
     const Vec<dof>& udot = fromU(allUDot);
     SpatialVec&     A_GB = toB(allA_GB);
@@ -505,8 +549,8 @@ RigidBodyNodeSpec<dof>::calcInverseDynamicsPass1Outward(
 // the observed accelerations.
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcInverseDynamicsPass2Inward(
-    const SBPositionCache&      pc,
-    const SBVelocityCache&      vc,
+    const SBTreePositionCache&  pc,
+    const SBTreeVelocityCache&  vc,
     const Vector_<SpatialVec>&  allA_GB,
     const Vector&               jointForces,
     const Vector_<SpatialVec>&  bodyForces,
@@ -538,43 +582,50 @@ RigidBodyNodeSpec<dof>::calcInverseDynamicsPass2Inward(
 
 // The next two methods calculate x=M*v (or f=M*a) in O(N) time, given v.
 // The first one is called base to tip.
+// Cost is: pass1 12*dof+12 flops
+//          pass2 11*dof+84 flops (TODO: could be 24 flops cheaper; see below).
+//          total 23*dof + 96     (TODO: 23*dof + 72)
+// TODO: Possibly this could be much faster if composite body inertias R were
+// precalculated along with D = ~H*R*H. Then I *think* this could be a single
+// pass with tau = D*udot. Whether this is worth it would depend on how much
+// this gets re-used after R and D are calculated.
 template<int dof> void 
 RigidBodyNodeSpec<dof>::calcMVPass1Outward(
-    const SBPositionCache& pc,
-    const Vector&          allUDot,
-    Vector_<SpatialVec>&   allA_GB) const
+    const SBTreePositionCache&  pc,
+    const Vector&               allUDot,
+    Vector_<SpatialVec>&        allA_GB) const
 {
     const Vec<dof>& udot = fromU(allUDot);
     SpatialVec&     A_GB = toB(allA_GB);
 
     // Shift parent's A_GB outward. (Ground A_GB is zero.)
-    const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+    const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()]; // 12 flops
 
-    A_GB = A_GP + getH(pc)*udot;  
+    A_GB = A_GP + getH(pc)*udot;    // 12*dof flops
 }
 
 // Call tip to base after calling calcMVPass1Outward() for each
 // rigid body.
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcMVPass2Inward(
-    const SBPositionCache& pc,
-    const Vector_<SpatialVec>& allA_GB,
-    Vector_<SpatialVec>&       allF,	// temp
-    Vector&                    allTau) const 
+    const SBTreePositionCache&  pc,
+    const Vector_<SpatialVec>&  allA_GB,
+    Vector_<SpatialVec>&        allF,	// temp
+    Vector&                     allTau) const 
 {
     const SpatialVec& A_GB  = fromB(allA_GB);
     SpatialVec&       F		= toB(allF);
     Vec<dof>&         tau	= toU(allTau);
 
-    F = getMk(pc)*A_GB;
+    F = getMk(pc)*A_GB; // 66 flops TODO: 42 if you take advantage of Mk's structure
 
     for (unsigned i=0; i<children.size(); ++i) {
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
         const SpatialVec& FChild    = allF[children[i]->getNodeNum()];
-        F += phiChild * FChild;
+        F += phiChild * FChild; // 18 flops
     }
 
-    tau = ~getH(pc)*F;
+    tau = ~getH(pc)*F;          // 11*dof flops
 }
 
 //
@@ -589,7 +640,7 @@ RigidBodyNodeSpec<dof>::calcMVPass2Inward(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcSpatialKinematicsFromInternal(
-    const SBPositionCache&      pc,
+    const SBTreePositionCache&  pc,
     const Vector&               v,
     Vector_<SpatialVec>&        Jv) const
 {
@@ -616,7 +667,7 @@ RigidBodyNodeSpec<dof>::calcSpatialKinematicsFromInternal(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial(
-    const SBPositionCache&      pc,
+    const SBTreePositionCache&  pc,
     Vector_<SpatialVec>&        zTmp,
     const Vector_<SpatialVec>&  X, 
     Vector&                     JX) const
@@ -644,11 +695,11 @@ RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcEquivalentJointForces(
-    const SBPositionCache&     pc,
-    const SBDynamicsCache&     dc,
-    const Vector_<SpatialVec>& bodyForces,
-    Vector_<SpatialVec>&       allZ,
-    Vector&                    jointForces) const 
+    const SBTreePositionCache&  pc,
+    const SBDynamicsCache&      dc,
+    const Vector_<SpatialVec>&  bodyForces,
+    Vector_<SpatialVec>&        allZ,
+    Vector&                     jointForces) const 
 {
     const SpatialVec& myBodyForce  = fromB(bodyForces);
     SpatialVec&       z            = toB(allZ);
@@ -673,10 +724,10 @@ RigidBodyNodeSpec<dof>::calcEquivalentJointForces(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::setVelFromSVel(
-    const SBPositionCache& pc, 
-    const SBVelocityCache& mc,
-    const SpatialVec&      sVel, 
-    Vector&                u) const 
+    const SBTreePositionCache&  pc, 
+    const SBTreeVelocityCache&  mc,
+    const SpatialVec&           sVel, 
+    Vector&                     u) const 
 {
     toU(u) = ~getH(pc) * (sVel - (~getPhi(pc) * parent->getV_GB(mc)));
 }

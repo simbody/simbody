@@ -129,10 +129,10 @@ public:
     void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {}
 
     void setVelFromSVel(
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc,
-        const SpatialVec&      sVel, 
-        Vector&                u) const {}
+        const SBTreePositionCache&  pc, 
+        const SBTreeVelocityCache&  vc,
+        const SpatialVec&           sVel, 
+        Vector&                     u) const {}
 };
 
 /**
@@ -163,41 +163,42 @@ public:
 
     // TODO: should ground set the various cache entries here?
     void realizeModel   (SBStateDigest&) const {}
-    void realizeInstance(SBStateDigest&) const {}
-    void realizeTime    (SBStateDigest&) const {}
-    void realizePosition(SBStateDigest&) const {}
-    void realizeVelocity(SBStateDigest&) const {}
-    void realizeDynamics(const SBArticulatedBodyInertiaCache&, SBStateDigest&) const {}
-    void realizeAcceleration(SBStateDigest&) const {}
-    void realizeReport  (SBStateDigest&) const {}
+    void realizeInstance(const SBStateDigest&) const {}
+    void realizePosition(const SBStateDigest&) const {}
+    void realizeVelocity(const SBStateDigest&) const {}
+    void realizeDynamics(const SBArticulatedBodyInertiaCache&, const SBStateDigest&) const {}
+    void realizeAcceleration(const SBStateDigest&) const {}
+    void realizeReport  (const SBStateDigest&) const {}
 
     // Ground's "composite" body inertia is still the infinite mass
     // and inertia it started with; no need to look at the children.
     // This overrides the base class default implementation.
     void calcCompositeBodyInertiasInward(
-        const SBPositionCache& pc,
-        Vector_<SpatialMat>&   R) const
+        const SBTreePositionCache&  pc,
+        Vector_<SpatialMat>&        R) const
     {   R[0] = SpatialMat(Mat33(Infinity)); }
 
     // Ground's "articulated" body inertia is still the infinite mass and
     // inertia it started with; no need to look at the children.
     void realizeArticulatedBodyInertiasInward(
-        const SBPositionCache&,
+        const SBInstanceCache&,
+        const SBTreePositionCache&,
         SBArticulatedBodyInertiaCache& abc) const 
     {   updP(abc) = SpatialMat(Mat33(Infinity)); }
 
     void realizeYOutward(
-        const SBPositionCache&,
+        const SBInstanceCache&,
+        const SBTreePositionCache&,
         const SBArticulatedBodyInertiaCache&,
         SBDynamicsCache&                        dc) const
     {   updY(dc) = SpatialMat(Mat33(0)); }
 
     void realizeZ(
-        const SBPositionCache&                  pc,
+        const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&,
-        const SBVelocityCache&,
+        const SBTreeVelocityCache&,
         const SBDynamicsCache&,
-        SBAccelerationCache&                    ac,
+        SBTreeAccelerationCache&                ac,
         const Vector&,
         const Vector_<SpatialVec>&              bodyForces) const 
     {   
@@ -211,20 +212,22 @@ public:
         updGepsilon(ac) = SpatialVec(Vec3(0));
     }
     void realizeAccel(
-        const SBPositionCache&,
+        const SBTreePositionCache&,
         const SBArticulatedBodyInertiaCache&,
-        const SBVelocityCache&,
+        const SBTreeVelocityCache&,
         const SBDynamicsCache&,
-        SBAccelerationCache&                    ac,
+        SBTreeAccelerationCache&                ac,
         Vector&) const 
     {   updA_GB(ac) = 0; }
 
     void calcUDotPass1Inward(
-        const SBPositionCache&     pc,
+        const SBInstanceCache&,
+        const SBTreePositionCache& pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&,
         const Vector&              jointForces,
         const Vector_<SpatialVec>& bodyForces,
+        const Vector&              allUDot,
         Vector_<SpatialVec>&       allZ,
         Vector_<SpatialVec>&       allGepsilon,
         Vector&                    allEpsilon) const
@@ -239,19 +242,21 @@ public:
         allGepsilon[0] = 0;
     } 
     void calcUDotPass2Outward(
-        const SBPositionCache&,
+        const SBInstanceCache&,
+        const SBTreePositionCache&,
         const SBArticulatedBodyInertiaCache&,
-        const SBVelocityCache&,
+        const SBTreeVelocityCache&,
         const SBDynamicsCache&,
         const Vector&              epsilonTmp,
         Vector_<SpatialVec>&       allA_GB,
-        Vector&                    allUDot) const
+        Vector&                    allUDot,
+        Vector&                    allTau) const
     {
         allA_GB[0] = 0;
     }
 
     void calcMInverseFPass1Inward(
-        const SBPositionCache&     pc,
+        const SBTreePositionCache& pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&,
         const Vector&              f,
@@ -270,7 +275,7 @@ public:
     } 
 
     void calcMInverseFPass2Outward(
-        const SBPositionCache&,
+        const SBTreePositionCache&,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&,
         const Vector&               epsilonTmp,
@@ -281,10 +286,10 @@ public:
     }
 
     void calcInverseDynamicsPass1Outward(
-        const SBPositionCache& pc,
-        const SBVelocityCache& vc,
-        const Vector&          allUDot,
-        Vector_<SpatialVec>&   allA_GB) const 
+        const SBTreePositionCache&  pc,
+        const SBTreeVelocityCache&  vc,
+        const Vector&               allUDot,
+        Vector_<SpatialVec>&        allA_GB) const 
     {
         allA_GB[0] = 0;
     }
@@ -293,8 +298,8 @@ public:
     // we can still collect up all the forces from the base bodies to Ground
     // in case anyone cares.
     void calcInverseDynamicsPass2Inward(
-        const SBPositionCache&      pc,
-        const SBVelocityCache&      vc,
+        const SBTreePositionCache&  pc,
+        const SBTreeVelocityCache&  vc,
         const Vector_<SpatialVec>&  allA_GB,
         const Vector&               jointForces,
         const Vector_<SpatialVec>&  bodyForces,
@@ -314,18 +319,18 @@ public:
     }
 
 	void calcMVPass1Outward(
-		const SBPositionCache& pc,
-		const Vector&          allUDot,
-		Vector_<SpatialVec>&   allA_GB) const
+		const SBTreePositionCache&  pc,
+		const Vector&               allUDot,
+		Vector_<SpatialVec>&        allA_GB) const
     {
         allA_GB[0] = 0;
     }
 
 	void calcMVPass2Inward(
-		const SBPositionCache& pc,
-		const Vector_<SpatialVec>& allA_GB,
-		Vector_<SpatialVec>&       allF,
-		Vector&                    allTau) const
+		const SBTreePositionCache&  pc,
+		const Vector_<SpatialVec>&  allA_GB,
+		Vector_<SpatialVec>&        allF,
+		Vector&                     allTau) const
     {
         allF[0] = 0;
 
@@ -341,7 +346,7 @@ public:
 
 
     void calcSpatialKinematicsFromInternal(
-        const SBPositionCache&      pc,
+        const SBTreePositionCache&  pc,
         const Vector&               v,
         Vector_<SpatialVec>&        Jv) const    
     {
@@ -349,7 +354,7 @@ public:
     }
 
     void calcInternalGradientFromSpatial(
-        const SBPositionCache&      pc, 
+        const SBTreePositionCache&  pc, 
         Vector_<SpatialVec>&        zTmp,
         const Vector_<SpatialVec>&  X, 
         Vector&                     JX) const 
@@ -363,11 +368,11 @@ public:
     }
 
     void calcEquivalentJointForces(
-        const SBPositionCache& pc,
+        const SBTreePositionCache&  pc,
         const SBDynamicsCache&,
-        const Vector_<SpatialVec>& bodyForces,
-        Vector_<SpatialVec>&       allZ,
-        Vector&                    jointForces) const 
+        const Vector_<SpatialVec>&  bodyForces,
+        Vector_<SpatialVec>&        allZ,
+        Vector&                     jointForces) const 
     { 
         allZ[0] = bodyForces[0];
         for (unsigned i=0; i<children.size(); ++i) {
@@ -405,11 +410,10 @@ public:
     {   mv.prescribed[getNodeNum()] = true; }
 
     void realizeModel(SBStateDigest& sbs) const {}
-    void realizeInstance(SBStateDigest& sbs) const {}
-    void realizeTime(SBStateDigest& sbs) const {}
+    void realizeInstance(const SBStateDigest& sbs) const {}
 
-    void realizePosition(SBStateDigest& sbs) const {
-        SBPositionCache& pc = sbs.updPositionCache();
+    void realizePosition(const SBStateDigest& sbs) const {
+        SBTreePositionCache& pc = sbs.updTreePositionCache();
 
         const Transform& X_MB = getX_MB();   // fixed
         const Transform& X_PF = getX_PF();   // fixed
@@ -444,9 +448,9 @@ public:
                                        -offDiag             ,   Mat33(getMass()) );
     }
     
-    void realizeVelocity(SBStateDigest& sbs) const {
-        const SBPositionCache& pc = sbs.getPositionCache();
-        SBVelocityCache& vc = sbs.updVelocityCache();
+    void realizeVelocity(const SBStateDigest& sbs) const {
+        const SBTreePositionCache& pc = sbs.getTreePositionCache();
+        SBTreeVelocityCache& vc = sbs.updTreeVelocityCache();
 
         updV_FM(vc) = 0;
         updV_PB_G(vc) = 0;
@@ -455,25 +459,26 @@ public:
     }
 
     void realizeDynamics(const SBArticulatedBodyInertiaCache&   abc,
-                         SBStateDigest&                         sbs) const {
+                         const SBStateDigest&                   sbs) const {
         // Mobilizer-specific.
-        const SBPositionCache& pc = sbs.getPositionCache();
-        const SBVelocityCache& vc = sbs.getVelocityCache();
-        SBDynamicsCache& dc = sbs.updDynamicsCache();
+        const SBTreePositionCache&  pc = sbs.getTreePositionCache();
+        const SBTreeVelocityCache&  vc = sbs.getTreeVelocityCache();
+        SBDynamicsCache&            dc = sbs.updDynamicsCache();
         
         // Mobilizer independent.
         calcJointIndependentDynamicsVel(pc,abc,vc,dc);
     }
 
 
-    void realizeAcceleration(SBStateDigest& sbs) const {}
-    void realizeReport(SBStateDigest& sbs) const {}
+    void realizeAcceleration(const SBStateDigest& sbs) const {}
+    void realizeReport(const SBStateDigest& sbs) const {}
 
     // Weld uses base class implementation of calcCompositeBodyInertiasInward() since
     // that is independent of mobilities.
 
     void realizeArticulatedBodyInertiasInward
-       (const SBPositionCache&          pc, 
+       (const SBInstanceCache&,
+        const SBTreePositionCache&      pc, 
         SBArticulatedBodyInertiaCache&  abc) const 
     {
         SpatialMat& P = updP(abc);
@@ -500,7 +505,8 @@ public:
 
 
     void realizeYOutward(
-        const SBPositionCache&                  pc,
+        const SBInstanceCache&,
+        const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
         SBDynamicsCache&                        dc) const
     {
@@ -508,11 +514,11 @@ public:
     }
 
     void realizeZ(
-        const SBPositionCache&                  pc,
+        const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&,
-        const SBVelocityCache&,
+        const SBTreeVelocityCache&,
         const SBDynamicsCache&                  dc,
-        SBAccelerationCache&                    ac,
+        SBTreeAccelerationCache&                ac,
         const Vector&,
         const Vector_<SpatialVec>&              bodyForces) const 
     {
@@ -531,11 +537,11 @@ public:
 
 
     void realizeAccel(
-        const SBPositionCache&                  pc,
+        const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&,
-        const SBVelocityCache&                  vc,
+        const SBTreeVelocityCache&              vc,
         const SBDynamicsCache&,
-        SBAccelerationCache&                    ac,
+        SBTreeAccelerationCache&                ac,
         Vector&) const
     {
         const SpatialVec alphap = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
@@ -544,11 +550,13 @@ public:
 
     
     void calcUDotPass1Inward(
-        const SBPositionCache&      pc,
+        const SBInstanceCache&,
+        const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&      dc,
         const Vector&               jointForces,
         const Vector_<SpatialVec>&  bodyForces,
+        const Vector&               allUDot,
         Vector_<SpatialVec>&        allZ,
         Vector_<SpatialVec>&        allGepsilon,
         Vector&                     allEpsilon) const 
@@ -570,13 +578,15 @@ public:
     }
 
     void calcUDotPass2Outward(
-        const SBPositionCache& pc,
+        const SBInstanceCache&,
+        const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
-        const SBVelocityCache& vc,
-        const SBDynamicsCache& dc,
-        const Vector&          allEpsilon,
-        Vector_<SpatialVec>&   allA_GB,
-        Vector&                allUDot) const
+        const SBTreeVelocityCache&  vc,
+        const SBDynamicsCache&      dc,
+        const Vector&               allEpsilon,
+        Vector_<SpatialVec>&        allA_GB,
+        Vector&                     allUDot,
+        Vector&                     allTau) const
     {
         SpatialVec& A_GB = toB(allA_GB);
 
@@ -587,13 +597,13 @@ public:
     }
     
     void calcMInverseFPass1Inward(
-        const SBPositionCache& pc,
+        const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
-        const SBDynamicsCache& dc,
-        const Vector&          f,
-        Vector_<SpatialVec>&   allZ,
-        Vector_<SpatialVec>&   allGepsilon,
-        Vector&                allEpsilon) const 
+        const SBDynamicsCache&      dc,
+        const Vector&               f,
+        Vector_<SpatialVec>&        allZ,
+        Vector_<SpatialVec>&        allGepsilon,
+        Vector&                     allEpsilon) const 
     {
         SpatialVec& z       = toB(allZ);
         SpatialVec& Geps    = toB(allGepsilon);
@@ -609,12 +619,12 @@ public:
     }
 
     void calcMInverseFPass2Outward(
-        const SBPositionCache& pc,
+        const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
-        const SBDynamicsCache& dc,
-        const Vector&          allEpsilon,
-        Vector_<SpatialVec>&   allA_GB,
-        Vector&                allUDot) const
+        const SBDynamicsCache&      dc,
+        const Vector&               allEpsilon,
+        Vector_<SpatialVec>&        allA_GB,
+        Vector&                     allUDot) const
     {
         SpatialVec& A_GB = toB(allA_GB);
 
@@ -625,10 +635,10 @@ public:
     }
 
     void calcInverseDynamicsPass1Outward(
-        const SBPositionCache& pc,
-        const SBVelocityCache& vc,
-        const Vector&          allUDot,
-        Vector_<SpatialVec>&   allA_GB) const 
+        const SBTreePositionCache&  pc,
+        const SBTreeVelocityCache&  vc,
+        const Vector&               allUDot,
+        Vector_<SpatialVec>&        allA_GB) const 
     {
         SpatialVec& A_GB = toB(allA_GB);
 
@@ -639,8 +649,8 @@ public:
     }
 
     void calcInverseDynamicsPass2Inward(
-        const SBPositionCache&      pc,
-        const SBVelocityCache&      vc,
+        const SBTreePositionCache&  pc,
+        const SBTreeVelocityCache&  vc,
         const Vector_<SpatialVec>&  allA_GB,
         const Vector&               jointForces,
         const Vector_<SpatialVec>&  bodyForces,
@@ -667,9 +677,9 @@ public:
     }
 
 	void calcMVPass1Outward(
-		const SBPositionCache& pc,
-		const Vector&          allUDot,
-		Vector_<SpatialVec>&   allA_GB) const
+		const SBTreePositionCache&  pc,
+		const Vector&               allUDot,
+		Vector_<SpatialVec>&        allA_GB) const
 	{
 		SpatialVec& A_GB = toB(allA_GB);
 
@@ -680,10 +690,10 @@ public:
 	}
 
 	void calcMVPass2Inward(
-		const SBPositionCache& pc,
-		const Vector_<SpatialVec>& allA_GB,
-		Vector_<SpatialVec>&       allF,	// temp
-		Vector&                    allTau) const 
+		const SBTreePositionCache&  pc,
+		const Vector_<SpatialVec>&  allA_GB,
+		Vector_<SpatialVec>&        allF,	// temp
+		Vector&                     allTau) const 
 	{
 		const SpatialVec& A_GB  = fromB(allA_GB);
 		SpatialVec&       F		= toB(allF);
@@ -698,7 +708,7 @@ public:
 	}
 
     void calcSpatialKinematicsFromInternal(
-        const SBPositionCache&      pc,
+        const SBTreePositionCache&  pc,
         const Vector&               v,
         Vector_<SpatialVec>&        Jv) const    
     {
@@ -711,7 +721,7 @@ public:
     }
 
     void calcInternalGradientFromSpatial(
-        const SBPositionCache&      pc, 
+        const SBTreePositionCache&  pc, 
         Vector_<SpatialVec>&        zTmp,
         const Vector_<SpatialVec>&  X, 
         Vector&                     JX) const
@@ -729,7 +739,7 @@ public:
     }
 
     void calcEquivalentJointForces(
-        const SBPositionCache&      pc,
+        const SBTreePositionCache&  pc,
         const SBDynamicsCache&      dc,
         const Vector_<SpatialVec>&  bodyForces,
         Vector_<SpatialVec>&        allZ,

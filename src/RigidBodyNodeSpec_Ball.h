@@ -179,7 +179,7 @@ public:
         Vector&                qdot) const 
     {
         const SBModelVars& mv = sbs.getModelVars();
-        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBTreePositionCache& pc = sbs.getTreePositionCache();
         const Vec3& w_FM = fromU(u); // angular velocity of M in F 
         if (getUseEulerAngles(mv)) {
             toQuat(qdot) = Vec4(0); // TODO: kludge, clear unused element
@@ -194,9 +194,9 @@ public:
         assert(sbs.getStage() >= Stage::Position);
         assert(u && qdot);
 
-        const SBModelVars&     mv   = sbs.getModelVars();
-        const SBPositionCache& pc   = sbs.getPositionCache();
-        const Vector&          allQ = sbs.getQ();
+        const SBModelVars&          mv   = sbs.getModelVars();
+        const SBTreePositionCache&  pc   = sbs.getTreePositionCache();
+        const Vector&               allQ = sbs.getQ();
 
         const Vec3&            w_FM = Vec3::getAs(u);
 
@@ -263,8 +263,8 @@ public:
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const SBModelVars& mv = sbs.getModelVars();
-        const SBPositionCache& pc = sbs.getPositionCache();
+        const SBModelVars&          mv = sbs.getModelVars();
+        const SBTreePositionCache&  pc = sbs.getTreePositionCache();
         const Vec3& w_FM     = fromU(sbs.getU()); // angular velocity of J in Jb, expr in Jb
         const Vec3& w_FM_dot = fromU(udot);
 
@@ -282,10 +282,10 @@ public:
         assert(sbs.getStage() >= Stage::Velocity);
         assert(udot && qdotdot);
 
-        const SBModelVars&     mv   = sbs.getModelVars();
-        const SBPositionCache& pc   = sbs.getPositionCache();
-        const Vector&          allQ = sbs.getQ();
-        const Vector&          allU = sbs.getU();
+        const SBModelVars&          mv   = sbs.getModelVars();
+        const SBTreePositionCache&  pc   = sbs.getTreePositionCache();
+        const Vector&               allQ = sbs.getQ();
+        const Vector&               allU = sbs.getU();
 
         const Vec3& w_FM     = fromU(allU);
         const Vec3& w_FM_dot = Vec3::getAs(udot);
@@ -361,28 +361,6 @@ public:
         Rotation rot;
         rot.setRotationToBodyFixedXYZ(fromQ(inputQ));
         toQuat(outputQ) = rot.convertRotationToQuaternion().asVec4();
-    }
-
-    void getInternalForce(const SBAccelerationCache&, Vector&) const {
-        assert(false); // TODO: decompose cross-joint torque into 123 gimbal torques
-        /* OLD BALL CODE:
-        Vector& f = s.cache->netHingeForces;
-        //dependency: calcR_PB must be called first
-        assert( useEuler );
-
-        const Vec<3,Vec2>& scq = getSinCosQ(s);
-        const Real sPhi   = scq[0][0], cPhi   = scq[0][1];
-        const Real sTheta = scq[1][0], cTheta = scq[1][1];
-        const Real sPsi   = scq[2][0], cPsi   = scq[2][1];
-
-        Vec3 torque = forceInternal;
-        const Mat33 M( 0.          , 0.          , 1.    ,
-                      -sPhi        , cPhi        , 0.    ,
-                       cPhi*cTheta , sPhi*cTheta ,-sTheta );
-        Vec3 eTorque = RigidBodyNode::DEG2RAD * M * torque;
-
-        Vec3::updAs(&v[uIndex]) = eTorque;
-        */
     }
 };
 

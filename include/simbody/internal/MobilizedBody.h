@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-8 Stanford University and the Authors.         *
+ * Portions copyright (c) 2007-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy, Peter Eastman                                  *
  *                                                                            *
@@ -33,19 +33,26 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This defines the MobilizedBody class, which associates a body
- * (the "outboard" body) with a mobilizer and a reference frame (the
- * parent or "inboard" body), already present in a MatterSubsystem.
+ * This defines the MobilizedBody class, which associates a new body (the 
+ * "child", "outboard", or "successor" body) with a Mobilizer and a reference 
+ * frame on an existing body (the "parent", "inboard", or "predecessor" body)
+ * that is already part of a MatterSubsystem.
  *
- * MobilizedBody is an abstract base class handle, with concrete classes defined
- * for each kind of mobilizer. There are a set of built-in mobilizers
+ * MobilizedBody is an abstract base class handle, with concrete classes 
+ * defined for each kind of mobilizer. There are a set of built-in mobilizers
  * and a generic "Custom" mobilizer (an actual abstract base class) from
  * which advanced users may derive their own mobilizers.
+ *
+ * A Mobilizer may be associated with a Motion object which defines how
+ * it is to move; otherwise its motion is calculated as a result of the 
+ * application of forces (either directly applied or resulting from constraint
+ * forces generated to satisfy restrictions imposed by Constraint objects).
  */
 
 #include "SimTKmath.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/Body.h"
+#include "simbody/internal/Motion.h"
 
 #include <cassert>
 #include <vector>
@@ -53,60 +60,68 @@
 namespace SimTK {
 
 class SimbodyMatterSubsystem;
+class Motion;
 class MobilizedBody;
 class MobilizedBodyImpl;
 
-// We only want the template instantiation to occur once. This symbol is defined in the SimTK core
-// compilation unit that instantiates the mobilized body class but should not be defined any other time.
+// We only want the template instantiation to occur once. This symbol is 
+// defined in the SimTK core compilation unit that instantiates the mobilized 
+// body class but should not be defined any other time.
 #ifndef SimTK_SIMBODY_DEFINING_MOBILIZED_BODY
     extern template class PIMPLHandle<MobilizedBody, MobilizedBodyImpl, true>;
 #endif
 
 /**
- * This is the base class for all MobilizedBody classes, just a handle for the underlying
- * hidden implementation. Each built-in MobilizedBody type is a local subclass within
- * MobilizedBody, so the built-ins have names like MobilizedBody::Pin. All concrete MobilizedBodies,
- * including the built-ins, are derived from MobilizedBody.
+ * This is the base class for all MobilizedBody classes, just a handle for the 
+ * underlying hidden implementation. Each built-in MobilizedBody type is a local 
+ * subclass within MobilizedBody, so the built-ins have names like 
+ * MobilizedBody::Pin. All concrete MobilizedBodies, including the built-ins, 
+ * are derived from MobilizedBody.
  *
- * There are three sets of methods used for obtaining MobilizedBody-specific data from the
- * containing System's State. These are:
+ * There are three sets of methods used for obtaining MobilizedBody-specific 
+ * data from the containing System's State. These are:
  *    - State Access
  *    - Basic Operators
  *    - High Level Operators
  *
- * <em>State Access</em> methods simply extract already-calculated data from the State or State Cache, or
- * set State values. They involve no additional computation,
- * have names beginning with "get" and "set" and return references to the requested quantities rather than
- * calculated values. We divide these into routines which deal with bodies and routines which deal
+ * <em>State Access</em> methods simply extract already-calculated data from the 
+ * State or State Cache, or set State values. They involve no additional 
+ * computation, have names beginning with "get" and "upd" (update) and return 
+ * references to the requested quantities rather than calculated values. We 
+ * divide these into routines which deal with bodies and routines which deal 
  * with mobilizers and mobilities.
  *
- * <em>Basic Operators</em> use State Access methods to compute basic quantities which cannot be precomputed,
- * such as the velocity of an arbitrary point, using
- * an inline combination of basic floating point operations which can be reliably determined at
- * compile time. These have names beginning with "find" or a more specific verb, as a reminder
- * that they do not require a great deal of computation. 
+ * <em>Basic Operators</em> use State Access methods to compute basic quantities
+ * which cannot be precomputed, such as the velocity of an arbitrary point, 
+ * using an inline combination of basic floating point operations which can be 
+ * reliably determined at compile time. These have names beginning with "find" 
+ * or a more specific verb, as a reminder that they do not require a great deal 
+ * of computation. 
  *
- * <em>High Level Operators</em> combine responses and basic operators with run-time tests
- * to calculate more complex quantities, with more complicated implementations that can exploit
- * special cases at run time. These begin with "calc" (calculate) as a reminder that they may
- * involve substantial run time computation.
+ * <em>High Level Operators</em> combine responses and basic operators with 
+ * run-time tests to calculate more complex quantities, with more complicated 
+ * implementations that can exploit special cases at run time. These begin with 
+ * "calc" (calculate) as a reminder that they may involve substantial run time 
+ * computation.
  *
- * There is also a set of methods used for construction, and miscellaneous utilities. These
- * methods are primarly intended for use by concrete MobilizedBody classes and are not generally
- * used by end users.
+ * There is also a set of methods used for construction, and miscellaneous 
+ * utilities. These methods are primarly intended for use by concrete 
+ * MobilizedBody classes and are not generally used by end users.
  *
- * In the API below, we'll refer to the current ("this") MobilizedBody as "body B". It
- * is the "object" or "main" body with which we are concerned. Often there will be
- * another body mentioned in the argument list as a target for some conversion.
- * That "another" body will be called "body A". The Ground body is abbreviated "G".
+ * In the API below, we'll refer to the current ("this") MobilizedBody as "body
+ * B". It is the "object" or "main" body with which we are concerned. Often 
+ * there will be another body mentioned in the argument list as a target for 
+ * some conversion. That "another" body will be called "body A". The Ground 
+ * body is abbreviated "G".
  *
- * We use OF to mean "the origin of frame F", CB is "the mass center of body B".
- * R_AF is the rotation matrix giving frame F's orientation in frame A, such that
- * a vector v expressed in F is reexpressed in A by v_A = R_AF * v_F. X_AF is the
- * spatial transform giving frame F's origin location and orientation in frame A, such
- * that a point P whose location is measured from F's origin OF and expressed in F
- * by position vector p_FP (or more explicitly p_OF_P) is remeasured from frame A's
- * origin OA and reexpressed in A via p_AP = X_AF * p_FP, where p_AP==p_OA_P. 
+ * We use OF to mean "the origin of frame F", CB is "the mass center of body 
+ * B". R_AF is the rotation matrix giving frame F's orientation in frame A, 
+ * such that a vector v expressed in F is reexpressed in A by v_A = R_AF * v_F.
+ * X_AF is the spatial transform giving frame F's origin location and 
+ * orientation in frame A, such that a point P whose location is measured 
+ * from F's origin OF and expressed in F by position vector p_FP (or more 
+ * explicitly p_OF_P) is remeasured from frame A's origin OA and reexpressed 
+ * in A via p_AP = X_AF * p_FP, where p_AP==p_OA_P. 
  */
 
 class SimTK_SIMBODY_EXPORT MobilizedBody : public PIMPLHandle<MobilizedBody, MobilizedBodyImpl, true> {
@@ -116,43 +131,57 @@ public:
     /// mobilizer is being defined in the reverse direction, meaning from 
     /// child to parent. That means that the mobilizer coordinates and speeds
     /// will be defined as though the tree had been built in the opposite
-    /// direction.
+    /// direction. This is a topological setting and can't be changed dynamically.
     enum Direction {
         Forward = 0,
         Reverse = 1
     };
+
+    /// The default behavior of this mobilizer will normally be determined
+    /// by whether you provide a Motion object for it. However, you can override
+    /// that afterwards.
+    MobilizedBody& setDefaultMotionType(Motion::Level, Motion::Method=Motion::Prescribed);
+
+    /// This is an Instance stage setting.
+    void setMotionType(State&, Motion::Level, Motion::Method=Motion::Prescribed) const;
+
+    bool isAccelerationAlwaysZero(const State&) const;
+    bool isVelocityAlwaysZero(const State&) const;
+
 
         //////////////////////////
         // STATE ACCESS METHODS //
         //////////////////////////
 
     /// @name State Access - Bodies
-    /// These methods extract already-computed information from the State or State cache, or set
-    /// values in the State.
+    /// These methods extract already-computed information from the State or 
+    /// State cache, or set values in the State.
     //@{
 
-    /// Extract from the state cache the already-calculated spatial configuration X_GB
-    /// of body B's body frame, measured with respect to the Ground frame and expressed
-    /// in the Ground frame. That is, we return the location of the body frame's
-    /// origin, and the orientation of its x, y, and z axes, as the Transform X_GB.
-    /// This notation is intended to convey unambiguously the sense of this
-    /// transform, which is as follows: if you have a station (body fixed point)
-    /// S on body B, represented by position vector p_BS (a.k.a. p_OB_S) from the origin OB of B to the
-    /// point S and expressed in the B frame, then p_GS=X_GB*p_BS where p_GS (== p_OG_S) is the position
-    /// vector from the Ground origin OG to the point in space currently coincident with S and
-    /// expressed in the Ground frame. The inverse transformation is obtained using
-    /// the "~" operator where ~X_GB=X_BG, so that p_BS = ~X_GB*p_GS.
-    /// This response is available at Position stage.
+    /// Extract from the state cache the already-calculated spatial 
+    /// configuration X_GB of body B's body frame, measured with respect to the 
+    /// Ground frame and expressed in the Ground frame. That is, we return the 
+    /// location of the body frame's origin, and the orientation of its x, y, 
+    /// and z axes, as the Transform X_GB. This notation is intended to convey 
+    /// unambiguously the sense of this transform, which is as follows: if you 
+    /// have a station (body fixed point) S on body B, represented by position 
+    /// vector p_BS (a.k.a. p_OB_S) from the origin OB of B to the point S and 
+    /// expressed in the B frame, then p_GS=X_GB*p_BS where p_GS (== p_OG_S) is 
+    /// the position vector from the Ground origin OG to the point in space 
+    /// currently coincident with S and expressed in the Ground frame. The 
+    /// inverse transformation is obtained using the "~" operator where 
+    /// ~X_GB=X_BG, so that p_BS = ~X_GB*p_GS. This response is available at 
+    /// Position stage.
     const Transform& getBodyTransform(const State&) const; // X_GB
 
     /// Extract from the state cache the already-calculated spatial orientation
-    /// R_GB of body B's body frame x, y, and z axes expressed in the Ground frame,
-    /// as the Rotation matrix R_GB. The sense of this rotation matrix is such that
-    /// if you have a vector v fixed on body B, represented by the vector v_B
-    /// expressed in the B frame, then v_G=R_GB*v_B where v_G is the same vector
-    /// but re-expressed in the Ground frame. The inverse transformation is obtained using
-    /// the "~" operator where ~R_GB=R_BG, so that v_B = ~R_GB*v_G.
-    /// This response is available at Position stage.
+    /// R_GB of body B's body frame x, y, and z axes expressed in the Ground 
+    /// frame, as the Rotation matrix R_GB. The sense of this rotation matrix 
+    /// is such that if you have a vector v fixed on body B, represented by the
+    /// vector v_B expressed in the B frame, then v_G=R_GB*v_B where v_G is the 
+    /// same vector but re-expressed in the Ground frame. The inverse 
+    /// transformation is obtained using the "~" operator where ~R_GB=R_BG, so 
+    /// that v_B = ~R_GB*v_G. This response is available at Position stage.
     const Rotation& getBodyRotation(const State& s) const {
         return getBodyTransform(s).R();
     }
@@ -169,11 +198,12 @@ public:
     /// the parent body's corresponding outboard frame F.
     const Transform& getMobilizerTransform(const State&) const; // X_FM
 
-    /// Extract from the state cache the already-calculated spatial velocity V_GB of this
-    /// body's reference frame B, measured with respect to the Ground frame and expressed
-    /// in the Ground frame. That is, we return the linear velocity v_GB of the body
-    /// frame's origin in G, and the body's angular velocity w_GB as the spatial velocity
-    /// vector V_GB = {w_GB, v_GB}. This response is available at Velocity stage.
+    /// Extract from the state cache the already-calculated spatial velocity 
+    /// V_GB of this body's reference frame B, measured with respect to the 
+    /// Ground frame and expressed in the Ground frame. That is, we return the 
+    /// linear velocity v_GB of the body frame's origin in G, and the body's 
+    /// angular velocity w_GB as the spatial velocity vector V_GB = {w_GB, v_GB}.
+    /// This response is available at Velocity stage.
     const SpatialVec& getBodyVelocity(const State&) const;          // V_GB
 
     /// Extract from the state cache the already-calculated inertial angular
@@ -1143,6 +1173,33 @@ public:
         return getBody().getDefaultRigidBodyMassProperties(); // every body type can do this
     }
 
+    /// Provide a unique Motion object for this MobilizedBody. The MobilizedBody takes
+    /// over ownership of the Motion object and is responsible for cleaning up 
+    /// its heap space when the time comes. This is a Topology-changing operation and
+    /// consequently requires write access to the MobilizedBody which will propagate
+    /// to invalidate the containing Subsystem and System's topology. There can only
+    /// be one Motion object per mobilizer; this method will throw an exception if
+    /// there is already one here.
+    void adoptMotion(Motion& ownerHandle);
+
+    /// If there is a Motion object associated with this MobilizedBody it is removed;
+    /// otherwise, nothing happens. If a Motion is deleted, the containing System's
+    /// topology is invalidated.
+    void clearMotion();
+
+    /// Check whether this MobilizedBody has an associated Motion object. This does
+    /// not tell you whether the Motion object is currently enabled or in use; just
+    /// whether it is available.
+    bool hasMotion() const;
+
+    /// If there is a Motion object assocated with this MobilizedBody, this returns
+    /// a const reference to it. Otherwise it will throw an exception. You can check first
+    /// using hasMotion(). Note that there is no provision to obtain a writable
+    /// reference to the contained Motion object; if you want to change it clear the
+    /// existing object instead and replace it with a new one.
+    /// @see hasMotion()
+    const Motion& getMotion() const;
+
     /// Change this mobilizer's frame F on the parent body P. Calling this method
     /// invalidates the MobilizedBody's topology, so the containing
     /// matter subsystem's realizeTopology() method must be called again. A reference
@@ -1166,80 +1223,94 @@ public:
     /// with the MobilizedBody object, not the State.
     const Transform& getDefaultOutboardFrame() const; // X_BM
 
-    /// This is an implicit conversion from MobilizedBody to MobilizedBodyIndex when needed.
-    /// This will fail unless this MobilizedBody is owned by some SimbodyMatterSubsystem.
+    /// This is an implicit conversion from MobilizedBody to MobilizedBodyIndex 
+    /// when needed. This will fail unless this MobilizedBody is owned by some 
+    /// SimbodyMatterSubsystem. We guarantee that the MobilizedBodyIndex of a
+    /// mobilized body is numerically larger than the MobilizedBodyIndex of its 
+    /// parent.
     operator MobilizedBodyIndex() const {return getMobilizedBodyIndex();}
 
-    /// Return the MobilizedBodyIndex of this MobilizedBody within the owning SimbodyMatterSubsystem.
-    /// This will fail unless this MobilizedBody is owned by some SimbodyMatterSubsystem.
+    /// Return the MobilizedBodyIndex of this MobilizedBody within the owning 
+    /// SimbodyMatterSubsystem. This will fail unless this MobilizedBody is 
+    /// owned by some SimbodyMatterSubsystem. We guarantee that the 
+    /// MobilizedBodyIndex of a mobilized body is numerically larger than the 
+    /// MobilizedBodyIndex of its parent.
     MobilizedBodyIndex     getMobilizedBodyIndex()  const;
 
-    /// Return a reference to the MobilizedBody serving as the parent body of the current MobilizedBody.
-    /// This call will fail if the current MobilizedBody is Ground, since Ground has no parent.
+    /// Return a reference to the MobilizedBody serving as the parent body of 
+    /// the current MobilizedBody. This call will fail if the current 
+    /// MobilizedBody is Ground, since Ground has no parent.
     const MobilizedBody&   getParentMobilizedBody() const;
 
-    /// Return a reference to this MobilizedBody's oldest ancestor other than Ground, or return Ground if
-    /// this MobilizedBody is Ground. That is, we return the "base" MobilizedBody for this MobilizedBody,
-    /// meaning the one which connects this branch of the multibody tree directly to Ground.
+    /// Return a reference to this MobilizedBody's oldest ancestor other than 
+    /// Ground, or return Ground if this MobilizedBody is Ground. That is, we 
+    /// return the "base" MobilizedBody for this MobilizedBody, meaning the one 
+    /// which connects this branch of the multibody tree directly to Ground.
     const MobilizedBody&   getBaseMobilizedBody()   const;
 
-    /// Obtain a reference to the SimbodyMatterSubsystem which contains this MobilizedBody.
-    /// This will fail unless this MobilizedBody is owned by some SimbodyMatterSubsystem.
-    const SimbodyMatterSubsystem& getMatterSubsystem()      const;
-    /// Obtain a writable reference to the SimbodyMatterSubsystem which contains this MobilizedBody.
-    /// This will fail unless this MobilizedBody is owned by some SimbodyMatterSubsystem.
+    /// Obtain a reference to the SimbodyMatterSubsystem which contains this 
+    /// MobilizedBody. This will fail unless this MobilizedBody is owned by 
+    /// some SimbodyMatterSubsystem.
+    const SimbodyMatterSubsystem& getMatterSubsystem() const;
+    /// Obtain a writable reference to the SimbodyMatterSubsystem which 
+    /// contains this MobilizedBody. This will fail unless this MobilizedBody 
+    /// is owned by some SimbodyMatterSubsystem.
     SimbodyMatterSubsystem&       updMatterSubsystem();
 
-    /// Determine whether the current MobilizedBody object is owned by a matter subsystem.
+    /// Determine whether the current MobilizedBody object is owned by a matter 
+    /// subsystem.
     bool isInSubsystem() const;
 
-    /// Determine whether a given MobilizedBody \p mBody is in the same matter subsystem
-    /// as the current body. If the bodies are not in a subsystem, this routine will
-    /// return \c false.
+    /// Determine whether a given MobilizedBody \p mBody is in the same matter 
+    /// subsystem as the current body. If the bodies are not in a subsystem, 
+    /// this routine will return \c false.
     bool isInSameSubsystem(const MobilizedBody&) const;
 
-    /// Determine whether a given MobilizedBody \p mBody is the same MobilizedBody as
-    /// this one. For this to be true the handles must not be empty, and the implementation
-    /// objects must be <em>the same object</em> not separate objects with identical
-    /// contents.
+    /// Determine whether a given MobilizedBody \p mBody is the same  
+    /// MobilizedBody as this one. For this to be true the handles must not be 
+    /// empty, and the implementation objects must be <em>the same object</em> 
+    /// not separate objects with identical contents.
     bool isSameMobilizedBody(const MobilizedBody& mBody) const;
 
-    /// Determine whether this body is Ground, meaning that it is actually body 0
-    /// of some matter subsytem, not just that its body type is Ground.
+    /// Determine whether this body is Ground, meaning that it is actually 
+    /// body 0 of some matter subsytem, not just that its body type is Ground.
     bool isGround() const;
 
-    /// Return this body's level in the tree of bodies, starting with ground at 0,
-    /// bodies directly connected to ground at 1, bodies directly connected to those at 2, 
-    /// etc. This is callable after realizeTopology(). This is the graph distance of
-    /// the body from Ground.
+    /// Return this body's level in the tree of bodies, starting with ground 
+    /// at 0, bodies directly connected to ground at 1, bodies directly 
+    /// connected to those at 2, etc. This is callable after realizeTopology(). 
+    /// This is the graph distance of the body from Ground.
     int getLevelInMultibodyTree() const;
     
-    /// Create a new MobilizedBody which is identical to this one, except that it has a
-    /// different parent (and consequently might belong to a different MultibodySystem).
+    /// Create a new MobilizedBody which is identical to this one, except that 
+    /// it has a different parent (and consequently might belong to a different 
+    /// MultibodySystem).
     MobilizedBody& cloneForNewParent(MobilizedBody& parent) const;
+
 
         // Utility operators //
 
-    /// This utility selects one of the q's (generalized coordinates) associated with this mobilizer from
-    /// a supplied "q-like" Vector, meaning a Vector which is the same length as the
-    /// Vector of q's for the containing matter subsystem.
+    /// This utility selects one of the q's (generalized coordinates) associated 
+    /// with this mobilizer from a supplied "q-like" Vector, meaning a Vector 
+    /// which is the same length as the Vector of q's for the containing matter 
+    /// subsystem.
     Real  getOneFromQPartition(const State&, int which, const Vector& qlike) const;
 
-    /// This utility returns a writable reference to one of the q's (generalized coordinates) 
-    /// associated with this mobilizer from
-    /// a supplied "q-like" Vector, meaning a Vector which is the same length as the
-    /// Vector of q's for the containing matter subsystem.
+    /// This utility returns a writable reference to one of the q's (generalized 
+    /// coordinates) associated with this mobilizer from a supplied "q-like" 
+    /// Vector, meaning a Vector which is the same length as the Vector of q's 
+    /// for the containing matter subsystem.
     Real& updOneFromQPartition(const State&, int which, Vector& qlike) const;
 
-    /// This utility selects one of the u's (generalized speeds) associated with this mobilizer from
-    /// a supplied "u-like" Vector, meaning a Vector which is the same length as the
-    /// Vector of u's for the containing matter subsystem.
+    /// This utility selects one of the u's (generalized speeds) associated with 
+    /// this mobilizer from a supplied "u-like" Vector, meaning a Vector which is 
+    /// the same length as the Vector of u's for the containing matter subsystem.
     Real  getOneFromUPartition(const State&, int which, const Vector& ulike) const;
 
-    /// This utility returns a writable reference to one of the u's (generalized speeds)
-    /// associated with this mobilizer from
-    /// a supplied "u-like" Vector, meaning a Vector which is the same length as the
-    /// Vector of u's for the containing matter subsystem.
+    /// This utility returns a writable reference to one of the u's (generalized 
+    /// speeds) associated with this mobilizer from a supplied "u-like" Vector, 
+    /// meaning a Vector which is the same length as the Vector of u's for the 
+    /// containing matter subsystem.
     Real& updOneFromUPartition(const State&, int which, Vector& ulike) const;
 
     /// This utility adds in the supplied generalized force \p force (a scalar) to the

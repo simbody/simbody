@@ -182,9 +182,9 @@ public:
     // This routine is NOT joint specific, but cannot be called until the across-joint
     // transform X_FM has been calculated and is available in the State cache.
     void calcBodyTransforms(
-        const SBPositionCache& pc, 
-        Transform&             X_PB, 
-        Transform&             X_GB) const 
+        const SBTreePositionCache&  pc, 
+        Transform&                  X_PB, 
+        Transform&                  X_GB) const 
     {
         const Transform& X_MB = getX_MB();   // fixed
         const Transform& X_PF = getX_PF();   // fixed
@@ -198,18 +198,18 @@ public:
     // Same for all mobilizers. The return matrix here is precisely the 
     // one used by Jain and Schwieters, but transposed.
     void calcParentToChildVelocityJacobianInGround(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        HType& H_PB_G) const;
+        const SBModelVars&          mv,
+        const SBTreePositionCache&  pc, 
+        HType&                      H_PB_G) const;
 
     // Same for all mobilizers. This is the time derivative of 
     // the matrix H_PB_G above, with the derivative taken in the 
     // Ground frame.
     void calcParentToChildVelocityJacobianInGroundDot(
-        const SBModelVars&     mv,
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc, 
-        HType& HDot_PB_G) const;
+        const SBModelVars&          mv,
+        const SBTreePositionCache&  pc, 
+        const SBTreeVelocityCache&  vc, 
+        HType&                      HDot_PB_G) const;
 
     // These next two routines are optional, but if you supply one you
     // must supply the other. (That is, ball-containing joints provide
@@ -236,23 +236,19 @@ public:
     {
     }
 
-    void realizeInstance(SBStateDigest& sbs) const
-    {
-    }
-
-    void realizeTime(SBStateDigest& sbs) const
+    void realizeInstance(const SBStateDigest& sbs) const
     {
     }
 
     // Set a new configuration and calculate the consequent kinematics.
     // Must call base-to-tip.
-    void realizePosition(SBStateDigest& sbs) const 
+    void realizePosition(const SBStateDigest& sbs) const 
     {
-        const SBModelVars&      mv = sbs.getModelVars();
-        const SBModelCache&     mc = sbs.getModelCache();
-        const SBInstanceCache&  ic = sbs.getInstanceCache();
+        const SBModelVars&      mv   = sbs.getModelVars();
+        const SBModelCache&     mc   = sbs.getModelCache();
+        const SBInstanceCache&  ic   = sbs.getInstanceCache();
         const Vector&           allQ = sbs.getQ();
-        SBPositionCache&        pc = sbs.updPositionCache();
+        SBTreePositionCache&    pc   = sbs.updTreePositionCache();
 
         // Mobilizer specific.
         calcJointSinCosQNorm(mv, mc, ic, allQ, pc.sq, pc.cq, sbs.updQErr(), pc.qnorm);
@@ -270,6 +266,10 @@ public:
         if (isReversed()) calcReverseMobilizerH_FM       (sbs, updH_FM(pc));
         else              calcAcrossJointVelocityJacobian(sbs, updH_FM(pc));
 
+        // Here we're using the cross-mobilizer hinge matrix H_FM that we just 
+        // calculated to compute H(==H_PB_G), the equivalent hinge matrix between 
+        // the parent's body frame P and child's body frame B, but expressed in
+        // Ground. (F is fixed on P and M is fixed on B.)
         calcParentToChildVelocityJacobianInGround(mv,pc, updH(pc));
 
         // Mobilizer independent.
@@ -288,16 +288,16 @@ public:
     //             F is fixed on P). (This is H_FM*u.)
     //   V_PB_G  relative velocity of B in P (==H*u), expr. in G
     //   HDot_FM time derivative of hinge matrix H_FM
-    //   HDot    time derivative of H (==H_PB) hinge matrix relating body frames
+    //   HDot    time derivative of H (==H_PB_G) hinge matrix relating body frames
     //   VD_PB_G acceleration remainder term HDot*u, expr. in G
     // The code is the same for all joints, although parametrized by ndof.
-    void realizeVelocity(SBStateDigest& sbs) const 
+    void realizeVelocity(const SBStateDigest& sbs) const 
     {
-        const SBModelVars&      mv = sbs.getModelVars();
-        const SBPositionCache&  pc = sbs.getPositionCache();
-        SBVelocityCache&        vc = sbs.updVelocityCache();
-        const Vector&           allU = sbs.getU();
-        const Vec<dof>&         u = fromU(allU);
+        const SBModelVars&          mv = sbs.getModelVars();
+        const SBTreePositionCache&  pc = sbs.getTreePositionCache();
+        SBTreeVelocityCache&        vc = sbs.updTreeVelocityCache();
+        const Vector&               allU = sbs.getU();
+        const Vec<dof>&             u = fromU(allU);
 
         // Mobilizer specific.
         calcQDot(sbs, allU, sbs.updQDot());
@@ -309,6 +309,11 @@ public:
         if (isReversed()) calcReverseMobilizerHDot_FM       (sbs, updHDot_FM(vc));
         else              calcAcrossJointVelocityJacobianDot(sbs, updHDot_FM(vc));
 
+        // Here we're using the cross-mobilizer hinge matrix derivative HDot_FM 
+        // that we just calculated to compute HDot(==HDot_PB_G), the derivative
+        // of H (==H_PB_G) between the parent's body frame P and child's body 
+        // frame B. The derivative is taken in the Ground frame and the result
+        // is expressed in Ground. (F is fixed on P and M is fixed on B.)
         calcParentToChildVelocityJacobianInGroundDot(mv,pc,vc, updHDot(vc));
         updVD_PB_G(vc) = getHDot(vc) * u;
 
@@ -317,11 +322,11 @@ public:
     }
 
     void realizeDynamics(const SBArticulatedBodyInertiaCache&   abc,
-                         SBStateDigest&                         sbs) const 
+                         const SBStateDigest&                   sbs) const 
     {
-        const SBPositionCache& pc = sbs.getPositionCache();
-        const SBVelocityCache& vc = sbs.getVelocityCache();
-        SBDynamicsCache&       dc = sbs.updDynamicsCache();
+        const SBTreePositionCache&  pc = sbs.getTreePositionCache();
+        const SBTreeVelocityCache&  vc = sbs.getTreeVelocityCache();
+        SBDynamicsCache&            dc = sbs.updDynamicsCache();
 
         // Mobilizer-specific.
         // None.
@@ -330,11 +335,11 @@ public:
         calcJointIndependentDynamicsVel(pc,abc,vc,dc);
     }
 
-    void realizeAcceleration(SBStateDigest& sbs) const
+    void realizeAcceleration(const SBStateDigest& sbs) const
     {
     }
 
-    void realizeReport(SBStateDigest& sbs) const
+    void realizeReport(const SBStateDigest& sbs) const
     {
     }
 
@@ -343,7 +348,8 @@ public:
 
     // This is a dynamics-stage calculation and must be called tip-to-base (inward).
     void realizeArticulatedBodyInertiasInward(
-        const SBPositionCache&          pc,
+        const SBInstanceCache&          ic,
+        const SBTreePositionCache&      pc,
         SBArticulatedBodyInertiaCache&  abc) const;
 
     // calcJointIndependentDynamicsVel() must be called after ArticulatedBodyInertias.
@@ -351,25 +357,26 @@ public:
     // This dynamics-stage calculation is needed for handling constraints. It
     // must be called base-to-tip (outward);
     void realizeYOutward(
-        const SBPositionCache&                  pc,
+        const SBInstanceCache&                  ic,
+        const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
         SBDynamicsCache&                        dc) const;
 
     void realizeZ(
-        const SBPositionCache&                  pc,
+        const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
-        const SBVelocityCache&                  vc,
+        const SBTreeVelocityCache&              vc,
         const SBDynamicsCache&                  dc,
-        SBAccelerationCache&                    ac,
+        SBTreeAccelerationCache&                ac,
         const Vector&                           mobilityForces,
         const Vector_<SpatialVec>&              bodyForces) const;
 
     void realizeAccel(
-        const SBPositionCache&                  pc,
+        const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
-        const SBVelocityCache&                  vc,
+        const SBTreeVelocityCache&              vc,
         const SBDynamicsCache&                  dc,
-        SBAccelerationCache&                    ac,
+        SBTreeAccelerationCache&                ac,
         Vector&                                 udot) const;
 
     // These routines give each node a chance to set appropriate defaults in a piece
@@ -496,16 +503,16 @@ public:
 
 
     virtual void setVelFromSVel(
-        const SBPositionCache& pc, 
-        const SBVelocityCache& mc,
-        const SpatialVec&      sVel, 
-        Vector&               u) const;
+        const SBTreePositionCache&  pc, 
+        const SBTreeVelocityCache&  vc,
+        const SpatialVec&           sVel, 
+        Vector&                     u) const;
 
     // Return true if any change is made to the q vector.
     virtual bool enforceQuaternionConstraints(
-        const SBStateDigest& sbs,
-        Vector&            q,
-        Vector&            qErrest) const 
+        const SBStateDigest&    sbs,
+        Vector&                 q,
+        Vector&                 qErrest) const 
     {
         assert(quaternionUse == QuaternionIsNeverUsed);
         return false;
@@ -524,7 +531,7 @@ public:
     }
 
     // Get a column of H_PB_G, which is what Jain calls H* and Schwieters calls H^T.
-    const SpatialVec& getHCol(const SBPositionCache& pc, int j) const {
+    const SpatialVec& getHCol(const SBTreePositionCache& pc, int j) const {
         return getH(pc)(j);
     }
 
@@ -600,46 +607,46 @@ public:
 
 
     // CAUTION: our H definition is transposed from Jain and Schwieters.
-    const HType& getH_FM(const SBPositionCache& pc) const
+    const HType& getH_FM(const SBTreePositionCache& pc) const
       { return HType::getAs(&pc.storageForH_FM(0,uIndex)); }
-    HType&       updH_FM(SBPositionCache& pc) const
+    HType&       updH_FM(SBTreePositionCache& pc) const
       { return HType::updAs(&pc.storageForH_FM(0,uIndex)); }
 
     // "H" here should really be H_PB_G, that is, cross joint transition
     // matrix relating parent and body frames, but expressed in Ground.
     // CAUTION: our H definition is transposed from Jain and Schwieters.
-    const HType& getH(const SBPositionCache& pc) const
+    const HType& getH(const SBTreePositionCache& pc) const
       { return HType::getAs(&pc.storageForH(0,uIndex)); }
-    HType&       updH(SBPositionCache& pc) const
+    HType&       updH(SBTreePositionCache& pc) const
       { return HType::updAs(&pc.storageForH(0,uIndex)); }
 
     // These are sines and cosines of angular qs. The rest of the slots are garbage.
-    const Vec<dof>&   getSinQ (const SBPositionCache& pc) const {return fromQ (pc.sq);}
-    Vec<dof>&         updSinQ (SBPositionCache&       pc) const {return toQ   (pc.sq);}
-    const Real&       get1SinQ(const SBPositionCache& pc) const {return from1Q(pc.sq);}
-    Real&             upd1SinQ(SBPositionCache&       pc) const {return to1Q  (pc.sq);}
+    const Vec<dof>&   getSinQ (const SBTreePositionCache& pc) const {return fromQ (pc.sq);}
+    Vec<dof>&         updSinQ (SBTreePositionCache&       pc) const {return toQ   (pc.sq);}
+    const Real&       get1SinQ(const SBTreePositionCache& pc) const {return from1Q(pc.sq);}
+    Real&             upd1SinQ(SBTreePositionCache&       pc) const {return to1Q  (pc.sq);}
 
-    const Vec<dof>&   getCosQ (const SBPositionCache& pc) const {return fromQ (pc.cq);}
-    Vec<dof>&         updCosQ (SBPositionCache&       pc) const {return toQ   (pc.cq);}
-    const Real&       get1CosQ(const SBPositionCache& pc) const {return from1Q(pc.cq);}
-    Real&             upd1CosQ(SBPositionCache&       pc) const {return to1Q  (pc.cq);}
+    const Vec<dof>&   getCosQ (const SBTreePositionCache& pc) const {return fromQ (pc.cq);}
+    Vec<dof>&         updCosQ (SBTreePositionCache&       pc) const {return toQ   (pc.cq);}
+    const Real&       get1CosQ(const SBTreePositionCache& pc) const {return from1Q(pc.cq);}
+    Real&             upd1CosQ(SBTreePositionCache&       pc) const {return to1Q  (pc.cq);}
 
     // These are normalized quaternions in slots for balls. Everything else is garbage.
-    const Vec4&       getQNorm(const SBPositionCache& pc) const {return fromQuat(pc.qnorm);}
-    Vec4&             updQNorm(SBPositionCache&       pc) const {return toQuat  (pc.qnorm);}
+    const Vec4&       getQNorm(const SBTreePositionCache& pc) const {return fromQuat(pc.qnorm);}
+    Vec4&             updQNorm(SBTreePositionCache&       pc) const {return toQuat  (pc.qnorm);}
 
         // Velocity
 
     // CAUTION: our H definition is transposed from Jain and Schwieters.
-    const HType& getHDot_FM(const SBVelocityCache& vc) const
+    const HType& getHDot_FM(const SBTreeVelocityCache& vc) const
       { return HType::getAs(&vc.storageForHDot_FM(0,uIndex)); }
-    HType&       updHDot_FM(SBVelocityCache& vc) const
+    HType&       updHDot_FM(SBTreeVelocityCache& vc) const
       { return HType::updAs(&vc.storageForHDot_FM(0,uIndex)); }
 
     // CAUTION: our H definition is transposed from Jain and Schwieters.
-    const HType& getHDot(const SBVelocityCache& vc) const
+    const HType& getHDot(const SBTreeVelocityCache& vc) const
       { return HType::getAs(&vc.storageForHDot(0,uIndex)); }
-    HType&       updHDot(SBVelocityCache& vc) const
+    HType&       updHDot(SBTreeVelocityCache& vc) const
       { return HType::updAs(&vc.storageForHDot(0,uIndex)); }
 
         // Dynamics
@@ -656,64 +663,68 @@ public:
     Mat<2,dof,Vec3>&       updG(SBArticulatedBodyInertiaCache&       abc) const
       { return Mat<2,dof,Vec3>::updAs(&abc.storageForG(0,uIndex)); }
 
+    const Vec<dof>& getTau(const SBInstanceCache& ic, const Vector& tau) const {
+        const PresForcePoolIndex tauIx = ic.getMobodInstanceInfo(nodeNum).firstPresForce;
+        assert(tauIx.isValid());
+        return Vec<dof>::getAs(&tau[tauIx]);
+    }
+    Vec<dof>& updTau(const SBInstanceCache& ic, Vector& tau) const {
+        const PresForcePoolIndex tauIx = ic.getMobodInstanceInfo(nodeNum).firstPresForce;
+        assert(tauIx.isValid());
+        return Vec<dof>::updAs(&tau[tauIx]);
+    }
+
         // Acceleration
 
-    const Vec<dof>&   getNetHingeForce (const SBAccelerationCache& rc) const {return fromU (rc.netHingeForces);}
-    Vec<dof>&         updNetHingeForce (SBAccelerationCache&       rc) const {return toU   (rc.netHingeForces);}
-    const Real&       get1NetHingeForce(const SBAccelerationCache& rc) const {return from1U(rc.netHingeForces);}
-    Real&             upd1NetHingeForce(SBAccelerationCache&       rc) const {return to1U  (rc.netHingeForces);}
-
-
-    const Vec<dof>&   getNu (const SBAccelerationCache& rc) const {return fromU (rc.nu);}
-    Vec<dof>&         updNu (SBAccelerationCache&       rc) const {return toU   (rc.nu);}
-    const Real&       get1Nu(const SBAccelerationCache& rc) const {return from1U(rc.nu);}
-    Real&             upd1Nu(SBAccelerationCache&       rc) const {return to1U  (rc.nu);}
-
-    const Vec<dof>&   getEpsilon (const SBAccelerationCache& rc) const {return fromU (rc.epsilon);}
-    Vec<dof>&         updEpsilon (SBAccelerationCache&       rc) const {return toU   (rc.epsilon);}
-    const Real&       get1Epsilon(const SBAccelerationCache& rc) const {return from1U(rc.epsilon);}
-    Real&             upd1Epsilon(SBAccelerationCache&       rc) const {return to1U  (rc.epsilon);}
+    const Vec<dof>&   getEpsilon (const SBTreeAccelerationCache& ac) const {return fromU (ac.epsilon);}
+    Vec<dof>&         updEpsilon (SBTreeAccelerationCache&       ac) const {return toU   (ac.epsilon);}
+    const Real&       get1Epsilon(const SBTreeAccelerationCache& ac) const {return from1U(ac.epsilon);}
+    Real&             upd1Epsilon(SBTreeAccelerationCache&       ac) const {return to1U  (ac.epsilon);}
 
 
     void calcSpatialKinematicsFromInternal(
-        const SBPositionCache&      pc,
+        const SBTreePositionCache&  pc,
         const Vector&               v,
         Vector_<SpatialVec>&        Jv) const;
 
     void calcInternalGradientFromSpatial(
-        const SBPositionCache&      pc, 
+        const SBTreePositionCache&  pc, 
         Vector_<SpatialVec>&        zTmp,
         const Vector_<SpatialVec>&  X, 
         Vector&                     JX) const;
 
     void calcEquivalentJointForces(
-        const SBPositionCache&      pc,
+        const SBTreePositionCache&  pc,
         const SBDynamicsCache&      dc,
         const Vector_<SpatialVec>&  bodyForces,
         Vector_<SpatialVec>&        allZ,
         Vector&                     jointForces) const;
 
     void calcUDotPass1Inward(
-        const SBPositionCache&      pc,
+        const SBInstanceCache&      ic,
+        const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&      dc,
         const Vector&               jointForces,
         const Vector_<SpatialVec>&  bodyForces,
+        const Vector&               allUDot,
         Vector_<SpatialVec>&        allZ,
         Vector_<SpatialVec>&        allGepsilon,
         Vector&                     allEpsilon) const;
 
     void calcUDotPass2Outward(
-        const SBPositionCache&      pc,
+        const SBInstanceCache&      ic,
+        const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
-        const SBVelocityCache&      vc,
+        const SBTreeVelocityCache&  vc,
         const SBDynamicsCache&      dc,
         const Vector&               epsilonTmp,
         Vector_<SpatialVec>&        allA_GB,
-        Vector&                     allUDot) const;
+        Vector&                     allUDot,
+        Vector&                     allTau) const;
 
     void calcMInverseFPass1Inward(
-        const SBPositionCache&      pc,
+        const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&      dc,
         const Vector&               f,
@@ -722,7 +733,7 @@ public:
         Vector&                     allEpsilon) const;
 
     void calcMInverseFPass2Outward(
-        const SBPositionCache&      pc,
+        const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&      dc,
         const Vector&               epsilonTmp,
@@ -730,14 +741,14 @@ public:
         Vector&                     allUDot) const;
 
     void calcInverseDynamicsPass1Outward(
-        const SBPositionCache& pc,
-        const SBVelocityCache& vc,
-        const Vector&          allUDot,
-        Vector_<SpatialVec>&   allA_GB) const;
+        const SBTreePositionCache&  pc,
+        const SBTreeVelocityCache&  vc,
+        const Vector&               allUDot,
+        Vector_<SpatialVec>&        allA_GB) const;
 
     void calcInverseDynamicsPass2Inward(
-        const SBPositionCache&      pc,
-        const SBVelocityCache&      vc,
+        const SBTreePositionCache&  pc,
+        const SBTreeVelocityCache&  vc,
         const Vector_<SpatialVec>&  allA_GB,
         const Vector&               jointForces,
         const Vector_<SpatialVec>&  bodyForces,
@@ -745,14 +756,14 @@ public:
         Vector&                     allTau) const; 
 
 	void calcMVPass1Outward(
-		const SBPositionCache& pc,
-		const Vector&          allUDot,
-		Vector_<SpatialVec>&   allA_GB) const;
+		const SBTreePositionCache&  pc,
+		const Vector&               allUDot,
+		Vector_<SpatialVec>&        allA_GB) const;
 	void calcMVPass2Inward(
-		const SBPositionCache& pc,
-		const Vector_<SpatialVec>& allA_GB,
-		Vector_<SpatialVec>&       allFTmp,
-		Vector&                    allTau) const;
+		const SBTreePositionCache&  pc,
+		const Vector_<SpatialVec>&  allA_GB,
+		Vector_<SpatialVec>&        allFTmp,
+		Vector&                     allTau) const;
 
 };
 

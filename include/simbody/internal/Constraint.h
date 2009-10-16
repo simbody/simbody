@@ -865,7 +865,7 @@ protected:
 #endif
 
 class SimTK_SIMBODY_EXPORT Constraint::Custom::Implementation 
-  : public PIMPLHandle<Implementation,ImplementationImpl> 
+  : public PIMPLHandle<Implementation,ImplementationImpl>
 {
 public:
     // No default constructor because you have to supply at least the SimbodyMatterSubsystem
@@ -890,7 +890,7 @@ public:
     /// generated equations to zero for this constraint, meaning the Constraint won't
     /// do anything by default.  The actual number can be changed using
     /// setNumConstraintEquationsInUse() prior to realizeModel(). 
-    Implementation(SimbodyMatterSubsystem&);
+    explicit Implementation(SimbodyMatterSubsystem&);
 
     const SimbodyMatterSubsystem& getMatterSubsystem() const;
 
@@ -974,122 +974,114 @@ public:
 
         // Methods for use with ConstrainedBodies
 
-    /// Extract from the State cache the spatial transform X_AB giving the location and orientation of a Constrained Body B's
-    /// body frame in this Constraint's Ancestor frame A. The State must already be realized to the Position stage,
-    /// or if you are currently realizing that stage set \p realizingPosition true in which case State need
-    /// only have been realized to the previous (Time) stage.
-    const Transform&  getBodyTransform(const State& s, ConstrainedBodyIndex B, bool realizingPosition=false)     const; // X_AB
-    /// Extract from the State cache the spatial velocity V_AB giving the linear and angular velocity of a Constrained Body B's
-    /// body frame measured and expressed in this Constraint's Ancestor frame A. The State must already be realized to the Velocity stage,
-    /// or if you are currently realizing that stage set \p realizingVelocity true in which case State need
-    /// only have been realized to the previous (Position) stage.
-    const SpatialVec& getBodyVelocity(const State& s, ConstrainedBodyIndex B, bool realizingVelocity=false)     const; // V_AB
-    /// Extract from the State cache the spatial acceleration A_AB giving the linear and angular acceleration of a Constrained Body B's
-    /// body frame measured and expressed in this Constraint's Ancestor frame A. The State must already be realized to the Acceleration stage,
-    /// or if you are currently realizing that stage set \p realizingAcceleration true in which case State need
-    /// only have been realized to the previous (Dynamics) stage.
-    const SpatialVec& getBodyAcceleration(const State& s, ConstrainedBodyIndex B, bool realizingAcceleration=false) const; // A_AB
+    /// Extract from the State cache the spatial transform X_AB giving the 
+    /// location and orientation of a Constrained Body B's body frame in this 
+    /// Constraint's Ancestor frame A.
+    const Transform&  getBodyTransform(const State& s, ConstrainedBodyIndex B)    const; // X_AB
+    /// Extract from the State cache the spatial velocity V_AB giving the linear
+    /// and angular velocity of a Constrained Body B's body frame measured and 
+    /// expressed in this Constraint's Ancestor frame A.
+    const SpatialVec& getBodyVelocity(const State& s, ConstrainedBodyIndex B)     const; // V_AB
+    /// Extract from the State cache the spatial acceleration A_AB giving the 
+    /// linear and angular acceleration of a Constrained Body B's body frame 
+    /// measured and expressed in this Constraint's Ancestor frame A.
+    const SpatialVec& getBodyAcceleration(const State& s, ConstrainedBodyIndex B) const; // A_AB
 
-        // Extract just the rotational quantities from the spatial quantities above.
+        // Extract just the rotational part of spatial quantities above.
 
-    /// Extract from the State cache the rotation matrix R_AB giving the orientation of a Constrained Body B's
-    /// body frame in this Constraint's Ancestor frame A. The State must already be realized to the Position stage,
-    /// or if you are currently realizing that stage set \p realizingPosition true in which case State need
-    /// only have been realized to the previous (Time) stage.
-    const Rotation& getBodyRotation           (const State& s, ConstrainedBodyIndex B, bool realizingPosition=false) const
-       {return getBodyTransform(s,B,realizingPosition).R();}   // R_AB
-    /// Extract from the State cache the angular velocity w_AB giving the angular velocity of a Constrained Body B's
-    /// body frame measured and expressed in this Constraint's Ancestor frame A. The State must already be realized to the Velocity stage,
-    /// or if you are currently realizing that stage set \p realizingVelocity true in which case State need
-    /// only have been realized to the previous (Position) stage.
-    const Vec3& getBodyAngularVelocity    (const State& s, ConstrainedBodyIndex B, bool realizingVelocity=false) const
-       {return getBodyVelocity(s,B,realizingVelocity)[0];}     // w_AB
-    /// Extract from the State cache the angular acceleration b_AB giving the angular acceleration of a Constrained Body B's
-    /// body frame measured and expressed in this Constraint's Ancestor frame A. The State must already be realized to the Acceleration stage,
-    /// or if you are currently realizing that stage set \p realizingAcceleration true in which case State need
-    /// only have been realized to the previous (Dynamics) stage.
-    const Vec3& getBodyAngularAcceleration(const State& s, ConstrainedBodyIndex B, bool realizingAcceleration=false) const
-       {return getBodyAcceleration(s,B,realizingAcceleration)[0];} // b_AB
+    /// Extract from the State cache the rotation matrix R_AB giving the 
+    /// orientation of a Constrained Body B's body frame in this Constraint's 
+    // Ancestor frame A.
+    const Rotation& getBodyRotation(const State& s, ConstrainedBodyIndex B) const
+       {return getBodyTransform(s,B).R();}   // R_AB
+    /// Extract from the State cache the angular velocity w_AB giving the 
+    /// angular velocity of a Constrained Body B's body frame measured and 
+    /// expressed in this Constraint's Ancestor frame A.
+    const Vec3& getBodyAngularVelocity(const State& s, ConstrainedBodyIndex B) const
+       {return getBodyVelocity(s,B)[0];}     // w_AB
+    /// Extract from the State cache the angular acceleration b_AB giving the 
+    /// angular acceleration of a Constrained Body B's body frame measured and 
+    /// expressed in this Constraint's Ancestor frame A.
+    const Vec3& getBodyAngularAcceleration(const State& s, ConstrainedBodyIndex B) const
+       {return getBodyAcceleration(s,B)[0];} // b_AB
 
-        // Extract just the translational (linear) quantities from the spatial quantities above.
+        // Extract just the translational (linear) part of spatial quantities above.
 
-    /// Extract from the State cache the position vector p_AB (or more explicitly, p_OA_OB) giving the location of a Constrained Body B's
-    /// body frame origin OB relative to this Constraint's Ancestor (A) frame origin OA. The State must already be realized to the Position stage,
-    /// or if you are currently realizing that stage set \p realizingPosition true in which case State need
-    /// only have been realized to the previous (Time) stage.
-    const Vec3& getBodyOriginLocation    (const State& s, ConstrainedBodyIndex B, bool realizingPosition=false) const
-       {return getBodyTransform(s,B,realizingPosition).p();}   // p_AB
-    /// Extract from the State cache the linear velocity v_AB (or more explicitly, v_A_OB) giving the linear velocity of a Constrained Body B's
-    /// body frame origin OB measured and expressed in this Constraint's Ancestor frame A. The State must already be realized to the Velocity stage,
-    /// or if you are currently realizing that stage set \p realizingVelocity true in which case State need
-    /// only have been realized to the previous (Position) stage.
-    const Vec3& getBodyOriginVelocity    (const State& s, ConstrainedBodyIndex B, bool realizingVelocity=false) const 
-       {return getBodyVelocity(s,B,realizingVelocity)[1];}     // v_AB
-    /// Extract from the State cache the linear acceleration a_AB (or more explicitly, a_A_OB)
-    /// giving the linear acceleration of a Constrained Body B's body frame origin OB, measured and expressed
-    /// in this Constraint's Ancestor frame A. The State must already be realized to the Acceleration stage,
-    /// or if you are currently realizing that stage set \p realizingAcceleration true in which case State need
-    /// only have been realized to the previous (Dynamics) stage.
-    const Vec3& getBodyOriginAcceleration(const State& s, ConstrainedBodyIndex B, bool realizingAcceleration=false) const 
-       {return getBodyAcceleration(s,B,realizingAcceleration)[1];} // a_AB
+    /// Extract from the State cache the position vector p_AB (or more 
+    /// explicitly, p_OA_OB) giving the location of a Constrained Body B's
+    /// body frame origin OB relative to this Constraint's Ancestor (A) frame 
+    /// origin OA.
+    const Vec3& getBodyOriginLocation(const State& s, ConstrainedBodyIndex B) const
+       {return getBodyTransform(s,B).p();}   // p_AB
+    /// Extract from the State cache the linear velocity v_AB (or more 
+    /// explicitly, v_A_OB) giving the linear velocity of a Constrained Body B's
+    /// body frame origin OB measured and expressed in this Constraint's Ancestor
+    /// frame A.
+    const Vec3& getBodyOriginVelocity    (const State& s, ConstrainedBodyIndex B) const 
+       {return getBodyVelocity(s,B)[1];}     // v_AB
+    /// Extract from the State cache the linear acceleration a_AB (or more 
+    /// explicitly, a_A_OB) giving the linear acceleration of a Constrained Body 
+    /// B's body frame origin OB, measured and expressed in this Constraint's 
+    /// Ancestor frame A.
+    const Vec3& getBodyOriginAcceleration(const State& s, ConstrainedBodyIndex B) const 
+       {return getBodyAcceleration(s,B)[1];} // a_AB
 
         // Calculate location, velocity, and acceleration for a given station.
 
-    /// Calculate the location p_AS in the Ancestor frame of a station S of a Constrained Body B, specified with
-    /// the position vector p_BS (or more explicitly, p_OB_S) from the B frame origin to the point S, expressed
-    /// in the B frame. The return value is a position vector from the Ancestor frame's origin OA to the location
-    /// of the point S, expressed in the Ancestor frame. The State must already be realized to the Position stage,
-    /// or if you are currently realizing that stage set \p realizingPosition true in which case State need
-    /// only have been realized to the previous (Time) stage.
-    Vec3 findStationLocation(const State& s, ConstrainedBodyIndex B, const Vec3& p_BS, bool realizingPosition=false) const {
-        return getBodyTransform(s,B,realizingPosition) * p_BS; // re-measure and re-express
+    /// Calculate the location p_AS in the Ancestor frame of a station S of a 
+    /// Constrained Body B, specified with the position vector p_BS (or more 
+    /// explicitly, p_OB_S) from the B frame origin to the point S, expressed
+    /// in the B frame. The return value is a position vector from the Ancestor 
+    /// frame's origin OA to the location of the point S, expressed in the 
+    /// Ancestor frame.
+    Vec3 findStationLocation(const State& s, ConstrainedBodyIndex B, const Vec3& p_BS) const {
+        return getBodyTransform(s,B) * p_BS; // re-measure and re-express
     }
-    /// Calculate the velocity v_AS in the Ancestor frame of a station S of a Constrained Body B, specified with
-    /// the position vector p_BS (or more explicitly, p_OB_S) from the B frame origin to the point S, expressed
-    /// in the B frame. The return value is a vector expressed in the Ancestor frame.
-    /// The State must already be realized to the Velocity stage,
-    /// or if you are currently realizing that stage set \p realizingVelocity true in which case State need
-    /// only have been realized to the previous (Position) stage.
-    Vec3 findStationVelocity(const State& s, ConstrainedBodyIndex B, const Vec3& p_BS, bool realizingVelocity=false) const {
+    /// Calculate the velocity v_AS in the Ancestor frame of a station S of a 
+    /// Constrained Body B, specified with the position vector p_BS (or more 
+    /// explicitly, p_OB_S) from the B frame origin to the point S, expressed
+    /// in the B frame. The return value is a vector expressed in the Ancestor 
+    /// frame.
+    Vec3 findStationVelocity(const State& s, ConstrainedBodyIndex B, const Vec3& p_BS) const {
         const Vec3        p_AS = getBodyRotation(s,B) * p_BS; // rexpressed but not shifted
-        const SpatialVec& V_AB = getBodyVelocity(s,B,realizingVelocity);
+        const SpatialVec& V_AB = getBodyVelocity(s,B);
         return V_AB[1] + (V_AB[0] % p_AS);
     }
-    /// Calculate the acceleration a_AS in the Ancestor frame of a station S of a Constrained Body B, specified with
-    /// the position vector p_BS (or more explicitly, p_OB_S) from the B frame origin to the point S, expressed
-    /// in the B frame. The return value is a vector expressed in the Ancestor frame.
-    /// The State must already be realized to the Acceleration stage,
-    /// or if you are currently realizing that stage set \p realizingAcceleration true in which case State need
-    /// only have been realized to the previous (Dynamics) stage.
-    Vec3 findStationAcceleration(const State& s, ConstrainedBodyIndex B, const Vec3& p_BS, bool realizingAcceleration=false) const {
+    /// Calculate the acceleration a_AS in the Ancestor frame of a station S of
+    /// a Constrained Body B, specified with the position vector p_BS (or more 
+    /// explicitly, p_OB_S) from the B frame origin to the point S, expressed
+    /// in the B frame. The return value is a vector expressed in the Ancestor 
+    /// frame.e.
+    Vec3 findStationAcceleration(const State& s, ConstrainedBodyIndex B, const Vec3& p_BS) const {
         const Vec3        p_AS = getBodyRotation(s,B) * p_BS; // rexpressed but not shifted
         const Vec3&       w_AB = getBodyAngularVelocity(s,B);
-        const SpatialVec& A_AB = getBodyAcceleration(s,B,realizingAcceleration);
+        const SpatialVec& A_AB = getBodyAcceleration(s,B);
         return A_AB[1] + (A_AB[0] % p_AS) + w_AB % (w_AB % p_AS); // careful: cross product is not associative
     }
 
         // Utilities for applying constraint forces to ConstrainedBodies.
 
-    /// Apply an Ancestor-frame force to a B-frame station S given by the position vector p_BS (or more explicitly,
-    /// p_OB_S) from the B frame origin to the point S, expressed in the B frame, <em>adding to</em> the appropriate
-    /// \p bodyForcesInA entry for this ConstrainedBody B.
+    /// Apply an Ancestor-frame force to a B-frame station S given by the 
+    /// position vector p_BS (or more explicitly, p_OB_S) from the B frame 
+    /// origin to the point S, expressed in the B frame, <em>adding to</em> 
+    /// the appropriate \p bodyForcesInA entry for this ConstrainedBody B.
     void addInStationForce(const State& s, ConstrainedBodyIndex B, const Vec3& p_BS, 
                            const Vec3& forceInA, Vector_<SpatialVec>& bodyForcesInA) const;
 
-    /// Apply an Ancestor-frame torque to body B, <em>adding to</em> the appropriate \p bodyForcesInA entry
-    /// for this ConstrainedBody B.
+    /// Apply an Ancestor-frame torque to body B, <em>adding to</em> the 
+    /// appropriate \p bodyForcesInA entry for this ConstrainedBody B.
     void addInBodyTorque(const State& s, ConstrainedBodyIndex B,
                          const Vec3& torqueInA, Vector_<SpatialVec>& bodyForcesInA) const;
 
 
 protected:
-    /// @name Optional realize() Virtual Methods
+    /// @name Optional realize() virtual methods
     /// Provide implementations of these methods if you want to allocate State variables (such
     /// as modeling options or parameters) or want to pre-calculate some expensive quantities and
     /// store them in the State cache for your future use. Note that the Position, Velocity, and
     /// Acceleration-stage realize methods will be called <em>before</em> the constraint error
     /// calculating methods associated with this Constraint's constraint equations. That means,
-    /// for example, you can calculate some distances in realizePosition() and them use them
+    /// for example, you can calculate some distances in realizePosition() and then use them
     /// in realizePositionErrors().
 
     //@{
@@ -1192,7 +1184,7 @@ protected:
     /// and written to an array \p bodyForces of length getNumConstrainedBodies().
     /// Mobility forces are written to an array \p mobilityForces of length getNumConstrainedU(),
     /// that is, the number of constrained <em>mobilities</em>, not the number of constrained
-    /// <em>mobilizers</em>. The State will have been realize to Stage::Position and all 
+    /// <em>mobilizers</em>. The State will have been realized to Stage::Position and all 
     /// Position-stage cache information is available including any that may have been
     /// calculated during the prior call to this Constraint's realizePositionErrors() method
     /// and realizePosition() method. Simbody will already have ensured that the force-return
@@ -1226,7 +1218,7 @@ protected:
     /// of length getNumConstrainedBodies(). Mobility forces are written to an array
     /// \p mobilityForces of length getNumConstrainedU(), that is, the number of constrained
     /// <em>mobilities</em>, not the number of constrained
-    /// <em>mobilizers</em>. The State will have been realize to Stage::Position and all 
+    /// <em>mobilizers</em>. The State will have been realized to Stage::Position and all 
     /// Position-stage cache information is available including any that may have been
     /// calculated during the prior call to this Constraint's realizePosition() method.
     /// Simbody will already have ensured that the force-return
@@ -1253,7 +1245,7 @@ protected:
     /// of length getNumConstrainedBodies(). Mobility forces are written to an array
     /// \p mobilityForces of length getNumConstrainedU(), that is, the number of constrained
     /// <em>mobilities</em>, not the number of constrained
-    /// <em>mobilizers</em>. The State will have been realize to Stage::Position and all 
+    /// <em>mobilizers</em>. The State will have been realized to Stage::Position and all 
     /// Position-stage cache information is available including any that may have been
     /// calculated during the prior call to this Constraint's realizePosition() method.
     /// Simbody will already have ensured that the force-return

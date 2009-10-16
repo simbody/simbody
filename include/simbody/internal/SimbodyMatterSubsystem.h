@@ -89,7 +89,9 @@ class Constraint;
  * position level and are uncoupled from everything else.
  *
  * We calculate the constraint multipliers like this:
+ * <pre>
  *           G M^-1 ~G mult = G udot0 - b, udot0=M^-1 f
+ * </pre>
  * using the pseudo inverse of G M^-1 ~G to give a least squares solution for
  * mult: mult = pinv(G M^-1 ~G)(G M^-1 f - b). Then the real udot is
  * udot = udot0 - udotC, with udotC = M^-1 ~G mult. Note: M^-1* is an
@@ -205,27 +207,67 @@ public:
         // CONSTRUCTION //
         //////////////////
 
-    // Attach new matter using the indicated parent body as the reference
-    // frame, with the mobilizer and mass properties provided by 'child'.
-    // We take over ownership of child's representation from the given
-    // handle, leaving that handle as a reference to our new matter object.
-    // It is an error if the given handle wasn't the owner of the
-    // matter representation.
-    MobilizedBodyIndex   adoptMobilizedBody(MobilizedBodyIndex parent, MobilizedBody& child);
+    /// Attach new matter by attaching it to the indicated parent body. The 
+    /// mobilizer and mass properties provided by \a child. A new 
+    /// MobilizedBodyIndex is assigned for the child; it is guaranteed to be 
+    /// numerically larger than the MobilizedBodyIndex of the parent. We take 
+    /// over ownership of child's implementation object from the given 
+    /// MobilizedBody handle, leaving that handle as a reference to the 
+    /// implementation object now owned by the matter subsystem. It is an 
+    /// error if the given MobilizedBody handle wasn't the owner of the 
+    /// implementation object to which it refers.
+    /// @note
+    /// This method is usually called by concrete MobilizedBody constructors;
+    /// it does not normally need to be called by end users.
+    MobilizedBodyIndex   adoptMobilizedBody(MobilizedBodyIndex  parent, 
+                                            MobilizedBody&      child);
+
+    /// Given a MobilizedBodyIndex, return a read-only (const) reference to the 
+    /// corresponding MobilizedBody within this matter subsystem. This method 
+    /// will fail if no such MobilizedBody is present.
     const MobilizedBody& getMobilizedBody(MobilizedBodyIndex) const;
+
+    /// Given a MobilizedBodyIndex, return a writable reference to the 
+    /// corresponding MobilizedBody within this matter subsystem. This method 
+    /// will fail if no such MobilizedBody is present.
     MobilizedBody&       updMobilizedBody(MobilizedBodyIndex);
 
 
     // Note: topology is not marked invalid upon returning a writable reference
-    // here; that will be done only if a non-const method of the returned MobilizedBody
-    // is called. That means it is OK to use Ground() to satisfy a const argument;
-    // it won't have an "invalidate topology" side effect.
+    // here; that will be done only if a non-const method of the returned 
+    // MobilizedBody is called. That means it is OK to use Ground() to satisfy 
+    // a const argument; it won't have an "invalidate topology" side effect.
+
+    /// Return a read-only (const) reference to the Ground MobilizedBody
+    /// within this matter subsystem.
     const MobilizedBody::Ground& getGround() const;
+    /// Return a writable reference to the Ground MobilizedBody within this
+    /// matter subsystem.
     MobilizedBody::Ground&       updGround();
+    /// This is a synonym for updGround() that makes for nicer-looking examples.
+    /// @see updGround()
     MobilizedBody::Ground&       Ground() {return updGround();}
 
+    /// Add a new Constraint object to the matter subsystem. The details of
+    /// the Constraint are opaque here. A new ConstraintIndex is assigned.
+    /// We take  over ownership of the implementation object from the given 
+    /// Constraint handle, leaving that handle as a reference to the 
+    /// implementation object now owned by the matter subsystem. It is an 
+    /// error if the given Constraint handle wasn't the owner of the 
+    /// implementation object to which it refers.
+    /// @note
+    /// This method is usually called by concrete Constraint constructors;
+    /// it does not normally need to be called by end users.
     ConstraintIndex   adoptConstraint(Constraint&);
+
+    /// Given a ConstraintIndex, return a read-only (const) reference to the 
+    /// corresponding Constraint within this matter subsystem. This method 
+    /// will fail if no such Constraint is present.
     const Constraint& getConstraint(ConstraintIndex) const;
+
+    /// Given a ConstraintIndex, return a writable reference to the 
+    /// corresponding Constraint within this matter subsystem. This method 
+    /// will fail if no such Constraint is present.
     Constraint&       updConstraint(ConstraintIndex);
 
         ///////////////
@@ -239,31 +281,94 @@ public:
      * This is the primary forward dynamics operator. It takes a state which
      * has been realized to the Dynamics stage, a complete set of forces to apply,
      * and returns the accelerations that result. Only the forces supplied here,
-     * and those resulting from centrifugal effects, affect the results. Everything
-     * in the matter subsystem is accounted for including velocities and 
-     * acceleration constraints, which will always be satisified as long as the
-     * constraints are consistent. If the position and velocity constraints
-     * aren't already satisified in the State, these accelerations
-     * are harder to interpret physically, but they will still be calculated and
-     * the acceleration constraints will still be satisfied. No attempt
-     * will be made to satisfy position and velocity constraints, or even to check
-     * whether they are statisfied.
-     * This operator solves the two equations
+     * and those calculated internally from prescribed motion, constraints, and
+     * centrifugal effects, affect the results. Acceleration constraints are 
+     * always satisfied on return as long as the constraints are consistent. 
+     * If the position and velocity constraints aren't already satisified in the 
+     * State, results are harder to interpret physically, but they will still be 
+     * calculated and the acceleration constraints will still be satisfied. No 
+     * attempt will be made to satisfy position and velocity constraints, or to 
+     * set prescribed positions and velocities, nor even to check whether these 
+     * are satisfied; position and velocity constraint and prescribed positions 
+     * and velocities are simply irrelevant here.
+     *
+     * Given applied forces f_applied, this operator solves this set of equations:
      * <pre>
-     *      M udot + G^T lambda = F
-     *      G udot              = b
+     *      M udot + G^T lambda + f_bias = f_applied    (1)
+     *      G udot              - b      = 0            (2)
      * </pre>
-     * for udot and lambda, but does not return lambda. F includes both the 
-     * applied forces and the "bias" forces due to rigid body rotations.
-     * This is an O(n*nc^2) operator worst case where all nc constraint equations
-     * are coupled.
-     * Requires prior realization through Stage::Dynamics.
+     * for udot and lambda (although it does not return lambda). 
+     * f_applied is the set of generalized (mobility) forces equivalent to the 
+     * \a mobilityForces and \a bodyForces arguments supplied here (in particular, 
+     * it does \e not include forces due to prescribed motion).
+     * M, G, and b are defined by the mobilized bodies, constraints, and prescribed 
+     * motions present in the System. f_bias includes 
+     * the velocity-dependent gyroscopic and coriolis forces due to rigid body 
+     * rotations and is extracted internally from the already-realized state. 
+     *
+     * Prescribed accelerations are treated logically as constraints included in 
+     * equation (2), although the corresponding part of G is an identity matrix. 
+     * Thus the generalized forces used to enforce prescribed motion are a subset 
+     * of the lambdas. Note that this method does not allow you to specify your 
+     * own prescribed udots; those are calculated from the mobilizers' 
+     * state-dependent Motion specifications that are already part of the System.
+     *
+     * This is an O(n*m^2) operator worst case where all m constraint equations
+     * are coupled (prescribed motions are counted in n, not m). Requires prior 
+     * realization through Stage::Dynamics.
      */
     void calcAcceleration(const State&,
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces,
-        Vector&                    udot,
+        Vector&                    udot,    // output only; no prescribed motions
         Vector_<SpatialVec>&       A_GB) const;
+
+    /**
+     * This operator solves this set of equations:
+     * <pre>
+     *      M udot + G^T lambda = f_applied - f_bias    (1)
+     *      G udot              = b                     (2)
+     * </pre>
+     * for udot and lambda given udot_p and f_applied, where udot={udot_p, udot_r} 
+     * and lambda={lambda_p, lambda_r}, with suffix "_p" meaning "prescribed" and 
+     * "_r" meaning "regular".
+     *
+     * We're ignoring any forces and motions that are part of the System, except
+     * to determine which of the mobilizers are prescribed, in which case their
+     * accelerations must be supplied here.
+     *
+     * Notes:
+     *  - the complete set of udots is returned (udot_p will
+     *    have been copied into the appropriate slots).
+     *  - lambda is returned in separate lambda_p and lambda_r Vectors.
+     *  - lambda_p's are mobility forces but have to be mapped to
+     *    the mobilities
+     *  - lambda_p's are \e residual forces; they have the opposite sign from
+     *    \e applied mobility forces
+     *  - lambda_r's must be mapped to residual mobility forces via G^T
+     */
+    void calcDynamicsFromForcesAndMotions(const State&,
+        const Vector&              appliedMobilityForces,  // [nu] or [0]
+        const Vector_<SpatialVec>& appliedBodyForces,      // [nb] or [0]
+        const Vector&              udot_p,                 // [npres] or [0]
+        Vector&                    udot,                   // [nu]    (output only)
+        Vector&                    lambda_p,               // [npres] (output only)
+        Vector&                    lambda_r) const;        // [m]     (output only)
+
+    /**
+     * This is the same as calcDynamicsFromForcesAndMotions() except that the
+     * Motions are taken from those in the System rather than from arguments.
+     * All applied forces in the System are ignored; they are overridden by
+     * the arguments here. Otherwise everything in the discussion of 
+     * calcDynamicsFromForcesAndMotions() applies here too.
+     * @see calcDynamicsFromForcesAndMotions()
+     */
+    void calcDynamicsFromForces(const State&,
+        const Vector&              appliedMobilityForces,  // [nu] or [0]
+        const Vector_<SpatialVec>& appliedBodyForces,      // [nb] or [0]
+        Vector&                    udot,                   // [nu]    (output only)
+        Vector&                    lambda_p,               // [npres] (output only)
+        Vector&                    lambda_r) const;        // [m]     (output only) 
 
     /**
      * This operator is similar to calcAcceleration but ignores the effects of
@@ -282,19 +387,36 @@ public:
     void calcAccelerationIgnoringConstraints(const State&,
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces,
-        Vector&                    udot,
+        Vector&                    udot,    
         Vector_<SpatialVec>&       A_GB) const;
 
     /**
-     * This operator calculates M^-1 v where M is the system mass matrix and v
-     * is a supplied vector with one entry per mobility. If v is a set of 
-     * mobility forces f, the result is a generalized acceleration (udot=M^-1 f). Only 
-     * the supplied vector is used, and M depends only on position states,
-     * so the result here is not affected by velocities in the State.
-     * However, this fast O(N) operator requires that the Dynamics stage operators
-     * are already available, so the State must be realized to Stage::Dynamics
-     * even though velocities are ignored.
-     * Requires prior realization through Stage::Dynamics.
+     * This operator calculates in O(N) time the product M^-1*v where M is the 
+     * system mass matrix and v is a supplied vector with one entry per mobility. 
+     * If v is a set of generalized forces f, the result is a generalized 
+     * acceleration (udot=M^-1*f). Only the supplied vector is used, M depends 
+     * only on position states, and prescribed motion is ignored, so the result 
+     * here is not affected by velocities in the State. In particular, you'll 
+     * have to calculate your own inertial forces and put them in f if you want 
+     * them included.
+     *
+     * If the supplied State does not already contain realized values for a
+     * fully-articulated set of articulated body inertias, then they will be
+     * realized when this operator is first called for a new set of positions.
+     * When there is no prescribed motion enabled, this will be the
+     * same set of articulated body inertias used for realizing accelerations
+     * in the State. However, if any prescribed motions are present then 
+     * state realization uses a set of mixed articulated and composite 
+     * inertia calculations depending on the prescribed status of the mobilizers.
+     * Thus in the presence of prescribed motion, there will be an additional
+     * pass of articulated body calculation, and extra memory to hold the
+     * results, if both state realization and this M^-1*v operator are used.
+     *
+     * Once the appropriate articulated body inertias are available, repeated
+     * calls to this operator are very fast, with worst case around 80*n flops
+     * when all mobilizers have 1 dof.
+     *
+     * Requires prior realization through Stage::Position.
      */
     void calcMInverseV(const State&,
         const Vector&        v,
@@ -382,13 +504,21 @@ public:
         const Vector&              knownUdot,
         Vector&                    residualMobilityForces) const;
 
-    /// This operator calculate M*v where M is the system mass matrix and
-    /// v is a supplied vector with one entry per mobility. If v is a set
-    /// of mobility accelerations (generalized accelerations), then the
-    /// result is a generalized force (f=M*a). Only the supplied vector
-    /// is used, and M depends only on position states, so the result
-    /// here is not affected by velocities in the State.
-    /// Requires prior realization through Stage::Position.
+    /**
+     * This operator calculates in O(N) time the product M*v where M is the 
+     * system mass matrix and v is a supplied vector with one entry per 
+     * mobility. If v is a set of mobility accelerations (generalized 
+     * accelerations), then the result is a generalized force (f=M*a). 
+     * Only the supplied vector is used, and M depends only on position 
+     * states, so the result here is not affected by velocities in the State.
+     * Constraints and prescribed motions are ignored.
+     *
+     * The current implementation requires about 120*n flops and does
+     * not require realization of composite-body or articulated-body
+     * inertias.
+     *
+     * Requires prior realization through Stage::Position.
+     */
     void calcMV(const State&, const Vector& v, Vector& MV) const;
 
     /// This operator calculates the composite body inertias R given
@@ -495,15 +625,40 @@ public:
 	   Vector_<SpatialVec>& bodyForcesInG,
 	   Vector&              mobilityForces) const;
 
-    /// Calculate the mobilizer reaction force generated by each MobilizedBody.  This is the
-    /// constraint force that would be required to make the system move in the same way if that
-    /// MobilizedBody were converted to a Free body.  A mobilizer exerts equal and opposite reaction
-    /// forces on the parent and child bodies.  This method reports the force on the child body.
-    /// The force is applied at the origin of the outboard frame M (fixed to the child), and expressed
-    /// in the ground frame.
+    /// Calculate the mobilizer reaction force generated by each MobilizedBody.  
+    /// This is the constraint force that would be required to make the system 
+    /// move in the same way if that MobilizedBody were converted to a Free body.
     ///
-    /// The State must have been realized to Stage::Acceleration to use this method.
-    void calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const;
+    /// A simple way to think of the reaction force is to think of cutting the 
+    /// mobilizer, then imagine the force required to make the system move in 
+    /// the same manner as when the mobilizer was present. This is what the 
+    /// reaction forces accomplish. With that definition, mobility forces (as 
+    /// opposed to body forces) are \e included in the reactions. Some 
+    /// conventions do not include the mobility forces in the definition of a 
+    /// reaction force. We chose to include them since this preserves Newton’s 
+    /// 3rd law of equal and opposite reactions between bodies. Ours is the same 
+    /// convention as used in SD/FAST.
+    /// 
+    /// A mobilizer exerts equal and opposite reaction forces on the parent 
+    /// (inboard) and child (outboard) bodies. This method reports the force on 
+    /// the child body, as though it were applied at the origin of the outboard 
+    /// mobilizer frame M (fixed to the child), and expressed in the Ground frame.
+    ///
+    /// @param[in] state        
+    ///     A State compatible with this System that has already been realized 
+    ///     to Stage::Acceleration.
+    /// @param[out] forcesAtMInG    
+    ///     A Vector of spatial force vectors, indexed by MobilizedBodyIndex 
+    ///     (beginning with 0 for Ground), giving the reaction moment and force
+    ///     applied by each body's unique inboard mobilizer to that body. The
+    ///     force is returned as though it were applied at the origin of the 
+    ///     body's mobilizer frame M. The returned force is expressed in the
+    ///     Ground frame. Note that applied mobility (generalized) forces are 
+    ///     \e included in the returned reaction forces (see above).
+    ///                           
+    void calcMobilizerReactionForces
+       (const State&         state, 
+        Vector_<SpatialVec>& forcesAtMInG) const;
 
     /// Requires realization through Stage::Position.
     void calcSpatialKinematicsFromInternal(const State&,
