@@ -750,10 +750,11 @@ public:
     /// Alternate interface to updDiscreteVariable.
     void setDiscreteVariable(SubsystemIndex, DiscreteVariableIndex, const AbstractValue&);
 
-    /// Stage >= ce.stage
+    /// The cache entry must be up to date or this will throw an exception.
     const AbstractValue& getCacheEntry(SubsystemIndex, CacheEntryIndex) const;
 
-    /// Stage >= ce.stage-1; does not change stage
+    /// You can access a cache entry for writing any time after it has been
+    /// allocated. This does not affect the current stage.
     AbstractValue& updCacheEntry(SubsystemIndex, CacheEntryIndex) const; // mutable
 
     bool isCacheValueCurrent(SubsystemIndex, CacheEntryIndex) const;

@@ -1911,16 +1911,14 @@ public:
         return ce.getValue();
     }
     
-    // Stage >= ce.stage-1; does not change stage
+    // You can access a cache entry for update any time after it has been allocated.
+    // This does not affect the stage.
     AbstractValue& 
     updCacheEntry(SubsystemIndex subsys, int index) const {
         const PerSubsystemInfo& ss = data->subsystems[subsys];
     
         SimTK_INDEXCHECK(0,index,(int)ss.cacheInfo.size(),"StateRep::updCacheEntry()");
         CacheEntryInfo& ce = ss.cacheInfo[index];
-    
-        SimTK_STAGECHECK_GE_ALWAYS(getSubsystemStage(subsys), 
-            ce.getDependsOnStage().prev(), "StateRep::updCacheEntry()");
     
         return ce.updValue();
     }
