@@ -61,22 +61,30 @@ public:
 
     const SimbodyMatterSubsystem& getMatterSubsystem() const; 
 
-    template <class T>
-    const T& getVar(const State& s, DiscreteVariableIndex vx) const {
-        return Value<T>::downcast(getMatterSubsystem().getDiscreteVariable(s, vx));
+    const AbstractValue&
+    getDiscreteVariable(const State& s, DiscreteVariableIndex vx) const;
+
+    AbstractValue&
+    updDiscreteVariable(State& s, DiscreteVariableIndex vx) const;
+
+    DiscreteVariableIndex
+    allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const;
+
+    template <class T> const T& 
+    getVar(const State& s, DiscreteVariableIndex vx) const {
+        return Value<T>::downcast(getDiscreteVariable(s, vx));
     }
 
-    template <class T>
-    T& updVar(State& s, DiscreteVariableIndex vx) const {
-        return Value<T>::updDowncast(getMatterSubsystem().updDiscreteVariable(s, vx));
+    template <class T> T& 
+    updVar(State& s, DiscreteVariableIndex vx) const {
+        return Value<T>::updDowncast(updDiscreteVariable(s, vx));
     }
 
-    template <class T>
-    DiscreteVariableIndex allocVar(State& state, const T& initVal, 
-                                   const Stage& stage=Stage::Instance) const {
-        return getMatterSubsystem().allocateDiscreteVariable
-                                        (state, stage, new Value<T>(initVal)); 
+    template <class T> DiscreteVariableIndex 
+    allocVar(State& state, const T& initVal, const Stage& stage=Stage::Instance) const {
+        return allocateDiscreteVariable(state, stage, new Value<T>(initVal)); 
     }
+
 
     virtual ~MotionImpl() {}
     virtual MotionImpl* clone() const = 0;

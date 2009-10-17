@@ -80,6 +80,22 @@ MotionImpl::getMatterSubsystem() const {
     return getMobilizedBodyImpl().getMySimbodyMatterSubsystem(); 
 }
 
+const AbstractValue&
+MotionImpl::getDiscreteVariable(const State& s, DiscreteVariableIndex vx) const {
+    return getMatterSubsystem().getDiscreteVariable(s, vx);
+}
+
+AbstractValue&
+MotionImpl::updDiscreteVariable(State& s, DiscreteVariableIndex vx) const {
+    return getMatterSubsystem().updDiscreteVariable(s, vx);
+}
+
+DiscreteVariableIndex
+MotionImpl::allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const {
+    return getMatterSubsystem().allocateDiscreteVariable(s, g, v);
+}
+
+
 void MotionImpl::invalidateTopologyCache() const {
 	if (hasMobilizedBody()) 
         getMatterSubsystem().invalidateSubsystemTopologyCache();
