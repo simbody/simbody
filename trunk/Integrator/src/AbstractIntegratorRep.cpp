@@ -250,7 +250,16 @@ bool AbstractIntegratorRep::adjustStepSize(Real err, int errOrder, bool hWasArti
     const Real Safety = 0.9, MinShrink = 0.1, MaxGrow = 5;
     const Real HysteresisLow = 0.9, HysteresisHigh = 1.2;
     
-    Real newStepSize = Safety*currentStepSize*std::pow(getAccuracyInUse()/err, 1.0/errOrder);
+    Real newStepSize;
+
+    // Watch out for NaN!
+    if (!isFinite(err))
+        newStepSize = MinShrink * currentStepSize; // e.g., integrand returned NaN
+    else if (err==0) 
+        newStepSize = MaxGrow * currentStepSize;
+    else
+        newStepSize = Safety*currentStepSize*std::pow(getAccuracyInUse()/err, 1.0/errOrder);
+
     if (newStepSize > currentStepSize) {
         if (hWasArtificiallyLimited || newStepSize < HysteresisHigh*currentStepSize)
             newStepSize = currentStepSize;
@@ -295,6 +304,8 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     do {
         bool hWasArtificiallyLimited = (tMax < t0+currentStepSize);
         t1 = std::min(tMax, t0+currentStepSize);
+        SimTK_ERRCHK1_ALWAYS(t1 > t0, "AbstractIntegrator::takeOneStep()",
+            "Unable to advance time past %g.", t0);
         int errOrder;
         int numIterations=1; // non-iterative methods can ignore this
         bool converged = attemptAStep(t0, t1, q0, qdot0, qdotdot0, u0, udot0, z0, zdot0, err, errOrder, numIterations);
