@@ -184,7 +184,7 @@ public:
         if (getUseEulerAngles(mv)) {
             toQuat(qdot) = Vec4(0); // TODO: kludge, clear unused element
             const Rotation& R_FM = getX_FM(pc).R();
-            toQ(qdot) = Rotation::convertAngVelToBodyFixed123Dot(fromQ(sbs.getQ()),
+            toQ(qdot) = Rotation::convertAngVelInBodyFrameToBodyXYZDot(fromQ(sbs.getQ()),
                                         ~R_FM*w_FM); // need w in *body*, not parent
         } else
             toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(sbs.getQ()),w_FM);
@@ -203,7 +203,7 @@ public:
         if (getUseEulerAngles(mv)) {
             Vec4::updAs(qdot) = 0; // TODO: kludge, clear unused element
             const Rotation& R_FM = getX_FM(pc).R();
-            Vec3::updAs(qdot) = Rotation::convertAngVelToBodyFixed123Dot(fromQ(allQ),
+            Vec3::updAs(qdot) = Rotation::convertAngVelInBodyFrameToBodyXYZDot(fromQ(allQ),
                                              ~R_FM*w_FM); // need w in *body*, not parent
         } else
             Vec4::updAs(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(allQ),w_FM);
@@ -224,12 +224,12 @@ public:
             // would be just as easy to compute this matrix in the Parent frame in 
             // the first place.
             const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
-            const Mat33    N = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
+            const Mat33    N = Rotation::calcNForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
             if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * N;
             else               Vec3::updAs(out) = N * Vec3::getAs(in);
         } else {
             // Quaternion
-            const Mat43 N = Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q));
+            const Mat43 N = Rotation::calcUnnormalizedNForQuaternion(Vec4::getAs(q));
             if (matrixOnRight) Row3::updAs(out) = Row4::getAs(in) * N;
             else               Vec4::updAs(out) = N * Vec3::getAs(in);
         }
@@ -246,13 +246,13 @@ public:
         if (useEulerAnglesIfPossible) {
             // TODO: see above regarding the need for this R_FM kludge
             const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
-            const Mat33    NInv(R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q)));
+            const Mat33    NInv(R_FM*Rotation::calcNInvForBodyXYZInBodyFrame(Vec3::getAs(q)));
             if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * NInv;
             else               Vec3::updAs(out) = NInv * Vec3::getAs(in);
         } else {
             
             // Quaternion
-            const Mat34 NInv = Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q));
+            const Mat34 NInv = Rotation::calcUnnormalizedNInvForQuaternion(Vec4::getAs(q));
             if (matrixOnRight) Row4::updAs(out) = Row3::getAs(in) * NInv;
             else               Vec3::updAs(out) = NInv * Vec4::getAs(in);
         }
@@ -271,7 +271,7 @@ public:
         if (getUseEulerAngles(mv)) {
             toQuat(qdotdot) = Vec4(0); // TODO: kludge, clear unused element
             const Rotation& R_FM = getX_FM(pc).R();
-            toQ(qdotdot)    = Rotation::convertAngVelDotToBodyFixed123DotDot
+            toQ(qdotdot)    = Rotation::convertAngVelDotInBodyFrameToBodyXYZDotDot
                                   (fromQ(sbs.getQ()), ~R_FM*w_FM, ~R_FM*w_FM_dot);
         } else
             toQuat(qdotdot) = Rotation::convertAngVelDotToQuaternionDotDot
@@ -293,7 +293,7 @@ public:
         if (getUseEulerAngles(mv)) {
             Vec4::updAs(qdotdot) = 0; // TODO: kludge, clear unused element
             const Rotation& R_FM = getX_FM(pc).R();
-            Vec3::updAs(qdotdot) = Rotation::convertAngVelDotToBodyFixed123DotDot
+            Vec3::updAs(qdotdot) = Rotation::convertAngVelDotInBodyFrameToBodyXYZDotDot
                                         (fromQ(allQ), ~R_FM*w_FM, ~R_FM*w_FM_dot);
         } else
             Vec4::updAs(qdotdot) = Rotation::convertAngVelDotToQuaternionDotDot

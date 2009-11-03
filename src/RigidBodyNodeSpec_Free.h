@@ -212,14 +212,14 @@ public:
             // would be just as easy to compute this matrix in the Parent frame in 
             // the first place.
             const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
-            const Mat33    N = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
+            const Mat33    N = Rotation::calcNForBodyXYZInBodyFrame(Vec3::getAs(q)) * ~R_FM;
             if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * N;
             else               Vec3::updAs(out) = N * Vec3::getAs(in);
             // translational part of Q block is identity
             Vec3::updAs(out+3) = Vec3::getAs(in+3);
         } else {
             // Quaternion
-            const Mat43 N = Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q));
+            const Mat43 N = Rotation::calcUnnormalizedNForQuaternion(Vec4::getAs(q));
             if (matrixOnRight) {
                 Row3::updAs(out)   = Row4::getAs(in) * N;
                 Row3::updAs(out+3) = Row3::getAs(in+4); // translational part of N block is identity
@@ -241,14 +241,14 @@ public:
         if (useEulerAnglesIfPossible) {
             // TODO: see above regarding the need for this R_FM kludge
             const Rotation R_FM(BodyRotationSequence, q[0], XAxis, q[1], YAxis, q[2], ZAxis);
-            const Mat33    NInv(R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q)));
+            const Mat33    NInv(R_FM*Rotation::calcNInvForBodyXYZInBodyFrame(Vec3::getAs(q)));
             if (matrixOnRight) Row3::updAs(out) = Row3::getAs(in) * NInv;
             else               Vec3::updAs(out) = NInv * Vec3::getAs(in);
             // translational part of NInv block is identity
             Vec3::updAs(out+3) = Vec3::getAs(in+3);
         } else {           
             // Quaternion
-            const Mat34 NInv = Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q));
+            const Mat34 NInv = Rotation::calcUnnormalizedNInvForQuaternion(Vec4::getAs(q));
             if (matrixOnRight) {
                 Row4::updAs(out) = Row3::getAs(in) * NInv;
                 Row3::updAs(out+4) = Row3::getAs(in+3); // translational part of NInv block is identity
@@ -271,7 +271,7 @@ public:
         if (getUseEulerAngles(mv)) {
             const Rotation& R_FM = getX_FM(pc).R();
             const Vec3& theta = fromQVec3(sbs.getQ(),0); // Euler angles
-            toQVec3(qdot,0) = Rotation::convertAngVelToBodyFixed123Dot(theta,
+            toQVec3(qdot,0) = Rotation::convertAngVelInBodyFrameToBodyXYZDot(theta,
                                             ~R_FM*w_FM); // need w in *body*, not parent
             toQVec3(qdot,4) = Vec3(0); // TODO: kludge, clear unused element
             toQVec3(qdot,3) = v_FM;
@@ -296,7 +296,7 @@ public:
         if (getUseEulerAngles(mv)) {
             const Rotation& R_FM = getX_FM(pc).R();
             const Vec3& theta  = fromQVec3(sbs.getQ(),0); // Euler angles
-            toQVec3(qdotdot,0) = Rotation::convertAngVelDotToBodyFixed123DotDot
+            toQVec3(qdotdot,0) = Rotation::convertAngVelDotInBodyFrameToBodyXYZDotDot
                                              (theta, ~R_FM*w_FM, ~R_FM*w_FM_dot);
             toQVec3(qdotdot,4) = Vec3(0); // TODO: kludge, clear unused element
             toQVec3(qdotdot,3) = v_FM_dot;

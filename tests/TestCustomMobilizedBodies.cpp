@@ -155,18 +155,18 @@ public:
             ASSERT(nIn == 3 && nOut == 3);
             Rotation R_FM;
             R_FM.setRotationToBodyFixedXYZ(Vec3::getAs(&q[0]));
-            const Mat33 Q = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(&q[0])) * ~R_FM;
-            if (transposeMatrix) Row3::updAs(out) = Row3::getAs(in) * Q;
-            else                 Vec3::updAs(out) = Q * Vec3::getAs(in);
+            const Mat33 N = Rotation::calcNForBodyXYZInBodyFrame(Vec3::getAs(&q[0])) * ~R_FM;
+            if (transposeMatrix) Row3::updAs(out) = Row3::getAs(in) * N;
+            else                 Vec3::updAs(out) = N * Vec3::getAs(in);
         }
         else {
             if (transposeMatrix)
                 ASSERT(nIn == 4 && nOut == 3)
             else
                 ASSERT(nIn == 3 && nOut == 4)
-            const Mat43 Q = Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(&q[0]));
-            if (transposeMatrix) Row3::updAs(out) = Row4::getAs(in) * Q;
-            else                 Vec4::updAs(out) = Q * Vec3::getAs(in);
+            const Mat43 N = Rotation::calcUnnormalizedNForQuaternion(Vec4::getAs(&q[0]));
+            if (transposeMatrix) Row3::updAs(out) = Row4::getAs(in) * N;
+            else                 Vec4::updAs(out) = N * Vec3::getAs(in);
         }
     }
     void multiplyByNInv(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
@@ -175,18 +175,18 @@ public:
             ASSERT(nIn == 3 && nOut == 3);
             Rotation R_FM;
             R_FM.setRotationToBodyFixedXYZ(Vec3::getAs(&q[0]));
-            const Mat33 QInv = R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(&q[0]));
-            if (transposeMatrix) Row3::updAs(out) = Row3::getAs(in) * QInv;
-            else                 Vec3::updAs(out) = QInv * Vec3::getAs(in);
+            const Mat33 NInv = R_FM*Rotation::calcNInvForBodyXYZInBodyFrame(Vec3::getAs(&q[0]));
+            if (transposeMatrix) Row3::updAs(out) = Row3::getAs(in) * NInv;
+            else                 Vec3::updAs(out) = NInv * Vec3::getAs(in);
         }
         else {
             if (transposeMatrix)
                 ASSERT(nIn == 3 && nOut == 4)
             else
                 ASSERT(nIn == 4 && nOut == 3)
-            const Mat34 Q = Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(&q[0]));
-            if (transposeMatrix) Row4::updAs(out) = Row3::getAs(in) * Q;
-            else                 Vec3::updAs(out) = Q * Vec4::getAs(in);
+            const Mat34 NInv = Rotation::calcUnnormalizedNInvForQuaternion(Vec4::getAs(&q[0]));
+            if (transposeMatrix) Row4::updAs(out) = Row3::getAs(in) * NInv;
+            else                 Vec3::updAs(out) = NInv * Vec4::getAs(in);
         }
     }
     void multiplyByNDot(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
@@ -194,7 +194,7 @@ public:
         if (getUseEulerAngles(s)) {
             ASSERT(nIn == 3 && nOut == 3);
             const Rotation& R_FM = getMobilizerTransform(s).R();
-            Vec3::updAs(out) = Rotation::convertAngVelDotToBodyFixed123DotDot(Vec3::getAs(&q[0]), ~R_FM*Vec3::getAs(in), Vec3(0));
+            Vec3::updAs(out) = Rotation::convertAngVelDotInBodyFrameToBodyXYZDotDot(Vec3::getAs(&q[0]), ~R_FM*Vec3::getAs(in), Vec3(0));
         }
         else if (transposeMatrix) {
             ASSERT(nIn == 4 && nOut == 3)
@@ -267,18 +267,18 @@ public:
             ASSERT(nIn == 6 && nOut == 6);
             Rotation R_FM;
             R_FM.setRotationToBodyFixedXYZ(Vec3::getAs(&q[0]));
-            const Mat33 Q = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(&q[0])) * ~R_FM;
-            if (transposeMatrix) Row3::updAs(out) = Row3::getAs(in) * Q;
-            else                 Vec3::updAs(out) = Q * Vec3::getAs(in);
+            const Mat33 N = Rotation::calcNForBodyXYZInBodyFrame(Vec3::getAs(&q[0])) * ~R_FM;
+            if (transposeMatrix) Row3::updAs(out) = Row3::getAs(in) * N;
+            else                 Vec3::updAs(out) = N * Vec3::getAs(in);
         }
         else {
             if (transposeMatrix)
                 ASSERT(nIn == 7 && nOut == 6)
             else
                 ASSERT(nIn == 6 && nOut == 7)
-            const Mat43 Q = Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(&q[0]));
-            if (transposeMatrix) Row3::updAs(out) = Row4::getAs(in) * Q;
-            else                 Vec4::updAs(out) = Q * Vec3::getAs(in);
+            const Mat43 N = Rotation::calcUnnormalizedNForQuaternion(Vec4::getAs(&q[0]));
+            if (transposeMatrix) Row3::updAs(out) = Row4::getAs(in) * N;
+            else                 Vec4::updAs(out) = N * Vec3::getAs(in);
         }
         Vec3::updAs(&out[nOut-3]) = Vec3::getAs(&in[nIn-3]);
    }
@@ -288,18 +288,18 @@ public:
             ASSERT(nIn == 6 && nOut == 6);
             Rotation R_FM;
             R_FM.setRotationToBodyFixedXYZ(Vec3::getAs(&q[0]));
-            const Mat33 QInv = R_FM*Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(&q[0]));
-            if (transposeMatrix) Row3::updAs(out) = Row3::getAs(in) * QInv;
-            else                 Vec3::updAs(out) = QInv * Vec3::getAs(in);
+            const Mat33 NInv = R_FM*Rotation::calcNInvForBodyXYZInBodyFrame(Vec3::getAs(&q[0]));
+            if (transposeMatrix) Row3::updAs(out) = Row3::getAs(in) * NInv;
+            else                 Vec3::updAs(out) = NInv * Vec3::getAs(in);
         }
         else {
             if (transposeMatrix)
                 ASSERT(nIn == 6 && nOut == 7)
             else
                 ASSERT(nIn == 7 && nOut == 6)
-            const Mat34 Q = Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(&q[0]));
-            if (transposeMatrix) Row4::updAs(out) = Row3::getAs(in) * Q;
-            else                 Vec3::updAs(out) = Q * Vec4::getAs(in);
+            const Mat34 NInv = Rotation::calcUnnormalizedNInvForQuaternion(Vec4::getAs(&q[0]));
+            if (transposeMatrix) Row4::updAs(out) = Row3::getAs(in) * NInv;
+            else                 Vec3::updAs(out) = NInv * Vec4::getAs(in);
         }
         Vec3::updAs(&out[nOut-3]) = Vec3::getAs(&in[nIn-3]);
     }
@@ -308,7 +308,7 @@ public:
         if (getUseEulerAngles(s)) {
             ASSERT(nIn == 6 && nOut == 6);
             const Rotation& R_FM = getMobilizerTransform(s).R();
-            Vec3::updAs(out) = Rotation::convertAngVelDotToBodyFixed123DotDot(Vec3::getAs(&q[0]), ~R_FM*Vec3::getAs(in), Vec3(0));
+            Vec3::updAs(out) = Rotation::convertAngVelDotInBodyFrameToBodyXYZDotDot(Vec3::getAs(&q[0]), ~R_FM*Vec3::getAs(in), Vec3(0));
         }
         else if (transposeMatrix) {
             ASSERT(nIn == 7 && nOut == 6)

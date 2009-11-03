@@ -227,7 +227,7 @@ public:
         assert(q && in && out);
 
         if (useEulerAnglesIfPossible) {
-            const Mat32    N = Rotation::calcQBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
+            const Mat32    N = Rotation::calcNForBodyXYZInBodyFrame(Vec3::getAs(q))
                                     .getSubMat<3,2>(0,0); // drop 3rd column
             if (matrixOnRight) Row2::updAs(out) = Row3::getAs(in) * N;
             else               Vec3::updAs(out) = N * Vec2::getAs(in);
@@ -235,7 +235,7 @@ public:
             // Quaternion: N block is only available expecting angular velocity in the
             // parent frame F, but we have it in M for this joint.
             const Rotation R_FM(Quaternion(Vec4::getAs(q)));
-            const Mat42 N = (Rotation::calcUnnormalizedQBlockForQuaternion(Vec4::getAs(q))*R_FM)
+            const Mat42 N = (Rotation::calcUnnormalizedNForQuaternion(Vec4::getAs(q))*R_FM)
                                 .getSubMat<4,2>(0,0); // drop 3rd column
             if (matrixOnRight) Row2::updAs(out) = Row4::getAs(in) * N;
             else               Vec4::updAs(out) = N * Vec2::getAs(in);
@@ -251,7 +251,7 @@ public:
         assert(in && out);
 
         if (useEulerAnglesIfPossible) {
-            const Mat23    NInv = Rotation::calcQInvBlockForBodyXYZInBodyFrame(Vec3::getAs(q))
+            const Mat23    NInv = Rotation::calcNInvForBodyXYZInBodyFrame(Vec3::getAs(q))
                                         .getSubMat<2,3>(0,0); // drop 3rd row
             if (matrixOnRight) Row3::updAs(out) = Row2::getAs(in) * NInv;
             else               Vec2::updAs(out) = NInv * Vec3::getAs(in);
@@ -259,7 +259,7 @@ public:
             // Quaternion: QInv block is only available expecting angular velocity in the
             // parent frame F, but we have it in M for this joint.
             const Rotation R_FM(Quaternion(Vec4::getAs(q)));
-            const Mat24 NInv = (~R_FM*Rotation::calcUnnormalizedQInvBlockForQuaternion(Vec4::getAs(q)))
+            const Mat24 NInv = (~R_FM*Rotation::calcUnnormalizedNInvForQuaternion(Vec4::getAs(q)))
                                     .getSubMat<2,4>(0,0);   // drop 3rd row
             if (matrixOnRight) Row4::updAs(out) = Row2::getAs(in) * NInv;
             else               Vec2::updAs(out) = NInv * Vec4::getAs(in);
@@ -276,7 +276,7 @@ public:
         const Vec3 w_FM_M = fromU(u).append1(0); // angular velocity of M in F, exp in M (with wz=0) 
         if (getUseEulerAngles(mv)) {
             toQuat(qdot)    = Vec4(0); // TODO: kludge, clear unused element
-            toQVec3(qdot,0) = Rotation::convertAngVelToBodyFixed123Dot(fromQVec3(sbs.getQ(),0),
+            toQVec3(qdot,0) = Rotation::convertAngVelInBodyFrameToBodyXYZDot(fromQVec3(sbs.getQ(),0),
                                         w_FM_M); // need w in *body*, not parent
         } else {
             const Rotation& R_FM = getX_FM(pc).R();
@@ -297,7 +297,7 @@ public:
 
         if (getUseEulerAngles(mv)) {
             toQuat(qdotdot)    = Vec4(0); // TODO: kludge, clear unused element
-            toQVec3(qdotdot,0) = Rotation::convertAngVelDotToBodyFixed123DotDot
+            toQVec3(qdotdot,0) = Rotation::convertAngVelDotInBodyFrameToBodyXYZDotDot
                                        (fromQVec3(sbs.getQ(),0), w_FM_M, w_FM_M_dot); // body frame
         } else {
             const Rotation& R_FM = getX_FM(pc).R();
