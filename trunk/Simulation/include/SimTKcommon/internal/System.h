@@ -167,40 +167,47 @@ public:
     /// Whenever the system was realized from Stage-1 to the indicated Stage,
     /// this counter is bumped. Note that a single call to realize() can cause 
     /// several counters to get bumped.
-    long getNumRealizationsOfThisStage(Stage) const;
+    int getNumRealizationsOfThisStage(Stage) const;
 
     /// Return the total number of calls to realizeTopology(), realizeModel(),
     /// or realize(), regardless of whether these routines actually did
     /// anything when called.
-    long getNumRealizeCalls() const;
+    int getNumRealizeCalls() const;
+
+        // Prescribed motion
+
+    /// Return the total number of calls to the System's prescribe() method.
+    /// We don't distinguish the calls by stage so this may be incremented
+    /// several times per step.
+    int getNumPrescribeCalls() const;
 
         // Projection
 
     /// Count the number of times we call project() with a particular
     /// option set.
-    long getNumQProjections() const;
-    long getNumUProjections() const;
-    long getNumQErrorEstimateProjections() const;
-    long getNumUErrorEstimateProjections() const;
+    int getNumQProjections() const;
+    int getNumUProjections() const;
+    int getNumQErrorEstimateProjections() const;
+    int getNumUErrorEstimateProjections() const;
 
     /// Return the total number of calls to project(), regardless of
     /// whether the call did anything.
-    long getNumProjectCalls() const;
+    int getNumProjectCalls() const;
 
         // Event handling and reporting
 
     /// handleEvents() reports the lowest Stage it modified and we bump
     /// the counter for that Stage. We also count reportEvents() calls here
     /// as having "changed" Stage::Report.
-    long getNumHandlerCallsThatChangedStage(Stage) const;
+    int getNumHandlerCallsThatChangedStage(Stage) const;
 
     /// This is the total number of calls to handleEvents() regardless
     /// of the outcome.
-    long getNumHandleEventCalls() const;
+    int getNumHandleEventCalls() const;
 
     /// This is the total number of calls to reportEvents() regardless
     /// of the outcome.
-    long getNumReportEventCalls() const;
+    int getNumReportEventCalls() const;
 
 
         /////////////////

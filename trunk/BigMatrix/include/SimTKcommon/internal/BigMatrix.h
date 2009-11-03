@@ -54,7 +54,7 @@
  *                             |            | ------> | Data<S> ... |
  *                              ------------           --------~ ~--
  * </pre>
- * The handle is the the object actually appearing in SimTK API user programs.
+ * The handle is the object actually appearing in SimTK API user programs.
  * It always consists of just a single pointer, pointing to a library-side
  * "helper" object whose implementation is opaque. The handle is templatized
  * by the user's element type, which may be any packed composite numerical
@@ -117,7 +117,7 @@
  * views and the data will persist after the destruction of the last
  * referencing helper.
  *                 
- * A Matrix which is the owner of its data will be resized whenever
+ * A Matrix that is the owner of its data will be resized whenever
  * necessary, unless you take active steps to prevent that. For example, if
  * you declare a Vector, the number of rows can resize but the number of
  * columns will be locked at 1. A RowVector does the reverse. You can also
@@ -153,7 +153,7 @@
  *   MatrixView_<CNT>, VectorView_<CNT>, RowVectorView_<CNT>
  * </pre>
  *
- * Dead matrices are owners which are about to be destructed. Anything
+ * Dead matrices are owners that are about to be destructed. Anything
  * they own may be taken from them, including the helper and/or
  * the data. This is a very effective performance trick for sequences
  * of operations since it eliminates most of the need for allocating and

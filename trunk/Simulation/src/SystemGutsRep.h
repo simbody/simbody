@@ -153,21 +153,22 @@ private:
     mutable State defaultState;
 
         // STATISTICS //
-    mutable long nRealizationsOfStage[Stage::NValid];
-    mutable long nRealizeCalls; // counts realizeTopology(), realizeModel(), realize()
+    mutable int nRealizationsOfStage[Stage::NValid];
+    mutable int nRealizeCalls; // counts realizeTopology(), realizeModel(), realize()
 
-    mutable long nQProjections, nUProjections;
-    mutable long nQErrEstProjections, nUErrEstProjections;
-    mutable long nProjectCalls;
+    mutable int nQProjections, nUProjections;
+    mutable int nQErrEstProjections, nUErrEstProjections;
+    mutable int nPrescribeCalls;
+    mutable int nProjectCalls;
 
-    mutable long nHandlerCallsThatChangedStage[Stage::NValid];
-    mutable long nHandleEventsCalls;
-    mutable long nReportEventsCalls;
+    mutable int nHandlerCallsThatChangedStage[Stage::NValid];
+    mutable int nHandleEventsCalls;
+    mutable int nReportEventsCalls;
 
     void resetAllCounters() {
         for (int i=0; i<Stage::NValid; ++i)
             nRealizationsOfStage[i] = nHandlerCallsThatChangedStage[i] = 0;
-        nRealizeCalls = nProjectCalls = nHandleEventsCalls = nReportEventsCalls = 0;
+        nRealizeCalls = nPrescribeCalls = nProjectCalls = nHandleEventsCalls = nReportEventsCalls = 0;
         nQProjections = nUProjections = 0;
         nQErrEstProjections = nUErrEstProjections = 0;
     }

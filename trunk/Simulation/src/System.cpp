@@ -97,16 +97,17 @@ const String& System::getName()    const {return getSystemGuts().getName();}
 const String& System::getVersion() const {return getSystemGuts().getVersion();}
 
 void System::resetAllCountersToZero() {updSystemGuts().updRep().resetAllCounters();}
-long System::getNumRealizationsOfThisStage(Stage g) const {return getSystemGuts().getRep().nRealizationsOfStage[g];}
-long System::getNumRealizeCalls() const {return getSystemGuts().getRep().nRealizeCalls;}
-long System::getNumQProjections() const {return getSystemGuts().getRep().nQProjections;}
-long System::getNumUProjections() const {return getSystemGuts().getRep().nUProjections;} 
-long System::getNumQErrorEstimateProjections() const {return getSystemGuts().getRep().nQErrEstProjections;}
-long System::getNumUErrorEstimateProjections() const {return getSystemGuts().getRep().nUErrEstProjections;}
-long System::getNumProjectCalls() const {return getSystemGuts().getRep().nProjectCalls;}
-long System::getNumHandlerCallsThatChangedStage(Stage g) const {return getSystemGuts().getRep().nHandlerCallsThatChangedStage[g];}
-long System::getNumHandleEventCalls() const {return getSystemGuts().getRep().nHandleEventsCalls;}
-long System::getNumReportEventCalls() const {return getSystemGuts().getRep().nReportEventsCalls;}
+int System::getNumRealizationsOfThisStage(Stage g) const {return getSystemGuts().getRep().nRealizationsOfStage[g];}
+int System::getNumRealizeCalls() const {return getSystemGuts().getRep().nRealizeCalls;}
+int System::getNumQProjections() const {return getSystemGuts().getRep().nQProjections;}
+int System::getNumUProjections() const {return getSystemGuts().getRep().nUProjections;} 
+int System::getNumQErrorEstimateProjections() const {return getSystemGuts().getRep().nQErrEstProjections;}
+int System::getNumUErrorEstimateProjections() const {return getSystemGuts().getRep().nUErrEstProjections;}
+int System::getNumPrescribeCalls() const {return getSystemGuts().getRep().nPrescribeCalls;}
+int System::getNumProjectCalls() const {return getSystemGuts().getRep().nProjectCalls;}
+int System::getNumHandlerCallsThatChangedStage(Stage g) const {return getSystemGuts().getRep().nHandlerCallsThatChangedStage[g];}
+int System::getNumHandleEventCalls() const {return getSystemGuts().getRep().nHandleEventsCalls;}
+int System::getNumReportEventCalls() const {return getSystemGuts().getRep().nReportEventsCalls;}
 
 const State& System::getDefaultState() const {return getSystemGuts().getDefaultState();}
 State& System::updDefaultState() {return updSystemGuts().updDefaultState();}
@@ -143,27 +144,29 @@ void System::calcDecorativeGeometryAndAppend(const State& s, Stage g, std::vecto
 
 Real System::calcTimescale(const State& s) const {return getSystemGuts().calcTimescale(s);}
 void System::calcYUnitWeights(const State& s, Vector& weights) const
-  { getSystemGuts().calcYUnitWeights(s,weights); }
+{   getSystemGuts().calcYUnitWeights(s,weights); }
+void System::prescribe(State& s, Stage g) const
+{   getSystemGuts().prescribe(s,g); }
 void System::project(State& s, Real consAccuracy, const Vector& yweights,
                      const Vector& ootols, Vector& yerrest, System::ProjectOptions opts) const
-  { getSystemGuts().project(s,consAccuracy,yweights,ootols,yerrest, opts); }
+{   getSystemGuts().project(s,consAccuracy,yweights,ootols,yerrest, opts); }
 void System::calcYErrUnitTolerances(const State& s, Vector& tolerances) const
-  { getSystemGuts().calcYErrUnitTolerances(s,tolerances); }
+{   getSystemGuts().calcYErrUnitTolerances(s,tolerances); }
 void System::handleEvents(State& s, Event::Cause cause, const std::vector<EventId>& eventIds,
                           Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
                           Stage& lowestModified, bool& shouldTerminate) const
-  { getSystemGuts().handleEvents(s,cause,eventIds,accuracy,yWeights,ooConstraintTols,
+{   getSystemGuts().handleEvents(s,cause,eventIds,accuracy,yWeights,ooConstraintTols,
                                lowestModified,shouldTerminate); }
 void System::reportEvents(const State& s, Event::Cause cause, const std::vector<EventId>& eventIds) const
-  { getSystemGuts().reportEvents(s,cause,eventIds); }
+{   getSystemGuts().reportEvents(s,cause,eventIds); }
 void System::calcEventTriggerInfo(const State& s, std::vector<EventTriggerInfo>& info) const
-  { getSystemGuts().calcEventTriggerInfo(s,info); }
+{   getSystemGuts().calcEventTriggerInfo(s,info); }
 void System::calcTimeOfNextScheduledEvent(const State& s, Real& tNextEvent,
                                           std::vector<EventId>& eventIds, bool includeCurrentTime) const
-  { getSystemGuts().calcTimeOfNextScheduledEvent(s,tNextEvent,eventIds,includeCurrentTime); }
+{   getSystemGuts().calcTimeOfNextScheduledEvent(s,tNextEvent,eventIds,includeCurrentTime); }
 void System::calcTimeOfNextScheduledReport(const State& s, Real& tNextEvent,
                                           std::vector<EventId>& eventIds, bool includeCurrentTime) const
-  { getSystemGuts().calcTimeOfNextScheduledReport(s,tNextEvent,eventIds,includeCurrentTime); }
+{   getSystemGuts().calcTimeOfNextScheduledReport(s,tNextEvent,eventIds,includeCurrentTime); }
 
 
 
@@ -412,6 +415,13 @@ void System::Guts::calcYErrUnitTolerances(const State& s, Vector& tolerances) co
     calcYErrUnitTolerancesImpl(s,tolerances);
 }
 
+void System::Guts::prescribe(State& s, Stage g) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), g.prev(),
+                               "System::Guts::prescribe()");
+    prescribeImpl(s,g);
+    getRep().nPrescribeCalls++; // mutable counter
+}
+
 void System::Guts::project(State& s, Real consAccuracy, const Vector& yweights,
                            const Vector& ootols, Vector& yerrest, System::ProjectOptions opts) const
 {
@@ -558,6 +568,12 @@ int System::Guts::calcYUnitWeightsImpl(const State& s, Vector& weights) const {
         sub.calcZUnitWeights(s, zwts(s.getZStart(i), s.getNZ(i)));
     }
     return 0;
+}
+
+int System::Guts::prescribeImpl(State&, Stage) const
+{
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "System", "prescribe"); 
+    return std::numeric_limits<int>::min();
 }
 
 int System::Guts::projectImpl(State&, Real consAccuracy, const Vector& yweights,

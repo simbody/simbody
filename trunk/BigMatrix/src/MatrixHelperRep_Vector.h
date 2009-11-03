@@ -48,11 +48,15 @@ namespace SimTK {
 /// (covector). Most operations don't care whether this is a column or a row,
 /// however we have to know so that we can support matrix operations on the
 /// vector when necessary. For example, getElt(i,j) still has to work (as long
-/// as the appropriate one of i or j is 1), even though getElt(i) is more
+/// as the appropriate one of i or j is 0), even though getElt(i) is more
 /// efficient and direction-agnostic.
 ///
 /// The most common layout is that all elements are stored, either consecutively
-/// in memory or with a regular stride. However, there are several other important
+/// in memory or with a regular stride. Vectors constructed from a larger pool 
+/// of stored data via indexing are also important and need to be implemented 
+/// efficiently.
+/// 
+/// TODO:  However, there are several other important
 /// layouts that arise most commonly from row and column selections performed
 /// on non-full matrices, like triangular or symmetric matrices. Supporting such
 /// selections allows simple (if inefficient) implementations of operations on
@@ -62,12 +66,9 @@ namespace SimTK {
 /// a single "distinguished" element whose value is known (this occurs for example
 /// when crossing a non-stored unit diagonal).
 ///
-/// Vectors constructed from a larger pool of stored data via indexing are also
-/// important and need to be implemented efficiently.
-///
-/// Finally, we allow a Vector to be formed of a composition of smaller Vectors.
-/// Then the whole vector can be accessed by element or more efficiently by
-/// segments.
+/// TODO: Finally, we allow a Vector to be formed of a composition of smaller 
+/// Vectors. Then the whole vector can be accessed by element or more efficiently
+/// by segments.
 
 //------------------------------------------------------------------------------
 template <class S>

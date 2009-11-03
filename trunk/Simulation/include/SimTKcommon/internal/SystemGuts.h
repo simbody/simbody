@@ -147,6 +147,7 @@ public:
     // These wrap the other virtual methods.
     Real calcTimescale(const State&) const;
     void calcYUnitWeights(const State&, Vector& weights) const;
+    void prescribe(State&, Stage) const;
     void project(State&, Real consAccuracy, const Vector& yweights,
                  const Vector& ootols, Vector& yerrest, System::ProjectOptions) const;
     void calcYErrUnitTolerances(const State&, Vector& tolerances) const;
@@ -193,6 +194,7 @@ protected:
 
     virtual int calcYUnitWeightsImpl(const State&, Vector& weights) const;
 
+    virtual int prescribeImpl(State&, Stage) const;
     virtual int projectImpl(State&, Real consAccuracy, const Vector& yweights,
                             const Vector& ootols, Vector& yerrest, System::ProjectOptions) const;
     virtual int calcYErrUnitTolerancesImpl(const State&, Vector& tolerances) const;
