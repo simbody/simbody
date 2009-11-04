@@ -144,11 +144,11 @@ public:
     int nParticles;
     int nConstraints;
 
-    // This is the total number of Constrained Bodies appearing in all Constraints
-    // where the Ancestor body is not Ground, excluding the Ancestor bodies 
-    // themselves even if they are also Constrained Bodies (which is common).
-    // This is used for sizing pool entries in various caches to hold precalculated
-    // Ancestor-frame data about these bodies.
+    // This is the total number of Constrained Bodies appearing in all 
+    // Constraints where the Ancestor body is not Ground, excluding the 
+    // Ancestor bodies themselves even if they are also Constrained Bodies 
+    // (which is common). This is used for sizing pool entries in various 
+    // caches to hold precalculated Ancestor-frame data about these bodies.
     int nAncestorConstrainedBodies;
 
     // TODO: these should be moved to Model stage.
@@ -168,14 +168,14 @@ public:
 // -----------------------------------------------------------------------------
 //                                MODEL CACHE
 // -----------------------------------------------------------------------------
-// This cache entry contains counts of various things resulting from the settings
-// of Model-stage state variables. It also contains the resource index numbers
-// for all state variable and state cache resources allocated during 
+// This cache entry contains counts of various things resulting from the 
+// settings of Model-stage state variables. It also contains the resource index
+// numbers for all state variable and state cache resources allocated during 
 // realizeModel().
 //
 // Model stage is when the mobilizers settle on the meaning of the q's and u's
-// they will employ, so here is where we count up the total number of q's and u's
-// and assign particular slots in those arrays to each mobilizer. We also
+// they will employ, so here is where we count up the total number of q's and 
+// u's and assign particular slots in those arrays to each mobilizer. We also
 // determine the sizes of related "pools", including the number of q's which
 // are angles (for sincos calculations), and the number of quaternions in use
 // (for normalization calculations), and partition the entries in those
@@ -209,18 +209,20 @@ public:
           : nQInUse(-1), nUInUse(-1), hasQuaternionInUse(false), nAnglesInUse(-1) {}
 
         int nQInUse, nUInUse;
-        QIndex firstQIndex; // These count from 0 for this SimbodyMatterSubsystem
+        QIndex firstQIndex; // Count from 0 for this SimbodyMatterSubsystem
         UIndex firstUIndex;
 
-        // In case there is a quaternion in use by this Mobilizer. The index here can be
-        // used to find precalculated data associated with this quaternion, such as its current length.
+        // In case there is a quaternion in use by this Mobilizer. The index 
+        // here can be used to find precalculated data associated with this 
+        // quaternion, such as its current length.
         bool                hasQuaternionInUse;
         MobilizerQIndex     startOfQuaternion;   // 0..nQInUse-1: which local coordinate starts the quaternion if any?
         QuaternionPoolIndex quaternionPoolIndex; // assigned slot # for this MB's quat, -1 if none
 
-        // In case there are any generalized coordinates which are angles. We require that the
-        // angular coordinates be consecutive and just store the number of angles and the coordinate
-        // index of the first one. The index can be used to find precalculated data associated with
+        // In case there are any generalized coordinates which are angles. We 
+        // require that the angular coordinates be consecutive and just store 
+        // the number of angles and the coordinate index of the first one. The 
+        // index can be used to find precalculated data associated with
         // angles, such as their sines and cosines.
         int             nAnglesInUse;
         MobilizerQIndex startOfAngles;  // 0..nQInUse-1: which local coordinate starts angles if any?
@@ -240,11 +242,14 @@ public:
 
         // STATE ALLOCATION FOR THIS SUBSYSTEM
 
-    // Note that a MatterSubsystem is only one of potentially many users of a System's State, so only
-    // a subset of State variables and State Cache entries belong to it. Here we record the indices
-    // we were given when we asked the State for some resources.
+    // Note that a MatterSubsystem is only one of potentially many users of a 
+    // System's State, so only a subset of State variables and State Cache 
+    // entries belong to it. Here we record the indices we were given when 
+    // we asked the State for some resources. All indices are private to this
+    // Subsystem -- they'll start from zero regardless of whether there are
+    // other State resource consumers.
 
-    QIndex qIndex;
+    QIndex qIndex;  // NOTE: local, currently always zero
     UIndex uIndex;
     DiscreteVariableIndex instanceVarsIndex, timeVarsIndex, qVarsIndex, uVarsIndex, 
                           dynamicsVarsIndex, accelerationVarsIndex;
@@ -403,22 +408,27 @@ public:
         Segment nonholoErrSegment; // (offset,mNonholo) same, but for uErr slots (after holo derivs)
         Segment accOnlyErrSegment; // (offset,mAccOnly) same, but for udotErr slots (after holo/nonholo derivs)
     public:
-        // Better to access using accessor methods above so you'll get type checking on the index type.
-        std::vector<PerConstrainedMobilizerInstanceInfo> constrainedMobilizerInstanceInfo;
+        // Better to access using accessor methods above so you'll get type 
+        // checking on the index type.
+        std::vector<PerConstrainedMobilizerInstanceInfo> 
+            constrainedMobilizerInstanceInfo;
 
-        // The ConstrainedBodies and ConstrainedMobilizers are set at Topology stage, but the
-        // particular generalized coordinates q and generalized speeds u which are involved
-        // can't be determined until Model stage, since the associated mobilizers have Model
-        // stage options which can affect the number and meanings of these variables.
-        // These are sorted in order of their associated ConstrainedMobilizer, not necessarily
+        // The ConstrainedBodies and ConstrainedMobilizers are set at Topology 
+        // stage, but the particular generalized coordinates q and generalized 
+        // speeds u which are involved can't be determined until Model stage, 
+        // since the associated mobilizers have Model stage options which can 
+        // affect the number and meanings of these variables. These are sorted 
+        // in order of their associated ConstrainedMobilizer, not necessarily
         // in order of QIndex or UIndex. Each value appears only once.
         std::vector<QIndex> constrainedQ;   // indexed by ConstrainedQIndex, maps to subsystem QIndex
         std::vector<UIndex> constrainedU;   // indexed by ConstrainedUIndex, maps to subsystem UIndex
 
-        // Participating mobilities include ALL the mobilities which may be involved in any of this
-        // Constraint's constraint equations, whether from being directly constrained or indirectly
-        // as a result of their effects on ConstrainedBodies. These are sorted in order of increasing
-        // QIndex and UIndex, and each QIndex or UIndex appears only once.
+        // Participating mobilities include ALL the mobilities which may be 
+        // involved in any of this Constraint's constraint equations, whether 
+        // from being directly constrained or indirectly as a result of their 
+        // effects on ConstrainedBodies. These are sorted in order of 
+        // increasing QIndex and UIndex, and each QIndex or UIndex appears 
+        // only once.
         std::vector<QIndex> participatingQ; // indexed by ParticipatingQIndex, maps to subsystem QIndex
         std::vector<UIndex> participatingU; // indexed by ParticipatingUIndex, maps to subsystem UIndex
     };
@@ -430,8 +440,10 @@ public:
     // Calculations stored here derive from those states:
     //   total mass
     //   central inertia of each rigid body
-    //   principal axes and corresponding principal moments of inertia of each rigid body
-    //   reference configuration X_PB when q==0 (usually that means M==F), for each rigid body
+    //   principal axes and corresponding principal moments of inertia of 
+    //       each rigid body
+    //   reference configuration X_PB when q==0 (usually that means M==F), 
+    //       for each rigid body
 
     Real                   totalMass; // sum of all rigid body and particles masses
     std::vector<Inertia>   centralInertias;           // nb
@@ -442,25 +454,36 @@ public:
     std::vector<PerMobodInstanceInfo>         mobodInstanceInfo;
     std::vector<PerConstraintInstanceInfo>    constraintInstanceInfo;
 
-    // This is a sum over all the mobilizers whose q's are currently prescribed, adding
-    // the number of q's (generalized coordinates) nq currently being used for each of those.
-    // An array of size totalNPresQ is allocated in the 
-    // TimeCache to hold the calculated q's (which will be different from the actual 
-    // q's until they are applied). Motions will also provide this many prescribed qdots 
-    // and qdotdots, but we will map those to u's and udots before recording them, with
-    // nu entries being allocated in each. These nq- and nu-sized 
-    // slots are allocated in order of MobilizedBodyIndex.
-    int totalNPresQ;
+    // This is a sum over all the mobilizers whose q's are currently prescribed,
+    // adding the number of q's (generalized coordinates) nq currently being 
+    // used for each of those. An array of size totalNPresQ is allocated in the 
+    // TimeCache to hold the calculated q's (which will be different from the 
+    // actual q's until they are applied). Motions will also provide this many 
+    // prescribed qdots and qdotdots, but we will map those to u's and udots 
+    // before recording them, with nu entries being allocated in each. These 
+    // nq- and nu-sized slots are allocated in order of MobilizedBodyIndex.
+    int getTotalNumPresQ() const {return (int)presQ.size();}
+    int getTotalNumZeroQ() const {return (int)zeroQ.size();}
+    int getTotalNumFreeQ() const {return (int)freeQ.size();}
+    std::vector<QIndex> presQ;
+    std::vector<QIndex> zeroQ;
+    std::vector<QIndex> freeQ; // must be integrated
 
-    // This is a sum over all the mobilizers whose u's are current prescribed, whether
-    // because of non-holonomic (velocity) prescribed motion u=u(t,q), or because the
-    // q's are prescribed via holonomic (position) prescribed motion and the u's are
-    // calculated from the qdots. We add the number u's (generalized speeds) nu currently
-    // being used for each holonomic- or nonholonomic-prescribed mobilizer. An array of
-    // this size is allocated in the PositionCache to hold the calculated u's (which will
-    // be different from the actual u's until they are applied). Nu-sized slots are allocated 
-    // in order of MobilizedBodyIndex.
-    int totalNPresU; // and udot
+    // This is a sum over all the mobilizers whose u's are current prescribed, 
+    // whether because of non-holonomic (velocity) prescribed motion u=u(t,q), 
+    // or because the q's are prescribed via holonomic (position) prescribed 
+    // motion and the u's are calculated from the qdots. We add the number u's 
+    // (generalized speeds) nu currently being used for each holonomic- or 
+    // nonholonomic-prescribed mobilizer. An array of this size is allocated 
+    // in the PositionCache to hold the calculated u's (which will be 
+    // different from the actual u's until they are applied). Nu-sized slots 
+    // are allocated in order of MobilizedBodyIndex.
+    int getTotalNumPresU() const {return (int)presU.size();}
+    int getTotalNumZeroU() const {return (int)zeroU.size();}
+    int getTotalNumFreeU() const {return (int)freeU.size();}
+    std::vector<UIndex> presU;
+    std::vector<UIndex> zeroU;
+    std::vector<UIndex> freeU; // must be integrated
 
     // This is a sum over all the mobilizers whose udots are currently prescribed, adding
     // the number of udots (mobilities) nu from each holonomic-, nonholonomic-, or 
@@ -468,7 +491,12 @@ public:
     // in the DynamicsCache, and an entry is needed in the prescrived force array
     // in the AccelerationCache as well. These nu-sized slots are allocated in 
     // order of MobilizedBodyIndex.
-    int totalNPresUDot;
+    int getTotalNumPresUDot() const {return (int)presUDot.size();}
+    int getTotalNumZeroUDot() const {return (int)zeroUDot.size();}
+    int getTotalNumFreeUDot() const {return (int)freeUDot.size();}
+    std::vector<UIndex> presUDot;
+    std::vector<UIndex> zeroUDot;
+    std::vector<UIndex> freeUDot; // calculated from forces
 
     // This is a sum over all the mobilizers whose udots are known for any reason
     // whether prescribed or not, e.g. they are Zero or Discrete (anything
@@ -506,7 +534,7 @@ public:
         referenceConfiguration.resize(topo.nBodies);    // X0_PB
 
         mobodInstanceInfo.resize(topo.nBodies);
-        totalNPresQ = totalNPresU = totalNPresUDot = totalNPresForce = 0;
+        totalNPresForce = 0;
 
         constraintInstanceInfo.resize(topo.nConstraints);
         firstQuaternionQErrSlot = qErrIndex = uErrIndex = udotErrIndex = -1;
@@ -548,7 +576,7 @@ public:
                   const SBModelCache&    model,
                   const SBInstanceCache& instance) 
     {
-        presQPool.resize(instance.totalNPresQ);
+        presQPool.resize(instance.getTotalNumPresQ());
     }
 };
 //............................... TIME CACHE ...................................
@@ -694,7 +722,7 @@ public:
                   const SBModelCache&    model,
                   const SBInstanceCache& instance) 
     {
-        presUPool.resize(instance.totalNPresU);
+        presUPool.resize(instance.getTotalNumPresU());
     }
 };
 //........................ CONSTRAINED POSITION CACHE ..........................
@@ -979,7 +1007,7 @@ public:
         const int nSqDofs = tree.sumSqDOFs; // sum(ndof^2) for each joint
         const int maxNQs  = tree.maxNQs;    // allocate the max # q's we'll ever need     
 
-        presUDotPool.resize(instance.totalNPresUDot);
+        presUDotPool.resize(instance.getTotalNumPresUDot());
         
         centrifugalForces.resize(nBodies);           
         centrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));

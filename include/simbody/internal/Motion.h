@@ -73,7 +73,7 @@ class MotionImpl;
  *        "   Prescribed       dv/dt          v(t,q)          "
  *        "   Fast               0           relax(v)         "
  *
- *       Pos  Zero               0              0             0
+ *       Pos  Zero               0              0           0 (ref.)
  *        "   Discrete           0              0          discrete
  *        "   Prescribed      d2p/dt2         dp/dt          p(t)
  *        "   Fast               0              0          relax(p)
@@ -108,7 +108,7 @@ public:
     static const char* nameOfLevel(Level);
 
     /// There are several ways to specify the motion at this Level, and the
-    /// selected method also determines lower-level motions. Regular is only
+    /// selected method also determines lower-level motions. Free is only
     /// permitted when Level==Acceleration, and Fast is not allowed for that
     /// Level.
     enum Method {
@@ -315,8 +315,8 @@ public:
     /// by calcPrescribedPosition(). So the calculation must be limited to 
     /// the same dependencies, plus the current value of this mobilizer's q's
     /// (or the cross-mobilizer transform X_FM because that depends only on 
-    /// those q's). Note that we are return qdots, not u's; they are not 
-    /// always the same. Simbody knows how to map from qdots to u's when necessary. 
+    /// those q's). Note that we are return qdots, not u's; they are not always
+    /// the same. Simbody knows how to map from qdots to u's when necessary. 
     ///
     /// This operator is called during the MatterSubsystem's realize(Position) 
     /// computation. This Motion's own realizePosition() method will already 

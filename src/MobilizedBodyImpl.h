@@ -697,7 +697,8 @@ private:
 
 class MobilizedBody::BallImpl : public MobilizedBodyImpl {
 public:
-    explicit BallImpl(Direction d) : MobilizedBodyImpl(d), defaultRadius(0.1), defaultQ() { } // default is (1,0,0,0), the identity rotation
+    explicit BallImpl(Direction d) 
+    :   MobilizedBodyImpl(d), defaultRadius(0.1), defaultQ() {} // (1,0,0,0), the identity rotation
     BallImpl* clone() const { return new BallImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(

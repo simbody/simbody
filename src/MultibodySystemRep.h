@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-8 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -48,7 +48,6 @@
 #include "simbody/internal/GeneralContactSubsystem.h"
 
 #include "simbody/internal/ForceSubsystemGuts.h"
-// #include "ForceSubsystemRep.h"
 #include "SimbodyMatterSubsystemRep.h"
 
 #include <vector>
@@ -378,7 +377,8 @@ public:
         return GeneralContactSubsystem::updDowncast(updSubsystem(contactSub));
     }
 
-    // Global state cache entries dealing with interaction between forces & matter
+    // Global state cache entries dealing with interaction between forces & 
+    // matter.
 
     // Responses available when the global subsystem is advanced to the
     // indicated stage or higher.
@@ -423,6 +423,14 @@ public:
     int realizeDynamicsImpl    (const State&) const;
     int realizeAccelerationImpl(const State&) const;
     int realizeReportImpl      (const State&) const;
+
+    // Currently prescribe() and project() affect only the Matter subsystem.
+
+    int prescribeImpl(State& s, Stage g) {
+        const SimbodyMatterSubsystem& mech = getMatterSubsystem();
+        mech.getRep().prescribe(s,g);
+        return 0;
+    }
 
     // Note that we do all "q" projections before any "u" projections.
     //

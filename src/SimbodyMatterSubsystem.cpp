@@ -300,15 +300,15 @@ void SimbodyMatterSubsystem::calcQDotDot(const State& s,
     getRep().calcQDotDot(s, udot, qdotdot);
 }
 
-void SimbodyMatterSubsystem::multiplyByN(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
-{
-    getRep().multiplyByN(s,matrixOnRight,in,out);
-}
-
-void SimbodyMatterSubsystem::multiplyByNInv(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
-{
-    getRep().multiplyByNInv(s,matrixOnRight,in,out);
-}
+void SimbodyMatterSubsystem::multiplyByN
+   (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
+{   getRep().multiplyByN(s,matrixOnRight,in,out); }
+void SimbodyMatterSubsystem::multiplyByNInv
+   (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
+{   getRep().multiplyByNInv(s,matrixOnRight,in,out); }
+void SimbodyMatterSubsystem::multiplyByNDot
+   (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
+{   getRep().multiplyByNDot(s,matrixOnRight,in,out); }
 
 
 // Topological info. Note the lack of a State argument.

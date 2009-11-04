@@ -621,7 +621,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) cons
     // lined up as I've drawn them.
     //
     //            --------------------
-    //     QPool |       nPresQ       |              NOTE: not really ordered like this
+    //     QPool |       nPresQ       |      NOTE: not really ordered like this
     //            \------------------/ 
     //             \----------------/-------------
     //     UPool   |              nPresU          |
@@ -629,28 +629,40 @@ int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) cons
     //             |------------------------------|--------------
     //      UDot   |                    nPresUDot                |
     //             |------------------------------|--------------|
-    //             |---------------------------------------------|-----------------
-    // ForcePool   |                           nPresForces                         |
-    //              ---------------------------------------------|-----------------
+    //             |---------------------------------------------|--------------
+    // ForcePool   |                           nPresForces                      |
+    //              ---------------------------------------------|--------------
     //
     // Note that there are no slots allocated for q's, u's, or udots that are 
-    // known to be zero; only the explicitly prescribed ones get a slot. And udots
-    // known for any reason get a slot in the ForcePool.
+    // known to be zero; only the explicitly prescribed ones get a slot. And 
+    // udots known for any reason get a slot in the ForcePool.
 
     // Motion options for all mobilizers are now available in the InstanceVars.
     // We need to figure out what cache resources are required, including
     // slots for the constraint forces that implement prescribed motion.
-    ic.totalNPresQ = ic.totalNPresU = ic.totalNPresUDot = ic.totalNPresForce = 0;
+    ic.presQ.clear();       ic.zeroQ.clear();       ic.freeQ.clear();
+    ic.presU.clear();       ic.zeroU.clear();       ic.freeU.clear();
+    ic.presUDot.clear();    ic.zeroUDot.clear();    ic.freeUDot.clear();
+    ic.totalNPresForce = 0;
     for (MobilizedBodyIndex mbx(0); mbx < mobilizedBodies.size(); ++mbx) {
         const MobilizedBody& mobod = getMobilizedBody(mbx);
-        const SBModelCache::PerMobilizedBodyModelInfo& modelInfo    = mc.getMobilizedBodyModelInfo(mbx);
-        SBInstanceCache::PerMobodInstanceInfo&         instanceInfo = ic.updMobodInstanceInfo(mbx);
+        const SBModelCache::PerMobilizedBodyModelInfo& 
+            modelInfo    = mc.getMobilizedBodyModelInfo(mbx);
+        SBInstanceCache::PerMobodInstanceInfo&
+            instanceInfo = ic.updMobodInstanceInfo(mbx);
+
+        const int nq = modelInfo.nQInUse;
+        const int nu = modelInfo.nUInUse;
+
+        const QIndex qx = modelInfo.firstQIndex;
+        const UIndex ux = modelInfo.firstUIndex;
 
         instanceInfo.clear(); // all motion is free
 
         // Treat Ground or Weld as prescribed to zero.
-        if (mbx == GroundIndex || modelInfo.nQInUse==0) {
-            instanceInfo.qMethod = instanceInfo.uMethod = instanceInfo.udotMethod = Motion::Zero;
+        if (mbx == GroundIndex || nq==0) {
+            instanceInfo.qMethod = instanceInfo.uMethod = 
+                instanceInfo.udotMethod = Motion::Zero;
             continue;
         }
 
@@ -658,35 +670,83 @@ int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) cons
 
         if (mobod.hasMotion()) {
             const Motion& motion = mobod.getMotion();
-            motion.calcAllMethods(s, instanceInfo.qMethod, instanceInfo.uMethod, instanceInfo.udotMethod);
+            motion.calcAllMethods(s, instanceInfo.qMethod, 
+                                     instanceInfo.uMethod,
+                                     instanceInfo.udotMethod);
+        }
 
-            // Count prescribed q's.
-            if (instanceInfo.qMethod == Motion::Prescribed) { 
-                instanceInfo.firstPresQ = PresQPoolIndex(ic.totalNPresQ);
-                ic.totalNPresQ += modelInfo.nQInUse;
-            } 
+        // Assign q's to appropriate index vectors for convenient
+        // manipulation. Prescribed q's also need pool allocation.
+        switch(instanceInfo.qMethod) {
+        case Motion::Prescribed:
+            instanceInfo.firstPresQ = PresQPoolIndex(ic.presQ.size());
+            for (int i=0; i < nq; ++i)
+                ic.presQ.push_back(QIndex(qx+i));
+            break;
+        case Motion::Zero:
+            for (int i=0; i < nq; ++i)
+                ic.zeroQ.push_back(QIndex(qx+i));
+            break;
+        case Motion::Free:
+            for (int i=0; i < nq; ++i)
+                ic.freeQ.push_back(QIndex(qx+i));
+            break;
+        case Motion::Discrete:
+        case Motion::Fast:
+            break; // nothing to do for these here
+        }
 
-            // Count prescribed u's (including qdots from differentiating above).
-            if (instanceInfo.uMethod == Motion::Prescribed) {
-                instanceInfo.firstPresU = PresUPoolIndex(ic.totalNPresU);
-                ic.totalNPresU += modelInfo.nUInUse;
-            }
+        // Assign u's to appropriate index vectors for convenient
+        // manipulation. Prescribed u's also need pool allocation.
+        switch(instanceInfo.uMethod) {
+        case Motion::Prescribed:
+            instanceInfo.firstPresU = PresUPoolIndex(ic.presU.size());
+            for (int i=0; i < nu; ++i)
+                ic.presU.push_back(UIndex(ux+i));
+            break;
+        case Motion::Zero:
+            for (int i=0; i < nu; ++i)
+                ic.zeroU.push_back(UIndex(ux+i));
+            break;
+        case Motion::Free:
+            for (int i=0; i < nu; ++i)
+                ic.freeU.push_back(UIndex(ux+i));
+            break;
+        case Motion::Discrete:
+        case Motion::Fast:
+            break; // nothing to do for these here
+        }
 
-            // Count prescribed udots (from prescribed acceleration and differentiation).
-            if (instanceInfo.udotMethod == Motion::Prescribed) {
-                instanceInfo.firstPresUDot = PresUDotPoolIndex(ic.totalNPresUDot);
-                ic.totalNPresUDot += modelInfo.nUInUse;
-            }
+        // Assign udots to appropriate index vectors for convenient
+        // manipulation. Prescribed udots also need pool allocation,
+        // and any non-Free udot needs a prescribed force (tau) slot.
+        switch(instanceInfo.udotMethod) {
+        case Motion::Prescribed:
+            instanceInfo.firstPresUDot = PresUDotPoolIndex(ic.presUDot.size());
+            for (int i=0; i < nu; ++i)
+                ic.presUDot.push_back(UIndex(ux+i));
+            break;
+        case Motion::Zero:
+            for (int i=0; i < nu; ++i)
+                ic.zeroUDot.push_back(UIndex(ux+i));
+            break;
+        case Motion::Free:
+            for (int i=0; i < nu; ++i)
+                ic.freeUDot.push_back(UIndex(ux+i));
+            break;
+        case Motion::Discrete:
+        case Motion::Fast:
+            break; // nothing to do for these here
+        }
 
-            // Count mobilities that need a slot to hold the calculated force due
-            // to a known udot, whether prescribed or known for some other reason.
-            if (instanceInfo.udotMethod != Motion::Free) {
-                instanceInfo.firstPresForce = PresForcePoolIndex(ic.totalNPresForce);
-                ic.totalNPresForce += modelInfo.nUInUse;
-            }
+        // Count mobilities that need a slot to hold the calculated force due
+        // to a known udot, whether prescribed or known for some other reason.
+        if (instanceInfo.udotMethod != Motion::Free) {
+            instanceInfo.firstPresForce = 
+                PresForcePoolIndex(ic.totalNPresForce);
+            ic.totalNPresForce += nu;
         }
     }
-
 
     // Now instantiate the implementing RigidBodyNodes.
     SBStateDigest stateDigest(s, *this, Stage::Instance);
@@ -787,7 +847,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTimeImpl(const State& s) const {
         "SimbodyMatterSubsystem::realizeTime()");
 
     const SBStateDigest stateDigest(s, *this, Stage::Time);
-    const SBModelCache& mc = stateDigest.getModelCache();
+    const SBModelCache&     mc = stateDigest.getModelCache();
+    const SBInstanceCache&  ic = stateDigest.getInstanceCache();
+    SBTimeCache&            tc = stateDigest.updTimeCache();
 
     // the multibody tree cannot have time dependence
 
@@ -808,7 +870,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTimeImpl(const State& s) const {
 
 
 //------------------------------------------------------------------------------
-//                               REALIZE POSITION
+//                             REALIZE POSITION
 //------------------------------------------------------------------------------
 // The goals here are:
 // (1) fill in the TreePositionCache and mark it valid
@@ -836,9 +898,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
 
     // Set up StateDigest for calculating position information.
     const SBStateDigest stateDigest(s, *this, Stage::Position);
-    const SBModelCache&     mc   = stateDigest.getModelCache();
-    const SBInstanceCache&  ic   = stateDigest.getInstanceCache();
-    SBTreePositionCache&    tpc  = stateDigest.updTreePositionCache();
+    const SBModelCache&         mc   = stateDigest.getModelCache();
+    const SBInstanceCache&      ic   = stateDigest.getInstanceCache();
+    SBTreePositionCache&        tpc  = stateDigest.updTreePositionCache();
 
     // realize tree positions (kinematics)
     // This includes all local cross-mobilizer kinematics (M in F, B in P)
@@ -876,10 +938,12 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
         if (isConstraintDisabled(s,cx))
             continue;
-        const SBInstanceCache::PerConstraintInstanceInfo& cInfo = ic.getConstraintInstanceInfo(cx);
+        const SBInstanceCache::PerConstraintInstanceInfo& 
+            cInfo = ic.getConstraintInstanceInfo(cx);
         const Segment& pseg = cInfo.holoErrSegment;
         if (pseg.length)
-            constraints[cx]->getImpl().realizePositionErrors(s, pseg.length, &qErr[pseg.offset]);
+            constraints[cx]->getImpl().realizePositionErrors
+               (s, pseg.length, &qErr[pseg.offset]);
     }
 
     // Now we're done with the ConstrainedPositionCache.
@@ -999,16 +1063,19 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
         if (isConstraintDisabled(s,cx))
             continue;
-        const SBInstanceCache::PerConstraintInstanceInfo& cInfo = ic.getConstraintInstanceInfo(cx);
+        const SBInstanceCache::PerConstraintInstanceInfo& 
+            cInfo = ic.getConstraintInstanceInfo(cx);
 
-        const Segment& holoseg = cInfo.holoErrSegment; // for derivatives of holonomic constraints
-        const Segment& nonholoseg = cInfo.nonholoErrSegment; // vseg includes holonomic+nonholonomic
+        const Segment& holoseg    = cInfo.holoErrSegment; // for derivs of holo constraints
+        const Segment& nonholoseg = cInfo.nonholoErrSegment; // includes holo+nonholo
         const int mHolo = holoseg.length, mNonholo = nonholoseg.length;
         if (mHolo)
-            constraints[cx]->getImpl().realizePositionDotErrors(s, mHolo,    &uErr[holoseg.offset]);
+            constraints[cx]->getImpl().realizePositionDotErrors
+               (s, mHolo,    &uErr[holoseg.offset]);
         if (mNonholo)
             constraints[cx]->getImpl().realizeVelocityErrors
-               (s, mNonholo, &uErr[ic.totalNHolonomicConstraintEquationsInUse + nonholoseg.offset]);
+               (s, mNonholo, &uErr[ic.totalNHolonomicConstraintEquationsInUse 
+                                   + nonholoseg.offset]);
     }
 
     // Now we're done with the ConstrainedVelocityCache.
@@ -1681,6 +1748,65 @@ static Real calcQErrestWeightedNorm(const SimbodyMatterSubsystemRep& matter, con
     qhatErrest.rowScaleInPlace(uWeights);                 // qhatErrest = Wu N+ qErrest
     return qhatErrest.normRMS();
 }
+
+
+// -----------------------------------------------------------------------------
+//                                PRESCRIBE
+// -----------------------------------------------------------------------------
+// This is a solver that sets continuous state variables q, or u (depending 
+// on stage) to their prescribed values that will already have been computed. 
+// Note that prescribed udot=udot(t,q,u) is not dealt with here because it does 
+// not involve a state change.
+void SimbodyMatterSubsystemRep::prescribe(State& s, Stage g) const {
+    const SBModelCache&    mc = getModelCache(s);
+    const SBInstanceCache& ic = getInstanceCache(s);
+    switch(g) {
+
+    // Prescribe position.
+    case Stage::PositionIndex: {
+        const int npq = ic.getTotalNumPresQ();
+        const int nzq = ic.getTotalNumZeroQ();
+        if (npq==0 && nzq==0) return; // don't invalidate positions
+
+        // copy prescribed q's from cache to state
+        // set known-zero q's to zero (or reference configuration)
+        const SBTimeCache& tc = getTimeCache(s);
+        Vector& q = updQ(s); // this Subsystem's q's, now invalidated
+
+        for (int i=0; i < npq; ++i)
+            q[ic.presQ[i]] = tc.presQPool[i];
+
+        //TODO: this isn't right -- need to use reference config
+        //q's which will be 1000 for quaternion.
+        for (int i=0; i < nzq; ++i)
+            q[ic.zeroQ[i]] = 0;
+    } break;
+
+    // Prescribe velocity.
+    case Stage::VelocityIndex: {
+        const int npu = ic.getTotalNumPresU();
+        const int nzu = ic.getTotalNumZeroU();
+        if (npu==0 && nzu==0) return; // don't invalidate positions
+
+        // copy prescribed u's from cache to state
+        // set known-zero u's to zero
+        const SBConstrainedPositionCache& cpc = getConstrainedPositionCache(s);
+        Vector& u = updU(s); // this Subsystem's u's, now invalidated
+
+        for (int i=0; i < npu; ++i)
+            u[ic.presU[i]] = cpc.presUPool[i];
+
+        for (int i=0; i < nzu; ++i)
+            u[ic.zeroU[i]] = 0;
+    } break;
+
+    default:
+        SimTK_ASSERT1_ALWAYS(!"bad stage",
+            "SimbodyMatterSubsystemRep::prescribe(): bad stage argument %s.", 
+            g.getName());
+    }
+}
+// .............................. PRESCRIBE ....................................
 
 
 
@@ -2556,11 +2682,8 @@ void SimbodyMatterSubsystemRep::multiplyByN
     assert(in.size()  < 2 || &in[1]  == &in[0] +1); // for now must be contiguous in memory
     assert(out.size() < 2 || &out[1] == &out[0]+1); 
 
-    const Vector&   qp   = sbState.getQ();
     const Real*     inp  = in.size()  ? &in[0]  : 0;
     Real*           outp = out.size() ? &out[0] : 0;
-
-    const bool useEulerAngles = sbState.getModelVars().useEulerAngles;
 
     // Skip ground; it doesn't have qdots!
     for (int i=1; i<(int)rbNodeLevels.size(); i++)
@@ -2583,8 +2706,54 @@ void SimbodyMatterSubsystemRep::multiplyByN
             // it doesn't get written.
             if (!transpose) outp[outpx + maxNQ-1] = 0;
 
-            rbn.multiplyByN(sbState, useEulerAngles, &qp[qx], 
-                                 transpose, &inp[inpx], &outp[outpx]);
+            rbn.multiplyByN(sbState, transpose, &inp[inpx], &outp[outpx]);
+        }
+}
+
+
+
+//------------------------------------------------------------------------------
+//                              MULTIPLY BY NDOT
+//------------------------------------------------------------------------------
+// q=NDot*u or u=~NDot*q
+void SimbodyMatterSubsystemRep::multiplyByNDot
+   (const State& s, bool transpose, const Vector& in, Vector& out) const
+{
+    // i.e., we must be *done* with Stage::Velocity
+    const SBStateDigest sbState(s, *this, Stage(Stage::Velocity).next());
+
+    assert(in.size() == (transpose?getTotalQAlloc():getTotalDOF()));
+    out.resize(transpose?getTotalDOF():getTotalQAlloc());
+
+    //TODO: this shouldn't be necessary
+    assert(in.size()  < 2 || &in[1]  == &in[0] +1); // for now must be contiguous in memory
+    assert(out.size() < 2 || &out[1] == &out[0]+1); 
+
+    const Real*     inp  = in.size()  ? &in[0]  : 0;
+    Real*           outp = out.size() ? &out[0] : 0;
+
+    // Skip ground; it doesn't have q's or u's!
+    for (int i=1; i<(int)rbNodeLevels.size(); i++)
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& rbn = *rbNodeLevels[i][j];
+            const int maxNQ = rbn.getMaxNQ();
+
+            // Skip weld joints: no q's, no work to do here.
+            if (maxNQ == 0)
+                continue;
+
+            // Find the right piece of the vectors to work with.
+            const int qx = rbn.getQIndex();
+            const int ux = rbn.getUIndex();
+            const int inpx  = transpose ? qx : ux;
+            const int outpx = transpose ? ux : qx;
+
+            // TODO: kludge: for now q-like output may have an unused element because
+            // we always allocate the max space. Set the last element to zero in case
+            // it doesn't get written.
+            if (!transpose) outp[outpx + maxNQ-1] = 0;
+
+            rbn.multiplyByNDot(sbState, transpose, &inp[inpx], &outp[outpx]);
         }
 }
 
@@ -2607,11 +2776,8 @@ void SimbodyMatterSubsystemRep::multiplyByNInv
     assert(in.size()  < 2 || &in[1]  == &in[0] +1); // for now must be contiguous in memory
     assert(out.size() < 2 || &out[1] == &out[0]+1); 
 
-    const Vector&   qp   = sbState.getQ();
     const Real*     inp  = in.size()  ? &in[0]  : 0;
     Real*           outp = out.size() ? &out[0] : 0;
-
-    const bool useEulerAngles = sbState.getModelVars().useEulerAngles;
 
     // Skip ground; it doesn't have qdots!
     for (int i=1; i<(int)rbNodeLevels.size(); i++)
@@ -2634,8 +2800,7 @@ void SimbodyMatterSubsystemRep::multiplyByNInv
             // it doesn't get written.
             if (transpose) outp[outpx + maxNQ-1] = 0;
 
-            rbn.multiplyByNInv(sbState, useEulerAngles, &qp[qx],
-                                    transpose, &inp[inpx], &outp[outpx]);
+            rbn.multiplyByNInv(sbState, transpose, &inp[inpx], &outp[outpx]);
         }
 }
 

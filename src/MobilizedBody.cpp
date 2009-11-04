@@ -471,43 +471,142 @@ void MobilizedBodyImpl::realizeInstance(const SBStateDigest& sbs) const {
 
     // REALIZE TIME
 void MobilizedBodyImpl::realizeTime(const SBStateDigest& sbs) const {
-    if (hasMotion())
-        getMotion().getImpl().realizeTime(sbs.getState());
+    const MobilizedBodyIndex    mbx = getMyMobilizedBodyIndex();
+    const SBInstanceCache&      ic  = sbs.getInstanceCache();
+    const SBInstanceCache::PerMobodInstanceInfo& 
+        instInfo = ic.getMobodInstanceInfo(mbx);
+
+    // Note that we only need to deal with explicitly prescribed motion;
+    // if the mobilizer is prescribed to zero it will be dealt with elsewhere.
+    if (instInfo.qMethod==Motion::Prescribed) {
+        const SBModelCache& mc = sbs.getModelCache();
+        const SBModelCache::PerMobilizedBodyModelInfo& 
+            modelInfo = mc.getMobilizedBodyModelInfo(mbx);
+        const int            nq  = modelInfo.nQInUse;
+        const PresQPoolIndex pqx = instInfo.firstPresQ;
+        SBTimeCache& tc = sbs.updTimeCache();
+        const MotionImpl& motion = getMotion().getImpl();
+
+        motion.calcPrescribedPosition(sbs.getState(), nq, 
+                                      &tc.presQPool[pqx]);
+    }
+
     realizeTimeVirtual(sbs.getState());
 }
 
     // REALIZE POSITION
 void MobilizedBodyImpl::realizePosition(const SBStateDigest& sbs) const {
-    if (hasMotion())
-        getMotion().getImpl().realizePosition(sbs.getState());
+    const MobilizedBodyIndex    mbx = getMyMobilizedBodyIndex();
+    const SBInstanceCache&      ic  = sbs.getInstanceCache();
+    const SBInstanceCache::PerMobodInstanceInfo& 
+        instInfo = ic.getMobodInstanceInfo(mbx);
+
+    // Note that we only need to deal with explicitly prescribed motion;
+    // if the mobilizer is prescribed to zero it will be dealt with elsewhere.
+    // Prescribed u may be due to nonholonomic prescribed u, or to derivative
+    // of holonomic prescribed q.
+    if (instInfo.uMethod==Motion::Prescribed) {
+        const SBModelCache& mc = sbs.getModelCache();
+        const SBModelCache::PerMobilizedBodyModelInfo& 
+            modelInfo = mc.getMobilizedBodyModelInfo(mbx);
+        const int            nu  = modelInfo.nUInUse;
+        const PresUPoolIndex pux = instInfo.firstPresU;
+        SBConstrainedPositionCache& cpc = sbs.updConstrainedPositionCache();
+        const MotionImpl& motion = getMotion().getImpl();
+
+        if (instInfo.qMethod==Motion::Prescribed) {
+            // Holonomic
+            const int nq = modelInfo.nUInUse;
+            const RigidBodyNode& rbn = getMyRigidBodyNode();
+
+            if (rbn.isQDotAlwaysTheSameAsU()) {
+                assert(nq==nu);
+                motion.calcPrescribedPositionDot(sbs.getState(), nu,
+                                                 &cpc.presUPool[pux]);
+            } else {
+                Real qdot[8]; // we won't use all of these -- max is 7
+                motion.calcPrescribedPositionDot(sbs.getState(), nq, qdot);
+                // u = N^-1 qdot
+                rbn.multiplyByNInv(sbs, false, qdot, &cpc.presUPool[pux]);
+            }
+        } else { // Non-holonomic
+            motion.calcPrescribedVelocity(sbs.getState(), nu,
+                                          &cpc.presUPool[pux]);
+        }
+    }
+
     realizePositionVirtual(sbs.getState());
 }
 
     // REALIZE VELOCITY
 void MobilizedBodyImpl::realizeVelocity(const SBStateDigest& sbs) const {
-    if (hasMotion())
-        getMotion().getImpl().realizeVelocity(sbs.getState());
+    // We don't deal with prescribed accelerations until Dynamics stage.
     realizeVelocityVirtual(sbs.getState());
 }
 
     // REALIZE DYNAMICS
 void MobilizedBodyImpl::realizeDynamics(const SBStateDigest& sbs) const {
-    if (hasMotion())
-        getMotion().getImpl().realizeDynamics(sbs.getState());
+    const MobilizedBodyIndex    mbx = getMyMobilizedBodyIndex();
+    const SBInstanceCache&      ic  = sbs.getInstanceCache();
+    const SBInstanceCache::PerMobodInstanceInfo& 
+        instInfo = ic.getMobodInstanceInfo(mbx);
+
+    // Note that we only need to deal with explicitly prescribed motion;
+    // if the mobilizer is prescribed to zero it will be dealt with elsewhere.
+    // Prescribed udot may be due to acceleration-only prescribed udot,
+    // derivative of nonholonomic prescribed u, or to 2nd derivative
+    // of holonomic prescribed q.
+    if (instInfo.udotMethod==Motion::Prescribed) {
+        const SBModelCache& mc = sbs.getModelCache();
+        const SBModelCache::PerMobilizedBodyModelInfo& 
+            modelInfo = mc.getMobilizedBodyModelInfo(mbx);
+        const int    nu = modelInfo.nUInUse;
+        const UIndex ux = modelInfo.firstUIndex;
+        Vector&      udot = sbs.updUDot();
+        const MotionImpl& motion = getMotion().getImpl();
+
+        if (instInfo.qMethod==Motion::Prescribed) {
+            // Holonomic
+            const int nq = modelInfo.nQInUse;
+            const RigidBodyNode& rbn = getMyRigidBodyNode();
+
+            if (rbn.isQDotAlwaysTheSameAsU()) {
+                assert(nq==nu);
+                motion.calcPrescribedPositionDotDot(sbs.getState(), nu,
+                                                    &udot[ux]);
+            } else {
+                Real ndotU[8]; // remainder term NDot*u (nq of these; max is 7)
+                const Vector& u = sbs.getU();
+                rbn.multiplyByNDot(sbs, false, &u[ux], ndotU);
+
+                Real qdotdot[8]; // nq of these -- max is 7
+                motion.calcPrescribedPositionDotDot(sbs.getState(), nq, qdotdot);
+
+                for (int i=0; i < nq; ++i)
+                    qdotdot[i] -= ndotU[i]; // velocity correction
+
+                // udot = N^-1 (qdotdot - NDot*u)
+                rbn.multiplyByNInv(sbs, false, qdotdot, &udot[ux]);
+            }
+        } else if (instInfo.uMethod==Motion::Prescribed) { 
+            // Non-holonomic
+            motion.calcPrescribedVelocityDot(sbs.getState(), nu, &udot[ux]);
+        } else { 
+            // Acceleration-only
+            motion.calcPrescribedAcceleration(sbs.getState(), nu, &udot[ux]);
+        }
+    }
+
     realizeDynamicsVirtual(sbs.getState());
 }
 
     // REALIZE ACCELERATION
 void MobilizedBodyImpl::realizeAcceleration(const SBStateDigest& sbs) const {
-    if (hasMotion())
-        getMotion().getImpl().realizeAcceleration(sbs.getState());
     realizeAccelerationVirtual(sbs.getState());
 }
 
     // REALIZE REPORT
 void MobilizedBodyImpl::realizeReport(const SBStateDigest& sbs) const {
-    if (hasMotion())
-        getMotion().getImpl().realizeReport(sbs.getState());
     realizeReportVirtual(sbs.getState());
 }
 

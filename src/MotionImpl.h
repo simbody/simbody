@@ -194,21 +194,20 @@ public:
             allocVar(state, defaultU);
     }
 
-    // We're done at Instance stage: set the prescribed udot's to zero and the
-    // prescribed u's to the value currently in our discrete state variable.
-    void realizeInstanceVirtual(const State& state, 
-        int nu, Real* udot, Real* u, // udot, u set here
-        int nq, Real* q) const       // q's are ignored
-    {
+    void calcPrescribedVelocityVirtual(const State& state, int nu, Real* u) const {
         assert(0 <= nu && nu <= 6);
-        assert(nu==0 || (u && udot));
+        assert(nu==0 || u);
         const Vec6& uval = getVar<Vec6>(state, currentU);
-        for (int i=0; i<nu; ++i) { 
-            u[i]    = uval[i];
-            udot[i] = 0;
-        }
+        for (int i=0; i<nu; ++i) 
+            u[i] = uval[i];
     }
 
+    void calcPrescribedVelocityDotVirtual(const State& state, int nu, Real* udot) const {
+        assert(0 <= nu && nu <= 6);
+        assert(nu==0 || udot);
+        for (int i=0; i<nu; ++i) 
+            udot[i] = 0;
+    }
 
 private:
         // TOPOLOGY "STATE"

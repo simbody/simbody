@@ -107,15 +107,12 @@ public:
        (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const {}
 
     
-    void multiplyByN(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
-                                  bool matrixOnRight, 
-                                  const Real* in, Real* out) const {}
-    void multiplyByNInv(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q,
-                                     bool matrixOnRight,
-                                     const Real* in, Real* out) const {}
-    void multiplyByNDot(const SBStateDigest&, bool useEulerAnglesIfPossible, const Real* q, const Real* u,
-                                     bool matrixOnRight,
-                                     const Real* in, Real* out) const {}
+    void multiplyByN(const SBStateDigest&, bool matrixOnRight, 
+                     const Real* in, Real* out) const {}
+    void multiplyByNInv(const SBStateDigest&, bool matrixOnRight,
+                        const Real* in, Real* out) const {}
+    void multiplyByNDot(const SBStateDigest&, bool matrixOnRight,
+                        const Real* in, Real* out) const {}
 
     void calcQDot(const SBStateDigest&,const Vector&,Vector&) const {}
     void calcQDotDot(const SBStateDigest&, const Vector&, Vector&) const {}

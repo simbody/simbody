@@ -1981,18 +1981,17 @@ void Constraint::CoordinateCouplerImpl::applyPositionConstraintForces(const Stat
         temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
     SBStateDigest digest(s, matter.getRep(), Stage::Velocity);
-    bool useEuler = matter.getUseEulerAngles(s);
     std::vector<int> components(1);
     for (int i = 0; i < temp.size(); ++i) {
         components[0] = i;
         Real force = multipliers[0]*function->calcDerivative(components, temp);
         const MobilizedBody& body = matter.getMobilizedBody(getMobilizedBodyIndexOfConstrainedMobilizer(coordBodies[i]));
         const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
-        Vector q = body.getQAsVector(s);
         Vector grad(body.getNumQ(s), 0.0);
         Vector forces(body.getNumU(s));
         grad[coordIndices[i]] = force;
-        node.multiplyByN(digest, useEuler, &q[0], true, &grad[0], &forces[0]);
+        // forces = ~N * grad
+        node.multiplyByN(digest, true, &grad[0], &forces[0]);
         for (MobilizerUIndex index(0); index < forces.size(); index++)
             addInOneMobilityForce(s, coordBodies[i], index, forces[index], mobilityForces);
     }
@@ -2096,15 +2095,14 @@ void Constraint::PrescribedMotionImpl::realizePositionDotDotErrors(const State& 
 void Constraint::PrescribedMotionImpl::applyPositionConstraintForces(const State& s, int mp, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
     SBStateDigest digest(s, matter.getRep(), Stage::Velocity);
-    bool useEuler = matter.getUseEulerAngles(s);
     Real force = multipliers[0];
     const MobilizedBody& body = matter.getMobilizedBody(getMobilizedBodyIndexOfConstrainedMobilizer(coordBody));
     const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
-    Vector q = body.getQAsVector(s);
     Vector grad(body.getNumQ(s), 0.0);
     Vector forces(body.getNumU(s));
     grad[coordIndex] = force;
-    node.multiplyByN(digest, useEuler, &q[0], true, &grad[0], &forces[0]);
+    // forces = ~N * grad
+    node.multiplyByN(digest, true, &grad[0], &forces[0]);
     for (MobilizerUIndex index(0); index < forces.size(); index++)
         addInOneMobilityForce(s, coordBody, index, forces[index], mobilityForces);
 }

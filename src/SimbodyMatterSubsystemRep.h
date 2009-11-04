@@ -389,6 +389,12 @@ public:
         return v;
     }
 
+    // This is a solver that sets continuous state variables q or u
+    // (depending on stage) to their prescribed values that will already
+    // have been computed. Note that prescribed udot=udot(t,q,u) is not
+    // dealt with here because it does not involve a state change.
+    void prescribe(State& s, Stage g) const;
+
     bool projectQConstraints(State& s, Real consAccuracy, const Vector& yWeights,
 							 const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
 	{
@@ -493,6 +499,12 @@ public:
     // the other is "u-like", but which is which changes if the matrix is on the right.
     // This is an O(n) operator since NInv is block diagonal.
     void multiplyByNInv(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const;
+
+    // Must be in Stage::Velocity to calculate out_q = NDot(q,u)*in_u
+    // or out_u = in_q * NDot(q,u). Note that one of "in" and "out" is always 
+    // "q-like" while the other is "u-like", but which is which changes if the 
+    // matrix is on the right. This is an O(n) operator since NDot is block diagonal.
+    void multiplyByNDot(const State& s, bool matrixOnRight, const Vector& in, Vector& out) const;
 
     // Must be in Stage::Position to calculate qdot = N*u.
     void calcQDot(const State& s,

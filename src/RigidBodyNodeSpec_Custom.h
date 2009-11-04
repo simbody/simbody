@@ -103,10 +103,14 @@ public:
         for (int i = 0; i < n; ++i)
             q[i] = qIn[i];
     }
-    void calcLocalQDotFromLocalU(const SBStateDigest& sbs, const Real* u, Real* qdot) const {
+    void calcLocalQDotFromLocalU(const SBStateDigest& sbs, 
+                                 const Real* u, Real* qdot) const 
+    {
         impl.multiplyByN(sbs.getState(), false, nu, u, getNQInUse(sbs.getModelVars()), qdot);
     }
-    void calcLocalQDotDotFromLocalUDot(const SBStateDigest& sbs, const Real* udot, Real* qdotdot) const {
+    void calcLocalQDotDotFromLocalUDot(const SBStateDigest& sbs, 
+                                       const Real* udot, Real* qdotdot) const 
+    {
         const SBModelVars&          mv = sbs.getModelVars();
         const SBTreePositionCache&  pc = sbs.getTreePositionCache();
         const int nqInUse = getNQInUse(sbs.getModelVars());
@@ -117,8 +121,9 @@ public:
         for (int i = 0; i < nqInUse; ++i)
             qdotdot[i] += temp[i];
     }
-    void multiplyByN(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q, bool matrixOnRight, 
-                                  const Real* in, Real* out) const {
+    void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight, 
+                     const Real* in, Real* out) const 
+    {
         const SBModelVars& mv = sbs.getModelVars();
         int nIn, nOut;
         if (matrixOnRight) {
@@ -131,8 +136,9 @@ public:
         }
         impl.multiplyByN(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
     }
-    void multiplyByNInv(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q, bool matrixOnRight,
-                                     const Real* in, Real* out) const {
+    void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight,
+                        const Real* in, Real* out) const 
+    {
         const SBModelVars& mv = sbs.getModelVars();
         int nIn, nOut;
         if (matrixOnRight) {
@@ -145,8 +151,9 @@ public:
         }
         impl.multiplyByNInv(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
     }
-    void multiplyByNDot(const SBStateDigest& sbs, bool useEulerAnglesIfPossible, const Real* q, const Real* u,
-                                     bool matrixOnRight, const Real* in, Real* out) const {
+    void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight, 
+                        const Real* in, Real* out) const 
+    {
         const SBModelVars& mv = sbs.getModelVars();
         int nIn, nOut;
         if (matrixOnRight) {

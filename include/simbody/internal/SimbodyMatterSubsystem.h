@@ -694,22 +694,35 @@ public:
         const Vector& udot,
         Vector&       qdotdot) const;
 
-    /// Must be in Stage::Position to calculate out_q = N(q)*in_u (e.g., qdot=N*u)
-    /// or out_u = ~N*in_q. Note that one of "in" and "out" is always "q-like" while
-    /// the other is "u-like", but which is which changes if the matrix is transposed.
-    /// Note that the transposed operation here is the same as multiplying by N on
-    /// the right, with the Vectors viewed as RowVectors instead.
-    /// This is an O(n) operator since N is block diagonal.
-    void multiplyByN(const State& s, bool transpose, const Vector& in, Vector& out) const;
+    /// Must be in Stage::Position to calculate out_q = N(q)*in_u (e.g., 
+    /// qdot=N*u) or out_u = ~N*in_q. Note that one of "in" and "out" is always
+    /// "q-like" while the other is "u-like", but which is which changes if the 
+    /// matrix is transposed. Note that the transposed operation here is the 
+    /// same as multiplying by N on the right, with the Vectors viewed as 
+    /// RowVectors instead. This is an O(n) operator since N is block diagonal.
+    void multiplyByN(const State& s, bool transpose, 
+                     const Vector& in, Vector& out) const;
 
-    /// Must be in Stage::Position to calculate out_u = NInv(q)*in_q (e.g., u=NInv*qdot)
-    /// or out_q = ~NInv*in_u. Note that one of "in" and "out" is always "q-like" while
-    /// the other is "u-like", but which is which changes if the matrix is transposed.
-    /// Note that the transposed operation here is the same as multiplying by NInv on
-    /// the right, with the Vectors viewed as RowVectors instead.
-    /// This is an O(N) operator since NInv is block diagonal.
-    void multiplyByNInv(const State& s, bool transpose, const Vector& in, Vector& out) const;
+    /// Must be in Stage::Position to calculate out_u = NInv(q)*in_q (e.g., 
+    /// u=NInv*qdot) or out_q = ~NInv*in_u. Note that one of "in" and "out" is
+    /// always "q-like" while the other is "u-like", but which is which changes
+    /// if the matrix is transposed. Note that the transposed operation here is
+    /// the same as multiplying by NInv on the right, with the Vectors viewed 
+    /// as RowVectors instead. This is an O(N) operator since NInv is block 
+    /// diagonal.
+    void multiplyByNInv(const State& s, bool transpose, 
+                        const Vector& in, Vector& out) const;
 
+    /// Must be in Stage::Velocity to calculate out_q = NDot(q,u)*in_u
+    /// or out_u = ~NDot(q,u)*in_q. This is used, for example, as part of the 
+    /// conversion between udot and qdotdot. Note that one of "in" and "out" is
+    /// always "q-like" while the other is "u-like", but which is which changes
+    /// if the matrix is transposed. Note that the transposed operation here is
+    /// the same as multiplying by NDot on the right, with the Vectors viewed 
+    /// as RowVectors instead. This is an O(N) operator since NDot is block 
+    /// diagonal.
+    void multiplyByNDot(const State& s, bool transpose, 
+                        const Vector& in, Vector& out) const;
 
     // These are available after realizeTopology().
 
