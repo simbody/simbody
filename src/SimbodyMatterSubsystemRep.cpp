@@ -657,7 +657,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) cons
         const QIndex qx = modelInfo.firstQIndex;
         const UIndex ux = modelInfo.firstUIndex;
 
-        instanceInfo.clear(); // all motion is free
+        instanceInfo.clear(); // all motion is tentatively free
 
         // Treat Ground or Weld as prescribed to zero.
         if (mbx == GroundIndex || nq==0) {
@@ -1757,7 +1757,7 @@ static Real calcQErrestWeightedNorm(const SimbodyMatterSubsystemRep& matter, con
 // on stage) to their prescribed values that will already have been computed. 
 // Note that prescribed udot=udot(t,q,u) is not dealt with here because it does 
 // not involve a state change.
-void SimbodyMatterSubsystemRep::prescribe(State& s, Stage g) const {
+bool SimbodyMatterSubsystemRep::prescribe(State& s, Stage g) const {
     const SBModelCache&    mc = getModelCache(s);
     const SBInstanceCache& ic = getInstanceCache(s);
     switch(g) {
@@ -1766,7 +1766,7 @@ void SimbodyMatterSubsystemRep::prescribe(State& s, Stage g) const {
     case Stage::PositionIndex: {
         const int npq = ic.getTotalNumPresQ();
         const int nzq = ic.getTotalNumZeroQ();
-        if (npq==0 && nzq==0) return; // don't invalidate positions
+        if (npq==0 && nzq==0) return false; // don't invalidate positions
 
         // copy prescribed q's from cache to state
         // set known-zero q's to zero (or reference configuration)
@@ -1786,7 +1786,7 @@ void SimbodyMatterSubsystemRep::prescribe(State& s, Stage g) const {
     case Stage::VelocityIndex: {
         const int npu = ic.getTotalNumPresU();
         const int nzu = ic.getTotalNumZeroU();
-        if (npu==0 && nzu==0) return; // don't invalidate positions
+        if (npu==0 && nzu==0) return false; // don't invalidate positions
 
         // copy prescribed u's from cache to state
         // set known-zero u's to zero
@@ -1805,6 +1805,8 @@ void SimbodyMatterSubsystemRep::prescribe(State& s, Stage g) const {
             "SimbodyMatterSubsystemRep::prescribe(): bad stage argument %s.", 
             g.getName());
     }
+
+    return true;
 }
 // .............................. PRESCRIBE ....................................
 
@@ -3164,13 +3166,16 @@ void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, St
             dv = &matter.getDynamicsVars(state);
         if (mc->dynamicsCacheIndex.isValid())
             dc = &matter.updDynamicsCache(state);
+
+        // Prescribed accelerations are filled in at Dynamics
+        // stage so we may need these now.
+        udot = &matter.updUDot(state);
+        qdotdot = &matter.updQDotDot(state);
     }
     if (g >= Stage::Acceleration) {
         if (mc->accelerationVarsIndex.isValid())
             av = &matter.getAccelerationVars(state);
 
-        udot = &matter.updUDot(state);
-        qdotdot = &matter.updQDotDot(state);
         udotErr = &matter.updUDotErr(state);
         if (mc->treeAccelerationCacheIndex.isValid())
             tac = &matter.updTreeAccelerationCache(state);

@@ -217,17 +217,17 @@ public:
         // CONSTRUCTION STAGE //
 
     // The SimbodyMatterSubsystemRep takes over ownership of the child
-    // MobilizedBody handle (leaving child as a non-owner reference), and makes it
-    // a child (outboard body) of the indicated parent. The new child body's id is
-    // returned, and will be greater than the parent's id.
+    // MobilizedBody handle (leaving child as a non-owner reference), and 
+    // makes it a child (outboard body) of the indicated parent. The new 
+    // child body's id is returned, and will be greater than the parent's id.
 
     MobilizedBodyIndex adoptMobilizedBody(MobilizedBodyIndex parentIndex, MobilizedBody& child);
     int getNumMobilizedBodies() const {return (int)mobilizedBodies.size();}
 
-    const MobilizedBody& getMobilizedBody(MobilizedBodyIndex id) const {
-        assert(id < (int)mobilizedBodies.size());
-        assert(mobilizedBodies[id]);
-        return *mobilizedBodies[id];
+    const MobilizedBody& getMobilizedBody(MobilizedBodyIndex ix) const {
+        assert(ix < (int)mobilizedBodies.size());
+        assert(mobilizedBodies[ix]);
+        return *mobilizedBodies[ix];
     }
 
     // Note that we do not invalidate the subsystem topology cache yet, even
@@ -235,13 +235,13 @@ public:
     // Otherwise every time someone references Ground, e.g., by calling
     // matterSubsys.Ground() the subsystem would have its topology marked
     // invalid. For this reason, and also because the main program normally
-    // retains a writable reference to MobilizedBodies, it is essential that every 
-    // non-const method of MobilizedBody and its many descendants mark the
-    // subsystem topology invalid when called.
-    MobilizedBody& updMobilizedBody(MobilizedBodyIndex id) {
-        assert(id < (int)mobilizedBodies.size());
-        assert(mobilizedBodies[id]);
-        return *mobilizedBodies[id]; // topology not marked invalid yet
+    // retains a writable reference to MobilizedBodies, it is essential that 
+    // every non-const method of MobilizedBody and its many descendants mark 
+    // the subsystem topology invalid when called.
+    MobilizedBody& updMobilizedBody(MobilizedBodyIndex ix) {
+        assert(ix < (int)mobilizedBodies.size());
+        assert(mobilizedBodies[ix]);
+        return *mobilizedBodies[ix]; // topology not marked invalid yet
     }
 
     void createGroundBody();
@@ -270,7 +270,8 @@ public:
     }
 
     // Topology stage cache entry
-    AncestorConstrainedBodyPoolIndex allocateNextAncestorConstrainedBodyPoolSlot() const {
+    AncestorConstrainedBodyPoolIndex 
+    allocateNextAncestorConstrainedBodyPoolSlot() const {
         const AncestorConstrainedBodyPoolIndex nxt = nextAncestorConstrainedBodyPoolSlot;
         // Make this mutable briefly.
         ++ const_cast<SimbodyMatterSubsystemRep*>(this)->nextAncestorConstrainedBodyPoolSlot;
@@ -337,22 +338,22 @@ public:
         return getInstanceCache(s).totalMass;
     }
 
-    // Extract position, velocity, and acceleration information for MobilizedBodies out of the 
-    // State cache, accessing only the Tree cache entries at each level, which should already
-    // have been marked valid.
+    // Extract position, velocity, and acceleration information for 
+    // MobilizedBodies out of the State cache, accessing only the Tree cache
+    // entries at each level, which should already have been marked valid.
     const Transform&  getBodyTransform   (const State&, MobilizedBodyIndex) const;
     const SpatialVec& getBodyVelocity    (const State&, MobilizedBodyIndex) const;
     const SpatialVec& getBodyAcceleration(const State&, MobilizedBodyIndex) const;
 
-    // Call at Position stage or later. If necessary, composite body inertias will be
-    // realized first.
+    // Call at Position stage or later. If necessary, composite body inertias 
+    // will be realized first.
     const Vector_<SpatialMat>& getCompositeBodyInertias(const State& s) const {
         realizeCompositeBodyInertias(s);
         return getCompositeBodyInertiaCache(s).compositeBodyInertia;
     }
 
-    // Call at Position stage or later. If necessary, articulated body inertias will be
-    // realized first.
+    // Call at Position stage or later. If necessary, articulated body 
+    // inertias will be realized first.
     const Vector_<SpatialMat>& getArticulatedBodyInertias(const State& s) const {
         realizeArticulatedBodyInertias(s);
         return getArticulatedBodyInertiaCache(s).articulatedBodyInertia;
@@ -393,7 +394,8 @@ public:
     // (depending on stage) to their prescribed values that will already
     // have been computed. Note that prescribed udot=udot(t,q,u) is not
     // dealt with here because it does not involve a state change.
-    void prescribe(State& s, Stage g) const;
+    // Returns true if it makes any changes.
+    bool prescribe(State& s, Stage g) const;
 
     bool projectQConstraints(State& s, Real consAccuracy, const Vector& yWeights,
 							 const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const

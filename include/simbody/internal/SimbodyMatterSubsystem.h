@@ -913,6 +913,13 @@ public:
 
         // POSITION STAGE solvers //
 
+    /// This solver transfers prescribed positions presQ or prescribed velocities
+    /// presU into the supplied State. When called with Stage::Position, the State
+    /// must have already been realized to Time stage; when called with 
+    /// Stage::Velocity, the State must already have been realized to Position
+    /// Stage. Returns true if it makes any State changes.
+    bool prescribe(State&, Stage) const;
+
     /// This is a solver you can call after the State has been realized
     /// to stage Position. It will project the q constraints
     /// along the error norm so that getQConstraintNorm() <= consAccuracy, and will

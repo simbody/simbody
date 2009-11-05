@@ -105,15 +105,15 @@ public:
     void calcPrescribedPosition      (const State& s, int nq, Real* q)       const
     {   calcPrescribedPositionVirtual(s,nq,q); }
     void calcPrescribedPositionDot   (const State& s, int nq, Real* qdot)    const
-    {   calcPrescribedPositionVirtual(s,nq,qdot); }
+    {   calcPrescribedPositionDotVirtual(s,nq,qdot); }
     void calcPrescribedPositionDotDot(const State& s, int nq, Real* qdotdot) const
-    {   calcPrescribedPositionVirtual(s,nq,qdotdot); }
+    {   calcPrescribedPositionDotDotVirtual(s,nq,qdotdot); }
     void calcPrescribedVelocity      (const State& s, int nu, Real* u)       const
-    {   calcPrescribedPositionVirtual(s,nu,u); }
+    {   calcPrescribedVelocityVirtual(s,nu,u); }
     void calcPrescribedVelocityDot   (const State& s, int nu, Real* udot)    const
-    {   calcPrescribedPositionVirtual(s,nu,udot); }
+    {   calcPrescribedVelocityDotVirtual(s,nu,udot); }
     void calcPrescribedAcceleration  (const State& s, int nu, Real* udot)    const
-    {   calcPrescribedPositionVirtual(s,nu,udot); }
+    {   calcPrescribedAccelerationVirtual(s,nu,udot); }
 
     void realizeTopology(State& state) const
     {   realizeTopologyVirtual(state); }
@@ -152,6 +152,100 @@ public:
     virtual void realizeReportVirtual      (const State&) const {}
 private:
     MobilizedBodyImpl* mobodImpl;	// just a reference; don't delete on destruction
+};
+
+//------------------------------------------------------------------------------
+//                               SINUSOID IMPL
+//------------------------------------------------------------------------------
+class Motion::SinusoidImpl : public MotionImpl {
+public:
+    // no default constructor
+    SinusoidImpl(Motion::Level level,
+                 Real amplitude, Real rate, Real phase)
+    :   level(level), defAmplitude(amplitude), defRate(rate), 
+        defPhase(phase)
+    {
+    }
+
+    SinusoidImpl* clone() const { 
+        SinusoidImpl* copy = new SinusoidImpl(*this);
+        return copy; 
+    }
+
+    Motion::Level  getLevelVirtual (const State&) const 
+    {   return level; }
+    Motion::Method getLevelMethodVirtual(const State&) const 
+    {   return Motion::Prescribed; }
+
+    // Allocate variables if needed.
+    void realizeTopologyVirtual(State& state) const {
+        // None yet.
+    }
+
+
+    void calcPrescribedPositionVirtual
+       (const State& state, int nq, Real* q) const {
+        assert(level==Motion::Position); assert(nq==0 || q);
+        const Real t = state.getTime();
+        const Real out = defAmplitude*std::sin(defRate*t + defPhase);
+        for (int i=0; i<nq; ++i) 
+            q[i] = out;
+    }
+
+    void calcPrescribedPositionDotVirtual
+       (const State& state, int nq, Real* qdot) const {
+        assert(level==Motion::Position); assert(nq==0 || qdot);
+        const Real t = state.getTime();
+        const Real outd = defAmplitude*defRate*std::cos(defRate*t + defPhase);
+        for (int i=0; i<nq; ++i) 
+            qdot[i] = outd;
+    }
+
+    void calcPrescribedPositionDotDotVirtual
+       (const State& state, int nq, Real* qdotdot) const {
+        assert(level==Motion::Position); assert(nq==0 || qdotdot);
+        const Real t = state.getTime();
+        const Real outdd = 
+            -defAmplitude*defRate*defRate*std::sin(defRate*t + defPhase);
+        for (int i=0; i<nq; ++i) 
+            qdotdot[i] = outdd;
+    }
+
+    void calcPrescribedVelocityVirtual
+       (const State& state, int nu, Real* u) const {
+        assert(level==Motion::Velocity);
+        assert(nu==0 || u);
+        const Real t = state.getTime();
+        const Real out = defAmplitude*std::sin(defRate*t + defPhase);
+        for (int i=0; i<nu; ++i) 
+            u[i] = out;
+    }
+
+    void calcPrescribedVelocityDotVirtual
+       (const State& state, int nu, Real* udot) const {
+        assert(level==Motion::Velocity);
+        assert(nu==0 || udot);
+        const Real t = state.getTime();
+        const Real outd = defAmplitude*defRate*std::cos(defRate*t + defPhase);
+        for (int i=0; i<nu; ++i) 
+            udot[i] = outd;
+    }
+
+    void calcPrescribedAccelerationVirtual
+       (const State& state, int nu, Real* udot) const {
+        assert(level==Motion::Acceleration); assert(nu==0 || udot);
+        const Real t = state.getTime();
+        const Real out = defAmplitude*std::sin(defRate*t + defPhase);
+        for (int i=0; i<nu; ++i) 
+            udot[i] = out;
+    }
+private:
+        // TOPOLOGY "STATE"
+    Motion::Level level;
+    Real defAmplitude, defRate, defPhase;
+
+        // TOPOLOGY "CACHE"
+    // None yet.
 };
 
 class Motion::SteadyImpl : public MotionImpl {

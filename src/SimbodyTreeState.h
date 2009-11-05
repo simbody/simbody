@@ -1546,28 +1546,29 @@ public:
         assert(dc);
         return *dc;
     }
-
-    // Accelerations
     Vector& updUDot() const {
-        assert(stage == Stage::Acceleration);
+        assert(stage >= Stage::Dynamics);
         assert(udot);
         return *udot;
     }
     const Vector& getUDot() const {
-        assert(stage > Stage::Acceleration);
+        assert(stage > Stage::Dynamics);
         assert(udot);
         return *udot;
     }
     Vector& updQDotDot() const {
-        assert(stage == Stage::Acceleration);
+        assert(stage >= Stage::Dynamics);
         assert(qdotdot);
         return *qdotdot;
     }
     const Vector& getQDotDot() const {
-        assert(stage > Stage::Acceleration);
+        assert(stage > Stage::Dynamics);
         assert(qdotdot);
         return *qdotdot;
     }
+
+    // Accelerations
+
     Vector& updUDotErr() const {
         assert(stage == Stage::Acceleration);
         assert(udotErr);

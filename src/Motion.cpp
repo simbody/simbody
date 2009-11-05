@@ -158,10 +158,24 @@ calcPrescribedAccelerationVirtual(const State& s, int nu, Real* udot) const  {
     /*NOTREACHED*/
 }
 
+
+//-------------------------------- Sinusoid ------------------------------------
+//------------------------------------------------------------------------------
+
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS
+   (Motion::Sinusoid, Motion::SinusoidImpl, Motion);
+
+Motion::Sinusoid::Sinusoid(MobilizedBody& mobod, Motion::Level level,
+                           Real amplitude, Real rate, Real phase)
+:   Motion(new SinusoidImpl(level, amplitude, rate, phase)) {
+    mobod.adoptMotion(*this);
+}
+
 //--------------------------------- Steady -------------------------------------
 //------------------------------------------------------------------------------
 
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Motion::Steady, Motion::SteadyImpl, Motion);
+
 
 Motion::Steady::Steady(MobilizedBody& mobod, Real u) 
   : Motion(new SteadyImpl(Vec<6>(u))) {

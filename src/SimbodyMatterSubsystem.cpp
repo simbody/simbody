@@ -437,6 +437,10 @@ Vector_<Vec3>& SimbodyMatterSubsystem::updAllParticleVelocities(State& s) const 
     return getRep().updAllParticleVelocities(s);
 }
 
+bool SimbodyMatterSubsystem::prescribe(State& s, Stage g) const {
+    return getRep().prescribe(s,g);
+}
+
 bool SimbodyMatterSubsystem::projectQConstraints(State& s, Real consAccuracy, const Vector& yWeights,
                                                  const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
 { 

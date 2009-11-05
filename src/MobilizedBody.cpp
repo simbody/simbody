@@ -285,6 +285,45 @@ Real MobilizedBody::getOneUDot(const State& s, int which) const {
 Real MobilizedBody::getOneQDotDot(const State& s, int which) const {
     return getOneFromQPartition(s,which,getImpl().getMyMatterSubsystemRep().getQDotDot(s));
 }
+Real MobilizedBody::getOneTau(const State& s, MobilizerUIndex which) const {
+    const MobilizedBodyImpl&         mbimpl = MobilizedBody::getImpl();
+    const MobilizedBodyIndex         mbx    = mbimpl.getMyMobilizedBodyIndex();
+    const SimbodyMatterSubsystemRep& matter = mbimpl.getMyMatterSubsystemRep();
+    const SBModelCache&              mc     = matter.getModelCache(s);
+    const SBModelCache::PerMobilizedBodyModelInfo&
+        mobodModelInfo = mc.getMobilizedBodyModelInfo(mbx);
+    const int nu = mobodModelInfo.nUInUse;
+
+    SimTK_INDEXCHECK(0, which, nu, "MobilizedBody::getOneTau()");
+
+    const SBInstanceCache& ic = matter.getInstanceCache(s);
+    const SBInstanceCache::PerMobodInstanceInfo& 
+        mobodInstanceInfo = ic.getMobodInstanceInfo(mbx);
+    if (mobodInstanceInfo.udotMethod == Motion::Free)
+        return 0; // not prescribed
+
+    const SBTreeAccelerationCache& tac = matter.getTreeAccelerationCache(s);
+    return tac.presMotionForces[mobodInstanceInfo.firstPresForce + which];
+}
+
+Vector MobilizedBody::getTauAsVector(const State& s) const {
+    const MobilizedBodyImpl&         mbimpl = MobilizedBody::getImpl();
+    const MobilizedBodyIndex         mbx    = mbimpl.getMyMobilizedBodyIndex();
+    const SimbodyMatterSubsystemRep& matter = mbimpl.getMyMatterSubsystemRep();
+    const SBModelCache&              mc     = matter.getModelCache(s);
+    const SBModelCache::PerMobilizedBodyModelInfo&
+        mobodModelInfo = mc.getMobilizedBodyModelInfo(mbx);
+    const int nu = mobodModelInfo.nUInUse;
+
+    const SBInstanceCache& ic = matter.getInstanceCache(s);
+    const SBInstanceCache::PerMobodInstanceInfo& 
+        mobodInstanceInfo = ic.getMobodInstanceInfo(mbx);
+    if (mobodInstanceInfo.udotMethod == Motion::Free)
+        return Vector(nu, Real(0)); // not prescribed
+
+    const SBTreeAccelerationCache& tac = matter.getTreeAccelerationCache(s);
+    return tac.presMotionForces(mobodInstanceInfo.firstPresForce, nu);
+}
 
 Vector MobilizedBody::getQAsVector(const State& s) const {
     const MobilizedBodyImpl& mbr = MobilizedBody::getImpl();

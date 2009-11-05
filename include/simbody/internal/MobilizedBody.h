@@ -344,22 +344,46 @@ public:
     /// the matter subsystem's full qdot vector in the State cache.
     Vector getQDotAsVector(const State&) const;
 
-    /// Return one of the generalized accelerations udot from this mobilizer's partition of the matter
-    /// subsystem's full udot vector in the State cache. The particular coordinate is selected using the \p which
+    /// Return one of the generalized accelerations udot from this mobilizer's 
+    /// partition of the matter subsystem's full udot vector in the State 
+    /// cache. The particular coordinate is selected using the \p which
     /// parameter, numbering from zero to getNumU()-1.
-    Real getOneUDot   (const State&, int which) const;
-    /// Return one of the generalized coordinate second derivatives qdotdot from this mobilizer's partition of the matter
-    /// subsystem's full qdotdot vector in the State cache. The particular coordinate is selected using the \p which
-    /// parameter, numbering from zero to getNumQ()-1.
+    Real getOneUDot(const State&, int which) const;
+    /// Return one of the generalized coordinate second derivatives qdotdot 
+    /// from this mobilizer's partition of the matter subsystem's full 
+    /// qdotdot vector in the State cache. The particular coordinate is 
+    /// selected using the \p which parameter, numbering from zero to 
+    /// getNumQ()-1.
     Real getOneQDotDot(const State&, int which) const;
-    /// Return as a Vector of length getNumU() all the generalized accelerations udot
-    /// currently in use by this mobilizer, from this mobilizer's partion in 
-    /// the matter subsystem's full udot vector in the State cache.
-    Vector getUDotAsVector   (const State&) const;
-    /// Return as a Vector of length getNumQ() all the generalized coordinate second derivatives qdotdot
-    /// currently in use by this mobilizer, from this mobilizer's partion in 
-    /// the matter subsystem's full qdotdot vector in the State cache.
+    /// Return as a Vector of length getNumU() all the generalized 
+    /// accelerations udot currently in use by this mobilizer, from this 
+    /// mobilizer's partion in the matter subsystem's full udot vector in 
+    /// the State cache.
+    Vector getUDotAsVector(const State&) const;
+    /// Return as a Vector of length getNumQ() all the generalized coordinate 
+    /// second derivatives qdotdot currently in use by this mobilizer, from 
+    /// this mobilizer's partion in the matter subsystem's full qdotdot vector 
+    /// in the State cache.
     Vector getQDotDotAsVector(const State&) const;
+
+    /// Return the tau forces resulting from known (prescribed) acceleration, 
+    /// corresponding to each of this mobilizer's mobilities, as a Vector 
+    /// of length getNumU().
+    ///
+    /// If this mobilizer has known accelerations (UDots) due to an active
+    /// Motion object, the set of generalized forces tau that must be added
+    /// in order to produce those accelerations is calculated at Acceleration
+    /// stage. There is one scalar tau per mobility and they can be returned
+    /// individually or as a Vector. The return value is zero if the
+    /// accelerations are free.
+    Vector getTauAsVector(const State&) const;
+    /// Return one of the tau forces resulting from known (prescribed) 
+    /// acceleration, corresponding to one of this mobilizer's mobilities 
+    /// as selected here using the \p which parameter, numbered from 
+    /// zero to getNumU()-1.
+    /// @see getTauAsVector() for more information
+    Real getOneTau(const State&, MobilizerUIndex which) const;
+
 
     /// Set one of the generalized coordinates q to value \p v, in this mobilizer's partition of the matter
     /// subsystem's full q vector in the State. The particular coordinate is selected using the \p which

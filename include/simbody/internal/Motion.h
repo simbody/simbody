@@ -164,15 +164,46 @@ public:
     
     class Steady;
     class Linear;
+    class Sinusoid;
     class Polynomial;
     class Composite;
     class Custom;
     
     class SteadyImpl;
     class LinearImpl;
+    class SinusoidImpl;
     class PolynomialImpl;
     class CompositeImpl;
     class CustomImpl;
+};
+
+/**
+ * Prescribe position, velocity, or acceleration motion as a sinusoidal
+ * function of time, m(t) = a * sin( w*t + p ).
+ */
+class SimTK_SIMBODY_EXPORT Motion::Sinusoid : public Motion {
+public:
+    /**
+     * Create a Motion::Sinusoid.
+     * 
+     * @param[in,out] mobod 
+     *      The MobilizedBody to which this Motion should be added.
+     * @param[in]     level
+     *      The Motion level that is being prescribed: Motion::Position,
+     *      Motion::Velocity, or Motion::Acceleration.
+     * @param[in]     amplitude
+     *      Scaling factor mapping the -1..1 sin() result to your desired
+     *      units; output values will range between -amplitude and +amplitude.
+     * @param[in]     rate 
+     *      Angular rate in radians/unit time; e.g. if time is in seconds
+     *      then rate=2*Pi would be 1 Hz (1 rotation per second).
+     * @param[in]     phase
+     *      Phase angle in radians.
+     */
+    Sinusoid(MobilizedBody& mobod, Motion::Level level,
+             Real amplitude, Real rate, Real phase);
+
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Sinusoid, SinusoidImpl, Motion);
 };
 
 /**
