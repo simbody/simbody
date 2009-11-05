@@ -1531,25 +1531,21 @@ public:
     Vector& updQDot(SubsystemIndex subsys) const {
         assert(data);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQDot(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Velocity).prev(), "StateRep::updQDot(subsys)");
         return data->getSubsystem(subsys).qdot;
     }
     Vector& updUDot(SubsystemIndex subsys) const {
         assert(data);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updUDot(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), "StateRep::updUDot(subsys)");
         return data->getSubsystem(subsys).udot;
     }
     Vector& updZDot(SubsystemIndex subsys) const {
         assert(data);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updZDot(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Dynamics).prev(), "StateRep::updZDot(subsys)");
         return data->getSubsystem(subsys).zdot;
     }
     Vector& updQDotDot(SubsystemIndex subsys) const {
         assert(data);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQDotDot(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), "StateRep::updQDotDot(subsys)");
         return data->getSubsystem(subsys).qdotdot;
     }
     
@@ -1589,33 +1585,26 @@ public:
     Vector& updQErr(SubsystemIndex subsys) const {
         assert(data);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updQErr(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Position).prev(), "StateRep::updQErr(subsys)");
         return data->getSubsystem(subsys).qerr;
     }
     Vector& updUErr(SubsystemIndex subsys) const {
         assert(data);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updUErr(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Velocity).prev(), "StateRep::updUErr(subsys)");
         return data->getSubsystem(subsys).uerr;
     }
     Vector& updUDotErr(SubsystemIndex subsys) const {
         assert(data);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updUDotErr(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), 
-                            "StateRep::updUDotErr(subsys)");
         return data->getSubsystem(subsys).udoterr;
     }
     Vector& updMultipliers(SubsystemIndex subsys) const {
         assert(data);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updMultipliers(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), 
-                            "StateRep::updMultipliers(subsys)");
         return data->getSubsystem(subsys).multipliers;
     }
     Vector& updEventTriggersByStage(SubsystemIndex subsys, Stage g) const {
         assert(data);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updEventTriggersByStage(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), g.prev(), "StateRep::updEventTriggersByStage(subsys)");
         return data->getSubsystem(subsys).triggers[g];
     }
     
@@ -1731,35 +1720,35 @@ public:
         return data->qdotdot;
     }
     
-    // Cache updates are allowed while realizing their "dependsOn" stages.
+    // Cache updates are allowed any time after they have been allocated.
     Vector& updYDot() const {
         assert(data);
         checkCanModifyY();
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), "StateRep::updYDot()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updYDot()");
         return data->ydot;
     }
     
     Vector& updQDot() const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Velocity).prev(), "StateRep::updQDot()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQDot()");
         return data->qdot;
     }
     
     Vector& updUDot() const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), "StateRep::updUDot()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updUDot()");
         return data->udot;
     }
     
     Vector& updZDot() const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Dynamics).prev(), "StateRep::updZDot()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updZDot()");
         return data->zdot;
     }
     
     Vector& updQDotDot() const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), "StateRep::updQDotDot()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQDotDot()");
         return data->qdotdot;
     }
     
@@ -1793,28 +1782,28 @@ public:
     
     Vector& updYErr() const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Velocity).prev(), "StateRep::updYErr()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updYErr()");
         return data->yerr;
     }
     Vector& updQErr() const{
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Position).prev(), "StateRep::updQErr()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updQErr()");
         return data->qerr;
     }
     Vector& updUErr() const{
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Velocity).prev(), "StateRep::updUErr()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updUErr()");
         return data->uerr;
     }
     Vector& updUDotErr() const{
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), 
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
                             "StateRep::updUDotErr()");
         return data->udoterr;
     }
     Vector& updMultipliers() const{
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), 
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
                             "StateRep::updMultipliers()");
         return data->multipliers;
     }
@@ -1833,12 +1822,12 @@ public:
     // These are mutable; hence 'const'.
     Vector& updEventTriggers() const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), "StateRep::updEventTriggers()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updEventTriggers()");
         return data->allTriggers;
     }
     Vector& updEventTriggersByStage(Stage g) const {
         assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), g.prev(), "StateRep::updEventTriggersByStage()");
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updEventTriggersByStage()");
         return data->triggers[g];
     }
     
