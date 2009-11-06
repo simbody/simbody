@@ -296,7 +296,7 @@ public:
     // Implementations of virtual methods.
     // Measure_<T> virtuals:
     const T& getValueVirtual(const State&, int derivOrder) const 
-    {   return derivOrder ? getValueZero() : value; }
+    {   return derivOrder ? this->getValueZero() : value; }
 
     // AbstractMeasure virtuals:
     Implementation* cloneVirtual() const {return new Implementation(*this);}
@@ -394,7 +394,7 @@ public:
     {   return order ? Stage::Topology : Stage::Model;}
 
     const T& getValueVirtual(const State& s, int order) const 
-    {   return order ? getValueZero() : getVarValue(s); }
+    {   return order ? this->getValueZero() : getVarValue(s); }
 
     void realizeMeasureTopologyVirtual(State& s) const {
         discreteVarIndex = this->getSubsystem().allocateDiscreteVariable

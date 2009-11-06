@@ -411,8 +411,8 @@ public:
     :   Measure_<T>(sub,
                     new Implementation(left, right), SetHandle())
     {   SimTK_ERRCHK_ALWAYS
-           (   getSubsystem().isSameSubsystem(left.getSubsystem())
-            && getSubsystem().isSameSubsystem(right.getSubsystem()),
+           (   this->getSubsystem().isSameSubsystem(left.getSubsystem())
+            && this->getSubsystem().isSameSubsystem(right.getSubsystem()),
             "Measure_<T>::Plus::ctor()",
             "Arguments must be in the same Subsystem as this Measure.");
     }

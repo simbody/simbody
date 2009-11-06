@@ -44,8 +44,8 @@
 
 namespace SimTK {
 
-template Measure_<Real>::Constant;
-template Measure_<Real>::Zero;
+template class Measure_<Real>::Constant;
+template class Measure_<Real>::Zero;
 
 } // namespace SimTK
 
