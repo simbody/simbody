@@ -117,12 +117,12 @@ public:
     Subsystem& updMyHandle() {assert(myHandle); return *myHandle;}
     void clearMyHandle() {myHandle=0;}
 
-    Measure getMeasure(MeasureIndex mx) const {
+    AbstractMeasure getMeasure(MeasureIndex mx) const {
         assert(0 <= mx && mx < measures.size());
-        return Measure(measures[mx]);
+        return AbstractMeasure(measures[mx]);
     }
 
-    MeasureIndex adoptMeasure(Measure& m) {
+    MeasureIndex adoptMeasure(AbstractMeasure& m) {
         assert(m.hasImpl());
         // This is an expensive check if there are lots of measures.
         assert(std::find(measures.begin(), measures.end(), &m.getImpl())
@@ -145,7 +145,7 @@ private:
     friend class Subsystem;
     Subsystem* myHandle;	// the owner handle of this rep
 
-    std::vector<Measure::Implementation*> measures;
+    std::vector<AbstractMeasure::Implementation*> measures;
 
         // TOPOLOGY CACHE
 

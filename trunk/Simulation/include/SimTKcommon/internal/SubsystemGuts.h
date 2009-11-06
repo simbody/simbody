@@ -175,8 +175,8 @@ public:
     SystemEventTriggerByStageIndex   getEventTriggerStartByStage(const State&, Stage) const;
     int getNEventTriggersByStage(const State&, Stage) const;
 
-    MeasureIndex adoptMeasure(Measure& m);
-    Measure getMeasure(MeasureIndex) const;
+    MeasureIndex adoptMeasure(AbstractMeasure& m);
+    AbstractMeasure getMeasure(MeasureIndex) const;
     template <class T> Measure_<T> getMeasure_(MeasureIndex mx) const
     {   return Measure_<T>::getAs(getMeasure(mx));}
 

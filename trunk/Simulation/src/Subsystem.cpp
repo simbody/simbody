@@ -118,9 +118,9 @@ void Subsystem::invalidateSubsystemTopologyCache() const {
     getSubsystemGuts().invalidateSubsystemTopologyCache(); // mutable
 }
 
-MeasureIndex Subsystem::adoptMeasure(Measure& m)
+MeasureIndex Subsystem::adoptMeasure(AbstractMeasure& m)
 {   return updSubsystemGuts().adoptMeasure(m); }
-Measure Subsystem::getMeasure(MeasureIndex mx) const
+AbstractMeasure Subsystem::getMeasure(MeasureIndex mx) const
 {   return getSubsystemGuts().getMeasure(mx); }
 
 
@@ -268,9 +268,9 @@ void Subsystem::Guts::setSystem(System& sys, SubsystemIndex id) {
 const String& Subsystem::Guts::getName()    const {return getRep().getName();}
 const String& Subsystem::Guts::getVersion() const {return getRep().getVersion();}
 
-MeasureIndex Subsystem::Guts::adoptMeasure(Measure& m)
+MeasureIndex Subsystem::Guts::adoptMeasure(AbstractMeasure& m)
 {   return updRep().adoptMeasure(m); }
-Measure Subsystem::Guts::getMeasure(MeasureIndex mx) const
+AbstractMeasure Subsystem::Guts::getMeasure(MeasureIndex mx) const
 {   return getRep().getMeasure(mx); }
 
 bool Subsystem::Guts::isInSystem() const {return getRep().isInSystem();}

@@ -452,15 +452,30 @@ void testOne() {
     TestSystem sys;
     TestSubsystem subsys(sys);
 
-    Measure::Constant zero(subsys, 0);
+    Measure::Zero zero(subsys);
     Measure::Constant three(subsys, 3);
-    Measure::Constant_<Vec3> v3const(subsys, Vec3(1,2,3));
+    Measure_<Vec3>::Constant v3const(subsys, Vec3(1,2,3));
     Measure::Sinusoid cos2pit(subsys, 1, 2*Pi, Pi/2);
 
     // Integrate the cos(2pi*t) measure with IC=0; should give sin(2pi*t)/2pi.
     Measure::Integrate sin2pitOver2pi(subsys, cos2pit, zero);
 
+    Measure::Variable mv(subsys, Stage::Position, 29);
+    cout << "mv def value=" << mv.getDefaultValue() << endl;
+    mv.setDefaultValue(-19);
+    cout << "mv def value now=" << mv.getDefaultValue() << endl;
+
+    cout << "Measure::Zero=" << Measure::Zero().getValue(State()) << endl;
+    cout << "Measure::One=" << Measure::One().getValue(State()) << endl;
+
+    Measure::Plus vplus(subsys, mv, cos2pit);
+
     State state = sys.realizeTopology();
+
+    Measure_<Mat22>::One m22Ident;
+    cout << "Measure_<Mat22>::One=" << m22Ident.getValue(state) << endl;
+
+    cout << "mv after realizeTopo=" << mv.getValue(state) << endl;
 
     State s2,s3;
     s2 = state; // new copies of variables
@@ -474,7 +489,21 @@ void testOne() {
 
     ASSERT(state.getTime()==0);
 
+
     //initialize()
+    sys.realize(state, Stage::Position);
+    cout << "mv+cos2pit=" << vplus.getValue(state) << endl;
+
+    cout << "Sys stage after realize(Pos):" 
+         << state.getSystemStage().getName() << endl;
+
+    mv.setValue(state, 1.234);
+
+    cout << "Sys stage after mv=1.234:" 
+         << state.getSystemStage().getName() << endl;
+
+    cout << "mv is now=" << mv.getValue(state) << endl;
+
     sys.realize(state, Stage::Position);
 
     // Fill in statics above.
@@ -494,6 +523,8 @@ void testOne() {
                  << " cos(2pi*t)=" << std::cos(2*Pi*state.getTime()) << endl;
             cout << "sin2pitOver2pi=" << sin2pitOver2pi.getValue(state) 
                  << " sin(2pi*t)/2pi=" << std::sin(2*Pi*state.getTime())/(2*Pi) << endl;
+            cout << "d/dt sin2pitOver2pi=" 
+                 << sin2pitOver2pi.getValue(state,1) << endl;
         }
 
         if (i == nSteps)

@@ -216,9 +216,9 @@ public:
 
     // Add a new Measure to this Subsystem. This method is generally used by Measure
     // constructors to install a newly-constructed Measure into its Subsystem.
-    MeasureIndex adoptMeasure(Measure&);
+    MeasureIndex adoptMeasure(AbstractMeasure&);
 
-    Measure getMeasure(MeasureIndex) const;
+    AbstractMeasure getMeasure(MeasureIndex) const;
     template <class T> Measure_<T> getMeasure_(MeasureIndex mx) const
     {   return Measure_<T>::getAs(getMeasure(mx));}
 
