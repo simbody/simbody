@@ -536,7 +536,7 @@ public:
 
     void realizeMeasureTopologyVirtual(State& s) const
     {   cacheIndex = this->getSubsystem().allocateCacheEntry
-           (s, getDependsOnStage(s,0), Stage::Infinity, 
+           (s, getDependsOnStageVirtual(s,0), Stage::Infinity, 
             new Value<T>()); }
 
 private:
