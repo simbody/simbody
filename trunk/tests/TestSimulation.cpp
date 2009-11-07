@@ -470,6 +470,20 @@ void testOne() {
 
     Measure::Plus vplus(subsys, mv, cos2pit);
 
+    Measure::Plus vplus2;
+    vplus2.deepAssign(vplus);
+
+    Measure m;
+    m = cos2pit;
+
+    m = zero;
+    cout << "m=" << m.getValue(State()) << endl;
+
+
+    cout << "vplus ref count=" << vplus.getRefCount() << endl;
+    cout << "vplus2 ref count=" << vplus2.getRefCount() << endl;
+
+
     State state = sys.realizeTopology();
 
     Measure_<Mat22>::One m22Ident;

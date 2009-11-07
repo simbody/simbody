@@ -65,12 +65,20 @@
  * MH::Implementation must be defined elsewhere as a class derived 
  * from Measure::Implementation.
  */
-#define SimTK_MEASURE_HANDLE_PREAMBLE(MH,PH) \
+#define SimTK_MEASURE_HANDLE_PREAMBLE_BASE(MH,PH,DEFAULT) \
     class Implementation;                                           \
-    explicit MH() : PH(new Implementation()) {}                     \
+    MH() : PH(DEFAULT) {}                                           \
     explicit MH(Implementation* imp) : PH(imp) {}                   \
     MH(Subsystem& sub, Implementation* imp, const SetHandle& sh)    \
-    :   PH(sub,imp,sh) {}
+    :   PH(sub,imp,sh) {}                                           \
+    MH& operator=(const MH& src) {PH::operator=(src); return *this;}\
+    MH& shallowAssign(const MH& src) {PH::shallowAssign(src); return *this;}\
+    MH& deepAssign(const MH& src) {PH::deepAssign(src); return *this;}
+
+// The default constructor for concrete classes should instantiate
+// a default-constructed Implementation object.
+#define SimTK_MEASURE_HANDLE_PREAMBLE(MH,PH)    \
+    SimTK_MEASURE_HANDLE_PREAMBLE_BASE(MH,PH,new Implementation())   \
 
 /**
  * Every measure handle class "MH" derived directly or indirectly from the
@@ -144,11 +152,43 @@ protected:
 public:
     class Implementation; // local; name is AbstractMeasure::Implementation
 
+    /// Provide an Implementation for this AbstractMeasure and bump its
+    /// reference count. This is also the default constructor for the
+    /// base class producing an empty handle.
     explicit AbstractMeasure(Implementation* g=0);
+
+    /// Construct this handle with a given Implementation object (whose
+    /// reference count will be bumped) and then let the given Subsystem
+    /// adopt this Measure (which will again bump the Implementation's
+    /// reference count, leaving us with two new handles).
     AbstractMeasure(Subsystem&, Implementation* g, const SetHandle&);
+
+    /// Shallow copy constructor copies the pointer from the source
+    /// Implementation object and bumps its reference count.
     AbstractMeasure(const AbstractMeasure&);
-    AbstractMeasure& operator=(const AbstractMeasure&);
+
+    /// Shallow assignment operator results in this handle referencing
+    /// the same Implementation object as does the source.
+    /// @see shallowAssign for more details
+    AbstractMeasure& operator=(const AbstractMeasure& source)
+    {   return shallowAssign(source); }
+
+    /// Destructor decrements the Implementation's reference count and
+    /// deletes the object if the count goes to zero.
     ~AbstractMeasure();
+
+    /// Shallow assignment operator destructs the current Implementation
+    /// object (meaning its reference count is decremented and the object
+    /// actually deleted only if the count goes to zero), then copies the 
+    /// Implementation pointer from the source and bumps its reference count.
+    /// This is what the copy assignment operator= does for this class.
+    AbstractMeasure& shallowAssign(const AbstractMeasure&);
+
+    /// Deep assignment clones the Implementation object pointed to by
+    /// the source handle, so that this handle ends up pointing to a
+    /// new Measure object similar to the original but not yet contained
+    /// in any Subsystem.
+    AbstractMeasure& deepAssign(const AbstractMeasure& source);
 
     /// Every Measure can produce a value, and some can provide one or
     /// more total derivatives with respect to time of that value. This
@@ -157,38 +197,35 @@ public:
     /// are available, etc. We interpret the "0th derivative" to be the
     /// Measure's value.
     /// @return The maximum available derivative order.
-    inline int getNumTimeDerivatives() const;
+    int getNumTimeDerivatives() const;
 
     /// At what Stage can we expect the value of this AbstractMeasure or
     /// one of its time derivatives to be available? Users of Measures will 
     /// typically impose restrictions on the levels they will accept.
-    /// @param[in] state 
-    ///     The State to be consulted to determine the maximum Stage on
-    ///     which the requested value may depend, in case that Stage is
-    ///     State-dependendent (e.g., on a Model-stage variable).
     /// @param[in] derivOrder
     ///     Which derivative level is to be checked: 0 -> the value,
     ///     1 -> the 1st time derivative, etc. Must not be higher than the
     ///     value returned by getNumTimeDerivatives().
     /// @return The Stage after which this value is available.                  
-    inline Stage 
-    getDependsOnStage(const State& state, int derivOrder=0) const;
+    Stage getDependsOnStage(int derivOrder=0) const;
 
 
     /// There can be multiple handles on the same Measure.
     bool isSameMeasure(const AbstractMeasure& other) const
     {   return impl && impl==other.impl;}
 
+    bool isEmptyHandle() const {return !hasImpl();}
+
     /// Test whether this Measure object has been adopted by a Subsystem.
-    inline bool isInSubsystem() const;
+    bool isInSubsystem() const;
     /// Return a reference to the Subsystem that owns this Measure. Will
     /// throw an exception if the Measure is not currently owned by any
     /// Subsystem.
-    inline const Subsystem& getSubsystem()  const;
+    const Subsystem& getSubsystem()  const;
     /// Return the MeasureIndex by which this Measure is know to the Subsystem 
     /// that owns it. Will throw an exception if the Measure is not currently 
     /// owned by any Subsystem.
-    inline MeasureIndex getSubsystemMeasureIndex() const;
+    MeasureIndex getSubsystemMeasureIndex() const;
 
     // Internal use only
 
@@ -198,7 +235,7 @@ public:
     Implementation&       updImpl()       {assert(impl); return *impl;}
     bool                  hasImpl() const {return impl!=0;}
 
-
+    int getRefCount() const;
 private:
     // This is the only data member in this class. Also, any class derived 
     // from AbstractMeasure must have *NO* data members at all (data goes 
@@ -219,7 +256,9 @@ friend class Implementation;
 template <class T>
 class Measure_ : public AbstractMeasure {
 public:
-    SimTK_MEASURE_HANDLE_PREAMBLE(Measure_, AbstractMeasure);
+    /// This class is still abstract so we don't want it to allocate an
+    /// Implementation object in its default constructor.
+    SimTK_MEASURE_HANDLE_PREAMBLE_BASE(Measure_, AbstractMeasure, /*nothing*/);
 
     /// Retrieve the Value of this Measure or one of its time
     /// derivatives, assuming the State has been realized to at least the
@@ -416,7 +455,6 @@ public:
             "Measure_<T>::Plus::ctor()",
             "Arguments must be in the same Subsystem as this Measure.");
     }
-
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Plus, Measure_<T>);
 };
