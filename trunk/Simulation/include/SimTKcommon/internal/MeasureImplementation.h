@@ -288,12 +288,16 @@ public:
 
         SimTK_ERRCHK2
             (   getDependsOnStage(derivOrder)==Stage::Empty
-             || (getStage(s)>=getDependsOnStage(derivOrder)),
+             || (isInSubsystem() 
+                 && getStage(s)>=getDependsOnStage(derivOrder))
+             || (!isInSubsystem() 
+                 && s.getSystemStage()>=getDependsOnStage(derivOrder)),
             "Measure_<T>::getValue()",
             "Expected State to have been realized to at least stage "
             "%s but stage was %s.", 
             getDependsOnStage(derivOrder).getName().c_str(), 
-            getStage(s).getName().c_str());
+            (isInSubsystem() ? getStage(s) : s.getSystemStage())
+                .getName().c_str());
 
         if (derivOrder < getNumCacheEntries()) {
             if (!isCacheValueCurrent(s,derivOrder)) {
@@ -404,7 +408,7 @@ protected:
         return zero;
     }
 
-    static const Value<T>& getValueOne() {
+    static const T& getValueOne() {
         static T one(1);
         return one;
     }
@@ -447,6 +451,8 @@ public:
     Implementation* cloneVirtual() const {return new Implementation(*this);}
     Stage getDependsOnStageVirtual(int derivOrder) const 
     {   return derivOrder>0 ? Stage::Empty : Stage::Topology; }
+    int getNumTimeDerivativesVirtual() const 
+    {   return std::numeric_limits<int>::max(); }
 
 private:
     T value;
@@ -498,6 +504,41 @@ public:
     Implementation* cloneVirtual() const {return new Implementation(*this);}
     Stage getDependsOnStageVirtual(int) const 
     {   return Stage::Empty; }
+};
+
+
+    //////////////////////////
+    // TIME::IMPLEMENTATION //
+    //////////////////////////
+
+template <class T>
+class Measure_<T>::Time::Implementation {};
+
+template <>
+class Measure_<Real>::Time::Implementation 
+:   public Measure_<Real>::Implementation 
+{
+public:
+    // We don't want the base class to allocate *any* cache entries.
+    Implementation() : Measure_<Real>::Implementation(0) {}
+
+    // Implementations of virtual methods.
+    // Measure_<Real> virtuals:
+    // No cached values.
+
+    const Real& getUncachedValueVirtual(const State& s, int derivOrder) const 
+    {   return derivOrder==0 ? s.getTime()
+            : (derivOrder==1 ? this->getValueOne() 
+                             : this->getValueZero()); }
+
+    // AbstractMeasure virtuals:
+    Implementation* cloneVirtual() const {return new Implementation(*this);}
+    Stage getDependsOnStageVirtual(int derivOrder) const 
+    {   return derivOrder>0 ? Stage::Empty : Stage::Time; }
+
+    // Value is t, 1st derivative is 1, the rest are 0.
+    int getNumTimeDerivativesVirtual() const 
+    {   return std::numeric_limits<int>::max(); }
 };
 
     //////////////////////////////
@@ -649,6 +690,7 @@ class Measure_<T>::Plus::Implementation
 :   public Measure_<T>::Implementation 
 {
 public:
+    // TODO: Currently allocates just one cache entry.
     // left and right will be empty handles.
     Implementation() {}
 
@@ -686,6 +728,114 @@ private:
     // TOPOLOGY STATE
     const Measure_<T> left;
     const Measure_<T> right;
+
+    // TOPOLOGY CACHE
+    // nothing
+};
+
+    ///////////////////////////
+    // MINUS::IMPLEMENTATION //
+    ///////////////////////////
+
+template <class T>
+class Measure_<T>::Minus::Implementation
+:   public Measure_<T>::Implementation 
+{
+public:
+    // TODO: Currently allocates just one cache entry.
+    // left and right will be empty handles.
+    Implementation() {}
+
+    Implementation(const Measure_<T>& left, 
+                   const Measure_<T>& right)
+    :   left(left), right(right) {}
+
+    // Default copy constructor gives us a new Implementation object,
+    // but with references to the *same* operand measures.
+
+    // Implementations of virtual methods.
+
+    // This uses the default copy constructor.
+    Implementation* cloneVirtual() const 
+    {   return new Implementation(*this); }
+
+    // TODO: Let this be settable up to the min number of derivatives 
+    // provided by the arguments.
+    int getNumTimeDerivativesVirtual() const {return 0;} 
+    //{   return std::min(left.getNumTimeDerivatives(), 
+    //                    right.getNumTimeDerivatives()); }
+
+    Stage getDependsOnStageVirtual(int order) const 
+    {   return Stage(std::max(left.getDependsOnStage(order),
+                              right.getDependsOnStage(order))); }
+
+
+    void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const {
+        value = left.getValue(s,derivOrder) - right.getValue(s,derivOrder);
+    }
+
+    // There are no uncached values.
+
+private:
+    // TOPOLOGY STATE
+    const Measure_<T> left;
+    const Measure_<T> right;
+
+    // TOPOLOGY CACHE
+    // nothing
+};
+
+
+    ///////////////////////////
+    // SCALE::IMPLEMENTATION //
+    ///////////////////////////
+
+template <class T>
+class Measure_<T>::Scale::Implementation
+:   public Measure_<T>::Implementation 
+{
+public:
+    // TODO: Currently allocates just one cache entry.
+    // scale will be uninitialized, operand will be empty handle.
+    Implementation() : factor(NaN) {}
+
+    Implementation(Real factor, const Measure_<T>& operand)
+    :   factor(factor), operand(operand) {}
+
+    // Default copy constructor gives us a new Implementation object,
+    // but with references to the *same* operand measure.
+
+    void setScaleFactor(Real sf) {
+        factor = sf;
+        this->invalidateTopologyCache();
+    }
+
+    // Implementations of virtual methods.
+
+    // This uses the default copy constructor.
+    Implementation* cloneVirtual() const 
+    {   return new Implementation(*this); }
+
+    // TODO: Let this be settable up to the min number of derivatives 
+    // provided by the arguments.
+    int getNumTimeDerivativesVirtual() const {return 0;} 
+    //{   return std::min(left.getNumTimeDerivatives(), 
+    //                    right.getNumTimeDerivatives()); }
+
+    Stage getDependsOnStageVirtual(int order) const 
+    {   return operand.getDependsOnStage(order); }
+
+
+    void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const {
+        value = factor * operand.getValue(s,derivOrder);
+    }
+
+    // There are no uncached values.
+
+private:
+    // TOPOLOGY STATE
+    const Real        factor;
+    const Measure_<T> operand;
 
     // TOPOLOGY CACHE
     // nothing

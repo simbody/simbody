@@ -460,6 +460,11 @@ void testOne() {
     // Integrate the cos(2pi*t) measure with IC=0; should give sin(2pi*t)/2pi.
     Measure::Integrate sin2pitOver2pi(subsys, cos2pit, zero);
 
+    Measure::Time tMeasure;
+    Measure::Time tSubMeas(subsys);
+
+    Measure::Scale t1000(subsys, 1000, tSubMeas);
+
     Measure::Variable mv(subsys, Stage::Position, 29);
     cout << "mv def value=" << mv.getDefaultValue() << endl;
     mv.setDefaultValue(-19);
@@ -469,6 +474,7 @@ void testOne() {
     cout << "Measure::One=" << Measure::One().getValue(State()) << endl;
 
     Measure::Plus vplus(subsys, mv, cos2pit);
+    Measure::Minus vminus(subsys, mv, cos2pit);
 
     Measure::Plus vplus2;
     vplus2.deepAssign(vplus);
@@ -485,6 +491,12 @@ void testOne() {
 
 
     State state = sys.realizeTopology();
+    state.setTime(1.234);
+    sys.realize(state, Stage::Time);
+    cout << "Initially, tMeasure=" << tMeasure.getValue(state)
+         << " tSubMeas=" << tSubMeas.getValue(state) 
+         << " 1000*tMeasure=" << t1000.getValue(state)
+         << endl;
 
     Measure_<Mat22>::One m22Ident;
     cout << "Measure_<Mat22>::One=" << m22Ident.getValue(state) << endl;
@@ -507,6 +519,7 @@ void testOne() {
     //initialize()
     sys.realize(state, Stage::Position);
     cout << "mv+cos2pit=" << vplus.getValue(state) << endl;
+    cout << "mv-cos2pit=" << vminus.getValue(state) << endl;
 
     cout << "Sys stage after realize(Pos):" 
          << state.getSystemStage().getName() << endl;
@@ -530,7 +543,12 @@ void testOne() {
 
         if (i % outputInterval == 0) {
             sys.realize(state, Stage::Report);
-            cout << "\nt=" << state.getTime() << " q=" << state.getQ() << " u=" << state.getU() << endl;
+            cout << "\ntMeasure=" << tMeasure.getValue(state)
+                 << " d/dt tMeasure=" << tMeasure.getValue(state,1)
+                 << " d3/dt3 tMeasure=" << tMeasure.getValue(state,3)
+                 << " 1000*tSubMeas=" << t1000.getValue(state)
+                 << " t=" << state.getTime() << endl;
+            cout << "q=" << state.getQ() << " u=" << state.getU() << endl;
             cout << "qSum=" << subsys.getQSum(state) << " uSum=" << subsys.getUSum(state) << endl;
             cout << "three=" << three.getValue(state) << " v3const=" << v3const.getValue(state) << endl;
             cout << "cos2pit=" << cos2pit.getValue(state) 

@@ -65,9 +65,8 @@
  * MH::Implementation must be defined elsewhere as a class derived 
  * from Measure::Implementation.
  */
-#define SimTK_MEASURE_HANDLE_PREAMBLE_BASE(MH,PH,DEFAULT) \
+#define SimTK_MEASURE_HANDLE_PREAMBLE_BASE(MH,PH) \
     class Implementation;                                           \
-    MH() : PH(DEFAULT) {}                                           \
     explicit MH(Implementation* imp) : PH(imp) {}                   \
     MH(Subsystem& sub, Implementation* imp, const SetHandle& sh)    \
     :   PH(sub,imp,sh) {}                                           \
@@ -76,9 +75,20 @@
     MH& deepAssign(const MH& src) {PH::deepAssign(src); return *this;}
 
 // The default constructor for concrete classes should instantiate
-// a default-constructed Implementation object.
+// a default-constructed Implementation object if no Implementation
+// is provided.
 #define SimTK_MEASURE_HANDLE_PREAMBLE(MH,PH)    \
-    SimTK_MEASURE_HANDLE_PREAMBLE_BASE(MH,PH,new Implementation())   \
+    SimTK_MEASURE_HANDLE_PREAMBLE_BASE(MH,PH)   \
+    MH() : PH(new Implementation()) {}          \
+    explicit MH(Subsystem& sub)                 \
+    : PH(sub,new Implementation(), SetHandle()) {}
+
+// The default constructor for a still-abstract derived class can't
+// instantiate an Implementation.
+#define SimTK_MEASURE_HANDLE_PREAMBLE_ABSTRACT(MH,PH)   \
+    SimTK_MEASURE_HANDLE_PREAMBLE_BASE(MH,PH)           \
+    MH() : PH() {}                                      \
+    explicit MH(Subsystem& sub) : PH(sub) {}    
 
 /**
  * Every measure handle class "MH" derived directly or indirectly from the
@@ -258,7 +268,7 @@ class Measure_ : public AbstractMeasure {
 public:
     /// This class is still abstract so we don't want it to allocate an
     /// Implementation object in its default constructor.
-    SimTK_MEASURE_HANDLE_PREAMBLE_BASE(Measure_, AbstractMeasure, /*nothing*/);
+    SimTK_MEASURE_HANDLE_PREAMBLE_ABSTRACT(Measure_, AbstractMeasure);
 
     /// Retrieve the Value of this Measure or one of its time
     /// derivatives, assuming the State has been realized to at least the
@@ -277,14 +287,17 @@ public:
     class Zero;         // T is any numerical type
     class One;          // T is any numerical type
     class Constant;     // T is any assignable type
+    class Time;         // T is any type for which T(t) makes sense.
     class Variable;     // T is any assignable type
     class SampleAndHold;//    "
 
     // This requires any numerical type.
     class Plus;
+    class Minus;
+    class Scale;
 
     // These accept any type that supports operator<, elementwise for 
-    // vectors and matrices.
+    // vectors and matrices. TODO
     class Minimum;
     class Maximum;
 
@@ -342,9 +355,6 @@ class Measure_<T>::Zero : public Measure_<T>::Constant {
 public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Zero, Measure_<T>::Constant);
 
-    explicit Zero(Subsystem& sub)
-    :   Measure_<T>::Constant(sub, new Implementation(), SetHandle()) {}
-
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Zero, Measure_<T>::Constant);
 private:
     Zero& setValue(const T&) 
@@ -364,13 +374,25 @@ class Measure_<T>::One : public Measure_<T>::Constant {
 public:
     SimTK_MEASURE_HANDLE_PREAMBLE(One, Measure_<T>::Constant);
 
-    explicit One(Subsystem& sub)
-    :   Measure_<T>::Constant(sub, new Implementation()) {}
-
     SimTK_MEASURE_HANDLE_POSTSCRIPT(One, Measure_<T>::Constant);
 private:
     One& setValue(const T&)     
     {   return *reinterpret_cast<Zero*>(0);} // suppressed!
+};
+
+    //////////
+    // TIME //
+    //////////
+
+/**
+ * This creates a Measure::Time whose value is always T(time).
+ */
+template <class T>
+class Measure_<T>::Time : public Measure_<T> {
+public:
+    SimTK_MEASURE_HANDLE_PREAMBLE(Time, Measure_<T>);
+
+    SimTK_MEASURE_HANDLE_POSTSCRIPT(Time, Measure_<T>);
 };
 
     //////////////
@@ -457,6 +479,55 @@ public:
     }
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Plus, Measure_<T>);
+};
+
+    ///////////
+    // MINUS //
+    ///////////
+
+/**
+ * This Measure is the difference of two Measures of the same type T.
+ */
+template <class T>
+class Measure_<T>::Minus : public Measure_<T> {
+public:
+    SimTK_MEASURE_HANDLE_PREAMBLE(Minus, Measure_<T>);
+
+    Minus(Subsystem& sub, const Measure_<T>& left, const Measure_<T>& right)
+    :   Measure_<T>(sub,
+                    new Implementation(left, right), SetHandle())
+    {   SimTK_ERRCHK_ALWAYS
+           (   this->getSubsystem().isSameSubsystem(left.getSubsystem())
+            && this->getSubsystem().isSameSubsystem(right.getSubsystem()),
+            "Measure_<T>::Minus::ctor()",
+            "Arguments must be in the same Subsystem as this Measure.");
+    }
+
+    SimTK_MEASURE_HANDLE_POSTSCRIPT(Minus, Measure_<T>);
+};
+
+    ///////////
+    // SCALE //
+    ///////////
+
+/**
+ * This Measure multiplies some other Measure by a Real scale factor.
+ */
+template <class T>
+class Measure_<T>::Scale : public Measure_<T> {
+public:
+    SimTK_MEASURE_HANDLE_PREAMBLE(Scale, Measure_<T>);
+
+    Scale(Subsystem& sub, Real factor, const Measure_<T>& operand)
+    :   Measure_<T>(sub,
+                    new Implementation(factor, operand), SetHandle())
+    {   SimTK_ERRCHK_ALWAYS
+           (this->getSubsystem().isSameSubsystem(operand.getSubsystem()),
+            "Measure_<T>::Scale::ctor()",
+            "Argument must be in the same Subsystem as this Measure.");
+    }
+
+    SimTK_MEASURE_HANDLE_POSTSCRIPT(Scale, Measure_<T>);
 };
 
     ///////////////
