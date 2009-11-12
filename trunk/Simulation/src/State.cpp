@@ -699,9 +699,14 @@ private:
         }
 
         // Set stage versions so that any cache entries we copied can still
-        // be valid if they were valid in the source.
+        // be valid if they were valid in the source and depended only on
+        // things we copied.
         for (int i=0; i<=targetStage; ++i)
             stageVersions[i] = src.stageVersions[i];
+        // The rest of the stages need to be invalidated in the destination
+        // since we didn't copy any state information from those stages.
+        for (int i=targetStage+1; i<=src.currentStage; ++i)
+            stageVersions[i] = src.stageVersions[i] + 1;
 
         // Subsystem stage should now match what we copied.
         currentStage = targetStage;
