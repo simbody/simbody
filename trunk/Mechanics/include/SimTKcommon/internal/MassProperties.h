@@ -796,11 +796,19 @@ public:
         return Gyration_(oo3*(hy2+hz2), oo3*(hx2+hz2), oo3*(hx2+hy2));
     }
 
+    /// Alternate interface to brick() that takes a Vec3 for the half lengths.
+    static Gyration_ brick(const Vec3P& halfLengths)
+    {   return brick(halfLengths[0],halfLengths[1],halfLengths[2]); }
+
     /// Unit-mass ellipsoid given by half-lengths in each direction.
     static Gyration_ ellipsoid(const RealP& hx, const RealP& hy, const RealP& hz) {
         const RealP hx2=hx*hx, hy2=hy*hy, hz2=hz*hz;
         return Gyration_((hy2+hz2)/5, (hx2+hz2)/5, (hx2+hy2)/5);
     }
+
+    /// Alternate interface to ellipsoid() that takes a Vec3 for the half lengths.
+    static Gyration_ ellipsoid(const Vec3P& halfLengths)
+    {   return ellipsoid(halfLengths[0],halfLengths[1],halfLengths[2]); }
 
     //@}
 private:
