@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -57,20 +57,24 @@ public:
     virtual const MassProperties& getDefaultRigidBodyMassProperties() const = 0;
     virtual void setDefaultRigidBodyMassProperties(const MassProperties&) = 0;
 
-    // Add a permanent ("Topological") piece of geometry which is permanently fixed to the body.
-    // Thus the 3D polygonal representation can be precalculated once and for all at Stage::Topology,
-    // then transformed at Stage::Position for display on a screen.
+    // Add a permanent ("Topological") piece of geometry which is permanently 
+    // fixed to the body. Thus the 3D polygonal representation can be 
+    // precalculated once and for all at Stage::Topology, then transformed at 
+    // Stage::Position for display on a screen.
     //
-    // This will make an internal copy of the supplied DecorativeGeometry. We can't fill
-    // in the MobilizedBodyIndex yet, but we apply the transform now to the saved copy so that
-    // the geometry we return later will be relative to the body frame only.
+    // This will make an internal copy of the supplied DecorativeGeometry. We 
+    // can't fill in the MobilizedBodyIndex yet, but we apply the transform 
+    // now to the saved copy so that the geometry we return later will be 
+    // relative to the body frame only.
     void addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         geometry.push_back(g); // make a new copy
         DecorativeGeometry& myg = geometry.back();
         myg.setTransform(X_BD*myg.getTransform());
     }
 
-    void appendDecorativeGeometry(MobilizedBodyIndex id, std::vector<DecorativeGeometry>& geom) const {
+    void appendDecorativeGeometry(MobilizedBodyIndex id, 
+                                  std::vector<DecorativeGeometry>& geom) const 
+    {
         for (int i=0; i<(int)geometry.size(); ++i) {
             geom.push_back(geometry[i]);
             geom.back().setBodyId(id);
@@ -90,18 +94,14 @@ private:
 
 class Body::Ground::GroundRep : public Body::BodyRep {
 public:
-    GroundRep() : BodyRep(), infiniteMassProperties(NTraits<Real>::getInfinity(), 
-                                                    Vec3(0),
-                                                    NTraits<Real>::getInfinity()*Inertia(1))
+    GroundRep() 
+    :   BodyRep(), infiniteMassProperties(Infinity, Vec3(0), Inertia(Infinity))
     {
     }
     GroundRep* clone() const {
         return new GroundRep(*this);
     }
     const MassProperties& getDefaultRigidBodyMassProperties() const {
-        static const MassProperties groundMass(NTraits<Real>::getInfinity(), 
-                                               Vec3(0),
-                                               NTraits<Real>::getInfinity()*Inertia(1));
         return infiniteMassProperties;
     }
     
@@ -120,7 +120,9 @@ private:
 
 class Body::Massless::MasslessRep : public Body::BodyRep {
 public:
-    MasslessRep() : BodyRep(), zeroMassProperties(0, Vec3(0), Inertia(0)) {
+    MasslessRep() 
+    :   BodyRep(), zeroMassProperties(0, Vec3(0), Inertia(0)) 
+    {
     }
     MasslessRep* clone() const {
         return new MasslessRep(*this);
@@ -144,7 +146,9 @@ private:
 
 class Body::Rigid::RigidRep : public Body::BodyRep {
 public:
-    RigidRep() : BodyRep(), defaultMassProperties(1,Vec3(0),Inertia(1)) {
+    RigidRep() 
+    :   BodyRep(), defaultMassProperties(1,Vec3(0),Inertia(1)) 
+    {
     }
     explicit RigidRep(const MassProperties& m) : BodyRep(), defaultMassProperties(m) {
     }

@@ -75,9 +75,22 @@ public:
     Constraint() { }
     explicit Constraint(ConstraintImpl* r) : HandleBase(r) { }
 
+    /// Disable this constraint, effectively removing it from the system. This
+    /// is an Instance-stage change and affects the allocation of constraint-related
+    /// cache variables in the supplied State.
     void disable(State&) const;
+    /// Enable this constraint, without necessarily satisfying it. This
+    /// is an Instance-stage change and affects the allocation of constraint-related
+    /// cache variables in the supplied State. Note that merely enabling a 
+    /// constraint does not ensure that the State's positions and velocities
+    /// satisfy that constraint; initial satisfaction requires use of an appropriate
+    /// solver.
     void enable(State&) const;
+    /// Test whether this constraint is currently disabled in the supplied State.
     bool isDisabled(const State&) const;
+    /// Test whether this constraint is disabled by default in which case it
+    /// must be explicitly enabled before it will take effect.
+    /// @see enable()
     bool isDisabledByDefault() const;
 
     /// Normally Constraints are enabled when defined and can be disabled later. If

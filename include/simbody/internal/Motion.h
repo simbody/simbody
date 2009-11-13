@@ -184,7 +184,7 @@ public:
 class SimTK_SIMBODY_EXPORT Motion::Sinusoid : public Motion {
 public:
     /**
-     * Create a Motion::Sinusoid.
+     * Create a sinusoidal prescribed motion.
      * 
      * @param[in,out] mobod 
      *      The MobilizedBody to which this Motion should be added.

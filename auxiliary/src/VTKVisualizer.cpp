@@ -461,7 +461,8 @@ VTKVisualizerRep::VTKVisualizerRep(const MultibodySystem& m, VTKVisualizer* repo
     zeroPointers();
 
     renWin = vtkRenderWindow::New();
-    renWin->SetSize(1200,900);
+    //renWin->SetSize(1200,900);
+    renWin->SetSize(600,450);
     
     // an interactor
     vtkRenderWindowInteractor* iren = vtkRenderWindowInteractor::New();

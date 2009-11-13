@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -33,10 +33,10 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This defines the Body class, which represents a reference frame which
+ * This defines the Body class, which represents a reference frame that
  * can be used to describe mass properties and geometry. These are
  * in turn used to build MobilizedBodies which combine a body and a
- * specified mobilizer which defines how the reference frame can move
+ * specified mobilizer that defines how the reference frame can move
  * with respect to other MobilizedBodies.
  *
  * Body is an abstract base class handle, with concrete classes defined
@@ -64,11 +64,15 @@ public:
     Body(const Body&);
     Body& operator=(const Body&);
 
-    /// This is a default conversion from MassProperties to Body. It will result
-    /// in a rigid body (concrete class Body::Rigid) being created using
-    /// these MassProperties.
+    /// This is a default conversion from MassProperties to Body. It will 
+    /// result in a rigid body (concrete class Body::Rigid) being created 
+    /// using these as its default MassProperties.
     Body(const MassProperties&);
 
+    /// Add a piece of decorative geometry fixed at some location on this
+    /// Body. This can be used for visualization of the Body's motion.
+    /// Returns a reference to the Body so these can be chained like
+    /// assignment operators.
     Body& addDecoration(const Transform& X_BD, const DecorativeGeometry&);
 
     // Every type of Body should provide an initial set of rigid body mass 
@@ -91,14 +95,18 @@ public:
     // Internal use only
     class BodyRep; // local subclass
     explicit Body(class BodyRep* r) : rep(r) { }
-    bool                hasRep() const {return rep!=0;}
+    bool           hasRep() const {return rep!=0;}
     const BodyRep& getRep() const {assert(rep); return *rep;}
     BodyRep&       updRep() const {assert(rep); return *rep;}
-	void setRep(BodyRep& r) {assert(!rep); rep = &r;}
+	void           setRep(BodyRep& r) {assert(!rep); rep = &r;}
 protected:
     class BodyRep* rep;
 };
 
+/**
+ * A general rigid body. This can represent a body with mass properties
+ * that are full, linear, inertialess (e.g. a point), or massless.
+ */
 class SimTK_SIMBODY_EXPORT Body::Rigid : public Body {
 public:
     Rigid(); // default mass properties (1,Vec3(0),Inertia(1,1,1))
@@ -120,6 +128,10 @@ private:
     const RigidRep& getRep() const;
 };
 
+/**
+ * A rigid body in the shape of a line, which is inherently inertialess
+ * about its axis.
+ */
 class SimTK_SIMBODY_EXPORT Body::Linear : public Body {
 public:
     Linear(); // default mass properties (1,Vec3(0),Inertia(1,1,0))

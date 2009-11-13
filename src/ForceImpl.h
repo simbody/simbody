@@ -187,6 +187,130 @@ private:
     Real force;
 };
 
+class Force::LinearBushingImpl : public ForceImpl {
+    struct PositionCache {
+        Transform X_GF, X_GM, X_FM;
+        Vec3      p_AF_G, p_BM_G, p_FM_G;
+        Vec6      q;
+    };
+    struct VelocityCache {
+        SpatialVec V_GF, V_GM, V_FM;
+        Vec6       qdot;
+    };
+    struct ForceCache {
+        SpatialVec F_GF, F_GM; // at Bushing frames
+        SpatialVec F_GA, F_GB; // at Body frames
+        Vec6       f;          // scalar generalized forces
+    };
+public:
+    LinearBushingImpl(const MobilizedBody& bodyA, const Transform& frameOnA, 
+                      const MobilizedBody& bodyB, const Transform& frameOnB, 
+                      const Vec6& stiffness, const Vec6& damping);
+    LinearBushingImpl* clone() const {
+        return new LinearBushingImpl(*this);
+    }
+    bool dependsOnlyOnPositions() const {
+        return false;
+    }
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
+                   Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
+    Real calcPotentialEnergy(const State& state) const;
+
+    // Allocate the position and velocity cache entries. These are all
+    // lazy-evaluation entries - be sure to check whether they have already
+    // been calculated; calculate them if not; and then mark them done.
+    // They will be invalidated when the indicated stage has changed and
+    // can be recalculated any time after that stage is realized.
+    void realizeTopology(State& s) const {
+        LinearBushingImpl* mThis = const_cast<LinearBushingImpl*>(this);
+        mThis->positionCacheIx = getForceSubsystem().allocateCacheEntry(s,
+            Stage::Position, Stage::Infinity, new Value<PositionCache>());
+        mThis->potEnergyCacheIx = getForceSubsystem().allocateCacheEntry(s,
+            Stage::Position, Stage::Infinity, new Value<Real>(NaN));
+        mThis->velocityCacheIx = getForceSubsystem().allocateCacheEntry(s,
+            Stage::Velocity, Stage::Infinity, new Value<VelocityCache>());
+        mThis->forceCacheIx = getForceSubsystem().allocateCacheEntry(s,
+            Stage::Velocity, Stage::Infinity, new Value<ForceCache>());
+    }
+private:
+    const PositionCache& getPositionCache(const State& s) const
+    {   return Value<PositionCache>::downcast
+            (getForceSubsystem().getCacheEntry(s,positionCacheIx)); }
+    const Real& getPotentialEnergyCache(const State& s) const
+    {   return Value<Real>::downcast
+            (getForceSubsystem().getCacheEntry(s,potEnergyCacheIx)); }
+    const VelocityCache& getVelocityCache(const State& s) const
+    {   return Value<VelocityCache>::downcast
+            (getForceSubsystem().getCacheEntry(s,velocityCacheIx)); }
+    const ForceCache& getForceCache(const State& s) const
+    {   return Value<ForceCache>::downcast
+            (getForceSubsystem().getCacheEntry(s,forceCacheIx)); }
+
+    PositionCache& updPositionCache(const State& s) const
+    {   return Value<PositionCache>::updDowncast
+            (getForceSubsystem().updCacheEntry(s,positionCacheIx)); }
+    Real& updPotentialEnergyCache(const State& s) const
+    {   return Value<Real>::updDowncast
+            (getForceSubsystem().updCacheEntry(s,potEnergyCacheIx)); }
+    VelocityCache& updVelocityCache(const State& s) const
+    {   return Value<VelocityCache>::updDowncast
+            (getForceSubsystem().updCacheEntry(s,velocityCacheIx)); }
+    ForceCache& updForceCache(const State& s) const
+    {   return Value<ForceCache>::updDowncast
+            (getForceSubsystem().updCacheEntry(s,forceCacheIx)); }
+
+    bool isPositionCacheValid(const State& s) const
+    {   return getForceSubsystem().isCacheValueCurrent(s,positionCacheIx); }
+    bool isPotentialEnergyValid(const State& s) const
+    {   return getForceSubsystem().isCacheValueCurrent(s,potEnergyCacheIx); }
+    bool isVelocityCacheValid(const State& s) const
+    {   return getForceSubsystem().isCacheValueCurrent(s,velocityCacheIx); }
+    bool isForceCacheValid(const State& s) const
+    {   return getForceSubsystem().isCacheValueCurrent(s,forceCacheIx); }
+
+    void markPositionCacheValid(const State& s) const
+    {   getForceSubsystem().markCacheValueRealized(s,positionCacheIx); }
+    void markPotentialEnergyValid(const State& s) const
+    {   getForceSubsystem().markCacheValueRealized(s,potEnergyCacheIx); }
+    void markVelocityCacheValid(const State& s) const
+    {   getForceSubsystem().markCacheValueRealized(s,velocityCacheIx); }
+    void markForceCacheValid(const State& s) const
+    {   getForceSubsystem().markCacheValueRealized(s,forceCacheIx); }
+
+    void ensurePositionCacheValid(const State&) const;
+    void ensurePotentialEnergyValid(const State&) const;
+    void ensureVelocityCacheValid(const State&) const;
+    void ensureForceCacheValid(const State&) const;
+
+    // TOPOLOGY STATE
+    const MobilizedBody& bodyA;
+    const MobilizedBody& bodyB;
+    Transform X_AF, X_BM;
+    Vec6 k, c;
+
+    // TOPOLOGY CACHE
+    CacheEntryIndex positionCacheIx;
+    CacheEntryIndex potEnergyCacheIx;
+    CacheEntryIndex velocityCacheIx;
+    CacheEntryIndex forceCacheIx;
+
+friend class Force::LinearBushing;
+friend std::ostream& operator<<(std::ostream&,const PositionCache&);
+friend std::ostream& operator<<(std::ostream&,const VelocityCache&);
+friend std::ostream& operator<<(std::ostream&,const ForceCache&);
+};
+
+// These are required by Value<T>.
+inline std::ostream& operator<<
+   (std::ostream& o, const Force::LinearBushingImpl::PositionCache& pc)
+{   assert(!"implemented"); return o; }
+inline std::ostream& operator<<
+   (std::ostream& o, const Force::LinearBushingImpl::VelocityCache& vc)
+{   assert(!"implemented"); return o; }
+inline std::ostream& operator<<
+   (std::ostream& o, const Force::LinearBushingImpl::ForceCache& fc)
+{   assert(!"implemented"); return o; }
+
 class Force::ConstantForceImpl : public ForceImpl {
 public:
     ConstantForceImpl(const MobilizedBody& body, const Vec3& station, const Vec3& force);

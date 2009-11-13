@@ -1,5 +1,40 @@
+/* -------------------------------------------------------------------------- *
+ *                      SimTK Core: SimTK Simbody(tm)                         *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org.               *
+ *                                                                            *
+ * Portions copyright (c) 2009 Stanford University and the Authors.           *
+ * Authors: Michael Sherman                                                   *
+ * Contributors:                                                              *
+ *                                                                            *
+ * Permission is hereby granted, free of charge, to any person obtaining a    *
+ * copy of this software and associated documentation files (the "Software"), *
+ * to deal in the Software without restriction, including without limitation  *
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
+ * and/or sell copies of the Software, and to permit persons to whom the      *
+ * Software is furnished to do so, subject to the following conditions:       *
+ *                                                                            *
+ * The above copyright notice and this permission notice shall be included in *
+ * all copies or substantial portions of the Software.                        *
+ *                                                                            *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    *
+ * THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,    *
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR      *
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE  *
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
+ * -------------------------------------------------------------------------- */
+
+/**@file
+ * Adhoc main program for playing with prescribed motion.
+ */
+
 #include "SimTKsimbody.h"
-#include "SimTKsimbody_aux.h"
+#include "SimTKsimbody_aux.h"   // requires VTK
 
 #include <cstdio>
 #include <exception>
@@ -29,7 +64,7 @@ int main() {
     //Motion::Sinusoid(pendulum2, Motion::Position, Pi/8, 2*Pi, Pi/4); // amp, rate, phase
 
     Force::MobilityLinearSpring(forces, pendulum2, MobilizerUIndex(0),
-        200, 10*(Pi/180));
+        100, 0*(Pi/180));
 
     VTKEventReporter* reporter = new VTKEventReporter(system, 0.01);
     system.updDefaultSubsystem().addEventReporter(reporter);
@@ -87,6 +122,8 @@ int main() {
     // Simulate it.
 
     RungeKuttaMersonIntegrator integ(system);
+    //integ.setMinimumStepSize(1e-1);
+    integ.setAccuracy(1e-3);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(100.0);
