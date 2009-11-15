@@ -478,7 +478,7 @@ ensureForceCacheValid(const State& state) const {
     const Vec3 fM_G = R_GF*fM_F;
 
     fc.F_GM = SpatialVec(mB_G, fM_G);
-    fc.F_GF = -fc.F_GM; // see above for why force is OK here
+    fc.F_GF = -fc.F_GM; // see above for why force is OK here w/o shift
 
     // Shift forces to body origins.
     fc.F_GB = SpatialVec(fc.F_GM[0] + pc.p_BM_G % fc.F_GM[1], fc.F_GM[1]);
