@@ -47,13 +47,13 @@ namespace SimTK {
 template class Inertia_<float>;
 template class Inertia_<double>;
 
-template <class P> std::ostream& 
-operator<<(std::ostream& o, const Inertia_<P>& I) 
-{   return o << I.toMat33(); }
-template SimTK_SimTKCOMMON_EXPORT std::ostream& 
-operator<<(std::ostream&, const Inertia_<float>&);
-template SimTK_SimTKCOMMON_EXPORT std::ostream& 
-operator<<(std::ostream&, const Inertia_<double>&);
+//template <class P> std::ostream& 
+//operator<<(std::ostream& o, const Inertia_<P>& I) 
+//{   return o << I.toMat33(); }
+//template SimTK_SimTKCOMMON_EXPORT std::ostream& 
+//operator<<(std::ostream&, const Inertia_<float>&);
+//template SimTK_SimTKCOMMON_EXPORT std::ostream& 
+//operator<<(std::ostream&, const Inertia_<double>&);
 
     /////////////////////////
     //      GYRATION       //

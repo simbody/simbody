@@ -543,8 +543,9 @@ operator==(const Inertia_<P>& i1, const Inertia_<P>& i2)
 /// Output a human-readable representation of an inertia matrix to the 
 /// indicated stream.
 /// @relates Inertia_
-template <class P> SimTK_SimTKCOMMON_EXPORT std::ostream& 
-operator<<(std::ostream& o, const Inertia_<P>&);
+template <class P> inline std::ostream& 
+operator<<(std::ostream& o, const Inertia_<P>& inertia)
+{   return o << inertia.toMat33(); }
 
 
 // -----------------------------------------------------------------------------
