@@ -305,6 +305,21 @@ SET(STATIC_TARGET ${SimTKCOMMON_LIBRARY_NAME}_static)
 SET(SHARED_TARGET_VN ${SimTKCOMMON_LIBRARY_NAME}${VN})
 SET(STATIC_TARGET_VN ${SimTKCOMMON_LIBRARY_NAME}${VN}_static)
 
+# Ensure that debug libraries have "_d" appended to their names.
+# CMake gets this right on Windows automatically with this definition.
+IF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
+    SET(CMAKE_DEBUG_POSTFIX "_d" CACHE INTERNAL "" FORCE)
+ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
+
+# But on Unix or Cygwin we have to add the suffix manually
+IF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
+    SET(SHARED_TARGET ${SHARED_TARGET}_d)
+    SET(STATIC_TARGET ${STATIC_TARGET}_d)
+    SET(SHARED_TARGET_VN ${SHARED_TARGET_VN}_d)
+    SET(STATIC_TARGET_VN ${STATIC_TARGET_VN}_d)
+ENDIF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
+
+
 ## Test against the unversioned libraries if they are being build;
 ## otherwise against the versioned libraries.
 IF(BUILD_UNVERSIONED_LIBRARIES)
@@ -327,20 +342,6 @@ IF(NOT LIBRARY_OUTPUT_PATH)
 ENDIF(NOT LIBRARY_OUTPUT_PATH)
 SET(${PROJECT_NAME}_EXECUTABLE_DIR ${EXECUTABLE_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
 SET(${PROJECT_NAME}_LIBRARY_DIR    ${LIBRARY_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
-
-# Ensure that debug libraries have "_d" appended to their names.
-# CMake gets this right on Windows automatically with this definition.
-IF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
-    SET(CMAKE_DEBUG_POSTFIX "_d" CACHE INTERNAL "" FORCE)
-ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
-
-# But on Unix or Cygwin we have to add the suffix manually
-IF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
-    SET(SHARED_TARGET ${SHARED_TARGET}_d)
-    SET(STATIC_TARGET ${STATIC_TARGET}_d)
-    SET(SHARED_TARGET_VN ${SHARED_TARGET_VN}_d)
-    SET(STATIC_TARGET_VN ${STATIC_TARGET_VN}_d)
-ENDIF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
 
 # Determine which math libraries to use for this platform.
 SET(BUILD_USING_OTHER_LAPACK "" CACHE STRING
