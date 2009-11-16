@@ -330,12 +330,12 @@ SET(SimTKMATH_STATIC_LIBRARY ${SimTKMATH_LIBRARY_NAME}_static)
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     ## A gcc build
-    SET(MATH_LIBS_TO_USE ${NS}SimTKlapack pthread dl)
+    SET(MATH_LIBS_TO_USE SimTKlapack pthread dl)
 
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     ## Assume Microsoft Visual Studio
-    SET(MATH_LIBS_TO_USE ${NS}SimTKlapack pthreadVC2)
+    SET(MATH_LIBS_TO_USE SimTKlapack pthreadVC2)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
