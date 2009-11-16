@@ -42,6 +42,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/Body.h"
+#include "simbody/internal/Motion.h"
 #include "simbody/internal/MobilizedBody.h"
 #include "simbody/internal/Constraint.h"
 #include "simbody/internal/Contact.h"
