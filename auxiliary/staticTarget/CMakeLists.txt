@@ -1,27 +1,65 @@
-ADD_DEFINITIONS(-DSimTK_SIMBODY_BUILDING_STATIC_LIBRARY -DSimTK_USE_STATIC_LIBRARIES)
+## This whole directory exists just so I could define these extra 
+## preprocessor values.
+ADD_DEFINITIONS(-DSimTK_SIMBODY_BUILDING_STATIC_LIBRARY 
+		        -DSimTK_USE_STATIC_LIBRARIES)
 
-ADD_LIBRARY(${AUX_STATIC_TARGET} STATIC ${AUX_SOURCE_FILES} ${AUX_INCLUDE_FILES} ${API_ABS_INCLUDE_FILES})
+IF(BUILD_UNVERSIONED_LIBRARIES)
 
-TARGET_LINK_LIBRARIES(${AUX_STATIC_TARGET} 
-                ${STATIC_TARGET} 
-                debug ${SimTKCPODES_STATIC_LIBRARY}_d optimized ${SimTKCPODES_STATIC_LIBRARY} 
-                debug ${SimTKCOMMON_STATIC_LIBRARY}_d optimized ${SimTKCOMMON_STATIC_LIBRARY} 
-                ${MATH_LIBS_TO_USE}
-		${VTK_LIBS_TO_USE})
+    ADD_LIBRARY(${AUX_STATIC_TARGET} STATIC 
+			    ${AUX_SOURCE_FILES} ${AUX_INCLUDE_FILES} 
+				${API_ABS_INCLUDE_FILES})
+    
+    TARGET_LINK_LIBRARIES(${AUX_STATIC_TARGET} 
+                    ${STATIC_TARGET} 
+					${VTK_LIBS_TO_USE})
+    
+    if(APPLE)
+        target_link_libraries(${AUX_STATIC_TARGET} ${CARBON_FRAMEWORK})
+    endif(APPLE)
+    
+    SET_TARGET_PROPERTIES(${AUX_STATIC_TARGET}  PROPERTIES
+    	PROJECT_LABEL "Library - ${AUX_STATIC_TARGET}")
+    
+    
+    # install library; on Windows both .lib and .dll go in the lib directory.
+    INSTALL(TARGETS ${AUX_STATIC_TARGET}  
+                     PERMISSIONS OWNER_READ OWNER_WRITE 
+					 GROUP_READ GROUP_WRITE 
+					 WORLD_READ 
+                     ARCHIVE DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64} 
+                     LIBRARY DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64} 
+                     RUNTIME DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64})
 
-if(APPLE)
-    target_link_libraries(${AUX_STATIC_TARGET} ${CARBON_FRAMEWORK})
-endif(APPLE)
-
-SET_TARGET_PROPERTIES(${AUX_STATIC_TARGET}  PROPERTIES
-	PROJECT_LABEL "Library - ${AUX_STATIC_TARGET}")
+ENDIF(BUILD_UNVERSIONED_LIBRARIES)
 
 
-# install the library; on Windows both .lib and .dll go in the lib directory.
-INSTALL(TARGETS ${AUX_STATIC_TARGET}
-                 ARCHIVE DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64}
-                 LIBRARY DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64}
-                 RUNTIME DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64}
-)
 
+IF(BUILD_VERSIONED_LIBRARIES)
+
+    ADD_LIBRARY(${AUX_STATIC_TARGET_VN} STATIC 
+			    ${AUX_SOURCE_FILES} ${AUX_INCLUDE_FILES} 
+				${API_ABS_INCLUDE_FILES})
+    
+    TARGET_LINK_LIBRARIES(${AUX_STATIC_TARGET_VN} 
+                    ${STATIC_TARGET_VN} 
+					${VTK_LIBS_TO_USE})
+    
+    if(APPLE)
+        target_link_libraries(${AUX_STATIC_TARGET_VN} ${CARBON_FRAMEWORK})
+    endif(APPLE)
+    
+    SET_TARGET_PROPERTIES(${AUX_STATIC_TARGET_VN}  PROPERTIES
+    	PROJECT_LABEL "Library - ${AUX_STATIC_TARGET_VN}")
+    
+    
+    # install library; on Windows both .lib and .dll go in the lib directory.
+    INSTALL(TARGETS ${AUX_STATIC_TARGET_VN}  
+                     PERMISSIONS OWNER_READ OWNER_WRITE 
+					 GROUP_READ GROUP_WRITE 
+					 WORLD_READ 
+                     ARCHIVE DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64} 
+                     LIBRARY DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64} 
+                     RUNTIME DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64})
+
+ENDIF(BUILD_VERSIONED_LIBRARIES)
 

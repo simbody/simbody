@@ -3,15 +3,17 @@
 #
 # Creates SimTK Core library, base name=SimTKsimbody.
 # Default libraries are shared & optimized. Variants
-# are created for static (_static) and debug (_d).
+# are created for static (_static) and debug (_d) and
+# provision is made for an optional "namespace" (ns)
+# and version number (vn).
 #
 # Windows:
-#   SimTKsimbody[_d].dll
-#   SimTKsimbody[_d].lib
-#   SimTKsimbody_static[_d].lib
+#   [ns_]SimTKsimbody[_vn][_d].dll
+#   [ns_]SimTKsimbody[_vn][_d].lib
+#   [ns_]SimTKsimbody[_vn]_static[_d].lib
 # Unix:
-#   libSimTKsimbody[_d].so
-#   libSimTKsimbody_static[_d].a
+#   lib[ns_]SimTKsimbody[_vn][_d].so
+#   lib[ns_]SimTKsimbody[_vn]_static[_d].a
 #
 # All libraries are installed in 
 #   %ProgramFiles%\SimTK\lib[64]  (Windows)
@@ -27,6 +29,23 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 PROJECT (Simbody)
+
+# Use this to generate a private set of libraries whose names
+# won't conflict with installed versions.
+SET(BUILD_USING_NAMESPACE "" CACHE STRING
+	"All library names will be prefixed with 'xxx_' if this is set to xxx.")
+
+SET(BUILD_UNVERSIONED_LIBRARIES TRUE CACHE BOOL
+ "Build library names, and assume dependency names, with no version numbers?")
+
+SET(BUILD_VERSIONED_LIBRARIES FALSE CACHE BOOL
+ "Build library names, and assume dependency names, with version numbers?")
+
+SET(NS)
+IF(BUILD_USING_NAMESPACE)
+    SET(NS "${BUILD_USING_NAMESPACE}_")
+ENDIF(BUILD_USING_NAMESPACE)
+
 
 SET( BUILD_AUX OFF CACHE BOOL
 	"Control building of Simbody aux library and tests" )
@@ -189,14 +208,30 @@ IF(${CMAKE_C_COMPILER} MATCHES "cl")
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "cl")
 
+SET(SIMBODY_LIBRARY_NAME ${NS}SimTKsimbody CACHE STRING
+"Base name of the library being built; can't be changed here; see BUILD_USING_NAMESPACE variable."
+FORCE)
 
 # Collect up information about the version of the simbody library we're building
 # and make it available to the code so it can be built into the binaries.
 
-SET(SIMBODY_LIBRARY_NAME SimTKsimbody)
 SET(SIMBODY_MAJOR_VERSION 1)
 SET(SIMBODY_MINOR_VERSION 7)
 SET(SIMBODY_BUILD_VERSION 0)
+
+# Report the version number to the CMake UI. Don't include the 
+# build version if it is zero.
+SET(BUILD_VERSION_STRING)
+IF(NOT (SIMBODY_BUILD_VERSION EQUAL 0))
+    SET(BUILD_VERSION_STRING ".${SIMBODY_BUILD_VERSION}")
+ENDIF(NOT (SIMBODY_BUILD_VERSION EQUAL 0))
+
+SET(SIMBODY_VERSION 
+    "${SIMBODY_MAJOR_VERSION}.${SIMBODY_MINOR_VERSION}${BUILD_VERSION_STRING}" CACHE STRING 
+	 "This is the version that will be built (can't be changed here)." FORCE)
+
+# This is the suffix if we're building and depending on versioned libraries.
+SET(VN "_${SIMBODY_VERSION}")
 
 SET(SIMBODY_COPYRIGHT_YEARS "2005-9")
 
@@ -262,14 +297,35 @@ ENDIF(NEED_QUOTES)
 # -DSimTK_SIMBODY_TYPE has to be defined in the target subdirectories.
 # -Dsimbody_EXPORTS defined automatically when Windows DLL build is being done.
 
-# Report the version number to the CMake UI
-SET(SIMBODY_VERSION
-    "${SIMBODY_MAJOR_VERSION}.${SIMBODY_MINOR_VERSION}.${SIMBODY_BUILD_VERSION}"
-     CACHE STRING "This is the version of Simbody which will be built." FORCE)
-
 
 SET(SHARED_TARGET ${SIMBODY_LIBRARY_NAME})
 SET(STATIC_TARGET ${SIMBODY_LIBRARY_NAME}_static)
+SET(SHARED_TARGET_VN ${SIMBODY_LIBRARY_NAME}${VN})
+SET(STATIC_TARGET_VN ${SIMBODY_LIBRARY_NAME}${VN}_static)
+
+# Ensure that debug libraries have "_d" appended to their names.
+# CMake gets this right on Windows automatically with this definition.
+IF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
+    SET(CMAKE_DEBUG_POSTFIX "_d" CACHE INTERNAL "" FORCE)
+ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
+
+# But on Unix or Cygwin we have to add the suffix manually
+IF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
+    SET(SHARED_TARGET ${SHARED_TARGET}_d)
+    SET(STATIC_TARGET ${STATIC_TARGET}_d)
+    SET(SHARED_TARGET_VN ${SHARED_TARGET_VN}_d)
+    SET(STATIC_TARGET_VN ${STATIC_TARGET_VN}_d)
+ENDIF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
+
+## Test against the unversioned libraries if they are being built;
+## otherwise against the versioned libraries.
+IF(BUILD_UNVERSIONED_LIBRARIES)
+	SET(TEST_SHARED_TARGET ${SHARED_TARGET})
+	SET(TEST_STATIC_TARGET ${STATIC_TARGET})
+ELSE(BUILD_UNVERSIONED_LIBRARIES)
+	SET(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
+	SET(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
+ENDIF(BUILD_UNVERSIONED_LIBRARIES)
 
 
 ## If no one says otherwise, change the executable path to drop into the same binary
@@ -285,45 +341,56 @@ ENDIF(NOT LIBRARY_OUTPUT_PATH)
 SET(${PROJECT_NAME}_EXECUTABLE_DIR ${EXECUTABLE_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
 SET(${PROJECT_NAME}_LIBRARY_DIR    ${LIBRARY_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
 
-# Ensure that debug libraries have "_d" appended to their names.
-# CMake gets this right on Windows automatically with this definition.
-IF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
-    SET(CMAKE_DEBUG_POSTFIX "_d" CACHE INTERNAL "" FORCE)
-ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
 
-# But on Unix or Cygwin we have to add the suffix manually
-IF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
-    SET(SHARED_TARGET ${SHARED_TARGET}_d)
-    SET(STATIC_TARGET ${STATIC_TARGET}_d)
-ENDIF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
-
-SET(SimTKCOMMON_LIBRARY_NAME SimTKcommon)
+SET(SimTKCOMMON_LIBRARY_NAME ${NS}SimTKcommon)
 SET(SimTKCOMMON_SHARED_LIBRARY ${SimTKCOMMON_LIBRARY_NAME})
 SET(SimTKCOMMON_STATIC_LIBRARY ${SimTKCOMMON_LIBRARY_NAME}_static)
 
-SET(SimTKCPODES_LIBRARY_NAME SimTKcpodes)
+SET(SimTKCOMMON_LIBRARY_NAME_VN ${NS}SimTKcommon${VN})
+SET(SimTKCOMMON_SHARED_LIBRARY_VN ${SimTKCOMMON_LIBRARY_NAME_VN})
+SET(SimTKCOMMON_STATIC_LIBRARY_VN ${SimTKCOMMON_LIBRARY_NAME_VN}_static)
+
+SET(SimTKCPODES_LIBRARY_NAME ${NS}SimTKcpodes)
 SET(SimTKCPODES_SHARED_LIBRARY ${SimTKCPODES_LIBRARY_NAME})
 SET(SimTKCPODES_STATIC_LIBRARY ${SimTKCPODES_LIBRARY_NAME}_static)
 
-SET(SimTKMATH_LIBRARY_NAME SimTKmath)
+SET(SimTKCPODES_LIBRARY_NAME_VN ${NS}SimTKcpodes${VN})
+SET(SimTKCPODES_SHARED_LIBRARY_VN ${SimTKCPODES_LIBRARY_NAME_VN})
+SET(SimTKCPODES_STATIC_LIBRARY_VN ${SimTKCPODES_LIBRARY_NAME_VN}_static)
+
+SET(SimTKMATH_LIBRARY_NAME ${NS}SimTKmath)
 SET(SimTKMATH_SHARED_LIBRARY ${SimTKMATH_LIBRARY_NAME})
 SET(SimTKMATH_STATIC_LIBRARY ${SimTKMATH_LIBRARY_NAME}_static)
 
+SET(SimTKMATH_LIBRARY_NAME_VN ${NS}SimTKmath${VN})
+SET(SimTKMATH_SHARED_LIBRARY_VN ${SimTKMATH_LIBRARY_NAME_VN})
+SET(SimTKMATH_STATIC_LIBRARY_VN ${SimTKMATH_LIBRARY_NAME_VN}_static)
 
 # Determine which math libraries to use for this platform.
-#
+SET(BUILD_USING_OTHER_LAPACK "" CACHE STRING
+ "If you have your own Lapack, put its library basename here (namespace and version don't apply). Default is to use SimTKlapack, with namespace and version if any.")
+
+SET(LAPACK_BEING_USED ${NS}SimTKlapack CACHE STRING
+"Basename of the actual Lapack library we're depending on; can't change here; see variable BUILD_USING_OTHER_LAPACK." FORCE)
+SET(LAPACK_BEING_USED_VN ${NS}SimTKlapack${VN})
+
+## Note that the version number does not apply when the user has
+## specified an alternate Lapack library.
+IF(BUILD_USING_OTHER_LAPACK)
+    SET(LAPACK_BEING_USED ${BUILD_USING_OTHER_LAPACK} CACHE STRING
+"Basename of the actual Lapack library we're depending on; can't change here; see variable BUILD_USING_OTHER_LAPACK." FORCE)
+    SET(LAPACK_BEING_USED_VN ${BUILD_USING_OTHER_LAPACK})
+ENDIF(BUILD_USING_OTHER_LAPACK)
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
-
-    ## A gcc build
-    SET(MATH_LIBS_TO_USE SimTKlapack pthread dl)
-
+    SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthread dl)
+    SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED_VN} pthread dl)
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
-
     ## Assume Microsoft Visual Studio
-    SET(MATH_LIBS_TO_USE SimTKlapack pthreadVC2)
-
+    SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthreadVC2)
+    SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED_VN} pthreadVC2)
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
+
 
 
 # These are all the places to search for header files which are
