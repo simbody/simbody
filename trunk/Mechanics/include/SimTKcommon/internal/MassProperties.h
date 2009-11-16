@@ -433,6 +433,45 @@ public:
                          nmx*p[1], nmx*p[2], nmy*p[2] );
     }
 
+    /// @name Unit inertia matrix factories
+    /// These return Gyration matrices (inertias of unit-mass objects) 
+    /// converted to Inertias. Multiply the result by the actual mass
+    /// to get the Inertia of an actual object of this shape. See the 
+    /// Gyration class for more information.
+    //@{
+
+    /// Create a Gyration matrix for a unit mass sphere of radius \a r centered
+    /// at the origin.
+    inline static Inertia_ sphere(const RealP& r);
+
+    /// Unit-mass cylinder aligned along z axis;  use radius and half-length.
+    /// If r==0 this is a thin rod; hz=0 it is a thin disk.
+    inline static Inertia_ cylinderAlongZ(const RealP& r, const RealP& hz);
+
+    /// Unit-mass cylinder aligned along y axis;  use radius and half-length.
+    /// If r==0 this is a thin rod; hy=0 it is a thin disk.
+    inline static Inertia_ cylinderAlongY(const RealP& r, const RealP& hy);
+
+    /// Unit-mass cylinder aligned along x axis; use radius and half-length.
+    /// If r==0 this is a thin rod; hx=0 it is a thin disk.
+    inline static Inertia_ cylinderAlongX(const RealP& r, const RealP& hx);
+
+    /// Unit-mass brick given by half-lengths in each direction. One dimension zero
+    /// gives inertia of a thin rectangular sheet; two zero gives inertia
+    /// of a thin rod in the remaining direction.
+    inline static Inertia_ brick(const RealP& hx, const RealP& hy, const RealP& hz);
+
+    /// Alternate interface to brick() that takes a Vec3 for the half lengths.
+    inline static Inertia_ brick(const Vec3P& halfLengths);
+
+    /// Unit-mass ellipsoid given by half-lengths in each direction.
+    inline static Inertia_ ellipsoid(const RealP& hx, const RealP& hy, const RealP& hz);
+
+    /// Alternate interface to ellipsoid() that takes a Vec3 for the half lengths.
+    inline static Inertia_ ellipsoid(const Vec3P& halfLengths);
+
+    //@}
+
 protected:
     // Reinterpret this Inertia matrix as a Gyration matrix, that is, as the
     // inertia of something with unit mass. This is useful in implementing
@@ -823,6 +862,33 @@ private:
     void operator*=(int) {}
     void operator/=(int) {}
 };
+
+// Implement Inertia methods which are pass-throughs to Gyration methods.
+
+template <class P> inline Inertia_<P> Inertia_<P>::
+sphere(const RealP& r) 
+{   return Gyration_<P>::sphere(r); }
+template <class P> inline Inertia_<P> Inertia_<P>::
+cylinderAlongZ(const RealP& r, const RealP& hz)
+{   return Gyration_<P>::cylinderAlongZ(r,hz); }
+template <class P> inline Inertia_<P> Inertia_<P>::
+cylinderAlongY(const RealP& r, const RealP& hy)
+{   return Gyration_<P>::cylinderAlongY(r,hy); }
+template <class P> inline Inertia_<P> Inertia_<P>::
+cylinderAlongX(const RealP& r, const RealP& hx)
+{   return Gyration_<P>::cylinderAlongX(r,hx); }
+template <class P> inline Inertia_<P> Inertia_<P>::
+brick(const RealP& hx, const RealP& hy, const RealP& hz)
+{   return Gyration_<P>::brick(hx,hy,hz); }
+template <class P> inline Inertia_<P> Inertia_<P>::
+brick(const Vec3P& halfLengths)
+{   return Gyration_<P>::brick(halfLengths); }
+template <class P> inline Inertia_<P> Inertia_<P>::
+ellipsoid(const RealP& hx, const RealP& hy, const RealP& hz)
+{   return Gyration_<P>::ellipsoid(hx,hy,hz); }
+template <class P> inline Inertia_<P> Inertia_<P>::
+ellipsoid(const Vec3P& halfLengths)
+{   return Gyration_<P>::ellipsoid(halfLengths); }
 
 
 // -----------------------------------------------------------------------------
