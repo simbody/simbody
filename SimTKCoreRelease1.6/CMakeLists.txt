@@ -6,12 +6,12 @@
 # are created for static (_static) and debug (_d).
 #
 # Windows:
-#   SimTKsimbody[_d].dll
-#   SimTKsimbody[_d].lib
-#   SimTKsimbody_static[_d].lib
+#   [ns_]SimTKsimbody[_d].dll
+#   [ns_]SimTKsimbody[_d].lib
+#   [ns_]SimTKsimbody_static[_d].lib
 # Unix:
-#   libSimTKsimbody[_d].so
-#   libSimTKsimbody_static[_d].a
+#   lib[ns_]SimTKsimbody[_d].so
+#   lib[ns_]SimTKsimbody_static[_d].a
 #
 # All libraries are installed in 
 #   %ProgramFiles%\SimTK\lib[64]  (Windows)
@@ -27,6 +27,19 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 PROJECT (Simbody)
+
+
+# Use this to generate a private set of libraries whose names
+# won't conflict with installed versions.
+SET(BUILD_USING_NAMESPACE "" CACHE STRING
+	"All library names will be prefixed with 'xxx_' if this is set to xxx.")
+
+SET(NS)
+IF(BUILD_USING_NAMESPACE)
+    SET(NS "${BUILD_USING_NAMESPACE}_")
+ENDIF(BUILD_USING_NAMESPACE)
+
+
 
 SET( BUILD_AUX OFF CACHE BOOL
 	"Control building of Simbody aux library and tests" )
@@ -188,11 +201,13 @@ IF(${CMAKE_C_COMPILER} MATCHES "cl")
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "cl")
 
+SET(SIMBODY_LIBRARY_NAME ${NS}SimTKsimbody CACHE STRING
+"Base name of the library being built; can't be changed here; see BUILD_USING_NAMESPACE variable."
+FORCE)
 
 # Collect up information about the version of the simbody library we're building
 # and make it available to the code so it can be built into the binaries.
 
-SET(SIMBODY_LIBRARY_NAME SimTKsimbody)
 SET(SIMBODY_MAJOR_VERSION 1)
 SET(SIMBODY_MINOR_VERSION 6)
 SET(SIMBODY_BUILD_VERSION 0)
@@ -296,15 +311,15 @@ IF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
     SET(STATIC_TARGET ${STATIC_TARGET}_d)
 ENDIF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
 
-SET(SimTKCOMMON_LIBRARY_NAME SimTKcommon)
+SET(SimTKCOMMON_LIBRARY_NAME ${NS}SimTKcommon)
 SET(SimTKCOMMON_SHARED_LIBRARY ${SimTKCOMMON_LIBRARY_NAME})
 SET(SimTKCOMMON_STATIC_LIBRARY ${SimTKCOMMON_LIBRARY_NAME}_static)
 
-SET(SimTKCPODES_LIBRARY_NAME SimTKcpodes)
+SET(SimTKCPODES_LIBRARY_NAME ${NS}SimTKcpodes)
 SET(SimTKCPODES_SHARED_LIBRARY ${SimTKCPODES_LIBRARY_NAME})
 SET(SimTKCPODES_STATIC_LIBRARY ${SimTKCPODES_LIBRARY_NAME}_static)
 
-SET(SimTKMATH_LIBRARY_NAME SimTKmath)
+SET(SimTKMATH_LIBRARY_NAME ${NS}SimTKmath)
 SET(SimTKMATH_SHARED_LIBRARY ${SimTKMATH_LIBRARY_NAME})
 SET(SimTKMATH_STATIC_LIBRARY ${SimTKMATH_LIBRARY_NAME}_static)
 
@@ -315,12 +330,12 @@ SET(SimTKMATH_STATIC_LIBRARY ${SimTKMATH_LIBRARY_NAME}_static)
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     ## A gcc build
-    SET(MATH_LIBS_TO_USE SimTKlapack pthread dl)
+    SET(MATH_LIBS_TO_USE ${NS}SimTKlapack pthread dl)
 
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     ## Assume Microsoft Visual Studio
-    SET(MATH_LIBS_TO_USE SimTKlapack pthreadVC2)
+    SET(MATH_LIBS_TO_USE ${NS}SimTKlapack pthreadVC2)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
