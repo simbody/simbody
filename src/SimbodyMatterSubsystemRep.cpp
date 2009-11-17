@@ -1803,7 +1803,7 @@ bool SimbodyMatterSubsystemRep::prescribe(State& s, Stage g) const {
     default:
         SimTK_ASSERT1_ALWAYS(!"bad stage",
             "SimbodyMatterSubsystemRep::prescribe(): bad stage argument %s.", 
-            g.getName());
+            g.getName().c_str());
     }
 
     return true;
