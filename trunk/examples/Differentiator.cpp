@@ -191,6 +191,7 @@ static void showSimTKAboutInfo() {
     char out[100];
     const char* keylist[] = { "version", "library", "type", "debug", "authors", "copyright", "svn_revision", 0 };
 
+#ifdef TEST_LAPACK_VERSION
     SimTK_version_SimTKlapack(&major,&minor,&build);
     std::printf("==> SimTKlapack library version: %d.%d.%d\n", major, minor, build);
     std::printf("    SimTK_about_SimTKlapack():\n");
@@ -198,6 +199,7 @@ static void showSimTKAboutInfo() {
         SimTK_about_SimTKlapack(*p, 100, out);
         std::printf("      about(%s)='%s'\n", *p, out);
     }
+#endif
 
     SimTK_version_SimTKcommon(&major,&minor,&build);
     std::printf("==> SimTKcommon library version: %d.%d.%d\n", major, minor, build);
