@@ -493,7 +493,7 @@ public:
     /// @pre These methods may be called only after the supplied state has 
     ///      been realized to Velocity stage.
     //@{
-    /// Obtain the generalized forces f begin applied by this Bushing force
+    /// Obtain the generalized forces f being applied by this Bushing force
     /// element on each of its six axes. The sign is such that it would be 
     /// appropriate to apply to a Bushing mobilizer connecting the same two
     /// frames; that is, these are the generalized forces acting on the
