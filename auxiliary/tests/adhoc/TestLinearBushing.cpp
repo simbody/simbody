@@ -46,17 +46,19 @@ using namespace SimTK;
 class BushingReporter : public PeriodicEventReporter {
 public:
     BushingReporter(const MultibodySystem& sys,
-                    const Force::LinearBushing& frc, Real dt) 
-    :    PeriodicEventReporter(dt), system(sys), bushing(frc) {}
+                    const Force::LinearBushing& frc,
+                    const Force::LinearBushing& bush2,
+                    Real dt) 
+    :    PeriodicEventReporter(dt), system(sys), bushing(frc), bushing2(bush2) {}
 
     void handleEvent(const State& state) const {
-        printf("t=%g, stage %s, energy=%g conserved=%g\n", state.getTime(),
+        printf("BUSHING t=%g, stage %s, energy=%g CONSERVED=%g\n", state.getTime(),
                 state.getSystemStage().getName().c_str(),
                 system.calcEnergy(state),
-                system.calcEnergy(state)+bushing.getDissipatedEnergy(state));
-        cout << "q=" << bushing.getQ(state) 
-             << " qdot=" << bushing.getQDot(state)
-             << endl;
+                system.calcEnergy(state)+bushing.getDissipatedEnergy(state)
+                        +bushing2.getDissipatedEnergy(state));
+        cout << "q=" << bushing.getQ(state) << endl;
+        cout << "qdot=" << bushing.getQDot(state) << endl;
         cout << "X_FM=" << bushing.getX_FM(state);
         cout << "V_FM=" << bushing.getV_FM(state) << endl;
         cout << "f=" << bushing.getF(state) << endl;
@@ -69,6 +71,7 @@ public:
 private:
     const MultibodySystem&         system;
     const Force::LinearBushing&    bushing;
+    const Force::LinearBushing&    bushing2;
 };
 
 class ReactionReporter : public PeriodicEventReporter {
@@ -81,10 +84,14 @@ public:
 
     void handleEvent(const State& state) const {
         const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
+        printf("MOBILIZER t=%g\n", state.getTime());
         system.realize(state, Stage::Acceleration);
         Vector_<SpatialVec> reactions;
         matter.calcMobilizerReactionForces(state, reactions);
-        cout << "Reaction for " << name << " q=" << mobod.getQAsVector(state) << ": " 
+        cout << "q=" << mobod.getQAsVector(state) << endl;
+        cout << "qdot=" << mobod.getQDotAsVector(state) << endl;
+
+        cout << "Reaction for " << name << ": " 
              << reactions[mobod.getMobilizedBodyIndex()] << endl;
         cout << "  X_FM=" << mobod.getMobilizerTransform(state);
         cout << "  X_GB=" << mobod.getBodyTransform(state);
@@ -124,46 +131,78 @@ int main() {
     Body::Rigid massless(MassProperties(0, Vec3(0), Inertia(0)));
     const Rotation ZtoX(Pi/2, YAxis);
     const Rotation ZtoY(-Pi/2, XAxis);
-    MobilizedBody::Cartesian dummy1(matter.Ground(), Vec3(1,1,1)+Vec3(2,0,0),
-                                    massless, Transform());
-    MobilizedBody::Pin dummy2(dummy1,   ZtoX,
-                              massless, ZtoX);
-    MobilizedBody::Pin dummy3(dummy2,   ZtoY,
-                              massless, ZtoY);
-    MobilizedBody::Pin brick2(dummy3,   Transform(),    // about Z
-                              brickBody, BodyAttach);
+    //MobilizedBody::Cartesian dummy1(matter.Ground(), Vec3(1,1,1)+Vec3(2,0,0),
+    //                                massless, Transform());
+    //MobilizedBody::Pin dummy2(dummy1,   ZtoX,
+    //                          massless, ZtoX);
+    //MobilizedBody::Pin dummy3(dummy2,   ZtoY,
+    //                          massless, ZtoY);
+    //MobilizedBody::Pin brick2(dummy3,   Transform(),    // about Z
+    //                          brickBody, BodyAttach);
 
-    const Vec6 k = 10*Vec6(1,1,1,.5,.5,.5);
+    MobilizedBody::Pin dummy1(matter.Ground(), Vec3(1,1,1)+Vec3(2,0,0),
+                              massless, Transform(), MobilizedBody::Reverse);
+    MobilizedBody::Pin dummy2(dummy1,   ZtoY,
+                              massless, ZtoY, MobilizedBody::Reverse);
+    MobilizedBody::Pin dummy3(dummy2,   ZtoX,
+                              massless, ZtoX, MobilizedBody::Reverse);
+    MobilizedBody::Cartesian brick2(dummy3,   Transform(),
+                                    brickBody, BodyAttach, MobilizedBody::Reverse);
+
+    const Vec6 k = 10*Vec6(1,1,1,1,1,1);
     const Vec6 c =  1*Vec6(1,1,1,1,1,1);
     Transform GroundAttach(Rotation(), Vec3(1,1,1));
     matter.Ground().updBody().addDecoration(GroundAttach,
                 DecorativeFrame(0.5).setColor(Green));
+
+    const Vec6 k1 = k;
+    const Vec6 c1 = c;
+    //Force::LinearBushing bushing
+    //    (forces, matter.Ground(), GroundAttach,
+    //     brick1, BodyAttach, k1, c1);
     Force::LinearBushing bushing
-        (forces, matter.Ground(), GroundAttach,
-         brick1, BodyAttach, k, c);
+        (forces, brick1, BodyAttach, 
+         matter.Ground(), GroundAttach,
+         k1, c1);
+
+    Force::LinearBushing bushing2
+        (forces, brick1, brick2, k, c);
 
     Transform GroundAttach2(Rotation(), Vec3(1,1,1) + Vec3(2,0,0));
     matter.Ground().updBody().addDecoration(GroundAttach2,
                 DecorativeFrame(0.5).setColor(Green));
     const Vec6 k2 = k;
-    const Vec6 c2 = c;
-    Force::MobilityLinearSpring kqx(forces, dummy2, 0, k2[0], 0);
-    Force::MobilityLinearDamper cqx(forces, dummy2, 0, c2[0]);
-    Force::MobilityLinearSpring kqy(forces, dummy3, 0, k2[1], 0);
-    Force::MobilityLinearDamper cqy(forces, dummy3, 0, c2[1]);
-    Force::MobilityLinearSpring kqz(forces, brick2, 0, k2[2], 0);
-    Force::MobilityLinearDamper cqz(forces, brick2, 0, c2[2]);
-    Force::MobilityLinearSpring kpx(forces, dummy1, 0, k2[3], 0);
-    Force::MobilityLinearDamper cpx(forces, dummy1, 0, c2[3]);
-    Force::MobilityLinearSpring kpy(forces, dummy1, 1, k2[4], 0);
-    Force::MobilityLinearDamper cpy(forces, dummy1, 1, c2[4]);
-    Force::MobilityLinearSpring kpz(forces, dummy1, 2, k2[5], 0);
-    Force::MobilityLinearDamper cpz(forces, dummy1, 2, c2[5]);
+    const Vec6 c2 = 0*c;
+    //Force::MobilityLinearSpring kqx(forces, dummy2, 0, k2[0], 0);
+    //Force::MobilityLinearDamper cqx(forces, dummy2, 0, c2[0]);
+    //Force::MobilityLinearSpring kqy(forces, dummy3, 0, k2[1], 0);
+    //Force::MobilityLinearDamper cqy(forces, dummy3, 0, c2[1]);
+    //Force::MobilityLinearSpring kqz(forces, brick2, 0, k2[2], 0);
+    //Force::MobilityLinearDamper cqz(forces, brick2, 0, c2[2]);
+    //Force::MobilityLinearSpring kpx(forces, dummy1, 0, k2[3], 0);
+    //Force::MobilityLinearDamper cpx(forces, dummy1, 0, c2[3]);
+    //Force::MobilityLinearSpring kpy(forces, dummy1, 1, k2[4], 0);
+    //Force::MobilityLinearDamper cpy(forces, dummy1, 1, c2[4]);
+    //Force::MobilityLinearSpring kpz(forces, dummy1, 2, k2[5], 0);
+    //Force::MobilityLinearDamper cpz(forces, dummy1, 2, c2[5]);
+
+    Force::MobilityLinearSpring kqx(forces, dummy3, 0, k2[0], 0);
+    Force::MobilityLinearDamper cqx(forces, dummy3, 0, c2[0]);
+    Force::MobilityLinearSpring kqy(forces, dummy2, 0, k2[1], 0);
+    Force::MobilityLinearDamper cqy(forces, dummy2, 0, c2[1]);
+    Force::MobilityLinearSpring kqz(forces, dummy1, 0, k2[2], 0);
+    Force::MobilityLinearDamper cqz(forces, dummy1, 0, c2[2]);
+    Force::MobilityLinearSpring kpx(forces, brick2, 0, k2[3], 0);
+    Force::MobilityLinearDamper cpx(forces, brick2, 0, c2[3]);
+    Force::MobilityLinearSpring kpy(forces, brick2, 1, k2[4], 0);
+    Force::MobilityLinearDamper cpy(forces, brick2, 1, c2[4]);
+    Force::MobilityLinearSpring kpz(forces, brick2, 2, k2[5], 0);
+    Force::MobilityLinearDamper cpz(forces, brick2, 2, c2[5]);
 
     VTKEventReporter* reporter = new VTKEventReporter(system, 0.01);
     system.updDefaultSubsystem().addEventReporter(reporter);
 
-    BushingReporter* bushingReport = new BushingReporter(system, bushing, .01);
+    BushingReporter* bushingReport = new BushingReporter(system, bushing, bushing2, .01);
     system.updDefaultSubsystem().addEventReporter(bushingReport);
 
     ReactionReporter* dummy1Reac = new ReactionReporter("dummy1", system, dummy1, .01);
@@ -171,9 +210,9 @@ int main() {
     ReactionReporter* dummy3Reac = new ReactionReporter("dummy3", system, dummy3, .01);
     ReactionReporter* brick2Reac = new ReactionReporter("brick2", system, brick2, .01);
 
-    system.updDefaultSubsystem().addEventReporter(dummy1Reac);
-    system.updDefaultSubsystem().addEventReporter(dummy2Reac);
     system.updDefaultSubsystem().addEventReporter(dummy3Reac);
+    system.updDefaultSubsystem().addEventReporter(dummy2Reac);
+    system.updDefaultSubsystem().addEventReporter(dummy1Reac);
     system.updDefaultSubsystem().addEventReporter(brick2Reac);
 
 
@@ -200,14 +239,23 @@ int main() {
     char ch=getchar();
 
     state.setTime(0);
-    brick1.setQToFitTransform(state, 
-        Rotation(BodyRotationSequence, 30*(Pi/180), XAxis,
+    Rotation R30(BodyRotationSequence, 30*(Pi/180), XAxis,
                                        30*(Pi/180), YAxis,
-                                       30*(Pi/180), ZAxis));
-    dummy1.setQToFitTransform(state, Vec3(-1,-1,-1));
-    dummy2.setOneQ(state, 0, 30*(Pi/180));
-    dummy3.setOneQ(state, 0, 30*(Pi/180));
-    brick2.setOneQ(state, 0, 30*(Pi/180));
+                                       30*(Pi/180), ZAxis);
+    brick1.setQToFitTransform(state, R30); 
+
+    Vec3 q30i;
+    q30i = Rotation(~R30).convertRotationToBodyFixedXYZ();
+    cout << "q30i=" << q30i << endl;
+
+    //dummy1.setQToFitTransform(state, Vec3(-1,-1,-1));
+    //dummy2.setOneQ(state, 0, 30*(Pi/180));
+    //dummy3.setOneQ(state, 0, 30*(Pi/180));
+    //brick2.setOneQ(state, 0, 30*(Pi/180));
+    brick2.setQToFitTransform(state, ~R30*Vec3(-1,-1,-1));
+    dummy3.setOneQ(state, 0, q30i[0]);
+    dummy2.setOneQ(state, 0, q30i[1]);
+    dummy1.setOneQ(state, 0, q30i[2]);
 
     
 
@@ -226,6 +274,8 @@ int main() {
          << "\nu=" << brick1.getUAsVector(istate) << brick2.getUAsVector(istate) 
          << "\nudot=" << brick1.getUDotAsVector(istate) << brick2.getUDotAsVector(istate) 
          << "\ntau=" << brick1.getTauAsVector(istate) << brick2.getTauAsVector(istate) 
+         << "\nbrick1=" << brick1.getBodyTransform(istate)
+         << "brick2=" << brick2.getBodyTransform(istate)
          << endl;
     bushingReport->handleEvent(istate);
     dummy1Reac->handleEvent(istate);

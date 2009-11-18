@@ -90,12 +90,12 @@ namespace SimTK {
  * <pre>    e_i = k_i*q_i^2/2.              </pre>
  * The damping terms contribute no potential energy, but dissipate power at 
  * a rate 
- * <pre>    p_i = 2*c_i*qdot_i^2            </pre>
- * (the factor of 2 comes from the fact that the generalized damping force is
- * applied equal and opposite to both bodies). Numerically integrating the 
- * dissipated power over time gives the energy dissipated by the Bushing since 
- * some arbitrary starting time and can be used to check conservation of energy 
- * in the presence of damping.
+ * <pre>    p_i = c_i*qdot_i^2.             </pre>
+ * Numerically integrating the dissipated power over time gives the energy 
+ * dissipated by the Bushing since some arbitrary starting time and can be used
+ * to check conservation of energy in the presence of damping. The 
+ * LinearBushing force allocates a state variable for this purpose so tracks
+ * the energy it dissipates; see the getDissipatedEnergy() method.
  *
  * The scalar rotational moments f_0, f_1, and f_2 act about rotated axes so
  * do not constitute a vector; the are transformed internally here to produce 

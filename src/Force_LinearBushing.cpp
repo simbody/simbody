@@ -429,7 +429,7 @@ ensurePositionCacheValid(const State& state) const {
     const Transform& X_GB2 = body2.getBodyTransform(state);
     pc.X_GF =     X_GB1*   X_B1F;   // 63 flops
     pc.X_GM =     X_GB2*   X_B2M;   // 63 flops
-    pc.X_FM = ~pc.X_GF*pc.X_GM;   // 63 flops
+    pc.X_FM = ~pc.X_GF *pc.X_GM;    // 63 flops
 
     // Re-express local vectors in the Ground frame.
     pc.p_B1F_G =    X_GB1.R() *    X_B1F.p();   // 15 flops
@@ -524,7 +524,8 @@ ensureForceCacheValid(const State& state) const {
     // energy (cheap to do here).
     const Vec6& q = pc.q;
     Vec6 fk; Real pe2=0;
-    for (int i=0; i<6; ++i) pe2 += (fk[i]=k[i]*q[i])*q[i]; 
+    for (int i=0; i<6; ++i) 
+        pe2 += (fk[i]=k[i]*q[i])*q[i]; 
     updPotentialEnergyCache(state) = pe2/2;
     markPotentialEnergyValid(state);
 
@@ -532,14 +533,13 @@ ensureForceCacheValid(const State& state) const {
     const VelocityCache& vc = getVelocityCache(state);
 
     const Vec6& qd = vc.qdot;
-    Vec6 fv; Real power2=0;
+    Vec6 fv; fc.power=0;
     for (int i=0; i<6; ++i) 
-        power2 += (fv[i]=c[i]*qd[i])*qd[i];
-    fc.power = 2*power2; // power loss at both ends of generalized coord
+        fc.power += (fv[i]=c[i]*qd[i])*qd[i];
 
-    fc.f             = -(fk+fv); // generalized forces on body B
-    const Vec3& fB_q = fc.f.getSubVec<3>(0); // in q basis
-    const Vec3& fM_F = fc.f.getSubVec<3>(3); // acts at M, but exp. in F frame
+    fc.f = -(fk+fv); // generalized forces on body 2
+    const Vec3& fB2_q = fc.f.getSubVec<3>(0); // in q basis
+    const Vec3& fM_F  = fc.f.getSubVec<3>(3); // acts at M, but exp. in F frame
 
     // Calculate the matrix relating q-space generalized forces to a real-space
     // moment vector. We know qforce = ~H * moment (where H is the
@@ -547,19 +547,18 @@ ensureForceCacheValid(const State& state) const {
     // In that case H would be N^-1, qforce = ~(N^-1)*moment so
     // moment = ~N*qforce. Caution: our N wants the moment in the outboard
     // body frame, in this case M.
-    const Mat33 N_FM = Rotation::calcNForBodyXYZInBodyFrame(q.getSubVec<3>(0));
-    const Vec3  mB_M = ~N_FM * fB_q; // moment acting on body B, exp. in M
-    const Vec3  mB_G = R_GM*mB_M;    // moment on B, now exp. in G
+    const Mat33 N_FM  = Rotation::calcNForBodyXYZInBodyFrame(q.getSubVec<3>(0));
+    const Vec3  mB2_M = ~N_FM * fB2_q; // moment acting on body 2, exp. in M
+    const Vec3  mB2_G =  R_GM * mB2_M; // moment on body 2, now exp. in G
 
     // Transform force from F frame to ground. This is the force to 
-    // apply to body B at point OM; -f goes on body A at the same
-    // spatial location. Here we actually apply it at OF, and since
-    // we know the force acts along the line OF-OM the change in 
-    // location does not generate a moment.
+    // apply to body 2 at point OM; -f goes on body 1 at the same
+    // spatial location. Here we actually apply it at OF so we have to
+    // account for the moment produced by the shift from OM.
     const Vec3 fM_G = R_GF*fM_F;
 
-    fc.F_GM = SpatialVec(mB_G, fM_G);
-    fc.F_GF = -fc.F_GM; // see above for why force is OK here w/o shift
+    fc.F_GM = SpatialVec(  mB2_G,                       fM_G);
+    fc.F_GF = SpatialVec(-(mB2_G + pc.p_FM_G % fM_G) , -fM_G);
 
     // Shift forces to body origins.
     fc.F_GB2 = SpatialVec(fc.F_GM[0] + pc.p_B2M_G % fc.F_GM[1], fc.F_GM[1]);
