@@ -37,6 +37,11 @@
  * assumes that Force.h will have included all necessary declarations.
  */
 
+#include "SimTKcommon.h"
+#include "simbody/internal/Force.h"
+
+namespace SimTK {
+
 /**
  * This is a feedback-controlled force that uses Nose'-Hoover chains to 
  * maintain a particular temperature Tb, as though the system were immersed in 
@@ -123,8 +128,11 @@ public:
 	/// Define a global thermostat (one that affects all degrees of freedom) at
 	/// a given default temperature and relaxation time. The number of Nose'-Hoover
 	/// chains is given a default value.
-    Thermostat(GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter, 
-			   Real boltzmannsConstant, Real bathTemperature, Real relaxationTime);
+    Thermostat(GeneralForceSubsystem&        forces, 
+               const SimbodyMatterSubsystem& matter, 
+			   Real                          boltzmannsConstant, 
+               Real                          bathTemperature, 
+               Real                          relaxationTime);
 
 	/// TODO: not implemented yet. Remove a body from consideration in
 	/// the thermostat. Typically this would be the system base body so
@@ -159,8 +167,8 @@ public:
 	Real getBoltzmannsConstant() const;
 
 	/// Set the actual number of Nose'-Hoover chains to be used. This variable
-	/// controls the number of auxiliary state variables allocated by the Thermostat
-	/// so invalidates Model stage (TODO: should be Instance).
+	/// controls the number of auxiliary state variables allocated by the 
+    /// Thermostat so invalidates Model stage.
 	void setNumChains(State&, int numChains) const;
 	/// Set the bath temperature which serves as the target temperature for
 	/// the thermostat. This is given in units defined by the value of 
@@ -198,16 +206,16 @@ public:
 	/// has been realized.
 	Real getCurrentTemperature(const State&) const;
 
-	/// This is a solver that initializes the thermostat state variables to zero.
+	/// This is a solver that initializes thermostat state variables to zero.
 	void initializeChainState(State&) const;
 	/// Set the thermostat state variables to particular values. The Vector's
-	/// length must be the same as twice the current number of chains called for by
-	/// the State.
+	/// length must be the same as twice the current number of chains called 
+    /// for by the State.
 	void setChainState(State&, const Vector&) const;
 
 	/// Return the current values of the thermostat chain variables. The 
-	/// returned vector will have twice the length that getNumChains(s) would return
-	/// if called on this same State.
+	/// returned vector will have twice the length that getNumChains(s) would 
+    /// return if called on this same State.
 	Vector getChainState(const State&) const;
 
 	/// Calculate the total "bath energy" which, when added to the system
@@ -221,13 +229,16 @@ public:
 	void initializeSystemToBathTemperature(State&) const;
 
 	/// Set the controlled system to a set of randomized velocities which
-	/// yields a particular temperature. This ignores the current system velocities.
-	/// The temperature is interpreted using the value of Boltzmann's constant
-	/// that was provided on construction of this Thermostat.
-	/// TODO: not implemented yet.
+	/// yields a particular temperature. This ignores the current system 
+    /// velocities. The temperature is interpreted using the value of 
+    /// Boltzmann's constant that was provided on construction of this 
+    /// Thermostat. TODO: not implemented yet.
 	void setSystemToTemperature(State&, Real T) const;
 
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Thermostat, ThermostatImpl, Force);
 };
+
+} // namespace SimTK
+
 
 #endif // SimTK_SIMBODY_FORCE_THERMOSTAT_H_

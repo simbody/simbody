@@ -34,7 +34,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/MobilizedBody.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "simbody/internal/Force.h"
+#include "simbody/internal/Force_Thermostat.h"
 
 #include "ForceImpl.h"
 

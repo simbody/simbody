@@ -50,9 +50,10 @@ public:
     :    PeriodicEventReporter(dt), system(sys), bushing(frc) {}
 
     void handleEvent(const State& state) const {
-        printf("t=%g, stage %s, energy=%g\n", state.getTime(),
+        printf("t=%g, stage %s, energy=%g conserved=%g\n", state.getTime(),
                 state.getSystemStage().getName().c_str(),
-                system.calcEnergy(state));
+                system.calcEnergy(state),
+                system.calcEnergy(state)+bushing.getDissipatedEnergy(state));
         cout << "q=" << bushing.getQ(state) 
              << " qdot=" << bushing.getQDot(state)
              << endl;
@@ -62,6 +63,8 @@ public:
         cout << "F_GM=" << bushing.getF_GM(state) << endl;
         cout << "F_GF=" << bushing.getF_GF(state) << endl;
         cout << "pe=" << bushing.getPotentialEnergy(state) << endl;
+        cout << "power=" << bushing.getPowerDissipation(state) << endl;
+        cout << "e_dissipated=" << bushing.getDissipatedEnergy(state) << endl;
     }
 private:
     const MultibodySystem&         system;
@@ -181,11 +184,18 @@ int main() {
     system.realizeTopology();
     State state = system.getDefaultState();
 
+    bushing.setStiffness(state, 1*bushing.getDefaultStiffness());
+    bushing.setDamping(state, 1*bushing.getDefaultDamping());
+
     viz.report(state);
     printf("Default state -- hit ENTER\n");
     cout << "t=" << state.getTime() 
          << " q=" << brick1.getQAsVector(state) << brick2.getQAsVector(state) 
          << " u=" << brick1.getUAsVector(state) << brick2.getUAsVector(state) 
+         << "\ndefK=" << bushing.getDefaultStiffness()
+         << " k="     << bushing.getStiffness(state)
+         << "\ndefC=" << bushing.getDefaultDamping()
+         << " c="     << bushing.getDamping(state)
          << endl;
     char ch=getchar();
 

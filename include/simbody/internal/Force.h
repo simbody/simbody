@@ -95,10 +95,6 @@ public:
     class CustomImpl;
 };
 
-// These are built-in subclasses that are substantial enough to get
-// their own header files.
-#include "simbody/internal/Force_LinearBushing.h"
-#include "simbody/internal/Force_Thermostat.h"
 
 /**
  * A linear spring between two points, specified as a station on
