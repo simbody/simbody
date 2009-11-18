@@ -289,30 +289,30 @@ getDefaultStiffness() const {return getImpl().defK;}
 const Vec6& Force::LinearBushing::
 getDefaultDamping() const {return getImpl().defC;}
 
-Force::LinearBushing& Force::LinearBushing::
-setFrameOnBody1(State& state, const Transform& X_B1F) {
-    updImpl().updInstanceVars(state).X_B1F = X_B1F; 
+const Force::LinearBushing& Force::LinearBushing::
+setFrameOnBody1(State& state, const Transform& X_B1F) const {
+    getImpl().updInstanceVars(state).X_B1F = X_B1F; 
     return *this;
 }
-Force::LinearBushing& Force::LinearBushing::
-setFrameOnBody2(State& state, const Transform& X_B2M) {
-    updImpl().updInstanceVars(state).X_B2M = X_B2M; 
+const Force::LinearBushing& Force::LinearBushing::
+setFrameOnBody2(State& state, const Transform& X_B2M) const {
+    getImpl().updInstanceVars(state).X_B2M = X_B2M; 
     return *this;
 }
-Force::LinearBushing& Force::LinearBushing::
-setStiffness(State& state, const Vec6& stiffness) {
+const Force::LinearBushing& Force::LinearBushing::
+setStiffness(State& state, const Vec6& stiffness) const {
     SimTK_ERRCHK_ALWAYS(stiffness >= 0,
         "Force::LinearBushing::setStiffness()",
         "Bushing spring constants must be nonnegative.");
-    updImpl().updInstanceVars(state).k = stiffness; 
+    getImpl().updInstanceVars(state).k = stiffness; 
     return *this;
 }
-Force::LinearBushing& Force::LinearBushing::
-setDamping(State& state, const Vec6& damping) {
+const Force::LinearBushing& Force::LinearBushing::
+setDamping(State& state, const Vec6& damping) const {
     SimTK_ERRCHK_ALWAYS(damping >= 0,
         "Force::LinearBushing::setDamping()",
         "Bushing damping coefficients must be nonnegative.");
-    updImpl().updInstanceVars(state).c = damping; 
+    getImpl().updInstanceVars(state).c = damping; 
     return *this;
 }
 const Transform& Force::LinearBushing::
