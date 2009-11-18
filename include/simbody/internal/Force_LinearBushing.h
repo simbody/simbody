@@ -203,7 +203,7 @@ public:
     /// Set the damping coefficients c that will be used by default for this 
     /// Bushing; these must be nonnegative.
     /// @param[in]          damping
-    ///     The six nonnegative damping coefficients, for each axis in the
+    ///     The six nonnegative damping coefficients, one for each axis in the
     ///     order qx,qy,qz,px,py,pz (i.e., rotations first).
     /// @return
     ///     A writable reference to "this" Linear Bushing which will now have 
@@ -261,22 +261,54 @@ public:
     /// connected by the bushing when evaluating with this State, by giving 
     /// the transform X_B1F locating frame F with respect to the body frame B1.
     /// @pre \a state realized to Stage::Topology
+    /// @param[in,out]      state
+    ///     The State object that is modified by this method.
+    /// @param[in]          X_B1F
+    ///     The Transform giving the placement of the first Bushing frame F 
+    ///     in the body 1 frame B1.
+    /// @return
+    ///     A const reference to "this" Linear Bushing for convenient
+    ///     chaining of set...() methods in a single expression.
     const LinearBushing& setFrameOnBody1(State&             state, 
                                          const Transform&   X_B1F) const;
     /// Set the frame M on body B2 that will be used as one of the frames 
     /// connected by the bushing when evaluating with this State, by giving 
     /// the transform X_B2M locating frame M with respect to the body frame B2.
     /// @pre \a state realized to Stage::Topology
+    /// @param[in,out]      state
+    ///     The State object that is modified by this method.
+    /// @param[in]          X_B2M
+    ///     The Transform giving the placement of the second Bushing frame M 
+    ///     in the body 2 frame B2.
+    /// @return
+    ///     A const reference to "this" Linear Bushing for convenient
+    ///     chaining of set...() methods in a single expression.
     const LinearBushing& setFrameOnBody2(State&             state, 
                                          const Transform&   X_B2M) const;
     /// Set the stiffnesses (spring constants) k that will be used for this 
     /// Bushing when evaluated using this State.
     /// @pre \a state realized to Stage::Topology
+    /// @param[in,out]      state
+    ///     The State object that is modified by this method.
+    /// @param[in]          stiffness    
+    ///     Six nonnegative spring constants, one for each axis in the
+    ///     order qx,qy,qz,px,py,pz (i.e., rotations first).
+    /// @return
+    ///     A const reference to "this" Linear Bushing for convenient
+    ///     chaining of set...() methods in a single expression.
     const LinearBushing& setStiffness(State&        state, 
                                       const Vec6&   stiffness) const;
     /// Set the damping coefficients c that will be used for this Bushing when 
     /// evaluated using this State.
     /// @pre \a state realized to Stage::Topology
+    /// @param[in,out]      state
+    ///     The State object that is modified by this method.
+    /// @param[in]          damping
+    ///     Six nonnegative damping coefficients, one for each axis in the
+    ///     order qx,qy,qz,px,py,pz (i.e., rotations first).
+    /// @return
+    ///     A const reference to "this" Linear Bushing for convenient
+    ///     chaining of set...() methods in a single expression.
     const LinearBushing& setDamping(State&      state, 
                                     const Vec6& damping) const;
 
@@ -284,19 +316,41 @@ public:
     /// of the frames connected by the bushing, as the transform X_B1F locating 
     /// frame F with respect to the body frame B1.
     /// @pre \a state realized to Stage::Topology
+    /// @param[in]          state
+    ///     The State object from which we obtain the frame.
+    /// @return
+    ///     The Transform X_B1F giving the given state's current placement 
+    ///     of the first Bushing frame F in the body 1 frame B1.
     const Transform& getFrameOnBody1(const State& state) const;
     /// Return the frame M on body B2 currently being used by this State as one 
     /// of the frames connected by the bushing, as the transform X_B2M locating 
     /// frame M with respect to the body frame B2.
     /// @pre \a state realized to Stage::Topology
+    /// @param[in]          state
+    ///     The State object from which we obtain the frame.
+    /// @return
+    ///     The Transform X_B2M giving the given state's current placement 
+    ///     of the second Bushing frame M in the body 2 frame B2.
     const Transform& getFrameOnBody2(const State& state) const;
     /// Return the stiffnesses (spring constants) k currently being used for 
     /// this Bushing by this State. 
     /// @pre \a state realized to Stage::Topology
+    /// @param[in]          state
+    ///     The State object from which we obtain the stiffnesses.
+    /// @return
+    ///     The current values in the given state of the six spring constants
+    ///     k, one for each axis in the order qx,qy,qz,px,py,pz (i.e., 
+    ///     rotations first).
     const Vec6& getStiffness(const State& state) const;
     /// Return the damping coefficients c currently being used for this Bushing 
     /// by this State. 
     /// @pre \a state realized to Stage::Topology
+    /// @param[in]          state
+    ///     The State object from which we obtain the damping coefficients.
+    /// @return
+    ///     The current values in the given state of the six damping
+    ///     coefficients c, one for each axis in the order qx,qy,qz,px,py,pz 
+    ///     (i.e., rotations first).
     const Vec6& getDamping(const State& state)   const;
     //@}...................... Instance Parameters .............................
 
@@ -314,7 +368,6 @@ public:
     /// @pre These methods may be called only after the supplied state has 
     ///      been realized to Position stage.
     //@{
-
     /// Obtain the generalized coordinates last calculated by this force
     /// element. These are the body2-fixed x-y-z Euler angles qx,qy,qz and
     /// p_FM=[px,py,pz], the vector from the frame F origin OF to
@@ -371,7 +424,6 @@ public:
     /// @pre These methods may be called only after the supplied state has 
     ///      been realized to Velocity stage.
     //@{
-
     /// Obtain the generalized coordinate derivatives last calculated by this 
     /// force element. These are the bodyB-fixed x-y-z Euler angle derivatives
     /// qdotx,qdoty,qdotz and v_FM=[vx,vy,vz], the velocity of point OM in 
@@ -441,7 +493,6 @@ public:
     /// @pre These methods may be called only after the supplied state has 
     ///      been realized to Velocity stage.
     //@{
-
     /// Obtain the generalized forces f begin applied by this Bushing force
     /// element on each of its six axes. The sign is such that it would be 
     /// appropriate to apply to a Bushing mobilizer connecting the same two
