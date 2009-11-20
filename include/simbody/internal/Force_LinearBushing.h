@@ -42,17 +42,19 @@
 
 namespace SimTK {
 /**
- * This force element represents a bushing with linear material properties, 
- * acting to connect two frames F ("fixed") and M ("moving"), with F fixed to 
- * body B1 and M fixed to body B2. The relative orientation R_FM is parametrized 
- * by an x-y-z (1-2-3) B2-fixed Euler angle sequence and its time 
- * derivatives, as well as a position vector p_FM from OF to OM expressed in F,
- * and its time derivative v_FM (taken in F). For small orientation 
- * displacements, the Euler angles can be considered independent rotations 
- * about x, y, and z. Stiffness and damping parameters (6 of each) are provided
- * for each direction's rotation and translation. The 6 coordinates q are 
- * defined as the three Euler angles [qx,qy,qz] followed by the three 
- * translations [px,py,pz]=p_FM.
+ * This force element represents a bushing acting to connect a frame F fixed 
+ * on one body (B1) to a frame M fixed on a second body (B2), by a massless,
+ * compliant element with linear stiffness and damping properties.
+ * 
+ * The relative orientation R_FM of frame M given in frame F is parametrized by
+ * an x-y-z (1-2-3) B2-fixed Euler angle sequence and their time derivatives, 
+ * as well as a position vector p_FM from F's origin OF to M's origin OM 
+ * expressed in F, and its time derivative (velocity) v_FM (taken in F). For 
+ * small orientation displacements, the Euler angles can be considered 
+ * independent rotations about x, y, and z. Stiffness and damping parameters 
+ * (6 of each) are provided for each direction's rotation and translation. The
+ * 6 coordinates q are defined as the three Euler angles [qx,qy,qz] followed 
+ * by the three translations [px,py,pz]=p_FM.
  * 
  * This force element is intended for small-displacement use, but is defined
  * nonlinearly so is physically correct for large displacements also. However,
@@ -75,9 +77,9 @@ namespace SimTK {
  * 
  * \par Theory:
  *
- * The Bushing calculates the relative orientation X_FM between the frames,
- * and the relative spatial velocity V_FM. From these it infers a set of
- * q's and qdot's as though there were a gimbal-like mechanism connecting
+ * The LinearBushing calculates the relative orientation X_FM between the 
+ * frames, and the relative spatial velocity V_FM. From these it infers a set
+ * of q's and qdot's as though there were a gimbal-like mechanism connecting
  * frame F to frame M. This is done using standard formulas to decompose
  * a rotation matrix into an Euler sequence (1-2-3 body fixed in this case)
  * and to convert angular velocity to the time derivatives of the Euler
