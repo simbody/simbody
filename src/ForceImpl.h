@@ -60,7 +60,10 @@ public:
 		if (forces) forces->invalidateSubsystemTopologyCache();
 	}
 
-    virtual void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const = 0;
+    virtual void calcForce(const State&         state, 
+                           Vector_<SpatialVec>& bodyForces, 
+                           Vector_<Vec3>&       particleForces, 
+                           Vector&              mobilityForces) const = 0;
     virtual Real calcPotentialEnergy(const State& state) const = 0;
     virtual void realizeTopology(State& state) const {
     }

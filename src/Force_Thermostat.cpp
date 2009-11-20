@@ -45,7 +45,7 @@ class Force::ThermostatImpl : public ForceImpl {
 public:
     ThermostatImpl(const SimbodyMatterSubsystem& matter, 
 				   Real boltzmannsConstant, Real defBathTemp, Real defRelaxationTime)
-    :   matter(matter), Kb(boltzmannsConstant), defaultNumChains(DefaultDefaultNumChains),
+    :   matter(matter), kB(boltzmannsConstant), defaultNumChains(DefaultDefaultNumChains),
         defaultBathTemp(defBathTemp), defaultRelaxationTime(defRelaxationTime)
 	{}
 
@@ -125,6 +125,16 @@ public:
 		return Value<Real>::updDowncast(getForceSubsystem().updCacheEntry(s, cacheKEIndex));
 	}
 
+	Real getExternalWork(const State& s) const 
+    {   return getForceSubsystem().getZ(s)[workZIndex];	}
+	Real& updExternalWork(State& s) const 
+    {   return getForceSubsystem().updZ(s)[workZIndex];	}
+
+	Real& updWorkZDot(const State& s) const 
+    {   return getForceSubsystem().updZDot(s)[workZIndex];	}
+
+    Real calcExternalPower(const State& s) const;
+
 	// Get the current value of one of the thermostat state variables.
 	Real getZ(const State& s, int i) const {
 		assert(0 <= i && i < 2*getNumChains(s));
@@ -151,7 +161,7 @@ public:
 	static const int DefaultDefaultNumChains = 3;
 private:
     const SimbodyMatterSubsystem& matter;
-    const Real  Kb;		// Boltzmann's constant in compatible units
+    const Real  kB;		// Boltzmann's constant in compatible units
 
 	// Topology-stage "state" variables.
 	int			defaultNumChains;		// # chains in a new State
@@ -165,6 +175,7 @@ private:
 	CacheEntryIndex		  cacheZ0Index;		// ZIndex
 	CacheEntryIndex		  cacheMomentumIndex;	// M*u
 	CacheEntryIndex		  cacheKEIndex;			// ~u*M*u/2
+    ZIndex                workZIndex;       // power integral
 
 friend class Force::Thermostat;
 };
@@ -222,7 +233,7 @@ Force::Thermostat& Force::Thermostat::setDefaultRelaxationTime(Real relaxationTi
 int Force::Thermostat::getDefaultNumChains() const {return getImpl().defaultNumChains;}
 Real Force::Thermostat::getDefaultBathTemperature() const {return getImpl().defaultBathTemp;}
 Real Force::Thermostat::getDefaultRelaxationTime() const {return getImpl().defaultRelaxationTime;}
-Real Force::Thermostat::getBoltzmannsConstant() const {return getImpl().Kb;}
+Real Force::Thermostat::getBoltzmannsConstant() const {return getImpl().kB;}
 
 void Force::Thermostat::setNumChains(State& s, int numChains) const {
 	SimTK_APIARGCHECK1_ALWAYS(numChains > 0, 
@@ -264,7 +275,8 @@ void Force::Thermostat::setChainState(State& s, const Vector& z) const {
 	const int nChains = impl.getNumChains(s);
 	SimTK_APIARGCHECK2_ALWAYS(z.size() == 2*nChains,
 		"Force::Thermostat", "setChainState", 
-		"Number of values supplied (%d) didn't match the number of chains %d.", z.size(), nChains);
+		"Number of values supplied (%d) didn't match twice the number of chains %d.", 
+        z.size(), nChains);
 	for (int i=0; i < 2*nChains; ++i)
 		impl.updZ(s, i) = z[i];
 }
@@ -278,12 +290,12 @@ Vector Force::Thermostat::getChainState(const State& s) const {
 	return out;
 }
 
-
+// Cost is a divide and two flops, say about 20 flops.
 Real Force::Thermostat::getCurrentTemperature(const State& s) const {
 	const Real ke = getImpl().getKE(s);	// Cached value for kinetic energy
-	const Real Kb = getImpl().Kb;		// Boltzmann's constant
+	const Real kB = getImpl().kB;		// Boltzmann's constant
 	const int  N  = getImpl().getNumDOFs(s);
-	return (2*ke) / (N*Kb);
+	return (2*ke) / (N*kB);
 }
 
 int Force::Thermostat::getNumDegreesOfFreedom(const State& s) const {
@@ -293,11 +305,12 @@ int Force::Thermostat::getNumDegreesOfFreedom(const State& s) const {
 // Bath energy is KEb + PEb where
 //    KEb = 1/2 kT t^2 (N z0^2 + sum(zi^2))
 //    PEb = kT (N s0 + sum(si))
+// Cost is about 7 flops + 4 flops/chain, say about 25 flops.
 Real Force::Thermostat::calcBathEnergy(const State& state) const {
 	const ThermostatImpl& impl = getImpl();
 	const int nChains = impl.getNumChains(state);
 	const int  N = impl.getNumDOFs(state);
-	const Real kT = impl.Kb * impl.getBathTemp(state);
+	const Real kT = impl.kB * impl.getBathTemp(state);
 	const Real t = impl.getRelaxationTime(state);
 
 	Real zsqsum = N * square(impl.getZ(state,0));
@@ -314,6 +327,18 @@ Real Force::Thermostat::calcBathEnergy(const State& state) const {
 	return KEb + PEb;
 }
 
+Real Force::Thermostat::getExternalPower(const State& state) const {
+    return getImpl().calcExternalPower(state);
+}
+
+Real Force::Thermostat::getExternalWork(const State& state) const {
+    return getImpl().getExternalWork(state);
+}
+
+void Force::Thermostat::setExternalWork(State& state, Real w) const {
+    getImpl().updExternalWork(state) = w;
+}
+
 // This is the number of dofs. TODO: we're ignoring constraint redundancy
 // but we shouldn't be! That could result in negative dofs, so we'll 
 // make sure that doesn't happen. But don't expect meaningful results
@@ -325,14 +350,29 @@ int Force::ThermostatImpl::getNumDOFs(const State& state) const {
 	return N;
 }
 
-void Force::ThermostatImpl::calcForce
-   (const State& state, Vector_<SpatialVec>&, Vector_<Vec3>&, Vector& mobilityForces) const 
+// This force produces only mobility forces, with 
+//      f = -z0 * M * u
+// Conveniently we already calculated the momentum M*u and cached it
+// in realizeVelocity(). Additional cost here is 2*N flops.
+void Force::ThermostatImpl::
+calcForce(const State& state, Vector_<SpatialVec>&, Vector_<Vec3>&, 
+          Vector& mobilityForces) const 
 {
-	Vector p;	// momentum per mobility
-	matter.calcMV(state, state.getU(), p);
+    const Vector& p = getMomentum(state);
 
 	// Generate momentum-weighted forces and apply to mobilities.
+    // This is 2*N flops.
     mobilityForces -= getZ(state, 0)*p;
+}
+
+// All the power generated by this force is external (to or from the
+// thermal bath). So the power is
+//      p = ~u * f = -z0 * (~u * M * u) = -z0 * (2*KE).
+// We already calculated and cached KE in realizeVelocity() so power
+// is practically free here (2 flops).
+Real Force::ThermostatImpl::
+calcExternalPower(const State& state) const {
+    return -2 * getZ(state, 0) * getKE(state);
 }
 
 // Allocate and initialize state variables.
@@ -366,6 +406,10 @@ void Force::ThermostatImpl::realizeTopology(State& state) const {
 	mutableThis->cacheKEIndex =
 		getForceSubsystem().allocateCacheEntry(state, Stage::Velocity, 
 											   new Value<Real>(NaN));
+
+	const Vector workZInit(1, Zero);
+    mutableThis->workZIndex = 
+	    getForceSubsystem().allocateZ(state, workZInit);
 }
 
 // Allocate the chain state variables and bath energy variables.
@@ -376,20 +420,25 @@ void Force::ThermostatImpl::realizeModel(State& state) const {
 	updZ0Index(state) = getForceSubsystem().allocateZ(state, zInit);
 }
 
-// Calculate velocity-dependent terms.
+// Calculate velocity-dependent terms, the internal coordinate
+// momentum and the kinetic energy. This is the expensive part
+// at about 125*N flops if all joints are 1 dof.
 void Force::ThermostatImpl::realizeVelocity(const State& state) const {
 	Vector& Mu = updMomentum(state);
-	matter.calcMV(state, state.getU(), Mu);
-	updKE(state) = (~state.getU() * Mu) / 2;
+	matter.calcMV(state, state.getU(), Mu);     // <-- expensive ~123*N flops
+	updKE(state) = (~state.getU() * Mu) / 2;    // 2*N flops
 }
 
+// Calculate time derivatives of the various state variables.
+// This is just a fixed cost for the whole system, independent of
+// size: 3 divides + a few flops per chain, maybe 100 flops total.
 void Force::ThermostatImpl::realizeDynamics(const State& state) const {
 	const Real t	= getRelaxationTime(state);
 	const Real oot2 = 1 / square(t);
 	const int  m	= getNumChains(state);
 
 	// This is the desired kinetic energy per dof.
-	const Real Eb = Kb * getBathTemp(state) / 2;
+	const Real Eb = kB * getBathTemp(state) / 2;
 
 	const int  N = getNumDOFs(state);
 
@@ -410,6 +459,8 @@ void Force::ThermostatImpl::realizeDynamics(const State& state) const {
 	// Calculate sdot's for energy calculation.
 	for (int k=0; k < m; ++k)
 		updZDot(state, m+k) = getZ(state, k);
+
+    updWorkZDot(state) = calcExternalPower(state);
 }
 
 

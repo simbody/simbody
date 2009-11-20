@@ -50,9 +50,9 @@ namespace SimTK {
  * temperature is maintained. This thermostat is particularly useful in 
  * molecular simulations but can be applied to any mechanical system also.
  *
- * Temperature is defined here as T = (2*KE) / (N*Kb) where KE is the system
+ * Temperature is defined here as T = (2*KE) / (N*kB) where KE is the system
  * kinetic energy, N is the number of coupled degrees of freedom (mobilities 
- * minus active, nonredundant constraints), and Kb is Boltzmann's constant in 
+ * minus active, nonredundant constraints), and kB is Boltzmann's constant in 
  * appropriate units. 
  *
  * We use a Nose'-Hoover chain to achieve excellent statistical mechanics 
@@ -70,11 +70,21 @@ namespace SimTK {
  *
  * \par Theory:
  *
- * For an m-chain Nose'-Hoover chain, we will define m auxiliary "thermostat" 
- * state variables ci, 0<=i<=m-1, with units of 1/time. The 0'th thermostat 
- * variable c0 is used to generate a force f applied to the system mobilities u:
+ * The current system temperature is defined 
  * <pre>
- *		f = -c0 * M * u
+ *      T = (2*KE) / (N*kB)
+ * </pre>
+ * where KE is the kinetic energy of the moving bodies whose N degrees of
+ * freedom are being controlled (not necessarily all the bodies in the system),
+ * and kB is Boltzmann's constant. Our goal here is to control T so that it
+ * follows a Boltzmann distribution around the specified bath temperature Tb.
+ *
+ * For an m-chain Nose'-Hoover chain, we will define m auxiliary "thermostat" 
+ * state variables c[i], 0<=i<m, with units of 1/time. The 0'th thermostat 
+ * variable c[0] is used to generate a generalized force f applied to the 
+ * system mobilities u:
+ * <pre>
+ *		f = -c[0] * M * u
  * </pre>
  * where M is the system mass matrix and u is the vector of generalized speeds.
  * The c variables should be initialized to zero at the start of a simulation. 
@@ -89,13 +99,13 @@ namespace SimTK {
  * </pre>
  * Otherwise, for m > 1 we have:
  * <pre>
- *      cdot[0]   =   (T/Tb - 1)/t^2 - c0*c1
- *      cdot[1]   =   N*c0^2 - 1/t^2 - c1*c2
+ *      cdot[0]   =   (T/Tb - 1)/t^2 - c[0]*c[1]
+ *      cdot[1]   = N*c[0]^2 - 1/t^2 - c[1]*c[2]
  *      cdot[i]   = c[i-1]^2 - 1/t^2 - c[i]*c[i+1]   (2<=i<m-1)
  *      cdot[m-1] = c[m-2]^2 - 1/t^2 
  * </pre>
  * For comparision with the literature where thermal mass parameters Qi are 
- * used, we use Q0 = N Kb Tb t^2 and Qi = Kb Tb t^2, i > 0. That is, the first 
+ * used, we use Q0 = N kB Tb t^2 and Qi = kB Tb t^2, i > 0. That is, the first 
  * thermostat that controls the N degrees of freedom is N times "heavier" than 
  * the subsequent ones, each of which controls only the one dof of its 
  * next-lower thermostat. See refs [1] and [2].
@@ -105,10 +115,10 @@ namespace SimTK {
  * with system energy to produce a conserved quantity. Bath energy is KEb+PEb
  * where
  * <pre>
- *		KEb = 1/2 Kb Tb t^2 (N c0^2 + sum(ci^2))
- *		PEb = Kb Tb (N s0 + sum(si))
+ *		KEb = 1/2 kB Tb t^2 (N c[0]^2 + sum(c[i]^2))
+ *		PEb = kB Tb (N s[0] + sum(s[i]))
  * </pre>
- * where Kb is Boltzmann's constant, Tb the bath temperature, N the number of 
+ * where kB is Boltzmann's constant, Tb the bath temperature, N the number of 
  * degrees of freedom in the temperature definition, and the sums run from 1 
  * to m-1. Note that you must request the bath energy separately; we do not 
  * return any potential energy for this force otherwise.
@@ -126,8 +136,8 @@ namespace SimTK {
 class SimTK_SIMBODY_EXPORT Force::Thermostat : public Force {
 public:
 	/// Define a global thermostat (one that affects all degrees of freedom) at
-	/// a given default temperature and relaxation time. The number of Nose'-Hoover
-	/// chains is given a default value.
+	/// a given default temperature and relaxation time. The number of 
+    /// Nose'-Hoover chains is given a default value.
     Thermostat(GeneralForceSubsystem&        forces, 
                const SimbodyMatterSubsystem& matter, 
 			   Real                          boltzmannsConstant, 
@@ -223,6 +233,18 @@ public:
 	/// are conservative).
     Real calcBathEnergy(const State& state) const;
 
+    /// Get the amount of power being applied by the thermostat to the 
+    /// system; sign is positive when energy is coming from the bath.
+    Real getExternalPower(const State& state) const;
+
+    /// Get the amount of work that has been done by th bath on the
+    /// system since an arbitrary start time.
+    Real getExternalWork(const State& state) const;
+
+    /// Set the current value of the work done by the bath to an
+    /// arbitrary value; normally zero for initialization.
+    void setExternalWork(State& state, Real work) const;
+
 	/// Set the controlled system to a set of randomized velocities which
 	/// yields the bath temperature. This ignores the current system velocities.
 	/// TODO: not implemented yet.
@@ -235,7 +257,10 @@ public:
     /// Thermostat. TODO: not implemented yet.
 	void setSystemToTemperature(State&, Real T) const;
 
+    // Don't show this in Doxygen.
+    /// @cond
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Thermostat, ThermostatImpl, Force);
+    /// @endcond
 };
 
 } // namespace SimTK

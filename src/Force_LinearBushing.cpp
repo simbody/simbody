@@ -581,7 +581,8 @@ ensurePotentialEnergyValid(const State& state) const {
     const Vec6& q = pc.q;
 
     Real pe2=0;
-    for (int i=0; i<6; ++i) pe2 += k[i]*square(q[i]);
+    for (int i=0; i<6; ++i) 
+        pe2 += k[i]*q[i]*q[i];
 
     updPotentialEnergyCache(state) = pe2 / 2;
     markPotentialEnergyValid(state);

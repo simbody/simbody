@@ -98,11 +98,10 @@ namespace SimTK {
  * the energy it dissipates; see the getDissipatedEnergy() method.
  *
  * The scalar rotational moments f_0, f_1, and f_2 act about rotated axes so
- * do not constitute a vector; the are transformed internally here to produce 
+ * do not constitute a vector; they are transformed internally here to produce 
  * the appropriate moments on the bodies. The scalar translational forces
  * f_3, f_4, f_5 on the other hand are aligned with frame F's axes so 
  * constitute a vector in F.
-
  */
 class SimTK_SIMBODY_EXPORT Force::LinearBushing : public Force {
 public:
@@ -584,7 +583,6 @@ public:
     /// continuing a simulation. This is a State variable so you can set its 
     /// value any time after it is allocated.
     /// @pre \a state realized to Stage::Model
-    ///
     /// @param[in,out]      state    
     ///     The State whose dissipated energy variable for this Bushing is set
     ///     to zero.
@@ -594,8 +592,11 @@ public:
     void setDissipatedEnergy(State& state, Real energy) const;
     //@}..................... Energy, Work, and Power ..........................
 
+    // Don't show this in Doxygen.
+    /// @cond
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
        (LinearBushing, LinearBushingImpl, Force);
+    /// @endcond
 };
 
 } // namespace SimTK
