@@ -426,7 +426,7 @@ public:
     ///      been realized to Velocity stage.
     //@{
     /// Obtain the generalized coordinate derivatives last calculated by this 
-    /// force element. These are the bodyB-fixed x-y-z Euler angle derivatives
+    /// force element. These are the body2-fixed x-y-z Euler angle derivatives
     /// qdotx,qdoty,qdotz and v_FM=[vx,vy,vz], the velocity of point OM in 
     /// frame F, expressed in F. That is, v_FM = d/dt p_FM with the derivative
     /// taken in the F frame. The full generalized coordinate derivative vector 
@@ -586,8 +586,8 @@ public:
     /// value any time after it is allocated.
     /// @pre \a state realized to Stage::Model
     /// @param[in,out]      state    
-    ///     The State whose dissipated energy variable for this Bushing is set
-    ///     to zero.
+    ///     The State whose dissipated energy variable for this Bushing is to
+    ///     be modified.
     /// @param[in]          energy   
     ///     The new value for the accumulated dissipated energy (must be a 
     ///     nonnegative scalar).
