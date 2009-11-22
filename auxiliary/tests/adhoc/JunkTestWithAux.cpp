@@ -38,8 +38,8 @@ int main()
             char ch=getchar();
 
             std::vector<MobilizedBodyIndex> indexVector;
-            std::vector<std::vector<Vec3>> originPositionVector;
-            std::vector<std::vector<Vec3>> targetPositionVector;
+            std::vector< std::vector<Vec3> > originPositionVector;
+            std::vector< std::vector<Vec3> > targetPositionVector;
 
             std::vector<Vec3> originPositionOfForearm, originPositionOfHand;
             originPositionOfForearm.push_back(Vec3(0));
