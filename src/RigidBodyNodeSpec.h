@@ -764,6 +764,7 @@ void calcUDotPass2Outward(
     Vector&                     allTau) const;
 
 void calcMInverseFPass1Inward(
+    const SBInstanceCache&      ic,
     const SBTreePositionCache&  pc,
     const SBArticulatedBodyInertiaCache&,
     const SBDynamicsCache&      dc,
@@ -773,6 +774,7 @@ void calcMInverseFPass1Inward(
     Vector&                     allEpsilon) const;
 
 void calcMInverseFPass2Outward(
+    const SBInstanceCache&      ic,
     const SBTreePositionCache&  pc,
     const SBArticulatedBodyInertiaCache&,
     const SBDynamicsCache&      dc,

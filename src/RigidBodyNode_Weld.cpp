@@ -218,7 +218,7 @@ public:
     {   updA_GB(ac) = 0; }
 
     void calcUDotPass1Inward(
-        const SBInstanceCache&,
+        const SBInstanceCache&     ic,
         const SBTreePositionCache& pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&,
@@ -233,8 +233,13 @@ public:
         for (unsigned i=0; i<children.size(); ++i) {
             const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
             const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
-            const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
-            allZ[0] += phiChild * (zChild + GepsChild);
+
+            if (children[i]->isUDotKnown(ic))
+                allZ[0] += phiChild * zChild;                 // 18 flops
+            else {
+                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
+                allZ[0] += phiChild * (zChild + GepsChild);   // 24 flops
+            }
         }
         allGepsilon[0] = 0;
     } 
@@ -253,6 +258,7 @@ public:
     }
 
     void calcMInverseFPass1Inward(
+        const SBInstanceCache&     ic,
         const SBTreePositionCache& pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&,
@@ -265,13 +271,20 @@ public:
         for (unsigned i=0; i<children.size(); ++i) {
             const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
             const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
-            const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
-            allZ[0] += phiChild * (zChild + GepsChild);
+
+            if (children[i]->isUDotKnown(ic))
+                allZ[0] += phiChild * zChild;                 // 18 flops
+            else {
+                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
+                allZ[0] += phiChild * (zChild + GepsChild);   // 24 flops
+            }
+
         }
         allGepsilon[0] = 0;
     } 
 
     void calcMInverseFPass2Outward(
+        const SBInstanceCache&,
         const SBTreePositionCache&,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&,
@@ -474,7 +487,7 @@ public:
     // that is independent of mobilities.
 
     void realizeArticulatedBodyInertiasInward
-       (const SBInstanceCache&,
+       (const SBInstanceCache&          ic,
         const SBTreePositionCache&      pc, 
         SBArticulatedBodyInertiaCache&  abc) const 
     {
@@ -482,16 +495,20 @@ public:
         P = getMk(pc);
 		for (unsigned i=0 ; i<children.size() ; i++) {
             const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
-            const SpatialMat& tauBarChild = children[i]->getTauBar(abc);
             const SpatialMat& PChild      = children[i]->getP(abc);
-            const SpatialMat& psiChild    = children[i]->getPsi(abc);
 
-			// TODO: too slow -- can get a 50% speedup by exploiting
-            // symmetry; see the RigidBodyNodeSpec<dof> 
-            // implementation for more info.
-            // (Subtracting here because our Psi has reverse sign convention
-            // from Jain's.)
-            P -= psiChild * (PChild * ~phiChild);
+            if (children[i]->isUDotKnown(ic)) {
+                P += phiChild * (PChild * ~phiChild); // ~250 flops; TODO: symmetric result
+            } else {
+                const SpatialMat& psiChild    = children[i]->getPsi(abc);
+
+			    // TODO: too slow -- can get a 50% speedup by exploiting
+                // symmetry; see the RigidBodyNodeSpec<dof> 
+                // implementation for more info.
+                // (Subtracting here because our Psi has reverse sign convention
+                // from Jain's.)
+                P -= psiChild * (PChild * ~phiChild);
+            }
 		}
 
         // Note our backwards sign convention for TauBar and Psi (from Jain's).
@@ -547,7 +564,7 @@ public:
 
     
     void calcUDotPass1Inward(
-        const SBInstanceCache&,
+        const SBInstanceCache&      ic,
         const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&      dc,
@@ -567,8 +584,13 @@ public:
         for (unsigned i=0; i<children.size(); ++i) {
             const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
             const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
-            const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
-            z += phiChild * (zChild + GepsChild);
+
+            if (children[i]->isUDotKnown(ic))
+                z += phiChild * zChild;                 // 18 flops
+            else {
+                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
+                z += phiChild * (zChild + GepsChild);   // 24 flops
+            }
         }
 
         Geps = 0;
@@ -594,6 +616,7 @@ public:
     }
     
     void calcMInverseFPass1Inward(
+        const SBInstanceCache&      ic,
         const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&      dc,
@@ -609,13 +632,19 @@ public:
         for (unsigned i=0; i<children.size(); ++i) {
             const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
             const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
-            const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
-            z += phiChild * (zChild + GepsChild);
+
+            if (children[i]->isUDotKnown(ic))
+                z += phiChild * zChild;                 // 18 flops
+            else {
+                const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
+                z += phiChild * (zChild + GepsChild);   // 24 flops
+            }
         }
         Geps = 0;
     }
 
     void calcMInverseFPass2Outward(
+        const SBInstanceCache&,
         const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
         const SBDynamicsCache&      dc,
@@ -626,9 +655,7 @@ public:
         SpatialVec& A_GB = toB(allA_GB);
 
         // Shift parent's A_GB outward. (Ground A_GB is zero.)
-        const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
-
-        A_GB = A_GP;
+        A_GB = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
     }
 
     void calcInverseDynamicsPass1Outward(

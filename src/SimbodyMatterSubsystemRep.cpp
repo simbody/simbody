@@ -1575,10 +1575,12 @@ void SimbodyMatterSubsystemRep::calcHolonomicConstraintMatrixPNInv(const State& 
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
         if (isConstraintDisabled(s,cx))
             continue;
-        const SBInstanceCache::PerConstraintInstanceInfo& cInfo = ic.getConstraintInstanceInfo(cx);
+        const SBInstanceCache::PerConstraintInstanceInfo& 
+            cInfo = ic.getConstraintInstanceInfo(cx);
         const Segment& holoSeg = cInfo.holoErrSegment; // offset into qErr and mHolo (mp)
 
-        PNInv(holoSeg.offset, 0, holoSeg.length, nq) = constraints[cx]->calcPositionConstraintMatrixPNInv(s);
+        PNInv(holoSeg.offset, 0, holoSeg.length, nq) = 
+            constraints[cx]->calcPositionConstraintMatrixPNInv(s);
     }
 }
 void SimbodyMatterSubsystemRep::calcHolonomicVelocityConstraintMatrixP(const State& s, Matrix& P) const {
@@ -1591,10 +1593,12 @@ void SimbodyMatterSubsystemRep::calcHolonomicVelocityConstraintMatrixP(const Sta
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
         if (isConstraintDisabled(s,cx))
             continue;
-        const SBInstanceCache::PerConstraintInstanceInfo& cInfo = ic.getConstraintInstanceInfo(cx);
+        const SBInstanceCache::PerConstraintInstanceInfo& 
+                       cInfo = ic.getConstraintInstanceInfo(cx);
         const Segment& holoSeg = cInfo.holoErrSegment; // offset into uErr and mHolo (mp)
 
-        P(holoSeg.offset, 0, holoSeg.length, nu) = constraints[cx]->calcPositionConstraintMatrixP(s);
+        P(holoSeg.offset, 0, holoSeg.length, nu) = 
+            constraints[cx]->calcPositionConstraintMatrixP(s);
     }
 }
 void SimbodyMatterSubsystemRep::calcHolonomicVelocityConstraintMatrixPt(const State& s, Matrix& Pt) const {
@@ -1607,11 +1611,13 @@ void SimbodyMatterSubsystemRep::calcHolonomicVelocityConstraintMatrixPt(const St
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
         if (isConstraintDisabled(s,cx))
             continue;
-        const SBInstanceCache::PerConstraintInstanceInfo& cInfo = ic.getConstraintInstanceInfo(cx);
+        const SBInstanceCache::PerConstraintInstanceInfo& 
+                       cInfo = ic.getConstraintInstanceInfo(cx);
         const Segment& holoSeg = cInfo.holoErrSegment; // offset into uErr and mHolo (mp)
 
         // Fill in columns of Pt
-        Pt(0, holoSeg.offset, nu, holoSeg.length) = constraints[cx]->calcPositionConstraintMatrixPt(s);
+        Pt(0, holoSeg.offset, nu, holoSeg.length) = 
+            constraints[cx]->calcPositionConstraintMatrixPt(s);
     }
 }
 void SimbodyMatterSubsystemRep::calcNonholonomicConstraintMatrixV(const State& s, Matrix& V) const {
@@ -1624,10 +1630,12 @@ void SimbodyMatterSubsystemRep::calcNonholonomicConstraintMatrixV(const State& s
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
         if (isConstraintDisabled(s,cx))
             continue;
-        const SBInstanceCache::PerConstraintInstanceInfo& cInfo = ic.getConstraintInstanceInfo(cx);
+        const SBInstanceCache::PerConstraintInstanceInfo& 
+                       cInfo = ic.getConstraintInstanceInfo(cx);
         const Segment& nonholoSeg = cInfo.nonholoErrSegment; // after holo derivs, offset into uerr
 
-        V(nonholoSeg.offset, 0, nonholoSeg.length, nu) = constraints[cx]->calcVelocityConstraintMatrixV(s);
+        V(nonholoSeg.offset, 0, nonholoSeg.length, nu) = 
+            constraints[cx]->calcVelocityConstraintMatrixV(s);
     }
 }
 void SimbodyMatterSubsystemRep::calcNonholonomicConstraintMatrixVt(const State& s, Matrix& Vt) const {
@@ -1640,11 +1648,13 @@ void SimbodyMatterSubsystemRep::calcNonholonomicConstraintMatrixVt(const State& 
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
         if (isConstraintDisabled(s,cx))
             continue;
-        const SBInstanceCache::PerConstraintInstanceInfo& cInfo = ic.getConstraintInstanceInfo(cx);
+        const SBInstanceCache::PerConstraintInstanceInfo& 
+                       cInfo = ic.getConstraintInstanceInfo(cx);
         const Segment& nonholoSeg = cInfo.nonholoErrSegment; // after holo derivs, offset into uerr
 
         // Fill in columns of Vt
-        Vt(0, nonholoSeg.offset, nu, nonholoSeg.length) = constraints[cx]->calcVelocityConstraintMatrixVt(s);
+        Vt(0, nonholoSeg.offset, nu, nonholoSeg.length) = 
+            constraints[cx]->calcVelocityConstraintMatrixVt(s);
     }
 }
 void SimbodyMatterSubsystemRep::calcAccelerationOnlyConstraintMatrixA (const State& s, Matrix& A) const {
@@ -1657,10 +1667,12 @@ void SimbodyMatterSubsystemRep::calcAccelerationOnlyConstraintMatrixA (const Sta
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
         if (isConstraintDisabled(s,cx))
             continue;
-        const SBInstanceCache::PerConstraintInstanceInfo& cInfo = ic.getConstraintInstanceInfo(cx);
+        const SBInstanceCache::PerConstraintInstanceInfo& 
+                       cInfo = ic.getConstraintInstanceInfo(cx);
         const Segment& accOnlySeg = cInfo.accOnlyErrSegment; // after holo&nonholo derivs, offset into udoterr
 
-        A(accOnlySeg.offset, 0, accOnlySeg.length, nu) = constraints[cx]->calcAccelerationConstraintMatrixA(s);
+        A(accOnlySeg.offset, 0, accOnlySeg.length, nu) = 
+            constraints[cx]->calcAccelerationConstraintMatrixA(s);
     }
 }
 void SimbodyMatterSubsystemRep::calcAccelerationOnlyConstraintMatrixAt(const State& s, Matrix& At) const {
@@ -1673,10 +1685,12 @@ void SimbodyMatterSubsystemRep::calcAccelerationOnlyConstraintMatrixAt(const Sta
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
         if (isConstraintDisabled(s,cx))
             continue;
-        const SBInstanceCache::PerConstraintInstanceInfo& cInfo = ic.getConstraintInstanceInfo(cx);
+        const SBInstanceCache::PerConstraintInstanceInfo& 
+                       cInfo = ic.getConstraintInstanceInfo(cx);
         const Segment& accOnlySeg = cInfo.accOnlyErrSegment; // after holo&nonholo derivs, offset into udoterr
 
-        At(0, accOnlySeg.offset, nu, accOnlySeg.length) = constraints[cx]->calcAccelerationConstraintMatrixAt(s);
+        At(0, accOnlySeg.offset, nu, accOnlySeg.length) = 
+            constraints[cx]->calcAccelerationConstraintMatrixAt(s);
     }
 }
 
@@ -1822,8 +1836,9 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     assert(getStage(s) >= Stage::Position-1);
     realizeSubsystemPosition(s);
 
-    // First work only with the holonomic (position) constraints, which appear first in the QErr array.
-    // Don't work on the quaternion constraints in this first section.
+    // First work only with the holonomic (position) constraints, which appear 
+    // first in the QErr array. Don't work on the quaternion constraints in 
+    // this first section.
     const int mHolo  = getNumHolonomicConstraintEquationsInUse(s);
     const int mQuats = getNumQuaternionsInUse(s);
     const int nq     = getNQ(s);
@@ -1837,8 +1852,9 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
 
     VectorView qErrest = yErrest.size() ? yErrest(0,nq) : yErrest(0,0);
 
-    // This is a const view into the State; the contents it refers to will change though.
-    const VectorView pErrs    = getQErr(s)(0,mHolo); // just leaving off quaternions
+    // This is a const view into the State; the contents it refers to will 
+    // change though.
+    const VectorView pErrs = getQErr(s)(0,mHolo); // just leave off quaternions
 
     bool anyChange = false;
 
@@ -1846,17 +1862,20 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     //   (Tp P Wu^-1) dqhat_WLS = T perr, q -= N*Wu^-1*dqhat_WLS
     // until perr(q)_TRMS <= 0.1*accuracy.
     //
-    // This is a nonlinear least squares problem. This is a full Newton iteration since we
-    // recalculate the iteration matrix each time around the loop. TODO: a solution could
-    // be found using the same iteration matrix, since we are projecting from (presumably)
-    // not too far away. Q1: will it be the same solution? Q2: if not, does it matter?
+    // This is a nonlinear least squares problem. This is a full Newton 
+    // iteration since we recalculate the iteration matrix each time around the
+    // loop. TODO: a solution could be found using the same iteration matrix, 
+    // since we are projecting from (presumably) not too far away. Q1: will it
+    // be the same solution? Q2: if not, does it matter?
     Vector scaledPerrs = pErrs.rowScale(ooPTols);
     Real normAchievedTRMS = scaledPerrs.normRMS();
 
     /*
-    cout << "!!!! initially @" << s.getTime() << ", perr TRMS=" << normAchievedTRMS << " consAcc=" << consAccuracy;
+    cout << "!!!! initially @" << s.getTime() << ", perr TRMS=" 
+         << normAchievedTRMS << " consAcc=" << consAccuracy;
     if (qErrest.size())
-        cout << " qErrest WRMS=" << calcQErrestWeightedNorm(*this,s,qErrest,uWeights);
+        cout << " qErrest WRMS=" 
+             << calcQErrestWeightedNorm(*this,s,qErrest,uWeights);
     else cout << " NO Q ERROR ESTIMATE";
     cout << endl;
     cout << "!!!! PERR=" << pErrs << endl;
@@ -1882,12 +1901,17 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
             //cout << "TPW-1=" << P;
             //cout << "TPW-1=" << ~Pt;
 
-            P_qtz.factor<Real>(~Pt, std::max(Pt.nrow(),Pt.ncol()) * SignificantReal); // this acts like a pseudoinverse
+            const Real tol = std::max(Pt.nrow(),Pt.ncol())*SignificantReal;
+            P_qtz.factor<Real>(~Pt, tol); // this acts like a pseudoinverse
+
             P_qtz.solve(scaledPerrs, dqhat_WLS);
             lastChangeMadeWRMS = dqhat_WLS.normRMS(); // size of change in weighted norm
             //cout << "!!!! dqhat weighted=" << dqhat_WLS << endl;
-            dqhat_WLS.rowScaleInPlace(ooUWeights);    // switch back to unweighted dqhat=Wu^-1*dqhat_WLS
+
+            // switch back to unweighted dqhat=Wu^-1*dqhat_WLS
+            dqhat_WLS.rowScaleInPlace(ooUWeights);
             //cout << "!!!! dqhat unweighted=" << dqhat_WLS << endl;
+
             multiplyByN(s, false, dqhat_WLS, dq); // N*(Wu^-1 dqhat_WLS)
             //cout << "!!!! dq unweighted=" << dq << endl;
             updQ(s) -= dq; // this is actually unweighted dq
@@ -1910,9 +1934,10 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
         }
 
 
-        // Next, if we projected out the position constraint errors, remove the corresponding
-        // error from the integrator's error estimate.
-        //   (Tp P Wu^-1) dqhat_WLS = (Tp P Wu^-1) Wu N^+ qErrest, qErrest -= N Wu^-1 dqhat_WLS
+        // Next, if we projected out the position constraint errors, remove the
+        // corresponding error from the integrator's error estimate.
+        //   (Tp P Wu^-1) dqhat_WLS = (Tp P Wu^-1) Wu N^+ qErrest, 
+        //                                  qErrest -= N Wu^-1 dqhat_WLS
         // No iteration is required.
         if (qErrest.size()) {
             // Work in qhat W-norm
@@ -1926,20 +1951,24 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
             dqhat_WLS.rowScaleInPlace(ooUWeights); // unscale the result
             multiplyByN(s, false, dqhat_WLS, dqErrest);
             qErrest -= dqErrest; // unweighted
-            //cout << "  !! FIXUP: now WRMS(qerrest)=" << calcQErrestWeightedNorm(*this,s,qErrest,uWeights) << " using WRMS(dq)=" << normOfAdjustment_WRMS << endl;
+            //cout << "  !! FIXUP: now WRMS(qerrest)=" 
+            //     << calcQErrestWeightedNorm(*this,s,qErrest,uWeights) 
+            //     << " using WRMS(dq)=" << normOfAdjustment_WRMS << endl;
         }
     }
 
-    //cout << "!!!! perr TRMS achieved " << normAchievedTRMS << " in " << nItsUsed << " iterations"  << endl;
+    //cout << "!!!! perr TRMS achieved " << normAchievedTRMS << " in " 
+    //     << nItsUsed << " iterations"  << endl;
     //cout << "!!!! ... PERR=" << pErrs << endl;
 
-    // By design, normalization of quaternions can't have any effect on the length
-    // constraints we just fixed (because we normalize internally for calculations).
-    // So now we can simply normalize the quaternions.
+    // By design, normalization of quaternions can't have any effect on the 
+    // length constraints we just fixed (because we normalize internally for 
+    // calculations). So now we can simply normalize the quaternions.
     SBStateDigest sbs(s, *this, Stage::Model);
 
     if (mQuats) {
-        //cout << "!!!! QUAT START: errs=" << getQErr(s)(mHolo, mQuats) << " RMS(qErrest)=" << qErrest.normRMS() << endl;
+        //cout << "!!!! QUAT START: errs=" << getQErr(s)(mHolo, mQuats) 
+        //     << " RMS(qErrest)=" << qErrest.normRMS() << endl;
         Vector& q  = updQ(s); //TODO: this invalidates q's already
 
         for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
@@ -1950,8 +1979,9 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
         //TODO: shouldn't need this
         realizeSubsystemPosition(s);
 
-        //cout << "!!!! ... QUAT END: errs=" << getQErr(s)(mHolo, mQuats) << " RMS(qErrest)=" << qErrest.normRMS() << endl;
-       //TODO: quaternion constraints shouldn't invalidate anything except
+        //cout << "!!!! ... QUAT END: errs=" << getQErr(s)(mHolo, mQuats) 
+        //     << " RMS(qErrest)=" << qErrest.normRMS() << endl;
+        //TODO: quaternion constraints shouldn't invalidate anything except
         // the qnorms, which will be all 1 now
     }
 
@@ -1985,25 +2015,28 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
 
     VectorView uErrest = yErrest.size() ? yErrest(nq,nu) : yErrest(0,0);
 
-    // This is a const view into the State; the contents it refers to will change though.
-    const Vector& vErrs = getUErr(s); // all the velocity constraint errors (mHolo+mNonholo)
+    // This is a const view into the State; the contents it refers to will 
+    // change though.
+    const Vector& vErrs = getUErr(s); // all velocity constraint errors (mHolo+mNonholo)
 
     bool anyChange = false;
 
     // Solve 
     //   (Tpv [P;V] Wu^-1) du_WLS = Tpv uerr, u -= Wu^-1*du_WLS
-    // Note that although this is a nonlinear least squares problem since uerr is a function
-    // of u, we do not need to refactor the matrix since it does not depend on u.
-    // TODO: Tp P Wu^-1 should already have been calculated for position projection (at least
-    // if any position projection occurred)
+    // Note that although this is a nonlinear least squares problem since uerr 
+    // is a function of u, we do not need to refactor the matrix since it does 
+    // not depend on u.
+    // TODO: Tp P Wu^-1 should already have been calculated for position 
+    // projection (at least if any position projection occurred)
 	//
-    // This is a nonlinear least squares problem, but we only need to factor once since only
-    // the RHS is dependent on u. 
+    // This is a nonlinear least squares problem, but we only need to factor 
+    // once since only the RHS is dependent on u. 
     Vector scaledVerrs = vErrs.rowScale(ooPVTols);
     Real normAchievedTRMS = scaledVerrs.normRMS();
     
     /*
-    cout << "!!!! initially @" << s.getTime() << ", verr TRMS=" << normAchievedTRMS << " consAcc=" << consAccuracy;
+    cout << "!!!! initially @" << s.getTime() << ", verr TRMS=" 
+         << normAchievedTRMS << " consAcc=" << consAccuracy;
     if (uErrest.size())
         cout << " uErrest WRMS=" << uErrest.rowScale(uWeights).normRMS();
     else cout << " NO U ERROR ESTIMATE";
@@ -2016,19 +2049,21 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
     if (normAchievedTRMS > consAccuracy) {
         const Vector saveU = getU(s);
         Matrix PVt(nu, mHolo+mNonholo);
+
         calcHolonomicVelocityConstraintMatrixPt(s, PVt(  0,  0,nu, mHolo));    // nu X mp
         calcNonholonomicConstraintMatrixVt     (s, PVt(0,mHolo,nu, mNonholo)); // nu X mv
         PVt.rowAndColScaleInPlace(ooUWeights, ooPVTols); // PVt is now Wu^-1 (Pt Vt) Tpv
 
         // Calculate pseudoinverse
         FactorQTZ PVqtz;
-        PVqtz.factor<Real>(~PVt, std::max(PVt.nrow(), PVt.ncol()) * SignificantReal);
+        const Real tol = std::max(PVt.nrow(), PVt.ncol()) * SignificantReal;
+        PVqtz.factor<Real>(~PVt, tol);
 
         Vector du_WLS(nu);
         const int MaxIterations  = 7;
         do {
             PVqtz.solve(scaledVerrs, du_WLS);
-            lastChangeMadeWRMS = du_WLS.normRMS(); // size of change in weighted norm
+            lastChangeMadeWRMS = du_WLS.normRMS(); // change size in weighted norm
             du_WLS.rowScaleInPlace(ooUWeights); // remove scaling: du=Wu^-1*du_WLS
             updU(s) -= du_WLS; // this is actually unweighted du
             anyChange = true;
@@ -2038,7 +2073,9 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
             scaledVerrs = vErrs.rowScale(ooPVTols);
             normAchievedTRMS=scaledVerrs.normRMS();
             ++nItsUsed;
-            //cout << "  !! iter " << nItsUsed << ": TRMS(verr)=" << normAchievedTRMS << ", WRMS(du)=" << lastChangeMadeWRMS << endl;
+            //cout << "  !! iter " << nItsUsed << ": TRMS(verr)=" 
+            //     << normAchievedTRMS << ", WRMS(du)=" 
+            //     << lastChangeMadeWRMS << endl;
         } while (normAchievedTRMS > 0.1*consAccuracy 
                  && nItsUsed < MaxIterations);
 
@@ -2048,21 +2085,24 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
                          "maxIters exceeded in velocity projection");
         }
 
-        // Next, if we projected out the velocity constraint errors, remove the corresponding
-        // error from the integrator's error estimate.
-        //   (Tpv [P;V] Wu^-1) du_WLS = (Tpv [P;V] Wu^-1) Wu*uErrEst, uErrEst = Wu^-1(Wu*uErrEst - du_WLS)
+        // Next, if we projected out the velocity constraint errors, remove the
+        // corresponding error from the integrator's error estimate.
+        //   (Tpv [P;V] Wu^-1) du_WLS = (Tpv [P;V] Wu^-1) Wu*uErrEst, 
+        //                                  uErrEst = Wu^-1(Wu*uErrEst - du_WLS)
         // No iteration is required.
         if (uErrest.size()) {
             uErrest.rowScaleInPlace(uWeights); // uErrest = Wu*uErrEst
             PVqtz.solve(~PVt*uErrest, du_WLS);
             uErrest -= du_WLS; // still weighted
-            //cout << "  !! U FIXUP: now WRMS(uerrest)=" << uErrest.normRMS() << " using WRMS(du)=" << du_WLS.normRMS() << endl;
-            uErrest.rowScaleInPlace(ooUWeights); // back to unscaled error estimates
+            //cout << "  !! U FIXUP: now WRMS(uerrest)=" << uErrest.normRMS() 
+            //     << " using WRMS(du)=" << du_WLS.normRMS() << endl;
+            uErrest.rowScaleInPlace(ooUWeights); // back to unscaled err. est.
         }
     }
 
     
-    //cout << "!!!! verr achieved " << normAchievedTRMS << " in " << nItsUsed << " iterations" << endl;
+    //cout << "!!!! verr achieved " << normAchievedTRMS << " in " 
+    //     << nItsUsed << " iterations" << endl;
     //cout << "!!!! ... VERR=" << vErrs << endl;
 
     if (anyChange)
@@ -2086,8 +2126,8 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
 // forces already account for constraints. The argument list allows for some 
 // extra forces to be supplied, with the intent that these will be used to deal 
 // with internal forces generated by constraints. Note that the extra forces 
-// here are treated with opposite sign from the applied forces, as is appropriate 
-// for constraint forces.
+// here are treated with opposite sign from the applied forces, as is 
+// appropriate for constraint forces.
 void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
     const State&                    s,
     const Vector&                   mobilityForces,
@@ -2138,18 +2178,19 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
     calcTreeAccelerations(s, *mobilityForcesToUse, *bodyForcesToUse,
                           netHingeForces, A_GB, udot, tau);
 
-    // Ask the constraints to calculate ancestor-relative acceleration kinematics 
-    // (still goes in TreeAccelerationCache).
+    // Ask the constraints to calculate ancestor-relative acceleration 
+    // kinematics (still goes in TreeAccelerationCache).
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
         getConstraint(cx).getImpl()
             .calcConstrainedBodyAccelerationInAncestor(sbs, tac);
 
 
-    // TODO: we have to say we're done with the TreeAccelerationCache in the State
-    // but that is wrong if "tac" is not from the State. So this alleged "operator"
-    // currently can be used only for realization of the State; i.e., the passed-in
-    // TreeAccelerationCache better have come from inside this State!
-    // Need a different design for the constraint interface to support operators.
+    // TODO: we have to say we're done with the TreeAccelerationCache in the 
+    // State but that is wrong if "tac" is not from the State. So this alleged 
+    // "operator" currently can be used only for realization of the State; i.e.,
+    // the passed-in TreeAccelerationCache better have come from inside this 
+    // State! Need a different design for the constraint interface to support 
+    // operators.
     markCacheValueRealized(s, mc.treeAccelerationCacheIndex);
 
     // Put acceleration constraint equation errors in udotErr
@@ -2228,7 +2269,6 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
     calcTreeForwardDynamicsOperator(s, mobilityForces, particleForces, bodyForces,
                                     0, 0, tac, udot, udotErr);
 
-
     // Next, determine how many acceleration-level constraint equations 
     // need to be obeyed.
 
@@ -2260,9 +2300,9 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
     // fast, but using m calls to the M^-1*f and G*udot O(n) operators
     // we can calculate it in O(mn) time. As long as m << n, and
     // especially if m is a small constant independent of n, and even better
-    // if we've partitioned it into little 
-    // subblocks, this is all very reasonable. One slip up and you'll toss in a
-    // factor of mn^2 or m^2n and screw this up -- be careful! (see below)
+    // if we've partitioned it into little subblocks, this is all very 
+    // reasonable. One slip up and you'll toss in a factor of mn^2 or m^2n and
+    // screw this up -- be careful! (see below)
     Matrix MInvGt(nu, ma);
     Vector_<SpatialVec> A_GB(getNumBodies()); // dummy
     for (int j=0; j<ma; ++j) // This is O(mn)
@@ -2529,6 +2569,7 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
     Vector_<SpatialVec>&       A_GB,
     Vector&                    udot) const 
 {
+    const SBInstanceCache&                  ic  = getInstanceCache(s);
     const SBTreePositionCache&              tpc = getTreePositionCache(s);
     const SBDynamicsCache&                  dc  = getDynamicsCache(s);
     const SBArticulatedBodyInertiaCache&    abc = getArticulatedBodyInertiaCache(s);
@@ -2546,7 +2587,7 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMInverseFPass1Inward(tpc,abc,dc,
+            node.calcMInverseFPass1Inward(ic,tpc,abc,dc,
                 f, allZ, allGepsilon,
                 allEpsilon);
         }
@@ -2554,7 +2595,7 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMInverseFPass2Outward(tpc,abc,dc, allEpsilon, A_GB, udot);
+            node.calcMInverseFPass2Outward(ic,tpc,abc,dc, allEpsilon, A_GB, udot);
         }
 }
 
@@ -2703,9 +2744,9 @@ void SimbodyMatterSubsystemRep::multiplyByN
             const int inpx  = transpose ? qx : ux;
             const int outpx = transpose ? ux : qx;
 
-            // TODO: kludge: for now q-like output may have an unused element because
-            // we always allocate the max space. Set the last element to zero in case
-            // it doesn't get written.
+            // TODO: kludge: for now q-like output may have an unused element 
+            // because we always allocate the max space. Set the last element 
+            // to zero in case it doesn't get written.
             if (!transpose) outp[outpx + maxNQ-1] = 0;
 
             rbn.multiplyByN(sbState, transpose, &inp[inpx], &outp[outpx]);
@@ -2750,9 +2791,9 @@ void SimbodyMatterSubsystemRep::multiplyByNDot
             const int inpx  = transpose ? qx : ux;
             const int outpx = transpose ? ux : qx;
 
-            // TODO: kludge: for now q-like output may have an unused element because
-            // we always allocate the max space. Set the last element to zero in case
-            // it doesn't get written.
+            // TODO: kludge: for now q-like output may have an unused element 
+            // because we always allocate the max space. Set the last element 
+            // to zero in case it doesn't get written.
             if (!transpose) outp[outpx + maxNQ-1] = 0;
 
             rbn.multiplyByNDot(sbState, transpose, &inp[inpx], &outp[outpx]);
@@ -2797,9 +2838,9 @@ void SimbodyMatterSubsystemRep::multiplyByNInv
             const int inpx  = transpose ? ux : qx;
             const int outpx = transpose ? qx : ux;
 
-            // TODO: kludge: for now q-like output may have an unused element because
-            // we always allocate the max space. Set the last element to zero in case
-            // it doesn't get written.
+            // TODO: kludge: for now q-like output may have an unused element 
+            // because we always allocate the max space. Set the last element 
+            // to zero in case it doesn't get written.
             if (transpose) outp[outpx + maxNQ-1] = 0;
 
             rbn.multiplyByNInv(sbState, transpose, &inp[inpx], &outp[outpx]);
@@ -2816,7 +2857,8 @@ void SimbodyMatterSubsystemRep::calcMobilizerReactionForces
 {
     forces.resize(getNumBodies());
     
-    // Find the total body force on every body from all sources *other* than mobilizer reaction forces.
+    // Find the total body force on every body from all sources *other* than 
+    // mobilizer reaction forces.
     
     Vector_<SpatialVec> otherForces = getMultibodySystem().getRigidBodyForces(s, Stage::Dynamics);
     Vector_<SpatialVec> constrainedBodyForces(getNumBodies());
@@ -2836,11 +2878,12 @@ void SimbodyMatterSubsystemRep::calcMobilizerReactionForces
         if (mass.getMass() == Infinity)
             totalForce[index] = SpatialVec(Vec3(0), Vec3(0));
         else
-            totalForce[index] = body.calcBodySpatialInertiaMatrixInGround(s)*acceleration;
+            totalForce[index] = body.calcBodySpatialInertiaMatrixInGround(s)
+                                        * acceleration;
     }
 
-    // Starting from the leaf nodes and working back toward ground, take the difference to find the
-    // reaction forces, then apply them to the parent.
+    // Starting from the leaf nodes and working back toward ground, take the 
+    // difference to find the reaction forces, then apply them to the parent.
     
     for (int i = (int) rbNodeLevels.size()-1; i >= 0; i--)
         for (int j = 0; j < (int) rbNodeLevels[i].size(); j++) {
@@ -2926,8 +2969,9 @@ calcMobilizerQDotFromU(const State& s, MobilizedBodyIndex mb, int nu, const Real
     n.calcLocalQDotFromLocalU(sbState, u, qdot);
 }
 
-// State must be realized to Stage::Velocity, so that we can extract N(q), NDot(q,u), and u from it to calculate
-// qdotdot=N(q)*udot + NDot(q,u)*u for this mobilizer.
+// State must be realized to Stage::Velocity, so that we can extract N(q),
+// NDot(q,u), and u from it to calculate qdotdot=N(q)*udot + NDot(q,u)*u for 
+// this mobilizer.
 void SimbodyMatterSubsystemRep::
 calcMobilizerQDotDotFromUDot(const State& s, MobilizedBodyIndex mb, int nu, const Real* udot, 
                                   int nq, Real* qdotdot) const

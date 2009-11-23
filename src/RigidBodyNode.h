@@ -526,6 +526,7 @@ virtual void calcUDotPass2Outward(
     Vector&                                 allTau) const=0;
 
 virtual void calcMInverseFPass1Inward(
+    const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
     const SBDynamicsCache&                  dc,
@@ -534,6 +535,7 @@ virtual void calcMInverseFPass1Inward(
     Vector_<SpatialVec>&                    allGepsilon,
     Vector&                                 allEpsilon) const=0;
 virtual void calcMInverseFPass2Outward(
+    const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
     const SBDynamicsCache&                  dc,

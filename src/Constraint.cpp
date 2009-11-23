@@ -254,7 +254,8 @@ Matrix Constraint::calcPositionConstraintMatrixPt(const State& s) const {
         for (int i=0; i<mp; ++i) {
             lambda[i] = 1;
             mobilityForces = 0;
-            rep.applyPositionConstraintForces(s, mp, &lambda[0], bodyForcesInA, mobilityForces);
+            rep.applyPositionConstraintForces(s, mp, &lambda[0], 
+                                              bodyForcesInA, mobilityForces);
             lambda[i] = 0;
             Pt(i) = 0;
             for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
@@ -273,14 +274,16 @@ Matrix Constraint::calcPositionConstraintMatrixPt(const State& s) const {
 			lambda[i] = 1;
 			bodyForcesInA = SpatialVec(Vec3(0), Vec3(0));
 			mobilityForces = 0;
-			rep.applyPositionConstraintForces(s, mp, &lambda[0], bodyForcesInA, mobilityForces);
+			rep.applyPositionConstraintForces(s, mp, &lambda[0], 
+                                              bodyForcesInA, mobilityForces);
 			for (ConstrainedBodyIndex cb(0); cb < ncb; ++cb) {
 				bodyForcesInG[rep.getMobilizedBodyIndexOfConstrainedBody(cb)] =
 					R_GA*bodyForcesInA[cb];
 			}
 			lambda[i] = 0;
 
-			rep.getMyMatterSubsystem().calcInternalGradientFromSpatial(s,bodyForcesInG,Pt(i));
+			rep.getMyMatterSubsystem().calcInternalGradientFromSpatial
+                                                    (s,bodyForcesInG,Pt(i));
             for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
                 Pt(rep.getUIndexOfConstrainedU(s, cux), i) += mobilityForces[cux]; // unpack
 		}
