@@ -442,6 +442,7 @@ public:
     ~PerSubsystemInfo() {
         clearDiscreteVars();
         clearCache();
+        clearEvents();
     }
 
     // Copy constructor copies all variables but cache only through
@@ -454,6 +455,8 @@ public:
     }
 
     PerSubsystemInfo& operator=(const PerSubsystemInfo& src) {
+        // destination is already initialized; copyFrom() will try
+        // to reuse space and will properly clean up unused stuff
         if (&src != this)
             copyFrom(src, Stage::Model);
         return *this;
@@ -476,6 +479,12 @@ public:
     void advanceToStage(Stage g) {
         assert(g > Stage::Empty);
         assert(currentStage == g.prev());
+
+        if (g == Stage::Topology) {
+            qTopoSize = qInit.size();   // record now in case we have to
+            uTopoSize = uInit.size();   //  back up later
+            zTopoSize = zInit.size();
+        }
 
         // This validates whatever the current version number is of Stage g.
         currentStage = g;
@@ -515,7 +524,7 @@ public:
     // in arrays which are really stacks, with definitions pushed onto the ends
     // as the stage is advanced and popped off the ends as the stage is reduced.
 
-    // Topology and Model stage definitions.
+    // Topology and Model stage definitions. TODO: some of these aren't used yet
     std::vector<MechanicalStateInfo>    quInfo;
     std::vector<AuxiliaryStateInfo>     zInfo;
     std::vector<DiscreteVarInfo>        discreteInfo;
@@ -531,8 +540,11 @@ public:
     // global state variables. After the System is advanced to Stage::Model,
     // the state will allocate those globals and copy these initial
     // values into them. The lengths of these Vectors define the 
-    // needs of this Subsystem.
+    // needs of this Subsystem. Some of these are allocated at Topology
+    // stage, and some at Model stage so we record the size upon realizeTopology()
+    // in case we need to wipe out just Model stage later.
     Vector qInit, uInit, zInit;
+    int qTopoSize, uTopoSize, zTopoSize;
 
     // For constraints we need just lengths (nmultipliers==nudoterr).
     int nqerr, nuerr, nudoterr;
@@ -583,6 +595,9 @@ private:
     // This is for use in constructors and for resetting an existing State into its
     // post-construction condition.
     void initialize() {
+        clearDiscreteVars(); clearCache(); clearEvents();
+        qInit.clear(); uInit.clear(); zInit.clear();
+        qTopoSize = uTopoSize = zTopoSize = 0;
         nqerr = nuerr = nudoterr= 0;
         qstart.invalidate(); ustart.invalidate(); zstart.invalidate();
         qerrstart.invalidate(); uerrstart.invalidate(); udoterrstart.invalidate();
@@ -636,16 +651,16 @@ private:
         if (g < Stage::Model) {
             clearReferencesToModelStageGlobals();
 
-            // TODO: this assumes that all continuous variable
-            // allocations are performed at Stage::Model. Should allow
-            // them to be done earlier also.
-            qInit.clear(); uInit.clear(); zInit.clear();
+            // Some of these may have been allocated at Topology stage so
+            // we shrink them back just to that size.
+            qInit.resizeKeep(qTopoSize); 
+            uInit.resizeKeep(uTopoSize); 
+            zInit.resizeKeep(zTopoSize);
         }
 
         if (g == Stage::Empty) {
             // Throw out everything, reset stage versions to 1. Leave
             // name and version alone.
-            clearDiscreteVars(); clearCache(); clearEvents();
             initialize();
             return;
         }
@@ -683,11 +698,18 @@ private:
         copyCacheThroughStage(src.cacheInfo, targetStage);
         copyEventsThroughStage(src.eventInfo, targetStage);
 
-        if (targetStage >= Stage::Model) {
-            // Get the specifications for global state variables.
-            qInit = src.qInit;
-            uInit = src.uInit;
-            zInit = src.zInit;
+        if (targetStage >= Stage::Topology) {
+            qTopoSize=src.qTopoSize; uTopoSize=src.uTopoSize; zTopoSize=src.zTopoSize;
+            if (targetStage == Stage::Topology) {
+                qInit = src.qInit(0, qTopoSize); 
+                uInit = src.uInit(0, uTopoSize); 
+                zInit = src.zInit(0, zTopoSize); 
+            } else { // targetStage is at least Model
+                qInit = src.qInit;
+                uInit = src.uInit;
+                zInit = src.zInit;
+            }
+
             if (targetStage >= Stage::Instance) {
                 // Get the specifications for global cache entries.
                 nqerr = src.nqerr;
