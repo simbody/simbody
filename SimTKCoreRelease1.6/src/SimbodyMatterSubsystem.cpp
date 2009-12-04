@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-9 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -31,8 +31,7 @@
 
 /**@file
  *
- * Implementation of SimbodyMatterSubsystem, a concrete 
- * MatterSubsystem.
+ * Implementation of SimbodyMatterSubsystem, a concrete Subsystem.
  */
 
 #include "SimTKcommon.h"
@@ -74,8 +73,9 @@ SimbodyMatterSubsystem::updRep() {
     return dynamic_cast<SimbodyMatterSubsystemRep&>(updSubsystemGuts());
 }
 
-// Create Subsystem but don't associate it with any System. This isn't much use except
-// for making std::vector's, which require a default constructor to be available.
+// Create Subsystem but don't associate it with any System. This isn't much 
+// use except for making std::vector's, which require a default constructor 
+// to be available.
 SimbodyMatterSubsystem::SimbodyMatterSubsystem() 
   : Subsystem()
 {
@@ -494,17 +494,15 @@ MassProperties SimbodyMatterSubsystem::calcSystemMassPropertiesInGround(const St
     for (MobilizedBodyIndex b(1); b < getNumBodies(); ++b) {
         const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
         const Transform&      X_GB    = getMobilizedBody(b).getBodyTransform(s);
-        const MassProperties  MB_OG_G = MB_OB_B.calcTransformedMassProps(X_GB);
+        const MassProperties  MB_OG_G = MB_OB_B.calcTransformedMassProps(~X_GB);
         const Real            mb      = MB_OG_G.getMass();
         mass += mb;
         com  += mb * MB_OG_G.getMassCenter();
         I    += MB_OG_G.getInertia();   // already has mass built in
     }
 
-    if (mass != 0) {
+    if (mass != 0)
         com /= mass;
-        I   /= mass;
-    }
 
     return MassProperties(mass, com, I);
 }
