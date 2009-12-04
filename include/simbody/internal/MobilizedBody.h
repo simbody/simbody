@@ -485,35 +485,39 @@ public:
 
     /// @name Basic Operators
 
-    /// These methods use state variables and Response methods to compute basic quantities
-    /// which cannot be precomputed, but which can be implemented with an inline combination
-    /// of basic floating point operations which can be reliably determined at compile time.
-    /// The method names and descriptions use the following terms:
-    ///     - Body or ThisBody: the Body B associated with the current MobilizedBody. ThisBody
-    ///       is implied when no other Body is mentioned.
-    ///     - Ground: the "MobilizedBody" G representing the Ground reference frame which
-    ///       never moves.
-    ///     - AnotherBody: the Body A being referenced, which in general is neither ThisBody
-    ///       nor Ground.
-    ///     - Station: a point S fixed on ThisBody B, located by a position vector
-    ///       p_BS (or more explicitly, p_OB_S) from the B-frame origin OB to the point S,
+    /// These methods use state variables and Response methods to compute basic 
+    /// quantities which cannot be precomputed, but which can be implemented 
+    /// with an inline combination of basic floating point operations which can
+    /// be reliably determined at compile time. The method names and descriptions
+    /// use the following terms:
+    ///     - Body or ThisBody: the Body B associated with the current 
+    ///       MobilizedBody. ThisBody is implied when no other Body is mentioned.
+    ///     - Ground: the "MobilizedBody" G representing the Ground reference 
+    ///       frame which never moves.
+    ///     - AnotherBody: the Body A being referenced, which in general is 
+    ///       neither ThisBody nor Ground.
+    ///     - Station: a point S fixed on ThisBody B, located by a position 
+    ///       vector p_BS (or more explicitly, p_OB_S) from the B-frame origin 
+    ///       OB to the point S, expressed in the B-frame coordinate system.
+    ///     - Vector: a vector v fixed on ThisBody B, given by a vector v_B 
     ///       expressed in the B-frame coordinate system.
-    ///     - Vector: a vector v fixed on ThisBody B, given by a vector v_B expressed in
-    ///       the B-frame coordinate system.
-    ///     - Origin: the Station located at (0,0,0) in ThisBody frame B, that is, body B's origin
-    ///       point.
-    ///     - MassCenter: the Station on ThisBody B which is the center of mass for B.
-    ///     - GroundPoint, GroundVector: a Point P or Vector v on the Ground "Body" G. These
-    ///       are measured and expressed in the Ground frame, as p_GP or v_G.
-    ///     - AnotherBodyStation, AnotherBodyVector, etc.: a Station S or Vector v on AnotherBody A.
-    ///       These are measured and expressed in the A frame, as p_AS or v_A. 
+    ///     - Origin: the Station located at (0,0,0) in ThisBody frame B, that 
+    ///       is, body B's origin point.
+    ///     - MassCenter: the Station on ThisBody B which is the center of mass
+    ///       for B.
+    ///     - GroundPoint, GroundVector: a Point P or Vector v on the Ground 
+    ///       "Body" G. These are measured and expressed in the Ground frame, 
+    ///       as p_GP or v_G.
+    ///     - AnotherBodyStation, AnotherBodyVector, etc.: a Station S or Vector
+    ///       v on AnotherBody A. These are measured and expressed in the A 
+    ///       frame, as p_AS or v_A. 
 
     //@{
 
-    /// Return X_AB, the spatial transform giving this body B's frame in body A's frame.
-    /// Cost is 63 flops. If you know that one of the bodies is Ground, use the 0-cost
-    /// Response getBodyTransform() instead of this operators.
-    /// This operator is available in Position stage.
+    /// Return X_AB, the spatial transform giving this body B's frame in body 
+    /// A's frame. Cost is 63 flops. If you know that one of the bodies is 
+    /// Ground, use the 0-cost response getBodyTransform() instead of this 
+    /// operators. This operator is available in Position stage.
     /// @see getBodyTransform()
     Transform findBodyTransformInAnotherBody(const State& s, 
                                              const MobilizedBody& inBodyA) const
@@ -524,13 +528,13 @@ public:
         return ~X_GA*X_GB; // X_AB=X_AG*X_GB
     }
 
-    /// Return R_AB, the rotation matrix giving this body B's axes in body A's frame.
-    /// Cost is 45 flops. If you know that one of the bodies is Ground, use the 0-cost
-    /// response getBodyRotation() instead of this operators.
+    /// Return R_AB, the rotation matrix giving this body B's axes in body A's
+    /// frame. Cost is 45 flops. If you know that one of the bodies is Ground, 
+    /// use the 0-cost response getBodyRotation() instead of this operators.
     /// This operator is available in Position stage.
     /// @see getBodyRotation()
     Rotation findBodyRotationInAnotherBody(const State& s, 
-                                            const MobilizedBody& inBodyA) const
+                                           const MobilizedBody& inBodyA) const
     {
         const Rotation& R_GA = inBodyA.getBodyRotation(s);
         const Rotation& R_GB = this->getBodyRotation(s);
@@ -538,20 +542,22 @@ public:
         return ~R_GA*R_GB; // R_AB=R_AG*R_GB
     }
 
-    /// Return the station on another body A (that is, a point measured and expressed in A) that is 
-    /// currently coincident in space with the origin OB of this body B. Cost is 18 flops.
-    /// This operator is available at Position stage. Note: "findBodyOriginLocationInGround" 
-    /// doesn't exist because it would be the same as the Response getBodyOriginLocation().
+    /// Return the station on another body A (that is, a point measured and 
+    /// expressed in A) that is  currently coincident in space with the origin 
+    /// OB of this body B. Cost is 18 flops. This operator is available at 
+    /// Position stage. Note: "findBodyOriginLocationInGround" doesn't exist 
+    /// because it would be the same as the response getBodyOriginLocation().
     /// @see getBodyOriginLocation()
-    Vec3 findBodyOriginLocationInAnotherBody(const State& s, const MobilizedBody& toBodyA) const {
-        return toBodyA.findStationAtGroundPoint(s,getBodyOriginLocation(s));
-    }
+    Vec3 findBodyOriginLocationInAnotherBody(const State& s, 
+                                             const MobilizedBody& toBodyA) const
+    {   return toBodyA.findStationAtGroundPoint(s,getBodyOriginLocation(s)); }
 
-    /// Return the angular and linear velocity of body B's frame in body A's frame, expressed in body A,
-    /// and arranged as a SpatialVec.
-    /// Cost is 51 flops. If you know inBodyA is Ground, don't use this routine; use the response
-    /// method getBodyVelocity() which is free.
-    /// This operator is available in Velocity stage.
+    /// Return the angular and linear velocity of body B's frame in body A's 
+    /// frame, expressed in body A, and arranged as a SpatialVec. Cost is 51 
+    /// flops. If you know inBodyA is Ground, don't use this routine; use the 
+    /// response method getBodyVelocity() which is free. This operator is 
+    /// available in Velocity stage.
+    /// @see getBodyVelocity()
     SpatialVec findBodyVelocityInAnotherBody(const State& s,
                                              const MobilizedBody& inBodyA) const
     {
@@ -571,10 +577,11 @@ public:
         return ~X_GA.R()*SpatialVec(w_AB_G, v_AB_G);        //                                (30 flops)
     }
 
-    /// Return the angular velocity w_AB of body B's frame in body A's frame, expressed in body A.
-    /// Cost is 18 flops. If you know inBodyA is Ground, don't use this routine; use the response
-    /// method getBodyAngularVelocity() which is free.
-    /// This operator is available in Velocity stage.
+    /// Return the angular velocity w_AB of body B's frame in body A's frame, 
+    /// expressed in body A. Cost is 18 flops. If you know inBodyA is Ground, 
+    /// don't use this routine; use the response method getBodyAngularVelocity()
+    /// which is free. This operator is available in Velocity stage.
+    /// @see getBodyAngularVelocity()
     Vec3 findBodyAngularVelocityInAnotherBody(const State& s,
                                        const MobilizedBody& inBodyA) const 
     {
@@ -586,10 +593,11 @@ public:
         return inBodyA.expressGroundVectorInBodyFrame(s, w_AB_G); //            (15 flops)
     }
 
-    /// Return the velocity of body B's origin point in body A's frame, expressed in body A.
-    /// Cost is 51 flops. If you know inBodyA is Ground, don't use this routine; use the response
-    /// method getBodyOriginVelocity() which is free.
-    /// This operator is available in Velocity stage.
+    /// Return the velocity of body B's origin point in body A's frame, 
+    /// expressed in body A. Cost is 51 flops. If you know inBodyA is Ground, 
+    /// don't use this routine; use the response method getBodyOriginVelocity()
+    /// which is free. This operator is available in Velocity stage.
+    /// @see getBodyOriginVelocity()
     Vec3 findBodyOriginVelocityInAnotherBody(const State& s,
                                       const MobilizedBody& inBodyA) const
     {
@@ -597,10 +605,12 @@ public:
         return findBodyVelocityInAnotherBody(s,inBodyA)[1];
     }
 
-    /// Return the angular and linear acceleration of body B's frame in body A's frame, expressed in body A,
-    /// and arranged as a SpatialVec. Cost is 105 flops. If you know that inBodyA is Ground, don't
-    /// use this operator; instead, use the response method getBodyAcceleration() which is free.
+    /// Return the angular and linear acceleration of body B's frame in body 
+    /// A's frame, expressed in body A, and arranged as a SpatialVec. Cost is 
+    /// 105 flops. If you know that inBodyA is Ground, don't use this operator;
+    /// instead, use the response method getBodyAcceleration() which is free.
     /// This operator is available in Acceleration stage.
+    /// @see getBodyAcceleration()
     SpatialVec findBodyAccelerationInAnotherBody(const State& s,
                                                  const MobilizedBody& inBodyA) const
     {
@@ -635,10 +645,12 @@ public:
         return ~X_GA.R() * SpatialVec(b_AB_G, a_AB_G); // taken in A, expressed in A        (30 flops)
     }
 
-    /// Return the angular acceleration of body B's frame in body A's frame, expressed in body A.
-    /// Cost is 33 flops. If you know \p inBodyA is Ground, don't use this operator; instead use
-    /// the response method getBodyAngularAccleration() which is free. This operator is available
+    /// Return the angular acceleration of body B's frame in body A's frame, 
+    /// expressed in body A. Cost is 33 flops. If you know \p inBodyA is Ground,
+    /// don't use this operator; instead use the response method 
+    /// getBodyAngularAccleration() which is free. This operator is available
     /// at AccelerationStage.
+    /// @see getBodyAngularAcceleration()
     Vec3 findBodyAngularAccelerationInAnotherBody(const State& s,
                                                   const MobilizedBody& inBodyA) const
     {
@@ -651,17 +663,20 @@ public:
         const Vec3 w_AB_G     = w_GB - w_GA;                // relative ang. vel. of B in A, exp. in G (3 flops)
         const Vec3 w_AB_G_dot = b_GB - b_GA;                // d/dt of w_AB_G taken in G    ( 3 flops)
 
-        // We have the derivative in G; change it to derivative in A by adding in contribution caused
-        // by motion of G in A, that is w_AG X w_AB_G. (Note that w_AG=-w_GA.)
+        // We have the derivative in G; change it to derivative in A by adding 
+        // in contribution caused by motion of G in A, that is w_AG X w_AB_G. 
+        // (Note that w_AG=-w_GA.)
         const Vec3 b_AB_G = w_AB_G_dot - w_GA % w_AB_G; // ang. accel. of B in A            (12 flops)
 
         return ~R_GA * b_AB_G; // taken in A, expressed in A                                (15 flops)
     }
 
-    /// Return the acceleration of body B's origin point in body A's frame, expressed in body A.
-    /// Cost is 105 flops. If you know that inBodyA is Ground, don't
-    /// use this operator; instead, use the response method getBodyOriginAcceleration() which is free.
-    /// This operator is available in Acceleration stage.
+    /// Return the acceleration of body B's origin point in body A's frame, 
+    /// expressed in body A. Cost is 105 flops. If you know that inBodyA is 
+    /// Ground, don't use this operator; instead, use the response method 
+    /// getBodyOriginAcceleration() which is free. This operator is available 
+    /// in Acceleration stage.
+    /// @see getBodyOriginAcceleration()
     Vec3 findBodyOriginAccelerationInAnotherBody(const State& s, 
                                           const MobilizedBody& inBodyA) const
     {
@@ -671,32 +686,38 @@ public:
     }
 
     /// Return the Cartesian (ground) location that is currently coincident with
-    /// a station (point) S fixed on body B. That is, we return locationInG = X_GB * stationOnB
-    /// which means the result is measured from the Ground origin and expressed in Ground.
-    /// In more precise notation, we're calculating p_GS = X_GB * p_BS for position vectors
-    /// p_GS and p_BS. Cost is 18 flops. This operator is available at Position stage.
+    /// a station (point) S fixed on body B. That is, we return locationInG=
+    /// X_GB*stationOnB which means the result is measured from the Ground 
+    /// origin and expressed in Ground. In more precise notation, we're 
+    /// calculating p_GS = X_GB * p_BS for position vectors p_GS and p_BS. 
+    /// Cost is 18 flops. This operator is available at Position stage.
     Vec3 findStationLocationInGround(const State& s, const Vec3& stationOnB) const {
         return getBodyTransform(s) * stationOnB;
     }
 
 
-    /// Given a station S on this body B, return the location on another body A which is at
-    /// the same location in space. That is, we return locationOnA = X_AB * locationOnB,
-    /// which means the result is measured from the body A origin and expressed in body A. In
-    /// more precise notation, we're calculating p_AS = X_AB * p_BS, which we actually
-    /// calculate as p_AS = X_AG*(X_GB*p_BS). Cost is 36 flops.
-    /// Note: if you know that one of the bodies is Ground, use one of the routines above
-    /// which is specialized for Ground to avoid half the work.
-    /// This operator is available at Position stage or higher.
+    /// Given a station S on this body B, return the location on another body A 
+    /// which is at the same location in space. That is, we return locationOnA=
+    /// X_AB*locationOnB, which means the result is measured from the body A 
+    /// origin and expressed in body A. In more precise notation, we're 
+    /// calculating p_AS = X_AB * p_BS, which we actually calculate as 
+    /// p_AS = X_AG*(X_GB*p_BS). Cost is 36 flops. Note: if you know that one 
+    /// of the bodies is Ground, use one of the routines above which is 
+    /// specialized for Ground to avoid half the work. This operator is 
+    /// available at Position stage or higher.
     Vec3 findStationLocationInAnotherBody(const State& s, const Vec3& stationOnB, 
                                const MobilizedBody& toBodyA) const
     {
         return toBodyA.findStationAtGroundPoint(s, findStationLocationInGround(s,stationOnB));
     }
 
-    /// Given a station fixed on body B, return its inertial (Cartesian) velocity,
-    /// that is, its velocity relative to the Ground frame, expressed in the
-    /// Ground frame. Cost is 27 flops. This operator is available at Velocity stage.
+    /// Given a station fixed on body B, return its inertial (Cartesian) 
+    /// velocity, that is, its velocity relative to the Ground frame, expressed
+    /// in the Ground frame. Cost is 27 flops. If you know the station is
+    /// the body origin (0,0,0) don't use this routine; use the response
+    /// getBodyOriginVelocity() which is free. This operator is available at 
+    /// Velocity stage.
+    /// @see getBodyOriginVelocity()
     Vec3 findStationVelocityInGround(const State& s, const Vec3& stationOnB) const {
         const Vec3& w = getBodyAngularVelocity(s); // in G
         const Vec3& v = getBodyOriginVelocity(s);  // in G
@@ -705,10 +726,12 @@ public:
     }
 
 
-    /// Return the velocity of a station S fixed on body B, in body A's frame, expressed in body A.
-    /// Cost is 93 flops. If you know \p inBodyA is Ground, don't use this operator; instead use
-    /// the operator findStationVelocityInGround() which is much cheaper.
-    /// This operator is available in Velocity stage.
+    /// Return the velocity of a station S fixed on body B, in body A's frame, 
+    /// expressed in body A. Cost is 93 flops. If you know \p inBodyA is Ground,
+    /// don't use this operator; instead use the operator 
+    /// findStationVelocityInGround() which is much cheaper. This operator is 
+    /// available in Velocity stage.
+    /// @see findStationVelocityInGround()
     Vec3 findStationVelocityInAnotherBody(const State& s, 
                                           const Vec3&          stationOnBodyB, // p_BS
                                           const MobilizedBody& inBodyA) const
@@ -721,9 +744,13 @@ public:
     }
 
       
-    /// Given a station fixed on body B, return its inertial (Cartesian) acceleration,
-    /// that is, its acceleration relative to the ground frame, expressed in the
-    /// ground frame. Cost is 48 flops. This operator is available at Acceleration stage.
+    /// Given a station fixed on body B, return its inertial (Cartesian) 
+    /// acceleration, that is, its acceleration relative to the ground frame, 
+    /// expressed in the ground frame. Cost is 48 flops. If you know the station
+    /// is the body origin (0,0,0) don't use this routine; use the response
+    /// getBodyOriginAcceleration() which is free. This operator is 
+    /// available at Acceleration stage.
+    /// @see getBodyOriginAcceleration()
     Vec3 findStationAccelerationInGround(const State& s, const Vec3& stationOnB) const {
         const Vec3& w = getBodyAngularVelocity(s);     // in G
         const Vec3& b = getBodyAngularAcceleration(s); // in G
@@ -733,10 +760,11 @@ public:
         return a + b % r + w % (w % r);                           // 33 flops
     }
 
-    /// Return the acceleration of a station S fixed on body B, in another body A's frame, expressed in body A.
-    /// Cost is 186 flops.  If you know that \p inBodyA is Ground, don't
-    /// use this operator; instead, use the operator findStationAccelerationInGround() which is 
-    /// much cheaper. This operator is available in Acceleration stage.
+    /// Return the acceleration of a station S fixed on body B, in another 
+    /// body A's frame, expressed in body A. Cost is 186 flops. If you know 
+    /// that \p inBodyA is Ground, don't use this operator; instead, use the 
+    /// operator findStationAccelerationInGround() which is much cheaper. This
+    /// operator is available in Acceleration stage.
     Vec3 findStationAccelerationInAnotherBody(const State& s,
                                               const Vec3&          stationOnBodyB, 
                                               const MobilizedBody& inBodyA) const 
@@ -750,9 +778,10 @@ public:
         return A_AB[1] + (A_AB[0] % p_BS_A) + w_AB % (w_AB % p_BS_A);             // ( 33 flops)
     }
 
-    /// It is cheaper to calculate a station's ground location and velocity together
-    /// than to do them separately. Here we can return them both in 30 flops, vs. 45 to
-    /// do them in two calls. This operator is available at Velocity stage.
+    /// It is cheaper to calculate a station's ground location and velocity 
+    /// together than to do them separately. Here we can return them both in 
+    /// 30 flops, vs. 45 to do them in two calls. This operator is available 
+    /// at Velocity stage.
     void findStationLocationAndVelocityInGround(const State& s, const Vec3& locationOnB,
                                                 Vec3& locationOnGround, Vec3& velocityInGround) const
     {
@@ -766,9 +795,10 @@ public:
     }
 
 
-    /// It is cheaper to calculate a station's ground location, velocity, and acceleration together
-    /// than to do them separately. Here we can return them all in 54 flops, vs. 93 to
-    /// do them in three calls. This operator is available at Acceleration stage.
+    /// It is cheaper to calculate a station's ground location, velocity, and 
+    /// acceleration together than to do them separately. Here we can return 
+    /// them all in 54 flops, vs. 93 to do them in three calls. This operator 
+    /// is available at Acceleration stage.
     void findStationLocationVelocityAndAccelerationInGround
        (const State& s, const Vec3& locationOnB,
         Vec3& locationOnGround, Vec3& velocityInGround, Vec3& accelerationInGround) const
@@ -789,24 +819,25 @@ public:
         accelerationInGround = a + b % r + w % wXr;     // 24 flops
     }
 
-    /// Return the Cartesian (ground) location of this body B's mass center. Cost is 18 flops.
-    /// This operator is available at Position stage.
+    /// Return the Cartesian (ground) location of this body B's mass center. 
+    /// Cost is 18 flops. This operator is available at Position stage.
     Vec3 findMassCenterLocationInGround(const State& s) const {
         return findStationLocationInGround(s,getBodyMassCenterStation(s));
     }
 
-    /// Return the point of another body A that is currently coincident in space with the
-    /// mass center CB of this body B. Cost is 36 flops. This operator is available at
-    /// Position stage.
+    /// Return the point of another body A that is currently coincident in 
+    /// space with the mass center CB of this body B. Cost is 36 flops. This 
+    /// operator is available at Position stage.
     Vec3 findMassCenterLocationInAnotherBody(const State& s, const MobilizedBody& toBodyA) const {
         return findStationLocationInAnotherBody(s,getBodyMassCenterStation(s),toBodyA);
     }
 
-    /// Return the station (point) S of this body B that is coincident with the given Ground location.
-    /// That is we return locationOnB = X_BG * locationInG, which means the result is measured
-    /// from the body origin OB and expressed in the body frame. In more precise notation,
-    /// we're calculating p_BS = X_BG * p_GS. Cost is 18 flops. This operator
-    /// is available at Position stage.
+    /// Return the station (point) S of this body B that is coincident with the
+    /// given Ground location. That is we return locationOnB = X_BG*locationInG,
+    /// which means the result is measured from the body origin OB and expressed
+    /// in the body frame. In more precise notation, we're calculating 
+    /// p_BS = X_BG*p_GS. Cost is 18 flops. This operator is available at 
+    /// Position stage.
     Vec3 findStationAtGroundPoint(const State& s, const Vec3& locationInG) const {
         return ~getBodyTransform(s) * locationInG;
     }
@@ -863,19 +894,21 @@ public:
     /// Re-express this body B's mass properties in Ground by applying only a rotation, not a shift
     /// of reference point. The mass properties remain measured in the body B frame, taken about the body
     /// B origin OB, but are reexpressed in Ground.
-    MassProperties expressMassPropertiesInGroundFrame(const State& s) {
-            const MassProperties& M_OB_B = getBodyMassProperties(s);
-            const Rotation&       R_GB   = getBodyRotation(s);
-            return M_OB_B.reexpress(~R_GB);
+    MassProperties expressMassPropertiesInGroundFrame(const State& s) const {
+        const MassProperties& M_OB_B = getBodyMassProperties(s);
+        const Rotation&       R_GB   = getBodyRotation(s);
+        return M_OB_B.reexpress(~R_GB);
     }
 
     /// Re-express this body B's mass properties in another body A's frame by applying only a rotation, not a shift
     /// of reference point. The mass properties remain measured in the body B frame, taken about the body
     /// B origin OB, but are reexpressed in A.
-    MassProperties expressMassPropertiesInAnotherBodyFrame(const State& s, const MobilizedBody& inBodyA) {
-            const MassProperties& M_OB_B = getBodyMassProperties(s);
-            const Rotation        R_AB   = findBodyRotationInAnotherBody(s,inBodyA);
-            return M_OB_B.reexpress(~R_AB);
+    MassProperties expressMassPropertiesInAnotherBodyFrame
+       (const State& s, const MobilizedBody& inBodyA) const 
+    {
+        const MassProperties& M_OB_B = getBodyMassProperties(s);
+        const Rotation        R_AB   = findBodyRotationInAnotherBody(s,inBodyA);
+        return M_OB_B.reexpress(~R_AB);
     }
 
     // End of Basic Operators.
