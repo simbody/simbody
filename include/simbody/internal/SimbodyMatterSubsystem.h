@@ -75,17 +75,17 @@ class Constraint;
  *                               n(q) = 0
  * </pre>
  * 
- * where M(q) is the mass matrix, G(q) the acceleration constraint matrix, C(q,u)
- * the coriolis and gyroscopic forces, T is user-applied joint mobility forces,
- * F is user-applied body forces and torques and gravity. 
- * J* is the operator that maps spatial forces to joint mobility forces. p() are the
- * holonomic (position) constraints, v() the non-holonomic (velocity) constraints,
- * and a() the acceleration-only constraints, which must be linear, with A
- * the coefficient matrix for a(). pdot, pdotdot are obtained
+ * where M(q) is the mass matrix, G(q) the acceleration constraint matrix, 
+ * C(q,u) the coriolis and gyroscopic forces, T is user-applied joint mobility
+ * forces, F is user-applied body forces and torques and gravity. J* is the 
+ * operator that maps spatial forces to joint mobility forces. p() are the
+ * holonomic (position) constraints, v() the non-holonomic (velocity) 
+ * constraints, and a() the acceleration-only constraints, which must be 
+ * linear, with A the coefficient matrix for a(). pdot, pdotdot are obtained
  * by differentiation of p(), vdot by differentiation of v().
  * P=partial(pdot)/partial(u) (yes, that's u, not q), V=partial(v)/partial(u).
- * (We can get partial(p)/partial(q) when we need it as P*N^-1.)
- * n(q) is the set of quaternion normalization constraints, which exist only at the
+ * (We can get partial(p)/partial(q) when we need it as P*N^-1.) n(q) is the 
+ * set of quaternion normalization constraints, which exist only at the
  * position level and are uncoupled from everything else.
  *
  * We calculate the constraint multipliers like this:
@@ -141,10 +141,12 @@ public:
         return *this;
     }
     
-    /// Get whether default decorative geometry is displayed for bodies in this system.
+    /// Get whether default decorative geometry is displayed for bodies in 
+    /// this system.
     bool getShowDefaultGeometry() const;
 
-    /// Set whether default decorative geometry is displayed for bodies in this system.
+    /// Set whether default decorative geometry is displayed for bodies in 
+    /// this system.
     void setShowDefaultGeometry(bool show);
 
 
@@ -202,6 +204,15 @@ public:
     /// @par Required stage
     ///   \c Stage::Velocity
     SpatialVec calcSystemMomentumAboutGroundOrigin(const State& s) const;
+
+    /// Return the momentum of the system as a whole (angular, linear) measured
+    /// in the ground frame, taken about the current system center of mass
+    /// location and expressed in ground.
+    /// (The linear component is independent of the "about" point.)
+    ///
+    /// @par Required stage
+    ///   \c Stage::Velocity
+    SpatialVec calcSystemCentralMomentum(const State& s) const;
 
         //////////////////
         // CONSTRUCTION //
@@ -392,25 +403,23 @@ public:
 
     /**
      * This operator calculates in O(N) time the product M^-1*v where M is the 
-     * system mass matrix and v is a supplied vector with one entry per mobility. 
-     * If v is a set of generalized forces f, the result is a generalized 
-     * acceleration (udot=M^-1*f). Only the supplied vector is used, M depends 
-     * only on position states, and prescribed motion is ignored, so the result 
-     * here is not affected by velocities in the State. In particular, you'll 
-     * have to calculate your own inertial forces and put them in f if you want 
+     * system mass matrix and v is a supplied vector with one entry per 
+     * mobility. If v is a set of generalized forces f, the result is a 
+     * generalized acceleration (udot=M^-1*f). Only the supplied vector is 
+     * used, M depends only on position states, so the result here is not 
+     * affected by velocities in the State. In particular, you'll have to 
+     * calculate your own inertial forces and put them in f if you want 
      * them included.
      *
-     * If the supplied State does not already contain realized values for a
-     * fully-articulated set of articulated body inertias, then they will be
-     * realized when this operator is first called for a new set of positions.
-     * When there is no prescribed motion enabled, this will be the
-     * same set of articulated body inertias used for realizing accelerations
-     * in the State. However, if any prescribed motions are present then 
-     * state realization uses a set of mixed articulated and composite 
-     * inertia calculations depending on the prescribed status of the mobilizers.
-     * Thus in the presence of prescribed motion, there will be an additional
-     * pass of articulated body calculation, and extra memory to hold the
-     * results, if both state realization and this M^-1*v operator are used.
+     * If the supplied State does not already contain realized values for the
+     * articulated body inertias, then they will be realized when this operator
+     * is first called for a new set of positions. When there are prescribed 
+     * accelerations, articulated body inertias are created using mixed 
+     * articulated and composite inertia calculations depending on the 
+     * prescribed status of the corresponding mobilizers. In that case this
+     * method works only with the "free" (non-prescribed) mobilities. Only
+     * the entries in v corresponding to free mobilities are examined, and
+     * only the entries in MinvV corresponding to free mobilities are written.
      *
      * Once the appropriate articulated body inertias are available, repeated
      * calls to this operator are very fast, with worst case around 80*n flops
@@ -541,24 +550,25 @@ public:
         Vector&         constraintErr) const;
 
     /// Returns G*v, the product of the mXn acceleration constraint Jacobian
-    /// and a vector of length n. m is the number of active acceleration constraint equations,
-    /// n is the number of mobilities.
-    /// This is an O(n) operation.
+    /// and a vector of length n. m is the number of active acceleration 
+    /// constraint equations, n is the number of mobilities.
+    /// This is an O(m+n) operation.
     void calcGV(const State&,
         const Vector&   v,
         Vector&         Gv) const;
 
-    /// Returns G^T*v, the product of the nXm transpose of the acceleration constraint Jacobian
-    /// G and a vector v of length m. m is the number of active acceleration constraint equations,
-    /// n is the number of mobilities. If v is a set of constraint multipliers, then
+    /// Returns G^T*v, the product of the nXm transpose of the acceleration 
+    /// constraint Jacobian G and a vector v of length m. m is the number of 
+    /// active acceleration constraint equations, n is the number of 
+    /// mobilities. If v is a set of constraint multipliers, then
     /// f=G^T*v is the set of equivalent generalized forces they generate.
-    /// This is an O(n) operation.
+    /// This is an O(m+n) operation.
     void calcGtV(const State&,
         const Vector&   v,
         Vector&         GtV) const;
 
 
-    /// This operator explicitly calcuates the n X n mass matrix M. Note that
+    /// This operator explicitly calculates the n X n mass matrix M. Note that
     /// this is inherently an O(n^2) operation since the mass matrix has
     /// n^2 elements (although only n(n+1)/2 are unique due to symmetry).
     /// <em>DO NOT USE THIS CALL DURING NORMAL DYNAMICS</em>. To
@@ -611,15 +621,17 @@ public:
     /// @see calcGtV()
     void calcGt(const State&, Matrix& Gt) const;
 
-    /// Treating all constraints together, given a comprehensive set of multipliers lambda,
-    /// generate the complete set of body and mobility forces applied by all the 
-    /// constraints; watch the sign -- normally constraint forces have opposite sign
-    /// from applied forces. If you want to take Simbody-calculated multipliers and use them
-    /// to generate forces that look like applied forces, negate the multipliers
-    /// before making this call.
+    /// Treating all constraints together, given a comprehensive set of 
+    /// multipliers lambda, generate the complete set of body and mobility 
+    /// forces applied by all the constraints; watch the sign -- normally 
+    /// constraint forces have opposite sign from applied forces. If you want 
+    /// to take Simbody-calculated multipliers and use them to generate forces
+    /// that look like applied forces, negate the multipliers before making 
+    /// this call.
     /// 
-    /// State must be realized to Stage::Position to call this operator (although
-    /// typically the multipliers are obtained by realizing to Stage::Acceleration).
+    /// State must be realized to Stage::Position to call this operator 
+    /// (although typically the multipliers are obtained by realizing to 
+    /// Stage::Acceleration).
 	void calcConstraintForcesFromMultipliers
       (const State& s, const Vector& multipliers,
 	   Vector_<SpatialVec>& bodyForcesInG,
@@ -673,10 +685,9 @@ public:
     /// Requires realization through Stage::Velocity.
     Real calcKineticEnergy(const State&) const;
 
-    /// Accounts for applied forces
-    /// and centrifugal forces produced by non-zero velocities in the State. Returns
-    /// a set of mobility forces which replace both the applied bodyForces and the
-    /// centrifugal forces.
+    /// Accounts for applied forces and inertial forces produced by non-
+    /// zero velocities in the State. Returns a set of mobility forces which
+    /// replace both the applied bodyForces and the inertial forces.
     /// Requires prior realization through Stage::Dynamics. 
     void calcTreeEquivalentMobilityForces(const State&, 
         const Vector_<SpatialVec>& bodyForces,
@@ -689,7 +700,8 @@ public:
         const Vector& u,
         Vector&       qdot) const;
 
-    /// Must be in Stage::Velocity to calculate qdotdot = N(q)*udot + Ndot(q,u)*u.
+    /// Must be in Stage::Velocity to calculate 
+    /// qdotdot = N(q)*udot + Ndot(q,u)*u.
     void calcQDotDot(const State& s,
         const Vector& udot,
         Vector&       qdotdot) const;
@@ -756,10 +768,11 @@ public:
     int getTotalMultAlloc() const;
 
     /// For all mobilizers offering unrestricted orientation, decide what
-    /// method we should use to model their orientations. Choices are: quaternions (best
-    /// for dynamics), or rotation angles (1-2-3 Euler sequence, good for
-    /// optimization). TODO: (1) other Euler sequences, (2) allow settable zero
-    /// rotation for Euler sequence, with convenient way to say "this is zero".
+    /// method we should use to model their orientations. Choices are: 
+    /// quaternions (best for dynamics), or rotation angles (1-2-3 Euler 
+    /// sequence, good for optimization). TODO: (1) other Euler sequences, 
+    /// (2) allow settable zero rotation for Euler sequence, with convenient
+    /// way to say "this is zero".
     void setUseEulerAngles(State&, bool) const;
     bool getUseEulerAngles  (const State&) const;
 

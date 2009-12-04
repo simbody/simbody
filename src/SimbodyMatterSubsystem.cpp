@@ -454,9 +454,6 @@ bool SimbodyMatterSubsystem::projectUConstraints(State& s, Real consAccuracy, co
 
 /// Calculate the total system mass.
 /// TODO: this should be precalculated.
-///
-/// @par Required stage
-///   \c Stage::Instance
 Real SimbodyMatterSubsystem::calcSystemMass(const State& s) const {
     Real mass = 0;
     for (MobilizedBodyIndex b(1); b < getNumBodies(); ++b)
@@ -465,11 +462,8 @@ Real SimbodyMatterSubsystem::calcSystemMass(const State& s) const {
 }
 
 
-/// Return the location r_OG_C of the system mass center C, measured from the ground
-/// origin OG, and expressed in Ground. 
-///
-/// @par Required stage
-///   \c Stage::Position
+// Return the location r_OG_C of the system mass center C, measured from the ground
+// origin OG, and expressed in Ground. 
 Vec3 SimbodyMatterSubsystem::calcSystemMassCenterLocationInGround(const State& s) const {
     Real    mass = 0;
     Vec3    com  = Vec3(0);
@@ -490,11 +484,8 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterLocationInGround(const State& s
 }
 
 
-/// Return total system mass, mass center location measured from the Ground origin,
-/// and system inertia taken about the Ground origin, expressed in Ground.
-///
-/// @par Required stage
-///   \c Stage::Position
+// Return total system mass, mass center location measured from the Ground origin,
+// and system inertia taken about the Ground origin, expressed in Ground.
 MassProperties SimbodyMatterSubsystem::calcSystemMassPropertiesInGround(const State& s) const {
     Real    mass = 0;
     Vec3    com  = Vec3(0);
@@ -516,22 +507,16 @@ MassProperties SimbodyMatterSubsystem::calcSystemMassPropertiesInGround(const St
     return MassProperties(mass, com, I);
 }
 
-/// Return the system inertia matrix taken about the system center of mass,
-/// expressed in Ground.
-///
-/// @par Required stage
-///   \c Stage::Position
+// Return the system inertia matrix taken about the system center of mass,
+// expressed in Ground.
 Inertia SimbodyMatterSubsystem::calcSystemCentralInertiaInGround(const State& s) const {
     const MassProperties M_OG_G = calcSystemMassPropertiesInGround(s);
     return M_OG_G.calcCentralInertia();
 }
 
 
-/// Return the velocity V_G_C = d/dt r_OG_C of the system mass center C in the Ground frame G,
-/// expressed in G.
-///
-/// @par Required stage
-///   \c Stage::Velocity
+// Return the velocity V_G_C = d/dt r_OG_C of the system mass center C in the Ground frame G,
+// expressed in G.
 Vec3 SimbodyMatterSubsystem::calcSystemMassCenterVelocityInGround(const State& s) const {
     Real    mass = 0;
     Vec3    comv = Vec3(0);
@@ -551,11 +536,8 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterVelocityInGround(const State& s
     return comv;
 }
 
-/// Return the acceleration A_G_C = d^2/dt^2 r_OG_C of the system mass center C in
-/// the Ground frame G, expressed in G.
-///
-/// @par Required stage
-///   \c Stage::Acceleration
+// Return the acceleration A_G_C = d^2/dt^2 r_OG_C of the system mass center C in
+// the Ground frame G, expressed in G.
 Vec3 SimbodyMatterSubsystem::calcSystemMassCenterAccelerationInGround(const State& s) const {
     Real    mass = 0;
     Vec3    coma = Vec3(0);
@@ -575,12 +557,9 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterAccelerationInGround(const Stat
     return coma;
 }
 
-/// Return the momentum of the system as a whole (angular, linear) measured
-/// in the ground frame, taken about the ground origin and expressed in ground.
-/// (The linear component is independent of the "about" point.)
-///
-/// @par Required stage
-///   \c Stage::Velocity
+// Return the momentum of the system as a whole (angular, linear) measured
+// in the ground frame, taken about the ground origin and expressed in ground.
+// (The linear component is independent of the "about" point.)
 SpatialVec SimbodyMatterSubsystem::calcSystemMomentumAboutGroundOrigin(const State& s) const {
     SpatialVec mom(Vec3(0), Vec3(0));
     for (MobilizedBodyIndex b(1); b < getNumBodies(); ++b) {
@@ -594,6 +573,34 @@ SpatialVec SimbodyMatterSubsystem::calcSystemMomentumAboutGroundOrigin(const Sta
     return mom;
 }
 
+// Return the momentum of the system as a whole (angular, linear) measured
+// in the ground frame, taken about the current system center of mass
+// location and expressed in ground.
+// (The linear component is independent of the "about" point.)
+SpatialVec SimbodyMatterSubsystem::calcSystemCentralMomentum(const State& s) const {
+    SpatialVec mom(Vec3(0), Vec3(0));
+    Real mtot = 0;  // system mass
+    Vec3 com(0);    // system mass center
+
+    for (MobilizedBodyIndex b(1); b < getNumBodies(); ++b) {
+        const MobilizedBody& mobod = getMobilizedBody(b);
+        const Real m    = mobod.getBodyMass(s);
+        const Vec3 CB_G = mobod.findMassCenterLocationInGround(s);
+        mtot += m;
+        com  += m * CB_G;
+        const SpatialVec mom_CB_G = mobod.calcBodyMomentumAboutBodyMassCenterInGround(s);
+        const Vec3&      Iw = mom_CB_G[0];
+        const Vec3&      mv = mom_CB_G[1];
+        mom[0] += (Iw + CB_G % mv); // add central angular momentum plus contribution from mass center location
+        mom[1] += mv;               // just add up central linear momenta
+    }
+    if (mtot != 0)
+        com /= mtot;
+
+    // Shift momentum from ground origin to system COM (only angular affected).
+    mom[0] -= com % mom[1];
+    return mom;
+}
 
 } // namespace SimTK
 
