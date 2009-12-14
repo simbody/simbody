@@ -67,7 +67,7 @@ public:
                     + bushing2.getDissipatedEnergy(state));
         printf("TEMP=%g N=%d Power=%g Work=%g\n", 
             thermo.getCurrentTemperature(state),
-            thermo.getNumDegreesOfFreedom(state),
+            thermo.getNumThermalDofs(state),
             thermo.getExternalPower(state),
             thermo.getExternalWork(state));
     }
