@@ -105,4 +105,5 @@ void LocalEnergyMinimizer::minimizeEnergy(const MultibodySystem& system, State& 
         tempState.updQ() = q;
         matter.convertToQuaternions(tempState, state);
     }
+    system.realize(state, Stage::Dynamics);
 }
