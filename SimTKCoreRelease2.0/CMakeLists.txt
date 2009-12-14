@@ -208,8 +208,8 @@ FORCE)
 # Collect up information about the version of the simbody library we're building
 # and make it available to the code so it can be built into the binaries.
 
-SET(SIMBODY_MAJOR_VERSION 1)
-SET(SIMBODY_MINOR_VERSION 6)
+SET(SIMBODY_MAJOR_VERSION 2)
+SET(SIMBODY_MINOR_VERSION 0)
 SET(SIMBODY_BUILD_VERSION 0)
 
 SET(SIMBODY_COPYRIGHT_YEARS "2005-9")
