@@ -40,14 +40,19 @@
 
 namespace SimTK {
 
-
+// Implementation class for Force::Thermostat.
 class Force::ThermostatImpl : public ForceImpl {
 public:
     ThermostatImpl(const SimbodyMatterSubsystem& matter, 
-				   Real boltzmannsConstant, Real defBathTemp, Real defRelaxationTime)
-    :   matter(matter), kB(boltzmannsConstant), defaultNumChains(DefaultDefaultNumChains),
-        defaultBathTemp(defBathTemp), defaultRelaxationTime(defRelaxationTime)
-	{}
+				   Real boltzmannsConstant, 
+                   Real defBathTemp, 
+                   Real defRelaxationTime,
+                   int  defNumExcludedDofs)
+    :   matter(matter), kB(boltzmannsConstant), 
+        defaultNumChains(DefaultDefaultNumChains), 
+        defaultBathTemp(defBathTemp),
+        defaultRelaxationTime(defRelaxationTime), 
+        defaultNumExcludedDofs(defNumExcludedDofs) {}
 
     ThermostatImpl* clone() const {return new ThermostatImpl(*this);}
     bool dependsOnlyOnPositions() const {return false;}
@@ -63,7 +68,7 @@ public:
     void realizeVelocity(const State& state) const;
     void realizeDynamics(const State& state) const;
 
-	// Get the current number of chains.
+	// Get/update the current number of chains.
 	int getNumChains(const State& s) const {
 		assert(dvNumChains.isValid());
 		return Value<int>::downcast(getForceSubsystem().getDiscreteVariable(s, dvNumChains));
@@ -73,7 +78,19 @@ public:
 		return Value<int>::updDowncast(getForceSubsystem().updDiscreteVariable(s, dvNumChains));
 	}
 
-	int getNumDOFs(const State& s) const;
+	// Get/update the current number of excluded dofs.
+	int getNumExcludedDofs(const State& s) const {
+		assert(dvNumExcludedDofs.isValid());
+		return Value<int>::downcast
+            (getForceSubsystem().getDiscreteVariable(s, dvNumExcludedDofs));
+	}
+	int& updNumExcludedDofs(State& s) const {
+		assert(dvNumExcludedDofs.isValid());
+		return Value<int>::updDowncast
+            (getForceSubsystem().updDiscreteVariable(s, dvNumExcludedDofs));
+	}
+
+	int getNumThermalDOFs(const State& s) const;
 
 	// Get the auxiliary continuous state index of the 0'th thermostat state variable z.
 	ZIndex getZ0Index(const State& s) const {
@@ -165,17 +182,19 @@ private:
 
 	// Topology-stage "state" variables.
 	int			defaultNumChains;		// # chains in a new State
+	int			defaultNumExcludedDofs; // # non-thermal rigid body dofs
 	Real		defaultBathTemp;		// bath temperature
 	Real		defaultRelaxationTime;	// relaxation time
 
 	// These indices are Topology-stage "cache" variables.
-	DiscreteVariableIndex dvNumChains;		// integer
-	DiscreteVariableIndex dvBathTemp;		// Real
-	DiscreteVariableIndex dvRelaxationTime;	// Real
-	CacheEntryIndex		  cacheZ0Index;		// ZIndex
+	DiscreteVariableIndex dvNumChains;		    // integer
+	DiscreteVariableIndex dvNumExcludedDofs;    // integer
+	DiscreteVariableIndex dvBathTemp;		    // Real
+	DiscreteVariableIndex dvRelaxationTime;	    // Real
+	CacheEntryIndex		  cacheZ0Index;		    // ZIndex
 	CacheEntryIndex		  cacheMomentumIndex;	// M*u
 	CacheEntryIndex		  cacheKEIndex;			// ~u*M*u/2
-    ZIndex                workZIndex;       // power integral
+    ZIndex                workZIndex;           // power integral
 
 friend class Force::Thermostat;
 };
@@ -187,8 +206,10 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::Thermostat, Force::ThermostatImpl
 
 Force::Thermostat::Thermostat
    (GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter,
-    Real boltzmannsConstant, Real bathTemperature, Real relaxationTime) 
-:   Force(new ThermostatImpl(matter, boltzmannsConstant, bathTemperature, relaxationTime))
+    Real boltzmannsConstant, Real bathTemperature, Real relaxationTime,
+    int numExcludedDofs) 
+:   Force(new ThermostatImpl(matter, boltzmannsConstant, bathTemperature, 
+                             relaxationTime, numExcludedDofs))
 {
 	SimTK_APIARGCHECK1_ALWAYS(boltzmannsConstant > 0, 
 		"Force::Thermostat","ctor", "Illegal Boltzmann's constant %g.", boltzmannsConstant);
@@ -196,11 +217,16 @@ Force::Thermostat::Thermostat
 		"Force::Thermostat","ctor", "Illegal bath temperature %g.", bathTemperature);
 	SimTK_APIARGCHECK1_ALWAYS(relaxationTime > 0, 
 		"Force::Thermostat","ctor", "Illegal relaxation time %g.", relaxationTime);
+	SimTK_APIARGCHECK1_ALWAYS(0 <= numExcludedDofs && numExcludedDofs <= 6, 
+		"Force::Thermostat","ctor", 
+        "Illegal number of excluded rigid body dofs %d (must be 0-6).", 
+        numExcludedDofs);
 
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
 
-Force::Thermostat& Force::Thermostat::setDefaultNumChains(int numChains) {
+Force::Thermostat& Force::Thermostat::
+setDefaultNumChains(int numChains) {
 	SimTK_APIARGCHECK1_ALWAYS(numChains > 0, 
 		"Force::Thermostat","setDefaultNumChains", 
 		"Illegal number of chains %d.", numChains);
@@ -210,7 +236,8 @@ Force::Thermostat& Force::Thermostat::setDefaultNumChains(int numChains) {
 	return *this;
 }
 
-Force::Thermostat& Force::Thermostat::setDefaultBathTemperature(Real bathTemperature) {
+Force::Thermostat& Force::Thermostat::
+setDefaultBathTemperature(Real bathTemperature) {
 	SimTK_APIARGCHECK1_ALWAYS(bathTemperature > 0, 
 		"Force::Thermostat","setDefaultBathTemperature", 
 		"Illegal bath temperature %g.", bathTemperature);
@@ -220,7 +247,8 @@ Force::Thermostat& Force::Thermostat::setDefaultBathTemperature(Real bathTempera
 	return *this;
 }
 
-Force::Thermostat& Force::Thermostat::setDefaultRelaxationTime(Real relaxationTime) {
+Force::Thermostat& Force::Thermostat::
+setDefaultRelaxationTime(Real relaxationTime) {
 	SimTK_APIARGCHECK1_ALWAYS(relaxationTime > 0, 
 		"Force::Thermostat","setDefaultRelaxationTime", 
 		"Illegal bath temperature %g.", relaxationTime);
@@ -230,38 +258,69 @@ Force::Thermostat& Force::Thermostat::setDefaultRelaxationTime(Real relaxationTi
 	return *this;
 }
 
+Force::Thermostat& Force::Thermostat::
+setDefaultNumExcludedDofs(int numExcludedDofs) {
+	SimTK_APIARGCHECK1_ALWAYS(0 <= numExcludedDofs && numExcludedDofs <= 6, 
+		"Force::Thermostat","setDefaultNumExcludedDofs", 
+        "Illegal number of excluded rigid body dofs %d (must be 0-6).", 
+        numExcludedDofs);
+
+	getImpl().invalidateTopologyCache();
+	updImpl().defaultNumExcludedDofs = numExcludedDofs;
+	return *this;
+}
+
 int Force::Thermostat::getDefaultNumChains() const {return getImpl().defaultNumChains;}
 Real Force::Thermostat::getDefaultBathTemperature() const {return getImpl().defaultBathTemp;}
 Real Force::Thermostat::getDefaultRelaxationTime() const {return getImpl().defaultRelaxationTime;}
+int Force::Thermostat::getDefaultNumExcludedDofs() const {return getImpl().defaultNumExcludedDofs;}
 Real Force::Thermostat::getBoltzmannsConstant() const {return getImpl().kB;}
 
-void Force::Thermostat::setNumChains(State& s, int numChains) const {
+const Force::Thermostat& Force::Thermostat::
+setNumChains(State& s, int numChains) const {
 	SimTK_APIARGCHECK1_ALWAYS(numChains > 0, 
 		"Force::Thermostat","setNumChains", 
 		"Illegal number of chains %d.", numChains);
 
 	getImpl().updNumChains(s) = numChains;
+    return *this;
 }
 
-void Force::Thermostat::setBathTemperature(State& s, Real bathTemperature) const {
+const Force::Thermostat& Force::Thermostat::
+setBathTemperature(State& s, Real bathTemperature) const {
 	SimTK_APIARGCHECK1_ALWAYS(bathTemperature > 0, 
 		"Force::Thermostat","setBathTemperature", 
 		"Illegal bath temperature %g.", bathTemperature);
 
 	getImpl().updBathTemp(s) = bathTemperature;
+    return *this;
 }
 
-void Force::Thermostat::setRelaxationTime(State& s, Real relaxationTime) const {
+const Force::Thermostat& Force::Thermostat::
+setRelaxationTime(State& s, Real relaxationTime) const {
 	SimTK_APIARGCHECK1_ALWAYS(relaxationTime > 0, 
 		"Force::Thermostat","setRelaxationTime", 
 		"Illegal bath temperature %g.", relaxationTime);
 
 	getImpl().updRelaxationTime(s) = relaxationTime;
+    return *this;
+}
+
+const Force::Thermostat& Force::Thermostat::
+setNumExcludedDofs(State& s, int numExcludedDofs) const {
+	SimTK_APIARGCHECK1_ALWAYS(0 <= numExcludedDofs && numExcludedDofs <= 6, 
+		"Force::Thermostat","setNumExcludedDofs", 
+        "Illegal number of excluded rigid body dofs %d (must be 0-6).", 
+        numExcludedDofs);
+
+	getImpl().updNumExcludedDofs(s) = numExcludedDofs;
+    return *this;
 }
 
 int Force::Thermostat::getNumChains(const State& s) const {return getImpl().getNumChains(s);}
 Real Force::Thermostat::getBathTemperature(const State& s) const {return getImpl().getBathTemp(s);}
 Real Force::Thermostat::getRelaxationTime(const State& s) const {return getImpl().getRelaxationTime(s);}
+int Force::Thermostat::getNumExcludedDofs(const State& s) const {return getImpl().getNumExcludedDofs(s);}
 
 void Force::Thermostat::initializeChainState(State& s) const {
 	const ThermostatImpl& impl = getImpl();
@@ -294,12 +353,12 @@ Vector Force::Thermostat::getChainState(const State& s) const {
 Real Force::Thermostat::getCurrentTemperature(const State& s) const {
 	const Real ke = getImpl().getKE(s);	// Cached value for kinetic energy
 	const Real kB = getImpl().kB;		// Boltzmann's constant
-	const int  N  = getImpl().getNumDOFs(s);
+	const int  N  = getImpl().getNumThermalDOFs(s);
 	return (2*ke) / (N*kB);
 }
 
-int Force::Thermostat::getNumDegreesOfFreedom(const State& s) const {
-	return getImpl().getNumDOFs(s);
+int Force::Thermostat::getNumThermalDofs(const State& s) const {
+	return getImpl().getNumThermalDOFs(s);
 }
 
 // Bath energy is KEb + PEb where
@@ -309,7 +368,7 @@ int Force::Thermostat::getNumDegreesOfFreedom(const State& s) const {
 Real Force::Thermostat::calcBathEnergy(const State& state) const {
 	const ThermostatImpl& impl = getImpl();
 	const int nChains = impl.getNumChains(state);
-	const int  N = impl.getNumDOFs(state);
+	const int  N = impl.getNumThermalDOFs(state);
 	const Real kT = impl.kB * impl.getBathTemp(state);
 	const Real t = impl.getRelaxationTime(state);
 
@@ -339,14 +398,16 @@ void Force::Thermostat::setExternalWork(State& state, Real w) const {
     getImpl().updExternalWork(state) = w;
 }
 
-// This is the number of dofs. TODO: we're ignoring constraint redundancy
-// but we shouldn't be! That could result in negative dofs, so we'll 
+// This is the number of thermal dofs. TODO: we're ignoring constraint 
+// redundancy but we shouldn't be! That could result in negative dofs, so we'll 
 // make sure that doesn't happen. But don't expect meaningful results
 // in that case. Note that it is the acceleration-level constraints that
 // matter; they remove dofs regardless of whether there is a corresponding
 // velocity constraint.
-int Force::ThermostatImpl::getNumDOFs(const State& state) const {
-	const int N = std::max(1, state.getNU() - state.getNUDotErr());
+int Force::ThermostatImpl::getNumThermalDOFs(const State& state) const {
+    const int ndofs = state.getNU() - state.getNUDotErr()
+                        - getNumExcludedDofs(state);
+	const int N = std::max(1, ndofs);
 	return N;
 }
 
@@ -389,6 +450,9 @@ void Force::ThermostatImpl::realizeTopology(State& state) const {
 	mutableThis->dvRelaxationTime = 
 		getForceSubsystem().allocateDiscreteVariable(state, Stage::Instance, 
 												     new Value<Real>(defaultRelaxationTime));
+	mutableThis->dvNumExcludedDofs = 
+		getForceSubsystem().allocateDiscreteVariable(state, Stage::Model, 
+												     new Value<int>(defaultNumExcludedDofs));
 
 	// This cache entry holds the auxiliary state index of our first
 	// thermostat state variable. It is valid after realizeModel().
@@ -440,7 +504,7 @@ void Force::ThermostatImpl::realizeDynamics(const State& state) const {
 	// This is the desired kinetic energy per dof.
 	const Real Eb = kB * getBathTemp(state) / 2;
 
-	const int  N = getNumDOFs(state);
+	const int  N = getNumThermalDOFs(state);
 
 	// This is the current average kinetic energy per dof.
 	const Real E = getKE(state) / N;

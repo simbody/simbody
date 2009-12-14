@@ -66,11 +66,11 @@ class SimbodyMatterSubtreeResults;
  *      .    .                .
  *       .  .                 .
  *        T0      T1          T2     }
- *         *       *          *      }
+ *         *       *       .  *      }
  *     B0   *     * B1       *       }
  *           *   *          *        }   A SimbodyMatterSubtree with
- *             *           *  B2     }   three branches.
- *              *        *           }
+ *        .    *           *  B2     }   three branches.
+ *          . . *        *           }
  *                *     *            }
  *           B0,B1  *  *             }
  *                    A              }
@@ -151,8 +151,10 @@ public:
     // body and monotonically increasing outwards along a branch.
     const std::vector<MobilizedBodyIndex>& getAllBodies() const;
 
-    SubtreeBodyIndex getParentSubtreeBodyIndex(SubtreeBodyIndex) const; // 0 returns an invalid Index
-    const std::vector<SubtreeBodyIndex>& getChildSubtreeBodyIndices(SubtreeBodyIndex) const;
+    // 0 returns an invalid Index
+    SubtreeBodyIndex getParentSubtreeBodyIndex(SubtreeBodyIndex) const;
+    const std::vector<SubtreeBodyIndex>& 
+        getChildSubtreeBodyIndices(SubtreeBodyIndex) const;
 
         // MODEL STAGE
 
@@ -161,9 +163,10 @@ public:
     // be able to hold computation results from this SimbodyMatterSubtree.
     void initializeSubtreeResults(const State&, SimbodyMatterSubtreeResults&) const;
 
-    // This can be used as a sanity check that initializeSubtreeResults() was already called
-    // in this SimbodyMatterSubtree to produce these SimbodyMatterSubtreeResults. It is by no means exhaustive but
-    // will catch egregious errors.
+    // This can be used as a sanity check that initializeSubtreeResults() was 
+    // already called in this SimbodyMatterSubtree to produce these 
+    // SimbodyMatterSubtreeResults. It is by no means exhaustive but will catch
+    // egregious errors.
     bool isCompatibleSubtreeResults(const SimbodyMatterSubtreeResults&) const;
 
         // POSITION STAGE
