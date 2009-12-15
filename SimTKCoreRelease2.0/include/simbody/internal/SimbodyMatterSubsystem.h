@@ -201,6 +201,15 @@ public:
     ///   \c Stage::Velocity
     SpatialVec calcSystemMomentumAboutGroundOrigin(const State& s) const;
 
+    /// Return the momentum of the system as a whole (angular, linear) measured
+    /// in the ground frame, taken about the current system center of mass
+    /// location and expressed in ground.
+    /// (The linear component is independent of the "about" point.)
+    ///
+    /// @par Required stage
+    ///   \c Stage::Velocity
+    SpatialVec calcSystemCentralMomentum(const State& s) const;
+
         //////////////////
         // CONSTRUCTION //
         //////////////////
