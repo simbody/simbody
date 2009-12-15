@@ -585,6 +585,34 @@ SpatialVec SimbodyMatterSubsystem::calcSystemMomentumAboutGroundOrigin(const Sta
     return mom;
 }
 
+// Return the momentum of the system as a whole (angular, linear) measured
+// in the ground frame, taken about the current system center of mass
+// location and expressed in ground.
+// (The linear component is independent of the "about" point.)
+SpatialVec SimbodyMatterSubsystem::calcSystemCentralMomentum(const State& s) const {
+    SpatialVec mom(Vec3(0), Vec3(0));
+    Real mtot = 0;  // system mass
+    Vec3 com(0);    // system mass center
+
+    for (MobilizedBodyIndex b(1); b < getNumBodies(); ++b) {
+        const MobilizedBody& mobod = getMobilizedBody(b);
+        const Real m    = mobod.getBodyMass(s);
+        const Vec3 CB_G = mobod.findMassCenterLocationInGround(s);
+        mtot += m;
+        com  += m * CB_G;
+        const SpatialVec mom_CB_G = mobod.calcBodyMomentumAboutBodyMassCenterInGround(s);
+        const Vec3&      Iw = mom_CB_G[0];
+        const Vec3&      mv = mom_CB_G[1];
+        mom[0] += (Iw + CB_G % mv); // add central angular momentum plus contribution from mass center location
+        mom[1] += mv;               // just add up central linear momenta
+    }
+    if (mtot != 0)
+        com /= mtot;
+
+    // Shift momentum from ground origin to system COM (only angular affected).
+    mom[0] -= com % mom[1];
+    return mom;
+}
 
 } // namespace SimTK
 
