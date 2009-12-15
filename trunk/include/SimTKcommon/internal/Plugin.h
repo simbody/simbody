@@ -113,9 +113,9 @@ public:
     ///   directory in which the currently running executable is located.
     ///
     /// Anywhere in the pathname, the name ".." means "go up one level from
-    /// the prior directory. ".." at the start is interpreted as "./..".
-    /// A "." appearing anywhere in the path name except the begining is
-    /// ignored. An "@" appearing anywhere in the pathname other than the
+    /// the prior directory". ".." at the start is interpreted as "./..".
+    /// A '.' appearing anywhere in the path name except the begining is
+    /// ignored. An '@' appearing anywhere in the pathname other than the
     /// beginning is treated as an ordinary file character.
     ///
     /// The pathname components are returned
@@ -398,9 +398,9 @@ public:
     ///   directory in which the currently running executable is located.
     ///
     /// Anywhere in the pathname, the name ".." means "go up one level from
-    /// the prior directory. ".." at the start is interpreted as "./..".
-    /// A "." appearing anywhere in the path name except the begining is
-    /// ignored. An "@" appearing anywhere in the pathname other than the
+    /// the prior directory". ".." at the start is interpreted as "./..".
+    /// A '.' appearing anywhere in the path name except the begining is
+    /// ignored. An '@' appearing anywhere in the pathname other than the
     /// beginning is treated as an ordinary file character.
     ///
     /// The pathname components are returned

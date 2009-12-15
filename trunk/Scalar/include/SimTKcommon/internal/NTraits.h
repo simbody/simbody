@@ -110,7 +110,7 @@ static const complex<long double> zeroes(0);
 /// and has typedefs "Type" which is the appropriate "widened"
 /// type for use when R1 & R2 appear in an operation together, and
 /// "Precision" which is the wider precision (float,double,long double). 
-/// For example, if R1=complex<float> and R2=long double, Widest<R1,R2>::Type is
+/// For example, if R1=complex< float > and R2=long double, Widest<R1,R2>::Type is
 /// complex<long double> and Widest<R1,R2>::Precision is long double.
 template <class R1, class R2> struct Widest {/* Only defined for built-ins. */};
 template <> struct Widest<float,float>              {typedef float       Type;  typedef float       Precision;};
@@ -141,8 +141,8 @@ template <class R1, class R2> struct Widest< R1,complex<R2> > {
 /// type for use when R1 & R2 appear in an operation together where the
 /// result must be of the narrower precision, and "Precision" which is
 /// the expected precision of the result (float,
-/// double, long double). For example, if R1=complex<double> and R2=float, 
-/// Narrowest<R1,R2>::Type is complex<float> and Narrowest<R1,R2>::Precision
+/// double, long double). For example, if R1=complex< double > and R2=float, 
+/// Narrowest<R1,R2>::Type is complex< float > and Narrowest<R1,R2>::Precision
 /// is float.
 template <class R1, class R2> struct Narrowest {/* Only defined for built-ins. */};
 template <> struct Narrowest<float,float>              {typedef float  Type;};
