@@ -539,6 +539,33 @@ public:
     void calcCompositeBodyInertias(const State&,
         Vector_<SpatialMat>& R) const;
 
+    /**
+    Given a complete set of generalized accelerations, this kinematic operator
+    calculates the resulting body accelerations, including velocity-dependent 
+    terms taken from the supplied State.
+    @pre \a state must already be realized to Velocity stage
+    @param[in] state
+        The State from which position- and velocity- related terms are taken; 
+        must already have been realized to Velocity stage.
+    @param[in] knownUDot
+        A complete set of generalized accelerations. Must have the same length 
+        as the number of mobilities, or if length zero the udots will be taken 
+        as all zero in which case only velocity-dependent accelerations will be
+        returned in \a A_GB.
+    @param[out] A_GB
+        Spatial accelerations of all the body frames measured and expressed in
+        the Ground frame, resulting from supplied generalized accelerations 
+        \a knownUDot and velocity-dependent acceleration terms taken from 
+        \a state. This will be resized if necessary to the number of bodies 
+        <em>including</em> Ground so that the returned array may be indexed by 
+        MobilizedBodyIndex with A_GB[0]==0 always. The angular acceleration
+        vector for MobilizedBody i is A_GB[i][0]; linear acceleration of the
+        body's origin is A_GB[i][1].
+    */
+    void calcAccelerationFromUDot(const State&         state,
+                                  const Vector&        knownUDot,
+                                  Vector_<SpatialVec>& A_GB) const;
+
     /// Returns
     ///     constraintErr = G udot - b
     /// the residual error in the acceleration constraint equation given
