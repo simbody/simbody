@@ -45,7 +45,7 @@ class DefaultSystemSubsystem;
 /**
  * This is a class to represent unique IDs for events in a type-safe way.
  */
-SimTK_DEFINE_UNIQUE_INDEX_TYPE(EventId)
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(EventId);
 
 /**
  * The handle class which serves as the abstract parent of all System handles.
