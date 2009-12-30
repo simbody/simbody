@@ -225,8 +225,8 @@ FORCE)
 # into the binaries. This also determines the versioned library names
 # in which case all dependencies must use the same version.
 
-SET(SIMMATH_MAJOR_VERSION 1)
-SET(SIMMATH_MINOR_VERSION 7)
+SET(SIMMATH_MAJOR_VERSION 2)
+SET(SIMMATH_MINOR_VERSION 1)
 SET(SIMMATH_BUILD_VERSION 0)
 
 
