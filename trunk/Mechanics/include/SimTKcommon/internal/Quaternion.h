@@ -132,11 +132,16 @@ public:
     /// converted to axis-angle form.
     const Vec4P& asVec4() const  {return *static_cast<const Vec4P*>(this);}
 
-    /// Normalize an already constructed quaternion. If the quaternion is 
-    /// \e exactly zero, set it to [1 0 0 0]. If its magnitude is:  
-    /// 0 < magnitude < epsilon  (epsilon is machine tolerance), set it to 
-    /// NaN (treated as an error). Otherwise, normalize the quaternion which 
-    /// costs about 40 flops. The quaternion is NOT put in canonical form.
+    /// Normalize an already constructed quaternion in place; but do you really
+    /// need to do this? Quaternions should be kept normalized at all times. 
+    /// One of the advantages of using them is that you don't have to check if 
+    /// they are normalized or renormalize them. However, under some situations
+    /// they do need renormalization, but it is costly if you don't actually 
+    /// need it. If the quaternion is \e exactly zero, set it to [1 0 0 0]. If 
+    /// its magnitude is 0 < magnitude < epsilon  (epsilon is machine 
+    /// tolerance), set it to NaN (treated as an error). Otherwise, normalize 
+    /// the quaternion which costs about 40 flops. The quaternion is NOT put 
+    /// in canonical form.
     Quaternion_& normalizeThis() { 
         const RealP epsilon = std::numeric_limits<RealP>::epsilon();
         const RealP magnitude = Vec4P::norm();
@@ -145,6 +150,14 @@ public:
         else (*this) *= (1/magnitude);
         return *this;
     }
+
+    /// Return a normalized copy of this quaternion; but do you really need to
+    /// do this? Quaternions should be kept normalized at all times. One of
+    /// the advantages of using them is that you don't have to check if they
+    /// are normalized or renormalize them. However, under some situations they
+    /// do need renormalization, but it is costly if you don't actually need it.
+    /// @see normalizeThis() for details.
+    Quaternion_ normalize() const {return Quaternion_(*this).normalizeThis();}
 
     /// Use this constructor only if you are *sure* v is normalized to 1.0.
     /// This zero cost method is faster than the Quaternion(Vec4) constructor 

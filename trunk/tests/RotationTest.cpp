@@ -261,6 +261,15 @@ bool  doRequiredTasks( ) {
     test = test && testQuaternion( 0.5, 0.1, 0.2,  0.3 );
     test = test && testQuaternion(-0.5, 0.1, 0.2, -0.3 );
 
+    Quaternion unnorm(Vec4(1,2,3,4), true); // don't do this at home
+    SimTK_TEST_NOTEQ(unnorm.norm(), Real(1)); // shouldn't have normalized
+    Quaternion fixedUp;
+    fixedUp = unnorm.normalize();
+    SimTK_TEST_EQ(fixedUp.norm(), Real(1));
+    unnorm.normalizeThis();
+    SimTK_TEST_EQ(unnorm.norm(), Real(1));
+
+
     // Test construction of nearby orthogonal rotation matrix from a generic Mat33.
     Rotation nearbyRotation( testRotation.asMat33() );
     test = test && nearbyRotation.areAllRotationElementsSameToMachinePrecision( testRotation );

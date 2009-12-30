@@ -214,8 +214,8 @@ FORCE)
 # into the binaries. This also determines the versioned library names
 # in which case all dependencies must use the same version.
 
-SET(SimTKCOMMON_MAJOR_VERSION 1)
-SET(SimTKCOMMON_MINOR_VERSION 7)
+SET(SimTKCOMMON_MAJOR_VERSION 2)
+SET(SimTKCOMMON_MINOR_VERSION 1)
 SET(SimTKCOMMON_BUILD_VERSION 0)
 
 # Report the version number to the CMake UI. Don't include the 
@@ -233,7 +233,7 @@ SET(SimTKCOMMON_VERSION
 SET(VN "_${SimTKCOMMON_VERSION}")
 
 
-SET(SimTKCOMMON_COPYRIGHT_YEARS "2005-9")
+SET(SimTKCOMMON_COPYRIGHT_YEARS "2005-10")
 
 # underbar separated list of dotted authors, no spaces or commas
 SET(SimTKCOMMON_AUTHORS "Michael.Sherman_Peter.Eastman")
