@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2009 Stanford University and the Authors.           *
+ * Portions copyright (c) 2009-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -566,7 +566,7 @@ std::string Plugin::getDynamicLibPrefix() {
 std::string Plugin::getDynamicLibExtension() {
     #if defined(_WIN32)
         return ".dll";
-    #elif defined(APPLE)
+    #elif defined(__APPLE__)
         return ".dylib";
     #else   // linux
         return ".so";
