@@ -446,28 +446,69 @@ public:
     void setDiscreteVariable(SubsystemIndex, DiscreteVariableIndex, const AbstractValue&);
 
     /// You can allocate a new CacheEntry in any State whose stage has not yet been
-    /// advanced to Instance stage. The stage at allocation (Empty, Topology, or Model)
-    /// is remembered so that the appropriate cache entries can be forgotten if the
-    /// State's stage is reduced back to that stage later after advancing past it. CacheEntries
-    /// are private to each Subsystem and allocated immediately. The returned index is
-    /// unique within the Subsystem and there is no corresponding global index.
+    /// advanced to Instance stage. The stage at allocation (Empty, Topology, or 
+    /// Model) is remembered so that the appropriate cache entries can be forgotten
+    /// if the State's stage is reduced back to that stage later after advancing 
+    /// past it. CacheEntries are private to each Subsystem and allocated 
+    /// immediately. The returned index is unique within the Subsystem and there 
+    /// is no corresponding global index.
     ///
-    /// There are two Stages supplied explicitly as arguments to this method: \a earliest
-    /// and \a latest. The \a earliest Stage is the stage at which the cache entry
-    /// \e could be calculated. Hence if the Subsystem stage is reduced below \a earliest
-    /// the cache entry is known to be invalid. The \a latest Stage, if any, is the stage at
-    /// which the cache entry is \e guaranteed to have been calculated. For stages
-    /// \a earliest through \a latest-1, the cache entry \e may be valid, if it has 
-    /// already been calculated. In that case an explicit validity indicator will have
-    /// been set at the time it was computed. That indicator is cleared automatically
-    /// whenever the Subsystem stage is reduced below \a earliest. The validity indicator
-    /// need not have been set in order for the cache entry to be deemed valid at
-    /// \a latest stage.
+    /// There are two Stages supplied explicitly as arguments to this method: 
+    /// \a earliest and \a latest. The \a earliest Stage is the stage at which the 
+    /// cache entry \e could be calculated. Hence if the Subsystem stage is reduced
+    /// below \a earliest the cache entry is known to be invalid. The \a latest 
+    /// Stage, if any, is the stage at which the cache entry is \e guaranteed to 
+    /// have been calculated (typically as the result of a System-wide realize()
+    /// call to that stage). For stages \a earliest through \a latest-1, the 
+    /// cache entry \e may be valid, if it has already been calculated. In that 
+    /// case an explicit validity indicator will have been set at the time it was 
+    /// computed, via markCacheValueRealized(). That indicator is cleared 
+    /// automatically whenever the Subsystem stage is reduced below \a earliest. 
+    /// The validity indicator need not have been set in order for the cache entry 
+    /// to be deemed valid at \a latest stage.
     ///
-    /// If \a latest is given as Stage::Infinity then there is no guarantee that this Subsystem
-    /// will automatically calculate a value for this cache entry. In that case the only
-    /// way the cache entry can become valid is if the calculation is performed and the
-    /// validity indicator is set explicitly.
+    /// If \a latest is given as Stage::Infinity then there is no guarantee that 
+    /// this Subsystem will automatically calculate a value for this cache entry,
+    /// which makes it a "lazy" evaluation that is done only if requested. In that 
+    /// case the only way the cache entry can become valid is if the calculation 
+    /// is performed and the validity indicator is set explicitly with
+    /// markCacheValueRealized(). Here is how we suggest you structure lazy
+    /// evaluation of a cache entry CE of type CEType and CacheEntryIndex CEIndex
+    /// (this is pseudocode):
+    ///
+    /// (1) Allocate your lazy cache entry something like this:
+    /// \code
+    ///     CEIndex = s.allocateCacheEntry(subsys,stage,Stage::Infinity,
+    ///                                    new Value<CEType>());
+    /// \endcode
+    /// (2) Write a realizeCE() method structured like this:
+    /// \code
+    ///     void realizeCE(const State& s) const {
+    ///         if (s.isCacheValueCurrent(subsys,CEIndex)) 
+    ///             return;
+    ///         // calculate the cache entry, update with updCacheEntry()
+    ///         s.markCacheValueRealized(subsys,CEIndex);
+    ///     }
+    /// \endcode
+    /// (3) Write a getCE() method structured like this:
+    /// \code
+    ///     const CEType& getCE(const State& s) const {
+    ///         realizeCE(s); // make sure CE has been calculated
+    ///         return Value<CEType>::downcast(s.getCacheEntry(subsys,CEIndex));
+    ///     }
+    /// \endcode
+    /// (4) Write an updCE() method like this:
+    /// \code
+    ///     CEType& updCE(const State& s) const {
+    ///         return Value<CEType>::updDowncast(s.updCacheEntry(subsys,CEIndex));
+    ///     }
+    /// \endcode
+    ///
+    /// Then access CE \e only through your getCE() method. There
+    /// should be only one place in your code where isCacheValueCurrent() and
+    /// markCacheValueRealized() are called for a particular cache entry. If
+    /// you do this from multiple locations there is a high probabily of a bug
+    /// being introduced, especially due to later modification of the code.
     ///
     /// Prior to the Subsystem advancing to \a earliest stage, and prior to \a latest 
     /// stage unless the validity indicator is set, attempts to look at the value via
