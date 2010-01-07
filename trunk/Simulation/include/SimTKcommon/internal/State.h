@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -434,6 +434,17 @@ public:
         allocateUpdatingDiscreteVariable(SubsystemIndex, Stage invalidates, AbstractValue*,
                                          Stage earliestUpdate); 
 
+    /// OK if dv.stage==Model or stage >= Model
+    const AbstractValue& getDiscreteVariable         (SubsystemIndex, DiscreteVariableIndex) const;
+    Real                 getDiscreteVarLastUpdateTime(SubsystemIndex, DiscreteVariableIndex) const;
+    CacheEntryIndex      getDiscreteVarUpdateEntry   (SubsystemIndex, DiscreteVariableIndex) const;
+    const AbstractValue& getDiscreteVarPrevValue     (SubsystemIndex, DiscreteVariableIndex) const;
+
+    /// OK if dv.stage==Model or stage >= Model; set stage to dv.stage-1
+    AbstractValue&       updDiscreteVariable(SubsystemIndex, DiscreteVariableIndex);
+    /// Alternate interface to updDiscreteVariable.
+    void setDiscreteVariable(SubsystemIndex, DiscreteVariableIndex, const AbstractValue&);
+
     /// You can allocate a new CacheEntry in any State whose stage has not yet been
     /// advanced to Instance stage. The stage at allocation (Empty, Topology, or Model)
     /// is remembered so that the appropriate cache entries can be forgotten if the
@@ -468,8 +479,8 @@ public:
     ///
     /// Ownership of the AbstractValue object supplied here is taken over by the State --
     /// don't delete the object after this call! 
-    /// @see getCacheEntry()
-    /// @see updCacheEntry()
+    /// @see getCacheEntry(), updCacheEntry()
+    /// @see isCacheValueCurrent(), markCacheValueRealized()
     CacheEntryIndex allocateCacheEntry(SubsystemIndex, Stage earliest, Stage latest,
                                        AbstractValue*) const;
 
@@ -479,6 +490,47 @@ public:
     /// is guaranteed to be invalid below that Stage.
     CacheEntryIndex allocateCacheEntry(SubsystemIndex sx, Stage g, AbstractValue* v) const
     {   return allocateCacheEntry(sx, g, g, v); }
+
+
+    /// Retrieve a const reference to the value contained in a particular cache 
+    /// entry. The value must be up to date with respect to the state variables it 
+    /// depends on or this will throw an exception. No calculation will be 
+    /// performed here.
+    /// @see updCacheEntry()
+    /// @see allocateCacheEntry(), isCacheValueCurrent(), markCacheValueRealized()
+    const AbstractValue& getCacheEntry(SubsystemIndex, CacheEntryIndex) const;
+
+    /// Retrieve a writable reference to the value contained in a particular cache 
+    /// entry. You can access a cache entry for writing any time after it has been
+    /// allocated. This does not affect the current stage. The cache entry will
+    /// neither be invalidated nor marked valid by accessing it here.
+    /// @see getCacheEntry()
+    /// @see allocateCacheEntry(), isCacheValueCurrent(), markCacheValueRealized()
+    AbstractValue& updCacheEntry(SubsystemIndex, CacheEntryIndex) const; // mutable
+
+    /// Check whether the value in a particular cache entry has been recalculated
+    /// since the last change to the state variables it depends on. Validity can
+    /// result either from an explicit call to markCacheValueRealized() or by
+    /// this %State's stage reaching the \a latest stage specified when the cache
+    /// entry was allocated, after which the value is \e presumed valid. If this
+    /// method returns true, then you can access the value with getCacheEntry()
+    /// without getting an exception thrown.
+    /// @see allocateCacheEntry(), markCacheValueRealized(), getCacheEntry()
+    bool isCacheValueCurrent(SubsystemIndex, CacheEntryIndex) const;
+
+    /// Mark the value of a particular cache entry as up to date after it has
+    /// been recalculated. This %State's current stage must be at least the
+    /// \a earliest stage as supplied when this cache entry was allocated, and
+    /// it is unnecessary to call this method if the stage has reached the
+    /// specified \a latest stage since after that we'll \e presume that the
+    /// cache entry's value has been realized. Note that if the \a latest stage
+    /// was given as Stage::Infinity then it is always necessary to call this
+    /// method prior to accessing the cache entry's value. After a cache entry
+    /// has been marked valid here, isCacheValueCurrent() will return true. The
+    /// cache entry is marked invalid automatically whenever a change occurs to
+    /// a state variable on which it depends.
+    /// @see allocateCacheEntry(), isCacheValueCurrent(), getCacheEntry()
+    void markCacheValueRealized(SubsystemIndex, CacheEntryIndex) const;
     
     /// @name Global Resource Dimensions
     ///
@@ -737,28 +789,6 @@ public:
 
     Vector& updUDotErr()     const; // Stage::Acceleration-1 (not a view)
     Vector& updMultipliers() const; // Stage::Acceleration-1 (not a view)
-
-    /// OK if dv.stage==Model or stage >= Model
-    const AbstractValue& getDiscreteVariable         (SubsystemIndex, DiscreteVariableIndex) const;
-    Real                 getDiscreteVarLastUpdateTime(SubsystemIndex, DiscreteVariableIndex) const;
-    CacheEntryIndex      getDiscreteVarUpdateEntry   (SubsystemIndex, DiscreteVariableIndex) const;
-    const AbstractValue& getDiscreteVarPrevValue     (SubsystemIndex, DiscreteVariableIndex) const;
-
-    /// OK if dv.stage==Model or stage >= Model; set stage to dv.stage-1
-    AbstractValue&       updDiscreteVariable(SubsystemIndex, DiscreteVariableIndex);
-
-    /// Alternate interface to updDiscreteVariable.
-    void setDiscreteVariable(SubsystemIndex, DiscreteVariableIndex, const AbstractValue&);
-
-    /// The cache entry must be up to date or this will throw an exception.
-    const AbstractValue& getCacheEntry(SubsystemIndex, CacheEntryIndex) const;
-
-    /// You can access a cache entry for writing any time after it has been
-    /// allocated. This does not affect the current stage.
-    AbstractValue& updCacheEntry(SubsystemIndex, CacheEntryIndex) const; // mutable
-
-    bool isCacheValueCurrent(SubsystemIndex, CacheEntryIndex) const;
-    void markCacheValueRealized(SubsystemIndex, CacheEntryIndex) const;
 
     /// Return the lowest System Stage that was invalidated since the last time this
     /// "low water mark" was reset. The returned value is never higher than the
