@@ -128,6 +128,7 @@ ENDIF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
 IF( APPLE )
    SET( CMAKE_CXX_FLAGS "-mmacosx-version-min=10.4 -m32" )
    SET( CMAKE_C_FLAGS "-mmacosx-version-min=10.4 -m32" )
+   SET( LIB64  )
 ENDIF( APPLE )
 
 IF(UNIX AND NOT CMAKE_BUILD_TYPE)
