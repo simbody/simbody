@@ -1939,9 +1939,9 @@ public:
         return ce.updValue();
     }
 
-    bool isCacheValueCurrent(SubsystemIndex subx, CacheEntryIndex cx) const {
+    bool isCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
         const PerSubsystemInfo& ss = data->subsystems[subx];
-        SimTK_INDEXCHECK(0,cx,(int)ss.cacheInfo.size(),"StateRep::isCacheValueCurrent()");
+        SimTK_INDEXCHECK(0,cx,(int)ss.cacheInfo.size(),"StateRep::isCacheValueRealized()");
         const CacheEntryInfo& ce = ss.cacheInfo[cx];
         return ce.isCurrent(getSubsystemStage(subx), getSubsystemStageVersions(subx));
     }
@@ -2515,8 +2515,8 @@ AbstractValue& State::updCacheEntry(SubsystemIndex subsys, CacheEntryIndex index
 }
 
 
-bool State::isCacheValueCurrent(SubsystemIndex subx, CacheEntryIndex cx) const {
-    return rep->isCacheValueCurrent(subx, cx); 
+bool State::isCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
+    return rep->isCacheValueRealized(subx, cx); 
 }
 void State::markCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
     rep->markCacheValueRealized(subx, cx); 

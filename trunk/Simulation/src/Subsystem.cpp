@@ -191,8 +191,8 @@ const AbstractValue& Subsystem::getCacheEntry(const State& s, CacheEntryIndex in
 AbstractValue& Subsystem::updCacheEntry(const State& s, CacheEntryIndex index) const {
     return getSubsystemGuts().updCacheEntry(s, index);
 }
-bool Subsystem::isCacheValueCurrent(const State& s, CacheEntryIndex cx) const {
-    return getSubsystemGuts().isCacheValueCurrent(s, cx);
+bool Subsystem::isCacheValueRealized(const State& s, CacheEntryIndex cx) const {
+    return getSubsystemGuts().isCacheValueRealized(s, cx);
 }
 void Subsystem::markCacheValueRealized(const State& s, CacheEntryIndex cx) const {
     getSubsystemGuts().markCacheValueRealized(s, cx);
@@ -340,8 +340,8 @@ AbstractValue& Subsystem::Guts::updCacheEntry(const State& s, CacheEntryIndex in
     return s.updCacheEntry(getRep().getMySubsystemIndex(), index);
 }
 
-bool Subsystem::Guts::isCacheValueCurrent(const State& s, CacheEntryIndex cx) const {
-    return s.isCacheValueCurrent(getRep().getMySubsystemIndex(), cx);
+bool Subsystem::Guts::isCacheValueRealized(const State& s, CacheEntryIndex cx) const {
+    return s.isCacheValueRealized(getRep().getMySubsystemIndex(), cx);
 }
 void Subsystem::Guts::markCacheValueRealized(const State& s, CacheEntryIndex cx) const {
     s.markCacheValueRealized(getRep().getMySubsystemIndex(), cx);

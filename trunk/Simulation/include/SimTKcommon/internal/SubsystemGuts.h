@@ -151,7 +151,7 @@ public:
     // State is mutable here.
     AbstractValue& updCacheEntry(const State&, CacheEntryIndex) const;
 
-    bool isCacheValueCurrent(const State&, CacheEntryIndex) const;
+    bool isCacheValueRealized(const State&, CacheEntryIndex) const;
     void markCacheValueRealized(const State&, CacheEntryIndex) const;
 
     // Dimensions. These are valid at System Stage::Model while access to the various

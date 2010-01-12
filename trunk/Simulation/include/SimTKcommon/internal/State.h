@@ -484,7 +484,7 @@ public:
     /// (2) Write a realizeCE() method structured like this:
     /// \code
     ///     void realizeCE(const State& s) const {
-    ///         if (s.isCacheValueCurrent(subsys,CEIndex)) 
+    ///         if (s.isCacheValueRealized(subsys,CEIndex)) 
     ///             return;
     ///         // calculate the cache entry, update with updCacheEntry()
     ///         s.markCacheValueRealized(subsys,CEIndex);
@@ -505,7 +505,7 @@ public:
     /// \endcode
     ///
     /// Then access CE \e only through your getCE() method. There
-    /// should be only one place in your code where isCacheValueCurrent() and
+    /// should be only one place in your code where isCacheValueRealized() and
     /// markCacheValueRealized() are called for a particular cache entry. If
     /// you do this from multiple locations there is a high probabily of a bug
     /// being introduced, especially due to later modification of the code.
@@ -521,7 +521,7 @@ public:
     /// Ownership of the AbstractValue object supplied here is taken over by the State --
     /// don't delete the object after this call! 
     /// @see getCacheEntry(), updCacheEntry()
-    /// @see isCacheValueCurrent(), markCacheValueRealized()
+    /// @see isCacheValueRealized(), markCacheValueRealized()
     CacheEntryIndex allocateCacheEntry(SubsystemIndex, Stage earliest, Stage latest,
                                        AbstractValue*) const;
 
@@ -538,7 +538,7 @@ public:
     /// depends on or this will throw an exception. No calculation will be 
     /// performed here.
     /// @see updCacheEntry()
-    /// @see allocateCacheEntry(), isCacheValueCurrent(), markCacheValueRealized()
+    /// @see allocateCacheEntry(), isCacheValueRealized(), markCacheValueRealized()
     const AbstractValue& getCacheEntry(SubsystemIndex, CacheEntryIndex) const;
 
     /// Retrieve a writable reference to the value contained in a particular cache 
@@ -546,7 +546,7 @@ public:
     /// allocated. This does not affect the current stage. The cache entry will
     /// neither be invalidated nor marked valid by accessing it here.
     /// @see getCacheEntry()
-    /// @see allocateCacheEntry(), isCacheValueCurrent(), markCacheValueRealized()
+    /// @see allocateCacheEntry(), isCacheValueRealized(), markCacheValueRealized()
     AbstractValue& updCacheEntry(SubsystemIndex, CacheEntryIndex) const; // mutable
 
     /// Check whether the value in a particular cache entry has been recalculated
@@ -557,7 +557,7 @@ public:
     /// method returns true, then you can access the value with getCacheEntry()
     /// without getting an exception thrown.
     /// @see allocateCacheEntry(), markCacheValueRealized(), getCacheEntry()
-    bool isCacheValueCurrent(SubsystemIndex, CacheEntryIndex) const;
+    bool isCacheValueRealized(SubsystemIndex, CacheEntryIndex) const;
 
     /// Mark the value of a particular cache entry as up to date after it has
     /// been recalculated. This %State's current stage must be at least the
@@ -567,10 +567,10 @@ public:
     /// cache entry's value has been realized. Note that if the \a latest stage
     /// was given as Stage::Infinity then it is always necessary to call this
     /// method prior to accessing the cache entry's value. After a cache entry
-    /// has been marked valid here, isCacheValueCurrent() will return true. The
+    /// has been marked valid here, isCacheValueRealized() will return true. The
     /// cache entry is marked invalid automatically whenever a change occurs to
     /// a state variable on which it depends.
-    /// @see allocateCacheEntry(), isCacheValueCurrent(), getCacheEntry()
+    /// @see allocateCacheEntry(), isCacheValueRealized(), getCacheEntry()
     void markCacheValueRealized(SubsystemIndex, CacheEntryIndex) const;
     
     /// @name Global Resource Dimensions
@@ -864,6 +864,15 @@ public:
 
     String toString() const;
     String cacheToString() const;
+
+private:
+    // OBSOLETE: This method was misnamed in SimTK 2.0; it has been changed to 
+    // isCacheValueRealized() to match markCacheValueRealized(). The old name is 
+    // here as an uncallable private method in the hope of getting a helpful
+    // error message out of the compiler that will lead you to the correctly-
+    // named method. I guess if you're reading this, it worked!
+    bool isCacheValueCurrent(SubsystemIndex sx, CacheEntryIndex cx) const
+    {   return isCacheValueRealized(sx,cx); }
 
 private:
     class StateRep* rep;

@@ -155,7 +155,7 @@ void testCacheValidity() {
     s.advanceSubsystemToStage(Sub1, Stage::Model);
     s.advanceSystemToStage(Stage::Model);
 
-    SimTK_TEST(!s.isCacheValueCurrent(Sub0, cx));
+    SimTK_TEST(!s.isCacheValueRealized(Sub0, cx));
 
     SimTK_TEST_MUST_THROW(s.getCacheEntry(Sub0, cx));
 

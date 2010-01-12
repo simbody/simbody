@@ -300,10 +300,10 @@ public:
                 .getName().c_str());
 
         if (derivOrder < getNumCacheEntries()) {
-            if (!isCacheValueCurrent(s,derivOrder)) {
+            if (!isCacheValueRealized(s,derivOrder)) {
                 T& value = updCacheEntry(s,derivOrder);
                 calcCachedValueVirtual(s, derivOrder, value);
-                markCacheValueCurrent(s,derivOrder);
+                markCacheValueRealized(s,derivOrder);
                 return value;
             }
             return getCacheEntry(s,derivOrder);
@@ -358,18 +358,18 @@ protected:
             this->getSubsystem().updCacheEntry(s, derivIx[derivOrder]));
     }
 
-    bool isCacheValueCurrent(const State& s, int derivOrder) const {
+    bool isCacheValueRealized(const State& s, int derivOrder) const {
         SimTK_ERRCHK2(0 <= derivOrder && derivOrder < getNumCacheEntries(),
-            "Measure_<T>::Implementation::isCacheValueCurrent()",
+            "Measure_<T>::Implementation::isCacheValueRealized()",
             "Derivative order %d is out of range; only %d cache entries"
             " were allocated.", derivOrder, getNumCacheEntries());
 
-        return this->getSubsystem().isCacheValueCurrent(s, derivIx[derivOrder]);
+        return this->getSubsystem().isCacheValueRealized(s, derivIx[derivOrder]);
     }
 
-    void markCacheValueCurrent(const State& s, int derivOrder) const {
+    void markCacheValueRealized(const State& s, int derivOrder) const {
         SimTK_ERRCHK2(0 <= derivOrder && derivOrder < getNumCacheEntries(),
-            "Measure_<T>::Implementation::markCacheValueCurrent()",
+            "Measure_<T>::Implementation::markCacheValueRealized()",
             "Derivative order %d is out of range; only %d cache entries"
             " were allocated.", derivOrder, getNumCacheEntries());
 
