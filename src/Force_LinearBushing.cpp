@@ -151,13 +151,13 @@ private:
             (getForceSubsystem().updCacheEntry(s,forceCacheIx)); }
 
     bool isPositionCacheValid(const State& s) const
-    {   return getForceSubsystem().isCacheValueCurrent(s,positionCacheIx); }
+    {   return getForceSubsystem().isCacheValueRealized(s,positionCacheIx); }
     bool isPotentialEnergyValid(const State& s) const
-    {   return getForceSubsystem().isCacheValueCurrent(s,potEnergyCacheIx); }
+    {   return getForceSubsystem().isCacheValueRealized(s,potEnergyCacheIx); }
     bool isVelocityCacheValid(const State& s) const
-    {   return getForceSubsystem().isCacheValueCurrent(s,velocityCacheIx); }
+    {   return getForceSubsystem().isCacheValueRealized(s,velocityCacheIx); }
     bool isForceCacheValid(const State& s) const
-    {   return getForceSubsystem().isCacheValueCurrent(s,forceCacheIx); }
+    {   return getForceSubsystem().isCacheValueRealized(s,forceCacheIx); }
 
     void markPositionCacheValid(const State& s) const
     {   getForceSubsystem().markCacheValueRealized(s,positionCacheIx); }

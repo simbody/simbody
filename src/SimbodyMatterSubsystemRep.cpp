@@ -959,7 +959,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
 void SimbodyMatterSubsystemRep::realizeCompositeBodyInertias(const State& state) const {
     const CacheEntryIndex cbx = getModelCache(state).compositeBodyInertiaCacheIndex;
 
-    if (isCacheValueCurrent(state, cbx))
+    if (isCacheValueRealized(state, cbx))
         return; // already realized
 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Position, 
@@ -980,7 +980,7 @@ void SimbodyMatterSubsystemRep::realizeCompositeBodyInertias(const State& state)
 void SimbodyMatterSubsystemRep::realizeArticulatedBodyInertias(const State& state) const {
     const CacheEntryIndex abx = getModelCache(state).articulatedBodyInertiaCacheIndex;
 
-    if (isCacheValueCurrent(state, abx))
+    if (isCacheValueRealized(state, abx))
         return; // already realized
 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Position, 
