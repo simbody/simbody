@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-8 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -46,13 +46,12 @@ class GeneralContactSubsystem;
 
 
 /**
- * The job of the MultibodySystem class is to coordinate the activities of various
- * subsystems which can be part of a multibody system. We insist on having exactly one
- * MatterSubsystem, and we would like also to have:
+ * The job of the MultibodySystem class is to coordinate the activities of 
+ * various subsystems which can be part of a multibody system. We insist on 
+ * having exactly one MatterSubsystem, and we would like also to have:
  *    - one or more ForceSubsystems
- *    - an AnalyticGeometrySubsystem
- *    - a MassPropertiesSubsystem
- *    - a VisualizationSubsystem
+ *    - a DecorationSubsystem for visualization
+ *    - a GeneralContactSubsystem for contact geometry
  * There will also be a generic System-level "subsystem" for global variables.
  */
 class SimTK_SIMBODY_EXPORT MultibodySystem : public System {
@@ -91,14 +90,15 @@ public:
         return calcPotentialEnergy(s)+calcKineticEnergy(s);
     }
 
-    // These methods are for use by our constituent subsystems to communicate with
-    // each other and with the MultibodySystem as a whole.
+    // These methods are for use by our constituent subsystems to communicate 
+    // with each other and with the MultibodySystem as a whole.
 
-    // These cache entries belong to the global subsystem, which zeroes them at the
-    // start of the corresponding stage. They are filled in by the force subsystems when
-    // they are realized to each stage. Forces are cumulative from stage to stage,
-    // so the Dynamics stage includes everything. That may then be accessed by the matter 
-    // subsystem in Acceleration stage to generate the accelerations.
+    // These cache entries belong to the global subsystem, which zeroes them at
+    // the start of the corresponding stage. They are filled in by the force 
+    // subsystems when they are realized to each stage. Forces are cumulative 
+    // from stage to stage, so the Dynamics stage includes everything. That may
+    // then be accessed by the matter subsystem in Acceleration stage to 
+    // generate the accelerations.
     const Vector_<SpatialVec>& getRigidBodyForces(const State&, Stage) const;
     const Vector_<Vec3>&       getParticleForces (const State&, Stage) const;
     const Vector&              getMobilityForces (const State&, Stage) const;
