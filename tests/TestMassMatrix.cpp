@@ -60,6 +60,97 @@ private:
 	Vector f;
 };
 
+// This is an imitation of SD/FAST's sdrel2cart() subroutine. We
+// are given a station point S fixed to a body B. S is given by
+// the constant vector p_BS from B's origin to point S, expressed 
+// in B's frame. Denote the position of S in the ground frame G
+// p_GS = p_GB + p_BS_G, where p_BS_G=R_GB*p_BS is the vector p_BS
+// reexpressed in G. The velocity of S in G is v_GS = d/dt p_GS, taken
+// in G. So v_GS = v_GB + w_GB X p_BS_G = v_GB - p_BS_G % w_GB.
+//
+// We would like to obtain the partial velocity of S
+// with respect to each of the generalized speeds u, taken in the
+// Ground frame, that is, d v_GS / du. We have a method that can
+// calculate J=d V_GB / du where V_GB=[w_GB;v_GB] is the spatial 
+// velocity of B. So we need to calculate
+//    d v_GS   d v_GS   d V_GB
+//    ------ = ------ * ------
+//      du     d V_GB     du
+// 
+//           = [ -px ; eye(3) ] * J
+//  where px is the cross product matrix of p_BS_G.
+// 
+void sbrel2cart(const State& state,
+              const SimbodyMatterSubsystem& matter,
+              MobilizedBodyIndex            bodyIx,
+              const Vec3&                   p_BS, // point in body frame
+              Vector_<Vec3>&                dvdu) // v is dS/dt in G
+{
+    const int nu = state.getNU();
+
+    const MobilizedBody& mobod = matter.getMobilizedBody(bodyIx);
+    const Vec3 p_BS_G = mobod.expressVectorInGroundFrame(state, p_BS);
+
+    // Calculate J=dVdu where V is spatial velocity of body origin.
+    Vector_<SpatialVec> J(nu);
+    J = SpatialVec(Vec3(0), Vec3(0)); J.setToZero();
+
+    Vector u(nu); u = 0;
+    Vector_<SpatialVec> Ju(nu); // d allV / d ui 
+    for (int i=0; i < nu; ++i) {
+        u[i] = 1;
+        matter.calcSpatialKinematicsFromInternal(state,u,Ju);
+        u[i] = 0;
+        J[i] = Ju[bodyIx]; // pick out the body of interest
+    }
+
+    Row<2,Mat33> dvdV( -crossMat(p_BS_G), Mat33(1) );
+    dvdu.resize(nu);
+    for (int i=0; i < nu; ++i)
+        dvdu[i] = dvdV * J[i]; // or J[i][0] % p_BS_G + J[i][1]
+}
+
+void testRel2Cart() {
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+
+    // Pendulum of length 1, initially along -x like this:
+    //     B ----------- * O
+    //    -1,0,0          0,0,0
+    // At q=0, partial(B)/partial(u) = 0,-1,0.
+    // At q=pi/2, partial(B)/partial(u) = 1,0,0.
+    // Then try this with station S=(0,1,0)_B:
+    //      S
+    //      |
+    //      |
+    //      B ------ * O
+    // Now |OS| = sqrt(2). At q=Pi/4, S will be horizontal
+    // so partial(S)/partial(u) = (0, -sqrt(2)/2, 0).
+    // 
+    MobilizedBody::Pin pinBody
+       (matter.Ground(),                       Transform(),
+        MassProperties(1,Vec3(0),Inertia(1)),  Vec3(1,0,0));
+    State s = system.realizeTopology();
+
+    Vector_<Vec3> dvdu;
+
+    pinBody.setQ(s, 0);
+    system.realize(s, Stage::Position);
+    sbrel2cart(s, matter, pinBody, Vec3(0), dvdu);
+    SimTK_TEST_EQ(dvdu[0], Vec3(0,-1,0));
+
+    pinBody.setQ(s, Pi/2);
+    system.realize(s, Stage::Position);
+    sbrel2cart(s, matter, pinBody, Vec3(0), dvdu);
+    SimTK_TEST_EQ(dvdu[0], Vec3(1,0,0));
+
+    pinBody.setQ(s, Pi/4);
+    system.realize(s, Stage::Position);
+    sbrel2cart(s, matter, pinBody, Vec3(0,1,0), dvdu);
+    SimTK_TEST_EQ(dvdu[0], Vec3(0,-Sqrt2,0));
+}
+              
+
 void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
 	const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
 
@@ -99,6 +190,10 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
 		matter.calcMInverseV(state, v, MInv(j));
 		v[j] = 0;
 	}
+
+    Matrix MInvCalc(M);
+    MInvCalc.invertInPlace();
+    SimTK_TEST_EQ_SIZE(MInv, MInvCalc, nu);
 
     Matrix identity(nu,nu); identity=1;
     SimTK_TEST_EQ_SIZE(M*MInv, identity, nu);
@@ -372,6 +467,7 @@ void testCompositeInertia() {
 
 int main() {
     SimTK_START_TEST("TestMassMatrix");
+        SimTK_SUBTEST(testRel2Cart);
         SimTK_SUBTEST(testCompositeInertia);
         SimTK_SUBTEST(testTreeSystem);
     SimTK_END_TEST();
