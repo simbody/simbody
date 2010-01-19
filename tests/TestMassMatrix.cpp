@@ -93,7 +93,7 @@ void sbrel2cart(const State& state,
 
     // Calculate J=dVdu where V is spatial velocity of body origin.
     Vector_<SpatialVec> J(nu);
-    J = SpatialVec(Vec3(0), Vec3(0)); J.setToZero();
+    J = SpatialVec(Vec3(0), Vec3(0)); // or J.setToZero();
 
     Vector u(nu); u = 0;
     Vector_<SpatialVec> Ju(nu); // d allV / d ui 
