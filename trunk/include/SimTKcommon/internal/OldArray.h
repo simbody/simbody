@@ -1,5 +1,5 @@
-#ifndef SimTK_SimTKCOMMON_ARRAY_H_
-#define SimTK_SimTKCOMMON_ARRAY_H_
+#ifndef SimTK_SimTKCOMMON_OLDARRAY_H_
+#define SimTK_SimTKCOMMON_OLDARRAY_H_
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTKcommon                               *
@@ -307,4 +307,4 @@ operator<<(std::ostream& s, const ArrayView<T>& a) {
 
 } // namespace SimTK
   
-#endif // SimTK_SimTKCOMMON_ARRAY_H_
+#endif // SimTK_SimTKCOMMON_OLDARRAY_H_
