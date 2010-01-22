@@ -44,10 +44,6 @@
 
 namespace SimTK {
 
-/**
- * Array_<T> is like std::vector<T> but better ...
- */
-
 // We want the index_type and size_type for ordinary integral types to
 // be either both signed or both unsigned so that an index value can
 // be compared against a container's size() method without a warning.
@@ -149,6 +145,37 @@ template <> struct IndexTraits<char> {
     static const char* index_name() {return "char";}
 };
 
+/**
+ * Array_<T> is a plug-compatible replacement for std::vector<T> with
+ * a number of advantages:
+ *  - Most important, it is safe to pass through an API to a binary library 
+ *    without worrying about compiler version or Release/Debug compatibility
+ *    issues. It is guaranteed to have exactly the same memory layout in
+ *    all releases, across compiler versions, and between Release and Debug
+ *    builds. This allows us to use Array_<T> in the SimTK API where use
+ *    of std::vector<T> would be desirable but problematic.
+ *  - You can specify an optional index type which can be used to provide
+ *    type-safe indexing (i.e. the Array can only be indexed by indices of
+ *    a particular type, like MobilizedBodyIndex). 
+ *  - It is extremely fast in Release builds with zero overhead, inline
+ *    methods (but with few safety checks, too!). Microsoft in its wisdom
+ *    decided that STL contains should still range check in Release builds
+ *    for safety, but that makes them too slow for some purposes (and also
+ *    corrupts the promise of generic programming but that's another story).
+ *  - It has some dangerous extensions that permit the expert user
+ *    to construct objects directly into the Array without having to copy them,
+ *    a big win for complicated objects and even bigger for those that don't
+ *    have copy constructors!
+ *  - It has a constant-time "fast erase" operation you can use if you
+ *    don't mind the Array being reordered after the erase.
+ *  - It supports all standard types, methods, and iterators of 
+ *    std::vector<T> so it works smoothly with the STL containers and
+ *    algorithms.
+ *  - It is convertible to and from std::vector<T>, although that requires
+ *    copying of the elements.
+ *
+ * Basically this is just an std::vector without the nanny-state coddling.
+ */
 template <class T, class X=int, int MX=IndexTraits<X>::max_size> 
 class Array_ {
 public:
@@ -163,7 +190,7 @@ public:
 	typedef std::reverse_iterator<iterator>         reverse_iterator;
 	typedef std::reverse_iterator<const_iterator>   const_reverse_iterator;
 
-    typedef typename X                              index_type;
+    typedef X                                       index_type;
     typedef IndexTraits<X>                          index_traits;
     typedef typename index_traits::size_type        size_type;
     typedef typename index_traits::difference_type  difference_type;
