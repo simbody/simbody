@@ -261,7 +261,7 @@ inline bool canStoreInInt(int)             {return true;}
 inline bool canStoreInInt(unsigned int  u) {return (unsigned int)(int(u)) == u;}
 inline bool canStoreInInt(long i)          {return long(int(i)) == i;}
 inline bool canStoreInInt(unsigned long u) {return (unsigned long)(int(u)) == u;}
-inline bool canStoreInInt(long long i)          {return long long(int(i)) == i;}
+inline bool canStoreInInt(long long i)          {return (long long)(int(i)) == i;}
 inline bool canStoreInInt(unsigned long long u) {return (unsigned long long)(int(u)) == u;}
 
 // This utility answers the question "is this integral value a nonnegative number
