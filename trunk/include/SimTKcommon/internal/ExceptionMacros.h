@@ -150,7 +150,7 @@
     #define SimTK_VALUECHECK(lb,val,ub,valName,where)
     #define SimTK_VALUECHECK_NONNEG(val,valName,where)
 #else
-    #define SimTK_INDEXCHECK(ix,ub,where) SimTK_INDEXCHECK_ALWAYS(lb,ix,ub,where)
+    #define SimTK_INDEXCHECK(ix,ub,where) SimTK_INDEXCHECK_ALWAYS(ix,ub,where)
     #define SimTK_SIZECHECK(sz,maxsz,where)  SimTK_SIZECHECK_ALWAYS(sz,maxsz,where)
     #define SimTK_SIZECHECK_NONNEG(sz,where) SimTK_SIZECHECK_NONNEG_ALWAYS(sz,where)
     #define SimTK_VALUECHECK(lb,val,ub,valName,where)  SimTK_VALUECHECK_ALWAYS(lb,val,ub,valName,where)
