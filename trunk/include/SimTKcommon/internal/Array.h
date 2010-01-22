@@ -634,7 +634,7 @@ private:
 /// @relates Array_
 template <class T, class X, int MX> inline std::ostream&
 operator<<(std::ostream& o, const Array_<T,X,MX>& a) {
-    typedef Array_<T,X>::index_type index_type;
+    typedef Array_<T,X,MX>::index_type index_type;
     o << '{';
     if (!a.empty()) {
         o << a[index_type(0)];
