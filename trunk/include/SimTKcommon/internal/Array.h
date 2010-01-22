@@ -195,6 +195,7 @@ public:
     typedef typename index_traits::size_type        size_type;
     typedef typename index_traits::difference_type  difference_type;
 
+    /// Return the maximum allowable size for this container.
     size_type max_size() const {return MX;}
     const char* index_name() const {return index_traits::index_name();}
 
@@ -203,12 +204,12 @@ public:
     // check standard
     // more raw methods
 
-    // Default constructor allocates no space.
-    Array_() : nAllocated(0), nUsed(0), data(0) {}
+    /// Default constructor allocates no heap space and is very fast.
+    Array_() : data(0), nUsed(0), nAllocated(0) {}
 
-    // Construct an Array_ containing n default-constructed elements.
-    // T's default constructor is called exactly n times. If n is zero
-    // no space will be allocated.
+    /// Construct an Array containing n default-constructed elements.
+    /// T's default constructor is called exactly n times. If n is zero
+    /// no space will be allocated.
     explicit Array_(size_type n) {
         SimTK_SIZECHECK(n, max_size(), "Array_<T>::ctor(n)");
         allocateNoConstruct(n);
@@ -216,9 +217,9 @@ public:
         nUsed = n;
     }
 
-    // Construct an Array_ containing n elements each a copy of the
-    // given initial value. T's copy constructor will be called exactly
-    // n times. If n is zero no space will be allocated.
+    /// Construct an Array containing n elements each set to a copy of the
+    /// given initial value. T's copy constructor will be called exactly
+    /// n times. If n is zero no space will be allocated.
     Array_(size_type n, const T& initVal) {
         SimTK_SIZECHECK(n, max_size(), "Array_<T>::ctor(n,T)");
         allocateNoConstruct(n);
@@ -226,6 +227,10 @@ public:
         nUsed = n;
     }
 
+    /// Construct an Array from a range of values identified by a begin
+    /// and an end iterator. This is templatized so can be used with any
+    /// source type T2 that is assignment-compatible with this Array's element
+    /// type T.
     template <class T2>
     Array_(const T2* b, const T2* e) {
         SimTK_ERRCHK(b!=0 && e!=0, "Array_::ctor(b,e)",
@@ -234,28 +239,34 @@ public:
             "Iterators were out of order.");
         SimTK_ERRCHK3(isSizeOK(e-b), "Array_::ctor(b,e)",
             "Source has %llu elements but this Array is limited to %llu"
-            " by its index type %s.",
-            (unsigned long long)(e-b), (unsigned long long)max_size(),
-            index_name());
+            " elements (index type %s).",
+            (unsigned long long)(e-b), ullMaxSize(), index_name());
         const size_type sz(e-b);
         allocateNoConstruct(sz);
         copyConstruct(data, data+sz, b);
         nUsed = sz;
     }
 
-    // Copy constructor allocates exactly as much memory as is
-    // in use in the source (i.e. nUsed, not nAllocated).
+    /// Copy constructor allocates exactly as much memory as is
+    /// in use in the source (not its capacity) and copy constructs 
+    /// the elements so that T's copy constructor will be called exactly
+    /// src.size() times. If the source is empty, no heap space will be
+    /// allocated.
     Array_(const Array_& src) {
-        allocateNoConstruct(src.nUsed);
-        copyConstruct(data, data+src.nUsed, src.data);
         nUsed = src.nUsed;
+        allocateNoConstruct(nUsed);
+        copyConstruct(data, data+nUsed, src.data);
     }
 
-    // This copy constructor will work if the source Array is
-    // compatible enough with this one.
+    /// Construct this Array as a copy of another Array with different
+    /// template parameters. This will work as long as the source is not
+    /// larger than will fit here, and as long as the source element type T2
+    /// is assignment compatible with this Array's element type T. One of T's
+    /// constructors will be called exactly src.size() times; the particular
+    /// constructor is whichever one best matches T(T2).
     template <class T2, class X2, int MX2>
     Array_(const Array_<T2,X2,MX2>& src) {
-        SimTK_ERRCHK_ALWAYS(isSizeOK(src.nUsed), "Array_<T>::ctor()",
+        SimTK_ERRCHK_ALWAYS(isSizeOK(src.nUsed), "Array_<T>::ctor(Array_<T2>)",
             "Source Array was too big to fit in this one.");
         const size_type sz(src.nUsed);
         allocateNoConstruct(sz);
@@ -263,10 +274,10 @@ public:
         nUsed = sz;
     }
 
-    // Copy assignment. Note that this is not equivalent to 
-    // elementwise assignment. Instead it is defined to destruct 
-    // the current contents and then <em>copy construct</em>
-    // the source into the destination.
+    /// Copy assignment is defined to destruct 
+    /// the current contents and then <em>copy construct</em>
+    /// the source into the destination.Note that this is not equivalent to 
+    /// elementwise assignment. 
     Array_& operator=(const Array_& src) {
         if (this != &src) {
             eraseAll(); // all elements destructed; space unchanged
@@ -621,8 +632,8 @@ private:
 
 private:
     T*        data;
-    size_type nAllocated;
     size_type nUsed;
+    size_type nAllocated;
 };
 
 /// Output a human readable representation of an Array to an std::ostream
@@ -634,11 +645,10 @@ private:
 /// @relates Array_
 template <class T, class X, int MX> inline std::ostream&
 operator<<(std::ostream& o, const Array_<T,X,MX>& a) {
-    typedef typename Array_<T,X,MX>::index_type index_type;
     o << '{';
     if (!a.empty()) {
-        o << a[index_type(0)];
-        for (index_type i(1); i<a.size(); ++i)
+        o << a[X(0)];
+        for (X i(1); i<a.size(); ++i)
             o << ' ' << a[i];
     }
     return o << '}';

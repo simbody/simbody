@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 20010 Stanford University and the Authors.          *
+ * Portions copyright (c) 2010 Stanford University and the Authors.           *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -36,6 +36,7 @@
 #include "SimTKcommon.h"
 #include "SimTKcommon/Testing.h"
 
+#include <vector>
 #include <iostream>
 using std::cout;
 using std::endl;
@@ -165,6 +166,7 @@ void testConstruction() {
 
     cout << "sizeof(Array_<int,char>)=" << sizeof(Array_<int,char>) << endl;
     cout << "sizeof(Array_<int>)=" << sizeof(Array_<int>) << endl;
+    cout << "sizeof(std::vector<int>)=" << sizeof(std::vector<int>) << endl;
 
     Array_<String, TestIx, 7> strings(6, "woohoo");
     cout << "strings=" << strings << endl;
