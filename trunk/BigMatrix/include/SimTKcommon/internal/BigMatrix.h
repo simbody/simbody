@@ -2097,8 +2097,8 @@ private:
 
 template <class ELT> inline MatrixView_<ELT> 
 MatrixBase<ELT>::block(int i, int j, int m, int n) const { 
-    SimTK_INDEXCHECK(0,i,nrow()+1,"MatrixBase::block()");
-    SimTK_INDEXCHECK(0,j,ncol()+1,"MatrixBase::block()");
+    SimTK_INDEXCHECK(i,nrow()+1,"MatrixBase::block()");
+    SimTK_INDEXCHECK(j,ncol()+1,"MatrixBase::block()");
     SimTK_SIZECHECK(i+m,nrow(),"MatrixBase::block()");
     SimTK_SIZECHECK(j+n,ncol(),"MatrixBase::block()");
 
@@ -2108,8 +2108,8 @@ MatrixBase<ELT>::block(int i, int j, int m, int n) const {
     
 template <class ELT> inline MatrixView_<ELT>
 MatrixBase<ELT>::updBlock(int i, int j, int m, int n) { 
-    SimTK_INDEXCHECK(0,i,nrow()+1,"MatrixBase::updBlock()");
-    SimTK_INDEXCHECK(0,j,ncol()+1,"MatrixBase::updBlock()");
+    SimTK_INDEXCHECK(i,nrow()+1,"MatrixBase::updBlock()");
+    SimTK_INDEXCHECK(j,ncol()+1,"MatrixBase::updBlock()");
     SimTK_SIZECHECK(i+m,nrow(),"MatrixBase::updBlock()");
     SimTK_SIZECHECK(j+n,ncol(),"MatrixBase::updBlock()");
 
@@ -2149,7 +2149,7 @@ MatrixBase<E>::updDiag() {
 
 template <class ELT> inline VectorView_<ELT> 
 MatrixBase<ELT>::col(int j) const { 
-    SimTK_INDEXCHECK(0,j,ncol(),"MatrixBase::col()");
+    SimTK_INDEXCHECK(j,ncol(),"MatrixBase::col()");
 
     MatrixHelper<Scalar> h(MatrixCommitment::Vector(),
                            helper,0,j,nrow(),1);    
@@ -2158,7 +2158,7 @@ MatrixBase<ELT>::col(int j) const {
     
 template <class ELT> inline VectorView_<ELT>
 MatrixBase<ELT>::updCol(int j) {
-    SimTK_INDEXCHECK(0,j,ncol(),"MatrixBase::updCol()");
+    SimTK_INDEXCHECK(j,ncol(),"MatrixBase::updCol()");
 
     MatrixHelper<Scalar> h(MatrixCommitment::Vector(),
                            helper,0,j,nrow(),1);        
@@ -2167,7 +2167,7 @@ MatrixBase<ELT>::updCol(int j) {
 
 template <class ELT> inline RowVectorView_<ELT> 
 MatrixBase<ELT>::row(int i) const { 
-    SimTK_INDEXCHECK(0,i,nrow(),"MatrixBase::row()");
+    SimTK_INDEXCHECK(i,nrow(),"MatrixBase::row()");
 
     MatrixHelper<Scalar> h(MatrixCommitment::RowVector(),
                            helper,i,0,1,ncol());    
@@ -2176,7 +2176,7 @@ MatrixBase<ELT>::row(int i) const {
     
 template <class ELT> inline RowVectorView_<ELT>
 MatrixBase<ELT>::updRow(int i) { 
-    SimTK_INDEXCHECK(0,i,nrow(),"MatrixBase::updRow()");
+    SimTK_INDEXCHECK(i,nrow(),"MatrixBase::updRow()");
 
     MatrixHelper<Scalar> h(MatrixCommitment::RowVector(),
                            helper,i,0,1,ncol());        

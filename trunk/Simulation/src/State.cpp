@@ -789,12 +789,12 @@ public:
 
 
     const PerSubsystemInfo& getSubsystem(int subsystem) const {
-        SimTK_INDEXCHECK(0, subsystem, (int)subsystems.size(), "StateData::getSubsystem()");
+        SimTK_INDEXCHECK(subsystem, (int)subsystems.size(), "StateData::getSubsystem()");
         return subsystems[subsystem];
     }
 
     PerSubsystemInfo& updSubsystem(int subsystem) {
-        SimTK_INDEXCHECK(0, subsystem, (int)subsystems.size(), "StateData::updSubsystem()");
+        SimTK_INDEXCHECK(subsystem, (int)subsystems.size(), "StateData::updSubsystem()");
         return subsystems[subsystem];
     }
 
@@ -1864,7 +1864,7 @@ public:
     getDiscreteVariable(SubsystemIndex subsys, int index) const {
         const PerSubsystemInfo& ss = data->subsystems[subsys];
     
-        SimTK_INDEXCHECK(0,index,(int)ss.discreteInfo.size(),"StateRep::getDiscreteVariable()");
+        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),"StateRep::getDiscreteVariable()");
         const DiscreteVarInfo& dv = ss.discreteInfo[index];
     
         if (dv.getInvalidatedStage() > Stage::Model) {
@@ -1883,7 +1883,7 @@ public:
         checkCanModify(subsys);
         PerSubsystemInfo& ss = data->subsystems[subsys];
     
-        SimTK_INDEXCHECK(0,index,(int)ss.discreteInfo.size(),"StateRep::updDiscreteVariable()");
+        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),"StateRep::updDiscreteVariable()");
         DiscreteVarInfo& dv = ss.discreteInfo[index];
     
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), 
@@ -1901,7 +1901,7 @@ public:
     getCacheEntry(SubsystemIndex subsys, int index) const {
         const PerSubsystemInfo& ss = data->subsystems[subsys];
     
-        SimTK_INDEXCHECK(0,index,(int)ss.cacheInfo.size(),"StateRep::getCacheEntry()");
+        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),"StateRep::getCacheEntry()");
         const CacheEntryInfo& ce = ss.cacheInfo[index];
     
         const Stage stageNow = getSubsystemStage(subsys);
@@ -1933,7 +1933,7 @@ public:
     updCacheEntry(SubsystemIndex subsys, int index) const {
         const PerSubsystemInfo& ss = data->subsystems[subsys];
     
-        SimTK_INDEXCHECK(0,index,(int)ss.cacheInfo.size(),"StateRep::updCacheEntry()");
+        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),"StateRep::updCacheEntry()");
         CacheEntryInfo& ce = ss.cacheInfo[index];
     
         return ce.updValue();
@@ -1941,13 +1941,13 @@ public:
 
     bool isCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
         const PerSubsystemInfo& ss = data->subsystems[subx];
-        SimTK_INDEXCHECK(0,cx,(int)ss.cacheInfo.size(),"StateRep::isCacheValueRealized()");
+        SimTK_INDEXCHECK(cx,(int)ss.cacheInfo.size(),"StateRep::isCacheValueRealized()");
         const CacheEntryInfo& ce = ss.cacheInfo[cx];
         return ce.isCurrent(getSubsystemStage(subx), getSubsystemStageVersions(subx));
     }
     void markCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
         const PerSubsystemInfo& ss = data->subsystems[subx];
-        SimTK_INDEXCHECK(0,cx,(int)ss.cacheInfo.size(),"StateRep::markCacheValueRealized()");
+        SimTK_INDEXCHECK(cx,(int)ss.cacheInfo.size(),"StateRep::markCacheValueRealized()");
         CacheEntryInfo& ce = ss.cacheInfo[cx];
     
         // If this cache entry depends on anything, it can't be valid unless we're

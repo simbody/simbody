@@ -343,20 +343,20 @@ public:
     {   return reverse_iterator(begin()); }
 
     const T& operator[](index_type i) const {
-        SimTK_INDEXCHECK(0,i,nUsed,"Array_<T>::operator[]() const");
+        SimTK_INDEXCHECK(i,nUsed,"Array_<T>::operator[]() const");
         return data[i];
     }
     T& operator[](index_type i) {
-        SimTK_INDEXCHECK(0,i,nUsed,"Array_<T>::operator[]()");
+        SimTK_INDEXCHECK(i,nUsed,"Array_<T>::operator[]()");
         return data[i];
     }
 
     const T& at(index_type i) const {
-        SimTK_INDEXCHECK_ALWAYS(0,i,nUsed,"Array_<T>::at() const");
+        SimTK_INDEXCHECK_ALWAYS(i,nUsed,"Array_<T>::at() const");
         return data[i];
     }
     T& at(index_type i) {
-        SimTK_INDEXCHECK_ALWAYS(0,i,nUsed,"Array_<T>::at()");
+        SimTK_INDEXCHECK_ALWAYS(i,nUsed,"Array_<T>::at()");
         return data[i];
     }
 

@@ -97,7 +97,7 @@
 // these index- and size-validating tests together in Release mode.
 //
 //   INDEXCHECK: Note that we allow the index to be equal to the lower
-//     bound but it must be strictly less than the upper bound.
+//     bound (zero) but it must be strictly less than the upper bound.
 //   SIZECHECK: A size or size expression must be >= 0 and less than OR EQUAL
 //     to the maximum size.
 //   SIZECHECK_NONNEG: A size argument must be >= 0.
@@ -107,10 +107,13 @@
 // TODO: SHAPECHECK, DOMAINCHECK
 // -----------------------------------------------------------------------------
 
-// This is a rangecheck that is always present, even in Release mode.
-#define SimTK_INDEXCHECK_ALWAYS(lb,ix,ub,where) \
-    do{if(!((lb)<=(ix)&&(ix)<(ub)))SimTK_THROW5(SimTK::Exception::IndexOutOfRange,   \
-                    #ix,(lb),(ix),(ub),(where));}while(false)
+// This is a rangecheck that is always present, even in Release mode. This may be
+// applied both to signed and unsigned types (the latter are always nonnegative) so
+// to avoid warnings we use the isIndexInRange() method which doesn't perform
+// a nonnegativity check on unsigned quantities.
+#define SimTK_INDEXCHECK_ALWAYS(ix,ub,where) \
+    do{if(!isIndexInRange((ix),(ub)))SimTK_THROW5(SimTK::Exception::IndexOutOfRange,   \
+                    #ix,0,(ix),(ub),(where));}while(false)
 
 // This is a rangecheck that is always present, even in Release mode. This may be
 // applied both to signed and unsigned types (the latter are always nonnegative) so
@@ -141,13 +144,13 @@
 
 
 #if defined(NDEBUG) && !defined(SimTK_KEEP_RANGECHECK)
-    #define SimTK_INDEXCHECK(lb,ix,ub,where)
+    #define SimTK_INDEXCHECK(ix,ub,where)
     #define SimTK_SIZECHECK(sz,maxsz,where)
     #define SimTK_SIZECHECK_NONNEG(sz,where)
     #define SimTK_VALUECHECK(lb,val,ub,valName,where)
     #define SimTK_VALUECHECK_NONNEG(val,valName,where)
 #else
-    #define SimTK_INDEXCHECK(lb,ix,ub,where) SimTK_INDEXCHECK_ALWAYS(lb,ix,ub,where)
+    #define SimTK_INDEXCHECK(ix,ub,where) SimTK_INDEXCHECK_ALWAYS(lb,ix,ub,where)
     #define SimTK_SIZECHECK(sz,maxsz,where)  SimTK_SIZECHECK_ALWAYS(sz,maxsz,where)
     #define SimTK_SIZECHECK_NONNEG(sz,where) SimTK_SIZECHECK_NONNEG_ALWAYS(sz,where)
     #define SimTK_VALUECHECK(lb,val,ub,valName,where)  SimTK_VALUECHECK_ALWAYS(lb,val,ub,valName,where)

@@ -743,7 +743,7 @@ public:
     // be conjugated at a floating point cost. This isn't the best way
     // to work with a symmetric matrix.
     TRow row(int i) const {
-        SimTK_INDEXCHECK(0,i,M,"SymMat::row[i]");
+        SimTK_INDEXCHECK(i,M,"SymMat::row[i]");
         TRow rowi;
         // Columns left of diagonal are lower.
         for (int j=0; j<i; ++j)
@@ -755,7 +755,7 @@ public:
     }
 
     TCol col(int j) const {
-        SimTK_INDEXCHECK(0,j,M,"SymMat::col(j)");
+        SimTK_INDEXCHECK(j,M,"SymMat::col(j)");
         TCol colj;
         // Rows above diagonal are upper (with conjugated elements).
         for (int i=0; i<j; ++i)
@@ -772,8 +772,8 @@ public:
     /// in order to return the conjugates. So we always have to copy out the
     /// element, and may also have to conjugate it (one flop per complex number).
     E elt(int i, int j) const {
-        SimTK_INDEXCHECK(0,i,M,"SymMat::elt(i,j)");
-        SimTK_INDEXCHECK(0,j,M,"SymMat::elt(i,j)");
+        SimTK_INDEXCHECK(i,M,"SymMat::elt(i,j)");
+        SimTK_INDEXCHECK(j,M,"SymMat::elt(i,j)");
         if      (i>j)  return getEltLower(i,j); // copy element
         else if (i==j) return getEltDiag(i);    // copy element
         else           return getEltUpper(i,j); // conversion from EHerm to E may cost flops 

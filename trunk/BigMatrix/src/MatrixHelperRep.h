@@ -223,7 +223,7 @@ public:
     }
     // Select column j or part of column j.
     VectorHelper<S>* createColumnView(int j, int i, int m, bool wantToWrite) const {
-        SimTK_INDEXCHECK(0, j, ncol(), "MatrixHelperRep::createColumnView()");
+        SimTK_INDEXCHECK(j, ncol(), "MatrixHelperRep::createColumnView()");
         SimTK_SIZECHECK(i, nrow()-m, "MatrixHelperRep::createColumnView()");
         VectorHelper<S>* p = const_cast<This*>(this)->createColumnView_(j,i,m);
         p->m_writable = m_writable && wantToWrite;
@@ -232,7 +232,7 @@ public:
     }
     // Select row i or part of row i.
     VectorHelper<S>* createRowView(int i, int j, int n, bool wantToWrite) const {
-        SimTK_INDEXCHECK(0, i, nrow(), "MatrixHelperRep::createRowView()");
+        SimTK_INDEXCHECK(i, nrow(), "MatrixHelperRep::createRowView()");
         SimTK_SIZECHECK(j, ncol()-n, "MatrixHelperRep::createRowView()");
         VectorHelper<S>* p = const_cast<This*>(this)->createRowView_(i,j,n);
         p->m_writable = m_writable && wantToWrite;
@@ -251,37 +251,37 @@ public:
     // but evaporate completely in Release mode so that the underlying virtual
     // method is called directly.
     const S* getElt(int i, int j) const {
-        SimTK_INDEXCHECK(0, i, nrow(), "MatrixHelperRep::getElt(i,j)");
-        SimTK_INDEXCHECK(0, j, ncol(), "MatrixHelperRep::getElt(i,j)");
+        SimTK_INDEXCHECK(i, nrow(), "MatrixHelperRep::getElt(i,j)");
+        SimTK_INDEXCHECK(j, ncol(), "MatrixHelperRep::getElt(i,j)");
         return getElt_(i,j);
     }
     S* updElt(int i, int j) {
-        SimTK_INDEXCHECK(0, i, nrow(), "MatrixHelperRep::updElt(i,j)");
-        SimTK_INDEXCHECK(0, j, ncol(), "MatrixHelperRep::updElt(i,j)");
+        SimTK_INDEXCHECK(i, nrow(), "MatrixHelperRep::updElt(i,j)");
+        SimTK_INDEXCHECK(j, ncol(), "MatrixHelperRep::updElt(i,j)");
         SimTK_ERRCHK(m_writable, "MatrixHelperRep::updElt()", "Matrix not writable.");
         return updElt_(i,j);
     }
 
     void getAnyElt(int i, int j, S* value) const {
-        SimTK_INDEXCHECK(0, i, nrow(), "MatrixHelperRep::getAnyElt(i,j)");
-        SimTK_INDEXCHECK(0, j, ncol(), "MatrixHelperRep::getAnyElt(i,j)");
+        SimTK_INDEXCHECK(i, nrow(), "MatrixHelperRep::getAnyElt(i,j)");
+        SimTK_INDEXCHECK(j, ncol(), "MatrixHelperRep::getAnyElt(i,j)");
         SimTK_ERRCHK(value, "MatrixHelperRep::getAnyElt()", 
             "The value return pointer must not be null.");
         return getAnyElt_(i,j,value);
     }
 
     const S* getElt(int i) const {
-        SimTK_INDEXCHECK(0, i, length(), "MatrixHelperRep::getElt(i)");
+        SimTK_INDEXCHECK(i, length(), "MatrixHelperRep::getElt(i)");
         return getElt_(i);
     }
     S* updElt(int i) {
-        SimTK_INDEXCHECK(0, i, length(), "MatrixHelperRep::updElt(i)");
+        SimTK_INDEXCHECK(i, length(), "MatrixHelperRep::updElt(i)");
         SimTK_ERRCHK(m_writable, "MatrixHelperRep::updElt(i)", "Matrix not writable.");
         return updElt_(i);
     }
 
     void getAnyElt(int i, S* value) const {
-        SimTK_INDEXCHECK(0, i, length(), "MatrixHelperRep::getAnyElt(i)");
+        SimTK_INDEXCHECK(i, length(), "MatrixHelperRep::getAnyElt(i)");
         SimTK_ERRCHK(value, "MatrixHelperRep::getAnyElt()", 
             "The value return pointer must not be null.");
         return getAnyElt_(i,value);
@@ -296,12 +296,12 @@ public:
     // Note: for symmetric matrices only one of (i,j) and (j,i) should return
     // true here, and for unit diagonals (i,i) will return false.
     bool eltIsStored(int i, int j) const {
-        SimTK_INDEXCHECK(0, i, nrow(), "MatrixHelperRep::eltIsStored(i,j)");
-        SimTK_INDEXCHECK(0, j, ncol(), "MatrixHelperRep::eltIsStored(i,j)");
+        SimTK_INDEXCHECK(i, nrow(), "MatrixHelperRep::eltIsStored(i,j)");
+        SimTK_INDEXCHECK(j, ncol(), "MatrixHelperRep::eltIsStored(i,j)");
         return eltIsStored_(i,j);
     }
     bool eltIsStored(int i) const {
-        SimTK_INDEXCHECK(0, i, length(), "MatrixHelperRep::eltIsStored(i)");
+        SimTK_INDEXCHECK(i, length(), "MatrixHelperRep::eltIsStored(i)");
         return eltIsStored_(i);
     }
 

@@ -645,31 +645,31 @@ public:
     TWithoutNegator&       updCastAwayNegatorIfAny()    {return *reinterpret_cast<TWithoutNegator*>(this);}
 
     const TRow& row(int i) const { 
-        SimTK_INDEXCHECK(0,i,M, "Mat::row[i]");
+        SimTK_INDEXCHECK(i,M, "Mat::row[i]");
         return *reinterpret_cast<const TRow*>(&d[i*RS]); 
     }
     TRow& row(int i) { 
-        SimTK_INDEXCHECK(0,i,M, "Mat::row[i]");
+        SimTK_INDEXCHECK(i,M, "Mat::row[i]");
         return *reinterpret_cast<TRow*>(&d[i*RS]); 
     }
 
     const TCol& col(int j) const { 
-        SimTK_INDEXCHECK(0,j,N, "Mat::col(j)");
+        SimTK_INDEXCHECK(j,N, "Mat::col(j)");
         return *reinterpret_cast<const TCol*>(&d[j*CS]); 
     }
     TCol& col(int j) { 
-        SimTK_INDEXCHECK(0,j,N, "Mat::col(j)");
+        SimTK_INDEXCHECK(j,N, "Mat::col(j)");
         return *reinterpret_cast<TCol*>(&d[j*CS]); 
     }    
     
     const E& elt(int i, int j) const {
-        SimTK_INDEXCHECK(0,i,M, "Mat::elt(i,j)");
-        SimTK_INDEXCHECK(0,j,N, "Mat::elt(i,j)");
+        SimTK_INDEXCHECK(i,M, "Mat::elt(i,j)");
+        SimTK_INDEXCHECK(j,N, "Mat::elt(i,j)");
         return d[i*RS+j*CS]; 
     }
     E& elt(int i, int j) { 
-        SimTK_INDEXCHECK(0,i,M, "Mat::elt(i,j)");
-        SimTK_INDEXCHECK(0,j,N, "Mat::elt(i,j)");
+        SimTK_INDEXCHECK(i,M, "Mat::elt(i,j)");
+        SimTK_INDEXCHECK(j,N, "Mat::elt(i,j)");
         return d[i*RS+j*CS]; 
     }
 

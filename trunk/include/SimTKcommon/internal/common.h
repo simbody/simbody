@@ -295,6 +295,25 @@ inline bool isSizeInRange(unsigned int   sz, unsigned int   mx){return sz<=mx;}
 inline bool isSizeInRange(unsigned long  sz, unsigned long  mx){return sz<=mx;}
 inline bool isSizeInRange(unsigned long long sz, unsigned long long mx){return sz<=mx;}
 
+// This utility answers the question of whether an integer is suitable as an index
+// for an array limited by the given maximum size. Signed types must be checked for being
+// nonegative; doing that with unsigned types leads to compiler warnings. This is just
+// like the "size in range" check above except the maximum value allowed for an index
+// is one less that the size.
+
+// char can be signed or unsigned depending on the compiler; assume signed.
+inline bool isIndexInRange(char           sz, char           mx){return 0<=sz&&sz<mx;}
+inline bool isIndexInRange(signed char    sz, signed char    mx){return 0<=sz&&sz<mx;}
+inline bool isIndexInRange(short          sz, short          mx){return 0<=sz&&sz<mx;}
+inline bool isIndexInRange(int            sz, int            mx){return 0<=sz&&sz<mx;}
+inline bool isIndexInRange(long           sz, long           mx){return 0<=sz&&sz<mx;}
+inline bool isIndexInRange(long long      sz, long long      mx){return 0<=sz&&sz<mx;}
+inline bool isIndexInRange(unsigned char  sz, unsigned char  mx){return sz<mx;}
+inline bool isIndexInRange(unsigned short sz, unsigned short mx){return sz<mx;}
+inline bool isIndexInRange(unsigned int   sz, unsigned int   mx){return sz<mx;}
+inline bool isIndexInRange(unsigned long  sz, unsigned long  mx){return sz<mx;}
+inline bool isIndexInRange(unsigned long long sz, unsigned long long mx){return sz<mx;}
+
 // This utility answers the question: is this integral value nonnegative? The answer
 // is always true for unsigned types and you'll get a warning from some compilers if
 // you check.
