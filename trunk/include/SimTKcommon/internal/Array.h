@@ -61,7 +61,7 @@ template <class X> struct IndexTraits {
     typedef typename X::difference_type difference_type;
     // We require that max_index()+1 fit in size_type and that
     // -max_index() and max_index() fit in difference type.
-    static size_type max_size() {return X::max_size();}
+    static const size_type max_size = X::max_size;
     static const char* index_name() {return X::index_name();}
 };
 
@@ -73,31 +73,47 @@ template <> struct IndexTraits<unsigned> {
     typedef unsigned    index_type;
     typedef unsigned    size_type;
     typedef int         difference_type;
-    size_type max_size() {return 0x7fffffffU;}
+    static const size_type max_size = 0x7fffffffU;
     static const char* index_name() {return "unsigned";}
 };
+
+template <> struct IndexTraits<int> {
+    typedef int             index_type;
+    typedef int             size_type;
+    typedef int             difference_type;
+    static const size_type  max_size = 0x7fffffff;
+    static const char* index_name() {return "int";}
+};
+
+template <> struct IndexTraits<unsigned short> {
+    typedef unsigned short  index_type;
+    typedef unsigned short  size_type;
+    typedef short           difference_type;
+    static const size_type  max_size = 0x7fffU;
+    static const char* index_name() {return "unsigned short";}
+};
+
+template <> struct IndexTraits<short> {
+    typedef short     index_type;
+    typedef short     size_type;
+    typedef short     difference_type;
+    static const size_type max_size = 0x7fff;
+    static const char* index_name() {return "short";}
+}; 
 
 template <> struct IndexTraits<unsigned long long> {
     typedef unsigned long long  index_type;
     typedef unsigned long long  size_type;
     typedef long long           difference_type;
-    static size_type max_size() {return 0x7fffffffffffffffULL;}
+    static const size_type max_size = 0x7fffffffffffffffULL;
     static const char* index_name() {return "unsigned long long";}
-};
-
-template <> struct IndexTraits<int> {
-    typedef int     index_type;
-    typedef int     size_type;
-    typedef int     difference_type;
-    static size_type max_size() {return 0x7fffffff;}
-    static const char* index_name() {return "int";}
 };
 
 template <> struct IndexTraits<long long> {
     typedef long long   index_type;
     typedef long long   size_type;
     typedef long long   difference_type;
-    static size_type max_size() {return 0x7fffffffffffffffLL;}
+    static const size_type max_size = 0x7fffffffffffffffLL;
     static const char* index_name() {return "long long";}
 };
 
@@ -108,7 +124,7 @@ template <> struct IndexTraits<unsigned char> {
     typedef unsigned char index_type;
     typedef unsigned char size_type;
     typedef short         difference_type;
-    static size_type max_size() {return 255;}
+    static const size_type max_size = 255;
     static const char* index_name() {return "unsigned char";}
 };
 
@@ -119,7 +135,7 @@ template <> struct IndexTraits<signed char> {
     typedef signed char index_type;
     typedef signed char size_type;
     typedef signed char difference_type;
-    static size_type max_size() {return 127;}
+    static const size_type max_size = 127;
     static const char* index_name() {return "signed char";}
 };
 
@@ -129,11 +145,11 @@ template <> struct IndexTraits<char> {
     typedef char        index_type;
     typedef char        size_type;
     typedef signed char difference_type;
-    static size_type max_size() {return 127;}
+    static const size_type max_size = 127;
     static const char* index_name() {return "char";}
 };
 
-template <class T, class X=int> 
+template <class T, class X=int, int MX=IndexTraits<X>::max_size> 
 class Array_ {
 public:
     typedef T           value_type;
@@ -152,7 +168,7 @@ public:
     typedef typename index_traits::size_type        size_type;
     typedef typename index_traits::difference_type  difference_type;
 
-    size_type max_size() const {return index_traits::max_size();}
+    size_type max_size() const {return MX;}
     const char* index_name() const {return index_traits::index_name();}
 
     //TODO
@@ -211,8 +227,8 @@ public:
 
     // This copy constructor will work if the source Array is
     // compatible enough with this one.
-    template <class T2, class X2>
-    Array_(const Array_<T2,X2>& src) {
+    template <class T2, class X2, int MX2>
+    Array_(const Array_<T2,X2,MX2>& src) {
         SimTK_ERRCHK_ALWAYS(isSizeOK(src.nUsed), "Array_<T>::ctor()",
             "Source Array was too big to fit in this one.");
         const size_type sz(src.nUsed);
@@ -237,8 +253,8 @@ public:
         return *this;
     }
 
-    template <class T2, class X2>
-    Array_& operator=(const Array_<T2,X2>& src) {
+    template <class T2, class X2, int MX2>
+    Array_& operator=(const Array_<T2,X2,MX2>& src) {
         SimTK_ERRCHK_ALWAYS(isSizeOK(src.nUsed), "Array_<T>::operator=()",
             "Source Array was too big to fit in this one.");
         const size_type len(src.nUsed);
@@ -480,7 +496,7 @@ private:
         // double nAllocated rather than halving max_size.
         const size_type halfMax = max_size()/2;
         size_type newCapacity = 
-            nAllocated/2 <= halfMax 
+            nAllocated <= halfMax 
                 ? size_type(2*nAllocated) : max_size();
         newCapacity = std::max(newCapacity, minAlloc());
         T* newdata = allocN(newCapacity); // no construction yet
@@ -591,8 +607,8 @@ private:
 /// the element type does not support the "<<" operator. No newline is
 /// issued before or after the output.
 /// @relates Array_
-template <class T, class X> inline std::ostream&
-operator<<(std::ostream& o, const Array_<T,X>& a) {
+template <class T, class X, int MX> inline std::ostream&
+operator<<(std::ostream& o, const Array_<T,X,MX>& a) {
     typedef Array_<T,X>::index_type index_type;
     o << '{';
     if (!a.empty()) {

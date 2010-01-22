@@ -389,6 +389,11 @@ public:                                     \
     static bool isValid(unsigned long ul) {return SimTK::canStoreInInt(ul);}        \
     static bool isValidExtended(int  i) {return i>=-1;}                             \
     static bool isValidExtended(long l) {return SimTK::canStoreInInt(l) && l>=-1;}  \
+    /* IndexTraits for use in Array_<T,X> with this as X; same as int */            \
+    typedef int size_type;                              \
+    typedef int difference_type;                        \
+    static const size_type max_size = 0x7fffffff;       \
+    static const char* index_name() {return #NAME;}     \
 };
 
 /**

@@ -42,15 +42,17 @@ using std::endl;
 
 using namespace SimTK;
 
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(TestIx);
+
 class SmallIx {
 public:
     SmallIx() : ix(0xff) {}
     explicit SmallIx(unsigned char i) : ix(i) {}
 
     SmallIx& operator++() 
-    {   assert(ix<max_size()); ++ix; return *this;}
+    {   assert(ix<max_size); ++ix; return *this;}
     SmallIx operator++(int) 
-    {   assert(ix<max_size()); const SmallIx x=*this; ++ix; return x;}
+    {   assert(ix<max_size); const SmallIx x=*this; ++ix; return x;}
     SmallIx& operator--() 
     {   assert(ix>0); --ix; return *this;}
     SmallIx operator--(int) 
@@ -61,7 +63,7 @@ public:
     typedef unsigned char index_type;
     typedef unsigned char size_type;
     typedef signed char   difference_type;
-    static size_type max_size() {return 4;}
+    static const size_type max_size = 4;
     static const char* index_name() {return "SmallIx";}
 private:
     unsigned char ix;
@@ -160,6 +162,15 @@ void testConstruction() {
 
     new(ismall.raw_push_back()) int(27);
     cout << "ismall after raw_push_back():" << ismall << endl;
+
+    cout << "sizeof(Array_<int,char>)=" << sizeof(Array_<int,char>) << endl;
+    cout << "sizeof(Array_<int>)=" << sizeof(Array_<int>) << endl;
+
+    Array_<String, TestIx, 7> strings(6, "woohoo");
+    cout << "strings=" << strings << endl;
+    strings.push_back("last");
+    strings.push_back("another");
+    cout << "strings=" << strings << endl;
 
     cout << endl;
 }
