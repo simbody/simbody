@@ -34,7 +34,7 @@
 
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/Exception.h"
-#include "SimTKcommon/internal/Array.h"
+#include "SimTKcommon/internal/OldArray.h"
 
 #include <cstddef>
 #include <cassert>
