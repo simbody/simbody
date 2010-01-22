@@ -169,9 +169,10 @@ void testConstruction() {
     Array_<String, TestIx, 7> strings(6, "woohoo");
     cout << "strings=" << strings << endl;
     strings.push_back("last");
-    strings.push_back("another");
     cout << "strings=" << strings << endl;
-
+    Array_<String, TestIx, 7>::const_reverse_iterator p = strings.rbegin();
+    while (p != strings.rend())
+        cout << " " << *p++;
     cout << endl;
 }
 

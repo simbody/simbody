@@ -172,10 +172,9 @@ public:
     const char* index_name() const {return index_traits::index_name();}
 
     //TODO
-    //insert, assign
-    // eliminate code duplication
-    // use SimTK error checks
-    // consider index types
+    // insert, assign
+    // check standard
+    // more raw methods
 
     // Default constructor allocates no space.
     Array_() : nAllocated(0), nUsed(0), data(0) {}
@@ -488,9 +487,8 @@ private:
     void growByAtLeast(size_type n, const char* methodName) {
         SimTK_ERRCHK3_ALWAYS(isGrowthOK(n), methodName,
             "Can't grow this Array by %llu element(s) because it would"
-            " then exceed the maximum size of %llu that is allowed"
-            " by its index type %s.", (unsigned long long)n,
-            ullMaxSize(), index_name());
+            " then exceed its max_size of %llu (index type %s).",
+            (unsigned long long)n, ullMaxSize(), index_name());
 
         // Be careful not to overflow size_type as you could if you 
         // double nAllocated rather than halving max_size.
