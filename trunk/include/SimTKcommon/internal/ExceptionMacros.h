@@ -112,14 +112,19 @@
     do{if(!((lb)<=(ix)&&(ix)<(ub)))SimTK_THROW5(SimTK::Exception::IndexOutOfRange,   \
                     #ix,(lb),(ix),(ub),(where));}while(false)
 
-// This is a rangecheck that is always present, even in Release mode.
+// This is a rangecheck that is always present, even in Release mode. This may be
+// applied both to signed and unsigned types (the latter are always nonnegative) so
+// to avoid warnings we use the isSizeInRange() method which doesn't perform
+// a nonnegativity check on unsigned quantities.
 #define SimTK_SIZECHECK_ALWAYS(sz,maxsz,where) \
-    do{if(!(0<=(sz)&&(sz)<=(maxsz)))SimTK_THROW4(SimTK::Exception::SizeOutOfRange,   \
+    do{if(!isSizeInRange((sz),(maxsz)))SimTK_THROW4(SimTK::Exception::SizeOutOfRange,   \
                     #sz,(sz),(maxsz),(where));}while(false)
 
-// This is a rangecheck that is always present, even in Release mode.
+// This is a rangecheck that is always present, even in Release mode. Use
+// isNonnegative() here in case sz is an unsigned type to avoid compiler
+// warning.
 #define SimTK_SIZECHECK_NONNEG_ALWAYS(sz,where) \
-    do{if((sz)<0)SimTK_THROW3(SimTK::Exception::SizeWasNegative,   \
+    do{if(!isNonnegative(sz))SimTK_THROW3(SimTK::Exception::SizeWasNegative,   \
                     #sz,(sz),(where));}while(false)
 
     // Similar checks for floating point values.

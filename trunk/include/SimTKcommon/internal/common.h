@@ -261,6 +261,8 @@ inline bool canStoreInInt(int)             {return true;}
 inline bool canStoreInInt(unsigned int  u) {return (unsigned int)(int(u)) == u;}
 inline bool canStoreInInt(long i)          {return long(int(i)) == i;}
 inline bool canStoreInInt(unsigned long u) {return (unsigned long)(int(u)) == u;}
+inline bool canStoreInInt(long long i)          {return long long(int(i)) == i;}
+inline bool canStoreInInt(unsigned long long u) {return (unsigned long long)(int(u)) == u;}
 
 // This utility answers the question "is this integral value a nonnegative number
 // that can be stored in an int?".
@@ -271,8 +273,44 @@ inline bool canStoreInNonnegativeInt(short s)          {return s >= 0;}
 inline bool canStoreInNonnegativeInt(unsigned short s) {return true;}
 inline bool canStoreInNonnegativeInt(int  i)           {return i >= 0;}
 inline bool canStoreInNonnegativeInt(long l)           {return canStoreInInt(l) && l >= 0;}
+inline bool canStoreInNonnegativeInt(long long l)      {return canStoreInInt(l) && l >= 0;}
 inline bool canStoreInNonnegativeInt(unsigned int  u)  {return canStoreInInt(u);}
 inline bool canStoreInNonnegativeInt(unsigned long u)  {return canStoreInInt(u);}
+inline bool canStoreInNonnegativeInt(unsigned long long u) {return canStoreInInt(u);}
+
+// This utility answers the question of whether an integer is suitable as a size
+// limited by the given maximum size. Signed types must be checked for being
+// nonegative; doing that with unsigned types leads to compiler warnings.
+
+// char can be signed or unsigned depending on the compiler; assume signed.
+inline bool isSizeInRange(char           sz, char           mx){return 0<=sz&&sz<=mx;}
+inline bool isSizeInRange(signed char    sz, signed char    mx){return 0<=sz&&sz<=mx;}
+inline bool isSizeInRange(short          sz, short          mx){return 0<=sz&&sz<=mx;}
+inline bool isSizeInRange(int            sz, int            mx){return 0<=sz&&sz<=mx;}
+inline bool isSizeInRange(long           sz, long           mx){return 0<=sz&&sz<=mx;}
+inline bool isSizeInRange(long long      sz, long long      mx){return 0<=sz&&sz<=mx;}
+inline bool isSizeInRange(unsigned char  sz, unsigned char  mx){return sz<=mx;}
+inline bool isSizeInRange(unsigned short sz, unsigned short mx){return sz<=mx;}
+inline bool isSizeInRange(unsigned int   sz, unsigned int   mx){return sz<=mx;}
+inline bool isSizeInRange(unsigned long  sz, unsigned long  mx){return sz<=mx;}
+inline bool isSizeInRange(unsigned long long sz, unsigned long long mx){return sz<=mx;}
+
+// This utility answers the question: is this integral value nonnegative? The answer
+// is always true for unsigned types and you'll get a warning from some compilers if
+// you check.
+
+// char can be signed or unsigned depending on the compiler; assume signed.
+inline bool isNonnegative(char           n){return n>=0;}
+inline bool isNonnegative(signed char    n){return n>=0;}
+inline bool isNonnegative(short          n){return n>=0;}
+inline bool isNonnegative(int            n){return n>=0;}
+inline bool isNonnegative(long           n){return n>=0;}
+inline bool isNonnegative(long long      n){return n>=0;}
+inline bool isNonnegative(unsigned char  n){return true;}
+inline bool isNonnegative(unsigned short n){return true;}
+inline bool isNonnegative(unsigned int   n){return true;}
+inline bool isNonnegative(unsigned long  n){return true;}
+inline bool isNonnegative(unsigned long long n){return true;}
 
 // A NaN-like value for unique index types created using the macro
 // SimTK_DEFINE_UNIQUE_INDEX_TYPE(). A unique, typed constant with
