@@ -201,7 +201,7 @@ void MobilizedBody::setUToFitLinearVelocity(State& s, const Vec3& v_MbM) const {
 }
 
 SpatialVec MobilizedBody::getHCol(const State& s, UIndex ux) const {
-    SimTK_INDEXCHECK(0, ux, getNumU(s), "MobilizedBody::getHCol()");
+    SimTK_INDEXCHECK(ux, getNumU(s), "MobilizedBody::getHCol()");
     return getImpl().getHCol(s,ux);
 }
 
@@ -294,7 +294,7 @@ Real MobilizedBody::getOneTau(const State& s, MobilizerUIndex which) const {
         mobodModelInfo = mc.getMobilizedBodyModelInfo(mbx);
     const int nu = mobodModelInfo.nUInUse;
 
-    SimTK_INDEXCHECK(0, which, nu, "MobilizedBody::getOneTau()");
+    SimTK_INDEXCHECK(which, nu, "MobilizedBody::getOneTau()");
 
     const SBInstanceCache& ic = matter.getInstanceCache(s);
     const SBInstanceCache::PerMobodInstanceInfo& 
