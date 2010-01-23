@@ -119,6 +119,10 @@ template <class T> Counter Count<T>::initCtor;
 template <class T> Counter Count<T>::copyCtor;
 template <class T> Counter Count<T>::dtor;
 
+// Instantiate the whole class to check for compilation problems.
+template class Array_<int>;
+template class Array_<std::string, unsigned char>;
+
 void testConstruction() {
     const int data[] = {5,3,-2,27,9};
     const char uchar[] = {'f','i','t','z'};
@@ -168,11 +172,11 @@ void testConstruction() {
     cout << "sizeof(Array_<int>)=" << sizeof(Array_<int>) << endl;
     cout << "sizeof(std::vector<int>)=" << sizeof(std::vector<int>) << endl;
 
-    Array_<String, TestIx, 7> strings(6, "woohoo");
+    Array_<String, TestIx> strings(6, "woohoo");
     cout << "strings=" << strings << endl;
     strings.push_back("last");
     cout << "strings=" << strings << endl;
-    Array_<String, TestIx, 7>::const_reverse_iterator p = strings.rbegin();
+    Array_<String, TestIx>::const_reverse_iterator p = strings.rbegin();
     while (p != strings.rend())
         cout << " " << *p++;
     cout << endl;

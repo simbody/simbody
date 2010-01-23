@@ -147,7 +147,9 @@ template <> struct IndexTraits<char> {
 
 /**
  * Array_<T> is a plug-compatible replacement for std::vector<T> with
- * a number of advantages:
+ * a number of advantages in performance and binary compatibility. 
+ *
+ * Specifically:
  *  - Most important, it is safe to pass through an API to a binary library 
  *    without worrying about compiler version or Release/Debug compatibility
  *    issues. It is guaranteed to have exactly the same memory layout in
@@ -159,9 +161,9 @@ template <> struct IndexTraits<char> {
  *    a particular type, like MobilizedBodyIndex). 
  *  - It is extremely fast in Release builds with zero overhead, inline
  *    methods (but with few safety checks, too!). Microsoft in its wisdom
- *    decided that STL contains should still range check in Release builds
+ *    decided that STL containers should still range check in Release builds
  *    for safety, but that makes them too slow for some purposes (and also
- *    corrupts the promise of generic programming but that's another story).
+ *    breaks the promise of generic programming but that's another story).
  *  - It has some dangerous extensions that permit the expert user
  *    to construct objects directly into the Array without having to copy them,
  *    a big win for complicated objects and even bigger for those that don't
@@ -176,7 +178,7 @@ template <> struct IndexTraits<char> {
  *
  * Basically this is just an std::vector without the nanny-state coddling.
  */
-template <class T, class X=int, int MX=IndexTraits<X>::max_size> 
+template <class T, class X=int> 
 class Array_ {
 public:
     typedef T           value_type;
@@ -196,7 +198,7 @@ public:
     typedef typename index_traits::difference_type  difference_type;
 
     /// Return the maximum allowable size for this container.
-    size_type max_size() const {return MX;}
+    size_type   max_size()   const {return index_traits::max_size;}
     const char* index_name() const {return index_traits::index_name();}
 
     //TODO
@@ -223,7 +225,7 @@ public:
     Array_(size_type n, const T& initVal) {
         SimTK_SIZECHECK(n, max_size(), "Array_<T>::ctor(n,T)");
         allocateNoConstruct(n);
-        copyConstruct(data, data+n, initVal);
+        fillConstruct(data, data+n, initVal);
         nUsed = n;
     }
 
@@ -239,12 +241,11 @@ public:
             "Iterators were out of order.");
         SimTK_ERRCHK3(isSizeOK(e-b), "Array_::ctor(b,e)",
             "Source has %llu elements but this Array is limited to %llu"
-            " elements (index type %s).",
+            " elements by its index type %s.",
             (unsigned long long)(e-b), ullMaxSize(), index_name());
-        const size_type sz(e-b);
-        allocateNoConstruct(sz);
-        copyConstruct(data, data+sz, b);
-        nUsed = sz;
+        nUsed = size_type(e-b);
+        allocateNoConstruct(nUsed);
+        copyConstruct(data, data+nUsed, b);
     }
 
     /// Copy constructor allocates exactly as much memory as is
@@ -264,64 +265,148 @@ public:
     /// is assignment compatible with this Array's element type T. One of T's
     /// constructors will be called exactly src.size() times; the particular
     /// constructor is whichever one best matches T(T2).
-    template <class T2, class X2, int MX2>
-    Array_(const Array_<T2,X2,MX2>& src) {
-        SimTK_ERRCHK_ALWAYS(isSizeOK(src.nUsed), "Array_<T>::ctor(Array_<T2>)",
-            "Source Array was too big to fit in this one.");
-        const size_type sz(src.nUsed);
-        allocateNoConstruct(sz);
-        copyConstruct(data, data+sz, src.data);
-        nUsed = sz;
+    template <class T2, class X2>
+    Array_(const Array_<T2,X2>& src) {
+        SimTK_ERRCHK3_ALWAYS(isSizeOK(src.nUsed), "Array_<T>::ctor(Array_<T2>)",
+            "Source Array has %llu elements but this Array is limited to %llu"
+            " elements by its index type %s.",
+            (unsigned long long)(src.nUsed), ullMaxSize(), index_name());
+        nUsed = size_type(src.nUsed);
+        allocateNoConstruct(nUsed);
+        copyConstruct(data, data+nUsed, src.data);
     }
 
-    /// Copy assignment is defined to destruct 
-    /// the current contents and then <em>copy construct</em>
-    /// the source into the destination.Note that this is not equivalent to 
-    /// elementwise assignment. 
-    Array_& operator=(const Array_& src) {
-        if (this != &src) {
-            eraseAll(); // all elements destructed; space unchanged
-            if (   nAllocated < src.nUsed 
-                || nAllocated/2 > std::max(minAlloc(), src.nUsed)) 
-            {   reallocateNoDestructOrConstruct(src.nUsed); }
-            copyConstruct(data, data+src.nUsed, src.data);
-            nUsed = src.nUsed;
-        }
+    /// Assignment operators always begin by erasing all the elements
+    /// currently in this Array, then <em>copy constructing</em>, not
+    /// <em>assigning</em> from the source. This is therefore not 
+    /// equivalent to elementwise assignment; it does not use the element type's
+    /// copy assignment operator. We may reuse the existing heap allocation if
+    /// it is sufficient and not \e too big; otherwise we'll reallocate before
+    /// copying.
+
+    /// Fill an Array with n copies of the supplied fill value. 
+    Array_& assign(size_type n, const T& fillValue) {
+        SimTK_ERRCHK3_ALWAYS(isSizeOK(n), "Array_<T>::assign(n,T)",
+            "Requested size %llu is too many for this which Array is limited"
+            " to %llu elements by its index type %s.",
+            (unsigned long long)(n), ullMaxSize(), index_name());
+
+        eraseAll(); // all elements destructed; allocation unchanged
+        reallocateIfAdvisable(n); // change size if too small or too big
+        fillConstruct(data, data+n, fillValue);
+        nUsed = n;
         return *this;
     }
 
-    template <class T2, class X2, int MX2>
-    Array_& operator=(const Array_<T2,X2,MX2>& src) {
-        SimTK_ERRCHK_ALWAYS(isSizeOK(src.nUsed), "Array_<T>::operator=()",
-            "Source Array was too big to fit in this one.");
-        const size_type len(src.nUsed);
+
+    /// Assign this Array from a range [b,e) given by non-pointer iterators.
+    /// If we can determine how many elements n that represents in advance,
+    /// we'll do only a single allocation here and call one of T's constructors
+    /// exactly n times with no destructor calls except to erase the original
+    /// data. If these aren't random access iterators then we'll just have
+    /// to add elements as we find them using push_back() meaning we may need
+    /// to reallocate log(n) times.
+    template <class InputIterator>
+    Array_& assign(InputIterator b, InputIterator e) {
+        assign(b, e, std::iterator_traits<InputIterator>::iterator_category());
+    }
+
+    // This is the slow generic implementation for any input iterator that
+    // can't do random access (input, forward, bidirectional).
+    template <class InputIterator>
+    Array_& assign(InputIterator b, InputIterator e, std::input_iterator_tag) 
+    {
+        clear();
+        while (b != e)
+            push_back(*b++);
+    }
+
+    // This is the fast implementation that works for random access
+    // iterators including ordinary pointers.
+    template <class RandomAccessIterator>
+    Array_& assign(RandomAccessIterator b, RandomAccessIterator e,
+                   std::random_access_iterator_tag) 
+    {
+        const char* method = "Array_<T>::assign(b,e)";
+        SimTK_ERRCHK(b <= e, method, "Iterators were out of order.");
+        SimTK_ERRCHK3(isSizeOK(e-b), method,
+            "Source has %llu elements but this Array is limited to %llu"
+            " elements by its index type %s.",
+            (unsigned long long)(e-b), ullMaxSize(), index_name());
+
+        eraseAll(); // all elements destructed; allocation unchanged
+        nUsed = size_type(e-b);
+        reallocateIfAdvisable(nUsed); // change size if too small or too big
+        copyConstruct(data, data+nUsed, b);
+        return *this;
+    }
+
+    /// Assign this Array to be a copy of the elements in range [b,e)
+    /// given by ordinary pointers. It is not allowed for this range to 
+    /// include any of the elements currently in the Array. The source 
+    /// elements can be a different type T2 than this Array's element type 
+    /// T as long as T2 is assignment compatible with T.
+    template <class T2>
+    Array_& assign(const T2* b, const T2* e) {
+        const char* method = "Array_<T>::assign(b,e)";
+        SimTK_ERRCHK(b!=0 && e!=0, method, "One or both pointers was null.");
+        SimTK_ERRCHK(e<=begin() || end()<=b, method, 
+            "Source pointers can't be within the destination Array.");
+        return assign(b,e,std::random_access_iterator_tag());
+    }
+
+    Array_& operator=(const Array_& src) {
+        if (this != &src)
+            assign(src.begin(), src.end());
+        return *this;
+    }
+
+    /// This is assignment from a source Array whose element type T2 and/or
+    /// index type X2 are different from this Array's T and X. This will work as long
+    /// as this Array can accommodate all the elements in the source and
+    /// T2 is assignment compatible with T. See discussion for the copy assignment
+    /// operator for more information.
+    template <class T2, class X2>
+    Array_& operator=(const Array_<T2,X2>& src) {
+        SimTK_ERRCHK3_ALWAYS(isSizeOK(src.nUsed), "Array_<T>::operator=(Array_<T2>)",
+            "Source Array has %llu elements but this Array is limited to %llu"
+            " elements by its index type %s.",
+            (unsigned long long)(src.nUsed), ullMaxSize(), index_name());
 
         eraseAll(); // all elements destructed; space unchanged
-        if (   nAllocated < src.nUsed 
-            || nAllocated/2 > std::max(minAlloc(), src.nUsed)) 
-        {   reallocateNoDestructOrConstruct(src.nUsed); }
-        copyConstruct(data, data+src.nUsed, src.data);
-        nUsed = src.nUsed;
-
+        nUsed = size_type(src.nUsed);
+        if (   nAllocated < nUsed 
+            || nAllocated/2 > std::max(minAlloc(), nUsed)) 
+        {   reallocateNoDestructOrConstruct(nUsed); }
+        copyConstruct(data, data+nUsed, src.data);
         return *this;
     }
 
-    // Array destructor calls the destructor for each element
-    // before freeing everything.
+    /// Array destructor calls the destructor for each element
+    /// before freeing everything.
     ~Array_() {
         eraseAll(); // each element is destructed; nUsed=0
         deallocateNoDestruct(); // free data; nAllocated=0 
     }
 
-    // Constant time exchange of data with another Array_<T>.
+    /// This is a specialized algorithm providing constant time exchange of 
+    /// data with another Array_<T,X>. This is \e much faster than using the
+    /// std::swap() algorithm on the Arrays since that will involve O(n)
+    /// copying operations. This method makes no calls to any constructors
+    /// or destructors.
     void swap(Array_& other) {
-        std::swap(nAllocated,other.nAllocated);
-        std::swap(nUsed,other.nUsed);
         std::swap(data,other.data);
+        std::swap(nUsed,other.nUsed);
+        std::swap(nAllocated,other.nAllocated);
     }
 
+    /// The current number of elements stored in this Array.
     size_type size() const {return nUsed;}
+    /// The amount of heap space currently allocated to this Array; i.e., the size this
+    /// Array can be grown to without any heap reallocation occurring. The value
+    /// return by capacity() is always greater than or equal to size().
     size_type capacity() const {return nAllocated;}
+    /// Return true if there are no elements currently stored in this Array.
     bool empty() const {return nUsed==0;}
 
     const T& front() const {assert(!empty()); return data[0];}
@@ -342,39 +427,49 @@ public:
     reverse_iterator rend()
     {   return reverse_iterator(begin()); }
 
+    /// Select an element by its index, returning a const reference. Note that 
+    /// only a value of the Array's templatized index type is allowed (default 
+    /// is int). This will be range-checked in a Debug build but not in Release.
     const T& operator[](index_type i) const {
         SimTK_INDEXCHECK(i,nUsed,"Array_<T>::operator[]() const");
         return data[i];
     }
+    /// Select an element by its index, returning a writable (lvalue) reference. 
+    /// Note that only a value of the Array's templatized index type is allowed 
+    /// (default is int). This will be range-checked in a Debug build but not 
+    /// in Release.
     T& operator[](index_type i) {
         SimTK_INDEXCHECK(i,nUsed,"Array_<T>::operator[]()");
         return data[i];
     }
 
+    /// Same as operator[] but always range-checked, even in a Release build.
     const T& at(index_type i) const {
         SimTK_INDEXCHECK_ALWAYS(i,nUsed,"Array_<T>::at() const");
         return data[i];
     }
+    /// Same as operator[] but always range-checked, even in a Release build.
     T& at(index_type i) {
         SimTK_INDEXCHECK_ALWAYS(i,nUsed,"Array_<T>::at()");
         return data[i];
     }
 
-    // Erase all the elements currently in this Array. Size is zero after
-    // this call, and capacity may or may not change depending on whether
-    // a lot of heap space is in use.
+    /// Erase all the elements currently in this Array. Size is zero after
+    /// this call, and capacity may or may not change depending on whether
+    /// a lot of heap space is in use. T's destructor is called exactly once
+    /// for each element in the Array.
     void clear() {
         eraseAll();
         if (nAllocated > minAlloc())
             deallocateNoDestruct();
     }
 
-    // Erase elements in range [b,e), packing in any later elements into
-    // the newly-available space. Calls T's destructor once for
-    // each erased element; calls T's copy constructor once for each
-    // copied element; calls T's destructor once for each element vacated
-    // by copying. Length is reduced by the number of elements erased but
-    // the capacity does not change.
+    /// Erase elements in range [b,e), packing in any later elements into
+    /// the newly-available space. Calls T's destructor once for
+    /// each erased element; calls T's copy constructor once for each
+    /// copied element; calls T's destructor once for each element vacated
+    /// by copying. Length is reduced by the number of elements erased but
+    /// the capacity does not change.
     void erase(T* b, T* e) {
         SimTK_ERRCHK(begin() <= b && b <= e && e <= end(),
             "Array<T>::erase(b,e)", "Iterators out of range.");
@@ -382,8 +477,7 @@ public:
         T* const last1 = e; // last + 1
 
         // Destruct the elements we're erasing.
-        while (b != last1)
-            (b++)->~T(); // destruct
+        destruct(b, last1);
 
         // If there are any stragglers, compress them into the gap.
         b = first;
@@ -394,14 +488,14 @@ public:
         nUsed -= (last1-first);
     }
 
-    // Erase just one element. This is equivalent to erase(p,p+1) but
-    // faster. Note that that means p cannot be end(). Length 
-    // is reduced by 1.
+    /// Erase just one element. This is equivalent to erase(p,p+1) but
+    /// faster. Note that that means p cannot be end(). Size is reduced 
+    /// by 1 but capacity does not change.
     void erase(T* p) {
         SimTK_ERRCHK(begin() <= p && p < end(),
             "Array<T>::erase(p)", "Iterator must point to a valid element.");
 
-        p->~T(); // destruct
+        destruct(p);
         while (++p != end()) {
             new(p-1) T(*p); // copy construct
             p->~T();        // destruct source
@@ -409,28 +503,28 @@ public:
         --nUsed;
     }
 
-    // Same as erase(begin(),end()) but faster. T's destructor is called
-    // once for each element. Upon return nUsed is zero but the capacity
-    // is unchanged.
+    /// Same as erase(begin(),end()) but faster. T's destructor is called
+    /// once for each element. Upon return size is zero but the capacity
+    /// is unchanged.
     void eraseAll() {
-        T* p = begin();
-        while (p != end())
-            (p++)->~T(); // destruct
+        destruct(begin(), end());
         nUsed = 0;
     }
 
-    // Erase one element and move the last one in its place. This avoids
-    // having to compress the elements so this runs in constant time:
-    // the element is destructed; then if it wasn't the last element the
-    // copy constructor is used to copy the last element into the vacated
-    // space, and the destructor is called to clear the last element. The
-    // nUsed is reduced by 1 but the capacity does not change.
+    /// Be careful with this non-standard extension; it erases one element and 
+    /// then moves the last one in its place which changes the element order
+    /// from what it was before (unlike the standard erase() method). This avoids
+    /// having to compress the elements so this runs in constant time:
+    /// the element is destructed; then if it wasn't the last element the
+    /// copy constructor is used to copy the last element into the vacated
+    /// space, and the destructor is called to clear the last element. The
+    /// size is reduced by 1 but the capacity does not change.
     void eraseFast(T* p) {
         assert(begin() <= p && p < end());
-        p->~T(); // destruct
+        destruct(p);
         if (p+1 != end()) {
-            new(p) T(back()); // copy last element
-            back().~T(); // destruct last
+            copyConstruct(p, back());
+            destruct(&back());
         }
         --nUsed;
     }
@@ -468,12 +562,16 @@ public:
         return data + nUsed++;
     }
 
+    /// Remove the last element from this Array, which must not be empty.
+    /// The element is destructed, not returned. The Array's size() is 
+    /// reduced by 1.
     void pop_back() {
         SimTK_ERRCHK(!empty(), "Array_<T>::pop_back()", "Array was empty.");
-        back().~T(); // destruct last element
-        --nUsed;
+        destruct(data + --nUsed);
     }
 
+    /// Change the size of this Array, preserving all the elements that will
+    /// still fit, and default constructing any new elements that are added.
     void resize(size_type sz) {
         if (sz == nUsed) return;
         if (sz == 0) {clear(); return;}
@@ -487,6 +585,9 @@ public:
         nUsed = sz;
     }
 
+    /// Change the size of this Array, preserving all the elements that will
+    /// still fit, and initializing any new elements that are added by 
+    /// repeatedly copy constructing from the supplied value.
     void resize(size_type sz, const T& initVal) {
         if (sz == nUsed) return;
         if (sz == 0) {clear(); return;}
@@ -496,10 +597,16 @@ public:
         }
         // sz > nUsed
         reserve(sz);
-        copyConstruct(data+nUsed, data+sz, initVal);
+        fillConstruct(data+nUsed, data+sz, initVal);
         nUsed = sz;
     }
 
+    /// Ensure that this Array has enough allocated capacity to hold the 
+    /// indicated number of elements. No heap reallocation will occur after
+    /// this until the Array is grown beyond this capacity, meaning that
+    /// adding elements will not invalidate any iterators or element addresses
+    /// until that point. This method will never reduce the capacity of
+    /// the Array.
     void reserve(size_type newCapacity) {
         if (nAllocated >= newCapacity)
             return;
@@ -542,11 +649,27 @@ private:
         nAllocated = newCapacity;
     }
 
+    // We are going to put a total of n elements into the Array (probably
+    // because of an assignment or resize) and we want the space allocation
+    // to be reasonable. That means of course that the allocation must be 
+    // *at least* n, but we also don't want it to be too big. Our policy
+    // here is that if it is currently less than twice what we need we
+    // won't reallocate, otherwise we'll shrink the space. When changing
+    // the size to zero or something very small we'll treat the Array as
+    // though its current size is minAlloc, meaning we won't reallocate
+    // if the existing space is less than twice minAlloc.
+    // nAllocated will be set appropriately; nUsed is not touched here.
+    // No constructors or destructors are called.
+    void reallocateIfAdvisable(size_type n) {
+        if (nAllocated < n || nAllocated/2 > std::max(minAlloc(), n)) 
+            reallocateNoDestructOrConstruct(n);
+    }
+
 
     void allocateNoConstruct(size_type n) 
-    {   data = allocN(n); nAllocated=n; nUsed=0; }
+    {   data = allocN(n); nAllocated=n; }    // nUsed left unchanged
     void deallocateNoDestruct() 
-    {   freeN(data); data=0; nAllocated=nUsed=0; }
+    {   freeN(data); data=0; nAllocated=0; } // nUsed left unchanged
     void reallocateNoDestructOrConstruct(size_type n)
     {   deallocateNoDestruct(); allocateNoConstruct(n); }
 
@@ -580,19 +703,19 @@ private:
     static void defaultConstruct(T* b, T* const e) 
     {   while (b!=e) new(b++) T(); }
 
+    // copy construct range [b,e) with repeats of a given value
+    static void fillConstruct(T* b, const T* const e, const T& v)
+    {   while(b!=e) new(b++) T(v); }
+
     // copy construct one element from a given value
     static void copyConstruct(T* p, const T& v) {new(p) T(v);}
-    // copy construct range [b,e) with repeats of a given value
-    static void copyConstruct(T* b, const T* const e, const T& v)
-    {   while(b!=e) new(b++) T(v); }
     // copy construct range [b,e) from sequence of source values
     static void copyConstruct(T* b, const T* const e, const T* src)
     {   while(b!=e) new(b++) T(*src++); }
-
     // Templatized copy construct will work if the source elements are
     // assignment compatible with the destination elements.
-    template <class T2>
-    static void copyConstruct(T* b, const T* const e, const T2* src)
+    template <class ForwardIterator>
+    static void copyConstruct(T* b, const T* const e, ForwardIterator src)
     {   while(b!=e) new(b++) T(*src++); }
 
     // Copy construct range [b,e] from sequence of source values and
@@ -643,13 +766,13 @@ private:
 /// the element type does not support the "<<" operator. No newline is
 /// issued before or after the output.
 /// @relates Array_
-template <class T, class X, int MX> inline std::ostream&
-operator<<(std::ostream& o, const Array_<T,X,MX>& a) {
+template <class T, class X> inline std::ostream&
+operator<<(std::ostream& o, const Array_<T,X>& a) {
     o << '{';
     if (!a.empty()) {
-        o << a[X(0)];
-        for (X i(1); i<a.size(); ++i)
-            o << ' ' << a[i];
+        o << a.front();
+        for (const T* p = a.begin()+1; p != a.end(); ++p)
+            o << ' ' << *p;
     }
     return o << '}';
 } 
