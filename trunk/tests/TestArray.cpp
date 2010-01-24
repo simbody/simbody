@@ -168,6 +168,11 @@ void testConstruction() {
     new(ismall.raw_push_back()) int(27);
     cout << "ismall after raw_push_back():" << ismall << endl;
 
+    // Check null assignments.
+    ismall = ismall0; // src is null
+    ismall0 = imaxsz; // dest was null
+    ismall = Array_<int,SmallIx>(); // both null
+
     cout << "sizeof(Array_<int,char>)=" << sizeof(Array_<int,char>) << endl;
     cout << "sizeof(Array_<int>)=" << sizeof(Array_<int>) << endl;
     cout << "sizeof(std::vector<int>)=" << sizeof(std::vector<int>) << endl;

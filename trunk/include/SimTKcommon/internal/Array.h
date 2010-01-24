@@ -332,8 +332,12 @@ type's copy constructor. At most one reallocation of heap space occurs that
 may result in this array having a larger or smaller capacity, although of 
 course it will be at least as large as the source. */
 Array_& operator=(const Array_& src) {
-    if (this != &src)
-        assign(src.begin(), src.end());
+    if (this != &src) {
+        eraseAll(); // all elements destructed; space unchanged
+        nUsed = size_type(src.nUsed);
+        reallocateIfAdvisable(nUsed);
+        copyConstruct(data, data+nUsed, src.data);
+    }
     return *this;
 }
 
@@ -351,9 +355,7 @@ Array_& operator=(const Array_<T2,X2>& src) {
 
     eraseAll(); // all elements destructed; space unchanged
     nUsed = size_type(src.nUsed);
-    if (   nAllocated < nUsed 
-        || nAllocated/2 > std::max(minAlloc(), nUsed)) 
-    {   reallocateNoDestructOrConstruct(nUsed); }
+    reallocateIfAdvisable(nUsed);
     copyConstruct(data, data+nUsed, src.data);
     return *this;
 }
