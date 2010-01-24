@@ -188,7 +188,7 @@ void testConstruction() {
     cout << "strings=" << strings << endl;
 
     Array_<String, TestIx>::const_reverse_iterator p = strings.rbegin();
-    while (p != strings.rend())
+    while (!(p == strings.rend()))
         cout << " " << *p++;
     cout << endl;
 }
