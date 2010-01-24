@@ -175,7 +175,13 @@ void testConstruction() {
     Array_<String, TestIx> strings(6, "woohoo");
     cout << "strings=" << strings << endl;
     strings.push_back("last");
+    for (int i=0; i<10; ++i) {
+        strings.insert(strings.end(), "ins" + String(i));
+        cout << strings.size() << ":" << strings.capacity() 
+                               << ":" << strings << endl;
+    }
     cout << "strings=" << strings << endl;
+
     Array_<String, TestIx>::const_reverse_iterator p = strings.rbegin();
     while (p != strings.rend())
         cout << " " << *p++;
