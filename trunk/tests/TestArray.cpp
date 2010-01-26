@@ -123,6 +123,24 @@ template <class T> Counter Count<T>::dtor;
 template class Array_<int>;
 template class Array_<std::string, unsigned char>;
 
+// Instantiate templatized methods.
+typedef std::set<float>::const_iterator inputIt; // not a random access iterator
+
+// Constructors.
+template Array_<float,int>::Array_(const Array_<float,int>&);
+template Array_<float,int>::Array_(const float*,const float*);
+
+// Assignment.
+template Array_<float,int>& 
+Array_<float,int>::assign(const float*,const float*);
+template Array_<double,int>& 
+Array_<double,int>::assign(inputIt, inputIt);
+template Array_<float,int>& 
+Array_<float,int>::operator=(const Array_<float,int>&);
+template Array_<double,int>& 
+Array_<double,int>::operator=(const std::vector<float>&);
+
+
 void testConstruction() {
     const int data[] = {5,3,-2,27,9};
     const char uchar[] = {'f','i','t','z'};
@@ -159,6 +177,16 @@ void testConstruction() {
     cout << "cint2=" << cint2 << endl;
 
     Array_<int,SmallIx> ismall0;
+    cout << "default constructed Array_<int> begin()=" << ismall0.begin()
+         << " end()=" << ismall0.end() 
+         << " capacity()=" << (int)ismall0.capacity() 
+         << endl;
+
+    std::vector<int> ivec0;
+    cout << "default constructed std::vector<int>" 
+         << " capacity()=" << ivec0.capacity() 
+         << endl;
+
     Array_<int,SmallIx> ismall(3);
     Array_<int,SmallIx> imaxsz(data, data+4);
     cout << "ismall0=" << ismall0 << endl;
@@ -173,22 +201,22 @@ void testConstruction() {
     ismall0 = imaxsz; // dest was null
     ismall = Array_<int,SmallIx>(); // both null
 
-    cout << "sizeof(Array_<int,char>)=" << sizeof(Array_<int,char>) << endl;
+    cout << "sizeof(Array_<int,short>)=" << sizeof(Array_<int,short>) << endl;
     cout << "sizeof(Array_<int>)=" << sizeof(Array_<int>) << endl;
     cout << "sizeof(std::vector<int>)=" << sizeof(std::vector<int>) << endl;
 
     Array_<String, TestIx> strings(6, "woohoo");
     cout << "strings=" << strings << endl;
     strings.push_back("last");
-    for (int i=0; i<10; ++i) {
-        strings.insert(strings.end(), "ins" + String(i));
+    for (int i=0; i<5; ++i) {
+        strings.insert(strings.end(), 2, "ins" + String(i));
         cout << strings.size() << ":" << strings.capacity() 
                                << ":" << strings << endl;
     }
     cout << "strings=" << strings << endl;
 
-    Array_<String, TestIx>::const_reverse_iterator p = strings.rbegin();
-    while (!(p == strings.rend()))
+    Array_<String, TestIx>::reverse_iterator p = strings.rbegin();
+    while (p != strings.rend())
         cout << " " << *p++;
     cout << endl;
 }
