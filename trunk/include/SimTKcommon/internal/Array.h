@@ -590,7 +590,7 @@ heap space. Any memory currently associated with the array is deallocated;
 see deallocate() for more information. 
 @see deallocate(), shareData() **/
 Array_& adoptData(T* newData, size_type dataSize, 
-                  size_type dataCapacity=dataSize) 
+                  size_type dataCapacity) 
 {
     const char* methodName = "Array_<T>::adoptData()";
     SimTK_SIZECHECK(dataCapacity, max_size(), methodName);
@@ -606,6 +606,10 @@ Array_& adoptData(T* newData, size_type dataSize,
     nAllocated = dataCapacity;
     return *this;
 }
+/** A variant of adoptData() that assumes the capacity is the same as the
+current size. @see adoptData(data,size,capacity) **/
+Array_& adoptData(T* newData, size_type dataSize) 
+{   return adoptData(newData, dataSize, dataSize); }
 
 
 /** This dangerous extension allows you to make this array handle refer to
