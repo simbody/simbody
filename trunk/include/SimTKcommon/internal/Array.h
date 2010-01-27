@@ -399,7 +399,7 @@ push_back() meaning we may need to reallocate log(n) times. **/
 template <class InputIterator>
 Array_& assign(InputIterator first, InputIterator last1) {
     assignImpl(first, last1, 
-               std::iterator_traits<InputIterator>::iterator_category());
+               typename std::iterator_traits<InputIterator>::iterator_category());
     return *this;
 }
 

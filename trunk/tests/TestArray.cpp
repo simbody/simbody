@@ -138,18 +138,18 @@ template class Array_<std::string, unsigned char>;
 typedef std::set<float>::const_iterator inputIt; // not a random access iterator
 
 // Constructors.
-template Array_<float,int>::Array_(const Array_<float,int>&);
-template Array_<float,int>::Array_(const float*,const float*);
-
-// Assignment.
-template Array_<float,int>& 
-Array_<float,int>::assign(const float*,const float*);
-template Array_<double,int>& 
-Array_<double,int>::assign(inputIt, inputIt);
-template Array_<float,int>& 
-Array_<float,int>::operator=(const Array_<float,int>&);
-template Array_<double,int>& 
-Array_<double,int>::operator=(const std::vector<float>&);
+//template Array_<float,int>::Array_(const Array_<float,int>&);
+//template Array_<float,int>::Array_(const float*,const float*);
+//
+//// Assignment.
+//template Array_<float,int>& 
+//Array_<float,int>::assign(const float*,const float*);
+//template Array_<double,int>& 
+//Array_<double,int>::assign(inputIt, inputIt);
+//template Array_<float,int>& 
+//Array_<float,int>::operator=(const Array_<float,int>&);
+//template Array_<double,int>& 
+//Array_<double,int>::operator=(const std::vector<float>&);
 
 
 void testConstruction() {
