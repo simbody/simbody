@@ -54,6 +54,13 @@ std::ostream& operator<<(std::ostream& o, std::vector<T>& v) {
 
 using namespace SimTK;
 
+template <class T>
+class OtherArray_ : public Array_<T> {
+public:
+    OtherArray_() : Array_<T>() {}
+    OtherArray_(size_type n, const T& v) : Array_<T>(n,v) {}
+};
+
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(TestIx);
 
 class SmallIx {
@@ -134,22 +141,28 @@ template <class T> Counter Count<T>::dtor;
 template class Array_<int>;
 template class Array_<std::string, unsigned char>;
 
-// Instantiate templatized methods.
+#ifdef _MSC_VER // gcc 4.1.2 had trouble with this
+// Instantiate templatized methods
 typedef std::set<float>::const_iterator inputIt; // not a random access iterator
 
 // Constructors.
-//template Array_<float,int>::Array_(const Array_<float,int>&);
-//template Array_<float,int>::Array_(const float*,const float*);
-//
-//// Assignment.
-//template Array_<float,int>& 
-//Array_<float,int>::assign(const float*,const float*);
-//template Array_<double,int>& 
-//Array_<double,int>::assign(inputIt, inputIt);
-//template Array_<float,int>& 
-//Array_<float,int>::operator=(const Array_<float,int>&);
-//template Array_<double,int>& 
-//Array_<double,int>::operator=(const std::vector<float>&);
+template Array_<float,int>::Array_(const Array_<float,int>&);
+template Array_<float,int>::Array_(const float*,const float*);
+
+// Assignment.
+template Array_<float,int>& 
+Array_<float,int>::assign(const float*,const float*);
+template Array_<double,int>& 
+Array_<double,int>::assign(const inputIt&, const inputIt&);
+template Array_<float,int>& 
+Array_<float,int>::operator=(const Array_<float,int>&);
+template Array_<double,int>& 
+Array_<double,int>::operator=(const std::vector<float>&);
+
+// Comparison
+template bool SimTK::operator==(const Array_<float,int>&, 
+                                const Array_<float,unsigned>&);
+#endif
 
 
 void testConstruction() {
@@ -233,6 +246,7 @@ void testConstruction() {
 
     const int ownerData[] = {7, 77, 777, 7777, 77777};
     std::vector<int> owner(ownerData, ownerData+5);
+    std::vector<unsigned> unowner(owner.begin(), owner.end());
     Array_<int> shared; shared.shareData(&owner[1], &owner[4]);
     cout << "vector before=" << owner << endl;
     cout << "shared before=" << shared << endl;
@@ -240,6 +254,22 @@ void testConstruction() {
     cout << "shared after=" << shared << endl;
     cout << "vector after=" << owner << endl;
     cout << "shared(1,2)=" << shared(1,2) << endl;
+
+    Array_<int> copyOfOwner(owner);
+    cout << "copyOfOwner=" << copyOfOwner << endl;
+    Array_<unsigned short,char> weirdCopy(owner);
+    cout << "weirdCopy=" << weirdCopy << endl;
+    copyOfOwner = unowner;
+    cout << "copyOfOwner=unowner=" << copyOfOwner << endl;
+
+    Array_<unsigned> shareOfUnowner(unowner, DontCopy());
+    cout << "shareOfUnowner=" << shareOfUnowner << endl;
+
+    shareOfUnowner(1,3) = Array_<unsigned>(3,88);
+    cout << "shareOfUnowner=" << shareOfUnowner << endl;
+
+    OtherArray_<int> oa(5, -4);
+    cout << "oa=" << oa << endl;
 }
 
 

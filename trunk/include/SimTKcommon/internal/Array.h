@@ -146,25 +146,35 @@ template <> struct IndexTraits<char> {
     static const char* index_name() {return "char";}
 };
 
+/** This is a special type used for causing invocation of a particular
+constructor or method overload that will avoid making a copy of the source.
+Typically these methods will have some dangerous side effects so make sure
+you know what you're doing. **/
+struct DontCopy {};
+/** This is a special type used for causing invocation to a particularly
+dangerous constructor or method overload; don't use this unless you are an
+advanced user and know exactly what you're getting into. **/
+struct TrustMe {};
+
 /**
 The SimTK::Array_<T> container class is a plug-compatible replacement for the 
-C++ standard template library (STL) std::vector<T> class, but with relevant 
-advantages in performance, and functionality, and binary compatibility. 
-Basically this is just a lightweight std::vector without the nanny-state 
-coddling that sometimes gets in the way when you're in a hurry.
+C++ standard template library (STL) std::vector<T> class, but with some
+important advantages in performance, and functionality, and binary 
+compatibility.
 
 @par Performance:
 There are several performance problems with the C++ standard STL design in
 general, and with Microsoft's implementation in particular, that are addressed
-here. Microsoft in its wisdom decided that STL containers should still range 
-check in Release builds for safety, but that makes them too slow for use in
-some high-performance contexts (and also breaks the promise of generic 
-programming but that's another rant). Attempting to disable these checks breaks
-binary compatibility. In contrast the performance of this class on any platform
-is indistinguishable from what you would get by managing your own 
-heap-allocated arrays.
+here. Microsoft in its wisdom decided that STL containers should still do
+runtime range checks in Release builds for safety, but that makes them too slow
+for use in some high-performance contexts (and also breaks the promise of 
+generic programming but that's another rant). Attempting to disable these 
+checks breaks binary compatibility. In contrast the performance of this class 
+on any platform is indistinguishable from what you would get by managing your 
+own heap-allocated arrays.
 
-- No heap allocation occurs when an empty Array_<T> object is declared; in
+- We promise that no heap allocation occurs when an empty Array_<T> object 
+  is declared (that is, when an Array_<T> is default-constructed); in
   that case both begin() and end() are null.
 - Array_<T> methods are extremely fast in Release builds with zero overhead, 
   inline, unchecked methods. The implementations of inline methods are kept
@@ -266,9 +276,9 @@ ones providing smooth conversions between Array_<T> and std::vector<T> objects.
 /** Default constructor allocates no heap space and is very fast. **/
 Array_() : pData(0), nUsed(0), nAllocated(0) {}
 
-/** Construct an array containing n default-constructed elements. T's default 
-constructor is called exactly n times. If n is zero no heap space will be 
-allocated; although in that case it is preferable to use the default 
+/** Construct an array containing \a n default-constructed elements. T's default 
+constructor (if any) is called exactly \a n times. If \a n is zero no heap space 
+will be allocated; although in that case it is preferable to use the default 
 constructor if you can since that will be somewhat faster. **/
 explicit Array_(size_type n) {
     SimTK_SIZECHECK(n, max_size(), "Array_<T>::ctor(n)");
@@ -277,9 +287,9 @@ explicit Array_(size_type n) {
     nUsed = n;
 }
 
-/** Construct an array containing n elements each set to a copy of the given 
-initial value. T's copy constructor will be called exactly n times. If n is 
-zero no space will be allocated. **/
+/** Construct an array containing \a n elements each set to a copy of the given 
+initial value. T's copy constructor will be called exactly \a n times. If \a n
+is zero no space will be allocated. **/
 Array_(size_type n, const T& initVal) {
     SimTK_SIZECHECK(n, max_size(), "Array_<T>::ctor(n,T)");
     allocateNoConstruct(n);
@@ -287,9 +297,10 @@ Array_(size_type n, const T& initVal) {
     nUsed = n;
 }
 
-/** Construct an array from a range of values identified by a begin and an end
-iterator. This is templatized so can be used with any source type T2 that is 
-assignment-compatible with this array's element type T. **/
+/** Construct an Array_<T> from a range [first,last1) of values identified by a 
+pair of ordinary pointers to elements of type T2 (where T2 might be the same as
+T but doesn't have to be). This is templatized so can be used with any source 
+type T2 for which there is a working conversion constructor T(T2). **/
 template <class T2>
 Array_(const T2* first, const T2* last1) {
     const char* methodName = "Array_<T>::ctor(first,last1)";
@@ -302,6 +313,107 @@ Array_(const T2* first, const T2* last1) {
     nUsed = size_type(last1-first);
     allocateNoConstruct(nUsed);
     copyConstruct(pData, pData+nUsed, first);
+}
+
+/** Construct an Array_<T> by copying from an std::vector<T2>, where T2 may
+be the same type as T but doesn not have to be. This will work as long as the 
+size of the vector does not exceed the array's max_size, and provided there is 
+a working T(T2) conversion constructor. **/
+template <class T2>
+explicit Array_(const std::vector<T2>& v) 
+:   pData(0), nUsed(0), nAllocated(0) {
+    if (v.empty()) return;
+
+    SimTK_ERRCHK3(isSizeOK(v.size()), "Array_<T>::ctor(std::vector<T2>)",
+        "The source std::vector's size %llu is too big for this array which"
+        " is limited to %llu elements by its index type %s.",
+        ull(v.size()), ullMaxSize(), index_name());
+
+    // Call the above constructor, making sure to use pointers into the
+    // vector's data rather than the iterators begin() and end() in case
+    // they are different types.
+    new (this) Array_(&v.front(), (&v.back())+1);
+}
+
+/** Construct an Array_<T> by referencing (sharing) a given range of data
+[first,last1), without copying that data. This is very fast but can be 
+dangerous -- it is most useful for argument passing where the array handle 
+will be discarded immediately after use. Note that this is available only if 
+you have write access to the data because there is no way to construct 
+a non-writable array. This will work as long as the size of the data does 
+not exceed the array's max_size. The resulting array object is not resizeable
+but can be used to read and write elements of the original data. The
+array is invalid if the original data is destructed or resized, but there is
+no way for the array class to detect that.
+@note
+  - If the source data is empty, the resulting array will also 
+    be empty and will look just like a default-constructed array. It will
+    therefore not have any connection to the source and will be an
+    ordinary resizable array.
+  - This is quite dangerous to use since the connection between the array and
+    the data is tenuous and subject to the data remaining untouched during
+    the lifetime of the array handle. There is no reference counting;
+    destructing the original data would leave the array referring to garbage. 
+    Be careful!
+  - You can break the connection between the array and the data it was 
+    constructed from by calling deallocate().
+@par Complexity:
+    Dirt cheap. There will be no construction, destruction, or heap allocation
+    performed.
+@see deallocate() **/
+Array_(T* first, const T* last1, const DontCopy&) 
+:   pData(0), nUsed(0), nAllocated(0) {
+    if (last1==first) return; // empty
+
+    SimTK_ERRCHK3(isSizeOK(last1-first), 
+        "Array_<T>::ctor(first,last1,DontCopy())",
+        "The source data's size %llu is too big for this array which"
+        " is limited to %llu elements by its index type %s.",
+        ull(last1-first), ullMaxSize(), index_name());
+
+    // Must use pointers into the vector's data rather than the iterators 
+    // begin() and end() in case vector::iterator is not a pointer.
+    shareData(first, last1);
+}
+
+/** Construct an Array_<T> by referencing (sharing) the data in an 
+std::vector<T>, without copying the data. This is very fast but can be 
+dangerous -- it is most useful for argument passing where the array handle 
+will be discarded immediately after use. Note that this is available only if 
+you have write access to the std::vector because there is no way to construct 
+a non-writable array. This will work as long as the size of the vector does 
+not exceed the array's max_size. The resulting array object is not resizeable
+but can be used to read and write elements of the original std::vector. The
+array is invalid if the original std::vector is destructed or resized.
+@note
+  - If the source std::vector is empty, the resulting array will also 
+    be empty and will look just like a default-constructed array. It will
+    therefore not have any connection to the source vector and will be an
+    ordinary resizable array.
+  - This is quite dangerous to use since the connection between the array and
+    the vector is tenuous and subject to the vector remaining untouchged during
+    the lifetime of the array handle. There is no reference counting;
+    destructing the vector leaves the array referring to garbage. Be careful!
+  - You can break the connection between the array and the vector it was 
+    constructed from by calling deallocate().
+@par Complexity:
+    Dirt cheap. There will be no construction, destruction, or heap allocation
+    performed.
+@see deallocate() **/
+template <class A>
+Array_(std::vector<T,A>& v, const DontCopy&) 
+:   pData(0), nUsed(0), nAllocated(0) {
+    if (v.empty()) return;
+
+    SimTK_ERRCHK3(isSizeOK(v.size()), 
+        "Array_<T>::ctor(std::vector<T2>,DontCopy())",
+        "The source std::vector's size %llu is too big for this array which"
+        " is limited to %llu elements by its index type %s.",
+        ull(v.size()), ullMaxSize(), index_name());
+
+    // Must use pointers into the vector's data rather than the iterators 
+    // begin() and end() in case vector::iterator is not a pointer.
+    shareData(&v.front(), (&v.back())+1);
 }
 
 /** Copy constructor allocates exactly as much memory as is in use in the 
@@ -325,14 +437,19 @@ Array_(const Array_<T2,X2>& src) {
     new (this) Array_(src.begin(), src.end()); // see above
 }
 
-/** Disconnect this array from any data to which it refers. If the array owns
-the data, element destructors (if any) will be called and then the allocated
-heap space will be freed. For non-owner arrays, the data pointer will simply
-be set to null; we'll assume the owner will clean things up later. In either
-case the size() and capacity() will be 0 after this call and data() will 
-return null. 
+/** Disconnect this array handle from any data to which it refers, restoring
+it to the condition it would be in if it had just been default-constructed. 
+This method is like clear() but more severe, and it can be used on non-owner
+arrays while clear() cannot. For owner arrays, element destructors (if any) 
+will be called and then the allocated heap space will be freed. For non-owner 
+arrays, the data pointer will simply be set to null; we'll assume the owner 
+will clean things up later. In either case the size() and capacity() will be 
+zero after this call and data() will return null (0). 
+@note
+    This is an extension; there is no comparable method in std::vector. clear()
+    is the closest approximation.
 @return
-    A reference to the now-empty array object, suitable for further 
+    A reference to the now-empty array handle, suitable for further 
     assignment. **/
 Array_& deallocate() {
     if (nAllocated) { // owner
@@ -345,10 +462,9 @@ Array_& deallocate() {
     return *this;
 }
 
-/** If type T has a destructor, then the Array_<T> destructor calls T's 
-destructor once for each element it contains before freeing the memory it is 
-using. Built-in types like int do not have destructors so destruction is a
-constant-time operation for them. **/
+/** The destructor performs a deallocate() operation which may result in 
+element destruction and freeing of heap space; see deallocate() for more
+information. @see deallocate() **/
 ~Array_() {
     deallocate();
 }
@@ -397,9 +513,11 @@ destructor calls except to erase the original data. If these aren't random
 access iterators then we'll just have to add elements as we find them using 
 push_back() meaning we may need to reallocate log(n) times. **/
 template <class InputIterator>
-Array_& assign(InputIterator first, InputIterator last1) {
+Array_& assign(const InputIterator& first, const InputIterator& last1) {
     assignImpl(first, last1, 
-               typename std::iterator_traits<InputIterator>::iterator_category());
+               typename std::iterator_traits<InputIterator>
+                            ::iterator_category(),
+               "Array_<T>::assign(Iter first, Iter last1)");
     return *this;
 }
 
@@ -426,7 +544,7 @@ Array_& assign(const T2* first, const T2* last1) {
     SimTK_ERRCHK(last1<=begin() || end()<=first, methodName, 
         "Source pointers can't be within the destination Array.");
     // Pointers are random access iterators.
-    assignImpl(first,last1,std::random_access_iterator_tag());
+    assignImpl(first,last1,std::random_access_iterator_tag(),methodName);
     return *this;
 }
 
@@ -437,7 +555,8 @@ may result in this array having a larger or smaller capacity, although of
 course it will be at least as large as the source. **/
 Array_& operator=(const Array_& src) {
     if (this != &src)
-        assignImpl(src.begin(), src.end(), std::random_access_iterator_tag());
+        assignImpl(src.begin(), src.end(), std::random_access_iterator_tag(),
+                   "Array_<T>::operator=(Array_<T>)");
     return *this;
 }
 
@@ -448,7 +567,8 @@ compatible with T. See discussion for the copy assignment operator for more
 information. */
 template <class T2, class X2>
 Array_& operator=(const Array_<T2,X2>& src) {
-    assignImpl(src.begin(), src.end(), std::random_access_iterator_tag());
+    assignImpl(src.begin(), src.end(), std::random_access_iterator_tag(),
+               "Array_<T>::operator=(Array_<T2,X2>)");
     return *this;
 }
 
@@ -459,11 +579,19 @@ compatible with T. See discussion for the copy assignment operator for more
 information. */
 template <class T2, class A>
 Array_& operator=(const std::vector<T2,A>& src) {
-    assignImpl(src.begin(), src.end(), std::random_access_iterator_tag());
+    assignImpl(src.begin(), src.end(), std::random_access_iterator_tag(),
+               "Array_<T>::operator=(std::vector)");
     return *this;
 }
 
-Array_& adoptData(T* newData, size_type dataSize, size_type dataCapacity=size) {
+/** This dangerous extension allows you to supply your own already-allocated
+memory for use by this array, which then becomes the owner of the supplied
+heap space. Any memory currently associated with the array is deallocated; 
+see deallocate() for more information. 
+@see deallocate(), shareData() **/
+Array_& adoptData(T* newData, size_type dataSize, 
+                  size_type dataCapacity=dataSize) 
+{
     const char* methodName = "Array_<T>::adoptData()";
     SimTK_SIZECHECK(dataCapacity, max_size(), methodName);
     SimTK_ERRCHK2(dataSize <= dataCapacity, methodName, 
@@ -480,7 +608,19 @@ Array_& adoptData(T* newData, size_type dataSize, size_type dataCapacity=size) {
 }
 
 
-
+/** This dangerous extension allows you to make this array handle refer to
+someone else's data without copying it. Any memory currently associated
+with the array is deallocated; see deallocate() for more information. This
+method makes the array a fixed-size, non-owner array that cannot be 
+reallocated, and no element destruction nor heap deallocation will occur when
+the handle is subsequently destructed or deallocated.
+@note
+  - A null (0) pointer is allowed for the pointer as long as \a dataSize==0,
+    however in that case the array handle ends up deallocated (that is, 
+    indistinguishable from a default-constructed array) so is resizeable.
+  - This is implemented by setting the nAllocated data member to zero while
+    the nUsed data member is set to the given \a dataSize.
+@see deallocate(), adoptData() **/
 Array_& shareData(T* newData, size_type dataSize) {
     const char* methodName = "Array_<T>::shareData()";
     SimTK_SIZECHECK(dataSize, max_size(), methodName);
@@ -494,7 +634,7 @@ Array_& shareData(T* newData, size_type dataSize) {
 }
 
 
-Array_& shareData(T* first, T* last1) {
+Array_& shareData(T* first, const T* last1) {
     SimTK_ERRCHK3(isSizeOK(last1-first), "Array_<T>::shareData(first,last1)",
         "Requested size %llu is too big for this array which is limited"
         " to %llu elements by its index type %s.",
@@ -505,7 +645,7 @@ Array_& shareData(T* first, T* last1) {
 Array_ operator()(index_type index, size_type length) {
     SimTK_INDEXCHECK(index,size(),"Array_<T>(index,length)");
     SimTK_SIZECHECK(length,size_type(size()-index),"Array_<T>(index,length)");
-    return Array_().shareData(pData+index, length);
+    return Array_(pData+index, pData+index+length, DontCopy());
 }
 
 /*@}*/
@@ -1264,12 +1404,19 @@ T* insertImpl(T* p, RandomAccessIterator first, RandomAccessIterator last1,
 // This is the slow generic implementation for any input iterator that
 // can't do random access (input, forward, bidirectional).
 template <class InputIterator>
-void assignImpl(InputIterator first, InputIterator last1, 
-                   std::input_iterator_tag) 
+void assignImpl(const InputIterator& first, const InputIterator& last1, 
+                std::input_iterator_tag, const char* methodName) 
 {
+    SimTK_ERRCHK(isOwner(), methodName,
+        "Assignment to a non-owner array can only be done from a source"
+        " designated with random access iterators or pointers because we"
+        " must be able to verify that the source and destination sizes"
+        " are the same.");
+
     clear(); // TODO: change space allocation here?
-    while (first != last1)
-        push_back(*first++);
+    InputIterator src = first;
+    while (src != last1)
+        push_back(*src++);
 }
 
 // This is the fast implementation that works for random access
@@ -1278,20 +1425,40 @@ void assignImpl(InputIterator first, InputIterator last1,
 // fit in this array. Null pointer checks should be done prior to calling,
 // however, since iterators in general aren't pointers.
 template <class RandomAccessIterator>
-void assignImpl(RandomAccessIterator first, RandomAccessIterator last1,
-               std::random_access_iterator_tag) 
+void assignImpl(const RandomAccessIterator& first, 
+                const RandomAccessIterator& last1,
+                std::random_access_iterator_tag, 
+                const char*                 methodName) 
 {
-    const char* methodName = "Array_<T>::assign(first,last1)";
     SimTK_ERRCHK(first <= last1, methodName, "Iterators were out of order.");
-    SimTK_ERRCHK3(isSizeOK(last1-first), methodName,
-        "Source has %llu elements but this Array is limited to %llu"
-        " elements by its index type %s.",
-        ull(last1-first), ullMaxSize(), index_name());
 
-    clear(); // all elements destructed; allocation unchanged
-    nUsed = size_type(last1-first);
-    reallocateIfAdvisable(nUsed); // change size if too small or too big
-    copyConstruct(pData, pData+nUsed, first);
+    if (isOwner()) {
+        // This is an owner Array; assignment is considered deallocation
+        // followed by copy construction.
+        SimTK_ERRCHK3(isSizeOK(last1-first), methodName,
+            "Source has %llu elements but this Array is limited to %llu"
+            " elements by its index type %s.",
+            ull(last1-first), ullMaxSize(), index_name());
+
+        clear(); // all elements destructed; allocation unchanged
+        nUsed = size_type(last1-first);
+        reallocateIfAdvisable(nUsed); // change size if too small or too big
+        copyConstruct(pData, pData+nUsed, first);
+    } else {
+        // This is a non-owner Array. Assignment can occur only if the
+        // source is the same size as the array, and the semantics are of
+        // repeated assignment using T::operator=() not destruction followed
+        // by copy construction.
+        SimTK_ERRCHK2(isSameSize(last1-first), methodName,
+            "Source has %llu elements which does not match the size %llu"
+            " of the non-owner array it is being assigned into.",
+            ull(last1-first), ullSize());
+
+        T* p = begin();
+        RandomAccessIterator src = first;
+        while (src != last1)
+            *p++ = *src++; // call T's assignment operator
+    }
 }
 
 // We are going to put a total of n elements into the Array (probably
@@ -1409,6 +1576,12 @@ static void destruct(T* p) {p->~T();}
 static void destruct(T* b, const T* e)
 {   while(b!=e) b++->~T(); }
 
+// Check whether a given size is the same as the current size of this array,
+// avoiding any compiler warnings due to mismatched integral types.
+template <class S> 
+bool isSameSize(S sz) const
+{   return ull(sz) <= ullSize(); }
+
 // Check that a source object's size will fit in the Array being
 // careful to avoid overflow and warnings in the comparison.
 template <class S> 
@@ -1468,6 +1641,159 @@ operator<<(std::ostream& o, const Array_<T,X>& a) {
     return o << '}';
 } 
 
+/**@name                    Comparison operators
+
+These operators permit lexicographical comparisons between two comparable
+Array_ objects, possible with differing element and index types, and between 
+an Array_ object and a comparable std::vector object.
+@relates Array_ **/
+/*@{*/
+
+/** Two Arrays are equal if and only if they are the same size() and each
+element compares equal using an operator T1==T2.  
+@relates Array_ **/
+template <class T1, class X1, class T2, class X2> bool 
+operator==(const Array_<T1,X1>& a1, const Array_<T2,X2>& a2) {
+    // Avoid warnings in size comparison by using common type.
+    const ptrdiff_t sz1 = a1.end()-a1.begin();
+    const ptrdiff_t sz2 = a2.end()-a2.begin();
+    if (sz1 != sz2) return false;
+    const T1* p1 = a1.begin();
+    const T2* p2 = a2.begin();
+    while (p1 != a1.end())
+        if (!(*p1++ == *p2++)) return false;
+    return true;
+}
+/** The not equal operator is implemented using the equal operator.  
+@relates Array_ **/
+template <class T1, class X1, class T2, class X2> bool 
+operator!=(const Array_<T1,X1>& a1, const Array_<T2,X2>& a2)
+{   return !(a1 == a2); }
+
+/** Arrays are ordered lexicographically; that is, by first differing element
+or by length if there are no differing elements up to the length of the
+shorter array (in which case the shorter one is "less than" the longer). 
+This depends on T1==T2 and T1<T2 operators working.  
+@relates Array_ **/
+template <class T1, class X1, class T2, class X2> bool 
+operator<(const Array_<T1,X1>& a1, const Array_<T2,X2>& a2) {
+    const T1* p1 = a1.begin();
+    const T2* p2 = a2.begin();
+    while (p1 != a1.end() && p2 != a2.end()) {
+        if (!(*p1 == *p2))
+            return *p1 < *p2; // otherwise p1 > p2
+        ++p1; ++p2;
+    }
+    // All elements were equal until one or both arrays ran out of elements.
+    // a1 is less than a2 only if a1 ran out and a2 didn't.
+    return p1 == a1.end() && p2 != a2.end();
+}
+/** The greater than or equal operator is implemented using the less than 
+operator. **/
+template <class T1, class X1, class T2, class X2> bool 
+operator>=(const Array_<T1,X1>& a1, const Array_<T2,X2>& a2)
+{   return !(a1 < a2); }
+/** The greater than operator is implemented by using less than with the
+arguments reversed. 
+@relates Array_ **/
+template <class T1, class X1, class T2, class X2> bool 
+operator>(const Array_<T1,X1>& a1, const Array_<T2,X2>& a2)
+{   return a2 < a1; }
+
+/** An Array_<T1> and an std::vector<T2> are equal if and only if they are the 
+same size() and each element compares equal using an operator T1==T2.  
+@relates Array_ **/
+template <class T1, class X1, class T2, class A2> bool 
+operator==(const Array_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
+    typedef typename std::vector<T2,A2>::const_iterator Iter;
+    // Avoid warnings in size comparison by using common type.
+    const ptrdiff_t sz1 = a1.end()-a1.begin();
+    const ptrdiff_t sz2 = v2.end()-v2.begin();
+    if (sz1 != sz2) return false;
+    const T1* p1 = a1.begin();
+    Iter      p2 = v2.begin();
+    while (p1 != a1.end())
+        if (!(*p1++ == *p2++)) return false;
+    return true;
+}
+/** An std::vector<T1> and an Array_<T2> are equal if and only if they are the 
+same size() and each element compares equal using an operator T2==T1.  
+@relates Array_ **/
+template <class T1, class A1, class T2, class X2> bool 
+operator==(const std::vector<T1,A1>& v1, const Array_<T2,X2>& a2)
+{   return a2 == v1; }
+
+/** The not equal operator is implemented using the equal operator.  
+@relates Array_ **/
+template <class T1, class X1, class T2, class A2> bool 
+operator!=(const Array_<T1,X1>& a1, const std::vector<T2,A2>& v2)
+{   return !(a1 == v2); }
+/** The not equal operator is implemented using the equal operator.  
+@relates Array_ **/
+template <class T1, class A1, class T2, class X2> bool 
+operator!=(const std::vector<T1,A1>& v1, const Array_<T2,X2>& a2)
+{   return !(a2 == v1); }
+
+/** An Array_<T1> and std::vector<T2> are ordered lexicographically; that is, 
+by first differing element or by length if there are no differing elements up 
+to the length of the shorter container (in which case the shorter one is 
+"less than" the longer). This depends on having working element operators 
+T1==T2 and T1<T2. @relates Array_ **/
+template <class T1, class X1, class T2, class A2> bool 
+operator<(const Array_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
+    typedef typename std::vector<T2,A2>::const_iterator Iter;
+    const T1*   p1 = a1.begin();
+    Iter        p2 = v2.begin();
+    while (p1 != a1.end() && p2 != v2.end()) {
+        if (!(*p1 == *p2))
+            return *p1 < *p2; // otherwise p1 > p2
+        ++p1; ++p2;
+    }
+    // All elements were equal until one or both arrays ran out of elements.
+    // a1 is less than a2 only if a1 ran out and a2 didn't.
+    return p1 == a1.end() && p2 != v2.end();
+}
+/** An std::vector<T1> and Array_<T2> are ordered lexicographically; that is, 
+by first differing element or by length if there are no differing elements up 
+to the length of the shorter container (in which case the shorter one is 
+"less than" the longer). This depends on having working element operators 
+T1==T2 and T1<T2. @relates Array_ **/
+template <class T1, class A1, class T2, class X2> bool 
+operator<(const std::vector<T1,A1>& v1, const Array_<T2,X2>& a2) {
+    typedef typename std::vector<T1,A1>::const_iterator Iter;
+    Iter        p1 = v1.begin();
+    const T2*   p2 = a2.begin();
+    while (p1 != v1.end() && p2 != a2.end()) {
+        if (!(*p1 == *p2))
+            return *p1 < *p2; // otherwise p1 > p2
+        ++p1; ++p2;
+    }
+    // All elements were equal until one or both arrays ran out of elements.
+    // a1 is less than a2 only if a1 ran out and a2 didn't.
+    return p1 == v1.end() && p2 != a2.end();
+}
+/** The greater than or equal operator is implemented using the less than 
+operator. @relates Array_ **/
+template <class T1, class X1, class T2, class A2> bool 
+operator>=(const Array_<T1,X1>& a1, const std::vector<T2,A2>& v2)
+{   return !(a1 < v2); }
+/** The greater than or equal operator is implemented using the less than 
+operator. @relates Array_ **/
+template <class T1, class A1, class T2, class X2> bool 
+operator>=(const std::vector<T1,A1>& v1, const Array_<T2,X2>& a2)
+{   return !(v1 < a2); }
+
+/** The greater than operator is implemented by using less than with the
+arguments reversed. @relates Array_ **/
+template <class T1, class X1, class T2, class A2> bool 
+operator>(const Array_<T1,X1>& a1, const std::vector<T2,A2>& v2)
+{   return v2 < a1; }
+/** The greater than operator is implemented by using less than with the
+arguments reversed. @relates Array_ **/
+template <class T1, class A1, class T2, class X2> bool 
+operator>(const std::vector<T1,A1>& v1, const Array_<T2,X2>& a2)
+{   return a2 < v1; }
+/*@}*/
 
 } // namespace SimTK
   
