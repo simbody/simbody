@@ -41,6 +41,17 @@
 using std::cout;
 using std::endl;
 
+template <class T>
+std::ostream& operator<<(std::ostream& o, std::vector<T>& v) {
+    o << '<';
+    if (!v.empty()) {
+        o << v.front();
+        for (unsigned i=1; i < v.size(); ++i)
+            o << ' ' << v[i];
+    }
+    return o << '>';
+}
+
 using namespace SimTK;
 
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(TestIx);
@@ -219,6 +230,16 @@ void testConstruction() {
     while (p != strings.rend())
         cout << " " << *p++;
     cout << endl;
+
+    const int ownerData[] = {7, 77, 777, 7777, 77777};
+    std::vector<int> owner(ownerData, ownerData+5);
+    Array_<int> shared; shared.shareData(&owner[1], &owner[4]);
+    cout << "vector before=" << owner << endl;
+    cout << "shared before=" << shared << endl;
+    shared[2] = 29;
+    cout << "shared after=" << shared << endl;
+    cout << "vector after=" << owner << endl;
+    cout << "shared(1,2)=" << shared(1,2) << endl;
 }
 
 
