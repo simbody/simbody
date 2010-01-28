@@ -45,6 +45,9 @@
 
 namespace SimTK {
 
+template <class T, class X=int> class ArrayView_;
+template <class T, class X=int> class Array_;
+
 // We want the index_type and size_type for ordinary integral types to
 // be either both signed or both unsigned so that an index value can
 // be compared against a container's size() method without a warning.
@@ -157,10 +160,9 @@ advanced user and know exactly what you're getting into. **/
 struct TrustMe {};
 
 /** This is the base class for Array_<T,X>, providing only read-only "const"
-functionality. The ability to write, reallocate, insert, erase, modify, etc. is
-added by the Array_<T,X> class. **/
-template <class T, class X=int>
-class ArrayView_ {
+functionality, and shallow copy semantics. The ability to write, reallocate, 
+insert, erase, modify, etc. is added by the Array_<T,X> class. **/
+template <class T, class X> class ArrayView_ {
 public:
 
 typedef T           value_type;
@@ -196,7 +198,100 @@ referencing the original source data. However, if the source is zero length,
 this will result in a default-constructed array view with a null data pointer,
 even if the source had some data allocated. **/
 ArrayView_(const ArrayView_& src) 
-:   pData(src.nUsed ? src.pData : 0), nUsed(src.nUsed), nAllocated(0) {} 
+:   pData(0), nUsed(src.nUsed), nAllocated(0) {
+    if (nUsed) pData = const_cast<T*>(src.pData);
+} 
+
+
+/** Construct an ArrayView_<T> by referencing (sharing) a given range of
+const data [first,last1), without copying that data. This will work as long as 
+the size of the source data does not exceed the array's max_size. The resulting
+array view object is not resizeable but can be used to read elements of the 
+original data. The array view becomes invalid if the original data is 
+destructed or resized, but there is no way for the class to detect that.
+@note
+  - If the source data is empty, the resulting array view will also 
+    be empty and will look just like a default-constructed array view. 
+  - You can break the connection between the array view handle and the data it
+    was constructed from by calling deallocate().
+@par Complexity:
+    Dirt cheap. There will be no construction, destruction, or heap allocation
+    performed.
+@see deallocate() **/
+ArrayView_(const T* first, const T* last1) 
+:   pData(0), nUsed(0), nAllocated(0) { 
+    if (last1==first) return; // empty
+
+    SimTK_ERRCHK3(isSizeOK(last1-first), 
+        "ArrayView_<T>::ctor(first,last1)",
+        "The source data's size %llu is too big for this array which"
+        " is limited to %llu elements by its index type %s.",
+        ull(last1-first), ullMaxSize(), index_name());
+
+    pData = const_cast<T*>(first); 
+    nUsed = size_type(last1-first); 
+    // nAllocated is already zero
+}
+
+/** Construct an Array_<T> by referencing (sharing) the data in a const 
+std::vector<T>, without copying the data. This will work as long as the size 
+of the vector does not exceed the array's max_size. The resulting array view
+object is not resizeable but can be used to read and write elements of the 
+original std::vector. The array view becomes invalid if the original 
+std::vector is destructed or resized, but there is no way for the array class
+to detect that.
+@note
+  - If the source std::vector is empty, the resulting array view will also 
+    be empty and will look just like a default-constructed array view. It will
+    therefore not have any connection to the source vector.
+  - This is quite dangerous to use since the connection between the array view
+    and the vector is tenuous and subject to the vector remaining untouched 
+    during the lifetime of the array view handle. There is no reference 
+    counting; destructing the vector leaves the array referring to garbage. Be
+    careful!
+  - You can break the connection between the array view and the vector it was 
+    constructed from by calling deallocate().
+@par Complexity:
+    Dirt cheap. There will be no construction, destruction, or heap allocation
+    performed.
+@see deallocate() **/
+template <class A>
+ArrayView_(const std::vector<T,A>& v) 
+:   pData(0), nUsed(0), nAllocated(0) { 
+    if (v.empty()) return;
+
+    SimTK_ERRCHK3(isSizeOK(v.size()), 
+        "ArrayView_<T>::ctor(std::vector<T>)",
+        "The source std::vector's size %llu is too big for this array which"
+        " is limited to %llu elements by its index type %s.",
+        ull(v.size()), ullMaxSize(), index_name());
+
+    pData = const_cast<T*>(&v.front()); 
+    nUsed = size_type(v.size()); 
+    // nAllocated is already zero
+}
+
+/** This is an implicit conversion to const Array_<T,X>&, which is harmless. **/
+operator const Array_<T,X>&() const
+{   return *reinterpret_cast<const Array_<T,X>*>(this); }
+
+/** Disconnect this array view handle from any data to which it refers, 
+restoring it to the condition it would be in if it had just been 
+default-constructed. The data pointer will simply be set to null; we'll assume
+the owner will clean things up later. In either case the size() and capacity() 
+will be zero after this call and data() will return null (0). **/
+void disconnect() {
+    SimTK_ASSERT(nAllocated==0,
+        "ArrayView_::deallocate(): called on an owner Array_");
+    nUsed = 0;
+    pData = 0;
+}
+
+/** The destructor just disconnects the array view handle from its data; see
+disconnect() for more information. @see disconnect() **/
+~ArrayView_() {
+    disconnect();
+}
 
 /*}*/
 
@@ -228,6 +323,111 @@ an owner since it is resizeable.
 bool isOwner() const {return nAllocated || pData==0;}
 /*}*/
 
+
+/** @name                  Read-only element access
+
+These methods provide read-only (const) access to individual elements that are
+currently present in the array. The derived Array_<T,X> class adds the
+non-const equivalents of these methods. **/
+/*@{*/
+
+/** Select an element by its index, returning a const reference. Note that only 
+a value of the array's templatized index type is allowed (default is int). This 
+will be range-checked in a Debug build but not in Release.
+@pre 0 <= \a i < size()
+@par Complexity:
+    Constant time. **/
+const T& operator[](index_type i) const {
+    SimTK_INDEXCHECK(i,nUsed,"ArrayView_<T>::operator[]()");
+    return pData[i];
+}
+/** Same as operator[] but always range-checked, even in a Release build.  
+@pre 0 <= \a i < size()
+@par Complexity:
+    Constant time. **/
+const T& at(index_type i) const {
+    SimTK_INDEXCHECK_ALWAYS(i,nUsed,"ArrayView_<T>::at()");
+    return pData[i];
+}
+/** Return a const reference to the first element in this array, which must
+not be empty.
+@pre The array is not empty.
+@par Complexity:
+    Constant time. **/
+const T& front() const 
+{   SimTK_ERRCHK(!empty(), "ArrayView_<T>::front()", "Array was empty.");
+    return pData[0]; }
+/** Return a const reference to the last element in this array, which must
+not be empty.
+@pre The array is not empty.
+@par Complexity:
+    Constant time. **/
+const T& back() const 
+{   SimTK_ERRCHK(!empty(), "ArrayView_<T>::back()", "Array was empty.");
+    return pData[nUsed-1]; }
+
+/** Select a subset of the elements of this array view and create another
+array view that includes only those. **/
+ArrayView_ operator()(index_type index, size_type length) const {
+    SimTK_INDEXCHECK(index,size(),"ArrayView_<T>(index,length)");
+    SimTK_SIZECHECK(length,size_type(size()-index),"ArrayView_<T>(index,length)");
+    return ArrayView_(pData+index, pData+index+length);
+}
+/*@}*/
+
+/** @name                       Iterators
+
+These methods deal in iterators, which are STL generalized pointers. For this
+class, iterators are just ordinary const pointers to T, and you may depend on 
+that. By necessity, reverse iterators can't be just pointers; however, they 
+contain an ordinary iterator (i.e. a pointer) that can be obtained by calling 
+the reverse iterator's base() method. **/
+/*@{*/
+
+/** Return a const pointer to the first element of this array if any, otherwise
+end(), which may be null (0) in that case but does not have to be. This method
+is from the proposed C++0x standard; there is also an overloaded begin() from
+the original standard that returns a const pointer. **/
+const T* cbegin() const {return pData;}
+/** Return a const pointer to what would be the element just after the last one
+in the array; this may be null (0) if there are no elements but doesn't have to
+be. This method is from the proposed C++0x standard; there is also an 
+overloaded end() from the original standard that returns a const pointer. **/
+const T* cend() const {return pData + nUsed;}
+
+/** The const version of begin() is the same as cbegin(). **/
+const T* begin() const {return pData;}
+/** The const version of end() is the same as cend(). **/
+const T* end() const {return pData + nUsed;}
+
+/** Return a const reverse iterator pointing to the last element in the array 
+or crend() if the array is empty. **/
+const_reverse_iterator crbegin() const 
+{   return const_reverse_iterator(end()); }
+/** Return the past-the-end reverse interator that tests equal to a reverse
+iterator that has been incremented past the front of the array. You cannot 
+dereference this iterator. **/
+const_reverse_iterator crend() const 
+{   return const_reverse_iterator(begin()); }
+
+/** The const version of rbegin() is the same as crbegin(). **/
+const_reverse_iterator rbegin() const {return crbegin();} 
+/** The const version of rend() is the same as crend(). **/
+const_reverse_iterator rend() const {return crend();}
+
+/** Return a const pointer to the first element of the array, or possibly
+(but not necessarily) null (0) if the array is empty.
+@note
+    cdata() does not appear to be in the C++0x standard although it would seem
+    obvious in view of the cbegin() and cend() methods that had to be added. 
+    The C++0x overloaded const data() method is also available. **/
+const T* cdata() const {return pData;}
+/** The const version of the data() method is identical to cdata(). **/
+const T* data() const {return pData;}
+
+
+/*@}*/
+
 //------------------------------------------------------------------------------
                                    protected:
 //------------------------------------------------------------------------------
@@ -238,9 +438,49 @@ bool isOwner() const {return nAllocated || pData==0;}
 // for use in derived class constructors that will be setting the data.
 explicit ArrayView_(const TrustMe&) {}
 
+// These provide direct access to the data member for our trusted friends.
+void setData(const T* p)        {pData = const_cast<T*>(p);}
+void setSize(size_type n)       {nUsed = n;}
+void setAllocated(size_type n)  {nAllocated = n;}
+
+// Return the actual value of the nAllocated data member; this is different
+// than capacity() which returns nUsed if nAllocated is zero. You can use
+// the data() and size() methods to get the other two fields.
+size_type allocated() const {return nAllocated;}
+
+// Check whether a given size is the same as the current size of this array,
+// avoiding any compiler warnings due to mismatched integral types.
+template <class S> 
+bool isSameSize(S sz) const
+{   return ull(sz) <= ullSize(); }
+
+// Check that a source object's size will fit in the Array being
+// careful to avoid overflow and warnings in the comparison.
+template <class S> 
+bool isSizeOK(S srcSz) const
+{   return ull(srcSz) <= ullMaxSize(); }
+
+template <class S>
+bool isGrowthOK(S n) const
+{   return isSizeOK(ullCapacity() + ull(n)); }
+
+// Cast an integral type to maximal-width unsigned long long to avoid accidental
+// overflows that might otherwise occur due to wraparound that can happen 
+// with small index types.
+template <class S>
+static unsigned long long ull(S sz)
+{   return (unsigned long long)sz; }
+
+// Return size(), capacity(), and max_size() cast to unsigned long long.
+unsigned long long ullSize()     const {return ull(size());}
+unsigned long long ullCapacity() const {return ull(capacity());}
+unsigned long long ullMaxSize()  const {return ull(max_size());}
+
+
 //------------------------------------------------------------------------------
 //                               DATA MEMBERS
 //------------------------------------------------------------------------------
+private:
 // These are the only data members and this layout is guaranteed not to change
 // from release to release. If data is null, then nUsed==nAllocated==0.
 T*                  pData;      // pointer to the first element, or null
@@ -324,8 +564,7 @@ standard STL objects.
   copying of the elements. With some care, you can also create an Array_<T> 
   object that shares the contents of an std::vector object without copying.
 **/
-template <class T, class X=int> 
-class Array_ : public ArrayView_<T,X> {
+template <class T, class X> class Array_ : public ArrayView_<T,X> {
 typedef ArrayView_<T,X> Base;
 //------------------------------------------------------------------------------
 public:
@@ -374,8 +613,8 @@ constructor if you can since that will be somewhat faster. **/
 explicit Array_(size_type n) : Base(TrustMe()) {
     SimTK_SIZECHECK(n, max_size(), "Array_<T>::ctor(n)");
     allocateNoConstruct(n);
-    defaultConstruct(pData, pData+n);
-    nUsed = n;
+    defaultConstruct(data(), data()+n);
+    setSize(n);
 }
 
 /** Construct an array containing \a n elements each set to a copy of the given 
@@ -383,9 +622,9 @@ initial value. T's copy constructor will be called exactly \a n times. If \a n
 is zero no space will be allocated. **/
 Array_(size_type n, const T& initVal) : Base(TrustMe()) {
     SimTK_SIZECHECK(n, max_size(), "Array_<T>::ctor(n,T)");
-    allocateNoConstruct(n);
-    fillConstruct(pData, pData+n, initVal);
-    nUsed = n;
+    setSize(n);
+    allocateNoConstruct(size());
+    fillConstruct(begin(), cend(), initVal);
 }
 
 /** Construct an Array_<T> from a range [first,last1) of values identified by a 
@@ -400,10 +639,11 @@ Array_(const T2* first, const T2* last1) : Base(TrustMe()) {
     SimTK_ERRCHK3(isSizeOK(last1-first), methodName,
         "Source has %llu elements but this array is limited to %llu"
         " elements by its index type %s.",
-        (unsigned long long)(last1-first), ullMaxSize(), index_name());
-    nUsed = size_type(last1-first);
-    allocateNoConstruct(nUsed);
-    copyConstruct(pData, pData+nUsed, first);
+        ull(last1-first), ullMaxSize(), index_name());
+
+    setSize(size_type(last1-first));
+    allocateNoConstruct(size());
+    copyConstruct(begin(), cend(), first);
 }
 
 /** Construct an Array_<T> by copying from an std::vector<T2>, where T2 may
@@ -451,19 +691,7 @@ no way for the array class to detect that.
     Dirt cheap. There will be no construction, destruction, or heap allocation
     performed.
 @see deallocate() **/
-Array_(T* first, const T* last1, const DontCopy&) : Base() { 
-    if (last1==first) return; // empty
-
-    SimTK_ERRCHK3(isSizeOK(last1-first), 
-        "Array_<T>::ctor(first,last1,DontCopy())",
-        "The source data's size %llu is too big for this array which"
-        " is limited to %llu elements by its index type %s.",
-        ull(last1-first), ullMaxSize(), index_name());
-
-    // Must use pointers into the vector's data rather than the iterators 
-    // begin() and end() in case vector::iterator is not a pointer.
-    shareData(first, last1);
-}
+Array_(T* first, const T* last1, const DontCopy&) : Base(first,last1) {}
 
 /** Construct an Array_<T> by referencing (sharing) the data in an 
 std::vector<T>, without copying the data. This is very fast but can be 
@@ -490,28 +718,16 @@ array is invalid if the original std::vector is destructed or resized.
     performed.
 @see deallocate() **/
 template <class A>
-Array_(std::vector<T,A>& v, const DontCopy&) : Base() { 
-    if (v.empty()) return;
-
-    SimTK_ERRCHK3(isSizeOK(v.size()), 
-        "Array_<T>::ctor(std::vector<T2>,DontCopy())",
-        "The source std::vector's size %llu is too big for this array which"
-        " is limited to %llu elements by its index type %s.",
-        ull(v.size()), ullMaxSize(), index_name());
-
-    // Must use pointers into the vector's data rather than the iterators 
-    // begin() and end() in case vector::iterator is not a pointer.
-    shareData(&v.front(), (&v.back())+1);
-}
+Array_(std::vector<T,A>& v, const DontCopy&) : Base(v) {}
 
 /** Copy constructor allocates exactly as much memory as is in use in the 
 source (not its capacity) and copy constructs the elements so that T's copy 
 constructor will be called exactly src.size() times. If the source is empty, 
 no heap space will be allocated. **/
 Array_(const Array_& src) : Base(TrustMe()) {
-    nUsed = src.nUsed;
-    allocateNoConstruct(nUsed);
-    copyConstruct(pData, pData+nUsed, src.pData);
+    setSize(src.size());
+    allocateNoConstruct(size());
+    copyConstruct(begin(), cend(), src.data());
 }
 
 /** Construct this Array_<T,X> as a copy of another Array_<T2,X2> where T2!=T
@@ -522,31 +738,15 @@ src.size() times; the particular constructor is whichever one best matches
 T(T2). **/
 template <class T2, class X2>
 Array_(const Array_<T2,X2>& src) : Base(TrustMe()) {
-    new (this) Array_(src.begin(), src.end()); // see above
+    new (this) Array_(src.begin(), src.cend()); // see above
 }
 
-/** Disconnect this array handle from any data to which it refers, restoring
-it to the condition it would be in if it had just been default-constructed. 
-This method is like clear() but more severe, and it can be used on non-owner
-arrays while clear() cannot. For owner arrays, element destructors (if any) 
-will be called and then the allocated heap space will be freed. For non-owner 
-arrays, the data pointer will simply be set to null; we'll assume the owner 
-will clean things up later. In either case the size() and capacity() will be 
-zero after this call and data() will return null (0). 
-@note
-    This is an extension; there is no comparable method in std::vector. clear()
-    is the closest approximation.
-@return
-    A reference to the now-empty array handle, suitable for further 
-    assignment. **/
 Array_& deallocate() {
-    if (nAllocated) { // owner
+    if (allocated()) { // owner with non-zero allocation
         clear(); // each element is destructed; nUsed=0; nAllocated unchanged
         deallocateNoDestruct(); // free pData; nAllocated=0
-    } else { // non-owner
-        nUsed = 0;
-        pData = 0;
     }
+    disconnect(); // clear the handle
     return *this;
 }
 
@@ -584,12 +784,12 @@ Array_& assign(size_type n, const T& fillValue) {
 
     SimTK_ERRCHK2(isOwner() || n==size(), methodName,
         "Requested size %llu is not allowed because this is a non-owner"
-        " array of fixed size %llu.", ull(n), ull(nUsed));
+        " array of fixed size %llu.", ull(n), ull(size()));
 
     clear(); // all elements destructed; allocation unchanged
     reallocateIfAdvisable(n); // change size if too small or too big
-    fillConstruct(pData, pData+n, fillValue);
-    nUsed = n;
+    fillConstruct(data(), cdata()+n, fillValue);
+    setSize(n);
     return *this;
 }
 
@@ -689,9 +889,9 @@ Array_& adoptData(T* newData, size_type dataSize,
         "A null data pointer is allowed only if the size and capacity are"
         " specified as zero.");
     deallocate();
-    pData = newData;
-    nUsed = dataSize;
-    nAllocated = dataCapacity;
+    setData(newData);
+    setSize(dataSize);
+    setAllocated(dataCapacity);
     return *this;
 }
 /** A variant of adoptData() that assumes the capacity is the same as the
@@ -719,9 +919,9 @@ Array_& shareData(T* newData, size_type dataSize) {
     SimTK_ERRCHK(newData || dataSize==0, methodName,
         "A null data pointer is allowed only if the size is zero.");
     deallocate();
-    pData = newData;
-    nUsed = dataSize;
-    nAllocated = 0; // indicates shared data
+    setData(newData);
+    setSize(dataSize);
+    setAllocated(0); // indicates shared data
     return *this;
 }
 
@@ -737,7 +937,7 @@ Array_& shareData(T* first, const T* last1) {
 Array_ operator()(index_type index, size_type length) {
     SimTK_INDEXCHECK(index,size(),"Array_<T>(index,length)");
     SimTK_SIZECHECK(length,size_type(size()-index),"Array_<T>(index,length)");
-    return Array_(pData+index, pData+index+length, DontCopy());
+    return Array_(data()+index, cdata()+index+length, DontCopy());
 }
 
 /*@}*/
@@ -750,9 +950,9 @@ involve O(n) copying operations. This method makes no calls to any constructors
 or destructors. This is allowable even for non-owner arrays; the non-owner
 attribute will follow the non-owned data. **/
 void swap(Array_& other) {
-    std::swap(pData,other.pData);
-    std::swap(nUsed,other.nUsed);
-    std::swap(nAllocated,other.nAllocated);
+    T* const pTmp=data(); setData(other.data()); other.setData(pTmp);
+    size_type nTmp=size(); setSize(other.size()); other.setSize(nTmp);
+    nTmp=allocated(); setAllocated(other.allocated()); other.setAllocated(nTmp);
 }
 
 /** @name                   Size and capacity 
@@ -768,21 +968,21 @@ fit, and default constructing any new elements that are added. This is not
 allowed for non-owner arrays unless the requested size is the same as the 
 current size. **/
 void resize(size_type n) {
-    if (n == nUsed) return;
+    if (n == size()) return;
 
     SimTK_ERRCHK2(isOwner(), "Array_<T>::resize(n)",
         "Requested size change to %llu is not allowed because this is a"
-        " non-owner array of fixed size %llu.", ull(n), ull(nUsed));
+        " non-owner array of fixed size %llu.", ull(n), ull(size()));
 
     if (n == 0) {clear(); return;}
-    if (n < nUsed) {
-        erase(pData+n, end());
+    if (n < size()) {
+        erase(data()+n, cend());
         return;
     }
-    // n > nUsed
+    // n > size()
     reserve(n);
-    defaultConstruct(pData+nUsed, pData+n); // pData has changed
-    nUsed = n;
+    defaultConstruct(data()+size(), cdata()+n); // data() has changed
+    setSize(n);
 }
 
 /** Change the size of this array, preserving all the elements that will still 
@@ -790,21 +990,21 @@ fit, and initializing any new elements that are added by repeatedly copy-
 constructing from the supplied value. This is not allowed for non-owner arrays
 unless the requested size is the same as the current size. **/
 void resize(size_type n, const T& initVal) {
-    if (n == nUsed) return;
+    if (n == size()) return;
 
     SimTK_ERRCHK2(isOwner(), "Array_<T>::resize(n,value)",
         "Requested size change to %llu is not allowed because this is a"
-        " non-owner array of fixed size %llu.", ull(n), ull(nUsed));
+        " non-owner array of fixed size %llu.", ull(n), ull(size()));
 
     if (n == 0) {clear(); return;}
-    if (n < nUsed) {
-        erase(pData+n, end());
+    if (n < size()) {
+        erase(data()+n, cend());
         return;
     }
-    // sz > nUsed
+    // n > size()
     reserve(n);
-    fillConstruct(pData+nUsed, pData+n, initVal);
-    nUsed = n;
+    fillConstruct(data()+size(), data()+n, initVal);
+    setSize(n);
 }
 
 /** Ensure that this array has enough allocated capacity to hold the indicated 
@@ -819,13 +1019,13 @@ void reserve(size_type newCapacity) {
 
     SimTK_ERRCHK2(isOwner(), "Array_<T>::reserve()",
         "Requested capacity change to %llu is not allowed because this is a"
-        " non-owner array of fixed size %llu.", ull(newCapacity), ull(nUsed));
+        " non-owner array of fixed size %llu.", ull(newCapacity), ull(size()));
 
     T* newData = allocN(newCapacity); // no construction yet
-    copyConstructThenDestructSource(newData, newData+nUsed, pData);
-    freeN(pData);
-    pData = newData;
-    nAllocated = newCapacity;
+    copyConstructThenDestructSource(newData, newData+size(), data());
+    freeN(data());
+    setData(newData);
+    setAllocated(newCapacity);
 }
 
 /** Request that the capacity of this array be reduced to the minimum necessary
@@ -853,11 +1053,11 @@ void shrink_to_fit() {
     // unless capacity is already zero.
     if (capacity() - size()/4 <= size()) // avoid overflow if size() near max
         return;
-    T* newData = allocN(nUsed);
-    copyConstructThenDestructSource(newData, newData+nUsed, pData);
+    T* newData = allocN(size());
+    copyConstructThenDestructSource(newData, newData+size(), data());
     deallocateNoDestruct(); // pData=0, nAllocated=0, nUsed unchanged
-    pData = newData;
-    nAllocated = nUsed;
+    setData(newData);
+    setAllocated(size());
 }
 
 /*@}*/
@@ -874,29 +1074,16 @@ reverse iterator's base() method. **/
 /** Return a writable pointer to the first element of this array if any,
 otherwise end(). Note that end() will be null (0) if no space is allocated, but
 may be non null otherwise even if the array is empty. **/
-T* begin() {return pData;}
+T* begin() {return const_cast<T*>(cbegin());}
 /** This overload of begin() is the same as cbegin(). **/
 const T* begin() const {return cbegin();}
 /** Return a writable pointer to what would be the element just after the last
 one in this array. If the array is empty, this \e may return null (0) but does 
 not have to -- the only thing you can be sure of is that begin()==end() for an 
 empty array. **/
-T* end() {return pData + nUsed;} // one past end
+T* end() {return const_cast<T*>(cend());} // one past end
 /** This overload of end() is the same as cend(). **/
 const T* end() const {return cend();}
-
-
-/** Return a const pointer to the first element of this array if any, otherwise
-end(), which may be null (0) in that case but does not have to be. This method
-is from the proposed C++0x standard; there is also an overloaded begin() from
-the original standard that returns a const pointer. **/
-const T* cbegin() const {return pData;}
-/** Return a const pointer to what would be the element just after the last one
-in the array; this may be null (0) if there are no elements but doesn't have to
-be. This method is from the proposed C++0x standard; there is also an 
-overloaded end() from the original standard that returns a const pointer. **/
-const T* cend() const {return pData + nUsed;}
-
 
 /** Return a writable reverse iterator pointing to the last element in the
 array or rend() if the array is empty. **/
@@ -913,38 +1100,21 @@ reverse_iterator rend()
 /** This overload of rend() is the same as crend(). **/
 const_reverse_iterator rend() const {return crend();}
 
-/** Return a const reverse iterator pointing to the last element in the array or
-crend() if the array is empty. **/
-const_reverse_iterator crbegin() const 
-{   return const_reverse_iterator(end()); }
-/** Return the past-the-end reverse interator that tests equal to a reverse
-iterator that has been incremented past the front of the array. You cannot 
-dereference this iterator. **/
-const_reverse_iterator crend() const 
-{   return const_reverse_iterator(begin()); }
-
 /** Return a writable pointer to the first allocated element of the array, or
 a null pointer if no space is associated with the array.
 
 @note
     This method is from the proposed C++0x std::vector. **/
-T* data() {return pData;}
+T* data() {return const_cast<T*>(cdata());}
 /** This overloaded data() method is identical to cdata(). **/
 const T* data() const {return cdata();}
-
-/** Return a const pointer to the first element of the array, or a null
-pointer if the array is empty. See the data() method for more information.
-@note
-    This does not appear to be in the C++0x standard although it would seem
-    obvious in view of the cbegin() and cend() methods that had to be added. 
-    The C++0x overloaded const data() method is also available. **/
-const T* cdata() const {return pData;}
 /*@}*/
 
 /** @name                     Element access
 
-These methods provide access to individual elements that are currently present
-in the array. **/
+These methods provide writable access to individual elements that are 
+currently present in the array; the ArrayView_<T,X> base class provided the
+read-only (const) methods. **/
 /*@{*/
 
 /** Select an element by its index, returning a const reference. Note that only 
@@ -953,10 +1123,8 @@ will be range-checked in a Debug build but not in Release.
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-const T& operator[](index_type i) const {
-    SimTK_INDEXCHECK(i,nUsed,"Array_<T>::operator[]() const");
-    return pData[i];
-}
+const T& operator[](index_type i) const {return Base(*this)[i];}
+
 /** Select an element by its index, returning a writable (lvalue) reference. 
 Note that only a value of the Array's templatized index type is allowed 
 (default is int). This will be range-checked in a Debug build but not 
@@ -964,58 +1132,48 @@ in Release.
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-T& operator[](index_type i) {
-    SimTK_INDEXCHECK(i,nUsed,"Array_<T>::operator[]()");
-    return pData[i];
-}
+T& operator[](index_type i) {return const_cast<T&>(Base(*this)[i]);}
+
 /** Same as operator[] but always range-checked, even in a Release build.  
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-const T& at(index_type i) const {
-    SimTK_INDEXCHECK_ALWAYS(i,nUsed,"Array_<T>::at() const");
-    return pData[i];
-}
+const T& at(index_type i) const {return Base(*this).at(i);}
+
 /** Same as operator[] but always range-checked, even in a Release build.  
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-T& at(index_type i) {
-    SimTK_INDEXCHECK_ALWAYS(i,nUsed,"Array_<T>::at()");
-    return pData[i];
-}
+T& at(index_type i) {return const_cast<T&>(Base(*this).at(i));}
+
 /** Return a const reference to the first element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-const T& front() const 
-{   SimTK_ERRCHK(!empty(), "Array_<T>::front()", "Array was empty.");
-    return pData[0]; }
+const T& front() const {return Base(*this).front();} 
+
 /** Return a writable reference to the first element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-T& front() 
-{   SimTK_ERRCHK(!empty(), "Array_<T>::front()", "Array was empty.");
-    return pData[0]; }
+T& front() {return const_cast<T&>(Base(*this).front());}
+
 /** Return a const reference to the last element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-const T& back() const 
-{   SimTK_ERRCHK(!empty(), "Array_<T>::back()", "Array was empty.");
-    return pData[nUsed-1]; }
+const T& back() const {return Base(*this).back();}
+
 /** Return a writable reference to the last element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-T& back() 
-{   SimTK_ERRCHK(!empty(), "Array_<T>::back()", "Array was empty.");
-    return pData[nUsed-1]; }
+T& back() {return const_cast<T&>(Base(*this).back());}
+
 /*@}*/
 
 /** Erase all the elements currently in this Array without changing the capacity;
@@ -1028,7 +1186,7 @@ void clear() {
     SimTK_ERRCHK(isOwner(), "Array_<T>::clear()", 
         "clear() is not allowed for a non-owner array.");
     destruct(begin(), end());
-    nUsed = 0;
+    setSize(0);
 }
 
 /**@name                Element insertion and removal
@@ -1054,7 +1212,7 @@ elements erased. Capacity is unchanged. If the range is empty nothing happens.
 @par Complexity:
     Calls T's destructor once for each erased element and calls T's copy 
     constructor and destructor once for each element that has to be moved. **/
-T* erase(T* first, T* last1) {
+T* erase(T* first, const T* last1) {
     SimTK_ERRCHK(begin() <= first && first <= last1 && last1 <= end(),
     "Array<T>::erase(first,last1)", "Pointers out of range or out of order.");
 
@@ -1064,8 +1222,8 @@ T* erase(T* first, T* last1) {
 
     if (nErased) {
         destruct(first, last1); // Destruct the elements we're erasing.
-        moveElementsDown(last1, nErased); // Compress followers into the gap.
-        nUsed -= nErased;
+        moveElementsDown(first+nErased, nErased); // Compress followers into the gap.
+        setSize(size()-nErased);
     }
     return first;
 }
@@ -1097,7 +1255,7 @@ T* erase(T* p) {
 
     destruct(p);              // Destruct the element we're erasing.
     moveElementsDown(p+1, 1); // Compress followers into the gap.
-    --nUsed;
+    setSize(size()-1);
     return p;
 }
 
@@ -1131,7 +1289,7 @@ T* eraseFast(T* p) {
     destruct(p);
     if (p+1 != end()) 
         moveOneElement(p, &back());
-    --nUsed;
+    setSize(size()-1);
     return p;
 }
 
@@ -1165,7 +1323,7 @@ T* insert(T* p, size_type n, const T& value) {
     T* const gap = insertGapAt(p, n, "Array<T>::insert(p,n,value)");
     // Copy construct into the inserted elements and note the size change.
     fillConstruct(gap, gap+n, value);
-    nUsed += n;
+    setSize(size()+n);
     return gap;
 }
 
@@ -1177,7 +1335,7 @@ T* insert(T* p, const T& value)  {
     T* const gap = insertGapAt(p, 1, "Array<T>::insert(p,value)");
     // Copy construct into the inserted element and note the size change.
     copyConstruct(gap, value);
-    ++nUsed;
+    setSize(size()+1);
     return gap;
 }
 
@@ -1211,7 +1369,7 @@ of this array.
     pairs. Then there are n additional copy constructor calls to construct the 
     new elements from the given value. **/
 template <class T2>
-T* insert(T* p, T2* first, T2* last1) {
+T* insert(T* p, const T2* first, const T2* last1) {
     const char* methodName = "Array_<T>::insert(p,first,last1)";
     SimTK_ERRCHK((first&&last1) || (first==last1), methodName, 
         "One of first or last1 was null; either both or neither must be null.");
@@ -1252,10 +1410,11 @@ would be returned by back() after this call.
     array. Either way there is one call to T's copy constructor to construct 
     the new element from the supplied value. **/
 T* push_back(const T& value) {
-    if (nAllocated == nUsed)
-        growAtEnd(1,"Array_<T>::push_back(elt)");
-    T* const p = pData + nUsed++;
+    if (allocated() == size())
+        growAtEnd(1,"Array_<T>::push_back(value)");
+    T* const p = end();
     copyConstruct(p, value);
+    setSize(size()+1);
     return p;
 }
 
@@ -1274,10 +1433,11 @@ std::vector<T> definition.
 @see push_back(value) 
 **/
 T* push_back() {
-    if (nAllocated == nUsed)
-        growAtEnd(1,"Array_<T>::push_back(elt)");
-    T* const p = pData + nUsed++;
+    if (allocated() == size())
+        growAtEnd(1,"Array_<T>::push_back()");
+    T* const p = end();
     defaultConstruct(p);
+    setSize(size()+1);
     return p;
 }
 
@@ -1298,16 +1458,19 @@ used for objects that have neither default nor copy constructors.
 @see push_back(value), push_back() 
 **/
 T* raw_push_back() {
-    if (nAllocated == nUsed)
+    if (allocated() == size())
         growAtEnd(1,"Array_<T>::raw_push_back()");
-    return pData + nUsed++;
+    T* const p = end();
+    setSize(size()+1);
+    return p;
 }
 
 /** Remove the last element from this array, which must not be empty. The 
 element is destructed, not returned. The array's size() is reduced by one. **/
 void pop_back() {
     SimTK_ERRCHK(!empty(), "Array_<T>::pop_back()", "Array was empty.");
-    destruct(pData + --nUsed);
+    destruct(&back());
+    setSize(size()-1);
 }
 /*@}*/
 
@@ -1338,8 +1501,8 @@ T* growWithGap(T* gapPos, size_type gapSz, const char* methodName) {
         "Given insertion point is not valid for this array.");
 
     // Get some new space of a reasonable size.
-    nAllocated   = calcNewCapacityForGrowthBy(gapSz, methodName);
-    T* newData   = allocN(nAllocated);
+    setAllocated(calcNewCapacityForGrowthBy(gapSz, methodName));
+    T* newData   = allocN(allocated());
 
     // How many elements will be before the gap?
     const size_type nBefore = gapPos-begin();
@@ -1349,12 +1512,12 @@ T* growWithGap(T* gapPos, size_type gapSz, const char* methodName) {
     T* newGapEnd = newGap  + gapSz; // one past the last element in the gap
 
     // Copy elements before insertion point; destruct source as we go.
-    copyConstructThenDestructSource(newData,   newGap,        pData);
+    copyConstructThenDestructSource(newData,   newGap,        data());
     // Copy/destruct elements at and after insertion pt; leave gapSz gap.
-    copyConstructThenDestructSource(newGapEnd, newData+nUsed, gapPos);
+    copyConstructThenDestructSource(newGapEnd, newData+size(), gapPos);
 
     // Throw away the old data and switch to the new.
-    freeN(pData); pData = newData;
+    freeN(data()); setData(newData);
     return newGap;
 }
 
@@ -1362,12 +1525,12 @@ T* growWithGap(T* gapPos, size_type gapSz, const char* methodName) {
 void growAtEnd(size_type n, const char* methodName) {
     assert(n > 0); // <= 0 is a bug, not a user error
     // Get some new space of a reasonable size.
-    nAllocated   = calcNewCapacityForGrowthBy(n, methodName);
-    T* newData   = allocN(nAllocated);
+    setAllocated(calcNewCapacityForGrowthBy(n, methodName));
+    T* newData   = allocN(allocated());
     // Copy all the elements; destruct source as we go.
-    copyConstructThenDestructSource(newData, newData+nUsed, pData);
+    copyConstructThenDestructSource(newData, newData+size(), data());
     // Throw away the old data and switch to the new.
-    freeN(pData); pData = newData;
+    freeN(data()); setData(newData);
 }
 
 // This method determines how much we should increase the array's capacity
@@ -1422,18 +1585,18 @@ T* insertGapAt(T* p, size_type n, const char* methodName) {
     if (capacity() >= size()+n) {
         moveElementsUp(p, n); // leave a gap at p
     } else { // need to grow
-        nAllocated = calcNewCapacityForGrowthBy(n, methodName);
-        T* newdata = allocN(nAllocated);
+        setAllocated(calcNewCapacityForGrowthBy(n, methodName));
+        T* newdata = allocN(allocated());
         // Copy the elements before the insertion point, and destroy source.
-        copyConstructThenDestructSource(newdata, newdata+before, pData);
+        copyConstructThenDestructSource(newdata, newdata+before, data());
         // Copy the elements at and after the insertion point, leaving a gap
         // of n elements.
         copyConstructThenDestructSource(newdata+before+n,
                                         newdata+before+n+after,
                                         p); // i.e., pData+before
         p = newdata + before; // points into newdata now
-        freeN(pData);
-        pData = newdata;
+        freeN(data());
+        setData(newdata);
     }
 
     return p;
@@ -1514,9 +1677,9 @@ void assignImpl(const RandomAccessIterator& first,
             ull(last1-first), ullMaxSize(), index_name());
 
         clear(); // all elements destructed; allocation unchanged
-        nUsed = size_type(last1-first);
-        reallocateIfAdvisable(nUsed); // change size if too small or too big
-        copyConstruct(pData, pData+nUsed, first);
+        setSize(size_type(last1-first));
+        reallocateIfAdvisable(size()); // change size if too small or too big
+        copyConstruct(data(), data()+size(), first);
     } else {
         // This is a non-owner Array. Assignment can occur only if the
         // source is the same size as the array, and the semantics are of
@@ -1546,15 +1709,15 @@ void assignImpl(const RandomAccessIterator& first,
 // nAllocated will be set appropriately; nUsed is not touched here.
 // No constructors or destructors are called.
 void reallocateIfAdvisable(size_type n) {
-    if (nAllocated < n || nAllocated/2 > std::max(minAlloc(), n)) 
+    if (allocated() < n || allocated()/2 > std::max(minAlloc(), n)) 
         reallocateNoDestructOrConstruct(n);
 }
 
 
 void allocateNoConstruct(size_type n) 
-{   pData = allocN(n); nAllocated=n; }    // nUsed left unchanged
+{   setData(allocN(n)); setAllocated(n); } // size() left unchanged
 void deallocateNoDestruct() 
-{   freeN(pData); pData=0; nAllocated=0; } // nUsed left unchanged
+{   freeN(data()); setData(0); setAllocated(0); } // size() left unchanged
 void reallocateNoDestructOrConstruct(size_type n)
 {   deallocateNoDestruct(); allocateNoConstruct(n); }
 
@@ -1585,7 +1748,7 @@ static void freeN(T* p) {
 // default construct one element
 static void defaultConstruct(T* p) {new(p) T();}
 // default construct range [b,e)
-static void defaultConstruct(T* b, T* e) 
+static void defaultConstruct(T* b, const T* e) 
 {   while (b!=e) new(b++) T(); }
 
 // copy construct range [b,e) with repeats of a given value
@@ -1607,8 +1770,7 @@ static void copyConstruct(T* b, const T* e, ForwardIterator src)
 // destruct the source after it is copied. It's better to alternate
 // copying and destructing than to do this in two passes since we
 // will already have touched the memory.
-static void copyConstructThenDestructSource
-   (T* b, const T* const e, T* src)
+static void copyConstructThenDestructSource(T* b, const T* e, T* src)
 {   while(b!=e) {new(b++) T(*src); src++->~T();} }
 
 // We have an element at from that we would like to move into the currently-
@@ -1616,8 +1778,8 @@ static void copyConstructThenDestructSource
 // elements within the currently allocated space. From's slot will be left
 // unconstructed.
 void moveOneElement(T* to, T* from) {
-    assert(pData <= to   && to   < pData+nAllocated);
-    assert(pData <= from && from < pData+nAllocated);
+    assert(data() <= to   && to   < data()+allocated());
+    assert(data() <= from && from < data()+allocated());
     copyConstruct(to, *from); 
     destruct(from);
 }
@@ -1649,33 +1811,6 @@ static void destruct(T* p) {p->~T();}
 static void destruct(T* b, const T* e)
 {   while(b!=e) b++->~T(); }
 
-// Check whether a given size is the same as the current size of this array,
-// avoiding any compiler warnings due to mismatched integral types.
-template <class S> 
-bool isSameSize(S sz) const
-{   return ull(sz) <= ullSize(); }
-
-// Check that a source object's size will fit in the Array being
-// careful to avoid overflow and warnings in the comparison.
-template <class S> 
-bool isSizeOK(S srcSz) const
-{   return ull(srcSz) <= ullMaxSize(); }
-
-template <class S>
-bool isGrowthOK(S n) const
-{   return isSizeOK(ullCapacity() + ull(n)); }
-
-// Cast an integral type to maximal-width unsigned long long to avoid accidental
-// overflows that might otherwise occur due to wraparound that can happen 
-// with small index types.
-template <class S>
-static unsigned long long ull(S sz)
-{   return (unsigned long long)sz; }
-
-// Return size(), capacity(), and max_size() cast to unsigned long long.
-unsigned long long ullSize()     const {return ull(size());}
-unsigned long long ullCapacity() const {return ull(capacity());}
-unsigned long long ullMaxSize()  const {return ull(max_size());}
 
 
 // These are to avoid errors when compiling with gcc 4.1.2 which feels
