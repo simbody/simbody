@@ -762,6 +762,13 @@ allocated heap space (capacity) or both. The ArrayView_<T,X> base class
 provides methods for examining these parameters without changing them. **/
 /*@{*/
 
+
+// These are to avoid errors when compiling with gcc 4.1.2 which feels
+// that because the base class methods don't depend on any tempate 
+// parameters they must already have been instantiated.
+bool empty() const {return Base::empty();}
+bool isOwner() const {return Base::isOwner();}
+
 /** Change the size of this Array, preserving all the elements that will still 
 fit, and default constructing any new elements that are added. This is not
 allowed for non-owner arrays unless the requested size is the same as the 
