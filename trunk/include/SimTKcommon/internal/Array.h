@@ -510,6 +510,23 @@ but not the ability to change size or reallocate. **/
 template <class T, class X> class ArrayView_ : public ConstArray_<T,X> {
 typedef ConstArray_<T,X> CBase;
 public:
+
+typedef typename CBase::value_type               value_type;
+typedef typename CBase::pointer                  pointer;
+typedef typename CBase::const_pointer            const_pointer;
+typedef typename CBase::reference                reference;
+typedef typename CBase::const_reference          const_reference;
+typedef typename CBase::iterator                 iterator;
+typedef typename CBase::const_iterator           const_iterator;
+
+typedef typename CBase::reverse_iterator         reverse_iterator;
+typedef typename CBase::const_reverse_iterator   const_reverse_iterator;
+
+typedef typename CBase::index_type               index_type;
+typedef typename CBase::index_traits             index_traits;
+typedef typename CBase::size_type                size_type;
+typedef typename CBase::difference_type          difference_type;
+
 /** Default constructor allocates no heap space and is very fast. **/
 ArrayView_() : CBase() {}
 
@@ -705,7 +722,7 @@ will be range-checked in a Debug build but not in Release.
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-const T& operator[](index_type i) const {return CBase::operator[](i);}
+const T& operator[](index_type i) const {return this->CBase::operator[](i);}
 
 /** Select an element by its index, returning a writable (lvalue) reference. 
 Note that only a value of the Array's templatized index type is allowed 
@@ -714,19 +731,19 @@ in Release.
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-T& operator[](index_type i) {return const_cast<T&>(CBase::operator[](i));}
+T& operator[](index_type i) {return const_cast<T&>(this->CBase::operator[](i));}
 
 /** Same as operator[] but always range-checked, even in a Release build.  
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-const T& at(index_type i) const {return CBase::at(i);}
+const T& at(index_type i) const {return this->CBase::at(i);}
 
 /** Same as operator[] but always range-checked, even in a Release build.  
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-T& at(index_type i) {return const_cast<T&>(CBase::at(i));}
+T& at(index_type i) {return const_cast<T&>(this->CBase::at(i));}
 
 /** Return a const reference to the first element in this array, which must
 not be empty.
@@ -996,21 +1013,21 @@ public:
 // check standard
 // more raw methods
 
-typedef typename Base::value_type               value_type;
-typedef typename Base::pointer                  pointer;
-typedef typename Base::const_pointer            const_pointer;
-typedef typename Base::reference                reference;
-typedef typename Base::const_reference          const_reference;
-typedef typename Base::iterator                 iterator;
-typedef typename Base::const_iterator           const_iterator;
+typedef typename CBase::value_type               value_type;
+typedef typename CBase::pointer                  pointer;
+typedef typename CBase::const_pointer            const_pointer;
+typedef typename CBase::reference                reference;
+typedef typename CBase::const_reference          const_reference;
+typedef typename CBase::iterator                 iterator;
+typedef typename CBase::const_iterator           const_iterator;
 
-typedef typename Base::reverse_iterator         reverse_iterator;
-typedef typename Base::const_reverse_iterator   const_reverse_iterator;
+typedef typename CBase::reverse_iterator         reverse_iterator;
+typedef typename CBase::const_reverse_iterator   const_reverse_iterator;
 
-typedef typename Base::index_type               index_type;
-typedef typename Base::index_traits             index_traits;
-typedef typename Base::size_type                size_type;
-typedef typename Base::difference_type          difference_type;
+typedef typename CBase::index_type               index_type;
+typedef typename CBase::index_traits             index_traits;
+typedef typename CBase::size_type                size_type;
+typedef typename CBase::difference_type          difference_type;
 
 /** @name           Construction and destruction
 
