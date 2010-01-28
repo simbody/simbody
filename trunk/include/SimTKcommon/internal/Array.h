@@ -182,8 +182,6 @@ typedef typename index_traits::size_type        size_type;
 typedef typename index_traits::difference_type  difference_type;
 
 
-const char* index_name() const {return index_traits::index_name();}
-
 /** @name           Construction and destruction
 
 Constructors here are limited to those that don't allocate new data.
@@ -226,7 +224,7 @@ ArrayView_(const T* first, const T* last1)
         "ArrayView_<T>::ctor(first,last1)",
         "The source data's size %llu is too big for this array which"
         " is limited to %llu elements by its index type %s.",
-        ull(last1-first), ullMaxSize(), index_name());
+        ull(last1-first), ullMaxSize(), indexName());
 
     pData = const_cast<T*>(first); 
     nUsed = size_type(last1-first); 
@@ -264,7 +262,7 @@ ArrayView_(const std::vector<T,A>& v)
         "ArrayView_<T>::ctor(std::vector<T>)",
         "The source std::vector's size %llu is too big for this array which"
         " is limited to %llu elements by its index type %s.",
-        ull(v.size()), ullMaxSize(), index_name());
+        ull(v.size()), ullMaxSize(), indexName());
 
     pData = const_cast<T*>(&v.front()); 
     nUsed = size_type(v.size()); 
@@ -314,12 +312,15 @@ requiring reallocation. The value returned by capacity() is always greater
 than or equal to size(), even if the data is not owned by this array in
 which case we have capacity()==size() and the array is not reallocatable. **/
 size_type capacity() const {return nAllocated?nAllocated:nUsed;}
+/** Return the amount of heap space owned by this array; this is the same
+as capacity() for owner arrays but is zero for non-owners. 
+@note There is no equivalent of this method for std::vector. **/
+size_type allocated() const {return nAllocated;}
 /** Does this array own the data to which it refers? If not, it can't be
 resized, and the destructor will not free any heap space nor call any element
 destructors. If the array does not refer to any data it is considered to be
 an owner since it is resizeable. 
-@note
-    This is an extension; there is no equivalent for std::vector. **/
+@note There is no equivalent for std::vector. **/
 bool isOwner() const {return nAllocated || pData==0;}
 /*}*/
 
@@ -375,7 +376,7 @@ ArrayView_ operator()(index_type index, size_type length) const {
 }
 /*@}*/
 
-/** @name                       Iterators
+/** @name                   Const iterators
 
 These methods deal in iterators, which are STL generalized pointers. For this
 class, iterators are just ordinary const pointers to T, and you may depend on 
@@ -443,10 +444,6 @@ void setData(const T* p)        {pData = const_cast<T*>(p);}
 void setSize(size_type n)       {nUsed = n;}
 void setAllocated(size_type n)  {nAllocated = n;}
 
-// Return the actual value of the nAllocated data member; this is different
-// than capacity() which returns nUsed if nAllocated is zero. You can use
-// the data() and size() methods to get the other two fields.
-size_type allocated() const {return nAllocated;}
 
 // Check whether a given size is the same as the current size of this array,
 // avoiding any compiler warnings due to mismatched integral types.
@@ -476,6 +473,8 @@ unsigned long long ullSize()     const {return ull(size());}
 unsigned long long ullCapacity() const {return ull(capacity());}
 unsigned long long ullMaxSize()  const {return ull(max_size());}
 
+// Useful in error messages.
+const char* indexName() const {return index_traits::index_name();}
 
 //------------------------------------------------------------------------------
 //                               DATA MEMBERS
@@ -639,7 +638,7 @@ Array_(const T2* first, const T2* last1) : Base(TrustMe()) {
     SimTK_ERRCHK3(isSizeOK(last1-first), methodName,
         "Source has %llu elements but this array is limited to %llu"
         " elements by its index type %s.",
-        ull(last1-first), ullMaxSize(), index_name());
+        ull(last1-first), ullMaxSize(), indexName());
 
     setSize(size_type(last1-first));
     allocateNoConstruct(size());
@@ -657,7 +656,7 @@ explicit Array_(const std::vector<T2>& v) : Base() {
     SimTK_ERRCHK3(isSizeOK(v.size()), "Array_<T>::ctor(std::vector<T2>)",
         "The source std::vector's size %llu is too big for this array which"
         " is limited to %llu elements by its index type %s.",
-        ull(v.size()), ullMaxSize(), index_name());
+        ull(v.size()), ullMaxSize(), indexName());
 
     // Call the above constructor, making sure to use pointers into the
     // vector's data rather than the iterators begin() and end() in case
@@ -780,7 +779,7 @@ Array_& assign(size_type n, const T& fillValue) {
     SimTK_ERRCHK3(isSizeOK(n), methodName,
         "Requested size %llu is too big for this array which is limited"
         " to %llu elements by its index type %s.",
-        ull(n), ullMaxSize(), index_name());
+        ull(n), ullMaxSize(), indexName());
 
     SimTK_ERRCHK2(isOwner() || n==size(), methodName,
         "Requested size %llu is not allowed because this is a non-owner"
@@ -930,7 +929,7 @@ Array_& shareData(T* first, const T* last1) {
     SimTK_ERRCHK3(isSizeOK(last1-first), "Array_<T>::shareData(first,last1)",
         "Requested size %llu is too big for this array which is limited"
         " to %llu elements by its index type %s.",
-        ull(last1-first), ullMaxSize(), index_name());
+        ull(last1-first), ullMaxSize(), indexName());
     return shareData(first, size_type(last1-first));
 }
 
@@ -957,29 +956,37 @@ void swap(Array_& other) {
 
 /** @name                   Size and capacity 
 
-These methods can alter the number of elements (size) or the amount of 
-allocated heap space (capacity) or both. The ArrayView_<T,X> base class 
-provides methods for examining these parameters without changing them. **/
+These methods examine and alter the number of elements (size) or the amount of 
+allocated heap space (capacity) or both. **/
 /*@{*/
+
+// Note: these have to be explicitly forwarded to the base class methods
+// in order to keep gcc from complaining. Note that the "this->" is 
+// apparently necessary in order to permit delayed definition of templatized 
+// methods.
+
 /** Return the current number of elements stored in this array. **/
-size_type size() const {return Base(*this).size();}
+size_type size() const {return this->Base::size();}
 /** Return the maximum allowable size for this array. **/
-size_type max_size() const {return Base(*this).max_size();}
+size_type max_size() const {return this->Base::max_size();}
 /** Return true if there are no elements currently stored in this array. This
 is equivalent to the tests begin()==end() or size()==0. **/
-bool empty() const {return Base(*this).empty();}
+bool empty() const {return this->Base::empty();}
 /** Return the number of elements this array can currently hold without
 requiring reallocation. The value returned by capacity() is always greater 
 than or equal to size(), even if the data is not owned by this array in
 which case we have capacity()==size() and the array is not reallocatable. **/
-size_type capacity() const {return Base(*this).capacity();}
+size_type capacity() const {return this->Base::capacity();}
+/** Return the amount of heap space owned by this array; this is the same
+as capacity() for owner arrays but is zero for non-owners. 
+@note There is no equivalent of this method for std::vector. **/
+size_type allocated() const {return this->Base::allocated();}
 /** Does this array own the data to which it refers? If not, it can't be
 resized, and the destructor will not free any heap space nor call any element
-destructors. If the array does not refer to any data it is considered to be
-an owner since it is resizeable. 
-@note
-    This is an extension; there is no equivalent for std::vector. **/
-bool isOwner() const {return Base(*this).isOwner();}
+destructors. If the array does not refer to \e any data it is considered to be
+an owner and it is resizeable. 
+@note There is no equivalent for std::vector. **/
+bool isOwner() const {return this->Base::isOwner();}
 
 /** Change the size of this Array, preserving all the elements that will still 
 fit, and default constructing any new elements that are added. This is not
@@ -1089,43 +1096,66 @@ an ordinary iterator (i.e. a pointer) that can be obtained by calling the
 reverse iterator's base() method. **/
 /*@{*/
 
+/** Return a const pointer to the first element of this array if any, otherwise
+end(), which may be null (0) in that case but does not have to be. This method
+is from the proposed C++0x standard; there is also an overloaded begin() from
+the original standard that returns a const pointer. **/
+const T* cbegin() const {return this->Base::cbegin();}
+/** The const version of begin() is the same as cbegin(). **/
+const T* begin() const {return this->Base::cbegin();}
 /** Return a writable pointer to the first element of this array if any,
-otherwise end(). Note that end() will be null (0) if no space is allocated, but
-may be non null otherwise even if the array is empty. **/
-T* begin() {return const_cast<T*>(cbegin());}
-/** This overload of begin() is the same as cbegin(). **/
-const T* begin() const {return cbegin();}
+otherwise end(). If the array is empty, this \e may return null (0) but does 
+not have to -- the only thing you can be sure of is that begin() == end() for 
+an empty array. **/
+T* begin() {return const_cast<T*>(this->Base::cbegin());}
+
+/** Return a const pointer to what would be the element just after the last one
+in the array; this may be null (0) if there are no elements but doesn't have to
+be. This method is from the proposed C++0x standard; there is also an 
+overloaded end() from the original standard that returns a const pointer. **/
+const T* cend() const {return this->Base::cend();}
+/** The const version of end() is the same as cend(). **/
+const T* end() const {return this->Base::cend();}
 /** Return a writable pointer to what would be the element just after the last
 one in this array. If the array is empty, this \e may return null (0) but does 
 not have to -- the only thing you can be sure of is that begin()==end() for an 
 empty array. **/
-T* end() {return const_cast<T*>(cend());} // one past end
-/** This overload of end() is the same as cend(). **/
-const T* end() const {return cend();}
+T* end() {return const_cast<T*>(this->Base::cend());}
 
+/** Return a const reverse iterator pointing to the last element in the array 
+or crend() if the array is empty. **/
+const_reverse_iterator crbegin() const {return this->Base::crbegin();}
+/** The const version of rbegin() is the same as crbegin(). **/
+const_reverse_iterator rbegin() const {return this->Base::crbegin();} 
 /** Return a writable reverse iterator pointing to the last element in the
 array or rend() if the array is empty. **/
-reverse_iterator rbegin()
-{   return reverse_iterator(end()); }
-/** This overload of rbegin() is the same as crbegin(). **/
-const_reverse_iterator rbegin() const {return crbegin();} 
+reverse_iterator rbegin() {return reverse_iterator(end());}
 
+/** Return the past-the-end reverse interator that tests equal to a reverse
+iterator that has been incremented past the front of the array. You cannot 
+dereference this iterator. **/
+const_reverse_iterator crend() const {return this->Base::crend();}
+/** The const version of rend() is the same as crend(). **/
+const_reverse_iterator rend() const {return this->Base::crend();}
 /** Return a writable past-the-end reverse interator that tests equal to a 
 reverse iterator that has been incremented past the front of the array. You
 cannot dereference this iterator. **/
-reverse_iterator rend()
-{   return reverse_iterator(begin()); }
-/** This overload of rend() is the same as crend(). **/
-const_reverse_iterator rend() const {return crend();}
+reverse_iterator rend() {return reverse_iterator(begin());}
 
+/** Return a const pointer to the first element of the array, or possibly
+(but not necessarily) null (0) if the array is empty.
+@note
+    cdata() does not appear to be in the C++0x standard although it would seem
+    obvious in view of the cbegin() and cend() methods that had to be added. 
+    The C++0x overloaded const data() method is also available. **/
+const T* cdata() const {return this->Base::cdata();}
+/** The const version of the data() method is identical to cdata().
+@note This method is from the proposed C++0x std::vector. **/
+const T* data() const {return this->Base::cdata();}
 /** Return a writable pointer to the first allocated element of the array, or
 a null pointer if no space is associated with the array.
-
-@note
-    This method is from the proposed C++0x std::vector. **/
-T* data() {return const_cast<T*>(cdata());}
-/** This overloaded data() method is identical to cdata(). **/
-const T* data() const {return cdata();}
+@note This method is from the proposed C++0x std::vector. **/
+T* data() {return const_cast<T*>(this->Base::cdata());}
 /*@}*/
 
 /** @name                     Element access
@@ -1156,41 +1186,41 @@ T& operator[](index_type i) {return const_cast<T&>(Base(*this)[i]);}
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-const T& at(index_type i) const {return Base(*this).at(i);}
+const T& at(index_type i) const {return this->Base::at(i);}
 
 /** Same as operator[] but always range-checked, even in a Release build.  
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-T& at(index_type i) {return const_cast<T&>(Base(*this).at(i));}
+T& at(index_type i) {return const_cast<T&>(this->Base::at(i));}
 
 /** Return a const reference to the first element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-const T& front() const {return Base(*this).front();} 
+const T& front() const {return this->Base::front();} 
 
 /** Return a writable reference to the first element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-T& front() {return const_cast<T&>(Base(*this).front());}
+T& front() {return const_cast<T&>(this->Base::front());}
 
 /** Return a const reference to the last element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-const T& back() const {return Base(*this).back();}
+const T& back() const {return this->Base::back();}
 
 /** Return a writable reference to the last element in this array, which must
 not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-T& back() {return const_cast<T&>(Base(*this).back());}
+T& back() {return const_cast<T&>(this->Base::back());}
 
 /*@}*/
 
@@ -1563,7 +1593,7 @@ size_type calcNewCapacityForGrowthBy(size_type n, const char* methodName) const 
     SimTK_ERRCHK3_ALWAYS(isGrowthOK(n), methodName,
         "Can't grow this Array by %llu element(s) because it would"
         " then exceed the max_size of %llu set by its index type %s.",
-        (unsigned long long)n, ullMaxSize(), index_name());
+        (unsigned long long)n, ullMaxSize(), indexName());
 
     // At this point we know that capacity()+n <= max_size().
     const size_type mustHave = capacity() + n;
@@ -1647,7 +1677,7 @@ T* insertImpl(T* p, RandomAccessIterator first, RandomAccessIterator last1,
     SimTK_ERRCHK3(isGrowthOK(last1-first), methodName,
         "Source has %llu elements which would make this Array exceeed the %llu"
         " elements allowed by its index type %s.",
-        ull(last1-first), ullMaxSize(), index_name());
+        ull(last1-first), ullMaxSize(), indexName());
 
     const size_type n = size_type(last1-first);
     p = insertGapAt(p, n, methodName);
@@ -1692,7 +1722,7 @@ void assignImpl(const RandomAccessIterator& first,
         SimTK_ERRCHK3(isSizeOK(last1-first), methodName,
             "Source has %llu elements but this Array is limited to %llu"
             " elements by its index type %s.",
-            ull(last1-first), ullMaxSize(), index_name());
+            ull(last1-first), ullMaxSize(), indexName());
 
         clear(); // all elements destructed; allocation unchanged
         setSize(size_type(last1-first));
@@ -1829,16 +1859,24 @@ static void destruct(T* p) {p->~T();}
 static void destruct(T* b, const T* e)
 {   while(b!=e) b++->~T(); }
 
+// The following private methods are protected methods in the ArrayView base 
+// class, so they should not need repeating here. Howevr, we explicitly 
+// forward to the Base methods to avoid gcc errors. The gcc complaint
+// is due to their not depending on any template parameters; the "this->"
+// apparently fixes that problem.
 
-
-// These are to avoid errors when compiling with gcc 4.1.2 which feels
-// that because the base class methods don't depend on any tempate 
-// parameters they must already have been instantiated.
-bool emptyT() const {return this->empty();}
-bool isOwnerT() const {return this->isOwner();}
-size_type sizeT() const {return this->size();}
-size_type capacityT() const {return this->capacity();}
-size_type max_sizeT() const {return this->max_size();}
+// These provide direct access to the data members.
+void setData(const T* p)        {this->Base::setData(p);}
+void setSize(size_type n)       {this->Base::setSize(n);}
+void setAllocated(size_type n)  {this->Base::setAllocated(n);}
+// This just cast sizes to unsigned long long so that we can do comparisons
+// without getting warnings.
+unsigned long long ullSize()     const {return this->Base::ullSize();}
+unsigned long long ullCapacity() const {return this->Base::ullCapacity();}
+unsigned long long ullMaxSize()  const {return this->Base::ullMaxSize();}
+// This is the index type name and is handy for error messages to explain
+// why some size was too big.
+const char* indexName() const   {return this->Base::indexName();}
 };
 
 
