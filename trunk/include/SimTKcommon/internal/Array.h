@@ -156,6 +156,98 @@ dangerous constructor or method overload; don't use this unless you are an
 advanced user and know exactly what you're getting into. **/
 struct TrustMe {};
 
+/** This is the base class for Array_<T,X>, providing only read-only "const"
+functionality. The ability to write, reallocate, insert, erase, modify, etc. is
+added by the Array_<T,X> class. **/
+template <class T, class X=int>
+class ArrayView_ {
+public:
+
+typedef T           value_type;
+typedef T*          pointer;
+typedef const T*    const_pointer;
+typedef T&          reference;
+typedef const T&    const_reference;
+typedef T*          iterator;
+typedef const T*    const_iterator;
+
+typedef std::reverse_iterator<iterator>         reverse_iterator;
+typedef std::reverse_iterator<const_iterator>   const_reverse_iterator;
+
+typedef X                                       index_type;
+typedef IndexTraits<X>                          index_traits;
+typedef typename index_traits::size_type        size_type;
+typedef typename index_traits::difference_type  difference_type;
+
+
+const char* index_name() const {return index_traits::index_name();}
+
+/** @name           Construction and destruction
+
+Constructors here are limited to those that don't allocate new data.
+**/
+/*{*/
+
+/** Default constructor allocates no heap space and is very fast. **/
+ArrayView_() : pData(0), nUsed(0), nAllocated(0) {}
+
+/** Copy constructor is shallow; the constructed array view object will be
+referencing the original source data. However, if the source is zero length, 
+this will result in a default-constructed array view with a null data pointer,
+even if the source had some data allocated. **/
+ArrayView_(const ArrayView_& src) 
+:   pData(src.nUsed ? src.pData : 0), nUsed(src.nUsed), nAllocated(0) {} 
+
+/*}*/
+
+/** @name                   Size and capacity 
+
+These methods examine the number of elements (size) or the amount of allocated
+heap space (capacity). See the derived Array_<T,X> class for methods that can 
+\e change the size or capacity. **/
+/*@{*/
+
+/** Return the current number of elements stored in this array. **/
+size_type size() const {return nUsed;}
+/** Return the maximum allowable size for this array. **/
+size_type max_size() const {return index_traits::max_size;}
+/** Return true if there are no elements currently stored in this array. This
+is equivalent to the tests begin()==end() or size()==0. **/
+bool empty() const {return nUsed==0;}
+/** Return the number of elements this array can currently hold without
+requiring reallocation. The value returned by capacity() is always greater 
+than or equal to size(), even if the data is not owned by this array in
+which case we have capacity()==size() and the array is not reallocatable. **/
+size_type capacity() const {return nAllocated?nAllocated:nUsed;}
+/** Does this array own the data to which it refers? If not, it can't be
+resized, and the destructor will not free any heap space nor call any element
+destructors. If the array does not refer to any data it is considered to be
+an owner since it is resizeable. 
+@note
+    This is an extension; there is no equivalent for std::vector. **/
+bool isOwner() const {return nAllocated || pData==0;}
+/*}*/
+
+//------------------------------------------------------------------------------
+                                   protected:
+//------------------------------------------------------------------------------
+// The remainder of this class is for the use of the Array_<T,X> derived class
+// only and should not be documented for users to see.
+                                       
+// This constructor does not initialize any of the data members; it is intended
+// for use in derived class constructors that will be setting the data.
+explicit ArrayView_(const TrustMe&) {}
+
+//------------------------------------------------------------------------------
+//                               DATA MEMBERS
+//------------------------------------------------------------------------------
+// These are the only data members and this layout is guaranteed not to change
+// from release to release. If data is null, then nUsed==nAllocated==0.
+T*                  pData;      // pointer to the first element, or null
+size_type           nUsed;      // number of elements currently present (size)
+size_type           nAllocated; // heap allocation; 0 if pData is not owned
+};
+
 /**
 The SimTK::Array_<T> container class is a plug-compatible replacement for the 
 C++ standard template library (STL) std::vector<T> class, but with some
@@ -232,29 +324,13 @@ standard STL objects.
   copying of the elements. With some care, you can also create an Array_<T> 
   object that shares the contents of an std::vector object without copying.
 **/
-template <class T, class X=int> class Array_ {
+template <class T, class X=int> 
+class Array_ : public ArrayView_<T,X> {
+typedef ArrayView_<T,X> Base;
 //------------------------------------------------------------------------------
 public:
 //------------------------------------------------------------------------------
 
-typedef T           value_type;
-typedef T*          pointer;
-typedef const T*    const_pointer;
-typedef T&          reference;
-typedef const T&    const_reference;
-typedef T*          iterator;
-typedef const T*    const_iterator;
-
-typedef std::reverse_iterator<iterator>         reverse_iterator;
-typedef std::reverse_iterator<const_iterator>   const_reverse_iterator;
-
-typedef X                                       index_type;
-typedef IndexTraits<X>                          index_traits;
-typedef typename index_traits::size_type        size_type;
-typedef typename index_traits::difference_type  difference_type;
-
-
-const char* index_name() const {return index_traits::index_name();}
 
 //TODO
 // comparison operators
@@ -274,13 +350,13 @@ ones providing smooth conversions between Array_<T> and std::vector<T> objects.
 /*{*/
 
 /** Default constructor allocates no heap space and is very fast. **/
-Array_() : pData(0), nUsed(0), nAllocated(0) {}
+Array_() : Base() {}
 
 /** Construct an array containing \a n default-constructed elements. T's default 
 constructor (if any) is called exactly \a n times. If \a n is zero no heap space 
 will be allocated; although in that case it is preferable to use the default 
 constructor if you can since that will be somewhat faster. **/
-explicit Array_(size_type n) {
+explicit Array_(size_type n) : Base(TrustMe()) {
     SimTK_SIZECHECK(n, max_size(), "Array_<T>::ctor(n)");
     allocateNoConstruct(n);
     defaultConstruct(pData, pData+n);
@@ -290,7 +366,7 @@ explicit Array_(size_type n) {
 /** Construct an array containing \a n elements each set to a copy of the given 
 initial value. T's copy constructor will be called exactly \a n times. If \a n
 is zero no space will be allocated. **/
-Array_(size_type n, const T& initVal) {
+Array_(size_type n, const T& initVal) : Base(TrustMe()) {
     SimTK_SIZECHECK(n, max_size(), "Array_<T>::ctor(n,T)");
     allocateNoConstruct(n);
     fillConstruct(pData, pData+n, initVal);
@@ -302,7 +378,7 @@ pair of ordinary pointers to elements of type T2 (where T2 might be the same as
 T but doesn't have to be). This is templatized so can be used with any source 
 type T2 for which there is a working conversion constructor T(T2). **/
 template <class T2>
-Array_(const T2* first, const T2* last1) {
+Array_(const T2* first, const T2* last1) : Base(TrustMe()) {
     const char* methodName = "Array_<T>::ctor(first,last1)";
     SimTK_ERRCHK((first&&last1)||(first==last1), methodName, 
         "Pointers must be non-null unless they are both null.");
@@ -320,8 +396,7 @@ be the same type as T but doesn not have to be. This will work as long as the
 size of the vector does not exceed the array's max_size, and provided there is 
 a working T(T2) conversion constructor. **/
 template <class T2>
-explicit Array_(const std::vector<T2>& v) 
-:   pData(0), nUsed(0), nAllocated(0) {
+explicit Array_(const std::vector<T2>& v) : Base() { 
     if (v.empty()) return;
 
     SimTK_ERRCHK3(isSizeOK(v.size()), "Array_<T>::ctor(std::vector<T2>)",
@@ -361,8 +436,7 @@ no way for the array class to detect that.
     Dirt cheap. There will be no construction, destruction, or heap allocation
     performed.
 @see deallocate() **/
-Array_(T* first, const T* last1, const DontCopy&) 
-:   pData(0), nUsed(0), nAllocated(0) {
+Array_(T* first, const T* last1, const DontCopy&) : Base() { 
     if (last1==first) return; // empty
 
     SimTK_ERRCHK3(isSizeOK(last1-first), 
@@ -401,8 +475,7 @@ array is invalid if the original std::vector is destructed or resized.
     performed.
 @see deallocate() **/
 template <class A>
-Array_(std::vector<T,A>& v, const DontCopy&) 
-:   pData(0), nUsed(0), nAllocated(0) {
+Array_(std::vector<T,A>& v, const DontCopy&) : Base() { 
     if (v.empty()) return;
 
     SimTK_ERRCHK3(isSizeOK(v.size()), 
@@ -420,7 +493,7 @@ Array_(std::vector<T,A>& v, const DontCopy&)
 source (not its capacity) and copy constructs the elements so that T's copy 
 constructor will be called exactly src.size() times. If the source is empty, 
 no heap space will be allocated. **/
-Array_(const Array_& src) {
+Array_(const Array_& src) : Base(TrustMe()) {
     nUsed = src.nUsed;
     allocateNoConstruct(nUsed);
     copyConstruct(pData, pData+nUsed, src.pData);
@@ -433,7 +506,7 @@ this array's element type T. One of T's constructors will be called exactly
 src.size() times; the particular constructor is whichever one best matches 
 T(T2). **/
 template <class T2, class X2>
-Array_(const Array_<T2,X2>& src) {
+Array_(const Array_<T2,X2>& src) : Base(TrustMe()) {
     new (this) Array_(src.begin(), src.end()); // see above
 }
 
@@ -669,22 +742,10 @@ void swap(Array_& other) {
 
 /** @name                   Size and capacity 
 
-These methods examine and alter the number of elements or the amount of 
-allocated heap space or both. **/
+These methods can alter the number of elements (size) or the amount of 
+allocated heap space (capacity) or both. The ArrayView_<T,X> base class 
+provides methods for examining these parameters without changing them. **/
 /*@{*/
-
-/** The current number of elements stored in this array. **/
-size_type size() const {return nUsed;}
-/** Return the maximum allowable size for this container. **/
-size_type max_size() const {return index_traits::max_size;}
-/** Return true if there are no elements currently stored in this Array. This
-is equivalent to the tests begin()==end() or size()==0. **/
-bool empty() const {return nUsed==0;}
-/** Return the number of elements this array can currently hold without
-requiring reallocation. The value returned by capacity() is always greater 
-than or equal to size(), even if the data is not owned by this array in
-which case we have capacity()==size() and the array is not reallocatable. **/
-size_type capacity() const {return nAllocated?nAllocated:nUsed;}
 
 /** Change the size of this Array, preserving all the elements that will still 
 fit, and default constructing any new elements that are added. This is not
@@ -708,7 +769,7 @@ void resize(size_type n) {
     nUsed = n;
 }
 
-/** Change the size of this Array, preserving all the elements that will still 
+/** Change the size of this array, preserving all the elements that will still 
 fit, and initializing any new elements that are added by repeatedly copy-
 constructing from the supplied value. This is not allowed for non-owner arrays
 unless the requested size is the same as the current size. **/
@@ -730,7 +791,7 @@ void resize(size_type n, const T& initVal) {
     nUsed = n;
 }
 
-/** Ensure that this Array has enough allocated capacity to hold the indicated 
+/** Ensure that this array has enough allocated capacity to hold the indicated 
 number of elements. No heap reallocation will occur after this until the array
 is grown beyond this capacity, meaning that adding elements will not invalidate
 any iterators or element addresses until that point. This method will never 
@@ -783,14 +844,6 @@ void shrink_to_fit() {
     nAllocated = nUsed;
 }
 
-
-/** Does this array own the data to which it refers? If not, it can't be
-resized, and the destructor will not free any heap space nor call any element
-destructors. If the array does not refer to any data it is considered to be
-an owner since it is resizeable. 
-@note
-    This is an extension; there is no equivalent for std::vector. **/
-bool isOwner() const {return nAllocated || pData==0;}
 /*@}*/
 
 /** @name                       Iterators
@@ -1608,15 +1661,6 @@ unsigned long long ullSize()     const {return ull(size());}
 unsigned long long ullCapacity() const {return ull(capacity());}
 unsigned long long ullMaxSize()  const {return ull(max_size());}
 
-
-//------------------------------------------------------------------------------
-private: //                     DATA MEMBERS
-//------------------------------------------------------------------------------
-// These are the only data members and this layout is guaranteed not to change
-// from release to release. If data is null, then nUsed==nAllocated==0.
-T*                  pData;      // pointer to the first element, or null
-size_type           nUsed;      // number of elements currently present (size)
-size_type           nAllocated; // heap allocation; 0 if pData is not owned
 };
 
 
@@ -1648,7 +1692,7 @@ operator<<(std::ostream& o, const Array_<T,X>& a) {
 /**@name                    Comparison operators
 
 These operators permit lexicographical comparisons between two comparable
-Array_ objects, possible with differing element and index types, and between 
+Array_ objects, possibly with differing element and index types, and between 
 an Array_ object and a comparable std::vector object.
 @relates Array_ **/
 /*@{*/

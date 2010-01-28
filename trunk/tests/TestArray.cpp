@@ -57,6 +57,8 @@ using namespace SimTK;
 template <class T>
 class OtherArray_ : public Array_<T> {
 public:
+    typedef typename Array_<T>::size_type size_type;
+
     OtherArray_() : Array_<T>() {}
     OtherArray_(size_type n, const T& v) : Array_<T>(n,v) {}
 };
