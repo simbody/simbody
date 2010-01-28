@@ -340,6 +340,21 @@ public:
 // check standard
 // more raw methods
 
+typedef typename Base::value_type               value_type;
+typedef typename Base::pointer                  pointer;
+typedef typename Base::const_pointer            const_pointer;
+typedef typename Base::reference                reference;
+typedef typename Base::const_reference          const_reference;
+typedef typename Base::iterator                 iterator;
+typedef typename Base::const_iterator           const_iterator;
+
+typedef typename Base::reverse_iterator         reverse_iterator;
+typedef typename Base::const_reverse_iterator   const_reverse_iterator;
+
+typedef typename Base::index_type               index_type;
+typedef typename Base::index_traits             index_traits;
+typedef typename index_traits::size_type        size_type;
+typedef typename index_traits::difference_type  difference_type;
 
 /** @name           Construction and destruction
 
