@@ -1683,6 +1683,9 @@ unsigned long long ullMaxSize()  const {return ull(max_size());}
 // parameters they must already have been instantiated.
 bool emptyT() const {return this->empty();}
 bool isOwnerT() const {return this->isOwner();}
+size_type sizeT() const {return this->size();}
+size_type capacityT() const {return this->capacity();}
+size_type max_sizeT() const {return this->max_size();}
 };
 
 
