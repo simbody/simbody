@@ -353,8 +353,8 @@ typedef typename Base::const_reverse_iterator   const_reverse_iterator;
 
 typedef typename Base::index_type               index_type;
 typedef typename Base::index_traits             index_traits;
-typedef typename index_traits::size_type        size_type;
-typedef typename index_traits::difference_type  difference_type;
+typedef typename Base::size_type                size_type;
+typedef typename Base::difference_type          difference_type;
 
 /** @name           Construction and destruction
 
