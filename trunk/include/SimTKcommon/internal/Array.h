@@ -743,8 +743,8 @@ Array_(const Array_<T2,X2>& src) : Base(TrustMe()) {
 
 Array_& deallocate() {
     if (allocated()) { // owner with non-zero allocation
-        clear(); // each element is destructed; nUsed=0; nAllocated unchanged
-        deallocateNoDestruct(); // free pData; nAllocated=0
+        clear(); // each element is destructed; size()=0; allocated() unchanged
+        deallocateNoDestruct(); // free data(); allocated()=0
     }
     disconnect(); // clear the handle
     return *this;
@@ -961,7 +961,25 @@ These methods can alter the number of elements (size) or the amount of
 allocated heap space (capacity) or both. The ArrayView_<T,X> base class 
 provides methods for examining these parameters without changing them. **/
 /*@{*/
-
+/** Return the current number of elements stored in this array. **/
+size_type size() const {return Base(*this).size();}
+/** Return the maximum allowable size for this array. **/
+size_type max_size() const {return Base(*this).max_size();}
+/** Return true if there are no elements currently stored in this array. This
+is equivalent to the tests begin()==end() or size()==0. **/
+bool empty() const {return Base(*this).empty();}
+/** Return the number of elements this array can currently hold without
+requiring reallocation. The value returned by capacity() is always greater 
+than or equal to size(), even if the data is not owned by this array in
+which case we have capacity()==size() and the array is not reallocatable. **/
+size_type capacity() const {return Base(*this).capacity();}
+/** Does this array own the data to which it refers? If not, it can't be
+resized, and the destructor will not free any heap space nor call any element
+destructors. If the array does not refer to any data it is considered to be
+an owner since it is resizeable. 
+@note
+    This is an extension; there is no equivalent for std::vector. **/
+bool isOwner() const {return Base(*this).isOwner();}
 
 /** Change the size of this Array, preserving all the elements that will still 
 fit, and default constructing any new elements that are added. This is not
@@ -1055,7 +1073,7 @@ void shrink_to_fit() {
         return;
     T* newData = allocN(size());
     copyConstructThenDestructSource(newData, newData+size(), data());
-    deallocateNoDestruct(); // pData=0, nAllocated=0, nUsed unchanged
+    deallocateNoDestruct(); // data()=0, allocated()=0, size() unchanged
     setData(newData);
     setAllocated(size());
 }
@@ -1564,7 +1582,7 @@ size_type calcNewCapacityForGrowthBy(size_type n, const char* methodName) const 
 // Insert an unconstructed gap of size n beginning at position p. The return
 // value is a pointer to the first element in the gap. It will be p if no
 // reallocation occurred, otherwise it will be pointing into the new data.
-// On return nUsed will be unchanged although nAllocated may be bigger.
+// On return size() will be unchanged although allocated() may be bigger.
 T* insertGapAt(T* p, size_type n, const char* methodName) {
     // Note that p may be null if begin() and end() are also.
     SimTK_ERRCHK(begin() <= p && p <= end(), methodName, 
@@ -1706,7 +1724,7 @@ void assignImpl(const RandomAccessIterator& first,
 // the size to zero or something very small we'll treat the Array as
 // though its current size is minAlloc, meaning we won't reallocate
 // if the existing space is less than twice minAlloc.
-// nAllocated will be set appropriately; nUsed is not touched here.
+// nAllocated will be set appropriately; size() is not touched here.
 // No constructors or destructors are called.
 void reallocateIfAdvisable(size_type n) {
     if (allocated() < n || allocated()/2 > std::max(minAlloc(), n)) 
