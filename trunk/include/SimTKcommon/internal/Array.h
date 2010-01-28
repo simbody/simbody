@@ -740,6 +740,27 @@ Array_(const Array_<T2,X2>& src) : Base(TrustMe()) {
     new (this) Array_(src.begin(), src.cend()); // see above
 }
 
+/** This method mercilessly cleans out the array handle without doing anything
+to the data it references. This is only allowed for a non-owner handle, that
+is, an array for which allocated() returns zero. The array handle will be in
+its default-constructed state after this call, meaning that size(), capacity(),
+and allocated() all return zero, and data() is null (0). Don't use this method 
+to empty an Array_<T> handle; use deallocate() instead since that will know
+when to clean up the data and avoid memory leaks.
+@return A reference to the now-empty, default-constructed, array.
+@see deallocate() **/
+Array_& disconnect() {
+    this->Base::disconnect(); 
+    return *this;
+}
+
+/** Empty this array of its contents, returning the array to its 
+default-constructed, all-zero state. If this array is the owner of its data,
+the destructor (if any) is called for each data element and the array's
+allocated heap space is freed. If it is a non-owner the array handle is
+cleaned out using disconnect() but the referenced data is untouched.
+@return A reference to the now-empty, default-constructed array, ready for
+reassignment. **/
 Array_& deallocate() {
     if (allocated()) { // owner with non-zero allocation
         clear(); // each element is destructed; size()=0; allocated() unchanged
