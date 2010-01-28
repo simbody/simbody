@@ -691,15 +691,13 @@ ArrayView_& assign(const RandomAccessIterator& first,
     // but there is nothing to do.
     if (empty()) return *this;
 
-    // Now we know we can dereference first and last1-1, and take the
-    // address to get ordinary pointers that we can use to watch for 
-    // illegal overlap.
-    const void* beginp = &*first;
-    const void* endp1 = &*(last1-1) 
-        + sizeof(typename RandomAccessIterator::value_type); 
-
-    SimTK_ERRCHK(endp1<=(const void*)cbegin() 
-                 || (const void*)cend()<=beginp, methodName, 
+    // Now we know we can dereference first and last1-1 (can't safely 
+    // dereference last1 but we can use pointer arithmetic to point past
+    // the (last-1)th element in memory). We then take the dereferenced
+    // object's address to get ordinary pointers that we can use to 
+    // watch for illegal overlap.
+    SimTK_ERRCHK((const T*)(&*(last1-1)+1)<=cbegin() 
+                 || cend()<=(const T*)&*first, methodName, 
         "Source iterators can't point within the destination data.");
 
     T* d = begin(); RandomAccessIterator s = first;
@@ -1680,7 +1678,7 @@ ConstArray_<T,X> operator()(index_type index, size_type length) const
 
 /** Select a subrange of this array by starting index and length, and
 return an ArrayView referencing that data without copying it. **/
-ArrayView_ operator()(index_type index, size_type length)
+ArrayView_<T,X> operator()(index_type index, size_type length)
 {   return Base::operator()(index,length); }
 /*@}*/
 
