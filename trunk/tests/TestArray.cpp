@@ -162,8 +162,8 @@ template Array_<double,int>&
 Array_<double,int>::operator=(const std::vector<float>&);
 
 // Comparison
-template bool SimTK::operator==(const Array_<float,int>&, 
-                                const Array_<float,unsigned>&);
+template bool SimTK::operator==(const ConstArray_<float,int>&, 
+                                const ConstArray_<float,unsigned>&);
 #endif
 
 

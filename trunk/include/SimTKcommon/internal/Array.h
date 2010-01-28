@@ -45,6 +45,7 @@
 
 namespace SimTK {
 
+template <class T, class X=int> class ConstArray_;
 template <class T, class X=int> class ArrayView_;
 template <class T, class X=int> class Array_;
 
@@ -159,10 +160,15 @@ dangerous constructor or method overload; don't use this unless you are an
 advanced user and know exactly what you're getting into. **/
 struct TrustMe {};
 
+
+
+//==============================================================================
+//                            CLASS ConstArray_
+//==============================================================================
 /** This is the base class for Array_<T,X>, providing only read-only "const"
 functionality, and shallow copy semantics. The ability to write, reallocate, 
 insert, erase, modify, etc. is added by the Array_<T,X> class. **/
-template <class T, class X> class ArrayView_ {
+template <class T, class X> class ConstArray_ {
 public:
 
 typedef T           value_type;
@@ -189,19 +195,20 @@ Constructors here are limited to those that don't allocate new data.
 /*{*/
 
 /** Default constructor allocates no heap space and is very fast. **/
-ArrayView_() : pData(0), nUsed(0), nAllocated(0) {}
+ConstArray_() : pData(0), nUsed(0), nAllocated(0) {}
 
 /** Copy constructor is shallow; the constructed array view object will be
 referencing the original source data. However, if the source is zero length, 
-this will result in a default-constructed array view with a null data pointer,
-even if the source had some data allocated. **/
-ArrayView_(const ArrayView_& src) 
+this will result in a default-constructed array view handle with a null data
+pointer, even if the source had some unused data allocated. **/
+ConstArray_(const ConstArray_& src) 
 :   pData(0), nUsed(src.nUsed), nAllocated(0) {
     if (nUsed) pData = const_cast<T*>(src.pData);
 } 
 
+// Copy assignment is suppressed.
 
-/** Construct an ArrayView_<T> by referencing (sharing) a given range of
+/** Construct an ConstArray_<T> by referencing (sharing) a given range of
 const data [first,last1), without copying that data. This will work as long as 
 the size of the source data does not exceed the array's max_size. The resulting
 array view object is not resizeable but can be used to read elements of the 
@@ -216,12 +223,12 @@ destructed or resized, but there is no way for the class to detect that.
     Dirt cheap. There will be no construction, destruction, or heap allocation
     performed.
 @see deallocate() **/
-ArrayView_(const T* first, const T* last1) 
+ConstArray_(const T* first, const T* last1) 
 :   pData(0), nUsed(0), nAllocated(0) { 
     if (last1==first) return; // empty
 
     SimTK_ERRCHK3(isSizeOK(last1-first), 
-        "ArrayView_<T>::ctor(first,last1)",
+        "ConstArray_<T>::ctor(first,last1)",
         "The source data's size %llu is too big for this array which"
         " is limited to %llu elements by its index type %s.",
         ull(last1-first), ullMaxSize(), indexName());
@@ -254,12 +261,12 @@ to detect that.
     performed.
 @see deallocate() **/
 template <class A>
-ArrayView_(const std::vector<T,A>& v) 
+ConstArray_(const std::vector<T,A>& v) 
 :   pData(0), nUsed(0), nAllocated(0) { 
     if (v.empty()) return;
 
     SimTK_ERRCHK3(isSizeOK(v.size()), 
-        "ArrayView_<T>::ctor(std::vector<T>)",
+        "ConstArray_<T>::ctor(std::vector<T>)",
         "The source std::vector's size %llu is too big for this array which"
         " is limited to %llu elements by its index type %s.",
         ull(v.size()), ullMaxSize(), indexName());
@@ -268,8 +275,12 @@ ArrayView_(const std::vector<T,A>& v)
     nUsed = size_type(v.size()); 
     // nAllocated is already zero
 }
-
-/** This is an implicit conversion to const Array_<T,X>&, which is harmless. **/
+/** This is an implicit conversion to const ArrayView_<T,X>&, which is 
+harmless since the result won't permit writing on the elements. **/
+operator const ArrayView_<T,X>&() const
+{   return *reinterpret_cast<const ArrayView_<T,X>*>(this); }
+/** This is an implicit conversion to const Array_<T,X>&, which is harmless
+since the result can't be used to write on or resize the data. **/
 operator const Array_<T,X>&() const
 {   return *reinterpret_cast<const Array_<T,X>*>(this); }
 
@@ -280,14 +291,14 @@ the owner will clean things up later. In either case the size() and capacity()
 will be zero after this call and data() will return null (0). **/
 void disconnect() {
     SimTK_ASSERT(nAllocated==0,
-        "ArrayView_::deallocate(): called on an owner Array_");
+        "ConstArray_::deallocate(): called on an owner Array_");
     nUsed = 0;
     pData = 0;
 }
 
 /** The destructor just disconnects the array view handle from its data; see
 disconnect() for more information. @see disconnect() **/
-~ArrayView_() {
+~ConstArray_() {
     disconnect();
 }
 
@@ -339,7 +350,7 @@ will be range-checked in a Debug build but not in Release.
 @par Complexity:
     Constant time. **/
 const T& operator[](index_type i) const {
-    SimTK_INDEXCHECK(i,nUsed,"ArrayView_<T>::operator[]()");
+    SimTK_INDEXCHECK(i,nUsed,"ConstArray_<T>::operator[]()");
     return pData[i];
 }
 /** Same as operator[] but always range-checked, even in a Release build.  
@@ -347,7 +358,7 @@ const T& operator[](index_type i) const {
 @par Complexity:
     Constant time. **/
 const T& at(index_type i) const {
-    SimTK_INDEXCHECK_ALWAYS(i,nUsed,"ArrayView_<T>::at()");
+    SimTK_INDEXCHECK_ALWAYS(i,nUsed,"ConstArray_<T>::at()");
     return pData[i];
 }
 /** Return a const reference to the first element in this array, which must
@@ -356,7 +367,7 @@ not be empty.
 @par Complexity:
     Constant time. **/
 const T& front() const 
-{   SimTK_ERRCHK(!empty(), "ArrayView_<T>::front()", "Array was empty.");
+{   SimTK_ERRCHK(!empty(), "ConstArray_<T>::front()", "Array was empty.");
     return pData[0]; }
 /** Return a const reference to the last element in this array, which must
 not be empty.
@@ -364,15 +375,15 @@ not be empty.
 @par Complexity:
     Constant time. **/
 const T& back() const 
-{   SimTK_ERRCHK(!empty(), "ArrayView_<T>::back()", "Array was empty.");
+{   SimTK_ERRCHK(!empty(), "ConstArray_<T>::back()", "Array was empty.");
     return pData[nUsed-1]; }
 
 /** Select a subset of the elements of this array view and create another
 array view that includes only those. **/
-ArrayView_ operator()(index_type index, size_type length) const {
-    SimTK_INDEXCHECK(index,size(),"ArrayView_<T>(index,length)");
-    SimTK_SIZECHECK(length,size_type(size()-index),"ArrayView_<T>(index,length)");
-    return ArrayView_(pData+index, pData+index+length);
+ConstArray_ operator()(index_type index, size_type length) const {
+    SimTK_INDEXCHECK(index,size(),"ConstArray_<T>(index,length)");
+    SimTK_SIZECHECK(length,size_type(size()-index),"ConstArray_<T>(index,length)");
+    return ConstArray_(pData+index, pData+index+length);
 }
 /*@}*/
 
@@ -437,7 +448,7 @@ const T* data() const {return pData;}
                                        
 // This constructor does not initialize any of the data members; it is intended
 // for use in derived class constructors that will be setting the data.
-explicit ArrayView_(const TrustMe&) {}
+explicit ConstArray_(const TrustMe&) {}
 
 // These provide direct access to the data member for our trusted friends.
 void setData(const T* p)        {pData = const_cast<T*>(p);}
@@ -485,11 +496,417 @@ private:
 T*                  pData;      // pointer to the first element, or null
 size_type           nUsed;      // number of elements currently present (size)
 size_type           nAllocated; // heap allocation; 0 if pData is not owned
+
+ConstArray_& operator=(const ConstArray_& src); // suppressed
 };
 
-/**
-The SimTK::Array_<T> container class is a plug-compatible replacement for the 
-C++ standard template library (STL) std::vector<T> class, but with some
+
+
+//==============================================================================
+//                            CLASS ArrayView_
+//==============================================================================
+/** This class extends ConstArray_<T,X> to add the ability to modify elements,
+but not the ability to change size or reallocate. **/
+template <class T, class X> class ArrayView_ : public ConstArray_<T,X> {
+typedef ConstArray_<T,X> CBase;
+public:
+/** Default constructor allocates no heap space and is very fast. **/
+ArrayView_() : CBase() {}
+
+/** Copy constructor is shallow. **/
+ArrayView_(const ArrayView_& src) : CBase(src) {}
+
+/** Construct from a range of writable memory. **/
+ArrayView_(T* first, const T* last1) : CBase(first,last1) {} 
+
+/** Construct to reference memory owned by a writable std::vector. **/
+template <class A>
+ArrayView_(std::vector<T,A>& v) : CBase(v) {}
+
+/** Implicit conversion of const ArrayView_ to const Array_& (zero cost). **/
+operator const Array_<T,X>&() const 
+{   return *reinterpret_cast<const Array_<T,X>*>(this); }  
+
+/** Implicit conversion of non-const ArrayView_ to Array_& (zero cost). **/
+operator Array_<T,X>&() 
+{   return *reinterpret_cast<Array_<T,X>*>(this); } 
+
+/** Forward to base class disconnect() method -- clears the handle without
+doing anything to the data. */
+void disconnect() {this->CBase::disconnect();}
+
+/** The destructor just disconnects the array view handle from its data; see
+ConstArray_<T,X>::disconnect() for more information. **/
+~ArrayView_() {this->CBase::disconnect();}
+
+/**@name                      Assignment
+
+Assignment is permitted only if the source and destination are the same 
+size. The semantics here are different than for a resizeable Array_
+object: here the meaning is elementwise assignment rather than destruction
+followed by copy construction. That is, if our elements are of type T, and
+the source elements are of type T2, we will use the operator of T that
+best matches the signature T::operator=(const T2&) to perform the assignments.
+When the source also has type T, this is just T's copy assignment operator. 
+We never perform any element destruction or construction here. **/
+/*@{*/
+
+/** Copy assignment. **/
+ArrayView_& operator=(const ArrayView_& src) {
+    if (&src == this) return *this;
+    SimTK_ERRCHK2(isSameSize(src.size()), "ArrayView_::operator=(ArrayView_)",
+        "Assignment to an ArrayView is permitted only if the source"
+        " is the same size. Here the source had %llu element(s) but the"
+        " ArrayView has a fixed size of %llu.", 
+        ull(src.size()), ull(size()));
+
+    T* d = begin(); const T* s = src.begin();
+    while (d != end())
+        *d++ = *s++; // using T::operator=(T)
+    return *this;
+}
+
+/** Assignment from any other array object is allowed as long as the number
+of elements matches and the types are assignment compatible. **/
+template <class T2, class X2>
+ArrayView_& operator=(const ConstArray_<T2,X2>& src) {
+    if ((const void*)&src == (void*)this) return *this;
+    SimTK_ERRCHK2(isSameSize(src.size()), "ArrayView_::operator=(ConstArray_)",
+        "Assignment to an ArrayView is permitted only if the source"
+        " is the same size. Here the source had %llu element(s) but the"
+        " ArrayView has a fixed size of %llu.", 
+        ull(src.size()), ull(size()));
+
+    T* d = begin(); const T2* s = src.begin();
+    while (d != end())
+        *d++ = *s++; // using T::operator=(T2)
+    return *this;
+}
+
+
+/** Assignment from any std::vector object is allowed as long as the number
+of elements matches and the types are assignment compatible. **/
+template <class T2, class A2>
+ArrayView_& operator=(const std::vector<T2,A2>& src) {
+    SimTK_ERRCHK2(isSameSize(src.size()), "ArrayView_::operator=(ConstArray_)",
+        "Assignment to an ArrayView is permitted only if the source"
+        " is the same size. Here the source had %llu element(s) but the"
+        " ArrayView has a fixed size of %llu.", 
+        ull(src.size()), ull(size()));
+
+    T* d = begin(); const T2* s = src.begin();
+    while (d != end())
+        *d++ = *s++; // using T::operator=(T2)
+    return *this;
+}
+
+
+/** Assign the supplied fill value to each element of this array. Note that 
+this serves to allow fill from an object whose type T2 is different from T, as
+long as there is a constructor T(T2) that works since that can be invoked
+(implicitly or explicitly) to convert the T2 object to type T prior to the
+call. **/ 
+ArrayView_& fill(const T& fillValue) {
+    for (T* d = begin(); d != end(); ++d)
+        *d = fillValue; // using T::operator=(T)
+    return *this;
+}
+
+
+/** Assign to this array to to make it a copy of the elements in range 
+[first,last1) given by ordinary pointers. It is not allowed for this range to 
+include any of the elements currently in the array. The source elements can be 
+of a type T2 that may be the same or different than this array's element type 
+T as long as there is a T=T2 operator that works. Note that although the source 
+arguments are pointers, those may be iterators for some container depending on 
+implementation details of the container. Specifically, any ConstArray_,
+ArrayView_, or Array_ iterator is an ordinary pointer.
+
+@par Complexity:
+    The T=T2 assignment operator will be called exactly size() times. **/
+template <class T2>
+ArrayView_& assign(const T2* first, const T2* last1) {
+    const char* methodName = "ArrayView_<T>::assign(first,last1)";
+    SimTK_ERRCHK2(isSameSize(last1-first), methodName,
+        "Assignment to an ArrayView is permitted only if the source"
+        " is the same size. Here the source had %llu element(s) but the"
+        " ArrayView has a fixed size of %llu.", 
+        ull(last1-first), ull(size()));
+    SimTK_ERRCHK((first&&last1)||(first==last1), methodName, 
+        "One of the source pointers was null (0); either both must be"
+        " non-null or both must be null.");
+    SimTK_ERRCHK(first <= last1, methodName, 
+        "Source pointers were out of order.");
+    SimTK_ERRCHK(last1<=begin() || end()<=first, methodName, 
+        "Source pointers can't point within the destination data.");
+
+    T* d = begin(); const T2* s = first;
+    while (d != end())
+        *d++ = *s++; // using T::operator=(T2)
+    return *this;
+}
+
+
+/** Assign to this array to to make it a copy of the elements in range 
+[first,last1) given by non-pointer random access iterators (the pointer
+case is handled separately). This variant will not be called when the
+interators are forward iterators from ConstArray_, ArrayView_, or Array_ 
+objects since those are ordinary pointers. It is not allowed for this range to 
+include any of the elements currently in the array. The source elements can be 
+of a type T2 that may be the same or different than this array's element type 
+T as long as there is a T=T2 operator that works.
+
+@par Complexity:
+    The T=T2 assignment operator will be called exactly size() times. **/
+template <class RandomAccessIterator>
+ArrayView_& assign(const RandomAccessIterator& first, 
+                   const RandomAccessIterator& last1) {
+    const char* methodName = "ArrayView_<T>::assign(Iter first, Iter last1)";
+    SimTK_ERRCHK2(isSameSize(last1-first), methodName,
+        "Assignment to an ArrayView is permitted only if the source"
+        " is the same size. Here the source had %llu element(s) but the"
+        " ArrayView has a fixed size of %llu.", 
+        ull(last1-first), ull(size()));
+    SimTK_ERRCHK(first <= last1, methodName, 
+        "Source iterators were out of order.");
+
+    // If the source was zero length and this is empty, everything's fine
+    // but there is nothing to do.
+    if (empty()) return *this;
+
+    // Now we know we can dereference first and last1-1, and take the
+    // address to get ordinary pointers that we can use to watch for 
+    // illegal overlap.
+    const void* beginp = &*first;
+    const void* endp1 = &*(last1-1) 
+        + sizeof(typename RandomAccessIterator::value_type); 
+
+    SimTK_ERRCHK(endp1<=(const void*)cbegin() 
+                 || (const void*)cend()<=beginp, methodName, 
+        "Source iterators can't point within the destination data.");
+
+    T* d = begin(); RandomAccessIterator s = first;
+    while (d != end())
+        *d++ = *s++; // using T::operator=(T2)
+    return *this;
+}
+/*@}*/
+
+/** @name                     Element access
+
+These methods provide read and write access to individual elements that are 
+currently present in the array; the ConstArray_<T,X> base class provides the
+read-only (const) methods. **/
+/*@{*/
+
+/** Select an element by its index, returning a const reference. Note that only 
+a value of the array's templatized index type is allowed (default is int). This 
+will be range-checked in a Debug build but not in Release.
+@pre 0 <= \a i < size()
+@par Complexity:
+    Constant time. **/
+const T& operator[](index_type i) const {return CBase::operator[](i);}
+
+/** Select an element by its index, returning a writable (lvalue) reference. 
+Note that only a value of the Array's templatized index type is allowed 
+(default is int). This will be range-checked in a Debug build but not 
+in Release. 
+@pre 0 <= \a i < size()
+@par Complexity:
+    Constant time. **/
+T& operator[](index_type i) {return const_cast<T&>(CBase::operator[](i));}
+
+/** Same as operator[] but always range-checked, even in a Release build.  
+@pre 0 <= \a i < size()
+@par Complexity:
+    Constant time. **/
+const T& at(index_type i) const {return CBase::at(i);}
+
+/** Same as operator[] but always range-checked, even in a Release build.  
+@pre 0 <= \a i < size()
+@par Complexity:
+    Constant time. **/
+T& at(index_type i) {return const_cast<T&>(CBase::at(i));}
+
+/** Return a const reference to the first element in this array, which must
+not be empty.
+@pre The array is not empty.
+@par Complexity:
+    Constant time. **/
+const T& front() const {return this->CBase::front();} 
+
+/** Return a writable reference to the first element in this array, which must
+not be empty.
+@pre The array is not empty.
+@par Complexity:
+    Constant time. **/
+T& front() {return const_cast<T&>(this->CBase::front());}
+
+/** Return a const reference to the last element in this array, which must
+not be empty.
+@pre The array is not empty.
+@par Complexity:
+    Constant time. **/
+const T& back() const {return this->CBase::back();}
+
+/** Return a writable reference to the last element in this array, which must
+not be empty.
+@pre The array is not empty.
+@par Complexity:
+    Constant time. **/
+T& back() {return const_cast<T&>(this->CBase::back());}
+
+ArrayView_ operator()(index_type index, size_type length) {
+    SimTK_INDEXCHECK(index,size(),"Array_<T>(index,length)");
+    SimTK_SIZECHECK(length,size_type(size()-index),"Array_<T>(index,length)");
+    return ArrayView_(data()+index, cdata()+index+length);
+}
+/*@}*/
+
+
+/** @name                       Iterators
+
+These methods deal in iterators, which are STL generalized pointers. For this
+class, iterators are just ordinary pointers to T, and you may depend on that.
+By necessity, reverse iterators can't be just pointers; however, they contain 
+an ordinary iterator (i.e. a pointer) that can be obtained by calling the 
+reverse iterator's base() method. **/
+/*@{*/
+
+/** Return a const pointer to the first element of this array if any, otherwise
+end(), which may be null (0) in that case but does not have to be. This method
+is from the proposed C++0x standard; there is also an overloaded begin() from
+the original standard that returns a const pointer. **/
+const T* cbegin() const {return this->CBase::cbegin();}
+/** The const version of begin() is the same as cbegin(). **/
+const T* begin() const {return this->CBase::cbegin();}
+/** Return a writable pointer to the first element of this array if any,
+otherwise end(). If the array is empty, this \e may return null (0) but does 
+not have to -- the only thing you can be sure of is that begin() == end() for 
+an empty array. **/
+T* begin() {return const_cast<T*>(this->CBase::cbegin());}
+
+/** Return a const pointer to what would be the element just after the last one
+in the array; this may be null (0) if there are no elements but doesn't have to
+be. This method is from the proposed C++0x standard; there is also an 
+overloaded end() from the original standard that returns a const pointer. **/
+const T* cend() const {return this->CBase::cend();}
+/** The const version of end() is the same as cend(). **/
+const T* end() const {return this->CBase::cend();}
+/** Return a writable pointer to what would be the element just after the last
+one in this array. If the array is empty, this \e may return null (0) but does 
+not have to -- the only thing you can be sure of is that begin()==end() for an 
+empty array. **/
+T* end() {return const_cast<T*>(this->CBase::cend());}
+
+/** Return a const reverse iterator pointing to the last element in the array 
+or crend() if the array is empty. **/
+const_reverse_iterator crbegin() const {return this->CBase::crbegin();}
+/** The const version of rbegin() is the same as crbegin(). **/
+const_reverse_iterator rbegin() const {return this->CBase::crbegin();} 
+/** Return a writable reverse iterator pointing to the last element in the
+array or rend() if the array is empty. **/
+reverse_iterator rbegin() {return reverse_iterator(end());}
+
+/** Return the past-the-end reverse interator that tests equal to a reverse
+iterator that has been incremented past the front of the array. You cannot 
+dereference this iterator. **/
+const_reverse_iterator crend() const {return this->CBase::crend();}
+/** The const version of rend() is the same as crend(). **/
+const_reverse_iterator rend() const {return this->CBase::crend();}
+/** Return a writable past-the-end reverse interator that tests equal to a 
+reverse iterator that has been incremented past the front of the array. You
+cannot dereference this iterator. **/
+reverse_iterator rend() {return reverse_iterator(begin());}
+
+/** Return a const pointer to the first element of the array, or possibly
+(but not necessarily) null (0) if the array is empty.
+@note
+    cdata() does not appear to be in the C++0x standard although it would seem
+    obvious in view of the cbegin() and cend() methods that had to be added. 
+    The C++0x overloaded const data() method is also available. **/
+const T* cdata() const {return this->CBase::cdata();}
+/** The const version of the data() method is identical to cdata().
+@note This method is from the proposed C++0x std::vector. **/
+const T* data() const {return this->CBase::cdata();}
+/** Return a writable pointer to the first allocated element of the array, or
+a null pointer if no space is associated with the array.
+@note This method is from the proposed C++0x std::vector. **/
+T* data() {return const_cast<T*>(this->CBase::cdata());}
+/*@}*/
+
+/** @name                   Size and capacity 
+
+These methods report the number of elements (size) or the amount of allocated 
+heap space (capacity) or both but cannot be used to change size. **/
+/*@{*/
+
+// Note: these have to be explicitly forwarded to the base class methods
+// in order to keep gcc from complaining. Note that the "this->" is 
+// apparently necessary in order to permit delayed definition of templatized 
+// methods.
+
+/** Return the current number of elements stored in this array. **/
+size_type size() const {return this->CBase::size();}
+/** Return the maximum allowable size for this array. **/
+size_type max_size() const {return this->CBase::max_size();}
+/** Return true if there are no elements currently stored in this array. This
+is equivalent to the tests begin()==end() or size()==0. **/
+bool empty() const {return this->CBase::empty();}
+/** Return the number of elements this array can currently hold without
+requiring reallocation. The value returned by capacity() is always greater 
+than or equal to size(), even if the data is not owned by this array in
+which case we have capacity()==size() and the array is not reallocatable. **/
+size_type capacity() const {return this->CBase::capacity();}
+/** Return the amount of heap space owned by this array; this is the same
+as capacity() for owner arrays but is zero for non-owners. 
+@note There is no equivalent of this method for std::vector. **/
+size_type allocated() const {return this->CBase::allocated();}
+/** Does this array own the data to which it refers? If not, it can't be
+resized, and the destructor will not free any heap space nor call any element
+destructors. If the array does not refer to \e any data it is considered to be
+an owner and it is resizeable. 
+@note There is no equivalent for std::vector. **/
+bool isOwner() const {return this->CBase::isOwner();}
+/*@}*/
+
+//------------------------------------------------------------------------------
+                                   protected:
+//------------------------------------------------------------------------------
+// The remainder of this class is for the use of the Array_<T,X> derived class
+// only and should not be documented for users to see.
+                                       
+// This constructor does not initialize any of the data members; it is intended
+// for use in derived class constructors that promise to set *all* data members.
+explicit ArrayView_(const TrustMe& tm) : CBase(tm) {}
+
+//------------------------------------------------------------------------------
+                                   private:
+//------------------------------------------------------------------------------
+// no data members are allowed
+
+// The following private methods are protected methods in the ConstArray_ base 
+// class, so they should not need repeating here. However, we explicitly 
+// forward to the base methods to avoid gcc errors. The gcc complaint
+// is due to their not depending on any template parameters; the "this->"
+// apparently fixes that problem.
+
+// This just cast sizes to unsigned long long so that we can do comparisons
+// without getting warnings.
+unsigned long long ullSize()     const {return this->CBase::ullSize();}
+unsigned long long ullCapacity() const {return this->CBase::ullCapacity();}
+unsigned long long ullMaxSize()  const {return this->CBase::ullMaxSize();}
+// This is the index type name and is handy for error messages to explain
+// why some size was too big.
+const char* indexName() const   {return this->CBase::indexName();}
+};
+
+
+//==============================================================================
+//                               CLASS Array_
+//==============================================================================
+/** The SimTK::Array_<T> container class is a plug-compatible replacement for 
+the C++ standard template library (STL) std::vector<T> class, but with some
 important advantages in performance, and functionality, and binary 
 compatibility.
 
@@ -564,7 +981,8 @@ standard STL objects.
   object that shares the contents of an std::vector object without copying.
 **/
 template <class T, class X> class Array_ : public ArrayView_<T,X> {
-typedef ArrayView_<T,X> Base;
+typedef ArrayView_<T,X>  Base;
+typedef ConstArray_<T,X> CBase;
 //------------------------------------------------------------------------------
 public:
 //------------------------------------------------------------------------------
@@ -954,11 +1372,6 @@ Array_& shareData(T* first, const T* last1) {
     return shareData(first, size_type(last1-first));
 }
 
-Array_ operator()(index_type index, size_type length) {
-    SimTK_INDEXCHECK(index,size(),"Array_<T>(index,length)");
-    SimTK_SIZECHECK(length,size_type(size()-index),"Array_<T>(index,length)");
-    return Array_(data()+index, cdata()+index+length, DontCopy());
-}
 
 /*@}*/
 
@@ -987,27 +1400,27 @@ allocated heap space (capacity) or both. **/
 // methods.
 
 /** Return the current number of elements stored in this array. **/
-size_type size() const {return this->Base::size();}
+size_type size() const {return this->CBase::size();}
 /** Return the maximum allowable size for this array. **/
-size_type max_size() const {return this->Base::max_size();}
+size_type max_size() const {return this->CBase::max_size();}
 /** Return true if there are no elements currently stored in this array. This
 is equivalent to the tests begin()==end() or size()==0. **/
-bool empty() const {return this->Base::empty();}
+bool empty() const {return this->CBase::empty();}
 /** Return the number of elements this array can currently hold without
 requiring reallocation. The value returned by capacity() is always greater 
 than or equal to size(), even if the data is not owned by this array in
 which case we have capacity()==size() and the array is not reallocatable. **/
-size_type capacity() const {return this->Base::capacity();}
+size_type capacity() const {return this->CBase::capacity();}
 /** Return the amount of heap space owned by this array; this is the same
 as capacity() for owner arrays but is zero for non-owners. 
 @note There is no equivalent of this method for std::vector. **/
-size_type allocated() const {return this->Base::allocated();}
+size_type allocated() const {return this->CBase::allocated();}
 /** Does this array own the data to which it refers? If not, it can't be
 resized, and the destructor will not free any heap space nor call any element
 destructors. If the array does not refer to \e any data it is considered to be
 an owner and it is resizeable. 
 @note There is no equivalent for std::vector. **/
-bool isOwner() const {return this->Base::isOwner();}
+bool isOwner() const {return this->CBase::isOwner();}
 
 /** Change the size of this Array, preserving all the elements that will still 
 fit, and default constructing any new elements that are added. This is not
@@ -1121,47 +1534,47 @@ reverse iterator's base() method. **/
 end(), which may be null (0) in that case but does not have to be. This method
 is from the proposed C++0x standard; there is also an overloaded begin() from
 the original standard that returns a const pointer. **/
-const T* cbegin() const {return this->Base::cbegin();}
+const T* cbegin() const {return this->CBase::cbegin();}
 /** The const version of begin() is the same as cbegin(). **/
-const T* begin() const {return this->Base::cbegin();}
+const T* begin() const {return this->CBase::cbegin();}
 /** Return a writable pointer to the first element of this array if any,
 otherwise end(). If the array is empty, this \e may return null (0) but does 
 not have to -- the only thing you can be sure of is that begin() == end() for 
 an empty array. **/
-T* begin() {return const_cast<T*>(this->Base::cbegin());}
+T* begin() {return this->Base::begin();}
 
 /** Return a const pointer to what would be the element just after the last one
 in the array; this may be null (0) if there are no elements but doesn't have to
 be. This method is from the proposed C++0x standard; there is also an 
 overloaded end() from the original standard that returns a const pointer. **/
-const T* cend() const {return this->Base::cend();}
+const T* cend() const {return this->CBase::cend();}
 /** The const version of end() is the same as cend(). **/
-const T* end() const {return this->Base::cend();}
+const T* end() const {return this->CBase::cend();}
 /** Return a writable pointer to what would be the element just after the last
 one in this array. If the array is empty, this \e may return null (0) but does 
 not have to -- the only thing you can be sure of is that begin()==end() for an 
 empty array. **/
-T* end() {return const_cast<T*>(this->Base::cend());}
+T* end() {return this->Base::end();}
 
 /** Return a const reverse iterator pointing to the last element in the array 
 or crend() if the array is empty. **/
-const_reverse_iterator crbegin() const {return this->Base::crbegin();}
+const_reverse_iterator crbegin() const {return this->CBase::crbegin();}
 /** The const version of rbegin() is the same as crbegin(). **/
-const_reverse_iterator rbegin() const {return this->Base::crbegin();} 
+const_reverse_iterator rbegin() const {return this->CBase::crbegin();} 
 /** Return a writable reverse iterator pointing to the last element in the
 array or rend() if the array is empty. **/
-reverse_iterator rbegin() {return reverse_iterator(end());}
+reverse_iterator rbegin() {return this->Base::rbegin();}
 
 /** Return the past-the-end reverse interator that tests equal to a reverse
 iterator that has been incremented past the front of the array. You cannot 
 dereference this iterator. **/
-const_reverse_iterator crend() const {return this->Base::crend();}
+const_reverse_iterator crend() const {return this->CBase::crend();}
 /** The const version of rend() is the same as crend(). **/
-const_reverse_iterator rend() const {return this->Base::crend();}
+const_reverse_iterator rend() const {return this->CBase::crend();}
 /** Return a writable past-the-end reverse interator that tests equal to a 
 reverse iterator that has been incremented past the front of the array. You
 cannot dereference this iterator. **/
-reverse_iterator rend() {return reverse_iterator(begin());}
+reverse_iterator rend() {return this->Base::rend();}
 
 /** Return a const pointer to the first element of the array, or possibly
 (but not necessarily) null (0) if the array is empty.
@@ -1169,20 +1582,20 @@ reverse_iterator rend() {return reverse_iterator(begin());}
     cdata() does not appear to be in the C++0x standard although it would seem
     obvious in view of the cbegin() and cend() methods that had to be added. 
     The C++0x overloaded const data() method is also available. **/
-const T* cdata() const {return this->Base::cdata();}
+const T* cdata() const {return this->CBase::cdata();}
 /** The const version of the data() method is identical to cdata().
 @note This method is from the proposed C++0x std::vector. **/
-const T* data() const {return this->Base::cdata();}
+const T* data() const {return this->CBase::cdata();}
 /** Return a writable pointer to the first allocated element of the array, or
 a null pointer if no space is associated with the array.
 @note This method is from the proposed C++0x std::vector. **/
-T* data() {return const_cast<T*>(this->Base::cdata());}
+T* data() {return this->Base::data();}
 /*@}*/
 
 /** @name                     Element access
 
 These methods provide writable access to individual elements that are 
-currently present in the array; the ArrayView_<T,X> base class provided the
+currently present in the array; the ConstArray_<T,X> base class provided the
 read-only (const) methods. **/
 /*@{*/
 
@@ -1192,7 +1605,7 @@ will be range-checked in a Debug build but not in Release.
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-const T& operator[](index_type i) const {return Base(*this)[i];}
+const T& operator[](index_type i) const {return this->CBase::operator[](i);}
 
 /** Select an element by its index, returning a writable (lvalue) reference. 
 Note that only a value of the Array's templatized index type is allowed 
@@ -1201,13 +1614,13 @@ in Release.
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-T& operator[](index_type i) {return const_cast<T&>(Base(*this)[i]);}
+T& operator[](index_type i) {return this->Base::operator[](i);}
 
 /** Same as operator[] but always range-checked, even in a Release build.  
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
-const T& at(index_type i) const {return this->Base::at(i);}
+const T& at(index_type i) const {return this->CBase::at(i);}
 
 /** Same as operator[] but always range-checked, even in a Release build.  
 @pre 0 <= \a i < size()
@@ -1220,7 +1633,7 @@ not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-const T& front() const {return this->Base::front();} 
+const T& front() const {return this->CBase::front();} 
 
 /** Return a writable reference to the first element in this array, which must
 not be empty.
@@ -1234,7 +1647,7 @@ not be empty.
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
-const T& back() const {return this->Base::back();}
+const T& back() const {return this->CBase::back();}
 
 /** Return a writable reference to the last element in this array, which must
 not be empty.
@@ -1243,20 +1656,17 @@ not be empty.
     Constant time. **/
 T& back() {return const_cast<T&>(this->Base::back());}
 
+/** Select a subrange of this const array by starting index and length, and
+return a ConstArray referencing that data without copying it. **/
+ConstArray_<T,X> operator()(index_type index, size_type length) const
+{   return CBase::operator()(index,length); }
+
+/** Select a subrange of this array by starting index and length, and
+return an ArrayView referencing that data without copying it. **/
+ArrayView_ operator()(index_type index, size_type length)
+{   return Base::operator()(index,length); }
 /*@}*/
 
-/** Erase all the elements currently in this Array without changing the capacity;
-equivalent to erase(begin(),end()) but a little faster. Size is zero after this 
-call. T's destructor is called exactly once for each element in the Array.
-
-@par Complexity:
-    O(n) if T has a destructor; constant time otherwise. **/
-void clear() {
-    SimTK_ERRCHK(isOwner(), "Array_<T>::clear()", 
-        "clear() is not allowed for a non-owner array.");
-    destruct(begin(), end());
-    setSize(0);
-}
 
 /**@name                Element insertion and removal
 
@@ -1361,6 +1771,20 @@ T* eraseFast(T* p) {
     setSize(size()-1);
     return p;
 }
+
+/** Erase all the elements currently in this Array without changing the capacity;
+equivalent to erase(begin(),end()) but a little faster. Size is zero after this 
+call. T's destructor is called exactly once for each element in the Array.
+
+@par Complexity:
+    O(n) if T has a destructor; constant time otherwise. **/
+void clear() {
+    SimTK_ERRCHK(isOwner(), "Array_<T>::clear()", 
+        "clear() is not allowed for a non-owner array.");
+    destruct(begin(), end());
+    setSize(0);
+}
+
 
 /** Insert \a n copies of a given value at a particular location within this 
 array, moving all following elements up by n positions.
@@ -1887,17 +2311,17 @@ static void destruct(T* b, const T* e)
 // apparently fixes that problem.
 
 // These provide direct access to the data members.
-void setData(const T* p)        {this->Base::setData(p);}
-void setSize(size_type n)       {this->Base::setSize(n);}
-void setAllocated(size_type n)  {this->Base::setAllocated(n);}
+void setData(const T* p)        {this->CBase::setData(p);}
+void setSize(size_type n)       {this->CBase::setSize(n);}
+void setAllocated(size_type n)  {this->CBase::setAllocated(n);}
 // This just cast sizes to unsigned long long so that we can do comparisons
 // without getting warnings.
-unsigned long long ullSize()     const {return this->Base::ullSize();}
-unsigned long long ullCapacity() const {return this->Base::ullCapacity();}
-unsigned long long ullMaxSize()  const {return this->Base::ullMaxSize();}
+unsigned long long ullSize()     const {return this->CBase::ullSize();}
+unsigned long long ullCapacity() const {return this->CBase::ullCapacity();}
+unsigned long long ullMaxSize()  const {return this->CBase::ullMaxSize();}
 // This is the index type name and is handy for error messages to explain
 // why some size was too big.
-const char* indexName() const   {return this->Base::indexName();}
+const char* indexName() const   {return this->CBase::indexName();}
 };
 
 
@@ -1916,7 +2340,7 @@ does not support the "<<" operator. No newline is issued before or after the
 output.
 @relates Array_ **/
 template <class T, class X> inline std::ostream&
-operator<<(std::ostream& o, const Array_<T,X>& a) {
+operator<<(std::ostream& o, const ConstArray_<T,X>& a) {
     o << '{';
     if (!a.empty()) {
         o << a.front();
@@ -1929,8 +2353,8 @@ operator<<(std::ostream& o, const Array_<T,X>& a) {
 /**@name                    Comparison operators
 
 These operators permit lexicographical comparisons between two comparable
-Array_ objects, possibly with differing element and index types, and between 
-an Array_ object and a comparable std::vector object.
+ConstArray_ objects, possibly with differing element and index types, and between 
+an ConstArray_ object and a comparable std::vector object.
 @relates Array_ **/
 /*@{*/
 
@@ -1938,7 +2362,7 @@ an Array_ object and a comparable std::vector object.
 element compares equal using an operator T1==T2.  
 @relates Array_ **/
 template <class T1, class X1, class T2, class X2> bool 
-operator==(const Array_<T1,X1>& a1, const Array_<T2,X2>& a2) {
+operator==(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2) {
     // Avoid warnings in size comparison by using common type.
     const ptrdiff_t sz1 = a1.end()-a1.begin();
     const ptrdiff_t sz2 = a2.end()-a2.begin();
@@ -1952,7 +2376,7 @@ operator==(const Array_<T1,X1>& a1, const Array_<T2,X2>& a2) {
 /** The not equal operator is implemented using the equal operator.  
 @relates Array_ **/
 template <class T1, class X1, class T2, class X2> bool 
-operator!=(const Array_<T1,X1>& a1, const Array_<T2,X2>& a2)
+operator!=(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2)
 {   return !(a1 == a2); }
 
 /** Arrays are ordered lexicographically; that is, by first differing element
@@ -1961,7 +2385,7 @@ shorter array (in which case the shorter one is "less than" the longer).
 This depends on T1==T2 and T1<T2 operators working.  
 @relates Array_ **/
 template <class T1, class X1, class T2, class X2> bool 
-operator<(const Array_<T1,X1>& a1, const Array_<T2,X2>& a2) {
+operator<(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2) {
     const T1* p1 = a1.begin();
     const T2* p2 = a2.begin();
     while (p1 != a1.end() && p2 != a2.end()) {
@@ -1976,20 +2400,20 @@ operator<(const Array_<T1,X1>& a1, const Array_<T2,X2>& a2) {
 /** The greater than or equal operator is implemented using the less than 
 operator. **/
 template <class T1, class X1, class T2, class X2> bool 
-operator>=(const Array_<T1,X1>& a1, const Array_<T2,X2>& a2)
+operator>=(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2)
 {   return !(a1 < a2); }
 /** The greater than operator is implemented by using less than with the
 arguments reversed. 
 @relates Array_ **/
 template <class T1, class X1, class T2, class X2> bool 
-operator>(const Array_<T1,X1>& a1, const Array_<T2,X2>& a2)
+operator>(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2)
 {   return a2 < a1; }
 
-/** An Array_<T1> and an std::vector<T2> are equal if and only if they are the 
+/** An ConstArray_<T1> and an std::vector<T2> are equal if and only if they are the 
 same size() and each element compares equal using an operator T1==T2.  
 @relates Array_ **/
 template <class T1, class X1, class T2, class A2> bool 
-operator==(const Array_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
+operator==(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
     typedef typename std::vector<T2,A2>::const_iterator Iter;
     // Avoid warnings in size comparison by using common type.
     const ptrdiff_t sz1 = a1.end()-a1.begin();
@@ -2001,31 +2425,31 @@ operator==(const Array_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
         if (!(*p1++ == *p2++)) return false;
     return true;
 }
-/** An std::vector<T1> and an Array_<T2> are equal if and only if they are the 
+/** An std::vector<T1> and an ConstArray_<T2> are equal if and only if they are the 
 same size() and each element compares equal using an operator T2==T1.  
 @relates Array_ **/
 template <class T1, class A1, class T2, class X2> bool 
-operator==(const std::vector<T1,A1>& v1, const Array_<T2,X2>& a2)
+operator==(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
 {   return a2 == v1; }
 
 /** The not equal operator is implemented using the equal operator.  
 @relates Array_ **/
 template <class T1, class X1, class T2, class A2> bool 
-operator!=(const Array_<T1,X1>& a1, const std::vector<T2,A2>& v2)
+operator!=(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2)
 {   return !(a1 == v2); }
 /** The not equal operator is implemented using the equal operator.  
 @relates Array_ **/
 template <class T1, class A1, class T2, class X2> bool 
-operator!=(const std::vector<T1,A1>& v1, const Array_<T2,X2>& a2)
+operator!=(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
 {   return !(a2 == v1); }
 
-/** An Array_<T1> and std::vector<T2> are ordered lexicographically; that is, 
+/** An ConstArray_<T1> and std::vector<T2> are ordered lexicographically; that is, 
 by first differing element or by length if there are no differing elements up 
 to the length of the shorter container (in which case the shorter one is 
 "less than" the longer). This depends on having working element operators 
 T1==T2 and T1<T2. @relates Array_ **/
 template <class T1, class X1, class T2, class A2> bool 
-operator<(const Array_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
+operator<(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
     typedef typename std::vector<T2,A2>::const_iterator Iter;
     const T1*   p1 = a1.begin();
     Iter        p2 = v2.begin();
@@ -2038,13 +2462,13 @@ operator<(const Array_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
     // a1 is less than a2 only if a1 ran out and a2 didn't.
     return p1 == a1.end() && p2 != v2.end();
 }
-/** An std::vector<T1> and Array_<T2> are ordered lexicographically; that is, 
+/** An std::vector<T1> and ConstArray_<T2> are ordered lexicographically; that is, 
 by first differing element or by length if there are no differing elements up 
 to the length of the shorter container (in which case the shorter one is 
 "less than" the longer). This depends on having working element operators 
 T1==T2 and T1<T2. @relates Array_ **/
 template <class T1, class A1, class T2, class X2> bool 
-operator<(const std::vector<T1,A1>& v1, const Array_<T2,X2>& a2) {
+operator<(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2) {
     typedef typename std::vector<T1,A1>::const_iterator Iter;
     Iter        p1 = v1.begin();
     const T2*   p2 = a2.begin();
@@ -2060,23 +2484,23 @@ operator<(const std::vector<T1,A1>& v1, const Array_<T2,X2>& a2) {
 /** The greater than or equal operator is implemented using the less than 
 operator. @relates Array_ **/
 template <class T1, class X1, class T2, class A2> bool 
-operator>=(const Array_<T1,X1>& a1, const std::vector<T2,A2>& v2)
+operator>=(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2)
 {   return !(a1 < v2); }
 /** The greater than or equal operator is implemented using the less than 
 operator. @relates Array_ **/
 template <class T1, class A1, class T2, class X2> bool 
-operator>=(const std::vector<T1,A1>& v1, const Array_<T2,X2>& a2)
+operator>=(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
 {   return !(v1 < a2); }
 
 /** The greater than operator is implemented by using less than with the
 arguments reversed. @relates Array_ **/
 template <class T1, class X1, class T2, class A2> bool 
-operator>(const Array_<T1,X1>& a1, const std::vector<T2,A2>& v2)
+operator>(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2)
 {   return v2 < a1; }
 /** The greater than operator is implemented by using less than with the
 arguments reversed. @relates Array_ **/
 template <class T1, class A1, class T2, class X2> bool 
-operator>(const std::vector<T1,A1>& v1, const Array_<T2,X2>& a2)
+operator>(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
 {   return a2 < v1; }
 /*@}*/
 
