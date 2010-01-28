@@ -763,12 +763,6 @@ provides methods for examining these parameters without changing them. **/
 /*@{*/
 
 
-// These are to avoid errors when compiling with gcc 4.1.2 which feels
-// that because the base class methods don't depend on any tempate 
-// parameters they must already have been instantiated.
-bool empty() const {return Base::empty();}
-bool isOwner() const {return Base::isOwner();}
-
 /** Change the size of this Array, preserving all the elements that will still 
 fit, and default constructing any new elements that are added. This is not
 allowed for non-owner arrays unless the requested size is the same as the 
@@ -1683,6 +1677,12 @@ unsigned long long ullSize()     const {return ull(size());}
 unsigned long long ullCapacity() const {return ull(capacity());}
 unsigned long long ullMaxSize()  const {return ull(max_size());}
 
+
+// These are to avoid errors when compiling with gcc 4.1.2 which feels
+// that because the base class methods don't depend on any tempate 
+// parameters they must already have been instantiated.
+bool emptyT() const {return this->empty();}
+bool isOwnerT() const {return this->isOwner();}
 };
 
 
