@@ -302,17 +302,17 @@ inline bool isSizeInRange(unsigned long long sz, unsigned long long mx){return s
 // is one less that the size.
 
 // char can be signed or unsigned depending on the compiler; assume signed.
-inline bool isIndexInRange(char           sz, char           mx){return 0<=sz&&sz<mx;}
-inline bool isIndexInRange(signed char    sz, signed char    mx){return 0<=sz&&sz<mx;}
-inline bool isIndexInRange(short          sz, short          mx){return 0<=sz&&sz<mx;}
-inline bool isIndexInRange(int            sz, int            mx){return 0<=sz&&sz<mx;}
-inline bool isIndexInRange(long           sz, long           mx){return 0<=sz&&sz<mx;}
-inline bool isIndexInRange(long long      sz, long long      mx){return 0<=sz&&sz<mx;}
-inline bool isIndexInRange(unsigned char  sz, unsigned char  mx){return sz<mx;}
-inline bool isIndexInRange(unsigned short sz, unsigned short mx){return sz<mx;}
-inline bool isIndexInRange(unsigned int   sz, unsigned int   mx){return sz<mx;}
-inline bool isIndexInRange(unsigned long  sz, unsigned long  mx){return sz<mx;}
-inline bool isIndexInRange(unsigned long long sz, unsigned long long mx){return sz<mx;}
+inline bool isIndexInRange(char           ix, char           sz){return 0<=ix&&ix<sz;}
+inline bool isIndexInRange(signed char    ix, signed char    sz){return 0<=ix&&ix<sz;}
+inline bool isIndexInRange(short          ix, short          sz){return 0<=ix&&ix<sz;}
+inline bool isIndexInRange(int            ix, int            sz){return 0<=ix&&ix<sz;}
+inline bool isIndexInRange(long           ix, long           sz){return 0<=ix&&ix<sz;}
+inline bool isIndexInRange(long long      ix, long long      sz){return 0<=ix&&ix<sz;}
+inline bool isIndexInRange(unsigned char  ix, unsigned char  sz){return ix<sz;}
+inline bool isIndexInRange(unsigned short ix, unsigned short sz){return ix<sz;}
+inline bool isIndexInRange(unsigned int   ix, unsigned int   sz){return ix<sz;}
+inline bool isIndexInRange(unsigned long  ix, unsigned long  sz){return ix<sz;}
+inline bool isIndexInRange(unsigned long long ix, unsigned long long sz){return ix<sz;}
 
 // This utility answers the question: is this integral value nonnegative? The answer
 // is always true for unsigned types and you'll get a warning from some compilers if

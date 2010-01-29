@@ -55,7 +55,10 @@ template <class T, class X=int> class Array_;
 // be compared against a container's size() method without a warning.
 // Also, there has to be a signed difference_type that can hold the
 // difference between any two valid indices. This means we can't use
-// the full range of unsigned types.
+// the full range of unsigned types unless the difference_type is 
+// wider.
+// Note that the index_type must be convertible to a size_type via
+// size_type(i).
 
 template <class X> struct IndexTraits {
     typedef X                           index_type;
@@ -149,6 +152,15 @@ template <> struct IndexTraits<char> {
     typedef signed char difference_type;
     static const size_type max_size = 127;
     static const char* index_name() {return "char";}
+};
+
+// OK, this seems unlikely but ...
+template <> struct IndexTraits<bool> {
+    typedef bool        index_type;
+    typedef unsigned char   size_type;
+    typedef signed char     difference_type;
+    static const size_type max_size = 2;
+    static const char* index_name() {return "bool";}
 };
 
 /** This is a special type used for causing invocation of a particular
@@ -370,7 +382,7 @@ will be range-checked in a Debug build but not in Release.
 @par Complexity:
     Constant time. **/
 const T& operator[](index_type i) const {
-    SimTK_INDEXCHECK(i,nUsed,"ConstArray_<T>::operator[]()");
+    SimTK_INDEXCHECK(size_type(i),nUsed,"ConstArray_<T>::operator[]()");
     return pData[i];
 }
 /** Same as operator[] but always range-checked, even in a Release build.  
@@ -378,7 +390,7 @@ const T& operator[](index_type i) const {
 @par Complexity:
     Constant time. **/
 const T& at(index_type i) const {
-    SimTK_INDEXCHECK_ALWAYS(i,nUsed,"ConstArray_<T>::at()");
+    SimTK_INDEXCHECK_ALWAYS(size_type(i),nUsed,"ConstArray_<T>::at()");
     return pData[i];
 }
 /** Return a const reference to the first element in this array, which must
@@ -398,7 +410,7 @@ const T& back() const
 {   SimTK_ERRCHK(!empty(), "ConstArray_<T>::back()", "Array was empty.");
     return pData[nUsed-1]; }
 
-/** Select a constiguous subarray of the elements of this array and create 
+/** Select a contiguous subarray of the elements of this array and create 
 another ConstArray that refers only to those element (without copying). 
 @param[in]      index
     The index of the first element to be included in the subarray; this can
@@ -418,14 +430,15 @@ another ConstArray that refers only to those element (without copying).
     is required. **/ 
 ConstArray_ operator()(index_type index, size_type length) const {
     const char* methodName = "ConstArray_<T>(index,length)";
-    SimTK_ERRCHK2(isSizeInRange(index, index_type(size())), methodName,
+    const size_type ix(index);
+    SimTK_ERRCHK2(isSizeInRange(ix, size()), methodName,
         "For this operator, we must have 0 <= index <= size(), but"
-        " index==%llu and size==%llu.", ull(index), ullSize());
-    SimTK_ERRCHK2(isSizeInRange(length, size_type(size()-index)), methodName,
-        "For this operator we must have 0 <= length <= size()-index, but"
-        " length==%llu and size()-index==%llu.",ull(length),ull(size()-index));
+        " index==%llu and size==%llu.", ull(ix), ullSize());
+    SimTK_ERRCHK2(isSizeInRange(length, size_type(size()-ix)), methodName, 
+        "This operator requires 0 <= length <= size()-index, but"
+        " length==%llu and size()-index==%llu.",ull(length),ull(size()-ix));
 
-    return ConstArray_(pData+index, pData+index+length);
+    return ConstArray_(pData+ix, pData+ix+length);
 }
 /*@}    End of element access. **/
 
@@ -500,7 +513,7 @@ void setAllocated(size_type n)  {nAllocated = n;}
 // avoiding any compiler warnings due to mismatched integral types.
 template <class S> 
 bool isSameSize(S sz) const
-{   return ull(sz) <= ullSize(); }
+{   return ull(sz) == ullSize(); }
 
 // Check that a source object's size will fit in the array being careful to
 // avoid overflow and warnings in the comparison.
@@ -658,13 +671,14 @@ ArrayView_& operator=(const ConstArray_<T2,X2>& src) {
 of elements matches and the types are assignment compatible. **/
 template <class T2, class A2>
 ArrayView_& operator=(const std::vector<T2,A2>& src) {
-    SimTK_ERRCHK2(isSameSize(src.size()), "ArrayView_::operator=(ConstArray_)",
+    SimTK_ERRCHK2(isSameSize(src.size()), "ArrayView_::operator=(std::vector)",
         "Assignment to an ArrayView is permitted only if the source"
         " is the same size. Here the source had %llu element(s) but the"
         " ArrayView has a fixed size of %llu.", 
         ull(src.size()), ull(size()));
 
-    T* d = begin(); const T2* s = src.begin();
+    T*                                 d = begin(); 
+    std::vector<T2,A2>::const_iterator s = src.begin();
     while (d != end())
         *d++ = *s++; // using T::operator=(T2)
     return *this;
@@ -823,10 +837,35 @@ not be empty.
     Constant time. **/
 T& back() {return const_cast<T&>(this->CBase::back());}
 
+/** Select a contiguous subarray of the elements of this array and create 
+another ArrayView_ that refers only to those element (without copying). 
+@param[in]      index
+    The index of the first element to be included in the subarray; this can
+    be one past the end of the array if \a length is zero. 
+@param[in]      length
+    The length of the subarray to be produced.
+@return
+    A new ArrayView_<T,X> object referencing the original data.
+@note 
+    If \a length==0 the returned array will be in a default-constructed,
+    all-zero and null state with no connection to the original data.
+@pre \a index >= 0, \a length >= 0
+@pre \a index + \a length <= size()
+@pre We'll validate preconditions in Debug builds but not Release.
+@par Complexity:
+    Dirt cheap; no element construction or destruction or heap allocation
+    is required. **/ 
 ArrayView_ operator()(index_type index, size_type length) {
-    SimTK_INDEXCHECK(index,size(),"Array_<T>(index,length)");
-    SimTK_SIZECHECK(length,size_type(size()-index),"Array_<T>(index,length)");
-    return ArrayView_(data()+index, cdata()+index+length);
+    const char* methodName = "ArrayView_<T>(index,length)";
+    const size_type ix(index);
+    SimTK_ERRCHK2(isSizeInRange(ix, size()), methodName,
+        "For this operator, we must have 0 <= index <= size(), but"
+        " index==%llu and size==%llu.", ull(ix), ullSize());
+    SimTK_ERRCHK2(isSizeInRange(length, size_type(size()-ix)), methodName, 
+        "This operator requires 0 <= length <= size()-index, but"
+        " length==%llu and size()-index==%llu.",ull(length),ull(size()-ix));
+
+    return ArrayView_(data()+ix, data()+ix+length);
 }
 /*@}    End of element access. **/
 
@@ -2410,22 +2449,21 @@ const char* indexName() const   {return this->CBase::indexName();}
 // These are logically part of the Array_<T,X> class but are not actually 
 // class members; that is, they are in the SimTK namespace.
 
-/** Output a human readable representation of an Array to an std::ostream
-(like std::cout). The format is '{' \e elements '}' where \e elements is a 
-space-separated list of the Array's contents output by invoking the "<<" 
-operator on the elements. This function will not compile if the element type 
-does not support the "<<" operator. No newline is issued before or after the 
-output.
-@relates Array_ **/
+/** Output a human readable representation of an array to an std::ostream
+(like std::cout). The format is [n]( \e elements ) where n is the array's size
+and \e elements is a comma-separated list of the Array's contents output by 
+invoking the "<<" operator on the elements. This function will not compile if 
+the element type does not support the "<<" operator. No newline is issued before
+or after the output. @relates Array_ **/
 template <class T, class X> inline std::ostream&
 operator<<(std::ostream& o, const ConstArray_<T,X>& a) {
-    o << '{';
+    o << "[" << (long long)a.size() << "](";
     if (!a.empty()) {
         o << a.front();
         for (const T* p = a.begin()+1; p != a.end(); ++p)
-            o << ' ' << *p;
+            o << ',' << *p;
     }
-    return o << '}';
+    return o << ')';
 } 
 
 /**@name                    Comparison operators
@@ -2580,6 +2618,17 @@ arguments reversed. @relates Array_ **/
 template <class T1, class A1, class T2, class X2> bool 
 operator>(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
 {   return a2 < v1; }
+
+/** The less than or equal operator is implemented using the greater than 
+operator. @relates Array_ **/
+template <class T1, class X1, class T2, class A2> bool 
+operator<=(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2)
+{   return !(a1 > v2); }
+/** The less than or equal operator is implemented using the greater than 
+operator. @relates Array_ **/
+template <class T1, class A1, class T2, class X2> bool 
+operator<=(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
+{   return !(v1 > a2); }
 /*@}*/
 
 } // namespace SimTK

@@ -299,11 +299,45 @@ void testConversion() {
     toConstArray(v);
 }
 
+void testIndexType() {
+    Array_<std::string, bool> wisdom(2);
+    wisdom[true]  = "this too shall pass";
+    wisdom[false] = "don't worry it's not loaded";
+    cout << "wisdom=" << wisdom << endl;
+    cout << "wisdom(false,1)=" << wisdom(false,1) << endl;
+    cout << "wisdom(true,1)=" << wisdom(true,1) << endl;
+    cout << "wisdom(true,0)=" << wisdom(true,0) << endl;
+
+    SimTK_TEST_MUST_THROW_DEBUG(
+        wisdom(false,2) = std::vector<const char*>(1,"whatever"));
+
+    const std::vector<const char*> vrel(2,"it's all relative");
+    wisdom(false,2) = vrel;
+    cout << "wisdom=" << wisdom << endl;
+
+    SimTK_TEST(wisdom == vrel); SimTK_TEST(vrel == wisdom);
+    SimTK_TEST(wisdom <= vrel); SimTK_TEST(vrel <= wisdom);
+    SimTK_TEST(wisdom >= vrel); SimTK_TEST(vrel >= wisdom);
+    SimTK_TEST(wisdom(false,1) < vrel);
+    SimTK_TEST(wisdom(true,1) < vrel);
+    SimTK_TEST(wisdom(0,0) < vrel);
+    SimTK_TEST(wisdom(true,1) < vrel);
+    SimTK_TEST(wisdom(false,1) != vrel);
+    SimTK_TEST(wisdom != std::vector<const char*>(2,"it's all absolute"));
+    wisdom[true] = "a comes after i";
+    SimTK_TEST(wisdom > vrel); SimTK_TEST(vrel < wisdom);
+
+
+    SimTK_TEST_MUST_THROW_DEBUG(wisdom(true,2));
+    SimTK_TEST_MUST_THROW_DEBUG(wisdom.push_back("more brilliance"));
+}
+
 int main() {
     SimTK_START_TEST("TestArray");
 
         SimTK_SUBTEST(testConstruction);
         SimTK_SUBTEST(testConversion);
+        SimTK_SUBTEST(testIndexType);
 
     SimTK_END_TEST();
 }

@@ -528,6 +528,7 @@ private:
     {SimTK_ASSERT1_ALWAYS(!SimTK::Test::numericallyEqual((v1),(v2),1,(tol)),   \
      "Test values should NOT have been numerically equivalent at tolerance=%g.",(tol));}
 
+/// Test that the supplied statement throws an std::exception of some kind.
 #define SimTK_TEST_MUST_THROW(stmt)             \
     do {int threw=0; try {stmt;}                \
         catch(const std::exception&){threw=1;}  \
@@ -536,6 +537,7 @@ private:
         if (threw==2) SimTK_TEST_FAILED1("Expected statement\n%s\n  to throw an std::exception but it threw something else.",#stmt); \
     }while(false)
 
+/// Test that the supplied statement throws a particular exception.
 #define SimTK_TEST_MUST_THROW_EXC(stmt,exc)     \
     do {int threw=0; try {stmt;}                \
         catch(const exc&){threw=1;}             \
@@ -543,6 +545,35 @@ private:
         if (threw==0) SimTK_TEST_FAILED1("Expected statement\n----\n%s\n----\n  to throw an exception but it did not.",#stmt); \
         if (threw==2) SimTK_TEST_FAILED2("Expected statement\n----\n%s\n----\n  to throw exception type %s but it threw something else.",#stmt,#exc); \
     }while(false)
+
+/// Allow the supplied statement to throw any std::exception without failing.
+#define SimTK_TEST_MAY_THROW(stmt)             \
+    do {int threw=0; try {stmt;}                \
+        catch(const std::exception&){threw=1;}  \
+        catch(...){threw=2;}                    \
+        if (threw==2) SimTK_TEST_FAILED1("Expected statement\n%s\n  to throw an std::exception but it threw something else.",#stmt); \
+    }while(false)
+
+/// Allow the supplied statement to throw a particular exception without failing.
+#define SimTK_TEST_MAY_THROW_EXC(stmt,exc)     \
+    do {int threw=0; try {stmt;}                \
+        catch(const exc&){threw=1;}             \
+        catch(...){threw=2;}                    \
+        if (threw==2) SimTK_TEST_FAILED2("Expected statement\n----\n%s\n----\n  to throw exception type %s but it threw something else.",#stmt,#exc); \
+    }while(false)
+
+// When we're only required to throw in Debug, we *may* still throw in
+// Release, but if so we'll ignore that.
+#if defined(NDEBUG)
+    #define SimTK_TEST_MUST_THROW_DEBUG(stmt) SimTK_TEST_MAY_THROW(stmt)
+    #define SimTK_TEST_MUST_THROW_EXC_DEBUG(stmt,exc) \
+                SimTK_TEST_MAY_THROW_EXC(stmt,exc)
+#else
+    #define SimTK_TEST_MUST_THROW_DEBUG(stmt) SimTK_TEST_MUST_THROW(stmt)
+    #define SimTK_TEST_MUST_THROW_EXC_DEBUG(stmt,exc) \
+                SimTK_TEST_MUST_THROW_EXC(stmt,exc)
+#endif
+
 
 
 
