@@ -555,19 +555,19 @@ public:
 
 Types required of STL containers, plus index_type which is an extension. **/
 /*@{*/
-typedef typename CBase::value_type               value_type;
-typedef typename CBase::index_type               index_type;
-typedef typename CBase::size_type                size_type;
-typedef typename CBase::difference_type          difference_type;
-typedef typename CBase::pointer                  pointer;
-typedef typename CBase::const_pointer            const_pointer;
-typedef typename CBase::reference                reference;
-typedef typename CBase::const_reference          const_reference;
-typedef typename CBase::iterator                 iterator;
-typedef typename CBase::const_iterator           const_iterator;
-typedef typename CBase::reverse_iterator         reverse_iterator;
-typedef typename CBase::const_reverse_iterator   const_reverse_iterator;
-/*@}    End of standard typedefs. **/
+typedef T                                        value_type;
+typedef X                                        index_type;
+typedef typename IndexTraits<X>::size_type       size_type;
+typedef typename IndexTraits<X>::difference_type difference_type;
+typedef T*                                       pointer;
+typedef const T*                                 const_pointer;
+typedef T&                                       reference;
+typedef const T&                                 const_reference;
+typedef T*                                       iterator;
+typedef const T*                                 const_iterator;
+typedef std::reverse_iterator<iterator>          reverse_iterator;
+typedef std::reverse_iterator<const_iterator>    const_reverse_iterator;
+/*@}    End of standard typedefs **/
 
 
 //------------------------------------------------------------------------------
@@ -1073,18 +1073,18 @@ public:
 
 Types required of STL containers, plus index_type which is an extension. **/
 /*@{*/
-typedef typename CBase::value_type               value_type;
-typedef typename CBase::index_type               index_type;
-typedef typename CBase::size_type                size_type;
-typedef typename CBase::difference_type          difference_type;
-typedef typename CBase::pointer                  pointer;
-typedef typename CBase::const_pointer            const_pointer;
-typedef typename CBase::reference                reference;
-typedef typename CBase::const_reference          const_reference;
-typedef typename CBase::iterator                 iterator;
-typedef typename CBase::const_iterator           const_iterator;
-typedef typename CBase::reverse_iterator         reverse_iterator;
-typedef typename CBase::const_reverse_iterator   const_reverse_iterator;
+typedef T                                        value_type;
+typedef X                                        index_type;
+typedef typename IndexTraits<X>::size_type       size_type;
+typedef typename IndexTraits<X>::difference_type difference_type;
+typedef T*                                       pointer;
+typedef const T*                                 const_pointer;
+typedef T&                                       reference;
+typedef const T&                                 const_reference;
+typedef T*                                       iterator;
+typedef const T*                                 const_iterator;
+typedef std::reverse_iterator<iterator>          reverse_iterator;
+typedef std::reverse_iterator<const_iterator>    const_reverse_iterator;
 /*@}    End of standard typedefs **/
 
 
@@ -1124,7 +1124,8 @@ Array_(size_type n, const T& initVal) : Base(TrustMe()) {
 /** Construct an Array_<T> from a range [first,last1) of values identified by a 
 pair of ordinary pointers to elements of type T2 (where T2 might be the same as
 T but doesn't have to be). This is templatized so can be used with any source 
-type T2 for which there is a working conversion constructor T(T2). **/
+type T2 for which there is a working conversion constructor T(T2), provided
+that the number of source elements does not exceed the array's max_size(). **/
 template <class T2>
 Array_(const T2* first, const T2* last1) : Base(TrustMe()) {
     const char* methodName = "Array_<T>::ctor(first,last1)";
@@ -1141,9 +1142,9 @@ Array_(const T2* first, const T2* last1) : Base(TrustMe()) {
 }
 
 /** Construct an Array_<T> by copying from an std::vector<T2>, where T2 may
-be the same type as T but doesn not have to be. This will work as long as the 
-size of the vector does not exceed the array's max_size, and provided there is 
-a working T(T2) conversion constructor. **/
+be the same type as T but doesn't have to be. This will work as long as the 
+size of the vector does not exceed the array's max_size(), and provided there 
+is a working T(T2) conversion constructor. **/
 template <class T2>
 explicit Array_(const std::vector<T2>& v) : Base() { 
     if (v.empty()) return;
@@ -1158,61 +1159,6 @@ explicit Array_(const std::vector<T2>& v) : Base() {
     // they are different types.
     new (this) Array_(&v.front(), (&v.back())+1);
 }
-
-/** Construct an Array_<T> by referencing (sharing) a given range of data
-[first,last1), without copying that data. This is very fast but can be 
-dangerous -- it is most useful for argument passing where the array handle 
-will be discarded immediately after use. Note that this is available only if 
-you have write access to the data because there is no way to construct 
-a non-writable array. This will work as long as the size of the data does 
-not exceed the array's max_size. The resulting array object is not resizeable
-but can be used to read and write elements of the original data. The
-array is invalid if the original data is destructed or resized, but there is
-no way for the array class to detect that.
-@note
-  - If the source data is empty, the resulting array will also 
-    be empty and will look just like a default-constructed array. It will
-    therefore not have any connection to the source and will be an
-    ordinary resizable array.
-  - This is quite dangerous to use since the connection between the array and
-    the data is tenuous and subject to the data remaining untouched during
-    the lifetime of the array handle. There is no reference counting;
-    destructing the original data would leave the array referring to garbage. 
-    Be careful!
-  - You can break the connection between the array and the data it was 
-    constructed from by calling deallocate().
-@par Complexity:
-    Dirt cheap. There will be no construction, destruction, or heap allocation
-    performed.
-@see deallocate() **/
-Array_(T* first, const T* last1, const DontCopy&) : Base(first,last1) {}
-
-/** Construct an Array_<T> by referencing (sharing) the data in an 
-std::vector<T>, without copying the data. This is very fast but can be 
-dangerous -- it is most useful for argument passing where the array handle 
-will be discarded immediately after use. Note that this is available only if 
-you have write access to the std::vector because there is no way to construct 
-a non-writable array. This will work as long as the size of the vector does 
-not exceed the array's max_size. The resulting array object is not resizeable
-but can be used to read and write elements of the original std::vector. The
-array is invalid if the original std::vector is destructed or resized.
-@note
-  - If the source std::vector is empty, the resulting array will also 
-    be empty and will look just like a default-constructed array. It will
-    therefore not have any connection to the source vector and will be an
-    ordinary resizable array.
-  - This is quite dangerous to use since the connection between the array and
-    the vector is tenuous and subject to the vector remaining untouchged during
-    the lifetime of the array handle. There is no reference counting;
-    destructing the vector leaves the array referring to garbage. Be careful!
-  - You can break the connection between the array and the vector it was 
-    constructed from by calling deallocate().
-@par Complexity:
-    Dirt cheap. There will be no construction, destruction, or heap allocation
-    performed.
-@see deallocate() **/
-template <class A>
-Array_(std::vector<T,A>& v, const DontCopy&) : Base(v) {}
 
 /** Copy constructor allocates exactly as much memory as is in use in the 
 source (not its capacity) and copy constructs the elements so that T's copy 
@@ -1235,35 +1181,66 @@ Array_(const Array_<T2,X2>& src) : Base(TrustMe()) {
     new (this) Array_(src.begin(), src.cend()); // see above
 }
 
-/** This method mercilessly cleans out the array handle without doing anything
-to the data it references. This is only allowed for a non-owner handle, that
-is, an array for which allocated() returns zero. The array handle will be in
-its default-constructed state after this call, meaning that size(), capacity(),
-and allocated() all return zero, and data() is null (0). Don't use this method 
-to empty an Array_<T> handle; use deallocate() instead since that will know
-when to clean up the data and avoid memory leaks.
-@return A reference to the now-empty, default-constructed, array.
-@see deallocate() **/
-Array_& disconnect() {
-    this->Base::disconnect(); 
-    return *this;
-}
+/** Construct an Array_<T> by referencing (sharing) a given range of data
+[first,last1), without copying that data; better to use the corresponding
+ArrayView_<T> constructor if you can. This is very fast but can be 
+dangerous -- it is most useful for argument passing where the array handle 
+will be discarded immediately after use. Note that this is available only if 
+you have write access to the data because there is no way to construct 
+a non-writable array. This will work as long as the size of the data does 
+not exceed the array's max_size. The resulting array object is not resizeable
+but can be used to read and write elements of the original data. The
+array is invalid if the original data is destructed or resized, but there is
+no way for the array class to detect that.
 
-/** Empty this array of its contents, returning the array to its 
-default-constructed, all-zero state. If this array is the owner of its data,
-the destructor (if any) is called for each data element and the array's
-allocated heap space is freed. If it is a non-owner the array handle is
-cleaned out using disconnect() but the referenced data is untouched.
-@return A reference to the now-empty, default-constructed array, ready for
-reassignment. **/
-Array_& deallocate() {
-    if (allocated()) { // owner with non-zero allocation
-        clear(); // each element is destructed; size()=0; allocated() unchanged
-        deallocateNoDestruct(); // free data(); allocated()=0
-    }
-    disconnect(); // clear the handle
-    return *this;
-}
+@remarks
+  - If the source data is empty, the resulting array will also 
+    be empty and will look just like a default-constructed array. It will
+    therefore not have any connection to the source and will be an
+    ordinary resizable array.
+  - This is quite dangerous to use since the connection between the array and
+    the data is tenuous and subject to the data remaining untouched during
+    the lifetime of the array handle. There is no reference counting;
+    destructing the original data would leave the array referring to garbage. 
+    Be careful!
+  - You can break the connection between the array and the data it was 
+    constructed from by calling deallocate().
+
+@par Complexity:
+    Dirt cheap. There will be no construction, destruction, or heap allocation
+    performed.
+@see deallocate() **/
+Array_(T* first, const T* last1, const DontCopy&) : Base(first,last1) {}
+
+/** Construct an Array_<T> by referencing (sharing) the data in an 
+std::vector<T>, without copying the data; better to use the ArrayView_<T>
+consructor instead if you can. This is very fast but can be 
+dangerous -- it is most useful for argument passing where the array handle 
+will be discarded immediately after use. Note that this is available only if 
+you have write access to the std::vector because there is no way to construct 
+a non-writable array. This will work as long as the size of the vector does 
+not exceed the array's max_size. The resulting array object is not resizeable
+but can be used to read and write elements of the original std::vector. The
+array is invalid if the original std::vector is destructed or resized.
+
+@remarks
+  - If the source std::vector is empty, the resulting array will also 
+    be empty and will look just like a default-constructed array. It will
+    therefore not have any connection to the source vector and will be an
+    ordinary resizable array.
+  - This is quite dangerous to use since the connection between the array and
+    the vector is tenuous and subject to the vector remaining untouchged during
+    the lifetime of the array handle. There is no reference counting;
+    destructing the vector leaves the array referring to garbage. Be careful!
+  - You can break the connection between the array and the vector it was 
+    constructed from by calling deallocate().
+
+@par Complexity:
+    Dirt cheap. There will be no construction, destruction, or heap allocation
+    performed.
+@see deallocate() **/
+template <class A>
+Array_(std::vector<T,A>& v, const DontCopy&) : Base(v) {}
 
 /** The destructor performs a deallocate() operation which may result in 
 element destruction and freeing of heap space; see deallocate() for more
@@ -1271,6 +1248,24 @@ information. @see deallocate() **/
 ~Array_() {
     deallocate();
 }
+
+/** Empty this array of its contents, returning the array to its 
+default-constructed, all-zero state. If this array is the owner of its data,
+the destructor (if any) is called for each data element and the array's
+allocated heap space is freed. If it is a non-owner the array handle is
+cleaned out using disconnect() but the referenced data is untouched.
+@note There is no equivalent to this method for std::vector.
+@return A reference to the now-empty, default-constructed array, ready for
+reassignment. **/
+Array_& deallocate() {
+    if (allocated()) { // owner with non-zero allocation
+        clear(); // each element is destructed; size()=0; allocated() unchanged
+        deallocateNoDestruct(); // free data(); allocated()=0
+    }
+    this->Base::disconnect(); // clear the handle
+    return *this;
+}
+
 /*@}    End of constructors, etc. **/
 
 
@@ -1486,16 +1481,6 @@ requiring reallocation. The value returned by capacity() is always greater
 than or equal to size(), even if the data is not owned by this array in
 which case we have capacity() == size() and the array is not reallocatable. **/
 size_type capacity() const {return this->CBase::capacity();}
-/** Return the amount of heap space owned by this array; this is the same
-as capacity() for owner arrays but is zero for non-owners. 
-@note There is no equivalent of this method for std::vector. **/
-size_type allocated() const {return this->CBase::allocated();}
-/** Does this array own the data to which it refers? If not, it can't be
-resized, and the destructor will not free any heap space nor call any element
-destructors. If the array does not refer to \e any data it is considered to be
-an owner and it is resizeable. 
-@note There is no equivalent of this method for std::vector. **/
-bool isOwner() const {return this->CBase::isOwner();}
 
 /** Change the size of this Array, preserving all the elements that will still 
 fit, and default constructing any new elements that are added. This is not
@@ -1593,6 +1578,17 @@ void shrink_to_fit() {
     setData(newData);
     setAllocated(size());
 }
+
+/** Return the amount of heap space owned by this array; this is the same
+as capacity() for owner arrays but is zero for non-owners. 
+@note There is no equivalent of this method for std::vector. **/
+size_type allocated() const {return this->CBase::allocated();}
+/** Does this array own the data to which it refers? If not, it can't be
+resized, and the destructor will not free any heap space nor call any element
+destructors. If the array does not refer to \e any data it is considered to be
+an owner and it is resizeable. 
+@note There is no equivalent of this method for std::vector. **/
+bool isOwner() const {return this->CBase::isOwner();}
 /*@}    End of size and capacity. **/
 
 
@@ -1670,9 +1666,8 @@ T* data() {return this->Base::data();}
 
 /** @name                     Element access
 
-These methods provide writable access to individual elements that are 
-currently present in the array; the ConstArray_<T,X> base class provided the
-read-only (const) methods. **/
+These methods provide read and write access to individual elements, or groups
+of elements, that are currently present in the array. **/
 /*@{*/
 
 /** Select an element by its index, returning a const reference. Note that only 
@@ -1733,12 +1728,12 @@ not be empty.
 T& back() {return const_cast<T&>(this->Base::back());}
 
 /** Select a subrange of this const array by starting index and length, and
-return a ConstArray referencing that data without copying it. **/
+return a ConstArray_ referencing that data without copying it. **/
 ConstArray_<T,X> operator()(index_type index, size_type length) const
 {   return CBase::operator()(index,length); }
 
 /** Select a subrange of this array by starting index and length, and
-return an ArrayView referencing that data without copying it. **/
+return an ArrayView_ referencing that data without copying it. **/
 ArrayView_<T,X> operator()(index_type index, size_type length)
 {   return Base::operator()(index,length); }
 /*@}    End of element access. **/
@@ -1750,6 +1745,99 @@ ArrayView_<T,X> operator()(index_type index, size_type length)
 These are methods that change the number of elements in the array by insertion
 or erasure. **/
 /*@{*/
+
+/** This method increases the size of the Array by one element at the end and 
+initializes that element by copy constructing it from the given value, just like
+the std::vector::push_back() method. If capacity() > size(), that's all that 
+will happen. If capacity()==size(), there is no room for another element so 
+we'll allocate more space and move all the elements there. We return an
+iterator pointing to the new element, which is also the element whose reference
+would be returned by back() after this call.
+@param[in]      value
+    An object of type T from which the new element is copy-constructed.
+@return 
+    An iterator pointing to the newly added element; i.e., &back(). This is 
+    non-standard; the standard push_back() is declared as a void function.
+
+@note
+  - If you are appending a default-constructed object of type T, consider using
+    the alternate non-standard but safe push_back() method rather than 
+    push_back(T()). The non-standard method default-constructs the new element 
+    internally. That saves a call to the copy constructor which can be expensive
+    for some objects, and nonexistent for others.
+  - If you are constructing the source object with a non-default constructor,
+    and the object is expensive or impossible to default-construct and/or 
+    copy-construct, consider using the non-standard and dangerous method 
+    raw_push_back() which enables you to construct the new element in place. 
+
+@par Complexity:
+    Constant time if no reallocation is required; otherwise the current 
+    contents of the array must be copied to new space, costing one call to T's
+    copy constructor and destructor (if any) for each element currently in the
+    array. Either way there is one call to T's copy constructor to construct 
+    the new element from the supplied value. **/
+T* push_back(const T& value) {
+    if (allocated() == size())
+        growAtEnd(1,"Array_<T>::push_back(value)");
+    T* const p = end();
+    copyConstruct(p, value);
+    setSize(size()+1);
+    return p;
+}
+
+/** This is a non-standard version of push_back() that increases the size of the
+array by one default-constructed element at the end. This avoids having to 
+default-construct the argument to the standard push_back() method which then has
+to copy-construct it into the array. By carefully avoiding reallocation and
+using this form of push_back() you can use the Array_<T> class to hold objects
+of type T even if T has no copy constructor, which is prohibited by the 
+std::vector<T> definition. 
+@return 
+    An iterator pointing to the newly added element; i.e., &back().
+@par Complexity:
+    Same as the standard push_back(value) method except without the final
+    call to T's copy constructor.
+@see push_back(value) 
+**/
+T* push_back() {
+    if (allocated() == size())
+        growAtEnd(1,"Array_<T>::push_back()");
+    T* const p = end();
+    defaultConstruct(p);
+    setSize(size()+1);
+    return p;
+}
+
+/** This dangerous method increases the Array's size by one element at the end 
+but doesn't perform any construction so the memory is filled with garbage. You 
+must immediately construct into this space, using code like:
+@code       
+    new(a.raw_push_back()) MyConstructor(...args...);       
+@endcode
+This is a substantial performance improvement when the element type is something
+complicated since the constructor is called once and not copied; it can also be
+used for objects that have neither default nor copy constructors.
+@return 
+    An iterator pointing at the unconstructed element. 
+@par Complexity:
+    Same as ordinary push_back().
+@see push_back(value), push_back() 
+**/
+T* raw_push_back() {
+    if (allocated() == size())
+        growAtEnd(1,"Array_<T>::raw_push_back()");
+    T* const p = end();
+    setSize(size()+1);
+    return p;
+}
+
+/** Remove the last element from this array, which must not be empty. The 
+element is destructed, not returned. The array's size() is reduced by one. **/
+void pop_back() {
+    SimTK_ERRCHK(!empty(), "Array_<T>::pop_back()", "Array was empty.");
+    destruct(&back());
+    setSize(size()-1);
+}
 
 /** Erase elements in range [first,last1), packing in any later elements into 
 the newly-available space and reducing the array's size by the number of 
@@ -1849,9 +1937,10 @@ T* eraseFast(T* p) {
     return p;
 }
 
-/** Erase all the elements currently in this Array without changing the capacity;
-equivalent to erase(begin(),end()) but a little faster. Size is zero after this 
-call. T's destructor is called exactly once for each element in the Array.
+/** Erase all the elements currently in this array without changing the 
+capacity; equivalent to erase(begin(),end()) but a little faster. Size is 
+zero after this call. T's destructor is called exactly once for each element 
+in the array.
 
 @par Complexity:
     O(n) if T has a destructor; constant time otherwise. **/
@@ -1864,7 +1953,7 @@ void clear() {
 
 
 /** Insert \a n copies of a given value at a particular location within this 
-array, moving all following elements up by n positions.
+array, moving all following elements up by \a n positions.
 
 @param[in]      p        
     Where to insert the new elements. This must be an iterator (pointer) that 
@@ -1882,12 +1971,12 @@ array, moving all following elements up by n positions.
 
 @pre begin() <= \a p <= end()
 @par Complexity:
-    If size()+n > capacity() then the array must be reallocated, resulting in 
-    size() copy constructor/destructor call pairs to move the old data to the
-    new location. Otherwise, the m=(end()-\a p) elements above the insertion 
-    point must be moved up n positions resulting in m copy/destruct pairs. Then
-    there are n additional copy constructor calls to construct the new elements
-    from the given value. 
+    If size() + \a n > capacity() then the array must be reallocated, resulting
+    in size() copy constructor/destructor call pairs to move the old data to 
+    the new location. Otherwise, the m=(end()-\a p) elements above the insertion 
+    point must be moved up \a n positions resulting in m copy/destruct pairs.
+    Then there are n additional copy constructor calls to construct the new 
+    elements from the given value. 
 **/
 T* insert(T* p, size_type n, const T& value) {
     T* const gap = insertGapAt(p, n, "Array<T>::insert(p,n,value)");
@@ -1947,100 +2036,6 @@ T* insert(T* p, const T2* first, const T2* last1) {
         "Source pointers can't be within the destination array.");
     // Pointers are random access iterators.
     return insertImpl(p,first,last1,std::random_access_iterator_tag());
-}
-
-/** This method increases the size of the Array by one element at the end and 
-initializes that element by copy constructing it from the given value, just like
-the std::vector::push_back() method. If capacity() > size(), that's all that 
-will happen. If capacity()==size(), there is no room for another element so 
-we'll allocate more space and move all the elements there. We return an
-iterator pointing to the new element, which is also the element whose reference
-would be returned by back() after this call.
-@param[in]      value
-    An object of type T from which the new element is copy-constructed.
-@return 
-    An iterator pointing to the newly added element; i.e., &back(). This is 
-    non-standard; the standard push_back() is declared as a void function.
-
-@note
-  - If you are appending a default-constructed object of type T, consider using
-    the alternate non-standard but safe push_back() method rather than 
-    push_back(T()). The non-standard method default-constructs the new element 
-    internally. That saves a call to the copy constructor which can be expensive
-    for some objects, and nonexistent for others.
-  - If you are constructing the source object with a non-default constructor,
-    and the object is expensive or impossible to default-construct and/or 
-    copy-construct, consider using the non-standard and dangerous method 
-    raw_push_back() which enables you to construct the new element in place. 
-
-@par Complexity:
-    Constant time if no reallocation is required; otherwise the current 
-    contents of the array must be copied to new space, costing one call to T's
-    copy constructor and destructor (if any) for each element currently in the
-    array. Either way there is one call to T's copy constructor to construct 
-    the new element from the supplied value. **/
-T* push_back(const T& value) {
-    if (allocated() == size())
-        growAtEnd(1,"Array_<T>::push_back(value)");
-    T* const p = end();
-    copyConstruct(p, value);
-    setSize(size()+1);
-    return p;
-}
-
-/** This is a non-standard version of push_back() that increases the size of the
-array by one default-constructed element at the end. This avoids having to 
-default-construct the argument to the standard push_back() method which then has
-to copy-construct it into the array. By carefully avoiding reallocation and
-using this form of push_back() you can use the Array_<T> class to hold objects
-of type T even if T has no copy constructor, which is prohibited by the 
-std::vector<T> definition. 
-@return 
-    An iterator pointing to the newly added element; i.e., &back().
-@par Complexity:
-    Same as the standard push_back(value) method except without the final
-    call to T's copy constructor.
-@see push_back(value) 
-**/
-T* push_back() {
-    if (allocated() == size())
-        growAtEnd(1,"Array_<T>::push_back()");
-    T* const p = end();
-    defaultConstruct(p);
-    setSize(size()+1);
-    return p;
-}
-
-
-/** This dangerous method increases the Array's size by one element at the end 
-but doesn't perform any construction so the memory is filled with garbage. You 
-must immediately construct into this space, using code like:
-@code       
-    new(a.raw_push_back()) MyConstructor(...args...);       
-@endcode
-This is a substantial performance improvement when the element type is something
-complicated since the constructor is called once and not copied; it can also be
-used for objects that have neither default nor copy constructors.
-@return 
-    An iterator pointing at the unconstructed element. 
-@par Complexity:
-    Same as ordinary push_back().
-@see push_back(value), push_back() 
-**/
-T* raw_push_back() {
-    if (allocated() == size())
-        growAtEnd(1,"Array_<T>::raw_push_back()");
-    T* const p = end();
-    setSize(size()+1);
-    return p;
-}
-
-/** Remove the last element from this array, which must not be empty. The 
-element is destructed, not returned. The array's size() is reduced by one. **/
-void pop_back() {
-    SimTK_ERRCHK(!empty(), "Array_<T>::pop_back()", "Array was empty.");
-    destruct(&back());
-    setSize(size()-1);
 }
 /*@}    End of insertion and erase. **/
 
