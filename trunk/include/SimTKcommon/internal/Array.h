@@ -33,7 +33,8 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This file defines the SimTK::Array_<T> class and related support classes.
+ * This file defines the Array_<T,X> class and related support classes
+ * including base classes ConstArray_<T,X> and ArrayView_<T,X>.
  */
 
 #include "SimTKcommon/internal/common.h"
@@ -165,39 +166,59 @@ struct TrustMe {};
 //==============================================================================
 //                            CLASS ConstArray_
 //==============================================================================
-/** This is the base class for Array_<T,X>, providing only read-only "const"
-functionality, and shallow copy semantics. The ability to write, reallocate, 
-insert, erase, modify, etc. is added by the Array_<T,X> class. **/
+/** This is the base class for ArrayView_<T,X> and ultimately for Array_<T,X>, 
+providing the minimal read-only "const" functionality required by any array
+object, and shallow copy semantics. The ability to write is added by the
+ArrayView_ class, and the additional ability to reallocate, insert, erase, etc.
+is added by the Array_<T,X> class. 
+
+This class is particularly useful for recasting existing const data into a
+const Array without copying. For example a const std::vector can be passed
+to a const Array& argument by an implicit, near-zero cost conversion to a
+ConstArray which can then convert to a const Array&. 
+
+A ConstArray is given all the data it is going to have at the time it is 
+constructed (except when it is being accessed from the derived Array class 
+that has more capability). The contents and size of a ConstArray cannot be 
+changed after construction. In particular, the default copy assignment operator
+is suppressed. The destructor simply disconnects the ConstArray handle from 
+the data it was referencing; no element destruction or heap deallocation 
+occurs. **/
 template <class T, class X> class ConstArray_ {
 public:
 
-typedef T           value_type;
-typedef T*          pointer;
-typedef const T*    const_pointer;
-typedef T&          reference;
-typedef const T&    const_reference;
-typedef T*          iterator;
-typedef const T*    const_iterator;
+//------------------------------------------------------------------------------
+/** @name                   Standard typedefs
+Types required of STL containers, plus index_type which is an extension. **/
+/*@{*/
+typedef T                                        value_type;
+typedef X                                        index_type;
 
-typedef std::reverse_iterator<iterator>         reverse_iterator;
-typedef std::reverse_iterator<const_iterator>   const_reverse_iterator;
+typedef typename IndexTraits<X>::size_type       size_type;
+typedef typename IndexTraits<X>::difference_type difference_type;
 
-typedef X                                       index_type;
-typedef IndexTraits<X>                          index_traits;
-typedef typename index_traits::size_type        size_type;
-typedef typename index_traits::difference_type  difference_type;
+typedef T*                                       pointer;
+typedef const T*                                 const_pointer;
+typedef T&                                       reference;
+typedef const T&                                 const_reference;
+typedef T*                                       iterator;
+typedef const T*                                 const_iterator;
 
+typedef std::reverse_iterator<iterator>          reverse_iterator;
+typedef std::reverse_iterator<const_iterator>    const_reverse_iterator;
+/*@}    End of standard typedefs **/
 
-/** @name           Construction and destruction
+//------------------------------------------------------------------------------
+/** @name         Construction, conversion, and destruction
 
-Constructors here are limited to those that don't allocate new data.
-**/
-/*{*/
+Constructors here are limited to those that don't allocate new data, and can
+only accept const data to reference. Copy assignment is suppressed. **/
+/*@{*/
 
 /** Default constructor allocates no heap space and is very fast. **/
 ConstArray_() : pData(0), nUsed(0), nAllocated(0) {}
 
-/** Copy constructor is shallow; the constructed array view object will be
+/** Copy constructor is shallow; the constructed const array object will be
 referencing the original source data. However, if the source is zero length, 
 this will result in a default-constructed array view handle with a null data
 pointer, even if the source had some unused data allocated. **/
@@ -208,23 +229,22 @@ ConstArray_(const ConstArray_& src)
 
 // Copy assignment is suppressed.
 
-/** Construct an ConstArray_<T> by referencing (sharing) a given range of
-const data [first,last1), without copying that data. This will work as long as 
-the size of the source data does not exceed the array's max_size. The resulting
-array view object is not resizeable but can be used to read elements of the 
-original data. The array view becomes invalid if the original data is 
-destructed or resized, but there is no way for the class to detect that.
+/** Construct an ConstArray_<T> by referencing (sharing) a given range of const
+data [first,last1), without copying that data. This will work as long as the 
+size of the source data does not exceed the array's max_size. The resulting
+object is not resizeable but can be used to read elements of the original data.
+This will becomes invalid if the original data is destructed or resized, but 
+there is no way for the ConstArray class to detect that.
 @note
-  - If the source data is empty, the resulting array view will also 
-    be empty and will look just like a default-constructed array view. 
-  - You can break the connection between the array view handle and the data it
-    was constructed from by calling deallocate().
+  - If the source data is empty, the resulting ConstArray will also 
+    be empty and will look as though it had been default-constructed. 
+  - You can break the connection between the array handle and the data it
+    was constructed from by calling disconnect().
 @par Complexity:
     Dirt cheap. There will be no construction, destruction, or heap allocation
     performed.
-@see deallocate() **/
-ConstArray_(const T* first, const T* last1) 
-:   pData(0), nUsed(0), nAllocated(0) { 
+@see disconnect() **/
+ConstArray_(const T* first, const T* last1) : pData(0),nUsed(0),nAllocated(0) { 
     if (last1==first) return; // empty
 
     SimTK_ERRCHK3(isSizeOK(last1-first), 
@@ -238,31 +258,30 @@ ConstArray_(const T* first, const T* last1)
     // nAllocated is already zero
 }
 
-/** Construct an Array_<T> by referencing (sharing) the data in a const 
-std::vector<T>, without copying the data. This will work as long as the size 
-of the vector does not exceed the array's max_size. The resulting array view
-object is not resizeable but can be used to read and write elements of the 
-original std::vector. The array view becomes invalid if the original 
+/** Construct a ConstArray_<T> by referencing (sharing) the data in a const 
+std::vector<T>, without copying the data; this is also an implicit conversion. 
+This will work as long as the size of the vector does not exceed the array's 
+max_size. The resulting array object is not resizeable but can be used to read
+elements of the original std::vector. The array becomes invalid if the original
 std::vector is destructed or resized, but there is no way for the array class
 to detect that.
 @note
-  - If the source std::vector is empty, the resulting array view will also 
-    be empty and will look just like a default-constructed array view. It will
-    therefore not have any connection to the source vector.
-  - This is quite dangerous to use since the connection between the array view
+  - If the source std::vector is empty, the resulting array will also be empty 
+    and will look as though it had been default-constructed. It will therefore
+    not have any connection to the source vector.
+  - This is quite dangerous to use since the connection between the array
     and the vector is tenuous and subject to the vector remaining untouched 
-    during the lifetime of the array view handle. There is no reference 
+    during the lifetime of the array handle. There is no reference 
     counting; destructing the vector leaves the array referring to garbage. Be
     careful!
   - You can break the connection between the array view and the vector it was 
-    constructed from by calling deallocate().
+    constructed from by calling disconnect().
 @par Complexity:
     Dirt cheap. There will be no construction, destruction, or heap allocation
     performed.
-@see deallocate() **/
+@see disconnect() **/
 template <class A>
-ConstArray_(const std::vector<T,A>& v) 
-:   pData(0), nUsed(0), nAllocated(0) { 
+ConstArray_(const std::vector<T,A>& v) : pData(0),nUsed(0),nAllocated(0) { 
     if (v.empty()) return;
 
     SimTK_ERRCHK3(isSizeOK(v.size()), 
@@ -276,15 +295,15 @@ ConstArray_(const std::vector<T,A>& v)
     // nAllocated is already zero
 }
 /** This is an implicit conversion to const ArrayView_<T,X>&, which is 
-harmless since the result won't permit writing on the elements. **/
+harmless since the const result won't permit writing on the elements. **/
 operator const ArrayView_<T,X>&() const
 {   return *reinterpret_cast<const ArrayView_<T,X>*>(this); }
 /** This is an implicit conversion to const Array_<T,X>&, which is harmless
-since the result can't be used to write on or resize the data. **/
+since the const result can't be used to write on or resize the data. **/
 operator const Array_<T,X>&() const
 {   return *reinterpret_cast<const Array_<T,X>*>(this); }
 
-/** Disconnect this array view handle from any data to which it refers, 
+/** Disconnect this array handle from any data to which it refers, 
 restoring it to the condition it would be in if it had just been 
 default-constructed. The data pointer will simply be set to null; we'll assume
 the owner will clean things up later. In either case the size() and capacity() 
@@ -301,10 +320,10 @@ disconnect() for more information. @see disconnect() **/
 ~ConstArray_() {
     disconnect();
 }
+/*@}    End of constructors, etc. **/
 
-/*}*/
-
-/** @name                   Size and capacity 
+//------------------------------------------------------------------------------
+/** @name                       Size and capacity 
 
 These methods examine the number of elements (size) or the amount of allocated
 heap space (capacity). See the derived Array_<T,X> class for methods that can 
@@ -314,7 +333,7 @@ heap space (capacity). See the derived Array_<T,X> class for methods that can
 /** Return the current number of elements stored in this array. **/
 size_type size() const {return nUsed;}
 /** Return the maximum allowable size for this array. **/
-size_type max_size() const {return index_traits::max_size;}
+size_type max_size() const {return IndexTraits<X>::max_size;}
 /** Return true if there are no elements currently stored in this array. This
 is equivalent to the tests begin()==end() or size()==0. **/
 bool empty() const {return nUsed==0;}
@@ -331,7 +350,7 @@ size_type allocated() const {return nAllocated;}
 resized, and the destructor will not free any heap space nor call any element
 destructors. If the array does not refer to any data it is considered to be
 an owner since it is resizeable. 
-@note There is no equivalent for std::vector. **/
+@note There is no equivalent of this method for std::vector. **/
 bool isOwner() const {return nAllocated || pData==0;}
 /*}*/
 
@@ -339,8 +358,8 @@ bool isOwner() const {return nAllocated || pData==0;}
 /** @name                  Read-only element access
 
 These methods provide read-only (const) access to individual elements that are
-currently present in the array. The derived Array_<T,X> class adds the
-non-const equivalents of these methods. **/
+currently present in the array. The derived ArrayView_<T,X> class adds the
+non-const versions of these methods. **/
 /*@{*/
 
 /** Select an element by its index, returning a const reference. Note that only 
@@ -362,7 +381,7 @@ const T& at(index_type i) const {
     return pData[i];
 }
 /** Return a const reference to the first element in this array, which must
-not be empty.
+not be empty (we'll check in a Debug build but not Release).
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
@@ -370,7 +389,7 @@ const T& front() const
 {   SimTK_ERRCHK(!empty(), "ConstArray_<T>::front()", "Array was empty.");
     return pData[0]; }
 /** Return a const reference to the last element in this array, which must
-not be empty.
+not be empty (we'll check in a Debug build but not Release).
 @pre The array is not empty.
 @par Complexity:
     Constant time. **/
@@ -378,16 +397,40 @@ const T& back() const
 {   SimTK_ERRCHK(!empty(), "ConstArray_<T>::back()", "Array was empty.");
     return pData[nUsed-1]; }
 
-/** Select a subset of the elements of this array view and create another
-array view that includes only those. **/
+/** Select a constiguous subarray of the elements of this array and create 
+another ConstArray that refers only to those element (without copying). 
+@param[in]      index
+    The index of the first element to be included in the subarray; this can
+    be one past the end of the array if \a length is zero. 
+@param[in]      length
+    The length of the subarray to be produced.
+@return
+    A new ConstArray_<T,X> object referencing the original data.
+@note 
+    If \a length==0 the returned array will be in a default-constructed,
+    all-zero and null state with no connection to the original data.
+@pre \a index >= 0, \a length >= 0
+@pre \a index + \a length <= size()
+@pre We'll validate preconditions in Debug builds but not Release.
+@par Complexity:
+    Dirt cheap; no element construction or destruction or heap allocation
+    is required.
+**/ 
+
 ConstArray_ operator()(index_type index, size_type length) const {
-    SimTK_INDEXCHECK(index,size(),"ConstArray_<T>(index,length)");
-    SimTK_SIZECHECK(length,size_type(size()-index),"ConstArray_<T>(index,length)");
+    const char* methodName = "ConstArray_<T>(index,length)";
+    SimTK_ERRCHK2(isSizeInRange(index, index_type(size())), methodName,
+        "For this operator, we must have 0 <= index <= size(), but"
+        " index==%llu and size==%llu.", ull(index), ullSize());
+    SimTK_ERRCHK2(isSizeInRange(length, size_type(size()-index)), methodName,
+        "For this operator we must have 0 <= length <= size()-index, but"
+        " length==%llu and size()-index==%llu.",ull(length),ull(size()-index));
+
     return ConstArray_(pData+index, pData+index+length);
 }
 /*@}*/
 
-/** @name                   Const iterators
+/** @name                   Iterators (const only)
 
 These methods deal in iterators, which are STL generalized pointers. For this
 class, iterators are just ordinary const pointers to T, and you may depend on 
@@ -397,7 +440,7 @@ the reverse iterator's base() method. **/
 /*@{*/
 
 /** Return a const pointer to the first element of this array if any, otherwise
-end(), which may be null (0) in that case but does not have to be. This method
+cend(), which may be null (0) in that case but does not have to be. This method
 is from the proposed C++0x standard; there is also an overloaded begin() from
 the original standard that returns a const pointer. **/
 const T* cbegin() const {return pData;}
@@ -406,7 +449,6 @@ in the array; this may be null (0) if there are no elements but doesn't have to
 be. This method is from the proposed C++0x standard; there is also an 
 overloaded end() from the original standard that returns a const pointer. **/
 const T* cend() const {return pData + nUsed;}
-
 /** The const version of begin() is the same as cbegin(). **/
 const T* begin() const {return pData;}
 /** The const version of end() is the same as cend(). **/
@@ -414,14 +456,11 @@ const T* end() const {return pData + nUsed;}
 
 /** Return a const reverse iterator pointing to the last element in the array 
 or crend() if the array is empty. **/
-const_reverse_iterator crbegin() const 
-{   return const_reverse_iterator(end()); }
-/** Return the past-the-end reverse interator that tests equal to a reverse
+const_reverse_iterator crbegin() const {return const_reverse_iterator(cend());}
+/** Return the past-the-end reverse iterator that tests equal to a reverse
 iterator that has been incremented past the front of the array. You cannot 
 dereference this iterator. **/
-const_reverse_iterator crend() const 
-{   return const_reverse_iterator(begin()); }
-
+const_reverse_iterator crend() const {return const_reverse_iterator(cbegin());}
 /** The const version of rbegin() is the same as crbegin(). **/
 const_reverse_iterator rbegin() const {return crbegin();} 
 /** The const version of rend() is the same as crend(). **/
@@ -436,25 +475,24 @@ const_reverse_iterator rend() const {return crend();}
 const T* cdata() const {return pData;}
 /** The const version of the data() method is identical to cdata(). **/
 const T* data() const {return pData;}
-
-
-/*@}*/
+/*@} End of iterators **/
 
 //------------------------------------------------------------------------------
                                    protected:
 //------------------------------------------------------------------------------
-// The remainder of this class is for the use of the Array_<T,X> derived class
-// only and should not be documented for users to see.
+// The remainder of this class is for the use of the ArrayView_<T,X> and
+// Array_<T,X> derived classes only and should not be documented for users to 
+// see.
                                        
 // This constructor does not initialize any of the data members; it is intended
-// for use in derived class constructors that will be setting the data.
+// for use in derived class constructors that promise to set *all* the data
+// members.
 explicit ConstArray_(const TrustMe&) {}
 
-// These provide direct access to the data member for our trusted friends.
+// These provide direct access to the data members for our trusted friends.
 void setData(const T* p)        {pData = const_cast<T*>(p);}
 void setSize(size_type n)       {nUsed = n;}
 void setAllocated(size_type n)  {nAllocated = n;}
-
 
 // Check whether a given size is the same as the current size of this array,
 // avoiding any compiler warnings due to mismatched integral types.
@@ -462,15 +500,12 @@ template <class S>
 bool isSameSize(S sz) const
 {   return ull(sz) <= ullSize(); }
 
-// Check that a source object's size will fit in the Array being
-// careful to avoid overflow and warnings in the comparison.
+// Check that a source object's size will fit in the array being careful to
+// avoid overflow and warnings in the comparison.
 template <class S> 
 bool isSizeOK(S srcSz) const
 {   return ull(srcSz) <= ullMaxSize(); }
 
-template <class S>
-bool isGrowthOK(S n) const
-{   return isSizeOK(ullCapacity() + ull(n)); }
 
 // Cast an integral type to maximal-width unsigned long long to avoid accidental
 // overflows that might otherwise occur due to wraparound that can happen 
@@ -484,16 +519,17 @@ unsigned long long ullSize()     const {return ull(size());}
 unsigned long long ullCapacity() const {return ull(capacity());}
 unsigned long long ullMaxSize()  const {return ull(max_size());}
 
-// Useful in error messages.
-const char* indexName() const {return index_traits::index_name();}
+/** Useful in error messages for explaining why something was too big. **/
+const char* indexName() const {return IndexTraits<X>::index_name();}
 
+private:
 //------------------------------------------------------------------------------
 //                               DATA MEMBERS
 //------------------------------------------------------------------------------
-private:
 // These are the only data members and this layout is guaranteed not to change
 // from release to release. If data is null, then nUsed==nAllocated==0.
-T*                  pData;      // pointer to the first element, or null
+
+T*                  pData;      // ptr to data referenced here, or 0 if none
 size_type           nUsed;      // number of elements currently present (size)
 size_type           nAllocated; // heap allocation; 0 if pData is not owned
 
@@ -512,20 +548,25 @@ typedef ConstArray_<T,X> CBase;
 public:
 
 typedef typename CBase::value_type               value_type;
+typedef typename CBase::size_type                size_type;
+typedef typename CBase::difference_type          difference_type;
+
 typedef typename CBase::pointer                  pointer;
 typedef typename CBase::const_pointer            const_pointer;
 typedef typename CBase::reference                reference;
 typedef typename CBase::const_reference          const_reference;
 typedef typename CBase::iterator                 iterator;
 typedef typename CBase::const_iterator           const_iterator;
-
 typedef typename CBase::reverse_iterator         reverse_iterator;
 typedef typename CBase::const_reverse_iterator   const_reverse_iterator;
 
 typedef typename CBase::index_type               index_type;
-typedef typename CBase::index_traits             index_traits;
-typedef typename CBase::size_type                size_type;
-typedef typename CBase::difference_type          difference_type;
+
+/** @name       Construction, conversion, and destruction
+
+Constructors here are limited to those that don't allocate new data, however
+they can reference writable data. **/
+/*@{*/
 
 /** Default constructor allocates no heap space and is very fast. **/
 ArrayView_() : CBase() {}
@@ -555,6 +596,7 @@ void disconnect() {this->CBase::disconnect();}
 /** The destructor just disconnects the array view handle from its data; see
 ConstArray_<T,X>::disconnect() for more information. **/
 ~ArrayView_() {this->CBase::disconnect();}
+/*@}    End of construction, etc. **/
 
 /**@name                      Assignment
 
@@ -630,7 +672,7 @@ ArrayView_& fill(const T& fillValue) {
 }
 
 
-/** Assign to this array to to make it a copy of the elements in range 
+/** Assign to this array to make it a copy of the elements in range 
 [first,last1) given by ordinary pointers. It is not allowed for this range to 
 include any of the elements currently in the array. The source elements can be 
 of a type T2 that may be the same or different than this array's element type 
@@ -667,7 +709,7 @@ ArrayView_& assign(const T2* first, const T2* last1) {
 /** Assign to this array to to make it a copy of the elements in range 
 [first,last1) given by non-pointer random access iterators (the pointer
 case is handled separately). This variant will not be called when the
-interators are forward iterators from ConstArray_, ArrayView_, or Array_ 
+iterators are forward iterators from ConstArray_, ArrayView_, or Array_ 
 objects since those are ordinary pointers. It is not allowed for this range to 
 include any of the elements currently in the array. The source elements can be 
 of a type T2 that may be the same or different than this array's element type 
@@ -823,13 +865,13 @@ const_reverse_iterator rbegin() const {return this->CBase::crbegin();}
 array or rend() if the array is empty. **/
 reverse_iterator rbegin() {return reverse_iterator(end());}
 
-/** Return the past-the-end reverse interator that tests equal to a reverse
+/** Return the past-the-end reverse iterator that tests equal to a reverse
 iterator that has been incremented past the front of the array. You cannot 
 dereference this iterator. **/
 const_reverse_iterator crend() const {return this->CBase::crend();}
 /** The const version of rend() is the same as crend(). **/
 const_reverse_iterator rend() const {return this->CBase::crend();}
-/** Return a writable past-the-end reverse interator that tests equal to a 
+/** Return a writable past-the-end reverse iterator that tests equal to a 
 reverse iterator that has been incremented past the front of the array. You
 cannot dereference this iterator. **/
 reverse_iterator rend() {return reverse_iterator(begin());}
@@ -1012,20 +1054,20 @@ public:
 // more raw methods
 
 typedef typename CBase::value_type               value_type;
+typedef typename CBase::size_type                size_type;
+typedef typename CBase::difference_type          difference_type;
+
 typedef typename CBase::pointer                  pointer;
 typedef typename CBase::const_pointer            const_pointer;
 typedef typename CBase::reference                reference;
 typedef typename CBase::const_reference          const_reference;
 typedef typename CBase::iterator                 iterator;
 typedef typename CBase::const_iterator           const_iterator;
-
 typedef typename CBase::reverse_iterator         reverse_iterator;
 typedef typename CBase::const_reverse_iterator   const_reverse_iterator;
 
 typedef typename CBase::index_type               index_type;
-typedef typename CBase::index_traits             index_traits;
-typedef typename CBase::size_type                size_type;
-typedef typename CBase::difference_type          difference_type;
+
 
 /** @name           Construction and destruction
 
@@ -1580,13 +1622,13 @@ const_reverse_iterator rbegin() const {return this->CBase::crbegin();}
 array or rend() if the array is empty. **/
 reverse_iterator rbegin() {return this->Base::rbegin();}
 
-/** Return the past-the-end reverse interator that tests equal to a reverse
+/** Return the past-the-end reverse iterator that tests equal to a reverse
 iterator that has been incremented past the front of the array. You cannot 
 dereference this iterator. **/
 const_reverse_iterator crend() const {return this->CBase::crend();}
 /** The const version of rend() is the same as crend(). **/
 const_reverse_iterator rend() const {return this->CBase::crend();}
-/** Return a writable past-the-end reverse interator that tests equal to a 
+/** Return a writable past-the-end reverse iterator that tests equal to a 
 reverse iterator that has been incremented past the front of the array. You
 cannot dereference this iterator. **/
 reverse_iterator rend() {return this->Base::rend();}
@@ -2318,6 +2360,12 @@ static void destruct(T* p) {p->~T();}
 // destruct range [b,e)
 static void destruct(T* b, const T* e)
 {   while(b!=e) b++->~T(); }
+
+// Check that growing this array by n elements wouldn't cause it to exceed
+// its allowable maximum size.
+template <class S>
+bool isGrowthOK(S n) const
+{   return isSizeOK(ullCapacity() + ull(n)); }
 
 // The following private methods are protected methods in the ArrayView base 
 // class, so they should not need repeating here. Howevr, we explicitly 
