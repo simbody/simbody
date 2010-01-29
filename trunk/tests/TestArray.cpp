@@ -274,11 +274,36 @@ void testConstruction() {
     cout << "oa=" << oa << endl;
 }
 
+static void toArray(const Array_<int>& a) {
+    cout << "toArray=     "  << a  << "  &a[0]="  << &a[0] << endl;
+}
+static void toArrayView(const ArrayView_<int>& av) {
+    cout << "toArrayView= "  << av  << " &av[0]="  << &av[0] << endl;
+}
+static void toConstArray(const ConstArray_<int>& ca) {
+    cout << "toConstArray="  << ca  << " &ca[0]="  << &ca[0] << endl;
+}
+void testConversion() {
+    const int p[] = {1,2,3,4,5,6};
+    std::vector<int> v(p,p+6);
+    cout << "v=" << v << " &v[0]=" << &v[0] << endl;
+    Array_<int> a(v);
+    ArrayView_<int> av(v);
+    ConstArray_<int> ca(v);
+    cout << "a= "  << a  << "  &a[0]="  << &a[0] << endl;
+    cout << "av=" << av << " &av[0]=" << &av[0] << endl;
+    cout << "ca=" << ca << " &ca[0]=" << &ca[0] << endl;
+
+    toArray(ArrayView_<int>(v)); 
+    toArrayView(v); 
+    toConstArray(v);
+}
 
 int main() {
     SimTK_START_TEST("TestArray");
 
         SimTK_SUBTEST(testConstruction);
+        SimTK_SUBTEST(testConversion);
 
     SimTK_END_TEST();
 }
