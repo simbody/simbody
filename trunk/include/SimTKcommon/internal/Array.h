@@ -187,26 +187,26 @@ occurs. **/
 template <class T, class X> class ConstArray_ {
 public:
 
+
 //------------------------------------------------------------------------------
 /** @name                   Standard typedefs
+
 Types required of STL containers, plus index_type which is an extension. **/
 /*@{*/
 typedef T                                        value_type;
 typedef X                                        index_type;
-
 typedef typename IndexTraits<X>::size_type       size_type;
 typedef typename IndexTraits<X>::difference_type difference_type;
-
 typedef T*                                       pointer;
 typedef const T*                                 const_pointer;
 typedef T&                                       reference;
 typedef const T&                                 const_reference;
 typedef T*                                       iterator;
 typedef const T*                                 const_iterator;
-
 typedef std::reverse_iterator<iterator>          reverse_iterator;
 typedef std::reverse_iterator<const_iterator>    const_reverse_iterator;
 /*@}    End of standard typedefs **/
+
 
 //------------------------------------------------------------------------------
 /** @name         Construction, conversion, and destruction
@@ -322,6 +322,7 @@ disconnect() for more information. @see disconnect() **/
 }
 /*@}    End of constructors, etc. **/
 
+
 //------------------------------------------------------------------------------
 /** @name                       Size and capacity 
 
@@ -414,9 +415,7 @@ another ConstArray that refers only to those element (without copying).
 @pre We'll validate preconditions in Debug builds but not Release.
 @par Complexity:
     Dirt cheap; no element construction or destruction or heap allocation
-    is required.
-**/ 
-
+    is required. **/ 
 ConstArray_ operator()(index_type index, size_type length) const {
     const char* methodName = "ConstArray_<T>(index,length)";
     SimTK_ERRCHK2(isSizeInRange(index, index_type(size())), methodName,
@@ -428,8 +427,10 @@ ConstArray_ operator()(index_type index, size_type length) const {
 
     return ConstArray_(pData+index, pData+index+length);
 }
-/*@}*/
+/*@}    End of element access. **/
 
+
+//------------------------------------------------------------------------------
 /** @name                   Iterators (const only)
 
 These methods deal in iterators, which are STL generalized pointers. For this
@@ -475,10 +476,11 @@ const_reverse_iterator rend() const {return crend();}
 const T* cdata() const {return pData;}
 /** The const version of the data() method is identical to cdata(). **/
 const T* data() const {return pData;}
-/*@} End of iterators **/
+/*@}    End of iterators. **/
+
 
 //------------------------------------------------------------------------------
-                                   protected:
+                                 protected:
 //------------------------------------------------------------------------------
 // The remainder of this class is for the use of the ArrayView_<T,X> and
 // Array_<T,X> derived classes only and should not be documented for users to 
@@ -547,10 +549,16 @@ template <class T, class X> class ArrayView_ : public ConstArray_<T,X> {
 typedef ConstArray_<T,X> CBase;
 public:
 
+
+//------------------------------------------------------------------------------
+/** @name                   Standard typedefs
+
+Types required of STL containers, plus index_type which is an extension. **/
+/*@{*/
 typedef typename CBase::value_type               value_type;
+typedef typename CBase::index_type               index_type;
 typedef typename CBase::size_type                size_type;
 typedef typename CBase::difference_type          difference_type;
-
 typedef typename CBase::pointer                  pointer;
 typedef typename CBase::const_pointer            const_pointer;
 typedef typename CBase::reference                reference;
@@ -559,9 +567,10 @@ typedef typename CBase::iterator                 iterator;
 typedef typename CBase::const_iterator           const_iterator;
 typedef typename CBase::reverse_iterator         reverse_iterator;
 typedef typename CBase::const_reverse_iterator   const_reverse_iterator;
+/*@}    End of standard typedefs. **/
 
-typedef typename CBase::index_type               index_type;
 
+//------------------------------------------------------------------------------
 /** @name       Construction, conversion, and destruction
 
 Constructors here are limited to those that don't allocate new data, however
@@ -598,7 +607,9 @@ ConstArray_<T,X>::disconnect() for more information. **/
 ~ArrayView_() {this->CBase::disconnect();}
 /*@}    End of construction, etc. **/
 
-/**@name                      Assignment
+
+//------------------------------------------------------------------------------
+/** @name                     Assignment
 
 Assignment is permitted only if the source and destination are the same 
 size. The semantics here are different than for a resizeable Array_
@@ -659,7 +670,6 @@ ArrayView_& operator=(const std::vector<T2,A2>& src) {
     return *this;
 }
 
-
 /** Assign the supplied fill value to each element of this array. Note that 
 this serves to allow fill from an object whose type T2 is different from T, as
 long as there is a constructor T(T2) that works since that can be invoked
@@ -670,7 +680,6 @@ ArrayView_& fill(const T& fillValue) {
         *d = fillValue; // using T::operator=(T)
     return *this;
 }
-
 
 /** Assign to this array to make it a copy of the elements in range 
 [first,last1) given by ordinary pointers. It is not allowed for this range to 
@@ -704,7 +713,6 @@ ArrayView_& assign(const T2* first, const T2* last1) {
         *d++ = *s++; // using T::operator=(T2)
     return *this;
 }
-
 
 /** Assign to this array to to make it a copy of the elements in range 
 [first,last1) given by non-pointer random access iterators (the pointer
@@ -747,8 +755,10 @@ ArrayView_& assign(const RandomAccessIterator& first,
         *d++ = *s++; // using T::operator=(T2)
     return *this;
 }
-/*@}*/
+/*@}    End of assignment. */
 
+
+//------------------------------------------------------------------------------
 /** @name                     Element access
 
 These methods provide read and write access to individual elements that are 
@@ -818,9 +828,10 @@ ArrayView_ operator()(index_type index, size_type length) {
     SimTK_SIZECHECK(length,size_type(size()-index),"Array_<T>(index,length)");
     return ArrayView_(data()+index, cdata()+index+length);
 }
-/*@}*/
+/*@}    End of element access. **/
 
 
+//------------------------------------------------------------------------------
 /** @name                       Iterators
 
 These methods deal in iterators, which are STL generalized pointers. For this
@@ -890,8 +901,10 @@ const T* data() const {return this->CBase::cdata();}
 a null pointer if no space is associated with the array.
 @note This method is from the proposed C++0x std::vector. **/
 T* data() {return const_cast<T*>(this->CBase::cdata());}
-/*@}*/
+/*@}    End of iterators. */
 
+
+//------------------------------------------------------------------------------
 /** @name                   Size and capacity 
 
 These methods report the number of elements (size) or the amount of allocated 
@@ -925,7 +938,8 @@ destructors. If the array does not refer to \e any data it is considered to be
 an owner and it is resizeable. 
 @note There is no equivalent for std::vector. **/
 bool isOwner() const {return this->CBase::isOwner();}
-/*@}*/
+/*@}    End of size and capacity. **/
+
 
 //------------------------------------------------------------------------------
                                    protected:
@@ -1053,10 +1067,16 @@ public:
 // check standard
 // more raw methods
 
+
+//------------------------------------------------------------------------------
+/** @name                   Standard typedefs
+
+Types required of STL containers, plus index_type which is an extension. **/
+/*@{*/
 typedef typename CBase::value_type               value_type;
+typedef typename CBase::index_type               index_type;
 typedef typename CBase::size_type                size_type;
 typedef typename CBase::difference_type          difference_type;
-
 typedef typename CBase::pointer                  pointer;
 typedef typename CBase::const_pointer            const_pointer;
 typedef typename CBase::reference                reference;
@@ -1065,11 +1085,11 @@ typedef typename CBase::iterator                 iterator;
 typedef typename CBase::const_iterator           const_iterator;
 typedef typename CBase::reverse_iterator         reverse_iterator;
 typedef typename CBase::const_reverse_iterator   const_reverse_iterator;
+/*@}    End of standard typedefs **/
 
-typedef typename CBase::index_type               index_type;
 
-
-/** @name           Construction and destruction
+//------------------------------------------------------------------------------
+/** @name        Construction, conversion and destruction
 
 A variety of constructors are provided for this class, including all those
 required by the C++ standard for std::vector implementations, plus additional
@@ -1251,10 +1271,10 @@ information. @see deallocate() **/
 ~Array_() {
     deallocate();
 }
-/*@}              End of constructors and destructor */
+/*@}    End of constructors, etc. **/
 
 
-
+//------------------------------------------------------------------------------
 /** @name           Assignment methods and operators
 
 Assignment methods always begin by erasing all the elements currently in this 
@@ -1288,7 +1308,6 @@ Array_& assign(size_type n, const T& fillValue) {
     return *this;
 }
 
-
 /** Assign this array from a range [b,e) given by non-pointer iterators. If we
 can determine how many elements n that represents in advance, we'll do only a 
 single allocation here and call one of T's constructors exactly n times with no
@@ -1303,7 +1322,6 @@ Array_& assign(const InputIterator& first, const InputIterator& last1) {
                "Array_<T>::assign(Iter first, Iter last1)");
     return *this;
 }
-
 
 /** Assign to this array to to make it a copy of the elements in range 
 [first,last1) given by ordinary pointers. It is not allowed for this range to 
@@ -1368,7 +1386,7 @@ Array_& operator=(const std::vector<T2,A>& src) {
 }
 
 /** This dangerous extension allows you to supply your own already-allocated
-memory for use by this array, which then becomes the owner of the supplied
+heap space for use by this array, which then becomes the owner of the supplied
 heap space. Any memory currently associated with the array is deallocated; 
 see deallocate() for more information. 
 @see deallocate(), shareData() **/
@@ -1420,7 +1438,8 @@ Array_& shareData(T* newData, size_type dataSize) {
     return *this;
 }
 
-
+/** Same as shareData(data,size) but uses a pointer range [first,last1) to
+identify the data to be referenced. **/
 Array_& shareData(T* first, const T* last1) {
     SimTK_ERRCHK3(isSizeOK(last1-first), "Array_<T>::shareData(first,last1)",
         "Requested size %llu is too big for this array which is limited"
@@ -1428,10 +1447,6 @@ Array_& shareData(T* first, const T* last1) {
         ull(last1-first), ullMaxSize(), indexName());
     return shareData(first, size_type(last1-first));
 }
-
-
-/*@}*/
-
 
 /** This is a specialized algorithm providing constant time exchange of data 
 with another array that has identical element and index types. This is \e much 
@@ -1444,7 +1459,10 @@ void swap(Array_& other) {
     size_type nTmp=size(); setSize(other.size()); other.setSize(nTmp);
     nTmp=allocated(); setAllocated(other.allocated()); other.setAllocated(nTmp);
 }
+/*@}    End of assignment. **/
 
+
+//------------------------------------------------------------------------------
 /** @name                   Size and capacity 
 
 These methods examine and alter the number of elements (size) or the amount of 
@@ -1461,12 +1479,12 @@ size_type size() const {return this->CBase::size();}
 /** Return the maximum allowable size for this array. **/
 size_type max_size() const {return this->CBase::max_size();}
 /** Return true if there are no elements currently stored in this array. This
-is equivalent to the tests begin()==end() or size()==0. **/
+is equivalent to the tests begin() == end() or size()==0. **/
 bool empty() const {return this->CBase::empty();}
 /** Return the number of elements this array can currently hold without
 requiring reallocation. The value returned by capacity() is always greater 
 than or equal to size(), even if the data is not owned by this array in
-which case we have capacity()==size() and the array is not reallocatable. **/
+which case we have capacity() == size() and the array is not reallocatable. **/
 size_type capacity() const {return this->CBase::capacity();}
 /** Return the amount of heap space owned by this array; this is the same
 as capacity() for owner arrays but is zero for non-owners. 
@@ -1476,7 +1494,7 @@ size_type allocated() const {return this->CBase::allocated();}
 resized, and the destructor will not free any heap space nor call any element
 destructors. If the array does not refer to \e any data it is considered to be
 an owner and it is resizeable. 
-@note There is no equivalent for std::vector. **/
+@note There is no equivalent of this method for std::vector. **/
 bool isOwner() const {return this->CBase::isOwner();}
 
 /** Change the size of this Array, preserving all the elements that will still 
@@ -1575,9 +1593,10 @@ void shrink_to_fit() {
     setData(newData);
     setAllocated(size());
 }
+/*@}    End of size and capacity. **/
 
-/*@}*/
 
+//------------------------------------------------------------------------------
 /** @name                       Iterators
 
 These methods deal in iterators, which are STL generalized pointers. For this
@@ -1722,9 +1741,10 @@ ConstArray_<T,X> operator()(index_type index, size_type length) const
 return an ArrayView referencing that data without copying it. **/
 ArrayView_<T,X> operator()(index_type index, size_type length)
 {   return Base::operator()(index,length); }
-/*@}*/
+/*@}    End of element access. **/
 
 
+//------------------------------------------------------------------------------
 /**@name                Element insertion and removal
 
 These are methods that change the number of elements in the array by insertion
@@ -2022,11 +2042,11 @@ void pop_back() {
     destruct(&back());
     setSize(size()-1);
 }
-/*@}*/
+/*@}    End of insertion and erase. **/
 
 
 //------------------------------------------------------------------------------
-private:
+                                  private:
 //------------------------------------------------------------------------------
 
 // This method is used when we have already decided we need to make room for 
