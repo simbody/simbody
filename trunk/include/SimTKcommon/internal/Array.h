@@ -677,8 +677,8 @@ ArrayView_& operator=(const std::vector<T2,A2>& src) {
         " ArrayView has a fixed size of %llu.", 
         ull(src.size()), ull(size()));
 
-    T*                                 d = begin(); 
-    std::vector<T2,A2>::const_iterator s = src.begin();
+    T*                                          d = begin(); 
+    typename std::vector<T2,A2>::const_iterator s = src.begin();
     while (d != end())
         *d++ = *s++; // using T::operator=(T2)
     return *this;

@@ -324,7 +324,7 @@ void testIndexType() {
     SimTK_TEST(wisdom(true,1) < vrel);
     SimTK_TEST(wisdom(false,1) != vrel);
     SimTK_TEST(wisdom != std::vector<const char*>(2,"it's all absolute"));
-    wisdom[true] = "a comes after i";
+    wisdom[true] = "z comes after i";
     SimTK_TEST(wisdom > vrel); SimTK_TEST(vrel < wisdom);
 
 
