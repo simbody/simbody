@@ -562,14 +562,21 @@ private:
         if (threw==2) SimTK_TEST_FAILED2("Expected statement\n----\n%s\n----\n  to throw exception type %s but it threw something else.",#stmt,#exc); \
     }while(false)
 
-// When we're only required to throw in Debug, we *may* still throw in
-// Release, but if so we'll ignore that.
+// When we're only required to throw in Debug, we have to suppress the
+// test case altogether in Release because it may cause damage. 
 #if defined(NDEBUG)
-    #define SimTK_TEST_MUST_THROW_DEBUG(stmt) SimTK_TEST_MAY_THROW(stmt)
-    #define SimTK_TEST_MUST_THROW_EXC_DEBUG(stmt,exc) \
-                SimTK_TEST_MAY_THROW_EXC(stmt,exc)
+    /// Include a bad statement when in Debug and insist that it get caught,
+    /// but don't include the statement at all in Release.
+    #define SimTK_TEST_MUST_THROW_DEBUG(stmt)
+    /// Include a bad statement when in Debug and insist that it get caught,
+    /// but don't include the statement at all in Release.
+    #define SimTK_TEST_MUST_THROW_EXC_DEBUG(stmt,exc)
 #else
+    /// Include a bad statement when in Debug and insist that it get caught,
+    /// but don't include the statement at all in Release.
     #define SimTK_TEST_MUST_THROW_DEBUG(stmt) SimTK_TEST_MUST_THROW(stmt)
+    /// Include a bad statement when in Debug and insist that it get caught,
+    /// but don't include the statement at all in Release.
     #define SimTK_TEST_MUST_THROW_EXC_DEBUG(stmt,exc) \
                 SimTK_TEST_MUST_THROW_EXC(stmt,exc)
 #endif

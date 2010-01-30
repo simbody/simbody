@@ -358,6 +358,53 @@ void testBoolIndex() {
     SimTK_TEST_MUST_THROW_DEBUG(wisdom(true,2));
     SimTK_TEST_MUST_THROW_DEBUG(wisdom.push_back("more brilliance"));
 }
+
+// Reduce the loop count by 50X in Debug.
+static const int Outer = 500000
+#ifndef NDEBUG
+          / 50
+#endif
+                ;
+
+static const int Inner = 1000;
+void testSpeedStdVector() {
+    std::vector<int> v; 
+    v.reserve(Inner);
+
+    for (int i=0; i < Outer; ++i) {
+        v.clear();
+        for (int i=0; i < Inner; ++i)
+            v.push_back(i);
+    }
+
+    int sum;
+    for (int i=0; i < Outer; ++i) {
+        sum = i;
+        for (unsigned i=0; i < v.size(); ++i)
+            sum += v[i];
+    }
+    cout << "std::vector sum=" << sum << endl;
+}
+
+void testSpeedSimTKArray() {
+    Array_<int> v; 
+    v.reserve(Inner);
+
+    for (int i=0; i < Outer; ++i) {
+        v.clear();
+        for (int i=0; i < Inner; ++i)
+            v.push_back(i);
+    }
+
+    int sum;
+    for (int i=0; i < Outer; ++i) {
+        sum = i;
+        for (int i=0; i < v.size(); ++i)
+            sum += v[i];
+    }
+    cout << "Array sum=" << sum << endl;
+}
+
 #include <typeinfo>
 int main() {
     cout << typeid(Array_<String,char>).name() << endl;
@@ -367,6 +414,8 @@ int main() {
         SimTK_SUBTEST(testConstruction);
         SimTK_SUBTEST(testConversion);
         SimTK_SUBTEST(testBoolIndex);
+        SimTK_SUBTEST(testSpeedStdVector);
+        SimTK_SUBTEST(testSpeedSimTKArray);
 
     SimTK_END_TEST();
 }
