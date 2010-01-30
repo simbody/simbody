@@ -46,7 +46,7 @@ using SimTK::Transform;
 using SimTK::Rotation;
 using SimTK::Inertia;
 using SimTK::MassProperties;
-using SimTK::Array;
+using SimTK::Array_;
 
 /**
  * This is an abstract class representing the *computational* form of a body and its
@@ -620,29 +620,29 @@ QIndex getQIndex() const {return qIndex;}
 
 // Access routines for plucking the right per-body data from the pool in the State.
 const Transform&  fromB(const std::vector<Transform>& x) const {return x[nodeNum];}
-const Transform&  fromB(const Array<Transform>&       x) const {return x[nodeNum];}
+const Transform&  fromB(const Array_<Transform>&       x) const {return x[nodeNum];}
 const PhiMatrix&  fromB(const std::vector<PhiMatrix>& p) const {return p[nodeNum];}
-const PhiMatrix&  fromB(const Array<PhiMatrix>&       p) const {return p[nodeNum];}
+const PhiMatrix&  fromB(const Array_<PhiMatrix>&       p) const {return p[nodeNum];}
 const MassProperties& fromB(const std::vector<MassProperties>& m) const {return m[nodeNum];}
-const MassProperties& fromB(const Array<MassProperties>&       m) const {return m[nodeNum];}
+const MassProperties& fromB(const Array_<MassProperties>&       m) const {return m[nodeNum];}
 const Inertia&    fromB(const std::vector<Inertia>&   i) const {return i[nodeNum];}
-const Inertia&    fromB(const Array<Inertia>&         i) const {return i[nodeNum];}
+const Inertia&    fromB(const Array_<Inertia>&         i) const {return i[nodeNum];}
 int               fromB(const std::vector<int>&       i) const {return i[nodeNum];}
-int               fromB(const Array<int>&             i) const {return i[nodeNum];}
+int               fromB(const Array_<int>&             i) const {return i[nodeNum];}
 const SpatialVec& fromB(const Vector_<SpatialVec>&    v) const {return v[nodeNum];}
 const SpatialMat& fromB(const Vector_<SpatialMat>&    m) const {return m[nodeNum];}
 const Vec3&       fromB(const Vector_<Vec3>&          v) const {return v[nodeNum];}
 
 Transform&  toB(std::vector<Transform>& x) const {return x[nodeNum];}
-Transform&  toB(Array<Transform>&       x) const {return x[nodeNum];}
+Transform&  toB(Array_<Transform>&       x) const {return x[nodeNum];}
 PhiMatrix&  toB(std::vector<PhiMatrix>& p) const {return p[nodeNum];}
-PhiMatrix&  toB(Array<PhiMatrix>&       p) const {return p[nodeNum];}
+PhiMatrix&  toB(Array_<PhiMatrix>&       p) const {return p[nodeNum];}
 MassProperties& toB(std::vector<MassProperties>& m) const {return m[nodeNum];}
-MassProperties& toB(Array<MassProperties>&       m) const {return m[nodeNum];}
+MassProperties& toB(Array_<MassProperties>&       m) const {return m[nodeNum];}
 Inertia&    toB(std::vector<Inertia>&   i) const {return i[nodeNum];}
-Inertia&    toB(Array<Inertia>&         i) const {return i[nodeNum];}
+Inertia&    toB(Array_<Inertia>&         i) const {return i[nodeNum];}
 int&        toB(std::vector<int>&       i) const {return i[nodeNum];}
-int&        toB(Array<int>&             i) const {return i[nodeNum];}
+int&        toB(Array_<int>&             i) const {return i[nodeNum];}
 SpatialVec& toB(Vector_<SpatialVec>&    v) const {return v[nodeNum];}
 SpatialMat& toB(Vector_<SpatialMat>&    m) const {return m[nodeNum];}
 Vec3&       toB(Vector_<Vec3>&          v) const {return v[nodeNum];}
