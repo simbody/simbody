@@ -252,6 +252,7 @@ inline bool signbit(long double l) {return (*reinterpret_cast<unsigned long long
 namespace SimTK {
 // This utility answers the question "if I put this integral value in an int and then
 // get it back, will its value be the same?".
+inline bool canStoreInInt(bool)            {return true;}
 inline bool canStoreInInt(char)            {return true;}
 inline bool canStoreInInt(unsigned char)   {return true;}
 inline bool canStoreInInt(signed char)     {return true;}
@@ -266,6 +267,7 @@ inline bool canStoreInInt(unsigned long long u) {return (unsigned long long)(int
 
 // This utility answers the question "is this integral value a nonnegative number
 // that can be stored in an int?".
+inline bool canStoreInNonnegativeInt(bool)             {return true;}
 inline bool canStoreInNonnegativeInt(char c)           {return c >= 0;}
 inline bool canStoreInNonnegativeInt(unsigned char c)  {return true;}
 inline bool canStoreInNonnegativeInt(signed char c)    {return c >= 0;}
@@ -318,6 +320,7 @@ inline bool isIndexInRange(unsigned long long ix, unsigned long long sz){return 
 // is always true for unsigned types and you'll get a warning from some compilers if
 // you check.
 
+inline bool isNonnegative(bool           n){return true;}
 // char can be signed or unsigned depending on the compiler; assume signed.
 inline bool isNonnegative(char           n){return n>=0;}
 inline bool isNonnegative(signed char    n){return n>=0;}
@@ -542,178 +545,6 @@ SimTK_TYPEINFO_SPECIALIZE(std::complex<long double>);
 
 
 } // namespace SimTK
-
-namespace SimTKimpl {
-
-///\{
-/// Template-free signatures of TypeDescriptor methods	
-typedef void*		(*IndexT)(void* tp, int n);
-typedef const void*	(*IndexConstT)(const void* tp, int n);
-typedef void*		(*CreateOneT)(const void* iptr);
-typedef void		(*DestructOneT)(void*& tvptr);	
-typedef void		(*AssignArrayOfT)(void* dest, const void* src, int n);
-typedef void		(*SetT)(void* dest, const void* valuep, int n);
-typedef void*		(*CreateArrayOfT)(int n, const void* iptr);
-typedef void		(*DestructArrayOfT)(void*& tvptr);
-///\}
-
-struct TypeManipulatorT {
-	TypeManipulatorT(int z, IndexT it, IndexConstT ict,
-					 CreateOneT c1t, DestructOneT d1t, AssignArrayOfT aat, SetT st,
-					 CreateArrayOfT cat, DestructArrayOfT dat)
-		: sizeOfT(z), indexT(it), indexConstT(ict), 
-		  createOneT(c1t), destructOneT(d1t), assignArrayOfT(aat), setT(st),
-		  createArrayOfT(cat), destructArrayOfT(dat)
-	{ }
-    
-    bool operator==(const TypeManipulatorT& t) const
-      { return sizeOfT==t.sizeOfT && indexT==t.indexT; }
-
-    // THESE MUST NEVER CHANGE ORDER! This is effectively a compiler-independent
-    // virtual function table. The first entry is a size in bytes and the rest have
-    // type "pointer to function" so all the data should have a very predictable
-    // and stable layout in memory.
-    //
-    // This is the one place in the SimTK API where the client
-    // side and library side must agree on the physical layout of the class. 
-    // It is safe to add new entries to the end of this list, but inserting earlier,
-    // deleting or reordering anything already here will break binary compatibility.
-	const int               sizeOfT;
-	const IndexT            indexT;
-	const IndexConstT       indexConstT;
-	const CreateOneT        createOneT;
-	const DestructOneT      destructOneT;
-	const AssignArrayOfT    assignArrayOfT;
-	const SetT              setT;
-	const CreateArrayOfT    createArrayOfT;
-	const DestructArrayOfT  destructArrayOfT;
-};
-
-/** 
- * Templatized helper class builds a non-templatized descriptor for T.
- *
- * This can then be used to provide a hidden implementation of a visible
- * templatized class like List<T>. The hidden implementation uses services
- * from this class to manipulate the elements.
- * 
- * Note that all members are static, so there need be only one object
- * of class MakeTypeManipulator<T> for any type T. Also note that the whole
- * implementation of MakeTypeManipulator must be contained in this header file
- * so that its definition is always consistent with its declaration. This is
- * what allows us to use templatized classes in the SimTK API without risk
- * of source/binary incompatibilities.
- */
-template <class T> class MakeTypeManipulator {
-public:
-	MakeTypeManipulator() { }
-	// default copy, assignment, destructor
-	
-	static const TypeManipulatorT& getTypeManipulatorT() { return manipT; }
-	static T& updAs(void* v) 
-      { assert(v); return *reinterpret_cast<T*>(v); }
-	static const T& getAs(const void* v) 
-      { assert(v); return *reinterpret_cast<const T*>(v); }
-
-private:	
-	/// Return the number of bytes used to contain an object of type T.
-	/// More specifically, this is the offset in bytes from one T to
-	/// the next in an ordinary C++ array T[]. It does not matter if
-	/// the object contains pointers to more memory in the heap; we
-	/// expect the object to handle that itself.
-	static int sizeT() { return (int)sizeof(T); }
-	
-	///\{
-	/// These two routines perform an offset calculation on a void*
-	/// pointer to an array of T to find the n'th following T and
-	/// then return a pointer to it as a void*.
-	static void* indexT(void* tp, int n)
-		{ return (void*)(reinterpret_cast<T*>(tp) + n); }
-	static const void* indexConstT(const void* tp, int n)
-		{ return (const void*)(reinterpret_cast<const T*>(tp) + n); }
-	///\}
-
-	/// Heap allocate, default construct and optionally initialize a single
-	/// object of type T. Return an obfuscated pointer to it as a void*.
-	/// This object must be explicitly destructed with destructOneT.
-	static void* createOneT(const void* iptr=0)
-	{
-		T* tptr = new T;
-		if (iptr) *tptr = *reinterpret_cast<const T*>(iptr);
-		return tptr;
-	}
-	
-	/// Destruct an object that was created with createOneT. We zero out
-	/// the passed-in pointer as a good hygiene measure.
-	static void destructOneT(void*& tvptr)
-	{
-		T* tptr = reinterpret_cast<T*>(tvptr);
-		delete tptr;
-		tvptr = 0;
-	}
-
-	/// Copy an array of T's to another array of T's. The destination
-	/// T's must have already been constructed for this to work properly
-	/// although there is no way to check. 
-	/// The n elements of source and destination must not overlap and
-	/// both array pointers must be non-null, unless n is 0.		
-	static void assignArrayOfT(void* dest, const void* src, int n)
-	{   assert(n>=0);
-		if (n==0) return;
-		assert(dest && src);
-		assert(indexT(dest,n) < src || indexConstT(src,n) < dest);		
-		T*		 d = reinterpret_cast<T*>(dest);
-		const T* s = reinterpret_cast<const T*>(src);
-		for (int i=0; i < n; ++i) *d++ = *s++;
-	}
-		
-	/// Assign a single value repeatedly to each element of an array of T's.
-	/// we assume that the destination T's have already been constructed.
-	/// It is an error to call this with null destination or value unless
-	/// the number of elements is 0. 
-	static void setT(void* dest, const void* valuep, int n=1)
-	{   assert(n>=0);
-		if (n==0) return;
-		assert(dest && valuep);
-		T*		 d = reinterpret_cast<T*>(dest);
-		const T& v = *reinterpret_cast<const T*>(valuep);
-		for (int i=0; i < n; ++i) *d++ = v; 
-	}
-	
-	/// Allocate and default-construct an array of n T's, with 
-	/// optional initialization.
-	static void* createArrayOfT(int n, const void* iptr=0)
-	{   assert(n>=0);
-		if (n == 0) return 0;
-		T* tptr = new T[n];
-		if (iptr) {
-			const T& init = *reinterpret_cast<const T*>(iptr);
-			for (int i=0; i < n; ++i) tptr[i] = init;
-		}		
-		return tptr;
-	}
-	
-	/// Destruct an array which was created with createArrayOfT. You
-	/// <em>must</em> pass the original pointer (to the 0th element)
-	/// here! You cannot use this to destruct part of an array, just
-	/// the whole thing at once.
-	static void destructArrayOfT(void*& tvptr)
-	{
-		T* tptr = reinterpret_cast<T*>(tvptr);
-		delete[] tptr;
-		tvptr = 0;
-	}
-	
-private:	
-	static const TypeManipulatorT manipT;
-};
-
-/*static*/ template <class T> const TypeManipulatorT
-MakeTypeManipulator<T>::manipT = TypeManipulatorT(
-									(int)sizeof(T),indexT,indexConstT,
-				 					createOneT, destructOneT, assignArrayOfT, setT, 
-				 					createArrayOfT, destructArrayOfT);
-} // namespace SimTKimpl
-
 
 #endif /* C++ stuff */
 

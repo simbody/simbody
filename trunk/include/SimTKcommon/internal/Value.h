@@ -34,7 +34,6 @@
 
 #include "SimTKcommon/internal/common.h"
 
-#include "SimTKcommon/internal/List.h"
 #include "SimTKcommon/internal/String.h"
 #include "SimTKcommon/internal/Exception.h"
 

@@ -43,6 +43,7 @@
 #include <iterator>
 #include <vector>
 #include <ostream>
+#include <climits>
 
 namespace SimTK {
 
@@ -66,8 +67,8 @@ template <class X> struct IndexTraits {
     typedef typename X::difference_type difference_type;
     // We require that max_index()+1 fit in size_type and that
     // -max_index() and max_index() fit in difference type.
-    static const size_type max_size = X::max_size;
-    static const char* index_name() {return X::index_name();}
+    static const size_type              max_size = X::max_size;
+    static const char*                  index_name() {return X::index_name();}
 };
 
 // If max_size is m, then indices range from 0..m-1, so index differences
@@ -75,92 +76,111 @@ template <class X> struct IndexTraits {
 // of bits as the unsigned index, we have to limit m so that m-1 is 
 // representable in the signed difference type.
 template <> struct IndexTraits<unsigned> {
-    typedef unsigned    index_type;
-    typedef unsigned    size_type;
-    typedef int         difference_type;
-    static const size_type max_size = 0x7fffffffU;
-    static const char* index_name() {return "unsigned";}
+    typedef unsigned        index_type;
+    typedef unsigned        size_type;
+    typedef int             difference_type;
+    static const size_type  max_size = (unsigned)INT_MAX;
+    static const char*      index_name() {return "unsigned";}
 };
 
 template <> struct IndexTraits<int> {
     typedef int             index_type;
     typedef int             size_type;
     typedef int             difference_type;
-    static const size_type  max_size = 0x7fffffff;
-    static const char* index_name() {return "int";}
+    static const size_type  max_size = INT_MAX;
+    static const char*      index_name() {return "int";}
+};
+
+// Caution: different 64 bit platforms have different lengths for long.
+// In particular, 64 bit MSVC++ has sizeof(long)==sizeof(int) while
+// 64 bit gcc has sizeof(long)==sizeof(long long).
+template <> struct IndexTraits<unsigned long> {
+    typedef unsigned long       index_type;
+    typedef unsigned long       size_type;
+    typedef long                difference_type;
+    static const size_type      max_size = (unsigned long)LONG_MAX;
+    static const char*          index_name() {return "unsigned long";}
+};
+
+template <> struct IndexTraits<long> {
+    typedef long                index_type;
+    typedef long                size_type;
+    typedef long                difference_type;
+    static const size_type      max_size = LONG_MAX;
+    static const char*          index_name() {return "long";}
 };
 
 template <> struct IndexTraits<unsigned short> {
-    typedef unsigned short  index_type;
-    typedef unsigned short  size_type;
-    typedef short           difference_type;
-    static const size_type  max_size = 0x7fffU;
-    static const char* index_name() {return "unsigned short";}
+    typedef unsigned short      index_type;
+    typedef unsigned short      size_type;
+    typedef short               difference_type;
+    static const size_type      max_size = (unsigned short)SHRT_MAX;
+    static const char*          index_name() {return "unsigned short";}
 };
 
 template <> struct IndexTraits<short> {
-    typedef short     index_type;
-    typedef short     size_type;
-    typedef short     difference_type;
-    static const size_type max_size = 0x7fff;
-    static const char* index_name() {return "short";}
+    typedef short               index_type;
+    typedef short               size_type;
+    typedef short               difference_type;
+    static const size_type      max_size = SHRT_MAX;
+    static const char*          index_name() {return "short";}
 }; 
 
 template <> struct IndexTraits<unsigned long long> {
     typedef unsigned long long  index_type;
     typedef unsigned long long  size_type;
     typedef long long           difference_type;
-    static const size_type max_size = 0x7fffffffffffffffULL;
-    static const char* index_name() {return "unsigned long long";}
+    static const size_type      max_size = (unsigned long long)LLONG_MAX;
+    static const char*          index_name() {return "unsigned long long";}
 };
 
 template <> struct IndexTraits<long long> {
-    typedef long long   index_type;
-    typedef long long   size_type;
-    typedef long long   difference_type;
-    static const size_type max_size = 0x7fffffffffffffffLL;
-    static const char* index_name() {return "long long";}
+    typedef long long           index_type;
+    typedef long long           size_type;
+    typedef long long           difference_type;
+    static const size_type      max_size = LLONG_MAX;
+    static const char*          index_name() {return "long long";}
 };
 
 // A container using unsigned char as an index should use unsigned char
 // as its size, meaning the max size is 255 and the max index must be
 // 254. Then the difference type must hold -254..254 which takes a short.
 template <> struct IndexTraits<unsigned char> {
-    typedef unsigned char index_type;
-    typedef unsigned char size_type;
-    typedef short         difference_type;
-    static const size_type max_size = 255;
-    static const char* index_name() {return "unsigned char";}
+    typedef unsigned char       index_type;
+    typedef unsigned char       size_type;
+    typedef short               difference_type;
+    static const size_type      max_size = UCHAR_MAX; // not CHAR_MAX
+    static const char*          index_name() {return "unsigned char";}
 };
 
 // A container using signed char as an index should used signed char as
 // its size also, so the max size is 127 meaning the max index is 126
 // and the difference range is -126..126 which fits in a signed char.
 template <> struct IndexTraits<signed char> {
-    typedef signed char index_type;
-    typedef signed char size_type;
-    typedef signed char difference_type;
-    static const size_type max_size = 127;
-    static const char* index_name() {return "signed char";}
+    typedef signed char         index_type;
+    typedef signed char         size_type;
+    typedef signed char         difference_type;
+    static const size_type      max_size = SCHAR_MAX;
+    static const char*          index_name() {return "signed char";}
 };
 
 // We won't use the top bit of a char index so sizes are 0 to 127
 // and index differences -126..126 which fits in a signed char.
 template <> struct IndexTraits<char> {
-    typedef char        index_type;
-    typedef char        size_type;
-    typedef signed char difference_type;
-    static const size_type max_size = 127;
-    static const char* index_name() {return "char";}
+    typedef char                index_type;
+    typedef char                size_type;
+    typedef signed char         difference_type;
+    static const size_type      max_size = (char)SCHAR_MAX;
+    static const char*          index_name() {return "char";}
 };
 
 // OK, this seems unlikely but ...
 template <> struct IndexTraits<bool> {
-    typedef bool        index_type;
-    typedef unsigned char   size_type;
-    typedef signed char     difference_type;
-    static const size_type max_size = 2;
-    static const char* index_name() {return "bool";}
+    typedef bool                index_type;
+    typedef unsigned char       size_type;
+    typedef signed char         difference_type;
+    static const size_type      max_size = 2;
+    static const char*          index_name() {return "bool";}
 };
 
 /** This is a special type used for causing invocation of a particular

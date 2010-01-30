@@ -299,15 +299,41 @@ void testConversion() {
     toConstArray(v);
 }
 
-void testIndexType() {
+// A bool index type is more or less useless in real life but was handy for 
+// catching obscure implementation bugs having to do with index_type vs. 
+// size_type.
+void testBoolIndex() {
+    SimTK_TEST((Array_<int,long>().empty()));
+    SimTK_TEST(!(Array_<int,long>().assign(1L,99).empty()));
+    SimTK_TEST((Array_<int,long>().assign(1L,99)[0] == 99));
+
     Array_<std::string, bool> wisdom(2);
+    wisdom[true] == ""; wisdom[false] == "";
     wisdom[true]  = "this too shall pass";
     wisdom[false] = "don't worry it's not loaded";
+    SimTK_TEST(wisdom.size() == 2);
+    SimTK_TEST(wisdom.max_size() == 2);
+    SimTK_TEST(wisdom.capacity() >= 2);
+    SimTK_TEST(wisdom.allocated() == wisdom.capacity());
+    SimTK_TEST(wisdom.data() != 0);
+    SimTK_TEST(wisdom.data() == wisdom.cdata());
+    SimTK_TEST(wisdom.begin() == wisdom.data());
+    SimTK_TEST(wisdom.cbegin() == wisdom.cdata());
+    SimTK_TEST(wisdom.end() == wisdom.begin()+2);
+    SimTK_TEST(wisdom.cend() == wisdom.cbegin()+2);
+
+    SimTK_TEST(wisdom[false] == "don't worry it's not loaded");
+    SimTK_TEST(wisdom[true] == "this too shall pass");
+    SimTK_TEST(wisdom.at(false) == "don't worry it's not loaded");
+    SimTK_TEST(wisdom.at(true) == "this too shall pass");
+
     cout << "wisdom=" << wisdom << endl;
     cout << "wisdom(false,1)=" << wisdom(false,1) << endl;
     cout << "wisdom(true,1)=" << wisdom(true,1) << endl;
     cout << "wisdom(true,0)=" << wisdom(true,0) << endl;
 
+    // Subarrays are fixed size; can't assign a 1-element vector to
+    // a 2 element subarray.
     SimTK_TEST_MUST_THROW_DEBUG(
         wisdom(false,2) = std::vector<const char*>(1,"whatever"));
 
@@ -315,6 +341,7 @@ void testIndexType() {
     wisdom(false,2) = vrel;
     cout << "wisdom=" << wisdom << endl;
 
+    // Test all the comparison operators Array vs. std::vector.
     SimTK_TEST(wisdom == vrel); SimTK_TEST(vrel == wisdom);
     SimTK_TEST(wisdom <= vrel); SimTK_TEST(vrel <= wisdom);
     SimTK_TEST(wisdom >= vrel); SimTK_TEST(vrel >= wisdom);
@@ -331,13 +358,15 @@ void testIndexType() {
     SimTK_TEST_MUST_THROW_DEBUG(wisdom(true,2));
     SimTK_TEST_MUST_THROW_DEBUG(wisdom.push_back("more brilliance"));
 }
-
+#include <typeinfo>
 int main() {
+    cout << typeid(Array_<String,char>).name() << endl;
+
     SimTK_START_TEST("TestArray");
 
         SimTK_SUBTEST(testConstruction);
         SimTK_SUBTEST(testConversion);
-        SimTK_SUBTEST(testIndexType);
+        SimTK_SUBTEST(testBoolIndex);
 
     SimTK_END_TEST();
 }
