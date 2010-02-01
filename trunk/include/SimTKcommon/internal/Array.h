@@ -544,7 +544,7 @@ template<class Iter> static
 typename std::iterator_traits<Iter>::difference_type
 iterDistance(const Iter& first, const Iter& last1) {
     return iterDistanceImpl(first,last1,
-                std::iterator_traits<Iter>::iterator_category());
+                typename std::iterator_traits<Iter>::iterator_category());
 }
 
 // Generic slow implementation for non-random access iterators. This is fine
