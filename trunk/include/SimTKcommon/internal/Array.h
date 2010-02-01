@@ -2304,7 +2304,7 @@ template <class InputIterator> void
 ctorIteratorDispatch(const InputIterator& first, const InputIterator& last1, 
                      std::input_iterator_tag) 
 {
-    InputIterator src = frst;
+    InputIterator src = first;
     while (src != last1) {
         // We can afford to check this always since we are probably doing I/O.
         SimTK_ERRCHK2_ALWAYS(size() < max_size(),
