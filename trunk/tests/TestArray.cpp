@@ -71,9 +71,9 @@ public:
     explicit SmallIx(unsigned char i) : ix(i) {}
 
     SmallIx& operator++() 
-    {   assert(ix<max_size); ++ix; return *this;}
+    {   assert(ix<max_size()); ++ix; return *this;}
     SmallIx operator++(int) 
-    {   assert(ix<max_size); const SmallIx x=*this; ++ix; return x;}
+    {   assert(ix<max_size()); const SmallIx x=*this; ++ix; return x;}
     SmallIx& operator--() 
     {   assert(ix>0); --ix; return *this;}
     SmallIx operator--(int) 
@@ -84,8 +84,7 @@ public:
     typedef unsigned char index_type;
     typedef unsigned char size_type;
     typedef signed char   difference_type;
-    static const size_type max_size = 4;
-    static const char* index_name() {return "SmallIx";}
+    static size_type max_size() {return 4;}
 private:
     unsigned char ix;
 };
@@ -162,8 +161,8 @@ template Array_<double,int>&
 Array_<double,int>::operator=(const std::vector<float>&);
 
 // Comparison
-template bool SimTK::operator==(const ConstArray_<float,int>&, 
-                                const ConstArray_<float,unsigned>&);
+template bool SimTK::operator==(const ArrayViewConst_<float,int>&, 
+                                const ArrayViewConst_<float,unsigned>&);
 #endif
 
 
@@ -221,6 +220,8 @@ void testConstruction() {
 
     new(ismall.raw_push_back()) int(27);
     cout << "ismall after raw_push_back():" << ismall << endl;
+
+    SimTK_TEST_MUST_THROW_DEBUG(imaxsz.push_back()); // already full
 
     // Check null assignments.
     ismall = ismall0; // src is null
@@ -280,8 +281,8 @@ static void toArray(const Array_<int>& a) {
 static void toArrayView(const ArrayView_<int>& av) {
     cout << "toArrayView= "  << av  << " &av[0]="  << &av[0] << endl;
 }
-static void toConstArray(const ConstArray_<int>& ca) {
-    cout << "toConstArray="  << ca  << " &ca[0]="  << &ca[0] << endl;
+static void toArrayViewConst(const ArrayViewConst_<int>& ca) {
+    cout << "toArrayViewConst="  << ca  << " &ca[0]="  << &ca[0] << endl;
 }
 void testConversion() {
     const int p[] = {1,2,3,4,5,6};
@@ -289,14 +290,14 @@ void testConversion() {
     cout << "v=" << v << " &v[0]=" << &v[0] << endl;
     Array_<int> a(v);
     ArrayView_<int> av(v);
-    ConstArray_<int> ca(v);
+    ArrayViewConst_<int> ca(v);
     cout << "a= "  << a  << "  &a[0]="  << &a[0] << endl;
     cout << "av=" << av << " &av[0]=" << &av[0] << endl;
     cout << "ca=" << ca << " &ca[0]=" << &ca[0] << endl;
 
     toArray(ArrayView_<int>(v)); 
     toArrayView(v); 
-    toConstArray(v);
+    toArrayViewConst(v);
 }
 
 // A bool index type is more or less useless in real life but was handy for 

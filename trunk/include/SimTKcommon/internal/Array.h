@@ -34,7 +34,7 @@
 
 /** @file
  * This file defines the Array_<T,X> class and related support classes
- * including base classes ConstArray_<T,X> and ArrayView_<T,X>.
+ * including base classes ArrayViewConst_<T,X> and ArrayView_<T,X>.
  */
 
 #include "SimTKcommon/internal/common.h"
@@ -44,10 +44,11 @@
 #include <vector>
 #include <ostream>
 #include <climits>
+#include <typeinfo>
 
 namespace SimTK {
 
-template <class T, class X=int> class ConstArray_;
+template <class T, class X=int> class ArrayViewConst_;
 template <class T, class X=int> class ArrayView_;
 template <class T, class X=int> class Array_;
 
@@ -65,10 +66,9 @@ template <class X> struct IndexTraits {
     typedef X                           index_type;
     typedef typename X::size_type       size_type;
     typedef typename X::difference_type difference_type;
-    // We require that max_index()+1 fit in size_type and that
-    // -max_index() and max_index() fit in difference type.
-    static const size_type              max_size = X::max_size;
-    static const char*                  index_name() {return X::index_name();}
+    // We require that max_size() fit in size_type and that
+    // -max_size() and max_size() fit in difference type.
+    static size_type                    max_size() {return X::max_size();}
 };
 
 // If max_size is m, then indices range from 0..m-1, so index differences
@@ -79,16 +79,14 @@ template <> struct IndexTraits<unsigned> {
     typedef unsigned        index_type;
     typedef unsigned        size_type;
     typedef int             difference_type;
-    static const size_type  max_size = (unsigned)INT_MAX;
-    static const char*      index_name() {return "unsigned";}
+    static size_type        max_size() {return (unsigned)INT_MAX;}
 };
 
 template <> struct IndexTraits<int> {
     typedef int             index_type;
     typedef int             size_type;
     typedef int             difference_type;
-    static const size_type  max_size = INT_MAX;
-    static const char*      index_name() {return "int";}
+    static size_type        max_size() {return INT_MAX;}
 };
 
 // Caution: different 64 bit platforms have different lengths for long.
@@ -98,48 +96,48 @@ template <> struct IndexTraits<unsigned long> {
     typedef unsigned long       index_type;
     typedef unsigned long       size_type;
     typedef long                difference_type;
-    static const size_type      max_size = (unsigned long)LONG_MAX;
-    static const char*          index_name() {return "unsigned long";}
+    static size_type            max_size() {return (unsigned long)LONG_MAX;}
 };
 
 template <> struct IndexTraits<long> {
     typedef long                index_type;
     typedef long                size_type;
     typedef long                difference_type;
-    static const size_type      max_size = LONG_MAX;
-    static const char*          index_name() {return "long";}
+    static size_type            max_size() {return LONG_MAX;}
 };
 
+// We want to allow the full 65536 elements for an unsigned short index
+// so the index difference type has to accommodate -65535..+65535 which 
+// takes an int.
 template <> struct IndexTraits<unsigned short> {
     typedef unsigned short      index_type;
     typedef unsigned short      size_type;
-    typedef short               difference_type;
-    static const size_type      max_size = (unsigned short)SHRT_MAX;
-    static const char*          index_name() {return "unsigned short";}
+    typedef int                 difference_type;
+    static size_type            max_size() {return USHRT_MAX;}
 };
 
+// If the index type is a (signed) short the max size is 32767 so
+// the index diffference range -32766..+32766 still fits in a short.
 template <> struct IndexTraits<short> {
     typedef short               index_type;
     typedef short               size_type;
     typedef short               difference_type;
-    static const size_type      max_size = SHRT_MAX;
-    static const char*          index_name() {return "short";}
+    static size_type            max_size() {return SHRT_MAX;}
 }; 
 
 template <> struct IndexTraits<unsigned long long> {
     typedef unsigned long long  index_type;
     typedef unsigned long long  size_type;
     typedef long long           difference_type;
-    static const size_type      max_size = (unsigned long long)LLONG_MAX;
-    static const char*          index_name() {return "unsigned long long";}
+    static size_type            max_size() 
+                                    {return (unsigned long long)LLONG_MAX;}
 };
 
 template <> struct IndexTraits<long long> {
     typedef long long           index_type;
     typedef long long           size_type;
     typedef long long           difference_type;
-    static const size_type      max_size = LLONG_MAX;
-    static const char*          index_name() {return "long long";}
+    static size_type            max_size() {return LLONG_MAX;}
 };
 
 // A container using unsigned char as an index should use unsigned char
@@ -149,8 +147,7 @@ template <> struct IndexTraits<unsigned char> {
     typedef unsigned char       index_type;
     typedef unsigned char       size_type;
     typedef short               difference_type;
-    static const size_type      max_size = UCHAR_MAX; // not CHAR_MAX
-    static const char*          index_name() {return "unsigned char";}
+    static size_type            max_size() {return UCHAR_MAX;} // not CHAR_MAX
 };
 
 // A container using signed char as an index should used signed char as
@@ -160,8 +157,7 @@ template <> struct IndexTraits<signed char> {
     typedef signed char         index_type;
     typedef signed char         size_type;
     typedef signed char         difference_type;
-    static const size_type      max_size = SCHAR_MAX;
-    static const char*          index_name() {return "signed char";}
+    static size_type            max_size() {return SCHAR_MAX;}
 };
 
 // We won't use the top bit of a char index so sizes are 0 to 127
@@ -170,8 +166,7 @@ template <> struct IndexTraits<char> {
     typedef char                index_type;
     typedef char                size_type;
     typedef signed char         difference_type;
-    static const size_type      max_size = (char)SCHAR_MAX;
-    static const char*          index_name() {return "char";}
+    static size_type            max_size() {return (char)SCHAR_MAX;}
 };
 
 // OK, this seems unlikely but ...
@@ -179,12 +174,11 @@ template <> struct IndexTraits<bool> {
     typedef bool                index_type;
     typedef unsigned char       size_type;
     typedef signed char         difference_type;
-    static const size_type      max_size = 2;
-    static const char*          index_name() {return "bool";}
+    static size_type            max_size() {return 2;}
 };
 
 //==============================================================================
-//                            CLASS ConstArray_
+//                            CLASS ArrayViewConst_
 //==============================================================================
 /** This is the base class for ArrayView_<T,X> and ultimately for Array_<T,X>, 
 providing the minimal read-only "const" functionality required by any array
@@ -204,7 +198,7 @@ changed after construction. In particular, the default copy assignment operator
 is suppressed. The destructor simply disconnects the ConstArray handle from 
 the data it was referencing; no element destruction or heap deallocation 
 occurs. **/
-template <class T, class X> class ConstArray_ {
+template <class T, class X> class ArrayViewConst_ {
 public:
 
 
@@ -236,20 +230,20 @@ only accept const data to reference. Copy assignment is suppressed. **/
 /*@{*/
 
 /** Default constructor allocates no heap space and is very fast. **/
-ConstArray_() : pData(0), nUsed(0), nAllocated(0) {}
+ArrayViewConst_() : pData(0), nUsed(0), nAllocated(0) {}
 
 /** Copy constructor is shallow; the constructed const array object will be
 referencing the original source data. However, if the source is zero length, 
 this will result in a default-constructed array view handle with a null data
 pointer, even if the source had some unused data allocated. **/
-ConstArray_(const ConstArray_& src) 
+ArrayViewConst_(const ArrayViewConst_& src) 
 :   pData(0), nUsed(src.nUsed), nAllocated(0) {
     if (nUsed) pData = const_cast<T*>(src.pData);
 } 
 
 // Copy assignment is suppressed.
 
-/** Construct an ConstArray_<T> by referencing (sharing) a given range of const
+/** Construct an ArrayViewConst_<T> by referencing (sharing) a given range of const
 data [first,last1), without copying that data. This will work as long as the 
 size of the source data does not exceed the array's max_size. The resulting
 object is not resizeable but can be used to read elements of the original data.
@@ -264,11 +258,11 @@ there is no way for the ConstArray class to detect that.
     Dirt cheap. There will be no construction, destruction, or heap allocation
     performed.
 @see disconnect() **/
-ConstArray_(const T* first, const T* last1) : pData(0),nUsed(0),nAllocated(0) { 
+ArrayViewConst_(const T* first, const T* last1) : pData(0),nUsed(0),nAllocated(0) { 
     if (last1==first) return; // empty
 
     SimTK_ERRCHK3(isSizeOK(last1-first), 
-        "ConstArray_<T>::ctor(first,last1)",
+        "ArrayViewConst_<T>::ctor(first,last1)",
         "The source data's size %llu is too big for this array which"
         " is limited to %llu elements by its index type %s.",
         ull(last1-first), ullMaxSize(), indexName());
@@ -278,7 +272,7 @@ ConstArray_(const T* first, const T* last1) : pData(0),nUsed(0),nAllocated(0) {
     // nAllocated is already zero
 }
 
-/** Construct a ConstArray_<T> by referencing (sharing) the data in a const 
+/** Construct a ArrayViewConst_<T> by referencing (sharing) the data in a const 
 std::vector<T>, without copying the data; this is also an implicit conversion. 
 This will work as long as the size of the vector does not exceed the array's 
 max_size. The resulting array object is not resizeable but can be used to read
@@ -301,11 +295,11 @@ to detect that.
     performed.
 @see disconnect() **/
 template <class A>
-ConstArray_(const std::vector<T,A>& v) : pData(0),nUsed(0),nAllocated(0) { 
+ArrayViewConst_(const std::vector<T,A>& v) : pData(0),nUsed(0),nAllocated(0) { 
     if (v.empty()) return;
 
     SimTK_ERRCHK3(isSizeOK(v.size()), 
-        "ConstArray_<T>::ctor(std::vector<T>)",
+        "ArrayViewConst_<T>::ctor(std::vector<T>)",
         "The source std::vector's size %llu is too big for this array which"
         " is limited to %llu elements by its index type %s.",
         ull(v.size()), ullMaxSize(), indexName());
@@ -330,14 +324,14 @@ the owner will clean things up later. In either case the size() and capacity()
 will be zero after this call and data() will return null (0). **/
 void disconnect() {
     SimTK_ASSERT(nAllocated==0,
-        "ConstArray_::deallocate(): called on an owner Array_");
+        "ArrayViewConst_::deallocate(): called on an owner Array_");
     nUsed = 0;
     pData = 0;
 }
 
 /** The destructor just disconnects the array view handle from its data; see
 disconnect() for more information. @see disconnect() **/
-~ConstArray_() {
+~ArrayViewConst_() {
     disconnect();
 }
 /*@}    End of constructors, etc. **/
@@ -354,7 +348,7 @@ heap space (capacity). See the derived Array_<T,X> class for methods that can
 /** Return the current number of elements stored in this array. **/
 size_type size() const {return nUsed;}
 /** Return the maximum allowable size for this array. **/
-size_type max_size() const {return IndexTraits<X>::max_size;}
+size_type max_size() const {return IndexTraits<X>::max_size();}
 /** Return true if there are no elements currently stored in this array. This
 is equivalent to the tests begin()==end() or size()==0. **/
 bool empty() const {return nUsed==0;}
@@ -390,7 +384,7 @@ will be range-checked in a Debug build but not in Release.
 @par Complexity:
     Constant time. **/
 const T& operator[](index_type i) const {
-    SimTK_INDEXCHECK(size_type(i),nUsed,"ConstArray_<T>::operator[]()");
+    SimTK_INDEXCHECK(size_type(i),nUsed,"ArrayViewConst_<T>::operator[]()");
     return pData[i];
 }
 /** Same as operator[] but always range-checked, even in a Release build.  
@@ -398,7 +392,7 @@ const T& operator[](index_type i) const {
 @par Complexity:
     Constant time. **/
 const T& at(index_type i) const {
-    SimTK_INDEXCHECK_ALWAYS(size_type(i),nUsed,"ConstArray_<T>::at()");
+    SimTK_INDEXCHECK_ALWAYS(size_type(i),nUsed,"ArrayViewConst_<T>::at()");
     return pData[i];
 }
 /** Return a const reference to the first element in this array, which must
@@ -407,7 +401,7 @@ not be empty (we'll check in a Debug build but not Release).
 @par Complexity:
     Constant time. **/
 const T& front() const 
-{   SimTK_ERRCHK(!empty(), "ConstArray_<T>::front()", "Array was empty.");
+{   SimTK_ERRCHK(!empty(), "ArrayViewConst_<T>::front()", "Array was empty.");
     return pData[0]; }
 /** Return a const reference to the last element in this array, which must
 not be empty (we'll check in a Debug build but not Release).
@@ -415,7 +409,7 @@ not be empty (we'll check in a Debug build but not Release).
 @par Complexity:
     Constant time. **/
 const T& back() const 
-{   SimTK_ERRCHK(!empty(), "ConstArray_<T>::back()", "Array was empty.");
+{   SimTK_ERRCHK(!empty(), "ArrayViewConst_<T>::back()", "Array was empty.");
     return pData[nUsed-1]; }
 
 /** Select a contiguous subarray of the elements of this array and create 
@@ -426,7 +420,7 @@ another ConstArray that refers only to those element (without copying).
 @param[in]      length
     The length of the subarray to be produced.
 @return
-    A new ConstArray_<T,X> object referencing the original data.
+    A new ArrayViewConst_<T,X> object referencing the original data.
 @note 
     If \a length==0 the returned array will be in a default-constructed,
     all-zero and null state with no connection to the original data.
@@ -436,8 +430,8 @@ another ConstArray that refers only to those element (without copying).
 @par Complexity:
     Dirt cheap; no element construction or destruction or heap allocation
     is required. **/ 
-ConstArray_ operator()(index_type index, size_type length) const {
-    const char* methodName = "ConstArray_<T>(index,length)";
+ArrayViewConst_ operator()(index_type index, size_type length) const {
+    const char* methodName = "ArrayViewConst_<T>(index,length)";
     const size_type ix(index);
     SimTK_ERRCHK2(isSizeInRange(ix, size()), methodName,
         "For this operator, we must have 0 <= index <= size(), but"
@@ -446,7 +440,7 @@ ConstArray_ operator()(index_type index, size_type length) const {
         "This operator requires 0 <= length <= size()-index, but"
         " length==%llu and size()-index==%llu.",ull(length),ull(size()-ix));
 
-    return ConstArray_(pData+ix, pData+ix+length);
+    return ArrayViewConst_(pData+ix, pData+ix+length);
 }
 /*@}    End of element access. **/
 
@@ -513,7 +507,7 @@ const T* data() const {return pData;}
 // all data members to zero because there are many error conditions tested
 // that could result in an exception being thrown prior to construction
 // being completed.
-explicit ConstArray_(const TrustMe&) {
+explicit ArrayViewConst_(const TrustMe&) {
 #ifndef NDEBUG
     pData=0; nAllocated=nUsed=0;
 #endif
@@ -581,7 +575,7 @@ unsigned long long ullCapacity() const {return ull(capacity());}
 unsigned long long ullMaxSize()  const {return ull(max_size());}
 
 /** Useful in error messages for explaining why something was too big. **/
-const char* indexName() const {return IndexTraits<X>::index_name();}
+const char* indexName() const {return typeid(X).name();}
 
 private:
 //------------------------------------------------------------------------------
@@ -594,7 +588,7 @@ T*                  pData;      // ptr to data referenced here, or 0 if none
 size_type           nUsed;      // number of elements currently present (size)
 size_type           nAllocated; // heap allocation; 0 if pData is not owned
 
-ConstArray_& operator=(const ConstArray_& src); // suppressed
+ArrayViewConst_& operator=(const ArrayViewConst_& src); // suppressed
 };
 
 
@@ -602,10 +596,10 @@ ConstArray_& operator=(const ConstArray_& src); // suppressed
 //==============================================================================
 //                            CLASS ArrayView_
 //==============================================================================
-/** This class extends ConstArray_<T,X> to add the ability to modify elements,
+/** This class extends ArrayViewConst_<T,X> to add the ability to modify elements,
 but not the ability to change size or reallocate. **/
-template <class T, class X> class ArrayView_ : public ConstArray_<T,X> {
-typedef ConstArray_<T,X> CBase;
+template <class T, class X> class ArrayView_ : public ArrayViewConst_<T,X> {
+typedef ArrayViewConst_<T,X> CBase;
 public:
 
 
@@ -662,7 +656,7 @@ doing anything to the data. */
 void disconnect() {this->CBase::disconnect();}
 
 /** The destructor just disconnects the array view handle from its data; see
-ConstArray_<T,X>::disconnect() for more information. **/
+ArrayViewConst_<T,X>::disconnect() for more information. **/
 ~ArrayView_() {this->CBase::disconnect();}
 /*@}    End of construction, etc. **/
 
@@ -698,9 +692,9 @@ ArrayView_& operator=(const ArrayView_& src) {
 /** Assignment from any other array object is allowed as long as the number
 of elements matches and the types are assignment compatible. **/
 template <class T2, class X2>
-ArrayView_& operator=(const ConstArray_<T2,X2>& src) {
+ArrayView_& operator=(const ArrayViewConst_<T2,X2>& src) {
     if ((const void*)&src == (void*)this) return *this;
-    SimTK_ERRCHK2(isSameSize(src.size()), "ArrayView_::operator=(ConstArray_)",
+    SimTK_ERRCHK2(isSameSize(src.size()), "ArrayView_::operator=(ArrayViewConst_)",
         "Assignment to an ArrayView is permitted only if the source"
         " is the same size. Here the source had %llu element(s) but the"
         " ArrayView has a fixed size of %llu.", 
@@ -747,7 +741,7 @@ include any of the elements currently in the array. The source elements can be
 of a type T2 that may be the same or different than this array's element type 
 T as long as there is a T=T2 operator that works. Note that although the source 
 arguments are pointers, those may be iterators for some container depending on 
-implementation details of the container. Specifically, any ConstArray_,
+implementation details of the container. Specifically, any ArrayViewConst_,
 ArrayView_, or Array_ iterator is an ordinary pointer.
 
 @par Complexity:
@@ -777,7 +771,7 @@ ArrayView_& assign(const T2* first, const T2* last1) {
 /** Assign to this array to to make it a copy of the elements in range 
 [first,last1) given by non-pointer random access iterators (the pointer
 case is handled separately). This variant will not be called when the
-iterators are forward iterators from ConstArray_, ArrayView_, or Array_ 
+iterators are forward iterators from ArrayViewConst_, ArrayView_, or Array_ 
 objects since those are ordinary pointers. It is not allowed for this range to 
 include any of the elements currently in the array. The source elements can be 
 of a type T2 that may be the same or different than this array's element type 
@@ -822,7 +816,7 @@ ArrayView_& assign(const RandomAccessIterator& first,
 /** @name                     Element access
 
 These methods provide read and write access to individual elements that are 
-currently present in the array; the ConstArray_<T,X> base class provides the
+currently present in the array; the ArrayViewConst_<T,X> base class provides the
 read-only (const) methods. **/
 /*@{*/
 
@@ -1043,7 +1037,7 @@ explicit ArrayView_(const TrustMe& tm) : CBase(tm) {}
 //------------------------------------------------------------------------------
 // no data members are allowed
 
-// The following private methods are protected methods in the ConstArray_ base 
+// The following private methods are protected methods in the ArrayViewConst_ base 
 // class, so they should not need repeating here. However, we explicitly 
 // forward to the base methods to avoid gcc errors. The gcc complaint
 // is due to their not depending on any template parameters; the "this->"
@@ -1143,7 +1137,7 @@ standard STL objects.
 **/
 template <class T, class X> class Array_ : public ArrayView_<T,X> {
 typedef ArrayView_<T,X>  Base;
-typedef ConstArray_<T,X> CBase;
+typedef ArrayViewConst_<T,X> CBase;
 //------------------------------------------------------------------------------
 public:
 //------------------------------------------------------------------------------
@@ -1837,8 +1831,8 @@ not be empty.
 T& back() {return const_cast<T&>(this->Base::back());}
 
 /** Select a subrange of this const array by starting index and length, and
-return a ConstArray_ referencing that data without copying it. **/
-ConstArray_<T,X> operator()(index_type index, size_type length) const
+return a ArrayViewConst_ referencing that data without copying it. **/
+ArrayViewConst_<T,X> operator()(index_type index, size_type length) const
 {   return CBase::operator()(index,length); }
 
 /** Select a subrange of this array by starting index and length, and
@@ -2610,7 +2604,7 @@ invoking the "<<" operator on the elements. This function will not compile if
 the element type does not support the "<<" operator. No newline is issued before
 or after the output. @relates Array_ **/
 template <class T, class X> inline std::ostream&
-operator<<(std::ostream& o, const ConstArray_<T,X>& a) {
+operator<<(std::ostream& o, const ArrayViewConst_<T,X>& a) {
     o << "[" << (long long)a.size() << "](";
     if (!a.empty()) {
         o << a.front();
@@ -2623,8 +2617,8 @@ operator<<(std::ostream& o, const ConstArray_<T,X>& a) {
 /**@name                    Comparison operators
 
 These operators permit lexicographical comparisons between two comparable
-ConstArray_ objects, possibly with differing element and index types, and between 
-an ConstArray_ object and a comparable std::vector object.
+ArrayViewConst_ objects, possibly with differing element and index types, and between 
+an ArrayViewConst_ object and a comparable std::vector object.
 @relates Array_ **/
 /*@{*/
 
@@ -2632,7 +2626,7 @@ an ConstArray_ object and a comparable std::vector object.
 element compares equal using an operator T1==T2.  
 @relates Array_ **/
 template <class T1, class X1, class T2, class X2> inline bool 
-operator==(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2) {
+operator==(const ArrayViewConst_<T1,X1>& a1, const ArrayViewConst_<T2,X2>& a2) {
     // Avoid warnings in size comparison by using common type.
     const ptrdiff_t sz1 = a1.end()-a1.begin();
     const ptrdiff_t sz2 = a2.end()-a2.begin();
@@ -2646,7 +2640,7 @@ operator==(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2) {
 /** The not equal operator is implemented using the equal operator.  
 @relates Array_ **/
 template <class T1, class X1, class T2, class X2> inline bool 
-operator!=(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2)
+operator!=(const ArrayViewConst_<T1,X1>& a1, const ArrayViewConst_<T2,X2>& a2)
 {   return !(a1 == a2); }
 
 /** Arrays are ordered lexicographically; that is, by first differing element
@@ -2655,7 +2649,7 @@ shorter array (in which case the shorter one is "less than" the longer).
 This depends on T1==T2 and T1<T2 operators working.  
 @relates Array_ **/
 template <class T1, class X1, class T2, class X2> inline bool 
-operator<(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2) {
+operator<(const ArrayViewConst_<T1,X1>& a1, const ArrayViewConst_<T2,X2>& a2) {
     const T1* p1 = a1.begin();
     const T2* p2 = a2.begin();
     while (p1 != a1.end() && p2 != a2.end()) {
@@ -2670,20 +2664,20 @@ operator<(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2) {
 /** The greater than or equal operator is implemented using the less than 
 operator. **/
 template <class T1, class X1, class T2, class X2> inline bool 
-operator>=(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2)
+operator>=(const ArrayViewConst_<T1,X1>& a1, const ArrayViewConst_<T2,X2>& a2)
 {   return !(a1 < a2); }
 /** The greater than operator is implemented by using less than with the
 arguments reversed. 
 @relates Array_ **/
 template <class T1, class X1, class T2, class X2> inline bool 
-operator>(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2)
+operator>(const ArrayViewConst_<T1,X1>& a1, const ArrayViewConst_<T2,X2>& a2)
 {   return a2 < a1; }
 
-/** An ConstArray_<T1> and an std::vector<T2> are equal if and only if they are the 
+/** An ArrayViewConst_<T1> and an std::vector<T2> are equal if and only if they are the 
 same size() and each element compares equal using an operator T1==T2.  
 @relates Array_ **/
 template <class T1, class X1, class T2, class A2> inline bool 
-operator==(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
+operator==(const ArrayViewConst_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
     typedef typename std::vector<T2,A2>::const_iterator Iter;
     // Avoid warnings in size comparison by using common type.
     const ptrdiff_t sz1 = a1.end()-a1.begin();
@@ -2695,31 +2689,31 @@ operator==(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
         if (!(*p1++ == *p2++)) return false;
     return true;
 }
-/** An std::vector<T1> and an ConstArray_<T2> are equal if and only if they are the 
+/** An std::vector<T1> and an ArrayViewConst_<T2> are equal if and only if they are the 
 same size() and each element compares equal using an operator T2==T1.  
 @relates Array_ **/
 template <class T1, class A1, class T2, class X2> inline bool 
-operator==(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
+operator==(const std::vector<T1,A1>& v1, const ArrayViewConst_<T2,X2>& a2)
 {   return a2 == v1; }
 
 /** The not equal operator is implemented using the equal operator.  
 @relates Array_ **/
 template <class T1, class X1, class T2, class A2> inline bool 
-operator!=(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2)
+operator!=(const ArrayViewConst_<T1,X1>& a1, const std::vector<T2,A2>& v2)
 {   return !(a1 == v2); }
 /** The not equal operator is implemented using the equal operator.  
 @relates Array_ **/
 template <class T1, class A1, class T2, class X2> inline bool 
-operator!=(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
+operator!=(const std::vector<T1,A1>& v1, const ArrayViewConst_<T2,X2>& a2)
 {   return !(a2 == v1); }
 
-/** An ConstArray_<T1> and std::vector<T2> are ordered lexicographically; that is, 
+/** An ArrayViewConst_<T1> and std::vector<T2> are ordered lexicographically; that is, 
 by first differing element or by length if there are no differing elements up 
 to the length of the shorter container (in which case the shorter one is 
 "less than" the longer). This depends on having working element operators 
 T1==T2 and T1<T2. @relates Array_ **/
 template <class T1, class X1, class T2, class A2> inline bool 
-operator<(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
+operator<(const ArrayViewConst_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
     typedef typename std::vector<T2,A2>::const_iterator Iter;
     const T1*   p1 = a1.begin();
     Iter        p2 = v2.begin();
@@ -2732,13 +2726,13 @@ operator<(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
     // a1 is less than a2 only if a1 ran out and a2 didn't.
     return p1 == a1.end() && p2 != v2.end();
 }
-/** An std::vector<T1> and ConstArray_<T2> are ordered lexicographically; that is, 
+/** An std::vector<T1> and ArrayViewConst_<T2> are ordered lexicographically; that is, 
 by first differing element or by length if there are no differing elements up 
 to the length of the shorter container (in which case the shorter one is 
 "less than" the longer). This depends on having working element operators 
 T1==T2 and T1<T2. @relates Array_ **/
 template <class T1, class A1, class T2, class X2> inline bool 
-operator<(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2) {
+operator<(const std::vector<T1,A1>& v1, const ArrayViewConst_<T2,X2>& a2) {
     typedef typename std::vector<T1,A1>::const_iterator Iter;
     Iter        p1 = v1.begin();
     const T2*   p2 = a2.begin();
@@ -2754,34 +2748,34 @@ operator<(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2) {
 /** The greater than or equal operator is implemented using the less than 
 operator. @relates Array_ **/
 template <class T1, class X1, class T2, class A2> inline bool 
-operator>=(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2)
+operator>=(const ArrayViewConst_<T1,X1>& a1, const std::vector<T2,A2>& v2)
 {   return !(a1 < v2); }
 /** The greater than or equal operator is implemented using the less than 
 operator. @relates Array_ **/
 template <class T1, class A1, class T2, class X2> inline bool 
-operator>=(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
+operator>=(const std::vector<T1,A1>& v1, const ArrayViewConst_<T2,X2>& a2)
 {   return !(v1 < a2); }
 
 /** The greater than operator is implemented by using less than with the
 arguments reversed. @relates Array_ **/
 template <class T1, class X1, class T2, class A2> inline bool 
-operator>(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2)
+operator>(const ArrayViewConst_<T1,X1>& a1, const std::vector<T2,A2>& v2)
 {   return v2 < a1; }
 /** The greater than operator is implemented by using less than with the
 arguments reversed. @relates Array_ **/
 template <class T1, class A1, class T2, class X2> inline bool 
-operator>(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
+operator>(const std::vector<T1,A1>& v1, const ArrayViewConst_<T2,X2>& a2)
 {   return a2 < v1; }
 
 /** The less than or equal operator is implemented using the greater than 
 operator. @relates Array_ **/
 template <class T1, class X1, class T2, class A2> inline bool 
-operator<=(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2)
+operator<=(const ArrayViewConst_<T1,X1>& a1, const std::vector<T2,A2>& v2)
 {   return !(a1 > v2); }
 /** The less than or equal operator is implemented using the greater than 
 operator. @relates Array_ **/
 template <class T1, class A1, class T2, class X2> inline bool 
-operator<=(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
+operator<=(const std::vector<T1,A1>& v1, const ArrayViewConst_<T2,X2>& a2)
 {   return !(v1 > a2); }
 /*@}*/
 

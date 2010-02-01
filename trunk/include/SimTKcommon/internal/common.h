@@ -450,10 +450,10 @@ public:                                     \
     static bool isValidExtended(int  i) {return i>=-1;}                             \
     static bool isValidExtended(long l) {return SimTK::canStoreInInt(l) && l>=-1;}  \
     /* IndexTraits for use in Array_<T,X> with this as X; same as int */            \
-    typedef int size_type;                              \
-    typedef int difference_type;                        \
-    static const size_type max_size = 0x7fffffff;       \
-    static const char* index_name() {return #NAME;}     \
+    typedef int size_type;                                      \
+    typedef int difference_type;                                \
+    static size_type max_size()                                 \
+        {return std::numeric_limits<difference_type>::max();}   \
 };
 
 /**
