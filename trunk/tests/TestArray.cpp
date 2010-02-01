@@ -89,6 +89,10 @@ private:
     unsigned char ix;
 };
 
+template <> struct NiceTypeName<SmallIx> {
+    static const char* name() {return "SmallIx";}
+};
+
 class Counter {
 public:
     Counter() : count(0) {}

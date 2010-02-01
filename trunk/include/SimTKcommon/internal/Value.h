@@ -97,7 +97,7 @@ public:
         if (!isA(v)) SimTK_THROW2(Exception::IncompatibleValues,v.getTypeName(),getTypeName());
         *this = downcast(v);
     }
-    String getTypeName() const { return TypeInfo<T>::name(); }
+    String getTypeName() const { return NiceTypeName<T>::name(); }
     String getValueAsString() const 
     { std::ostringstream s; s << thing; return s.str(); }
     

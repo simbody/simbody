@@ -605,29 +605,31 @@ template <class T> struct IsArithmeticType {
 };
 
 
-
-template <class T> class TypeInfo {
-public:
+// In case you don't like the name you get from typeid(), you can specialize
+// this class to provide a nicer name. This is typically used for error messages.
+template <class T> struct NiceTypeName {
     static const char* name() {return typeid(T).name();}
 };
 
-#define SimTK_TYPEINFO_SPECIALIZE(T)            \
-template <> class TypeInfo< T > {               \
-public:                                         \
+// This specializes the name of a type to be exactly the text you use to
+// specify it, rather than whatever ugly thing might result from resolution
+// of typedefs, default template arguments, etc.
+#define SimTK_NICETYPENAME_LITERAL(T)           \
+template <> struct NiceTypeName< T > {          \
     static const char* name() { return #T; }    \
 };
 // Built-in types
-SimTK_TYPEINFO_SPECIALIZE(bool);            SimTK_TYPEINFO_SPECIALIZE(signed char); 
-SimTK_TYPEINFO_SPECIALIZE(char);            SimTK_TYPEINFO_SPECIALIZE(unsigned char);
-SimTK_TYPEINFO_SPECIALIZE(short);           SimTK_TYPEINFO_SPECIALIZE(int); 
-SimTK_TYPEINFO_SPECIALIZE(long);
-SimTK_TYPEINFO_SPECIALIZE(unsigned short);  SimTK_TYPEINFO_SPECIALIZE(unsigned int); 
-SimTK_TYPEINFO_SPECIALIZE(unsigned long);
-SimTK_TYPEINFO_SPECIALIZE(float);           SimTK_TYPEINFO_SPECIALIZE(double); 
-SimTK_TYPEINFO_SPECIALIZE(long double);
-SimTK_TYPEINFO_SPECIALIZE(std::complex<float>);
-SimTK_TYPEINFO_SPECIALIZE(std::complex<double>); 
-SimTK_TYPEINFO_SPECIALIZE(std::complex<long double>); 
+SimTK_NICETYPENAME_LITERAL(bool);            SimTK_NICETYPENAME_LITERAL(signed char); 
+SimTK_NICETYPENAME_LITERAL(char);            SimTK_NICETYPENAME_LITERAL(unsigned char);
+SimTK_NICETYPENAME_LITERAL(short);           SimTK_NICETYPENAME_LITERAL(int); 
+SimTK_NICETYPENAME_LITERAL(long);            SimTK_NICETYPENAME_LITERAL(long long);
+SimTK_NICETYPENAME_LITERAL(unsigned short);  SimTK_NICETYPENAME_LITERAL(unsigned int); 
+SimTK_NICETYPENAME_LITERAL(unsigned long);   SimTK_NICETYPENAME_LITERAL(unsigned long long);
+SimTK_NICETYPENAME_LITERAL(float);           SimTK_NICETYPENAME_LITERAL(double); 
+SimTK_NICETYPENAME_LITERAL(long double);
+SimTK_NICETYPENAME_LITERAL(std::complex<float>);
+SimTK_NICETYPENAME_LITERAL(std::complex<double>); 
+SimTK_NICETYPENAME_LITERAL(std::complex<long double>); 
 
 
 } // namespace SimTK

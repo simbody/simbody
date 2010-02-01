@@ -575,7 +575,7 @@ unsigned long long ullCapacity() const {return ull(capacity());}
 unsigned long long ullMaxSize()  const {return ull(max_size());}
 
 /** Useful in error messages for explaining why something was too big. **/
-const char* indexName() const {return typeid(X).name();}
+const char* indexName() const {return NiceTypeName<X>::name();}
 
 private:
 //------------------------------------------------------------------------------
