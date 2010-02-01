@@ -34,7 +34,8 @@
 
 /** @file
  * This file defines the Array_<T,X> class and related support classes
- * including base classes ArrayViewConst_<T,X> and ArrayView_<T,X>.
+ * including base classes ArrayViewConst_<T,X> and ArrayView_<T,X>, and
+ * helper class ArrayIndexTraits<X>.
  */
 
 #include "SimTKcommon/internal/common.h"
@@ -48,155 +49,214 @@
 
 namespace SimTK {
 
-template <class T, class X=int> class ArrayViewConst_;
-template <class T, class X=int> class ArrayView_;
-template <class T, class X=int> class Array_;
+// These are the classes defined in this header.
+template <class X>              struct ArrayIndexTraits;
+template <class T, class X=int> class  ArrayViewConst_;
+template <class T, class X=int> class  ArrayView_;
+template <class T, class X=int> class  Array_;
 
-// We want the index_type and size_type for ordinary integral types to
-// be either both signed or both unsigned so that an index value can
-// be compared against a container's size() method without a warning.
-// Also, there has to be a signed difference_type that can hold the
-// difference between any two valid indices. This means we can't use
-// the full range of unsigned types unless the difference_type is 
-// wider.
-// Note that the index_type must be convertible to a size_type via
-// size_type(i).
 
-template <class X> struct IndexTraits {
-    typedef X                           index_type;
+
+//==============================================================================
+//                           CLASS ArrayIndexTraits
+//==============================================================================
+
+/** This templatized type is used by the Array_<T,X> classes to obtain the
+information they need to use the class X as an index class for the array. 
+There must be a specialization here providing ArrayIndexTraits for each of
+the built-in integral types that is suitable for use as an index. Any other
+type X will qualify as an index if it defines the following members:
+
+  - typedef size_type
+  - typedef difference_type
+  - static size_type max_size()
+  - operator size_type() const (conversion from X to size_type)
+
+max_size() determines the largest number of elements that a container may hold
+if its index type is X. 
+
+size_type must be an integral type large enough to hold
+all the values from 0 to max_size(), including all the index values (which 
+range from 0 to max_size()-1). size_type may be signed or unsigned; it is the 
+type returned by size(), max_size(), capacity(), etc. and may be compared 
+directly against an index of type X without producing a compiler warning. 
+
+difference_type is a signed integral type that can hold all possible 
+differences between two indices, that is, values between -(max_size()-1) and
++(max_size()-1). In most cases we use an integral type with the same number of 
+bits for size_type and difference_type but when the index type is very small 
+(bool, unsigned char, or unsigned short) we want to allow the full range (2, 
+255, or 65535 elements, resp.) in which case we need a wider type to hold the 
+differences. 
+
+The conversion operator ensures that we can write size_type(i) for an index
+i of type X. An explicit conversion member does not need to be present as long
+as the conversion size_type(i) already works as it does for all the integral 
+type specializations. 
+
+The SimTK type-generating macro SimTK_DEFINE_UNIQUE_INDEX_TYPE() provides the
+necessary members so that these types can be used directly as index types for
+Array_ objects with no further preparation. For example, you can make an
+Array_<int,MobilizedBodyIndex> that stores ints that can be indexed only via
+MobilizedBodyIndex indices. **/
+template <class X> struct ArrayIndexTraits {
+    /** The signed or unsigned integral type to which an object of index type
+    X can be converted without producing any compiler warnings. **/
     typedef typename X::size_type       size_type;
+    /** A signed integral type large enough to hold the full range of 
+    possible signed differences i-j between two indices i and j of type X. **/
     typedef typename X::difference_type difference_type;
-    // We require that max_size() fit in size_type and that
-    // -max_size() and max_size() fit in difference type.
-    static size_type                    max_size() {return X::max_size();}
+    /** The maximum allowable size for any Array_<T,X> that uses this type X
+    as its index type. **/
+    static size_type max_size() {return X::max_size();}
 };
 
-// If max_size is m, then indices range from 0..m-1, so index differences
-// range from 1-m to m-1. If the signed difference type has the same number 
-// of bits as the unsigned index, we have to limit m so that m-1 is 
-// representable in the signed difference type.
-template <> struct IndexTraits<unsigned> {
-    typedef unsigned        index_type;
+/** Specialization of ArrayIndexTraits for \c unsigned (that is, \c unsigned
+\c int) used as an index. **/
+template <> struct ArrayIndexTraits<unsigned> {
     typedef unsigned        size_type;
     typedef int             difference_type;
     static size_type        max_size() {return (unsigned)INT_MAX;}
 };
 
-template <> struct IndexTraits<int> {
-    typedef int             index_type;
+/** Specialization of ArrayIndexTraits for (signed) \c int used as an index. **/
+template <> struct ArrayIndexTraits<int> {
     typedef int             size_type;
     typedef int             difference_type;
     static size_type        max_size() {return INT_MAX;}
 };
 
-// Caution: different 64 bit platforms have different lengths for long.
-// In particular, 64 bit MSVC++ has sizeof(long)==sizeof(int) while
-// 64 bit gcc has sizeof(long)==sizeof(long long).
-template <> struct IndexTraits<unsigned long> {
-    typedef unsigned long       index_type;
+/** Specialization of ArrayIndexTraits for \c unsigned \c long used as an index. 
+@warning
+Different 64 bit platforms have different lengths for long. In particular, 
+64 bit MSVC++ has sizeof(long)==sizeof(int) while 64 bit gcc has 
+sizeof(long)==sizeof(long long). We recommend that you avoid using long
+and unsigned long (ever, not just here) and instead use int or long long (or 
+their unsigned versions) which are unambiguously 32 or 64 bits, resp. **/
+template <> struct ArrayIndexTraits<unsigned long> {
     typedef unsigned long       size_type;
     typedef long                difference_type;
     static size_type            max_size() {return (unsigned long)LONG_MAX;}
 };
 
-template <> struct IndexTraits<long> {
-    typedef long                index_type;
+/** Specialization of ArrayIndexTraits for (signed) \c long used as an index. 
+@warning
+Different 64 bit platforms have different lengths for long. In particular, 
+64 bit MSVC++ has sizeof(long)==sizeof(int) while 64 bit gcc has 
+sizeof(long)==sizeof(long long). We recommend that you avoid using long
+and unsigned long (ever, not just here) and instead use int or long long (or 
+their unsigned versions) which are unambiguously 32 or 64 bits, resp. **/
+template <> struct ArrayIndexTraits<long> {
     typedef long                size_type;
     typedef long                difference_type;
     static size_type            max_size() {return LONG_MAX;}
 };
 
-// We want to allow the full 65536 elements for an unsigned short index
-// so the index difference type has to accommodate -65535..+65535 which 
-// takes an int.
-template <> struct IndexTraits<unsigned short> {
-    typedef unsigned short      index_type;
+/** Specialization of ArrayIndexTraits for \c unsigned \c short used as an 
+index. We don't have any bits to spare here so we want to allow the full 
+65535 elements for an unsigned short indexed container. That means the index
+difference range is -65534..+65534 which doesn't fit in a short so we have to 
+use an int for difference_type to accommodate the whole range. **/
+template <> struct ArrayIndexTraits<unsigned short> {
     typedef unsigned short      size_type;
     typedef int                 difference_type;
     static size_type            max_size() {return USHRT_MAX;}
 };
 
-// If the index type is a (signed) short the max size is 32767 so
-// the index diffference range -32766..+32766 still fits in a short.
-template <> struct IndexTraits<short> {
-    typedef short               index_type;
+/** Specialization of ArrayIndexTraits for (signed) \c short used as an 
+index. In contrast to unsigned short, here the max size is 32767 so the index 
+difference range -32766..+32766 still fits in a short so we don't need a wider
+type for difference_type. **/
+template <> struct ArrayIndexTraits<short> {
     typedef short               size_type;
     typedef short               difference_type;
     static size_type            max_size() {return SHRT_MAX;}
 }; 
 
-template <> struct IndexTraits<unsigned long long> {
-    typedef unsigned long long  index_type;
+
+/** Specialization of ArrayIndexTraits for \c unsigned \c char used as
+an index. Here we don't have any bits to spare and we want to use the full
+max size of 255. The max index must then be 254, so the difference_type must 
+hold -254..254 which takes a short. **/
+template <> struct ArrayIndexTraits<unsigned char> {
+    typedef unsigned char       size_type;
+    typedef short               difference_type;
+    static size_type            max_size() {return UCHAR_MAX;} // not CHAR_MAX
+};
+
+/** Specialization of ArrayIndexTraits for \c signed \c char used as
+an index. In contrast with the unsigned char case which allows 255 elements, 
+the max size here is 127 meaning the max index is 126 and the difference range
+is -126..126 which still fits in a signed char so we don't need a wider type 
+for difference_type. **/
+template <> struct ArrayIndexTraits<signed char> {
+    typedef signed char         size_type;
+    typedef signed char         difference_type;
+    static size_type            max_size() {return SCHAR_MAX;}
+};
+
+/** Specialization of ArrayIndexTraits for \c char used as
+an index. The C++ standard does not specify whether \c char is a signed or
+unsigned type; here we'll limit its max size to 127 so that we don't have
+to use the non-standard high bit. That means it behaves just like the signed
+char case; if you want the full range to a size of 255, use unsigned char
+instead. **/
+template <> struct ArrayIndexTraits<char> {
+    typedef char                size_type;
+    typedef signed char         difference_type;
+    static size_type            max_size() {return (char)SCHAR_MAX;}
+};
+
+/** Specialization of ArrayIndexTraits for \c bool used as an index. OK, this 
+seems unlikely but it works fine -- you get a container that can hold only two
+elements indexed by either \c false (0) or \c true (1). You'll get warnings
+if you try to index with an ordinary int. If anyone finds a legitimate use for
+this, please post to the forum and let us know! **/
+template <> struct ArrayIndexTraits<bool> {
+    typedef unsigned char       size_type;
+    typedef signed char         difference_type;
+    static size_type            max_size() {return 2;}
+};
+
+/** Specialization of ArrayIndexTraits for \c unsigned \c long \c long used as
+an index. This only makes sense in a 64-bit compilation. **/ 
+template <> struct ArrayIndexTraits<unsigned long long> {
     typedef unsigned long long  size_type;
     typedef long long           difference_type;
     static size_type            max_size() 
                                     {return (unsigned long long)LLONG_MAX;}
 };
 
-template <> struct IndexTraits<long long> {
-    typedef long long           index_type;
+/** Specialization of ArrayIndexTraits for \c long \c long used as
+an index. This only makes sense in a 64-bit compilation. **/ 
+template <> struct ArrayIndexTraits<long long> {
     typedef long long           size_type;
     typedef long long           difference_type;
     static size_type            max_size() {return LLONG_MAX;}
 };
 
-// A container using unsigned char as an index should use unsigned char
-// as its size, meaning the max size is 255 and the max index must be
-// 254. Then the difference type must hold -254..254 which takes a short.
-template <> struct IndexTraits<unsigned char> {
-    typedef unsigned char       index_type;
-    typedef unsigned char       size_type;
-    typedef short               difference_type;
-    static size_type            max_size() {return UCHAR_MAX;} // not CHAR_MAX
-};
 
-// A container using signed char as an index should used signed char as
-// its size also, so the max size is 127 meaning the max index is 126
-// and the difference range is -126..126 which fits in a signed char.
-template <> struct IndexTraits<signed char> {
-    typedef signed char         index_type;
-    typedef signed char         size_type;
-    typedef signed char         difference_type;
-    static size_type            max_size() {return SCHAR_MAX;}
-};
-
-// We won't use the top bit of a char index so sizes are 0 to 127
-// and index differences -126..126 which fits in a signed char.
-template <> struct IndexTraits<char> {
-    typedef char                index_type;
-    typedef char                size_type;
-    typedef signed char         difference_type;
-    static size_type            max_size() {return (char)SCHAR_MAX;}
-};
-
-// OK, this seems unlikely but ...
-template <> struct IndexTraits<bool> {
-    typedef bool                index_type;
-    typedef unsigned char       size_type;
-    typedef signed char         difference_type;
-    static size_type            max_size() {return 2;}
-};
 
 //==============================================================================
 //                            CLASS ArrayViewConst_
 //==============================================================================
-/** This is the base class for ArrayView_<T,X> and ultimately for Array_<T,X>, 
-providing the minimal read-only "const" functionality required by any array
-object, and shallow copy semantics. The ability to write is added by the
-ArrayView_ class, and the additional ability to reallocate, insert, erase, etc.
-is added by the Array_<T,X> class. 
+/** This Array_ helper class is the base class for ArrayView_ which is the
+base class for Array_; here we provide only the minimal read-only "const"
+functionality required by any Array_ object, and shallow copy semantics. The 
+ability to write is added by the ArrayView_ class, and the additional ability 
+to reallocate, insert, erase, etc. is added by the Array_ class. 
 
 This class is particularly useful for recasting existing const data into a
-const Array without copying. For example a const std::vector can be passed
-to a const Array& argument by an implicit, near-zero cost conversion to a
-ConstArray which can then convert to a const Array&. 
+const Array_ without copying. For example a const std::vector can be passed
+to a const Array& argument by an implicit, near-zero cost conversion to an
+ArrayViewConst_ which can then convert to a const Array&. 
 
-A ConstArray is given all the data it is going to have at the time it is 
-constructed (except when it is being accessed from the derived Array class 
-that has more capability). The contents and size of a ConstArray cannot be 
+An ArrayViewConst_ is given all the data it is going to have at the time it is 
+constructed (except when it is being accessed from the derived Array_ class 
+that has more capability). The contents and size of a ArrayViewConst_ cannot be 
 changed after construction. In particular, the default copy assignment operator
-is suppressed. The destructor simply disconnects the ConstArray handle from 
-the data it was referencing; no element destruction or heap deallocation 
+is suppressed. The destructor simply disconnects the ArrayViewConst_ handle 
+from the data it was referencing; no element destruction or heap deallocation 
 occurs. **/
 template <class T, class X> class ArrayViewConst_ {
 public:
@@ -207,18 +267,18 @@ public:
 
 Types required of STL containers, plus index_type which is an extension. **/
 /*@{*/
-typedef T                                        value_type;
-typedef X                                        index_type;
-typedef typename IndexTraits<X>::size_type       size_type;
-typedef typename IndexTraits<X>::difference_type difference_type;
-typedef T*                                       pointer;
-typedef const T*                                 const_pointer;
-typedef T&                                       reference;
-typedef const T&                                 const_reference;
-typedef T*                                       iterator;
-typedef const T*                                 const_iterator;
-typedef std::reverse_iterator<iterator>          reverse_iterator;
-typedef std::reverse_iterator<const_iterator>    const_reverse_iterator;
+typedef T                                               value_type;
+typedef X                                               index_type;
+typedef typename ArrayIndexTraits<X>::size_type         size_type;
+typedef typename ArrayIndexTraits<X>::difference_type   difference_type;
+typedef T*                                              pointer;
+typedef const T*                                        const_pointer;
+typedef T&                                              reference;
+typedef const T&                                        const_reference;
+typedef T*                                              iterator;
+typedef const T*                                        const_iterator;
+typedef std::reverse_iterator<iterator>                 reverse_iterator;
+typedef std::reverse_iterator<const_iterator>           const_reverse_iterator;
 /*@}    End of standard typedefs **/
 
 
@@ -248,9 +308,9 @@ data [first,last1), without copying that data. This will work as long as the
 size of the source data does not exceed the array's max_size. The resulting
 object is not resizeable but can be used to read elements of the original data.
 This will becomes invalid if the original data is destructed or resized, but 
-there is no way for the ConstArray class to detect that.
+there is no way for the ArrayViewConst_ class to detect that.
 @note
-  - If the source data is empty, the resulting ConstArray will also 
+  - If the source data is empty, the resulting ArrayViewConst_ will also 
     be empty and will look as though it had been default-constructed. 
   - You can break the connection between the array handle and the data it
     was constructed from by calling disconnect().
@@ -348,7 +408,7 @@ heap space (capacity). See the derived Array_<T,X> class for methods that can
 /** Return the current number of elements stored in this array. **/
 size_type size() const {return nUsed;}
 /** Return the maximum allowable size for this array. **/
-size_type max_size() const {return IndexTraits<X>::max_size();}
+size_type max_size() const {return ArrayIndexTraits<X>::max_size();}
 /** Return true if there are no elements currently stored in this array. This
 is equivalent to the tests begin()==end() or size()==0. **/
 bool empty() const {return nUsed==0;}
@@ -370,6 +430,7 @@ bool isOwner() const {return nAllocated || pData==0;}
 /*}*/
 
 
+//------------------------------------------------------------------------------
 /** @name                  Read-only element access
 
 These methods provide read-only (const) access to individual elements that are
@@ -413,7 +474,7 @@ const T& back() const
     return pData[nUsed-1]; }
 
 /** Select a contiguous subarray of the elements of this array and create 
-another ConstArray that refers only to those element (without copying). 
+another ArrayViewConst_ that refers only to those element (without copying). 
 @param[in]      index
     The index of the first element to be included in the subarray; this can
     be one past the end of the array if \a length is zero. 
@@ -596,30 +657,29 @@ ArrayViewConst_& operator=(const ArrayViewConst_& src); // suppressed
 //==============================================================================
 //                            CLASS ArrayView_
 //==============================================================================
-/** This class extends ArrayViewConst_<T,X> to add the ability to modify elements,
-but not the ability to change size or reallocate. **/
+/** This Array_ helper class is the base class for Array_, extending 
+ArrayViewConst_ to add the ability to modify elements, but not the ability to 
+change size or reallocate. @see ArrayViewConst_ and Array_. **/
 template <class T, class X> class ArrayView_ : public ArrayViewConst_<T,X> {
 typedef ArrayViewConst_<T,X> CBase;
 public:
-
-
 //------------------------------------------------------------------------------
 /** @name                   Standard typedefs
 
 Types required of STL containers, plus index_type which is an extension. **/
 /*@{*/
-typedef T                                        value_type;
-typedef X                                        index_type;
-typedef typename IndexTraits<X>::size_type       size_type;
-typedef typename IndexTraits<X>::difference_type difference_type;
-typedef T*                                       pointer;
-typedef const T*                                 const_pointer;
-typedef T&                                       reference;
-typedef const T&                                 const_reference;
-typedef T*                                       iterator;
-typedef const T*                                 const_iterator;
-typedef std::reverse_iterator<iterator>          reverse_iterator;
-typedef std::reverse_iterator<const_iterator>    const_reverse_iterator;
+typedef T                                               value_type;
+typedef X                                               index_type;
+typedef typename ArrayIndexTraits<X>::size_type         size_type;
+typedef typename ArrayIndexTraits<X>::difference_type   difference_type;
+typedef T*                                              pointer;
+typedef const T*                                        const_pointer;
+typedef T&                                              reference;
+typedef const T&                                        const_reference;
+typedef T*                                              iterator;
+typedef const T*                                        const_iterator;
+typedef std::reverse_iterator<iterator>                 reverse_iterator;
+typedef std::reverse_iterator<const_iterator>           const_reverse_iterator;
 /*@}    End of standard typedefs **/
 
 
@@ -1054,6 +1114,7 @@ const char* indexName() const   {return this->CBase::indexName();}
 };
 
 
+
 //==============================================================================
 //                               CLASS Array_
 //==============================================================================
@@ -1157,18 +1218,18 @@ public:
 
 Types required of STL containers, plus index_type which is an extension. **/
 /*@{*/
-typedef T                                        value_type;
-typedef X                                        index_type;
-typedef typename IndexTraits<X>::size_type       size_type;
-typedef typename IndexTraits<X>::difference_type difference_type;
-typedef T*                                       pointer;
-typedef const T*                                 const_pointer;
-typedef T&                                       reference;
-typedef const T&                                 const_reference;
-typedef T*                                       iterator;
-typedef const T*                                 const_iterator;
-typedef std::reverse_iterator<iterator>          reverse_iterator;
-typedef std::reverse_iterator<const_iterator>    const_reverse_iterator;
+typedef T                                               value_type;
+typedef X                                               index_type;
+typedef typename ArrayIndexTraits<X>::size_type         size_type;
+typedef typename ArrayIndexTraits<X>::difference_type   difference_type;
+typedef T*                                              pointer;
+typedef const T*                                        const_pointer;
+typedef T&                                              reference;
+typedef const T&                                        const_reference;
+typedef T*                                              iterator;
+typedef const T*                                        const_iterator;
+typedef std::reverse_iterator<iterator>                 reverse_iterator;
+typedef std::reverse_iterator<const_iterator>           const_reverse_iterator;
 /*@}    End of standard typedefs **/
 
 
@@ -2146,7 +2207,6 @@ T* insert(T* p, const T2* first, const T2* last1) {
 //------------------------------------------------------------------------------
                                   private:
 //------------------------------------------------------------------------------
-
 // This method is used when we have already decided we need to make room for 
 // some new elements by reallocation, by creating a gap somewhere within the
 // existing data. We'll issue an error message if this would violate the  

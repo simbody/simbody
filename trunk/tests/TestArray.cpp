@@ -78,13 +78,12 @@ public:
     {   assert(ix>0); --ix; return *this;}
     SmallIx operator--(int) 
     {   assert(ix>0); const SmallIx x=*this; ++ix; return x;}
-    operator unsigned char() const 
-    {   return ix;}
 
-    typedef unsigned char index_type;
+    // These are required for any class to be used an index type.
+    operator              unsigned char() const {return ix;}
     typedef unsigned char size_type;
     typedef signed char   difference_type;
-    static size_type max_size() {return 4;}
+    static size_type      max_size() {return 4;}
 private:
     unsigned char ix;
 };
