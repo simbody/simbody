@@ -1954,24 +1954,20 @@ or erasure. **/
 /*@{*/
 
 /** This method increases the size of the Array by one element at the end and 
-initializes that element by copy constructing it from the given value, just like
-the std::vector::push_back() method. If capacity() > size(), that's all that 
-will happen. If capacity()==size(), there is no room for another element so 
-we'll allocate more space and move all the elements there. We return an
-iterator pointing to the new element, which is also the element whose reference
-would be returned by back() after this call.
+initializes that element by copy constructing it from the given value. If 
+capacity() > size(), that's all that will happen. If capacity()==size(), there
+is no room for another element so we'll allocate more space and move all the 
+elements there. A reference to the just-inserted element can be obtained using
+the back() method after the call to push_back().
 @param[in]      value
     An object of type T from which the new element is copy-constructed.
-@return 
-    An iterator pointing to the newly added element; i.e., &back(). This is 
-    non-standard; the standard push_back() is declared as a void function.
 
-@note
+@remarks
   - If you are appending a default-constructed object of type T, consider using
     the alternate non-standard but safe push_back() method rather than 
     push_back(T()). The non-standard method default-constructs the new element 
-    internally. That saves a call to the copy constructor which can be expensive
-    for some objects, and nonexistent for others.
+    internally. That avoids a call to the copy constructor which can be 
+    expensive for some objects, and nonexistent for others.
   - If you are constructing the source object with a non-default constructor,
     and the object is expensive or impossible to default-construct and/or 
     copy-construct, consider using the non-standard and dangerous method 
@@ -1981,38 +1977,33 @@ would be returned by back() after this call.
     Constant time if no reallocation is required; otherwise the current 
     contents of the array must be copied to new space, costing one call to T's
     copy constructor and destructor (if any) for each element currently in the
-    array. Either way there is one call to T's copy constructor to construct 
-    the new element from the supplied value. **/
-T* push_back(const T& value) {
+    array. Either way there is also one call to T's copy constructor to 
+    construct the new element from the supplied value. **/
+void push_back(const T& value) {
     if (allocated() == size())
         growAtEnd(1,"Array_<T>::push_back(value)");
-    T* const p = end();
-    copyConstruct(p, value);
+    copyConstruct(end(), value);
     setSize(size()+1);
-    return p;
 }
 
 /** This is a non-standard version of push_back() that increases the size of the
 array by one default-constructed element at the end. This avoids having to 
-default-construct the argument to the standard push_back() method which then has
-to copy-construct it into the array. By carefully avoiding reallocation and
-using this form of push_back() you can use the Array_<T> class to hold objects
-of type T even if T has no copy constructor, which is prohibited by the 
-std::vector<T> definition. 
-@return 
-    An iterator pointing to the newly added element; i.e., &back().
+default-construct the argument to the standard push_back(value) method which 
+then has to copy-construct it into the array. By carefully avoiding 
+reallocation and using this form of push_back() you can use the Array_<T> class
+to hold objects of type T even if T has no copy constructor, which is 
+prohibited by the standard std::vector<T> definition. 
+
 @par Complexity:
     Same as the standard push_back(value) method except without the final
     call to T's copy constructor.
 @see push_back(value) 
 **/
-T* push_back() {
+void push_back() {
     if (allocated() == size())
         growAtEnd(1,"Array_<T>::push_back()");
-    T* const p = end();
-    defaultConstruct(p);
+    defaultConstruct(end());
     setSize(size()+1);
-    return p;
 }
 
 /** This dangerous method increases the Array's size by one element at the end 
@@ -2025,7 +2016,7 @@ This is a substantial performance improvement when the element type is something
 complicated since the constructor is called once and not copied; it can also be
 used for objects that have neither default nor copy constructors.
 @return 
-    An iterator pointing at the unconstructed element. 
+    An iterator (pointer) pointing at the unconstructed element. 
 @par Complexity:
     Same as ordinary push_back().
 @see push_back(value), push_back() 
