@@ -89,9 +89,11 @@ private:
     unsigned char ix;
 };
 
+namespace SimTK {
 template <> struct NiceTypeName<SmallIx> {
     static const char* name() {return "SmallIx";}
 };
+}
 
 class Counter {
 public:
