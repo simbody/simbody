@@ -303,13 +303,13 @@ ArrayViewConst_(const ArrayViewConst_& src)
 
 // Copy assignment is suppressed.
 
-/** Construct an ArrayViewConst_<T> by referencing (sharing) a given range of const
-data [first,last1), without copying that data. This will work as long as the 
-size of the source data does not exceed the array's max_size. The resulting
+/** Construct an ArrayViewConst_<T> by referencing (sharing) a given range of 
+const data [first,last1), without copying that data. This will work as long as 
+the size of the source data does not exceed the array's max_size. The resulting
 object is not resizeable but can be used to read elements of the original data.
 This will becomes invalid if the original data is destructed or resized, but 
 there is no way for the ArrayViewConst_ class to detect that.
-@note
+@remarks
   - If the source data is empty, the resulting ArrayViewConst_ will also 
     be empty and will look as though it had been default-constructed. 
   - You can break the connection between the array handle and the data it
@@ -318,11 +318,17 @@ there is no way for the ArrayViewConst_ class to detect that.
     Dirt cheap. There will be no construction, destruction, or heap allocation
     performed.
 @see disconnect() **/
-ArrayViewConst_(const T* first, const T* last1) : pData(0),nUsed(0),nAllocated(0) { 
+ArrayViewConst_(const T* first, const T* last1) 
+:   pData(0),nUsed(0),nAllocated(0) { 
     if (last1==first) return; // empty
 
-    SimTK_ERRCHK3(isSizeOK(last1-first), 
-        "ArrayViewConst_<T>::ctor(first,last1)",
+    const char* methodName = "ArrayViewConst_<T>::ctor(first,last1)";
+
+    SimTK_ERRCHK((first&&last1)||(first==last1), methodName, 
+        "One of the source pointers was null (0); either both must be"
+        " non-null or both must be null.");
+
+    SimTK_ERRCHK3(isSizeOK(last1-first), methodName, 
         "The source data's size %llu is too big for this array which"
         " is limited to %llu elements by its index type %s.",
         ull(last1-first), ullMaxSize(), indexName());
@@ -456,6 +462,12 @@ const T& at(index_type i) const {
     SimTK_INDEXCHECK_ALWAYS(size_type(i),nUsed,"ArrayViewConst_<T>::at()");
     return pData[i];
 }
+/** Same as the const form of operator[]; exists to provide a non-operator
+method for element access in case that's needed. **/
+const T& getElt(index_type i) const {
+    SimTK_INDEXCHECK(size_type(i),nUsed,"ArrayViewConst_<T>::getElt()");
+    return pData[i];
+}
 /** Return a const reference to the first element in this array, which must
 not be empty (we'll check in a Debug build but not Release).
 @pre The array is not empty.
@@ -503,6 +515,11 @@ ArrayViewConst_ operator()(index_type index, size_type length) const {
 
     return ArrayViewConst_(pData+ix, pData+ix+length);
 }
+/** Same as const form of operator()(index,length); exists to provide 
+non-operator access to that functionality in case it is needed. **/
+ArrayViewConst_ getSubArray(index_type index, size_type length) const
+{   return (*this)(index,length); }
+
 /*@}    End of element access. **/
 
 
@@ -909,6 +926,13 @@ const T& at(index_type i) const {return this->CBase::at(i);}
     Constant time. **/
 T& at(index_type i) {return const_cast<T&>(this->CBase::at(i));}
 
+/** Same as the const form of operator[]; exists to provide a non-operator
+method for element access in case that's needed. **/
+const T& getElt(index_type i) const {return this->CBase::getElt(i);}
+/** Same as the non-const form of operator[]; exists to provide a non-operator
+method for element access in case that's needed. **/
+T& updElt(index_type i) {return const_cast<T&>(this->CBase::getElt(i));}
+
 /** Return a const reference to the first element in this array, which must
 not be empty.
 @pre The array is not empty.
@@ -967,6 +991,10 @@ ArrayView_ operator()(index_type index, size_type length) {
 
     return ArrayView_(data()+ix, data()+ix+length);
 }
+/** Same as non-const operator()(index,length); exists to provide non-operator
+access to that functionality in case it is needed. **/
+ArrayView_ updSubArray(index_type index, size_type length)
+{   return (*this)(index,length); }
 /*@}    End of element access. **/
 
 
@@ -1863,6 +1891,13 @@ const T& at(index_type i) const {return this->CBase::at(i);}
     Constant time. **/
 T& at(index_type i) {return const_cast<T&>(this->Base::at(i));}
 
+/** Same as the const form of operator[]; exists to provide a non-operator
+method for element access in case that's needed. **/
+const T& getElt(index_type i) const {return this->CBase::getElt(i);}
+/** Same as the non-const form of operator[]; exists to provide a non-operator
+method for element access in case that's needed. **/
+T& updElt(index_type i) {return this->Base::updElt(i);}
+
 /** Return a const reference to the first element in this array, which must
 not be empty.
 @pre The array is not empty.
@@ -1895,11 +1930,19 @@ T& back() {return const_cast<T&>(this->Base::back());}
 return a ArrayViewConst_ referencing that data without copying it. **/
 ArrayViewConst_<T,X> operator()(index_type index, size_type length) const
 {   return CBase::operator()(index,length); }
+/** Same as const form of operator()(index,length); exists to provide 
+non-operator access to that functionality in case it is needed. **/
+ArrayViewConst_<T,X> getSubArray(index_type index, size_type length) const
+{   return CBase::getSubArray(index,length); }
 
 /** Select a subrange of this array by starting index and length, and
 return an ArrayView_ referencing that data without copying it. **/
 ArrayView_<T,X> operator()(index_type index, size_type length)
 {   return Base::operator()(index,length); }
+/** Same as non-const operator()(index,length); exists to provide non-operator
+access to that functionality in case it is needed. **/
+ArrayView_<T,X> updSubArray(index_type index, size_type length)
+{   return Base::updSubArray(index,length); }
 /*@}    End of element access. **/
 
 

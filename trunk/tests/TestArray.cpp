@@ -233,9 +233,11 @@ void testConstruction() {
     ismall0 = imaxsz; // dest was null
     ismall = Array_<int,SmallIx>(); // both null
 
+    cout << "sizeof(Array_<int,char>)=" << sizeof(Array_<int,char>) << endl;
     cout << "sizeof(Array_<int,short>)=" << sizeof(Array_<int,short>) << endl;
     cout << "sizeof(Array_<int>)=" << sizeof(Array_<int>) << endl;
     cout << "sizeof(std::vector<int>)=" << sizeof(std::vector<int>) << endl;
+    cout << "sizeof(Array_<int,long long>)=" << sizeof(Array_<int,long long>) << endl;
 
     Array_<String, TestIx> strings(6, "woohoo");
     cout << "strings=" << strings << endl;
