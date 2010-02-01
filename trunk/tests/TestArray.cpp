@@ -384,6 +384,13 @@ void testNonRandomIterator() {
     Array_<int> dummy2(4U, 129U);     // 4*129
     SimTK_TEST(dummy2 == Array_<int>(4, 129));
 
+    // This should use the constant-time std::swap specialization that is 
+    // provided in the Array.h header file.
+    std::swap(dummy1, dummy2);
+    SimTK_TEST(dummy2 == Array_<int>(3, (int)'A'));
+    SimTK_TEST(dummy1 == Array_<int>(4, 129));
+
+
     // This is too much data and should be detectable for any forward iterator.
     typedef Array_<int,SmallIx> AType;
     SimTK_TEST_MUST_THROW_DEBUG(

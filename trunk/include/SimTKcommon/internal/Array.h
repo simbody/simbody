@@ -559,7 +559,8 @@ iterDistanceImpl(const Iter& first, const Iter& last1, std::input_iterator_tag) 
     return d;
 }
 
-// Fast specialization for random access iterators -- just subtract.
+// Fast specialization for random access iterators (including ordinary
+// pointers) -- just subtract.
 template<class Iter> static
 typename std::iterator_traits<Iter>::difference_type
 iterDistanceImpl(const Iter& first, const Iter& last1, 
@@ -1103,13 +1104,16 @@ own heap-allocated arrays.
 @par Functionality:
 For the most part Array_<T> is a plug-compatible replacement for std::vector<T>,
 and everything that both classes can do is done the same way. However, there 
-are a few additions:
+are a few additions and subtractions:
 
-- You can specify an optional index type which can be used to provide
-  type-safe indexing (i.e. the array can only be indexed by indices of
-  a particular type, like MobilizedBodyIndex). This has zero performance cost
-  if the index is an integral type or class consisting of only an integral
-  value as produced by the SimTK_DEFINE_UNIQUE_INDEX_TYPE macro.
+- This class always uses the default new/delete allocator; there is no option
+  to specify your own as there is in std::vector.
+- Instead of an allocator, the second template argument X to Array_<T,X> is an 
+  optional index type which can be used to provide type-safe indexing (i.e. the
+  array can only be indexed by indices of a particular type, like 
+  MobilizedBodyIndex). This has zero performance cost if the index is an 
+  integral type or class consisting of only an integral value such as those
+  produced by the SimTK_DEFINE_UNIQUE_INDEX_TYPE macro.
 - You can create uninitialized slots in the array and construct directly into
   them rather than having to construct a temporary object which must then be
   copied into the array.
@@ -1408,12 +1412,12 @@ Array_& assign(size_type n, const T& fillValue) {
     return *this;
 }
 
-/** Assign this array from a range [b,e) given by non-pointer iterators. If we
-can determine how many elements n that represents in advance, we'll do only a 
-single allocation here and call one of T's constructors exactly n times with no
-destructor calls except to erase the original data. If these aren't random 
-access iterators then we'll just have to add elements as we find them using 
-push_back() meaning we may need to reallocate log(n) times. **/
+/** Assign this array from a range [first,last1) given by non-pointer 
+iterators. If we can determine how many elements n that represents in advance, 
+we'll do only a single allocation here and call one of T's constructors exactly
+n times with no destructor calls except to erase the original data. If these 
+aren't random access iterators then we'll just have to add elements as we find
+them using push_back() meaning we may need to reallocate log(n) times. **/
 template <class InputIterator>
 Array_& assign(const InputIterator& first, const InputIterator& last1) {
     assignImpl(first, last1, 
@@ -1637,19 +1641,19 @@ is grown beyond this capacity, meaning that adding elements will not invalidate
 any iterators or element addresses until that point. This method will never 
 reduce the capacity of the array. It is OK to call this on a non-owner array
 as long as you are not asking for an increase in capacity. **/
-void reserve(size_type newCapacity) {
-    if (capacity() >= newCapacity)
+void reserve(size_type n) {
+    if (capacity() >= n)
         return;
 
     SimTK_ERRCHK2(isOwner(), "Array_<T>::reserve()",
         "Requested capacity change to %llu is not allowed because this is a"
-        " non-owner array of fixed size %llu.", ull(newCapacity), ull(size()));
+        " non-owner array of fixed size %llu.", ull(n), ull(size()));
 
-    T* newData = allocN(newCapacity); // no construction yet
+    T* newData = allocN(n); // no construction yet
     copyConstructThenDestructSource(newData, newData+size(), data());
     freeN(data());
     setData(newData);
-    setAllocated(newCapacity);
+    setAllocated(n);
 }
 
 /** Request that the capacity of this array be reduced to the minimum necessary
@@ -2627,7 +2631,7 @@ an ConstArray_ object and a comparable std::vector object.
 /** Two Arrays are equal if and only if they are the same size() and each
 element compares equal using an operator T1==T2.  
 @relates Array_ **/
-template <class T1, class X1, class T2, class X2> bool 
+template <class T1, class X1, class T2, class X2> inline bool 
 operator==(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2) {
     // Avoid warnings in size comparison by using common type.
     const ptrdiff_t sz1 = a1.end()-a1.begin();
@@ -2641,7 +2645,7 @@ operator==(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2) {
 }
 /** The not equal operator is implemented using the equal operator.  
 @relates Array_ **/
-template <class T1, class X1, class T2, class X2> bool 
+template <class T1, class X1, class T2, class X2> inline bool 
 operator!=(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2)
 {   return !(a1 == a2); }
 
@@ -2650,7 +2654,7 @@ or by length if there are no differing elements up to the length of the
 shorter array (in which case the shorter one is "less than" the longer). 
 This depends on T1==T2 and T1<T2 operators working.  
 @relates Array_ **/
-template <class T1, class X1, class T2, class X2> bool 
+template <class T1, class X1, class T2, class X2> inline bool 
 operator<(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2) {
     const T1* p1 = a1.begin();
     const T2* p2 = a2.begin();
@@ -2665,20 +2669,20 @@ operator<(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2) {
 }
 /** The greater than or equal operator is implemented using the less than 
 operator. **/
-template <class T1, class X1, class T2, class X2> bool 
+template <class T1, class X1, class T2, class X2> inline bool 
 operator>=(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2)
 {   return !(a1 < a2); }
 /** The greater than operator is implemented by using less than with the
 arguments reversed. 
 @relates Array_ **/
-template <class T1, class X1, class T2, class X2> bool 
+template <class T1, class X1, class T2, class X2> inline bool 
 operator>(const ConstArray_<T1,X1>& a1, const ConstArray_<T2,X2>& a2)
 {   return a2 < a1; }
 
 /** An ConstArray_<T1> and an std::vector<T2> are equal if and only if they are the 
 same size() and each element compares equal using an operator T1==T2.  
 @relates Array_ **/
-template <class T1, class X1, class T2, class A2> bool 
+template <class T1, class X1, class T2, class A2> inline bool 
 operator==(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
     typedef typename std::vector<T2,A2>::const_iterator Iter;
     // Avoid warnings in size comparison by using common type.
@@ -2694,18 +2698,18 @@ operator==(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
 /** An std::vector<T1> and an ConstArray_<T2> are equal if and only if they are the 
 same size() and each element compares equal using an operator T2==T1.  
 @relates Array_ **/
-template <class T1, class A1, class T2, class X2> bool 
+template <class T1, class A1, class T2, class X2> inline bool 
 operator==(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
 {   return a2 == v1; }
 
 /** The not equal operator is implemented using the equal operator.  
 @relates Array_ **/
-template <class T1, class X1, class T2, class A2> bool 
+template <class T1, class X1, class T2, class A2> inline bool 
 operator!=(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2)
 {   return !(a1 == v2); }
 /** The not equal operator is implemented using the equal operator.  
 @relates Array_ **/
-template <class T1, class A1, class T2, class X2> bool 
+template <class T1, class A1, class T2, class X2> inline bool 
 operator!=(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
 {   return !(a2 == v1); }
 
@@ -2714,7 +2718,7 @@ by first differing element or by length if there are no differing elements up
 to the length of the shorter container (in which case the shorter one is 
 "less than" the longer). This depends on having working element operators 
 T1==T2 and T1<T2. @relates Array_ **/
-template <class T1, class X1, class T2, class A2> bool 
+template <class T1, class X1, class T2, class A2> inline bool 
 operator<(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
     typedef typename std::vector<T2,A2>::const_iterator Iter;
     const T1*   p1 = a1.begin();
@@ -2733,7 +2737,7 @@ by first differing element or by length if there are no differing elements up
 to the length of the shorter container (in which case the shorter one is 
 "less than" the longer). This depends on having working element operators 
 T1==T2 and T1<T2. @relates Array_ **/
-template <class T1, class A1, class T2, class X2> bool 
+template <class T1, class A1, class T2, class X2> inline bool 
 operator<(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2) {
     typedef typename std::vector<T1,A1>::const_iterator Iter;
     Iter        p1 = v1.begin();
@@ -2749,38 +2753,48 @@ operator<(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2) {
 }
 /** The greater than or equal operator is implemented using the less than 
 operator. @relates Array_ **/
-template <class T1, class X1, class T2, class A2> bool 
+template <class T1, class X1, class T2, class A2> inline bool 
 operator>=(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2)
 {   return !(a1 < v2); }
 /** The greater than or equal operator is implemented using the less than 
 operator. @relates Array_ **/
-template <class T1, class A1, class T2, class X2> bool 
+template <class T1, class A1, class T2, class X2> inline bool 
 operator>=(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
 {   return !(v1 < a2); }
 
 /** The greater than operator is implemented by using less than with the
 arguments reversed. @relates Array_ **/
-template <class T1, class X1, class T2, class A2> bool 
+template <class T1, class X1, class T2, class A2> inline bool 
 operator>(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2)
 {   return v2 < a1; }
 /** The greater than operator is implemented by using less than with the
 arguments reversed. @relates Array_ **/
-template <class T1, class A1, class T2, class X2> bool 
+template <class T1, class A1, class T2, class X2> inline bool 
 operator>(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
 {   return a2 < v1; }
 
 /** The less than or equal operator is implemented using the greater than 
 operator. @relates Array_ **/
-template <class T1, class X1, class T2, class A2> bool 
+template <class T1, class X1, class T2, class A2> inline bool 
 operator<=(const ConstArray_<T1,X1>& a1, const std::vector<T2,A2>& v2)
 {   return !(a1 > v2); }
 /** The less than or equal operator is implemented using the greater than 
 operator. @relates Array_ **/
-template <class T1, class A1, class T2, class X2> bool 
+template <class T1, class A1, class T2, class X2> inline bool 
 operator<=(const std::vector<T1,A1>& v1, const ConstArray_<T2,X2>& a2)
 {   return !(v1 > a2); }
 /*@}*/
 
 } // namespace SimTK
+
+namespace std {
+/** This is a specialization of the STL std::swap() algorithm which uses the
+constant time built-in swap() member of the Array_ class. @relates Array_ **/
+template <class T, class X> inline void
+swap(SimTK::Array_<T,X>& a1, SimTK::Array_<T,X>& a2) {
+    a1.swap(a2);
+}
+
+} // namespace std
   
 #endif // SimTK_SimTKCOMMON_ARRAY_H_
