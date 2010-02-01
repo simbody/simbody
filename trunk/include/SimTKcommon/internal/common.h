@@ -520,6 +520,92 @@ struct Segment {
     int offset;
 };  
 
+
+/** This is a special type used for causing invocation of a particular
+constructor or method overload that will avoid making a copy of the source.
+Typically these methods will have some dangerous side effects so make sure
+you know what you're doing. **/
+struct DontCopy {};
+/** This is a special type used for causing invocation to a particularly
+dangerous constructor or method overload; don't use this unless you are an
+advanced user and know exactly what you're getting into. **/
+struct TrustMe {};
+
+/** This is a compile-time equivalent of "false", used in compile-time
+condition checking in templatized implementations. **/
+struct FalseType {};
+/** This is a compile-time equivalent of "true", used in compile-time
+condition checking in templatized implementations. **/
+struct TrueType {};
+
+/** This is an operator for and-ing compile-time truth types. */
+template <class L, class R> struct AndOpType {};
+template<> struct AndOpType<FalseType,FalseType> {typedef FalseType Result;};
+template<> struct AndOpType<FalseType,TrueType>  {typedef FalseType Result;};
+template<> struct AndOpType<TrueType, FalseType> {typedef FalseType Result;};
+template<> struct AndOpType<TrueType, TrueType>  {typedef TrueType  Result;};
+
+/** This is an operator for or-ing compile-time truth types. */
+template <class L, class R> struct OrOpType {};
+template<> struct OrOpType<FalseType,FalseType> {typedef FalseType Result;};
+template<> struct OrOpType<FalseType,TrueType>  {typedef TrueType  Result;};
+template<> struct OrOpType<TrueType, FalseType> {typedef TrueType  Result;};
+template<> struct OrOpType<TrueType, TrueType>  {typedef TrueType  Result;};
+
+/** This is an operator for exclusive or-ing compile-time truth types. */
+template <class L, class R> struct XorOpType {};
+template<> struct XorOpType<FalseType,FalseType> {typedef FalseType Result;};
+template<> struct XorOpType<FalseType,TrueType>  {typedef TrueType  Result;};
+template<> struct XorOpType<TrueType, FalseType> {typedef TrueType  Result;};
+template<> struct XorOpType<TrueType, TrueType>  {typedef FalseType Result;};
+
+/** Compile-time type test: is this one of the built-in integral types?. **/
+template <class T> struct IsIntegralType {
+    /** This typedef is TrueType if the template type T is an integral type;
+    otherwise it is FalseType. **/
+    typedef FalseType Result;
+};
+template<> struct IsIntegralType<bool> {typedef TrueType Result;};
+template<> struct IsIntegralType<char> {typedef TrueType Result;};
+template<> struct IsIntegralType<wchar_t> {typedef TrueType Result;};
+template<> struct IsIntegralType<signed char> {typedef TrueType Result;};
+template<> struct IsIntegralType<unsigned char> {typedef TrueType Result;};
+template<> struct IsIntegralType<short> {typedef TrueType Result;};
+template<> struct IsIntegralType<unsigned short> {typedef TrueType Result;};
+template<> struct IsIntegralType<int> {typedef TrueType Result;};
+template<> struct IsIntegralType<unsigned int> {typedef TrueType Result;};
+template<> struct IsIntegralType<long> {typedef TrueType Result;};
+template<> struct IsIntegralType<unsigned long> {typedef TrueType Result;};
+template<> struct IsIntegralType<long long> {typedef TrueType Result;};
+template<> struct IsIntegralType<unsigned long long> {typedef TrueType Result;};
+
+/** Compile-time type test: is this one of the built-in floating point types?. **/
+template <class T> struct IsFloatingType {
+    /** This typedef is TrueType if the template type T is a floating point type;
+    otherwise it is FalseType. **/
+    typedef FalseType Result;
+};
+template<> struct IsFloatingType<float> {typedef TrueType Result;};
+template<> struct IsFloatingType<double> {typedef TrueType Result;};
+template<> struct IsFloatingType<long double> {typedef TrueType Result;};
+
+/** Compile-time type test: is this the void type?. **/
+template <class T> struct IsVoidType {
+    /** This typedef is TrueType if the template type T is "void";
+    otherwise it is FalseType. **/
+    typedef FalseType Result;
+};
+template<> struct IsVoidType<void> {typedef TrueType Result;};
+
+template <class T> struct IsArithmeticType {
+    /** This typedef is TrueType if the template type T is one of the integral;
+    or floating types, otherwise it is FalseType. **/
+    typedef OrOpType<typename IsIntegralType<T>::Result,
+                     typename IsFloatingType<T>::Result>    Result;
+};
+
+
+
 template <class T> class TypeInfo {
 public:
     static const char* name() {return typeid(T).name();}

@@ -359,6 +359,42 @@ void testBoolIndex() {
     SimTK_TEST_MUST_THROW_DEBUG(wisdom.push_back("more brilliance"));
 }
 
+// It should be possible to assign to an Array_ from an std::set or std::map
+// even though you can't subtract their bidirectional_iterators.
+void testNonRandomIterator() {
+    const int someInts[] = {30,40,10,20,30,7,5};
+    std::set<int> iset(someInts, someInts+7);
+    std::vector<int> sortUniq(iset.begin(), iset.end()); // the right answer
+
+    Array_<int> iarr(iset.begin(), iset.end());
+    iarr.assign(iset.begin(), iset.end()); // must increment to count
+    SimTK_TEST(iarr == sortUniq);
+
+    Array_<int> iarr2(sortUniq.begin(), sortUniq.end());
+    iarr2.assign(sortUniq.begin(), sortUniq.end()); // can subtract iterators
+    SimTK_TEST(iarr2 == sortUniq);
+    iarr2.assign(iarr.begin(), iarr.end()); // can subtract pointers
+    SimTK_TEST(iarr2 == sortUniq);
+
+    // The standard requires this to match the constructor that creates
+    // n copies of an initial value -- it must NOT match the templatized
+    // InputIterator form because these are integral types.
+    Array_<int> dummy1((char)3, 'A'); // 3*65
+    SimTK_TEST(dummy1 == Array_<int>(3, (int)'A'));
+    Array_<int> dummy2(4U, 129U);     // 4*129
+    SimTK_TEST(dummy2 == Array_<int>(4, 129));
+
+    // This is too much data and should be detectable for any forward iterator.
+    typedef Array_<int,SmallIx> AType;
+    SimTK_TEST_MUST_THROW_DEBUG(
+        AType small(iset.begin(), iset.end())); // bidirectional
+    SimTK_TEST_MUST_THROW_DEBUG(
+        AType small(sortUniq.begin(), sortUniq.end())); // random access
+    SimTK_TEST_MUST_THROW_DEBUG(
+        AType small(iarr.begin(), iarr.end())); // pointer
+
+}
+
 // Reduce the loop count by 50X in Debug.
 static const int Outer = 500000
 #ifndef NDEBUG
@@ -414,6 +450,7 @@ int main() {
         SimTK_SUBTEST(testConstruction);
         SimTK_SUBTEST(testConversion);
         SimTK_SUBTEST(testBoolIndex);
+        SimTK_SUBTEST(testNonRandomIterator);
         SimTK_SUBTEST(testSpeedStdVector);
         SimTK_SUBTEST(testSpeedSimTKArray);
 

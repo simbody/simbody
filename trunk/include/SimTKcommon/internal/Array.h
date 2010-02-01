@@ -183,18 +183,6 @@ template <> struct IndexTraits<bool> {
     static const char*          index_name() {return "bool";}
 };
 
-/** This is a special type used for causing invocation of a particular
-constructor or method overload that will avoid making a copy of the source.
-Typically these methods will have some dangerous side effects so make sure
-you know what you're doing. **/
-struct DontCopy {};
-/** This is a special type used for causing invocation to a particularly
-dangerous constructor or method overload; don't use this unless you are an
-advanced user and know exactly what you're getting into. **/
-struct TrustMe {};
-
-
-
 //==============================================================================
 //                            CLASS ConstArray_
 //==============================================================================
@@ -521,8 +509,15 @@ const T* data() const {return pData;}
                                        
 // This constructor does not initialize any of the data members; it is intended
 // for use in derived class constructors that promise to set *all* the data
-// members.
-explicit ConstArray_(const TrustMe&) {}
+// members PRIOR TO CHECKING FOR ERRORS. In Debug builds it *does* initialize 
+// all data members to zero because there are many error conditions tested
+// that could result in an exception being thrown prior to construction
+// being completed.
+explicit ConstArray_(const TrustMe&) {
+#ifndef NDEBUG
+    pData=0; nAllocated=nUsed=0;
+#endif
+}
 
 // These provide direct access to the data members for our trusted friends.
 void setData(const T* p)        {pData = const_cast<T*>(p);}
@@ -541,6 +536,36 @@ template <class S>
 bool isSizeOK(S srcSz) const
 {   return ull(srcSz) <= ullMaxSize(); }
 
+// This is identical in function to std::distance() but avoids any slow 
+// Release-build bugcatchers that Microsoft may have felt compelled to add.
+// The implementation is specialized for random access iterators because
+// they can measure distance very fast.
+template<class Iter> static
+typename std::iterator_traits<Iter>::difference_type
+iterDistance(const Iter& first, const Iter& last1) {
+    return iterDistanceImpl(first,last1,
+                std::iterator_traits<Iter>::iterator_category());
+}
+
+// Generic slow implementation for non-random access iterators. This is fine
+// for forward and bidirectional iterators, but it will *consume* input
+// iterators so is useless for them.
+template<class Iter> static
+typename std::iterator_traits<Iter>::difference_type
+iterDistanceImpl(const Iter& first, const Iter& last1, std::input_iterator_tag) {
+    typename std::iterator_traits<Iter>::difference_type d = 0;
+    for (Iter src=first; src != last1; ++src, ++d)
+        ;
+    return d;
+}
+
+// Fast specialization for random access iterators -- just subtract.
+template<class Iter> static
+typename std::iterator_traits<Iter>::difference_type
+iterDistanceImpl(const Iter& first, const Iter& last1, 
+                 std::random_access_iterator_tag) {
+    return last1 - first;
+}
 
 // Cast an integral type to maximal-width unsigned long long to avoid accidental
 // overflows that might otherwise occur due to wraparound that can happen 
@@ -1008,6 +1033,8 @@ bool isOwner() const {return this->CBase::isOwner();}
                                        
 // This constructor does not initialize any of the data members; it is intended
 // for use in derived class constructors that promise to set *all* data members.
+// Be careful: all the data members must be set before an exception is thrown
+// in a constructor or the unwind destructors won't work properly.
 explicit ArrayView_(const TrustMe& tm) : CBase(tm) {}
 
 //------------------------------------------------------------------------------
@@ -1179,6 +1206,25 @@ Array_(size_type n, const T& initVal) : Base(TrustMe()) {
     allocateNoConstruct(size());
     fillConstruct(begin(), cend(), initVal);
 }
+/** Construct an Array_<T> from a range [first,last1) of values identified by a 
+pair of iterators. 
+@note
+The standard requires that if an integral type matches this signature, it must
+behave as the Array_(size_type,value_type) constructor.
+@par Complexity:
+The performance of this constructor depends on the type
+of iterator: 
+- random_access_iterator: n=(last1-first); a single space allocation; 
+  n calls to T's copy constructor. 
+- forward or bidirectional iterator: must increment from first to last1 to
+  determine n; otherwise same as random access.
+- input iterator: can't determine n in advance; expect log n reallocations
+  during construction as we "push back" one input element at a time.
+**/
+template <class InputIter>
+Array_(const InputIter& first, const InputIter& last1) : Base() {
+    ctorDispatch(first,last1,typename IsIntegralType<InputIter>::Result());
+}
 
 /** Construct an Array_<T> from a range [first,last1) of values identified by a 
 pair of ordinary pointers to elements of type T2 (where T2 might be the same as
@@ -1273,7 +1319,7 @@ Array_(T* first, const T* last1, const DontCopy&) : Base(first,last1) {}
 
 /** Construct an Array_<T> by referencing (sharing) the data in an 
 std::vector<T>, without copying the data; better to use the ArrayView_<T>
-consructor instead if you can. This is very fast but can be 
+constructor instead if you can. This is very fast but can be 
 dangerous -- it is most useful for argument passing where the array handle 
 will be discarded immediately after use. Note that this is available only if 
 you have write access to the std::vector because there is no way to construct 
@@ -2226,6 +2272,81 @@ T* insertGapAt(T* p, size_type n, const char* methodName) {
     return p;
 }
 
+// This is the constructor implementation for when the class that matches
+// the alleged InputIterator type turns out to be one of the integral types
+// in which case this should be the ctor(n, initValue) constructor.
+template <class IntegralType> void
+ctorDispatch(IntegralType n, IntegralType v, TrueType isIntegralType) {
+    new(this) Array_(size_type(n), value_type(v));
+}
+
+// This is the constructor implementation for when the class that matches
+// the alleged InputIterator type is NOT an integral type and may very well
+// be an iterator. In that case we split into iterators for which we can
+// determine the number of elements in advance (forward, bidirectional,
+// random access) and input iterators, for which we can't. Note: iterator
+// types are arranged hierarchically random->bi->forward->input with each
+// deriving from the one on its right, so the forward iterator tag also
+// matches bi and random.
+template <class InputIterator> void
+ctorDispatch(const InputIterator& first, const InputIterator& last1, 
+             FalseType isIntegralType) 
+{   ctorIteratorDispatch(first, last1, 
+        typename std::iterator_traits<InputIterator>::iterator_category()); }
+
+// This is the slow generic ctor implementation for any iterator that can't
+// make it up to forward_iterator capability (that is, an input_iterator).
+// The issue here is that we can't advance the iterator to count the number
+// of elements before allocating because input_iterators are consumed when
+// reference so we can't go back to look. That means we may have to reallocate
+// memory log n times as we "push back" these elements onto the array.
+template <class InputIterator> void
+ctorIteratorDispatch(const InputIterator& first, const InputIterator& last1, 
+                     std::input_iterator_tag) 
+{
+    InputIterator src = frst;
+    while (src != last1) {
+        // We can afford to check this always since we are probably doing I/O.
+        SimTK_ERRCHK2_ALWAYS(size() < max_size(),
+            "Array_::ctor(InputIterator first, InputIterator last1)",
+            "There will still source elements available when the array"
+            " reached its maximum size of %llu as determined by its index"
+            " type %s.", ullMaxSize(), indexName());
+        push_back(*src);
+    }
+}
+
+// This is the faster constructor implementation for iterator types for which
+// we can calculate the number of elements in advance. This will be optimal
+// for a random access iterator since we can count in constant time, but for
+// forward or bidirectional we'll have to advance n times to count and then
+// go back again to do the copy constructions.
+template <class ForwardIterator> void
+ctorIteratorDispatch(const ForwardIterator& first, const ForwardIterator& last1, 
+                     std::forward_iterator_tag) 
+{
+    const char* methodName = 
+        "Array_::ctor(ForwardIterator first, ForwardIterator last1)";
+    typedef typename std::iterator_traits<ForwardIterator>::difference_type
+        difference_type;
+    // iterDistance() is constant time for random access iterators, but 
+    // O(last1-first) for forward and bidirectional since it has to increment 
+    // to count how far apart they are.
+    const difference_type nInput = iterDistance(first,last1);
+
+    SimTK_ERRCHK(nInput >= 0, methodName, "Iterators were out of order.");
+
+    SimTK_ERRCHK3(isSizeOK(nInput), methodName,
+        "Source has %llu elements but this array is limited to %llu"
+        " elements by its index type %s.",
+        ull(nInput), ullMaxSize(), indexName());
+
+    const size_type n = size_type(nInput);
+    setSize(n);
+    allocateNoConstruct(n);
+    copyConstruct(data(), data()+n, first);
+}
+
 // This is the slow generic insert() implementation for any input iterator that
 // can't do random access (input, forward, bidirectional).
 template <class InputIterator>
@@ -2269,7 +2390,7 @@ void assignImpl(const InputIterator& first, const InputIterator& last1,
 {
     SimTK_ERRCHK(isOwner(), methodName,
         "Assignment to a non-owner array can only be done from a source"
-        " designated with random access iterators or pointers because we"
+        " designated with forward iterators or pointers because we"
         " must be able to verify that the source and destination sizes"
         " are the same.");
 
@@ -2279,43 +2400,52 @@ void assignImpl(const InputIterator& first, const InputIterator& last1,
         push_back(*src++);
 }
 
-// This is the fast implementation that works for random access
-// iterators including ordinary pointers. We can check here that the 
+// This is the faster implementation that works for forward, bidirectional,
+// and random access iterators including ordinary pointers. We can check here that the 
 // iterators are in the right order, and that the source is not too big to
 // fit in this array. Null pointer checks should be done prior to calling,
 // however, since iterators in general aren't pointers.
-template <class RandomAccessIterator>
-void assignImpl(const RandomAccessIterator& first, 
-                const RandomAccessIterator& last1,
-                std::random_access_iterator_tag, 
-                const char*                 methodName) 
+template <class ForwardIterator>
+void assignImpl(const ForwardIterator& first, 
+                const ForwardIterator& last1,
+                std::forward_iterator_tag, 
+                const char*            methodName) 
 {
-    SimTK_ERRCHK(first <= last1, methodName, "Iterators were out of order.");
+    typedef typename std::iterator_traits<ForwardIterator>::difference_type
+        difference_type;
+    // iterDistance() is constant time for random access iterators, but 
+    // O(last1-first) for forward and bidirectional since it has to increment 
+    // to count how far apart they are.
+    const difference_type nInput = iterDistance(first,last1);
 
+    SimTK_ERRCHK(nInput >= 0, methodName, "Iterators were out of order.");
+
+    SimTK_ERRCHK3(isSizeOK(nInput), methodName,
+        "Source has %llu elements but this Array is limited to %llu"
+        " elements by its index type %s.",
+        ull(nInput), ullMaxSize(), indexName());
+
+    const size_type n = size_type(nInput);
     if (isOwner()) {
         // This is an owner Array; assignment is considered deallocation
         // followed by copy construction.
-        SimTK_ERRCHK3(isSizeOK(last1-first), methodName,
-            "Source has %llu elements but this Array is limited to %llu"
-            " elements by its index type %s.",
-            ull(last1-first), ullMaxSize(), indexName());
 
         clear(); // all elements destructed; allocation unchanged
-        setSize(size_type(last1-first));
-        reallocateIfAdvisable(size()); // change size if too small or too big
-        copyConstruct(data(), data()+size(), first);
+        setSize(n);
+        reallocateIfAdvisable(n); // change size if too small or too big
+        copyConstruct(data(), data()+n, first);
     } else {
         // This is a non-owner Array. Assignment can occur only if the
         // source is the same size as the array, and the semantics are of
         // repeated assignment using T::operator=() not destruction followed
         // by copy construction.
-        SimTK_ERRCHK2(isSameSize(last1-first), methodName,
+        SimTK_ERRCHK2(n == size(), methodName,
             "Source has %llu elements which does not match the size %llu"
             " of the non-owner array it is being assigned into.",
-            ull(last1-first), ullSize());
+            ull(n), ullSize());
 
         T* p = begin();
-        RandomAccessIterator src = first;
+        ForwardIterator src = first;
         while (src != last1)
             *p++ = *src++; // call T's assignment operator
     }
