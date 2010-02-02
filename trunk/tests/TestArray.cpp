@@ -476,23 +476,23 @@ void testSpeedSimTKArray() {
 int main() {
     cout << "Is64BitPlatform=" << NiceTypeName<Is64BitPlatform>::name() << endl;
     cout << "packed_size_type<char>=" 
-        << NiceTypeName<typename IndexPackType<char>::packed_size_type>::name() << endl;
+        << NiceTypeName<IndexPackType<char>::packed_size_type>::name() << endl;
     cout << "packed_size_type<signed char>=" 
-        << NiceTypeName<typename IndexPackType<signed char>::packed_size_type>::name() << endl;
+        << NiceTypeName<IndexPackType<signed char>::packed_size_type>::name() << endl;
     cout << "packed_size_type<unsigned char>=" 
-        << NiceTypeName<typename IndexPackType<unsigned char>::packed_size_type>::name() << endl;
+        << NiceTypeName<IndexPackType<unsigned char>::packed_size_type>::name() << endl;
     cout << "packed_size_type<short>=" 
-        << NiceTypeName<typename IndexPackType<short>::packed_size_type>::name() << endl;
+        << NiceTypeName<IndexPackType<short>::packed_size_type>::name() << endl;
     cout << "packed_size_type<unsigned short>=" 
-        << NiceTypeName<typename IndexPackType<unsigned short>::packed_size_type>::name() << endl;
+        << NiceTypeName<IndexPackType<unsigned short>::packed_size_type>::name() << endl;
     cout << "packed_size_type<int>=" 
-        << NiceTypeName<typename IndexPackType<int>::packed_size_type>::name() << endl;
+        << NiceTypeName<IndexPackType<int>::packed_size_type>::name() << endl;
     cout << "packed_size_type<unsigned>=" 
-        << NiceTypeName<typename IndexPackType<unsigned>::packed_size_type>::name() << endl;
+        << NiceTypeName<IndexPackType<unsigned>::packed_size_type>::name() << endl;
     cout << "packed_size_type<long>=" 
-        << NiceTypeName<typename IndexPackType<long>::packed_size_type>::name() << endl;
+        << NiceTypeName<IndexPackType<long>::packed_size_type>::name() << endl;
     cout << "packed_size_type<unsigned long long>=" 
-        << NiceTypeName<typename IndexPackType<unsigned long long>::packed_size_type>::name() << endl;
+        << NiceTypeName<IndexPackType<unsigned long long>::packed_size_type>::name() << endl;
 
     cout << NiceTypeName< Array_<String,char> >::name() << endl;
 
