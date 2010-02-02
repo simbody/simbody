@@ -773,7 +773,8 @@ of elements matches and the types are assignment compatible. **/
 template <class T2, class X2>
 ArrayView_& operator=(const ArrayViewConst_<T2,X2>& src) {
     if ((const void*)&src == (void*)this) return *this;
-    SimTK_ERRCHK2(isSameSize(src.size()), "ArrayView_::operator=(ArrayViewConst_)",
+    SimTK_ERRCHK2(isSameSize(src.size()), 
+        "ArrayView_<T>::operator=(ArrayViewConst_<T2>)",
         "Assignment to an ArrayView is permitted only if the source"
         " is the same size. Here the source had %llu element(s) but the"
         " ArrayView has a fixed size of %llu.", 
@@ -815,13 +816,14 @@ ArrayView_& fill(const T& fillValue) {
 }
 
 /** Assign to this array to make it a copy of the elements in range 
-[first,last1) given by ordinary pointers. It is not allowed for this range to 
-include any of the elements currently in the array. The source elements can be 
+[first,last1) given by ordinary pointers, provided that the range is the same
+size as the array. It is not allowed for the source range to include any of the 
+elements currently in the array. The source elements can be 
 of a type T2 that may be the same or different than this array's element type 
-T as long as there is a T=T2 operator that works. Note that although the source 
-arguments are pointers, those may be iterators for some container depending on 
-implementation details of the container. Specifically, any ArrayViewConst_,
-ArrayView_, or Array_ iterator is an ordinary pointer.
+T as long as there is a T=T2 assignment operator that works. Note that although
+the source arguments are pointers, those may be iterators for some container 
+depending on implementation details of the container. Specifically, any 
+ArrayViewConst_, ArrayView_, or Array_ iterator is an ordinary pointer.
 
 @par Complexity:
     The T=T2 assignment operator will be called exactly size() times. **/
@@ -1472,11 +1474,12 @@ allocation if it is sufficient and not \e too big; otherwise we'll reallocate
 before copying. **/
 /*@{*/
 
-/** Fill this array with n copies of the supplied fill value. Note that this
+/** Set this array to be n copies of the supplied fill value. Note that this
 serves to allow fill from an object whose type T2 is different from T, as
 long as there is a constructor T(T2) that works since that can be invoked
 (implicitly or explicitly) to convert the T2 object to type T prior to the
-call. **/ 
+call. 
+@see fill() **/ 
 void assign(size_type n, const T& fillValue) {
     const char* methodName = "Array_<T>::assign(n,value)";
     SimTK_ERRCHK3(isSizeOK(n), methodName,
@@ -1493,6 +1496,14 @@ void assign(size_type n, const T& fillValue) {
     fillConstruct(data(), cdata()+n, fillValue);
     setSize(n);
 }
+
+/** Assign all current elements of the array to the same fill value. This is
+similar to assign(size(),fillValue) but the semantics are subtly different.
+Here we use repeated application of T's copy assignment operator T=fillValue,
+whereas the assign() semantics are to first destruct all the existing elements,
+then allocate if necessary, then use the copy constructor to initialize the
+new elements. **/
+void fill(const T& fillValue) {this->Base::fill(fillValue);}
 
 /** Assign this array from a range [first,last1) given by non-pointer 
 iterators. If we can determine how many elements n that represents in advance, 
@@ -2230,7 +2241,7 @@ T* insert(T* p, const T2* first, const T2* last1) {
     SimTK_ERRCHK(last1<=begin() || end()<=first, methodName, 
         "Source pointers can't be within the destination array.");
     // Pointers are random access iterators.
-    return insertIteratorDispatch(p,first,last1,
+    return insertIteratorDispatch(p, first, last1,
                                   std::random_access_iterator_tag(),
                                   methodName);
 }
@@ -2239,7 +2250,7 @@ T* insert(T* p, const T2* first, const T2* last1) {
 non-pointer iterators. **/
 template <class Iter>
 T* insert(T* p, const Iter& first, const Iter& last1) {
-    return insertDispatch(first,last1,
+    return insertDispatch(p, first, last1,
                           typename IsIntegralType<Iter>::Result(),
                           "Array_<T>::insert(T* p, Iter first, Iter last1)");
 }

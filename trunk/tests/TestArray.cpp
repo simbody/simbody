@@ -165,6 +165,12 @@ Array_<float,int>::operator=(const Array_<float,int>&);
 template Array_<double,int>& 
 Array_<double,int>::operator=(const std::vector<float>&);
 
+// Insertion
+template float*
+Array_<float,int>::insert(float*, const float*, const float*);
+template float*
+Array_<float,short>::insert(float*, const inputIt&, const inputIt&);
+
 // Comparison
 template bool SimTK::operator==(const ArrayViewConst_<float,int>&, 
                                 const ArrayViewConst_<float,unsigned>&);
@@ -397,6 +403,16 @@ void testNonRandomIterator() {
     std::swap(dummy1, dummy2);
     SimTK_TEST(dummy2 == Array_<int>(3, (int)'A'));
     SimTK_TEST(dummy1 == Array_<int>(4, 129));
+
+    // assign() and insert() should behave like the constructor.
+    dummy1.assign((char)2, 'B');
+    dummy1.insert(dummy1.begin()+1, (char)3, 'C');
+    const int d1answer[] = {(int)'B',(int)'C',(int)'C',(int)'C',(int)'B'};
+    SimTK_TEST((dummy1 == Array_<int,unsigned short>(d1answer, d1answer+5)));
+
+    // Test fill().
+    dummy1.fill(7);
+    SimTK_TEST((dummy1 == Array_<int>(5, 7))); // i.e., 5 7's
 
 
     // This is too much data and should be detectable for any forward iterator.
