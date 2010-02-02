@@ -563,59 +563,84 @@ template <class T> struct IsIntegralType {
     /** This typedef is TrueType if the template type T is an integral type;
     otherwise it is FalseType. **/
     typedef FalseType Result;
+    /** This compile-time constant bool is true if the template type T is an
+    integral type otherwise it is false. **/
+    static const bool result = false;
 };
-template<> struct IsIntegralType<bool> {typedef TrueType Result;};
-template<> struct IsIntegralType<char> {typedef TrueType Result;};
-template<> struct IsIntegralType<wchar_t> {typedef TrueType Result;};
-template<> struct IsIntegralType<signed char> {typedef TrueType Result;};
-template<> struct IsIntegralType<unsigned char> {typedef TrueType Result;};
-template<> struct IsIntegralType<short> {typedef TrueType Result;};
-template<> struct IsIntegralType<unsigned short> {typedef TrueType Result;};
-template<> struct IsIntegralType<int> {typedef TrueType Result;};
-template<> struct IsIntegralType<unsigned int> {typedef TrueType Result;};
-template<> struct IsIntegralType<long> {typedef TrueType Result;};
-template<> struct IsIntegralType<unsigned long> {typedef TrueType Result;};
-template<> struct IsIntegralType<long long> {typedef TrueType Result;};
-template<> struct IsIntegralType<unsigned long long> {typedef TrueType Result;};
+#define SimTK_SPECIALIZE_INTEGRAL_TYPE(T)       \
+    template<> struct IsIntegralType<T>         \
+    {typedef TrueType Result; static const bool result = true;}
+
+SimTK_SPECIALIZE_INTEGRAL_TYPE(bool); 
+SimTK_SPECIALIZE_INTEGRAL_TYPE(char);
+SimTK_SPECIALIZE_INTEGRAL_TYPE(wchar_t);
+SimTK_SPECIALIZE_INTEGRAL_TYPE(signed char);
+SimTK_SPECIALIZE_INTEGRAL_TYPE(unsigned char);
+SimTK_SPECIALIZE_INTEGRAL_TYPE(short);
+SimTK_SPECIALIZE_INTEGRAL_TYPE(unsigned short);
+SimTK_SPECIALIZE_INTEGRAL_TYPE(int);
+SimTK_SPECIALIZE_INTEGRAL_TYPE(unsigned int); // a.k.a. "unsigned"
+SimTK_SPECIALIZE_INTEGRAL_TYPE(long);
+SimTK_SPECIALIZE_INTEGRAL_TYPE(unsigned long);
+SimTK_SPECIALIZE_INTEGRAL_TYPE(long long);
+SimTK_SPECIALIZE_INTEGRAL_TYPE(unsigned long long);
 
 /** Compile-time type test: is this one of the built-in floating point types?. **/
 template <class T> struct IsFloatingType {
     /** This typedef is TrueType if the template type T is a floating point type;
     otherwise it is FalseType. **/
     typedef FalseType Result;
+    /** This compile-time constant bool is true if the template type T is a
+    floating point type otherwise it is false. **/
+    static const bool result = false;
 };
-template<> struct IsFloatingType<float>  {typedef TrueType Result;};
-template<> struct IsFloatingType<double> {typedef TrueType Result;};
-template<> struct IsFloatingType<long double> {typedef TrueType Result;};
+#define SimTK_SPECIALIZE_FLOATING_TYPE(T)       \
+    template<> struct IsFloatingType<T>         \
+    {typedef TrueType Result; static const bool result = true;}
+
+SimTK_SPECIALIZE_FLOATING_TYPE(float); 
+SimTK_SPECIALIZE_FLOATING_TYPE(double); 
+SimTK_SPECIALIZE_FLOATING_TYPE(long double); 
 
 /** Compile-time type test: is this the void type?. **/
 template <class T> struct IsVoidType {
     /** This typedef is TrueType if the template type T is "void";
     otherwise it is FalseType. **/
     typedef FalseType Result;
+    /** This compile-time constant bool is true if the template type T is
+    "void" otherwise it is false. **/
+    static const bool result = false;
 };
-template<> struct IsVoidType<void> {typedef TrueType Result;};
+template<> struct IsVoidType<void> 
+{typedef TrueType Result; static const bool result = true;};
 
 /** Compile-time test: is this one of the built-in "arithmetic" types, meaning
 an integral or floating type? **/
 template <class T> struct IsArithmeticType {
     /** This typedef is TrueType if the template type T is one of the integral;
-    or floating types, otherwise it is FalseType. **/
+    or floating point types, otherwise it is FalseType. **/
     typedef OrOpType<typename IsIntegralType<T>::Result,
                      typename IsFloatingType<T>::Result>    Result;
+    /** This compile-time constant bool is true if the template type T is
+    one of the integral or floating point types, otherwise it is false. **/
+    static const bool result = IsIntegralType<T>::result 
+                            || IsFloatingType<T>::result;
 };
 
 // This struct's sole use is to allow us to define the typedef Is64BitPlatform
 // as equivalent to either TrueType or FalseType.
 template <bool is64Bit> struct Is64BitHelper {};
-template<> struct Is64BitHelper<true>  {typedef TrueType Result;};
-template<> struct Is64BitHelper<false> {typedef FalseType Result;};
+template<> struct Is64BitHelper<true>  
+{typedef TrueType Result; static const bool result = true;};
+template<> struct Is64BitHelper<false> 
+{typedef FalseType Result; static const bool result = false;};
 
 /** Compile-time test: this typedef will be TrueType if this is a 64-bit 
 platform, meaning that the size of a pointer is the same as the size of a 
 long long; otherwise it will be FalseType and we have a 32-bit platform meaning
 that the size of a pointer is the same as an int. **/
-typedef Is64BitHelper<(sizeof(size_t) > sizeof(int))>::Result Is64BitPlatform;
+static const bool Is64BitPlatform = sizeof(size_t) > sizeof(int);
+typedef Is64BitHelper<Is64BitPlatform>::Result Is64BitPlatformType;
 
 
 // In case you don't like the name you get from typeid(), you can specialize
@@ -643,6 +668,7 @@ SimTK_NICETYPENAME_LITERAL(long double);
 SimTK_NICETYPENAME_LITERAL(std::complex<float>);
 SimTK_NICETYPENAME_LITERAL(std::complex<double>); 
 SimTK_NICETYPENAME_LITERAL(std::complex<long double>); 
+SimTK_NICETYPENAME_LITERAL(SimTK::TrueType); SimTK_NICETYPENAME_LITERAL(SimTK::FalseType);
 
 
 } // namespace SimTK

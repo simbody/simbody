@@ -274,7 +274,7 @@ template<> struct ArrayIndexPackTypeHelper<short,TrueType>
 {   typedef int packed_size_type;};
 
 template <class Integral> struct ArrayIndexPackType
-{   typedef typename ArrayIndexPackTypeHelper<Integral,Is64BitPlatform>
+{   typedef typename ArrayIndexPackTypeHelper<Integral,Is64BitPlatformType>
                         ::packed_size_type  packed_size_type;};
 
 //==============================================================================

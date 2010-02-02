@@ -475,7 +475,7 @@ void testSpeedSimTKArray() {
 
 #include <typeinfo>
 int main() {
-    cout << "Is64BitPlatform=" << NiceTypeName<Is64BitPlatform>::name() << endl;
+    cout << "Is64BitPlatform=" << NiceTypeName<Is64BitPlatformType>::name() << endl;
     cout << "packed_size_type<bool>=" 
         << NiceTypeName<ArrayIndexPackType<bool>::packed_size_type>::name() << endl;
     cout << "packed_size_type<char>=" 
