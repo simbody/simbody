@@ -37,6 +37,8 @@
 #include "SimTKcommon/Testing.h"
 
 #include <vector>
+#include <sstream>
+#include <iterator>
 #include <iostream>
 using std::cout;
 using std::endl;
@@ -427,6 +429,33 @@ void testNonRandomIterator() {
 
 }
 
+// Input iterators require special handling in the implementation because
+// it can't be determined for them how many elements are in a range
+// [first,last1) because to increment an iterator is to consume it. This is
+// the only case where a bulk constructor, insert(), or assign() must be
+// done with multiple space reallocations (basically like a series of 
+// one-element push_back() calls).
+void testInputIterator() {
+    const int answerData[]={10,12,-14,5,203,-232,1,2,3,4};
+    const Array_<int,char> answer(answerData,answerData+10);
+    const Array_<int,short> smallAnswer(answerData+4, answerData+8);
+    std::istringstream inp1("10 12 -14 5 203 -232 1 2 3 4");
+    std::istringstream inp2("10 12 -14 5 203 -232 1 2 3 4");
+    std::istringstream smallInp("203 -232 1 2"); // fits in SmallIx
+    typedef std::istream_iterator<int> Iter;
+    Iter p1(inp1), p2(inp2), psmall(smallInp);
+    Array_<int> readin(p1, Iter()); // like begin(), end()
+    SimTK_TEST(readin == answer);
+
+    // This shouldn't work because there are too many elements.
+    typedef Array_<int,SmallIx> SmallArray;
+    SimTK_TEST_MUST_THROW_DEBUG(SmallArray tooSmall(p2, Iter()));
+
+    // This should be OK.
+    SmallArray okSmall(psmall, Iter());
+    SimTK_TEST(okSmall == smallAnswer);
+}
+
 // Reduce the loop count by 50X in Debug.
 static const int Outer = 500000
 #ifndef NDEBUG
@@ -587,12 +616,11 @@ void testMemoryFootprint() {
     }
 }
 
-#include <typeinfo>
 int main() {
-
 
     SimTK_START_TEST("TestArray");
 
+        SimTK_SUBTEST(testInputIterator);
         SimTK_SUBTEST(testNiceTypeName);
         SimTK_SUBTEST(testMemoryFootprint);
         SimTK_SUBTEST(testConstruction);

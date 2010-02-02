@@ -2574,12 +2574,19 @@ ctorIteratorDispatch(const InputIterator& first, const InputIterator& last1,
     InputIterator src = first;
     while (src != last1) {
         // We can afford to check this always since we are probably doing I/O.
-        SimTK_ERRCHK2_ALWAYS(size() < max_size(),
-            "Array_::ctor(InputIterator first, InputIterator last1)",
-            "There were still source elements available when the array"
-            " reached its maximum size of %llu as determined by its index"
-            " type %s.", ullMaxSize(), indexName());
-        push_back(*src);
+        // Throwing an exception in a constructor is tricky, though -- this
+        // won't go through the Array_ destructor although it will call the
+        // Base (ArrayView_) destructor. Since we have already allocated
+        // some space, we must call deallocate() manually.
+        if (size() == max_size()) {
+            deallocate();
+            SimTK_ERRCHK2_ALWAYS(!"too many elements",
+                "Array_::ctor(InputIterator first, InputIterator last1)",
+                "There were still source elements available when the array"
+                " reached its maximum size of %llu as determined by its index"
+                " type %s.", ullMaxSize(), indexName());
+        }
+        push_back(*src++);
     }
 }
 
@@ -2707,15 +2714,18 @@ void assignDispatch(const InputIterator& first, const InputIterator& last1,
         typename std::iterator_traits<InputIterator>::iterator_category(),
         methodName); }
 
-// This is the slow generic implementation for any input iterator that
-// can't do random access (input, forward, bidirectional).
+// This is the slow generic implementation for a plain input_iterator
+// (i.e., not a forward, bidirectional, or random access iterator). These
+// have the unfortunate property that we can't count the elements in advance.
 template <class InputIterator>
 void assignIteratorDispatch(const InputIterator& first, 
                             const InputIterator& last1, 
                             std::input_iterator_tag, 
                             const char* methodName) 
 {
-    SimTK_ERRCHK(isOwner(), methodName,
+    // TODO: should probably allow this and just blow up when the size()+1st
+    // element is seen.
+    SimTK_ERRCHK_ALWAYS(isOwner(), methodName,
         "Assignment to a non-owner array can only be done from a source"
         " designated with forward iterators or pointers because we"
         " must be able to verify that the source and destination sizes"
@@ -2723,8 +2733,15 @@ void assignIteratorDispatch(const InputIterator& first,
 
     clear(); // TODO: change space allocation here?
     InputIterator src = first;
-    while (src != last1)
+    while (src != last1) {
+        // We can afford to check this always since we are probably doing I/O.
+        SimTK_ERRCHK2_ALWAYS(size() < max_size(), methodName,
+            "There were still source elements available when the array"
+            " reached its maximum size of %llu as determined by its index"
+            " type %s.", ullMaxSize(), indexName());
+
         push_back(*src++);
+    }
 }
 
 // This is the faster implementation that works for forward, bidirectional,
