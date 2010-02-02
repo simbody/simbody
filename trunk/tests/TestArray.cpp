@@ -473,8 +473,7 @@ void testSpeedSimTKArray() {
     cout << "Array sum=" << sum << endl;
 }
 
-#include <typeinfo>
-int main() {
+void testNiceTypeName() {
     cout << "Is64BitPlatform=" << NiceTypeName<Is64BitPlatformType>::name() << endl;
     cout << "packed_size_type<bool>=" 
         << NiceTypeName<ArrayIndexPackType<bool>::packed_size_type>::name() << endl;
@@ -496,11 +495,106 @@ int main() {
         << NiceTypeName<ArrayIndexPackType<long>::packed_size_type>::name() << endl;
     cout << "packed_size_type<unsigned long long>=" 
         << NiceTypeName<ArrayIndexPackType<unsigned long long>::packed_size_type>::name() << endl;
-
     cout << NiceTypeName< Array_<String,char> >::name() << endl;
+}
+
+// The Array_ class is supposed to make better use of memory than does
+// std::vector when the index type is smaller than a pointer.
+void testMemoryFootprint() {
+    // These conditions should apply on any 32- or 64-bit platform.
+    SimTK_TEST(sizeof(Array_<int>)      <= sizeof(std::vector<int>));
+    SimTK_TEST(sizeof(Array_<int,bool>) <  sizeof(std::vector<int>));
+    SimTK_TEST(sizeof(Array_<int,char>) <  sizeof(std::vector<int>));
+    SimTK_TEST(sizeof(Array_<int,signed char>)    <  sizeof(std::vector<int>));
+    SimTK_TEST(sizeof(Array_<int,unsigned char>)  <  sizeof(std::vector<int>));
+    SimTK_TEST(sizeof(Array_<int,short>)          <  sizeof(std::vector<int>));
+    SimTK_TEST(sizeof(Array_<int,unsigned short>) <  sizeof(std::vector<int>));
+
+    // Since an int is smaller than a pointer here we will do better than
+    // any 3-pointer implementation. And we shouldn't be worse then normal
+    // for long longs.
+    if (Is64BitPlatform) {
+        SimTK_TEST(sizeof(Array_<int,int>)       <  sizeof(std::vector<int>));
+        SimTK_TEST(sizeof(Array_<int,unsigned>)  <  sizeof(std::vector<int>));
+        SimTK_TEST(sizeof(Array_<int,long long>) <=  sizeof(std::vector<int>));
+        SimTK_TEST(sizeof(Array_<int,unsigned long long>) <=  sizeof(std::vector<int>));
+    }
+
+    // We don't know if long will be 32 or 64 bit on any given 64 bit
+    // implementation (it is 32 bits for MSVC and 64 for gcc). But it is
+    // always 32 bits on a 32 bit implementation so we shouldn't be doing
+    // any worse here.
+    SimTK_TEST(sizeof(Array_<int,long>) <= sizeof(std::vector<int>));
+
+    // Check that packing is working right.
+    // ints and larger are treated the same for 32 vs 64. (longs are 
+    // wobblers though so we don't check here)
+    SimTK_TEST(sizeof(Array_<int>::packed_size_type)==sizeof(int));
+    SimTK_TEST(sizeof(Array_<int,int>::packed_size_type)==sizeof(int));
+    SimTK_TEST(sizeof(Array_<int,unsigned int>::packed_size_type)==sizeof(int));
+    SimTK_TEST(sizeof(Array_<int,long long>::packed_size_type)==sizeof(long long));
+    SimTK_TEST(sizeof(Array_<int,unsigned long long>::packed_size_type)==sizeof(long long));
+    if (Is64BitPlatform) {
+        // Small types are packed into an int on 64 bit platform.
+        SimTK_TEST(sizeof(Array_<int,bool>::packed_size_type)==sizeof(int));
+        SimTK_TEST(sizeof(Array_<int,char>::packed_size_type)==sizeof(int));
+        SimTK_TEST(sizeof(Array_<int,signed char>::packed_size_type)==sizeof(int));
+        SimTK_TEST(sizeof(Array_<int,unsigned char>::packed_size_type)==sizeof(int));
+        SimTK_TEST(sizeof(Array_<int,short>::packed_size_type)==sizeof(int));
+        SimTK_TEST(sizeof(Array_<int,unsigned short>::packed_size_type)==sizeof(int));
+    } else { 
+        // Small types are packed into a short on 32 bit platform.
+        SimTK_TEST(sizeof(Array_<int,bool>::packed_size_type)==sizeof(short));
+        SimTK_TEST(sizeof(Array_<int,char>::packed_size_type)==sizeof(short));
+        SimTK_TEST(sizeof(Array_<int,signed char>::packed_size_type)==sizeof(short));
+        SimTK_TEST(sizeof(Array_<int,unsigned char>::packed_size_type)==sizeof(short));
+        SimTK_TEST(sizeof(Array_<int,short>::packed_size_type)==sizeof(short));
+        SimTK_TEST(sizeof(Array_<int,unsigned short>::packed_size_type)==sizeof(short));
+    }
+
+    // Now we'll bravely insist that we know how these should be packed.
+    if (Is64BitPlatform) {
+        SimTK_TEST(sizeof(Array_<int>)==16);
+        SimTK_TEST(sizeof(Array_<int,bool>)==16);
+        SimTK_TEST(sizeof(Array_<int,char>)==16);
+        SimTK_TEST(sizeof(Array_<int,signed char>)==16);
+        SimTK_TEST(sizeof(Array_<int,unsigned char>)==16);
+        SimTK_TEST(sizeof(Array_<int,short>)==16);
+        SimTK_TEST(sizeof(Array_<int,unsigned short>)==16);
+        SimTK_TEST(sizeof(Array_<int,int>)==16);
+        SimTK_TEST(sizeof(Array_<int,unsigned>)==16);
+        SimTK_TEST(sizeof(Array_<int,long>)<=24);
+        SimTK_TEST(sizeof(Array_<int,unsigned long>)<=24);
+        SimTK_TEST(sizeof(Array_<int,long long>)==24);
+        SimTK_TEST(sizeof(Array_<int,unsigned long long>)==24);
+    } else { // 32 bit platform
+        SimTK_TEST(sizeof(Array_<int>)==12);
+        SimTK_TEST(sizeof(Array_<int,bool>)==8);
+        SimTK_TEST(sizeof(Array_<int,char>)==8);
+        SimTK_TEST(sizeof(Array_<int,signed char>)==8);
+        SimTK_TEST(sizeof(Array_<int,unsigned char>)==8);
+        SimTK_TEST(sizeof(Array_<int,short>)==8);
+        SimTK_TEST(sizeof(Array_<int,unsigned short>)==8);
+        SimTK_TEST(sizeof(Array_<int,int>)==12);
+        SimTK_TEST(sizeof(Array_<int,unsigned>)==12);
+        SimTK_TEST(sizeof(Array_<int,long>)<=12);
+        SimTK_TEST(sizeof(Array_<int,unsigned long>)<=12);
+        // These don't make sense on a 32 bit platform, but they work. The
+        // size will be 20 or 24 depending on how the compiler aligns the
+        // 8-byte integers after the pointer.
+        SimTK_TEST(sizeof(Array_<int,long long>)<=24);
+        SimTK_TEST(sizeof(Array_<int,unsigned long long>)<=24);
+    }
+}
+
+#include <typeinfo>
+int main() {
+
 
     SimTK_START_TEST("TestArray");
 
+        SimTK_SUBTEST(testNiceTypeName);
+        SimTK_SUBTEST(testMemoryFootprint);
         SimTK_SUBTEST(testConstruction);
         SimTK_SUBTEST(testConversion);
         SimTK_SUBTEST(testBoolIndex);
