@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -158,8 +158,8 @@
 
 #ifdef _WIN32
     #ifdef _MSC_VER
-    #pragma warning(disable:4231) // need to use 'extern' template explicit instantiation
-    #pragma warning(disable:4251) // no DLL interface for type of member of exported class
+    #pragma warning(disable:4231) /*need to use 'extern' template explicit instantiation*/
+    #pragma warning(disable:4251) /*no DLL interface for type of member of exported class*/
     #endif
     #if defined(SimTK_SimTKCOMMON_BUILDING_SHARED_LIBRARY)
         #define SimTK_SimTKCOMMON_EXPORT __declspec(dllexport)
@@ -170,7 +170,7 @@
     #elif defined(SimTK_SimTKCOMMON_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
         #define SimTK_SimTKCOMMON_EXPORT
     #else
-        #define SimTK_SimTKCOMMON_EXPORT __declspec(dllimport)   // i.e., a client of a shared library
+        #define SimTK_SimTKCOMMON_EXPORT __declspec(dllimport) /*i.e., a client of a shared library*/
     #endif
 	/* VC++ tries to be secure by leaving bounds checking on for STL containers
 	 * even in Release mode. This macro exists to disable that feature and can
@@ -181,7 +181,8 @@
      */
 	/* (sherm 081204 disabling for now: doesn't work on VC++ 8 and is 
 	 * tricky on VC++ 9 because all libraries, including 3rd party, must
-	 * be built the same way)
+	 * be built the same way). Better to use the SimTK::Array_<T> class in
+     * place of the std::vector<T> class to get better performance.
 	 #ifdef NDEBUG
 	 	#undef _SECURE_SCL
 	 	#define _SECURE_SCL 0
@@ -225,10 +226,9 @@ extern "C" {
 #include <typeinfo>
 
 
-/* Currently (Microsoft VC++ 9) these C99-compatible floating point functions are
- * missing. We'll create them here and install them into namespace std.
- * TODO: This should be removed when these are available.
- */
+/* Currently (Microsoft VC++ 9) these C99-compatible floating point functions 
+are missing. We'll create them here and install them into namespace std.
+TODO: This should be removed when these are available. */
 #ifdef _MSC_VER
 namespace std {
 inline bool isfinite(float f) {return _finite(f) != 0;}
@@ -369,24 +369,24 @@ static const int InvalidIndex = -1111111111;
  * value as SimTK::InvalidIndex.
  */
 
-/// Define a global (that is, SimTK namespace level) Index class that
-/// is not exported in MS VC++ DLLs.
+/** Define a global (that is, SimTK namespace level) Index class that is not 
+exported in MS VC++ DLLs. **/
 #define SimTK_DEFINE_UNIQUE_INDEX_TYPE(NAME)                   \
     SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_INDEX_TYPE(,,,NAME)   \
     static const NAME Invalid ## NAME;
 
-/// Define a global (that is, SimTK namespace level) Index class with
-/// a MS VC++ "export" specification for DLLs.
+/** Define a global (that is, SimTK namespace level) Index class with a MS VC++
+"export" specification for DLLs. **/
 #define SimTK_DEFINE_AND_EXPORT_UNIQUE_INDEX_TYPE(EXPORT,NAME)     \
     SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_INDEX_TYPE(EXPORT,,,NAME) \
     static const NAME Invalid ## NAME;
 
-/// Define a local Index class within a Parent class.
+/** Define a local Index class within a Parent class. **/
 #define SimTK_DEFINE_UNIQUE_LOCAL_INDEX_TYPE(PARENT,NAME) \
     SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_INDEX_TYPE(,PARENT,::,NAME)
 
-/// The most general form allows a MS VC++ "export" specification for DLLs,
-/// and a Parent class (with SEP=::) for local Index names.
+/** The most general form allows a MS VC++ "export" specification for DLLs,
+and a Parent class (with SEP=::) for local Index names. **/
 #define SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_INDEX_TYPE(EXPORT,PARENT,SEP,NAME)   \
 class EXPORT NAME {                         \
     int ix;                                 \
@@ -455,11 +455,9 @@ public:                                     \
     static size_type max_size() {return std::numeric_limits<int>::max();}   \
 };
 
-/**
- * Add public static method declaration in class derived from an abstract
- * parent to assist in downcasting objects of the parent type to the 
- * derived type.
- */
+/** Add public static method declaration in class derived from an abstract
+parent to assist in downcasting objects of the parent type to the derived 
+type. **/
 #define SimTK_DOWNCAST(Derived,Parent) \
     static bool isA(const Parent& p)                        \
         { return dynamic_cast<const Derived*>(&p) != 0; }   \
@@ -470,10 +468,8 @@ public:                                     \
 	static Derived& downcast(Parent& p)                     \
         { return dynamic_cast<Derived&>(p); }
 
-/**
- * This is like SimTK_DOWNCAST except it allows for an intermediate
- * "helper" class between Derived and Parent.
- */
+/** This is like SimTK_DOWNCAST except it allows for an intermediate "helper" 
+class between Derived and Parent. **/
 #define SimTK_DOWNCAST2(Derived,Helper,Parent) \
     static bool isA(const Parent& p)                                        \
         { return Helper::isA(p); }                                          \
@@ -485,9 +481,9 @@ public:                                     \
         { return reinterpret_cast<Derived&>(Helper::downcast(p)); }
 
 
-// Similar to the above but for private implementation abstract classes, that
-// is, abstract class hierarchies where the virtual function table is 
-// hidden on the library side.
+/** Similar to the above but for private implementation abstract classes, that
+is, abstract class hierarchies where the virtual function table is hidden on 
+the library side. **/
 #define SimTK_PIMPL_DOWNCAST(Derived, Parent)           \
     static bool           isInstanceOf(const Parent&);  \
     static const Derived& downcast(const Parent&);      \
@@ -498,17 +494,15 @@ namespace SimTK {
 namespace Options { }
 namespace Exception { }
 
-/// This is the default compiled-in floating point type for SimTK, either
-/// float or double.
-/// @see SimTK_DEFAULT_PRECISION
+/** This is the default compiled-in floating point type for SimTK, either
+float or double. @see SimTK_DEFAULT_PRECISION **/
 typedef SimTK_Real              Real;
-/// This is the default complex type for SimTK, with precision for
-/// the real and imaginary parts set to the compiled-in Real type.
-/// @see Real
+/** This is the default complex type for SimTK, with precision for the real 
+and imaginary parts set to the compiled-in Real type. @see Real **/
 typedef std::complex<Real>      Complex;
 
-/// A convenient struct for anything requiring an offset and length
-/// to specify a segment of some larger sequence.
+/** A convenient struct for anything requiring an offset and length to specify
+a segment of some larger sequence. **/
 struct Segment {
     Segment() : length(0), offset(0) { }
     explicit Segment(int l, int ofs=0) : length(l), offset(ofs) { 
@@ -521,11 +515,12 @@ struct Segment {
 
 
 /** This is a special type used for causing invocation of a particular
-constructor or method overload that will avoid making a copy of the source.
-Typically these methods will have some dangerous side effects so make sure
-you know what you're doing. **/
+constructor or method overload that will avoid making a copy of the source
+(that is, perform a "shallow" copy rather than a "deep" copy). Typically these
+methods will have some dangerous side effects so make sure you know what you're
+doing. **/
 struct DontCopy {};
-/** This is a special type used for causing invocation to a particularly
+/** This is a special type used for forcing invocation of a particularly
 dangerous constructor or method overload; don't use this unless you are an
 advanced user and know exactly what you're getting into. **/
 struct TrustMe {};
@@ -567,6 +562,8 @@ template <class T> struct IsIntegralType {
     integral type otherwise it is false. **/
     static const bool result = false;
 };
+/** This macro must be invoked once for each of the built-in integral types to
+specialize the IsIntegralType struct template for those types. **/
 #define SimTK_SPECIALIZE_INTEGRAL_TYPE(T)       \
     template<> struct IsIntegralType<T>         \
     {typedef TrueType Result; static const bool result = true;}
@@ -594,6 +591,8 @@ template <class T> struct IsFloatingType {
     floating point type otherwise it is false. **/
     static const bool result = false;
 };
+/** This macro must be invoked once for each of the built-in floating point 
+types to specialize the IsFloatingType struct template for those types. **/
 #define SimTK_SPECIALIZE_FLOATING_TYPE(T)       \
     template<> struct IsFloatingType<T>         \
     {typedef TrueType Result; static const bool result = true;}
@@ -627,11 +626,11 @@ template <class T> struct IsArithmeticType {
                             || IsFloatingType<T>::result;
 };
 
-// This struct's sole use is to allow us to define the typedef Is64BitPlatform
-// as equivalent to either TrueType or FalseType.
+// This struct's sole use is to allow us to define the typedef 
+// Is64BitPlatformType as equivalent to either TrueType or FalseType.
 template <bool is64Bit> struct Is64BitHelper {};
 template<> struct Is64BitHelper<true>  
-{typedef TrueType Result; static const bool result = true;};
+{typedef TrueType  Result; static const bool result = true;};
 template<> struct Is64BitHelper<false> 
 {typedef FalseType Result; static const bool result = false;};
 
@@ -643,33 +642,43 @@ static const bool Is64BitPlatform = sizeof(size_t) > sizeof(int);
 typedef Is64BitHelper<Is64BitPlatform>::Result Is64BitPlatformType;
 
 
-// In case you don't like the name you get from typeid(), you can specialize
-// this class to provide a nicer name. This is typically used for error messages.
+/** In case you don't like the name you get from typeid(), you can specialize
+this class to provide a nicer name. This is typically used for error messages 
+and testing. **/
 template <class T> struct NiceTypeName {
     static const char* name() {return typeid(T).name();}
 };
 
-// This specializes the name of a type to be exactly the text you use to
-// specify it, rather than whatever ugly thing might result from resolution
-// of typedefs, default template arguments, etc.
+/** This specializes the name of a type to be exactly the text you use to
+specify it, rather than whatever ugly thing might result on different platforms
+from resolution of typedefs, default template arguments, etc. **/
 #define SimTK_NICETYPENAME_LITERAL(T)           \
 template <> struct NiceTypeName< T > {          \
     static const char* name() { return #T; }    \
 };
-// Built-in types
-SimTK_NICETYPENAME_LITERAL(bool);            SimTK_NICETYPENAME_LITERAL(signed char); 
-SimTK_NICETYPENAME_LITERAL(char);            SimTK_NICETYPENAME_LITERAL(unsigned char);
-SimTK_NICETYPENAME_LITERAL(short);           SimTK_NICETYPENAME_LITERAL(int); 
-SimTK_NICETYPENAME_LITERAL(long);            SimTK_NICETYPENAME_LITERAL(long long);
-SimTK_NICETYPENAME_LITERAL(unsigned short);  SimTK_NICETYPENAME_LITERAL(unsigned int); 
-SimTK_NICETYPENAME_LITERAL(unsigned long);   SimTK_NICETYPENAME_LITERAL(unsigned long long);
-SimTK_NICETYPENAME_LITERAL(float);           SimTK_NICETYPENAME_LITERAL(double); 
+
+// Some types for which we'd like to see nice type names.
+SimTK_NICETYPENAME_LITERAL(bool);            
+SimTK_NICETYPENAME_LITERAL(char);            
+SimTK_NICETYPENAME_LITERAL(wchar_t);            
+SimTK_NICETYPENAME_LITERAL(signed char); 
+SimTK_NICETYPENAME_LITERAL(unsigned char);
+SimTK_NICETYPENAME_LITERAL(short);           
+SimTK_NICETYPENAME_LITERAL(unsigned short);  
+SimTK_NICETYPENAME_LITERAL(int); 
+SimTK_NICETYPENAME_LITERAL(unsigned); // preferred to "unsigned int"
+SimTK_NICETYPENAME_LITERAL(long);            
+SimTK_NICETYPENAME_LITERAL(unsigned long);   
+SimTK_NICETYPENAME_LITERAL(long long);
+SimTK_NICETYPENAME_LITERAL(unsigned long long);
+SimTK_NICETYPENAME_LITERAL(float);           
+SimTK_NICETYPENAME_LITERAL(double); 
 SimTK_NICETYPENAME_LITERAL(long double);
 SimTK_NICETYPENAME_LITERAL(std::complex<float>);
 SimTK_NICETYPENAME_LITERAL(std::complex<double>); 
 SimTK_NICETYPENAME_LITERAL(std::complex<long double>); 
-SimTK_NICETYPENAME_LITERAL(SimTK::TrueType); SimTK_NICETYPENAME_LITERAL(SimTK::FalseType);
-
+SimTK_NICETYPENAME_LITERAL(SimTK::FalseType);
+SimTK_NICETYPENAME_LITERAL(SimTK::TrueType); 
 
 } // namespace SimTK
 
