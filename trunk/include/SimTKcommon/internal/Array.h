@@ -98,7 +98,10 @@ The SimTK type-generating macro SimTK_DEFINE_UNIQUE_INDEX_TYPE() provides the
 necessary members so that these types can be used directly as index types for
 Array_ objects with no further preparation. For example, you can make an
 Array_<int,MobilizedBodyIndex> that stores ints that can be indexed only via
-MobilizedBodyIndex indices. **/
+MobilizedBodyIndex indices. 
+
+@tparam X   A type suitable for use as an Array_ index.
+**/
 template <class X> struct ArrayIndexTraits {
     /** The signed or unsigned integral type to which an object of index type
     X can be converted without producing any compiler warnings. **/
@@ -243,35 +246,35 @@ template <> struct ArrayIndexTraits<long long> {
 //                     |   nUsed   | nAllocated |
 
 // The default implementation just uses the integral type itself.
-template <class Integral, class is64Bit> struct IndexPackTypeHelper 
+template <class Integral, class is64Bit> struct ArrayIndexPackTypeHelper 
 {   typedef Integral packed_size_type;};
 
 // On 32 bit machine, pack anything smaller than a short into a short.
-template<> struct IndexPackTypeHelper<bool,FalseType> 
+template<> struct ArrayIndexPackTypeHelper<bool,FalseType> 
 {   typedef unsigned short packed_size_type;};
-template<> struct IndexPackTypeHelper<char,FalseType> 
+template<> struct ArrayIndexPackTypeHelper<char,FalseType> 
 {   typedef unsigned short packed_size_type;};
-template<> struct IndexPackTypeHelper<unsigned char,FalseType> 
+template<> struct ArrayIndexPackTypeHelper<unsigned char,FalseType> 
 {   typedef unsigned short packed_size_type;};
-template<> struct IndexPackTypeHelper<signed char,FalseType> 
+template<> struct ArrayIndexPackTypeHelper<signed char,FalseType> 
 {   typedef short packed_size_type;};
 
 // On 64 bit machine, pack anything smaller than an int into an int.
-template<> struct IndexPackTypeHelper<bool,TrueType> 
+template<> struct ArrayIndexPackTypeHelper<bool,TrueType> 
 {   typedef unsigned int packed_size_type;};
-template<> struct IndexPackTypeHelper<char,TrueType> 
+template<> struct ArrayIndexPackTypeHelper<char,TrueType> 
 {   typedef unsigned int packed_size_type;};
-template<> struct IndexPackTypeHelper<unsigned char,TrueType> 
+template<> struct ArrayIndexPackTypeHelper<unsigned char,TrueType> 
 {   typedef unsigned int packed_size_type;};
-template<> struct IndexPackTypeHelper<signed char,TrueType> 
+template<> struct ArrayIndexPackTypeHelper<signed char,TrueType> 
 {   typedef int packed_size_type;};
-template<> struct IndexPackTypeHelper<unsigned short,TrueType> 
+template<> struct ArrayIndexPackTypeHelper<unsigned short,TrueType> 
 {   typedef unsigned int packed_size_type;};
-template<> struct IndexPackTypeHelper<short,TrueType> 
+template<> struct ArrayIndexPackTypeHelper<short,TrueType> 
 {   typedef int packed_size_type;};
 
-template <class Integral> struct IndexPackType
-{   typedef typename IndexPackTypeHelper<Integral,Is64BitPlatform>
+template <class Integral> struct ArrayIndexPackType
+{   typedef typename ArrayIndexPackTypeHelper<Integral,Is64BitPlatform>
                         ::packed_size_type  packed_size_type;};
 
 //==============================================================================
@@ -300,23 +303,40 @@ public:
 
 
 //------------------------------------------------------------------------------
-/** @name                   Standard typedefs
+/** @name                        Typedefs
 
-Types required of STL containers, plus index_type which is an extension. **/
+Types required of STL containers, plus index_type which is an extension, and
+packed_size_type which is an implementation detail. **/
 /*@{*/
-typedef T                                               value_type;
-typedef X                                               index_type;
-typedef typename ArrayIndexTraits<X>::size_type         size_type;
-typedef typename ArrayIndexTraits<X>::difference_type   difference_type;
-typedef T*                                              pointer;
-typedef const T*                                        const_pointer;
-typedef T&                                              reference;
-typedef const T&                                        const_reference;
-typedef T*                                              iterator;
-typedef const T*                                        const_iterator;
+/** The type of object stored in this container. **/
+typedef T           value_type;
+/** The index type (an extension). **/ 
+typedef X           index_type;
+/** A writable pointer to a value_type. **/
+typedef T*          pointer;
+/** A const pointer to a value_type. **/
+typedef const T*    const_pointer;
+/** A writable value_type reference. **/
+typedef T&          reference;
+/** A const value_type reference. **/
+typedef const T&    const_reference;
+/** A writable iterator for this container (same as pointer here). **/
+typedef T*          iterator;
+/** A const iterator for this container (same as const_pointer here). **/
+typedef const T*    const_iterator;
+/** A writable reverse iterator for this container. **/
 typedef std::reverse_iterator<iterator>                 reverse_iterator;
+/** A const reverse iterator for this container. **/
 typedef std::reverse_iterator<const_iterator>           const_reverse_iterator;
-/*@}    End of standard typedefs **/
+/** An integral type suitable for all indices and sizes for this array. **/
+typedef typename ArrayIndexTraits<X>::size_type         size_type;
+/** A signed integral type that can represent the difference between any two
+legitimate index values for this array. **/
+typedef typename ArrayIndexTraits<X>::difference_type   difference_type;
+/** The integral type we actually use internally to store size_type values. **/
+typedef typename ArrayIndexPackType<size_type>::packed_size_type 
+                                                        packed_size_type;
+/*@}    End of typedefs **/
 
 
 //------------------------------------------------------------------------------
@@ -371,7 +391,7 @@ ArrayViewConst_(const T* first, const T* last1)
         ull(last1-first), ullMaxSize(), indexName());
 
     pData = const_cast<T*>(first); 
-    nUsed = size_type(last1-first); 
+    nUsed = packed_size_type(last1-first); 
     // nAllocated is already zero
 }
 
@@ -408,7 +428,7 @@ ArrayViewConst_(const std::vector<T,A>& v) : pData(0),nUsed(0),nAllocated(0) {
         ull(v.size()), ullMaxSize(), indexName());
 
     pData = const_cast<T*>(&v.front()); 
-    nUsed = size_type(v.size()); 
+    nUsed = packed_size_type(v.size()); 
     // nAllocated is already zero
 }
 /** This is an implicit conversion to const ArrayView_<T,X>&, which is 
@@ -449,7 +469,7 @@ heap space (capacity). See the derived Array_<T,X> class for methods that can
 /*@{*/
 
 /** Return the current number of elements stored in this array. **/
-size_type size() const {return nUsed;}
+size_type size() const {return size_type(nUsed);}
 /** Return the maximum allowable size for this array. **/
 size_type max_size() const {return ArrayIndexTraits<X>::max_size();}
 /** Return true if there are no elements currently stored in this array. This
@@ -459,11 +479,11 @@ bool empty() const {return nUsed==0;}
 requiring reallocation. The value returned by capacity() is always greater 
 than or equal to size(), even if the data is not owned by this array in
 which case we have capacity()==size() and the array is not reallocatable. **/
-size_type capacity() const {return nAllocated?nAllocated:nUsed;}
+size_type capacity() const {return size_type(nAllocated?nAllocated:nUsed);}
 /** Return the amount of heap space owned by this array; this is the same
 as capacity() for owner arrays but is zero for non-owners. 
 @note There is no equivalent of this method for std::vector. **/
-size_type allocated() const {return nAllocated;}
+size_type allocated() const {return size_type(nAllocated);}
 /** Does this array own the data to which it refers? If not, it can't be
 resized, and the destructor will not free any heap space nor call any element
 destructors. If the array does not refer to any data it is considered to be
@@ -488,7 +508,7 @@ will be range-checked in a Debug build but not in Release.
 @par Complexity:
     Constant time. **/
 const T& operator[](index_type i) const {
-    SimTK_INDEXCHECK(size_type(i),nUsed,"ArrayViewConst_<T>::operator[]()");
+    SimTK_INDEXCHECK(size_type(i),size(),"ArrayViewConst_<T>::operator[]()");
     return pData[i];
 }
 /** Same as operator[] but always range-checked, even in a Release build.  
@@ -496,13 +516,13 @@ const T& operator[](index_type i) const {
 @par Complexity:
     Constant time. **/
 const T& at(index_type i) const {
-    SimTK_INDEXCHECK_ALWAYS(size_type(i),nUsed,"ArrayViewConst_<T>::at()");
+    SimTK_INDEXCHECK_ALWAYS(size_type(i),size(),"ArrayViewConst_<T>::at()");
     return pData[i];
 }
 /** Same as the const form of operator[]; exists to provide a non-operator
 method for element access in case that's needed. **/
 const T& getElt(index_type i) const {
-    SimTK_INDEXCHECK(size_type(i),nUsed,"ArrayViewConst_<T>::getElt()");
+    SimTK_INDEXCHECK(size_type(i),size(),"ArrayViewConst_<T>::getElt()");
     return pData[i];
 }
 /** Return a const reference to the first element in this array, which must
@@ -615,6 +635,9 @@ const T* data() const {return pData;}
 // The remainder of this class is for the use of the ArrayView_<T,X> and
 // Array_<T,X> derived classes only and should not be documented for users to 
 // see.
+
+packed_size_type psize() const {return nUsed;}
+packed_size_type pallocated() const {return nAllocated;}
                                        
 // This constructor does not initialize any of the data members; it is intended
 // for use in derived class constructors that promise to set *all* the data
@@ -630,10 +653,10 @@ explicit ArrayViewConst_(const TrustMe&) {
 
 // These provide direct access to the data members for our trusted friends.
 void setData(const T* p)        {pData = const_cast<T*>(p);}
-void setSize(size_type n)       {nUsed = n;}
+void setSize(size_type n)       {nUsed = packed_size_type(n);}
 void incrSize()                 {++nUsed;}
 void decrSize()                 {--nUsed;}
-void setAllocated(size_type n)  {nAllocated = n;}
+void setAllocated(size_type n)  {nAllocated = packed_size_type(n);}
 
 // Check whether a given size is the same as the current size of this array,
 // avoiding any compiler warnings due to mismatched integral types.
@@ -695,7 +718,6 @@ unsigned long long ullMaxSize()  const {return ull(max_size());}
 const char* indexName() const {return NiceTypeName<X>::name();}
 
 private:
-typedef typename IndexPackType<size_type>::packed_size_type packed_size_type;
 
 //------------------------------------------------------------------------------
 //                               DATA MEMBERS
@@ -704,8 +726,8 @@ typedef typename IndexPackType<size_type>::packed_size_type packed_size_type;
 // from release to release. If data is null, then nUsed==nAllocated==0.
 
 T*                  pData;      // ptr to data referenced here, or 0 if none
-size_type           nUsed;      // number of elements currently present (size)
-size_type           nAllocated; // heap allocation; 0 if pData is not owned
+packed_size_type    nUsed;      // number of elements currently present (size)
+packed_size_type    nAllocated; // heap allocation; 0 if pData is not owned
 
 ArrayViewConst_& operator=(const ArrayViewConst_& src); // suppressed
 };
@@ -722,14 +744,13 @@ template <class T, class X> class ArrayView_ : public ArrayViewConst_<T,X> {
 typedef ArrayViewConst_<T,X> CBase;
 public:
 //------------------------------------------------------------------------------
-/** @name                   Standard typedefs
+/** @name                        Typedefs
 
-Types required of STL containers, plus index_type which is an extension. **/
-/*@{*/
+Types required of STL containers, plus index_type which is an extension, and
+packed_size_type which is an implementation detail. **/
+/*{*/
 typedef T                                               value_type;
 typedef X                                               index_type;
-typedef typename ArrayIndexTraits<X>::size_type         size_type;
-typedef typename ArrayIndexTraits<X>::difference_type   difference_type;
 typedef T*                                              pointer;
 typedef const T*                                        const_pointer;
 typedef T&                                              reference;
@@ -738,7 +759,11 @@ typedef T*                                              iterator;
 typedef const T*                                        const_iterator;
 typedef std::reverse_iterator<iterator>                 reverse_iterator;
 typedef std::reverse_iterator<const_iterator>           const_reverse_iterator;
-/*@}    End of standard typedefs **/
+typedef typename ArrayIndexTraits<X>::size_type         size_type;
+typedef typename ArrayIndexTraits<X>::difference_type   difference_type;
+typedef typename ArrayIndexPackType<size_type>::packed_size_type 
+                                                        packed_size_type;
+/*}*/
 
 
 //------------------------------------------------------------------------------
@@ -1283,14 +1308,13 @@ public:
 
 
 //------------------------------------------------------------------------------
-/** @name                   Standard typedefs
+/** @name                        Typedefs
 
-Types required of STL containers, plus index_type which is an extension. **/
-/*@{*/
+Types required of STL containers, plus index_type which is an extension, and
+packed_size_type which is an implementation detail. **/
+/*{*/
 typedef T                                               value_type;
 typedef X                                               index_type;
-typedef typename ArrayIndexTraits<X>::size_type         size_type;
-typedef typename ArrayIndexTraits<X>::difference_type   difference_type;
 typedef T*                                              pointer;
 typedef const T*                                        const_pointer;
 typedef T&                                              reference;
@@ -1299,8 +1323,11 @@ typedef T*                                              iterator;
 typedef const T*                                        const_iterator;
 typedef std::reverse_iterator<iterator>                 reverse_iterator;
 typedef std::reverse_iterator<const_iterator>           const_reverse_iterator;
-/*@}    End of standard typedefs **/
-
+typedef typename ArrayIndexTraits<X>::size_type         size_type;
+typedef typename ArrayIndexTraits<X>::difference_type   difference_type;
+typedef typename ArrayIndexPackType<size_type>::packed_size_type 
+                                                        packed_size_type;
+/*}*/
 
 //------------------------------------------------------------------------------
 /** @name        Construction, conversion and destruction
