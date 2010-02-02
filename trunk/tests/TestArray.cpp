@@ -156,9 +156,9 @@ template Array_<float,int>::Array_(const Array_<float,int>&);
 template Array_<float,int>::Array_(const float*,const float*);
 
 // Assignment.
-template Array_<float,int>& 
+template void 
 Array_<float,int>::assign(const float*,const float*);
-template Array_<double,int>& 
+template void
 Array_<double,int>::assign(const inputIt&, const inputIt&);
 template Array_<float,int>& 
 Array_<float,int>::operator=(const Array_<float,int>&);
@@ -312,11 +312,11 @@ void testConversion() {
 // size_type.
 void testBoolIndex() {
     SimTK_TEST((Array_<int,long>().empty()));
-    SimTK_TEST(!(Array_<int,long>().assign(1L,99).empty()));
-    SimTK_TEST((Array_<int,long>().assign(1L,99)[0] == 99));
+    SimTK_TEST(!(Array_<int,long>(1L,99).empty()));
+    SimTK_TEST((Array_<int,long>(1L,99)[0] == 99));
 
     Array_<std::string, bool> wisdom(2);
-    wisdom[true] == ""; wisdom[false] == "";
+    SimTK_TEST(wisdom[true] == ""); SimTK_TEST(wisdom[false] == "");
     wisdom[true]  = "this too shall pass";
     wisdom[false] = "don't worry it's not loaded";
     SimTK_TEST(wisdom.size() == 2);

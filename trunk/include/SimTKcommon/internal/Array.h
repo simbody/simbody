@@ -594,6 +594,8 @@ explicit ArrayViewConst_(const TrustMe&) {
 // These provide direct access to the data members for our trusted friends.
 void setData(const T* p)        {pData = const_cast<T*>(p);}
 void setSize(size_type n)       {nUsed = n;}
+void incrSize()                 {++nUsed;}
+void decrSize()                 {--nUsed;}
 void setAllocated(size_type n)  {nAllocated = n;}
 
 // Check whether a given size is the same as the current size of this array,
@@ -1233,10 +1235,8 @@ public:
 
 
 //TODO
-// comparison operators
-// non-owner, subarrays
+// fix assign(), insert() for iterators
 // additional operators +=, (i,n)
-// make constructors for shared/adopt to avoid copy when returning
 // check standard
 // more raw methods
 
@@ -1477,7 +1477,7 @@ serves to allow fill from an object whose type T2 is different from T, as
 long as there is a constructor T(T2) that works since that can be invoked
 (implicitly or explicitly) to convert the T2 object to type T prior to the
 call. **/ 
-Array_& assign(size_type n, const T& fillValue) {
+void assign(size_type n, const T& fillValue) {
     const char* methodName = "Array_<T>::assign(n,value)";
     SimTK_ERRCHK3(isSizeOK(n), methodName,
         "Requested size %llu is too big for this array which is limited"
@@ -1492,7 +1492,6 @@ Array_& assign(size_type n, const T& fillValue) {
     reallocateIfAdvisable(n); // change size if too small or too big
     fillConstruct(data(), cdata()+n, fillValue);
     setSize(n);
-    return *this;
 }
 
 /** Assign this array from a range [first,last1) given by non-pointer 
@@ -1501,13 +1500,10 @@ we'll do only a single allocation here and call one of T's constructors exactly
 n times with no destructor calls except to erase the original data. If these 
 aren't random access iterators then we'll just have to add elements as we find
 them using push_back() meaning we may need to reallocate log(n) times. **/
-template <class InputIterator>
-Array_& assign(const InputIterator& first, const InputIterator& last1) {
-    assignImpl(first, last1, 
-               typename std::iterator_traits<InputIterator>
-                            ::iterator_category(),
-               "Array_<T>::assign(Iter first, Iter last1)");
-    return *this;
+template <class Iter>
+void assign(const Iter& first, const Iter& last1) {
+    assignDispatch(first,last1,typename IsIntegralType<Iter>::Result(),
+                   "Array_<T>::assign(Iter first, Iter last1)");
 }
 
 /** Assign to this array to to make it a copy of the elements in range 
@@ -1525,15 +1521,15 @@ m new elements. If type T has a destructor, it will be called exactly n times.
 Reallocation will then occur if c < m and may occur if c >> m. Then the
 constructor T(T2) will be called exactly m times. **/
 template <class T2>
-Array_& assign(const T2* first, const T2* last1) {
-    const char* methodName = "Array_<T>::assign(first,last1)";
+void assign(const T2* first, const T2* last1) {
+    const char* methodName = "Array_<T>::assign(T2* first, T2* last1)";
     SimTK_ERRCHK((first&&last1)||(first==last1), methodName, 
         "Pointers must be non-null unless they are both null.");
     SimTK_ERRCHK(last1<=begin() || end()<=first, methodName, 
         "Source pointers can't be within the destination Array.");
     // Pointers are random access iterators.
-    assignImpl(first,last1,std::random_access_iterator_tag(),methodName);
-    return *this;
+    assignIteratorDispatch(first,last1,std::random_access_iterator_tag(),
+                           methodName);
 }
 
 /** Copy assignment operator destructs the current contents of this array and 
@@ -1543,8 +1539,9 @@ may result in this array having a larger or smaller capacity, although of
 course it will be at least as large as the source. **/
 Array_& operator=(const Array_& src) {
     if (this != &src)
-        assignImpl(src.begin(), src.end(), std::random_access_iterator_tag(),
-                   "Array_<T>::operator=(Array_<T>)");
+        assignIteratorDispatch(src.begin(), src.end(), 
+                               std::random_access_iterator_tag(),
+                               "Array_<T>::operator=(Array_<T>)");
     return *this;
 }
 
@@ -1555,8 +1552,9 @@ compatible with T. See discussion for the copy assignment operator for more
 information. */
 template <class T2, class X2>
 Array_& operator=(const Array_<T2,X2>& src) {
-    assignImpl(src.begin(), src.end(), std::random_access_iterator_tag(),
-               "Array_<T>::operator=(Array_<T2,X2>)");
+    assignIteratorDispatch(src.begin(), src.end(), 
+                           std::random_access_iterator_tag(),
+                           "Array_<T>::operator=(Array_<T2,X2>)");
     return *this;
 }
 
@@ -1567,8 +1565,9 @@ compatible with T. See discussion for the copy assignment operator for more
 information. */
 template <class T2, class A>
 Array_& operator=(const std::vector<T2,A>& src) {
-    assignImpl(src.begin(), src.end(), std::random_access_iterator_tag(),
-               "Array_<T>::operator=(std::vector)");
+    assignIteratorDispatch(src.begin(), src.end(), 
+                           std::random_access_iterator_tag(),
+                           "Array_<T>::operator=(std::vector)");
     return *this;
 }
 
@@ -1685,7 +1684,6 @@ void resize(size_type n) {
         "Requested size change to %llu is not allowed because this is a"
         " non-owner array of fixed size %llu.", ull(n), ull(size()));
 
-    if (n == 0) {clear(); return;}
     if (n < size()) {
         erase(data()+n, cend());
         return;
@@ -1707,14 +1705,13 @@ void resize(size_type n, const T& initVal) {
         "Requested size change to %llu is not allowed because this is a"
         " non-owner array of fixed size %llu.", ull(n), ull(size()));
 
-    if (n == 0) {clear(); return;}
     if (n < size()) {
         erase(data()+n, cend());
         return;
     }
     // n > size()
     reserve(n);
-    fillConstruct(data()+size(), data()+n, initVal);
+    fillConstruct(data()+size(), cdata()+n, initVal);
     setSize(n);
 }
 
@@ -1983,7 +1980,7 @@ void push_back(const T& value) {
     if (allocated() == size())
         growAtEnd(1,"Array_<T>::push_back(value)");
     copyConstruct(end(), value);
-    setSize(size()+1);
+    incrSize();
 }
 
 /** This is a non-standard version of push_back() that increases the size of the
@@ -2003,7 +2000,7 @@ void push_back() {
     if (allocated() == size())
         growAtEnd(1,"Array_<T>::push_back()");
     defaultConstruct(end());
-    setSize(size()+1);
+    incrSize();
 }
 
 /** This dangerous method increases the Array's size by one element at the end 
@@ -2025,7 +2022,7 @@ T* raw_push_back() {
     if (allocated() == size())
         growAtEnd(1,"Array_<T>::raw_push_back()");
     T* const p = end();
-    setSize(size()+1);
+    incrSize();
     return p;
 }
 
@@ -2034,7 +2031,7 @@ element is destructed, not returned. The array's size() is reduced by one. **/
 void pop_back() {
     SimTK_ERRCHK(!empty(), "Array_<T>::pop_back()", "Array was empty.");
     destruct(&back());
-    setSize(size()-1);
+    decrSize();
 }
 
 /** Erase elements in range [first,last1), packing in any later elements into 
@@ -2078,13 +2075,13 @@ unchanged.
 @note If you don't mind the elements being reordered, you can erase an element
 in constant time using the non-standard extension eraseFast().
 
-@pre begin() <= \a p < end()
 @param      p
     Points to the element that will be erased; \a p cannot be end().
 @return
     A pointer to the element that replaced the one at \a p, or end() if \a p 
     was the last element. Either way, this is the same memory address as the 
     erased element had since there can be no reallocation here.
+@pre begin() <= \a p < end()
 @par Complexity:
     Calls T's destructor once for the erased element and calls T's copy 
     constructor and destructor once for each element that has to be moved. 
@@ -2097,7 +2094,7 @@ T* erase(T* p) {
 
     destruct(p);              // Destruct the element we're erasing.
     moveElementsDown(p+1, 1); // Compress followers into the gap.
-    setSize(size()-1);
+    decrSize();
     return p;
 }
 
@@ -2111,13 +2108,13 @@ copy constructor is used to copy the last element into the vacated
 space, and the destructor is called to clear the last element. The
 size is reduced by 1 but the capacity does not change. 
 
-@pre begin() <= \a p < end()
 @param      p
     Points to the element that will be erased; \a p cannot be end().
 @return
     A pointer to the element that replaced the one at \a p, or end() if \a p 
     was the last element. Either way, this is the same memory address as the 
     erased element had since there can be no reallocation here.
+@pre begin() <= \a p < end()
 @par Complexity:
     Calls T's destructor once for the erased element and calls T's copy 
     constructor and destructor once for each element that has to be moved.
@@ -2131,7 +2128,7 @@ T* eraseFast(T* p) {
     destruct(p);
     if (p+1 != end()) 
         moveOneElement(p, &back());
-    setSize(size()-1);
+    decrSize();
     return p;
 }
 
@@ -2192,7 +2189,7 @@ T* insert(T* p, const T& value)  {
     T* const gap = insertGapAt(p, 1, "Array<T>::insert(p,value)");
     // Copy construct into the inserted element and note the size change.
     copyConstruct(gap, value);
-    setSize(size()+1);
+    incrSize();
     return gap;
 }
 
@@ -2227,13 +2224,24 @@ of this array.
     new elements from the given value. **/
 template <class T2>
 T* insert(T* p, const T2* first, const T2* last1) {
-    const char* methodName = "Array_<T>::insert(p,first,last1)";
+    const char* methodName = "Array_<T>::insert(T* p, T2* first, T2* last1)";
     SimTK_ERRCHK((first&&last1) || (first==last1), methodName, 
         "One of first or last1 was null; either both or neither must be null.");
     SimTK_ERRCHK(last1<=begin() || end()<=first, methodName, 
         "Source pointers can't be within the destination array.");
     // Pointers are random access iterators.
-    return insertImpl(p,first,last1,std::random_access_iterator_tag());
+    return insertIteratorDispatch(p,first,last1,
+                                  std::random_access_iterator_tag(),
+                                  methodName);
+}
+
+/** Insert elements in a range [first,last1) where the range is given by
+non-pointer iterators. **/
+template <class Iter>
+T* insert(T* p, const Iter& first, const Iter& last1) {
+    return insertDispatch(first,last1,
+                          typename IsIntegralType<Iter>::Result(),
+                          "Array_<T>::insert(T* p, Iter first, Iter last1)");
 }
 /*@}    End of insertion and erase. **/
 
@@ -2241,6 +2249,7 @@ T* insert(T* p, const T2* first, const T2* last1) {
 //------------------------------------------------------------------------------
                                   private:
 //------------------------------------------------------------------------------
+
 // This method is used when we have already decided we need to make room for 
 // some new elements by reallocation, by creating a gap somewhere within the
 // existing data. We'll issue an error message if this would violate the  
@@ -2364,6 +2373,8 @@ T* insertGapAt(T* p, size_type n, const char* methodName) {
     return p;
 }
 
+//------------------------------------------------------------------------------
+//                           CTOR DISPATCH
 // This is the constructor implementation for when the class that matches
 // the alleged InputIterator type turns out to be one of the integral types
 // in which case this should be the ctor(n, initValue) constructor.
@@ -2401,7 +2412,7 @@ ctorIteratorDispatch(const InputIterator& first, const InputIterator& last1,
         // We can afford to check this always since we are probably doing I/O.
         SimTK_ERRCHK2_ALWAYS(size() < max_size(),
             "Array_::ctor(InputIterator first, InputIterator last1)",
-            "There will still source elements available when the array"
+            "There were still source elements available when the array"
             " reached its maximum size of %llu as determined by its index"
             " type %s.", ullMaxSize(), indexName());
         push_back(*src);
@@ -2439,14 +2450,40 @@ ctorIteratorDispatch(const ForwardIterator& first, const ForwardIterator& last1,
     copyConstruct(data(), data()+n, first);
 }
 
-// This is the slow generic insert() implementation for any input iterator that
-// can't do random access (input, forward, bidirectional).
-template <class InputIterator>
-T* insertImpl(T* p, InputIterator first, InputIterator last1, 
-              std::input_iterator_tag) 
+//------------------------------------------------------------------------------
+//                           INSERT DISPATCH
+// This is the insert() implementation for when the class that matches
+// the alleged InputIterator type turns out to be one of the integral types
+// in which case this should be the insert(p, n, initValue) constructor.
+template <class IntegralType> 
+T* insertDispatch(T* p, IntegralType n, IntegralType v, 
+                  TrueType isIntegralType, const char*) 
+{   return insert(p, size_type(n), value_type(v)); }
+
+// This is the insert() implementation for when the class that matches
+// the alleged InputIterator type is NOT an integral type and may very well
+// be an iterator. See ctorDispatch() above for more information.
+template <class InputIterator> 
+T* insertDispatch(T* p, const InputIterator& first, const InputIterator& last1, 
+                  FalseType isIntegralType, const char* methodName) 
+{   return insertIteratorDispatch(p, first, last1, 
+        typename std::iterator_traits<InputIterator>::iterator_category(),
+        methodName); }
+
+// This is the slow generic insert implementation for any iterator that can't
+// make it up to forward_iterator capability (that is, an input_iterator).
+// See ctorIteratorDispatch() above for more information.
+template <class InputIterator> 
+T* insertIteratorDispatch(T* p, InputIterator first, InputIterator last1, 
+                          std::input_iterator_tag, const char* methodName) 
 {
     size_type nInserted = 0;
     while (first != last1) {
+        // We can afford to check this always since we are probably doing I/O.
+        SimTK_ERRCHK2_ALWAYS(size() < max_size(), methodName,
+            "There were still source elements available when the array"
+            " reached its maximum size of %llu as determined by its index"
+            " type %s.", ullMaxSize(), indexName());
         p = insert(p, *first++);  // p may now point to reallocated memory
         ++p; ++nInserted;
     }
@@ -2455,30 +2492,64 @@ T* insertImpl(T* p, InputIterator first, InputIterator last1,
     return p-nInserted;
 }
 
-// This is the fast insert() implementation that works for random access
-// iterators including ordinary pointers.
-template <class RandomAccessIterator>
-T* insertImpl(T* p, RandomAccessIterator first, RandomAccessIterator last1,
-              std::random_access_iterator_tag) 
+// This is the faster constructor implementation for iterator types for which
+// we can calculate the number of elements in advance. This will be optimal
+// for a random access iterator since we can count in constant time, but for
+// forward or bidirectional we'll have to advance n times to count and then
+// go back again to do the copy constructions.
+template <class ForwardIterator>
+T* insertIteratorDispatch(T* p, const ForwardIterator& first, 
+                                const ForwardIterator& last1,
+                                std::forward_iterator_tag,
+                                const char* methodName) 
 {
-    const char* methodName = "Array_<T>::insert(p,first,last1)";
-    SimTK_ERRCHK(first <= last1, methodName, "Iterators were out of order.");
-    SimTK_ERRCHK3(isGrowthOK(last1-first), methodName,
-        "Source has %llu elements which would make this Array exceeed the %llu"
-        " elements allowed by its index type %s.",
-        ull(last1-first), ullMaxSize(), indexName());
+    typedef typename std::iterator_traits<ForwardIterator>::difference_type
+        difference_type;
+    // iterDistance() is constant time for random access iterators, but 
+    // O(last1-first) for forward and bidirectional since it has to increment 
+    // to count how far apart they are.
+    const difference_type nInput = iterDistance(first,last1);
 
-    const size_type n = size_type(last1-first);
+    SimTK_ERRCHK(nInput >= 0, methodName, "Iterators were out of order.");
+
+    SimTK_ERRCHK3(isGrowthOK(nInput), methodName,
+        "Source has %llu elements which would make this array exceed the %llu"
+        " elements allowed by its index type %s.",
+        ull(nInput), ullMaxSize(), indexName());
+
+    const size_type n = size_type(nInput);
     p = insertGapAt(p, n, methodName);
     copyConstruct(p, p+n, first);
     return p;
 }
 
+//------------------------------------------------------------------------------
+//                           ASSIGN DISPATCH
+// This is the assign() implementation for when the class that matches
+// the alleged InputIterator type turns out to be one of the integral types
+// in which case this should be the assign(n, initValue) constructor.
+template <class IntegralType>
+void assignDispatch(IntegralType n, IntegralType v, TrueType isIntegralType,
+                    const char* methodName) 
+{   assign(size_type(n), value_type(v)); }
+
+// This is the assign() implementation for when the class that matches
+// the alleged InputIterator type is NOT an integral type and may very well
+// be an iterator. See ctorDispatch() above for more information.
+template <class InputIterator> 
+void assignDispatch(const InputIterator& first, const InputIterator& last1, 
+                    FalseType isIntegralType, const char* methodName) 
+{   assignIteratorDispatch(first, last1, 
+        typename std::iterator_traits<InputIterator>::iterator_category(),
+        methodName); }
+
 // This is the slow generic implementation for any input iterator that
 // can't do random access (input, forward, bidirectional).
 template <class InputIterator>
-void assignImpl(const InputIterator& first, const InputIterator& last1, 
-                std::input_iterator_tag, const char* methodName) 
+void assignIteratorDispatch(const InputIterator& first, 
+                            const InputIterator& last1, 
+                            std::input_iterator_tag, 
+                            const char* methodName) 
 {
     SimTK_ERRCHK(isOwner(), methodName,
         "Assignment to a non-owner array can only be done from a source"
@@ -2498,17 +2569,17 @@ void assignImpl(const InputIterator& first, const InputIterator& last1,
 // fit in this array. Null pointer checks should be done prior to calling,
 // however, since iterators in general aren't pointers.
 template <class ForwardIterator>
-void assignImpl(const ForwardIterator& first, 
-                const ForwardIterator& last1,
-                std::forward_iterator_tag, 
-                const char*            methodName) 
+void assignIteratorDispatch(const ForwardIterator& first, 
+                            const ForwardIterator& last1,
+                            std::forward_iterator_tag, 
+                            const char* methodName) 
 {
     typedef typename std::iterator_traits<ForwardIterator>::difference_type
-        difference_type;
+        IterDiffType;
     // iterDistance() is constant time for random access iterators, but 
     // O(last1-first) for forward and bidirectional since it has to increment 
     // to count how far apart they are.
-    const difference_type nInput = iterDistance(first,last1);
+    const IterDiffType nInput = iterDistance(first,last1);
 
     SimTK_ERRCHK(nInput >= 0, methodName, "Iterators were out of order.");
 
@@ -2525,7 +2596,7 @@ void assignImpl(const ForwardIterator& first,
         clear(); // all elements destructed; allocation unchanged
         setSize(n);
         reallocateIfAdvisable(n); // change size if too small or too big
-        copyConstruct(data(), data()+n, first);
+        copyConstruct(data(), cdata()+n, first);
     } else {
         // This is a non-owner Array. Assignment can occur only if the
         // source is the same size as the array, and the semantics are of
@@ -2672,6 +2743,8 @@ bool isGrowthOK(S n) const
 // These provide direct access to the data members.
 void setData(const T* p)        {this->CBase::setData(p);}
 void setSize(size_type n)       {this->CBase::setSize(n);}
+void incrSize()                 {this->CBase::incrSize();}
+void decrSize()                 {this->CBase::decrSize();}
 void setAllocated(size_type n)  {this->CBase::setAllocated(n);}
 // This just cast sizes to unsigned long long so that we can do comparisons
 // without getting warnings.
