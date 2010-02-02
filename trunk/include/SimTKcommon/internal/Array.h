@@ -1466,19 +1466,55 @@ Array_& deallocate() {
 //------------------------------------------------------------------------------
 /** @name           Assignment methods and operators
 
-Assignment methods always begin by erasing all the elements currently in this 
-array, then <em>copy constructing</em>, not <em>assigning</em> from the source.
-This is therefore not exactly equivalent to elementwise assignment; it does not 
-use the element type's copy assignment operator. We may reuse the existing heap 
+These methods put new data values in an existing array, but the meaning of
+assignment is subtly different for resizeable (owner) arrays and fixed 
+(non-owner) arrays. The standard std::vector type is always an owner so the
+non-owner description here is an extension applying only to Array_.
+
+For the normal case of resizeable arrays, assignment does not have an 
+elementwise definition because the source will typically have a different 
+number of elements than the array's current size. So regardless of the actual 
+numbers, assignment in the resizeable case is defined as it is for std::vector:
+first clear the array by erasing (destructing) all the current elements in the
+array, then reserve sufficient heap space to hold a copy of the source, then 
+use appropriate constructors of type T (most commonly T's copy constructor 
+T(T)) to initialize each element to be a copy of the corresponding source 
+element. T's assignment operators are never used in this case.
+
+For fixed arrays, the source must have the same number of elments as are 
+currently in the array and the meaning is conventional elementwise assignment;
+that is, an appropriate assignment operator of type T (most commonly T's copy 
+assignment operator T=T) is used to change the value of each existing element. 
+
+So there are different requirements on the value type T for owner and non-owner
+assignments to type T2: for owner assignment T must have a constructor T(T2)
+available; for non-owner assignment, T must have an assignment operator T=T2 
+available; .
+
+@remarks
+- When reallocating the destination array, we may reuse the existing heap 
 allocation if it is sufficient and not \e too big; otherwise we'll reallocate 
-before copying. **/
+before copying. 
+- The fill() method here has elementwise assignment semantics regardless of
+whether the array is an owner or non-owner. **/
 /*@{*/
 
-/** Set this array to be n copies of the supplied fill value. Note that this
-serves to allow fill from an object whose type T2 is different from T, as
-long as there is a constructor T(T2) that works since that can be invoked
+/** Set this array to be \a n copies of the supplied \a fillValue. Note that 
+this serves to allow fill from an object whose type T2 is different from T, as
+long as there is a constructor T(T2) that works since that can be invoked 
 (implicitly or explicitly) to convert the T2 object to type T prior to the
-call. 
+call. If this is a non-owner array then \a n must be the same as the current
+size(); consider using the fill() method instead.
+@param[in] n            The number of elements to be in the result.
+@param[in] fillValue    The value to which to initialize each element.
+
+@pre \a n <= max_size()
+@pre for non-owner, n==size()
+@par Complexity:
+For a non-owner with \a n==size(), there will be exactly \a n calls to T's
+copy assignment operator. For an owner, there will be size() calls to T's
+destructor (if it has one), possibly a heap reallocation (but with no element
+copying), followed by \a n calls to T's copy constructor. 
 @see fill() **/ 
 void assign(size_type n, const T& fillValue) {
     const char* methodName = "Array_<T>::assign(n,value)";
@@ -1491,46 +1527,54 @@ void assign(size_type n, const T& fillValue) {
         "Requested size %llu is not allowed because this is a non-owner"
         " array of fixed size %llu.", ull(n), ull(size()));
 
-    clear(); // all elements destructed; allocation unchanged
-    reallocateIfAdvisable(n); // change size if too small or too big
-    fillConstruct(data(), cdata()+n, fillValue);
-    setSize(n);
+    if (!isOwner())
+        this->Base::fill(fillValue);
+    else {
+        clear(); // all elements destructed; allocation unchanged
+        reallocateIfAdvisable(n); // change size if too small or too big
+        fillConstruct(data(), cdata()+n, fillValue);
+        setSize(n);
+    }
 }
 
-/** Assign all current elements of the array to the same fill value. This is
+/** Assign all current elements of the array to the same \a fillValue. This is
 similar to assign(size(),fillValue) but the semantics are subtly different.
 Here we use repeated application of T's copy assignment operator T=fillValue,
 whereas the assign() semantics are to first destruct all the existing elements,
 then allocate if necessary, then use the copy constructor to initialize the
-new elements. **/
+new elements. Note that you can use this to fill from a source type T2 that
+is different from T as long as there exists a suitable constructor T(T2) that
+can be used to create the type T \a fillValue from the original T2 source.
+@note Unlike other assignment methods, the behavior of fill() is identical for
+owner and non-owner arrays.
+
+@param[in] fillValue    The value to which all existing elements are set.
+@par Complexity:
+Just size() calls to T's copy assignment operator. **/
 void fill(const T& fillValue) {this->Base::fill(fillValue);}
 
-/** Assign this array from a range [first,last1) given by non-pointer 
-iterators. If we can determine how many elements n that represents in advance, 
-we'll do only a single allocation here and call one of T's constructors exactly
-n times with no destructor calls except to erase the original data. If these 
-aren't random access iterators then we'll just have to add elements as we find
-them using push_back() meaning we may need to reallocate log(n) times. **/
-template <class Iter>
-void assign(const Iter& first, const Iter& last1) {
-    assignDispatch(first,last1,typename IsIntegralType<Iter>::Result(),
-                   "Array_<T>::assign(Iter first, Iter last1)");
-}
 
 /** Assign to this array to to make it a copy of the elements in range 
 [first,last1) given by ordinary pointers. It is not allowed for this range to 
 include any of the elements currently in the array. The source elements can be 
 of a T2 that may be the same or different than this array's element type T as 
-long as there is a constructor T(T2) that works. Note that although the source 
+long as there is a working constructor T(T2) (for owner arrays) or a working
+assignment operator T=T2 (for non-owner arrays). Note that although the source 
 arguments are pointers, those may be iterators for some container depending on 
 implementation details of the container. Specifically, any Array_<T2>::iterator 
 is an ordinary pointer.
 
+@param[in] first    A pointer to the first source element to be copied.
+@param[in] last1    A pointer to one element past the last source element.
+
 @par Complexity:
-Say the array initially has size n and capacity c, and the source provides
-m new elements. If type T has a destructor, it will be called exactly n times. 
-Reallocation will then occur if c < m and may occur if c >> m. Then the
-constructor T(T2) will be called exactly m times. **/
+For non-owner arrays, n=last1-first must equal the current size() in which
+case there will be exactly size() calls to the T=T2 assignment operator.
+For owner arrays, say the array initially has capacity c, and the 
+source provides n new elements. If type T has a destructor, it will be called 
+exactly size() times. Reallocation will then occur if c < n and may occur if 
+c >> n to avoid leaving a lot of unused space. Then the constructor T(T2) will 
+be called exactly n times. **/
 template <class T2>
 void assign(const T2* first, const T2* last1) {
     const char* methodName = "Array_<T>::assign(T2* first, T2* last1)";
@@ -1541,6 +1585,48 @@ void assign(const T2* first, const T2* last1) {
     // Pointers are random access iterators.
     assignIteratorDispatch(first,last1,std::random_access_iterator_tag(),
                            methodName);
+}
+
+
+/** Assign this array from a range [first,last1) given by non-pointer 
+iterators. See the assign(first,last1) method with pointer arguments for a
+relevant discussion.
+
+@remarks
+  - For a non-owner array this is only allowed if we can calculate the number of
+    source elements, and if that number is exactly the same as the current 
+    size().
+  - See Complexity discussion below for behavior for the different kinds of
+    iterators that might be supplied.
+  - It is not permitted for any of the source elements to overlap in memory
+    with the initial contents of the array.
+
+@param[in]      first    
+    An iterator pointing to the first source element to be copied.
+@param[in]      last1    
+    A iterator pointing one element past the last source element.
+
+@pre last1-first <= max_size()
+@pre for non-owner array, last1-first == size()
+@par Complexity:
+For a non-owner array, this is only allowed if n=last1-first equals the
+current size(), in which case we'll perform exactly n calls to the appropriate
+assignment operator of element type T. For owner arrays, if we can determine 
+how many elements n=last1-first the source contains in advance, we'll do only 
+a single allocation here and call one of T's constructors exactly n times after 
+just size() destructor calls needed to erase the original data. If the 
+iterators are random access iterators, calculating n is a fast constant-time
+operation. For forward or bidirectional iterators, we have to advance through
+the iterators once to count the source elements prior to allocating space,
+adding an O(n) cost. For input iterators, we can't count them in advance so
+we just have to add elements as we find them using push_back() meaning we may
+need to reallocate log(n) times, calling the destructor and copy constructor
+each time to move the elements around. 
+@see assign(T2* first, T2* last1) **/
+template <class Iter>
+void assign(const Iter& first, const Iter& last1) {
+    assignDispatch(first,last1,typename IsIntegralType<Iter>::Result(),
+                   "Array_<T>::assign(Iter first, Iter last1)");
 }
 
 /** Copy assignment operator destructs the current contents of this array and 
@@ -1580,6 +1666,18 @@ Array_& operator=(const std::vector<T2,A>& src) {
                            std::random_access_iterator_tag(),
                            "Array_<T>::operator=(std::vector)");
     return *this;
+}
+
+/** This is a specialized algorithm providing constant time exchange of data 
+with another array that has identical element and index types. This is \e much 
+faster than using the std::swap() algorithm on the arrays since that would
+involve O(n) copying operations. This method makes no calls to any constructors
+or destructors. This is allowable even for non-owner arrays; the non-owner
+attribute will follow the non-owned data. **/
+void swap(Array_& other) {
+    T* const pTmp=data(); setData(other.data()); other.setData(pTmp);
+    size_type nTmp=size(); setSize(other.size()); other.setSize(nTmp);
+    nTmp=allocated(); setAllocated(other.allocated()); other.setAllocated(nTmp);
 }
 
 /** This dangerous extension allows you to supply your own already-allocated
@@ -1645,17 +1743,6 @@ Array_& shareData(T* first, const T* last1) {
     return shareData(first, size_type(last1-first));
 }
 
-/** This is a specialized algorithm providing constant time exchange of data 
-with another array that has identical element and index types. This is \e much 
-faster than using the std::swap() algorithm on the arrays since that would
-involve O(n) copying operations. This method makes no calls to any constructors
-or destructors. This is allowable even for non-owner arrays; the non-owner
-attribute will follow the non-owned data. **/
-void swap(Array_& other) {
-    T* const pTmp=data(); setData(other.data()); other.setData(pTmp);
-    size_type nTmp=size(); setSize(other.size()); other.setSize(nTmp);
-    nTmp=allocated(); setAllocated(other.allocated()); other.setAllocated(nTmp);
-}
 /*@}    End of assignment. **/
 
 
@@ -1803,7 +1890,7 @@ reverse iterator's base() method. **/
 /*@{*/
 
 /** Return a const pointer to the first element of this array if any, otherwise
-end(), which may be null (0) in that case but does not have to be. This method
+cend(), which may be null (0) in that case but does not have to be. This method
 is from the proposed C++0x standard; there is also an overloaded begin() from
 the original standard that returns a const pointer. **/
 const T* cbegin() const {return this->CBase::cbegin();}
@@ -2795,14 +2882,12 @@ operator<<(std::ostream& o, const ArrayViewConst_<T,X>& a) {
 /**@name                    Comparison operators
 
 These operators permit lexicographical comparisons between two comparable
-ArrayViewConst_ objects, possibly with differing element and index types, and between 
-an ArrayViewConst_ object and a comparable std::vector object.
-@relates Array_ **/
+Array_ objects, possibly with differing element and index types, and between 
+an Array_ object and a comparable std::vector object. @relates Array_ **/
 /*@{*/
 
-/** Two Arrays are equal if and only if they are the same size() and each
-element compares equal using an operator T1==T2.  
-@relates Array_ **/
+/** Two Array_ objects are equal if and only if they are the same size() and 
+each element compares equal using an operator T1==T2. @relates Array_ **/
 template <class T1, class X1, class T2, class X2> inline bool 
 operator==(const ArrayViewConst_<T1,X1>& a1, const ArrayViewConst_<T2,X2>& a2) {
     // Avoid warnings in size comparison by using common type.
@@ -2821,11 +2906,10 @@ template <class T1, class X1, class T2, class X2> inline bool
 operator!=(const ArrayViewConst_<T1,X1>& a1, const ArrayViewConst_<T2,X2>& a2)
 {   return !(a1 == a2); }
 
-/** Arrays are ordered lexicographically; that is, by first differing element
-or by length if there are no differing elements up to the length of the
+/** Array_ objects are ordered lexicographically; that is, by first differing 
+element or by length if there are no differing elements up to the length of the
 shorter array (in which case the shorter one is "less than" the longer). 
-This depends on T1==T2 and T1<T2 operators working.  
-@relates Array_ **/
+This depends on T1==T2 and T1<T2 operators working. @relates Array_ **/
 template <class T1, class X1, class T2, class X2> inline bool 
 operator<(const ArrayViewConst_<T1,X1>& a1, const ArrayViewConst_<T2,X2>& a2) {
     const T1* p1 = a1.begin();
@@ -2840,18 +2924,18 @@ operator<(const ArrayViewConst_<T1,X1>& a1, const ArrayViewConst_<T2,X2>& a2) {
     return p1 == a1.end() && p2 != a2.end();
 }
 /** The greater than or equal operator is implemented using the less than 
-operator. **/
+operator. @relates Array_ **/
 template <class T1, class X1, class T2, class X2> inline bool 
 operator>=(const ArrayViewConst_<T1,X1>& a1, const ArrayViewConst_<T2,X2>& a2)
 {   return !(a1 < a2); }
 /** The greater than operator is implemented by using less than with the
-arguments reversed. 
-@relates Array_ **/
+arguments reversed, meaning the elements must have working comparison
+operators of the form T2==T1 and T2<T1. @relates Array_ **/
 template <class T1, class X1, class T2, class X2> inline bool 
 operator>(const ArrayViewConst_<T1,X1>& a1, const ArrayViewConst_<T2,X2>& a2)
 {   return a2 < a1; }
 
-/** An ArrayViewConst_<T1> and an std::vector<T2> are equal if and only if they are the 
+/** An Array_<T1> and an std::vector<T2> are equal if and only if they are the 
 same size() and each element compares equal using an operator T1==T2.  
 @relates Array_ **/
 template <class T1, class X1, class T2, class A2> inline bool 
@@ -2867,7 +2951,7 @@ operator==(const ArrayViewConst_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
         if (!(*p1++ == *p2++)) return false;
     return true;
 }
-/** An std::vector<T1> and an ArrayViewConst_<T2> are equal if and only if they are the 
+/** An std::vector<T1> and an Array_<T2> are equal if and only if they are the 
 same size() and each element compares equal using an operator T2==T1.  
 @relates Array_ **/
 template <class T1, class A1, class T2, class X2> inline bool 
@@ -2885,7 +2969,7 @@ template <class T1, class A1, class T2, class X2> inline bool
 operator!=(const std::vector<T1,A1>& v1, const ArrayViewConst_<T2,X2>& a2)
 {   return !(a2 == v1); }
 
-/** An ArrayViewConst_<T1> and std::vector<T2> are ordered lexicographically; that is, 
+/** An Array_<T1> and std::vector<T2> are ordered lexicographically; that is, 
 by first differing element or by length if there are no differing elements up 
 to the length of the shorter container (in which case the shorter one is 
 "less than" the longer). This depends on having working element operators 
@@ -2904,7 +2988,7 @@ operator<(const ArrayViewConst_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
     // a1 is less than a2 only if a1 ran out and a2 didn't.
     return p1 == a1.end() && p2 != v2.end();
 }
-/** An std::vector<T1> and ArrayViewConst_<T2> are ordered lexicographically; that is, 
+/** An std::vector<T1> and Array_<T2> are ordered lexicographically; that is, 
 by first differing element or by length if there are no differing elements up 
 to the length of the shorter container (in which case the shorter one is 
 "less than" the longer). This depends on having working element operators 
@@ -2935,12 +3019,14 @@ operator>=(const std::vector<T1,A1>& v1, const ArrayViewConst_<T2,X2>& a2)
 {   return !(v1 < a2); }
 
 /** The greater than operator is implemented by using less than with the
-arguments reversed. @relates Array_ **/
+arguments reversed, meaning the elements must have working comparison
+operators of the form T2==T1 and T2<T1. @relates Array_  **/
 template <class T1, class X1, class T2, class A2> inline bool 
 operator>(const ArrayViewConst_<T1,X1>& a1, const std::vector<T2,A2>& v2)
 {   return v2 < a1; }
 /** The greater than operator is implemented by using less than with the
-arguments reversed. @relates Array_ **/
+arguments reversed, meaning the elements must have working comparison
+operators of the form T2==T1 and T2<T1. @relates Array_  **/
 template <class T1, class A1, class T2, class X2> inline bool 
 operator>(const std::vector<T1,A1>& v1, const ArrayViewConst_<T2,X2>& a2)
 {   return a2 < v1; }
