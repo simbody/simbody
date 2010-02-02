@@ -584,7 +584,7 @@ template <class T> struct IsFloatingType {
     otherwise it is FalseType. **/
     typedef FalseType Result;
 };
-template<> struct IsFloatingType<float> {typedef TrueType Result;};
+template<> struct IsFloatingType<float>  {typedef TrueType Result;};
 template<> struct IsFloatingType<double> {typedef TrueType Result;};
 template<> struct IsFloatingType<long double> {typedef TrueType Result;};
 
@@ -596,12 +596,26 @@ template <class T> struct IsVoidType {
 };
 template<> struct IsVoidType<void> {typedef TrueType Result;};
 
+/** Compile-time test: is this one of the built-in "arithmetic" types, meaning
+an integral or floating type? **/
 template <class T> struct IsArithmeticType {
     /** This typedef is TrueType if the template type T is one of the integral;
     or floating types, otherwise it is FalseType. **/
     typedef OrOpType<typename IsIntegralType<T>::Result,
                      typename IsFloatingType<T>::Result>    Result;
 };
+
+// This struct's sole use is to allow us to define the typedef Is64BitPlatform
+// as equivalent to either TrueType or FalseType.
+template <bool is64Bit> struct Is64BitHelper {};
+template<> struct Is64BitHelper<true>  {typedef TrueType Result;};
+template<> struct Is64BitHelper<false> {typedef FalseType Result;};
+
+/** Compile-time test: this typedef will be TrueType if this is a 64-bit 
+platform, meaning that the size of a pointer is the same as the size of a 
+long long; otherwise it will be FalseType and we have a 32-bit platform meaning
+that the size of a pointer is the same as an int. **/
+typedef Is64BitHelper<(sizeof(size_t) > sizeof(int))>::Result Is64BitPlatform;
 
 
 // In case you don't like the name you get from typeid(), you can specialize

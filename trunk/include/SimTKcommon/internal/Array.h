@@ -235,7 +235,44 @@ template <> struct ArrayIndexTraits<long long> {
     static size_type            max_size() {return LLONG_MAX;}
 };
 
+// This helper class decides what integral type we should use to best pack
+// the index type's size_type representation. The idea is to pack the whole
+// Array_ structure into 8 bytes on a 32 bit machine, 16 bytes on a 64 bit
+// machine, using the largest integral type that will work, giving a layout
+// like this:          |       data pointer     |
+//                     |   nUsed   | nAllocated |
 
+// The default implementation just uses the integral type itself.
+template <class Integral, class is64Bit> struct IndexPackTypeHelper 
+{   typedef Integral packed_size_type;};
+
+// On 32 bit machine, pack anything smaller than a short into a short.
+template<> struct IndexPackTypeHelper<bool,FalseType> 
+{   typedef unsigned short packed_size_type;};
+template<> struct IndexPackTypeHelper<char,FalseType> 
+{   typedef unsigned short packed_size_type;};
+template<> struct IndexPackTypeHelper<unsigned char,FalseType> 
+{   typedef unsigned short packed_size_type;};
+template<> struct IndexPackTypeHelper<signed char,FalseType> 
+{   typedef short packed_size_type;};
+
+// On 64 bit machine, pack anything smaller than an int into an int.
+template<> struct IndexPackTypeHelper<bool,TrueType> 
+{   typedef unsigned int packed_size_type;};
+template<> struct IndexPackTypeHelper<char,TrueType> 
+{   typedef unsigned int packed_size_type;};
+template<> struct IndexPackTypeHelper<unsigned char,TrueType> 
+{   typedef unsigned int packed_size_type;};
+template<> struct IndexPackTypeHelper<signed char,TrueType> 
+{   typedef int packed_size_type;};
+template<> struct IndexPackTypeHelper<unsigned short,TrueType> 
+{   typedef unsigned int packed_size_type;};
+template<> struct IndexPackTypeHelper<short,TrueType> 
+{   typedef int packed_size_type;};
+
+template <class Integral> struct IndexPackType
+{   typedef typename IndexPackTypeHelper<Integral,Is64BitPlatform>
+                        ::packed_size_type  packed_size_type;};
 
 //==============================================================================
 //                            CLASS ArrayViewConst_
@@ -658,6 +695,8 @@ unsigned long long ullMaxSize()  const {return ull(max_size());}
 const char* indexName() const {return NiceTypeName<X>::name();}
 
 private:
+typedef typename IndexPackType<size_type>::packed_size_type packed_size_type;
+
 //------------------------------------------------------------------------------
 //                               DATA MEMBERS
 //------------------------------------------------------------------------------
@@ -1557,12 +1596,12 @@ void fill(const T& fillValue) {this->Base::fill(fillValue);}
 /** Assign to this array to to make it a copy of the elements in range 
 [first,last1) given by ordinary pointers. It is not allowed for this range to 
 include any of the elements currently in the array. The source elements can be 
-of a T2 that may be the same or different than this array's element type T as 
-long as there is a working constructor T(T2) (for owner arrays) or a working
-assignment operator T=T2 (for non-owner arrays). Note that although the source 
-arguments are pointers, those may be iterators for some container depending on 
-implementation details of the container. Specifically, any Array_<T2>::iterator 
-is an ordinary pointer.
+of a type T2 that may be the same or different than this array's element type 
+T as long as there is a working constructor T(T2) (for owner arrays) or a 
+working assignment operator T=T2 (for non-owner arrays). Note that although the
+source arguments are pointers, those may be iterators for some container 
+depending on implementation details of the container. Specifically, any 
+Array_<T2>::iterator or const_iterator is an ordinary pointer.
 
 @param[in] first    A pointer to the first source element to be copied.
 @param[in] last1    A pointer to one element past the last source element.

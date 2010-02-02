@@ -474,6 +474,26 @@ void testSpeedSimTKArray() {
 
 #include <typeinfo>
 int main() {
+    cout << "Is64BitPlatform=" << typeid(Is64BitPlatform).name() << endl;
+    cout << "packed_size_type<char>=" 
+        << typeid(IndexPackType<char>::packed_size_type).name() << endl;
+    cout << "packed_size_type<signed char>=" 
+        << typeid(IndexPackType<signed char>::packed_size_type).name() << endl;
+    cout << "packed_size_type<unsigned char>=" 
+        << typeid(IndexPackType<unsigned char>::packed_size_type).name() << endl;
+    cout << "packed_size_type<short>=" 
+        << typeid(IndexPackType<short>::packed_size_type).name() << endl;
+    cout << "packed_size_type<unsigned short>=" 
+        << typeid(IndexPackType<unsigned short>::packed_size_type).name() << endl;
+    cout << "packed_size_type<int>=" 
+        << typeid(IndexPackType<int>::packed_size_type).name() << endl;
+    cout << "packed_size_type<unsigned>=" 
+        << typeid(IndexPackType<unsigned>::packed_size_type).name() << endl;
+    cout << "packed_size_type<long>=" 
+        << typeid(IndexPackType<long>::packed_size_type).name() << endl;
+    cout << "packed_size_type<unsigned long long>=" 
+        << typeid(IndexPackType<unsigned long long>::packed_size_type).name() << endl;
+
     cout << typeid(Array_<String,char>).name() << endl;
 
     SimTK_START_TEST("TestArray");
