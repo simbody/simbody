@@ -1343,6 +1343,9 @@ void avAssignIteratorDispatch(const RandomAccessIterator& first,
 // is due to their not depending on any template parameters; the "this->"
 // apparently fixes that problem.
 
+packed_size_type psize()      const {return this->CBase::psize();}
+packed_size_type pallocated() const {return this->CBase::pallocated();}
+
 // This just cast sizes to unsigned long long so that we can do comparisons
 // without getting warnings.
 unsigned long long ullSize()     const {return this->CBase::ullSize();}
@@ -3072,6 +3075,9 @@ bool isGrowthOK(S n) const
 // apparently fixes that problem.
 
 // These provide direct access to the data members.
+packed_size_type psize()      const {return this->CBase::psize();}
+packed_size_type pallocated() const {return this->CBase::pallocated();}
+
 void setData(const T* p)        {this->CBase::setData(p);}
 void setSize(size_type n)       {this->CBase::setSize(n);}
 void incrSize()                 {this->CBase::incrSize();}
