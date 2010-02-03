@@ -42,7 +42,12 @@
 #include <iostream>
 using std::cout;
 using std::endl;
+using std::cin;
 
+
+using namespace SimTK;
+
+// Output an std::vector<T>
 template <class T>
 std::ostream& operator<<(std::ostream& o, std::vector<T>& v) {
     o << '<';
@@ -54,7 +59,25 @@ std::ostream& operator<<(std::ostream& o, std::vector<T>& v) {
     return o << '>';
 }
 
-using namespace SimTK;
+// Input an Array_<T>
+template <class T, class X> inline std::istream&
+operator>>(std::istream& i, Array_<T,X>& a) {
+    if (a.isOwner()) {
+        a.clear();
+        while(!i.eof()) {
+            a.push_back(); // default construct new element
+            i >> a.back(); // input last element
+        }
+    } else { // non-owner
+        typedef typename Array_<T,X>::size_type size_type;
+        for (size_type e(0); e < a.size() && !i.eof(); ++e)
+            i >> a[e];
+    }
+    return i;
+} 
+template <class T, class X> inline std::istream&
+operator>>(std::istream& i, ArrayView_<T,X>& a) 
+{   return i >> (Array_<T,X>&)a; }
 
 template <class T>
 class OtherArray_ : public Array_<T> {
@@ -454,6 +477,16 @@ void testInputIterator() {
     // This should be OK.
     SmallArray okSmall(psmall, Iter());
     SimTK_TEST(okSmall == smallAnswer);
+
+    Array_<float> farray;
+    std::istringstream("-1.2 3e4 .003 11 4e-7") >> farray;
+    cout << "Farray=" << farray << endl;
+
+    // Replace middle three elements.
+    ArrayView_<float> fmid(farray(1,3));
+    std::istringstream("9.1e2 9.2e2 9.2e3") >> fmid;
+    cout << "Farray=" << farray << endl;
+
 }
 
 // Reduce the loop count by 50X in Debug.
