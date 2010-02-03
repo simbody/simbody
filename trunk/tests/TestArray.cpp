@@ -479,13 +479,17 @@ void testInputIterator() {
     SimTK_TEST(okSmall == smallAnswer);
 
     Array_<float> farray;
-    std::istringstream("-1.2 3e4 .003 11 4e-7") >> farray;
-    cout << "Farray=" << farray << endl;
+    const float farray_ans1[] = {-1.5f,3e4f,.125f,11,4e-7f};
+    std::istringstream fin1("-1.5 3e4 .125 11 4e-7");
+    fin1 >> farray;
+    SimTK_TEST(farray == std::vector<float>(farray_ans1, farray_ans1+5));
 
     // Replace middle three elements.
     ArrayView_<float> fmid(farray(1,3));
-    std::istringstream("9.1e2 9.2e2 9.2e3") >> fmid;
-    cout << "Farray=" << farray << endl;
+    const float farray_ans2[] = {-1.5f,910,920,9200,4e-7f};
+    std::istringstream fin2("9.1e2 9.2e2 9.2e3");
+    fin2 >> fmid;
+    SimTK_TEST(farray == Array_<float>(farray_ans2, farray_ans2+5));
 
 }
 
