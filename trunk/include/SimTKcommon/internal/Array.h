@@ -418,7 +418,8 @@ to detect that.
     performed.
 @see disconnect() **/
 template <class A>
-ArrayViewConst_(const std::vector<T,A>& v) : pData(0),nUsed(0),nAllocated(0) { 
+ArrayViewConst_(const std::vector<T,A>& v) 
+:   pData(0),nUsed(0),nAllocated(0) { 
     if (v.empty()) return;
 
     SimTK_ERRCHK3(isSizeOK(v.size()), 
@@ -670,7 +671,8 @@ template <class S>
 bool isSizeOK(S srcSz) const
 {   return ull(srcSz) <= ullMaxSize(); }
 
-// This is identical in function to std::distance() but avoids any slow 
+// This is identical in function to std::distance() (reports how many 
+// elements lie between two iterators) but avoids any slow 
 // Release-build bugcatchers that Microsoft may have felt compelled to add.
 // The implementation is specialized for random access iterators because
 // they can measure distance very fast.
@@ -700,6 +702,60 @@ typename std::iterator_traits<Iter>::difference_type
 iterDistanceImpl(const Iter& first, const Iter& last1, 
                  std::random_access_iterator_tag) {
     return last1 - first;
+}
+
+// This method attempts to determine whether any elements in the iterator range
+// [first,last1) overlap with the elements stored in this array. This is used 
+// for error checks for operations where source is not permitted to overlap the
+// destination. For random access iterators (including ordinary pointers), we 
+// can answer this question definitively because we expect the data to be 
+// consecutive in memory. For other kinds of iterators, we will just assume
+// there is no overlap. Note that null ranges do not overlap even if the
+// pair of equal iterators points within the other range -- what matters is
+// the number of overlapping elements.
+template<class Iter> bool
+overlapsWithData(const Iter& first, const Iter& last1) {
+    return overlapsWithDataImpl(first,last1,
+                typename std::iterator_traits<Iter>::iterator_category());
+}
+
+// This is a partial specialization of the above where the data is given
+// with ordinary pointers.
+template <class T2> bool
+overlapsWithData(const T2* first, const T2* last1) {
+    // Find the start and end+1 of the alleged overlap region. There is
+    // overlap iff end+1 > start. Note that this works if either range 
+    // is [0,0) or [p,p), or if last1 is illegally less than first (we just
+    // want to report no overlap in that case -- it is someone else's business
+    // to complain).
+    const T* obegin = std::max(cbegin(), (const T*)first);
+    const T* oend1  = std::min(cend(),   (const T*)last1);
+
+    return obegin < oend1;
+}
+
+// This is the generic implementation for any type of input iterator other than
+// random access (i.e., bidirectional, forward, or input) -- assume no overlap.
+template<class Iter> bool
+overlapsWithDataImpl(const Iter&, const Iter&, std::input_iterator_tag) 
+{   return false; }
+
+// Here we can actually test for overlap since we have random access iterators.
+// We convert them to pointers and then look for memory overlap.
+template<class Iter> bool
+overlapsWithDataImpl(const Iter& first, const Iter& last1, 
+                     std::random_access_iterator_tag) {
+    // We must check that the input iterators span a non-zero range before
+    // assuming we can dereference them.
+    if (last1 <= first)
+        return false; // zero or malformed source range: no overlap
+
+    // We now know we can dereference first and last1-1 (can't safely 
+    // dereference last1 but we can use pointer arithmetic to point past
+    // the (last-1)th element in memory). We then take the dereferenced
+    // object's address to get ordinary pointers that we can use to 
+    // watch for illegal overlap.
+    return overlapsWithData(&*first, &*(last1-1)); // use pointer overload
 }
 
 // Cast an integral type to maximal-width unsigned long long to avoid accidental
@@ -819,64 +875,75 @@ We never perform any element destruction or construction here. **/
 
 /** Copy assignment. **/
 ArrayView_& operator=(const ArrayView_& src) {
-    if (&src == this) return *this;
-    SimTK_ERRCHK2(isSameSize(src.size()), "ArrayView_::operator=(ArrayView_)",
-        "Assignment to an ArrayView is permitted only if the source"
-        " is the same size. Here the source had %llu element(s) but the"
-        " ArrayView has a fixed size of %llu.", 
-        ull(src.size()), ull(size()));
-
-    T* d = begin(); const T* s = src.begin();
-    while (d != end())
-        *d++ = *s++; // using T::operator=(T)
+    if (&src != this)
+        avAssignIteratorDispatch(src.cbegin(), src.cend(),
+                                 std::random_access_iterator_tag(),
+                                 "ArrayView_<T>::operator=(ArrayView_<T>)");
     return *this;
 }
+
 
 /** Assignment from any other array object is allowed as long as the number
 of elements matches and the types are assignment compatible. **/
 template <class T2, class X2>
 ArrayView_& operator=(const ArrayViewConst_<T2,X2>& src) {
-    if ((const void*)&src == (void*)this) return *this;
-    SimTK_ERRCHK2(isSameSize(src.size()), 
-        "ArrayView_<T>::operator=(ArrayViewConst_<T2>)",
-        "Assignment to an ArrayView is permitted only if the source"
-        " is the same size. Here the source had %llu element(s) but the"
-        " ArrayView has a fixed size of %llu.", 
-        ull(src.size()), ull(size()));
-
-    T* d = begin(); const T2* s = src.begin();
-    while (d != end())
-        *d++ = *s++; // using T::operator=(T2)
+    if ((const void*)&src != (void*)this)
+        avAssignIteratorDispatch(src.cbegin(), src.cend(),
+                                 std::random_access_iterator_tag(),
+                                 "ArrayView_<T>::operator=(Array_<T2>)");
     return *this;
 }
 
+// Help out dumb compilers struggling to match the template arguments and
+// promote the Array_ or ArrayView_ to ArrayConstView_ at the same time.
+
+/** Assignment from any other array object is allowed as long as the number
+of elements matches and the types are assignment compatible. **/
+template <class T2, class X2>
+ArrayView_& operator=(const ArrayView_<T2,X2>& src)
+{   return *this = static_cast<const ArrayViewConst_<T2,X2>&>(src); }
+/** Assignment from any other array object is allowed as long as the number
+of elements matches and the types are assignment compatible. **/
+template <class T2, class X2>
+ArrayView_& operator=(const Array_<T2,X2>& src)
+{   return *this = static_cast<const ArrayViewConst_<T2,X2>&>(src); }
 
 /** Assignment from any std::vector object is allowed as long as the number
 of elements matches and the types are assignment compatible. **/
 template <class T2, class A2>
 ArrayView_& operator=(const std::vector<T2,A2>& src) {
-    SimTK_ERRCHK2(isSameSize(src.size()), "ArrayView_::operator=(std::vector)",
-        "Assignment to an ArrayView is permitted only if the source"
-        " is the same size. Here the source had %llu element(s) but the"
-        " ArrayView has a fixed size of %llu.", 
-        ull(src.size()), ull(size()));
-
-    T*                                          d = begin(); 
-    typename std::vector<T2,A2>::const_iterator s = src.begin();
-    while (d != end())
-        *d++ = *s++; // using T::operator=(T2)
+    avAssignIteratorDispatch(src.begin(), src.end(),
+                             std::random_access_iterator_tag(),
+                             "ArrayView_<T>::operator=(std::vector<T2>)");
     return *this;
 }
 
-/** Assign the supplied fill value to each element of this array. Note that 
-this serves to allow fill from an object whose type T2 is different from T, as
-long as there is a constructor T(T2) that works since that can be invoked
-(implicitly or explicitly) to convert the T2 object to type T prior to the
-call. **/ 
+/** Fill assignment -- all elements are set to fillValue. @see fill() **/
+ArrayView_& operator=(const T& fillValue) 
+{   fill(fillValue); return *this; }
+
+/** Assign the supplied fill value to each element of this array, using T's
+copy assignment operator for each element. Note that this also serves to allow
+fill from an object whose type T2 is different from T, as long as there is a 
+constructor T(T2) that works since that can be invoked (implicitly or 
+explicitly) to convert the T2 object to type T prior to the call. **/ 
 ArrayView_& fill(const T& fillValue) {
     for (T* d = begin(); d != end(); ++d)
         *d = fillValue; // using T::operator=(T)
     return *this;
+}
+
+/** This is the same as fill() but has the usual std::vector signature for
+compatibility; it will only work if the given number of elements is the same
+as this array's (fixed) size. **/
+void assign(size_type n, const T& fillValue) {
+    SimTK_ERRCHK2(n == size(), "ArrayView_<T>::assign(n,value)",
+        "Assignment to an ArrayView is permitted only if the source"
+        " is the same size. Here n==%llu element(s) but the"
+        " ArrayView has a fixed size of %llu.", 
+        ull(n), ull(size()));
+
+    fill(fillValue);
 }
 
 /** Assign to this array to make it a copy of the elements in range 
@@ -892,25 +959,14 @@ ArrayViewConst_, ArrayView_, or Array_ iterator is an ordinary pointer.
 @par Complexity:
     The T=T2 assignment operator will be called exactly size() times. **/
 template <class T2>
-ArrayView_& assign(const T2* first, const T2* last1) {
-    const char* methodName = "ArrayView_<T>::assign(first,last1)";
-    SimTK_ERRCHK2(isSameSize(last1-first), methodName,
-        "Assignment to an ArrayView is permitted only if the source"
-        " is the same size. Here the source had %llu element(s) but the"
-        " ArrayView has a fixed size of %llu.", 
-        ull(last1-first), ull(size()));
+void assign(const T2* first, const T2* last1) {
+    const char* methodName = "ArrayView_<T>::assign(T2* first, T2* last1)";
     SimTK_ERRCHK((first&&last1)||(first==last1), methodName, 
         "One of the source pointers was null (0); either both must be"
         " non-null or both must be null.");
-    SimTK_ERRCHK(first <= last1, methodName, 
-        "Source pointers were out of order.");
-    SimTK_ERRCHK(last1<=begin() || end()<=first, methodName, 
-        "Source pointers can't point within the destination data.");
-
-    T* d = begin(); const T2* s = first;
-    while (d != end())
-        *d++ = *s++; // using T::operator=(T2)
-    return *this;
+    // Valid pointers are random access iterators.
+    avAssignIteratorDispatch(first, last1, std::random_access_iterator_tag(),
+                             methodName);
 }
 
 /** Assign to this array to to make it a copy of the elements in range 
@@ -922,38 +978,22 @@ include any of the elements currently in the array. The source elements can be
 of a type T2 that may be the same or different than this array's element type 
 T as long as there is a T=T2 operator that works.
 
+The source must have the same number of elements as the current (fixed) size
+of this ArrayView. For input_iterators we'll be happy if we get enough elements
+and won't insist that the input stream is empty after that. For forward_ and
+bidirectional_iterators we'll copy the elements and complain at the end if
+there are too few or too many. For random_access_iterators we'll check in
+advance since we can do that fast.
+
 @par Complexity:
     The T=T2 assignment operator will be called exactly size() times. **/
-template <class RandomAccessIterator>
-ArrayView_& assign(const RandomAccessIterator& first, 
-                   const RandomAccessIterator& last1) {
-    const char* methodName = "ArrayView_<T>::assign(Iter first, Iter last1)";
-    SimTK_ERRCHK2(isSameSize(last1-first), methodName,
-        "Assignment to an ArrayView is permitted only if the source"
-        " is the same size. Here the source had %llu element(s) but the"
-        " ArrayView has a fixed size of %llu.", 
-        ull(last1-first), ull(size()));
-    SimTK_ERRCHK(first <= last1, methodName, 
-        "Source iterators were out of order.");
 
-    // If the source was zero length and this is empty, everything's fine
-    // but there is nothing to do.
-    if (empty()) return *this;
-
-    // Now we know we can dereference first and last1-1 (can't safely 
-    // dereference last1 but we can use pointer arithmetic to point past
-    // the (last-1)th element in memory). We then take the dereferenced
-    // object's address to get ordinary pointers that we can use to 
-    // watch for illegal overlap.
-    SimTK_ERRCHK((const T*)(&*(last1-1)+1)<=cbegin() 
-                 || cend()<=(const T*)&*first, methodName, 
-        "Source iterators can't point within the destination data.");
-
-    T* d = begin(); RandomAccessIterator s = first;
-    while (d != end())
-        *d++ = *s++; // using T::operator=(T2)
-    return *this;
-}
+// Watch out for integral types matching this signature -- they must be
+// forwarded to the assign(n, fillValue) signature instead.
+template <class Iter>
+void assign(const Iter& first, const Iter& last1)
+{   avAssignDispatch(first,last1,typename IsIntegralType<Iter>::Result(),
+                     "ArrayView_<T>::assign(Iter first, Iter last1)"); }
 /*@}    End of assignment. */
 
 
@@ -1193,8 +1233,112 @@ explicit ArrayView_(const TrustMe& tm) : CBase(tm) {}
 //------------------------------------------------------------------------------
 // no data members are allowed
 
-// The following private methods are protected methods in the ArrayViewConst_ base 
-// class, so they should not need repeating here. However, we explicitly 
+//------------------------------------------------------------------------------
+//                       ARRAY VIEW ASSIGN DISPATCH
+// This is the assign() implementation for ArrayView_ when the class that 
+// matched the alleged InputIterator template argument turned out to be one of 
+// the integral types in which case this should match the assign(n, fillValue) 
+// signature.
+template <class IntegralType>
+void avAssignDispatch(IntegralType n, IntegralType v, TrueType isIntegralType,
+                      const char*) 
+{   assign(size_type(n), value_type(v)); }
+
+// This is the assign() implementation for ArrayView_ when the class that 
+// matched the alleged InputIterator template argument is NOT an integral type 
+// and may very well be an iterator. 
+template <class InputIterator> 
+void avAssignDispatch(const InputIterator& first, const InputIterator& last1, 
+                      FalseType isIntegralType, const char* methodName) 
+{   avAssignIteratorDispatch(first, last1, 
+        typename std::iterator_traits<InputIterator>::iterator_category(),
+        methodName); }
+
+// This is the assign() implementation for a plain input_iterator
+// (i.e., not a forward, bidirectional, or random access iterator). These
+// have the unfortunate property that we can't count the elements in advance.
+// Here we're going to complain if there aren't enough; but will simply stop
+// when we get size() elements and not insist that the input stream reached
+// the supplied last1 iterator. Semantics is elementwise assignment.
+template <class InputIterator>
+void avAssignIteratorDispatch(const InputIterator& first, 
+                              const InputIterator& last1, 
+                              std::input_iterator_tag, 
+                              const char* methodName) 
+{
+    T* p = begin();
+    InputIterator src = first;
+    while (src != last1 && p != end())
+        *p++ = *src++; // call T's assignment operator
+
+    // p now points just after the last element that was copied.
+    const size_type nCopied = size_type(p - begin());
+    SimTK_ERRCHK2_ALWAYS(nCopied == size(), methodName,
+        "The supplied input_iterator provided only %llu elements but this"
+        " ArrayView has a fixed size of %llu elements.",
+        ull(nCopied), ullSize());
+
+    // We don't care if there are still more input elements available.
+}
+
+// This is the assign() implementation that works for forward and bidirectional
+// iterators, but is not used for random_access_iterators. Here we'll count
+// the elements as we copy them and complain at the end if there were too
+// few or too many.
+template <class ForwardIterator>
+void avAssignIteratorDispatch(const ForwardIterator& first, 
+                              const ForwardIterator& last1,
+                              std::forward_iterator_tag, 
+                              const char* methodName) 
+{
+    T* p = begin();
+    ForwardIterator src = first;
+    while (src != last1 && p != end())
+        *p++ = *src++; // call T's assignment operator
+
+    // p now points just after the last element that was copied.
+    const size_type nCopied = size_type(p - begin());
+    SimTK_ERRCHK2_ALWAYS(nCopied == size(), methodName,
+        "The supplied forward_ or bidirectional_iterator source range provided"
+        " only %llu elements but this ArrayView has a fixed size of"
+        " %llu elements.", ull(nCopied), ullSize());
+
+    // Make sure we ran out of source elements.
+    SimTK_ERRCHK1_ALWAYS(src == last1, methodName,
+        "The supplied forward_ or bidirectional_iterator source range"
+        " contained too many elements; this ArrayView has a fixed size of"
+        " %llu elements.", ullSize());
+}
+
+// This is the assign() implementation that works for random_access_iterators
+// including ordinary pointers. Here we check the number of elements in advance
+// and complain if the source and destination aren't the same size. The 
+// copying loop can be done faster in this case.
+template <class RandomAccessIterator>
+void avAssignIteratorDispatch(const RandomAccessIterator& first, 
+                              const RandomAccessIterator& last1,
+                              std::random_access_iterator_tag, 
+                              const char* methodName) 
+{
+    SimTK_ERRCHK2_ALWAYS(isSameSize(last1-first), methodName,
+        "Assignment to an ArrayView is permitted only if the source"
+        " is the same size. Here the source had %llu element(s) but the"
+        " ArrayView has a fixed size of %llu.", 
+        ull(last1-first), ull(size()));
+
+    SimTK_ERRCHK_ALWAYS(!overlapsWithData(first,last1), methodName, 
+        "Source range can't overlap with the destination data.");
+
+    T* p = begin();
+    RandomAccessIterator src = first;
+    while (p != end())
+        *p++ = *src++; // call T's assignment operator
+}
+
+
+//------------------------------------------------------------------------------
+// The following private methods are protected methods in the ArrayViewConst_ 
+// base class, so they should not need repeating here. However, we explicitly 
 // forward to the base methods to avoid gcc errors. The gcc complaint
 // is due to their not depending on any template parameters; the "this->"
 // apparently fixes that problem.
@@ -1646,8 +1790,8 @@ void assign(const T2* first, const T2* last1) {
     const char* methodName = "Array_<T>::assign(T2* first, T2* last1)";
     SimTK_ERRCHK((first&&last1)||(first==last1), methodName, 
         "Pointers must be non-null unless they are both null.");
-    SimTK_ERRCHK(last1<=begin() || end()<=first, methodName, 
-        "Source pointers can't be within the destination Array.");
+    SimTK_ERRCHK(!overlapsWithData(first,last1), methodName, 
+        "Source range can't overlap the current array contents.");
     // Pointers are random access iterators.
     assignIteratorDispatch(first,last1,std::random_access_iterator_tag(),
                            methodName);
@@ -1762,6 +1906,9 @@ Array_& adoptData(T* newData, size_type dataSize,
     SimTK_ERRCHK(newData || dataCapacity==0, methodName,
         "A null data pointer is allowed only if the size and capacity are"
         " specified as zero.");
+    SimTK_ERRCHK(!overlapsWithData(newData, newData+dataSize), methodName,
+        "The new data can't overlap with the old data.");
+
     deallocate();
     setData(newData);
     setSize(dataSize);
@@ -1792,6 +1939,9 @@ Array_& shareData(T* newData, size_type dataSize) {
     SimTK_SIZECHECK(dataSize, max_size(), methodName);
     SimTK_ERRCHK(newData || dataSize==0, methodName,
         "A null data pointer is allowed only if the size is zero.");
+    SimTK_ERRCHK(!overlapsWithData(newData, newData+dataSize), methodName,
+        "The new data can't overlap with the old data.");
+
     deallocate();
     setData(newData);
     setSize(dataSize);
@@ -2141,7 +2291,7 @@ the back() method after the call to push_back().
     array. Either way there is also one call to T's copy constructor to 
     construct the new element from the supplied value. **/
 void push_back(const T& value) {
-    if (allocated() == size())
+    if (pallocated() == psize())
         growAtEnd(1,"Array_<T>::push_back(value)");
     copyConstruct(end(), value);
     incrSize();
@@ -2161,7 +2311,7 @@ prohibited by the standard std::vector<T> definition.
 @see push_back(value) 
 **/
 void push_back() {
-    if (allocated() == size())
+    if (pallocated() == psize())
         growAtEnd(1,"Array_<T>::push_back()");
     defaultConstruct(end());
     incrSize();
@@ -2183,7 +2333,7 @@ used for objects that have neither default nor copy constructors.
 @see push_back(value), push_back() 
 **/
 T* raw_push_back() {
-    if (allocated() == size())
+    if (pallocated() == psize())
         growAtEnd(1,"Array_<T>::raw_push_back()");
     T* const p = end();
     incrSize();
@@ -2304,7 +2454,7 @@ in the array.
 @par Complexity:
     O(n) if T has a destructor; constant time otherwise. **/
 void clear() {
-    SimTK_ERRCHK(isOwner(), "Array_<T>::clear()", 
+    SimTK_ERRCHK(isOwner() || empty(), "Array_<T>::clear()", 
         "clear() is not allowed for a non-owner array.");
     destruct(begin(), end());
     setSize(0);
@@ -2391,8 +2541,8 @@ T* insert(T* p, const T2* first, const T2* last1) {
     const char* methodName = "Array_<T>::insert(T* p, T2* first, T2* last1)";
     SimTK_ERRCHK((first&&last1) || (first==last1), methodName, 
         "One of first or last1 was null; either both or neither must be null.");
-    SimTK_ERRCHK(last1<=begin() || end()<=first, methodName, 
-        "Source pointers can't be within the destination array.");
+    SimTK_ERRCHK(!overlapsWithData(first,last1), methodName, 
+        "Source range can't overlap with the current array contents.");
     // Pointers are random access iterators.
     return insertIteratorDispatch(p, first, last1,
                                   std::random_access_iterator_tag(),
@@ -2837,7 +2987,7 @@ static T* allocN(size_type n) {
     return reinterpret_cast<T*>(newdata);
 }
 
-// Free memory without calling destructors. Nothing happens if passed
+// Free memory without calling T's destructor. Nothing happens if passed
 // a null pointer.
 static void freeN(T* p) {
     delete[] reinterpret_cast<char*>(p);
@@ -2860,8 +3010,8 @@ static void copyConstruct(T* b, const T* e, const T* src)
 {   while(b!=e) new(b++) T(*src++); }
 // Templatized copy construct will work if the source elements are
 // assignment compatible with the destination elements.
-template <class ForwardIterator>
-static void copyConstruct(T* b, const T* e, ForwardIterator src)
+template <class InputIterator>
+static void copyConstruct(T* b, const T* e, InputIterator src)
 {   while(b!=e) new(b++) T(*src++); }
 
 // Copy construct range [b,e] from sequence of source values and
@@ -2883,15 +3033,15 @@ void moveOneElement(T* to, T* from) {
 }
 
 
-// Move elements from p to end() down by n places to fill an unconstructed gap
-// beginning at p-n. Any leftover space at the end will be unconstructed.
+// Move elements from p to end() down by n>0 places to fill an unconstructed 
+// gap beginning at p-n. Any leftover space at the end will be unconstructed.
 void moveElementsDown(T* p, size_type n) {
     assert(n > 0);
     for (; p != end(); ++p)
         moveOneElement(p-n,p);
 }
 
-// Move elements from p to end() up by n places to make an unconstructed gap
+// Move elements from p to end() up by n>0 places to make an unconstructed gap
 // at [p,p+n). Note that this has to be done backwards so that we don't
 // write on any elements until after they've been copied.
 void moveElementsUp(T* p, size_type n) {
