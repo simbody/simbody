@@ -441,6 +441,8 @@ void testArrayViewAssignment() {
     SimTK_TEST_MUST_THROW(avSpace.assign(vdata.begin(), vdata.begin()+3));
     std::set<int>::iterator sp = aSet.begin(); ++sp; ++sp;
     SimTK_TEST_MUST_THROW(avSpace.assign(aSet.begin(), sp));
+
+    //TODO: test input iterators, and source too big problems
 }
 
 // A bool index type is more or less useless in real life but was handy for 

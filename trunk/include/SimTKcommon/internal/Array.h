@@ -101,6 +101,7 @@ Array_<int,MobilizedBodyIndex> that stores ints that can be indexed only via
 MobilizedBodyIndex indices. 
 
 @tparam X   A type suitable for use as an Array_ index.
+@see Array_
 **/
 template <class X> struct ArrayIndexTraits {
     /** The signed or unsigned integral type to which an object of index type
@@ -238,6 +239,8 @@ template <> struct ArrayIndexTraits<long long> {
     static size_type            max_size() {return LLONG_MAX;}
 };
 
+// Don't show this in Doxygen.
+/** @cond **/
 // This helper class decides what integral type we should use to best pack
 // the index type's size_type representation. The idea is to pack the whole
 // Array_ structure into 8 bytes on a 32 bit machine, 16 bytes on a 64 bit
@@ -276,6 +279,7 @@ template<> struct ArrayIndexPackTypeHelper<short,TrueType>
 template <class Integral> struct ArrayIndexPackType
 {   typedef typename ArrayIndexPackTypeHelper<Integral,Is64BitPlatformType>
                         ::packed_size_type  packed_size_type;};
+/** @endcond **/
 
 //==============================================================================
 //                            CLASS ArrayViewConst_
@@ -297,7 +301,15 @@ that has more capability). The contents and size of a ArrayViewConst_ cannot be
 changed after construction. In particular, the default copy assignment operator
 is suppressed. The destructor simply disconnects the ArrayViewConst_ handle 
 from the data it was referencing; no element destruction or heap deallocation 
-occurs. **/
+occurs. 
+
+@tparam T 
+    The type of object to be stored in this container. 
+@tparam X 
+    The type to be used for indexing this container, with default int. Any
+    integral type may be used, as well as user types that satisfy the 
+    requirements discussed with class ArrayIndexTraits. 
+@see Array_, ArrayView_, ArrayIndexTraits **/
 template <class T, class X> class ArrayViewConst_ {
 public:
 
@@ -352,7 +364,12 @@ ArrayViewConst_() : pData(0), nUsed(0), nAllocated(0) {}
 /** Copy constructor is shallow; the constructed const array object will be
 referencing the original source data. However, if the source is zero length, 
 this will result in a default-constructed array view handle with a null data
-pointer, even if the source had some unused data allocated. **/
+pointer, even if the source had some unused data allocated.
+
+@param[in]  src 
+    The object whose data will be referenced. 
+@par Complexity:
+    Constant time; extremely fast. **/
 ArrayViewConst_(const ArrayViewConst_& src) 
 :   pData(0), nUsed(src.nUsed), nAllocated(0) {
     if (nUsed) pData = const_cast<T*>(src.pData);
@@ -366,11 +383,18 @@ the size of the source data does not exceed the array's max_size. The resulting
 object is not resizeable but can be used to read elements of the original data.
 This will becomes invalid if the original data is destructed or resized, but 
 there is no way for the ArrayViewConst_ class to detect that.
+
+@param[in]  first   
+    A pointer to the first data element to be referenced.
+@param[in]  last1   
+    A pointer to the position one element past the last one in the range to be
+    referenced.
 @remarks
   - If the source data is empty, the resulting ArrayViewConst_ will also 
     be empty and will look as though it had been default-constructed. 
   - You can break the connection between the array handle and the data it
     was constructed from by calling disconnect().
+@pre first <= last1, last1-first <= max_size()
 @par Complexity:
     Dirt cheap. There will be no construction, destruction, or heap allocation
     performed.
@@ -402,7 +426,11 @@ max_size. The resulting array object is not resizeable but can be used to read
 elements of the original std::vector. The array becomes invalid if the original
 std::vector is destructed or resized, but there is no way for the array class
 to detect that.
-@note
+
+@param[in]  src
+    The std::vector<T> whose data will be referenced by the constructed 
+    ArrayViewConst_ handle.
+@remarks
   - If the source std::vector is empty, the resulting array will also be empty 
     and will look as though it had been default-constructed. It will therefore
     not have any connection to the source vector.
@@ -413,23 +441,24 @@ to detect that.
     careful!
   - You can break the connection between the array view and the vector it was 
     constructed from by calling disconnect().
+@pre src.size() <= max_size()
 @par Complexity:
     Dirt cheap. There will be no construction, destruction, or heap allocation
     performed.
 @see disconnect() **/
 template <class A>
-ArrayViewConst_(const std::vector<T,A>& v) 
+ArrayViewConst_(const std::vector<T,A>& src) 
 :   pData(0),nUsed(0),nAllocated(0) { 
-    if (v.empty()) return;
+    if (src.empty()) return;
 
-    SimTK_ERRCHK3(isSizeOK(v.size()), 
+    SimTK_ERRCHK3(isSizeOK(src.size()), 
         "ArrayViewConst_<T>::ctor(std::vector<T>)",
         "The source std::vector's size %llu is too big for this array which"
         " is limited to %llu elements by its index type %s.",
-        ull(v.size()), ullMaxSize(), indexName());
+        ull(src.size()), ullMaxSize(), indexName());
 
-    pData = const_cast<T*>(&v.front()); 
-    nUsed = packed_size_type(v.size()); 
+    pData = const_cast<T*>(&src.front()); 
+    nUsed = packed_size_type(src.size()); 
     // nAllocated is already zero
 }
 /** This is an implicit conversion to const ArrayView_<T,X>&, which is 
@@ -635,22 +664,12 @@ const T* data() const {return pData;}
 //------------------------------------------------------------------------------
 // The remainder of this class is for the use of the ArrayView_<T,X> and
 // Array_<T,X> derived classes only and should not be documented for users to 
-// see.
-
+// see. 
+                                     
+// Don't let doxygen see any of this.
+/** @cond **/
 packed_size_type psize() const {return nUsed;}
 packed_size_type pallocated() const {return nAllocated;}
-                                       
-// This constructor does not initialize any of the data members; it is intended
-// for use in derived class constructors that promise to set *all* the data
-// members PRIOR TO CHECKING FOR ERRORS. In Debug builds it *does* initialize 
-// all data members to zero because there are many error conditions tested
-// that could result in an exception being thrown prior to construction
-// being completed.
-explicit ArrayViewConst_(const TrustMe&) {
-#ifndef NDEBUG
-    pData=0; nAllocated=nUsed=0;
-#endif
-}
 
 // These provide direct access to the data members for our trusted friends.
 void setData(const T* p)        {pData = const_cast<T*>(p);}
@@ -770,14 +789,14 @@ unsigned long long ullSize()     const {return ull(size());}
 unsigned long long ullCapacity() const {return ull(capacity());}
 unsigned long long ullMaxSize()  const {return ull(max_size());}
 
-/** Useful in error messages for explaining why something was too big. **/
+// Useful in error messages for explaining why something was too big.
 const char* indexName() const {return NiceTypeName<X>::name();}
 
-private:
+/** @endcond **/
 
+private:
 //------------------------------------------------------------------------------
 //                               DATA MEMBERS
-//------------------------------------------------------------------------------
 // These are the only data members and this layout is guaranteed not to change
 // from release to release. If data is null, then nUsed==nAllocated==0.
 
@@ -873,7 +892,7 @@ When the source also has type T, this is just T's copy assignment operator.
 We never perform any element destruction or construction here. **/
 /*@{*/
 
-/** Copy assignment. **/
+/** Copy assignment; source must be the same size as this array. **/
 ArrayView_& operator=(const ArrayView_& src) {
     if (&src != this)
         avAssignIteratorDispatch(src.cbegin(), src.cend(),
@@ -956,6 +975,11 @@ the source arguments are pointers, those may be iterators for some container
 depending on implementation details of the container. Specifically, any 
 ArrayViewConst_, ArrayView_, or Array_ iterator is an ordinary pointer.
 
+@param[in]      first 
+    A pointer to the first element to be copied.
+@param[in]      last1 
+    A pointer to the element one past the last element to be copied.
+@pre last1-first == size()
 @par Complexity:
     The T=T2 assignment operator will be called exactly size() times. **/
 template <class T2>
@@ -969,11 +993,9 @@ void assign(const T2* first, const T2* last1) {
                              methodName);
 }
 
-/** Assign to this array to to make it a copy of the elements in range 
-[first,last1) given by non-pointer random access iterators (the pointer
-case is handled separately). This variant will not be called when the
-iterators are forward iterators from ArrayViewConst_, ArrayView_, or Array_ 
-objects since those are ordinary pointers. It is not allowed for this range to 
+/** Assign to this array to make it a copy of the elements in range 
+[first,last1) given by non-pointer iterators (the pointer case is handled 
+with a specialized assign() variant). It is not allowed for this range to 
 include any of the elements currently in the array. The source elements can be 
 of a type T2 that may be the same or different than this array's element type 
 T as long as there is a T=T2 operator that works.
@@ -985,6 +1007,18 @@ bidirectional_iterators we'll copy the elements and complain at the end if
 there are too few or too many. For random_access_iterators we'll check in
 advance since we can do that fast.
 
+@param[in]      first 
+    An iterator pointing to the first element to be copied.
+@param[in]      last1 
+    An iterator pointing to the element one past the last element to be copied.
+
+@remarks
+This variant of assign() will not be called when the iterators are forward 
+iterators from ArrayViewConst_, ArrayView_, or Array_ objects since those are 
+ordinary pointers. 
+
+@pre last1 is reachable from first
+@pre distance(first,last1)==size()
 @par Complexity:
     The T=T2 assignment operator will be called exactly size() times. **/
 
@@ -1189,44 +1223,16 @@ heap space (capacity) or both but cannot be used to change size. **/
 // Note: these have to be explicitly forwarded to the base class methods
 // in order to keep gcc from complaining. Note that the "this->" is 
 // apparently necessary in order to permit delayed definition of templatized 
-// methods.
+// methods. Doxygen picks up the comments from the base class.
 
-/** Return the current number of elements stored in this array. **/
-size_type size() const {return this->CBase::size();}
-/** Return the maximum allowable size for this array. **/
-size_type max_size() const {return this->CBase::max_size();}
-/** Return true if there are no elements currently stored in this array. This
-is equivalent to the tests begin()==end() or size()==0. **/
-bool empty() const {return this->CBase::empty();}
-/** Return the number of elements this array can currently hold without
-requiring reallocation. The value returned by capacity() is always greater 
-than or equal to size(), even if the data is not owned by this array in
-which case we have capacity()==size() and the array is not reallocatable. **/
-size_type capacity() const {return this->CBase::capacity();}
-/** Return the amount of heap space owned by this array; this is the same
-as capacity() for owner arrays but is zero for non-owners. 
-@note There is no equivalent of this method for std::vector. **/
+size_type size()      const {return this->CBase::size();}
+size_type max_size()  const {return this->CBase::max_size();}
+bool      empty()     const {return this->CBase::empty();}
+size_type capacity()  const {return this->CBase::capacity();}
 size_type allocated() const {return this->CBase::allocated();}
-/** Does this array own the data to which it refers? If not, it can't be
-resized, and the destructor will not free any heap space nor call any element
-destructors. If the array does not refer to \e any data it is considered to be
-an owner and it is resizeable. 
-@note There is no equivalent for std::vector. **/
-bool isOwner() const {return this->CBase::isOwner();}
+bool      isOwner()   const {return this->CBase::isOwner();}
 /*@}    End of size and capacity. **/
 
-
-//------------------------------------------------------------------------------
-                                   protected:
-//------------------------------------------------------------------------------
-// The remainder of this class is for the use of the Array_<T,X> derived class
-// only and should not be documented for users to see.
-                                       
-// This constructor does not initialize any of the data members; it is intended
-// for use in derived class constructors that promise to set *all* data members.
-// Be careful: all the data members must be set before an exception is thrown
-// in a constructor or the unwind destructors won't work properly.
-explicit ArrayView_(const TrustMe& tm) : CBase(tm) {}
 
 //------------------------------------------------------------------------------
                                    private:
@@ -1440,18 +1446,9 @@ standard STL objects.
   object that shares the contents of an std::vector object without copying.
 **/
 template <class T, class X> class Array_ : public ArrayView_<T,X> {
-typedef ArrayView_<T,X>  Base;
-typedef ArrayViewConst_<T,X> CBase;
-//------------------------------------------------------------------------------
+    typedef ArrayView_<T,X>      Base;
+    typedef ArrayViewConst_<T,X> CBase;
 public:
-//------------------------------------------------------------------------------
-
-
-//TODO
-// fix assign(), insert() for iterators
-// additional operators +=, (i,n)
-// check standard
-// more raw methods
 
 
 //------------------------------------------------------------------------------
@@ -1459,6 +1456,8 @@ public:
 
 Types required of STL containers, plus index_type which is an extension, and
 packed_size_type which is an implementation detail. **/
+
+// Doxygen picks up individual descriptions from the base class.
 /*{*/
 typedef T                                               value_type;
 typedef X                                               index_type;
@@ -1492,7 +1491,7 @@ Array_() : Base() {}
 constructor (if any) is called exactly \a n times. If \a n is zero no heap space 
 will be allocated; although in that case it is preferable to use the default 
 constructor if you can since that will be somewhat faster. **/
-explicit Array_(size_type n) : Base(TrustMe()) {
+explicit Array_(size_type n) : Base() {
     SimTK_SIZECHECK(n, max_size(), "Array_<T>::ctor(n)");
     allocateNoConstruct(n);
     defaultConstruct(data(), data()+n);
@@ -1502,7 +1501,7 @@ explicit Array_(size_type n) : Base(TrustMe()) {
 /** Construct an array containing \a n elements each set to a copy of the given 
 initial value. T's copy constructor will be called exactly \a n times. If \a n
 is zero no space will be allocated. **/
-Array_(size_type n, const T& initVal) : Base(TrustMe()) {
+Array_(size_type n, const T& initVal) : Base() {
     SimTK_SIZECHECK(n, max_size(), "Array_<T>::ctor(n,T)");
     setSize(n);
     allocateNoConstruct(size());
@@ -1534,7 +1533,7 @@ T but doesn't have to be). This is templatized so can be used with any source
 type T2 for which there is a working conversion constructor T(T2), provided
 that the number of source elements does not exceed the array's max_size(). **/
 template <class T2>
-Array_(const T2* first, const T2* last1) : Base(TrustMe()) {
+Array_(const T2* first, const T2* last1) : Base() {
     const char* methodName = "Array_<T>::ctor(first,last1)";
     SimTK_ERRCHK((first&&last1)||(first==last1), methodName, 
         "Pointers must be non-null unless they are both null.");
@@ -1571,7 +1570,7 @@ explicit Array_(const std::vector<T2>& v) : Base() {
 source (not its capacity) and copy constructs the elements so that T's copy 
 constructor will be called exactly src.size() times. If the source is empty, 
 no heap space will be allocated. **/
-Array_(const Array_& src) : Base(TrustMe()) {
+Array_(const Array_& src) : Base() {
     setSize(src.size());
     allocateNoConstruct(size());
     copyConstruct(begin(), cend(), src.data());
@@ -1584,7 +1583,7 @@ this array's element type T. One of T's constructors will be called exactly
 src.size() times; the particular constructor is whichever one best matches 
 T(T2). **/
 template <class T2, class X2>
-Array_(const Array_<T2,X2>& src) : Base(TrustMe()) {
+Array_(const Array_<T2,X2>& src) : Base() {
     new (this) Array_(src.begin(), src.cend()); // see above
 }
 
