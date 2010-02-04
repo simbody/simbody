@@ -135,28 +135,46 @@ operator<<(std::ostream& o, const Counter& c) {
     return o << (int)c;
 } 
 
+// This class is a T but augmented with counters that track the number
+// of calls to constructors, assignment, and the destructor.
 template <class T>
 struct Count {
     Count() {++defCtor;}
-    Count(const T& t) : val(t) {++initCtor;}
     Count(const Count& c) : val(c.val) {++copyCtor;}
+    Count& operator=(const Count& c) {val=c.val; ++copyAssign; return *this;}
     ~Count() {++dtor;}
+
+    // Conversion from T.
+    Count(const T& t) : val(t) {++initCtor;}
+    // Assign from T.
+    Count& operator=(const T& t) {val=t; ++initAssign; return *this;}
+
+
+    bool operator==(const Count& other) const {return val==other.val;}
+    bool operator!=(const Count& other) const {return val!=other.val;}
 
     static void dumpCounts(const char* msg) {
         cout << msg << ":";
-        cout << " def=" << Count<int>::defCtor;
-        cout << " init=" << Count<int>::initCtor;
-        cout << " copy=" << Count<int>::copyCtor;
+        cout << " defCtor=" << Count<int>::defCtor;
+        cout << " initCtor=" << Count<int>::initCtor;
+        cout << " copyCtor=" << Count<int>::copyCtor;
+        cout << " initAssign=" << Count<int>::initAssign;
+        cout << " copyAssign=" << Count<int>::copyAssign;
         cout << " dtor=" << Count<int>::dtor;
         cout << endl;
     }
 
+    static bool isReset() 
+    {   return !(defCtor||initCtor||copyCtor||initAssign||copyAssign||dtor); }
+
     T val;
 
-    static void reset() {defCtor=initCtor=copyCtor=dtor=0;}
+    static void reset() {defCtor=initCtor=copyCtor=initAssign=copyAssign=dtor=0;}
     static Counter defCtor;
     static Counter initCtor;
     static Counter copyCtor;
+    static Counter initAssign;
+    static Counter copyAssign;
     static Counter dtor;
 };
 template <class T> inline std::ostream&
@@ -166,6 +184,8 @@ operator<<(std::ostream& o, const Count<T>& c) {
 template <class T> Counter Count<T>::defCtor;
 template <class T> Counter Count<T>::initCtor;
 template <class T> Counter Count<T>::copyCtor;
+template <class T> Counter Count<T>::initAssign;
+template <class T> Counter Count<T>::copyAssign;
 template <class T> Counter Count<T>::dtor;
 
 // Instantiate the whole class to check for compilation problems.
@@ -337,6 +357,90 @@ void testConversion() {
     toArray(ArrayView_<int>(v)); 
     toArrayView(v); 
     toArrayViewConst(v);
+}
+
+// ArrayView assignment can't change the size of the target ArrayView,
+// and the semantics are elementwise assignment, not destruct-then-copy-
+// construct as for resizeable Array (or std::vector) assignment.
+void testArrayViewAssignment() {
+    const int data[5] = {10, 100, -23, 4, -99};
+    Array_<int> adata(data, data+5);    // copies of original data
+    std::vector<int> vdata(data, data+5);
+
+    Count<int>::reset();
+    Array_< Count<int> > acnt(data, data+5);
+    SimTK_TEST(!(  Count<int>::defCtor   ||Count<int>::copyCtor
+                 ||Count<int>::copyAssign||Count<int>::dtor));
+    SimTK_TEST(Count<int>::initCtor == 5);
+
+    Count<int>::reset();
+    acnt = adata; // clear() then construct from int
+    SimTK_TEST(!(  Count<int>::defCtor   ||Count<int>::copyCtor
+                 ||Count<int>::copyAssign));
+    SimTK_TEST(Count<int>::dtor==5 && Count<int>::initCtor==5);
+
+    Count<int>::reset();
+    Array_< Count<int> > acopy(3); // default constructed
+    SimTK_TEST(Count<int>::defCtor == 3);
+    acopy = acnt; // destruct 3, copy construct 5
+    SimTK_TEST(Count<int>::dtor==3 && Count<int>::copyCtor==5);
+
+    Count<int>::reset();
+    // this is an initialization, not an assignment
+    ArrayView_< Count<int> > avcnt = acnt(1,2); // shares 2nd & 3rd elts
+    SimTK_TEST(Count<int>::isReset()); // nothing should have happened
+    SimTK_TEST(avcnt.size()==2);
+    SimTK_TEST(avcnt[0]==acnt[1]&&avcnt[1]==acnt[2]);
+    SimTK_TEST(&avcnt[0]==&acnt[1]&& &avcnt[1]==&acnt[2]);
+
+    // This assignment should fail because the source has too many elements.
+    SimTK_TEST_MUST_THROW(avcnt = adata);
+    // This one should succeed, with 2 calls to Count<int>::op=(int).
+    Count<int>::reset();
+    avcnt.assign(adata.begin(), adata.begin()+2);
+    SimTK_TEST(!(Count<int>::defCtor||Count<int>::copyCtor
+                 ||Count<int>::copyAssign));
+    SimTK_TEST(Count<int>::initAssign == 2);
+
+    // This assignment should fail because of overlap between source and
+    // destination.
+    SimTK_TEST_MUST_THROW(avcnt = acnt(0,2));
+    // But this succeeds because no overlap.
+    Count<int>::reset();
+    avcnt = acnt(3,2); // sets acnt(1,2)=acnt(3,2) with 2 copy assigns
+    SimTK_TEST(!(Count<int>::copyCtor||Count<int>::dtor));
+    SimTK_TEST(Count<int>::copyAssign == 2);
+    //was: int data[5] = {10, 100, -23, 4, -99};
+    int modified[5] = {10, 4, -99, 4, -99}; // should now be
+    SimTK_TEST(avcnt[0]==4&&avcnt[1]==-99);
+    SimTK_TEST(acnt == Array_<int>(modified, modified+5));
+
+    // Check behavior of assign(first,last1) for input, forward, and
+    // random access iterators.
+    int someSpace[5] = {123, 1, 12, -9, 14};
+    ArrayView_<int> avSpace(someSpace, someSpace+5);
+    std::vector<int> aVec(avSpace.begin(), avSpace.end()); // copy
+    std::set<int> aSet(avSpace.begin(), avSpace.end()); // copy & sort
+    SimTK_TEST(&avSpace[0] == someSpace); //must be sharing space
+    // Test fill first.
+    avSpace = 19; SimTK_TEST(avSpace==Array_<int>(5, 19));
+    avSpace.fill(-3); SimTK_TEST(avSpace==Array_<int>(5, -3));
+    SimTK_TEST_MUST_THROW_DEBUG(avSpace.assign(12, 999));
+    avSpace.assign(5,999); SimTK_TEST(avSpace==Array_<int>(5,999));
+    // Assign from pointers
+    avSpace.assign(data, data+5); SimTK_TEST(avSpace==vdata);
+    avSpace = 999;
+    // Assign from random_access_iterators
+    avSpace.assign(vdata.begin(),vdata.end());SimTK_TEST(avSpace==vdata);
+    avSpace = 999;
+    // Assign from bidirectional_interator
+    avSpace.assign(aSet.begin(), aSet.end());
+    SimTK_TEST(avSpace==std::vector<int>(aSet.begin(),aSet.end()));
+
+    SimTK_TEST_MUST_THROW(avSpace.assign(data, data+3));
+    SimTK_TEST_MUST_THROW(avSpace.assign(vdata.begin(), vdata.begin()+3));
+    std::set<int>::iterator sp = aSet.begin(); ++sp; ++sp;
+    SimTK_TEST_MUST_THROW(avSpace.assign(aSet.begin(), sp));
 }
 
 // A bool index type is more or less useless in real life but was handy for 
@@ -657,6 +761,7 @@ int main() {
 
     SimTK_START_TEST("TestArray");
 
+        SimTK_SUBTEST(testArrayViewAssignment);
         SimTK_SUBTEST(testInputIterator);
         SimTK_SUBTEST(testNiceTypeName);
         SimTK_SUBTEST(testMemoryFootprint);
