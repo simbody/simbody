@@ -50,7 +50,7 @@ public:
     static const Color Blue;
 private:
     Color();
-    Color(const Color& thisElement, int index, char* name);
+    Color(const Color& thisElement, int index, const char* name);
     static void initValues();
     friend class Enumeration<Color>;
 };
@@ -67,7 +67,7 @@ const Color Color::Blue;
 Color::Color() : Enumeration<Color>() {
 }
 
-Color::Color(const Color& thisElement, int index, char* name) : Enumeration<Color>(thisElement, index, name) {
+Color::Color(const Color& thisElement, int index, const char* name) : Enumeration<Color>(thisElement, index, name) {
 }
 
 void Color::initValues() {
