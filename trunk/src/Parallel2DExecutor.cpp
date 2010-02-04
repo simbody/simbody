@@ -33,10 +33,8 @@
 #include "SimTKcommon/internal/ParallelExecutor.h"
 #include <pthread.h>
 #include <utility>
-#include <vector>
 
 using std::pair;
-using std::vector;
 
 namespace SimTK {
 
@@ -153,7 +151,7 @@ private:
 
 class Parallel2DExecutorImpl::SquareTask : public ParallelExecutor::Task {
 public:
-    SquareTask(const Parallel2DExecutorImpl& executor, Parallel2DExecutor::Task& task, const vector<pair<int,int> >& squares, Parallel2DExecutor::RangeType rangeType, bool shouldInitialize, bool shouldFinish) :
+    SquareTask(const Parallel2DExecutorImpl& executor, Parallel2DExecutor::Task& task, const Array_<pair<int,int> >& squares, Parallel2DExecutor::RangeType rangeType, bool shouldInitialize, bool shouldFinish) :
         executor(executor), task(task), squares(squares), rangeType(rangeType), shouldInitialize(shouldInitialize), shouldFinish(shouldFinish) {
     }
     void execute(int index) {
@@ -189,7 +187,7 @@ public:
 private:
     const Parallel2DExecutorImpl& executor;
     Parallel2DExecutor::Task& task;
-    const vector<pair<int,int> >& squares;
+    const Array_<pair<int,int> >& squares;
     const Parallel2DExecutor::RangeType rangeType;
     bool shouldInitialize, shouldFinish;
 };

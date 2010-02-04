@@ -96,13 +96,16 @@ public:
     ZIndex allocateZ(State&, const Vector& zInit) const;
     DiscreteVariableIndex allocateDiscreteVariable(State&, Stage, AbstractValue* v) const;
 
-    CacheEntryIndex allocateCacheEntry   (const State&, Stage dependsOn, Stage computedBy, AbstractValue* v) const;
-    CacheEntryIndex allocateCacheEntry   (const State& state, Stage g, AbstractValue* v) const 
+    CacheEntryIndex allocateCacheEntry
+       (const State&, Stage dependsOn, Stage computedBy, AbstractValue* v) const;
+    CacheEntryIndex allocateCacheEntry   
+       (const State& state, Stage g, AbstractValue* v) const 
     {   return allocateCacheEntry(state, g, g, v); }
     QErrIndex allocateQErr         (const State&, int nqerr) const;
     UErrIndex allocateUErr         (const State&, int nuerr) const;
     UDotErrIndex allocateUDotErr      (const State&, int nudoterr) const;
-    EventTriggerByStageIndex allocateEventTriggersByStage(const State&, Stage, int ntriggers) const;
+    EventTriggerByStageIndex allocateEventTriggersByStage
+       (const State&, Stage, int ntriggers) const;
 
     // These return views on State shared global resources. The views
     // are private to this subsystem, but the global resources themselves
@@ -164,7 +167,8 @@ public:
     // this Subsystem. These variables and cache entries are available
     // as soon as this subsystem is at stage Model.
     Stage getStage(const State&) const;
-    const AbstractValue& getDiscreteVariable(const State&, DiscreteVariableIndex) const;
+    const AbstractValue& getDiscreteVariable
+       (const State&, DiscreteVariableIndex) const;
     // State is *not* mutable here -- must have write access to change state variables.
     AbstractValue& updDiscreteVariable(State&, DiscreteVariableIndex) const;
     const AbstractValue& getCacheEntry(const State&, CacheEntryIndex) const;
@@ -174,9 +178,10 @@ public:
     bool isCacheValueRealized(const State&, CacheEntryIndex) const;
     void markCacheValueRealized(const State&, CacheEntryIndex) const;
 
-    // Dimensions. These are valid at System Stage::Model while access to the various
-    // arrays may have stricter requirements. Hence it is better to use these
-    // routines than to get a reference to a Vector above and ask for its size().
+    // Dimensions. These are valid at System Stage::Model while access to the 
+    // various arrays may have stricter requirements. Hence it is better to use
+    // these routines than to get a reference to a Vector above and ask for 
+    // its size().
 
     SystemQIndex getQStart      (const State&) const;
     int getNQ          (const State&) const;
@@ -238,12 +243,12 @@ public:
 };
 
 
-/**
- * This is a concrete Subsystem that is part of every System.  It provides a variety of services
- * for the System, such as maintaining lists of event handlers and reporters, and acting as a
- * source of globally unique event IDs.  To obtain the default subsystem for a System, call
- * getDefaultSubsystem() or updDefaultSubsystem() on it.
- */
+
+/** This is a concrete Subsystem that is part of every System. It provides a 
+variety of services for the System, such as maintaining lists of event handlers
+and reporters, and acting as a source of globally unique event IDs. To obtain 
+the default subsystem for a System, call getDefaultSubsystem() or 
+updDefaultSubsystem() on it. **/
 class SimTK_SimTKCOMMON_EXPORT DefaultSystemSubsystem : public Subsystem {
 public:
     DefaultSystemSubsystem(System& sys);
@@ -252,7 +257,10 @@ public:
     void addEventReporter(ScheduledEventReporter* handler) const;
     void addEventReporter(TriggeredEventReporter* handler) const;
     EventId createEventId(SubsystemIndex subsys, const State& state) const;
-    void findSubsystemEventIds(SubsystemIndex subsys, const State& state, const std::vector<EventId>& allEvents, std::vector<EventId>& eventsForSubsystem) const;
+    void findSubsystemEventIds
+       (SubsystemIndex subsys, const State& state, 
+        const Array_<EventId>& allEvents, 
+        Array_<EventId>& eventsForSubsystem) const;
 private:
     const DefaultSystemSubsystemGuts& getGuts() const;
     DefaultSystemSubsystemGuts& updGuts();

@@ -179,7 +179,7 @@ protected:
         assert(this->m_eltSize==1 && this->nrow()==this->ncol()); // should have been checked already
         const int m = this->nrow();
         StdNumber* rawMem = reinterpret_cast<StdNumber*>(this->m_data);
-        std::vector<int> ipiv(m);
+        Array_<int> ipiv(m);
         int info;
         Lapack::getrf<StdNumber>(m,m,rawMem,this->m_leadingDim,&ipiv[0],info);
         assert(info==0);
@@ -189,7 +189,7 @@ protected:
         Lapack::getri<StdNumber>(m,rawMem,this->m_leadingDim,&ipiv[0],&workSz,-1,info);
         const int wsz = (int)CNT<StdNumber>::real(workSz);
 
-        std::vector<StdNumber> work(wsz);
+        Array_<StdNumber> work(wsz);
         Lapack::getri<StdNumber>(m,rawMem,this->m_leadingDim,&ipiv[0],&work[0],wsz,info);
         assert(info==0);
     }

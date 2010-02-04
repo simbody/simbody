@@ -152,16 +152,16 @@ public:
                  const Vector& ootols, Vector& yerrest, System::ProjectOptions) const;
     void calcYErrUnitTolerances(const State&, Vector& tolerances) const;
     void handleEvents
-        (State&, Event::Cause, const std::vector<EventId>& eventIds,
+        (State&, Event::Cause, const Array_<EventId>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
-    void reportEvents(const State&, Event::Cause, const std::vector<EventId>& eventIds) const;
-    void calcEventTriggerInfo(const State&, std::vector<EventTriggerInfo>&) const;
-    void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
-    void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
+    void reportEvents(const State&, Event::Cause, const Array_<EventId>& eventIds) const;
+    void calcEventTriggerInfo(const State&, Array_<EventTriggerInfo>&) const;
+    void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
+    void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
 
     void calcDecorativeGeometryAndAppend(const State&, Stage, 
-                                         std::vector<DecorativeGeometry>&) const;
+                                         Array_<DecorativeGeometry>&) const;
 
 
 protected:
@@ -200,16 +200,16 @@ protected:
     virtual int calcYErrUnitTolerancesImpl(const State&, Vector& tolerances) const;
 
     virtual int handleEventsImpl
-        (State&, Event::Cause, const std::vector<EventId>& eventIds,
+        (State&, Event::Cause, const Array_<EventId>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
 
-    virtual int reportEventsImpl(const State&, Event::Cause, const std::vector<EventId>& eventIds) const;
+    virtual int reportEventsImpl(const State&, Event::Cause, const Array_<EventId>& eventIds) const;
 
-    virtual int calcEventTriggerInfoImpl(const State&, std::vector<EventTriggerInfo>&) const;
+    virtual int calcEventTriggerInfoImpl(const State&, Array_<EventTriggerInfo>&) const;
 
-    virtual int calcTimeOfNextScheduledEventImpl(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
-    virtual int calcTimeOfNextScheduledReportImpl(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
+    virtual int calcTimeOfNextScheduledEventImpl(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
+    virtual int calcTimeOfNextScheduledReportImpl(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
 private:
     Guts& operator=(const Guts&); // suppress default copy assignment operator
 

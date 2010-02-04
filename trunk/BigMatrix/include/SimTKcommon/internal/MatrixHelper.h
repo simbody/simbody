@@ -49,7 +49,6 @@
 #include <complex>
 #include <cstddef>
 #include <utility> // for std::pair
-#include <vector>
 
 namespace SimTK {
 
@@ -184,9 +183,9 @@ public:
     MatrixHelper(const MatrixCommitment&, MatrixHelper&, int n, const int* indices);
 
     // These invoke the previous constructors but with friendlier index source.
-    MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h, const std::vector<int>& indices)
+    MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h, const Array_<int>& indices)
     {   new (this) MatrixHelper(mc, h, (int)indices.size(), &indices[0]); }
-    MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h, const std::vector<int>& indices)
+    MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h, const Array_<int>& indices)
     {   new (this) MatrixHelper(mc, h, (int)indices.size(), &indices[0]); }
 
     // "Copy" an existing MatrixHelper by making a new view into the same data. 

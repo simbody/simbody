@@ -135,7 +135,7 @@ void testCharacter() {
     cout << "v character: " << v.getMatrixCharacter();
     cout << "v=" << v << endl;
 
-    std::vector<int> vx;
+    Array_<int> vx;
     vx.push_back(2); vx.push_back(5); vx.push_back(7); vx.push_back(8);
 
     VectorView vxx = v(vx);

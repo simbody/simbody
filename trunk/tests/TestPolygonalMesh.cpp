@@ -32,7 +32,6 @@
 #include "SimTKcommon.h"
 
 #include <iostream>
-#include <vector>
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
@@ -48,7 +47,7 @@ void testCreateMesh() {
     ASSERT(mesh.addVertex(Vec3(0)) == 0);
     ASSERT(mesh.addVertex(Vec3(0, 1, 0)) == 1);
     ASSERT(mesh.addVertex(Vec3(0, 0, 1)) == 2);
-    vector<int> v;
+    Array_<int> v;
     v.push_back(1);
     v.push_back(2);
     v.push_back(0);

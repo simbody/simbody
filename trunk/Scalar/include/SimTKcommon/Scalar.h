@@ -43,6 +43,7 @@
 #include "SimTKcommon/internal/Exception.h"
 #include "SimTKcommon/internal/ExceptionMacros.h"
 #include "SimTKcommon/internal/String.h"
+#include "SimTKcommon/internal/Array.h"
 
 #include "SimTKcommon/internal/conjugate.h"
 #include "SimTKcommon/internal/CompositeNumericalTypes.h"

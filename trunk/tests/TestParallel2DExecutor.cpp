@@ -32,7 +32,6 @@
 #include "SimTKcommon.h"
 
 #include <iostream>
-#include <vector>
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
@@ -43,7 +42,7 @@ using namespace std;
 
 class SetFlagTask : public Parallel2DExecutor::Task {
 public:
-    SetFlagTask(vector<vector<int> >& flags, int& count) : flags(flags), count(count) {
+    SetFlagTask(Array_<Array_<int> >& flags, int& count) : flags(flags), count(count) {
     }
     void execute(int i, int j) {
         flags[i][j]++;
@@ -56,12 +55,12 @@ public:
         count += localCount.get();
     }
 private:
-    vector<vector<int> >& flags;
+    Array_<Array_<int> >& flags;
     int& count;
     ThreadLocal<int> localCount;
 };
 
-void clearFlags(vector<vector<int> >& flags) {
+void clearFlags(Array_<Array_<int> >& flags) {
     int numFlags = flags.size();
     for (int i = 0; i < numFlags; ++i) {
         flags[i].resize(numFlags);
@@ -73,7 +72,7 @@ void clearFlags(vector<vector<int> >& flags) {
 void testParallelExecution() {
     int numFlags = 100;
     Parallel2DExecutor executor(numFlags);
-    vector<vector<int> > flags(numFlags);
+    Array_<Array_<int> > flags(numFlags);
     clearFlags(flags);
     for (int iter = 0; iter < 100; ++iter) {
         int count = 0;
@@ -109,7 +108,7 @@ void testParallelExecution() {
 void testSingleThreadedExecution() {
     int numFlags = 100;
     Parallel2DExecutor executor(numFlags, 1);
-    vector<vector<int> > flags(numFlags);
+    Array_<Array_<int> > flags(numFlags);
     int count = 0;
     SetFlagTask task(flags, count);
     clearFlags(flags);

@@ -33,8 +33,8 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon/internal/common.h"
+#include "SimTKcommon/internal/Array.h"
 #include <string>
-#include <vector>
 #include <stdexcept>
 
 namespace SimTK {
@@ -332,13 +332,13 @@ public:
     /// This is ignored if an absolute path name is given.
     /// Each of the directory names will be immediately expanded to an
     /// absolute path name if it isn't already.
-    void setSearchPath(const std::vector<std::string>& pathIn) {
+    void setSearchPath(const Array_<std::string>& pathIn) {
         m_searchPath.clear();
         for (unsigned i=0; i < pathIn.size(); ++i) 
             addSearchDirectory(pathIn[i]);
     }
 
-    const std::vector<std::string>& getSearchPath() const {return m_searchPath;}
+    const Array_<std::string>& getSearchPath() const {return m_searchPath;}
 
     /// Add a directory to the end of the search path for this kind of
     /// plugin. This will be expanded immediately to an absolute path
@@ -443,7 +443,7 @@ public:
 
 protected:
     std::string                 m_defaultName; // if any
-    std::vector<std::string>    m_searchPath;
+    Array_<std::string>         m_searchPath;
 
     std::string                 m_loadedPathname; // absolute
     void*                       m_handle;

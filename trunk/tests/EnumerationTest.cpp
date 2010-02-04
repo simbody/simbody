@@ -32,14 +32,12 @@
 #include "SimTKcommon.h"
 
 #include <iostream>
-#include <vector>
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
 using std::cout;
 using std::endl;
 using std::sqrt;
-using std::vector;
 using namespace SimTK;
 
 class Color : public Enumeration<Color> {

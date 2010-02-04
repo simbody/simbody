@@ -33,15 +33,16 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon/internal/common.h"
+#include "SimTKcommon/internal/Array.h"
 
 #include <cstddef>
 #include <cassert>
-#include <vector>
 
 namespace SimTK {
 
 /**
- * StableArray<T> is like std::vector<T> but more stable in two ways:
+ * StableArray<T> is like std::vector<T> (or SimTK::Array_<T>) but more stable 
+ * in two ways:
  *  - the addresses of the inserted items never change, even if the array
  *     has to be resized, and
  *  - the index of an inserted item never changes either.
@@ -209,7 +210,7 @@ public:
 
 private:
     size_t          nOccupiedSlots; // not counting empty slots
-    std::vector<T*> stuff;
+    Array_<T*>      stuff;
 
     // Note that this can leave empty slots at the end of the list which
     // is not a legitimate condition for the StableArray.

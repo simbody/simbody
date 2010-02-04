@@ -202,7 +202,7 @@ void Pathname::deconstructPathname( const string&   name,
 
     // Process the ".." segments and eliminate meaningless ones
     // as we go through.
-    std::vector<string> segmentsInReverse;
+    Array_<string> segmentsInReverse;
     bool isFinalSegment = true; // first time around might be the fileName
     int numDotDotsSeen = 0;
     while (!processed.empty()) {

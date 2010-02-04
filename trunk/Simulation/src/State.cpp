@@ -55,11 +55,11 @@ namespace SimTK {
 //      deepDestruct()          destroy any owned heap space
 //      getAllocationStage()    return the stage being worked on when this was allocated
 // The template type must otherwise support shallow copy semantics so that
-// the std::vector can move them around without causing any heap activity.
+// the Array_ can move them around without causing any heap activity.
 
 // Clear the contents of an allocation stack, freeing up all associated heap space.
 template <class T>
-static void clearAllocationStack(std::vector<T>& stack) {
+static void clearAllocationStack(Array_<T>& stack) {
     for (int i=stack.size()-1; i >= 0; --i)
         stack[i].deepDestruct();
     stack.clear();
@@ -67,7 +67,7 @@ static void clearAllocationStack(std::vector<T>& stack) {
 
 // Resize the given allocation stack, taking care to free the heap space if the size is reduced.
 template <class T>
-static void resizeAllocationStack(std::vector<T>& stack, int newSize) {
+static void resizeAllocationStack(Array_<T>& stack, int newSize) {
     assert(newSize >= 0);
     for (int i = stack.size()-1; i >= newSize; --i)
         stack[i].deepDestruct();
@@ -76,7 +76,7 @@ static void resizeAllocationStack(std::vector<T>& stack, int newSize) {
 
 // Keep only those stack entries whose allocation stage is <= the supplied one.
 template <class T>
-static void popAllocationStackBackToStage(std::vector<T>& stack, const Stage& g) {
+static void popAllocationStackBackToStage(Array_<T>& stack, const Stage& g) {
     unsigned newSize = stack.size();
     while (newSize > 0 && stack[newSize-1].getAllocationStage() > g)
         stack[--newSize].deepDestruct();
@@ -85,7 +85,9 @@ static void popAllocationStackBackToStage(std::vector<T>& stack, const Stage& g)
 
 // Make this allocation stack the same as the source, copying only through the given stage.
 template <class T>
-static void copyAllocationStackThroughStage(std::vector<T>& stack, const std::vector<T>& src, const Stage& g) {
+static void copyAllocationStackThroughStage
+   (Array_<T>& stack, const Array_<T>& src, const Stage& g) 
+{
     unsigned nVarsToCopy = src.size(); // assume we'll copy all
     while (nVarsToCopy && src[nVarsToCopy-1].getAllocationStage() > g)
         --nVarsToCopy;
@@ -105,7 +107,7 @@ static void copyAllocationStackThroughStage(std::vector<T>& stack, const std::ve
 //
 // These are intended as elements in an allocation stack as described above,
 // so it is expected that they will get reaallocated, copied, and destructed during 
-// allocation as the std::vector gets resized from time to time. However, the
+// allocation as the Array_ gets resized from time to time. However, the
 // discrete variable and cache entry *values* must remain in a fixed location in 
 // memory once allocated, because callers are permitted to retain references to these 
 // values once they have been allocated. So pointers to the AbstractValues are kept
@@ -525,14 +527,14 @@ public:
     // as the stage is advanced and popped off the ends as the stage is reduced.
 
     // Topology and Model stage definitions. TODO: some of these aren't used yet
-    std::vector<MechanicalStateInfo>    quInfo;
-    std::vector<AuxiliaryStateInfo>     zInfo;
-    std::vector<DiscreteVarInfo>        discreteInfo;
+    Array_<MechanicalStateInfo>    quInfo;
+    Array_<AuxiliaryStateInfo>     zInfo;
+    Array_<DiscreteVarInfo>        discreteInfo;
 
     // Topology, Model, and Instance stage definitions.
-    //mutable std::vector<ConstraintInfo> constraintInfo;
-    mutable std::vector<EventInfo>      eventInfo;
-    mutable std::vector<CacheEntryInfo> cacheInfo;
+    //mutable Array_<ConstraintInfo> constraintInfo;
+    mutable Array_<EventInfo>      eventInfo;
+    mutable Array_<CacheEntryInfo> cacheInfo;
 
         // AGGREGATE GLOBAL RESOURCE NEEDS //
     
@@ -623,11 +625,12 @@ private:
     void popCacheBackToStage       (const Stage& g) {popAllocationStackBackToStage(cacheInfo,g);}
     void popEventsBackToStage      (const Stage& g) {popAllocationStackBackToStage(eventInfo,g);}
 
-    void copyDiscreteVarsThroughStage(const std::vector<DiscreteVarInfo>& src, const Stage& g)
+    void copyDiscreteVarsThroughStage
+       (const Array_<DiscreteVarInfo>& src, const Stage& g)
     {   copyAllocationStackThroughStage(discreteInfo, src, g); }
-    void copyCacheThroughStage(const std::vector<CacheEntryInfo>& src, const Stage& g)
+    void copyCacheThroughStage(const Array_<CacheEntryInfo>& src, const Stage& g)
     {   copyAllocationStackThroughStage(cacheInfo, src, g); }
-    void copyEventsThroughStage(const std::vector<EventInfo>& src, const Stage& g)
+    void copyEventsThroughStage(const Array_<EventInfo>& src, const Stage& g)
     {   copyAllocationStackThroughStage(eventInfo, src, g); }
 
     // Restore this subsystem to the way it last was at realize(g) for a given Stage g; 
@@ -1088,7 +1091,7 @@ private:
 
     // Subsystem 0 (always present) is for the System as a whole. Its name
     // and version are the System name and version.
-    std::vector<PerSubsystemInfo> subsystems;
+    Array_<PerSubsystemInfo> subsystems;
 
     // Return true only if all subsystems have been realized to at least Stage g.
     bool allSubsystemsAtLeastAtStage(Stage g) const {

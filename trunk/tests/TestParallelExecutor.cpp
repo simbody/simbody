@@ -32,7 +32,6 @@
 #include "SimTKcommon.h"
 
 #include <iostream>
-#include <vector>
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
@@ -45,7 +44,7 @@ bool isParallel;
 
 class SetFlagTask : public ParallelExecutor::Task {
 public:
-    SetFlagTask(vector<int>& flags, int& count) : flags(flags), count(count) {
+    SetFlagTask(Array_<int>& flags, int& count) : flags(flags), count(count) {
     }
     void execute(int index) {
         flags[index]++;
@@ -61,14 +60,14 @@ public:
         ASSERT(ParallelExecutor::isWorkerThread() == isParallel);
     }
 private:
-    vector<int>& flags;
+    Array_<int>& flags;
     int& count;
     ThreadLocal<int> localCount;
 };
 
 void testParallelExecution() {
     const int numFlags = 100;
-    vector<int> flags(numFlags);
+    Array_<int> flags(numFlags);
     isParallel = (ParallelExecutor::getNumProcessors() > 1);
     ParallelExecutor executor;
     ASSERT(!ParallelExecutor::isWorkerThread());
@@ -87,7 +86,7 @@ void testParallelExecution() {
 
 void testSingleThreadedExecution() {
     const int numFlags = 100;
-    vector<int> flags(numFlags);
+    Array_<int> flags(numFlags);
     isParallel = false;
     ParallelExecutor executor(1); // Specify only a single thread.
     int count = 0;

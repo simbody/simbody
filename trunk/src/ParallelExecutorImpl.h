@@ -34,8 +34,8 @@
 
 #include "SimTKcommon/internal/ParallelExecutor.h"
 #include "SimTKcommon/internal/ThreadLocal.h"
+#include "SimTKcommon/internal/Array.h"
 #include <pthread.h>
-#include <vector>
 
 namespace SimTK {
 
@@ -88,8 +88,8 @@ private:
     bool finished;
     pthread_mutex_t runLock;
     pthread_cond_t runCondition, waitCondition;
-    std::vector<pthread_t> threads;
-    std::vector<ThreadInfo*> threadInfo;
+    Array_<pthread_t> threads;
+    Array_<ThreadInfo*> threadInfo;
     ParallelExecutor::Task* currentTask;
     int currentTaskCount;
     int waitingThreadCount;

@@ -639,7 +639,7 @@ void testSpeedSimTKArray() {
     int sum;
     for (int i=0; i < Outer; ++i) {
         sum = i;
-        for (int i=0; i < v.size(); ++i)
+        for (unsigned i=0; i < v.size(); ++i)
             sum += v[i];
     }
     cout << "Array sum=" << sum << endl;

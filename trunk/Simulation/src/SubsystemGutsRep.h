@@ -145,7 +145,7 @@ private:
     friend class Subsystem;
     Subsystem* myHandle;	// the owner handle of this rep
 
-    std::vector<AbstractMeasure::Implementation*> measures;
+    Array_<AbstractMeasure::Implementation*> measures;
 
         // TOPOLOGY CACHE
 

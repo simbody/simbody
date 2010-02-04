@@ -32,12 +32,10 @@
 #include "PolygonalMeshImpl.h"
 #include <cassert>
 #include <sstream>
-#include <vector>
 #include <string>
 
 using std::string;
 using std::stringstream;
-using std::vector;
 
 namespace SimTK {
 
@@ -76,7 +74,7 @@ const Vec3& PolygonalMesh::getVertexPosition(int vertex) const {
 
 int PolygonalMesh::getNumVerticesForFace(int face) const {
     assert(face >= 0 && face < getNumFaces());
-    const vector<int>& faceVertexStart = getImpl().faceVertexStart;
+    const Array_<int>& faceVertexStart = getImpl().faceVertexStart;
     return faceVertexStart[face+1]-faceVertexStart[face];
 }
 
@@ -91,7 +89,7 @@ int PolygonalMesh::addVertex(const Vec3& position) {
     return getImpl().vertices.size()-1;
 }
 
-int PolygonalMesh::addFace(const std::vector<int>& vertices) {
+int PolygonalMesh::addFace(const Array_<int>& vertices) {
     for (int i = 0; i < (int) vertices.size(); i++)
         updImpl().faceVertexIndex.push_back(vertices[i]);
     updImpl().faceVertexStart.push_back(getImpl().faceVertexIndex.size());
@@ -99,13 +97,13 @@ int PolygonalMesh::addFace(const std::vector<int>& vertices) {
 }
 
 void PolygonalMesh::scaleMesh(Real scale) {
-    vector<Vec3>& vertices = updImpl().vertices;
+    Array_<Vec3>& vertices = updImpl().vertices;
     for (int i = 0; i < (int) vertices.size(); i++)
         vertices[i] *= scale;
 }
 
 void PolygonalMesh::transformMesh(const Transform& transform) {
-    vector<Vec3>& vertices = updImpl().vertices;
+    Array_<Vec3>& vertices = updImpl().vertices;
     for (int i = 0; i < (int) vertices.size(); i++)
         vertices[i] = transform*vertices[i];
 }
@@ -120,7 +118,7 @@ PolygonalMeshImpl& PolygonalMesh::updImpl() {
 
 void PolygonalMesh::loadObjFile(std::istream& file) {
     string line;
-    vector<int> indices;
+    Array_<int> indices;
     int initialVertices = getNumVertices();
     while (!file.eof()) {
         getline(file, line);

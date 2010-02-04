@@ -32,9 +32,6 @@
 #include "ParallelExecutorImpl.h"
 #include "SimTKcommon/internal/ParallelExecutor.h"
 #include <pthread.h>
-#include <vector>
-
-using std::vector;
 
 namespace SimTK {
 

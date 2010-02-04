@@ -36,7 +36,6 @@
 #include "SimTKcommon/internal/DecorativeGeometry.h"
 
 #include <cmath>
-#include <vector>
 
 namespace SimTK {
 

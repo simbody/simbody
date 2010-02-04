@@ -34,7 +34,7 @@
 
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/ExceptionMacros.h"
-#include <vector>
+#include "SimTKcommon/internal/Array.h"
 
 namespace SimTK {
 
@@ -262,8 +262,8 @@ protected:
         SimTK_ASSERT_ALWAYS(index == updAllValues().size(), "Indices must be consecutive ints starting from 0.");
         updAllValues().push_back(&thisElement);
     }
-    static std::vector<const T*>& updAllValues() {
-        static std::vector<const T*> allValues;
+    static Array_<const T*>& updAllValues() {
+        static Array_<const T*> allValues;
         return allValues;
     }
 private:

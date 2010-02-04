@@ -179,18 +179,18 @@ public:
     }
 
     int handleEventsImpl
-       (State& s, Event::Cause cause, const std::vector<EventId>& eventIds,
+       (State& s, Event::Cause cause, const Array_<EventId>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const
     {
         cout << "handleEventsImpl t=" << s.getTime() << " cause=" << Event::getCauseName(cause) << endl;
         const EventRegistry& registry = getSystemSubsystem().getEventRegistry(s);
 
-        std::map<SubsystemIndex, std::vector<EventId> > eventsPerSub;
+        std::map<SubsystemIndex, Array_<EventId> > eventsPerSub;
         for (EventId i(0); i < eventIds.size(); ++i)
             eventsPerSub[ registry.find(i)->second ].push_back(i);
 
-        std::map<SubsystemIndex, std::vector<EventId> >::const_iterator i = eventsPerSub.begin();
+        std::map<SubsystemIndex, Array_<EventId> >::const_iterator i = eventsPerSub.begin();
         for (; i != eventsPerSub.end(); ++i) {
             Stage lowest = Stage::Report;
             bool  terminate = false;
@@ -207,7 +207,7 @@ public:
         return 0;
     }
 
-    int reportEventsImpl(const State& s, Event::Cause cause, const std::vector<EventId>& eventIds) const
+    int reportEventsImpl(const State& s, Event::Cause cause, const Array_<EventId>& eventIds) const
     {
         cout << "reportEventsImpl t=" << s.getTime() << " cause=" << Event::getCauseName(cause) << endl;
         return 0;
@@ -329,7 +329,7 @@ public:
         return 0;
     }
 
-    void handleEvents(State& s, Event::Cause cause, const std::vector<EventId>& eventIds,
+    void handleEvents(State& s, Event::Cause cause, const Array_<EventId>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const
     {
@@ -339,7 +339,7 @@ public:
         cout << " ****" << endl;
     }
 
-    void reportEvents(const State&, Event::Cause, const std::vector<EventId>& eventIds) const
+    void reportEvents(const State&, Event::Cause, const Array_<EventId>& eventIds) const
     {
     }
 
@@ -372,8 +372,8 @@ private:
 
         // TOPOLOGY STATE VARIABLES //
 
-    std::vector<EventHandler*>          eventHandlers;
-    mutable std::vector<EventReporter*> eventReporters;
+    Array_<EventHandler*>          eventHandlers;
+    mutable Array_<EventReporter*> eventReporters;
 
         // TOPOLOGY CACHE //
     mutable CacheEntryIndex myStateVars;
@@ -405,7 +405,7 @@ private:
 // Find the event triggers at a particular stage that changed sign since
 // they were last recorded in events0.
 static void findEvents(const State& state, Stage g, const Vector& triggers0,
-                       std::vector<EventId>& triggered)
+                       Array_<EventId>& triggered)
 {
     const int n     = state.getNEventTriggersByStage(g);
     const int start = state.getEventTriggerStartByStage(g); // location within triggers0 Vector
@@ -426,7 +426,7 @@ static Vector weights;
 static Vector ooTols;
 
 static bool handleEvents(const System& sys, State& state, Stage g,
-                         const std::vector<EventId>& triggered) 
+                         const Array_<EventId>& triggered) 
 {
     if (triggered.empty())
         return false;
@@ -565,7 +565,7 @@ void testOne() {
         const Real h2 = h/2;
         const Vector ydot0 = state.getYDot();
         const Vector triggers0 = state.getEventTriggers();
-        std::vector<EventId> triggered;
+        Array_<EventId> triggered;
 
         // Commit the values for the discrete variable updates calculated
         // at the end of the previous step. This includes both explicitly

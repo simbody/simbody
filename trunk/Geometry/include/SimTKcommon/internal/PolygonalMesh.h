@@ -104,7 +104,7 @@ public:
      * @param vertices    the indices of the vertices which make up the new face
      * @return the index of the newly added face
      */
-    int addFace(const std::vector<int>& vertices);
+    int addFace(const Array_<int>& vertices);
     /**
      * Scale a mesh by multiplying every vertex by a fix value.
      */

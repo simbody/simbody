@@ -39,6 +39,7 @@
  */
 
 #include "SimTKcommon/internal/common.h"
+#include "SimTKcommon/internal/ExceptionMacros.h"
 
 #include <algorithm>
 #include <iterator>
@@ -50,10 +51,10 @@
 namespace SimTK {
 
 // These are the classes defined in this header.
-template <class X>              struct ArrayIndexTraits;
-template <class T, class X=int> class  ArrayViewConst_;
-template <class T, class X=int> class  ArrayView_;
-template <class T, class X=int> class  Array_;
+template <class X>                   struct ArrayIndexTraits;
+template <class T, class X=unsigned> class  ArrayViewConst_;
+template <class T, class X=unsigned> class  ArrayView_;
+template <class T, class X=unsigned> class  Array_;
 
 
 
@@ -306,9 +307,9 @@ occurs.
 @tparam T 
     The type of object to be stored in this container. 
 @tparam X 
-    The type to be used for indexing this container, with default int. Any
-    integral type may be used, as well as user types that satisfy the 
-    requirements discussed with class ArrayIndexTraits. 
+    The type to be used for indexing this container, with default unsigned
+    (not size_t). Any integral type may be used, as well as user types that 
+    satisfy the requirements discussed with class ArrayIndexTraits. 
 @see Array_, ArrayView_, ArrayIndexTraits **/
 template <class T, class X> class ArrayViewConst_ {
 public:
@@ -532,8 +533,8 @@ non-const versions of these methods. **/
 /*@{*/
 
 /** Select an element by its index, returning a const reference. Note that only 
-a value of the array's templatized index type is allowed (default is int). This 
-will be range-checked in a Debug build but not in Release.
+a value of the array's templatized index type is allowed (default is unsigned).
+This will be range-checked in a Debug build but not in Release.
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
@@ -1040,8 +1041,8 @@ read-only (const) methods. **/
 /*@{*/
 
 /** Select an element by its index, returning a const reference. Note that only 
-a value of the array's templatized index type is allowed (default is int). This 
-will be range-checked in a Debug build but not in Release.
+a value of the array's templatized index type is allowed (default is unsigned).
+This will be range-checked in a Debug build but not in Release.
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
@@ -1049,7 +1050,7 @@ const T& operator[](index_type i) const {return this->CBase::operator[](i);}
 
 /** Select an element by its index, returning a writable (lvalue) reference. 
 Note that only a value of the Array's templatized index type is allowed 
-(default is int). This will be range-checked in a Debug build but not 
+(default is unsigned). This will be range-checked in a Debug build but not 
 in Release. 
 @pre 0 <= \a i < size()
 @par Complexity:
@@ -1397,10 +1398,10 @@ own heap-allocated arrays.
 - There is a constant-time eraseFast() method you can use if you don't mind the
   array being reordered after the erase. This avoids the extremely expensive
   "compress" activity required by the standard erase() method.
-- The default size_type for an Array_<T> is a 32-bit integer rather than a
-  size_t. On a 64-bit machine that keeps the overhead down substantially since
-  the structure is then one 64-bit pointer and two 32-bit integers, fitting
-  nicely into a cleanly alignable 16 bytes.
+- The default size_type for an Array_<T> is a 32-bit unsigned integer rather 
+  than a size_t. On a 64-bit machine that keeps the overhead down substantially
+  since the structure is then one 64-bit pointer and two 32-bit integers, 
+  fitting tightly into a cleanly alignable 16 bytes.
 - The optional index-type template parameter can be used to reduce the memory
   footprint to as little as 8 bytes on a 32 bit machine (e.g., a 32 bit 
   pointer and two shorts.)
@@ -2176,8 +2177,8 @@ of elements, that are currently present in the array. **/
 /*@{*/
 
 /** Select an element by its index, returning a const reference. Note that only 
-a value of the Array's templatized index type is allowed (default is int). This 
-will be range-checked in a Debug build but not in Release.
+a value of the Array's templatized index type is allowed (default is unsigned).
+This will be range-checked in a Debug build but not in Release.
 @pre 0 <= \a i < size()
 @par Complexity:
     Constant time. **/
@@ -2185,7 +2186,7 @@ const T& operator[](index_type i) const {return this->CBase::operator[](i);}
 
 /** Select an element by its index, returning a writable (lvalue) reference. 
 Note that only a value of the Array's templatized index type is allowed 
-(default is int). This will be range-checked in a Debug build but not 
+(default is unsigned). This will be range-checked in a Debug build but not 
 in Release. 
 @pre 0 <= \a i < size()
 @par Complexity:

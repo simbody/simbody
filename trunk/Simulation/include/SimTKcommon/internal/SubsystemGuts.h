@@ -273,7 +273,8 @@ public:
     // to that stage. Note that the list is not inclusive -- you have to
     // request geometry from each stage to get all of it.
     // The generated geometry will be *appended* to the supplied output vector.
-    void calcDecorativeGeometryAndAppend(const State&, Stage, std::vector<DecorativeGeometry>&) const;
+    void calcDecorativeGeometryAndAppend
+       (const State&, Stage, Array_<DecorativeGeometry>&) const;
     
     void createScheduledEvent(const State& state, EventId& eventId) const;
     void createTriggeredEvent(const State& state, EventId& eventId, EventTriggerByStageIndex& triggerFunctionIndex, Stage stage) const;
@@ -282,13 +283,20 @@ public:
     // Each subsystem is responsible for defining its own events, and
     // System then combines the information from them, and dispatches events
     // to the appropriate subsystems for handling when they occur.
-    virtual void calcEventTriggerInfo(const State&, std::vector<System::EventTriggerInfo>&) const;
-    virtual void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
-    virtual void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, std::vector<EventId>& eventIds, bool includeCurrentTime) const;
-    virtual void handleEvents(State&, Event::Cause, const std::vector<EventId>& eventIds,
+    virtual void calcEventTriggerInfo
+       (const State&, Array_<System::EventTriggerInfo>&) const;
+    virtual void calcTimeOfNextScheduledEvent
+       (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
+        bool includeCurrentTime) const;
+    virtual void calcTimeOfNextScheduledReport
+       (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
+        bool includeCurrentTime) const;
+    virtual void handleEvents
+       (State&, Event::Cause, const Array_<EventId>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
-    virtual void reportEvents(const State&, Event::Cause, const std::vector<EventId>& eventIds) const;
+    virtual void reportEvents
+       (const State&, Event::Cause, const Array_<EventId>& eventIds) const;
 
 protected:
     // These virtual methods should be overridden in concrete Subsystems as
@@ -326,7 +334,7 @@ protected:
     virtual int calcQErrUnitTolerancesImpl(const State& s, Vector& tolerances) const;
     virtual int calcUErrUnitTolerancesImpl(const State& s, Vector& tolerances) const;
     virtual int calcDecorativeGeometryAndAppendImpl
-       (const State&, Stage, std::vector<DecorativeGeometry>&) const;
+       (const State&, Stage, Array_<DecorativeGeometry>&) const;
 
     void advanceToStage(const State& s, Stage g) const;
 

@@ -1276,17 +1276,17 @@ public:
     VectorView_<ELT> operator()(int i, int m)       {return Base::operator()(i,0,m,1).updAsVectorView();}
 
     // Indexed view creation (arbitrary subvector). Indices must be monotonically increasing.
-    VectorView_<ELT> index(const std::vector<int>& indices) const {
+    VectorView_<ELT> index(const Array_<int>& indices) const {
         MatrixHelper<Scalar> h(Base::getHelper().getCharacterCommitment(), Base::getHelper(), indices);
         return VectorView_<ELT>(h);
     }
-    VectorView_<ELT> updIndex(const std::vector<int>& indices) {
+    VectorView_<ELT> updIndex(const Array_<int>& indices) {
         MatrixHelper<Scalar> h(Base::getHelper().getCharacterCommitment(), Base::updHelper(), indices);
         return VectorView_<ELT>(h);
     }
 
-    VectorView_<ELT> operator()(const std::vector<int>& indices) const {return index(indices);}
-    VectorView_<ELT> operator()(const std::vector<int>& indices)       {return updIndex(indices);}
+    VectorView_<ELT> operator()(const Array_<int>& indices) const {return index(indices);}
+    VectorView_<ELT> operator()(const Array_<int>& indices)       {return updIndex(indices);}
  
     // Hermitian transpose.
     THerm transpose() const {return Base::transpose().getAsRowVectorView();}
@@ -1555,17 +1555,17 @@ public:
     RowVectorView_<ELT> operator()(int j, int n)       {return Base::operator()(0,j,1,n).updAsRowVectorView();}
 
     // Indexed view creation (arbitrary subvector). Indices must be monotonically increasing.
-    RowVectorView_<ELT> index(const std::vector<int>& indices) const {
+    RowVectorView_<ELT> index(const Array_<int>& indices) const {
         MatrixHelper<Scalar> h(Base::getHelper(), indices);
         return RowVectorView_<ELT>(h);
     }
-    RowVectorView_<ELT> updIndex(const std::vector<int>& indices) {
+    RowVectorView_<ELT> updIndex(const Array_<int>& indices) {
         MatrixHelper<Scalar> h(Base::updHelper(), indices);
         return RowVectorView_<ELT>(h);
     }
 
-    RowVectorView_<ELT> operator()(const std::vector<int>& indices) const {return index(indices);}
-    RowVectorView_<ELT> operator()(const std::vector<int>& indices)       {return updIndex(indices);}
+    RowVectorView_<ELT> operator()(const Array_<int>& indices) const {return index(indices);}
+    RowVectorView_<ELT> operator()(const Array_<int>& indices)       {return updIndex(indices);}
  
     // Hermitian transpose.
     THerm transpose() const {return Base::transpose().getAsVectorView();}

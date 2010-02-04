@@ -33,6 +33,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon/internal/PolygonalMesh.h"
+#include "SimTKcommon/internal/Array.h"
 
 namespace SimTK {
 
@@ -44,9 +45,9 @@ public:
     PolygonalMeshImpl();
     ~PolygonalMeshImpl() {
     }
-    std::vector<Vec3> vertices;
-    std::vector<int> faceVertexIndex;
-    std::vector<int> faceVertexStart;
+    Array_<Vec3> vertices;
+    Array_<int> faceVertexIndex;
+    Array_<int> faceVertexStart;
 };
 
 } // namespace SimTK

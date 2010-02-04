@@ -33,8 +33,8 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon/internal/Parallel2DExecutor.h"
+#include "SimTKcommon/internal/Array.h"
 #include <utility>
-#include <vector>
 
 namespace SimTK {
 
@@ -62,8 +62,8 @@ public:
     }
 private:
     const int gridSize;
-    std::vector<std::vector<std::pair<int,int> > > squares;
-    std::vector<int> binStart;
+    Array_<Array_<std::pair<int,int> > > squares;
+    Array_<int> binStart;
     ParallelExecutor* executor;
     bool ownExecutor;
 };

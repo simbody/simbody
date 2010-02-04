@@ -414,7 +414,7 @@ protected:
     }
 
 private:
-    std::vector<CacheEntryIndex> derivIx;
+    Array_<CacheEntryIndex> derivIx;
 };
 
 

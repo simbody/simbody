@@ -318,7 +318,7 @@ void testArticulatedInertia() {
     SimTK_TEST_EQ(abi.shiftInPlace(-shiftVec).toSpatialMat(), mabi);
 }
 
-void testManualABIShift(const ArticulatedInertia& abi, const std::vector<Vec3>& shifts, Real& out) {
+void testManualABIShift(const ArticulatedInertia& abi, const Array_<Vec3>& shifts, Real& out) {
     SpatialMat mabi = abi.toSpatialMat();
 
     SpatialMat shiftMat(Mat33(1));
@@ -329,7 +329,7 @@ void testManualABIShift(const ArticulatedInertia& abi, const std::vector<Vec3>& 
     out = mabi(1,1)(2,2);
 }
 
-void testPhiABIShift(const ArticulatedInertia& abi, const std::vector<Vec3>& shifts, Real& out) {
+void testPhiABIShift(const ArticulatedInertia& abi, const Array_<Vec3>& shifts, Real& out) {
     SpatialMat mabi = abi.toSpatialMat();
 
     for (unsigned i=0; i<shifts.size(); ++i) {
@@ -339,14 +339,14 @@ void testPhiABIShift(const ArticulatedInertia& abi, const std::vector<Vec3>& shi
     out = mabi(1,1)(2,2);
 }
 
-void testFastABIShift(const ArticulatedInertia& abi_in, const std::vector<Vec3>& shifts, Real& out) {
+void testFastABIShift(const ArticulatedInertia& abi_in, const Array_<Vec3>& shifts, Real& out) {
     ArticulatedInertia abi(abi_in);
     for (unsigned i=0; i<shifts.size(); ++i)
         abi = abi.shift(shifts[i]);
     out = abi.getMass()(2,2);
 }
 
-std::vector<Vec3> shifts;
+Array_<Vec3> shifts;
 #ifdef NDEBUG
     #define NSHIFTS 2000000
 #else
