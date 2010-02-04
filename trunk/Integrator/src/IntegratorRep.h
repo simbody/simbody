@@ -403,16 +403,16 @@ public:
     // For purposes of this method, events are specified by their indices in the array
     // of trigger functions, NOT by their event IDs.
     void findEventCandidates(int nEvents, 
-                             const std::vector<SystemEventTriggerIndex>*   viableCandidates,
-                             const std::vector<Event::Trigger>* viableCandidateTransitions,
+                             const Array_<SystemEventTriggerIndex>* viableCandidates,
+                             const Array_<Event::Trigger>*          viableCandidateTransitions,
                              Real tLow,  const Vector& eLow, 
                              Real tHigh, const Vector& eHigh,
-                             Real bias, Real minWindow,
-                             std::vector<SystemEventTriggerIndex>&   candidates,
-                             std::vector<Real>&                      timeEstimates,
-                             std::vector<Event::Trigger>& transitions,
-                             Real& earliestTimeEst, 
-                             Real& narrowestWindow) const
+                             Real bias,  Real          minWindow,
+                             Array_<SystemEventTriggerIndex>&   candidates,
+                             Array_<Real>&                      timeEstimates,
+                             Array_<Event::Trigger>&            transitions,
+                             Real&                              earliestTimeEst, 
+                             Real&                              narrowestWindow) const
     {
         int nCandidates;
         if (viableCandidates) {
@@ -458,7 +458,7 @@ public:
     
     /// Given a list of events, specified by their indices in the list of trigger functions,
     /// convert them to the corresponding event IDs.
-    void findEventIds(const std::vector<SystemEventTriggerIndex>& indices, std::vector<EventId>& ids) {
+    void findEventIds(const Array_<SystemEventTriggerIndex>& indices, Array_<EventId>& ids) {
         for (int i = 0; i < (int)indices.size(); ++i)
             ids.push_back(eventTriggerInfo[indices[i]].getEventId());
     }
@@ -499,7 +499,7 @@ protected:
     // constant across a time step, and usually across many time steps.
     bool getDynamicSystemHasTimeAdvancedEvents()      const {return systemHasTimeAdvancedEvents;}
     Real getDynamicSystemTimescale()                  const {return timeScaleInUse;}
-    const std::vector<System::EventTriggerInfo>&
+    const Array_<System::EventTriggerInfo>&
         getDynamicSystemEventTriggerInfo()            const {return eventTriggerInfo;}
     const Vector& getDynamicSystemOneOverTolerances() const {return constraintWeightsInUse;}
     const Vector& getDynamicSystemWeights()           const {return stateWeightsInUse;}
@@ -515,9 +515,9 @@ protected:
     }
 
     void setTriggeredEvents(Real tlo, Real thi,
-                            const std::vector<EventId>&  eventIds,
-                            const std::vector<Real>& estEventTimes,
-                            const std::vector<Event::Trigger>& transitionsSeen)
+                            const Array_<EventId>&  eventIds,
+                            const Array_<Real>& estEventTimes,
+                            const Array_<Event::Trigger>& transitionsSeen)
     {
         assert(tPrev <= tlo && tlo < thi && thi <= advancedState.getTime());
         tLow = tlo;
@@ -526,7 +526,7 @@ protected:
         const int n = eventIds.size();
         assert(n > 0 && estEventTimes.size()==n && transitionsSeen.size()==n);
         triggeredEvents.resize(n); estimatedEventTimes.resize(n); eventTransitionsSeen.resize(n);
-        std::vector<int> eventOrder; // will be a permutation of 0:n-1
+        Array_<int> eventOrder; // will be a permutation of 0:n-1
         calcEventOrder(eventIds, estEventTimes, eventOrder);
         for (int i=0; i<(int)eventOrder.size(); ++i) {
             const int ipos = eventOrder[i];
@@ -543,9 +543,9 @@ protected:
     Real getEventWindowLow()  const {return tLow;}
     Real getEventWindowHigh() const {return tHigh;}
 
-    const std::vector<EventId>&  getTriggeredEvents()  const {return triggeredEvents;}
-    const std::vector<Real>& getEstimatedEventTimes()  const {return estimatedEventTimes;}
-    const std::vector<Event::Trigger>&
+    const Array_<EventId>&  getTriggeredEvents()  const {return triggeredEvents;}
+    const Array_<Real>& getEstimatedEventTimes()  const {return estimatedEventTimes;}
+    const Array_<Event::Trigger>&
                        getEventTransitionsSeen() const {return eventTransitionsSeen;}
 
     // This determines which state will be returned by getState().
@@ -569,7 +569,7 @@ protected:
     Vector& updPreviousY()      {return yPrev;}
     Vector& updPreviousYDot()   {return ydotPrev;}
     Vector& updPreviousEventTriggers() {return triggersPrev;}
-    std::vector<System::EventTriggerInfo>& updEventTriggerInfo() {return eventTriggerInfo;}
+    Array_<System::EventTriggerInfo>& updEventTriggerInfo() {return eventTriggerInfo;}
     Vector& updConstraintWeightsInUse() {return constraintWeightsInUse;}
 
     // State must already have been evaluated through Stage::Acceleration
@@ -712,9 +712,9 @@ private:
         Real estTime;
     };
 
-    void calcEventOrder(const std::vector<EventId>&  eventIds,
-                        const std::vector<Real>& estEventTimes,
-                        std::vector<int>&        eventOrder)
+    void calcEventOrder(const Array_<EventId>&  eventIds,
+                        const Array_<Real>& estEventTimes,
+                        Array_<int>&        eventOrder)
     {
         const size_t n = eventIds.size();
         assert(estEventTimes.size()==n);
@@ -728,8 +728,8 @@ private:
         }
 
         // otherwise sort
-        std::vector<EventSorter> events(n);
-        for (size_t i=0; i<n; ++i)
+        Array_<EventSorter> events(n);
+        for (unsigned i=0; i<n; ++i)
             events[i] = EventSorter(i, eventIds[i], estEventTimes[i]);
         std::sort(events.begin(), events.end());
         for (size_t i=0; i<n; ++i) 
@@ -769,7 +769,7 @@ private:
     // They also provide a localization window width.
     // This is Stage::Instance information.
 
-    std::vector<System::EventTriggerInfo> eventTriggerInfo;
+    Array_<System::EventTriggerInfo> eventTriggerInfo;
 
     // A unitless fraction.
     Real accuracyInUse;
@@ -823,18 +823,18 @@ private:
     // These are the events that the integrator has algorithmically
     // determined are now triggered. You may not get the same result
     // simply comparing the trigger function values at tLow and tHigh.
-    std::vector<EventId>  triggeredEvents;
+    Array_<EventId>  triggeredEvents;
 
     // These are the estimated times corresponding to the triggeredEvents.
     // They are in ascending order although there may be duplicates.
-    std::vector<Real> estimatedEventTimes;
+    Array_<Real> estimatedEventTimes;
     
     // Which transition was seen for each triggered event (this is 
     // only a single transition, not an OR-ed together set). This is
     // the integrator's algorithmic determination of the transition to
     // be reported -- you might not get the same answer just looking
     // at the event trigger functions at tLow and tHigh.
-    std::vector<Event::Trigger> eventTransitionsSeen;
+    Array_<Event::Trigger> eventTransitionsSeen;
 
     // When we have successfully localized a triggering event into
     // the time interval (tLow,tHigh] we record the bounds here.

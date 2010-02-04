@@ -73,7 +73,7 @@ public:
      *                         less than or equal to the value returned by getMaxDerivativeOrder().
      * @param x                the Vector of input arguments.  Its size must equal the value returned by getArgumentSize().
      */
-    virtual T calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const = 0;
+    virtual T calcDerivative(const Array_<int>& derivComponents, const Vector& x) const = 0;
     /**
      * Get the number of components expected in the input vector.
      */
@@ -105,7 +105,7 @@ public:
         assert(x.size() == argumentSize);
         return value;
     }
-    T calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const {
+    T calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
         return static_cast<T>(0);
     }
     virtual int getArgumentSize() const {
@@ -145,7 +145,7 @@ public:
         value += coefficients[x.size()];
         return value;
     }
-    T calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const {
+    T calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
         assert(x.size() == coefficients.size()-1);
         assert(derivComponents.size() > 0);
         if (derivComponents.size() == 1)
@@ -186,7 +186,7 @@ public:
             value = value*arg + coefficients[i];
         return value;
     }
-    T calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const {
+    T calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
         assert(x.size() == 1);
         assert(derivComponents.size() > 0);
         Real arg = x[0];

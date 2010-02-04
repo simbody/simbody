@@ -30,7 +30,6 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKmath.h"
-#include <vector>
 
 using namespace SimTK;
 using namespace std;
@@ -70,7 +69,7 @@ void testSpline() {
     Spline_<Vec3> spline(1, x, coeff);
     for (int i = 0; i < x.size(); ++i)
         assertEqual(coeff[i], spline.calcValue(Vector(1, x[i])));
-    vector<int> deriv;
+    Array_<int> deriv;
     deriv.push_back(0);
     for (int i = 0; i < x.size()-1; ++i) {
         for (int j = 0; j < 10; ++j) {
@@ -149,7 +148,7 @@ void testRealSpline() {
     Spline spline(1, x, coeff);
     for (int i = 0; i < x.size(); ++i)
         assertEqual(coeff[i], spline.calcValue(Vector(1, x[i])));
-    vector<int> deriv;
+    Array_<int> deriv;
     deriv.push_back(0);
     for (int i = 0; i < x.size()-1; ++i) {
         for (int j = 0; j < 10; ++j) {

@@ -111,7 +111,7 @@ Vec2 Integrator::getEventWindow() const {
     return Vec2(getRep().getEventWindowLow(), getRep().getEventWindowHigh());
 }
 
-const std::vector<EventId>& 
+const Array_<EventId>& 
 Integrator::getTriggeredEvents() const {
     if (getRep().getStepCommunicationStatus() != IntegratorRep::StepHasBeenReturnedWithEvent) {
         SimTK_THROW2(CantAskForEventInfoWhenNoEventTriggered, "getTriggeredEvents",
@@ -121,7 +121,7 @@ Integrator::getTriggeredEvents() const {
     return getRep().getTriggeredEvents();
 }
 
-const std::vector<Real>&
+const Array_<Real>&
 Integrator::getEstimatedEventTimes() const {
     if (getRep().getStepCommunicationStatus() != IntegratorRep::StepHasBeenReturnedWithEvent) {
         SimTK_THROW2(CantAskForEventInfoWhenNoEventTriggered, "getEstimatedEventTimes",
@@ -131,7 +131,7 @@ Integrator::getEstimatedEventTimes() const {
     return getRep().getEstimatedEventTimes();
 }
 
-const std::vector<Event::Trigger>&
+const Array_<Event::Trigger>&
 Integrator::getEventTransitionsSeen() const {
     if (getRep().getStepCommunicationStatus() != IntegratorRep::StepHasBeenReturnedWithEvent) {
         SimTK_THROW2(CantAskForEventInfoWhenNoEventTriggered, "getEventTransitionsSeen",

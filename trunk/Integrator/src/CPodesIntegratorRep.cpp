@@ -156,9 +156,9 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
     }
     cpodes->rootInit(state.getNEventTriggers());
     if (state.getNEventTriggers() > 0) {
-        std::vector<System::EventTriggerInfo> triggerInfo;
+        Array_<System::EventTriggerInfo> triggerInfo;
         getSystem().calcEventTriggerInfo(state, triggerInfo);
-        std::vector<int> rootDir(triggerInfo.size());
+        Array_<int> rootDir(triggerInfo.size());
         for (int i = 0; i < (int)triggerInfo.size(); ++i) {
             if (triggerInfo[i].shouldTriggerOnFallingSignTransition()) {
                 if (triggerInfo[i].shouldTriggerOnRisingSignTransition())
@@ -382,9 +382,9 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
             
             // An event was triggered.
             
-            std::vector<SystemEventTriggerIndex> eventIndices;
-            std::vector<Real> eventTimes;
-            std::vector<Event::Trigger> eventTransitions;
+            Array_<SystemEventTriggerIndex> eventIndices;
+            Array_<Real> eventTimes;
+            Array_<Event::Trigger> eventTransitions;
             int nevents = getAdvancedState().getNEventTriggers();
             int* eventFlags = new int[nevents];
             cpodes->getRootInfo(eventFlags);
@@ -395,7 +395,7 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
                     eventTransitions.push_back(eventFlags[i] == 1 ? Event::Rising : Event::Falling);
                 }
             delete[] eventFlags;
-            std::vector<EventId> ids;
+            Array_<EventId> ids;
             findEventIds(eventIndices, ids);
             setTriggeredEvents(previousStartTime, tret, ids, eventTimes, eventTransitions);
             setStepCommunicationStatus(IntegratorRep::StepHasBeenReturnedWithEvent);

@@ -30,7 +30,6 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKmath.h"
-#include <vector>
 
 using namespace SimTK;
 using namespace std;
@@ -61,7 +60,7 @@ void testConstant() {
     ASSERT(f.getArgumentSize() == 2);
     Vector x(2);
     assertEqual(Vec3(1, 2, 3), f.calcValue(x));
-    vector<int> derivComponents(1);
+    Array_<int> derivComponents(1);
     assertEqual(Vec3(0), f.calcDerivative(derivComponents, x));
 }
 
@@ -75,10 +74,10 @@ void testLinear() {
     assertEqual(Vec3(-1, -2, -3), f.calcValue(Vector(Vec2(0, 0))));
     assertEqual(Vec3(0, 0, 0), f.calcValue(Vector(Vec2(1, 0))));
     assertEqual(Vec3(-2.5, -2.5, -2.5), f.calcValue(Vector(Vec2(0.5, -0.5))));
-    vector<int> derivComponents(1);
+    Array_<int> derivComponents(1);
     derivComponents[0] = 1;
     assertEqual(Vec3(4, 3, 2), f.calcDerivative(derivComponents, Vector(Vec2(1, 0))));
-    vector<int> derivComponents2(2);
+    Array_<int> derivComponents2(2);
     assertEqual(Vec3(0, 0, 0), f.calcDerivative(derivComponents2, Vector(Vec2(1, 0))));
 }
 
@@ -92,14 +91,14 @@ void testPolynomial() {
     assertEqual(Vec3(-1, -2, -3), f.calcValue(Vector(Vec1(0))));
     assertEqual(Vec3(4, 3, 2), f.calcValue(Vector(Vec1(1))));
     assertEqual(Vec3(11, 12, 13), f.calcValue(Vector(Vec1(2))));
-    vector<int> derivComponents(1);
+    Array_<int> derivComponents(1);
     assertEqual(Vec3(4, 3, 2), f.calcDerivative(derivComponents, Vector(Vec1(0))));
     assertEqual(Vec3(6, 7, 8), f.calcDerivative(derivComponents, Vector(Vec1(1))));
     assertEqual(Vec3(8, 11, 14), f.calcDerivative(derivComponents, Vector(Vec1(2))));
-    vector<int> derivComponents2(2);
+    Array_<int> derivComponents2(2);
     assertEqual(Vec3(2, 4, 6), f.calcDerivative(derivComponents2, Vector(Vec1(0))));
     assertEqual(Vec3(2, 4, 6), f.calcDerivative(derivComponents2, Vector(Vec1(1))));
-    vector<int> derivComponents3(3);
+    Array_<int> derivComponents3(3);
     assertEqual(Vec3(0, 0, 0), f.calcDerivative(derivComponents3, Vector(Vec1(1))));
 }
 
@@ -113,10 +112,10 @@ void testRealFunction() {
     assertEqual(-1, f.calcValue(Vector(Vec2(0, 0))));
     assertEqual(0, f.calcValue(Vector(Vec2(1, 0))));
     assertEqual(-2.5, f.calcValue(Vector(Vec2(0.5, -0.5))));
-    vector<int> derivComponents(1);
+    Array_<int> derivComponents(1);
     derivComponents[0] = 1;
     assertEqual(4, f.calcDerivative(derivComponents, Vector(Vec2(1, 0))));
-    vector<int> derivComponents2(2);
+    Array_<int> derivComponents2(2);
     assertEqual(0, f.calcDerivative(derivComponents2, Vector(Vec2(1, 0))));
 }
 

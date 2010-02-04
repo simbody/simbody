@@ -363,10 +363,10 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     assert(e0.size() == e1.size() && e0.size() == getAdvancedState().getNEventTriggers());
 
 	const Real MinWindow = std::max(SignificantReal, SignificantReal*getAdvancedTime());
-    std::vector<SystemEventTriggerIndex> eventCandidates, newEventCandidates;
-    std::vector<Event::Trigger> 
+    Array_<SystemEventTriggerIndex> eventCandidates, newEventCandidates;
+    Array_<Event::Trigger> 
         eventCandidateTransitions, newEventCandidateTransitions;
-    std::vector<Real> eventTimeEstimates, newEventTimeEstimates;
+    Array_<Real> eventTimeEstimates, newEventTimeEstimates;
 
     Real earliestTimeEst, narrowestWindow;
 
@@ -383,7 +383,7 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     Real tHigh = t1;
 
     if ((tHigh-tLow) <= narrowestWindow && !(tLow < tReport && tReport < tHigh)) {
-        std::vector<EventId> ids;
+        Array_<EventId> ids;
         findEventIds(eventCandidates, ids);
         setTriggeredEvents(tLow, tHigh, ids, eventTimeEstimates, eventCandidateTransitions);
         return true;     // localized already; advanced state is right (tHigh==tAdvanced)
@@ -471,7 +471,7 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
 
     } while ((tHigh-tLow) > narrowestWindow);
 
-    std::vector<EventId> ids;
+    Array_<EventId> ids;
     findEventIds(eventCandidates, ids);
     setTriggeredEvents(tLow, tHigh, ids, eventTimeEstimates, eventCandidateTransitions);
 

@@ -253,13 +253,13 @@ public:
     Vec2 getEventWindow() const;
     /// Get the IDs of all events which have been localized within the event window.  This may only be called
     /// when stepTo() or stepBy() has returned ReachedEventTrigger.
-    const std::vector<EventId>& getTriggeredEvents() const;
+    const Array_<EventId>& getTriggeredEvents() const;
     /// Get the estimated times of all events which have been localized within the event window.  This may only be called
     /// when stepTo() or stepBy() has returned ReachedEventTrigger.
-    const std::vector<Real>& getEstimatedEventTimes() const;
+    const Array_<Real>& getEstimatedEventTimes() const;
     /// Get EventTriggers describing the events which have been localized within the event window.  This may only be called
     /// when stepTo() or stepBy() has returned ReachedEventTrigger.
-    const std::vector<Event::Trigger>& getEventTransitionsSeen() const;
+    const Array_<Event::Trigger>& getEventTransitionsSeen() const;
 
 
         // TERMINATION //

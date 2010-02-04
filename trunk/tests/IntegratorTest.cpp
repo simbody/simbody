@@ -120,7 +120,7 @@ public:
         // Implementation of discrete System virtuals //
         ////////////////////////////////////////////////
 
-    /*virtual*/int calcEventTriggerInfoImpl(const State& s, std::vector<System::EventTriggerInfo>& eti) const {
+    /*virtual*/int calcEventTriggerInfoImpl(const State& s, Array_<System::EventTriggerInfo>& eti) const {
         eti.clear();
         eti.push_back(System::EventTriggerInfo(eventId0)
                       .setRequiredLocalizationTimeWindow(1)
@@ -132,7 +132,7 @@ public:
     }
 
     /*virtual*/int calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEvent, 
-                                                    std::vector<int>& eventIds, bool includeCurrentTime) const
+                                                    Array_<int>& eventIds, bool includeCurrentTime) const
     {
         // Generate an event every 5.123 seconds.
         int nFives = (int)(s.getTime() / 5.123); // rounded down
@@ -152,7 +152,7 @@ public:
     // to correct that. Time will be the same before and after, but the
     // state may have changed discontinuously.
     /*virtual*/int handleEventsImpl
-       (State& s, Event::Cause cause, const std::vector<int>& eventIds,
+       (State& s, Event::Cause cause, const Array_<int>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const
     {
@@ -282,7 +282,7 @@ int main () {
     for (int reportNo=0; !integ.isSimulationOver(); 
          reportNo += (integ.getTime() >= reportNo*hReport))
     {
-        std::vector<EventId> scheduledEventIds;
+        Array_<EventId> scheduledEventIds;
         Real nextScheduledEvent = NTraits<Real>::getInfinity();
         sys.calcTimeOfNextScheduledEvent(integ.getAdvancedState(), 
             nextScheduledEvent, scheduledEventIds, true);
@@ -313,7 +313,7 @@ int main () {
                 printf("TIME HAS ADVANCED TO %g\n", integ.getTime()); 
                 sys.handleEvents(integ.updAdvancedState(),
                     Event::Cause::TimeAdvanced,
-                    std::vector<EventId>(),
+                    Array_<EventId>(),
                     integ.getAccuracyInUse(),
                     integ.getStateWeightsInUse(),
                     integ.getConstraintWeightsInUse(),
@@ -355,7 +355,7 @@ int main () {
                 printf("SIMULATION IS OVER. TERMINATION REASON=<TODO>\n");
                 sys.handleEvents(integ.updAdvancedState(),
                     Event::Cause::Termination,
-                    std::vector<EventId>(),
+                    Array_<EventId>(),
                     integ.getAccuracyInUse(),
                     integ.getStateWeightsInUse(),
                     integ.getConstraintWeightsInUse(),

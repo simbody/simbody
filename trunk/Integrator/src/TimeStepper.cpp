@@ -107,8 +107,8 @@ TimeStepperRep::TimeStepperRep(TimeStepper* handle, const System& system) : myHa
 
 Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
     while (!integ->isSimulationOver()) {
-        std::vector<EventId> scheduledEventIds;
-        std::vector<EventId> scheduledReportIds;
+        Array_<EventId> scheduledEventIds;
+        Array_<EventId> scheduledReportIds;
         Real nextScheduledEvent  = Infinity;
         Real nextScheduledReport = Infinity;
         Real currentTime         = integ->getTime();
@@ -159,7 +159,7 @@ Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
             case Integrator::TimeHasAdvanced: {
                 system.handleEvents(integ->updAdvancedState(),
                     Event::Cause::TimeAdvanced,
-                    std::vector<EventId>(),
+                    Array_<EventId>(),
                     integ->getAccuracyInUse(),
                     integ->getStateWeightsInUse(),
                     integ->getConstraintWeightsInUse(),
@@ -179,7 +179,7 @@ Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
             case Integrator::EndOfSimulation: {
                 system.handleEvents(integ->updAdvancedState(),
                     Event::Cause::Termination,
-                    std::vector<EventId>(),
+                    Array_<EventId>(),
                     integ->getAccuracyInUse(),
                     integ->getStateWeightsInUse(),
                     integ->getConstraintWeightsInUse(),

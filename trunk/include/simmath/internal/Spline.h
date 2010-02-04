@@ -97,7 +97,7 @@ public:
      * only allows a single independent variable, all elements of derivComponents should be 0, and its
      * length determines the order of the derivative to calculate.
      */
-    T calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const {
+    T calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
         assert(impl);
         assert(x.size() == 1);
         assert(derivComponents.size() > 0);
