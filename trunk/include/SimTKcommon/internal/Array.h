@@ -2844,6 +2844,7 @@ T* insertIteratorDispatch(T* p, const ForwardIterator& first,
     const size_type n = size_type(nInput);
     p = insertGapAt(p, n, methodName);
     copyConstruct(p, p+n, first);
+    setSize(size()+n);
     return p;
 }
 
@@ -2928,9 +2929,9 @@ void assignIteratorDispatch(const ForwardIterator& first,
         // followed by copy construction.
 
         clear(); // all elements destructed; allocation unchanged
-        setSize(n);
-        reallocateIfAdvisable(n); // change size if too small or too big
+        reallocateIfAdvisable(n); // change allocation if too small or too big
         copyConstruct(data(), cdata()+n, first);
+        setSize(n);
     } else {
         // This is a non-owner Array. Assignment can occur only if the
         // source is the same size as the array, and the semantics are of
