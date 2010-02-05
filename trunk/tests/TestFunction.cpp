@@ -31,6 +31,10 @@
 
 #include "SimTKmath.h"
 
+// We'll use some std::vectors to check interoperability between Array_<T>
+// and std::vector<T>.
+#include <vector>
+
 using namespace SimTK;
 using namespace std;
 
@@ -74,10 +78,10 @@ void testLinear() {
     assertEqual(Vec3(-1, -2, -3), f.calcValue(Vector(Vec2(0, 0))));
     assertEqual(Vec3(0, 0, 0), f.calcValue(Vector(Vec2(1, 0))));
     assertEqual(Vec3(-2.5, -2.5, -2.5), f.calcValue(Vector(Vec2(0.5, -0.5))));
-    Array_<int> derivComponents(1);
+    std::vector<int> derivComponents(1);
     derivComponents[0] = 1;
     assertEqual(Vec3(4, 3, 2), f.calcDerivative(derivComponents, Vector(Vec2(1, 0))));
-    Array_<int> derivComponents2(2);
+    std::vector<int> derivComponents2(2);
     assertEqual(Vec3(0, 0, 0), f.calcDerivative(derivComponents2, Vector(Vec2(1, 0))));
 }
 
@@ -91,14 +95,14 @@ void testPolynomial() {
     assertEqual(Vec3(-1, -2, -3), f.calcValue(Vector(Vec1(0))));
     assertEqual(Vec3(4, 3, 2), f.calcValue(Vector(Vec1(1))));
     assertEqual(Vec3(11, 12, 13), f.calcValue(Vector(Vec1(2))));
-    Array_<int> derivComponents(1);
+    std::vector<int> derivComponents(1);
     assertEqual(Vec3(4, 3, 2), f.calcDerivative(derivComponents, Vector(Vec1(0))));
     assertEqual(Vec3(6, 7, 8), f.calcDerivative(derivComponents, Vector(Vec1(1))));
     assertEqual(Vec3(8, 11, 14), f.calcDerivative(derivComponents, Vector(Vec1(2))));
-    Array_<int> derivComponents2(2);
+    std::vector<int> derivComponents2(2);
     assertEqual(Vec3(2, 4, 6), f.calcDerivative(derivComponents2, Vector(Vec1(0))));
     assertEqual(Vec3(2, 4, 6), f.calcDerivative(derivComponents2, Vector(Vec1(1))));
-    Array_<int> derivComponents3(3);
+    std::vector<int> derivComponents3(3);
     assertEqual(Vec3(0, 0, 0), f.calcDerivative(derivComponents3, Vector(Vec1(1))));
 }
 

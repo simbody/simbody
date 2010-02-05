@@ -130,6 +130,10 @@ public:
         assert(impl);
         return impl->degree;
     }
+
+    /** This provides compatibility with std::vector without requiring any copying. **/
+    T calcDerivative(const ArrayViewConst_<int>& derivComponents, const Vector& x) const 
+    {   return Function_<T>::calcDerivative(derivComponents,x); }
 private:
     class SplineImpl;
     SplineImpl* impl;
