@@ -31,21 +31,23 @@
 
 #include "SimTKmath.h"
 
+#include <vector> // use some std::vectors to test Array_ interoperability
+
 using namespace SimTK;
-using namespace std;
+//using namespace std;
 
 const Real TOL = 1e-9;
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
 
 void assertEqual(Real val1, Real val2, double tol=TOL) {
-    ASSERT(abs(val1-val2) < tol);
+    ASSERT(std::abs(val1-val2) < tol);
 }
 
 template <int N>
 void assertEqual(Vec<N> val1, Vec<N> val2, double tol=TOL) {
     for (int i = 0; i < N; ++i)
-        ASSERT(abs(val1[i]-val2[i]) < tol);
+        ASSERT(std::abs(val1[i]-val2[i]) < tol);
 }
 
 template <class T>
@@ -69,7 +71,7 @@ void testSpline() {
     Spline_<Vec3> spline(1, x, coeff);
     for (int i = 0; i < x.size(); ++i)
         assertEqual(coeff[i], spline.calcValue(Vector(1, x[i])));
-    Array_<int> deriv;
+    std::vector<int> deriv;
     deriv.push_back(0);
     for (int i = 0; i < x.size()-1; ++i) {
         for (int j = 0; j < 10; ++j) {
@@ -172,7 +174,7 @@ int main () {
         testSpline();
         testSplineFitter();
         testRealSpline();
-        cout << "Done" << endl;
+        std::cout << "Done" << std::endl;
         return 0;
     }
     catch (std::exception& e) {

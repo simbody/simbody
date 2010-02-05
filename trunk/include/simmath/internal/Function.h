@@ -76,8 +76,8 @@ public:
     virtual T calcDerivative(const Array_<int>& derivComponents, const Vector& x) const = 0;
 
     /** This provides compatibility with std::vector without requiring any copying. **/
-    T calcDerivative(const ArrayViewConst_<int>& derivComponents, const Vector& x) const 
-    {   return calcDerivative((const Array_<int>&)derivComponents, x); }
+    T calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const 
+    {   return calcDerivative(ArrayViewConst_<int>(derivComponents),x); }
 
     /**
      * Get the number of components expected in the input vector.
@@ -121,8 +121,8 @@ public:
     }
 
     /** This provides compatibility with std::vector without requiring any copying. **/
-    T calcDerivative(const ArrayViewConst_<int>& derivComponents, const Vector& x) const 
-    {   return Function_<T>::calcDerivative(derivComponents,x); }
+    T calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const 
+    {   return calcDerivative(ArrayViewConst_<int>(derivComponents),x); }
 
 private:
     const int argumentSize;
@@ -170,8 +170,8 @@ public:
     }
 
     /** This provides compatibility with std::vector without requiring any copying. **/
-    T calcDerivative(const ArrayViewConst_<int>& derivComponents, const Vector& x) const 
-    {   return Function_<T>::calcDerivative(derivComponents,x); }
+    T calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const 
+    {   return calcDerivative(ArrayViewConst_<int>(derivComponents),x); }
 private:
     const Vector_<T> coefficients;
 };
@@ -223,8 +223,8 @@ public:
     }
 
     /** This provides compatibility with std::vector without requiring any copying. **/
-    T calcDerivative(const ArrayViewConst_<int>& derivComponents, const Vector& x) const 
-    {   return Function_<T>::calcDerivative(derivComponents,x); }
+    T calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const 
+    {   return calcDerivative(ArrayViewConst_<int>(derivComponents),x); }
 private:
     const Vector_<T> coefficients;
 };

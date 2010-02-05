@@ -132,8 +132,8 @@ public:
     }
 
     /** This provides compatibility with std::vector without requiring any copying. **/
-    T calcDerivative(const ArrayViewConst_<int>& derivComponents, const Vector& x) const 
-    {   return Function_<T>::calcDerivative(derivComponents,x); }
+    T calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const 
+    {   return calcDerivative(ArrayViewConst_<int>(derivComponents),x); }
 private:
     class SplineImpl;
     SplineImpl* impl;
