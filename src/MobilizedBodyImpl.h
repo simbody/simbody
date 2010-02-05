@@ -122,7 +122,7 @@ public:
     virtual void copyOutDefaultQImpl(int nq, Real* q) const = 0;
 
     virtual void calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
     {
         if (stage != Stage::Instance || !getMyMatterSubsystemRep().getShowDefaultGeometry())
             return;
@@ -167,7 +167,7 @@ public:
     }
 
     void calcDecorativeGeometryAndAppend
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
     {
         // We know how to deal with the topological (construction) geometry
         // here. For bodies we can just draw it at topology stage. For mobilizers,
@@ -411,7 +411,7 @@ public:
 private:
     // Body topological geometry is defined with respect to the body frame so we
     // can draw it right away.
-    void appendTopologicalBodyGeometry(std::vector<DecorativeGeometry>& geom) const {
+    void appendTopologicalBodyGeometry(Array_<DecorativeGeometry>& geom) const {
         getBody().getRep().appendDecorativeGeometry(getMyMobilizedBodyIndex(), geom);
     }
 
@@ -421,7 +421,7 @@ private:
     // until Instance stage. At that point we can find M and F, so they are passed in
     // here.
     void appendTopologicalMobilizerGeometry(const Transform& X_BM, const Transform& X_PF,
-                                            std::vector<DecorativeGeometry>& geom) const
+                                            Array_<DecorativeGeometry>& geom) const
     {
         for (int i=0; i<(int)outboardGeometry.size(); ++i) {
             geom.push_back(outboardGeometry[i]);
@@ -462,8 +462,8 @@ private:
 
     bool        reversed; // is the mobilizer defined from M to F?
 
-    std::vector<DecorativeGeometry> outboardGeometry;
-    std::vector<DecorativeGeometry> inboardGeometry;
+    Array_<DecorativeGeometry> outboardGeometry;
+    Array_<DecorativeGeometry> inboardGeometry;
 
     // These data members are filled in once the MobilizedBody is added to
     // a MatterSubsystem. Note that this pointer is just a reference to
@@ -679,7 +679,7 @@ public:
     }
 
     void calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
 
     void setDefaultRadius(Real r) {
         assert(r>0);
@@ -716,7 +716,7 @@ public:
     }
 
     void calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
 
     void setDefaultRadius(Real r) {
         assert(r>0);
@@ -753,7 +753,7 @@ public:
     }
 
     void calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
 
     void setDefaultRadii(const Vec3& r) {
         assert(r[0]>0 && r[1]>0 && r[2]>0);
@@ -1082,7 +1082,7 @@ public:
                                (const State& s) const {getImplementation().realizeAcceleration(s);}
     void realizeReportVirtual  (const State& s) const {getImplementation().realizeReport(s);}
         
-    void calcDecorativeGeometryAndAppend(const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+    void calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
        {getImplementation().calcDecorativeGeometryAndAppend(s,stage,geom);}
     
     SimTK_DOWNCAST(CustomImpl, MobilizedBodyImpl);
@@ -1109,7 +1109,7 @@ inline MobilizedBody::Custom::ImplementationImpl::~ImplementationImpl() {
 class MobilizedBody::FunctionBasedImpl : public MobilizedBody::Custom::Implementation {
 public:
     //Constructor that uses default axes
-    FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const std::vector<const Function*>& functions, const std::vector<std::vector<int> >& coordIndices)
+    FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const Array_<const Function*>& functions, const Array_<Array_<int> >& coordIndices)
             : Implementation(matter, nmobilities, nmobilities, 0), subsystem(matter.getMySubsystemIndex()), nu(nmobilities), cacheIndex(0), functions(functions), coordIndices(coordIndices), referenceCount(new int[1]) {
         assert(functions.size() == 6);
         assert(coordIndices.size() == 6);
@@ -1121,7 +1121,7 @@ public:
         Arot = Mat33(1);
         Atrans = Mat33(1);
     }
-    FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const std::vector<const Function*>& functions, const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes)
+    FunctionBasedImpl(SimbodyMatterSubsystem& matter, int nmobilities, const Array_<const Function*>& functions, const Array_<Array_<int> >& coordIndices, const Array_<Vec3>& axes)
             : Implementation(matter, nmobilities, nmobilities, 0), subsystem(matter.getMySubsystemIndex()), nu(nmobilities), cacheIndex(0), functions(functions), coordIndices(coordIndices), referenceCount(new int[1]) {
         assert(functions.size() == 6);
         assert(coordIndices.size() == 6);
@@ -1623,22 +1623,22 @@ private:
     const SubsystemIndex subsystem;
     const int nu;
     mutable CacheEntryIndex cacheIndex;
-    const std::vector<const Function*> functions;
-    const std::vector<std::vector<int> > coordIndices;
+    const Array_<const Function*> functions;
+    const Array_<Array_<int> > coordIndices;
     int* referenceCount;
-    //const std::vector<Vec3> axes;
+    //const Array_<Vec3> axes;
     Mat33 Arot, Atrans;
     template <int N> class CacheInfo {
     public:
         CacheInfo() : isValidH(false), isValidHdot(false) { }
 
-        void buildH(Vector& q, Vector& u, const Transform& X_FM, const std::vector<const Function*>& functions, const std::vector<std::vector<int> >& coordIndices, const Mat33 Arot, const Mat33 Atrans)
+        void buildH(Vector& q, Vector& u, const Transform& X_FM, const Array_<const Function*>& functions, const Array_<Array_<int> >& coordIndices, const Mat33 Arot, const Mat33 Atrans)
         {
             // Build the Fq and Fqq matrices of partials of the spatial functions with respect to the gen coordinates, q    
             // Cycle through each row (function describing spatial coordinate)
             Fq = Mat<6,N>(0);
             Vec6 spatialCoords(0);
-            std::vector<int> deriv(1);
+            Array_<int> deriv(1);
             Vector fcoords(coordIndices[0].size()); 
 
             for(int i=0; i < 6; i++){
@@ -1683,11 +1683,11 @@ private:
             }
         }
 
-        void buildHdot(Vector& q, Vector& u, const Transform& X_FM, const std::vector<const Function*>& functions, const std::vector<std::vector<int> >& coordIndices, const Mat33 Arot, const Mat33 Atrans)
+        void buildHdot(Vector& q, Vector& u, const Transform& X_FM, const Array_<const Function*>& functions, const Array_<Array_<int> >& coordIndices, const Mat33 Arot, const Mat33 Atrans)
         {
             Mat<6,N> Fqdot(0);
             Vec6 spatialCoords;
-            std::vector<int> derivs(2);
+            Array_<int> derivs(2);
             Vector fcoords(coordIndices[0].size()); 
 
             for(int i=0; i < 6; i++){

@@ -71,7 +71,7 @@ public:
      *                   is concave.)
      */
     virtual void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-            int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const = 0;
+            int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const = 0;
     /**
      * Register a CollisionDetectionAlgorithm to be used for identifying contacts between bodies of two specific types.
      *
@@ -104,7 +104,7 @@ class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::HalfSpaceSphere : public
 public:
     virtual ~HalfSpaceSphere() {}
     void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-            int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const;
+            int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const;
 };
 
 /**
@@ -114,7 +114,7 @@ class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::SphereSphere : public Co
 public:
     virtual ~SphereSphere() {}
     void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-            int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const;
+            int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const;
 };
 
 /**
@@ -124,7 +124,7 @@ class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::HalfSpaceTriangleMesh : 
 public:
     virtual ~HalfSpaceTriangleMesh() {}
     void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-            int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const;
+            int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const;
 private:
     void processBox(const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh::OBBTreeNode& node,
             const Transform& transform, const Vec3& axisDir, Real xoffset, std::set<int>& insideFaces) const;
@@ -138,7 +138,7 @@ class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::SphereTriangleMesh : pub
 public:
     virtual ~SphereTriangleMesh() {}
     void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-            int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const;
+            int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const;
 private:
     void processBox(const Vec3& center, Real radius2, const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh::OBBTreeNode& node,
             std::set<int>& insideFaces) const;
@@ -151,14 +151,14 @@ class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::TriangleMeshTriangleMesh
 public:
     virtual ~TriangleMeshTriangleMesh() {}
     void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-            int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const;
+            int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const;
 private:
     void processNodes(const ContactGeometry::TriangleMesh& mesh1, const ContactGeometry::TriangleMesh& mesh2,
             const ContactGeometry::TriangleMesh::OBBTreeNode& node1, const ContactGeometry::TriangleMesh::OBBTreeNode& node2,
             const OrientedBoundingBox& node2Bounds, const Transform& transform, std::set<int>& triangles1, std::set<int>& triangles2) const;
     void findInsideTriangles(const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh& otherMesh,
         const Transform& transform, std::set<int>& triangles) const;
-    void tagFaces(const ContactGeometry::TriangleMesh& mesh, std::vector<int>& faceType, std::set<int>& triangles, int index) const;
+    void tagFaces(const ContactGeometry::TriangleMesh& mesh, Array_<int>& faceType, std::set<int>& triangles, int index) const;
     static const int OUTSIDE = -1;
     static const int UNKNOWN = 0;
     static const int BOUNDARY = 1;

@@ -75,7 +75,6 @@
 #include <cmath>
 #include <cstdio>
 #include <exception>
-#include <vector>
 
 using namespace SimTK;
 
@@ -132,10 +131,10 @@ private:
 
     struct PerBodyInfo {
         PerBodyInfo() { }
-        std::vector<vtkProp3D*>         aList;
-        std::vector<DecorativeGeometry> gList; // one per actor (TODO)
+        Array_<vtkProp3D*>         aList;
+        Array_<DecorativeGeometry> gList; // one per actor (TODO)
     };
-    std::vector<PerBodyInfo> bodies;
+    Array_<PerBodyInfo> bodies;
 
     struct PerDynamicGeomInfo {
         PerDynamicGeomInfo() : actor(0) { }
@@ -144,13 +143,13 @@ private:
         MobilizedBodyIndex  body1, body2;
         Vec3 station1, station2;
     };
-    std::vector<PerDynamicGeomInfo> dynamicGeom;
+    Array_<PerDynamicGeomInfo> dynamicGeom;
 
     // This geometry gets displayed at the next frame render and then 
     // destroyed. We have to remember the actors we generate to do that so 
     // we can remove them from the renderer when we're done with the frame.
-    std::vector<DecorativeGeometry> ephemeralGeometry;
-    std::vector<vtkActor*>    ephemeralActors;
+    Array_<DecorativeGeometry> ephemeralGeometry;
+    Array_<vtkActor*>    ephemeralActors;
 
     vtkRenderWindow* renWin;
     vtkRenderer*     renderer;
@@ -537,7 +536,7 @@ void VTKVisualizerRep::createInstanceGeometry(const State& state) {
     
     // Mine the system for any geometry it wants us to show.
 
-    std::vector<DecorativeGeometry> sysGeom;
+    Array_<DecorativeGeometry> sysGeom;
     for (Stage stage = Stage::Topology; stage < Stage::Time; stage++)
         mbs.calcDecorativeGeometryAndAppend(state, stage, sysGeom);
     for (int i=0; i<(int)sysGeom.size(); ++i)
@@ -621,7 +620,7 @@ void VTKVisualizerRep::deletePointers() {
     // Delete all the actors. The geometry gets deleted automatically
     // thanks to good design!
     for (int i=0; i<(int)bodies.size(); ++i) {
-        std::vector<vtkProp3D*>& actors = bodies[i].aList;
+        Array_<vtkProp3D*>& actors = bodies[i].aList;
         for (int a=0; a<(int)actors.size(); ++a)
             actors[a]->Delete(), actors[a]=0;
     }
@@ -641,7 +640,7 @@ void VTKVisualizerRep::deletePointers() {
 }
 
 void VTKVisualizerRep::setConfiguration(MobilizedBodyIndex bodyNum, const Transform& X_GB) {
-    const std::vector<vtkProp3D*>& actors = bodies[bodyNum].aList;
+    const Array_<vtkProp3D*>& actors = bodies[bodyNum].aList;
     for (int i=0; i < (int)actors.size(); ++i) {
         vtkProp3D*       actor = actors[i];
         actor->SetPosition(X_GB.p()[0], X_GB.p()[1], X_GB.p()[2]);

@@ -149,13 +149,13 @@ public:
     }
 
     int calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
 
     SimTK_DOWNCAST(DecorationSubsystemGuts, Subsystem::Guts);
 private:
         // TOPOLOGY "STATE" VARIABLES
-    std::vector<DecorativeGeometry> geometry;
-    std::vector<RubberBandLine>     rubberBandLines;
+    Array_<DecorativeGeometry> geometry;
+    Array_<RubberBandLine>     rubberBandLines;
 };
 
 } // namespace SimTK

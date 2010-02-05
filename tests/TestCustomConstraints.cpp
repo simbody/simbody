@@ -74,7 +74,7 @@ public:
     Real calcValue(const Vector& x) const {
         return x[0];
     }
-    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const {
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
         if (derivComponents.size() == 1)
             return 1;
         return 0;
@@ -96,7 +96,7 @@ public:
     Real calcValue(const Vector& x) const {
         return x[0]+x[1]+x[2];
     }
-    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const {
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
         if (derivComponents.size() == 1)
             return 1;
         return 0;

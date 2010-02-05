@@ -36,7 +36,6 @@
 #include "simbody/internal/common.h"
 
 #include <cassert>
-#include <vector>
 #include <iosfwd>
 
 namespace SimTK {
@@ -127,7 +126,7 @@ public:
 
     explicit SimbodyMatterSubtree(const SimbodyMatterSubsystem&);
     SimbodyMatterSubtree(const SimbodyMatterSubsystem&, 
-            const std::vector<MobilizedBodyIndex>& terminalBodies);
+            const Array_<MobilizedBodyIndex>& terminalBodies);
 
     void setSimbodyMatterSubsystem(const SimbodyMatterSubsystem& matter);
     const SimbodyMatterSubsystem& getSimbodyMatterSubsystem() const;
@@ -145,15 +144,15 @@ public:
 
     // These are in the same order they were added; body[i] is the terminus
     // of branch i.
-    const std::vector<MobilizedBodyIndex>& getTerminalBodies() const;
+    const Array_<MobilizedBodyIndex>& getTerminalBodies() const;
 
     // These are indexed by SubtreeBodyIndex starting with 0 for the ancestor
     // body and monotonically increasing outwards along a branch.
-    const std::vector<MobilizedBodyIndex>& getAllBodies() const;
+    const Array_<MobilizedBodyIndex>& getAllBodies() const;
 
     // 0 returns an invalid Index
     SubtreeBodyIndex getParentSubtreeBodyIndex(SubtreeBodyIndex) const;
-    const std::vector<SubtreeBodyIndex>& 
+    const Array_<SubtreeBodyIndex>& 
         getChildSubtreeBodyIndices(SubtreeBodyIndex) const;
 
         // MODEL STAGE
@@ -280,8 +279,8 @@ public:
     const SpatialVec& getSubtreeBodyAcceleration(SubtreeBodyIndex) const; // measured & expressed in ancestor frame
 
     // These are indexed by SubtreeQIndex and SubtreeUIndex.
-    const std::vector<QIndex>& getQSubset() const; // subset of Subsystem Qs used by this SimbodyMatterSubtree
-    const std::vector<UIndex>& getUSubset() const; // subset of Subsystem Us used by this SimbodyMatterSubtree
+    const Array_<QIndex>& getQSubset() const; // subset of Subsystem Qs used by this SimbodyMatterSubtree
+    const Array_<UIndex>& getUSubset() const; // subset of Subsystem Us used by this SimbodyMatterSubtree
 
     void findSubtreeBodyQ(SubtreeBodyIndex, SubtreeQIndex& qStart, int& nq) const; // indices into QSubset
     void findSubtreeBodyU(SubtreeBodyIndex, SubtreeUIndex& uStart, int& nu) const; // indices into USubset

@@ -478,11 +478,11 @@ public:
 
     SimTK_DOWNCAST(MultibodySystemRep, System::Guts);
 private:
-    SubsystemIndex  globalSub;             // index of global subsystem
-    SubsystemIndex  matterSub;             // index of matter subsystems
-    std::vector<SubsystemIndex> forceSubs; // indices of force subsystems
-    SubsystemIndex  decorationSub;         // index of DecorationSubsystem if any, else -1
-    SubsystemIndex  contactSub;            // index of contact subsystem if any, else -1
+    SubsystemIndex         globalSub;       // index of global subsystem
+    SubsystemIndex         matterSub;       // index of matter subsystems
+    Array_<SubsystemIndex> forceSubs;       // indices of force subsystems
+    SubsystemIndex         decorationSub;   // index of DecorationSubsystem if any, else -1
+    SubsystemIndex         contactSub;      // index of contact subsystem if any, else -1
 };
 
 

@@ -44,7 +44,6 @@
 #include "simbody/internal/common.h"
 
 #include <cmath>
-#include <vector>
 
 class vtkPolyData;
 class vtkTransform;
@@ -101,7 +100,7 @@ protected:
 
     // As we build the pipeline, we accumulate VTK objects which must
     // have their Delete() methods called in the destructor.
-    std::vector<vtkObject*> vtkObjects;
+    SimTK::Array_<vtkObject*> vtkObjects;
 };
 
 

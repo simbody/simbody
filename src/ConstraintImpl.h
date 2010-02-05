@@ -45,7 +45,6 @@
 #include "simbody/internal/SimbodyMatterSubtree.h"
 
 #include <map>
-#include <vector>
 #include <utility>  // std::pair
 #include <iostream>
 using std::cout; using std::endl;
@@ -389,7 +388,7 @@ public:
     }
 
     void calcDecorativeGeometryAndAppend
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
     {
         // Let the individual constraint deal with any complicated stuff.
         calcDecorativeGeometryAndAppendVirtual(s,stage,geom);
@@ -430,7 +429,7 @@ public:
         Vector&              mobilityForces) const;
 
     virtual void calcDecorativeGeometryAndAppendVirtual
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const {}
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const {}
 
 
     void invalidateTopologyCache() const;
@@ -545,8 +544,8 @@ private:
     MobilizedBody2ConstrainedBodyMap        myMobilizedBody2ConstrainedBodyMap;
     MobilizedBody2ConstrainedMobilizerMap   myMobilizedBody2ConstrainedMobilizerMap;
 
-    std::vector<MobilizedBodyIndex> myConstrainedBodies;     // index with ConstrainedBodyIndex
-    std::vector<MobilizedBodyIndex> myConstrainedMobilizers; // index with ConstrainedMobilizerIndex
+    Array_<MobilizedBodyIndex> myConstrainedBodies;     // index with ConstrainedBodyIndex
+    Array_<MobilizedBodyIndex> myConstrainedMobilizers; // index with ConstrainedMobilizerIndex
 
 
     // These are the defaults for the number of position (holonomic) constraint equations,
@@ -580,7 +579,7 @@ private:
     // If Ancestor isn't Ground there is an entry here for each ConstrainedBody
     // (including Ancestor if it is one), but the index is invalid for Ancestor's
     // entry. When Ancestor is Ground we don't allocate this array.
-    mutable std::vector<AncestorConstrainedBodyPoolIndex> myPoolIndex; // index with ConstrainedBodyIndex
+    mutable Array_<AncestorConstrainedBodyPoolIndex> myPoolIndex; // index with ConstrainedBodyIndex
 };
 
     // ROD
@@ -597,7 +596,7 @@ public:
 
     // Draw some end points and a rubber band line.
     void calcDecorativeGeometryAndAppendVirtual
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
 
     void setPointDisplayRadius(Real r) {
         // r == 0 means don't display point, r < 0 means use default which is some fraction of rod length
@@ -703,7 +702,7 @@ public:
     PointInPlaneImpl* clone() const { return new PointInPlaneImpl(*this); }
 
     void calcDecorativeGeometryAndAppendVirtual
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
 
     void setPlaneDisplayHalfWidth(Real h) {
         // h <= 0 means don't display plane
@@ -861,7 +860,7 @@ public:
     PointOnLineImpl* clone() const { return new PointOnLineImpl(*this); }
 
     void calcDecorativeGeometryAndAppendVirtual
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
 
     void setLineDisplayHalfLength(Real h) {
         // h <= 0 means don't display line
@@ -1012,7 +1011,7 @@ public:
     ConstantAngleImpl* clone() const { return new ConstantAngleImpl(*this); }
 
     void calcDecorativeGeometryAndAppendVirtual
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
 
     void setAxisLength(Real length) {
         // length <= 0 means don't display axis
@@ -1174,7 +1173,7 @@ public:
     BallImpl* clone() const { return new BallImpl(*this); }
 
     void calcDecorativeGeometryAndAppendVirtual
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
 
     void setDefaultRadius(Real r) {
         // r <= 0 means don't display
@@ -1471,7 +1470,7 @@ public:
 
     // Draw the two frames.
     void calcDecorativeGeometryAndAppendVirtual
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
 
     void setAxisDisplayLength(Real len) {
         // len == 0 means "don't display"
@@ -1645,7 +1644,7 @@ public:
     NoSlip1DImpl* clone() const { return new NoSlip1DImpl(*this); }
 
     void calcDecorativeGeometryAndAppendVirtual
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
 
     void setDirectionDisplayLength(Real l) {
         // l <= 0 means don't display direction line
@@ -1947,7 +1946,7 @@ public:
        {getImplementation().applyAccelerationConstraintForces(s,ma,multipliers,bodyForces,mobilityForces);}
 
     void calcDecorativeGeometryAndAppendVirtual
-          (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+          (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
        {getImplementation().calcDecorativeGeometryAndAppend(s,stage,geom);}
 
     SimTK_DOWNCAST(CustomImpl, ConstraintImpl);
@@ -1972,7 +1971,7 @@ inline Constraint::Custom::ImplementationImpl::~ImplementationImpl() {
 
 class Constraint::CoordinateCouplerImpl : public Constraint::Custom::Implementation {
 public:
-    CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
+    CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, const Function* function, const Array_<MobilizedBodyIndex>& coordBody, const Array_<MobilizerQIndex>& coordIndex);
     
     ~CoordinateCouplerImpl() {
         if (--referenceCount[0] == 0) {
@@ -1997,8 +1996,8 @@ public:
 private:
     const Function* function;
     int* referenceCount;
-    std::vector<ConstrainedMobilizerIndex> coordBodies;
-    std::vector<MobilizerQIndex> coordIndices;
+    Array_<ConstrainedMobilizerIndex> coordBodies;
+    Array_<MobilizerQIndex> coordIndices;
     mutable Vector temp;
 };
 
@@ -2008,8 +2007,8 @@ private:
 
 class Constraint::SpeedCouplerImpl : public Constraint::Custom::Implementation {
 public:
-    SpeedCouplerImpl(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
-            const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
+    SpeedCouplerImpl(SimbodyMatterSubsystem& matter, const Function* function, const Array_<MobilizedBodyIndex>& speedBody, const Array_<MobilizerUIndex>& speedIndex,
+            const Array_<MobilizedBodyIndex>& coordBody, const Array_<MobilizerQIndex>& coordIndex);
     
     ~SpeedCouplerImpl() {
         if (--referenceCount[0] == 0) {
@@ -2039,10 +2038,10 @@ private:
 
     const Function* function;
     int* referenceCount;
-    std::vector<ConstrainedMobilizerIndex> speedBodies;
-    std::vector<MobilizedBodyIndex> coordBodies;
-    std::vector<MobilizerUIndex> speedIndices;
-    std::vector<MobilizerQIndex> coordIndices;
+    Array_<ConstrainedMobilizerIndex> speedBodies;
+    Array_<MobilizedBodyIndex> coordBodies;
+    Array_<MobilizerUIndex> speedIndices;
+    Array_<MobilizerQIndex> coordIndices;
     mutable Vector temp;
 };
 

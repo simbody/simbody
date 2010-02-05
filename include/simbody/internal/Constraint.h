@@ -881,6 +881,8 @@ public:
 protected:
     const Implementation& getImplementation() const;
     Implementation&       updImplementation();
+
+    Custom() {}
 };
 
 // We only want the template instantiation to occur once. This symbol is 
@@ -1302,7 +1304,7 @@ protected:
     /// provide methods for controlling the presence or appearance of your generated geometry.
     /// If you don't implement this routine no geometry will be generated.
     virtual void calcDecorativeGeometryAndAppend
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
     {
     }
 
@@ -1333,7 +1335,19 @@ public:
      * @param coordBody   the MobilizedBody corresponding to each generalized coordinate that should be passed as a function argument
      * @param coordIndex  the index corresponding to each generalized coordinate that should be passed as a function argument
      */
-    CoordinateCoupler(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
+    CoordinateCoupler(SimbodyMatterSubsystem& matter, const Function* function, 
+                      const Array_<MobilizedBodyIndex>& coordBody, 
+                      const Array_<MobilizerQIndex>& coordIndex);
+
+    /** For compatibility with std::vector; no copying is done. **/
+    CoordinateCoupler(SimbodyMatterSubsystem& matter, const Function* function, 
+                      const std::vector<MobilizedBodyIndex>& coordBody, 
+                      const std::vector<MobilizerQIndex>& coordIndex) 
+    {   // Invoke the above constructor with converted arguments.
+        new (this) CoordinateCoupler(matter,function,
+            ArrayViewConst_<MobilizedBodyIndex>(coordBody),
+            ArrayViewConst_<MobilizerQIndex>(coordIndex));
+    }
 };
 
 /**
@@ -1361,7 +1375,20 @@ public:
      * @param speedBody   the MobilizedBody corresponding to each generalized speed that should be passed as a function argument
      * @param speedIndex  the index corresponding to each generalized speed that should be passed as a function argument
      */
-    SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex);
+    SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, 
+                 const Array_<MobilizedBodyIndex>& speedBody, 
+                 const Array_<MobilizerUIndex>& speedIndex);
+
+    /** For compatibility with std::vector; no copying is done. **/
+    SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, 
+                 const std::vector<MobilizedBodyIndex>& speedBody, 
+                 const std::vector<MobilizerUIndex>& speedIndex) 
+    {   // Invoke above constructor with converted arguments.
+        new (this) SpeedCoupler(matter, function,
+                                ArrayViewConst_<MobilizedBodyIndex>(speedBody),
+                                ArrayViewConst_<MobilizerUIndex>(speedIndex));
+    }
+
     /**
      * Create a SpeedCoupler.  You specify a Function and a list of generalized coordinates and speeds to pass to it as arguments.
      * Each generalized speed is specified by a MobilizedBody and the index of the speeds within that body.  For example
@@ -1378,8 +1405,25 @@ public:
      * @param coordBody   the MobilizedBody corresponding to each generalized coordinate that should be passed as a function argument
      * @param coordIndex  the index corresponding to each generalized coordinate that should be passed as a function argument
      */
-    SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
-            const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex);
+    SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, 
+                 const Array_<MobilizedBodyIndex>& speedBody, 
+                 const Array_<MobilizerUIndex>& speedIndex,
+                 const Array_<MobilizedBodyIndex>& coordBody, 
+                 const Array_<MobilizerQIndex>& coordIndex);
+
+    /** For compatibility with std::vector; no copying is done. **/
+    SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, 
+                 const std::vector<MobilizedBodyIndex>& speedBody, 
+                 const std::vector<MobilizerUIndex>& speedIndex,
+                 const std::vector<MobilizedBodyIndex>& coordBody, 
+                 const std::vector<MobilizerQIndex>& coordIndex)
+    {   // Invoke above constructor with converted arguments.
+        new (this) SpeedCoupler(matter, function,
+                                ArrayViewConst_<MobilizedBodyIndex>(speedBody),
+                                ArrayViewConst_<MobilizerUIndex>(speedIndex),
+                                ArrayViewConst_<MobilizedBodyIndex>(coordBody),
+                                ArrayViewConst_<MobilizerQIndex>(coordIndex));
+    }
 };
 
 /**
@@ -1400,7 +1444,8 @@ public:
      * @param coordBody   the MobilizedBody corresponding to the generalized coordinate which will be constrained
      * @param coordIndex  the index of the generalized coordinate which will be constrained
      */
-    PrescribedMotion(SimbodyMatterSubsystem& matter, const Function* function, MobilizedBodyIndex coordBody, MobilizerQIndex coordIndex);
+    PrescribedMotion(SimbodyMatterSubsystem& matter, const Function* function, 
+                     MobilizedBodyIndex coordBody, MobilizerQIndex coordIndex);
 };
 
 } // namespace SimTK

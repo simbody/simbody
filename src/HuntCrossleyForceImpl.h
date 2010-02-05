@@ -56,7 +56,7 @@ public:
 private:
     const GeneralContactSubsystem& subsystem;
     const ContactSetIndex set;
-    std::vector<Parameters> parameters;
+    Array_<Parameters> parameters;
     Real transitionVelocity;
     mutable CacheEntryIndex energyCacheIndex;
 };

@@ -38,8 +38,6 @@
 
 #include "HuntCrossleyForceImpl.h"
 
-using std::vector;
-
 namespace SimTK {
 
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(HuntCrossleyForce, HuntCrossleyForceImpl, Force);
@@ -73,7 +71,7 @@ void HuntCrossleyForceImpl::setBodyParameters(int bodyIndex, Real stiffness, Rea
 const HuntCrossleyForceImpl::Parameters& HuntCrossleyForceImpl::getParameters(int bodyIndex) const {
     assert(bodyIndex >= 0 && bodyIndex < subsystem.getNumBodies(set));
     if (bodyIndex >= (int) parameters.size())
-        const_cast<vector<Parameters>&>(parameters).resize(bodyIndex+1); // This fills in the default values which the missing entries implicitly had already.
+        const_cast<Array_<Parameters>&>(parameters).resize(bodyIndex+1); // This fills in the default values which the missing entries implicitly had already.
     return parameters[bodyIndex];
 }
 
@@ -95,8 +93,9 @@ void HuntCrossleyForceImpl::setTransitionVelocity(Real v) {
     subsystem.invalidateSubsystemTopologyCache();
 }
 
-void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
-    const vector<Contact>& contacts = subsystem.getContacts(state, set);
+void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
+                                      Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
+    const Array_<Contact>& contacts = subsystem.getContacts(state, set);
     Real& pe = Value<Real>::downcast(state.updCacheEntry(subsystem.getMySubsystemIndex(), energyCacheIndex)).upd();
     pe = 0.0;
     for (int i = 0; i < (int) contacts.size(); i++) {

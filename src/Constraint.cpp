@@ -43,7 +43,6 @@
 #include "SimbodyMatterSubsystemRep.h"
 #include "MobilizedBodyImpl.h"
 
-#include <vector>
 #include <algorithm>
 
 namespace SimTK {
@@ -640,7 +639,7 @@ Real Constraint::Rod::getMultiplier(const State& s) const {
     // RodImpl
 
 void Constraint::Rod::RodImpl::calcDecorativeGeometryAndAppendVirtual
-   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     // We can't generate the endpoint artwork until we know the end point stations,
     // which could be as late as Stage::Instance.
@@ -799,7 +798,7 @@ Real Constraint::PointInPlane::getMultiplier(const State& s) const {
     // PointInPlaneImpl
 
 void Constraint::PointInPlane::PointInPlaneImpl::calcDecorativeGeometryAndAppendVirtual
-   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     // We can't generate the artwork until we know the normal, height, and follower
     // point location, which might not be until Instance stage.
@@ -945,7 +944,7 @@ Vec2 Constraint::PointOnLine::getMultipliers(const State& s) const {
     // PointOnLineImpl
 
 void Constraint::PointOnLine::PointOnLineImpl::calcDecorativeGeometryAndAppendVirtual
-   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     // We can't generate the artwork until we know the direction, point on line, and follower
     // point location, which might not be until Instance stage.
@@ -1093,7 +1092,7 @@ Real Constraint::ConstantAngle::getMultiplier(const State& s) const {
     // ConstantAngleImpl
 
 void Constraint::ConstantAngle::ConstantAngleImpl::calcDecorativeGeometryAndAppendVirtual
-   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     // We can't generate the artwork until we know the normal, height, and follower
     // point location, which might not be until Instance stage.
@@ -1205,7 +1204,7 @@ Vec3 Constraint::Ball::getMultipliers(const State& s) const {
     // BallImpl
 
 void Constraint::Ball::BallImpl::calcDecorativeGeometryAndAppendVirtual
-   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     // We can't generate the ball until we know the radius, and we can't place
     // the geometry on the body until we know the body1 and body2 point
@@ -1430,7 +1429,7 @@ Vec6 Constraint::Weld::getMultipliers(const State& s) const {
     // WeldImpl
 
 void Constraint::Weld::WeldImpl::calcDecorativeGeometryAndAppendVirtual
-   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     // We can't generate the frames until we know the axis lengths to use, and we can't place
     // the geometry on the bodies until we know the body1 and body2 frame
@@ -1557,7 +1556,7 @@ Real Constraint::NoSlip1D::getMultiplier(const State& s) const {
     // NoSlip1DImpl
 
 void Constraint::NoSlip1D::NoSlip1DImpl::calcDecorativeGeometryAndAppendVirtual
-   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     // We can't generate the artwork until we know the direction and contact
     // point location, which might not be until Instance stage.
@@ -1916,11 +1915,11 @@ applyAccelerationConstraintForces
     // CONSTRAINT::COORDINATE COUPLER //
     ////////////////////////////////////
 
-Constraint::CoordinateCoupler::CoordinateCoupler(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
+Constraint::CoordinateCoupler::CoordinateCoupler(SimbodyMatterSubsystem& matter, const Function* function, const Array_<MobilizedBodyIndex>& coordBody, const Array_<MobilizerQIndex>& coordIndex)
         : Custom(new CoordinateCouplerImpl(matter, function, coordBody, coordIndex)) {
 }
 
-Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
+Constraint::CoordinateCouplerImpl::CoordinateCouplerImpl(SimbodyMatterSubsystem& matter, const Function* function, const Array_<MobilizedBodyIndex>& coordBody, const Array_<MobilizerQIndex>& coordIndex)
         : Implementation(matter, 1, 0, 0), function(function), coordBodies(coordBody.size()), coordIndices(coordIndex), temp(coordBodies.size()), referenceCount(new int[1]) {
     assert(coordBodies.size() == coordIndices.size());
     assert(coordIndices.size() == function->getArgumentSize());
@@ -1944,7 +1943,7 @@ void Constraint::CoordinateCouplerImpl::realizePositionDotErrors(const State& s,
     pverr[0] = 0.0;
     for (int i = 0; i < temp.size(); ++i)
         temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
-    std::vector<int> components(1);
+    Array_<int> components(1);
     for (int i = 0; i < temp.size(); ++i) {
         components[0] = i;
         pverr[0] += function->calcDerivative(components, temp)*getOneQDot(s, coordBodies[i], coordIndices[i], true);
@@ -1955,7 +1954,7 @@ void Constraint::CoordinateCouplerImpl::realizePositionDotDotErrors(const State&
     paerr[0] = 0.0;
     for (int i = 0; i < temp.size(); ++i)
         temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
-    std::vector<int> components(2);
+    Array_<int> components(2);
     // TODO this could be made faster by using symmetry if necessary
     for (int i = 0; i < temp.size(); ++i) {
         components[0] = i;
@@ -1965,7 +1964,7 @@ void Constraint::CoordinateCouplerImpl::realizePositionDotDotErrors(const State&
             paerr[0] += function->calcDerivative(components, temp)*qdoti*getOneQDot(s, coordBodies[j], coordIndices[j], true);
         }
     }
-    std::vector<int> component(1);
+    Array_<int> component(1);
     const Vector& udot = s.updUDot();
     Vector qdotdot(s.getNQ());
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
@@ -1984,7 +1983,7 @@ void Constraint::CoordinateCouplerImpl::applyPositionConstraintForces(const Stat
         temp[i] = getOneQ(s, coordBodies[i], coordIndices[i]);
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
     SBStateDigest digest(s, matter.getRep(), Stage::Velocity);
-    std::vector<int> components(1);
+    Array_<int> components(1);
     for (int i = 0; i < temp.size(); ++i) {
         components[0] = i;
         Real force = multipliers[0]*function->calcDerivative(components, temp);
@@ -2004,17 +2003,17 @@ void Constraint::CoordinateCouplerImpl::applyPositionConstraintForces(const Stat
     // CONSTRAINT::SPEED COUPLER //
     ///////////////////////////////
 
-Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex)
-        : Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, std::vector<MobilizedBodyIndex>(0), std::vector<MobilizerQIndex>(0))) {
+Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, const Array_<MobilizedBodyIndex>& speedBody, const Array_<MobilizerUIndex>& speedIndex)
+        : Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, Array_<MobilizedBodyIndex>(0), Array_<MobilizerQIndex>(0))) {
 }
 
-Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
-        const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
+Constraint::SpeedCoupler::SpeedCoupler(SimbodyMatterSubsystem& matter, const Function* function, const Array_<MobilizedBodyIndex>& speedBody, const Array_<MobilizerUIndex>& speedIndex,
+        const Array_<MobilizedBodyIndex>& coordBody, const Array_<MobilizerQIndex>& coordIndex)
         : Custom(new SpeedCouplerImpl(matter, function, speedBody, speedIndex, coordBody, coordIndex)) {
 }
 
-Constraint::SpeedCouplerImpl::SpeedCouplerImpl(SimbodyMatterSubsystem& matter, const Function* function, const std::vector<MobilizedBodyIndex>& speedBody, const std::vector<MobilizerUIndex>& speedIndex,
-        const std::vector<MobilizedBodyIndex>& coordBody, const std::vector<MobilizerQIndex>& coordIndex)
+Constraint::SpeedCouplerImpl::SpeedCouplerImpl(SimbodyMatterSubsystem& matter, const Function* function, const Array_<MobilizedBodyIndex>& speedBody, const Array_<MobilizerUIndex>& speedIndex,
+        const Array_<MobilizedBodyIndex>& coordBody, const Array_<MobilizerQIndex>& coordIndex)
         : Implementation(matter, 0, 1, 0), function(function), speedBodies(speedBody.size()), speedIndices(speedIndex), coordBodies(coordBody), coordIndices(coordIndex),
         temp(speedBody.size()+coordBody.size()), referenceCount(new int[1]) {
     assert(speedBodies.size() == speedIndices.size());
@@ -2038,7 +2037,7 @@ void Constraint::SpeedCouplerImpl::realizeVelocityErrors(const State& s, int mv,
 void Constraint::SpeedCouplerImpl::realizeVelocityDotErrors(const State& s, int mv,  Real* vaerr) const {
     vaerr[0] = 0.0;
     findArguments(s);
-    std::vector<int> components(1);
+    Array_<int> components(1);
     for (int i = 0; i < (int) speedBodies.size(); ++i) {
         components[0] = i;
         vaerr[0] += function->calcDerivative(components, temp)*getOneUDot(s, speedBodies[i], speedIndices[i], true);
@@ -2047,7 +2046,7 @@ void Constraint::SpeedCouplerImpl::realizeVelocityDotErrors(const State& s, int 
 
 void Constraint::SpeedCouplerImpl::applyVelocityConstraintForces(const State& s, int mv, const Real* multipliers, Vector_<SpatialVec>& bodyForces, Vector& mobilityForces) const {
     findArguments(s);
-    std::vector<int> components(1);
+    Array_<int> components(1);
     for (int i = 0; i < (int) speedBodies.size(); ++i) {
         components[0] = i;
         Real force = multipliers[0]*function->calcDerivative(components, temp);
@@ -2078,7 +2077,7 @@ void Constraint::PrescribedMotionImpl::realizePositionErrors(const State& s, int
 
 void Constraint::PrescribedMotionImpl::realizePositionDotErrors(const State& s, int mp,  Real* pverr) const {
     temp[0] = s.getTime();
-    std::vector<int> components(1, 0);
+    Array_<int> components(1, 0);
     pverr[0] = getOneQDot(s, coordBody, coordIndex, true) - function->calcDerivative(components, temp);
 }
 
@@ -2091,7 +2090,7 @@ void Constraint::PrescribedMotionImpl::realizePositionDotDotErrors(const State& 
     const RigidBodyNode& node = body.getImpl().getMyRigidBodyNode();
     node.calcQDotDot(digest, udot, qdotdot);
     temp[0] = s.getTime();
-    std::vector<int> components(2, 0);
+    Array_<int> components(2, 0);
     paerr[0] = body.getOneFromQPartition(s, coordIndex, qdotdot) - function->calcDerivative(components, temp);
 }
 
@@ -2246,7 +2245,7 @@ void ConstraintImpl::realizeInstance(const State& s) const {
     cInfo.participatingQ = cInfo.constrainedQ;
     cInfo.participatingU = cInfo.constrainedU;
 
-    const std::vector<MobilizedBodyIndex>& bodies = mySubtree.getAllBodies();
+    const Array_<MobilizedBodyIndex>& bodies = mySubtree.getAllBodies();
     for (int b=1; b<(int)bodies.size(); ++b) { // skip the Ancestor body 0
         QIndex qix; int nq;
         UIndex uix; int nu;
@@ -2258,7 +2257,7 @@ void ConstraintImpl::realizeInstance(const State& s) const {
 
 	// Caution: std::unique does not automatically shorten the original list.
     std::sort(cInfo.participatingQ.begin(), cInfo.participatingQ.end());
-	std::vector<QIndex>::iterator newEnd =
+	Array_<QIndex>::iterator newEnd =
 		std::unique(cInfo.participatingQ.begin(), cInfo.participatingQ.end());
 	cInfo.participatingQ.erase(newEnd, cInfo.participatingQ.end());
 

@@ -37,30 +37,24 @@
 #include "simbody/internal/Contact.h"
 #include "simbody/internal/ContactGeometryImpl.h"
 #include "simbody/internal/CollisionDetectionAlgorithm.h"
-#include <algorithm>
-#include <map>
-#include <vector>
 
-using std::map;
-using std::pair;
-using std::sort;
-using std::vector;
+#include <algorithm>
 
 namespace SimTK {
 
 // Useless, but required by Value<T>.
-std::ostream& operator<<(std::ostream& o, const vector<vector<Contact> >&) {
+std::ostream& operator<<(std::ostream& o, const Array_<Array_<Contact> >&) {
     assert(false);
     return o;
 }
 
 class ContactSet {
 public:
-    vector<MobilizedBody> bodies;
-    vector<ContactGeometry> geometry;
-    vector<Transform> transforms;
-    mutable vector<Vec3> sphereCenters;
-    mutable vector<Real> sphereRadii;
+    Array_<MobilizedBody> bodies;
+    Array_<ContactGeometry> geometry;
+    Array_<Transform> transforms;
+    mutable Array_<Vec3> sphereCenters;
+    mutable Array_<Real> sphereRadii;
 };
 
 class ContactBodyExtent {
@@ -140,15 +134,15 @@ public:
         return sets[set].transforms[index];
     }
 
-    const vector<Contact>& getContacts(const State& state, ContactSetIndex set) const {
+    const Array_<Contact>& getContacts(const State& state, ContactSetIndex set) const {
         assert(set >= 0 && set < sets.size());
         SimTK_STAGECHECK_GE_ALWAYS(state.getSubsystemStage(getMySubsystemIndex()), Stage::Dynamics, "GeneralContactSubsystemImpl::getContacts()");
-        vector<vector<Contact> >& contacts = Value<vector<vector<Contact> > >::downcast(updCacheEntry(state, contactsCacheIndex)).upd();
+        Array_<Array_<Contact> >& contacts = Value<Array_<Array_<Contact> > >::downcast(updCacheEntry(state, contactsCacheIndex)).upd();
         return contacts[set];
     }
     
     int realizeSubsystemTopologyImpl(State& state) const {
-        contactsCacheIndex = state.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<vector<vector<Contact> > >());
+        contactsCacheIndex = state.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Array_<Array_<Contact> > >());
         contactsValidCacheIndex = state.allocateCacheEntry(getMySubsystemIndex(), Stage::Position, new Value<bool>());
         for (int i = 0; i < (int) sets.size(); ++i) {
             const ContactSet& set = sets[i];
@@ -172,7 +166,7 @@ public:
         bool& contactsValid = Value<bool>::downcast(state.updCacheEntry(getMySubsystemIndex(), contactsValidCacheIndex)).upd();
         if (contactsValid)
             return 0;
-        vector<vector<Contact> >& contacts = Value<vector<vector<Contact> > >::downcast(updCacheEntry(state, contactsCacheIndex)).upd();
+        Array_<Array_<Contact> >& contacts = Value<Array_<Array_<Contact> > >::downcast(updCacheEntry(state, contactsCacheIndex)).upd();
         int numSets = getNumContactSets();
         contacts.resize(numSets);
         
@@ -199,10 +193,10 @@ public:
             
             // Find the extent of each body along the axis and sort them by starting location.
             
-            vector<ContactBodyExtent> extents(numBodies);
+            Array_<ContactBodyExtent> extents(numBodies);
             for (int i = 0; i < numBodies; i++)
                 extents[i] = ContactBodyExtent(centers[i][axis]-set.sphereRadii[i], centers[i][axis]+set.sphereRadii[i], i);
-            sort(extents.begin(), extents.end());
+            std::sort(extents.begin(), extents.end());
             
             // Now sweep along the axis, finding potential contacts.
             
@@ -245,7 +239,7 @@ public:
 private:
     mutable CacheEntryIndex contactsCacheIndex;
     mutable CacheEntryIndex contactsValidCacheIndex;
-    vector<ContactSet> sets;
+    Array_<ContactSet> sets;
 };
 
 ContactSetIndex GeneralContactSubsystem::createContactSet() {
@@ -284,7 +278,7 @@ Transform& GeneralContactSubsystem::updBodyTransform(ContactSetIndex set, int in
     return updImpl().updBodyTransform(set, index);
 }
 
-const vector<Contact>& GeneralContactSubsystem::getContacts(const State& state, ContactSetIndex set) const {
+const Array_<Contact>& GeneralContactSubsystem::getContacts(const State& state, ContactSetIndex set) const {
     return getImpl().getContacts(state, set);
 }
 
@@ -308,7 +302,7 @@ GeneralContactSubsystemImpl& GeneralContactSubsystem::updImpl() {
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use except
-// for making std::vector's, which require a default constructor to be available.
+// for making std::Array_'s, which require a default constructor to be available.
 GeneralContactSubsystem::GeneralContactSubsystem() {
     adoptSubsystemGuts(new GeneralContactSubsystemImpl());
 }

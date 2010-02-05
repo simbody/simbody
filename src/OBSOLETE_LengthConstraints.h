@@ -42,7 +42,6 @@ using namespace SimTK;
 
 #include "newtonRaphson.h"
 
-#include <vector>
 #include <iostream>
 using std::ostream;
 
@@ -351,13 +350,13 @@ private:
     // calculated construction-time (topological) info about the constraint
     bool                              flipStations; // make sure station(1).level
                                                     //   <= station(2).level
-    std::vector<const RigidBodyNode*> nodes[2];     // the two paths: base..tip1, base..tip2,
+    Array_<const RigidBodyNode*> nodes[2];     // the two paths: base..tip1, base..tip2,
                                                     //   incl. tip nodes but not base
     const RigidBodyNode*              outmostCommonBody; // highest-level common ancestor of tips
     
     // Ancestors includes everything from outmostCommonBody (inclusive) down to ground
     // (exclusive).
-    std::vector<const RigidBodyNode*> ancestors;
+    Array_<const RigidBodyNode*> ancestors;
 
     friend class LengthSet;
     friend class LengthConstraints;
@@ -365,14 +364,14 @@ private:
     friend ostream& operator<<(ostream&, const LoopWNodes&);
 };
 
-typedef std::vector<LoopWNodes> LoopList;
+typedef Array_<LoopWNodes> LoopList;
 
 class LengthSet {
     static void construct(const LoopList& loops);
     const LengthConstraints*          lConstraints;
     LoopList                          loops;    
     int                               ndofThisSet;
-    std::vector<const RigidBodyNode*> nodeMap; //unique nodes (union of loops->nodes)
+    Array_<const RigidBodyNode*> nodeMap; //unique nodes (union of loops->nodes)
 public:
     LengthSet() : lConstraints(0), ndofThisSet(0) { }
     LengthSet(const LengthConstraints* lConstraints)
@@ -426,7 +425,7 @@ class LengthConstraints {
 public:
     LengthConstraints(const SimbodyMatterSubsystemRep&, int verbose);
 
-    void construct(const std::vector<RBDistanceConstraint*>&);
+    void construct(const Array_<RBDistanceConstraint*>&);
 
     // Returns true if any change was made in the state.
     bool enforcePositionConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
@@ -454,8 +453,8 @@ private:
     const SimbodyMatterSubsystemRep& rbTree;
     const int                        verbose;
 
-    std::vector<LengthSet> pvConstraints;   // used for pos, vel
-    std::vector<LengthSet> accConstraints;  // used for acc
+    Array_<LengthSet> pvConstraints;   // used for pos, vel
+    Array_<LengthSet> accConstraints;  // used for acc
     NewtonRaphson          posMin, velMin;
 
     friend class LengthSet;

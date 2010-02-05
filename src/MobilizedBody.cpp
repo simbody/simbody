@@ -1296,7 +1296,7 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Gimbal, MobilizedBody::Gi
     // GimbalImpl
 
 void MobilizedBody::GimbalImpl::calcDecorativeGeometryAndAppendImpl
-   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     // Call the superclass implementation to get standard default geometry.
     
@@ -1447,7 +1447,7 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ball, MobilizedBody::Ball
     // BallImpl
 
 void MobilizedBody::BallImpl::calcDecorativeGeometryAndAppendImpl
-   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     // Call the superclass implementation to get standard default geometry.
     
@@ -1604,7 +1604,7 @@ Vec3& MobilizedBody::Ellipsoid::updMyPartU(const State& s, Vector& ulike) const 
 }
 
 void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl
-   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     // Call the superclass implementation to get standard default geometry.
     
@@ -2447,8 +2447,8 @@ void MobilizedBody::Custom::Implementation::setUToFitVelocity(const State& state
 // Constructors without user-specified axes for function-based mobilized body
 MobilizedBody::FunctionBased::FunctionBased
    (MobilizedBody& parent, const Body& body, 
-    int nmobilities, const std::vector<const Function*>& functions,
-    const std::vector<std::vector<int> >& coordIndices,
+    int nmobilities, const Array_<const Function*>& functions,
+    const Array_<Array_<int> >& coordIndices,
     Direction direction)
 :   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices), body, direction) 
 {
@@ -2457,8 +2457,8 @@ MobilizedBody::FunctionBased::FunctionBased
 MobilizedBody::FunctionBased::FunctionBased
    (MobilizedBody& parent, const Transform& inbFrame, 
     const Body& body, const Transform& outbFrame, 
-    int nmobilities, const std::vector<const Function*>& functions,
-    const std::vector<std::vector<int> >& coordIndices,
+    int nmobilities, const Array_<const Function*>& functions,
+    const Array_<Array_<int> >& coordIndices,
     Direction direction)
 :   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices), body, direction) 
 {
@@ -2469,8 +2469,8 @@ MobilizedBody::FunctionBased::FunctionBased
 // Constructors that allow user-specified axes for function-based mobilized body
 MobilizedBody::FunctionBased::FunctionBased
    (MobilizedBody& parent, const Body& body, 
-    int nmobilities, const std::vector<const Function*>& functions,
-    const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes,
+    int nmobilities, const Array_<const Function*>& functions,
+    const Array_<Array_<int> >& coordIndices, const Array_<Vec3>& axes,
     Direction direction)
 :   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices, axes), body, direction) {
 }
@@ -2478,8 +2478,8 @@ MobilizedBody::FunctionBased::FunctionBased
 MobilizedBody::FunctionBased::FunctionBased
    (MobilizedBody& parent, const Transform& inbFrame, 
     const Body& body, const Transform& outbFrame, 
-    int nmobilities, const std::vector<const Function*>& functions,
-    const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes,
+    int nmobilities, const Array_<const Function*>& functions,
+    const Array_<Array_<int> >& coordIndices, const Array_<Vec3>& axes,
     Direction direction)
 :   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), nmobilities, functions, coordIndices, axes), body, direction) {
     setDefaultInboardFrame(inbFrame);

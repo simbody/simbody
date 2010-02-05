@@ -67,9 +67,9 @@ public:
             stiffness(stiffness), dissipation(dissipation), staticFriction(staticFriction), dynamicFriction(dynamicFriction), viscousFriction(viscousFriction) {
     }
     Real stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction;
-    std::vector<Vec3> springPosition;
-    std::vector<UnitVec3> springNormal;
-    std::vector<Real> springArea;
+    Array_<Vec3> springPosition;
+    Array_<UnitVec3> springNormal;
+    Array_<Real> springArea;
 };
 
 } // namespace SimTK

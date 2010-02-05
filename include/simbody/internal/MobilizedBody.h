@@ -55,7 +55,6 @@
 #include "simbody/internal/Motion.h"
 
 #include <cassert>
-#include <vector>
 
 namespace SimTK {
 
@@ -2632,6 +2631,8 @@ public:
 protected:
     const Implementation& getImplementation() const;
     Implementation&       updImplementation();
+
+    Custom() {}
 };
 
 // We only want the template instantiation to occur once. This symbol is defined in the SimTK core
@@ -2877,7 +2878,7 @@ public:
     /// provide methods for controlling the presence or appearance of your generated geometry.
     /// If you don't implement this routine no extra geometry will be generated here.
     virtual void calcDecorativeGeometryAndAppend
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
     {
     }
     //@}
@@ -2994,9 +2995,23 @@ public:
      * @param direction      whether you want the coordinates defined as though parent & child were swapped
      */
     FunctionBased(MobilizedBody& parent, const Body& body, 
+                  int nmobilities, const Array_<const Function*>& functions,
+                  const Array_<Array_<int> >& coordIndices,
+                  Direction direction=Forward);
+
+    /** For compatibility with std::vector. **/
+    FunctionBased(MobilizedBody& parent, const Body& body, 
                   int nmobilities, const std::vector<const Function*>& functions,
                   const std::vector<std::vector<int> >& coordIndices,
-                  Direction direction=Forward);
+                  Direction direction=Forward) 
+    {
+        Array_< Array_<int> > coordCopy(coordIndices); // sorry, must copy
+        // Use the above constructor.
+        new(this) FunctionBased(parent,body,nmobilities,
+                                ArrayViewConst_<const Function*>(functions), 
+                                coordCopy, direction);
+    }
+
     /* Create a FunctionBased MobilizedBody.
      * 
      * @param parent         the MobilizedBody's parent body
@@ -3014,9 +3029,24 @@ public:
      */
     FunctionBased(MobilizedBody& parent, const Transform& inbFrame, 
                   const Body& body, const Transform& outbFrame, 
+                  int nmobilities, const Array_<const Function*>& functions,
+                  const Array_<Array_<int> >& coordIndices,
+                  Direction direction=Forward);
+
+    /** For compatibility with std::vector. **/
+    FunctionBased(MobilizedBody& parent, const Transform& inbFrame, 
+                  const Body& body, const Transform& outbFrame, 
                   int nmobilities, const std::vector<const Function*>& functions,
                   const std::vector<std::vector<int> >& coordIndices,
-                  Direction direction=Forward);
+                  Direction direction=Forward)
+    {
+        Array_< Array_<int> > coordCopy(coordIndices); // sorry, must copy
+        // Use the above constructor.
+        new(this) FunctionBased(parent,inbFrame,body,outbFrame,
+                                nmobilities, ArrayViewConst_<const Function*>(functions), 
+                                coordCopy, direction);
+    }
+
     /* Create a FunctionBased MobilizedBody.
      * 
      * @param parent         the MobilizedBody's parent body
@@ -3033,9 +3063,24 @@ public:
      * @param direction      whether you want the coordinates defined as though parent & child were swapped
      */
     FunctionBased(MobilizedBody& parent, const Body& body, 
+                  int nmobilities, const Array_<const Function*>& functions,
+                  const Array_<Array_<int> >& coordIndices, const Array_<Vec3>& axes,
+                  Direction direction=Forward);
+
+    /** For compatibility with std::vector. **/
+    FunctionBased(MobilizedBody& parent, const Body& body, 
                   int nmobilities, const std::vector<const Function*>& functions,
                   const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes,
-                  Direction direction=Forward);
+                  Direction direction=Forward)
+    {
+        Array_< Array_<int> > coordCopy(coordIndices); // sorry, must copy
+        // Use the above constructor.
+        new(this) FunctionBased(parent,body,
+                                nmobilities, ArrayViewConst_<const Function*>(functions), 
+                                coordCopy, ArrayViewConst_<Vec3>(axes), 
+                                direction);
+    }
+
     /* Create a FunctionBased MobilizedBody.
      * 
      * @param parent         the MobilizedBody's parent body
@@ -3055,9 +3100,26 @@ public:
 	 */
     FunctionBased(MobilizedBody& parent, const Transform& inbFrame, 
                   const Body& body, const Transform& outbFrame, 
+                  int nmobilities, const Array_<const Function*>& functions,
+                  const Array_<Array_<int> >& coordIndices, const Array_<Vec3>& axes,
+                  Direction direction=Forward);
+
+    /** For compatibility with std::vector. **/
+    FunctionBased(MobilizedBody& parent, const Transform& inbFrame, 
+                  const Body& body, const Transform& outbFrame,
                   int nmobilities, const std::vector<const Function*>& functions,
                   const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes,
-                  Direction direction=Forward);
+                  Direction direction=Forward)
+    {
+        Array_< Array_<int> > coordCopy(coordIndices); // sorry, must copy
+        // Use the above constructor.
+        new(this) FunctionBased(parent,inbFrame,body,outbFrame,
+                                nmobilities, ArrayViewConst_<const Function*>(functions), 
+                                coordCopy, ArrayViewConst_<Vec3>(axes), 
+                                direction);
+    }
+private:
+    FunctionBased() {}
 };
 
 } // namespace SimTK

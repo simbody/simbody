@@ -64,7 +64,6 @@ using std::endl;
 using std::cerr;
 using std::setw;
 
-#include <vector>
 #include <algorithm>
 
 class LoopWNodes;
@@ -253,7 +252,7 @@ static inline bool operator<(const LoopWNodes& l1, const LoopWNodes& l2) {
 // 
 //   
 void
-LengthConstraints::construct(const std::vector<RBDistanceConstraint*>& iloops)
+LengthConstraints::construct(const Array_<RBDistanceConstraint*>& iloops)
 {
     //clean up
     pvConstraints.resize(0);
@@ -753,7 +752,7 @@ LengthSet::calcGrad(const State& s) const
 
     for (int i=0 ; i<(int)loops.size() ; i++) {
         const LoopWNodes& l = loops[i];
-        std::vector<SpatialMat> phiT[2];
+        Array_<SpatialMat> phiT[2];
         for (int b=0 ; b<2 ; b++) {
             phiT[b].resize( l.nodes[b].size() );
             if ( l.nodes[b].size() ) {
@@ -778,12 +777,12 @@ LengthSet::calcGrad(const State& s) const
             Real elem=0.0;
 
             // We just want to get the index at which nodeMap[j] is found in the
-            // std::vector (or -1 if not found) but that's not so easy!
-            const std::vector<const RigidBodyNode*>& n0 = l.nodes[0];
-            const std::vector<const RigidBodyNode*>& n1 = l.nodes[1];
-            std::vector<const RigidBodyNode*>::const_iterator found0 =
+            // Array_ (or -1 if not found) but that's not so easy!
+            const Array_<const RigidBodyNode*>& n0 = l.nodes[0];
+            const Array_<const RigidBodyNode*>& n1 = l.nodes[1];
+            Array_<const RigidBodyNode*>::const_iterator found0 =
                 std::find(n0.begin(),n0.end(),nodeMap[j]);
-            std::vector<const RigidBodyNode*>::const_iterator found1 =
+            Array_<const RigidBodyNode*>::const_iterator found1 =
                 std::find(n1.begin(),n1.end(),nodeMap[j]);
 
             const int l1_indx = (found0==n0.end() ? -1 : found0-n0.begin());
@@ -1232,7 +1231,7 @@ LengthSet::fixVel0(State& s, Vector& iVel)
         verr[i] = loops[i].rbDistCons->getVelErr(uErr);
 
     Matrix mat(loops.size(),loops.size());
-    std::vector<Vector> deltaIVel(loops.size());
+    Array_<Vector> deltaIVel(loops.size());
     for (int m=0 ; m<(int)loops.size() ; m++) {
         deltaIVel[m].resize(iVel.size());
 

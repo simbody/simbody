@@ -154,10 +154,10 @@ MobilizedBodyIndex SimbodyMatterSubsystemRep::getParent(MobilizedBodyIndex body)
     return getRigidBodyNode(body).getParent()->getNodeNum();
 }
 
-std::vector<MobilizedBodyIndex>
+Array_<MobilizedBodyIndex>
 SimbodyMatterSubsystemRep::getChildren(MobilizedBodyIndex body) const {
     const RigidBodyNode& node = getRigidBodyNode(body);
-    std::vector<MobilizedBodyIndex> children;
+    Array_<MobilizedBodyIndex> children;
     for (MobilizedBodyIndex bx(0); bx < node.getNumChildren(); ++bx)
         children.push_back(node.getChild(bx)->getNodeNum());
     return children;
@@ -1187,7 +1187,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemReportImpl(const State& s) const 
 //                    CALC DECORATIVE GEOMETRY AND APPEND
 //------------------------------------------------------------------------------
 int SimbodyMatterSubsystemRep::calcDecorativeGeometryAndAppendImpl
-   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     // Let the bodies and mobilizers have a chance to generate some geometry.
     for (MobilizedBodyIndex bx(0); bx<mobilizedBodies.size(); ++bx)
@@ -1268,7 +1268,7 @@ void SimbodyMatterSubsystemRep::calcQUnitWeightsRecursively(const State& s, Stat
     bounds[1] = std::max(bounds[1], origin[0]);
     bounds[3] = std::max(bounds[3], origin[1]);
     bounds[5] = std::max(bounds[5], origin[2]);
-    std::vector<Vec3> corners;
+    Array_<Vec3> corners;
     corners.push_back(Vec3(bounds[0], bounds[2], bounds[4]));
     corners.push_back(Vec3(bounds[0], bounds[2], bounds[5]));
     corners.push_back(Vec3(bounds[0], bounds[3], bounds[4]));
@@ -1324,7 +1324,7 @@ void SimbodyMatterSubsystemRep::calcUUnitWeightsRecursively(const State& s, Stat
     bounds[1] = std::max(bounds[1], origin[0]);
     bounds[3] = std::max(bounds[3], origin[1]);
     bounds[5] = std::max(bounds[5], origin[2]);
-    std::vector<Vec3> corners;
+    Array_<Vec3> corners;
     corners.push_back(Vec3(bounds[0], bounds[2], bounds[4]));
     corners.push_back(Vec3(bounds[0], bounds[2], bounds[5]));
     corners.push_back(Vec3(bounds[0], bounds[3], bounds[4]));

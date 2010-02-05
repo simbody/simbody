@@ -193,9 +193,13 @@ public:
         return C;
     }
 
-    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
+    // This is the pure virtual signature.
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const{
         return 0;
     }
+    // This is just a local method providing std::vector compatibility without copying.
+    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const
+    {   calcDerivative(ArrayViewConst_<int>(derivComponents), x); }
 
     int getArgumentSize() const{
         // constant has no arguments
@@ -230,11 +234,14 @@ public:
         return m*x[0]+b;
     }
 
-    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const{
         if (derivComponents.size() == 1)
             return m;
         return 0;
     }
+    // This is just a local method providing std::vector compatibility without copying.
+    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const
+    {   calcDerivative(ArrayViewConst_<int>(derivComponents), x); }
 
     int getArgumentSize() const{
         return 1;
@@ -252,7 +259,7 @@ public:
     Real calcValue(const Vector& x) const{
         return x[0]+x[1]*x[1];
     }
-    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const{
         switch (derivComponents.size()) {
             case 1:
                 return (derivComponents[0] == 0 ? 1.0 : x[1]);
@@ -261,6 +268,10 @@ public:
         }
         return 0.0;
     }
+    // This is just a local method providing std::vector compatibility without copying.
+    Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const
+    {   calcDerivative(ArrayViewConst_<int>(derivComponents), x); }
+
     int getArgumentSize() const{
         return 2;
     }

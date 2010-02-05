@@ -33,13 +33,11 @@
 #include "simbody/internal/CollisionDetectionAlgorithm.h"
 #include "simbody/internal/Contact.h"
 #include "simbody/internal/ContactGeometryImpl.h"
-#include <vector>
 #include <set>
 
 using std::map;
 using std::pair;
 using std::set;
-using std::vector;
 
 namespace SimTK {
 
@@ -79,7 +77,7 @@ CollisionDetectionAlgorithm* CollisionDetectionAlgorithm::getAlgorithm(int typeI
 }
 
 void CollisionDetectionAlgorithm::HalfSpaceSphere::processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-        int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const {
+        int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const {
     const ContactGeometry::SphereImpl& sphere = dynamic_cast<const ContactGeometry::SphereImpl&>(object2.getImpl());
     Vec3 location = (~transform1)*transform2.p(); // Location of the sphere in the half-space's coordinate frame
     Real r = sphere.getRadius();
@@ -95,7 +93,7 @@ void CollisionDetectionAlgorithm::HalfSpaceSphere::processObjects(int index1, co
 }
 
 void CollisionDetectionAlgorithm::SphereSphere::processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-        int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const {
+        int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const {
     const ContactGeometry::SphereImpl& sphere1 = dynamic_cast<const ContactGeometry::SphereImpl&>(object1.getImpl());
     const ContactGeometry::SphereImpl& sphere2 = dynamic_cast<const ContactGeometry::SphereImpl&>(object2.getImpl());
     Vec3 delta = transform2.p()-transform1.p();
@@ -117,7 +115,7 @@ void CollisionDetectionAlgorithm::SphereSphere::processObjects(int index1, const
 }
 
 void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-        int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const {
+        int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const {
     const ContactGeometry::TriangleMesh& mesh = static_cast<const ContactGeometry::TriangleMesh&>(object2);
     Transform transform = (~transform1)*transform2; // Transform from the mesh's coordinate frame to the half-space's coordinate frame
     set<int> insideFaces;
@@ -153,7 +151,7 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processBox(const Contac
     
     // Check the triangles.
     
-    const vector<int>& triangles = node.getTriangles();
+    const Array_<int>& triangles = node.getTriangles();
     const Row3 xdir = transform.R().row(0);
     const Real tx = transform.p()[0];
     for (int i = 0; i < (int) triangles.size(); i++) {
@@ -168,7 +166,7 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processBox(const Contac
 
 void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::addAllTriangles(const ContactGeometry::TriangleMesh::OBBTreeNode& node, std::set<int>& insideFaces) const {
     if (node.isLeafNode()) {
-        const vector<int>& triangles = node.getTriangles();
+        const Array_<int>& triangles = node.getTriangles();
         for (int i = 0; i < (int) triangles.size(); i++)
             insideFaces.insert(triangles[i]);
     }
@@ -179,7 +177,7 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::addAllTriangles(const C
 }
 
 void CollisionDetectionAlgorithm::SphereTriangleMesh::processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-        int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const {
+        int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const {
     const ContactGeometry::Sphere& sphere = static_cast<const ContactGeometry::Sphere&>(object1);
     const ContactGeometry::TriangleMesh& mesh = static_cast<const ContactGeometry::TriangleMesh&>(object2);
     Vec3 center = ~transform2*transform1.p();
@@ -206,7 +204,7 @@ void CollisionDetectionAlgorithm::SphereTriangleMesh::processBox(const Vec3& cen
     
     // Check the triangles.
     
-    const vector<int>& triangles = node.getTriangles();
+    const Array_<int>& triangles = node.getTriangles();
     const ContactGeometry::TriangleMeshImpl& impl = mesh.getImpl();
     for (int i = 0; i < (int) triangles.size(); i++) {
         Vec2 uv;
@@ -217,7 +215,7 @@ void CollisionDetectionAlgorithm::SphereTriangleMesh::processBox(const Vec3& cen
 }
 
 void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-        int index2, const ContactGeometry& object2, const Transform& transform2, std::vector<Contact>& contacts) const {
+        int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const {
     const ContactGeometry::TriangleMesh& mesh1 = static_cast<const ContactGeometry::TriangleMesh&>(object1);
     const ContactGeometry::TriangleMesh& mesh2 = static_cast<const ContactGeometry::TriangleMesh&>(object2);
     Transform transform = (~transform1)*transform2; // Transform from mesh2's coordinate frame to mesh1's coordinate frame
@@ -273,8 +271,8 @@ void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::processNodes(const C
     
     // These are both leaf nodes, so check triangles for intersections.
     
-    const vector<int>& node1triangles = node1.getTriangles();
-    const vector<int>& node2triangles = node2.getTriangles();
+    const Array_<int>& node1triangles = node1.getTriangles();
+    const Array_<int>& node2triangles = node2.getTriangles();
     for (int i = 0; i < (int) node2triangles.size(); i++) {
         Vec3 a1 = transform*mesh2.getVertexPosition(mesh2.getFaceVertex(node2triangles[i], 0));
         Vec3 a2 = transform*mesh2.getVertexPosition(mesh2.getFaceVertex(node2triangles[i], 1));
@@ -297,7 +295,7 @@ void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::findInsideTriangles(
         const Transform& transform, set<int>& triangles) const {
     // Find which triangles are inside.
     
-    vector<int> faceType(mesh.getNumFaces(), UNKNOWN);
+    Array_<int> faceType(mesh.getNumFaces(), UNKNOWN);
     for (set<int>::iterator iter = triangles.begin(); iter != triangles.end(); ++iter)
         faceType[*iter] = BOUNDARY;
     for (int i = 0; i < (int) faceType.size(); i++) {
@@ -324,7 +322,7 @@ void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::findInsideTriangles(
     }
 }
 
-void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::tagFaces(const ContactGeometry::TriangleMesh& mesh, vector<int>& faceType,
+void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::tagFaces(const ContactGeometry::TriangleMesh& mesh, Array_<int>& faceType,
         set<int>& triangles, int index) const {
     for (int i = 0; i < 3; i++) {
         int edge = mesh.getFaceEdge(index, i);

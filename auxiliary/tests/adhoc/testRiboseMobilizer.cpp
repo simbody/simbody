@@ -35,7 +35,7 @@ public:
         return x[0];
     }
 
-	Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
+	Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const{
         if (derivComponents.size() == 1) return 1.0;
         else return 0.0;
     }
@@ -80,7 +80,7 @@ public:
         return dxy*dxy + dxz*dxz + dyz*dyz;
     }
 
-	Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const
+	Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const
     {
 		Real deriv = 0;
 	
@@ -140,7 +140,7 @@ public:
         return angle_t(amplitude*sin(x[0]*radians - phase));
 	}
 	
-	Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
+	Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const{
 		Real deriv = 0;
 	
 		assert(1 == x.size());

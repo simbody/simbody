@@ -88,7 +88,7 @@ public:
     }
 
 
-    void setTerminalBodies(const std::vector<MobilizedBodyIndex>& bids) {
+    void setTerminalBodies(const Array_<MobilizedBodyIndex>& bids) {
         clear();
         for (int i=0; i < (int)bids.size(); ++i)
             addTerminalBody(bids[i]);
@@ -342,23 +342,23 @@ private:
 
         // TOPOLOGY STATE VARIABLES
 
-    std::vector<MobilizedBodyIndex> terminalBodies;
+    Array_<MobilizedBodyIndex> terminalBodies;
 
         // TOPOLOGY CACHE VARIABLES
 
     // Maps SubtreeBodyIndex to MobilizedBodyIndex
     MobilizedBodyIndex        ancestor;
-    std::vector<MobilizedBodyIndex> allBodies; // ancestor body is 0; ids are in increasing order
+    Array_<MobilizedBodyIndex> allBodies; // ancestor body is 0; ids are in increasing order
 
     // Maps each subtree body (by SubtreeBodyIndex) to its unique parent within the subtree
     // the base body (SubtreeBodyIndex==SubtreeBaseBodyIndex==0) returns an InvalidSubtreeBodyIndex
     // as its parent.
-    std::vector<SubtreeBodyIndex>   parentSubtreeBodies;
+    Array_<SubtreeBodyIndex>   parentSubtreeBodies;
 
     // Maps each subtree body to its children within the subtree. Note that a subtree terminal
     // body may have children in the full matter subsystem, but which are not included in
     // the subtree.
-    std::vector< std::vector<SubtreeBodyIndex> > childSubtreeBodies;
+    Array_< Array_<SubtreeBodyIndex> > childSubtreeBodies;
 
 private:
 
@@ -372,7 +372,7 @@ private:
         assert(terminalBodies.size());
 
         // Copy the terminal bodies, which are the current branch tips.
-        std::vector<MobilizedBodyIndex> tips(&terminalBodies[0], (&terminalBodies[0])+terminalBodies.size());
+        Array_<MobilizedBodyIndex> tips(&terminalBodies[0], (&terminalBodies[0])+terminalBodies.size());
 
         // Find the level of the lowest-level tip.
         int minTip = 0;
@@ -394,13 +394,13 @@ private:
         return tips[0]; // all branches led here
     }
 
-    static bool allElementsMatch(const std::vector<MobilizedBodyIndex>& ids) {
+    static bool allElementsMatch(const Array_<MobilizedBodyIndex>& ids) {
         for (int i=1; i < (int)ids.size(); ++i)
             if (ids[i] != ids[0]) return false;
         return true;
     }
 
-    void pruneTipsOneLevel(std::vector<MobilizedBodyIndex>& tips) const {
+    void pruneTipsOneLevel(Array_<MobilizedBodyIndex>& tips) const {
         for (int i=0; i < (int)tips.size(); ++i) {
             assert(tips[i] != GroundIndex); // can't happen: they should have matched!
             tips[i] = getParentMobilizedBodyIndex(tips[i]);
@@ -638,19 +638,19 @@ private:
     Stage stage;    // initially invalid
 
     // Model stage information
-    std::vector< QIndex > qSubset; // map from SubtreeQIndex to MatterSubsystem q
-    std::vector< UIndex > uSubset; // map from SubtreeUIndex to MatterSubsystem u (also udot)
+    Array_< QIndex > qSubset; // map from SubtreeQIndex to MatterSubsystem q
+    Array_< UIndex > uSubset; // map from SubtreeUIndex to MatterSubsystem u (also udot)
 
     // These identify which mobilities go with which bodies.
-    std::vector< pair<SubtreeQIndex,int> > qSeg;  // map from SubtreeBodyIndex to qSubset offset, length
-    std::vector< pair<SubtreeUIndex,int> > uSeg;  // map from SubtreeBodyIndex to uSubset offset, length
+    Array_< pair<SubtreeQIndex,int> > qSeg;  // map from SubtreeBodyIndex to qSubset offset, length
+    Array_< pair<SubtreeUIndex,int> > uSeg;  // map from SubtreeBodyIndex to uSubset offset, length
 
     //TODO: make PIMPL
     Vector                 subQ;                        // generalized coords for Subtree bodies
-    std::vector<Transform> bodyTransforms;              // X_AB, index by SubtreeBodyIndex (unperturbed)
+    Array_<Transform> bodyTransforms;              // X_AB, index by SubtreeBodyIndex (unperturbed)
 
     SubtreeQIndex          perturbedQ;                  // which Q was perturbed? InvalidSubtreeQIndex if none
-    std::vector<Transform> perturbedBodyTransforms;     // X_AB, after perturbation
+    Array_<Transform> perturbedBodyTransforms;     // X_AB, after perturbation
 
     Vector                 subU;                        // generalized speeds for Subtree bodies
     Vector_<SpatialVec>    bodyVelocities;              // V_AB, index by SubtreeBodyIndex
@@ -685,7 +685,7 @@ SimbodyMatterSubtree::SimbodyMatterSubtree(const SimbodyMatterSubsystem& matter)
 
 
 SimbodyMatterSubtree::SimbodyMatterSubtree(const SimbodyMatterSubsystem& matter,
-                                           const std::vector<MobilizedBodyIndex>& terminalBodies)
+                                           const Array_<MobilizedBodyIndex>& terminalBodies)
   : rep(0)
 {
     rep = new SubtreeRep(*this, matter);
@@ -750,7 +750,7 @@ MobilizedBodyIndex SimbodyMatterSubtree::getAncestorMobilizedBodyIndex() const {
     return getRep().ancestor;
 }
 
-const std::vector<MobilizedBodyIndex>& 
+const Array_<MobilizedBodyIndex>& 
 SimbodyMatterSubtree::getTerminalBodies() const {
     return getRep().terminalBodies;
 }
@@ -759,7 +759,7 @@ int SimbodyMatterSubtree::getNumSubtreeBodies() const {
     return (int)getRep().allBodies.size();
 }
 
-const std::vector<MobilizedBodyIndex>& 
+const Array_<MobilizedBodyIndex>& 
 SimbodyMatterSubtree::getAllBodies() const {
     assert(getRep().stage >= Stage::Topology);
     return getRep().allBodies;
@@ -770,7 +770,7 @@ SimbodyMatterSubtree::getParentSubtreeBodyIndex(SubtreeBodyIndex sbid) const {
     assert(getRep().stage >= Stage::Topology);
     return getRep().parentSubtreeBodies[sbid];
 }
-const std::vector<SubtreeBodyIndex>& 
+const Array_<SubtreeBodyIndex>& 
 SimbodyMatterSubtree::getChildSubtreeBodyIndices(SubtreeBodyIndex sbid) const {
     assert(getRep().stage >= Stage::Topology);
     return getRep().childSubtreeBodies[sbid];
@@ -908,12 +908,12 @@ Stage SimbodyMatterSubtreeResults::getStage() const {
     return getRep().stage;
 }
 
-const std::vector<QIndex>& SimbodyMatterSubtreeResults::getQSubset() const {
+const Array_<QIndex>& SimbodyMatterSubtreeResults::getQSubset() const {
     assert(getRep().stage >= Stage::Model);
     return getRep().qSubset;
 }
 
-const std::vector<UIndex>& SimbodyMatterSubtreeResults::getUSubset() const {
+const Array_<UIndex>& SimbodyMatterSubtreeResults::getUSubset() const {
     assert(getRep().stage >= Stage::Model);
     return getRep().uSubset;
 }
@@ -985,13 +985,13 @@ std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubtree& sub) {
     return o;
 }
 
-static std::ostream& operator<<(std::ostream& o, const std::vector<QIndex>& q) {
+static std::ostream& operator<<(std::ostream& o, const Array_<QIndex>& q) {
     for (int i=0; i<(int)q.size(); ++i)
         o << q[i] << " ";
     return o;
 }
 
-static std::ostream& operator<<(std::ostream& o, const std::vector<UIndex>& u) {
+static std::ostream& operator<<(std::ostream& o, const Array_<UIndex>& u) {
     for (int i=0; i<(int)u.size(); ++i)
         o << u[i] << " ";
     return o;

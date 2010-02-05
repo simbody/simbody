@@ -42,8 +42,13 @@ const int NUM_BODIES = 10;
 const Real BOND_LENGTH = 0.5;
 const int ITERATIONS = 4;
 
-bool testFitting(const MultibodySystem& mbs, State& state, const vector<MobilizedBodyIndex>& bodyIxs, const vector<vector<Vec3> >& stations, const vector<vector<Vec3> >& targetLocations, Real minError, Real maxError, Real endDistance) {
-    
+bool testFitting
+   (const MultibodySystem& mbs, State& state, 
+    const vector<MobilizedBodyIndex>& bodyIxs, 
+    const vector<vector<Vec3> >& stations, 
+    const vector<vector<Vec3> >& targetLocations, 
+    Real minError, Real maxError, Real endDistance) 
+{    
     // Find the best fit.
     
     Real reportedError = ObservedPointFitter::findBestFit(mbs, state, bodyIxs, stations, targetLocations, 1e-4);

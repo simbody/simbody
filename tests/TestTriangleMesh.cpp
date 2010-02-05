@@ -104,7 +104,7 @@ void testTriangleMesh() {
         }
     }
     for (int i = 0; i < mesh.getNumVertices(); i++) {
-        vector<int> edges;
+        Array_<int> edges;
         mesh.findVertexEdges(i, edges);
         ASSERT(edges.size() == 3);
         for (int j = 0; j < (int) edges.size(); j++)
@@ -188,7 +188,7 @@ void addOctohedron(vector<Vec3>& vertices, vector<int>& faceIndices, Vec3 offset
 
 void validateOBBTree(const ContactGeometry::TriangleMesh& mesh, ContactGeometry::TriangleMesh::OBBTreeNode node, ContactGeometry::TriangleMesh::OBBTreeNode parent, vector<int>& faceReferenceCount) {
     if (node.isLeafNode()) {
-        const vector<int>& triangles = node.getTriangles();
+        const Array_<int>& triangles = node.getTriangles();
         ASSERT(triangles.size() > 0);
         ASSERT(triangles.size() == node.getNumTriangles());
         for (int i = 0; i < (int) triangles.size(); i++) {

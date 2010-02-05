@@ -46,7 +46,6 @@
 
 #include <set>
 #include <map>
-#include <vector>
 #include <utility> // std::pair
 using std::pair;
 
@@ -65,8 +64,8 @@ class RBDirection;
 
 using namespace SimTK;
 
-typedef std::vector<const RigidBodyNode*>   RBNodePtrList;
-typedef Vector_<SpatialVec>                 SpatialVecList;
+typedef Array_<const RigidBodyNode*>   RBNodePtrList;
+typedef Vector_<SpatialVec>            SpatialVecList;
 
 /*
  * A CoupledConstraintSet is a set of Simbody Constraints which must be
@@ -109,7 +108,7 @@ public:
         topologyRealized = true;
     }
 
-    const std::vector<ConstraintIndex>& getCoupledConstraints() const {
+    const Array_<ConstraintIndex>& getCoupledConstraints() const {
         assert(topologyRealized);
         return coupledConstraints;
     }
@@ -122,7 +121,7 @@ private:
     bool topologyRealized;
 
     // Sorted in nondecreasing order of ancestor MobilizedBodyIndex.
-    std::vector<ConstraintIndex>    coupledConstraints;
+    Array_<ConstraintIndex>    coupledConstraints;
     SimbodyMatterSubtree coupledSubtree; // with the new ancestor
 };
 
@@ -183,7 +182,7 @@ public:
     int realizeSubsystemReportImpl      (const State&) const;
 
     int calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
 
     // TODO: these are just unit weights and tolerances. They should be calculated
     // to be something more reasonable.
@@ -287,7 +286,7 @@ public:
     int getNumMobilities()  const {return getTotalDOF();}
     int getNumConstraints() const {return constraints.size();}
     MobilizedBodyIndex getParent(MobilizedBodyIndex) const;
-    std::vector<MobilizedBodyIndex> getChildren(MobilizedBodyIndex) const;
+    Array_<MobilizedBodyIndex> getChildren(MobilizedBodyIndex) const;
 
     const MassProperties& getDefaultBodyMassProperties    (MobilizedBodyIndex b) const;
     const Transform&      getDefaultMobilizerFrame        (MobilizedBodyIndex b) const;
@@ -929,10 +928,10 @@ private:
     // The handles in this array are the owners of the MobilizedBodies after they
     // are adopted. The MobilizedBodyIndex (converted to int) is the index of a
     // MobilizedBody in this array.
-    std::vector<MobilizedBody*> mobilizedBodies;
+    Array_<MobilizedBody*> mobilizedBodies;
 
     // Constraints are treated similarly.
-    std::vector<Constraint*>    constraints;
+    Array_<Constraint*>    constraints;
 
     // Our realizeTopology method calls this after all bodies & constraints have been added,
     // to construct part of the topology cache below.
@@ -957,9 +956,9 @@ private:
 		// Mobilized bodies and their rigid body nodes
 
     // This holds pointers to nodes and serves to map (level,offset) to nodeNum.
-    std::vector<RBNodePtrList>      rbNodeLevels;
+    Array_<RBNodePtrList>      rbNodeLevels;
     // Map nodeNum to (level,offset).
-    std::vector<RigidBodyNodeIndex> nodeNum2NodeMap;
+    Array_<RigidBodyNodeIndex> nodeNum2NodeMap;
 
 		// Constraints
 
@@ -968,7 +967,7 @@ private:
     // by three indices [branch][levelOfAncestor][offset]
     // where offset is an arbitrary unique integer assigned to all
     // the constraints on the same branch with the same level of ancestor.
-    std::vector< std::vector< std::vector<ConstraintIndex> > > branches;
+    Array_< Array_< Array_<ConstraintIndex> > > branches;
 
     // Partition the constraints into groups which are coupled by constraints at
     // the indicated level. Only Constraints which generate holonomic constraint
@@ -984,9 +983,9 @@ private:
     // matrix in the computation of (G M^-1 G^T).
 
     // sorted in nondecreasing order of ancestor MobilizedBodyIndex
-    std::vector<CoupledConstraintSet> positionCoupledConstraints;     // for P
-    std::vector<CoupledConstraintSet> velocityCoupledConstraints;     // for PV
-    std::vector<CoupledConstraintSet> accelerationCoupledConstraints; // for G=PVA
+    Array_<CoupledConstraintSet> positionCoupledConstraints;     // for P
+    Array_<CoupledConstraintSet> velocityCoupledConstraints;     // for PV
+    Array_<CoupledConstraintSet> accelerationCoupledConstraints; // for G=PVA
 
     // This further partitions the accelerationCoupledConstraints into
     // larger groups comprised of accelerationCoupledConstraints whose ancestor
@@ -998,7 +997,7 @@ private:
     // TODO: acceleration constraints should instead be dealt with recursively,
     // based on *kinematic* coupling; where the kinematically coupled groups are
     // used to modify the articulated body inertias.
-    std::vector<CoupledConstraintSet> dynamicallyCoupledConstraints;
+    Array_<CoupledConstraintSet> dynamicallyCoupledConstraints;
 
 
     // TODO: these state indices and counters should be deferred to realizeModel()

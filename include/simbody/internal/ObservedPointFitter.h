@@ -57,7 +57,29 @@ public:
      * has a weight of 1.
      */
 
-    static Real findBestFit(const MultibodySystem& system, State& state, const std::vector<MobilizedBodyIndex>& bodyIxs, const std::vector<std::vector<Vec3> >& stations, const std::vector<std::vector<Vec3> >& targetLocations, Real tolerance=0.001);
+    static Real findBestFit
+       (const MultibodySystem&             system, 
+        State&                             state, 
+        const Array_<MobilizedBodyIndex>&  bodyIxs, 
+        const Array_<Array_<Vec3> >&       stations, 
+        const Array_<Array_<Vec3> >&       targetLocations, 
+        Real                               tolerance=0.001);
+
+    /** For compatibility with std::vector; requires extra copying. **/
+    static Real findBestFit
+       (const MultibodySystem&                  system, 
+        State&                                  state, 
+        const std::vector<MobilizedBodyIndex>&  bodyIxs, 
+        const std::vector<std::vector<Vec3> >&  stations, 
+        const std::vector<std::vector<Vec3> >&  targetLocations, 
+        Real                                    tolerance=0.001) 
+    {
+        Array_<Array_<Vec3> > stationCopy(stations);
+        Array_<Array_<Vec3> > targetCopy(targetLocations);
+        return findBestFit(system,state,
+                    ArrayViewConst_<MobilizedBodyIndex>(bodyIxs), // no copying here
+                    stationCopy, targetCopy);
+    }
 
     /**
      * Find the configuration of a MultibodySystem which best fits a set of target locations for stations.
@@ -73,12 +95,40 @@ public:
      * @return the RMS distance of points in the best fit conformation from their target locations
      */
 
-    static Real findBestFit(const MultibodySystem& system, State& state, const std::vector<MobilizedBodyIndex>& bodyIxs, const std::vector<std::vector<Vec3> >& stations, const std::vector<std::vector<Vec3> >& targetLocations, const std::vector<std::vector<Real> >& weights, Real tolerance=0.001);
+    static Real findBestFit
+       (const MultibodySystem&             system, 
+        State&                             state, 
+        const Array_<MobilizedBodyIndex>&  bodyIxs, 
+        const Array_<Array_<Vec3> >&       stations, 
+        const Array_<Array_<Vec3> >&       targetLocations, 
+        const Array_<Array_<Real> >&       weights, 
+        Real                               tolerance=0.001);
+
+    /** For compatibility with std::vector; requires extra copying. **/
+    static Real findBestFit
+       (const MultibodySystem&                  system, 
+        State&                                  state, 
+        const std::vector<MobilizedBodyIndex>&  bodyIxs, 
+        const std::vector<std::vector<Vec3> >&  stations, 
+        const std::vector<std::vector<Vec3> >&  targetLocations, 
+        const std::vector<std::vector<Real> >&  weights, 
+        Real                                    tolerance=0.001)
+    {
+        Array_<Array_<Vec3> > stationCopy(stations);
+        Array_<Array_<Vec3> > targetCopy(targetLocations);
+        Array_<Array_<Real> > weightCopy(weights);
+        return findBestFit(system,state,
+                    ArrayViewConst_<MobilizedBodyIndex>(bodyIxs), // no copying here
+                    stationCopy, targetCopy, weightCopy,
+                    tolerance);
+    }
+
+
 private:
-    static void createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, const std::vector<MobilizedBodyIndex>& originalBodyIxs, std::vector<MobilizedBodyIndex>& copyBodyIxs);
-    static void findUpstreamBodies(MobilizedBodyIndex currentBodyIx, const std::vector<int> numStations, const SimbodyMatterSubsystem& matter, std::vector<MobilizedBodyIndex>& bodyIxs, int requiredStations);
-    static void findDownstreamBodies(MobilizedBodyIndex currentBodyIx, const std::vector<int> numStations, const std::vector<std::vector<MobilizedBodyIndex> > children, std::vector<MobilizedBodyIndex>& bodyIxs, int& requiredStations);
-    static int findBodiesForClonedSystem(MobilizedBodyIndex primaryBodyIx, const std::vector<int> numStations, const SimbodyMatterSubsystem& matter, const std::vector<std::vector<MobilizedBodyIndex> > children, std::vector<MobilizedBodyIndex>& bodyIxs);
+    static void createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, const Array_<MobilizedBodyIndex>& originalBodyIxs, Array_<MobilizedBodyIndex>& copyBodyIxs);
+    static void findUpstreamBodies(MobilizedBodyIndex currentBodyIx, const Array_<int> numStations, const SimbodyMatterSubsystem& matter, Array_<MobilizedBodyIndex>& bodyIxs, int requiredStations);
+    static void findDownstreamBodies(MobilizedBodyIndex currentBodyIx, const Array_<int> numStations, const Array_<Array_<MobilizedBodyIndex> > children, Array_<MobilizedBodyIndex>& bodyIxs, int& requiredStations);
+    static int findBodiesForClonedSystem(MobilizedBodyIndex primaryBodyIx, const Array_<int> numStations, const SimbodyMatterSubsystem& matter, const Array_<Array_<MobilizedBodyIndex> > children, Array_<MobilizedBodyIndex>& bodyIxs);
     class OptimizerFunction;
 };
 

@@ -43,7 +43,6 @@
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/HuntCrossleyContact.h"
 
-// #include "ForceSubsystemRep.h"
 #include "simbody/internal/ForceSubsystemGuts.h"
 
 namespace SimTK {
@@ -93,8 +92,8 @@ class HuntCrossleyContactRep : public ForceSubsystemRep {
     struct Parameters {
         Parameters() : enabled(true) { }
         bool enabled;
-        std::vector<SphereParameters>    spheres;
-        std::vector<HalfspaceParameters> halfSpaces;
+        Array_<SphereParameters>    spheres;
+        Array_<HalfspaceParameters> halfSpaces;
     };
 
 

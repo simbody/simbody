@@ -33,14 +33,12 @@
 #include <pthread.h>
 #include <map>
 #include <set>
-#include <vector>
 
 using namespace SimTK;
 using std::map;
 using std::pair;
 using std::set;
 using std::string;
-using std::vector;
 
 ContactGeometry::ContactGeometry(ContactGeometryImpl* impl) : impl(impl) {
     assert(impl);
@@ -203,7 +201,9 @@ void ContactGeometry::SphereImpl::getBoundingSphere(Vec3& center, Real& radius) 
     radius = this->radius;
 }
 
-ContactGeometry::TriangleMesh::TriangleMesh(const vector<Vec3>& vertices, const vector<int>& faceIndices, bool smooth) : ContactGeometry(new TriangleMeshImpl(vertices, faceIndices, smooth)) {
+ContactGeometry::TriangleMesh::TriangleMesh
+   (const ArrayViewConst_<Vec3>& vertices, const ArrayViewConst_<int>& faceIndices, bool smooth) 
+:   ContactGeometry(new TriangleMeshImpl(vertices, faceIndices, smooth)) {
 }
 
 ContactGeometry::TriangleMesh::TriangleMesh(const PolygonalMesh& mesh, bool smooth) : ContactGeometry(new TriangleMeshImpl(mesh, smooth)) {
@@ -260,7 +260,7 @@ Real ContactGeometry::TriangleMesh::getFaceArea(int face) const {
     return getImpl().faces[face].area;
 }
 
-void ContactGeometry::TriangleMesh::findVertexEdges(int vertex, std::vector<int>& edges) const {
+void ContactGeometry::TriangleMesh::findVertexEdges(int vertex, Array_<int>& edges) const {
     // Begin at an arbitrary edge which intersects the vertex.
     
     int firstEdge = getImpl().vertices[vertex].firstEdge;
@@ -364,16 +364,17 @@ ContactGeometry::TriangleMeshImpl& ContactGeometry::TriangleMesh::updImpl() {
     return static_cast<TriangleMeshImpl&>(*impl);
 }
 
-ContactGeometry::TriangleMeshImpl::TriangleMeshImpl(const vector<Vec3>& vertexPositions, const vector<int>& faceIndices, bool smooth) :
-            ContactGeometryImpl(Type()), smooth(smooth) {
+ContactGeometry::TriangleMeshImpl::TriangleMeshImpl
+   (const ArrayViewConst_<Vec3>& vertexPositions, const ArrayViewConst_<int>& faceIndices, bool smooth) 
+:   ContactGeometryImpl(Type()), smooth(smooth) {
     init(vertexPositions, faceIndices);
 }
 
 ContactGeometry::TriangleMeshImpl::TriangleMeshImpl(const PolygonalMesh& mesh, bool smooth) : ContactGeometryImpl(Type()), smooth(smooth) {
     // Create the mesh, triangulating faces as necessary.
     
-    vector<Vec3> vertexPositions;
-    vector<int> faceIndices;
+    Array_<Vec3> vertexPositions;
+    Array_<int> faceIndices;
     for (int i = 0; i < mesh.getNumVertices(); i++)
         vertexPositions.push_back(mesh.getVertexPosition(i));
     for (int i = 0; i < mesh.getNumFaces(); i++) {
@@ -444,7 +445,7 @@ ContactGeometry::TriangleMeshImpl::TriangleMeshImpl(const PolygonalMesh& mesh, b
     }
 }
 
-void ContactGeometry::TriangleMeshImpl::init(const std::vector<Vec3>& vertexPositions, const vector<int>& faceIndices) {
+void ContactGeometry::TriangleMeshImpl::init(const Array_<Vec3>& vertexPositions, const Array_<int>& faceIndices) {
     SimTK_APIARGCHECK_ALWAYS(faceIndices.size()%3 == 0, "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl", "The number of indices must be a multiple of 3.");
     int numFaces = faceIndices.size()/3;
     
@@ -553,7 +554,7 @@ void ContactGeometry::TriangleMeshImpl::init(const std::vector<Vec3>& vertexPosi
     
     // Create the OBBTree.
     
-    vector<int> allFaces(faces.size());
+    Array_<int> allFaces(faces.size());
     for (int i = 0; i < (int) allFaces.size(); i++)
         allFaces[i] = i;
     createObbTree(obb, allFaces);
@@ -569,7 +570,7 @@ void ContactGeometry::TriangleMeshImpl::init(const std::vector<Vec3>& vertexPosi
     boundingSphereRadius += tol;
 }
 
-void ContactGeometry::TriangleMeshImpl::createObbTree(OBBTreeNodeImpl& node, const vector<int>& faceIndices) {
+void ContactGeometry::TriangleMeshImpl::createObbTree(OBBTreeNodeImpl& node, const Array_<int>& faceIndices) {
     // Find all vertices in the node and build the OrientedBoundingBox.
 
     node.numTriangles = faceIndices.size();
@@ -626,8 +627,8 @@ void ContactGeometry::TriangleMeshImpl::createObbTree(OBBTreeNodeImpl& node, con
         // Try splitting along each axis.
 
         for (int i = 0; i < 3; i++) {
-            vector<int> child1Indices;
-            vector<int> child2Indices;
+            Array_<int> child1Indices;
+            Array_<int> child2Indices;
             splitObbAxis(faceIndices, child1Indices, child2Indices, axisOrder[i]);
             if (child1Indices.size() > 0 && child2Indices.size() > 0) {
                 // It was successfully split, so create the child nodes.
@@ -646,7 +647,7 @@ void ContactGeometry::TriangleMeshImpl::createObbTree(OBBTreeNodeImpl& node, con
     node.triangles.insert(node.triangles.begin(), faceIndices.begin(), faceIndices.end());
 }
 
-void ContactGeometry::TriangleMeshImpl::splitObbAxis(const vector<int>& parentIndices, vector<int>& child1Indices, vector<int>& child2Indices, int axis) {
+void ContactGeometry::TriangleMeshImpl::splitObbAxis(const Array_<int>& parentIndices, Array_<int>& child1Indices, Array_<int>& child2Indices, int axis) {
     // For each face, find its minimum and maximum extent along the axis.
     
     Vector minExtent(parentIndices.size());
@@ -1087,7 +1088,7 @@ const ContactGeometry::TriangleMesh::OBBTreeNode ContactGeometry::TriangleMesh::
     return OBBTreeNode(*impl->child2);
 }
 
-const std::vector<int>& ContactGeometry::TriangleMesh::OBBTreeNode::getTriangles() const {
+const Array_<int>& ContactGeometry::TriangleMesh::OBBTreeNode::getTriangles() const {
     SimTK_ASSERT_ALWAYS(impl->child2 == NULL, "Called getTriangles() on a non-leaf node");
     return impl->triangles;
 }

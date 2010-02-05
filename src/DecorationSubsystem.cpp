@@ -113,7 +113,7 @@ const MultibodySystem& DecorationSubsystemGuts::getMultibodySystem() const {
 }
 
 int DecorationSubsystemGuts::calcDecorativeGeometryAndAppendImpl
-   (const State& s, Stage stage, std::vector<DecorativeGeometry>& geom) const
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     switch(stage) {
     case Stage::TopologyIndex: {

@@ -40,10 +40,6 @@
 #include <map>
 #include <set>
 
-using std::map;
-using std::set;
-using std::vector;
-
 namespace SimTK {
 
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(ElasticFoundationForce, ElasticFoundationForceImpl, Force);
@@ -90,11 +86,11 @@ void ElasticFoundationForceImpl::setBodyParameters(int bodyIndex, Real stiffness
 }
 
 void ElasticFoundationForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
-    const vector<Contact>& contacts = subsystem.getContacts(state, set);
+    const Array_<Contact>& contacts = subsystem.getContacts(state, set);
     Real& pe = Value<Real>::downcast(state.updCacheEntry(subsystem.getMySubsystemIndex(), energyCacheIndex)).upd();
     pe = 0.0;
     for (int i = 0; i < (int) contacts.size(); i++) {
-        map<int, Parameters>::const_iterator iter = parameters.find(contacts[i].getFirstBody());
+        std::map<int, Parameters>::const_iterator iter = parameters.find(contacts[i].getFirstBody());
         if (iter != parameters.end()) {
             const TriangleMeshContact& contact = static_cast<const TriangleMeshContact&>(contacts[i]);
             processContact(state, contact.getFirstBody(), contact.getSecondBody(), iter->second, contact.getFirstBodyFaces(), bodyForces, pe);

@@ -37,7 +37,6 @@
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/OrientedBoundingBox.h"
-#include <vector>
 
 namespace SimTK {
 
@@ -173,7 +172,7 @@ public:
      *                     will be smoothly interpolated between vertices.  If false, it will be treated
      *                     as a faceted mesh with a constant normal vector over each face.
      */
-    TriangleMesh(const std::vector<Vec3>& vertices, const std::vector<int>& faceIndices, bool smooth=false);
+    TriangleMesh(const ArrayViewConst_<Vec3>& vertices, const ArrayViewConst_<int>& faceIndices, bool smooth=false);
     /**
      * Create a TriangleMesh based on a PolygonalMesh object.  If any faces of the PolygonalMesh
      * have more than three vertices, they are automatically triangulated.
@@ -242,7 +241,7 @@ public:
      * @param vertex  the index of the vertex
      * @param edges   the indices of all edges intersecting the vertex will be added to this
      */
-    void findVertexEdges(int vertex, std::vector<int>& edges) const;
+    void findVertexEdges(int vertex, Array_<int>& edges) const;
     /**
      * Get the normal vector for a face.  This points outward from the mesh.
      *
@@ -347,7 +346,7 @@ public:
     /**
      * Get the indices of all triangles contained in this node.  Calling this on a non-leaf node will produce an exception.
      */
-    const std::vector<int>& getTriangles() const;
+    const Array_<int>& getTriangles() const;
     /**
      * Get the number of triangles inside this node.  If this is not a leaf node, this is the total number
      * of triangles contained by all children of this node.

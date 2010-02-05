@@ -75,7 +75,7 @@ void testHalfSpaceSphere() {
         
         // Check the results of collision detection.
         
-        const vector<Contact>& contact = contacts.getContacts(state, setIndex);
+        const Array_<Contact>& contact = contacts.getContacts(state, setIndex);
         if (centerInGround[1] > radius+1) {
             ASSERT(contact.size() == 0);
         }
@@ -125,7 +125,7 @@ void testSphereSphere() {
         
         // Make sure all contacts are accurate.
         
-        const vector<Contact>& contact = contacts.getContacts(state, setIndex);
+        const Array_<Contact>& contact = contacts.getContacts(state, setIndex);
         for (int i = 0; i < (int) contact.size(); i++) {
             ASSERT(PointContact::isInstance(contact[i]));
             const PointContact& c = static_cast<const PointContact&>(contact[i]);
@@ -198,7 +198,7 @@ void testHalfSpaceTriangleMesh() {
         Vec3 center(0.1, 1-depth, 2.0);
         b.setQToFitTranslation(state, center);
         system.realize(state, Stage::Dynamics);
-        const vector<Contact>& contact = contacts.getContacts(state, setIndex);
+        const Array_<Contact>& contact = contacts.getContacts(state, setIndex);
         if (depth < 0.0) {
             ASSERT(contact.size() == 0);
         }
@@ -345,7 +345,7 @@ void testTriangleMeshTriangleMesh() {
         b1.setQToFitTranslation(state, Vec3(0));
         b2.setQToFitTranslation(state, Vec3(0, -0.99, 0));
         system.realize(state, Stage::Dynamics);
-        vector<Contact> contact = contacts.getContacts(state, setIndex);;
+        Array_<Contact> contact = contacts.getContacts(state, setIndex);;
         ASSERT(contact.size() == 1);
         ASSERT(TriangleMeshContact::isInstance(contact[0]));
         const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contact[0]);
@@ -362,7 +362,7 @@ void testTriangleMeshTriangleMesh() {
         b1.setQToFitTranslation(state, Vec3(0, -0.5, 0));
         b2.setQToFitTranslation(state, Vec3(0, 0.49, 0));
         system.realize(state, Stage::Dynamics);
-        vector<Contact> contact = contacts.getContacts(state, setIndex);;
+        Array_<Contact> contact = contacts.getContacts(state, setIndex);;
         ASSERT(contact.size() == 1);
         ASSERT(TriangleMeshContact::isInstance(contact[0]));
         const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contact[0]);
@@ -379,7 +379,7 @@ void testTriangleMeshTriangleMesh() {
         b1.setQToFitTranslation(state, Vec3(0.1, -0.5, 0));
         b2.setQToFitTranslation(state, Vec3(0, 0.49, 0.1));
         system.realize(state, Stage::Dynamics);
-        vector<Contact> contact = contacts.getContacts(state, setIndex);;
+        Array_<Contact> contact = contacts.getContacts(state, setIndex);;
         ASSERT(contact.size() == 1);
         ASSERT(TriangleMeshContact::isInstance(contact[0]));
     }
@@ -387,7 +387,7 @@ void testTriangleMeshTriangleMesh() {
         b1.setQToFitTransform(state, Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0, 0.5, 0)));
         b2.setQToFitTransform(state, Transform(Rotation(0.5*Pi, ZAxis), Vec3(1.9, -0.5, 0)));
         system.realize(state, Stage::Dynamics);
-        vector<Contact> contact = contacts.getContacts(state, setIndex);;
+        Array_<Contact> contact = contacts.getContacts(state, setIndex);;
         ASSERT(contact.size() == 1);
         ASSERT(TriangleMeshContact::isInstance(contact[0]));
         const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contact[0]);

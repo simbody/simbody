@@ -73,7 +73,7 @@ public:
     }
 
     void appendDecorativeGeometry(MobilizedBodyIndex id, 
-                                  std::vector<DecorativeGeometry>& geom) const 
+                                  Array_<DecorativeGeometry>& geom) const 
     {
         for (int i=0; i<(int)geometry.size(); ++i) {
             geom.push_back(geometry[i]);
@@ -89,7 +89,7 @@ private:
     Body* myHandle;
 
         // TOPOLOGY "STATE" VARIABLES
-    std::vector<DecorativeGeometry> geometry;
+    Array_<DecorativeGeometry> geometry;
 };
 
 class Body::Ground::GroundRep : public Body::BodyRep {

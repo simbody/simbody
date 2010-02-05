@@ -131,7 +131,7 @@ public:
      * subsystem is guaranteed to be realized before all ForceSubsystems, however, so a Force
      * may still invoke it to calculate forces based on contacts.
      */
-    const std::vector<Contact>& getContacts(const State& state, ContactSetIndex set) const;
+    const Array_<Contact>& getContacts(const State& state, ContactSetIndex set) const;
     SimTK_PIMPL_DOWNCAST(GeneralContactSubsystem, Subsystem);
 private:
     class GeneralContactSubsystemImpl& updImpl();

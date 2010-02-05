@@ -76,7 +76,6 @@
 #include "simbody/internal/common.h"
 
 #include <cassert>
-#include <vector>
 #include <iostream>
 using std::cout; using std::endl;
 
@@ -262,7 +261,7 @@ public:
 
 private:
     // Use accessor routines for these so that you get type checking on the index types.
-    std::vector<PerMobilizedBodyModelInfo> mobilizedBodyModelInfo; // MobilizedBody 0 is Ground
+    Array_<PerMobilizedBodyModelInfo> mobilizedBodyModelInfo; // MobilizedBody 0 is Ground
 };
 
 inline std::ostream& operator<<(std::ostream& o, const SBModelCache& c) { 
@@ -410,7 +409,7 @@ public:
     public:
         // Better to access using accessor methods above so you'll get type 
         // checking on the index type.
-        std::vector<PerConstrainedMobilizerInstanceInfo> 
+        Array_<PerConstrainedMobilizerInstanceInfo> 
             constrainedMobilizerInstanceInfo;
 
         // The ConstrainedBodies and ConstrainedMobilizers are set at Topology 
@@ -420,8 +419,8 @@ public:
         // affect the number and meanings of these variables. These are sorted 
         // in order of their associated ConstrainedMobilizer, not necessarily
         // in order of QIndex or UIndex. Each value appears only once.
-        std::vector<QIndex> constrainedQ;   // indexed by ConstrainedQIndex, maps to subsystem QIndex
-        std::vector<UIndex> constrainedU;   // indexed by ConstrainedUIndex, maps to subsystem UIndex
+        Array_<QIndex> constrainedQ;   // indexed by ConstrainedQIndex, maps to subsystem QIndex
+        Array_<UIndex> constrainedU;   // indexed by ConstrainedUIndex, maps to subsystem UIndex
 
         // Participating mobilities include ALL the mobilities which may be 
         // involved in any of this Constraint's constraint equations, whether 
@@ -429,8 +428,8 @@ public:
         // effects on ConstrainedBodies. These are sorted in order of 
         // increasing QIndex and UIndex, and each QIndex or UIndex appears 
         // only once.
-        std::vector<QIndex> participatingQ; // indexed by ParticipatingQIndex, maps to subsystem QIndex
-        std::vector<UIndex> participatingU; // indexed by ParticipatingUIndex, maps to subsystem UIndex
+        Array_<QIndex> participatingQ; // indexed by ParticipatingQIndex, maps to subsystem QIndex
+        Array_<UIndex> participatingU; // indexed by ParticipatingUIndex, maps to subsystem UIndex
     };
 
     // Instance variables are:
@@ -446,13 +445,13 @@ public:
     //       for each rigid body
 
     Real                   totalMass; // sum of all rigid body and particles masses
-    std::vector<Inertia>   centralInertias;           // nb
+    Array_<Inertia>   centralInertias;           // nb
     Vector_<Vec3>          principalMoments;          // nb
-    std::vector<Rotation>  principalAxes;             // nb
-    std::vector<Transform> referenceConfiguration;    // nb
+    Array_<Rotation>  principalAxes;             // nb
+    Array_<Transform> referenceConfiguration;    // nb
 
-    std::vector<PerMobodInstanceInfo>         mobodInstanceInfo;
-    std::vector<PerConstraintInstanceInfo>    constraintInstanceInfo;
+    Array_<PerMobodInstanceInfo>         mobodInstanceInfo;
+    Array_<PerConstraintInstanceInfo>    constraintInstanceInfo;
 
     // This is a sum over all the mobilizers whose q's are currently prescribed,
     // adding the number of q's (generalized coordinates) nq currently being 
@@ -465,9 +464,9 @@ public:
     int getTotalNumPresQ() const {return (int)presQ.size();}
     int getTotalNumZeroQ() const {return (int)zeroQ.size();}
     int getTotalNumFreeQ() const {return (int)freeQ.size();}
-    std::vector<QIndex> presQ;
-    std::vector<QIndex> zeroQ;
-    std::vector<QIndex> freeQ; // must be integrated
+    Array_<QIndex> presQ;
+    Array_<QIndex> zeroQ;
+    Array_<QIndex> freeQ; // must be integrated
 
     // This is a sum over all the mobilizers whose u's are current prescribed, 
     // whether because of non-holonomic (velocity) prescribed motion u=u(t,q), 
@@ -481,9 +480,9 @@ public:
     int getTotalNumPresU() const {return (int)presU.size();}
     int getTotalNumZeroU() const {return (int)zeroU.size();}
     int getTotalNumFreeU() const {return (int)freeU.size();}
-    std::vector<UIndex> presU;
-    std::vector<UIndex> zeroU;
-    std::vector<UIndex> freeU; // must be integrated
+    Array_<UIndex> presU;
+    Array_<UIndex> zeroU;
+    Array_<UIndex> freeU; // must be integrated
 
     // This is a sum over all the mobilizers whose udots are currently prescribed, adding
     // the number of udots (mobilities) nu from each holonomic-, nonholonomic-, or 
@@ -494,9 +493,9 @@ public:
     int getTotalNumPresUDot() const {return (int)presUDot.size();}
     int getTotalNumZeroUDot() const {return (int)zeroUDot.size();}
     int getTotalNumFreeUDot() const {return (int)freeUDot.size();}
-    std::vector<UIndex> presUDot;
-    std::vector<UIndex> zeroUDot;
-    std::vector<UIndex> freeUDot; // calculated from forces
+    Array_<UIndex> presUDot;
+    Array_<UIndex> zeroUDot;
+    Array_<UIndex> freeUDot; // calculated from forces
 
     // This is a sum over all the mobilizers whose udots are known for any reason
     // whether prescribed or not, e.g. they are Zero or Discrete (anything
@@ -627,11 +626,11 @@ public:
     Matrix_<Vec3> storageForH_FM; // 2 x ndof (H_FM)
     Matrix_<Vec3> storageForH;    // 2 x ndof (H_PB_G)
 
-    std::vector<Transform>    bodyJointInParentJointFrame;  // nb (X_FM)
-    std::vector<Transform>    bodyConfigInParent;           // nb (X_PB)
-    std::vector<Transform>    bodyConfigInGround;           // nb (X_GB)
-    std::vector<PhiMatrix>    bodyToParentShift;            // nb (phi)
-    std::vector<Inertia>      bodyInertiaInGround;          // nb (I_OB_G)
+    Array_<Transform>    bodyJointInParentJointFrame;  // nb (X_FM)
+    Array_<Transform>    bodyConfigInParent;           // nb (X_PB)
+    Array_<Transform>    bodyConfigInGround;           // nb (X_GB)
+    Array_<PhiMatrix>    bodyToParentShift;            // nb (phi)
+    Array_<Inertia>      bodyInertiaInGround;          // nb (I_OB_G)
     Vector_<SpatialMat>       bodySpatialInertia;           // nb (Mk)
     Vector_<Vec3>             bodyCOMInGround;              // nb (p_G_CB)
     Vector_<Vec3>             bodyCOMStationInGround;       // nb (p_CB_G)
@@ -643,7 +642,7 @@ public:
     // for each of their Constrained Bodies (call the total number 'nacb')
     // to store the above information but measured and expressed in the Ancestor frame
     // rather than Ground.
-    std::vector<Transform> constrainedBodyConfigInAncestor;     // nacb (X_AB)
+    Array_<Transform> constrainedBodyConfigInAncestor;     // nacb (X_AB)
 
 public:
     void allocate(const SBTopologyCache& tree,
@@ -904,7 +903,7 @@ public:
     // for each of their Constrained Bodies (call the total number 'nacb')
     // to store the above information but measured and expressed in the Ancestor frame
     // rather than Ground.
-    std::vector<SpatialVec> constrainedBodyVelocityInAncestor; // nacb (V_AB)
+    Array_<SpatialVec> constrainedBodyVelocityInAncestor; // nacb (V_AB)
 
 public:
     void allocate(const SBTopologyCache& tree,
@@ -1076,7 +1075,7 @@ public:
     // for each of their Constrained Bodies (call the total number 'nacb')
     // to store the above information but measured and expressed in the Ancestor frame
     // rather than Ground.
-    std::vector<SpatialVec> constrainedBodyAccelerationInAncestor; // nacb (A_AB)
+    Array_<SpatialVec> constrainedBodyAccelerationInAncestor; // nacb (A_AB)
 
 public:
     void allocate(const SBTopologyCache& tree,
@@ -1164,7 +1163,7 @@ public:
 class SBModelVars {
 public:
     bool              useEulerAngles;
-    std::vector<bool> prescribed;           // nb (# bodies & mobilizers, [0] always true)
+    Array_<bool> prescribed;           // nb (# bodies & mobilizers, [0] always true)
 public:
 
     // We have to allocate these without looking at any other
@@ -1184,10 +1183,10 @@ public:
 // -----------------------------------------------------------------------------
 class SBInstanceVars {
 public:
-    std::vector<MassProperties> bodyMassProperties;
-    std::vector<Transform>      outboardMobilizerFrames;
-    std::vector<Transform>      inboardMobilizerFrames;
-    std::vector<bool>           disabled;             // nc (# constraints)
+    Array_<MassProperties> bodyMassProperties;
+    Array_<Transform>      outboardMobilizerFrames;
+    Array_<Transform>      inboardMobilizerFrames;
+    Array_<bool>           disabled;             // nc (# constraints)
     Vector                      particleMasses;
 
 public:
