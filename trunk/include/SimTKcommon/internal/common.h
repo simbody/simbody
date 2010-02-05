@@ -403,30 +403,41 @@ public:                                     \
     void invalidate(){ix=SimTK::InvalidIndex;}      \
     \
     bool operator==(int  i) const {assert(isValidExtended() && isValidExtended(i)); return ix==i;}    \
+    bool operator==(short s) const{assert(isValidExtended() && isValidExtended(s)); return ix==(int)s;}  \
     bool operator==(long l) const {assert(isValidExtended() && isValidExtended(l)); return ix==(int)l;}  \
     bool operator==(unsigned int  u)  const {assert(isValidExtended() && isValid(u)); return ix==(int)u;}   \
+    bool operator==(unsigned short us)const {assert(isValidExtended() && isValid(us)); return ix==(int)us;} \
     bool operator==(unsigned long ul) const {assert(isValidExtended() && isValid(ul)); return ix==(int)ul;} \
     bool operator!=(int  i)           const {return !operator==(i);}    \
+    bool operator!=(short s)          const {return !operator==(s);}    \
     bool operator!=(long l)           const {return !operator==(l);}    \
     bool operator!=(unsigned int  u)  const {return !operator==(u);}    \
     bool operator!=(unsigned long ul) const {return !operator==(ul);}   \
     \
     bool operator< (int  i) const {assert(isValidExtended() && isValidExtended(i)); return ix<i;}        \
+    bool operator< (short s) const{assert(isValidExtended() && isValidExtended(s)); return ix<(int)s;}   \
     bool operator< (long l) const {assert(isValidExtended() && isValidExtended(l)); return ix<(int)l;}   \
     bool operator< (unsigned int  u)  const {assert(isValidExtended() && isValid(u));  return ix<(int)u;}    \
+    bool operator< (unsigned short us)const {assert(isValidExtended() && isValid(us)); return ix<(int)us;}   \
     bool operator< (unsigned long ul) const {assert(isValidExtended() && isValid(ul)); return ix<(int)ul;}   \
     bool operator>=(int  i)           const {return !operator<(i);}    \
+    bool operator>=(short s)          const {return !operator<(s);}    \
     bool operator>=(long l)           const {return !operator<(l);}    \
     bool operator>=(unsigned int  u)  const {return !operator<(u);}    \
+    bool operator>=(unsigned short us)const {return !operator<(us);}   \
     bool operator>=(unsigned long ul) const {return !operator<(ul);}   \
     \
     bool operator> (int  i) const {assert(isValidExtended() && isValidExtended(i)); return ix>i;}        \
+    bool operator> (short s) const{assert(isValidExtended() && isValidExtended(s)); return ix>(int)s;}   \
     bool operator> (long l) const {assert(isValidExtended() && isValidExtended(l)); return ix>(int)l;}   \
     bool operator> (unsigned int  u)  const {assert(isValidExtended() && isValid(u));  return ix>(int)u;}    \
+    bool operator> (unsigned short us)const {assert(isValidExtended() && isValid(us)); return ix>(int)us;}   \
     bool operator> (unsigned long ul) const {assert(isValidExtended() && isValid(ul)); return ix>(int)ul;}   \
     bool operator<=(int  i)           const {return !operator>(i);}    \
+    bool operator<=(short s)          const {return !operator>(s);}    \
     bool operator<=(long l)           const {return !operator>(l);}    \
     bool operator<=(unsigned int  u)  const {return !operator>(u);}    \
+    bool operator<=(unsigned short us)const {return !operator>(us);}   \
     bool operator<=(unsigned long ul) const {return !operator>(ul);}   \
     \
     const NAME& operator++() {assert(isValid()); ++ix; return *this;}       /*prefix */   \
@@ -436,19 +447,26 @@ public:                                     \
     \
     NAME& operator+=(int i)  {assert(isValid() && isValidExtended(ix+i)); ix+=i; return *this;}     \
     NAME& operator-=(int i)  {assert(isValid() && isValidExtended(ix-i)); ix-=i; return *this;}     \
+    NAME& operator+=(short s){assert(isValid() && SimTK::canStoreInInt(s) && isValidExtended(ix+(int)s)); ix+=(int)s; return *this;}     \
+    NAME& operator-=(short s){assert(isValid() && SimTK::canStoreInInt(s) && isValidExtended(ix-(int)s)); ix-=(int)s; return *this;}     \
     NAME& operator+=(long l) {assert(isValid() && SimTK::canStoreInInt(l) && isValidExtended(ix+(int)l)); ix+=(int)l; return *this;}     \
     NAME& operator-=(long l) {assert(isValid() && SimTK::canStoreInInt(l) && isValidExtended(ix-(int)l)); ix-=(int)l; return *this;}     \
     NAME& operator+=(unsigned int  u)  {assert(isValid()&& SimTK::canStoreInInt(u)  && isValid(ix+(int)u));  ix+=(int)u;  return *this;}  \
     NAME& operator-=(unsigned int  u)  {assert(isValid()&& SimTK::canStoreInInt(u)  && isValidExtended(ix-(int)u));  ix-=(int)u;  return *this;}  \
+    NAME& operator+=(unsigned short us){assert(isValid()&& SimTK::canStoreInInt(us) && isValid(ix+(int)us)); ix+=(int)us; return *this;}  \
+    NAME& operator-=(unsigned short us){assert(isValid()&& SimTK::canStoreInInt(us) && isValidExtended(ix-(int)us)); ix-=(int)us; return *this;}  \
     NAME& operator+=(unsigned long ul) {assert(isValid()&& SimTK::canStoreInInt(ul) && isValid(ix+(int)ul)); ix+=(int)ul; return *this;}  \
     NAME& operator-=(unsigned long ul) {assert(isValid()&& SimTK::canStoreInInt(ul) && isValidExtended(ix-(int)ul)); ix-=(int)ul; return *this;}  \
     \
     static const NAME& Invalid() {static const NAME invalid; return invalid;}       \
     static bool isValid(int  i) {return i>=0;}                                      \
+    static bool isValid(short s){return s>=0;}                                      \
     static bool isValid(long l) {return SimTK::canStoreInNonnegativeInt(l);}        \
     static bool isValid(unsigned int  u)  {return SimTK::canStoreInInt(u);}         \
+    static bool isValid(unsigned short)   {return true;}                            \
     static bool isValid(unsigned long ul) {return SimTK::canStoreInInt(ul);}        \
     static bool isValidExtended(int  i) {return i>=-1;}                             \
+    static bool isValidExtended(short s){return s>=-1;}                             \
     static bool isValidExtended(long l) {return SimTK::canStoreInInt(l) && l>=-1;}  \
     /* IndexTraits for use in Array_<T,X> with this as X; same as int */            \
     typedef int size_type;                                                  \
