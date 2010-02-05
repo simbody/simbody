@@ -90,6 +90,8 @@ public:
 
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(TestIx);
 
+// This index type has a max size of 4 for testing out-of-space
+// checks.
 class SmallIx {
 public:
     SmallIx() : ix(0xff) {}
@@ -445,6 +447,78 @@ void testArrayViewAssignment() {
     //TODO: test input iterators, and source too big problems
 }
 
+void testInsert() {
+    const int data1[3] = {7, -2, 3};
+    const int data2[4] = {101, 121, -111, 321};
+    int wdata[3] = {99, 9999, 999}; // writable
+
+    Array_<int> a(data2,data2+4); // copy the data
+    SimTK_TEST(&a[0] != data2);
+    ArrayViewConst_<int> avc(data2, data2+4); // share the data
+    SimTK_TEST(&avc[1] == data2+1);
+
+    Array_<int> aw(wdata, wdata+3, DontCopy()); // shared
+    SimTK_TEST(&aw[0] == wdata);
+
+    // Can't insert into non-owner.
+    SimTK_TEST_MUST_THROW(aw.insert(aw.begin(), avc.begin(), avc.end()));
+    // Unless we're inserting zero elements; that's allowed.
+    aw.insert(&aw[1], avc.begin(), avc.begin());
+
+    Array_<int> ac(data1, data1+3);
+    std::vector<int> vc(data1, data1+3);
+    ac.insert(&ac[1], &a[1], &a[1]+2);
+    vc.insert(vc.begin()+1, &a[1], &a[1]+2);
+    SimTK_TEST(ac.size()==5);
+    SimTK_TEST(ac == vc); // 7, 121, -111, -2, 3
+
+    // insert vc onto beginning and end of ac
+    ac.insert(ac.begin(), vc.begin(), vc.end());
+    ac.insert(ac.end(), vc.begin(), vc.end());
+    SimTK_TEST(ac.size()==15);
+    SimTK_TEST(ac(0,5)==vc && ac(5,5)==vc && ac(10,5)==vc);
+
+    // Shrink ac back down to 5 again.
+    ac.erase(ac.begin()+2, ac.begin()+12);
+    SimTK_TEST(ac == vc);
+    SimTK_TEST(ac.allocated() >= 15);
+    ac.shrink_to_fit();
+    SimTK_TEST(ac.allocated() < 15);
+    SimTK_TEST(ac == vc); // make sure we didn't lose the data
+
+    // Now try some null insertions
+    Array_<int> null;
+    ac.insert(ac.begin(), null.begin(), null.end());
+    ac.insert(ac.begin()+2, null.begin(), null.end());
+    ac.insert(ac.end(), null.begin(), null.end());
+    ac.insert(ac.begin(), 0, 929);
+    ac.insert(ac.begin()+2, 0, 929);
+    ac.insert(ac.end(), 0, 929);
+    SimTK_TEST(ac == vc);
+
+    ArrayView_<int> null2;
+    null.insert(null.begin(), null2.begin(), null2.end());
+    SimTK_TEST(null.empty() && null2.empty());
+
+    // How about inserting into a null array?
+    null.insert(null.begin(), 3, 987);
+    SimTK_TEST(null == std::vector<int>(3,987));
+    null.deallocate(); // back to null
+    SimTK_TEST(null.data()==0 && null.size()==0 && null.allocated()==0);
+
+    null.insert(null.begin(), ac.begin(), ac.end());
+    SimTK_TEST(null == vc);
+    null.deallocate();
+
+    // Fill in a bunch of 1000's in the middle, erase the beginning and
+    // end, and make sure we see just the 1000's.
+    ac.insert(ac.begin()+2, 99, 1000); 
+    ac.erase(ac.begin(), ac.begin()+2);
+    ac.erase(ac.end()-3, ac.end());
+    SimTK_TEST(ac == Array_<int>(99,1000));
+
+}
+
 // A bool index type is more or less useless in real life but was handy for 
 // catching obscure implementation bugs having to do with index_type vs. 
 // size_type.
@@ -763,6 +837,7 @@ int main() {
 
     SimTK_START_TEST("TestArray");
 
+        SimTK_SUBTEST(testInsert);
         SimTK_SUBTEST(testArrayViewAssignment);
         SimTK_SUBTEST(testInputIterator);
         SimTK_SUBTEST(testNiceTypeName);

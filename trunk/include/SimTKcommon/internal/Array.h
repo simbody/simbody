@@ -2660,7 +2660,7 @@ T* insertGapAt(T* p, size_type n, const char* methodName) {
 
     if (n==0) return p; // nothing to do
 
-    SimTK_ERRCHK(isOwner(), methodName,
+    SimTK_ERRCHK_ALWAYS(isOwner(), methodName,
         "No elements can be inserted into a non-owner array.");
 
     // Determine the number of elements before the insertion point and
@@ -3179,18 +3179,9 @@ operator>(const ArrayViewConst_<T1,X1>& a1, const ArrayViewConst_<T2,X2>& a2)
 same size() and each element compares equal using an operator T1==T2.  
 @relates Array_ **/
 template <class T1, class X1, class T2, class A2> inline bool 
-operator==(const ArrayViewConst_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
-    typedef typename std::vector<T2,A2>::const_iterator Iter;
-    // Avoid warnings in size comparison by using common type.
-    const ptrdiff_t sz1 = a1.end()-a1.begin();
-    const ptrdiff_t sz2 = v2.end()-v2.begin();
-    if (sz1 != sz2) return false;
-    const T1* p1 = a1.begin();
-    Iter      p2 = v2.begin();
-    while (p1 != a1.end())
-        if (!(*p1++ == *p2++)) return false;
-    return true;
-}
+operator==(const ArrayViewConst_<T1,X1>& a1, const std::vector<T2,A2>& v2)
+{   return a1 == ArrayViewConst_<T2,size_t>(v2); }
+
 /** An std::vector<T1> and an Array_<T2> are equal if and only if they are the 
 same size() and each element compares equal using an operator T2==T1.  
 @relates Array_ **/
@@ -3215,38 +3206,18 @@ to the length of the shorter container (in which case the shorter one is
 "less than" the longer). This depends on having working element operators 
 T1==T2 and T1<T2. @relates Array_ **/
 template <class T1, class X1, class T2, class A2> inline bool 
-operator<(const ArrayViewConst_<T1,X1>& a1, const std::vector<T2,A2>& v2) {
-    typedef typename std::vector<T2,A2>::const_iterator Iter;
-    const T1*   p1 = a1.begin();
-    Iter        p2 = v2.begin();
-    while (p1 != a1.end() && p2 != v2.end()) {
-        if (!(*p1 == *p2))
-            return *p1 < *p2; // otherwise p1 > p2
-        ++p1; ++p2;
-    }
-    // All elements were equal until one or both arrays ran out of elements.
-    // a1 is less than a2 only if a1 ran out and a2 didn't.
-    return p1 == a1.end() && p2 != v2.end();
-}
+operator<(const ArrayViewConst_<T1,X1>& a1, const std::vector<T2,A2>& v2)
+{   return a1 < ArrayViewConst_<T2,size_t>(v2); }
+
 /** An std::vector<T1> and Array_<T2> are ordered lexicographically; that is, 
 by first differing element or by length if there are no differing elements up 
 to the length of the shorter container (in which case the shorter one is 
 "less than" the longer). This depends on having working element operators 
 T1==T2 and T1<T2. @relates Array_ **/
 template <class T1, class A1, class T2, class X2> inline bool 
-operator<(const std::vector<T1,A1>& v1, const ArrayViewConst_<T2,X2>& a2) {
-    typedef typename std::vector<T1,A1>::const_iterator Iter;
-    Iter        p1 = v1.begin();
-    const T2*   p2 = a2.begin();
-    while (p1 != v1.end() && p2 != a2.end()) {
-        if (!(*p1 == *p2))
-            return *p1 < *p2; // otherwise p1 > p2
-        ++p1; ++p2;
-    }
-    // All elements were equal until one or both arrays ran out of elements.
-    // a1 is less than a2 only if a1 ran out and a2 didn't.
-    return p1 == v1.end() && p2 != a2.end();
-}
+operator<(const std::vector<T1,A1>& v1, const ArrayViewConst_<T2,X2>& a2)
+{   return ArrayViewConst_<T1,size_t>(v1) < a2; }
+
 /** The greater than or equal operator is implemented using the less than 
 operator. @relates Array_ **/
 template <class T1, class X1, class T2, class A2> inline bool 
@@ -3281,6 +3252,7 @@ operator. @relates Array_ **/
 template <class T1, class A1, class T2, class X2> inline bool 
 operator<=(const std::vector<T1,A1>& v1, const ArrayViewConst_<T2,X2>& a2)
 {   return !(v1 > a2); }
+
 /*@}*/
 
 } // namespace SimTK
