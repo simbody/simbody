@@ -3174,6 +3174,11 @@ operators of the form T2==T1 and T2<T1. @relates Array_ **/
 template <class T1, class X1, class T2, class X2> inline bool 
 operator>(const ArrayViewConst_<T1,X1>& a1, const ArrayViewConst_<T2,X2>& a2)
 {   return a2 < a1; }
+/** The less than or equal operator is implemented using the greater than 
+operator. @relates Array_ **/
+template <class T1, class X1, class T2, class X2> inline bool 
+operator<=(const ArrayViewConst_<T1,X1>& a1, const ArrayViewConst_<T2,X2>& a2)
+{   return !(a1 > a2); }
 
 /** An Array_<T1> and an std::vector<T2> are equal if and only if they are the 
 same size() and each element compares equal using an operator T1==T2.  
