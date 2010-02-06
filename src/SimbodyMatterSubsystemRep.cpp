@@ -206,7 +206,10 @@ const SpatialVec&
 SimbodyMatterSubsystemRep::getCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
   return getRigidBodyNode(body).getCentrifugalForces(getDynamicsCache(s));
 }
-
+const SpatialVec&
+SimbodyMatterSubsystemRep::getTotalCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
+  return getRigidBodyNode(body).getTotalCentrifugalForces(getDynamicsCache(s));
+}
 // Here we lock in the topological structure of the multibody system,
 // and compute allocation sizes we're going to need later for state
 // variables and cache entries. We allocate and initialize all the

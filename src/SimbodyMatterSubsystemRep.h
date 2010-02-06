@@ -363,6 +363,7 @@ public:
     const SpatialVec& getTotalCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
     const SpatialVec& getGyroscopicForce          (const State&, MobilizedBodyIndex) const;
     const SpatialVec& getCentrifugalForces        (const State&, MobilizedBodyIndex) const;
+    const SpatialVec& getTotalCentrifugalForces   (const State&, MobilizedBodyIndex) const;
 
     // PARTICLES TODO
 

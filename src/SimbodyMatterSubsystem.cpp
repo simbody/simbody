@@ -365,7 +365,10 @@ const SpatialVec&
 SimbodyMatterSubsystem::getCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
     return getRep().getCentrifugalForces(s,body);
 }
-
+const SpatialVec&
+SimbodyMatterSubsystem::getTotalCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
+    return getRep().getTotalCentrifugalForces(s,body);
+}
 const Vector& 
 SimbodyMatterSubsystem::getAllParticleMasses(const State& s) const { 
     return getRep().getAllParticleMasses(s); 

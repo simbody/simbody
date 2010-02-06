@@ -971,14 +971,27 @@ bool projectQConstraints(State& s, Real consAccuracy, const Vector& yWeights,
 
     // VELOCITY STAGE responses //
 
-// Cross joint
+/// This is the cross-joint coriolis (angular velocity dependent) acceleration; not too
+/// useful, see getTotalCoriolisAcceleration() instead.
 const SpatialVec& getCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
 
-// Including parent
+/// This is the total coriolis acceleration including the effect of the parent's
+/// angular velocity as well as the joint's.
 const SpatialVec& getTotalCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
 
+/// This is the angular velocity-dependent force on the body due to rotational inertia.
 const SpatialVec& getGyroscopicForce(const State&, MobilizedBodyIndex) const;
+
+/// This is the angular velocity-dependent force accounting for gyroscopic forces
+/// plus coriolis forces due only to the cross-joint velocity; this ignores
+/// the parent's velocity and is not too useful -- see getTotalCentrifugalForces()
+/// instead.
 const SpatialVec& getCentrifugalForces(const State&, MobilizedBodyIndex) const;
+
+/// This is the total angular velocity-dependent force acting on this body, 
+/// including forces due to coriolis acceleration and forces due to rotational
+/// inertia.
+const SpatialVec& getTotalCentrifugalForces(const State&, MobilizedBodyIndex) const;
 
     // VELOCITY STAGE operators //
 
