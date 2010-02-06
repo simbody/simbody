@@ -815,7 +815,15 @@ ArrayViewConst_& operator=(const ArrayViewConst_& src); // suppressed
 //==============================================================================
 /** This Array_ helper class is the base class for Array_, extending 
 ArrayViewConst_ to add the ability to modify elements, but not the ability to 
-change size or reallocate. @see ArrayViewConst_ and Array_. **/
+change size or reallocate. 
+
+@tparam T 
+    The type of object to be stored in this container. 
+@tparam X 
+    The type to be used for indexing this container, with default unsigned
+    (not size_t). Any integral type may be used, as well as user types that 
+    satisfy the requirements discussed with class ArrayIndexTraits. 
+@see Array_, ArrayViewConst_, ArrayIndexTraits **/
 template <class T, class X> class ArrayView_ : public ArrayViewConst_<T,X> {
 typedef ArrayViewConst_<T,X> CBase;
 public:
@@ -1373,6 +1381,13 @@ the C++ standard template library (STL) std::vector<T> class, but with some
 important advantages in performance, and functionality, and binary 
 compatibility.
 
+@tparam T 
+    The type of object to be stored in this container. 
+@tparam X 
+    The type to be used for indexing this container, with default unsigned
+    (not size_t). Any integral type may be used, as well as user types that 
+    satisfy the requirements discussed with class ArrayIndexTraits. 
+
 @par Performance:
 There are several performance and memory footprint problems with the C++ 
 standard STL design in general, and with Microsoft's implementation in 
@@ -1386,6 +1401,7 @@ _SECURE_SCL breaks binary compatibility. In contrast the performance of this
 Array_<T> class on any platform is indistinguishable from what you would get 
 by managing your own heap-allocated arrays.
 
+@par
 Regarding memory footprint, the typical implementation of std::vector uses
 three pointers: 12 bytes for 32 bit machines; 24 bytes for 64 bit machines.
 Microsoft somehow manages to trump this with 20 to 24 bytes on a 32 bit
@@ -1393,7 +1409,9 @@ machine -- I don't know what they do on a 64 bit machine but I'm not
 optimistic! Array_ instead uses one pointer and two lengths for a total size 
 as little as 8 bytes on 32 bits and 16 on 64 bits; see below for details.
 
+@par
 Some nuts and bolts:
+
 - We promise that no heap allocation occurs when an empty Array_<T> object 
   is declared (that is, when an Array_<T> is default-constructed); in
   that case both begin() and end() are null.
@@ -1458,7 +1476,8 @@ standard STL objects.
   std::vector<T>; the std::vector's data is referenced by an Array_ handle
   that is used to convey the data across the API without binary compatibility
   problems.
-**/
+
+@see Array_, ArrayViewConst_, ArrayIndexTraits **/
 template <class T, class X> class Array_ : public ArrayView_<T,X> {
     typedef ArrayView_<T,X>      Base;
     typedef ArrayViewConst_<T,X> CBase;
