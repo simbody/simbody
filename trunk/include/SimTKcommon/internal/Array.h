@@ -1374,16 +1374,26 @@ important advantages in performance, and functionality, and binary
 compatibility.
 
 @par Performance:
-There are several performance problems with the C++ standard STL design in
-general, and with Microsoft's implementation in particular, that are addressed
-here. Microsoft in its wisdom decided that STL containers should still do
-runtime range checks in Release builds for safety, but that makes them too slow
-for use in some high-performance contexts (and also breaks the promise of 
-generic programming but that's another rant). Attempting to disable these 
-checks breaks binary compatibility. In contrast the performance of this class 
-on any platform is indistinguishable from what you would get by managing your 
-own heap-allocated arrays.
+There are several performance and memory footprint problems with the C++ 
+standard STL design in general, and with Microsoft's implementation in 
+particular, that are addressed here. Microsoft in its wisdom decided that STL 
+containers should still do runtime range checks in Release builds for safety, 
+but that makes them too slow for use in some high-performance contexts (and 
+also breaks the promise of generic programming but that's another rant). In 
+practice, VC++9 std::vector runs about half speed for simple operations like 
+indexing and push_back. Attempting to disable these runtime checks with 
+_SECURE_SCL breaks binary compatibility. In contrast the performance of this 
+Array_<T> class on any platform is indistinguishable from what you would get 
+by managing your own heap-allocated arrays.
 
+Regarding memory footprint, the typical implementation of std::vector uses
+three pointers: 12 bytes for 32 bit machines; 24 bytes for 64 bit machines.
+Microsoft somehow manages to trump this with 20 to 24 bytes on a 32 bit
+machine -- I don't know what they do on a 64 bit machine but I'm not 
+optimistic! Array_ instead uses one pointer and two lengths for a total size 
+as little as 8 bytes on 32 bits and 16 on 64 bits; see below for details.
+
+Some nuts and bolts:
 - We promise that no heap allocation occurs when an empty Array_<T> object 
   is declared (that is, when an Array_<T> is default-constructed); in
   that case both begin() and end() are null.
@@ -1398,18 +1408,19 @@ own heap-allocated arrays.
 - There is a constant-time eraseFast() method you can use if you don't mind the
   array being reordered after the erase. This avoids the extremely expensive
   "compress" activity required by the standard erase() method.
+- The optional index-type template parameter can be used to reduce the memory
+  footprint to as little as 8 bytes on a 32 bit machine (e.g., a 32 bit 
+  pointer and two shorts).
 - The default size_type for an Array_<T> is a 32-bit unsigned integer rather 
   than a size_t. On a 64-bit machine that keeps the overhead down substantially
   since the structure is then one 64-bit pointer and two 32-bit integers, 
   fitting tightly into a cleanly alignable 16 bytes.
-- The optional index-type template parameter can be used to reduce the memory
-  footprint to as little as 8 bytes on a 32 bit machine (e.g., a 32 bit 
-  pointer and two shorts.)
+
 
 @par Functionality:
 For the most part Array_<T> is a plug-compatible replacement for std::vector<T>,
-and everything that both classes can do is done the same way. However, there 
-are a few additions and subtractions:
+and everything that both classes can do is done with an identical API. However,
+there are a few additions and subtractions:
 
 - This class always uses the default new/delete allocator; there is no option
   to specify your own as there is in std::vector.
@@ -1442,9 +1453,11 @@ standard STL objects.
   C++98 standard std::vector and the C++0x proposed improvements other than
   those requiring rvalue references, so it works smoothly with all STL 
   containers and algorithms.
-- It is convertible to and from std::vector, although that requires
-  copying of the elements. With some care, you can also create an Array_<T> 
-  object that shares the contents of an std::vector object without copying.
+- It is convertible to and from std::vector, usually without copying the 
+  elements. It is easy to provide APIs that accept either Array_<T> or 
+  std::vector<T>; the std::vector's data is referenced by an Array_ handle
+  that is used to convey the data across the API without binary compatibility
+  problems.
 **/
 template <class T, class X> class Array_ : public ArrayView_<T,X> {
     typedef ArrayView_<T,X>      Base;
