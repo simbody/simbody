@@ -468,3 +468,4 @@ int main() {
         SimTK_SUBTEST(testForces);
     SimTK_END_TEST();
 }
+
