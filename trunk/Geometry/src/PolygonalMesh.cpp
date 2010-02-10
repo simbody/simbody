@@ -6,9 +6,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
+ * Portions copyright (c) 2008-10 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -33,9 +33,6 @@
 #include <cassert>
 #include <sstream>
 #include <string>
-
-using std::string;
-using std::stringstream;
 
 namespace SimTK {
 
@@ -117,19 +114,27 @@ PolygonalMeshImpl& PolygonalMesh::updImpl() {
 }
 
 void PolygonalMesh::loadObjFile(std::istream& file) {
-    string line;
+    const char* methodName = "PolygonalMesh::loadObjFile()";
+    SimTK_ERRCHK_ALWAYS(file.good(), methodName,
+        "The supplied std::istream object was not in good condition"
+        " on entrance -- did you check whether it opened successfully?");
+
+    std::string line;
     Array_<int> indices;
     int initialVertices = getNumVertices();
     while (!file.eof()) {
-        getline(file, line);
+        SimTK_ERRCHK_ALWAYS(file.good(), methodName,
+            "An error occurred while reading the input file.");
+
+        std::getline(file, line);
         while (line.size() > 0 && line[line.size()-1] == '\\') {
             line[line.size()-1] = ' ';
-            string continuation;
-            getline(file, continuation);
+            std::string continuation;
+            std::getline(file, continuation);
             line += continuation;
         }
-        stringstream s(line);
-        string command;
+        std::stringstream s(line);
+        std::string command;
         s >> command;
         if (command == "v") {
             // A vertex
@@ -137,7 +142,9 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
             Real x, y, z;
             s >> x;
             s >> y;
-            SimTK_ASSERT1_ALWAYS(s >> z, "Found invalid vertex description: %s", line.c_str());
+            s >> z;
+            SimTK_ERRCHK1_ALWAYS(!s.fail(), methodName,
+                "Found invalid vertex description: %s", line.c_str());
             addVertex(Vec3(x, y, z));
         }
         else if (command == "f") {
