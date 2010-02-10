@@ -291,11 +291,14 @@ void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::processNodes(const C
     }
 }
 
-void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::findInsideTriangles(const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh& otherMesh,
-        const Transform& transform, set<int>& triangles) const {
-    // Find which triangles are inside.
-    
-    Array_<int> faceType(mesh.getNumFaces(), UNKNOWN);
+void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::
+findInsideTriangles(const ContactGeometry::TriangleMesh& mesh, 
+                    const ContactGeometry::TriangleMesh& otherMesh,
+                    const Transform& transform, 
+                    set<int>& triangles) const 
+{   // Find which triangles are inside.
+    const int Unknown = UNKNOWN; // work around gcc bug
+    Array_<int> faceType(mesh.getNumFaces(), Unknown);
     for (set<int>::iterator iter = triangles.begin(); iter != triangles.end(); ++iter)
         faceType[*iter] = BOUNDARY;
     for (int i = 0; i < (int) faceType.size(); i++) {
