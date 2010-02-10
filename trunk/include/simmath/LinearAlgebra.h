@@ -144,13 +144,12 @@ class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
 
     /// returns the rank of the matrix
     int getRank() const;
+    /// returns the actual reciprocal condition number at this rank
+    double getRCondEstimate() const;
 //    void setRank(int rank); TBD
-    /// set the reciprocal  of the condition number 
-    void setReciprocalConditionNumber( Real rcond ); 
 
     protected:
     class FactorQTZRepBase *rep;
-
 }; // class FactorQTZ
 /**
  * Class to compute Eigen values and Eigen vectors of a matrix

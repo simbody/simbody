@@ -29,7 +29,7 @@ namespace SimTK {
 
 class FactorQTZRepBase {
 public:
-    FactorQTZRepBase() : isFactored(false), rank(0) {}
+    FactorQTZRepBase() : isFactored(false), rank(0), actualRCond(0) {}
 
     virtual ~FactorQTZRepBase(){};
 
@@ -94,6 +94,8 @@ public:
 
    bool isFactored;
    int rank;     // esitmated rank computed during factorization
+   double actualRCond; // 1 / condition number we actually got (est.)
+
 
    void checkIfFactored()  const {
        if( !isFactored ) {
@@ -135,7 +137,7 @@ private:
    bool                     scaleLinSys; // true if matrix was scaled during factorization
    typename CNT<T>::TReal   linSysScaleF; // scale factor applied to matrix 
    typename CNT<T>::TReal   anrm;
-   typename CNT<T>::TReal   rcond;   // reciprocol condition number
+   typename CNT<T>::TReal   rcond;      // 1 / (largest acceptable condition number)
    TypedWorkSpace<int>      pivots;
    TypedWorkSpace<T>        qtz;     // factored matrix
    TypedWorkSpace<T>        tauGEQP3;

@@ -116,6 +116,9 @@ FactorQTZ::FactorQTZ( const Matrix_<ELT>& m, float rcond ) {
 int FactorQTZ::getRank() const {
     return(rep->rank);
 }
+double FactorQTZ::getRCondEstimate() const {
+    return (rep->actualRCond);
+}
 template < typename ELT >
 void FactorQTZ::solve( const Vector_<ELT>& b, Vector_<ELT>& x ) const {
     rep->solve( b, x );
@@ -358,6 +361,7 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
         smin = smax;
         if( CNT<T>::abs(qtz.data[0]) == 0 ) {
             rank = 0;
+            actualRCond = 0;
         } else {
             T s1,s2,c1,c2;
             RealType smaxpr,sminpr;
@@ -380,6 +384,7 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
                     work.data[rank+mn] = c2;
                     smin = sminpr;
                     smax = smaxpr;
+                    actualRCond = (double)(smin/smax);
                     rank++;
                 }
             } 
