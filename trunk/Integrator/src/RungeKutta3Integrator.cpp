@@ -67,22 +67,22 @@ RungeKutta3Integrator::~RungeKutta3Integrator() {
 
 RungeKutta3IntegratorRep::RungeKutta3IntegratorRep
    (Integrator* handle, const System& sys) 
-:   AbstractIntegratorRep(handle, sys, 3, 3, "RungeKuttaMerson",  true) {
+:   AbstractIntegratorRep(handle, sys, 3, 3, "RungeKutta3",  true) {
 }
 
 // For a discussion of this Runge-Kutta 3(2) method, see J.C. Butcher, "The 
 // Numerical Analysis of Ordinary Differential Equations", John Wiley & Sons,
 // 1987, page 325. The embedded error estimate was derived using the method
 // mentioned in Hairer, Norsett & Wanner, Solving ODEs I, 2nd rev. ed. on
-// page 166. 
+// page 166. This is the Butcher diagram:
 //
 //           0|
 //         1/2|  1/2
 //           1|  -1    2
 //          --|-------------------
-//           1|  1/6  2/3  1/6       propagated solution
+//           1|  1/6  2/3  1/6       3rd order propagated solution
 //          --|-------------------
-//           1|   0    1    0    0   midpoint error estimate
+//           1|   0    1    0    0   2nd order midpoint for error estimate
 //
 // This is a 3-stage, first-same-as-last (FSAL) 3rd order method which
 // gives us an embedded 2nd order method as well, so we can extract

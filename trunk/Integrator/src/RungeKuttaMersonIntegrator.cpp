@@ -65,21 +65,37 @@ RungeKuttaMersonIntegrator::~RungeKuttaMersonIntegrator() {
 //------------------------------------------------------------------------------
 //                   RUNGE KUTTA MERSON INTEGRATOR REP
 //------------------------------------------------------------------------------
+
+RungeKuttaMersonIntegratorRep::RungeKuttaMersonIntegratorRep
+   (Integrator* handle, const System& sys) 
+:   AbstractIntegratorRep(handle, sys, 4, 4, "RungeKuttaMerson",  true) {
+}
+
 // For a discussion of the Runge-Kutta-Merson method, see Hairer,
-// Norsett & Wanner, Solving ODEs I, 2nd rev. ed. pp. 166-8. This is
-// a 5-stage, first-same-as-last (FSAL) 4th order method which
-// gives us an embedded 3rd order method as well, so we can extract
-// a 4th-order error estimate for the 3rd-order result, which error
-// estimate can then be used for step size control, since it will
-// behave as h^4. We then propagate the 4th order result (whose error
-// is unknown), which Hairer calls "local extrapolation".
-// We call the initial state (t0,y0) and want (t0+h,y1). We are
-// given the initial derivative f0=f(t0,y0), which most likely
-// is left over from an evaluation at the end of the last step.
+// Norsett & Wanner, Solving ODEs I, 2nd rev. ed. pp. 166-8, and table 4.1
+// on page 167. This is the Butcher diagram:
+//
+//        0|
+//      1/3|  1/3
+//      1/3|  1/6  1/6
+//      1/2|  1/8   0   3/8
+//        1|  1/2   0  -3/2   2
+//       --|----------------------------
+//        1|  1/6   0    0   2/3  1/6       propagated 4th order solution
+//       --|----------------------------
+//        1|  1/10  0   3/10 2/5  1/5  0    embedded 3rd order solution
+//
+// This is a 5-stage, first-same-as-last (FSAL) 4th order method which gives 
+// us an embedded 3rd order method as well, so we can extract a 4th-order 
+// error estimate for the 3rd-order result, which error estimate can then be 
+// used for step size control, since it will behave as h^4. We then propagate 
+// the 4th order result (whose error is unknown), which Hairer calls "local 
+// extrapolation". We call the initial state (t0,y0) and want (t0+h,y1). We 
+// are given the initial derivative f0=f(t0,y0), which most likely is left 
+// over from an evaluation at the end of the last step.
 // 
-// We will call the derivatives at stage f1,f2,f3,f4 but these
-// are done with only two temporaries fa and fb. (What we're calling
-// "f" Hairer calls "k".)
+// We will call the derivatives at stage f1,f2,f3,f4 but these are done with 
+// only two temporaries fa and fb. (What we're calling "f" Hairer calls "k".)
 bool RungeKuttaMersonIntegratorRep::attemptAStep(Real t0, Real t1, 
                   const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
                   const Vector& u0, const Vector& udot0, const Vector& z0, 

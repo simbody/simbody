@@ -51,7 +51,7 @@ protected:
                       const Vector& u0, const Vector& udot0, const Vector& z0, 
                       const Vector& zdot0, Vector& yErrEst, int& errOrder, int& numIterations);
 private:    
-    static const int NTemps = 4;
+    static const int NTemps = 3;
     Vector ytmp[NTemps];
 };
 
