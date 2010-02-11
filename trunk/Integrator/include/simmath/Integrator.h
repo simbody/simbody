@@ -378,7 +378,7 @@ public:
     void setProjectEveryStep(bool forceProject);    
     /// Set whether the Integrator is permitted to return interpolated states for reporting purposes
     /// which may be less accurate than the "real" states that form the trajectory.  Setting this to
-    /// true may significantly affect performance, since the Integrator will be forced to decrease its
+    /// false may significantly affect performance, since the Integrator will be forced to decrease its
     /// step size at every scheduled reporting time.
     ///
     /// This option is generally only meaningful if interpolated states are less accurate than other
