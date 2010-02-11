@@ -47,7 +47,7 @@
 using namespace SimTK;
 
 //------------------------------------------------------------------------------
-//                        RUNGE KUTTA 3 INTEGRATOR                        
+//                        RUNGE KUTTA 3 INTEGRATOR
 //------------------------------------------------------------------------------
 
 RungeKutta3Integrator::RungeKutta3Integrator(const System& sys) 
@@ -61,7 +61,7 @@ RungeKutta3Integrator::~RungeKutta3Integrator() {
 
 
 //------------------------------------------------------------------------------
-//                      RUNGE KUTTA 3 INTEGRATOR REP                          
+//                      RUNGE KUTTA 3 INTEGRATOR REP
 //------------------------------------------------------------------------------
 
 
