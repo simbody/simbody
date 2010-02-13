@@ -347,7 +347,7 @@ int main(int argc, char** argv) {
         const Real angle = std::acos(~mobilizedBody.expressVectorInGroundFrame(s, Vec3(0,1,0)) * UnitVec3(1,1,1));
         printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
             angle,
-            mbs.calcEnergy(s), myStudy.getNStepsTaken(),
+            mbs.calcEnergy(s), myStudy.getNumStepsTaken(),
             myStudy.getPreviousStepSizeTaken(),
             Integrator::successfulStepStatusString(status).c_str(),
             myStudy.isStateInterpolated()?" (INTERP)":"");
@@ -392,9 +392,9 @@ int main(int argc, char** argv) {
     }
 
     printf("Using Integrator %s:\n", myStudy.getMethodName());
-    printf("# STEPS/ATTEMPTS = %d/%d\n", myStudy.getNStepsTaken(), myStudy.getNStepsAttempted());
-    printf("# ERR TEST FAILS = %d\n", myStudy.getNErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNRealizations(), myStudy.getNProjections());
+    printf("# STEPS/ATTEMPTS = %d/%d\n", myStudy.getNumStepsTaken(), myStudy.getNumStepsAttempted());
+    printf("# ERR TEST FAILS = %d\n", myStudy.getNumErrorTestFailures());
+    printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNumRealizations(), myStudy.getNumProjections());
 
     printf("System stats: realize %ldP %ldV %ldA, project %ld\n",
         mbs.getNumRealizationsOfThisStage(Stage::Position),

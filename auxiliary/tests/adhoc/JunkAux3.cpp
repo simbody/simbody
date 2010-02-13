@@ -174,7 +174,7 @@ int main(int argc, char** argv) {
             anAtom.getAngles(s)[0], anAtom.getAngles(s)[1], anAtom.getRadius(s),
             //anAtom.getAngle(s), anAtom.getTranslation(s)[0], anAtom.getTranslation(s)[1],
             //anAtom.getQ(s)[0], anAtom.getQ(s)[1], anAtom.getQ(s)[2],
-            mbs.calcEnergy(s), myStudy.getNStepsTaken(),
+            mbs.calcEnergy(s), myStudy.getNumStepsTaken(),
             myStudy.getPreviousStepSizeTaken(),
             Integrator::successfulStepStatusString(status).c_str(),
             myStudy.isStateInterpolated()?" (INTERP)":"");
@@ -186,9 +186,9 @@ int main(int argc, char** argv) {
     }
 
     printf("Using Integrator %s:\n", myStudy.getMethodName());
-    printf("# STEPS/ATTEMPTS = %d/%d\n", myStudy.getNStepsTaken(), myStudy.getNStepsAttempted());
-    printf("# ERR TEST FAILS = %d\n", myStudy.getNErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNRealizations(), myStudy.getNProjections());
+    printf("# STEPS/ATTEMPTS = %d/%d\n", myStudy.getNumStepsTaken(), myStudy.getNumStepsAttempted());
+    printf("# ERR TEST FAILS = %d\n", myStudy.getNumErrorTestFailures());
+    printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNumRealizations(), myStudy.getNumProjections());
 
   } 
   catch (const std::exception& e) {

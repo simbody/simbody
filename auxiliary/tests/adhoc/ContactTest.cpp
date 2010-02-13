@@ -324,9 +324,9 @@ try
 
     //printFinalStats(ee.getCPodes());
     printf("Using Integrator %s:\n", ee.getMethodName());
-    printf("# STEPS/ATTEMPTS = %d/%d\n", ee.getNStepsTaken(), ee.getNStepsAttempted());
-    printf("# ERR TEST FAILS = %d\n", ee.getNErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", ee.getNRealizations(), ee.getNProjections());
+    printf("# STEPS/ATTEMPTS = %d/%d\n", ee.getNumStepsTaken(), ee.getNumStepsAttempted());
+    printf("# ERR TEST FAILS = %d\n", ee.getNumErrorTestFailures());
+    printf("# REALIZE/PROJECT = %d/%d\n", ee.getNumRealizations(), ee.getNumProjections());
 
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {
@@ -371,11 +371,11 @@ static void printFinalStats(const CPodes& cpodes)
   flag = cpode.getNumGEvals(&nge);
 
  // h0u   = integ.getActualInitialStepSizeTaken();
- // nst   = integ.getNStepsTaken();
- // nfe   = integ.getNRealizations();
- // netf  = integ.getNErrorTestFailures();
- // nproj = integ.getNProjections();
- // nprf  = integ.getNProjectionFailures();
+ // nst   = integ.getNumStepsTaken();
+ // nfe   = integ.getNumRealizations();
+ // netf  = integ.getNumErrorTestFailures();
+ // nproj = integ.getNumProjections();
+ // nprf  = integ.getNumProjectionFailures();
 
   printf("\nFinal Statistics:\n");
   printf("h0u = %g\n",h0u);

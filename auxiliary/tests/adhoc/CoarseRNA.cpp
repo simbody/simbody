@@ -314,6 +314,8 @@ try // If anything goes wrong, an exception will be thrown.
     bool suppressProject = false;
 
     RungeKuttaMersonIntegrator myStudy(mbs);
+    //RungeKuttaFeldbergIntegrator myStudy(mbs);
+    //RungeKutta3Integrator myStudy(mbs);
     //CPodesIntegrator  myStudy(mbs);
     //VerletIntegrator myStudy(mbs);
     //ExplicitEulerIntegrator myStudy(mbs);
@@ -385,9 +387,11 @@ try // If anything goes wrong, an exception will be thrown.
 
     printf("CPU time=%gs\n", (double)(clock()-start)/CLOCKS_PER_SEC);
     printf("Using Integrator %s:\n", myStudy.getMethodName());
-    printf("# STEPS/ATTEMPTS = %d/%d\n", myStudy.getNStepsTaken(), myStudy.getNStepsAttempted());
-    printf("# ERR TEST FAILS = %d\n", myStudy.getNErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNRealizations(), myStudy.getNProjections());
+    printf("# STEPS/ATTEMPTS = %d/%d\n", myStudy.getNumStepsTaken(), myStudy.getNumStepsAttempted());
+    printf("# ERR TEST FAILS = %d\n", myStudy.getNumErrorTestFailures());
+    printf("# CONVERGENCE FAILS = %d\n", myStudy.getNumConvergenceTestFailures());
+    printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNumRealizations(), myStudy.getNumProjections());
+    printf("# PROJECTION FAILS = %d\n", myStudy.getNumProjectionFailures());
 
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {
