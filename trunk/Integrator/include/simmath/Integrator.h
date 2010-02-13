@@ -400,7 +400,7 @@ protected:
     IntegratorRep* rep;
     friend class IntegratorRep;
 
-public:
+private:
     // OBSOLETE
     long getNStepsAttempted() const {return getNumStepsAttempted();}
     long getNStepsTaken() const {return getNumStepsTaken();} 
