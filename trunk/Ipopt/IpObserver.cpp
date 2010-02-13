@@ -14,4 +14,6 @@ namespace Ipopt
   const Index Observer::dbg_verbosity = 0;
   const Index Subject::dbg_verbosity = 0;
 #endif
+
+void preventNoSymbolsWarningInIpObserver() {}
 } // namespace Ipopt

@@ -11,11 +11,9 @@
 #include "IpDebug.hpp"
 #include "IpJournalist.hpp"
 
-#ifdef IP_DEBUG
-
 namespace Ipopt
 {
-
+#ifdef IP_DEBUG
   Index DebugJournalistWrapper::indentation_level_ = 0;
   Journalist* DebugJournalistWrapper::jrnl_ = NULL;
 
@@ -102,7 +100,8 @@ namespace Ipopt
       va_end(ap);
     }
   }
+#endif // #ifdef IP_DEBUG
 
+void preventNoSymbolsWarningInIpDebug() {}
 } // namespace Ipopt
 
-#endif // #ifdef IP_DEBUG
