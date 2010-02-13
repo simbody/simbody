@@ -77,7 +77,8 @@ void AbstractIntegratorRep::createInterpolatedState(Real t) {
     projectStateAndErrorEstimate(interp, Vector());
 }
 
-Integrator::SuccessfulStepStatus AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
+Integrator::SuccessfulStepStatus 
+AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
     try {
       assert(initialized);
       assert(reportTime >= getState().getTime());
@@ -95,11 +96,14 @@ Integrator::SuccessfulStepStatus AbstractIntegratorRep::stepTo(Real reportTime, 
       
       // tMax is the time beyond which we cannot advance internally.
       const Real finalTime = (userFinalTime == -1.0 ? Infinity : userFinalTime);
-      const Real tMax = std::min(scheduledEventTime, finalTime);
+      Real tMax = std::min(scheduledEventTime, finalTime);
 
       // tReturn is the next scheduled time to return control to the user.
       // Events may cause an earlier return.
       const Real tReturn = std::min(reportTime, tMax);
+
+      if (userAllowInterpolation == 0)
+          tMax = tReturn;
 
       // Count the number of internal steps taken during this call to stepTo().
       // Normally this is limited by maxNumInternalSteps, meaning even if
@@ -246,39 +250,68 @@ Integrator::SuccessfulStepStatus AbstractIntegratorRep::stepTo(Real reportTime, 
       return Integrator::InvalidSuccessfulStepStatus;
 }
 
-bool AbstractIntegratorRep::adjustStepSize(Real err, int errOrder, bool hWasArtificiallyLimited) {
+// This is the default implementation for the virtual method adjustStepSize().
+//
+// Adjust the step size for next time based on the accuracy achieved this
+// time. Returns true ("success") if the new step is at least as big as the
+// current one.
+bool AbstractIntegratorRep::adjustStepSize
+   (Real err, int errOrder, bool hWasArtificiallyLimited) 
+{
     const Real Safety = 0.9, MinShrink = 0.1, MaxGrow = 5;
     const Real HysteresisLow = 0.9, HysteresisHigh = 1.2;
     
     Real newStepSize;
 
-    // Watch out for NaN!
-    if (!isFinite(err))
-        newStepSize = MinShrink * currentStepSize; // e.g., integrand returned NaN
-    else if (err==0) 
+    // First, make a first guess at the next step size to use based on
+    // the supplied error norm. Watch out for NaN!
+    if (!isFinite(err)) // e.g., integrand returned NaN
+        newStepSize = MinShrink * currentStepSize; 
+    else if (err==0)    // a "perfect" step; can happen if no dofs for example 
         newStepSize = MaxGrow * currentStepSize;
-    else
-        newStepSize = Safety*currentStepSize*std::pow(getAccuracyInUse()/err, 1.0/errOrder);
+    else // choose best step for skating just below the desired accuracy
+        newStepSize = Safety * currentStepSize
+                             * std::pow(getAccuracyInUse()/err, 1.0/errOrder);
 
+    // If the new step is bigger than the old, don't make the change if the
+    // old one was small for some unimportant reason (like reached a reporting
+    // interval). Also, don't grow the step size if the change would be very
+    // small; better to keep the step size stable in that case (maybe just
+    // for aesthetic reasons).
     if (newStepSize > currentStepSize) {
-        if (hWasArtificiallyLimited || newStepSize < HysteresisHigh*currentStepSize)
+        if (   hWasArtificiallyLimited 
+            || newStepSize < HysteresisHigh*currentStepSize)
             newStepSize = currentStepSize;
     }
-    if (newStepSize < currentStepSize && err <= getAccuracyInUse())
-        newStepSize = currentStepSize;
+
+    // If we're supposed to shrink the step size but the one we have actually
+    // achieved the desired accuracy last time, we won't change the step now.
+    // Otherwise, if we are going to shrink the step, let's not be shy -- we'll 
+    // shrink it by at least a factor of HysteresisLow.
+    if (newStepSize < currentStepSize) {
+        if (err <= getAccuracyInUse())
+             newStepSize = currentStepSize; // not this time
+        else newStepSize = std::min(newStepSize, HysteresisLow*currentStepSize);
+    }
+
+    // Keep the size change within the allowable bounds.
     newStepSize = std::min(newStepSize, MaxGrow*currentStepSize);
     newStepSize = std::max(newStepSize, MinShrink*currentStepSize);
-    if (newStepSize < currentStepSize)
-        newStepSize = std::min(newStepSize, HysteresisLow*currentStepSize);
+
+    // Apply user-requested limits on min and max step size.
     if (userMinStepSize != -1)
         newStepSize = std::max(newStepSize, userMinStepSize);
     if (userMaxStepSize != -1)
         newStepSize = std::min(newStepSize, userMaxStepSize);
+
+    //TODO: this is an odd definition of success. It only works because we're
+    //refusing the shrink the step size above if accuracy was achieved.
     bool success = (newStepSize >= currentStepSize);
     currentStepSize = newStepSize;
     return success;
 }
 
+// This is a private method.
 bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
 {
     Real t1;
@@ -290,7 +323,7 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
 
     // Record the starting values for the continuous variables and their
     // derivatives in case we have to back up.
-    const Real t0 = getPreviousTime();
+    const Real   t0         = getPreviousTime();
     const Vector q0         = advanced.getQ();
     const Vector qdot0      = advanced.getQDot();
     const Vector qdotdot0   = advanced.getQDotDot();
@@ -299,29 +332,36 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     const Vector z0         = advanced.getZ();
     const Vector zdot0      = advanced.getZDot();
     
-    Vector err(advanced.getNY());
+    Vector yErrEst(advanced.getNY());
     bool stepSucceeded = false;
     do {
-        bool hWasArtificiallyLimited = (tMax < t0+currentStepSize);
+        // If we lose more than a small fraction of the step size we wanted
+        // to take due to a need to stop at tMax, make a note of that so the
+        // step size adjuster won't try to grow the current step.
+        bool hWasArtificiallyLimited = (tMax < t0 + 0.95*currentStepSize);
         t1 = std::min(tMax, t0+currentStepSize);
         SimTK_ERRCHK1_ALWAYS(t1 > t0, "AbstractIntegrator::takeOneStep()",
             "Unable to advance time past %g.", t0);
         int errOrder;
         int numIterations=1; // non-iterative methods can ignore this
-        bool converged = attemptAStep(t0, t1, q0, qdot0, qdotdot0, u0, udot0, z0, zdot0, err, errOrder, numIterations);
+        bool converged = attemptDAEStep(t0, t1, q0, qdot0, qdotdot0, 
+                                        u0, udot0, z0, zdot0, 
+                                        yErrEst, errOrder, numIterations);
         Real rmsErr;
         if (converged) {
-            rmsErr = calcWeightedRMSNorm(err, getDynamicSystemWeights());
+            rmsErr = calcWeightedRMSNorm(yErrEst, getDynamicSystemWeights());
             statsConvergentIterations += numIterations;
         } else {
             rmsErr = Infinity; // step didn't converge so error is *very* bad!
             ++statsConvergenceTestFailures;
             statsDivergentIterations += numIterations;
         }
-        if (hasErrorControl)
-            stepSucceeded = adjustStepSize(rmsErr, errOrder, hWasArtificiallyLimited);
-        else
-            stepSucceeded = true;
+
+        // TODO: this isn't right for a non-error controlled integrator that
+        // didn't converge, if there is such a thing.
+        stepSucceeded = (hasErrorControl ? adjustStepSize(rmsErr, errOrder, 
+                                                    hWasArtificiallyLimited)
+                                         : true);
         if (!stepSucceeded)
             statsErrorTestFailures++;
 		else { // step succeeded
@@ -331,38 +371,40 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
 		}
     } while (!stepSucceeded);
     
-    // The step succeeded. Check for event triggers. If there aren't
-    // any, we're done with the step. Otherwise our goal will be to
-    // find the "exact" time at which the first event occurs within
-    // the current interval. Then we will advance the system to that
-    // time only and forget about the rest of the interval.
+    // The step succeeded. Check for event triggers. If there aren't any, we're
+    // done with the step. Otherwise our goal will be to find the "exact" time 
+    // at which the first event occurs within the current interval. Then we 
+    // will advance the system to that time only and forget about the rest of 
+    // the interval.
     //
     // Here's how this is done:
-    // First, determine which events trigger across the *whole* interval.
-    // At least one of those events, and no other events, are eventually
-    // going to be reported as having triggered after localization, and the
-    // trigger type will be the original one. That is,
-    // we don't care *what* we see during localization (which could be viewed
-    // as more accurate); we have already decided which events are candidates.
-    // Any trigger that came and went during the current interval has missed
-    // the boat permanently; that's a user error (bad design of event trigger
-    // or maybe excessively loose accuracy).
-    // Second, with the list of candidates and their transitions in hand we want to find the
-    // time at which the first one(s) trigger, to within a localization window
-    // (tlo,thi]; that is, we do not see the event triggering at tlo but we
-    // do see it triggering at thi, and (thi-tlo)<=w for some time window w.
-    // We then chop back the advancedState by interpolation to thi and
-    // return to the caller who will deal with interpolations needed
-    // for reporting, then a final interpolation at tlo.
-    // Note that we should never actually return the state at thi as part of the
-    // trajectory, since it is invalid until the event handler is called to fix it.
+    // First, determine which events trigger across the *whole* interval. At 
+    // least one of those events, and no other events, are eventually going to
+    // be reported as having triggered after localization, and the trigger type
+    // will be the original one. That is, we don't care *what* we see during 
+    // localization (which could be viewed as more accurate); we have already 
+    // decided which events are candidates. Any trigger that came and went 
+    // during the current interval has missed the boat permanently; that's a 
+    // user error (bad design of event trigger or maybe excessively loose 
+    // accuracy). Second, with the list of candidates and their transitions in
+    // hand we want to find the time at which the first one(s) trigger, to 
+    // within a localization window (tlo,thi]; that is, we do not see the 
+    // event triggering at tlo but we do see it triggering at thi, and 
+    // (thi-tlo)<=w for some time window w. We then chop back the advancedState
+    // by interpolation to thi and return to the caller who will deal with 
+    // interpolations needed for reporting, then a final interpolation at tlo.
+    // Note that we should never actually return the state at thi as part of 
+    // the trajectory, since it is invalid until the event handler is called 
+    // to fix it.
 
     realizeStateDerivatives(getAdvancedState());
     const Vector& e0 = getPreviousEventTriggers();
     const Vector& e1 = getAdvancedState().getEventTriggers();
-    assert(e0.size() == e1.size() && e0.size() == getAdvancedState().getNEventTriggers());
+    assert(e0.size() == e1.size() && 
+           e0.size() == getAdvancedState().getNEventTriggers());
 
-	const Real MinWindow = std::max(SignificantReal, SignificantReal*getAdvancedTime());
+	const Real MinWindow = 
+        SignificantReal * std::max(Real(1), getAdvancedTime());
     Array_<SystemEventTriggerIndex> eventCandidates, newEventCandidates;
     Array_<Event::Trigger> 
         eventCandidateTransitions, newEventCandidateTransitions;
@@ -371,7 +413,8 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     Real earliestTimeEst, narrowestWindow;
 
     findEventCandidates(e0.size(), 0, 0, t0, e0, t1, e1, 1., MinWindow,
-                        eventCandidates, eventTimeEstimates, eventCandidateTransitions,
+                        eventCandidates, eventTimeEstimates, 
+                        eventCandidateTransitions,
                         earliestTimeEst, narrowestWindow);
 
     if (eventCandidates.empty()) {
@@ -382,11 +425,15 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     Real tLow = t0;
     Real tHigh = t1;
 
-    if ((tHigh-tLow) <= narrowestWindow && !(tLow < tReport && tReport < tHigh)) {
+    if (    (tHigh-tLow) <= narrowestWindow 
+        && !(tLow < tReport && tReport < tHigh)) 
+    {
         Array_<EventId> ids;
         findEventIds(eventCandidates, ids);
-        setTriggeredEvents(tLow, tHigh, ids, eventTimeEstimates, eventCandidateTransitions);
-        return true;     // localized already; advanced state is right (tHigh==tAdvanced)
+        setTriggeredEvents(tLow, tHigh, ids, eventTimeEstimates, 
+                           eventCandidateTransitions);
+        // localized already; advanced state is right (tHigh==tAdvanced)
+        return true; 
     }
 
     // We now have a list of candidates in the (tLow,tHigh] interval, but that
@@ -420,9 +467,9 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
 
         createInterpolatedState(tMid);
 
-        // Failure to evaluate at the interpolated state is a disaster of some kind,
-        // not something we expect to be able to recover from, so this will throw
-        // an exception if it fails.
+        // Failure to evaluate at the interpolated state is a disaster of some
+        // kind, not something we expect to be able to recover from, so this 
+        // will throw an exception if it fails.
         realizeStateDerivatives(getInterpolatedState());
 
         const Vector& eMid = getInterpolatedState().getEventTriggers();
@@ -430,9 +477,11 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         // TODO: should search in the wider interval first
 
         // First guess: it is in (tLow,tMid].
-        findEventCandidates(e0.size(), &eventCandidates, &eventCandidateTransitions,
+        findEventCandidates(e0.size(), &eventCandidates, 
+                            &eventCandidateTransitions,
                             tLow, eLow, tMid, eMid, bias, MinWindow,
-                            newEventCandidates, newEventTimeEstimates, newEventCandidateTransitions,
+                            newEventCandidates, newEventTimeEstimates, 
+                            newEventCandidateTransitions,
                             earliestTimeEst, narrowestWindow);
 
         if (!newEventCandidates.empty()) {
@@ -451,13 +500,15 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         }
 
         // Nope. It must be in the upper part of the interval (tMid,tHigh].
-        findEventCandidates(e0.size(), &eventCandidates,  &eventCandidateTransitions,
+        findEventCandidates(e0.size(), &eventCandidates,  
+                            &eventCandidateTransitions,
                             tMid, eMid, tHigh, eHigh, bias, MinWindow,
-                            newEventCandidates, newEventTimeEstimates, newEventCandidateTransitions,
+                            newEventCandidates, newEventTimeEstimates, 
+                            newEventCandidateTransitions,
                             earliestTimeEst, narrowestWindow);
 
-        assert(!newEventCandidates.empty()); // TODO: I think this can happen if
-                                             // we land exactly on a zero in eMid.
+        // TODO: I think this can happen if we land exactly on a zero in eMid.
+        assert(!newEventCandidates.empty()); 
 
         sideTwoItersAgo = sidePrevIter;
         sidePrevIter = 1;
@@ -465,16 +516,16 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         tLow = tMid; eLow = eMid;
         eventCandidates = newEventCandidates;
         eventTimeEstimates = newEventTimeEstimates;
-        // these will still be the original transitions, but only the ones
-        // which are still candidates are retained
+        // These will still be the original transitions, but only the ones
+        // which are still candidates are retained.
         eventCandidateTransitions = newEventCandidateTransitions;
 
     } while ((tHigh-tLow) > narrowestWindow);
 
     Array_<EventId> ids;
     findEventIds(eventCandidates, ids);
-    setTriggeredEvents(tLow, tHigh, ids, eventTimeEstimates, eventCandidateTransitions);
-
+    setTriggeredEvents(tLow, tHigh, ids, eventTimeEstimates, 
+                       eventCandidateTransitions);
 
     // We have to throw away all of the advancedState that occurred after
     // tHigh, by interpolating back to tHigh.

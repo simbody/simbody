@@ -94,7 +94,7 @@ RungeKutta3IntegratorRep::RungeKutta3IntegratorRep
 // given the initial derivative f0=f(t0,y0), which most likely
 // is left over from an evaluation at the end of the last step.
 
-bool RungeKutta3IntegratorRep::attemptAStep
+bool RungeKutta3IntegratorRep::attemptODEStep
    (Real t0, Real t1, 
     const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
     const Vector& u0, const Vector& udot0, const Vector& z0, 
@@ -114,21 +114,19 @@ bool RungeKutta3IntegratorRep::attemptAStep
 
     const Real h = t1-t0;
 
-  try
-  { setAdvancedStateAndRealizeDerivatives(t0+h/2, y0 + (h/2)*f0);
+    setAdvancedStateAndRealizeDerivatives(t0+h/2, y0 + (h/2)*f0);
     f1 = getAdvancedState().getYDot();
 
     setAdvancedStateAndRealizeDerivatives(t1,     y0 + h*(2*f1-f0));
     f2 = getAdvancedState().getYDot();
 
     // Final value. This is the 3rd order accurate estimate for 
-    // y1=y(t0+h)+O(h^4):
-    // y1 = y0 + (h/6)*(f0 + 4 f1 + f2). Evaluate through kinematics only.
+    // y1=y(t0+h)+O(h^4): y1 = y0 + (h/6)*(f0 + 4 f1 + f2). 
+    // Evaluate through kinematics only; it is a waste of a stage to 
+    // evaluate derivatives here since the caller will muck with this before
+    // the end of the step.
     setAdvancedStateAndRealizeKinematics(t1,      y0 + (h/6)*(f0 + 4*f1 + f2));
     // YErr is valid now
-  } catch (...) { 
-    return false; 
-  }
 
     // This is an embedded 2nd-order estimate y1hat=y(t1)+O(h^3), with
     // y1hat = y0 + h*f1 (explicit midpoint method). We just need the
@@ -138,21 +136,5 @@ bool RungeKutta3IntegratorRep::attemptAStep
     for (int i=0; i<y1.size(); ++i)
         y1err[i] = std::abs(y1[i]-(y0[i] + h*f1[i]));
 
-    if (userProjectEveryStep != 1) {
-        const Real constraintError = 
-            IntegratorRep::calcWeightedRMSNorm(getAdvancedState().getYErr(),
-                                               getDynamicSystemOneOverTolerances());
-        if (constraintError <= consTol)
-            return true; // no need to project
-    }
-
-    // Project back to manifold and reduce error estimate appropriately. This
-    // requires only kinematic evaluations, so doesn't count as a stage!
-    try {projectStateAndErrorEstimate(updAdvancedState(), y1err);} 
-    catch (...) {return false;}
-
-    // Don't do final evaluation yet because we won't need it if
-    // we fail the error test.
-    numIterations = 1;
     return true;
 }

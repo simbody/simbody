@@ -561,14 +561,15 @@ protected:
         return stepCommunicationStatus;
     }
 
-    const Real&   getPreviousTime()   const {return tPrev;}
-    const Vector& getPreviousY()      const {return yPrev;}
-    const Vector& getPreviousYDot()   const {return ydotPrev;}
+    const Real&   getPreviousTime()          const {return tPrev;}
+    const Vector& getPreviousY()             const {return yPrev;}
+    const Vector& getPreviousYDot()          const {return ydotPrev;}
     const Vector& getPreviousEventTriggers() const {return triggersPrev;}
-    Real&   updPreviousTime()   {return tPrev;}
-    Vector& updPreviousY()      {return yPrev;}
-    Vector& updPreviousYDot()   {return ydotPrev;}
-    Vector& updPreviousEventTriggers() {return triggersPrev;}
+    Real&         updPreviousTime()                {return tPrev;}
+    Vector&       updPreviousY()                   {return yPrev;}
+    Vector&       updPreviousYDot()                {return ydotPrev;}
+    Vector&       updPreviousEventTriggers()       {return triggersPrev;}
+
     Array_<System::EventTriggerInfo>& updEventTriggerInfo() {return eventTriggerInfo;}
     Vector& updConstraintWeightsInUse() {return constraintWeightsInUse;}
 

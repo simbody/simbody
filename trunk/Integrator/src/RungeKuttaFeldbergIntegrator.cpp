@@ -68,7 +68,7 @@ RungeKuttaFeldbergIntegrator::~RungeKuttaFeldbergIntegrator() {
 RungeKuttaFeldbergIntegratorRep::RungeKuttaFeldbergIntegratorRep(Integrator* handle, const System& sys) : AbstractIntegratorRep(handle, sys, 5, 5, "RungeKuttaFeldberg",  true) {
 }
 
-bool RungeKuttaFeldbergIntegratorRep::attemptAStep
+bool RungeKuttaFeldbergIntegratorRep::attemptODEStep
    (Real t0, Real t1, 
     const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
     const Vector& u0, const Vector& udot0, const Vector& z0, 
@@ -125,52 +125,40 @@ bool RungeKuttaFeldbergIntegratorRep::attemptAStep
 
     const Real h = t1-t0;
 
-    try {
-        // Calculate the intermediate states.
-        
-        setAdvancedStateAndRealizeDerivatives(t0 + h*C21, y0 + h*C22*f0);
-        ytmp[0] = getAdvancedState().getYDot();
+    // Calculate the intermediate states.
+    
+    setAdvancedStateAndRealizeDerivatives(t0 + h*C21, 
+        y0 + h*C22*f0);
+    ytmp[0] = getAdvancedState().getYDot();
 
-        setAdvancedStateAndRealizeDerivatives(t0 + h*C31, y0 + h*C32*f0 + h*C33*ytmp[0]);
-        ytmp[1] = getAdvancedState().getYDot();
+    setAdvancedStateAndRealizeDerivatives(t0 + h*C31, 
+        y0 + h*C32*f0 + h*C33*ytmp[0]);
+    ytmp[1] = getAdvancedState().getYDot();
 
-        setAdvancedStateAndRealizeDerivatives(t0 + h*C41, y0 + h*C42*f0 + h*C43*ytmp[0] + h*C44*ytmp[1]);
-        ytmp[2] = getAdvancedState().getYDot();
+    setAdvancedStateAndRealizeDerivatives(t0 + h*C41, 
+        y0 + h*C42*f0 + h*C43*ytmp[0] + h*C44*ytmp[1]);
+    ytmp[2] = getAdvancedState().getYDot();
 
-        setAdvancedStateAndRealizeDerivatives(t0 + h*C51, y0 + h*C52*f0 + h*C53*ytmp[0] + h*C54*ytmp[1] + h*C55*ytmp[2]);
-        ytmp[3] = getAdvancedState().getYDot();
+    setAdvancedStateAndRealizeDerivatives(t0 + h*C51, 
+        y0 + h*C52*f0 + h*C53*ytmp[0] + h*C54*ytmp[1] + h*C55*ytmp[2]);
+    ytmp[3] = getAdvancedState().getYDot();
 
-        setAdvancedStateAndRealizeDerivatives(t0 + h*C61, y0 + h*C62*f0 + h*C63*ytmp[0] + h*C64*ytmp[1] + h*C65*ytmp[2] + h*C66*ytmp[3]);
-        ytmp[4] = getAdvancedState().getYDot();
-        
-        // Calculate the final state.
+    setAdvancedStateAndRealizeDerivatives(t0 + h*C61, 
+        y0 + h*C62*f0 + h*C63*ytmp[0] + h*C64*ytmp[1] + h*C65*ytmp[2] 
+           + h*C66*ytmp[3]);
+    ytmp[4] = getAdvancedState().getYDot();
+    
+    // Calculate the final state but don't evaluate the derivatives. That
+    // would be a wasted stage since the caller will muck with the state before
+    // the end of the step.
+    setAdvancedStateAndRealizeKinematics(t1, 
+        y0 + h*CY1*f0 + h*CY2*ytmp[1] + h*CY3*ytmp[2] + h*CY4*ytmp[3]);
+    // YErr is valid now, but not YDot.
+    
+    // Calculate the error estimate.
+    y1err = h*CE1*f0 + h*CE2*ytmp[1] + h*CE3*ytmp[2] + h*CE4*ytmp[3] 
+                     + h*CE5*ytmp[4];
 
-        setAdvancedStateAndRealizeDerivatives(t1, y0 + h*CY1*f0 + h*CY2*ytmp[1] + h*CY3*ytmp[2] + h*CY4*ytmp[3]);
-        
-        // Calculate the error estimate.
-        
-        y1err = h*CE1*f0 + h*CE2*ytmp[1] + h*CE3*ytmp[2] + h*CE4*ytmp[3] + h*CE5*ytmp[4];
-    } catch (...) { 
-        return false; 
-    }
-
-    if (userProjectEveryStep != 1) {
-        const Real constraintError = 
-            IntegratorRep::calcWeightedRMSNorm(getAdvancedState().getYErr(), getDynamicSystemOneOverTolerances());
-        if (constraintError <= consTol)
-            return true; // no need to project
-    }
-
-    // Project back to manifold and reduce error estimate appropriately. This
-    // requires only kinematic evaluations, so doesn't count as a stage!
-    try {
-        projectStateAndErrorEstimate(updAdvancedState(), y1err);
-    } 
-    catch (...) {
-        return false;
-    }
-
-    numIterations = 1;
     return true;
 }
 

@@ -63,7 +63,10 @@ VerletIntegratorRep::VerletIntegratorRep(Integrator* handle, const System& sys)
 {
 }
 
-bool VerletIntegratorRep::attemptAStep
+// Note that Verlet overrides the entire DAE step because it can't use the
+// default ODE-then-DAE structure. Instead the constraint projections are
+// interwoven here.
+bool VerletIntegratorRep::attemptDAEStep
    (Real t0, Real t1, 
     const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
     const Vector& u0, const Vector& udot0, 
@@ -112,7 +115,10 @@ bool VerletIntegratorRep::attemptAStep
     // estimation?
 
     getSystem().realize(advanced, Stage::Velocity);
-    if (userProjectEveryStep == 1 || IntegratorRep::calcWeightedRMSNorm(advanced.getYErr(), getDynamicSystemOneOverTolerances()) > consTol)
+    const Real yErrNorm = IntegratorRep::calcWeightedRMSNorm
+                    (advanced.getYErr(), getDynamicSystemOneOverTolerances());
+
+    if (userProjectEveryStep == 1 || yErrNorm > consTol)
         projectStateAndErrorEstimate(advanced, dummyErrEst);
 
     // Get new values for the derivatives.
@@ -147,8 +153,14 @@ bool VerletIntegratorRep::attemptAStep
 
         // Project only the velocities; we're done with the q's for good.
         getSystem().realize(advanced, Stage::Velocity);
-        if (userProjectEveryStep == 1 || IntegratorRep::calcWeightedRMSNorm(advanced.getYErr(), getDynamicSystemOneOverTolerances()) > consTol)
-            projectStateAndErrorEstimate(advanced, dummyErrEst, System::ProjectOptions::VelocityOnly);
+        //TODO: should only look at the UErr's here (getUErr()) but need
+        //to make sure the right partition of the tolerance is used.
+        const Real uErrNorm = IntegratorRep::calcWeightedRMSNorm
+                    (advanced.getYErr(), getDynamicSystemOneOverTolerances());
+
+        if (userProjectEveryStep == 1 || uErrNorm > consTol)
+            projectStateAndErrorEstimate(advanced, dummyErrEst, 
+                               System::ProjectOptions::VelocityOnly);
 
         // Calculate fresh derivatives UDot and ZDot.
         realizeStateDerivatives(advanced);
@@ -158,8 +170,10 @@ bool VerletIntegratorRep::attemptAStep
         // 2-norm but this ratio would be the same if we used the RMS norm. 
         // TinyReal is there to keep us out of trouble if we started at zero.
         
-        const Real convergenceU = (advanced.getU()-usave).norm()/(usave.norm()+TinyReal);
-        const Real convergenceZ = (advanced.getZ()-zsave).norm()/(zsave.norm()+TinyReal);
+        const Real convergenceU = (advanced.getU()-usave).norm()
+                                  / (usave.norm()+TinyReal);
+        const Real convergenceZ = (advanced.getZ()-zsave).norm()
+                                  / (zsave.norm()+TinyReal);
         const Real change = std::max(convergenceU,convergenceZ);
         converged = (change <= tol);
         if (i > 1 && (change > prevChange))
@@ -183,14 +197,24 @@ bool VerletIntegratorRep::attemptAStep
     // get our position errors reduced here, which is a shame. Should be able 
     // to do this even though we had to project q's earlier, because the 
     // projection matrix should still be around.
-    if (userProjectEveryStep == 1 || IntegratorRep::calcWeightedRMSNorm(advanced.getYErr(), getDynamicSystemOneOverTolerances()) > consTol)
-        projectStateAndErrorEstimate(advanced, yErrEst, System::ProjectOptions::VelocityOnly);
+    // TODO: should only look at the UErr's here (getUErr()) but need
+    // to make sure the right partition of the tolerance is used.
+    const Real uErrNorm = IntegratorRep::calcWeightedRMSNorm
+                (advanced.getYErr(), getDynamicSystemOneOverTolerances());
+    if (userProjectEveryStep == 1 || uErrNorm > consTol)
+        projectStateAndErrorEstimate(advanced, yErrEst, 
+                                     System::ProjectOptions::VelocityOnly);
     
     // Two different integrators were used to estimate errors: trapezoidal for 
     // Q, and explicit Euler for U and Z.  This means that the U and Z errors
     // are of a different order than the Q errors.  We therefore multiply them 
     // by h so everything will be of the same order.
     
+    // TODO: (sherm) I don't think this is valid. Although it does fix the
+    // order, it also changes the absolute errors (typically by reducing
+    // them since h is probably < 1) which will affect whether the caller
+    // decides to accept the step. Instead, a different error order should
+    // be used when one of these is driving the step size.
     uErrEst *= h; zErrEst *= h; // everything is 3rd order in h now
     return converged;
   }

@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-10 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -90,7 +90,13 @@ void ExplicitEulerIntegratorRep::createInterpolatedState(Real t) {
     projectStateAndErrorEstimate(interp, Vector());
 }
 
-bool ExplicitEulerIntegratorRep::attemptAStep
+// Note that ExplicitEuler overrides the entire DAE step because it can't use
+// the default ODE-then-DAE structure. Instead the constraint projections are
+// interwoven here. The reason is that we need the end-of-step derivative
+// value in order to be able to get an error estimate, and those derivatives
+// must not be calculated until projection is done or we would do more than
+// one function evaluation per step.
+bool ExplicitEulerIntegratorRep::attemptDAEStep
    (Real t0, Real t1, 
     const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
     const Vector& u0, const Vector& udot0, 
@@ -98,19 +104,38 @@ bool ExplicitEulerIntegratorRep::attemptAStep
     Vector& yErrEst, int& errOrder, int& numIterations)
 {
     statsStepsAttempted++;
+    const Real h = t1 - t0;
     State& advanced = updAdvancedState();
+
+    // Take the step.
     advanced.updTime() = t1;
-    advanced.updY() = getPreviousY() + (t1-t0)*getPreviousYDot();
-    yErrEst = advanced.getY();
+    advanced.updY()    = getPreviousY() + h*getPreviousYDot();
+
+    yErrEst = advanced.getY(); // save unprojected Y
+
     getSystem().realize(advanced, Stage::Velocity);
-    if (userProjectEveryStep == 1 || IntegratorRep::calcWeightedRMSNorm(advanced.getYErr(), getDynamicSystemOneOverTolerances()) > consTol)
-        projectStateAndErrorEstimate(advanced, Vector());
-    realizeStateDerivatives(advanced);
+    const Real consErrAfterODE = 
+        calcWeightedRMSNorm(advanced.getYErr(),
+                            getDynamicSystemOneOverTolerances());
+
+    if (   userProjectEveryStep == 1 
+        || consErrAfterODE > getConstraintToleranceInUse()) 
+    {
+        try {
+            projectStateAndErrorEstimate(advanced, Vector());
+        } catch (...) {
+            return false; // projection failed
+        }
+    }
+
+    try {realizeStateDerivatives(advanced);}
+    catch (...) {return false;} // evaluation failed
     
     // Calculate a reference state with the explicit trapezoidal rule, and use
     // it to estimate error.
-    
-    yErrEst -= getPreviousY() + (t1-t0)*0.5*(getPreviousYDot()+advanced.getYDot());
+    //TODO: this is an odd mix of the unprojected Y and the projected YDot;
+    //probably not right!
+    yErrEst -= getPreviousY() + (h/2)*(getPreviousYDot()+advanced.getYDot());
     errOrder = 2;
     numIterations = 1;
     return true;

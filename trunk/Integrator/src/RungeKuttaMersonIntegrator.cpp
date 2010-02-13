@@ -96,10 +96,11 @@ RungeKuttaMersonIntegratorRep::RungeKuttaMersonIntegratorRep
 // 
 // We will call the derivatives at stage f1,f2,f3,f4 but these are done with 
 // only two temporaries fa and fb. (What we're calling "f" Hairer calls "k".)
-bool RungeKuttaMersonIntegratorRep::attemptAStep(Real t0, Real t1, 
-                  const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
-                  const Vector& u0, const Vector& udot0, const Vector& z0, 
-                  const Vector& zdot0, Vector& y1err, int& errOrder, int& numIterations)
+bool RungeKuttaMersonIntegratorRep::attemptODEStep
+   (Real t0, Real t1, 
+    const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
+    const Vector& u0, const Vector& udot0, const Vector& z0, 
+    const Vector& zdot0, Vector& y1err, int& errOrder, int& numIterations)
 {
     assert(t1 > t0);
 
@@ -116,8 +117,7 @@ bool RungeKuttaMersonIntegratorRep::attemptAStep(Real t0, Real t1,
 
     const Real h = t1-t0;
 
-  try
-  { setAdvancedStateAndRealizeDerivatives(t0+h/3, y0 + (h/3)*f0);
+    setAdvancedStateAndRealizeDerivatives(t0+h/3, y0 + (h/3)*f0);
     fa = getAdvancedState().getYDot(); // fa=f1
 
     setAdvancedStateAndRealizeDerivatives(t0+h/3, y0 + (h/6)*(f0+fa)); // f0+f1
@@ -131,13 +131,13 @@ bool RungeKuttaMersonIntegratorRep::attemptAStep(Real t0, Real t1,
     setAdvancedStateAndRealizeDerivatives(t1, ysave);
     fa = getAdvancedState().getYDot(); // fa=f4
 
-    // Final value. This is the 4th order accurate estimate for y1=y(t0+h)+O(h^5):
-    // y1 = y0 + (h/6)*(f0 + 4 f3 + f4). Evaluate through kinematics only.
+    // Final value. This is the 4th order accurate estimate for 
+    // y1=y(t0+h)+O(h^5): y1 = y0 + (h/6)*(f0 + 4 f3 + f4). 
+    // Evaluate through kinematics only; it is a waste of a stage to 
+    // evaluate derivatives here since the caller will muck with this before
+    // the end of the step.
     setAdvancedStateAndRealizeKinematics(t1, y0 + (h/6)*(f0 + 4*fb + fa));
     // YErr is valid now
-  } catch (...) { 
-    return false; 
-  }
 
     // This is an embedded 3rd-order estimate y1hat=y(t0+h)+O(h^4). (Apparently
     // Merson thought it was 5th order, but that is only true if
@@ -151,22 +151,6 @@ bool RungeKuttaMersonIntegratorRep::attemptAStep(Real t0, Real t1,
     for (int i=0; i<y1.size(); ++i)
         y1err[i] = 0.2*std::abs(y1[i]-ysave[i]);
 
-    if (userProjectEveryStep != 1) {
-        const Real constraintError = 
-            IntegratorRep::calcWeightedRMSNorm(getAdvancedState().getYErr(),
-                                               getDynamicSystemOneOverTolerances());
-        if (constraintError <= consTol)
-            return true; // no need to project
-    }
-
-    // Project back to manifold and reduce error estimate appropriately. This
-    // requires only kinematic evaluations, so doesn't count as a stage!
-    try {projectStateAndErrorEstimate(updAdvancedState(), y1err);} 
-    catch (...) {return false;}
-
-    // Don't do final evaluation yet because we won't need it if
-    // we fail the error test.
-    numIterations = 1;
     return true;
 }
 

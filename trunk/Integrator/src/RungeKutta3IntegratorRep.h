@@ -46,10 +46,11 @@ class RungeKutta3IntegratorRep : public AbstractIntegratorRep {
 public:
     RungeKutta3IntegratorRep(Integrator* handle, const System& sys);
 protected:
-    bool attemptAStep(Real t0, Real t1, 
-                      const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
-                      const Vector& u0, const Vector& udot0, const Vector& z0, 
-                      const Vector& zdot0, Vector& yErrEst, int& errOrder, int& numIterations);
+    bool attemptODEStep
+       (Real t0, Real t1, 
+        const Vector& q0, const Vector& qdot0, const Vector& qdotdot0, 
+        const Vector& u0, const Vector& udot0, const Vector& z0, 
+        const Vector& zdot0, Vector& yErrEst, int& errOrder, int& numIterations);
 private:    
     static const int NTemps = 2;
     Vector ytmp[NTemps];
