@@ -289,6 +289,7 @@ public:
     virtual long getNumStepsAttempted() const = 0;
     virtual long getNumStepsTaken() const = 0; 
     virtual long getNumErrorTestFailures() const = 0;
+    virtual long getNumConvergenceTestFailures() const = 0;
     virtual long getNumConvergentIterations() const = 0;
     virtual long getNumDivergentIterations() const = 0;
     virtual long getNumIterations() const = 0;

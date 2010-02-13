@@ -202,6 +202,9 @@ long Integrator::getNumProjections() const {
 long Integrator::getNumErrorTestFailures() const {
     return getRep().getNumErrorTestFailures();
 }
+long Integrator::getNumConvergenceTestFailures() const {
+    return getRep().getNumConvergenceTestFailures();
+}
 long Integrator::getNumRealizationFailures() const {
     return getRep().getNumRealizationFailures();
 }

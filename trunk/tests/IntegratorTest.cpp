@@ -420,11 +420,11 @@ static void printFinalStats(const Integrator& integ)
   */
 
   h0u   = integ.getActualInitialStepSizeTaken();
-  nst   = integ.getNStepsTaken();
-  nfe   = integ.getNRealizations();
-  netf  = integ.getNErrorTestFailures();
-  nproj = integ.getNProjections();
-  nprf  = integ.getNProjectionFailures();
+  nst   = integ.getNumStepsTaken();
+  nfe   = integ.getNumRealizations();
+  netf  = integ.getNumErrorTestFailures();
+  nproj = integ.getNumProjections();
+  nprf  = integ.getNumProjectionFailures();
 
   printf("\nFinal Statistics:\n");
   printf("h0u = %g\n",h0u);

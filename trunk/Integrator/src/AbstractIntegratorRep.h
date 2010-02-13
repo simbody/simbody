@@ -156,8 +156,10 @@ protected:
             calcWeightedRMSNorm(getAdvancedState().getYErr(),
                                 getDynamicSystemOneOverTolerances());
 
-        if (consErrAfterODE > projectionLimit)
+        if (consErrAfterODE > projectionLimit) {
+            ++statsProjectionFailures;
             return false; // "convergence" failure; caller can't use error est.
+        }
 
         // Now we'll project if the constraints aren't already satisifed,
         // or if the user said we have to project every step regardless.

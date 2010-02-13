@@ -308,8 +308,10 @@ public:
     /// Get the number of attempted steps that have failed due to the error being unacceptably high since
     /// the last call to resetAllStatistics().
     long getNumErrorTestFailures() const;
-    /// Get the number of attempted steps that failed due to non-convergence of internal step iterations.
-    /// This applies only to iterative methods and is reset to zero by resetAllStatistics.
+    /// Get the number of attempted steps that failed due to non-convergence of
+    /// internal step iterations. This is most common with iterative methods 
+    /// but can occur if for some reason a step can't be completed. It is reset
+    /// to zero by resetAllStatistics.
     long getNumConvergenceTestFailures() const;
     /// Get the number of attempted steps that have failed due to an error when realizing the state since
     /// the last call to resetAllStatistics().
@@ -389,14 +391,6 @@ public:
     /// interpolation is performed.
     void setProjectInterpolatedStates(bool shouldProject);
 
-    // OBSOLETE
-    long getNStepsAttempted() const {return getNumStepsAttempted();}
-    long getNStepsTaken() const {return getNumStepsTaken();} 
-    long getNRealizations() const {return getNumRealizations();}
-    long getNProjections() const {return getNumProjections();}
-    long getNErrorTestFailures() const {return getNumErrorTestFailures();}
-    long getNRealizationFailures() const {return getNumRealizationFailures();}
-    long getNProjectionFailures() const {return getNumProjectionFailures();}
 
 protected:
     const IntegratorRep& getRep() const {assert(rep); return *rep;}
@@ -405,6 +399,16 @@ protected:
     // opaque implementation for binary compatibility
     IntegratorRep* rep;
     friend class IntegratorRep;
+
+private:
+    // OBSOLETE
+    long getNStepsAttempted() const {return getNumStepsAttempted();}
+    long getNStepsTaken() const {return getNumStepsTaken();} 
+    long getNRealizations() const {return getNumRealizations();}
+    long getNProjections() const {return getNumProjections();}
+    long getNErrorTestFailures() const {return getNumErrorTestFailures();}
+    long getNRealizationFailures() const {return getNumRealizationFailures();}
+    long getNProjectionFailures() const {return getNumProjectionFailures();}
 };
 
 } // namespace SimTK
