@@ -94,7 +94,7 @@ int main() {
 
     printf(" LBFGSDiffTest.cpp: results="); 
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
-       printf(" %f",i,results[i]); 
+       printf(" %f",results[i]); 
     }
     printf("\n");
 

@@ -392,7 +392,7 @@ namespace Ipopt
   {
     DBG_START_METH("Journal::Print", 0);
     if (file_) {
-      fprintf(file_, str);
+      fprintf(file_, str, 0); // dummy argument avoids gcc warning
       DBG_EXEC(0, fflush(file_));
     }
   }

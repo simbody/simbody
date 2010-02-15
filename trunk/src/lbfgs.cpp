@@ -1176,17 +1176,17 @@ static void mcstep_(Real *stx, Real *fx, Real *dx, Real *sty, Real *fy, Real *dy
 
 
 
-void lbptf_(char* msg)
+void lbptf_(const char* msg)
 {
-  printf(msg);
+  printf(msg, 0); // dummy argument avoids gcc warning
 }
 
-void lbp1d_(char* msg, int* i)
+void lbp1d_(const char* msg, int* i)
 {
   printf(msg, *i);
 }
 
-void lbp1f_(char* msg, Real* i)
+void lbp1f_(const char* msg, Real* i)
 {
   printf(msg, *i);
 }

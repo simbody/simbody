@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -40,9 +40,6 @@
 
 #include "SimTKcommon.h"
 #include "simmath/Integrator.h"
-//#include "SimTKcpodes/DynamicSystem.h"
-
-//#include "DynamicSystemRep.h"
 
 #include <exception>
 #include <limits>
@@ -50,7 +47,6 @@
 #include <vector>
 
 namespace SimTK {
-//class DynamicSystemRep;
 
     ///////////////////////////
     // INTEGRATOR EXCEPTIONS //
@@ -176,8 +172,8 @@ public:
 //   most significant end-of-step reason is reported, but that each
 //   step is reported at most once. Note that when the return status
 //   is "Done", the final trajectory point has *already* been reported.
-//   Simultaneous occurrences must
-//   be anticipated and handled by the caller (time stepper).
+//   Simultaneous occurrences must be anticipated and handled by the caller
+//   (time stepper).
 // * note that an interpolated report doesn't count as reporting the
 //   step since we haven't reached t_advanced. But the interpolation
 //   to t_low does since t_advanced==t_high in that case and there
@@ -191,14 +187,16 @@ public:
     virtual ~IntegratorRep() { }
     // no default constructor, no copy or copy assign
 
-    // The DynamicSystem must be successfully realized to Stage::Model before this
+    // The System must be successfully realized to Stage::Model before this
     // call. At this point the integrator can query the DynamicSystem about the
     // problem size and allocate appropriately-sized internal data structures.
     void initialize(const State&);
+    // This is for use after return from an event handler.
     void reinitialize(Stage, bool shouldTerminate);
-    // We also give the concrete integration method a chance to initialize itself
-    // after the generic initialization is done.
+    // We also give the concrete integration method a chance to initialize 
+    // itself after the generic initialization is done.
     virtual void methodInitialize(const State&) { }
+    // This is for use after return from an event handler.
     virtual void methodReinitialize(Stage stage, bool shouldTerminate) { }
 
     // The integrator has already been initialized. Take as many internal steps
@@ -211,7 +209,8 @@ public:
         return stepCommunicationStatus == FinalTimeHasBeenReturned;
     }
     
-    // Get the reason the simulation ended.  This should only be invoked If isSimulationOver() returns true.
+    // Get the reason the simulation ended. This should only be invoked if 
+    // isSimulationOver() returns true.
     Integrator::TerminationReason getTerminationReason() const {
         assert (isSimulationOver());
         return terminationReason;
@@ -219,11 +218,12 @@ public:
 
     // This represents the Integrator's finite state machine for dealing with 
     // communication of internal steps to the caller. After initialization, the
-    // computation will be in state CompletedInternalStepNoEvent, but with t_prev=t_advanced=t_initial.
-    // We will process this as though we had just taken a step so that various conditions will
-    // result in the first stepTo() call returning immediately.
-    // Note: event handling and subsequent partial reinitialization of the integrator MUST NOT
-    // change the integrator's communication state.
+    // computation will be in state CompletedInternalStepNoEvent, but with 
+    // t_prev=t_advanced=t_initial. We will process this as though we had just 
+    // taken a step so that various conditions will result in the first 
+    // stepTo() call returning immediately. Note: event handling and subsequent
+    // partial reinitialization of the integrator MUST NOT change the 
+    // integrator's communication state.
     enum StepCommunicationStatus {
         CompletedInternalStepNoEvent,   // Time has advanced from t_prev to t_advanced; no event
                                         //   triggered. We have not yet returned to the caller with
@@ -247,35 +247,19 @@ public:
         InvalidStepCommunicationStatus = -1
     };
 
-    const State& getAdvancedState() const {
-        return advancedState;
-    }
-    Real getAdvancedTime() const {return advancedState.getTime();}
+    const State& getAdvancedState() const {return advancedState;}
+    Real         getAdvancedTime()  const {return advancedState.getTime();}
 
-    const State& getState() const {
-        return useInterpolatedState ? interpolatedState : advancedState;
-    }
+    const State& getState() const 
+    {   return useInterpolatedState ? interpolatedState : advancedState; }
     bool isStateInterpolated() const {return useInterpolatedState;}
 
-    Real getAccuracyInUse() const {
-        return accuracyInUse;
-    }
-
-    Real getConstraintToleranceInUse() const {
-        return consTol;
-    }
-
-    Real getTimeScaleInUse() const {
-        return timeScaleInUse;
-    }
-
-    const Vector& getStateWeightsInUse() const {
-        return stateWeightsInUse;
-    }
-
-    const Vector& getConstraintWeightsInUse() const {
-        return constraintWeightsInUse;
-    }
+    Real getAccuracyInUse() const {return accuracyInUse;}
+    Real getConstraintToleranceInUse() const {return consTol;}
+    Real getTimeScaleInUse() const {return timeScaleInUse;}
+    const Vector& getStateWeightsInUse() const {return stateWeightsInUse;}
+    const Vector& getConstraintWeightsInUse() const 
+    {   return constraintWeightsInUse; }
 
     // What was the size of the first successful step after the last initialize() call?
     virtual Real getActualInitialStepSizeTaken() const = 0;
@@ -297,12 +281,12 @@ public:
     virtual void resetMethodStatistics() {
     }
 
-    // Cubic Hermite interpolation. See Hairer, et al. Solving
-    // ODEs I, 2nd rev. ed., pg 190. Given (t0,y0,y0'),(t1,y1,y1')
-    // with y0 and y1 at least 3rd order accurate,
-    // we can obtain a 3rd order accurate interpolation yt for
+    // Cubic Hermite interpolation. See Hairer, et al. Solving ODEs I, 2nd rev.
+    // ed., pg 190. Given (t0,y0,y0'),(t1,y1,y1') with y0 and y1 at least 3rd 
+    // order accurate, we can obtain a 3rd order accurate interpolation yt for
     // a time t0 < t < t1 using Hermite interpolation. Let
-    // f0=y0', f1=y1', h=t1-t0, d=(t-t0)/h (0<=d<=1).
+    // f0=y0', f1=y1', h=t1-t0, d=(t-t0)/h (0<=d<=1). Then the interpolating
+    // function is:
     //   u(d)=y(t0+dh)=(1-d)y0 + dy1 + d(d-1)[(1-2d)(y1-y0) + (d-1)hf0 + dhf1]
     // Rearrange so we only have to through each array once:
     //   u(d)=cy0*y0 + cy1*y1 + cf0*f0 + cf1*f1
@@ -315,12 +299,14 @@ public:
     // the state yt.
     //
     // It is OK if yt is the same object as y0 or y1.
-    static void interpolateOrder3(const Real& t0, const Vector& y0, const Vector& f0,
-                                  const Real& t1, const Vector& y1, const Vector& f1,
-                                  const Real& t, Vector& yt) {
+    static void interpolateOrder3
+       (const Real& t0, const Vector& y0, const Vector& f0,
+        const Real& t1, const Vector& y1, const Vector& f1,
+        const Real& t, Vector& yt) {
         assert(t0 < t1);
         assert(t0 <= t && t <= t1);
-        assert(f0.size()==y0.size() && y1.size()==y0.size() && f1.size()==y0.size());
+        assert(f0.size()==y0.size() && y1.size()==y0.size() 
+            && f1.size()==y0.size());
 
         const Real h = t1-t0, d=(t-t0)/h;
         const Real cy1 = d*d*(3-2*d), cy0 = 1-cy1;
@@ -395,25 +381,27 @@ public:
         return tRoot;
     }
 
-    // Here we look at a pair of event trigger function values across an interval
-    // and decide if there are any events triggering. If so we return that event
-    // as an "event candidate". Optionally, pass in the current list of event candidates
-    // and we'll only look at those (that is, the list can only be narrowed). Don't
-    // use the same array for the current list and new list.
+    // Here we look at a pair of event trigger function values across an 
+    // interval and decide if there are any events triggering. If so we return
+    // that event as an "event candidate". Optionally, pass in the current list
+    // of event candidates and we'll only look at those (that is, the list can
+    // only be narrowed). Don't use the same array for the current list and new
+    // list.
     //
-    // For purposes of this method, events are specified by their indices in the array
-    // of trigger functions, NOT by their event IDs.
-    void findEventCandidates(int nEvents, 
-                             const Array_<SystemEventTriggerIndex>* viableCandidates,
-                             const Array_<Event::Trigger>*          viableCandidateTransitions,
-                             Real tLow,  const Vector& eLow, 
-                             Real tHigh, const Vector& eHigh,
-                             Real bias,  Real          minWindow,
-                             Array_<SystemEventTriggerIndex>&   candidates,
-                             Array_<Real>&                      timeEstimates,
-                             Array_<Event::Trigger>&            transitions,
-                             Real&                              earliestTimeEst, 
-                             Real&                              narrowestWindow) const
+    // For purposes of this method, events are specified by their indices in 
+    // the array of trigger functions, NOT by their event IDs.
+    void findEventCandidates
+       (int nEvents, 
+        const Array_<SystemEventTriggerIndex>*  viableCandidates,
+        const Array_<Event::Trigger>*           viableCandidateTransitions,
+        Real    tLow,   const Vector&   eLow, 
+        Real    tHigh,  const Vector&   eHigh,
+        Real    bias,   Real            minWindow,
+        Array_<SystemEventTriggerIndex>&        candidates,
+        Array_<Real>&                           timeEstimates,
+        Array_<Event::Trigger>&                 transitions,
+        Real&                                   earliestTimeEst, 
+        Real&                                   narrowestWindow) const
     {
         int nCandidates;
         if (viableCandidates) {
@@ -754,11 +742,11 @@ protected:
     mutable long statsRealizationFailures;
 private:
 
-        // DYNAMIC SYSTEM INFORMATION
-        // Information extracted from the DynamicSystem describing properties we need
-        // to know about BEFORE taking a time step. These properties are always frozen
-        // across an integration step, but may be updated as discrete updates during
-        // time stepping.
+        // SYSTEM INFORMATION
+        // Information extracted from the System describing properties we need
+        // to know about BEFORE taking a time step. These properties are always
+        // frozen across an integration step, but may be updated as discrete 
+        // updates during time stepping.
 
     // Some DynamicSystems need to get control whenever time is advanced
     // successfully (and irreversibly) so that they can do discrete updates.

@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -317,17 +317,22 @@ IntegratorRep::IntegratorRep
 void IntegratorRep::initialize(const State& initState) {
   try
   { invalidateIntegratorInternalState();
+
+    // Copy the supplied initial state into the integrator.
     updAdvancedState() = initState;
+
+    // Freeze the number and kinds of state variables.
     getSystem().realizeModel(updAdvancedState());
      
-    // Freeze problem dimensions.
+    // Freeze problem dimensions; at this point the state represents an
+    // instance of a physically realizable system.
     getSystem().realize(getAdvancedState(), Stage::Instance);
 
-    // Some DynamicSystems need to get control whenever time is advanced
+    // Some Systems need to get control whenever time is advanced
     // successfully (and irreversibly) so that they can do discrete updates.
     systemHasTimeAdvancedEvents = getSystem().hasTimeAdvancedEvents();
 
-    // Allocate data structures now that we know the sizes.
+    // Allocate integrator-local data structures now that we know the sizes.
     const int ny = getAdvancedState().getNY();
     const int nc = getAdvancedState().getNYErr();
     const int ne = getAdvancedState().getNEventTriggers();
@@ -335,54 +340,63 @@ void IntegratorRep::initialize(const State& initState) {
     constraintWeightsInUse.resize(nc);
     timeScaleInUse = getSystem().calcTimescale(getAdvancedState());
 
-    // Set accuracy, consTol, relTol, absTol to their user-requested values or to
-    // the appropriate defaults.
+    // Set accuracy, consTol, relTol, absTol to their user-requested values or
+    // to the appropriate defaults.
     setAccuracyAndTolerancesFromUserRequests();
 
-    // Now we can ask the DynamicSystem for information about its event triggers.
+    // Now we can ask the System for information about its event triggers.
     // (Event trigger info is Instance stage information.) Note that the event
-    // localization windows here are expressed in terms of the system timescale -- 
-    // be sure to multiply by timescale before using.
+    // localization windows here are expressed in terms of the system timescale
+    // -- be sure to multiply by timescale before using.
     getSystem().calcEventTriggerInfo(getAdvancedState(), eventTriggerInfo);
 
-    // Obtain the constraint error tolerance units (actually 1/tolerance) for each constraint.
-    // Tolerance units are Instance stage information; they cannot change with time. The
-    // actual tolerances we'll use will be these unit tolerances scaled by the user's
-    // accuracy request.
-    getSystem().calcYErrUnitTolerances(getAdvancedState(), constraintWeightsInUse);
+    // Obtain the constraint error tolerance units (actually 1/tolerance) for 
+    // each constraint. Tolerance units are Instance stage information; they 
+    // cannot change with time. The actual tolerances we'll use will be these 
+    // unit tolerances scaled by the user's accuracy request.
+    getSystem().calcYErrUnitTolerances(getAdvancedState(), 
+                                       constraintWeightsInUse);
 
-    // Obtain the state variable weights. Weights are Position-stage information but
-    // are expected to remain constant over substantial intervals, so that we can
-    // consider them to be constant during a time step. These should be recalculated
-    // from time to time during a simulation, whenever "substantial" changes to the
-    // configuration have been made.
+    // Obtain the state variable weights. Weights are Position-stage 
+    // information but are expected to remain constant over substantial 
+    // intervals, so that we can consider them to be constant during a time 
+    // step. These should be recalculated from time to time during a 
+    // simulation, whenever "substantial" changes to the configuration have 
+    // been made.
     getSystem().realize(getAdvancedState(), Stage::Position);
     getSystem().calcYUnitWeights(getAdvancedState(), stateWeightsInUse);
 
-    // Using the constraint unit tolerances and state weights we just calculated, project the
-    // states to drive constraint errors below accuracy*unitTolerance for each constraint. 
+    // Using the constraint unit tolerances and state weights we just 
+    // calculated, project the states to drive constraint errors below 
+    // accuracy*unitTolerance for each constraint. 
     getSystem().realize(getAdvancedState(), Stage::Velocity); // all kinematics
     projectStateAndErrorEstimate(updAdvancedState(), Vector()); // no err est here
 
-    // Refresh the weights in case anything significant was done by
-    // the initial projection.
+    // Refresh the weights in case anything significant was done by the initial
+    // projection.
     getSystem().calcYUnitWeights(getAdvancedState(), stateWeightsInUse);
 
+    // Now evaluate the state through the Acceleration stage to calculate
+    // the initial state derivatives.
     realizeStateDerivatives(getAdvancedState());
 
-    // Record the continuous parts of this now-realized initial state
-    // as the previous state as well.
+    // Record the continuous parts of this now-realized initial state as the 
+    // previous state as well (previous state is used when we have to back up
+    // from a failed step attempt).
     saveStateAsPrevious(getAdvancedState());
 
     // The initial state is set so it looks like we just *completed* a step to 
-    // get here. That way if the first reportTime is zero, this will get reported.
+    // get here. That way if the first reportTime is zero, this will get 
+    // reported.
     setStepCommunicationStatus(CompletedInternalStepNoEvent);
     startOfContinuousInterval = true;
+
+    // This will be set to something meaningful when the simulation ends.
     terminationReason = Integrator::InvalidTerminationReason;
 
-    // Call this virtual method in case the concrete class has additional 
-    // integration needs. Note that it gets the State as we have adjusted it,
-    // NOT the one originally passed to initialize().
+    // Call this virtual method in case the concrete integrator class has 
+    // additional initialization needs. Note that it gets the State as we have
+    // adjusted it, NOT the one originally passed to initialize().
     methodInitialize(getAdvancedState());
 
   } catch (const std::exception& e) {

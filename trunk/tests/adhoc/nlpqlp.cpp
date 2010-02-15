@@ -345,7 +345,7 @@ int main()
       if( run_test( j ) ) num_passed++;
    }
 
-   printf(" %d PASSED 	out of  %d tests   pass rate = %f % \n",num_passed, num_tests, 100.0*(float)num_passed/(float)num_tests);
+   printf(" %d PASSED 	out of  %d tests   pass rate = %f %%\n",num_passed, num_tests, 100.0*(float)num_passed/(float)num_tests);
    return 0;
 }
 
