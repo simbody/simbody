@@ -333,7 +333,7 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
             previousStartTime = getAdvancedTime();
             Vector yout(getAdvancedState().getY().size());
             Vector ypout(getAdvancedState().getY().size()); // ignored
-            long oldSteps=0, oldTestFailures=0, oldNonlinIterations=0, oldNonlinConvFailures=0, 
+            int oldSteps=0, oldTestFailures=0, oldNonlinIterations=0, oldNonlinConvFailures=0, 
                  oldProjections=0, oldProjectionFailures=0;
             cpodes->getNumSteps(&oldSteps);
             cpodes->getNumErrTestFails(&oldTestFailures);
@@ -355,7 +355,7 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
                 yout = getAdvancedState().getY();
                 res = 0;
             }
-            long newSteps=0, newTestFailures=0, newNonlinIterations=0, newNonlinConvFailures=0,
+            int newSteps=0, newTestFailures=0, newNonlinIterations=0, newNonlinConvFailures=0,
                  newProjections=0, newProjectionFailures=0;
             cpodes->getNumSteps(&newSteps);
             cpodes->getNumErrTestFails(&newTestFailures);
@@ -491,27 +491,27 @@ Real CPodesIntegratorRep::getPredictedNextStepSize() const {
     return size;
 }
 
-long CPodesIntegratorRep::getNumStepsAttempted() const {
+int CPodesIntegratorRep::getNumStepsAttempted() const {
     assert(initialized);
     return statsStepsTaken+statsErrorTestFailures+statsConvergenceTestFailures+statsProjectionFailures;
 }
 
-long CPodesIntegratorRep::getNumStepsTaken() const {
+int CPodesIntegratorRep::getNumStepsTaken() const {
     assert(initialized);
     return statsStepsTaken;
 }
 
-long CPodesIntegratorRep::getNumErrorTestFailures() const {
+int CPodesIntegratorRep::getNumErrorTestFailures() const {
     assert(initialized);
     return statsErrorTestFailures;
 }
 
-long CPodesIntegratorRep::getNumConvergenceTestFailures() const {
+int CPodesIntegratorRep::getNumConvergenceTestFailures() const {
     assert(initialized);
     return statsConvergenceTestFailures;
 }
 
-long CPodesIntegratorRep::getNumIterations() const {
+int CPodesIntegratorRep::getNumIterations() const {
     assert(initialized);
     return statsIterations;
 }

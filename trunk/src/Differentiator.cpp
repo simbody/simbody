@@ -145,9 +145,9 @@ public:
     }
 
     // Statistics
-    mutable long nDifferentiations; 
-    mutable long nDifferentiationFailures; 
-    mutable long nCallsToUserFunction;
+    mutable int nDifferentiations; 
+    mutable int nDifferentiationFailures; 
+    mutable int nCallsToUserFunction;
 private:
     Differentiator* myHandle;
     friend class Differentiator;
@@ -223,8 +223,8 @@ public:
 
 protected:
     // Stats
-    mutable long nCalls;
-    mutable long nFailures;
+    mutable int nCalls;
+    mutable int nFailures;
 
 private:
     int  nFunc, nParam;
@@ -549,15 +549,15 @@ void Differentiator::resetAllStatistics() {
     rep->resetAllStatistics();
 }
 
-long Differentiator::getNDifferentiations() const {
+int Differentiator::getNDifferentiations() const {
     return rep->nDifferentiations;
 }
 
-long Differentiator::getNDifferentiationFailures() const {
+int Differentiator::getNDifferentiationFailures() const {
     return rep->nDifferentiationFailures;
 }
 
-long Differentiator::getNCallsToUserFunction() const {
+int Differentiator::getNCallsToUserFunction() const {
     return rep->nCallsToUserFunction;
 }
 
@@ -648,10 +648,10 @@ Real Differentiator::Function::getEstimatedAccuracy() const {
 void Differentiator::Function::resetAllStatistics(){
     rep->resetAllStatistics();
 }
-long Differentiator::Function::getNCalls()    const {
+int Differentiator::Function::getNCalls()    const {
     return rep->nCalls;
 }
-long Differentiator::Function::getNFailures() const {
+int Differentiator::Function::getNFailures() const {
     return rep->nFailures;
 }
 

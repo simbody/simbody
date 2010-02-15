@@ -64,13 +64,13 @@ public:
     Real getActualInitialStepSizeTaken() const;
     Real getPreviousStepSizeTaken() const;
     Real getPredictedNextStepSize() const;
-    long getNumStepsAttempted() const;
-    long getNumStepsTaken() const;
-    long getNumErrorTestFailures() const;
-    long getNumConvergenceTestFailures() const;
-    long getNumConvergentIterations() const;
-    long getNumDivergentIterations() const;
-    long getNumIterations() const;
+    int getNumStepsAttempted() const;
+    int getNumStepsTaken() const;
+    int getNumErrorTestFailures() const;
+    int getNumConvergenceTestFailures() const;
+    int getNumConvergentIterations() const;
+    int getNumDivergentIterations() const;
+    int getNumIterations() const;
     void resetMethodStatistics();
     const char* getMethodName() const;
     int getMethodMinOrder() const;
@@ -236,11 +236,11 @@ protected:
      * third order Hermite spline interpolation.
      */
     virtual void backUpAdvancedStateByInterpolation(Real t);
-    long statsStepsTaken, statsStepsAttempted, statsErrorTestFailures, statsConvergenceTestFailures;
+    int statsStepsTaken, statsStepsAttempted, statsErrorTestFailures, statsConvergenceTestFailures;
 
     // Iterative methods should count iterations and then classify them as 
     // iterations that led to successful convergence and those that didn't.
-    long statsConvergentIterations, statsDivergentIterations;
+    int statsConvergentIterations, statsDivergentIterations;
 private:
     bool takeOneStep(Real tMax, Real tReport);
     bool initialized, hasErrorControl;

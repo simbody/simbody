@@ -96,10 +96,10 @@ public:
     Matrix calcJacobian  (const Vector& y0, Method=UnspecifiedMethod) const;
 
     // Statistics (mutable)
-    void resetAllStatistics();                // reset all stats to zero
-    long getNDifferentiations() const;        // total # calls of calcWhatever
-    long getNDifferentiationFailures() const; // # of those that failed
-    long getNCallsToUserFunction() const;     // total # calls to user function
+    void resetAllStatistics();               // reset all stats to zero
+    int getNDifferentiations() const;        // total # calls of calcWhatever
+    int getNDifferentiationFailures() const; // # of those that failed
+    int getNCallsToUserFunction() const;     // total # calls to user function
 
     // This is a local class.
     class DifferentiatorRep;
@@ -134,8 +134,8 @@ public:
 
     // Statistics (mutable)
     void resetAllStatistics();
-    long getNCalls()    const; // # evaluations of this function since reset
-    long getNFailures() const; // # of calls which failed
+    int getNCalls()    const; // # evaluations of this function since reset
+    int getNFailures() const; // # of calls which failed
 
     // This is the declaration of a local class name.
     class FunctionRep;

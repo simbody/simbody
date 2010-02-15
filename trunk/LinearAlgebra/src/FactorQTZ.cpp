@@ -233,8 +233,8 @@ void FactorQTZRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) const {
 
     // compute size of workspace 
     // for dormqr, dormrz:  lwork = n*nb
-    long lwork1 = n*LapackInterface::ilaenv<T>(1, "ormqr", "LT ", nRow, b.ncol(), -1, -1);
-    long lwork2 = n*LapackInterface::ilaenv<T>(1, "ormrz", "LUNN", rank, b.ncol(), -1, -1);
+    int lwork1 = n*LapackInterface::ilaenv<T>(1, "ormqr", "LT ", nRow, b.ncol(), -1, -1);
+    int lwork2 = n*LapackInterface::ilaenv<T>(1, "ormrz", "LUNN", rank, b.ncol(), -1, -1);
     TypedWorkSpace<T> work( lwork1>lwork2 ? lwork1 : lwork2);
 
     // compute norm of RHS
@@ -324,10 +324,10 @@ void FactorQTZRep<T>::factor(const Matrix_<ELT>&mat )  {
 
     // compute optimal block size
     // dtzrzf: lwork = m*nb  
-    long lwork1 = nRow*LapackInterface::ilaenv<T>(1, "tzrzf", " ", nCol, -1, -1, -1);
+    int lwork1 = nRow*LapackInterface::ilaenv<T>(1, "tzrzf", " ", nCol, -1, -1, -1);
 
     // dgepq3: lwork = 2*N+( N+1 )*NB
-    long lwork2 = 2*nCol + (nCol+1)*LapackInterface::ilaenv<T>(1, "geqp3", " ", nRow, nCol,  -1, -1);
+    int lwork2 = 2*nCol + (nCol+1)*LapackInterface::ilaenv<T>(1, "geqp3", " ", nRow, nCol,  -1, -1);
     TypedWorkSpace<T> work( lwork1>lwork2 ? lwork1 : lwork2 );
 
     LapackInterface::getMachinePrecision<RealType>( smlnum, bignum);

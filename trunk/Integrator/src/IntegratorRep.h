@@ -270,13 +270,13 @@ public:
     // What step size will be attempted first on the next step() call?
     virtual Real getPredictedNextStepSize() const = 0;
 
-    virtual long getNumStepsAttempted() const = 0;
-    virtual long getNumStepsTaken() const = 0; 
-    virtual long getNumErrorTestFailures() const = 0;
-    virtual long getNumConvergenceTestFailures() const = 0;
-    virtual long getNumConvergentIterations() const = 0;
-    virtual long getNumDivergentIterations() const = 0;
-    virtual long getNumIterations() const = 0;
+    virtual int getNumStepsAttempted() const = 0;
+    virtual int getNumStepsTaken() const = 0; 
+    virtual int getNumErrorTestFailures() const = 0;
+    virtual int getNumConvergenceTestFailures() const = 0;
+    virtual int getNumConvergentIterations() const = 0;
+    virtual int getNumDivergentIterations() const = 0;
+    virtual int getNumIterations() const = 0;
 
     virtual void resetMethodStatistics() {
     }
@@ -576,7 +576,7 @@ protected:
     Real userAccuracy; // use for relTol, absTol, constraintTol
     Real userRelTol, userAbsTol, userConsTol; // for fussy people
     Real userFinalTime; // never go past this
-    long userInternalStepLimit; // that is, in a single call to step(); 0=no limit
+    int  userInternalStepLimit; // that is, in a single call to step(); 0=no limit
 
     // three-state booleans
     int  userReturnEveryInternalStep;   // -1 (not supplied), 0(false), 1(true)
@@ -672,16 +672,16 @@ protected:
         statsProjectionFailures = 0;
     }
 
-    long getNumRealizations() const {
+    int getNumRealizations() const {
         return statsRealizations;
     } 
-    long getNumProjections() const {
+    int getNumProjections() const {
         return statsProjections;
     } 
-    long getNumRealizationFailures() const {
+    int getNumRealizationFailures() const {
         return statsRealizationFailures;
     } 
-    long getNumProjectionFailures() const {
+    int getNumProjectionFailures() const {
         return statsProjectionFailures;
     } 
 
@@ -736,10 +736,10 @@ private:
 protected:
     // realization and projection stats are shared by all integrators;
     // others are left to the individual integration methods
-    mutable long statsProjectionFailures;
-    mutable long statsProjections;
-    mutable long statsRealizations;
-    mutable long statsRealizationFailures;
+    mutable int statsProjectionFailures;
+    mutable int statsProjections;
+    mutable int statsRealizations;
+    mutable int statsRealizationFailures;
 private:
 
         // SYSTEM INFORMATION

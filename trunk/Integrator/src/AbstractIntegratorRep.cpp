@@ -590,29 +590,29 @@ Real AbstractIntegratorRep::getPredictedNextStepSize() const {
     return currentStepSize;
 }
 
-long AbstractIntegratorRep::getNumStepsAttempted() const {
+int AbstractIntegratorRep::getNumStepsAttempted() const {
     assert(initialized);
     return statsStepsAttempted;
 }
 
-long AbstractIntegratorRep::getNumStepsTaken() const {
+int AbstractIntegratorRep::getNumStepsTaken() const {
     assert(initialized);
     return statsStepsTaken;
 }
 
-long AbstractIntegratorRep::getNumErrorTestFailures() const {
+int AbstractIntegratorRep::getNumErrorTestFailures() const {
     return statsErrorTestFailures;
 }
-long AbstractIntegratorRep::getNumConvergenceTestFailures() const {
+int AbstractIntegratorRep::getNumConvergenceTestFailures() const {
     return statsConvergenceTestFailures;
 }
-long AbstractIntegratorRep::getNumConvergentIterations() const {
+int AbstractIntegratorRep::getNumConvergentIterations() const {
     return statsConvergentIterations;
 }
-long AbstractIntegratorRep::getNumDivergentIterations() const {
+int AbstractIntegratorRep::getNumDivergentIterations() const {
     return statsDivergentIterations;
 }
-long AbstractIntegratorRep::getNumIterations() const {
+int AbstractIntegratorRep::getNumIterations() const {
     return statsConvergentIterations + statsDivergentIterations;
 }
 

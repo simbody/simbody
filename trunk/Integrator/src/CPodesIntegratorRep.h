@@ -53,15 +53,15 @@ public:
     Real getActualInitialStepSizeTaken() const;
     Real getPreviousStepSizeTaken() const;
     Real getPredictedNextStepSize() const;
-    long getNumStepsAttempted() const;
-    long getNumStepsTaken() const;
-    long getNumErrorTestFailures() const;
-    long getNumConvergenceTestFailures() const;
-    long getNumConvergentIterations() const 
+    int getNumStepsAttempted() const;
+    int getNumStepsTaken() const;
+    int getNumErrorTestFailures() const;
+    int getNumConvergenceTestFailures() const;
+    int getNumConvergentIterations() const 
        {SimTK_ASSERT_ALWAYS(false, "CPodesIntegratorRep::getNumConvergentIterations(): not implemented");}
-    long getNumDivergentIterations() const
+    int getNumDivergentIterations() const
        {SimTK_ASSERT_ALWAYS(false, "CPodesIntegratorRep::getNumDivergentIterations(): not implemented");}
-    long getNumIterations() const;
+    int getNumIterations() const;
     void resetMethodStatistics();
     void createInterpolatedState(Real t);
     void initializeIntegrationParameters();
@@ -78,8 +78,8 @@ private:
     CPodes* cpodes;
     CPodesSystemImpl* cps;
     bool initialized, useCpodesProjection;
-    long statsStepsTaken, statsErrorTestFailures, statsConvergenceTestFailures;
-    long statsIterations;
+    int statsStepsTaken, statsErrorTestFailures, statsConvergenceTestFailures;
+    int statsIterations;
     int pendingReturnCode;
     Real previousStartTime, previousTimeReturned;
     Vector savedY;

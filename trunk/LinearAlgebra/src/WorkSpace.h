@@ -144,7 +144,7 @@ class TypedWorkSpace {
         return *this;
     }
 
-    explicit TypedWorkSpace( long n ) {
+    explicit TypedWorkSpace( int n ) {
         size = n;
         data = (n==0 ? 0 : new T[n]);
     }
@@ -155,13 +155,13 @@ class TypedWorkSpace {
         delete [] data;
     }
     
-    void resize( long n ) {
+    void resize( int n ) {
         delete [] data;
         size = n;
         data = (n==0 ? 0 : new T[n]);
     }
 
-    long size;
+    int size;
     T* data; 
 };
 
