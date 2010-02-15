@@ -29,6 +29,10 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+namespace SimTK {
+void dummySymbolToAvoidWarningInLengthConstraints() {}
+};
+
 #ifdef NOTDEF
 
 

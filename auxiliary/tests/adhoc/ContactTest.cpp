@@ -349,8 +349,8 @@ catch (const std::exception& e)
 static void printFinalStats(const CPodes& cpodes)
 {
   Real h0u;
-  long int nst, nfe, nsetups, nje, nfeLS, nni, ncfn, netf, nge;
-  long int nproj, nce, nsetupsP, nprf;
+  int nst, nfe, nsetups, nje, nfeLS, nni, ncfn, netf, nge;
+  int nproj, nce, nsetupsP, nprf;
   int flag;
 
   h0u=NaN;
@@ -379,14 +379,14 @@ static void printFinalStats(const CPodes& cpodes)
 
   printf("\nFinal Statistics:\n");
   printf("h0u = %g\n",h0u);
-  printf("nst = %-6ld nfe  = %-6ld nsetups = %-6ld\n",
+  printf("nst = %-6d nfe  = %-6d nsetups = %-6d\n",
 	 nst, nfe, nsetups);
-  printf("nfeLS = %-6ld nje = %ld\n",
+  printf("nfeLS = %-6d nje = %d\n",
 	 nfeLS, nje);
-  printf("nni = %-6ld ncfn = %-6ld netf = %-6ld \n",
+  printf("nni = %-6d ncfn = %-6d netf = %-6d \n",
 	 nni, ncfn, netf);
-  printf("nproj = %-6ld nce = %-6ld nsetupsP = %-6ld nprf = %-6ld\n",
+  printf("nproj = %-6d nce = %-6d nsetupsP = %-6d nprf = %-6d\n",
          nproj, nce, nsetupsP, nprf);
-  printf("nge = %ld\n", nge);
+  printf("nge = %d\n", nge);
 
 }
