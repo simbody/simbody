@@ -210,8 +210,8 @@ public:
     virtual void calcJacobian(const DifferentiatorRep&, Differentiator::Method,
                               const Vector& y0, const Vector* fy0p, Matrix& dfdy) const=0;
 
-    int getNFunctions()  const {assert(nFunc>=0);  return nFunc;}
-    int getNParameters() const {assert(nParam>=0); return nParam;}
+    int getNumFunctions()  const {assert(nFunc>=0);  return nFunc;}
+    int getNumParameters() const {assert(nParam>=0); return nParam;}
     Real getEstimatedAccuracy() const {
         assert(estimatedAccuracy>0); 
         return estimatedAccuracy;
@@ -306,9 +306,9 @@ public:
     void calcDerivative(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
                         Real y0, const Real* fy0p, Real& dfdy) const
     {
-        if (getNParameters() != 1)
+        if (getNumParameters() != 1)
             SimTK_THROW5(Differentiator::OpNotAllowedForFunctionOfThisShape,
-                "calcDerivative", "1x1", "GradientFunction", 1, getNParameters());
+                "calcDerivative", "1x1", "GradientFunction", 1, getNumParameters());
 
         const Vector y0v(1, y0);
         Real fy0;
@@ -331,7 +331,7 @@ public:
                       const Vector& y0, const Vector* fy0p, Matrix& dfdy) const
     {
         assert(!fy0p || (*fy0p).size()==1);
-        dfdy.resize(1,getNParameters());
+        dfdy.resize(1,getNumParameters());
         Real fy0;
         if (fy0p) fy0 = (*fy0p)[0];
         else {diff.nCallsToUserFunction++; call(y0, fy0);}
@@ -372,9 +372,9 @@ public:
     void calcDerivative(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
                         Real y0, const Real* fy0p, Real& dfdy) const
     {
-        if (getNFunctions() != 1 || getNParameters() != 1)
+        if (getNumFunctions() != 1 || getNumParameters() != 1)
             SimTK_THROW5(Differentiator::OpNotAllowedForFunctionOfThisShape,
-                "calcDerivative", "1x1", "JacobianFunction", getNFunctions(), getNParameters());
+                "calcDerivative", "1x1", "JacobianFunction", getNumFunctions(), getNumParameters());
 
         const Vector y0v(1, y0);
         Vector fy0v(1);
@@ -387,9 +387,9 @@ public:
     void calcGradient(const Differentiator::DifferentiatorRep& diff, Differentiator::Method m,
                       const Vector& y0, const Real* fy0p, Vector& gf) const 
     { 
-        if (getNFunctions() != 1)
+        if (getNumFunctions() != 1)
             SimTK_THROW5(Differentiator::OpNotAllowedForFunctionOfThisShape,
-                "calcGradient", "1xn", "JacobianFunction", getNFunctions(), getNParameters());
+                "calcGradient", "1xn", "JacobianFunction", getNumFunctions(), getNumParameters());
 
         Vector fy0v(1);
         if (fy0p) fy0v[0] = *fy0p;
@@ -403,7 +403,7 @@ public:
         if (fy0p)
             diff.calcJacobian(*this,m,y0,*fy0p,dfdy);
         else {
-            Vector fy0(getNFunctions());
+            Vector fy0(getNumFunctions());
             diff.nCallsToUserFunction++; call(y0, fy0);
             diff.calcJacobian(*this,m,y0,fy0,dfdy);
         }
@@ -549,15 +549,15 @@ void Differentiator::resetAllStatistics() {
     rep->resetAllStatistics();
 }
 
-int Differentiator::getNDifferentiations() const {
+int Differentiator::getNumDifferentiations() const {
     return rep->nDifferentiations;
 }
 
-int Differentiator::getNDifferentiationFailures() const {
+int Differentiator::getNumDifferentiationFailures() const {
     return rep->nDifferentiationFailures;
 }
 
-int Differentiator::getNCallsToUserFunction() const {
+int Differentiator::getNumCallsToUserFunction() const {
     return rep->nCallsToUserFunction;
 }
 
@@ -611,16 +611,16 @@ Differentiator::Function::~Function() {
 }
 
 Differentiator::Function& 
-Differentiator::Function::setNFunctions(int nf) {
-    SimTK_APIARGCHECK1_ALWAYS(nf>=0, "Differentiator::Function", "setNFunctions",
+Differentiator::Function::setNumFunctions(int nf) {
+    SimTK_APIARGCHECK1_ALWAYS(nf>=0, "Differentiator::Function", "setNumFunctions",
         "The number of functions was %d but must be >= 0", nf);
 
     rep->nFunc = nf;
     return *this;
 }
 Differentiator::Function& 
-Differentiator::Function::setNParameters(int ny) {
-    SimTK_APIARGCHECK1_ALWAYS(ny>=0, "Differentiator::Function", "setNParameters",
+Differentiator::Function::setNumParameters(int ny) {
+    SimTK_APIARGCHECK1_ALWAYS(ny>=0, "Differentiator::Function", "setNumParameters",
         "The number of parameters was %d but must be >= 0", ny);
 
     rep->nParam = ny;
@@ -628,17 +628,17 @@ Differentiator::Function::setNParameters(int ny) {
 }
 Differentiator::Function& 
 Differentiator::Function::setEstimatedAccuracy(Real ea) {
-    SimTK_APIARGCHECK1_ALWAYS(0<ea&&ea<1, "Differentiator::Function", "setNParameters",
+    SimTK_APIARGCHECK1_ALWAYS(0<ea&&ea<1, "Differentiator::Function", "setNumParameters",
         "The estimated accuracy was %g but must be between 0 and 1 (noninclusive)", ea);
 
     rep->estimatedAccuracy = ea;
     return *this;
 }
 
-int Differentiator::Function::getNFunctions() const {
+int Differentiator::Function::getNumFunctions() const {
     return rep->nFunc;
 }
-int Differentiator::Function::getNParameters() const {
+int Differentiator::Function::getNumParameters() const {
     return rep->nParam;
 }
 Real Differentiator::Function::getEstimatedAccuracy() const {
@@ -648,10 +648,10 @@ Real Differentiator::Function::getEstimatedAccuracy() const {
 void Differentiator::Function::resetAllStatistics(){
     rep->resetAllStatistics();
 }
-int Differentiator::Function::getNCalls()    const {
+int Differentiator::Function::getNumCalls()    const {
     return rep->nCalls;
 }
-int Differentiator::Function::getNFailures() const {
+int Differentiator::Function::getNumFailures() const {
     return rep->nFailures;
 }
 
@@ -680,8 +680,8 @@ Differentiator::DifferentiatorRep::DifferentiatorRep
     Differentiator::Method                          defMthd
 )
 :   myHandle(handle), frep(fr),
-    NParameters(fr.getNParameters()), 
-    NFunctions(fr.getNFunctions()), 
+    NParameters(fr.getNumParameters()), 
+    NFunctions(fr.getNumFunctions()), 
     EstimatedAccuracy(fr.getEstimatedAccuracy()),
     defaultMethod(getMethodOrThrow(defMthd, DefaultDefaultMethod, "Differentiator")),
     AccFac1(std::sqrt(EstimatedAccuracy)),
@@ -737,7 +737,7 @@ void Differentiator::DifferentiatorRep::calcGradient
     ytmp = y0;
     const int order = Differentiator::getMethodOrder(method);
 
-    for (int i=0; i < f.getNParameters(); ++i) {
+    for (int i=0; i < f.getNumParameters(); ++i) {
         const Real hEst = getAccFac(order)*std::max(std::abs(y0[i]), YMin);
         const Real h = cleanUpH(hEst, y0[i]);
         Real fyplus, fyminus;

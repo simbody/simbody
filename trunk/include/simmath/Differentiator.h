@@ -96,16 +96,22 @@ public:
     Matrix calcJacobian  (const Vector& y0, Method=UnspecifiedMethod) const;
 
     // Statistics (mutable)
-    void resetAllStatistics();               // reset all stats to zero
-    int getNDifferentiations() const;        // total # calls of calcWhatever
-    int getNDifferentiationFailures() const; // # of those that failed
-    int getNCallsToUserFunction() const;     // total # calls to user function
+    void resetAllStatistics();                 // reset all stats to zero
+    int getNumDifferentiations() const;        // total # calls of calcWhatever
+    int getNumDifferentiationFailures() const; // # of those that failed
+    int getNumCallsToUserFunction() const;     // total # calls to user function
 
     // This is a local class.
     class DifferentiatorRep;
 private:
     // opaque implementation for binary compatibility
     DifferentiatorRep* rep;
+
+private:
+    //OBSOLETE NAMES
+    int getNDifferentiations() const {return getNumDifferentiations();}
+    int getNDifferentiationFailures() const {return getNumDifferentiationFailures();}
+    int getNCallsToUserFunction() const {return getNumCallsToUserFunction();}
 };
 
 /**
@@ -123,19 +129,19 @@ private:
  */
 class SimTK_SIMMATH_EXPORT Differentiator::Function {
 public:
-    Function& setNFunctions(int);
-    Function& setNParameters(int);
+    Function& setNumFunctions(int);
+    Function& setNumParameters(int);
     Function& setEstimatedAccuracy(Real);
 
     // These values are fixed after construction.
-    int  getNFunctions()  const;
-    int  getNParameters() const;
+    int  getNumFunctions()  const;
+    int  getNumParameters() const;
     Real getEstimatedAccuracy() const; // approx. "roundoff" in f calculation
 
     // Statistics (mutable)
     void resetAllStatistics();
-    int getNCalls()    const; // # evaluations of this function since reset
-    int getNFailures() const; // # of calls which failed
+    int getNumCalls()    const; // # evaluations of this function since reset
+    int getNumFailures() const; // # of calls which failed
 
     // This is the declaration of a local class name.
     class FunctionRep;
@@ -150,6 +156,17 @@ private:
     // suppress copy constructor and copy assignment
     Function(const Function&);
     Function& operator=(const Function&);
+
+private:
+    //OBSOLETE NAMES
+    Function& setNFunctions(int n) {return setNumFunctions(n);}
+    Function& setNParameters(int n) {return setNumParameters(n);}
+    int  getNFunctions()  const {return getNumFunctions();}
+    int  getNParameters() const {return getNumParameters();}
+    int getNCalls()    const {return getNumCalls();}
+    int getNFailures() const {return getNumFailures();}
+
+
 
 friend class Differentiator;
 };

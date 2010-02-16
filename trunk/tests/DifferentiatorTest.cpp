@@ -243,11 +243,11 @@ int main() {
 
 
     printf("Func gf: nf=%d np=%d estacc=%g\n",
-        gf.getNFunctions(), gf.getNParameters(), gf.getEstimatedAccuracy());
+        gf.getNumFunctions(), gf.getNumParameters(), gf.getEstimatedAccuracy());
     printf("Func sf: nf=%d np=%d estacc=%g\n",
-        sf.getNFunctions(), sf.getNParameters(), sf.getEstimatedAccuracy());
+        sf.getNumFunctions(), sf.getNumParameters(), sf.getEstimatedAccuracy());
     printf("Func vf: nf=%d np=%d estacc=%g\n",
-        vf.getNFunctions(), vf.getNParameters(), vf.getEstimatedAccuracy());
+        vf.getNumFunctions(), vf.getNumParameters(), vf.getEstimatedAccuracy());
 
 
     Real sfy0, sfyd;
@@ -290,26 +290,26 @@ int main() {
     returnValue = 1; // failure
   }
 
-    printf("dsin stats: ndiffs=%ld nfail=%ld nfcalls=%ld\n",
-        dsin.getNDifferentiations(), dsin.getNDifferentiationFailures(),
-        dsin.getNCallsToUserFunction());
-    printf("gradf stats: ndiffs=%ld nfail=%ld nfcalls=%ld\n",
-        gradf.getNDifferentiations(), gradf.getNDifferentiationFailures(),
-        gradf.getNCallsToUserFunction());
-    printf("df stats: ndiffs=%ld nfail=%ld nfcalls=%ld\n",
-        df.getNDifferentiations(), df.getNDifferentiationFailures(),
-        df.getNCallsToUserFunction());
+    printf("dsin stats: ndiffs=%d nfail=%d nfcalls=%d\n",
+        dsin.getNumDifferentiations(), dsin.getNumDifferentiationFailures(),
+        dsin.getNumCallsToUserFunction());
+    printf("gradf stats: ndiffs=%d nfail=%d nfcalls=%d\n",
+        gradf.getNumDifferentiations(), gradf.getNumDifferentiationFailures(),
+        gradf.getNumCallsToUserFunction());
+    printf("df stats: ndiffs=%d nfail=%d nfcalls=%d\n",
+        df.getNumDifferentiations(), df.getNumDifferentiationFailures(),
+        df.getNumCallsToUserFunction());
 
-    printf("gf stats: nCalls=%ld, nFailures=%ld\n",
-        gf.getNCalls(), gf.getNFailures());
-    printf("sf stats: nCalls=%ld, nFailures=%ld\n",
-        sf.getNCalls(), sf.getNFailures());
-    printf("vf stats: nCalls=%ld, nFailures=%ld\n",
-        vf.getNCalls(), vf.getNFailures());
+    printf("gf stats: nCalls=%d, nFailures=%d\n",
+        gf.getNumCalls(), gf.getNumFailures());
+    printf("sf stats: nCalls=%d, nFailures=%d\n",
+        sf.getNumCalls(), sf.getNumFailures());
+    printf("vf stats: nCalls=%d, nFailures=%d\n",
+        vf.getNumCalls(), vf.getNumFailures());
 
     vf.resetAllStatistics();
-    printf("vf after reset: nCalls=%ld, nFailures=%ld\n",
-        vf.getNCalls(), vf.getNFailures());
+    printf("vf after reset: nCalls=%d, nFailures=%d\n",
+        vf.getNumCalls(), vf.getNumFailures());
 
     return returnValue;
 }
