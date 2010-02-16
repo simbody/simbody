@@ -83,8 +83,8 @@ void stateTest() {
     s.advanceSystemToStage(Stage::Topology);
 
     Vector v3(3), v2(2);
-    long q1 = s.allocateQ(SubsystemIndex(0), v3);
-    long q2 = s.allocateQ(SubsystemIndex(0), v2);
+    int q1 = s.allocateQ(SubsystemIndex(0), v3);
+    int q2 = s.allocateQ(SubsystemIndex(0), v2);
 
     printf("q1,2=%d,%d\n", q1, q2);
     cout << s;

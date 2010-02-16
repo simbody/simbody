@@ -396,7 +396,7 @@ int main(int argc, char** argv) {
     printf("# ERR TEST FAILS = %d\n", myStudy.getNumErrorTestFailures());
     printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNumRealizations(), myStudy.getNumProjections());
 
-    printf("System stats: realize %ldP %ldV %ldA, project %ld\n",
+    printf("System stats: realize %dP %dV %dA, project %d\n",
         mbs.getNumRealizationsOfThisStage(Stage::Position),
         mbs.getNumRealizationsOfThisStage(Stage::Velocity),
         mbs.getNumRealizationsOfThisStage(Stage::Acceleration),
