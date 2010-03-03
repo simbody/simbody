@@ -47,10 +47,11 @@ LBFGSBOptimizer::LBFGSBOptimizer( const OptimizerSystem& sys )
         SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  n, INT_MAX, where);
     }
 
-    /* assume all paramters have both upper and lower limits */
+    /* We don't yet know what kinds of bounds we'll have so set the bounds
+       descriptor nbd to an illegal value. */
     nbd = new int[n];
     for(i=0;i<n;i++)
-        nbd[i] = 2;
+        nbd[i] = -1;
 } 
 
 Real LBFGSBOptimizer::optimize(  Vector &results ) {
@@ -74,6 +75,13 @@ Real LBFGSBOptimizer::optimize(  Vector &results ) {
 
     if( sys.getHasLimits() ) {
         sys.getParameterLimits( &lowerLimits, &upperLimits );
+        // Determine what kind of limits each parameter has.
+        // nbd = 0, unbounded; 1, only lower; 2, both; 3 only upper
+        for (int i=0; i < n; ++i) {
+            if (lowerLimits[i] == -Infinity)
+                 nbd[i] = (upperLimits[i] == Infinity ? 0 : 3);
+            else nbd[i] = (upperLimits[i] == Infinity ? 1 : 2);
+        }
     } else {
         lowerLimits = 0;
         upperLimits = 0;

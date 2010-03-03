@@ -122,7 +122,20 @@ InteriorPointOptimizer::InteriorPointOptimizer( const OptimizerSystem& sys )
 
         // If you want to verify which options are getting set in the optimizer, you can create a file ipopt.opt
         // with "print_user_options yes", and set print_level to (at least 1).  It will then print the options to the screen.
+        
+        // sherm 100302: you have to set all of these tolerances to get IpOpt to change
+        // its convergence criteria; see OptimalityErrorConvergenceCheck::CheckConvergence().
+        // We'll set acceptable tolerances to the same value to disable them.
         AddIpoptNumOption(nlp, "tol", convergenceTolerance);
+        AddIpoptNumOption(nlp, "dual_inf_tol", convergenceTolerance);
+        AddIpoptNumOption(nlp, "constr_viol_tol", convergenceTolerance);
+        AddIpoptNumOption(nlp, "compl_inf_tol", convergenceTolerance);
+        AddIpoptNumOption(nlp, "acceptable_tol", convergenceTolerance);
+        AddIpoptNumOption(nlp, "acceptable_dual_inf_tol", convergenceTolerance);
+        AddIpoptNumOption(nlp, "acceptable_constr_viol_tol", convergenceTolerance);
+        AddIpoptNumOption(nlp, "acceptable_compl_inf_tol", convergenceTolerance);
+
+
         AddIpoptIntOption(nlp, "max_iter", maxIterations);
         AddIpoptStrOption(nlp, "mu_strategy", "adaptive");
         AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory"); // needs to be limited-memory unless you have explicit hessians

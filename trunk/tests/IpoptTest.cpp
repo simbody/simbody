@@ -152,9 +152,7 @@ int main() {
 
     Optimizer opt( sys ); 
 
-
-//    opt.setConvergenceTolerance( .0001 );
-    opt.setConvergenceTolerance( 1e-3 );
+    opt.setConvergenceTolerance( 1e-4 );
 
     opt.setDiagnosticsLevel( 7 );
     opt.setLimitedMemoryHistory(500); // works well for our small systems
