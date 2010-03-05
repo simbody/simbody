@@ -78,7 +78,7 @@ public:
         Array_<Array_<Vec3> > targetCopy(targetLocations);
         return findBestFit(system,state,
                     ArrayViewConst_<MobilizedBodyIndex>(bodyIxs), // no copying here
-                    stationCopy, targetCopy);
+                    stationCopy, targetCopy, tolerance);
     }
 
     /**
