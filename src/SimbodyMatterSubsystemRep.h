@@ -427,10 +427,11 @@ public:
     void calcCompositeBodyInertias(const State&,
         Vector_<SpatialMat>& R) const;
 
-    // Calculate the product J*v where J is the kinematic Jacobian dV/du=~Phi*~H and
-    // v is a vector in mobility space (internal coordinates). If v==u, that is,
-    // it is a vector of generalized speeds, then the result will be V_GB, the
-    // spatial velocity of each body.
+    // Calculate the product J*v where J is the kinematic Jacobian 
+    // dV/du=~Phi*~H (Schwieters' and Jain's terminology; our H is transposed
+    // from theirs), and  v is a vector in mobility space (internal 
+    // coordinates). If v==u, that is, it is a vector of generalized speeds, 
+    // then the result will be V_GB, the spatial velocity of each body.
     // This is an O(N) operator which can be called once the State is realized
     // to Stage::Position or higher. Because this is an operator, there is
     // no effect on the State cache.
@@ -438,19 +439,19 @@ public:
         const Vector&        v,
         Vector_<SpatialVec>& Jv) const;
 
-    // Calculate the product ~J*X where J is the partial velocity Jacobian dV/du
-    // (~J=H*Phi)and X is a vector of SpatialVec's, one per body. See Eq. 76&77 in
-    // Schwieters' paper, and see 81a & b for a use of this routine to compute
-    // energy gradient in internal coordinates. In that case X=dE/dR, that is
-    // the gradient of the energy w.r.t. atomic positions, summed and shifted
-    // to body origins. There we are pretending dR/dq is the same as dV/du, which
-    // will be true if dq/dt = u, which works for all cases except quaternions.
-    // Schwieters handles that by using Euler angles for orientation coordinates
-    // when doing minimizations. But note that the routine works in terms of u,
-    // not q, so it produces a meaningful result in all cases, just not one that
-    // can be mapped directly back to quaternion coordinates. This is an O(n)
-    // operator which can be called after realizePosition().
-    // Because this is an operator, there is no effect on the State cache.
+    // Calculate the product ~J*X where J is the partial velocity Jacobian 
+    // dV/du (~J=H*Phi)and X is a vector of force-space SpatialVec's, one per 
+    // body. See Eq. 76&77 in Schwieters' paper, and see 81a & b for a use of 
+    // this routine to compute energy gradient in internal coordinates. In that
+    // case X=dE/dR, that is the gradient of the energy w.r.t. atomic positions, 
+    // summed and shifted to body origins. There we are pretending dR/dq is the
+    // same as dV/du, which will be true if dq/dt = u. In general, we have
+    // dR/dq = (dV/du)*N^-1, where dq/dt = N*u (i.e., N= d qdot/du). But note 
+    // that this method works in terms of u, not q, so it produces a meaningful
+    // result in all cases, just not one that can be mapped directly back to 
+    // generalized coordinates q. This is an O(n) operator which can be called 
+    // after realizePosition(). Because this is an operator, there is no effect
+    // on the State cache.
     void calcInternalGradientFromSpatial(const State&, 
         const Vector_<SpatialVec>& X, 
         Vector&                    JX) const;

@@ -238,6 +238,21 @@ void SimbodyMatterSubsystem::calcMV(const State& s,
     getRep().calcMV(s,v, A_GB, MV);
 }
 
+void SimbodyMatterSubsystem::
+calcPNInv(const State& s, Matrix& PNInv) const {
+    return getRep().calcHolonomicConstraintMatrixPNInv(s,PNInv);
+}
+
+void SimbodyMatterSubsystem::
+calcP(const State& s, Matrix& P) const {
+    return getRep().calcHolonomicVelocityConstraintMatrixP(s,P);
+}
+
+void SimbodyMatterSubsystem::
+calcPt(const State& s, Matrix& Pt) const {
+    return getRep().calcHolonomicVelocityConstraintMatrixPt(s,Pt);
+}
+
 void SimbodyMatterSubsystem::calcCompositeBodyInertias(const State& s,
     Vector_<SpatialMat>& R) const
 {
