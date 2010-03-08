@@ -53,46 +53,43 @@ class MotionImpl;
     extern template class PIMPLHandle<Motion, MotionImpl, true>;
 #endif
 
-/**
- * A Motion object belongs to a particular mobilizer and specifies how the 
- * associated motion is to be calculated. There are two independent aspects:
- * (1) at what level is the motion driven (low to high: acceleration, velocity, 
- * or position), and (2) how is the motion at that level specified. Levels lower 
- * than the driven level are also driven; higher levels are free and determined 
- * by integration. This table shows the possibilities:
- * <pre>
- *      Level How driven    Acceleration    Velocity      Position
- *      ----- ----------    ------------    ----------    ----------
- *       Acc  Zero               0           discrete       free
- *        "   Discrete        discrete         free           "
- *        "   Prescribed      a(t,q,u)          "             "
- *        "   Free           from forces        "             "
- *
- *       Vel  Zero               0              0          discrete
- *        "   Discrete           0           discrete        free
- *        "   Prescribed       dv/dt          v(t,q)          "
- *        "   Fast               0           relax(v)         "
- *
- *       Pos  Zero               0              0           0 (ref.)
- *        "   Discrete           0              0          discrete
- *        "   Prescribed      d2p/dt2         dp/dt          p(t)
- *        "   Fast               0              0          relax(p)
- * </pre>
- * There are two duplicates in the above table: specifying acceleration as
- * Zero is the same as specifying velocity as Discrete and specifying
- * velocity as Zero is the same as specifying position as Discrete.
- *
- * For mobilizers with more than one mobility, the associated Motion controls
- * \e all the mobilities and moreover they are all driven at the same level and
- * by the same method. TODO?: provide Motion::Composite for building up a Motion
- * from individual axis specifications.
- *
- * Motion is a PIMPL-style abstract base class, with concrete classes defined
- * for each kind of Motion. There is a set of built-in Motions and a generic 
- * "Custom" Motion (an abstract base class) from which advanced users may derive 
- * their own Motion objects.
- */
-    
+/** A Motion object belongs to a particular mobilizer and specifies how the 
+associated motion is to be calculated. There are two independent aspects:
+(1) at what level is the motion driven (low to high: acceleration, velocity, 
+or position), and (2) how is the motion at that level specified. Levels lower 
+than the driven level are also driven; higher levels are free and determined 
+by integration. This table shows the possibilities:
+@verbatim
+     Level How driven    Acceleration    Velocity      Position
+     ----- ----------    ------------    ----------    ----------
+      Acc  Zero               0           discrete       free
+       "   Discrete        discrete         free           "
+       "   Prescribed      a(t,q,u)          "             "
+       "   Free           from forces        "             "
+
+      Vel  Zero               0              0          discrete
+       "   Discrete           0           discrete        free
+       "   Prescribed       dv/dt          v(t,q)          "
+       "   Fast               0           relax(v)         "
+
+      Pos  Zero               0              0           0 (ref.)
+       "   Discrete           0              0          discrete
+       "   Prescribed      d2p/dt2         dp/dt          p(t)
+       "   Fast               0              0          relax(p)
+@endverbatim
+There are two duplicates in the above table: specifying acceleration as
+Zero is the same as specifying velocity as Discrete and specifying
+velocity as Zero is the same as specifying position as Discrete.
+
+For mobilizers with more than one mobility, the associated Motion controls
+\e all the mobilities and moreover they are all driven at the same level and
+by the same method. TODO?: provide Motion::Composite for building up a Motion
+from individual axis specifications.
+
+Motion is a PIMPL-style abstract base class, with concrete classes defined
+for each kind of Motion. There is a set of built-in Motions and a generic 
+"Custom" Motion (an abstract base class) from which advanced users may derive 
+their own Motion objects. **/
 class SimTK_SIMBODY_EXPORT Motion : public PIMPLHandle<Motion, MotionImpl, true> {
 public:
     /// What is the highest level of motion that is driven? Lower levels are
