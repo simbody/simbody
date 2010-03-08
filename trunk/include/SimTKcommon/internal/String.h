@@ -157,17 +157,17 @@ public:
     //@{
     /// Upshift the given String in place, so that lowercase letters are replaced
     /// with their uppercase equivalents as defined by std::toupper().
-    String& toUpper();
+    SimTK_SimTKCOMMON_EXPORT String& toUpper();
     /// Downshift the given String in place, so that uppercase letters are replaced
     /// with their lowercase equivalents as defined by std::tolower().
-    String& toLower();
+    SimTK_SimTKCOMMON_EXPORT String& toLower();
     /// Trim this String in place, removing all the initial leading and trailing 
     /// white space, as defined by std::isspace() which typically includes space, 
     /// tab (\\t), newline (\\n), return (\\r),  and form feed (\\f).
-    String& trimWhiteSpace();
+    SimTK_SimTKCOMMON_EXPORT String& trimWhiteSpace();
     /// Substitute in place \a newChar for \a oldChar wherever \a oldChar appears
     /// in this String.
-    String& replaceAllChar(char oldChar, char newChar);
+    SimTK_SimTKCOMMON_EXPORT String& replaceAllChar(char oldChar, char newChar);
     //@}
 
 
@@ -197,7 +197,7 @@ public:
     /// initial leading and trailing white space, as defined by isspace() which
     /// typically includes space, tab (\\t), newline (\\n), return (\\r), 
     /// and form feed (\\f).
-    static String trimWhiteSpace(const std::string& in);
+    static SimTK_SimTKCOMMON_EXPORT String trimWhiteSpace(const std::string& in);
     /// Copy the input std::string to a new SimTK::String while substituting
     /// \a newChar for \a oldChar wherever \a oldChar appears in the input.
     String& replaceAllChar(const std::string& in, char oldChar, char newChar)
