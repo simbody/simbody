@@ -92,6 +92,7 @@
 #include "simbody/internal/DecorationSubsystem.h"
 #include "simbody/internal/TextDataEventReporter.h"
 #include "simbody/internal/ObservedPointFitter.h"
+#include "simbody/internal/Assembler.h"
 #include "simbody/internal/OrientedBoundingBox.h"
 #include "simbody/internal/LocalEnergyMinimizer.h"
 
