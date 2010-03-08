@@ -63,6 +63,12 @@ class ProblemSystem : public OptimizerSystem {
 
 static const Real expected[] = { 2.0, -2.0 };
 
+
+static bool equalToTol(Real v1, Real v2, Real tol) {
+    const Real scale = std::max(std::max(std::abs(v1), std::abs(v2)), Real(1));
+    return std::abs(v1-v2) < scale*tol;
+}
+
 int main() {
 
     int i;
@@ -78,13 +84,13 @@ int main() {
     Optimizer opt( sys ); 
 
     opt.setConvergenceTolerance( .0001 );
-    opt.setDiagnosticsLevel( 5 );
     results[0] =  100;
     results[1] = -100;
     
     opt.setAdvancedRealOption( "xtol", 1e-6 );
 
     opt.optimize( results );
+
   }
   catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
@@ -92,13 +98,17 @@ int main() {
   }
 
 
+
     static const Real TOL = 1e-4;
+
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
-       if( results[i] > expected[i]+TOL || results[i] < expected[i]-TOL) {
-           printf(" LBFGSTest.cpp:  error results[%d] = %f  expected=%f \n",i,results[i], expected[i]); 
+       if(!equalToTol(results[i], expected[i], TOL)) {
+           printf(" LBFGSTest.cpp:  error results[%d] = %f  expected=%f \n",
+                  i,results[i], expected[i]); 
            returnValue = 1;
        }
     }
+
     if( returnValue == 0 ) {
         printf("LBFGSTest.cpp results = ");
         for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {

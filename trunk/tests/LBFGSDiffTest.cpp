@@ -64,6 +64,11 @@ class ProblemSystem : public OptimizerSystem {
    }
 };
 
+static bool equalToTol(Real v1, Real v2, Real tol) {
+    const Real scale = std::max(std::max(std::abs(v1), std::abs(v2)), Real(1));
+    return std::abs(v1-v2) < scale*tol;
+}
+
 int main() {
 
     int i;
@@ -79,7 +84,6 @@ int main() {
     Optimizer opt( sys ); 
 
     opt.setConvergenceTolerance( .0001 );
-
     opt.useNumericalGradient( true );
 
     results[0] =  100;
@@ -101,7 +105,7 @@ int main() {
     static const Real TOL = 1e-4;
     Real expected[] = { 2.0, -2.0 };
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
-       if( results[i] > expected[i]+TOL || results[i] < expected[i]-TOL) {
+       if(!equalToTol(results[i], expected[i], TOL)) {
            printf(" LBFGSDiffTest.cpp: error results[%d] = %f  expected=%f \n",i,results[i], expected[i]); 
            returnValue = 1;
        }

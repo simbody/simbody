@@ -2732,25 +2732,15 @@ L999:
 /* ======================= The end of prn3lb ============================= */
 /* Subroutine */
 static int projgr_( int *n, Real *l, Real *u, int *nbd,
-Real *x, Real *g, Real *sbgnrm)
+                    Real *x, Real f, Real *g,
+                    Real *sbgnrm)
 {
-    /* System generated locals */
-    int i__1;
-    Real d__1, d__2;
-
-    /* Local variables */
-    int i__;
-    Real gi;
-
 /*     ************ */
 
 /*     Subroutine projgr */
 
 /*     This subroutine computes the infinity norm of the projected */
 /*       gradient. */
-
-
-/*                           *  *  * */
 
 /*     NEOS, November 1994. (Latest revision June 1996.) */
 /*     Optimization Technology Center. */
@@ -2759,9 +2749,27 @@ Real *x, Real *g, Real *sbgnrm)
 /*                        Ciyou Zhu */
 /*     in collaboration with R.H. Byrd, P. Lu-Chen and J. Nocedal. */
 
+// sherm 100303: from Byrd, Lu, Nocedal, Zhu Northwestern U. Tech.
+// Report NAM08, 1994, Eqs. 2.2 and 6.1, this calculates the projected
+// gradient this way:
+// 2.2   P(x,l,u)_i = { l_i,  x_i < l_i
+//                    { x_i,  x_i in [l_i,u_i]
+//                    { u_i,  x_i > u_i
+//
+// Now take a unit step in the gradient direction, but use the above 
+// piecewise linear function to trim the final point to the bounds. Then
+// recalculate the direction that was actually taken; that is the projected
+// gradient pg:
+// 6.1   pg = P(x - g, l, u) - x
+//     
+// To make this scale independent for both the function f and variables x,
+// we take pg = df/dx * (1/f) * x (with suitable worrying for f or x near
+// zero) to get pg' = (%chg f)/(%chg x), i.e. the fractional change of f
+// caused by a "unit" change in x. We return the infinity norm of pg'.
+//
 
 /*     ************ */
-    /* Parameter adjustments */
+    /* Adjustments to allow 1-based indexing. */
     --g;
     --x;
     --nbd;
@@ -2769,29 +2777,31 @@ Real *x, Real *g, Real *sbgnrm)
     --l;
 
     /* Function Body */
+    const Real fscale = 1 / std::max(0.1, std::abs(f));
     *sbgnrm = 0.;
-    i__1 = *n;
-    for (i__ = 1; i__ <= i__1; ++i__) {
-    gi = g[i__];
-    if (nbd[i__] != 0) {
-        if (gi < 0.) {
-        if (nbd[i__] >= 2) {
-/* Computing MAX */
-            d__1 = x[i__] - u[i__];
-            gi = std::max(d__1,gi);
+    for (int i = 1; i <= *n; ++i) {
+        Real gi = g[i];
+        if (nbd[i] != 0) {
+            if (gi < 0.) {
+                if (nbd[i] >= 2) {
+                    /* Computing MAX */
+                    const Real d = x[i] - u[i]; // -distance to upper bound
+                    gi = std::max(d,gi);
+                }
+            } else { // gi >= 0
+                if (nbd[i] <= 2) {
+                    /* Computing MIN */
+                    const Real d = x[i] - l[i]; // distance to lower bound
+                    gi = std::min(d,gi);
+                }
+            }
         }
-        } else {
-        if (nbd[i__] <= 2) {
-/* Computing MIN */
-            d__1 = x[i__] - l[i__];
-            gi = std::min(d__1,gi);
-        }
-        }
-    }
-/* Computing MAX */
-    d__1 = *sbgnrm, d__2 = fabs(gi);
-    *sbgnrm = std::max(d__1,d__2);
-/* L15: */
+
+        // For large x, we want to know how the function changes with an
+        // "x-sized" change, not a "1-sized" change.
+        const Real xscale = std::max(Real(1), std::abs(x[i])); 
+        // Retain the largest absolute value.
+        *sbgnrm = std::max(*sbgnrm, std::abs(gi)*fscale*xscale);
     }
     return 0;
 } /* projgr_ */
@@ -4520,7 +4530,7 @@ actorization in formt;\002,/,\002   refresh the lbfgs memory and restart the\
 L111:
     nfgv = 1;
 /*     Compute the infinity norm of the (-) projected gradient. */
-    projgr_(n, &l[1], &u[1], &nbd[1], &x[1], &g[1], &sbgnrm);
+    projgr_(n, &l[1], &u[1], &nbd[1], &x[1], *f, &g[1], &sbgnrm);
     if (*iprint >= 1) {
 /*
     s_wsfe(&io___62);
@@ -4736,7 +4746,7 @@ L666:
        lnscht = lnscht + cpu2 - cpu1;
        ++iter;
 /*        Compute the infinity norm of the projected (-)gradient. */
-    projgr_(n, &l[1], &u[1], &nbd[1], &x[1], &g[1], &sbgnrm);
+    projgr_(n, &l[1], &u[1], &nbd[1], &x[1], *f, &g[1], &sbgnrm);
 /*        Print iteration information. */
     prn2lb_(n, &x[1], f, &g[1], iprint, &itfile, &iter, &nfgv, &nact, &
         sbgnrm, &nint, word, &iword, &iback, &stp, &xstep, (ftnlen)3);

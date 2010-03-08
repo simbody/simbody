@@ -95,8 +95,9 @@ void lbp1d_(char* msg, int* i);
 
 
 
-void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f, int *iprint, 
-             SimTK::Real *eps, SimTK::Real *xtol )
+void SimTK::LBFGSOptimizer::lbfgs_
+   (int n, int m, SimTK::Real *x, SimTK::Real *f, 
+    int *iprint, SimTK::Real *eps, SimTK::Real *xtol)
 {
 
     /* System generated locals */
@@ -111,7 +112,6 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
     integer i, bound;
     Real gnorm;
     integer point;
-    Real xnorm;
     integer cp;
     Real sq, yr, ys;
     Real yy;
@@ -199,6 +199,8 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
 /*            the user, and determines the accuracy with which the solution*/
 /*            is to be found. The subroutine terminates when */
 
+    //sherm 100303: this criteria makes no sense to me. It looks like the X
+    // is on the wrong side.
 /*                         ||G|| < EPS max(1,||X||), */
 
 /*            where ||.|| denotes the Euclidean norm. */
@@ -294,14 +296,31 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
     objectiveFuncWrapper( n, x, true, f, this);
     gradientFuncWrapper( n,  x, false, gradient, this);
 
+    // sherm 100303:
+    // Scale the absolute gradient df/dx by f and x to get a relative
+    // gradient (%chg f)/(%chg x). Then if 100% change of an x doesn't
+    // produce at least a change eps*f we can say that x has converged.
+    // This is the convergence criteria used for BFGS in Numerical Recipes
+    // in C++ 2nd ed. p433 and makes more sense to me than the one that
+    // came with this LBFGS implementation.
+    // This is a scaled infinity-norm.
+
+    Real fscale = 1 / std::max(0.1, std::abs(*f));
+
+    // Make a quick attempt to quit if we're already converged. No need
+    // to calculate the whole norm here; we'll stop as soon as we find
+    // a non-converged element.
     converged = true;
-    for(int i=0;i<n;i++ ) {
-        if( std::fabs(gradient[i]) > *eps ) {
+    for (int i=0; i<n; ++i) {
+        const Real xscale = std::max(Real(1), std::abs(x[i]));
+        if( std::abs(gradient[i])*fscale*xscale > *eps ) {
            converged=false;
+           break;
         }
     }
     if( converged ) return;   // check if starting at minimum 
 
+    // This is the unscaled 2-norm of the gradient.
     gnorm = std::sqrt(ddot_(n, gradient, c__1, gradient, c__1));
 
     stp1 = 1. / gnorm;
@@ -421,14 +440,17 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
        }
 
        do {
-          SimTK::LBFGSOptimizer::mcsrch_(&n, x, f, gradient, &w[ispt + point * n], &stp, &ftol, xtol, eps, &maxfev, &info, &nfev, diag);
+          SimTK::LBFGSOptimizer::mcsrch_(&n, x, f, gradient, 
+                                         &w[ispt + point * n], 
+                                         &stp, &ftol, xtol, 
+                                         &maxfev, &info, &nfev, diag);
           if (info == -1) {
               objectiveFuncWrapper( n, x, true, f, this);
               gradientFuncWrapper( n,  x, false, gradient, this);
           } else if (info != 1) {
-	      delete [] diag;
+              delete [] diag;
               delete [] gradient;
-	      delete [] w;
+              delete [] w;
               if (lb3_1.lp > 0) {
                  SimTK_THROW1(SimTK::Exception::OptimizerFailed , 
                  "LBFGS LINE SEARCH FAILED POSSIBLE CAUSES: FUNCTION OR GRADIENT ARE INCORRECT OR INCORRECT TOLERANCES");  
@@ -481,16 +503,26 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
 /*     TERMINATION TEST */
 /*     ---------------- */
 
-	   gnorm = std::sqrt(ddot_(n, gradient, c__1, gradient, c__1));
-	   xnorm = std::sqrt(ddot_(n, x, c__1, x, c__1));
-       xnorm = std::max(1.,xnorm);
-       if (gnorm / xnorm <= *eps) {
-           converged = true;
-       }
+        //gnorm = std::sqrt(ddot_(n, gradient, c__1, gradient, c__1));
+        //xnorm = std::sqrt(ddot_(n, x, c__1, x, c__1));
+        //   xnorm = std::max(1.,xnorm);
+        //   if (gnorm / xnorm <= *eps) {
+        //       converged = true;
+        //   }
 
-       if (iprint[0] > 0) {
-        lb1_(iprint, &iter, &nfun, &gnorm, &n, &m, x, f, gradient, &stp, &converged);
-       }
+
+        // sherm 100303: use scaled infinity norm instead
+        fscale = 1 / std::max(0.1, std::abs(*f));
+        gnorm = 0;
+        for (int i=0; i<n; ++i) {
+            const Real xscale = std::max(Real(1), std::abs(x[i]));
+            gnorm = std::max(gnorm, std::abs(gradient[i])*fscale*xscale);
+        }
+        converged = (gnorm <= *eps);
+
+        if (iprint[0] > 0)
+            lb1_(iprint, &iter, &nfun, &gnorm, &n, &m, 
+                 x, f, gradient, &stp, &converged);
 
     }  // end while loop
 	delete [] diag;
@@ -617,8 +649,10 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
 /*     ************************** */
 
 /* Subroutine */
-void SimTK::LBFGSOptimizer::mcsrch_(integer *n, Real *x, Real *f, Real *g, Real *s, Real *stp,
-                    Real *ftol, Real *xtol, Real *eps, integer *maxfev, integer *info, integer *nfev, Real *wa)
+void SimTK::LBFGSOptimizer::mcsrch_
+   (integer *n, Real *x, Real *f, Real *g, Real *s, Real *stp,
+    Real *ftol, Real *xtol, integer *maxfev, 
+    integer *info, integer *nfev, Real *wa)
 {
     /* Initialized data */
 
