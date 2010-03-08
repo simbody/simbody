@@ -58,8 +58,7 @@ The complete specification for an Assembly study consists of four elements:
 - A set of assembly constraints that \e must be met
 - A set of weighted assembly goals that are to be achieved if possible
 
-By default, all q's may be modified with no range restrictions, although the 
-analysis will attempt to change them as little as possible. The assembly
+By default, all q's may be modified with no range restrictions. The assembly
 constraints are just the position (holonomic) constraints that are present
 in the MultibodySystem and currently enabled. Quaternion normalization 
 constraints will also be satisfied if necessary, but they do not compete with
@@ -686,7 +685,7 @@ public:
         SimTK_ERRCHK2_ALWAYS(found.second, // true if insertion was done
             "Markers::addMarker()",
             "Marker name '%s' was already use for Marker %d.",
-            nm.c_str(), found.first->second); 
+            nm.c_str(), (int)found.first->second); 
 
         markers.push_back(Marker(nm,bodyB,markerInB,weight));
 
