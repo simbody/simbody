@@ -125,7 +125,7 @@ public:
 
 
 private:
-    static void createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, const Array_<MobilizedBodyIndex>& originalBodyIxs, Array_<MobilizedBodyIndex>& copyBodyIxs);
+    static void createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, const Array_<MobilizedBodyIndex>& originalBodyIxs, Array_<MobilizedBodyIndex>& copyBodyIxs, bool& hasArtificialBaseBody);
     static void findUpstreamBodies(MobilizedBodyIndex currentBodyIx, const Array_<int> numStations, const SimbodyMatterSubsystem& matter, Array_<MobilizedBodyIndex>& bodyIxs, int requiredStations);
     static void findDownstreamBodies(MobilizedBodyIndex currentBodyIx, const Array_<int> numStations, const Array_<Array_<MobilizedBodyIndex> > children, Array_<MobilizedBodyIndex>& bodyIxs, int& requiredStations);
     static int findBodiesForClonedSystem(MobilizedBodyIndex primaryBodyIx, const Array_<int> numStations, const SimbodyMatterSubsystem& matter, const Array_<Array_<MobilizedBodyIndex> > children, Array_<MobilizedBodyIndex>& bodyIxs);

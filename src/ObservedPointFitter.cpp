@@ -6,9 +6,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-10 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -42,6 +42,9 @@ using namespace SimTK;
  * This class defines the objective function which is passed to the Optimizer.
  */
 
+static const bool UseWeighted = true;
+static const Real MinimumShift = 1; // add to objective to get minimum away from zero
+
 class ObservedPointFitter::OptimizerFunction : public OptimizerSystem {
 public:
     OptimizerFunction(const MultibodySystem& system, const State& state, Array_<MobilizedBodyIndex> bodyIxs, Array_<Array_<Vec3> > stations, Array_<Array_<Vec3> > targetLocations, Array_<Array_<Real> > weights) :
@@ -53,14 +56,19 @@ public:
         if (new_parameters)
             state.updQ() = parameters;
         system.realize(state, Stage::Position);
-        f = 0.0;
+        Real wtot = 0;
+        f = 0;
         for (int i = 0; i < (int)bodyIxs.size(); ++i) {
             const MobilizedBodyIndex id = bodyIxs[i];
             const MobilizedBody& body = system.getMatterSubsystem().getMobilizedBody(id);
             for (int j = 0; j < (int)stations[i].size(); ++j) {
                 f += weights[i][j]*(targetLocations[i][j]-body.getBodyTransform(state)*stations[i][j]).normSqr();
+                wtot += weights[i][j];
             }
         }
+        if (UseWeighted && wtot > 0) f /= wtot;
+
+        f += MinimumShift; // so minimum won't be at zero where scaling is tricky
         return 0;
     }
     int gradientFunc(const Vector &parameters, const bool new_parameters, Vector &gradient) const  {
@@ -70,16 +78,19 @@ public:
         const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
         Vector_<SpatialVec> dEdR(matter.getNumBodies());
         dEdR = SpatialVec(Vec3(0), Vec3(0));
+        Real wtot = 0;
         for (int i = 0; i < (int)bodyIxs.size(); ++i) {
             const MobilizedBodyIndex id = bodyIxs[i];
             const MobilizedBody& body = matter.getMobilizedBody(id);
             for (int j = 0; j < (int)stations[i].size(); ++j) {
-                Vec3 f = 2.0*weights[i][j]*(body.getBodyTransform(state)*stations[i][j]-targetLocations[i][j]);
+                Vec3 f = 2*weights[i][j]*(body.getBodyTransform(state)*stations[i][j]-targetLocations[i][j]);
                 body.applyForceToBodyPoint(state, stations[i][j], f, dEdR);
+                wtot += weights[i][j];
             }
         }
         Vector dEdU;
         matter.calcInternalGradientFromSpatial(state, dEdR, dEdU);
+        if (UseWeighted && wtot > 0) dEdU /= wtot;
         matter.multiplyByNInv(state, true, dEdU, gradient);
         return 0;
     }
@@ -90,10 +101,16 @@ public:
         return 0;
     }
     void optimize(Vector& q, Real tolerance) {
-        Optimizer opt(*this);
+        Optimizer opt(*this
+            //, LBFGSB // XXX
+            //, InteriorPoint // XXX
+            );
+        //opt.useNumericalGradient(true); //XXX
         opt.useNumericalJacobian(true);
         opt.setConvergenceTolerance(tolerance);
-        opt.setLimitedMemoryHistory(100);
+        opt.setMaxIterations(3000);
+        opt.setLimitedMemoryHistory(40);
+        //opt.setDiagnosticsLevel(5);
         opt.optimize(q);
     }
 private:
@@ -110,12 +127,18 @@ private:
  * in the original system, and is used to find an initial estimate of that MobilizedBody's conformation.
  */
 
-void ObservedPointFitter::createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, const Array_<MobilizedBodyIndex>& originalBodyIxs, Array_<MobilizedBodyIndex>& copyBodyIxs) {
+void ObservedPointFitter::
+createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, 
+                   const Array_<MobilizedBodyIndex>& originalBodyIxs, 
+                   Array_<MobilizedBodyIndex>& copyBodyIxs,
+                   bool& hasArtificialBaseBody) 
+{
     const SimbodyMatterSubsystem& originalMatter = original.getMatterSubsystem();
     SimbodyMatterSubsystem copyMatter(copy);
     Body::Rigid body = Body::Rigid(MassProperties(1, Vec3(0), Inertia(1)))
                                   .addDecoration(Transform(), DecorativeSphere(.1));
     std::map<MobilizedBodyIndex, MobilizedBodyIndex> idMap;
+    hasArtificialBaseBody = false;
     for (int i = 0; i < (int)originalBodyIxs.size(); ++i) {
         const MobilizedBody& originalBody = originalMatter.getMobilizedBody(originalBodyIxs[i]);
         MobilizedBody* copyBody;
@@ -123,6 +146,7 @@ void ObservedPointFitter::createClonedSystem(const MultibodySystem& original, Mu
             if (originalBody.isGround())
                 copyBody = &copyMatter.Ground();
             else {
+                hasArtificialBaseBody = true; // not using the original joint here
                 MobilizedBody::Free free(copyMatter.Ground(), body);
                 copyBody = &copyMatter.updMobilizedBody(free.getMobilizedBodyIndex());
             }
@@ -245,11 +269,25 @@ Real ObservedPointFitter::findBestFit
     }
 
     // Perform the initial estimation of Q for each mobilizer.
-    
-    State tempState = state;
-    matter.setUseEulerAngles(tempState, true);
+    // Our first guess is the passed-in q's, with quaternions converted
+    // to Euler angles if necessary. As we solve a subproblem for each
+    // of the bodies in ascending order, we'll update tempState's q's
+    // for that body to their solved values.
+    State tempState;
+    if (!matter.getUseEulerAngles(state))
+        matter.convertToEulerAngles(state, tempState);
+    else tempState = state;
     system.realizeModel(tempState);
-    tempState.updQ().setToZero();
+    system.realize(tempState, Stage::Position);
+
+    // This will accumulate best-guess spatial poses for the bodies as
+    // they are processed. This is useful for when a body is used as
+    // an artificial base body; our first guess will to be to place it
+    // wherever it was the last time it was used in a subproblem.
+    Array_<Transform> guessX_GB(matter.getNumBodies());
+    for (MobilizedBodyIndex mbx(1); mbx < guessX_GB.size(); ++mbx)
+        guessX_GB[mbx] = matter.getMobilizedBody(mbx).getBodyTransform(tempState);
+
     for (int i = 0; i < matter.getNumBodies(); ++i) {
         MobilizedBodyIndex id(i);
         const MobilizedBody& body = matter.getMobilizedBody(id);
@@ -264,10 +302,24 @@ Real ObservedPointFitter::findBestFit
             continue; // There are no stations whose positions are affected by this.
         MultibodySystem copy;
         Array_<MobilizedBodyIndex> copyBodyIxs;
-        createClonedSystem(system, copy, originalBodyIxs, copyBodyIxs);
-        Array_<Array_<Vec3> > copyStations(copy.getMatterSubsystem().getNumBodies());
-        Array_<Array_<Vec3> > copyTargetLocations(copy.getMatterSubsystem().getNumBodies());
-        Array_<Array_<Real> > copyWeights(copy.getMatterSubsystem().getNumBodies());
+        bool hasArtificialBaseBody;
+        createClonedSystem(system, copy, originalBodyIxs, copyBodyIxs, hasArtificialBaseBody);
+        const SimbodyMatterSubsystem& copyMatter = copy.getMatterSubsystem();
+        // Construct an initial state.
+        State copyState = copy.getDefaultState();
+        assert(copyBodyIxs.size() == originalBodyIxs.size());
+        for (int ob=0; ob < (int)originalBodyIxs.size(); ++ob) {
+            const MobilizedBody& copyMobod = copyMatter.getMobilizedBody(copyBodyIxs[ob]);
+            const MobilizedBody& origMobod = matter.getMobilizedBody(originalBodyIxs[ob]);
+            if (ob==0 && hasArtificialBaseBody)
+                copyMobod.setQToFitTransform(copyState, guessX_GB[origMobod.getMobilizedBodyIndex()]);
+            else
+                copyMobod.setQFromVector(copyState, origMobod.getQAsVector(tempState));
+        }
+
+        Array_<Array_<Vec3> > copyStations(copyMatter.getNumBodies());
+        Array_<Array_<Vec3> > copyTargetLocations(copyMatter.getNumBodies());
+        Array_<Array_<Real> > copyWeights(copyMatter.getNumBodies());
         for (int j = 0; j < (int)originalBodyIxs.size(); ++j) {
             int index = bodyIndex[originalBodyIxs[j]];
             if (index != -1) {
@@ -277,11 +329,24 @@ Real ObservedPointFitter::findBestFit
             }
         }
         try {
-            OptimizerFunction optimizer(copy, copy.getDefaultState(), copyBodyIxs, copyStations, copyTargetLocations, copyWeights);
-            Vector q(copy.getDefaultState().getQ());
+            OptimizerFunction optimizer(copy, copyState, copyBodyIxs, copyStations, copyTargetLocations, copyWeights);
+            Vector q(copyState.getQ());
+            //std::cout << "BODY " << i << " q0=" << q << std::endl;
             optimizer.optimize(q, tolerance);
-            copy.updDefaultState().updQ() = q;
-            body.setQFromVector(tempState, copy.getMatterSubsystem().getMobilizedBody(copyBodyIxs[currentBodyIndex]).getQAsVector(copy.getDefaultState()));
+            //std::cout << "  qf=" << q << std::endl;
+            copyState.updQ() = q;
+            copy.realize(copyState, Stage::Position);
+            // Transfer updated state back to tempState as improved initial guesses.
+            // However, all but the currentBody will get overwritten later.
+            for (int ob=0; ob < (int)originalBodyIxs.size(); ++ob) {
+                const MobilizedBody& copyMobod = copyMatter.getMobilizedBody(copyBodyIxs[ob]);
+                guessX_GB[originalBodyIxs[ob]] = copyMobod.getBodyTransform(copyState);
+
+                if (ob==0 && hasArtificialBaseBody) continue; // leave default state
+                const MobilizedBody& origMobod = matter.getMobilizedBody(originalBodyIxs[ob]);
+                origMobod.setQFromVector(tempState, copyMobod.getQAsVector(copyState));
+            }
+            //body.setQFromVector(tempState, copyMatter.getMobilizedBody(copyBodyIxs[currentBodyIndex]).getQAsVector(copyState));
         }
         catch (Exception::OptimizerFailed ex) {
             std::cout << "Optimization failure for body "<<i<<": "<<ex.getMessage() << std::endl;
@@ -305,9 +370,13 @@ Real ObservedPointFitter::findBestFit
     
     Real error;
     optimizer.objectiveFunc(q, true, error);
+    if (UseWeighted)
+        return std::sqrt(error - MinimumShift); // already weighted; this makes WRMS
+
     Real totalWeight = 0;
     for (int i = 0; i < (int)weights.size(); ++i)
         for (int j = 0; j < (int)weights[i].size(); ++j)
             totalWeight += weights[i][j];
-    return std::sqrt(error/totalWeight);
+
+    return std::sqrt((error-MinimumShift)/totalWeight);
 }
