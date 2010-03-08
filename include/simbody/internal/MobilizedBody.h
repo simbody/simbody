@@ -315,6 +315,15 @@ public:
     /// State must have been realized to Stage::Model.
     int getNumU(const State&) const;
 
+    /// Return the global QIndex of the first q for this mobilizer; all the q's
+    /// range from getFirstQIndex() to QIndex(getFirstQIndex()+getNumQ()-1).
+    QIndex getFirstQIndex(const State&) const;
+
+    /// Return the global UIndex of the first u for this mobilizer; all the u's
+    /// range from getFirstUIndex() to UIndex(getFirstUIndex()+getNumU()).
+    UIndex getFirstUIndex(const State&) const;
+
+
     /// Return one of the generalized coordinates q from this mobilizer's partition of the matter
     /// subsystem's full q vector in the State. The particular coordinate is selected using the \p which
     /// parameter, numbering from zero to getNumQ()-1.

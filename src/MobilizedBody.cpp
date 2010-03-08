@@ -211,9 +211,19 @@ int MobilizedBody::getNumQ(const State& s) const {
     return nq;
 }
 
+QIndex MobilizedBody::getFirstQIndex(const State& s) const {
+    QIndex qStart; int nq; getImpl().findMobilizerQs(s, qStart, nq);
+    return qStart;
+}
+
 int MobilizedBody::getNumU(const State& s) const {
     UIndex uStart; int nu; getImpl().findMobilizerUs(s, uStart, nu);
     return nu;
+}
+
+UIndex MobilizedBody::getFirstUIndex(const State& s) const {
+    UIndex uStart; int nu; getImpl().findMobilizerUs(s, uStart, nu);
+    return uStart;
 }
 
 Real  MobilizedBody::getOneFromQPartition(const State& s, int which, const Vector& qlike) const {
