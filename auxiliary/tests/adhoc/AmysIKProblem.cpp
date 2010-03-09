@@ -2708,3 +2708,4 @@ static ArrayViewConst_<Vec3> getFrame(int i) {
     const Vec3* o = (const Vec3*)observations;
     return ArrayViewConst_<Vec3>(o+i*getNumObservations(), o+(i+1)*getNumObservations());
 }
+

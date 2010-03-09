@@ -952,3 +952,4 @@ int Markers::initializeCondition() const {
 void Markers::uninitializeCondition() const {
     bodiesWithMarkers.clear();
 }
+
