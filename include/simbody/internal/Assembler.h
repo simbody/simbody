@@ -63,11 +63,11 @@ constraints are just the position (holonomic) constraints that are present
 in the MultibodySystem and currently enabled. Quaternion normalization 
 constraints will also be satisfied if necessary, but they do not compete with
 the other position constraints. (The Assembler's internal State is always
-maintained with quaternions disabled.) There are no default assembly goals. This 
-is very similiar in behavior to the System's project() method except that 
-project() considers it an error if the constraints aren't already close to being 
-satisfied initially, while Assembler will attempt to satisfy them regardless, and 
-make take a series of increasingly desperate measures to do so. 
+maintained with quaternions disabled.) There are no default assembly goals. 
+This is very similiar in behavior to the System's project() method except that
+project() considers it an error if the constraints aren't already close to 
+being satisfied initially, while Assembler will attempt to satisfy them 
+regardless, and make take a series of increasingly desperate measures to do so. 
 
 Optional settings include:
 - Locking particular mobilizers so that their q's can't be changed.
@@ -80,7 +80,27 @@ Infinity. Anything with a lower weight is a goal and will be combined with all
 the other goals into a single scalar objective. The built-in Constraints are
 normally treated with infinite weight, but you can change them to goals instead
 if you like; sometimes that can be useful as a step in getting a difficult-to-
-assemble system assembled. **/
+assemble system assembled. 
+
+<h2>Basic usage:</h2>
+This is the most common use of the Assembler: modify a System's existing State
+so that its configuration (set of generalized coordinates q) satisfies the 
+System's built-in Constraints that are currently enabled in that State. This 
+is done to a default tolerance if you don't provide one, and that tolerance is
+suitable for use with subsequent dynamic studies that are run at their default
+tolerances.
+@code
+    try {
+    MultibodySystem system;
+    // ... build system; get initial state
+
+    Assembler assembler(system); // construct the Assembler study object
+    try // modify state to satisfy Constraints
+    {   assembler.assemble(state); }
+    catch (std::exception exc)
+    {   std::cout << "Assembly failed: " << exc.what() << std::endl; }
+@endcode
+**/
 class SimTK_SIMBODY_EXPORT Assembler : public Study {
     typedef std::set<MobilizedBodyIndex>            LockedMobilizers;
     typedef std::set<MobilizerQIndex>               QSet;
@@ -99,9 +119,6 @@ public:
     contains. **/
     ~Assembler();
 
-    AssemblyConditionIndex adoptAssemblyConstraint(AssemblyCondition* p);
-    AssemblyConditionIndex adoptAssemblyGoal(AssemblyCondition* p, Real weight=1);
-
     /** Given a reference to an EventReporter, use this Reporter to provide 
     progress reporting. The EventReporter object must be owned by someone
     else and persist throughout the lifetime of this Assembler object. **/
@@ -109,9 +126,6 @@ public:
         reporters.push_back(&reporter);
     }
 
-    void initialize() const;
-    void uninitialize() const;
-    bool isInitialized() const {return alreadyInitialized;}
 
     /** Return the goal value attained by the internal State's current settings
     for the free q's; this is a weighted sum of the individual goal values for 
@@ -123,16 +137,21 @@ public:
     assembly solution (although it may not be optimal). **/
     Real calcCurrentError() const;
 
+    /** Set the Assembler's internal state from an existing state which must
+    be suitable for use with the Assembler's System as supplied at the time
+    the Assembler was constructed. All variables are copied, not just q's, so
+    the Assembler must be reinitialized after this call in case modeling 
+    options, instance variables, or time have changed. **/
     void setInternalState(const State& state) {
         uninitialize();
         getMatterSubsystem().convertToEulerAngles(state, internalState);
         system.realizeModel(internalState);
     }
 
-    /** Given an existing State that is suitable for this System, update its
-    q's from those found in the Assembler's internal State, leaving everything
-    else unchanged. We will convert from Euler angles to quaternions if the
-    destination State is set to use quaternions. **/
+    /** Given an existing State that is suitable for the Assembler's System, 
+    update its q's from those found in the Assembler's internal State, leaving 
+    everything else unchanged. We will convert from Euler angles to quaternions
+    if the destination State is set to use quaternions. **/
     void updateFromInternalState(State& state) const {
         system.realizeModel(state); // allocates q's if they haven't been yet
         if (!getMatterSubsystem().getUseEulerAngles(state)) {
@@ -144,10 +163,31 @@ public:
             state.updQ() = getInternalState().getQ();
     }
 
+    /** Initialize the Assembler to prepare for performing assembly analysis.
+    This is normally called when needed but you can call it explicitly and then
+    access methods that report on the properties of the system on which the
+    analysis will be performed. The internal state should already have been
+    set; if you want to provide the state use initialize(State). **/
+    void initialize() const;
+    /** Set the internal State and initialize. See setInternalState() and 
+    initialize() methods for more information. **/
     void initialize(const State& state)
     {   setInternalState(state); initialize(); }
+    /** Uninitialize the Assembler. After this call the Assembler must be
+    initialized again before an assembly study can be performed. Normally this
+    is called automatically when changes are made; you can call it explicitly
+    if you want. **/
+    void uninitialize() const;
+    /** Check whether the Assembler has been initialized since the last change
+    was made to its contents. **/
+    bool isInitialized() const {return alreadyInitialized;}
 
-
+    /** This provides read-only access to the Assembler's internal State; you
+    probably should use updateFromInternalState() to transfer just q's from
+    the internal state to your own State. Be aware that the internal state is
+    always maintained using Euler angles for rotations rather than quaternions,
+    while updateFromInternalState() will make sure you get the rotations in the form
+    you want. **/
     const State& getInternalState() const {return internalState;}
 
     /** Return the number of q's which are free to be changed by this 
@@ -176,8 +216,13 @@ public:
         else return Vec2(lower[freeQIndex], upper[freeQIndex]);
     }
 
+    /** Return a reference to the MultibodySystem associated with this 
+    Assembler (that is, the System that was supplied in the Assembler's
+    constructor. **/
     const MultibodySystem& getMultibodySystem() const 
     {   return system; }
+    /** Return a reference to the SimbodyMatterSubsystem that is contained
+    in the MultibodySystem that is associated with this Assembler. **/
     const SimbodyMatterSubsystem& getMatterSubsystem() const
     {   return system.getMatterSubsystem(); }
 
@@ -230,16 +275,17 @@ public:
     void unlockMobilizer(MobilizedBodyIndex mbx) 
     {   uninitialize(); userLockedMobilizers.erase(mbx); }
 
-    /** Lock one of this mobilizer's q's at its initial value. Be careful with this
-    method because it requires that you understand the order of the generalized
-    coordinates used by this particular mobilizer during assembly. In particular,
-    the mobilizer will be modeled with Euler angles rather than quaternions and
-    you must know the Euler sequence it uses in that case (that is, body- or space-
-    fixed, 2 or 3 axes, and the rotation order). It is preferable to use 
-    lockMobilizer() instead since that will lock all the q's however they are 
-    defined. Note that locking individual q's with this method is independent of
-    whole-mobilizer locking. If you unlock the mobilizer with unlockMobilizer(),
-    any q's which have been explicitly locked with lockQ() will remain locked. **/
+    /** Lock one of this mobilizer's q's at its initial value. Be careful with 
+    this method because it requires that you understand the order of the 
+    generalized coordinates used by this particular mobilizer during assembly. 
+    In particular, the mobilizer will be modeled with Euler angles rather than 
+    quaternions and you must know the Euler sequence it uses in that case (that
+    is, body- or space-fixed, 2 or 3 axes, and the rotation order). It is 
+    preferable to use lockMobilizer() instead since that will lock all the q's 
+    however they are defined. Note that locking individual q's with this method
+    is independent of whole-mobilizer locking. If you unlock the mobilizer with
+    unlockMobilizer(), any q's which have been explicitly locked with lockQ() 
+    will remain locked. **/
     void lockQ(MobilizedBodyIndex mbx, MobilizerQIndex qx)
     {   uninitialize(); userLockedQs[mbx].insert(qx); }
 
@@ -258,14 +304,15 @@ public:
     }
 
     /** Restrict a q to remain within a given range. Caution: this requires that
-    you understand the order of the generalized coordinates used by this particular
-    mobilizer during assembly; see lockQ() for a discussion. You can use -Infinity
-    or Infinity to indicate that the q is not bounded in one direction. **/
+    you understand the order of the generalized coordinates used by this 
+    particular mobilizer during assembly; see lockQ() for a discussion. You can
+    use -Infinity or Infinity to indicate that the q is not bounded in one 
+    direction. **/
     void restrictQ(MobilizedBodyIndex mbx, MobilizerQIndex qx,
                    Real lowerBound, Real upperBound)
     {   SimTK_ERRCHK2_ALWAYS(lowerBound <= upperBound, "Assembler::restrictQ()", 
-            "The given range [%g,%g] is illegal because the lower bound is greater"
-            " than the upper bound.", lowerBound, upperBound);
+            "The given range [%g,%g] is illegal because the lower bound is"
+            " greater than the upper bound.", lowerBound, upperBound);
         if (lowerBound == -Infinity && upperBound == Infinity)
         {   unrestrictQ(mbx,qx); return; }
         uninitialize(); 
@@ -295,20 +342,44 @@ public:
     in the System that are enabled must be satisifed to within the assembly
     tolerance. You can selectively enable and disable Constraints in the
     state using the ordinary Constraint::disable() and enable() methods. You
-    can also apply an overall weighting to these built-in Constraints here
-    if you want; if the weight is zero they will be ignored. Additional
-    assembly conditions may be specified with these methods. **/
+    can also apply an overall weighting to these Constraints here if you want; 
+    if the weight is zero they will be ignored; if Infinity they are treated
+    as must-satisfy assembly error conditions; any other number is used to
+    weight the RMS Constraint error into the scalar objective along
+    with the other goals. Additional assembly conditions may be specified with
+    these methods; some predefined conditions are available, most notably 
+    Markers for tracking observed marker locations. **/
     /*@{*/
 
     /** Change how the System's enabled built-in Constraints are weighted as
-    compared to other assembly conditions. If this is 1 the built-ins are
-    treated as must-satisfy constraints; otherwise they are included in the
+    compared to other assembly conditions. If this is Infinity the built-ins
+    are treated as must-satisfy constraints; otherwise they are included in the
     objective function with the given weight. If the weight is given as zero
     the built-in Constraints are ignored altogether. **/
-    void setBuiltInConstraintsWeight(Real weight);
+    void setSystemConstraintsWeight(Real weight)
+    {   uninitialize(); assert(systemConstraints.isValid());
+        weights[systemConstraints] = weight; }
     /** Return the current weight being given to the System's built-in
-    Constraints; the default is 1. **/
-    Real getBuiltInConstraintsWeight();
+    Constraints; the default is Infinity. **/
+    Real getSystemConstraintsWeight()
+    {   assert(systemConstraints.isValid());
+        return weights[systemConstraints]; }
+
+    /** Add an assembly requirement to this Assembler study, taking over 
+    ownership of the heap-allocated AssemblyCondition object. We will use the
+    calcErrors() method of this object to determine errors which \e must be
+    driven below tolerance for an assembly to be considered successful. **/
+    AssemblyConditionIndex 
+        adoptAssemblyConstraint(AssemblyCondition* p);
+    /** Add an assembly goal to this Assembler study, taking over ownership
+    of the heap-allocated AssemblyCondition object. An optional weight is used
+    to combine this goal with others to form the assembly cost function. The
+    default weight is 1; if the weight is 0 the goal is ignored and not
+    evaluated at all; if the weight is Infinity this is actually an assembly
+    constraint. **/
+    AssemblyConditionIndex 
+        adoptAssemblyGoal(AssemblyCondition* p, Real weight=1);
+
     /*@}*/
 
     /** @name                    Statistics
@@ -389,7 +460,7 @@ private:
 
     // We always have an assembly condition for the Constraints which are
     // enabled in the System; this is the index which can be used to 
-    // retrieve that condition.
+    // retrieve that condition. The default weight is Infinity.
     AssemblyConditionIndex                  systemConstraints;
 
     bool                                    forceNumericalGradient;
@@ -410,6 +481,7 @@ private:
 
     // These represent the active assembly conditions.
     mutable Array_<AssemblyConditionIndex>  constraints;
+    mutable Array_<int>                     nErrorsPerConstraint;
     mutable Array_<AssemblyConditionIndex>  goals;
 
     class AssemblerSystem; // local class
@@ -434,6 +506,8 @@ as an assembly goal, the norm of the errors will be weighted and combined with
 other assembly goals. **/
 class SimTK_SIMBODY_EXPORT AssemblyCondition {
 public:
+    /** Base class constructor just takes the assembly condition name and 
+    saves it. **/
     explicit AssemblyCondition(const String& name) 
     :   name(name), assembler(0) {}
 
@@ -459,24 +533,33 @@ public:
     /** Calculate the amount by which this assembly condition is violated
     by the q values in the given state, with one scalar error per assembly
     equation returned in \a err. The functional return should be zero if
-    successful. If this method is not implemented then this assembly 
-    condition may only be used as a goal, not a constraint. **/
+    successful; negative values are reserved with -1 meaning "not implemented";
+    return a positive value if your implementation is unable to evaluate the 
+    error at the current state. If this method is not implemented then you must
+    implement calcGoal() and this assembly condition may only be used as a 
+    goal, not a requirement. **/
     virtual int calcErrors(const State& state, Vector& err) const
     {   return -1; }
 
-    /** Override to supply an analytic Jacobian for this assembly condition.
-    The returned Jacobian must be nErr X nFreeQs; that is, if there is only one
-    assembly error equation the returned matrix is a single row (that's the
-    transpose of the gradient). The functional return should be zero if this 
-    succeeds. The default implementation return -1 which indicates that the
-    Jacobian must be calculated numerically using the calcErrors() method. **/
+    /** Override to supply an analytic Jacobian for the assembly errors
+    returned by calcErrors(). The returned Jacobian must be nErr X nFreeQs; 
+    that is, if there is only one assembly error equation the returned matrix 
+    is a single row (that's the transpose of the gradient). The functional 
+    return should be zero if this succeeds; negative values are reserved with
+    the default implementation returning -1 which indicates that the
+    Jacobian must be calculated numerically using the calcErrors() method.
+    Return a positive value if your implementation is unable to evaluate the 
+    Jacobian at the current state. **/
     virtual int calcErrorJacobian(const State& state, Matrix& jacobian) const
     {   return -1; }
 
     /** Override to supply an efficient method for determining how many errors
     will be returned by calcErrors(). Otherwise the default implementation 
     determines this by making a call to calcErrors() and returning the size
-    of the returned error vector. **/
+    of the returned error vector. The functional return should be zero if this
+    succeeds; negative values are reserved; return a positive value if your
+    implementation of this method can't determine the number of errors with
+    the given state (unlikely!). **/
     virtual int getNumErrors(const State& state) const 
     {   Vector err;
         const int status = calcErrors(state, err);
@@ -495,13 +578,13 @@ public:
 
     /** Calculate the current contribution (>= 0) of this assembly condition to
     the goal value that is being minimized. If this isn't overridden we'll 
-    generate it by combining the errors returned by calcErrors() in a sum
-    of squares: goal = err^2. **/
+    generate it by combining the m errors returned by calcErrors() in a mean
+    sum of squares: goal = err^2/m. **/
     virtual int calcGoal(const State& state, Real& goal) const
     {   static Vector err;
         const int status = calcErrors(state, err);
         if (status == 0)
-        {   goal = err.normSqr();
+        {   goal = err.normSqr() / std::max(1,err.size());
             return 0; }
         SimTK_ERRCHK1_ALWAYS(status != -1, "AssemblyCondition::calcGoal()",
             "The default implementation of calcGoal() depends on calcErrors()"
@@ -606,13 +689,12 @@ degrees of freedom to achieve a near-perfect solution.
 
 Markers are defined one at a time and assigned sequential marker index values
 of type Markers::MarkerIx. They may optionally be given unique, case-sensitive
-names, and we
-will keep a map from name to MarkerIx. A default name will be assigned if none
-is given; that name will be "_UNNAMED_XX" where XX is the MarkerIx assigned
-to that marker (don't use names of that form yourself). A weight is assigned 
-to every marker, with default 1. We do not expect that all the markers will be 
-used; markers with weights of zero will not be included in the study, nor will 
-markers for which no target position is given.
+names, and we will keep a map from name to MarkerIx. A default name will be 
+assigned if none is given; that name will be "_UNNAMED_XX" where XX is the 
+MarkerIx assigned to that marker (don't use names of that form yourself). A 
+weight is assigned to every marker, with default 1. We do not expect that all 
+the markers will be used; markers with weights of zero will not be included in 
+the study, nor will markers for which no target position is given.
 
 Once specified, the marker definitions do not change during a series of inverse
 kinematic steps. The targets, on the other hand, are expected to come from a

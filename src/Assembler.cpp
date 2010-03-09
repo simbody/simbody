@@ -44,19 +44,28 @@ using namespace SimTK;
 //------------------------------------------------------------------------------
 //                            BUILT IN CONSTRAINTS
 //------------------------------------------------------------------------------
-
+// This is the Assembly Condition representing the System's built-in
+// Constraints. Only Constraints that are currently enabled are included.
+// This class provides an efficient implementation for treating these
+// Constraints either as an assembly requirement or an assembly goal.
 class BuiltInConstraints : public AssemblyCondition {
 public:
     BuiltInConstraints() 
     :   AssemblyCondition("System Constraints") {}
 
+    // Note that we have turned off quaternions so the number of q error
+    // slots in the State includes only real holonomic constraint equations.
     int getNumErrors(const State& s) const {return s.getNQErr();}
 
+    // Return the system holonomic constraint errors as found in the State.
     int calcErrors(const State& state, Vector& err) const {
         err = state.getQErr();
         return 0;
     }
 
+    // The Jacobian of the holonomic constraint errors is PN^-1. We can get
+    // that analytically from Simbody but we might have to strip out some
+    // of the columns if we aren't using all the q's.
     int calcErrorJacobian(const State& state, Matrix& jacobian) const {
         const SimbodyMatterSubsystem& matter = getMatterSubsystem();
         const int np = getNumFreeQs();
@@ -84,7 +93,10 @@ public:
     }
 
     // Gradient is ~(d goal/dq) = ~(~qerr * dqerr/dq) = ~(~qerr*P*N^-1)
-    // = ~N^-1 ~P qerr.
+    // = ~N^-1 ~P qerr. This can be done in O(n+m) time since we can calculate
+    // the matrix-vector product N^-T*v in O(n) and P^T*v in O(n+m) time, where
+    // n=#q's and m=# constraint equations.
+    // TODO: not being done efficiently now
     int calcGoalGradient(const State& state, Vector& grad) const {
         const SimbodyMatterSubsystem& matter = getMatterSubsystem();
         Vector PtQerr(state.getNU());
@@ -116,6 +128,7 @@ public:
     {   getSystem().realize(getInternalState(), Stage::Time); 
         resetStats(); }
 
+    // Convenient interface to objective function.
     Real calcCurrentGoal() const {
         Real val;
         const int status = objectiveFunc(getFreeQsFromInternalState(),true,val);
@@ -125,6 +138,7 @@ public:
         return val;
     }
 
+    // Convenient interface to gradient of objective function.
     Vector calcCurrentGradient() const {
         Vector grad(getNumFreeQs());
         const int status = 
@@ -135,19 +149,22 @@ public:
         return grad;
     }
 
+    // Convenient interface to assembly constraint error function.
     Vector calcCurrentErrors() const {
         Vector errs(getNumEqualityConstraints());
-        const int status = constraintFunc(getFreeQsFromInternalState(),true,errs);
+        const int status = 
+            constraintFunc(getFreeQsFromInternalState(), true, errs);
         SimTK_ERRCHK1_ALWAYS(status==0, 
             "AssemblerSystem::calcCurrentErrors()",
             "constraintFunc() returned status %d.", status);
         return errs;
     }
 
+    // Convenient interface to Jacobian of assembly constraint error function.
     Matrix calcCurrentJacobian() const {
         Matrix jac(getNumEqualityConstraints(), getNumFreeQs());
         const int status = 
-            constraintJacobian(getFreeQsFromInternalState(),true,jac);
+            constraintJacobian(getFreeQsFromInternalState(), true, jac);
         SimTK_ERRCHK1_ALWAYS(status==0, 
             "AssemblerSystem::calcCurrentJacobian()",
             "constraintJacobian() returned status %d.", status);
@@ -277,7 +294,7 @@ public:
     }
 
 
-    // Return the errors in the hard constraints.
+    // Return the errors in the hard assembly constraints.
     int constraintFunc(const Vector&    parameters, 
                        const bool       new_parameters, 
                        Vector&          qerrs) const 
@@ -449,8 +466,9 @@ private:
 //                                 ASSEMBLER
 //------------------------------------------------------------------------------
 Assembler::Assembler(const MultibodySystem& system)
-:   system(system), forceNumericalGradient(false), 
-    forceNumericalJacobian(false), alreadyInitialized(false), 
+:   system(system),
+    forceNumericalGradient(false), forceNumericalJacobian(false), 
+    alreadyInitialized(false), 
     asmSys(0), optimizer(0), nAssemblySteps(0), nInitializations(0)
 {
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
@@ -458,9 +476,10 @@ Assembler::Assembler(const MultibodySystem& system)
                                 internalState);
     system.realizeModel(internalState);
 
-    // Make sure the System's Constraints are always present.
-    systemConstraints = adoptAssemblyConstraint(new BuiltInConstraints());
-    //systemConstraints = adoptAssemblyGoal(new BuiltInConstraints(), 1000);
+    // Make sure the System's Constraints are always present; this is the
+    // default weight which makes us treat this as a required condition.
+    systemConstraints = adoptAssemblyGoal(new BuiltInConstraints(), 
+                                          Infinity);
 }
 
 
@@ -473,16 +492,7 @@ Assembler::~Assembler() {
 
 AssemblyConditionIndex Assembler::
 adoptAssemblyConstraint(AssemblyCondition* p) {
-    SimTK_ERRCHK_ALWAYS(p != 0, "Assembler::adoptAssemblyConstraint()",
-        "Null assembly condition pointer.");
-
-    const AssemblyConditionIndex acx(conditions.size());
-    assert(conditions.size() == weights.size());
-    p->setAssembler(*this);
-    conditions.push_back(p);
-    weights.push_back(Infinity);
-    uninitialize();
-    return acx;
+    return adoptAssemblyGoal(p, Infinity);
 }
 
 AssemblyConditionIndex Assembler::
@@ -657,19 +667,24 @@ void Assembler::reinitializeWithExtraQsLocked
 
     // Set up the lists of constraints and goals based on the weights 
     // currently assigned to assembly conditions.
-    constraints.clear(); goals.clear();
+    constraints.clear(); nErrorsPerConstraint.clear(); goals.clear();
     assert(conditions.size() == weights.size());
+
     int nErrors = 0;
-    for (AssemblyConditionIndex i(0); i < conditions.size(); ++i) {
-        assert(conditions[i] != 0 && weights[i] >= 0);
-        if (weights[i] == 0) 
+    for (AssemblyConditionIndex acx(0); acx < conditions.size(); ++acx) {
+        assert(conditions[acx] != 0 && weights[acx] >= 0);
+        if (weights[acx] == 0) 
             continue;
-        conditions[i]->initializeCondition();
-        if (weights[i] == Infinity) {
-            nErrors += conditions[i]->getNumErrors(internalState);
-            constraints.push_back(i);
+        conditions[acx]->initializeCondition();
+        if (weights[acx] == Infinity) {
+            const int n = conditions[acx]->getNumErrors(internalState);
+            if (n == 0)
+                continue; // never mind; no constraint errors
+            nErrors += n;
+            constraints.push_back(acx);
+            nErrorsPerConstraint.push_back(n);
         } else                        
-            goals.push_back(i);
+            goals.push_back(acx);
     }
 
     asmSys = new AssemblerSystem(*const_cast<Assembler*>(this));
@@ -687,7 +702,7 @@ void Assembler::reinitializeWithExtraQsLocked
         );
     //optimizer->useNumericalGradient(true); // of objective
     //optimizer->useNumericalJacobian(true); // of constraints
-    optimizer->setLimitedMemoryHistory(20);
+    optimizer->setLimitedMemoryHistory(50);
     optimizer->setDiagnosticsLevel(0);
     optimizer->setMaxIterations(3000);
 }
@@ -716,11 +731,12 @@ Real Assembler::calcCurrentGoal() const {
     return asmSys->calcCurrentGoal();
 }
 
+// Return infinity norm of constraint errors.
 Real Assembler::calcCurrentError() const {
     initialize();
     const int nc = asmSys->getNumEqualityConstraints();
     return nc==0 ? Real(0)
-                 : std::sqrt(asmSys->calcCurrentErrors().normSqr()/nc);
+                 : max(abs(asmSys->calcCurrentErrors()));
 }
 
 Real Assembler::assemble(Real tol) {
@@ -811,8 +827,9 @@ void Assembler::resetStats() const
 //------------------------------------------------------------------------------
 
 static const bool Weighted = true;
+static const Real MinimumOffset = 0;
 
-// goal = 1/2 sum( wi * ri^2 )    XXX why not: / sum(wi) for WRMS
+// goal = 1/2 sum( wi * ri^2 ) / sum(wi) for WRMS
 int Markers::calcGoal(const State& state, Real& goal) const {
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
     goal = 0;
@@ -843,11 +860,11 @@ int Markers::calcGoal(const State& state, Real& goal) const {
         goal /= wtot;
 
     goal /= 2;
-    //goal = std::sqrt(goal);
+    goal += MinimumOffset;
 
     return 0;
 }
-// dgoal/dq = sum( wi * ri * dri/dq )    XXX why not: / sum(wi)
+// dgoal/dq = sum( wi * ri * dri/dq ) / sum(wi)
 // This calculation is modeled after Peter Eastman's gradient implementation
 // in ObservedPointFitter. It treats each marker position error as a potential
 // energy function whose negative spatial gradient would be a spatial force F. 

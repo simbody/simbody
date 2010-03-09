@@ -353,7 +353,8 @@ Body::Rigid body_toes_l(MassProperties(0.0975,Vec3(0.0307,-0.0026,-0.0105),Inert
 MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_toes_l,Vec3(0));
 // END BODY toes_l
 
-//Constraint::Rod(mobod_tibia_l, mobod_tibia_r, .25);
+Constraint::Rod(mobod_tibia_l, mobod_tibia_r, 2*.25);
+//Constraint::Rod(mobod_tibia_l, mobod_hand_r, .25);
 
     matter.setShowDefaultGeometry(false);
 	VTKEventReporter& vtkReporter = *new VTKEventReporter(system, 0.1);
@@ -383,30 +384,37 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
     Assembler ik(system);
     ik.adoptAssemblyGoal(&markers);
 
+
+    ik.setSystemConstraintsWeight(2);
+    //ik.setSystemConstraintsWeight(Infinity);
+
     //ik.addReporter(vtkReporter);
 
     //ik.lockMobilizer(mobod_patella_l);
     //ik.lockMobilizer(mobod_patella_r);
     //ik.lockMobilizer(mobod_loadcell1);
     //ik.lockMobilizer(mobod_loadcell2);
-    ik.restrictQ(mobod_tibia_r, MobilizerQIndex(0),
-        -10*Pi/180, 10*Pi/180);
+    //ik.restrictQ(mobod_tibia_r, MobilizerQIndex(0),
+    //    -10*Pi/180, 10*Pi/180);
 
     markers.defineTargetOrder(getNumObservations(), getObservationOrder());
     markers.moveAllTargets(getFrameTime(0), getFrame(0)); // initial target pos
     //ik.setForceNumericalGradient(true);
+    //ik.setForceNumericalJacobian(true);
 
     ik.initialize(state);
-    printf("UNASSEMBLED CONFIGURATION (err=%g, cost=%g)\n",
-        ik.calcCurrentError(), ik.calcCurrentGoal());
+    printf("UNASSEMBLED CONFIGURATION (err=%g, cost=%g, qerr=%g)\n",
+        ik.calcCurrentError(), ik.calcCurrentGoal(),
+        max(abs(ik.getInternalState().getQErr())));
     cout << "num freeQs: " << ik.getNumFreeQs() << endl;
 
     const Real Tol = 1e-3;
     ik.assemble(Tol); // solve first frame.
     ik.updateFromInternalState(state);
     viz.report(state);
-    printf("ASSEMBLED CONFIGURATION (tol=%g err=%g, cost=%g)\n",
-        Tol, ik.calcCurrentError(), ik.calcCurrentGoal());
+    printf("ASSEMBLED CONFIGURATION (tol=%g err=%g, cost=%g, qerr=%g)\n",
+        Tol, ik.calcCurrentError(), ik.calcCurrentGoal(),
+        max(abs(ik.getInternalState().getQErr())));
     printf("# initializations=%d\n", ik.getNumInitializations());
     printf("# assembly steps: %d\n", ik.getNumAssemblySteps());
     printf(" evals: goal=%d grad=%d error=%d jac=%d\n",
