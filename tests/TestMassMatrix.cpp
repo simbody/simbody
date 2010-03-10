@@ -199,6 +199,13 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
     SimTK_TEST_EQ_SIZE(M*MInv, identity, nu);
     SimTK_TEST_EQ_SIZE(MInv*M, identity, nu);
 
+    // Compare above-calculated values with values returned by the
+    // calcM() and calcMInv() methods.
+    Matrix MM, MMInv;
+    matter.calcM(state,MM); matter.calcMInv(state,MMInv);
+    SimTK_TEST_EQ_SIZE(MM, M, nu);
+    SimTK_TEST_EQ_SIZE(MMInv, MInv, nu);
+
 	//assertIsIdentity(eye);
 	//assertIsIdentity(MInv*M);
 

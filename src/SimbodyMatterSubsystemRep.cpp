@@ -2717,6 +2717,48 @@ void SimbodyMatterSubsystemRep::calcMV(const State& s,
 }
 
 //------------------------------------------------------------------------------
+//                                  CALC M
+//------------------------------------------------------------------------------
+// Calculate the mass matrix M in O(n^2) time. This Subsystem must already have
+// been realized to Position stage.
+void SimbodyMatterSubsystemRep::calcM(const State& s, Matrix& M) const {
+    const int nu = getTotalDOF();
+    M.resize(nu,nu);
+
+    // This could be calculated much faster by doing it directly and calculating
+    // only half of it. As a placeholder, however, we're doing this with 
+    // repeated O(n) calls to calcMV() to get M one column at a time.
+    Vector_<SpatialVec> A_GB(getNumBodies()); // unused dummy needed
+    Vector v(nu); v = 0;
+    for (int i=0; i < nu; ++i) {
+        v[i] = 1;
+        calcMV(s, v, A_GB, M(i));
+        v[i] = 0;
+    }
+}
+
+//------------------------------------------------------------------------------
+//                                CALC MInv
+//------------------------------------------------------------------------------
+// Calculate the mass matrix inverse MInv(=M^-1) in O(n^2) time. This Subsystem
+// must already have been realized to Position stage.
+void SimbodyMatterSubsystemRep::calcMInv(const State& s, Matrix& MInv) const {
+    const int nu = getTotalDOF();
+    MInv.resize(nu,nu);
+
+    // This could probably be calculated faster by doing it directly and
+    // filling in only half. For now we're doing it with repeated calls to
+    // the O(n) operator calcMInverseF().
+    Vector_<SpatialVec> A_GB(getNumBodies()); // unused dummy needed
+    Vector f(nu); f = 0;
+    for (int i=0; i < nu; ++i) {
+        f[i] = 1;
+        calcMInverseF(s, f, A_GB, MInv(i));
+        f[i] = 0;
+    }
+}
+
+//------------------------------------------------------------------------------
 //                               MULTIPLY BY N
 //------------------------------------------------------------------------------
 // q=Nu or u=~Nq

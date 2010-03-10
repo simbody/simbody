@@ -222,7 +222,6 @@ methods. Note:
   - The set...() methods here return a const reference to "this" Gravity force
     element (in the manner of an assignment operator, except read-only) so they
     can be chained in a single expression. **/
-
 /*@{*/
 
 /** Set the gravity vector v, that is, the magnitude and direction with which 

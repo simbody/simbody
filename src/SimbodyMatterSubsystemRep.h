@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Derived from NIH IVM code written by Charles Schwieters      *
  *                                                                            *
@@ -490,6 +490,17 @@ public:
 		Vector_<SpatialVec>&	A_GB,
 		Vector&					f) const;
 
+    // Calculate the mass matrix in O(n^2) time. State must have already
+    // been realized to Position stage. M must be resizeable or already the
+    // right size (nXn). The result is symmetric but the entire matrix is
+    // filled in.
+    void calcM(const State& s, Matrix& M) const;
+
+    // Calculate the mass matrix inverse in O(n^2) time. State must have already
+    // been realized to Position stage. MInv must be resizeable or already the
+    // right size (nXn). The result is symmetric but the entire matrix is
+    // filled in.
+    void calcMInv(const State& s, Matrix& MInv) const;
 
     // Must be in Stage::Position to calculate out_q = N(q)*in_u (e.g., qdot=N*u)
     // or out_u = in_q * N(q). Note that one of "in" and "out" is always "q-like" while

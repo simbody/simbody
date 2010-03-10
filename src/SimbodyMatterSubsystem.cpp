@@ -238,6 +238,12 @@ void SimbodyMatterSubsystem::calcMV(const State& s,
     getRep().calcMV(s,v, A_GB, MV);
 }
 
+void SimbodyMatterSubsystem::calcM(const State& s, Matrix& M) const 
+{   getRep().calcM(s, M); }
+
+void SimbodyMatterSubsystem::calcMInv(const State& s, Matrix& MInv) const 
+{   getRep().calcMInv(s, MInv); }
+
 void SimbodyMatterSubsystem::
 calcPNInv(const State& s, Matrix& PNInv) const {
     return getRep().calcHolonomicConstraintMatrixPNInv(s,PNInv);
