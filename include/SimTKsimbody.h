@@ -80,6 +80,7 @@
 #include "simbody/internal/CollisionDetectionAlgorithm.h"
 #include "simbody/internal/ElasticFoundationForce.h"
 #include "simbody/internal/Force.h"
+#include "simbody/internal/Force_Gravity.h"
 #include "simbody/internal/Force_LinearBushing.h"
 #include "simbody/internal/Force_Thermostat.h"
 #include "simbody/internal/ForceSubsystem.h"

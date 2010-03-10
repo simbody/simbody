@@ -78,6 +78,7 @@ public:
     class GlobalDamper;
     class Thermostat;
     class UniformGravity;
+    class Gravity;
     class Custom;
     
     class TwoPointLinearSpringImpl;
@@ -92,6 +93,7 @@ public:
     class GlobalDamperImpl;
     class ThermostatImpl;
     class UniformGravityImpl;
+    class GravityImpl;
     class CustomImpl;
 };
 

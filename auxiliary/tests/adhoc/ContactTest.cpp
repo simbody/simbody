@@ -140,7 +140,9 @@ try
     HuntCrossleyContact     contact(mbs);
     DecorationSubsystem     artwork(mbs);
     GeneralForceSubsystem   forces(mbs);
-    Force::UniformGravity gravityForces(forces, bouncers, gravity);
+   // Force::UniformGravity gravityForces(forces, bouncers, gravity);
+    //Force::Gravity gravityForces(forces, bouncers, gravity);
+    Force::Gravity gravityForces(forces, bouncers, -UnitVec3(YAxis), g);
 
     Force::Thermostat thermostat(forces, bouncers, 6000/*boltzmann??*/,
         500, 1);

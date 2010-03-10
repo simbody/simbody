@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -79,9 +79,10 @@ public:
     void setForceIsDisabled(State& state, ForceIndex index, bool disabled);
     SimTK_PIMPL_DOWNCAST(GeneralForceSubsystem, ForceSubsystem);
 
-    // OBSOLETE; TODO: remove in SimTK 2.0
-    int getNForces() const {return getNumForces();}
 private:
+    // OBSOLETE; use getNumForces() instead.
+    int getNForces() const {return getNumForces();}
+
     class GeneralForceSubsystemRep& updRep();
     const GeneralForceSubsystemRep& getRep() const;
 };
