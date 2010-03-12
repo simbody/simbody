@@ -69,9 +69,10 @@ public:
          of(0),
          jacDiff(0),
          gradDiff(0),
-         convergenceTolerance(1e-4),
-         maxIterations(100),
-         limitedMemoryHistory(5),
+         convergenceTolerance(1e-3),
+         constraintTolerance(1e-4),
+         maxIterations(1000),
+         limitedMemoryHistory(50),
          diagnosticsLevel(0),
          diffMethod(Differentiator::CentralDifference),
          numericalGradient(false), 
@@ -86,9 +87,10 @@ public:
          of(0),
          jacDiff(0),
          gradDiff(0),
-         convergenceTolerance(1e-4),
-         maxIterations(100),
-         limitedMemoryHistory(5),
+         convergenceTolerance(1e-3),
+         constraintTolerance(1e-4),
+         maxIterations(1000),
+         limitedMemoryHistory(50),
          diagnosticsLevel(0),
          diffMethod(Differentiator::CentralDifference),
          numericalGradient(false), 
@@ -106,7 +108,8 @@ public:
 
   
     void setDiagnosticsLevel( const int  level );
-    void setConvergenceTolerance( const Real tolerance );
+    void setConvergenceTolerance( Real accuracy );
+    void setConstraintTolerance( Real tolerance );
     void setMaxIterations( const int iter );
     void setLimitedMemoryHistory( const int history );
     void setDifferentiatorMethod( Differentiator::Method method);
@@ -161,6 +164,7 @@ protected:
 
     int diagnosticsLevel;
     Real convergenceTolerance;
+    Real constraintTolerance;
     int maxIterations;
     int limitedMemoryHistory;
     Differentiator::Method   diffMethod;

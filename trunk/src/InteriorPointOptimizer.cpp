@@ -128,11 +128,11 @@ InteriorPointOptimizer::InteriorPointOptimizer( const OptimizerSystem& sys )
         // We'll set acceptable tolerances to the same value to disable them.
         AddIpoptNumOption(nlp, "tol", convergenceTolerance);
         AddIpoptNumOption(nlp, "dual_inf_tol", convergenceTolerance);
-        AddIpoptNumOption(nlp, "constr_viol_tol", convergenceTolerance);
+        AddIpoptNumOption(nlp, "constr_viol_tol", constraintTolerance);
         AddIpoptNumOption(nlp, "compl_inf_tol", convergenceTolerance);
         AddIpoptNumOption(nlp, "acceptable_tol", convergenceTolerance);
         AddIpoptNumOption(nlp, "acceptable_dual_inf_tol", convergenceTolerance);
-        AddIpoptNumOption(nlp, "acceptable_constr_viol_tol", convergenceTolerance);
+        AddIpoptNumOption(nlp, "acceptable_constr_viol_tol", constraintTolerance);
         AddIpoptNumOption(nlp, "acceptable_compl_inf_tol", convergenceTolerance);
 
 

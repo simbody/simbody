@@ -49,8 +49,11 @@ Optimizer::OptimizerRep::~OptimizerRep() {
     delete of;
 }
 
-void Optimizer::OptimizerRep::setConvergenceTolerance( const Real tolerance ) {
-   convergenceTolerance = tolerance;
+void Optimizer::OptimizerRep::setConvergenceTolerance(Real accuracy ) {
+   convergenceTolerance = accuracy;
+}
+void Optimizer::OptimizerRep::setConstraintTolerance(Real tolerance ) {
+   constraintTolerance = tolerance;
 }
 void Optimizer::OptimizerRep::setMaxIterations( const int iter ) {
    maxIterations = iter;

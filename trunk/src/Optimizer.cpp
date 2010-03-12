@@ -123,18 +123,22 @@ Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm
     return newRep;
 }
 
-void Optimizer::useNumericalGradient( const bool flag ) {
+void Optimizer::useNumericalGradient( bool flag ) {
     updRep().useNumericalGradient(flag);
 }
-void Optimizer::useNumericalJacobian( const bool flag ) {
+void Optimizer::useNumericalJacobian( bool flag ) {
      updRep().useNumericalJacobian(flag);
 }
 
-void Optimizer::setConvergenceTolerance( const Real tolerance ) {
-     updRep().setConvergenceTolerance(tolerance);
+void Optimizer::setConvergenceTolerance( Real accuracy ) {
+     updRep().setConvergenceTolerance(accuracy);
 }
 
-void Optimizer::setMaxIterations( const int iter ) {
+void Optimizer::setConstraintTolerance( Real tolerance ) {
+     updRep().setConstraintTolerance(tolerance);
+}
+
+void Optimizer::setMaxIterations( int iter ) {
      updRep().setMaxIterations(iter);
 }
 
@@ -142,11 +146,11 @@ void Optimizer::setDifferentiatorMethod( Differentiator::Method method) {
      updRep().setDifferentiatorMethod(method);
 }
 
-void Optimizer::setLimitedMemoryHistory( const int history ) {
+void Optimizer::setLimitedMemoryHistory( int history ) {
      updRep().setLimitedMemoryHistory(history);
 }
 
-void Optimizer::setDiagnosticsLevel( const int  level ) {
+void Optimizer::setDiagnosticsLevel( int  level ) {
      updRep().setDiagnosticsLevel(level);
 }
 

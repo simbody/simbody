@@ -76,6 +76,11 @@ class ProblemSystem : public OptimizerSystem {
 
 };
 
+static bool equalToTol(Real v1, Real v2, Real tol) {
+    const Real scale = std::max(std::max(std::abs(v1), std::abs(v2)), Real(1));
+    return std::abs(v1-v2) < scale*tol;
+} 
+
 /* adapted from driver1.f of Lbfgsb.2.1.tar.gz  */
 int main() {
 
@@ -130,14 +135,14 @@ int main() {
     }
     printf("\n");
 
-    static const Real TOL = 1e-4;
+    static const Real TOL = 1e-3;
     Real expected[] = { 1.000000, 0.999998, 1.000000, 1.000001, 1.000003, 
                         1.000006, 1.000007, 1.000012, 1.000022, 1.000040, 
                         1.000081, 1.000161, 1.000325, 1.000650, 1.001302, 
                         1.002603, 1.005214, 1.010450, 1.021013, 1.042466, 
                         1.086736, 1.180997, 1.394759, 1.945352, 3.784388 };
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
-       if( results[i] > expected[i]+TOL || results[i] < expected[i]-TOL) {
+       if(!equalToTol(results[i], expected[i], TOL)) {
            printf(" LBFGSBTests.cpp: error results[%d] = %f  expected=%f \n",i,results[i], expected[i]);
            returnValue = 1;
        }

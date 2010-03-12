@@ -255,14 +255,19 @@ public:
 
     static bool isAlgorithmAvailable(OptimizerAlgorithm algorithm);
    
-    /// Sets the absolute tolerance used determine if the problem has converged.
-    void setConvergenceTolerance( const Real tolerance );
+    /// Sets the relative accuracy used determine if the problem has converged.
+    void setConvergenceTolerance(Real accuracy );
+    /// Sets the absolute tolerance used to determine whether constraint
+    /// violation is acceptable.
+    void setConstraintTolerance(Real tolerance);
+
+
     /// Set the maximum number of iterations used for each step.
-    void setMaxIterations( const int iter );
+    void setMaxIterations( int iter );
     /// Set the maximum number of previous hessians used in a limitied memory hessian approximation.
-    void setLimitedMemoryHistory( const int history );
+    void setLimitedMemoryHistory( int history );
     /// Set the level of debugging info displayed.
-    void setDiagnosticsLevel( const int level ); 
+    void setDiagnosticsLevel( int level ); 
     /// Set which numerical gradient algorithm is used.
     void setDifferentiatorMethod( Differentiator::Method method);
 
@@ -279,9 +284,9 @@ public:
     bool setAdvancedBoolOption( const char *option, const bool value );
 
     /// Enable numerical gradients.
-    void useNumericalGradient( const bool flag );
+    void useNumericalGradient( bool flag );
     /// Enable numerical Jacobian.
-    void useNumericalJacobian( const bool flag );
+    void useNumericalJacobian( bool flag );
 
     /// Compute optimization.
     Real optimize(Vector&);
