@@ -40,6 +40,37 @@ using std::cout; using std::endl;
 
 using namespace SimTK;
 
+//------------------------------------------------------------------------------
+//                               EXCEPTIONS
+//------------------------------------------------------------------------------
+class Assembler::AssembleFailed : public Exception::Base {
+public:
+    AssembleFailed
+       (const char* fn, int ln, const char* why, 
+        Real tolAchieved, Real tolRequired) 
+       : Base(fn,ln)
+    {
+        setMessage(
+            "Method Assembler::assemble() failed because:\n" + String(why)
+            + "\nAssembly error tolerance achieved: "
+            + String(tolAchieved) + " required: " + String(tolRequired)
+            + ".");
+    }
+};
+class Assembler::TrackFailed : public Exception::Base {
+public:
+    TrackFailed
+       (const char* fn, int ln, const char* why, 
+        Real tolAchieved, Real tolRequired) 
+       : Base(fn,ln)
+    {
+        setMessage(
+            "Method Assembler::track() failed because:\n" + String(why)
+            + "\nAssembly error tolerance achieved: "
+            + String(tolAchieved) + " required: " + String(tolRequired)
+            + ".");
+    }
+};
 
 //------------------------------------------------------------------------------
 //                            BUILT IN CONSTRAINTS
@@ -294,7 +325,7 @@ public:
     }
 
 
-    // Return the errors in the hard assembly constraints.
+    // Return the errors in the hard assembly error conditions.
     int constraintFunc(const Vector&    parameters, 
                        const bool       new_parameters, 
                        Vector&          qerrs) const 
@@ -304,8 +335,8 @@ public:
             setInternalStateFromFreeQs(parameters);
 
         int nxtEqn = 0;
-        for (unsigned i=0; i < assembler.constraints.size(); ++i) {
-            AssemblyConditionIndex   consIx = assembler.constraints[i];
+        for (unsigned i=0; i < assembler.errors.size(); ++i) {
+            AssemblyConditionIndex   consIx = assembler.errors[i];
             const AssemblyCondition& cond   = *assembler.conditions[consIx];
             const int m = cond.getNumErrors(getInternalState());
             int stat = cond.calcErrors(getInternalState(), qerrs(nxtEqn,m));
@@ -386,8 +417,8 @@ public:
         int                            needy = 0;
 
         int nxtEqn = 0;
-        for (unsigned i=0; i < assembler.constraints.size(); ++i) {
-            AssemblyConditionIndex   consIx = assembler.constraints[i];
+        for (unsigned i=0; i < assembler.errors.size(); ++i) {
+            AssemblyConditionIndex   consIx = assembler.errors[i];
             const AssemblyCondition& cond   = *assembler.conditions[consIx];
             const int m = cond.getNumErrors(getInternalState());
             const int stat = (assembler.forceNumericalJacobian 
@@ -466,9 +497,9 @@ private:
 //                                 ASSEMBLER
 //------------------------------------------------------------------------------
 Assembler::Assembler(const MultibodySystem& system)
-:   system(system),
+:   system(system), accuracy(0), tolerance(0), // i.e., 1e-3, 1e-4
     forceNumericalGradient(false), forceNumericalJacobian(false), 
-    alreadyInitialized(false), 
+    useRMSErrorNorm(false), alreadyInitialized(false), 
     asmSys(0), optimizer(0), nAssemblySteps(0), nInitializations(0)
 {
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
@@ -476,22 +507,25 @@ Assembler::Assembler(const MultibodySystem& system)
                                 internalState);
     system.realizeModel(internalState);
 
-    // Make sure the System's Constraints are always present; this is the
-    // default weight which makes us treat this as a required condition.
-    systemConstraints = adoptAssemblyGoal(new BuiltInConstraints(), 
-                                          Infinity);
+    // Make sure the System's Constraints are always present; this sets the
+    // weight to Infinity which makes us treat this as an assembly error
+    // rather than merely a goal; that can be changed by the user.
+    systemConstraints = adoptAssemblyError(new BuiltInConstraints());
 }
 
 
 Assembler::~Assembler() {
     uninitialize();
-    for (AssemblyConditionIndex i(0); i < conditions.size(); ++i)
-        delete conditions[i];
+    // To be polite, and to show off, delete in reverse order of allocation 
+    // (this is easier on the heap system).
+    Array_<AssemblyCondition*,AssemblyConditionIndex>::reverse_iterator p;
+    for (p = conditions.rbegin(); p != conditions.rend(); ++p)
+        delete *p;
 }
 
 
 AssemblyConditionIndex Assembler::
-adoptAssemblyConstraint(AssemblyCondition* p) {
+adoptAssemblyError(AssemblyCondition* p) {
     return adoptAssemblyGoal(p, Infinity);
 }
 
@@ -502,12 +536,13 @@ adoptAssemblyGoal(AssemblyCondition* p, Real weight) {
     SimTK_ERRCHK1_ALWAYS(weight >= 0, "Assembler::adoptAssemblyGoal()",
         "Illegal assembly goal weight %g.", weight);
 
+    uninitialize();
+
     const AssemblyConditionIndex acx(conditions.size());
     assert(conditions.size() == weights.size());
-    p->setAssembler(*this);
+    p->setAssembler(*this, acx);
     conditions.push_back(p);
     weights.push_back(weight);
-    uninitialize();
     return acx;
 }
 
@@ -568,16 +603,15 @@ void Assembler::reinitializeWithExtraQsLocked
     q2FreeQ.resize(nq); // no q has an associated freeQ at this point
 
     extraQsLocked = toBeLocked;
-    for (unsigned i=0; i < extraQsLocked.size(); ++i)
-        lockedQs.insert(extraQsLocked[i]);
+    lockedQs.insert(extraQsLocked.begin(), extraQsLocked.end());
 
     // First lock all the q's for locked mobilizers.
     for (LockedMobilizers::const_iterator p = userLockedMobilizers.begin();
          p != userLockedMobilizers.end(); ++p)
     {
-        const MobilizedBody& mobod = matter.getMobilizedBody(*p);
-        const QIndex q0 = mobod.getFirstQIndex(internalState);
-        const int    nq = mobod.getNumQ(internalState);
+        const MobilizedBody& mobod  = matter.getMobilizedBody(*p);
+        const QIndex         q0     = mobod.getFirstQIndex(internalState);
+        const int            nq     = mobod.getNumQ(internalState);
         for (int i=0; i<nq; ++i)
             lockedQs.insert(QIndex(q0+i));
     }
@@ -587,9 +621,9 @@ void Assembler::reinitializeWithExtraQsLocked
          p != userLockedQs.end(); ++p)
     {
         const MobilizedBodyIndex mbx = p->first;
-        const MobilizedBody& mobod = matter.getMobilizedBody(mbx);
-        const QIndex q0 = mobod.getFirstQIndex(internalState);
-        const int    nq = mobod.getNumQ(internalState);
+        const MobilizedBody& mobod  = matter.getMobilizedBody(mbx);
+        const QIndex         q0     = mobod.getFirstQIndex(internalState);
+        const int            nq     = mobod.getNumQ(internalState);
 
         const QSet& qs = p->second;
         for (QSet::const_iterator qp = qs.begin(); qp != qs.end(); ++qp) {
@@ -631,11 +665,12 @@ void Assembler::reinitializeWithExtraQsLocked
     for (RestrictedQs::const_iterator p = userRestrictedQs.begin();
          p != userRestrictedQs.end(); ++p)
     {
-        const MobilizedBodyIndex mbx = p->first;
-        const MobilizedBody& mobod = matter.getMobilizedBody(mbx);
-        const QIndex q0 = mobod.getFirstQIndex(internalState);
-        const int    nq = mobod.getNumQ(internalState);
+        const MobilizedBodyIndex mbx    = p->first;
+        const MobilizedBody&     mobod  = matter.getMobilizedBody(mbx);
+        const QIndex             q0     = mobod.getFirstQIndex(internalState);
+        const int                nq     = mobod.getNumQ(internalState);
 
+        // Run through each of the q's that was restricted for this mobilizer.
         const QRanges& qranges = p->second;
         for (QRanges::const_iterator qr = qranges.begin(); 
              qr != qranges.end(); ++qr) 
@@ -665,12 +700,13 @@ void Assembler::reinitializeWithExtraQsLocked
 
     system.realize(internalState, Stage::Position);
 
-    // Set up the lists of constraints and goals based on the weights 
-    // currently assigned to assembly conditions.
-    constraints.clear(); nErrorsPerConstraint.clear(); goals.clear();
+    // Set up the lists of errors and goals based on the weights 
+    // currently assigned to assembly conditions, and initialize the 
+    // conditions as they are added.
+    errors.clear(); nTermsPerError.clear(); goals.clear();
     assert(conditions.size() == weights.size());
 
-    int nErrors = 0;
+    int nErrorTerms = 0;
     for (AssemblyConditionIndex acx(0); acx < conditions.size(); ++acx) {
         assert(conditions[acx] != 0 && weights[acx] >= 0);
         if (weights[acx] == 0) 
@@ -680,15 +716,17 @@ void Assembler::reinitializeWithExtraQsLocked
             const int n = conditions[acx]->getNumErrors(internalState);
             if (n == 0)
                 continue; // never mind; no constraint errors
-            nErrors += n;
-            constraints.push_back(acx);
-            nErrorsPerConstraint.push_back(n);
+            nErrorTerms += n;
+            errors.push_back(acx);
+            nTermsPerError.push_back(n);
         } else                        
             goals.push_back(acx);
     }
 
+    // Allocate an AssemblerSystem which is in the form of an objective
+    // function for the SimTK::Optimizer class.
     asmSys = new AssemblerSystem(*const_cast<Assembler*>(this));
-    asmSys->setNumEqualityConstraints(nErrors);
+    asmSys->setNumEqualityConstraints(nErrorTerms);
     if (lower.size())
         asmSys->setParameterLimits(lower, upper);
 
@@ -700,30 +738,40 @@ void Assembler::reinitializeWithExtraQsLocked
         //,LBFGS
         //,LBFGSB
         );
-    //optimizer->useNumericalGradient(true); // of objective
-    //optimizer->useNumericalJacobian(true); // of constraints
+    //optimizer->useNumericalGradient(true); // of goals
+    //optimizer->useNumericalJacobian(true); // of errors
+
+    // The size of the limited memory history affects the various optimizers
+    // differently; I found this to be a good compromise. Smaller or larger
+    // can both cause degraded performance.
     optimizer->setLimitedMemoryHistory(50);
     optimizer->setDiagnosticsLevel(0);
     optimizer->setMaxIterations(3000);
 }
 
-
+// Clean up all the mutable stuff; don't touch any user-set members.
 void Assembler::uninitialize() const {
-    if (alreadyInitialized) {
-        alreadyInitialized = false;
-        nAssemblySteps = 0;
-        delete optimizer; optimizer = 0;
-        delete asmSys; asmSys = 0;
-        for (AssemblyConditionIndex i(0); i < conditions.size(); ++i)
-            conditions[i]->uninitializeCondition();
-        goals.clear();
-        constraints.clear();
-        lower.clear(); upper.clear();
-        freeQ2Q.clear();
-        q2FreeQ.clear();
-        lockedQs.clear();
-        extraQsLocked.clear();
-    }
+    if (!alreadyInitialized)
+        return;
+
+    alreadyInitialized = false;
+    nAssemblySteps = 0;
+    delete optimizer; optimizer = 0;
+    delete asmSys; asmSys = 0;
+    // Run through conditions in reverse order when uninitializing them; 
+    // watch out: negative index not allowed so it is easier to use a reverse
+    // iterators.
+    Array_<AssemblyCondition*,AssemblyConditionIndex>::const_reverse_iterator p;
+    for (p = conditions.crbegin(); p != conditions.crend(); ++p)
+        (*p)->uninitializeCondition();
+    goals.clear();
+    nTermsPerError.clear();
+    errors.clear();
+    lower.clear(); upper.clear();
+    freeQ2Q.clear();
+    q2FreeQ.clear();
+    lockedQs.clear();
+    extraQsLocked.clear();
 }
 
 Real Assembler::calcCurrentGoal() const {
@@ -731,15 +779,18 @@ Real Assembler::calcCurrentGoal() const {
     return asmSys->calcCurrentGoal();
 }
 
-// Return infinity norm of constraint errors.
-Real Assembler::calcCurrentError() const {
+// Return norm of constraint errors, using the appropriate norm.
+Real Assembler::calcCurrentErrorNorm() const {
     initialize();
     const int nc = asmSys->getNumEqualityConstraints();
-    return nc==0 ? Real(0)
-                 : max(abs(asmSys->calcCurrentErrors()));
+    if (nc == 0) return 0;
+    const Vector errs = asmSys->calcCurrentErrors();
+    return useRMSErrorNorm
+        ? std::sqrt(~errs*errs / errs.size())   // RMS
+        : max(abs(errs));                       // infinity norm
 }
 
-Real Assembler::assemble(Real tol) {
+Real Assembler::assemble() {
     initialize();
 
     ++nAssemblySteps;
@@ -751,68 +802,105 @@ Real Assembler::assemble(Real tol) {
    // std::cout << "assemble(): initial tol/goal is " 
      //         << calcCurrentError() << "/" << calcCurrentGoal() << std::endl;
 
-    //for (unsigned i=0; i < reporters.size(); ++i)
-    //    reporters[i]->handleEvent(internalState);
+    for (unsigned i=0; i < reporters.size(); ++i)
+        reporters[i]->handleEvent(internalState);
 
     // Optimize
     Vector freeQs = getFreeQsFromInternalState();
-    optimizer->setConvergenceTolerance(tol);
-    optimizer->optimize(freeQs);
+    // Use tolerance if there are any error conditions, else accuracy.
+    optimizer->setConvergenceTolerance(getAccuracyInUse());
+    optimizer->setConstraintTolerance(getErrorToleranceInUse());
+    try
+    {   optimizer->optimize(freeQs); }
+    catch (const std::exception& e)
+    {   setInternalStateFromFreeQs(freeQs);
+        system.realize(internalState, Stage::Position);       
+        SimTK_THROW3(AssembleFailed, 
+            (String("Optimizer failed with message: ") + e.what()).c_str(), 
+            calcCurrentErrorNorm(), getErrorToleranceInUse());
+    }
 
     // This will ensure that the internalState has its q's set to match the
     // parameters.
     setInternalStateFromFreeQs(freeQs);
+    system.realize(internalState, Stage::Position);
+
+    for (unsigned i=0; i < reporters.size(); ++i)
+        reporters[i]->handleEvent(internalState);
+
+    const Real tolAchieved = calcCurrentErrorNorm();
+    if (tolAchieved > getErrorToleranceInUse())
+        SimTK_THROW3(AssembleFailed, 
+            "Unabled to achieve required assembly error tolerance.",
+            tolAchieved, getErrorToleranceInUse());
 
     //std::cout << "assemble(): final tol/goal is " 
     //          << calcCurrentError() << "/" << calcCurrentGoal() << std::endl;
 
-   // for (unsigned i=0; i < reporters.size(); ++i)
-    //    reporters[i]->handleEvent(internalState);
-
-    return calcCurrentError();
+    return calcCurrentGoal();
 }
 
 
-Real Assembler::track(Real tol) {
+Real Assembler::track(Real frameTime) {
     initialize();
 
     ++nAssemblySteps;
+
+    if (frameTime >= 0) {
+        internalState.setTime(frameTime);
+        system.realize(internalState, Stage::Time);
+    }
 
     const int nfreeq = getNumFreeQs();
     const int nqerr = internalState.getNQErr();
 
 
-   // std::cout << "track(): initial tol/goal is " 
-     //         << calcCurrentError() << "/" << calcCurrentGoal() << std::endl;
-
-    //for (unsigned i=0; i < reporters.size(); ++i)
-    //    reporters[i]->handleEvent(internalState);
+    // std::cout << "track(): initial tol/goal is " 
+    //         << calcCurrentError() << "/" << calcCurrentGoal() << std::endl;
 
     // Optimize
     Vector freeQs = getFreeQsFromInternalState();
-    optimizer->setConvergenceTolerance(tol);
-    optimizer->optimize(freeQs);
+    optimizer->setConvergenceTolerance(getAccuracyInUse());
+    optimizer->setConstraintTolerance(getErrorToleranceInUse());
+    try
+    {   optimizer->optimize(freeQs); }
+    catch (const std::exception& e)
+    {   setInternalStateFromFreeQs(freeQs);
+        system.realize(internalState, Stage::Position);       
+        SimTK_THROW3(TrackFailed, 
+            (String("Optimizer failed with message: ") + e.what()).c_str(), 
+            calcCurrentErrorNorm(), getErrorToleranceInUse());
+    }
 
     // This will ensure that the internalState has its q's set to match the
     // parameters.
+    // This will ensure that the internalState has its q's set to match the
+    // parameters.
     setInternalStateFromFreeQs(freeQs);
+    system.realize(internalState, Stage::Position);
+
+    for (unsigned i=0; i < reporters.size(); ++i)
+        reporters[i]->handleEvent(internalState);
+
+    const Real tolAchieved = calcCurrentErrorNorm();
+    if (tolAchieved > getErrorToleranceInUse())
+        SimTK_THROW3(TrackFailed, 
+            "Unabled to achieve required assembly error tolerance.",
+            tolAchieved, getErrorToleranceInUse());
 
     //std::cout << "track(): final tol/goal is " 
     //          << calcCurrentError() << "/" << calcCurrentGoal() << std::endl;
 
-   // for (unsigned i=0; i < reporters.size(); ++i)
-    //    reporters[i]->handleEvent(internalState);
-
-    return calcCurrentError();
+    return calcCurrentGoal();
 }
 
 int Assembler::getNumGoalEvals()  const 
 {   return asmSys ? asmSys->getNumObjectiveEvals() : 0;}
-int Assembler::getNumConstraintEvals() const
+int Assembler::getNumErrorEvals() const
 {   return asmSys ? asmSys->getNumConstraintEvals() : 0;}
 int Assembler::getNumGoalGradientEvals()   const
 {   return asmSys ? asmSys->getNumGradientEvals() : 0;}
-int Assembler::getNumConstraintJacobianEvals()   const
+int Assembler::getNumErrorJacobianEvals()   const
 {   return asmSys ? asmSys->getNumJacobianEvals() : 0;}
 int Assembler::getNumAssemblySteps() const
 {   return nAssemblySteps; }
@@ -822,6 +910,8 @@ void Assembler::resetStats() const
 {   if (asmSys) asmSys->resetStats(); 
     nAssemblySteps = nInitializations = 0; }
 
+
+
 //------------------------------------------------------------------------------
 //                                  MARKERS
 //------------------------------------------------------------------------------
@@ -829,7 +919,7 @@ void Assembler::resetStats() const
 static const bool Weighted = true;
 static const Real MinimumOffset = 0;
 
-// goal = 1/2 sum( wi * ri^2 ) / sum(wi) for WRMS
+// goal = offset + 1/2 sum( wi * ri^2 ) / sum(wi) for WRMS
 int Markers::calcGoal(const State& state, Real& goal) const {
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
     goal = 0;
@@ -938,7 +1028,14 @@ int Markers::getNumErrors(const State& state) const
 // active marker. For each of those bodies, we collect all its markers so that
 // we can process them all at once. Active markers are those whose weight is
 // greater than zero.
+// Also, if we haven't been given any target<->marker correspondence, we're
+// going to assume them map directly, with each TargetIx the same as its
+// MarkerIx.
 int Markers::initializeCondition() const {
+    // Fill in missing targeting information if needed.
+    if (target2marker.empty())
+        const_cast<Markers&>(*this).defineTargetOrder(Array_<MarkerIx>());
+
     bodiesWithMarkers.clear();
     for (MarkerIx mx(0); mx < markers.size(); ++mx) {
         const Marker& marker = markers[mx];

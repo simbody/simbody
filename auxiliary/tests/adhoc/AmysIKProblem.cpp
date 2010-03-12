@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010 Stanford University and the Authors.           *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -386,7 +386,7 @@ Constraint::Rod(mobod_tibia_l, mobod_tibia_r, 2*.25);
 
 
     ik.setSystemConstraintsWeight(2);
-    //ik.setSystemConstraintsWeight(Infinity);
+    ik.setSystemConstraintsWeight(Infinity);
 
     //ik.addReporter(vtkReporter);
 
@@ -398,37 +398,40 @@ Constraint::Rod(mobod_tibia_l, mobod_tibia_r, 2*.25);
     //    -10*Pi/180, 10*Pi/180);
 
     markers.defineTargetOrder(getNumObservations(), getObservationOrder());
-    markers.moveAllTargets(getFrameTime(0), getFrame(0)); // initial target pos
+    markers.moveAllTargets(getFrame(0)); // initial target pos
+    state.setTime(getFrameTime(0));
     //ik.setForceNumericalGradient(true);
     //ik.setForceNumericalJacobian(true);
 
     ik.initialize(state);
     printf("UNASSEMBLED CONFIGURATION (err=%g, cost=%g, qerr=%g)\n",
-        ik.calcCurrentError(), ik.calcCurrentGoal(),
+        ik.calcCurrentErrorNorm(), ik.calcCurrentGoal(),
         max(abs(ik.getInternalState().getQErr())));
     cout << "num freeQs: " << ik.getNumFreeQs() << endl;
 
-    const Real Tol = 1e-3;
-    ik.assemble(Tol); // solve first frame.
+    const Real Accuracy = 1e-3;
+    ik.setAccuracy(Accuracy);
+    ik.assemble(); // solve first frame.
     ik.updateFromInternalState(state);
     viz.report(state);
-    printf("ASSEMBLED CONFIGURATION (tol=%g err=%g, cost=%g, qerr=%g)\n",
-        Tol, ik.calcCurrentError(), ik.calcCurrentGoal(),
+    printf("ASSEMBLED CONFIGURATION (acc=%g tol=%g err=%g, cost=%g, qerr=%g)\n",
+        ik.getAccuracyInUse(), ik.getErrorToleranceInUse(), 
+        ik.calcCurrentErrorNorm(), ik.calcCurrentGoal(),
         max(abs(ik.getInternalState().getQErr())));
     printf("# initializations=%d\n", ik.getNumInitializations());
     printf("# assembly steps: %d\n", ik.getNumAssemblySteps());
     printf(" evals: goal=%d grad=%d error=%d jac=%d\n",
         ik.getNumGoalEvals(), ik.getNumGoalGradientEvals(),
-        ik.getNumConstraintEvals(), ik.getNumConstraintJacobianEvals());
+        ik.getNumErrorEvals(), ik.getNumErrorJacobianEvals());
 
     cin >> c;
 
-    const int NSteps = getNumFrames();
+    const int NSteps = getNumFrames()/10;
     const int NToSkip = 4; // show every nth frame
     const clock_t start = clock();
     for (int f=1; f < NSteps; ++f) {
-        markers.moveAllTargets(getFrameTime(f), getFrame(f));
-        ik.track(Tol); // update internal state to match new targets
+        markers.moveAllTargets(getFrame(f));
+        ik.track(getFrameTime(f)); // update internal state to match new targets
         if ((f%NToSkip)==0) {
             ik.updateFromInternalState(state);
             viz.report(state);
@@ -438,15 +441,17 @@ Constraint::Rod(mobod_tibia_l, mobod_tibia_r, 2*.25);
     cout << "ASSEMBLED " << NSteps-1 << " steps in " <<
         (double)(clock()-start)/CLOCKS_PER_SEC << "s\n";
 
-    printf("FINAL CONFIGURATION (tol=%g err=%g, cost=%g)\n",
-        Tol, ik.calcCurrentError(), ik.calcCurrentGoal());
+    printf("FINAL CONFIGURATION (acc=%g tol=%g err=%g, cost=%g, qerr=%g)\n",
+        ik.getAccuracyInUse(), ik.getErrorToleranceInUse(), 
+        ik.calcCurrentErrorNorm(), ik.calcCurrentGoal(),
+        max(abs(ik.getInternalState().getQErr())));
 
     const double oons = Real(1)/ik.getNumAssemblySteps();
     printf("# initializations=%d\n", ik.getNumInitializations());
     printf("# assembly steps: %d\n", ik.getNumAssemblySteps());
     printf("  avg evals: goal=%g grad=%g error=%g jac=%g\n",
         ik.getNumGoalEvals()*oons, ik.getNumGoalGradientEvals()*oons,
-        ik.getNumConstraintEvals()*oons, ik.getNumConstraintJacobianEvals()*oons);
+        ik.getNumErrorEvals()*oons, ik.getNumErrorJacobianEvals()*oons);
 
 
     cout << "DONE ASSEMBLING -- SIMULATE ...\n";
