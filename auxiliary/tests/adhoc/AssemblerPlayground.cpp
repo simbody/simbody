@@ -113,20 +113,35 @@ int main() {
 
     ik.restrictQ(midBody, MobilizerQIndex(0), -Pi/10, Pi/10);
 
-    Array_<Markers::MarkerIx> targetOrder;
-    targetOrder.push_back(markers.addMarker(midBody, Vec3(0)));
-    targetOrder.push_back(markers.addMarker(midBody, Vec3(1,2,3)));
-    targetOrder.push_back(markers.addMarker(finalBody, Vec3(0)));
-    targetOrder.push_back(markers.addMarker(finalBody, Vec3(1,2,3)));
-    markers.defineTargetOrder(targetOrder);
+    markers.addMarker(midBody, Vec3(0));
+    markers.addMarker(midBody, Vec3(1,2,3));
+    markers.addMarker(finalBody, Vec3(0));
+    markers.addMarker(finalBody, Vec3(1,2,3));
+
+    // Manual target/marker correspondence.
+    //Array_<Markers::MarkerIx> targetOrder;
+    //targetOrder.push_back(Markers::MarkerIx(2));
+    //targetOrder.push_back(Markers::MarkerIx(3));
+    //targetOrder.push_back(Markers::MarkerIx(0));
+    //targetOrder.push_back(Markers::MarkerIx(1));
+    //targetOrder.push_back(Markers::MarkerIx()); // unused
+    //targetOrder.push_back(Markers::MarkerIx());
+    //targetOrder.push_back(Markers::MarkerIx());
+    //targetOrder.push_back(Markers::MarkerIx());
+    //targetOrder.push_back(Markers::MarkerIx());
+    //markers.defineTargetOrder(targetOrder);
+
+
+    const Real Accuracy = 1e-3;
+    ik.setAccuracy(Accuracy);
+    ik.initialize();
 
     markers.moveOneTarget(Markers::TargetIx(0), midTarget);
     markers.moveOneTarget(Markers::TargetIx(1), midTarget);
     markers.moveOneTarget(Markers::TargetIx(2), finalTarget);
     markers.moveOneTarget(Markers::TargetIx(3), finalTarget);
 
-    const Real Tol = 1e-3;
-    ik.assemble(state, Tol);
+    ik.assemble(state);
     viz.report(state);
     cout << "ASSEMBLED CONFIGURATION\n"; cin >> c;
     State startState = state;
@@ -142,7 +157,7 @@ int main() {
         markers.moveOneTarget(Markers::TargetIx(2), newFinalTarget);
         markers.moveOneTarget(Markers::TargetIx(3), newFinalTarget);
                                         
-        ik.track(1e-3);
+        ik.track();
         ik.updateFromInternalState(state);
         viz.report(state);
     }

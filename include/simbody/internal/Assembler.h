@@ -194,13 +194,14 @@ track() operation was successful. Note that assembly errors may have
 arbitrary units (for example, built in Constraint errors may be distances
 or angles); in general they must be scaled so that the same tolerance
 value can be used for all of them. By default, tolerance is set to 
-accuracy/10 if accuracy has been set, otherwise 1e-4; calling setTolerance() 
-with no argument or with zero restores it to its default behavior. **/
+accuracy/10 if accuracy has been set, otherwise 1e-4; calling 
+setErrorTolerance() with no argument or with zero restores it to its default 
+behavior. **/
 void setErrorTolerance(Real tolerance=0) {
     SimTK_ERRCHK1_ALWAYS(0 <= tolerance,
         "Assembler::setTolerance()", "The requested error tolerance %g"
         " is illegal; we require 0 <= tolerance, with 0 indicating that"
-        " the default tolerance (0.1*accuracy) is to be used.", tolerance);
+        " the default tolerance (accuracy/10) is to be used.", tolerance);
     this->tolerance = tolerance;
 }
 /** Obtain the tolerance setting that will be used during the next 
@@ -222,19 +223,16 @@ absolute error tolerance used to determine whether the assembly succeeded
 or failed, by the following formula: error tolerance = accuracy/10. By
 default, we set accuracy=1e-3 and tolerance=1e-4. **/
 void setAccuracy(Real accuracy=0) {
-    SimTK_ERRCHK1_ALWAYS(0 <= accuracy && accuracy < 1,
+    SimTK_ERRCHK2_ALWAYS(0 <= accuracy && accuracy < 1,
         "Assembler::setAccuracy()", "The requested accuracy %g is illegal;"
         " we require 0 <= accuracy < 1, with 0 indicating that the default"
-        " accuracy (10*tolerance) is to be used.", accuracy);
+        " accuracy (%g) is to be used.", Real(1)/OODefaultAccuracy, accuracy);
     this->accuracy = accuracy;
 }
 /** Obtain the accuracy setting that will be used during the next 
-assemble() or track() call. The default is to use 10*tolerance if the 
-error tolerance has been set, otherwise 1e-3. **/
-Real getAccuracyInUse() const {
-    return accuracy > 0 ? accuracy 
-           : (tolerance > 0 ? 10*tolerance : Real(1)/OODefaultAccuracy); 
-}
+assemble() or track() call. The default is to use 1e-3, i.e., 1/10 of 1%. **/
+Real getAccuracyInUse() const 
+{   return accuracy > 0 ? accuracy : Real(1)/OODefaultAccuracy; }
 
 
 /** Change how the System's enabled built-in Constraints are weighted as
@@ -491,8 +489,9 @@ int getNumAssemblySteps() const;
 /** Return the number of system initializations performed since this
 Assembler was created or the most recent resetStats() call. **/
 int getNumInitializations() const;
-/** Reset all counters to zero; this also happens whenever the assembler
-system is reinitialized either explicitly or due to system changes. **/
+/** Reset all counters to zero; except for the number of initializations
+counter this also happens whenever the assembler system is reinitialized 
+either explicitly or due to system changes. **/
 void resetStats() const;
 /*@}*/
 
@@ -621,8 +620,8 @@ const MultibodySystem&          system;
 Array_<const EventReporter*>    reporters; // just references; don't delete
 
 // These members affect the behavior of the assembly algorithm.
-static const int OODefaultAccuracy = 1000; // 1/accuracy if acc==tol==0
-Real    accuracy;               // 0 means use 10*tolerance
+static const int OODefaultAccuracy = 1000; // 1/accuracy if acc==0
+Real    accuracy;               // 0 means use 1/OODefaultAccuracy
 Real    tolerance;              // 0 means use accuracy/10
 bool    forceNumericalGradient; // ignore analytic gradient methods
 bool    forceNumericalJacobian; // ignore analytic Jacobian methods
@@ -1064,13 +1063,14 @@ a new marker, any previously defined target order is forgotten so the
 default correspondence will be used unless you call this again. **/
 void defineTargetOrder(const Array_<MarkerIx>& targetOrder) {
     uninitializeAssembler();
-    if (targetOrder.empty()) 
+    if (targetOrder.empty()) {
+        target2marker.resize(markers.size());
         for (MarkerIx mx(0); mx < markers.size(); ++mx)
             target2marker[TargetIx(mx)] = mx;
-    else 
+    } else 
         target2marker = targetOrder;
     marker2target.clear(); 
-    // We might need to grow this more, but this is a good starting guess.
+    // We might need to grow this more, but this is an OK starting guess.
     marker2target.resize(target2marker.size()); // all invalid
     for (TargetIx tx(0); tx < target2marker.size(); ++tx) {
         const MarkerIx mx = target2marker[tx];
@@ -1123,7 +1123,17 @@ void defineTargetOrder(int n, const char* const targetOrder[])
 the value contains a NaN, this marker/target pair will be ignored the
 next time the assembly goal cost function is calculated. **/
 void moveOneTarget(TargetIx tx, const Vec3& observation) 
-{   observations[tx] = observation; }
+{   SimTK_ERRCHK_ALWAYS(!observations.empty(), "Assembler::moveOneTarget()",
+        "There are currently no targets defined. Either the Assembler needs"
+        " to be initialized to get the default target set, or you should call"
+        " defineTargetOrder() explicitly.");
+    SimTK_ERRCHK2_ALWAYS(tx.isValid() && tx < observations.size(),
+        "Assembler::moveOneTarget()", "TargetIx %d is invalid or out of range;"
+        " there are %d targets currently defined. Use defineTargetOrder() to"
+        " specify the set of targets and how they correspond to markers.", 
+        (int)tx, (int)observations.size()); 
+    observations[tx] = observation; 
+}
 
 /** Set the marker location for a new observation frame. These are the 
 target locations to which we will next attempt to move all the 

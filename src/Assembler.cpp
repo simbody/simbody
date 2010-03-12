@@ -846,7 +846,7 @@ Real Assembler::track(Real frameTime) {
 
     ++nAssemblySteps;
 
-    if (frameTime >= 0) {
+    if (frameTime >= 0 && internalState.getTime() != frameTime) {
         internalState.setTime(frameTime);
         system.realize(internalState, Stage::Time);
     }
@@ -1033,8 +1033,10 @@ int Markers::getNumErrors(const State& state) const
 // MarkerIx.
 int Markers::initializeCondition() const {
     // Fill in missing targeting information if needed.
-    if (target2marker.empty())
-        const_cast<Markers&>(*this).defineTargetOrder(Array_<MarkerIx>());
+    if (target2marker.empty()) {
+        const Array_<MarkerIx> zeroLength; // gcc doesn't like this as a temp
+        const_cast<Markers&>(*this).defineTargetOrder(zeroLength);
+    }
 
     bodiesWithMarkers.clear();
     for (MarkerIx mx(0); mx < markers.size(); ++mx) {
