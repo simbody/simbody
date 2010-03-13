@@ -8,7 +8,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2008-10 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -50,21 +50,126 @@ class ForceImpl;
     extern template class PIMPLHandle<Force, ForceImpl, true>;
 #endif
 
-/**
- * A Force object applies forces to the bodies in a system.  There are 
- * subclasses for various standard types of forces, or you can create your own
- * forces by using Custom.
- */
+/** This is the base class from which all Force element handle classes derive.
+A Force object applies forces to some or all of the bodies, particles, and 
+mobilities in a System. There are subclasses for various standard types of 
+forces, or you can create your own forces by deriving from Force::Custom. **/
 class SimTK_SIMBODY_EXPORT Force : public PIMPLHandle<Force, ForceImpl, true> {
 public:
-    Force() { }
-    explicit Force(ForceImpl* r) : HandleBase(r) { }
+    /**@name                   Enabling and disabling
+    These methods determine whether this force element is active in a given
+    State. When disabled, the Force element is completely ignored and will
+    not be updated during realization. Normally force elements are enabled
+    when defined unless explicitly disabled; you can reverse that using the
+    setDisabledByDefault() method below. **/
+    /*@{*/
+    /** Disable this force element, effectively removing it from the System
+    for computational purposes (it is still using its ForceIndex, however).
+    This is an Instance-stage change. **/
+    void disable(State&) const;
+    /** Enable this force element if it was previously disabled. This is an 
+    Instance-stage change. Nothing happens if the force element was already
+    enabled. **/
+    void enable(State&) const;
+    /** Test whether this force element is currently disabled in the supplied 
+    State. If it is disabled you cannot depend on any computations it 
+    normally performs being available. **/
+    bool isDisabled(const State&) const;
+    /** Normally force elements are enabled when defined and can be disabled 
+    later. If you want to define this force element but have it be off by 
+    default, use this method. Note that this is a Topology-stage (construction)
+    change; you will have to call realizeTopology() before using the containing
+    System after a change to this setting has been made. **/
+    void setDisabledByDefault(bool shouldBeDisabled);
+    /** Test whether this force element is disabled by default in which case it
+    must be explicitly enabled before it will take effect.
+    @see enable() **/
+    bool isDisabledByDefault() const;
+    /*@}*/
 
-	/// Get the GeneralForceSubsystem of which this Force is an element.
+    /**@name                   Advanced methods
+    Don't use these unless you're sure you know what you're doing. They aren't
+    normally necessary but can be handy sometimes, especially when debugging
+    newly-developed force elements. **/
+    /*@{*/
+    /** Calculate the force that would be applied by this force element if
+    the given \a state were realized to Dynamics stage. This sizes the given
+    arrays if necessary, zeroes them, and then calls the force element's
+    calcForce() method which adds its force contributions if any to the
+    appropriate array elements for bodies, particles, and mobilities. Note that
+    in general we have no idea what elements of the system are affected by a 
+    force element, and in fact that can change based on state and time (consider
+    contact forces, for example). A disabled force element will return all 
+    zeroes without invoking calcForce(), since that method may depend on
+    earlier computations which may not have been performed in that case.
+    @param[in]      state
+        The State containing information to be used by the force element to
+        calculate the current force. This must have already been realized to
+        a high enough stage for the force element to get what it needs; if you
+        don't know then realize it to Stage::Velocity.
+    @param[out]     bodyForces
+        This is a Vector of spatial forces, one per mobilized body in the 
+        matter subsystem associated with this force element. This Vector is
+        indexed by MobilizedBodyIndex so it has a 0th entry corresponding
+        to Ground. A spatial force contains two Vec3's; index with [0] to get
+        the moment vector, with [1] to get the force vector. This argument is
+        resized if necessary to match the number of mobilized bodies and any
+        unused entry will be set to zero on return.
+    @param[out]     particleForces
+        This is a Vector of force vectors, one per particle in the 
+        matter subsystem associated with this force element. This vector is
+        indexed by ParticleIndex; the 0th entry is the 1st particle, not Ground.
+        This argument is resized if necessary to match the number of particles
+        and any unused entry will be set to zero on return. (As of March 2010 
+        Simbody treats particles as mobilized bodies so this is unused.)
+    @param[out]     mobilityForces
+        This is a Vector of scalar generalized forces, one per mobility in 
+        the matter subsystem associated with this force element. This is the
+        same as the number of generalized speeds u that collectively represent
+        all the mobilities of the mobilizers. To determine the per-mobilizer
+        correspondence, you must call methods of MobilizedBody; there is no
+        hint here. 
+    @note This method must zero out the passed in arrays, and in most cases
+    almost all returned entries will be zero, so this is \e not the most
+    efficent way to calculate forces; use it sparingly. **/
+    void calcForceContribution(const State&          state,
+                               Vector_<SpatialVec>&  bodyForces,
+                               Vector_<Vec3>&        particleForces,
+                               Vector&               mobilityForces);
+    /** Calculate the potential energy contribution that is made by this
+    force element at the given \a state. This calls the force element's
+    calcPotentialEnergy() method. A disabled force element will return zero 
+    without invoking calcPotentialEnergy().
+    @param[in]      state
+        The State containing information to be used by the force element to
+        calculate the current potential energy. This must have already been 
+        realized to a high enough stage for the force element to get what it 
+        needs; if you don't know then realize it to Stage::Position.
+    @return The potential energy contribution of this force element at this
+    \a state value. **/
+    Real calcPotentialEnergyContribution(const State& state);
+    /*@}*/
+
+    /**@name                   Bookkeeping
+    These methods are not normally needed. They provide bookkeeping 
+    information such as access to the parent force subsystem and the force
+    index assigned to this force element. **/
+    /*@{*/
+    /** Default constructor for Force handle base class does nothing. **/
+    Force() {}
+    /** Implicit conversion to ForceIndex when needed. This will throw an 
+    exception if the force element has not yet been adopted by a force 
+    subsystem. **/
+    operator ForceIndex() const {return getForceIndex();}
+	/** Get the GeneralForceSubsystem of which this Force is an element. 
+    This will throw an exception if the force element has not yet been
+    adopted by a force subsystem. **/
 	const GeneralForceSubsystem& getForceSubsystem() const;
-
-    /// Get the index of this Force in its GeneralForceSubsystem.
+    /** Get the index of this force element within its parent force subsystem.
+    The returned index will be invalid if the force element has not yet been
+    adopted by any subsystem (test with the index.isValid() method). **/
     ForceIndex getForceIndex() const;
+    /*@}*/
     
     class TwoPointLinearSpring;
     class TwoPointLinearDamper;
@@ -95,6 +200,11 @@ public:
     class UniformGravityImpl;
     class GravityImpl;
     class CustomImpl;
+
+protected:
+    /** Use this in a derived Force handle class constructor to supply the 
+    concrete implementation object to be stored in the handle base. **/
+    explicit Force(ForceImpl* r) : HandleBase(r) { }
 };
 
 
