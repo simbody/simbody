@@ -98,6 +98,7 @@ int main(int argc, char** argv) {
     GeneralForceSubsystem    forces(mbs);
     DecorationSubsystem     viz(mbs);
     Force::UniformGravity gravity(forces, twoPends, Vec3(0, -g, 0));
+    gravity.setDisabledByDefault(true);
 
         // ADD BODIES AND THEIR MOBILIZERS
     Body::Rigid pendulumBody = Body::Rigid(MassProperties(m, Vec3(0), Inertia(1)))
@@ -184,6 +185,7 @@ int main(int argc, char** argv) {
     //twoPends.setUseEulerAngles(s, true);
     mbs.realizeModel(s); // define appropriate states for this System
 
+    gravity.enable(s);
     twentyPlus10t.setValue(s, 20);
 
 	mbs.realize(s, Stage::Instance); // instantiate constraints
@@ -218,11 +220,21 @@ int main(int argc, char** argv) {
 
     VTKVisualizer display(mbs);
 
+    // gravity.disable(s);
     mbs.realize(s, Stage::Position);
     display.report(s);
     cout << "q=" << s.getQ() << endl;
     cout << "qErr=" << s.getQErr() << endl;
     cout << "p_MbM=" << rightPendulum.getMobilizerTransform(s).p() << endl;
+
+    Vector_<SpatialVec> bodyForces;
+    Vector_<Vec3> particleForces;
+    Vector mobilityForces;
+    gravity.calcForceContribution(s,bodyForces,particleForces,mobilityForces);
+    cout << "Gravity forces: body:" << bodyForces << endl;
+    cout << "                particle:" << particleForces << endl;
+    cout << "                mobility:" << mobilityForces << endl;
+    cout << "  PE=" << gravity.calcPotentialEnergyContribution(s) << endl;
 
 	if (cid.isValid()) {
 		const Constraint& c = twoPends.getConstraint(cid);

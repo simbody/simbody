@@ -135,7 +135,7 @@ public:
     void calcForceContribution(const State&          state,
                                Vector_<SpatialVec>&  bodyForces,
                                Vector_<Vec3>&        particleForces,
-                               Vector&               mobilityForces);
+                               Vector&               mobilityForces) const;
     /** Calculate the potential energy contribution that is made by this
     force element at the given \a state. This calls the force element's
     calcPotentialEnergy() method. A disabled force element will return zero 
@@ -147,7 +147,7 @@ public:
         needs; if you don't know then realize it to Stage::Position.
     @return The potential energy contribution of this force element at this
     \a state value. **/
-    Real calcPotentialEnergyContribution(const State& state);
+    Real calcPotentialEnergyContribution(const State& state) const;
     /*@}*/
 
     /**@name                   Bookkeeping

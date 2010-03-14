@@ -6,9 +6,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2006-8 Stanford University and the Authors.         *
+ * Portions copyright (c) 2006-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Peter Eastman                                                *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -51,17 +51,6 @@ namespace SimTK {
 
 
 class GeneralForceSubsystemRep : public ForceSubsystemRep {
-
-    Array_<Force*> forces;
-    
-    // This must be filled in during realizeTopology and treated
-    // as const thereafter.
-    mutable CacheEntryIndex forceValidCacheIndex;
-    mutable CacheEntryIndex rigidBodyForceCacheIndex;
-    mutable CacheEntryIndex mobilityForceCacheIndex;
-    mutable CacheEntryIndex particleForceCacheIndex;
-    mutable DiscreteVariableIndex forceEnabledIndex;
-
 public:
     GeneralForceSubsystemRep()
      : ForceSubsystemRep("GeneralForceSubsystem", "0.0.1")
@@ -69,12 +58,12 @@ public:
     }
     
     ~GeneralForceSubsystemRep() {
-        for (int i = 0; i < (int) forces.size(); i++)
-            delete forces[i];
+        // Delete in reverse order to be nice to heap system.
+        for (int i = (int)forces.size()-1; i >= 0; --i)
+            delete forces[i]; 
     }
     
-    ForceIndex adoptForce(Force& force) 
-    {
+    ForceIndex adoptForce(Force& force) {
         invalidateSubsystemTopologyCache();
         const ForceIndex index((int) forces.size());
         forces.push_back(new Force()); // grow
@@ -98,13 +87,17 @@ public:
     }
     
     bool isForceDisabled(const State& state, ForceIndex index) const {
-        const Array_<bool>& forceEnabled = Value<Array_<bool> >::downcast(state.getDiscreteVariable(getMySubsystemIndex(), forceEnabledIndex)).get();
+        const Array_<bool>& forceEnabled = Value< Array_<bool> >::downcast
+            (getDiscreteVariable(state, forceEnabledIndex));
         return !forceEnabled[index];
     }
     
-    void setForceIsDisabled(State& state, ForceIndex index, bool disabled) const {
-        Array_<bool>& forceEnabled = Value<Array_<bool> >::downcast(state.updDiscreteVariable(getMySubsystemIndex(), forceEnabledIndex)).upd();
-        bool& forceValid = Value<bool>::downcast(state.updCacheEntry(getMySubsystemIndex(), forceValidCacheIndex)).upd();
+    void setForceIsDisabled
+       (State& state, ForceIndex index, bool disabled) const {
+        Array_<bool>& forceEnabled = Value< Array_<bool> >::downcast
+            (updDiscreteVariable(state, forceEnabledIndex));
+        bool& forceValid = Value<bool>::downcast
+            (updCacheEntry(state, forceValidCacheIndex));
         forceEnabled[index] = !disabled;
         forceValid = false;
     }
@@ -113,47 +106,75 @@ public:
     // These override default implementations of virtual methods in the Subsystem::Guts
     // class.
 
-    GeneralForceSubsystemRep* cloneImpl() const {return new GeneralForceSubsystemRep(*this);}
+    GeneralForceSubsystemRep* cloneImpl() const 
+    {   return new GeneralForceSubsystemRep(*this); }
 
     int realizeSubsystemTopologyImpl(State& s) const {
-        forceValidCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Position, new Value<bool>());
-        rigidBodyForceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector_<SpatialVec> >());
-        mobilityForceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector>());
-        particleForceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Vector_<Vec3> >());
-        forceEnabledIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Dynamics, new Value<Array_<bool> >(Array_<bool>(getNumForces(), true)));
+        forceValidCacheIndex = allocateCacheEntry(s, Stage::Position, 
+            new Value<bool>());
+        rigidBodyForceCacheIndex = allocateCacheEntry(s, Stage::Dynamics, 
+            new Value<Vector_<SpatialVec> >());
+        mobilityForceCacheIndex = allocateCacheEntry(s, Stage::Dynamics, 
+            new Value<Vector>());
+        particleForceCacheIndex = allocateCacheEntry(s, Stage::Dynamics, 
+            new Value<Vector_<Vec3> >());
+
+        // Some forces are disabled by default; initialize the enabled flags
+        // accordingly.
+        Array_<bool> forceEnabled(getNumForces());
+        for (int i = 0; i < (int) forces.size(); ++i)
+            forceEnabled[i] = !(forces[i]->isDisabledByDefault());
+
+        forceEnabledIndex = allocateDiscreteVariable(s, Stage::Instance, 
+            new Value<Array_<bool> >(forceEnabled));
+
+        // Note that we must realizeTopology() even if the force is disabled
+        // by default.
         for (int i = 0; i < (int) forces.size(); ++i)
             forces[i]->getImpl().realizeTopology(s);
+
         return 0;
     }
 
+    // Forces must realizeModel() even if they are currently disabled.
     int realizeSubsystemModelImpl(State& s) const {
         for (int i = 0; i < (int) forces.size(); ++i)
             forces[i]->getImpl().realizeModel(s);
         return 0;
     }
 
+    // No need to realize Instance stage or later for force elements that are
+    // currently disabled.
     int realizeSubsystemInstanceImpl(const State& s) const {
+        const Array_<bool>& enabled = Value<Array_<bool> >::downcast
+            (getDiscreteVariable(s, forceEnabledIndex));
         for (int i = 0; i < (int) forces.size(); ++i)
-            forces[i]->getImpl().realizeInstance(s);
+            if (enabled[i]) forces[i]->getImpl().realizeInstance(s);
         return 0;
     }
 
     int realizeSubsystemTimeImpl(const State& s) const {
+        const Array_<bool>& enabled = Value<Array_<bool> >::downcast
+            (getDiscreteVariable(s, forceEnabledIndex));
         for (int i = 0; i < (int) forces.size(); ++i)
-            forces[i]->getImpl().realizeTime(s);
+            if (enabled[i]) forces[i]->getImpl().realizeTime(s);
         return 0;
     }
 
     int realizeSubsystemPositionImpl(const State& s) const {
-        Value<bool>::downcast(s.updCacheEntry(getMySubsystemIndex(), forceValidCacheIndex)).upd() = false;
+        const Array_<bool>& enabled = Value<Array_<bool> >::downcast
+            (getDiscreteVariable(s, forceEnabledIndex));
+        Value<bool>::downcast(updCacheEntry(s, forceValidCacheIndex)) = false;
         for (int i = 0; i < (int) forces.size(); ++i)
-            forces[i]->getImpl().realizePosition(s);
+            if (enabled[i]) forces[i]->getImpl().realizePosition(s);
         return 0;
     }
 
     int realizeSubsystemVelocityImpl(const State& s) const {
+        const Array_<bool>& enabled = Value<Array_<bool> >::downcast
+            (getDiscreteVariable(s, forceEnabledIndex));
         for (int i = 0; i < (int) forces.size(); ++i)
-            forces[i]->getImpl().realizeVelocity(s);
+            if (enabled[i]) forces[i]->getImpl().realizeVelocity(s);
         return 0;
     }
 
@@ -162,12 +183,23 @@ public:
         const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
-        // Get access to system-global cache entries.
-        bool& forceValid = Value<bool>::downcast(s.updCacheEntry(getMySubsystemIndex(), forceValidCacheIndex)).upd();
-        Vector_<SpatialVec>& rigidBodyForceCache = Value<Vector_<SpatialVec> >::downcast(s.updCacheEntry(getMySubsystemIndex(), rigidBodyForceCacheIndex)).upd();
-        Vector_<Vec3>& particleForceCache = Value<Vector_<Vec3> >::downcast(s.updCacheEntry(getMySubsystemIndex(), particleForceCacheIndex)).upd();
-        Vector& mobilityForceCache = Value<Vector>::downcast(s.updCacheEntry(getMySubsystemIndex(), mobilityForceCacheIndex)).upd();
-        const Array_<bool>& forceEnabled = Value<Array_<bool> >::downcast(s.getDiscreteVariable(getMySubsystemIndex(), forceEnabledIndex)).get();
+        // Get access to subsystem force cache entries.
+        Vector_<SpatialVec>&    
+            rigidBodyForceCache = Value<Vector_<SpatialVec> >::downcast
+                                 (updCacheEntry(s, rigidBodyForceCacheIndex));
+        Vector_<Vec3>&         
+            particleForceCache  = Value<Vector_<Vec3> >::downcast
+                                 (updCacheEntry(s, particleForceCacheIndex));
+        Vector&                 
+            mobilityForceCache  = Value<Vector>::downcast
+                                 (updCacheEntry(s, mobilityForceCacheIndex));
+
+        // Get access to subsystem discrete state and "is valid" cache.
+        const Array_<bool>& 
+            forceEnabled = Value<Array_<bool> >::downcast
+                          (getDiscreteVariable(s, forceEnabledIndex));
+        bool& forceValid = Value<bool>::downcast
+                          (updCacheEntry(s, forceValidCacheIndex));
 
         if (!forceValid) {
             // We need to calculate the velocity independent forces.
@@ -179,7 +211,7 @@ public:
             mobilityForceCache = 0;
         }
 
-        // Calculate forces
+        // Get access to System-global force cache arrays.
         Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s, Stage::Dynamics);
         Vector_<Vec3>&         particleForces  = mbs.updParticleForces (s, Stage::Dynamics);
         Vector&                mobilityForces  = mbs.updMobilityForces (s, Stage::Dynamics);
@@ -193,13 +225,14 @@ public:
             }
         }
 
-        // Copy the values from the cache.
-        forceValid = true;
+        // Accumulate the values from the cache into the global arrays.
         rigidBodyForces += rigidBodyForceCache;
         particleForces += particleForceCache;
         mobilityForces += mobilityForceCache;
+        forceValid = true;
         
         // Allow forces to do their own realization.
+        // TODO: sherm 100313: shouldn't this come before calcForce() calls?
         for (int i = 0; i < (int) forces.size(); ++i)
             forces[i]->getImpl().realizeDynamics(s);
 
@@ -208,7 +241,7 @@ public:
     
     Real calcPotentialEnergy(const State& state) const {
         const Array_<bool>& forceEnabled = Value<Array_<bool> >::downcast(state.getDiscreteVariable(getMySubsystemIndex(), forceEnabledIndex)).get();
-        Real energy = 0.0;
+        Real energy = 0;
         for (int i = 0; i < (int) forces.size(); ++i) {
             if (forceEnabled[i]) {
                 const Force& f = *forces[i];
@@ -219,16 +252,32 @@ public:
     }
 
     int realizeSubsystemAccelerationImpl(const State& s) const {
+        const Array_<bool>& enabled = Value<Array_<bool> >::downcast
+            (getDiscreteVariable(s, forceEnabledIndex));
         for (int i = 0; i < (int) forces.size(); ++i)
-            forces[i]->getImpl().realizeAcceleration(s);
+            if (enabled[i]) forces[i]->getImpl().realizeAcceleration(s);
         return 0;
     }
 
     int realizeSubsystemReportImpl(const State& s) const {
+        const Array_<bool>& enabled = Value<Array_<bool> >::downcast
+            (getDiscreteVariable(s, forceEnabledIndex));
         for (int i = 0; i < (int) forces.size(); ++i)
-            forces[i]->getImpl().realizeReport(s);
+            if (enabled[i]) forces[i]->getImpl().realizeReport(s);
         return 0;
     }
+
+private:
+    Array_<Force*>                  forces;
+    
+        // TOPOLOGY "CACHE"
+    // This must be filled in during realizeTopology and treated
+    // as const thereafter.
+    mutable CacheEntryIndex         forceValidCacheIndex;
+    mutable CacheEntryIndex         rigidBodyForceCacheIndex;
+    mutable CacheEntryIndex         mobilityForceCacheIndex;
+    mutable CacheEntryIndex         particleForceCacheIndex;
+    mutable DiscreteVariableIndex   forceEnabledIndex;
 };
 
     ///////////////////////////
@@ -263,41 +312,36 @@ GeneralForceSubsystem::updRep() {
 // Create Subsystem but don't associate it with any System. This isn't much use except
 // for making std::vector's, which require a default constructor to be available.
 GeneralForceSubsystem::GeneralForceSubsystem()
-  : ForceSubsystem() 
-{
-    adoptSubsystemGuts(new GeneralForceSubsystemRep());
-}
+:   ForceSubsystem() 
+{   adoptSubsystemGuts(new GeneralForceSubsystemRep()); }
 
 GeneralForceSubsystem::GeneralForceSubsystem(MultibodySystem& mbs)
-  : ForceSubsystem() 
-{
-    adoptSubsystemGuts(new GeneralForceSubsystemRep());
-    mbs.addForceSubsystem(*this); // steal ownership
-}
+:   ForceSubsystem() 
+{   adoptSubsystemGuts(new GeneralForceSubsystemRep());
+    mbs.addForceSubsystem(*this); } // steal ownership
 
-ForceIndex GeneralForceSubsystem::adoptForce(Force& force) {
-    return updRep().adoptForce(force);
-}
+ForceIndex GeneralForceSubsystem::adoptForce(Force& force) 
+{   return updRep().adoptForce(force); }
 
-int GeneralForceSubsystem::getNumForces() const {
-    return getRep().getNumForces();
-}
+int GeneralForceSubsystem::getNumForces() const 
+{   return getRep().getNumForces(); }
 
-const Force& GeneralForceSubsystem::getForce(ForceIndex index) const {
-    return getRep().getForce(index);
-}
+const Force& GeneralForceSubsystem::getForce(ForceIndex index) const 
+{   return getRep().getForce(index); }
 
-Force& GeneralForceSubsystem::updForce(ForceIndex index) {
-    return updRep().updForce(index);
-}
+Force& GeneralForceSubsystem::updForce(ForceIndex index) 
+{   return updRep().updForce(index); }
 
-bool GeneralForceSubsystem::isForceDisabled(const State& state, ForceIndex index) const {
-    return getRep().isForceDisabled(state, index);
-}
+bool GeneralForceSubsystem::isForceDisabled
+   (const State& state, ForceIndex index) const 
+{   return getRep().isForceDisabled(state, index); }
 
-void GeneralForceSubsystem::setForceIsDisabled(State& state, ForceIndex index, bool disabled) {
-    updRep().setForceIsDisabled(state, index, disabled);
-}
+void GeneralForceSubsystem::setForceIsDisabled
+   (State& state, ForceIndex index, bool disabled) const 
+{   getRep().setForceIsDisabled(state, index, disabled); }
+
+const MultibodySystem& GeneralForceSubsystem::getMultibodySystem() const
+{   return MultibodySystem::downcast(getSystem()); }
 
 } // namespace SimTK
 

@@ -1081,6 +1081,8 @@ SimTK_PIMPL_DOWNCAST(SimbodyMatterSubsystem, Subsystem);
 const SimbodyMatterSubsystemRep& getRep() const;
 SimbodyMatterSubsystemRep&       updRep();
 
+
+private:
 // OBSOLETE; TODO: remove in SimTK 2.0
 void multiplyByQMatrix(const State& s, bool transposeMatrix, const Vector& in, Vector& out) const
 {   multiplyByN(s,transposeMatrix,in,out);}
@@ -1096,8 +1098,6 @@ int getNMobilities() const {return getNumMobilities();}
 // OBSOLETE; TODO: remove in SimTK 2.0
 int getNParticles() const {return getNumParticles();}
 
-
-private:
 };
 
 SimTK_SIMBODY_EXPORT std::ostream& 
