@@ -68,10 +68,22 @@ void testMatrix(const T& value, const Mat<M, N>& expected) {
         }
 }
 
+
+void testMatDivision() {
+    // scalar / matrix seems to be causing trouble
+    SpatialMat m1;
+    Mat33 m2;
+    // Each of the following causes compile errors
+    1.0/m2;
+    1.0/m1;
+}
+
 int main() {
     try {
         // Currently, this only tests a small number of operations that were recently added.
         // It should be expanded into a more comprehensive test of the big matrix classes.
+
+        testMatDivision();
         
         Matrix m(Mat22(1, 2, 3, 4));
         testMatrix<Matrix,2,2>(m, Mat22(1, 2, 3, 4));
