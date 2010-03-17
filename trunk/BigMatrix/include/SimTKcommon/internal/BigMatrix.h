@@ -922,7 +922,7 @@ public:
     const TNeg&       operator-() const {return negate();}
     TNeg&             operator-()       {return updNegate();}
 
-    MatrixBase& negateInPlace() {(*this) *= EPrecision(-1);}
+    MatrixBase& negateInPlace() {(*this) *= EPrecision(-1); return *this;}
  
     /// Change the size of this matrix. This is only allowed for owner matrices. The
     /// current storage format is retained, but all the data is lost. If you want
