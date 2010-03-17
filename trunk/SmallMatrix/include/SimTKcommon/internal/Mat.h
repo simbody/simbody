@@ -1198,42 +1198,50 @@ operator*(const negator<R>& l, const Mat<M,N,E,CS,RS>& r) {return r * (typename 
 // SCALAR DIVIDE. This is a scalar operation when the scalar is on the right,
 // but when it is on the left it means scalar * pseudoInverse(mat), 
 // which is a matrix whose type is like the matrix's Hermitian transpose.
+// TODO: for now it is just going to call mat.invert() which will fail on
+// singular matrices.
 
 // m = m/real, real/m 
 template <int M, int N, class E, int CS, int RS> inline
 typename Mat<M,N,E,CS,RS>::template Result<float>::Dvd
 operator/(const Mat<M,N,E,CS,RS>& l, const float& r)
-  { return Mat<M,N,E,CS,RS>::template Result<float>::DvdOp::perform(l,r); }
+{   return Mat<M,N,E,CS,RS>::template Result<float>::DvdOp::perform(l,r); }
+
 template <int M, int N, class E, int CS, int RS> inline
 typename CNT<float>::template Result<Mat<M,N,E,CS,RS> >::Dvd
 operator/(const float& l, const Mat<M,N,E,CS,RS>& r)
-  { return CNT<float>::template Result<Mat<M,N,E,CS,RS> >::DvdOp::perform(l,r); }
+{   return l * r.invert(); }
 
 template <int M, int N, class E, int CS, int RS> inline
 typename Mat<M,N,E,CS,RS>::template Result<double>::Dvd
 operator/(const Mat<M,N,E,CS,RS>& l, const double& r)
-  { return Mat<M,N,E,CS,RS>::template Result<double>::DvdOp::perform(l,r); }
+{   return Mat<M,N,E,CS,RS>::template Result<double>::DvdOp::perform(l,r); }
+
 template <int M, int N, class E, int CS, int RS> inline
 typename CNT<double>::template Result<Mat<M,N,E,CS,RS> >::Dvd
 operator/(const double& l, const Mat<M,N,E,CS,RS>& r)
-  { return CNT<double>::template Result<Mat<M,N,E,CS,RS> >::DvdOp::perform(l,r); }
+{   return l * r.invert(); }
 
 template <int M, int N, class E, int CS, int RS> inline
 typename Mat<M,N,E,CS,RS>::template Result<long double>::Dvd
 operator/(const Mat<M,N,E,CS,RS>& l, const long double& r)
-  { return Mat<M,N,E,CS,RS>::template Result<long double>::DvdOp::perform(l,r); }
+{   return Mat<M,N,E,CS,RS>::template Result<long double>::DvdOp::perform(l,r); }
+
 template <int M, int N, class E, int CS, int RS> inline
 typename CNT<long double>::template Result<Mat<M,N,E,CS,RS> >::Dvd
 operator/(const long double& l, const Mat<M,N,E,CS,RS>& r)
-  { return CNT<long double>::template Result<Mat<M,N,E,CS,RS> >::DvdOp::perform(l,r); }
+{   return l * r.invert(); }
 
 // m = m/int, int/m -- just convert int to m's precision float
 template <int M, int N, class E, int CS, int RS> inline
 typename Mat<M,N,E,CS,RS>::template Result<typename CNT<E>::Precision>::Dvd
-operator/(const Mat<M,N,E,CS,RS>& l, int r) {return l / (typename CNT<E>::Precision)r;}
+operator/(const Mat<M,N,E,CS,RS>& l, int r) 
+{   return l / (typename CNT<E>::Precision)r; }
+
 template <int M, int N, class E, int CS, int RS> inline
 typename CNT<typename CNT<E>::Precision>::template Result<Mat<M,N,E,CS,RS> >::Dvd
-operator/(int l, const Mat<M,N,E,CS,RS>& r) {return (typename CNT<E>::Precision)l / r;}
+operator/(int l, const Mat<M,N,E,CS,RS>& r) 
+{   return (typename CNT<E>::Precision)l / r; }
 
 
 // Complex, conjugate, and negator are all easy to templatize.

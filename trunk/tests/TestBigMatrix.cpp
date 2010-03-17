@@ -30,6 +30,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon.h"
+#include "SimTKcommon/Testing.h"
 
 #include <iostream>
 
@@ -70,12 +71,17 @@ void testMatrix(const T& value, const Mat<M, N>& expected) {
 
 
 void testMatDivision() {
-    // scalar / matrix seems to be causing trouble
-    SpatialMat m1;
-    Mat33 m2;
-    // Each of the following causes compile errors
-    1.0/m2;
-    1.0/m1;
+    Mat22 m1( 4, 0,
+              0, 1);
+    Mat22 oom1( .25, 0,
+                  0, 1 );
+    Mat<2,2,Mat22> m2(Mat22( 2, 0,
+                             0, 3 ));
+    Mat<2,2,Mat22> oom2(Mat22( .5, 0,
+                               0, OneThird));
+
+    SimTK_TEST_EQ(1/m1, oom1); 
+    SimTK_TEST_EQ(1/m2, oom2);
 }
 
 int main() {

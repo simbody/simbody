@@ -177,7 +177,7 @@ public:
 
     template <class P> struct Result {
         typedef typename K::template Result<P>::Mul Mul;
-        typedef typename K::template Result<P>::Dvd Dvd;;
+        typedef typename K::template Result<P>::Dvd Dvd;
         typedef typename K::template Result<P>::Add Add;
         typedef typename K::template Result<P>::Sub Sub;
     };
