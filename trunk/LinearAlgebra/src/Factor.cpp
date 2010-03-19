@@ -278,7 +278,7 @@ void FactorLURep<T>::getErrorBounds ( Vector_<T>& err, Vector_<T>& berr) const {
 template <typename T >
 bool FactorLURep<T>::isSingular () const {
 
-    if( singularIndex) 
+    if( singularIndex > 0) 
         return( true );
     else 
         return( false );
@@ -354,11 +354,10 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
         } else {
 */
             LapackInterface::getrf<T>(nRow, nCol, lu.data, lda, pivots.data, info);
-            if( info > 0 ) {
-                singularIndex = info;
-                SimTK_THROW2( SimTK::Exception::SingularMatrix, 
-                getSingularIndex(), "FactorLU:LapackInterface::getrf" ); 
-            }
+            if( info > 0 ) 
+                singularIndex = info; // matrix is singular info = i when U(i,i) is exactly zero
+            else 
+                singularIndex = 0;
  //       }
  //   }
 
