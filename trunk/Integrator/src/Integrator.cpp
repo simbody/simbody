@@ -401,9 +401,9 @@ void IntegratorRep::initialize(const State& initState) {
 
   } catch (const std::exception& e) {
     SimTK_THROW1(Integrator::InitializationFailed, e.what());
-  } catch (...) {
+  } /* catch (...) {
     SimTK_THROW1(Integrator::InitializationFailed, "UNKNOWN EXCEPTION");
-  }
+  } */
 }
 
 void IntegratorRep::reinitialize(Stage stage, bool shouldTerminate) {
