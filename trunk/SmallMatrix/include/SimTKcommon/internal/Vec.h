@@ -1038,11 +1038,56 @@ operator<<(std::basic_ostream<CHAR,TRAITS>& o, const Vec<M,E,S>& v) {
     o << "~[" << v[0]; for(int i=1;i<M;++i) o<<','<<v[i]; o<<']'; return o;
 }
 
+/** Read a Vec from a stream as M elements separated by white space or
+by commas, optionally enclosed in () [] ~() or ~[]. **/
 template <int M, class E, int S, class CHAR, class TRAITS> inline
 std::basic_istream<CHAR,TRAITS>&
 operator>>(std::basic_istream<CHAR,TRAITS>& is, Vec<M,E,S>& v) {
-    // TODO: not sure how to do Vec input yet
-    assert(false);
+    CHAR tilde;
+    is >> tilde; if (is.fail()) return is;
+    if (tilde != CHAR('~')) {
+        tilde = CHAR(0);
+        is.unget(); if (is.fail()) return is;
+    }
+
+    CHAR openBracket, closeBracket;
+    is >> openBracket; if (is.fail()) return is;
+    if (openBracket==CHAR('('))
+        closeBracket = CHAR(')');
+    else if (openBracket==CHAR('['))
+        closeBracket = CHAR(']');
+    else {
+        closeBracket = CHAR(0);
+        is.unget(); if (is.fail()) return is;
+    }
+
+    // If we saw a "~" but then we didn't see any brackets, that's an
+    // error. Set the fail bit and return.
+    if (tilde != CHAR(0) && closeBracket == CHAR(0)) {
+        is.setstate( std::ios::failbit );
+        return is;
+    }
+
+    for (int i=0; i < M; ++i) {
+        is >> v[i];
+        if (is.fail()) return is;
+        if (i != M-1) {
+            CHAR c; is >> c; if (is.fail()) return is;
+            if (c != ',') is.unget();
+            if (is.fail()) return is;
+        }
+    }
+
+    // Get the closing bracket if there was an opening one. If we don't
+    // see the expected character we'll set the fail bit in the istream.
+    if (closeBracket != CHAR(0)) {
+        CHAR closer; is >> closer; if (is.fail()) return is;
+        if (closer != closeBracket) {
+            is.unget(); if (is.fail()) return is;
+            is.setstate( std::ios::failbit );
+        }
+    }
+
     return is;
 }
 
