@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -274,6 +274,16 @@ public:
     // but sets the rest of the matrix to zero.
     explicit Mat(const E& e)
       { for (int j=0;j<N;++j) (*this)(j) = E(0); diag()=e; }
+
+    // Construction using a negated element is just like construction from
+    // the element.
+    explicit Mat(const ENeg& e)
+      { for (int j=0;j<N;++j) (*this)(j) = E(0); diag()=e; }
+
+    // Given an int, turn it into a suitable floating point number
+    // and then feed that to the above single-element constructor.
+    explicit Mat(int i) 
+      { new (this) Mat(E(Precision(i))); }
 
     // A bevy of constructors from individual exact-match elements IN ROW ORDER.
     Mat(const E& e0,const E& e1)

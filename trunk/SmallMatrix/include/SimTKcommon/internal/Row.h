@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-8 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -290,8 +290,17 @@ public:
     }
 
     // Construction using an element assigns to each element.
-    explicit Row(const ELT& e)
+    explicit Row(const E& e)
       { for (int i=0;i<N;++i) d[i*STRIDE]=e; }
+
+    // Construction using a negated element assigns to each element.
+    explicit Row(const ENeg& ne)
+      { for (int i=0;i<N;++i) d[i*STRIDE]=ne; }
+
+    // Given an int, turn it into a suitable floating point number
+    // and then feed that to the above single-element constructor.
+    explicit Row(int i) 
+      { new (this) Row(E(Precision(i))); }
 
     // A bevy of constructors for Rows up to length 6.
     Row(const E& e0,const E& e1)
@@ -352,7 +361,7 @@ public:
         return result;
     }
 
-    // dot product
+    // dot product (s = row*col)
     template <class EE, int SS> typename CNT<E>::template Result<EE>::Mul
     conformingMultiply(const Vec<N,EE,SS>& r) const {
         return (*this)*r;
@@ -436,12 +445,14 @@ public:
     TWithoutNegator&       updCastAwayNegatorIfAny()    {return *reinterpret_cast<TWithoutNegator*>(this);}
 
 
-    // These are elementwise binary operators, (this op ee) by default but (ee op this) if
-    // 'FromLeft' appears in the name. The result is a packed Row<N> but the element type
-    // may change. These are mostly used to implement global operators.
+    // These are elementwise binary operators, (this op ee) by default but 
+    // (ee op this) if 'FromLeft' appears in the name. The result is a packed 
+    // Row<N> but the element type may change. These are mostly used to 
+    // implement global operators. We call these "scalar" operators but 
+    // actually the "scalar" can be a composite type.
 
-    //TODO: consider converting 'e' to Standard Numbers as precalculation and changing
-    // return type appropriately.
+    //TODO: consider converting 'e' to Standard Numbers as precalculation and 
+    // changing return type appropriately.
     template <class EE> Row<N, typename CNT<E>::template Result<EE>::Mul>
     scalarMultiply(const EE& e) const {
         Row<N, typename CNT<E>::template Result<EE>::Mul> result;
@@ -455,8 +466,8 @@ public:
         return result;
     }
 
-    // TODO: should precalculate and store 1/e, while converting to Standard Numbers. Note
-    // that return type should change appropriately.
+    // TODO: should precalculate and store 1/e, while converting to Standard 
+    // Numbers. Note that return type should change appropriately.
     template <class EE> Row<N, typename CNT<E>::template Result<EE>::Dvd>
     scalarDivide(const EE& e) const {
         Row<N, typename CNT<E>::template Result<EE>::Dvd> result;
@@ -508,13 +519,15 @@ public:
       { for(int i=0;i<N;++i) d[i*STRIDE] += ee; return *this; }
     template <class EE> Row& scalarMinusEq(const EE& ee)
       { for(int i=0;i<N;++i) d[i*STRIDE] -= ee; return *this; }
-    template <class EE> Row& scalarInverseMinusEq(const EE& ee)
+    template <class EE> Row& scalarMinusEqFromLeft(const EE& ee)
       { for(int i=0;i<N;++i) d[i*STRIDE] = ee - d[i*STRIDE]; return *this; }
     template <class EE> Row& scalarTimesEq(const EE& ee)
       { for(int i=0;i<N;++i) d[i*STRIDE] *= ee; return *this; }
+    template <class EE> Row& scalarTimesEqFromLeft(const EE& ee)
+      { for(int i=0;i<N;++i) d[i*STRIDE] = ee * d[i*STRIDE]; return *this; }
     template <class EE> Row& scalarDivideEq(const EE& ee)
       { for(int i=0;i<N;++i) d[i*STRIDE] /= ee; return *this; }
-    template <class EE> Row& scalarInverseDivideEq(const EE& ee)
+    template <class EE> Row& scalarDivideEqFromLeft(const EE& ee)
       { for(int i=0;i<N;++i) d[i*STRIDE] = ee / d[i*STRIDE]; return *this; }
 
     void setToNaN() {
@@ -690,18 +703,63 @@ operator-(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) {
         ::SubOp::perform(l,r);
 }
 
-// bool = v1 == v2, v1 and v2 have the same length M
+/// bool = v1[i] == v2[i], for all elements i
 template <int N, class E1, int S1, class E2, int S2> inline bool
 operator==(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) { 
-    for (int i=0; i < N; ++i)
-        if (l[i] != r[i]) return false;
+    for (int i=0; i < N; ++i) if (l[i] != r[i]) return false;
     return true;
 }
-
-// bool = v1 != v2, v1 and v2 have the same length M
+/// bool = v1[i] != v2[i], for any element i
 template <int N, class E1, int S1, class E2, int S2> inline bool
 operator!=(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) {return !(l==r);} 
 
+/// bool = v1[i] < v2[i], for all elements i
+template <int N, class E1, int S1, class E2, int S2> inline bool
+operator<(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) 
+{   for (int i=0; i < N; ++i) if (l[i] >= r[i]) return false;
+    return true; }
+/// bool = v[i] < e, for all elements v[i] and element e
+template <int N, class E1, int S1, class E2> inline bool
+operator<(const Row<N,E1,S1>& v, const E2& e) 
+{   for (int i=0; i < N; ++i) if (v[i] >= e) return false;
+    return true; }
+
+/// bool = v1[i] > v2[i], for all elements i
+template <int N, class E1, int S1, class E2, int S2> inline bool
+operator>(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) 
+{   for (int i=0; i < N; ++i) if (l[i] <= r[i]) return false;
+    return true; }
+/// bool = v[i] > e, for all elements v[i] and element e
+template <int N, class E1, int S1, class E2> inline bool
+operator>(const Row<N,E1,S1>& v, const E2& e) 
+{   for (int i=0; i < N; ++i) if (v[i] <= e) return false;
+    return true; }
+
+/// bool = v1[i] <= v2[i], for all elements i.
+/// This is not the same as !(v1>v2).
+template <int N, class E1, int S1, class E2, int S2> inline bool
+operator<=(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) 
+{   for (int i=0; i < N; ++i) if (l[i] > r[i]) return false;
+    return true; }
+/// bool = v[i] <= e, for all elements v[i] and element e.
+/// This is not the same as !(v1>e).
+template <int N, class E1, int S1, class E2> inline bool
+operator<=(const Row<N,E1,S1>& v, const E2& e) 
+{   for (int i=0; i < N; ++i) if (v[i] > e) return false;
+    return true; }
+
+/// bool = v1[i] >= v2[i], for all elements i
+/// This is not the same as !(v1<v2).
+template <int N, class E1, int S1, class E2, int S2> inline bool
+operator>=(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) 
+{   for (int i=0; i < N; ++i) if (l[i] < r[i]) return false;
+    return true; }
+/// bool = v[i] >= e, for all elements v[i] and element e.
+/// This is not the same as !(v1<e).
+template <int N, class E1, int S1, class E2> inline bool
+operator>=(const Row<N,E1,S1>& v, const E2& e) 
+{   for (int i=0; i < N; ++i) if (v[i] < e) return false;
+    return true; }
 
 ////////////////////////////////////////////////////
 // Global operators involving a row and a scalar. //
@@ -775,7 +833,8 @@ operator*(const negator<R>& l, const Row<N,E,S>& r) {return r * (typename negato
 
 
 // SCALAR DIVIDE. This is a scalar operation when the scalar is on the right,
-// but when it is on the left it means scalar * pseudoInverse(row), which is a vec.
+// but when it is on the left it means scalar * pseudoInverse(row), which is 
+// a vec.
 
 // v = v/real, real/v 
 template <int N, class E, int S> inline
@@ -984,11 +1043,42 @@ operator<<(std::basic_ostream<CHAR,TRAITS>& o, const Row<N,E,S>& v) {
     o << "[" << v[0]; for(int i=1;i<N;++i) o<<','<<v[i]; o<<']'; return o;
 }
 
+/** Read a Row from a stream as M elements separated by white space or
+by commas, optionally enclosed in () or [] (but no leading "~"). **/
 template <int N, class E, int S, class CHAR, class TRAITS> inline
 std::basic_istream<CHAR,TRAITS>&
 operator>>(std::basic_istream<CHAR,TRAITS>& is, Row<N,E,S>& v) {
-    // TODO: not sure how to do Row input yet
-    assert(false);
+    CHAR openBracket, closeBracket;
+    is >> openBracket; if (is.fail()) return is;
+    if (openBracket==CHAR('('))
+        closeBracket = CHAR(')');
+    else if (openBracket==CHAR('['))
+        closeBracket = CHAR(']');
+    else {
+        closeBracket = CHAR(0);
+        is.unget(); if (is.fail()) return is;
+    }
+
+    for (int i=0; i < N; ++i) {
+        is >> v[i];
+        if (is.fail()) return is;
+        if (i != N-1) {
+            CHAR c; is >> c; if (is.fail()) return is;
+            if (c != ',') is.unget();
+            if (is.fail()) return is;
+        }
+    }
+
+    // Get the closing bracket if there was an opening one. If we don't
+    // see the expected character we'll set the fail bit in the istream.
+    if (closeBracket != CHAR(0)) {
+        CHAR closer; is >> closer; if (is.fail()) return is;
+        if (closer != closeBracket) {
+            is.unget(); if (is.fail()) return is;
+            is.setstate( std::ios::failbit );
+        }
+    }
+
     return is;
 }
 

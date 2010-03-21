@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -294,8 +294,17 @@ public:
     }
 
     // Construction using an element assigns to each element.
-    explicit Vec(const ELT& e)
+    explicit Vec(const E& e)
       { for (int i=0;i<M;++i) d[i*STRIDE]=e; }
+
+    // Construction using a negated element assigns to each element.
+    explicit Vec(const ENeg& ne)
+      { for (int i=0;i<M;++i) d[i*STRIDE]=ne; }
+
+    // Given an int, turn it into a suitable floating point number
+    // and then feed that to the above single-element constructor.
+    explicit Vec(int i) 
+      { new (this) Vec(E(Precision(i))); }
 
     // A bevy of constructors for Vecs up to length 6.
     Vec(const E& e0,const E& e1)
@@ -355,6 +364,8 @@ public:
         Impl::conformingSubtract(*this, r, result);
         return result;
     }
+
+    // outer product (m = col*row)
     template <class EE, int SS> Mat<M,M,typename CNT<E>::template Result<EE>::Mul>
     conformingMultiply(const Row<M,EE,SS>& r) const {
         Mat<M,M,typename CNT<E>::template Result<EE>::Mul> result;
@@ -430,13 +441,14 @@ public:
     const TWithoutNegator& castAwayNegatorIfAny() const {return *reinterpret_cast<const TWithoutNegator*>(this);}
     TWithoutNegator&       updCastAwayNegatorIfAny()    {return *reinterpret_cast<TWithoutNegator*>(this);}
 
-    // These are elementwise binary operators, (this op ee) by default but (ee op this) if
-    // 'FromLeft' appears in the name. The result is a packed Vec<M> but the element type
-    // may change. These are mostly used to implement global operators.
-    // We call these "scalar" operators but actually the "scalar" can be a composite type.
+    // These are elementwise binary operators, (this op ee) by default but 
+    // (ee op this) if 'FromLeft' appears in the name. The result is a packed 
+    // Vec<M> but the element type may change. These are mostly used to 
+    // implement global operators. We call these "scalar" operators but 
+    // actually the "scalar" can be a composite type.
 
-    //TODO: consider converting 'e' to Standard Numbers as precalculation and changing
-    // return type appropriately.
+    //TODO: consider converting 'e' to Standard Numbers as precalculation and 
+    // changing return type appropriately.
     template <class EE> Vec<M, typename CNT<E>::template Result<EE>::Mul>
     scalarMultiply(const EE& e) const {
         Vec<M, typename CNT<E>::template Result<EE>::Mul> result;
@@ -450,8 +462,8 @@ public:
         return result;
     }
 
-    // TODO: should precalculate and store 1/e, while converting to Standard Numbers. Note
-    // that return type should change appropriately.
+    // TODO: should precalculate and store 1/e, while converting to Standard 
+    // Numbers. Note that return type should change appropriately.
     template <class EE> Vec<M, typename CNT<E>::template Result<EE>::Dvd>
     scalarDivide(const EE& e) const {
         Vec<M, typename CNT<E>::template Result<EE>::Dvd> result;
@@ -499,20 +511,16 @@ public:
     // for any assignment-compatible element, not just scalars.
     template <class EE> Vec& scalarEq(const EE& ee)
       { for(int i=0;i<M;++i) d[i*STRIDE] = ee; return *this; }
-
     template <class EE> Vec& scalarPlusEq(const EE& ee)
       { for(int i=0;i<M;++i) d[i*STRIDE] += ee; return *this; }
-
     template <class EE> Vec& scalarMinusEq(const EE& ee)
       { for(int i=0;i<M;++i) d[i*STRIDE] -= ee; return *this; }
     template <class EE> Vec& scalarMinusEqFromLeft(const EE& ee)
       { for(int i=0;i<M;++i) d[i*STRIDE] = ee - d[i*STRIDE]; return *this; }
-
     template <class EE> Vec& scalarTimesEq(const EE& ee)
       { for(int i=0;i<M;++i) d[i*STRIDE] *= ee; return *this; }
     template <class EE> Vec& scalarTimesEqFromLeft(const EE& ee)
       { for(int i=0;i<M;++i) d[i*STRIDE] = ee * d[i*STRIDE]; return *this; }
-
     template <class EE> Vec& scalarDivideEq(const EE& ee)
       { for(int i=0;i<M;++i) d[i*STRIDE] /= ee; return *this; }
     template <class EE> Vec& scalarDivideEqFromLeft(const EE& ee)
@@ -709,7 +717,6 @@ operator==(const Vec<M,E1,S1>& v, const E2& e)
 template <int M, class E1, int S1, class E2> inline bool
 operator!=(const Vec<M,E1,S1>& v, const E2& e) {return !(v==e);} 
 
-
 /// bool = v1[i] < v2[i], for all elements i
 template <int M, class E1, int S1, class E2, int S2> inline bool
 operator<(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) 
@@ -830,7 +837,8 @@ operator*(const negator<R>& l, const Vec<M,E,S>& r) {return r * (typename negato
 
 
 // SCALAR DIVIDE. This is a scalar operation when the scalar is on the right,
-// but when it is on the left it means scalar * pseudoInverse(vec), which is a row.
+// but when it is on the left it means scalar * pseudoInverse(vec), which is 
+// a row.
 
 // v = v/real, real/v 
 template <int M, class E, int S> inline

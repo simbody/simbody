@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -340,6 +340,18 @@ public:
         updDiag() = CNT<E>::real(e); 
         for (int i=0; i < NLowerElements; ++i) updlowerE(i) = E(0); 
     }
+
+    // Construction using a negated element is just like construction from
+    // the element.
+    explicit SymMat(const ENeg& e) {
+        updDiag() = CNT<E>::real(e); 
+        for (int i=0; i < NLowerElements; ++i) updlowerE(i) = E(0); 
+    }
+
+    // Given an int, turn it into a suitable floating point number
+    // and then feed that to the above single-element constructor.
+    explicit SymMat(int i) 
+      { new (this) SymMat(E(Precision(i))); }
 
     /// A bevy of constructors from individual exact-match elements IN ROW ORDER,
     /// giving the LOWER TRIANGLE, like this:
