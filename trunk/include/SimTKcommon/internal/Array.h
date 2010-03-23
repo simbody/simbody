@@ -3135,21 +3135,144 @@ const char* indexName() const   {return this->CBase::indexName();}
 // class members; that is, they are in the SimTK namespace.
 
 /** Output a human readable representation of an array to an std::ostream
-(like std::cout). The format is [n]( \e elements ) where n is the array's size
-and \e elements is a comma-separated list of the Array's contents output by 
-invoking the "<<" operator on the elements. This function will not compile if 
-the element type does not support the "<<" operator. No newline is issued before
+(like std::cout). The format is ( \e elements ) where \e elements is a 
+comma-separated list of the Array's contents output by invoking the "<<" 
+operator on the elements. This function will not compile if the element type 
+does not support the "<<" operator. No newline is issued before
 or after the output. @relates Array_ **/
-template <class T, class X> inline std::ostream&
-operator<<(std::ostream& o, const ArrayViewConst_<T,X>& a) {
-    o << "[" << (long long)a.size() << "](";
+template <class T, class X, class CHAR, class TRAITS> inline 
+std::basic_ostream<CHAR,TRAITS>&
+operator<<(std::basic_ostream<CHAR,TRAITS>& o, 
+           const ArrayViewConst_<T,X>& a) 
+{
+    o << CHAR('(');
     if (!a.empty()) {
         o << a.front();
         for (const T* p = a.begin()+1; p != a.end(); ++p)
-            o << ',' << *p;
+            o << CHAR(',') << *p;
     }
-    return o << ')';
+    return o << CHAR(')');
 } 
+
+/** Read an Array_<T> from a stream as a sequence of space- or comma-separated
+values of type T, optionally delimited by parentheses, brackets, or braces.
+The Array_<T> may be an owner (variable size) or a view (fixed size n). In
+the case of an owner, we'll read all the elements in brackets or until eof if
+there are no brackets. In the case of a view, there must be exactly n elements
+in brackets, or if there are no brackets we'll consume exactly n elements and
+then stop. Each element is read in with its own operator ">>" so this won't 
+work if no such operator is defined for type T. @relates Array_ **/
+template <class T, class X, class CHAR, class TRAITS> inline
+std::basic_istream<CHAR,TRAITS>&
+operator>>(std::basic_istream<CHAR,TRAITS>& in, Array_<T,X>& out) {
+    // If already failed or eof, set failed bit and return without touching
+    // the Array.
+    if (!in.good()) {in.setstate(std::ios::failbit); return in;}
+
+    const bool  isFixedSize = !out.isOwner();
+    const typename Array_<T,X>::size_type 
+                numRequired = isFixedSize ? out.size() : 0;
+
+    if (!isFixedSize)
+        out.clear(); // We're going to replace the entire contents of the Array.
+
+    // Skip initial whitespace. If that results in eof this is a successful
+    // read of a 0-length, unbracketed Array.
+    std::ws(in); if (!in.good()) return in;
+
+    // Now see if the sequence is bare or surrounded by (), [], or {}.
+    bool lookForCloser = true;
+    CHAR openBracket, closeBracket;
+    in >> openBracket; if (in.fail()) return in;
+    if      (openBracket==CHAR('(')) closeBracket = CHAR(')');
+    else if (openBracket==CHAR('[')) closeBracket = CHAR(']');
+    else if (openBracket==CHAR('{')) closeBracket = CHAR('}');
+    else { lookForCloser = false;
+           in.unget(); if (in.fail()) return in; }
+
+    // If lookForCloser is true, then closeBracket contains the terminating
+    // delimiter, otherwise we're not going to quit until eof.
+
+    // If we're already at eof this is either a successful read of a
+    // 0-length Array, or a lone unmatched bracket which is a failure.
+    if (in.eof()) {
+        if (lookForCloser) in.setstate(std::ios::failbit);
+        return in;
+    }
+
+    // istream is good; ready to read first value or terminator.
+
+    // We need to figure out whether the elements are space- or comma-
+    // separated and then insist on consistency.
+    bool commaOK = true, commaRequired = false;
+    bool terminatorSeen = false;
+    X nextIndex(0);
+    while (true) {
+        CHAR c;
+
+        // Skip whitespace.
+        std::ws(in); if (!in.good()) break; // might be eof
+
+        // Look for closing bracket before trying to read value.
+        if (lookForCloser) {
+            in >> c; if (in.fail()) break;
+            if (c == closeBracket) 
+            {   terminatorSeen = true; break; }
+            in.unget(); if (!in.good()) break;
+        }
+
+        // No closing bracket was found; istream is good and next
+        // character is not whitespace.
+        if (isFixedSize && (nextIndex == numRequired))
+            break;
+
+        // Look for comma before value, except the first time.
+        if (commaOK && nextIndex != 0) {
+            in >> c; if (in.fail()) break;
+            if (c == CHAR(',')) {
+                commaRequired = true; // all commas from now on
+                std::ws(in); // skip whitespace after comma
+            } else { 
+                in.unget();
+                if (commaRequired) // bad, e.g.: v1, v2, v3 v4 
+                {   in.setstate(std::ios::failbit); break; }
+                else commaOK = false; // saw: v1 v2 (no commas now)
+            }
+            if (!in.good()) break; // might be eof
+        }
+
+        // No terminator yet; skipped comma and whitespace if any; istream
+        // is good; now get a value of type T.
+        if (!isFixedSize)
+            out.push_back(); // grow by one (default consructed)
+        in >> out[nextIndex]; if (in.fail()) break;
+        ++nextIndex;
+
+        if (!in.good()) break; // might be eof
+    }
+
+    if (!in.fail()) {
+        if (lookForCloser && !terminatorSeen)
+            in.setstate(std::ios::failbit); // missing terminator
+
+        if (isFixedSize && nextIndex != numRequired)
+            in.setstate(std::ios::failbit); // wrong number of values
+    }
+
+    return in;
+}
+
+/** Read a (fixed size n) ArrayView_<T> from a stream as a sequence of space- 
+or comma-separated values of type T, optionally delimited by parentheses, 
+brackets, or braces. If there are no delimiters then we will read n values
+and then stop. Otherwise, there must be exactly n values within the 
+brackets. Each element is read in with its own operator ">>" so this won't 
+work if no such operator is defined for type T. @relates Array_ **/
+template <class T, class X, class CHAR, class TRAITS> inline
+std::basic_istream<CHAR,TRAITS>&
+operator>>(std::basic_istream<CHAR,TRAITS>& in, ArrayView_<T,X>& out) {
+    return in >> static_cast<Array_<T,X>&>(out); // use above operator
+}
 
 /**@name                    Comparison operators
 

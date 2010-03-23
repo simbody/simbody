@@ -59,25 +59,25 @@ std::ostream& operator<<(std::ostream& o, std::vector<T>& v) {
     return o << '>';
 }
 
-// Input an Array_<T>
-template <class T, class X> inline std::istream&
-operator>>(std::istream& i, Array_<T,X>& a) {
-    if (a.isOwner()) {
-        a.clear();
-        while(!i.eof()) {
-            a.push_back(); // default construct new element
-            i >> a.back(); // input last element
-        }
-    } else { // non-owner
-        typedef typename Array_<T,X>::size_type size_type;
-        for (size_type e(0); e < a.size() && !i.eof(); ++e)
-            i >> a[e];
-    }
-    return i;
-} 
-template <class T, class X> inline std::istream&
-operator>>(std::istream& i, ArrayView_<T,X>& a) 
-{   return i >> (Array_<T,X>&)a; }
+//// Input an Array_<T>
+//template <class T, class X> inline std::istream&
+//operator>>(std::istream& i, Array_<T,X>& a) {
+//    if (a.isOwner()) {
+//        a.clear();
+//        while(!i.eof()) {
+//            a.push_back(); // default construct new element
+//            i >> a.back(); // input last element
+//        }
+//    } else { // non-owner
+//        typedef typename Array_<T,X>::size_type size_type;
+//        for (size_type e(0); e < a.size() && !i.eof(); ++e)
+//            i >> a[e];
+//    }
+//    return i;
+//} 
+//template <class T, class X> inline std::istream&
+//operator>>(std::istream& i, ArrayView_<T,X>& a) 
+//{   return i >> (Array_<T,X>&)a; }
 
 template <class T>
 class OtherArray_ : public Array_<T> {
@@ -660,16 +660,36 @@ void testInputIterator() {
 
     Array_<float> farray;
     const float farray_ans1[] = {-1.5f,3e4f,.125f,11,4e-7f};
-    std::istringstream fin1("-1.5 3e4 .125 11 4e-7");
+    std::istringstream fin1("[ -1.5, 3e4 ,.125 , 11,4e-7 ]");
     fin1 >> farray;
+    SimTK_TEST(!fin1.fail());
     SimTK_TEST(farray == std::vector<float>(farray_ans1, farray_ans1+5));
 
     // Replace middle three elements.
     ArrayView_<float> fmid(farray(1,3));
     const float farray_ans2[] = {-1.5f,910,920,9200,4e-7f};
-    std::istringstream fin2("9.1e2 9.2e2 9.2e3");
+    std::istringstream fin2(" 9.1e2 9.2e2 9.2e3   ignore me");
     fin2 >> fmid;
+    SimTK_TEST(!fin2.fail());
     SimTK_TEST(farray == Array_<float>(farray_ans2, farray_ans2+5));
+
+    std::istringstream fin3(" 9.1e2 9.2e2"); fin3 >> fmid;
+    SimTK_TEST(fin3.fail()); // wrong size
+
+    std::istringstream fin4(" 9.1e2 9.2e2,9.2e3 ");  fin4 >> fmid;
+    SimTK_TEST(fin4.fail()); // inconsistent use of commas
+
+    std::istringstream fin5("(9.1e2,9.2e2,9.2e3 ");  fin5 >> fmid;
+    SimTK_TEST(fin5.fail()); // missing paren
+
+    std::istringstream fin6("{9.1e2,9.2e2,9.2e3]");  fin6 >> fmid;
+    SimTK_TEST(fin6.fail()); // mismatched delimiters
+
+    std::istringstream fin7("{9.1e2,9.2e2,9.2e3,}");  fin7 >> fmid;
+    SimTK_TEST(fin7.fail()); // trailing comma
+
+    std::istringstream fin8(" 9.1e2,9.2e2,9.2e3,");  fin8 >> fmid;
+    SimTK_TEST(!fin8.fail()); // trailing comma OK here because we got our fill
 
 }
 
