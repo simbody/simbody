@@ -174,18 +174,19 @@ private:
     void ensureForceCacheValid(const State&) const;
 
     // TOPOLOGY STATE
-    const MobilizedBody&    body1;
-    const MobilizedBody&    body2;
-    Transform               defX_B1F, defX_B2M;
-    Vec6                    defK,     defC;
+    const SimbodyMatterSubsystem&   matter;
+    MobilizedBodyIndex              body1x;
+    MobilizedBodyIndex              body2x;
+    Transform                       defX_B1F, defX_B2M;
+    Vec6                            defK,     defC;
 
     // TOPOLOGY CACHE
-    DiscreteVariableIndex   instanceVarsIx;
-    ZIndex                  dissipatedEnergyIx;
-    CacheEntryIndex         positionCacheIx;
-    CacheEntryIndex         potEnergyCacheIx;
-    CacheEntryIndex         velocityCacheIx;
-    CacheEntryIndex         forceCacheIx;
+    DiscreteVariableIndex           instanceVarsIx;
+    ZIndex                          dissipatedEnergyIx;
+    CacheEntryIndex                 positionCacheIx;
+    CacheEntryIndex                 potEnergyCacheIx;
+    CacheEntryIndex                 velocityCacheIx;
+    CacheEntryIndex                 forceCacheIx;
 
 friend class Force::LinearBushing;
 friend std::ostream& operator<<(std::ostream&,const InstanceVars&);
@@ -409,9 +410,11 @@ Force::LinearBushingImpl::LinearBushingImpl
    (const MobilizedBody& body1, const Transform& frameOnB1,
     const MobilizedBody& body2, const Transform& frameOnB2,
     const Vec6& stiffness, const Vec6& damping)
-:   body1(body1), defX_B1F(frameOnB1),
-    body2(body2), defX_B2M(frameOnB2), 
-    defK(stiffness), defC(damping) 
+:   matter(body1.getMatterSubsystem()),
+    body1x(body1.getMobilizedBodyIndex()), 
+    body2x(body2.getMobilizedBodyIndex()), 
+    defX_B1F(frameOnB1),    defX_B2M(frameOnB2), 
+    defK(stiffness),        defC(damping) 
 {
 }
 
@@ -424,6 +427,9 @@ ensurePositionCacheValid(const State& state) const {
     const Transform& X_B2M = iv.X_B2M;
 
     PositionCache& pc = updPositionCache(state);
+
+    const MobilizedBody& body1 = matter.getMobilizedBody(body1x);
+    const MobilizedBody& body2 = matter.getMobilizedBody(body2x);
 
     const Transform& X_GB1 = body1.getBodyTransform(state);
     const Transform& X_GB2 = body2.getBodyTransform(state);
@@ -459,6 +465,9 @@ ensureVelocityCacheValid(const State& state) const {
     const Vec3&     p    = pc.q.getSubVec<3>(3);
 
     VelocityCache& vc = updVelocityCache(state);
+
+    const MobilizedBody& body1 = matter.getMobilizedBody(body1x);
+    const MobilizedBody& body2 = matter.getMobilizedBody(body2x);
 
     // Now do velocities.
     const SpatialVec& V_GB1 = body1.getBodyVelocity(state);
@@ -501,6 +510,9 @@ ensureForceCacheValid(const State& state) const {
 
     ensurePositionCacheValid(state);
     const PositionCache& pc = getPositionCache(state);
+
+    const MobilizedBody& body1 = matter.getMobilizedBody(body1x);
+    const MobilizedBody& body2 = matter.getMobilizedBody(body2x);
 
     const Transform& X_GB1 = body1.getBodyTransform(state);
     const Rotation&  R_GB1 = X_GB1.R();
@@ -592,9 +604,6 @@ void Force::LinearBushingImpl::
 calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
           Vector_<Vec3>& particleForces, Vector& mobilityForces) const 
 {
-    const MobilizedBodyIndex body1x = body1.getMobilizedBodyIndex();
-    const MobilizedBodyIndex body2x = body2.getMobilizedBodyIndex();
-
     ensureForceCacheValid(state);
     const ForceCache& fc = getForceCache(state);
     bodyForces[body2x] +=  fc.F_GB2;
