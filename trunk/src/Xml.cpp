@@ -667,7 +667,7 @@ element_begin(const String& tag) {
     TiXmlElement* first = updTiNode().FirstChildElement();
     while (first && !elementIsAllowed(tag, first))
         first = first->NextSiblingElement();
-    return element_iterator(Element(first), tag);
+    return element_iterator(first, tag);
 }
 Xml::const_element_iterator Xml::Element::
 element_begin(const String& tag) const {
@@ -675,7 +675,7 @@ element_begin(const String& tag) const {
     TiXmlElement* first = mthis->updTiNode().FirstChildElement();
     while (first && !elementIsAllowed(tag, first))
         first = first->NextSiblingElement();
-    return const_element_iterator(Element(first), tag);
+    return const_element_iterator(first, tag);
 }
 
     // Element end()
