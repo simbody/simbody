@@ -807,24 +807,24 @@ const_attribute_iterator find_attribute(const String& name) const {
     return attribute_end();
 }    
 
-/** Return an array containing Attribute handles referencing all the
-attributes of this element. Attributes are returned in the order that
-they appear in the element tag. Attribute names within a tag are unique;
-if the source document had repeated attribute names only the last one
-to appear is retained and that's the only one we'll find here. **/
-Array_<Attribute> findAllAttributes();
-
-/** Return an array containing Element handles referencing all the
-immediate child elements contained in this element, or all the child 
-elements of a particular type (that is, with a given tag word). Elements 
-are returned in the order they are seen in the document. **/
-Array_<Element> findAllElements(const String& tag="");
-
-/** Return an array containing Node handles referencing all the
-immediate child nodes contained in this element, or all the child 
-nodes of a particular type or types. Nodes are returned in the order they 
-are seen in the document. **/
-Array_<Node> findAllNodes(NodeType type=AnyNodes);
+///** Return an array containing Attribute handles referencing all the
+//attributes of this element. Attributes are returned in the order that
+//they appear in the element tag. Attribute names within a tag are unique;
+//if the source document had repeated attribute names only the last one
+//to appear is retained and that's the only one we'll find here. **/
+//Array_<Attribute> findAllAttributes();
+//
+///** Return an array containing Element handles referencing all the
+//immediate child elements contained in this element, or all the child 
+//elements of a particular type (that is, with a given tag word). Elements 
+//are returned in the order they are seen in the document. **/
+//Array_<Element> findAllElements(const String& tag="");
+//
+///** Return an array containing Node handles referencing all the
+//immediate child nodes contained in this element, or all the child 
+//nodes of a particular type or types. Nodes are returned in the order they 
+//are seen in the document. **/
+//Array_<Node> findAllNodes(NodeType type=AnyNodes);
 
 /** The element tag word can be considered the "type" of the element. **/
 const String& getElementTag() const;
@@ -1079,17 +1079,17 @@ friend class Xml;
 };
 
 
-inline Array_<Xml::Node> Xml::Element::
-findAllNodes(Xml::NodeType type)
-{   return Array_<Xml::Node>(node_begin(type), node_end()); }
-
-inline Array_<Xml::Element> Xml::Element::
-findAllElements(const String& tag)
-{   return Array_<Element>(element_begin(tag), element_end()); }
-
-inline Array_<Xml::Attribute> Xml::Element::
-findAllAttributes()
-{   return Array_<Attribute>(attribute_begin(), attribute_end()); }
+//inline Array_<Xml::Node> Xml::Element::
+//findAllNodes(Xml::NodeType type)
+//{   return Array_<Xml::Node>(node_begin(type), node_end()); }
+//
+//inline Array_<Xml::Element> Xml::Element::
+//findAllElements(const String& tag)
+//{   return Array_<Element>(element_begin(tag), element_end()); }
+//
+//inline Array_<Xml::Attribute> Xml::Element::
+//findAllAttributes()
+//{   return Array_<Attribute>(attribute_begin(), attribute_end()); }
 
 /** This is the "leaf" content of an element. **/
 class SimTK_SimTKCOMMON_EXPORT Xml::Text : public Xml::Node {
