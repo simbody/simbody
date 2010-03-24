@@ -680,9 +680,9 @@ element_begin(const String& tag) const {
 
     // Element end()
 Xml::const_element_iterator Xml::Element::element_end() const 
-{   return const_element_iterator(Element(0)); }
+{   return const_element_iterator(); }
 Xml::element_iterator Xml::Element::element_end() 
-{   return element_iterator(Element(0));}
+{   return element_iterator();}
 
     // Attribute begin()
 Xml::attribute_iterator Xml::Element::
