@@ -584,7 +584,7 @@ public:
     bool operator!=(const const_attribute_iterator& other) const 
     {   return other.attr!=attr; }
 private:
-    explicit const const_attribute_iterator(const TiXmlAttribute* ap) 
+    explicit const_attribute_iterator(const TiXmlAttribute* ap) 
     :   attr(const_cast<TiXmlAttribute*>(ap)) {}
     void reassign(const TiXmlAttribute* ap)
     {   attr.setTiAttrPtr(const_cast<TiXmlAttribute*>(ap)); }

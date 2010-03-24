@@ -3279,7 +3279,8 @@ readFromStreamHelper(std::istream& in, bool isFixedSize, Array_<T,X>& out)
     if (!in.good()) {in.setstate(std::ios::failbit); return in;}
 
     // numRequired will be ignored unless isFixedSize==true.
-    const Array_<T,X>::size_type numRequired = isFixedSize ? out.size() : 0;
+    const typename Array_<T,X>::size_type 
+        numRequired = isFixedSize ? out.size() : 0;
 
     if (!isFixedSize)
         out.clear(); // We're going to replace the entire contents of the Array.
