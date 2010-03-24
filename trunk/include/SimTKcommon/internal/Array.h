@@ -282,6 +282,11 @@ template <class Integral> struct ArrayIndexPackType
                         ::packed_size_type  packed_size_type;};
 /** @endcond **/
 
+
+
+
+
+
 //==============================================================================
 //                            CLASS ArrayViewConst_
 //==============================================================================
@@ -810,6 +815,9 @@ ArrayViewConst_& operator=(const ArrayViewConst_& src); // suppressed
 
 
 
+
+
+
 //==============================================================================
 //                            CLASS ArrayView_
 //==============================================================================
@@ -1242,6 +1250,39 @@ size_type allocated() const {return this->CBase::allocated();}
 bool      isOwner()   const {return this->CBase::isOwner();}
 /*@}    End of size and capacity. **/
 
+//------------------------------------------------------------------------------
+/** @name                   Serialization (I/O) 
+
+These methods deal with reading and writing ArrayViews in a serialized
+format from and to strings and files. There are also related global operators
+available for some of these operations.
+@see operator<<() and operator>>() **/
+/*@{*/
+
+/** Read in an ArrayView from a stream. We expect to read in exactly size()
+elements of type T, using type T's stream extraction operator>>(). This will 
+stop reading when we've read size() elements, or set the fail bit
+in the stream if we run out of elements or if any element's extract operator
+sets the fail bit. On successful return, all size() elements will have been
+set, the stream will be positioned right after the final read-in element or
+terminating bracket, and the stream's status will be good() or eof(). We will
+not consume trailing whitespace after reading all the elements; that means the
+stream might actually be empty even if we don't return eof(). If you want to
+know whether there is anything else in the stream, follow this call with 
+std::ws() like this:
+@code
+    if (array.fillFromStream(in))
+        if (!in.eof()) std::ws(in); // might take us to eof
+    if (in.fail()) {...} // deal with I/O or formatting error
+    // Here if the stream is good() then there is more to read; if the
+    // stream got used up the status is guaranteed to be eof().
+@endcode
+A compilation error will occur if you try to use this method on an Array_<T>
+for a type T for which there is no stream extraction operator>>(). **/
+inline std::istream&
+fillFromStream(std::istream& in);
+
+/*@}    End of serialization. **/
 
 //------------------------------------------------------------------------------
                                    private:
@@ -1370,6 +1411,8 @@ unsigned long long ullMaxSize()  const {return this->CBase::ullMaxSize();}
 // why some size was too big.
 const char* indexName() const   {return this->CBase::indexName();}
 };
+
+
 
 
 
@@ -2596,8 +2639,53 @@ T* insert(T* p, const Iter& first, const Iter& last1) {
 
 
 //------------------------------------------------------------------------------
+/** @name                   Serialization (I/O) 
+
+These methods deal with reading and writing Array_<T> objects in a serialized
+format from and to strings and files. There are also related global operators
+available for some of these operations.
+@see operator<<() and operator>>() **/
+/*@{*/
+
+/** Read in an Array_<T> from a stream, as a sequence of space-separated or
+comma-separated values optionally surrounded by parentheses (), square 
+brackets [], or curly braces {}. We will continue to read elements of 
+type T from the stream until we find a reason to stop, using type T's stream 
+extraction operator>>() to read in each element and resizing the Array as
+necessary. If the data is bracketed, we'll read until we hit the closing 
+bracket. If it is not bracketed, we'll read until we hit eof() or get an error
+such as the element extractor setting the stream's fail bit due to bad 
+formatting. On successful return, the stream will be positioned right after 
+the final read-in element or terminating bracket, and the stream's status will 
+be good() or eof(). We will not consume trailing whitespace after bracketed 
+elements; that means the stream might actually be empty even if we don't 
+return eof(). If you want to know whether there is anything else in the 
+stream, follow this call with the STL whitespace skipper std::ws() like this:
+@code
+    if (array.readFromStream(in) && !in.eof()) 
+        std::ws(in); // might take us to eof
+    if (in.fail()) {...} // probably a formatting error
+    else {
+        // Here if the stream is good() then there is more to read; if the
+        // stream got used up the status is guaranteed to be eof().
+    }
+@endcode
+A compilation error will occur if you try to use this method on an Array_<T>
+for a type T for which there is no stream extraction operator>>(). **/
+inline std::istream& readFromStream(std::istream& in); // implemented below
+
+/*@}    End of serialization. **/
+
+
+//------------------------------------------------------------------------------
                                   private:
 //------------------------------------------------------------------------------
+friend class ArrayView_<T,X>;
+// This private static method is used to implement fillFromStream() and
+// readFromStream(), which are in turn used to implement ArrayView's and
+// Array's stream extraction operators ">>". 
+static inline std::istream&
+readFromStreamHelper(std::istream& in, bool isFixedSize, Array_& out);
 
 // This method is used when we have already decided we need to make room for 
 // some new elements by reallocation, by creating a gap somewhere within the
@@ -3140,18 +3228,18 @@ comma-separated list of the Array's contents output by invoking the "<<"
 operator on the elements. This function will not compile if the element type 
 does not support the "<<" operator. No newline is issued before
 or after the output. @relates Array_ **/
-template <class T, class X, class CHAR, class TRAITS> inline 
-std::basic_ostream<CHAR,TRAITS>&
-operator<<(std::basic_ostream<CHAR,TRAITS>& o, 
+template <class T, class X> inline 
+std::ostream&
+operator<<(std::ostream& o, 
            const ArrayViewConst_<T,X>& a) 
 {
-    o << CHAR('(');
+    o << '(';
     if (!a.empty()) {
         o << a.front();
         for (const T* p = a.begin()+1; p != a.end(); ++p)
-            o << CHAR(',') << *p;
+            o << ',' << *p;
     }
-    return o << CHAR(')');
+    return o << ')';
 } 
 
 /** Read an Array_<T> from a stream as a sequence of space- or comma-separated
@@ -3162,16 +3250,36 @@ there are no brackets. In the case of a view, there must be exactly n elements
 in brackets, or if there are no brackets we'll consume exactly n elements and
 then stop. Each element is read in with its own operator ">>" so this won't 
 work if no such operator is defined for type T. @relates Array_ **/
-template <class T, class X, class CHAR, class TRAITS> inline
-std::basic_istream<CHAR,TRAITS>&
-operator>>(std::basic_istream<CHAR,TRAITS>& in, Array_<T,X>& out) {
+template <class T, class X> inline
+std::istream&
+operator>>(std::istream& in, Array_<T,X>& out) {
+    return out.readFromStream(in);
+}
+
+/** Read a (fixed size n) ArrayView_<T> from a stream as a sequence of space- 
+or comma-separated values of type T, optionally delimited by parentheses, 
+square brackets, or curly braces. If there are no delimiters then we will read
+size() values and then stop. Otherwise, there must be exactly size() values 
+within the brackets. Each element is read in with its own operator ">>" so 
+this won't work if no such operator is defined for type T. @relates Array_ **/
+template <class T, class X> inline
+std::istream& operator>>(std::istream& in, ArrayView_<T,X>& out) {
+    return out.fillFromStream(in);
+}
+
+// This private static method is used to implement fillFromStream() and
+// readFromStream(), which are in turn used to implement ArrayView's and
+// Array's stream extraction operators ">>".
+template <class T, class X> /*static*/ inline 
+std::istream& Array_<T,X>::
+readFromStreamHelper(std::istream& in, bool isFixedSize, Array_<T,X>& out)
+{
     // If already failed or eof, set failed bit and return without touching
     // the Array.
     if (!in.good()) {in.setstate(std::ios::failbit); return in;}
 
-    const bool  isFixedSize = !out.isOwner();
-    const typename Array_<T,X>::size_type 
-                numRequired = isFixedSize ? out.size() : 0;
+    // numRequired will be ignored unless isFixedSize==true.
+    const Array_<T,X>::size_type numRequired = isFixedSize ? out.size() : 0;
 
     if (!isFixedSize)
         out.clear(); // We're going to replace the entire contents of the Array.
@@ -3182,11 +3290,11 @@ operator>>(std::basic_istream<CHAR,TRAITS>& in, Array_<T,X>& out) {
 
     // Now see if the sequence is bare or surrounded by (), [], or {}.
     bool lookForCloser = true;
-    CHAR openBracket, closeBracket;
+    char openBracket, closeBracket;
     in >> openBracket; if (in.fail()) return in;
-    if      (openBracket==CHAR('(')) closeBracket = CHAR(')');
-    else if (openBracket==CHAR('[')) closeBracket = CHAR(']');
-    else if (openBracket==CHAR('{')) closeBracket = CHAR('}');
+    if      (openBracket=='(') closeBracket = ')';
+    else if (openBracket=='[') closeBracket = ']';
+    else if (openBracket=='{') closeBracket = '}';
     else { lookForCloser = false;
            in.unget(); if (in.fail()) return in; }
 
@@ -3208,7 +3316,7 @@ operator>>(std::basic_istream<CHAR,TRAITS>& in, Array_<T,X>& out) {
     bool terminatorSeen = false;
     X nextIndex(0);
     while (true) {
-        CHAR c;
+        char c;
 
         // Skip whitespace.
         std::ws(in); if (!in.good()) break; // might be eof
@@ -3229,7 +3337,7 @@ operator>>(std::basic_istream<CHAR,TRAITS>& in, Array_<T,X>& out) {
         // Look for comma before value, except the first time.
         if (commaOK && nextIndex != 0) {
             in >> c; if (in.fail()) break;
-            if (c == CHAR(',')) {
+            if (c == ',') {
                 commaRequired = true; // all commas from now on
                 std::ws(in); // skip whitespace after comma
             } else { 
@@ -3262,16 +3370,17 @@ operator>>(std::basic_istream<CHAR,TRAITS>& in, Array_<T,X>& out) {
     return in;
 }
 
-/** Read a (fixed size n) ArrayView_<T> from a stream as a sequence of space- 
-or comma-separated values of type T, optionally delimited by parentheses, 
-brackets, or braces. If there are no delimiters then we will read n values
-and then stop. Otherwise, there must be exactly n values within the 
-brackets. Each element is read in with its own operator ">>" so this won't 
-work if no such operator is defined for type T. @relates Array_ **/
-template <class T, class X, class CHAR, class TRAITS> inline
-std::basic_istream<CHAR,TRAITS>&
-operator>>(std::basic_istream<CHAR,TRAITS>& in, ArrayView_<T,X>& out) {
-    return in >> static_cast<Array_<T,X>&>(out); // use above operator
+
+template <class T, class X> inline std::istream& 
+ArrayView_<T,X>::fillFromStream(std::istream& in)
+{
+    return Array_<T,X>::readFromStreamHelper(in, true /*fixed size*/, *this); 
+}
+
+template <class T, class X> inline std::istream& 
+Array_<T,X>::readFromStream(std::istream& in)
+{
+    return Array_<T,X>::readFromStreamHelper(in, false /*variable sz*/, *this);
 }
 
 /**@name                    Comparison operators

@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
+ * Portions copyright (c) 2008-10 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -38,21 +38,20 @@ namespace SimTK {
 
 class PolygonalMeshImpl;
 
-/**
- * This class provides a description of a mesh made of polygonal faces.  Its primary purpose is for
- * loading geometry from files, which can then be used for visualization or collision detection.
- * For example, the following lines load a mesh from a Wavefront OBJ file, then create a DecorativeMesh
- * from it.
- *
- * <pre>
- * PolygonalMesh mesh;
- * std::ifstream file;
- * file.open("teapot.obj");
- * mesh.loadObjFile(file);
- * file.close();
- * DecorativeMesh decoration(mesh);
- * </pre>
- */
+/** This class provides a description of a mesh made of polygonal faces. Its 
+primary purpose is for loading geometry from files, which can then be used for
+visualization or collision detection. For example, the following lines load 
+a mesh from a Wavefront OBJ file, then create a DecorativeMesh from it.
+@code
+    PolygonalMesh mesh;
+    std::ifstream file;
+    file.open("teapot.obj");
+    mesh.loadObjFile(file);
+    file.close();
+    DecorativeMesh decoration(mesh);
+@endcode 
+You can also read a polygon mesh from a VTK PolyData (.vtp) file.
+**/
 class SimTK_SimTKCOMMON_EXPORT PolygonalMesh {
 public:
     /**
@@ -87,7 +86,8 @@ public:
      * Get the index of one of the vertices of a face.
      *
      * @param face    the index of the face
-     * @param vertex  the index of the vertex within the face (from 0, 1, or 2 for a triangular face, etc.)
+     * @param vertex  the index of the vertex within the face 
+     *                (from 0, 1, or 2 for a triangular face, etc.)
      * @return the index of the specified vertex
      */
     int getFaceVertex(int face, int vertex) const;
@@ -101,12 +101,12 @@ public:
     /**
      * Add a face to the mesh.
      *
-     * @param vertices    the indices of the vertices which make up the new face
+     * @param vertices    indices of the vertices which make up the new face
      * @return the index of the newly added face
      */
     int addFace(const Array_<int>& vertices);
     /**
-     * Scale a mesh by multiplying every vertex by a fix value.
+     * Scale a mesh by multiplying every vertex by a fixed value.
      */
     void scaleMesh(Real scale);
     /**
@@ -114,11 +114,19 @@ public:
      */
     void transformMesh(const Transform& transform);
     /**
-     * Load a Wavefront OBJ file, adding the vertices and faces it contains to this mesh.
+     * Load a Wavefront OBJ file, adding the vertices and faces it contains
+     * to this mesh.
      *
      * @param file    an input stream from which to load the file contents
      */
     void loadObjFile(std::istream& file);
+    /**
+     * Load a VTK PolyData (.vtp) file, adding the vertices and faces it 
+     * contains to this mesh.
+     *
+     * @param pathname    the name of a .vtp file
+     */
+    void loadVtpFile(const String& pathname);
     const PolygonalMeshImpl& getImpl() const;
     PolygonalMeshImpl& updImpl();
 private:
