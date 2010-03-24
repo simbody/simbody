@@ -46,6 +46,49 @@ class TiXmlNode;
 class TiXmlElement; 
 class TiXmlAttribute;
 
+//TODO: this doesn't belong here
+/** This handy utility converts a given String to an object of type T
+by using operator>> starting at the beginning of the String. We 
+require that the whole string is consumed except possibly for some
+trailing white space. 
+@tparam         T   
+    A type that supports operator>> from an istream.
+@param[in]      value   
+    A string containing a textual representation of a single value of type
+    T, possibly with leading and trailing whitespace.
+@param[out]     out
+    The converted value if we were able to parse the string successfully
+    (i.e., function return is true), otherwise the output value is 
+    undefined.
+@return true if we got what we're looking for, false if anything went
+wrong. **/
+template <typename T> static 
+bool convertString(const String& value, T& out) {
+	std::stringstream sstream(value);
+	sstream >> out; if (sstream.fail()) return false;
+    sstream.eof();
+    std::ws(sstream);       // Skip trailing whitespace if any.
+    return sstream.eof();   // We must have used up the whole string.
+}
+/** This specialization ensures that we get the whole string including
+leading and trailing white space. **/
+template<> static
+bool convertString(const String& value, String& out)
+{   out = value; return true; }
+/** This specialization ensures that we get the whole string including
+leading and trailing white space. **/
+template<> static
+bool convertString(const String& value, std::string& out)
+{   out = value; return true; }
+/** This partial specialization ensures that you can't interpret
+a String as a pointer. **/
+template<typename T> static
+bool convertString(const String& value, T*& out)
+{   SimTK_ERRCHK1_ALWAYS(false, "Xml::convertString(value,T*)",
+        "Can't interpret a string as a pointer (%s*).",
+        NiceTypeName<T>::name());
+    return false; }
+
 /** This class provides a minimalist capability for reading and writing XML 
 documents, as files or strings. This is based with gratitude on the excellent 
 open source XML parser TinyXML (http://www.grinninglizard.com/tinyxml/). Note 
@@ -360,47 +403,6 @@ public:
     declaration line when it is written. **/
     void setXmlIsStandalone(bool isStandalone);
 
-    /** This handy utility converts a given String to an object of type T
-    by using operator>> starting at the beginning of the String. We 
-    require that the whole string is consumed except possibly for some
-    trailing white space. 
-    @tparam         T   
-        A type that supports operator>> from an istream.
-    @param[in]      value   
-        A string containing a textual representation of a single value of type
-        T, possibly with leading and trailing whitespace.
-    @param[out]     out
-        The converted value if we were able to parse the string successfully
-        (i.e., function return is true), otherwise the output value is 
-        undefined.
-    @return true if we got what we're looking for, false if anything went
-    wrong. **/
-	template <typename T> static 
-    bool convertString(const String& value, T& out) {
-		std::stringstream sstream(value);
-		sstream >> out; if (sstream.fail()) return false;
-        sstream.eof();
-        std::ws(sstream);       // Skip trailing whitespace if any.
-        return sstream.eof();   // We must have used up the whole string.
-	}
-    /** This specialization ensures that we get the whole string including
-    leading and trailing white space. **/
-    template<> static
-    bool convertString(const String& value, String& out)
-    {   out = value; return true; }
-    /** This specialization ensures that we get the whole string including
-    leading and trailing white space. **/
-    template<> static
-    bool convertString(const String& value, std::string& out)
-    {   out = value; return true; }
-    /** This partial specialization ensures that you can't interpret
-    a String as a pointer. **/
-    template<typename T> static
-    bool convertString(const String& value, T*& out)
-    {   SimTK_ERRCHK1_ALWAYS(false, "Xml::convertString(value,T*)",
-            "Can't interpret a string as a pointer (%s*).",
-            NiceTypeName<T>::name());
-        return false; }
 
 
     /** This uses convertString() to attempt to reinterpret a string as an 
