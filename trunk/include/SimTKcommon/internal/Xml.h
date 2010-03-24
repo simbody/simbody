@@ -434,7 +434,8 @@ private:
     const Impl& getImpl() const {assert(impl); return *impl;}
     Impl&       updImpl()       {assert(impl); return *impl;}
     Impl* impl;
-    friend class Node;
+
+friend class Node;
 };
 
 /** Output a "pretty printed" textual representation of the given XML
@@ -658,6 +659,9 @@ private:
     TiXmlNode* tiNode;
 
 friend class Xml;
+friend class Xml::Impl;
+friend class Xml::node_iterator;
+friend class Xml::const_node_iterator;
 friend class Xml::Element;
 };
 
@@ -1032,6 +1036,7 @@ private:
     Element  elt;
     String   tag;
 friend class Xml;
+friend class Xml::Element;
 friend class Xml::const_element_iterator;
 };
 
@@ -1077,7 +1082,9 @@ private:
 
     Element  elt;
     String   tag;
+
 friend class Xml;
+friend class Xml::Element;
 };
 
 
