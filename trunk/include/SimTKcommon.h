@@ -60,6 +60,7 @@
 #include "SimTKcommon/internal/ThreadLocal.h"
 #include "SimTKcommon/internal/AtomicInteger.h"
 #include "SimTKcommon/internal/Plugin.h"
+#include "SimTKcommon/internal/Xml.h"
 #endif
 
 

@@ -30,7 +30,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "PolygonalMeshImpl.h"
-#include "SimTKCommon/internal/Xml.h"
+#include "SimTKcommon/internal/Xml.h"
 
 #include <cassert>
 #include <sstream>
