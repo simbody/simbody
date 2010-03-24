@@ -573,6 +573,11 @@ public:
     const_attribute_iterator(const Xml::attribute_iterator& p) 
     :   attr(const_cast<Attribute&>(p.attr)) {}
 
+    /** Copy constructor makes this iterator refer to the same attribute
+    (if any) as the source iterator. **/
+    const_attribute_iterator(const const_attribute_iterator& src)
+    :   attr(const_cast<Attribute&>(*src)) {}
+
     const_attribute_iterator& operator++();   // prefix
     const_attribute_iterator operator++(int); // postfix
     const_attribute_iterator& operator--();   // prefix
