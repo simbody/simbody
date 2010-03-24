@@ -224,39 +224,6 @@ int main() {
     cout << "Executable directory: '" << Pathname::getThisExecutableDirectory() << "'\n";
     cout << "Current working directory: '" << Pathname::getCurrentWorkingDirectory() << "'\n";
 
-    cout << "badbit=" << std::ios_base::badbit << endl;
-    cout << "failbit=" << std::ios_base::failbit << endl;
-    cout << "eofbit=" << std::ios_base::eofbit << endl;
-    cout << "goodbit=" << std::ios_base::goodbit << endl;
-
-    cin.clear(std::ios_base::eofbit);
-    if (cin) printf("true\n"); else printf("false\n");
-    cout << "state before=" << cin.rdstate() << endl;
-    char c; cin >> c; cout << "state after=" << cin.rdstate() << endl;
-    std::stringstream nums("   123j   0xff   010  A");
-    String token;
-    int num = -1, p=-1, n=-1;
-    nums.clear(); nums >> token; std::ws(nums); 
-    p=sscanf(token, "%i%n", &num, &n);
-    if (p!=1||n!=token.size()) nums.setstate(std::ios_base::failbit);
-    cout << "p=" << p << " n=" << n << " num=" << num << " nums state=" << nums.rdstate() << endl;
-    nums.clear(); nums >> token; std::ws(nums); 
-    p=sscanf(token, "%i%n", &num, &n);
-    if (p!=1||n!=token.size()) nums.setstate(std::ios_base::failbit);
-    cout << "p=" << p << " n=" << n << " num=" << num << " nums state=" << nums.rdstate() << endl;
-    nums.clear(); nums >> token; std::ws(nums); 
-    p=sscanf(token, "%i%n", &num, &n);
-    if (p!=1||n!=token.size()) nums.setstate(std::ios_base::failbit);
-    cout << "p=" << p << " n=" << n << " num=" << num << " nums state=" << nums.rdstate() << endl;
-
-    std::istream::int_type ch = nums.peek();
-    cout << "peek=" << ch << " nums state=" << nums.rdstate() << endl;
-    ch = nums.get(); 
-    cout << "get=" << ch << " nums state=" << nums.rdstate() << endl;
-    ch = nums.peek();
-    cout << "peek=" << ch << " nums state=" << nums.rdstate() << endl;
-
-    exit(0);
     SimTK_START_TEST("TestXml");
 
         SimTK_SUBTEST(testStringConvert);

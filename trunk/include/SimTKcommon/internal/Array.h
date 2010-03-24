@@ -3274,8 +3274,8 @@ template <class T, class X> /*static*/ inline
 std::istream& Array_<T,X>::
 readFromStreamHelper(std::istream& in, bool isFixedSize, Array_<T,X>& out)
 {
-    // If already failed or eof, set failed bit and return without touching
-    // the Array.
+    // If already failed, bad, or eof, set failed bit and return without 
+    // touching the Array.
     if (!in.good()) {in.setstate(std::ios::failbit); return in;}
 
     // numRequired will be ignored unless isFixedSize==true.
@@ -3285,31 +3285,54 @@ readFromStreamHelper(std::istream& in, bool isFixedSize, Array_<T,X>& out)
     if (!isFixedSize)
         out.clear(); // We're going to replace the entire contents of the Array.
 
-    // Skip initial whitespace. If that results in eof this is a successful
-    // read of a 0-length, unbracketed Array.
-    std::ws(in); if (!in.good()) return in;
+    // Skip initial whitespace. If that results in eof this may be a successful
+    // read of a 0-length, unbracketed Array. That is OK for either a
+    // variable-length Array or a fixed-length ArrayView of length zero.
+    std::ws(in); if (in.fail()) return in;
+    if (in.eof()) {
+        if (isFixedSize && numRequired != 0)
+            in.setstate(std::ios_base::failbit); // zero elements not OK
+        return in;
+    }
+    
+    // Here the stream is good and the next character is non-white.
+    assert(in.good());
+
+    // Use this for raw i/o (peeks and gets).
+    typename       std::iostream::int_type ch;
+    const typename std::iostream::int_type EOFch = 
+        std::iostream::traits_type::eof();
 
     // Now see if the sequence is bare or surrounded by (), [], or {}.
     bool lookForCloser = true;
     char openBracket, closeBracket;
-    in >> openBracket; if (in.fail()) return in;
-    if      (openBracket=='(') closeBracket = ')';
-    else if (openBracket=='[') closeBracket = ']';
-    else if (openBracket=='{') closeBracket = '}';
-    else { lookForCloser = false;
-           in.unget(); if (in.fail()) return in; }
+    ch = in.peek(); if (in.fail()) return in;
+    assert(ch != EOFch); // we already checked above
+
+    openBracket = (char)ch;
+    if      (openBracket=='(') {in.get(); closeBracket = ')';}
+    else if (openBracket=='[') {in.get(); closeBracket = ']';}
+    else if (openBracket=='{') {in.get(); closeBracket = '}';}
+    else lookForCloser = false;
 
     // If lookForCloser is true, then closeBracket contains the terminating
     // delimiter, otherwise we're not going to quit until eof.
 
-    // If we're already at eof this is either a successful read of a
-    // 0-length Array, or a lone unmatched bracket which is a failure.
-    if (in.eof()) {
-        if (lookForCloser) in.setstate(std::ios::failbit);
+    // Eat whitespace after the opening bracket to see what's next.
+    if (in.good()) std::ws(in);
+
+    // If we're at eof now it must be because the open bracket was the
+    // last non-white character in the stream, which is an error.
+    if (!in.good()) {
+        if (in.eof()) {
+            assert(lookForCloser); // or we haven't read anything that could eof
+            in.setstate(std::ios::failbit);
+        }
         return in;
     }
 
-    // istream is good; ready to read first value or terminator.
+    // istream is good and next character is non-white; ready to read first
+    // value or terminator.
 
     // We need to figure out whether the elements are space- or comma-
     // separated and then insist on consistency.
@@ -3319,30 +3342,50 @@ readFromStreamHelper(std::istream& in, bool isFixedSize, Array_<T,X>& out)
     while (true) {
         char c;
 
-        // Skip whitespace.
-        std::ws(in); if (!in.good()) break; // might be eof
+        // Here at the top of this loop, we have already successfully read 
+        // n=nextIndex values of type T. For fixed-size reads, it might be
+        // the case that n==numRequired already, but we still may need to
+        // look for a closing bracket before we can declare victory.
+        // The stream is good() (not at eof) but it might be the case that 
+        // there is nothing but white space left; we don't know yet because
+        // if we have satisfied the fixed-size count and are not expecting
+        // a terminator then we should quit without absorbing the trailing
+        // white space.
+        assert(in.good());
 
         // Look for closing bracket before trying to read value.
         if (lookForCloser) {
-            in >> c; if (in.fail()) break;
-            if (c == closeBracket) 
-            {   terminatorSeen = true; break; }
-            in.unget(); if (!in.good()) break;
+            // Eat white space to find the closing bracket.
+            std::ws(in); if (!in.good()) break; // eof?
+            ch = in.peek(); assert(ch != EOFch);
+            if (!in.good()) break;
+            c = (char)ch;
+            if (c == closeBracket) {   
+                in.get(); // absorb the closing bracket
+                terminatorSeen = true; 
+                break; 
+            }
+            // next char not a closing bracket; fall through
         }
 
-        // No closing bracket was found; istream is good and next
-        // character is not whitespace.
+        // We didn't look or didn't find a closing bracket. The istream is good 
+        // but we might be looking at white space.
+
+        // If we already got all the elements we want, break for final checks.
         if (isFixedSize && (nextIndex == numRequired))
-            break;
+            break; // that's a full count.
 
         // Look for comma before value, except the first time.
         if (commaOK && nextIndex != 0) {
-            in >> c; if (in.fail()) break;
+            // Eat white space to find the comma.
+            std::ws(in); if (!in.good()) break; // eof?
+            ch = in.peek(); assert(ch != EOFch);
+            if (!in.good()) break;
+            c = (char)ch;
             if (c == ',') {
+                in.get(); // absorb comma
                 commaRequired = true; // all commas from now on
-                std::ws(in); // skip whitespace after comma
-            } else { 
-                in.unget();
+            } else { // next char not a comma
                 if (commaRequired) // bad, e.g.: v1, v2, v3 v4 
                 {   in.setstate(std::ios::failbit); break; }
                 else commaOK = false; // saw: v1 v2 (no commas now)
@@ -3350,8 +3393,12 @@ readFromStreamHelper(std::istream& in, bool isFixedSize, Array_<T,X>& out)
             if (!in.good()) break; // might be eof
         }
 
-        // No terminator yet; skipped comma and whitespace if any; istream
-        // is good; now get a value of type T.
+        // No closing bracket yet; don't have enough elements; skipped comma 
+        // if any; istream is good; might be looking at white space.
+        assert(in.good());
+
+        // Now read in an element of type T.
+        // The extractor T::operator>>() will ignore leading white space.
         if (!isFixedSize)
             out.push_back(); // grow by one (default consructed)
         in >> out[nextIndex]; if (in.fail()) break;
@@ -3359,6 +3406,16 @@ readFromStreamHelper(std::istream& in, bool isFixedSize, Array_<T,X>& out)
 
         if (!in.good()) break; // might be eof
     }
+
+    // We will get here under a number of circumstances:
+    //  - the fail bit is set in the istream, or
+    //  - we reached eof
+    //  - we saw a closing brace
+    //  - we got all the elements we wanted (for a fixed-size read)
+    // Note that it is possible that we consumed everything except some
+    // trailing white space (meaning we're not technically at eof), but
+    // for consistency with built-in operator>>()'s we won't try to absorb
+    // that trailing white space.
 
     if (!in.fail()) {
         if (lookForCloser && !terminatorSeen)
