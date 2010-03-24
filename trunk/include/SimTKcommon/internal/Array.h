@@ -3130,7 +3130,7 @@ static void fillConstruct(T* b, const T* e, const T& v)
 // copy construct one element from a given value
 static void copyConstruct(T* p, const T& v) {new(p) T(v);}
 // copy construct range [b,e) from sequence of source values
-static void copyConstruct(T* b, const T* e, const T* src)
+static void copyConstruct(T* b, const T* e, T* src)
 {   while(b!=e) new(b++) T(*src++); }
 // Templatized copy construct will work if the source elements are
 // assignment compatible with the destination elements.
