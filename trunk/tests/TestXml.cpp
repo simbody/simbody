@@ -187,6 +187,8 @@ void testXmlFromString() {
 
 void testXmlFromScratch() {
     Xml scratch;
+    scratch.setDocumentTag("MyDoc");
+    cout << scratch;
 }
 
 #define SHOWIT(something) \
@@ -219,9 +221,13 @@ void testStringConvert() {
         == fCVec2(std::complex<float>(1,2), std::complex<float>(3,4)));
 
     Array_<int> a = convertStringTo< Array_<int> >("1 2 3 4");
-    cout << "a=" << a << endl;
-    String s(a);
-    cout << "s='" << s << "'" << endl;
+
+    Array_<float> af(2);
+    SimTK_TEST_MUST_THROW( // because ArrayView_ is fixed size (2)
+        String(" -.25, .5, 29.2e4 ").convertTo<ArrayView_<float> >(af));
+    // But this should work because an Array_ can be resized.
+    String(" -.25, .5, 29.2e4 ").convertTo<Array_<float> >(af);
+    SimTK_TEST(af[0]==-.25 && af[1]==.5 && af[2]==292000);
 
 }
 

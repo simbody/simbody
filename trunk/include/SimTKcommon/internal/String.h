@@ -152,7 +152,7 @@ is a stream insertion operator<<() available for type T. **/
 template <class T> inline explicit String(const T& t); // see below
 /*@}*/
 
-/** @name             Formatted input from string
+/** @name             Formatted input from String
 These templatized methods attempt to interpret the entire contents of
 this String as a single object of type T (although T may itself be a 
 container like an Array or Vector). It is an error if the String has
@@ -164,7 +164,7 @@ the white space is included in the result. It is not acceptable for type T
 to be a pointer type. In particular if you want to convert a String to a null-
 terminated C-style char*, use the standard c_str() method rather than any of 
 these.
-@see Related namespace-level static methods converStringTo<T>().
+@see Related namespace-level static methods convertStringTo<T>().
 **/
 /*@{*/
 /** Attempt to convert this String to an object of type T, returning a status
@@ -266,7 +266,7 @@ String& replaceAllChar(const std::string& in, char oldChar, char newChar)
 // to worry about binary compatibiliy issues that can arise when passing 
 // streams through the API.
 
-// Templatized String constructor.
+// Templatized String constructor definition.
 template <class T> inline
 String::String(const T& t) {
     std::ostringstream stream;
@@ -331,13 +331,31 @@ String::convertTo(T& out) const {
         shorter.c_str(), NiceTypeName<T>::name());
 }
 
-/** Alternate namespace-level static convertStringTo() functions are sometimes
-more convenient; see the equivalent String::convertTo() method for information.
-**/
+/** This method converts its String argument to type T and returns it into
+the variables supplied as its second argument; this is particularly convenient
+when you have a string literal or std::string since the conversion to String 
+happens automatically. For example the two lines shown are equivalent:
+@code
+    Array_<float> array;
+    convertStringTo("1.2 -4.1e-3 5", array);
+    String("1.2 -4.1e-3 5").convertTo(array);
+@endcode
+@see String::convertTo()
+@relates String **/
 template <class T> inline static
 void convertStringTo(const String& in, T& out)
 {   in.convertTo<T>(out); }
 
+/** This method converts its String argument to type T and returns it as its
+function value; this is particularly convenient when you have a string literal
+or std::string since the conversion to String happens automatically. For
+example the two lines shown are equivalent:
+@code
+    Array_<float> array = convertStringTo< Array_<float> >("1.2 -4.1e-3 5");
+    Array_<float> array = String("1.2 -4.1e-3 5").convertTo< Array_<float> >();
+@endcode
+@see String::convertTo()
+@relates String **/
 template <class T> inline static
 T convertStringTo(const String& in)
 {   return in.convertTo<T>(); }

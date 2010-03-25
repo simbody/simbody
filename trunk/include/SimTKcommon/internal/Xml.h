@@ -217,157 +217,199 @@ contains one Text node whose value is the original text.
 **/
 class SimTK_SimTKCOMMON_EXPORT Xml {
 public:
-    // These local classes are used to describe the contents of an XML document.
-    class Attribute;
-    class Node;         // This is the abstract type for any node.
-    class Comment;      // These are the concrete node types.
-    class Unknown;      //                  "
-    class Text;         //                  "
-    class Element;      //                  "
 
-    // These provide iteration over all the attributes found in a given
-    // element tag.
-    class attribute_iterator;
-    class const_attribute_iterator;
+// These local classes are used to describe the contents of an XML document.
+class Attribute;
+class Node;         // This is the abstract type for any node.
+class Comment;      // These are the concrete node types.
+class Unknown;      //                  "
+class Text;         //                  "
+class Element;      //                  "
 
-    // These provide iteration over all the nodes at either the Xml document
-    // level or over the child nodes of a node.
-    class node_iterator;
-    class const_node_iterator;
+// These provide iteration over all the attributes found in a given
+// element tag.
+class attribute_iterator;
+class const_attribute_iterator;
 
-    // These provide iteration over all the element nodes that are children
-    // of a given element, or over the child elements that have a particular
-    // tag word.
-    class element_iterator;
-    class const_element_iterator;
+// These provide iteration over all the nodes at either the Xml document
+// level or over the child nodes of a node.
+class node_iterator;
+class const_node_iterator;
 
-    /** The NodeType enum serves as the actual type of a node and as a filter
-    for allowable node types during an iteration over nodes. We consider
-    Element and Text nodes to be meaningful, while Comment and Unknown 
-    nodes are meaningless junk. However, you are free to extract some meaning
-    from them if you know how. **/
-    enum NodeType {
-        NoNode      = 0x00, ///< No nodes allowed
-        ElementNode = 0x01, ///< Element node type and only-Elements filter
-        TextNode    = 0x02, ///< Text node type and only-Text nodes filter
-        CommentNode = 0x04, ///< Comment node type and only-Comments filter
-        UnknownNode = 0x08, ///< Unknown node type and only-Unknowns filter
+// These provide iteration over all the element nodes that are children
+// of a given element, or over the child elements that have a particular
+// tag word.
+class element_iterator;
+class const_element_iterator;
 
-        NoJunkNodes = ElementNode|TextNode,    ///< Filter out meaningless nodes
-        JunkNodes   = CommentNode|UnknownNode, ///< Filter out meaningful nodes
-        AnyNodes    = NoJunkNodes|JunkNodes    ///< Filter allowing all nodes
-    };
+/** The NodeType enum serves as the actual type of a node and as a filter
+for allowable node types during an iteration over nodes. We consider
+Element and Text nodes to be meaningful, while Comment and Unknown 
+nodes are meaningless junk. However, you are free to extract some meaning
+from them if you know how. **/
+enum NodeType {
+    NoNode      = 0x00, ///< No nodes allowed
+    ElementNode = 0x01, ///< Element node type and only-Elements filter
+    TextNode    = 0x02, ///< Text node type and only-Text nodes filter
+    CommentNode = 0x04, ///< Comment node type and only-Comments filter
+    UnknownNode = 0x08, ///< Unknown node type and only-Unknowns filter
 
-    /** Translate a NodeType to a human-readable string. **/
-    static String getNodeTypeAsString(NodeType type);
+    NoJunkNodes = ElementNode|TextNode,    ///< Filter out meaningless nodes
+    JunkNodes   = CommentNode|UnknownNode, ///< Filter out meaningful nodes
+    AnyNodes    = NoJunkNodes|JunkNodes    ///< Filter allowing all nodes
+};
 
-    /** Create an empty XML Document with default declaration and default
-    document tag "XMLDocument". That is, if you printed out this document
-    now you would see:                                          @code
-            <?xml version="1.0" encoding="UTF-8"?>
-            <XMLDocument/>                                      @endcode **/
-    Xml();
+/** Translate a NodeType to a human-readable string. **/
+static String getNodeTypeAsString(NodeType type);
 
-    /** Create a new XML document and initialize it from the contents
-    of the given file name. An exception will be thrown if the file doesn't 
-    exist or can't be parsed. **/
-    explicit Xml(const String& pathname);
+/**@name                         Construction
+You can start with an empty Xml document or initialize it from a file. **/
+/*@{*/
+/** Create an empty XML Document with default declaration and default
+document tag "XMLDocument". That is, if you printed out this document
+now you would see:                                          @code
+        <?xml version="1.0" encoding="UTF-8"?>
+        <XMLDocument/>                                      @endcode **/
+Xml();
 
-    /** Restore this document to its default-constructed state. **/
-    void clear();
+/** Create a new XML document and initialize it from the contents
+of the given file name. An exception will be thrown if the file doesn't 
+exist or can't be parsed. **/
+explicit Xml(const String& pathname);
 
-    /** The document type is conventionally the root element's tag; if there
-    wasn't a unique root element then we will have created one with document
-    tag "XMLDocument", so this will always work. **/
-    const String& getDocumentTag() const;
-    /** The document type is the root element's tag; this changes that tag. **/
-    void setDocumentTag(const String& tag);
+/** Restore this document to its default-constructed state. **/
+void clear();
+/*@}*/
+
+/**@name              Access to the document contents
+At the top level there is almost always just a single element, called the
+"root" or "document" element. These methods provide access to that element
+and some shortcuts for getting useful information from it. **/
+/*@{*/
+/** The document type is conventionally the root element's tag; if there
+wasn't a unique root element then we will have created one with document
+tag "XMLDocument", so this will always work. **/
+const String& getDocumentTag() const;
+/** The document type is the root element's tag; this changes that tag. **/
+void setDocumentTag(const String& tag);
+
+/** Return a const reference to the top-level element in this Xml 
+document, known as the "document tag". The tag name is considered to
+be the type of document. This is the only top-level element; all others
+are its children and descendents. **/
+const Element& getDocumentElement() const;
+/** Return a writable reference to the top-level "document tag" element. **/
+Element& updDocumentElement();
+/*@}*/
+
+/**@name                    Serializing and I/O
+These methods deal with conversion to and from the in-memory representation
+of the XML document from and to files and strings. **/
+/*@{*/
+/** Read the contents of this Xml document from the file whose pathname
+is supplied. This first clears the current document so the new one 
+completely replaces the old one. @see readFromString() **/
+void readFromFile(const String& pathname);
+/** Write the contents of this in-memory Xml document to the file whose
+pathname is supplied. The file will be created if it doesn't exist, 
+overwritten if it does exist. **/
+void writeToFile(const String& pathname) const;
+
+/** Read the contents of this Xml document from the supplied string. This
+first clears the current document so the new one completely replaces the 
+old one. @see readFromFile() **/
+void readFromString(const String& xmlDocument);
+/** Alternate form that reads from a null-terminated C string (char*) 
+rather than a C++ string object. This would otherwise be implicitly 
+converted to string first which would require copying. **/
+void readFromString(const char* xmlDocument);
+/** Write the contents of this in-memory Xml document to the supplied
+string. The string cleared first so will be completely overwritten.
+Normally the output is "pretty-printed" as it is for a file, but if you
+set \a compact to true the tabs and newlines will be suppressed to make
+a more compact representation. **/
+void writeToString(String& xmlDocument, bool compact = false) const;
+/** This is the absolute path name of the file (if any) from which this
+Xml document was read in or to which it was most recently written. **/
+String getPathname() const;
+/*@}*/
 
 
-    /** Return a const reference to the top-level element in this Xml 
-    document, known as the "document tag". The tag name is considered to
-    be the type of document. This is the only top-level element; all others
-    are its children and descendents. **/
-    const Element& getDocumentElement() const;
-    /** Return a writable reference to the top-level "document tag" element. **/
-    Element& updDocumentElement();
+/**@name       Iteration through top-level nodes (rarely used)
+If you want to run through this document's top-level nodes (of which the
+"root" or "document" element is one), these methods provide begin and end 
+iterators. By default you'll see all the nodes (types Comment, Unknown, 
+and the lone top-level Element) but you can restrict the node types that 
+you'll see via the NodeType mask. Iteration is rarely used at this top level 
+since you almost never care about about the Comment and Unknown nodes here and
+you can get to the document element directly using getDocumentElement().
+@see getDocumentElement() **/
+/*@{*/
+/** Obtain an iterator to all the top-level nodes or a subset restricted via
+the \a allowed NodeType mask. **/
+node_iterator       node_begin(NodeType allowed=AnyNodes);
+/** Const version of node_begin(). **/
+const_node_iterator node_begin(NodeType allowed=AnyNodes) const;
 
-    /** Read the contents of this Xml document from the file whose pathname
-    is supplied. This first clears the current document so the new one 
-    completely replaces the old one. @see readFromString() **/
-    void readFromFile(const String& pathname);
-    /** Write the contents of this in-memory Xml document to the file whose
-    pathname is supplied. The file will be created if it doesn't exist, 
-    overwritten if it does exist. **/
-    void writeToFile(const String& pathname) const;
+/** This node_end() iterator indicates the end of a sequence of nodes regardless
+of the NodeType restriction on the iterator being used. **/
+node_iterator       node_end();
+/** Const version of node_end(). **/
+const_node_iterator node_end() const;
+/*@}*/
 
-    /** Read the contents of this Xml document from the supplied string. This
-    first clears the current document so the new one completely replaces the 
-    old one. @see readFromFile() **/
-    void readFromString(const String& xmlDocument);
-    /** Alternate form that reads from a null-terminated C string (char*) 
-    rather than a C++ string object. This would otherwise be implicitly 
-    converted to string first which would require copying. **/
-    void readFromString(const char* xmlDocument);
-    /** Write the contents of this in-memory Xml document to the supplied
-    string. The string cleared first so will be completely overwritten.
-    Normally the output is "pretty-printed" as it is for a file, but if you
-    set \a compact to true the tabs and newlines will be suppressed to make
-    a more compact representation. **/
-    void writeToString(String& xmlDocument, bool compact = false) const;
+/**@name           XML Declaration attributes (rarely used)
+These methods deal with the mysterious XML "declaration" line that comes at the
+beginning of every XML document; that is the line that begins with "<?xml" 
+and ends with "?>". There are at most three of these attributes and they are
+always the same (default values shown):
+  - \e version = "1.0": to what version of the XML standard does this document 
+    adhere?
+  - \e encoding = "UTF-8": what Unicode encoding is used to represent the 
+    character in this document? Typically this is UTF-8, an 8-bit encoding in 
+    which the first 128 codes match standard ASCII but where other characters are
+    represented in variable-length multibyte sequences.
+  - \e standalone = "yes": can this document be correctly parsed without 
+    consulting other documents?
 
+You can examine and change these attributes with the methods in this section,
+however unless you really know what you're doing you should just leave the
+declaration alone; you'll get reasonable behavior automatically. **/
+/*@{*/
+/** Returns the Xml "version" attribute as a string (from the declaration
+line at the beginning of the document). **/
+String getXmlVersion() const;
+/** Returns the Xml "encoding" attribute as a string (from the declaration
+line at the beginning of the document). **/
+String getXmlEncoding() const;
+/** Returns the Xml "standalone" attribute as a string (from the declaration
+line at the beginning of the document); default is "yes", meaning that the
+document can be parsed correctly without any other documents. We won't 
+include "standalone" in the declaration line for any Xml documents we generate
+unless the value is "no". **/
+bool   getXmlIsStandalone() const;
 
-    /** If you want to run through this document's top-level nodes (of which 
-    the root element is one), these methods provide begin and end iterators.
-    By default you'll see all the nodes (types Comment, Text, Element, and
-    Unknown) but you can restrict the node types that you'll see. **/
-    node_iterator       node_begin(NodeType allowed=AnyNodes);
-    /** Const version of node_begin(). **/
-    const_node_iterator node_begin(NodeType allowed=AnyNodes) const;
-
-    /** Any node_iterator can be set node_end() regardless of the NodeTypes it 
-    allows. **/
-    node_iterator       node_end();
-    /** Const version of node_end(). **/
-    const_node_iterator node_end() const;
-
-
-    /** This is the absolute path name of the file (if any) from which this
-    Xml document was read in or to which it was most recently written. **/
-    String getPathname() const;
-
-    /** Returns the Xml "version" attribute as a string; this comes from
-    the "declaration" line at the beginning of an Xml document; that is the
-    line that begins with "<?xml" and ends with "?>". **/
-    String getXmlVersion() const;
-    /** Returns the Xml "encoding" attribute as a string (from the declaration
-    line at the beginning of the document). **/
-    String getXmlEncoding() const;
-    /** Returns the Xml "standalone" attribute as a string (from the declaration
-    line at the beginning of the document); default is "yes", meaning that the
-    document can be parsed correctly without any other documents. **/
-    bool   getXmlIsStandalone() const;
-
-    /** Set the Xml "version" attribute; this will be written to the 
-    "declaration" line which is first in any Xml document; that is the
-    line that begins with "<?xml" and ends with "?>". **/
-    void setXmlVersion(const String& version);
-    /** Set the Xml "encoding" attribute; this does not change the encoding,
-    just what gets output to the "declaration" line. **/
-    void setXmlEncoding(const String& encoding);
-    /** Set the Xml "standalone" attribute; this is normally true (corresponding
-    to standalone="yes") and won't appear in the declaration line in that 
-    case. If you set this to false then standalone="no" will appear in the
-    declaration line when it is written. **/
-    void setXmlIsStandalone(bool isStandalone);
+/** Set the Xml "version" attribute; this will be written to the 
+"declaration" line which is first in any Xml document. **/
+void setXmlVersion(const String& version);
+/** Set the Xml "encoding" attribute; this doesn't affect the in-memory
+representation but can affect how the document gets written out. **/
+void setXmlEncoding(const String& encoding);
+/** Set the Xml "standalone" attribute; this is normally true (corresponding
+to standalone="yes") and won't appear in the declaration line in that 
+case when we write it out. If you set this to false then standalone="no" 
+will appear in the declaration line when it is written. **/
+void setXmlIsStandalone(bool isStandalone);
+/*@}*/
 
 private:
-    class Impl;
-    const Impl& getImpl() const {assert(impl); return *impl;}
-    Impl&       updImpl()       {assert(impl); return *impl;}
-    Impl* impl;
-
 friend class Node;
+
+class Impl; // a private, local class Xml::Impl
+const Impl& getImpl() const {assert(impl); return *impl;}
+Impl&       updImpl()       {assert(impl); return *impl;}
+
+Impl*       impl; // This is the lone data member.
 };
 
 /** Output a "pretty printed" textual representation of the given XML
@@ -847,7 +889,7 @@ template <class T> T getOptionalAttributeAs
 this element. The child is identified by its tag; if there is more than one
 this refers to the first one. Then the element is expected to contain either
 zero or one Text nodes; if none we'll return a null string, otherwise 
-the value of the Text node. Thus an element like "<tag>stuff</tag> will
+the value of the Text node. Thus an element like "<tag>stuff</tag>" will
 have the text value "stuff". An error will be thrown if either the element
 is not found or it is not a "text element". **/
 const String& getRequiredElementText(const String& tag) const
