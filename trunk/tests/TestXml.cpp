@@ -193,30 +193,36 @@ void testXmlFromScratch() {
     cout << String(#something) << String("'") << something << String("'\n")
 
 void testStringConvert() {
-    SimTK_TEST(Xml::getStringAs<int>(" 239\n ")==239);
-    SimTK_TEST(Xml::getStringAs<String>("  lunch box\n") == "  lunch box\n");
-    SimTK_TEST(Xml::getStringAs<std::string>("  lunch box\n") == "  lunch box\n");
-    SimTK_TEST(Xml::getStringAs<int>("1234")==1234);
-    SimTK_TEST(Xml::getStringAs<unsigned>("01234")==1234);
-    SimTK_TEST(Xml::getStringAs<float>("1234.5")==1234.5);
-    SimTK_TEST_MUST_THROW(Xml::getStringAs<char*>("  lunch box\n"));
-    SimTK_TEST_MUST_THROW(Xml::getStringAs<int>(" 234 j"));
-    SimTK_TEST_MUST_THROW(Xml::getStringAs<int>("345.5"));
+    SimTK_TEST(convertStringTo<int>(" 239\n ")==239);
+    SimTK_TEST(convertStringTo<String>("  lunch box\n") == "  lunch box\n");
+    SimTK_TEST(convertStringTo<std::string>("  lunch box\n") == "  lunch box\n");
+    SimTK_TEST(convertStringTo<int>("1234")==1234);
+    SimTK_TEST(convertStringTo<unsigned>("01234")==1234);
+    SimTK_TEST(convertStringTo<float>("1234.5")==1234.5);
+    SimTK_TEST_MUST_THROW(convertStringTo<char*>("  lunch box\n"));
+    SimTK_TEST_MUST_THROW(convertStringTo<int>(" 234 j"));
+    SimTK_TEST_MUST_THROW(convertStringTo<int>("345.5"));
 
-    SimTK_TEST(Xml::getStringAs< std::complex<double> >("(-4,22)")
+    SimTK_TEST(convertStringTo< std::complex<double> >("(-4,22)")
                ==std::complex<double>(-4,22));
-    SimTK_TEST(Xml::getStringAs< Vec3 >("1 2 3") == Vec3(1,2,3));
-    SimTK_TEST(Xml::getStringAs< Vec3 >("1, 2 , 3") == Vec3(1,2,3));
-    SimTK_TEST(Xml::getStringAs< Vec3 >("[ -3 , 5, 6 ] ")== Vec3(-3,5,6));
-    SimTK_TEST(Xml::getStringAs< Vec3 >("( -3  5 -6 ) ")== Vec3(-3,5,-6));
-    SimTK_TEST(Xml::getStringAs< Vec3 >(" ~ [ -3 , 5, 6 ] ")== Vec3(-3,5,6));
-    SimTK_TEST(Xml::getStringAs< Vec3 >("~( -3  5 -6 ) ")== Vec3(-3,5,-6));
-    SimTK_TEST_MUST_THROW(Xml::getStringAs< Vec3 >("( -3  5 -6 ] "));
-    SimTK_TEST_MUST_THROW(Xml::getStringAs< Vec3 >(" -3  5 -6 ] "));
-    SimTK_TEST_MUST_THROW(Xml::getStringAs< Vec3 >(" ~ -3  5 -6 "));
+    SimTK_TEST(convertStringTo< Vec3 >("1 2 3") == Vec3(1,2,3));
+    SimTK_TEST(convertStringTo< Vec3 >("1, 2 , 3") == Vec3(1,2,3));
+    SimTK_TEST(convertStringTo< Vec3 >("[ -3 , 5, 6 ] ")== Vec3(-3,5,6));
+    SimTK_TEST(convertStringTo< Vec3 >("( -3  5 -6 ) ")== Vec3(-3,5,-6));
+    SimTK_TEST(convertStringTo< Vec3 >(" ~ [ -3 , 5, 6 ] ")== Vec3(-3,5,6));
+    SimTK_TEST(convertStringTo< Vec3 >("~( -3  5 -6 ) ")== Vec3(-3,5,-6));
+    SimTK_TEST_MUST_THROW(convertStringTo< Vec3 >("( -3  5 -6 ] "));
+    SimTK_TEST_MUST_THROW(convertStringTo< Vec3 >(" -3  5 -6 ] "));
+    SimTK_TEST_MUST_THROW(convertStringTo< Vec3 >(" ~ -3  5 -6 "));
     typedef Vec<2,std::complex<float> > fCVec2;
-    SimTK_TEST(Xml::getStringAs<fCVec2>("[(1,2) (3,4)]")
+    SimTK_TEST(convertStringTo<fCVec2>("[(1,2) (3,4)]")
         == fCVec2(std::complex<float>(1,2), std::complex<float>(3,4)));
+
+    Array_<int> a = convertStringTo< Array_<int> >("1 2 3 4");
+    cout << "a=" << a << endl;
+    String s(a);
+    cout << "s='" << s << "'" << endl;
+
 }
 
 int main() {

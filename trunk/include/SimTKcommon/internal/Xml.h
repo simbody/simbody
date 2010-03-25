@@ -46,48 +46,6 @@ class TiXmlNode;
 class TiXmlElement; 
 class TiXmlAttribute;
 
-//TODO: this doesn't belong here
-/** This handy utility converts a given String to an object of type T
-by using operator>> starting at the beginning of the String. We 
-require that the whole string is consumed except possibly for some
-trailing white space. 
-@tparam         T   
-    A type that supports operator>> from an istream.
-@param[in]      value   
-    A string containing a textual representation of a single value of type
-    T, possibly with leading and trailing whitespace.
-@param[out]     out
-    The converted value if we were able to parse the string successfully
-    (i.e., function return is true), otherwise the output value is 
-    undefined.
-@return true if we got what we're looking for, false if anything went
-wrong. **/
-template <typename T> static 
-bool convertString(const String& value, T& out) {
-	std::stringstream sstream(value);
-	sstream >> out; if (sstream.fail()) return false;
-    sstream.eof();
-    std::ws(sstream);       // Skip trailing whitespace if any.
-    return sstream.eof();   // We must have used up the whole string.
-}
-/** This specialization ensures that we get the whole string including
-leading and trailing white space. **/
-template<> static
-bool convertString(const String& value, String& out)
-{   out = value; return true; }
-/** This specialization ensures that we get the whole string including
-leading and trailing white space. **/
-template<> static
-bool convertString(const String& value, std::string& out)
-{   out = value; return true; }
-/** This partial specialization ensures that you can't interpret
-a String as a pointer. **/
-template<typename T> static
-bool convertString(const String& value, T*& out)
-{   SimTK_ERRCHK1_ALWAYS(false, "Xml::convertString(value,T*)",
-        "Can't interpret a string as a pointer (%s*).",
-        NiceTypeName<T>::name());
-    return false; }
 
 /** This class provides a minimalist capability for reading and writing XML 
 documents, as files or strings. This is based with gratitude on the excellent 
@@ -347,9 +305,9 @@ public:
     first clears the current document so the new one completely replaces the 
     old one. @see readFromFile() **/
     void readFromString(const String& xmlDocument);
-    /** Alternate form that reads from a C string (char*) rather than a
-    C++ string object. This would otherwise be implicitly converted to string
-    first which would require copying. **/
+    /** Alternate form that reads from a null-terminated C string (char*) 
+    rather than a C++ string object. This would otherwise be implicitly 
+    converted to string first which would require copying. **/
     void readFromString(const char* xmlDocument);
     /** Write the contents of this in-memory Xml document to the supplied
     string. The string cleared first so will be completely overwritten.
@@ -402,32 +360,6 @@ public:
     case. If you set this to false then standalone="no" will appear in the
     declaration line when it is written. **/
     void setXmlIsStandalone(bool isStandalone);
-
-
-
-    /** This uses convertString() to attempt to reinterpret a string as an 
-    object of type T and throws an error message if the string wouldn't 
-    convert. **/
-    template <typename T> static void
-    getStringAs(const String& value, T& out) {
-        const bool convertOK = convertString(value, out);
-        if (convertOK) return;
-        // Make sure we don't try to output more than 100 characters of
-        // the bad string in the error message.
-        String shorter = value.substr(0, 100);
-        if (shorter.size() < value.size()) shorter += " ...";
-        SimTK_ERRCHK2_ALWAYS(convertOK, "Xml::getAs()",
-            "Couldn't interpret string '%s' as type T=%s.",
-            shorter.c_str(), NiceTypeName<T>::name());
-    }
-
-    /** A more convenient form of getStringAs<T>() that returns the result
-    as its function argument, although this may involve copying. For very
-    large objects you may want to use the other form. **/
-    template <typename T> static
-    T getStringAs(const String& value) 
-    {   T temp; getStringAs<T>(value, temp); return temp; }
-
 
 private:
     class Impl;
@@ -862,12 +794,12 @@ be a container of some sort, like a Vector or Array.)
 @tparam T   A type that can be read from a stream using the ">>" operator.
 **/
 template <class T> T getElementAs() const 
-{   return Xml::getStringAs<T>(getElementText()); }
+{   return getElementText().convertTo<T>(); }
 
 /** Alternate form of getElementAs() that avoids unnecessary copying and
 heap allocation for reading in large container objects. **/
 template <class T> void getElementAs(T& out) const 
-{   return Xml::getStringAs<T>(getElementText(), out); }
+{   return getElementText().convertTo<T>(out); }
 
 /** Obtain a reference to a particular attribute of this element; an error
 will be thrown if no such attribute is present. **/
@@ -886,7 +818,7 @@ be a container of some sort, like a Vec3.)
 **/
 template <class T> T getRequiredAttributeAs
    (const String& name) const
-{   return getStringAs<T>(getRequiredAttributeText(name)); }
+{   return getRequiredAttributeText(name).convertTo<T>(); }
 
 /** Get the text value of an attribute (that is, its value as a string) if 
 the attribute is present in this element, otherwise return a supplied 
@@ -909,7 +841,7 @@ of the supplied default value \a def. **/
 template <class T> T getOptionalAttributeAs
    (const String& name, const T& def) const
 {   const_attribute_iterator p = find_attribute(name);
-    return p==attribute_end() ? def : getStringAs<T>(p->getValue()); }
+    return p==attribute_end() ? def : p->getValue().convertTo<T>(); }
 
 /** Get the text value of a child text element that \e must be present in 
 this element. The child is identified by its tag; if there is more than one
@@ -935,7 +867,7 @@ be a container of some sort, like a Vector or Array.)
 @param[in]  tag The tag of the required child text element.
 @return The value of the text element, converted to an object of type T. **/
 template <class T> T  getRequiredElementAs(const String& tag) const
-{   return getStringAs<T>(getRequiredElementText(tag)); }
+{   return getRequiredElementText(tag).convertTo<T>(); }
 
 /** Convert the text value of an optional child text element, if present, to
 the type of the template argument T. It is an error if the child element is
@@ -951,7 +883,7 @@ of the supplied default value \a def. **/
 template <class T> T 
     getOptionalElementAs(const String& tag, const T& def) const
 {   const Element opt(getOptionalElement(tag));
-    return opt.isValid() ? getStringAs<T>(opt.getElementText()) : def; }
+    return opt.isValid() ? opt.getElementText().convertTo<T>() : def; }
 
 /** Get a reference to a child element that \e must be present in this 
 element. The child is identified by its tag; if there is more than one
