@@ -467,6 +467,13 @@ Xml::NodeType Xml::Node::getNodeType() const {
 String Xml::Node::
 getNodeTypeAsString() const {return Xml::getNodeTypeAsString(getNodeType());}
 
+void Xml::Node::
+writeToString(String& out, bool compact) const {
+    TiXmlPrinter printer(out);
+    if (compact) printer.SetStreamPrinting();
+    getTiNode().Accept( &printer );
+}
+
 bool Xml::Node::empty(NodeType allowed) const 
 {   return node_begin(allowed) == node_end(); }
 
@@ -589,6 +596,8 @@ static bool elementIsAllowed(const String& tag,
     return tag.empty() || elt->ValueStr() == tag;
 }
 
+Xml::Element::Element(const String& tag) : Node(new TiXmlElement(tag)) {}
+
 const String& Xml::Element::getElementTag() const {
     return getTiNode().ValueStr();
 }
@@ -597,16 +606,16 @@ void Xml::Element::setElementTag(const String& type) {
     updTiNode().SetValue(type);
 }
 
-bool Xml::Element::isTextElement() const {
+bool Xml::Element::isValueElement() const {
     if (element_begin() != element_end()) return false; // has child elements
     const_node_iterator text = node_begin(TextNode);
     return text == node_end() || ++text == node_end(); // zero or one
 }
 
-const String& Xml::Element::getElementText() const {
+const String& Xml::Element::getElementValue() const {
     const String null;
-    SimTK_ERRCHK1_ALWAYS(isTextElement(), "Xml::Element::getElementText()",
-        "Element <%s> is not a text element.", getElementTag().c_str());
+    SimTK_ERRCHK1_ALWAYS(isValueElement(), "Xml::Element::getElementValue()",
+        "Element <%s> is not a value element.", getElementTag().c_str());
 
     const_node_iterator text = node_begin(TextNode);
     return text == node_end() ? null : text->getValue();
@@ -788,3 +797,32 @@ operator--(int) {
     reassign(prev);
     return const_element_iterator(save);
 }
+
+
+
+
+
+//------------------------------------------------------------------------------
+//                             XML TEXT NODE
+//------------------------------------------------------------------------------
+Xml::Text::Text(const String& text) : Node(new TiXmlText(text)) {}
+
+
+
+
+
+//------------------------------------------------------------------------------
+//                           XML COMMENT NODE
+//------------------------------------------------------------------------------
+Xml::Comment::Comment(const String& text) : Node(new TiXmlComment(text)) {}
+
+
+
+
+
+//------------------------------------------------------------------------------
+//                           XML UNKNOWN NODE
+//------------------------------------------------------------------------------
+Xml::Unknown::Unknown(const String& contents) : Node(new TiXmlUnknown()) 
+{   updTiNode().SetValue(contents); }
+

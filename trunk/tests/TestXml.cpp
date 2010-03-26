@@ -189,6 +189,22 @@ void testXmlFromScratch() {
     Xml scratch;
     scratch.setDocumentTag("MyDoc");
     cout << scratch;
+
+    Xml::Comment c("This is a comment.");
+    Xml::Unknown u("!GODONLY knows what this is!!");
+    Xml::Text t("This is some\ntext on two lines with trailing blanks   ");
+    Xml::Element e("elementTag");
+    Xml::Attribute a("name1", "value1");
+
+    //e.adoptAttribute(a);
+
+    //e.addAttribute("name","value");
+    //e.setAttribute("name","value2");
+
+    cout << c;
+    cout << u;
+    cout << t;
+    cout << e;
 }
 
 #define SHOWIT(something) \
@@ -239,8 +255,8 @@ int main() {
     SimTK_START_TEST("TestXml");
 
         SimTK_SUBTEST(testStringConvert);
-        SimTK_SUBTEST(testXmlFromScratch);
         SimTK_SUBTEST(testXmlFromString);
+        SimTK_SUBTEST(testXmlFromScratch);
 
     SimTK_END_TEST();
 }

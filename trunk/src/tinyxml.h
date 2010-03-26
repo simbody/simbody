@@ -109,6 +109,8 @@ struct TiXmlCursor
 	int col;	// 0 based.
 };
 
+
+
 //------------------------------------------------------------------------------
 //                            TinyXML VISITOR
 //------------------------------------------------------------------------------
@@ -1331,17 +1333,17 @@ private:
 //                           TinyXML DECLARATION
 //------------------------------------------------------------------------------
 /** In correct XML the declaration is the first entry in the file.
-	@verbatim
-		<?xml version="1.0" standalone="yes"?>
-	@endverbatim
+@verbatim
+	<?xml version="1.0" standalone="yes"?>
+@endverbatim
 
-	TinyXml will happily read or write files without a declaration,
-	however. There are 3 possible attributes to the declaration:
-	version, encoding, and standalone.
+TinyXml will happily read or write files without a declaration,
+however. There are 3 possible attributes to the declaration:
+version, encoding, and standalone.
 
-	Note: In this version of the code, the attributes are
-	handled as special cases, not generic attributes, simply
-	because there can only be at most 3 and they are always the same.
+Note: In this version of the code, the attributes are
+handled as special cases, not generic attributes, simply
+because there can only be at most 3 and they are always the same.
 */
 class TiXmlDeclaration : public TiXmlNode
 {
@@ -1410,11 +1412,11 @@ private:
 //                            TinyXML UNKNOWN
 //------------------------------------------------------------------------------
 /** Any tag that tinyXml doesn't recognize is saved as an
-	unknown. It is a tag of text, but should not be modified.
-	It will be written back to the XML, unchanged, when the file
-	is saved.
+unknown. It is a tag of text, but should not be modified.
+It will be written back to the XML, unchanged, when the file
+is saved.
 
-	DTD tags get thrown into TiXmlUnknowns.
+DTD tags get thrown into TiXmlUnknowns.
 */
 class TiXmlUnknown : public TiXmlNode
 {

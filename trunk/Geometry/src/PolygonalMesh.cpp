@@ -273,16 +273,18 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     // This is a VTKFile document.
 
     Xml::Element doc = vtp.getDocumentElement();
-    SimTK_ERRCHK1_ALWAYS(doc.getRequiredAttributeText("type") == "PolyData",
+    SimTK_ERRCHK1_ALWAYS(doc.getRequiredAttributeValue("type") == "PolyData",
         method, "Expected VTK file type='PolyData' but got type='%s'.",
-        doc.getRequiredAttributeText("type").c_str());
+        doc.getRequiredAttributeValue("type").c_str());
     // This is a VTK PolyData document.
 
     Xml::Element polydata = doc.getRequiredElement("PolyData");
     Xml::Element piece    = polydata.getRequiredElement("Piece");
     Xml::Element points   = piece.getRequiredElement("Points");
-    const int numPoints = piece.getRequiredAttributeAs<int>("NumberOfPoints");
-    const int numPolys  = piece.getRequiredAttributeAs<int>("NumberOfPolys");
+    const int numPoints = 
+        piece.getRequiredAttributeValueAs<int>("NumberOfPoints");
+    const int numPolys  = 
+        piece.getRequiredAttributeValueAs<int>("NumberOfPolys");
 
     // Remember this because we'll have to use it to adjust the indices we use 
     // when referencing the vertices we're about to read in. This number is
@@ -291,7 +293,7 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
 
     // The lone DataArray element in the Points element contains the points'
     // coordinates.
-    const String& coordString = points.getRequiredElementText("DataArray");
+    const String& coordString = points.getRequiredElementValue("DataArray");
     std::stringstream cstream(coordString);
     for (int i=1; i <= numPoints; ++i) {
         Vec3 pt; cstream >> pt; 
@@ -315,7 +317,7 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     Xml::Element econnectivity, eoffsets;
     for (Xml::const_element_iterator p = polys.element_begin("DataArray");
          p != polys.element_end(); ++p) 
-    {   const String& name = p->getRequiredAttributeText("Name");
+    {   const String& name = p->getRequiredAttributeValue("Name");
         if (name == "connectivity") econnectivity = *p;
         else if (name == "offsets") eoffsets = *p; }
 
@@ -326,7 +328,7 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
 
     // Read in the arrays.
     Array_<int> offsets(numPolys);
-    eoffsets.getElementAs<ArrayView_<int> >(offsets);
+    eoffsets.getElementValueAs<ArrayView_<int> >(offsets);
     // Size may have changed if file is bad.
     SimTK_ERRCHK2_ALWAYS(offsets.size() == numPolys, method,
         "The number of offsets (%d) should have matched the stated "
@@ -337,7 +339,7 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     // is the size of the connectivity array.
     const int expectedSize = numPolys ? offsets.back() : 0;
     Array_<int> connectivity(expectedSize);
-    econnectivity.getElementAs<Array_<int> >(connectivity);
+    econnectivity.getElementValueAs<Array_<int> >(connectivity);
 
     SimTK_ERRCHK2_ALWAYS(connectivity.size()==expectedSize, method,
         "The connectivity array was the wrong size (%d). It should"
