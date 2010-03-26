@@ -247,7 +247,7 @@ void testStringConvert() {
 
 }
 
-template class Array_<Event::Trigger, unsigned int>;
+
 int main() {
     cout << "Path of this executable: '" << Pathname::getThisExecutablePath() << "'\n";
     cout << "Executable directory: '" << Pathname::getThisExecutableDirectory() << "'\n";
