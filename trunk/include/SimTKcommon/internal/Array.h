@@ -1250,39 +1250,6 @@ size_type allocated() const {return this->CBase::allocated();}
 bool      isOwner()   const {return this->CBase::isOwner();}
 /*@}    End of size and capacity. **/
 
-//------------------------------------------------------------------------------
-/** @name                   Serialization (I/O) 
-
-These methods deal with reading and writing ArrayViews in a serialized
-format from and to strings and files. There are also related global operators
-available for some of these operations.
-@see operator<<() and operator>>() **/
-/*@{*/
-
-/** Read in an ArrayView from a stream. We expect to read in exactly size()
-elements of type T, using type T's stream extraction operator>>(). This will 
-stop reading when we've read size() elements, or set the fail bit
-in the stream if we run out of elements or if any element's extract operator
-sets the fail bit. On successful return, all size() elements will have been
-set, the stream will be positioned right after the final read-in element or
-terminating bracket, and the stream's status will be good() or eof(). We will
-not consume trailing whitespace after reading all the elements; that means the
-stream might actually be empty even if we don't return eof(). If you want to
-know whether there is anything else in the stream, follow this call with 
-std::ws() like this:
-@code
-    if (array.fillFromStream(in))
-        if (!in.eof()) std::ws(in); // might take us to eof
-    if (in.fail()) {...} // deal with I/O or formatting error
-    // Here if the stream is good() then there is more to read; if the
-    // stream got used up the status is guaranteed to be eof().
-@endcode
-A compilation error will occur if you try to use this method on an Array_<T>
-for a type T for which there is no stream extraction operator>>(). **/
-inline std::istream&
-fillFromStream(std::istream& in);
-
-/*@}    End of serialization. **/
 
 //------------------------------------------------------------------------------
                                    private:
@@ -2638,54 +2605,11 @@ T* insert(T* p, const Iter& first, const Iter& last1) {
 /*@}    End of insertion and erase. **/
 
 
-//------------------------------------------------------------------------------
-/** @name                   Serialization (I/O) 
-
-These methods deal with reading and writing Array_<T> objects in a serialized
-format from and to strings and files. There are also related global operators
-available for some of these operations.
-@see operator<<() and operator>>() **/
-/*@{*/
-
-/** Read in an Array_<T> from a stream, as a sequence of space-separated or
-comma-separated values optionally surrounded by parentheses (), square 
-brackets [], or curly braces {}. We will continue to read elements of 
-type T from the stream until we find a reason to stop, using type T's stream 
-extraction operator>>() to read in each element and resizing the Array as
-necessary. If the data is bracketed, we'll read until we hit the closing 
-bracket. If it is not bracketed, we'll read until we hit eof() or get an error
-such as the element extractor setting the stream's fail bit due to bad 
-formatting. On successful return, the stream will be positioned right after 
-the final read-in element or terminating bracket, and the stream's status will 
-be good() or eof(). We will not consume trailing whitespace after bracketed 
-elements; that means the stream might actually be empty even if we don't 
-return eof(). If you want to know whether there is anything else in the 
-stream, follow this call with the STL whitespace skipper std::ws() like this:
-@code
-    if (array.readFromStream(in) && !in.eof()) 
-        std::ws(in); // might take us to eof
-    if (in.fail()) {...} // probably a formatting error
-    else {
-        // Here if the stream is good() then there is more to read; if the
-        // stream got used up the status is guaranteed to be eof().
-    }
-@endcode
-A compilation error will occur if you try to use this method on an Array_<T>
-for a type T for which there is no stream extraction operator>>(). **/
-inline std::istream& readFromStream(std::istream& in); // implemented below
-
-/*@}    End of serialization. **/
-
 
 //------------------------------------------------------------------------------
                                   private:
 //------------------------------------------------------------------------------
-friend class ArrayView_<T,X>;
-// This private static method is used to implement fillFromStream() and
-// readFromStream(), which are in turn used to implement ArrayView's and
-// Array's stream extraction operators ">>". 
-static inline std::istream&
-readFromStreamHelper(std::istream& in, bool isFixedSize, Array_& out);
+
 
 // This method is used when we have already decided we need to make room for 
 // some new elements by reallocation, by creating a gap somewhere within the
@@ -3222,6 +3146,21 @@ const char* indexName() const   {return this->CBase::indexName();}
 // These are logically part of the Array_<T,X> class but are not actually 
 // class members; that is, they are in the SimTK namespace.
 
+// Some of the serialization methods could have been member functions but 
+// then an attempt to explicitly instantiate the whole Array_<T> class for
+// some type T would fail if T did not support the requisite I/O operations
+// even if those operations were never used. This came up when Chris Bruns was
+// trying to wrap Array objects for Python, which requires explicit 
+// instantiation.
+
+/**@name             Array_<T> serialization and I/O
+These methods are at namespace scope but are logically part of the Array
+classes. These deal with reading and writing Arrays from and to streams,
+which places an additional requirement on the element type T: the element 
+must support the same operation you are trying to do on the Array as a 
+whole. **/
+/*@{*/
+
 /** Output a human readable representation of an array to an std::ostream
 (like std::cout). The format is ( \e elements ) where \e elements is a 
 comma-separated list of the Array's contents output by invoking the "<<" 
@@ -3242,37 +3181,16 @@ operator<<(std::ostream& o,
     return o << ')';
 } 
 
-/** Read an Array_<T> from a stream as a sequence of space- or comma-separated
-values of type T, optionally delimited by parentheses, brackets, or braces.
-The Array_<T> may be an owner (variable size) or a view (fixed size n). In
-the case of an owner, we'll read all the elements in brackets or until eof if
-there are no brackets. In the case of a view, there must be exactly n elements
-in brackets, or if there are no brackets we'll consume exactly n elements and
-then stop. Each element is read in with its own operator ">>" so this won't 
-work if no such operator is defined for type T. @relates Array_ **/
-template <class T, class X> inline
-std::istream&
-operator>>(std::istream& in, Array_<T,X>& out) {
-    return out.readFromStream(in);
-}
-
-/** Read a (fixed size n) ArrayView_<T> from a stream as a sequence of space- 
-or comma-separated values of type T, optionally delimited by parentheses, 
-square brackets, or curly braces. If there are no delimiters then we will read
-size() values and then stop. Otherwise, there must be exactly size() values 
-within the brackets. Each element is read in with its own operator ">>" so 
-this won't work if no such operator is defined for type T. @relates Array_ **/
-template <class T, class X> inline
-std::istream& operator>>(std::istream& in, ArrayView_<T,X>& out) {
-    return out.fillFromStream(in);
-}
-
-// This private static method is used to implement fillFromStream() and
-// readFromStream(), which are in turn used to implement ArrayView's and
-// Array's stream extraction operators ">>".
-template <class T, class X> /*static*/ inline 
-std::istream& Array_<T,X>::
-readFromStreamHelper(std::istream& in, bool isFixedSize, Array_<T,X>& out)
+// This static method is used to implement ArrayView's fillFromStream() 
+// and Array's readFromStream() namespace-scope static methods, which are in 
+// turn used to implement ArrayView's and Array's stream extraction 
+// operators ">>". This method has to be in the header file so that we don't
+// need to pass streams through the API, but it is not intended for use by
+// users and has no Doxygen presence, unlike fillFromStream() and
+// readFromStream() and the extraction operators.
+template <class T, class X> static inline 
+std::istream& readArrayFromStreamHelper
+   (std::istream& in, bool isFixedSize, Array_<T,X>& out)
 {
     // If already failed, bad, or eof, set failed bit and return without 
     // touching the Array.
@@ -3428,21 +3346,90 @@ readFromStreamHelper(std::istream& in, bool isFixedSize, Array_<T,X>& out)
     return in;
 }
 
+/** Read in an ArrayView from a stream. We expect to read in exactly size()
+elements of type T, using type T's stream extraction operator>>(). This will 
+stop reading when we've read size() elements, or set the fail bit
+in the stream if we run out of elements or if any element's extract operator
+sets the fail bit. On successful return, all size() elements will have been
+set, the stream will be positioned right after the final read-in element or
+terminating bracket, and the stream's status will be good() or eof(). We will
+not consume trailing whitespace after reading all the elements; that means the
+stream might actually be empty even if we don't return eof(). If you want to
+know whether there is anything else in the stream, follow this call with 
+std::ws() like this:
+@code
+    if (array.fillFromStream(in))
+        if (!in.eof()) std::ws(in); // might take us to eof
+    if (in.fail()) {...} // deal with I/O or formatting error
+    // Here if the stream is good() then there is more to read; if the
+    // stream got used up the status is guaranteed to be eof().
+@endcode
+A compilation error will occur if you try to use this method on an Array_<T>
+for a type T for which there is no stream extraction operator>>(). 
+@relates ArrayView_ **/
+template <class T, class X> static inline 
+std::istream& fillArrayViewFromStream(std::istream& in, ArrayView_<T,X>& out)
+{   return readArrayFromStreamHelper<T,X>(in, true /*fixed size*/, out); }
 
-template <class T, class X> inline std::istream& 
-ArrayView_<T,X>::fillFromStream(std::istream& in)
-{
-    return Array_<T,X>::readFromStreamHelper(in, true /*fixed size*/, *this); 
-}
+/** Read in an Array_<T> from a stream, as a sequence of space-separated or
+comma-separated values optionally surrounded by parentheses (), square 
+brackets [], or curly braces {}. We will continue to read elements of 
+type T from the stream until we find a reason to stop, using type T's stream 
+extraction operator>>() to read in each element and resizing the Array as
+necessary. If the data is bracketed, we'll read until we hit the closing 
+bracket. If it is not bracketed, we'll read until we hit eof() or get an error
+such as the element extractor setting the stream's fail bit due to bad 
+formatting. On successful return, the stream will be positioned right after 
+the final read-in element or terminating bracket, and the stream's status will 
+be good() or eof(). We will not consume trailing whitespace after bracketed 
+elements; that means the stream might actually be empty even if we don't 
+return eof(). If you want to know whether there is anything else in the 
+stream, follow this call with the STL whitespace skipper std::ws() like this:
+@code
+    if (readArrayFromStream(in,array) && !in.eof()) 
+        std::ws(in); // might take us to eof
+    if (in.fail()) {...} // probably a formatting error
+    else {
+        // Here if the stream is good() then there is more to read; if the
+        // stream got used up the status is guaranteed to be eof().
+    }
+@endcode
+A compilation error will occur if you try to use this method on an Array_<T>
+for a type T for which there is no stream extraction operator>>(). 
+@relates Array_ **/
+template <class T, class X> static inline 
+std::istream& readArrayFromStream(std::istream& in, Array_<T,X>& out)
+{   return readArrayFromStreamHelper<T,X>(in, false /*variable sizez*/, out); }
 
-template <class T, class X> inline std::istream& 
-Array_<T,X>::readFromStream(std::istream& in)
-{
-    return Array_<T,X>::readFromStreamHelper(in, false /*variable sz*/, *this);
-}
+
+/** Read an Array_<T> from a stream as a sequence of space- or comma-separated
+values of type T, optionally delimited by parentheses, brackets, or braces.
+The Array_<T> may be an owner (variable size) or a view (fixed size n). In
+the case of an owner, we'll read all the elements in brackets or until eof if
+there are no brackets. In the case of a view, there must be exactly n elements
+in brackets, or if there are no brackets we'll consume exactly n elements and
+then stop. Each element is read in with its own operator ">>" so this won't 
+work if no such operator is defined for type T. @relates Array_ **/
+template <class T, class X> inline
+std::istream& operator>>(std::istream& in, Array_<T,X>& out) 
+{   return readArrayFromStream<T,X>(in, out); }
+
+/** Read a (fixed size n) ArrayView_<T> from a stream as a sequence of space- 
+or comma-separated values of type T, optionally delimited by parentheses, 
+square brackets, or curly braces. If there are no delimiters then we will read
+size() values and then stop. Otherwise, there must be exactly size() values 
+within the brackets. Each element is read in with its own operator ">>" so 
+this won't work if no such operator is defined for type T. 
+@relates ArrayView_ **/
+template <class T, class X> inline
+std::istream& operator>>(std::istream& in, ArrayView_<T,X>& out) 
+{   return fillArrayViewFromStream<T,X>(in, out); }
+
+/*@}                       End of Array serialization. **/
+
+
 
 /**@name                    Comparison operators
-
 These operators permit lexicographical comparisons between two comparable
 Array_ objects, possibly with differing element and index types, and between 
 an Array_ object and a comparable std::vector object. @relates Array_ **/
