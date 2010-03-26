@@ -344,7 +344,7 @@ public:
     // Construction using a negated element is just like construction from
     // the element.
     explicit SymMat(const ENeg& e) {
-        updDiag() = CNT<E>::real(e); 
+        updDiag() = CNT<ENeg>::real(e); 
         for (int i=0; i < NLowerElements; ++i) updlowerE(i) = E(0); 
     }
 
