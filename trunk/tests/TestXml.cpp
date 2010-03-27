@@ -178,10 +178,10 @@ void testXmlFromString() {
     //for (Xml::node_iterator xp=ex.node_begin(); xp != ex.node_end(); ++xp)
     //    cout << "Node type: " << xp->getNodeTypeAsString() << endl;
 
-    PolygonalMesh mesh;
-    mesh.loadVtpFile("arm_r_humerus.vtp");
-    cout << "num vertices=" << mesh.getNumVertices() << " faces="
-        << mesh.getNumFaces() << endl;
+    //PolygonalMesh mesh;
+    //mesh.loadVtpFile("arm_r_humerus.vtp");
+    //cout << "num vertices=" << mesh.getNumVertices() << " faces="
+    //    << mesh.getNumFaces() << endl;
 }
 
 void testXmlFromScratch() {
