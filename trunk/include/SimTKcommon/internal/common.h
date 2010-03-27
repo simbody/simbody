@@ -160,6 +160,7 @@
     #ifdef _MSC_VER
     #pragma warning(disable:4231) /*need to use 'extern' template explicit instantiation*/
     #pragma warning(disable:4251) /*no DLL interface for type of member of exported class*/
+    #pragma warning(disable:4275) /*no DLL interface for base class of exported class*/
     #pragma warning(disable:4345) /*warning about PODs being default-initialized*/
     #endif
     #if defined(SimTK_SimTKCOMMON_BUILDING_SHARED_LIBRARY)
