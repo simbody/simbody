@@ -51,7 +51,7 @@ const char* xmlPainting =
 "<!-- a top-level comment -->\n"
 "     \n" // line should be ignored
 "but something like this is top level text and will need to get \n"
-"moved into a new 'XMLDocument' element\n"
+"moved into a new '_Root' element\n"
 "<painting artist='Raphael' artist='metoo'>\n"
 "  <img src=\"madonna.jpg\" alt='Foligno Madonna, by Raphael'/>\n"
 "  <!-- What follows is a so-called 'caption' -->\n"

@@ -291,7 +291,7 @@ void Xml::writeToString(String& xmlDocument, bool compact) const {
 }
 
 void Xml::insertTopLevelNodeAfter (const Xml::node_iterator& afterThis, 
-                                   Xml::Node&                insertThis) {
+                                   Xml::Node                 insertThis) {
     const char* method = "Xml::insertTopLevelNodeAfter()";
 
     // Check that the supplied Node is OK.
@@ -319,7 +319,7 @@ void Xml::insertTopLevelNodeAfter (const Xml::node_iterator& afterThis,
 }
 
 void Xml::insertTopLevelNodeBefore(const Xml::node_iterator& beforeThis, 
-                                   Xml::Node&                insertThis) {
+                                   Xml::Node                 insertThis) {
     const char* method = "Xml::insertTopLevelNodeBefore()";
 
     // Check that the supplied Node is OK.
@@ -776,7 +776,7 @@ Xml::Attribute Xml::Element::getRequiredAttribute(const String& name) const {
         node.getNodeTypeAsString().c_str());
     return reinterpret_cast<Element&>(node); }
 
-void Xml::Element::insertNodeBefore(const node_iterator& beforeThis, Node& node) {
+void Xml::Element::insertNodeBefore(const node_iterator& beforeThis, Node node) {
     const char* method = "Xml::Element::insertNodeBefore()";
     const char* tag    = getElementTag().c_str();
 
@@ -800,7 +800,7 @@ void Xml::Element::insertNodeBefore(const node_iterator& beforeThis, Node& node)
     p->LinkBeforeChild(p, node.updTiNodePtr());
 }
 
-void Xml::Element::insertNodeAfter(const node_iterator& afterThis, Node& node) {
+void Xml::Element::insertNodeAfter(const node_iterator& afterThis, Node node) {
     const char* method = "Xml::Element::insertNodeAfter()";
     const char* tag    = getElementTag().c_str();
 

@@ -346,11 +346,11 @@ takes over ownership of the Node which must be a Comment or Unknown node and
 must have been an orphan. The supplied Node handle will retain a reference 
 to the node within the document and can still be used to make changes. **/
 void insertTopLevelNodeAfter (const node_iterator& afterThis, 
-                              Node&                insertThis);
+                              Node                 insertThis);
 /** Insert a top-level Comment or Unknown node just \e before the location 
 indicated by the node_iterator. See insertTopLevelNodeAfter() for details. **/
 void insertTopLevelNodeBefore(const node_iterator& beforeThis, 
-                              Node&                insertThis);
+                              Node                 insertThis);
 /*@}*/
 
 
@@ -933,13 +933,13 @@ node pointed to by the supplied iterator (or at the end if the iterator
 is node_end()). The iterator must refer to a node that is a child of this
 Element. This Element takes over ownership of the node which must 
 not already have a parent. **/
-void insertNodeBefore(const node_iterator& pos, Node& node);
+void insertNodeBefore(const node_iterator& pos, Node node);
 /** Insert a node into the list of this Element's children, just after the
 node pointed to by the supplied iterator (or at the end if the iterator
 is node_end()). The iterator must refer to a node that is a child of this
 Element. This Element takes over ownership of the node which must 
 not already have a parent. **/
-void insertNodeAfter(const node_iterator& pos, Node& node);
+void insertNodeAfter(const node_iterator& pos, Node node);
 
 element_iterator            element_begin(const String& tag="");
 const_element_iterator      element_begin(const String& tag="") const;
