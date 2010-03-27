@@ -933,13 +933,13 @@ node pointed to by the supplied iterator (or at the end if the iterator
 is node_end()). The iterator must refer to a node that is a child of this
 Element. This Element takes over ownership of the node which must 
 not already have a parent. **/
-void insertNodeBefore(node_iterator& pos, Node& node);
+void insertNodeBefore(const node_iterator& pos, Node& node);
 /** Insert a node into the list of this Element's children, just after the
 node pointed to by the supplied iterator (or at the end if the iterator
 is node_end()). The iterator must refer to a node that is a child of this
 Element. This Element takes over ownership of the node which must 
 not already have a parent. **/
-void insertNodeAfter(node_iterator& pos, Node& node);
+void insertNodeAfter(const node_iterator& pos, Node& node);
 
 element_iterator            element_begin(const String& tag="");
 const_element_iterator      element_begin(const String& tag="") const;
@@ -1113,7 +1113,7 @@ of the supplied default value \a def. **/
 template <class T> T 
     getOptionalElementValueAs(const String& tag, const T& def) const
 {   const Element opt(getOptionalElement(tag));
-    return opt.isValid() ? opt.getElementValue().convertTo<T>() : def; }
+    return opt.isValid() ? opt.getValue().convertTo<T>() : def; }
 
 /** Get a reference to a child element that \e must be present in this 
 element. The child is identified by its tag; if there is more than one

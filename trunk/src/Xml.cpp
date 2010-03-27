@@ -776,7 +776,7 @@ Xml::Attribute Xml::Element::getRequiredAttribute(const String& name) const {
         node.getNodeTypeAsString().c_str());
     return reinterpret_cast<Element&>(node); }
 
-void Xml::Element::insertNodeBefore(node_iterator& beforeThis, Node& node) {
+void Xml::Element::insertNodeBefore(const node_iterator& beforeThis, Node& node) {
     const char* method = "Xml::Element::insertNodeBefore()";
     const char* tag    = getElementTag().c_str();
 
@@ -800,7 +800,7 @@ void Xml::Element::insertNodeBefore(node_iterator& beforeThis, Node& node) {
     p->LinkBeforeChild(p, node.updTiNodePtr());
 }
 
-void Xml::Element::insertNodeAfter(node_iterator& afterThis, Node& node) {
+void Xml::Element::insertNodeAfter(const node_iterator& afterThis, Node& node) {
     const char* method = "Xml::Element::insertNodeAfter()";
     const char* tag    = getElementTag().c_str();
 
