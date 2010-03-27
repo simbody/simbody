@@ -875,39 +875,39 @@ attribute_end()
 //------------------------------------------------------------------------------
 Xml::element_iterator& Xml::element_iterator::
 operator++() {
-    TiXmlElement* next = elt.updTiElement().NextSiblingElement();
+    TiXmlElement* next = (*this)->updTiElement().NextSiblingElement();
     while (next && !elementIsAllowed(tag,next))
         next = next->NextSiblingElement();
-    elt.setTiElementPtr(next);
+    reassign(next);
     return *this;
 }
 
 Xml::element_iterator Xml::element_iterator::
 operator++(int) {
-    Element save(elt);
-    TiXmlElement* next = elt.updTiElement().NextSiblingElement();
+    Element save(*(*this));
+    TiXmlElement* next = (*this)->updTiElement().NextSiblingElement();
     while (next && !elementIsAllowed(tag,next))
         next = next->NextSiblingElement();
-    elt.setTiElementPtr(next);
+    reassign(next);
     return element_iterator(save);
 }
 
 Xml::element_iterator& Xml::element_iterator::
 operator--() {
-    TiXmlElement* prev = elt.updTiElement().PreviousSiblingElement();
+    TiXmlElement* prev = (*this)->updTiElement().PreviousSiblingElement();
     while (prev && !elementIsAllowed(tag,prev))
         prev = prev->PreviousSiblingElement();
-    elt.setTiElementPtr(prev);
+    reassign(prev);
     return *this;
 }
 
 Xml::element_iterator Xml::element_iterator::
 operator--(int) {
-    Element save(elt);
-    TiXmlElement* prev = elt.updTiElement().PreviousSiblingElement();
+    Element save(*(*this));
+    TiXmlElement* prev = (*this)->updTiElement().PreviousSiblingElement();
     while (prev && !elementIsAllowed(tag,prev))
         prev = prev->PreviousSiblingElement();
-    elt.setTiElementPtr(prev);
+    reassign(prev);
     return element_iterator(save);
 }
 
@@ -916,7 +916,7 @@ operator--(int) {
 //------------------------------------------------------------------------------
 Xml::const_element_iterator& Xml::const_element_iterator::
 operator++() {
-    const TiXmlElement* next = elt.getTiElement().NextSiblingElement();
+    const TiXmlElement* next = (*this)->getTiElement().NextSiblingElement();
     while (next && !elementIsAllowed(tag,next))
         next = next->NextSiblingElement();
     reassign(next);
@@ -925,8 +925,8 @@ operator++() {
 
 Xml::const_element_iterator Xml::const_element_iterator::
 operator++(int) {
-    const Element save(elt);
-    const TiXmlElement* next = elt.getTiElement().NextSiblingElement();
+    const Element save(*(*this));
+    const TiXmlElement* next = (*this)->getTiElement().NextSiblingElement();
     while (next && !elementIsAllowed(tag,next))
         next = next->NextSiblingElement();
     reassign(next);
@@ -935,7 +935,7 @@ operator++(int) {
 
 Xml::const_element_iterator& Xml::const_element_iterator::
 operator--() {
-    const TiXmlElement* prev = elt.getTiElement().PreviousSiblingElement();
+    const TiXmlElement* prev = (*this)->getTiElement().PreviousSiblingElement();
     while (prev && !elementIsAllowed(tag,prev))
         prev = prev->PreviousSiblingElement();
     reassign(prev);
@@ -944,8 +944,8 @@ operator--() {
 
 Xml::const_element_iterator Xml::const_element_iterator::
 operator--(int) {
-    const Element save(elt);
-    const TiXmlElement* prev = elt.getTiElement().PreviousSiblingElement();
+    const Element save(*(*this));
+    const TiXmlElement* prev = (*this)->getTiElement().PreviousSiblingElement();
     while (prev && !elementIsAllowed(tag,prev))
         prev = prev->PreviousSiblingElement();
     reassign(prev);

@@ -224,27 +224,25 @@ public:
     negator(const negator& n) : v(n.v) { }
     negator& operator=(const negator& n) { v=n.v; return *this; }
 
-    // These are explicit conversion from numeric type NN to negator<N>. The value must
-    // be unchanged, so we must negate. Note that NN==N is a certainty for one of these cases.
-
-    explicit negator(int t) {v = -N((typename NTraits<N>::Precision)t);}
-    explicit negator(const float& t) {v = -N((typename NTraits<N>::Precision)t);}
-    explicit negator(const double& t) {v = -N((typename NTraits<N>::Precision)t);}
-    explicit negator(const long double& t) {v = -N((typename NTraits<N>::Precision)t);}
+    // These are implicit conversions from numeric type NN to negator<N>. The
+    // value must be unchanged, so we must negate. Note that NN==N is a 
+    // certainty for one of these cases.
+    negator(int                t) {v = -N((typename NTraits<N>::Precision)t);}
+    negator(const float&       t) {v = -N((typename NTraits<N>::Precision)t);}
+    negator(const double&      t) {v = -N((typename NTraits<N>::Precision)t);}
+    negator(const long double& t) {v = -N((typename NTraits<N>::Precision)t);}
 
     // Some of these may not compile if instantiated -- you can't cast a complex
     // to a float, for example.
-    template <class P>
-    explicit negator(const std::complex<P>& t) {v = -N(t);}
-    template <class P>
-    explicit negator(const conjugate<P>& t) {v = -N(t);}
+    template <class P> negator(const std::complex<P>& t) {v = -N(t);}
+    template <class P> negator(const conjugate<P>&    t) {v = -N(t);}
 
     // This can be used to negate a value of type N at zero cost. It is typically
     // used for recasting temporary expressions to apply a final negation. Note that
     // this is *not* the same as constructing a negator<N> from an N, which actually
     // peforms a floating point negation.
     static const negator<N>& recast(const N& val)
-        { return reinterpret_cast<const negator<N>&>(val); }
+    {   return reinterpret_cast<const negator<N>&>(val); }
 
     const N& operator-() const { return v;  }
     N&       operator-()       { return v;  } // an lvalue!
@@ -258,12 +256,16 @@ public:
     template <class P> negator& operator*=(const P& t) { v *= t; return *this; } //don't swap!
     template <class P> negator& operator/=(const P& t) { v /= t; return *this; }
 
-    // If we know we've got a negator as an argument, get rid of its negation and change
-    // signs as necessary. We're guaranteed to get rid of at least one negator<> this way.
-    // Nothing to gain for multiplication or division, though.
-    template <class NN> negator& operator =(const negator<NN>& t) { v =  -t; return *this; }
-    template <class NN> negator& operator+=(const negator<NN>& t) { v += -t; return *this; } //swap sign
-    template <class NN> negator& operator-=(const negator<NN>& t) { v -= -t; return *this; }
+    // If we know we've got a negator as an argument, get rid of its negation 
+    // and change signs as necessary. We're guaranteed to get rid of at least 
+    // one negator<> this way. Nothing to gain for multiplication or division,
+    // though.
+    template <class NN> negator& operator =(const negator<NN>& t) 
+    {   v =  -t; return *this; }
+    template <class NN> negator& operator+=(const negator<NN>& t) 
+    {   v += -t; return *this; } //swap sign
+    template <class NN> negator& operator-=(const negator<NN>& t) 
+    {   v -= -t; return *this; }
 
 private:
     N v;

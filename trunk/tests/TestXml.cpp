@@ -271,6 +271,21 @@ int main() {
     cout << "Executable directory: '" << Pathname::getThisExecutableDirectory() << "'\n";
     cout << "Current working directory: '" << Pathname::getCurrentWorkingDirectory() << "'\n";
 
+    typedef negator<double> nd;
+    typedef negator<float> nf;
+    Vec< 3, negator< double > > v(nd(1),nd(2),nd(3));
+    cout << crossMat(~v) << endl;
+
+    negator<double> n1=nd(1.2), n2=nd(10.);
+    float f1=1.f; 
+    negator<float> nf2=nf(10.f);
+    cout << "n1+=f1=" << (n1 += f1) << endl;
+    cout << "n1+=n2=" << (n1 += n2) << endl;
+    cout << "n1+=nf2=" << (n1 += nf2) << endl;
+    cout << "n1-=nf2=" << (n1 -= nf2) << endl;
+    cout << "n1-=n2=" << (n1 -= n2) << endl;
+    cout << "n1-=f1=" << (n1 -= f1) << endl;
+
     SimTK_START_TEST("TestXml");
 
         SimTK_SUBTEST(testStringConvert);

@@ -802,6 +802,15 @@ explicit node_iterator(NodeType allowed=AnyNodes)
 explicit node_iterator(Node& node, NodeType allowed=AnyNodes) 
 :   node(node), allowed(allowed) {}
 
+/** Copy constructor takes a node_iterator that can be const, but that
+still allows writing to the Node. **/
+node_iterator(const node_iterator& src) 
+:   node(*src), allowed(src.allowed) {}
+/** Copy assignment takes an node_iterator that can be const, but that
+still allows writing to the Node. **/
+node_iterator& operator=(const node_iterator& src) 
+{   node = *src; allowed = src.allowed; return *this; }
+
 node_iterator& operator++();   // prefix
 node_iterator operator++(int); // postfix
 node_iterator& operator--();   // prefix
@@ -816,13 +825,16 @@ bool operator==(const node_iterator& other) const {return other.node==node;}
 bool operator!=(const node_iterator& other) const {return other.node!=node;}
 
 //------------------------------------------------------------------------------
+                                 protected:
+explicit node_iterator(TiXmlNode* tiNode, NodeType allowed=AnyNodes) 
+:   node(tiNode), allowed(allowed) {}
+
+//------------------------------------------------------------------------------
                                   private:
 friend class Xml;
 friend class Xml::Node;
 friend class Xml::const_node_iterator;
 
-explicit node_iterator(TiXmlNode* tiNode, NodeType allowed=AnyNodes) 
-:   node(tiNode), allowed(allowed) {}
 
 Node            node;       // data members
 NodeType        allowed;
@@ -1170,34 +1182,39 @@ void                setTiElementPtr(TiXmlElement* elt)
 /** This is a bidirectional iterator suitable for moving forward or backward
 within a list of Nodes, for writable access. By default we will iterate
 over all nodes but you can restrict the type at construction. **/
-class SimTK_SimTKCOMMON_EXPORT Xml::element_iterator 
-:   public std::iterator<std::bidirectional_iterator_tag, Xml::Element> {
+class SimTK_SimTKCOMMON_EXPORT Xml::element_iterator
+:   public Xml::node_iterator {
 public:
 
-explicit element_iterator(const String& tag="") : tag(tag) {}
+/** This is the default constructor which leaves the element_iterator empty, and
+you can optionally set the type of Element which will be iterated over. **/
+explicit element_iterator(const String& tag="") 
+:   node_iterator(ElementNode), tag(tag) {}
+/** Constructor an element_iterator pointing to a given Element, and optionally 
+set the type of Element which will be iterated over. **/
 explicit element_iterator(Element& elt, const String& tag="") 
-:   elt(elt), tag(tag) {}
+:   node_iterator(elt, ElementNode), tag(tag) {}
 
 /** Copy constructor takes an element_iterator that can be const, but that
 still allows writing to the Element. **/
 element_iterator(const element_iterator& src) 
-:   elt(src->updTiElementPtr()), tag(src.tag) {}
+:   node_iterator(src), tag(src.tag) {}
 /** Copy assignment takes an element_iterator that can be const, but that
 still allows writing to the Element. **/
 element_iterator& operator=(const element_iterator& src) 
-{   elt.setTiElementPtr(src->updTiElementPtr()); return *this; }
-
+{   upcast()=src; tag = src.tag; return *this; }
 
 element_iterator& operator++();   // prefix
 element_iterator operator++(int); // postfix
 element_iterator& operator--();   // prefix
 element_iterator operator--(int); // postfix
-Element& operator*() {return elt;}
-Element* operator->() {return &elt;}
-Element& operator*() const {return const_cast<Element&>(elt);}
-Element* operator->() const {return const_cast<Element*>(&elt);}
-bool operator==(const element_iterator& other) const {return other.elt==elt;}
-bool operator!=(const element_iterator& other) const {return other.elt!=elt;}
+Element& operator*() const {return Element::updAs(*upcast());}
+Element* operator->() const {return &Element::updAs(*upcast());}
+
+bool operator==(const element_iterator& other) const 
+{   return other.upcast()==upcast();}
+bool operator!=(const element_iterator& other) const 
+{   return other.upcast()!=upcast();}
 
 //------------------------------------------------------------------------------
                                    private:
@@ -1206,10 +1223,18 @@ friend class Xml::Element;
 friend class Xml::const_element_iterator;
 
 explicit element_iterator(TiXmlElement* tiElt, const String& tag="") 
-:   elt(tiElt), tag(tag) {}
+:   node_iterator((TiXmlNode*)tiElt, ElementNode), tag(tag) {}
+void reassign(TiXmlElement* ep)
+{   node.setTiNodePtr((TiXmlNode*)ep); }
 
-Element         elt;    // data members
-String          tag;
+const node_iterator& upcast() const 
+{   return *static_cast<const node_iterator*>(this); }
+node_iterator& upcast() 
+{   return *static_cast<node_iterator*>(this); }
+const element_iterator& downcast(const node_iterator& np)
+{   return static_cast<const element_iterator&>(np); }
+
+String          tag;    // lone data member
 };
 
 
@@ -1221,31 +1246,32 @@ String          tag;
 within a list of Nodes, for const access. By default we will iterate
 over all elements but you can restrict the type at construction. **/
 class SimTK_SimTKCOMMON_EXPORT Xml::const_element_iterator 
-:   public std::iterator<std::bidirectional_iterator_tag, Xml::Element> {
+:   public Xml::const_node_iterator {
 public:
 
 /** This is the default constructor which leaves the element_iterator empty, and
 you can optionally set the type of Element which will be iterated over. **/
-explicit const_element_iterator(const String& tag="") : tag(tag) {}
-/** Constructor an element_iterator pointing to a given Node, and optionally 
-set the type(s) of Nodes which will be iterated over. **/
+explicit const_element_iterator(const String& tag="") 
+:   const_node_iterator(ElementNode), tag(tag) {}
+/** Constructor an element_iterator pointing to a given Element, and optionally 
+set the type of Element which will be iterated over. **/
 explicit const_element_iterator(const Element& elt, const String& tag="") 
-:   elt(elt), tag(tag) {}
+:   const_node_iterator(elt, ElementNode), tag(tag) {}
 
 /** This is an implicit conversion from writable element_iterator. **/
 const_element_iterator(const Xml::element_iterator& p) 
-:   elt(p.elt), tag(p.tag) {}
+:   const_node_iterator(*p, ElementNode), tag(p.tag) {}
 
 const_element_iterator& operator++();   // prefix
 const_element_iterator operator++(int); // postfix
 const_element_iterator& operator--();   // prefix
 const_element_iterator operator--(int); // postfix
-const Element& operator*() const {return elt;}
-const Element* operator->() const {return &elt;}
+const Element& operator*() const {return Element::getAs(*upcast());}
+const Element* operator->() const {return &Element::getAs(*upcast());}
 bool operator==(const const_element_iterator& other) const 
-{   return other.elt==elt; }
+{   return other.upcast()==upcast(); }
 bool operator!=(const const_element_iterator& other) const 
-{   return other.elt!=elt; }
+{   return other.upcast()!=upcast(); }
 
 //------------------------------------------------------------------------------
                                    private:
@@ -1254,11 +1280,19 @@ friend class Xml::Element;
 
 explicit const_element_iterator
    (const TiXmlElement* tiElt, const String& tag="") 
-:   elt(const_cast<TiXmlElement*>(tiElt)), tag(tag) {}
+:   const_node_iterator((TiXmlNode*)const_cast<TiXmlElement*>(tiElt), 
+                         ElementNode), tag(tag) {}
 void reassign(const TiXmlElement* ep)
-{   elt.setTiElementPtr(const_cast<TiXmlElement*>(ep)); }
+{   node.setTiNodePtr((TiXmlNode*)const_cast<TiXmlElement*>(ep)); }
 
-Element         elt;    // data members
+
+const const_node_iterator& upcast() const 
+{   return *static_cast<const const_node_iterator*>(this); }
+const_node_iterator& upcast() 
+{   return *static_cast<const_node_iterator*>(this); }
+const const_element_iterator& downcast(const const_node_iterator& np)
+{   return static_cast<const const_element_iterator&>(np); }
+
 String          tag;
 };
 
