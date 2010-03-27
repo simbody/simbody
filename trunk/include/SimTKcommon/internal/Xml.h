@@ -46,19 +46,17 @@ class TiXmlNode;
 class TiXmlElement; 
 class TiXmlAttribute;
 
-//------------------------------------------------------------------------------
-//                                   XML
-//------------------------------------------------------------------------------
 /** This class provides a minimalist capability for reading and writing XML 
 documents, as files or strings. This is based with gratitude on the excellent 
 open source XML parser TinyXML (http://www.grinninglizard.com/tinyxml/). Note 
 that this is a <em>non-validating</em> parser, meaning it deals only with the 
-XML file itself and not with a schema or other description of the XML file's 
-expected contents. Instead, the structure of your code that uses this class 
-encodes the expected structure and contents of the XML document.
+XML file itself and not with a Document Type Definition (DTD), Xml Schema, or 
+any other description of the XML file's expected contents. Instead, the 
+structure of your code that uses this class encodes the expected structure 
+and contents of the XML document.
 
 Our in-memory model of an XML document is simplified even further than 
-TinyXML's. There is much more to know about XML; you could start here: 
+TinyXML's. There a lot to know about XML; you could start here: 
 http://en.wikipedia.org/wiki/XML. However, everything you need to know in
 order to read and write Xml documents with the SimTK::Xml class is described 
 below.
@@ -67,31 +65,61 @@ below.
 
 We consider an XML document to be a tree of "Nodes". There are only four
 types of nodes, which you can remember with the acronym "CUTE": Comments,
-Unknowns, %Text, and Elements. Only elements can contain text and other nodes.
-Elements can also have "Attributes" which are name:value pairs (not nodes).
+Unknowns, %Text, and Elements. Only Elements can contain Text and other nodes,
+including recursively child Element nodes. Elements can also have "Attributes" 
+which are name:value pairs (not nodes).
 
-We call the top level of this tree the "document level", represented 
-by an object of class Xml. There is exactly one document-level element, known
-as the "document tag". The tag word associated with it conventionally 
+The XML document as a whole is represented by an object of class Xml. The Xml
+object directly contains a short list of nodes, consisting only of Comments,
+Unknowns, and a single Element called the "root element". The tag word 
+associated with the root element is called the "root tag" and conventionally 
 identifies the kind of document this is. For example, XML files produced by 
-VTK begin with a document tag "<VTKFile>". The document level may also have any 
-number of comment and unknown nodes appearing before and after the document tag.
+VTK begin with a root tag "<VTKFile>".
 
 We go to some pain to make sure every XML document fits the above model so that
-you don't have to think about anything else. For example, if the file as read in
-has multiple document-level elements, or has document-level text, we will 
-enclose all the element and text nodes within document start tag "<XMLDocument>"
-and end tag "</XMLDocument>" thus making it fit the description above. We call
+you don't have to think about anything else. For example, if the file as read
+in has multiple root-level elements, or has document-level text, we will 
+enclose all the element and text nodes within document start tag "<_Root>"
+and end tag "</_Root>" thus making it fit the description above. We call
 this "canonicalizing" the document.
+
+<h3>Value Elements</h3>
+
+Element nodes can be classified into "value elements" and "compound
+elements". A value element is a "leaf" element (no child elements) that 
+contains at most one Text node. For example, a document might contain value
+elements like these:
+@code
+    <name>John Doe</name>
+    <rating>7.2</rating>
+    <winnings currency=euro>3429</winnings>
+    <preferences/>
+    <vector>1.2 -4 2e-3</vector>
+@endcode
+All of these have a unique value so it makes sense to talk about "the" value
+of these elements (the empty "preferences" element has a null value). These 
+are very common in Xml documents, and the Xml class makes them very easy to 
+work with. For example, if Element elt is the "<vector>" element
+from the example, you could retrieve its value as a Vec3 like this:
+@code
+    Vec3 v = elt.getValueAs<Vec3>(); 
+@endcode
+This would automatically throw an error if the element wasn't a value element 
+or if its value didn't have the right format to convert to a Vec3.
+
+Note that it is okay for a value element to have attributes; those are ignored
+in determining the element's value. Any element that is not a value element is 
+a "compound element", meaning it has either child elements and/or more than 
+one Text node.
 
 <h2>Reading an XML document</h2>
 
 To read an XML document, you create an Xml object and tell it to read in the
 document from a file or from a string. The document will be parsed and 
 canonicalized into the in-memory model described above. Then to rummage around
-in the document, you ask the Xml object for its root element (the document tag),
-and check the tag word to see that it is the type of document you are 
-expecting. You can check the document tag's attributes, and then process its 
+in the document, you ask the Xml object for its root element,
+and check the root tag to see that it is the type of document you are 
+expecting. You can check the root element's attributes, and then process its 
 contents (child nodes). Iterators are provided for running through all the
 attributes, all the child nodes contained in the element, or all the child
 nodes of a particular type. For a child node that is an element,
@@ -99,23 +127,33 @@ you check the tag and then pass the element to some piece of code that knows
 how to deal with that kind of element and its children recursively.
 
 Here is a complete example of reading in an Xml file "example.xml", printing
-the document tag and then the types of all the top level nodes, in STL
+the root tag and then the types of all the document-level nodes, in STL
 iterator style:
 @code
-    Xml ex("example.xml");
-    cout << "Document tag: " << ex.getDocumentTag() << endl;
-    for (Xml::node_iterator p=ex.node_begin(); p != ex.node_end(); ++p)
+    Xml doc("example.xml");
+    cout << "Root tag: " << ex.getRootTag() << endl;
+    for (Xml::node_iterator p=doc.node_begin(); p != doc.node_end(); ++p)
         cout << "Node type: " << p->getNodeTypeAsString() << endl;
 @endcode
-Exactly one of the above nodes will have type "ElementNode", and that is the
-root element or document tag.
+Exactly one of the above nodes will have type "ElementNode"; that is the
+root element. To print out the types of nodes contained in the root element,
+you could write:
+@code
+    Element root = ex.getRootElement();
+    for (Xml::node_iterator p=root.node_begin(); p != root.node_end(); ++p)
+        cout << "Node type: " << p->getNodeTypeAsString() << endl;
+@endcode
 
 <h2>Writing an XML document</h2>
 
-You can add, remove, and modify nodes and attributes in a document, or create a
-document from scratch. Then you can write the results in a "pretty-printed" or
-compact format to a file or a string. Whenever we write an XML document, we
-write it in canoncial format, regardless of how it looked when we found it.
+You can insert, remove, and modify nodes and attributes in a document, or 
+create a document from scratch. Then you can write the results in a 
+"pretty-printed" or compact format to a file or a string. Whenever we write 
+an XML document, we write it in canoncial format, regardless of how it looked 
+when we found it.
+
+At the document level, you can only insert Comment and Unknown nodes. Text and
+Element nodes can be inserted only at the root element level and below.
 
 <h2>Details about XML</h2>
 
@@ -159,64 +197,70 @@ through Doxygen.)
 
 An XML file contains a single \e document which consists at the top level of 
   - a declaration
-  - comments
-  - unknowns
+  - comments and unknowns
   - a root element
+  - more comments and unknowns
 
-Elements can be containers and are the basis for the tree structure
-of XML files. Elements can contain:
-  - attributes
+Elements can be containers of other nodes and are thus the basis for the tree
+structure of XML files. Elements can contain:
   - comments
   - unknowns
   - text
   - child elements, recursively
+  - attributes
 
-A declaration also has attributes, but there are only three: version,
-encoding, and standalone ('yes' or 'no'). Unknowns are constructs found in the
-file that are not recognized; they might be errors but they are likely to
-be more sophisticated uses of XML that our feeble parser doesn't understand.
-Unknowns are tags where the tag word doesn't begin with a letter or
+A declaration (see below) also has attributes, but there are only three: 
+version, encoding, and standalone ('yes' or 'no'). Unknowns are constructs 
+found in the file that are not recognized; they might be errors but they are 
+likely to be more sophisticated uses of XML that our feeble parser doesn't 
+understand. Unknowns are tags where the tag word doesn't begin with a letter or
 underscore and isn't one of the very few other tags we recognize, like
-comments.
+comments. As an example, a DTD tag like this would come through as an Unknown 
+node here:
+@code
+    <!DOCTYPE note SYSTEM "Note.dtd">
+@endcode
 
-Here is the top-level structure we expect for a well-formed XML document, and
+Here is the top-level structure we expect of a well-formed XML document, and
 we will impose this structure on XML documents that don't have it. This allows
 us to simplify the in-memory model as discussed above.
 @code
     <?xml version="1.0" encoding="UTF-8"?>
     <!-- maybe comments and unknowns -->
-    <doctag attr=value ... >
+    <roottag attr=value ... >
         ... contents ...
-    </doctag>
+    </roottag>
     <!-- maybe comments and unknowns -->
 @endcode
 That is, the first line should be a declaration, most commonly exactly the
 characters shown above, without the "standalone" attribute which will 
 default to "yes". If we don't see a declaration when reading an XML
 document, we'll assume we read the one above. Then the document should contain 
-exactly one top-level (root) element representing the type of document and 
-document-level attributes. The tag for the root element is 
-called the "document tag"; it is not literally "doctag" but some name
-that makes sense for the given document. Note that the document element is
-an ordinary element so "contents" can contain text and child elements (as well
-as comments and unknowns).
+exactly one root element representing the type of document and 
+document-level attributes. The tag for the root element is not literally 
+"roottag" but some name that makes sense for the given document. Note that the 
+root element is an ordinary element so "contents" can contain text and child 
+elements (as well as comments and unknowns).
 
-When reading an XML document, if it has exactly one top-level element and no
-top-level text, we'll assume that is the document tag. If there is 
-more than one top-level element, or we find some top-level text, we'll assume 
-the document tag is missing and act as though we had seen a document tag 
-"<XMLDocument>" at the beginning and "</XMLDocument>" at the end so
-the document tag will be "XMLDocument". Note that this means that we will
+When reading an XML document, if it has exactly one document-level element and 
+no document-level text, we'll take the document as-is. If there is 
+more than one document-level element, or we find some document-level text, 
+we'll assume that the root element is missing and act as though we had seen a 
+root element "<_Root>" at the beginning and "</_Root>" at the end so
+the root tag will be "_Root". Note that this means that we will
 interpret even a plain text file as a well-formed XML document:
 @code
     A file consisting            <?xml version="1.0" encoding="UTF-8" ?>
-    of just text         ==>     <XMLDocument>
+    of just text         ==>     <_Root>
     like this.                   A file consisting of just text like this.
-                                 </XMLDocument>
+                                 </_Root>
 @endcode
-The above XML document has a single top-level element and that element
-contains one Text node whose value is the original text.
-**/
+The above XML document has a single document-level element and that element
+contains one Text node whose value is the original text. **/
+
+//------------------------------------------------------------------------------
+//                                   XML
+//------------------------------------------------------------------------------
 class SimTK_SimTKCOMMON_EXPORT Xml {
 public:
 
@@ -258,7 +302,7 @@ enum NodeType {
 
     NoJunkNodes = ElementNode|TextNode,    ///< Filter out meaningless nodes
     JunkNodes   = CommentNode|UnknownNode, ///< Filter out meaningful nodes
-    AnyNodes    = NoJunkNodes|JunkNodes    ///< Filter allowing all nodes
+    AnyNodes    = NoJunkNodes|JunkNodes    ///< Allow all nodes
 };
 
 /** Translate a NodeType to a human-readable string. **/
@@ -267,11 +311,14 @@ static String getNodeTypeAsString(NodeType type);
 /**@name                         Construction
 You can start with an empty Xml document or initialize it from a file. **/
 /*@{*/
+
 /** Create an empty XML Document with default declaration and default
-document tag "XMLDocument". That is, if you printed out this document
-now you would see:                                          @code
+document tag "_Root". That is, if you printed out this document
+now you would see:                                          
+@code
         <?xml version="1.0" encoding="UTF-8"?>
-        <XMLDocument/>                                      @endcode **/
+        <_Root/>                                      
+@endcode **/
 Xml();
 
 /** Create a new XML document and initialize it from the contents
@@ -283,25 +330,54 @@ explicit Xml(const String& pathname);
 void clear();
 /*@}*/
 
-/**@name              Access to the document contents
-At the top level there is almost always just a single element, called the
-"root" or "document" element. These methods provide access to that element
-and some shortcuts for getting useful information from it. **/
+/**@name                Top-level node manipulation
+These methods provide access to the top-level nodes, that is, those that are
+directly owned by the Xml document. Comment and Unknown nodes are allowed 
+anywhere at the top level, but Text nodes are not allowed and there is just
+one distinguished Element node, the root element. If you want to add Text
+or Element nodes, add them to the root element rather than at the document
+level. **/
 /*@{*/
-/** The document type is conventionally the root element's tag; if there
-wasn't a unique root element then we will have created one with document
-tag "XMLDocument", so this will always work. **/
-const String& getDocumentTag() const;
-/** The document type is the root element's tag; this changes that tag. **/
-void setDocumentTag(const String& tag);
+
+/** Insert a top-level Comment or Unknown node just \e after the location 
+indicated by the node_iterator, or at the end of the list if the iterator is 
+node_end(). The iterator must refer to a top-level node. The Xml document 
+takes over ownership of the Node which must be a Comment or Unknown node and
+must have been an orphan. The supplied Node handle will retain a reference 
+to the node within the document and can still be used to make changes. **/
+void insertTopLevelNodeAfter (const node_iterator& afterThis, 
+                              Node&                insertThis);
+/** Insert a top-level Comment or Unknown node just \e before the location 
+indicated by the node_iterator. See insertTopLevelNodeAfter() for details. **/
+void insertTopLevelNodeBefore(const node_iterator& beforeThis, 
+                              Node&                insertThis);
+/*@}*/
+
+
+/**@name         Access to the root element (document contents)
+At the Xml document level there is always just a single element, called the
+"root element". The root element's tag word is called the "document tag" and 
+conventionally provides the document's "type"; if there wasn't originally a 
+unique root element then we will have created one with meaningless document 
+tag "_Root", so there is at least always something there. These methods 
+provide access to the root element and some shortcuts for getting useful 
+information from it. **/
+/*@{*/
+
+/** Shortcut for getting the tag word of the root element which is usually
+the document type. This is the same as getRootElement().getElementTag(). **/
+const String& getRootTag() const;
+/** Shortcut for changing the tag word of the root element which is usually
+the document type. This is the same as getRootElement().setElementTag(tag). **/
+void setRootTag(const String& tag);
 
 /** Return a const reference to the top-level element in this Xml 
-document, known as the "document tag". The tag name is considered to
+document, known as the "root element". The tag name is considered to
 be the type of document. This is the only top-level element; all others
 are its children and descendents. **/
-const Element& getDocumentElement() const;
+const Element& getRootElement() const;
 /** Return a writable reference to the top-level "document tag" element. **/
-Element& updDocumentElement();
+Element& updRootElement();
 /*@}*/
 
 /**@name                    Serializing and I/O
@@ -339,13 +415,13 @@ String getPathname() const;
 
 /**@name       Iteration through top-level nodes (rarely used)
 If you want to run through this document's top-level nodes (of which the
-"root" or "document" element is one), these methods provide begin and end 
+"root element" is one), these methods provide begin and end 
 iterators. By default you'll see all the nodes (types Comment, Unknown, 
 and the lone top-level Element) but you can restrict the node types that 
 you'll see via the NodeType mask. Iteration is rarely used at this top level 
 since you almost never care about about the Comment and Unknown nodes here and
-you can get to the document element directly using getDocumentElement().
-@see getDocumentElement() **/
+you can get to the root element directly using getRootElement().
+@see getRootElement() **/
 /*@{*/
 /** Obtain an iterator to all the top-level nodes or a subset restricted via
 the \a allowed NodeType mask. **/
@@ -363,8 +439,8 @@ const_node_iterator node_end() const;
 /**@name           XML Declaration attributes (rarely used)
 These methods deal with the mysterious XML "declaration" line that comes at the
 beginning of every XML document; that is the line that begins with "<?xml" 
-and ends with "?>". There are at most three of these attributes and they are
-always the same (default values shown):
+and ends with "?>". There are at most three of these attributes and they have
+well-defined names that are always the same (default values shown):
   - \e version = "1.0": to what version of the XML standard does this document 
     adhere?
   - \e encoding = "UTF-8": what Unicode encoding is used to represent the 
@@ -465,7 +541,7 @@ String which should not be quoted.
 Attribute& setValue(const String& value);
 
 /** Clear this attribute handle; if the handle is the attribute's owner
-(that is, it isn't part of a document) then the attribute will be deleted,
+(that is, it isn't part of any element) then the attribute will be deleted,
 otherwise it is left unchanged. **/
 void clear();
 
@@ -595,27 +671,56 @@ Attribute       attr;   // the lone data member
 //                               XML NODE
 //------------------------------------------------------------------------------
 /** Abstract handle for holding any kind of node in an XML tree. The concrete
-node types are: Element, Text, Comment, and Unknown. An Element may recursively
-contain a list of nodes. Elements can also have Attributes, which are are
-name:value pairs that are not Nodes. **/
+node handle types derived from Node are: Element, Text, Comment, and Unknown. 
+An Element may recursively contain a list of nodes. **/
 class SimTK_SimTKCOMMON_EXPORT Xml::Node {
 public:
+
 Node() : tiNode(0) {}
-explicit Node(TiXmlNode* tiNode) : tiNode(tiNode) {}
+~Node() {clear();}
 
-/** Get the "value" of this node; means different things for different
-types of nodes: 
-  - Comment: everything between "<!--" and "-->" including spaces
-  - Unknown: everything between "<" and ">" including spaces
-  - Text:    the text
-  - Element: the tag name (i.e. the element's type) **/
-const String& getValue() const;
+/** This method clears the Node handle, deleting the contents if the Node
+was an orphan. **/
+void clear();
 
-/** Get the Xml::NodeType of this node. **/
+/** Get the Xml::NodeType of this node. If this Node handle is empty, the
+returned NodeType will be "NoNode". **/
 NodeType getNodeType() const;
 
-/** Get the node type as a string. **/
+/** Get the Node type as a string; an empty handle returns "NoNode". **/
 String getNodeTypeAsString() const;
+
+/** Return a text value associated with this Node; the behavior depends on the
+NodeType. This is a convenience that saves downcasting a generic Node to a
+concrete type when all you want to do is dump out the text. It is not 
+particularly useful for Element nodes. Here is what you get for each type of
+node:
+  - Comment: everything between "<!--" and "-->"
+  - Unknown: everything between "<" and ">"
+  - Text:    the text
+  - Element: the element's tag word
+  - None:    (i.e., an empty handle) throw an error. **/
+const String& getNodeText() const;
+
+/** Return true if this Node is owned by the top-level Xml document, false
+if the Node is owned by an Element or is an orphan, or if the Node handle
+is empty. **/
+bool isTopLevelNode() const;
+
+/** Return true if this Node is an orphan, meaning that it is not empty, but
+is not owned by any element or top-level document. This is typically a Node
+object that has just been constructed, or one that has been cloned from another
+Node. **/
+bool isOrphan() const;
+
+/** Return true if this node has a parent node; the root element and
+other top-level nodes are owned by the document and thus do not have a
+parent node. **/
+bool hasParentNode() const;
+
+/** Return a handle referencing this node's parent if it has one, otherwise
+throws an error; check first with hasParentNode() if you aren't sure. **/
+Node getParentNode();
 
 /** Serialize this node (and everything it contains) to the given String.
 The output will be "pretty printed" and terminated with a newline unless you
@@ -625,7 +730,7 @@ void writeToString(String& out, bool compact=false) const;
 
 /** See if this Node has any child nodes, or any child nodes of the type(s)
 allowed by the NodeType filter if one is supplied. **/
-bool empty(NodeType allowed=AnyNodes) const;
+bool hasChildNode(NodeType allowed=AnyNodes) const;
 
 /** For iterating through the immediate child nodes of this node, or the
 child nodes of the type(s) allowed by the NodeType filter if one is 
@@ -643,19 +748,12 @@ const_node_iterator node_end() const;
 bool operator==(const Node& other) const {return other.tiNode==tiNode;}
 bool operator!=(const Node& other) const {return other.tiNode!=tiNode;}
 
-void clear() {tiNode=0;}
 bool isValid() const {return tiNode != 0;}
 
 //------------------------------------------------------------------------------
-                                  private:
-friend class Xml;
-friend class Xml::Impl;
-friend class Xml::node_iterator;
-friend class Xml::const_node_iterator;
-friend class Xml::Comment;
-friend class Xml::Unknown;
-friend class Xml::Text;
-friend class Xml::Element;
+                                 protected:
+/** @cond **/ // don't let Doxygen see these
+explicit Node(TiXmlNode* tiNode) : tiNode(tiNode) {}
 
 const TiXmlNode& getTiNode() const {assert(tiNode);return *tiNode;}
 TiXmlNode&       updTiNode()       {assert(tiNode);return *tiNode;}
@@ -666,6 +764,14 @@ TiXmlNode&       updTiNode()       {assert(tiNode);return *tiNode;}
 void setTiNodePtr(TiXmlNode* node) {tiNode=node;}
 const TiXmlNode* getTiNodePtr() const {return tiNode;}
 TiXmlNode*       updTiNodePtr()       {return tiNode;}
+/** @endcond **/
+
+//------------------------------------------------------------------------------
+                                  private:
+friend class Xml;
+friend class Xml::Impl;
+friend class Xml::node_iterator;
+friend class Xml::const_node_iterator;
 
 TiXmlNode*      tiNode; // the lone data member
 };
@@ -800,7 +906,7 @@ any XML document. Initially the Element will be empty so would print as
 "<tagWord/>", but you can add contents afterwards so that it will print as
 "<tagWord>contents</tagWord>", where contents may be text and/or child
 elements. **/
-Element(const String& tagWord);
+explicit Element(const String& tagWord);
 
 /** Append text to the contents of this element. If the element is 
 currently empty, or if the last child node contained in the element is not
@@ -822,6 +928,18 @@ prior to the one indicated by the node_iterator.
 inserted. **/
 Text insertText(const const_node_iterator& node, const String& text);
 
+/** Insert a node into the list of this Element's children, just before the
+node pointed to by the supplied iterator (or at the end if the iterator
+is node_end()). The iterator must refer to a node that is a child of this
+Element. This Element takes over ownership of the node which must 
+not already have a parent. **/
+void insertNodeBefore(node_iterator& pos, Node& node);
+/** Insert a node into the list of this Element's children, just after the
+node pointed to by the supplied iterator (or at the end if the iterator
+is node_end()). The iterator must refer to a node that is a child of this
+Element. This Element takes over ownership of the node which must 
+not already have a parent. **/
+void insertNodeAfter(node_iterator& pos, Node& node);
 
 element_iterator            element_begin(const String& tag="");
 const_element_iterator      element_begin(const String& tag="") const;
@@ -888,7 +1006,14 @@ bool isValueElement() const;
 this is not a "value element". See the comments for this class for the
 definition of a "value element".
 @see isTextElement() **/
-const String& getElementValue() const;
+const String& getValue() const;
+
+
+/** Set the text value of this value element. An error will be thrown if 
+this is not a "value element". See the comments for this class for the
+definition of a "value element".
+@see isTextElement() **/
+void setValue(const String& value);
 
 /** Assuming this is a "text element", convert its text value to the type
 of the template argument T. It is an error if the text can not be converted,
@@ -896,13 +1021,13 @@ in its entirety, to a single object of type T. (But note that type T may
 be a container of some sort, like a Vector or Array.) 
 @tparam T   A type that can be read from a stream using the ">>" operator.
 **/
-template <class T> T getElementValueAs() const 
-{   return getElementValue().convertTo<T>(); }
+template <class T> T getValueAs() const 
+{   return getValue().convertTo<T>(); }
 
-/** Alternate form of getElementAs() that avoids unnecessary copying and
+/** Alternate form of getValueAs() that avoids unnecessary copying and
 heap allocation for reading in large container objects. **/
-template <class T> void getElementValueAs(T& out) const 
-{   getElementValue().convertTo<T>(out); }
+template <class T> void getValueAs(T& out) const 
+{   getValue().convertTo<T>(out); }
 
 /** Obtain a reference to a particular attribute of this element; an error
 will be thrown if no such attribute is present. **/
@@ -953,7 +1078,7 @@ the value of the Text node. Thus an element like "<tag>stuff</tag>" will
 have the value "stuff". An error will be thrown if either the element
 is not found or it is not a "value element". **/
 const String& getRequiredElementValue(const String& tag) const
-{   return getRequiredElement(tag).getElementValue(); }
+{   return getRequiredElement(tag).getValue(); }
 
 /** Get the text value of a child text element that \e may be present in
 this element, otherwise return a default string. If the child element is 
@@ -961,7 +1086,7 @@ found, it must be a "text element" as defined above. **/
 String getOptionalElementValue
    (const String& tag, const String& def="") const
 {   const Element opt(getOptionalElement(tag));
-    return opt.isValid() ? opt.getElementValue() : def; }
+    return opt.isValid() ? opt.getValue() : def; }
 
 /** Convert the text value of a required child text element to the type
 of the template argument T. It is an error if the element is present but is
@@ -1165,6 +1290,16 @@ Text() : Node() {}
 any XML document. **/
 explicit Text(const String& text);
 
+
+/** Test whether a given Node is an Text node. **/
+static bool isA(const Node&);
+/** Recast a Node to a const Text node, throwing an error if the Node is not
+actually a Text node. @see isA() **/
+static const Text& getAs(const Node& node);
+/** Recast a writable Node to a writable Text node, throwing an error if the
+Node is not actually a Text node. @see isA() **/
+static Text& updAs(Node& node);
+
 //------------------------------------------------------------------------------
                                    private:
 // no data members; see Node
@@ -1188,6 +1323,15 @@ text; those will be added automatically if the document is serialized to a
 file or string. **/
 explicit Comment(const String& text);
 
+/** Test whether a given Node is an Comment node. **/
+static bool isA(const Node&);
+/** Recast a Node to a const Comment, throwing an error if the Node is not
+actually an Comment node. @see isA() **/
+static const Comment& getAs(const Node& node);
+/** Recast a writable Node to a writable Comment, throwing an error if the
+Node is not actually an Comment node. @see isA() **/
+static Comment& updAs(Node& node);
+
 //------------------------------------------------------------------------------
                                    private:
 // no data members; see Node
@@ -1210,6 +1354,28 @@ file or string. That is, if you want "<!SOMETHING blah blah>", the contents
 you provide should be "!SOMETHING blah blah". **/
 explicit Unknown(const String& contents);
 
+/** Create a new Unknown node and append it to the list of nodes that are
+children of the given Element. The Element becomes the owner of the new
+Unknown node although the handle retains a reference to it. **/
+Unknown(Element& element, const String& contents)
+{   new(this) Unknown(contents); 
+    element.insertNodeBefore(element.node_end(), *this); }
+
+/** Obtain the contents of this Unknown node. This is everything that would
+be between the "<" and ">" in the XML document. **/
+const String& getContents() const;
+/** Change the contents of this Unknown node. This is everything that would
+be between the "<" and ">" in the XML document. **/
+void setContents(const String& contents);
+
+/** Test whether a given Node is an Unknown node. **/
+static bool isA(const Node&);
+/** Recast a Node to a const Unknown, throwing an error if the Node is not
+actually an Unknown node. @see isA() **/
+static const Unknown& getAs(const Node& node);
+/** Recast a writable Node to a writable Unknown, throwing an error if the
+Node is not actually an Unknown node. @see isA() **/
+static Unknown& updAs(Node& node);
 //------------------------------------------------------------------------------
                                    private:
 // no data members; see Node

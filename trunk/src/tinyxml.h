@@ -478,8 +478,7 @@ public:
 		COMMENT,
 		UNKNOWN,
 		TEXT,
-		DECLARATION,
-		TYPECOUNT
+		DECLARATION
 	};
 
     static const char* nameOfNodeType(NodeType n) {
@@ -490,7 +489,6 @@ public:
         case UNKNOWN:       return "Unknown";
         case TEXT:          return "Text";
         case DECLARATION:   return "Declaration";
-        case TYPECOUNT:     return "TypeCount";
         };
         return "UNRECOGNIZED NodeType";
     }
@@ -1456,8 +1454,8 @@ private:
 //                            TinyXML DOCUMENT
 //------------------------------------------------------------------------------
 /** Always the top level node. A document binds together all the
-	XML pieces. It can be saved, loaded, and printed to the screen.
-	The 'value' of a document node is the xml file name.
+XML pieces. It can be saved, loaded, and printed to the screen.
+The 'value' of a document node is the xml file name.
 */
 class TiXmlDocument : public TiXmlNode
 {

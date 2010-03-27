@@ -97,7 +97,7 @@ static void showElement(const Xml::Element& elt, const String& indent="") {
     // Show all contents
     Xml::const_node_iterator p = elt.node_begin();
     for (; p != elt.node_end(); ++p) {
-        cout << indent << p->getNodeTypeAsString() << ": " << p->getValue() << endl;
+        cout << indent << p->getNodeTypeAsString() << endl;
         if (p->getNodeType() == Xml::ElementNode)
             showElement(Xml::Element::getAs(*p), indent + "  ");
     }
@@ -111,9 +111,6 @@ void testXmlFromString() {
 
     fromString.readFromString(xmlPlainTextFile);
     cout << "Plain text file: '" << fromString << "'\n";
-    cout << "'"
-        << fromString.getDocumentElement().node_begin(Xml::TextNode)->getValue()
-        << "'\n";
 
     SimTK_TEST_MUST_THROW(fromString.readFromString(xmlEmpty));
     SimTK_TEST_MUST_THROW(fromString.readFromString(xmlUnclosedComment));
@@ -121,7 +118,7 @@ void testXmlFromString() {
     fromString.readFromString(String(xmlPainting));
     cout << "Painting: '" << fromString << "'\n";
 
-    cout << "Doc type is: " << fromString.getDocumentTag() << endl;
+    cout << "Doc type is: " << fromString.getRootTag() << endl;
     cout << "  version: " << fromString.getXmlVersion() << endl;
     cout << "  encoding: " << fromString.getXmlEncoding() << endl;
     cout << "  standalone: " 
@@ -130,36 +127,38 @@ void testXmlFromString() {
     cout << "All nodes in doc:\n";
     Xml::const_node_iterator np = fromString.node_begin();
     for (; np != fromString.node_end(); ++np)
-        cout << "  " << np->getNodeTypeAsString() << ": " << np->getValue() << endl;
+        cout << "  " << np->getNodeTypeAsString() << endl;
 
 
-    const Xml::Element& doc = fromString.getDocumentElement();
-    Xml::Element& wdoc = fromString.updDocumentElement();
+    const Xml::Element& root = fromString.getRootElement();
+    Xml::Element& wroot = fromString.updRootElement();
 
-    cout << "empty()=" << doc.empty() << endl;
-    cout << "empty(Comment)=" << doc.empty(Xml::CommentNode) << endl;
-    cout << "empty(Unknown)=" << doc.empty(Xml::UnknownNode) << endl;
+    cout << "hasChildNode()=" << root.hasChildNode() << endl;
+    cout << "hasChildNode(Comment)=" << root.hasChildNode(Xml::CommentNode) << endl;
+    cout << "hasChildNode(Unknown)=" << root.hasChildNode(Xml::UnknownNode) << endl;
 
-    showElement(doc);
+    showElement(root);
 
-    Xml::const_node_iterator p = doc.node_begin(Xml::NoJunkNodes);
-    for (; p != doc.node_end(); ++p)
-        cout << p->getNodeTypeAsString() << ": " << p->getValue() << endl;
+    Xml::const_node_iterator p = root.node_begin(Xml::NoJunkNodes);
+    for (; p != root.node_end(); ++p)
+        cout << p->getNodeTypeAsString() << endl;
 
     cout << "Caption elements:\n";
-    Xml::element_iterator ep(wdoc.element_begin("caption"));
-    for (; ep != wdoc.element_end(); ++ep)
-        cout << ep->getNodeTypeAsString() << ": " << ep->getValue() << endl;
+    Xml::element_iterator ep(wroot.element_begin("caption"));
+    for (; ep != wroot.element_end(); ++ep)
+        cout << ep->getNodeTypeAsString() << ": <" << ep->getElementTag() 
+             << ">" << endl;
 
     cout << "All elements:\n";
-    ep = wdoc.element_begin();
-    for (; ep != wdoc.element_end(); ++ep)
-        cout << ep->getNodeTypeAsString() << ": " << ep->getValue() << endl;
+    ep = wroot.element_begin();
+    for (; ep != wroot.element_end(); ++ep)
+        cout << ep->getNodeTypeAsString() << ": <" << ep->getElementTag() 
+             << ">" << endl;
 
-    Array_<Xml::Node> allNodes(wdoc.node_begin(Xml::NoJunkNodes), wdoc.node_end());
+    Array_<Xml::Node> allNodes(wroot.node_begin(Xml::NoJunkNodes), 
+                               wroot.node_end());
     for (unsigned i=0; i < allNodes.size(); ++i)
-        cout << "Node " << allNodes[i].getNodeTypeAsString()
-        << ": " << allNodes[i].getValue() << endl;
+        cout << "Node " << allNodes[i].getNodeTypeAsString() << endl;
 
     String prettyString, compactString;
     fromString.writeToString(prettyString);
@@ -179,15 +178,15 @@ void testXmlFromString() {
     //for (Xml::node_iterator xp=ex.node_begin(); xp != ex.node_end(); ++xp)
     //    cout << "Node type: " << xp->getNodeTypeAsString() << endl;
 
-    //PolygonalMesh mesh;
-    //mesh.loadVtpFile("arm_r_humerus.vtp");
-    //cout << "num vertices=" << mesh.getNumVertices() << " faces="
-    //    << mesh.getNumFaces() << endl;
+    PolygonalMesh mesh;
+    mesh.loadVtpFile("arm_r_humerus.vtp");
+    cout << "num vertices=" << mesh.getNumVertices() << " faces="
+        << mesh.getNumFaces() << endl;
 }
 
 void testXmlFromScratch() {
     Xml scratch;
-    scratch.setDocumentTag("MyDoc");
+    scratch.setRootTag("MyDoc");
     cout << scratch;
 
     Xml::Comment c("This is a comment.");
@@ -201,10 +200,29 @@ void testXmlFromScratch() {
     //e.addAttribute("name","value");
     //e.setAttribute("name","value2");
 
-    cout << c;
-    cout << u;
-    cout << t;
-    cout << e;
+    cout << "isOrphan? " << String(c.isOrphan()) << ":" << c;
+    cout << "isOrphan? " << String(u.isOrphan()) << ":" << u;
+    cout << "isOrphan? " << String(t.isOrphan()) << ":" << t;
+    cout << "isOrphan? " << String(e.isOrphan()) << ":" << e;
+
+    e.setValue("this is the only value");
+    cout << "e value=" << e.getValue() << endl;
+    cout << "e = " << e << endl;
+    e.setValue("9 10 -3.2e-4");
+    cout << "e value=" << e.getValueAs< Array_<float> >() << endl;
+    cout << "e = " << e << endl;
+
+    scratch.insertTopLevelNodeAfter(scratch.node_begin(), c);
+    cout << "isOrphan? " << String(c.isOrphan()) << ":" << c;
+    cout << scratch;
+
+    scratch.insertTopLevelNodeBefore(scratch.node_begin(Xml::ElementNode), u);
+    cout << "isOrphan? " << String(u.isOrphan()) << ":" << u;
+    cout << scratch;
+
+    scratch.insertTopLevelNodeBefore(scratch.node_begin(), 
+        Xml::Comment("This should be at the top of the file, except declaration."));
+    cout << scratch;
 }
 
 #define SHOWIT(something) \

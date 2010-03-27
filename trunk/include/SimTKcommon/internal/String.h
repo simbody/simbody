@@ -158,7 +158,7 @@ this String as a single object of type T (although T may itself be a
 container like an Array or Vector). It is an error if the String has
 the wrong format for an object of this type, or if the entire String is
 not consumed. The acceptable formatting is defined by type T based on what
-it thinks is acceptable stream foramtting. Leading and trailing white space 
+it thinks is acceptable stream formatting. Leading and trailing white space 
 are ignored except when type T is itself a String or std::string in which case 
 the white space is included in the result. It is not acceptable for type T
 to be a pointer type. In particular if you want to convert a String to a null-

@@ -137,7 +137,7 @@ public:
     }
 
     // If the supplied Xml document has zero or more than one top-level element,
-    // or has top-level text, we'll add <XMLDocument> elements </XMLDocument> to 
+    // or has top-level text, we'll add <_Root> elements </_Root> to 
     // encapsulate all the top-level text and element nodes (this may also
     // surround top-level comments and unknowns if they occur between the text
     // and elements. A pointer to the root element (whether original or added) 
@@ -155,8 +155,8 @@ public:
 
         if (!firstEltOrText) {
             // No top level element or text node. We'll just append an empty
-            // XMLDocument element to the end of whatever's there.
-            TiXmlElement* root = new TiXmlElement("XMLDocument");
+            // _Root element to the end of whatever's there.
+            TiXmlElement* root = new TiXmlElement("_Root");
             m_tixml.LinkEndChild(root);
             return root;
         }
@@ -181,7 +181,7 @@ public:
         // Now we know there is top-level text or more than one top-level
         // element so we are going to have to surround everything between
         // first and last with a new root element.
-        TiXmlElement* root = new TiXmlElement("XMLDocument");
+        TiXmlElement* root = new TiXmlElement("_Root");
 
         TiXmlNode* nextToMove = firstEltOrText;
         while(true) {
@@ -201,15 +201,14 @@ public:
         return root;
     }
 
-    // Note that Tiny XML "document" is the entire XML object, while ours
-    // is the document tag or what TinyXML calls the "root element". There
-    // is only supposed to be one root element; if we see more than one
-    // we insert a new top-level element <XML> original stuff </XML>.
+    // The Tiny XML "document" is a TiXmlNode representing the entire XML 
+    // object. We instead represent the document as an object of class Xml 
+    // which is not itself a Node.
     TiXmlDocument   m_tixml;
 
-    // These contain pointers into tixml. They are filled in when the
-    // document is initially canonicalized.
-    Xml::Element   m_rootElement;
+    // This references the root element withing the TinyXml document. It
+    // is filled in when the document is initially canonicalized.
+    Xml::Element    m_rootElement;
 };
 
 
@@ -263,11 +262,11 @@ Xml::Xml(const String& pathname) : impl(0) {
     impl->canonicalizeDocument();
 }
 
-const Xml::Element& Xml::getDocumentElement() const {
+const Xml::Element& Xml::getRootElement() const {
     assert(getImpl().m_rootElement.isValid());
     return getImpl().m_rootElement;
 }
-Xml::Element& Xml::updDocumentElement() {
+Xml::Element& Xml::updRootElement() {
     assert(getImpl().m_rootElement.isValid());
     return updImpl().m_rootElement;
 }
@@ -291,11 +290,67 @@ void Xml::writeToString(String& xmlDocument, bool compact) const {
     getImpl().writeToString(xmlDocument, compact);
 }
 
-const String& Xml::getDocumentTag() const {
-    return getDocumentElement().getElementTag();
+void Xml::insertTopLevelNodeAfter (const Xml::node_iterator& afterThis, 
+                                   Xml::Node&                insertThis) {
+    const char* method = "Xml::insertTopLevelNodeAfter()";
+
+    // Check that the supplied Node is OK.
+    SimTK_ERRCHK_ALWAYS(insertThis.isValid(), method,
+        "The supplied Node handle was empty.");
+    SimTK_ERRCHK_ALWAYS(insertThis.isOrphan(), method,
+        "The Node was not an orphan so can't be inserted.");
+    SimTK_ERRCHK1_ALWAYS(Comment::isA(insertThis) || Unknown::isA(insertThis),
+        method, "The Node had NodeType %s, but only Comment and Unknown nodes"
+        " can be inserted at the topmost document level.",
+        insertThis.getNodeTypeAsString().c_str());
+
+    // If no iterator, add the Node to the end and we're done.
+    if (afterThis == node_end()) {
+        updImpl().m_tixml.LinkEndChild(insertThis.updTiNodePtr());
+        return;
+    }
+
+    // There is an iterator, make sure it's a top-level one.
+    SimTK_ERRCHK_ALWAYS(afterThis->isTopLevelNode(), method,
+        "The node_iterator did not refer to a top-level Node.");
+
+    updImpl().m_tixml.LinkAfterChild(afterThis->updTiNodePtr(),
+                                     insertThis.updTiNodePtr());
 }
-void Xml::setDocumentTag(const String& tag) {
-    updDocumentElement().setElementTag(tag);
+
+void Xml::insertTopLevelNodeBefore(const Xml::node_iterator& beforeThis, 
+                                   Xml::Node&                insertThis) {
+    const char* method = "Xml::insertTopLevelNodeBefore()";
+
+    // Check that the supplied Node is OK.
+    SimTK_ERRCHK_ALWAYS(insertThis.isValid(), method,
+        "The supplied Node handle was empty.");
+    SimTK_ERRCHK_ALWAYS(insertThis.isOrphan(), method,
+        "The Node was not an orphan so can't be inserted.");
+    SimTK_ERRCHK1_ALWAYS(Comment::isA(insertThis) || Unknown::isA(insertThis),
+        method, "The Node had NodeType %s, but only Comment and Unknown nodes"
+        " can be inserted at the topmost document level.",
+        insertThis.getNodeTypeAsString().c_str());
+
+    // If no iterator, add the Node to the end and we're done.
+    if (beforeThis == node_end()) {
+        updImpl().m_tixml.LinkEndChild(insertThis.updTiNodePtr());
+        return;
+    }
+
+    // There is an iterator, make sure it's a top-level one.
+    SimTK_ERRCHK_ALWAYS(beforeThis->isTopLevelNode(), method,
+        "The node_iterator did not refer to a top-level Node.");
+
+    updImpl().m_tixml.LinkBeforeChild(beforeThis->updTiNodePtr(),
+                                      insertThis.updTiNodePtr());
+}
+
+const String& Xml::getRootTag() const {
+    return getRootElement().getElementTag();
+}
+void Xml::setRootTag(const String& tag) {
+    updRootElement().setElementTag(tag);
 }
 
 String Xml::getXmlVersion() const 
@@ -450,8 +505,14 @@ operator--(int) {
 //------------------------------------------------------------------------------
 //                                 XML NODE
 //------------------------------------------------------------------------------                  
-const String& Xml::Node::getValue() const {return getTiNode().ValueStr();}
+
+void Xml::Node::clear()
+{   if (isOrphan()) delete tiNode;
+    tiNode = 0; }
+
+
 Xml::NodeType Xml::Node::getNodeType() const {
+    if (!isValid()) return NoNode;
     switch(getTiNode().Type()) {
     case TiXmlNode::COMMENT: return CommentNode;
     case TiXmlNode::UNKNOWN: return UnknownNode;
@@ -467,6 +528,26 @@ Xml::NodeType Xml::Node::getNodeType() const {
 String Xml::Node::
 getNodeTypeAsString() const {return Xml::getNodeTypeAsString(getNodeType());}
 
+const String& Xml::Node::getNodeText() const {
+    SimTK_ERRCHK_ALWAYS(isValid(), "Xml::Node::getText()",
+        "Can't get text from an empty Node handle.");
+
+    return getTiNode().ValueStr();
+}
+
+bool Xml::Node::isTopLevelNode() const 
+{   if (!isValid()) return false;
+    const TiXmlNode& n = getTiNode();
+    return n.Parent() && n.Parent() == n.GetDocument(); }
+
+// Note that the criteria for orphanhood is that the *TiXmlNode* has no
+// parent. In SimTK::Xml, none of the top-level nodes are considered to have
+// a parent since the Xml document is not a node there, while in TinyXML
+// the TiXmlDocument is a TiXmlNode, so even top-level nodes have a parent.
+bool Xml::Node::isOrphan() const
+{   if (!isValid()) return false; // empty handle not considered an orphan
+    return getTiNode().Parent() == 0; }
+
 void Xml::Node::
 writeToString(String& out, bool compact) const {
     TiXmlPrinter printer(out);
@@ -474,8 +555,17 @@ writeToString(String& out, bool compact) const {
     getTiNode().Accept( &printer );
 }
 
-bool Xml::Node::empty(NodeType allowed) const 
-{   return node_begin(allowed) == node_end(); }
+bool Xml::Node::hasParentNode() const 
+{   return isValid() && getTiNodePtr()->Parent(); }
+
+Xml::Node Xml::Node::getParentNode() {
+    SimTK_ERRCHK_ALWAYS(hasParentNode(),
+        "Xml::Node::getParentNode()", "This node does not have a parent.");
+    return Node(updTiNodePtr()->Parent());
+}
+
+bool Xml::Node::hasChildNode(NodeType allowed) const 
+{   return node_begin(allowed) != node_end(); }
 
 
     // NODE node_begin()
@@ -612,13 +702,26 @@ bool Xml::Element::isValueElement() const {
     return text == node_end() || ++text == node_end(); // zero or one
 }
 
-const String& Xml::Element::getElementValue() const {
+const String& Xml::Element::getValue() const {
     const String null;
-    SimTK_ERRCHK1_ALWAYS(isValueElement(), "Xml::Element::getElementValue()",
+    SimTK_ERRCHK1_ALWAYS(isValueElement(), "Xml::Element::getValue()",
         "Element <%s> is not a value element.", getElementTag().c_str());
 
     const_node_iterator text = node_begin(TextNode);
-    return text == node_end() ? null : text->getValue();
+    return text == node_end() ? null : text->getNodeText();
+}
+
+// If there is no Text node we'll add one; if there is just one we'll
+// change its value; otherwise report an error.
+void Xml::Element::setValue(const String& value) {
+    SimTK_ERRCHK1_ALWAYS(isValueElement(), "Xml::Element::setValue()",
+        "Element <%s> is not a value element.", getElementTag().c_str());
+
+    node_iterator text = node_begin(TextNode);
+    if (text == node_end()) {
+        updTiNode().LinkEndChild(new TiXmlText(value));
+    } else 
+        text->updTiNode().SetValue(value);
 }
 
 bool Xml::Element::hasAttribute(const String& name) const {
@@ -657,17 +760,68 @@ Xml::Attribute Xml::Element::getRequiredAttribute(const String& name) const {
 }
 
 
-/*static*/ bool Xml::Element::isA(const Xml::Node& node) {
-    if (!node.isValid()) return false;
-    return node.getTiNode().ToElement() != 0;
+/*static*/ bool Xml::Element::isA(const Xml::Node& node) 
+{   if (!node.isValid()) return false;
+    return node.getTiNode().ToElement() != 0; }
+/*static*/const Xml::Element& Xml::Element::getAs(const Node& node) 
+{   SimTK_ERRCHK1_ALWAYS(isA(node), "Xml::Element::getAs()",
+        "The given Node was not an Element; it is a %s. Use Element::isA()"
+        " to check before calling Element::getAs().",
+        node.getNodeTypeAsString().c_str());
+    return reinterpret_cast<const Element&>(node); }
+/*static*/Xml::Element& Xml::Element::updAs(Node& node) 
+{   SimTK_ERRCHK1_ALWAYS(isA(node), "Xml::Element::getAs()",
+        "The given Node was not an Element; it is a %s. Use Element::isA()"
+        " to check before calling Element::updAs().",
+        node.getNodeTypeAsString().c_str());
+    return reinterpret_cast<Element&>(node); }
+
+void Xml::Element::insertNodeBefore(node_iterator& beforeThis, Node& node) {
+    const char* method = "Xml::Element::insertNodeBefore()";
+    const char* tag    = getElementTag().c_str();
+
+    SimTK_ERRCHK1_ALWAYS(node.isValid(), method,
+        "The supplied Node handle was invalid so can't be inserted into"
+        " Element <%s>.", tag);
+    SimTK_ERRCHK1_ALWAYS(!node.getParentNode().isValid(), method,
+        "The supplied Node already had a parent so can't be inserted into"
+        " Element <%s>.", tag);
+
+    if (beforeThis == node_end()) {
+        updTiNode().LinkEndChild(node.updTiNodePtr());
+        return;
+    }
+
+    SimTK_ERRCHK1_ALWAYS(beforeThis->getParentNode() == *this, method,
+        "The supplied node_iterator referred to a node that was not a"
+        "child node of this Element <%s>.", tag);
+
+    TiXmlNode* p = beforeThis->updTiNodePtr();
+    p->LinkBeforeChild(p, node.updTiNodePtr());
 }
-/*static*/const Xml::Element& Xml::Element::getAs(const Node& node) {
-    assert(isA(node));
-    return reinterpret_cast<const Element&>(node);
-}
-/*static*/Xml::Element& Xml::Element::updAs(Node& node) {
-    assert(isA(node));
-    return reinterpret_cast<Element&>(node);
+
+void Xml::Element::insertNodeAfter(node_iterator& afterThis, Node& node) {
+    const char* method = "Xml::Element::insertNodeAfter()";
+    const char* tag    = getElementTag().c_str();
+
+    SimTK_ERRCHK1_ALWAYS(node.isValid(), method,
+        "The supplied Node handle was invalid so can't be inserted into"
+        " Element <%s>.", tag);
+    SimTK_ERRCHK1_ALWAYS(!node.getParentNode().isValid(), method,
+        "The supplied Node already had a parent so can't be inserted into"
+        " Element <%s>.", tag);
+
+    if (afterThis == node_end()) {
+        updTiNode().LinkEndChild(node.updTiNodePtr());
+        return;
+    }
+
+    SimTK_ERRCHK1_ALWAYS(afterThis->getParentNode() == *this, method,
+        "The supplied node_iterator referred to a node that was not a"
+        "child node of this Element <%s>.", tag);
+
+    TiXmlNode* p = afterThis->updTiNodePtr();
+    p->LinkAfterChild(p, node.updTiNodePtr());
 }
 
     // Element begin()
@@ -807,7 +961,21 @@ operator--(int) {
 //------------------------------------------------------------------------------
 Xml::Text::Text(const String& text) : Node(new TiXmlText(text)) {}
 
-
+/*static*/ bool Xml::Text::isA(const Xml::Node& node) 
+{   if (!node.isValid()) return false;
+    return node.getTiNode().ToText() != 0; }
+/*static*/const Xml::Text& Xml::Text::getAs(const Node& node) 
+{   SimTK_ERRCHK1_ALWAYS(isA(node), "Xml::Text::getAs()",
+        "The given Node was not a Text node; it is a %s. Use Text::isA()"
+        " to check before calling Text::getAs().",
+        node.getNodeTypeAsString().c_str());
+    return reinterpret_cast<const Text&>(node); }
+/*static*/Xml::Text& Xml::Text::updAs(Node& node) 
+{   SimTK_ERRCHK1_ALWAYS(isA(node), "Xml::Text::getAs()",
+        "The given Node was not a Text node; it is a %s. Use Text::isA()"
+        " to check before calling Text::updAs().",
+        node.getNodeTypeAsString().c_str());
+    return reinterpret_cast<Text&>(node); }
 
 
 
@@ -816,7 +984,21 @@ Xml::Text::Text(const String& text) : Node(new TiXmlText(text)) {}
 //------------------------------------------------------------------------------
 Xml::Comment::Comment(const String& text) : Node(new TiXmlComment(text)) {}
 
-
+/*static*/ bool Xml::Comment::isA(const Xml::Node& node) 
+{   if (!node.isValid()) return false;
+    return node.getTiNode().ToComment() != 0; }
+/*static*/const Xml::Comment& Xml::Comment::getAs(const Node& node) 
+{   SimTK_ERRCHK1_ALWAYS(isA(node), "Xml::Comment::getAs()",
+        "The given Node was not a Comment node; it is a %s. Use Comment::isA()"
+        " to check before calling Comment::getAs().",
+        node.getNodeTypeAsString().c_str());
+    return reinterpret_cast<const Comment&>(node); }
+/*static*/Xml::Comment& Xml::Comment::updAs(Node& node) 
+{   SimTK_ERRCHK1_ALWAYS(isA(node), "Xml::Comment::getAs()",
+        "The given Node was not a Comment node; it is a %s. Use Comment::isA()"
+        " to check before calling Comment::updAs().",
+        node.getNodeTypeAsString().c_str());
+    return reinterpret_cast<Comment&>(node); }
 
 
 
@@ -825,4 +1007,20 @@ Xml::Comment::Comment(const String& text) : Node(new TiXmlComment(text)) {}
 //------------------------------------------------------------------------------
 Xml::Unknown::Unknown(const String& contents) : Node(new TiXmlUnknown()) 
 {   updTiNode().SetValue(contents); }
+
+/*static*/ bool Xml::Unknown::isA(const Xml::Node& node) 
+{   if (!node.isValid()) return false;
+    return node.getTiNode().ToUnknown() != 0; }
+/*static*/const Xml::Unknown& Xml::Unknown::getAs(const Node& node) 
+{   SimTK_ERRCHK1_ALWAYS(isA(node), "Xml::Unknown::getAs()",
+        "The given Node was not an Unknown node; it is a %s. Use Unknown::isA()"
+        " to check before calling Unknown::getAs().",
+        node.getNodeTypeAsString().c_str());
+    return reinterpret_cast<const Unknown&>(node); }
+/*static*/Xml::Unknown& Xml::Unknown::updAs(Node& node) 
+{   SimTK_ERRCHK1_ALWAYS(isA(node), "Xml::Unknown::getAs()",
+        "The given Node was not an Unknown node; it is a %s. Use Unknown::isA()"
+        " to check before calling Unknown::updAs().",
+        node.getNodeTypeAsString().c_str());
+    return reinterpret_cast<Unknown&>(node); }
 

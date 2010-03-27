@@ -267,18 +267,18 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     Xml vtp(pathname);
     // The file has been read in and parsed into memory by the Xml system.
 
-    SimTK_ERRCHK1_ALWAYS(vtp.getDocumentTag() == "VTKFile", method,
+    SimTK_ERRCHK1_ALWAYS(vtp.getRootTag() == "VTKFile", method,
         "Expected to see document tag <VTKFile> but saw <%s> instead.",
-        vtp.getDocumentTag().c_str());
+        vtp.getRootTag().c_str());
     // This is a VTKFile document.
 
-    Xml::Element doc = vtp.getDocumentElement();
-    SimTK_ERRCHK1_ALWAYS(doc.getRequiredAttributeValue("type") == "PolyData",
+    Xml::Element root = vtp.getRootElement();
+    SimTK_ERRCHK1_ALWAYS(root.getRequiredAttributeValue("type") == "PolyData",
         method, "Expected VTK file type='PolyData' but got type='%s'.",
-        doc.getRequiredAttributeValue("type").c_str());
+        root.getRequiredAttributeValue("type").c_str());
     // This is a VTK PolyData document.
 
-    Xml::Element polydata = doc.getRequiredElement("PolyData");
+    Xml::Element polydata = root.getRequiredElement("PolyData");
     Xml::Element piece    = polydata.getRequiredElement("Piece");
     Xml::Element points   = piece.getRequiredElement("Points");
     const int numPoints = 
@@ -328,7 +328,7 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
 
     // Read in the arrays.
     Array_<int> offsets(numPolys);
-    eoffsets.getElementValueAs<ArrayView_<int> >(offsets);
+    eoffsets.getValueAs<ArrayView_<int> >(offsets);
     // Size may have changed if file is bad.
     SimTK_ERRCHK2_ALWAYS(offsets.size() == numPolys, method,
         "The number of offsets (%d) should have matched the stated "
@@ -339,7 +339,7 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     // is the size of the connectivity array.
     const int expectedSize = numPolys ? offsets.back() : 0;
     Array_<int> connectivity(expectedSize);
-    econnectivity.getElementValueAs<Array_<int> >(connectivity);
+    econnectivity.getValueAs<Array_<int> >(connectivity);
 
     SimTK_ERRCHK2_ALWAYS(connectivity.size()==expectedSize, method,
         "The connectivity array was the wrong size (%d). It should"
