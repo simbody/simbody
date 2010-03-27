@@ -1012,7 +1012,7 @@ const String& getValue() const;
 /** Set the text value of this value element. An error will be thrown if 
 this is not a "value element". See the comments for this class for the
 definition of a "value element".
-@see isTextElement() **/
+@see isValueElement() **/
 void setValue(const String& value);
 
 /** Assuming this is a "text element", convert its text value to the type
@@ -1022,12 +1022,12 @@ be a container of some sort, like a Vector or Array.)
 @tparam T   A type that can be read from a stream using the ">>" operator.
 **/
 template <class T> T getValueAs() const 
-{   return getValue().convertTo<T>(); }
+{   T out; convertStringTo(getValue(),out); return out;}
 
 /** Alternate form of getValueAs() that avoids unnecessary copying and
 heap allocation for reading in large container objects. **/
 template <class T> void getValueAs(T& out) const 
-{   getValue().convertTo<T>(out); }
+{   convertStringTo(getValue(),out); }
 
 /** Obtain a reference to a particular attribute of this element; an error
 will be thrown if no such attribute is present. **/
@@ -1046,7 +1046,7 @@ be a container of some sort, like a Vec3.)
 **/
 template <class T> T getRequiredAttributeValueAs
    (const String& name) const
-{   return getRequiredAttributeValue(name).convertTo<T>(); }
+{   T out; convertStringTo(getRequiredAttributeValue(name),out); return out; }
 
 /** Get the value of an attribute as a string if the attribute is present in 
 this element, otherwise return a supplied default value. **/
@@ -1068,7 +1068,8 @@ of the supplied default value \a def. **/
 template <class T> T getOptionalAttributeValueAs
    (const String& name, const T& def) const
 {   const_attribute_iterator p = find_attribute(name);
-    return p==attribute_end() ? def : p->getValue().convertTo<T>(); }
+    if (p==attribute_end()) return def;
+    T out; convertStringTo(p->getValue(), out); return out; }
 
 /** Get the text value of a child value element that \e must be present in 
 this element. The child is identified by its tag; if there is more than one
@@ -1097,7 +1098,7 @@ be a container of some sort, like a Vector or Array.)
 @param[in]  tag The tag of the required child text element.
 @return The value of the text element, converted to an object of type T. **/
 template <class T> T  getRequiredElementValueAs(const String& tag) const
-{   return getRequiredElementValue(tag).convertTo<T>(); }
+{   T out; convertStringTo(getRequiredElementValue(tag), out); return out; }
 
 /** Convert the text value of an optional child text element, if present, to
 the type of the template argument T. It is an error if the child element is
@@ -1113,7 +1114,8 @@ of the supplied default value \a def. **/
 template <class T> T 
     getOptionalElementValueAs(const String& tag, const T& def) const
 {   const Element opt(getOptionalElement(tag));
-    return opt.isValid() ? opt.getValue().convertTo<T>() : def; }
+    if (!opt.isValid()) return def;
+    T out; convertStringTo(opt.getValue(), out); return out; }
 
 /** Get a reference to a child element that \e must be present in this 
 element. The child is identified by its tag; if there is more than one
