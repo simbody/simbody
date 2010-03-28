@@ -506,11 +506,14 @@ Attribute() : tiAttr(0) {}
 /** Create a new Attribute that is not connected to any Xml document. **/
 Attribute(const String& name, const String& value);
 /** Copy constructor is shallow; that is, this handle will refer to the
-same attribute as the source. **/
-Attribute(Attribute& src) : tiAttr(src.tiAttr) {} 
+same attribute as the source. Note that this handle will provide write
+access to the underlying attribute, even if the source was const. **/
+Attribute(const Attribute& src) : tiAttr(src.tiAttr) {} 
 /** Copy assignment is shallow; the handle is first cleared and then will 
-refer to the same attribute as the source. @see clear() **/
-Attribute& operator=(Attribute& src) 
+refer to the same attribute as the source. Note that this handle will 
+provide write access to the underlying attribute even if the source handle
+was const. @see clear() **/
+Attribute& operator=(const Attribute& src) 
 {   if (&src!=this) {clear(); tiAttr=src.tiAttr;} return *this; }
 /** Destructor will delete the referenced attribute if this handle is its
 owner, otherwise it will be left alone. **/
@@ -659,6 +662,16 @@ public:
 /** Create an empty Node handle that can be used to hold a reference to any
 kind of Node. **/
 Node() : tiNode(0) {}
+/** Copy constructor is shallow; that is, this handle will refer to the
+same node as the source. Note that this handle will provide write
+access to the underlying node, even if the source was const. **/
+Node(const Node& src) : tiNode(src.tiNode) {} 
+/** Copy assignment is shallow; the handle is first cleared and then will 
+refer to the same node as the source. Note that this handle will 
+provide write access to the underlying node even if the source handle
+was const. @see clear() **/
+Node& operator=(const Node& src) 
+{   if (&src!=this) {clear(); tiNode=src.tiNode;} return *this; }
 /** The Node handle destructor usually does nothing but if it is referencing
 an orphan node then it will delete the orphan here; make sure you never have
 two handles referencing an orphan because they are not reference-counted. **/
