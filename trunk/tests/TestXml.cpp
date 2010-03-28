@@ -130,33 +130,32 @@ void testXmlFromString() {
         cout << "  " << np->getNodeTypeAsString() << endl;
 
 
-    const Xml::Element& root = fromString.getRootElement();
-    Xml::Element& wroot = fromString.getRootElement();
+    Xml::Element root = fromString.getRootElement();
 
     cout << "hasChildNode()=" << root.hasChildNode() << endl;
     cout << "hasChildNode(Comment)=" << root.hasChildNode(Xml::CommentNode) << endl;
     cout << "hasChildNode(Unknown)=" << root.hasChildNode(Xml::UnknownNode) << endl;
 
-    showElement(wroot);
+    showElement(root);
 
-    Xml::node_iterator p = wroot.node_begin(Xml::NoJunkNodes);
+    Xml::node_iterator p = root.node_begin(Xml::NoJunkNodes);
     for (; p != root.node_end(); ++p)
         cout << p->getNodeTypeAsString() << endl;
 
     cout << "Caption elements:\n";
-    Xml::element_iterator ep(wroot.element_begin("caption"));
-    for (; ep != wroot.element_end(); ++ep)
+    Xml::element_iterator ep(root.element_begin("caption"));
+    for (; ep != root.element_end(); ++ep)
         cout << ep->getNodeTypeAsString() << ": <" << ep->getElementTag() 
              << ">" << endl;
 
     cout << "All elements:\n";
-    ep = wroot.element_begin();
-    for (; ep != wroot.element_end(); ++ep)
+    ep = root.element_begin();
+    for (; ep != root.element_end(); ++ep)
         cout << ep->getNodeTypeAsString() << ": <" << ep->getElementTag() 
              << ">" << endl;
 
-    Array_<Xml::Node> allNodes(wroot.node_begin(Xml::NoJunkNodes), 
-                               wroot.node_end());
+    Array_<Xml::Node> allNodes(root.node_begin(Xml::NoJunkNodes), 
+                               root.node_end());
     for (unsigned i=0; i < allNodes.size(); ++i)
         cout << "Node " << allNodes[i].getNodeTypeAsString() << endl;
 
