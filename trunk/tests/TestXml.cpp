@@ -170,6 +170,10 @@ void testXmlFromString() {
 
     SimTK_TEST(compactString.size() < prettyString.size());
 
+    cout << "painting.allNode=" << root.getRequiredElement("painting").findAllNodes() << endl;
+    cout << "painting.img.allAttr=" << 
+        root.getRequiredElement("painting").getRequiredElement("img")
+        .findAllAttributes() << endl;
     //fromString.writeToFile("TestXml.xml");
 
     //Xml ex("TestXml.xml");

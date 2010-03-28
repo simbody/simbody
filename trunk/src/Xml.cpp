@@ -409,7 +409,9 @@ Xml::Attribute& Xml::Attribute::setValue(const String& value) {
     return *this;
 }
 
-
+void Xml::Attribute::writeToString(String& out) const {
+    getTiAttr().Print(0,0,&out);
+}
 
 //------------------------------------------------------------------------------
 //                         XML ATTRIBUTE ITERATOR

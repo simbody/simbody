@@ -535,6 +535,12 @@ Attribute& setValue(const String& value);
 otherwise it is left unchanged. **/
 void clear();
 
+/** Serialize this attribute to the given String. The output will be as it
+would appear in an XML file, i.e. name="value" or name='value' with special
+characters output as suitable entities. If you don't want it that way, use
+getName() and getValue() instead which return the raw strings. **/
+void writeToString(String& out) const;
+
 /** Comparison operators return true if the same attribute is being
 referenced or both handles are empty. Note that two different attributes
 with the same properties will not test equal by this criterion. **/
@@ -561,6 +567,17 @@ Attribute& unconst() const {return *const_cast<Attribute*>(this);}
 
 TiXmlAttribute* tiAttr; // this is the lone data member
 };
+
+/** Output a textual representation of the given Attribute to an std::ostream.
+This will be in the form the Attribute would appear in an XML file; that is,
+name="value" or name='value' with entity substituion for odd characters, 
+without surrounding blanks. @relates Attribute **/
+// Do this inline so we don't have to pass the ostream through the API.
+inline std::ostream& operator<<(std::ostream& o, const Xml::Attribute& attr) {
+    String output;
+    attr.writeToString(output);
+    return o << output;
+}
 
 
 
@@ -742,16 +759,16 @@ Node& unconst() const {return *const_cast<Node*>(this);}
 TiXmlNode*      tiNode; // the lone data member
 };
 
-
 /** Output a "pretty printed" textual representation of the given XML
 node (and all its contents) to an std::ostream. @relates Xml::Node **/
 // Do this inline so we don't have to pass the ostream through the API.
-inline std::ostream& 
-operator<<(std::ostream& o, const Xml::Node& xmlNode) {
+inline std::ostream& operator<<(std::ostream& o, const Xml::Node& xmlNode) {
     String output;
     xmlNode.writeToString(output);
     return o << output;
 }
+
+
 
 //------------------------------------------------------------------------------
 //                          XML NODE ITERATOR
@@ -804,6 +821,65 @@ friend class Xml::Node;
 
 Node            node;       // data members
 NodeType        allowed;
+};
+
+
+
+//------------------------------------------------------------------------------
+//                          XML ELEMENT ITERATOR
+//------------------------------------------------------------------------------
+/** This is a bidirectional iterator suitable for moving forward or backward
+within a list of Nodes, for writable access. By default we will iterate
+over all nodes but you can restrict the type at construction. **/
+class SimTK_SimTKCOMMON_EXPORT Xml::element_iterator
+:   public Xml::node_iterator {
+public:
+
+/** This is the default constructor which leaves the element_iterator empty, and
+you can optionally set the type of Element which will be iterated over. **/
+explicit element_iterator(const String& tag="") 
+:   node_iterator(ElementNode), tag(tag) {}
+/** Constructor an element_iterator pointing to a given Element, and optionally 
+set the type of Element which will be iterated over. **/
+inline explicit element_iterator(Element& elt, const String& tag=""); // below
+
+/** Copy constructor takes an element_iterator that can be const, but that
+still allows writing to the Element. **/
+element_iterator(const element_iterator& src) 
+:   node_iterator(src), tag(src.tag) {}
+/** Copy assignment takes an element_iterator that can be const, but that
+still allows writing to the Element. **/
+element_iterator& operator=(const element_iterator& src) 
+{   upcast()=src; tag = src.tag; return *this; }
+
+element_iterator& operator++();   // prefix
+element_iterator operator++(int); // postfix
+element_iterator& operator--();   // prefix
+element_iterator operator--(int); // postfix
+inline Element& operator*() const; // below
+inline Element* operator->() const; // below
+
+bool operator==(const element_iterator& other) const 
+{   return other.upcast()==upcast();}
+bool operator!=(const element_iterator& other) const 
+{   return other.upcast()!=upcast();}
+
+//------------------------------------------------------------------------------
+                                   private:
+friend class Xml;
+friend class Xml::Element;
+
+explicit element_iterator(TiXmlElement* tiElt, const String& tag="") 
+:   node_iterator((TiXmlNode*)tiElt, ElementNode), tag(tag) {}
+void reassign(TiXmlElement* tiElt)
+{   upcast().reassign((TiXmlNode*)tiElt); }
+
+const node_iterator& upcast() const 
+{   return *static_cast<const node_iterator*>(this); }
+node_iterator& upcast() 
+{   return *static_cast<node_iterator*>(this); }
+
+String          tag;    // lone data member
 };
 
 
@@ -913,24 +989,27 @@ attribute_iterator find_attribute(const String& name) {
 }
 
 
-///** Return an array containing Attribute handles referencing all the
-//attributes of this element. Attributes are returned in the order that
-//they appear in the element tag. Attribute names within a tag are unique;
-//if the source document had repeated attribute names only the last one
-//to appear is retained and that's the only one we'll find here. **/
-//Array_<Attribute> findAllAttributes();
-//
-///** Return an array containing Element handles referencing all the
-//immediate child elements contained in this element, or all the child 
-//elements of a particular type (that is, with a given tag word). Elements 
-//are returned in the order they are seen in the document. **/
-//Array_<Element> findAllElements(const String& tag="");
-//
-///** Return an array containing Node handles referencing all the
-//immediate child nodes contained in this element, or all the child 
-//nodes of a particular type or types. Nodes are returned in the order they 
-//are seen in the document. **/
-//Array_<Node> findAllNodes(NodeType type=AnyNodes);
+/** Return an array containing Attribute handles referencing all the
+attributes of this element. Attributes are returned in the order that
+they appear in the element tag. Attribute names within a tag are unique;
+if the source document had repeated attribute names only the last one
+to appear is retained and that's the only one we'll find here. **/
+Array_<Attribute> findAllAttributes()
+{   return Array_<Attribute>(attribute_begin(), attribute_end()); }
+
+/** Return an array containing Element handles referencing all the
+immediate child elements contained in this element, or all the child 
+elements of a particular type (that is, with a given tag word). Elements 
+are returned in the order they are seen in the document. **/
+Array_<Element> findAllElements(const String& tag="")
+{   return Array_<Element>(element_begin(tag), element_end()); }
+
+/** Return an array containing Node handles referencing all the
+immediate child nodes contained in this element, or all the child 
+nodes of a particular type or types. Nodes are returned in the order they 
+are seen in the document. **/
+Array_<Node> findAllNodes(NodeType allowed=AnyNodes)
+{   return Array_<Node>(node_begin(allowed), node_end()); }
 
 /** The element tag word can be considered the "type" of the element. **/
 const String& getElementTag() const;
@@ -1115,63 +1194,17 @@ Element& unconst() const {return *const_cast<Element*>(this);}
 };
 
 
-//------------------------------------------------------------------------------
-//                          XML ELEMENT ITERATOR
-//------------------------------------------------------------------------------
-/** This is a bidirectional iterator suitable for moving forward or backward
-within a list of Nodes, for writable access. By default we will iterate
-over all nodes but you can restrict the type at construction. **/
-class SimTK_SimTKCOMMON_EXPORT Xml::element_iterator
-:   public Xml::node_iterator {
-public:
 
-/** This is the default constructor which leaves the element_iterator empty, and
-you can optionally set the type of Element which will be iterated over. **/
-explicit element_iterator(const String& tag="") 
-:   node_iterator(ElementNode), tag(tag) {}
-/** Constructor an element_iterator pointing to a given Element, and optionally 
-set the type of Element which will be iterated over. **/
-explicit element_iterator(Element& elt, const String& tag="") 
-:   node_iterator(elt, ElementNode), tag(tag) {}
+// A few element_iterator inline definitions had to wait for Element to be
+// defined.
+inline Xml::element_iterator::element_iterator
+   (Xml::Element& elt, const String& tag) 
+:   Xml::node_iterator(elt, Xml::ElementNode), tag(tag) {}
+inline Xml::Element& Xml::element_iterator::operator*() const 
+{   return Element::getAs(*upcast());}
+inline Xml::Element* Xml::element_iterator::operator->() const 
+{   return &Element::getAs(*upcast());}
 
-/** Copy constructor takes an element_iterator that can be const, but that
-still allows writing to the Element. **/
-element_iterator(const element_iterator& src) 
-:   node_iterator(src), tag(src.tag) {}
-/** Copy assignment takes an element_iterator that can be const, but that
-still allows writing to the Element. **/
-element_iterator& operator=(const element_iterator& src) 
-{   upcast()=src; tag = src.tag; return *this; }
-
-element_iterator& operator++();   // prefix
-element_iterator operator++(int); // postfix
-element_iterator& operator--();   // prefix
-element_iterator operator--(int); // postfix
-Element& operator*() const {return Element::getAs(*upcast());}
-Element* operator->() const {return &Element::getAs(*upcast());}
-
-bool operator==(const element_iterator& other) const 
-{   return other.upcast()==upcast();}
-bool operator!=(const element_iterator& other) const 
-{   return other.upcast()!=upcast();}
-
-//------------------------------------------------------------------------------
-                                   private:
-friend class Xml;
-friend class Xml::Element;
-
-explicit element_iterator(TiXmlElement* tiElt, const String& tag="") 
-:   node_iterator((TiXmlNode*)tiElt, ElementNode), tag(tag) {}
-void reassign(TiXmlElement* tiElt)
-{   upcast().reassign((TiXmlNode*)tiElt); }
-
-const node_iterator& upcast() const 
-{   return *static_cast<const node_iterator*>(this); }
-node_iterator& upcast() 
-{   return *static_cast<node_iterator*>(this); }
-
-String          tag;    // lone data member
-};
 
 
 
