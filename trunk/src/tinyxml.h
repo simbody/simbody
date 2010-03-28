@@ -513,6 +513,7 @@ public:
 		Only available in STL mode.
 	*/
 	const String& ValueStr() const { return value; }
+	String& UpdValueStr() { return value; }
 
 	/** Changes the value of the node. Defined as:
 	@verbatim

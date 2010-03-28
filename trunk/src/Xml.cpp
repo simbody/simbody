@@ -568,7 +568,12 @@ static bool elementIsAllowed(const String& tag,
     return tag.empty() || elt->ValueStr() == tag;
 }
 
-Xml::Element::Element(const String& tag) : Node(new TiXmlElement(tag)) {}
+Xml::Element::Element(const String& tag, const String& value) 
+:   Node(new TiXmlElement(tag)) {
+    if (value.empty()) return;
+    // We need to add a Text node.
+    updTiElement().LinkEndChild(new TiXmlText(value));
+}
 
 const String& Xml::Element::getElementTag() const 
 {   return getTiNode().ValueStr(); }
@@ -591,6 +596,20 @@ const String& Xml::Element::getValue() const {
     return text == node_end() ? null : text->getNodeText();
 }
 
+// Must add a Text node now if this Element doesn't have one.
+String& Xml::Element::updValue() {
+    SimTK_ERRCHK1_ALWAYS(isValueElement(), "Xml::Element::getValue()",
+        "Element <%s> is not a value element.", getElementTag().c_str());
+
+    node_iterator text = node_begin(TextNode);
+    if (text != node_end()) return Text::getAs(*text).updText();
+
+    // We need to add a Text node.
+    TiXmlText* textp = new TiXmlText("");
+    updTiElement().LinkEndChild(textp);
+    return textp->UpdValueStr();
+}
+
 // If there is no Text node we'll add one; if there is just one we'll
 // change its value; otherwise report an error.
 void Xml::Element::setValue(const String& value) {
@@ -607,6 +626,9 @@ bool Xml::Element::hasAttribute(const String& name) const
 
 bool Xml::Element::hasElement(const String& tag) const 
 {   return unconst().element_begin(tag) != element_end(); }
+
+bool Xml::Element::hasNode(NodeType allowed) const 
+{   return unconst().node_begin(allowed) != node_end(); }
 
 Xml::Element Xml::Element::getRequiredElement(const String& tag) {
     element_iterator p = element_begin(tag);
@@ -696,8 +718,6 @@ void Xml::Element::insertNodeAfter(const node_iterator& afterThis, Node node) {
     p->LinkAfterChild(p, node.updTiNodePtr());
 }
 
-bool Xml::Element::hasChildNode(NodeType allowed) const 
-{   return unconst().node_begin(allowed) != node_end(); }
 
 
     // Element node_begin()
@@ -788,6 +808,11 @@ operator--(int) {
 //                             XML TEXT NODE
 //------------------------------------------------------------------------------
 Xml::Text::Text(const String& text) : Node(new TiXmlText(text)) {}
+
+const String& Xml::Text::getText() const
+{   return getTiNode().ValueStr(); }
+String& Xml::Text::updText()
+{   return updTiNode().UpdValueStr(); }
 
 /*static*/ bool Xml::Text::isA(const Xml::Node& node) 
 {   if (!node.isValid()) return false;

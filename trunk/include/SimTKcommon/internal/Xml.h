@@ -503,7 +503,8 @@ class SimTK_SimTKCOMMON_EXPORT Xml::Attribute {
 public:
 /** Default constructor creates a null Attribute handle. **/
 Attribute() : tiAttr(0) {}
-/** Create a new Attribute that is not connected to any Xml document. **/
+/** Create a new orphan Attribute, that is, an Attribute that is not 
+owned by any Xml Element. **/
 Attribute(const String& name, const String& value);
 /** Copy constructor is shallow; that is, this handle will refer to the
 same attribute as the source. Note that this handle will provide write
@@ -606,17 +607,40 @@ attribute_iterator(const attribute_iterator& src)
 still allows writing to the Attribute. **/
 attribute_iterator& operator=(const attribute_iterator& src) 
 {   attr.setTiAttrPtr(src->updTiAttrPtr()); return *this; }
-
+/** Prefix increment operator advances the iterator to the next attribute (or
+attribute_end() if it was already at the last attribute) and
+returns a reference to the now-incremented iterator. **/
 attribute_iterator& operator++();   // prefix
+/** Postfix increment operator advances the iterator to the next attribute (or
+attribute_end() if it was already at the last attribute) and
+returns an iterator still referencing the previous one. **/
 attribute_iterator operator++(int); // postfix
+/** Prefix decrement operator moves the iterator to the previous attribute (or
+attribute_end() if it was already at the first attribute) and
+returns a reference to the now-decremented iterator. **/
 attribute_iterator& operator--();   // prefix
+/** Postfix decrement operator moves the iterator to the previous attribute (or
+attribute_end() if it was already at the first attribute) and
+returns an iterator still referencing the original one. **/
 attribute_iterator operator--(int); // postfix
-Attribute& operator*() {return attr;}
-Attribute* operator->() {return &attr;}
+
+// It's the iterator that's const in these next two methods; it still points
+// to a non-const object just like a char* const p.
+
+/** Return a writable reference to the Attribute referenced by this
+iterator; the handle will be invalid if the iterator was attribute_end(). **/
 Attribute& operator*() const {return const_cast<Attribute&>(attr);}
+/** Return a writable pointer to the Attribute referenced by this
+iterator; the pointer will never be null but the handle it points to will be 
+invalid if the iterator was attribute_end(). **/
 Attribute* operator->() const {return const_cast<Attribute*>(&attr);}
+/** Comparison return true only if both iterators refer to the same in-memory
+attribute or both are at attribute_end(); iterators referencing two different 
+attributes that happen to have identical properties will not test equal by 
+these criteria. **/
 bool operator==(const attribute_iterator& other) const 
 {   return other.attr==attr; }
+/** Uses same criteria as operator==(). **/
 bool operator!=(const attribute_iterator& other) const 
 {   return other.attr!=attr; }
 
@@ -635,9 +659,10 @@ Attribute       attr;   // the lone data member
 //                               XML NODE
 //------------------------------------------------------------------------------
 /** Abstract handle for holding any kind of node in an XML tree. The concrete
-node handle types derived from Node are: Element, Text, Comment, and Unknown. 
-An Element may recursively contain a list of nodes. A node may be classified
-by who owns it. There are three possibilities:
+node handle types derived from Node are: Comment, Unknown, Text, and Element. 
+Only an Element node may contain other nodes. 
+
+A node may be classified by who owns it. There are three possibilities:
   - Top-level node: The node belongs to the top-level Xml document and does
     not have a parent node.
   - Child node: The node belongs to an element, which may be the root element
@@ -659,6 +684,11 @@ avoid ownership conflicts. **/
 class SimTK_SimTKCOMMON_EXPORT Xml::Node {
 public:
 
+/**@name                Construction and destruction
+These methods are mostly used by the derived node classes; Nodes are
+not generally created directly in user code. **/
+/*@{*/
+
 /** Create an empty Node handle that can be used to hold a reference to any
 kind of Node. **/
 Node() : tiNode(0) {}
@@ -676,31 +706,24 @@ Node& operator=(const Node& src)
 an orphan node then it will delete the orphan here; make sure you never have
 two handles referencing an orphan because they are not reference-counted. **/
 ~Node() {clear();}
-
 /** This method clears the Node handle, deleting the contents if the Node
 was an orphan and restoring the Node handle to its default-constructed
 state. **/
 void clear();
+/*@}*/
 
+/**@name                  Node classification
+You can find out what concrete type of node this abstract Node handle is 
+referring to (if any), who owns the node, and if it is owned by a parent
+element you can get access to the parent. **/
+/*@{*/
 
 /** Get the Xml::NodeType of this node. If this Node handle is empty, the
-returned NodeType will be "NoNode". **/
+returned NodeType will be "Xml::NoNode". **/
 NodeType getNodeType() const;
 
 /** Get the Node type as a string; an empty handle returns "NoNode". **/
 String getNodeTypeAsString() const;
-
-/** Return a text value associated with this Node; the behavior depends on the
-NodeType. This is a convenience that saves downcasting a generic Node to a
-concrete type when all you want to do is dump out the text. It is not 
-particularly useful for Element nodes. Here is what you get for each type of
-node:
-  - Comment: everything between "<!--" and "-->"
-  - Unknown: everything between "<" and ">"
-  - Text:    the text
-  - Element: the element's tag word (\e not the element's value)
-  - None:    (i.e., an empty handle) throw an error. **/
-const String& getNodeText() const;
 
 /** Return true if this Node handle is referencing some node, false if the
 Node handle is empty. **/
@@ -725,13 +748,32 @@ bool hasParentElement() const;
 /** Return a handle referencing this node's parent if it has one, otherwise
 throws an error; check first with hasParentElement() if you aren't sure. **/
 Element getParentElement();
+/*@}*/
+
+/**@name               Access to node contents
+Usually contents inspection is handled at the concrete node class level;
+here we can only provide information for which you don't need to know what
+kind of node this is. **/
+/*@{*/
+
+/** Return a text value associated with this Node (\e not including its child
+nodes if any); the behavior depends on the NodeType. This is a convenience 
+that saves downcasting a generic Node to a concrete type when all you want to 
+do is dump out the text. It is not particularly useful for Element nodes. Here
+is what you get for each type of node:
+  - Comment: everything between "<!--" and "-->"
+  - Unknown: everything between "<" and ">"
+  - Text:    the text
+  - Element: the element's tag word (\e not the element's value)
+  - None:    (i.e., an empty handle) throw an error. **/
+const String& getNodeText() const;
 
 /** Serialize this node (and everything it contains) to the given String.
 The output will be "pretty printed" and terminated with a newline unless you
 specify \a compact = true in which case indents and newlines will be
 suppressed. **/
 void writeToString(String& out, bool compact=false) const;
-
+/*@}*/
 
 /** Comparing Nodes for equality means asking if the two Node handles are
 referring to exactly the same object; two different nodes that happen to have
@@ -916,36 +958,47 @@ with value nodes very conveniently; they will fail if you attempt to use them
 on an element that is not a value element. **/
 class SimTK_SimTKCOMMON_EXPORT Xml::Element : public Xml::Node {
 public:
+
+/**@name                  Construction and destruction
+As discussed elsewhere, elements come in two varieties: value elements and
+compound elements. New value elements can be created easily since they are
+essentially just a name,value pair. Compound elements require a series of 
+method calls to create the Element node and then add child nodes to it. In
+either case you may want to add attributes also. **/
+/*@{*/
+
 /** Create an empty Element handle; this is suitable only for holding
 references to other Elements. **/
 Element() : Node() {}
 
-/** Create an Element that uses the given tag word but is not yet part of
-any XML document. Initially the Element will be empty so would print as 
-"<tagWord />", but you can add contents afterwards so that it will print as
-"<tagWord>contents</tagWord>", where contents may be text and/or child
-elements. **/
-explicit Element(const String& tagWord);
+/** Create a value element that uses the given tag word but is not yet part of
+any XML document, and optionally give it an inital value. Note that although
+you provide the initial value as a string, you can access it as any type T to
+which that string can be converted, using the getValueAs<T>() templatized
+method.
 
-/** Append text to the contents of this element. If the element is 
-currently empty, or if the last child node contained in the element is not
-a Text node, then this will result in a new Text node with the given 
-contents added to the end of the list of child nodes. Otherwise the new
-text is simply appended to the last text node in the element. 
-@return A handle to the Text node to which the new \a text was 
-appended. **/
-Text appendText(const String& text);
+If no initial value is provided, then the element will be empty so would print 
+as "<tagWord />". If you provide a value (say "contents") here or add one 
+later, it will print as "<tagWord>contents</tagWord>". In general you can add
+child elements and other node types with subsequent method calls; that would 
+change this element from a value element to a compound element. 
+@see getValue(), updValue(), setValue() **/
+explicit Element(const String& tagWord, const String& value="");
 
-/** Insert text before the location indicated by a node_iterator, which
-must point to a node currently in this Element or be node_end() in which
-case the text is appended as with appendText(). If the indicated node
-is a Text node, then then given text is prepended to that node. If not,
-but the previous node is a Text node, then the given text is appended to
-the previous node. Otherwise, a new Text node is created and inserted 
-prior to the one indicated by the node_iterator. 
-@return A handle to the Text node into which the new \a text was 
-inserted. **/
-Text insertText(const node_iterator& node, const String& text);
+/** Create a new value element and set its initial value to the text 
+equivalent of any type T for which a conversion construction String(T) is 
+allowed (generally any type for which a stream insertion operator<<() 
+exists). 
+@see getValueAs<T>(), setValueAs<T>()**/
+template <class T>
+Element(const String& tagWord, const T& value)
+{   new(this) Element(tagWord, String(value)); }
+
+/** Get the element tag word. This may represent the name or type of the 
+element depending on context. **/
+const String& getElementTag() const;
+/** Change the tag word that is used to bracket this element. **/
+void setElementTag(const String& tag);
 
 /** Insert a node into the list of this Element's children, just before the
 node pointed to by the supplied iterator (or at the end if the iterator
@@ -959,79 +1012,19 @@ is node_end()). The iterator must refer to a node that is a child of this
 Element. This Element takes over ownership of the node which must 
 not already have a parent. **/
 void insertNodeAfter(const node_iterator& pos, Node node);
-
-/** See if this element has any child nodes, or any child nodes of the type(s)
-allowed by the NodeType filter if one is supplied. **/
-bool hasChildNode(NodeType allowed=AnyNodes) const;
-
-/** For iterating through the immediate child nodes of this element, or the 
-child nodes of the type(s) allowed by the NodeType filter if one is 
-supplied. If there are no children of the \a allowed types then the returned
-node_iterator tests equal to node_end(). **/
-node_iterator node_begin(NodeType allowed=AnyNodes);
-/** This node_end() iterator indicates the end of any sequence of nodes 
-regardless of the NodeType restriction on the iterator being used. **/
-node_iterator node_end() const;
-
-/** For iterating through the immediate child elements of this element, or the 
-child elements that have the indicated tag if one is supplied. If there are no 
-children with the \a allowed tag then the returned element_iterator tests 
-equal to element_end(). **/
-element_iterator element_begin(const String& tag="");
-/** This element_end() iterator indicates the end of any sequence of elements 
-regardless of the tag restriction on the iterator being used. **/
-element_iterator element_end() const;
-
-/** For iterating through all the attributes of this element. If there are no 
-attributes then the returned attribute_iterator tests equal to 
-attribute_end(). 
-@see find_attribute() to get an iterator to a particular attribute. **/
-attribute_iterator attribute_begin();
-/** This attribute_end() iterator indicates the end of a sequence of 
-attributes. **/
-attribute_iterator attribute_end() const;
-
-/** Search for a particular attribute by name and return an attribute_iterator
-pointing to it if found, or an iterator that tests equal to attribute_end()
-if no such attribute can be found. **/
-attribute_iterator find_attribute(const String& name) {
-    for (attribute_iterator p = attribute_begin();
-            p != attribute_end(); ++p)
-        if (p->getName() == name) return p;
-    return attribute_end();
-}
+/*@}*/
 
 
-/** Return an array containing Attribute handles referencing all the
-attributes of this element. Attributes are returned in the order that
-they appear in the element tag. Attribute names within a tag are unique;
-if the source document had repeated attribute names only the last one
-to appear is retained and that's the only one we'll find here. **/
-Array_<Attribute> findAllAttributes()
-{   return Array_<Attribute>(attribute_begin(), attribute_end()); }
-
-/** Return an array containing Element handles referencing all the
-immediate child elements contained in this element, or all the child 
-elements of a particular type (that is, with a given tag word). Elements 
-are returned in the order they are seen in the document. **/
-Array_<Element> findAllElements(const String& tag="")
-{   return Array_<Element>(element_begin(tag), element_end()); }
-
-/** Return an array containing Node handles referencing all the
-immediate child nodes contained in this element, or all the child 
-nodes of a particular type or types. Nodes are returned in the order they 
-are seen in the document. **/
-Array_<Node> findAllNodes(NodeType allowed=AnyNodes)
-{   return Array_<Node>(node_begin(allowed), node_end()); }
-
-/** The element tag word can be considered the "type" of the element. **/
-const String& getElementTag() const;
-/** Change the tag word that is used to bracket this element. **/
-void setElementTag(const String& tag);
-/** Return true if this element has an attribute of this name. **/
-bool hasAttribute(const String& name) const;
-/** Return true if this element has a child element with this tag. **/
-bool hasElement(const String& tag) const;
+/**@name                      Value elements
+As described elsewhere, value elements are those that have no child elements
+and only a single Text node, whose contents can be considered as the element's
+value. Methods in this section allow you to work conveniently with value
+elements, getting direct access to the value string or interpreting it as
+some other type. You can easily modify the value by obtaining a writable
+refence to the String object that holds it. We provide methods for working
+with this element's value (if it is a value element) and with an element's
+children's values (if this element is compound). **/
+/*@{*/
 
 /** Determine whether this element qualifies as a "value element", defined
 as an element containing zero or one Text nodes and no child elements. 
@@ -1043,17 +1036,32 @@ bool isValueElement() const;
 /** Get the text value of this value element. An error will be thrown if 
 this is not a "value element". See the comments for this class for the
 definition of a "value element". 
-@note This does not return the same value as the base class method
+@note This does not return the same text as the base class method
 Node::getNodeText() does in the case of an element node; that returns the
 element tag word not its contents.
-@see isValueElement() **/
+@see isValueElement(), setValue(), updValue() **/
 const String& getValue() const;
 
+/** Obtain a writable reference to the String containing the value of this
+value element. An error will be thrown if this is not a value element. If the
+element was initially empty and didn't contain a Text node, one will be added
+to it here with a null-string value so that we can return a reference to it.
+@see isValueElement(), getValue() **/
+String& updValue();
+
 /** Set the text value of this value element. An error will be thrown if 
-this is not a "value element". See the comments for this class for the
-definition of a "value element".
-@see isValueElement() **/
+this is not a value element. If the element was initially empty and didn't 
+contain a Text node, one will be added to it here so that we have a place to
+hold the \a value.
+@see isValueElement(), setValueAs<T>() **/
 void setValue(const String& value);
+
+/** Set the value of this value element to the text equivalent of any type T
+for which a conversion construction String(T) is allowed (generally any
+type for which a stream insertion operator<<() exists). **/
+template <class T>
+void setValueAs(const T& value) 
+{   setValue(String(value)); }
 
 /** Assuming this is a "value element", convert its text value to the type
 of the template argument T. It is an error if the text can not be converted,
@@ -1068,48 +1076,6 @@ template <class T> T getValueAs() const
 heap allocation for reading in large container objects. **/
 template <class T> void getValueAs(T& out) const 
 {   convertStringTo(getValue(),out); }
-
-/** Obtain a reference to a particular attribute of this element; an error
-will be thrown if no such attribute is present. **/
-Attribute getRequiredAttribute(const String& name);
-
-/** Get the value of an attribute as a string and throw an error if that 
-attribute is not present. **/
-const String& getRequiredAttributeValue(const String& name) const
-{   return unconst().getRequiredAttribute(name).getValue(); }
-
-/** Convert the text value of a required attribute to the type
-of the template argument T. It is an error if the text can not be converted,
-in its entirety, to a single object of type T. (But note that type T may
-be a container of some sort, like a Vec3.) 
-@tparam T   A type that can be read from a stream using the ">>" operator.
-**/
-template <class T> T getRequiredAttributeValueAs
-   (const String& name) const
-{   T out; convertStringTo(getRequiredAttributeValue(name),out); return out; }
-
-/** Get the value of an attribute as a string if the attribute is present in 
-this element, otherwise return a supplied default value. **/
-String getOptionalAttributeValue
-   (const String& name, const String& def="") const
-{   attribute_iterator p = unconst().find_attribute(name);
-    return p==attribute_end() ? def : p->getValue(); }
-
-/** Convert the value of an optional attribute, if present, from a string to 
-the type of the template argument T. It is an error if the text can not be 
-converted, in its entirety, to a single object of type T. (But note that type 
-T may be a container of some sort, like a Vec3.) If the attribute is not 
-present, then return a supplied default value of type T.
-@tparam     T    A type that can be read from a stream with operator ">>".
-@param[in]  name The name of the optional attribute.
-@param[in]  def  The value of type T to return if the attribute is missing.
-@return The value of attribute \a name if it is present, otherwise a copy
-of the supplied default value \a def. **/
-template <class T> T getOptionalAttributeValueAs
-   (const String& name, const T& def) const
-{   attribute_iterator p = find_attribute(name);
-    if (p==attribute_end()) return def;
-    T out; convertStringTo(p->getValue(), out); return out; }
 
 /** Get the text value of a child value element that \e must be present in 
 this element. The child is identified by its tag; if there is more than one
@@ -1156,11 +1122,113 @@ template <class T> T
 {   const Element opt(getOptionalElement(tag));
     if (!opt.isValid()) return def;
     T out; convertStringTo(opt.getValue(), out); return out; }
+/*@}*/
+
+
+/**@name                         Attributes
+You can add, modify, and remove element attributes with the methods in this
+section. You can work directly with individual attributes by name, or you
+can iterate through the list of attributes. **/
+/*@{*/
+/** Return true if this element has an attribute of this name. **/
+bool hasAttribute(const String& name) const;
+
+
+/** Get the value of an attribute as a string and throw an error if that 
+attribute is not present. **/
+const String& getRequiredAttributeValue(const String& name) const
+{   return unconst().getRequiredAttribute(name).getValue(); }
+
+/** Convert the text value of a required attribute to the type
+of the template argument T. It is an error if the text can not be converted,
+in its entirety, to a single object of type T. (But note that type T may
+be a container of some sort, like a Vec3.) 
+@tparam T   A type that can be read from a stream using the ">>" operator.
+**/
+template <class T> T getRequiredAttributeValueAs
+   (const String& name) const
+{   T out; convertStringTo(getRequiredAttributeValue(name),out); return out; }
+
+/** Get the value of an attribute as a string if the attribute is present in 
+this element, otherwise return a supplied default value. **/
+String getOptionalAttributeValue
+   (const String& name, const String& def="") const
+{   attribute_iterator p = unconst().find_attribute(name);
+    return p==attribute_end() ? def : p->getValue(); }
+
+/** Convert the value of an optional attribute, if present, from a string to 
+the type of the template argument T. It is an error if the text can not be 
+converted, in its entirety, to a single object of type T. (But note that type 
+T may be a container of some sort, like a Vec3.) If the attribute is not 
+present, then return a supplied default value of type T.
+@tparam     T    A type that can be read from a stream with operator ">>".
+@param[in]  name The name of the optional attribute.
+@param[in]  def  The value of type T to return if the attribute is missing.
+@return The value of attribute \a name if it is present, otherwise a copy
+of the supplied default value \a def. **/
+template <class T> T getOptionalAttributeValueAs
+   (const String& name, const T& def) const
+{   attribute_iterator p = find_attribute(name);
+    if (p==attribute_end()) return def;
+    T out; convertStringTo(p->getValue(), out); return out; }
+
+/** Obtain an Attribute handle referencing a particular attribute of this 
+element; an error will be thrown if no such attribute is present. **/
+Attribute getRequiredAttribute(const String& name);
+
+/** Return an array containing Attribute handles referencing all the
+attributes of this element. Attributes are returned in the order that
+they appear in the element tag. Attribute names within a tag are unique;
+if the source document had repeated attribute names only the last one
+to appear is retained and that's the only one we'll find here. This is
+just a shortcut for @code
+    Array_<Attribute>(attribute_begin(), attribute_end());
+@endcode **/
+Array_<Attribute> findAllAttributes()
+{   return Array_<Attribute>(attribute_begin(), attribute_end()); }
+
+/** For iterating through all the attributes of this element. If there are no 
+attributes then the returned attribute_iterator tests equal to 
+attribute_end(). 
+@see find_attribute() to get an iterator to a particular attribute. **/
+attribute_iterator attribute_begin();
+/** This attribute_end() iterator indicates the end of a sequence of 
+attributes. **/
+attribute_iterator attribute_end() const;
+
+/** Search for a particular attribute by name and return an attribute_iterator
+pointing to it if found, or an iterator that tests equal to attribute_end()
+if no such attribute can be found. **/
+attribute_iterator find_attribute(const String& name) {
+    for (attribute_iterator p = attribute_begin();
+            p != attribute_end(); ++p)
+        if (p->getName() == name) return p;
+    return attribute_end();
+}
+/*@}*/
+
+/**@name                    Compound elements
+Many elements contain child nodes, including other elements. When there is
+just a single child Text node and no child elements, we call the element a
+"value element" and it is easiest to work with using the methods in the 
+"Value elements" section. When there are child elements and/or multiple Text
+nodes, the element is called a "compound element" and you need a way to 
+iterate and recurse through its contents. The methods in this section support
+looking through all contained nodes, nodes of specified types, element nodes,
+or element nodes with a specified tags. You can obtain handles to child
+Nodes or Elements and then iterate through those recursively. **/
+/*@{*/
+
+/** Return true if this element has a child element with this tag. **/
+bool hasElement(const String& tag) const;
+/** See if this element has any child nodes, or any child nodes of the type(s)
+allowed by the NodeType filter if one is supplied. **/
+bool hasNode(NodeType allowed=AnyNodes) const;
 
 /** Get a reference to a child element that \e must be present in this 
 element. The child is identified by its tag; if there is more than one
 only the first one is returned. If you want to see all children with this
-tag, use getAllChildElements() or use an element_iterator. **/
+tag, use findAllElements() or use an element_iterator. **/
 Element getRequiredElement(const String& tag);
 
 /** Get a reference to a child element that \e may be present in this 
@@ -1168,6 +1236,48 @@ element; otherwise return an invalid Element handle. Test using the
 Element's isValid() method. **/
 Element getOptionalElement(const String& tag);
 
+/** Return an array containing Element handles referencing all the
+immediate child elements contained in this element, or all the child 
+elements of a particular type (that is, with a given tag word). Elements 
+are returned in the order they are seen in the document. This is just a
+shortcut for @code
+    Array_<Element>(element_begin(tag), element_end());
+@endcode **/
+Array_<Element> findAllElements(const String& tag="")
+{   return Array_<Element>(element_begin(tag), element_end()); }
+
+/** Return an array containing Node handles referencing all the
+immediate child nodes contained in this element, or all the child 
+nodes of a particular type or types. Nodes are returned in the order they 
+are seen in the document. This is just a shortcut for @code
+    Array_<Node>(node_begin(allowed), node_end());
+@endcode **/
+Array_<Node> findAllNodes(NodeType allowed=AnyNodes)
+{   return Array_<Node>(node_begin(allowed), node_end()); }
+
+/** For iterating through the immediate child elements of this element, or the 
+child elements that have the indicated tag if one is supplied. If there are no 
+children with the \a allowed tag then the returned element_iterator tests 
+equal to element_end(). **/
+element_iterator element_begin(const String& tag="");
+/** This element_end() iterator indicates the end of any sequence of elements 
+regardless of the tag restriction on the iterator being used. **/
+element_iterator element_end() const;
+
+/** For iterating through the immediate child nodes of this element, or the 
+child nodes of the type(s) allowed by the NodeType filter if one is 
+supplied. If there are no children of the \a allowed types then the returned
+node_iterator tests equal to node_end(). **/
+node_iterator node_begin(NodeType allowed=AnyNodes);
+/** This node_end() iterator indicates the end of any sequence of nodes 
+regardless of the NodeType restriction on the iterator being used. **/
+node_iterator node_end() const;
+/*@}*/
+
+/**@name             Conversion to Element from Node
+If you have a handle to a Node, such as would be returned by a node_iterator,
+you can check whether that Node is an Element and if so cast it to one. **/
+/*@{*/
 /** Test whether a given Node is an element node. **/
 static bool isA(const Node&);
 /** Recast a Node to a const Element, throwing an error if the Node is not
@@ -1176,6 +1286,7 @@ static const Element& getAs(const Node& node);
 /** Recast a writable Node to a writable Element, throwing an error if the
 Node is not actually an element node. @see isA() **/
 static Element& getAs(Node& node);
+/*@}*/
 
 //------------------------------------------------------------------------------
                                   private:
@@ -1235,7 +1346,17 @@ Text() : Node() {}
 any XML document. **/
 explicit Text(const String& text);
 
+/** Obtain a const reference to the String holding the value of this Text
+**/
+const String& getText() const;
+/** Obtain a writable reference to the String holding the value of this Text
+node; this can be used to alter the value. **/
+String& updText();
 
+/**@name              Conversion to Text from Node
+If you have a handle to a Node, such as would be returned by a node_iterator,
+you can check whether that Node is a Text node and if so cast it to one. **/
+/*@{*/
 /** Test whether a given Node is an Text node. **/
 static bool isA(const Node&);
 /** Recast a Node to a const Text node, throwing an error if the Node is not
@@ -1244,6 +1365,7 @@ static const Text& getAs(const Node& node);
 /** Recast a writable Node to a writable Text node, throwing an error if the
 Node is not actually a Text node. @see isA() **/
 static Text& getAs(Node& node);
+/*@}*/
 
 //------------------------------------------------------------------------------
                                    private:
@@ -1268,6 +1390,11 @@ text; those will be added automatically if the document is serialized to a
 file or string. **/
 explicit Comment(const String& text);
 
+
+/**@name              Conversion to Comment from Node
+If you have a handle to a Node, such as would be returned by a node_iterator,
+you can check whether that Node is a Comment node and if so cast it to one. **/
+/*@{*/
 /** Test whether a given Node is an Comment node. **/
 static bool isA(const Node&);
 /** Recast a Node to a const Comment, throwing an error if the Node is not
@@ -1276,11 +1403,14 @@ static const Comment& getAs(const Node& node);
 /** Recast a writable Node to a writable Comment, throwing an error if the
 Node is not actually an Comment node. @see isA() **/
 static Comment& getAs(Node& node);
+/*@}*/
 
 //------------------------------------------------------------------------------
                                    private:
 // no data members; see Node
 };
+
+
 
 //------------------------------------------------------------------------------
 //                             XML UNKNOWN NODE
@@ -1313,6 +1443,10 @@ const String& getContents() const;
 be between the "<" and ">" in the XML document. **/
 void setContents(const String& contents);
 
+/**@name              Conversion to Unknown from Node
+If you have a handle to a Node, such as would be returned by a node_iterator,
+you can check whether that Node is an Unknown node and if so cast it to one. **/
+/*@{*/
 /** Test whether a given Node is an Unknown node. **/
 static bool isA(const Node&);
 /** Recast a Node to a const Unknown, throwing an error if the Node is not
@@ -1321,6 +1455,8 @@ static const Unknown& getAs(const Node& node);
 /** Recast a writable Node to a writable Unknown, throwing an error if the
 Node is not actually an Unknown node. @see isA() **/
 static Unknown& getAs(Node& node);
+/*@}*/
+
 //------------------------------------------------------------------------------
                                    private:
 // no data members; see Node

@@ -132,9 +132,9 @@ void testXmlFromString() {
 
     Xml::Element root = fromString.getRootElement();
 
-    cout << "hasChildNode()=" << root.hasChildNode() << endl;
-    cout << "hasChildNode(Comment)=" << root.hasChildNode(Xml::CommentNode) << endl;
-    cout << "hasChildNode(Unknown)=" << root.hasChildNode(Xml::UnknownNode) << endl;
+    cout << "hasNode()=" << root.hasNode() << endl;
+    cout << "hasNode(Comment)=" << root.hasNode(Xml::CommentNode) << endl;
+    cout << "hasNode(Unknown)=" << root.hasNode(Xml::UnknownNode) << endl;
 
     showElement(root);
 
@@ -198,6 +198,10 @@ void testXmlFromScratch() {
     Xml::Element e("elementTag");
     Xml::Attribute a("name1", "value1");
 
+    cout << "initially e='" << e.getValue() << "'" << endl;
+    e.updValue() += "AVALUE:";
+    cout << "then e='" << e.getValue() << "'" << endl;
+
     //e.adoptAttribute(a);
 
     //e.addAttribute("name","value");
@@ -209,6 +213,7 @@ void testXmlFromScratch() {
     cout << "isOrphan? " << String(e.isOrphan()) << ":" << e;
 
     e.setValue("this is the only value");
+    e.updValue() += " (but then I added this)";
     cout << "e value=" << e.getValue() << endl;
     cout << "e = " << e << endl;
     e.setValue("9 10 -3.2e-4");
@@ -226,6 +231,9 @@ void testXmlFromScratch() {
     scratch.insertTopLevelNodeBefore(scratch.node_begin(), 
         Xml::Comment("This should be at the top of the file, except declaration."));
     cout << scratch;
+
+    Xml::Element e2("anotherElt", Vec3(.1,.2,.3));
+    cout << e2;
 }
 
 #define SHOWIT(something) \
