@@ -328,7 +328,7 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
 
     // Read in the arrays.
     Array_<int> offsets(numPolys);
-    eoffsets.getValueAs<ArrayView_<int> >(offsets);
+    eoffsets.getValueAs<Array_<int> >(offsets);
     // Size may have changed if file is bad.
     SimTK_ERRCHK2_ALWAYS(offsets.size() == numPolys, method,
         "The number of offsets (%d) should have matched the stated "

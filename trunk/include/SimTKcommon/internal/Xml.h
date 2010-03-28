@@ -668,7 +668,7 @@ node:
   - Comment: everything between "<!--" and "-->"
   - Unknown: everything between "<" and ">"
   - Text:    the text
-  - Element: the element's tag word
+  - Element: the element's tag word (\e not the element's value)
   - None:    (i.e., an empty handle) throw an error. **/
 const String& getNodeText() const;
 
@@ -732,6 +732,10 @@ TiXmlNode*       updTiNodePtr()       {return tiNode;}
 friend class Xml;
 friend class Xml::Impl;
 friend class Xml::node_iterator;
+friend class Xml::Comment;
+friend class Xml::Unknown;
+friend class Xml::Text;
+friend class Xml::Element;
 
 Node& unconst() const {return *const_cast<Node*>(this);}
 
@@ -790,6 +794,8 @@ bool operator!=(const node_iterator& other) const {return other.node!=node;}
                                  protected:
 explicit node_iterator(TiXmlNode* tiNode, NodeType allowed=AnyNodes) 
 :   node(tiNode), allowed(allowed) {}
+void reassign(TiXmlNode* tiNode)
+{   node.setTiNodePtr(tiNode); }
 
 //------------------------------------------------------------------------------
                                   private:
@@ -806,19 +812,19 @@ NodeType        allowed;
 //------------------------------------------------------------------------------
 //                               XML ELEMENT
 //------------------------------------------------------------------------------
-/** An element has (1) a tag, (2) a map of (name,value) pairs called attributes, 
-and (3) a list of nodes. The tag, which begins with an underscore or a letter,
-can serve as either the type or the name of the element depending on context.
-The nodes can be comments, unknowns, text, and child elements (recursively). 
-It is common for "leaf" elements (elements with no child elements) to be 
-supplied simply for their values, for example mass might be provided via an 
-element "<mass> 29.3 </mass>". We call such elements "value elements" since 
-they have a uniquely identifiable value similar to that of attributes. Value
-elements have no more than one text node. They may have attributes, and may
-also have comment and unknown nodes but they cannot have any child elements.
-This class provides a special set of methods for dealing with value nodes 
-very conveniently; they will fail if you attempt to use them on an element
-that is not a value element. **/
+/** An element has (1) a tagword, (2) a map of (name,value) pairs called 
+attributes, and (3) a list of child nodes. The tag word, which begins with an 
+underscore or a letter, can serve as either the type or the name of the element
+depending on context. The nodes can be comments, unknowns, text, and child 
+elements (recursively). It is common for "leaf" elements (elements with no 
+child elements) to be supplied simply for their values, for example mass might
+be provided via an element "<mass> 29.3 </mass>". We call such elements "value
+elements" since they have a uniquely identifiable value similar to that of 
+attributes. %Value elements have no more than one text node. They may have 
+attributes, and may also have comment and unknown nodes but they cannot have 
+any child elements. This class provides a special set of methods for dealing 
+with value nodes very conveniently; they will fail if you attempt to use them 
+on an element that is not a value element. **/
 class SimTK_SimTKCOMMON_EXPORT Xml::Element : public Xml::Node {
 public:
 /** Create an empty Element handle; this is suitable only for holding
@@ -827,7 +833,7 @@ Element() : Node() {}
 
 /** Create an Element that uses the given tag word but is not yet part of
 any XML document. Initially the Element will be empty so would print as 
-"<tagWord/>", but you can add contents afterwards so that it will print as
+"<tagWord />", but you can add contents afterwards so that it will print as
 "<tagWord>contents</tagWord>", where contents may be text and/or child
 elements. **/
 explicit Element(const String& tagWord);
@@ -1156,15 +1162,13 @@ friend class Xml::Element;
 
 explicit element_iterator(TiXmlElement* tiElt, const String& tag="") 
 :   node_iterator((TiXmlNode*)tiElt, ElementNode), tag(tag) {}
-void reassign(TiXmlElement* ep)
-{   node.setTiNodePtr((TiXmlNode*)ep); }
+void reassign(TiXmlElement* tiElt)
+{   upcast().reassign((TiXmlNode*)tiElt); }
 
 const node_iterator& upcast() const 
 {   return *static_cast<const node_iterator*>(this); }
 node_iterator& upcast() 
 {   return *static_cast<node_iterator*>(this); }
-const element_iterator& downcast(const node_iterator& np)
-{   return static_cast<const element_iterator&>(np); }
 
 String          tag;    // lone data member
 };
