@@ -262,33 +262,27 @@ Xml::Xml(const String& pathname) : impl(0) {
     impl->canonicalizeDocument();
 }
 
-const Xml::Element& Xml::getRootElement() const {
-    assert(getImpl().m_rootElement.isValid());
-    return getImpl().m_rootElement;
-}
-Xml::Element& Xml::updRootElement() {
-    assert(getImpl().m_rootElement.isValid());
-    return updImpl().m_rootElement;
-}
 
-void Xml::readFromFile(const String& pathname) {
-    updImpl().readFromFile(pathname.c_str());
-    updImpl().canonicalizeDocument();
-}
-void Xml::writeToFile(const String& pathname) const {
-    getImpl().writeToFile(pathname.c_str());
-}
-
-void Xml::readFromString(const char* xmlDocument) {
-    updImpl().readFromString(xmlDocument);
-    updImpl().canonicalizeDocument();
-}
+void Xml::readFromFile(const String& pathname) 
+{   updImpl().readFromFile(pathname.c_str());
+    updImpl().canonicalizeDocument(); }
+void Xml::writeToFile(const String& pathname) const 
+{   getImpl().writeToFile(pathname.c_str()); }
+void Xml::readFromString(const char* xmlDocument) 
+{   updImpl().readFromString(xmlDocument);
+    updImpl().canonicalizeDocument(); }
 void Xml::readFromString(const String& xmlDocument) 
 {   readFromString(xmlDocument.c_str()); }
+void Xml::writeToString(String& xmlDocument, bool compact) const 
+{   getImpl().writeToString(xmlDocument, compact); }
 
-void Xml::writeToString(String& xmlDocument, bool compact) const {
-    getImpl().writeToString(xmlDocument, compact);
-}
+Xml::Element Xml::getRootElement() 
+{   assert(getImpl().m_rootElement.isValid());
+    return updImpl().m_rootElement; }
+const String& Xml::getRootTag() const 
+{   return unconst().getRootElement().getElementTag(); }
+void Xml::setRootTag(const String& tag) 
+{   getRootElement().setElementTag(tag); }
 
 void Xml::insertTopLevelNodeAfter (const Xml::node_iterator& afterThis, 
                                    Xml::Node                 insertThis) {
@@ -346,12 +340,6 @@ void Xml::insertTopLevelNodeBefore(const Xml::node_iterator& beforeThis,
                                       insertThis.updTiNodePtr());
 }
 
-const String& Xml::getRootTag() const {
-    return getRootElement().getElementTag();
-}
-void Xml::setRootTag(const String& tag) {
-    updRootElement().setElementTag(tag);
-}
 
 String Xml::getXmlVersion() const 
 {   return getImpl().getTiXmlDeclaration().Version(); }
@@ -371,13 +359,6 @@ void Xml::setXmlIsStandalone(bool isStandalone)
 
 
     // XML node_begin()
-Xml::const_node_iterator Xml::node_begin(NodeType allowed) const {
-    const TiXmlNode* first = getImpl().m_tixml.FirstChild();
-    while (first && !nodeTypeIsAllowed(allowed, first->Type()))
-        first = first->NextSibling();
-    return const_node_iterator(first, allowed);
-}
-
 Xml::node_iterator Xml::node_begin(NodeType allowed) {
     TiXmlNode* first = updImpl().m_tixml.FirstChild();
     while (first && !nodeTypeIsAllowed(allowed, first->Type()))
@@ -386,9 +367,7 @@ Xml::node_iterator Xml::node_begin(NodeType allowed) {
 }
 
     // XML node_end()
-Xml::const_node_iterator Xml::node_end() const 
-{   return const_node_iterator(0); }
-Xml::node_iterator Xml::node_end() 
+Xml::node_iterator Xml::node_end() const 
 {   return node_iterator(0); }
 
 
@@ -468,44 +447,8 @@ operator--(int) {
 
 
 //------------------------------------------------------------------------------
-//                      XML CONST ATTRIBUTE ITERATOR
-//------------------------------------------------------------------------------
-Xml::const_attribute_iterator& Xml::const_attribute_iterator::
-operator++() {
-    const TiXmlAttribute* next = attr.getTiAttr().Next();
-    reassign(next);
-    return *this;
-}
-
-Xml::const_attribute_iterator Xml::const_attribute_iterator::
-operator++(int) {
-    const Attribute save(attr);
-    const TiXmlAttribute* next = attr.getTiAttr().Next();
-    reassign(next);
-    return const_attribute_iterator(save);
-}
-
-Xml::const_attribute_iterator& Xml::const_attribute_iterator::
-operator--() {
-    const TiXmlAttribute* prev = attr.getTiAttr().Previous();
-    reassign(prev);
-    return *this;
-}
-
-Xml::const_attribute_iterator Xml::const_attribute_iterator::
-operator--(int) {
-    const Attribute save(attr);
-    const TiXmlAttribute* prev = attr.getTiAttr().Previous();
-    reassign(prev);
-    return const_attribute_iterator(save);
-}
-
-
-
-//------------------------------------------------------------------------------
 //                                 XML NODE
 //------------------------------------------------------------------------------                  
-
 void Xml::Node::clear()
 {   if (isOrphan()) delete tiNode;
     tiNode = 0; }
@@ -555,39 +498,18 @@ writeToString(String& out, bool compact) const {
     getTiNode().Accept( &printer );
 }
 
-bool Xml::Node::hasParentNode() const 
-{   return isValid() && getTiNodePtr()->Parent(); }
+bool Xml::Node::hasParentElement() const 
+{   if (!isValid()) return false;
+    const TiXmlNode* parent = getTiNode().Parent();
+    return parent && parent->ToElement(); }
 
-Xml::Node Xml::Node::getParentNode() {
-    SimTK_ERRCHK_ALWAYS(hasParentNode(),
-        "Xml::Node::getParentNode()", "This node does not have a parent.");
-    return Node(updTiNodePtr()->Parent());
+Xml::Element Xml::Node::getParentElement() {
+    SimTK_ERRCHK_ALWAYS(hasParentElement(),
+        "Xml::Node::hasParentElement()", 
+        "This node does not have a parent element; it may be a top-level"
+        " node, an orphan, or just an empty Node handle.");
+    return Element(updTiNode().Parent()->ToElement());
 }
-
-bool Xml::Node::hasChildNode(NodeType allowed) const 
-{   return node_begin(allowed) != node_end(); }
-
-
-    // NODE node_begin()
-Xml::const_node_iterator Xml::Node::node_begin(NodeType allowed) const {
-    const TiXmlNode* first = getTiNode().FirstChild();
-    while (first && !nodeTypeIsAllowed(allowed, first->Type()))
-        first = first->NextSibling();
-    return const_node_iterator(first, allowed);
-}
-
-Xml::node_iterator Xml::Node::node_begin(NodeType allowed) {
-    TiXmlNode* first = updTiNode().FirstChild();
-    while (first && !nodeTypeIsAllowed(allowed, first->Type()))
-        first = first->NextSibling();
-    return node_iterator(first, allowed);
-}
-
-    // NODE node_end()
-Xml::const_node_iterator Xml::Node::node_end() const 
-{   return const_node_iterator(0); }
-Xml::node_iterator Xml::Node::node_end() 
-{   return node_iterator(0); }
 
 
 //------------------------------------------------------------------------------
@@ -634,48 +556,6 @@ operator--(int) {
 
 
 //------------------------------------------------------------------------------
-//                          XML CONST NODE ITERATOR
-//------------------------------------------------------------------------------
-Xml::const_node_iterator& Xml::const_node_iterator::
-operator++() {
-    TiXmlNode* next = node.updTiNode().NextSibling();
-    while (next && !nodeTypeIsAllowed(allowed, next->Type()))
-        next = next->NextSibling();
-    node = Node(next);
-    return *this;
-}
-
-Xml::const_node_iterator Xml::const_node_iterator::
-operator++(int) {
-    const Node save(node);
-    TiXmlNode* next = node.updTiNode().NextSibling();
-    while (next && !nodeTypeIsAllowed(allowed, next->Type()))
-        next = next->NextSibling();
-    node = Node(next);
-    return const_node_iterator(save);
-}
-
-Xml::const_node_iterator& Xml::const_node_iterator::
-operator--() {
-    TiXmlNode* prev = node.updTiNode().PreviousSibling();
-    while (prev && !nodeTypeIsAllowed(allowed, prev->Type()))
-        prev = prev->PreviousSibling();
-    node = Node(prev);
-    return *this;
-}
-
-Xml::const_node_iterator Xml::const_node_iterator::
-operator--(int) {
-    const Node save(node);
-    TiXmlNode* prev = node.updTiNode().PreviousSibling();
-    while (prev && !nodeTypeIsAllowed(allowed, prev->Type()))
-        prev = prev->PreviousSibling();
-    node = Node(prev);
-    return const_node_iterator(save);
-}
-
-
-//------------------------------------------------------------------------------
 //                              XML ELEMENT
 //------------------------------------------------------------------------------
 
@@ -688,17 +568,15 @@ static bool elementIsAllowed(const String& tag,
 
 Xml::Element::Element(const String& tag) : Node(new TiXmlElement(tag)) {}
 
-const String& Xml::Element::getElementTag() const {
-    return getTiNode().ValueStr();
-}
-
-void Xml::Element::setElementTag(const String& type) {
-    updTiNode().SetValue(type);
-}
+const String& Xml::Element::getElementTag() const 
+{   return getTiNode().ValueStr(); }
+void Xml::Element::setElementTag(const String& type) 
+{   updTiNode().SetValue(type); }
 
 bool Xml::Element::isValueElement() const {
-    if (element_begin() != element_end()) return false; // has child elements
-    const_node_iterator text = node_begin(TextNode);
+    if (unconst().element_begin() != element_end()) 
+        return false; // has child elements
+    node_iterator text = unconst().node_begin(TextNode);
     return text == node_end() || ++text == node_end(); // zero or one
 }
 
@@ -707,7 +585,7 @@ const String& Xml::Element::getValue() const {
     SimTK_ERRCHK1_ALWAYS(isValueElement(), "Xml::Element::getValue()",
         "Element <%s> is not a value element.", getElementTag().c_str());
 
-    const_node_iterator text = node_begin(TextNode);
+    node_iterator text = unconst().node_begin(TextNode);
     return text == node_end() ? null : text->getNodeText();
 }
 
@@ -718,45 +596,37 @@ void Xml::Element::setValue(const String& value) {
         "Element <%s> is not a value element.", getElementTag().c_str());
 
     node_iterator text = node_begin(TextNode);
-    if (text == node_end()) {
-        updTiNode().LinkEndChild(new TiXmlText(value));
-    } else 
-        text->updTiNode().SetValue(value);
+    if (text == node_end()) updTiNode().LinkEndChild(new TiXmlText(value));
+    else                    text->updTiNode().SetValue(value);
 }
 
-bool Xml::Element::hasAttribute(const String& name) const {
-    for (const_attribute_iterator p=attribute_begin();
-            p != attribute_end(); ++p)
-        if (p->getName() == name) return true;
-    return false;
-}
+bool Xml::Element::hasAttribute(const String& name) const 
+{   return unconst().find_attribute(name) != attribute_end(); }
 
-bool Xml::Element::hasElement(const String& tag) const {
-    return element_begin(tag) != element_end();
-}
+bool Xml::Element::hasElement(const String& tag) const 
+{   return unconst().element_begin(tag) != element_end(); }
 
-Xml::Element Xml::Element::getRequiredElement(const String& tag) const {
-    const_element_iterator p = element_begin(tag);
+Xml::Element Xml::Element::getRequiredElement(const String& tag) {
+    element_iterator p = element_begin(tag);
     SimTK_ERRCHK2_ALWAYS(p != element_end(), 
         "Xml::Element::getRequiredElement()",
         "Couldn't find required child element <%s> in element <%s>.",
         tag.c_str(), getElementTag().c_str());
-    return const_cast<Element&>(*p);
+    return *p;
 }
 
-
-Xml::Element Xml::Element::getOptionalElement(const String& tag) const {
-    const_element_iterator p = element_begin(tag);
-    return p != element_end() ? const_cast<Element&>(*p) : Element(0);
+Xml::Element Xml::Element::getOptionalElement(const String& tag) {
+    element_iterator p = element_begin(tag);
+    return p != element_end() ? *p : Element(0);
 }
 
-Xml::Attribute Xml::Element::getRequiredAttribute(const String& name) const {
-    const_attribute_iterator p = find_attribute(name);
+Xml::Attribute Xml::Element::getRequiredAttribute(const String& name) {
+    attribute_iterator p = find_attribute(name);
     SimTK_ERRCHK2_ALWAYS(p != attribute_end(), 
         "Xml::Element::getRequiredAttribute()",
         "Couldn't find required attribute %s in element <%s>.",
         name.c_str(), getElementTag().c_str());
-    return const_cast<Attribute&>(*p);
+    return *p;
 }
 
 
@@ -769,10 +639,10 @@ Xml::Attribute Xml::Element::getRequiredAttribute(const String& name) const {
         " to check before calling Element::getAs().",
         node.getNodeTypeAsString().c_str());
     return reinterpret_cast<const Element&>(node); }
-/*static*/Xml::Element& Xml::Element::updAs(Node& node) 
+/*static*/Xml::Element& Xml::Element::getAs(Node& node) 
 {   SimTK_ERRCHK1_ALWAYS(isA(node), "Xml::Element::getAs()",
         "The given Node was not an Element; it is a %s. Use Element::isA()"
-        " to check before calling Element::updAs().",
+        " to check before calling Element::getAs().",
         node.getNodeTypeAsString().c_str());
     return reinterpret_cast<Element&>(node); }
 
@@ -783,7 +653,7 @@ void Xml::Element::insertNodeBefore(const node_iterator& beforeThis, Node node) 
     SimTK_ERRCHK1_ALWAYS(node.isValid(), method,
         "The supplied Node handle was invalid so can't be inserted into"
         " Element <%s>.", tag);
-    SimTK_ERRCHK1_ALWAYS(!node.getParentNode().isValid(), method,
+    SimTK_ERRCHK1_ALWAYS(!hasParentElement(), method,
         "The supplied Node already had a parent so can't be inserted into"
         " Element <%s>.", tag);
 
@@ -792,7 +662,7 @@ void Xml::Element::insertNodeBefore(const node_iterator& beforeThis, Node node) 
         return;
     }
 
-    SimTK_ERRCHK1_ALWAYS(beforeThis->getParentNode() == *this, method,
+    SimTK_ERRCHK1_ALWAYS(beforeThis->getParentElement() == *this, method,
         "The supplied node_iterator referred to a node that was not a"
         "child node of this Element <%s>.", tag);
 
@@ -807,7 +677,7 @@ void Xml::Element::insertNodeAfter(const node_iterator& afterThis, Node node) {
     SimTK_ERRCHK1_ALWAYS(node.isValid(), method,
         "The supplied Node handle was invalid so can't be inserted into"
         " Element <%s>.", tag);
-    SimTK_ERRCHK1_ALWAYS(!node.getParentNode().isValid(), method,
+    SimTK_ERRCHK1_ALWAYS(!node.hasParentElement(), method,
         "The supplied Node already had a parent so can't be inserted into"
         " Element <%s>.", tag);
 
@@ -816,13 +686,29 @@ void Xml::Element::insertNodeAfter(const node_iterator& afterThis, Node node) {
         return;
     }
 
-    SimTK_ERRCHK1_ALWAYS(afterThis->getParentNode() == *this, method,
+    SimTK_ERRCHK1_ALWAYS(afterThis->getParentElement() == *this, method,
         "The supplied node_iterator referred to a node that was not a"
         "child node of this Element <%s>.", tag);
 
     TiXmlNode* p = afterThis->updTiNodePtr();
     p->LinkAfterChild(p, node.updTiNodePtr());
 }
+
+bool Xml::Element::hasChildNode(NodeType allowed) const 
+{   return unconst().node_begin(allowed) != node_end(); }
+
+
+    // Element node_begin()
+Xml::node_iterator Xml::Element::node_begin(NodeType allowed) {
+    TiXmlNode* first = updTiNode().FirstChild();
+    while (first && !nodeTypeIsAllowed(allowed, first->Type()))
+        first = first->NextSibling();
+    return node_iterator(first, allowed);
+}
+
+    // Element node_end()
+Xml::node_iterator Xml::Element::node_end() const
+{   return node_iterator(0); }
 
     // Element begin()
 Xml::element_iterator Xml::Element::
@@ -832,20 +718,10 @@ element_begin(const String& tag) {
         first = first->NextSiblingElement();
     return element_iterator(first, tag);
 }
-Xml::const_element_iterator Xml::Element::
-element_begin(const String& tag) const {
-    Element* mthis = const_cast<Element*>(this);
-    TiXmlElement* first = mthis->updTiNode().FirstChildElement();
-    while (first && !elementIsAllowed(tag, first))
-        first = first->NextSiblingElement();
-    return const_element_iterator(first, tag);
-}
 
     // Element end()
-Xml::const_element_iterator Xml::Element::element_end() const 
-{   return const_element_iterator(); }
-Xml::element_iterator Xml::Element::element_end() 
-{   return element_iterator();}
+Xml::element_iterator Xml::Element::element_end() const 
+{   return element_iterator(0);}
 
     // Attribute begin()
 Xml::attribute_iterator Xml::Element::
@@ -853,18 +729,10 @@ attribute_begin() {
     TiXmlAttribute* first = updTiElement().FirstAttribute();
     return attribute_iterator(first);
 }
-Xml::const_attribute_iterator Xml::Element::
-attribute_begin() const {
-    const TiXmlAttribute* first = getTiElement().FirstAttribute();
-    return const_attribute_iterator(first);
-}
 
     // Attribute end()
-Xml::const_attribute_iterator Xml::Element::
-attribute_end() const 
-{   return const_attribute_iterator(0); }
 Xml::attribute_iterator Xml::Element::
-attribute_end() 
+attribute_end() const
 {   return attribute_iterator(0); }
 
 
@@ -911,48 +779,6 @@ operator--(int) {
     return element_iterator(save);
 }
 
-//------------------------------------------------------------------------------
-//                       XML CONST ELEMENT ITERATOR
-//------------------------------------------------------------------------------
-Xml::const_element_iterator& Xml::const_element_iterator::
-operator++() {
-    const TiXmlElement* next = (*this)->getTiElement().NextSiblingElement();
-    while (next && !elementIsAllowed(tag,next))
-        next = next->NextSiblingElement();
-    reassign(next);
-    return *this;
-}
-
-Xml::const_element_iterator Xml::const_element_iterator::
-operator++(int) {
-    const Element save(*(*this));
-    const TiXmlElement* next = (*this)->getTiElement().NextSiblingElement();
-    while (next && !elementIsAllowed(tag,next))
-        next = next->NextSiblingElement();
-    reassign(next);
-    return const_element_iterator(save);
-}
-
-Xml::const_element_iterator& Xml::const_element_iterator::
-operator--() {
-    const TiXmlElement* prev = (*this)->getTiElement().PreviousSiblingElement();
-    while (prev && !elementIsAllowed(tag,prev))
-        prev = prev->PreviousSiblingElement();
-    reassign(prev);
-    return *this;
-}
-
-Xml::const_element_iterator Xml::const_element_iterator::
-operator--(int) {
-    const Element save(*(*this));
-    const TiXmlElement* prev = (*this)->getTiElement().PreviousSiblingElement();
-    while (prev && !elementIsAllowed(tag,prev))
-        prev = prev->PreviousSiblingElement();
-    reassign(prev);
-    return const_element_iterator(save);
-}
-
-
 
 
 
@@ -970,10 +796,10 @@ Xml::Text::Text(const String& text) : Node(new TiXmlText(text)) {}
         " to check before calling Text::getAs().",
         node.getNodeTypeAsString().c_str());
     return reinterpret_cast<const Text&>(node); }
-/*static*/Xml::Text& Xml::Text::updAs(Node& node) 
+/*static*/Xml::Text& Xml::Text::getAs(Node& node) 
 {   SimTK_ERRCHK1_ALWAYS(isA(node), "Xml::Text::getAs()",
         "The given Node was not a Text node; it is a %s. Use Text::isA()"
-        " to check before calling Text::updAs().",
+        " to check before calling Text::getAs().",
         node.getNodeTypeAsString().c_str());
     return reinterpret_cast<Text&>(node); }
 
@@ -993,10 +819,10 @@ Xml::Comment::Comment(const String& text) : Node(new TiXmlComment(text)) {}
         " to check before calling Comment::getAs().",
         node.getNodeTypeAsString().c_str());
     return reinterpret_cast<const Comment&>(node); }
-/*static*/Xml::Comment& Xml::Comment::updAs(Node& node) 
+/*static*/Xml::Comment& Xml::Comment::getAs(Node& node) 
 {   SimTK_ERRCHK1_ALWAYS(isA(node), "Xml::Comment::getAs()",
         "The given Node was not a Comment node; it is a %s. Use Comment::isA()"
-        " to check before calling Comment::updAs().",
+        " to check before calling Comment::getAs().",
         node.getNodeTypeAsString().c_str());
     return reinterpret_cast<Comment&>(node); }
 
@@ -1017,10 +843,10 @@ Xml::Unknown::Unknown(const String& contents) : Node(new TiXmlUnknown())
         " to check before calling Unknown::getAs().",
         node.getNodeTypeAsString().c_str());
     return reinterpret_cast<const Unknown&>(node); }
-/*static*/Xml::Unknown& Xml::Unknown::updAs(Node& node) 
+/*static*/Xml::Unknown& Xml::Unknown::getAs(Node& node) 
 {   SimTK_ERRCHK1_ALWAYS(isA(node), "Xml::Unknown::getAs()",
         "The given Node was not an Unknown node; it is a %s. Use Unknown::isA()"
-        " to check before calling Unknown::updAs().",
+        " to check before calling Unknown::getAs().",
         node.getNodeTypeAsString().c_str());
     return reinterpret_cast<Unknown&>(node); }
 

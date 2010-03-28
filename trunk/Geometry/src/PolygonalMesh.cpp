@@ -315,7 +315,7 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
 
     // Find the connectivity and offset DataArrays.
     Xml::Element econnectivity, eoffsets;
-    for (Xml::const_element_iterator p = polys.element_begin("DataArray");
+    for (Xml::element_iterator p = polys.element_begin("DataArray");
          p != polys.element_end(); ++p) 
     {   const String& name = p->getRequiredAttributeValue("Name");
         if (name == "connectivity") econnectivity = *p;

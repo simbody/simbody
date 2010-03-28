@@ -266,35 +266,31 @@ public:
 
 // These local classes are used to describe the contents of an XML document.
 class Attribute;
-class Node;         // This is the abstract type for any node.
+class Node;         // This is the abstract handle type for any node.
 class Comment;      // These are the concrete node types.
 class Unknown;      //                  "
 class Text;         //                  "
 class Element;      //                  "
 
-// These provide iteration over all the attributes found in a given
-// element tag.
+// This provides iteration over all the attributes found in a given element.
 class attribute_iterator;
-class const_attribute_iterator;
 
-// These provide iteration over all the nodes at either the Xml document
-// level or over the child nodes of a node.
+// This provides iteration over all the nodes, or nodes of a certain type,
+// at either the Xml document level or over the child nodes of an element.
 class node_iterator;
-class const_node_iterator;
 
-// These provide iteration over all the element nodes that are children
-// of a given element, or over the child elements that have a particular
-// tag word.
+// This provides iteration over all the element nodes that are children
+// of a given element, or over the subset of those child elements that has
+// a particular tag word.
 class element_iterator;
-class const_element_iterator;
 
 /** The NodeType enum serves as the actual type of a node and as a filter
 for allowable node types during an iteration over nodes. We consider
 Element and Text nodes to be meaningful, while Comment and Unknown 
 nodes are meaningless junk. However, you are free to extract some meaning
-from them if you know how. **/
+from them if you know how. In particular, DTD nodes end up as Unknown. **/
 enum NodeType {
-    NoNode      = 0x00, ///< No nodes allowed
+    NoNode      = 0x00, ///< Type of empty Node handle, or null filter
     ElementNode = 0x01, ///< Element node type and only-Elements filter
     TextNode    = 0x02, ///< Text node type and only-Text nodes filter
     CommentNode = 0x04, ///< Comment node type and only-Comments filter
@@ -312,72 +308,22 @@ static String getNodeTypeAsString(NodeType type);
 You can start with an empty Xml document or initialize it from a file. **/
 /*@{*/
 
-/** Create an empty XML Document with default declaration and default
-document tag "_Root". That is, if you printed out this document
-now you would see:                                          
+/** Create an empty XML Document with default declaration and default root
+element with tag "_Root". That is, if you printed out this document now 
+you would see:                                          
 @code
-        <?xml version="1.0" encoding="UTF-8"?>
-        <_Root/>                                      
+    <?xml version="1.0" encoding="UTF-8"?>
+    <_Root />                                      
 @endcode **/
 Xml();
 
-/** Create a new XML document and initialize it from the contents
-of the given file name. An exception will be thrown if the file doesn't 
-exist or can't be parsed. **/
+/** Create a new XML document and initialize it from the contents of the given
+file name. An exception will be thrown if the file doesn't exist or can't be 
+parsed. @see readFromFile(), readFromString() **/
 explicit Xml(const String& pathname);
 
 /** Restore this document to its default-constructed state. **/
 void clear();
-/*@}*/
-
-/**@name                Top-level node manipulation
-These methods provide access to the top-level nodes, that is, those that are
-directly owned by the Xml document. Comment and Unknown nodes are allowed 
-anywhere at the top level, but Text nodes are not allowed and there is just
-one distinguished Element node, the root element. If you want to add Text
-or Element nodes, add them to the root element rather than at the document
-level. **/
-/*@{*/
-
-/** Insert a top-level Comment or Unknown node just \e after the location 
-indicated by the node_iterator, or at the end of the list if the iterator is 
-node_end(). The iterator must refer to a top-level node. The Xml document 
-takes over ownership of the Node which must be a Comment or Unknown node and
-must have been an orphan. The supplied Node handle will retain a reference 
-to the node within the document and can still be used to make changes. **/
-void insertTopLevelNodeAfter (const node_iterator& afterThis, 
-                              Node                 insertThis);
-/** Insert a top-level Comment or Unknown node just \e before the location 
-indicated by the node_iterator. See insertTopLevelNodeAfter() for details. **/
-void insertTopLevelNodeBefore(const node_iterator& beforeThis, 
-                              Node                 insertThis);
-/*@}*/
-
-
-/**@name         Access to the root element (document contents)
-At the Xml document level there is always just a single element, called the
-"root element". The root element's tag word is called the "document tag" and 
-conventionally provides the document's "type"; if there wasn't originally a 
-unique root element then we will have created one with meaningless document 
-tag "_Root", so there is at least always something there. These methods 
-provide access to the root element and some shortcuts for getting useful 
-information from it. **/
-/*@{*/
-
-/** Shortcut for getting the tag word of the root element which is usually
-the document type. This is the same as getRootElement().getElementTag(). **/
-const String& getRootTag() const;
-/** Shortcut for changing the tag word of the root element which is usually
-the document type. This is the same as getRootElement().setElementTag(tag). **/
-void setRootTag(const String& tag);
-
-/** Return a const reference to the top-level element in this Xml 
-document, known as the "root element". The tag name is considered to
-be the type of document. This is the only top-level element; all others
-are its children and descendents. **/
-const Element& getRootElement() const;
-/** Return a writable reference to the top-level "document tag" element. **/
-Element& updRootElement();
 /*@}*/
 
 /**@name                    Serializing and I/O
@@ -413,6 +359,51 @@ String getPathname() const;
 /*@}*/
 
 
+/**@name                Top-level node manipulation
+These methods provide access to the top-level nodes, that is, those that are
+directly owned by the Xml document. Comment and Unknown nodes are allowed 
+anywhere at the top level, but Text nodes are not allowed and there is just
+one distinguished Element node, the root element. If you want to add Text
+or Element nodes, add them to the root element rather than at the document
+level. **/
+/*@{*/
+
+/** Return an Element handle referencing the top-level element in this Xml 
+document, known as the "root element". The tag word of this element is usually
+the type of document. This is the \e only top-level element; all others
+are its children and descendents. Once you have the root Element handle, you 
+can also use any of the Element methods to manipulate it. If you need a 
+node_iterator that refers to the root element (perhaps to use one of the
+top-level insert methods), use node_begin() with a NodeType filter:
+@code
+    Xml::node_iterator rootp = Xml::node_begin(Xml::ElementNode);
+@endcode
+That works since there is only one element at this level. **/
+Element getRootElement();
+
+/** Shortcut for getting the tag word of the root element which is usually
+the document type. This is the same as getRootElement().getElementTag(). **/
+const String& getRootTag() const;
+/** Shortcut for changing the tag word of the root element which is usually
+the document type. This is the same as getRootElement().setElementTag(tag). **/
+void setRootTag(const String& tag);
+
+/** Insert a top-level Comment or Unknown node just \e after the location 
+indicated by the node_iterator, or at the end of the list if the iterator is 
+node_end(). The iterator must refer to a top-level node. The Xml document 
+takes over ownership of the Node which must be a Comment or Unknown node and
+must have been an orphan. The supplied Node handle will retain a reference 
+to the node within the document and can still be used to make changes, but
+will no longer by an orphan. **/
+void insertTopLevelNodeAfter (const node_iterator& afterThis, 
+                              Node                 insertThis);
+/** Insert a top-level Comment or Unknown node just \e before the location 
+indicated by the node_iterator. See insertTopLevelNodeAfter() for details. **/
+void insertTopLevelNodeBefore(const node_iterator& beforeThis, 
+                              Node                 insertThis);
+/*@}*/
+
+
 /**@name       Iteration through top-level nodes (rarely used)
 If you want to run through this document's top-level nodes (of which the
 "root element" is one), these methods provide begin and end 
@@ -426,14 +417,10 @@ you can get to the root element directly using getRootElement().
 /** Obtain an iterator to all the top-level nodes or a subset restricted via
 the \a allowed NodeType mask. **/
 node_iterator       node_begin(NodeType allowed=AnyNodes);
-/** Const version of node_begin(). **/
-const_node_iterator node_begin(NodeType allowed=AnyNodes) const;
 
 /** This node_end() iterator indicates the end of a sequence of nodes regardless
 of the NodeType restriction on the iterator being used. **/
-node_iterator       node_end();
-/** Const version of node_end(). **/
-const_node_iterator node_end() const;
+node_iterator       node_end() const;
 /*@}*/
 
 /**@name           XML Declaration attributes (rarely used)
@@ -445,8 +432,8 @@ well-defined names that are always the same (default values shown):
     adhere?
   - \e encoding = "UTF-8": what Unicode encoding is used to represent the 
     character in this document? Typically this is UTF-8, an 8-bit encoding in 
-    which the first 128 codes match standard ASCII but where other characters are
-    represented in variable-length multibyte sequences.
+    which the first 128 codes match standard ASCII but where other characters 
+    are represented in variable-length multibyte sequences.
   - \e standalone = "yes": can this document be correctly parsed without 
     consulting other documents?
 
@@ -460,12 +447,12 @@ String getXmlVersion() const;
 /** Returns the Xml "encoding" attribute as a string (from the declaration
 line at the beginning of the document). **/
 String getXmlEncoding() const;
-/** Returns the Xml "standalone" attribute as a string (from the declaration
-line at the beginning of the document); default is "yes", meaning that the
-document can be parsed correctly without any other documents. We won't 
-include "standalone" in the declaration line for any Xml documents we generate
-unless the value is "no". **/
-bool   getXmlIsStandalone() const;
+/** Returns the Xml "standalone" attribute as a bool (from the declaration
+line at the beginning of the document); default is true ("yes" in a file), 
+meaning that the document can be parsed correctly without any other documents. 
+We won't include "standalone" in the declaration line for any Xml documents 
+we generate unless the value is false ("no" in a file). **/
+bool getXmlIsStandalone() const;
 
 /** Set the Xml "version" attribute; this will be written to the 
 "declaration" line which is first in any Xml document. **/
@@ -480,12 +467,15 @@ will appear in the declaration line when it is written. **/
 void setXmlIsStandalone(bool isStandalone);
 /*@}*/
 
-private:
+//------------------------------------------------------------------------------
+                                  private:
 friend class Node;
 
 class Impl; // a private, local class Xml::Impl
 const Impl& getImpl() const {assert(impl); return *impl;}
 Impl&       updImpl()       {assert(impl); return *impl;}
+
+Xml& unconst() const {return *const_cast<Xml*>(this);}
 
 Impl*       impl; // This is the lone data member.
 };
@@ -554,7 +544,6 @@ bool operator!=(const Attribute& attr) const {return tiAttr!=attr.tiAttr;}
 //------------------------------------------------------------------------------
                                   private:
 friend class Xml::attribute_iterator;
-friend class Xml::const_attribute_iterator;
 
 explicit Attribute(TiXmlAttribute* attr) {tiAttr=attr;}
 const TiXmlAttribute& getTiAttr() const {assert(tiAttr);return *tiAttr;}
@@ -567,6 +556,8 @@ TiXmlAttribute&       updTiAttr()       {assert(tiAttr);return *tiAttr;}
 void                  setTiAttrPtr(TiXmlAttribute* attr) {tiAttr=attr;}
 const TiXmlAttribute* getTiAttrPtr() const {return tiAttr;}
 TiXmlAttribute*       updTiAttrPtr()       {return tiAttr;}
+
+Attribute& unconst() const {return *const_cast<Attribute*>(this);}
 
 TiXmlAttribute* tiAttr; // this is the lone data member
 };
@@ -612,55 +603,8 @@ bool operator!=(const attribute_iterator& other) const
 //------------------------------------------------------------------------------
                                   private:
 friend class Xml::Element;
-friend class Xml::const_attribute_iterator;
 
 explicit attribute_iterator(TiXmlAttribute* ap) : attr(ap) {}
-
-Attribute       attr;   // the lone data member
-};
-
-
-
-//------------------------------------------------------------------------------
-//                         XML CONST ATTRIBUTE ITERATOR
-//------------------------------------------------------------------------------
-/** This is a bidirectional iterator suitable for moving forward or backward
-within a list of Attributes within an Element, for read-only access. **/
-class SimTK_SimTKCOMMON_EXPORT Xml::const_attribute_iterator 
-:   public std::iterator<std::bidirectional_iterator_tag, Xml::Attribute> {
-public:
-const_attribute_iterator() {}
-explicit const_attribute_iterator(const Attribute& attr) 
-:   attr(const_cast<Attribute&>(attr)) {}
-
-/** This is an implicit conversion from writable attribute_iterator. **/
-const_attribute_iterator(const Xml::attribute_iterator& p) 
-:   attr(const_cast<Attribute&>(p.attr)) {}
-
-/** Copy constructor makes this iterator refer to the same attribute
-(if any) as the source iterator. **/
-const_attribute_iterator(const const_attribute_iterator& src)
-:   attr(const_cast<Attribute&>(*src)) {}
-
-const_attribute_iterator& operator++();   // prefix
-const_attribute_iterator operator++(int); // postfix
-const_attribute_iterator& operator--();   // prefix
-const_attribute_iterator operator--(int); // postfix
-const Attribute& operator*() const {return attr;}
-const Attribute* operator->() const {return &attr;}
-bool operator==(const const_attribute_iterator& other) const 
-{   return other.attr==attr; }
-bool operator!=(const const_attribute_iterator& other) const 
-{   return other.attr!=attr; }
-
-//------------------------------------------------------------------------------
-                                  private:
-friend class Xml::Element;
-
-explicit const_attribute_iterator(const TiXmlAttribute* ap) 
-:   attr(const_cast<TiXmlAttribute*>(ap)) {}
-void reassign(const TiXmlAttribute* ap)
-{   attr.setTiAttrPtr(const_cast<TiXmlAttribute*>(ap)); }
 
 Attribute       attr;   // the lone data member
 };
@@ -672,16 +616,42 @@ Attribute       attr;   // the lone data member
 //------------------------------------------------------------------------------
 /** Abstract handle for holding any kind of node in an XML tree. The concrete
 node handle types derived from Node are: Element, Text, Comment, and Unknown. 
-An Element may recursively contain a list of nodes. **/
+An Element may recursively contain a list of nodes. A node may be classified
+by who owns it. There are three possibilities:
+  - Top-level node: The node belongs to the top-level Xml document and does
+    not have a parent node.
+  - Child node: The node belongs to an element, which may be the root element
+    or any lower-level element. The element that owns it is its "parent".
+  - Orphan node: The node is not yet part of any Xml document and does not
+    belong to an element. In that case the Node handle serves as the owner and
+    the node does not have a parent node.
+
+A Node handle may also be empty, meaning it refers to no node at all so there
+is nothing to own.
+
+Top-level nodes can only be Comment nodes, Unknown nodes, or the lone root
+Element node. Child nodes and orphans can be of Element and Text type also.
+Normally orphans exist only briefly during the time a new node is constructed
+and the time it is adopted by some element (usually in the same constructor)
+so you can ignore them for the most part. But if you must keep orphan nodes
+around, be aware that they must be referenced by only one handle at a time to 
+avoid ownership conflicts. **/
 class SimTK_SimTKCOMMON_EXPORT Xml::Node {
 public:
 
+/** Create an empty Node handle that can be used to hold a reference to any
+kind of Node. **/
 Node() : tiNode(0) {}
+/** The Node handle destructor usually does nothing but if it is referencing
+an orphan node then it will delete the orphan here; make sure you never have
+two handles referencing an orphan because they are not reference-counted. **/
 ~Node() {clear();}
 
 /** This method clears the Node handle, deleting the contents if the Node
-was an orphan. **/
+was an orphan and restoring the Node handle to its default-constructed
+state. **/
 void clear();
+
 
 /** Get the Xml::NodeType of this node. If this Node handle is empty, the
 returned NodeType will be "NoNode". **/
@@ -702,6 +672,10 @@ node:
   - None:    (i.e., an empty handle) throw an error. **/
 const String& getNodeText() const;
 
+/** Return true if this Node handle is referencing some node, false if the
+Node handle is empty. **/
+bool isValid() const {return tiNode != 0;}
+
 /** Return true if this Node is owned by the top-level Xml document, false
 if the Node is owned by an Element or is an orphan, or if the Node handle
 is empty. **/
@@ -713,14 +687,14 @@ object that has just been constructed, or one that has been cloned from another
 Node. **/
 bool isOrphan() const;
 
-/** Return true if this node has a parent node; the root element and
-other top-level nodes are owned by the document and thus do not have a
-parent node. **/
-bool hasParentNode() const;
+/** Return true if this node has a parent, i.e. it is owned by an element; 
+the root element and other top-level nodes are owned by the document and thus
+do not have a parent. @see getParentElement() **/
+bool hasParentElement() const;
 
 /** Return a handle referencing this node's parent if it has one, otherwise
-throws an error; check first with hasParentNode() if you aren't sure. **/
-Node getParentNode();
+throws an error; check first with hasParentElement() if you aren't sure. **/
+Element getParentElement();
 
 /** Serialize this node (and everything it contains) to the given String.
 The output will be "pretty printed" and terminated with a newline unless you
@@ -728,27 +702,14 @@ specify \a compact = true in which case indents and newlines will be
 suppressed. **/
 void writeToString(String& out, bool compact=false) const;
 
-/** See if this Node has any child nodes, or any child nodes of the type(s)
-allowed by the NodeType filter if one is supplied. **/
-bool hasChildNode(NodeType allowed=AnyNodes) const;
 
-/** For iterating through the immediate child nodes of this node, or the
-child nodes of the type(s) allowed by the NodeType filter if one is 
-supplied. **/
-node_iterator       node_begin(NodeType allowed=AnyNodes);
-/** Const version of node_begin(). **/
-const_node_iterator node_begin(NodeType allowed=AnyNodes) const;
-
-/** This node_end() iterator indicates the end of a sequence of nodes regardless
-of the NodeType restriction on the iterator being used. **/
-node_iterator       node_end();
-/** Const version of node_end(). **/
-const_node_iterator node_end() const;
-
+/** Comparing Nodes for equality means asking if the two Node handles are
+referring to exactly the same object; two different nodes that happen to have
+the same properties will not test equal by this criteria. **/
 bool operator==(const Node& other) const {return other.tiNode==tiNode;}
+/** Inequality test using same criteria as operator==(). **/
 bool operator!=(const Node& other) const {return other.tiNode!=tiNode;}
 
-bool isValid() const {return tiNode != 0;}
 
 //------------------------------------------------------------------------------
                                  protected:
@@ -771,7 +732,8 @@ TiXmlNode*       updTiNodePtr()       {return tiNode;}
 friend class Xml;
 friend class Xml::Impl;
 friend class Xml::node_iterator;
-friend class Xml::const_node_iterator;
+
+Node& unconst() const {return *const_cast<Node*>(this);}
 
 TiXmlNode*      tiNode; // the lone data member
 };
@@ -833,61 +795,11 @@ explicit node_iterator(TiXmlNode* tiNode, NodeType allowed=AnyNodes)
                                   private:
 friend class Xml;
 friend class Xml::Node;
-friend class Xml::const_node_iterator;
-
 
 Node            node;       // data members
 NodeType        allowed;
 };
 
-
-
-//------------------------------------------------------------------------------
-//                          XML NODE CONST ITERATOR
-//------------------------------------------------------------------------------
-/** This is a bidirectional iterator suitable for moving forward or backward
-within a list of Nodes, for const access. By default we will iterate
-over all nodes but you can restrict the types at construction. **/
-class SimTK_SimTKCOMMON_EXPORT Xml::const_node_iterator 
-:   public std::iterator<std::bidirectional_iterator_tag, Xml::Node> {
-public:
-
-/** This is the default constructor which leaves the node_iterator empty, 
-and you can optionally set the type(s) of Nodes which will be iterated 
-over. **/
-explicit const_node_iterator(NodeType allowed=AnyNodes) 
-:   allowed(allowed) {}
-/** Constructor an node_iterator pointing to a given Node, and optionally 
-set the type(s) of Nodes which will be iterated over. **/
-explicit const_node_iterator(const Node& node, NodeType allowed=AnyNodes) 
-:   node(node), allowed(allowed) {}
-
-/** This is an implicit conversion from writable node_iterator. **/
-const_node_iterator(const Xml::node_iterator& p) 
-:   node(p.node), allowed(p.allowed) {}
-
-const_node_iterator& operator++();   // prefix
-const_node_iterator operator++(int); // postfix
-const_node_iterator& operator--();   // prefix
-const_node_iterator operator--(int); // postfix
-const Node& operator*() const {return node;}
-const Node* operator->() const {return &node;}
-bool operator==(const const_node_iterator& other) const 
-{   return other.node==node; }
-bool operator!=(const const_node_iterator& other) const 
-{   return other.node!=node; }
-
-//------------------------------------------------------------------------------
-                                  private:
-friend class Xml;
-friend class Xml::Node;
-
-explicit const_node_iterator(const TiXmlNode* tiNode, NodeType allowed=AnyNodes) 
-    :   node(const_cast<TiXmlNode*>(tiNode)), allowed(allowed) {}
-
-Node            node;       // data members
-NodeType        allowed;
-};
 
 
 
@@ -938,7 +850,7 @@ the previous node. Otherwise, a new Text node is created and inserted
 prior to the one indicated by the node_iterator. 
 @return A handle to the Text node into which the new \a text was 
 inserted. **/
-Text insertText(const const_node_iterator& node, const String& text);
+Text insertText(const node_iterator& node, const String& text);
 
 /** Insert a node into the list of this Element's children, just before the
 node pointed to by the supplied iterator (or at the end if the iterator
@@ -953,18 +865,40 @@ Element. This Element takes over ownership of the node which must
 not already have a parent. **/
 void insertNodeAfter(const node_iterator& pos, Node node);
 
-element_iterator            element_begin(const String& tag="");
-const_element_iterator      element_begin(const String& tag="") const;
+/** See if this element has any child nodes, or any child nodes of the type(s)
+allowed by the NodeType filter if one is supplied. **/
+bool hasChildNode(NodeType allowed=AnyNodes) const;
 
-element_iterator            element_end();
-const_element_iterator      element_end() const;
+/** For iterating through the immediate child nodes of this element, or the 
+child nodes of the type(s) allowed by the NodeType filter if one is 
+supplied. If there are no children of the \a allowed types then the returned
+node_iterator tests equal to node_end(). **/
+node_iterator node_begin(NodeType allowed=AnyNodes);
+/** This node_end() iterator indicates the end of any sequence of nodes 
+regardless of the NodeType restriction on the iterator being used. **/
+node_iterator node_end() const;
 
-attribute_iterator          attribute_begin();
-const_attribute_iterator    attribute_begin() const;
+/** For iterating through the immediate child elements of this element, or the 
+child elements that have the indicated tag if one is supplied. If there are no 
+children with the \a allowed tag then the returned element_iterator tests 
+equal to element_end(). **/
+element_iterator element_begin(const String& tag="");
+/** This element_end() iterator indicates the end of any sequence of elements 
+regardless of the tag restriction on the iterator being used. **/
+element_iterator element_end() const;
 
-attribute_iterator          attribute_end();
-const_attribute_iterator    attribute_end() const;
+/** For iterating through all the attributes of this element. If there are no 
+attributes then the returned attribute_iterator tests equal to 
+attribute_end(). 
+@see find_attribute() to get an iterator to a particular attribute. **/
+attribute_iterator attribute_begin();
+/** This attribute_end() iterator indicates the end of a sequence of 
+attributes. **/
+attribute_iterator attribute_end() const;
 
+/** Search for a particular attribute by name and return an attribute_iterator
+pointing to it if found, or an iterator that tests equal to attribute_end()
+if no such attribute can be found. **/
 attribute_iterator find_attribute(const String& name) {
     for (attribute_iterator p = attribute_begin();
             p != attribute_end(); ++p)
@@ -972,12 +906,6 @@ attribute_iterator find_attribute(const String& name) {
     return attribute_end();
 }
 
-const_attribute_iterator find_attribute(const String& name) const {
-    for (const_attribute_iterator p = attribute_begin();
-            p != attribute_end(); ++p)
-        if (p->getName() == name) return p;
-    return attribute_end();
-}    
 
 ///** Return an array containing Attribute handles referencing all the
 //attributes of this element. Attributes are returned in the order that
@@ -1016,10 +944,12 @@ bool isValueElement() const;
 
 /** Get the text value of this value element. An error will be thrown if 
 this is not a "value element". See the comments for this class for the
-definition of a "value element".
-@see isTextElement() **/
+definition of a "value element". 
+@note This does not return the same value as the base class method
+Node::getNodeText() does in the case of an element node; that returns the
+element tag word not its contents.
+@see isValueElement() **/
 const String& getValue() const;
-
 
 /** Set the text value of this value element. An error will be thrown if 
 this is not a "value element". See the comments for this class for the
@@ -1027,7 +957,7 @@ definition of a "value element".
 @see isValueElement() **/
 void setValue(const String& value);
 
-/** Assuming this is a "text element", convert its text value to the type
+/** Assuming this is a "value element", convert its text value to the type
 of the template argument T. It is an error if the text can not be converted,
 in its entirety, to a single object of type T. (But note that type T may
 be a container of some sort, like a Vector or Array.) 
@@ -1043,12 +973,12 @@ template <class T> void getValueAs(T& out) const
 
 /** Obtain a reference to a particular attribute of this element; an error
 will be thrown if no such attribute is present. **/
-Attribute getRequiredAttribute(const String& name) const;
+Attribute getRequiredAttribute(const String& name);
 
 /** Get the value of an attribute as a string and throw an error if that 
 attribute is not present. **/
 const String& getRequiredAttributeValue(const String& name) const
-{   return getRequiredAttribute(name).getValue(); }
+{   return unconst().getRequiredAttribute(name).getValue(); }
 
 /** Convert the text value of a required attribute to the type
 of the template argument T. It is an error if the text can not be converted,
@@ -1064,7 +994,7 @@ template <class T> T getRequiredAttributeValueAs
 this element, otherwise return a supplied default value. **/
 String getOptionalAttributeValue
    (const String& name, const String& def="") const
-{   const_attribute_iterator p = find_attribute(name);
+{   attribute_iterator p = unconst().find_attribute(name);
     return p==attribute_end() ? def : p->getValue(); }
 
 /** Convert the value of an optional attribute, if present, from a string to 
@@ -1079,7 +1009,7 @@ present, then return a supplied default value of type T.
 of the supplied default value \a def. **/
 template <class T> T getOptionalAttributeValueAs
    (const String& name, const T& def) const
-{   const_attribute_iterator p = find_attribute(name);
+{   attribute_iterator p = find_attribute(name);
     if (p==attribute_end()) return def;
     T out; convertStringTo(p->getValue(), out); return out; }
 
@@ -1091,14 +1021,14 @@ the value of the Text node. Thus an element like "<tag>stuff</tag>" will
 have the value "stuff". An error will be thrown if either the element
 is not found or it is not a "value element". **/
 const String& getRequiredElementValue(const String& tag) const
-{   return getRequiredElement(tag).getValue(); }
+{   return unconst().getRequiredElement(tag).getValue(); }
 
 /** Get the text value of a child text element that \e may be present in
 this element, otherwise return a default string. If the child element is 
 found, it must be a "text element" as defined above. **/
 String getOptionalElementValue
    (const String& tag, const String& def="") const
-{   const Element opt(getOptionalElement(tag));
+{   const Element opt(unconst().getOptionalElement(tag));
     return opt.isValid() ? opt.getValue() : def; }
 
 /** Convert the text value of a required child text element to the type
@@ -1133,12 +1063,12 @@ template <class T> T
 element. The child is identified by its tag; if there is more than one
 only the first one is returned. If you want to see all children with this
 tag, use getAllChildElements() or use an element_iterator. **/
-Element getRequiredElement(const String& tag) const;
+Element getRequiredElement(const String& tag);
 
 /** Get a reference to a child element that \e may be present in this 
 element; otherwise return an invalid Element handle. Test using the
 Element's isValid() method. **/
-Element getOptionalElement(const String& tag) const;
+Element getOptionalElement(const String& tag);
 
 /** Test whether a given Node is an element node. **/
 static bool isA(const Node&);
@@ -1147,12 +1077,12 @@ actually an element node. @see isA() **/
 static const Element& getAs(const Node& node);
 /** Recast a writable Node to a writable Element, throwing an error if the
 Node is not actually an element node. @see isA() **/
-static Element& updAs(Node& node);
+static Element& getAs(Node& node);
 
 //------------------------------------------------------------------------------
                                   private:
+friend class Xml::Node;
 friend class Xml::element_iterator;
-friend class Xml::const_element_iterator;
 
 explicit Element(TiXmlElement* tiElt) 
 :   Node(reinterpret_cast<TiXmlNode*>(tiElt)) {}
@@ -1171,6 +1101,9 @@ TiXmlElement*       updTiElementPtr()
 {   return reinterpret_cast<TiXmlElement*>(updTiNodePtr()); }
 void                setTiElementPtr(TiXmlElement* elt)
 {   setTiNodePtr(reinterpret_cast<TiXmlNode*>(elt)); }
+
+Element& unconst() const {return *const_cast<Element*>(this);}
+
 
 // no data members; see Node
 };
@@ -1208,8 +1141,8 @@ element_iterator& operator++();   // prefix
 element_iterator operator++(int); // postfix
 element_iterator& operator--();   // prefix
 element_iterator operator--(int); // postfix
-Element& operator*() const {return Element::updAs(*upcast());}
-Element* operator->() const {return &Element::updAs(*upcast());}
+Element& operator*() const {return Element::getAs(*upcast());}
+Element* operator->() const {return &Element::getAs(*upcast());}
 
 bool operator==(const element_iterator& other) const 
 {   return other.upcast()==upcast();}
@@ -1220,7 +1153,6 @@ bool operator!=(const element_iterator& other) const
                                    private:
 friend class Xml;
 friend class Xml::Element;
-friend class Xml::const_element_iterator;
 
 explicit element_iterator(TiXmlElement* tiElt, const String& tag="") 
 :   node_iterator((TiXmlNode*)tiElt, ElementNode), tag(tag) {}
@@ -1236,79 +1168,6 @@ const element_iterator& downcast(const node_iterator& np)
 
 String          tag;    // lone data member
 };
-
-
-
-//------------------------------------------------------------------------------
-//                          XML CONST ELEMENT ITERATOR
-//------------------------------------------------------------------------------
-/** This is a bidirectional iterator suitable for moving forward or backward
-within a list of Nodes, for const access. By default we will iterate
-over all elements but you can restrict the type at construction. **/
-class SimTK_SimTKCOMMON_EXPORT Xml::const_element_iterator 
-:   public Xml::const_node_iterator {
-public:
-
-/** This is the default constructor which leaves the element_iterator empty, and
-you can optionally set the type of Element which will be iterated over. **/
-explicit const_element_iterator(const String& tag="") 
-:   const_node_iterator(ElementNode), tag(tag) {}
-/** Constructor an element_iterator pointing to a given Element, and optionally 
-set the type of Element which will be iterated over. **/
-explicit const_element_iterator(const Element& elt, const String& tag="") 
-:   const_node_iterator(elt, ElementNode), tag(tag) {}
-
-/** This is an implicit conversion from writable element_iterator. **/
-const_element_iterator(const Xml::element_iterator& p) 
-:   const_node_iterator(*p, ElementNode), tag(p.tag) {}
-
-const_element_iterator& operator++();   // prefix
-const_element_iterator operator++(int); // postfix
-const_element_iterator& operator--();   // prefix
-const_element_iterator operator--(int); // postfix
-const Element& operator*() const {return Element::getAs(*upcast());}
-const Element* operator->() const {return &Element::getAs(*upcast());}
-bool operator==(const const_element_iterator& other) const 
-{   return other.upcast()==upcast(); }
-bool operator!=(const const_element_iterator& other) const 
-{   return other.upcast()!=upcast(); }
-
-//------------------------------------------------------------------------------
-                                   private:
-friend class Xml;
-friend class Xml::Element;
-
-explicit const_element_iterator
-   (const TiXmlElement* tiElt, const String& tag="") 
-:   const_node_iterator((TiXmlNode*)const_cast<TiXmlElement*>(tiElt), 
-                         ElementNode), tag(tag) {}
-void reassign(const TiXmlElement* ep)
-{   node.setTiNodePtr((TiXmlNode*)const_cast<TiXmlElement*>(ep)); }
-
-
-const const_node_iterator& upcast() const 
-{   return *static_cast<const const_node_iterator*>(this); }
-const_node_iterator& upcast() 
-{   return *static_cast<const_node_iterator*>(this); }
-const const_element_iterator& downcast(const const_node_iterator& np)
-{   return static_cast<const const_element_iterator&>(np); }
-
-String          tag;
-};
-
-
-//inline Array_<Xml::Node> Xml::Element::
-//findAllNodes(Xml::NodeType type)
-//{   return Array_<Xml::Node>(node_begin(type), node_end()); }
-//
-//inline Array_<Xml::Element> Xml::Element::
-//findAllElements(const String& tag)
-//{   return Array_<Element>(element_begin(tag), element_end()); }
-//
-//inline Array_<Xml::Attribute> Xml::Element::
-//findAllAttributes()
-//{   return Array_<Attribute>(attribute_begin(), attribute_end()); }
-
 
 
 
@@ -1334,7 +1193,7 @@ actually a Text node. @see isA() **/
 static const Text& getAs(const Node& node);
 /** Recast a writable Node to a writable Text node, throwing an error if the
 Node is not actually a Text node. @see isA() **/
-static Text& updAs(Node& node);
+static Text& getAs(Node& node);
 
 //------------------------------------------------------------------------------
                                    private:
@@ -1366,7 +1225,7 @@ actually an Comment node. @see isA() **/
 static const Comment& getAs(const Node& node);
 /** Recast a writable Node to a writable Comment, throwing an error if the
 Node is not actually an Comment node. @see isA() **/
-static Comment& updAs(Node& node);
+static Comment& getAs(Node& node);
 
 //------------------------------------------------------------------------------
                                    private:
@@ -1411,7 +1270,7 @@ actually an Unknown node. @see isA() **/
 static const Unknown& getAs(const Node& node);
 /** Recast a writable Node to a writable Unknown, throwing an error if the
 Node is not actually an Unknown node. @see isA() **/
-static Unknown& updAs(Node& node);
+static Unknown& getAs(Node& node);
 //------------------------------------------------------------------------------
                                    private:
 // no data members; see Node

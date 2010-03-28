@@ -85,17 +85,17 @@ const char* xmlJustAComment =
 const char* xmlEmpty = "   \n \n \t "; // white space only
 
 
-static void showElement(const Xml::Element& elt, const String& indent="") {
+static void showElement(Xml::Element elt, const String& indent="") {
     cout << indent << "ELEMENT WITH TAG '" << elt.getElementTag() << "':\n";
 
     // Show attributes
-    Xml::const_attribute_iterator ap = elt.attribute_begin();
+    Xml::attribute_iterator ap = elt.attribute_begin();
     for (; ap != elt.attribute_end(); ++ap)
         cout << indent << "  ATTR '" << ap->getName() << "'='" 
              << ap->getValue() << "'\n";
 
     // Show all contents
-    Xml::const_node_iterator p = elt.node_begin();
+    Xml::node_iterator p = elt.node_begin();
     for (; p != elt.node_end(); ++p) {
         cout << indent << p->getNodeTypeAsString() << endl;
         if (p->getNodeType() == Xml::ElementNode)
@@ -125,21 +125,21 @@ void testXmlFromString() {
          << String(fromString.getXmlIsStandalone() ? "yes" : "no") << endl;
 
     cout << "All nodes in doc:\n";
-    Xml::const_node_iterator np = fromString.node_begin();
+    Xml::node_iterator np = fromString.node_begin();
     for (; np != fromString.node_end(); ++np)
         cout << "  " << np->getNodeTypeAsString() << endl;
 
 
     const Xml::Element& root = fromString.getRootElement();
-    Xml::Element& wroot = fromString.updRootElement();
+    Xml::Element& wroot = fromString.getRootElement();
 
     cout << "hasChildNode()=" << root.hasChildNode() << endl;
     cout << "hasChildNode(Comment)=" << root.hasChildNode(Xml::CommentNode) << endl;
     cout << "hasChildNode(Unknown)=" << root.hasChildNode(Xml::UnknownNode) << endl;
 
-    showElement(root);
+    showElement(wroot);
 
-    Xml::const_node_iterator p = root.node_begin(Xml::NoJunkNodes);
+    Xml::node_iterator p = wroot.node_begin(Xml::NoJunkNodes);
     for (; p != root.node_end(); ++p)
         cout << p->getNodeTypeAsString() << endl;
 
