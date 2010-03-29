@@ -1223,7 +1223,11 @@ public:
 	/// Constructs an empty comment.
 	TiXmlComment() : TiXmlNode( TiXmlNode::COMMENT ) {}
 	/// Construct a comment from text.
-	TiXmlComment( const char* _value ) : TiXmlNode( TiXmlNode::COMMENT ) {
+	explicit TiXmlComment( const char* _value ) : TiXmlNode( TiXmlNode::COMMENT ) {
+		SetValue( _value );
+	}
+	/// Construct a comment from text.
+	explicit TiXmlComment( const String& _value ) : TiXmlNode( TiXmlNode::COMMENT ) {
 		SetValue( _value );
 	}
 	TiXmlComment( const TiXmlComment& );
@@ -1278,19 +1282,18 @@ public:
 	normal, encoded text. If you want it be output as a CDATA text
 	element, set the parameter _cdata to 'true'
 	*/
-	TiXmlText (const char * initValue ) : TiXmlNode (TiXmlNode::TEXT)
+	explicit TiXmlText (const char * initValue ) : TiXmlNode (TiXmlNode::TEXT)
+	{
+		SetValue( initValue );
+		cdata = false;
+	}
+	/// Constructor.
+	explicit TiXmlText( const String& initValue ) : TiXmlNode (TiXmlNode::TEXT)
 	{
 		SetValue( initValue );
 		cdata = false;
 	}
 	virtual ~TiXmlText() {}
-
-	/// Constructor.
-	TiXmlText( const String& initValue ) : TiXmlNode (TiXmlNode::TEXT)
-	{
-		SetValue( initValue );
-		cdata = false;
-	}
 
 	TiXmlText( const TiXmlText& copy ) : TiXmlNode( TiXmlNode::TEXT )	{ copy.CopyTo( this ); }
 	void operator=( const TiXmlText& base )							 	{ base.CopyTo( this ); }

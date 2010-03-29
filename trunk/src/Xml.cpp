@@ -451,9 +451,11 @@ operator--(int) {
 //------------------------------------------------------------------------------
 //                                 XML NODE
 //------------------------------------------------------------------------------                  
-void Xml::Node::clear()
-{   if (isOrphan()) delete tiNode;
-    tiNode = 0; }
+void Xml::Node::clear() {   
+    if (isOrphan())
+        delete tiNode;
+    tiNode = 0; 
+}
 
 
 Xml::NodeType Xml::Node::getNodeType() const {
@@ -588,7 +590,7 @@ bool Xml::Element::isValueElement() const {
 }
 
 const String& Xml::Element::getValue() const {
-    const String null;
+    static const String null;
     SimTK_ERRCHK1_ALWAYS(isValueElement(), "Xml::Element::getValue()",
         "Element <%s> is not a value element.", getElementTag().c_str());
 
