@@ -401,6 +401,12 @@ void insertTopLevelNodeAfter (const node_iterator& afterThis,
 indicated by the node_iterator. See insertTopLevelNodeAfter() for details. **/
 void insertTopLevelNodeBefore(const node_iterator& beforeThis, 
                               Node                 insertThis);
+/** Delete the indicated top-level node, which must not be the root element,
+and must not be node_end(). That is, it must be a top-level Comment or
+Unknown node which will be removed from the Xml document and deleted. The
+iterator is invalid after this call; be sure not to use it again. Also, there 
+must not be any handles referencing the now-deleted node. **/
+void eraseTopLevelNode(const node_iterator& deleteThis);
 /*@}*/
 
 
@@ -603,6 +609,8 @@ explicit attribute_iterator(Attribute& attr) : attr(attr) {}
 still allows writing to the Attribute. **/
 attribute_iterator(const attribute_iterator& src) 
 :   attr(src->updTiAttrPtr()) {}
+/** An iterator destructor never deletes the object to which it refers. **/
+~attribute_iterator() {attr.setTiAttrPtr(0);}
 /** Copy assignment takes an attribute_iterator that can be const, but that
 still allows writing to the Attribute. **/
 attribute_iterator& operator=(const attribute_iterator& src) 
@@ -844,6 +852,8 @@ explicit node_iterator(Node& node, NodeType allowed=AnyNodes)
 still allows writing to the Node. **/
 node_iterator(const node_iterator& src) 
 :   node(*src), allowed(src.allowed) {}
+/** An iterator destructor never deletes the object to which it refers. **/
+~node_iterator() {node.setTiNodePtr(0);}
 /** Copy assignment takes an node_iterator that can be const, but that
 still allows writing to the Node. **/
 node_iterator& operator=(const node_iterator& src) 
@@ -902,6 +912,7 @@ inline explicit element_iterator(Element& elt, const String& tag=""); // below
 still allows writing to the Element. **/
 element_iterator(const element_iterator& src) 
 :   node_iterator(src), tag(src.tag) {}
+
 /** Copy assignment takes an element_iterator that can be const, but that
 still allows writing to the Element. **/
 element_iterator& operator=(const element_iterator& src) 
@@ -1012,6 +1023,12 @@ is node_end()). The iterator must refer to a node that is a child of this
 Element. This Element takes over ownership of the node which must 
 not already have a parent. **/
 void insertNodeAfter(const node_iterator& pos, Node node);
+/** Delete the indicated node, which must be a child of this element,
+and must not be node_end(). The node will be removed from this element
+and deleted. The iterator is invalid after this call; be sure not to use it 
+again. Also, there must not be any handles referencing the now-deleted 
+node. **/
+void eraseNode(const node_iterator& deleteThis);
 /*@}*/
 
 

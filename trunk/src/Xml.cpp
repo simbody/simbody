@@ -340,6 +340,24 @@ void Xml::insertTopLevelNodeBefore(const Xml::node_iterator& beforeThis,
                                       insertThis.updTiNodePtr());
 }
 
+void Xml::eraseTopLevelNode(const Xml::node_iterator& deleteThis) {
+    const char* method = "Xml::eraseTopLevelNode()";
+
+    // Check that the supplied iterator points to something.
+    SimTK_ERRCHK_ALWAYS(deleteThis != node_end(), method,
+        "The node_iterator is at node_end() so doesn't refer to a Node.");
+    // There is an iterator, make sure it's a top-level one.
+    SimTK_ERRCHK_ALWAYS(deleteThis->isTopLevelNode(), method,
+        "The node_iterator did not refer to a top-level Node.");
+    SimTK_ERRCHK1_ALWAYS(Comment::isA(*deleteThis) || Unknown::isA(*deleteThis),
+        method, "The Node had NodeType %s, but only Comment and Unknown nodes"
+        " can be erased at the topmost document level.",
+        deleteThis->getNodeTypeAsString().c_str());
+
+    updImpl().m_tixml.RemoveChild(deleteThis->updTiNodePtr());
+}
+
+
 
 String Xml::getXmlVersion() const 
 {   return getImpl().getTiXmlDeclaration().Version(); }
@@ -720,6 +738,19 @@ void Xml::Element::insertNodeAfter(const node_iterator& afterThis, Node node) {
     p->LinkAfterChild(p, node.updTiNodePtr());
 }
 
+void Xml::Element::eraseNode(const Xml::node_iterator& deleteThis) {
+    const char* method = "Xml::Element::eraseNode()";
+
+    // Check that the supplied iterator points to something.
+    SimTK_ERRCHK_ALWAYS(deleteThis != node_end(), method,
+        "The node_iterator is at node_end() so doesn't refer to a Node.");
+    // There is an iterator, make sure it points to a child of this element.
+    SimTK_ERRCHK_ALWAYS(deleteThis->hasParentElement()
+                        && deleteThis->getParentElement()==*this, method,
+        "The node_iterator did not refer to a child of this Element.");
+
+    updTiElement().RemoveChild(deleteThis->updTiNodePtr());
+}
 
 
     // Element node_begin()

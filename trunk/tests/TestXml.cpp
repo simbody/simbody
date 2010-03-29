@@ -232,8 +232,21 @@ void testXmlFromScratch() {
         Xml::Comment("This should be at the top of the file, except declaration."));
     cout << scratch;
 
+    scratch.eraseTopLevelNode(scratch.node_begin());
+    cout << "First node gone?\n" << scratch;
+
     Xml::Element e2("anotherElt", Vec3(.1,.2,.3));
     cout << e2;
+    e.insertNodeAfter(e.element_end(), e2);
+    cout << "now owns anotherElt:\n" << e;
+
+    Xml::Element root = scratch.getRootElement();
+    root.insertNodeAfter(root.node_begin(), e);
+    cout << scratch;
+
+    e.eraseNode(e.element_begin("anotherElt"));
+    cout << scratch;
+
 }
 
 #define SHOWIT(something) \
