@@ -292,7 +292,7 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     const int firstVertex = getNumVertices();
 
     // The lone DataArray element in the Points element contains the points'
-    // coordinates. Read it in as a Vector
+    // coordinates. Read it in as a Vector of Vec3s.
     Vector_<Vec3> coords = 
         points.getRequiredElementValueAs< Vector_<Vec3> >("DataArray");
 
@@ -300,23 +300,10 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
         "Expected coordinates for %d points but got %d.",
         numPoints, coords.size());
 
+    // Now that we have the point coordinates, use them to create the vertices
+    // in our mesh.
     for (int i=0; i < numPoints; ++i)
         addVertex(coords[i]);
-
-
-    //const String& coordString = points.getRequiredElementValue("DataArray");
-    //std::stringstream cstream(coordString);
-    //for (int i=1; i <= numPoints; ++i) {
-    //    Vec3 pt; cstream >> pt; 
-    //    SimTK_ERRCHK_ALWAYS(!cstream.fail(), method,
-    //        "Couldn't parse the <Points> coordinates DataArray.");
-    //    // Eof is only allowed when reading the last point.
-    //    if (i != numPoints)
-    //        SimTK_ERRCHK2_ALWAYS(!cstream.eof(), method,
-    //            "Expected coordinates for %d points but ran out after %d.",
-    //            numPoints, i);
-    //    addVertex(pt);
-    //}
 
     // Polys are given by a connectivity array which lists the points forming
     // each polygon in a long unstructured list, then an offsets array, one per
@@ -338,8 +325,7 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
         " least one of them was missing.");
 
     // Read in the arrays.
-    Array_<int> offsets(numPolys);
-    eoffsets.getValueAs<Array_<int> >(offsets);
+    Array_<int> offsets = eoffsets.getValueAs< Array_<int> >();
     // Size may have changed if file is bad.
     SimTK_ERRCHK2_ALWAYS(offsets.size() == numPolys, method,
         "The number of offsets (%d) should have matched the stated "
@@ -349,8 +335,7 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     // end of the last polygon described in the connectivity array and hence
     // is the size of the connectivity array.
     const int expectedSize = numPolys ? offsets.back() : 0;
-    Array_<int> connectivity(expectedSize);
-    econnectivity.getValueAs<Array_<int> >(connectivity);
+    Array_<int> connectivity = econnectivity.getValueAs< Array_<int> >();
 
     SimTK_ERRCHK2_ALWAYS(connectivity.size()==expectedSize, method,
         "The connectivity array was the wrong size (%d). It should"
