@@ -642,7 +642,7 @@ void Xml::Element::setValue(const String& value) {
 }
 
 bool Xml::Element::hasAttribute(const String& name) const 
-{   return unconst().find_attribute(name) != attribute_end(); }
+{   return unconst().getOptionalAttribute(name).isValid(); }
 
 bool Xml::Element::hasElement(const String& tag) const 
 {   return unconst().element_begin(tag) != element_end(); }
@@ -665,14 +665,34 @@ Xml::Element Xml::Element::getOptionalElement(const String& tag) {
 }
 
 Xml::Attribute Xml::Element::getRequiredAttribute(const String& name) {
-    attribute_iterator p = find_attribute(name);
-    SimTK_ERRCHK2_ALWAYS(p != attribute_end(), 
+    Attribute attr = getOptionalAttribute(name);
+    SimTK_ERRCHK2_ALWAYS(attr.isValid(), 
         "Xml::Element::getRequiredAttribute()",
         "Couldn't find required attribute %s in element <%s>.",
         name.c_str(), getElementTag().c_str());
-    return *p;
+    return attr;
 }
 
+Xml::Attribute Xml::Element::getOptionalAttribute(const String& name) {
+    for (attribute_iterator p = attribute_begin();
+                            p != attribute_end(); ++p)
+        if (p->getName() == name) return *p;
+    return Attribute(0);
+}
+
+
+void Xml::Element::setAttributeValue(const String& name, const String& value) {
+    SimTK_ERRCHK_ALWAYS(isValid(), "Xml::Element::setAttributeValue()",
+        "Can't add an attribute to an empty Element handle.");
+    updTiElement().SetAttribute(name,value);
+}
+
+
+void Xml::Element::removeAttribute(const String& name) {
+    SimTK_ERRCHK_ALWAYS(isValid(), "Xml::Element::removeAttribute()",
+        "Can't remove an attribute from an empty Element handle.");
+    updTiElement().RemoveAttribute(name);
+}
 
 /*static*/ bool Xml::Element::isA(const Xml::Node& node) 
 {   if (!node.isValid()) return false;
@@ -789,7 +809,6 @@ attribute_begin() {
 Xml::attribute_iterator Xml::Element::
 attribute_end() const
 {   return attribute_iterator(0); }
-
 
 
 

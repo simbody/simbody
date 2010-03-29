@@ -560,6 +560,7 @@ bool operator!=(const Attribute& attr) const {return tiAttr!=attr.tiAttr;}
 //------------------------------------------------------------------------------
                                   private:
 friend class Xml::attribute_iterator;
+friend class Xml::Element;
 
 explicit Attribute(TiXmlAttribute* attr) {tiAttr=attr;}
 const TiXmlAttribute& getTiAttr() const {assert(tiAttr);return *tiAttr;}
@@ -894,8 +895,9 @@ NodeType        allowed;
 //                          XML ELEMENT ITERATOR
 //------------------------------------------------------------------------------
 /** This is a bidirectional iterator suitable for moving forward or backward
-within a list of Nodes, for writable access. By default we will iterate
-over all nodes but you can restrict the type at construction. **/
+within a list of Element nodes, for writable access. By default we will iterate
+over all elements in a list but you can restrict the element_iterator at
+construction to find only elements with a particular tag. **/
 class SimTK_SimTKCOMMON_EXPORT Xml::element_iterator
 :   public Xml::node_iterator {
 public:
@@ -1101,31 +1103,33 @@ zero or one Text nodes; if none we'll return a null string, otherwise
 the value of the Text node. Thus an element like "<tag>stuff</tag>" will
 have the value "stuff". An error will be thrown if either the element
 is not found or it is not a "value element". **/
-const String& getRequiredElementValue(const String& tag) const
+const String& 
+getRequiredElementValue(const String& tag) const
 {   return unconst().getRequiredElement(tag).getValue(); }
 
-/** Get the text value of a child text element that \e may be present in
+/** Get the text value of a child value element that \e may be present in
 this element, otherwise return a default string. If the child element is 
-found, it must be a "text element" as defined above. **/
-String getOptionalElementValue
-   (const String& tag, const String& def="") const
+found, it must be a "value element" as defined above. **/
+String 
+getOptionalElementValue(const String& tag, const String& def="") const
 {   const Element opt(unconst().getOptionalElement(tag));
     return opt.isValid() ? opt.getValue() : def; }
 
-/** Convert the text value of a required child text element to the type
+/** Convert the text value of a required child value element to the type
 of the template argument T. It is an error if the element is present but is
-not a text element, or if the text cannot be converted,
+not a value element, or if the text cannot be converted,
 in its entirety, to a single object of type T. (But note that type T may
 be a container of some sort, like a Vector or Array.) 
 @tparam     T   A type that can be read from a stream using the ">>" operator.
 @param[in]  tag The tag of the required child text element.
 @return The value of the text element, converted to an object of type T. **/
-template <class T> T  getRequiredElementValueAs(const String& tag) const
+template <class T> T  
+getRequiredElementValueAs(const String& tag) const
 {   T out; convertStringTo(getRequiredElementValue(tag), out); return out; }
 
-/** Convert the text value of an optional child text element, if present, to
+/** Convert the text value of an optional child value element, if present, to
 the type of the template argument T. It is an error if the child element is
-present but is not a text element, or if the text cannot be 
+present but is not a value element, or if the text cannot be 
 converted, in its entirety, to a single object of type T. (But note that 
 type T may be a container of some sort, like a Vector or Array.) If the 
 child element is not present, then return a supplied default value of type T.
@@ -1135,7 +1139,7 @@ child element is not present, then return a supplied default value of type T.
 @return The value of element \a tag if it is present, otherwise a copy
 of the supplied default value \a def. **/
 template <class T> T 
-    getOptionalElementValueAs(const String& tag, const T& def) const
+getOptionalElementValueAs(const String& tag, const T& def) const
 {   const Element opt(getOptionalElement(tag));
     if (!opt.isValid()) return def;
     T out; convertStringTo(opt.getValue(), out); return out; }
@@ -1150,10 +1154,18 @@ can iterate through the list of attributes. **/
 /** Return true if this element has an attribute of this name. **/
 bool hasAttribute(const String& name) const;
 
+/** Set the value of an attribute of this element, creating a new one if
+this is a new attribute name otherwise modifying an existing one. **/
+void setAttributeValue(const String& name, const String& value);
+
+/** Remove an attribute of this element if it exists, otherwise do nothing.
+If you need to know if the attribute exists, use hasAttribute(). **/
+void removeAttribute(const String& name);
 
 /** Get the value of an attribute as a string and throw an error if that 
 attribute is not present. **/
-const String& getRequiredAttributeValue(const String& name) const
+const String& 
+getRequiredAttributeValue(const String& name) const
 {   return unconst().getRequiredAttribute(name).getValue(); }
 
 /** Convert the text value of a required attribute to the type
@@ -1162,16 +1174,21 @@ in its entirety, to a single object of type T. (But note that type T may
 be a container of some sort, like a Vec3.) 
 @tparam T   A type that can be read from a stream using the ">>" operator.
 **/
-template <class T> T getRequiredAttributeValueAs
-   (const String& name) const
+template <class T> T 
+getRequiredAttributeValueAs(const String& name) const
 {   T out; convertStringTo(getRequiredAttributeValue(name),out); return out; }
 
 /** Get the value of an attribute as a string if the attribute is present in 
-this element, otherwise return a supplied default value. **/
-String getOptionalAttributeValue
-   (const String& name, const String& def="") const
-{   attribute_iterator p = unconst().find_attribute(name);
-    return p==attribute_end() ? def : p->getValue(); }
+this element, otherwise return a supplied default value.
+@param[in]  name The name of the optional attribute.
+@param[in]  def  The string to return if the attribute is missing.
+@return The value of attribute \a name if it is present, otherwise a copy
+of the supplied default string \a def. **/
+String 
+getOptionalAttributeValue(const String& name, const String& def="") const
+{   Attribute attr = unconst().getOptionalAttribute(name);
+    if (!attr.isValid()) return def;
+    return attr.getValue(); }
 
 /** Convert the value of an optional attribute, if present, from a string to 
 the type of the template argument T. It is an error if the text can not be 
@@ -1183,15 +1200,20 @@ present, then return a supplied default value of type T.
 @param[in]  def  The value of type T to return if the attribute is missing.
 @return The value of attribute \a name if it is present, otherwise a copy
 of the supplied default value \a def. **/
-template <class T> T getOptionalAttributeValueAs
-   (const String& name, const T& def) const
-{   attribute_iterator p = find_attribute(name);
-    if (p==attribute_end()) return def;
-    T out; convertStringTo(p->getValue(), out); return out; }
+template <class T> T 
+getOptionalAttributeValueAs(const String& name, const T& def) const
+{   Attribute attr = unconst().getOptionalAttribute(name);
+    if (!attr.isValid()) return def;
+    T out; convertStringTo(attr.getValue(), out); return out; }
 
 /** Obtain an Attribute handle referencing a particular attribute of this 
 element; an error will be thrown if no such attribute is present. **/
 Attribute getRequiredAttribute(const String& name);
+
+/** Obtain an Attribute handle referencing a particular attribute of this 
+element specified by name, or an empty handle if no such attribute is 
+present. **/
+Attribute getOptionalAttribute(const String& name);
 
 /** Return an array containing Attribute handles referencing all the
 attributes of this element. Attributes are returned in the order that
@@ -1201,27 +1223,17 @@ to appear is retained and that's the only one we'll find here. This is
 just a shortcut for @code
     Array_<Attribute>(attribute_begin(), attribute_end());
 @endcode **/
-Array_<Attribute> findAllAttributes()
+Array_<Attribute> getAllAttributes()
 {   return Array_<Attribute>(attribute_begin(), attribute_end()); }
+
 
 /** For iterating through all the attributes of this element. If there are no 
 attributes then the returned attribute_iterator tests equal to 
-attribute_end(). 
-@see find_attribute() to get an iterator to a particular attribute. **/
+attribute_end(). **/
 attribute_iterator attribute_begin();
 /** This attribute_end() iterator indicates the end of a sequence of 
 attributes. **/
 attribute_iterator attribute_end() const;
-
-/** Search for a particular attribute by name and return an attribute_iterator
-pointing to it if found, or an iterator that tests equal to attribute_end()
-if no such attribute can be found. **/
-attribute_iterator find_attribute(const String& name) {
-    for (attribute_iterator p = attribute_begin();
-            p != attribute_end(); ++p)
-        if (p->getName() == name) return p;
-    return attribute_end();
-}
 /*@}*/
 
 /**@name                    Compound elements
@@ -1245,7 +1257,7 @@ bool hasNode(NodeType allowed=AnyNodes) const;
 /** Get a reference to a child element that \e must be present in this 
 element. The child is identified by its tag; if there is more than one
 only the first one is returned. If you want to see all children with this
-tag, use findAllElements() or use an element_iterator. **/
+tag, use getAllElements() or use an element_iterator. **/
 Element getRequiredElement(const String& tag);
 
 /** Get a reference to a child element that \e may be present in this 
@@ -1260,7 +1272,7 @@ are returned in the order they are seen in the document. This is just a
 shortcut for @code
     Array_<Element>(element_begin(tag), element_end());
 @endcode **/
-Array_<Element> findAllElements(const String& tag="")
+Array_<Element> getAllElements(const String& tag="")
 {   return Array_<Element>(element_begin(tag), element_end()); }
 
 /** Return an array containing Node handles referencing all the
@@ -1269,7 +1281,7 @@ nodes of a particular type or types. Nodes are returned in the order they
 are seen in the document. This is just a shortcut for @code
     Array_<Node>(node_begin(allowed), node_end());
 @endcode **/
-Array_<Node> findAllNodes(NodeType allowed=AnyNodes)
+Array_<Node> getAllNodes(NodeType allowed=AnyNodes)
 {   return Array_<Node>(node_begin(allowed), node_end()); }
 
 /** For iterating through the immediate child elements of this element, or the 
