@@ -306,6 +306,9 @@ public:
     /// nrow() and ncol().
     ptrdiff_t nelt() const {return helper.nelt();}
 
+    /// Return true if either dimension of this Matrix is resizable.
+    bool isResizeable() const {return getCharacterCommitment().isResizeable();}
+
     enum { 
         NScalarsPerElement    = CNT<E>::NActualScalars,
         CppNScalarsPerElement = sizeof(E) / sizeof(Scalar)
@@ -348,8 +351,8 @@ public:
       : helper(b.helper.getCharacterCommitment(),
                b.helper, typename MatrixHelper<Scalar>::DeepCopy()) { }
     
-    /// Copy assignment is a deep copy but behavior depends on type of lhs: if view, rhs
-    /// must match. If owner, we reallocate and copy rhs.
+    /// Copy assignment is a deep copy but behavior depends on type of lhs: if 
+    /// view, rhs must match. If owner, we reallocate and copy rhs.
     MatrixBase& copyAssign(const MatrixBase& b) {
         helper.copyAssign(b.helper);
         return *this;
@@ -2684,18 +2687,245 @@ operator*(const MatrixBase<E1>& m1, const MatrixBase<E2>& m2) {
 
 /// @}
 
-    // GLOBAL OPERATORS: I/O
+// This "private" static method is used to implement VectorView's 
+// fillVectorViewFromStream() and Vector's readVectorFromStream() 
+// namespace-scope static methods, which are in turn used to implement 
+// VectorView's and 
+// Vector's stream extraction operators ">>". This method has to be in the 
+// header file so that we don't need to pass streams through the API, but it 
+// is not intended for use by users and has no Doxygen presence, unlike 
+// fillArrayFromStream() and readArrayFromStream() and (more commonly)
+// the extraction operators.
+template <class T> static inline 
+std::istream& readVectorFromStreamHelper
+   (std::istream& in, bool isFixedSize, Vector_<T>& out)
+{
+    // If already failed, bad, or eof, set failed bit and return without 
+    // touching the Vector.
+    if (!in.good()) {in.setstate(std::ios::failbit); return in;}
 
+    // If the passed-in Vector isn't resizeable, then we have to treat it as
+    // a fixed size VectorView regardless of the setting of the isFixedSize
+    // argument.
+    if (!out.isResizeable())
+        isFixedSize = true; // might be overriding the argument here
+
+    // numRequired will be ignored unless isFixedSize==true.
+    const int numRequired = isFixedSize ? out.size() : 0;
+
+    if (!isFixedSize)
+        out.clear(); // We're going to replace the entire contents of the Array.
+
+    // Skip initial whitespace. If that results in eof this may be a successful
+    // read of a 0-length, unbracketed Vector. That is OK for either a
+    // variable-length Vector or a fixed-length VectorView of length zero.
+    std::ws(in); if (in.fail()) return in;
+    if (in.eof()) {
+        if (isFixedSize && numRequired != 0)
+            in.setstate(std::ios_base::failbit); // zero elements not OK
+        return in;
+    }
+    
+    // Here the stream is good and the next character is non-white.
+    assert(in.good());
+
+    // Use this for raw i/o (peeks and gets).
+    typename       std::iostream::int_type ch;
+    const typename std::iostream::int_type EOFch = 
+        std::iostream::traits_type::eof();
+
+    // First we'll look for the optional "~". If found, the brackets become
+    // required.
+    bool tildeFound = false;
+    ch = in.peek(); if (in.fail()) return in;
+    assert(ch != EOFch); // we already checked above
+    if ((char)ch == '~') {
+        tildeFound = true;
+        in.get(); // absorb the tilde
+        // Eat whitespace after the tilde to see what's next.
+        if (in.good()) std::ws(in);
+        // If we hit eof after the tilde we don't like the formatting.
+        if (!in.good()) {in.setstate(std::ios_base::failbit); return in;}
+    }
+
+    // Here the stream is good, the next character is non-white, and we
+    // might have seen a tilde.
+    assert(in.good());
+
+    // Now see if the sequence is bare or surrounded by (), or [].
+    bool lookForCloser = true;
+    char openBracket, closeBracket;
+    ch = in.peek(); if (in.fail()) return in;
+    assert(ch != EOFch); // we already checked above
+
+    openBracket = (char)ch;
+    if      (openBracket=='(') {in.get(); closeBracket = ')';}
+    else if (openBracket=='[') {in.get(); closeBracket = ']';}
+    else lookForCloser = false;
+
+    // If we found a tilde, the opening bracket was mandatory. If we didn't
+    // find one then we reject the formatting.
+    if (tildeFound && !lookForCloser)
+    {   in.setstate(std::ios_base::failbit); return in;}
+
+    // If lookForCloser is true, then closeBracket contains the terminating
+    // delimiter, otherwise we're not going to quit until eof.
+
+    // Eat whitespace after the opening bracket to see what's next.
+    if (in.good()) std::ws(in);
+
+    // If we're at eof now it must be because the open bracket was the
+    // last non-white character in the stream, which is an error.
+    if (!in.good()) {
+        if (in.eof()) {
+            assert(lookForCloser); // or we haven't read anything that could eof
+            in.setstate(std::ios::failbit);
+        }
+        return in;
+    }
+
+    // istream is good and next character is non-white; ready to read first
+    // value or terminator.
+
+    // We need to figure out whether the elements are space- or comma-
+    // separated and then insist on consistency.
+    bool commaOK = true, commaRequired = false;
+    bool terminatorSeen = false;
+    int nextIndex = 0;
+    while (true) {
+        char c;
+
+        // Here at the top of this loop, we have already successfully read 
+        // n=nextIndex values of type T. For fixed-size reads, it might be
+        // the case that n==numRequired already, but we still may need to
+        // look for a closing bracket before we can declare victory.
+        // The stream is good() (not at eof) but it might be the case that 
+        // there is nothing but white space left; we don't know yet because
+        // if we have satisfied the fixed-size count and are not expecting
+        // a terminator then we should quit without absorbing the trailing
+        // white space.
+        assert(in.good());
+
+        // Look for closing bracket before trying to read value.
+        if (lookForCloser) {
+            // Eat white space to find the closing bracket.
+            std::ws(in); if (!in.good()) break; // eof?
+            ch = in.peek(); assert(ch != EOFch);
+            if (!in.good()) break;
+            c = (char)ch;
+            if (c == closeBracket) {   
+                in.get(); // absorb the closing bracket
+                terminatorSeen = true; 
+                break; 
+            }
+            // next char not a closing bracket; fall through
+        }
+
+        // We didn't look or didn't find a closing bracket. The istream is good 
+        // but we might be looking at white space.
+
+        // If we already got all the elements we want, break for final checks.
+        if (isFixedSize && (nextIndex == numRequired))
+            break; // that's a full count.
+
+        // Look for comma before value, except the first time.
+        if (commaOK && nextIndex != 0) {
+            // Eat white space to find the comma.
+            std::ws(in); if (!in.good()) break; // eof?
+            ch = in.peek(); assert(ch != EOFch);
+            if (!in.good()) break;
+            c = (char)ch;
+            if (c == ',') {
+                in.get(); // absorb comma
+                commaRequired = true; // all commas from now on
+            } else { // next char not a comma
+                if (commaRequired) // bad, e.g.: v1, v2, v3 v4 
+                {   in.setstate(std::ios::failbit); break; }
+                else commaOK = false; // saw: v1 v2 (no commas now)
+            }
+            if (!in.good()) break; // might be eof
+        }
+
+        // No closing bracket yet; don't have enough elements; skipped comma 
+        // if any; istream is good; might be looking at white space.
+        assert(in.good());
+
+        // Now read in an element of type T.
+        // The extractor T::operator>>() will ignore leading white space.
+        if (!isFixedSize)
+            out.resizeKeep(out.size()+1); // grow by one (default consructed)
+        in >> out[nextIndex]; if (in.fail()) break;
+        ++nextIndex;
+
+        if (!in.good()) break; // might be eof
+    }
+
+    // We will get here under a number of circumstances:
+    //  - the fail bit is set in the istream, or
+    //  - we reached eof
+    //  - we saw a closing brace
+    //  - we got all the elements we wanted (for a fixed-size read)
+    // Note that it is possible that we consumed everything except some
+    // trailing white space (meaning we're not technically at eof), but
+    // for consistency with built-in operator>>()'s we won't try to absorb
+    // that trailing white space.
+
+    if (!in.fail()) {
+        if (lookForCloser && !terminatorSeen)
+            in.setstate(std::ios::failbit); // missing terminator
+
+        if (isFixedSize && nextIndex != numRequired)
+            in.setstate(std::ios::failbit); // wrong number of values
+    }
+
+    return in;
+}
+
+
+
+//------------------------------------------------------------------------------
+//                          RELATED GLOBAL OPERATORS
+//------------------------------------------------------------------------------
+// These are logically part of the Matrix_<T> class but are not actually 
+// class members; that is, they are in the SimTK namespace.
+
+/**@name             Matrix_<T> serialization and I/O
+These methods are at namespace scope but are logically part of the Vector
+classes. These deal with reading and writing Vectors from and to streams,
+which places an additional requirement on the element type T: the element 
+must support the same operation you are trying to do on the Vector as a 
+whole. **/
+/*@{*/
+
+/** Output a human readable representation of a Vector to an std::ostream
+(like std::cout). The format is ~[ \e elements ] where \e elements is a 
+space-separated list of the Vector's contents output by invoking the "<<" 
+operator on the elements. This function will not compile if the element type 
+does not support the "<<" operator. No newline is issued before
+or after the output. @relates Vector_ **/
 template <class T> inline std::ostream&
 operator<<(std::ostream& o, const VectorBase<T>& v)
 { o << "~["; for(int i=0;i<v.size();++i) o<<(i>0?" ":"")<<v[i]; 
     return o << "]"; }
 
+/** Output a human readable representation of a RowVector to an std::ostream
+(like std::cout). The format is [ \e elements ] where \e elements is a 
+space-separated list of the RowVector's contents output by invoking the "<<" 
+operator on the elements. This function will not compile if the element type 
+does not support the "<<" operator. No newline is issued before
+or after the output. @relates RowVector_ **/
 template <class T> inline std::ostream&
 operator<<(std::ostream& o, const RowVectorBase<T>& v)
 { o << "["; for(int i=0;i<v.size();++i) o<<(i>0?" ":"")<<v[i]; 
     return o << "]"; }
 
+/** Output a human readable representation of a Matrix to an std::ostream
+(like std::cout). The format is one row per line, with each row output as
+[ \e elements ] where \e elements is a 
+space-separated list of the row's contents output by invoking the "<<" 
+operator on the elements. This function will not compile if the element type 
+does not support the "<<" operator. A newline is issued before each row and
+at the end. @relates Matrix_ **/
 template <class T> inline std::ostream&
 operator<<(std::ostream& o, const MatrixBase<T>& m) {
     for (int i=0;i<m.nrow();++i)
@@ -2704,6 +2934,106 @@ operator<<(std::ostream& o, const MatrixBase<T>& m) {
     return o; 
 }
 
+
+/** Read in a Vector_<T> from a stream, as a sequence of space-separated or
+comma-separated values optionally surrounded by parentheses (), or square 
+brackets [], or the "transposed" ~() or ~[]. In the case that the transpose
+operator is present, the parentheses or brackets are required, otherwise they
+are optional. We will continue to read elements of 
+type T from the stream until we find a reason to stop, using type T's stream 
+extraction operator>>() to read in each element and resizing the Vector as
+necessary. If the data is bracketed, we'll read until we hit the closing 
+bracket. If it is not bracketed, we'll read until we hit eof() or get an error
+such as the element extractor setting the stream's fail bit due to bad 
+formatting. On successful return, the stream will be positioned right after 
+the final read-in element or terminating bracket, and the stream's status will 
+be good() or eof(). We will not consume trailing whitespace after bracketed 
+elements; that means the stream might actually be empty even if we don't 
+return eof(). If you want to know whether there is anything else in the 
+stream, follow this call with the STL whitespace skipper std::ws() like this:
+@code
+    if (readVectorFromStream(in,vec) && !in.eof()) 
+        std::ws(in); // might take us to eof
+    if (in.fail()) {...} // probably a formatting error
+    else {
+        // Here if the stream is good() then there is more to read; if the
+        // stream got used up the status is guaranteed to be eof().
+    }
+@endcode
+A compilation error will occur if you try to use this method on an Vector_<T>
+for a type T for which there is no stream extraction operator>>(). 
+@note If you want to fill a resizeable Vector_<T> with a fixed amount of data 
+from the stream, resize() the Vector to the appropriate length and then use 
+fillVectorFromStream() instead. @see fillVectorFromStream()
+@relates Vector_ **/
+template <class T> static inline 
+std::istream& readVectorFromStream(std::istream& in, Vector_<T>& out)
+{   return readVectorFromStreamHelper<T>(in, false /*variable sizez*/, out); }
+
+
+
+/** Read in a fixed number of elements from a stream into a Vector. We expect 
+to read in exactly size() elements of type T, using type T's stream extraction 
+operator>>(). This will stop reading when we've read size() elements, or set 
+the fail bit in the stream if we run out of elements or if any element's 
+extract operator sets the fail bit. On successful return, all size() elements 
+will have been set, the stream will be positioned right after the final 
+read-in element or terminating bracket, and the stream's status will be good()
+or eof(). We will not consume trailing whitespace after reading all the 
+elements; that means the stream might actually be empty even if we don't 
+return eof(). If you want to know whether there is anything else in the 
+stream, follow this call with std::ws() like this:
+@code
+    if (fillVectorFromStream(in,vec))
+        if (!in.eof()) std::ws(in); // might take us to eof
+    if (in.fail()) {...} // deal with I/O or formatting error
+    // Here if the stream is good() then there is more to read; if the
+    // stream got used up the status is guaranteed to be eof().
+@endcode
+A compilation error will occur if you try to use this method on a Vector_<T>
+for a type T for which there is no stream extraction operator>>().
+@note If you want to read in a variable number of elements and have the 
+Vector_<T> resized as needed, use readVectorFromStream() instead.
+@see readVectorFromStream()
+@relates Vector_ **/
+template <class T> static inline 
+std::istream& fillVectorFromStream(std::istream& in, Vector_<T>& out)
+{   return readVectorFromStreamHelper<T>(in, true /*fixed size*/, out); }
+
+/** Read in a fixed number of elements from a stream into an VectorView. See
+fillVectorFromStream() for more information; this works the same way.
+@see fillVectorFromStream()
+@relates VectorView_ **/
+template <class T> static inline 
+std::istream& fillVectorViewFromStream(std::istream& in, VectorView_<T>& out)
+{   return readVectorFromStreamHelper<T>(in, true /*fixed size*/, out); }
+
+
+/** Read Vector_<T> from a stream as a sequence of space- or comma-separated
+values of type T, optionally delimited by parentheses, or brackets, and
+preceded by "~". The Vector_<T> may be an owner (variable size) or a view 
+(fixed size n). In the case of an owner, we'll read all the elements in 
+brackets or until eof if there are no brackets. In the case of a view, there 
+must be exactly n elements in brackets, or if there are no brackets we'll 
+consume exactly n elements and then stop. Each element is read in with its 
+own operator ">>" so this won't work if no such operator is defined for 
+type T. @relates Vector_ **/
+template <class T> inline
+std::istream& operator>>(std::istream& in, Vector_<T>& out) 
+{   return readVectorFromStream<T>(in, out); }
+
+/** Read a (fixed size n) VectorView_<T> from a stream as a sequence of space- 
+or comma-separated values of type T, optionally delimited by parentheses or 
+square brackets, and preceded by "~". If there are no delimiters then we will 
+read size() values and then stop. Otherwise, there must be exactly size() 
+values within the brackets. Each element is read in with its own 
+operator ">>" so  this won't work if no such operator is defined for type T.
+@relates VectorView_ **/
+template <class T> inline
+std::istream& operator>>(std::istream& in, VectorView_<T>& out) 
+{   return fillVectorViewFromStream<T>(in, out); }
+
+/*@}                     End of Matrix serialization. **/
 
 // Friendly abbreviations for default precision vectors and matrices.
 

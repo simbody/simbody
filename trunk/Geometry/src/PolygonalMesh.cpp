@@ -292,20 +292,31 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     const int firstVertex = getNumVertices();
 
     // The lone DataArray element in the Points element contains the points'
-    // coordinates.
-    const String& coordString = points.getRequiredElementValue("DataArray");
-    std::stringstream cstream(coordString);
-    for (int i=1; i <= numPoints; ++i) {
-        Vec3 pt; cstream >> pt; 
-        SimTK_ERRCHK_ALWAYS(!cstream.fail(), method,
-            "Couldn't parse the <Points> coordinates DataArray.");
-        // Eof is only allowed when reading the last point.
-        if (i != numPoints)
-            SimTK_ERRCHK2_ALWAYS(!cstream.eof(), method,
-                "Expected coordinates for %d points but ran out after %d.",
-                numPoints, i);
-        addVertex(pt);
-    }
+    // coordinates. Read it in as a Vector
+    Vector_<Vec3> coords = 
+        points.getRequiredElementValueAs< Vector_<Vec3> >("DataArray");
+
+    SimTK_ERRCHK2_ALWAYS(coords.size() == numPoints, method,
+        "Expected coordinates for %d points but got %d.",
+        numPoints, coords.size());
+
+    for (int i=0; i < numPoints; ++i)
+        addVertex(coords[i]);
+
+
+    //const String& coordString = points.getRequiredElementValue("DataArray");
+    //std::stringstream cstream(coordString);
+    //for (int i=1; i <= numPoints; ++i) {
+    //    Vec3 pt; cstream >> pt; 
+    //    SimTK_ERRCHK_ALWAYS(!cstream.fail(), method,
+    //        "Couldn't parse the <Points> coordinates DataArray.");
+    //    // Eof is only allowed when reading the last point.
+    //    if (i != numPoints)
+    //        SimTK_ERRCHK2_ALWAYS(!cstream.eof(), method,
+    //            "Expected coordinates for %d points but ran out after %d.",
+    //            numPoints, i);
+    //    addVertex(pt);
+    //}
 
     // Polys are given by a connectivity array which lists the points forming
     // each polygon in a long unstructured list, then an offsets array, one per

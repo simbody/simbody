@@ -179,7 +179,7 @@ void testXmlFromString() {
 
     //Xml ex("TestXml.xml");
     //cout << "Document tag: " << ex.getDocumentTag() << endl;
-    //for (Xml::node_iterator xp=ex.node_begin(); xp != ex.node_end(); ++xp)
+    //for (Xml::nodu;e_iterator xp=ex.node_begin(); xp != ex.node_end(); ++xp)
     //    cout << "Node type: " << xp->getNodeTypeAsString() << endl;
 
     //PolygonalMesh mesh;
@@ -295,6 +295,7 @@ int main() {
     cout << "Path of this executable: '" << Pathname::getThisExecutablePath() << "'\n";
     cout << "Executable directory: '" << Pathname::getThisExecutableDirectory() << "'\n";
     cout << "Current working directory: '" << Pathname::getCurrentWorkingDirectory() << "'\n";
+
 
     SimTK_START_TEST("TestXml");
 
