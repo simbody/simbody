@@ -884,6 +884,7 @@ void reassign(TiXmlNode* tiNode)
                                   private:
 friend class Xml;
 friend class Xml::Node;
+friend class Xml::Element;
 friend class Xml::element_iterator;
 
 Node            node;       // data members

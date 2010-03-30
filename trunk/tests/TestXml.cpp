@@ -149,10 +149,10 @@ void testXmlFromString() {
              << ">" << endl;
 
     cout << "All elements:\n";
-    ep = root.element_begin();
-    for (; ep != root.element_end(); ++ep)
-        cout << ep->getNodeTypeAsString() << ": <" << ep->getElementTag() 
-             << ">" << endl;
+    Array_<Xml::Element> all = root.getAllElements();
+    for (int i=0; i < all.size(); ++i)
+        cout << "<" << all[i].getElementTag() << ">" << endl;
+
 
     Array_<Xml::Node> allNodes(root.node_begin(Xml::NoJunkNodes), 
                                root.node_end());
