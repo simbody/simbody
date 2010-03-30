@@ -109,7 +109,7 @@ void SimTK::LBFGSOptimizer::lbfgs_
     integer iscn, nfev, iycn, iter;
     Real ftol;
     integer nfun, ispt, iypt;
-    integer i, bound;
+    integer bound;
     Real gnorm;
     integer point;
     integer cp;
@@ -325,7 +325,7 @@ void SimTK::LBFGSOptimizer::lbfgs_
 
     stp1 = 1. / gnorm;
 
-    for (i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i) {
         diag[i] = 1.;
     }
 
@@ -344,7 +344,7 @@ void SimTK::LBFGSOptimizer::lbfgs_
 /*     THE SEARCH STEPS AND GRADIENT DIFFERENCES ARE STORED IN A */
 /*     CIRCULAR ORDER CONTROLLED BY THE PARAMETER POINT. */
 
-    for (i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i) {
         w[ispt + i] = -gradient[i] * diag[i];
     }
 
@@ -370,7 +370,7 @@ void SimTK::LBFGSOptimizer::lbfgs_
 
           ys = ddot_(n, &w[iypt + npt], c__1, &w[ispt + npt], c__1);
           yy = ddot_(n, &w[iypt + npt], c__1, &w[iypt + npt], c__1);
-          for (i = 0; i < n; ++i) {
+          for (int i = 0; i < n; ++i) {
                diag[i] = ys / yy;
           }
 
@@ -384,11 +384,11 @@ void SimTK::LBFGSOptimizer::lbfgs_
            cp = m;
           }
           w[n + cp-1] = 1. / ys;
-          for (i = 0; i < n; ++i) {
+          for (int i = 0; i < n; ++i) {
               w[i] = -gradient[i];
           }
           cp = point;
-          for (i = 0; i < bound; ++i) {
+          for (int i = 0; i < bound; ++i) {
               --cp;
               if (cp == -1) {
                   cp = m - 1;
@@ -401,11 +401,11 @@ void SimTK::LBFGSOptimizer::lbfgs_
               daxpy_(n, d__1, &w[iycn], c__1, w, c__1);
           }
 
-          for (i = 0; i < n; ++i) {
+          for (int i = 0; i < n; ++i) {
               w[i] *= diag[i];
           }
 
-          for (i = 0; i < bound; ++i) {
+          for (int i = 0; i < bound; ++i) {
               yr = ddot_(n, &w[iypt + cp * n], c__1, w, c__1);
               beta = w[n + cp] * yr;
               inmc = n + m + cp;
@@ -421,7 +421,7 @@ void SimTK::LBFGSOptimizer::lbfgs_
 /*        STORE THE NEW SEARCH DIRECTION */
 /*        ------------------------------ */
 
-          for (i = 0; i < n; ++i) {
+          for (int i = 0; i < n; ++i) {
              w[ispt + point * n + i] = w[i];
           }
 
@@ -435,7 +435,7 @@ void SimTK::LBFGSOptimizer::lbfgs_
        if (iter == 1) {
            stp = stp1;
        }
-       for (i = 0; i < n; ++i) {
+       for (int i = 0; i < n; ++i) {
            w[i] = gradient[i];
        }
 
@@ -491,7 +491,7 @@ void SimTK::LBFGSOptimizer::lbfgs_
 /*     ----------------------------------------- */
 
        npt = point * n;
-       for (i = 0; i < n; ++i) {
+       for (int i = 0; i < n; ++i) {
            w[ispt + npt + i] *= stp;
            w[iypt + npt + i] = gradient[i] - w[i];
        }
