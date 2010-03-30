@@ -187,8 +187,8 @@ public:
         const EventRegistry& registry = getSystemSubsystem().getEventRegistry(s);
 
         std::map<SubsystemIndex, Array_<EventId> > eventsPerSub;
-        for (EventId i(0); i < eventIds.size(); ++i)
-            eventsPerSub[ registry.find(i)->second ].push_back(i);
+        for (EventId eid(0); eid < eventIds.size(); ++eid)
+            eventsPerSub[ registry.find(eid)->second ].push_back(eid);
 
         std::map<SubsystemIndex, Array_<EventId> >::const_iterator i = eventsPerSub.begin();
         for (; i != eventsPerSub.end(); ++i) {
