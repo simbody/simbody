@@ -109,8 +109,6 @@ int main () {
     try { 
            // Default precision (Real, normally double) test.
 
-        int i,j;
-
         Matrix a(4,6, A);
         Vector singularValues( 4 );
         Vector expectedValues( 4, X );
@@ -129,15 +127,15 @@ int main () {
 
 
          printf("Left Vectors = \n");
-         for(i=0;i<leftVectors.ncol();i++) {
-             for(j=0;j<leftVectors.nrow();j++)  printf("%f  ",leftVectors(i,j) );
+         for(int i=0;i<leftVectors.ncol();i++) {
+             for(int j=0;j<leftVectors.nrow();j++)  printf("%f  ",leftVectors(i,j) );
              printf("\n");
          }
 
              
          printf("Right Vectors = \n");
-         for(i=0;i<rightVectors.ncol();i++) {
-             for(j=0;j<rightVectors.nrow();j++)  printf("%f  ",rightVectors(i,j) );
+         for(int i=0;i<rightVectors.ncol();i++) {
+             for(int j=0;j<rightVectors.nrow();j++)  printf("%f  ",rightVectors(i,j) );
              printf("\n");
          }
 
@@ -178,15 +176,15 @@ int main () {
         cout << " Real SOLUTION: " << singularValues <<  endl;
 
          printf("Left Vectors = \n");
-         for(i=0;i<leftVectors.ncol();i++) {
-             for(j=0;j<leftVectors.nrow();j++)  printf("%f  ",leftVectors(i,j) );
+         for(int i=0;i<leftVectors.ncol();i++) {
+             for(int j=0;j<leftVectors.nrow();j++)  printf("%f  ",leftVectors(i,j) );
              printf("\n");
          }
 
              
          printf("Right Vectors = \n");
-         for(i=0;i<rightVectors.ncol();i++) {
-             for(j=0;j<rightVectors.nrow();j++)  printf("%f  ",rightVectors(i,j) );
+         for(int i=0;i<rightVectors.ncol();i++) {
+             for(int j=0;j<rightVectors.nrow();j++)  printf("%f  ",rightVectors(i,j) );
              printf("\n");
          }
 
