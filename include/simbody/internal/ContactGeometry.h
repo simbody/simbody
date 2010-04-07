@@ -131,7 +131,7 @@ public:
  */
 class SimTK_SIMBODY_EXPORT ContactGeometry::Sphere : public ContactGeometry {
 public:
-    Sphere(Real radius);
+    explicit Sphere(Real radius);
     Real getRadius() const;
     void setRadius(Real radius);
     const SphereImpl& getImpl() const;
@@ -182,7 +182,7 @@ public:
      *                  will be smoothly interpolated between vertices.  If false, it will be treated
      *                  as a faceted mesh with a constant normal vector over each face.
      */
-    TriangleMesh(const PolygonalMesh& mesh, bool smooth=false);
+    explicit TriangleMesh(const PolygonalMesh& mesh, bool smooth=false);
     /**
      * Get the number of edges in the mesh.
      */

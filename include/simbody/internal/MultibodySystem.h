@@ -57,7 +57,7 @@ class GeneralContactSubsystem;
 class SimTK_SIMBODY_EXPORT MultibodySystem : public System {
 public:
     MultibodySystem();
-    MultibodySystem(SimbodyMatterSubsystem& m);
+    explicit MultibodySystem(SimbodyMatterSubsystem& m);
 
     // Steals ownership of the source; returns subsystem ID number.
     int addForceSubsystem(ForceSubsystem&);

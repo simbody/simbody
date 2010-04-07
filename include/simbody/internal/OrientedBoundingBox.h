@@ -60,7 +60,7 @@ public:
     /**
      * Create an OrientedBoundingBox which encloses a set of points.
      */
-    SimTK_SIMBODY_EXPORT OrientedBoundingBox(const Vector_<Vec3>& points);
+    explicit SimTK_SIMBODY_EXPORT OrientedBoundingBox(const Vector_<Vec3>& points);
     /**
      * Get the position and orientation of the box.
      */
