@@ -72,7 +72,7 @@ class ElasticFoundationForceImpl;
  *
  * The force exerted by each spring along its displacement direction is given by
  *
- * f = k*a*(x+c*v)
+ * f = k*a*x*(1+c*v)
  * 
  * where k is the spring stiffness, a is the area of the face the spring belongs to, x is the displacement
  * distance, c is the spring's dissipation coefficient, and v=dx/dt.  If the springs are assumed
