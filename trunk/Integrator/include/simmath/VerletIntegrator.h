@@ -76,7 +76,7 @@ public:
     /**
      * Create a VerletIntegrator for integrating a System with variable size steps.
      */
-    VerletIntegrator(const System& sys);
+    explicit VerletIntegrator(const System& sys);
     /**
      * Create a VerletIntegrator for integrating a System with fixed size steps.
      */

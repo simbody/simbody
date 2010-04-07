@@ -53,7 +53,7 @@ public:
     /**
      * Create an ExplicitEulerIntegrator for integrating a System with variable sized steps.
      */
-    ExplicitEulerIntegrator(const System& sys);
+    explicit ExplicitEulerIntegrator(const System& sys);
     /**
      * Create an ExplicitEulerIntegrator for integrating a System with fixed sized steps.
      */

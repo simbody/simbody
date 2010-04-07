@@ -61,7 +61,7 @@ public:
     /**
      * Create a CPodesIntegrator for integrating a System.
      */
-    CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method=CPodes::BDF);
+    explicit CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method=CPodes::BDF);
     /**
      * Create a CPodesIntegrator for integrating a System.  The nonlinear system iteration type is chosen automatically
      * based on the linear multistep method: Newton iteration for BDF (the default), and functional iteration for Adams.

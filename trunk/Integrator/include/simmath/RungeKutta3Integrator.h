@@ -48,7 +48,7 @@ class RungeKutta3IntegratorRep;
  */
 class SimTK_SIMMATH_EXPORT RungeKutta3Integrator : public Integrator {
 public:
-    RungeKutta3Integrator(const System& sys);
+    explicit RungeKutta3Integrator(const System& sys);
     ~RungeKutta3Integrator();
 };
 
