@@ -251,7 +251,7 @@ the default subsystem for a System, call getDefaultSubsystem() or
 updDefaultSubsystem() on it. **/
 class SimTK_SimTKCOMMON_EXPORT DefaultSystemSubsystem : public Subsystem {
 public:
-    DefaultSystemSubsystem(System& sys);
+    explicit DefaultSystemSubsystem(System& sys);
     void addEventHandler(ScheduledEventHandler* handler);
     void addEventHandler(TriggeredEventHandler* handler);
     void addEventReporter(ScheduledEventReporter* handler) const;

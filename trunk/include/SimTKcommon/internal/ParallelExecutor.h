@@ -79,7 +79,7 @@ public:
      * @param numThreads the number of threads to create.  By default, this is set equal to the number
      * of processors.
      */
-    ParallelExecutor(int numThreads = getNumProcessors());
+    explicit ParallelExecutor(int numThreads = getNumProcessors());
     /**
      * Execute a parallel task.
      * 

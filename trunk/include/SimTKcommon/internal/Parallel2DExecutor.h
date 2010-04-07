@@ -89,7 +89,7 @@ public:
      * @param numThreads the number of threads to create.  By default, this is set equal to the number
      * of processors.
      */
-    Parallel2DExecutor(int gridSize, int numThreads = ParallelExecutor::getNumProcessors());
+    explicit Parallel2DExecutor(int gridSize, int numThreads = ParallelExecutor::getNumProcessors());
     /**
      * Construct a Parallel2DExecutor.  This constructor allows you to specify an existing ParallelExecutor
      * to use for parallelizing the calculation.  This can improve efficiency by reusing an existing thread
