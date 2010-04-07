@@ -102,7 +102,7 @@ void testForces() {
         for (Real v = -1.0; v <= 1.0; v += 0.1) {
             mesh.setUToFitLinearVelocity(state, Vec3(0, -v, 0));
             system.realize(state, Stage::Dynamics);
-            Real f = (depth > 0 ? stiffness*(depth+dissipation*v) : 0);
+            Real f = (depth > 0 ? stiffness*depth*(1+dissipation*v) : 0);
             if (f < 0)
                 f = 0;
             assertEqual(system.getRigidBodyForces(state, Stage::Dynamics)[mesh.getMobilizedBodyIndex()][1], Vec3(0, f, 0));

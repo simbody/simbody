@@ -143,7 +143,7 @@ void ElasticFoundationForceImpl::processContact(const State& state, int meshInde
         
         // Calculate the damping force.
         
-        const Real f = param.stiffness*param.springArea[face]*(distance+param.dissipation*vnormal);
+        const Real f = param.stiffness*param.springArea[face]*distance*(1+param.dissipation*vnormal);
         Vec3 force = (f > 0 ? f*forceDir : Vec3(0));
         
         // Calculate the friction force.
