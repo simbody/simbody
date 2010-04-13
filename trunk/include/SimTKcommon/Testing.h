@@ -34,6 +34,7 @@
 
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
+#include "SimTKcommon/internal/Random.h"
 
 #include <cmath>     
 #include <ctime>

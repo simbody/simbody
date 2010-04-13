@@ -30,6 +30,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon/SmallMatrix.h"
+#include "SimTKcommon/Testing.h"
 
 #include <cstdio>
 #include <iostream>
@@ -56,12 +57,17 @@ static Complex f(Complex x) {
     return std::sin(x);
 }
 
-int main()
+// TODO: move lots of tests here and check the answers
+void testNegator() {
+    Vec3 vvv(1,2,3); Row3 rrr(1,2,3);
+    SimTK_TEST(vvv-vvv == Vec3(0));     // these are exact results
+    SimTK_TEST(-vvv-vvv == (-2*vvv));
+    SimTK_TEST(rrr-rrr == Row3(0));
+    SimTK_TEST(-rrr-rrr == (-2*rrr));
+}
+
+void testMiscellaneous()
 {
-    SimTK_DEBUG("Running MatVecTest ...\n");
-
-    std::printf("PATH=%s\n", getenv("PATH"));
-
     cout << std::setprecision(16);
     cout << "f(.3)=" << f(Complex(0.3)) << endl;
     Real h = 1e-20;
@@ -246,7 +252,6 @@ int main()
     m34 =19.123;
     cout << "after m34=19.123, m34=" << m34 << endl;
  
-    try {
     const double ddd[] = { 11, 12, 13, 14, 15, 16 }; 
     const complex<float> ccc[] = {  complex<float>(1.,2.),  
                                     complex<float>(3.,4.),
@@ -459,212 +464,17 @@ int main()
     Mat<3,2, Row3, 1, 2>::TransposeType Ht;
     cout << "Ht[" << Ht.nrow() << "," << Ht.ncol() << "]" << endl;
     cout << "Ht.diag()[" << Ht.diag().nrow() << "," << Ht.diag().ncol() << "]" << endl;
-
-    }
-    catch(const Exception::Base& b)
-    {
-        cout << b.getMessage() << endl;
-    }                    
-    return 0;
-}
-/*
-class sc;
-template <int M, class E> class vec;
-template <int N, class E> class row;
-template <int M, int N, class E> class mat;
-template <int ML, int NL, class L, int MR, int NR, class R> struct Res;
-
-template <class T> class Info : private T {
-public:
-    typedef typename T::Type  Type;
-    typedef typename T::EType EType;
-        
-    enum {
-        NRow = T::NRow,
-        NCol = T::NCol
-    };
-
-    template <class RIGHT> struct MatMulRes {
-        typedef typename T::template MatMulRes<RIGHT>::MatMul MatMul;
-    };
-};
-
-class sc {
-public:
-    typedef sc Type;
-    typedef sc EType;
-    enum {
-        NRow = 1,
-        NCol = 1
-    };
-
-    template <class RIGHT> struct MatMulRes {
-        typedef typename Res< 1,  1,  sc,
-                              Info<RIGHT>::NRow, Info<RIGHT>::NCol, RIGHT>::MatMul
-                MatMul;
-    };
-
-};
-
-template <int M, class E> class vec {
-public:
-    typedef vec Type;
-    typedef E EType;
-    enum {
-        NRow = M,
-        NCol = 1
-    };
-    template <class RIGHT> struct MatMulRes {
-        typedef typename Res< M,  1,  vec,
-                              Info<RIGHT>::NRow, Info<RIGHT>::NCol, RIGHT>::MatMul
-                MatMul;
-    };
-
-};
-
-template <int N, class E> class row {
-public:
-    typedef row Type;
-    typedef E EType;
-    enum {
-        NRow = 1,
-        NCol = N
-    };
-
-    template <class RIGHT> struct MatMulRes {
-        typedef typename Res< 1, N,  row,
-                              Info<RIGHT>::NRow, Info<RIGHT>::NCol, RIGHT>::MatMul
-                MatMul;
-    };
-
-};
-
-template <int M, int N, class E> class mat {
-public:
-    typedef mat Type;
-    typedef E EType;
-    enum {
-        NRow = M,
-        NCol = N
-    };
-
-    template <class RIGHT> struct MatMulRes {
-        typedef typename Res< M, N,  mat,
-                              Info<RIGHT>::NRow, Info<RIGHT>::NCol, RIGHT>::MatMul
-                MatMul;
-    };
-};
-
-
-template <int ML, int NL, class L, int MR, int NR, class R> struct Res {
-};
-
-// mat * e, where e.nrow != mat.ncol. We treat this like a scalar multiply.
-template <int ML, int NL, class EL, int MR, int NR, class R> 
-struct Res<ML,NL,mat<ML,NL,EL>, MR,NR,R >
-{
-    typedef typename Res< Info<EL>::NRow, Info<EL>::NCol, EL,
-                          MR, NR, R>::MatMul EType;
-    typedef mat<ML,NL,EType> MatMul;
-};
-
-// row * e, where e.nrow != row.ncol. We treat this like a scalar multiply.
-template <int NL, class EL, int MR, int NR, class R> 
-struct Res<1,NL,row<NL,EL>, MR,NR,R >
-{
-    typedef typename Res< Info<EL>::NRow, Info<EL>::NCol, EL,
-                          MR, NR, R>::MatMul EType;
-    typedef row<NL,EType> MatMul;
-};
-
-// vec * e, where e.nrow != 1. We treat this like a scalar multiply.
-template <int ML, class EL, int MR, int NR, class R> 
-struct Res<ML,1,vec<ML,EL>, MR,NR,R >
-{
-    typedef typename Res< Info<EL>::NRow, Info<EL>::NCol, EL,
-                          MR, NR, R>::MatMul EType;
-    typedef vec<ML,EType> MatMul;
-};
-
-// sc * r, r not a scalar. Commute to r*sc.
-template <int MR, int NR, class R> struct Res<1,1,sc, MR, NR, R> {
-    typedef typename Res<MR, NR, R, 1, 1, sc>::MatMul MatMul;
-};
-
-template <int ML, int NL, class EL, int NR, class ER> 
-struct Res<ML,NL,mat<ML,NL,EL>, NL,NR,mat<NL,NR,ER> >
-{
-    typedef typename Res< Info<EL>::NRow, Info<EL>::NCol, EL,
-                          Info<ER>::NRow, Info<ER>::NCol, ER>::MatMul EType;
-    typedef mat<ML,NR,EType> MatMul;
-};
-
-template <int ML, int NL, class EL, class ER> 
-struct Res<ML,NL,mat<ML,NL,EL>, NL,1,vec<NL,ER> >
-{
-    typedef typename Res< Info<EL>::NRow, Info<EL>::NCol, EL,
-                          Info<ER>::NRow, Info<ER>::NCol, ER>::MatMul EType;
-    typedef vec<ML,EType> MatMul;
-};
-
-template <int NL, class EL, int NR, class ER> 
-struct Res<1,NL,row<NL,EL>, NL,NR,mat<NL,NR,ER> >
-{
-    typedef typename Res< Info<EL>::NRow, Info<EL>::NCol, EL,
-                          Info<ER>::NRow, Info<ER>::NCol, ER>::MatMul EType;
-    typedef row<NL,EType> MatMul;
-};
-
-template <int NL, class EL, class ER> 
-struct Res<1,NL,row<NL,EL>, NL,1,vec<NL,ER> >
-{
-    typedef typename Res< Info<EL>::NRow, Info<EL>::NCol, EL,
-                          Info<ER>::NRow, Info<ER>::NCol, ER>::MatMul EType;
-    typedef EType MatMul;
-};
-
-
-template <> struct Res<1,1,sc,1,1,sc> {
-    typedef sc MatMul;
-};
-
-
-
-#include <typeinfo>
-static void dummy() {
-    vec<3,sc> v;
-    row<3,sc> r;
-    mat<3,3,sc> m;
-    cout << "v=" << typeid(v).name() << " r=" << typeid(r).name() << " m=" << typeid(m).name() << endl;
-
-    typedef vec<2, vec<3,sc> > vec23;
-    typedef row<2, row<3,sc> > row23;
-    typedef mat<2,2, mat<3,3,sc> > mat23;
-
-    vec23 vv;
-    row23 rr;
-    mat23 mm;
-    cout << "vv=" << typeid(vv).name() << " rr=" << typeid(rr).name() << " mm=" << typeid(mm).name() << endl;
-
-    typedef Info<mat<2,3,sc> >::MatMulRes< mat<3,1,sc> >::MatMul T;
-    cout << "m23s*m31s=" << typeid(T).name() << endl;
-
-    typedef Info<mat23>::MatMulRes<vec23>::MatMul T2;
-    cout << "m23s*v23s=" << typeid(T2).name() << endl;
-
-    typedef Info<row23>::MatMulRes<vec23>::MatMul T3;
-    cout << "r23s*v23s=" << typeid(T3).name() << endl;
-
-    typedef Info<row23>::MatMulRes<sc>::MatMul T4;
-    cout << "r23s*s=" << typeid(T4).name() << endl;
-
-    typedef Info<sc>::MatMulRes<row23>::MatMul T4b;
-    cout << "s*r23s=" << typeid(T4b).name() << endl;
-
-    typedef Info<row23>::MatMulRes<vec<3,sc> >::MatMul T5;
-    cout << "r23s*v3s=" << typeid(T5).name() << endl;
 }
 
-*/
+
+int main() {
+    SimTK_START_TEST("MatVecTest");
+
+        SimTK_SUBTEST(testNegator);
+        SimTK_SUBTEST(testMiscellaneous);
+
+    SimTK_END_TEST();
+}
+
 
 

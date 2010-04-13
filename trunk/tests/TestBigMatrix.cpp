@@ -84,12 +84,34 @@ void testMatDivision() {
     SimTK_TEST_EQ(1/m2, oom2);
 }
 
+static void f(const Vec3& v) {
+    cout << "f(v)=" << v << endl;
+}
+
+void testTransform() {
+    Transform X;
+    Rotation R;
+    Mat33 m;
+    Vec3 v;
+    Vec<3,Real,6> vs(1,2,3); // funny stride
+    Vec<4,Real,9> vs2(1,2,3,0); // funny stride
+    f(vs);
+
+    SimTK_TEST(X*vs == -(X*-vs));
+    SimTK_TEST(X*vs2 == -(X*-vs2));
+    
+    SimTK_TEST(R*vs == -(R*-vs));
+    SimTK_TEST(~vs*R == -(-~vs*R));
+}
+
+
 int main() {
     try {
         // Currently, this only tests a small number of operations that were recently added.
         // It should be expanded into a more comprehensive test of the big matrix classes.
 
         testMatDivision();
+        testTransform();
         
         Matrix m(Mat22(1, 2, 3, 4));
         testMatrix<Matrix,2,2>(m, Mat22(1, 2, 3, 4));
