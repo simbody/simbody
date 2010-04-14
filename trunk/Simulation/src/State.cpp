@@ -258,10 +258,9 @@ public:
     :   allocationStage(Stage::Empty), invalidatedStage(Stage::Empty),
         value(0), timeLastUpdated(NaN) {}
 
-    DiscreteVarInfo(Stage allocation, Stage invalidated, AbstractValue* v,
-                    CacheEntryIndex autoUpdate = CacheEntryIndex())
+    DiscreteVarInfo(Stage allocation, Stage invalidated, AbstractValue* v)
     :   allocationStage(allocation), invalidatedStage(invalidated), value(v),
-        autoUpdateEntry(autoUpdate), timeLastUpdated(NaN) 
+        autoUpdateEntry(), timeLastUpdated(NaN) 
     {   assert(isReasonable()); }
 
     // Default copy constructor, copy assignment, destructor are shallow.
@@ -285,7 +284,7 @@ public:
     void deepDestruct() {delete value; value=0;}
     const Stage& getAllocationStage()  const {return allocationStage;}
 
-    // Exchange value pointers.
+    // Exchange value pointers (should be from this dv's update cache entry).
     void swapValue(AbstractValue*& other) {std::swap(value, other);}
 
     const AbstractValue& getValue() const {assert(value); return *value;}
@@ -296,6 +295,7 @@ public:
 
     const Stage&    getInvalidatedStage() const {return invalidatedStage;}
     CacheEntryIndex getAutoUpdateEntry()  const {return autoUpdateEntry;}
+    void setAutoUpdateEntry(CacheEntryIndex cx) {autoUpdateEntry = cx;}
 
 private:
     // These are fixed at construction.
@@ -362,14 +362,17 @@ public:
     void deepDestruct() {delete value; value=0;}
     const Stage& getAllocationStage() const {return allocationStage;}
 
-    // Exchange value pointers.
-    void swapValue(AbstractValue*& other) {std::swap(value, other);}
+    // Exchange values with a discrete variable (presumably this
+    // cache entry has been determined to be that variable's update
+    // entry but we're not checking here).
+    void swapValue(DiscreteVarInfo& dv) {dv.swapValue(value);}
     const AbstractValue& getValue() const {assert(value); return *value;}
     AbstractValue&       updValue()       {assert(value); return *value;}
 
     const Stage&          getDependsOnStage()  const {return dependsOnStage;}
     const Stage&          getComputedByStage() const {return computedByStage;}
     DiscreteVariableIndex getAssociatedVar()   const {return associatedVar;}
+    void setAssociatedVar(DiscreteVariableIndex dx)  {associatedVar=dx;}
 private:
     // These are fixed at construction.
     Stage                   allocationStage;
@@ -1308,6 +1311,26 @@ public:
         ss.cacheInfo.push_back(CacheEntryInfo(getSubsystemStage(subsys).next(),dependsOn,computedBy,vp)); // mutable
         return nxt;
     }
+
+    // Allocate a discrete variable and a corresponding cache entry for
+    // updating it, and connect them together.
+    std::pair<DiscreteVariableIndex, CacheEntryIndex>
+    allocateAutoUpdateDiscreteVariable(SubsystemIndex subsys, Stage invalidates, AbstractValue* vp,
+                                       Stage updateDependsOn)
+    {
+        SimTK_STAGECHECK_GE_ALWAYS(invalidates, Stage(Stage::Time).next(), 
+            "StateRep::allocateAutoUpdateDiscreteVariable");
+
+        const DiscreteVariableIndex dx = allocateDiscreteVariable(subsys,invalidates,vp->clone());
+        const CacheEntryIndex       cx = allocateCacheEntry(subsys,updateDependsOn,Stage::Infinity,vp);
+
+        PerSubsystemInfo& ss = data->subsystems[subsys];
+        DiscreteVarInfo& dvinfo = ss.discreteInfo[dx];
+        CacheEntryInfo&  ceinfo = ss.cacheInfo[cx];
+        dvinfo.setAutoUpdateEntry(cx);
+        ceinfo.setAssociatedVar(dx);
+        return std::make_pair(dx,cx);
+    }
     
         // State dimensions for shared continuous variables.
     
@@ -1860,7 +1883,31 @@ public:
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updEventTriggersByStage()");
         return data->triggers[g];
     }
-    
+
+    CacheEntryIndex getDiscreteVarUpdateIndex(SubsystemIndex subsys, int index) const {
+        const PerSubsystemInfo& ss = data->subsystems[subsys];
+        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
+            "StateRep::getDiscreteVarUpdateIndex()");
+        const DiscreteVarInfo& dv = ss.discreteInfo[index];
+        return dv.getAutoUpdateEntry();
+    } 
+
+    Stage getDiscreteVarAllocationStage(SubsystemIndex subsys, int index) const {
+        const PerSubsystemInfo& ss = data->subsystems[subsys];
+        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
+            "StateRep::getDiscreteVarAllocationStage()");
+        const DiscreteVarInfo& dv = ss.discreteInfo[index];
+        return dv.getAllocationStage();
+    } 
+
+    Stage getDiscreteVarInvalidatesStage(SubsystemIndex subsys, int index) const {
+        const PerSubsystemInfo& ss = data->subsystems[subsys];
+        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
+            "StateRep::getDiscreteVarInvalidatesStage()");
+        const DiscreteVarInfo& dv = ss.discreteInfo[index];
+        return dv.getInvalidatedStage();
+    } 
+
     // You can access a Model stage variable any time, but don't access others
     // until you have realized the Model stage.
     const AbstractValue& 
@@ -1877,7 +1924,28 @@ public:
     
         return dv.getValue();
     }
-    
+    Real getDiscreteVarLastUpdateTime(SubsystemIndex subsys, int index) const {
+        const PerSubsystemInfo& ss = data->subsystems[subsys];
+        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),"StateRep::getDiscreteVarLastUpdateTime()");
+        const DiscreteVarInfo& dv = ss.discreteInfo[index];
+        return dv.getTimeLastUpdated();
+    }
+
+    const AbstractValue& getDiscreteVarUpdateValue(SubsystemIndex subsys, int index) const {
+        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
+        SimTK_ERRCHK2(cx.isValid(), "StateRep::getDiscreteVarUpdateValue()", 
+            "Subsystem %d has a discrete variable %d but it does not have an"
+            " associated update cache variable.", (int)subsys, index);
+        return getCacheEntry(subsys, cx);
+    }
+    AbstractValue& updDiscreteVarUpdateValue(SubsystemIndex subsys, int index) const {
+        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
+        SimTK_ERRCHK2(cx.isValid(), "StateRep::updDiscreteVarUpdateValue()", 
+            "Subsystem %d has a discrete variable %d but it does not have an"
+            " associated update cache variable.", (int)subsys, index);
+        return updCacheEntry(subsys, cx);
+    }
+
     // You can update a Model stage variable from Topology stage, but higher variables 
     // must wait until you have realized the Model stage. This always backs the 
     // stage up to one earlier than the variable's stage.
@@ -1899,6 +1967,14 @@ public:
         return dv.updValue(data->t);
     }
     
+    Stage getCacheEntryAllocationStage(SubsystemIndex subsys, int index) const {
+        const PerSubsystemInfo& ss = data->subsystems[subsys];
+        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),
+            "StateRep::getCacheEntryAllocationStage()");
+        const CacheEntryInfo& ce = ss.cacheInfo[index];
+        return ce.getAllocationStage();
+    } 
+
     // Stage >= ce.stage
     const AbstractValue& 
     getCacheEntry(SubsystemIndex subsys, int index) const {
@@ -1967,6 +2043,23 @@ public:
     }
     void resetLowestStageModified() const {
         data->lowestModifiedSystemStage = std::min(Stage::Infinity, data->currentSystemStage.next());
+    }
+
+    void autoUpdateDiscreteVariables() {
+        // TODO: make this more efficient
+        for (SubsystemIndex subx(0); subx < data->subsystems.size(); ++subx) {
+            PerSubsystemInfo& ss = data->subsystems[subx];
+            Array_<DiscreteVarInfo>& dvars = ss.discreteInfo;
+            for (DiscreteVariableIndex dx(0); dx < dvars.size(); ++dx) {
+                DiscreteVarInfo& dinfo = dvars[dx];
+                const CacheEntryIndex cx = dinfo.getAutoUpdateEntry();
+                if (!cx.isValid()) continue; // not an auto-update variable
+                CacheEntryInfo& cinfo = ss.cacheInfo[cx];
+                if (cinfo.isCurrent(getSubsystemStage(subx), getSubsystemStageVersions(subx)))
+                    cinfo.swapValue(dinfo);
+                cinfo.invalidate();
+            }
+        }
     }
     
     const EnumerationSet<Stage>& getRestrictedStages() const {
@@ -2209,6 +2302,11 @@ EventTriggerByStageIndex State::allocateEventTrigger(SubsystemIndex subsys, Stag
 }
 DiscreteVariableIndex State::allocateDiscreteVariable(SubsystemIndex subsys, Stage stage, AbstractValue* v) {
     return rep->allocateDiscreteVariable(subsys, stage, v);
+}
+std::pair<DiscreteVariableIndex, CacheEntryIndex>
+State::allocateAutoUpdateDiscreteVariable(SubsystemIndex subsys, Stage invalidates, AbstractValue* v,
+                                          Stage updateDependsOn) {
+    return rep->allocateAutoUpdateDiscreteVariable(subsys, invalidates, v, updateDependsOn); 
 }
 CacheEntryIndex State::allocateCacheEntry(SubsystemIndex subsys, Stage dependsOn, Stage computedBy, AbstractValue* v) const {
     return rep->allocateCacheEntry(subsys, dependsOn, computedBy, v);
@@ -2501,6 +2599,25 @@ Vector& State::updUDotErr() const {
 Vector& State::updMultipliers() const {
     return rep->updMultipliers();
 }
+
+
+
+CacheEntryIndex State::getDiscreteVarUpdateIndex(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+    return rep->getDiscreteVarUpdateIndex(subsys, index);
+}
+Stage State::getDiscreteVarAllocationStage(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+    return rep->getDiscreteVarAllocationStage(subsys, index);
+}
+Stage State::getDiscreteVarInvalidatesStage(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+    return rep->getDiscreteVarInvalidatesStage(subsys, index);
+}
+const AbstractValue& State::getDiscreteVarUpdateValue(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+    return rep->getDiscreteVarUpdateValue(subsys, index);
+}
+AbstractValue& State::updDiscreteVarUpdateValue(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+    return rep->updDiscreteVarUpdateValue(subsys, index);
+}
+
 const AbstractValue& State::getDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) const {
     return rep->getDiscreteVariable(subsys, index);
 }
@@ -2509,6 +2626,10 @@ AbstractValue& State::updDiscreteVariable(SubsystemIndex subsys, DiscreteVariabl
 }
 void State::setDiscreteVariable(SubsystemIndex i, DiscreteVariableIndex index, const AbstractValue& v) {
     updDiscreteVariable(i,index) = v;
+}
+
+Stage State::getCacheEntryAllocationStage(SubsystemIndex subsys, CacheEntryIndex index) const {
+    return rep->getCacheEntryAllocationStage(subsys, index);
 }
 const AbstractValue& State::getCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
     return rep->getCacheEntry(subsys, index);
@@ -2530,7 +2651,9 @@ const Stage& State::getLowestStageModified() const {
 void State::resetLowestStageModified() const {
     rep->resetLowestStageModified(); 
 }
-
+void State::autoUpdateDiscreteVariables() {
+    rep->autoUpdateDiscreteVariables(); 
+}
 
 void State::createRestrictedState
    (State&                   restrictedState,

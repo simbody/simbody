@@ -153,7 +153,7 @@ typedef int StageVersion;
  *
  * Systems are composed of Subsystems, and the State supports that
  * concept by allowing per-subsystem partitioning of the total System
- * state. This allows subsytems to have their own private state
+ * state. This allows subsystems to have their own private state
  * variables, while permitting the system to allow shared access
  * to state among the subsystems when necessary.
  *
@@ -376,13 +376,17 @@ public:
     //OBSOLETE
     EventTriggerByStageIndex allocateEventTrigger(SubsystemIndex, Stage, int nevent) const;
 
+
+    /// @name                      Discrete Variables
+    ///
     /// You can allocate a new DiscreteVariable in any State whose stage has not yet been
     /// advanced to Model stage. The stage at allocation (Empty or Topology) is remembered
     /// so that the appropriate discrete variables can be forgotten if the State's stage
     /// is reduced back to that stage later after advancing past it. DiscreteVariables are
     /// private to each Subsystem and allocated immediately. The returned
     /// index is unique within the Subsystem but there is no corresponding global index.
-    ///
+    /// @{
+
     /// The Stage supplied here in the call is the lowest subsystem stage which is invalidated
     /// by a change made to this discrete variable. You may access the value of the discrete
     /// variable for reading (via getDiscreteVariable()) or writing (via updDiscreteVariable())
@@ -397,7 +401,6 @@ public:
     /// @see updDiscreteVariable()
     DiscreteVariableIndex allocateDiscreteVariable(SubsystemIndex, Stage invalidates, AbstractValue*);
 
-
     /// This method allocates a DiscreteVariable and a CacheEntry of the same value type.
     /// This can be done if the State hasn't yet been advanced to Model stage.
     /// The discrete variable is allocated as described for allocateDiscreteVariable(),
@@ -408,43 +411,80 @@ public:
     /// discrete variables as derivatives play for continuous variables. That is, they
     /// define how the variable is to be updated when a TimeStepper accepts a step.
     ///
-    /// Whenever the value of the discrete variable is accessed, the value of the 
-    /// update cache entry is returned instead if it is valid. In that way the results
-    /// are always calculated using the value as it will be \e after an update. That
-    /// means that no results will change when the swap occurs, so no stage needs
-    /// to be invalidated upon updating. However, any \e explicit change to the discrete variable
-    /// will invalidate the \a invalidates stage just as for a non-updating discrete
-    /// variable. Note that this is entirely analogous to the treatment of continuous
-    /// variables like q: the integrator ensures that only updated values of q are
-    /// seen when evaluations are made at intermediate or trial steps.
-    ///
     /// Update occurs as follows: at the start of every continuous interval, after all
     /// other pending events have been handled, a time stepper should call the State
-    /// method updateDiscreteVariables(). That method looks at all the
-    /// updating discrete variables to see which ones have valid update values. For
+    /// method autoUpdateDiscreteVariables(). That method looks at all the
+    /// auto-update discrete variables to see which ones have valid update values. For
     /// each valid value, the discrete variable and its update value are swapped, and
-    /// the new cache value is marked invalid. No stage is invalidated by the swap; see
-    /// above for why that isn't necessary.
+    /// the new cache value is marked invalid. 
+    ///
+    /// @note No stage is invalidated by the swap even though this is clearly modifying
+    /// the state variable. It is up to the user of this variable to make sure that is
+    /// reasonable, by using the <em>update value</em>, not the <em>variable value</em>
+    /// for computations during realize(). In that way the results are always calculated 
+    /// using the value as it will be \e after an update. That
+    /// means that no results will change when the swap occurs, so no stage needs
+    /// to be invalidated upon updating. If you do use both values, make sure that all
+    /// computed results remain unchanged from the end of one step to the beginning of
+    /// the next. 
+    /// 
+    /// The above behavior is entirely analogous to the treatment of continuous
+    /// variables like q: the integrator ensures that only updated values of q are
+    /// seen when evaluations are made at intermediate or trial steps; you should
+    /// do the same. In contrast to this auto-update behavior, any \e explicit change 
+    /// to the discrete variable will invalidate the \a invalidates stage just as 
+    /// for a non-auto-updating discrete variable.
     ///
     /// Ownership of the AbstractValue object supplied here is taken over by the State --
-    /// don't delete the object after this call!
+    /// don't delete the object after this call! A clone() of this value will be used in
+    /// the auto-update cache entry so there will be two objects of this type around 
+    /// at run time that get swapped back and forth between the state variable and the cache entry.
     /// @see allocateDiscreteVariable()
     /// @see allocateCacheEntry()
     std::pair<DiscreteVariableIndex, CacheEntryIndex>
-        allocateUpdatingDiscreteVariable(SubsystemIndex, Stage invalidates, AbstractValue*,
-                                         Stage earliestUpdate); 
+        allocateAutoUpdateDiscreteVariable(SubsystemIndex, Stage invalidates, AbstractValue*,
+                                           Stage updateDependsOn); 
+    /// For an auto-updating discrete variable, return the CacheEntryIndex for 
+    /// its associated update cache entry, otherwise return an invalid index. This
+    /// is the same index as was returned by allocateAutoUpdateDiscreteVariable().
+    CacheEntryIndex getDiscreteVarUpdateIndex(SubsystemIndex, DiscreteVariableIndex) const;
+    /// At what stage was this State when this discrete variable was allocated?
+    /// The answer must be Stage::Empty or Stage::Topology.
+    Stage getDiscreteVarAllocationStage(SubsystemIndex, DiscreteVariableIndex) const;
+    /// What is the lowest stage that is invalidated when this discrete variable
+    /// is modified? All higher stages are also invalidated. This stage was set
+    /// when the discrete variable was allocated and can't be changed with
+    /// unallocating it first.
+    Stage getDiscreteVarInvalidatesStage(SubsystemIndex, DiscreteVariableIndex) const;
 
-    /// OK if dv.stage==Model or stage >= Model
-    const AbstractValue& getDiscreteVariable         (SubsystemIndex, DiscreteVariableIndex) const;
-    Real                 getDiscreteVarLastUpdateTime(SubsystemIndex, DiscreteVariableIndex) const;
-    CacheEntryIndex      getDiscreteVarUpdateEntry   (SubsystemIndex, DiscreteVariableIndex) const;
-    const AbstractValue& getDiscreteVarPrevValue     (SubsystemIndex, DiscreteVariableIndex) const;
 
-    /// OK if dv.stage==Model or stage >= Model; set stage to dv.stage-1
-    AbstractValue&       updDiscreteVariable(SubsystemIndex, DiscreteVariableIndex);
+    /// Get the current value of the indicated discrete variable. This requires
+    /// only that the variable has already been allocated and will fail otherwise.
+    const AbstractValue& getDiscreteVariable(SubsystemIndex, DiscreteVariableIndex) const;
+    /// Return the time of last update for this discrete variable.
+    Real getDiscreteVarLastUpdateTime(SubsystemIndex, DiscreteVariableIndex) const;
+    /// For an auto-updating discrete variable, return the current value of its associated
+    /// update cache entry; this is the value the discrete variable will have the next 
+    /// time it is updated. This will fail if the value is not valid or if this is
+    /// not an auto-update discrete variable. 
+    const AbstractValue& getDiscreteVarUpdateValue(SubsystemIndex, DiscreteVariableIndex) const;
+    /// For an auto-updating discrete variable, return a writable reference to
+    /// the value of its associated update cache entry. This will be the value
+    /// that this discrete variable will have when it is next updated. Don't forget to mark
+    /// the cache entry valid after you have updated it. This will fail if this is
+    /// not an auto-update discrete variable.
+    AbstractValue& updDiscreteVarUpdateValue(SubsystemIndex, DiscreteVariableIndex) const;
+
+    /// Get a writable reference to the value stored in the indicated discrete
+    /// state variable dv, and invalidate stage dv.invalidates and all higher stages.
+    /// The current time is recorded as the variable's "last update time".
+    AbstractValue& updDiscreteVariable(SubsystemIndex, DiscreteVariableIndex);
     /// Alternate interface to updDiscreteVariable.
     void setDiscreteVariable(SubsystemIndex, DiscreteVariableIndex, const AbstractValue&);
+    /// @}
 
+    /// @name                      Cache Entries
+    ///
     /// You can allocate a new CacheEntry in any State whose stage has not yet been
     /// advanced to Instance stage. The stage at allocation (Empty, Topology, or 
     /// Model) is remembered so that the appropriate cache entries can be forgotten
@@ -452,7 +492,8 @@ public:
     /// past it. CacheEntries are private to each Subsystem and allocated 
     /// immediately. The returned index is unique within the Subsystem and there 
     /// is no corresponding global index.
-    ///
+    /// @{
+
     /// There are two Stages supplied explicitly as arguments to this method: 
     /// \a earliest and \a latest. The \a earliest Stage is the stage at which the 
     /// cache entry \e could be calculated. Hence if the Subsystem stage is reduced
@@ -521,7 +562,7 @@ public:
     /// Ownership of the AbstractValue object supplied here is taken over by the State --
     /// don't delete the object after this call! 
     /// @see getCacheEntry(), updCacheEntry()
-    /// @see isCacheValueRealized(), markCacheValueRealized()
+    /// @see allocateLazyCacheEntry(), isCacheValueRealized(), markCacheValueRealized()
     CacheEntryIndex allocateCacheEntry(SubsystemIndex, Stage earliest, Stage latest,
                                        AbstractValue*) const;
 
@@ -532,6 +573,20 @@ public:
     CacheEntryIndex allocateCacheEntry(SubsystemIndex sx, Stage g, AbstractValue* v) const
     {   return allocateCacheEntry(sx, g, g, v); }
 
+    /// This is an abbreviation for allocation of a lazy cache entry. The \a earliest
+    /// stage at which this \e can be evaluated is provided; but there is no stage
+    /// at which the cache entry will automatically be evaluated. Instead you have
+    /// to evaluate it explicitly when someone asks for it, and then call
+    /// markCacheValueRealized() to indicate that the value is available. The value
+    /// is automatically invalidated when the indicated stage \a earliest is
+    /// invalidated in the State.
+    /// @see allocateCacheEntry(), isCacheValueRealized(), markCacheValueRealized()
+    CacheEntryIndex allocateLazyCacheEntry(SubsystemIndex sx, Stage earliest, AbstractValue* v) const
+    {   return allocateCacheEntry(sx, earliest, Stage::Infinity, v); }
+
+    /// At what stage was this State when this cache entry was allocated?
+    /// The answer must be Stage::Empty, Stage::Topology, or Stage::Model.
+    Stage getCacheEntryAllocationStage(SubsystemIndex, CacheEntryIndex) const;
 
     /// Retrieve a const reference to the value contained in a particular cache 
     /// entry. The value must be up to date with respect to the state variables it 
@@ -572,7 +627,8 @@ public:
     /// a state variable on which it depends.
     /// @see allocateCacheEntry(), isCacheValueRealized(), getCacheEntry()
     void markCacheValueRealized(SubsystemIndex, CacheEntryIndex) const;
-    
+    /// @}
+
     /// @name Global Resource Dimensions
     ///
     /// These are the dimensions of the global shared state and cache resources,
@@ -839,6 +895,11 @@ public:
     /// Reset the invalid System Stage "low water mark" to the one just above the
     /// State's current System Stage.
     void resetLowestStageModified() const;
+
+    /// This is called at the beginning of every integration step to set
+    /// the values of auto-update discrete variables from the values stored
+    /// in their associated cache entries.
+    void autoUpdateDiscreteVariables();
     
     /// Transform a State into one which shares all the same data as this one,
     /// such that modifying either one will modify both of them.  The new State
