@@ -47,8 +47,10 @@ HuntCrossleyForce::HuntCrossleyForce(GeneralForceSubsystem& forces, GeneralConta
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
 
-void HuntCrossleyForce::setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) {
-    updImpl().setBodyParameters(bodyIndex, stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction);
+void HuntCrossleyForce::setBodyParameters
+   (ContactSurfaceIndex surfIndex, Real stiffness, Real dissipation, 
+    Real staticFriction, Real dynamicFriction, Real viscousFriction) {
+    updImpl().setBodyParameters(surfIndex, stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction);
 }
 
 Real HuntCrossleyForce::getTransitionVelocity() const {
@@ -63,19 +65,26 @@ HuntCrossleyForceImpl::HuntCrossleyForceImpl(GeneralContactSubsystem& subsystem,
         subsystem(subsystem), set(set), transitionVelocity(0.01) {
 }
 
-void HuntCrossleyForceImpl::setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) {
+void HuntCrossleyForceImpl::setBodyParameters
+   (ContactSurfaceIndex bodyIndex, Real stiffness, Real dissipation, 
+    Real staticFriction, Real dynamicFriction, Real viscousFriction) {
     updParameters(bodyIndex) = Parameters(stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction);
     subsystem.invalidateSubsystemTopologyCache();
 }
 
-const HuntCrossleyForceImpl::Parameters& HuntCrossleyForceImpl::getParameters(int bodyIndex) const {
+const HuntCrossleyForceImpl::Parameters& HuntCrossleyForceImpl::
+getParameters(ContactSurfaceIndex bodyIndex) const {
     assert(bodyIndex >= 0 && bodyIndex < subsystem.getNumBodies(set));
-    if (bodyIndex >= (int) parameters.size())
-        const_cast<Array_<Parameters>&>(parameters).resize(bodyIndex+1); // This fills in the default values which the missing entries implicitly had already.
+    // This fills in the default values which the missing entries implicitly 
+    // had already.
+    if (bodyIndex >= parameters.size())
+        const_cast<Array_<Parameters,ContactSurfaceIndex>&>(parameters)
+            .resize(bodyIndex+1);
     return parameters[bodyIndex];
 }
 
-HuntCrossleyForceImpl::Parameters& HuntCrossleyForceImpl::updParameters(int bodyIndex) {
+HuntCrossleyForceImpl::Parameters& HuntCrossleyForceImpl::
+updParameters(ContactSurfaceIndex bodyIndex) {
     assert(bodyIndex >= 0 && bodyIndex < subsystem.getNumBodies(set));
     subsystem.invalidateSubsystemTopologyCache();
     if (bodyIndex >= (int) parameters.size())
@@ -102,8 +111,8 @@ void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& b
         if (!PointContact::isInstance(contacts[i]))
             continue;
         const PointContact& contact = static_cast<const PointContact&>(contacts[i]);
-        const Parameters& param1 = getParameters(contact.getFirstBody());
-        const Parameters& param2 = getParameters(contact.getSecondBody());
+        const Parameters& param1 = getParameters(contact.getSurface1());
+        const Parameters& param2 = getParameters(contact.getSurface2());
         
         // Adjust the contact location based on the relative stiffness of the two materials.
         
@@ -124,8 +133,8 @@ void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& b
         
         // Calculate the relative velocity of the two bodies at the contact point.
         
-        const MobilizedBody& body1 = subsystem.getBody(set, contact.getFirstBody());
-        const MobilizedBody& body2 = subsystem.getBody(set, contact.getSecondBody());
+        const MobilizedBody& body1 = subsystem.getBody(set, contact.getSurface1());
+        const MobilizedBody& body2 = subsystem.getBody(set, contact.getSurface2());
         const Vec3 station1 = body1.findStationAtGroundPoint(state, location);
         const Vec3 station2 = body2.findStationAtGroundPoint(state, location);
         const Vec3 v1 = body1.findStationVelocityInGround(state, station1);

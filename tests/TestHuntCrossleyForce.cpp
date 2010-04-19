@@ -76,8 +76,8 @@ void testForces() {
     contacts.addBody(setIndex, sphere, ContactGeometry::Sphere(radius), Transform());
     contacts.addBody(setIndex, matter.updGround(), ContactGeometry::HalfSpace(), Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0))); // y < 0
     HuntCrossleyForce hc(forces, contacts, setIndex);
-    hc.setBodyParameters(0, k1, dissipation1, us1, ud1, uv1);
-    hc.setBodyParameters(1, k2, dissipation2, us2, ud2, uv2);
+    hc.setBodyParameters(ContactSurfaceIndex(0), k1, dissipation1, us1, ud1, uv1);
+    hc.setBodyParameters(ContactSurfaceIndex(1), k2, dissipation2, us2, ud2, uv2);
     const Real vt = 0.001;
     hc.setTransitionVelocity(vt);
     assertEqual(vt, hc.getTransitionVelocity());

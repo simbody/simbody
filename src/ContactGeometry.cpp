@@ -29,7 +29,14 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include "SimTKcommon.h"
+#include "simbody/internal/common.h"
+#include "simbody/internal/ContactGeometry.h"
+#include "simbody/internal/ContactSurface.h"
+
+//TODO: this header is in the wrong directory; should be in src.
 #include "simbody/internal/ContactGeometryImpl.h"
+
 #include <pthread.h>
 #include <map>
 #include <set>
@@ -39,6 +46,10 @@ using std::map;
 using std::pair;
 using std::set;
 using std::string;
+
+//==============================================================================
+//                            CONTACT GEOMETRY
+//==============================================================================
 
 ContactGeometry::ContactGeometry(ContactGeometryImpl* impl) : impl(impl) {
     assert(impl);
@@ -79,6 +90,9 @@ ContactGeometry& ContactGeometry::operator=(const ContactGeometry& src) {
     return *this;
 }
 
+ContactGeometryTypeId ContactGeometry::
+getTypeId() const {return getImpl().getTypeId();}
+
 const string& ContactGeometry::getType() const {
     return impl->getType();
 }
@@ -99,6 +113,10 @@ void ContactGeometry::getBoundingSphere(Vec3& center, Real& radius) const {
     getImpl().getBoundingSphere(center, radius);
 }
 
+//==============================================================================
+//                           CONTACT GEOMETRY IMPL
+//==============================================================================
+
 ContactGeometryImpl::ContactGeometryImpl(const string& type) : myHandle(0), type(type), typeIndex(getIndexForType(type)) {
 }
 
@@ -118,8 +136,16 @@ int ContactGeometryImpl::getIndexForType(std::string type) {
     return indexForType;
 }
 
-ContactGeometry::HalfSpace::HalfSpace() : ContactGeometry(new HalfSpaceImpl()) {
-}
+
+
+//==============================================================================
+//                             HALF SPACE & IMPL
+//==============================================================================
+ContactGeometry::HalfSpace::HalfSpace()
+:   ContactGeometry(new HalfSpaceImpl()) {}
+
+/*static*/ ContactGeometryTypeId ContactGeometry::HalfSpace::classTypeId() 
+{   return ContactGeometry::HalfSpaceImpl::classTypeId(); }
 
 Vec3 ContactGeometry::HalfSpaceImpl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
     inside = (position[0] >= 0);
@@ -143,8 +169,17 @@ void ContactGeometry::HalfSpaceImpl::getBoundingSphere(Vec3& center, Real& radiu
     radius = Infinity;
 }
 
-ContactGeometry::Sphere::Sphere(Real radius) : ContactGeometry(new SphereImpl(radius)) {
-}
+
+
+//==============================================================================
+//                               SPHERE & IMPL
+//==============================================================================
+
+ContactGeometry::Sphere::Sphere(Real radius) 
+:   ContactGeometry(new SphereImpl(radius)) {}
+
+/*static*/ ContactGeometryTypeId ContactGeometry::Sphere::classTypeId() 
+{   return ContactGeometry::SphereImpl::classTypeId(); }
 
 Real ContactGeometry::Sphere::getRadius() const {
     return getImpl().getRadius();
@@ -201,13 +236,24 @@ void ContactGeometry::SphereImpl::getBoundingSphere(Vec3& center, Real& radius) 
     radius = this->radius;
 }
 
-ContactGeometry::TriangleMesh::TriangleMesh
-   (const ArrayViewConst_<Vec3>& vertices, const ArrayViewConst_<int>& faceIndices, bool smooth) 
-:   ContactGeometry(new TriangleMeshImpl(vertices, faceIndices, smooth)) {
-}
 
-ContactGeometry::TriangleMesh::TriangleMesh(const PolygonalMesh& mesh, bool smooth) : ContactGeometry(new TriangleMeshImpl(mesh, smooth)) {
-}
+
+//==============================================================================
+//                              TRIANGLE MESH
+//==============================================================================
+
+ContactGeometry::TriangleMesh::TriangleMesh
+   (const ArrayViewConst_<Vec3>& vertices, 
+    const ArrayViewConst_<int>& faceIndices, bool smooth) 
+:   ContactGeometry(new TriangleMeshImpl(vertices, faceIndices, smooth)) {}
+
+ContactGeometry::TriangleMesh::TriangleMesh
+   (const PolygonalMesh& mesh, bool smooth) 
+:   ContactGeometry(new TriangleMeshImpl(mesh, smooth)) {}
+
+/*static*/ ContactGeometryTypeId ContactGeometry::TriangleMesh::classTypeId() 
+{   return ContactGeometry::TriangleMeshImpl::classTypeId(); }
+
 
 int ContactGeometry::TriangleMesh::getNumEdges() const {
     return getImpl().edges.size();
@@ -306,6 +352,26 @@ bool ContactGeometry::TriangleMesh::intersectsRay(const Vec3& origin, const Unit
     return getImpl().intersectsRay(origin, direction, distance, face, uv);
 }
 
+ContactGeometry::TriangleMesh::OBBTreeNode ContactGeometry::TriangleMesh::getOBBTreeNode() const {
+    return OBBTreeNode(getImpl().obb);
+}
+
+const ContactGeometry::TriangleMeshImpl& ContactGeometry::TriangleMesh::getImpl() const {
+    assert(impl);
+    return static_cast<const TriangleMeshImpl&>(*impl);
+}
+
+ContactGeometry::TriangleMeshImpl& ContactGeometry::TriangleMesh::updImpl() {
+    assert(impl);
+    return static_cast<TriangleMeshImpl&>(*impl);
+}
+
+
+
+//==============================================================================
+//                            TRIANGLE MESH IMPL
+//==============================================================================
+
 UnitVec3 ContactGeometry::TriangleMeshImpl::findNormalAtPoint(int face, const Vec2& uv) const {
     const Face& f = faces[face];
     if (smooth)
@@ -350,19 +416,6 @@ void ContactGeometry::TriangleMeshImpl::getBoundingSphere(Vec3& center, Real& ra
     radius = boundingSphereRadius;
 }
 
-ContactGeometry::TriangleMesh::OBBTreeNode ContactGeometry::TriangleMesh::getOBBTreeNode() const {
-    return OBBTreeNode(getImpl().obb);
-}
-
-const ContactGeometry::TriangleMeshImpl& ContactGeometry::TriangleMesh::getImpl() const {
-    assert(impl);
-    return static_cast<const TriangleMeshImpl&>(*impl);
-}
-
-ContactGeometry::TriangleMeshImpl& ContactGeometry::TriangleMesh::updImpl() {
-    assert(impl);
-    return static_cast<TriangleMeshImpl&>(*impl);
-}
 
 ContactGeometry::TriangleMeshImpl::TriangleMeshImpl
    (const ArrayViewConst_<Vec3>& vertexPositions, const ArrayViewConst_<int>& faceIndices, bool smooth) 
@@ -868,6 +921,12 @@ void  ContactGeometry::TriangleMeshImpl::findBoundingSphere(Vec3* point[], int p
     }
 }
 
+
+
+//==============================================================================
+//                            OBB TREE NODE IMPL
+//==============================================================================
+
 OBBTreeNodeImpl::OBBTreeNodeImpl(const OBBTreeNodeImpl& copy) : bounds(copy.bounds), triangles(copy.triangles), numTriangles(copy.numTriangles) {
     if (copy.child1 == NULL) {
         child1 = NULL;
@@ -1067,6 +1126,13 @@ bool OBBTreeNodeImpl::intersectsRay(const ContactGeometry::TriangleMeshImpl& mes
     return foundIntersection;
 }
 
+
+
+
+//==============================================================================
+//                               OBB TREE NODE
+//==============================================================================
+
 ContactGeometry::TriangleMesh::OBBTreeNode::OBBTreeNode(const OBBTreeNodeImpl& impl) : impl(&impl) {
 }
 
@@ -1078,12 +1144,14 @@ bool ContactGeometry::TriangleMesh::OBBTreeNode::isLeafNode() const {
     return (impl->child1 == NULL);
 }
 
-const ContactGeometry::TriangleMesh::OBBTreeNode ContactGeometry::TriangleMesh::OBBTreeNode::getFirstChildNode() const {
+const ContactGeometry::TriangleMesh::OBBTreeNode 
+ContactGeometry::TriangleMesh::OBBTreeNode::getFirstChildNode() const {
     SimTK_ASSERT_ALWAYS(impl->child1, "Called getFirstChildNode() on a leaf node");
     return OBBTreeNode(*impl->child1);
 }
 
-const ContactGeometry::TriangleMesh::OBBTreeNode ContactGeometry::TriangleMesh::OBBTreeNode::getSecondChildNode() const {
+const ContactGeometry::TriangleMesh::OBBTreeNode 
+ContactGeometry::TriangleMesh::OBBTreeNode::getSecondChildNode() const {
     SimTK_ASSERT_ALWAYS(impl->child2, "Called getFirstChildNode() on a leaf node");
     return OBBTreeNode(*impl->child2);
 }

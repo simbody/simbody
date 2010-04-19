@@ -50,26 +50,28 @@ std::ostream& operator<<(std::ostream& o, const Array_<Array_<Contact> >&) {
 
 class ContactSet {
 public:
-    Array_<MobilizedBody> bodies;
-    Array_<ContactGeometry> geometry;
-    Array_<Transform> transforms;
-    mutable Array_<Vec3> sphereCenters;
-    mutable Array_<Real> sphereRadii;
+    Array_<MobilizedBody,ContactSurfaceIndex>   bodies;
+    Array_<ContactGeometry,ContactSurfaceIndex> geometry;
+    Array_<Transform,ContactSurfaceIndex>       transforms;
+    mutable Array_<Vec3,ContactSurfaceIndex>    sphereCenters;
+    mutable Array_<Real,ContactSurfaceIndex>    sphereRadii;
 };
 
 class ContactBodyExtent {
 public:
-    ContactBodyExtent(Real start, Real end, int index) : start(start), end(end), index(index) {
-    }
-    ContactBodyExtent() {
-    }
-    bool operator<(const ContactBodyExtent& e) const {
-        return start < e.start;
-    }
+    ContactBodyExtent(Real start, Real end, ContactSurfaceIndex index) 
+    :   start(start), end(end), index(index) {}
+    ContactBodyExtent() {}
+    bool operator<(const ContactBodyExtent& e) const 
+    {   return start < e.start; }
     Real start, end;
-    int index;
+    ContactSurfaceIndex index;
 };
 
+
+//==============================================================================
+//                      GENERAL CONTACT SUBSYSTEM IMPL
+//==============================================================================
 class GeneralContactSubsystemImpl : public Subsystem::Guts {
 public:
     GeneralContactSubsystemImpl() {}
@@ -102,32 +104,32 @@ public:
         return sets[set].bodies.size();
     }
 
-    const MobilizedBody& getBody(ContactSetIndex set, int index) const {
+    const MobilizedBody& getBody(ContactSetIndex set, ContactSurfaceIndex index) const {
         assert(set >= 0 && set < sets.size());
         assert(index >= 0 && index < (int) sets[set].bodies.size());
         return sets[set].bodies[index];
     }
 
-    const ContactGeometry& getBodyGeometry(ContactSetIndex set, int index) const {
+    const ContactGeometry& getBodyGeometry(ContactSetIndex set, ContactSurfaceIndex index) const {
         assert(set >= 0 && set < sets.size());
         assert(index >= 0 && index < (int) sets[set].geometry.size());
         return sets[set].geometry[index];
     }
 
-    ContactGeometry& updBodyGeometry(ContactSetIndex set, int index) {
+    ContactGeometry& updBodyGeometry(ContactSetIndex set, ContactSurfaceIndex index) {
         assert(set >= 0 && set < sets.size());
         assert(index >= 0 && index < (int) sets[set].geometry.size());
         invalidateSubsystemTopologyCache();
         return sets[set].geometry[index];
     }
 
-    const Transform& getBodyTransform(ContactSetIndex set, int index) const {
+    const Transform& getBodyTransform(ContactSetIndex set, ContactSurfaceIndex index) const {
         assert(set >= 0 && set < sets.size());
         assert(index >= 0 && index < (int) sets[set].transforms.size());
         return sets[set].transforms[index];
     }
 
-    Transform& updBodyTransform(ContactSetIndex set, int index) {
+    Transform& updBodyTransform(ContactSetIndex set, ContactSurfaceIndex index) {
         assert(set >= 0 && set < sets.size());
         assert(index >= 0 && index < (int) sets[set].transforms.size());
         invalidateSubsystemTopologyCache();
@@ -149,7 +151,7 @@ public:
             int numBodies = set.bodies.size();
             set.sphereCenters.resize(numBodies);
             set.sphereRadii.resize(numBodies);
-            for (int j = 0; j < numBodies; j++) {
+            for (ContactSurfaceIndex j(0); j < numBodies; j++) {
                 set.geometry[j].getBoundingSphere(set.sphereCenters[j], set.sphereRadii[j]);
                 set.sphereCenters[j] = set.transforms[j]*set.sphereCenters[j];
             }
@@ -181,7 +183,7 @@ public:
             // axis has the most variation in body locations.  That is the axis we will use.
             
             Vector_<Vec3> centers(numBodies);
-            for (int i = 0; i < numBodies; i++)
+            for (ContactSurfaceIndex i(0); i < numBodies; i++)
                 centers[i] = set.bodies[i].getBodyTransform(state)*set.sphereCenters[i];
             Vec3 average = mean(centers);
             Vec3 var(0);
@@ -194,21 +196,21 @@ public:
             // Find the extent of each body along the axis and sort them by starting location.
             
             Array_<ContactBodyExtent> extents(numBodies);
-            for (int i = 0; i < numBodies; i++)
+            for (ContactSurfaceIndex i(0); i < numBodies; i++)
                 extents[i] = ContactBodyExtent(centers[i][axis]-set.sphereRadii[i], centers[i][axis]+set.sphereRadii[i], i);
             std::sort(extents.begin(), extents.end());
             
             // Now sweep along the axis, finding potential contacts.
             
             for (int i = 0; i < numBodies; i++) {
-                const int index1 = extents[i].index;
+                const ContactSurfaceIndex index1 = extents[i].index;
                 const Transform transform1 = set.bodies[index1].getBodyTransform(state)*set.transforms[index1];
                 const ContactGeometry& geom1 = set.geometry[index1];
                 const int typeIndex1 = geom1.getTypeIndex();
                 for (int j = i+1; j < numBodies && extents[j].start <= extents[i].end; j++) {
                     // They overlap along this axis.  See if the bounding spheres overlap.
                     
-                    const int index2 = extents[j].index;
+                    const ContactSurfaceIndex index2 = extents[j].index;
                     const Real sumRadius = set.sphereRadii[index1]+set.sphereRadii[index2];
                     if ((centers[index1]-centers[index2]).normSqr() <= sumRadius*sumRadius) {
                         // Do a full collision detection.
@@ -237,11 +239,17 @@ public:
     SimTK_DOWNCAST(GeneralContactSubsystemImpl, Subsystem::Guts);
 
 private:
+    Array_<ContactSet>      sets;
+
     mutable CacheEntryIndex contactsCacheIndex;
     mutable CacheEntryIndex contactsValidCacheIndex;
-    Array_<ContactSet> sets;
 };
 
+
+
+//==============================================================================
+//                         GENERAL CONTACT SUBSYSTEM
+//==============================================================================
 ContactSetIndex GeneralContactSubsystem::createContactSet() {
     return updImpl().createContactSet();
 }
@@ -258,23 +266,23 @@ int GeneralContactSubsystem::getNumBodies(ContactSetIndex set) const {
     return getImpl().getNumBodies(set);
 }
 
-const MobilizedBody& GeneralContactSubsystem::getBody(ContactSetIndex set, int index) const {
+const MobilizedBody& GeneralContactSubsystem::getBody(ContactSetIndex set, ContactSurfaceIndex index) const {
     return getImpl().getBody(set, index);
 }
 
-const ContactGeometry& GeneralContactSubsystem::getBodyGeometry(ContactSetIndex set, int index) const {
+const ContactGeometry& GeneralContactSubsystem::getBodyGeometry(ContactSetIndex set, ContactSurfaceIndex index) const {
     return getImpl().getBodyGeometry(set, index);
 }
 
-ContactGeometry& GeneralContactSubsystem::updBodyGeometry(ContactSetIndex set, int index) {
+ContactGeometry& GeneralContactSubsystem::updBodyGeometry(ContactSetIndex set, ContactSurfaceIndex index) {
     return updImpl().updBodyGeometry(set, index);
 }
 
-const Transform& GeneralContactSubsystem::getBodyTransform(ContactSetIndex set, int index) const {
+const Transform& GeneralContactSubsystem::getBodyTransform(ContactSetIndex set, ContactSurfaceIndex index) const {
     return getImpl().getBodyTransform(set, index);
 }
 
-Transform& GeneralContactSubsystem::updBodyTransform(ContactSetIndex set, int index) {
+Transform& GeneralContactSubsystem::updBodyTransform(ContactSetIndex set, ContactSurfaceIndex index) {
     return updImpl().updBodyTransform(set, index);
 }
 

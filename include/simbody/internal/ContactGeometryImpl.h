@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
+ * Portions copyright (c) 2008-10 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -37,6 +37,9 @@
 
 namespace SimTK {
 
+//==============================================================================
+//                             CONTACT GEOMETRY IMPL
+//==============================================================================
 class SimTK_SIMBODY_EXPORT ContactGeometryImpl {
 public:
     ContactGeometryImpl(const std::string& type);
@@ -50,6 +53,16 @@ public:
         return typeIndex;
     }
     static int getIndexForType(std::string type);
+
+    /* Create a new ContactGeometryTypeId and return this unique integer 
+    (thread safe). Each distinct type of ContactGeometry should use this to
+    initialize a static variable for that concrete class. */
+    static ContactGeometryTypeId  createNewContactGeometryTypeId()
+    {   static AtomicInteger nextAvailableId = 1;
+        return ContactGeometryTypeId(nextAvailableId++); }
+
+    virtual ContactGeometryTypeId getTypeId() const = 0;
+
     virtual ContactGeometryImpl* clone() const = 0;
     virtual Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const = 0;
     virtual bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const = 0;
@@ -69,6 +82,11 @@ protected:
     int typeIndex;
 };
 
+
+
+//==============================================================================
+//                             HALF SPACE IMPL
+//==============================================================================
 class ContactGeometry::HalfSpaceImpl : public ContactGeometryImpl {
 public:
     HalfSpaceImpl() : ContactGeometryImpl(Type()) {
@@ -76,6 +94,14 @@ public:
     ContactGeometryImpl* clone() const {
         return new HalfSpaceImpl();
     }
+
+    ContactGeometryTypeId getTypeId() const {return classTypeId();}
+    static ContactGeometryTypeId classTypeId() {
+        static const ContactGeometryTypeId id = 
+            createNewContactGeometryTypeId();
+        return id;
+    }
+
     static const std::string& Type() {
         static std::string type = "halfspace";
         return type;
@@ -85,6 +111,11 @@ public:
     void getBoundingSphere(Vec3& center, Real& radius) const;
 };
 
+
+
+//==============================================================================
+//                                SPHERE IMPL
+//==============================================================================
 class ContactGeometry::SphereImpl : public ContactGeometryImpl {
 public:
     SphereImpl(Real radius) : ContactGeometryImpl(Type()), radius(radius) {
@@ -98,6 +129,14 @@ public:
     void setRadius(Real r) {
         radius = r;
     }
+
+    ContactGeometryTypeId getTypeId() const {return classTypeId();}
+    static ContactGeometryTypeId classTypeId() {
+        static const ContactGeometryTypeId id = 
+            createNewContactGeometryTypeId();
+        return id;
+    }
+
     static const std::string& Type() {
         static std::string type = "sphere";
         return type;
@@ -109,6 +148,11 @@ private:
     Real radius;
 };
 
+
+
+//==============================================================================
+//                            OBB TREE NODE IMPL
+//==============================================================================
 class OBBTreeNodeImpl {
 public:
     OBBTreeNodeImpl() : child1(NULL), child2(NULL) {
@@ -124,6 +168,10 @@ public:
     bool intersectsRay(const ContactGeometry::TriangleMeshImpl& mesh, const Vec3& origin, const UnitVec3& direction, Real& distance, int& face, Vec2& uv) const;
 };
 
+
+//==============================================================================
+//                            TRIANGLE MESH IMPL
+//==============================================================================
 class ContactGeometry::TriangleMeshImpl : public ContactGeometryImpl {
 public:
     class Edge;
@@ -134,6 +182,14 @@ public:
     ContactGeometryImpl* clone() const {
         return new TriangleMeshImpl(*this);
     }
+
+    ContactGeometryTypeId getTypeId() const {return classTypeId();}
+    static ContactGeometryTypeId classTypeId() {
+        static const ContactGeometryTypeId id = 
+            createNewContactGeometryTypeId();
+        return id;
+    }
+
     static const std::string& Type() {
         static std::string type = "triangle mesh";
         return type;

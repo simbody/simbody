@@ -35,11 +35,10 @@
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/ContactGeometry.h"
+#include "simbody/internal/Contact.h"
 #include <map>
 
 namespace SimTK {
-
-class Contact;
 
 /**
  * A CollisionDetectionAlgorithm implements an algorithm for detecting overlaps between pairs of
@@ -70,8 +69,12 @@ public:
      *                   contact between them.  (Multiple contacts may exist if one of the bodies
      *                   is concave.)
      */
-    virtual void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-            int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const = 0;
+    virtual void processObjects
+       (ContactSurfaceIndex index1, const ContactGeometry& object1, 
+        const Transform& transform1,
+        ContactSurfaceIndex index2, const ContactGeometry& object2, 
+        const Transform& transform2, 
+        Array_<Contact>& contacts) const = 0;
     /**
      * Register a CollisionDetectionAlgorithm to be used for identifying contacts between bodies of two specific types.
      *
@@ -103,8 +106,12 @@ private:
 class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::HalfSpaceSphere : public CollisionDetectionAlgorithm {
 public:
     virtual ~HalfSpaceSphere() {}
-    void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-            int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const;
+    void processObjects
+       (ContactSurfaceIndex index1, const ContactGeometry& object1, 
+        const Transform& transform1,
+        ContactSurfaceIndex index2, const ContactGeometry& object2, 
+        const Transform& transform2, 
+        Array_<Contact>& contacts) const;
 };
 
 /**
@@ -113,8 +120,12 @@ public:
 class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::SphereSphere : public CollisionDetectionAlgorithm {
 public:
     virtual ~SphereSphere() {}
-    void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-            int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const;
+    void processObjects
+       (ContactSurfaceIndex index1, const ContactGeometry& object1, 
+        const Transform& transform1,
+        ContactSurfaceIndex index2, const ContactGeometry& object2, 
+        const Transform& transform2, 
+        Array_<Contact>& contacts) const;
 };
 
 /**
@@ -123,8 +134,12 @@ public:
 class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::HalfSpaceTriangleMesh : public CollisionDetectionAlgorithm {
 public:
     virtual ~HalfSpaceTriangleMesh() {}
-    void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-            int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const;
+    void processObjects
+       (ContactSurfaceIndex index1, const ContactGeometry& object1, 
+        const Transform& transform1,
+        ContactSurfaceIndex index2, const ContactGeometry& object2, 
+        const Transform& transform2, 
+        Array_<Contact>& contacts) const;
 private:
     void processBox(const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh::OBBTreeNode& node,
             const Transform& transform, const Vec3& axisDir, Real xoffset, std::set<int>& insideFaces) const;
@@ -137,8 +152,12 @@ private:
 class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::SphereTriangleMesh : public CollisionDetectionAlgorithm {
 public:
     virtual ~SphereTriangleMesh() {}
-    void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-            int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const;
+    void processObjects
+       (ContactSurfaceIndex index1, const ContactGeometry& object1, 
+        const Transform& transform1,
+        ContactSurfaceIndex index2, const ContactGeometry& object2, 
+        const Transform& transform2, 
+        Array_<Contact>& contacts) const;
 private:
     void processBox(const Vec3& center, Real radius2, const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh::OBBTreeNode& node,
             std::set<int>& insideFaces) const;
@@ -150,8 +169,12 @@ private:
 class SimTK_SIMBODY_EXPORT CollisionDetectionAlgorithm::TriangleMeshTriangleMesh : public CollisionDetectionAlgorithm {
 public:
     virtual ~TriangleMeshTriangleMesh() {}
-    void processObjects(int index1, const ContactGeometry& object1, const Transform& transform1,
-            int index2, const ContactGeometry& object2, const Transform& transform2, Array_<Contact>& contacts) const;
+    void processObjects
+       (ContactSurfaceIndex index1, const ContactGeometry& object1, 
+        const Transform& transform1,
+        ContactSurfaceIndex index2, const ContactGeometry& object2, 
+        const Transform& transform2, 
+        Array_<Contact>& contacts) const;
 private:
     void processNodes(const ContactGeometry::TriangleMesh& mesh1, const ContactGeometry::TriangleMesh& mesh2,
             const ContactGeometry::TriangleMesh::OBBTreeNode& node1, const ContactGeometry::TriangleMesh::OBBTreeNode& node2,

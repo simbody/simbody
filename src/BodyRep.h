@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2007-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -43,10 +43,9 @@
 
 namespace SimTK {
 
-    ///////////////
-    // BODY REPS //
-    ///////////////
-
+//==============================================================================
+//                                 BODY REP
+//==============================================================================
 class Body::BodyRep {
 public:
     BodyRep() : myHandle(0) {
@@ -67,19 +66,21 @@ public:
     // now to the saved copy so that the geometry we return later will be 
     // relative to the body frame only.
     void addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
-        geometry.push_back(g); // make a new copy
-        DecorativeGeometry& myg = geometry.back();
+        decorations.push_back(g); // make a new copy
+        DecorativeGeometry& myg = decorations.back();
         myg.setTransform(X_BD*myg.getTransform());
     }
 
     void appendDecorativeGeometry(MobilizedBodyIndex id, 
                                   Array_<DecorativeGeometry>& geom) const 
     {
-        for (int i=0; i<(int)geometry.size(); ++i) {
-            geom.push_back(geometry[i]);
+        for (int i=0; i<(int)decorations.size(); ++i) {
+            geom.push_back(decorations[i]);
             geom.back().setBodyId(id);
         }
     }
+
+
 
     void setMyHandle(Body& h) {myHandle = &h;}
     const Body& getMyBodyHandle() const {assert(myHandle); return *myHandle;}
@@ -89,9 +90,46 @@ private:
     Body* myHandle;
 
         // TOPOLOGY "STATE" VARIABLES
-    Array_<DecorativeGeometry> geometry;
+    Array_<std::pair<Transform,ContactSurface> >      surfaces;
+    Array_<DecorativeGeometry>                        decorations;
 };
 
+
+
+//==============================================================================
+//                                 RIGID REP
+//==============================================================================
+class Body::Rigid::RigidRep : public Body::BodyRep {
+public:
+    RigidRep() 
+    :   BodyRep(), defaultMassProperties(1,Vec3(0),Inertia(1)) 
+    {
+    }
+    explicit RigidRep(const MassProperties& m) : BodyRep(), defaultMassProperties(m) {
+    }
+    const MassProperties& getDefaultRigidBodyMassProperties() const {
+        return defaultMassProperties;
+    }
+    void setDefaultRigidBodyMassProperties(const MassProperties& m) {
+        defaultMassProperties = m;
+    }
+    RigidRep* clone() const {
+        return new RigidRep(*this);
+    }
+    const Body::Rigid& getMyRigidBodyHandle() const {
+        return reinterpret_cast<const Body::Rigid&>(getMyBodyHandle());
+    }
+
+    SimTK_DOWNCAST(RigidRep, BodyRep);
+private:
+    MassProperties defaultMassProperties;
+};
+
+
+
+//==============================================================================
+//                                 GROUND REP
+//==============================================================================
 class Body::Ground::GroundRep : public Body::BodyRep {
 public:
     GroundRep() 
@@ -118,6 +156,11 @@ private:
     const MassProperties infiniteMassProperties;
 };
 
+
+
+//==============================================================================
+//                              MASSLESS REP
+//==============================================================================
 class Body::Massless::MasslessRep : public Body::BodyRep {
 public:
     MasslessRep() 
@@ -144,31 +187,6 @@ private:
     const MassProperties zeroMassProperties;
 };
 
-class Body::Rigid::RigidRep : public Body::BodyRep {
-public:
-    RigidRep() 
-    :   BodyRep(), defaultMassProperties(1,Vec3(0),Inertia(1)) 
-    {
-    }
-    explicit RigidRep(const MassProperties& m) : BodyRep(), defaultMassProperties(m) {
-    }
-    const MassProperties& getDefaultRigidBodyMassProperties() const {
-        return defaultMassProperties;
-    }
-    void setDefaultRigidBodyMassProperties(const MassProperties& m) {
-        defaultMassProperties = m;
-    }
-    RigidRep* clone() const {
-        return new RigidRep(*this);
-    }
-    const Body::Rigid& getMyRigidBodyHandle() const {
-        return reinterpret_cast<const Body::Rigid&>(getMyBodyHandle());
-    }
-
-    SimTK_DOWNCAST(RigidRep, BodyRep);
-private:
-    MassProperties defaultMassProperties;
-};
 
 } // namespace SimTK
 

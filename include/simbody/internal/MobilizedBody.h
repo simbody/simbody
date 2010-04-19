@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2007-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy, Peter Eastman                                  *
  *                                                                            *
@@ -493,32 +493,37 @@ public:
 
     /// @name Basic Operators
 
-    /// These methods use state variables and Response methods to compute basic 
+    /// These methods use state variables and Response methods to compute basic
     /// quantities which cannot be precomputed, but which can be implemented 
     /// with an inline combination of basic floating point operations which can
-    /// be reliably determined at compile time. The method names and descriptions
-    /// use the following terms:
-    ///     - Body or ThisBody: the Body B associated with the current 
-    ///       MobilizedBody. ThisBody is implied when no other Body is mentioned.
-    ///     - Ground: the "MobilizedBody" G representing the Ground reference 
-    ///       frame which never moves.
-    ///     - AnotherBody: the Body A being referenced, which in general is 
-    ///       neither ThisBody nor Ground.
-    ///     - Station: a point S fixed on ThisBody B, located by a position 
-    ///       vector p_BS (or more explicitly, p_OB_S) from the B-frame origin 
-    ///       OB to the point S, expressed in the B-frame coordinate system.
-    ///     - Vector: a vector v fixed on ThisBody B, given by a vector v_B 
-    ///       expressed in the B-frame coordinate system.
-    ///     - Origin: the Station located at (0,0,0) in ThisBody frame B, that 
-    ///       is, body B's origin point.
-    ///     - MassCenter: the Station on ThisBody B which is the center of mass
-    ///       for B.
-    ///     - GroundPoint, GroundVector: a Point P or Vector v on the Ground 
-    ///       "Body" G. These are measured and expressed in the Ground frame, 
-    ///       as p_GP or v_G.
-    ///     - AnotherBodyStation, AnotherBodyVector, etc.: a Station S or Vector
-    ///       v on AnotherBody A. These are measured and expressed in the A 
-    ///       frame, as p_AS or v_A. 
+    /// be reliably determined at compile time. The method names and 
+    /// descriptions use the following terms:
+    /// - Body or ThisBody: the Body B associated with the current 
+    ///   MobilizedBody. ThisBody is implied when no other Body is mentioned.
+    /// - Ground: the "MobilizedBody" G representing the Ground reference 
+    ///   frame which never moves.
+    /// - AnotherBody: the Body A being referenced, which in general is 
+    ///   neither ThisBody nor Ground.
+    /// - Station: a point S fixed on ThisBody B, located by a position 
+    ///   vector p_BS (or more explicitly, p_OB_S) from the B-frame origin 
+    ///   OB to the point S, expressed in the B-frame coordinate system.
+    /// - Vector: a vector v fixed on ThisBody B, given by a vector v_B 
+    ///   expressed in the B-frame coordinate system.
+    /// - Direction: a unit vector u fixed on ThisBody B, given by a unit
+    ///   vector u_B expressed in the B-frame coordinate system.
+    /// - Frame: an origin and coordinate axes F fixed on ThisBody B, given
+    ///   by a transform X_BF that locates F's origin (a Station) in B and 
+    ///   expresses each of F's axes (Directions) in B.
+    /// - Origin: the Station located at (0,0,0) in ThisBody frame B, that 
+    ///   is, body B's origin point.
+    /// - MassCenter: the Station on ThisBody B which is the center of mass
+    ///   for B.
+    /// - GroundPoint, GroundVector: a Point P or Vector v on the Ground 
+    ///   "Body" G. These are measured and expressed in the Ground frame, 
+    ///   as p_GP or v_G.
+    /// - AnotherBodyStation, AnotherBodyVector, etc.: a Station S or Vector
+    ///   v on AnotherBody A. These are measured and expressed in the A 
+    ///   frame, as p_AS or v_A. 
 
     //@{
 
@@ -668,8 +673,8 @@ public:
         const Vec3&     b_GA = inBodyA.getBodyAngularAcceleration(s);
         const Vec3&     b_GB = this->getBodyAngularAcceleration(s);
 
-        const Vec3 w_AB_G     = w_GB - w_GA;                // relative ang. vel. of B in A, exp. in G (3 flops)
-        const Vec3 w_AB_G_dot = b_GB - b_GA;                // d/dt of w_AB_G taken in G    ( 3 flops)
+        const Vec3 w_AB_G     = w_GB - w_GA; // relative ang. vel. of B in A, exp. in G (3 flops)
+        const Vec3 w_AB_G_dot = b_GB - b_GA; // d/dt of w_AB_G taken in G    ( 3 flops)
 
         // We have the derivative in G; change it to derivative in A by adding 
         // in contribution caused by motion of G in A, that is w_AG X w_AB_G. 
@@ -872,6 +877,37 @@ public:
     /// Position stage.
     Vec3 findStationAtAnotherBodyMassCenter(const State& s, const MobilizedBody& fromBodyA) const {
         return fromBodyA.findStationLocationInAnotherBody(s,getBodyMassCenterStation(s),*this);
+    }
+
+    /// Return the current Ground-frame pose (position and orientation) of a 
+    /// frame F that is fixed to body B. That is, we return X_GF=X_GB*X_BF. 
+    /// Cost is 63 flops. This operator is available at Position stage.
+    Transform findFrameTransformInGround
+       (const State& s, const Transform& frameOnB) const {
+        return getBodyTransform(s) * frameOnB;
+    }
+
+    /// Return the current Ground-frame spatial velocity V_GF (that is, 
+    /// angular and linear velocity) of a frame F that is fixed to body B.
+    /// The angular velocity of F is the same as that of B, but the linear
+    /// velocity is the velocity of F's origin OF rather than B's origin OB.
+    /// This operator is available at Velocity stage. Cost is 27 flops.
+    SpatialVec findFrameVelocityInGround
+       (const State& s, const Transform& frameOnB) const {
+        return SpatialVec(getBodyAngularVelocity(s),
+                          findStationVelocityInGround(s,frameOnB.p()));
+    }
+
+    /// Return the current Ground-frame spatial acceleration A_GF (that is, 
+    /// angular and linear acceleration) of a frame F that is fixed to body B.
+    /// The angular acceleration of F is the same as that of B, but the linear
+    /// acceleration is the acceleration of F's origin OF rather than B's 
+    /// origin OB. This operator is available at Acceleration stage. Cost is
+    /// 48 flops.
+    SpatialVec findFrameAccelerationInGround
+       (const State& s, const Transform& frameOnB) const {
+        return SpatialVec(getBodyAngularAcceleration(s),
+                          findStationAccelerationInGround(s,frameOnB.p()));
     }
 
     /// Re-express a vector expressed in this body B's frame into the same vector in G, by applying

@@ -83,8 +83,8 @@ void testHalfSpaceSphere() {
             ASSERT(contact.size() == 1);
             ASSERT(PointContact::isInstance(contact[0]));
             const PointContact& c = static_cast<const PointContact&>(contact[0]);
-            assertEqual(c.getFirstBody(), 1);
-            assertEqual(c.getSecondBody(), 0);
+            assertEqual((int)c.getSurface1(), 1);
+            assertEqual((int)c.getSurface2(), 0);
             assertEqual(c.getNormal(), Vec3(0, 1, 0));
             Real depth = radius-centerInGround[1]+1;
             assertEqual(c.getDepth(), depth);
@@ -129,8 +129,8 @@ void testSphereSphere() {
         for (int i = 0; i < (int) contact.size(); i++) {
             ASSERT(PointContact::isInstance(contact[i]));
             const PointContact& c = static_cast<const PointContact&>(contact[i]);
-            int body1 = c.getFirstBody();
-            int body2 = c.getSecondBody();
+            int body1 = c.getSurface1();
+            int body2 = c.getSurface2();
             Vec3 delta = centerInGround[body2]-centerInGround[body1];
             assertEqual(delta.normalize(), c.getNormal());
             assertEqual(delta.norm(), radius[body1]+radius[body2]-c.getDepth());
@@ -206,8 +206,8 @@ void testHalfSpaceTriangleMesh() {
             ASSERT(contact.size() == 1);
             ASSERT(TriangleMeshContact::isInstance(contact[0]));
             const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contact[0]);
-            ASSERT(c.getFirstBodyFaces().size() == 0);
-            verifyContactFaces(bottomFaces, 10, c.getSecondBodyFaces());
+            ASSERT(c.getSurface1Faces().size() == 0);
+            verifyContactFaces(bottomFaces, 10, c.getSurface2Faces());
          }
     }
 }
@@ -262,7 +262,7 @@ void testSphereTriangleMesh() {
         ASSERT(contacts.getContacts(state, setIndex).size() == 1);
         const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contacts.getContacts(state, setIndex)[0]);
         int faces[] = {0, 1};
-        verifyContactFaces(faces, 2, c.getSecondBodyFaces());
+        verifyContactFaces(faces, 2, c.getSurface2Faces());
     }
     b.setQToFitTranslation(state, Vec3(-0.5, -0.51, -0.5));
     system.realize(state, Stage::Dynamics);
@@ -273,7 +273,7 @@ void testSphereTriangleMesh() {
         ASSERT(contacts.getContacts(state, setIndex).size() == 1);
         const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contacts.getContacts(state, setIndex)[0]);
         int faces[] = {2, 3, 4, 5};
-        verifyContactFaces(faces, 4, c.getSecondBodyFaces());
+        verifyContactFaces(faces, 4, c.getSurface2Faces());
     }
     b.setQToFitTranslation(state, Vec3(-2.5, 1.51, -0.5));
     system.realize(state, Stage::Dynamics);
@@ -284,7 +284,7 @@ void testSphereTriangleMesh() {
         ASSERT(contacts.getContacts(state, setIndex).size() == 1);
         const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contacts.getContacts(state, setIndex)[0]);
         int faces[] = {8, 9, 10, 11};
-        verifyContactFaces(faces, 4, c.getSecondBodyFaces());
+        verifyContactFaces(faces, 4, c.getSurface2Faces());
     }
 }
 
@@ -349,13 +349,13 @@ void testTriangleMeshTriangleMesh() {
         ASSERT(contact.size() == 1);
         ASSERT(TriangleMeshContact::isInstance(contact[0]));
         const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contact[0]);
-        if (contact[0].getFirstBody() == 0) {
-            verifyContactFaces(baseFaces, 2, c.getFirstBodyFaces());
-            verifyContactFaces(pointFaces, 4, c.getSecondBodyFaces());
+        if (contact[0].getSurface1() == 0) {
+            verifyContactFaces(baseFaces, 2, c.getSurface1Faces());
+            verifyContactFaces(pointFaces, 4, c.getSurface2Faces());
         }
         else {
-            verifyContactFaces(pointFaces, 4, c.getFirstBodyFaces());
-            verifyContactFaces(baseFaces, 2, c.getSecondBodyFaces());
+            verifyContactFaces(pointFaces, 4, c.getSurface1Faces());
+            verifyContactFaces(baseFaces, 2, c.getSurface2Faces());
         }
     }
     {
@@ -366,13 +366,13 @@ void testTriangleMeshTriangleMesh() {
         ASSERT(contact.size() == 1);
         ASSERT(TriangleMeshContact::isInstance(contact[0]));
         const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contact[0]);
-        if (contact[0].getFirstBody() == 0) {
-            verifyContactFaces(pointFaces, 4, c.getFirstBodyFaces());
-            verifyContactFaces(baseFaces, 2, c.getSecondBodyFaces());
+        if (contact[0].getSurface1() == 0) {
+            verifyContactFaces(pointFaces, 4, c.getSurface1Faces());
+            verifyContactFaces(baseFaces, 2, c.getSurface2Faces());
         }
         else {
-            verifyContactFaces(baseFaces, 2, c.getFirstBodyFaces());
-            verifyContactFaces(pointFaces, 4, c.getSecondBodyFaces());
+            verifyContactFaces(baseFaces, 2, c.getSurface1Faces());
+            verifyContactFaces(pointFaces, 4, c.getSurface2Faces());
         }
     }
     {
@@ -391,13 +391,13 @@ void testTriangleMeshTriangleMesh() {
         ASSERT(contact.size() == 1);
         ASSERT(TriangleMeshContact::isInstance(contact[0]));
         const TriangleMeshContact& c = static_cast<const TriangleMeshContact&>(contact[0]);
-        if (contact[0].getFirstBody() == 0) {
-            verifyContactFaces(pointFaces, 4, c.getFirstBodyFaces());
-            verifyContactFaces(pointFaces, 4, c.getSecondBodyFaces());
+        if (contact[0].getSurface1() == 0) {
+            verifyContactFaces(pointFaces, 4, c.getSurface1Faces());
+            verifyContactFaces(pointFaces, 4, c.getSurface2Faces());
         }
         else {
-            verifyContactFaces(pointFaces, 4, c.getFirstBodyFaces());
-            verifyContactFaces(pointFaces, 4, c.getSecondBodyFaces());
+            verifyContactFaces(pointFaces, 4, c.getSurface1Faces());
+            verifyContactFaces(pointFaces, 4, c.getSurface2Faces());
         }
     }
 }

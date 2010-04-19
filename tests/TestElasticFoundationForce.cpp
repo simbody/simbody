@@ -55,7 +55,8 @@ void testForces() {
     GeneralContactSubsystem contacts(system);
     GeneralForceSubsystem forces(system);
 
-    // Create a triangle mesh in the shape of a pyramid.
+    // Create a triangle mesh in the shape of a pyramid, with the
+    // square base having area 1 (split into two triangles).
     
     vector<Vec3> vertices;
     vertices.push_back(Vec3(0, 0, 0));
@@ -64,7 +65,8 @@ void testForces() {
     vertices.push_back(Vec3(0, 0, 1));
     vertices.push_back(Vec3(0.5, 1, 0.5));
     vector<int> faceIndices;
-    int faces[6][3] = {{0, 1, 2}, {0, 2, 3}, {1, 0, 4}, {2, 1, 4}, {3, 2, 4}, {0, 3, 4}};
+    int faces[6][3] = {{0, 1, 2}, {0, 2, 3}, {1, 0, 4}, 
+                       {2, 1, 4}, {3, 2, 4}, {0, 3, 4}};
     for (int i = 0; i < 6; i++)
         for (int j = 0; j < 3; j++)
             faceIndices.push_back(faces[i][j]);
@@ -78,12 +80,13 @@ void testForces() {
     contacts.addBody(setIndex, matter.updGround(), ContactGeometry::HalfSpace(), Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0))); // y < 0
     ElasticFoundationForce ef(forces, contacts, setIndex);
     Real stiffness = 1e9, dissipation = 0.01, us = 0.1, ud = 0.05, uv = 0.01, vt = 0.01;
-    ef.setBodyParameters(0, stiffness, dissipation, us, ud, uv);
+    ef.setBodyParameters(ContactSurfaceIndex(0), stiffness, dissipation, us, ud, uv);
     ef.setTransitionVelocity(vt);
     ASSERT(ef.getTransitionVelocity() == vt);
     State state = system.realizeTopology();
     
-    // Position the sphere at a variety of positions and check the normal force.
+    // Position the pyramid at a variety of positions and check the normal 
+    // force.
     
     for (Real depth = -0.1; depth < 0.1; depth += 0.01) {
         mesh.setQToFitTranslation(state, Vec3(0, -depth, 0));

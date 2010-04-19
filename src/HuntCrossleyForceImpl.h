@@ -45,20 +45,22 @@ public:
     HuntCrossleyForceImpl* clone() const {
         return new HuntCrossleyForceImpl(*this);
     }
-    void setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction);
-    const Parameters& getParameters(int bodyIndex) const;
-    Parameters& updParameters(int bodyIndex);
+    void setBodyParameters
+       (ContactSurfaceIndex surfIndex, Real stiffness, Real dissipation, 
+        Real staticFriction, Real dynamicFriction, Real viscousFriction);
+    const Parameters& getParameters(ContactSurfaceIndex bodyIndex) const;
+    Parameters& updParameters(ContactSurfaceIndex bodyIndex);
     Real getTransitionVelocity() const;
     void setTransitionVelocity(Real v);
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
     Real calcPotentialEnergy(const State& state) const;
     void realizeTopology(State& state) const;
 private:
-    const GeneralContactSubsystem& subsystem;
-    const ContactSetIndex set;
-    Array_<Parameters> parameters;
-    Real transitionVelocity;
-    mutable CacheEntryIndex energyCacheIndex;
+    const GeneralContactSubsystem&          subsystem;
+    const ContactSetIndex                   set;
+    Array_<Parameters,ContactSurfaceIndex>  parameters;
+    Real                                    transitionVelocity;
+    mutable CacheEntryIndex                 energyCacheIndex;
 };
 
 class HuntCrossleyForceImpl::Parameters {
@@ -68,7 +70,8 @@ public:
     Parameters(Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) :
             stiffness(std::pow(stiffness, 2.0/3.0)), dissipation(dissipation), staticFriction(staticFriction), dynamicFriction(dynamicFriction), viscousFriction(viscousFriction) {
     }
-    Real stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction;
+    Real stiffness, dissipation, staticFriction, 
+         dynamicFriction, viscousFriction;
 };
 
 } // namespace SimTK

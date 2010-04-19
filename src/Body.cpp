@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Portions copyright (c) 2007-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -30,9 +30,7 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- *
- * Private implementation of Body and its built-in subclasses.
- */
+Private implementation of Body and its built-in subclasses. **/
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
@@ -42,10 +40,9 @@
 
 namespace SimTK {
 
-    //////////
-    // BODY //
-    //////////
-
+//==============================================================================
+//                                    BODY
+//==============================================================================
 bool Body::isEmptyHandle() const {return rep==0;}
 bool Body::isOwnerHandle() const {return rep==0 || rep->myHandle==this;}
 
@@ -85,6 +82,29 @@ Body& Body::addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
     updRep().addDecoration(X_BD, g);
     return *this;
 }
+int Body::getNumDecorations() const 
+{   return (int)getRep().decorations.size(); }
+const DecorativeGeometry& Body::getDecoration(int n) const
+{   return getRep().decorations[n]; }
+DecorativeGeometry& Body::updDecoration(int n)
+{   return updRep().decorations[n]; }
+
+
+Body& Body::addContactSurface(const Transform&      X_BS, 
+                              const ContactSurface& shape) {
+    updRep().surfaces.push_back(std::make_pair(X_BS,shape));
+    return *this;
+}
+int Body::getNumContactSurfaces() const 
+{   return (int)getRep().surfaces.size(); }
+const ContactSurface& Body::getContactSurface(int n) const
+{   return getRep().surfaces[n].second; }
+const Transform& Body::getContactSurfaceTransform(int n) const
+{   return getRep().surfaces[n].first; }
+ContactSurface& Body::updContactSurface(int n)
+{   return updRep().surfaces[n].second; }
+Transform& Body::updContactSurfaceTransform(int n)
+{   return updRep().surfaces[n].first; }
 
 const MassProperties& Body::getDefaultRigidBodyMassProperties() const {
     return getRep().getDefaultRigidBodyMassProperties();
@@ -95,10 +115,11 @@ Body& Body::setDefaultRigidBodyMassProperties(const MassProperties& m) {
     return *this;
 }
 
-    /////////////////
-    // BODY::RIGID //
-    /////////////////
 
+
+//==============================================================================
+//                               BODY::RIGID
+//==============================================================================
 Body::Rigid::Rigid() {
     rep = new RigidRep();
     rep->setMyHandle(*this);
@@ -127,10 +148,11 @@ Body::Rigid::RigidRep& Body::Rigid::updRep() {
     return dynamic_cast<RigidRep&>(*rep);
 }
 
-    //////////////////
-    // BODY::GROUND //
-    //////////////////
 
+
+//==============================================================================
+//                              BODY::GROUND
+//==============================================================================
 Body::Ground::Ground() {
     rep = new GroundRep();
     rep->setMyHandle(*this);
@@ -155,10 +177,10 @@ Body::Ground::GroundRep& Body::Ground::updRep() {
 }
 
 
-    ////////////////////
-    // BODY::MASSLESS //
-    ////////////////////
 
+//==============================================================================
+//                              BODY::MASSLESS
+//==============================================================================
 Body::Massless::Massless() {
     rep = new MasslessRep();
     rep->setMyHandle(*this);

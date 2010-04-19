@@ -139,16 +139,18 @@ public:
      */
     HuntCrossleyForce(GeneralForceSubsystem& forces, GeneralContactSubsystem& contacts, ContactSetIndex contactSet);
     /**
-     * Set the material parameters for a body in the contact set.
+     * Set the material parameters for a surface in the contact set.
      *
-     * @param bodyIndex       the index of the body within the contact set
+     * @param surfIndex       the index of the surface within the contact set
      * @param stiffness       the stiffness constant (k) for the body
      * @param dissipation     the dissipation coefficient (c) for the body
      * @param staticFriction  the coefficient of static friction (us) for the body
      * @param dynamicFriction the coefficient of dynamic friction (ud) for the body
      * @param viscousFriction the coefficient of viscous friction (uv) for the body
      */
-    void setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction);
+    void setBodyParameters
+       (ContactSurfaceIndex surfIndex, Real stiffness, Real dissipation, 
+        Real staticFriction, Real dynamicFriction, Real viscousFriction);
     /**
      * Get the transition velocity (vt) of the friction model.
      */

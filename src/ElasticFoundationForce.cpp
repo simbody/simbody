@@ -49,7 +49,9 @@ ElasticFoundationForce::ElasticFoundationForce(GeneralForceSubsystem& forces, Ge
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
 
-void ElasticFoundationForce::setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) {
+void ElasticFoundationForce::setBodyParameters
+   (ContactSurfaceIndex bodyIndex, Real stiffness, Real dissipation, 
+    Real staticFriction, Real dynamicFriction, Real viscousFriction) {
     updImpl().setBodyParameters(bodyIndex, stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction);
 }
 
@@ -65,7 +67,9 @@ ElasticFoundationForceImpl::ElasticFoundationForceImpl(GeneralContactSubsystem& 
         subsystem(subsystem), set(set), transitionVelocity(0.01) {
 }
 
-void ElasticFoundationForceImpl::setBodyParameters(int bodyIndex, Real stiffness, Real dissipation, Real staticFriction, Real dynamicFriction, Real viscousFriction) {
+void ElasticFoundationForceImpl::setBodyParameters
+   (ContactSurfaceIndex bodyIndex, Real stiffness, Real dissipation, 
+    Real staticFriction, Real dynamicFriction, Real viscousFriction) {
     SimTK_APIARGCHECK1(bodyIndex >= 0 && bodyIndex < subsystem.getNumBodies(set), "ElasticFoundationForceImpl", "setBodyParameters",
             "Illegal body index: %d", bodyIndex);
     SimTK_APIARGCHECK1(subsystem.getBodyGeometry(set, bodyIndex).getType() == ContactGeometry::TriangleMeshImpl::Type(), "ElasticFoundationForceImpl", "setBodyParameters",
@@ -85,25 +89,41 @@ void ElasticFoundationForceImpl::setBodyParameters(int bodyIndex, Real stiffness
     subsystem.invalidateSubsystemTopologyCache();
 }
 
-void ElasticFoundationForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
+void ElasticFoundationForceImpl::calcForce
+   (const State& state, Vector_<SpatialVec>& bodyForces, 
+    Vector_<Vec3>& particleForces, Vector& mobilityForces) const 
+{
     const Array_<Contact>& contacts = subsystem.getContacts(state, set);
-    Real& pe = Value<Real>::downcast(state.updCacheEntry(subsystem.getMySubsystemIndex(), energyCacheIndex)).upd();
+    Real& pe = Value<Real>::downcast
+                (subsystem.updCacheEntry(state, energyCacheIndex));
     pe = 0.0;
     for (int i = 0; i < (int) contacts.size(); i++) {
-        std::map<int, Parameters>::const_iterator iter = parameters.find(contacts[i].getFirstBody());
+        std::map<ContactSurfaceIndex, Parameters>::const_iterator iter = 
+            parameters.find(contacts[i].getSurface1());
         if (iter != parameters.end()) {
-            const TriangleMeshContact& contact = static_cast<const TriangleMeshContact&>(contacts[i]);
-            processContact(state, contact.getFirstBody(), contact.getSecondBody(), iter->second, contact.getFirstBodyFaces(), bodyForces, pe);
+            const TriangleMeshContact& contact = 
+                static_cast<const TriangleMeshContact&>(contacts[i]);
+            processContact(state, contact.getSurface1(), 
+                contact.getSurface2(), iter->second, 
+                contact.getSurface1Faces(), bodyForces, pe);
         }
-        iter = parameters.find(contacts[i].getSecondBody());
+        iter = parameters.find(contacts[i].getSurface2());
         if (iter != parameters.end()) {
-            const TriangleMeshContact& contact = static_cast<const TriangleMeshContact&>(contacts[i]);
-            processContact(state, contact.getSecondBody(), contact.getFirstBody(), iter->second, contact.getSecondBodyFaces(), bodyForces, pe);
+            const TriangleMeshContact& contact = 
+                static_cast<const TriangleMeshContact&>(contacts[i]);
+            processContact(state, contact.getSurface2(), 
+                contact.getSurface1(), iter->second, 
+                contact.getSurface2Faces(), bodyForces, pe);
         }
     }
 }
 
-void ElasticFoundationForceImpl::processContact(const State& state, int meshIndex, int otherBodyIndex, const Parameters& param, const std::set<int>& insideFaces, Vector_<SpatialVec>& bodyForces, Real& pe) const {
+void ElasticFoundationForceImpl::processContact
+   (const State& state, 
+    ContactSurfaceIndex meshIndex, ContactSurfaceIndex otherBodyIndex, 
+    const Parameters& param, const std::set<int>& insideFaces, 
+    Vector_<SpatialVec>& bodyForces, Real& pe) const 
+{
     const ContactGeometry& otherObject = subsystem.getBodyGeometry(set, otherBodyIndex);
     const MobilizedBody& body1 = subsystem.getBody(set, meshIndex);
     const MobilizedBody& body2 = subsystem.getBody(set, otherBodyIndex);
@@ -113,7 +133,8 @@ void ElasticFoundationForceImpl::processContact(const State& state, int meshInde
 
     // Loop over all the springs, and evaluate the force from each one.
 
-    for (std::set<int>::const_iterator iter = insideFaces.begin(); iter != insideFaces.end(); ++iter) {
+    for (std::set<int>::const_iterator iter = insideFaces.begin(); 
+                                       iter != insideFaces.end(); ++iter) {
         int face = *iter;
         UnitVec3 normal;
         bool inside;
@@ -162,11 +183,13 @@ void ElasticFoundationForceImpl::processContact(const State& state, int meshInde
 }
 
 Real ElasticFoundationForceImpl::calcPotentialEnergy(const State& state) const {
-    return Value<Real>::downcast(state.getCacheEntry(subsystem.getMySubsystemIndex(), energyCacheIndex)).get();
+    return Value<Real>::downcast
+            (subsystem.getCacheEntry(state, energyCacheIndex));
 }
 
 void ElasticFoundationForceImpl::realizeTopology(State& state) const {
-    energyCacheIndex = state.allocateCacheEntry(subsystem.getMySubsystemIndex(), Stage::Dynamics, new Value<Real>());
+    energyCacheIndex = subsystem.allocateCacheEntry
+                        (state, Stage::Dynamics, new Value<Real>());
 }
 
 

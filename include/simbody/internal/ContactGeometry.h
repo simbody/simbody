@@ -40,6 +40,8 @@
 
 namespace SimTK {
 
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(ContactGeometryTypeId);
+
 class ContactGeometryImpl;
 class OBBTreeNodeImpl;
 
@@ -91,6 +93,10 @@ public:
     void getBoundingSphere(Vec3& center, Real& radius) const;
     bool isOwnerHandle() const;
     bool isEmptyHandle() const;
+
+    /**
+     * Copy assignment makes a deep copy.
+     */
     ContactGeometry& operator=(const ContactGeometry& src);
     bool hasImpl() const {
         return impl != 0;
@@ -113,6 +119,10 @@ public:
      * A unique index is generated automatically for each unique type value as returned by getType().
      */
     int getTypeIndex() const;
+
+    ContactGeometryTypeId getTypeId() const;
+
+   
 protected:
     ContactGeometryImpl* impl;
 };
@@ -124,6 +134,9 @@ protected:
 class SimTK_SIMBODY_EXPORT ContactGeometry::HalfSpace : public ContactGeometry {
 public:
     HalfSpace();
+
+    /** Obtain the unique id for HalfSpace contact geometry. **/
+    static ContactGeometryTypeId classTypeId();
 };
 
 /**
@@ -134,6 +147,10 @@ public:
     explicit Sphere(Real radius);
     Real getRadius() const;
     void setRadius(Real radius);
+
+    /** Obtain the unique id for Sphere contact geometry. **/
+    static ContactGeometryTypeId classTypeId();
+
     const SphereImpl& getImpl() const;
     SphereImpl& updImpl();
 };
@@ -313,6 +330,10 @@ public:
      * Get the OBBTreeNode which forms the root of this mesh's Oriented Bounding Box Tree.
      */
     OBBTreeNode getOBBTreeNode() const;
+
+    /** Obtain the unique id for TriangleMesh contact geometry. **/
+    static ContactGeometryTypeId classTypeId();
+
     const TriangleMeshImpl& getImpl() const;
     TriangleMeshImpl& updImpl();
 };

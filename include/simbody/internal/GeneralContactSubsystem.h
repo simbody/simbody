@@ -35,12 +35,12 @@
 #include "SimTKcommon.h"
 
 #include "simbody/internal/common.h"
+#include "simbody/internal/Contact.h"
 
 namespace SimTK {
 
 class MultibodySystem;
 class MobilizedBody;
-class Contact;
 class ContactGeometry;
 
 /**
@@ -96,35 +96,35 @@ public:
      * @param set    the contact set the body belongs to
      * @param index  the index of the body within the contact set
      */
-    const MobilizedBody& getBody(ContactSetIndex set, int index) const;
+    const MobilizedBody& getBody(ContactSetIndex set, ContactSurfaceIndex index) const;
     /**
      * Get the ContactGeometry which defines the shape of a body.
      * 
      * @param set    the contact set the body belongs to
      * @param index  the index of the body within the contact set
      */
-    const ContactGeometry& getBodyGeometry(ContactSetIndex set, int index) const;
+    const ContactGeometry& getBodyGeometry(ContactSetIndex set, ContactSurfaceIndex index) const;
     /**
      * Get a mutable reference to the ContactGeometry which defines the shape of a body.
      * 
      * @param set    the contact set the body belongs to
      * @param index  the index of the body within the contact set
      */
-    ContactGeometry& updBodyGeometry(ContactSetIndex set, int index);
+    ContactGeometry& updBodyGeometry(ContactSetIndex set, ContactSurfaceIndex index);
     /**
      * Get the location and orientation of a body.
      * 
      * @param set    the contact set the body belongs to
      * @param index  the index of the body within the contact set
      */
-    const Transform& getBodyTransform(ContactSetIndex set, int index) const;
+    const Transform& getBodyTransform(ContactSetIndex set, ContactSurfaceIndex index) const;
     /**
      * Get a mutable reference to the location and orientation of a body.
      * 
      * @param set    the contact set the body belongs to
      * @param index  the index of the body within the contact set
      */
-    Transform& updBodyTransform(ContactSetIndex set, int index);
+    Transform& updBodyTransform(ContactSetIndex set, ContactSurfaceIndex index);
     /**
      * Get a list of all contacts between bodies in a contact set.  Contacts are calculated at
      * Dynamics stage, so the state must have been realized to at least Dynamics stage.  This
