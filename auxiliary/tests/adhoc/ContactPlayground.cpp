@@ -49,10 +49,10 @@ using namespace SimTK;
 class MyReporter : public PeriodicEventReporter {
 public:
     MyReporter(const MultibodySystem& system, 
-               const CompliantContactSubsystem& compl,
+               const CompliantContactSubsystem& complCont,
                Real reportInterval)
     :   PeriodicEventReporter(reportInterval), m_system(system),
-        m_compliant(compl) {}
+        m_compliant(complCont) {}
 
     ~MyReporter() {}
     void handleEvent(const State& state) const {
