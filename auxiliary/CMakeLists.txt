@@ -29,12 +29,35 @@ ${PROJECT_SOURCE_DIR}/auxiliary/include/*.h )
 
 
 ## Find VTK
-SET(VTK_VERSION 5.0          CACHE STRING "VTK version to use")
-SET(VTK_DIR     ${SimTK_SDK} CACHE PATH   "VTK installation directory")
-
-
-SET(VTK_INCLUDE_DIR ${VTK_DIR}/include/vtk-${VTK_VERSION})
-SET(VTK_LIB_DIR     ${VTK_DIR}/lib/vtk-${VTK_VERSION})
+find_path(vtk_version_include_dir
+    NAMES 
+        vtkRenderWindow.h
+    PATHS
+        "${SimTK_SDK}/include"
+        "$ENV{PROGRAMFILES}/VTK/include"
+        /usr/local/include
+        /usr/local/vtk/include
+    PATH_SUFFIXES
+        vtk-5.6
+        vtk-5.4
+        vtk-5.2
+        vtk-5.0
+    DOC "Path to VTK include files, for use in finding VTK install location"
+)
+if(vtk_version_include_dir)
+    mark_as_advanced(vtk_version_include_dir)
+    get_filename_component(vtk_version_temp ${vtk_version_include_dir} NAME)
+    SET(VTK_VERSION "${vtk_version_temp}" CACHE STRING "VTK version to use")
+    # Go up two directory levels to find VTK_DIR
+    get_filename_component(vtk_include_dir_temp "${vtk_version_include_dir}" PATH)
+    get_filename_component(vtk_dir_temp "${vtk_include_dir_temp}" PATH)
+    SET(VTK_DIR "${vtk_dir_temp}" CACHE PATH "VTK installation directory")
+    SET(VTK_LIB_DIR "${VTK_DIR}/lib/${VTK_VERSION}" CACHE PATH "Location of VTK libraries")
+    SET(VTK_INCLUDE_DIR "${VTK_DIR}/include/${VTK_VERSION}" CACHE PATH "Location of VTK libraries")
+else(vtk_version_include_dir)
+    mark_as_advanced(CLEAR vtk_version_include_dir)
+    message("Unable to find VTK include files")
+endif(vtk_version_include_dir)
 
 INCLUDE_DIRECTORIES(${VTK_INCLUDE_DIR})
 LINK_DIRECTORIES(${VTK_LIB_DIR})
