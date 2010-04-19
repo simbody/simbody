@@ -1884,7 +1884,7 @@ public:
         return data->triggers[g];
     }
 
-    CacheEntryIndex getDiscreteVarUpdateIndex(SubsystemIndex subsys, int index) const {
+    CacheEntryIndex getDiscreteVarUpdateIndex(SubsystemIndex subsys, DiscreteVariableIndex index) const {
         const PerSubsystemInfo& ss = data->subsystems[subsys];
         SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
             "StateRep::getDiscreteVarUpdateIndex()");
@@ -1892,7 +1892,7 @@ public:
         return dv.getAutoUpdateEntry();
     } 
 
-    Stage getDiscreteVarAllocationStage(SubsystemIndex subsys, int index) const {
+    Stage getDiscreteVarAllocationStage(SubsystemIndex subsys, DiscreteVariableIndex index) const {
         const PerSubsystemInfo& ss = data->subsystems[subsys];
         SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
             "StateRep::getDiscreteVarAllocationStage()");
@@ -1900,7 +1900,7 @@ public:
         return dv.getAllocationStage();
     } 
 
-    Stage getDiscreteVarInvalidatesStage(SubsystemIndex subsys, int index) const {
+    Stage getDiscreteVarInvalidatesStage(SubsystemIndex subsys, DiscreteVariableIndex index) const {
         const PerSubsystemInfo& ss = data->subsystems[subsys];
         SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
             "StateRep::getDiscreteVarInvalidatesStage()");
@@ -1911,7 +1911,7 @@ public:
     // You can access a Model stage variable any time, but don't access others
     // until you have realized the Model stage.
     const AbstractValue& 
-    getDiscreteVariable(SubsystemIndex subsys, int index) const {
+    getDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) const {
         const PerSubsystemInfo& ss = data->subsystems[subsys];
     
         SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),"StateRep::getDiscreteVariable()");
@@ -1924,39 +1924,39 @@ public:
     
         return dv.getValue();
     }
-    Real getDiscreteVarLastUpdateTime(SubsystemIndex subsys, int index) const {
+    Real getDiscreteVarLastUpdateTime(SubsystemIndex subsys, DiscreteVariableIndex index) const {
         const PerSubsystemInfo& ss = data->subsystems[subsys];
         SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),"StateRep::getDiscreteVarLastUpdateTime()");
         const DiscreteVarInfo& dv = ss.discreteInfo[index];
         return dv.getTimeLastUpdated();
     }
 
-    const AbstractValue& getDiscreteVarUpdateValue(SubsystemIndex subsys, int index) const {
+    const AbstractValue& getDiscreteVarUpdateValue(SubsystemIndex subsys, DiscreteVariableIndex index) const {
         const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
         SimTK_ERRCHK2(cx.isValid(), "StateRep::getDiscreteVarUpdateValue()", 
             "Subsystem %d has a discrete variable %d but it does not have an"
-            " associated update cache variable.", (int)subsys, index);
+            " associated update cache variable.", (int)subsys, (int)index);
         return getCacheEntry(subsys, cx);
     }
-    AbstractValue& updDiscreteVarUpdateValue(SubsystemIndex subsys, int index) const {
+    AbstractValue& updDiscreteVarUpdateValue(SubsystemIndex subsys, DiscreteVariableIndex index) const {
         const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
         SimTK_ERRCHK2(cx.isValid(), "StateRep::updDiscreteVarUpdateValue()", 
             "Subsystem %d has a discrete variable %d but it does not have an"
-            " associated update cache variable.", (int)subsys, index);
+            " associated update cache variable.", (int)subsys, (int)index);
         return updCacheEntry(subsys, cx);
     }
     bool isDiscreteVarUpdateValueRealized(SubsystemIndex subsys, DiscreteVariableIndex index) const {
         const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
         SimTK_ERRCHK2(cx.isValid(), "StateRep::isDiscreteVarUpdateValueRealized()", 
             "Subsystem %d has a discrete variable %d but it does not have an"
-            " associated update cache variable.", (int)subsys, index);
+            " associated update cache variable.", (int)subsys, (int)index);
         return isCacheValueRealized(subsys, cx);
     }
     void markDiscreteVarUpdateValueRealized(SubsystemIndex subsys, DiscreteVariableIndex index) const {
         const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
         SimTK_ERRCHK2(cx.isValid(), "StateRep::markDiscreteVarUpdateValueRealized()", 
             "Subsystem %d has a discrete variable %d but it does not have an"
-            " associated update cache variable.", (int)subsys, index);
+            " associated update cache variable.", (int)subsys, (int)index);
         markCacheValueRealized(subsys, cx);
     }
 
@@ -1964,7 +1964,7 @@ public:
     // must wait until you have realized the Model stage. This always backs the 
     // stage up to one earlier than the variable's stage.
     AbstractValue& 
-    updDiscreteVariable(SubsystemIndex subsys, int index) {
+    updDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) {
         checkCanModify(subsys);
         PerSubsystemInfo& ss = data->subsystems[subsys];
     
@@ -1981,7 +1981,7 @@ public:
         return dv.updValue(data->t);
     }
     
-    Stage getCacheEntryAllocationStage(SubsystemIndex subsys, int index) const {
+    Stage getCacheEntryAllocationStage(SubsystemIndex subsys, CacheEntryIndex index) const {
         const PerSubsystemInfo& ss = data->subsystems[subsys];
         SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),
             "StateRep::getCacheEntryAllocationStage()");
@@ -1991,7 +1991,7 @@ public:
 
     // Stage >= ce.stage
     const AbstractValue& 
-    getCacheEntry(SubsystemIndex subsys, int index) const {
+    getCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
         const PerSubsystemInfo& ss = data->subsystems[subsys];
     
         SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),"StateRep::getCacheEntry()");
@@ -2023,7 +2023,7 @@ public:
     // You can access a cache entry for update any time after it has been allocated.
     // This does not affect the stage.
     AbstractValue& 
-    updCacheEntry(SubsystemIndex subsys, int index) const {
+    updCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
         const PerSubsystemInfo& ss = data->subsystems[subsys];
     
         SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),"StateRep::updCacheEntry()");
