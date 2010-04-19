@@ -70,12 +70,21 @@ public:
     UIndex allocateU(State& s, const Vector& uInit) const;
     // zdot is also allocated in the cache
     ZIndex allocateZ(State& s, const Vector& zInit) const;
+
     DiscreteVariableIndex allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const;
+    DiscreteVariableIndex allocateAutoUpdateDiscreteVariable
+       (State&, Stage invalidates, AbstractValue* v, Stage updateDependsOn) const; 
 
     // Cache entries
-    CacheEntryIndex allocateCacheEntry   (const State&, Stage dependsOn, Stage computedBy, AbstractValue* v) const;
-    CacheEntryIndex allocateCacheEntry   (const State& state, Stage g, AbstractValue* v) const 
+    CacheEntryIndex allocateCacheEntry
+       (const State&, Stage dependsOn, Stage computedBy, AbstractValue* v) const;
+    CacheEntryIndex allocateCacheEntry
+       (const State& state, Stage g, AbstractValue* v) const 
     {   return allocateCacheEntry(state, g, g, v); }
+    CacheEntryIndex allocateLazyCacheEntry   
+       (const State& state, Stage earliest, AbstractValue* v) const 
+    {   return allocateCacheEntry(state, earliest, Stage::Infinity, v); }
+
     // qerr, uerr, udoterr are all cache entries, not variables
     // allocating udoterr also allocates matching multipliers
     QErrIndex allocateQErr(const State& s, int nqerr) const;
@@ -145,6 +154,20 @@ public:
     // as soon as this subsystem is at stage Model.
     Stage getStage(const State&) const;
     const AbstractValue& getDiscreteVariable(const State&, DiscreteVariableIndex) const;
+
+    Real getDiscreteVarLastUpdateTime(const State& s, DiscreteVariableIndex dx) const
+    {   return s.getDiscreteVarLastUpdateTime(getMySubsystemIndex(),dx); }
+    CacheEntryIndex getDiscreteVarUpdateIndex(const State& s, DiscreteVariableIndex dx) const
+    {   return s.getDiscreteVarUpdateIndex(getMySubsystemIndex(),dx); }
+    const AbstractValue& getDiscreteVarUpdateValue(const State& s, DiscreteVariableIndex dx) const
+    {   return s.getDiscreteVarUpdateValue(getMySubsystemIndex(),dx); }
+    AbstractValue& updDiscreteVarUpdateValue(const State& s, DiscreteVariableIndex dx) const
+    {   return s.updDiscreteVarUpdateValue(getMySubsystemIndex(),dx); }
+    bool isDiscreteVarUpdateValueRealized(const State& s, DiscreteVariableIndex dx) const
+    {   return s.isDiscreteVarUpdateValueRealized(getMySubsystemIndex(),dx); }
+    void markDiscreteVarUpdateValueRealized(const State& s, DiscreteVariableIndex dx) const
+    {   return s.markDiscreteVarUpdateValueRealized(getMySubsystemIndex(),dx); }
+
     // State is *not* mutable here -- must have write access to change state variables.
     AbstractValue& updDiscreteVariable(State&, DiscreteVariableIndex) const;
     const AbstractValue& getCacheEntry(const State&, CacheEntryIndex) const;

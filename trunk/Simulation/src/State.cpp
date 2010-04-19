@@ -1314,7 +1314,7 @@ public:
 
     // Allocate a discrete variable and a corresponding cache entry for
     // updating it, and connect them together.
-    std::pair<DiscreteVariableIndex, CacheEntryIndex>
+    DiscreteVariableIndex
     allocateAutoUpdateDiscreteVariable(SubsystemIndex subsys, Stage invalidates, AbstractValue* vp,
                                        Stage updateDependsOn)
     {
@@ -1329,7 +1329,7 @@ public:
         CacheEntryInfo&  ceinfo = ss.cacheInfo[cx];
         dvinfo.setAutoUpdateEntry(cx);
         ceinfo.setAssociatedVar(dx);
-        return std::make_pair(dx,cx);
+        return dx;
     }
     
         // State dimensions for shared continuous variables.
@@ -1945,6 +1945,20 @@ public:
             " associated update cache variable.", (int)subsys, index);
         return updCacheEntry(subsys, cx);
     }
+    bool isDiscreteVarUpdateValueRealized(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
+        SimTK_ERRCHK2(cx.isValid(), "StateRep::isDiscreteVarUpdateValueRealized()", 
+            "Subsystem %d has a discrete variable %d but it does not have an"
+            " associated update cache variable.", (int)subsys, index);
+        return isCacheValueRealized(subsys, cx);
+    }
+    void markDiscreteVarUpdateValueRealized(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
+        SimTK_ERRCHK2(cx.isValid(), "StateRep::markDiscreteVarUpdateValueRealized()", 
+            "Subsystem %d has a discrete variable %d but it does not have an"
+            " associated update cache variable.", (int)subsys, index);
+        markCacheValueRealized(subsys, cx);
+    }
 
     // You can update a Model stage variable from Topology stage, but higher variables 
     // must wait until you have realized the Model stage. This always backs the 
@@ -2303,7 +2317,7 @@ EventTriggerByStageIndex State::allocateEventTrigger(SubsystemIndex subsys, Stag
 DiscreteVariableIndex State::allocateDiscreteVariable(SubsystemIndex subsys, Stage stage, AbstractValue* v) {
     return rep->allocateDiscreteVariable(subsys, stage, v);
 }
-std::pair<DiscreteVariableIndex, CacheEntryIndex>
+DiscreteVariableIndex
 State::allocateAutoUpdateDiscreteVariable(SubsystemIndex subsys, Stage invalidates, AbstractValue* v,
                                           Stage updateDependsOn) {
     return rep->allocateAutoUpdateDiscreteVariable(subsys, invalidates, v, updateDependsOn); 
@@ -2611,16 +2625,26 @@ Stage State::getDiscreteVarAllocationStage(SubsystemIndex subsys, DiscreteVariab
 Stage State::getDiscreteVarInvalidatesStage(SubsystemIndex subsys, DiscreteVariableIndex index) const {
     return rep->getDiscreteVarInvalidatesStage(subsys, index);
 }
+const AbstractValue& State::getDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+    return rep->getDiscreteVariable(subsys, index);
+}
+Real State::getDiscreteVarLastUpdateTime(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+    return rep->getDiscreteVarLastUpdateTime(subsys, index);
+}
 const AbstractValue& State::getDiscreteVarUpdateValue(SubsystemIndex subsys, DiscreteVariableIndex index) const {
     return rep->getDiscreteVarUpdateValue(subsys, index);
 }
 AbstractValue& State::updDiscreteVarUpdateValue(SubsystemIndex subsys, DiscreteVariableIndex index) const {
     return rep->updDiscreteVarUpdateValue(subsys, index);
 }
-
-const AbstractValue& State::getDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return rep->getDiscreteVariable(subsys, index);
+bool State::isDiscreteVarUpdateValueRealized(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+    return rep->isDiscreteVarUpdateValueRealized(subsys, index);
 }
+void State::markDiscreteVarUpdateValueRealized(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+    rep->markDiscreteVarUpdateValueRealized(subsys, index);
+}
+
+
 AbstractValue& State::updDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) {
     return rep->updDiscreteVariable(subsys, index);
 }

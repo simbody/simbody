@@ -401,8 +401,9 @@ public:
     /// @see updDiscreteVariable()
     DiscreteVariableIndex allocateDiscreteVariable(SubsystemIndex, Stage invalidates, AbstractValue*);
 
-    /// This method allocates a DiscreteVariable and a CacheEntry of the same value type.
-    /// This can be done if the State hasn't yet been advanced to Model stage.
+    /// This method allocates a DiscreteVariable whose value should be updated
+    /// automatically after each time step. A CacheEntry of the same value type as
+    /// the variable is allocated to hold the update value.
     /// The discrete variable is allocated as described for allocateDiscreteVariable(),
     /// except that the \a invalidates stage must be higher than Stage::Time.
     /// The cache entry is allocated as described for allocateCacheEntry() without an
@@ -432,16 +433,23 @@ public:
     /// variables like q: the integrator ensures that only updated values of q are
     /// seen when evaluations are made at intermediate or trial steps; you should
     /// do the same. In contrast to this auto-update behavior, any \e explicit change 
-    /// to the discrete variable will invalidate the \a invalidates stage just as 
-    /// for a non-auto-updating discrete variable.
+    /// to the discrete variable will invalidate the variable's \a invalidates stage 
+    /// just as for a non-auto-updating discrete variable.
     ///
     /// Ownership of the AbstractValue object supplied here is taken over by the State --
     /// don't delete the object after this call! A clone() of this value will be used in
     /// the auto-update cache entry so there will be two objects of this type around 
     /// at run time that get swapped back and forth between the state variable and the cache entry.
+    ///
+    /// You can allocate discrete variables in a State at Topology stage or Model
+    /// stage but not later. That is, you allocate the variable while the State
+    /// is in Stage::Empty, and then it appears when you do realizeTopology(); or,
+    /// you allocate the variable when the State is in Stage::Topology and it
+    /// appears when you do realizeModel().
+    ///
     /// @see allocateDiscreteVariable()
     /// @see allocateCacheEntry()
-    std::pair<DiscreteVariableIndex, CacheEntryIndex>
+    DiscreteVariableIndex
         allocateAutoUpdateDiscreteVariable(SubsystemIndex, Stage invalidates, AbstractValue*,
                                            Stage updateDependsOn); 
     /// For an auto-updating discrete variable, return the CacheEntryIndex for 
@@ -474,6 +482,12 @@ public:
     /// the cache entry valid after you have updated it. This will fail if this is
     /// not an auto-update discrete variable.
     AbstractValue& updDiscreteVarUpdateValue(SubsystemIndex, DiscreteVariableIndex) const;
+    /// Check whether the update value for this auto-update discrete variable has
+    /// already been computed since the last change to state variables it depends on.
+    bool isDiscreteVarUpdateValueRealized(SubsystemIndex, DiscreteVariableIndex) const;
+    /// Mark the update value for this auto-update discrete variable as up-to-date
+    /// with respect to the state variables it depends on.
+    void markDiscreteVarUpdateValueRealized(SubsystemIndex, DiscreteVariableIndex) const;
 
     /// Get a writable reference to the value stored in the indicated discrete
     /// state variable dv, and invalidate stage dv.invalidates and all higher stages.

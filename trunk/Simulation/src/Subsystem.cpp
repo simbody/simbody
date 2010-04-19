@@ -136,7 +136,13 @@ SubsystemIndex Subsystem::getMySubsystemIndex() const {
 QIndex Subsystem::allocateQ(State& s, const Vector& qInit)const {return getSubsystemGuts().allocateQ(s,qInit);}
 UIndex Subsystem::allocateU(State& s, const Vector& uInit)const {return getSubsystemGuts().allocateU(s,uInit);}
 ZIndex Subsystem::allocateZ(State& s, const Vector& zInit)const {return getSubsystemGuts().allocateZ(s,zInit);}
-DiscreteVariableIndex Subsystem::allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const {return getSubsystemGuts().allocateDiscreteVariable(s,g,v);}
+
+DiscreteVariableIndex Subsystem::allocateDiscreteVariable
+   (State& s, Stage g, AbstractValue* v) const 
+{   return getSubsystemGuts().allocateDiscreteVariable(s,g,v); }
+DiscreteVariableIndex Subsystem::allocateAutoUpdateDiscreteVariable
+   (State& s, Stage invalidates, AbstractValue* v, Stage updateDependsOn) const
+{   return getSubsystemGuts().allocateAutoUpdateDiscreteVariable(s,invalidates,v,updateDependsOn); }
 
 CacheEntryIndex Subsystem::allocateCacheEntry   
    (const State& s, Stage dependsOn, Stage computedBy, AbstractValue* v) const 
@@ -290,13 +296,16 @@ ZIndex Subsystem::Guts::allocateZ(State& s, const Vector& zInit) const {
     return s.allocateZ(getRep().getMySubsystemIndex(), zInit);
 }
 
-DiscreteVariableIndex Subsystem::Guts::allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const {
-    return s.allocateDiscreteVariable(getRep().getMySubsystemIndex(), g, v);
-}
+DiscreteVariableIndex Subsystem::Guts::allocateDiscreteVariable
+   (State& s, Stage g, AbstractValue* v) const 
+{   return s.allocateDiscreteVariable(getRep().getMySubsystemIndex(), g, v); }
+DiscreteVariableIndex Subsystem::Guts::allocateAutoUpdateDiscreteVariable
+   (State& s, Stage invalidates, AbstractValue* v, Stage updateDependsOn) const
+{   return s.allocateAutoUpdateDiscreteVariable(getRep().getMySubsystemIndex(),invalidates,v,updateDependsOn); }
 
-CacheEntryIndex Subsystem::Guts::allocateCacheEntry(const State& s, Stage dependsOn, Stage computedBy, AbstractValue* v) const {
-    return s.allocateCacheEntry(getRep().getMySubsystemIndex(), dependsOn, computedBy, v);
-}
+CacheEntryIndex Subsystem::Guts::allocateCacheEntry
+   (const State& s, Stage dependsOn, Stage computedBy, AbstractValue* v) const 
+{   return s.allocateCacheEntry(getRep().getMySubsystemIndex(), dependsOn, computedBy, v); }
 
 QErrIndex Subsystem::Guts::allocateQErr(const State& s, int nqerr) const {
     return s.allocateQErr(getRep().getMySubsystemIndex(), nqerr);
