@@ -43,7 +43,7 @@ namespace SimTK {
 /** This is the internal implementation base class for Contact. **/
 class ContactImpl {
 public:
-    ContactImpl::ContactImpl(ContactSurfaceIndex surf1, 
+    ContactImpl(ContactSurfaceIndex surf1, 
                              ContactSurfaceIndex surf2,
                              Contact::Condition  condition=Contact::Unknown) 
     :   m_referenceCount(0), m_condition(condition), 
