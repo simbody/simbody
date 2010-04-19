@@ -6,8 +6,8 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008-9 Stanford University and the Authors.         *
- * Authors: Peter Eastman                                                     *
+ * Portions copyright (c) 2008-10 Stanford University and the Authors.        *
+ * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
@@ -34,18 +34,61 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/MobilizedBody.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
+#include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/Force.h"
 
 #include "ForceImpl.h"
 
 namespace SimTK {
 
-const GeneralForceSubsystem& Force::getForceSubsystem() const {
-	return getImpl().getForceSubsystem();
+//------------------------------------------------------------------------------
+//                                  FORCE
+//------------------------------------------------------------------------------
+
+void Force::setDisabledByDefault(bool shouldBeDisabled)
+{   updImpl().setDisabledByDefault(shouldBeDisabled); }
+bool Force::isDisabledByDefault() const
+{   return getImpl().isDisabledByDefault(); }
+
+void Force::disable(State& state) const 
+{   getForceSubsystem().setForceIsDisabled(state, getForceIndex(), true); }
+void Force::enable(State& state) const 
+{   getForceSubsystem().setForceIsDisabled(state, getForceIndex(), false); }
+bool Force::isDisabled(const State& state) const
+{   return getForceSubsystem().isForceDisabled(state, getForceIndex()); }
+
+void Force::calcForceContribution(const State&   state,
+                           Vector_<SpatialVec>&  bodyForces,
+                           Vector_<Vec3>&        particleForces,
+                           Vector&               mobilityForces) const 
+{
+    const MultibodySystem& mbs = getForceSubsystem().getMultibodySystem();
+    const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
+
+    // Resize if necessary.
+    bodyForces.resize(matter.getNumBodies());
+    particleForces.resize(matter.getNumParticles());
+    mobilityForces.resize(matter.getNumMobilities());
+
+    // Set all forces to zero.
+    bodyForces.setToZero();
+    particleForces.setToZero();
+    mobilityForces.setToZero();
+    if (isDisabled(state)) return;
+
+    // Add in force element contributions.
+    getImpl().calcForce(state,bodyForces,particleForces,mobilityForces);
 }
-ForceIndex Force::getForceIndex() const {
-    return getImpl().getForceIndex();
+
+Real Force::calcPotentialEnergyContribution(const State& state) const {
+    if (isDisabled(state)) return 0;
+    return getImpl().calcPotentialEnergy(state);
 }
+
+const GeneralForceSubsystem& Force::getForceSubsystem() const 
+{	return getImpl().getForceSubsystem(); }
+ForceIndex Force::getForceIndex() const
+{   return getImpl().getForceIndex(); }
 
 //-------------------------- TwoPointLinearSpring ------------------------------
 //------------------------------------------------------------------------------

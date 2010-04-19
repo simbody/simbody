@@ -8,7 +8,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2008-10 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -37,21 +37,27 @@
 
 namespace SimTK {
 
+// This is what a Force handle points to.
 class ForceImpl : public PIMPLImplementation<Force, ForceImpl> {
 public:
-	ForceImpl() : forces(0) {
-    }
-    ForceImpl(const ForceImpl& clone) {
-        *this = clone;
-    }
-    virtual ~ForceImpl() {
-    }
+	ForceImpl() : forces(0), defaultDisabled(false) {}
+    ForceImpl(const ForceImpl& clone) {*this = clone;}
+
+    void setDisabledByDefault(bool shouldBeDisabled) 
+    {   invalidateTopologyCache();
+        defaultDisabled = shouldBeDisabled; }
+
+    bool isDisabledByDefault() const 
+    {   return defaultDisabled; }
+
+    virtual ~ForceImpl() {}
     virtual ForceImpl* clone() const = 0;
     virtual bool dependsOnlyOnPositions() const {
         return false;
     }
     ForceIndex getForceIndex() const {return index;}
-	const GeneralForceSubsystem& getForceSubsystem() const {assert(forces); return *forces;}
+	const GeneralForceSubsystem& getForceSubsystem() const 
+    {   assert(forces); return *forces; }
 	void setForceSubsystem(GeneralForceSubsystem& frcsub, ForceIndex ix) {
 		forces = &frcsub;
 		index  = ix;
@@ -60,34 +66,46 @@ public:
 		if (forces) forces->invalidateSubsystemTopologyCache();
 	}
 
+    // Every force element must provide the next two methods. Note that 
+    // calcForce() must *add in* (+=) its forces to the given arrays.
     virtual void calcForce(const State&         state, 
                            Vector_<SpatialVec>& bodyForces, 
                            Vector_<Vec3>&       particleForces, 
                            Vector&              mobilityForces) const = 0;
     virtual Real calcPotentialEnergy(const State& state) const = 0;
-    virtual void realizeTopology(State& state) const {
-    }
-    virtual void realizeModel(State& state) const {
-    }
-    virtual void realizeInstance(const State& state) const {
-    }
-    virtual void realizeTime(const State& state) const {
-    }
-    virtual void realizePosition(const State& state) const {
-    }
-    virtual void realizeVelocity(const State& state) const {
-    }
-    virtual void realizeDynamics(const State& state) const {
-    }
-    virtual void realizeAcceleration(const State& state) const {
-    }
-    virtual void realizeReport(const State& state) const {
-    }
+
+    virtual void realizeTopology    (State& state) const {}
+    virtual void realizeModel       (State& state) const {}
+    virtual void realizeInstance    (const State& state) const {}
+    virtual void realizeTime        (const State& state) const {}
+    virtual void realizePosition    (const State& state) const {}
+    virtual void realizeVelocity    (const State& state) const {}
+    virtual void realizeDynamics    (const State& state) const {}
+    virtual void realizeAcceleration(const State& state) const {}
+    virtual void realizeReport      (const State& state) const {}
 private:
-    GeneralForceSubsystem* forces;	// just a reference; don't delete on destruction
+        // CONSTRUCTION
+    GeneralForceSubsystem* forces;	// just a reference; no delete on destruction
     ForceIndex			   index;
+
+        // TOPOLOGY "STATE"
+    // Changing anything here invalidates the topology of the containing
+    // force Subsystem and thus of the whole System. 
+
+    // This says whether the Instance-stage "disabled" flag for this force 
+    // element should be initially on or off. Most force elements are enabled 
+    // by default.
+    bool                   defaultDisabled;
+
+        // TOPOLOGY "CACHE"
+    // Nothing in the base Impl class.
 };
 
+
+
+//------------------------------------------------------------------------------
+//                    TWO POINT LINEAR SPRING IMPL
+//------------------------------------------------------------------------------
 class Force::TwoPointLinearSpringImpl : public ForceImpl {
 public:
     TwoPointLinearSpringImpl(const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real k, Real x0);
@@ -106,6 +124,11 @@ private:
     Real k, x0;
 };
 
+
+
+//------------------------------------------------------------------------------
+//                    TWO POINT LINEAR DAMPER IMPL
+//------------------------------------------------------------------------------
 class Force::TwoPointLinearDamperImpl : public ForceImpl {
 public:
     TwoPointLinearDamperImpl(const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real damping);
@@ -121,6 +144,11 @@ private:
     Real damping;
 };
 
+
+
+//------------------------------------------------------------------------------
+//                    TWO POINT CONSTANT FORCE IMPL
+//------------------------------------------------------------------------------
 class Force::TwoPointConstantForceImpl : public ForceImpl {
 public:
     TwoPointConstantForceImpl(const MobilizedBody& body1, const Vec3& station1, const MobilizedBody& body2, const Vec3& station2, Real force);
@@ -139,6 +167,11 @@ private:
     Real force;
 };
 
+
+
+//------------------------------------------------------------------------------
+//                    MOBILITY LINEAR SPRING IMPL
+//------------------------------------------------------------------------------
 class Force::MobilityLinearSpringImpl : public ForceImpl {
 public:
     MobilityLinearSpringImpl(const MobilizedBody& body, int coordinate, Real k, Real x0);
@@ -157,6 +190,11 @@ private:
     Real k, x0;
 };
 
+
+
+//------------------------------------------------------------------------------
+//                       MOBILITY LINEAR DAMPER IMPL
+//------------------------------------------------------------------------------
 class Force::MobilityLinearDamperImpl : public ForceImpl {
 public:
     MobilityLinearDamperImpl(const MobilizedBody& body, int coordinate, Real damping);
@@ -172,6 +210,11 @@ private:
     Real damping;
 };
 
+
+
+//------------------------------------------------------------------------------
+//                       MOBILITY CONSTANT FORCE IMPL
+//------------------------------------------------------------------------------
 class Force::MobilityConstantForceImpl : public ForceImpl {
 public:
     MobilityConstantForceImpl(const MobilizedBody& body, int coordinate, Real force);
@@ -190,6 +233,11 @@ private:
     Real force;
 };
 
+
+
+//------------------------------------------------------------------------------
+//                           CONSTANT FORCE IMPL
+//------------------------------------------------------------------------------
 class Force::ConstantForceImpl : public ForceImpl {
 public:
     ConstantForceImpl(const MobilizedBody& body, const Vec3& station, const Vec3& force);
@@ -207,6 +255,11 @@ private:
     Vec3 station, force;
 };
 
+
+
+//------------------------------------------------------------------------------
+//                          CONSTANT TORQUE IMPL
+//------------------------------------------------------------------------------
 class Force::ConstantTorqueImpl : public ForceImpl {
 public:
     ConstantTorqueImpl(const MobilizedBody& body, const Vec3& torque);
@@ -224,6 +277,11 @@ private:
     Vec3 torque;
 };
 
+
+
+//------------------------------------------------------------------------------
+//                          GLOBAL DAMPER IMPL
+//------------------------------------------------------------------------------
 class Force::GlobalDamperImpl : public ForceImpl {
 public:
     GlobalDamperImpl(const SimbodyMatterSubsystem& matter, Real damping);
@@ -237,6 +295,11 @@ private:
     Real damping;
 };
 
+
+
+//------------------------------------------------------------------------------
+//                          UNIFORM GRAVITY IMPL
+//------------------------------------------------------------------------------
 class Force::UniformGravityImpl : public ForceImpl {
 public:
     UniformGravityImpl(const SimbodyMatterSubsystem& matter, const Vec3& g, Real zeroHeight);
@@ -265,6 +328,11 @@ private:
     Real zeroHeight;
 };
 
+
+
+//------------------------------------------------------------------------------
+//                              CUSTOM IMPL
+//------------------------------------------------------------------------------
 class Force::CustomImpl : public ForceImpl {
 public:
     CustomImpl(Force::Custom::Implementation* implementation);
