@@ -290,6 +290,7 @@ GeneratorMap                        m_generators;
 ContactForceGenerator*              m_defaultGenerator;
 
     // TOPOLOGY "CACHE"
+
 // These must be set during realizeTopology and treated as const thereafter.
 ZIndex                              m_dissipatedEnergyIx;
 CacheEntryIndex                     m_potEnergyCacheIx;

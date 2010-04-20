@@ -71,9 +71,9 @@ void ElasticFoundationForceImpl::setBodyParameters
    (ContactSurfaceIndex bodyIndex, Real stiffness, Real dissipation, 
     Real staticFriction, Real dynamicFriction, Real viscousFriction) {
     SimTK_APIARGCHECK1(bodyIndex >= 0 && bodyIndex < subsystem.getNumBodies(set), "ElasticFoundationForceImpl", "setBodyParameters",
-            "Illegal body index: %d", bodyIndex);
+            "Illegal body index: %d", (int)bodyIndex);
     SimTK_APIARGCHECK1(subsystem.getBodyGeometry(set, bodyIndex).getType() == ContactGeometry::TriangleMeshImpl::Type(), "ElasticFoundationForceImpl", "setBodyParameters",
-            "Body %d is not a triangle mesh", bodyIndex);
+            "Body %d is not a triangle mesh", (int)bodyIndex);
     parameters[bodyIndex] = Parameters(stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction);
     const ContactGeometry::TriangleMesh& mesh = static_cast<const ContactGeometry::TriangleMesh&>(subsystem.getBodyGeometry(set, bodyIndex));
     Parameters& param = parameters[bodyIndex];

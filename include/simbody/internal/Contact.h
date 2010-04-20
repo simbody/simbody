@@ -100,14 +100,14 @@ public:
 
     /** The default constructor creates an empty handle. **/
     Contact() : impl(0) {}
-    /** Copy constructor is shallow; this handle will point to the same object
-    as does the \a source. **/
+    /** Copy constructor is shallow and reference-counted; this handle will 
+    point to the same object as does the \a source. **/
     Contact(const Contact& source);
     /** Destructor clears the handle, deleting the referenced object if this
     was the last reference. **/
     ~Contact() {clear();}
-    /** Copy assignment is shallow; this handle will point to the same object
-    as does the \a source. **/
+    /** Copy assignment is shallow and reference-counted; this handle will 
+    point to the same object as does the \a source. **/
     Contact& operator=(const Contact& source);
     /** Clear this handle, deleting the referenced object if this
     was the last reference.  **/
@@ -122,10 +122,10 @@ public:
     with isValid(). **/
     ContactId getContactId() const;
     /** Get the first surface involved in the contact, specified by 
-    its index within its contact set. **/
+    its index within its contact set or ContactTrackerSubsystem. **/
     ContactSurfaceIndex getSurface1() const;
     /** Get the second surface involved in the contact, specified by 
-    its index within its contact set. **/
+    its index within its contact set or ContactTrackerSubsystem. **/
     ContactSurfaceIndex getSurface2() const;
 
     /** Set the current Condition. **/
@@ -241,7 +241,8 @@ private:
 surfaces 1 and 2 that initially meet at a point where each surface has a 
 uniform radius of curvature in all directions (R1 and R2), like a sphere (inside 
 or outside) or a halfspace, resulting in a contact region with circular 
-symmetry. One of the objects may be concave, with negative curvature.
+symmetry. One of the objects may be concave, with negative curvature, as long
+as the two objects are not conforming.
 
 The undeformed geometry is characterized here by the effective radius 
 R=1/(1/R1+1/R2), a normal vector z defining the penetration direction, a scalar
