@@ -115,6 +115,16 @@ template class Matrix_<double>;
 template class Vector_<double>;
 template class RowVector_<double>;
 
+template class MatrixBase<negator<double> >;
+template class VectorBase<negator<double> >;
+template class RowVectorBase<negator<double> >;
+template class MatrixView_<negator<double> >;
+template class VectorView_<negator<double> >;
+template class RowVectorView_<negator<double> >;
+template class Matrix_<negator<double> >;
+template class Vector_<negator<double> >;
+template class RowVector_<negator<double> >;
+
 int main() {
     try {
         // Currently, this only tests a small number of operations that were recently added.
