@@ -104,6 +104,16 @@ void testTransform() {
     SimTK_TEST(~vs*R == -(-~vs*R));
 }
 
+// Make sure we can instantiate all of these successfully.
+template class MatrixBase<double>;
+template class VectorBase<double>;
+template class RowVectorBase<double>;
+template class MatrixView_<double>;
+template class VectorView_<double>;
+template class RowVectorView_<double>;
+template class Matrix_<double>;
+template class Vector_<double>;
+template class RowVector_<double>;
 
 int main() {
     try {

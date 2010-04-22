@@ -939,18 +939,14 @@ public:
     /// @see resize()
     MatrixBase& resizeKeep(int m, int n) { helper.resizeKeep(m,n); return *this; }
 
-    // These prevent shape changes in a Matrix that would otherwise allow it. No harm if they
-    // are called on a Matrix that is locked already; they always succeed.
-    void lockNRows() {helper.lockNRows();}
-    void lockNCols() {helper.lockNCols();}
+    // This prevents shape changes in a Matrix that would otherwise allow it. No harm if is
+    // are called on a Matrix that is locked already; it always succeeds.
     void lockShape() {helper.lockShape();}
 
-    // These allow shape changes again for a Matrix which was constructed to allow them
-    // but had them locked with the above routines. No harm if these are called on a Matrix
-    // that is already unlocked, but it is not allowed to call them on a Matrix which
+    // This allows shape changes again for a Matrix which was constructed to allow them
+    // but had them locked with the above routine. No harm if this is called on a Matrix
+    // that is already unlocked, but it is not allowed to call this on a Matrix which
     // *never* allowed resizing. An exception will be thrown in that case.
-    void unlockNRows() {helper.unlockNRows();}
-    void unlockNCols() {helper.unlockNCols();}
     void unlockShape() {helper.unlockShape();}
     
     // An assortment of handy conversions
@@ -1559,11 +1555,11 @@ public:
 
     // Indexed view creation (arbitrary subvector). Indices must be monotonically increasing.
     RowVectorView_<ELT> index(const Array_<int>& indices) const {
-        MatrixHelper<Scalar> h(Base::getHelper(), indices);
+        MatrixHelper<Scalar> h(Base::getHelper().getCharacterCommitment(), Base::getHelper(), indices);
         return RowVectorView_<ELT>(h);
     }
     RowVectorView_<ELT> updIndex(const Array_<int>& indices) {
-        MatrixHelper<Scalar> h(Base::updHelper(), indices);
+        MatrixHelper<Scalar> h(Base::getHelper().getCharacterCommitment(), Base::updHelper(), indices);
         return RowVectorView_<ELT>(h);
     }
 
