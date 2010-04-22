@@ -46,6 +46,8 @@ using std::cout; using std::endl;
 
 using namespace SimTK;
 
+Array_<State> saveEm;
+
 class MyReporter : public PeriodicEventReporter {
 public:
     MyReporter(const MultibodySystem& system, 
@@ -62,6 +64,7 @@ public:
              << " E+Ediss=" << m_system.calcEnergy(state)
                                +m_compliant.getDissipatedEnergy(state)
              << endl;
+        saveEm.push_back(state);
     }
 private:
     const MultibodySystem&           m_system;
@@ -80,7 +83,7 @@ int main() {
     ContactTrackerSubsystem  tracker(system);
     CompliantContactSubsystem contactForces(system, tracker);
 
-    contactForces.setTransitionVelocity(1e-3);
+    contactForces.setTransitionVelocity(1e-2);
 
     system.updDefaultSubsystem().addEventReporter
         (new MyReporter(system,contactForces,.01));
@@ -103,29 +106,43 @@ int main() {
 
     ContactCliqueId clique1 = ContactSurface::createNewContactClique();
     ContactCliqueId clique2 = ContactSurface::createNewContactClique();
+    ContactCliqueId clique3 = ContactSurface::createNewContactClique();
 
-    const Real fFac = 1; // to turn off friction
-    const Real fDis = 1; // to turn off dissipation
+    const Real fFac = 0.9*1; // to turn off friction
+    const Real fDis = 0.2; // to turn off dissipation
+    const Real fVis = .01; // to turn off viscous friction
+    // Right hand wall
     matter.Ground().updBody().addDecoration(Vec3(.25+.01,0,0),
         DecorativeBrick(Vec3(.01,2,1)).setColor(Blue));
     matter.Ground().updBody().addContactSurface(Vec3(.25,0,0),
         ContactSurface(ContactGeometry::HalfSpace(),
-                       ContactMaterial(100000,fDis*.9,fFac*.8,fFac*.7))
-                       .joinClique(clique1));
+                       ContactMaterial(100000,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+                       .joinClique(clique3));
+
+    // Floor
+    const Rotation R_xdown(-Pi/2,ZAxis);
+    matter.Ground().updBody().addDecoration(
+        Transform(R_xdown, Vec3(0,-3-.01,0)),
+        DecorativeBrick(Vec3(.01,2,1)).setColor(Green));
+    matter.Ground().updBody().addContactSurface(
+        Transform(R_xdown, Vec3(0,-3,0)),
+        ContactSurface(ContactGeometry::HalfSpace(),
+                       ContactMaterial(1e7,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+                       .joinClique(clique3));
 
     Body::Rigid pendulumBody1(MassProperties(1.0, Vec3(0), Inertia(1)));
-    pendulumBody1.addDecoration(Transform(), DecorativeSphere(0.1));
+    pendulumBody1.addDecoration(Transform(), DecorativeSphere(0.2));
     pendulumBody1.addContactSurface(Transform(),
-        ContactSurface(ContactGeometry::Sphere(.1),
-                       ContactMaterial(10000,fDis*.9,fFac*.8,fFac*.7))
-                       .joinClique(clique2));
+        ContactSurface(ContactGeometry::Sphere(.2),
+                       ContactMaterial(10000,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+                       .joinClique(clique1));
 
     Body::Rigid pendulumBody2(MassProperties(1.0, Vec3(0), Inertia(1)));
-    pendulumBody2.addDecoration(Transform(), DecorativeSphere(0.1).setColor(Orange));
+    pendulumBody2.addDecoration(Transform(), DecorativeSphere(0.2).setColor(Orange));
     pendulumBody2.addContactSurface(Transform(),
-        ContactSurface(ContactGeometry::Sphere(.1),
-                       ContactMaterial(100000,fDis*.9,fFac*.8,fFac*.7))
-                       .joinClique(clique2));
+        ContactSurface(ContactGeometry::Sphere(.2),
+                       ContactMaterial(100000,.05,fFac*.8,fFac*.7,fVis*10))
+                       .joinClique(clique1));
 
     MobilizedBody::Pin pendulum(matter.Ground(), Transform(Vec3(0)), 
                                 pendulumBody1,    Transform(Vec3(0, 1, 0)));
@@ -135,6 +152,18 @@ int main() {
 
     Force::MobilityLinearSpring(forces, pendulum2, MobilizerUIndex(0),
         10, 0*(Pi/180));
+
+    const Real ballMass = 2;
+    Body::Rigid ballBody(MassProperties(ballMass, Vec3(0), 
+                            ballMass*Gyration::sphere(.3)));
+    ballBody.addDecoration(Transform(), DecorativeSphere(.3).setColor(Cyan));
+    ballBody.addContactSurface(Transform(),
+        ContactSurface(ContactGeometry::Sphere(.3),
+                       ContactMaterial(1e7,.05,fFac*.8,fFac*.7,fVis*10))
+                       .joinClique(clique2));
+
+    MobilizedBody::Free ball(matter.Ground(), Transform(Vec3(0)),
+        ballBody, Transform(Vec3(0)));
 
     VTKEventReporter* reporter = new VTKEventReporter(system, 0.01);
     system.updDefaultSubsystem().addEventReporter(reporter);
@@ -155,18 +184,37 @@ int main() {
     char c=getchar();
 
 
-    pendulum.setOneU(state, 0, 2.0);
+    pendulum.setOneU(state, 0, 5.0);
+    ball.setOneU(state, 2, -100);
 
     
     // Simulate it.
 
+    //ExplicitEulerIntegrator integ(system);
+    //CPodesIntegrator integ(system);
+    //RungeKuttaFeldbergIntegrator integ(system);
     RungeKuttaMersonIntegrator integ(system);
     //RungeKutta3Integrator integ(system);
+    //VerletIntegrator integ(system);
     //integ.setMaximumStepSize(1e-0001);
-    integ.setAccuracy(1e-4);
+    integ.setAccuracy(1e-3);
     TimeStepper ts(system, integ);
     ts.initialize(state);
-    ts.stepTo(100.0);
+    ts.stepTo(10.0);
+
+    printf("Using Integrator %s:\n", integ.getMethodName());
+    printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
+    printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
+
+
+    while(true) {
+        for (int i=0; i < (int)saveEm.size(); ++i) {
+            viz.report(saveEm[i]);
+            //vtk.report(saveEm[i]); // half speed
+        }
+        getchar();
+    }
 
   } catch (const std::exception& e) {
     std::printf("EXCEPTION THROWN: %s\n", e.what());

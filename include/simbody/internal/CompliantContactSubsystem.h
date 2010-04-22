@@ -75,6 +75,8 @@ CompliantContactSubsystem(MultibodySystem&,
 Real getTransitionVelocity() const;
 /** Set the transition velocity (vt) of the friction model. **/
 void setTransitionVelocity(Real vt);
+/** Get a precalculated 1/vt to avoid runtime divisions. **/
+Real getOOTransitionVelocity() const;
 
 /** Determine how many of the reported Contacts are currently generating
 contact forces. **/
@@ -243,14 +245,14 @@ ContactId       m_contactId;            // Which Contact produced this force?
 Vec3            m_centerOfPressureInG;
 SpatialVec      m_forceOnSurface2InG;   // at COP; negate for Surface 1
 Real            m_potentialEnergy;      // > 0 when due to compression
-Real            m_power;                // > 0 means dissipation
+Real            m_powerLoss;            // > 0 means dissipation
 };
 
 inline std::ostream& operator<<(std::ostream& o, const ContactForce& f) {
     o << "ContactForce for ContactId " << f.m_contactId << " (ground frame):\n";
     o << "  ctr of pressure=" << f.m_centerOfPressureInG << "\n";
     o << "  force on surf2 =" << f.m_forceOnSurface2InG << "\n";
-    o << "  pot. energy=" << f.m_potentialEnergy << "  power=" << f.m_power;
+    o << "  pot. energy=" << f.m_potentialEnergy << "  powerLoss=" << f.m_powerLoss;
     return o << "\n";
 }
 

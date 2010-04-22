@@ -665,7 +665,7 @@ bool ContactTracker::HalfSpaceSphere::trackContact
     const ContactGeometry& geoHalfSpace,
     const Transform&       X_GS, 
     const ContactGeometry& geoSphere,
-    Real                   rangeOfInterest,
+    Real                   cutoff,
     Contact&               currentStatus) const
 {
     SimTK_ASSERT
@@ -684,7 +684,7 @@ bool ContactTracker::HalfSpaceSphere::trackContact
     const Real r = sphere.getRadius();
     const Real depth = p_HC[0] + r;   // 1 flop
 
-    if (depth <= -rangeOfInterest) {  // 2 flops
+    if (depth <= -cutoff) {  // 2 flops
         currentStatus.clear(); // not touching
         return true; // successful return
     }
