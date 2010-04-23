@@ -2709,7 +2709,7 @@ T* insertGapAt(T* p, size_type n, const char* methodName) {
 
     // Determine the number of elements before the insertion point and
     // the number at or afterwards (those must be moved up by one slot).
-    const size_type before = p-begin(), after = end()-p;
+    const size_type before = (size_type)(p-begin()), after = (size_type)(end()-p);
 
     // Grow the container if necessary. Note that if we have to grow we
     // can create the gap at the same time we copy the old elements over
