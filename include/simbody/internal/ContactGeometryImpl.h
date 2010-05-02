@@ -169,6 +169,7 @@ public:
 };
 
 
+
 //==============================================================================
 //                            TRIANGLE MESH IMPL
 //==============================================================================
@@ -177,6 +178,7 @@ public:
     class Edge;
     class Face;
     class Vertex;
+
     TriangleMeshImpl(const ArrayViewConst_<Vec3>& vertexPositions, const ArrayViewConst_<int>& faceIndices, bool smooth);
     TriangleMeshImpl(const PolygonalMesh& mesh, bool smooth);
     ContactGeometryImpl* clone() const {
@@ -194,6 +196,8 @@ public:
         static std::string type = "triangle mesh";
         return type;
     }
+    Vec3     findPoint(int face, const Vec2& uv) const;
+    Vec3     findCentroid(int face) const;
     UnitVec3 findNormalAtPoint(int face, const Vec2& uv) const;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, int& face, Vec2& uv) const;
@@ -208,15 +212,21 @@ private:
     void findBoundingSphere(Vec3* point[], int p, int b, Vec3& center, Real& radius);
     friend class ContactGeometry::TriangleMesh;
     friend class OBBTreeNodeImpl;
-    Array_<Edge> edges;
-    Array_<Face> faces;
-    Array_<Vertex> vertices;
-    Vec3 boundingSphereCenter;
-    Real boundingSphereRadius;
+
+    Array_<Edge>    edges;
+    Array_<Face>    faces;
+    Array_<Vertex>  vertices;
+    Vec3            boundingSphereCenter;
+    Real            boundingSphereRadius;
     OBBTreeNodeImpl obb;
-    bool smooth;
+    bool            smooth;
 };
 
+
+
+//==============================================================================
+//                          TriangleMeshImpl EDGE
+//==============================================================================
 class ContactGeometry::TriangleMeshImpl::Edge {
 public:
     Edge(int vert1, int vert2, int face1, int face2) {
@@ -225,30 +235,42 @@ public:
         faces[0] = face1;
         faces[1] = face2;
     }
-    int vertices[2];
-    int faces[2];
+    int     vertices[2];
+    int     faces[2];
 };
 
+
+
+//==============================================================================
+//                           TriangleMeshImpl FACE
+//==============================================================================
 class ContactGeometry::TriangleMeshImpl::Face {
 public:
-    Face(int vert1, int vert2, int vert3, const Vec3& normal, Real area) : normal(normal), area(area) {
+    Face(int vert1, int vert2, int vert3, 
+         const Vec3& normal, Real area) 
+    :   normal(normal), area(area) {
         vertices[0] = vert1;
         vertices[1] = vert2;
         vertices[2] = vert3;
     }
-    int vertices[3];
-    int edges[3];
-    UnitVec3 normal;
-    Real area;
+    int         vertices[3];
+    int         edges[3];
+    UnitVec3    normal;
+    Real        area;
 };
 
+
+
+//==============================================================================
+//                          TriangleMeshImpl VERTEX
+//==============================================================================
 class ContactGeometry::TriangleMeshImpl::Vertex {
 public:
     Vertex(Vec3 pos) : pos(pos), firstEdge(-1) {
     }
-    Vec3 pos;
-    UnitVec3 normal;
-    int firstEdge;
+    Vec3        pos;
+    UnitVec3    normal;
+    int         firstEdge;
 };
 
 } // namespace SimTK

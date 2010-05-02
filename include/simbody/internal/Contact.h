@@ -115,26 +115,32 @@ public:
     /** See if this handle is empty. **/
     bool isEmpty() const {return impl==0;}
 
-    /** Find out the current condition of this Contact object. **/
-    Condition getCondition() const;
     /** Get the persistent ContactId that has been assigned to this Contact
     object if there is one (otherwise this will be invalid -- you can check
     with isValid(). **/
     ContactId getContactId() const;
+    /** Find out the current condition of this Contact object. **/
+    Condition getCondition() const;
     /** Get the first surface involved in the contact, specified by 
     its index within its contact set or ContactTrackerSubsystem. **/
     ContactSurfaceIndex getSurface1() const;
     /** Get the second surface involved in the contact, specified by 
     its index within its contact set or ContactTrackerSubsystem. **/
     ContactSurfaceIndex getSurface2() const;
+    /** Return the transform X_S1S2 giving the pose of surface 2's frame 
+    measured and expressed in surface 1's frame, recorded at the time this 
+    Contact object was calculated. **/
+    const Transform& getTransform() const;
 
+    /** Set the ContactId for this Contact object. This must persist over the
+    lifetime of a single contact event. **/
+    Contact& setContactId(ContactId id);
     /** Set the current Condition. **/
     Contact& setCondition(Condition condition);
     /** Set the surfaces tracked by this Contact object. **/
     Contact& setSurfaces(ContactSurfaceIndex surf1, ContactSurfaceIndex surf2);
-    /** Set the ContactId for this Contact object. This must persist over the
-    lifetime of a single contact event. **/
-    Contact& setContactId(ContactId id);
+    /** Set the surface-to-surface relative transform X_S1S2. **/
+    Contact& setTransform(const Transform& X_S1S2);
 
     /** Return a unique small integer corresponding to the concrete type
     of Contact object being referenced by this handle. **/
@@ -210,11 +216,12 @@ class SimTK_SIMBODY_EXPORT BrokenContact : public Contact {
 public:
     /** Create a BrokenContact object.
     @param surf1        The index of the first surface involved in the contact.
-    @param surf2        The index of the second surface involved in the contact. 
+    @param surf2        The index of the second surface involved in the contact.
+    @param X_S1S2       The surface-to-surface relative transform.
     @param separation   The minimum distance between the surfaces, with 
                         separation > cutoff >= 0 always. **/
     BrokenContact(ContactSurfaceIndex surf1, ContactSurfaceIndex surf2,
-                  Real separation); 
+                  const Transform& X_S1S2, Real separation); 
 
     /** Get the separation (> cutoff >= 0) between the two surfaces at the time
     we decided the contact had been broken. Note that the sign convention is
@@ -252,22 +259,24 @@ up or down the normal from OP. **/
 class SimTK_SIMBODY_EXPORT CircularPointContact : public Contact {
 public:
     /** Create a CircularPointContact object.
-    @param surf1    the index of the first surface involved in the contact 
-    @param radius1  surf1's uniform radius at the contact initiation point
-    @param surf2    the index of the second surface involved in the contact 
-    @param radius2  surf2's uniform radius at the contact initiation point
-    @param radius   the effective combined radius to use
-    @param depth    the penetration depth d (>0) or separation distance (<0); 
-                    surfaces are at +/- d/2 from the origin, up and down the 
-                    normal 
-    @param origin   origin point for the contact patch frame, in G
-    @param normal   the common normal at onset, pointing from surface1 to
-                    surface2, expressed in G. This is the z axis of the patch 
-                    frame. **/
+    @param surf1        the index of the first surface involved in the contact 
+    @param radius1      surf1's uniform radius at the contact initiation point
+    @param surf2        the index of the second surface involved in the contact 
+    @param radius2      surf2's uniform radius at the contact initiation point
+    @param X_S1S2       the surface-to-surface relative transform
+    @param radius       the effective combined radius to use
+    @param depth        the penetration depth d (>0) or separation distance 
+                        (<0); surfaces are at +/- d/2 from the origin, up and 
+                        down the normal 
+    @param origin_S1    origin point for the contact patch frame, in S1
+    @param normal_S1    the common normal at onset, pointing from surface1 to
+                        surface2, expressed in S1. This is the z axis of the 
+                        patch frame. **/
     CircularPointContact
        (ContactSurfaceIndex surf1, Real radius1, 
-        ContactSurfaceIndex surf2, Real radius2,
-        Real radius, Real depth, const Vec3& origin, const UnitVec3& normal);
+        ContactSurfaceIndex surf2, Real radius2, 
+        const Transform& X_S1S2, Real radius, Real depth, 
+        const Vec3& origin_S1, const UnitVec3& normal_S1);
 
     /** Get the radius of surface1 at the contact point. **/
     Real getRadius1() const;
@@ -281,11 +290,11 @@ public:
     translate surface2 along the normal vector to make the surfaces just touch
     at their contact points without overlap. **/
     Real getDepth() const;
-    /** Get the origin OP of the contact patch frame P, in G. **/
+    /** Get the origin OP of the contact patch frame P, in S1. **/
     const Vec3& getOrigin() const;
     /** Get the z axis of the contact patch frame, which is the common surface 
     normal at the initial contact point, pointing outward from surface1 towards
-    surface2 at initial contact. This is a unit vector expressed in G. **/
+    surface2 at initial contact. This is a unit vector expressed in S1. **/
     const UnitVec3& getNormal() const;
 
     /** Determine whether a Contact object is a CircularPointContact. **/
@@ -312,47 +321,52 @@ private:
 //==============================================================================
 //                           TRIANGLE MESH CONTACT
 //==============================================================================
-/**
- * This subclass of Contact is used when one or both of the ContactGeometry 
- * objects is a TriangleMesh. It stores a list of every face on each object 
- * that is partly or completely inside the other one.
- */
+/** This subclass of Contact is used when one or both of the ContactGeometry 
+objects is a TriangleMesh. It stores a list of every face on each object 
+that is partly or completely inside the other one. **/
 class SimTK_SIMBODY_EXPORT TriangleMeshContact : public Contact {
 public:
-    /**
-     * Create a TriangleMeshContact object.
-     *
-     * @param surf1    the index of the first surface involved in the contact, 
-     *                 specified by its index within its contact set
-     * @param surf2    the index of the second surface involved in the contact, 
-     *                 specified by its index within its contact set
-     * @param faces1   the indices of all faces in the first surface which are 
-     *                 inside the second one
-     * @param faces2   the indices of all faces in the second surface which are
-     *                 inside the first one
-     */
-    TriangleMeshContact(ContactSurfaceIndex surf1, ContactSurfaceIndex surf2, 
-                        const std::set<int>& faces1, 
-                        const std::set<int>& faces2);
-    /**
-     * Get the indices of all faces of surface1 that are partly
-     * or completely inside surface2. If surface1 
-     * is not a TriangleMesh, this will return an empty set.
-     */
+    /** Create a TriangleMeshContact object.
+    @param surf1    the index of the first surface involved in the contact, 
+                    specified by its index within its contact set
+    @param surf2    the index of the second surface involved in the contact, 
+                    specified by its index within its contact set
+    @param X_S1S2   the transform giving surf2's frame measured and expressed
+                    in surf1's frame
+    @param faces1   the indices of all faces in the first surface which are 
+                    inside the second one
+    @param faces2   the indices of all faces in the second surface which are
+                    inside the first one **/
+    TriangleMeshContact(ContactSurfaceIndex     surf1, 
+                        ContactSurfaceIndex     surf2,
+                        const Transform&        X_S1S2,
+                        const std::set<int>&    faces1, 
+                        const std::set<int>&    faces2);
+
+    /** Get the indices of all faces of surface1 that are partly or completely 
+    inside surface2. If surface1 is not a TriangleMesh, this will return an 
+    empty set. **/
     const std::set<int>& getSurface1Faces() const;
-    /**
-     * Get the indices of all faces of surface2 that are 
-     * partly or completely inside surface1. If surface2
-     * is not a TriangleMesh, this will return an empty set.
-     */
+    /** Get the indices of all faces of surface2 that are partly or completely
+    inside surface1. If surface2 is not a TriangleMesh, this will return an 
+    empty set. **/
     const std::set<int>& getSurface2Faces() const;
-    /**
-     * Determine whether a Contact object is a TriangleMeshContact.
-     */
+
+    /** Determine whether a Contact object is a TriangleMeshContact. **/
     static bool isInstance(const Contact& contact);
-    /** 
-     * Obtain the unique small-integer id for the TriangleMeshContact class. 
-     */
+    /** Recast a triangle mesh given as a generic Contact object to a 
+    const reference to a concrete TriangleMeshContact object. **/
+    static const TriangleMeshContact& getAs(const Contact& contact)
+    {   assert(isInstance(contact)); 
+        return static_cast<const TriangleMeshContact&>(contact); }
+    /** Recast a triangle mesh given as a generic Contact object to a 
+    writable reference to a concrete TriangleMeshContact object. **/
+    static TriangleMeshContact& updAs(Contact& contact)
+    {   assert(isInstance(contact)); 
+        return static_cast<TriangleMeshContact&>(contact); }
+
+    /** Obtain the unique small-integer id for the TriangleMeshContact 
+    class. **/
     static ContactTypeId classTypeId();
 
 private:

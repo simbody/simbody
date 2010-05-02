@@ -43,11 +43,21 @@ namespace SimTK {
 /** This is the internal implementation base class for Contact. **/
 class ContactImpl {
 public:
-    ContactImpl(ContactSurfaceIndex surf1, 
-                             ContactSurfaceIndex surf2,
-                             Contact::Condition  condition=Contact::Unknown) 
+    ContactImpl(ContactSurfaceIndex     surf1, 
+                ContactSurfaceIndex     surf2,
+                Contact::Condition      condition=Contact::Unknown) 
     :   m_referenceCount(0), m_condition(condition), 
-        m_id(), m_surf1(surf1), m_surf2(surf2) {}
+        m_id(), m_surf1(surf1), m_surf2(surf2), m_X_S1S2() {}
+
+    ContactImpl(ContactSurfaceIndex     surf1, 
+                ContactSurfaceIndex     surf2,
+                const Transform&        X_S1S2,
+                Contact::Condition      condition=Contact::Unknown) 
+    :   m_referenceCount(0), m_condition(condition), 
+        m_id(), m_surf1(surf1), m_surf2(surf2), m_X_S1S2(X_S1S2) {}
+
+    void setTransform(const Transform& X_S1S2) {m_X_S1S2 = X_S1S2;}
+    const Transform& getTransform() const {return m_X_S1S2;}
 
     void setCondition(Contact::Condition cond) {m_condition=cond;}
     Contact::Condition getCondition() const {return m_condition;}
@@ -91,6 +101,7 @@ friend class Contact;
     ContactId           m_id;
     ContactSurfaceIndex m_surf1,
                         m_surf2;
+    Transform           m_X_S1S2;
 };
 
 
@@ -119,8 +130,9 @@ public:
 class BrokenContactImpl : public ContactImpl {
 public:
     BrokenContactImpl
-       (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2, Real separation) 
-    : ContactImpl(surf1, surf2), separation(separation) {}
+       (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2, 
+        const Transform& X_S1S2, Real separation) 
+    : ContactImpl(surf1, surf2, X_S1S2), separation(separation) {}
 
     ContactTypeId getTypeId() const {return classTypeId();}
     static ContactTypeId classTypeId() {
@@ -143,11 +155,12 @@ class CircularPointContactImpl : public ContactImpl {
 public:
     CircularPointContactImpl
        (ContactSurfaceIndex surf1, Real radius1, 
-        ContactSurfaceIndex surf2, Real radius2, 
-        Real radiusEff, Real depth, const Vec3& origin, const UnitVec3& normal)
-    :   ContactImpl(surf1, surf2), 
+        ContactSurfaceIndex surf2 ,Real radius2, 
+        const Transform& X_S1S2, Real radiusEff, Real depth, 
+        const Vec3& origin_S1, const UnitVec3& normal_S1)
+    :   ContactImpl(surf1, surf2, X_S1S2), 
         radius1(radius1), radius2(radius2), radiusEff(radiusEff), 
-        depth(depth), origin_G(origin), normal_G(normal) {}
+        depth(depth), origin_S1(origin_S1), normal_S1(normal_S1) {}
 
     ContactTypeId getTypeId() const {return classTypeId();}
     static ContactTypeId classTypeId() {
@@ -158,8 +171,8 @@ public:
 private:
 friend class CircularPointContact;
     Real        radius1, radius2, radiusEff, depth;
-    Vec3        origin_G;
-    UnitVec3    normal_G;
+    Vec3        origin_S1;
+    UnitVec3    normal_S1;
 };
 
 
@@ -170,10 +183,11 @@ friend class CircularPointContact;
 /** This is the internal implementation class for TriangleMeshContact. **/
 class TriangleMeshContactImpl : public ContactImpl {
 public:
-    TriangleMeshContactImpl(ContactSurfaceIndex surf1, 
-                            ContactSurfaceIndex surf2,
-                            const std::set<int>& faces1, 
-                            const std::set<int>& faces2);
+    TriangleMeshContactImpl(ContactSurfaceIndex     surf1, 
+                            ContactSurfaceIndex     surf2,
+                            const Transform&        X_S1S2,
+                            const std::set<int>&    faces1, 
+                            const std::set<int>&    faces2);
 
     ContactTypeId getTypeId() const {return classTypeId();}
     static ContactTypeId classTypeId() {

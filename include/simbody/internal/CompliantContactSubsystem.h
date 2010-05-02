@@ -35,6 +35,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/Contact.h"
+#include "simbody/internal/ContactGeometry.h"
 
 #include <cassert>
 
@@ -196,12 +197,13 @@ const CompliantContactSubsystemImpl& getImpl() const;
 //                               CONTACT FORCE
 //==============================================================================
 /** This is a simple class containing the basic force information for a 
-single contact point between deformable surfaces S1 and S2 mounted on rigid
+single contact between deformable surfaces S1 and S2 mounted on rigid
 bodies B1 and B2. Every contact interaction between two rigid bodies, however 
 complex, can be expressed as a resultant that can be contained in this class 
 and is sufficient for advancing a simulation. Optionally, you may be able to 
 get more details about the deformed geometry and pressure distribution over the
-patch but you have to ask for that separately because it can be expensive.
+patch but you have to ask for that separately because it can be expensive to
+calculate or report.
 
 The information stored here is:
   - A point in space at which equal and opposite forces will be applied to
@@ -214,6 +216,12 @@ The information stored here is:
   - The instantaneous power dissipation due to inelastic behavior such as 
     friction and internal material damping.
 
+Points and vectors are measured and expressed in some assumed but unspecified
+frame A, which might for example be the frame of one of the two surfaces, or
+one of the two bodies, or Ground. Whenever a method returns a ContactForce
+object it must document what frame is being used; typically that will be
+Ground for end user use.
+
 <h3>Definition of center of pressure</h3>
 
 When the contact patch itself involves many distributed contact points, the
@@ -223,7 +231,7 @@ display resultant contact forces, without requiring detailed patch geometry
 information. We define the location r_c of the center of pressure like this:
 @verbatim
            sum_i (r_i * |r_i X Fn_i|) 
-     r_c = --------------------
+     r_c = --------------------------
               sum_i |r_i X Fn_i|
 @endverbatim
 where r_i is the vector locating contact point i, F_i=Fn_i+Ft_i is the 
@@ -238,20 +246,60 @@ dissipation contributions, so the center of pressure can be
 velocity-dependent. **/
 class ContactForce {
 public:
+/** Default constructor has invalid contact id, other fields garbage. **/
 ContactForce() {} // invalid
+
+/** Construct with values for all fields. Contact point and force must
+be in the same but unspecified frame (typically Ground), and force and 
+moment must be as applied at the contact point; we can't check so don't
+mess up. **/
+ContactForce(ContactId id, const Vec3& contactPt,
+             const SpatialVec& forceOnSurface2,
+             Real potentialEnergy, Real powerLoss)
+:   m_contactId(id), m_contactPt(contactPt), 
+    m_forceOnSurface2(forceOnSurface2),
+    m_potentialEnergy(potentialEnergy), m_powerLoss(powerLoss) {}
+
+/** Replace the current contents of this ContactForce object with the
+given arguments. This provides values for all fields. Contact point and 
+force must be in the same but unspecified frame (typically Ground), and 
+force and moment must be as applied at the contact point; we can't check
+so don't mess up. **/
+void setTo(ContactId id, const Vec3& contactPt,
+           const SpatialVec& forceOnSurface2,
+           Real potentialEnergy, Real powerLoss)
+{   m_contactId         = id; 
+    m_contactPt         = contactPt;
+    m_forceOnSurface2   = forceOnSurface2;
+    m_potentialEnergy   = potentialEnergy;
+    m_powerLoss         = powerLoss; }
+
+/** Restore the ContactForce object to its default-constructed state with
+an invalid contact id and garbage for the other fields. **/
 void clear() {m_contactId.invalidate();}
+/** Return true if this contact force contains a valid ContactId. **/
 bool isValid() const {return m_contactId.isValid();}
+
+/** This object is currently in an assumed frame A; given a transform from
+A to another frame B we'll re-measure and re-express this in B. Cost is
+48 flops. Note that this doesn't change the moment because we're not moving
+the force application point physically; just remeasuring it from B. **/
+void changeFrameInPlace(const Transform& X_AB) {
+    m_contactPt         = ~X_AB*m_contactPt;        // shift & reexpress in B
+    m_forceOnSurface2   = ~X_AB.R()*m_forceOnSurface2;      // reexpress in B
+}
+
 ContactId       m_contactId;            // Which Contact produced this force?
-Vec3            m_centerOfPressureInG;
-SpatialVec      m_forceOnSurface2InG;   // at COP; negate for Surface 1
+Vec3            m_contactPt;            // In some frame F
+SpatialVec      m_forceOnSurface2;      // at contact pt, in F; neg. for Surf1
 Real            m_potentialEnergy;      // > 0 when due to compression
 Real            m_powerLoss;            // > 0 means dissipation
 };
 
 inline std::ostream& operator<<(std::ostream& o, const ContactForce& f) {
     o << "ContactForce for ContactId " << f.m_contactId << " (ground frame):\n";
-    o << "  ctr of pressure=" << f.m_centerOfPressureInG << "\n";
-    o << "  force on surf2 =" << f.m_forceOnSurface2InG << "\n";
+    o << "  contact point=" << f.m_contactPt << "\n";
+    o << "  force on surf2 =" << f.m_forceOnSurface2 << "\n";
     o << "  pot. energy=" << f.m_potentialEnergy << "  powerLoss=" << f.m_powerLoss;
     return o << "\n";
 }
@@ -259,23 +307,112 @@ inline std::ostream& operator<<(std::ostream& o, const ContactForce& f) {
 //==============================================================================
 //                              CONTACT DETAIL
 //==============================================================================
-/** This provides geometric and force details for one element of a contact
-patch. **/
+/** This provides deformed geometry and force details for one element of a
+contact patch that may be composed of many elements. Depending on the contact
+model, the element or elements may be associated with the patch itself, or
+the elements may be associated with the contacting surfaces. However, in all
+cases every element generates equal and opposite forces on both surfaces so
+we can use a consistent patch-centered convention for reporting details 
+regardless of the original source of the element. We do make note of which
+element we're reporting for here in case this information is of use to the
+caller, but in most cases it can be ignored.
+
+<h3>Deformed patch geometry</h3>
+
+We return a "patch frame" P for the element with this meaning:
+  - the origin OP is the contact point where equal and opposite forces are
+    applied to <em>material points</em> of the two surfaces
+  - the z axis points in the contact normal direction \e away from surface1
+    and towards surface2
+  - the x,y axes form a coordinate frame for the contact patch whose meaning
+    (if any) depends on the particulars of the contact model (e.g., might be
+    the semi axes of an elliptical contact patch).
+
+The patch frame P is reported in ground, via a Transform X_GP, however of more
+relevance are two frames P1 and P2 which are fixed to surface1's and 
+surface2's rigid bodies, resp., and instantaneously coincident with P. These
+would be located on their bodies via X_B1P1 and X_B2P2, although we don't
+report those here (you can easily calculate them). It is 
+important to note that we are interested in the motion (deformations) of 
+<em>material points</em> here, \e not the motion of the <em>contact point</em>
+which is a non-material concept and thus not directly involved in producing 
+forces.
+
+The patch itself is defined by giving its half dimensions along P's x and
+y axes; it is assumed symmetric about the origin. These dimensions are not
+necessarily meaningful, depending on the particulars of the contact model in
+use. The patch area is provided separately and its significance also depends
+on the model.
+
+<h3>Elasticity and dissipation</h3>
+
+Elastic deformation of the element is reported as a vector r in P. The -z 
+component is the normal compression of the element (that is, it will be a
+negative number), x,y gives the tangential deformation (often zero but can
+be either sign). The vector -r thus gives the original (undeformed) location
+of the material point now at OP. Note that we do 
+not attempt to report angular deformation of the element.
+
+Elastic deformation rate rdot=d/dt r (with the derivative taken in P) is also 
+provided. This is the rate that the material point currently at OP is moving 
+with respect to frame P, if you think of P as being instantaneously fixed with
+respect to the element's rigid body. That is, we are not
+including the fact that the contact point OP and frame P may be moving along 
+the surfaces, we just report what is happening to the material in its own 
+frame. Note that we do not attempt to report angular deformation rate.
+
+<h3>Slipping and friction</h3>
+
+Slip velocity is the \e spatial velocity (that is, angular and linear) of
+this element's material in the patch with respect to the other surface's
+corresponding material, measured at OP and expressed in P. The linear z 
+component is zero unless the surfaces are separating in which case it will
+be positive. Linear x,y is the slip vector which is the relative x-y motion
+of P1 and P2 minus the deformation rates of the two surfaces so that it 
+represents actual material-over-material slippage. The angular z component is 
+the "spin" rate about the normal with angular x,y representing the "roll" rate.
+
+<h3>%Force and pressure</h3>
+
+%Contact force is the \e spatial force (that is, moment and linear force) being 
+applied to this surface at the contact point OP, expressed in P. The linear
+z component is the normal force due to elasticity and dissipation, and will be
+negative as long as the surfaces aren't sticking. The (x,y) components are
+the tangential force due to friction and to tangential elasticity and
+dissipation, if any. The z component of the moment, if any, is the torsional
+friction and the (x,y) moment is the rolling resistance.
+
+Peak pressure is a scalar providing the worst-case pressure present somewhere
+in the patch, if the model can provide that. Otherwise it should just be the
+normal force divided by the patch area to give the average pressure across
+the patch. 
+
+<h3>Energy and power</h3>
+
+Potential energy is the amount of energy currently stored in the elastic
+deformation of this element. Summing this over all the contact detail 
+elements should yield the same value as is reported as the resultant potential
+energy for this contact.
+
+Power loss is the rate at which energy is being lost due to dissipation and
+to friction, but not due to elastic deformation because that is contributing
+to potential energy and we expect to get it back. Summing this over all the
+contact detail elements should yield the same value as is reported as the
+resultant power loss for this contact. **/
 class ContactDetail {
 public:
-// This is the element local frame. The force is applied at this point; the
-// local normal is z pointing away from Surface 1 and towards Surface 2, 
-// x is the long and y the short subpatch direction if that makes sense for 
-// this kind of contact, otherwise they are an arbitrary frame for the contact 
-// tangent plane.
-unsigned        m_elementId;
+int             m_whichSurface;         // 0=patch, 1=surface1, 2=surface2
+int             m_elementId;            // meaning defined by patch type
 Transform       m_patchFrame;           // X_GP
 Vec2            m_patchHalfDimensions;  // x >= y >= 0
-Vec2            m_deformations;         // surf1, surf2 along -z,z at OP, > 0
-Vec2            m_deformationRates;     // > 0 means compressing
-SpatialVec      m_forceOnSurface2InP;   // applied at OP
+Vec3            m_deformation;          // vec to undeformed loc of material
+Vec3            m_deformationRate;      // d/dt deformation, w.r.t. body frame
+SpatialVec      m_slipVelocity;         // material slip rate
+SpatialVec      m_forceOnSurface2InP;   // applied at OP, -force to surf1
+Real            m_patchArea;            // >= 0
+Real            m_peakPressure;         // > 0 in compression
 Real            m_potentialEnergy;      // > 0 when due to compression
-Real            m_power;                // > 0 means dissipation
+Real            m_powerLoss;            // > 0 means dissipation
 };
 
 
@@ -286,16 +423,23 @@ Real            m_power;                // > 0 means dissipation
 /** A ContactPatch is the description of the forces and the deformed shape of
 the contact surfaces that result from compliant contact interactions. This
 should not be confused with the Contact object that describes only the 
-overlap in \e undeformed surface geometry and knows nothing of forces.
-Although there are several qualitatively different kinds of compliant contact
-models, we assume that each can be described by some number of contact
-"elements" and report the detailed results in terms of those elements. A 
-Hertz contact will have only a single element while an elastic foundation
-contact will have many. Only the elments that are currently participating in
-contact will have entries here; the element id is stored with each
-piece of ContactDetail information. There is also some basic information 
-needed to advance the simulation and that is common to all contact patch types
-and stored as a ContactForce resultant. **/
+overlap in \e undeformed surface geometry and knows nothing of forces or
+materials. Although there are several qualitatively different kinds of 
+compliant contact models, we assume that each can be described by some number 
+of contact "elements" and report the detailed results in terms 
+of those elements. Depending on the model, the elements may be associated with
+the surfaces or may be associated with the patch. Either way, every element 
+applies equal and opposite forces to both surfaces. There is not necessarily 
+any direct correspondence between elements on one surface with elements on the 
+other.
+
+A Hertz contact will have only a single element that belongs to the patch,
+while an elastic foundation contact will have many, with each element
+associated with one or the other surface. Only the elements that are currently 
+participating in contact will have entries here; the surface and element id is 
+stored with each piece of ContactDetail information. There is also some basic 
+information needed to advance the simulation and that is common to all contact
+patch types and stored as a ContactForce resultant. **/
 class SimTK_SIMBODY_EXPORT ContactPatch {
 public:
 ContactForce            m_resultant;
@@ -354,8 +498,7 @@ velocities are not yet available. **/
 virtual void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
-    const SpatialVec&       V_GS1,  // surface velocities
-    const SpatialVec&       V_GS2,
+    const SpatialVec&       V_S1S2,  // relative surface velocity (S2 in S1)
     ContactForce&           contactForce) const = 0;
 
 /** The CompliantContactSubsystem will invoke this method in response to a user
@@ -365,11 +508,10 @@ avoided in calcContactForce(). Don't use the state for position or
 velocity information; the only allowed positions are in the Contact object
 and the velocities are supplied explicitly. **/
 virtual void calcContactPatch
-   (const State&      state,
-    const Contact&    overlapping,
-    const SpatialVec& V_GS1,  // surface velocities
-    const SpatialVec& V_GS2,
-    ContactPatch&     patch) const = 0;
+   (const State&            state,
+    const Contact&          overlapping,
+    const SpatialVec&       V_S1S2,  // relative surface velocity (S2 in S1)
+    ContactPatch&           patch) const = 0;
 
 
 //--------------------------------------------------------------------------
@@ -402,16 +544,14 @@ virtual ~HertzCircular() {}
 virtual void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
-    const SpatialVec&       V_GS1,  // surface velocities
-    const SpatialVec&       V_GS2,
+    const SpatialVec&       V_S1S2,
     ContactForce&           contactForce) const;
 
 virtual void calcContactPatch
-   (const State&      state,
-    const Contact&    overlapping,
-    const SpatialVec& V_GS1,  // surface velocities
-    const SpatialVec& V_GS2,
-    ContactPatch&     patch) const;
+   (const State&            state,
+    const Contact&          overlapping,
+    const SpatialVec&       V_S1S2,
+    ContactPatch&           patch) const;
 };
 
 
@@ -432,20 +572,38 @@ virtual ~ElasticFoundation() {}
 virtual void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
-    const SpatialVec&       V_GS1,  // surface velocities
-    const SpatialVec&       V_GS2,
-    ContactForce&           contactForce) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-        "ContactForceGenerator::ElasticFoundation::calcContactForce() not implemented yet."); }
-virtual void calcContactPatch
-   (const State&      state,
-    const Contact&    overlapping,
-    const SpatialVec& V_GS1,  // surface velocities
-    const SpatialVec& V_GS2,
-    ContactPatch&     patch) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-        "ContactForceGenerator::ElasticFoundation::calcContactPatch() not implemented yet."); }
+    const SpatialVec&       V_S1S2,
+    ContactForce&           contactForce) const;
 
+virtual void calcContactPatch
+   (const State&            state,
+    const Contact&          overlapping,
+    const SpatialVec&       V_S1S2,
+    ContactPatch&           patch) const;
+
+private:
+void calcWeightedPatchCentroid
+   (const ContactGeometry::TriangleMesh&    mesh,
+    const std::set<int>&                    insideFaces,
+    Vec3&                                   weightedPatchCentroid,
+    Real&                                   patchArea) const;
+                       
+void processOneMesh
+   (const State&                            state,
+    const ContactGeometry::TriangleMesh&    mesh,
+    const std::set<int>&                    insideFaces,
+    const Transform&                        X_MO, 
+    const SpatialVec&                       V_MO,
+    const ContactGeometry&                  other,
+    Real                                    meshDeformationFraction, // 0..1
+    Real k, Real c, Real us, Real ud, Real uv,
+    const Vec3&                 resultantPt_M, // where to apply forces
+    SpatialVec&                 resultantForceOnOther_M, // at resultant pt
+    Real&                       potentialEnergy,
+    Real&                       powerLoss,
+    Vec3&                       weightedCenterOfPressure_M, // COP
+    Real&                       sumOfAllPressureMoments,    // COP weight
+    Array_<ContactDetail>*      contactDetails) const;
 };
 
 
@@ -454,7 +612,7 @@ virtual void calcContactPatch
 //==============================================================================
 //                        DO NOTHING FORCE GENERATOR
 //==============================================================================
-/** This ContactForceGenerator does nothing silently. It can be used as a way
+/** This ContactForceGenerator silently does nothing. It can be used as a way
 to explicitly ignore a certain ContactTypeId, or more commonly it is used as
 the fallback generator for unrecognized ContactTypeIds. **/
 class SimTK_SIMBODY_EXPORT ContactForceGenerator::DoNothing 
@@ -466,17 +624,15 @@ virtual ~DoNothing() {}
 virtual void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
-    const SpatialVec&       V_GS1,  // surface velocities
-    const SpatialVec&       V_GS2,
+    const SpatialVec&       V_S1S2,
     ContactForce&           contactForce) const
 {   SimTK_ASSERT_ALWAYS(!"implemented",
         "ContactForceGenerator::DoNothing::calcContactForce() not implemented yet."); }
 virtual void calcContactPatch
-   (const State&      state,
-    const Contact&    overlapping,
-    const SpatialVec& V_GS1,  // surface velocities
-    const SpatialVec& V_GS2,
-    ContactPatch&     patch) const
+   (const State&            state,
+    const Contact&          overlapping,
+    const SpatialVec&       V_S1S2,
+    ContactPatch&           patch) const
 {   SimTK_ASSERT_ALWAYS(!"implemented",
         "ContactForceGenerator::DoNothing::calcContactPatch() not implemented yet."); }
 };
@@ -499,17 +655,15 @@ virtual ~ThrowError() {}
 virtual void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
-    const SpatialVec&       V_GS1,  // surface velocities
-    const SpatialVec&       V_GS2,
+    const SpatialVec&       V_S1S2,
     ContactForce&           contactForce) const
 {   SimTK_ASSERT_ALWAYS(!"implemented",
         "ContactForceGenerator::ThrowError::calcContactForce() not implemented yet."); }
 virtual void calcContactPatch
-   (const State&      state,
-    const Contact&    overlapping,
-    const SpatialVec& V_GS1,  // surface velocities
-    const SpatialVec& V_GS2,
-    ContactPatch&     patch) const
+   (const State&            state,
+    const Contact&          overlapping,
+    const SpatialVec&       V_S1S2,
+    ContactPatch&           patch) const
 {   SimTK_ASSERT_ALWAYS(!"implemented",
         "ContactForceGenerator::ThrowError::calcContactPatch() not implemented yet."); }
 };

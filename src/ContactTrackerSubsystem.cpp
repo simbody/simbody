@@ -658,7 +658,7 @@ realizePredictedContacts(const State& state,
 //==============================================================================
 //                     HALFSPACE-SPHERE CONTACT TRACKER
 //==============================================================================
-// Cost is 21 flops if no contact, 43 with contact.
+// Cost is 21 flops if no contact, 67 with contact.
 bool ContactTracker::HalfSpaceSphere::trackContact
    (const Contact&         priorStatus,
     const Transform&       X_GH, 
@@ -677,10 +677,14 @@ bool ContactTracker::HalfSpaceSphere::trackContact
     const ContactGeometry::SphereImpl& sphere = 
         reinterpret_cast<const ContactGeometry::SphereImpl&>
             (geoSphere.getImpl());
+
+    const Rotation R_HG = ~X_GH.R(); // inverse rotation; no flops
+
+    // p_HC is vector from H origin to S's center C
+    const Vec3 p_HC = R_HG*(X_GS.p() - X_GH.p()); // 18 flops
     
-    // Location of the sphere center C in the half-space's frame "H", in
-    // which the half space occupies all of x>0 space.
-    const Vec3 p_HC=~X_GH*X_GS.p();   // vec from OH to C  (18 flops)
+    // Calculate depth of sphere center C given that the halfspace occupies 
+    // all of x>0 space.
     const Real r = sphere.getRadius();
     const Real depth = p_HC[0] + r;   // 1 flop
 
@@ -689,14 +693,15 @@ bool ContactTracker::HalfSpaceSphere::trackContact
         return true; // successful return
     }
 
-    const UnitVec3 normal_G = -X_GH.x(); // 3 flops; no normalization required
-    const Vec3 origin_H = Vec3(depth/2, p_HC[1], p_HC[2]); // 1 flop
-    const Vec3 origin_G = X_GH*origin_H; // 18 flops
+    // Calculate the rest of the X_HS transform as required by Contact.
+    const Transform X_HS(R_HG*X_GS.R(), p_HC); // 45 flops
+    const UnitVec3 normal_H(Vec3(-1,0,0), true); // 0 flops
+    const Vec3     origin_H = Vec3(depth/2, p_HC[1], p_HC[2]); // 1 flop
     // The surfaces are contacting (or close enough to be interesting).
     // The sphere's radius is also the effective radius.
     currentStatus = CircularPointContact(priorStatus.getSurface1(), Infinity,
                                          priorStatus.getSurface2(), r,
-                                         r, depth, origin_G, normal_G);
+                                         X_HS, r, depth, origin_H, normal_H);
     return true; // success
 }
 
@@ -729,7 +734,7 @@ bool ContactTracker::HalfSpaceSphere::initializeContact
 //==============================================================================
 //                       SPHERE-SPHERE CONTACT TRACKER
 //==============================================================================
-// Cost is 12 flops if no contact, 82 if contact
+// Cost is 12 flops if no contact, 139 if contact
 bool ContactTracker::SphereSphere::trackContact
    (const Contact&         priorStatus,
     const Transform& X_GS1, 
@@ -755,8 +760,8 @@ bool ContactTracker::SphereSphere::trackContact
     currentStatus.clear();
 
     // Find the vector from sphere center C1 to C2, expressed in G.
-    const Vec3 v_C12_G = X_GS2.p() - X_GS1.p(); // 3 flops
-    const Real d2 = v_C12_G.normSqr();          // 5 flops
+    const Vec3 p_12_G = X_GS2.p() - X_GS1.p(); // 3 flops
+    const Real d2 = p_12_G.normSqr();          // 5 flops
     const Real r1 = sphere1.getRadius();
     const Real r2 = sphere2.getRadius();
     const Real rr = r1 + r2;                    // 1 flop
@@ -767,10 +772,13 @@ bool ContactTracker::SphereSphere::trackContact
     if (d2 > square(rr+cutoff)) {       // 3 flops
         if (!priorStatus.getContactId().isValid())
             return true; // successful return: still separated
-        const Real separation = std::sqrt(d2) - rr; // > cutoff
+
+        const Real separation = std::sqrt(d2) - rr;   // > cutoff, ~25 flops
+        const Transform X_S1S2(~X_GS1.R()*X_GS2.R(), 
+                               ~X_GS1.R()*p_12_G);    // 60 flops
         currentStatus = BrokenContact(priorStatus.getSurface1(),
                                       priorStatus.getSurface2(),
-                                      separation);
+                                      X_S1S2, separation);
         return true;
     }
 
@@ -781,16 +789,21 @@ bool ContactTracker::SphereSphere::trackContact
         return false;
     }
 
+    const Transform X_S1S2(~X_GS1.R()*X_GS2.R(), 
+                           ~X_GS1.R()*p_12_G);// 60 flops
+    const Vec3& p_12 = X_S1S2.p(); // center-to-center vector in S1
+
     const Real depth = rr - d; // >0 for penetration (1 flop)
     const Real r     = r1*r2/rr; // r=r1r2/(r1+r2)=1/(1/r1+1/r2) ~20 flops
 
-    const UnitVec3 normal_G(v_C12_G/d, true); // 1/ + 3* = ~20 flops
-    const Vec3     origin_G = X_GS1.p() + (r1 - depth/2)*normal_G; // 8 flops
+    const UnitVec3 normal_S1(p_12/d, true); // 1/ + 3* = ~20 flops
+    const Vec3     origin_S1 = (r1 - depth/2)*normal_S1; // 5 flops
 
     // The surfaces are contacting (or close enough to be interesting).
     currentStatus = CircularPointContact(priorStatus.getSurface1(), r1,
                                          priorStatus.getSurface2(), r2,
-                                         r, depth, origin_G, normal_G);
+                                         X_S1S2, r, depth, 
+                                         origin_S1, normal_S1);
     return true; // success
 }
 

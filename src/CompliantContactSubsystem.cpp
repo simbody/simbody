@@ -198,14 +198,12 @@ int realizeSubsystemDynamicsImpl(const State& s) const {
                                                 (contact.getSurface1());
         const MobilizedBody& mobod2 = m_tracker.getMobilizedBody
                                                 (contact.getSurface2());
-        const Vec3 r1 = force.m_centerOfPressureInG 
-                        - mobod1.getBodyOriginLocation(s);
-        const Vec3 r2 = force.m_centerOfPressureInG 
-                        - mobod2.getBodyOriginLocation(s);
-        const SpatialVec& F2cop = force.m_forceOnSurface2InG; // at C.O.P.
+        const Vec3 r1 = force.m_contactPt - mobod1.getBodyOriginLocation(s);
+        const Vec3 r2 = force.m_contactPt - mobod2.getBodyOriginLocation(s);
+        const SpatialVec& F2cpt = force.m_forceOnSurface2; // at contact pt
         // Shift applied force to body origins.
-        const SpatialVec F2( F2cop[0] + r2 %  F2cop[1],  F2cop[1]);
-        const SpatialVec F1(-F2cop[0] + r1 % -F2cop[1], -F2cop[1]);
+        const SpatialVec F2( F2cpt[0] + r2 %  F2cpt[1],  F2cpt[1]);
+        const SpatialVec F1(-F2cpt[0] + r1 % -F2cpt[1], -F2cpt[1]);
         mobod1.applyBodyForce(s, F1, rigidBodyForces);
         mobod2.applyBodyForce(s, F2, rigidBodyForces);
     }
@@ -334,8 +332,7 @@ ensurePotentialEnergyCacheValid(const State& state) const {
         const ContactForceGenerator& generator = 
             getForceGenerator(contact.getTypeId());
         ContactForce force;
-        generator.calcContactForce(state,contact,SpatialVec(Vec3(0)),
-            SpatialVec(Vec3(0)), force);
+        generator.calcContactForce(state,contact,SpatialVec(Vec3(0)), force);
         pe += force.m_potentialEnergy;
     }
 
@@ -358,20 +355,46 @@ ensureForceCacheValid(const State& state) const {
     const int nContacts = active.getNumContacts();
     for (int i=0; i<nContacts; ++i) {
         const Contact& contact = active.getContact(i);
+        const Transform& X_S1S2 = contact.getTransform();
         const ContactSurfaceIndex surf1(contact.getSurface1());
         const ContactSurfaceIndex surf2(contact.getSurface2());
         const MobilizedBody& mobod1 = m_tracker.getMobilizedBody(surf1);
         const MobilizedBody& mobod2 = m_tracker.getMobilizedBody(surf2);
+        const Transform X_GS1 = mobod1.findFrameTransformInGround
+            (state, m_tracker.getContactSurfaceTransform(surf1));
         const SpatialVec V_GS1 = mobod1.findFrameVelocityInGround
             (state, m_tracker.getContactSurfaceTransform(surf1));
         const SpatialVec V_GS2 = mobod2.findFrameVelocityInGround
             (state, m_tracker.getContactSurfaceTransform(surf2));
 
+        // We'll convert all vectors to the S1 frame, but be careful about
+        // which frame derivatives are being taken in.
+
+        // This is the vector from S1's origin to S2's origin.
+        const Vec3& p_12 = X_S1S2.p();
+        // Orientation of S1 in G.
+        const Rotation& R_G1 = X_GS1.R();
+
+        // Relative angular velocity of S2 in S1.
+        const Vec3 w_12  = ~R_G1*(V_GS2[0]-V_GS1[0]);
+        // Relative linear velocity of S2 in S1, taken in G but expressed in S1.
+        const Vec3 vG_12 = ~R_G1*(V_GS2[1]-V_GS1[1]); 
+        // Get linear velocity taken in S1 by removing the component due
+        // to S1's rotation in G; re-express in S1.
+        const Vec3 w_G1 = ~R_G1*V_GS1[0];
+        const Vec3 v_12 = vG_12 - w_G1 % p_12;
+
+        const SpatialVec V_S1S2(w_12, v_12);
+
         const ContactForceGenerator& generator = 
             getForceGenerator(contact.getTypeId());
-        forces.push_back();
-        generator.calcContactForce(state,contact,V_GS1,V_GS2, forces.back());
-        if (!forces.back().isValid())
+        forces.push_back(); // allocate a new garbage ContactForce
+        // Calculate the contact force measured and expressed in S1.
+        generator.calcContactForce(state, contact, V_S1S2, forces.back());
+        // Re-express the contact force in Ground for later use.
+        if (forces.back().isValid())
+            forces.back().changeFrameInPlace(~X_GS1); // switch to Ground
+        else
             forces.pop_back(); // never mind ...
     }
 
@@ -480,7 +503,7 @@ inline static Real step5(Real x) {
 }
 
 // Input x goes from 0 to 1; output goes from 0 to y. First derivative
-// is 0 at the beginning and yd  at the end. Second derivatives are zero
+// is 0 at the beginning and yd at the end. Second derivatives are zero
 // at both ends:
 //
 //    y -               *
@@ -543,21 +566,21 @@ inline static Real stribeck(Real us, Real ud, Real uv, Real v) {
 // Curve is similar to Stribeck above but more violent with a discontinuous
 // derivative at v==1.
 inline static Real hollars(Real us, Real ud, Real uv, Real v) {
-    const Real mu = 
-        std::min(v, 1.0)*(ud+2*(us-ud)/(1+v*v))+uv*v;
+    const Real mu =   std::min(v, 1.0)*(ud + 2*(us-ud)/(1+v*v))
+                    + uv*v;
     return mu;
 }
+
+
 
 //==============================================================================
 //                         HERTZ CIRCULAR GENERATOR
 //==============================================================================
-
 void ContactForceGenerator::HertzCircular::calcContactForce
    (const State&            state,
-    const Contact&          overlap,
-    const SpatialVec&       V_GS1,  // surface velocities
-    const SpatialVec&       V_GS2,
-    ContactForce&           contactForce) const
+    const Contact&          overlap,    // contains X_S1S2
+    const SpatialVec&       V_S1S2,     // relative surface velocity, S2 in S1
+    ContactForce&           contactForce_S1) const
 {
     SimTK_ASSERT(CircularPointContact::isInstance(overlap),
         "ContactForceGenerator::HertzCircular::calcContactForce(): expected"
@@ -567,19 +590,28 @@ void ContactForceGenerator::HertzCircular::calcContactForce
     const Real depth = contact.getDepth();
 
     if (depth <= 0) {
-        contactForce.clear(); // no contact; invalidate return result
+        contactForce_S1.clear(); // no contact; invalidate return result
         return;
     }
 
     const CompliantContactSubsystem& subsys = getCompliantContactSubsystem();
     const ContactTrackerSubsystem&   tracker = subsys.getContactTrackerSubsystem();
+    
+    const ContactSurfaceIndex surf1x = contact.getSurface1();
+    const ContactSurfaceIndex surf2x = contact.getSurface2();
+    const Transform&          X_S1S2 = contact.getTransform();
 
-    const MobilizedBody& mobod1 = tracker.getMobilizedBody(contact.getSurface1());
-    const MobilizedBody& mobod2 = tracker.getMobilizedBody(contact.getSurface2());  
-    const ContactMaterial& mat1 =
-        tracker.getContactSurface(contact.getSurface1()).getMaterial();
-    const ContactMaterial& mat2 =
-        tracker.getContactSurface(contact.getSurface1()).getMaterial();
+    // Abbreviations.
+    const Rotation& R12 = X_S1S2.R(); // orientation of S2 in S1
+    const Vec3&     p12 = X_S1S2.p(); // position of O2 in S1
+    const Vec3&     w12 = V_S1S2[0];  // ang. vel. of S2 in S1
+    const Vec3&     v12 = V_S1S2[1];  // vel. of O2 in S1
+
+    const ContactSurface&  surf1  = tracker.getContactSurface(surf1x);
+    const ContactSurface&  surf2  = tracker.getContactSurface(surf2x);
+
+    const ContactMaterial& mat1   = surf1.getMaterial();
+    const ContactMaterial& mat2   = surf2.getMaterial();
 
     // Use 2/3 power of stiffness for combining here.
     const Real k1=mat1.getStiffness23(), k2=mat2.getStiffness23();
@@ -592,30 +624,33 @@ void ContactForceGenerator::HertzCircular::calcContactForce
     const Real s1 = k2/(k1+k2); // 0..1
     const Real s2 = 1-s1;       // 1..0
     const Real x  = contact.getDepth();
-    // normal points from surf1 to surf2 
-    const UnitVec3& normal = contact.getNormal();
+    // normal points away from surf1, expressed in surf1's frame 
+    const UnitVec3& normal_S1 = contact.getNormal();
     // origin is half way between the two surfaces as though they had
     // equal stiffness
-    const Vec3& origin = contact.getOrigin();
+    const Vec3& origin_S1 = contact.getOrigin();
     // Actual contact point moves closer to stiffer surface.
-    const Vec3 contactPt = origin+(x*(0.5-s1))*normal;
+    const Vec3 contactPt_S1 = origin_S1 + (x*(0.5-s1))*normal_S1;
     
     // Calculate the Hertz force fH, which is conservative.
-
     const Real k = k1*s1; // (==k2*s2) == E^(2/3)
     const Real c = c1*s1 + c2*s2;
     const Real R = contact.getEffectiveRadius();
     const Real fH = (4./3.)*k*x*std::sqrt(R*k*x); // always >= 0
     
     // Calculate the relative velocity of the two bodies at the contact point.
-    //TODO: wrong velocity
-    const Vec3 station1 = mobod1.findStationAtGroundPoint(state, contactPt);
-    const Vec3 station2 = mobod2.findStationAtGroundPoint(state, contactPt);
-    const Vec3 vel1 = mobod1.findStationVelocityInGround(state, station1);
-    const Vec3 vel2 = mobod2.findStationVelocityInGround(state, station2);
-    const Vec3 vel  = vel1-vel2;
-    const Real xdot = dot(vel, normal); // penetration rate (signed)
-    const Vec3 velNormal  = xdot*normal;
+    // We're considering S1 fixed, so we just need the velocity in S1 of
+    // the station of S2 that is coincident with the contact point.
+    const Vec3 contactPt2_S1 = contactPt_S1 - p12;  // S2 station, exp. in S1
+
+    // All vectors are in S1 after this; dropping the "_S1" notation now.
+
+    // Velocity of surf2 at contact point is opposite direction of normal
+    // when penetration is increasing.
+    const Vec3 vel = v12 + w12 % contactPt2_S1;
+    // Want xdot > 0 when x is increasing; normal points the other way
+    const Real xdot = -dot(vel, normal_S1); // penetration rate (signed)
+    const Vec3 velNormal  = -xdot*normal_S1;
     const Vec3 velTangent = vel-velNormal;
     
     // Calculate the Hunt-Crossley force, which is dissipative, and the 
@@ -624,8 +659,8 @@ void ContactForceGenerator::HertzCircular::calcContactForce
     const Real fNormal  = fH + fHC;      // < 0 means "sticking"; see below
 
     // Start filling out the contact force.
-    contactForce.m_contactId           = contact.getContactId();
-    contactForce.m_centerOfPressureInG = contactPt;
+    contactForce_S1.m_contactId = contact.getContactId();
+    contactForce_S1.m_contactPt = contactPt_S1;
 
     // Total force can be negative under unusual circumstances ("yanking");
     // that means no force is generated and no stored PE will be recovered.
@@ -633,15 +668,15 @@ void ContactForceGenerator::HertzCircular::calcContactForce
     // occasionally be real.
     if (fNormal <= 0) {
         //std::cout << "YANKING!!!\n";
-        contactForce.m_forceOnSurface2InG = SpatialVec(Vec3(0));
-        contactForce.m_potentialEnergy = 0;
-        contactForce.m_powerLoss = 0;
+        contactForce_S1.m_forceOnSurface2 = SpatialVec(Vec3(0));
+        contactForce_S1.m_potentialEnergy = 0;
+        contactForce_S1.m_powerLoss = 0;
         return; // there is contact, but no force
     }
 
-    const Vec3 forceH          = fH*normal;
+    const Vec3 forceH          = fH *normal_S1; // as applied to surf2
+    const Vec3 forceHC         = fHC*normal_S1;
     const Real potentialEnergy = (2./5.)*fH*x;
-    const Vec3 forceHC         = fHC*normal;
     const Real powerHC         = fHC*xdot; // rate of energy loss, >= 0
 
     // Calculate the friction force.
@@ -669,38 +704,422 @@ void ContactForceGenerator::HertzCircular::calcContactForce
         const Real mu=stribeck(us,ud,uv*vtrans,v);
         //const Real mu=hollars(us,ud,uv*vtrans,v);
         const Real fFriction = fNormal * mu;
-        forceFriction = (fFriction/vslip)*velTangent;
-        powerFriction = fFriction * vslip;
+        // Force direction on S2 opposes S2's velocity.
+        forceFriction = (-fFriction/vslip)*velTangent; // in S1
+        powerFriction = fFriction * vslip; // >= 0
     }
 
     const Vec3 forceLoss  = forceHC + forceFriction;
     const Vec3 forceTotal = forceH + forceLoss;
     
-    // Report the force.
-    contactForce.m_forceOnSurface2InG = SpatialVec(Vec3(0),forceTotal);
-    contactForce.m_potentialEnergy = potentialEnergy;
+    // Report the force (as applied at contactPt).
+    contactForce_S1.m_forceOnSurface2 = SpatialVec(Vec3(0),forceTotal);
+    contactForce_S1.m_potentialEnergy = potentialEnergy;
     // Don't include dot(forceH,velNormal) power due to conservative force
     // here. This way we don't double-count the energy on the way in as
-    // integrated power and potential energy. Although the books will balance
+    // integrated power and potential energy. Although the books would balance
     // again when the contact is broken, it makes continuous contact look as
     // though some energy has been lost. In the "yanking" case above, without
     // including the conservative power term we will actually lose energy
     // because the deformed material isn't allowed to push back on us so the
     // energy is lost to surface vibrations or some other unmodeled effect.
-    contactForce.m_powerLoss = powerHC + powerFriction;
+    contactForce_S1.m_powerLoss = powerHC + powerFriction;
 }
 
 void ContactForceGenerator::HertzCircular::calcContactPatch
    (const State&      state,
-    const Contact&    overlapping,
-    const SpatialVec& V_GS1,  // surface velocities
-    const SpatialVec& V_GS2,
+    const Contact&    overlap,
+    const SpatialVec& V_S1S2,
     ContactPatch&     patch) const
 {   SimTK_ASSERT_ALWAYS(!"implemented",
     "ContactForceGenerator::HertzCircular::calcContactPatch() not implemented yet."); }
 
 
 
+//==============================================================================
+//                         ELASTIC FOUNDATION GENERATOR
+//==============================================================================
+void ContactForceGenerator::ElasticFoundation::calcContactForce
+   (const State&            state,
+    const Contact&          overlap,    // contains X_S1S2
+    const SpatialVec&       V_S1S2,     // relative surface velocity
+    ContactForce&           contactForce_S1) const
+{
+    SimTK_ASSERT(TriangleMeshContact::isInstance(overlap),
+        "ContactForceGenerator::ElasticFoundation::calcContactForce(): expected"
+        " TriangleMeshContact.");
+
+    const TriangleMeshContact& contact = TriangleMeshContact::getAs(overlap);
+
+    const CompliantContactSubsystem& subsys = getCompliantContactSubsystem();
+    const ContactTrackerSubsystem&   tracker = subsys.getContactTrackerSubsystem();
+    
+    const ContactSurfaceIndex surf1x = contact.getSurface1();
+    const ContactSurfaceIndex surf2x = contact.getSurface2();
+    const Transform&          X_S1S2 = contact.getTransform();
+
+    const ContactSurface&  surf1  = tracker.getContactSurface(surf1x);
+    const ContactSurface&  surf2  = tracker.getContactSurface(surf2x);
+
+    // Compute combined material properties just once -- they are the same
+    // for all triangles.
+    const ContactMaterial& mat1   = surf1.getMaterial();
+    const ContactMaterial& mat2   = surf2.getMaterial();
+
+    // Stiffnesses combine linearly here, not as 2/3 power as for Hertz.
+    const Real k1=mat1.getStiffness(), k2=mat2.getStiffness();
+    const Real c1=mat1.getDissipation(), c2=mat2.getDissipation();
+
+    // Adjust the contact location based on the relative stiffness of the 
+    // two materials. s1 is the fraction of the "squishing" (deformation) that
+    // is done by surface1 -- if surface2 is very stiff then surface1 does most.
+    const Real s1 = k2/(k1+k2); // 0..1
+    const Real s2 = 1-s1;       // 1..0
+    
+    // k is the effective stiffness, c the effective dissipation
+    const Real k = k1*s1; // (==k2*s2) == E
+    const Real c = c1*s1 + c2*s2;
+
+    // Calculate effective coefficients of friction, being careful not
+    // to divide 0/0 if both are frictionless.
+    const Real us1=mat1.getStaticFriction(), us2=mat2.getStaticFriction();
+    const Real ud1=mat1.getDynamicFriction(), ud2=mat2.getDynamicFriction();
+    const Real uv1=mat1.getViscousFriction(), uv2=mat2.getViscousFriction();
+    Real us = 2*us1*us2; if (us!=0) us /= (us1+us2);
+    Real ud = 2*ud1*ud2; if (ud!=0) ud /= (ud1+ud2);
+    Real uv = 2*uv1*uv2; if (uv!=0) uv /= (uv1+uv2);
+
+    // Now generate forces using the meshed surfaces only (one or two).
+    const ContactGeometry& shape1 = surf1.getShape();
+    const ContactGeometry& shape2 = surf2.getShape();
+
+    // We want both patches to accumulate forces at the same point in
+    // space. For numerical reasons this should be near the center of the
+    // patch.
+    Vec3 weightedPatchCentroid1_S1(0), weightedPatchCentroid2_S1(0);
+    Real patchArea1 = 0, patchArea2 = 0;
+    if (shape1.getTypeId() == ContactGeometry::TriangleMesh::classTypeId()) {
+        const ContactGeometry::TriangleMesh mesh1 = 
+            ContactGeometry::TriangleMesh::getAs(shape1);
+
+        calcWeightedPatchCentroid(mesh1, contact.getSurface1Faces(),
+                                  weightedPatchCentroid1_S1, patchArea1);
+    }
+    if (shape2.getTypeId() == ContactGeometry::TriangleMesh::classTypeId()) {
+        const ContactGeometry::TriangleMesh mesh2 = 
+            ContactGeometry::TriangleMesh::getAs(shape2);
+        Vec3 weightedPatchCentroid2_S2;
+
+        calcWeightedPatchCentroid(mesh2, contact.getSurface2Faces(),
+                                  weightedPatchCentroid2_S2, patchArea2);
+        // Remeasure patch2's weighted centroid from surface1's frame.
+        weightedPatchCentroid2_S1 = X_S1S2*weightedPatchCentroid2_S2;
+    }
+
+    // At this point one or two patch centroids are known; if one is unused
+    // it is (0,0,0) with 0 weight. Combine them into a single composite
+    // centroid for the patch.
+    const Real patchArea = patchArea1+patchArea2;
+    const Vec3 patchCentroid_S1 = 
+        patchArea > 0 ? (  weightedPatchCentroid1_S1
+                         + weightedPatchCentroid2_S1) / patchArea
+                      : Vec3(0);
+
+    // The patch centroid as calculated from one or two meshes is now
+    // in patchCentroid_S1, measured from and expressed in S1. Now we'll
+    // calculate all the patch forces and accumulate them at the patch
+    // centroid.
+
+
+    // Forces must be as applied to surface 2 at the patch centroid, but
+    // expressed in surface 1's frame.
+    SpatialVec force1_S1(Vec3(0)), force2_S1(Vec3(0));
+    Real potEnergy1=0, potEnergy2=0;
+    Real powerLoss1=0, powerLoss2=0;
+
+    // Center of pressure r_c is calculated like this:
+    //           sum_i (r_i * |r_i X Fn_i|) 
+    //     r_c = --------------------------
+    //              sum_i |r_i X Fn_i|
+    // where Fn is the normal force applied by element i at location r_i.
+    //
+    // We're going to calculate the weighted-points numerator for each
+    // mesh separately in weightedCOP1 and weightedCOP2, and the corresponding
+    // denominators (sum of all pressure-moment magnitudes) in weightCOP1 and
+    // weightCOP2. At the end we'll combine and divide to calculate the actual 
+    // center of pressure where we'll ultimately apply the contact force.
+    Vec3 weightedCOP1_S1(0), weightedCOP2_S1(0);
+    Real weightCOP1=0, weightCOP2=0;
+
+    if (shape1.getTypeId() == ContactGeometry::TriangleMesh::classTypeId()) {
+        const ContactGeometry::TriangleMesh mesh = 
+            ContactGeometry::TriangleMesh::getAs(shape1);
+
+        processOneMesh(state, 
+            mesh, contact.getSurface1Faces(),
+            X_S1S2, V_S1S2, shape2,
+            s1, k, c, us, ud, uv,
+            patchCentroid_S1,
+            force1_S1, potEnergy1, powerLoss1,
+            weightedCOP1_S1, weightCOP1, 0); // no details wanted
+    }
+
+    if (shape2.getTypeId() == ContactGeometry::TriangleMesh::classTypeId()) {
+        const ContactGeometry::TriangleMesh mesh = 
+            ContactGeometry::TriangleMesh::getAs(shape2);
+        const Transform  X_S2S1 = ~X_S1S2;              // 3 flops
+        const SpatialVec V_S2S1 = -(X_S2S1.R()*V_S1S2); // 36 flops
+        const Vec3       patchCentroid_S2 = X_S2S1*patchCentroid_S1;
+        SpatialVec       force2_S2; 
+        Vec3             weightedCOP2_S2;
+
+        processOneMesh(state, 
+            mesh, contact.getSurface2Faces(),
+            X_S2S1, V_S2S1, shape1,
+            s2, k, c, us, ud, uv,
+            patchCentroid_S2,
+            force2_S2, potEnergy2, powerLoss2,
+            weightedCOP2_S2, weightCOP2, 0); // no details wanted
+
+        // Returned force is as applied to surface 1; negate to make it
+        // the force applied to surface 2. Also re-express the moment and
+        // force vectors in S1.
+        force2_S1 = -(X_S1S2.R()*force2_S2);
+        // Returned weighted COP is measured & expressed in S2; fix.
+        weightedCOP2_S1 = X_S1S2*weightedCOP2_S2;
+    }
+
+    const Real weightCOP = weightCOP1+weightCOP2;
+    const Vec3 centerOfPressure_S1 =
+        weightCOP > 0 ? (weightedCOP1_S1+weightedCOP2_S1) / weightCOP
+                      : Vec3(0);
+
+    // Calculate total force applied to surface 2 at the patch centroid,
+    // expressed in S1.
+    const SpatialVec force_S1 = force1_S1 + force2_S1;
+    // Shift to center of pressure.
+    const Vec3 r = patchCentroid_S1 - centerOfPressure_S1;
+    const SpatialVec forceCOP_S1 = SpatialVec(r % force_S1[1], force_S1[1]);
+
+    // Fill in contact force object.
+    contactForce_S1.setTo(contact.getContactId(),
+        centerOfPressure_S1,  // contact point in S1
+        forceCOP_S1,          // force on surf2 at contact pt exp. in S1
+        potEnergy1 + potEnergy2,
+        powerLoss1 + powerLoss2);
+}
+
+
+void ContactForceGenerator::ElasticFoundation::calcContactPatch
+   (const State&      state,
+    const Contact&    overlap,
+    const SpatialVec& V_S1S2,
+    ContactPatch&     patch) const
+{   SimTK_ASSERT_ALWAYS(!"implemented",
+    "ContactForceGenerator::ElasticFoundation::calcContactPatch() not implemented yet."); }
+
+
+// Compute the approximate geometric center of the patch represented by the 
+// set of "inside faces" of this mesh, weighted by the total patch area. 
+// We'll use the inside faces' centroids, weighted by face area, to calculate 
+// a point that will be somewhere near the center of the patch, times the total
+// area. Dividing by the area yields the actual patch centroid point which can 
+// be used as a numerically good nearby point for accumulating all the forces, 
+// since the moments will all be small  and thus
+// not suffer huge roundoff errors when combined. Afterwards, the numerically
+// good resultant can be shifted to whatever point is convenient, such as the
+// body frame. We return the total area represented by this patch so that
+// it can be combined with another mesh's patch if needed.
+// The weighted centroid is returned in the mesh surface's own frame.
+void ContactForceGenerator::ElasticFoundation::
+calcWeightedPatchCentroid
+   (const ContactGeometry::TriangleMesh&    mesh,
+    const std::set<int>&                    insideFaces,
+    Vec3&                                   weightedPatchCentroid,
+    Real&                                   patchArea) const
+{
+    weightedPatchCentroid = Vec3(0); patchArea = 0;
+    for (std::set<int>::const_iterator iter = insideFaces.begin(); 
+                                       iter != insideFaces.end(); ++iter)
+    {   const int  face = *iter;
+        const Real area = mesh.getFaceArea(face);
+        weightedPatchCentroid   += area*mesh.findCentroid(face); 
+        patchArea               += area; 
+    }
+}
+
+
+
+// Private method that adds in contact forces produced by a single triangle
+// mesh in contact with some other object (which might be another
+// mesh; we don't care). We are given the relative spatial pose and velocity of
+// the two surface frames, and for the mesh we are given a specific list of
+// the faces that are suspected of being at least partially inside the 
+// other surface (in the undeformed geometry overlap).
+// Normally this adds in the resultant force but it can optionally return
+// contact patch details as well.
+void ContactForceGenerator::ElasticFoundation::
+processOneMesh
+   (const State&                            state,
+    const ContactGeometry::TriangleMesh&    mesh,
+    const std::set<int>&                    insideFaces,
+    const Transform&                        X_MO, 
+    const SpatialVec&                       V_MO,
+    const ContactGeometry&                  other,
+    Real                                    meshDeformationFraction, // 0..1
+    Real k, Real c, Real us, Real ud, Real uv,
+    const Vec3&                 resultantPt_M, // where to apply forces
+    SpatialVec&                 resultantForceOnOther_M, // at resultant pt
+    Real&                       potentialEnergy,
+    Real&                       powerLoss,
+    Vec3&                       weightedCenterOfPressure_M,
+    Real&                       sumOfAllPressureMoments, // COP weight
+    Array_<ContactDetail>*      contactDetails) const    // in/out if present 
+{
+    assert(!insideFaces.empty());
+    const bool wantDetails = (contactDetails != 0);
+
+    // Initialize all results to zero.
+    resultantForceOnOther_M = SpatialVec(Vec3(0),Vec3(0));
+    potentialEnergy = powerLoss = 0;
+    weightedCenterOfPressure_M = Vec3(0);
+    sumOfAllPressureMoments = 0;
+    if (wantDetails) contactDetails->clear();
+
+    // Abbreviations.
+    const Rotation& RMO = X_MO.R(); // orientation of O in M
+    const Vec3&     pMO = X_MO.p(); // position of OO (origin of O) in M
+    const Vec3&     wMO = V_MO[0];  // ang. vel. of O in M
+    const Vec3&     vMO = V_MO[1];  // vel. of OO in M
+
+    // Get friction model transition velocity vt and 1/vt.
+    const CompliantContactSubsystem& subsys = getCompliantContactSubsystem();
+    const Real vtrans   = subsys.getTransitionVelocity();
+    const Real ooVtrans = subsys.getOOTransitionVelocity(); // 1/vtrans
+
+    // Now loop over all the faces again, evaluate the force from each 
+    // spring, and apply it at the patch centroid.
+    for (std::set<int>::const_iterator iter = insideFaces.begin(); 
+                                       iter != insideFaces.end(); ++iter) 
+    {   const int   face        = *iter;
+        const Vec3  springPos_M = mesh.findCentroid(face);
+        const Real  faceArea    = mesh.getFaceArea(face);
+
+        bool        inside;
+        UnitVec3    normal_O; // not used
+        const Vec3  nearestPoint_O = 
+            other.findNearestPoint(~X_MO*springPos_M, inside, normal_O);
+        if (!inside)
+            continue;
+        
+        // Find how much the spring is displaced. The displacement vector
+        // points from the nearest point on the undeformed other 
+        // surface to the undeformed spring position (face centroid) on the 
+        // mesh. Since these overlap (we checked above) the nearest point is 
+        // *inside* the mesh thus the vector points towards the mesh exterior; 
+        // i.e., in the  direction that the force will be applied on the 
+        // other body. This is the same convention we use for the patch 
+        // normal for Hertz contact.
+        const Vec3 nearestPoint_M = X_MO*nearestPoint_O;
+        const Vec3 displacement_M = springPos_M - nearestPoint_M;
+        const Real x              = displacement_M.norm();
+        if (x == 0)
+            continue;
+        const UnitVec3 normal_M(displacement_M/x, true);
+
+        // Calculate the contact point location based on the relative 
+        // squishiness of the two surfaces. The mesh deformation fraction (0-1)
+        // gives the fraction of the material squishing that is done by the
+        // mesh; the rest is done by the other surface. At 0 (rigid mesh) the 
+        // contact point will be at the undeformed mesh face centroid; at 1 
+        // (other body rigid) it will be at the (undeformed) nearest point on 
+        // the other body.
+        const Vec3 contactPt_M = springPos_M 
+                                 - meshDeformationFraction*displacement_M;
+        
+        // Calculate the relative velocity of the two bodies at the contact 
+        // point. We're considering the mesh M fixed, so we just need the 
+        // velocity in M of the station of O that is coincident with the 
+        // contact point.
+        const Vec3 contactPtO_M = contactPt_M - pMO;  // O station, exp. in M
+
+        // All vectors are in M; dropping the "_M" notation now.
+
+        // Velocity of other at contact point is opposite direction of normal
+        // when penetration is increasing.
+        const Vec3 vel = vMO + wMO % contactPtO_M;
+        // Want xdot > 0 when x is increasing; normal points the other way
+        const Real xdot = -dot(vel, normal_M); // penetration rate (signed)
+        const Vec3 velNormal  = -xdot*normal_M;
+        const Vec3 velTangent = vel-velNormal;
+        
+        const Real fK = k*faceArea*x;   // normal elastic force (conservative)
+        const Real fC = fK*c*xdot;      // normal dissipation force (loss)
+        const Real fNormal = fK + fC;   // normal force
+
+        // Total force can be negative under unusual circumstances ("yanking");
+        // that means no force is generated and no stored PE will be recovered.
+        // This will most often occur in to-be-rejected trial steps but can
+        // occasionally be real.
+        if (fNormal <= 0) {
+            SimTK_DEBUG1("YANKING!!! (face %d)\n", face);
+            continue;
+        }
+
+        const Vec3 forceK          = fK*normal_M; // as applied to other surf
+        const Vec3 forceC          = fC*normal_M;
+        const Real PE              = fK*x/2;    // 1/2 kAx^2
+        const Real powerC          = fC*xdot;   // rate of energy loss, >= 0
+
+        const Vec3 forceNormal = forceK + forceC;
+
+        // This is the moment r X f about the resultant point produced by 
+        // applying this pure force at the contact point. Cost ~45 flops.
+        const Vec3 r = contactPt_M - resultantPt_M;
+        const Real pressureMoment = (r % forceNormal).norm();
+        weightedCenterOfPressure_M += pressureMoment*r;
+        sumOfAllPressureMoments    += pressureMoment;
+        
+        // Calculate the friction force.
+        Vec3 forceFriction(0);
+        Real powerFriction = 0;
+        const Real vslipSq = velTangent.normSqr();
+        if (vslipSq > square(SignificantReal)) {
+            const Real vslip = std::sqrt(vslipSq); // expensive: ~20 flops
+            // Express slip velocity as unitless multiple of transition velocity.
+            const Real v = vslip * ooVtrans;
+            // Must scale viscous coefficient to match unitless velocity.
+            const Real mu=stribeck(us,ud,uv*vtrans,v);
+            //const Real mu=hollars(us,ud,uv*vtrans,v);
+            const Real fFriction = fNormal * mu;
+            // Force direction on O opposes O's velocity.
+            forceFriction = (-fFriction/vslip)*velTangent;
+            powerFriction = fFriction * vslip; // always >= 0
+        }
+
+        const Vec3 forceLoss  = forceC + forceFriction;
+        const Vec3 forceTotal = forceK + forceLoss;
+
+        // Accumulate the moment and force on the *other* surface as though 
+        // applied at the point of O that is coincident with the resultant
+        // point; we'll move it later.
+        resultantForceOnOther_M += SpatialVec(r % forceTotal, forceTotal);
+
+        // Accumulate potential energy stored in elastic displacement.
+        potentialEnergy += PE;
+
+        // Don't include dot(forceK,velNormal) power due to conservative force
+        // here. This way we don't double-count the energy on the way in as
+        // integrated power and potential energy. Although the books would 
+        // balance again when the contact is broken, it makes continuous 
+        // contact look as though some energy has been lost. In the "yanking" 
+        // case above, without including the conservative power term we will 
+        // actually lose energy because the deformed material isn't allowed to 
+        // push back on us so the energy is lost to surface vibrations or some
+        // other unmodeled effect.
+        powerLoss += (powerC + powerFriction);
+    }
+}
 
 } // namespace SimTK
 

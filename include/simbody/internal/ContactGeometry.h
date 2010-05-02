@@ -38,6 +38,8 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/OrientedBoundingBox.h"
 
+#include <cassert>
+
 namespace SimTK {
 
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ContactGeometryTypeId);
@@ -135,6 +137,16 @@ class SimTK_SIMBODY_EXPORT ContactGeometry::HalfSpace : public ContactGeometry {
 public:
     HalfSpace();
 
+    /** Return true if the supplied ContactGeometry object is a halfspace. **/
+    static bool isInstance(const ContactGeometry& geo)
+    {   return geo.getTypeId()==classTypeId(); }
+    /** Cast the supplied ContactGeometry object to a const halfspace. **/
+    static const HalfSpace& getAs(const ContactGeometry& geo)
+    {   assert(isInstance(geo)); return static_cast<const HalfSpace&>(geo); }
+    /** Cast the supplied ContactGeometry object to a writable halfspace. **/
+    static HalfSpace& updAs(ContactGeometry& geo)
+    {   assert(isInstance(geo)); return static_cast<HalfSpace&>(geo); }
+
     /** Obtain the unique id for HalfSpace contact geometry. **/
     static ContactGeometryTypeId classTypeId();
 };
@@ -147,6 +159,16 @@ public:
     explicit Sphere(Real radius);
     Real getRadius() const;
     void setRadius(Real radius);
+
+    /** Return true if the supplied ContactGeometry object is a sphere. **/
+    static bool isInstance(const ContactGeometry& geo)
+    {   return geo.getTypeId()==classTypeId(); }
+    /** Cast the supplied ContactGeometry object to a const sphere. **/
+    static const Sphere& getAs(const ContactGeometry& geo)
+    {   assert(isInstance(geo)); return static_cast<const Sphere&>(geo); }
+    /** Cast the supplied ContactGeometry object to a writable sphere. **/
+    static Sphere& updAs(ContactGeometry& geo)
+    {   assert(isInstance(geo)); return static_cast<Sphere&>(geo); }
 
     /** Obtain the unique id for Sphere contact geometry. **/
     static ContactGeometryTypeId classTypeId();
@@ -272,6 +294,23 @@ public:
      */
     Real getFaceArea(int face) const;
     /**
+     * Calculate the location of a point on the surface, in the local frame of
+     * the TriangleMesh. Cost is 11 flops.
+     *
+     * @param face    the index of the face containing the point
+     * @param uv      the point within the face, specified by its barycentric uv coordinates
+     */
+    Vec3 findPoint(int face, const Vec2& uv) const;
+    /**
+     * Calculate the location of a face's centroid, that is, the point
+     * uv=(1/3,1/3) which is the average of the three vertex locations. This is 
+     * a common special case of findPoint() that can be calculated more quickly 
+     * (7 flops).
+     *
+     * @param face    the index of the face whose centroid is of interest
+     */
+    Vec3 findCentroid(int face) const;
+    /**
      * Calculate the normal vector at a point on the surface.
      *
      * @param face    the index of the face containing the point
@@ -330,6 +369,16 @@ public:
      * Get the OBBTreeNode which forms the root of this mesh's Oriented Bounding Box Tree.
      */
     OBBTreeNode getOBBTreeNode() const;
+
+    /** Return true if the supplied ContactGeometry object is a triangle mesh. **/
+    static bool isInstance(const ContactGeometry& geo)
+    {   return geo.getTypeId()==classTypeId(); }
+    /** Cast the supplied ContactGeometry object to a const triangle mesh. **/
+    static const TriangleMesh& getAs(const ContactGeometry& geo)
+    {   assert(isInstance(geo)); return static_cast<const TriangleMesh&>(geo); }
+    /** Cast the supplied ContactGeometry object to a writable triangle mesh. **/
+    static TriangleMesh& updAs(ContactGeometry& geo)
+    {   assert(isInstance(geo)); return static_cast<TriangleMesh&>(geo); }
 
     /** Obtain the unique id for TriangleMesh contact geometry. **/
     static ContactGeometryTypeId classTypeId();

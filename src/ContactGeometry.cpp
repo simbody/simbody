@@ -332,6 +332,14 @@ void ContactGeometry::TriangleMesh::findVertexEdges(int vertex, Array_<int>& edg
     } while (previousEdge != firstEdge);
 }
 
+Vec3 ContactGeometry::TriangleMesh::findPoint(int face, const Vec2& uv) const {
+    return getImpl().findPoint(face, uv);
+}
+
+Vec3 ContactGeometry::TriangleMesh::findCentroid(int face) const {
+    return getImpl().findCentroid(face);
+}
+
 UnitVec3 ContactGeometry::TriangleMesh::findNormalAtPoint(int face, const Vec2& uv) const {
     return getImpl().findNormalAtPoint(face, uv);
 }
@@ -372,10 +380,29 @@ ContactGeometry::TriangleMeshImpl& ContactGeometry::TriangleMesh::updImpl() {
 //                            TRIANGLE MESH IMPL
 //==============================================================================
 
-UnitVec3 ContactGeometry::TriangleMeshImpl::findNormalAtPoint(int face, const Vec2& uv) const {
+Vec3 ContactGeometry::TriangleMeshImpl::findPoint
+   (int face, const Vec2& uv) const {
+    const Face& f = faces[face];
+    return             uv[0] * vertices[f.vertices[0]].pos
+           +           uv[1] * vertices[f.vertices[1]].pos
+           +  (1-uv[0]-uv[1])* vertices[f.vertices[2]].pos;
+}
+
+// same as findPoint(face, (1/3,1/3)) but faster
+Vec3 ContactGeometry::TriangleMeshImpl::findCentroid(int face) const {
+    const Face& f = faces[face];
+    return (  vertices[f.vertices[0]].pos
+            + vertices[f.vertices[1]].pos
+            + vertices[f.vertices[2]].pos)/3;
+}
+
+UnitVec3 ContactGeometry::TriangleMeshImpl::findNormalAtPoint
+   (int face, const Vec2& uv) const {
     const Face& f = faces[face];
     if (smooth)
-        return UnitVec3(uv[0]*vertices[f.vertices[0]].normal+uv[1]*vertices[f.vertices[1]].normal+(1.0-uv[0]-uv[1])*vertices[f.vertices[2]].normal);
+        return UnitVec3(            uv[0] * vertices[f.vertices[0]].normal
+                        +           uv[1] * vertices[f.vertices[1]].normal
+                        +  (1-uv[0]-uv[1])* vertices[f.vertices[2]].normal);
     return f.normal;
 }
 
@@ -423,11 +450,12 @@ ContactGeometry::TriangleMeshImpl::TriangleMeshImpl
     init(vertexPositions, faceIndices);
 }
 
-ContactGeometry::TriangleMeshImpl::TriangleMeshImpl(const PolygonalMesh& mesh, bool smooth) : ContactGeometryImpl(Type()), smooth(smooth) {
-    // Create the mesh, triangulating faces as necessary.
-    
-    Array_<Vec3> vertexPositions;
-    Array_<int> faceIndices;
+ContactGeometry::TriangleMeshImpl::TriangleMeshImpl
+   (const PolygonalMesh& mesh, bool smooth) 
+:   ContactGeometryImpl(Type()), smooth(smooth) 
+{   // Create the mesh, triangulating faces as necessary.
+    Array_<Vec3>    vertexPositions;
+    Array_<int>     faceIndices;
     for (int i = 0; i < mesh.getNumVertices(); i++)
         vertexPositions.push_back(mesh.getVertexPosition(i));
     for (int i = 0; i < mesh.getNumFaces(); i++) {
@@ -498,8 +526,11 @@ ContactGeometry::TriangleMeshImpl::TriangleMeshImpl(const PolygonalMesh& mesh, b
     }
 }
 
-void ContactGeometry::TriangleMeshImpl::init(const Array_<Vec3>& vertexPositions, const Array_<int>& faceIndices) {
-    SimTK_APIARGCHECK_ALWAYS(faceIndices.size()%3 == 0, "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl", "The number of indices must be a multiple of 3.");
+void ContactGeometry::TriangleMeshImpl::init
+   (const Array_<Vec3>& vertexPositions, const Array_<int>& faceIndices) 
+{   SimTK_APIARGCHECK_ALWAYS(faceIndices.size()%3 == 0, 
+        "ContactGeometry::TriangleMeshImpl", "TriangleMeshImpl", 
+        "The number of indices must be a multiple of 3.");
     int numFaces = faceIndices.size()/3;
     
     // Create the vertices.
@@ -623,9 +654,9 @@ void ContactGeometry::TriangleMeshImpl::init(const Array_<Vec3>& vertexPositions
     boundingSphereRadius += tol;
 }
 
-void ContactGeometry::TriangleMeshImpl::createObbTree(OBBTreeNodeImpl& node, const Array_<int>& faceIndices) {
-    // Find all vertices in the node and build the OrientedBoundingBox.
-
+void ContactGeometry::TriangleMeshImpl::createObbTree
+   (OBBTreeNodeImpl& node, const Array_<int>& faceIndices) 
+{   // Find all vertices in the node and build the OrientedBoundingBox.
     node.numTriangles = faceIndices.size();
     set<int> vertexIndices;
     for (int i = 0; i < (int) faceIndices.size(); i++) 
@@ -633,7 +664,8 @@ void ContactGeometry::TriangleMeshImpl::createObbTree(OBBTreeNodeImpl& node, con
             vertexIndices.insert(faces[faceIndices[i]].vertices[j]);
     Vector_<Vec3> points(vertexIndices.size());
     int index = 0;
-    for (set<int>::iterator iter = vertexIndices.begin(); iter != vertexIndices.end(); ++iter)
+    for (set<int>::iterator iter = vertexIndices.begin(); 
+                            iter != vertexIndices.end(); ++iter)
         points[index++] = vertices[*iter].pos;
     node.bounds = OrientedBoundingBox(points);
     if (faceIndices.size() > 3) {
@@ -700,9 +732,10 @@ void ContactGeometry::TriangleMeshImpl::createObbTree(OBBTreeNodeImpl& node, con
     node.triangles.insert(node.triangles.begin(), faceIndices.begin(), faceIndices.end());
 }
 
-void ContactGeometry::TriangleMeshImpl::splitObbAxis(const Array_<int>& parentIndices, Array_<int>& child1Indices, Array_<int>& child2Indices, int axis) {
-    // For each face, find its minimum and maximum extent along the axis.
-    
+void ContactGeometry::TriangleMeshImpl::splitObbAxis
+   (const Array_<int>& parentIndices, Array_<int>& child1Indices, 
+    Array_<int>& child2Indices, int axis) 
+{   // For each face, find its minimum and maximum extent along the axis.
     Vector minExtent(parentIndices.size());
     Vector maxExtent(parentIndices.size());
     for (int i = 0; i < (int) parentIndices.size(); i++) {
@@ -733,9 +766,11 @@ void ContactGeometry::TriangleMeshImpl::splitObbAxis(const Array_<int>& parentIn
     }
 }
 
-Vec3 ContactGeometry::TriangleMeshImpl::findNearestPointToFace(const Vec3& position, int face, Vec2& uv) const {
-    // Calculate the distance between a point in space and a face of the mesh.  This algorithm is based on a
-    // description by David Eberly found at http://www.geometrictools.com/Documentation/DistancePoint3Triangle3.pdf.
+Vec3 ContactGeometry::TriangleMeshImpl::findNearestPointToFace
+   (const Vec3& position, int face, Vec2& uv) const {
+    // Calculate the distance between a point in space and a face of the mesh.
+    // This algorithm is based on a description by David Eberly found at 
+    // http://www.geometrictools.com/Documentation/DistancePoint3Triangle3.pdf.
     
     const ContactGeometry::TriangleMeshImpl::Face& fc = faces[face];
     const Vec3& vert1 = vertices[fc.vertices[0]].pos;
@@ -838,15 +873,21 @@ Vec3 ContactGeometry::TriangleMeshImpl::findNearestPointToFace(const Vec3& posit
     return vert1 + s*e0 + t*e1;
 }
 
-void  ContactGeometry::TriangleMeshImpl::findBoundingSphere(Vec3* point[], int p, int b, Vec3& center, Real& radius) {
-    // This is called recursively to calculate the bounding sphere for the mesh.  It uses an algorithm developed by
-    // Emo Welzl, and is based on a description by Nicolas Capens at http://www.flipcode.com/archives/Smallest_Enclosing_Spheres.shtml.
-    // As described there, the algorithm is highly susceptible to numerical instabilities.  Bernd Gartner describes
-    // an improved version in "Fast and robust smallest enclosing balls", Proc. 7th Annual European Symposium on Algorithms.
-    // Unfortunately, his method of dealing with the instabilities has the effect of sometimes allowing points to lie
-    // slightly outside the bounding sphere, which is not acceptable for our purposes.  Instead, we fall back to an
-    // approximate method when instability is detected.  This no longer guarantees the smallest possible bounding sphere,
-    // but does guarantee that all points will be inside it.
+// This is called recursively to calculate the bounding sphere for the mesh.  
+// It uses an algorithm developed by Emo Welzl, and is based on a description 
+// by Nicolas Capens at 
+// http://www.flipcode.com/archives/Smallest_Enclosing_Spheres.shtml.
+// As described there, the algorithm is highly susceptible to numerical 
+// instabilities. Bernd Gartner describes an improved version in "Fast and 
+// robust smallest enclosing balls", Proc. 7th Annual European Symposium on 
+// Algorithms. Unfortunately, his method of dealing with the instabilities has 
+// the effect of sometimes allowing points to lie slightly outside the bounding
+// sphere, which is not acceptable for our purposes. Instead, we fall back to 
+// an approximate method when instability is detected. This no longer 
+// guarantees the smallest possible bounding sphere, but does guarantee that 
+// all points will be inside it.
+void ContactGeometry::TriangleMeshImpl::findBoundingSphere
+   (Vec3* point[], int p, int b, Vec3& center, Real& radius) {
     
     switch (b) {
         // Create a bounding sphere for 0, 1, 2, 3, or 4 points.
@@ -867,12 +908,13 @@ void  ContactGeometry::TriangleMeshImpl::findBoundingSphere(Vec3* point[], int p
             Vec3 a = *point[-2]-*point[-1];
             Vec3 b = *point[-3]-*point[-1];
             Vec3 cross = a%b;
-            Real denom = 2.0*(~cross*cross);
+            Real denom = 2*(~cross*cross);
             if (std::abs(denom) < 1e-10) {
-                // Use an approximate method.
-                
-                center = (*point[-1]+*point[-2]+*point[-3])/3.0;
-                radius = std::sqrt(std::max((*point[-1]-center).normSqr(), std::max((*point[-2]-center).normSqr(), (*point[-3]-center).normSqr())));
+                // Use an approximate method.             
+                center = (*point[-1]+*point[-2]+*point[-3])/3;
+                radius = std::sqrt(std::max((*point[-1]-center).normSqr(), 
+                                   std::max((*point[-2]-center).normSqr(), 
+                                            (*point[-3]-center).normSqr())));
                 break;
             }
             Vec3 o = (b.normSqr()*(cross%a) +
@@ -885,12 +927,15 @@ void  ContactGeometry::TriangleMeshImpl::findBoundingSphere(Vec3* point[], int p
             Vec3 a = *point[-2]-*point[-1];
             Vec3 b = *point[-3]-*point[-1];
             Vec3 c = *point[-4]-*point[-1];
-            Real denom = 2.0*(a[0]*b[1]*c[2] + a[1]*b[2]*c[0] + a[2]*b[0]*c[1] - a[2]*b[1]*c[0] - a[0]*b[2]*c[1] - a[1]*b[0]*c[2]);
+            Real denom = 2*(a[0]*b[1]*c[2] + a[1]*b[2]*c[0] + a[2]*b[0]*c[1] 
+                          - a[2]*b[1]*c[0] - a[0]*b[2]*c[1] - a[1]*b[0]*c[2]);
             if (std::abs(denom) < 1e-10) {
                 // Use an approximate method.
-                
-                center = (*point[-1]+*point[-2]+*point[-3]+*point[-4])/4.0;
-                radius = std::sqrt(std::max((*point[-1]-center).normSqr(), std::max((*point[-2]-center).normSqr(), std::max((*point[-3]-center).normSqr(), (*point[-4]-center).normSqr()))));
+                center = (*point[-1]+*point[-2]+*point[-3]+*point[-4])/4;
+                radius = std::sqrt(std::max((*point[-1]-center).normSqr(), 
+                                   std::max((*point[-2]-center).normSqr(), 
+                                   std::max((*point[-3]-center).normSqr(), 
+                                            (*point[-4]-center).normSqr()))));
                 return;
             }
             Vec3 o = (c.normSqr()*(a%b) +
@@ -906,16 +951,15 @@ void  ContactGeometry::TriangleMeshImpl::findBoundingSphere(Vec3* point[], int p
     
     for (int i = 0; i < p; ++i) {
         if ((center-*point[i]).normSqr() > radius*radius) {
-            // This point is outside the current bounding sphere.  Move it to the start of the list.
-            
+            // This point is outside the current bounding sphere.  
+            // Move it to the start of the list.
             for (int j = i; j > 0; --j) {
                 Vec3* temp = point[j];
                 point[j] = point[j-1];
                 point[j-1] = temp;
             }
             
-            // Update the bounding sphere, taking the new point into account.
-            
+            // Update the bounding sphere, taking the new point into account. 
             findBoundingSphere(point+1, i, b+1, center, radius);
         }
     }
@@ -945,7 +989,11 @@ OBBTreeNodeImpl::~OBBTreeNodeImpl() {
         delete child2;
 }
 
-Vec3 OBBTreeNodeImpl::findNearestPoint(const ContactGeometry::TriangleMeshImpl& mesh, const Vec3& position, Real cutoff2, Real& distance2, int& face, Vec2& uv) const {
+Vec3 OBBTreeNodeImpl::findNearestPoint
+   (const ContactGeometry::TriangleMeshImpl& mesh, 
+    const Vec3& position, Real cutoff2, 
+    Real& distance2, int& face, Vec2& uv) const 
+{
     Real tol = 100*Eps;
     if (child1 != NULL) {
         // Recursively check the child nodes.

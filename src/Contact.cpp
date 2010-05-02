@@ -84,19 +84,22 @@ Contact& Contact::operator=(const Contact& src) {
     return *this;
 }
 
-Contact::Condition  Contact::getCondition() const {return getImpl().m_condition;}
 ContactId           Contact::getContactId() const {return getImpl().m_id;}
+Contact::Condition  Contact::getCondition() const {return getImpl().m_condition;}
 ContactSurfaceIndex Contact::getSurface1()  const {return getImpl().m_surf1;}
 ContactSurfaceIndex Contact::getSurface2()  const {return getImpl().m_surf2;}
+const Transform&    Contact::getTransform() const {return getImpl().m_X_S1S2;}
 ContactTypeId       Contact::getTypeId()    const {return getImpl().getTypeId();}
 
+Contact& Contact::setContactId(ContactId id)
+{   updImpl().m_id = id; return *this; }
 Contact& Contact::setCondition(Condition condition)
 {   updImpl().m_condition = condition; return *this; }
 Contact& Contact::setSurfaces
    (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2)
 {   updImpl().m_surf1 = surf1; updImpl().m_surf2 = surf2; return *this; }
-Contact& Contact::setContactId(ContactId id)
-{   updImpl().m_id = id; return *this; }
+Contact& Contact::setTransform(const Transform& X_S1S2)
+{   updImpl().m_X_S1S2 = X_S1S2; return *this; }
 
 /*static*/ ContactId Contact::createNewContactId()
 {   return ContactImpl::createNewContactId(); }
@@ -110,7 +113,7 @@ UntrackedContact::UntrackedContact
    (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2) 
 :   Contact(new UntrackedContactImpl(surf1, surf2)) {}
 
-bool UntrackedContact::isInstance(const Contact& contact) {
+/*static*/ bool UntrackedContact::isInstance(const Contact& contact) {
     return (dynamic_cast<const UntrackedContactImpl*>(&contact.getImpl()) != 0);
 }
 
@@ -123,10 +126,11 @@ bool UntrackedContact::isInstance(const Contact& contact) {
 //                             BROKEN CONTACT
 //==============================================================================
 BrokenContact::BrokenContact
-   (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2, Real separation) 
-:   Contact(new BrokenContactImpl(surf1, surf2, separation)) {}
+   (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2, 
+    const Transform& X_S1S2, Real separation) 
+:   Contact(new BrokenContactImpl(surf1, surf2, X_S1S2, separation)) {}
 
-bool BrokenContact::isInstance(const Contact& contact) {
+/*static*/ bool BrokenContact::isInstance(const Contact& contact) {
     return (dynamic_cast<const BrokenContactImpl*>(&contact.getImpl()) != 0);
 }
 
@@ -143,10 +147,11 @@ Real BrokenContact::getSeparation() const
 //==============================================================================
 CircularPointContact::CircularPointContact
    (ContactSurfaceIndex surf1, Real radius1, 
-    ContactSurfaceIndex surf2, Real radius2,
-    Real radius, Real depth, const Vec3& origin, const UnitVec3& normal)
-:   Contact(new CircularPointContactImpl(surf1,radius1,surf2,radius2,
-                                         radius,depth,origin,normal)) {}
+    ContactSurfaceIndex surf2, Real radius2, 
+    const Transform& X_S1S2, Real radius, Real depth, 
+    const Vec3& origin_S1, const UnitVec3& normal_S1)
+:   Contact(new CircularPointContactImpl(surf1,radius1,surf2,radius2,X_S1S2,
+                                         radius,depth,origin_S1,normal_S1)) {}
 
 Real CircularPointContact::getRadius1() const
 {   return getImpl().radius1; }
@@ -157,9 +162,9 @@ Real CircularPointContact::getEffectiveRadius() const
 Real CircularPointContact::getDepth() const
 {   return getImpl().depth; }
 const Vec3& CircularPointContact::getOrigin() const
-{   return getImpl().origin_G; }
+{   return getImpl().origin_S1; }
 const UnitVec3& CircularPointContact::getNormal() const
-{   return getImpl().normal_G; }
+{   return getImpl().normal_S1; }
 
 bool CircularPointContact::isInstance(const Contact& contact) {
     return (dynamic_cast<const CircularPointContactImpl*>(&contact.getImpl()) != 0);
@@ -175,26 +180,29 @@ bool CircularPointContact::isInstance(const Contact& contact) {
 //                      TRIANGLE MESH CONTACT & IMPL
 //==============================================================================
 TriangleMeshContact::TriangleMeshContact
-   (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2, 
+   (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2,
+    const Transform& X_S1S2,
     const std::set<int>& faces1, const std::set<int>& faces2) 
-:   Contact(new TriangleMeshContactImpl(surf1, surf2, faces1, faces2)) {}
+:   Contact(new TriangleMeshContactImpl(surf1, surf2, X_S1S2, 
+                                        faces1, faces2)) {}
 
 const set<int>& TriangleMeshContact::getSurface1Faces() const 
 {   return getImpl().faces1; }
 const set<int>& TriangleMeshContact::getSurface2Faces() const 
 {   return getImpl().faces2; }
 
-bool TriangleMeshContact::isInstance(const Contact& contact) {
-    return (dynamic_cast<const TriangleMeshContactImpl*>(&contact.getImpl()) != 0);
-}
+/*static*/ bool TriangleMeshContact::isInstance(const Contact& contact) 
+{   return (dynamic_cast<const TriangleMeshContactImpl*>(&contact.getImpl())
+            != 0); }
 
 /*static*/ ContactTypeId TriangleMeshContact::classTypeId() 
 {   return TriangleMeshContactImpl::classTypeId(); }
 
 TriangleMeshContactImpl::TriangleMeshContactImpl
-   (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2, 
+   (ContactSurfaceIndex surf1, ContactSurfaceIndex surf2,
+    const Transform& X_S1S2,
     const set<int>& faces1, const set<int>& faces2) 
-:   ContactImpl(surf1, surf2), faces1(faces1), faces2(faces2) {}
+:   ContactImpl(surf1, surf2, X_S1S2), faces1(faces1), faces2(faces2) {}
 
 
 
@@ -217,7 +225,7 @@ Real PointContact::getRadius() const
 Real PointContact::getDepth() const 
 {   return getImpl().depth; }
 
-bool PointContact::isInstance(const Contact& contact) {
+/*static*/ bool PointContact::isInstance(const Contact& contact) {
     return (dynamic_cast<const PointContactImpl*>(&contact.getImpl()) != 0);
 }
 

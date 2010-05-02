@@ -41,6 +41,9 @@ using std::set;
 
 namespace SimTK {
 
+//==============================================================================
+//                        COLLISION DETECTION ALGORITHM
+//==============================================================================
 
 CollisionDetectionAlgorithm::AlgorithmMap::~AlgorithmMap() {
     // Clean up algorithms to satisfy valgrind
@@ -76,6 +79,11 @@ CollisionDetectionAlgorithm* CollisionDetectionAlgorithm::getAlgorithm(int typeI
 
 }
 
+
+
+//==============================================================================
+//                             HALF SPACE - SPHERE
+//==============================================================================
 void CollisionDetectionAlgorithm::HalfSpaceSphere::processObjects
    (ContactSurfaceIndex index1, const ContactGeometry& object1, 
     const Transform& transform1,
@@ -97,6 +105,11 @@ void CollisionDetectionAlgorithm::HalfSpaceSphere::processObjects
     }
 }
 
+
+
+//==============================================================================
+//                              SPHERE - SPHERE
+//==============================================================================
 void CollisionDetectionAlgorithm::SphereSphere::processObjects
    (ContactSurfaceIndex index1, const ContactGeometry& object1, 
     const Transform& transform1,
@@ -124,25 +137,37 @@ void CollisionDetectionAlgorithm::SphereSphere::processObjects
     }
 }
 
+
+
+//==============================================================================
+//                          HALF SPACE - TRIANGLE MESH
+//==============================================================================
 void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processObjects
    (ContactSurfaceIndex index1, const ContactGeometry& object1, 
-    const Transform& transform1,
+    const Transform& X_GH,
     ContactSurfaceIndex index2, const ContactGeometry& object2, 
-    const Transform& transform2, 
+    const Transform& X_GM, 
     Array_<Contact>& contacts) const 
 {
-    const ContactGeometry::TriangleMesh& mesh = static_cast<const ContactGeometry::TriangleMesh&>(object2);
-    Transform transform = (~transform1)*transform2; // Transform from the mesh's coordinate frame to the half-space's coordinate frame
+    const ContactGeometry::TriangleMesh& mesh = 
+        static_cast<const ContactGeometry::TriangleMesh&>(object2);
+    // Transform giving mesh (S2) frame in the halfspace (S1) frame.
+    const Transform X_HM = (~X_GH)*X_GM; 
     set<int> insideFaces;
-    Vec3 axisDir = ~transform.R()*Vec3(-1, 0, 0);
-    Real xoffset = ~axisDir*(~transform*Vec3(0));
-    processBox(mesh, mesh.getOBBTreeNode(), transform, axisDir, xoffset, insideFaces);
+    Vec3 axisDir = ~X_HM.R()*Vec3(-1, 0, 0);
+    Real xoffset = ~axisDir*(~X_HM*Vec3(0));
+    processBox(mesh, mesh.getOBBTreeNode(), X_HM, axisDir, xoffset, insideFaces);
     if (insideFaces.size() > 0)
-        contacts.push_back(TriangleMeshContact(index1, index2, set<int>(), insideFaces));
+        contacts.push_back(TriangleMeshContact(index1, index2, X_HM, 
+                                               set<int>(), insideFaces));
 }
 
-void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processBox(const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh::OBBTreeNode& node, const Transform& transform, const Vec3& axisDir, Real xoffset, set<int>& insideFaces) const {
-    // First check against the node's bounding box.
+void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processBox
+   (const ContactGeometry::TriangleMesh&              mesh, 
+    const ContactGeometry::TriangleMesh::OBBTreeNode& node, 
+    const Transform& X_HM, const Vec3& axisDir, Real xoffset, 
+    set<int>& insideFaces) const 
+{   // First check against the node's bounding box.
     
     OrientedBoundingBox bounds = node.getBounds();
     const Vec3 b = 0.5*bounds.getSize();
@@ -159,16 +184,16 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processBox(const Contac
     // If it is not a leaf node, check its children.
     
     if (!node.isLeafNode()) {
-        processBox(mesh, node.getFirstChildNode(), transform, axisDir, xoffset, insideFaces);
-        processBox(mesh, node.getSecondChildNode(), transform, axisDir, xoffset, insideFaces);
+        processBox(mesh, node.getFirstChildNode(), X_HM, axisDir, xoffset, insideFaces);
+        processBox(mesh, node.getSecondChildNode(), X_HM, axisDir, xoffset, insideFaces);
         return;
     }
     
     // Check the triangles.
     
     const Array_<int>& triangles = node.getTriangles();
-    const Row3 xdir = transform.R().row(0);
-    const Real tx = transform.p()[0];
+    const Row3 xdir = X_HM.R().row(0);
+    const Real tx = X_HM.p()[0];
     for (int i = 0; i < (int) triangles.size(); i++) {
         if (xdir*mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], 0))+tx > 0)
             insideFaces.insert(triangles[i]);
@@ -179,7 +204,10 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::processBox(const Contac
     }
 }
 
-void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::addAllTriangles(const ContactGeometry::TriangleMesh::OBBTreeNode& node, std::set<int>& insideFaces) const {
+void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::addAllTriangles
+   (const ContactGeometry::TriangleMesh::OBBTreeNode& node, 
+    std::set<int>& insideFaces) const 
+{
     if (node.isLeafNode()) {
         const Array_<int>& triangles = node.getTriangles();
         for (int i = 0; i < (int) triangles.size(); i++)
@@ -191,24 +219,40 @@ void CollisionDetectionAlgorithm::HalfSpaceTriangleMesh::addAllTriangles(const C
     }
 }
 
+
+
+//==============================================================================
+//                           SPHERE - TRIANGLE MESH
+//==============================================================================
 void CollisionDetectionAlgorithm::SphereTriangleMesh::processObjects
-   (ContactSurfaceIndex index1, const ContactGeometry& object1, 
-    const Transform& transform1,
-    ContactSurfaceIndex index2, const ContactGeometry& object2, 
-    const Transform& transform2, 
+   (ContactSurfaceIndex index1, const ContactGeometry& object1, // sphere 
+    const Transform& X_GS,
+    ContactSurfaceIndex index2, const ContactGeometry& object2, // mesh 
+    const Transform& X_GM, 
     Array_<Contact>& contacts) const 
 {
-    const ContactGeometry::Sphere& sphere = static_cast<const ContactGeometry::Sphere&>(object1);
-    const ContactGeometry::TriangleMesh& mesh = static_cast<const ContactGeometry::TriangleMesh&>(object2);
-    Vec3 center = ~transform2*transform1.p();
+    const ContactGeometry::Sphere&          sphere = 
+        static_cast<const ContactGeometry::Sphere&>(object1);
+    const ContactGeometry::TriangleMesh&    mesh = 
+        static_cast<const ContactGeometry::TriangleMesh&>(object2);
+
+    const Transform X_SM = ~X_GS*X_GM;
+    // Want the sphere center measured and expressed in the mesh frame.
+    const Vec3 p_MC = (~X_SM).p();
     set<int> insideFaces;
-    processBox(center, sphere.getRadius()*sphere.getRadius(), mesh, mesh.getOBBTreeNode(), insideFaces);
+    processBox(p_MC, sphere.getRadius()*sphere.getRadius(), 
+               mesh, mesh.getOBBTreeNode(), insideFaces);
     if (insideFaces.size() > 0)
-        contacts.push_back(TriangleMeshContact(index1, index2, set<int>(), insideFaces));
+        contacts.push_back(TriangleMeshContact(index1, index2, X_SM,
+                                               set<int>(), insideFaces));
 }
 
-void CollisionDetectionAlgorithm::SphereTriangleMesh::processBox(const Vec3& center, Real radius2, const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh::OBBTreeNode& node, set<int>& insideFaces) const {
-    // First check against the node's bounding box.
+void CollisionDetectionAlgorithm::SphereTriangleMesh::processBox
+   (const Vec3& center, Real radius2, 
+    const ContactGeometry::TriangleMesh& mesh, 
+    const ContactGeometry::TriangleMesh::OBBTreeNode& node, 
+    set<int>& insideFaces) const 
+{   // First check against the node's bounding box.
 
     Vec3 nearestPoint = node.getBounds().findNearestPoint(center);
     if ((nearestPoint-center).normSqr() > radius2)
@@ -234,37 +278,59 @@ void CollisionDetectionAlgorithm::SphereTriangleMesh::processBox(const Vec3& cen
     }
 }
 
-void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::processObjects
+
+
+//==============================================================================
+//                        TRIANGLE MESH - TRIANGLE MESH
+//==============================================================================
+void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::
+processObjects
    (ContactSurfaceIndex index1, const ContactGeometry& object1, 
-    const Transform& transform1,
+    const Transform& X_GM1,
     ContactSurfaceIndex index2, const ContactGeometry& object2, 
-    const Transform& transform2, 
+    const Transform& X_GM2, 
     Array_<Contact>& contacts) const 
 {
-    const ContactGeometry::TriangleMesh& mesh1 = static_cast<const ContactGeometry::TriangleMesh&>(object1);
-    const ContactGeometry::TriangleMesh& mesh2 = static_cast<const ContactGeometry::TriangleMesh&>(object2);
-    Transform transform = (~transform1)*transform2; // Transform from mesh2's coordinate frame to mesh1's coordinate frame
+    const ContactGeometry::TriangleMesh& mesh1 = 
+        static_cast<const ContactGeometry::TriangleMesh&>(object1);
+    const ContactGeometry::TriangleMesh& mesh2 = 
+        static_cast<const ContactGeometry::TriangleMesh&>(object2);
+
+    // Get mesh2's frame measured and expressed in mesh1's frame.
+    const Transform X_M1M2 = (~X_GM1)*X_GM2; 
     set<int> triangles1;
     set<int> triangles2;
-    OrientedBoundingBox mesh2Bounds = transform*mesh2.getOBBTreeNode().getBounds();
-    processNodes(mesh1, mesh2, mesh1.getOBBTreeNode(), mesh2.getOBBTreeNode(), mesh2Bounds, transform, triangles1, triangles2);
+    OrientedBoundingBox mesh2Bounds = X_M1M2*mesh2.getOBBTreeNode().getBounds();
+    processNodes(mesh1, mesh2, mesh1.getOBBTreeNode(), mesh2.getOBBTreeNode(), 
+                 mesh2Bounds, X_M1M2, triangles1, triangles2);
     if (triangles1.size() == 0)
         return; // No intersection.
     
     // There was an intersection.  We now need to identify every triangle and vertex of each mesh that is inside the other mesh.
     
-    findInsideTriangles(mesh1, mesh2, ~transform, triangles1);
-    findInsideTriangles(mesh2, mesh1, transform, triangles2);
-    contacts.push_back(TriangleMeshContact(index1, index2, triangles1, triangles2));
+    findInsideTriangles(mesh1, mesh2, ~X_M1M2, triangles1);
+    findInsideTriangles(mesh2, mesh1,  X_M1M2, triangles2);
+    contacts.push_back(TriangleMeshContact(index1, index2, X_M1M2,
+                                           triangles1, triangles2));
 }
 
-extern "C" int tri_tri_overlap_test_3d(const Real p1[3], const Real q1[3], const Real r1[3], 
-			    const Real p2[3], const Real q2[3], const Real r2[3]);
 
-void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::processNodes(const ContactGeometry::TriangleMesh& mesh1, const ContactGeometry::TriangleMesh& mesh2,
-        const ContactGeometry::TriangleMesh::OBBTreeNode& node1, const ContactGeometry::TriangleMesh::OBBTreeNode& node2, const OrientedBoundingBox& node2Bounds,
-        const Transform& transform, set<int>& triangles1, set<int>& triangles2) const {
-    // See if the bounding boxes intersect.
+
+extern "C" int tri_tri_overlap_test_3d
+   (const Real p1[3], const Real q1[3], const Real r1[3], 
+    const Real p2[3], const Real q2[3], const Real r2[3]);
+
+void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::
+processNodes
+   (const ContactGeometry::TriangleMesh&                mesh1, 
+    const ContactGeometry::TriangleMesh&                mesh2,
+    const ContactGeometry::TriangleMesh::OBBTreeNode&   node1, 
+    const ContactGeometry::TriangleMesh::OBBTreeNode&   node2, 
+    const OrientedBoundingBox&                          node2Bounds,
+    const Transform&                                    X_M1M2, 
+    set<int>&                                           triangles1, 
+    set<int>&                                           triangles2) const 
+{   // See if the bounding boxes intersect.
     
     if (!node1.getBounds().intersectsBox(node2Bounds))
         return;
@@ -273,24 +339,24 @@ void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::processNodes(const C
     
     if (!node1.isLeafNode()) {
         if (!node2.isLeafNode()) {
-            OrientedBoundingBox firstChildBounds = transform*node2.getFirstChildNode().getBounds();
-            OrientedBoundingBox secondChildBounds = transform*node2.getSecondChildNode().getBounds();
-            processNodes(mesh1, mesh2, node1.getFirstChildNode(), node2.getFirstChildNode(), firstChildBounds, transform, triangles1, triangles2);
-            processNodes(mesh1, mesh2, node1.getFirstChildNode(), node2.getSecondChildNode(), secondChildBounds, transform, triangles1, triangles2);
-            processNodes(mesh1, mesh2, node1.getSecondChildNode(), node2.getFirstChildNode(), firstChildBounds, transform, triangles1, triangles2);
-            processNodes(mesh1, mesh2, node1.getSecondChildNode(), node2.getSecondChildNode(), secondChildBounds, transform, triangles1, triangles2);
+            OrientedBoundingBox firstChildBounds = X_M1M2*node2.getFirstChildNode().getBounds();
+            OrientedBoundingBox secondChildBounds = X_M1M2*node2.getSecondChildNode().getBounds();
+            processNodes(mesh1, mesh2, node1.getFirstChildNode(), node2.getFirstChildNode(), firstChildBounds, X_M1M2, triangles1, triangles2);
+            processNodes(mesh1, mesh2, node1.getFirstChildNode(), node2.getSecondChildNode(), secondChildBounds, X_M1M2, triangles1, triangles2);
+            processNodes(mesh1, mesh2, node1.getSecondChildNode(), node2.getFirstChildNode(), firstChildBounds, X_M1M2, triangles1, triangles2);
+            processNodes(mesh1, mesh2, node1.getSecondChildNode(), node2.getSecondChildNode(), secondChildBounds, X_M1M2, triangles1, triangles2);
         }
         else {
-            processNodes(mesh1, mesh2, node1.getFirstChildNode(), node2, node2Bounds, transform, triangles1, triangles2);
-            processNodes(mesh1, mesh2, node1.getSecondChildNode(), node2, node2Bounds, transform, triangles1, triangles2);
+            processNodes(mesh1, mesh2, node1.getFirstChildNode(), node2, node2Bounds, X_M1M2, triangles1, triangles2);
+            processNodes(mesh1, mesh2, node1.getSecondChildNode(), node2, node2Bounds, X_M1M2, triangles1, triangles2);
         }
         return;
     }
     else if (!node2.isLeafNode()) {
-        OrientedBoundingBox firstChildBounds = transform*node2.getFirstChildNode().getBounds();
-        OrientedBoundingBox secondChildBounds = transform*node2.getSecondChildNode().getBounds();
-        processNodes(mesh1, mesh2, node1, node2.getFirstChildNode(), firstChildBounds, transform, triangles1, triangles2);
-        processNodes(mesh1, mesh2, node1, node2.getSecondChildNode(), secondChildBounds, transform, triangles1, triangles2);
+        OrientedBoundingBox firstChildBounds = X_M1M2*node2.getFirstChildNode().getBounds();
+        OrientedBoundingBox secondChildBounds = X_M1M2*node2.getSecondChildNode().getBounds();
+        processNodes(mesh1, mesh2, node1, node2.getFirstChildNode(), firstChildBounds, X_M1M2, triangles1, triangles2);
+        processNodes(mesh1, mesh2, node1, node2.getSecondChildNode(), secondChildBounds, X_M1M2, triangles1, triangles2);
         return;
     }
     
@@ -299,9 +365,9 @@ void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::processNodes(const C
     const Array_<int>& node1triangles = node1.getTriangles();
     const Array_<int>& node2triangles = node2.getTriangles();
     for (int i = 0; i < (int) node2triangles.size(); i++) {
-        Vec3 a1 = transform*mesh2.getVertexPosition(mesh2.getFaceVertex(node2triangles[i], 0));
-        Vec3 a2 = transform*mesh2.getVertexPosition(mesh2.getFaceVertex(node2triangles[i], 1));
-        Vec3 a3 = transform*mesh2.getVertexPosition(mesh2.getFaceVertex(node2triangles[i], 2));
+        Vec3 a1 = X_M1M2*mesh2.getVertexPosition(mesh2.getFaceVertex(node2triangles[i], 0));
+        Vec3 a2 = X_M1M2*mesh2.getVertexPosition(mesh2.getFaceVertex(node2triangles[i], 1));
+        Vec3 a3 = X_M1M2*mesh2.getVertexPosition(mesh2.getFaceVertex(node2triangles[i], 2));
         for (int j = 0; j < (int) node1triangles.size(); j++) {
             const Vec3& b1 = mesh1.getVertexPosition(mesh1.getFaceVertex(node1triangles[j], 0));
             const Vec3& b2 = mesh1.getVertexPosition(mesh1.getFaceVertex(node1triangles[j], 1));
@@ -317,41 +383,46 @@ void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::processNodes(const C
 }
 
 void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::
-findInsideTriangles(const ContactGeometry::TriangleMesh& mesh, 
-                    const ContactGeometry::TriangleMesh& otherMesh,
-                    const Transform& transform, 
-                    set<int>& triangles) const 
+findInsideTriangles(const ContactGeometry::TriangleMesh&    mesh,       // M 
+                    const ContactGeometry::TriangleMesh&    otherMesh,  // O
+                    const Transform&                        X_OM, 
+                    set<int>&                               triangles) const 
 {   // Find which triangles are inside.
     const int Unknown = UNKNOWN; // work around gcc bug
     Array_<int> faceType(mesh.getNumFaces(), Unknown);
-    for (set<int>::iterator iter = triangles.begin(); iter != triangles.end(); ++iter)
+    for (set<int>::iterator iter = triangles.begin(); 
+                            iter != triangles.end(); ++iter)
         faceType[*iter] = BOUNDARY;
+
     for (int i = 0; i < (int) faceType.size(); i++) {
         if (faceType[i] == UNKNOWN) {
-            // Trace a ray from its center to determine whether it is inside.
-            
-            Vec3 origin = mesh.getVertexPosition(mesh.getFaceVertex(i, 0))+mesh.getVertexPosition(mesh.getFaceVertex(i, 1))+mesh.getVertexPosition(mesh.getFaceVertex(i, 2));
-            origin = transform*(origin/3.0);
-            UnitVec3 direction = transform.R()*mesh.getFaceNormal(i);
+            // Trace a ray from its center to determine whether it is inside.           
+            const Vec3     origin_O    = X_OM    * mesh.findCentroid(i);
+            const UnitVec3 direction_O = X_OM.R()* mesh.getFaceNormal(i);
             Real distance;
             int face;
             Vec2 uv;
-            if (otherMesh.intersectsRay(origin, direction, distance, face, uv) && ~direction*otherMesh.getFaceNormal(face) > 0) {
+            if (   otherMesh.intersectsRay(origin_O, direction_O, distance, 
+                                           face, uv) 
+                && ~direction_O*otherMesh.getFaceNormal(face) > 0) 
+            {
                 faceType[i] = INSIDE;
                 triangles.insert(i);
-            }
-            else
+            } else
                 faceType[i] = OUTSIDE;
             
-            // Recursively mark adjacent triangles.
-            
+            // Recursively mark adjacent triangles.           
             tagFaces(mesh, faceType, triangles, i);
         }
     }
 }
 
-void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::tagFaces(const ContactGeometry::TriangleMesh& mesh, Array_<int>& faceType,
-        set<int>& triangles, int index) const {
+void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::
+tagFaces(const ContactGeometry::TriangleMesh&   mesh, 
+         Array_<int>&                           faceType,
+         set<int>&                              triangles, 
+         int                                    index) const 
+{
     for (int i = 0; i < 3; i++) {
         int edge = mesh.getFaceEdge(index, i);
         int face = (mesh.getEdgeFace(edge, 0) == index ? mesh.getEdgeFace(edge, 1) : mesh.getEdgeFace(edge, 0));
