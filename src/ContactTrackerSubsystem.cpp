@@ -44,6 +44,7 @@
 using std::pair; using std::make_pair;
 #include <iostream>
 using std::cout; using std::endl;
+#include <set>
 
 
 namespace SimTK {
@@ -138,6 +139,9 @@ public:
 ContactTrackerSubsystemImpl() : m_defaultTracker(0) {
     adoptContactTracker(new ContactTracker::HalfSpaceSphere());
     adoptContactTracker(new ContactTracker::SphereSphere());
+    adoptContactTracker(new ContactTracker::HalfSpaceTriangleMesh());
+ //   adoptContactTracker(new ContactTracker::SphereTriangleMesh());
+ //   adoptContactTracker(new ContactTracker::TriangleMeshTriangleMesh());
 }
 
 ContactTrackerSubsystemImpl* cloneImpl() const 
@@ -711,7 +715,7 @@ bool ContactTracker::HalfSpaceSphere::predictContact
     const ContactGeometry& surface1,
     const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
     const ContactGeometry& surface2,
-    Real                   rangeOfInterest,
+    Real                   cutoff,
     Real                   intervalOfInterest,
     Contact&               predictedStatus) const
 {   SimTK_ASSERT_ALWAYS(!"implemented",
@@ -723,7 +727,7 @@ bool ContactTracker::HalfSpaceSphere::initializeContact
     const ContactGeometry& surface1,
     const Transform& X_GS2, const SpatialVec& V_GS2,
     const ContactGeometry& surface2,
-    Real                   rangeOfInterest,
+    Real                   cutoff,
     Real                   intervalOfInterest,
     Contact&               contactStatus) const
 {   SimTK_ASSERT_ALWAYS(!"implemented",
@@ -813,7 +817,7 @@ bool ContactTracker::SphereSphere::predictContact
     const ContactGeometry& surface1,
     const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
     const ContactGeometry& surface2,
-    Real                   rangeOfInterest,
+    Real                   cutoff,
     Real                   intervalOfInterest,
     Contact&               predictedStatus) const
 {   SimTK_ASSERT_ALWAYS(!"implemented",
@@ -825,12 +829,145 @@ bool ContactTracker::SphereSphere::initializeContact
     const ContactGeometry& surface1,
     const Transform& X_GS2, const SpatialVec& V_GS2,
     const ContactGeometry& surface2,
-    Real                   rangeOfInterest,
+    Real                   cutoff,
     Real                   intervalOfInterest,
     Contact&               contactStatus) const
 {   SimTK_ASSERT_ALWAYS(!"implemented",
     "ContactTracker::SphereSphere::initializeContact() not implemented yet."); 
     return false; }
+
+
+
+
+//==============================================================================
+//                  HALFSPACE - TRIANGLE MESH CONTACT TRACKER
+//==============================================================================
+// Cost is TODO
+bool ContactTracker::HalfSpaceTriangleMesh::trackContact
+   (const Contact&         priorStatus,
+    const Transform&       X_GH, 
+    const ContactGeometry& geoHalfSpace,
+    const Transform&       X_GM, 
+    const ContactGeometry& geoMesh,
+    Real                   cutoff,
+    Contact&               currentStatus) const
+{
+    SimTK_ASSERT_ALWAYS
+       (   ContactGeometry::HalfSpace::isInstance(geoHalfSpace)
+        && ContactGeometry::TriangleMesh::isInstance(geoMesh),
+       "ContactTracker::HalfSpaceTriangleMesh::trackContact()");
+
+    // We can't handle a "proximity" test, only penetration. 
+    SimTK_ASSERT_ALWAYS(cutoff==0,
+       "ContactTracker::HalfSpaceTriangleMesh::trackContact()");
+
+    // No need for an expensive dynamic cast here; we know what we have.
+    const ContactGeometry::TriangleMesh& mesh = 
+        ContactGeometry::TriangleMesh::getAs(geoMesh);
+
+    // Transform giving mesh (S2) frame in the halfspace (S1) frame.
+    const Transform X_HM = (~X_GH)*X_GM; 
+    std::set<int> insideFaces;
+    // TODO: simplify this
+    Vec3 axisDir = ~X_HM.R()*Vec3(-1, 0, 0);
+    Real xoffset = ~axisDir*(~X_HM*Vec3(0));
+    processBox(mesh, mesh.getOBBTreeNode(), X_HM, 
+               axisDir, xoffset, insideFaces);
+    
+    if (insideFaces.empty()) {
+        currentStatus.clear(); // not touching
+        return true; // successful return
+    }
+    
+    currentStatus = TriangleMeshContact(priorStatus.getSurface1(), 
+                                        priorStatus.getSurface1(), 
+                                        X_HM, 
+                                        std::set<int>(), insideFaces);
+    return true; // success
+}
+
+bool ContactTracker::HalfSpaceTriangleMesh::predictContact
+   (const Contact&         priorStatus,
+    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               predictedStatus) const
+{   SimTK_ASSERT_ALWAYS(!"implemented",
+    "ContactTracker::HalfSpaceTriangleMesh::predictContact() not implemented yet."); 
+    return false; }
+
+bool ContactTracker::HalfSpaceTriangleMesh::initializeContact
+   (const Transform& X_GS1, const SpatialVec& V_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               contactStatus) const
+{   SimTK_ASSERT_ALWAYS(!"implemented",
+    "ContactTracker::HalfSpaceTriangleMesh::initializeContact() not implemented yet."); 
+    return false; }
+
+
+void ContactTracker::HalfSpaceTriangleMesh::processBox
+   (const ContactGeometry::TriangleMesh&              mesh, 
+    const ContactGeometry::TriangleMesh::OBBTreeNode& node, 
+    const Transform& X_HM, const Vec3& axisDir, Real xoffset, 
+    std::set<int>& insideFaces) const 
+{   // First check against the node's bounding box.
+    
+    OrientedBoundingBox bounds = node.getBounds();
+    const Vec3 b = 0.5*bounds.getSize();
+    Vec3 boxCenter = bounds.getTransform()*b;
+    Real radius = ~b*(~bounds.getTransform().R()*axisDir).abs();
+    Real dist = ~axisDir*boxCenter-xoffset;
+    if (dist > radius)
+        return;
+    if (dist < -radius) {
+        addAllTriangles(node, insideFaces);
+        return;
+    }
+    
+    // If it is not a leaf node, check its children.
+    
+    if (!node.isLeafNode()) {
+        processBox(mesh, node.getFirstChildNode(), X_HM, axisDir, xoffset, insideFaces);
+        processBox(mesh, node.getSecondChildNode(), X_HM, axisDir, xoffset, insideFaces);
+        return;
+    }
+    
+    // Check the triangles.
+    
+    const Array_<int>& triangles = node.getTriangles();
+    const Row3 xdir = X_HM.R().row(0);
+    const Real tx = X_HM.p()[0];
+    for (int i = 0; i < (int) triangles.size(); i++) {
+        if (xdir*mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], 0))+tx > 0)
+            insideFaces.insert(triangles[i]);
+        else if (xdir*mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], 1))+tx > 0)
+            insideFaces.insert(triangles[i]);
+        else if (xdir*mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], 2))+tx > 0)
+            insideFaces.insert(triangles[i]);
+    }
+}
+
+void ContactTracker::HalfSpaceTriangleMesh::addAllTriangles
+   (const ContactGeometry::TriangleMesh::OBBTreeNode& node, 
+    std::set<int>& insideFaces) const 
+{
+    if (node.isLeafNode()) {
+        const Array_<int>& triangles = node.getTriangles();
+        for (int i = 0; i < (int) triangles.size(); i++)
+            insideFaces.insert(triangles[i]);
+    }
+    else {
+        addAllTriangles(node.getFirstChildNode(), insideFaces);
+        addAllTriangles(node.getSecondChildNode(), insideFaces);
+    }
+}
 
 
 

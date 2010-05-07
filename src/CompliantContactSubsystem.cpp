@@ -360,31 +360,23 @@ ensureForceCacheValid(const State& state) const {
         const ContactSurfaceIndex surf2(contact.getSurface2());
         const MobilizedBody& mobod1 = m_tracker.getMobilizedBody(surf1);
         const MobilizedBody& mobod2 = m_tracker.getMobilizedBody(surf2);
+
+        // TODO: These two are expensive (63 flops each) and shouldn't have 
+        // to be recalculated here since we must have used them in creating
+        // the Contact and X_S1S2.
         const Transform X_GS1 = mobod1.findFrameTransformInGround
             (state, m_tracker.getContactSurfaceTransform(surf1));
+        const Transform X_GS2 = mobod1.findFrameTransformInGround
+            (state, m_tracker.getContactSurfaceTransform(surf2));
+
         const SpatialVec V_GS1 = mobod1.findFrameVelocityInGround
             (state, m_tracker.getContactSurfaceTransform(surf1));
         const SpatialVec V_GS2 = mobod2.findFrameVelocityInGround
             (state, m_tracker.getContactSurfaceTransform(surf2));
 
-        // We'll convert all vectors to the S1 frame, but be careful about
-        // which frame derivatives are being taken in.
-
-        // This is the vector from S1's origin to S2's origin.
-        const Vec3& p_12 = X_S1S2.p();
-        // Orientation of S1 in G.
-        const Rotation& R_G1 = X_GS1.R();
-
-        // Relative angular velocity of S2 in S1.
-        const Vec3 w_12  = ~R_G1*(V_GS2[0]-V_GS1[0]);
-        // Relative linear velocity of S2 in S1, taken in G but expressed in S1.
-        const Vec3 vG_12 = ~R_G1*(V_GS2[1]-V_GS1[1]); 
-        // Get linear velocity taken in S1 by removing the component due
-        // to S1's rotation in G; re-express in S1.
-        const Vec3 w_G1 = ~R_G1*V_GS1[0];
-        const Vec3 v_12 = vG_12 - w_G1 % p_12;
-
-        const SpatialVec V_S1S2(w_12, v_12);
+        // Calculate the relative velocity of S2 in S1, expressed in S1.
+        const SpatialVec V_S1S2 =
+            findRelativeVelocity(X_GS1, V_GS1, X_GS2, V_GS2);   // 51 flops
 
         const ContactForceGenerator& generator = 
             getForceGenerator(contact.getTypeId());
@@ -520,43 +512,49 @@ inline static Real step5d(Real y, Real yd, Real x) {
     return x3*(c + x*(b + x*a));
 }
 
-// This is a quintic spline with four segments:
-// (1) v=0..1: smooth interpolation from 0 to us
-// (2) v=1..3: smooth interp from us down to ud (Stribeck)
-// (3) v=3..4: blend in uv to go from zero deriv to uv
-// (4) v=4..Inf ud + uv*(v-3)
+
+// This is the sum of two curves:
+// (1) a wet friction term mu_wet which is a linear function of velocity: 
+//     mu_wet = uv*v
+// (2) a dry friction term mu_dry which is a quintic spline with 4 segments:
+//     mu_dry = 
+//      (a) v=0..1: smooth interpolation from 0 to us
+//      (b) v=1..3: smooth interp from us down to ud (Stribeck)
+//      (c) v=3..Inf ud
 // CAUTION: uv and v must be dimensionless in multiples of transition velocity.
-// Cost: stiction 9 flops
-//       stribeck 13 flops
-//       transition 21 flops
-//       sliding 6 flops
+// The function mu = mu_wet + mu_dry is zero at v=0 with 1st deriv (slope) uv
+// and 2nd deriv (curvature) 0. At large velocities v>>0 the value is 
+// ud+uv*v, again with slope uv and zero curvature. We want mu(v) to be c2
+// continuous, so mu_wet(v) must have zero slope and curvature at v==0 and
+// at v==3 where it takes on a constant value ud.
+//
+// Cost: stiction 12 flops
+//       stribeck 14 flops
+//       sliding 3 flops
 // Curve looks like this:
 //
-//  us     ***
-//        *    *                    *
-//        *     *              *____| slope = uv
-//        *      *        *
-//  ud    *       * * *      
-//        *         
-//        *        
-//        *
-//   0  **  
-//      |   |       |   |
-//    v=0   1       3   4
+//  us+uv     ***
+//           *    *                     *
+//           *     *               *____| slope = uv at Inf
+//           *      *         *
+// ud+3uv    *        *  *      
+//          *          
+//          *        
+//         *
+//  0  *____| slope = uv at 0
+//
+//     |    |           |
+//   v=0    1           3 
 //
 // This calculates a composite coefficient of friction that you should use
 // to scale the normal force to produce the friction force.
 inline static Real stribeck(Real us, Real ud, Real uv, Real v) {
-    Real mu;
-    if (v <= 1) // 0..vt
-        mu = us*step5(v);                   // stiction
-    else if (v <= 3) // vt..3vt
-        mu = us - (us-ud)*step5((v-1)/2);   // Stribeck
-    else if (v <= 4) // 3vt..4vt
-        mu = ud + step5d(uv,uv,v-3);        // transition
-    else // 4vt..
-        mu = ud + uv*(v-3);                 // sliding
-    return mu;
+    const Real mu_wet = uv*v;
+    Real mu_dry;
+    if      (v >= 3) mu_dry = ud; // sliding
+    else if (v >= 1) mu_dry = us - (us-ud)*step5((v-1)/2); // Stribeck
+    else             mu_dry = us*step5(v); // 0 <= v < 1 (stiction)
+    return mu_dry + mu_wet;
 }
 
 // CAUTION: uv and v must be dimensionless in multiples of transition velocity.
@@ -643,7 +641,7 @@ void ContactForceGenerator::HertzCircular::calcContactForce
     // the station of S2 that is coincident with the contact point.
     const Vec3 contactPt2_S1 = contactPt_S1 - p12;  // S2 station, exp. in S1
 
-    // All vectors are in S1 after this; dropping the "_S1" notation now.
+    // All vectors are in S1; dropping the "_S1" notation now.
 
     // Velocity of surf2 at contact point is opposite direction of normal
     // when penetration is increasing.
@@ -812,8 +810,10 @@ void ContactForceGenerator::ElasticFoundation::calcContactForce
 
         calcWeightedPatchCentroid(mesh2, contact.getSurface2Faces(),
                                   weightedPatchCentroid2_S2, patchArea2);
-        // Remeasure patch2's weighted centroid from surface1's frame.
-        weightedPatchCentroid2_S1 = X_S1S2*weightedPatchCentroid2_S2;
+        // Remeasure patch2's weighted centroid from surface1's frame;
+        // be sure to weight the new offset also.
+        weightedPatchCentroid2_S1 = X_S1S2.R()*weightedPatchCentroid2_S2
+                                    + patchArea2*X_S1S2.p();
     }
 
     // At this point one or two patch centroids are known; if one is unused
@@ -841,14 +841,15 @@ void ContactForceGenerator::ElasticFoundation::calcContactForce
     //           sum_i (r_i * |r_i X Fn_i|) 
     //     r_c = --------------------------
     //              sum_i |r_i X Fn_i|
-    // where Fn is the normal force applied by element i at location r_i.
+    // where Fn is the normal force applied by element i at location r_i,
+    // with all locations measured from the patch centroid calculated above.
     //
     // We're going to calculate the weighted-points numerator for each
     // mesh separately in weightedCOP1 and weightedCOP2, and the corresponding
     // denominators (sum of all pressure-moment magnitudes) in weightCOP1 and
     // weightCOP2. At the end we'll combine and divide to calculate the actual 
     // center of pressure where we'll ultimately apply the contact force.
-    Vec3 weightedCOP1_S1(0), weightedCOP2_S1(0);
+    Vec3 weightedCOP1_PC_S1(0), weightedCOP2_PC_S1(0); // from patch centroid
     Real weightCOP1=0, weightCOP2=0;
 
     if (shape1.getTypeId() == ContactGeometry::TriangleMesh::classTypeId()) {
@@ -861,17 +862,24 @@ void ContactForceGenerator::ElasticFoundation::calcContactForce
             s1, k, c, us, ud, uv,
             patchCentroid_S1,
             force1_S1, potEnergy1, powerLoss1,
-            weightedCOP1_S1, weightCOP1, 0); // no details wanted
+            weightedCOP1_PC_S1, weightCOP1, 0); // no details wanted
     }
 
     if (shape2.getTypeId() == ContactGeometry::TriangleMesh::classTypeId()) {
         const ContactGeometry::TriangleMesh mesh = 
             ContactGeometry::TriangleMesh::getAs(shape2);
-        const Transform  X_S2S1 = ~X_S1S2;              // 3 flops
-        const SpatialVec V_S2S1 = -(X_S2S1.R()*V_S1S2); // 36 flops
-        const Vec3       patchCentroid_S2 = X_S2S1*patchCentroid_S1;
+
+        // Costs 120 flops to flip everything into S2 for processing and
+        // then put the results back in S1.
+
+        const Transform  X_S2S1 = ~X_S1S2;                      //  3 flops
+        const SpatialVec V_S2S1 = 
+            reverseRelativeVelocity(X_S1S2,V_S1S2);             // 51 flops
+
+        const Vec3 patchCentroid_S2 = X_S2S1*patchCentroid_S1;  // 18 flops
+
         SpatialVec       force2_S2; 
-        Vec3             weightedCOP2_S2;
+        Vec3             weightedCOP2_PC_S2;
 
         processOneMesh(state, 
             mesh, contact.getSurface2Faces(),
@@ -879,32 +887,37 @@ void ContactForceGenerator::ElasticFoundation::calcContactForce
             s2, k, c, us, ud, uv,
             patchCentroid_S2,
             force2_S2, potEnergy2, powerLoss2,
-            weightedCOP2_S2, weightCOP2, 0); // no details wanted
+            weightedCOP2_PC_S2, weightCOP2, 0); // no details wanted
 
-        // Returned force is as applied to surface 1; negate to make it
-        // the force applied to surface 2. Also re-express the moment and
-        // force vectors in S1.
-        force2_S1 = -(X_S1S2.R()*force2_S2);
-        // Returned weighted COP is measured & expressed in S2; fix.
-        weightedCOP2_S1 = X_S1S2*weightedCOP2_S2;
+        // Returned force is as applied to surface 1 (at the patch centroid); 
+        // negate to make it the force applied to surface 2. Also re-express 
+        // the moment and force vectors in S1.
+        force2_S1 = -(X_S1S2.R()*force2_S2);                    // 36 flops
+        // Returned weighted COP is measured from patch centroid but 
+        // expressed in S2; reexpress in S1.
+        weightedCOP2_PC_S1 = X_S1S2.R()*weightedCOP2_PC_S2;     // 15 flops
     }
 
     const Real weightCOP = weightCOP1+weightCOP2;
-    const Vec3 centerOfPressure_S1 =
-        weightCOP > 0 ? (weightedCOP1_S1+weightedCOP2_S1) / weightCOP
+    Vec3 centerOfPressure_PC_S1 = // offset from patch centroid
+        weightCOP > 0 ? (weightedCOP1_PC_S1+weightedCOP2_PC_S1) / weightCOP
                       : Vec3(0);
 
     // Calculate total force applied to surface 2 at the patch centroid,
     // expressed in S1.
-    const SpatialVec force_S1 = force1_S1 + force2_S1;
+    const SpatialVec force_PC_S1 = force1_S1 + force2_S1;
+
     // Shift to center of pressure.
-    const Vec3 r = patchCentroid_S1 - centerOfPressure_S1;
-    const SpatialVec forceCOP_S1 = SpatialVec(r % force_S1[1], force_S1[1]);
+    const SpatialVec forceCOP_S1 =
+        shiftForceBy(force_PC_S1, centerOfPressure_PC_S1);
+
+    // Contact point is the center of pressure measured from the S1 origin.
+    const Vec3 contactPt_S1 = patchCentroid_S1 + centerOfPressure_PC_S1;
 
     // Fill in contact force object.
     contactForce_S1.setTo(contact.getContactId(),
-        centerOfPressure_S1,  // contact point in S1
-        forceCOP_S1,          // force on surf2 at contact pt exp. in S1
+        contactPt_S1,  // contact point in S1
+        forceCOP_S1,   // force on surf2 at contact pt exp. in S1
         potEnergy1 + potEnergy2,
         powerLoss1 + powerLoss2);
 }
@@ -999,6 +1012,7 @@ processOneMesh
 
     // Now loop over all the faces again, evaluate the force from each 
     // spring, and apply it at the patch centroid.
+    // This costs roughly 300 flops per contacting face.
     for (std::set<int>::const_iterator iter = insideFaces.begin(); 
                                        iter != insideFaces.end(); ++iter) 
     {   const int   face        = *iter;
@@ -1007,7 +1021,7 @@ processOneMesh
 
         bool        inside;
         UnitVec3    normal_O; // not used
-        const Vec3  nearestPoint_O = 
+        const Vec3  nearestPoint_O = // 18 flops + cost of findNearestPoint
             other.findNearestPoint(~X_MO*springPos_M, inside, normal_O);
         if (!inside)
             continue;
@@ -1020,12 +1034,12 @@ processOneMesh
         // i.e., in the  direction that the force will be applied on the 
         // other body. This is the same convention we use for the patch 
         // normal for Hertz contact.
-        const Vec3 nearestPoint_M = X_MO*nearestPoint_O;
-        const Vec3 displacement_M = springPos_M - nearestPoint_M;
-        const Real x              = displacement_M.norm();
+        const Vec3 nearestPoint_M = X_MO*nearestPoint_O; // 18 flops
+        const Vec3 displacement_M = springPos_M - nearestPoint_M; // 3 flops
+        const Real x              = displacement_M.norm(); // ~40 flops
         if (x == 0)
             continue;
-        const UnitVec3 normal_M(displacement_M/x, true);
+        const UnitVec3 normal_M(displacement_M/x, true); // ~15 flops
 
         // Calculate the contact point location based on the relative 
         // squishiness of the two surfaces. The mesh deformation fraction (0-1)
@@ -1034,25 +1048,29 @@ processOneMesh
         // contact point will be at the undeformed mesh face centroid; at 1 
         // (other body rigid) it will be at the (undeformed) nearest point on 
         // the other body.
-        const Vec3 contactPt_M = springPos_M 
+
+        const Vec3 contactPt_M = springPos_M            // 6 flops
                                  - meshDeformationFraction*displacement_M;
         
         // Calculate the relative velocity of the two bodies at the contact 
         // point. We're considering the mesh M fixed, so we just need the 
         // velocity in M of the station of O that is coincident with the 
         // contact point.
-        const Vec3 contactPtO_M = contactPt_M - pMO;  // O station, exp. in M
+        // O station, exp. in M
+        const Vec3 contactPtO_M = contactPt_M - pMO;    // 3 flops 
 
         // All vectors are in M; dropping the "_M" notation now.
 
         // Velocity of other at contact point is opposite direction of normal
         // when penetration is increasing.
-        const Vec3 vel = vMO + wMO % contactPtO_M;
-        // Want xdot > 0 when x is increasing; normal points the other way
-        const Real xdot = -dot(vel, normal_M); // penetration rate (signed)
-        const Vec3 velNormal  = -xdot*normal_M;
-        const Vec3 velTangent = vel-velNormal;
+        const Vec3 vel = vMO + wMO % contactPtO_M;      // 12 flops
+        // Want xdot > 0 when x is increasing; normal points the other way.
+        // (xdot is signed penetration rate).
+        const Real xdot = -dot(vel, normal_M);          // 6 flops
+        const Vec3 velNormal  = -xdot*normal_M;         // 4 flops
+        const Vec3 velTangent = vel-velNormal;          // 3 flops
         
+        // Calculate scalar normal force                (5 flops)
         const Real fK = k*faceArea*x;   // normal elastic force (conservative)
         const Real fC = fK*c*xdot;      // normal dissipation force (loss)
         const Real fNormal = fK + fC;   // normal force
@@ -1063,50 +1081,51 @@ processOneMesh
         // occasionally be real.
         if (fNormal <= 0) {
             SimTK_DEBUG1("YANKING!!! (face %d)\n", face);
+            printf("YANKING!!! (face %d)\n", face);
             continue;
         }
 
+        // 12 flops in this series.
         const Vec3 forceK          = fK*normal_M; // as applied to other surf
         const Vec3 forceC          = fC*normal_M;
-        const Real PE              = fK*x/2;    // 1/2 kAx^2
-        const Real powerC          = fC*xdot;   // rate of energy loss, >= 0
-
+        const Real PE              = fK*x/2;      // 1/2 kAx^2
+        const Real powerC          = fC*xdot;     // rate of energy loss, >= 0
         const Vec3 forceNormal = forceK + forceC;
 
         // This is the moment r X f about the resultant point produced by 
-        // applying this pure force at the contact point. Cost ~45 flops.
+        // applying this pure force at the contact point. Cost ~60 flops.
         const Vec3 r = contactPt_M - resultantPt_M;
         const Real pressureMoment = (r % forceNormal).norm();
         weightedCenterOfPressure_M += pressureMoment*r;
         sumOfAllPressureMoments    += pressureMoment;
         
-        // Calculate the friction force.
+        // Calculate the friction force. Cost is about 60 flops.
         Vec3 forceFriction(0);
         Real powerFriction = 0;
-        const Real vslipSq = velTangent.normSqr();
+        const Real vslipSq = velTangent.normSqr();  // 5 flops
         if (vslipSq > square(SignificantReal)) {
-            const Real vslip = std::sqrt(vslipSq); // expensive: ~20 flops
+            const Real vslip = std::sqrt(vslipSq); // expensive: ~25 flops
             // Express slip velocity as unitless multiple of transition velocity.
             const Real v = vslip * ooVtrans;
             // Must scale viscous coefficient to match unitless velocity.
-            const Real mu=stribeck(us,ud,uv*vtrans,v);
+            const Real mu=stribeck(us,ud,uv*vtrans,v); // ~10 flops
             //const Real mu=hollars(us,ud,uv*vtrans,v);
             const Real fFriction = fNormal * mu;
             // Force direction on O opposes O's velocity.
-            forceFriction = (-fFriction/vslip)*velTangent;
+            forceFriction = (-fFriction/vslip)*velTangent; // ~20 flops
             powerFriction = fFriction * vslip; // always >= 0
         }
 
-        const Vec3 forceLoss  = forceC + forceFriction;
-        const Vec3 forceTotal = forceK + forceLoss;
+        const Vec3 forceLoss  = forceC + forceFriction;     // 3 flops
+        const Vec3 forceTotal = forceK + forceLoss;         // 3 flops
 
         // Accumulate the moment and force on the *other* surface as though 
         // applied at the point of O that is coincident with the resultant
-        // point; we'll move it later.
+        // point; we'll move it later.                      (15 flops)
         resultantForceOnOther_M += SpatialVec(r % forceTotal, forceTotal);
 
         // Accumulate potential energy stored in elastic displacement.
-        potentialEnergy += PE;
+        potentialEnergy += PE;                  // 1 flop
 
         // Don't include dot(forceK,velNormal) power due to conservative force
         // here. This way we don't double-count the energy on the way in as
@@ -1117,7 +1136,7 @@ processOneMesh
         // actually lose energy because the deformed material isn't allowed to 
         // push back on us so the energy is lost to surface vibrations or some
         // other unmodeled effect.
-        powerLoss += (powerC + powerFriction);
+        powerLoss += (powerC + powerFriction);  // 2 flops
     }
 }
 
