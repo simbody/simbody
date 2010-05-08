@@ -91,7 +91,13 @@ int PolygonalMesh::addVertex(const Vec3& position) {
 int PolygonalMesh::addFace(const Array_<int>& vertices) {
     for (int i = 0; i < (int) vertices.size(); i++)
         updImpl().faceVertexIndex.push_back(vertices[i]);
+
+    // faceVertexStart is preloaded to have its first element 0 before any
+    // faces have been added. So the back() element of faceVertexStart is
+    // already the starting entry for the face we're adding.
+    // This is where the *next* face will begin.
     updImpl().faceVertexStart.push_back(getImpl().faceVertexIndex.size());
+    // The current face start is now at end()-2 (back()-1).
     return getImpl().faceVertexStart.size()-2;
 }
 
