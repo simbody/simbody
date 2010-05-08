@@ -72,6 +72,7 @@ private:
     const CompliantContactSubsystem& m_compliant;
 };
 
+static void makeCube(Real h, PolygonalMesh& cube);
 static void makeTetrahedron(Real r, PolygonalMesh& tet);
 static void makePyramid(Real baseSideLength, PolygonalMesh& pyramid);
 static void makeOctahedron(Real radius, PolygonalMesh& pyramid);
@@ -101,23 +102,32 @@ int main() {
         (new MyReporter(system,contactForces,.01));
 
     PolygonalMesh pyramidMesh;
+    //makeCube(1, pyramidMesh);
     //makeTetrahedron(1, pyramidMesh);
     //pyramidMesh.transformMesh(Rotation(Pi/4, UnitVec3(-1,0,1)));
     //makePyramid(1, pyramidMesh);
     //makeOctahedron(1, pyramidMesh);
-    makeSphere(1, 0, pyramidMesh);
+    makeSphere(1, 3, pyramidMesh);
 
 
     ContactGeometry::TriangleMesh pyramid(pyramidMesh);
-    DecorativeMesh showPyramid(pyramidMesh);
+    DecorativeMesh showPyramid(pyramid.createPolygonalMesh());
+    Array_<DecorativeLine> normals;
+    const Real NormalLength = .1;
+    for (int fx=0; fx < pyramid.getNumFaces(); ++fx)
+        normals.push_back(
+        DecorativeLine(pyramid.findCentroid(fx),
+                       pyramid.findCentroid(fx)
+                           + NormalLength*pyramid.getFaceNormal(fx)));
+
 
     ContactCliqueId clique1 = ContactSurface::createNewContactClique();
     ContactCliqueId clique2 = ContactSurface::createNewContactClique();
     ContactCliqueId clique3 = ContactSurface::createNewContactClique();
 
-    const Real fFac =0*1; // to turn off friction
+    const Real fFac =1; // to turn off friction
     const Real fDis = .1*0.2; // to turn off dissipation
-    const Real fVis = 0*.01; // to turn off viscous friction
+    const Real fVis = 1*.01; // to turn off viscous friction
     // Right hand wall
     matter.Ground().updBody().addDecoration(Vec3(.25+.01,0,0),
         DecorativeBrick(Vec3(.01,2,1)).setColor(Blue));
@@ -134,8 +144,8 @@ int main() {
     matter.Ground().updBody().addContactSurface(
         Transform(R_xdown, Vec3(0,-3,0)),
         ContactSurface(ContactGeometry::HalfSpace(),
-                       //ContactMaterial(1e6,fDis*.9,fFac*.8,fFac*.7,fVis*10))
-                       ContactMaterial(2e6,.01,.1,.05,.01))
+                       ContactMaterial(1e6,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+                       //ContactMaterial(2e6,.01,.1,.05,.01))
                        .joinClique(clique1));
 
     Body::Rigid pendulumBody1(MassProperties(1.0, Vec3(0), Inertia(1)));
@@ -161,7 +171,7 @@ int main() {
     Force::MobilityLinearSpring(forces, pendulum2, MobilizerUIndex(0),
         10, 0*(Pi/180));
 
-    const Real ballMass = 2;
+    const Real ballMass = 200;
     Body::Rigid ballBody(MassProperties(ballMass, Vec3(0), 
                             ballMass*Gyration::sphere(1)));
     //ballBody.addDecoration(Transform(), DecorativeSphere(.3).setColor(Cyan));
@@ -169,13 +179,20 @@ int main() {
     //    ContactSurface(ContactGeometry::Sphere(.3),
     //                   ContactMaterial(1e7,.05,fFac*.8,fFac*.7,fVis*10))
     //                   .joinClique(clique2));
-    ballBody.addDecoration(Transform(), showPyramid.setColor(Cyan).setOpacity(.2));
+    ballBody.addDecoration(Transform(), 
+        showPyramid.setColor(Cyan).setOpacity(.2));
+    ballBody.addDecoration(Transform(), 
+        showPyramid.setColor(Black)
+                   .setRepresentation(DecorativeGeometry::DrawWireframe));
+    for (unsigned i=0; i < normals.size(); ++i)
+        ballBody.addDecoration(Transform(),
+            normals[i].setColor(Gray));
     ballBody.addDecoration(Transform(), DecorativeSphere(1).setColor(Gray)
                                              .setOpacity(.1).setResolution(10));
     ballBody.addContactSurface(Transform(),
         ContactSurface(pyramid,
-      //                 ContactMaterial(1e6,fDis*.9,fFac*.8,fFac*.7,fVis*10))
-                       ContactMaterial(2e6,.01,.1,.05,.01))
+                       ContactMaterial(1e6,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+                       //ContactMaterial(2e6,.01,.1,.05,.01))
                        .joinClique(clique2).joinClique(clique3));
     MobilizedBody::Free ball(matter.Ground(), Transform(Vec3(-2,0,0)),
         ballBody, Transform(Vec3(0)));
@@ -207,7 +224,7 @@ int main() {
     system.realizeTopology();
     State state = system.getDefaultState();
     ball.setQToFitTransform(state, Transform(Rotation(Pi/2,XAxis),
-                                             Vec3(0,-2.66+.2,0)));
+                                             Vec3(0,-1.8,0)));
 
     viz.report(state);
     printf("Default state -- hit ENTER\n");
@@ -219,7 +236,7 @@ int main() {
 
 
     pendulum.setOneU(state, 0, 5.0);
-    ball.setOneU(state, 1, 10);
+    ball.setOneU(state, 1, 0*10);
 
     
     // Simulate it.
@@ -231,7 +248,7 @@ int main() {
     //RungeKutta3Integrator integ(system);
     //VerletIntegrator integ(system);
     //integ.setMaximumStepSize(1e-0001);
-    integ.setAccuracy(1e-6);
+    integ.setAccuracy(1e-4);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(10.0);
@@ -407,6 +424,13 @@ static void refineSphere(Real r, VertMap& vmap,
         faces.push_back(vb); faces.push_back(v1); faces.push_back(vc);//b1c
     }
 }
+
+// level  numfaces
+//   0       8   <-- octahedron
+//   1       32
+//   2       128 <-- still lumpy
+//   3       512 <-- very spherelike
+//   n       2*4^(n+1)
 static void makeSphere(Real radius, int level, PolygonalMesh& sphere) {
     Array_<Vec3> vertices;
     Array_<int> faceIndices;
@@ -426,5 +450,31 @@ static void makeSphere(Real radius, int level, PolygonalMesh& sphere) {
     for (unsigned i=0; i < faceIndices.size(); i += 3) {
         const Array_<int> verts(&faceIndices[i], &faceIndices[i]+3);
         sphere.addFace(verts);
+    }
+}
+
+static void makeCube(Real h, PolygonalMesh& cube) {
+    Array_<Vec3> vertices;
+    vertices.push_back(Vec3( h, h,  h)); 
+    vertices.push_back(Vec3( h, h, -h));
+    vertices.push_back(Vec3( h,-h,  h));
+    vertices.push_back(Vec3( h,-h, -h));
+    vertices.push_back(Vec3(-h, h,  h)); 
+    vertices.push_back(Vec3(-h, h, -h));
+    vertices.push_back(Vec3(-h,-h,  h));
+    vertices.push_back(Vec3(-h,-h, -h));
+
+    Array_<int> faceIndices;
+    int faces[6][4] = {{0,2,3,1},{1,5,4,0},{0,4,6,2},
+                       {2,6,7,3},{3,7,5,1},{4,5,7,6}};
+    for (int i = 0; i < 6; i++)
+        for (int j = 0; j < 4; j++)
+            faceIndices.push_back(faces[i][j]);
+
+    for (unsigned i=0; i < vertices.size(); ++i)
+        cube.addVertex(vertices[i]);
+    for (unsigned i=0; i < faceIndices.size(); i += 4) {
+        const Array_<int> verts(&faceIndices[i], &faceIndices[i]+4);
+        cube.addFace(verts);
     }
 }

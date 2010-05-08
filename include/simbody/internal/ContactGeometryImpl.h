@@ -205,6 +205,8 @@ public:
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, int& face, Vec2& uv) const;
     void getBoundingSphere(Vec3& center, Real& radius) const;
+
+    void createPolygonalMesh(PolygonalMesh& mesh) const;
 private:
     void init(const Array_<Vec3>& vertexPositions, const Array_<int>& faceIndices);
     void createObbTree(OBBTreeNodeImpl& node, const Array_<int>& faceIndices);

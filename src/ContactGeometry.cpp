@@ -6,9 +6,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008 Stanford University and the Authors.           *
+ * Portions copyright (c) 2008-10 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -364,6 +364,12 @@ ContactGeometry::TriangleMesh::OBBTreeNode ContactGeometry::TriangleMesh::getOBB
     return OBBTreeNode(getImpl().obb);
 }
 
+PolygonalMesh ContactGeometry::TriangleMesh::createPolygonalMesh() const {
+    PolygonalMesh mesh;
+    getImpl().createPolygonalMesh(mesh);
+    return mesh;
+}
+
 const ContactGeometry::TriangleMeshImpl& ContactGeometry::TriangleMesh::getImpl() const {
     assert(impl);
     return static_cast<const TriangleMeshImpl&>(*impl);
@@ -443,6 +449,16 @@ void ContactGeometry::TriangleMeshImpl::getBoundingSphere(Vec3& center, Real& ra
     radius = boundingSphereRadius;
 }
 
+void ContactGeometry::TriangleMeshImpl::
+createPolygonalMesh(PolygonalMesh& mesh) const {
+    for (unsigned vx=0; vx < vertices.size(); ++vx)
+        mesh.addVertex(vertices[vx].pos);
+    for (unsigned fx=0; fx < faces.size(); ++fx) {
+        const Face& face = faces[fx];
+        const ArrayViewConst_<int> verts(face.vertices, face.vertices+3);
+        mesh.addFace(verts);
+    }
+}
 
 ContactGeometry::TriangleMeshImpl::TriangleMeshImpl
    (const ArrayViewConst_<Vec3>& vertexPositions, const ArrayViewConst_<int>& faceIndices, bool smooth) 
@@ -500,15 +516,27 @@ ContactGeometry::TriangleMeshImpl::TriangleMeshImpl
     Vec3 origin(0);
     for (int i = 0; i < 3; i++)
         origin += vertices[faces[0].vertices[i]].pos;
-    origin /= 3.0;
-    UnitVec3 direction = -faces[0].normal;
+    origin /= 3; // this is the face centroid
+
+    const UnitVec3 direction = -faces[0].normal;
+    // Calculate a ray origin that is guaranteed to be outside the
+    // mesh. If the topology is right (face 0 normal points outward), we'll be
+    // outside on the side containing face 0. If it is wrong, we'll be outside
+    // on the opposite side of the mesh. Then we'll shoot a ray back along the
+    // direction we came from (that is, towards the interior of the mesh from
+    // outside). We'll hit *some* face. If the topology is right, the hit 
+    // face's normal will be pointing back at us. If it is wrong, the face 
+    // normal will also be pointing inwards, in roughly the same direction as 
+    // the ray.
     origin -= max(obb.bounds.getSize())*direction;
     Real distance;
     int face;
     Vec2 uv;
     bool intersects = intersectsRay(origin, direction, distance, face, uv);
     assert(intersects);
-    if (faces[face].normal[0] > 0) {
+    // Now dot the hit face normal with the ray direction; correct topology
+    // will have them pointing in more-or-less opposite directions.
+    if (dot(faces[face].normal, direction) > 0) {
         // We need to invert the mesh topology.
         
         for (int i = 0; i < (int) faces.size(); i++) {

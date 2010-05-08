@@ -370,6 +370,13 @@ public:
      */
     OBBTreeNode getOBBTreeNode() const;
 
+    /**
+     * Generate a PolygonalMesh from this TriangleMesh; useful mostly for
+     * debugging because you can create a DecorativeMesh from this and then
+     * look at it.
+     */
+    PolygonalMesh createPolygonalMesh() const;
+
     /** Return true if the supplied ContactGeometry object is a triangle mesh. **/
     static bool isInstance(const ContactGeometry& geo)
     {   return geo.getTypeId()==classTypeId(); }
