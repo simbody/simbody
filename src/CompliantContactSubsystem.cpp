@@ -797,14 +797,14 @@ void ContactForceGenerator::ElasticFoundation::calcContactForce
     Vec3 weightedPatchCentroid1_S1(0), weightedPatchCentroid2_S1(0);
     Real patchArea1 = 0, patchArea2 = 0;
     if (shape1.getTypeId() == ContactGeometry::TriangleMesh::classTypeId()) {
-        const ContactGeometry::TriangleMesh mesh1 = 
+        const ContactGeometry::TriangleMesh& mesh1 = 
             ContactGeometry::TriangleMesh::getAs(shape1);
 
         calcWeightedPatchCentroid(mesh1, contact.getSurface1Faces(),
                                   weightedPatchCentroid1_S1, patchArea1);
     }
     if (shape2.getTypeId() == ContactGeometry::TriangleMesh::classTypeId()) {
-        const ContactGeometry::TriangleMesh mesh2 = 
+        const ContactGeometry::TriangleMesh& mesh2 = 
             ContactGeometry::TriangleMesh::getAs(shape2);
         Vec3 weightedPatchCentroid2_S2;
 
@@ -853,7 +853,7 @@ void ContactForceGenerator::ElasticFoundation::calcContactForce
     Real weightCOP1=0, weightCOP2=0;
 
     if (shape1.getTypeId() == ContactGeometry::TriangleMesh::classTypeId()) {
-        const ContactGeometry::TriangleMesh mesh = 
+        const ContactGeometry::TriangleMesh& mesh = 
             ContactGeometry::TriangleMesh::getAs(shape1);
 
         processOneMesh(state, 
@@ -866,7 +866,7 @@ void ContactForceGenerator::ElasticFoundation::calcContactForce
     }
 
     if (shape2.getTypeId() == ContactGeometry::TriangleMesh::classTypeId()) {
-        const ContactGeometry::TriangleMesh mesh = 
+        const ContactGeometry::TriangleMesh& mesh = 
             ContactGeometry::TriangleMesh::getAs(shape2);
 
         // Costs 120 flops to flip everything into S2 for processing and

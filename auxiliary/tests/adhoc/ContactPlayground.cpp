@@ -86,7 +86,7 @@ int main() {
     MultibodySystem         system;
     SimbodyMatterSubsystem  matter(system);
     GeneralForceSubsystem   forces(system);
-    Force::UniformGravity   gravity(forces, matter, 1*Vec3(.2, -9.8, 0));
+    Force::UniformGravity   gravity(forces, matter, 1*Vec3(2, -9.8, 0));
 
     ContactTrackerSubsystem  tracker(system);
     CompliantContactSubsystem contactForces(system, tracker);
