@@ -78,6 +78,7 @@ static void makePyramid(Real baseSideLength, PolygonalMesh& pyramid);
 static void makeOctahedron(Real radius, PolygonalMesh& pyramid);
 static void makeSphere(Real radius, int level, PolygonalMesh& sphere);
 
+
 int main() {
   try
   { // Create the system.
@@ -108,7 +109,6 @@ int main() {
     //makePyramid(1, pyramidMesh);
     //makeOctahedron(1, pyramidMesh);
     makeSphere(1, 3, pyramidMesh);
-
 
     ContactGeometry::TriangleMesh pyramid(pyramidMesh);
     DecorativeMesh showPyramid(pyramid.createPolygonalMesh());
@@ -193,7 +193,7 @@ int main() {
         ContactSurface(pyramid,
                        ContactMaterial(1e6,fDis*.9,fFac*.8,fFac*.7,fVis*10))
                        //ContactMaterial(2e6,.01,.1,.05,.01))
-                       .joinClique(clique2).joinClique(clique3));
+                       .joinClique(clique2));
     MobilizedBody::Free ball(matter.Ground(), Transform(Vec3(-2,0,0)),
         ballBody, Transform(Vec3(0)));
 
@@ -331,14 +331,14 @@ static void makeTetrahedron(Real r, PolygonalMesh& tet) {
     }
 }
 
-static void makeOctahedralMesh(Real r, Array_<Vec3>& vertices,
+static void makeOctahedralMesh(const Vec3& r, Array_<Vec3>& vertices,
                                Array_<int>&  faceIndices) {
-    vertices.push_back(Vec3( r,  0,  0));   //0
-    vertices.push_back(Vec3(-r,  0,  0));   //1
-    vertices.push_back(Vec3( 0,  r,  0));   //2
-    vertices.push_back(Vec3( 0, -r,  0));   //3
-    vertices.push_back(Vec3( 0,  0,  r));   //4
-    vertices.push_back(Vec3( 0,  0, -r));   //5
+    vertices.push_back(Vec3( r[0],  0,  0));   //0
+    vertices.push_back(Vec3(-r[0],  0,  0));   //1
+    vertices.push_back(Vec3( 0,  r[1],  0));   //2
+    vertices.push_back(Vec3( 0, -r[1],  0));   //3
+    vertices.push_back(Vec3( 0,  0,  r[2]));   //4
+    vertices.push_back(Vec3( 0,  0, -r[2]));   //5
     int faces[8][3] = {{0, 2, 4}, {4, 2, 1}, {1, 2, 5}, {5, 2, 0}, 
                        {4, 3, 0}, {1, 3, 4}, {5, 3, 1}, {0, 3, 5}};
     for (int i = 0; i < 8; i++)
@@ -349,11 +349,11 @@ static void makeOctahedralMesh(Real r, Array_<Vec3>& vertices,
 // Create a triangle mesh in the shape of an octahedron (like two 
 // pyramids stacked base-to-base, with the square base in the x-z plane 
 // centered at 0,0,0 of given "radius" r. 
-// The apexes (apices?) will be at (0,+/-r,0).
+// The apexes will be at (0,+/-r,0).
 static void makeOctahedron(Real r, PolygonalMesh& mesh) {
     Array_<Vec3> vertices;
     Array_<int> faceIndices;
-    makeOctahedralMesh(r, vertices, faceIndices);
+    makeOctahedralMesh(Vec3(r), vertices, faceIndices);
 
     for (unsigned i=0; i < vertices.size(); ++i)
         mesh.addVertex(vertices[i]);
@@ -434,7 +434,7 @@ static void refineSphere(Real r, VertMap& vmap,
 static void makeSphere(Real radius, int level, PolygonalMesh& sphere) {
     Array_<Vec3> vertices;
     Array_<int> faceIndices;
-    makeOctahedralMesh(radius, vertices, faceIndices);
+    makeOctahedralMesh(Vec3(radius), vertices, faceIndices);
 
     VertMap vmap;
     for (unsigned i=0; i < vertices.size(); ++i)
@@ -452,6 +452,7 @@ static void makeSphere(Real radius, int level, PolygonalMesh& sphere) {
         sphere.addFace(verts);
     }
 }
+
 
 static void makeCube(Real h, PolygonalMesh& cube) {
     Array_<Vec3> vertices;

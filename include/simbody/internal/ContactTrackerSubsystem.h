@@ -610,8 +610,8 @@ virtual bool initializeContact
 private:
 void processBox(const ContactGeometry::TriangleMesh&              mesh, 
                 const ContactGeometry::TriangleMesh::OBBTreeNode& node, 
-                const Transform& X_HM, const Vec3& axisDir, Real xoffset, 
-                std::set<int>& insideFaces) const;
+                const Transform& X_HM, const UnitVec3& hsNormal_M, 
+                Real hsFaceHeight_M, std::set<int>& insideFaces) const;
 void addAllTriangles(const ContactGeometry::TriangleMesh::OBBTreeNode& node, 
                      std::set<int>& insideFaces) const; 
 };

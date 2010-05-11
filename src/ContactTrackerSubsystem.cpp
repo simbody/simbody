@@ -867,12 +867,19 @@ bool ContactTracker::HalfSpaceTriangleMesh::trackContact
 
     // Transform giving mesh (S2) frame in the halfspace (S1) frame.
     const Transform X_HM = (~X_GH)*X_GM; 
+
+    // Normal is halfspace -x direction; xdir is first column of R_MH.
+    // That's a unit vector and -unitvec is also a unit vector so this
+    // doesn't require normalization.
+    const UnitVec3 hsNormal_M = -(~X_HM.R()).x();
+    // Find the height of the halfspace face along the normal, measured
+    // from the mesh origin.
+    const Real hsFaceHeight_M = dot((~X_HM).p(), hsNormal_M);
+    // Now collect all the faces that are all or partially below the 
+    // halfspace surface.
     std::set<int> insideFaces;
-    // TODO: simplify this
-    Vec3 axisDir = ~X_HM.R()*Vec3(-1, 0, 0);
-    Real xoffset = ~axisDir*(~X_HM*Vec3(0));
     processBox(mesh, mesh.getOBBTreeNode(), X_HM, 
-               axisDir, xoffset, insideFaces);
+               hsNormal_M, hsFaceHeight_M, insideFaces);
     
     if (insideFaces.empty()) {
         currentStatus.clear(); // not touching
@@ -912,45 +919,64 @@ bool ContactTracker::HalfSpaceTriangleMesh::initializeContact
     return false; }
 
 
+
+// Check a single OBB and its contents (recursively) against the halfspace,
+// appending any penetrating faces to the insideFaces list.
 void ContactTracker::HalfSpaceTriangleMesh::processBox
    (const ContactGeometry::TriangleMesh&              mesh, 
     const ContactGeometry::TriangleMesh::OBBTreeNode& node, 
-    const Transform& X_HM, const Vec3& axisDir, Real xoffset, 
+    const Transform& X_HM, const UnitVec3& hsNormal_M, Real hsFaceHeight_M, 
     std::set<int>& insideFaces) const 
 {   // First check against the node's bounding box.
     
-    OrientedBoundingBox bounds = node.getBounds();
-    const Vec3 b = 0.5*bounds.getSize();
-    Vec3 boxCenter = bounds.getTransform()*b;
-    Real radius = ~b*(~bounds.getTransform().R()*axisDir).abs();
-    Real dist = ~axisDir*boxCenter-xoffset;
-    if (dist > radius)
-        return;
-    if (dist < -radius) {
-        addAllTriangles(node, insideFaces);
+    const OrientedBoundingBox& bounds = node.getBounds();
+    const Transform& X_MB = bounds.getTransform(); // box frame in mesh
+    const Vec3 p_BC = bounds.getSize()/2; // from box origin corner to center
+    // Express the half space normal in the box frame, then reflect it into
+    // the first (+,+,+) quadrant where it is the normal of a different 
+    // but symmetric and more convenient half space.
+    const UnitVec3 octant1hsNormal_B = (~X_MB.R()*hsNormal_M).abs();
+    // Dot our octant1 radius p_BC with our octant1 normal to get
+    // the extent of the box from its center in the direction of the octant1
+    // reflection of the halfspace.
+    const Real extent = dot(p_BC, octant1hsNormal_B);
+    // Compute the height of the box center over the mesh origin,
+    // measured along the real halfspace normal.
+    const Vec3 boxCenter_M       = X_MB*p_BC;
+    const Real boxCenterHeight_M = dot(boxCenter_M, hsNormal_M);
+    // Subtract the halfspace surface position to get the height of the 
+    // box center over the halfspace.
+    const Real boxCenterHeight = boxCenterHeight_M - hsFaceHeight_M;
+    if (boxCenterHeight >= extent)
+        return;                             // no penetration
+    if (boxCenterHeight <= -extent) {
+        addAllTriangles(node, insideFaces); // box is entirely in halfspace
         return;
     }
     
-    // If it is not a leaf node, check its children.
-    
+    // Box is partially penetrated into halfspace. If it is not a leaf node, 
+    // check its children.
     if (!node.isLeafNode()) {
-        processBox(mesh, node.getFirstChildNode(), X_HM, axisDir, xoffset, insideFaces);
-        processBox(mesh, node.getSecondChildNode(), X_HM, axisDir, xoffset, insideFaces);
+        processBox(mesh, node.getFirstChildNode(), X_HM, hsNormal_M, 
+                   hsFaceHeight_M, insideFaces);
+        processBox(mesh, node.getSecondChildNode(), X_HM, hsNormal_M, 
+                   hsFaceHeight_M, insideFaces);
         return;
     }
     
-    // Check the triangles.
-    
+    // This is a leaf OBB node that is penetrating, so some of its triangles
+    // may be penetrating.
     const Array_<int>& triangles = node.getTriangles();
-    const Row3 xdir = X_HM.R().row(0);
-    const Real tx = X_HM.p()[0];
     for (int i = 0; i < (int) triangles.size(); i++) {
-        if (xdir*mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], 0))+tx > 0)
-            insideFaces.insert(triangles[i]);
-        else if (xdir*mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], 1))+tx > 0)
-            insideFaces.insert(triangles[i]);
-        else if (xdir*mesh.getVertexPosition(mesh.getFaceVertex(triangles[i], 2))+tx > 0)
-            insideFaces.insert(triangles[i]);
+        for (int vx=0; vx < 3; ++vx) {
+            const int   vertex         = mesh.getFaceVertex(triangles[i], vx);
+            const Vec3& vertexPos      = mesh.getVertexPosition(vertex);
+            const Real  vertexHeight_M = dot(vertexPos, hsNormal_M);
+            if (vertexHeight_M < hsFaceHeight_M) {
+                insideFaces.insert(triangles[i]);
+                break; // done with this face
+            }
+        }
     }
 }
 
