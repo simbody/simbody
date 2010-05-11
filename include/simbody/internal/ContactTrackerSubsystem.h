@@ -616,6 +616,123 @@ void addAllTriangles(const ContactGeometry::TriangleMesh::OBBTreeNode& node,
                      std::set<int>& insideFaces) const; 
 };
 
+
+
+//==============================================================================
+//                 SPHERE - TRIANGLE MESH CONTACT TRACKER
+//==============================================================================
+/** This ContactTracker handles contacts between a ContactGeometry::Sphere
+and a ContactGeometry::TriangleMesh, in that order. **/
+class SimTK_SIMBODY_EXPORT ContactTracker::SphereTriangleMesh
+:   public ContactTracker {
+public:
+SphereTriangleMesh() 
+:   ContactTracker(ContactGeometry::Sphere::classTypeId(),
+                   ContactGeometry::TriangleMesh::classTypeId()) {}
+
+virtual ~SphereTriangleMesh() {}
+
+virtual bool trackContact
+   (const Contact&         priorStatus,
+    const Transform& X_GS1, 
+    const ContactGeometry& surface1,    // the sphere
+    const Transform& X_GS2, 
+    const ContactGeometry& surface2,    // the mesh
+    Real                   cutoff,
+    Contact&               currentStatus) const;
+
+virtual bool predictContact
+   (const Contact&         priorStatus,
+    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               predictedStatus) const;
+
+virtual bool initializeContact
+   (const Transform& X_GS1, const SpatialVec& V_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               contactStatus) const;
+
+private:
+void processBox
+   (const ContactGeometry::TriangleMesh&              mesh, 
+    const ContactGeometry::TriangleMesh::OBBTreeNode& node, 
+    const Vec3& center_M, Real radius2,   
+    std::set<int>& insideFaces) const ;
+};
+
+
+
+//==============================================================================
+//             TRIANGLE MESH - TRIANGLE MESH CONTACT TRACKER
+//==============================================================================
+/** This ContactTracker handles contacts between two 
+ContactGeometry::TriangleMesh surfaces. **/
+class SimTK_SIMBODY_EXPORT ContactTracker::TriangleMeshTriangleMesh
+:   public ContactTracker {
+public:
+TriangleMeshTriangleMesh() 
+:   ContactTracker(ContactGeometry::TriangleMesh::classTypeId(),
+                   ContactGeometry::TriangleMesh::classTypeId()) {}
+
+virtual ~TriangleMeshTriangleMesh() {}
+
+virtual bool trackContact
+   (const Contact&         priorStatus,
+    const Transform& X_GS1, 
+    const ContactGeometry& surface1,    // mesh1
+    const Transform& X_GS2, 
+    const ContactGeometry& surface2,    // mesh2
+    Real                   cutoff,
+    Contact&               currentStatus) const;
+
+virtual bool predictContact
+   (const Contact&         priorStatus,
+    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               predictedStatus) const;
+
+virtual bool initializeContact
+   (const Transform& X_GS1, const SpatialVec& V_GS1,
+    const ContactGeometry& surface1,
+    const Transform& X_GS2, const SpatialVec& V_GS2,
+    const ContactGeometry& surface2,
+    Real                   cutoff,
+    Real                   intervalOfInterest,
+    Contact&               contactStatus) const;
+
+private:
+void findIntersectingFaces
+   (const ContactGeometry::TriangleMesh&                mesh1, 
+    const ContactGeometry::TriangleMesh&                mesh2,
+    const ContactGeometry::TriangleMesh::OBBTreeNode&   node1, 
+    const ContactGeometry::TriangleMesh::OBBTreeNode&   node2, 
+    const OrientedBoundingBox&                          node2Bounds_M1,
+    const Transform&                                    X_M1M2, 
+    std::set<int>&                                      insideFaces1, 
+    std::set<int>&                                      insideFaces2) const; 
+void findBuriedFaces
+   (const ContactGeometry::TriangleMesh&    mesh,
+    const ContactGeometry::TriangleMesh&    otherMesh,
+    const Transform&                        X_OM, 
+    std::set<int>&                          insideFaces) const;
+void tagFaces(const ContactGeometry::TriangleMesh&   mesh, 
+              Array_<int>&                           faceType,
+              std::set<int>&                         triangles, 
+              int                                    index) const;
+};
+
 } // namespace SimTK
 
 #endif // SimTK_SIMBODY_CONTACT_TRACKER_SUBSYSTEM_H_

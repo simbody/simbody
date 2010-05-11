@@ -148,17 +148,18 @@ int main() {
                        //ContactMaterial(2e6,.01,.1,.05,.01))
                        .joinClique(clique1));
 
+    const Real rad = .4;
     Body::Rigid pendulumBody1(MassProperties(1.0, Vec3(0), Inertia(1)));
-    pendulumBody1.addDecoration(Transform(), DecorativeSphere(0.2));
+    pendulumBody1.addDecoration(Transform(), DecorativeSphere(rad));
     pendulumBody1.addContactSurface(Transform(),
-        ContactSurface(ContactGeometry::Sphere(.2),
+        ContactSurface(ContactGeometry::Sphere(rad),
                        ContactMaterial(10000,fDis*.9,fFac*.8,fFac*.7,fVis*10))
                        .joinClique(clique1));
 
     Body::Rigid pendulumBody2(MassProperties(1.0, Vec3(0), Inertia(1)));
-    pendulumBody2.addDecoration(Transform(), DecorativeSphere(0.2).setColor(Orange));
+    pendulumBody2.addDecoration(Transform(), DecorativeSphere(rad).setColor(Orange));
     pendulumBody2.addContactSurface(Transform(),
-        ContactSurface(ContactGeometry::Sphere(.2),
+        ContactSurface(ContactGeometry::Sphere(rad),
                        ContactMaterial(100000,fDis*.9,fFac*.8,fFac*.7,fVis*10))
                        .joinClique(clique1));
 
@@ -171,7 +172,7 @@ int main() {
     Force::MobilityLinearSpring(forces, pendulum2, MobilizerUIndex(0),
         10, 0*(Pi/180));
 
-    const Real ballMass = 200;
+    const Real ballMass = 20;
     Body::Rigid ballBody(MassProperties(ballMass, Vec3(0), 
                             ballMass*Gyration::sphere(1)));
     //ballBody.addDecoration(Transform(), DecorativeSphere(.3).setColor(Cyan));
