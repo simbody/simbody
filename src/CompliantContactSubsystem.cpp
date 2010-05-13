@@ -366,7 +366,7 @@ ensureForceCacheValid(const State& state) const {
         // the Contact and X_S1S2.
         const Transform X_GS1 = mobod1.findFrameTransformInGround
             (state, m_tracker.getContactSurfaceTransform(surf1));
-        const Transform X_GS2 = mobod1.findFrameTransformInGround
+        const Transform X_GS2 = mobod2.findFrameTransformInGround
             (state, m_tracker.getContactSurfaceTransform(surf2));
 
         const SpatialVec V_GS1 = mobod1.findFrameVelocityInGround

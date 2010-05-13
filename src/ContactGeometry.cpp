@@ -117,8 +117,8 @@ void ContactGeometry::getBoundingSphere(Vec3& center, Real& radius) const {
 //                           CONTACT GEOMETRY IMPL
 //==============================================================================
 
-ContactGeometryImpl::ContactGeometryImpl(const string& type) : myHandle(0), type(type), typeIndex(getIndexForType(type)) {
-}
+ContactGeometryImpl::ContactGeometryImpl(const string& type) 
+:   myHandle(0), type(type), typeIndex(getIndexForType(type)) {}
 
 int ContactGeometryImpl::getIndexForType(std::string type) {
     static map<string, int> typeMap;
@@ -147,27 +147,34 @@ ContactGeometry::HalfSpace::HalfSpace()
 /*static*/ ContactGeometryTypeId ContactGeometry::HalfSpace::classTypeId() 
 {   return ContactGeometry::HalfSpaceImpl::classTypeId(); }
 
-Vec3 ContactGeometry::HalfSpaceImpl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
+// Point position is given in the half space frame.
+Vec3 ContactGeometry::HalfSpaceImpl::findNearestPoint
+   (const Vec3& position, bool& inside, UnitVec3& normal) const {
     inside = (position[0] >= 0);
-    normal = UnitVec3(-1, 0, 0);
+    normal = -UnitVec3(XAxis); // this does not require normalization
     return Vec3(0, position[1], position[2]);
 }
 
-bool ContactGeometry::HalfSpaceImpl::intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const {
-    if (direction[0] < 1e-10 && direction[0] > -1e-10)
-        return false;
-    Real t = origin[0]/direction[0];
-    if (t > 0.0)
-        return false;
+bool ContactGeometry::HalfSpaceImpl::intersectsRay
+   (const Vec3& origin, const UnitVec3& direction, 
+    Real& distance, UnitVec3& normal) const 
+{
+    if (std::abs(direction[0]) < SignificantReal)
+        return false; // ray is parallel to halfspace surface
+
+    const Real t = origin[0]/direction[0];
+    if (t > 0)
+        return false; // ray points away from surface
+
     distance = -t;
-    normal = UnitVec3(-1, 0, 0);
+    normal = -UnitVec3(XAxis); // cheap; no normalization required
     return true;
 }
 
-void ContactGeometry::HalfSpaceImpl::getBoundingSphere(Vec3& center, Real& radius) const {
-    center = Vec3(0);
-    radius = Infinity;
-}
+void ContactGeometry::HalfSpaceImpl::getBoundingSphere
+   (Vec3& center, Real& radius) const 
+{   center = Vec3(0);
+    radius = Infinity; }
 
 
 
@@ -201,20 +208,23 @@ ContactGeometry::SphereImpl& ContactGeometry::Sphere::updImpl() {
 
 Vec3 ContactGeometry::SphereImpl::findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
     inside = (position.normSqr() <= radius*radius);
-    normal = UnitVec3(position);
+    normal = UnitVec3(position); // expensive -- normalizing
     return normal*radius;
 }
 
-bool ContactGeometry::SphereImpl::intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, UnitVec3& normal) const {
+bool ContactGeometry::SphereImpl::intersectsRay
+   (const Vec3& origin, const UnitVec3& direction, 
+    Real& distance, UnitVec3& normal) const 
+{
     Real b = -~direction*origin;;
     Real c = origin.normSqr() - radius*radius;
-    if (c > 0.0) {
+    if (c > 0) {
         // Ray origin is outside sphere.
 
-        if (b <= 0.0)
+        if (b <= 0)
           return false;  // Ray points away from center of sphere.
         Real d = b*b - c;
-        if (d < 0.0)
+        if (d < 0)
           return false;
         Real root = std::sqrt(d);
         distance = b - root;
@@ -223,7 +233,7 @@ bool ContactGeometry::SphereImpl::intersectsRay(const Vec3& origin, const UnitVe
         // Ray origin is inside sphere.
 
         Real d = b*b - c;
-        if (d < 0.0)
+        if (d < 0)
           return false;
         distance = b + std::sqrt(d);
       }

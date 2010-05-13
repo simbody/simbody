@@ -43,6 +43,7 @@
 #include <exception>
 #include <algorithm>
 #include <iostream>
+#include <ctime>
 using std::cout; using std::endl;
 
 using namespace SimTK;
@@ -78,7 +79,7 @@ static void makePyramid(Real baseSideLength, PolygonalMesh& pyramid);
 static void makeOctahedron(Real radius, PolygonalMesh& pyramid);
 static void makeSphere(Real radius, int level, PolygonalMesh& sphere);
 
-
+static const Real ReportInterval = 0.05;
 int main() {
   try
   { // Create the system.
@@ -100,7 +101,7 @@ int main() {
     contactForces.setTransitionVelocity(1e-2);
 
     system.updDefaultSubsystem().addEventReporter
-        (new MyReporter(system,contactForces,.01));
+        (new MyReporter(system,contactForces,ReportInterval));
 
     PolygonalMesh pyramidMesh;
     //makeCube(1, pyramidMesh);
@@ -126,17 +127,19 @@ int main() {
     ContactCliqueId clique3 = ContactSurface::createNewContactClique();
 
     const Real fFac =1; // to turn off friction
-    const Real fDis = .1*0.2; // to turn off dissipation
-    const Real fVis = 1*.01; // to turn off viscous friction
+    const Real fDis = 1*0.2; // to turn off dissipation
+    const Real fVis =  1*.1; // to turn off viscous friction
+    const Real fK = 100e6; // pascals
+
     // Right hand wall
     matter.Ground().updBody().addDecoration(Vec3(.25+.01,0,0),
         DecorativeBrick(Vec3(.01,2,1)).setColor(Blue));
     matter.Ground().updBody().addContactSurface(Vec3(.25,0,0),
         ContactSurface(ContactGeometry::HalfSpace(),
-                       ContactMaterial(100000,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+                       ContactMaterial(fK*.01,fDis*.9,fFac*.8,fFac*.7,fVis*10))
                        .joinClique(clique3));
 
-    // Floor
+    // Halfspace floor
     const Rotation R_xdown(-Pi/2,ZAxis);
     matter.Ground().updBody().addDecoration(
         Transform(R_xdown, Vec3(0,-3-.01,0)),
@@ -144,30 +147,56 @@ int main() {
     matter.Ground().updBody().addContactSurface(
         Transform(R_xdown, Vec3(0,-3,0)),
         ContactSurface(ContactGeometry::HalfSpace(),
-                       ContactMaterial(1e6,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+                       ContactMaterial(fK*.1,fDis*.9,fFac*.8,fFac*.7,fVis*10))
                        //ContactMaterial(2e6,.01,.1,.05,.01))
                        .joinClique(clique1));
+
+    //// Big Sphere floor
+    //const Real FloorRadius = 10;
+    //matter.Ground().updBody().addDecoration(
+    //    Vec3(0,-FloorRadius-3,0),
+    //    DecorativeSphere(FloorRadius).setColor(Green));
+    //matter.Ground().updBody().addContactSurface(
+    //    Vec3(0,-FloorRadius-3,0),
+    //    ContactSurface(ContactGeometry::Sphere(FloorRadius),
+    //                   ContactMaterial(1e6,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+    //                   //ContactMaterial(2e6,.01,.1,.05,.01))
+    //                   .joinClique(clique1));
 
     const Real rad = .4;
     Body::Rigid pendulumBody1(MassProperties(1.0, Vec3(0), Inertia(1)));
     pendulumBody1.addDecoration(Transform(), DecorativeSphere(rad));
     pendulumBody1.addContactSurface(Transform(),
         ContactSurface(ContactGeometry::Sphere(rad),
-                       ContactMaterial(10000,fDis*.9,fFac*.8,fFac*.7,fVis*10))
-                       .joinClique(clique1));
+                       ContactMaterial(fK*.001,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+                       .joinClique(clique2));
 
     Body::Rigid pendulumBody2(MassProperties(1.0, Vec3(0), Inertia(1)));
     pendulumBody2.addDecoration(Transform(), DecorativeSphere(rad).setColor(Orange));
     pendulumBody2.addContactSurface(Transform(),
         ContactSurface(ContactGeometry::Sphere(rad),
-                       ContactMaterial(100000,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+                       ContactMaterial(fK*.01,fDis*.9,fFac*.8,fFac*.7,fVis*10))
                        .joinClique(clique1));
 
     MobilizedBody::Pin pendulum(matter.Ground(), Transform(Vec3(0)), 
                                 pendulumBody1,    Transform(Vec3(0, 1, 0)));
 
     MobilizedBody::Pin pendulum2(pendulum, Transform(Vec3(0)), 
-                                 pendulumBody2,    Transform(Vec3(0, 1, 0)));
+                                 pendulumBody2, Transform(Vec3(0, 1, 0)));
+
+#define USEBODY
+#ifdef USEBODY
+    MobilizedBody::Pin pendulum3(matter.Ground(), Transform(Vec3(-2,0,0)), 
+                                 pendulumBody1, Transform(Vec3(0, 2, 0)));
+    //Constraint::PrescribedMotion(matter, new Function::Constant(Real(0),1),
+    //    pendulum3, MobilizerQIndex(0));
+#else // use ground
+    matter.Ground().updBody().addDecoration(Vec3(-2,-1,0), DecorativeSphere(rad));
+    matter.Ground().updBody().addContactSurface(Vec3(-2,-1,0),
+        ContactSurface(ContactGeometry::Sphere(rad),
+                       ContactMaterial(fK*.001,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+                       .joinClique(clique2));
+#endif
 
     Force::MobilityLinearSpring(forces, pendulum2, MobilizerUIndex(0),
         10, 0*(Pi/180));
@@ -185,16 +214,17 @@ int main() {
     ballBody.addDecoration(Transform(), 
         showPyramid.setColor(Black)
                    .setRepresentation(DecorativeGeometry::DrawWireframe));
-    for (unsigned i=0; i < normals.size(); ++i)
-        ballBody.addDecoration(Transform(),
-            normals[i].setColor(Gray));
+    //for (unsigned i=0; i < normals.size(); ++i)
+    //    ballBody.addDecoration(Transform(),
+    //        normals[i].setColor(Gray));
     ballBody.addDecoration(Transform(), DecorativeSphere(1).setColor(Gray)
                                              .setOpacity(.1).setResolution(10));
     ballBody.addContactSurface(Transform(),
         ContactSurface(pyramid,
-                       ContactMaterial(1e6,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+                       ContactMaterial(fK*.1,fDis*.9,fFac*.8,fFac*.7,fVis*10))
                        //ContactMaterial(2e6,.01,.1,.05,.01))
-                       .joinClique(clique2));
+                       //.joinClique(clique2)
+                       );
     MobilizedBody::Free ball(matter.Ground(), Transform(Vec3(-2,0,0)),
         ballBody, Transform(Vec3(0)));
 
@@ -215,7 +245,8 @@ int main() {
     //ef.setTransitionVelocity(vt);
     //// end of old way.
 
-    VTKEventReporter* reporter = new VTKEventReporter(system, 0.01);
+
+    VTKEventReporter* reporter = new VTKEventReporter(system, ReportInterval);
     system.updDefaultSubsystem().addEventReporter(reporter);
 
     const VTKVisualizer& viz = reporter->getVisualizer();
@@ -227,6 +258,8 @@ int main() {
     ball.setQToFitTransform(state, Transform(Rotation(Pi/2,XAxis),
                                              Vec3(0,-1.8,0)));
 
+    pendulum3.setOneQ(state, 0, -Pi/4);
+
     viz.report(state);
     printf("Default state -- hit ENTER\n");
     cout << "t=" << state.getTime() 
@@ -237,24 +270,34 @@ int main() {
 
 
     pendulum.setOneU(state, 0, 5.0);
-    ball.setOneU(state, 1, 0*10);
+    ball.setOneU(state, 2, 10);
 
     
     // Simulate it.
+    const clock_t start = clock();
+
 
     //ExplicitEulerIntegrator integ(system);
     //CPodesIntegrator integ(system);
-    //RungeKuttaFeldbergIntegrator integ(system);
-    RungeKuttaMersonIntegrator integ(system);
+    RungeKuttaFeldbergIntegrator integ(system);
+    //RungeKuttaMersonIntegrator integ(system);
     //RungeKutta3Integrator integ(system);
     //VerletIntegrator integ(system);
     //integ.setMaximumStepSize(1e-0001);
-    integ.setAccuracy(1e-4);
+    integ.setAccuracy(1e-2);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(10.0);
 
-    printf("Using Integrator %s:\n", integ.getMethodName());
+    const double timeInSec = (double)(clock()-start)/CLOCKS_PER_SEC;
+    const int evals = integ.getNumRealizations();
+    cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
+        timeInSec << "s for " << ts.getTime() << "s sim (avg step=" 
+        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
+        << (1000*ts.getTime())/evals << "ms/eval\n";
+
+    printf("Using Integrator %s at accuracy %g:\n", 
+        integ.getMethodName(), integ.getAccuracyInUse());
     printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
     printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
