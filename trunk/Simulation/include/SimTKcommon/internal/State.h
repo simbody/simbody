@@ -533,8 +533,7 @@ public:
     ///
     /// (1) Allocate your lazy cache entry something like this:
     /// \code
-    ///     CEIndex = s.allocateCacheEntry(subsys,stage,Stage::Infinity,
-    ///                                    new Value<CEType>());
+    ///     CEIndex = s.allocateLazyCacheEntry(subsys,stage,new Value<CEType>());
     /// \endcode
     /// (2) Write a realizeCE() method structured like this:
     /// \code

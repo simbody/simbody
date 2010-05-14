@@ -338,7 +338,7 @@ public:
 
     // These affect only the explicit "last computed" flag which does not fully
     // determine whether the value is current; see isCurrent() above.
-    void invalidate() {versionWhenLastComputed = -1;}
+    void invalidate() {versionWhenLastComputed = 0;}
     void markAsComputed(const StageVersion versions[])
     {   versionWhenLastComputed = versions[dependsOnStage];}
 
@@ -609,7 +609,7 @@ private:
         for (int j=0; j<Stage::NValid; ++j) {
             ntriggers[j] = 0;
             triggerstart[j].invalidate();
-            stageVersions[j] = 1;
+            stageVersions[j] = 1; // never 0
         }
         currentStage = Stage::Empty;
     }
