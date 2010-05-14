@@ -78,27 +78,21 @@ public:
 
     // Calculate ydot = f(t,y).
     int explicitODE(Real t, const Vector& y, Vector& ydot) const {
-        State advanced = integ.updAdvancedState();
-        advanced.updY() = y;
-        advanced.updTime() = t;
         try { 
-            integ.realizeStateDerivatives(advanced); 
+            integ.setAdvancedStateAndRealizeDerivatives(t,y);
         }
         catch(...) { return CPodes::RecoverableError; } // assume recoverable
-        ydot = advanced.getYDot();
+        ydot = integ.getAdvancedState().getYDot();
         return CPodes::Success;
     }
 
     // Calculate yerr = c(t,y).
     int constraint(Real t, const Vector& y, Vector& yerr) const {
-        State advanced = integ.updAdvancedState();
-        advanced.updY() = y;
-        advanced.updTime() = t;
         try { 
-            system.realize(advanced, Stage::Velocity); 
+            integ.setAdvancedStateAndRealizeKinematics(t,y);
         }
         catch(...) { return CPodes::RecoverableError; } // assume recoverable
-        yerr = advanced.getYErr();
+        yerr = integ.getAdvancedState().getYErr();
         return CPodes::Success;
     }
 
@@ -108,17 +102,15 @@ public:
     // error estimate for state y; optionally project it to eliminate the 
     // portion normal to the manifold.
     int project(Real t, const Vector& y, Vector& ycorr, Real epsProj, Vector& err) const {
-        State advanced = integ.updAdvancedState();
-        advanced.updY() = y;
-        advanced.updTime() = t;
+        integ.setAdvancedState(t,y);
         try {
             const Real tol = integ.getConstraintToleranceInUse();
-            system.realize(advanced, Stage::Position);
-            system.project(advanced, tol, integ.getStateWeightsInUse(), 
+            system.realize(integ.getAdvancedState(), Stage::Position);
+            system.project(integ.updAdvancedState(), tol, integ.getStateWeightsInUse(), 
                            integ.getConstraintWeightsInUse(), err);
         }
         catch (...) { return CPodes::RecoverableError; } // assume recoverable
-        ycorr = advanced.getY()-y;
+        ycorr = integ.getAdvancedState().getY()-y;
         return CPodes::Success;
     }
     
@@ -126,14 +118,11 @@ public:
      * Calculate the event trigger functions.
      */
     int root(Real t, const Vector& y, const Vector& yp, Vector& gout) const {
-        State advanced = integ.updAdvancedState();
-        advanced.updY() = y;
-        advanced.updTime() = t;
         try { 
-            integ.realizeStateDerivatives(advanced); 
+            integ.setAdvancedStateAndRealizeDerivatives(t,y);
         }
         catch(...) { return CPodes::RecoverableError; } // assume recoverable
-        gout = advanced.getEventTriggers();
+        gout = integ.getAdvancedState().getEventTriggers();
         return CPodes::Success;
     }
 private:
