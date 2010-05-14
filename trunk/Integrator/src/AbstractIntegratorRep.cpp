@@ -221,11 +221,22 @@ AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
               return Integrator::ReachedScheduledEvent;
 
           // At this point we know we are going to have to advance the state, meaning
-          // that the current state will become the previous one. We need to remember
-          // the continuous pieces of the current state for restarts and interpolation.
-          // These will be updated below only when we make irreversible progress. Otherwise
-          // we'll use them to put things back the way we found them after any failures.
+          // that the current state will become the previous one. We need to 
+          // (1) ensure that all needed computations have been performed
+          // (2) update the auto-update discrete variables, whose update is not permitted
+          //     to change any of the results calculated in (1)
+          // (3) save the continuous pieces of the current state for integrator restarts 
+          //     and interpolation.
+          // The continuous state variables will be updated below only when we make 
+          // irreversible progress. Otherwise we'll use the saved ones to put things back 
+          // the way we found them after any failures.
+
+          // Ensure that all derivatives and other derived quantities are known, including
+          // discrete state updates.
           realizeStateDerivatives(getAdvancedState());
+          // Swap the discrete state update cache entries with the state variables.
+          updAdvancedState().autoUpdateDiscreteVariables();
+          // Record continuous state and derivative information for step restarts.
           saveStateAsPrevious(getAdvancedState());
           
           // Now take a step and see whether an event occurred.

@@ -118,7 +118,7 @@ class IntegratorRep;
  * We are given a set of weights W for the y's, and a set of tolerances T
  * for the constraint errors. Given an accuracy specification (like 0.1%),
  * the integrators here are expected to solve for y(t) such that the
- * local error |W*y|_RMS <= accuracy, and |T*c(t,y)|_RMS <= accuracy at
+ * local error |W*yerr|_RMS <= accuracy, and |T*c(t,y)|_RMS <= accuracy at
  * all times.
  *
  * TODO: isolation tolerances for witnesses; dealing with simultaneity.

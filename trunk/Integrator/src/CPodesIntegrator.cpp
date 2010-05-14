@@ -277,6 +277,10 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
     assert(initialized);
     assert(reportTime >= getState().getTime());
     assert(scheduledEventTime >= getState().getTime());
+
+    
+    // Ask CPodes to perform the integration.
+
     
     // If this is the start of a continuous interval, return immediately so
     // the current state will be seen as part of the trajectory.
@@ -302,9 +306,8 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
         else
             mode = CPodes::Normal;
     }
-    
-    // Ask CPodes to perform the integration.
-    
+
+
     while (true) {
         Real tret;
         int res;
@@ -330,6 +333,14 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
             previousTimeReturned = tret;
         }
         else {
+            // We're going to advance time now.
+    
+            // Auto-update discrete variables. This update is not allowed to affect
+            // any computations performed at the current state value so does not
+            // invalidate any stage.
+            // Swap the discrete state update cache entries with the state variables.
+            updAdvancedState().autoUpdateDiscreteVariables();
+
             previousStartTime = getAdvancedTime();
             Vector yout(getAdvancedState().getY().size());
             Vector ypout(getAdvancedState().getY().size()); // ignored
@@ -374,6 +385,7 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo
         }
         updAdvancedState().updTime() = tret;
         realizeStateDerivatives(getAdvancedState());
+
         
         // Check for integration errors.
         
