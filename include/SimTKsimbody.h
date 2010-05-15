@@ -96,5 +96,7 @@
 #include "simbody/internal/Assembler.h"
 #include "simbody/internal/OrientedBoundingBox.h"
 #include "simbody/internal/LocalEnergyMinimizer.h"
+#include "simbody/internal/ContactTrackerSubsystem.h"
+#include "simbody/internal/CompliantContactSubsystem.h"
 
 #endif // SimTK_SIMBODY_SimTKSIMBODY_H_

@@ -68,6 +68,24 @@ Real getOOTransitionVelocity() const  {return m_ooTransitionVelocity;}
 void setTransitionVelocity(Real vt) 
 {   m_transitionVelocity=vt; m_ooTransitionVelocity=1/vt;}
 
+
+int getNumContactForces(const State& s) const {
+    ensureForceCacheValid(s);
+    const Array_<ContactForce>& forces = getForceCache(s);
+    return (int)forces.size();
+}
+
+const ContactForce& getContactForce(const State& s, int n) const {
+    const int numContactForces = getNumContactForces(s);
+    SimTK_ERRCHK2_ALWAYS(n < numContactForces,
+        "CompliantContactSubsystem::getContactForce()",
+        "There are currently only %d contact forces but force %d"
+        " was requested (they are numbered from 0). Use getNumContactForces()"
+        " first to determine how many are available.", numContactForces, n);
+    const Array_<ContactForce>& forces = getForceCache(s);
+    return forces[n];
+}
+
 const ContactTrackerSubsystem& getContactTrackerSubsystem() const
 {   return m_tracker; }
 
@@ -442,6 +460,12 @@ void CompliantContactSubsystem::setTransitionVelocity(Real vt) {
     updImpl().setTransitionVelocity(vt);
 }
 
+int CompliantContactSubsystem::getNumContactForces(const State& s) const
+{   return getImpl().getNumContactForces(s); }
+
+const ContactForce& CompliantContactSubsystem::
+getContactForce(const State& s, int n) const
+{   return getImpl().getContactForce(s,n); }
 
 Real CompliantContactSubsystem::
 getDissipatedEnergy(const State& s) const

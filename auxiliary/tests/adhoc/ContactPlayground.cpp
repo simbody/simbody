@@ -36,9 +36,6 @@
 #include "SimTKsimbody.h"
 #include "SimTKsimbody_aux.h"   // requires VTK
 
-#include "simbody/internal/ContactTrackerSubsystem.h"
-#include "simbody/internal/CompliantContactSubsystem.h"
-
 #include <cstdio>
 #include <exception>
 #include <algorithm>
@@ -50,15 +47,52 @@ using namespace SimTK;
 
 Array_<State> saveEm;
 
+static const Real ReportInterval = 0.01;
+static const Real ForceScale = .25;
+static const Real MomentScale = .5;
+
 class MyReporter : public PeriodicEventReporter {
 public:
     MyReporter(const MultibodySystem& system, 
                const CompliantContactSubsystem& complCont,
+               VTKVisualizer& viz,
                Real reportInterval)
     :   PeriodicEventReporter(reportInterval), m_system(system),
-        m_compliant(complCont) {}
+        m_compliant(complCont), m_viz(viz) {}
 
     ~MyReporter() {}
+
+    void generateForceArrows(const State& state) const {
+        const Vec3 frcColors[] = {Red,Orange,Yellow};
+        const Vec3 momColors[] = {Blue,Green,Purple};
+        m_system.realize(state, Stage::Velocity);
+
+        const int ncont = m_compliant.getNumContactForces(state);
+        for (int i=0; i < ncont; ++i) {
+            const ContactForce& force = m_compliant.getContactForce(state,i);
+            const ContactId     id    = force.m_contactId;
+            const Vec3& frc = force.m_forceOnSurface2[1];
+            const Vec3& mom = force.m_forceOnSurface2[0];
+            Real  frcMag = frc.norm(), momMag=mom.norm();
+            int frcThickness = 1, momThickness = 1;
+            Real frcScale = ForceScale, momScale = ForceScale;
+            while (frcMag > 10)
+                frcThickness++, frcScale /= 10, frcMag /= 10;
+            while (momMag > 10)
+                momThickness++, momScale /= 10, momMag /= 10;
+            DecorativeLine frcLine(force.m_contactPt,
+                force.m_contactPt + frcScale*frc);
+            DecorativeLine momLine(force.m_contactPt,
+                force.m_contactPt + momScale*mom);
+            frcLine.setColor(frcColors[id%3]);
+            momLine.setColor(momColors[id%3]);
+            frcLine.setLineThickness(2*frcThickness);
+            momLine.setLineThickness(2*momThickness);
+            m_viz.addEphemeralDecoration(frcLine);
+            m_viz.addEphemeralDecoration(momLine);
+        }
+    }
+
     void handleEvent(const State& state) const {
         m_system.realize(state, Stage::Dynamics);
         cout << state.getTime() << ": E = " << m_system.calcEnergy(state)
@@ -66,11 +100,19 @@ public:
              << " E+Ediss=" << m_system.calcEnergy(state)
                                +m_compliant.getDissipatedEnergy(state)
              << endl;
+        const int ncont = m_compliant.getNumContactForces(state);
+        cout << "Num contacts: " << m_compliant.getNumContactForces(state) << endl;
+        for (int i=0; i < ncont; ++i) {
+            const ContactForce& force = m_compliant.getContactForce(state,i);
+            //cout << force;
+        }
+        generateForceArrows(state);
         saveEm.push_back(state);
     }
 private:
     const MultibodySystem&           m_system;
     const CompliantContactSubsystem& m_compliant;
+    VTKVisualizer&                   m_viz;
 };
 
 static void makeCube(Real h, PolygonalMesh& cube);
@@ -79,7 +121,6 @@ static void makePyramid(Real baseSideLength, PolygonalMesh& pyramid);
 static void makeOctahedron(Real radius, PolygonalMesh& pyramid);
 static void makeSphere(Real radius, int level, PolygonalMesh& sphere);
 
-static const Real ReportInterval = 0.05;
 int main() {
   try
   { // Create the system.
@@ -98,10 +139,8 @@ int main() {
 
 
 
-    contactForces.setTransitionVelocity(1e-2);
+    contactForces.setTransitionVelocity(1e-3);
 
-    system.updDefaultSubsystem().addEventReporter
-        (new MyReporter(system,contactForces,ReportInterval));
 
     PolygonalMesh pyramidMesh;
     //makeCube(1, pyramidMesh);
@@ -114,7 +153,7 @@ int main() {
     ContactGeometry::TriangleMesh pyramid(pyramidMesh);
     DecorativeMesh showPyramid(pyramid.createPolygonalMesh());
     Array_<DecorativeLine> normals;
-    const Real NormalLength = .1;
+    const Real NormalLength = .02;
     for (int fx=0; fx < pyramid.getNumFaces(); ++fx)
         normals.push_back(
         DecorativeLine(pyramid.findCentroid(fx),
@@ -127,13 +166,13 @@ int main() {
     ContactCliqueId clique3 = ContactSurface::createNewContactClique();
 
     const Real fFac =1; // to turn off friction
-    const Real fDis = 1*0.2; // to turn off dissipation
-    const Real fVis =  1*.1; // to turn off viscous friction
-    const Real fK = 100e6; // pascals
+    const Real fDis = .5*0.2; // to turn off dissipation
+    const Real fVis =  .1*.1; // to turn off viscous friction
+    const Real fK = 100*1e6; // pascals
 
     // Right hand wall
     matter.Ground().updBody().addDecoration(Vec3(.25+.01,0,0),
-        DecorativeBrick(Vec3(.01,2,1)).setColor(Blue));
+        DecorativeBrick(Vec3(.01,4,2)).setColor(Gray).setOpacity(.1));
     matter.Ground().updBody().addContactSurface(Vec3(.25,0,0),
         ContactSurface(ContactGeometry::HalfSpace(),
                        ContactMaterial(fK*.01,fDis*.9,fFac*.8,fFac*.7,fVis*10))
@@ -143,7 +182,7 @@ int main() {
     const Rotation R_xdown(-Pi/2,ZAxis);
     matter.Ground().updBody().addDecoration(
         Transform(R_xdown, Vec3(0,-3-.01,0)),
-        DecorativeBrick(Vec3(.01,2,1)).setColor(Green));
+        DecorativeBrick(Vec3(.01,4,2)).setColor(Gray).setOpacity(.1));
     matter.Ground().updBody().addContactSurface(
         Transform(R_xdown, Vec3(0,-3,0)),
         ContactSurface(ContactGeometry::HalfSpace(),
@@ -165,14 +204,16 @@ int main() {
 
     const Real rad = .4;
     Body::Rigid pendulumBody1(MassProperties(1.0, Vec3(0), Inertia(1)));
-    pendulumBody1.addDecoration(Transform(), DecorativeSphere(rad));
+    pendulumBody1.addDecoration(Transform(), 
+        DecorativeSphere(rad).setOpacity(.2));
     pendulumBody1.addContactSurface(Transform(),
         ContactSurface(ContactGeometry::Sphere(rad),
                        ContactMaterial(fK*.001,fDis*.9,fFac*.8,fFac*.7,fVis*10))
                        .joinClique(clique2));
 
     Body::Rigid pendulumBody2(MassProperties(1.0, Vec3(0), Inertia(1)));
-    pendulumBody2.addDecoration(Transform(), DecorativeSphere(rad).setColor(Orange));
+    pendulumBody2.addDecoration(Transform(), 
+        DecorativeSphere(rad).setColor(Orange).setOpacity(.2));
     pendulumBody2.addContactSurface(Transform(),
         ContactSurface(ContactGeometry::Sphere(rad),
                        ContactMaterial(fK*.01,fDis*.9,fFac*.8,fFac*.7,fVis*10))
@@ -184,24 +225,30 @@ int main() {
     MobilizedBody::Pin pendulum2(pendulum, Transform(Vec3(0)), 
                                  pendulumBody2, Transform(Vec3(0, 1, 0)));
 
-#define USEBODY
-#ifdef USEBODY
-    MobilizedBody::Pin pendulum3(matter.Ground(), Transform(Vec3(-2,0,0)), 
-                                 pendulumBody1, Transform(Vec3(0, 2, 0)));
-    //Constraint::PrescribedMotion(matter, new Function::Constant(Real(0),1),
-    //    pendulum3, MobilizerQIndex(0));
-#else // use ground
-    matter.Ground().updBody().addDecoration(Vec3(-2,-1,0), DecorativeSphere(rad));
-    matter.Ground().updBody().addContactSurface(Vec3(-2,-1,0),
-        ContactSurface(ContactGeometry::Sphere(rad),
-                       ContactMaterial(fK*.001,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+    Body::Rigid pendulumBody3(MassProperties(100.0, Vec3(0), 100*Inertia(1)));
+    PolygonalMesh body3contact;
+    makeSphere(rad, 2, body3contact);
+    ContactGeometry::TriangleMesh geo3(body3contact);
+    const DecorativeMesh mesh3(geo3.createPolygonalMesh());
+    pendulumBody3.addDecoration(Transform(), 
+        DecorativeMesh(mesh3).setOpacity(.2));
+    pendulumBody3.addDecoration(Transform(), 
+        DecorativeMesh(mesh3).setColor(Black)
+                   .setRepresentation(DecorativeGeometry::DrawWireframe)
+                   .setOpacity(.1));
+
+    //ContactGeometry::Sphere geo3(rad);
+    pendulumBody3.addContactSurface(Transform(),
+        ContactSurface(geo3,
+                       ContactMaterial(fK*.1,fDis*.9,fFac*.8,fFac*.7,fVis*10))
                        .joinClique(clique2));
-#endif
+    MobilizedBody::Pin pendulum3(matter.Ground(), Transform(Vec3(-2,0,0)), 
+                                 pendulumBody3, Transform(Vec3(0, 2, 0)));
 
     Force::MobilityLinearSpring(forces, pendulum2, MobilizerUIndex(0),
         10, 0*(Pi/180));
 
-    const Real ballMass = 20;
+    const Real ballMass = 200;
     Body::Rigid ballBody(MassProperties(ballMass, Vec3(0), 
                             ballMass*Gyration::sphere(1)));
     //ballBody.addDecoration(Transform(), DecorativeSphere(.3).setColor(Cyan));
@@ -221,7 +268,8 @@ int main() {
                                              .setOpacity(.1).setResolution(10));
     ballBody.addContactSurface(Transform(),
         ContactSurface(pyramid,
-                       ContactMaterial(fK*.1,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+                       ContactMaterial(fK*.1,fDis*.9,
+                                       .1*fFac*.8,.1*fFac*.7,fVis*1))
                        //ContactMaterial(2e6,.01,.1,.05,.01))
                        //.joinClique(clique2)
                        );
@@ -246,11 +294,13 @@ int main() {
     //// end of old way.
 
 
-    VTKEventReporter* reporter = new VTKEventReporter(system, ReportInterval);
-    system.updDefaultSubsystem().addEventReporter(reporter);
+    VTKEventReporter& reporter = *new VTKEventReporter(system, ReportInterval);
+    VTKVisualizer& viz = reporter.updVisualizer();
+    
+    MyReporter& myRep = *new MyReporter(system,contactForces,viz,ReportInterval);
+    system.updDefaultSubsystem().addEventReporter(&myRep);
+    system.updDefaultSubsystem().addEventReporter(&reporter);
 
-    const VTKVisualizer& viz = reporter->getVisualizer();
-   
     // Initialize the system and state.
     
     system.realizeTopology();
@@ -258,6 +308,7 @@ int main() {
     ball.setQToFitTransform(state, Transform(Rotation(Pi/2,XAxis),
                                              Vec3(0,-1.8,0)));
 
+    pendulum.setOneQ(state, 0, -Pi/12);
     pendulum3.setOneQ(state, 0, -Pi/4);
 
     viz.report(state);
@@ -270,7 +321,7 @@ int main() {
 
 
     pendulum.setOneU(state, 0, 5.0);
-    ball.setOneU(state, 2, 10);
+    ball.setOneU(state, 2, -20);
 
     
     // Simulate it.
@@ -278,16 +329,16 @@ int main() {
 
 
     //ExplicitEulerIntegrator integ(system);
-    //CPodesIntegrator integ(system);
-    RungeKuttaFeldbergIntegrator integ(system);
+    //CPodesIntegrator integ(system,CPodes::BDF,CPodes::Newton);
+    //RungeKuttaFeldbergIntegrator integ(system);
     //RungeKuttaMersonIntegrator integ(system);
-    //RungeKutta3Integrator integ(system);
+    RungeKutta3Integrator integ(system);
     //VerletIntegrator integ(system);
     //integ.setMaximumStepSize(1e-0001);
     integ.setAccuracy(1e-2);
     TimeStepper ts(system, integ);
     ts.initialize(state);
-    ts.stepTo(10.0);
+    ts.stepTo(20.0);
 
     const double timeInSec = (double)(clock()-start)/CLOCKS_PER_SEC;
     const int evals = integ.getNumRealizations();
@@ -305,6 +356,7 @@ int main() {
 
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {
+            myRep.generateForceArrows(saveEm[i]);
             viz.report(saveEm[i]);
             //vtk.report(saveEm[i]); // half speed
         }
