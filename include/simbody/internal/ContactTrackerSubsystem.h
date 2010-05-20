@@ -52,13 +52,12 @@ contacts. It operates on the \e undeformed, material-independent geometry of
 ContactSurfaces that have been associated with those bodies, identifying and
 characterizing pairwise geometric relationships that occur between surfaces, 
 and tracking the evolution of particular Contacts through time. No physical 
-response to contact is generated here; this 
-subsystem provides only a general contact-tracking service that can be used by
-other parts of the MultibodySystem to generate forces, impulses, 
-visualizations, messages, noises, or whatever. The goal here is to provide 
-robust and extremely high performance characterization of geometric 
-interactions in a way that is useful for a variety of contact 
-response models.
+response to contact is generated here; this subsystem provides only a general 
+contact-tracking service that can be used by other parts of the MultibodySystem
+to generate forces, impulses, visualizations, messages, noises, or whatever. 
+The goal here is to provide robust and extremely high performance 
+characterization of geometric interactions in a way that is useful for a 
+variety of contact response models.
 
 The ContactTrackerSubsystem maintains an evolving set of tracked Contacts 
 throughout a simulation; for any given state of the system the subsystem can
@@ -173,11 +172,11 @@ const ContactSurface& getContactSurface(ContactSurfaceIndex surfIx) const;
 surface with respect to the body frame of the body to which it is attached. **/
 const Transform& getContactSurfaceTransform(ContactSurfaceIndex surfIx) const;
 
-/** Register the contact tracking algorithm to use for a particular pair
-of ContactGeometry types, replacing the existing tracker if any. If the
-tracker takes a pair (id1,id2), we will use it both for that pair and for
-(id2,id1) by calling it with the arguments reversed. The 
-subsystem takes over ownership of the supplied heap-allocated object. **/
+/** Register the contact tracking algorithm to use for a particular pair of 
+ContactGeometry types, replacing the existing tracker if any. If the tracker 
+takes a pair (id1,id2), we will use it both for that pair and for (id2,id1) by
+calling it with the arguments reversed. The subsystem takes over ownership of 
+the supplied heap-allocated object. **/
 void adoptContactTracker(ContactTracker* tracker);
 
 /** Return true if this subsystem has a contact tracker registered that can
@@ -186,7 +185,7 @@ types, in either order. **/
 bool hasContactTracker(ContactGeometryTypeId surface1, 
                        ContactGeometryTypeId surface2) const;
 
-/** Return the contract tracker to be used for an interaction between the
+/** Return the contact tracker to be used for an interaction between the
 indicated types of contact geometry. If the tracker requires the geometry
 types to be in reverse order from the (surface1,surface2) order given here,
 then the return argument \a reverseOrder will be set true, otherwise it will
@@ -211,7 +210,8 @@ Only the past contact status and current positions are used.  This
 cache entry value is precisely what will become the "previous active
 contacts" state variable at the beginning of the next time step. An error
 will be thrown if we have to calculate the contacts here but fail to do so; 
-to avoid that you should realize them explicitly first. 
+if you don't want to deal with the possibility that an error might occur here,
+you should realize contacts explicitly first. 
 @see realizeActiveContacts() **/
 const ContactSnapshot& getActiveContacts(const State& state) const;
 
