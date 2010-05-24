@@ -1806,6 +1806,62 @@ private:
     Real                        prescribedSpeed;
 };
 
+    // CONSTANT ACCELERATION
+
+class Constraint::ConstantAccelerationImpl : public ConstraintImpl {
+public:
+    ConstantAccelerationImpl()
+    :   ConstraintImpl(0,0,1), theMobilizer(), whichMobility(), 
+        defaultAcceleration(NaN)
+    { }
+    ConstantAccelerationImpl* clone() const 
+    { return new ConstantAccelerationImpl(*this); }
+
+    // Allocate a state variable to hold the desired acceleration.
+    void realizeTopologyVirtual(State& state) const;
+    // Obtain the currently-set desired acceleration from the state.
+    Real getAcceleration(const State& state) const;
+    // Get a reference to the desired acceleration in the state; this 
+    // invalidates Acceleration stage in the supplied state.
+    Real& updAcceleration(State& state) const;
+
+    // Implementation of virtuals required for acceleration-only constraints.
+
+    // One acceleration-only constraint equation.
+    //    aerr = udot - a
+    // 
+    void realizeAccelerationErrorsVirtual(const State& s, int ma,  Real* aerr) const {
+        assert(ma==1 && aerr);
+        *aerr = getOneUDot(s, theMobilizer, whichMobility, true) 
+                - getAcceleration(s);
+    }
+
+	// apply generalized force lambda to the mobility
+    void applyAccelerationConstraintForcesVirtual
+       (const State& s, int ma, const Real* multipliers,
+        Vector_<SpatialVec>& bodyForcesInA,
+        Vector&              mobilityForces) const
+    {
+        assert(ma==1 && multipliers);
+        const Real lambda = *multipliers;
+        addInOneMobilityForce(s, theMobilizer, whichMobility, 
+                              lambda, mobilityForces);
+    }
+
+    SimTK_DOWNCAST(ConstantAccelerationImpl, ConstraintImpl);
+private:
+    friend class Constraint::ConstantAcceleration;
+
+    // TOPOLOGY STATE
+    ConstrainedMobilizerIndex   theMobilizer;
+    MobilizerUIndex             whichMobility;
+    Real                        defaultAcceleration;
+
+    // TOPOLOGY CACHE
+    DiscreteVariableIndex       accelIx;
+};
+
+
 
     /////////////////////////////////////////////
     // CONSTRAINT::CUSTOM::IMPLEMENTATION IMPL //

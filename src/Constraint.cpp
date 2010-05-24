@@ -1602,7 +1602,6 @@ Constraint::ConstantSpeed::ConstantSpeed
     SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
         "Constraint::ConstantSpeed(): the mobilizer must already be in a SimbodyMatterSubsystem.");
 
-    //rep = new ConstantSpeedRep(); rep->setMyHandle(*this);
     mobilizer.updMatterSubsystem().adoptConstraint(*this);
 
     updImpl().theMobilizer = updImpl().addConstrainedMobilizer(mobilizer);
@@ -1617,7 +1616,6 @@ Constraint::ConstantSpeed::ConstantSpeed(MobilizedBody& mobilizer, Real defaultS
     SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
         "Constraint::ConstantSpeed(): the mobilizer must already be in a SimbodyMatterSubsystem.");
 
-    //rep = new ConstantSpeedRep(); rep->setMyHandle(*this);
     mobilizer.updMatterSubsystem().adoptConstraint(*this);
 
     updImpl().theMobilizer = updImpl().addConstrainedMobilizer(mobilizer);
@@ -1656,6 +1654,115 @@ Real Constraint::ConstantSpeed::getMultiplier(const State& s) const {
 
     // ConstantSpeedImpl
     // nothing yet
+
+
+
+    ///////////////////////////////////////
+    // CONSTRAINT::CONSTANT ACCELERATION //
+    ///////////////////////////////////////
+
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS
+   (Constraint::ConstantAcceleration, Constraint::ConstantAccelerationImpl, 
+    Constraint);
+
+// This picks one of the mobilities from a multiple-mobility mobilizer.
+Constraint::ConstantAcceleration::ConstantAcceleration
+   (MobilizedBody& mobilizer, MobilizerUIndex whichU, Real defaultAcceleration)
+:   Constraint(new ConstantAccelerationImpl())
+{
+    SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
+    "Constraint::ConstantAcceleration(): the mobilizer must already be"
+    " in a SimbodyMatterSubsystem.");
+
+    mobilizer.updMatterSubsystem().adoptConstraint(*this);
+
+    updImpl().theMobilizer = updImpl().addConstrainedMobilizer(mobilizer);
+    updImpl().whichMobility = whichU;
+    updImpl().defaultAcceleration = defaultAcceleration;
+}
+
+// This is for mobilizers with only 1 mobility.
+Constraint::ConstantAcceleration::ConstantAcceleration
+   (MobilizedBody& mobilizer, Real defaultAcceleration)
+:   Constraint(new ConstantAccelerationImpl())
+{
+    SimTK_ASSERT_ALWAYS(mobilizer.isInSubsystem(),
+    "Constraint::ConstantAcceleration(): the mobilizer must already be"
+    " in a SimbodyMatterSubsystem.");
+
+    mobilizer.updMatterSubsystem().adoptConstraint(*this);
+
+    updImpl().theMobilizer = updImpl().addConstrainedMobilizer(mobilizer);
+    updImpl().whichMobility = MobilizerUIndex(0);
+    updImpl().defaultAcceleration = defaultAcceleration;
+}
+
+MobilizedBodyIndex Constraint::ConstantAcceleration::
+getMobilizedBodyIndex() const {
+    return getImpl().getMobilizedBodyIndexOfConstrainedMobilizer
+                                            (getImpl().theMobilizer);
+}
+MobilizerUIndex Constraint::ConstantAcceleration::getWhichU() const {
+    return getImpl().whichMobility;
+}
+Real Constraint::ConstantAcceleration::getDefaultAcceleration() const {
+    return getImpl().defaultAcceleration;
+}
+Constraint::ConstantAcceleration& Constraint::ConstantAcceleration::
+setDefaultAcceleration(Real udot) {
+    getImpl().invalidateTopologyCache();
+    updImpl().defaultAcceleration = udot;
+    return *this;
+}
+
+void Constraint::ConstantAcceleration::
+setAcceleration(State& state, Real accel) const {
+    getImpl().updAcceleration(state) = accel;
+}
+
+Real Constraint::ConstantAcceleration::
+getAcceleration(const State& state) const {
+    return getImpl().getAcceleration(state);
+}
+
+Real Constraint::ConstantAcceleration::getAccelerationError(const State& s) const {
+    Real pvaerr;
+    getImpl().getAccelerationErrors(s, 1, &pvaerr);
+    return pvaerr;
+}
+
+Real Constraint::ConstantAcceleration::getMultiplier(const State& s) const {
+    Real mult;
+    getImpl().getMultipliers(s, 1, &mult);
+    return mult;
+}
+
+    // ConstantAccelerationImpl
+
+// Allocate a state variable to hold the desired acceleration.
+void Constraint::ConstantAccelerationImpl::
+realizeTopologyVirtual(State& state) const {
+    ConstantAccelerationImpl* mThis = // mutable momentarily
+        const_cast<ConstantAccelerationImpl*>(this);
+    mThis->accelIx = getMyMatterSubsystemRep().
+        allocateDiscreteVariable(state, Stage::Acceleration, 
+            new Value<Real>(defaultAcceleration));
+}
+
+Real Constraint::ConstantAccelerationImpl::
+getAcceleration(const State& state) const {
+    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
+    return Value<Real>::downcast(matter.getDiscreteVariable(state,accelIx));
+}
+
+Real& Constraint::ConstantAccelerationImpl::
+updAcceleration(State& state) const {
+    const SimbodyMatterSubsystemRep& matter = getMyMatterSubsystemRep();
+    return Value<Real>::updDowncast(matter.updDiscreteVariable(state,accelIx));
+}
+
+
+
 
     ////////////////////////
     // CONSTRAINT::CUSTOM //

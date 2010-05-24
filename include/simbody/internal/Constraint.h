@@ -267,6 +267,7 @@ public:
     class ConstantOrientation; // allows any translation but no rotation
     class NoSlip1D; // same velocity at a point along a direction
     class ConstantSpeed; // prescribe generalized speed value
+    class ConstantAcceleration; // prescribe generalized acceleration value
     class Custom;
     class CoordinateCoupler;
     class SpeedCoupler;
@@ -281,6 +282,7 @@ public:
     class ConstantOrientationImpl;
     class NoSlip1DImpl;
     class ConstantSpeedImpl;
+    class ConstantAccelerationImpl;
     class CustomImpl;
     class CoordinateCouplerImpl;
     class SpeedCouplerImpl;
@@ -811,8 +813,12 @@ class SimTK_SIMBODY_EXPORT Constraint::ConstantSpeed : public Constraint
 {
 public:
     // no default constructor
-   ConstantSpeed(MobilizedBody& mobilizer, MobilizerUIndex, Real speed);
-   ConstantSpeed(MobilizedBody& mobilizer, Real speed); // only if 1 dof mobilizer
+    /** Construct a constant speed constraint on a particular mobility
+    of the given mobilizer. **/
+    ConstantSpeed(MobilizedBody& mobilizer, MobilizerUIndex, Real speed);
+    /** Construct a constant speed constraint on the mobility
+    of the given mobilizer, assuming there is only one mobility. **/
+    ConstantSpeed(MobilizedBody& mobilizer, Real speed); 
 
     // Stage::Topology
     MobilizedBodyIndex getMobilizedBodyIndex() const;
@@ -827,7 +833,60 @@ public:
     Real getAccelerationError(const State&) const;
     Real getMultiplier(const State&) const;
     Real getGeneralizedForce(const State&) const;
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(ConstantSpeed, ConstantSpeedImpl, Constraint);
+
+    /** @cond **/ // hide from Doxygen
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
+       (ConstantSpeed, ConstantSpeedImpl, Constraint);
+    /** @endcond **/
+};
+
+    ///////////////////////////
+    // CONSTANT ACCELERATION //
+    ///////////////////////////
+
+/**
+ * One acceleration-only constraint equation. Some generalized acceleration
+ * udot is required to be at a particular value a.
+ * 
+ * There is no assembly condition because this does not involve state
+ * variables q or u, just u's time derivative udot.
+ */
+class SimTK_SIMBODY_EXPORT Constraint::ConstantAcceleration : public Constraint
+{
+public:
+    // no default constructor
+    /** Construct a constant acceleration constraint on a particular mobility
+    of the given mobilizer. **/
+    ConstantAcceleration(MobilizedBody& mobilizer, MobilizerUIndex, 
+                         Real defaultAcceleration);
+    /** Construct a constant acceleration constraint on the mobility
+    of the given mobilizer, assuming there is only one mobility. **/
+    ConstantAcceleration(MobilizedBody& mobilizer, 
+                         Real defaultAcceleration);
+
+    // Stage::Topology
+    MobilizedBodyIndex getMobilizedBodyIndex() const;
+    MobilizerUIndex    getWhichU() const;
+    Real               getDefaultAcceleration() const;
+    ConstantAcceleration& setDefaultAcceleration(Real accel);
+
+    /** Override the default acceleration with this one. This invalidates
+    the Acceleration stage in the state. **/
+    void setAcceleration(State& state, Real accel) const;
+    Real getAcceleration(const State& state) const;
+
+    // Stage::Position, Velocity
+        // no position or velocity error
+
+    // Stage::Acceleration
+    Real getAccelerationError(const State&) const;
+    Real getMultiplier(const State&) const;
+    Real getGeneralizedForce(const State&) const;
+
+    /** @cond **/ // hide from Doxygen
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
+       (ConstantAcceleration, ConstantAccelerationImpl, Constraint);
+    /** @endcond **/
 };
 
 /**

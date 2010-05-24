@@ -40,6 +40,7 @@
 #include <string>
 #include <iostream>
 #include <exception>
+#include <ctime>
 
 using std::cout;
 using std::cin;
@@ -47,13 +48,190 @@ using std::endl;
 
 using namespace SimTK;
 
+const Real ReportInterval=0.01;
+const Real RunTime=20;
+
+class StateSaver : public PeriodicEventReporter {
+public:
+    StateSaver(const MultibodySystem&           system,
+               const Constraint::ConstantSpeed& lock,
+               Real reportInterval)
+    :   PeriodicEventReporter(reportInterval), 
+        m_system(system), m_lock(lock) {}
+
+    ~StateSaver() {}
+
+    void clear() {m_states.clear();}
+    int getNumSavedStates() const {return m_states.size();}
+    const State& getState(int n) const {return m_states[n];}
+
+    void handleEvent(const State& s) const {
+        const SimbodyMatterSubsystem& matter=m_system.getMatterSubsystem();
+        const SpatialVec PG = matter.calcSystemMomentumAboutGroundOrigin(s);
+
+        const bool isLocked = !m_lock.isDisabled(s);
+        printf("%5g mom=%g,%g E=%g %s", s.getTime(),
+            PG[0].norm(), PG[1].norm(), m_system.calcEnergy(s),
+            isLocked?"LOCKED":"FREE");
+
+        if (isLocked) {
+            m_system.realize(s, Stage::Acceleration);
+            printf(" lambda=%g", m_lock.getMultiplier(s));
+            cout << " Triggers=" << s.getEventTriggers();
+        }
+        printf("\n");
+
+        m_states.push_back(s);
+    }
+private:
+    const MultibodySystem&              m_system;
+    const Constraint::ConstantSpeed&    m_lock;
+    mutable Array_<State,int>           m_states;
+};
+
+class LockOn: public TriggeredEventHandler {
+public:
+    LockOn(const MultibodySystem& system,
+        MobilizedBody& mobod, Real lockangle, // must be 1dof
+        Constraint::ConstantSpeed& lock, 
+        Constraint::ConstantAcceleration& dlock) 
+    :   TriggeredEventHandler(Stage::Position), 
+        mbs(system), mobod(mobod), lockangle(lockangle),
+        lock(lock), dlock(dlock) 
+    { 
+	    //getTriggerInfo().setTriggerOnRisingSignTransition(false);
+    }
+
+    Real getValue(const State& state) const {
+        return mobod.getOneQ(state, 0) - lockangle;
+    }
+
+    void handleEvent
+       (State& s, Real accuracy, const Vector& yWeights, 
+        const Vector& ooConstraintTols, 
+		Stage& lowestModified, bool& shouldTerminate) const 
+    {
+        const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
+        assert(lock.isDisabled(s));
+        assert(dlock.isDisabled(s));
+
+        const Vector uin = s.getU();
+        cout << "BEFORE u=" << uin << endl;
+
+        SpatialVec PG = matter.calcSystemMomentumAboutGroundOrigin(s);
+
+        printf("Locking: BEFORE q=%.15g\n",
+            mobod.getOneQ(s,0));
+        printf("  %5g mom=%g,%g E=%g\n", s.getTime(),
+            PG[0].norm(), PG[1].norm(), mbs.calcEnergy(s));
+
+
+        Vector& mobilityForces = 
+            mbs.updMobilityForces(s,Stage::Dynamics);
+        Vector_<SpatialVec>& bodyForces = 
+            mbs.updRigidBodyForces(s,Stage::Dynamics);
+
+        // Kill off coriolis effects.
+        s.updU() = 0;
+
+        // Enable impact constraint
+        dlock.enable(s);
+
+        const Real coefRest = 0;
+        dlock.setAcceleration(s, -(1+coefRest)*uin[1]);
+
+        cout << "ConstAcc=" << dlock.getAcceleration(s)
+             << " (def=" << dlock.getDefaultAcceleration() << ")\n";
+
+	    mbs.realize(s, Stage::Dynamics);
+        cout << "non-impulsive mobForces=" <<  mobilityForces << endl;
+        cout << "non-impulsive bodyForces=" <<  bodyForces << endl;
+
+        // Cancel applied force "impulses"
+        mobilityForces = 0;
+        bodyForces = SpatialVec(Vec3(0));
+
+        //// Cancel coriolis "impulse"
+        //for (MobilizedBodyIndex bx(1); bx < matter.getNumBodies(); ++bx)
+        //    bodyForces[bx] += matter.getTotalCentrifugalForces(s, bx);
+
+        mbs.realize(s, Stage::Acceleration);
+        const Vector deltaU = s.getUDot();
+        cout << "deltaU=" << deltaU << endl;
+
+        s.updU() = uin + deltaU;
+        dlock.disable(s);
+        lock.enable(s);
+
+        mbs.realize(s, Stage::Velocity);
+
+
+        cout << "AFTER u=" << s.getU() << endl;
+        printf("Locked: AFTER q=%.15g\n",
+            mobod.getOneQ(s,0));
+
+        PG = matter.calcSystemMomentumAboutGroundOrigin(s);
+        printf("  %5g mom=%g,%g E=%g\n", s.getTime(),
+            PG[0].norm(), PG[1].norm(), mbs.calcEnergy(s));
+        cout << "  uerr=" << s.getUErr() << endl;
+		lowestModified = Stage::Instance;
+    }
+
+private:
+	const MultibodySystem&                  mbs; 
+	const MobilizedBody&                    mobod;
+    const Real                              lockangle;
+    const Constraint::ConstantSpeed&        lock;
+    const Constraint::ConstantAcceleration& dlock;
+};
+
+class LockOff: public TriggeredEventHandler {
+public:
+    LockOff(const MultibodySystem& system,
+        Constraint::ConstantSpeed& lock,
+        Real low, Real high) 
+    :   TriggeredEventHandler(Stage::Acceleration), 
+        m_system(system), m_lock(lock), 
+        m_low(low), m_high(high)
+    { 
+	    getTriggerInfo().setTriggerOnRisingSignTransition(false);
+    }
+
+    Real getValue(const State& state) const {
+        if (m_lock.isDisabled(state)) return 0;
+        const Real f = m_lock.getMultiplier(state);
+        const Real mid = (m_high+m_low)/2;
+        return f > mid ? m_high - f : f - m_low;
+    }
+
+    void handleEvent
+       (State& s, Real accuracy, const Vector& yWeights, 
+        const Vector& ooConstraintTols, 
+		Stage& lowestModified, bool& shouldTerminate) const 
+    {
+        assert(!m_lock.isDisabled(s));
+
+        m_system.realize(s, Stage::Acceleration);
+        printf("LockOff disabling at t=%g lambda=%g\n",
+            s.getTime(), m_lock.getMultiplier(s));
+
+        m_lock.disable(s);
+		lowestModified = Stage::Instance;
+    }
+
+private:
+	const MultibodySystem&                  m_system; 
+    const Constraint::ConstantSpeed&        m_lock;
+    const Real                              m_low;
+    const Real                              m_high;
+};
+
 static const Real Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,
                   Rad2Deg = (Real)SimTK_RADIAN_TO_DEGREE;
 
 
 
 static Real g = 9.8;
-static Real m = 1;
 
 int main(int argc, char** argv) {
     static const Transform GroundFrame;
@@ -67,128 +245,127 @@ int main(int argc, char** argv) {
 
     SimbodyMatterSubsystem      matter(mbs);
     GeneralForceSubsystem       forces(mbs);
-    DecorationSubsystem         viz(mbs);
-    //Force::UniformGravity       gravity(forces, matter, Vec3(0, -g, 0));
+    Force::Gravity              gravity(forces, matter, Vec3(0, -g, 0));
 
         // ADD BODIES AND THEIR MOBILIZERS
-    Body::Rigid particle = Body::Rigid(MassProperties(m, Vec3(0), Inertia(0)))
-                                  .addDecoration(Transform(), 
-                                        DecorativeSphere(.1).setColor(Red).setOpacity(.3));
+    const Vec3 thighHDim(.5,2,.25); 
+    const Real thighVol=8*thighHDim[0]*thighHDim[1]*thighHDim[2];
+    const Vec3 calfHDim(.25,2,.125); 
+    const Real calfVol=8*calfHDim[0]*calfHDim[1]*calfHDim[2];
+    const Real density = 1000; // water
+    const Real thighMass = density*thighVol, calfMass = density*calfVol;
+    Body::Rigid thighBody = 
+        Body::Rigid(MassProperties(10*thighMass, Vec3(0), 
+                        10*thighMass*Gyration::brick(thighHDim)))
+                    .addDecoration(Transform(), DecorativeBrick(thighHDim)
+                                                .setColor(Red).setOpacity(.3));
+    Body::Rigid calfBody = 
+        Body::Rigid(MassProperties(calfMass, Vec3(0), 
+                        calfMass*Gyration::brick(calfHDim)))
+                    .addDecoration(Transform(), DecorativeBrick(calfHDim)
+                                                .setColor(Blue).setOpacity(.3));
+    Body::Rigid footBody = 
+        Body::Rigid(MassProperties(10*calfMass, Vec3(0), 
+                        10*calfMass*Gyration::brick(calfHDim)))
+                    .addDecoration(Transform(), DecorativeBrick(calfHDim)
+                                                .setColor(Black).setOpacity(.3));
+    MobilizedBody::Pin thigh(matter.Ground(), Vec3(0),
+                             thighBody, Vec3(0,thighHDim[1],0));
+    MobilizedBody::Pin calf(thigh, Vec3(0,-thighHDim[1],0),
+                             calfBody, Vec3(0,calfHDim[1],0));
+    MobilizedBody::Pin foot(calf, Vec3(0,-calfHDim[1],0),
+                             footBody, Vec3(0,calfHDim[1],0));
+    //Constraint::PrescribedMotion(matter, 
+    //    new Function::Constant(Pi/4,1), foot, MobilizerQIndex(0));
 
-    MobilizedBody::SphericalCoords
-        anAtom(matter.Ground(), Transform(ZUp, TestLoc),
-               particle, Transform(),
-               0*Deg2Rad,  false,   // azimuth offset, negated
-               0,          false,   // zenith offset, negated
-               ZAxis,      true);  // translation axis, negated
+    Constraint::ConstantSpeed lock(calf,0);
+    lock.setDisabledByDefault(true);
 
-    anAtom.setDefaultRadius(.1);
-    anAtom.setDefaultAngles(Vec2(0, 30*Deg2Rad));
+    Constraint::ConstantAcceleration dlock(calf,0);
+    dlock.setDisabledByDefault(true);
 
-    viz.addRubberBandLine(matter.Ground(), TestLoc,
-                          anAtom, Vec3(0),
-                          DecorativeLine().setColor(Orange).setLineThickness(4));
 
-    Force::MobilityLinearSpring(forces, anAtom, 0, 2, -30*Deg2Rad); // harmonic bend
-    Force::MobilityLinearSpring(forces, anAtom, 1, 2, 45*Deg2Rad); // harmonic bend
-    Force::MobilityLinearSpring(forces, anAtom, 2, 20, .5); // harmonic stretch
-
-    Force::MobilityLinearDamper(forces, anAtom, 0, .1); // harmonic bend
-    Force::MobilityLinearDamper(forces, anAtom, 1, .1); // harmonic bend
-    Force::MobilityLinearDamper(forces, anAtom, 2, .1); // harmonic stretch
-
+    VTKEventReporter& reporter = *new VTKEventReporter(mbs, ReportInterval);
+    VTKVisualizer& viz = reporter.updVisualizer();
     
+    mbs.updDefaultSubsystem().addEventReporter(&reporter);
+
+    StateSaver& stateSaver = *new StateSaver(mbs,lock,ReportInterval);
+    mbs.updDefaultSubsystem().addEventReporter(&stateSaver);
+
+    mbs.updDefaultSubsystem().addEventHandler
+       (new LockOn(mbs,calf,0,lock,dlock));
+
+    mbs.updDefaultSubsystem().addEventHandler
+       (new LockOff(mbs,lock,-20000,20000));
+  
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System
 	mbs.realize(s, Stage::Instance); // instantiate constraints if any
 
-    VTKVisualizer display(mbs);
+    thigh.setAngle(s, 90*Deg2Rad);
+    calf.setAngle(s, 90*Deg2Rad);
+    //calf.setRate(s, -10);
 
     mbs.realize(s, Stage::Velocity);
-    display.report(s);
+    viz.report(s);
 
-    cout << "q=" << s.getQ() << endl;
-    cout << "u=" << s.getU() << endl;
-
-    char c;
-    cout << "Default configuration shown. 1234 to move on.\n";
-
-    //anAtom.setQToFitRotation(s, Rotation(-.9*Pi/2,YAxis));
-
-    while (true) {
-        Real x;
-        cout << "Torsion (deg)? "; cin >> x; if (x==1234) break;
-        Vec2 a = anAtom.getAngles(s); a[0]=x*Deg2Rad; anAtom.setAngles(s, a);
-        display.report(s);
-        cout << "Bend (deg)? "; cin >> x; if (x==1234) break;
-        a = anAtom.getAngles(s); a[1]=x*Deg2Rad; anAtom.setAngles(s, a);
-        display.report(s);
-        cout << "Radius? "; cin >> x; if (x==1234) break;
-        anAtom.setRadius(s, x);
-        display.report(s);
-    }
-    anAtom.setUToFitAngularVelocity(s, Vec3(.1,.2,.3));
-
-    //anAtom.setAngle(s, 45*Deg2Rad);
-    //anAtom.setTranslation(s, Vec2(.4, .1));
-
-    mbs.realize(s, Stage::Dynamics);
     mbs.realize(s, Stage::Acceleration);
 
+
     cout << "q=" << s.getQ() << endl;
     cout << "u=" << s.getU() << endl;
+    cout << "qerr=" << s.getQErr() << endl;
+    cout << "uerr=" << s.getUErr() << endl;
+    cout << "udoterr=" << s.getUDotErr() << endl;
+    cout << "mults=" << s.getMultipliers() << endl;
     cout << "qdot=" << s.getQDot() << endl;
     cout << "udot=" << s.getUDot() << endl;
     cout << "qdotdot=" << s.getQDotDot() << endl;
-    display.report(s);
+    viz.report(s);
 
     cout << "Initialized configuration shown. Ready? ";
+    char c;
     cin >> c;
 
-    RungeKuttaMersonIntegrator myStudy(mbs);
-    myStudy.setAccuracy(1e-4);
+    
+    // Simulate it.
+    const clock_t start = clock();
 
-    const Real dt = .02; // output intervals
-    const Real finalTime = 20;
 
-    myStudy.setFinalTime(finalTime);
+    //ExplicitEulerIntegrator integ(system);
+    //CPodesIntegrator integ(system,CPodes::BDF,CPodes::Newton);
+    //RungeKuttaFeldbergIntegrator integ(system);
+    RungeKuttaMersonIntegrator integ(mbs);
+    //RungeKutta3Integrator integ(system);
+    //VerletIntegrator integ(system);
+    // TODO: misses some transitions if interpolating
+    //integ.setAllowInterpolation(false);
+    integ.setAccuracy(1e-1);
+    TimeStepper ts(mbs, integ);
+    ts.initialize(s);
+    ts.stepTo(RunTime);
 
-    // Peforms assembly if constraints are violated.
-    myStudy.initialize(s);
+    const double timeInSec = (double)(clock()-start)/CLOCKS_PER_SEC;
+    const int evals = integ.getNumRealizations();
+    cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
+        timeInSec << "s for " << ts.getTime() << "s sim (avg step=" 
+        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
+        << (1000*ts.getTime())/evals << "ms/eval\n";
 
-    cout << "Using Integrator " << std::string(myStudy.getMethodName()) << ":\n";
-    cout << "ACCURACY IN USE=" << myStudy.getAccuracyInUse() << endl;
-    cout << "CTOL IN USE=" << myStudy.getConstraintToleranceInUse() << endl;
-    cout << "TIMESCALE=" << myStudy.getTimeScaleInUse() << endl;
-    cout << "Y WEIGHTS=" << myStudy.getStateWeightsInUse() << endl;
-    cout << "1/CTOLS=" << myStudy.getConstraintWeightsInUse() << endl;
+    printf("Using Integrator %s at accuracy %g:\n", 
+        integ.getMethodName(), integ.getAccuracyInUse());
+    printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
+    printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
 
-    Integrator::SuccessfulStepStatus status;
-    int nextReport = 0;
-    while ((status=myStudy.stepTo(nextReport*dt))
-           != Integrator::EndOfSimulation) 
-    {
-        const State& s = myStudy.getState();
-        mbs.realize(s);
-        printf("%5g %10.4g %10.4g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
-            anAtom.getAngles(s)[0], anAtom.getAngles(s)[1], anAtom.getRadius(s),
-            //anAtom.getAngle(s), anAtom.getTranslation(s)[0], anAtom.getTranslation(s)[1],
-            //anAtom.getQ(s)[0], anAtom.getQ(s)[1], anAtom.getQ(s)[2],
-            mbs.calcEnergy(s), myStudy.getNumStepsTaken(),
-            myStudy.getPreviousStepSizeTaken(),
-            Integrator::successfulStepStatusString(status).c_str(),
-            myStudy.isStateInterpolated()?" (INTERP)":"");
-
-        display.report(s);
-
-		if (status == Integrator::ReachedReportTime)
-			++nextReport;
+    while(true) {
+        for (int i=0; i < stateSaver.getNumSavedStates(); ++i) {
+            viz.report(stateSaver.getState(i));
+            //vtk.report(saveEm[i]); // half speed
+        }
+        getchar();
     }
-
-    printf("Using Integrator %s:\n", myStudy.getMethodName());
-    printf("# STEPS/ATTEMPTS = %d/%d\n", myStudy.getNumStepsTaken(), myStudy.getNumStepsAttempted());
-    printf("# ERR TEST FAILS = %d\n", myStudy.getNumErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNumRealizations(), myStudy.getNumProjections());
 
   } 
   catch (const std::exception& e) {
