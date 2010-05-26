@@ -118,28 +118,28 @@ int main() {
     markers.addMarker(finalBody, Vec3(0));
     markers.addMarker(finalBody, Vec3(1,2,3));
 
-    // Manual target/marker correspondence.
-    //Array_<Markers::MarkerIx> targetOrder;
-    //targetOrder.push_back(Markers::MarkerIx(2));
-    //targetOrder.push_back(Markers::MarkerIx(3));
-    //targetOrder.push_back(Markers::MarkerIx(0));
-    //targetOrder.push_back(Markers::MarkerIx(1));
-    //targetOrder.push_back(Markers::MarkerIx()); // unused
-    //targetOrder.push_back(Markers::MarkerIx());
-    //targetOrder.push_back(Markers::MarkerIx());
-    //targetOrder.push_back(Markers::MarkerIx());
-    //targetOrder.push_back(Markers::MarkerIx());
-    //markers.defineTargetOrder(targetOrder);
+    // Manual observation/marker correspondence.
+    //Array_<Markers::MarkerIx> observationOrder;
+    //observationOrder.push_back(Markers::MarkerIx(2));
+    //observationOrder.push_back(Markers::MarkerIx(3));
+    //observationOrder.push_back(Markers::MarkerIx(0));
+    //observationOrder.push_back(Markers::MarkerIx(1));
+    //observationOrder.push_back(Markers::MarkerIx()); // unused
+    //observationOrder.push_back(Markers::MarkerIx());
+    //observationOrder.push_back(Markers::MarkerIx());
+    //observationOrder.push_back(Markers::MarkerIx());
+    //observationOrder.push_back(Markers::MarkerIx());
+    //markers.defineTargetOrder(observationOrder);
 
 
     const Real Accuracy = 1e-3;
     ik.setAccuracy(Accuracy);
     ik.initialize();
 
-    markers.moveOneTarget(Markers::TargetIx(0), midTarget);
-    markers.moveOneTarget(Markers::TargetIx(1), midTarget);
-    markers.moveOneTarget(Markers::TargetIx(2), finalTarget);
-    markers.moveOneTarget(Markers::TargetIx(3), finalTarget);
+    markers.moveOneObservation(Markers::ObservationIx(0), midTarget);
+    markers.moveOneObservation(Markers::ObservationIx(1), midTarget);
+    markers.moveOneObservation(Markers::ObservationIx(2), finalTarget);
+    markers.moveOneObservation(Markers::ObservationIx(3), finalTarget);
 
     ik.assemble(state);
     viz.report(state);
@@ -152,10 +152,10 @@ int main() {
     for (int iters=0; iters <= NSteps; ++iters) {
         Vec3 newMidTarget = midTarget + NBodies/2*std::sin(2*Pi*iters/100);
         Vec3 newFinalTarget = finalTarget - NBodies/3*std::sin(2*Pi*iters/100);
-        markers.moveOneTarget(Markers::TargetIx(0), newMidTarget);
-        markers.moveOneTarget(Markers::TargetIx(1), newMidTarget);
-        markers.moveOneTarget(Markers::TargetIx(2), newFinalTarget);
-        markers.moveOneTarget(Markers::TargetIx(3), newFinalTarget);
+        markers.moveOneObservation(Markers::ObservationIx(0), newMidTarget);
+        markers.moveOneObservation(Markers::ObservationIx(1), newMidTarget);
+        markers.moveOneObservation(Markers::ObservationIx(2), newFinalTarget);
+        markers.moveOneObservation(Markers::ObservationIx(3), newFinalTarget);
                                         
         ik.track();
         ik.updateFromInternalState(state);

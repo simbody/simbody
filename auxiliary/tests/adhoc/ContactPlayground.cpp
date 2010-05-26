@@ -329,13 +329,13 @@ int main() {
 
 
     //ExplicitEulerIntegrator integ(system);
-    //CPodesIntegrator integ(system,CPodes::BDF,CPodes::Newton);
+    CPodesIntegrator integ(system,CPodes::BDF,CPodes::Newton);
     //RungeKuttaFeldbergIntegrator integ(system);
     //RungeKuttaMersonIntegrator integ(system);
-    RungeKutta3Integrator integ(system);
+    //RungeKutta3Integrator integ(system);
     //VerletIntegrator integ(system);
     //integ.setMaximumStepSize(1e-0001);
-    integ.setAccuracy(1e-2);
+    integ.setAccuracy(1e-4);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(20.0);

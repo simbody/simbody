@@ -397,8 +397,8 @@ Constraint::Rod(mobod_tibia_l, mobod_tibia_r, 2*.25);
     //ik.restrictQ(mobod_tibia_r, MobilizerQIndex(0),
     //    -10*Pi/180, 10*Pi/180);
 
-    markers.defineTargetOrder(getNumObservations(), getObservationOrder());
-    markers.moveAllTargets(getFrame(0)); // initial target pos
+    markers.defineObservationOrder(getNumObservations(), getObservationOrder());
+    markers.moveAllObservations(getFrame(0)); // initial observed locations
     state.setTime(getFrameTime(0));
     //ik.setForceNumericalGradient(true);
     //ik.setForceNumericalJacobian(true);
@@ -430,8 +430,9 @@ Constraint::Rod(mobod_tibia_l, mobod_tibia_r, 2*.25);
     const int NToSkip = 4; // show every nth frame
     const clock_t start = clock();
     for (int f=1; f < NSteps; ++f) {
-        markers.moveAllTargets(getFrame(f));
-        ik.track(getFrameTime(f)); // update internal state to match new targets
+        markers.moveAllObservations(getFrame(f));
+        // update internal state to match new observed locations
+        ik.track(getFrameTime(f)); 
         if ((f%NToSkip)==0) {
             ik.updateFromInternalState(state);
             viz.report(state);

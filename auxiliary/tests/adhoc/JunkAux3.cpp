@@ -55,9 +55,10 @@ class StateSaver : public PeriodicEventReporter {
 public:
     StateSaver(const MultibodySystem&           system,
                const Constraint::ConstantSpeed& lock,
+               const Integrator&                integ,
                Real reportInterval)
     :   PeriodicEventReporter(reportInterval), 
-        m_system(system), m_lock(lock) {}
+        m_system(system), m_lock(lock), m_integ(integ) {}
 
     ~StateSaver() {}
 
@@ -70,7 +71,9 @@ public:
         const SpatialVec PG = matter.calcSystemMomentumAboutGroundOrigin(s);
 
         const bool isLocked = !m_lock.isDisabled(s);
-        printf("%5g mom=%g,%g E=%g %s", s.getTime(),
+
+        printf("%3d: %5g mom=%g,%g E=%g %s", m_integ.getNumStepsTaken(),
+            s.getTime(),
             PG[0].norm(), PG[1].norm(), m_system.calcEnergy(s),
             isLocked?"LOCKED":"FREE");
 
@@ -79,6 +82,7 @@ public:
             printf(" lambda=%g", m_lock.getMultiplier(s));
             cout << " Triggers=" << s.getEventTriggers();
         }
+
         printf("\n");
 
         m_states.push_back(s);
@@ -86,6 +90,7 @@ public:
 private:
     const MultibodySystem&              m_system;
     const Constraint::ConstantSpeed&    m_lock;
+    const Integrator&                   m_integ;
     mutable Array_<State,int>           m_states;
 };
 
@@ -212,8 +217,9 @@ public:
         assert(!m_lock.isDisabled(s));
 
         m_system.realize(s, Stage::Acceleration);
-        printf("LockOff disabling at t=%g lambda=%g\n",
+        printf("LockOff disabling at t=%g lambda=%g",
             s.getTime(), m_lock.getMultiplier(s));
+        cout << " Triggers=" << s.getEventTriggers() << endl;
 
         m_lock.disable(s);
 		lowestModified = Stage::Instance;
@@ -287,10 +293,16 @@ int main(int argc, char** argv) {
 
     VTKEventReporter& reporter = *new VTKEventReporter(mbs, ReportInterval);
     VTKVisualizer& viz = reporter.updVisualizer();
-    
     mbs.updDefaultSubsystem().addEventReporter(&reporter);
 
-    StateSaver& stateSaver = *new StateSaver(mbs,lock,ReportInterval);
+    //ExplicitEulerIntegrator integ(mbs);
+    //CPodesIntegrator integ(mbs,CPodes::BDF,CPodes::Newton);
+    //RungeKuttaFeldbergIntegrator integ(mbs);
+    //RungeKuttaMersonIntegrator integ(mbs);
+    RungeKutta3Integrator integ(mbs);
+    //VerletIntegrator integ(mbs);
+
+    StateSaver& stateSaver = *new StateSaver(mbs,lock,integ,ReportInterval);
     mbs.updDefaultSubsystem().addEventReporter(&stateSaver);
 
     mbs.updDefaultSubsystem().addEventHandler
@@ -333,12 +345,7 @@ int main(int argc, char** argv) {
     const clock_t start = clock();
 
 
-    //ExplicitEulerIntegrator integ(system);
-    //CPodesIntegrator integ(system,CPodes::BDF,CPodes::Newton);
-    //RungeKuttaFeldbergIntegrator integ(system);
-    RungeKuttaMersonIntegrator integ(mbs);
-    //RungeKutta3Integrator integ(system);
-    //VerletIntegrator integ(system);
+
     // TODO: misses some transitions if interpolating
     //integ.setAllowInterpolation(false);
     integ.setAccuracy(1e-1);

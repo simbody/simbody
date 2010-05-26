@@ -937,10 +937,10 @@ int Markers::calcGoal(const State& state, Real& goal) const {
             const MarkerIx  mx = bodyMarkers[m];
             const Marker&   marker = markers[mx];
             assert(marker.bodyB == mobodIx); // better be on this body!
-            const Vec3&     target = observations[getTargetForMarker(mx)];
-            if (target.isFinite()) { // skip NaNs
+            const Vec3& location = observations[getObservationIxForMarker(mx)];
+            if (location.isFinite()) { // skip NaNs
                 goal += marker.weight 
-                        * (X_GB*marker.markerInB - target).normSqr();
+                        * (X_GB*marker.markerInB - location).normSqr();
                 wtot += marker.weight;
             }
         }
@@ -961,7 +961,6 @@ int Markers::calcGoal(const State& state, Real& goal) const {
 // We can then use Simbody's spatial force-to-generalized force method (using 
 // -F instead of F) to obtain the gradient in internal coordinates.
 int Markers::calcGoalGradient(const State& state, Vector& gradient) const {
- //return -1;
     const int np = getNumFreeQs();
     assert(gradient.size() == np);
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
@@ -982,10 +981,10 @@ int Markers::calcGoalGradient(const State& state, Vector& gradient) const {
             const MarkerIx  mx = bodyMarkers[m];
             const Marker&   marker = markers[mx];
             assert(marker.bodyB == mobodIx); // better be on this body!
-            const Vec3&     target = observations[getTargetForMarker(mx)];
-            if (target.isFinite()) { // skip NaNs
+            const Vec3& location = observations[getObservationIxForMarker(mx)];
+            if (location.isFinite()) { // skip NaNs
                 const Vec3 nf = marker.weight 
-                                * (X_GB*marker.markerInB - target);
+                                * (X_GB*marker.markerInB - location);
                 mobod.applyForceToBodyPoint(state, marker.markerInB, nf, dEdR);
                 wtot += marker.weight;
             }
@@ -1027,21 +1026,20 @@ int Markers::getNumErrors(const State& state) const
 // Run through all the Markers to find all the bodies that have at least one
 // active marker. For each of those bodies, we collect all its markers so that
 // we can process them all at once. Active markers are those whose weight is
-// greater than zero.
-// Also, if we haven't been given any target<->marker correspondence, we're
-// going to assume them map directly, with each TargetIx the same as its
-// MarkerIx.
+// greater than zero. Also, if we haven't been given any observation<->marker 
+// correspondence, we're going to assume them map directly, with each 
+// ObservationIx the same as its MarkerIx.
 int Markers::initializeCondition() const {
-    // Fill in missing targeting information if needed.
-    if (target2marker.empty()) {
+    // Fill in missing observation information if needed.
+    if (observation2marker.empty()) {
         const Array_<MarkerIx> zeroLength; // gcc doesn't like this as a temp
-        const_cast<Markers&>(*this).defineTargetOrder(zeroLength);
+        const_cast<Markers&>(*this).defineObservationOrder(zeroLength);
     }
 
     bodiesWithMarkers.clear();
     for (MarkerIx mx(0); mx < markers.size(); ++mx) {
         const Marker& marker = markers[mx];
-        if (hasTarget(mx) && marker.weight > 0)
+        if (hasObservation(mx) && marker.weight > 0)
             bodiesWithMarkers[marker.bodyB].push_back(mx);
     }
     return 0;
