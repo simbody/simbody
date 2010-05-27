@@ -39,6 +39,8 @@
 
 #include <set>
 #include <map>
+#include <cassert>
+#include <cmath>
 
 namespace SimTK {
 
@@ -988,7 +990,8 @@ a marker will be ignored unless an observation is provided for it.
     The MobilizedBody to which this marker is fixed. Markers on Ground
     are allowed but will be ignored.
 @param[in]      markerInB
-    This is the position vector of the marker in \a bodyB's local frame.
+    This is the position vector of the marker in \a bodyB's local frame,
+    also known as the marker's "station" on \a bodyB.
 @param[in]      weight
     An optional weight for use in defining the objective function, which
     combines errors in this marker's position with errors in other markers'
@@ -999,8 +1002,8 @@ assigned sequentially as the marker are added.
 sure to call defineObservationOrder() \e after defining all your markers. **/
 MarkerIx addMarker(const String& name, MobilizedBodyIndex bodyB, 
                    const Vec3& markerInB, Real weight=1)
-{   SimTK_ERRCHK1_ALWAYS(weight >= 0, "Markers::addMarker()",
-        "Illegal marker weight %g.", weight);
+{   SimTK_ERRCHK1_ALWAYS(isFinite(weight) && weight >= 0, 
+        "Markers::addMarker()", "Illegal marker weight %g.", weight);
     uninitializeAssembler();
     // Forget any previously-established observation/marker correspondence.
     observation2marker.clear(); marker2observation.clear(); 
@@ -1029,6 +1032,30 @@ MarkerIx addMarker(MobilizedBodyIndex bodyB, const Vec3& markerInB,
                    Real weight=1)
 {   return addMarker("", bodyB, markerInB, weight); }
 
+/** Change the weight associated with a particular marker. If this is just
+a quantitative change (e.g., weight was 0.3 now it is 0.4) then this does
+not require any reinitialization and will affect the goal calculation next
+time it is done. If the weight changes to or from zero (a qualitative change)
+then this will uninitialize the Assembler and all the internal data structures
+will be changed to remove or add this marker from the list of active markers.
+If you want to temporarily ignore a marker without reinitializing, you can
+set its corresponding observation to NaN in which case it will simply be
+skipped when the goal value is calculated. **/
+void changeMarkerWeight(MarkerIx mx, Real weight) {
+   SimTK_ERRCHK1_ALWAYS(isFinite(weight) && weight >= 0, 
+        "Markers::changeMarkerWeight()", "Illegal marker weight %g.", weight);
+
+    Marker& marker = markers[mx];
+    if (marker.weight == weight)
+        return;
+
+    if (marker.weight == 0 || weight == 0)
+        uninitializeAssembler(); // qualitative change
+
+    marker.weight = weight;
+}
+
+
 /** Return a count n of the number of currently-defined markers. Valid
 marker index values (of type Markers::MarkerIx) are 0..n-1. **/
 int getNumMarkers() const {return markers.size();}
@@ -1044,6 +1071,18 @@ index.isValid()). **/
 const MarkerIx getMarkerIx(const String& name) 
 {   std::map<String,MarkerIx>::const_iterator p = markersByName.find(name);
     return p == markersByName.end() ? MarkerIx() : p->second; }
+
+/** Get the weight currently in use for the specified marker. **/
+Real getMarkerWeight(MarkerIx mx)
+{   return markers[mx].weight; }
+
+/** Get the MobilizedBodyIndex of the body associated with this marker. **/
+MobilizedBodyIndex getMarkerBody(MarkerIx mx) const
+{   return markers[mx].bodyB; }
+
+/** Get the station (fixed location in its body frame) of the given marker. **/
+const Vec3& getMarkerStation(MarkerIx mx) const
+{   return markers[mx].markerInB; }
 
 /** Define the meaning of the observation data by giving the MarkerIx 
 associated with each observation. The length of the array of marker indices 
@@ -1084,7 +1123,8 @@ void defineObservationOrder(const Array_<MarkerIx>& observationOrder) {
         SimTK_ERRCHK4_ALWAYS(!marker2observation[mx].isValid(),
             "Markers::defineObservationOrder()", 
             "An attempt was made to associate Marker %d (%s) with" 
-            " observations %d and %d; only one observation is permitted.",
+            " Observations %d and %d; only one Observation per Marker"
+            " is permitted.",
             (int)mx, getMarkerName(mx).c_str(), 
             (int)marker2observation[mx], (int)ox);
 
@@ -1141,15 +1181,15 @@ void moveOneObservation(ObservationIx ox, const Vec3& observation)
     observations[ox] = observation; 
 }
 
-/** Set the marker location for a new observation frame. These are the 
-observed locations to which we will next attempt to move all the 
-corresponding markers. Note that not all observations necessarily have 
-corresponding markers defined; locations of those markers must still be 
-provided here but they will be ignored. The length of the \a allObservations 
-array must be the same as the number of defined observations; you
-can obtain that using getNumObservations(). Any observations that contain a
-NaN will be ignored; that marker/observation pair will not be used in the
-next calculation of the assembly goal cost function. **/
+/** Set the observed marker locations for a new observation frame. These are
+the locations to which we will next attempt to move all the corresponding 
+markers. Note that not all observations necessarily have corresponding markers
+defined; locations of those markers must still be provided here but they will 
+be ignored. The length of the \a allObservations array must be the same as the 
+number of defined observations; you can obtain that using getNumObservations().
+Any observations that contain a NaN will be ignored; that marker/observation 
+pair will not be used in the next calculation of the assembly goal cost 
+function. **/
 void moveAllObservations(const Array_<Vec3>& observations) 
 {   SimTK_ERRCHK2_ALWAYS(observations.size() == observation2marker.size(),
         "Markers::moveAllObservations()",
@@ -1165,13 +1205,50 @@ observations as markers although that won't be set up until the Assembler has
 been initialized. **/
 int getNumObservations() const {return observation2marker.size();}
 /** Return the current value of the location for this observation. This
-is where we will try to move the corresponding marker if there is one. **/
-const Vec3& getObservation(ObservationIx ox) {return observations[ox];}
+is where we will try to move the corresponding marker if there is one. 
+The result might be NaN if there is no current value for this observation;
+you can check using Vec3's isFinite() method. **/
+const Vec3& getObservation(ObservationIx ox) const {return observations[ox];}
 /** Return the current values of all the observed locations. This is where we 
 will try to move the corresponding markers, for those observations that have 
-corresponding markers defined. **/
-const Array_<Vec3,ObservationIx>& getAllObservations() 
+corresponding markers defined. Some of the values may be NaN if there is
+currently no corresponding observation. Note that these are indexed by
+ObservationIx; use getObservationIxForMarker() to map a MarkerIx to its
+corresponding ObservationIx. **/
+const Array_<Vec3,ObservationIx>& getAllObservations() const
 {   return observations; }
+
+/** Using the current value of the internal state, calculate the ground
+frame location of a particular marker. The difference between this location
+and the corresponding observation is the current error for this marker. **/
+Vec3 findCurrentMarkerLocation(MarkerIx mx) const;
+
+/** Using the current value of the internal state, calculate the distance 
+between the given marker's current location and its corresponding observed
+location. If the marker is not associated with an observation, or if the
+observed location is missing (indicated by a NaN value), then the error
+is reported as zero. 
+@note If you actually want the square of the distance, you can save some
+computation time by using findCurrentMarkerErrorSquared() which avoids the
+square root needed to find the actual distance.
+@see findCurrentMarkerErrorSquared() **/
+Real findCurrentMarkerError(MarkerIx mx) const
+{   return std::sqrt(findCurrentMarkerErrorSquared(mx)); }
+
+/** Using the current value of the internal state, calculate the square of
+the distance between the given marker's current location and its corresponding
+observed location (the squared distance is less expensive to compute than
+the distance). If the marker is not associated with an observation, or if the
+observed location is missing (indicated by a NaN value), then the error
+is reported as zero. 
+@see findCurrentMarkerError() **/
+Real findCurrentMarkerErrorSquared(MarkerIx mx) const {
+    const ObservationIx ox = getObservationIxForMarker(mx);
+    if (!ox.isValid()) return 0; // no observation for this marker
+    const Vec3& loc = getObservation(ox);
+    if (!loc.isFinite()) return 0; // NaN in observation; error is ignored
+    return (findCurrentMarkerLocation(mx) - loc).normSqr();
+}
 
 /** Return the ObservationIx of the observation that is currently associated
 with the given marker, or an invalid index if the marker doesn't have any
@@ -1182,7 +1259,7 @@ ObservationIx getObservationIxForMarker(MarkerIx mx) const
 { return marker2observation[mx]; }
 
 /** Return true if the supplied marker is currently associated with an 
-observation. **/
+observation. @see getObservationIxForMarker() **/
 bool hasObservation(MarkerIx mx) const 
 { return getObservationIxForMarker(mx).isValid(); }
 
@@ -1195,18 +1272,18 @@ MarkerIx getMarkerIxForObservation(ObservationIx ox) const
 { return observation2marker[ox]; }
 
 /** Return true if the supplied observation is currently associated with a 
-marker. **/
+marker. @see getMarkerIxForObservation() **/
 bool hasMarker(ObservationIx ox) const 
 { return getMarkerIxForObservation(ox).isValid();}
 
-const Marker& getMarker(MarkerIx i) const {return markers[i];}
-Marker&       updMarker(MarkerIx i)       
-{   uninitializeAssembler(); return markers[i]; }
-
+/** The Markers assembly condition organizes the markers by body after
+initialization; call this to get the list of markers on any particular body.
+If necessary the Assembler will be initialized. It is an error if this 
+assembly condition has not yet been adopted by an Assembler. **/
 const Array_<MarkerIx>& getMarkersOnBody(MobilizedBodyIndex mbx) {
     static const Array_<MarkerIx> empty;
     SimTK_ERRCHK_ALWAYS(isInAssembler(), "Markers::getMarkersOnBody()",
-        "This method can't be called until the Markers have been"
+        "This method can't be called until the Markers object has been"
         " adopted by an Assembler.");
     initializeAssembler();
     PerBodyMarkers::const_iterator bodyp = bodiesWithMarkers.find(mbx);
@@ -1218,17 +1295,21 @@ const Array_<MarkerIx>& getMarkersOnBody(MobilizedBodyIndex mbx) {
 int calcErrors(const State& state, Vector& err) const;
 int calcErrorJacobian(const State& state, Matrix& jacobian) const;
 int getNumErrors(const State& state) const;
-/** One half of the weighted sum of squared distances between 
-corresponding points. **/
 int calcGoal(const State& state, Real& goal) const;
 int calcGoalGradient(const State& state, Vector& grad) const;
 int initializeCondition() const;
 void uninitializeCondition() const;
 
 //------------------------------------------------------------------------------
-                           private: // data members 
+                                    private:
 //------------------------------------------------------------------------------
-// Marker definition. Any change here uninitializes the Assembler.
+const Marker& getMarker(MarkerIx i) const {return markers[i];}
+Marker& updMarker(MarkerIx i) {uninitializeAssembler(); return markers[i];}
+
+                                // data members                               
+                               
+// Marker definition. Any change here except a quantitative change to the
+// marker's weight uninitializes the Assembler.
 Array_<Marker,MarkerIx>         markers;
 std::map<String,MarkerIx>       markersByName;
 

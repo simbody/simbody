@@ -141,9 +141,21 @@ int main() {
     markers.moveOneObservation(Markers::ObservationIx(2), finalTarget);
     markers.moveOneObservation(Markers::ObservationIx(3), finalTarget);
 
+    for (Markers::MarkerIx mx(0); mx < markers.getNumMarkers(); ++mx)
+        printf("mx=%d ox=%d err=%g\n", 
+            (int)mx, (int)markers.getObservationIxForMarker(mx),
+            markers.findCurrentMarkerError(mx));
+
     ik.assemble(state);
+
     viz.report(state);
     cout << "ASSEMBLED CONFIGURATION\n"; cin >> c;
+
+    for (Markers::MarkerIx mx(0); mx < markers.getNumMarkers(); ++mx)
+        printf("mx=%d ox=%d err=%g\n", 
+            (int)mx, (int)markers.getObservationIxForMarker(mx),
+            markers.findCurrentMarkerError(mx));
+
     State startState = state;
 
     const clock_t start = clock();

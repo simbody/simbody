@@ -919,6 +919,15 @@ void Assembler::resetStats() const
 static const bool Weighted = true;
 static const Real MinimumOffset = 0;
 
+Vec3 Markers::findCurrentMarkerLocation(MarkerIx mx) const {
+    const SimbodyMatterSubsystem& matter = getMatterSubsystem();
+    const Marker&                 marker = getMarker(mx);
+    const MobilizedBody&          mobod  = matter.getMobilizedBody(marker.bodyB);
+    const State&                  state  = getAssembler().getInternalState();
+    const Transform&              X_GB   = mobod.getBodyTransform(state);
+    return X_GB * marker.markerInB;
+}
+
 // goal = offset + 1/2 sum( wi * ri^2 ) / sum(wi) for WRMS
 int Markers::calcGoal(const State& state, Real& goal) const {
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
