@@ -1225,9 +1225,9 @@ Vec3 findCurrentMarkerLocation(MarkerIx mx) const;
 
 /** Using the current value of the internal state, calculate the distance 
 between the given marker's current location and its corresponding observed
-location. If the marker is not associated with an observation, or if the
-observed location is missing (indicated by a NaN value), then the error
-is reported as zero. 
+location (unweighted). If the marker is not associated with an observation, 
+or if the observed location is missing (indicated by a NaN value), then the 
+error is reported as zero. 
 @note If you actually want the square of the distance, you can save some
 computation time by using findCurrentMarkerErrorSquared() which avoids the
 square root needed to find the actual distance.
@@ -1235,12 +1235,12 @@ square root needed to find the actual distance.
 Real findCurrentMarkerError(MarkerIx mx) const
 {   return std::sqrt(findCurrentMarkerErrorSquared(mx)); }
 
-/** Using the current value of the internal state, calculate the square of
-the distance between the given marker's current location and its corresponding
-observed location (the squared distance is less expensive to compute than
-the distance). If the marker is not associated with an observation, or if the
-observed location is missing (indicated by a NaN value), then the error
-is reported as zero. 
+/** Using the current value of the internal state, calculate the (unweighted)
+square of the distance between the given marker's current location and its 
+corresponding observed location (the squared distance is less expensive to 
+compute than the distance). If the marker is not associated with an 
+observation, or if the observed location is missing (indicated by a NaN 
+value), then the error is reported as zero. 
 @see findCurrentMarkerError() **/
 Real findCurrentMarkerErrorSquared(MarkerIx mx) const {
     const ObservationIx ox = getObservationIxForMarker(mx);
