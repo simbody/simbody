@@ -65,19 +65,19 @@
  *
  *            SI (MKS)           MD                     KCAL-ANGSTROM
  * ---------  --------------  ------------------------  ------------------
- * length     meter           nanometer                 angstrom (Å)
+ * length     meter           nanometer                 angstrom (A)
  * mass       kg              amu, dalton               amu, dalton
  * time       second          picosecond                picosecond
  * charge     coulomb         e, proton charge          e, proton charge
  * temp.      kelvin          kelvin                    kelvin
  * substance  mole            mole                      mole
  *
- * velocity   m/s             km/s (nm/ps)              100m/s (Å/ps)
+ * velocity   m/s             km/s (nm/ps)              100m/s (A/ps)
  *
  * energy     J (kg-m^2/s^2)  kJ/mol                    kcal/mol 
- *                              (Da-nm^2/ps^2)            (418.4 Da-Å^2/ps^2)
- * force      N (kg-m/s^2)    kJ/(mol-nm) = TN/mol      kcal/(mol-Å)
- *                              (Da-nm/ps^2) (T=10^12)    (418.4 Da-Å/ps^2)
+ *                              (Da-nm^2/ps^2)            (418.4 Da-A^2/ps^2)
+ * force      N (kg-m/s^2)    kJ/(mol-nm) = TN/mol      kcal/(mol-A)
+ *                              (Da-nm/ps^2) (T=10^12)    (418.4 Da-A/ps^2)
  *
  * </pre>
  *
