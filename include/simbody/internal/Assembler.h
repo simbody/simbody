@@ -687,11 +687,12 @@ friend class AssemblerSystem;
 //------------------------------------------------------------------------------
 //                            ASSEMBLY CONDITION
 //------------------------------------------------------------------------------
-/** Define an assembly condition consisting of a related set of assembly
-error equations, with one scalar error returned per equation. When used as
-an assembly constraint, each error will be satisfied to tolerance. When used
-as an assembly goal, the norm of the errors will be weighted and combined with
-other assembly goals. **/
+/** Define an assembly condition consisting of a scalar goal and/or a 
+related set of assembly error equations (that is, an objective and/or some 
+constraints). Whether the goal or error is used depends on the weighting
+assigned to this AssemblyCondition. A finite weight indicates that the
+goal should be used (and combined with other goals); an infinite weighting 
+means that each error must independently be satisfied to tolerance.  **/
 class SimTK_SIMBODY_EXPORT AssemblyCondition {
 public:
 
@@ -700,6 +701,7 @@ saves it. **/
 explicit AssemblyCondition(const String& name) 
 :   name(name), assembler(0) {}
 
+/** Destructor is virtual for use by derived classes. **/
 virtual ~AssemblyCondition() {}
 
 /** This is called whenever the Assembler is initialized in case this
@@ -956,10 +958,9 @@ observation; similarly, any markers whose index or name is not specified at
 all will be ignored. 
 **/
 class SimTK_SIMBODY_EXPORT Markers : public AssemblyCondition {
-public:
 
-Markers() : AssemblyCondition("Markers") {}
-
+// This is a private class used in the implementation below but not
+// accessible through the API.
 struct Marker {
     Marker(const String& name, MobilizedBodyIndex bodyB, 
            const Vec3& markerInB, Real weight = 1)
@@ -976,10 +977,26 @@ struct Marker {
     Real                weight; 
 };
 
+public:
+
 /** Define the MarkerIx type which is just a uniquely-typed int. **/
 SimTK_DEFINE_UNIQUE_LOCAL_INDEX_TYPE(Markers,MarkerIx);
 /** Define the ObservationIx type which is just a uniquely-typed int. **/
 SimTK_DEFINE_UNIQUE_LOCAL_INDEX_TYPE(Markers,ObservationIx);
+
+
+
+//------------------------------------------------------------------------------
+/** @name                Construction and setup
+These methods are used as an extended construction phase for Markers
+objects, defining the markers and observations that will be used in the
+subsequent tracking steps. **/
+/*@{*/
+
+/** The default constructor creates an empty Markers AssemblyCondition
+object that should be filled in with calls to addMarker() and optionally
+defineObservationOrder(). **/
+Markers() : AssemblyCondition("Markers") {}
 
 /** Define a new marker attached to a particular MobilizedBody. Note that
 a marker will be ignored unless an observation is provided for it.
@@ -1032,57 +1049,6 @@ MarkerIx addMarker(MobilizedBodyIndex bodyB, const Vec3& markerInB,
                    Real weight=1)
 {   return addMarker("", bodyB, markerInB, weight); }
 
-/** Change the weight associated with a particular marker. If this is just
-a quantitative change (e.g., weight was 0.3 now it is 0.4) then this does
-not require any reinitialization and will affect the goal calculation next
-time it is done. If the weight changes to or from zero (a qualitative change)
-then this will uninitialize the Assembler and all the internal data structures
-will be changed to remove or add this marker from the list of active markers.
-If you want to temporarily ignore a marker without reinitializing, you can
-set its corresponding observation to NaN in which case it will simply be
-skipped when the goal value is calculated. **/
-void changeMarkerWeight(MarkerIx mx, Real weight) {
-   SimTK_ERRCHK1_ALWAYS(isFinite(weight) && weight >= 0, 
-        "Markers::changeMarkerWeight()", "Illegal marker weight %g.", weight);
-
-    Marker& marker = markers[mx];
-    if (marker.weight == weight)
-        return;
-
-    if (marker.weight == 0 || weight == 0)
-        uninitializeAssembler(); // qualitative change
-
-    marker.weight = weight;
-}
-
-
-/** Return a count n of the number of currently-defined markers. Valid
-marker index values (of type Markers::MarkerIx) are 0..n-1. **/
-int getNumMarkers() const {return markers.size();}
-
-/** Return the unique marker name assigned to the marker whose index
-is provided. If the marker was defined without a name, this will return
-the default name that was assigned to it. **/
-const String& getMarkerName(MarkerIx ix) 
-{   return markers[ix].name; }
-/** Return the marker index associated with the given marker name. If the
-name is not recognized the returned index will be invalid (test with
-index.isValid()). **/
-const MarkerIx getMarkerIx(const String& name) 
-{   std::map<String,MarkerIx>::const_iterator p = markersByName.find(name);
-    return p == markersByName.end() ? MarkerIx() : p->second; }
-
-/** Get the weight currently in use for the specified marker. **/
-Real getMarkerWeight(MarkerIx mx)
-{   return markers[mx].weight; }
-
-/** Get the MobilizedBodyIndex of the body associated with this marker. **/
-MobilizedBodyIndex getMarkerBody(MarkerIx mx) const
-{   return markers[mx].bodyB; }
-
-/** Get the station (fixed location in its body frame) of the given marker. **/
-const Vec3& getMarkerStation(MarkerIx mx) const
-{   return markers[mx].markerInB; }
 
 /** Define the meaning of the observation data by giving the MarkerIx 
 associated with each observation. The length of the array of marker indices 
@@ -1163,6 +1129,103 @@ void defineObservationOrder(int n, const char* const observationOrder[])
     for (ObservationIx ox(0); ox < n; ++ox)
         markerIxs[ox] = getMarkerIx(String(observationOrder[ox]));
     defineObservationOrder(markerIxs); }
+/*@}*/
+
+
+
+//------------------------------------------------------------------------------
+/** @name               Retrieve setup information
+These methods are used to query information associated with the construction
+and setup of this Markers object. This information does not normally change
+during a marker-tracking study, although marker weights may be changed by 
+some inverse kinematics methods. **/
+/*@{*/
+
+/** Return a count n of the number of currently-defined markers. Valid
+marker index values (of type Markers::MarkerIx) are 0..n-1. **/
+int getNumMarkers() const {return markers.size();}
+
+/** Return the unique marker name assigned to the marker whose index
+is provided. If the marker was defined without a name, this will return
+the default name that was assigned to it. **/
+const String& getMarkerName(MarkerIx ix) 
+{   return markers[ix].name; }
+/** Return the marker index associated with the given marker name. If the
+name is not recognized the returned index will be invalid (test with
+index.isValid()). **/
+const MarkerIx getMarkerIx(const String& name) 
+{   std::map<String,MarkerIx>::const_iterator p = markersByName.find(name);
+    return p == markersByName.end() ? MarkerIx() : p->second; }
+
+/** Get the weight currently in use for the specified marker; this can
+be changed dynamically via changeMarkerWeight(). **/
+Real getMarkerWeight(MarkerIx mx)
+{   return markers[mx].weight; }
+
+/** Get the MobilizedBodyIndex of the body associated with this marker. **/
+MobilizedBodyIndex getMarkerBody(MarkerIx mx) const
+{   return markers[mx].bodyB; }
+
+/** Get the station (fixed location in its body frame) of the given marker. **/
+const Vec3& getMarkerStation(MarkerIx mx) const
+{   return markers[mx].markerInB; }
+
+/** Return the number of observations that were defined via the last call to
+defineObservationOrder(). These are not necessarily all being used. If 
+defineObservationOrder() was never called, we'll expect the same number of
+observations as markers although that won't be set up until the Assembler has
+been initialized. **/
+int getNumObservations() const {return observation2marker.size();}
+
+/** Return the ObservationIx of the observation that is currently associated
+with the given marker, or an invalid index if the marker doesn't have any
+corresponding observation (in which case it is being ignored). An exception 
+will be thrown if the given MarkerIx is not in the range 
+0..getNumMarkers()-1. **/
+ObservationIx getObservationIxForMarker(MarkerIx mx) const 
+{ return marker2observation[mx]; }
+
+/** Return true if the supplied marker is currently associated with an 
+observation. @see getObservationIxForMarker() **/
+bool hasObservation(MarkerIx mx) const 
+{ return getObservationIxForMarker(mx).isValid(); }
+
+/** Return the MarkerIx of the marker that is associated with the 
+given observation, or an invalid index if the observation doesn't correspond
+to any marker (in which case it is being ignored). An exception will be
+thrown if the given ObservationIx is not in the range 
+0..getNumObservations()-1. **/
+MarkerIx getMarkerIxForObservation(ObservationIx ox) const 
+{ return observation2marker[ox]; }
+
+/** Return true if the supplied observation is currently associated with a 
+marker. @see getMarkerIxForObservation() **/
+bool hasMarker(ObservationIx ox) const 
+{ return getMarkerIxForObservation(ox).isValid();}
+
+/** The Markers assembly condition organizes the markers by body after
+initialization; call this to get the list of markers on any particular body.
+If necessary the Assembler will be initialized. It is an error if this 
+assembly condition has not yet been adopted by an Assembler. **/
+const Array_<MarkerIx>& getMarkersOnBody(MobilizedBodyIndex mbx) {
+    static const Array_<MarkerIx> empty;
+    SimTK_ERRCHK_ALWAYS(isInAssembler(), "Markers::getMarkersOnBody()",
+        "This method can't be called until the Markers object has been"
+        " adopted by an Assembler.");
+    initializeAssembler();
+    PerBodyMarkers::const_iterator bodyp = bodiesWithMarkers.find(mbx);
+    return bodyp == bodiesWithMarkers.end() ? empty : bodyp->second;
+}
+/*@}*/
+
+
+
+//------------------------------------------------------------------------------
+/** @name                Execution methods
+These methods can be called between tracking steps to make step-to-step
+changes without reinitialization, and to access the current values of
+step-to-step data including the resulting marker errors. **/
+/*@{*/
 
 /** Move a single marker's observed location without moving any of the others.
 If the value contains a NaN, this marker/observation pair will be ignored the
@@ -1198,12 +1261,29 @@ void moveAllObservations(const Array_<Vec3>& observations)
         observations.size(), observation2marker.size());
     this->observations = observations; }
 
-/** Return the number of observations that were defined via the last call to
-defineObservationOrder(). These are not necessarily all being used. If 
-defineObservationOrder() was never called, we'll expect the same number of
-observations as markers although that won't be set up until the Assembler has
-been initialized. **/
-int getNumObservations() const {return observation2marker.size();}
+/** Change the weight associated with a particular marker. If this is just
+a quantitative change (e.g., weight was 0.3 now it is 0.4) then this does
+not require any reinitialization and will affect the goal calculation next
+time it is done. If the weight changes to or from zero (a qualitative change)
+then this will uninitialize the Assembler and all the internal data structures
+will be changed to remove or add this marker from the list of active markers.
+If you want to temporarily ignore a marker without reinitializing, you can
+set its corresponding observation to NaN in which case it will simply be
+skipped when the goal value is calculated. **/
+void changeMarkerWeight(MarkerIx mx, Real weight) {
+   SimTK_ERRCHK1_ALWAYS(isFinite(weight) && weight >= 0, 
+        "Markers::changeMarkerWeight()", "Illegal marker weight %g.", weight);
+
+    Marker& marker = markers[mx];
+    if (marker.weight == weight)
+        return;
+
+    if (marker.weight == 0 || weight == 0)
+        uninitializeAssembler(); // qualitative change
+
+    marker.weight = weight;
+}
+
 /** Return the current value of the location for this observation. This
 is where we will try to move the corresponding marker if there is one. 
 The result might be NaN if there is no current value for this observation;
@@ -1249,49 +1329,14 @@ Real findCurrentMarkerErrorSquared(MarkerIx mx) const {
     if (!loc.isFinite()) return 0; // NaN in observation; error is ignored
     return (findCurrentMarkerLocation(mx) - loc).normSqr();
 }
+/*@}*/
 
-/** Return the ObservationIx of the observation that is currently associated
-with the given marker, or an invalid index if the marker doesn't have any
-corresponding observation (in which case it is being ignored). An exception 
-will be thrown if the given MarkerIx is not in the range 
-0..getNumMarkers()-1. **/
-ObservationIx getObservationIxForMarker(MarkerIx mx) const 
-{ return marker2observation[mx]; }
 
-/** Return true if the supplied marker is currently associated with an 
-observation. @see getObservationIxForMarker() **/
-bool hasObservation(MarkerIx mx) const 
-{ return getObservationIxForMarker(mx).isValid(); }
 
-/** Return the MarkerIx of the marker that is associated with the 
-given observation, or an invalid index if the observation doesn't correspond
-to any marker (in which case it is being ignored). An exception will be
-thrown if the given ObservationIx is not in the range 
-0..getNumObservations()-1. **/
-MarkerIx getMarkerIxForObservation(ObservationIx ox) const 
-{ return observation2marker[ox]; }
-
-/** Return true if the supplied observation is currently associated with a 
-marker. @see getMarkerIxForObservation() **/
-bool hasMarker(ObservationIx ox) const 
-{ return getMarkerIxForObservation(ox).isValid();}
-
-/** The Markers assembly condition organizes the markers by body after
-initialization; call this to get the list of markers on any particular body.
-If necessary the Assembler will be initialized. It is an error if this 
-assembly condition has not yet been adopted by an Assembler. **/
-const Array_<MarkerIx>& getMarkersOnBody(MobilizedBodyIndex mbx) {
-    static const Array_<MarkerIx> empty;
-    SimTK_ERRCHK_ALWAYS(isInAssembler(), "Markers::getMarkersOnBody()",
-        "This method can't be called until the Markers object has been"
-        " adopted by an Assembler.");
-    initializeAssembler();
-    PerBodyMarkers::const_iterator bodyp = bodiesWithMarkers.find(mbx);
-    return bodyp == bodiesWithMarkers.end() ? empty : bodyp->second;
-}
-
-// These are the implementations of the AssemblyCondition virtuals.
-
+//------------------------------------------------------------------------------
+/** @name              AssemblyCondition virtuals
+These methods are the implementations of the AssemblyCondition virtuals. **/
+/*@{*/
 int calcErrors(const State& state, Vector& err) const;
 int calcErrorJacobian(const State& state, Matrix& jacobian) const;
 int getNumErrors(const State& state) const;
@@ -1299,6 +1344,7 @@ int calcGoal(const State& state, Real& goal) const;
 int calcGoalGradient(const State& state, Vector& grad) const;
 int initializeCondition() const;
 void uninitializeCondition() const;
+/*@}*/
 
 //------------------------------------------------------------------------------
                                     private:
