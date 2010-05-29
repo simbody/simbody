@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -53,6 +53,7 @@
 #include <complex>
 #include <cmath>
 #include <climits>
+#include <cassert>
 
 namespace SimTK {
 
@@ -433,6 +434,487 @@ std::complex<P> cube(const negator< conjugate<P> >& x) {
     return std::complex<P>(nre*(3*ii-rr), im*(3*rr-ii));
 }
 //@}
+
+/** @defgroup clamping     clamp(), clampInPlace()
+    @ingroup ScalarFunctions
+
+Limit a numerical value so that it does not go outside a given range.
+There are two functions (plus overloads) defined here: clamp() and 
+clampInPlace(). The first one is the most commonly used and simply 
+calculates an in-range value from an input value and a given range
+[low,high]. clampInPlace() is given a reference to a variable and if
+necessary modifies that variable so that its value is in the given range
+[los,high]. Both functions are overloaded for all the integral and real 
+types but are not defined for complex or conjugate types. 
+
+The following examples shows how clamp() and clampInPlace() can be defined 
+in terms of std::min() and std::max(). 
+
+clamp():
+@code
+    const double low, high; // from somewhere
+    const double v;
+    double clampedValue;
+    clampedValue = clamp(low,v,high); // clampedValue is in [low,high]
+    clampedValue = std::min(std::max(low,v), high); // equivalent
+@endcode
+clampInPlace():
+@code
+    const double low, high; // from somewhere
+    double v;
+    clampInPlace(low,v,high); // now v is in [low,high]
+    v = std::min(std::max(low,v), high); // equivalent
+@endcode **/
+/*@{*/
+
+/** Check that low <= v <= high and modify v in place if necessary to 
+bring it into that range.
+@param[in]      low     The lower bound; must be <= high.
+@param[in,out]  v       The variable whose value is changed if necessary.
+@param[in]      high    The upper bound; must be >= low.
+@return A writable reference to the now-possibly-modified input variable v.
+
+This method is overloaded for all standard integral and floating point
+types. All the arguments and the return type will be the same type; there
+are no explicit overloads for mixed types so you may find you need to
+cast the bounds in some cases to ensure you are calling the correct
+overload.
+
+Cost: These are very fast inline methods; the floating point ones use
+just two flops. **/
+inline double& clampInPlace(double low, double& v, double high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline float& clampInPlace(float low, float& v, float high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline long double& clampInPlace(long double low, long double& v, long double high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+
+
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline unsigned char& clampInPlace(unsigned char low, unsigned char& v, unsigned char high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline unsigned short& clampInPlace(unsigned short low, unsigned short& v, unsigned short high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline unsigned int& clampInPlace(unsigned int low, unsigned int& v, unsigned int high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline unsigned long& clampInPlace(unsigned long low, unsigned long& v, unsigned long high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline unsigned long long& clampInPlace(unsigned long long low, unsigned long long& v, unsigned long long high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline char& clampInPlace(char low, char& v, char high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline signed char& clampInPlace(signed char low, signed char& v, signed char high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline short& clampInPlace(short low, short& v, short high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline int& clampInPlace(int low, int& v, int high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline long& clampInPlace(long low, long& v, long high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline long long& clampInPlace(long long low, long long& v, long long high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline negator<float>& clampInPlace(float low, negator<float>& v, float high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline negator<double>& clampInPlace(double low, negator<double>& v, double high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+/** @copydoc SimTK::clampInPlace(double,double&,double) **/
+inline negator<long double>& clampInPlace(long double low, negator<long double>& v, long double high) 
+{   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
+
+
+
+/** If v is in range low <= v <= high then return v, otherwise return
+the nearest bound; this function does not modify the input variable v.
+@param[in]      low     The lower bound; must be <= high.
+@param[in]      v       The value to be put into range [low,high].
+@param[in]      high    The upper bound; must be >= low.
+@return Either the value v or one of the bounds.
+
+This method is overloaded for all standard integral and floating point
+types. All the arguments and the return type will be the same type; there
+are no explicit overloads for mixed types so you may find you need to
+cast the bounds in some cases to ensure you are calling the correct
+overload.
+
+@warning Viewed as a function of the input value v, clamp(v) is not
+very smooth -- it is continuous (C0) but even its first derivative is
+infinite at the bounds.
+
+Cost: These are very fast, inline methods; the floating point ones use
+just two flops.
+@see clampInPlace() **/
+inline unsigned char clamp(unsigned char low, unsigned char v, unsigned char high) 
+{   return clampInPlace(low,v,high); }
+
+inline unsigned short clamp(unsigned short low, unsigned short v, unsigned short high) 
+{   return clampInPlace(low,v,high); }
+inline unsigned int clamp(unsigned int low, unsigned int v, unsigned int high) 
+{   return clampInPlace(low,v,high); }
+inline unsigned long clamp(unsigned long low, unsigned long v, unsigned long high) 
+{   return clampInPlace(low,v,high); }
+inline unsigned long long clamp(unsigned long long low, unsigned long long v, unsigned long long high) 
+{   return clampInPlace(low,v,high); }
+
+inline char clamp(char low, char v, char high) 
+{   return clampInPlace(low,v,high); }
+inline signed char clamp(signed char low, signed char v, signed char high) 
+{   return clampInPlace(low,v,high); }
+
+inline short clamp(short low, short v, short high) 
+{   return clampInPlace(low,v,high); }
+inline int clamp(int low, int v, int high) 
+{   return clampInPlace(low,v,high); }
+inline long clamp(long low, long v, long high) 
+{   return clampInPlace(low,v,high); }
+inline long long clamp(long long low, long long v, long long high) 
+{   return clampInPlace(low,v,high); }
+
+inline float clamp(float low, float v, float high) 
+{   return clampInPlace(low,v,high); }
+inline double clamp(double low, double v, double high) 
+{   return clampInPlace(low,v,high); }
+inline long double clamp(long double low, long double v, long double high) 
+{   return clampInPlace(low,v,high); }
+
+// These aren't strictly necessary but are here to help the
+// compiler find the right overload to call. These cost an
+// extra flop because the negator<T> has to be cast to T which
+// requires that the pending negation be performed. Note that
+// the result types are not negated.
+inline float clamp(float low, negator<float> v, float high)
+{   return clamp(low,(float)v,high); }
+inline double clamp(double low, negator<double> v, double high) 
+{   return clamp(low,(double)v,high); }
+inline long double clamp(long double low, negator<long double> v, long double high) 
+{   return clamp(low,(long double)v,high); }
+/*@}*/
+
+
+
+/** @defgroup smoothing     stepUp(), stepDown(), stepAny()
+    @ingroup ScalarFunctions
+
+These methods provide a smooth, S-shaped step function that is useful
+for "softening" abrupt transitions between two values, and several
+derivatives of that function.
+
+y=stepUp(x) for x=0:1 returns a smooth, S-shaped step function y(x),
+symmetric about the midpoint x=0.5, such that y(0)=0, y(1)=1, 
+y'(0)=y''(0)=y'(1)=y''(1)=0, where the primes indicate differentiation 
+with respect to x. No guarantees are made about the behavior of higher 
+derivatives except to say that y''' does exist.
+
+y=stepDown(x) for x=0:1 is a mirror image S curve that takes y
+down from 1 to 0 smoothly as x goes from 0 to 1. As with stepUp()
+y' and y'' are 0 at both ends, but here y(0)=1 and y(1)=0.
+
+The stepAny() function is also available to make a step function
+that takes y smoothly from y0 to y1 as x goes from x0 to x1.
+
+We also provide functions that calculate the first three derivatives
+of stepUp(), stepDown(), and stepAny(), namely: dstepUp(), d2stepUp(), 
+d3stepUp(), and similarly dstepDown(), dstepAny() and so on. Note again 
+that the third derivative is not guaranteed to be well behaved.
+
+Costs of the current implementations of these inline functions are:
+    - stepUp() 7 flops
+    - dstepUp() 4 flops
+    - d2stepUp() 6 flops
+    - d3stepUp() 4 flops
+
+The corresponding stepDown() methods cost one extra flop; the
+stepAny() methods cost 6 extra flops (provided you do some precalculation;
+see the stepAny() documentation). **/
+/*@{*/
+
+/** Interpolate smoothly from 0 up to 1 as the input argument goes from 0 to 1,
+with first and second derivatives zero at either end of the interval.
+
+@param[in]  x       The input argument, with x in range [0,1].
+@return The smoothed output value, in range [0,1] but with first and second 
+derivatives smoothly approaching zero as x approaches either end of its 
+interval.
+
+See the documentation for stepAny() for a discussion about how to shift and
+scale this function to produce arbitrary steps.
+
+This function is overloaded for all the floating point precisions.
+Cost is 7 flops.
+@see stepDown(), stepAny() **/
+inline float stepUp(float x) {
+    assert(0 <= x && x <= 1);
+    return x*x*x*(10+x*(6*x-15));  //10x^3-15x^4+6x^5
+}
+/** @copydoc SimTK::stepUp(float) **/
+inline double stepUp(double x) {
+    assert(0 <= x && x <= 1);
+    return x*x*x*(10+x*(6*x-15));  //10x^3-15x^4+6x^5
+}
+/** @copydoc SimTK::stepUp(float) **/
+inline long double stepUp(long double x) {
+    assert(0 <= x && x <= 1);
+    return x*x*x*(10+x*(6*x-15));  //10x^3-15x^4+6x^5
+}
+
+/** Interpolate smoothly from 1 down to 0 as the input argument goes from 
+0 to 1, with first and second derivatives zero at either end of the interval.
+
+@param[in]  x       The input argument, with x in range [0,1].
+@return The smoothed output value, in range [1,0] but with first and second 
+derivatives smoothly approaching zero as x approaches either end of its 
+interval.
+
+See the documentation for stepAny() for a discussion about how to shift and
+scale this function to produce arbitrary steps.
+
+This function is overloaded for all the floating point precisions.
+Cost is 8 flops.
+@see stepUp(), stepAny() **/
+inline float       stepDown(float x)       {return 1.0f-stepUp(x);}
+/** @copydoc SimTK::stepDown(float) **/
+inline double      stepDown(double x)      {return 1.0 -stepUp(x);}
+/** @copydoc SimTK::stepDown(float) **/
+inline long double stepDown(long double x) {return 1.0L-stepUp(x);}
+
+/** Interpolate smoothly from y0 to y1 as the input argument goes from x0 to x1,
+with first and second derivatives zero at either end of the interval.
+
+@param[in]          y0
+    The output value when x=x0.
+@param[in]          yRange  
+    The amount by which the output can change over the full interval, that is, 
+    yRange=(y1-y0) where y1 is the value of the output when x=x1.
+@param[in]          x0      
+    The minimum allowable value for x.
+@param[in]          oneOverXRange
+    1/xRange, where xRange is the amount by which the input variable x can 
+    change over its full interval, that is, xRange=(x1-x0) where x1 is the
+    maximum allowable value for x.
+@param[in]          x       
+    The input value, with x in range [x0,x1]. This is often a time over
+    which the output transition from y0 to y1 is to occur.
+@return 
+    The smoothed output value, in range [y0,y1] (where y1=y0+yRange) but with 
+    first and second derivatives smoothly approaching zero as x approaches 
+    either end of its interval.
+
+Note that the desired curve is defined in terms of y0 and (y1-y0), and
+x0 and 1/(x1-x0), rather than y0,y1,x0,x1 which would make for a nicer
+calling signature. This is a concession to efficiency since the two ranges
+are likely to be unchanged during many calls to this function and can thus
+be precalculated. It wouldn't matter except that division is so expensive
+(equivalent to 15-20 floating point operations). If you aren't concerned
+about that (and in most cases it won't matter), you can call this
+function using y0,y1,x0,x1 like this: @code
+    y = stepAny(y0,y1-y0,x0,1/(x1-x0), x);
+@endcode
+
+Not counting the cost of calculating the ranges, each call to this function
+requires 13 flops. Calculating the ranges in the argument list as shown
+above raises the per-call cost to about 30 flops. However, there are many
+common special cases that are much simpler. For example, if y is to go from
+-1 to 1 while x goes from 0 to 1, then you can write: @code
+    y = stepAny(-1,2,0,1, x);
+@endcode
+which is still only 13 flops despite the lack of pre-calculation.
+
+@par Theory
+
+stepUp() and stepDown() and their derivatives are defined only for arguments 
+in the range 0 to 1. To create a general step function that smoothly 
+interpolates from y=y0 to y1 while x goes from x0 to x1, and three derivatives,
+we use the stepUp() functions like this:
+@code
+     ooxr = 1/(x1-x0);      // one over x range (signed)
+     yr   = y1-y0;          // y range (signed)
+     xadj = (x-x0)*ooxr     // x adjusted into 0:1 range (watch for roundoff)
+     y    = y0 + yr * stepUp(xadj);
+     dy   = yr*ooxr   * dstepUp(xadj);
+     d2y  = yr*ooxr^2 * d2stepUp(xadj);
+     d3y  = yr*ooxr^3 * d3stepUp(xadj);
+@endcode
+
+As a common special case, note that when y has a general range but x is
+still in [0,1], the above simplifies considerably and you can save a few 
+flops if you want by working with stepUp() or stepDown() directly. For 
+example, in the common case where you want y to go from -1 to 1 as x goes 
+from 0 to 1:
+@code
+    y   = stepAny(-1,2,0,1, x);  // y in [-1,1]; 13 flops
+    y   = -1 + 2*stepUp(x);      // equivalent, saves 4 flops
+    dy  = 2*dstepUp(x);          // these save 5 flops
+    d2y = 2*d2stepUp(x);
+    d3y = 2*d3stepUp(x);
+@endcode
+
+It would be extremely rare for these few flops to matter at all; you should
+almost always choose based on what looks better and/or is less error prone
+instead. **/
+inline float stepAny(float y0, float yRange,
+                     float x0, float oneOverXRange,
+                     float x) 
+{   const float xadj = clamp(0.0f,(x-x0)*oneOverXRange,1.0f);
+    return y0 + yRange*stepUp(xadj); }
+/** @copydoc SimTK::stepAny(float,float,float,float,float) **/
+inline double stepAny(double y0, double yRange,
+                      double x0, double oneOverXRange,
+                      double x) 
+{   const double xadj = clamp(0.0,(x-x0)*oneOverXRange,1.0);
+    return y0 + yRange*stepUp(xadj); }
+/** @copydoc SimTK::stepAny(float,float,float,float,float) **/
+inline long double stepAny(long double y0, long double yRange,
+                           long double x0, long double oneOverXRange,
+                           long double x) 
+{   const long double xadj = clamp(0.0L,(x-x0)*oneOverXRange,1.0L);
+    return y0 + yRange*stepUp(xadj); }
+
+/** d/dx stepUp(x) **/
+inline float dstepUp(float x) {
+    assert(0 <= x && x <= 1);
+    const float xxm1=x*(x-1);
+    return 30*xxm1*xxm1;        //30x^2-60x^3+30x^4
+}
+/** @copydoc SimTK::dstepUp(float) **/
+inline double dstepUp(double x) {
+    assert(0 <= x && x <= 1);
+    const double xxm1=x*(x-1);
+    return 30*xxm1*xxm1;        //30x^2-60x^3+30x^4
+}
+/** @copydoc SimTK::dstepUp(float) **/
+inline long double dstepUp(long double x) {
+    assert(0 <= x && x <= 1);
+    const long double xxm1=x*(x-1);
+    return 30*xxm1*xxm1;        //30x^2-60x^3+30x^4
+}
+
+/** d/dx stepDown(x) **/
+inline float       dstepDown(float x)       {return -dstepUp(x);}
+/** @copydoc SimTK::dstepDown(float) **/
+inline double      dstepDown(double x)      {return -dstepUp(x);}
+/** @copydoc SimTK::dstepDown(float) **/
+inline long double dstepDown(long double x) {return -dstepUp(x);}
+
+/** d/dx stepAny(x) **/
+inline float dstepAny(float yRange,
+                      float x0, float oneOverXRange,
+                      float x) 
+{   const float xadj = clamp(0.0f,(x-x0)*oneOverXRange,1.0f);
+    return yRange*oneOverXRange*dstepUp(xadj); }
+/** @copydoc SimTK::dstepAny(float,float,float,float) **/
+inline double dstepAny(double yRange,
+                       double x0, double oneOverXRange,
+                       double x) 
+{   const double xadj = clamp(0.0,(x-x0)*oneOverXRange,1.0);
+    return yRange*oneOverXRange*dstepUp(xadj); }
+/** @copydoc SimTK::dstepAny(float,float,float,float) **/
+inline long double dstepAny(long double yRange,
+                            long double x0, long double oneOverXRange,
+                            long double x) 
+{   const long double xadj = clamp(0.0L,(x-x0)*oneOverXRange,1.0L);
+    return yRange*oneOverXRange*dstepUp(xadj); }
+
+/** d^2/dx^2 stepUp(x) **/
+inline float d2stepUp(float x) {
+    assert(0 <= x && x <= 1);
+    return 60*x*(1+x*(2*x-3));  //60x-180x^2+120x^3
+}
+/** @copydoc SimTK::d2stepUp(float) **/
+inline double d2stepUp(double x) {
+    assert(0 <= x && x <= 1);
+    return 60*x*(1+x*(2*x-3));  //60x-180x^2+120x^3
+}
+/** @copydoc SimTK::d2stepUp(float) **/
+inline long double d2stepUp(long double x) {
+    assert(0 <= x && x <= 1);
+    return 60*x*(1+x*(2*x-3));  //60x-180x^2+120x^3
+}
+
+/** d^2/dx^2 stepDown(x) **/
+inline float       d2stepDown(float x)       {return -d2stepUp(x);}
+/** @copydoc SimTK::d2stepDown(float) **/
+inline double      d2stepDown(double x)      {return -d2stepUp(x);}
+/** @copydoc SimTK::d2stepDown(float) **/
+inline long double d2stepDown(long double x) {return -d2stepUp(x);}
+
+/** d^2/dx^2 stepAny(x) **/
+inline float d2stepAny(float yRange,
+                       float x0, float oneOverXRange,
+                       float x) 
+{   const float xadj = clamp(0.0f,(x-x0)*oneOverXRange,1.0f);
+    return yRange*square(oneOverXRange)*d2stepUp(xadj); }
+/** @copydoc SimTK::d2stepAny(float,float,float,float) **/
+inline double d2stepAny(double yRange,
+                        double x0, double oneOverXRange,
+                        double x) 
+{   const double xadj = clamp(0.0,(x-x0)*oneOverXRange,1.0);
+    return yRange*square(oneOverXRange)*d2stepUp(xadj); }
+/** @copydoc SimTK::d2stepAny(float,float,float,float) **/
+inline long double d2stepAny(long double yRange,
+                             long double x0, long double oneOverXRange,
+                             long double x) 
+{   const long double xadj = clamp(0.0L,(x-x0)*oneOverXRange,1.0L);
+    return yRange*square(oneOverXRange)*d2stepUp(xadj); }
+
+/** d^3/dx^3 stepUp(x) **/
+inline float d3stepUp(float x) {
+    assert(0 <= x && x <= 1);
+    return 60+360*x*(x-1);      //60-360*x+360*x^2
+}
+/** @copydoc SimTK::d3stepUp(float) **/
+inline double d3stepUp(double x) {
+    assert(0 <= x && x <= 1);
+    return 60+360*x*(x-1);      //60-360*x+360*x^2
+}
+/** @copydoc SimTK::d3stepUp(float) **/
+inline long double d3stepUp(long double x) {
+    assert(0 <= x && x <= 1);
+    return 60+360*x*(x-1);      //60-360*x+360*x^2
+}
+
+/** d^3/dx^3 stepDown(x) **/
+inline float       d3stepDown(float x)       {return -d3stepUp(x);}
+/** @copydoc SimTK::d3stepDown(float) **/
+inline double      d3stepDown(double x)      {return -d3stepUp(x);}
+/** @copydoc SimTK::d3stepDown(float) **/
+inline long double d3stepDown(long double x) {return -d3stepUp(x);}
+
+/** d^3/dx^3 stepAny(x) **/
+inline float d3stepAny(float yRange,
+                       float x0, float oneOverXRange,
+                       float x) 
+{   const float xadj = clamp(0.0f,(x-x0)*oneOverXRange,1.0f);
+    return yRange*cube(oneOverXRange)*d3stepUp(xadj); }
+/** @copydoc SimTK::d3stepAny(float,float,float,float) **/
+inline double d3stepAny(double yRange,
+                        double x0, double oneOverXRange,
+                        double x) 
+{   const double xadj = clamp(0.0,(x-x0)*oneOverXRange,1.0);
+    return yRange*cube(oneOverXRange)*d3stepUp(xadj); }
+/** @copydoc SimTK::d3stepAny(float,float,float,float) **/
+inline long double d3stepAny(long double yRange,
+                             long double x0, long double oneOverXRange,
+                             long double x) 
+{   const long double xadj = clamp(0.0L,(x-x0)*oneOverXRange,1.0L);
+    return yRange*cube(oneOverXRange)*d3stepUp(xadj); }
+
+/*@}*/
 
 } // namespace SimTK
 
