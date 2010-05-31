@@ -678,7 +678,7 @@ void testStep() {
     // differencing below.
 
     // Central difference estimates should give around 10 
-    // decimal places in double, 5 in float.
+    // decimal places in double, 4 in float.
     const double dupEst = (stepUp(.799+1e-6)-stepUp(.799-1e-6))/2e-6;
     const double ddnEst = (stepDown(.799+1e-6)-stepDown(.799-1e-6))/2e-6;
     const double d2upEst = (dstepUp(.723+1e-6)-dstepUp(.723-1e-6))/2e-6;
@@ -698,12 +698,12 @@ void testStep() {
     const float fd2dnEst = (dstepDown(.623f+1e-3f)-dstepDown(.623f-1e-3f))/2e-3f;
     const float fd3upEst = (d2stepUp(.211f+1e-3f)-d2stepUp(.211f-1e-3f))/2e-3f;
     const float fd3dnEst = (d2stepDown(.211f+1e-3f)-d2stepDown(.211f-1e-3f))/2e-3f;
-    SimTK_TEST_EQ_TOL(dstepUp(.699f), fdupEst, 1e-4);
-    SimTK_TEST_EQ_TOL(dstepDown(.699f), fddnEst, 1e-4);
-    SimTK_TEST_EQ_TOL(d2stepUp(.623f), fd2upEst, 1e-4);
-    SimTK_TEST_EQ_TOL(d2stepDown(.623f), fd2dnEst, 1e-4);
-    SimTK_TEST_EQ_TOL(d3stepUp(.211f), fd3upEst, 1e-4);
-    SimTK_TEST_EQ_TOL(d3stepDown(.211f), fd3dnEst, 1e-4);
+    SimTK_TEST_EQ_TOL(dstepUp(.699f), fdupEst, 1e-3);
+    SimTK_TEST_EQ_TOL(dstepDown(.699f), fddnEst, 1e-3);
+    SimTK_TEST_EQ_TOL(d2stepUp(.623f), fd2upEst, 1e-3);
+    SimTK_TEST_EQ_TOL(d2stepDown(.623f), fd2dnEst, 1e-3);
+    SimTK_TEST_EQ_TOL(d3stepUp(.211f), fd3upEst, 1e-3);
+    SimTK_TEST_EQ_TOL(d3stepDown(.211f), fd3dnEst, 1e-3);
 
 
     // y = stepAny(y0,yrange,x0,1/xrange, x)
@@ -751,9 +751,9 @@ void testStep() {
     const float fd3anyEst = 
         (d2stepAny(fyr,fx0,fooxr,.123f+1e-3f)
         -d2stepAny(fyr,fx0,fooxr,.123f-1e-3f))/2e-3f;
-    SimTK_TEST_EQ_TOL(dstepAny(fyr,fx0,fooxr,.799f), fdanyEst, 1e-4);
-    SimTK_TEST_EQ_TOL(d2stepAny(fyr,fx0,fooxr,.723f), fd2anyEst, 1e-4);
-    SimTK_TEST_EQ_TOL(d3stepAny(fyr,fx0,fooxr,.123f), fd3anyEst, 1e-4);
+    SimTK_TEST_EQ_TOL(dstepAny(fyr,fx0,fooxr,.799f), fdanyEst, 1e-3);
+    SimTK_TEST_EQ_TOL(d2stepAny(fyr,fx0,fooxr,.723f), fd2anyEst, 1e-3);
+    SimTK_TEST_EQ_TOL(d3stepAny(fyr,fx0,fooxr,.123f), fd3anyEst, 1e-3);
 }
 
 int main() {
