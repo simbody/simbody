@@ -161,7 +161,7 @@ public:
     /// changed and allow the Integrator to figure out how much reinitialization
     /// to do.
     ///
-    /// If 'shouldTerminate" is passed in true, the Integrator will wrap
+    /// If "shouldTerminate" is passed in true, the Integrator will wrap
     /// things up and report that the end of the simulation has been reached.
     void reinitialize(Stage stage, bool shouldTerminate);
 
