@@ -297,7 +297,7 @@ public:
         if ((x-m_x1)*m_sign >= 0) return m_y1;
         // f goes from 0 to 1 as x goes from x0 to x1.
         const Real f = stepAny(0,1,m_x0,m_ooxr, x);
-        return m_y0 + m_yr*f;
+        return m_y0 + f*m_yr;
     }
 
     T calcDerivative(const Array_<int>& derivComponents, const Vector& xin) const {
@@ -314,9 +314,9 @@ public:
         if ((x-m_x0)*m_sign <= 0) return m_zero;
         if ((x-m_x1)*m_sign >= 0) return m_zero;
         switch(derivOrder) {
-          case 1: return m_yr*dstepAny (1,m_x0,m_ooxr, x);
-          case 2: return m_yr*d2stepAny(1,m_x0,m_ooxr, x);
-          case 3: return m_yr*d3stepAny(1,m_x0,m_ooxr, x);
+          case 1: return dstepAny (1,m_x0,m_ooxr, x) * m_yr;
+          case 2: return d2stepAny(1,m_x0,m_ooxr, x) * m_yr;
+          case 3: return d3stepAny(1,m_x0,m_ooxr, x) * m_yr;
           default: assert(!"impossible derivOrder");
         }
         return NaN*m_yr; /*NOTREACHED*/
