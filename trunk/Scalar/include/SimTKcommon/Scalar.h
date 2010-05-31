@@ -493,6 +493,47 @@ inline float& clampInPlace(float low, float& v, float high)
 inline long double& clampInPlace(long double low, long double& v, long double high) 
 {   assert(low<=high); if (v<low) v=low; else if (v>high) v=high; return v; }
 
+    // Floating point clamps with integer bounds; without these
+    // explicit casts are required.
+
+/** @copydoc SimTK::clampInPlace(double,double&,double) 
+Takes integer bounds to avoid need for explicit casts. **/
+inline double& clampInPlace(int low, double& v, int high) 
+{   return clampInPlace((double)low,v,(double)high); }
+/** @copydoc SimTK::clampInPlace(double,double&,double) 
+Takes integer bounds to avoid need for explicit casts. **/
+inline float& clampInPlace(int low, float& v, int high) 
+{   return clampInPlace((float)low,v,(float)high); }
+/** @copydoc SimTK::clampInPlace(double,double&,double) 
+Takes integer bounds to avoid need for explicit casts. **/
+inline long double& clampInPlace(int low, long double& v, int high) 
+{   return clampInPlace((long double)low,v,(long double)high); }
+
+/** @copydoc SimTK::clampInPlace(double,double&,double) 
+Takes an integer bound to avoid need for explicit casts. **/
+inline double& clampInPlace(int low, double& v, double high) 
+{   return clampInPlace((double)low,v,high); }
+/** @copydoc SimTK::clampInPlace(double,double&,double) 
+Takes an integer bound to avoid need for explicit casts. **/
+inline float& clampInPlace(int low, float& v, float high) 
+{   return clampInPlace((float)low,v,high); }
+/** @copydoc SimTK::clampInPlace(double,double&,double) 
+Takes an integer bound to avoid need for explicit casts. **/
+inline long double& clampInPlace(int low, long double& v, long double high) 
+{   return clampInPlace((long double)low,v,high); }
+
+/** @copydoc SimTK::clampInPlace(double,double&,double) 
+Takes an integer bound to avoid need for explicit casts. **/
+inline double& clampInPlace(double low, double& v, int high) 
+{   return clampInPlace(low,v,(double)high); }
+/** @copydoc SimTK::clampInPlace(double,double&,double) 
+Takes an integer bound to avoid need for explicit casts. **/
+inline float& clampInPlace(float low, float& v, int high) 
+{   return clampInPlace(low,v,(float)high); }
+/** @copydoc SimTK::clampInPlace(double,double&,double) 
+Takes an integer bound to avoid need for explicit casts. **/
+inline long double& clampInPlace(long double low, long double& v, int high) 
+{   return clampInPlace(low,v,(long double)high); }
 
 /** @copydoc SimTK::clampInPlace(double,double&,double) **/
 inline unsigned char& clampInPlace(unsigned char low, unsigned char& v, unsigned char high) 
@@ -569,6 +610,45 @@ inline float clamp(float low, float v, float high)
 {   return clampInPlace(low,v,high); }
 /** @copydoc SimTK::clamp(double,double,double) **/
 inline long double clamp(long double low, long double v, long double high) 
+{   return clampInPlace(low,v,high); }
+
+/** @copydoc SimTK::clamp(double,double,double) 
+Takes integer bounds to avoid need for explicit casts. **/
+inline double clamp(int low, double v, int high) 
+{   return clampInPlace(low,v,high); }
+/** @copydoc SimTK::clamp(double,double,double) 
+Takes integer bounds to avoid need for explicit casts. **/
+inline float clamp(int low, float v, int high) 
+{   return clampInPlace(low,v,high); }
+/** @copydoc SimTK::clamp(double,double,double)
+Takes integer bounds to avoid need for explicit casts. **/
+inline long double clamp(int low, long double v, int high) 
+{   return clampInPlace(low,v,high); }
+
+/** @copydoc SimTK::clamp(double,double,double) 
+Takes an integer bound to avoid need for explicit casts. **/
+inline double clamp(int low, double v, double high) 
+{   return clampInPlace(low,v,high); }
+/** @copydoc SimTK::clamp(double,double,double) 
+Takes an integer bound to avoid need for explicit casts. **/
+inline float clamp(int low, float v, float high) 
+{   return clampInPlace(low,v,high); }
+/** @copydoc SimTK::clamp(double,double,double)
+Takes an integer bound to avoid need for explicit casts. **/
+inline long double clamp(int low, long double v, long double high) 
+{   return clampInPlace(low,v,high); }
+
+/** @copydoc SimTK::clamp(double,double,double) 
+Takes an integer bound to avoid need for explicit casts. **/
+inline double clamp(double low, double v, int high) 
+{   return clampInPlace(low,v,high); }
+/** @copydoc SimTK::clamp(double,double,double) 
+Takes an integer bound to avoid need for explicit casts. **/
+inline float clamp(float low, float v, int high) 
+{   return clampInPlace(low,v,high); }
+/** @copydoc SimTK::clamp(double,double,double)
+Takes an integer bound to avoid need for explicit casts. **/
+inline long double clamp(long double low, long double v, int high) 
 {   return clampInPlace(low,v,high); }
 
 /** @copydoc SimTK::clamp(double,double,double) **/
@@ -1003,6 +1083,15 @@ inline long double d3stepAny(long double yRange,
            && xadj <= 1 + NTraits<long double>::getSignificant());
     clampInPlace(0.0L,xadj,1.0L);
     return yRange*cube(oneOverXRange)*d3stepUp(xadj); }
+
+        // int converts to double; only supplied for stepUp(), stepDown()
+/** @copydoc SimTK::stepUp(double)
+Treats int argument as a double (avoids ambiguity). **/
+inline double stepUp(int x) {return stepUp((double)x);}
+/** @copydoc SimTK::stepDown(double)
+Treats int argument as a double (avoids ambiguity). **/
+inline double stepDown(int x) {return stepDown((double)x);}
+
 
 /*@}*/
 

@@ -557,8 +557,203 @@ void testIsNumericallyEqual() {
     // Mixed should use float tolerance
     SimTK_TEST(isNumericallyEqual(fe,de));
     SimTK_TEST(!isNumericallyEqual((double)fe,de));
+}
+
+void testClamp() {
+    const int i4=4;
+    const double d325=3.25;
+    const float fn325=-3.25;
+
+    // int
+    SimTK_TEST(clamp(4,i4,4)==4);
+    SimTK_TEST(clamp(0,i4,9)==4);
+    SimTK_TEST(clamp(5,i4,9)==5);
+    SimTK_TEST(clamp(-7,i4,-5)==-5);
+
+    // double
+    SimTK_TEST(clamp(3.25,d325,3.25)==3.25);
+    SimTK_TEST(clamp(0.,d325,9.)==3.25);
+    SimTK_TEST(clamp(5.,d325,9.)==5);
+    SimTK_TEST(clamp(-7.,d325,-5.)==-5);
+
+    // float
+    SimTK_TEST(clamp(-3.25f,fn325,-3.25f)==-3.25);
+    SimTK_TEST(clamp(-9.f,fn325,0.f)==-3.25f);
+    SimTK_TEST(clamp(-9.f,fn325,-5.f)==-5);
+    SimTK_TEST(clamp(5.f,fn325,7.f)==5);
+
+    // Test methods that take integer bounds.
+    SimTK_TEST(clamp(0,d325,9)==3.25);
+    SimTK_TEST(clamp(5,d325,9)==5);
+    SimTK_TEST(clamp(-7,d325,-5)==-5);
+
+    SimTK_TEST(clamp(-9,fn325,0)==-3.25);
+    SimTK_TEST(clamp(-9,fn325,-5)==-5);
+    SimTK_TEST(clamp(5,fn325,7)==5);
+
+    SimTK_TEST(clamp(0.,d325,9)==3.25);
+    SimTK_TEST(clamp(5.,d325,9)==5);
+    SimTK_TEST(clamp(-7.,d325,-5)==-5);
+
+    SimTK_TEST(clamp(-9.f,fn325,0)==-3.25);
+    SimTK_TEST(clamp(-9.f,fn325,-5)==-5);
+    SimTK_TEST(clamp(5.f,fn325,7)==5);
+
+    SimTK_TEST(clamp(0,d325,9.)==3.25);
+    SimTK_TEST(clamp(5,d325,9.)==5);
+    SimTK_TEST(clamp(-7,d325,-5.)==-5);
+
+    SimTK_TEST(clamp(-9,fn325,0.f)==-3.25);
+    SimTK_TEST(clamp(-9,fn325,-5.f)==-5);
+    SimTK_TEST(clamp(5,fn325,7.f)==5);
+
+    int i; double d; float f;
+    i=i4; 
+    SimTK_TEST(clampInPlace(-2,i,3)==3 && i==3);
+    d=d325;
+    SimTK_TEST(clampInPlace(-2.,d,3.)==3 && d==3);
+    f=fn325;
+    SimTK_TEST(clampInPlace(-2,f,3)==-2 && f==-2);
+
+    // Do a test for each of the less-common supported types.
+    char c='j'; unsigned char uc=3; signed char sc=-2;
+    SimTK_TEST(clamp('a',c,'e')=='e');
+    SimTK_TEST(clamp('a',c,'z')=='j');
+    SimTK_TEST(clamp((unsigned char)4,uc,(unsigned char)5)==4);
+    SimTK_TEST(clamp((signed char)-7,sc,(signed char)-1)==-2);
+
+    short s=-32000; unsigned short us=17; unsigned ui=4023456789U;
+    SimTK_TEST(clamp((short)-29000,s,(short)400)==-29000);
+    SimTK_TEST(clamp((unsigned short)4,us,(unsigned short)15)==15);
+    SimTK_TEST(clamp(100000000U,ui,4010000000U)==4010000000U);
+
+    long l=-234234L; unsigned long ul=293493849UL; 
+    long long ll=-123456789123LL; unsigned long long ull=123456789123ULL;
+    SimTK_TEST(clamp(-1000000L,l,-200000L)==-234234);
+    SimTK_TEST(clamp(1000000UL,ul,4000000000UL)==293493849);
+    SimTK_TEST(clamp(-100000000000LL,ll,27LL)==-100000000000LL);
+    SimTK_TEST(clamp(-1000000000000LL,ll,27LL)==-123456789123LL);
+}
+
+void testStep() {
+        // double
+    SimTK_TEST(stepUp(0.)==0 && stepUp(.5)==.5 && stepUp(1.)==1);
+    SimTK_TEST(0 < stepUp(.3) && stepUp(.3) < .5);
+    SimTK_TEST(.5 < stepUp(.7) && stepUp(.7) < 1);
+    SimTK_TEST(stepDown(0.)==1 && stepDown(.5)==.5 && stepDown(1.)==0);
+    SimTK_TEST(.5 < stepDown(.3) && stepDown(.3) < 1);
+    SimTK_TEST(0 < stepDown(.7) && stepDown(.7) < .5);
+    SimTK_TEST(dstepUp(0.)==0 && dstepUp(.5)>0 && dstepUp(1.)==0);
+    SimTK_TEST(dstepDown(0.)==0 && dstepDown(.5)<0 && dstepDown(1.)==0);
+    SimTK_TEST(d2stepUp(0.)==0 && d2stepUp(1.)==0);
+    SimTK_TEST(d2stepDown(0.)==0 && d2stepDown(1.)==0);
+        // float
+    SimTK_TEST(stepUp(0.f)==0 && stepUp(.5f)==.5f && stepUp(1.f)==1);
+    SimTK_TEST(0 < stepUp(.3f) && stepUp(.3f) < .5f);
+    SimTK_TEST(.5f < stepUp(.7f) && stepUp(.7f) < 1);
+    SimTK_TEST(stepDown(0.f)==1 && stepDown(.5f)==.5f && stepDown(1.f)==0);
+    SimTK_TEST(.5f < stepDown(.3f) && stepDown(.3f) < 1);
+    SimTK_TEST(0 < stepDown(.7f) && stepDown(.7f) < .5f);
+    SimTK_TEST(dstepUp(0.f)==0 && dstepUp(.5f)>0 && dstepUp(1.f)==0);
+    SimTK_TEST(dstepDown(0.f)==0 && dstepDown(.5f)<0 && dstepDown(1.f)==0);
+    SimTK_TEST(d2stepUp(0.f)==0 && d2stepUp(1.f)==0);
+    SimTK_TEST(d2stepDown(0.f)==0 && d2stepDown(1.f)==0);
+        // long double
+    SimTK_TEST(stepUp(0.L)==0 && stepUp(.5L)==.5L && stepUp(1.L)==1);
+    SimTK_TEST(0 < stepUp(.3L) && stepUp(.3L) < .5L);
+    SimTK_TEST(.5L < stepUp(.7L) && stepUp(.7L) < 1);
+    SimTK_TEST(stepDown(0.L)==1 && stepDown(.5L)==.5L && stepDown(1.L)==0);
+    SimTK_TEST(.5L < stepDown(.3L) && stepDown(.3L) < 1);
+    SimTK_TEST(0 < stepDown(.7L) && stepDown(.7L) < .5L);
+    SimTK_TEST(dstepUp(0.L)==0 && dstepUp(.5L)>0 && dstepUp(1.L)==0);
+    SimTK_TEST(dstepDown(0.L)==0 && dstepDown(.5L)<0 && dstepDown(1.L)==0);
+    SimTK_TEST(d2stepUp(0.L)==0 && d2stepUp(1.L)==0);
+    SimTK_TEST(d2stepDown(0.L)==0 && d2stepDown(1.L)==0);
+
+        // int is treated as a double, but only for stepUp()/stepDown()
+    SimTK_TEST(stepUp(0)==0 && stepUp(1)==1);
+    SimTK_TEST(stepDown(0)==1 && stepDown(1)==0);
+
+    // Don't know anything analytic about d3 but can test with finite
+    // differencing below.
+
+    // Central difference estimates should give around 10 
+    // decimal places in double, 5 in float.
+    const double dupEst = (stepUp(.799+1e-6)-stepUp(.799-1e-6))/2e-6;
+    const double ddnEst = (stepDown(.799+1e-6)-stepDown(.799-1e-6))/2e-6;
+    const double d2upEst = (dstepUp(.723+1e-6)-dstepUp(.723-1e-6))/2e-6;
+    const double d2dnEst = (dstepDown(.723+1e-6)-dstepDown(.723-1e-6))/2e-6;
+    const double d3upEst = (d2stepUp(.123+1e-6)-d2stepUp(.123-1e-6))/2e-6;
+    const double d3dnEst = (d2stepDown(.123+1e-6)-d2stepDown(.123-1e-6))/2e-6;
+    SimTK_TEST_EQ_TOL(dstepUp(.799), dupEst, 1e-8);
+    SimTK_TEST_EQ_TOL(dstepDown(.799), ddnEst, 1e-8);
+    SimTK_TEST_EQ_TOL(d2stepUp(.723), d2upEst, 1e-8);
+    SimTK_TEST_EQ_TOL(d2stepDown(.723), d2dnEst, 1e-8);
+    SimTK_TEST_EQ_TOL(d3stepUp(.123), d3upEst, 1e-8);
+    SimTK_TEST_EQ_TOL(d3stepDown(.123), d3dnEst, 1e-8);
+
+    const float fdupEst = (stepUp(.699f+1e-3f)-stepUp(.699f-1e-3f))/2e-3f;
+    const float fddnEst = (stepDown(.699f+1e-3f)-stepDown(.699f-1e-3f))/2e-3f;
+    const float fd2upEst = (dstepUp(.623f+1e-3f)-dstepUp(.623f-1e-3f))/2e-3f;
+    const float fd2dnEst = (dstepDown(.623f+1e-3f)-dstepDown(.623f-1e-3f))/2e-3f;
+    const float fd3upEst = (d2stepUp(.211f+1e-3f)-d2stepUp(.211f-1e-3f))/2e-3f;
+    const float fd3dnEst = (d2stepDown(.211f+1e-3f)-d2stepDown(.211f-1e-3f))/2e-3f;
+    SimTK_TEST_EQ_TOL(dstepUp(.699f), fdupEst, 1e-4);
+    SimTK_TEST_EQ_TOL(dstepDown(.699f), fddnEst, 1e-4);
+    SimTK_TEST_EQ_TOL(d2stepUp(.623f), fd2upEst, 1e-4);
+    SimTK_TEST_EQ_TOL(d2stepDown(.623f), fd2dnEst, 1e-4);
+    SimTK_TEST_EQ_TOL(d3stepUp(.211f), fd3upEst, 1e-4);
+    SimTK_TEST_EQ_TOL(d3stepDown(.211f), fd3dnEst, 1e-4);
 
 
+    // y = stepAny(y0,yrange,x0,1/xrange, x)
+    // y goes from -1 to 1 as x goes from 0 to 1, exact arithmetic.
+    SimTK_TEST(stepAny(-1,2,0,1,0.) == -1);
+    SimTK_TEST(stepAny(-1,2,0,1,.5) == 0);
+    SimTK_TEST(stepAny(-1,2,0,1,1.) == 1);
+    SimTK_TEST(stepAny(-1,2,0,1,0.f) == -1);
+    SimTK_TEST(stepAny(-1,2,0,1,.5f) == 0);
+    SimTK_TEST(stepAny(-1,2,0,1,1.f) == 1);
+    SimTK_TEST(stepAny(-1,2,0,1,0.L) == -1);
+    SimTK_TEST(stepAny(-1,2,0,1,.5L) == 0);
+    SimTK_TEST(stepAny(-1,2,0,1,1.L) == 1);
+
+    // y goes from -7 down to -14 as x goes from -3.1 up to +429.3.
+    const double x0=-3.1, x1=429.3, y0=-7., y1=-14.;
+    const double xr=(x1-x0), ooxr=1/xr, yr=(y1-y0);
+    SimTK_TEST_EQ(stepAny(y0,yr,x0,ooxr,-3.1), y0);
+    SimTK_TEST_EQ(stepAny(y0,yr,x0,ooxr,429.3), y1);
+    SimTK_TEST_EQ(stepAny(y0,yr,x0,ooxr,x0+xr/2), y0+yr/2);
+
+    const float fx0=-3.1f, fx1=429.3f, fy0=-7.f, fy1=-14.f;
+    const float fxr=(fx1-fx0), fooxr=1/fxr, fyr=(fy1-fy0);
+    SimTK_TEST_EQ(stepAny(fy0,fyr,fx0,fooxr,-3.1f),fy0);
+    SimTK_TEST_EQ(stepAny(fy0,fyr,fx0,fooxr,429.3f),fy1);
+    SimTK_TEST_EQ(stepAny(fy0,fyr,fx0,fooxr,fx0+fxr/2),fy0+fyr/2);
+
+    // Check derivatives
+    const double danyEst = 
+        (stepAny(y0,yr,x0,ooxr,.799+1e-6)-stepAny(y0,yr,x0,ooxr,.799-1e-6))/2e-6;
+    const double d2anyEst = 
+        (dstepAny(yr,x0,ooxr,.723+1e-6)-dstepAny(yr,x0,ooxr,.723-1e-6))/2e-6;
+    const double d3anyEst = 
+        (d2stepAny(yr,x0,ooxr,.123+1e-6)-d2stepAny(yr,x0,ooxr,.123-1e-6))/2e-6;
+    SimTK_TEST_EQ_TOL(dstepAny(yr,x0,ooxr,.799), danyEst, 1e-8);
+    SimTK_TEST_EQ_TOL(d2stepAny(yr,x0,ooxr,.723), d2anyEst, 1e-8);
+    SimTK_TEST_EQ_TOL(d3stepAny(yr,x0,ooxr,.123), d3anyEst, 1e-8);
+
+    const float fdanyEst = 
+        (stepAny(fy0,fyr,fx0,fooxr,.799f+1e-3f)
+        -stepAny(fy0,fyr,fx0,fooxr,.799f-1e-3f))/2e-3f;
+    const float fd2anyEst = 
+        (dstepAny(fyr,fx0,fooxr,.723f+1e-3f)
+        -dstepAny(fyr,fx0,fooxr,.723f-1e-3f))/2e-3f;
+    const float fd3anyEst = 
+        (d2stepAny(fyr,fx0,fooxr,.123f+1e-3f)
+        -d2stepAny(fyr,fx0,fooxr,.123f-1e-3f))/2e-3f;
+    SimTK_TEST_EQ_TOL(dstepAny(fyr,fx0,fooxr,.799f), fdanyEst, 1e-4);
+    SimTK_TEST_EQ_TOL(d2stepAny(fyr,fx0,fooxr,.723f), fd2anyEst, 1e-4);
+    SimTK_TEST_EQ_TOL(d3stepAny(fyr,fx0,fooxr,.123f), fd3anyEst, 1e-4);
 }
 
 int main() {
@@ -571,6 +766,8 @@ int main() {
         SimTK_SUBTEST(testSign);
         SimTK_SUBTEST(testSquareAndCube);
         SimTK_SUBTEST(testIsNumericallyEqual);
+        SimTK_SUBTEST(testClamp);
+        SimTK_SUBTEST(testStep);
 
     SimTK_END_TEST();
 }
