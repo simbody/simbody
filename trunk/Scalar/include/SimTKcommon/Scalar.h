@@ -855,7 +855,7 @@ from 0 to 1:
 @code
     y   = stepAny(-1,2,0,1, x);  // y in [-1,1]; 13 flops
     y   = -1 + 2*stepUp(x);      // equivalent, saves 4 flops
-    dy  = 2*dstepUp(x);          // these save 5 flops
+    dy  = 2*dstepUp(x);          // these save 5 flops over dstepAny(), etc.
     d2y = 2*d2stepUp(x);
     d3y = 2*d3stepUp(x);
 @endcode
