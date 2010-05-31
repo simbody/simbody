@@ -30,6 +30,8 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKmath.h"
+#include "SimTKcommon/Testing.h"
+
 
 // We'll use some std::vectors to check interoperability between Array_<T>
 // and std::vector<T>.
@@ -123,17 +125,61 @@ void testRealFunction() {
     assertEqual(0, f.calcDerivative(derivComponents2, Vector(Vec2(1, 0))));
 }
 
+void testStep() {
+    Function::Step s1(-1,1,0,1); // y in [-1,1] as x in [0,1]
+    SimTK_TEST(s1.calcValue(Vector(1,Zero)) == -1);    // x0 -> y0
+    SimTK_TEST(s1.calcValue(Vector(1,One)) ==  1);    // x1 -> y1
+    SimTK_TEST(s1.calcValue(Vector(1,OneHalf)) == 0); // 1/2 -> (y1+y0)/2
+    SimTK_TEST(s1.calcValue(Vector(1,Real(-29))) == -1);
+    SimTK_TEST(s1.calcValue(Vector(1,Real(234.3))) == 1);
+
+    // First & second derivs should be zero at either end.
+    Array_<int> derivOrder1(1);
+    SimTK_TEST(s1.calcDerivative(derivOrder1, Vector(1,Zero)) == 0);
+    SimTK_TEST(s1.calcDerivative(derivOrder1, Vector(1,One)) == 0);
+    SimTK_TEST(s1.calcDerivative(derivOrder1, Vector(1,Real(-29))) == 0);
+    SimTK_TEST(s1.calcDerivative(derivOrder1, Vector(1,Real(234.3))) == 0);
+    Array_<int> derivOrder2(2);
+    SimTK_TEST(s1.calcDerivative(derivOrder2, Vector(1,Zero)) == 0);
+    SimTK_TEST(s1.calcDerivative(derivOrder2, Vector(1,One)) == 0);
+    SimTK_TEST(s1.calcDerivative(derivOrder2, Vector(1,Real(-29))) == 0);
+    SimTK_TEST(s1.calcDerivative(derivOrder2, Vector(1,Real(234.3))) == 0);
+    Array_<int> derivOrder3(3); // don't know much about 3rd derivative
+    SimTK_TEST(s1.calcDerivative(derivOrder3, Vector(1,Real(-29))) == 0);
+    SimTK_TEST(s1.calcDerivative(derivOrder3, Vector(1,Real(234.3))) == 0);
+
+    // Try a more general step with x0,x1 reversed also.
+    // Here y goes from -221.3 to 47.9 as x goes from 1000 down to -333.
+    const Real y0=-221.3, y1=47.9, x0=1000, x1=-333;
+    Function::Step s2(y0,y1,x0,x1);
+    SimTK_TEST(s2.calcValue(Vector(1,x0)) == y0);    // x0 -> y0
+    SimTK_TEST(s2.calcValue(Vector(1,x1)) == y1);    // x1 -> y1
+    SimTK_TEST_EQ(s2.calcValue(Vector(1,(x1+x0)/2)), (y1+y0)/2); // (x1+x0)/2 -> (y1+y0)/2
+    SimTK_TEST(s2.calcValue(Vector(1,x0+100)) == y0); // note sign
+    SimTK_TEST(s2.calcValue(Vector(1,x1-100)) == y1);
+
+    // Calculate 3rd deriv by differencing 2nd
+    const Real x = -22.701, dx = 1e-6;
+    const Real d2m=s2.calcDerivative(derivOrder2, Vector(1, x-dx));
+    const Real d2p=s2.calcDerivative(derivOrder2, Vector(1, x+dx));
+    const Real d3approx = (d2p-d2m)/(2*dx); // approx 10 digits
+    SimTK_TEST_EQ_TOL(s2.calcDerivative(derivOrder3, Vector(1,x)), 
+                      d3approx, 1e-8);
+
+    // Try interpolating a Vec3
+    Function_<Vec3>::Step sv(Vec3(1,2,3), Vec3(4,5,6), 0, 1);
+    SimTK_TEST(sv.calcValue(Vector(1,OneHalf)) == Vec3(2.5,3.5,4.5));
+    SimTK_TEST(sv.calcDerivative(derivOrder2, Vector(1, -29.3)) == Vec3(0));
+}
+
 int main () {
-    try {
-        testConstant();
-        testLinear();
-        testPolynomial();
-        testRealFunction();
-        cout << "Done" << endl;
-        return 0;
-    }
-    catch (std::exception& e) {
-        std::printf("FAILED: %s\n", e.what());
-        return 1;
-    }
+    SimTK_START_TEST("TestFunction");
+
+        SimTK_SUBTEST(testConstant);
+        SimTK_SUBTEST(testLinear);
+        SimTK_SUBTEST(testPolynomial);
+        SimTK_SUBTEST(testRealFunction);
+        SimTK_SUBTEST(testStep);
+
+    SimTK_END_TEST();
 }
