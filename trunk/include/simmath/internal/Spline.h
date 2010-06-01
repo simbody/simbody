@@ -32,7 +32,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "simmath/internal/Function.h"
+#include "SimTKcommon.h"
 #include "simmath/internal/GCVSPLUtil.h"
 
 #include <limits>
