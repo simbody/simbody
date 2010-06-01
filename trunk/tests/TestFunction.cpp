@@ -67,7 +67,8 @@ void testConstant() {
     Vector x(2);
     assertEqual(Vec3(1, 2, 3), f.calcValue(x));
     Array_<int> derivComponents(1);
-    assertEqual(Vec3(0), f.calcDerivative(derivComponents, x));
+    const Vec3 df = f.calcDerivative(derivComponents, x);
+    assertEqual(Vec3(0), df);
 }
 
 void testLinear() {
@@ -124,6 +125,7 @@ void testRealFunction() {
     Array_<int> derivComponents2(2);
     assertEqual(0, f.calcDerivative(derivComponents2, Vector(Vec2(1, 0))));
 }
+
 
 void testStep() {
     Function::Step s1(-1,1,0,1); // y in [-1,1] as x in [0,1]
