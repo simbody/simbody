@@ -155,8 +155,9 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(MeasureIndex);
  */
 class SimTK_SimTKCOMMON_EXPORT AbstractMeasure {
 protected:
-	// This is used to make sure the automatically-generated handle
-	// constructor doesn't conflict with an explicitly-defined one.
+	// An object of this type is used as a dummy argument to make sure the 
+    // automatically-generated handle constructor's signature doesn't conflict 
+    // with an explicitly-defined one.
 	class SetHandle {};
 
 public:
@@ -377,7 +378,7 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(One, Measure_<T>::Constant);
 private:
     One& setValue(const T&)     
-    {   return *reinterpret_cast<Zero*>(0);} // suppressed!
+    {   return *reinterpret_cast<One*>(0);} // suppressed!
 };
 
     //////////
