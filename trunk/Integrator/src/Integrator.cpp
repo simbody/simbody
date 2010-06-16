@@ -370,7 +370,9 @@ void IntegratorRep::initialize(const State& initState) {
     // calculated, project the states to drive constraint errors below 
     // accuracy*unitTolerance for each constraint. 
     getSystem().realize(getAdvancedState(), Stage::Velocity); // all kinematics
-    projectStateAndErrorEstimate(updAdvancedState(), Vector()); // no err est here
+    // Since we're initializing we won't assume we're near a solution and
+    // we'll allow project() to make desperate attempts to find one.
+    projectStateNonLocal(updAdvancedState());
 
     // Refresh the weights in case anything significant was done by the initial
     // projection.

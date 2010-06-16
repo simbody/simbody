@@ -119,7 +119,7 @@ bool VerletIntegratorRep::attemptDAEStep
                     (advanced.getYErr(), getDynamicSystemOneOverTolerances());
 
     if (userProjectEveryStep == 1 || yErrNorm > consTol)
-        projectStateAndErrorEstimate(advanced, dummyErrEst);
+        projectStateAndErrorEstimate(advanced, dummyErrEst); // local only
 
     // Get new values for the derivatives.
     realizeStateDerivatives(advanced);
@@ -160,7 +160,7 @@ bool VerletIntegratorRep::attemptDAEStep
 
         if (userProjectEveryStep == 1 || uErrNorm > consTol)
             projectStateAndErrorEstimate(advanced, dummyErrEst, 
-                               System::ProjectOptions::VelocityOnly);
+                               System::ProjectOptions::VelocityOnly); // also local
 
         // Calculate fresh derivatives UDot and ZDot.
         realizeStateDerivatives(advanced);
@@ -203,7 +203,7 @@ bool VerletIntegratorRep::attemptDAEStep
                 (advanced.getYErr(), getDynamicSystemOneOverTolerances());
     if (userProjectEveryStep == 1 || uErrNorm > consTol)
         projectStateAndErrorEstimate(advanced, yErrEst, 
-                                     System::ProjectOptions::VelocityOnly);
+                                     System::ProjectOptions::VelocityOnly); // also local
     
     // Two different integrators were used to estimate errors: trapezoidal for 
     // Q, and explicit Euler for U and Z.  This means that the U and Z errors

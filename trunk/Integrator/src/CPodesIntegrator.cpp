@@ -107,7 +107,8 @@ public:
             const Real tol = integ.getConstraintToleranceInUse();
             system.realize(integ.getAdvancedState(), Stage::Position);
             system.project(integ.updAdvancedState(), tol, integ.getStateWeightsInUse(), 
-                           integ.getConstraintWeightsInUse(), err);
+                           integ.getConstraintWeightsInUse(), err,
+                           System::ProjectOptions::All | System::ProjectOptions::LocalOnly);
         }
         catch (...) { return CPodes::RecoverableError; } // assume recoverable
         ycorr = integ.getAdvancedState().getY()-y;

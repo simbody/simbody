@@ -638,12 +638,23 @@ protected:
     }
 
     // Project the supplied state onto the constraint manifold and
-    // remove the corresponding errors from errEst. Throws an exception
-    // if it fails. Updates stats.
-    void projectStateAndErrorEstimate(State& s, Vector& errEst, System::ProjectOptions opts=System::ProjectOptions::All) {
+    // remove the corresponding errors from errEst. Assumes state is near solution and only permits
+    // local downhill projection. Throws an exception if it fails. Updates stats.
+    void projectStateAndErrorEstimate(State& s, Vector& errEst, 
+                                      System::ProjectOptions opts=System::ProjectOptions::All) {
         ++statsProjections; ++statsProjectionFailures;
+        opts |= System::ProjectOptions::LocalOnly;
         getSystem().project(s,
             consTol,getDynamicSystemWeights(),getDynamicSystemOneOverTolerances(),errEst,opts);
+        --statsProjectionFailures;
+    }
+
+    // Project the supplied state onto the constraint manifold, not assuming we're near a solution. Throws 
+    // an exception if it fails. Updates stats.
+    void projectStateNonLocal(State& s, System::ProjectOptions opts=System::ProjectOptions::All) {
+        ++statsProjections; ++statsProjectionFailures;
+        getSystem().project(s,
+            consTol,getDynamicSystemWeights(),getDynamicSystemOneOverTolerances(),Vector(),opts);
         --statsProjectionFailures;
     }
 

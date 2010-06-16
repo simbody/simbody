@@ -163,6 +163,7 @@ protected:
 
         // Now we'll project if the constraints aren't already satisifed,
         // or if the user said we have to project every step regardless.
+        // Only local projection is allowed here.
         if (   userProjectEveryStep == 1 
             || consErrAfterODE > getConstraintToleranceInUse())
         {

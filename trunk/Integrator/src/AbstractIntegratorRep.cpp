@@ -73,7 +73,8 @@ void AbstractIntegratorRep::createInterpolatedState(Real t) {
             return; // no need to project
     }
 
-    // no error estimate to project here; just pass an empty Vector
+    // No error estimate to project here; just pass an empty Vector.
+    // Local projection only is allowed; we should be close to the manifold.
     projectStateAndErrorEstimate(interp, Vector());
 }
 
@@ -585,7 +586,8 @@ void AbstractIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
             return; // no need to project
     }
 
-    // no error estimate to project here; just pass an empty Vector
+    // No error estimate to project here; just pass an empty Vector. Local
+    // projection only is allowed; we should be close to the manifold.
     projectStateAndErrorEstimate(advanced, Vector());
 }
 
