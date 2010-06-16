@@ -1,9 +1,12 @@
-#include <fstream>
-#include <iostream>
-using std::cout; using std::endl;
-
 #include "SimTKsimbody.h"
 #include "SimTKsimbody_aux.h"
+
+#include <fstream>
+#include <iostream>
+#include <ctime>
+
+using std::cout; using std::endl;
+
 
 using namespace SimTK;
 
@@ -45,10 +48,13 @@ int main()
 	GeneralForceSubsystem forces(system);
 	//Force::UniformGravity gravity(forces, matter, Vec3(0, -9.8, 0));
 
+    const Real MassFac = 1; // to mess with mass matrix conditioning
+
 	Body::Rigid EVEN_PART_1(MassProperties(20, Vec3(1.00000000, -0.16416667, -0.16416667), 
 							Inertia(3.33400000, 28.33366667, 28.33366667, -4.96666667, -1.60000000, -0.03333333)));
-	Body::Rigid EVEN_PART_2(MassProperties(20, Vec3(1.00000000, -0.16416667, -0.16416667), 
-							Inertia(3.33400000, 28.33366667, 28.33366667, -4.96666667, -1.60000000, -0.03333333)));
+	Body::Rigid EVEN_PART_2(
+        MassProperties(MassFac*20, Vec3(1.00000000, -0.16416667, -0.16416667), 
+	    MassFac*Inertia(3.33400000, 28.33366667, 28.33366667, -4.96666667, -1.60000000, -0.03333333)));
 	Body::Rigid EVEN_PART_3(MassProperties(20, Vec3(1.00000000, -0.16416667, -0.16416667), 
 							Inertia(3.33400000, 28.33366667, 28.33366667, -4.96666667, -1.60000000, -0.03333333)));
 	Body::Rigid ODD_PART_1(MassProperties(20, Vec3(1.00000000, 0.16416667, -0.16416667), 
@@ -97,14 +103,14 @@ int main()
     //Force::MobilityLinearSpring frc(forces, EVEN_PART_3_body, 
        // MobilizerUIndex(0), 100, 0);
 
-	VTKEventReporter * pEventReporter = new VTKEventReporter(system, 0.25);
+	VTKEventReporter * pEventReporter = new VTKEventReporter(system, 4*0.25);
 	pEventReporter->updVisualizer().setCameraLocation(Vec3(0.5,0.5,0.5));
 	pEventReporter->updVisualizer().setCameraUpDirection(Vec3(0,1,0));
 	pEventReporter->updVisualizer().setCameraFocalPoint(Vec3(0,0,0));
 	pEventReporter->updVisualizer().zoomCameraToIncludeAllGeometry();	
 
 	system.updDefaultSubsystem().addEventReporter(pEventReporter);
-    system.updDefaultSubsystem().addEventReporter(new EnergyReport(system, 0.25));
+    system.updDefaultSubsystem().addEventReporter(new EnergyReport(system, 4*0.25));
 	system.realizeTopology();
 	State state = system.getDefaultState();
 
@@ -126,22 +132,40 @@ int main()
 
 	RungeKuttaMersonIntegrator integ(system);
 	//RungeKutta3Integrator integ(system);
-    integ.setAccuracy(1e-6);
-    integ.setConstraintTolerance(1e-8);
+	//RungeKuttaFeldbergIntegrator integ(system);
+	//VerletIntegrator integ(system);
+	//CPodesIntegrator integ(system);
+
+    integ.setAccuracy(1e-4);
     //integ.setConstraintTolerance(1e-7);
-    integ.setMaximumStepSize(.1);
+    //integ.setConstraintTolerance(1e-8);
+    //integ.setMaximumStepSize(.1);
     integ.initialize(state);
     //integ.setProjectInterpolatedStates(false);
-    //integ.setAllowInterpolation(false); // TODO: does nothing
+    //integ.setAllowInterpolation(false);
+    //integ.setProjectEveryStep(true);
     //integ.setReturnEveryInternalStep(true);
     //Integrator::SuccessfulStepStatus status;
     //while ((status = integ.stepTo(1000)) != Integrator::EndOfSimulation) {
     //    cout << "t=" << integ.getTime() 
     //         << " status=" << Integrator::successfulStepStatusString(status) << endl;
     //}
+
+    const clock_t start = clock();
+
 	TimeStepper ts(system, integ);
 	ts.initialize(state);
 	ts.stepTo(1000.0);	
+
+    cout << "DONE. CPU=" << (double)(clock()-start)/CLOCKS_PER_SEC << "s\n";
+
+    printf("Used Integrator %s at accuracy %g:\n", 
+        integ.getMethodName(), integ.getAccuracyInUse());
+    printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
+    printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
+
+
   } catch (const std::exception& e) {
       std::cout << "std::exception: " << e.what() << std::endl;
   } catch (...) {

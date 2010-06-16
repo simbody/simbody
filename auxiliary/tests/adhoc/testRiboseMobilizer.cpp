@@ -513,7 +513,12 @@ void testRiboseMobilizer()
 
 int main() 
 {
+  try {
     testRiboseMobilizer();
+  } catch (const std::exception& e) {
+    std::cout << "EXCEPTION: " << e.what() << std::endl;
+    return 1;
+  }
 
     return 0;
 }

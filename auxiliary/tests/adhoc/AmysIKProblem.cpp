@@ -353,7 +353,7 @@ Body::Rigid body_toes_l(MassProperties(0.0975,Vec3(0.0307,-0.0026,-0.0105),Inert
 MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_toes_l,Vec3(0));
 // END BODY toes_l
 
-Constraint::Rod(mobod_tibia_l, mobod_tibia_r, 2*.25);
+//Constraint::Rod(mobod_tibia_l, mobod_tibia_r, 2*.25);
 //Constraint::Rod(mobod_tibia_l, mobod_hand_r, .25);
 
     matter.setShowDefaultGeometry(false);

@@ -1866,6 +1866,12 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
 
     bool anyChange = false;
 
+    // Check whether we should stop if we see the solution diverging
+    // which should not happen when we're in the neighborhood of a solution
+    // on entry. This is always set while integrating, except during
+    // initialization.
+    const bool localOnly = opts.isOptionSet(System::ProjectOptions::LocalOnly);
+
     // Solve 
     //   (Tp P Wu^-1) dqhat_WLS = T perr, q -= N*Wu^-1*dqhat_WLS
     // until perr(q)_TRMS <= 0.1*accuracy.
@@ -1878,25 +1884,43 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
     Vector scaledPerrs = pErrs.rowScale(ooPTols);
     Real normAchievedTRMS = scaledPerrs.normRMS();
 
-    /*
-    cout << "!!!! initially @" << s.getTime() << ", perr TRMS=" 
-         << normAchievedTRMS << " consAcc=" << consAccuracy;
-    if (qErrest.size())
-        cout << " qErrest WRMS=" 
-             << calcQErrestWeightedNorm(*this,s,qErrest,uWeights);
-    else cout << " NO Q ERROR ESTIMATE";
-    cout << endl;
-    cout << "!!!! PERR=" << pErrs << endl;
-    */
+    
+    //cout << "!!!! initially @" << s.getTime() << ", perr TRMS=" 
+    //     << normAchievedTRMS << " consAcc=" << consAccuracy;
+    //if (qErrest.size())
+    //    cout << " qErrest WRMS=" 
+    //         << calcQErrestWeightedNorm(*this,s,qErrest,uWeights);
+    //else cout << " NO Q ERROR ESTIMATE";
+    //cout << endl;
+    //cout << "!!!! PERR=" << pErrs << endl;
+ 
 
     Real lastChangeMadeWRMS = 0; // size of last change in weighted dq
     int nItsUsed = 0;
-    if (normAchievedTRMS > consAccuracy) {
+
+    // Set how far past the required tolerance we'll attempt to go. 
+    // We only fail if we can't achieve consAccuracy, but while we're
+    // solving we'll see if we can get consAccuracyToTryFor.
+    const Real consAccuracyToTryFor = 
+        std::max(0.1*consAccuracy, SignificantReal);
+
+    // Conditioning tolerance. This determines when we'll drop a 
+    // constraint. 
+    // TODO: this is much too tight; should depend on constraint tolerance
+    // and rank should be saved and reused in velocity and acceleration
+    // constraint methods (or should be calculated elsewhere and passed in).
+    const Real conditioningTol = mHolo         
+      //* SignificantReal;
+        * SqrtEps;
+    //cout << "  Conditioning tolerance=" << conditioningTol << endl;
+
+    if (normAchievedTRMS > consAccuracyToTryFor) {
         Vector saveQ = getQ(s);
         Matrix Pt(nu,mHolo);
         Vector dqhat_WLS(nu);
         Vector dq(nq); // = N Wu^-1 dqhat_WLS
         FactorQTZ P_qtz;
+        Real prevNormAchievedTRMS = normAchievedTRMS; // watch for divergence
         const int MaxIterations  = 20;
         do {
             //Matrix P(mHolo,nu);
@@ -1909,8 +1933,11 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
             //cout << "TPW-1=" << P;
             //cout << "TPW-1=" << ~Pt;
 
-            const Real tol = std::max(Pt.nrow(),Pt.ncol())*SignificantReal;
-            P_qtz.factor<Real>(~Pt, tol); // this acts like a pseudoinverse
+            P_qtz.factor<Real>(~Pt, conditioningTol); // this acts like a pseudoinverse
+
+            //std::cout << "POSITION PROJECTION TOL=" << conditioningTol
+            //          << " RANK=" << P_qtz.getRank() 
+            //          << " RCOND=" << P_qtz.getRCondEstimate() << std::endl;
 
             P_qtz.solve(scaledPerrs, dqhat_WLS);
             lastChangeMadeWRMS = dqhat_WLS.normRMS(); // size of change in weighted norm
@@ -1931,14 +1958,33 @@ void SimbodyMatterSubsystemRep::enforcePositionConstraints
             scaledPerrs = pErrs.rowScale(ooPTols);
             normAchievedTRMS = scaledPerrs.normRMS();
             ++nItsUsed;
-            //cout << "  !! iter " << nItsUsed << ": TRMS(perr)=" << normAchievedTRMS << ", WRMS(dq)=" << lastChangeMadeWRMS << endl;
-        } while (normAchievedTRMS > 0.1*consAccuracy 
+
+            //std::cout << "  !! iter " << nItsUsed << ": TRMS(perr)=" 
+            //    << normAchievedTRMS << ", WRMS(dq)=" 
+            //    << lastChangeMadeWRMS << endl;
+
+            if (localOnly && nItsUsed >= 2 
+                && normAchievedTRMS > prevNormAchievedTRMS) {
+                //std::cout << "   POS NORM GOT WORSE -- STOP\n";
+                // restore to end of previous iteration
+                updQ(s) += dq;
+                realizeSubsystemPosition(s);
+                scaledPerrs = pErrs.rowScale(ooPTols);
+                normAchievedTRMS = scaledPerrs.normRMS();
+                break; // diverging -- quit now to prevent a bad solution
+            }
+
+
+            prevNormAchievedTRMS = normAchievedTRMS;
+
+        } while (normAchievedTRMS > consAccuracyToTryFor
                  && nItsUsed < MaxIterations);
 
-        if (nItsUsed >= MaxIterations && normAchievedTRMS > consAccuracy) {
+        // Make sure we achieved at least the required constraint accuracy.
+        if (normAchievedTRMS > consAccuracy) {
             updQ(s) = saveQ;
             SimTK_THROW1(Exception::NewtonRaphsonFailure, 
-                         "maxIters exceeded in position projection");
+                         "Failed to converge in position projection");
         }
 
 
@@ -2042,19 +2088,40 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
     Vector scaledVerrs = vErrs.rowScale(ooPVTols);
     Real normAchievedTRMS = scaledVerrs.normRMS();
     
-    /*
-    cout << "!!!! initially @" << s.getTime() << ", verr TRMS=" 
-         << normAchievedTRMS << " consAcc=" << consAccuracy;
-    if (uErrest.size())
-        cout << " uErrest WRMS=" << uErrest.rowScale(uWeights).normRMS();
-    else cout << " NO U ERROR ESTIMATE";
-    cout << endl;
-    cout << "!!!! VERR=" << vErrs << endl;
-    */
+    //
+    //cout << "!!!! initially @" << s.getTime() << ", verr TRMS=" 
+    //     << normAchievedTRMS << " consAcc=" << consAccuracy;
+    //if (uErrest.size())
+    //    cout << " uErrest WRMS=" << uErrest.rowScale(uWeights).normRMS();
+    //else cout << " NO U ERROR ESTIMATE";
+    //cout << endl;
+    //cout << "!!!! VERR=" << vErrs << endl;
+    
 
     Real lastChangeMadeWRMS = 0;
     int nItsUsed = 0;
-    if (normAchievedTRMS > consAccuracy) {
+
+    // Check whether we should stop if we see the solution diverging
+    // which should not happen when we're in the neighborhood of a solution
+    // on entry.
+    const bool localOnly = opts.isOptionSet(System::ProjectOptions::LocalOnly);
+
+    // Set how far past the required tolerance we'll attempt to go. 
+    // We only fail if we can't achieve consAccuracy, but while we're
+    // solving we'll see if we can get consAccuracyToTryFor.
+    const Real consAccuracyToTryFor = 
+        std::max(0.1*consAccuracy, SignificantReal);
+
+    // Conditioning tolerance. This determines when we'll drop a 
+    // constraint. 
+    // TODO: this is much too tight; should depend on constraint tolerance
+    // and should be consistent with the holonomic rank.
+    const Real conditioningTol = (mHolo+mNonholo) 
+        //* SignificantReal;
+        * SqrtEps;
+    //cout << "  Conditioning tolerance=" << conditioningTol << endl;
+
+    if (normAchievedTRMS > consAccuracyToTryFor) {
         const Vector saveU = getU(s);
         Matrix PVt(nu, mHolo+mNonholo);
 
@@ -2062,12 +2129,16 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
         calcNonholonomicConstraintMatrixVt     (s, PVt(0,mHolo,nu, mNonholo)); // nu X mv
         PVt.rowAndColScaleInPlace(ooUWeights, ooPVTols); // PVt is now Wu^-1 (Pt Vt) Tpv
 
-        // Calculate pseudoinverse
+        // Calculate pseudoinverse (just once)
         FactorQTZ PVqtz;
-        const Real tol = std::max(PVt.nrow(), PVt.ncol()) * SignificantReal;
-        PVqtz.factor<Real>(~PVt, tol);
+        PVqtz.factor<Real>(~PVt, conditioningTol);
+
+        //std::cout << "VELOCITY PROJECTION TOL=" << conditioningTol
+        //          << " RANK=" << PVqtz.getRank() 
+        //          << " RCOND=" << PVqtz.getRCondEstimate() << std::endl;
 
         Vector du_WLS(nu);
+        Real prevNormAchievedTRMS = normAchievedTRMS; // watch for divergence
         const int MaxIterations  = 7;
         do {
             PVqtz.solve(scaledVerrs, du_WLS);
@@ -2081,16 +2152,32 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
             scaledVerrs = vErrs.rowScale(ooPVTols);
             normAchievedTRMS=scaledVerrs.normRMS();
             ++nItsUsed;
+
             //cout << "  !! iter " << nItsUsed << ": TRMS(verr)=" 
             //     << normAchievedTRMS << ", WRMS(du)=" 
             //     << lastChangeMadeWRMS << endl;
-        } while (normAchievedTRMS > 0.1*consAccuracy 
+
+            if (localOnly && nItsUsed >= 2 
+                && normAchievedTRMS > prevNormAchievedTRMS) {
+                //std::cout << "   VEL NORM GOT WORSE -- STOP\n";
+                // restore to end of previous iteration
+                updU(s) += du_WLS;
+                realizeSubsystemVelocity(s);
+                scaledVerrs = vErrs.rowScale(ooPVTols);
+                normAchievedTRMS=scaledVerrs.normRMS();
+                break; // diverging -- quit now to prevent a bad solution
+            }
+
+            prevNormAchievedTRMS = normAchievedTRMS;
+
+        } while (normAchievedTRMS > consAccuracyToTryFor
                  && nItsUsed < MaxIterations);
 
-        if (nItsUsed >= MaxIterations && normAchievedTRMS > consAccuracy) {
+        // Make sure we achieved at least the required constraint accuracy.
+        if (normAchievedTRMS > consAccuracy) {
             updU(s) = saveU;
             SimTK_THROW1(Exception::NewtonRaphsonFailure, 
-                         "maxIters exceeded in velocity projection");
+                         "Failed to converge in velocity projection");
         }
 
         // Next, if we projected out the velocity constraint errors, remove the
@@ -2294,6 +2381,15 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
 
     multipliers.resize(ma);
 
+    // Conditioning tolerance. This determines when we'll drop a 
+    // constraint. 
+    // TODO: this is probably too tight; should depend on constraint tolerance
+    // and should be consistent with position and velocity projection ranks.
+    // Tricky here because conditioning depends on mass matrix as well as
+    // constraints.
+    const Real conditioningTol = ma 
+        //* SignificantReal;
+        * SqrtEps*std::sqrt(SqrtEps); // Eps^(3/4)
 
     Matrix Gt(nu,ma); // Gt==~P ~V ~A
     // Fill in all the columns of Gt
@@ -2318,8 +2414,13 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
 
     // TODO: Toldya! Check out this m^2n bit here ...
     Matrix GMInvGt = (~Gt)*MInvGt; // TODO: BAD!!! O(m^2n) -- Use m x G udot operators instead for O(mn)
-    FactorQTZ qtz(GMInvGt, ma*SignificantReal); // specify 1/cond at which we declare rank deficiency
+    FactorQTZ qtz(GMInvGt, conditioningTol); // specify 1/cond at which we declare rank deficiency
     qtz.solve(udotErr, multipliers);
+
+        //std::cout << "MULTIPLIER SOLVE TOL=" << conditioningTol
+        //          << " RANK=" << qtz.getRank() 
+        //          << " RCOND=" << qtz.getRCondEstimate() << std::endl;
+        //std::cout << " multipliers=" << multipliers << std::endl;
 
     // We have the multipliers, now turn them into forces.
 
