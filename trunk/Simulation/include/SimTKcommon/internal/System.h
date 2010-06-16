@@ -122,7 +122,13 @@ public:
 
             PositionOnly = (Q|QError),
             VelocityOnly = (U|UError),
-            All          = (PositionOnly|VelocityOnly)
+            All          = (PositionOnly|VelocityOnly),
+
+            // This option says we expect the state to be close to a 
+            // solution already and restricts projection to move downhill
+            // in the local vicinity. This should be used during any
+            // continuous integration to prevent erroneous jumps in the state.
+            LocalOnly = 0x1000
         };
 
         ProjectOptions() : optionSet(0) { }
