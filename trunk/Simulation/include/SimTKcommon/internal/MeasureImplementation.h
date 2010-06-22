@@ -962,7 +962,10 @@ class Measure_<T>::Differentiate::Implementation
         T       operandDot; // previous value of derivative
         bool    derivIsGood; // do we think the deriv is a good one?
     };
-    friend std::ostream& operator<<(std::ostream&,const Result&);
+    // Dummy for Value<Result>. This syntax defines a global function; not
+    // a local member.
+    friend inline std::ostream& operator<<(std::ostream& o, const Result&)
+    {   assert(!"not implemented"); return o; }
 public:
     // Don't allocate any cache entries in the base class.
     Implementation() : Measure_<T>::Implementation(0) {}
@@ -1084,20 +1087,6 @@ private:
     mutable bool                    isApproxInUse;
     mutable DiscreteVariableIndex   resultIx;    // auto-update
 };
-
-
-
-// dummy for Value<Result>
-//template <class T> std::ostream& 
-//operator<<(std::ostream& o,
-//           const typename SimTK::Measure_<T>::Differentiate::
-//                            Implementation::Result&)
-//{   assert(!"not implemented"); return o; }
-inline std::ostream& 
-operator<<(std::ostream& o,
-           const Measure_<Real>::Differentiate::
-                            Implementation::Result&) 
-{   assert(!"not implemented"); return o; }
 
 } // namespace SimTK
 
