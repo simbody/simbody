@@ -460,6 +460,9 @@ void testOne() {
     // Integrate the cos(2pi*t) measure with IC=0; should give sin(2pi*t)/2pi.
     Measure::Integrate sin2pitOver2pi(subsys, cos2pit, zero);
 
+    Measure::Differentiate dInteg(subsys, sin2pitOver2pi);
+    dInteg.setForceUseApproximation(true);
+
     Measure::Time tMeasure;
     Measure::Time tSubMeas(subsys);
 
@@ -508,7 +511,7 @@ void testOne() {
     s2 = state; // should do only assignments w/o heap allocation
 
     // Explicit midpoint steps.
-    const Real h = .001;
+    const Real h = .0001;
     const int nSteps = 2000;
     const int outputInterval = 100;
     state.setTime(0);
@@ -539,6 +542,7 @@ void testOne() {
     sys.calcYErrUnitTolerances(state, ooTols);
 
     sys.realize(state, Stage::Acceleration);
+    state.autoUpdateDiscreteVariables(); // ??y
     for (int i=0; i <= nSteps; ++i) {
 
         if (i % outputInterval == 0) {
@@ -557,6 +561,8 @@ void testOne() {
                  << " sin(2pi*t)/2pi=" << std::sin(2*Pi*state.getTime())/(2*Pi) << endl;
             cout << "d/dt sin2pitOver2pi=" 
                  << sin2pitOver2pi.getValue(state,1) << endl;
+            cout << "dInteg=" 
+                 << dInteg.getValue(state) << endl;
         }
 
         if (i == nSteps)
@@ -575,7 +581,7 @@ void testOne() {
         // been performed already using the *updated* values, *not* the
         // state values; that permits us to perform this update without
         // invalidating any cache entries.
-        //state.updateDiscreteVariables();
+        state.autoUpdateDiscreteVariables();
 
         // First integrator stage: unconstrained continuous system only.
         state.updY()    += h2*ydot0;

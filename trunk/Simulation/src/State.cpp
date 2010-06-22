@@ -285,7 +285,8 @@ public:
     const Stage& getAllocationStage()  const {return allocationStage;}
 
     // Exchange value pointers (should be from this dv's update cache entry).
-    void swapValue(AbstractValue*& other) {std::swap(value, other);}
+    void swapValue(Real updTime, AbstractValue*& other) 
+    {   std::swap(value, other); timeLastUpdated=updTime; }
 
     const AbstractValue& getValue() const {assert(value); return *value;}
     Real                 getTimeLastUpdated() const {assert(value); return timeLastUpdated;}
@@ -365,7 +366,8 @@ public:
     // Exchange values with a discrete variable (presumably this
     // cache entry has been determined to be that variable's update
     // entry but we're not checking here).
-    void swapValue(DiscreteVarInfo& dv) {dv.swapValue(value);}
+    void swapValue(Real updTime, DiscreteVarInfo& dv) 
+    {   dv.swapValue(updTime, value); }
     const AbstractValue& getValue() const {assert(value); return *value;}
     AbstractValue&       updValue()       {assert(value); return *value;}
 
@@ -789,6 +791,8 @@ public:
 
     // Copies all the variables but not the cache.
     StateData* clone() const {return new StateData(*this);}
+
+    Real getTime() const {return t;}
 
     const Stage& getSystemStage() const {return currentSystemStage;}
     Stage&       updSystemStage() const {return currentSystemStage;} // mutable
@@ -1318,11 +1322,10 @@ public:
     allocateAutoUpdateDiscreteVariable(SubsystemIndex subsys, Stage invalidates, AbstractValue* vp,
                                        Stage updateDependsOn)
     {
-        SimTK_STAGECHECK_GE_ALWAYS(invalidates, Stage(Stage::Time).next(), 
-            "StateRep::allocateAutoUpdateDiscreteVariable");
-
-        const DiscreteVariableIndex dx = allocateDiscreteVariable(subsys,invalidates,vp->clone());
-        const CacheEntryIndex       cx = allocateCacheEntry(subsys,updateDependsOn,Stage::Infinity,vp);
+        const DiscreteVariableIndex dx = 
+            allocateDiscreteVariable(subsys,invalidates,vp->clone());
+        const CacheEntryIndex       cx = 
+            allocateCacheEntry(subsys,updateDependsOn,Stage::Infinity,vp);
 
         PerSubsystemInfo& ss = data->subsystems[subsys];
         DiscreteVarInfo& dvinfo = ss.discreteInfo[dx];
@@ -2070,7 +2073,7 @@ public:
                 if (!cx.isValid()) continue; // not an auto-update variable
                 CacheEntryInfo& cinfo = ss.cacheInfo[cx];
                 if (cinfo.isCurrent(getSubsystemStage(subx), getSubsystemStageVersions(subx)))
-                    cinfo.swapValue(dinfo);
+                    cinfo.swapValue(data->getTime(), dinfo);
                 cinfo.invalidate();
             }
         }

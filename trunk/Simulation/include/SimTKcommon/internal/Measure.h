@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2008-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -233,7 +233,7 @@ public:
     /// throw an exception if the Measure is not currently owned by any
     /// Subsystem.
     const Subsystem& getSubsystem()  const;
-    /// Return the MeasureIndex by which this Measure is know to the Subsystem 
+    /// Return the MeasureIndex by which this Measure is known to the Subsystem 
     /// that owns it. Will throw an exception if the Measure is not currently 
     /// owned by any Subsystem.
     MeasureIndex getSubsystemMeasureIndex() const;
@@ -296,6 +296,7 @@ public:
     class Plus;
     class Minus;
     class Scale;
+    class Differentiate;
 
     // These accept any type that supports operator<, elementwise for 
     // vectors and matrices. TODO
@@ -558,6 +559,79 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Integrate, Measure_<T>);
 };
 
+    ///////////////////
+    // DIFFERENTIATE //
+    ///////////////////
+
+/** This Measure operator returns the time derivative of its operand measure,
+or a numerical approximation of the time derivative if an analytic one is not
+available.
+
+If the operand measure provides its own derivative measure, then the value of 
+the Differentiate operator is just the value of the operand's derivative 
+measure, and this measure will have one fewer available derivatives than does 
+the operand. If the operand does not have a derivative, then we will estimate 
+it by the following method:
+    - retrieve the previous value f0 and previous derivative fdot0 of the 
+      operand measure, and their sample time t0
+    - obtain the current value f(t) of the operand
+    - estimate fdot(t)=2(f-f0)/(t-t0) - fdot0  (fit a quadratic)
+    - record new samples f(t), fdot(t) with timestamp t
+
+Special cases:
+    - if t==t0 then fdot(t)=fdot0 (if available) else fdot(t)=0
+    - if fdot0 not available, fdot(t)=(f-f0)/(t-t0) (first order estimate)
+
+At initialization of a timestepping study beginning at t=t0, we sample the 
+operand and record its initial value f0 at t0, and set fdot0=NaN. This
+ensures that we'll return zero as the initial derivative (for lack of anything 
+better) and then use the first order method for the first step's derivative.
+**/
+template <class T>
+class Measure_<T>::Differentiate : public Measure_<T> {
+public:
+    SimTK_MEASURE_HANDLE_PREAMBLE(Differentiate, Measure_<T>);
+
+    /** Create a measure whose value is the time derivative of the given
+    \a operand measure.
+    @param  subsystem   The Subsystem into which this measure will be placed.
+    @param  operand     The Measure to be differentiated. **/
+    Differentiate(Subsystem& subsystem, const Measure_<T>& operand)
+    :   Measure_<T>(subsystem, new Implementation(operand), SetHandle()) {}
+
+    /** Test whether the derivative returned as the value of this measure is
+    being estimated numerically, either because the operand measure is unable
+    to supply its derivative or because setForceUseApproximation(true) has
+    been called. **/
+    bool isUsingApproximation() const 
+    {   return getImpl().isUsingApproximation(); }
+
+    /** Get a reference to the measure that is being differentiated by this
+    measure. **/
+    const Measure_<T>& getOperandMeasure() const 
+    {   return getImpl().getOperandMeasure(); }
+
+    /** Set the measure that is to be differentiated by this measure. This is
+    a topology-stage change so you'll have to call realizeTopology() again on
+    the enclosing System before using it. **/
+    Differentiate& setOperandMeasure(const Measure_<T>& operand)
+    {   updImpl().setOperandMeasure(operand); return *this; }
+
+    /** Force use of numerical approximation for the derivative, even if the
+    operand measure can supply its own derivative. This is not recommended!
+    This is a Topology-stage change. **/
+    void setForceUseApproximation(bool mustApproximate)
+    {   updImpl().setForceUseApproximation(mustApproximate); }
+
+    /** Check the current value of the flag which forces this measure to use
+    numerical approximation regardless of whether the operand can supply its
+    own derivative. Note that even if the flag is currently false (the default)
+    we may still have to use approximation; see isUsingApproximation(). **/
+    bool getForceUseApproximation() const 
+    {   return getImpl().getForceUseApproximation(); }
+
+    SimTK_MEASURE_HANDLE_POSTSCRIPT(Differentiate, Measure_<T>);
+};
 
     /////////////
     // MINIMUM //

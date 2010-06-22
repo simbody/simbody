@@ -45,6 +45,7 @@
 
 namespace SimTK {
 
+
     /////////////////////////////
     // MEASURE::IMPLEMENTATION //
     /////////////////////////////
@@ -328,8 +329,8 @@ protected:
         for (int i=0; i < getNumCacheEntries(); ++i) {
             const Stage dependsOn = getDependsOnStage(i);
             mutableThis->derivIx[i] =
-               this->getSubsystem().allocateCacheEntry
-                    (s, dependsOn, Stage::Infinity, new Value<T>());
+               this->getSubsystem().allocateLazyCacheEntry
+                    (s, dependsOn, new Value<T>());
         }
 
         // Call the concrete class virtual if any.
@@ -943,7 +944,164 @@ private:
     mutable ZIndex zIndex;
 };
 
+    ///////////////////////////////////
+    // DIFFERENTIATE::IMPLEMENTATION //
+    ///////////////////////////////////
+
+template <class T>
+class Measure_<T>::Differentiate::Implementation
+:   public Measure_<T>::Implementation 
+{
+    // This is the contents of the discrete state variable and corresponding
+    // cache entry maintained by this measure. The variable is auto-update,
+    // meaning the value of the cache entry replaces the state variable at the
+    // start of each step.
+    struct Result {
+        Result() : derivIsGood(false) {}
+        T       operand;    // previous value of operand
+        T       operandDot; // previous value of derivative
+        bool    derivIsGood; // do we think the deriv is a good one?
+    };
+    friend std::ostream& operator<<(std::ostream&,const Result&);
+public:
+    // Don't allocate any cache entries in the base class.
+    Implementation() : Measure_<T>::Implementation(0) {}
+
+    Implementation(const Measure_<T>& operand)
+    :   Measure_<T>::Implementation(0),
+        operand(operand), forceUseApprox(false), isApproxInUse(false) {}
+
+    // Default copy constructor gives us a new Implementation object,
+    // but with reference to the *same* operand measure.
+
+    void setForceUseApproximation(bool mustApproximate) {
+        forceUseApprox = mustApproximate;
+        this->invalidateTopologyCache();
+    }
+
+    void setOperandMeasure(const Measure_<T>& operand) {
+        this->operand = operand;
+        this->invalidateTopologyCache();
+    }
+
+    bool getForceUseApproximation() const {return forceUseApprox;}
+    bool isUsingApproximation() const {return isApproxInUse;}
+    const Measure_<T>& getOperandMeasure() const {return operand;}
+
+    // Implementations of virtual methods.
+
+    // This uses the default copy constructor.
+    Implementation* cloneVirtual() const 
+    {   return new Implementation(*this); }
+
+    // This has one fewer than the operand.
+    int getNumTimeDerivativesVirtual() const
+    {   if (!isApproxInUse) return operand.getNumTimeDerivatives()-1;
+        else return 0; }
+
+    Stage getDependsOnStageVirtual(int order) const 
+    {   if (!isApproxInUse) return operand.getDependsOnStage(order+1);
+        else return operand.getDependsOnStage(order); }
+
+
+    // We're not using the Measure_<T> base class cache services, but
+    // we do have one of our own. It looks uncached from the base class
+    // point of view which is why we're implementing it here.
+    const T& getUncachedValueVirtual(const State& s, int derivOrder) const
+    {   if (!isApproxInUse) 
+            return operand.getValue(s, derivOrder+1);
+
+        ensureDerivativeIsRealized(s);
+        const Subsystem& subsys = this->getSubsystem();
+        const Result& result = Value<Result>::downcast
+                                (subsys.getDiscreteVarUpdateValue(s,resultIx));
+        return result.operandDot; // has a value but might not be a good one
+    }
+
+    void initializeVirtual(State& s) const {
+        if (!isApproxInUse) return;
+
+        assert(resultIx.isValid());
+        const Subsystem& subsys = this->getSubsystem();
+        Result& result = Value<Result>::updDowncast
+                            (subsys.updDiscreteVariable(s,resultIx));
+        result.operand = operand.getValue(s);
+        result.operandDot = this->getValueZero();
+        result.derivIsGood = false;
+    }
+
+    void realizeMeasureTopologyVirtual(State& s) const {
+        isApproxInUse = (forceUseApprox || operand.getNumTimeDerivatives()==0);
+        if (!isApproxInUse)
+            return;
+
+        resultIx = this->getSubsystem()
+            .allocateAutoUpdateDiscreteVariable(s, operand.getDependsOnStage(0),
+                new Value<Result>(), operand.getDependsOnStage(0));
+    }
+
+    void ensureDerivativeIsRealized(const State& s) const {
+        assert(resultIx.isValid());
+        const Subsystem& subsys = this->getSubsystem();
+        if (subsys.isDiscreteVarUpdateValueRealized(s,resultIx))
+            return;
+
+        const Real t0 = subsys.getDiscreteVarLastUpdateTime(s,resultIx);
+        const Result& prevResult = Value<Result>::downcast
+           (subsys.getDiscreteVariable(s,resultIx));
+        const T&   f0         = prevResult.operand;
+        const T&   fdot0      = prevResult.operandDot;   // may be invalid
+        const bool good0     = prevResult.derivIsGood;
+
+        const Real t  = s.getTime();
+        Result& result = Value<Result>::updDowncast
+           (subsys.updDiscreteVarUpdateValue(s,resultIx));
+        T&         f          = result.operand;          // renaming
+        T&         fdot       = result.operandDot;
+        bool&      good       = result.derivIsGood;
+
+        f = operand.getValue(s);
+        good = false;
+        if (!isFinite(t0))
+            fdot = this->getValueZero(); 
+        else if (t == t0) {
+            fdot = fdot0;
+            good = good0;
+        } else {
+            fdot = (f-f0)/(t-t0); // 1st order
+            if (good0)
+                fdot = Real(2)*fdot - fdot0; // now 2nd order
+            good = true; // either 1st or 2nd order estimate
+        }
+        subsys.markDiscreteVarUpdateValueRealized(s,resultIx);
+    }
+private:
+    // TOPOLOGY STATE
+    Measure_<T>     operand;
+    bool            forceUseApprox;
+
+    // TOPOLOGY CACHE
+    mutable bool                    isApproxInUse;
+    mutable DiscreteVariableIndex   resultIx;    // auto-update
+};
+
+
+
+// dummy for Value<Result>
+//template <class T> std::ostream& 
+//operator<<(std::ostream& o,
+//           const typename SimTK::Measure_<T>::Differentiate::
+//                            Implementation::Result&)
+//{   assert(!"not implemented"); return o; }
+inline std::ostream& 
+operator<<(std::ostream& o,
+           const Measure_<Real>::Differentiate::
+                            Implementation::Result&) 
+{   assert(!"not implemented"); return o; }
 
 } // namespace SimTK
+
+
+
 
 #endif // SimTK_SimTKCOMMON_MEASURE_IMPLEMENTATION_H_

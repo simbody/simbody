@@ -46,6 +46,8 @@ namespace SimTK {
 
 template class Measure_<Real>::Constant;
 template class Measure_<Real>::Zero;
+template class Measure_<Real>::Differentiate;
+
 
 } // namespace SimTK
 
