@@ -1,0 +1,61 @@
+## This whole directory exists just so I could define this extra 
+## preprocessor value.
+ADD_DEFINITIONS(-DSimTK_SIMBODY_BUILDING_SHARED_LIBRARY)
+
+IF(BUILD_UNVERSIONED_LIBRARIES)
+
+    ADD_LIBRARY(${AUX_SHARED_TARGET} SHARED 
+			    ${AUX_SOURCE_FILES} ${AUX_INCLUDE_FILES} 
+				${API_ABS_INCLUDE_FILES})
+    
+    TARGET_LINK_LIBRARIES(${AUX_SHARED_TARGET} 
+                    ${SHARED_TARGET}
+					${VTK_LIBS_TO_USE})
+    
+    if(APPLE)
+        target_link_libraries(${AUX_SHARED_TARGET} ${CARBON_FRAMEWORK})
+    endif(APPLE)
+    
+    SET_TARGET_PROPERTIES(${AUX_SHARED_TARGET}  PROPERTIES
+    	PROJECT_LABEL "Library - ${AUX_SHARED_TARGET}")
+    
+    # install library; on Windows both .lib and .dll go in the lib directory.
+    INSTALL(TARGETS ${AUX_SHARED_TARGET}
+                     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
+					 GROUP_READ GROUP_WRITE GROUP_EXECUTE 
+					 WORLD_READ WORLD_EXECUTE
+                     ARCHIVE DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64}
+                     LIBRARY DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64}
+                     RUNTIME DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64})
+
+ENDIF(BUILD_UNVERSIONED_LIBRARIES)
+
+
+
+IF(BUILD_VERSIONED_LIBRARIES)
+
+    ADD_LIBRARY(${AUX_SHARED_TARGET_VN} SHARED 
+			    ${AUX_SOURCE_FILES} ${AUX_INCLUDE_FILES} 
+				${API_ABS_INCLUDE_FILES})
+    
+    TARGET_LINK_LIBRARIES(${AUX_SHARED_TARGET_VN} 
+                    ${SHARED_TARGET_VN}
+					${VTK_LIBS_TO_USE})
+    
+    if(APPLE)
+        target_link_libraries(${AUX_SHARED_TARGET_VN} ${CARBON_FRAMEWORK})
+    endif(APPLE)
+    
+    SET_TARGET_PROPERTIES(${AUX_SHARED_TARGET_VN}  PROPERTIES
+    	PROJECT_LABEL "Library - ${AUX_SHARED_TARGET_VN}")
+    
+    # install library; on Windows both .lib and .dll go in the lib directory.
+    INSTALL(TARGETS ${AUX_SHARED_TARGET_VN}
+                     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
+					 GROUP_READ GROUP_WRITE GROUP_EXECUTE 
+					 WORLD_READ WORLD_EXECUTE
+                     ARCHIVE DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64}
+                     LIBRARY DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64}
+                     RUNTIME DESTINATION ${SimTK_INSTALL_PREFIX}/lib${LIB64})
+
+ENDIF(BUILD_VERSIONED_LIBRARIES)
