@@ -217,7 +217,7 @@ FORCE)
 # in which case all dependencies must use the same version.
 
 SET(SimTKCOMMON_MAJOR_VERSION 2)
-SET(SimTKCOMMON_MINOR_VERSION 1)
+SET(SimTKCOMMON_MINOR_VERSION 2)
 SET(SimTKCOMMON_BUILD_VERSION 0)
 
 # Report the version number to the CMake UI. Don't include the 
