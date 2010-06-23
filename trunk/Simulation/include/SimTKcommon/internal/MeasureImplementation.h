@@ -948,24 +948,34 @@ private:
     // DIFFERENTIATE::IMPLEMENTATION //
     ///////////////////////////////////
 
+// This helper class is the contents of the discrete state variable and corresponding
+// cache entry maintained by this measure. The variable is auto-update,
+// meaning the value of the cache entry replaces the state variable at the
+// start of each step.
+// TODO: This was a local class in Measure_<T>::Differentiate::Implementation
+// but VC++ 8 (2005) failed to properly instantiate the templatized operator<<()
+// in that case; doing it this way is a workaround.
+template <class T>
+class Measure_Differentiate_Result {
+public:
+    Measure_Differentiate_Result() : derivIsGood(false) {}
+    T       operand;    // previous value of operand
+    T       operandDot; // previous value of derivative
+    bool    derivIsGood; // do we think the deriv is a good one?
+};
+
+
+// Dummy for Value<Measure_Differentiate_Result>.
+template <class T> inline std::ostream& 
+operator<<(std::ostream& o, 
+           const Measure_Differentiate_Result<T>&)
+{   assert(!"not implemented"); return o; }
+
 template <class T>
 class Measure_<T>::Differentiate::Implementation
 :   public Measure_<T>::Implementation 
 {
-    // This is the contents of the discrete state variable and corresponding
-    // cache entry maintained by this measure. The variable is auto-update,
-    // meaning the value of the cache entry replaces the state variable at the
-    // start of each step.
-    struct Result {
-        Result() : derivIsGood(false) {}
-        T       operand;    // previous value of operand
-        T       operandDot; // previous value of derivative
-        bool    derivIsGood; // do we think the deriv is a good one?
-    };
-    // Dummy for Value<Result>. This syntax defines a global function; not
-    // a local member.
-    friend inline std::ostream& operator<<(std::ostream& o, const Result&)
-    {   assert(!"not implemented"); return o; }
+    typedef Measure_Differentiate_Result<T> Result;
 public:
     // Don't allocate any cache entries in the base class.
     Implementation() : Measure_<T>::Implementation(0) {}
@@ -1087,6 +1097,7 @@ private:
     mutable bool                    isApproxInUse;
     mutable DiscreteVariableIndex   resultIx;    // auto-update
 };
+
 
 } // namespace SimTK
 
