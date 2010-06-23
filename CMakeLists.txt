@@ -217,7 +217,7 @@ FORCE)
 # and make it available to the code so it can be built into the binaries.
 
 SET(SIMBODY_MAJOR_VERSION 2)
-SET(SIMBODY_MINOR_VERSION 1)
+SET(SIMBODY_MINOR_VERSION 2)
 SET(SIMBODY_BUILD_VERSION 0)
 
 # Report the version number to the CMake UI. Don't include the 
