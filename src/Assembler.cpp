@@ -130,13 +130,28 @@ public:
     // TODO: not being done efficiently now
     int calcGoalGradient(const State& state, Vector& grad) const {
         const SimbodyMatterSubsystem& matter = getMatterSubsystem();
+        const int np = getNumFreeQs();
+        const int nq = state.getNQ();
+
+        grad.resize(np);
+
         Vector PtQerr(state.getNU());
         //TODO: use calcPtV
         Matrix Pt;
         matter.calcPt(state, Pt);
         PtQerr = Pt*state.getQErr();
         //matter.calcPtV(state, state.getQErr(), PtQerr);
-        matter.multiplyByNInv(state, true, PtQerr, grad);
+
+        if (np == nq) {
+            // Nothing locked; analytic gradient is the right size
+            matter.multiplyByNInv(state, true, PtQerr, grad);
+        } else {
+            Vector fullGrad(nq);
+            matter.multiplyByNInv(state, true, PtQerr, fullGrad);
+            // Extract just the entries corresponding to free Qs
+            for (Assembler::FreeQIndex fx(0); fx < np; ++fx)
+                grad[fx] = fullGrad[getQIndexOfFreeQ(fx)];
+        }
 
         //cout << "built in grad=" << grad << endl;
         return 0;
