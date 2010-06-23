@@ -161,6 +161,7 @@ int main() {
     const clock_t start = clock();
 
     const int NSteps = 100;
+    const int NToSkip = 4;
     for (int iters=0; iters <= NSteps; ++iters) {
         Vec3 newMidTarget = midTarget + NBodies/2*std::sin(2*Pi*iters/100);
         Vec3 newFinalTarget = finalTarget - NBodies/3*std::sin(2*Pi*iters/100);
@@ -170,8 +171,10 @@ int main() {
         markers.moveOneObservation(Markers::ObservationIx(3), newFinalTarget);
                                         
         ik.track();
-        ik.updateFromInternalState(state);
-        viz.report(state);
+        if (iters%NToSkip == 0) {
+            ik.updateFromInternalState(state);
+            viz.report(state);
+        }
     }
     cout << "ASSEMBLED " << NSteps << " steps in " <<
         (double)(clock()-start)/CLOCKS_PER_SEC << "s\n";

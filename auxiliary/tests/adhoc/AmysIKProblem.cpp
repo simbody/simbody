@@ -384,16 +384,19 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
     Assembler ik(system);
     ik.adoptAssemblyGoal(&markers);
 
+    //ik.adoptAssemblyGoal(new QValue(mobod_tibia_r, MobilizerQIndex(0),
+    //                     Pi/2), 1);
+
 
     ik.setSystemConstraintsWeight(2);
     ik.setSystemConstraintsWeight(Infinity);
 
     //ik.addReporter(vtkReporter);
 
-    //ik.lockMobilizer(mobod_patella_l);
-    //ik.lockMobilizer(mobod_patella_r);
-    //ik.lockMobilizer(mobod_loadcell1);
-    //ik.lockMobilizer(mobod_loadcell2);
+    ik.lockMobilizer(mobod_patella_l);
+    ik.lockMobilizer(mobod_patella_r);
+    ik.lockMobilizer(mobod_loadcell1);
+    ik.lockMobilizer(mobod_loadcell2);
     //ik.restrictQ(mobod_tibia_r, MobilizerQIndex(0),
     //    -10*Pi/180, 10*Pi/180);
 

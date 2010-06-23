@@ -893,16 +893,52 @@ public:
         error[0] = mobod.getOneQ(state, qIndex) - value;
         return 0;
     }
-    // int calcErrorJacobian(const State& state, Matrix& J) const;
+    // Error jacobian is a zero-row except for a 1 in this q's entry (if
+    // this q is free).
+    int calcErrorJacobian(const State& state, Matrix& J) const {
+        const SimbodyMatterSubsystem& matter = getMatterSubsystem();
+        const MobilizedBody& mobod = matter.getMobilizedBody(mobodIndex);
+        J.resize(1, getNumFreeQs());
+        J = 0; // will have at most one non-zero
 
-    // For goal:
+        // Find the FreeQIndex corresponding to this q.
+        const QIndex thisIx = QIndex(mobod.getFirstQIndex(state)+qIndex);
+        const Assembler::FreeQIndex thisFreeIx = getFreeQIndexOfQ(thisIx);
+
+        // If this q isn't free then there is no way to affect the error
+        // so the Jacobian stays all-zero.
+        if (thisFreeIx.isValid())
+            J(0,thisFreeIx) = 1;
+
+        return 0;
+    }
+
+    // For goal: goal = (q-value)^2 / 2 (the /2 is for gradient beauty)
     int calcGoal(const State& state, Real& goal) const {
         const SimbodyMatterSubsystem& matter = getMatterSubsystem();
         const MobilizedBody& mobod = matter.getMobilizedBody(mobodIndex);
-        goal = square(mobod.getOneQ(state, qIndex) - value);
+        goal = square(mobod.getOneQ(state, qIndex) - value) / 2;
         return 0;
     }
-    // int calcGoalGradient(const State& state, Vector& grad) const;
+    // Return a gradient with only this q's entry non-zero (if
+    // this q is free).
+    int calcGoalGradient(const State& state, Vector& grad) const {
+        const SimbodyMatterSubsystem& matter = getMatterSubsystem();
+        const MobilizedBody& mobod = matter.getMobilizedBody(mobodIndex);
+        grad.resize(getNumFreeQs());
+        grad = 0; // will have at most one non-zero
+
+        // Find the FreeQIndex corresponding to this q.
+        const QIndex thisIx = QIndex(mobod.getFirstQIndex(state)+qIndex);
+        const Assembler::FreeQIndex thisFreeIx = getFreeQIndexOfQ(thisIx);
+
+        // If this q isn't free then there is no way to affect the goal
+        // so the gradient stays all-zero.
+        if (thisFreeIx.isValid())
+            grad[thisFreeIx] = mobod.getOneQ(state, qIndex) - value;
+
+        return 0;
+    }
 
 private:
     MobilizedBodyIndex mobodIndex;
