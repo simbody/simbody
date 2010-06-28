@@ -412,16 +412,24 @@ findInsideTriangles(const ContactGeometry::TriangleMesh&    mesh,       // M
                 faceType[i] = OUTSIDE;
             
             // Recursively mark adjacent triangles.           
-            tagFaces(mesh, faceType, triangles, i);
+            tagFaces(mesh, faceType, triangles, i, 0);
         }
     }
 }
+
+//TODO: the following method uses depth-first recursion to iterate through
+//unmarked faces. For a large mesh this was observed to produce a stack
+//overflow in OpenSim. Here we limit the recursion depth; after we get that
+//deep we'll pop back out and do another expensive intersectsRay() test in
+//the method above.
+static const int MaxRecursionDepth = 500;
 
 void CollisionDetectionAlgorithm::TriangleMeshTriangleMesh::
 tagFaces(const ContactGeometry::TriangleMesh&   mesh, 
          Array_<int>&                           faceType,
          set<int>&                              triangles, 
-         int                                    index) const 
+         int                                    index,
+         int                                    depth) const 
 {
     for (int i = 0; i < 3; i++) {
         int edge = mesh.getFaceEdge(index, i);
@@ -430,7 +438,8 @@ tagFaces(const ContactGeometry::TriangleMesh&   mesh,
             faceType[face] = faceType[index];
             if (faceType[index] > 0)
                 triangles.insert(face);
-            tagFaces(mesh, faceType, triangles, face);
+            if (depth < MaxRecursionDepth)
+                tagFaces(mesh, faceType, triangles, face, depth+1);
         }
     }
 }

@@ -730,7 +730,8 @@ void findBuriedFaces
 void tagFaces(const ContactGeometry::TriangleMesh&   mesh, 
               Array_<int>&                           faceType,
               std::set<int>&                         triangles, 
-              int                                    index) const;
+              int                                    index,
+              int                                    depth) const;
 };
 
 } // namespace SimTK
