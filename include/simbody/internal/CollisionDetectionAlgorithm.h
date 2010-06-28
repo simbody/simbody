@@ -181,7 +181,7 @@ private:
             const OrientedBoundingBox& node2Bounds, const Transform& transform, std::set<int>& triangles1, std::set<int>& triangles2) const;
     void findInsideTriangles(const ContactGeometry::TriangleMesh& mesh, const ContactGeometry::TriangleMesh& otherMesh,
         const Transform& transform, std::set<int>& triangles) const;
-    void tagFaces(const ContactGeometry::TriangleMesh& mesh, Array_<int>& faceType, std::set<int>& triangles, int index) const;
+    void tagFaces(const ContactGeometry::TriangleMesh& mesh, Array_<int>& faceType, std::set<int>& triangles, int index, int depth) const;
     static const int OUTSIDE = -1;
     static const int UNKNOWN = 0;
     static const int BOUNDARY = 1;
