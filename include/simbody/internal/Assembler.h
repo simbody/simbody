@@ -879,10 +879,20 @@ end up with a specified value. You can use this as a goal or a constraint,
 depending on how serious you are about this requirement. **/
 class QValue : public AssemblyCondition {
 public:
+    /** Construct an assembly condition that requests that the specified
+    generalized coordinate be brought to the indicated value. The value 
+    can be changed subsequently using setValue(). **/
     QValue(MobilizedBodyIndex mbx, MobilizerQIndex qx,
            Real value)
     :   AssemblyCondition("QValue"), 
         mobodIndex(mbx), qIndex(qx), value(value) {}
+
+    /** Return the currently set value to be used for this generalized
+    coordinate. **/
+    Real getValue() const {return value;}
+    /** Change the value to be used for this generalized coordinate; this
+    can be done repeatedly during tracking to follow changing requirements. **/
+    void setValue(Real newValue) {value=newValue;}
 
     // For constraint:
     int getNumEquations(const State&) const {return 1;}

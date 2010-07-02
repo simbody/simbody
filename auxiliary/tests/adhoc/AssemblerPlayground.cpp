@@ -107,6 +107,10 @@ int main() {
     ik.adoptAssemblyGoal(&markers);
     //ik.addReporter(vtkReporter);
 
+    QValue& qvalue = *new QValue(endOfSecondChain, MobilizerQIndex(2),
+        Pi/2);
+    ik.adoptAssemblyGoal(&qvalue);
+
     ik.lockMobilizer(MobilizedBodyIndex(2));
     ik.lockMobilizer(MobilizedBodyIndex(3));
     ik.lockMobilizer(MobilizedBodyIndex(4));
@@ -169,6 +173,8 @@ int main() {
         markers.moveOneObservation(Markers::ObservationIx(1), newMidTarget);
         markers.moveOneObservation(Markers::ObservationIx(2), newFinalTarget);
         markers.moveOneObservation(Markers::ObservationIx(3), newFinalTarget);
+
+        qvalue.setValue(qvalue.getValue() + Pi/10);
                                         
         ik.track();
         if (iters%NToSkip == 0) {
