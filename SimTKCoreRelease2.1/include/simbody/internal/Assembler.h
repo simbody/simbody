@@ -1163,6 +1163,13 @@ void defineObservationOrder(const Array_<String>& observationOrder)
 void defineObservationOrder(const std::vector<String>& observationOrder)
 {   defineObservationOrder(ArrayViewConst_<String>(observationOrder)); }
 
+
+/** Define observation order using an Array_ of std::string. */
+// must copy
+void defineObservationOrder(const Array_<std::string>& observationOrder) 
+{   const Array_<String> observations(observationOrder); // copy
+    defineObservationOrder(observations); }
+
 /** Define observation order using an std::vector of std::string. */
 // must copy
 void defineObservationOrder(const std::vector<std::string>& observationOrder) 
