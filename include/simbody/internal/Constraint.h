@@ -294,7 +294,7 @@ public:
     ////////////////////////////////////////
 
 /**
- * This constraint consists of one constriant equation that enforces a constant 
+ * This constraint consists of one constraint equation that enforces a constant 
  * distance between a point on one body and a point on another body. This is 
  * like connecting them by a rigid, massless rod with ball joints at either end. 
  * The constraint is enforced by a force acting along the rod with opposite 
