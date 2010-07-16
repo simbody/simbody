@@ -481,7 +481,8 @@ public:
     void setUToFitLinearVelocity    (State&, const Vec3&       v_FM) const;
 
     /// Expert use only: obtain a column of the hinge matrix H corresponding to
-    /// one of this mobilizer's mobilities.
+    /// one of this mobilizer's mobilities (actually a column of H_PB_G; what
+    /// what Jain calls H* and Schwieters calls H^T).
     SpatialVec getHCol(const State& s, UIndex ux) const;
 
     // End of State Access Methods.
