@@ -1758,13 +1758,29 @@ private:
         bool isValidH;
         bool isValidHdot;
     };
+
+// Allow these to see CacheInfo.
+friend std::ostream& operator<<(std::ostream&, const CacheInfo<1>&); 
+friend std::ostream& operator<<(std::ostream&, const CacheInfo<2>&); 
+friend std::ostream& operator<<(std::ostream&, const CacheInfo<3>&); 
+friend std::ostream& operator<<(std::ostream&, const CacheInfo<4>&); 
+friend std::ostream& operator<<(std::ostream&, const CacheInfo<5>&); 
+friend std::ostream& operator<<(std::ostream&, const CacheInfo<6>&); 
 };
 
-template <int N>
-std::ostream& operator<<(std::ostream& o, const MobilizedBody::FunctionBasedImpl::CacheInfo<N>& info) {
-    o << "MobilizedBody::FunctionBasedImpl::CacheInfo";
-    return o;
-}
+// Sorry, templatizing this caused trouble for gcc 4.0.1.
+inline std::ostream& operator<<(std::ostream& o, const MobilizedBody::FunctionBasedImpl::CacheInfo<1>& info) 
+{   return o << "MobilizedBody::FunctionBasedImpl::CacheInfo"; }
+inline std::ostream& operator<<(std::ostream& o, const MobilizedBody::FunctionBasedImpl::CacheInfo<2>& info) 
+{   return o << "MobilizedBody::FunctionBasedImpl::CacheInfo"; }
+inline std::ostream& operator<<(std::ostream& o, const MobilizedBody::FunctionBasedImpl::CacheInfo<3>& info) 
+{   return o << "MobilizedBody::FunctionBasedImpl::CacheInfo"; }
+inline std::ostream& operator<<(std::ostream& o, const MobilizedBody::FunctionBasedImpl::CacheInfo<4>& info) 
+{   return o << "MobilizedBody::FunctionBasedImpl::CacheInfo"; }
+inline std::ostream& operator<<(std::ostream& o, const MobilizedBody::FunctionBasedImpl::CacheInfo<5>& info) 
+{   return o << "MobilizedBody::FunctionBasedImpl::CacheInfo"; }
+inline std::ostream& operator<<(std::ostream& o, const MobilizedBody::FunctionBasedImpl::CacheInfo<6>& info) 
+{   return o << "MobilizedBody::FunctionBasedImpl::CacheInfo"; }
 
 } // namespace SimTK
 
