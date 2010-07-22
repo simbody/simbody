@@ -818,11 +818,11 @@ public:
 
     const SBInstanceVars& getInstanceVars(const State& s) const {
         return Value<SBInstanceVars>::downcast
-            (s.getDiscreteVariable(getMySubsystemIndex(),getModelCache(s).instanceVarsIndex)).get();
+            (s.getDiscreteVariable(getMySubsystemIndex(),topologyCache.topoInstanceVarsIndex)).get();
     }
     SBInstanceVars& updInstanceVars(State& s) const {
         return Value<SBInstanceVars>::downcast
-            (s.updDiscreteVariable(getMySubsystemIndex(),getModelCache(s).instanceVarsIndex)).upd();
+            (s.updDiscreteVariable(getMySubsystemIndex(),topologyCache.topoInstanceVarsIndex)).upd();
     }
 
     const SBTimeVars& getTimeVars(const State& s) const {

@@ -329,6 +329,12 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     mutableThis->topologyCache.modelingCacheIndex = 
         allocateCacheEntry(s,Stage::Model, new Value<SBModelCache>());
 
+    SBInstanceVars iv;
+    iv.allocate(topologyCache);
+    setDefaultInstanceValues(mvars, iv);
+    mutableThis->topologyCache.topoInstanceVarsIndex = 
+        allocateDiscreteVariable(s, Stage::Instance, new Value<SBInstanceVars>(iv));
+
     mutableThis->topologyCache.valid = true;
 
     // Allocate a cache entry for the topologyCache, and save a copy there.
@@ -429,12 +435,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     // now, we can only initialize those that depend only on Model-stage variables; 
     // initialization of the rest will be performed at Instance stage.
 
-    SBInstanceVars iv;
-    iv.allocate(topologyCache);
-    setDefaultInstanceValues(mv, iv);
+    // SBInstanceVars are allocated at topology stage; could also have instance
+    // vars that aren't allocated until here but there aren't any right now.
 
-    mc.instanceVarsIndex = 
-        allocateDiscreteVariable(s, Stage::Instance, new Value<SBInstanceVars>(iv));
     mc.instanceCacheIndex = 
         allocateCacheEntry(s, Stage::Instance, new Value<SBInstanceCache>());
 
@@ -3322,10 +3325,9 @@ void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, St
     if (g >= Stage::Model) {
         mv = &matter.getModelVars(state);
         mc = &matter.updModelCache(state);
+        iv = &matter.getInstanceVars(state);
     }
     if (g >= Stage::Instance) {
-        if (mc->instanceVarsIndex.isValid())
-            iv = &matter.getInstanceVars(state);
         if (mc->instanceCacheIndex.isValid())
             ic = &matter.updInstanceCache(state);
     }
