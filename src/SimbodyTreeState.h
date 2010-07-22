@@ -135,6 +135,9 @@ public:
     void clear() {
         nBodies = nParticles = nConstraints = nAncestorConstrainedBodies =
             nDOFs = maxNQs = sumSqDOFs = -1;
+        modelingVarsIndex.invalidate();
+        modelingCacheIndex.invalidate();
+        topoInstanceVarsIndex.invalidate();
         valid = false;
     }
 
@@ -157,6 +160,11 @@ public:
 
     DiscreteVariableIndex modelingVarsIndex;
     CacheEntryIndex       modelingCacheIndex;
+
+    // These are instance variables that exist regardless of modeling
+    // settings; they are instance variables corresponding to topological
+    // elements of the matter subsystem (e.g. mobilized bodies and constraints).
+    DiscreteVariableIndex topoInstanceVarsIndex;
 
     bool valid;
 };
@@ -250,7 +258,7 @@ public:
 
     QIndex qIndex;  // NOTE: local, currently always zero
     UIndex uIndex;
-    DiscreteVariableIndex instanceVarsIndex, timeVarsIndex, qVarsIndex, uVarsIndex, 
+    DiscreteVariableIndex timeVarsIndex, qVarsIndex, uVarsIndex, 
                           dynamicsVarsIndex, accelerationVarsIndex;
     CacheEntryIndex       instanceCacheIndex, timeCacheIndex, 
                           treePositionCacheIndex, constrainedPositionCacheIndex,
@@ -1160,9 +1168,12 @@ public:
 // -----------------------------------------------------------------------------
 //                                 MODEL VARS
 // -----------------------------------------------------------------------------
+// This state variable is allocated during realizeTopology(). Any change made
+// to it after that invalidates Stage::Model, requiring realizeModel() to be
+// performed.
 class SBModelVars {
 public:
-    bool              useEulerAngles;
+    bool         useEulerAngles;
     Array_<bool> prescribed;           // nb (# bodies & mobilizers, [0] always true)
 public:
 
@@ -1181,13 +1192,24 @@ public:
 // -----------------------------------------------------------------------------
 //                               INSTANCE VARS
 // -----------------------------------------------------------------------------
+// This state variable is allocated during realizeTopology(), because its 
+// contents refer only to elements that form part of the fixed topology of the
+// matter subsystem -- mobilized bodies, particles, and constraints that are
+// specified as permanent parts of this matter subsystem.
+// 
+// Any change to this variable invalidates Stage::Instance (not Stage::Model), 
+// requiring realize(Instance) to be performed.
+//
+// Note: we may at some point have instance variables whose allocation is
+// deferred until realizeModel() but those would be wiped out whenever a change
+// to a Model-stage variable is made (most notably useEulerAngles).
 class SBInstanceVars {
 public:
     Array_<MassProperties> bodyMassProperties;
     Array_<Transform>      outboardMobilizerFrames;
     Array_<Transform>      inboardMobilizerFrames;
+    Vector                 particleMasses;
     Array_<bool>           disabled;             // nc (# constraints)
-    Vector                      particleMasses;
 
 public:
 
@@ -1375,7 +1397,7 @@ public:
     }
 
     const SBInstanceVars& getInstanceVars() const {
-        assert(stage >= Stage::Instance);
+        assert(stage >= Stage::Model);
         assert(iv);
         return *iv;
     }
