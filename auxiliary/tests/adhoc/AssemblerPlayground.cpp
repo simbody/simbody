@@ -62,6 +62,13 @@ int main() {
     Force::TwoPointLinearSpring(forces, endOfSecondChain, Vec3(0),
                                 midBody, Vec3(0), 2, 1);
 
+    Constraint pres[5];
+    for (int i=0; i<5; ++i) {
+        pres[i] = Constraint::PrescribedMotion(matter, new Function::Constant(.1),
+            MobilizedBodyIndex(NBodies+2+i), MobilizerQIndex(2));
+        //pres[i].setDisabledByDefault(true);
+    }
+
     //Constraint::Ball chainConnection(endOfSecondChain, Vec3(0,-hdims[1],0),
     //    matter.updMobilizedBody(MobilizedBodyIndex(4)), Vec3(0));
 
@@ -76,7 +83,13 @@ int main() {
     // Initialize the system and state.
     
     system.realizeTopology();
+
     State state = system.getDefaultState();
+    for (int i=0; i<5; ++i)
+        pres[i].disable(state);
+
+    for (int i=0; i<5; ++i)
+        cout << "state pres[" << i << "].isDisabled=" << pres[i].isDisabled(state) << endl;
 
     const Vec3 midTarget(1.5*NBodies,-NBodies*0.5*hdims[1],3);
     const Vec3 finalTarget(2*NBodies, -NBodies*0.3*hdims[1],2);
@@ -93,14 +106,23 @@ int main() {
     // Show initial configuration
     viz.report(state);
     State tempState = state; 
+    for (int i=0; i<5; ++i)
+        cout << "tempState copy pres[" << i << "].isDisabled=" << pres[i].isDisabled(tempState) << endl;
+
     matter.setUseEulerAngles(tempState, true);
     system.realizeModel(tempState);
+
+    for (int i=0; i<5; ++i)
+        cout << "tempState realizeModel pres[" << i << "].isDisabled=" << pres[i].isDisabled(tempState) << endl;
+
     system.realize(tempState, Stage::Position);
     cout << "INITIAL CONFIGURATION\n"; 
     cout << tempState.getNU() << " dofs, " 
          << tempState.getNQErr() << " constraints.\n";
     
     cin >> c;
+
+
 
     Assembler ik(system);
     Markers& markers = *new Markers();
@@ -110,6 +132,9 @@ int main() {
     QValue& qvalue = *new QValue(endOfSecondChain, MobilizerQIndex(2),
         Pi/2);
     ik.adoptAssemblyGoal(&qvalue);
+
+    // Set treatment of constraints.
+    //ik.setSystemConstraintsWeight(1); // means penalty rather than constraint
 
     ik.lockMobilizer(MobilizedBodyIndex(2));
     ik.lockMobilizer(MobilizedBodyIndex(3));
@@ -138,7 +163,8 @@ int main() {
 
     const Real Accuracy = 1e-3;
     ik.setAccuracy(Accuracy);
-    ik.initialize();
+
+    ik.initialize(state);
 
     markers.moveOneObservation(Markers::ObservationIx(0), midTarget);
     markers.moveOneObservation(Markers::ObservationIx(1), midTarget);
@@ -149,6 +175,7 @@ int main() {
         printf("mx=%d ox=%d err=%g\n", 
             (int)mx, (int)markers.getObservationIxForMarker(mx),
             markers.findCurrentMarkerError(mx));
+
 
     ik.assemble(state);
 
