@@ -246,6 +246,8 @@ try {
     printf("GLOBAL ny=%d q:y(%d,%d) u:y(%d,%d) z:y(%d,%d)\n",
         (int)s.getNY(), (int)s.getQStart(), (int)s.getNQ(), 
         (int)s.getUStart(), (int)s.getNU(), (int)s.getZStart(), (int)s.getNZ());
+
+    mbs.realize(s, Stage::Instance);
     printf("  nyerr=%d qerr:yerr(%d,%d) uerr:yerr(%d,%d)\n",
         (int)s.getNYErr(), (int)s.getQErrStart(), (int)s.getNQErr(),
         (int)s.getUErrStart(), (int)s.getNUErr());
