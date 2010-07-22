@@ -1911,8 +1911,8 @@ public:
         return dv.getInvalidatedStage();
     } 
 
-    // You can access a Model stage variable any time, but don't access others
-    // until you have realized the Model stage.
+    // You can access at any time a variable that was allocated during realizeTopology(), 
+    // but don't access others until you have done realizeModel().
     const AbstractValue& 
     getDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) const {
         const PerSubsystemInfo& ss = data->subsystems[subsys];
@@ -1920,7 +1920,7 @@ public:
         SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),"StateRep::getDiscreteVariable()");
         const DiscreteVarInfo& dv = ss.discreteInfo[index];
     
-        if (dv.getInvalidatedStage() > Stage::Model) {
+        if (dv.getAllocationStage() > Stage::Topology) {
             SimTK_STAGECHECK_GE(getSubsystemStage(subsys), 
                 Stage::Model, "StateRep::getDiscreteVariable()");
         }
@@ -1963,9 +1963,9 @@ public:
         markCacheValueRealized(subsys, cx);
     }
 
-    // You can update a Model stage variable from Topology stage, but higher variables 
-    // must wait until you have realized the Model stage. This always backs the 
-    // stage up to one earlier than the variable's stage.
+    // You can update at any time a variable that was allocated during realizeTopology(), 
+    // but later variables must wait until you have done realizeModel(). This always 
+    // backs the stage up to one earlier than the variable's stage.
     AbstractValue& 
     updDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) {
         checkCanModify(subsys);
@@ -1973,10 +1973,11 @@ public:
     
         SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),"StateRep::updDiscreteVariable()");
         DiscreteVarInfo& dv = ss.discreteInfo[index];
-    
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), 
-            std::min(dv.getInvalidatedStage().prev(), Stage(Stage::Model)), 
-            "StateRep::updDiscreteVariable()");
+
+        if (dv.getAllocationStage() > Stage::Topology) {
+            SimTK_STAGECHECK_GE(getSubsystemStage(subsys), 
+                Stage::Model, "StateRep::updDiscreteVariable()");
+        }
     
         invalidateAll(dv.getInvalidatedStage());
     
