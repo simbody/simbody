@@ -78,7 +78,7 @@ static const Real RadiansPerDegree = Pi/180;
 void stateTest() {
   try {
     State s;
-    s.setNSubsystems(1);
+    s.setNumSubsystems(1);
     s.advanceSubsystemToStage(SubsystemIndex(0), Stage::Topology);
     s.advanceSystemToStage(Stage::Topology);
 
@@ -252,7 +252,7 @@ try {
         (int)s.getNYErr(), (int)s.getQErrStart(), (int)s.getNQErr(),
         (int)s.getUErrStart(), (int)s.getNUErr());
     printf("  nudoterr=%d\n", s.getNUDotErr());
-    for (SubsystemIndex i(0); i<s.getNSubsystems(); ++i) {
+    for (SubsystemIndex i(0); i<s.getNumSubsystems(); ++i) {
         printf("Subsys %d: q:y(%d,%d) u:y(%d,%d) z:y(%d,%d)\n",
             (int)i,(int)s.getQStart()+(int)s.getQStart(i),(int)s.getNQ(i),
               (int)s.getUStart()+(int)s.getUStart(i),(int)s.getNU(i),
