@@ -269,7 +269,7 @@ public:
     /// Set the number of subsystems in this state. This is done during
     /// initialization of the State by a System; it completely wipes out
     /// anything that used to be in the State so use cautiously!
-    void setNSubsystems(int i);
+    void setNumSubsystems(int i);
 
     /// Set the name and version for a given subsystem, which must already
     /// have a slot allocated.
@@ -295,7 +295,7 @@ public:
     /// The subsystem index (a small integer) is returned.
     SubsystemIndex addSubsystem(const String& name, const String& version);
 
-    int getNSubsystems() const;
+    int getNumSubsystems() const;
     const String& getSubsystemName   (SubsystemIndex) const;
     const String& getSubsystemVersion(SubsystemIndex) const;
     const Stage&  getSubsystemStage  (SubsystemIndex) const;
@@ -304,9 +304,12 @@ public:
     const Stage& getSystemStage() const;
 
     /// If any subsystem or the system stage is currently at or
-    /// higher than the passed-in one, back up to the stage just prior.
-    /// Otherwise do nothing.
-    void invalidateAll(Stage) const;  // cache is mutable
+    /// higher than the passed-in one, back up to the stage just prior;
+    /// otherwise do nothing. Although invalidating Stage::Instance or
+    /// higher erase only cache entries, we requires writable access 
+    /// to this State object because invalidating Model or Topology stage
+    /// can destroy state variables in addition to cache entries.
+    void invalidateAll(Stage);
 
     /// Advance a particular Subsystem's current stage by one to
     /// the indicated stage. The stage is passed in just to give us a
@@ -913,45 +916,28 @@ public:
     /// the values of auto-update discrete variables from the values stored
     /// in their associated cache entries.
     void autoUpdateDiscreteVariables();
-    
-    /// Transform a State into one which shares all the same data as this one,
-    /// such that modifying either one will modify both of them.  The new State
-    /// restricts which stages and subsystems may be modified.  Any
-    /// attempt to modify restricted data through that object will produce an
-    /// exception.
-    ///
-    /// This method can only add restrictions, not remove them.  If this State was
-    /// itself created by createRestrictedState(), the new state will inherit
-    /// all of the restrictions from this one, in addition to any that are specified
-    /// in the arguments.
-    void createRestrictedState(State&                       restrictedState, 
-                               EnumerationSet<Stage>        restrictedStages,
-                               std::set<SubsystemIndex>     restrictedSubsystems);
-
-    /// Get the set of stages which cannot be modified in this State.  Attempting
-    /// to modify any of these stages will produce an exception.
-    const EnumerationSet<Stage>& getRestrictedStages() const;
-
-    /// Get the set of subsystems which cannot be modified in this State.  Attempting
-    /// to modify any of these subsystems will produce an exception.
-    const std::set<SubsystemIndex>& getRestrictedSubsystems() const;
 
     String toString() const;
     String cacheToString() const;
 
 private:
-    // OBSOLETE: This method was misnamed in SimTK 2.0; it has been changed to 
+    // OBSOLETE
+    
+    // This method was misnamed in SimTK 2.0; it has been changed to 
     // isCacheValueRealized() to match markCacheValueRealized(). The old name is 
     // here as an uncallable private method in the hope of getting a helpful
     // error message out of the compiler that will lead you to the correctly-
     // named method. I guess if you're reading this, it worked!
     bool isCacheValueCurrent(SubsystemIndex sx, CacheEntryIndex cx) const
     {   return isCacheValueRealized(sx,cx); }
+    // Part of our ongoing crusade to turn getN's into getNums for API consistency.
+    int getNSubsystems() const {return getNumSubsystems();}
+    void setNSubsystems(int i) {setNumSubsystems(i);}
 
 private:
-    class StateRep* rep;
-    const StateRep& getRep() const {assert(rep); return *rep;}
-    StateRep&       updRep()       {assert(rep); return *rep;}
+    class StateImpl* impl;
+    const StateImpl& getImpl() const {assert(impl); return *impl;}
+    StateImpl&       updImpl()       {assert(impl); return *impl;}
 };
 
 SimTK_SimTKCOMMON_EXPORT std::ostream& 

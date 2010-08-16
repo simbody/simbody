@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-9 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-10 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -432,11 +432,14 @@ private:
     }
 };
 
-//--------------------------- PerSubsystemInfo ---------------------------------
-//
+
+
+
+//==============================================================================
+//                           PER SUBSYSTEM INFO
+//==============================================================================
 // This internal utility class is used to capture all the information needed for
-// a single subsystem within the StateData.
-//------------------------------------------------------------------------------
+// a single subsystem within the StateImpl.
 class PerSubsystemInfo {
 public:
     PerSubsystemInfo() : currentStage(Stage::Empty)     {initialize();}
@@ -483,7 +486,7 @@ public:
     // Advance from stage g-1 to stage g. This is called at the end
     // of realize(g). You can't use this to "advance" to Stage::Empty.
     // It is a fatal error if the current stage isn't g-1.
-    void advanceToStage(Stage g) {
+    void advanceToStage(Stage g) const {
         assert(g > Stage::Empty);
         assert(currentStage == g.prev());
 
@@ -499,12 +502,14 @@ public:
 
 
     void clearReferencesToModelStageGlobals() {
-        qstart.invalidate(); ustart.invalidate(); zstart.invalidate();
+        qstart.invalidate(); ustart.invalidate(); 
+        zstart.invalidate();
         q.clear(); u.clear(); z.clear();
         qdot.clear(); udot.clear(); zdot.clear(); qdotdot.clear();
     }
 
-    void clearReferencesToInstanceStageGlobals() {
+    void clearReferencesToInstanceStageGlobals() const {
+        // These are all mutable cache entries.
         qerrstart.invalidate(); uerrstart.invalidate(); udoterrstart.invalidate();
         qerr.clear(); uerr.clear(); udoterr.clear(); multipliers.clear();
 
@@ -551,13 +556,13 @@ public:
     // stage, and some at Model stage so we record the size upon realizeTopology()
     // in case we need to wipe out just Model stage later.
     Vector qInit, uInit, zInit;
-    int qTopoSize, uTopoSize, zTopoSize;
+    mutable int qTopoSize, uTopoSize, zTopoSize;
 
     // For constraints we need just lengths (nmultipliers==nudoterr).
-    int nqerr, nuerr, nudoterr;
+    mutable int nqerr, nuerr, nudoterr;
 
     // For event trigger functions we need just lengths, for each stage.
-    int ntriggers[Stage::NValid];
+    mutable int ntriggers[Stage::NValid];
 
         // GLOBAL RESOURCE ALLOCATIONS //
 
@@ -573,14 +578,15 @@ public:
     SystemUIndex                    ustart;
     SystemZIndex                    zstart;
     Vector q, u, z;
+
     mutable Vector qdot, udot, zdot, qdotdot;
 
     // Instance stage global resources and views into them.
     // Note that multipliers just use the same indices as udoterr.
-    SystemQErrIndex                 qerrstart;
-    SystemUErrIndex                 uerrstart;
-    SystemUDotErrIndex              udoterrstart;
-    SystemEventTriggerByStageIndex  triggerstart[Stage::NValid];
+    mutable SystemQErrIndex                 qerrstart;
+    mutable SystemUErrIndex                 uerrstart;
+    mutable SystemUDotErrIndex              udoterrstart;
+    mutable SystemEventTriggerByStageIndex  triggerstart[Stage::NValid];
     mutable Vector qerr, uerr;
     mutable Vector udoterr, multipliers; // same size and partioning
     mutable Vector triggers[Stage::NValid];
@@ -743,17 +749,21 @@ private:
     }
 };
 
-class StateData {
+
+//==============================================================================
+//                                 STATE IMPL
+//==============================================================================
+
+class StateImpl {
 public:
-    StateData() 
-    :   t(NaN), currentSystemStage(Stage::Empty), lowestModifiedSystemStage(Stage::Topology),
-        myHandle(0) {} 
+    StateImpl() 
+    :   t(NaN), currentSystemStage(Stage::Empty), 
+        lowestModifiedSystemStage(Stage::Topology) {} 
 
     // We'll do the copy constructor and assignment explicitly here
-    // to get tight control over what's allowed, and to make sure
-    // we don't copy the handle pointer.
-    StateData(const StateData& src)
-    :   myHandle(0), currentSystemStage(Stage::Empty), lowestModifiedSystemStage(Stage::Topology)
+    // to get tight control over what's allowed.
+    StateImpl(const StateImpl& src)
+    :   currentSystemStage(Stage::Empty), lowestModifiedSystemStage(Stage::Topology)
     {
         subsystems = src.subsystems;
         if (src.currentSystemStage >= Stage::Topology) {
@@ -767,7 +777,7 @@ public:
         }
     }
 
-    StateData& operator=(const StateData& src) {
+    StateImpl& operator=(const StateImpl& src) {
         if (&src == this) return *this;
         invalidateJustSystemStage(Stage::Topology);
         for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i)
@@ -782,29 +792,26 @@ public:
                 y = src.y;
             }
         }
-        // don't mess with the handle pointer!
         return *this;
     }
 
-    ~StateData() {   // default destructor
+    ~StateImpl() {   // default destructor
     }
 
     // Copies all the variables but not the cache.
-    StateData* clone() const {return new StateData(*this);}
-
-    Real getTime() const {return t;}
+    StateImpl* clone() const {return new StateImpl(*this);}
 
     const Stage& getSystemStage() const {return currentSystemStage;}
     Stage&       updSystemStage() const {return currentSystemStage;} // mutable
 
 
     const PerSubsystemInfo& getSubsystem(int subsystem) const {
-        SimTK_INDEXCHECK(subsystem, (int)subsystems.size(), "StateData::getSubsystem()");
+        SimTK_INDEXCHECK(subsystem, (int)subsystems.size(), "StateImpl::getSubsystem()");
         return subsystems[subsystem];
     }
 
     PerSubsystemInfo& updSubsystem(int subsystem) {
-        SimTK_INDEXCHECK(subsystem, (int)subsystems.size(), "StateData::updSubsystem()");
+        SimTK_INDEXCHECK(subsystem, (int)subsystems.size(), "StateImpl::updSubsystem()");
         return subsystems[subsystem];
     }
 
@@ -863,13 +870,13 @@ public:
 
             // Next get rid of the global views of these state variables
             // and corresponding cache entries.
-            q.clear(); u.clear(); z.clear();            // y views
-            qdot.clear(); udot.clear(); zdot.clear();   // ydot views
+            q.clear(); u.clear(); z.clear(); // y views
+            // Finally nuke the actual y data.
+            y.unlockShape(); y.clear(); 
 
-            // Finally nuke the actual state data.
-            y.unlockShape();           y.clear(); 
-            ydot.unlockShape();        ydot.clear(); 
-            qdotdot.unlockShape();     qdotdot.clear();
+            qdot.clear(); udot.clear(); zdot.clear();   // ydot views
+            ydot.unlockShape();        ydot.clear();    // ydot data
+            qdotdot.unlockShape();     qdotdot.clear(); // qdotdot data (no views)
         }
         if (currentSystemStage >= Stage::Topology && Stage::Topology >= g) {
             // We're invalidating the topology stage. Time is considered
@@ -887,14 +894,14 @@ public:
     // we're not already at g-1, and you can't advance to Stage::Empty.
     // Also, you can't advance the system to g unless ALL subsystems have
     // already gotten there.
-    void advanceSystemToStage(Stage g) {
+    void advanceSystemToStage(Stage g) const {
         assert(g > Stage::Empty);
         assert(currentSystemStage == g.prev());
         assert(allSubsystemsAtLeastAtStage(g));
 
         if (g == Stage::Topology) {
             // As the final "Topology" step, initialize time to 0 (it's NaN before this).
-            t = 0;
+            const_cast<StateImpl*>(this)->t = 0;
         }
         else if (g == Stage::Model) {
             // We know the shared state pool sizes now. Allocate the
@@ -910,14 +917,17 @@ public:
 
             // Allocate the actual shared state variables & cache 
             // entries and make sure no one can accidentally change the size.
-            y.resize(nq+nu+nz);             y.lockShape();
+            // We need write access temporarily to set up the state.
+            StateImpl* wThis = const_cast<StateImpl*>(this);
+            wThis->y.resize(nq+nu+nz);      wThis->y.lockShape();
+
             ydot.resize(nq+nu+nz);          ydot.lockShape();
             qdotdot.resize(nq);             qdotdot.lockShape();
 
             // Allocate subviews of the shared state & cache entries.
-            q.viewAssign(y(0,nq));
-            u.viewAssign(y(nq,nu));
-            z.viewAssign(y(nq+nu,nz));
+            wThis->q.viewAssign(wThis->y(0,nq));
+            wThis->u.viewAssign(wThis->y(nq,nu));
+            wThis->z.viewAssign(wThis->y(nq+nu,nz));
 
             qdot.viewAssign(ydot(0,     nq));
             udot.viewAssign(ydot(nq,    nu));
@@ -930,19 +940,23 @@ public:
             SystemZIndex nxtz(0);
 
             for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i) {
-                PerSubsystemInfo& ss = subsystems[i];
+                PerSubsystemInfo& ss = const_cast<PerSubsystemInfo&>(subsystems[i]);
                 const int nq=ss.qInit.size(), nu=ss.uInit.size(), nz=ss.zInit.size();
 
                 // Assign the starting indices.
                 ss.qstart=nxtq; ss.ustart=nxtu; ss.zstart=nxtz;
  
                 // Build the views.
-                ss.q.viewAssign(q(nxtq, nq)); ss.q = ss.qInit;
+                ss.q.viewAssign(wThis->q(nxtq, nq)); 
+                ss.q = ss.qInit;
+                ss.u.viewAssign(wThis->u(nxtu, nu)); 
+                ss.u = ss.uInit;
+                ss.z.viewAssign(wThis->z(nxtz, nz)); 
+                ss.z = ss.zInit;
+
                 ss.qdot.viewAssign(qdot(nxtq, nq));
                 ss.qdotdot.viewAssign(qdotdot(nxtq, nq));
-                ss.u.viewAssign(u(nxtu, nu)); ss.u = ss.uInit;
                 ss.udot.viewAssign(udot(nxtu, nu));
-                ss.z.viewAssign(z(nxtz, nz)); ss.z = ss.zInit;
                 ss.zdot.viewAssign(zdot(nxtz, nz));
 
                 // Consume the slots.
@@ -997,7 +1011,7 @@ public:
                 nxttrigger[j] = SystemEventTriggerByStageIndex(0);
 
             for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i) {
-                PerSubsystemInfo& ss = subsystems[i];
+                const PerSubsystemInfo& ss = subsystems[i];
 
                 // Assign the starting indices.
                 ss.qerrstart=nxtqerr; ss.uerrstart=nxtuerr; ss.udoterrstart=nxtudoterr;
@@ -1027,12 +1041,925 @@ public:
         currentSystemStage = g;
     }
 
-    void            setMyHandle(StateRep& s) {myHandle = &s;}
-    const StateRep& getMyHandle() const   {assert(myHandle); return *myHandle;}
-    StateRep&       updMyHandle()         {assert(myHandle); return *myHandle;}
-private:
-    friend class StateRep;
+    
+    void setNumSubsystems(int i) {
+        assert(i >= 0);
+        subsystems.clear();
+        subsystems.resize(i);
+    }
+    
+    void initializeSubsystem(SubsystemIndex i, const String& name, const String& version) {
+        updSubsystem(i).name = name;
+        updSubsystem(i).version = version;
+    }
+    
+    
+    SubsystemIndex addSubsystem(const String& name, const String& version) {
+        const SubsystemIndex sx(subsystems.size());
+        subsystems.push_back(PerSubsystemInfo(name,version));
+        return sx;
+    }
+    
+    int getNumSubsystems() const {return (int)subsystems.size();}
+    
+    const String& getSubsystemName(SubsystemIndex subsys) const {
+        return subsystems[subsys].name;
+    }
+    const String& getSubsystemVersion(SubsystemIndex subsys) const {
+        return subsystems[subsys].version;
+    }
 
+    // Make sure the stage is no higher than g-1 for *any* subsystem and
+    // hence for the system stage also. TODO: this should be more selective.
+    void invalidateAll(Stage g) {
+        invalidateJustSystemStage(g);
+        for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i)
+            subsystems[i].invalidateStageJustThisSubsystem(g);
+    }
+    
+    // Move the stage for a particular subsystem from g-1 to g. No other subsystems
+    // are affected, nor the global system stage.
+    void advanceSubsystemToStage(SubsystemIndex subsys, Stage g) const {
+        subsystems[subsys].advanceToStage(g);
+        // We don't automatically advance the System stage even if this brings
+        // ALL the subsystems up to stage g.
+    }
+    
+
+    
+    // We don't expect State entry allocations to be performance critical so
+    // we'll keep error checking on even in Release mode.
+    
+    QIndex allocateQ(SubsystemIndex subsys, const Vector& qInit) {
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateImpl::allocateQ()");
+        const QIndex nxt(subsystems[subsys].qInit.size());
+        subsystems[subsys].qInit.resizeKeep(nxt + qInit.size());
+        subsystems[subsys].qInit(nxt, qInit.size()) = qInit;
+        return nxt;
+    }
+    
+    UIndex allocateU(SubsystemIndex subsys, const Vector& uInit) {
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateImpl::allocateU()");
+        const UIndex nxt(subsystems[subsys].uInit.size());
+        subsystems[subsys].uInit.resizeKeep(nxt + uInit.size());
+        subsystems[subsys].uInit(nxt, uInit.size()) = uInit;
+        return nxt;
+    }
+    ZIndex allocateZ(SubsystemIndex subsys, const Vector& zInit) {
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateImpl::allocateZ()");
+        const ZIndex nxt(subsystems[subsys].zInit.size());
+        subsystems[subsys].zInit.resizeKeep(nxt + zInit.size());
+        subsystems[subsys].zInit(nxt, zInit.size()) = zInit;
+        return nxt;
+    }
+    
+    QErrIndex allocateQErr(SubsystemIndex subsys, int nqerr) const {
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateImpl::allocateQErr()");
+        const QErrIndex nxt(subsystems[subsys].nqerr);
+        subsystems[subsys].nqerr += nqerr;
+        return nxt;
+    }
+    UErrIndex allocateUErr(SubsystemIndex subsys, int nuerr) const {
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateImpl::al()");
+        const UErrIndex nxt(subsystems[subsys].nuerr);
+        subsystems[subsys].nuerr += nuerr;
+        return nxt;
+    }
+    UDotErrIndex allocateUDotErr(SubsystemIndex subsys, int nudoterr) const {
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateImpl::allocateUDotErr()");
+        const UDotErrIndex nxt(subsystems[subsys].nudoterr);
+        subsystems[subsys].nudoterr += nudoterr;
+        return nxt;
+    }
+    EventTriggerByStageIndex allocateEventTrigger(SubsystemIndex subsys, Stage g, int nt) const {
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateImpl::allocateEvent()");
+        const EventTriggerByStageIndex nxt(subsystems[subsys].ntriggers[g]);
+        subsystems[subsys].ntriggers[g] += nt;
+        return nxt;
+    }
+    
+    // Topology- and Model-stage State variables can only be added during construction; that is,
+    // while stage <= Topology. Other entries can be added while stage < Model.
+    DiscreteVariableIndex allocateDiscreteVariable(SubsystemIndex subsys, Stage invalidates, AbstractValue* vp) {
+        SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), invalidates, Stage::HighestRuntime, 
+            "StateImpl::allocateDiscreteVariable()");
+    
+        const Stage maxAcceptable = (invalidates <= Stage::Model ? Stage::Empty : Stage::Topology);
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), 
+            maxAcceptable.next(), "StateImpl::allocateDiscreteVariable()");
+    
+        PerSubsystemInfo& ss = subsystems[subsys];
+        const DiscreteVariableIndex nxt(ss.discreteInfo.size());
+        ss.discreteInfo.push_back(DiscreteVarInfo(getSubsystemStage(subsys).next(),invalidates,vp));
+        return nxt;
+    }
+    
+    // Cache entries can be allocated while stage < Instance.
+    CacheEntryIndex allocateCacheEntry(SubsystemIndex subsys, Stage dependsOn, Stage computedBy, AbstractValue* vp) const {
+        SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), dependsOn, Stage::HighestRuntime, 
+            "StateImpl::allocateCacheEntry()");
+        SimTK_STAGECHECK_RANGE_ALWAYS(dependsOn, computedBy, Stage::Infinity, 
+            "StateImpl::allocateCacheEntry()");
+        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), 
+            Stage::Instance, "StateImpl::allocateCacheEntry()");
+
+        const PerSubsystemInfo& ss = subsystems[subsys];
+        const CacheEntryIndex nxt(ss.cacheInfo.size());
+        ss.cacheInfo.push_back(CacheEntryInfo(getSubsystemStage(subsys).next(),dependsOn,computedBy,vp)); // mutable
+        return nxt;
+    }
+
+    // Allocate a discrete variable and a corresponding cache entry for
+    // updating it, and connect them together.
+    DiscreteVariableIndex
+    allocateAutoUpdateDiscreteVariable(SubsystemIndex subsys, Stage invalidates, AbstractValue* vp,
+                                       Stage updateDependsOn)
+    {
+        const DiscreteVariableIndex dx = 
+            allocateDiscreteVariable(subsys,invalidates,vp->clone());
+        const CacheEntryIndex       cx = 
+            allocateCacheEntry(subsys,updateDependsOn,Stage::Infinity,vp);
+
+        PerSubsystemInfo& ss = subsystems[subsys];
+        DiscreteVarInfo& dvinfo = ss.discreteInfo[dx];
+        CacheEntryInfo&  ceinfo = ss.cacheInfo[cx];
+        dvinfo.setAutoUpdateEntry(cx);
+        ceinfo.setAssociatedVar(dx);
+        return dx;
+    }
+    
+        // State dimensions for shared continuous variables.
+    
+    int getNY() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getNY()");
+        return y.size();
+    }
+    
+    SystemYIndex getQStart() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getQStart()");
+        return SystemYIndex(0); // q's come first
+    }
+    int getNQ() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getNQ()");
+        return q.size();
+    }
+    
+    SystemYIndex getUStart() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getUStart()");
+        return SystemYIndex(q.size()); // u's come right after q's
+    }
+    int getNU() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getNU()");
+        return u.size();
+    }
+    
+    SystemYIndex getZStart() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getZStart()");
+        return SystemYIndex(q.size() + u.size()); // q,u, then z
+    }
+    int getNZ() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getNZ()");
+        return z.size();
+    }
+    
+    int getNYErr() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getNYErr()");
+        return yerr.size();
+    }
+    
+    SystemYErrIndex getQErrStart() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getQErrStart()");
+        return SystemYErrIndex(0); // qerr's come first
+    }
+    int getNQErr() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getNQErr()");
+        return qerr.size();
+    }
+    
+    SystemYErrIndex getUErrStart() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getUErrStart()");
+        return SystemYErrIndex(qerr.size()); // uerr's follow qerrs
+    }
+    int getNUErr() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getNUErr()");
+        return uerr.size();
+    }
+    
+    // UDot errors are independent of qerr & uerr.
+    // This is used for multipliers also.
+    int getNUDotErr() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getNUDotErr()");
+        return udoterr.size();
+    }
+    
+    int getNEventTriggers() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getNEventTriggers()");
+        return allTriggers.size();
+    }
+    
+    SystemEventTriggerIndex getEventTriggerStartByStage(Stage g) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getEventTriggerStartByStage()");
+        int nxt = 0;
+        for (int j=0; j<g; ++j)
+            nxt += triggers[j].size();
+        return SystemEventTriggerIndex(nxt); // g starts where g-1 leaves off
+    }
+    
+    int getNEventTriggersByStage(Stage g) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getNEventTriggersByStage()");
+        return triggers[g].size();
+    }
+    
+        // Subsystem dimensions.
+    
+    SystemQIndex getQStart(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getQStart(subsys)");
+        return getSubsystem(subsys).qstart;
+    }
+    int getNQ(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getNQ(subsys)");
+        return getSubsystem(subsys).q.size();
+    }
+    
+    SystemUIndex getUStart(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getUStart(subsys)");
+        return getSubsystem(subsys).ustart;
+    }
+    int getNU(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getNU(subsys)");
+        return getSubsystem(subsys).u.size();
+    }
+    
+    SystemZIndex getZStart(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getZStart(subsys)");
+        return getSubsystem(subsys).zstart;
+    }
+    int getNZ(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getNZ(subsys)");
+        return getSubsystem(subsys).z.size();
+    }
+    
+    SystemQErrIndex getQErrStart(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getQErrStart(subsys)");
+        return getSubsystem(subsys).qerrstart;
+    }
+    int getNQErr(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getNQErr(subsys)");
+        return getSubsystem(subsys).qerr.size();
+    }
+    
+    SystemUErrIndex getUErrStart(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getUErrStart(subsys)");
+        return getSubsystem(subsys).uerrstart;
+    }
+    int getNUErr(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getNUErr(subsys)");
+        return getSubsystem(subsys).uerr.size();
+    }
+    
+    // These are used for multipliers also.
+    SystemUDotErrIndex getUDotErrStart(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getUDotErrStart(subsys)");
+        return getSubsystem(subsys).udoterrstart;
+    }
+    int getNUDotErr(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getNUDotErr(subsys)");
+        return getSubsystem(subsys).udoterr.size();
+    }
+    
+    SystemEventTriggerByStageIndex getEventTriggerStartByStage(SubsystemIndex subsys, Stage g) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getEventTriggerStartByStage(subsys)");
+        return getSubsystem(subsys).triggerstart[g];
+    }
+    
+    int getNEventTriggersByStage(SubsystemIndex subsys, Stage g) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getNEventTriggersByStage(subsys)");
+        return getSubsystem(subsys).triggers[g].size();
+    }
+    
+        // Per-subsystem access to the global shared variables.
+    
+    const Vector& getQ(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getQ(subsys)");
+        return getSubsystem(subsys).q;
+    }
+    const Vector& getU(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getU(subsys)");
+        return getSubsystem(subsys).u;
+    }
+    const Vector& getZ(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getZ(subsys)");
+        return getSubsystem(subsys).z;
+    }
+    
+    const Vector& getQDot(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getQDot(subsys)");
+        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Velocity, "StateImpl::getQDot(subsys)");
+        return getSubsystem(subsys).qdot;
+    }
+    const Vector& getUDot(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getUDot(subsys)");
+        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "StateImpl::getUDot(subsys)");
+        return getSubsystem(subsys).udot;
+    }
+    const Vector& getZDot(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getZDot(subsys)");
+        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Dynamics, "StateImpl::getZDot(subsys)");
+        return getSubsystem(subsys).zdot;
+    }
+    const Vector& getQDotDot(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getQDotDot(subsys)");
+        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "StateImpl::getQDotDot(subsys)");
+        return getSubsystem(subsys).qdotdot;
+    }
+    
+    Vector& updQ(SubsystemIndex subsys) {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updQ(subsys)");
+        invalidateAll(Stage::Position);
+        return updSubsystem(subsys).q;
+    }
+    Vector& updU(SubsystemIndex subsys) {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updU(subsys)");
+        invalidateAll(Stage::Velocity);
+        return updSubsystem(subsys).u;
+    }
+    Vector& updZ(SubsystemIndex subsys) {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updZ(subsys)");
+        invalidateAll(Stage::Dynamics);
+        return updSubsystem(subsys).z;
+    }
+    
+        // These are mutable so the routines are const.
+    
+    Vector& updQDot(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updQDot(subsys)");
+        return getSubsystem(subsys).qdot;
+    }
+    Vector& updUDot(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updUDot(subsys)");
+        return getSubsystem(subsys).udot;
+    }
+    Vector& updZDot(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updZDot(subsys)");
+        return getSubsystem(subsys).zdot;
+    }
+    Vector& updQDotDot(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updQDotDot(subsys)");
+        return getSubsystem(subsys).qdotdot;
+    }
+    
+    
+    const Vector& getQErr(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getQErr(subsys)");
+        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Position, "StateImpl::getQErr(subsys)");
+        return getSubsystem(subsys).qerr;
+    }
+    const Vector& getUErr(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getUErr(subsys)");
+        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Velocity, "StateImpl::getUErr(subsys)");
+        return getSubsystem(subsys).uerr;
+    }
+    const Vector& getUDotErr(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getUDotErr(subsys)");
+        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "StateImpl::getUDotErr(subsys)");
+        return getSubsystem(subsys).udoterr;
+    }
+    const Vector& getMultipliers(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getMultipliers(subsys)");
+        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "StateImpl::getMultipliers(subsys)");
+        return getSubsystem(subsys).multipliers;
+    }
+    
+    const Vector& getEventTriggersByStage(SubsystemIndex subsys, Stage g) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::getEventTriggersByStage(subsys)");
+        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), g, "StateImpl::getEventTriggersByStage(subsys)");
+        return getSubsystem(subsys).triggers[g];
+    }
+    
+    Vector& updQErr(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::updQErr(subsys)");
+        return getSubsystem(subsys).qerr;
+    }
+    Vector& updUErr(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::updUErr(subsys)");
+        return getSubsystem(subsys).uerr;
+    }
+    Vector& updUDotErr(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::updUDotErr(subsys)");
+        return getSubsystem(subsys).udoterr;
+    }
+    Vector& updMultipliers(SubsystemIndex subsys) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::updMultipliers(subsys)");
+        return getSubsystem(subsys).multipliers;
+    }
+    Vector& updEventTriggersByStage(SubsystemIndex subsys, Stage g) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::updEventTriggersByStage(subsys)");
+        return getSubsystem(subsys).triggers[g];
+    }
+    
+        // Direct access to the global shared state and cache entries.
+        // Time is allocated in Stage::Topology, State in Stage::Model, and
+        // Cache in Stage::Instance.
+    
+    const Real& getTime() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Topology, "StateImpl::getTime()");
+        return t;
+    }
+    
+    const Vector& getY() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getY()");
+        return y;
+    }
+    
+    const Vector& getQ() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getQ()");
+        return q;
+    }
+    
+    const Vector& getU() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getU()");
+        return u;
+    }
+    
+    const Vector& getZ() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::getZ()");
+        return z;
+    }
+    
+    
+    // You can call these as long as stage >= allocation stage, but the
+    // stage will be backed up if necessary to one stage prior to the invalidated stage.
+    Real& updTime() {  // Back to Stage::Time-1
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Topology, "StateImpl::updTime()");
+        invalidateAll(Stage::Time);
+        return t;
+    }
+    
+    Vector& updY() {    // Back to Stage::Position-1
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updY()");
+        invalidateAll(Stage::Position);
+        return y;
+    }
+    
+    Vector& updQ() {    // Stage::Position-1
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updQ()");
+        invalidateAll(Stage::Position);
+        return q;
+    }
+    
+    Vector& updU() {     // Stage::Velocity-1
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updU()");
+        invalidateAll(Stage::Velocity);
+        return u;
+    }
+    
+    Vector& updZ() {     // Stage::Dynamics-1
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updZ()");
+        invalidateAll(Stage::Dynamics);
+        return z;
+    }
+    
+    // These cache entries you can get at their "computedBy" stages.
+    const Vector& getYDot() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "StateImpl::getYDot()");
+        return ydot;
+    }
+    
+    const Vector& getQDot() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Velocity, "StateImpl::getQDot()");
+        return qdot;
+    }
+    
+    const Vector& getZDot() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Dynamics, "StateImpl::getZDot()");
+        return zdot;
+    }
+    
+    const Vector& getUDot() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "StateImpl::getUDot()");
+        return udot;
+    }
+    
+    const Vector& getQDotDot() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "StateImpl::getQDotDot()");
+        return qdotdot;
+    }
+    
+    // Cache updates are allowed any time after they have been allocated.
+    Vector& updYDot() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updYDot()");
+        return ydot;
+    }
+    
+    Vector& updQDot() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updQDot()");
+        return qdot;
+    }
+    
+    Vector& updUDot() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updUDot()");
+        return udot;
+    }
+    
+    Vector& updZDot() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updZDot()");
+        return zdot;
+    }
+    
+    Vector& updQDotDot() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateImpl::updQDotDot()");
+        return qdotdot;
+    }
+    
+    
+    const Vector& getYErr() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Velocity, "StateImpl::getYErr()");
+        return yerr;
+    }
+    
+    const Vector& getQErr() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Position, "StateImpl::getQErr()");
+        return qerr;
+    }
+    const Vector& getUErr() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Velocity, "StateImpl::getUErr()");
+        return uerr;
+    }
+    const Vector& getUDotErr() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "StateImpl::getUDotErr()");
+        return udoterr;
+    }
+    const Vector& getMultipliers() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "StateImpl::getMultipliers()");
+        return multipliers;
+    }
+    
+    Vector& updYErr() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::updYErr()");
+        return yerr;
+    }
+    Vector& updQErr() const{
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::updQErr()");
+        return qerr;
+    }
+    Vector& updUErr() const{
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::updUErr()");
+        return uerr;
+    }
+    Vector& updUDotErr() const{
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
+                            "StateImpl::updUDotErr()");
+        return udoterr;
+    }
+    Vector& updMultipliers() const{
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
+                            "StateImpl::updMultipliers()");
+        return multipliers;
+    }
+    
+    const Vector& getEventTriggers() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "StateImpl::getEventTriggers()");
+        return allTriggers;
+    }
+    const Vector& getEventTriggersByStage(Stage g) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), g, "StateImpl::getEventTriggersByStage()");
+        return triggers[g];
+    }
+    
+    // These are mutable; hence 'const'.
+    Vector& updEventTriggers() const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::updEventTriggers()");
+        return allTriggers;
+    }
+    Vector& updEventTriggersByStage(Stage g) const {
+        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateImpl::updEventTriggersByStage()");
+        return triggers[g];
+    }
+
+    CacheEntryIndex getDiscreteVarUpdateIndex(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+        const PerSubsystemInfo& ss = subsystems[subsys];
+        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
+            "StateImpl::getDiscreteVarUpdateIndex()");
+        const DiscreteVarInfo& dv = ss.discreteInfo[index];
+        return dv.getAutoUpdateEntry();
+    } 
+
+    Stage getDiscreteVarAllocationStage(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+        const PerSubsystemInfo& ss = subsystems[subsys];
+        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
+            "StateImpl::getDiscreteVarAllocationStage()");
+        const DiscreteVarInfo& dv = ss.discreteInfo[index];
+        return dv.getAllocationStage();
+    } 
+
+    Stage getDiscreteVarInvalidatesStage(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+        const PerSubsystemInfo& ss = subsystems[subsys];
+        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
+            "StateImpl::getDiscreteVarInvalidatesStage()");
+        const DiscreteVarInfo& dv = ss.discreteInfo[index];
+        return dv.getInvalidatedStage();
+    } 
+
+    // You can access at any time a variable that was allocated during realizeTopology(), 
+    // but don't access others until you have done realizeModel().
+    const AbstractValue& 
+    getDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+        const PerSubsystemInfo& ss = subsystems[subsys];
+    
+        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),"StateImpl::getDiscreteVariable()");
+        const DiscreteVarInfo& dv = ss.discreteInfo[index];
+    
+        if (dv.getAllocationStage() > Stage::Topology) {
+            SimTK_STAGECHECK_GE(getSubsystemStage(subsys), 
+                Stage::Model, "StateImpl::getDiscreteVariable()");
+        }
+    
+        return dv.getValue();
+    }
+    Real getDiscreteVarLastUpdateTime(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+        const PerSubsystemInfo& ss = subsystems[subsys];
+        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),"StateImpl::getDiscreteVarLastUpdateTime()");
+        const DiscreteVarInfo& dv = ss.discreteInfo[index];
+        return dv.getTimeLastUpdated();
+    }
+
+    const AbstractValue& getDiscreteVarUpdateValue(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
+        SimTK_ERRCHK2(cx.isValid(), "StateImpl::getDiscreteVarUpdateValue()", 
+            "Subsystem %d has a discrete variable %d but it does not have an"
+            " associated update cache variable.", (int)subsys, (int)index);
+        return getCacheEntry(subsys, cx);
+    }
+    AbstractValue& updDiscreteVarUpdateValue(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
+        SimTK_ERRCHK2(cx.isValid(), "StateImpl::updDiscreteVarUpdateValue()", 
+            "Subsystem %d has a discrete variable %d but it does not have an"
+            " associated update cache variable.", (int)subsys, (int)index);
+        return updCacheEntry(subsys, cx);
+    }
+    bool isDiscreteVarUpdateValueRealized(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
+        SimTK_ERRCHK2(cx.isValid(), "StateImpl::isDiscreteVarUpdateValueRealized()", 
+            "Subsystem %d has a discrete variable %d but it does not have an"
+            " associated update cache variable.", (int)subsys, (int)index);
+        return isCacheValueRealized(subsys, cx);
+    }
+    void markDiscreteVarUpdateValueRealized(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
+        SimTK_ERRCHK2(cx.isValid(), "StateImpl::markDiscreteVarUpdateValueRealized()", 
+            "Subsystem %d has a discrete variable %d but it does not have an"
+            " associated update cache variable.", (int)subsys, (int)index);
+        markCacheValueRealized(subsys, cx);
+    }
+
+    // You can update at any time a variable that was allocated during realizeTopology(), 
+    // but later variables must wait until you have done realizeModel(). This always 
+    // backs the stage up to one earlier than the variable's stage.
+    AbstractValue& 
+    updDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) {
+        PerSubsystemInfo& ss = subsystems[subsys];
+    
+        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),"StateImpl::updDiscreteVariable()");
+        DiscreteVarInfo& dv = ss.discreteInfo[index];
+
+        if (dv.getAllocationStage() > Stage::Topology) {
+            SimTK_STAGECHECK_GE(getSubsystemStage(subsys), 
+                Stage::Model, "StateImpl::updDiscreteVariable()");
+        }
+    
+        invalidateAll(dv.getInvalidatedStage());
+    
+        // We're now marking this variable as having been updated at the current time.
+        return dv.updValue(t);
+    }
+    
+    Stage getCacheEntryAllocationStage(SubsystemIndex subsys, CacheEntryIndex index) const {
+        const PerSubsystemInfo& ss = subsystems[subsys];
+        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),
+            "StateImpl::getCacheEntryAllocationStage()");
+        const CacheEntryInfo& ce = ss.cacheInfo[index];
+        return ce.getAllocationStage();
+    } 
+
+    // Stage >= ce.stage
+    const AbstractValue& 
+    getCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
+        const PerSubsystemInfo& ss = subsystems[subsys];
+    
+        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),"StateImpl::getCacheEntry()");
+        const CacheEntryInfo& ce = ss.cacheInfo[index];
+    
+        const Stage stageNow = getSubsystemStage(subsys);
+        SimTK_STAGECHECK_GE_ALWAYS(stageNow, 
+            ce.getDependsOnStage(), "StateImpl::getCacheEntry()");
+
+        if (stageNow < ce.getComputedByStage()) {
+            const StageVersion currentDependsOnVersion = 
+                getSubsystemStageVersions(subsys)[ce.getDependsOnStage()];
+            const StageVersion lastCacheVersion = 
+                ce.getVersionWhenLastComputed();
+
+            if (lastCacheVersion != currentDependsOnVersion) {
+                SimTK_THROW4(Exception::CacheEntryOutOfDate,
+                    stageNow, ce.getDependsOnStage(), currentDependsOnVersion, lastCacheVersion);
+            }
+        }
+
+        // If we get here then we're either past the "computed by" stage, or we're
+        // past "depends on" with an explicit validation having been made at the
+        // "depends on" stage's current version.
+
+        return ce.getValue();
+    }
+    
+    // You can access a cache entry for update any time after it has been allocated.
+    // This does not affect the stage.
+    AbstractValue& 
+    updCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
+        const PerSubsystemInfo& ss = subsystems[subsys];
+    
+        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),"StateImpl::updCacheEntry()");
+        CacheEntryInfo& ce = ss.cacheInfo[index];
+    
+        return ce.updValue();
+    }
+
+    bool isCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
+        const PerSubsystemInfo& ss = subsystems[subx];
+        SimTK_INDEXCHECK(cx,(int)ss.cacheInfo.size(),"StateImpl::isCacheValueRealized()");
+        const CacheEntryInfo& ce = ss.cacheInfo[cx];
+        return ce.isCurrent(getSubsystemStage(subx), getSubsystemStageVersions(subx));
+    }
+    void markCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
+        const PerSubsystemInfo& ss = subsystems[subx];
+        SimTK_INDEXCHECK(cx,(int)ss.cacheInfo.size(),"StateImpl::markCacheValueRealized()");
+        CacheEntryInfo& ce = ss.cacheInfo[cx];
+    
+        // If this cache entry depends on anything, it can't be valid unless we're
+        // at least *working* on its depends-on stage, meaning the current stage would
+        // have to be the one before that. The depends-on stage is required to be at
+        // least Stage::Topology, so its prev() stage exists.
+        SimTK_STAGECHECK_GE(getSubsystemStage(subx), 
+            ce.getDependsOnStage().prev(), "StateImpl::markCacheValueRealized()");
+
+        ce.markAsComputed(getSubsystemStageVersions(subx));
+    }
+    const Stage& getLowestStageModified() const {
+        return lowestModifiedSystemStage;
+    }
+    void resetLowestStageModified() const {
+        lowestModifiedSystemStage = std::min(Stage::Infinity, currentSystemStage.next());
+    }
+
+    void autoUpdateDiscreteVariables() {
+        // TODO: make this more efficient
+        for (SubsystemIndex subx(0); subx < subsystems.size(); ++subx) {
+            PerSubsystemInfo& ss = subsystems[subx];
+            Array_<DiscreteVarInfo>& dvars = ss.discreteInfo;
+            for (DiscreteVariableIndex dx(0); dx < dvars.size(); ++dx) {
+                DiscreteVarInfo& dinfo = dvars[dx];
+                const CacheEntryIndex cx = dinfo.getAutoUpdateEntry();
+                if (!cx.isValid()) continue; // not an auto-update variable
+                CacheEntryInfo& cinfo = ss.cacheInfo[cx];
+                if (cinfo.isCurrent(getSubsystemStage(subx), getSubsystemStageVersions(subx)))
+                    cinfo.swapValue(getTime(), dinfo);
+                cinfo.invalidate();
+            }
+        }
+    }
+    
+    String toString() const {
+        String out;
+        out += "<State>\n";
+    
+        out += "<Real name=time>" + String(t) + "</Real>\n";
+    
+        out += "<Vector name=q size=" + String(q.size()) + ">";
+        if (q.size()) out += "\n";
+        for (long i=0; i<q.size(); ++i)
+            out += String(q[i]) + "\n";
+        out += "</Vector>\n";
+    
+        out += "<Vector name=u size=" + String(u.size()) + ">";
+        if (u.size()) out += "\n";
+        for (long i=0; i<u.size(); ++i)
+            out += String(u[i]) + "\n";
+        out += "</Vector>\n";
+    
+        out += "<Vector name=z size=" + String(z.size()) + ">";
+        if (z.size()) out += "\n";
+        for (long i=0; i<z.size(); ++i)
+            out += String(z[i]) + "\n";
+        out += "</Vector>\n";
+    
+    
+        for (SubsystemIndex ss(0); ss < (int)subsystems.size(); ++ss) {
+            const PerSubsystemInfo& info = subsystems[ss];
+            out += "<Subsystem index=" + String(ss) + " name=" + info.name 
+                + " version=" + info.version + ">\n";
+    
+            out += "  <DISCRETE VARS TODO>\n";
+    
+            out += "  <Vector name=qInit size=" + String(info.qInit.size()) + ">\n";
+            out += "  <Vector name=uInit size=" + String(info.uInit.size()) + ">\n";
+            out += "  <Vector name=zInit size=" + String(info.zInit.size()) + ">\n";
+    
+            out += "  <Vector name=q size=" + String(info.q.size()) + ">\n";
+            out += "  <Vector name=u size=" + String(info.u.size()) + ">\n";
+            out += "  <Vector name=z size=" + String(info.z.size()) + ">\n";
+    
+            out += "</Subsystem>\n";
+        }
+    
+        out += "</State>\n";
+        return out;
+    }
+    
+    String cacheToString() const {
+        String out;
+        out += "<Cache>\n";
+        out += "<Stage>" + getSystemStage().getName() + "</Stage>\n";
+    
+        for (SubsystemIndex ss(0); ss < (int)subsystems.size(); ++ss) {
+            const PerSubsystemInfo& info = subsystems[ss];
+            out += "<Subsystem index=" + String(ss) + " name=" + info.name 
+                + " version=" + info.version + ">\n";
+            out += "  <Stage>" + info.currentStage.getName() + "</Stage>\n";
+    
+            out += "  <DISCRETE CACHE TODO>\n";
+    
+            out += "  <Vector name=qdot size=" + String(info.qdot.size()) + ">\n";
+            out += "  <Vector name=udot size=" + String(info.udot.size()) + ">\n";
+            out += "  <Vector name=zdot size=" + String(info.zdot.size()) + ">\n";
+            out += "  <Vector name=qdotdot size=" + String(info.qdotdot.size()) + ">\n";
+    
+            out += "  <Vector name=qerr size=" + String(info.qerr.size()) + ">\n";
+            out += "  <Vector name=uerr size=" + String(info.uerr.size()) + ">\n";
+            out += "  <Vector name=udoterr size=" + String(info.udoterr.size()) + ">\n";
+            out += "  <Vector name=multipliers size=" + String(info.multipliers.size()) + ">\n";
+    
+            for (int j=0; j<Stage::NValid; ++j) {
+                out += "  <Vector name=triggers[";
+                out += Stage::getValue(j).getName();
+                out += "] size=" + String(info.triggers[j].size()) + ">\n";
+            }
+    
+            out += "</Subsystem>\n";
+        }
+    
+        out += "<Vector name=qdot size=" + String(qdot.size()) + ">";
+        if (qdot.size()) out += "\n";
+        for (long i=0; i<qdot.size(); ++i)
+            out += String(qdot[i]) + "\n";
+        out += "</Vector>\n";
+    
+        out += "<Vector name=udot size=" + String(udot.size()) + ">";
+        if (udot.size()) out += "\n";
+        for (long i=0; i<udot.size(); ++i)
+            out += String(udot[i]) + "\n";
+        out += "</Vector>\n";
+    
+        out += "<Vector name=zdot size=" + String(zdot.size()) + ">";
+        if (zdot.size()) out += "\n";
+        for (long i=0; i<zdot.size(); ++i)
+            out += String(zdot[i]) + "\n";
+        out += "</Vector>\n";
+    
+        out += "<Vector name=qdotdot size=" + String(qdotdot.size()) + ">";
+        if (qdotdot.size()) out += "\n";
+        for (long i=0; i<qdotdot.size(); ++i)
+            out += String(qdotdot[i]) + "\n";
+        out += "</Vector>\n";
+    
+        out += "<Vector name=qerr size=" + String(qerr.size()) + ">";
+        if (qerr.size()) out += "\n";
+        for (long i=0; i<qerr.size(); ++i)
+            out += String(qerr[i]) + "\n";
+        out += "</Vector>\n";
+    
+        out += "<Vector name=uerr size=" + String(uerr.size()) + ">";
+        if (uerr.size()) out += "\n";
+        for (long i=0; i<uerr.size(); ++i)
+            out += String(uerr[i]) + "\n";
+        out += "</Vector>\n";
+    
+        out += "<Vector name=udoterr size=" + String(udoterr.size()) + ">";
+        if (udoterr.size()) out += "\n";
+        for (long i=0; i<udoterr.size(); ++i)
+            out += String(udoterr[i]) + "\n";
+        out += "</Vector>\n";
+    
+        out += "<Vector name=multipliers size=" + String(multipliers.size()) + ">";
+        if (multipliers.size()) out += "\n";
+        for (long i=0; i<multipliers.size(); ++i)
+            out += String(multipliers[i]) + "\n";
+        out += "</Vector>\n";
+    
+        out += "</Cache>\n";
+        return out;
+    }
+
+private:
         // Shared global resource State variables //
 
     // We consider time t to be a state variable allocated at Topology stage,
@@ -1108,1304 +2035,191 @@ private:
         return true;
     }
 
-private:
-    StateRep* myHandle;
 };
 
 
-class StateRep {
-public:
-    StateRep() : data(new StateData()) {
-        data->setMyHandle(*this);
-    }
-    
-    
-    // Restore state to default-constructed condition
-    void clear() {
-        delete data;
-        data = new StateData();
-        data->setMyHandle(*this);
-    }
-    
-    ~StateRep() {
-        if (data->myHandle == this)
-            delete data;
-        data=0;
-    }
-    
-    // copy constructor
-    StateRep(const StateRep& src) 
-      : data(src.data->clone()) {
-        data->setMyHandle(*this);
-    }
-    
-    // This constructor creates restricted states.
-    StateRep(const StateRep& src, const EnumerationSet<Stage>& restrictedStages, const std::set<SubsystemIndex>& restrictedSubsystems) 
-      : data(src.data), restrictedStages(restrictedStages), restrictedSubsystems(restrictedSubsystems) {
-    }
-    
-    // copy assignment
-    StateRep& operator=(const StateRep& src) {
-        if (&src == this) return *this;
-        if (!data) {
-            // we're defining this state here (if src is not empty)
-            if (src.data) {
-                data = src.data->clone();
-                data->setMyHandle(*this);
-            }
-            return *this;
-        }
-    
-        // Assignment or redefinition
-        if (src.data) *data = *src.data;
-        else {delete data; data=0;}
-        return *this;
-    }
-    
-    void setNSubsystems(int i) {
-        assert(i >= 0);
-        data->subsystems.clear();
-        data->subsystems.resize(i);
-    }
-    
-    void initializeSubsystem(SubsystemIndex i, const String& name, const String& version) {
-        data->updSubsystem(i).name = name;
-        data->updSubsystem(i).version = version;
-    }
-    
-    
-    SubsystemIndex addSubsystem(const String& name, const String& version) {
-        const SubsystemIndex sx(data->subsystems.size());
-        data->subsystems.push_back(PerSubsystemInfo(name,version));
-        return sx;
-    }
-    
-    int getNSubsystems() const {return (int)data->subsystems.size();}
-    
-    const String& getSubsystemName(SubsystemIndex subsys) const {
-        return data->subsystems[subsys].name;
-    }
-    const String& getSubsystemVersion(SubsystemIndex subsys) const {
-        return data->subsystems[subsys].version;
-    }
-    
-    const Stage& getSystemStage() const {
-        return data->getSystemStage();
-    }
-    
-    const Stage& getSubsystemStage(SubsystemIndex subx) const {
-        SimTK_ASSERT(data, "StateRep::getSubsystemStage(): no data"); // can't happen(?)
-        return data->getSubsystemStage(subx);
-    }
-     
-    const StageVersion* getSubsystemStageVersions(SubsystemIndex subx) const {
-        SimTK_ASSERT(data, "StateRep::getSubsystemStageVersions(): no data"); // can't happen(?)
-        return data->getSubsystemStageVersions(subx);
-    }  
 
-    // Make sure the stage is no higher than g-1 for *any* subsystem and
-    // hence for the system stage also. TODO: this should be more selective.
-    void invalidateAll(Stage g) const {
-        SimTK_ASSERT(data, "StateRep::invalidateAll(): no data");
-    
-        data->invalidateJustSystemStage(g);
-        for (SubsystemIndex i(0); i<(int)data->subsystems.size(); ++i)
-            data->subsystems[i].invalidateStageJustThisSubsystem(g);
-    }
-    
-    // Move the stage for a particular subsystem from g-1 to g. No other subsystems
-    // are affected, nor the global system stage.
-    void advanceSubsystemToStage(SubsystemIndex subsys, Stage g) const {
-        SimTK_ASSERT(data, "StateRep::advanceSubsystemToStage(): no data");
-    
-        data->subsystems[subsys].advanceToStage(g);
-        // We don't automatically advance the System stage even if this brings
-        // ALL the subsystems up to stage g.
-    }
-    
-    // Move the system stage from g-1 to g. Don't call this until ALL 
-    // subsystem have been advanced to at least stage g.
-    void advanceSystemToStage(Stage g) const {
-        SimTK_ASSERT(data, "StateRep::advanceToStage(): no data");
-    
-        // Terrible things will happen if either of these conditions is not met:
-        //   (1) the system is at stage g-1 now, AND
-        //   (2) ALL subsystems have already been advanced to stage g.
-        data->advanceSystemToStage(g);
-    }
-    
-    // We don't expect State entry allocations to be performance critical so
-    // we'll keep error checking on even in Release mode.
-    
-    QIndex allocateQ(SubsystemIndex subsys, const Vector& qInit) {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateRep::allocateQ()");
-        const QIndex nxt(data->subsystems[subsys].qInit.size());
-        data->subsystems[subsys].qInit.resizeKeep(nxt + qInit.size());
-        data->subsystems[subsys].qInit(nxt, qInit.size()) = qInit;
-        return nxt;
-    }
-    
-    UIndex allocateU(SubsystemIndex subsys, const Vector& uInit) {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateRep::allocateU()");
-        const UIndex nxt(data->subsystems[subsys].uInit.size());
-        data->subsystems[subsys].uInit.resizeKeep(nxt + uInit.size());
-        data->subsystems[subsys].uInit(nxt, uInit.size()) = uInit;
-        return nxt;
-    }
-    ZIndex allocateZ(SubsystemIndex subsys, const Vector& zInit) {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateRep::allocateZ()");
-        const ZIndex nxt(data->subsystems[subsys].zInit.size());
-        data->subsystems[subsys].zInit.resizeKeep(nxt + zInit.size());
-        data->subsystems[subsys].zInit(nxt, zInit.size()) = zInit;
-        return nxt;
-    }
-    
-    QErrIndex allocateQErr(SubsystemIndex subsys, int nqerr) const {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateRep::allocateQErr()");
-        const QErrIndex nxt(data->subsystems[subsys].nqerr);
-        data->subsystems[subsys].nqerr += nqerr;
-        return nxt;
-    }
-    UErrIndex allocateUErr(SubsystemIndex subsys, int nuerr) const {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateRep::al()");
-        const UErrIndex nxt(data->subsystems[subsys].nuerr);
-        data->subsystems[subsys].nuerr += nuerr;
-        return nxt;
-    }
-    UDotErrIndex allocateUDotErr(SubsystemIndex subsys, int nudoterr) const {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateRep::allocateUDotErr()");
-        const UDotErrIndex nxt(data->subsystems[subsys].nudoterr);
-        data->subsystems[subsys].nudoterr += nudoterr;
-        return nxt;
-    }
-    EventTriggerByStageIndex allocateEventTrigger(SubsystemIndex subsys, Stage g, int nt) const {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, "StateRep::allocateEvent()");
-        const EventTriggerByStageIndex nxt(data->subsystems[subsys].ntriggers[g]);
-        data->subsystems[subsys].ntriggers[g] += nt;
-        return nxt;
-    }
-    
-    // Topology- and Model-stage State variables can only be added during construction; that is,
-    // while stage <= Topology. Other entries can be added while stage < Model.
-    DiscreteVariableIndex allocateDiscreteVariable(SubsystemIndex subsys, Stage invalidates, AbstractValue* vp) {
-        SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), invalidates, Stage::HighestRuntime, 
-            "StateRep::allocateDiscreteVariable()");
-    
-        const Stage maxAcceptable = (invalidates <= Stage::Model ? Stage::Empty : Stage::Topology);
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), 
-            maxAcceptable.next(), "StateRep::allocateDiscreteVariable()");
-    
-        PerSubsystemInfo& ss = data->subsystems[subsys];
-        const DiscreteVariableIndex nxt(ss.discreteInfo.size());
-        ss.discreteInfo.push_back(DiscreteVarInfo(getSubsystemStage(subsys).next(),invalidates,vp));
-        return nxt;
-    }
-    
-    // Cache entries can be allocated while stage < Instance.
-    CacheEntryIndex allocateCacheEntry(SubsystemIndex subsys, Stage dependsOn, Stage computedBy, AbstractValue* vp) const {
-        SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), dependsOn, Stage::HighestRuntime, 
-            "StateRep::allocateCacheEntry()");
-        SimTK_STAGECHECK_RANGE_ALWAYS(dependsOn, computedBy, Stage::Infinity, 
-            "StateRep::allocateCacheEntry()");
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), 
-            Stage::Instance, "StateRep::allocateCacheEntry()");
 
-        const PerSubsystemInfo& ss = data->subsystems[subsys];
-        const CacheEntryIndex nxt(ss.cacheInfo.size());
-        ss.cacheInfo.push_back(CacheEntryInfo(getSubsystemStage(subsys).next(),dependsOn,computedBy,vp)); // mutable
-        return nxt;
-    }
-
-    // Allocate a discrete variable and a corresponding cache entry for
-    // updating it, and connect them together.
-    DiscreteVariableIndex
-    allocateAutoUpdateDiscreteVariable(SubsystemIndex subsys, Stage invalidates, AbstractValue* vp,
-                                       Stage updateDependsOn)
-    {
-        const DiscreteVariableIndex dx = 
-            allocateDiscreteVariable(subsys,invalidates,vp->clone());
-        const CacheEntryIndex       cx = 
-            allocateCacheEntry(subsys,updateDependsOn,Stage::Infinity,vp);
-
-        PerSubsystemInfo& ss = data->subsystems[subsys];
-        DiscreteVarInfo& dvinfo = ss.discreteInfo[dx];
-        CacheEntryInfo&  ceinfo = ss.cacheInfo[cx];
-        dvinfo.setAutoUpdateEntry(cx);
-        ceinfo.setAssociatedVar(dx);
-        return dx;
-    }
-    
-        // State dimensions for shared continuous variables.
-    
-    int getNY() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNY()");
-        return data->y.size();
-    }
-    
-    SystemYIndex getQStart() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getQStart()");
-        return SystemYIndex(0); // q's come first
-    }
-    int getNQ() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNQ()");
-        return data->q.size();
-    }
-    
-    SystemYIndex getUStart() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getUStart()");
-        return SystemYIndex(data->q.size()); // u's come right after q's
-    }
-    int getNU() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNU()");
-        return data->u.size();
-    }
-    
-    SystemYIndex getZStart() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getZStart()");
-        return SystemYIndex(data->q.size() + data->u.size()); // q,u, then z
-    }
-    int getNZ() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNZ()");
-        return data->z.size();
-    }
-    
-    int getNYErr() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNYErr()");
-        return data->yerr.size();
-    }
-    
-    SystemYErrIndex getQErrStart() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getQErrStart()");
-        return SystemYErrIndex(0); // qerr's come first
-    }
-    int getNQErr() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNQErr()");
-        return data->qerr.size();
-    }
-    
-    SystemYErrIndex getUErrStart() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getUErrStart()");
-        return SystemYErrIndex(data->qerr.size()); // uerr's follow qerrs
-    }
-    int getNUErr() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNUErr()");
-        return data->uerr.size();
-    }
-    
-    // UDot errors are independent of qerr & uerr.
-    // This is used for multipliers also.
-    int getNUDotErr() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNUDotErr()");
-        return data->udoterr.size();
-    }
-    
-    int getNEventTriggers() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNEventTriggers()");
-        return data->allTriggers.size();
-    }
-    
-    SystemEventTriggerIndex getEventTriggerStartByStage(Stage g) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getEventTriggerStartByStage()");
-        int nxt = 0;
-        for (int j=0; j<g; ++j)
-            nxt += data->triggers[j].size();
-        return SystemEventTriggerIndex(nxt); // g starts where g-1 leaves off
-    }
-    
-    int getNEventTriggersByStage(Stage g) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNEventTriggersByStage()");
-        return data->triggers[g].size();
-    }
-    
-        // Subsystem dimensions.
-    
-    SystemQIndex getQStart(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getQStart(subsys)");
-        return data->getSubsystem(subsys).qstart;
-    }
-    int getNQ(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNQ(subsys)");
-        return data->getSubsystem(subsys).q.size();
-    }
-    
-    SystemUIndex getUStart(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getUStart(subsys)");
-        return data->getSubsystem(subsys).ustart;
-    }
-    int getNU(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNU(subsys)");
-        return data->getSubsystem(subsys).u.size();
-    }
-    
-    SystemZIndex getZStart(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getZStart(subsys)");
-        return data->getSubsystem(subsys).zstart;
-    }
-    int getNZ(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getNZ(subsys)");
-        return data->getSubsystem(subsys).z.size();
-    }
-    
-    SystemQErrIndex getQErrStart(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getQErrStart(subsys)");
-        return data->getSubsystem(subsys).qerrstart;
-    }
-    int getNQErr(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNQErr(subsys)");
-        return data->getSubsystem(subsys).qerr.size();
-    }
-    
-    SystemUErrIndex getUErrStart(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getUErrStart(subsys)");
-        return data->getSubsystem(subsys).uerrstart;
-    }
-    int getNUErr(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNUErr(subsys)");
-        return data->getSubsystem(subsys).uerr.size();
-    }
-    
-    // These are used for multipliers also.
-    SystemUDotErrIndex getUDotErrStart(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getUDotErrStart(subsys)");
-        return data->getSubsystem(subsys).udoterrstart;
-    }
-    int getNUDotErr(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNUDotErr(subsys)");
-        return data->getSubsystem(subsys).udoterr.size();
-    }
-    
-    SystemEventTriggerByStageIndex getEventTriggerStartByStage(SubsystemIndex subsys, Stage g) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getEventTriggerStartByStage(subsys)");
-        return data->getSubsystem(subsys).triggerstart[g];
-    }
-    
-    int getNEventTriggersByStage(SubsystemIndex subsys, Stage g) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getNEventTriggersByStage(subsys)");
-        return data->getSubsystem(subsys).triggers[g].size();
-    }
-    
-        // Per-subsystem access to the global shared variables.
-    
-    const Vector& getQ(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getQ(subsys)");
-        return data->getSubsystem(subsys).q;
-    }
-    const Vector& getU(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getU(subsys)");
-        return data->getSubsystem(subsys).u;
-    }
-    const Vector& getZ(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getZ(subsys)");
-        return data->getSubsystem(subsys).z;
-    }
-    
-    const Vector& getQDot(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getQDot(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Velocity, "StateRep::getQDot(subsys)");
-        return data->getSubsystem(subsys).qdot;
-    }
-    const Vector& getUDot(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getUDot(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "StateRep::getUDot(subsys)");
-        return data->getSubsystem(subsys).udot;
-    }
-    const Vector& getZDot(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getZDot(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Dynamics, "StateRep::getZDot(subsys)");
-        return data->getSubsystem(subsys).zdot;
-    }
-    const Vector& getQDotDot(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getQDotDot(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "StateRep::getQDotDot(subsys)");
-        return data->getSubsystem(subsys).qdotdot;
-    }
-    
-    Vector& updQ(SubsystemIndex subsys) {
-        assert(data);
-        checkCanModify(Stage::Position);
-        checkCanModify(subsys);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQ(subsys)");
-        invalidateAll(Stage::Position);
-        return data->updSubsystem(subsys).q;
-    }
-    Vector& updU(SubsystemIndex subsys) {
-        assert(data);
-        checkCanModify(Stage::Velocity);
-        checkCanModify(subsys);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updU(subsys)");
-        invalidateAll(Stage::Velocity);
-        return data->updSubsystem(subsys).u;
-    }
-    Vector& updZ(SubsystemIndex subsys) {
-        assert(data);
-        checkCanModify(Stage::Dynamics);
-        checkCanModify(subsys);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updZ(subsys)");
-        invalidateAll(Stage::Dynamics);
-        return data->updSubsystem(subsys).z;
-    }
-    
-        // These are mutable so the routines are const.
-    
-    Vector& updQDot(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQDot(subsys)");
-        return data->getSubsystem(subsys).qdot;
-    }
-    Vector& updUDot(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updUDot(subsys)");
-        return data->getSubsystem(subsys).udot;
-    }
-    Vector& updZDot(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updZDot(subsys)");
-        return data->getSubsystem(subsys).zdot;
-    }
-    Vector& updQDotDot(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQDotDot(subsys)");
-        return data->getSubsystem(subsys).qdotdot;
-    }
-    
-    
-    const Vector& getQErr(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getQErr(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Position, "StateRep::getQErr(subsys)");
-        return data->getSubsystem(subsys).qerr;
-    }
-    const Vector& getUErr(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getUErr(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Velocity, "StateRep::getUErr(subsys)");
-        return data->getSubsystem(subsys).uerr;
-    }
-    const Vector& getUDotErr(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getUDotErr(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "StateRep::getUDotErr(subsys)");
-        return data->getSubsystem(subsys).udoterr;
-    }
-    const Vector& getMultipliers(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getMultipliers(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "StateRep::getMultipliers(subsys)");
-        return data->getSubsystem(subsys).multipliers;
-    }
-    
-    const Vector& getEventTriggersByStage(SubsystemIndex subsys, Stage g) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::getEventTriggersByStage(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), g, "StateRep::getEventTriggersByStage(subsys)");
-        return data->getSubsystem(subsys).triggers[g];
-    }
-    
-    Vector& updQErr(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updQErr(subsys)");
-        return data->getSubsystem(subsys).qerr;
-    }
-    Vector& updUErr(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updUErr(subsys)");
-        return data->getSubsystem(subsys).uerr;
-    }
-    Vector& updUDotErr(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updUDotErr(subsys)");
-        return data->getSubsystem(subsys).udoterr;
-    }
-    Vector& updMultipliers(SubsystemIndex subsys) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updMultipliers(subsys)");
-        return data->getSubsystem(subsys).multipliers;
-    }
-    Vector& updEventTriggersByStage(SubsystemIndex subsys, Stage g) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updEventTriggersByStage(subsys)");
-        return data->getSubsystem(subsys).triggers[g];
-    }
-    
-        // Direct access to the global shared state and cache entries.
-        // Time is allocated in Stage::Topology, State in Stage::Model, and
-        // Cache in Stage::Instance.
-    
-    const Real& getTime() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Topology, "StateRep::getTime()");
-        return data->t;
-    }
-    
-    const Vector& getY() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getY()");
-        return data->y;
-    }
-    
-    const Vector& getQ() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getQ()");
-        return data->q;
-    }
-    
-    const Vector& getU() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getU()");
-        return data->u;
-    }
-    
-    const Vector& getZ() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::getZ()");
-        return data->z;
-    }
-    
-    
-    // You can call these as long as stage >= allocation stage, but the
-    // stage will be backed up if necessary to one stage prior to the invalidated stage.
-    Real& updTime() {  // Back to Stage::Time-1
-        assert(data);
-        checkCanModify(Stage::Time);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Topology, "StateRep::updTime()");
-        invalidateAll(Stage::Time);
-        return data->t;
-    }
-    
-    Vector& updY() {    // Back to Stage::Position-1
-        assert(data);
-        checkCanModifyY();
-        checkCanModifyAnySubsystem();
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updY()");
-        invalidateAll(Stage::Position);
-        return data->y;
-    }
-    
-    Vector& updQ() {    // Stage::Position-1
-        assert(data);
-        checkCanModify(Stage::Position);
-        checkCanModifyAnySubsystem();
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQ()");
-        invalidateAll(Stage::Position);
-        return data->q;
-    }
-    
-    Vector& updU() {     // Stage::Velocity-1
-        assert(data);
-        checkCanModify(Stage::Velocity);
-        checkCanModifyAnySubsystem();
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updU()");
-        invalidateAll(Stage::Velocity);
-        return data->u;
-    }
-    
-    Vector& updZ() {     // Stage::Dynamics-1
-        assert(data);
-        checkCanModify(Stage::Dynamics);
-        checkCanModifyAnySubsystem();
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updZ()");
-        invalidateAll(Stage::Dynamics);
-        return data->z;
-    }
-    
-    // These cache entries you can get at their "computedBy" stages.
-    const Vector& getYDot() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "StateRep::getYDot()");
-        return data->ydot;
-    }
-    
-    const Vector& getQDot() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Velocity, "StateRep::getQDot()");
-        return data->qdot;
-    }
-    
-    const Vector& getZDot() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Dynamics, "StateRep::getZDot()");
-        return data->zdot;
-    }
-    
-    const Vector& getUDot() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "StateRep::getUDot()");
-        return data->udot;
-    }
-    
-    const Vector& getQDotDot() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "StateRep::getQDotDot()");
-        return data->qdotdot;
-    }
-    
-    // Cache updates are allowed any time after they have been allocated.
-    Vector& updYDot() const {
-        assert(data);
-        checkCanModifyY();
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updYDot()");
-        return data->ydot;
-    }
-    
-    Vector& updQDot() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQDot()");
-        return data->qdot;
-    }
-    
-    Vector& updUDot() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updUDot()");
-        return data->udot;
-    }
-    
-    Vector& updZDot() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updZDot()");
-        return data->zdot;
-    }
-    
-    Vector& updQDotDot() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQDotDot()");
-        return data->qdotdot;
-    }
-    
-    
-    const Vector& getYErr() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Velocity, "StateRep::getYErr()");
-        return data->yerr;
-    }
-    
-    const Vector& getQErr() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Position, "StateRep::getQErr()");
-        return data->qerr;
-    }
-    const Vector& getUErr() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Velocity, "StateRep::getUErr()");
-        return data->uerr;
-    }
-    const Vector& getUDotErr() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "StateRep::getUDotErr()");
-        return data->udoterr;
-    }
-    const Vector& getMultipliers() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "StateRep::getMultipliers()");
-        return data->multipliers;
-    }
-    
-    Vector& updYErr() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updYErr()");
-        return data->yerr;
-    }
-    Vector& updQErr() const{
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updQErr()");
-        return data->qerr;
-    }
-    Vector& updUErr() const{
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updUErr()");
-        return data->uerr;
-    }
-    Vector& updUDotErr() const{
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
-                            "StateRep::updUDotErr()");
-        return data->udoterr;
-    }
-    Vector& updMultipliers() const{
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
-                            "StateRep::updMultipliers()");
-        return data->multipliers;
-    }
-    
-    const Vector& getEventTriggers() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "StateRep::getEventTriggers()");
-        return data->allTriggers;
-    }
-    const Vector& getEventTriggersByStage(Stage g) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), g, "StateRep::getEventTriggersByStage()");
-        return data->triggers[g];
-    }
-    
-    // These are mutable; hence 'const'.
-    Vector& updEventTriggers() const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updEventTriggers()");
-        return data->allTriggers;
-    }
-    Vector& updEventTriggersByStage(Stage g) const {
-        assert(data);
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, "StateRep::updEventTriggersByStage()");
-        return data->triggers[g];
-    }
-
-    CacheEntryIndex getDiscreteVarUpdateIndex(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const PerSubsystemInfo& ss = data->subsystems[subsys];
-        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
-            "StateRep::getDiscreteVarUpdateIndex()");
-        const DiscreteVarInfo& dv = ss.discreteInfo[index];
-        return dv.getAutoUpdateEntry();
-    } 
-
-    Stage getDiscreteVarAllocationStage(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const PerSubsystemInfo& ss = data->subsystems[subsys];
-        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
-            "StateRep::getDiscreteVarAllocationStage()");
-        const DiscreteVarInfo& dv = ss.discreteInfo[index];
-        return dv.getAllocationStage();
-    } 
-
-    Stage getDiscreteVarInvalidatesStage(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const PerSubsystemInfo& ss = data->subsystems[subsys];
-        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
-            "StateRep::getDiscreteVarInvalidatesStage()");
-        const DiscreteVarInfo& dv = ss.discreteInfo[index];
-        return dv.getInvalidatedStage();
-    } 
-
-    // You can access at any time a variable that was allocated during realizeTopology(), 
-    // but don't access others until you have done realizeModel().
-    const AbstractValue& 
-    getDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const PerSubsystemInfo& ss = data->subsystems[subsys];
-    
-        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),"StateRep::getDiscreteVariable()");
-        const DiscreteVarInfo& dv = ss.discreteInfo[index];
-    
-        if (dv.getAllocationStage() > Stage::Topology) {
-            SimTK_STAGECHECK_GE(getSubsystemStage(subsys), 
-                Stage::Model, "StateRep::getDiscreteVariable()");
-        }
-    
-        return dv.getValue();
-    }
-    Real getDiscreteVarLastUpdateTime(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const PerSubsystemInfo& ss = data->subsystems[subsys];
-        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),"StateRep::getDiscreteVarLastUpdateTime()");
-        const DiscreteVarInfo& dv = ss.discreteInfo[index];
-        return dv.getTimeLastUpdated();
-    }
-
-    const AbstractValue& getDiscreteVarUpdateValue(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
-        SimTK_ERRCHK2(cx.isValid(), "StateRep::getDiscreteVarUpdateValue()", 
-            "Subsystem %d has a discrete variable %d but it does not have an"
-            " associated update cache variable.", (int)subsys, (int)index);
-        return getCacheEntry(subsys, cx);
-    }
-    AbstractValue& updDiscreteVarUpdateValue(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
-        SimTK_ERRCHK2(cx.isValid(), "StateRep::updDiscreteVarUpdateValue()", 
-            "Subsystem %d has a discrete variable %d but it does not have an"
-            " associated update cache variable.", (int)subsys, (int)index);
-        return updCacheEntry(subsys, cx);
-    }
-    bool isDiscreteVarUpdateValueRealized(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
-        SimTK_ERRCHK2(cx.isValid(), "StateRep::isDiscreteVarUpdateValueRealized()", 
-            "Subsystem %d has a discrete variable %d but it does not have an"
-            " associated update cache variable.", (int)subsys, (int)index);
-        return isCacheValueRealized(subsys, cx);
-    }
-    void markDiscreteVarUpdateValueRealized(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
-        SimTK_ERRCHK2(cx.isValid(), "StateRep::markDiscreteVarUpdateValueRealized()", 
-            "Subsystem %d has a discrete variable %d but it does not have an"
-            " associated update cache variable.", (int)subsys, (int)index);
-        markCacheValueRealized(subsys, cx);
-    }
-
-    // You can update at any time a variable that was allocated during realizeTopology(), 
-    // but later variables must wait until you have done realizeModel(). This always 
-    // backs the stage up to one earlier than the variable's stage.
-    AbstractValue& 
-    updDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) {
-        checkCanModify(subsys);
-        PerSubsystemInfo& ss = data->subsystems[subsys];
-    
-        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),"StateRep::updDiscreteVariable()");
-        DiscreteVarInfo& dv = ss.discreteInfo[index];
-
-        if (dv.getAllocationStage() > Stage::Topology) {
-            SimTK_STAGECHECK_GE(getSubsystemStage(subsys), 
-                Stage::Model, "StateRep::updDiscreteVariable()");
-        }
-    
-        invalidateAll(dv.getInvalidatedStage());
-    
-        // We're now marking this variable as having been updated at the current time.
-        return dv.updValue(data->t);
-    }
-    
-    Stage getCacheEntryAllocationStage(SubsystemIndex subsys, CacheEntryIndex index) const {
-        const PerSubsystemInfo& ss = data->subsystems[subsys];
-        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),
-            "StateRep::getCacheEntryAllocationStage()");
-        const CacheEntryInfo& ce = ss.cacheInfo[index];
-        return ce.getAllocationStage();
-    } 
-
-    // Stage >= ce.stage
-    const AbstractValue& 
-    getCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
-        const PerSubsystemInfo& ss = data->subsystems[subsys];
-    
-        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),"StateRep::getCacheEntry()");
-        const CacheEntryInfo& ce = ss.cacheInfo[index];
-    
-        const Stage stageNow = getSubsystemStage(subsys);
-        SimTK_STAGECHECK_GE_ALWAYS(stageNow, 
-            ce.getDependsOnStage(), "StateRep::getCacheEntry()");
-
-        if (stageNow < ce.getComputedByStage()) {
-            const StageVersion currentDependsOnVersion = 
-                getSubsystemStageVersions(subsys)[ce.getDependsOnStage()];
-            const StageVersion lastCacheVersion = 
-                ce.getVersionWhenLastComputed();
-
-            if (lastCacheVersion != currentDependsOnVersion) {
-                SimTK_THROW4(Exception::CacheEntryOutOfDate,
-                    stageNow, ce.getDependsOnStage(), currentDependsOnVersion, lastCacheVersion);
-            }
-        }
-
-        // If we get here then we're either past the "computed by" stage, or we're
-        // past "depends on" with an explicit validation having been made at the
-        // "depends on" stage's current version.
-
-        return ce.getValue();
-    }
-    
-    // You can access a cache entry for update any time after it has been allocated.
-    // This does not affect the stage.
-    AbstractValue& 
-    updCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
-        const PerSubsystemInfo& ss = data->subsystems[subsys];
-    
-        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),"StateRep::updCacheEntry()");
-        CacheEntryInfo& ce = ss.cacheInfo[index];
-    
-        return ce.updValue();
-    }
-
-    bool isCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
-        const PerSubsystemInfo& ss = data->subsystems[subx];
-        SimTK_INDEXCHECK(cx,(int)ss.cacheInfo.size(),"StateRep::isCacheValueRealized()");
-        const CacheEntryInfo& ce = ss.cacheInfo[cx];
-        return ce.isCurrent(getSubsystemStage(subx), getSubsystemStageVersions(subx));
-    }
-    void markCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
-        const PerSubsystemInfo& ss = data->subsystems[subx];
-        SimTK_INDEXCHECK(cx,(int)ss.cacheInfo.size(),"StateRep::markCacheValueRealized()");
-        CacheEntryInfo& ce = ss.cacheInfo[cx];
-    
-        // If this cache entry depends on anything, it can't be valid unless we're
-        // at least *working* on its depends-on stage, meaning the current stage would
-        // have to be the one before that. The depends-on stage is required to be at
-        // least Stage::Topology, so its prev() stage exists.
-        SimTK_STAGECHECK_GE(getSubsystemStage(subx), 
-            ce.getDependsOnStage().prev(), "StateRep::markCacheValueRealized()");
-
-        ce.markAsComputed(getSubsystemStageVersions(subx));
-    }
-    const Stage& getLowestStageModified() const {
-        return data->lowestModifiedSystemStage;
-    }
-    void resetLowestStageModified() const {
-        data->lowestModifiedSystemStage = std::min(Stage::Infinity, data->currentSystemStage.next());
-    }
-
-    void autoUpdateDiscreteVariables() {
-        // TODO: make this more efficient
-        for (SubsystemIndex subx(0); subx < data->subsystems.size(); ++subx) {
-            PerSubsystemInfo& ss = data->subsystems[subx];
-            Array_<DiscreteVarInfo>& dvars = ss.discreteInfo;
-            for (DiscreteVariableIndex dx(0); dx < dvars.size(); ++dx) {
-                DiscreteVarInfo& dinfo = dvars[dx];
-                const CacheEntryIndex cx = dinfo.getAutoUpdateEntry();
-                if (!cx.isValid()) continue; // not an auto-update variable
-                CacheEntryInfo& cinfo = ss.cacheInfo[cx];
-                if (cinfo.isCurrent(getSubsystemStage(subx), getSubsystemStageVersions(subx)))
-                    cinfo.swapValue(data->getTime(), dinfo);
-                cinfo.invalidate();
-            }
-        }
-    }
-    
-    const EnumerationSet<Stage>& getRestrictedStages() const {
-        return restrictedStages;
-    }
-
-    const std::set<SubsystemIndex>& getRestrictedSubsystems() const {
-        return restrictedSubsystems;
-    }
-    
-    // Verify that a particular stage may be modified.
-    void checkCanModify(Stage stage) const {
-        SimTK_ASSERT1_ALWAYS(!restrictedStages.contains(stage),
-                "Modification of state data for stage %s has been restricted.", stage.getName().c_str());
-    }
-    
-    // Verify that a particular subsystem may be modified.
-    void checkCanModify(SubsystemIndex subsystem) const {
-        SimTK_ASSERT1_ALWAYS(restrictedSubsystems.find(subsystem) == restrictedSubsystems.end(),
-                "Modification of state data for subsystem %d has been restricted.", (int) subsystem);
-    }
-    
-    // Verify that this State permits all state variables to be modified.
-    void checkCanModifyY() const {
-        checkCanModify(Stage::Position);
-        checkCanModify(Stage::Velocity);
-        checkCanModify(Stage::Dynamics);
-    }
-    
-    // Verify that this State permits unrestricted modifications.
-    void checkCanModifyAnySubsystem() const {
-        SimTK_ASSERT_ALWAYS(restrictedSubsystems.empty(),
-                "Modification of state data has been restricted.");
-    }
-    
-    String toString() const {
-        String out;
-        out += "<State>\n";
-    
-        out += "<Real name=time>" + String(data->t) + "</Real>\n";
-    
-        out += "<Vector name=q size=" + String(data->q.size()) + ">";
-        if (data->q.size()) out += "\n";
-        for (long i=0; i<data->q.size(); ++i)
-            out += String(data->q[i]) + "\n";
-        out += "</Vector>\n";
-    
-        out += "<Vector name=u size=" + String(data->u.size()) + ">";
-        if (data->u.size()) out += "\n";
-        for (long i=0; i<data->u.size(); ++i)
-            out += String(data->u[i]) + "\n";
-        out += "</Vector>\n";
-    
-        out += "<Vector name=z size=" + String(data->z.size()) + ">";
-        if (data->z.size()) out += "\n";
-        for (long i=0; i<data->z.size(); ++i)
-            out += String(data->z[i]) + "\n";
-        out += "</Vector>\n";
-    
-    
-        for (SubsystemIndex ss(0); ss < (int)data->subsystems.size(); ++ss) {
-            const PerSubsystemInfo& info = data->subsystems[ss];
-            out += "<Subsystem index=" + String(ss) + " name=" + info.name 
-                + " version=" + info.version + ">\n";
-    
-            out += "  <DISCRETE VARS TODO>\n";
-    
-            out += "  <Vector name=qInit size=" + String(info.qInit.size()) + ">\n";
-            out += "  <Vector name=uInit size=" + String(info.uInit.size()) + ">\n";
-            out += "  <Vector name=zInit size=" + String(info.zInit.size()) + ">\n";
-    
-            out += "  <Vector name=q size=" + String(info.q.size()) + ">\n";
-            out += "  <Vector name=u size=" + String(info.u.size()) + ">\n";
-            out += "  <Vector name=z size=" + String(info.z.size()) + ">\n";
-    
-            out += "</Subsystem>\n";
-        }
-    
-        out += "</State>\n";
-        return out;
-    }
-    
-    String cacheToString() const {
-        String out;
-        out += "<Cache>\n";
-        out += "<Stage>" + getSystemStage().getName() + "</Stage>\n";
-    
-        for (SubsystemIndex ss(0); ss < (int)data->subsystems.size(); ++ss) {
-            const PerSubsystemInfo& info = data->subsystems[ss];
-            out += "<Subsystem index=" + String(ss) + " name=" + info.name 
-                + " version=" + info.version + ">\n";
-            out += "  <Stage>" + info.currentStage.getName() + "</Stage>\n";
-    
-            out += "  <DISCRETE CACHE TODO>\n";
-    
-            out += "  <Vector name=qdot size=" + String(info.qdot.size()) + ">\n";
-            out += "  <Vector name=udot size=" + String(info.udot.size()) + ">\n";
-            out += "  <Vector name=zdot size=" + String(info.zdot.size()) + ">\n";
-            out += "  <Vector name=qdotdot size=" + String(info.qdotdot.size()) + ">\n";
-    
-            out += "  <Vector name=qerr size=" + String(info.qerr.size()) + ">\n";
-            out += "  <Vector name=uerr size=" + String(info.uerr.size()) + ">\n";
-            out += "  <Vector name=udoterr size=" + String(info.udoterr.size()) + ">\n";
-            out += "  <Vector name=multipliers size=" + String(info.multipliers.size()) + ">\n";
-    
-            for (int j=0; j<Stage::NValid; ++j) {
-                out += "  <Vector name=triggers[";
-                out += Stage::getValue(j).getName();
-                out += "] size=" + String(info.triggers[j].size()) + ">\n";
-            }
-    
-            out += "</Subsystem>\n";
-        }
-    
-        out += "<Vector name=qdot size=" + String(data->qdot.size()) + ">";
-        if (data->qdot.size()) out += "\n";
-        for (long i=0; i<data->qdot.size(); ++i)
-            out += String(data->qdot[i]) + "\n";
-        out += "</Vector>\n";
-    
-        out += "<Vector name=udot size=" + String(data->udot.size()) + ">";
-        if (data->udot.size()) out += "\n";
-        for (long i=0; i<data->udot.size(); ++i)
-            out += String(data->udot[i]) + "\n";
-        out += "</Vector>\n";
-    
-        out += "<Vector name=zdot size=" + String(data->zdot.size()) + ">";
-        if (data->zdot.size()) out += "\n";
-        for (long i=0; i<data->zdot.size(); ++i)
-            out += String(data->zdot[i]) + "\n";
-        out += "</Vector>\n";
-    
-        out += "<Vector name=qdotdot size=" + String(data->qdotdot.size()) + ">";
-        if (data->qdotdot.size()) out += "\n";
-        for (long i=0; i<data->qdotdot.size(); ++i)
-            out += String(data->qdotdot[i]) + "\n";
-        out += "</Vector>\n";
-    
-        out += "<Vector name=qerr size=" + String(data->qerr.size()) + ">";
-        if (data->qerr.size()) out += "\n";
-        for (long i=0; i<data->qerr.size(); ++i)
-            out += String(data->qerr[i]) + "\n";
-        out += "</Vector>\n";
-    
-        out += "<Vector name=uerr size=" + String(data->uerr.size()) + ">";
-        if (data->uerr.size()) out += "\n";
-        for (long i=0; i<data->uerr.size(); ++i)
-            out += String(data->uerr[i]) + "\n";
-        out += "</Vector>\n";
-    
-        out += "<Vector name=udoterr size=" + String(data->udoterr.size()) + ">";
-        if (data->udoterr.size()) out += "\n";
-        for (long i=0; i<data->udoterr.size(); ++i)
-            out += String(data->udoterr[i]) + "\n";
-        out += "</Vector>\n";
-    
-        out += "<Vector name=multipliers size=" + String(data->multipliers.size()) + ">";
-        if (data->multipliers.size()) out += "\n";
-        for (long i=0; i<data->multipliers.size(); ++i)
-            out += String(data->multipliers[i]) + "\n";
-        out += "</Vector>\n";
-    
-        out += "</Cache>\n";
-        return out;
-    }
-    StateData*                  data;
-    EnumerationSet<Stage>       restrictedStages;
-    std::set<SubsystemIndex>    restrictedSubsystems;
-};
+//==============================================================================
+//                                   STATE
+//==============================================================================
 
 State::State() {
-    rep = new StateRep();
+    impl = new StateImpl();
+}
+// Restore state to default-constructed condition
+void State::clear() {
+    delete impl;
+    impl = new StateImpl();
 }
 State::~State() {
-    delete rep;
+    delete impl; impl=0;
 }
+// copy constructor
 State::State(const State& state) {
-    rep = new StateRep(*state.rep);
+    impl = new StateImpl(*state.impl);
 }
-void State::clear() {
-    rep->clear();
-}
-void State::setNSubsystems(int i) {
-    rep->setNSubsystems(i);
-}
-void State::initializeSubsystem(SubsystemIndex subsys, const String& name, const String& version) {
-    rep->initializeSubsystem(subsys, name, version);
-}
-State& State::operator=(const State& state) {
-    *rep = *state.rep;
+    
+// copy assignment
+State& State::operator=(const State& src) {
+    if (&src == this) return *this;
+    if (!impl) {
+        // we're defining this state here (if src is not empty)
+        if (src.impl)
+            impl = src.impl->clone();
+        return *this;
+    }
+
+    // Assignment or redefinition
+    if (src.impl) *impl = *src.impl;
+    else {delete impl; impl=0;}
     return *this;
 }
-SubsystemIndex State::addSubsystem(const String& name, const String& version) {
-    return rep->addSubsystem(name, version);
+
+
+void State::setNumSubsystems(int i) {
+    updImpl().setNumSubsystems(i);
 }
-int State::getNSubsystems() const {
-    return rep->getNSubsystems();
+void State::initializeSubsystem(SubsystemIndex subsys, const String& name, const String& version) {
+    updImpl().initializeSubsystem(subsys, name, version);
+}
+
+SubsystemIndex State::addSubsystem(const String& name, const String& version) {
+    return updImpl().addSubsystem(name, version);
+}
+int State::getNumSubsystems() const {
+    return getImpl().getNumSubsystems();
 }
 const String& State::getSubsystemName(SubsystemIndex subsys) const {
-    return rep->getSubsystemName(subsys);
+    return getImpl().getSubsystemName(subsys);
 }
 const String& State::getSubsystemVersion(SubsystemIndex subsys) const {
-    return rep->getSubsystemVersion(subsys);
+    return getImpl().getSubsystemVersion(subsys);
 }
 const Stage& State::getSubsystemStage(SubsystemIndex subsys) const {
-    return rep->getSubsystemStage(subsys);
+    return getImpl().getSubsystemStage(subsys);
 }
 const Stage& State::getSystemStage() const {
-    return rep->getSystemStage();
+    return getImpl().getSystemStage();
 }
-void State::invalidateAll(Stage stage) const {
-    rep->invalidateAll(stage);
+void State::invalidateAll(Stage stage) {
+    updImpl().invalidateAll(stage);
 }
 void State::advanceSubsystemToStage(SubsystemIndex subsys, Stage stage) const {
-    rep->advanceSubsystemToStage(subsys, stage);
+    getImpl().advanceSubsystemToStage(subsys, stage);
 }
 void State::advanceSystemToStage(Stage stage) const {
-    rep->advanceSystemToStage(stage);
+    getImpl().advanceSystemToStage(stage);
 }
 QIndex State::allocateQ(SubsystemIndex subsys, const Vector& qInit) {
-    return rep->allocateQ(subsys, qInit);
+    return updImpl().allocateQ(subsys, qInit);
 }
 UIndex State::allocateU(SubsystemIndex subsys, const Vector& uInit) {
-    return rep->allocateU(subsys, uInit);
+    return updImpl().allocateU(subsys, uInit);
 }
 ZIndex State::allocateZ(SubsystemIndex subsys, const Vector& zInit) {
-    return rep->allocateZ(subsys, zInit);
+    return updImpl().allocateZ(subsys, zInit);
 }
 QErrIndex State::allocateQErr(SubsystemIndex subsys, int nqerr) const {
-    return rep->allocateQErr(subsys, nqerr);
+    return getImpl().allocateQErr(subsys, nqerr);
 }
 UErrIndex State::allocateUErr(SubsystemIndex subsys, int nuerr) const {
-    return rep->allocateUErr(subsys, nuerr);
+    return getImpl().allocateUErr(subsys, nuerr);
 }
 UDotErrIndex State::allocateUDotErr(SubsystemIndex subsys, int nudoterr) const {
-    return rep->allocateUDotErr(subsys, nudoterr);
+    return getImpl().allocateUDotErr(subsys, nudoterr);
 }
 EventTriggerByStageIndex State::allocateEventTrigger(SubsystemIndex subsys, Stage stage, int nevent) const {
-    return rep->allocateEventTrigger(subsys, stage, nevent);
+    return getImpl().allocateEventTrigger(subsys, stage, nevent);
 }
 DiscreteVariableIndex State::allocateDiscreteVariable(SubsystemIndex subsys, Stage stage, AbstractValue* v) {
-    return rep->allocateDiscreteVariable(subsys, stage, v);
+    return updImpl().allocateDiscreteVariable(subsys, stage, v);
 }
 DiscreteVariableIndex
 State::allocateAutoUpdateDiscreteVariable(SubsystemIndex subsys, Stage invalidates, AbstractValue* v,
                                           Stage updateDependsOn) {
-    return rep->allocateAutoUpdateDiscreteVariable(subsys, invalidates, v, updateDependsOn); 
+    return updImpl().allocateAutoUpdateDiscreteVariable(subsys, invalidates, v, updateDependsOn); 
 }
 CacheEntryIndex State::allocateCacheEntry(SubsystemIndex subsys, Stage dependsOn, Stage computedBy, AbstractValue* v) const {
-    return rep->allocateCacheEntry(subsys, dependsOn, computedBy, v);
+    return getImpl().allocateCacheEntry(subsys, dependsOn, computedBy, v);
 }
 int State::getNY() const {
-    return rep->getNY();
+    return getImpl().getNY();
 }
 SystemYIndex State::getQStart() const {
-    return rep->getQStart();
+    return getImpl().getQStart();
 }
 int State::getNQ() const {
-    return rep->getNQ();
+    return getImpl().getNQ();
 }
 SystemYIndex State::getUStart() const {
-    return rep->getUStart();
+    return getImpl().getUStart();
 }
 int State::getNU() const {
-    return rep->getNU();
+    return getImpl().getNU();
 }
 SystemYIndex State::getZStart() const {
-    return rep->getZStart();
+    return getImpl().getZStart();
 }
 int State::getNZ() const {
-    return rep->getNZ();
+    return getImpl().getNZ();
 }
 int State::getNYErr() const {
-    return rep->getNYErr();
+    return getImpl().getNYErr();
 }
 SystemYErrIndex State::getQErrStart() const {
-    return rep->getQErrStart();
+    return getImpl().getQErrStart();
 }
 int State::getNQErr() const {
-    return rep->getNQErr();
+    return getImpl().getNQErr();
 }
 SystemYErrIndex State::getUErrStart() const {
-    return rep->getUErrStart();
+    return getImpl().getUErrStart();
 }
 int State::getNUErr() const {
-    return rep->getNUErr();
+    return getImpl().getNUErr();
 }
 int State::getNUDotErr() const {
-    return rep->getNUDotErr();
+    return getImpl().getNUDotErr();
 }
 int State::getNMultipliers() const {
     return getNUDotErr();
 }
 SystemQIndex State::getQStart(SubsystemIndex subsys) const {
-    return rep->getQStart(subsys);
+    return getImpl().getQStart(subsys);
 }
 int State::getNQ(SubsystemIndex subsys) const {
-    return rep->getNQ(subsys);
+    return getImpl().getNQ(subsys);
 }
 SystemUIndex State::getUStart(SubsystemIndex subsys) const {
-    return rep->getUStart(subsys);
+    return getImpl().getUStart(subsys);
 }
 int State::getNU(SubsystemIndex subsys) const {
-    return rep->getNU(subsys);
+    return getImpl().getNU(subsys);
 }
 SystemZIndex State::getZStart(SubsystemIndex subsys) const {
-    return rep->getZStart(subsys);
+    return getImpl().getZStart(subsys);
 }
 int State::getNZ(SubsystemIndex subsys) const {
-    return rep->getNZ(subsys);
+    return getImpl().getNZ(subsys);
 }
 SystemQErrIndex State::getQErrStart(SubsystemIndex subsys) const {
-    return rep->getQErrStart(subsys);
+    return getImpl().getQErrStart(subsys);
 }
 int State::getNQErr(SubsystemIndex subsys) const {
-    return rep->getNQErr(subsys);
+    return getImpl().getNQErr(subsys);
 }
 SystemUErrIndex State::getUErrStart(SubsystemIndex subsys) const {
-    return rep->getUErrStart(subsys);
+    return getImpl().getUErrStart(subsys);
 }
 int State::getNUErr(SubsystemIndex subsys) const {
-    return rep->getNUErr(subsys);
+    return getImpl().getNUErr(subsys);
 }
 SystemUDotErrIndex State::getUDotErrStart(SubsystemIndex subsys) const {
-    return rep->getUDotErrStart(subsys);
+    return getImpl().getUDotErrStart(subsys);
 }
 int State::getNUDotErr(SubsystemIndex subsys) const {
-    return rep->getNUDotErr(subsys);
+    return getImpl().getNUDotErr(subsys);
 }
 SystemMultiplierIndex State::getMultipliersStart(SubsystemIndex i) const {
     return SystemMultiplierIndex(getUDotErrStart(i));
@@ -2414,124 +2228,124 @@ int State::getNMultipliers(SubsystemIndex i) const {
     return getNUDotErr(i);
 }
 int State::getNEventTriggers() const {
-    return rep->getNEventTriggers();
+    return getImpl().getNEventTriggers();
 }
 SystemEventTriggerIndex State::getEventTriggerStartByStage(Stage stage) const {
-    return rep->getEventTriggerStartByStage(stage);
+    return getImpl().getEventTriggerStartByStage(stage);
 }
 int State::getNEventTriggersByStage(Stage stage) const {
-    return rep->getNEventTriggersByStage(stage);
+    return getImpl().getNEventTriggersByStage(stage);
 }
 SystemEventTriggerByStageIndex State::getEventTriggerStartByStage(SubsystemIndex subsys, Stage stage) const {
-    return rep->getEventTriggerStartByStage(subsys, stage);
+    return getImpl().getEventTriggerStartByStage(subsys, stage);
 }
 int State::getNEventTriggersByStage(SubsystemIndex subsys, Stage stage) const {
-    return rep->getNEventTriggersByStage(subsys, stage);
+    return getImpl().getNEventTriggersByStage(subsys, stage);
 }
 const Vector& State::getEventTriggers() const {
-    return rep->getEventTriggers();
+    return getImpl().getEventTriggers();
 }
 const Vector& State::getEventTriggersByStage(Stage stage) const {
-    return rep->getEventTriggersByStage(stage);
+    return getImpl().getEventTriggersByStage(stage);
 }
 const Vector& State::getEventTriggersByStage(SubsystemIndex subsys, Stage stage) const {
-    return rep->getEventTriggersByStage(subsys, stage);
+    return getImpl().getEventTriggersByStage(subsys, stage);
 }
 Vector& State::updEventTriggers() const {
-    return rep->updEventTriggers();
+    return getImpl().updEventTriggers();
 }
 Vector& State::updEventTriggersByStage(Stage stage) const {
-    return rep->updEventTriggersByStage(stage);
+    return getImpl().updEventTriggersByStage(stage);
 }
 Vector& State::updEventTriggersByStage(SubsystemIndex subsys, Stage stage) const {
-    return rep->updEventTriggersByStage(subsys, stage);
+    return getImpl().updEventTriggersByStage(subsys, stage);
 }
 const Vector& State::getQ(SubsystemIndex subsys) const {
-    return rep->getQ(subsys);
+    return getImpl().getQ(subsys);
 }
 const Vector& State::getU(SubsystemIndex subsys) const {
-    return rep->getU(subsys);
+    return getImpl().getU(subsys);
 }
 const Vector& State::getZ(SubsystemIndex subsys) const {
-    return rep->getZ(subsys);
+    return getImpl().getZ(subsys);
 }
 Vector& State::updQ(SubsystemIndex subsys) {
-    return rep->updQ(subsys);
+    return updImpl().updQ(subsys);
 }
 Vector& State::updU(SubsystemIndex subsys) {
-    return rep->updU(subsys);
+    return updImpl().updU(subsys);
 }
 Vector& State::updZ(SubsystemIndex subsys) {
-    return rep->updZ(subsys);
+    return updImpl().updZ(subsys);
 }
 const Vector& State::getQDot(SubsystemIndex subsys) const {
-    return rep->getQDot(subsys);
+    return getImpl().getQDot(subsys);
 }
 const Vector& State::getUDot(SubsystemIndex subsys) const {
-    return rep->getUDot(subsys);
+    return getImpl().getUDot(subsys);
 }
 const Vector& State::getZDot(SubsystemIndex subsys) const {
-    return rep->getZDot(subsys);
+    return getImpl().getZDot(subsys);
 }
 const Vector& State::getQDotDot(SubsystemIndex subsys) const {
-    return rep->getQDotDot(subsys);
+    return getImpl().getQDotDot(subsys);
 }
 Vector& State::updQDot(SubsystemIndex subsys) const {
-    return rep->updQDot(subsys);
+    return getImpl().updQDot(subsys);
 }
 Vector& State::updUDot(SubsystemIndex subsys) const {
-    return rep->updUDot(subsys);
+    return getImpl().updUDot(subsys);
 }
 Vector& State::updZDot(SubsystemIndex subsys) const {
-    return rep->updZDot(subsys);
+    return getImpl().updZDot(subsys);
 }
 Vector& State::updQDotDot(SubsystemIndex subsys) const {
-    return rep->updQDotDot(subsys);
+    return getImpl().updQDotDot(subsys);
 }
 const Vector& State::getQErr(SubsystemIndex subsys) const {
-    return rep->getQErr(subsys);
+    return getImpl().getQErr(subsys);
 }
 const Vector& State::getUErr(SubsystemIndex subsys) const {
-    return rep->getUErr(subsys);
+    return getImpl().getUErr(subsys);
 }
 const Vector& State::getUDotErr(SubsystemIndex subsys) const {
-    return rep->getUDotErr(subsys);
+    return getImpl().getUDotErr(subsys);
 }
 const Vector& State::getMultipliers(SubsystemIndex subsys) const {
-    return rep->getMultipliers(subsys);
+    return getImpl().getMultipliers(subsys);
 }
 Vector& State::updQErr(SubsystemIndex subsys) const {
-    return rep->updQErr(subsys);
+    return getImpl().updQErr(subsys);
 }
 Vector& State::updUErr(SubsystemIndex subsys) const {
-    return rep->updUErr(subsys);
+    return getImpl().updUErr(subsys);
 }
 Vector& State::updUDotErr(SubsystemIndex subsys) const {
-    return rep->updUDotErr(subsys);
+    return getImpl().updUDotErr(subsys);
 }
 Vector& State::updMultipliers(SubsystemIndex subsys) const {
-    return rep->updMultipliers(subsys);
+    return getImpl().updMultipliers(subsys);
 }
 const Real& State::getTime() const {
-    return rep->getTime();
+    return getImpl().getTime();
 }
 const Vector& State::getY() const {
-    return rep->getY();
+    return getImpl().getY();
 }
 const Vector& State::getQ() const {
-    return rep->getQ();
+    return getImpl().getQ();
 }
 const Vector& State::getU() const {
-    return rep->getU();
+    return getImpl().getU();
 }
 const Vector& State::getZ() const {
-    return rep->getZ();
+    return getImpl().getZ();
 }
 Real& State::updTime() {
-    return rep->updTime();
+    return updImpl().updTime();
 }
 Vector& State::updY() {
-    return rep->updY();
+    return updImpl().updY();
 }
 void State::setTime(Real t) {
     updTime() = t;
@@ -2540,13 +2354,13 @@ void State::setY(const Vector& y) {
     updY() = y;
 }
 Vector& State::updQ() {
-    return rep->updQ();
+    return updImpl().updQ();
 }
 Vector& State::updU() {
-    return rep->updU();
+    return updImpl().updU();
 }
 Vector& State::updZ() {
-    return rep->updZ();
+    return updImpl().updZ();
 }
 void State::setQ(const Vector& q) {
     updQ() = q;
@@ -2558,153 +2372,136 @@ void State::setZ(const Vector& z) {
     updZ() = z;
 }
 const Vector& State::getYDot() const {
-    return rep->getYDot();
+    return getImpl().getYDot();
 }
 const Vector& State::getQDot() const {
-    return rep->getQDot();
+    return getImpl().getQDot();
 }
 const Vector& State::getZDot() const {
-    return rep->getZDot();
+    return getImpl().getZDot();
 }
 const Vector& State::getUDot() const {
-    return rep->getUDot();
+    return getImpl().getUDot();
 }
 const Vector& State::getQDotDot() const {
-    return rep->getQDotDot();
+    return getImpl().getQDotDot();
 }
 Vector& State::updYDot() const {
-    return rep->updYDot();
+    return getImpl().updYDot();
 }
 Vector& State::updQDot() const {
-    return rep->updQDot();
+    return getImpl().updQDot();
 }
 Vector& State::updZDot() const {
-    return rep->updZDot();
+    return getImpl().updZDot();
 }
 Vector& State::updUDot() const {
-    return rep->updUDot();
+    return getImpl().updUDot();
 }
 Vector& State::updQDotDot() const {
-    return rep->updQDotDot();
+    return getImpl().updQDotDot();
 }
 const Vector& State::getYErr() const {
-    return rep->getYErr();
+    return getImpl().getYErr();
 }
 const Vector& State::getQErr() const {
-    return rep->getQErr();
+    return getImpl().getQErr();
 }
 const Vector& State::getUErr() const {
-    return rep->getUErr();
+    return getImpl().getUErr();
 }
 const Vector& State::getUDotErr() const {
-    return rep->getUDotErr();
+    return getImpl().getUDotErr();
 }
 const Vector& State::getMultipliers() const {
-    return rep->getMultipliers();
+    return getImpl().getMultipliers();
 }
 Vector& State::updYErr() const {
-    return rep->updYErr();
+    return getImpl().updYErr();
 }
 Vector& State::updQErr() const {
-    return rep->updQErr();
+    return getImpl().updQErr();
 }
 Vector& State::updUErr() const {
-    return rep->updUErr();
+    return getImpl().updUErr();
 }
 Vector& State::updUDotErr() const {
-    return rep->updUDotErr();
+    return getImpl().updUDotErr();
 }
 Vector& State::updMultipliers() const {
-    return rep->updMultipliers();
+    return getImpl().updMultipliers();
 }
 
 
 
 CacheEntryIndex State::getDiscreteVarUpdateIndex(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return rep->getDiscreteVarUpdateIndex(subsys, index);
+    return getImpl().getDiscreteVarUpdateIndex(subsys, index);
 }
 Stage State::getDiscreteVarAllocationStage(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return rep->getDiscreteVarAllocationStage(subsys, index);
+    return getImpl().getDiscreteVarAllocationStage(subsys, index);
 }
 Stage State::getDiscreteVarInvalidatesStage(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return rep->getDiscreteVarInvalidatesStage(subsys, index);
+    return getImpl().getDiscreteVarInvalidatesStage(subsys, index);
 }
 const AbstractValue& State::getDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return rep->getDiscreteVariable(subsys, index);
+    return getImpl().getDiscreteVariable(subsys, index);
 }
 Real State::getDiscreteVarLastUpdateTime(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return rep->getDiscreteVarLastUpdateTime(subsys, index);
+    return getImpl().getDiscreteVarLastUpdateTime(subsys, index);
 }
 const AbstractValue& State::getDiscreteVarUpdateValue(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return rep->getDiscreteVarUpdateValue(subsys, index);
+    return getImpl().getDiscreteVarUpdateValue(subsys, index);
 }
 AbstractValue& State::updDiscreteVarUpdateValue(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return rep->updDiscreteVarUpdateValue(subsys, index);
+    return getImpl().updDiscreteVarUpdateValue(subsys, index);
 }
 bool State::isDiscreteVarUpdateValueRealized(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return rep->isDiscreteVarUpdateValueRealized(subsys, index);
+    return getImpl().isDiscreteVarUpdateValueRealized(subsys, index);
 }
 void State::markDiscreteVarUpdateValueRealized(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    rep->markDiscreteVarUpdateValueRealized(subsys, index);
+    getImpl().markDiscreteVarUpdateValueRealized(subsys, index);
 }
 
 
 AbstractValue& State::updDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) {
-    return rep->updDiscreteVariable(subsys, index);
+    return updImpl().updDiscreteVariable(subsys, index);
 }
 void State::setDiscreteVariable(SubsystemIndex i, DiscreteVariableIndex index, const AbstractValue& v) {
     updDiscreteVariable(i,index) = v;
 }
 
 Stage State::getCacheEntryAllocationStage(SubsystemIndex subsys, CacheEntryIndex index) const {
-    return rep->getCacheEntryAllocationStage(subsys, index);
+    return getImpl().getCacheEntryAllocationStage(subsys, index);
 }
 const AbstractValue& State::getCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
-    return rep->getCacheEntry(subsys, index);
+    return getImpl().getCacheEntry(subsys, index);
 }
 AbstractValue& State::updCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
-    return rep->updCacheEntry(subsys, index);
+    return getImpl().updCacheEntry(subsys, index);
 }
 
 
 bool State::isCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
-    return rep->isCacheValueRealized(subx, cx); 
+    return getImpl().isCacheValueRealized(subx, cx); 
 }
 void State::markCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
-    rep->markCacheValueRealized(subx, cx); 
+    getImpl().markCacheValueRealized(subx, cx); 
 }
 const Stage& State::getLowestStageModified() const {
-    return rep->getLowestStageModified(); 
+    return getImpl().getLowestStageModified(); 
 }
 void State::resetLowestStageModified() const {
-    rep->resetLowestStageModified(); 
+    getImpl().resetLowestStageModified(); 
 }
 void State::autoUpdateDiscreteVariables() {
-    rep->autoUpdateDiscreteVariables(); 
+    updImpl().autoUpdateDiscreteVariables(); 
 }
 
-void State::createRestrictedState
-   (State&                   restrictedState,
-    EnumerationSet<Stage>    restrictedStages, 
-    std::set<SubsystemIndex> restrictedSubsystems)
-{
-    restrictedStages |= getRestrictedStages();
-    const std::set<SubsystemIndex>& currentSubsystems = getRestrictedSubsystems();
-    restrictedSubsystems.insert(currentSubsystems.begin(), currentSubsystems.end());
-    delete restrictedState.rep;
-    restrictedState.rep = new StateRep(*rep, restrictedStages, restrictedSubsystems);
-}
-const EnumerationSet<Stage>& State::getRestrictedStages() const {
-    return rep->getRestrictedStages();
-}
-const std::set<SubsystemIndex>& State::getRestrictedSubsystems() const {
-    return rep->getRestrictedSubsystems();
-}
 String State::toString() const {
-    return rep->toString();
+    return getImpl().toString();
 }
 String State::cacheToString() const {
-    return rep->cacheToString();
+    return getImpl().cacheToString();
 }
 
 std::ostream& 

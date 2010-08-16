@@ -51,7 +51,7 @@ using namespace SimTK;
 void testLowestModified() {
     const SubsystemIndex Sub0(0), Sub1(1);
     State s;
-    s.setNSubsystems(2);
+    s.setNumSubsystems(2);
     SimTK_TEST(s.getSystemStage()==Stage::Empty);
     SimTK_TEST(s.getSubsystemStage(Sub0)==Stage::Empty && s.getSubsystemStage(Sub1)==Stage::Empty);
     SimTK_TEST(s.getLowestStageModified()==Stage::Topology);
@@ -109,7 +109,7 @@ void testLowestModified() {
 void testCacheValidity() {
     const SubsystemIndex Sub0(0), Sub1(1);
     State s;
-    s.setNSubsystems(2);
+    s.setNumSubsystems(2);
 
     // Allocate a Model stage-invalidating state variable.
     const DiscreteVariableIndex dvxModel = s.allocateDiscreteVariable(Sub1, Stage::Model, new Value<Real>(2));
@@ -186,7 +186,7 @@ void testCacheValidity() {
 
 void testMisc() {
     State s;
-    s.setNSubsystems(1);
+    s.setNumSubsystems(1);
     s.advanceSubsystemToStage(SubsystemIndex(0), Stage::Topology);
 
     // Can't ask for the time before Stage::Topology, but if you could it would be NaN.

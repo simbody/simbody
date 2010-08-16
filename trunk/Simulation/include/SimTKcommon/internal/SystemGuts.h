@@ -107,7 +107,7 @@ public:
 
     SubsystemIndex adoptSubsystem(Subsystem& child);
 
-    int getNSubsystems() const;
+    int getNumSubsystems() const;
     const Subsystem& getSubsystem(SubsystemIndex)   const;
     Subsystem&       updSubsystem(SubsystemIndex);
 
@@ -210,6 +210,12 @@ protected:
 
     virtual int calcTimeOfNextScheduledEventImpl(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
     virtual int calcTimeOfNextScheduledReportImpl(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
+
+private:
+    // OBSOLETE
+    // Part of our ongoing crusade to turn getN's into getNums for API consistency.
+    int getNSubsystems() const {return getNumSubsystems();}
+
 private:
     Guts& operator=(const Guts&); // suppress default copy assignment operator
 

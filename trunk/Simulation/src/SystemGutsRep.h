@@ -86,7 +86,7 @@ public:
     const State& getDefaultState() const {return defaultState;}
     State&       updDefaultState()       {return defaultState;}
 
-    int              getNSubsystems()               const {return (int)subsystems.size();}
+    int              getNumSubsystems()             const {return (int)subsystems.size();}
     const Subsystem& getSubsystem(SubsystemIndex i) const {return subsystems[i];}
     Subsystem&       updSubsystem(SubsystemIndex i)       {return subsystems[i];}
 

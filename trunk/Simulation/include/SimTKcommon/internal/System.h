@@ -490,7 +490,7 @@ public:
     SubsystemIndex adoptSubsystem(Subsystem& child);
 
     /// How may Subsystems are in here?
-    int getNSubsystems() const;
+    int getNumSubsystems() const;
     /// Obtain read-only access to a particular subsystem by its index.
     const Subsystem& getSubsystem(SubsystemIndex)   const;
     /// Obtain writable access to a particular subsystem by its index.
@@ -525,6 +525,11 @@ public:
 
     explicit System(System::Guts* g) : guts(g) { }
     bool hasGuts() const {return guts!=0;}
+
+private:
+    // OBSOLETE
+    // Part of our ongoing crusade to turn getN's into getNums for API consistency.
+    int getNSubsystems() const {return getNumSubsystems();}
 
 private:
     class EventTriggerInfoRep;

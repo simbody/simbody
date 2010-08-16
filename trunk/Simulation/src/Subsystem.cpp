@@ -1083,7 +1083,10 @@ EventId DefaultSystemSubsystem::createEventId(SubsystemIndex subsys, const State
  *                              specified Subsystem.
  */
 
-void DefaultSystemSubsystem::findSubsystemEventIds(SubsystemIndex subsys, const State& state, const Array_<EventId>& allEvents, Array_<EventId>& eventsForSubsystem) const {
+void DefaultSystemSubsystem::findSubsystemEventIds
+   (SubsystemIndex subsys, const State& state, const Array_<EventId>& allEvents, 
+    Array_<EventId>& eventsForSubsystem) const 
+{
     const DefaultSystemSubsystemGuts::CacheInfo& info = getGuts().getCacheInfo(state);
     eventsForSubsystem.clear();
     for (int i = 0; i < (int)allEvents.size(); ++i) {
