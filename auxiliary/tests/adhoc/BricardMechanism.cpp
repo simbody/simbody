@@ -41,12 +41,13 @@ private:
 int main()
 {
   try {
-    std::cout << "Current working directory: " << Pathname::getCurrentWorkingDirectory() << std::endl;
+    const String currentWorkingDir = Pathname::getCurrentWorkingDirectory();
+    std::cout << "Current working directory: " << currentWorkingDir << std::endl;
 
 	MultibodySystem system;
 	SimbodyMatterSubsystem matter(system);
 	GeneralForceSubsystem forces(system);
-	//Force::UniformGravity gravity(forces, matter, Vec3(0, -9.8, 0));
+	Force::Gravity gravity(forces, matter, UnitVec3(0, -1, 0), 9.8);
 
     const Real MassFac = 1; // to mess with mass matrix conditioning
 
@@ -67,8 +68,20 @@ int main()
 							0.5*Inertia(3.33400000, 28.33366667, 28.33366667, 4.96666667, -1.60000000, 0.03333333)));
 
 	std::ifstream file1, file2;
-	PolygonalMesh Mesh1; file1.open("EVEN_PART.obj"); Mesh1.loadObjFile(file1); file1.close();
-	PolygonalMesh Mesh2; file2.open("ODD_PART.obj"); Mesh2.loadObjFile(file2); file2.close();
+	PolygonalMesh Mesh1; file1.open("Bricard_EVEN_PART.obj"); 
+    if (!file1.good()) {
+        std::cout << "Couldn't open file 'Bricard_EVEN_PART.obj' in current working directory " 
+            << currentWorkingDir << std::endl;
+        exit(1);
+    }
+    Mesh1.loadObjFile(file1); file1.close();
+	PolygonalMesh Mesh2; file2.open("Bricard_ODD_PART.obj"); 
+    if (!file2.good()) {
+        std::cout << "Couldn't open file 'Bricard_ODD_PART.obj' in current working directory " 
+            << currentWorkingDir << std::endl;
+        exit(1);
+    }    
+    Mesh2.loadObjFile(file2); file2.close();
 
 	EVEN_PART_1.addDecoration(Transform(), DecorativeMesh(Mesh1).setColor(Vec3(0.00000000, 1.00000000, 0.00000000)));
 	EVEN_PART_2.addDecoration(Transform(), DecorativeMesh(Mesh1).setColor(Vec3(1.00000000, 0.00000000, 1.00000000)));
@@ -103,14 +116,14 @@ int main()
     //Force::MobilityLinearSpring frc(forces, EVEN_PART_3_body, 
        // MobilizerUIndex(0), 100, 0);
 
-	VTKEventReporter * pEventReporter = new VTKEventReporter(system, 4*0.25);
+	VTKEventReporter * pEventReporter = new VTKEventReporter(system, .01*4*0.25);
 	pEventReporter->updVisualizer().setCameraLocation(Vec3(0.5,0.5,0.5));
 	pEventReporter->updVisualizer().setCameraUpDirection(Vec3(0,1,0));
 	pEventReporter->updVisualizer().setCameraFocalPoint(Vec3(0,0,0));
 	pEventReporter->updVisualizer().zoomCameraToIncludeAllGeometry();	
 
 	system.updDefaultSubsystem().addEventReporter(pEventReporter);
-    system.updDefaultSubsystem().addEventReporter(new EnergyReport(system, 4*0.25));
+    system.updDefaultSubsystem().addEventReporter(new EnergyReport(system, .01*4*0.25));
 	system.realizeTopology();
 	State state = system.getDefaultState();
 
@@ -125,10 +138,7 @@ int main()
 	ODD_PART_3_HALF1_body.setOneQ(state, 0, 120.0*Pi/180.0);
 
 	// Velocity
-	ODD_PART_1_body.setOneU(state,0, -0.1*10);
-
-	system.realizeModel(state);
-  
+	ODD_PART_1_body.setOneU(state,0, -11.2);
 
 	RungeKuttaMersonIntegrator integ(system);
 	//RungeKutta3Integrator integ(system);
@@ -136,20 +146,9 @@ int main()
 	//VerletIntegrator integ(system);
 	//CPodesIntegrator integ(system);
 
-    integ.setAccuracy(1e-4);
-    //integ.setConstraintTolerance(1e-7);
-    //integ.setConstraintTolerance(1e-8);
-    //integ.setMaximumStepSize(.1);
+    integ.setAccuracy(1e-5);
     integ.initialize(state);
-    //integ.setProjectInterpolatedStates(false);
-    //integ.setAllowInterpolation(false);
-    //integ.setProjectEveryStep(true);
-    //integ.setReturnEveryInternalStep(true);
-    //Integrator::SuccessfulStepStatus status;
-    //while ((status = integ.stepTo(1000)) != Integrator::EndOfSimulation) {
-    //    cout << "t=" << integ.getTime() 
-    //         << " status=" << Integrator::successfulStepStatusString(status) << endl;
-    //}
+
 
     const clock_t start = clock();
 
