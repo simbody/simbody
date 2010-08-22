@@ -75,8 +75,8 @@ MobilizedBody& mobod_ground = matter.updGround();
 
 
 // Kludge to get the initial view large enough.
-mobod_ground.addBodyDecoration(Vec3(-2,-2,-2), markerDecoration);
-mobod_ground.addBodyDecoration(Vec3(2,2,2), markerDecoration);
+mobod_ground.addBodyDecoration(Vec3(-1,-1,-1), markerDecoration);
+mobod_ground.addBodyDecoration(Vec3(1,1,1), markerDecoration);
 
 // BODY loadcell1
 Body::Rigid body_loadcell1(MassProperties(0,Vec3(0),Inertia(0,0,0)));

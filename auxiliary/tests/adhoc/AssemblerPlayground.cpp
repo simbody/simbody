@@ -109,11 +109,11 @@ int main() {
     for (int i=0; i<5; ++i)
         cout << "tempState copy pres[" << i << "].isDisabled=" << pres[i].isDisabled(tempState) << endl;
 
-    matter.setUseEulerAngles(tempState, true);
-    system.realizeModel(tempState);
+    //matter.setUseEulerAngles(tempState, true);
+    //system.realizeModel(tempState);
 
-    for (int i=0; i<5; ++i)
-        cout << "tempState realizeModel pres[" << i << "].isDisabled=" << pres[i].isDisabled(tempState) << endl;
+    //for (int i=0; i<5; ++i)
+    //    cout << "tempState realizeModel pres[" << i << "].isDisabled=" << pres[i].isDisabled(tempState) << endl;
 
     system.realize(tempState, Stage::Position);
     cout << "INITIAL CONFIGURATION\n"; 
