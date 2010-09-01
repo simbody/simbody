@@ -76,7 +76,7 @@ int getNumContactForces(const State& s) const {
 }
 
 const ContactForce& getContactForce(const State& s, int n) const {
-    const int numContactForces = getNumContactForces(s);
+    const int numContactForces = getNumContactForces(s); // realize if needed
     SimTK_ERRCHK2_ALWAYS(n < numContactForces,
         "CompliantContactSubsystem::getContactForce()",
         "There are currently only %d contact forces but force %d"
@@ -84,6 +84,70 @@ const ContactForce& getContactForce(const State& s, int n) const {
         " first to determine how many are available.", numContactForces, n);
     const Array_<ContactForce>& forces = getForceCache(s);
     return forces[n];
+}
+
+
+const ContactForce& getContactForceById(const State& s, ContactId id) const {
+    static const ContactForce invalidForce;
+    const int numContactForces = getNumContactForces(s); // realize if needed
+    const Array_<ContactForce>& forces = getForceCache(s);
+    // TODO: use a map
+    for (int i=0; i < numContactForces; ++i)
+        if (forces[i].getContactId()==id)
+            return forces[i];
+
+    return invalidForce;
+}
+
+bool calcContactPatchDetailsById(const State&   state,
+                                 ContactId      id,
+                                 ContactPatch&  patch_G) const
+{
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Velocity,
+        "CompliantContactSubystemImpl::ensureForceCacheValid()");
+
+    const ContactSnapshot& active = m_tracker.getActiveContacts(state);
+    const Contact& contact = active.getContactById(id);
+    if (contact.isEmpty()) {
+        patch_G.clear();
+        return false;
+    }
+
+    const Transform& X_S1S2 = contact.getTransform();
+    const ContactSurfaceIndex surf1(contact.getSurface1());
+    const ContactSurfaceIndex surf2(contact.getSurface2());
+    const MobilizedBody& mobod1 = m_tracker.getMobilizedBody(surf1);
+    const MobilizedBody& mobod2 = m_tracker.getMobilizedBody(surf2);
+
+    const Transform X_GS1 = mobod1.findFrameTransformInGround
+        (state, m_tracker.getContactSurfaceTransform(surf1));
+    const Transform X_GS2 = mobod2.findFrameTransformInGround
+        (state, m_tracker.getContactSurfaceTransform(surf2));
+
+    const SpatialVec V_GS1 = mobod1.findFrameVelocityInGround
+        (state, m_tracker.getContactSurfaceTransform(surf1));
+    const SpatialVec V_GS2 = mobod2.findFrameVelocityInGround
+        (state, m_tracker.getContactSurfaceTransform(surf2));
+
+    // Calculate the relative velocity of S2 in S1, expressed in S1.
+    const SpatialVec V_S1S2 =
+        findRelativeVelocity(X_GS1, V_GS1, X_GS2, V_GS2);
+
+    // Get the right force generator to use for this kind of contact.
+    const ContactForceGenerator& generator = 
+        getForceGenerator(contact.getTypeId());
+
+    // Calculate the contact patch measured and expressed in S1.
+    generator.calcContactPatch(state, contact, V_S1S2, 
+        patch_G); // it is actually in S1 at this point
+
+    // Re-express the contact patch in Ground for later use.
+    if (patch_G.isValid()) {
+        patch_G.changeFrameInPlace(X_GS1); // switch from S1 to Ground
+        return true;
+    }
+
+    return false;
 }
 
 const ContactTrackerSubsystem& getContactTrackerSubsystem() const
@@ -403,7 +467,7 @@ ensureForceCacheValid(const State& state) const {
         generator.calcContactForce(state, contact, V_S1S2, forces.back());
         // Re-express the contact force in Ground for later use.
         if (forces.back().isValid())
-            forces.back().changeFrameInPlace(~X_GS1); // switch to Ground
+            forces.back().changeFrameInPlace(X_GS1); // switch to Ground
         else
             forces.pop_back(); // never mind ...
     }
@@ -466,6 +530,17 @@ int CompliantContactSubsystem::getNumContactForces(const State& s) const
 const ContactForce& CompliantContactSubsystem::
 getContactForce(const State& s, int n) const
 {   return getImpl().getContactForce(s,n); }
+
+
+const ContactForce& CompliantContactSubsystem::
+getContactForceById(const State& s, ContactId id) const
+{   return getImpl().getContactForceById(s,id); }
+
+bool CompliantContactSubsystem::
+calcContactPatchDetailsById(const State&   state,
+                            ContactId      id,
+                            ContactPatch&  patch_G) const
+{   return getImpl().calcContactPatchDetailsById(state,id,patch_G); }
 
 Real CompliantContactSubsystem::
 getDissipatedEnergy(const State& s) const
@@ -752,9 +827,11 @@ void ContactForceGenerator::HertzCircular::calcContactPatch
    (const State&      state,
     const Contact&    overlap,
     const SpatialVec& V_S1S2,
-    ContactPatch&     patch) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactForceGenerator::HertzCircular::calcContactPatch() not implemented yet."); }
+    ContactPatch&     patch_S1) const
+{  
+    patch_S1.m_elements.clear(); // TODO no details yet
+    calcContactForce(state,overlap,V_S1S2,patch_S1.m_resultant);
+}
 
 
 
@@ -767,9 +844,37 @@ void ContactForceGenerator::ElasticFoundation::calcContactForce
     const SpatialVec&       V_S1S2,     // relative surface velocity
     ContactForce&           contactForce_S1) const
 {
+    calcContactForceAndDetails(state,overlap,V_S1S2,contactForce_S1,0);
+}
+
+
+
+void ContactForceGenerator::ElasticFoundation::calcContactPatch
+   (const State&      state,
+    const Contact&    overlap,
+    const SpatialVec& V_S1S2,
+    ContactPatch&     patch_S1) const
+{
+    calcContactForceAndDetails(state,overlap,V_S1S2,
+        patch_S1.m_resultant, &patch_S1.m_elements);
+}
+
+
+
+void ContactForceGenerator::ElasticFoundation::calcContactForceAndDetails
+   (const State&            state,
+    const Contact&          overlap,    // contains X_S1S2
+    const SpatialVec&       V_S1S2,     // relative surface velocity
+    ContactForce&           contactForce_S1,
+    Array_<ContactDetail>*  contactDetails_S1) const
+{
     SimTK_ASSERT(TriangleMeshContact::isInstance(overlap),
         "ContactForceGenerator::ElasticFoundation::calcContactForce(): expected"
         " TriangleMeshContact.");
+
+    const bool wantDetails = (contactDetails_S1 != 0);
+    if (wantDetails)
+        contactDetails_S1->clear();
 
     const TriangleMeshContact& contact = TriangleMeshContact::getAs(overlap);
 
@@ -886,7 +991,8 @@ void ContactForceGenerator::ElasticFoundation::calcContactForce
             s1, k, c, us, ud, uv,
             patchCentroid_S1,
             force1_S1, potEnergy1, powerLoss1,
-            weightedCOP1_PC_S1, weightCOP1, 0); // no details wanted
+            weightedCOP1_PC_S1, weightCOP1, 
+            contactDetails_S1); // details returned if this is non-null
     }
 
     if (shape2.getTypeId() == ContactGeometry::TriangleMesh::classTypeId()) {
@@ -905,13 +1011,23 @@ void ContactForceGenerator::ElasticFoundation::calcContactForce
         SpatialVec       force2_S2; 
         Vec3             weightedCOP2_PC_S2;
 
+        const unsigned nDetailsBefore = 
+            wantDetails ? contactDetails_S1->size() : 0;
+
         processOneMesh(state, 
             mesh, contact.getSurface2Faces(),
             X_S2S1, V_S2S1, shape1,
             s2, k, c, us, ud, uv,
             patchCentroid_S2,
             force2_S2, potEnergy2, powerLoss2,
-            weightedCOP2_PC_S2, weightCOP2, 0); // no details wanted
+            weightedCOP2_PC_S2, weightCOP2,
+            contactDetails_S1); // details returned *in S2* if this is non-null
+
+        // Switch contact details from S1 in S2 to S2 in S1.
+        if (wantDetails) {
+            for (unsigned i=nDetailsBefore; i < contactDetails_S1->size(); ++i)
+                (*contactDetails_S1)[i].changeFrameAndSwitchSurfacesInPlace(X_S1S2);
+        }
 
         // Returned force is as applied to surface 1 (at the patch centroid); 
         // negate to make it the force applied to surface 2. Also re-express 
@@ -947,14 +1063,6 @@ void ContactForceGenerator::ElasticFoundation::calcContactForce
 }
 
 
-void ContactForceGenerator::ElasticFoundation::calcContactPatch
-   (const State&      state,
-    const Contact&    overlap,
-    const SpatialVec& V_S1S2,
-    ContactPatch&     patch) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactForceGenerator::ElasticFoundation::calcContactPatch() not implemented yet."); }
-
 
 // Compute the approximate geometric center of the patch represented by the 
 // set of "inside faces" of this mesh, weighted by the total patch area. 
@@ -987,14 +1095,15 @@ calcWeightedPatchCentroid
 
 
 
-// Private method that adds in contact forces produced by a single triangle
+// Private method that calculates the net contact force produced by a single triangle
 // mesh in contact with some other object (which might be another
 // mesh; we don't care). We are given the relative spatial pose and velocity of
 // the two surface frames, and for the mesh we are given a specific list of
 // the faces that are suspected of being at least partially inside the 
 // other surface (in the undeformed geometry overlap).
-// Normally this adds in the resultant force but it can optionally return
-// contact patch details as well.
+// Normally this just computes the resultant force but it can optionally append
+// contact patch details (one entry per element) as well, if the contactDetails
+// argument is non-null.
 void ContactForceGenerator::ElasticFoundation::
 processOneMesh
    (const State&                            state,
@@ -1004,24 +1113,25 @@ processOneMesh
     const SpatialVec&                       V_MO,
     const ContactGeometry&                  other,
     Real                                    meshDeformationFraction, // 0..1
-    Real k, Real c, Real us, Real ud, Real uv,
+    Real k, Real c, Real us, Real ud, Real uv, // composite material props
     const Vec3&                 resultantPt_M, // where to apply forces
     SpatialVec&                 resultantForceOnOther_M, // at resultant pt
     Real&                       potentialEnergy,
     Real&                       powerLoss,
     Vec3&                       weightedCenterOfPressure_M,
-    Real&                       sumOfAllPressureMoments, // COP weight
-    Array_<ContactDetail>*      contactDetails) const    // in/out if present 
+    Real&                       sumOfAllPressureMoments,   // COP weight
+    Array_<ContactDetail>*      contactDetails_M) const    // in/out if present 
 {
     assert(!insideFaces.empty());
-    const bool wantDetails = (contactDetails != 0);
+    const bool wantDetails = (contactDetails_M != 0);
 
     // Initialize all results to zero.
     resultantForceOnOther_M = SpatialVec(Vec3(0),Vec3(0));
     potentialEnergy = powerLoss = 0;
     weightedCenterOfPressure_M = Vec3(0);
     sumOfAllPressureMoments = 0;
-    if (wantDetails) contactDetails->clear();
+
+    // Don't initialize contact details; we're going to append them.
 
     // Abbreviations.
     const Rotation& RMO = X_MO.R(); // orientation of O in M
@@ -1050,20 +1160,27 @@ processOneMesh
         if (!inside)
             continue;
         
-        // Find how much the spring is displaced. The displacement vector
-        // points from the nearest point on the undeformed other 
+        // Although the "spring" is associated with just one surface (the mesh M)
+        // it is considered here to include the compression of both surfaces
+        // together, using composite material properties for stiffness and 
+        // dissipation properties of the spring. The total displacement vector
+        // for both surfaces points from the nearest point on the undeformed other 
         // surface to the undeformed spring position (face centroid) on the 
         // mesh. Since these overlap (we checked above) the nearest point is 
         // *inside* the mesh thus the vector points towards the mesh exterior; 
-        // i.e., in the  direction that the force will be applied on the 
-        // other body. This is the same convention we use for the patch 
+        // i.e., in the  direction that the force will be applied to the 
+        // "other" body. This is the same convention we use for the patch 
         // normal for Hertz contact.
         const Vec3 nearestPoint_M = X_MO*nearestPoint_O; // 18 flops
-        const Vec3 displacement_M = springPos_M - nearestPoint_M; // 3 flops
-        const Real x              = displacement_M.norm(); // ~40 flops
-        if (x == 0)
+        const Vec3 overlap_M      = springPos_M - nearestPoint_M; // 3 flops
+        const Real overlap        = overlap_M.norm(); // ~40 flops
+
+        // If there is no overlap we can't generate forces.
+        if (overlap == 0)
             continue;
-        const UnitVec3 normal_M(displacement_M/x, true); // ~15 flops
+
+        // The surfaces are compressed by total amount "overlap".
+        const UnitVec3 normal_M(overlap_M/overlap, true); // ~15 flops
 
         // Calculate the contact point location based on the relative 
         // squishiness of the two surfaces. The mesh deformation fraction (0-1)
@@ -1072,14 +1189,15 @@ processOneMesh
         // contact point will be at the undeformed mesh face centroid; at 1 
         // (other body rigid) it will be at the (undeformed) nearest point on 
         // the other body.
-
-        const Vec3 contactPt_M = springPos_M            // 6 flops
-                                 - meshDeformationFraction*displacement_M;
+        const Real meshSquish = meshDeformationFraction*overlap; // mesh displacement
+        // Remember that the normal points towards the exterior of this mesh.
+        const Vec3 contactPt_M = springPos_M - meshSquish*normal_M; // 6 flops
         
         // Calculate the relative velocity of the two bodies at the contact 
         // point. We're considering the mesh M fixed, so we just need the 
         // velocity in M of the station of O that is coincident with the 
         // contact point.
+
         // O station, exp. in M
         const Vec3 contactPtO_M = contactPt_M - pMO;    // 3 flops 
 
@@ -1088,16 +1206,17 @@ processOneMesh
         // Velocity of other at contact point is opposite direction of normal
         // when penetration is increasing.
         const Vec3 vel = vMO + wMO % contactPtO_M;      // 12 flops
-        // Want xdot > 0 when x is increasing; normal points the other way.
-        // (xdot is signed penetration rate).
-        const Real xdot = -dot(vel, normal_M);          // 6 flops
-        const Vec3 velNormal  = -xdot*normal_M;         // 4 flops
+
+        // Want odot > 0 when overlap is increasing; normal points the 
+        // other way. odot is signed penetration (overlap) rate.
+        const Real odot = -dot(vel, normal_M);          // 6 flops
+        const Vec3 velNormal  = -odot*normal_M;         // 4 flops
         const Vec3 velTangent = vel-velNormal;          // 3 flops
         
-        // Calculate scalar normal force                (5 flops)
-        const Real fK = k*faceArea*x;   // normal elastic force (conservative)
-        const Real fC = fK*c*xdot;      // normal dissipation force (loss)
-        const Real fNormal = fK + fC;   // normal force
+        // Calculate scalar normal force                  (5 flops)
+        const Real fK = k*faceArea*overlap; // normal elastic force (conservative)
+        const Real fC = fK*c*odot;          // normal dissipation force (loss)
+        const Real fNormal = fK + fC;       // normal force
 
         // Total force can be negative under unusual circumstances ("yanking");
         // that means no force is generated and no stored PE will be recovered.
@@ -1110,11 +1229,11 @@ processOneMesh
         }
 
         // 12 flops in this series.
-        const Vec3 forceK          = fK*normal_M; // as applied to other surf
+        const Vec3 forceK          = fK*normal_M;   // as applied to other surf
         const Vec3 forceC          = fC*normal_M;
-        const Real PE              = fK*x/2;      // 1/2 kAx^2
-        const Real powerC          = fC*xdot;     // rate of energy loss, >= 0
-        const Vec3 forceNormal = forceK + forceC;
+        const Real PE              = fK*overlap/2;  // 1/2 kAx^2
+        const Real powerC          = fC*odot;       // rate of energy loss, >= 0
+        const Vec3 forceNormal     = forceK + forceC;
 
         // This is the moment r X f about the resultant point produced by 
         // applying this pure force at the contact point. Cost ~60 flops.
@@ -1160,7 +1279,23 @@ processOneMesh
         // actually lose energy because the deformed material isn't allowed to 
         // push back on us so the energy is lost to surface vibrations or some
         // other unmodeled effect.
-        powerLoss += (powerC + powerFriction);  // 2 flops
+        const Real powerLossThisElement = powerC + powerFriction; // 1 flop
+        powerLoss += powerLossThisElement;                        // 1 flop
+
+        if (wantDetails) {
+            contactDetails_M->push_back();
+            ContactDetail& detail = contactDetails_M->back();
+            detail.m_contactPt          = contactPt_M;
+            detail.m_patchNormal        = normal_M;
+            detail.m_slipVelocity       = velTangent;
+            detail.m_forceOnSurface2    = forceTotal;
+            detail.m_deformation        = overlap;
+            detail.m_deformationRate    = odot;
+            detail.m_patchArea          = faceArea;
+            detail.m_peakPressure       = (faceArea != 0 ? fNormal/faceArea : Real(0));
+            detail.m_potentialEnergy    = PE;
+            detail.m_powerLoss          = powerLossThisElement;
+        }
     }
 }
 

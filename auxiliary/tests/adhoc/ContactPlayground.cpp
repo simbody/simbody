@@ -90,6 +90,30 @@ public:
             momLine.setLineThickness(2*momThickness);
             m_viz.addEphemeralDecoration(frcLine);
             m_viz.addEphemeralDecoration(momLine);
+
+            ContactPatch patch;
+            const bool found = m_compliant.calcContactPatchDetailsById(state,id,patch);
+            //cout << "patch for id" << id << " found=" << found << endl;
+            //cout << "resultant=" << patch.getContactForce() << endl;
+            //cout << "num details=" << patch.getNumDetails() << endl;
+            for (int i=0; i < patch.getNumDetails(); ++i) {
+                const ContactDetail& detail = patch.getContactDetail(i);
+                const Real peakPressure = detail.getPeakPressure();
+                // Make a black line from the element's contact point in the normal
+                // direction, with length proportional to log(peak pressure)
+                // on that element. 
+                DecorativeLine normal(detail.getContactPoint(),
+                    detail.getContactPoint()+ std::log10(peakPressure)
+                                                * detail.getContactNormal());
+                normal.setColor(Black);
+                m_viz.addEphemeralDecoration(normal);
+                // Make a red line that extends from the contact
+                // point in the direction of the slip velocity, of length 3*slipvel.
+                DecorativeLine slip(detail.getContactPoint(),
+                    detail.getContactPoint()+3*detail.getSlipVelocity());
+                slip.setColor(Red);
+                m_viz.addEphemeralDecoration(slip);
+            }
         }
     }
 
@@ -128,18 +152,14 @@ int main() {
     MultibodySystem         system;
     SimbodyMatterSubsystem  matter(system);
     GeneralForceSubsystem   forces(system);
-    Force::UniformGravity   gravity(forces, matter, 1*Vec3(2, -9.8, 0));
+    Force::Gravity   gravity(forces, matter, UnitVec3(2,-10,0), 1);
 
     ContactTrackerSubsystem  tracker(system);
     CompliantContactSubsystem contactForces(system, tracker);
+    contactForces.setTransitionVelocity(1e-3);
 
     GeneralContactSubsystem OLDcontact(system);
     const ContactSetIndex OLDcontactSet = OLDcontact.createContactSet();
-
-
-
-
-    contactForces.setTransitionVelocity(1e-3);
 
 
     PolygonalMesh pyramidMesh;
@@ -148,7 +168,7 @@ int main() {
     //pyramidMesh.transformMesh(Rotation(Pi/4, UnitVec3(-1,0,1)));
     //makePyramid(1, pyramidMesh);
     //makeOctahedron(1, pyramidMesh);
-    makeSphere(1, 3, pyramidMesh);
+    makeSphere(1, 4, pyramidMesh);
 
     ContactGeometry::TriangleMesh pyramid(pyramidMesh);
     DecorativeMesh showPyramid(pyramid.createPolygonalMesh());
@@ -159,7 +179,7 @@ int main() {
         DecorativeLine(pyramid.findCentroid(fx),
                        pyramid.findCentroid(fx)
                            + NormalLength*pyramid.getFaceNormal(fx)));
-
+    // not displaying mesh normals at the moment
 
     ContactCliqueId clique1 = ContactSurface::createNewContactClique();
     ContactCliqueId clique2 = ContactSurface::createNewContactClique();
@@ -172,7 +192,7 @@ int main() {
 
     // Right hand wall
     matter.Ground().updBody().addDecoration(Vec3(.25+.01,0,0),
-        DecorativeBrick(Vec3(.01,4,2)).setColor(Gray).setOpacity(.1));
+        DecorativeBrick(Vec3(.01,4,8)).setColor(Gray).setOpacity(.1));
     matter.Ground().updBody().addContactSurface(Vec3(.25,0,0),
         ContactSurface(ContactGeometry::HalfSpace(),
                        ContactMaterial(fK*.01,fDis*.9,fFac*.8,fFac*.7,fVis*10))
@@ -182,7 +202,7 @@ int main() {
     const Rotation R_xdown(-Pi/2,ZAxis);
     matter.Ground().updBody().addDecoration(
         Transform(R_xdown, Vec3(0,-3-.01,0)),
-        DecorativeBrick(Vec3(.01,4,2)).setColor(Gray).setOpacity(.1));
+        DecorativeBrick(Vec3(.01,4,8)).setColor(Gray).setOpacity(.1));
     matter.Ground().updBody().addContactSurface(
         Transform(R_xdown, Vec3(0,-3,0)),
         ContactSurface(ContactGeometry::HalfSpace(),
@@ -208,7 +228,7 @@ int main() {
         DecorativeSphere(rad).setOpacity(.2));
     pendulumBody1.addContactSurface(Transform(),
         ContactSurface(ContactGeometry::Sphere(rad),
-                       ContactMaterial(fK*.001,fDis*.9,fFac*.8,fFac*.7,fVis*10))
+                       ContactMaterial(fK*.01,fDis*.9,fFac*.8,fFac*.7,fVis*10))
                        .joinClique(clique2));
 
     Body::Rigid pendulumBody2(MassProperties(1.0, Vec3(0), Inertia(1)));
@@ -233,7 +253,7 @@ int main() {
     pendulumBody3.addDecoration(Transform(), 
         DecorativeMesh(mesh3).setOpacity(.2));
     pendulumBody3.addDecoration(Transform(), 
-        DecorativeMesh(mesh3).setColor(Black)
+        DecorativeMesh(mesh3).setColor(Gray)
                    .setRepresentation(DecorativeGeometry::DrawWireframe)
                    .setOpacity(.1));
 
@@ -259,7 +279,7 @@ int main() {
     ballBody.addDecoration(Transform(), 
         showPyramid.setColor(Cyan).setOpacity(.2));
     ballBody.addDecoration(Transform(), 
-        showPyramid.setColor(Black)
+        showPyramid.setColor(Gray)
                    .setRepresentation(DecorativeGeometry::DrawWireframe));
     //for (unsigned i=0; i < normals.size(); ++i)
     //    ballBody.addDecoration(Transform(),
@@ -312,17 +332,19 @@ int main() {
     pendulum3.setOneQ(state, 0, -Pi/4);
 
     viz.report(state);
-    printf("Default state -- hit ENTER\n");
+    printf("Default state\n");
     cout << "t=" << state.getTime() 
          << " q=" << pendulum.getQAsVector(state) << pendulum2.getQAsVector(state) 
          << " u=" << pendulum.getUAsVector(state) << pendulum2.getUAsVector(state) 
          << endl;
+    cout << "Hit ENTER to simulate:\n";
     char c=getchar();
 
 
     pendulum.setOneU(state, 0, 5.0);
     ball.setOneU(state, 2, -20);
 
+    ball.setOneU(state, 0, .05); // to break symmetry
     
     // Simulate it.
     const clock_t start = clock();
@@ -360,6 +382,7 @@ int main() {
             viz.report(saveEm[i]);
             //vtk.report(saveEm[i]); // half speed
         }
+        cout << "Hit ENTER to animate again\n";
         getchar();
     }
 
