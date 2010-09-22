@@ -482,8 +482,24 @@ public:
 
     /// Expert use only: obtain a column of the hinge matrix H corresponding to
     /// one of this mobilizer's mobilities (actually a column of H_PB_G; what
-    /// what Jain calls H* and Schwieters calls H^T).
-    SpatialVec getHCol(const State& s, UIndex ux) const;
+    /// Jain calls H* and Schwieters calls H^T). This is the matrix that maps
+    /// generalized speeds u to the cross-body relative spatial velocity V_PB_G
+    /// via V_PB_G=H*u. Note that although H relates child body B to parent
+    /// body B, it is expressed in the ground frame G so the resulting cross-
+    /// body velocity of B in P is also expressed in G. The supplied state must 
+    /// have been realized through Position stage because H varies with this 
+    /// mobilizer's generalized coordinates q.
+    /// @see getH_FMCol()
+    SpatialVec getHCol(const State& s, MobilizerUIndex ux) const;
+
+    /// Expert use only: obtain a column of the mobilizer-local hinge matrix
+    /// H_FM which maps generalized speeds u to cross-mobilizer spatial
+    /// velocity V_FM via V_FM=H_FM*u. Note that H and V here are expressed
+    /// in the parent body's (inboard) frame F. The supplied state must have
+    /// been realized through Position stage because H varies with this 
+    /// mobilizer's generalized coordinates q.
+    /// @see getHCol()
+    SpatialVec getH_FMCol(const State& s, MobilizerUIndex ux) const;
 
     // End of State Access Methods.
     //@} 

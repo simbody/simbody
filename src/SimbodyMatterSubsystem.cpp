@@ -259,6 +259,28 @@ calcPt(const State& s, Matrix& Pt) const {
     return getRep().calcHolonomicVelocityConstraintMatrixPt(s,Pt);
 }
 
+
+void SimbodyMatterSubsystem::
+calcGt(const State& s, Matrix& Gt) const {
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int mHolo    = rep.getNumHolonomicConstraintEquationsInUse(s);
+    const int mNonholo = rep.getNumNonholonomicConstraintEquationsInUse(s);
+    const int mAccOnly = rep.getNumAccelerationOnlyConstraintEquationsInUse(s);
+    const int ma = mHolo+mNonholo+mAccOnly;
+    const int nq       = rep.getNQ(s);
+    const int nu       = rep.getNU(s);
+
+    Gt.resize(nu,ma);
+
+    if (ma==0 || nu==0)
+        return;
+
+    // Fill in all the columns of Gt
+    rep.calcHolonomicVelocityConstraintMatrixPt(s, Gt(0,     0,          nu, mHolo));
+    rep.calcNonholonomicConstraintMatrixVt     (s, Gt(0,   mHolo,        nu, mNonholo));
+    rep.calcAccelerationOnlyConstraintMatrixAt (s, Gt(0, mHolo+mNonholo, nu, mAccOnly));
+}
+
 void SimbodyMatterSubsystem::calcCompositeBodyInertias(const State& s,
     Vector_<SpatialMat>& R) const
 {

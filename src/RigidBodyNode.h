@@ -575,7 +575,11 @@ virtual void setVelFromSVel(const SBStateDigest&,
                             const SpatialVec&, Vector& u) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "setVelFromSVel");}
 
 // Note that this requires columns of H to be packed like SpatialVec.
-virtual const SpatialVec& getHCol(const SBTreePositionCache&, int j) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getHCol");}
+virtual const SpatialVec& getHCol(const SBTreePositionCache&, int j) const 
+{SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getHCol");}
+
+virtual const SpatialVec& getH_FMCol(const SBTreePositionCache&, int j) const 
+{SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getH_FMCol");}
 
 //TODO (does this even belong here?)
 virtual void velFromCartesian() {}

@@ -274,11 +274,15 @@ public:
         return getMyRigidBodyNode().getV_FM(vc);
     }
 
-    SpatialVec getHCol(const State& s, UIndex ux) const {
+    SpatialVec getHCol(const State& s, MobilizerUIndex ux) const {
         const SBTreePositionCache& pc = getMyMatterSubsystemRep().getTreePositionCache(s);
         return getMyRigidBodyNode().getHCol(pc,ux);
     }
 
+    SpatialVec getH_FMCol(const State& s, MobilizerUIndex ux) const {
+        const SBTreePositionCache& pc = getMyMatterSubsystemRep().getTreePositionCache(s);
+        return getMyRigidBodyNode().getH_FMCol(pc,ux);
+    }
 
     void invalidateTopologyCache() const {
         delete myRBnode; myRBnode=0;

@@ -575,6 +575,12 @@ const SpatialVec& getHCol(const SBTreePositionCache& pc, int j) const {
     return getH(pc)(j);
 }
 
+// Get a column of H_FM the local cross-mobilizer hinge matrix expressed in the
+// parent (inboard) mobilizer frame F.
+const SpatialVec& getH_FMCol(const SBTreePositionCache& pc, int j) const {
+    return getH_FM(pc)(j);
+}
+
 // Access to body-oriented state and cache entries is the same for all nodes,
 // and joint oriented access is almost the same but parametrized by dof. There is a special
 // case for quaternions because they use an extra state variable, and although we don't
