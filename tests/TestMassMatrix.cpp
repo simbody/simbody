@@ -449,8 +449,8 @@ void testCompositeInertia() {
 
     // Should be able to recover these inertias by projecting the composite
     // body inertias onto the joint axes using H matrices.
-    const SpatialVec H1 = body1.getHCol(state, UIndex(0));
-    const SpatialVec H2 = body2.getHCol(state, UIndex(0));
+    const SpatialVec H1 = body1.getHCol(state, MobilizerUIndex(0));
+    const SpatialVec H2 = body2.getHCol(state, MobilizerUIndex(0));
     SimTK_TEST_EQ(~H2*R[2]*H2, expInertia2);
     SimTK_TEST_EQ(~H1*R[1]*H1, expInertia1);
 
