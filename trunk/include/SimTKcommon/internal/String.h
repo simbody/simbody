@@ -293,12 +293,12 @@ bool tryConvertStringTo(const String& value, T& out) {
 // leading and trailing white space. Of course this is not useful for 
 // anything but may occur as a result of some higher-level templatized 
 // method that doesn't know what type it is converting here.
-template<> inline static
+template<> inline
 bool tryConvertStringTo(const String& value, String& out)
 {   out = value; return true; }
 
 // Same as above but for std::string output rather than String.
-template<> inline static
+template<> inline
 bool tryConvertStringTo(const String& value, std::string& out)
 {   out = value; return true; }
 
