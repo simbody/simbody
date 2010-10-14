@@ -59,6 +59,9 @@ SET( BUILD_TESTING ON CACHE BOOL
 SET( BUILD_EXAMPLES ON CACHE BOOL
 	"Control building of Simbody example programs.")
 
+# Set whether to build the visualization code.
+SET(BUILD_VISUALIZATION OFF CACHE BOOL "Control building of visualization component")
+
 # Turning this off reduces the build time (and space) substantially,
 # but you may miss the occasional odd bug. Also currently on Windows it
 # is easier to debug the static tests than the DLL-liked ones.
@@ -73,6 +76,9 @@ SET( BUILD_TESTING_SHARED ON CACHE BOOL
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
 # (Only "./src" currently.)
 SET(SIMBODY_SOURCE_SUBDIRS .)
+IF (BUILD_VISUALIZATION)
+    SET(SIMBODY_SOURCE_SUBDIRS ${SIMBODY_SOURCE_SUBDIRS} Visualization)
+ENDIF (BUILD_VISUALIZATION)
 
 # 
 # Make sure "sandbox" input & output directories are set. During
@@ -507,3 +513,6 @@ IF( BUILD_TESTING )
   ADD_SUBDIRECTORY( tests )
 ENDIF( BUILD_TESTING )
 
+IF (BUILD_VISUALIZATION)
+  ADD_SUBDIRECTORY(Visualization/VisualizationGUI)
+ENDIF (BUILD_VISUALIZATION)
