@@ -2,6 +2,9 @@
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #else
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h>
+#include <GL/glext.h>
 #include <GL/glut.h>
 #endif
 #include <pthread.h>
@@ -315,10 +318,10 @@ void* listenForInput(void* args) {
     return 0;
 }
 
-int main(int argc, char* argv) {
+int main(int argc, char** argv) {
     // Initialize GLUT.
 
-    glutInit(&argc, &argv);
+    glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
     glutInitWindowPosition(100,100);
     glutInitWindowSize(320,320);

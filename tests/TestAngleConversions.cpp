@@ -74,7 +74,8 @@ int main() {
         s.updQ()[i] = random.getValue();
     mbs.realize(s, Stage::Instance);
     // The only constraints are the quaternions -- normalize them.
-    mbs.project(s, 0.01, Vector(s.getNY(),1), Vector(s.getNYErr(),1), Vector());
+    Vector temp;
+    mbs.project(s, 0.01, Vector(s.getNY(),1), Vector(s.getNYErr(),1), temp);
     mbs.realize(s, Stage::Position);
     
     // Convert to Euler angles and make sure the positions are all the same.
@@ -101,7 +102,8 @@ int main() {
     
     // Compare the state variables to see if they have been accurately reproduced.
     
-    mbs.project(s, 0.01, Vector(s.getNY()), Vector(s.getNYErr()), Vector(s.getNY())); // Normalize the quaternions
+    Vector temp2(s.getNY());
+    mbs.project(s, 0.01, Vector(s.getNY()), Vector(s.getNYErr()), temp2); // Normalize the quaternions
     Real diff = std::sqrt((s.getQ()-quaternions.getQ()).normSqr()/s.getNQ());
     ASSERT(diff < 1e-5);
 

@@ -184,7 +184,8 @@ void createState(MultibodySystem& system, State& state, const Vector& y=Vector()
             state.updY()[i] = random.getValue();
     }
     system.realize(state, Stage::Velocity);
-    system.project(state, TOL, Vector(state.getNY(), 1), Vector(state.getNYErr(), 1), Vector(state.getNY()));
+    Vector temp(state.getNY());
+    system.project(state, TOL, Vector(state.getNY(), 1), Vector(state.getNYErr(), 1), temp);
     system.realize(state, Stage::Acceleration);
 }
 

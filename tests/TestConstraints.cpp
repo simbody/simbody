@@ -81,7 +81,8 @@ void createState(MultibodySystem& system, State& state, const Vector& qOverride=
         state.updQ() = qOverride;
     system.realize(state, Stage::Velocity);
 
-    system.project(state, ConstraintTol, Vector(state.getNY(), 1), Vector(state.getNYErr(), 1), Vector(state.getNY()));
+    Vector temp(state.getNY());
+    system.project(state, ConstraintTol, Vector(state.getNY(), 1), Vector(state.getNYErr(), 1), temp);
     system.realize(state, Stage::Acceleration);
 }
 
