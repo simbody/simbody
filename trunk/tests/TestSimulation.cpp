@@ -602,7 +602,8 @@ void testOne() {
 
         // 3a. Project position-dependent constraints.
         sys.realize(state, Stage::Position);
-        sys.project(state, accuracy, weights, ooTols, Vector(), System::ProjectOptions::PositionOnly);
+        Vector temp;
+        sys.project(state, accuracy, weights, ooTols, temp, System::ProjectOptions::PositionOnly);
 
         // 3b. Handle position-dependent events.
         findEvents(state, Stage::Position, triggers0, triggered);
@@ -611,7 +612,7 @@ void testOne() {
 
         // 4a. Project velocity-dependent constraints.
         sys.realize(state, Stage::Velocity);
-        sys.project(state, accuracy, weights, ooTols, Vector(), System::ProjectOptions::VelocityOnly);
+        sys.project(state, accuracy, weights, ooTols, temp, System::ProjectOptions::VelocityOnly);
 
         // 4b. Handle velocity-dependent events.
         findEvents(state, Stage::Velocity, triggers0, triggered);
