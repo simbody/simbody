@@ -253,7 +253,8 @@ dpdxFunc(int nparam,int j,double *x,double *dpdx,
     // TODO; support numerical gradients
     CFSQPOptimizer *cfsqp = (CFSQPOptimizer *)cd;
     int nx=cfsqp->getOptimizerSystem().getNumParameters();
-    cfsqp->getOptimizerSystem().gradientFunc(Vector(nx,x,true),true,Vector(nx,dpdx,true));
+    Vector temp(nx,dpdx,true);
+    cfsqp->getOptimizerSystem().gradientFunc(Vector(nx,x,true),true,temp);
 }
 
 //______________________________________________________________________________
@@ -282,7 +283,8 @@ dcdxFunc(int nparam,int j,double *x,double *dcdx,
 	int nx=cfsqp->getOptimizerSystem().getNumParameters();
 	int nc=cfsqp->getOptimizerSystem().getNumConstraints();
     // special wrapper to deal with caching
-	cfsqp->computeConstraintGradient(Vector(nx,x,true),true,Vector(nx,dcdx,true),j-1);
+        Vector temp(nx,dcdx,true);
+	cfsqp->computeConstraintGradient(Vector(nx,x,true),true,temp,j-1);
 }
 
 //=============================================================================

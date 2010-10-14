@@ -25,6 +25,7 @@
 #include "Simmath_f2c.h"
 #include "LBFGSBOptimizer.h"
 #include "SimTKcommon/internal/common.h"
+#include <cstring>
 
 using std::cout;
 using std::endl;

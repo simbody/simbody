@@ -653,8 +653,9 @@ protected:
     // an exception if it fails. Updates stats.
     void projectStateNonLocal(State& s, System::ProjectOptions opts=System::ProjectOptions::All) {
         ++statsProjections; ++statsProjectionFailures;
+        Vector temp;
         getSystem().project(s,
-            consTol,getDynamicSystemWeights(),getDynamicSystemOneOverTolerances(),Vector(),opts);
+            consTol,getDynamicSystemWeights(),getDynamicSystemOneOverTolerances(),temp,opts);
         --statsProjectionFailures;
     }
 

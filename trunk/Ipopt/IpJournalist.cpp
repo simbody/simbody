@@ -9,6 +9,7 @@
 #include "IpoptConfig.h"
 #include "IpJournalist.hpp"
 #include "IpDebug.hpp"
+#include <cstring>
 
 #ifdef HAVE_CSTDIO
 # include <cstdio>

@@ -75,7 +75,8 @@ void AbstractIntegratorRep::createInterpolatedState(Real t) {
 
     // No error estimate to project here; just pass an empty Vector.
     // Local projection only is allowed; we should be close to the manifold.
-    projectStateAndErrorEstimate(interp, Vector());
+    Vector temp;
+    projectStateAndErrorEstimate(interp, temp);
 }
 
 Integrator::SuccessfulStepStatus 
@@ -588,7 +589,8 @@ void AbstractIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
 
     // No error estimate to project here; just pass an empty Vector. Local
     // projection only is allowed; we should be close to the manifold.
-    projectStateAndErrorEstimate(advanced, Vector());
+    Vector temp;
+    projectStateAndErrorEstimate(advanced, temp);
 }
 
 Real AbstractIntegratorRep::getActualInitialStepSizeTaken() const {

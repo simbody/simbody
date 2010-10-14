@@ -33,6 +33,7 @@
 #include "SimTKmath.h"
 #include "LapackInterface.h"
 #include "WorkSpace.h"
+#include <cstring>
 
 static const double EPS = .000001;
 namespace SimTK {

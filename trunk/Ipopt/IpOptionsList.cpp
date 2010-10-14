@@ -8,6 +8,7 @@
 
 #include "IpoptConfig.h"
 #include "IpOptionsList.hpp"
+#include <cstdlib>
 
 #ifdef HAVE_CCTYPE
 # include <cctype>

@@ -88,7 +88,8 @@ void ExplicitEulerIntegratorRep::createInterpolatedState(Real t) {
 
     // No error estimate to project here; just pass an empty Vector. Local
     // projection only is allowed; we should be close to the manifold.
-    projectStateAndErrorEstimate(interp, Vector());
+    Vector temp;
+    projectStateAndErrorEstimate(interp, temp);
 }
 
 // Note that ExplicitEuler overrides the entire DAE step because it can't use
@@ -123,7 +124,8 @@ bool ExplicitEulerIntegratorRep::attemptDAEStep
         || consErrAfterODE > getConstraintToleranceInUse()) 
     {
         try {
-            projectStateAndErrorEstimate(advanced, Vector());
+            Vector temp;
+            projectStateAndErrorEstimate(advanced, temp);
         } catch (...) {
             return false; // projection failed
         }
@@ -172,7 +174,8 @@ void ExplicitEulerIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
 
     // No error estimate to project here; just pass an empty Vector. Local
     // projection only is allowed; we should be close to the manifold.
-    projectStateAndErrorEstimate(advanced, Vector());
+    Vector temp;
+    projectStateAndErrorEstimate(advanced, temp);
 }
 
 
