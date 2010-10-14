@@ -288,7 +288,7 @@ driven below tolerance for an assembly to be considered successful. **/
 AssemblyConditionIndex 
     adoptAssemblyError(AssemblyCondition* p);
 /** Add an assembly goal to this Assembler study, taking over ownership
-of the heap-allocated AssemblyCondition object. We will use noramlly use the 
+of the heap-allocated AssemblyCondition object. We will use normally use the 
 calcGoal() method of this object to calculate its contribution to the 
 assembly goal cost function. An optional weight can be provided that is used
 when combining this cost with those of other goals to form the overall cost
