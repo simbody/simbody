@@ -1,6 +1,11 @@
 # Generate the Visualization GUI application.
 
-INCLUDE (FindGLUT)
+IF (WIN32)
+  SET(GLUT_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/glut32.lib)
+  INSTALL(FILES glut32.dll glut32.lib DESTINATION ${SimTK_INSTALL_PREFIX}/lib)
+ELSE (WIN32)
+  INCLUDE (FindGLUT)
+ENDIF (WIN32)
 INCLUDE (FindOpenGL)
 SET(GUI_NAME "VisualizationGUI")
 INCLUDE_DIRECTORIES(${SimTK_SDK}/include)

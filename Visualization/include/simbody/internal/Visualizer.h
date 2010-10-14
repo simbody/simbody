@@ -43,6 +43,7 @@ public:
     void drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec3& color) const;
 private:
     void drawMesh(const Transform& transform, const Vec3& scale, const Vec3& color, int meshIndex) const;
+    int outPipe;
 };
 
 } // namespace SimTK

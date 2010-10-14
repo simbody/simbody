@@ -1,14 +1,27 @@
 #include "SimTKcommon.h"
-#ifdef __APPLE__
-#include <GLUT/glut.h>
+#ifdef _WIN32
+    #include <windows.h>
+    #include <io.h>
+    #include <GL/gl.h>
+    #include "glext.h"
+    #include "glut.h"
+    #define READ _read
+    PFNGLGENBUFFERSPROC glGenBuffers;
+    PFNGLBINDBUFFERPROC glBindBuffer;
+    PFNGLBUFFERDATAPROC glBufferData;
 #else
-#define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
-#include <GL/glext.h>
-#include <GL/glut.h>
+    #include <unistd.h>
+    #ifdef __APPLE__
+        #include <GLUT/glut.h>
+    #else
+        #define GL_GLEXT_PROTOTYPES
+        #include <GL/gl.h>
+        #include <GL/glext.h>
+        #include <GL/glut.h>
+    #endif
+    #define READ read
 #endif
 #include <pthread.h>
-#include <unistd.h>
 #include <vector>
 #include <stdio.h>
 using namespace SimTK;
@@ -75,7 +88,7 @@ static int clickModifiers;
 static int clickButton;
 static int clickX;
 static int clickY;
-static int pipes[2];
+static int inPipe = 0;
 static bool needRedisplay;
 
 static const char START_OF_SCENE = 0;
@@ -277,7 +290,7 @@ static void makeSphere() {
 void readData(char* buffer, int bytes) {
     int totalRead = 0;
     while (totalRead < bytes)
-        totalRead += fread(buffer+totalRead, 1, bytes-totalRead, stdin);
+        totalRead += READ(inPipe, buffer+totalRead, bytes-totalRead);
 }
 
 void* listenForInput(void* args) {
@@ -331,6 +344,14 @@ int main(int argc, char** argv) {
     glutMouseFunc(mousePressed);
     glutMotionFunc(mouseDragged);
     glutTimerFunc(33, animateDisplay, 0);
+
+    // Initialize the input pipe and, on Windows, function pointers.
+#ifdef _WIN32
+    stringstream(argv[0]) >> inPipe;
+    PFNGLGENBUFFERSPROC glGenBuffers = (PFNGLGENBUFFERSPROC) wglGetProcAddress("glGenBuffers");
+    PFNGLBINDBUFFERPROC glBindBuffer = (PFNGLBINDBUFFERPROC) wglGetProcAddress("glBindBuffer");
+    PFNGLBUFFERDATAPROC glBufferData = (PFNGLBUFFERDATAPROC) wglGetProcAddress("glBufferData");
+#endif
 
     // Set up lighting.
 
