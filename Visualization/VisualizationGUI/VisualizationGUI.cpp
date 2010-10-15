@@ -345,12 +345,14 @@ int main(int argc, char** argv) {
     glutMotionFunc(mouseDragged);
     glutTimerFunc(33, animateDisplay, 0);
 
-    // Initialize the input pipe and, on Windows, function pointers.
+    // On Windows, read the input pipe number from the first
+    // command line argument, and initialize function pointers
+    // for GL "extensions".
 #ifdef _WIN32
-    stringstream(argv[0]) >> inPipe;
-    PFNGLGENBUFFERSPROC glGenBuffers = (PFNGLGENBUFFERSPROC) wglGetProcAddress("glGenBuffers");
-    PFNGLBINDBUFFERPROC glBindBuffer = (PFNGLBINDBUFFERPROC) wglGetProcAddress("glBindBuffer");
-    PFNGLBUFFERDATAPROC glBufferData = (PFNGLBUFFERDATAPROC) wglGetProcAddress("glBufferData");
+    stringstream(argv[1]) >> inPipe;
+    glGenBuffers = (PFNGLGENBUFFERSPROC) wglGetProcAddress("glGenBuffers");
+    glBindBuffer = (PFNGLBINDBUFFERPROC) wglGetProcAddress("glBindBuffer");
+    glBufferData = (PFNGLBUFFERDATAPROC) wglGetProcAddress("glBufferData");
 #endif
 
     // Set up lighting.
