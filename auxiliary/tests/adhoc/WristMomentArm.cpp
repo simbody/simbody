@@ -90,8 +90,6 @@
 #include <ctime>
 using std::cout; using std::endl;
 
-#include <process.h>
-
 using namespace SimTK;
 
 Array_<State> saveEm;
