@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_VISUALIZER_H_
-#define SimTK_SIMBODY_VISUALIZER_H_
+#ifndef SimTK_SIMBODY_VISUALIZATION_PROTOCOL_H_
+#define SimTK_SIMBODY_VISUALIZATION_PROTOCOL_H_
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
@@ -32,27 +32,19 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include <vector>
+/** @file
+ * This file defines commands that are used for communication between the main application
+ * and the visualization GUI.
+ */
 
-namespace SimTK {
+// Commands sent to the GUI.
 
-class VisualizationEventListener;
+static const char START_OF_SCENE = 0;
+static const char END_OF_SCENE = 1;
+static const char ADD_MESH = 2;
 
-class Visualizer {
-public:
-    Visualizer();
-    void beginScene() const;
-    void finishScene() const;
-    void drawBox(const Transform& transform, const Vec3& scale, const Vec3& color) const;
-    void drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec3& color) const;
-    void addEventListener(VisualizationEventListener* listener);
-    const std::vector<VisualizationEventListener*>& getEventListeners() const;
-private:
-    void drawMesh(const Transform& transform, const Vec3& scale, const Vec3& color, int meshIndex) const;
-    int outPipe;
-    std::vector<VisualizationEventListener*> listeners;
-};
+// Events sent from the GUI back to the application.
 
-} // namespace SimTK
+static const char KEY_PRESSED = 0;
 
-#endif // SimTK_SIMBODY_VISUALIZER_H_
+#endif // SimTK_SIMBODY_VISUALIZATION_PROTOCOL_H_

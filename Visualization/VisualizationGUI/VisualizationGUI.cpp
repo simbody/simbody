@@ -1,4 +1,6 @@
 #include "SimTKcommon.h"
+#include "simbody/internal/VisualizationProtocol.h"
+#include "simbody/internal/VisualizationEventListener.h"
 #ifdef _WIN32
     #include <windows.h>
     #include <io.h>
@@ -88,12 +90,8 @@ static int clickModifiers;
 static int clickButton;
 static int clickX;
 static int clickY;
-static int inPipe = 0;
+static int inPipe, outPipe;
 static bool needRedisplay;
-
-static const char START_OF_SCENE = 0;
-static const char END_OF_SCENE = 1;
-static const char ADD_MESH = 2;
 
 static void changeSize(int width, int height) {
     if (height == 0)
@@ -139,6 +137,22 @@ static void mouseDragged(int x, int y) {
         needRedisplay = true;
         pthread_mutex_unlock(&sceneLock);
     }
+}
+
+static void keyPressed(unsigned char key, int x, int y) {
+    char command = KEY_PRESSED;
+    write(outPipe, &command, 1);
+    unsigned char buffer[2];
+    buffer[0] = key;
+    buffer[1] = 0;
+    int modifiers = glutGetModifiers();
+    if ((modifiers & GLUT_ACTIVE_SHIFT) != 0)
+        buffer[1] += VisualizationEventListener::SHIFT_DOWN;
+    if ((modifiers & GLUT_ACTIVE_CTRL) != 0)
+        buffer[1] += VisualizationEventListener::CONTROL_DOWN;
+    if ((modifiers & GLUT_ACTIVE_ALT) != 0)
+        buffer[1] += VisualizationEventListener::ALT_DOWN;
+    write(outPipe, buffer, 2);
 }
 
 static void animateDisplay(int value) {
@@ -332,6 +346,9 @@ void* listenForInput(void* args) {
 }
 
 int main(int argc, char** argv) {
+    stringstream(argv[1]) >> inPipe;
+    stringstream(argv[2]) >> outPipe;
+
     // Initialize GLUT.
 
     glutInit(&argc, argv);
@@ -343,13 +360,11 @@ int main(int argc, char** argv) {
     glutReshapeFunc(changeSize);
     glutMouseFunc(mousePressed);
     glutMotionFunc(mouseDragged);
+    glutKeyboardFunc(keyPressed);
     glutTimerFunc(33, animateDisplay, 0);
 
-    // On Windows, read the input pipe number from the first
-    // command line argument, and initialize function pointers
-    // for GL "extensions".
+    // On Windows, initialize function pointers for GL "extensions".
 #ifdef _WIN32
-    stringstream(argv[1]) >> inPipe;
     glGenBuffers = (PFNGLGENBUFFERSPROC) wglGetProcAddress("glGenBuffers");
     glBindBuffer = (PFNGLBINDBUFFERPROC) wglGetProcAddress("glBindBuffer");
     glBufferData = (PFNGLBUFFERDATAPROC) wglGetProcAddress("glBufferData");

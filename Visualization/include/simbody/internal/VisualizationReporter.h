@@ -50,6 +50,7 @@ class SimTK_SIMBODY_EXPORT VisualizationReporter : public PeriodicEventReporter 
 public:
     VisualizationReporter(MultibodySystem& system, Real reportInterval);
     ~VisualizationReporter();
+    void addEventListener(VisualizationEventListener* listener);
     /**
      * Get the Visualizer which generates the images.  It may be used to configure the display.
      */

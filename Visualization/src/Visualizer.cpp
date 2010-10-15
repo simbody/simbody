@@ -1,20 +1,20 @@
 #include "SimTKsimbody.h"
 #include "simbody/internal/Visualizer.h"
+#include "simbody/internal/VisualizationProtocol.h"
+#include "simbody/internal/VisualizationEventListener.h"
 #include <cstdlib>
+#include <pthread.h>
 #include <sstream>
 #include <string>
 
 using namespace SimTK;
 using namespace std;
 
-static const char START_OF_SCENE = 0;
-static const char END_OF_SCENE = 1;
-static const char ADD_MESH = 2;
-
 #ifdef _WIN32
     #include <fcntl.h>
     #include <io.h>
     #include <process.h>
+    #define READ _read
 #else
     #include <spawn.h>
     #include <unistd.h>
@@ -24,37 +24,93 @@ static const char ADD_MESH = 2;
     #else
         extern char** environ;
     #endif
+    #define READ read
 #endif
+
+static int inPipe;
+
+static void readData(char* buffer, int bytes) {
+    int totalRead = 0;
+    while (totalRead < bytes)
+        totalRead += READ(inPipe, buffer+totalRead, bytes-totalRead);
+}
+
+static void* listenForVisualizationEvents(void* arg) {
+    Visualizer& visualizer = *reinterpret_cast<Visualizer*>(arg);
+    const vector<VisualizationEventListener*>& listeners = visualizer.getEventListeners();
+    char buffer[256];
+    float* floatBuffer = (float*) buffer;
+    unsigned short* shortBuffer = (unsigned short*) buffer;
+    while (true) {
+        // Receive an event.
+
+        readData(buffer, 1);
+        switch (buffer[0]) {
+            case KEY_PRESSED:
+                readData(buffer, 2);
+                for (int i = 0; i < (int) listeners.size(); i++)
+                    listeners[i]->keyPressed(buffer[0], buffer[1]);
+                break;
+            default:
+                SimTK_ASSERT_ALWAYS(false, "Unexpected data received from visualizer");
+        }
+    }
+    return 0;
+}
 
 namespace SimTK {
 
 Visualizer::Visualizer() {
+    // Launch the GUI application.
+
     char* GUI_APP_NAME = "VisualizationGUI";
     int pipes[2];
 #ifdef _WIN32
     int status = _pipe(pipes, 16384, _O_BINARY);
     SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to open pipe");
     outPipe = pipes[1];
+    stringstream outPipeString, inPipeString;
+    outPipeString << pipes[0];
+    status = _pipe(pipes, 16384, _O_BINARY);
+    SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to open pipe");
+    inPipe = pipes[0];
+    inPipeString << pipes[1];
     string path = Pathname::getInstallDir("SimTK_INSTALL_DIR", "SimTK")+"bin\\"+GUI_APP_NAME;
-    stringstream pipeString;
-    pipeString << pipes[0];
-    status = _spawnl(P_NOWAIT, path.c_str(), GUI_APP_NAME, pipeString.str().c_str(), NULL);
+    status = _spawnl(P_NOWAIT, path.c_str(), GUI_APP_NAME, outPipeString.str().c_str(), inPipeString.str().c_str(), NULL);
     SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to launch GUI");
 #else
     pid_t pid;
-    char* const argv[] = {GUI_APP_NAME, NULL};
     string path = Pathname::getInstallDir("SimTK_INSTALL_DIR", "SimTK")+"bin/"+GUI_APP_NAME;
     int status = pipe(pipes);
     SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to open pipe");
     outPipe = pipes[1];
+    stringstream outPipeString, inPipeString;
+    outPipeString << pipes[0];
+    char outPipeArg[100], inPipeArg[100];
+    outPipeString >> outPipeArg;
+    status = pipe(pipes);
+    SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to open pipe");
+    inPipe = pipes[0];
+    inPipeString << pipes[1];
+    inPipeString >> inPipeArg;
+    char* const argv[] = {GUI_APP_NAME, outPipeArg, inPipeArg, NULL};
     posix_spawn_file_actions_t fileActions;
-    status = posix_spawn_file_actions_init(&fileActions);
-    SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to launch GUI");
-    status = posix_spawn_file_actions_adddup2(&fileActions, pipes[0], 0);
-    SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to launch GUI");
-    status = posix_spawn(&pid, path.c_str(), &fileActions, NULL, argv, environ);
+    status = posix_spawn(&pid, path.c_str(), NULL, NULL, argv, environ);
     SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to launch GUI");
 #endif
+
+    // Spawn the thread to listen for events.
+
+    pthread_t thread;
+    pthread_create(&thread, NULL, listenForVisualizationEvents, this);
+}
+
+void Visualizer::addEventListener(VisualizationEventListener* listener) {
+    listeners.push_back(listener);
+}
+
+const vector<VisualizationEventListener*>& Visualizer::getEventListeners() const {
+    return listeners;
 }
 
 void Visualizer::beginScene() const {

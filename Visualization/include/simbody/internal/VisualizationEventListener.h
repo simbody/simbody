@@ -1,8 +1,8 @@
-#ifndef SimTK_SIMBODY_VISUALIZER_H_
-#define SimTK_SIMBODY_VISUALIZER_H_
+#ifndef SimTK_SIMBODY_VISUALIZATION_EVENT_LISTENER_H_
+#define SimTK_SIMBODY_VISUALIZATION_EVENT_LISTENER_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simbody(tm)                         *
+ *                      SimTK Core: SimTKcommon                               *
  * -------------------------------------------------------------------------- *
  * This is part of the SimTK Core biosimulation toolkit originating from      *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
@@ -32,27 +32,20 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include <vector>
+#include "simbody/internal/common.h"
 
 namespace SimTK {
 
-class VisualizationEventListener;
-
-class Visualizer {
+class SimTK_SIMBODY_EXPORT VisualizationEventListener {
 public:
-    Visualizer();
-    void beginScene() const;
-    void finishScene() const;
-    void drawBox(const Transform& transform, const Vec3& scale, const Vec3& color) const;
-    void drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec3& color) const;
-    void addEventListener(VisualizationEventListener* listener);
-    const std::vector<VisualizationEventListener*>& getEventListeners() const;
-private:
-    void drawMesh(const Transform& transform, const Vec3& scale, const Vec3& color, int meshIndex) const;
-    int outPipe;
-    std::vector<VisualizationEventListener*> listeners;
+    static const char SHIFT_DOWN = 1;
+    static const char CONTROL_DOWN = 2;
+    static const char ALT_DOWN = 4;
+    
+    virtual ~VisualizationEventListener();
+    virtual void keyPressed(char key, char modifiers) const;
 };
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_VISUALIZER_H_
+#endif // SimTK_SIMBODY_VISUALIZATION_EVENT_LISTENER_H_

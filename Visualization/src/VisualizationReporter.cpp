@@ -71,6 +71,10 @@ VisualizationReporter::~VisualizationReporter() {
         delete rep;
 }
 
+void VisualizationReporter::addEventListener(VisualizationEventListener* listener) {
+    updRep().visualizer.addEventListener(listener);
+}
+
 Visualizer& VisualizationReporter::updVisualizer() {
     return updRep().updVisualizer();
 }
