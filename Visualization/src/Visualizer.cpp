@@ -63,24 +63,23 @@ namespace SimTK {
 Visualizer::Visualizer() {
     // Launch the GUI application.
 
-    char* GUI_APP_NAME = "VisualizationGUI";
+    const char* GUI_APP_NAME = "VisualizationGUI";
+    const String path = Pathname::getInstallDir("SimTK_INSTALL_DIR", "SimTK")+"bin/"+GUI_APP_NAME;
+
     int pipes[2];
 #ifdef _WIN32
     int status = _pipe(pipes, 16384, _O_BINARY);
     SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to open pipe");
     outPipe = pipes[1];
-    stringstream outPipeString, inPipeString;
-    outPipeString << pipes[0];
+    String vizPipeToSim(pipes[0]); // convert pipe number to string
     status = _pipe(pipes, 16384, _O_BINARY);
     SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to open pipe");
     inPipe = pipes[0];
-    inPipeString << pipes[1];
-    string path = Pathname::getInstallDir("SimTK_INSTALL_DIR", "SimTK")+"bin\\"+GUI_APP_NAME;
-    status = _spawnl(P_NOWAIT, path.c_str(), GUI_APP_NAME, outPipeString.str().c_str(), inPipeString.str().c_str(), NULL);
+    String vizPipeFromSim(pipes[1]); // convert pipe number to string
+    status = _spawnl(P_NOWAIT, path.c_str(), GUI_APP_NAME, vizPipeToSim.c_str(), vizPipeFromSim.c_str(), NULL);
     SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to launch GUI");
 #else
     pid_t pid;
-    string path = Pathname::getInstallDir("SimTK_INSTALL_DIR", "SimTK")+"bin/"+GUI_APP_NAME;
     int status = pipe(pipes);
     SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to open pipe");
     outPipe = pipes[1];
