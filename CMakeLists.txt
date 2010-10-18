@@ -74,7 +74,6 @@ SET( BUILD_TESTING_SHARED ON CACHE BOOL
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
-# (Only "./src" currently.)
 SET(SIMBODY_SOURCE_SUBDIRS .)
 IF (BUILD_VISUALIZATION)
     SET(SIMBODY_SOURCE_SUBDIRS ${SIMBODY_SOURCE_SUBDIRS} Visualization)

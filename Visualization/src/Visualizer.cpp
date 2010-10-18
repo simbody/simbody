@@ -3,8 +3,8 @@
 #include "simbody/internal/VisualizationProtocol.h"
 #include "simbody/internal/VisualizationEventListener.h"
 #include <cstdlib>
+#include <cstdio>
 #include <pthread.h>
-#include <sstream>
 #include <string>
 
 using namespace SimTK;
@@ -28,6 +28,44 @@ using namespace std;
 #endif
 
 static int inPipe;
+
+// Create a pipe, using the right call for this platform.
+static int createPipe(int pipeHandles[2]) {
+    const int status =
+#ifdef _WIN32
+        _pipe(pipeHandles, 16384, _O_BINARY);
+#else
+        pipe(pipeHandles);
+#endif
+    return status;
+}
+
+// Spawn the visualizer GUI executable, using the right method for
+// this platform. We take two executables to try in order,
+// and return as soon as one of them fails. If neither works, we return
+// status -1, otherwise we return the status code from the successful
+// spawn.
+static int spawnViz(const char* localPath, const char* installPath,
+                    const char* appName, int toSimPipe, int fromSimPipe)
+{
+    int status;
+    char vizPipeToSim[32], vizPipeFromSim[32];
+    sprintf(vizPipeToSim, "%d", toSimPipe);
+    sprintf(vizPipeFromSim, "%d", fromSimPipe);
+#ifdef _WIN32
+    status = _spawnl(P_NOWAIT, localPath, appName, vizPipeToSim, vizPipeFromSim, NULL);
+    if (status == -1)
+        status = _spawnl(P_NOWAIT, installPath, appName, vizPipeToSim, vizPipeFromSim, NULL);
+#else
+    pid_t pid;
+    char* const argv[] = {appName, vizPipeToSim, vizPipeFromSim, NULL};
+    posix_spawn_file_actions_t fileActions;
+    status = posix_spawn(&pid, localPath), NULL, NULL, argv, environ);
+    if (status == -1)
+        status = posix_spawn(&pid, installPath, NULL, NULL, argv, environ);
+#endif
+    return status;
+}
 
 static void readData(char* buffer, int bytes) {
     int totalRead = 0;
@@ -61,42 +99,36 @@ static void* listenForVisualizationEvents(void* arg) {
 namespace SimTK {
 
 Visualizer::Visualizer() {
-    // Launch the GUI application.
+    // Launch the GUI application. We'll first look for one in the same directory
+    // as the running executable; then if that doesn't work we'll look in the 
+    // bin subdirectory of the SimTK installation.
 
-    const char* GUI_APP_NAME = "VisualizationGUI";
-    const String path = Pathname::getInstallDir("SimTK_INSTALL_DIR", "SimTK")+"bin/"+GUI_APP_NAME;
+    const char* GuiAppName = "VisualizationGUI";
+    const String localPath = Pathname::getThisExecutableDirectory() + GuiAppName;
+    const String installPath = 
+        Pathname::addDirectoryOffset(Pathname::getInstallDir("SimTK_INSTALL_DIR", "SimTK"), 
+                                     "bin") + GuiAppName;
 
-    int pipes[2];
-#ifdef _WIN32
-    int status = _pipe(pipes, 16384, _O_BINARY);
+    int sim2vizPipe[2], viz2simPipe[2], status;
+
+    // Create pipe pair for communication from simulator to visualizer.
+    status = createPipe(sim2vizPipe);
     SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to open pipe");
-    outPipe = pipes[1];
-    String vizPipeToSim(pipes[0]); // convert pipe number to string
-    status = _pipe(pipes, 16384, _O_BINARY);
+    outPipe = sim2vizPipe[1];
+
+    // Create pipe pair for communication from visualizer to simulator.
+    status = createPipe(viz2simPipe);
     SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to open pipe");
-    inPipe = pipes[0];
-    String vizPipeFromSim(pipes[1]); // convert pipe number to string
-    status = _spawnl(P_NOWAIT, path.c_str(), GUI_APP_NAME, vizPipeToSim.c_str(), vizPipeFromSim.c_str(), NULL);
-    SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to launch GUI");
-#else
-    pid_t pid;
-    int status = pipe(pipes);
-    SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to open pipe");
-    outPipe = pipes[1];
-    stringstream outPipeString, inPipeString;
-    outPipeString << pipes[0];
-    char outPipeArg[100], inPipeArg[100];
-    outPipeString >> outPipeArg;
-    status = pipe(pipes);
-    SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to open pipe");
-    inPipe = pipes[0];
-    inPipeString << pipes[1];
-    inPipeString >> inPipeArg;
-    char* const argv[] = {GUI_APP_NAME, outPipeArg, inPipeArg, NULL};
-    posix_spawn_file_actions_t fileActions;
-    status = posix_spawn(&pid, path.c_str(), NULL, NULL, argv, environ);
-    SimTK_ASSERT_ALWAYS(status != -1, "Visualizer: Failed to launch GUI");
-#endif
+    inPipe = viz2simPipe[0];
+
+    // Spawn the visualizer gui, trying local first then installed version.
+    status = spawnViz(localPath.c_str(), installPath.c_str(),
+                      GuiAppName, sim2vizPipe[0], viz2simPipe[1]);
+
+    // status==-1 means we failed to spawn either executable.
+    SimTK_ERRCHK2_ALWAYS(status != -1, "Visualizer::ctor()", 
+        "Unable to spawn the Visualization GUI; tried '%s' and '%s'.",
+        localPath.c_str(), installPath.c_str());
 
     // Spawn the thread to listen for events.
 
