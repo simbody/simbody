@@ -48,6 +48,9 @@ using std::tolower;
     #include <direct.h>
     #pragma warning(disable:4996) // getenv() is apparently unsafe
 #else
+    #ifdef __APPLE__
+        #include <mach-o/dyld.h>
+    #endif
     #include <dlfcn.h>
     #include <dirent.h>
     #include <unistd.h>
@@ -277,11 +280,15 @@ string Pathname::getInstallDir(const std::string& envInstallDir,
 }
 
 string Pathname::getThisExecutablePath() {
-    char buf[1024];
-    #ifdef _WIN32
+    char buf[2048];
+    #if defined(_WIN32)
         const DWORD nBytes = GetModuleFileName((HMODULE)0, (LPTSTR)buf, sizeof(buf));
         buf[0] = (char)tolower(buf[0]); // drive name
-    #else
+    #elif defined(__APPLE__)
+        uint32_t sz = (uint32_t)sizeof(buf);
+        int status = _NSGetExecutablePath(buf, &sz);
+        assert(status==0); // non-zero means path longer than buf, sz says what's needed
+    #else // Linux
         // This isn't automatically null terminated.
         const size_t nBytes = readlink("/proc/self/exe", buf, sizeof(buf));
         buf[nBytes] = '\0';
