@@ -46,11 +46,7 @@ void VisualizationGeometry::implementLineGeometry(const SimTK::DecorativeLine& g
 
 void VisualizationGeometry::implementBrickGeometry(const SimTK::DecorativeBrick& geom) {
     const Transform& transform  = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId())).getBodyTransform(state);
-    switch (getRepresentation(geom)) {
-        case DecorativeGeometry::DrawSurface:
-            visualizer.drawBox(geom.getTransform()*transform, geom.getHalfLengths(), getColor(geom));
-            break;
-    }
+    visualizer.drawBox(transform*geom.getTransform(), geom.getHalfLengths(), getColor(geom), getRepresentation(geom));
 }
 
 void VisualizationGeometry::implementCylinderGeometry(const SimTK::DecorativeCylinder& geom) {
@@ -63,20 +59,12 @@ void VisualizationGeometry::implementCircleGeometry(const SimTK::DecorativeCircl
 
 void VisualizationGeometry::implementSphereGeometry(const SimTK::DecorativeSphere& geom) {
     const Transform& transform  = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId())).getBodyTransform(state);
-    switch (getRepresentation(geom)) {
-        case DecorativeGeometry::DrawSurface:
-            visualizer.drawEllipsoid(geom.getTransform()*transform, Vec3(geom.getRadius()), getColor(geom));
-            break;
-    }
+    visualizer.drawEllipsoid(transform*geom.getTransform(), Vec3(geom.getRadius()), getColor(geom), getRepresentation(geom));
 }
 
 void VisualizationGeometry::implementEllipsoidGeometry(const SimTK::DecorativeEllipsoid& geom) {
     const Transform& transform  = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId())).getBodyTransform(state);
-    switch (getRepresentation(geom)) {
-        case DecorativeGeometry::DrawSurface:
-            visualizer.drawEllipsoid(geom.getTransform()*transform, geom.getRadii(), getColor(geom));
-            break;
-    }
+    visualizer.drawEllipsoid(transform*geom.getTransform(), geom.getRadii(), getColor(geom), getRepresentation(geom));
 }
 
 void VisualizationGeometry::implementFrameGeometry(const SimTK::DecorativeFrame& geom) {
@@ -91,10 +79,11 @@ void VisualizationGeometry::implementMeshGeometry(const SimTK::DecorativeMesh& g
 
 }
 
-Vec3 VisualizationGeometry::getColor(const DecorativeGeometry& geom) const {
-    if (geom.getColor()[0] == -1)
-        return DefaultBodyColor;
-    return geom.getColor();
+Vec4 VisualizationGeometry::getColor(const DecorativeGeometry& geom) const {
+    Vec4 result;
+    result.updSubVec<3>(0) = (geom.getColor()[0] == -1 ? DefaultBodyColor : geom.getColor());
+    result[3] = (geom.getOpacity() < 0 ? 1 : geom.getOpacity());
+    return result;
 }
 
 int VisualizationGeometry::getRepresentation(const DecorativeGeometry& geom) const {

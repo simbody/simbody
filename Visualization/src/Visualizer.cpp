@@ -56,15 +56,19 @@ static int spawnViz(const char* localPath, const char* installPath,
     status = _spawnl(P_NOWAIT, localPath, appName, vizPipeToSim, vizPipeFromSim, NULL);
     if (status == -1)
         status = _spawnl(P_NOWAIT, installPath, appName, vizPipeToSim, vizPipeFromSim, NULL);
+    SimTK_ERRCHK2_ALWAYS(status != -1, "Visualizer::ctor()",
+        "Unable to spawn the Visualization GUI; tried '%s' and '%s'.", localPath, installPath);
 #else
     pid_t pid;
     const char* const argv[] = {appName, vizPipeToSim, vizPipeFromSim, NULL};
     posix_spawn_file_actions_t fileActions;
     status = posix_spawn(&pid, localPath, NULL, NULL, 
                          (char* const*)argv, environ);
-    if (status == -1)
+    if (status != 0)
         status = posix_spawn(&pid, installPath, NULL, NULL, 
                              (char* const*)argv, environ);
+    SimTK_ERRCHK2_ALWAYS(status == 0, "Visualizer::ctor()",
+        "Unable to spawn the Visualization GUI; tried '%s' and '%s'.", localPath, installPath);
 #endif
     return status;
 }
@@ -79,8 +83,6 @@ static void* listenForVisualizationEvents(void* arg) {
     Visualizer& visualizer = *reinterpret_cast<Visualizer*>(arg);
     const vector<VisualizationEventListener*>& listeners = visualizer.getEventListeners();
     char buffer[256];
-    float* floatBuffer = (float*) buffer;
-    unsigned short* shortBuffer = (unsigned short*) buffer;
     while (true) {
         // Receive an event.
 
@@ -124,13 +126,8 @@ Visualizer::Visualizer() {
     inPipe = viz2simPipe[0];
 
     // Spawn the visualizer gui, trying local first then installed version.
-    status = spawnViz(localPath.c_str(), installPath.c_str(),
+    spawnViz(localPath.c_str(), installPath.c_str(),
                       GuiAppName, sim2vizPipe[0], viz2simPipe[1]);
-
-    // status==-1 means we failed to spawn either executable.
-    SimTK_ERRCHK2_ALWAYS(status != -1, "Visualizer::ctor()", 
-        "Unable to spawn the Visualization GUI; tried '%s' and '%s'.",
-        localPath.c_str(), installPath.c_str());
 
     // Spawn the thread to listen for events.
 
@@ -156,18 +153,18 @@ void Visualizer::finishScene() const {
     write(outPipe, &command, 1);
 }
 
-void Visualizer::drawBox(const Transform& transform, const Vec3& scale, const Vec3& color) const {
-    drawMesh(transform, scale, color, 0);
+void Visualizer::drawBox(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const {
+    drawMesh(transform, scale, color, (short) representation, 0);
 }
 
-void Visualizer::drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec3& color) const {
-    drawMesh(transform, scale, color, 1);
+void Visualizer::drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const {
+    drawMesh(transform, scale, color, (short) representation, 1);
 }
 
-void Visualizer::drawMesh(const Transform& transform, const Vec3& scale, const Vec3& color, int meshIndex) const {
-    char command = ADD_MESH;
+void Visualizer::drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex) const {
+    char command = (representation == DecorativeGeometry::DrawPoints ? ADD_POINT_MESH : (representation == DecorativeGeometry::DrawWireframe ? ADD_WIREFRAME_MESH : ADD_SOLID_MESH));
     write(outPipe, &command, 1);
-    float buffer[12];
+    float buffer[13];
     Vec3 rot = transform.R().convertRotationToBodyFixedXYZ();
     buffer[0] = (float) rot[0];
     buffer[1] = (float) rot[1];
@@ -181,8 +178,9 @@ void Visualizer::drawMesh(const Transform& transform, const Vec3& scale, const V
     buffer[9] = (float) color[0];
     buffer[10] = (float) color[1];
     buffer[11] = (float) color[2];
-    write(outPipe, buffer, 12*sizeof(float));
-    write(outPipe, &meshIndex, sizeof(unsigned short));
+    buffer[12] = (float) color[3];
+    write(outPipe, buffer, 13*sizeof(float));
+    write(outPipe, &meshIndex, sizeof(short));
 }
 
 }

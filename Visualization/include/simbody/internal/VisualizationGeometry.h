@@ -57,7 +57,7 @@ public:
     void implementTextGeometry(const DecorativeText& geom);
     void implementMeshGeometry(const DecorativeMesh& geom);
 private:
-    Vec3 getColor(const DecorativeGeometry& geom) const;
+    Vec4 getColor(const DecorativeGeometry& geom) const;
     int getRepresentation(const DecorativeGeometry& geom) const;
     const Visualizer& visualizer;
     const SimbodyMatterSubsystem& matter;

@@ -43,12 +43,12 @@ public:
     Visualizer();
     void beginScene() const;
     void finishScene() const;
-    void drawBox(const Transform& transform, const Vec3& scale, const Vec3& color) const;
-    void drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec3& color) const;
+    void drawBox(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
+    void drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
     void addEventListener(VisualizationEventListener* listener);
     const std::vector<VisualizationEventListener*>& getEventListeners() const;
 private:
-    void drawMesh(const Transform& transform, const Vec3& scale, const Vec3& color, int meshIndex) const;
+    void drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex) const;
     int outPipe;
     std::vector<VisualizationEventListener*> listeners;
 };
