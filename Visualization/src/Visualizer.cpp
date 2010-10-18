@@ -60,9 +60,11 @@ static int spawnViz(const char* localPath, const char* installPath,
     pid_t pid;
     const char* const argv[] = {appName, vizPipeToSim, vizPipeFromSim, NULL};
     posix_spawn_file_actions_t fileActions;
-    status = posix_spawn(&pid, localPath, NULL, NULL, argv, environ);
+    status = posix_spawn(&pid, localPath, NULL, NULL, 
+                         (char* const*)argv, environ);
     if (status == -1)
-        status = posix_spawn(&pid, installPath, NULL, NULL, argv, environ);
+        status = posix_spawn(&pid, installPath, NULL, NULL, 
+                             (char* const*)argv, environ);
 #endif
     return status;
 }
