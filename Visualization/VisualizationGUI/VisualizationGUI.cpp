@@ -164,7 +164,7 @@ static void renderScene() {
     glDepthMask(GL_FALSE);
     vector<pair<float, int> > order(scene->transparentMeshes.size());
     for (int i = 0; i < (int) order.size(); i++)
-        order[i] = make_pair((~cameraTransform.R()*scene->transparentMeshes[i].getTransform().T())[2], i);
+        order[i] = make_pair((float)(~cameraTransform.R()*scene->transparentMeshes[i].getTransform().T())[2], i);
     sort(order.begin(), order.end());
     for (int i = 0; i < (int) order.size(); i++)
         scene->transparentMeshes[order[i].second].draw();
