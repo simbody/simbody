@@ -127,6 +127,9 @@ public:
     vector<RenderedMesh> drawnMeshes;
     vector<RenderedMesh> solidMeshes;
     vector<RenderedMesh> transparentMeshes;
+    vector<vector<GLfloat> > lines;
+    vector<Vec3> lineColors;
+    vector<float> lineThickness;
 };
 
 static vector<Mesh*> meshes;
@@ -152,9 +155,22 @@ static void renderScene() {
     Vec3 upDir = cameraTransform.R()*Vec3(0, 1, 0);
     gluLookAt(cameraPos[0], cameraPos[1], cameraPos[2], centerPos[0], centerPos[1], centerPos[2], upDir[0], upDir[1], upDir[2]);
     glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_LIGHTING);
     pthread_mutex_lock(&sceneLock);
     needRedisplay = false;
-    glDisable(GL_LIGHTING);
+    GLfloat color[3];
+    for (int i = 0; i < scene->lines.size(); i++) {
+        Vec3 lineColor = scene->lineColors[i];
+        color[0] = lineColor[0];
+        color[1] = lineColor[1];
+        color[2] = lineColor[2];
+        glColor3fv(color);
+        glLineWidth(scene->lineThickness[i]);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glVertexPointer(3, GL_FLOAT, 0, &scene->lines[i][0]);
+        glDrawArrays(GL_LINES, 0, scene->lines[i].size()/3);
+    }
+    glLineWidth(1);
     for (int i = 0; i < (int) scene->drawnMeshes.size(); i++)
         scene->drawnMeshes[i].draw();
     glEnable(GL_LIGHTING);
@@ -187,6 +203,8 @@ static void mouseDragged(int x, int y) {
     if (clickButton == GLUT_LEFT_BUTTON) {
         if (clickModifiers & GLUT_ACTIVE_SHIFT)
            cameraTransform.updT() += cameraTransform.R()*Vec3(0.01*(clickX-x), 0.01*(y-clickY), 0);
+        else if (clickModifiers & GLUT_ACTIVE_CTRL)
+           cameraTransform.updT() += cameraTransform.R()*Vec3(0, 0, 0.05*(y-clickY));
         else {
             Vec3 cameraPos = cameraTransform.T();
             Vec3 cameraDir = cameraTransform.R()*Vec3(0, 0, -1);
@@ -320,53 +338,152 @@ static void makeBox()  {
 }
 
 static void makeSphere() {
-    const int numLatitude = 10;
-    const int numLongitude = 15;
+    const int numLatitude = 8;
+    const int numLongitude = 12;
     const float radius = 1.0f;
     vector<GLfloat> vertices;
     vector<GLfloat> normals;
     vector<GLushort> faces;
     addVec(vertices, 0, radius, 0);
     addVec(normals, 0, 1, 0);
-    for (int i = 0; i < numLatitude; i++)
-    {
-      float phi = (float) (((i+1)*SimTK_PI)/(numLatitude+1));
-      float sphi = sin(phi);
-      float cphi = cos(phi);
-      float y = radius*cphi;
-      float r = radius*sphi;
-      for (int j = 0; j < numLongitude; j++)
-      {
-        float theta = (float) ((j*2*SimTK_PI)/numLongitude);
-        float stheta = sin(theta);
-        float ctheta = cos(theta);
-        addVec(vertices, r*ctheta, y, r*stheta);
-        addVec(normals, sphi*ctheta, cphi, sphi*stheta);
-      }
+    for (int i = 0; i < numLatitude; i++) {
+        float phi = (float) (((i+1)*SimTK_PI)/(numLatitude+1));
+        float sphi = sin(phi);
+        float cphi = cos(phi);
+        float y = radius*cphi;
+        float r = radius*sphi;
+        for (int j = 0; j < numLongitude; j++) {
+            float theta = (float) ((j*2*SimTK_PI)/numLongitude);
+            float stheta = sin(theta);
+            float ctheta = cos(theta);
+            addVec(vertices, r*ctheta, y, r*stheta);
+            addVec(normals, sphi*ctheta, cphi, sphi*stheta);
+        }
     }
     addVec(vertices, 0, -radius, 0);
     addVec(normals, 0, -1, 0);
     for (int i = 1; i < numLongitude; i++)
-      addVec(faces, 0, i+1, i);
+        addVec(faces, 0, i+1, i);
     addVec(faces, 0, 1, numLongitude);
-    for (int i = 1; i < numLatitude; i++)
-    {
-      int base = (i-1)*numLongitude+1;
-      for (int j = 0; j < numLongitude; j++)
-      {
-        int v1 = base+j;
-        int v2 = (j == numLongitude-1 ? base : v1+1);
-        int v3 = v1+numLongitude;
-        int v4 = v2+numLongitude;
-        addVec(faces, v1, v4, v3);
-        addVec(faces, v1, v2, v4);
-      }
+    for (int i = 1; i < numLatitude; i++) {
+        int base = (i-1)*numLongitude+1;
+        for (int j = 0; j < numLongitude; j++) {
+            int v1 = base+j;
+            int v2 = (j == numLongitude-1 ? base : v1+1);
+            int v3 = v1+numLongitude;
+            int v4 = v2+numLongitude;
+            addVec(faces, v1, v4, v3);
+            addVec(faces, v1, v2, v4);
+        }
     }
     int first = (numLatitude-1)*numLongitude+1;
     int last = numLatitude*numLongitude+1;
     for (int i = first; i < last-1; i++)
-      addVec(faces, i, i+1, last);
+        addVec(faces, i, i+1, last);
     addVec(faces, last-1, first, last);
+    meshes.push_back(new Mesh(vertices, normals, faces));
+}
+
+static void makeCylinder() {
+    const int numSides = 12;
+    const float halfHeight = 1;
+    const float radius = 1;
+    vector<GLfloat> vertices;
+    vector<GLfloat> normals;
+    vector<GLushort> faces;
+
+    // Create the top face.
+
+    addVec(vertices, 0, halfHeight, 0);
+    addVec(normals, 0, 1.0, 0);
+    for (int i = 0; i < numSides; i++) {
+        float theta = (float) ((i*2*SimTK_PI)/numSides);
+        float stheta = sin(theta);
+        float ctheta = cos(theta);
+        addVec(vertices, radius*ctheta, halfHeight, radius*stheta);
+        addVec(normals, 0, 1.0, 0);
+    }
+    for (int i = 1; i < numSides; i++)
+        addVec(faces, i, 0, i+1);
+    addVec(faces, numSides, 0, 1);
+
+    // Create the bottom face.
+
+    int bottomStart = numSides+1;
+    addVec(vertices, 0, -halfHeight, 0);
+    addVec(normals, 0, -1.0, 0);
+    for (int i = 0; i < numSides; i++) {
+        float theta = (float) ((i*2*SimTK_PI)/numSides);
+        float stheta = sin(theta);
+        float ctheta = cos(theta);
+        addVec(vertices, radius*ctheta, -halfHeight, radius*stheta);
+        addVec(normals, 0, -1.0, 0);
+    }
+    for (int i = 1; i < numSides; i++)
+        addVec(faces, bottomStart+i, bottomStart+i+1, bottomStart);
+    addVec(faces, bottomStart+numSides, bottomStart+1, bottomStart);
+
+    // Create the sides.
+
+    for (int i = 0; i < numSides; i++) {
+        float theta = (float) ((i*2*SimTK_PI)/numSides);
+        float stheta = sin(theta);
+        float ctheta = cos(theta);
+        float x = radius*ctheta;
+        float z = radius*stheta;
+        addVec(vertices, x, halfHeight, z);
+        addVec(normals, ctheta, 0, stheta);
+        addVec(vertices, x, -halfHeight, z);
+        addVec(normals, ctheta, 0, stheta);
+    }
+    int sideStart = 2*numSides+2;
+    for (int i = 0; i < numSides-1; i++) {
+        int base = sideStart+2*i;
+        addVec(faces, base, base+2, base+1);
+        addVec(faces, base+1, base+2, base+3);
+    }
+    addVec(faces, sideStart+2*numSides-2, sideStart, sideStart+2*numSides-1);
+    addVec(faces, sideStart+2*numSides-1, sideStart, sideStart+1);
+    meshes.push_back(new Mesh(vertices, normals, faces));
+}
+
+static void makeCircle() {
+    const int numSides = 12;
+    const float radius = 1;
+    vector<GLfloat> vertices;
+    vector<GLfloat> normals;
+    vector<GLushort> faces;
+
+    // Create the front face.
+
+    addVec(vertices, 0, 0, 0);
+    addVec(normals, 0, 0, -1.0);
+    for (int i = 0; i < numSides; i++) {
+        float theta = (float) ((i*2*SimTK_PI)/numSides);
+        float stheta = sin(theta);
+        float ctheta = cos(theta);
+        addVec(vertices, radius*ctheta, radius*stheta, 0);
+        addVec(normals, 0, 0, -1.0);
+    }
+    for (int i = 1; i < numSides; i++)
+        addVec(faces, i, 0, i+1);
+    addVec(faces, numSides, 0, 1);
+
+    // Create the back face.
+
+    addVec(vertices, 0, 0, 0);
+    addVec(normals, 0, 0, 1.0);
+    for (int i = 0; i < numSides; i++) {
+        float theta = (float) ((i*2*SimTK_PI)/numSides);
+        float stheta = sin(theta);
+        float ctheta = cos(theta);
+        addVec(vertices, radius*ctheta, radius*stheta, 0);
+        addVec(normals, 0, 0, 1.0);
+    }
+    int backStart = numSides+1;
+    for (int i = 1; i < numSides; i++)
+        addVec(faces, backStart, backStart+i, backStart+i+1);
+    addVec(faces, backStart, backStart+numSides, backStart+1);
     meshes.push_back(new Mesh(vertices, normals, faces));
 }
 
@@ -417,6 +534,28 @@ void* listenForInput(void* args) {
                         newScene->transparentMeshes.push_back(mesh);
                     break;
                 }
+                case ADD_LINE: {
+                    readData(buffer, 10*sizeof(float));
+                    Vec3 color = Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+                    float thickness = floatBuffer[3];
+                    int index;
+                    int numLines = newScene->lines.size();
+                    for (index = 0; index < numLines && (color != newScene->lineColors[index] || thickness != newScene->lineThickness[index]); index++)
+                        ;
+                    if (index == numLines) {
+                        newScene->lines.push_back(vector<GLfloat>());
+                        newScene->lineColors.push_back(color);
+                        newScene->lineThickness.push_back(thickness);
+                    }
+                    vector<GLfloat>& line = newScene->lines[index];
+                    line.push_back(floatBuffer[4]);
+                    line.push_back(floatBuffer[5]);
+                    line.push_back(floatBuffer[6]);
+                    line.push_back(floatBuffer[7]);
+                    line.push_back(floatBuffer[8]);
+                    line.push_back(floatBuffer[9]);
+                    break;
+                }
                 default:
                     SimTK_ASSERT_ALWAYS(false, "Unexpected data sent to visualizer");
             }
@@ -434,7 +573,7 @@ int main(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
     glutInitWindowPosition(100,100);
-    glutInitWindowSize(320,320);
+    glutInitWindowSize(500, 500);
     glutCreateWindow("SimTK Visualizer");
     glutDisplayFunc(renderScene);
     glutReshapeFunc(changeSize);
@@ -469,6 +608,8 @@ int main(int argc, char** argv) {
     glEnable(GL_CULL_FACE);
     makeBox();
     makeSphere();
+    makeCylinder();
+    makeCircle();
     scene = new Scene();
 
     // Spawn the listener thread.

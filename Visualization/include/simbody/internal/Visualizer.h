@@ -45,6 +45,9 @@ public:
     void finishScene() const;
     void drawBox(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
     void drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
+    void drawCylinder(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
+    void drawCircle(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
+    void drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness) const;
     void addEventListener(VisualizationEventListener* listener);
     const std::vector<VisualizationEventListener*>& getEventListeners() const;
 private:

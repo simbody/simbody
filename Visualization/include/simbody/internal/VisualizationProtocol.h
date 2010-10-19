@@ -44,6 +44,7 @@ static const char END_OF_SCENE = 1;
 static const char ADD_SOLID_MESH = 2;
 static const char ADD_POINT_MESH = 3;
 static const char ADD_WIREFRAME_MESH = 4;
+static const char ADD_LINE = 5;
 
 // Events sent from the GUI back to the application.
 

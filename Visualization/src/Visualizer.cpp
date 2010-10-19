@@ -161,6 +161,14 @@ void Visualizer::drawEllipsoid(const Transform& transform, const Vec3& scale, co
     drawMesh(transform, scale, color, (short) representation, 1);
 }
 
+void Visualizer::drawCylinder(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const {
+    drawMesh(transform, scale, color, (short) representation, 2);
+}
+
+void Visualizer::drawCircle(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const {
+    drawMesh(transform, scale, color, (short) representation, 3);
+}
+
 void Visualizer::drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex) const {
     char command = (representation == DecorativeGeometry::DrawPoints ? ADD_POINT_MESH : (representation == DecorativeGeometry::DrawWireframe ? ADD_WIREFRAME_MESH : ADD_SOLID_MESH));
     write(outPipe, &command, 1);
@@ -181,6 +189,23 @@ void Visualizer::drawMesh(const Transform& transform, const Vec3& scale, const V
     buffer[12] = (float) color[3];
     write(outPipe, buffer, 13*sizeof(float));
     write(outPipe, &meshIndex, sizeof(short));
+}
+
+void Visualizer::drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness) const {
+    char command = ADD_LINE;
+    write(outPipe, &command, 1);
+    float buffer[10];
+    buffer[0] = (float) color[0];
+    buffer[1] = (float) color[1];
+    buffer[2] = (float) color[2];
+    buffer[3] = (float) thickness;
+    buffer[4] = (float) end1[0];
+    buffer[5] = (float) end1[1];
+    buffer[6] = (float) end1[2];
+    buffer[7] = (float) end2[0];
+    buffer[8] = (float) end2[1];
+    buffer[9] = (float) end2[2];
+    write(outPipe, buffer, 10*sizeof(float));
 }
 
 }

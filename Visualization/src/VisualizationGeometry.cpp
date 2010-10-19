@@ -41,7 +41,8 @@ VisualizationGeometry::VisualizationGeometry(const Visualizer& visualizer, const
 }
 
 void VisualizationGeometry::implementLineGeometry(const SimTK::DecorativeLine& geom) {
-
+    const Transform& transform  = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId())).getBodyTransform(state);
+    visualizer.drawLine(transform*geom.getPoint1(), transform*geom.getPoint2(), getColor(geom), geom.getLineThickness() == -1 ? 1 : geom.getLineThickness());
 }
 
 void VisualizationGeometry::implementBrickGeometry(const SimTK::DecorativeBrick& geom) {
@@ -50,11 +51,13 @@ void VisualizationGeometry::implementBrickGeometry(const SimTK::DecorativeBrick&
 }
 
 void VisualizationGeometry::implementCylinderGeometry(const SimTK::DecorativeCylinder& geom) {
-
+    const Transform& transform  = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId())).getBodyTransform(state);
+    visualizer.drawCylinder(transform*geom.getTransform(), Vec3(geom.getRadius(), geom.getHalfHeight(), geom.getRadius()), getColor(geom), getRepresentation(geom));
 }
 
 void VisualizationGeometry::implementCircleGeometry(const SimTK::DecorativeCircle& geom) {
-
+    const Transform& transform  = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId())).getBodyTransform(state);
+    visualizer.drawCircle(transform*geom.getTransform(), Vec3(geom.getRadius(), geom.getRadius(), 1), getColor(geom), getRepresentation(geom));
 }
 
 void VisualizationGeometry::implementSphereGeometry(const SimTK::DecorativeSphere& geom) {
