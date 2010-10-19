@@ -48,9 +48,35 @@ class MultibodySystem;
  */
 class SimTK_SIMBODY_EXPORT VisualizationReporter : public PeriodicEventReporter {
 public:
-    VisualizationReporter(MultibodySystem& system, Real reportInterval);
+    VisualizationReporter(MultibodySystem& system, Real reportInterval=Infinity);
     ~VisualizationReporter();
     void addEventListener(VisualizationEventListener* listener);
+
+    /**
+     * Add an always-present, body-fixed piece of geometry like the one passed in, but attached to the
+     * indicated body. The supplied transform is applied on top of whatever transform is already contained
+     * in the supplied geometry, and any body Id stored with the geometry is ignored.
+     * The 3d representation of the geometry here can be precalculated; only the orientation
+     * of the body frame needs to be applied at run time.
+     */
+    void addDecoration(MobilizedBodyIndex, const Transform& X_BD, const DecorativeGeometry&);
+
+    /**
+     * Add an always-present rubber band line, modeled after the DecorativeLine supplied here.
+     * The end points of the supplied line are ignored, however -- at run time we'll calculate
+     * the spatial locations of the two supplied stations and use those as end points. Note
+     * that the 3d representation of this line can't be precalculated because the line length
+     * will vary. (TODO: not implemented)
+     */
+    void addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1, 
+                           MobilizedBodyIndex b2, const Vec3& station2,
+                           const DecorativeLine&) {/*TODO*/}
+
+    /**
+     * Produce an explicitly-generated visualization frame without depending
+     * on the TimeStepper to do it automatically.
+     */
+    void report(const State& state) const {handleEvent(state);}
     /**
      * Get the Visualizer which generates the images.  It may be used to configure the display.
      */
