@@ -90,10 +90,12 @@ private:
     vector<GLushort> edges, faces;
 };
 
+static vector<Mesh*> meshes;
+
 class RenderedMesh {
 public:
-    RenderedMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, const Mesh& mesh) :
-            transform(transform), scale(scale), representation(representation), mesh(&mesh) {
+    RenderedMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, unsigned short meshIndex) :
+            transform(transform), scale(scale), representation(representation), meshIndex(meshIndex) {
         this->color[0] = color[0];
         this->color[1] = color[1];
         this->color[2] = color[2];
@@ -109,7 +111,7 @@ public:
             glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, color);
         else
             glColor3fv(color);
-        mesh->draw(representation);
+        meshes[meshIndex]->draw(representation);
         glPopMatrix();
     }
     const Transform& getTransform() const {
@@ -120,7 +122,7 @@ private:
     Vec3 scale;
     GLfloat color[4];
     short representation;
-    const Mesh* mesh;
+    unsigned short meshIndex;
 };
 
 class RenderedLine {
@@ -185,7 +187,14 @@ public:
     vector<RenderedText> strings;
 };
 
-static vector<Mesh*> meshes;
+class PendingMesh {
+public:
+    vector<float> vertices;
+    vector<float> normals;
+    vector<GLushort> faces;
+};
+
+static vector<PendingMesh*> pendingMeshes;
 static Scene* scene;
 static pthread_mutex_t sceneLock;
 
@@ -212,6 +221,11 @@ static void renderScene() {
     glDisableClientState(GL_NORMAL_ARRAY);
     pthread_mutex_lock(&sceneLock);
     needRedisplay = false;
+    for (int i = 0; i < (int) pendingMeshes.size(); i++) {
+        meshes.push_back(new Mesh(pendingMeshes[i]->vertices, pendingMeshes[i]->normals, pendingMeshes[i]->faces));
+        delete pendingMeshes[i];
+    }
+    pendingMeshes.clear();
     for (int i = 0; i < (int) scene->lines.size(); i++)
         scene->lines[i].draw();
     glLineWidth(2);
@@ -573,7 +587,7 @@ void* listenForInput(void* args) {
                     Vec3 scale = Vec3(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
                     Vec4 color = Vec4(floatBuffer[9], floatBuffer[10], floatBuffer[11], floatBuffer[12]);
                     short representation = (command == ADD_POINT_MESH ? DecorativeGeometry::DrawPoints : (command == ADD_WIREFRAME_MESH ? DecorativeGeometry::DrawWireframe : DecorativeGeometry::DrawSurface));
-                    RenderedMesh mesh(position, scale, color, representation, *meshes[shortBuffer[13*sizeof(float)/sizeof(short)]]);
+                    RenderedMesh mesh(position, scale, color, representation, shortBuffer[13*sizeof(float)/sizeof(short)]);
                     if (command != ADD_SOLID_MESH)
                         newScene->drawnMeshes.push_back(mesh);
                     else if (color[3] == 1)
@@ -651,6 +665,48 @@ void* listenForInput(void* args) {
                     line.push_back(end[1]);
                     line.push_back(end[2]);
                     newScene->strings.push_back(RenderedText(end, textScale, color, "Z"));
+                    break;
+                }
+                case DEFINE_MESH: {
+                    readData(buffer, 2*sizeof(short));
+                    PendingMesh* mesh = new PendingMesh();
+                    int numVertices = shortBuffer[0];
+                    int numFaces = shortBuffer[1];
+                    mesh->vertices.resize(3*numVertices, 0);
+                    mesh->normals.resize(3*numVertices);
+                    mesh->faces.resize(3*numFaces);
+                    readData((char*) &mesh->vertices[0], mesh->vertices.size()*sizeof(float));
+                    readData((char*) &mesh->faces[0], mesh->faces.size()*sizeof(short));
+
+                    // Compute normal vectors for the mesh.
+
+                    vector<Vec3> normals(numVertices);
+                    for (int i = 0; i < numFaces; i++) {
+                        int v1 = mesh->faces[3*i];
+                        int v2 = mesh->faces[3*i+1];
+                        int v3 = mesh->faces[3*i+2];
+                        Vec3 vert1(mesh->vertices[3*v1], mesh->vertices[3*v1+1], mesh->vertices[3*v1+2]);
+                        Vec3 vert2(mesh->vertices[3*v2], mesh->vertices[3*v2+1], mesh->vertices[3*v2+2]);
+                        Vec3 vert3(mesh->vertices[3*v3], mesh->vertices[3*v3+1], mesh->vertices[3*v3+2]);
+                        Vec3 norm = (vert2-vert1)%(vert3-vert1);
+                        Real length = norm.norm();
+                        if (length > 0) {
+                            norm /= length;
+                            normals[v1] += norm;
+                            normals[v2] += norm;
+                            normals[v3] += norm;
+                        }
+                    }
+                    for (int i = 0; i < numVertices; i++) {
+                        normals[i].normalize();
+                        mesh->normals[3*i] = normals[i][0];
+                        mesh->normals[3*i+1] = normals[i][1];
+                        mesh->normals[3*i+2] = normals[i][2];
+                    }
+
+                    // A real mesh will be generated from this the next time the screen is redrawn.
+
+                    pendingMeshes.push_back(mesh);
                     break;
                 }
                 default:

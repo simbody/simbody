@@ -32,6 +32,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -48,6 +49,7 @@ public:
     void drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
     void drawCylinder(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
     void drawCircle(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
+    void drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& transform, Real scale, const Vec4& color, int representation) const;
     void drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness) const;
     void drawText(const Vec3& position, Real scale, const Vec4& color, const std::string& string) const;
     void drawFrame(const Transform& transform, Real axisLength, const Vec4& color) const;
@@ -56,6 +58,7 @@ public:
 private:
     void drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex) const;
     int outPipe;
+    mutable std::map<const void*, int> meshes;
     std::vector<VisualizationEventListener*> listeners;
 };
 

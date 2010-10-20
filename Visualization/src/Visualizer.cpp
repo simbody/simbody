@@ -169,6 +169,77 @@ void Visualizer::drawCircle(const Transform& transform, const Vec3& scale, const
     drawMesh(transform, scale, color, (short) representation, 3);
 }
 
+void Visualizer::drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& transform, Real scale, const Vec4& color, int representation) const {
+    const void* impl = &mesh.getImpl();
+    int index;
+    map<const void*, int>::const_iterator iter = meshes.find(impl);
+    if (iter == meshes.end()) {
+        // This is a new mesh, so we need to send it to the visualizer.  Build lists of vertices and faces,
+        // triangulating as necessary.
+
+        vector<float> vertices;
+        vector<unsigned short> faces;
+        for (int i = 0; i < mesh.getNumVertices(); i++) {
+            Vec3 pos = mesh.getVertexPosition(i);
+            vertices.push_back((float) pos[0]);
+            vertices.push_back((float) pos[1]);
+            vertices.push_back((float) pos[2]);
+        }
+        for (int i = 0; i < mesh.getNumFaces(); i++) {
+            int numVert = mesh.getNumVerticesForFace(i);
+            if (numVert < 3)
+                continue; // Ignore it.
+            if (numVert == 3) {
+                faces.push_back((unsigned short) mesh.getFaceVertex(i, 0));
+                faces.push_back((unsigned short) mesh.getFaceVertex(i, 1));
+                faces.push_back((unsigned short) mesh.getFaceVertex(i, 2));
+            }
+            else if (numVert == 4) {
+                // Split it into two triangles.
+
+                faces.push_back((unsigned short) mesh.getFaceVertex(i, 0));
+                faces.push_back((unsigned short) mesh.getFaceVertex(i, 1));
+                faces.push_back((unsigned short) mesh.getFaceVertex(i, 2));
+                faces.push_back((unsigned short) mesh.getFaceVertex(i, 2));
+                faces.push_back((unsigned short) mesh.getFaceVertex(i, 3));
+                faces.push_back((unsigned short) mesh.getFaceVertex(i, 0));
+            }
+            else {
+                // Add a vertex at the center, then split it into triangles.
+
+                Vec3 center(0);
+                for (int j = 0; j < numVert; j++)
+                    center += vertices[mesh.getFaceVertex(i, j)];
+                center /= numVert;
+                vertices.push_back((float) center[0]);
+                vertices.push_back((float) center[1]);
+                vertices.push_back((float) center[2]);
+                int newIndex = vertices.size()-1;
+                for (int j = 0; j < numVert-1; j++) {
+                    faces.push_back((unsigned short) mesh.getFaceVertex(i, j));
+                    faces.push_back((unsigned short) mesh.getFaceVertex(i, j+1));
+                    faces.push_back((unsigned short) newIndex);
+                }
+            }
+        }
+        SimTK_ASSERT_ALWAYS(vertices.size() <= 65536*3, "DecorativeMesh cannot have more than 65536 vertices");
+        SimTK_ASSERT_ALWAYS(faces.size() <= 65536*3, "DecorativeMesh cannot have more than 65536 faces");
+        index = meshes.size()+4;
+        meshes[impl] = index;
+        char command = DEFINE_MESH;
+        write(outPipe, &command, 1);
+        unsigned short numVertices = vertices.size()/3;
+        unsigned short numFaces = faces.size()/3;
+        write(outPipe, &numVertices, sizeof(short));
+        write(outPipe, &numFaces, sizeof(short));
+        write(outPipe, &vertices[0], vertices.size()*sizeof(float));
+        write(outPipe, &faces[0], faces.size()*sizeof(short));
+    }
+    else
+        index = iter->second;
+    drawMesh(transform, Vec3(scale), color, (short) representation, index);
+}
+
 void Visualizer::drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex) const {
     char command = (representation == DecorativeGeometry::DrawPoints ? ADD_POINT_MESH : (representation == DecorativeGeometry::DrawWireframe ? ADD_WIREFRAME_MESH : ADD_SOLID_MESH));
     write(outPipe, &command, 1);
