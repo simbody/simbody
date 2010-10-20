@@ -45,7 +45,7 @@ PolygonalMeshImpl::PolygonalMeshImpl() {
 PolygonalMesh::PolygonalMesh() : impl(new PolygonalMeshImpl()) {
 }
 
-PolygonalMesh::PolygonalMesh(const PolygonalMesh& copy) : impl(new PolygonalMeshImpl(*copy.impl)) {
+PolygonalMesh::PolygonalMesh(const PolygonalMesh& copy) : impl(copy.impl) {
 }
 
 PolygonalMesh& PolygonalMesh::operator=(const PolygonalMesh& copy) {
@@ -214,11 +214,11 @@ VTK allows an arbitrary number of data arrays to be associated with the points
 and cells of a dataset. Each data array is described by a DataArray element 
 which, among other things, gives each array a name. The following attributes 
 of PointData and CellData are used to specify the active arrays by name:
-    Scalars — The name of the active scalars array, if any.
-    Vectors — The name of the active vectors array, if any.
-    Normals — The name of the active normals array, if any.
-    Tensors — The name of the active tensors array, if any.
-    TCoords — The name of the active texture coordinates array, if any.
+    Scalars ï¿½ The name of the active scalars array, if any.
+    Vectors ï¿½ The name of the active vectors array, if any.
+    Normals ï¿½ The name of the active normals array, if any.
+    Tensors ï¿½ The name of the active tensors array, if any.
+    TCoords ï¿½ The name of the active texture coordinates array, if any.
 That is, for each attribute of the form Sometype="Somename" there must be a 
 DataArray element with attribute Name="Somename" whose text contains 
 NumberOfPoints values each of type Sometype.
@@ -234,7 +234,7 @@ Verts, Lines, Strips, and Polys -- The Verts, Lines, Strips, and Polys elements
 define cells explicitly by specifying point connectivity. Cell types are 
 implicitly known by the type of element in which they are specified. Each 
 element contains two DataArray elements. The first array specifies the point 
-connectivity. All the cells’ point lists are concatenated together. The second
+connectivity. All the cellsï¿½ point lists are concatenated together. The second
 array specifies the offset into the connectivity array for the end of each
 cell.
     <Polys>
