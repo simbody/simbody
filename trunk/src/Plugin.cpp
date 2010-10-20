@@ -323,7 +323,7 @@ string Pathname::getCurrentDrive() {
 
 
 string Pathname::getCurrentWorkingDirectory(const string& drive) {
-    char buf[1024];
+    char buf[2048];
 
     #ifdef _WIN32
         const int which = drive.empty() ? 0 : (tolower(drive[0]) - 'a') + 1;
@@ -337,7 +337,8 @@ string Pathname::getCurrentWorkingDirectory(const string& drive) {
         _getdcwd(which, buf, sizeof(buf));
         buf[0] = (char)tolower(buf[0]); // drive letter
     #else
-        (void)getcwd(buf, sizeof(buf));
+        char* bufp = getcwd(buf, sizeof(buf));
+        assert(bufp != 0); // buf not big enough if this happens
     #endif
 
     string cwd(buf);
