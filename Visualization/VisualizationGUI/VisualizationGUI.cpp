@@ -212,7 +212,7 @@ static void renderScene() {
     glDisableClientState(GL_NORMAL_ARRAY);
     pthread_mutex_lock(&sceneLock);
     needRedisplay = false;
-    for (int i = 0; i < scene->lines.size(); i++)
+    for (int i = 0; i < (int) scene->lines.size(); i++)
         scene->lines[i].draw();
     glLineWidth(2);
     for (int i = 0; i < (int) scene->strings.size(); i++)
