@@ -208,4 +208,40 @@ void Visualizer::drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color,
     write(outPipe, buffer, 10*sizeof(float));
 }
 
+void Visualizer::drawText(const Vec3& position, Real scale, const Vec4& color, const string& string) const {
+    SimTK_ASSERT_ALWAYS(string.size() <= 256, "DecorativeText cannot be longer than 256 characters");
+    char command = ADD_TEXT;
+    write(outPipe, &command, 1);
+    float buffer[7];
+    buffer[0] = (float) position[0];
+    buffer[1] = (float) position[1];
+    buffer[2] = (float) position[2];
+    buffer[3] = (float) scale;
+    buffer[4] = (float) color[0];
+    buffer[5] = (float) color[1];
+    buffer[6] = (float) color[2];
+    write(outPipe, buffer, 7*sizeof(float));
+    short length = string.size();
+    write(outPipe, &length, sizeof(short));
+    write(outPipe, &string[0], length);
+}
+
+void Visualizer::drawFrame(const Transform& transform, Real axisLength, const Vec4& color) const {
+    char command = ADD_FRAME;
+    write(outPipe, &command, 1);
+    float buffer[10];
+    Vec3 rot = transform.R().convertRotationToBodyFixedXYZ();
+    buffer[0] = (float) rot[0];
+    buffer[1] = (float) rot[1];
+    buffer[2] = (float) rot[2];
+    buffer[3] = (float) transform.T()[0];
+    buffer[4] = (float) transform.T()[1];
+    buffer[5] = (float) transform.T()[2];
+    buffer[6] = (float) axisLength;
+    buffer[7] = (float) color[0];
+    buffer[8] = (float) color[1];
+    buffer[9] = (float) color[2];
+    write(outPipe, buffer, 10*sizeof(float));
+}
+
 }

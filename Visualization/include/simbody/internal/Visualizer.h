@@ -32,6 +32,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include <string>
 #include <vector>
 
 namespace SimTK {
@@ -48,6 +49,8 @@ public:
     void drawCylinder(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
     void drawCircle(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
     void drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness) const;
+    void drawText(const Vec3& position, Real scale, const Vec4& color, const std::string& string) const;
+    void drawFrame(const Transform& transform, Real axisLength, const Vec4& color) const;
     void addEventListener(VisualizationEventListener* listener);
     const std::vector<VisualizationEventListener*>& getEventListeners() const;
 private:

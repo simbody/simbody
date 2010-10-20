@@ -29,6 +29,7 @@
 #include <vector>
 #include <stdio.h>
 #include <utility>
+#include <string>
 
 using namespace SimTK;
 using namespace std;
@@ -47,7 +48,7 @@ public:
         // Build OpenGL buffers.
 
         GLuint buffers[2];
-        glGenBuffers(3, buffers);
+        glGenBuffers(2, buffers);
         vertBuffer = buffers[0];
         normBuffer = buffers[1];
         glBindBuffer(GL_ARRAY_BUFFER, vertBuffer);
@@ -96,7 +97,7 @@ public:
         this->color[0] = color[0];
         this->color[1] = color[1];
         this->color[2] = color[2];
-        this->color[3] = color[4];
+        this->color[3] = color[3];
     }
     void draw() {
         glPushMatrix();
@@ -122,14 +123,66 @@ private:
     const Mesh* mesh;
 };
 
+class RenderedLine {
+public:
+    RenderedLine(const Vec3& color, float thickness) : color(color), thickness(thickness) {
+    }
+    void draw() {
+        GLfloat lineColor[3] = {color[0], color[1], color[2]};
+        glColor3fv(lineColor);
+        glLineWidth(thickness);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glVertexPointer(3, GL_FLOAT, 0, &lines[0]);
+        glDrawArrays(GL_LINES, 0, lines.size()/3);
+    }
+    vector<GLfloat>& getLines() {
+        return lines;
+    }
+    const Vec3& getColor() const {
+        return color;
+    }
+    float getThickness() const {
+        return thickness;
+    }
+private:
+    Vec3 color;
+    float thickness;
+    vector<GLfloat> lines;
+};
+
+class RenderedText {
+public:
+    RenderedText(const Vec3& position, float scale, const Vec3& color, const string& text) :
+            position(position), scale(scale/119), text(text) {
+        this->color[0] = color[0];
+        this->color[1] = color[1];
+        this->color[2] = color[2];
+    }
+    void draw() {
+        glPushMatrix();
+        glTranslated(position[0], position[1], position[2]);
+        Vec4 rot = cameraTransform.R().convertRotationToAngleAxis();
+        glRotated(rot[0]*SimTK_RADIAN_TO_DEGREE, rot[1], rot[2], rot[3]);
+        glScaled(scale, scale, scale);
+        glColor3fv(color);
+        for (int i = 0; i < (int) text.size(); i++)
+            glutStrokeCharacter(GLUT_STROKE_ROMAN, text[i]);
+        glPopMatrix();
+    }
+private:
+    Vec3 position;
+    float scale;
+    GLfloat color[3];
+    string text;
+};
+
 class Scene {
 public:
     vector<RenderedMesh> drawnMeshes;
     vector<RenderedMesh> solidMeshes;
     vector<RenderedMesh> transparentMeshes;
-    vector<vector<GLfloat> > lines;
-    vector<Vec3> lineColors;
-    vector<float> lineThickness;
+    vector<RenderedLine> lines;
+    vector<RenderedText> strings;
 };
 
 static vector<Mesh*> meshes;
@@ -143,7 +196,7 @@ static void changeSize(int width, int height) {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glViewport(0, 0, width, height);
-    gluPerspective(45,ratio,1,100);
+    gluPerspective(45,ratio,0.5,100);
 }
 
 static void renderScene() {
@@ -156,21 +209,16 @@ static void renderScene() {
     gluLookAt(cameraPos[0], cameraPos[1], cameraPos[2], centerPos[0], centerPos[1], centerPos[2], upDir[0], upDir[1], upDir[2]);
     glClear(GL_COLOR_BUFFER_BIT);
     glDisable(GL_LIGHTING);
+    glDisableClientState(GL_NORMAL_ARRAY);
     pthread_mutex_lock(&sceneLock);
     needRedisplay = false;
-    GLfloat color[3];
-    for (int i = 0; i < scene->lines.size(); i++) {
-        Vec3 lineColor = scene->lineColors[i];
-        color[0] = lineColor[0];
-        color[1] = lineColor[1];
-        color[2] = lineColor[2];
-        glColor3fv(color);
-        glLineWidth(scene->lineThickness[i]);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glVertexPointer(3, GL_FLOAT, 0, &scene->lines[i][0]);
-        glDrawArrays(GL_LINES, 0, scene->lines[i].size()/3);
-    }
+    for (int i = 0; i < scene->lines.size(); i++)
+        scene->lines[i].draw();
+    glLineWidth(2);
+    for (int i = 0; i < (int) scene->strings.size(); i++)
+        scene->strings[i].draw();
     glLineWidth(1);
+    glEnableClientState(GL_NORMAL_ARRAY);
     for (int i = 0; i < (int) scene->drawnMeshes.size(); i++)
         scene->drawnMeshes[i].draw();
     glEnable(GL_LIGHTING);
@@ -204,7 +252,7 @@ static void mouseDragged(int x, int y) {
         if (clickModifiers & GLUT_ACTIVE_SHIFT)
            cameraTransform.updT() += cameraTransform.R()*Vec3(0.01*(clickX-x), 0.01*(y-clickY), 0);
         else if (clickModifiers & GLUT_ACTIVE_CTRL)
-           cameraTransform.updT() += cameraTransform.R()*Vec3(0, 0, 0.05*(y-clickY));
+           cameraTransform.updT() += cameraTransform.R()*Vec3(0, 0, 0.05*(clickY-y));
         else {
             Vec3 cameraPos = cameraTransform.T();
             Vec3 cameraDir = cameraTransform.R()*Vec3(0, 0, -1);
@@ -540,20 +588,69 @@ void* listenForInput(void* args) {
                     float thickness = floatBuffer[3];
                     int index;
                     int numLines = newScene->lines.size();
-                    for (index = 0; index < numLines && (color != newScene->lineColors[index] || thickness != newScene->lineThickness[index]); index++)
+                    for (index = 0; index < numLines && (color != newScene->lines[index].getColor() || thickness != newScene->lines[index].getThickness()); index++)
                         ;
-                    if (index == numLines) {
-                        newScene->lines.push_back(vector<GLfloat>());
-                        newScene->lineColors.push_back(color);
-                        newScene->lineThickness.push_back(thickness);
-                    }
-                    vector<GLfloat>& line = newScene->lines[index];
+                    if (index == numLines)
+                        newScene->lines.push_back(RenderedLine(color, thickness));
+                    vector<GLfloat>& line = newScene->lines[index].getLines();
                     line.push_back(floatBuffer[4]);
                     line.push_back(floatBuffer[5]);
                     line.push_back(floatBuffer[6]);
                     line.push_back(floatBuffer[7]);
                     line.push_back(floatBuffer[8]);
                     line.push_back(floatBuffer[9]);
+                    break;
+                }
+                case ADD_TEXT: {
+                    readData(buffer, 7*sizeof(float)+sizeof(short));
+                    Vec3 position = Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+                    float scale = floatBuffer[3];
+                    Vec3 color = Vec3(floatBuffer[4], floatBuffer[5], floatBuffer[6]);
+                    short length = shortBuffer[7*sizeof(float)/sizeof(short)];
+                    readData(buffer, length);
+                    newScene->strings.push_back(RenderedText(position, scale, color, string(buffer, length)));
+                    break;
+                }
+                case ADD_FRAME: {
+                    readData(buffer, 10*sizeof(float));
+                    Rotation rotation;
+                    rotation.setRotationToBodyFixedXYZ(Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
+                    Vec3 position(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+                    float axisLength = floatBuffer[6];
+                    float textScale = 0.2f*axisLength;
+                    float lineThickness = 1;
+                    Vec3 color = Vec3(floatBuffer[7], floatBuffer[8], floatBuffer[9]);
+                    int index;
+                    int numLines = newScene->lines.size();
+                    for (index = 0; index < numLines && (color != newScene->lines[index].getColor() || newScene->lines[index].getThickness() != lineThickness); index++)
+                        ;
+                    if (index == numLines)
+                        newScene->lines.push_back(RenderedLine(color, lineThickness));
+                    vector<GLfloat>& line = newScene->lines[index].getLines();
+                    Vec3 end = position+rotation*Vec3(axisLength, 0, 0);
+                    line.push_back(position[0]);
+                    line.push_back(position[1]);
+                    line.push_back(position[2]);
+                    line.push_back(end[0]);
+                    line.push_back(end[1]);
+                    line.push_back(end[2]);
+                    newScene->strings.push_back(RenderedText(end, textScale, color, "X"));
+                    end = position+rotation*Vec3(0, axisLength, 0);
+                    line.push_back(position[0]);
+                    line.push_back(position[1]);
+                    line.push_back(position[2]);
+                    line.push_back(end[0]);
+                    line.push_back(end[1]);
+                    line.push_back(end[2]);
+                    newScene->strings.push_back(RenderedText(end, textScale, color, "Y"));
+                    end = position+rotation*Vec3(0, 0, axisLength);
+                    line.push_back(position[0]);
+                    line.push_back(position[1]);
+                    line.push_back(position[2]);
+                    line.push_back(end[0]);
+                    line.push_back(end[1]);
+                    line.push_back(end[2]);
+                    newScene->strings.push_back(RenderedText(end, textScale, color, "Z"));
                     break;
                 }
                 default:

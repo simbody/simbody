@@ -47,35 +47,37 @@ void VisualizationGeometry::implementLineGeometry(const SimTK::DecorativeLine& g
 
 void VisualizationGeometry::implementBrickGeometry(const SimTK::DecorativeBrick& geom) {
     const Transform& transform  = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId())).getBodyTransform(state);
-    visualizer.drawBox(transform*geom.getTransform(), geom.getHalfLengths(), getColor(geom), getRepresentation(geom));
+    visualizer.drawBox(transform*geom.getTransform(), getScale(geom)*geom.getHalfLengths(), getColor(geom), getRepresentation(geom));
 }
 
 void VisualizationGeometry::implementCylinderGeometry(const SimTK::DecorativeCylinder& geom) {
     const Transform& transform  = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId())).getBodyTransform(state);
-    visualizer.drawCylinder(transform*geom.getTransform(), Vec3(geom.getRadius(), geom.getHalfHeight(), geom.getRadius()), getColor(geom), getRepresentation(geom));
+    visualizer.drawCylinder(transform*geom.getTransform(), getScale(geom)*Vec3(geom.getRadius(), geom.getHalfHeight(), geom.getRadius()), getColor(geom), getRepresentation(geom));
 }
 
 void VisualizationGeometry::implementCircleGeometry(const SimTK::DecorativeCircle& geom) {
     const Transform& transform  = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId())).getBodyTransform(state);
-    visualizer.drawCircle(transform*geom.getTransform(), Vec3(geom.getRadius(), geom.getRadius(), 1), getColor(geom), getRepresentation(geom));
+    visualizer.drawCircle(transform*geom.getTransform(), getScale(geom)*Vec3(geom.getRadius(), geom.getRadius(), 1), getColor(geom), getRepresentation(geom));
 }
 
 void VisualizationGeometry::implementSphereGeometry(const SimTK::DecorativeSphere& geom) {
     const Transform& transform  = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId())).getBodyTransform(state);
-    visualizer.drawEllipsoid(transform*geom.getTransform(), Vec3(geom.getRadius()), getColor(geom), getRepresentation(geom));
+    visualizer.drawEllipsoid(transform*geom.getTransform(), getScale(geom)*Vec3(geom.getRadius()), getColor(geom), getRepresentation(geom));
 }
 
 void VisualizationGeometry::implementEllipsoidGeometry(const SimTK::DecorativeEllipsoid& geom) {
     const Transform& transform  = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId())).getBodyTransform(state);
-    visualizer.drawEllipsoid(transform*geom.getTransform(), geom.getRadii(), getColor(geom), getRepresentation(geom));
+    visualizer.drawEllipsoid(transform*geom.getTransform(), getScale(geom)*geom.getRadii(), getColor(geom), getRepresentation(geom));
 }
 
 void VisualizationGeometry::implementFrameGeometry(const SimTK::DecorativeFrame& geom) {
-
+    const Transform& transform  = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId())).getBodyTransform(state);
+    visualizer.drawFrame(transform*geom.getTransform(), getScale(geom)*geom.getAxisLength(), getColor(geom));
 }
 
 void VisualizationGeometry::implementTextGeometry(const SimTK::DecorativeText& geom) {
-
+    const Transform& transform  = matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId())).getBodyTransform(state);
+    visualizer.drawText(transform*geom.getTransform().T(), getScale(geom), getColor(geom), geom.getText());
 }
 
 void VisualizationGeometry::implementMeshGeometry(const SimTK::DecorativeMesh& geom) {
@@ -93,4 +95,10 @@ int VisualizationGeometry::getRepresentation(const DecorativeGeometry& geom) con
     if (geom.getRepresentation() == DecorativeGeometry::DrawDefault)
         return DecorativeGeometry::DrawSurface;
     return geom.getRepresentation();
+}
+
+Real VisualizationGeometry::getScale(const DecorativeGeometry& geom) const {
+    if (geom.getScale() == -1)
+        return 1;
+    return geom.getScale();
 }

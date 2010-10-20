@@ -59,6 +59,7 @@ public:
 private:
     Vec4 getColor(const DecorativeGeometry& geom) const;
     int getRepresentation(const DecorativeGeometry& geom) const;
+    Real getScale(const DecorativeGeometry& geom) const;
     const Visualizer& visualizer;
     const SimbodyMatterSubsystem& matter;
     const State& state;

@@ -45,6 +45,8 @@ static const char ADD_SOLID_MESH = 2;
 static const char ADD_POINT_MESH = 3;
 static const char ADD_WIREFRAME_MESH = 4;
 static const char ADD_LINE = 5;
+static const char ADD_TEXT = 6;
+static const char ADD_FRAME = 7;
 
 // Events sent from the GUI back to the application.
 
