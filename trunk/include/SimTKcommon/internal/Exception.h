@@ -43,6 +43,7 @@
 #include <iostream>
 #include <exception>
 #include <cstdarg>
+#include <cstdio>
 
 namespace SimTK {
 
