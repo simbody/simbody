@@ -348,13 +348,21 @@ static void mousePressed(int button, int state, int x, int y) {
         clickButton = button;
         clickX = x;
         clickY = y;
+        if (clickButton == 3 || clickButton == 4) {
+            // Scroll wheel.
+
+            cameraTransform.updT() += cameraTransform.R()*Vec3(0, 0, clickButton == 3 ? -0.5 : 0.5);
+            pthread_mutex_lock(&sceneLock);
+            needRedisplay = true;
+            pthread_mutex_unlock(&sceneLock);
+        }
     }
 }
 
 static void mouseDragged(int x, int y) {
     if (clickButton == GLUT_RIGHT_BUTTON || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_SHIFT))
        cameraTransform.updT() += cameraTransform.R()*Vec3(0.01*(clickX-x), 0.01*(y-clickY), 0);
-    else if (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_ALT)
+    else if (clickButton == GLUT_MIDDLE_BUTTON || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_ALT))
        cameraTransform.updT() += cameraTransform.R()*Vec3(0, 0, 0.05*(clickY-y));
     else if (clickButton == GLUT_LEFT_BUTTON) {
         Vec3 cameraPos = cameraTransform.T();
