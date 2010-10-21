@@ -686,7 +686,7 @@ void Constraint::Rod::RodImpl::calcDecorativeGeometryAndAppendVirtual
         if (d >= SignificantReal) {
             const Vec3 endPoint = p_GP1 + defaultRodLength * p_P1P2/d;
             geom.push_back(DecorativeLine(p_GP1, endPoint)
-                                            .setColor(Black)
+                                            .setColor(Gray)
                                             .setLineThickness(3)
                                             .setBodyId(GroundIndex));
         }
