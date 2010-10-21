@@ -130,8 +130,7 @@ public:
     RenderedLine(const Vec3& color, float thickness) : color(color), thickness(thickness) {
     }
     void draw() {
-        GLfloat lineColor[3] = {color[0], color[1], color[2]};
-        glColor3fv(lineColor);
+        glColor3d(color[0], color[1], color[2]);
         glLineWidth(thickness);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glVertexPointer(3, GL_FLOAT, 0, &lines[0]);
@@ -194,8 +193,78 @@ public:
     vector<GLushort> faces;
 };
 
+void menuSelected(int option) {
+
+}
+
+class Menu {
+public:
+    Menu(string title, vector<pair<string, int> > items) : title(title), items(items), hasCreated(false) {
+    }
+    int draw(int x, int y) {
+        if (!hasCreated) {
+            id = glutCreateMenu(menuSelected);
+            for (int i = 0; i < (int) items.size(); i++)
+                glutAddMenuEntry(items[i].first.c_str(), items[i].second);
+            hasCreated = true;
+        }
+        minx = x;
+        miny = y-18;
+        int width = glutBitmapLength(GLUT_BITMAP_HELVETICA_18, (unsigned char*) title.c_str());
+        maxx = x+width+14;
+        maxy = y+3;
+        glColor3f(0.9f, 0.9f, 0.9f);
+        glBegin(GL_POLYGON);
+        glVertex2i(minx+2, miny);
+        glVertex2i(minx, miny+1);
+        glVertex2i(minx, maxy-1);
+        glVertex2i(minx+2, maxy);
+        glVertex2i(maxx-1, maxy);
+        glVertex2i(maxx, maxy-1);
+        glVertex2i(maxx, miny+1);
+        glVertex2i(maxx-1, miny);
+        glEnd();
+        glColor3f(0.2f, 0.2f, 0.2f);
+        glRasterPos2f(x+2, y);
+        for (int i = 0; i < (int) title.size(); i++)
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, title[i]);
+        glBegin(GL_TRIANGLES);
+        glVertex2i(maxx-2, y-8);
+        glVertex2i(maxx-10,y-8);
+        glVertex2i(maxx-6, y-4);
+        glEnd();
+        return width+25;
+    }
+    void mouseMoved(int x, int y) {
+        if (!hasCreated)
+            return;
+        if (x >= minx && y >= miny && x <= maxx && y <= maxy) {
+            if (currentMenu != id) {
+                glutSetMenu(id);
+                glutAttachMenu(GLUT_LEFT_BUTTON);
+                currentMenu = id;
+            }
+        }
+        else if (currentMenu == id) {
+            glutSetMenu(id);
+            glutDetachMenu(GLUT_LEFT_BUTTON);
+            currentMenu = -1;
+        }
+    }
+private:
+    string title;
+    vector<pair<string, int> > items;
+    int id, minx, miny, maxx, maxy;
+    bool hasCreated;
+    static int currentMenu;
+};
+
+int Menu::currentMenu = -1;
+
+static int viewWidth, viewHeight;
 static vector<PendingMesh*> pendingMeshes;
 static Scene* scene;
+static vector<Menu> menus;
 static pthread_mutex_t sceneLock;
 
 static void changeSize(int width, int height) {
@@ -206,10 +275,13 @@ static void changeSize(int width, int height) {
     glLoadIdentity();
     glViewport(0, 0, width, height);
     gluPerspective(45,ratio,0.5,100);
+    viewWidth = width;
+    viewHeight = height;
 }
 
 static void renderScene() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     Vec3 cameraPos = cameraTransform.T();
@@ -249,6 +321,24 @@ static void renderScene() {
     pthread_mutex_unlock(&sceneLock);
     glDisable(GL_BLEND);
     glDepthMask(GL_TRUE);
+
+    // Draw menus.
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0, viewWidth, 0, viewHeight);
+    glScalef(1, -1, 1);
+    glTranslatef(0, -viewHeight, 0);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+    int menux = 10;
+    for (int i = 0; i < (int) menus.size(); i++)
+        menux += menus[i].draw(menux, viewHeight-10);
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
     glutSwapBuffers();
 }
 
@@ -262,30 +352,39 @@ static void mousePressed(int button, int state, int x, int y) {
 }
 
 static void mouseDragged(int x, int y) {
-    if (clickButton == GLUT_LEFT_BUTTON) {
-        if (clickModifiers & GLUT_ACTIVE_SHIFT)
-           cameraTransform.updT() += cameraTransform.R()*Vec3(0.01*(clickX-x), 0.01*(y-clickY), 0);
-        else if (clickModifiers & GLUT_ACTIVE_CTRL)
-           cameraTransform.updT() += cameraTransform.R()*Vec3(0, 0, 0.05*(clickY-y));
-        else {
-            Vec3 cameraPos = cameraTransform.T();
-            Vec3 cameraDir = cameraTransform.R()*Vec3(0, 0, -1);
-            Vec3 centerPos = cameraTransform.T()+10*cameraDir;
-            Vec3 upDir = cameraTransform.R()*Vec3(0, 1, 0);
-            Rotation r(SpaceRotationSequence, 0.01*(clickY-y), XAxis, 0.01*(clickX-x), YAxis);
-            r = cameraTransform.R()*r*~cameraTransform.R();
-            cameraPos = r*(cameraPos-centerPos)+centerPos;
-            cameraDir = r*cameraDir;
-            upDir = r*upDir;
-            cameraTransform.updT() = cameraPos;
-            cameraTransform.updR().setRotationFromTwoAxes(UnitVec3(-cameraDir), ZAxis, upDir, YAxis);
-        }
-        clickX = x;
-        clickY = y;
-        pthread_mutex_lock(&sceneLock);
-        needRedisplay = true;
-        pthread_mutex_unlock(&sceneLock);
+    if (clickButton == GLUT_RIGHT_BUTTON || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_SHIFT))
+       cameraTransform.updT() += cameraTransform.R()*Vec3(0.01*(clickX-x), 0.01*(y-clickY), 0);
+    else if (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_ALT)
+       cameraTransform.updT() += cameraTransform.R()*Vec3(0, 0, 0.05*(clickY-y));
+    else if (clickButton == GLUT_LEFT_BUTTON) {
+        Vec3 cameraPos = cameraTransform.T();
+        Vec3 cameraDir = cameraTransform.R()*Vec3(0, 0, -1);
+        Vec3 centerPos = cameraTransform.T()+10*cameraDir;
+        Vec3 upDir = cameraTransform.R()*Vec3(0, 1, 0);
+        Rotation r;
+        if (clickModifiers & GLUT_ACTIVE_CTRL)
+            r.setRotationFromAngleAboutAxis(0.01*(clickY-y)-0.01*(clickX-x), ZAxis);
+        else
+            r.setRotationFromTwoAnglesTwoAxes(SpaceRotationSequence, 0.01*(clickY-y), XAxis, 0.01*(clickX-x), YAxis);
+        r = cameraTransform.R()*r*~cameraTransform.R();
+        cameraPos = r*(cameraPos-centerPos)+centerPos;
+        cameraDir = r*cameraDir;
+        upDir = r*upDir;
+        cameraTransform.updT() = cameraPos;
+        cameraTransform.updR().setRotationFromTwoAxes(UnitVec3(-cameraDir), ZAxis, upDir, YAxis);
     }
+    else
+        return;
+    clickX = x;
+    clickY = y;
+    pthread_mutex_lock(&sceneLock);
+    needRedisplay = true;
+    pthread_mutex_unlock(&sceneLock);
+}
+
+static void mouseMoved(int x, int y) {
+    for (int i = 0; i < (int) menus.size(); i++)
+        menus[i].mouseMoved(x, y);
 }
 
 static void keyPressed(unsigned char key, int x, int y) {
@@ -698,7 +797,7 @@ void* listenForInput(void* args) {
                         }
                     }
                     for (int i = 0; i < numVertices; i++) {
-                        normals[i].normalize();
+                        normals[i] = normals[i].normalize();
                         mesh->normals[3*i] = normals[i][0];
                         mesh->normals[3*i+1] = normals[i][1];
                         mesh->normals[3*i+2] = normals[i][2];
@@ -732,6 +831,7 @@ int main(int argc, char** argv) {
     glutReshapeFunc(changeSize);
     glutMouseFunc(mousePressed);
     glutMotionFunc(mouseDragged);
+    glutPassiveMotionFunc(mouseMoved);
     glutKeyboardFunc(keyPressed);
     glutTimerFunc(33, animateDisplay, 0);
 
@@ -744,17 +844,17 @@ int main(int argc, char** argv) {
 
     // Set up lighting.
 
-    GLfloat light_diffuse[] = {0.5, 0.5, 0.5, 1};
+    GLfloat light_diffuse[] = {0.8, 0.8, 0.8, 1};
     GLfloat light_position[] = {1.0, 1.0, 1.0, 0.0};
-    GLfloat light_ambient[] = {0.3, 0.3, 0.3, 1};
+    GLfloat light_ambient[] = {0.2, 0.2, 0.2, 1};
     glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, light_ambient);
+    glClearColor(1, 1, 1, 1);
     glEnable(GL_LIGHT0);
 
     // Initialize miscellaneous OpenGL state.
 
-    glEnable(GL_DEPTH_TEST);
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
