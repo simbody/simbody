@@ -320,7 +320,7 @@ public:
     QIndex getFirstQIndex(const State&) const;
 
     /// Return the global UIndex of the first u for this mobilizer; all the u's
-    /// range from getFirstUIndex() to UIndex(getFirstUIndex()+getNumU()).
+    /// range from getFirstUIndex() to UIndex(getFirstUIndex()+getNumU()-1).
     UIndex getFirstUIndex(const State&) const;
 
 
