@@ -79,10 +79,7 @@
 #include <iostream>
 using std::cout; using std::endl;
 
-
 using namespace SimTK;
-
-class SimTK::State;
 
 class SimbodyMatterSubsystemRep;
 class RigidBodyNode;
