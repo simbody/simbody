@@ -787,7 +787,7 @@ void* listenForInput(void* args) {
 
                     // Compute normal vectors for the mesh.
 
-                    vector<Vec3> normals(numVertices);
+                    vector<Vec3> normals(numVertices, Vec3(0));
                     for (int i = 0; i < numFaces; i++) {
                         int v1 = mesh->faces[3*i];
                         int v2 = mesh->faces[3*i+1];
