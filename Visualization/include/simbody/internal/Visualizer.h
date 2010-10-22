@@ -32,34 +32,46 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include <map>
-#include <string>
-#include <vector>
+#include "VisualizationProtocol.h"
 
 namespace SimTK {
 
+class MultibodySystem;
+class State;
 class VisualizationEventListener;
 
 class Visualizer {
 public:
-    Visualizer();
-    void beginScene() const;
-    void finishScene() const;
-    void drawBox(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
-    void drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
-    void drawCylinder(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
-    void drawCircle(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
-    void drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& transform, Real scale, const Vec4& color, int representation) const;
-    void drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness) const;
-    void drawText(const Vec3& position, Real scale, const Vec4& color, const std::string& string) const;
-    void drawFrame(const Transform& transform, Real axisLength, const Vec4& color) const;
+    Visualizer(MultibodySystem& system);
+    ~Visualizer();
+    void report(const State& state) const;
     void addEventListener(VisualizationEventListener* listener);
-    const std::vector<VisualizationEventListener*>& getEventListeners() const;
+    const Array_<VisualizationEventListener*>& getEventListeners() const;
+    /**
+     * Add an always-present, body-fixed piece of geometry like the one passed in, but attached to the
+     * indicated body. The supplied transform is applied on top of whatever transform is already contained
+     * in the supplied geometry, and any body Id stored with the geometry is ignored.
+     * The 3d representation of the geometry here can be precalculated; only the orientation
+     * of the body frame needs to be applied at run time.
+     */
+    void addDecoration(MobilizedBodyIndex, const Transform& X_BD, const DecorativeGeometry&);
+
+    /**
+     * Add an always-present rubber band line, modeled after the DecorativeLine supplied here.
+     * The end points of the supplied line are ignored, however -- at run time we'll calculate
+     * the spatial locations of the two supplied stations and use those as end points. Note
+     * that the 3d representation of this line can't be precalculated because the line length
+     * will vary.
+     */
+    void addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1,
+                           MobilizedBodyIndex b2, const Vec3& station2,
+                           const DecorativeLine& line);
+    class VisualizerRep;
 private:
-    void drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex) const;
-    int outPipe;
-    mutable std::map<const void*, int> meshes;
-    std::vector<VisualizationEventListener*> listeners;
+    class RubberBandLine;
+    VisualizerRep* rep;
+    const VisualizerRep& getRep() const {assert(rep); return *rep;}
+    VisualizerRep&       updRep() const {assert(rep); return *rep;}
 };
 
 } // namespace SimTK

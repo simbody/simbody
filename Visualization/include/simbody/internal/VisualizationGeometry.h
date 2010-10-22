@@ -38,13 +38,13 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "simbody/internal/Visualizer.h"
+#include "simbody/internal/VisualizationProtocol.h"
 
 namespace SimTK {
 
 class VisualizationGeometry : public DecorativeGeometryImplementation {
 public:
-    VisualizationGeometry(const Visualizer& visualizer, const SimbodyMatterSubsystem& matter, const State& state);
+    VisualizationGeometry(const VisualizationProtocol& protocol, const SimbodyMatterSubsystem& matter, const State& state);
     ~VisualizationGeometry() {
     }
     void implementLineGeometry(const DecorativeLine& geom);
@@ -56,11 +56,11 @@ public:
     void implementFrameGeometry(const DecorativeFrame& geom);
     void implementTextGeometry(const DecorativeText& geom);
     void implementMeshGeometry(const DecorativeMesh& geom);
+    static Vec4 getColor(const DecorativeGeometry& geom);
 private:
-    Vec4 getColor(const DecorativeGeometry& geom) const;
     int getRepresentation(const DecorativeGeometry& geom) const;
     Real getScale(const DecorativeGeometry& geom) const;
-    const Visualizer& visualizer;
+    const VisualizationProtocol& protocol;
     const SimbodyMatterSubsystem& matter;
     const State& state;
 };

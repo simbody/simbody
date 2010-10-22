@@ -53,4 +53,29 @@ static const char DEFINE_MESH = 8;
 
 static const char KEY_PRESSED = 0;
 
+namespace SimTK {
+
+class Visualizer;
+
+class VisualizationProtocol {
+public:
+    VisualizationProtocol(Visualizer& visualizer);
+    void beginScene() const;
+    void finishScene() const;
+    void drawBox(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
+    void drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
+    void drawCylinder(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
+    void drawCircle(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
+    void drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& transform, Real scale, const Vec4& color, int representation) const;
+    void drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness) const;
+    void drawText(const Vec3& position, Real scale, const Vec4& color, const std::string& string) const;
+    void drawFrame(const Transform& transform, Real axisLength, const Vec4& color) const;
+private:
+    void drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex) const;
+    int outPipe;
+    mutable std::map<const void*, int> meshes;
+};
+
+}
+
 #endif // SimTK_SIMBODY_VISUALIZATION_PROTOCOL_H_

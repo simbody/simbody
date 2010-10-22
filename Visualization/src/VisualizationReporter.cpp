@@ -30,7 +30,6 @@
  * -------------------------------------------------------------------------- */
 
 #include "simbody/internal/VisualizationReporter.h"
-#include "simbody/internal/VisualizationGeometry.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 
@@ -38,7 +37,7 @@ using namespace SimTK;
 
 class VisualizationReporter::VisualizationReporterRep {
 public:
-    VisualizationReporterRep(MultibodySystem& system) : system(system) {
+    VisualizationReporterRep(MultibodySystem& system) : visualizer(system) {
     }
     const Visualizer& getVisualizer() const {
         return visualizer;
@@ -47,35 +46,10 @@ public:
         return visualizer;
     }
     void handleEvent(const State& state) const {
-        system.realize(state, Stage::Position); // needed for body transforms
-
-        visualizer.beginScene();
-
-        VisualizationGeometry geometryCreator(visualizer, system.getMatterSubsystem(), state);
-        Array_<DecorativeGeometry> geometry;
-        // TODO: These should be precalculated somewhere; they don't change with time.
-        for (Stage stage = Stage::Topology; stage < Stage::Time; stage++)
-            system.calcDecorativeGeometryAndAppend(state, stage, geometry);
-
-        // This will include at least Time- and Position-dependent geometry
-        // but may go higher. For example, if lines of force are being 
-        // displayed we'll only see those if the passed-in state has been
-        // realized to Dynamics stage already.
-        for (Stage stage=Stage::Time; stage <= state.getSystemStage(); ++stage)
-            system.calcDecorativeGeometryAndAppend(state, stage, geometry);
-
-        for (int i = 0; i < (int) geometry.size(); ++i)
-            geometry[i].implementGeometry(geometryCreator);
-        for (int i = 0; i < (int) addedGeometry.size(); ++i)
-            addedGeometry[i].implementGeometry(geometryCreator);
-
-        visualizer.finishScene();
+        visualizer.report(state);
     }
     VisualizationReporter*      handle;
-    MultibodySystem&            system;
     Visualizer                  visualizer;
-
-    Array_<DecorativeGeometry>  addedGeometry;
 };
 
 VisualizationReporter::VisualizationReporter(MultibodySystem& system, Real reportInterval) : PeriodicEventReporter(reportInterval) {
@@ -86,14 +60,6 @@ VisualizationReporter::VisualizationReporter(MultibodySystem& system, Real repor
 VisualizationReporter::~VisualizationReporter() {
     if (rep->handle == this)
         delete rep;
-}
-
-void VisualizationReporter::addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD, const DecorativeGeometry& geom) {
-    Array_<DecorativeGeometry>& addedGeometry = updRep().addedGeometry;
-    addedGeometry.push_back(geom);
-    DecorativeGeometry& geomCopy = addedGeometry.back();
-    geomCopy.setBodyId((int)mobodIx);
-    geomCopy.setTransform(X_BD * geomCopy.getTransform());
 }
 
 void VisualizationReporter::addEventListener(VisualizationEventListener* listener) {
