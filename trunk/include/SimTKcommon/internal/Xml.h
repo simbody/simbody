@@ -1127,7 +1127,8 @@ be a container of some sort, like a Vector or Array.)
 @return The value of the text element, converted to an object of type T. **/
 template <class T> T  
 getRequiredElementValueAs(const String& tag) const
-{   T out; convertStringTo(getRequiredElementValue(tag), out); return out; }
+{   T out; convertStringTo(unconst().getRequiredElementValue(tag), out); 
+    return out; }
 
 /** Convert the text value of an optional child value element, if present, to
 the type of the template argument T. It is an error if the child element is
@@ -1142,7 +1143,7 @@ child element is not present, then return a supplied default value of type T.
 of the supplied default value \a def. **/
 template <class T> T 
 getOptionalElementValueAs(const String& tag, const T& def) const
-{   const Element opt(getOptionalElement(tag));
+{   const Element opt(unconst().getOptionalElement(tag));
     if (!opt.isValid()) return def;
     T out; convertStringTo(opt.getValue(), out); return out; }
 /*@}*/
