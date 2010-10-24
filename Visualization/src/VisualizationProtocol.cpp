@@ -81,7 +81,7 @@ static void readData(char* buffer, int bytes) {
 
 static void* listenForVisualizationEvents(void* arg) {
     Visualizer& visualizer = *reinterpret_cast<Visualizer*>(arg);
-    const vector<VisualizationEventListener*>& listeners = visualizer.getEventListeners();
+    const Array_<VisualizationEventListener*>& listeners = visualizer.getEventListeners();
     char buffer[256];
     while (true) {
         // Receive an event.

@@ -33,7 +33,8 @@ public:
     Array_<RubberBandLine> lines;
 };
 
-Visualizer::Visualizer(MultibodySystem& system) : rep(new VisualizerRep(this, system)) {
+Visualizer::Visualizer(MultibodySystem& system) : rep(0) {
+    rep = new VisualizerRep(this, system);
 }
 
 Visualizer::~Visualizer() {
