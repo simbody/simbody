@@ -42,9 +42,31 @@ static int clickY;
 static int inPipe, outPipe;
 static bool needRedisplay;
 
+static void computeBoundingSphereForVertices(const vector<float>& vertices, Real& radius, Vec3& center) {
+    Vec3 lower(vertices[0], vertices[1], vertices[2]);
+    Vec3 upper = lower;
+    for (int i = 3; i < (int) vertices.size(); i += 3) {
+        for (int j = 0; j < 3; j++) {
+            lower[j] = min(lower[j], (Real) vertices[i+j]);
+            upper[j] = max(upper[j], (Real) vertices[i+j]);
+        }
+    }
+    center = 0.5*(lower+upper);
+    float rad2 = 0;
+    for (int i = 0; i < (int) vertices.size(); i += 3) {
+        float x = center[0]-vertices[i];
+        float y = center[1]-vertices[i+1];
+        float z = center[2]-vertices[i+2];
+        float norm2 = x*x+y*y+z*z;
+        if (norm2 > rad2)
+            rad2 = norm2;
+    }
+    radius = sqrt(rad2);
+}
+
 class Mesh {
 public:
-    Mesh(vector<float>& vertices, vector<float>& normals, vector<GLushort>& faces) : numVertices(vertices.size()), faces(faces) {
+    Mesh(vector<float>& vertices, vector<float>& normals, vector<GLushort>& faces) : numVertices(vertices.size()/3), faces(faces) {
         // Build OpenGL buffers.
 
         GLuint buffers[2];
@@ -71,6 +93,10 @@ public:
             edges.push_back(iter->first);
             edges.push_back(iter->second);
         }
+
+        // Compute the center and radius.
+
+        computeBoundingSphereForVertices(vertices, radius, center);
     }
     void draw(short representation) const {
         glBindBuffer(GL_ARRAY_BUFFER, vertBuffer);
@@ -80,14 +106,20 @@ public:
         if (representation == DecorativeGeometry::DrawSurface)
             glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_SHORT, &faces[0]);
         else if (representation == DecorativeGeometry::DrawPoints)
-            glDrawArrays(GL_POINTS, 0, numVertices);
+            glDrawArrays(GL_POINTS, 0, numVertices*3);
         else if (representation == DecorativeGeometry::DrawWireframe)
             glDrawElements(GL_LINES, edges.size(), GL_UNSIGNED_SHORT, &edges[0]);
+    }
+    void getBoundingSphere(Real& radius, Vec3& center) {
+        radius = this->radius;
+        center = this->center;
     }
 private:
     int numVertices;
     GLuint vertBuffer, normBuffer;
     vector<GLushort> edges, faces;
+    Vec3 center;
+    Real radius;
 };
 
 static vector<Mesh*> meshes;
@@ -117,6 +149,11 @@ public:
     const Transform& getTransform() const {
         return transform;
     }
+    void computeBoundingSphere(Real& radius, Vec3& center) {
+        meshes[meshIndex]->getBoundingSphere(radius, center);
+        center += transform.T();
+        radius *= max(abs(scale[0]), max(abs(scale[1]), abs(scale[2])));
+    }
 private:
     Transform transform;
     Vec3 scale;
@@ -145,6 +182,9 @@ public:
     float getThickness() const {
         return thickness;
     }
+    void computeBoundingSphere(Real& radius, Vec3& center) {
+        computeBoundingSphereForVertices(lines, radius, center);
+    }
 private:
     Vec3 color;
     float thickness;
@@ -170,6 +210,10 @@ public:
             glutStrokeCharacter(GLUT_STROKE_ROMAN, text[i]);
         glPopMatrix();
     }
+    void computeBoundingSphere(Real& radius, Vec3& center) {
+        center = position;
+        radius = glutStrokeLength(GLUT_STROKE_ROMAN, (unsigned char*) text.c_str())*scale;
+    }
 private:
     Vec3 position;
     float scale;
@@ -186,11 +230,89 @@ public:
     vector<RenderedText> strings;
 };
 
-class PendingMesh {
+class PendingCommand {
 public:
+    virtual void execute() = 0;
+};
+
+static int viewWidth, viewHeight;
+static GLdouble fieldOfView = SimTK_PI/4;
+static GLdouble nearClip = 1;
+static GLdouble farClip = 100;
+static vector<PendingCommand*> pendingCommands;
+static Scene* scene;
+
+class PendingMesh : public PendingCommand {
+public:
+    void execute() {
+        meshes.push_back(new Mesh(vertices, normals, faces));
+    }
     vector<float> vertices;
     vector<float> normals;
     vector<GLushort> faces;
+};
+
+class PendingCameraZoom : public PendingCommand {
+public:
+    void execute() {
+        // Record the bounding sphere of every object in the scene.
+
+        vector<Vec3> centers;
+        vector<Real> radii;
+        for (int i = 0; i < (int) scene->drawnMeshes.size(); i++) {
+            Vec3 center;
+            Real radius;
+            scene->drawnMeshes[i].computeBoundingSphere(radius, center);
+            centers.push_back(center);
+            radii.push_back(radius);
+        }
+        for (int i = 0; i < (int) scene->solidMeshes.size(); i++) {
+            Vec3 center;
+            Real radius;
+            scene->solidMeshes[i].computeBoundingSphere(radius, center);
+            centers.push_back(center);
+            radii.push_back(radius);
+        }
+        for (int i = 0; i < (int) scene->transparentMeshes.size(); i++) {
+            Vec3 center;
+            Real radius;
+            scene->transparentMeshes[i].computeBoundingSphere(radius, center);
+            centers.push_back(center);
+            radii.push_back(radius);
+        }
+        for (int i = 0; i < (int) scene->lines.size(); i++) {
+            Vec3 center;
+            Real radius;
+            scene->lines[i].computeBoundingSphere(radius, center);
+            centers.push_back(center);
+            radii.push_back(radius);
+        }
+        for (int i = 0; i < (int) scene->strings.size(); i++) {
+            Vec3 center;
+            Real radius;
+            scene->strings[i].computeBoundingSphere(radius, center);
+            centers.push_back(center);
+            radii.push_back(radius);
+        }
+        if (centers.size() > 0) {
+            // Find the overall bounding sphere of the scene.
+
+            Vec3 lower = centers[0]-radii[0];
+            Vec3 upper = centers[0]+radii[0];
+            for (int i = 1; i < (int) centers.size(); i++) {
+                for (int j = 0; j < 3; j++) {
+                    lower[j] = min(lower[j], centers[i][j]-radii[i]);
+                    upper[j] = max(upper[j], centers[i][j]+radii[i]);
+                }
+            }
+            Vec3 center = 0.5*(lower+upper);
+            Real radius = 0;
+            for (int i = 0; i < (int) centers.size(); i++)
+                radius = max(radius, (centers[i]-center).norm()+radii[i]);
+            Real viewDistance = radius/tan(0.5*min(fieldOfView, fieldOfView*viewWidth/viewHeight));
+            cameraTransform.updT() = center+cameraTransform.R()*Vec3(0, 0, viewDistance);
+        }
+    }
 };
 
 void menuSelected(int option) {
@@ -261,20 +383,12 @@ private:
 
 int Menu::currentMenu = -1;
 
-static int viewWidth, viewHeight;
-static vector<PendingMesh*> pendingMeshes;
-static Scene* scene;
 static vector<Menu> menus;
 static pthread_mutex_t sceneLock;
 
 static void changeSize(int width, int height) {
     if (height == 0)
         height = 1;
-    float ratio = 1.0*width/height;
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glViewport(0, 0, width, height);
-    gluPerspective(45,ratio,0.5,100);
     viewWidth = width;
     viewHeight = height;
 }
@@ -282,42 +396,57 @@ static void changeSize(int width, int height) {
 static void renderScene() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
-    glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    Vec3 cameraPos = cameraTransform.T();
-    Vec3 centerPos = cameraTransform.T()+cameraTransform.R()*Vec3(0, 0, -1);
-    Vec3 upDir = cameraTransform.R()*Vec3(0, 1, 0);
-    gluLookAt(cameraPos[0], cameraPos[1], cameraPos[2], centerPos[0], centerPos[1], centerPos[2], upDir[0], upDir[1], upDir[2]);
     glClear(GL_COLOR_BUFFER_BIT);
     glDisable(GL_LIGHTING);
     glDisableClientState(GL_NORMAL_ARRAY);
     pthread_mutex_lock(&sceneLock);
-    needRedisplay = false;
-    for (int i = 0; i < (int) pendingMeshes.size(); i++) {
-        meshes.push_back(new Mesh(pendingMeshes[i]->vertices, pendingMeshes[i]->normals, pendingMeshes[i]->faces));
-        delete pendingMeshes[i];
+    if (scene != NULL) {
+        needRedisplay = false;
+
+        // Execute any pending commands that need to be executed on the rendering thread.
+
+        for (int i = 0; i < (int) pendingCommands.size(); i++) {
+            pendingCommands[i]->execute();
+            delete pendingCommands[i];
+        }
+        pendingCommands.clear();
+
+        // Set up the viewpoint.
+
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        glViewport(0, 0, viewWidth, viewHeight);
+        gluPerspective(fieldOfView*SimTK_RADIAN_TO_DEGREE, (GLdouble) viewWidth/viewHeight, nearClip, farClip);
+        glMatrixMode(GL_MODELVIEW);
+        Vec3 cameraPos = cameraTransform.T();
+        Vec3 centerPos = cameraTransform.T()+cameraTransform.R()*Vec3(0, 0, -1);
+        Vec3 upDir = cameraTransform.R()*Vec3(0, 1, 0);
+        gluLookAt(cameraPos[0], cameraPos[1], cameraPos[2], centerPos[0], centerPos[1], centerPos[2], upDir[0], upDir[1], upDir[2]);
+
+        // Render the objects in the scene.
+        
+        for (int i = 0; i < (int) scene->lines.size(); i++)
+            scene->lines[i].draw();
+        glLineWidth(2);
+        for (int i = 0; i < (int) scene->strings.size(); i++)
+            scene->strings[i].draw();
+        glLineWidth(1);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        for (int i = 0; i < (int) scene->drawnMeshes.size(); i++)
+            scene->drawnMeshes[i].draw();
+        glEnable(GL_LIGHTING);
+        for (int i = 0; i < (int) scene->solidMeshes.size(); i++)
+            scene->solidMeshes[i].draw();
+        glEnable(GL_BLEND);
+        glDepthMask(GL_FALSE);
+        vector<pair<float, int> > order(scene->transparentMeshes.size());
+        for (int i = 0; i < (int) order.size(); i++)
+            order[i] = make_pair((float)(~cameraTransform.R()*scene->transparentMeshes[i].getTransform().T())[2], i);
+        sort(order.begin(), order.end());
+        for (int i = 0; i < (int) order.size(); i++)
+            scene->transparentMeshes[order[i].second].draw();
     }
-    pendingMeshes.clear();
-    for (int i = 0; i < (int) scene->lines.size(); i++)
-        scene->lines[i].draw();
-    glLineWidth(2);
-    for (int i = 0; i < (int) scene->strings.size(); i++)
-        scene->strings[i].draw();
-    glLineWidth(1);
-    glEnableClientState(GL_NORMAL_ARRAY);
-    for (int i = 0; i < (int) scene->drawnMeshes.size(); i++)
-        scene->drawnMeshes[i].draw();
-    glEnable(GL_LIGHTING);
-    for (int i = 0; i < (int) scene->solidMeshes.size(); i++)
-        scene->solidMeshes[i].draw();
-    glEnable(GL_BLEND);
-    glDepthMask(GL_FALSE);
-    vector<pair<float, int> > order(scene->transparentMeshes.size());
-    for (int i = 0; i < (int) order.size(); i++)
-        order[i] = make_pair((float)(~cameraTransform.R()*scene->transparentMeshes[i].getTransform().T())[2], i);
-    sort(order.begin(), order.end());
-    for (int i = 0; i < (int) order.size(); i++)
-        scene->transparentMeshes[order[i].second].draw();
     pthread_mutex_unlock(&sceneLock);
     glDisable(GL_BLEND);
     glDepthMask(GL_TRUE);
@@ -360,6 +489,7 @@ static void mousePressed(int button, int state, int x, int y) {
 }
 
 static void mouseDragged(int x, int y) {
+    pthread_mutex_lock(&sceneLock);
     if (clickButton == GLUT_RIGHT_BUTTON || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_SHIFT))
        cameraTransform.updT() += cameraTransform.R()*Vec3(0.01*(clickX-x), 0.01*(y-clickY), 0);
     else if (clickButton == GLUT_MIDDLE_BUTTON || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_ALT))
@@ -385,7 +515,6 @@ static void mouseDragged(int x, int y) {
         return;
     clickX = x;
     clickY = y;
-    pthread_mutex_lock(&sceneLock);
     needRedisplay = true;
     pthread_mutex_unlock(&sceneLock);
 }
@@ -669,156 +798,194 @@ void* listenForInput(void* args) {
     while (true) {
         // Read a new scene.
         readData(buffer, 1);
-        SimTK_ASSERT_ALWAYS(buffer[0] == START_OF_SCENE, "Unexpected data sent to visualizer");
-        Scene* newScene = new Scene();
-        bool finished = false;
-        while (!finished) {
-            readData(buffer, 1);
-            char command = buffer[0];
-            switch (command) {
-                case END_OF_SCENE:
-                    pthread_mutex_lock(&sceneLock);
-                    delete scene;
-                    scene = newScene;
-                    needRedisplay = true;
-                    pthread_mutex_unlock(&sceneLock);
-                    finished = true;
-                    break;
-                case ADD_POINT_MESH:
-                case ADD_WIREFRAME_MESH:
-                case ADD_SOLID_MESH: {
-                    readData(buffer, 13*sizeof(float)+sizeof(short));
-                    Transform position;
-                    position.updR().setRotationToBodyFixedXYZ(Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
-                    position.updT() = Vec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
-                    Vec3 scale = Vec3(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
-                    Vec4 color = Vec4(floatBuffer[9], floatBuffer[10], floatBuffer[11], floatBuffer[12]);
-                    short representation = (command == ADD_POINT_MESH ? DecorativeGeometry::DrawPoints : (command == ADD_WIREFRAME_MESH ? DecorativeGeometry::DrawWireframe : DecorativeGeometry::DrawSurface));
-                    RenderedMesh mesh(position, scale, color, representation, shortBuffer[13*sizeof(float)/sizeof(short)]);
-                    if (command != ADD_SOLID_MESH)
-                        newScene->drawnMeshes.push_back(mesh);
-                    else if (color[3] == 1)
-                        newScene->solidMeshes.push_back(mesh);
-                    else
-                        newScene->transparentMeshes.push_back(mesh);
-                    break;
-                }
-                case ADD_LINE: {
-                    readData(buffer, 10*sizeof(float));
-                    Vec3 color = Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
-                    float thickness = floatBuffer[3];
-                    int index;
-                    int numLines = newScene->lines.size();
-                    for (index = 0; index < numLines && (color != newScene->lines[index].getColor() || thickness != newScene->lines[index].getThickness()); index++)
-                        ;
-                    if (index == numLines)
-                        newScene->lines.push_back(RenderedLine(color, thickness));
-                    vector<GLfloat>& line = newScene->lines[index].getLines();
-                    line.push_back(floatBuffer[4]);
-                    line.push_back(floatBuffer[5]);
-                    line.push_back(floatBuffer[6]);
-                    line.push_back(floatBuffer[7]);
-                    line.push_back(floatBuffer[8]);
-                    line.push_back(floatBuffer[9]);
-                    break;
-                }
-                case ADD_TEXT: {
-                    readData(buffer, 7*sizeof(float)+sizeof(short));
-                    Vec3 position = Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
-                    float scale = floatBuffer[3];
-                    Vec3 color = Vec3(floatBuffer[4], floatBuffer[5], floatBuffer[6]);
-                    short length = shortBuffer[7*sizeof(float)/sizeof(short)];
-                    readData(buffer, length);
-                    newScene->strings.push_back(RenderedText(position, scale, color, string(buffer, length)));
-                    break;
-                }
-                case ADD_FRAME: {
-                    readData(buffer, 10*sizeof(float));
-                    Rotation rotation;
-                    rotation.setRotationToBodyFixedXYZ(Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
-                    Vec3 position(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
-                    float axisLength = floatBuffer[6];
-                    float textScale = 0.2f*axisLength;
-                    float lineThickness = 1;
-                    Vec3 color = Vec3(floatBuffer[7], floatBuffer[8], floatBuffer[9]);
-                    int index;
-                    int numLines = newScene->lines.size();
-                    for (index = 0; index < numLines && (color != newScene->lines[index].getColor() || newScene->lines[index].getThickness() != lineThickness); index++)
-                        ;
-                    if (index == numLines)
-                        newScene->lines.push_back(RenderedLine(color, lineThickness));
-                    vector<GLfloat>& line = newScene->lines[index].getLines();
-                    Vec3 end = position+rotation*Vec3(axisLength, 0, 0);
-                    line.push_back(position[0]);
-                    line.push_back(position[1]);
-                    line.push_back(position[2]);
-                    line.push_back(end[0]);
-                    line.push_back(end[1]);
-                    line.push_back(end[2]);
-                    newScene->strings.push_back(RenderedText(end, textScale, color, "X"));
-                    end = position+rotation*Vec3(0, axisLength, 0);
-                    line.push_back(position[0]);
-                    line.push_back(position[1]);
-                    line.push_back(position[2]);
-                    line.push_back(end[0]);
-                    line.push_back(end[1]);
-                    line.push_back(end[2]);
-                    newScene->strings.push_back(RenderedText(end, textScale, color, "Y"));
-                    end = position+rotation*Vec3(0, 0, axisLength);
-                    line.push_back(position[0]);
-                    line.push_back(position[1]);
-                    line.push_back(position[2]);
-                    line.push_back(end[0]);
-                    line.push_back(end[1]);
-                    line.push_back(end[2]);
-                    newScene->strings.push_back(RenderedText(end, textScale, color, "Z"));
-                    break;
-                }
-                case DEFINE_MESH: {
-                    readData(buffer, 2*sizeof(short));
-                    PendingMesh* mesh = new PendingMesh();
-                    int numVertices = shortBuffer[0];
-                    int numFaces = shortBuffer[1];
-                    mesh->vertices.resize(3*numVertices, 0);
-                    mesh->normals.resize(3*numVertices);
-                    mesh->faces.resize(3*numFaces);
-                    readData((char*) &mesh->vertices[0], mesh->vertices.size()*sizeof(float));
-                    readData((char*) &mesh->faces[0], mesh->faces.size()*sizeof(short));
-
-                    // Compute normal vectors for the mesh.
-
-                    vector<Vec3> normals(numVertices, Vec3(0));
-                    for (int i = 0; i < numFaces; i++) {
-                        int v1 = mesh->faces[3*i];
-                        int v2 = mesh->faces[3*i+1];
-                        int v3 = mesh->faces[3*i+2];
-                        Vec3 vert1(mesh->vertices[3*v1], mesh->vertices[3*v1+1], mesh->vertices[3*v1+2]);
-                        Vec3 vert2(mesh->vertices[3*v2], mesh->vertices[3*v2+1], mesh->vertices[3*v2+2]);
-                        Vec3 vert3(mesh->vertices[3*v3], mesh->vertices[3*v3+1], mesh->vertices[3*v3+2]);
-                        Vec3 norm = (vert2-vert1)%(vert3-vert1);
-                        Real length = norm.norm();
-                        if (length > 0) {
-                            norm /= length;
-                            normals[v1] += norm;
-                            normals[v2] += norm;
-                            normals[v3] += norm;
-                        }
-                    }
-                    for (int i = 0; i < numVertices; i++) {
-                        normals[i] = normals[i].normalize();
-                        mesh->normals[3*i] = normals[i][0];
-                        mesh->normals[3*i+1] = normals[i][1];
-                        mesh->normals[3*i+2] = normals[i][2];
-                    }
-
-                    // A real mesh will be generated from this the next time the screen is redrawn.
-
-                    pendingMeshes.push_back(mesh);
-                    break;
-                }
-                default:
-                    SimTK_ASSERT_ALWAYS(false, "Unexpected data sent to visualizer");
+        switch (buffer[0]) {
+            case SET_CAMERA: {
+                readData(buffer, 6*sizeof(float));
+                pthread_mutex_lock(&sceneLock);
+                cameraTransform.updR().setRotationToBodyFixedXYZ(Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
+                cameraTransform.updT() = Vec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+                pthread_mutex_unlock(&sceneLock);
+                break;
             }
+            case ZOOM_CAMERA: {
+                pthread_mutex_lock(&sceneLock);
+                pendingCommands.push_back(new PendingCameraZoom());
+                pthread_mutex_unlock(&sceneLock);
+                break;
+            }
+             case SET_FIELD_OF_VIEW: {
+                readData(buffer, sizeof(float));
+                pthread_mutex_lock(&sceneLock);
+                fieldOfView = floatBuffer[0];
+                pthread_mutex_unlock(&sceneLock);
+                break;
+            }
+             case SET_CLIP_PLANES: {
+                readData(buffer, 2*sizeof(float));
+                pthread_mutex_lock(&sceneLock);
+                nearClip = floatBuffer[0];
+                farClip = floatBuffer[1];
+                pthread_mutex_unlock(&sceneLock);
+                break;
+            }
+           case START_OF_SCENE: {
+                Scene* newScene = new Scene();
+                bool finished = false;
+                while (!finished) {
+                    readData(buffer, 1);
+                    char command = buffer[0];
+                    switch (command) {
+                        case END_OF_SCENE:
+                            pthread_mutex_lock(&sceneLock);
+                            if (scene != NULL)
+                                delete scene;
+                            scene = newScene;
+                            needRedisplay = true;
+                            pthread_mutex_unlock(&sceneLock);
+                            finished = true;
+                            break;
+                        case ADD_POINT_MESH:
+                        case ADD_WIREFRAME_MESH:
+                        case ADD_SOLID_MESH: {
+                            readData(buffer, 13*sizeof(float)+sizeof(short));
+                            Transform position;
+                            position.updR().setRotationToBodyFixedXYZ(Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
+                            position.updT() = Vec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+                            Vec3 scale = Vec3(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
+                            Vec4 color = Vec4(floatBuffer[9], floatBuffer[10], floatBuffer[11], floatBuffer[12]);
+                            short representation = (command == ADD_POINT_MESH ? DecorativeGeometry::DrawPoints : (command == ADD_WIREFRAME_MESH ? DecorativeGeometry::DrawWireframe : DecorativeGeometry::DrawSurface));
+                            RenderedMesh mesh(position, scale, color, representation, shortBuffer[13*sizeof(float)/sizeof(short)]);
+                            if (command != ADD_SOLID_MESH)
+                                newScene->drawnMeshes.push_back(mesh);
+                            else if (color[3] == 1)
+                                newScene->solidMeshes.push_back(mesh);
+                            else
+                                newScene->transparentMeshes.push_back(mesh);
+                            break;
+                        }
+                        case ADD_LINE: {
+                            readData(buffer, 10*sizeof(float));
+                            Vec3 color = Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+                            float thickness = floatBuffer[3];
+                            int index;
+                            int numLines = newScene->lines.size();
+                            for (index = 0; index < numLines && (color != newScene->lines[index].getColor() || thickness != newScene->lines[index].getThickness()); index++)
+                                ;
+                            if (index == numLines)
+                                newScene->lines.push_back(RenderedLine(color, thickness));
+                            vector<GLfloat>& line = newScene->lines[index].getLines();
+                            line.push_back(floatBuffer[4]);
+                            line.push_back(floatBuffer[5]);
+                            line.push_back(floatBuffer[6]);
+                            line.push_back(floatBuffer[7]);
+                            line.push_back(floatBuffer[8]);
+                            line.push_back(floatBuffer[9]);
+                            break;
+                        }
+                        case ADD_TEXT: {
+                            readData(buffer, 7*sizeof(float)+sizeof(short));
+                            Vec3 position = Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+                            float scale = floatBuffer[3];
+                            Vec3 color = Vec3(floatBuffer[4], floatBuffer[5], floatBuffer[6]);
+                            short length = shortBuffer[7*sizeof(float)/sizeof(short)];
+                            readData(buffer, length);
+                            newScene->strings.push_back(RenderedText(position, scale, color, string(buffer, length)));
+                            break;
+                        }
+                        case ADD_FRAME: {
+                            readData(buffer, 10*sizeof(float));
+                            Rotation rotation;
+                            rotation.setRotationToBodyFixedXYZ(Vec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
+                            Vec3 position(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+                            float axisLength = floatBuffer[6];
+                            float textScale = 0.2f*axisLength;
+                            float lineThickness = 1;
+                            Vec3 color = Vec3(floatBuffer[7], floatBuffer[8], floatBuffer[9]);
+                            int index;
+                            int numLines = newScene->lines.size();
+                            for (index = 0; index < numLines && (color != newScene->lines[index].getColor() || newScene->lines[index].getThickness() != lineThickness); index++)
+                                ;
+                            if (index == numLines)
+                                newScene->lines.push_back(RenderedLine(color, lineThickness));
+                            vector<GLfloat>& line = newScene->lines[index].getLines();
+                            Vec3 end = position+rotation*Vec3(axisLength, 0, 0);
+                            line.push_back(position[0]);
+                            line.push_back(position[1]);
+                            line.push_back(position[2]);
+                            line.push_back(end[0]);
+                            line.push_back(end[1]);
+                            line.push_back(end[2]);
+                            newScene->strings.push_back(RenderedText(end, textScale, color, "X"));
+                            end = position+rotation*Vec3(0, axisLength, 0);
+                            line.push_back(position[0]);
+                            line.push_back(position[1]);
+                            line.push_back(position[2]);
+                            line.push_back(end[0]);
+                            line.push_back(end[1]);
+                            line.push_back(end[2]);
+                            newScene->strings.push_back(RenderedText(end, textScale, color, "Y"));
+                            end = position+rotation*Vec3(0, 0, axisLength);
+                            line.push_back(position[0]);
+                            line.push_back(position[1]);
+                            line.push_back(position[2]);
+                            line.push_back(end[0]);
+                            line.push_back(end[1]);
+                            line.push_back(end[2]);
+                            newScene->strings.push_back(RenderedText(end, textScale, color, "Z"));
+                            break;
+                        }
+                        case DEFINE_MESH: {
+                            readData(buffer, 2*sizeof(short));
+                            PendingMesh* mesh = new PendingMesh();
+                            int numVertices = shortBuffer[0];
+                            int numFaces = shortBuffer[1];
+                            mesh->vertices.resize(3*numVertices, 0);
+                            mesh->normals.resize(3*numVertices);
+                            mesh->faces.resize(3*numFaces);
+                            readData((char*) &mesh->vertices[0], mesh->vertices.size()*sizeof(float));
+                            readData((char*) &mesh->faces[0], mesh->faces.size()*sizeof(short));
+
+                            // Compute normal vectors for the mesh.
+
+                            vector<Vec3> normals(numVertices, Vec3(0));
+                            for (int i = 0; i < numFaces; i++) {
+                                int v1 = mesh->faces[3*i];
+                                int v2 = mesh->faces[3*i+1];
+                                int v3 = mesh->faces[3*i+2];
+                                Vec3 vert1(mesh->vertices[3*v1], mesh->vertices[3*v1+1], mesh->vertices[3*v1+2]);
+                                Vec3 vert2(mesh->vertices[3*v2], mesh->vertices[3*v2+1], mesh->vertices[3*v2+2]);
+                                Vec3 vert3(mesh->vertices[3*v3], mesh->vertices[3*v3+1], mesh->vertices[3*v3+2]);
+                                Vec3 norm = (vert2-vert1)%(vert3-vert1);
+                                Real length = norm.norm();
+                                if (length > 0) {
+                                    norm /= length;
+                                    normals[v1] += norm;
+                                    normals[v2] += norm;
+                                    normals[v3] += norm;
+                                }
+                            }
+                            for (int i = 0; i < numVertices; i++) {
+                                normals[i] = normals[i].normalize();
+                                mesh->normals[3*i] = normals[i][0];
+                                mesh->normals[3*i+1] = normals[i][1];
+                                mesh->normals[3*i+2] = normals[i][2];
+                            }
+
+                            // A real mesh will be generated from this the next time the screen is redrawn.
+
+                            pthread_mutex_lock(&sceneLock);
+                            pendingCommands.insert(pendingCommands.begin(), mesh);
+                            pthread_mutex_unlock(&sceneLock);
+                            break;
+                        }
+                        default:
+                            SimTK_ASSERT_ALWAYS(false, "Unexpected data sent to visualizer");
+                    }
+                }
+                break;
+            }
+            default:
+                SimTK_ASSERT_ALWAYS(false, "Unexpected data sent to visualizer");
         }
     }
     return 0;
@@ -871,7 +1038,7 @@ int main(int argc, char** argv) {
     makeSphere();
     makeCylinder();
     makeCircle();
-    scene = new Scene();
+    scene = NULL;
 
     // Spawn the listener thread.
 

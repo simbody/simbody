@@ -66,6 +66,10 @@ public:
     void addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1,
                            MobilizedBodyIndex b2, const Vec3& station2,
                            const DecorativeLine& line);
+    void setCameraTransform(const Transform& transform);
+    void zoomCameraToShowAllGeometry();
+    void setCameraFieldOfView(Real fov);
+    void setCameraClippingPlanes(Real nearPlane, Real farPlane);
     class VisualizerRep;
 private:
     class RubberBandLine;

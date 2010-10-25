@@ -87,3 +87,19 @@ void Visualizer::addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD
 void Visualizer::addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1, MobilizedBodyIndex b2, const Vec3& station2, const DecorativeLine& line) {
     updRep().lines.push_back(RubberBandLine(b1, station1, b2, station2, line));
 }
+
+void Visualizer::setCameraTransform(const Transform& transform) {
+    updRep().protocol.setCameraTransform(transform);
+}
+
+void Visualizer::zoomCameraToShowAllGeometry() {
+    updRep().protocol.zoomCamera();
+}
+
+void Visualizer::setCameraFieldOfView(Real fov) {
+    updRep().protocol.setFieldOfView(fov);
+}
+
+void Visualizer::setCameraClippingPlanes(Real nearPlane, Real farPlane) {
+    updRep().protocol.setClippingPlanes(nearPlane, farPlane);
+}

@@ -4,7 +4,6 @@
 #include "simbody/internal/Visualizer.h"
 #include <cstdlib>
 #include <cstdio>
-#include <pthread.h>
 #include <string>
 
 using namespace SimTK;
@@ -81,18 +80,19 @@ static void readData(char* buffer, int bytes) {
 
 static void* listenForVisualizationEvents(void* arg) {
     Visualizer& visualizer = *reinterpret_cast<Visualizer*>(arg);
-    const Array_<VisualizationEventListener*>& listeners = visualizer.getEventListeners();
     char buffer[256];
     while (true) {
         // Receive an event.
 
         readData(buffer, 1);
         switch (buffer[0]) {
-            case KEY_PRESSED:
+            case KEY_PRESSED: {
                 readData(buffer, 2);
+                const Array_<VisualizationEventListener*>& listeners = visualizer.getEventListeners();
                 for (int i = 0; i < (int) listeners.size(); i++)
                     listeners[i]->keyPressed(buffer[0], buffer[1]);
                 break;
+            }
             default:
                 SimTK_ASSERT_ALWAYS(false, "Unexpected data received from visualizer");
         }
@@ -131,37 +131,40 @@ VisualizationProtocol::VisualizationProtocol(Visualizer& visualizer) {
 
     // Spawn the thread to listen for events.
 
+    pthread_mutex_init(&sceneLock, NULL);
     pthread_t thread;
     pthread_create(&thread, NULL, listenForVisualizationEvents, &visualizer);
 }
 
-void VisualizationProtocol::beginScene() const {
+void VisualizationProtocol::beginScene() {
+    pthread_mutex_lock(&sceneLock);
     char command = START_OF_SCENE;
     write(outPipe, &command, 1);
 }
 
-void VisualizationProtocol::finishScene() const {
+void VisualizationProtocol::finishScene() {
     char command = END_OF_SCENE;
     write(outPipe, &command, 1);
+    pthread_mutex_unlock(&sceneLock);
 }
 
-void VisualizationProtocol::drawBox(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const {
+void VisualizationProtocol::drawBox(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) {
     drawMesh(transform, scale, color, (short) representation, 0);
 }
 
-void VisualizationProtocol::drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const {
+void VisualizationProtocol::drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) {
     drawMesh(transform, scale, color, (short) representation, 1);
 }
 
-void VisualizationProtocol::drawCylinder(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const {
+void VisualizationProtocol::drawCylinder(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) {
     drawMesh(transform, scale, color, (short) representation, 2);
 }
 
-void VisualizationProtocol::drawCircle(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const {
+void VisualizationProtocol::drawCircle(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) {
     drawMesh(transform, scale, color, (short) representation, 3);
 }
 
-void VisualizationProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& transform, Real scale, const Vec4& color, int representation) const {
+void VisualizationProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& transform, Real scale, const Vec4& color, int representation) {
     const void* impl = &mesh.getImpl();
     int index;
     map<const void*, int>::const_iterator iter = meshes.find(impl);
@@ -232,7 +235,7 @@ void VisualizationProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const T
     drawMesh(transform, Vec3(scale), color, (short) representation, index);
 }
 
-void VisualizationProtocol::drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex) const {
+void VisualizationProtocol::drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex) {
     char command = (representation == DecorativeGeometry::DrawPoints ? ADD_POINT_MESH : (representation == DecorativeGeometry::DrawWireframe ? ADD_WIREFRAME_MESH : ADD_SOLID_MESH));
     write(outPipe, &command, 1);
     float buffer[13];
@@ -254,7 +257,7 @@ void VisualizationProtocol::drawMesh(const Transform& transform, const Vec3& sca
     write(outPipe, &meshIndex, sizeof(short));
 }
 
-void VisualizationProtocol::drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness) const {
+void VisualizationProtocol::drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness) {
     char command = ADD_LINE;
     write(outPipe, &command, 1);
     float buffer[10];
@@ -271,7 +274,7 @@ void VisualizationProtocol::drawLine(const Vec3& end1, const Vec3& end2, const V
     write(outPipe, buffer, 10*sizeof(float));
 }
 
-void VisualizationProtocol::drawText(const Vec3& position, Real scale, const Vec4& color, const string& string) const {
+void VisualizationProtocol::drawText(const Vec3& position, Real scale, const Vec4& color, const string& string) {
     SimTK_ASSERT_ALWAYS(string.size() <= 256, "DecorativeText cannot be longer than 256 characters");
     char command = ADD_TEXT;
     write(outPipe, &command, 1);
@@ -289,7 +292,7 @@ void VisualizationProtocol::drawText(const Vec3& position, Real scale, const Vec
     write(outPipe, &string[0], length);
 }
 
-void VisualizationProtocol::drawFrame(const Transform& transform, Real axisLength, const Vec4& color) const {
+void VisualizationProtocol::drawFrame(const Transform& transform, Real axisLength, const Vec4& color) {
     char command = ADD_FRAME;
     write(outPipe, &command, 1);
     float buffer[10];
@@ -305,6 +308,50 @@ void VisualizationProtocol::drawFrame(const Transform& transform, Real axisLengt
     buffer[8] = (float) color[1];
     buffer[9] = (float) color[2];
     write(outPipe, buffer, 10*sizeof(float));
+}
+
+void VisualizationProtocol::setCameraTransform(const Transform& transform) {
+    pthread_mutex_lock(&sceneLock);
+    char command = SET_CAMERA;
+    write(outPipe, &command, 1);
+    float buffer[6];
+    Vec3 rot = transform.R().convertRotationToBodyFixedXYZ();
+    buffer[0] = (float) rot[0];
+    buffer[1] = (float) rot[1];
+    buffer[2] = (float) rot[2];
+    buffer[3] = (float) transform.T()[0];
+    buffer[4] = (float) transform.T()[1];
+    buffer[5] = (float) transform.T()[2];
+    write(outPipe, buffer, 6*sizeof(float));
+    pthread_mutex_unlock(&sceneLock);
+}
+
+void VisualizationProtocol::zoomCamera() {
+    pthread_mutex_lock(&sceneLock);
+    char command = ZOOM_CAMERA;
+    write(outPipe, &command, 1);
+    pthread_mutex_unlock(&sceneLock);
+}
+
+void VisualizationProtocol::setFieldOfView(Real fov) {
+    pthread_mutex_lock(&sceneLock);
+    char command = SET_FIELD_OF_VIEW;
+    write(outPipe, &command, 1);
+    float buffer[1];
+    buffer[0] = fov;
+    write(outPipe, buffer, sizeof(float));
+    pthread_mutex_unlock(&sceneLock);
+}
+
+void VisualizationProtocol::setClippingPlanes(Real near, Real far) {
+    pthread_mutex_lock(&sceneLock);
+    char command = SET_CLIP_PLANES;
+    write(outPipe, &command, 1);
+    float buffer[2];
+    buffer[0] = near;
+    buffer[1] = far;
+    write(outPipe, buffer, 2*sizeof(float));
+    pthread_mutex_unlock(&sceneLock);
 }
 
 }

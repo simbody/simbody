@@ -32,6 +32,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include <pthread.h>
+
 /** @file
  * This file defines commands that are used for communication between the main application
  * and the visualization GUI.
@@ -48,6 +50,10 @@ static const char ADD_LINE = 5;
 static const char ADD_TEXT = 6;
 static const char ADD_FRAME = 7;
 static const char DEFINE_MESH = 8;
+static const char SET_CAMERA = 9;
+static const char ZOOM_CAMERA = 10;
+static const char SET_FIELD_OF_VIEW = 11;
+static const char SET_CLIP_PLANES = 12;
 
 // Events sent from the GUI back to the application.
 
@@ -60,20 +66,25 @@ class Visualizer;
 class VisualizationProtocol {
 public:
     VisualizationProtocol(Visualizer& visualizer);
-    void beginScene() const;
-    void finishScene() const;
-    void drawBox(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
-    void drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
-    void drawCylinder(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
-    void drawCircle(const Transform& transform, const Vec3& scale, const Vec4& color, int representation) const;
-    void drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& transform, Real scale, const Vec4& color, int representation) const;
-    void drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness) const;
-    void drawText(const Vec3& position, Real scale, const Vec4& color, const std::string& string) const;
-    void drawFrame(const Transform& transform, Real axisLength, const Vec4& color) const;
+    void beginScene();
+    void finishScene();
+    void drawBox(const Transform& transform, const Vec3& scale, const Vec4& color, int representation);
+    void drawEllipsoid(const Transform& transform, const Vec3& scale, const Vec4& color, int representation);
+    void drawCylinder(const Transform& transform, const Vec3& scale, const Vec4& color, int representation);
+    void drawCircle(const Transform& transform, const Vec3& scale, const Vec4& color, int representation);
+    void drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& transform, Real scale, const Vec4& color, int representation);
+    void drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness);
+    void drawText(const Vec3& position, Real scale, const Vec4& color, const std::string& string);
+    void drawFrame(const Transform& transform, Real axisLength, const Vec4& color);
+    void setCameraTransform(const Transform& transform);
+    void zoomCamera();
+    void setFieldOfView(Real fov);
+    void setClippingPlanes(Real near, Real far);
 private:
-    void drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex) const;
+    void drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex);
     int outPipe;
     mutable std::map<const void*, int> meshes;
+    pthread_mutex_t sceneLock;
 };
 
 }

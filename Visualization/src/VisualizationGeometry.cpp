@@ -30,13 +30,14 @@
  * -------------------------------------------------------------------------- */
 
 #include "simbody/internal/VisualizationGeometry.h"
+#include "simbody/internal/VisualizationProtocol.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 
 using namespace SimTK;
 
 static const Vec3 DefaultBodyColor = Gray;
 
-VisualizationGeometry::VisualizationGeometry(const VisualizationProtocol& protocol, const SimbodyMatterSubsystem& matter, const State& state) :
+VisualizationGeometry::VisualizationGeometry(VisualizationProtocol& protocol, const SimbodyMatterSubsystem& matter, const State& state) :
         protocol(protocol), matter(matter), state(state) {
 }
 
