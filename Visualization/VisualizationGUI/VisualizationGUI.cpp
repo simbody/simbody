@@ -2,6 +2,10 @@
 #include "simbody/internal/VisualizationProtocol.h"
 #include "simbody/internal/VisualizationEventListener.h"
 #ifdef _WIN32
+    // This file will not compile unless windows.h is 
+    // restricted by these defines due to name conflicts.
+    #define WIN32_LEAN_AND_MEAN
+    #define NOMINMAX
     #include <windows.h>
     #include <io.h>
     #include <GL/gl.h>
@@ -27,7 +31,7 @@
 #include <pthread.h>
 #include <set>
 #include <vector>
-#include <stdio.h>
+#include <cstdio>
 #include <utility>
 #include <string>
 

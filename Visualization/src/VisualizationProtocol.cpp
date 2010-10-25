@@ -338,7 +338,7 @@ void VisualizationProtocol::setFieldOfView(Real fov) {
     char command = SET_FIELD_OF_VIEW;
     write(outPipe, &command, 1);
     float buffer[1];
-    buffer[0] = fov;
+    buffer[0] = (float)fov;
     write(outPipe, buffer, sizeof(float));
     pthread_mutex_unlock(&sceneLock);
 }
@@ -348,8 +348,8 @@ void VisualizationProtocol::setClippingPlanes(Real near, Real far) {
     char command = SET_CLIP_PLANES;
     write(outPipe, &command, 1);
     float buffer[2];
-    buffer[0] = near;
-    buffer[1] = far;
+    buffer[0] = (float)near;
+    buffer[1] = (float)far;
     write(outPipe, buffer, 2*sizeof(float));
     pthread_mutex_unlock(&sceneLock);
 }
