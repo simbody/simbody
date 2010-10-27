@@ -46,6 +46,7 @@
 
 namespace SimTK {
 
+class DecorationGenerator;
 class DecorativeGeometry;
 class DecorativeLine;
 class MultibodySystem;
@@ -70,6 +71,15 @@ public:
     void addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1, 
                            MobilizedBodyIndex b2, const Vec3& station2,
                            const DecorativeLine&);
+    /**
+     * Add a DecorationGenerator that will be invoked to add dynamically generated geometry
+     * to the scene.  The DecorationSubsystem assumes ownership of the object passed to this method,
+     * and will delete it when the subsystem is deleted.
+     *
+     * @param stage     the Stage the generator should be invoked at
+     * @param generator the DecorationGenerator to add
+     */
+    void addDecorationGenerator(Stage stage, DecorationGenerator* generator);
 
     SimTK_PIMPL_DOWNCAST(DecorationSubsystem, Subsystem);
     class DecorationSubsystemGuts& updGuts();

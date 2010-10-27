@@ -39,6 +39,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
+#include "simbody/internal/DecorationGenerator.h"
 #include "simbody/internal/DecorationSubsystem.h"
 
 #include "DecorationSubsystemRep.h"
@@ -103,6 +104,10 @@ void DecorationSubsystem::addRubberBandLine
     updGuts().addRubberBandLine(b1,station1,b2,station2,g);
 }
 
+void DecorationSubsystem::addDecorationGenerator(Stage stage, DecorationGenerator* generator) {
+    updGuts().addDecorationGenerator(stage, generator);
+}
+
     ///////////////////////////////
     // DECORATION SUBSYSTEM GUTS //
     ///////////////////////////////
@@ -138,6 +143,8 @@ int DecorationSubsystemGuts::calcDecorativeGeometryAndAppendImpl
     default: 
         assert(getStage(s) >= stage);
     }
+    for (int i = 0; i < (int) generators[stage].size(); i++)
+        generators[stage][i]->generateDecorations(s, geom);
 
     return 0;
 }

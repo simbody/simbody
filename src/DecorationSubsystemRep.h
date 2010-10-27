@@ -42,6 +42,7 @@
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/DecorationSubsystem.h"
+#include "simbody/internal/DecorationGenerator.h"
 
 namespace SimTK {
 
@@ -61,8 +62,14 @@ class DecorationSubsystemGuts : public Subsystem::Guts {
 
 public:
     DecorationSubsystemGuts()
-      : Subsystem::Guts("DecorationSubsystem", "0.0.1")
+      : Subsystem::Guts("DecorationSubsystem", "0.0.1"), generators(Stage::NValid)
     {
+    }
+
+    ~DecorationSubsystemGuts() {
+        for (int i = 0; i < (int) generators.size(); i++)
+            for (int j = 0; j < (int) generators[i].size(); j++)
+                delete generators[i][j];
     }
 
     // Return the MultibodySystem which owns this DecorationSubsystem.
@@ -95,6 +102,9 @@ public:
         myg.setTransform(Transform());
     }
 
+    void addDecorationGenerator(Stage stage, DecorationGenerator* generator) {
+        generators[stage].push_back(generator);
+    }
 
     DecorationSubsystemGuts* cloneImpl() const {
         return new DecorationSubsystemGuts(*this);
@@ -156,6 +166,7 @@ private:
         // TOPOLOGY "STATE" VARIABLES
     Array_<DecorativeGeometry> geometry;
     Array_<RubberBandLine>     rubberBandLines;
+    Array_<Array_<DecorationGenerator*> > generators;
 };
 
 } // namespace SimTK

@@ -3,6 +3,7 @@
 #include "simbody/internal/VisualizationEventListener.h"
 #include "simbody/internal/VisualizationGeometry.h"
 #include "simbody/internal/VisualizationProtocol.h"
+#include "simbody/internal/DecorationGenerator.h"
 #include <cstdlib>
 #include <cstdio>
 #include <pthread.h>
@@ -25,11 +26,18 @@ class Visualizer::VisualizerRep {
 public:
     VisualizerRep(Visualizer* owner, MultibodySystem& system) : handle(owner), system(system), protocol(*owner) {
     }
+    ~VisualizerRep() {
+        for (int i = 0; i < (int) listeners.size(); i++)
+            delete listeners[i];
+        for (int i = 0; i < (int) generators.size(); i++)
+            delete generators[i];
+    }
     Visualizer* handle;
     MultibodySystem& system;
     Array_<DecorativeGeometry> addedGeometry;
     VisualizationProtocol protocol;
     Array_<VisualizationEventListener*> listeners;
+    Array_<DecorationGenerator*> generators;
     Array_<RubberBandLine> lines;
 };
 
@@ -46,8 +54,11 @@ void Visualizer::report(const State& state) const {
     MultibodySystem& system = updRep().system;
     system.realize(state, Stage::Position);
     Array_<DecorativeGeometry> geometry;
-    for (Stage stage = Stage::Topology; stage < state.getSystemStage(); ++stage)
+    for (Stage stage = Stage::Topology; stage <= state.getSystemStage(); ++stage)
         system.calcDecorativeGeometryAndAppend(state, stage, geometry);
+    const Array_<DecorationGenerator*>& generators = getRep().generators;
+    for (int i = 0; i < (int) generators.size(); i++)
+        generators[i]->generateDecorations(state, geometry);
     VisualizationProtocol& protocol = updRep().protocol;
     protocol.beginScene();
     VisualizationGeometry geometryCreator(protocol, system.getMatterSubsystem(), state);
@@ -74,6 +85,9 @@ void Visualizer::addEventListener(VisualizationEventListener* listener) {
 
 const Array_<VisualizationEventListener*>& Visualizer::getEventListeners() const {
     return getRep().listeners;
+}
+void Visualizer::addDecorationGenerator(DecorationGenerator* generator) {
+    updRep().generators.push_back(generator);
 }
 
 void Visualizer::addMenu(const string& title, const Array_<pair<string, int> >& items) {

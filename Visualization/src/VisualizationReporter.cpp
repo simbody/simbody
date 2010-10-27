@@ -37,7 +37,7 @@ using namespace SimTK;
 
 class VisualizationReporter::VisualizationReporterRep {
 public:
-    VisualizationReporterRep(MultibodySystem& system) : visualizer(system) {
+    VisualizationReporterRep(MultibodySystem& system) : system(system), visualizer(system) {
     }
     const Visualizer& getVisualizer() const {
         return visualizer;
@@ -46,10 +46,12 @@ public:
         return visualizer;
     }
     void handleEvent(const State& state) const {
+        system.realize(state, Stage::Acceleration);
         visualizer.report(state);
     }
-    VisualizationReporter*      handle;
-    Visualizer                  visualizer;
+    MultibodySystem& system;
+    VisualizationReporter* handle;
+    Visualizer visualizer;
 };
 
 VisualizationReporter::VisualizationReporter(MultibodySystem& system, Real reportInterval) : PeriodicEventReporter(reportInterval) {

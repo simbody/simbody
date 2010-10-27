@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_VISUALIZER_H_
-#define SimTK_SIMBODY_VISUALIZER_H_
+#ifndef SimTK_SIMBODY_DECORATION_GENERATOR_H_
+#define SimTK_SIMBODY_DECORATION_GENERATOR_H_
 
 /* -------------------------------------------------------------------------- *
  *                      SimTK Core: SimTK Simbody(tm)                         *
@@ -32,58 +32,36 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "VisualizationProtocol.h"
-#include <utility>
+#include "SimTKcommon.h"
+#include "simbody/internal/common.h"
 
 namespace SimTK {
 
-class MultibodySystem;
-class State;
-class VisualizationEventListener;
-class DecorationGenerator;
+class DecorativeGeometry;
 
-class Visualizer {
+/**
+ * A DecorationGenerator is used to define geometry that may change over the course of
+ * a simulation.  Example include
+ *
+ * <ul>
+ * <li>Geometry whose position is not fixed relative to any single body.</li>
+ * <li>Geometry which may appear or disappear during the simulation.</li>
+ * <li>Geometry whose properties (color, size, etc.) may change during the simulation.</li>
+ * </ul>
+ *
+ * To use it, define a concrete subclass that implements generateDecorations() to generate
+ * whatever geometry is appropriate for a given State.  It can then be added to a
+ * DecorationSubsystem, or directly to a Visualizer.
+ */
+class SimTK_SIMBODY_EXPORT DecorationGenerator {
 public:
-    Visualizer(MultibodySystem& system);
-    ~Visualizer();
-    void report(const State& state) const;
-    void addEventListener(VisualizationEventListener* listener);
-    const Array_<VisualizationEventListener*>& getEventListeners() const;
-    void addMenu(const std::string& title, const Array_<std::pair<std::string, int> >& items);
     /**
-     * Add an always-present, body-fixed piece of geometry like the one passed in, but attached to the
-     * indicated body. The supplied transform is applied on top of whatever transform is already contained
-     * in the supplied geometry, and any body Id stored with the geometry is ignored.
+     * This will be called every time a new State is about to be visualized.  It should generate
+     * whatever decorations are appropriate for the State and add them to the array.
      */
-    void addDecoration(MobilizedBodyIndex, const Transform& X_BD, const DecorativeGeometry&);
-
-    /**
-     * Add an always-present rubber band line, modeled after the DecorativeLine supplied here.
-     * The end points of the supplied line are ignored, however: at run time the spatial locations
-     * of the two supplied stations are calculated and used as end points.
-     */
-    void addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1,
-                           MobilizedBodyIndex b2, const Vec3& station2,
-                           const DecorativeLine& line);
-    /**
-     * Add a DecorationGenerator that will be invoked to add dynamically generated geometry
-     * to the scene.  The Visualizer assumes ownership of the object passed to this method,
-     * and will delete it when the Visualizer is deleted.
-     */
-    void addDecorationGenerator(DecorationGenerator* generator);
-    void setCameraTransform(const Transform& transform);
-    void zoomCameraToShowAllGeometry();
-    void setCameraFieldOfView(Real fov);
-    void setCameraClippingPlanes(Real nearPlane, Real farPlane);
-    void setGroundPosition(const CoordinateAxis& axis, Real height);
-    class VisualizerRep;
-private:
-    class RubberBandLine;
-    VisualizerRep* rep;
-    const VisualizerRep& getRep() const {assert(rep); return *rep;}
-    VisualizerRep&       updRep() const {assert(rep); return *rep;}
+    virtual void generateDecorations(const State& state, Array_<DecorativeGeometry>& geometry) = 0;
 };
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_VISUALIZER_H_
+#endif // SimTK_SIMBODY_DECORATION_GENERATOR_H_
