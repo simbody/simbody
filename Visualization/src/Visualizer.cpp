@@ -76,6 +76,10 @@ const Array_<VisualizationEventListener*>& Visualizer::getEventListeners() const
     return getRep().listeners;
 }
 
+void Visualizer::addMenu(const string& title, const Array_<pair<string, int> >& items) {
+    updRep().protocol.addMenu(title, items);
+}
+
 void Visualizer::addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD, const DecorativeGeometry& geom) {
     Array_<DecorativeGeometry>& addedGeometry = updRep().addedGeometry;
     addedGeometry.push_back(geom);

@@ -93,6 +93,14 @@ static void* listenForVisualizationEvents(void* arg) {
                     listeners[i]->keyPressed(buffer[0], buffer[1]);
                 break;
             }
+            case MENU_SELECTED: {
+                int item;
+                readData((char*) &item, sizeof(int));
+                const Array_<VisualizationEventListener*>& listeners = visualizer.getEventListeners();
+                for (int i = 0; i < (int) listeners.size(); i++)
+                    listeners[i]->menuSelected(item);
+                break;
+            }
             default:
                 SimTK_ASSERT_ALWAYS(false, "Unexpected data received from visualizer");
         }
@@ -358,10 +366,27 @@ void VisualizationProtocol::setGroundPosition(const CoordinateAxis& axis, Real h
     pthread_mutex_lock(&sceneLock);
     char command = SET_GROUND_POSITION;
     write(outPipe, &command, 1);
-    float heightBuffer = (float)height;
+    float heightBuffer = (float) height;
     write(outPipe, &heightBuffer, sizeof(float));
     short axisBuffer = axis;
     write(outPipe, &axisBuffer, sizeof(short));
+    pthread_mutex_unlock(&sceneLock);
+}
+
+void VisualizationProtocol::addMenu(const string& title, const Array_<pair<string, int> >& items) {
+    pthread_mutex_lock(&sceneLock);
+    char command = DEFINE_MENU;
+    write(outPipe, &command, 1);
+    short titleLength = title.size();
+    write(outPipe, &titleLength, sizeof(short));
+    write(outPipe, &title[0], titleLength);
+    short numItems = items.size();
+    write(outPipe, &numItems, sizeof(short));
+    for (int i = 0; i < numItems; i++) {
+        int buffer[] = {items[i].second, items[i].first.size()};
+        write(outPipe, buffer, 2*sizeof(int));
+        write(outPipe, &items[i].first[0], items[i].first.size());
+    }
     pthread_mutex_unlock(&sceneLock);
 }
 

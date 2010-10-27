@@ -336,7 +336,9 @@ public:
 };
 
 void menuSelected(int option) {
-
+    char command = MENU_SELECTED;
+    write(outPipe, &command, 1);
+    write(outPipe, &option, sizeof(int));
 }
 
 class Menu {
@@ -962,6 +964,7 @@ void readData(char* buffer, int bytes) {
 void* listenForInput(void* args) {
     char buffer[256];
     float* floatBuffer = (float*) buffer;
+    int* intBuffer = (int*) buffer;
     unsigned short* shortBuffer = (unsigned short*) buffer;
     while (true) {
         // Read a new scene.
@@ -1001,6 +1004,27 @@ void* listenForInput(void* args) {
                 pthread_mutex_lock(&sceneLock);
                 groundHeight = floatBuffer[0];
                 groundAxis = shortBuffer[sizeof(float)/sizeof(short)];
+                pthread_mutex_unlock(&sceneLock);
+                break;
+            }
+            case DEFINE_MENU: {
+                readData(buffer, sizeof(short));
+                int titleLength = shortBuffer[0];
+                vector<char> titleBuffer(titleLength);
+                readData(&titleBuffer[0], titleLength);
+                string title(&titleBuffer[0], titleLength);
+                readData(buffer, sizeof(short));
+                int numItems = shortBuffer[0];
+                vector<pair<string, int> > items(numItems);
+                for (int index = 0; index < numItems; index++) {
+                    readData(buffer, 2*sizeof(int));
+                    items[index].second = intBuffer[0];
+                    vector<char> textBuffer(intBuffer[1]);
+                    readData(&textBuffer[0], intBuffer[1]);
+                    items[index].first = string(&textBuffer[0], intBuffer[1]);
+                }
+                pthread_mutex_lock(&sceneLock);
+                menus.push_back(Menu(title, items, menuSelected));
                 pthread_mutex_unlock(&sceneLock);
                 break;
             }

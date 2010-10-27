@@ -44,6 +44,7 @@ public:
     
     virtual ~VisualizationEventListener();
     virtual void keyPressed(char key, char modifiers);
+    virtual void menuSelected(int item);
 };
 
 } // namespace SimTK

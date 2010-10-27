@@ -34,6 +34,7 @@
 
 #include "SimTKcommon.h"
 #include <pthread.h>
+#include <utility>
 
 /** @file
  * This file defines commands that are used for communication between the main application
@@ -51,15 +52,17 @@ static const char ADD_LINE = 5;
 static const char ADD_TEXT = 6;
 static const char ADD_FRAME = 7;
 static const char DEFINE_MESH = 8;
-static const char SET_CAMERA = 9;
-static const char ZOOM_CAMERA = 10;
-static const char SET_FIELD_OF_VIEW = 11;
-static const char SET_CLIP_PLANES = 12;
-static const char SET_GROUND_POSITION = 13;
+static const char DEFINE_MENU = 9;
+static const char SET_CAMERA = 10;
+static const char ZOOM_CAMERA = 11;
+static const char SET_FIELD_OF_VIEW = 12;
+static const char SET_CLIP_PLANES = 13;
+static const char SET_GROUND_POSITION = 14;
 
 // Events sent from the GUI back to the application.
 
 static const char KEY_PRESSED = 0;
+static const char MENU_SELECTED = 1;
 
 namespace SimTK {
 
@@ -83,6 +86,7 @@ public:
     void setFieldOfView(Real fov);
     void setClippingPlanes(Real near, Real far);
     void setGroundPosition(const CoordinateAxis& axis, Real height);
+    void addMenu(const std::string& title, const Array_<std::pair<std::string, int> >& items);
 private:
     void drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex);
     int outPipe;

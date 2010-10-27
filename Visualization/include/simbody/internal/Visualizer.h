@@ -33,6 +33,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "VisualizationProtocol.h"
+#include <utility>
 
 namespace SimTK {
 
@@ -47,6 +48,7 @@ public:
     void report(const State& state) const;
     void addEventListener(VisualizationEventListener* listener);
     const Array_<VisualizationEventListener*>& getEventListeners() const;
+    void addMenu(const std::string& title, const Array_<std::pair<std::string, int> >& items);
     /**
      * Add an always-present, body-fixed piece of geometry like the one passed in, but attached to the
      * indicated body. The supplied transform is applied on top of whatever transform is already contained
