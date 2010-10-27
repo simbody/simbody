@@ -36,5 +36,5 @@ using namespace SimTK;
 VisualizationEventListener::~VisualizationEventListener() {
 }
 
-void VisualizationEventListener::keyPressed(char key, char modifiers) const {
+void VisualizationEventListener::keyPressed(char key, char modifiers) {
 }

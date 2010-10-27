@@ -70,6 +70,7 @@ public:
     void zoomCameraToShowAllGeometry();
     void setCameraFieldOfView(Real fov);
     void setCameraClippingPlanes(Real nearPlane, Real farPlane);
+    void setGroundPosition(const CoordinateAxis& axis, Real height);
     class VisualizerRep;
 private:
     class RubberBandLine;

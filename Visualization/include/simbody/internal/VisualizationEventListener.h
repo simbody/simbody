@@ -43,7 +43,7 @@ public:
     static const char ALT_DOWN = 4;
     
     virtual ~VisualizationEventListener();
-    virtual void keyPressed(char key, char modifiers) const;
+    virtual void keyPressed(char key, char modifiers);
 };
 
 } // namespace SimTK

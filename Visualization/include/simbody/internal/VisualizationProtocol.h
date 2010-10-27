@@ -32,6 +32,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include "SimTKcommon.h"
 #include <pthread.h>
 
 /** @file
@@ -54,6 +55,7 @@ static const char SET_CAMERA = 9;
 static const char ZOOM_CAMERA = 10;
 static const char SET_FIELD_OF_VIEW = 11;
 static const char SET_CLIP_PLANES = 12;
+static const char SET_GROUND_POSITION = 13;
 
 // Events sent from the GUI back to the application.
 
@@ -80,6 +82,7 @@ public:
     void zoomCamera();
     void setFieldOfView(Real fov);
     void setClippingPlanes(Real near, Real far);
+    void setGroundPosition(const CoordinateAxis& axis, Real height);
 private:
     void drawMesh(const Transform& transform, const Vec3& scale, const Vec4& color, short representation, short meshIndex);
     int outPipe;

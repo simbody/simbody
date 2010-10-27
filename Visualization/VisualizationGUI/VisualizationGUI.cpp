@@ -243,6 +243,9 @@ static int viewWidth, viewHeight;
 static GLdouble fieldOfView = SimTK_PI/4;
 static GLdouble nearClip = 1;
 static GLdouble farClip = 100;
+static GLdouble groundHeight = 0;
+static int groundAxis = 1;
+static bool showGround = true;
 static vector<PendingCommand*> pendingCommands;
 static Scene* scene;
 
@@ -256,66 +259,70 @@ public:
     vector<GLushort> faces;
 };
 
+static void zoomCameraToShowWholeScene() {
+    // Record the bounding sphere of every object in the scene.
+
+    vector<Vec3> centers;
+    vector<Real> radii;
+    for (int i = 0; i < (int) scene->drawnMeshes.size(); i++) {
+        Vec3 center;
+        Real radius;
+        scene->drawnMeshes[i].computeBoundingSphere(radius, center);
+        centers.push_back(center);
+        radii.push_back(radius);
+    }
+    for (int i = 0; i < (int) scene->solidMeshes.size(); i++) {
+        Vec3 center;
+        Real radius;
+        scene->solidMeshes[i].computeBoundingSphere(radius, center);
+        centers.push_back(center);
+        radii.push_back(radius);
+    }
+    for (int i = 0; i < (int) scene->transparentMeshes.size(); i++) {
+        Vec3 center;
+        Real radius;
+        scene->transparentMeshes[i].computeBoundingSphere(radius, center);
+        centers.push_back(center);
+        radii.push_back(radius);
+    }
+    for (int i = 0; i < (int) scene->lines.size(); i++) {
+        Vec3 center;
+        Real radius;
+        scene->lines[i].computeBoundingSphere(radius, center);
+        centers.push_back(center);
+        radii.push_back(radius);
+    }
+    for (int i = 0; i < (int) scene->strings.size(); i++) {
+        Vec3 center;
+        Real radius;
+        scene->strings[i].computeBoundingSphere(radius, center);
+        centers.push_back(center);
+        radii.push_back(radius);
+    }
+    if (centers.size() > 0) {
+        // Find the overall bounding sphere of the scene.
+
+        Vec3 lower = centers[0]-radii[0];
+        Vec3 upper = centers[0]+radii[0];
+        for (int i = 1; i < (int) centers.size(); i++) {
+            for (int j = 0; j < 3; j++) {
+                lower[j] = min(lower[j], centers[i][j]-radii[i]);
+                upper[j] = max(upper[j], centers[i][j]+radii[i]);
+            }
+        }
+        Vec3 center = 0.5*(lower+upper);
+        Real radius = 0;
+        for (int i = 0; i < (int) centers.size(); i++)
+            radius = max(radius, (centers[i]-center).norm()+radii[i]);
+        Real viewDistance = radius/tan(0.5*min(fieldOfView, fieldOfView*viewWidth/viewHeight));
+        cameraTransform.updT() = center+cameraTransform.R()*Vec3(0, 0, viewDistance);
+    }
+}
+
 class PendingCameraZoom : public PendingCommand {
 public:
     void execute() {
-        // Record the bounding sphere of every object in the scene.
-
-        vector<Vec3> centers;
-        vector<Real> radii;
-        for (int i = 0; i < (int) scene->drawnMeshes.size(); i++) {
-            Vec3 center;
-            Real radius;
-            scene->drawnMeshes[i].computeBoundingSphere(radius, center);
-            centers.push_back(center);
-            radii.push_back(radius);
-        }
-        for (int i = 0; i < (int) scene->solidMeshes.size(); i++) {
-            Vec3 center;
-            Real radius;
-            scene->solidMeshes[i].computeBoundingSphere(radius, center);
-            centers.push_back(center);
-            radii.push_back(radius);
-        }
-        for (int i = 0; i < (int) scene->transparentMeshes.size(); i++) {
-            Vec3 center;
-            Real radius;
-            scene->transparentMeshes[i].computeBoundingSphere(radius, center);
-            centers.push_back(center);
-            radii.push_back(radius);
-        }
-        for (int i = 0; i < (int) scene->lines.size(); i++) {
-            Vec3 center;
-            Real radius;
-            scene->lines[i].computeBoundingSphere(radius, center);
-            centers.push_back(center);
-            radii.push_back(radius);
-        }
-        for (int i = 0; i < (int) scene->strings.size(); i++) {
-            Vec3 center;
-            Real radius;
-            scene->strings[i].computeBoundingSphere(radius, center);
-            centers.push_back(center);
-            radii.push_back(radius);
-        }
-        if (centers.size() > 0) {
-            // Find the overall bounding sphere of the scene.
-
-            Vec3 lower = centers[0]-radii[0];
-            Vec3 upper = centers[0]+radii[0];
-            for (int i = 1; i < (int) centers.size(); i++) {
-                for (int j = 0; j < 3; j++) {
-                    lower[j] = min(lower[j], centers[i][j]-radii[i]);
-                    upper[j] = max(upper[j], centers[i][j]+radii[i]);
-                }
-            }
-            Vec3 center = 0.5*(lower+upper);
-            Real radius = 0;
-            for (int i = 0; i < (int) centers.size(); i++)
-                radius = max(radius, (centers[i]-center).norm()+radii[i]);
-            Real viewDistance = radius/tan(0.5*min(fieldOfView, fieldOfView*viewWidth/viewHeight));
-            cameraTransform.updT() = center+cameraTransform.R()*Vec3(0, 0, viewDistance);
-        }
+        zoomCameraToShowWholeScene();
     }
 };
 
@@ -325,13 +332,38 @@ void menuSelected(int option) {
 
 class Menu {
 public:
-    Menu(string title, vector<pair<string, int> > items) : title(title), items(items), hasCreated(false) {
+    Menu(string title, vector<pair<string, int> > items, void(*handler)(int)) : title(title), items(items), handler(handler), hasCreated(false) {
     }
     int draw(int x, int y) {
         if (!hasCreated) {
-            id = glutCreateMenu(menuSelected);
-            for (int i = 0; i < (int) items.size(); i++)
-                glutAddMenuEntry(items[i].first.c_str(), items[i].second);
+            id = glutCreateMenu(handler);
+            vector<string> components;
+            vector<int> submenuIds;
+            for (int i = 0; i < (int) items.size(); i++) {
+                size_t start = 0;
+                for (int componentIndex = 0; ; componentIndex++) {
+                    size_t end = items[i].first.find('/', start);
+                    string substring = items[i].first.substr(start, end-start);
+                    if (componentIndex < components.size() && substring != components[componentIndex]) {
+                        components.resize(componentIndex);
+                        submenuIds.resize(componentIndex);
+                    }
+                    if (componentIndex == components.size())
+                        components.push_back(substring);
+                    if (end == string::npos)
+                        break;
+                    start = end+1;
+                }
+                int firstNewSubmenu = (int) submenuIds.size();
+                for (int j = firstNewSubmenu; j < (int) components.size()-1; j++)
+                    submenuIds.push_back(glutCreateMenu(handler));
+                glutSetMenu(firstNewSubmenu == 0 ? id : submenuIds[firstNewSubmenu-1]);
+                for (int j = firstNewSubmenu; j < (int) components.size()-1; j++) {
+                    glutAddSubMenu(components[j].c_str(), submenuIds[j]);
+                    glutSetMenu(submenuIds[j]);
+                }
+                glutAddMenuEntry(components[components.size()-1].c_str(), items[i].second);
+            }
             hasCreated = true;
         }
         minx = x;
@@ -380,12 +412,133 @@ public:
 private:
     string title;
     vector<pair<string, int> > items;
+    void(*handler)(int);
     int id, minx, miny, maxx, maxy;
     bool hasCreated;
     static int currentMenu;
 };
 
 int Menu::currentMenu = -1;
+
+static void drawGroundAndSky() {
+    static GLuint skyProgram = 0;
+    if (skyProgram == 0) {
+        const GLchar* vertexShaderSource =
+        "varying vec3 position;\n"
+        "uniform vec3 cameraPosition;\n"
+        "void main() {\n"
+        "gl_Position = ftransform();\n"
+        "position = gl_Vertex.xyz-cameraPosition;\n"
+        "}";
+        const GLchar* fragmentShaderSource =
+        "varying vec3 position;\n"
+        "uniform vec3 upDirection;\n"
+        "void main() {\n"
+        "float gradient = 1.0-dot(normalize(position), upDirection);\n"
+        "gradient *= gradient*gradient;\n"
+        "gl_FragColor = clamp(vec4(gradient, 0.97*gradient, 1.0, 1.0), 0.0, 1.0);\n"
+        "}";
+        skyProgram = glCreateProgram();
+        GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+        GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+        glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+        glCompileShader(vertexShader);
+        glCompileShader(fragmentShader);
+        glAttachShader(skyProgram, vertexShader);
+        glAttachShader(skyProgram, fragmentShader);
+        glLinkProgram(skyProgram);
+    }
+    static GLuint groundProgram = 0;
+    if (groundProgram == 0) {
+        const GLchar* vertexShaderSource =
+        "varying vec3 position;\n"
+        "void main() {\n"
+        "gl_Position = ftransform();\n"
+        "position = gl_Vertex.xyz;\n"
+        "}";
+        const GLchar* fragmentShaderSource =
+        "varying vec3 position;\n"
+        "void main() {\n"
+        "vec2 square = floor(0.2*position.xz);\n"
+        "vec2 delta = 0.2*position.xz-square.xy;\n"
+        "float line = min(min(min(delta.x, delta.y), 1.0-delta.x), 1.0-delta.y);\n"
+        "float blur = max(fwidth(position.x), fwidth(position.z));\n"
+        "float pattern = 0.35;\n"
+        "if (blur < 1.0)\n"
+        "pattern += 0.5*noise1(6.0*position);\n"
+        "gl_FragColor = mix(vec4(0.3, 0.2, 0.0, 1.0), vec4(1.0, 0.8, 0.7, 1.0), sqrt(line)*pattern);\n"
+        "}";
+        groundProgram = glCreateProgram();
+        GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+        GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+        glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+        glCompileShader(vertexShader);
+        glCompileShader(fragmentShader);
+        glAttachShader(groundProgram, vertexShader);
+        glAttachShader(groundProgram, fragmentShader);
+        glLinkProgram(groundProgram);
+    }
+
+    // Draw the rectangle to represent the sky.
+    
+    Real viewDistance = 0.5*(nearClip+farClip);
+    Real xwidth = viewDistance*tan(0.5*fieldOfView*viewWidth/viewHeight);
+    Real ywidth = viewDistance*tan(0.5*fieldOfView);
+    Vec3 center = cameraTransform.T()-cameraTransform.R()*Vec3(0, 0, viewDistance);
+    Vec3 corner1 = center+cameraTransform.R()*Vec3(-xwidth, -ywidth, 0);
+    Vec3 corner2 = center+cameraTransform.R()*Vec3(xwidth, -ywidth, 0);
+    Vec3 corner3 = center+cameraTransform.R()*Vec3(xwidth, ywidth, 0);
+    Vec3 corner4 = center+cameraTransform.R()*Vec3(-xwidth, ywidth, 0);
+    glUseProgram(skyProgram);
+    if (groundAxis == 0) {
+        glUniform3f(glGetUniformLocation(skyProgram, "cameraPosition"), groundHeight, (GLfloat) cameraTransform.T()[1], (GLfloat) cameraTransform.T()[2]);
+        glUniform3f(glGetUniformLocation(skyProgram, "upDirection"), 1, 0, 0);
+    }
+    else if (groundAxis == 1) {
+        glUniform3f(glGetUniformLocation(skyProgram, "cameraPosition"), (GLfloat) cameraTransform.T()[0], groundHeight, (GLfloat) cameraTransform.T()[2]);
+        glUniform3f(glGetUniformLocation(skyProgram, "upDirection"), 0, 1, 0);
+    }
+    else {
+        glUniform3f(glGetUniformLocation(skyProgram, "cameraPosition"), (GLfloat) cameraTransform.T()[0], (GLfloat) cameraTransform.T()[1], groundHeight);
+        glUniform3f(glGetUniformLocation(skyProgram, "upDirection"), 0, 0, 1);
+    }
+    glDepthMask(GL_FALSE);
+    glBegin(GL_QUADS);
+    glVertex3d(corner1[0], corner1[1], corner1[2]);
+    glVertex3d(corner2[0], corner2[1], corner2[2]);
+    glVertex3d(corner3[0], corner3[1], corner3[2]);
+    glVertex3d(corner4[0], corner4[1], corner4[2]);
+    glEnd();
+    glDepthMask(GL_TRUE);
+
+    // Draw the ground plane.
+
+    Real clipWidth = farClip-nearClip;
+    center[1] = 0;
+    corner1 = center+Vec3(-clipWidth, 0, -clipWidth);
+    corner2 = center+Vec3(clipWidth, 0, -clipWidth);
+    corner3 = center+Vec3(clipWidth, 0, clipWidth);
+    corner4 = center+Vec3(-clipWidth, 0, clipWidth);
+    glUseProgram(groundProgram);
+    glDisable(GL_CULL_FACE);
+    glPushMatrix();
+    if (groundAxis == 0)
+        glRotated(-90, 0, 0, 1);
+    else if (groundAxis == 2)
+        glRotated(90, 1, 0, 0);
+    glTranslated(0, groundHeight, 0);
+    glBegin(GL_QUADS);
+    glVertex3d(corner1[0], corner1[1], corner1[2]);
+    glVertex3d(corner2[0], corner2[1], corner2[2]);
+    glVertex3d(corner3[0], corner3[1], corner3[2]);
+    glVertex3d(corner4[0], corner4[1], corner4[2]);
+    glEnd();
+    glEnable(GL_CULL_FACE);
+    glPopMatrix();
+    glUseProgram(0);
+}
 
 static vector<Menu> menus;
 static pthread_mutex_t sceneLock;
@@ -430,6 +583,8 @@ static void renderScene() {
 
         // Render the objects in the scene.
         
+        if (showGround)
+            drawGroundAndSky();
         for (int i = 0; i < (int) scene->lines.size(); i++)
             scene->lines[i].draw();
         glLineWidth(2);
@@ -817,14 +972,14 @@ void* listenForInput(void* args) {
                 pthread_mutex_unlock(&sceneLock);
                 break;
             }
-             case SET_FIELD_OF_VIEW: {
+            case SET_FIELD_OF_VIEW: {
                 readData(buffer, sizeof(float));
                 pthread_mutex_lock(&sceneLock);
                 fieldOfView = floatBuffer[0];
                 pthread_mutex_unlock(&sceneLock);
                 break;
             }
-             case SET_CLIP_PLANES: {
+            case SET_CLIP_PLANES: {
                 readData(buffer, 2*sizeof(float));
                 pthread_mutex_lock(&sceneLock);
                 nearClip = floatBuffer[0];
@@ -832,7 +987,15 @@ void* listenForInput(void* args) {
                 pthread_mutex_unlock(&sceneLock);
                 break;
             }
-           case START_OF_SCENE: {
+            case SET_GROUND_POSITION: {
+                readData(buffer, sizeof(float)+sizeof(short));
+                pthread_mutex_lock(&sceneLock);
+                groundHeight = floatBuffer[0];
+                groundAxis = shortBuffer[sizeof(float)/sizeof(short)];
+                pthread_mutex_unlock(&sceneLock);
+                break;
+            }
+            case START_OF_SCENE: {
                 Scene* newScene = new Scene();
                 bool finished = false;
                 while (!finished) {
@@ -995,6 +1158,57 @@ void* listenForInput(void* args) {
     return 0;
 }
 
+static const int MENU_VIEW_FRONT = 0;
+static const int MENU_VIEW_BACK = 1;
+static const int MENU_VIEW_LEFT = 2;
+static const int MENU_VIEW_RIGHT = 3;
+static const int MENU_VIEW_TOP = 4;
+static const int MENU_VIEW_BOTTOM = 5;
+static const int MENU_BACKGROUND_BLACK = 6;
+static const int MENU_BACKGROUND_WHITE = 7;
+static const int MENU_BACKGROUND_SKY = 8;
+
+void viewMenuSelected(int option) {
+    switch (option) {
+        case MENU_VIEW_FRONT:
+            cameraTransform.updR().setRotationToIdentityMatrix();
+            zoomCameraToShowWholeScene();
+            break;
+        case MENU_VIEW_BACK:
+            cameraTransform.updR().setRotationFromAngleAboutY(SimTK_PI);
+            zoomCameraToShowWholeScene();
+            break;
+        case MENU_VIEW_LEFT:
+            cameraTransform.updR().setRotationFromAngleAboutY(-0.5*SimTK_PI);
+            zoomCameraToShowWholeScene();
+            break;
+        case MENU_VIEW_RIGHT:
+            cameraTransform.updR().setRotationFromAngleAboutY(0.5*SimTK_PI);
+            zoomCameraToShowWholeScene();
+            break;
+        case MENU_VIEW_TOP:
+            cameraTransform.updR().setRotationFromAngleAboutX(-0.5*SimTK_PI);
+            zoomCameraToShowWholeScene();
+            break;
+        case MENU_VIEW_BOTTOM:
+            cameraTransform.updR().setRotationFromAngleAboutX(0.5*SimTK_PI);
+            zoomCameraToShowWholeScene();
+            break;
+        case MENU_BACKGROUND_BLACK:
+            showGround = false;
+            glClearColor(0, 0, 0, 1);
+            break;
+        case MENU_BACKGROUND_WHITE:
+            showGround = false;
+            glClearColor(1, 1, 1, 1);
+            break;
+        case MENU_BACKGROUND_SKY:
+            showGround = true;
+            break;
+    }
+    needRedisplay = true;
+}
+
 int main(int argc, char** argv) {
     stringstream(argv[1]) >> inPipe;
     stringstream(argv[2]) >> outPipe;
@@ -1043,6 +1257,19 @@ int main(int argc, char** argv) {
     makeCylinder();
     makeCircle();
     scene = NULL;
+    pendingCommands.push_back(new PendingCameraZoom());
+
+    vector<pair<string, int> > items;
+    items.push_back(make_pair("View Direction/Front", MENU_VIEW_FRONT));
+    items.push_back(make_pair("View Direction/Back", MENU_VIEW_BACK));
+    items.push_back(make_pair("View Direction/Left", MENU_VIEW_LEFT));
+    items.push_back(make_pair("View Direction/Right", MENU_VIEW_RIGHT));
+    items.push_back(make_pair("View Direction/Top", MENU_VIEW_TOP));
+    items.push_back(make_pair("View Direction/Bottom", MENU_VIEW_BOTTOM));
+    items.push_back(make_pair("Background/Black", MENU_BACKGROUND_BLACK));
+    items.push_back(make_pair("Background/White", MENU_BACKGROUND_WHITE));
+    items.push_back(make_pair("Background/Ground and Sky", MENU_BACKGROUND_SKY));
+    menus.push_back(Menu("View", items, viewMenuSelected));
 
     // Spawn the listener thread.
 

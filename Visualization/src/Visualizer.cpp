@@ -103,3 +103,7 @@ void Visualizer::setCameraFieldOfView(Real fov) {
 void Visualizer::setCameraClippingPlanes(Real nearPlane, Real farPlane) {
     updRep().protocol.setClippingPlanes(nearPlane, farPlane);
 }
+
+void Visualizer::setGroundPosition(const CoordinateAxis& axis, Real height) {
+    updRep().protocol.setGroundPosition(axis, height);
+}

@@ -354,4 +354,15 @@ void VisualizationProtocol::setClippingPlanes(Real near, Real far) {
     pthread_mutex_unlock(&sceneLock);
 }
 
+void VisualizationProtocol::setGroundPosition(const CoordinateAxis& axis, Real height) {
+    pthread_mutex_lock(&sceneLock);
+    char command = SET_GROUND_POSITION;
+    write(outPipe, &command, 1);
+    float heightBuffer = height;
+    write(outPipe, &heightBuffer, sizeof(float));
+    short axisBuffer = axis;
+    write(outPipe, &axisBuffer, sizeof(short));
+    pthread_mutex_unlock(&sceneLock);
+}
+
 }
