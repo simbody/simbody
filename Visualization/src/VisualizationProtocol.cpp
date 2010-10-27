@@ -358,7 +358,7 @@ void VisualizationProtocol::setGroundPosition(const CoordinateAxis& axis, Real h
     pthread_mutex_lock(&sceneLock);
     char command = SET_GROUND_POSITION;
     write(outPipe, &command, 1);
-    float heightBuffer = height;
+    float heightBuffer = (float)height;
     write(outPipe, &heightBuffer, sizeof(float));
     short axisBuffer = axis;
     write(outPipe, &axisBuffer, sizeof(short));

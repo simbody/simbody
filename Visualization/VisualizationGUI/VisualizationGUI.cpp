@@ -15,6 +15,15 @@
     PFNGLGENBUFFERSPROC glGenBuffers;
     PFNGLBINDBUFFERPROC glBindBuffer;
     PFNGLBUFFERDATAPROC glBufferData;
+    PFNGLCREATEPROGRAMPROC glCreateProgram;
+    PFNGLCREATESHADERPROC glCreateShader;
+    PFNGLSHADERSOURCEPROC glShaderSource;
+    PFNGLCOMPILESHADERPROC glCompileShader;
+    PFNGLATTACHSHADERPROC glAttachShader;
+    PFNGLLINKPROGRAMPROC glLinkProgram;
+    PFNGLUSEPROGRAMPROC glUseProgram;
+    PFNGLUNIFORM3FPROC glUniform3f;
+    PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
 #else
     #include <unistd.h>
     #ifdef __APPLE__
@@ -344,7 +353,7 @@ public:
                 for (int componentIndex = 0; ; componentIndex++) {
                     size_t end = items[i].first.find('/', start);
                     string substring = items[i].first.substr(start, end-start);
-                    if (componentIndex < components.size() && substring != components[componentIndex]) {
+                    if (componentIndex < (int)components.size() && substring != components[componentIndex]) {
                         components.resize(componentIndex);
                         submenuIds.resize(componentIndex);
                     }
@@ -1230,9 +1239,18 @@ int main(int argc, char** argv) {
 
     // On Windows, initialize function pointers for GL "extensions".
 #ifdef _WIN32
-    glGenBuffers = (PFNGLGENBUFFERSPROC) wglGetProcAddress("glGenBuffers");
-    glBindBuffer = (PFNGLBINDBUFFERPROC) wglGetProcAddress("glBindBuffer");
-    glBufferData = (PFNGLBUFFERDATAPROC) wglGetProcAddress("glBufferData");
+    glGenBuffers    = (PFNGLGENBUFFERSPROC) wglGetProcAddress("glGenBuffers");
+    glBindBuffer    = (PFNGLBINDBUFFERPROC) wglGetProcAddress("glBindBuffer");
+    glBufferData    = (PFNGLBUFFERDATAPROC) wglGetProcAddress("glBufferData");
+    glCreateProgram = (PFNGLCREATEPROGRAMPROC) wglGetProcAddress("glCreateProgram");
+    glCreateShader  = (PFNGLCREATESHADERPROC) wglGetProcAddress("glCreateShader");
+    glShaderSource  = (PFNGLSHADERSOURCEPROC) wglGetProcAddress("glShaderSource");
+    glCompileShader = (PFNGLCOMPILESHADERPROC) wglGetProcAddress("glCompileShader");
+    glAttachShader  = (PFNGLATTACHSHADERPROC) wglGetProcAddress("glAttachShader");
+    glLinkProgram   = (PFNGLLINKPROGRAMPROC) wglGetProcAddress("glLinkProgram");
+    glUseProgram    = (PFNGLUSEPROGRAMPROC) wglGetProcAddress("glUseProgram");
+    glUniform3f     = (PFNGLUNIFORM3FPROC) wglGetProcAddress("glUniform3f");
+    glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC) wglGetProcAddress("glGetUniformLocation");
 #endif
 
     // Set up lighting.
