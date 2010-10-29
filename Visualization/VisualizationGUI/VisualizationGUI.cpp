@@ -254,8 +254,10 @@ static GLdouble nearClip = 1;
 static GLdouble farClip = 100;
 static GLdouble groundHeight = 0;
 static int groundAxis = 1;
-static bool showGround = true, showShadows = true;
+static bool showGround = true, showShadows = true, showFPS = false;
 static vector<PendingCommand*> pendingCommands;
+static float fps = 0.0f;
+static int fpsBaseTime = 0, fpsCounter = 0;
 static Scene* scene;
 
 class PendingMesh : public PendingCommand {
@@ -352,9 +354,17 @@ public:
             vector<int> submenuIds;
             for (int i = 0; i < (int) items.size(); i++) {
                 size_t start = 0;
+                string spec = items[i].first;
                 for (int componentIndex = 0; ; componentIndex++) {
-                    size_t end = items[i].first.find('/', start);
-                    string substring = items[i].first.substr(start, end-start);
+                    size_t end = spec.find('/', start);
+                    while (end < spec.size()-1 && spec[end+1] == '/') {
+                        // A double slash.
+
+                        spec.erase(end, 1);
+                        end = spec.find('/', end+1);
+                        continue;
+                    }
+                    string substring = spec.substr(start, end-start);
                     if (componentIndex < (int)components.size() && substring != components[componentIndex]) {
                         components.resize(componentIndex);
                         submenuIds.resize(componentIndex);
@@ -662,6 +672,15 @@ static void renderScene() {
         sort(order.begin(), order.end());
         for (int i = 0; i < (int) order.size(); i++)
             scene->transparentMeshes[order[i].second].draw();
+
+        // Update the frame rate counter.
+
+        int time = glutGet(GLUT_ELAPSED_TIME);
+        if (time-fpsBaseTime > 1000) {
+            fps = 1000.0f*fpsCounter/(time-fpsBaseTime);
+            fpsBaseTime = time;
+            fpsCounter = 0;
+        }
     }
     pthread_mutex_unlock(&sceneLock);
     glDisable(GL_BLEND);
@@ -682,6 +701,19 @@ static void renderScene() {
     int menux = 10;
     for (int i = 0; i < (int) menus.size(); i++)
         menux += menus[i].draw(menux, viewHeight-10);
+
+    // Draw the frame rate counter.
+    
+    if (showFPS) {
+        stringstream fpsstream;
+        fpsstream << "Frames/Second: ";
+        fpsstream << fps;
+        string fps = fpsstream.str();
+        glColor3f(1.0f, 0.5f, 0.0f);
+        glRasterPos2f(10, 25);
+        for (int i = 0; i < (int) fps.size(); i++)
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, fps[i]);
+    }
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glutSwapBuffers();
@@ -1087,6 +1119,7 @@ void* listenForInput(void* args) {
                                 delete scene;
                             scene = newScene;
                             needRedisplay = true;
+                            fpsCounter++;
                             pthread_mutex_unlock(&sceneLock);
                             finished = true;
                             break;
@@ -1246,6 +1279,8 @@ static const int MENU_VIEW_BOTTOM = 5;
 static const int MENU_BACKGROUND_BLACK = 6;
 static const int MENU_BACKGROUND_WHITE = 7;
 static const int MENU_BACKGROUND_SKY = 8;
+static const int MENU_SHOW_SHADOWS = 9;
+static const int MENU_SHOW_FPS = 10;
 
 void viewMenuSelected(int option) {
     switch (option) {
@@ -1283,6 +1318,12 @@ void viewMenuSelected(int option) {
             break;
         case MENU_BACKGROUND_SKY:
             showGround = true;
+            break;
+        case MENU_SHOW_SHADOWS:
+            showShadows = !showShadows;
+            break;
+        case MENU_SHOW_FPS:
+            showFPS = !showFPS;
             break;
     }
     needRedisplay = true;
@@ -1357,6 +1398,8 @@ int main(int argc, char** argv) {
     items.push_back(make_pair("Background/Black", MENU_BACKGROUND_BLACK));
     items.push_back(make_pair("Background/White", MENU_BACKGROUND_WHITE));
     items.push_back(make_pair("Background/Ground and Sky", MENU_BACKGROUND_SKY));
+    items.push_back(make_pair("Show//Hide/Shadows", MENU_SHOW_SHADOWS));
+    items.push_back(make_pair("Show//Hide/Frame Rate", MENU_SHOW_FPS));
     menus.push_back(Menu("View", items, viewMenuSelected));
 
     // Spawn the listener thread.
