@@ -254,7 +254,7 @@ static GLdouble nearClip = 1;
 static GLdouble farClip = 100;
 static GLdouble groundHeight = 0;
 static int groundAxis = 1;
-static bool showGround = true;
+static bool showGround = true, showShadows = true;
 static vector<PendingCommand*> pendingCommands;
 static Scene* scene;
 
@@ -464,12 +464,15 @@ static void drawGroundAndSky() {
     if (groundProgram == 0) {
         const GLchar* vertexShaderSource =
         "varying vec3 position;\n"
+        "uniform vec3 sdirection, tdirection, cameraPosition;\n"
         "void main() {\n"
         "gl_Position = ftransform();\n"
-        "position = gl_Vertex.xyz;\n"
+        "vec3 pos = (gl_ModelViewMatrix*gl_Vertex).xyz+cameraPosition;\n"
+        "position = vec3(dot(sdirection, pos), 0.0, dot(tdirection, pos));\n"
         "}";
         const GLchar* fragmentShaderSource =
         "varying vec3 position;\n"
+        "uniform vec3 color1, color2;\n"
         "void main() {\n"
         "vec2 square = floor(0.2*position.xz);\n"
         "vec2 delta = 0.2*position.xz-square.xy;\n"
@@ -478,7 +481,7 @@ static void drawGroundAndSky() {
         "float pattern = 0.35;\n"
         "if (blur < 1.0)\n"
         "pattern += 0.5*noise1(6.0*position);\n"
-        "gl_FragColor = mix(vec4(0.3, 0.2, 0.0, 1.0), vec4(1.0, 0.8, 0.7, 1.0), sqrt(line)*pattern);\n"
+        "gl_FragColor = vec4(mix(color1, color2, sqrt(line)*pattern), 1.0);\n"
         "}";
         groundProgram = glCreateProgram();
         GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -502,19 +505,22 @@ static void drawGroundAndSky() {
     Vec3 corner2 = center+cameraTransform.R()*Vec3(xwidth, -ywidth, 0);
     Vec3 corner3 = center+cameraTransform.R()*Vec3(xwidth, ywidth, 0);
     Vec3 corner4 = center+cameraTransform.R()*Vec3(-xwidth, ywidth, 0);
-    glUseProgram(skyProgram);
+    Vec3 cameraPosition, upDirection;
     if (groundAxis == 0) {
-        glUniform3f(glGetUniformLocation(skyProgram, "cameraPosition"), groundHeight, (GLfloat) cameraTransform.T()[1], (GLfloat) cameraTransform.T()[2]);
-        glUniform3f(glGetUniformLocation(skyProgram, "upDirection"), 1, 0, 0);
+        cameraPosition = Vec3(groundHeight, cameraTransform.T()[1], cameraTransform.T()[2]);
+        upDirection = Vec3(1, 0, 0);
     }
     else if (groundAxis == 1) {
-        glUniform3f(glGetUniformLocation(skyProgram, "cameraPosition"), (GLfloat) cameraTransform.T()[0], groundHeight, (GLfloat) cameraTransform.T()[2]);
-        glUniform3f(glGetUniformLocation(skyProgram, "upDirection"), 0, 1, 0);
+        cameraPosition = Vec3(cameraTransform.T()[0], groundHeight, cameraTransform.T()[2]);
+        upDirection = Vec3(0, 1, 0);
     }
     else {
-        glUniform3f(glGetUniformLocation(skyProgram, "cameraPosition"), (GLfloat) cameraTransform.T()[0], (GLfloat) cameraTransform.T()[1], groundHeight);
-        glUniform3f(glGetUniformLocation(skyProgram, "upDirection"), 0, 0, 1);
+        cameraPosition = Vec3(cameraTransform.T()[0], cameraTransform.T()[1], groundHeight);
+        upDirection = Vec3(0, 0, 1);
     }
+    glUseProgram(skyProgram);
+    glUniform3f(glGetUniformLocation(skyProgram, "cameraPosition"), (GLfloat) cameraPosition[0], (GLfloat) cameraPosition[1], (GLfloat) cameraPosition[2]);
+    glUniform3f(glGetUniformLocation(skyProgram, "upDirection"), (GLfloat) upDirection[0], (GLfloat) upDirection[1], (GLfloat) upDirection[2]);
     glDepthMask(GL_FALSE);
     glBegin(GL_QUADS);
     glVertex3d(corner1[0], corner1[1], corner1[2]);
@@ -533,13 +539,53 @@ static void drawGroundAndSky() {
     corner3 = center+Vec3(clipWidth, 0, clipWidth);
     corner4 = center+Vec3(-clipWidth, 0, clipWidth);
     glUseProgram(groundProgram);
+    Mat<4, 4, GLfloat> transform(1.0f);
+    Vec3 sdir, tdir;
+    if (groundAxis == 0) {
+        transform[0][0] = transform[1][1] = 0.0f;
+        transform[0][1] = transform[1][0] = 1.0f;
+        sdir = Vec3(0, 1, 0);
+        tdir = Vec3(0, 0, 1);
+    }
+    else if (groundAxis == 1) {
+        sdir = Vec3(1, 0, 0);
+        tdir = Vec3(0, 0, 1);
+    }
+    else {
+        transform[1][1] = transform[2][2] = 0.0f;
+        transform[1][2] = transform[2][1] = 1.0f;
+        sdir = Vec3(1, 0, 0);
+        tdir = Vec3(0, 1, 0);
+    }
+    sdir = ~cameraTransform.R()*sdir;
+    tdir = ~cameraTransform.R()*tdir;
+    cameraPosition = ~cameraTransform.R()*cameraPosition;
+    glUniform3f(glGetUniformLocation(groundProgram, "sdirection"), (GLfloat) sdir[0], (GLfloat) sdir[1], (GLfloat) sdir[2]);
+    glUniform3f(glGetUniformLocation(groundProgram, "tdirection"), (GLfloat) tdir[0], (GLfloat) tdir[1], (GLfloat) tdir[2]);
+    glUniform3f(glGetUniformLocation(groundProgram, "cameraPosition"), (GLfloat) cameraPosition[0], (GLfloat) cameraPosition[1], (GLfloat) cameraPosition[2]);
+    glUniform3f(glGetUniformLocation(groundProgram, "color1"), 0.3f, 0.2f, 0.0f);
+    transform[groundAxis][3] = groundHeight;
+    if (showShadows) {
+        // Draw shadows on the ground.
+
+        Mat<4, 4, GLfloat> transform2(1.0f);
+        transform2[0][1] = 0.2;
+        transform2[1][1] = 0.0;
+        transform2[2][1] = 0.2;
+        transform2 = transform*transform2;
+        glPushMatrix();
+        glMultMatrixf(&transform2[0][0]);
+        glUniform3f(glGetUniformLocation(groundProgram, "color2"), 0.5f, 0.4f, 0.35f);
+        glDepthRange(0.0, 0.9999);
+        for (int i = 0; i < (int) scene->solidMeshes.size(); i++)
+            scene->solidMeshes[i].draw();
+        glPopMatrix();
+        glDepthRange(0.0, 1.0);
+    }
+    glUniform3f(glGetUniformLocation(groundProgram, "color2"), 1.0f, 0.8f, 0.7f);
     glDisable(GL_CULL_FACE);
     glPushMatrix();
-    if (groundAxis == 0)
-        glRotated(-90, 0, 0, 1);
-    else if (groundAxis == 2)
-        glRotated(90, 1, 0, 0);
-    glTranslated(0, groundHeight, 0);
+    glMultMatrixf(&transform[0][0]);
     glBegin(GL_QUADS);
     glVertex3d(corner1[0], corner1[1], corner1[2]);
     glVertex3d(corner2[0], corner2[1], corner2[2]);
@@ -594,8 +640,6 @@ static void renderScene() {
 
         // Render the objects in the scene.
         
-        if (showGround)
-            drawGroundAndSky();
         for (int i = 0; i < (int) scene->lines.size(); i++)
             scene->lines[i].draw();
         glLineWidth(2);
@@ -608,6 +652,8 @@ static void renderScene() {
         glEnable(GL_LIGHTING);
         for (int i = 0; i < (int) scene->solidMeshes.size(); i++)
             scene->solidMeshes[i].draw();
+        if (showGround)
+            drawGroundAndSky();
         glEnable(GL_BLEND);
         glDepthMask(GL_FALSE);
         vector<pair<float, int> > order(scene->transparentMeshes.size());
