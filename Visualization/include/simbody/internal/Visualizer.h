@@ -42,7 +42,7 @@ class State;
 class VisualizationEventListener;
 class DecorationGenerator;
 
-class Visualizer {
+class SimTK_SIMBODY_EXPORT Visualizer {
 public:
     Visualizer(MultibodySystem& system);
     ~Visualizer();
