@@ -1330,8 +1330,14 @@ void viewMenuSelected(int option) {
 }
 
 int main(int argc, char** argv) {
+	SimTK_ASSERT_ALWAYS(argc >= 3, "VisualizationGUI: must be at least two command line arguments (pipes)");
+
     stringstream(argv[1]) >> inPipe;
     stringstream(argv[2]) >> outPipe;
+
+	string title("SimTK Visualizer");
+	if (argc >= 4 && argv[3]) 
+		title += ": " + string(argv[3]);
 
     // Initialize GLUT.
 
@@ -1339,7 +1345,7 @@ int main(int argc, char** argv) {
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
     glutInitWindowPosition(100,100);
     glutInitWindowSize(500, 500);
-    glutCreateWindow("SimTK Visualizer");
+    glutCreateWindow(title.c_str());
     glutDisplayFunc(renderScene);
     glutReshapeFunc(changeSize);
     glutMouseFunc(mousePressed);

@@ -70,7 +70,7 @@ class Visualizer;
 
 class VisualizationProtocol {
 public:
-    VisualizationProtocol(Visualizer& visualizer);
+    VisualizationProtocol(Visualizer& visualizer, const String& title);
     void beginScene();
     void finishScene();
     void drawBox(const Transform& transform, const Vec3& scale, const Vec4& color, int representation);

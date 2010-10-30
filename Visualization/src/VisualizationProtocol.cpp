@@ -4,6 +4,7 @@
 #include "simbody/internal/Visualizer.h"
 #include <cstdlib>
 #include <cstdio>
+#include <cctype>
 #include <string>
 
 using namespace SimTK;
@@ -45,21 +46,22 @@ static int createPipe(int pipeHandles[2]) {
 // status -1, otherwise we return the status code from the successful
 // spawn.
 static int spawnViz(const char* localPath, const char* installPath,
-                    const char* appName, int toSimPipe, int fromSimPipe)
+                    const char* appName, int toSimPipe, int fromSimPipe,
+					const char* title)
 {
     int status;
     char vizPipeToSim[32], vizPipeFromSim[32];
     sprintf(vizPipeToSim, "%d", toSimPipe);
     sprintf(vizPipeFromSim, "%d", fromSimPipe);
 #ifdef _WIN32
-    status = _spawnl(P_NOWAIT, localPath, appName, vizPipeToSim, vizPipeFromSim, NULL);
+    status = _spawnl(P_NOWAIT, localPath, appName, vizPipeToSim, vizPipeFromSim, title, NULL);
     if (status == -1)
-        status = _spawnl(P_NOWAIT, installPath, appName, vizPipeToSim, vizPipeFromSim, NULL);
+        status = _spawnl(P_NOWAIT, installPath, appName, vizPipeToSim, vizPipeFromSim, title, NULL);
     SimTK_ERRCHK2_ALWAYS(status != -1, "VisualizationProtocol::ctor()",
         "Unable to spawn the Visualization GUI; tried '%s' and '%s'.", localPath, installPath);
 #else
     pid_t pid;
-    const char* const argv[] = {appName, vizPipeToSim, vizPipeFromSim, NULL};
+    const char* const argv[] = {appName, vizPipeToSim, vizPipeFromSim, title, NULL};
     posix_spawn_file_actions_t fileActions;
     status = posix_spawn(&pid, localPath, NULL, NULL,
                          (char* const*)argv, environ);
@@ -110,7 +112,25 @@ static void* listenForVisualizationEvents(void* arg) {
 
 namespace SimTK {
 
-VisualizationProtocol::VisualizationProtocol(Visualizer& visualizer) {
+// Add quotes to string if necessary, so it can be passed safely as a command
+// line argument.
+static String quoteString(const String& str) {
+	String outstr;
+	// Escape double quotes, quote whitespace
+	bool quoting = false;
+	for (int i=0; i < str.size(); ++i) {
+		if (std::isspace(str[i])) {
+			if (!quoting) {outstr += "\""; quoting=true;}
+		} else {
+			if (quoting) {outstr += "\""; quoting=false;}
+			if (str[i]=='"') outstr += "\\";
+		}
+		outstr += str[i];
+	}
+	return outstr;
+}
+
+VisualizationProtocol::VisualizationProtocol(Visualizer& visualizer, const String& title) {
     // Launch the GUI application. We'll first look for one in the same directory
     // as the running executable; then if that doesn't work we'll look in the
     // bin subdirectory of the SimTK installation.
@@ -133,9 +153,12 @@ VisualizationProtocol::VisualizationProtocol(Visualizer& visualizer) {
     SimTK_ASSERT_ALWAYS(status != -1, "VisualizationProtocol: Failed to open pipe");
     inPipe = viz2simPipe[0];
 
+	// Surround the title argument in quotes so it doesn't look like multiple arguments.
+	const String qtitle = quoteString(title);
+
     // Spawn the visualizer gui, trying local first then installed version.
     spawnViz(localPath.c_str(), installPath.c_str(),
-                      GuiAppName, sim2vizPipe[0], viz2simPipe[1]);
+                      GuiAppName, sim2vizPipe[0], viz2simPipe[1], qtitle.c_str());
 
     // Spawn the thread to listen for events.
 

@@ -49,6 +49,7 @@ class MultibodySystem;
 class SimTK_SIMBODY_EXPORT VisualizationReporter : public PeriodicEventReporter {
 public:
     VisualizationReporter(MultibodySystem& system, Real reportInterval=Infinity);
+    VisualizationReporter(MultibodySystem& system, const String& title, Real reportInterval=Infinity);
     ~VisualizationReporter();
     /**
      * Get the Visualizer which generates the images.  It may be used to configure the display.

@@ -44,7 +44,10 @@ class DecorationGenerator;
 
 class SimTK_SIMBODY_EXPORT Visualizer {
 public:
+	/** Construct new Visualizer using default window title (executable name). **/
     Visualizer(MultibodySystem& system);
+	/** Construct new Visualizer with a given window title. **/
+    Visualizer(MultibodySystem& system, const String& title);
     ~Visualizer();
     void report(const State& state) const;
     void addEventListener(VisualizationEventListener* listener);

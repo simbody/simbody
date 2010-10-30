@@ -24,7 +24,8 @@ public:
 
 class Visualizer::VisualizerRep {
 public:
-    VisualizerRep(Visualizer* owner, MultibodySystem& system) : handle(owner), system(system), protocol(*owner) {
+    VisualizerRep(Visualizer* owner, MultibodySystem& system, const String& title) 
+	:	handle(owner), system(system), protocol(*owner, title) {
     }
     ~VisualizerRep() {
         for (int i = 0; i < (int) listeners.size(); i++)
@@ -42,7 +43,16 @@ public:
 };
 
 Visualizer::Visualizer(MultibodySystem& system) : rep(0) {
-    rep = new VisualizerRep(this, system);
+	// Create a default title from the name of this executable.
+	bool isAbsolutePath;
+	std::string directory, fileName, extension;
+	Pathname::deconstructPathname(Pathname::getThisExecutablePath(),
+		isAbsolutePath, directory, fileName, extension);
+    rep = new VisualizerRep(this, system, fileName);
+}
+
+Visualizer::Visualizer(MultibodySystem& system, const String& title) : rep(0) {
+    rep = new VisualizerRep(this, system, title);
 }
 
 Visualizer::~Visualizer() {
