@@ -44,9 +44,9 @@ class DecorationGenerator;
 
 class SimTK_SIMBODY_EXPORT Visualizer {
 public:
-	/** Construct new Visualizer using default window title (executable name). **/
+    /** Construct new Visualizer using default window title (executable name). **/
     Visualizer(MultibodySystem& system);
-	/** Construct new Visualizer with a given window title. **/
+    /** Construct new Visualizer with a given window title. **/
     Visualizer(MultibodySystem& system, const String& title);
     ~Visualizer();
     void report(const State& state) const;
@@ -74,10 +74,35 @@ public:
      * and will delete it when the Visualizer is deleted.
      */
     void addDecorationGenerator(DecorationGenerator* generator);
+    /**
+     * Set the transform defining the position and orientation of the camera.
+     */
     void setCameraTransform(const Transform& transform);
+    /**
+     * Move the camera forward or backward so that all geometry in the scene is visible.
+     */
     void zoomCameraToShowAllGeometry();
+    /**
+     * Rotate the camera so that it looks at a specified point.
+     *
+     * @param point       the point to look at
+     * @param upDirection a direction which should point upward as seen by the camera
+     */
+    void pointCameraAt(const Vec3& point, const Vec3& upDirection);
+    /**
+     * Set the camera's vertical field of view, measured in radians.
+     */
     void setCameraFieldOfView(Real fov);
+    /**
+     * Set the distance from the camera to the near and far clipping planes.
+     */
     void setCameraClippingPlanes(Real nearPlane, Real farPlane);
+    /**
+     * Set the position and orientation of the ground plane.
+     *
+     * @param axis     the axis the ground plane is perpendicular to
+     * @param height   the position of the ground plane along the specified axis
+     */
     void setGroundPosition(const CoordinateAxis& axis, Real height);
     class VisualizerRep;
 private:

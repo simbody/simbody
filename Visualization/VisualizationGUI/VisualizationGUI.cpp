@@ -1088,6 +1088,15 @@ void* listenForInput(void* args) {
                 pthread_mutex_unlock(&sceneLock);
                 break;
             }
+            case LOOK_AT: {
+                readData(buffer, 6*sizeof(float));
+                Vec3 point(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+                Vec3 updir(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+                pthread_mutex_lock(&sceneLock);
+                cameraTransform.updR().setRotationFromTwoAxes(UnitVec3(cameraTransform.T()-point), ZAxis, updir, YAxis);
+                pthread_mutex_unlock(&sceneLock);
+                break;
+            }
             case SET_FIELD_OF_VIEW: {
                 readData(buffer, sizeof(float));
                 pthread_mutex_lock(&sceneLock);
@@ -1367,14 +1376,14 @@ void viewMenuSelected(int option) {
 }
 
 int main(int argc, char** argv) {
-	SimTK_ASSERT_ALWAYS(argc >= 3, "VisualizationGUI: must be at least two command line arguments (pipes)");
+    SimTK_ASSERT_ALWAYS(argc >= 3, "VisualizationGUI: must be at least two command line arguments (pipes)");
 
     stringstream(argv[1]) >> inPipe;
     stringstream(argv[2]) >> outPipe;
 
-	string title("SimTK Visualizer");
-	if (argc >= 4 && argv[3]) 
-		title += ": " + string(argv[3]);
+    string title("SimTK Visualizer");
+    if (argc >= 4 && argv[3])
+        title += ": " + string(argv[3]);
 
     // Initialize GLUT.
 

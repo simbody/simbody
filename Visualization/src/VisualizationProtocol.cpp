@@ -47,7 +47,7 @@ static int createPipe(int pipeHandles[2]) {
 // spawn.
 static int spawnViz(const char* localPath, const char* installPath,
                     const char* appName, int toSimPipe, int fromSimPipe,
-					const char* title)
+                    const char* title)
 {
     int status;
     char vizPipeToSim[32], vizPipeFromSim[32];
@@ -115,19 +115,19 @@ namespace SimTK {
 // Add quotes to string if necessary, so it can be passed safely as a command
 // line argument.
 static String quoteString(const String& str) {
-	String outstr;
-	// Escape double quotes, quote whitespace
-	bool quoting = false;
-	for (int i=0; i < str.size(); ++i) {
-		if (std::isspace(str[i])) {
-			if (!quoting) {outstr += "\""; quoting=true;}
-		} else {
-			if (quoting) {outstr += "\""; quoting=false;}
-			if (str[i]=='"') outstr += "\\";
-		}
-		outstr += str[i];
-	}
-	return outstr;
+    String outstr;
+    // Escape double quotes, quote whitespace
+    bool quoting = false;
+    for (int i=0; i < str.size(); ++i) {
+        if (std::isspace(str[i])) {
+            if (!quoting) {outstr += "\""; quoting=true;}
+        } else {
+            if (quoting) {outstr += "\""; quoting=false;}
+            if (str[i]=='"') outstr += "\\";
+        }
+        outstr += str[i];
+    }
+    return outstr;
 }
 
 VisualizationProtocol::VisualizationProtocol(Visualizer& visualizer, const String& title) {
@@ -153,8 +153,8 @@ VisualizationProtocol::VisualizationProtocol(Visualizer& visualizer, const Strin
     SimTK_ASSERT_ALWAYS(status != -1, "VisualizationProtocol: Failed to open pipe");
     inPipe = viz2simPipe[0];
 
-	// Surround the title argument in quotes so it doesn't look like multiple arguments.
-	const String qtitle = quoteString(title);
+    // Surround the title argument in quotes so it doesn't look like multiple arguments.
+    const String qtitle = quoteString(title);
 
     // Spawn the visualizer gui, trying local first then installed version.
     spawnViz(localPath.c_str(), installPath.c_str(),
@@ -361,6 +361,21 @@ void VisualizationProtocol::zoomCamera() {
     pthread_mutex_lock(&sceneLock);
     char command = ZOOM_CAMERA;
     write(outPipe, &command, 1);
+    pthread_mutex_unlock(&sceneLock);
+}
+
+void VisualizationProtocol::lookAt(const Vec3& point, const Vec3& upDirection) {
+    pthread_mutex_lock(&sceneLock);
+    char command = LOOK_AT;
+    write(outPipe, &command, 1);
+    float buffer[6];
+    buffer[0] = (float) point[0];
+    buffer[1] = (float) point[1];
+    buffer[2] = (float) point[2];
+    buffer[3] = (float) upDirection[0];
+    buffer[4] = (float) upDirection[1];
+    buffer[5] = (float) upDirection[2];
+    write(outPipe, buffer, 6*sizeof(float));
     pthread_mutex_unlock(&sceneLock);
 }
 

@@ -55,9 +55,10 @@ static const char DEFINE_MESH = 8;
 static const char DEFINE_MENU = 9;
 static const char SET_CAMERA = 10;
 static const char ZOOM_CAMERA = 11;
-static const char SET_FIELD_OF_VIEW = 12;
-static const char SET_CLIP_PLANES = 13;
-static const char SET_GROUND_POSITION = 14;
+static const char LOOK_AT = 12;
+static const char SET_FIELD_OF_VIEW = 13;
+static const char SET_CLIP_PLANES = 14;
+static const char SET_GROUND_POSITION = 15;
 
 // Events sent from the GUI back to the application.
 
@@ -83,6 +84,7 @@ public:
     void drawFrame(const Transform& transform, Real axisLength, const Vec4& color);
     void setCameraTransform(const Transform& transform);
     void zoomCamera();
+    void lookAt(const Vec3& point, const Vec3& upDirection);
     void setFieldOfView(Real fov);
     void setClippingPlanes(Real near, Real far);
     void setGroundPosition(const CoordinateAxis& axis, Real height);
