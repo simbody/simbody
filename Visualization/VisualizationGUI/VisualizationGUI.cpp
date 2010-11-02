@@ -52,6 +52,7 @@ static int clickModifiers;
 static int clickButton;
 static int clickX;
 static int clickY;
+static Vec3 rotateCenter;
 static int inPipe, outPipe;
 static bool needRedisplay;
 
@@ -270,7 +271,7 @@ public:
     vector<GLushort> faces;
 };
 
-static void zoomCameraToShowWholeScene() {
+static void computeSceneBounds(Real& radius, Vec3& center) {
     // Record the bounding sphere of every object in the scene.
 
     vector<Vec3> centers;
@@ -310,9 +311,14 @@ static void zoomCameraToShowWholeScene() {
         centers.push_back(center);
         radii.push_back(radius);
     }
-    if (centers.size() > 0) {
-        // Find the overall bounding sphere of the scene.
 
+    // Find the overall bounding sphere of the scene.
+
+    if (centers.size() == 0) {
+        radius = 0;
+        center = Vec3(0);
+    }
+    else {
         Vec3 lower = centers[0]-radii[0];
         Vec3 upper = centers[0]+radii[0];
         for (int i = 1; i < (int) centers.size(); i++) {
@@ -321,13 +327,19 @@ static void zoomCameraToShowWholeScene() {
                 upper[j] = max(upper[j], centers[i][j]+radii[i]);
             }
         }
-        Vec3 center = 0.5*(lower+upper);
-        Real radius = 0;
+        center = 0.5*(lower+upper);
+        radius = 0;
         for (int i = 0; i < (int) centers.size(); i++)
             radius = max(radius, (centers[i]-center).norm()+radii[i]);
-        Real viewDistance = radius/tan(0.5*min(fieldOfView, fieldOfView*viewWidth/viewHeight));
-        cameraTransform.updT() = center+cameraTransform.R()*Vec3(0, 0, viewDistance);
     }
+}
+
+static void zoomCameraToShowWholeScene() {
+    Real radius;
+    Vec3 center;
+    computeSceneBounds(radius, center);
+    Real viewDistance = radius/tan(0.5*min(fieldOfView, fieldOfView*viewWidth/viewHeight));
+    cameraTransform.updT() = center+cameraTransform.R()*Vec3(0, 0, viewDistance);
 }
 
 class PendingCameraZoom : public PendingCommand {
@@ -725,6 +737,21 @@ static void mousePressed(int button, int state, int x, int y) {
         clickButton = button;
         clickX = x;
         clickY = y;
+        if (clickButton == GLUT_LEFT_BUTTON) {
+            Real radius;
+            Vec3 sceneCenter;
+            computeSceneBounds(radius, sceneCenter);
+            Real distToCenter = (sceneCenter-cameraTransform.T()).norm();
+            Real defaultDistance;
+            if (distToCenter > defaultDistance)
+                rotateCenter = sceneCenter;
+            else {
+                Vec3 cameraDir = cameraTransform.R()*Vec3(0, 0, -1);
+                Vec3 lookAt = cameraTransform.T()+defaultDistance*cameraDir;
+                Real fract = (defaultDistance-distToCenter)/defaultDistance;
+                rotateCenter = fract*lookAt+(1.0-fract)*sceneCenter;
+            }
+        }
         if (clickButton == 3 || clickButton == 4) {
             // Scroll wheel.
 
@@ -745,7 +772,6 @@ static void mouseDragged(int x, int y) {
     else if (clickButton == GLUT_LEFT_BUTTON) {
         Vec3 cameraPos = cameraTransform.T();
         Vec3 cameraDir = cameraTransform.R()*Vec3(0, 0, -1);
-        Vec3 centerPos = cameraTransform.T()+10*cameraDir;
         Vec3 upDir = cameraTransform.R()*Vec3(0, 1, 0);
         Rotation r;
         if (clickModifiers & GLUT_ACTIVE_CTRL)
@@ -753,7 +779,7 @@ static void mouseDragged(int x, int y) {
         else
             r.setRotationFromTwoAnglesTwoAxes(SpaceRotationSequence, 0.01*(clickY-y), XAxis, 0.01*(clickX-x), YAxis);
         r = cameraTransform.R()*r*~cameraTransform.R();
-        cameraPos = r*(cameraPos-centerPos)+centerPos;
+        cameraPos = r*(cameraPos-rotateCenter)+rotateCenter;
         cameraDir = r*cameraDir;
         upDir = r*upDir;
         cameraTransform.updT() = cameraPos;
@@ -1283,29 +1309,40 @@ static const int MENU_SHOW_SHADOWS = 9;
 static const int MENU_SHOW_FPS = 10;
 
 void viewMenuSelected(int option) {
+    Rotation groundRotation;
+    if (groundAxis == 0)
+        groundRotation.setRotationFromTwoAxes(UnitVec3(0, 1, 0), ZAxis, Vec3(1, 0, 0), YAxis);
+    else if (groundAxis == 2)
+        groundRotation.setRotationFromTwoAxes(UnitVec3(1, 0, 0), ZAxis, Vec3(0, 0, 1), YAxis);
     switch (option) {
         case MENU_VIEW_FRONT:
             cameraTransform.updR().setRotationToIdentityMatrix();
+            cameraTransform.updR() = groundRotation*cameraTransform.R();
             zoomCameraToShowWholeScene();
             break;
         case MENU_VIEW_BACK:
             cameraTransform.updR().setRotationFromAngleAboutY(SimTK_PI);
+            cameraTransform.updR() = groundRotation*cameraTransform.R();
             zoomCameraToShowWholeScene();
             break;
         case MENU_VIEW_LEFT:
             cameraTransform.updR().setRotationFromAngleAboutY(-0.5*SimTK_PI);
+            cameraTransform.updR() = groundRotation*cameraTransform.R();
             zoomCameraToShowWholeScene();
             break;
         case MENU_VIEW_RIGHT:
             cameraTransform.updR().setRotationFromAngleAboutY(0.5*SimTK_PI);
+            cameraTransform.updR() = groundRotation*cameraTransform.R();
             zoomCameraToShowWholeScene();
             break;
         case MENU_VIEW_TOP:
             cameraTransform.updR().setRotationFromAngleAboutX(-0.5*SimTK_PI);
+            cameraTransform.updR() = groundRotation*cameraTransform.R();
             zoomCameraToShowWholeScene();
             break;
         case MENU_VIEW_BOTTOM:
             cameraTransform.updR().setRotationFromAngleAboutX(0.5*SimTK_PI);
+            cameraTransform.updR() = groundRotation*cameraTransform.R();
             zoomCameraToShowWholeScene();
             break;
         case MENU_BACKGROUND_BLACK:
