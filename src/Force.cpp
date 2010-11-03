@@ -86,7 +86,7 @@ Real Force::calcPotentialEnergyContribution(const State& state) const {
 }
 
 const GeneralForceSubsystem& Force::getForceSubsystem() const 
-{	return getImpl().getForceSubsystem(); }
+{   return getImpl().getForceSubsystem(); }
 ForceIndex Force::getForceIndex() const
 {   return getImpl().getForceIndex(); }
 
@@ -117,10 +117,10 @@ void Force::TwoPointLinearSpringImpl::calcForce(const State& state, Vector_<Spat
     const Vec3 p1_G = X_GB1.p() + s1_G; // station measured from ground origin
     const Vec3 p2_G = X_GB2.p() + s2_G;
 
-    const Vec3 r_G		 = p2_G - p1_G; // vector from point1 to point2
-    const Real d		 = r_G.norm();  // distance between the points
-    const Real stretch   = d - x0;		// + -> tension, - -> compression
-    const Real frcScalar = k*stretch;	// k(x-x0)
+    const Vec3 r_G       = p2_G - p1_G; // vector from point1 to point2
+    const Real d         = r_G.norm();  // distance between the points
+    const Real stretch   = d - x0;      // + -> tension, - -> compression
+    const Real frcScalar = k*stretch;   // k(x-x0)
 
     const Vec3 f1_G = (frcScalar/d) * r_G;
     bodyForces[body1] +=  SpatialVec(s1_G % f1_G, f1_G);

@@ -40,7 +40,7 @@ namespace SimTK {
 // This is what a Force handle points to.
 class ForceImpl : public PIMPLImplementation<Force, ForceImpl> {
 public:
-	ForceImpl() : forces(0), defaultDisabled(false) {}
+    ForceImpl() : forces(0), defaultDisabled(false) {}
     ForceImpl(const ForceImpl& clone) {*this = clone;}
 
     void setDisabledByDefault(bool shouldBeDisabled) 
@@ -56,15 +56,15 @@ public:
         return false;
     }
     ForceIndex getForceIndex() const {return index;}
-	const GeneralForceSubsystem& getForceSubsystem() const 
+    const GeneralForceSubsystem& getForceSubsystem() const 
     {   assert(forces); return *forces; }
-	void setForceSubsystem(GeneralForceSubsystem& frcsub, ForceIndex ix) {
-		forces = &frcsub;
-		index  = ix;
-	}
-	void invalidateTopologyCache() const {
-		if (forces) forces->invalidateSubsystemTopologyCache();
-	}
+    void setForceSubsystem(GeneralForceSubsystem& frcsub, ForceIndex ix) {
+        forces = &frcsub;
+        index  = ix;
+    }
+    void invalidateTopologyCache() const {
+        if (forces) forces->invalidateSubsystemTopologyCache();
+    }
 
     // Every force element must provide the next two methods. Note that 
     // calcForce() must *add in* (+=) its forces to the given arrays.
@@ -85,8 +85,8 @@ public:
     virtual void realizeReport      (const State& state) const {}
 private:
         // CONSTRUCTION
-    GeneralForceSubsystem* forces;	// just a reference; no delete on destruction
-    ForceIndex			   index;
+    GeneralForceSubsystem* forces;  // just a reference; no delete on destruction
+    ForceIndex             index;
 
         // TOPOLOGY "STATE"
     // Changing anything here invalidates the topology of the containing

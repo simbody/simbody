@@ -229,8 +229,8 @@ int main(int argc, char** argv) {
         display.report(s);
 
 
-		if (status == Integrator::ReachedReportTime)
-			++nextReport;
+        if (status == Integrator::ReachedReportTime)
+            ++nextReport;
     }
 
     for (int i=0; i<100; ++i)

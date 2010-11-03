@@ -328,19 +328,19 @@ public:
         // no taus
     }
 
-	void calcMVPass1Outward(
-		const SBTreePositionCache&  pc,
-		const Vector&               allUDot,
-		Vector_<SpatialVec>&        allA_GB) const
+    void calcMVPass1Outward(
+        const SBTreePositionCache&  pc,
+        const Vector&               allUDot,
+        Vector_<SpatialVec>&        allA_GB) const
     {
         allA_GB[0] = 0;
     }
 
-	void calcMVPass2Inward(
-		const SBTreePositionCache&  pc,
-		const Vector_<SpatialVec>&  allA_GB,
-		Vector_<SpatialVec>&        allF,
-		Vector&                     allTau) const
+    void calcMVPass2Inward(
+        const SBTreePositionCache&  pc,
+        const Vector_<SpatialVec>&  allA_GB,
+        Vector_<SpatialVec>&        allF,
+        Vector&                     allTau) const
     {
         allF[0] = 0;
 
@@ -493,7 +493,7 @@ public:
     {
         SpatialMat& P = updP(abc);
         P = getMk(pc);
-		for (unsigned i=0 ; i<children.size() ; i++) {
+        for (unsigned i=0 ; i<children.size() ; i++) {
             const PhiMatrix&  phiChild    = children[i]->getPhi(pc);
             const SpatialMat& PChild      = children[i]->getP(abc);
 
@@ -502,14 +502,14 @@ public:
             } else {
                 const SpatialMat& psiChild    = children[i]->getPsi(abc);
 
-			    // TODO: too slow -- can get a 50% speedup by exploiting
+                // TODO: too slow -- can get a 50% speedup by exploiting
                 // symmetry; see the RigidBodyNodeSpec<dof> 
                 // implementation for more info.
                 // (Subtracting here because our Psi has reverse sign convention
                 // from Jain's.)
                 P -= psiChild * (PChild * ~phiChild);
             }
-		}
+        }
 
         // Note our backwards sign convention for TauBar and Psi (from Jain's).
         updTauBar(abc) = -1; // -identity
@@ -683,12 +683,12 @@ public:
     {
         const SpatialVec& myBodyForce   = fromB(bodyForces);
         const SpatialVec& A_GB          = fromB(allA_GB);
-        SpatialVec&       F		        = toB(allF);
+        SpatialVec&       F             = toB(allF);
 
         // Start with rigid body force from desired body acceleration and
         // gyroscopic forces due to angular velocity, minus external forces
         // applied directly to this body.
-	    F = getMk(pc)*A_GB + getGyroscopicForce(vc) - myBodyForce;
+        F = getMk(pc)*A_GB + getGyroscopicForce(vc) - myBodyForce;
 
         // Add in forces on children, shifted to this body.
         for (unsigned i=0; i<children.size(); ++i) {
@@ -700,36 +700,36 @@ public:
         // no taus.
     }
 
-	void calcMVPass1Outward(
-		const SBTreePositionCache&  pc,
-		const Vector&               allUDot,
-		Vector_<SpatialVec>&        allA_GB) const
-	{
-		SpatialVec& A_GB = toB(allA_GB);
+    void calcMVPass1Outward(
+        const SBTreePositionCache&  pc,
+        const Vector&               allUDot,
+        Vector_<SpatialVec>&        allA_GB) const
+    {
+        SpatialVec& A_GB = toB(allA_GB);
 
-		// Shift parent's A_GB outward. (Ground A_GB is zero.)
-		const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
+        // Shift parent's A_GB outward. (Ground A_GB is zero.)
+        const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
-		A_GB = A_GP;  
-	}
+        A_GB = A_GP;  
+    }
 
-	void calcMVPass2Inward(
-		const SBTreePositionCache&  pc,
-		const Vector_<SpatialVec>&  allA_GB,
-		Vector_<SpatialVec>&        allF,	// temp
-		Vector&                     allTau) const 
-	{
-		const SpatialVec& A_GB  = fromB(allA_GB);
-		SpatialVec&       F		= toB(allF);
+    void calcMVPass2Inward(
+        const SBTreePositionCache&  pc,
+        const Vector_<SpatialVec>&  allA_GB,
+        Vector_<SpatialVec>&        allF,   // temp
+        Vector&                     allTau) const 
+    {
+        const SpatialVec& A_GB  = fromB(allA_GB);
+        SpatialVec&       F     = toB(allF);
 
-		F = getMk(pc)*A_GB;
+        F = getMk(pc)*A_GB;
 
-		for (int i=0 ; i<(int)children.size() ; i++) {
-			const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-			const SpatialVec& FChild    = allF[children[i]->getNodeNum()];
-			F += phiChild * FChild;
-		}
-	}
+        for (int i=0 ; i<(int)children.size() ; i++) {
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& FChild    = allF[children[i]->getNodeNum()];
+            F += phiChild * FChild;
+        }
+    }
 
     void calcSpatialKinematicsFromInternal(
         const SBTreePositionCache&  pc,

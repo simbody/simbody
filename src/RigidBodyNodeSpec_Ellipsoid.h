@@ -81,7 +81,7 @@
 // This mobilizer was written by Ajay Seth and hacked somewhat by Sherm.
 
 class RBNodeEllipsoid : public RigidBodyNodeSpec<3> {
-	Vec3 semi; // semi axis dimensions in x,y,z resp.
+    Vec3 semi; // semi axis dimensions in x,y,z resp.
 public:
 
 virtual const char* type() { return "ellipsoid"; }
@@ -134,12 +134,12 @@ void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, Vector
     const Real latitude  = std::atan2(-e[1],e[2]); // project onto F's yz plane
     const Real longitude = std::atan2( e[0],e[2]); // project onto F's xz plane
 
-	// Calculate the current value of the spin coordinate (3rd Euler angle).
+    // Calculate the current value of the spin coordinate (3rd Euler angle).
     Real spin;
-	if (getUseEulerAngles(sbs.getModelVars())){
+    if (getUseEulerAngles(sbs.getModelVars())){
         spin = fromQ(q)[2];
-	} else {
-		const Rotation R_FM_now(Quaternion(fromQuat(q)));
+    } else {
+        const Rotation R_FM_now(Quaternion(fromQuat(q)));
         spin = R_FM_now.convertRotationToBodyFixedXYZ()[2];
     }
 
@@ -152,7 +152,7 @@ void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, Vector
         toQ(q) = q123;
     } else {
         const Quaternion quat = R_FM.convertRotationToQuaternion();
-		toQuat(q) = quat.asVec4();
+        toQuat(q) = quat.asVec4();
     }
 }
 
@@ -237,21 +237,21 @@ void calcAcrossJointTransform(
     const Vector&        q,
     Transform&           X_F0M0) const
 {
-	// Calcuate the rotation R_FM first.
+    // Calcuate the rotation R_FM first.
     const SBModelVars& mv = sbs.getModelVars();
-	if (getUseEulerAngles(mv)){
-		const Vec3& a = fromQ(q);		
-		X_F0M0.updR().setRotationToBodyFixedXYZ(a);
-	} else {
+    if (getUseEulerAngles(mv)){
+        const Vec3& a = fromQ(q);
+        X_F0M0.updR().setRotationToBodyFixedXYZ(a);
+    } else {
         // TODO: should use qnorm pool
         //       Conversion to Quaternion here involves expensive normalization
         //       because state variables q can never be assumed normalized.
-		Quaternion quat = Quaternion(fromQuat(q));
+        Quaternion quat = Quaternion(fromQuat(q));
         X_F0M0.updR().setRotationFromQuaternion(quat);
     }
 
-	const Vec3& n = X_F0M0.z();
-	X_F0M0.updP() = Vec3(semi[0]*n[0], semi[1]*n[1], semi[2]*n[2]);
+    const Vec3& n = X_F0M0.z();
+    X_F0M0.updP() = Vec3(semi[0]*n[0], semi[1]*n[1], semi[2]*n[2]);
 }
 
 // Generalized speeds are the angular velocity expressed in F, so they
@@ -267,9 +267,9 @@ void calcAcrossJointVelocityJacobian(
     // handling mobilizer reversal.
     const Vec3 n = findX_F0M0(pc).z();
 
-	H_FM(0) = SpatialVec( Vec3(1,0,0), Vec3(      0,      -n[2]*semi[1], n[1]*semi[2]) );
-	H_FM(1) = SpatialVec( Vec3(0,1,0), Vec3( n[2]*semi[0],       0,     -n[0]*semi[2]) );
-	H_FM(2) = SpatialVec( Vec3(0,0,1), Vec3(-n[1]*semi[0], n[0]*semi[1],       0     ) );
+    H_FM(0) = SpatialVec( Vec3(1,0,0), Vec3(      0,      -n[2]*semi[1], n[1]*semi[2]) );
+    H_FM(1) = SpatialVec( Vec3(0,1,0), Vec3( n[2]*semi[0],       0,     -n[0]*semi[2]) );
+    H_FM(2) = SpatialVec( Vec3(0,0,1), Vec3(-n[1]*semi[0], n[0]*semi[1],       0     ) );
 }
 
 void calcAcrossJointVelocityJacobianDot(
@@ -286,9 +286,9 @@ void calcAcrossJointVelocityJacobianDot(
     const Vec3       w_F0M0 = find_w_F0M0(pc, vc);
     const Vec3       ndot   = w_F0M0 % n; // w_FM x n
 
-	HDot_FM(0) = SpatialVec( Vec3(0), Vec3(      0,         -ndot[2]*semi[1], ndot[1]*semi[2]) );
-	HDot_FM(1) = SpatialVec( Vec3(0), Vec3( ndot[2]*semi[0],       0,        -ndot[0]*semi[2]) );
-	HDot_FM(2) = SpatialVec( Vec3(0), Vec3(-ndot[1]*semi[0], ndot[0]*semi[1],       0        ) );
+    HDot_FM(0) = SpatialVec( Vec3(0), Vec3(      0,         -ndot[2]*semi[1], ndot[1]*semi[2]) );
+    HDot_FM(1) = SpatialVec( Vec3(0), Vec3( ndot[2]*semi[0],       0,        -ndot[0]*semi[2]) );
+    HDot_FM(2) = SpatialVec( Vec3(0), Vec3(-ndot[1]*semi[0], ndot[0]*semi[1],       0        ) );
 }
 
 // CAUTION: we do not zero the unused 4th element of q for Euler angles; it

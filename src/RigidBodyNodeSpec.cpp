@@ -609,19 +609,19 @@ RigidBodyNodeSpec<dof>::calcInverseDynamicsPass2Inward(
     const Vector_<SpatialVec>&  allA_GB,
     const Vector&               jointForces,
     const Vector_<SpatialVec>&  bodyForces,
-    Vector_<SpatialVec>&        allF,	// temp
+    Vector_<SpatialVec>&        allF,   // temp
     Vector&                     allTau) const 
 {
     const Vec<dof>&   myJointForce  = fromU(jointForces);
     const SpatialVec& myBodyForce   = fromB(bodyForces);
     const SpatialVec& A_GB          = fromB(allA_GB);
-    SpatialVec&       F		        = toB(allF);
-    Vec<dof>&         tau	        = toU(allTau);
+    SpatialVec&       F             = toB(allF);
+    Vec<dof>&         tau           = toU(allTau);
 
     // Start with rigid body force from desired body acceleration and
     // gyroscopic forces due to angular velocity, minus external forces
     // applied directly to this body.
-	F = getMk(pc)*A_GB + getGyroscopicForce(vc) - myBodyForce;
+    F = getMk(pc)*A_GB + getGyroscopicForce(vc) - myBodyForce;
 
     // Add in forces on children, shifted to this body.
     for (unsigned i=0; i<children.size(); ++i) {
@@ -668,12 +668,12 @@ template<int dof> void
 RigidBodyNodeSpec<dof>::calcMVPass2Inward(
     const SBTreePositionCache&  pc,
     const Vector_<SpatialVec>&  allA_GB,
-    Vector_<SpatialVec>&        allF,	// temp
+    Vector_<SpatialVec>&        allF,   // temp
     Vector&                     allTau) const 
 {
     const SpatialVec& A_GB  = fromB(allA_GB);
-    SpatialVec&       F		= toB(allF);
-    Vec<dof>&         tau	= toU(allTau);
+    SpatialVec&       F     = toB(allF);
+    Vec<dof>&         tau   = toU(allTau);
 
     F = getMk(pc)*A_GB; // 66 flops TODO: 42 if you take advantage of Mk's structure
 
@@ -798,9 +798,9 @@ RigidBodyNodeSpec<dof>::setVelFromSVel(
     toU(u) = ~getH(pc) * (sVel - (~getPhi(pc) * parent->getV_GB(mc)));
 }
 
-	////////////////////
-	// INSTANTIATIONS //
-	////////////////////
+    ////////////////////
+    // INSTANTIATIONS //
+    ////////////////////
 
 template class RigidBodyNodeSpec<1>;
 template class RigidBodyNodeSpec<2>;

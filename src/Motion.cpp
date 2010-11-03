@@ -97,7 +97,7 @@ MotionImpl::allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const 
 
 
 void MotionImpl::invalidateTopologyCache() const {
-	if (hasMobilizedBody()) 
+    if (hasMobilizedBody()) 
         getMatterSubsystem().invalidateSubsystemTopologyCache();
 }
 

@@ -483,7 +483,7 @@ LengthSet::calcVelB(State& s, const Vector& vel) const
 Vector
 LengthSet::calcPosZ(const State& s, const Vector& b) const
 {
-	const Matrix Gt = calcGrad(s);
+    const Matrix Gt = calcGrad(s);
     const Vector x = calcPseudoInverseA(Gt) * b;
 
     const SBStateDigest digest(s, getRBTree(), Stage::Position);
@@ -518,7 +518,7 @@ LengthSet::calcPosZ(const State& s, const Vector& b) const
 class CalcVelZ {
     const State&   s;
     const LengthSet* lengthSet;
-	const Matrix Gt;
+    const Matrix Gt;
     const Matrix GInverse;
 public:
     CalcVelZ(const State& ss, const LengthSet* lset)

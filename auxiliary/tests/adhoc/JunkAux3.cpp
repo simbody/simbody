@@ -103,7 +103,7 @@ public:
         m_mbs(system), m_mobod(mobod), m_lockangle(lockangle),
         m_lock(lock), m_low(low), m_high(high), m_dlock(dlock) 
     { 
-	    //getTriggerInfo().setTriggerOnRisingSignTransition(false);
+        //getTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
     const Array_<Real>& getOnTimes() const {return m_onTimes;}
@@ -118,7 +118,7 @@ public:
     void handleEvent
        (State& s, Real accuracy, const Vector& yWeights, 
         const Vector& ooConstraintTols, 
-		Stage& lowestModified, bool& shouldTerminate) const 
+        Stage& lowestModified, bool& shouldTerminate) const 
     {
         const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
         assert(m_lock.isDisabled(s));
@@ -152,7 +152,7 @@ public:
         cout << "ConstAcc=" << m_dlock.getAcceleration(s)
              << " (def=" << m_dlock.getDefaultAcceleration() << ")\n";
 
-	    m_mbs.realize(s, Stage::Dynamics);
+        m_mbs.realize(s, Stage::Dynamics);
         cout << "non-impulsive mobForces=" <<  mobilityForces << endl;
         cout << "non-impulsive bodyForces=" <<  bodyForces << endl;
 
@@ -198,12 +198,12 @@ public:
         printf("  %5g mom=%g,%g E=%g\n", s.getTime(),
             PG[0].norm(), PG[1].norm(), m_mbs.calcEnergy(s));
         cout << "  uerr=" << s.getUErr() << endl;
-		lowestModified = Stage::Instance;
+        lowestModified = Stage::Instance;
     }
 
 private:
-	const MultibodySystem&                  m_mbs; 
-	const MobilizedBody&                    m_mobod;
+    const MultibodySystem&                  m_mbs; 
+    const MobilizedBody&                    m_mobod;
     const Real                              m_lockangle;
     const Constraint::ConstantSpeed&        m_lock;
     const Real                              m_low, m_high;
@@ -221,7 +221,7 @@ public:
         m_system(system), m_lock(lock), 
         m_low(low), m_high(high)
     { 
-	    getTriggerInfo().setTriggerOnRisingSignTransition(false);
+        getTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
     const Array_<Real>& getOffTimes() const {return m_offTimes;}
@@ -236,7 +236,7 @@ public:
     void handleEvent
        (State& s, Real accuracy, const Vector& yWeights, 
         const Vector& ooConstraintTols, 
-		Stage& lowestModified, bool& shouldTerminate) const 
+        Stage& lowestModified, bool& shouldTerminate) const 
     {
         assert(!m_lock.isDisabled(s));
 
@@ -247,11 +247,11 @@ public:
 
         m_lock.disable(s);
         m_offTimes.push_back(s.getTime());
-		lowestModified = Stage::Instance;
+        lowestModified = Stage::Instance;
     }
 
 private:
-	const MultibodySystem&                  m_system; 
+    const MultibodySystem&                  m_system; 
     const Constraint::ConstantSpeed&        m_lock;
     const Real                              m_low;
     const Real                              m_high;
@@ -342,7 +342,7 @@ int main(int argc, char** argv) {
   
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System
-	mbs.realize(s, Stage::Instance); // instantiate constraints if any
+    mbs.realize(s, Stage::Instance); // instantiate constraints if any
 
     thigh.setAngle(s, 20*Deg2Rad);
     calf.setAngle(s, 90*Deg2Rad);

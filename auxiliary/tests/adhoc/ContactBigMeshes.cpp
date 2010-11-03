@@ -138,10 +138,10 @@ int main() {
     contactForces.setTransitionVelocity(1e-3);
 
     std::ifstream meshFile1, meshFile2;
-	PolygonalMesh femurMesh; 
+    PolygonalMesh femurMesh; 
     meshFile1.open("ContactBigMeshes_Femur.obj"); 
     femurMesh.loadObjFile(meshFile1); meshFile1.close();
-	PolygonalMesh patellaMesh; 
+    PolygonalMesh patellaMesh; 
     meshFile2.open("ContactBigMeshes_Patella.obj"); 
     patellaMesh.loadObjFile(meshFile2); meshFile2.close();
 

@@ -279,7 +279,7 @@ try {
     cout << "q=" << s.getQ() << endl;
     cout << "body frame: " << bodyConfig;
 
-	Vector dummy;
+    Vector dummy;
     pend.projectQConstraints(s, 1e-3, wts, tols, dummy, System::ProjectOptions::All);
     mbs.realize(s, Stage::Position);
 
@@ -348,21 +348,21 @@ try {
     ee.setProjectEveryStep(false);
     ee.setAccuracy(1e-4);
     ee.setConstraintTolerance(1e-4);
-	ee.setFinalTime(tmax);
+    ee.setFinalTime(tmax);
 
     s.updTime() = tstart;
-    ee.initialize(s);	// assemble if needed
-	s = ee.getState();
+    ee.initialize(s);   // assemble if needed
+    s = ee.getState();
     vtk.report(s);
 
     Integrator::SuccessfulStepStatus status;
     int step = 0;
     while ((status=ee.stepTo(step*h)) != Integrator::EndOfSimulation) {
-		const State& s = ee.getState();
+        const State& s = ee.getState();
 
-		// This is so we can calculate potential energy (although logically
-		// one should be able to do that at Stage::Position).
-		mbs.realize(s, Stage::Dynamics);
+        // This is so we can calculate potential energy (although logically
+        // one should be able to do that at Stage::Position).
+        mbs.realize(s, Stage::Dynamics);
 
         cout << " E=" << mbs.calcEnergy(s)
              << " (pe=" << mbs.calcPotentialEnergy(s)
@@ -396,8 +396,8 @@ try {
             vtk.report(s);
         }
 
-		if (status == Integrator::ReachedReportTime)
-			++step;
+        if (status == Integrator::ReachedReportTime)
+            ++step;
 
 
         mbs.realize(s, Stage::Acceleration);

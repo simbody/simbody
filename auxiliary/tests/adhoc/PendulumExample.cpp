@@ -114,7 +114,7 @@ try { // If anything goes wrong, an exception will be thrown.
     mbs.realize(s);
 
     // Create a study using the Runge Kutta Merson integrator
-	RungeKuttaMersonIntegrator myStudy(mbs);
+    RungeKuttaMersonIntegrator myStudy(mbs);
     myStudy.setAccuracy(1e-6);
 
     // Visualize with VTK. This will pick up decorative geometry from
@@ -138,7 +138,7 @@ try { // If anything goes wrong, an exception will be thrown.
         swinger.setQToFitTransform(s, Transform( Rotation( BodyRotationSequence, 0*Pi/2, XAxis, 0*Pi/2, YAxis ), Vec3(0,0,0) ));
         swinger.setUToFitVelocity(s, SpatialVec(0*Vec3(1.1,1.2,1.3),Vec3(0,0,-1)));
 
-		s.updTime() = 0;
+        s.updTime() = 0;
         myStudy.initialize(s);
 
         cout << "MassProperties in B=" << swinger.expressMassPropertiesInAnotherBodyFrame(myStudy.getState(),swinger);
@@ -146,20 +146,20 @@ try { // If anything goes wrong, an exception will be thrown.
         cout << "Spatial Inertia    =" << swinger.calcBodySpatialInertiaMatrixInGround(myStudy.getState());
 
         for (;;) {
-			// Should check for errors and other interesting status returns.
-			myStudy.stepTo(myStudy.getTime() + dt);
-			const State& s = myStudy.getState(); // s is now the integrator's internal state
+            // Should check for errors and other interesting status returns.
+            myStudy.stepTo(myStudy.getTime() + dt);
+            const State& s = myStudy.getState(); // s is now the integrator's internal state
 
-			// This is so we can calculate potential energy (although logically
-			// one should be able to do that at Stage::Position).
-			mbs.realize(s, Stage::Dynamics);
+            // This is so we can calculate potential energy (although logically
+            // one should be able to do that at Stage::Position).
+            mbs.realize(s, Stage::Dynamics);
 
             cout << s.getTime() << ": E=" << mbs.calcEnergy(s) 
                  << " connector q=" << connector.getQ(s) 
                  << ": swinger q=" << swinger.getQ(s) << endl;
 
-			// This is so we can look at the UDots.
-			mbs.realize(s, Stage::Acceleration);
+            // This is so we can look at the UDots.
+            mbs.realize(s, Stage::Acceleration);
 
             cout << "q =" << pend.getQ(s) << endl;
             cout << "u =" << pend.getU(s) << endl;

@@ -84,7 +84,7 @@ namespace SimTK {
  * variable c[0] is used to generate a generalized force f applied to the 
  * system mobilities u:
  * <pre>
- *		f = -c[0] * M * u
+ *      f = -c[0] * M * u
  * </pre>
  * where M is the system mass matrix and u is the vector of generalized speeds.
  * (Note that in Simbody the M*u product is formed in O(n) time; M itself
@@ -117,8 +117,8 @@ namespace SimTK {
  * with system energy to produce a conserved quantity. Bath energy is KEb+PEb
  * where
  * <pre>
- *		KEb = 1/2 kB Tb t^2 (N c[0]^2 + sum(c[i]^2))
- *		PEb = kB Tb (N s[0] + sum(s[i]))
+ *      KEb = 1/2 kB Tb t^2 (N c[0]^2 + sum(c[i]^2))
+ *      PEb = kB Tb (N s[0] + sum(s[i]))
  * </pre>
  * where kB is Boltzmann's constant, Tb the bath temperature, N the number of 
  * thermal degrees of freedom in the temperature definition, and the sums run 
@@ -137,33 +137,33 @@ namespace SimTK {
  */
 class SimTK_SIMBODY_EXPORT Force::Thermostat : public Force {
 public:
-	/// Define a global thermostat (one that affects all degrees of freedom) at
-	/// a given default temperature and relaxation time. The number of 
+    /// Define a global thermostat (one that affects all degrees of freedom) at
+    /// a given default temperature and relaxation time. The number of 
     /// Nose'-Hoover chains is given a default value.
     Thermostat(GeneralForceSubsystem&        forces, 
                const SimbodyMatterSubsystem& matter, 
-			   Real                          boltzmannsConstant, 
+               Real                          boltzmannsConstant, 
                Real                          bathTemperature, 
                Real                          relaxationTime,
                int                           numExcludedDofs = 6);
 
-	/// TODO: not implemented yet. Remove a body from consideration in
-	/// the thermostat. Typically this would be the system base body so
-	/// that overall rigid body translation and orientation is not counted
-	/// as part of the temperature.
-	Thermostat& excludeMobilizedBody(MobilizedBodyIndex);
+    /// TODO: not implemented yet. Remove a body from consideration in
+    /// the thermostat. Typically this would be the system base body so
+    /// that overall rigid body translation and orientation is not counted
+    /// as part of the temperature.
+    Thermostat& excludeMobilizedBody(MobilizedBodyIndex);
 
-	/// Set the default (state independent) number of Nose'-Hoover chains.
-	/// This is a Topology-stage change.
-	Thermostat& setDefaultNumChains(int numChains);
+    /// Set the default (state independent) number of Nose'-Hoover chains.
+    /// This is a Topology-stage change.
+    Thermostat& setDefaultNumChains(int numChains);
 
-	/// Set the default (state independent) bath temperature. This will be 
-	/// interpreted using the value of Boltzmann's constant Kb provided on
-	/// construction. The units will be Kb/energy, typically Kelvins.
-	Thermostat& setDefaultBathTemperature(Real bathTemperature);
+    /// Set the default (state independent) bath temperature. This will be 
+    /// interpreted using the value of Boltzmann's constant Kb provided on
+    /// construction. The units will be Kb/energy, typically Kelvins.
+    Thermostat& setDefaultBathTemperature(Real bathTemperature);
 
-	/// Set the default (state independent) relaxation time.
-	Thermostat& setDefaultRelaxationTime(Real relaxationTime);
+    /// Set the default (state independent) relaxation time.
+    Thermostat& setDefaultRelaxationTime(Real relaxationTime);
 
     /// Set the default number of system rigid body degrees of freedom (0-6)
     /// to be excluded from the calculation of the number of thermal degrees 
@@ -171,92 +171,92 @@ public:
     /// be excluded.
     Thermostat& setDefaultNumExcludedDofs(int numExcludedDofs);
 
-	/// Get the initial value for the number of chains that will be used for
-	/// the "number of chains" State variable. A new value may be set in 
-	/// a particular State.
-	int getDefaultNumChains() const;
-	/// Get the initial value for the bath temperature that will be use for
-	/// the "bath temperature" State variable. A new value may be set in 
-	/// a particular State.
-	Real getDefaultBathTemperature() const;
-	/// Get the initial value for the bath temperature that will be use for
-	/// the "bath temperature" State variable.
-	Real getDefaultRelaxationTime() const;
-	/// Get the initial value for the number of system rigid body degrees
+    /// Get the initial value for the number of chains that will be used for
+    /// the "number of chains" State variable. A new value may be set in 
+    /// a particular State.
+    int getDefaultNumChains() const;
+    /// Get the initial value for the bath temperature that will be use for
+    /// the "bath temperature" State variable. A new value may be set in 
+    /// a particular State.
+    Real getDefaultBathTemperature() const;
+    /// Get the initial value for the bath temperature that will be use for
+    /// the "bath temperature" State variable.
+    Real getDefaultRelaxationTime() const;
+    /// Get the initial value for the number of system rigid body degrees
     /// of freedom (0-6) to be excluded from the calculation of the number of
     /// thermal degrees of freedom N. A new value may be set in a particular 
     /// State.
-	int getDefaultNumExcludedDofs() const;
+    int getDefaultNumExcludedDofs() const;
 
-	/// Can't change the value of Boltzmann's constant after construction;
+    /// Can't change the value of Boltzmann's constant after construction;
     /// this is the value being used.
-	Real getBoltzmannsConstant() const;
+    Real getBoltzmannsConstant() const;
 
-	/// Set the actual number of Nose'-Hoover chains to be used. This variable
-	/// controls the number of auxiliary state variables allocated by the 
+    /// Set the actual number of Nose'-Hoover chains to be used. This variable
+    /// controls the number of auxiliary state variables allocated by the 
     /// Thermostat so invalidates Model stage.
-	const Thermostat& setNumChains(State&, int numChains) const;
-	/// Set the bath temperature which serves as the target temperature for
-	/// the thermostat. This is given in units defined by the value of 
-	/// Boltzmann's constant (which has units of energy/temperature) that was 
-	/// set on construction. This sets an Instance-stage state variable so
-	/// invalidates Instance and higher stages in the given State.
-	const Thermostat& setBathTemperature(State&, Real Tb) const;
-	/// Set the relaxation time which determines how long the system will
-	/// take to equilibrate to the bath temperature. This sets an 
-	/// Instance-stage state variable so invalidates Instance and higher 
-	/// stages in the given State.
-	const Thermostat& setRelaxationTime(State&, Real t) const;
+    const Thermostat& setNumChains(State&, int numChains) const;
+    /// Set the bath temperature which serves as the target temperature for
+    /// the thermostat. This is given in units defined by the value of 
+    /// Boltzmann's constant (which has units of energy/temperature) that was 
+    /// set on construction. This sets an Instance-stage state variable so
+    /// invalidates Instance and higher stages in the given State.
+    const Thermostat& setBathTemperature(State&, Real Tb) const;
+    /// Set the relaxation time which determines how long the system will
+    /// take to equilibrate to the bath temperature. This sets an 
+    /// Instance-stage state variable so invalidates Instance and higher 
+    /// stages in the given State.
+    const Thermostat& setRelaxationTime(State&, Real t) const;
     /// Set the actual number of system rigid body degrees of freedom (0-6)
     /// to be excluded from the calculation of the number of thermal degrees 
     /// of freedom N. This sets an Instance-stage state variable so invalidates
     /// Instance and higher stages in the given State.
     const Thermostat& setNumExcludedDofs(State&, int numExcludedDofs) const;
 
-	/// Obtain the current number of Nose'-Hoover chains in use. This is a
-	/// state variable so can be obtained any time after realization of
-	/// the Model stage.
-	int getNumChains(const State&) const;
-	/// Obtain the current bath temperature, in units which are determined
-	/// by the value of Boltzmann's constant that was supplied on construction
-	/// of this Thermostat force element. This is a state variable so can 
-	/// be obtained any time after realization of the Model stage.
-	Real getBathTemperature(const State&) const;
-	/// Obtain the current relaxation time. This is a state variable so can 
-	/// be obtained any time after realization of the Model stage.
-	Real getRelaxationTime(const State&) const;
-	/// Get the current value for the number of system rigid body degrees
+    /// Obtain the current number of Nose'-Hoover chains in use. This is a
+    /// state variable so can be obtained any time after realization of
+    /// the Model stage.
+    int getNumChains(const State&) const;
+    /// Obtain the current bath temperature, in units which are determined
+    /// by the value of Boltzmann's constant that was supplied on construction
+    /// of this Thermostat force element. This is a state variable so can 
+    /// be obtained any time after realization of the Model stage.
+    Real getBathTemperature(const State&) const;
+    /// Obtain the current relaxation time. This is a state variable so can 
+    /// be obtained any time after realization of the Model stage.
+    Real getRelaxationTime(const State&) const;
+    /// Get the current value for the number of system rigid body degrees
     /// of freedom (0-6) to be excluded from the calculation of the number of
     /// thermal degrees of freedom N. This is a state variable so can 
-	/// be obtained any time after realization of the Model stage.
-	int getNumExcludedDofs(const State&) const;
+    /// be obtained any time after realization of the Model stage.
+    int getNumExcludedDofs(const State&) const;
 
-	/// Return the number of thermal degrees of freedom being used in the 
+    /// Return the number of thermal degrees of freedom being used in the 
     /// definition of temperature for this thermostat. This is the net of the
     /// total number of mobilities minus nonredundant constraints minus
     /// the number of excluded system rigid body degrees of freedom (0-6).
-	int getNumThermalDofs(const State&) const;
+    int getNumThermalDofs(const State&) const;
 
-	/// Return the temperature of the controlled degrees of freedom via the 
+    /// Return the temperature of the controlled degrees of freedom via the 
     /// definition T = 2*ke / (N*Kb) where N is the number of thermal degrees 
     /// of freedom. You can call this after Stage::Velocity has been realized.
-	Real getCurrentTemperature(const State&) const;
+    Real getCurrentTemperature(const State&) const;
 
-	/// This is a solver that initializes thermostat state variables to zero.
-	void initializeChainState(State&) const;
-	/// Set the thermostat state variables to particular values. The Vector's
-	/// length must be the same as twice the current number of chains called 
+    /// This is a solver that initializes thermostat state variables to zero.
+    void initializeChainState(State&) const;
+    /// Set the thermostat state variables to particular values. The Vector's
+    /// length must be the same as twice the current number of chains called 
     /// for by the State.
-	void setChainState(State&, const Vector&) const;
+    void setChainState(State&, const Vector&) const;
 
-	/// Return the current values of the thermostat chain variables. The 
-	/// returned vector will have twice the length that getNumChains() would 
+    /// Return the current values of the thermostat chain variables. The 
+    /// returned vector will have twice the length that getNumChains() would 
     /// return if called on this same State.
-	Vector getChainState(const State&) const;
+    Vector getChainState(const State&) const;
 
-	/// Calculate the total "bath energy" which, when added to the system
-	/// energy, should yield a conserved quantity (assuming all other forces
-	/// are conservative).
+    /// Calculate the total "bath energy" which, when added to the system
+    /// energy, should yield a conserved quantity (assuming all other forces
+    /// are conservative).
     Real calcBathEnergy(const State& state) const;
 
     /// Get the amount of power being applied by the thermostat to the 
@@ -271,17 +271,17 @@ public:
     /// arbitrary value; normally zero for initialization.
     void setExternalWork(State& state, Real work) const;
 
-	/// Set the controlled system to a set of randomized velocities which
-	/// yields the bath temperature. This ignores the current system velocities.
-	/// TODO: not implemented yet.
-	void initializeSystemToBathTemperature(State&) const;
+    /// Set the controlled system to a set of randomized velocities which
+    /// yields the bath temperature. This ignores the current system velocities.
+    /// TODO: not implemented yet.
+    void initializeSystemToBathTemperature(State&) const;
 
-	/// Set the controlled system to a set of randomized velocities which
-	/// yields a particular temperature. This ignores the current system 
+    /// Set the controlled system to a set of randomized velocities which
+    /// yields a particular temperature. This ignores the current system 
     /// velocities. The temperature is interpreted using the value of 
     /// Boltzmann's constant that was provided on construction of this 
     /// Thermostat. TODO: not implemented yet.
-	void setSystemToTemperature(State&, Real T) const;
+    void setSystemToTemperature(State&, Real T) const;
 
     // Don't show this in Doxygen.
     /// @cond

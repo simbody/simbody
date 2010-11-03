@@ -1035,7 +1035,7 @@ bool prescribe(State&, Stage) const;
 /// project out the corresponding component of yErrest so that yErrest's q norm
 /// is reduced. Returns true if it does anything at all to State or yErrest.
 bool projectQConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-						 const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
+                         const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
 
     // VELOCITY STAGE responses //
 
@@ -1071,7 +1071,7 @@ const SpatialVec& getTotalCentrifugalForces(const State&, MobilizedBodyIndex) co
 /// project out the corresponding component of yErrest so that yErrest's u norm
 /// is reduced. Returns true if it does anything at all to State or yErrest.
 bool projectUConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-						 const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
+                         const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
 
     // ACCELERATION STAGE reponses
 

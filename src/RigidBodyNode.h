@@ -559,15 +559,15 @@ virtual void calcInverseDynamicsPass2Inward(
   { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcInverseDynamicsPass2Inward"); }
 
 virtual void calcMVPass1Outward(
-	const SBTreePositionCache&  pc,
-	const Vector&               allUDot,
-	Vector_<SpatialVec>&        allA_GB) const
+    const SBTreePositionCache&  pc,
+    const Vector&               allUDot,
+    Vector_<SpatialVec>&        allA_GB) const
   { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMVPass1Outward"); }
 virtual void calcMVPass2Inward(
-	const SBTreePositionCache&  pc,
-	const Vector_<SpatialVec>&  allA_GB,
-	Vector_<SpatialVec>&        allFTmp,
-	Vector&                     allTau) const
+    const SBTreePositionCache&  pc,
+    const Vector_<SpatialVec>&  allA_GB,
+    Vector_<SpatialVec>&        allFTmp,
+    Vector&                     allTau) const
   { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMVPass2Inward"); }
 
 

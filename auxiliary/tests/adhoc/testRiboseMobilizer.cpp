@@ -31,18 +31,18 @@ class IdentityFunction : public Function {
 public:
     IdentityFunction() {}
 
-	Real calcValue(const Vector& x) const{
+    Real calcValue(const Vector& x) const{
         return x[0];
     }
 
-	Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const{
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const{
         if (derivComponents.size() == 1) return 1.0;
         else return 0.0;
     }
 
-	int getArgumentSize() const {return 1;}
-	
-	int getMaxDerivativeOrder() const {return 1000;}
+    int getArgumentSize() const {return 1;}
+    
+    int getMaxDerivativeOrder() const {return 1000;}
 };
 
 // Difference between two components of a two component vector
@@ -80,12 +80,12 @@ public:
         return dxy*dxy + dxz*dxz + dyz*dyz;
     }
 
-	Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const
     {
-		Real deriv = 0;
-	
-		assert(3 == x.size());
-		
+        Real deriv = 0;
+    
+        assert(3 == x.size());
+        
         int derivOrder = derivComponents.size();
         assert(1 <= derivOrder);
 
@@ -111,71 +111,71 @@ public:
         return deriv;
     }
 
-	int getArgumentSize() const{
-		return 3;
-	}
-	
-	int getMaxDerivativeOrder() const{
-		return 1000;
-	}
+    int getArgumentSize() const{
+        return 3;
+    }
+    
+    int getMaxDerivativeOrder() const{
+        return 1000;
+    }
 };
 
 /// Implements a simple functional relationship, y = amplitude * sin(x - phase)
 class SinusoidFunction : public Function {
 private:
-	angle_t amplitude;
-	angle_t phase;
+    angle_t amplitude;
+    angle_t phase;
 public:
 
-	//Default constructor
-	SinusoidFunction()
-		: amplitude(180.0*degrees), phase(0.0*degrees) {}
-	
-	//Convenience constructor to specify the slope and Y-intercept of the linear r
-	SinusoidFunction(angle_t amp, angle_t phi)
-	: amplitude(amp), phase(phi) {}
-	
-	Real calcValue(const Vector& x) const{
+    //Default constructor
+    SinusoidFunction()
+        : amplitude(180.0*degrees), phase(0.0*degrees) {}
+    
+    //Convenience constructor to specify the slope and Y-intercept of the linear r
+    SinusoidFunction(angle_t amp, angle_t phi)
+    : amplitude(amp), phase(phi) {}
+    
+    Real calcValue(const Vector& x) const{
         assert( 1 == x.size() );
         return angle_t(amplitude*sin(x[0]*radians - phase));
-	}
-	
-	Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const{
-		Real deriv = 0;
-	
-		assert(1 == x.size());
-		
+    }
+    
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const{
+        Real deriv = 0;
+    
+        assert(1 == x.size());
+        
         // Derivatives repeat after 4
         int derivOrder = derivComponents.size() % 4;
 
-		// Derivatives 1, 5, 9, 13, ... are cos()
-		if      ( 1 == derivOrder ) {
-			deriv = angle_t(amplitude*cos(x[0]*radians - phase));
-		}
-		// Derivatives 2, 6, 10, 14, ... are -sin()
-		else if ( 2 == derivOrder ) {
-			deriv = angle_t(-amplitude*sin(x[0]*radians - phase));
-		}
-		// Derivatives 3, 7, 11, 15, ... are -cos()
-		else if ( 3 == derivOrder ) {
-			deriv = angle_t(-amplitude*cos(x[0]*radians - phase));
-		}
-		// Derivatives 0, 4, 8, 12, ... are sin()
-		else if ( 0 == derivOrder ) {
-			deriv = angle_t(amplitude*sin(x[0]*radians - phase));
-		}
-		else assert(false);
-		
-		return deriv;
-	}
-	
-	int getArgumentSize() const{
-		return 1;
-	}
-	
-	int getMaxDerivativeOrder() const{
-		return 1000;
-	}
+        // Derivatives 1, 5, 9, 13, ... are cos()
+        if      ( 1 == derivOrder ) {
+            deriv = angle_t(amplitude*cos(x[0]*radians - phase));
+        }
+        // Derivatives 2, 6, 10, 14, ... are -sin()
+        else if ( 2 == derivOrder ) {
+            deriv = angle_t(-amplitude*sin(x[0]*radians - phase));
+        }
+        // Derivatives 3, 7, 11, 15, ... are -cos()
+        else if ( 3 == derivOrder ) {
+            deriv = angle_t(-amplitude*cos(x[0]*radians - phase));
+        }
+        // Derivatives 0, 4, 8, 12, ... are sin()
+        else if ( 0 == derivOrder ) {
+            deriv = angle_t(amplitude*sin(x[0]*radians - phase));
+        }
+        else assert(false);
+        
+        return deriv;
+    }
+    
+    int getArgumentSize() const{
+        return 1;
+    }
+    
+    int getMaxDerivativeOrder() const{
+        return 1000;
+    }
 };
 
 // The pupose of TestPinMobilizer is to prove that I have understood the

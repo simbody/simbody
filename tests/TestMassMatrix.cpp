@@ -43,21 +43,21 @@ using namespace std;
 
 class MyForceImpl : public Force::Custom::Implementation {
 public:
-	MyForceImpl() {}
+    MyForceImpl() {}
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, 
-				   Vector& mobilityForces) const 
-	{
-		SimTK_TEST( f.size() == 0 || f.size() == mobilityForces.size() );
-		if (f.size() > 0)
-			mobilityForces += f;
+                   Vector& mobilityForces) const 
+    {
+        SimTK_TEST( f.size() == 0 || f.size() == mobilityForces.size() );
+        if (f.size() > 0)
+            mobilityForces += f;
     }
     Real calcPotentialEnergy(const State&) const {return 0;}
 
-	void setForce(const Vector& frc) {
-		f = frc;
-	}
+    void setForce(const Vector& frc) {
+        f = frc;
+    }
 private:
-	Vector f;
+    Vector f;
 };
 
 // This is an imitation of SD/FAST's sdrel2cart() subroutine. We
@@ -152,44 +152,44 @@ void testRel2Cart() {
               
 
 void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
-	const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
+    const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
 
-	State state = system.realizeTopology();
-	const int nq = state.getNQ();
-	const int nu = state.getNU();
+    State state = system.realizeTopology();
+    const int nq = state.getNQ();
+    const int nu = state.getNU();
 
-	// Attainable accuracy drops with problem size.
-	const Real Slop = nu*SignificantReal;
+    // Attainable accuracy drops with problem size.
+    const Real Slop = nu*SignificantReal;
 
-	system.realizeModel(state);
-	// Randomize state.
+    system.realizeModel(state);
+    // Randomize state.
     state.updQ() = Test::randVector(nq);
     state.updU() = Test::randVector(nu);
 
     Vector randVec = 100*Test::randVector(nu);
-	Vector result1, result2;
+    Vector result1, result2;
 
-	// result1 = M*v
-	system.realize(state, Stage::Position);
-	matter.calcMV(state, randVec, result1);
-	SimTK_TEST_EQ(result1.size(), nu);
+    // result1 = M*v
+    system.realize(state, Stage::Position);
+    matter.calcMV(state, randVec, result1);
+    SimTK_TEST_EQ(result1.size(), nu);
 
-	// result2 = M^-1 * result1 == M^-1 * M * v == v
-	system.realize(state, Stage::Dynamics);
-	matter.calcMInverseV(state, result1, result2);
-	SimTK_TEST_EQ(result2.size(), nu);
+    // result2 = M^-1 * result1 == M^-1 * M * v == v
+    system.realize(state, Stage::Dynamics);
+    matter.calcMInverseV(state, result1, result2);
+    SimTK_TEST_EQ(result2.size(), nu);
 
     SimTK_TEST_EQ_TOL(result2, randVec, Slop);
 
-	Matrix M(nu,nu), MInv(nu,nu);
+    Matrix M(nu,nu), MInv(nu,nu);
 
-	Vector v(nu, Real(0));
-	for (int j=0; j < nu; ++j) {
-		v[j] = 1;
-		matter.calcMV(state, v, M(j));
-		matter.calcMInverseV(state, v, MInv(j));
-		v[j] = 0;
-	}
+    Vector v(nu, Real(0));
+    for (int j=0; j < nu; ++j) {
+        v[j] = 1;
+        matter.calcMV(state, v, M(j));
+        matter.calcMInverseV(state, v, MInv(j));
+        v[j] = 0;
+    }
 
     Matrix MInvCalc(M);
     MInvCalc.invertInPlace();
@@ -206,35 +206,35 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
     SimTK_TEST_EQ_SIZE(MM, M, nu);
     SimTK_TEST_EQ_SIZE(MMInv, MInv, nu);
 
-	//assertIsIdentity(eye);
-	//assertIsIdentity(MInv*M);
+    //assertIsIdentity(eye);
+    //assertIsIdentity(MInv*M);
 
-	frcp->setForce(randVec);
-	//cout << "f=" << randVec << endl;
-	system.realize(state, Stage::Acceleration);
-	Vector accel = state.getUDot();
-	//cout << "v!=0, accel=" << accel << endl;
+    frcp->setForce(randVec);
+    //cout << "f=" << randVec << endl;
+    system.realize(state, Stage::Acceleration);
+    Vector accel = state.getUDot();
+    //cout << "v!=0, accel=" << accel << endl;
 
-	matter.calcMInverseV(state, randVec, result1);
-	//cout << "With velocities, |a - M^-1*f|=" << (accel-result1).norm() << endl;
+    matter.calcMInverseV(state, randVec, result1);
+    //cout << "With velocities, |a - M^-1*f|=" << (accel-result1).norm() << endl;
 
     SimTK_TEST_NOTEQ(accel, result1); // because of the velocities
-	//SimTK_TEST((accel-result1).norm() > SignificantReal); // because of velocities
+    //SimTK_TEST((accel-result1).norm() > SignificantReal); // because of velocities
 
-	// With no velocities M^-1*f should match calculated acceleration.
-	state.updU() = 0;
-	system.realize(state, Stage::Acceleration);
-	accel = state.getUDot();
-	//cout << "v=0, accel=" << accel << endl;
+    // With no velocities M^-1*f should match calculated acceleration.
+    state.updU() = 0;
+    system.realize(state, Stage::Acceleration);
+    accel = state.getUDot();
+    //cout << "v=0, accel=" << accel << endl;
 
-	//cout << "With v=0, |a - M^-1*f|=" << (accel-result1).norm() << endl;
+    //cout << "With v=0, |a - M^-1*f|=" << (accel-result1).norm() << endl;
 
     SimTK_TEST_EQ(accel, result1); // because no velocities
 
-	// And then M*a should = f.
-	matter.calcMV(state, accel, result2);
-	//cout << "v=0, M*accel=" << result2 << endl;
-	//cout << "v=0, |M*accel-f|=" << (result2-randVec).norm() << endl;
+    // And then M*a should = f.
+    matter.calcMV(state, accel, result2);
+    //cout << "v=0, M*accel=" << result2 << endl;
+    //cout << "v=0, |M*accel-f|=" << (result2-randVec).norm() << endl;
 
 
     // Test forward and inverse dynamics operators.
@@ -242,7 +242,7 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
     // get back the residual generalized forces. Then applying those
     // should result in zero residual, and applying them. 
 
-	// Randomize state.
+    // Randomize state.
     state.updQ() = Test::randVector(nq);
     state.updU() = Test::randVector(nu);
 
@@ -326,101 +326,101 @@ void testSystem(const MultibodySystem& system, MyForceImpl* frcp) {
 }
 
 void testTreeSystem() {
-	MultibodySystem			mbs;
+    MultibodySystem         mbs;
     SimbodyMatterSubsystem  pend(mbs);
     GeneralForceSubsystem   forces(mbs);
-	MyForceImpl* frcp = new MyForceImpl();
-	Force::Custom(forces, frcp);
+    MyForceImpl* frcp = new MyForceImpl();
+    Force::Custom(forces, frcp);
 
     const Real randomAngle1 = (Pi/2)*Test::randReal();
     const Real randomAngle2 = (Pi/2)*Test::randReal();
-	Vector_<Vec3> randomVecs(10);
-	for (int i=0; i<10; ++i) 
+    Vector_<Vec3> randomVecs(10);
+    for (int i=0; i<10; ++i) 
         randomVecs[i] = Test::randVec3();
 
-	const Real mass = 2.3;
-	const Vec3 com = randomVecs[5];
-	const Inertia inertia = Inertia(3,4,5,.01,-.02,.04).shiftFromMassCenter(com, mass);
+    const Real mass = 2.3;
+    const Vec3 com = randomVecs[5];
+    const Inertia inertia = Inertia(3,4,5,.01,-.02,.04).shiftFromMassCenter(com, mass);
     Body::Rigid pendulumBody = Body::Rigid(
-		MassProperties(mass, com, inertia));
+        MassProperties(mass, com, inertia));
 
 
     MobilizedBody::Ball
-        pendBody1(	pend.Ground(),
-						Transform(Rotation(randomAngle1, randomVecs[0]),
-							      randomVecs[1]),
-					pendulumBody,
-						Transform(Rotation(randomAngle2, randomVecs[2]),
-								  randomVecs[3]));
+        pendBody1(  pend.Ground(),
+                        Transform(Rotation(randomAngle1, randomVecs[0]),
+                                  randomVecs[1]),
+                    pendulumBody,
+                        Transform(Rotation(randomAngle2, randomVecs[2]),
+                                  randomVecs[3]));
     MobilizedBody::Weld
-        pendBody2(	pendBody1,
-						Transform(Rotation(randomAngle1, randomVecs[4]),
-							      randomVecs[5]),
-					pendulumBody,
-						Transform(Rotation(randomAngle2, randomVecs[6]),
-								  randomVecs[7]));
+        pendBody2(  pendBody1,
+                        Transform(Rotation(randomAngle1, randomVecs[4]),
+                                  randomVecs[5]),
+                    pendulumBody,
+                        Transform(Rotation(randomAngle2, randomVecs[6]),
+                                  randomVecs[7]));
 
     MobilizedBody::Pin
-        pendBody3(	pendBody2,
-						Transform(Rotation(randomAngle1, randomVecs[8]),
-							      randomVecs[9]),
-					pendulumBody,
-						Transform(Rotation(randomAngle2, randomVecs[8]),
-								  randomVecs[7]));
+        pendBody3(  pendBody2,
+                        Transform(Rotation(randomAngle1, randomVecs[8]),
+                                  randomVecs[9]),
+                    pendulumBody,
+                        Transform(Rotation(randomAngle2, randomVecs[8]),
+                                  randomVecs[7]));
     MobilizedBody::Screw
-        pendBody4(	pendBody3,
-						Transform(Rotation(randomAngle2, randomVecs[6]),
-							      randomVecs[5]),
-					pendulumBody,
-						Transform(Rotation(randomAngle1, randomVecs[4]),
-								  randomVecs[3]),
-					3); // pitch
+        pendBody4(  pendBody3,
+                        Transform(Rotation(randomAngle2, randomVecs[6]),
+                                  randomVecs[5]),
+                    pendulumBody,
+                        Transform(Rotation(randomAngle1, randomVecs[4]),
+                                  randomVecs[3]),
+                    3); // pitch
     MobilizedBody::Translation
-        pendBody5(	pendBody4,
-						Transform(Rotation(randomAngle2, randomVecs[2]),
-							      randomVecs[1]),
-					pendulumBody,
-						Transform(Rotation(randomAngle1, randomVecs[0]),
-								  randomVecs[1]));
+        pendBody5(  pendBody4,
+                        Transform(Rotation(randomAngle2, randomVecs[2]),
+                                  randomVecs[1]),
+                    pendulumBody,
+                        Transform(Rotation(randomAngle1, randomVecs[0]),
+                                  randomVecs[1]));
 
-	// Now add some side branches.
+    // Now add some side branches.
     MobilizedBody::BendStretch
-        pendBody1a(	pendBody1,
-						Transform(Rotation(randomAngle2, randomVecs[2]),
-							      randomVecs[3]),
-					pendulumBody,
-						Transform(Rotation(randomAngle1, randomVecs[4]),
-								  randomVecs[5]));
+        pendBody1a( pendBody1,
+                        Transform(Rotation(randomAngle2, randomVecs[2]),
+                                  randomVecs[3]),
+                    pendulumBody,
+                        Transform(Rotation(randomAngle1, randomVecs[4]),
+                                  randomVecs[5]));
 
     MobilizedBody::Slider
-        pendBody2a(	pendBody2,
-						Transform(Rotation(randomAngle1, randomVecs[6]),
-							      randomVecs[7]),
-					pendulumBody,
-						Transform(Rotation(randomAngle2, randomVecs[8]),
-								  randomVecs[9]));
+        pendBody2a( pendBody2,
+                        Transform(Rotation(randomAngle1, randomVecs[6]),
+                                  randomVecs[7]),
+                    pendulumBody,
+                        Transform(Rotation(randomAngle2, randomVecs[8]),
+                                  randomVecs[9]));
 
     MobilizedBody::Universal
-        pendBody2b(	pendBody2a,
-						Transform(Rotation(randomAngle1, randomVecs[8]),
-							      randomVecs[7]),
-					pendulumBody,
-						Transform(Rotation(randomAngle2, randomVecs[6]),
-								  randomVecs[5]));
+        pendBody2b( pendBody2a,
+                        Transform(Rotation(randomAngle1, randomVecs[8]),
+                                  randomVecs[7]),
+                    pendulumBody,
+                        Transform(Rotation(randomAngle2, randomVecs[6]),
+                                  randomVecs[5]));
 
     MobilizedBody::Planar
-        pendBody4a(	pendBody4,
-						Transform(Rotation(randomAngle1, randomVecs[4]),
-							      randomVecs[3]),
-					pendulumBody,
-						Transform(Rotation(randomAngle2, randomVecs[2]),
-								  randomVecs[1]));
+        pendBody4a( pendBody4,
+                        Transform(Rotation(randomAngle1, randomVecs[4]),
+                                  randomVecs[3]),
+                    pendulumBody,
+                        Transform(Rotation(randomAngle2, randomVecs[2]),
+                                  randomVecs[1]));
 
-	testSystem(mbs, frcp);
+    testSystem(mbs, frcp);
 }
 
 void testCompositeInertia() {
-	MultibodySystem			mbs;
+    MultibodySystem         mbs;
     SimbodyMatterSubsystem  pend(mbs);
 
     Body::Rigid pointMass(MassProperties(3, Vec3(0), Inertia(0)));

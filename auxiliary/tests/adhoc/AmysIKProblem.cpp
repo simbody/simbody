@@ -357,7 +357,7 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
 //Constraint::Rod(mobod_tibia_l, mobod_hand_r, .25);
 
     matter.setShowDefaultGeometry(false);
-	VTKEventReporter& vtkReporter = *new VTKEventReporter(system, 0.1);
+    VTKEventReporter& vtkReporter = *new VTKEventReporter(system, 0.1);
     VTKVisualizer& viz = vtkReporter.updVisualizer();
     system.updDefaultSubsystem().addEventReporter(&vtkReporter);
 

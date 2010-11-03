@@ -804,14 +804,14 @@ void calcInverseDynamicsPass2Inward(
     Vector&                     allTau) const; 
 
 void calcMVPass1Outward(
-	const SBTreePositionCache&  pc,
-	const Vector&               allUDot,
-	Vector_<SpatialVec>&        allA_GB) const;
+    const SBTreePositionCache&  pc,
+    const Vector&               allUDot,
+    Vector_<SpatialVec>&        allA_GB) const;
 void calcMVPass2Inward(
-	const SBTreePositionCache&  pc,
-	const Vector_<SpatialVec>&  allA_GB,
-	Vector_<SpatialVec>&        allFTmp,
-	Vector&                     allTau) const;
+    const SBTreePositionCache&  pc,
+    const Vector_<SpatialVec>&  allA_GB,
+    Vector_<SpatialVec>&        allFTmp,
+    Vector&                     allTau) const;
 
 };
 

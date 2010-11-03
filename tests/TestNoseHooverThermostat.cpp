@@ -67,8 +67,8 @@ public:
               eventCount(0), sumEnergy(0.0), sumEnergySquared(0.0), 
               sumVelocity(0.0), sumAbsVelocity(0.0), sumVelocitySquared(0.0),
               sumPosition(0.0), sumRMSVelPos(0.0)
-			  // for Matlab
-			  //, phaseOut("phaseOut.txt")
+              // for Matlab
+              //, phaseOut("phaseOut.txt")
         {}
 
         void handleEvent(const State& state) const 
@@ -80,8 +80,8 @@ public:
             ++eventCount;
             oscillator.updSystem().realize(state, Stage::Dynamics);
 
-			//std::ostream& po = phaseOut;
-			//po << state.getTime() << " " << state.getQ()[0] << " " << state.getU()[0] << std::endl;
+            //std::ostream& po = phaseOut;
+            //po << state.getTime() << " " << state.getQ()[0] << " " << state.getU()[0] << std::endl;
 
             Real energy = oscillator.getSystem().calcKineticEnergy(state);
             sumEnergy += energy;
@@ -103,7 +103,7 @@ public:
     private:
         HarmonicOscillator& oscillator;
 
-		//mutable std::ofstream phaseOut;
+        //mutable std::ofstream phaseOut;
     };
 
     HarmonicOscillator() :
@@ -135,15 +135,15 @@ public:
         system.getDefaultSubsystem().addEventReporter(reporter);
 
         State state = system.realizeTopology();
-		Random::Uniform rand(-1,1);
-		//state.updQ()[0] = rand.getValue();
-		//state.updU()[0] = rand.getValue();
+        Random::Uniform rand(-1,1);
+        //state.updQ()[0] = rand.getValue();
+        //state.updU()[0] = rand.getValue();
 
         // Simulate it.
         
         VerletIntegrator integ(system);
-		//RungeKuttaMersonIntegrator integ(system);
-		//integ.setAccuracy(0.01);
+        //RungeKuttaMersonIntegrator integ(system);
+        //integ.setAccuracy(0.01);
         TimeStepper ts(system, integ);
         ts.initialize(state);
         ts.stepTo(150.0);
@@ -183,7 +183,7 @@ public:
             reporter->sumVelocitySquared / reporter->eventCount;
         ASSERT(std::abs(1.0 - measuredMeanVelocitySquared/expectedMeanVelocitySquared) < 0.2);
 
-		// TODO: check this formula
+        // TODO: check this formula
         // Mean absolute velocity should be (8*v2bar/3PI)^1/2
         Real expectedMeanAbsVelocity = std::sqrt(
             8.0 * expectedMeanVelocitySquared / (degreesOfFreedom * SimTK_PI) );
@@ -246,8 +246,8 @@ void testNoseHooverConstructorSmoke()
 {
     HarmonicOscillator oscillator;
     GeneralForceSubsystem& forces = oscillator.updForceSubsystem();
-	Force::Thermostat(forces, oscillator.getMatterSubsystem(), 
-		SimTK_BOLTZMANN_CONSTANT_MD, 300, .1);
+    Force::Thermostat(forces, oscillator.getMatterSubsystem(), 
+        SimTK_BOLTZMANN_CONSTANT_MD, 300, .1);
     oscillator.simulate();
 }
 
@@ -255,10 +255,10 @@ void testOscillatorTemperature(Real temperature, int nChains=-1)
 {
     HarmonicOscillator oscillator;
     GeneralForceSubsystem& forces = oscillator.updForceSubsystem();
-	Force::Thermostat nhc(forces, oscillator.getMatterSubsystem(), 
-		SimTK_BOLTZMANN_CONSTANT_MD, temperature, 0.1);
-	if (nChains > 0)
-		nhc.setDefaultNumChains(nChains);
+    Force::Thermostat nhc(forces, oscillator.getMatterSubsystem(), 
+        SimTK_BOLTZMANN_CONSTANT_MD, temperature, 0.1);
+    if (nChains > 0)
+        nhc.setDefaultNumChains(nChains);
     oscillator.simulate();
     oscillator.assertTemperature(temperature);
 }

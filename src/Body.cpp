@@ -65,8 +65,8 @@ Body& Body::operator=(const Body& src) {
         if (isOwnerHandle()) delete rep; 
         rep=0;
         if (src.rep) {
-			rep = src.rep->clone();	// create a new object
-			rep->setMyHandle(*this);
+            rep = src.rep->clone(); // create a new object
+            rep->setMyHandle(*this);
         }
     }
     return *this;

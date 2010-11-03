@@ -75,7 +75,7 @@ int main() {
     //Constraint::Ball ball(matter.Ground(), Vec3(3*NBodies,-NBodies,0), 
     //                      finalBody, Vec3(0,-hdims[1],0));
 
-	VTKEventReporter& vtkReporter = *new VTKEventReporter(system, 0.1);
+    VTKEventReporter& vtkReporter = *new VTKEventReporter(system, 0.1);
     VTKVisualizer& viz = vtkReporter.updVisualizer();
     system.updDefaultSubsystem().addEventReporter(&vtkReporter);
 

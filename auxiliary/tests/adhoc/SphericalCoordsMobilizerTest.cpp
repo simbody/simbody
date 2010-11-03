@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
     
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System
-	mbs.realize(s, Stage::Instance); // instantiate constraints if any
+    mbs.realize(s, Stage::Instance); // instantiate constraints if any
 
     VTKVisualizer display(mbs);
 
@@ -181,8 +181,8 @@ int main(int argc, char** argv) {
 
         display.report(s);
 
-		if (status == Integrator::ReachedReportTime)
-			++nextReport;
+        if (status == Integrator::ReachedReportTime)
+            ++nextReport;
     }
 
     printf("Using Integrator %s:\n", myStudy.getMethodName());

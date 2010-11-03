@@ -1,6 +1,6 @@
 /*
-*		  		
-*  Triangle-Triangle Overlap Test Routines				
+*
+*  Triangle-Triangle Overlap Test Routines
 *  July, 2002                                                          
 *  Updated December 2003                                                
 *                                                                       
@@ -45,22 +45,22 @@ extern "C" {
 /* function prototype */
 
 int tri_tri_overlap_test_3d(const Real p1[3], const Real q1[3], const Real r1[3], 
-			    const Real p2[3], const Real q2[3], const Real r2[3]);
+                const Real p2[3], const Real q2[3], const Real r2[3]);
 
 
 int coplanar_tri_tri3d(const Real  p1[3], const Real  q1[3], const Real  r1[3],
-		       const Real  p2[3], const Real  q2[3], const Real  r2[3],
-		       const Real  N1[3], const Real  N2[3]);
+               const Real  p2[3], const Real  q2[3], const Real  r2[3],
+               const Real  N1[3], const Real  N2[3]);
 
 
 int tri_tri_overlap_test_2d(const Real p1[2], const Real q1[2], const Real r1[2], 
-			    const Real p2[2], const Real q2[2], const Real r2[2]);
+                const Real p2[2], const Real q2[2], const Real r2[2]);
 
 
 int tri_tri_intersection_test_3d(const Real p1[3], const Real q1[3], const Real r1[3], 
-				 const Real p2[3], const Real q2[3], const Real r2[3],
-				 int * coplanar, 
-				 Real source[3],Real target[3]);
+                 const Real p2[3], const Real q2[3], const Real r2[3],
+                 int * coplanar, 
+                 Real source[3],Real target[3]);
 
 /* coplanar returns whether the triangles are coplanar  
 *  source and target are the endpoints of the segment of 
@@ -142,7 +142,7 @@ int tri_tri_intersection_test_3d(const Real p1[3], const Real q1[3], const Real 
 
 int tri_tri_overlap_test_3d(const Real p1[3], const Real q1[3], const Real r1[3], 
 
-			    const Real p2[3], const Real q2[3], const Real r2[3])
+                const Real p2[3], const Real q2[3], const Real r2[3])
 {
   Real dp1, dq1, dr1, dp2, dq2, dr2;
   Real v1[3], v2[3];
@@ -187,7 +187,7 @@ int tri_tri_overlap_test_3d(const Real p1[3], const Real q1[3], const Real r1[3]
 
   if (dp1 > 0.0f) {
     if (dq1 > 0.0f) TRI_TRI_3D(r1,p1,q1,p2,r2,q2,dp2,dr2,dq2)
-    else if (dr1 > 0.0f) TRI_TRI_3D(q1,r1,p1,p2,r2,q2,dp2,dr2,dq2)	
+    else if (dr1 > 0.0f) TRI_TRI_3D(q1,r1,p1,p2,r2,q2,dp2,dr2,dq2)
     else TRI_TRI_3D(p1,q1,r1,p2,q2,r2,dp2,dq2,dr2)
   } else if (dp1 < 0.0f) {
     if (dq1 < 0.0f) TRI_TRI_3D(r1,p1,q1,p2,q2,r2,dp2,dq2,dr2)
@@ -213,8 +213,8 @@ int tri_tri_overlap_test_3d(const Real p1[3], const Real q1[3], const Real r1[3]
 
 
 int coplanar_tri_tri3d(const Real p1[3], const Real q1[3], const Real r1[3],
-		       const Real p2[3], const Real q2[3], const Real r2[3],
-		       const Real normal_1[3], const Real normal_2[3]){
+               const Real p2[3], const Real q2[3], const Real r2[3],
+               const Real normal_1[3], const Real normal_2[3]){
   
   Real P1[2],Q1[2],R1[2];
   Real P2[2],Q2[2],R2[2];
@@ -294,29 +294,29 @@ int coplanar_tri_tri3d(const Real p1[3], const Real q1[3], const Real r1[3],
       SUB(v2,q2,p1) \
       CROSS(N,v1,v2) \
       if (DOT(v,N) > 0.0f) { \
-	SUB(v1,p1,p2) \
-	SUB(v2,p1,r1) \
-	alpha = DOT(v1,N2) / DOT(v2,N2); \
-	SCALAR(v1,alpha,v2) \
-	SUB(source,p1,v1) \
-	SUB(v1,p2,p1) \
-	SUB(v2,p2,r2) \
-	alpha = DOT(v1,N1) / DOT(v2,N1); \
-	SCALAR(v1,alpha,v2) \
-	SUB(target,p2,v1) \
-	return 1; \
+    SUB(v1,p1,p2) \
+    SUB(v2,p1,r1) \
+    alpha = DOT(v1,N2) / DOT(v2,N2); \
+    SCALAR(v1,alpha,v2) \
+    SUB(source,p1,v1) \
+    SUB(v1,p2,p1) \
+    SUB(v2,p2,r2) \
+    alpha = DOT(v1,N1) / DOT(v2,N1); \
+    SCALAR(v1,alpha,v2) \
+    SUB(target,p2,v1) \
+    return 1; \
       } else { \
-	SUB(v1,p2,p1) \
-	SUB(v2,p2,q2) \
-	alpha = DOT(v1,N1) / DOT(v2,N1); \
-	SCALAR(v1,alpha,v2) \
-	SUB(source,p2,v1) \
-	SUB(v1,p2,p1) \
-	SUB(v2,p2,r2) \
-	alpha = DOT(v1,N1) / DOT(v2,N1); \
-	SCALAR(v1,alpha,v2) \
-	SUB(target,p2,v1) \
-	return 1; \
+    SUB(v1,p2,p1) \
+    SUB(v2,p2,q2) \
+    alpha = DOT(v1,N1) / DOT(v2,N1); \
+    SCALAR(v1,alpha,v2) \
+    SUB(source,p2,v1) \
+    SUB(v1,p2,p1) \
+    SUB(v2,p2,r2) \
+    alpha = DOT(v1,N1) / DOT(v2,N1); \
+    SCALAR(v1,alpha,v2) \
+    SUB(target,p2,v1) \
+    return 1; \
       } \
     } else { \
       return 0; \
@@ -330,32 +330,32 @@ int coplanar_tri_tri3d(const Real p1[3], const Real q1[3], const Real r1[3],
       SUB(v1,r1,p1) \
       CROSS(N,v1,v2) \
       if (DOT(v,N) >= 0.0f) { \
-	SUB(v1,p1,p2) \
-	SUB(v2,p1,r1) \
-	alpha = DOT(v1,N2) / DOT(v2,N2); \
-	SCALAR(v1,alpha,v2) \
-	SUB(source,p1,v1) \
-	SUB(v1,p1,p2) \
-	SUB(v2,p1,q1) \
-	alpha = DOT(v1,N2) / DOT(v2,N2); \
-	SCALAR(v1,alpha,v2) \
-	SUB(target,p1,v1) \
-	return 1; \
+    SUB(v1,p1,p2) \
+    SUB(v2,p1,r1) \
+    alpha = DOT(v1,N2) / DOT(v2,N2); \
+    SCALAR(v1,alpha,v2) \
+    SUB(source,p1,v1) \
+    SUB(v1,p1,p2) \
+    SUB(v2,p1,q1) \
+    alpha = DOT(v1,N2) / DOT(v2,N2); \
+    SCALAR(v1,alpha,v2) \
+    SUB(target,p1,v1) \
+    return 1; \
       } else { \
-	SUB(v1,p2,p1) \
-	SUB(v2,p2,q2) \
-	alpha = DOT(v1,N1) / DOT(v2,N1); \
-	SCALAR(v1,alpha,v2) \
-	SUB(source,p2,v1) \
-	SUB(v1,p1,p2) \
-	SUB(v2,p1,q1) \
-	alpha = DOT(v1,N2) / DOT(v2,N2); \
-	SCALAR(v1,alpha,v2) \
-	SUB(target,p1,v1) \
-	return 1; \
+    SUB(v1,p2,p1) \
+    SUB(v2,p2,q2) \
+    alpha = DOT(v1,N1) / DOT(v2,N1); \
+    SCALAR(v1,alpha,v2) \
+    SUB(source,p2,v1) \
+    SUB(v1,p1,p2) \
+    SUB(v2,p1,q1) \
+    alpha = DOT(v1,N2) / DOT(v2,N2); \
+    SCALAR(v1,alpha,v2) \
+    SUB(target,p1,v1) \
+    return 1; \
       }}}} 
 
-								
+                                
 
 #define TRI_TRI_INTER_3D(p1,q1,r1,p2,q2,r2,dp2,dq2,dr2) { \
   if (dp2 > 0.0f) { \
@@ -379,8 +379,8 @@ int coplanar_tri_tri3d(const Real p1[3], const Real q1[3], const Real r1[3],
       if (dr2 > 0.0f) CONSTRUCT_INTERSECTION(p1,q1,r1,r2,p2,q2)\
       else if (dr2 < 0.0f) CONSTRUCT_INTERSECTION(p1,r1,q1,r2,p2,q2)\
       else { \
-       	*coplanar = 1; \
-	return coplanar_tri_tri3d(p1,q1,r1,p2,q2,r2,N1,N2);\
+        *coplanar = 1; \
+    return coplanar_tri_tri3d(p1,q1,r1,p2,q2,r2,N1,N2);\
      } \
   }} }
   
@@ -393,10 +393,10 @@ int coplanar_tri_tri3d(const Real p1[3], const Real q1[3], const Real r1[3],
 */
 
 int tri_tri_intersection_test_3d(const Real p1[3], const Real q1[3], const Real r1[3], 
-				 const Real p2[3], const Real q2[3], const Real r2[3],
-				 int * coplanar, 
-				 Real source[3], Real target[3] )
-				 
+                 const Real p2[3], const Real q2[3], const Real r2[3],
+                 int * coplanar, 
+                 Real source[3], Real target[3] )
+                 
 {
   Real dp1, dq1, dr1, dp2, dq2, dr2;
   Real v1[3], v2[3], v[3];
@@ -443,7 +443,7 @@ int tri_tri_intersection_test_3d(const Real p1[3], const Real q1[3], const Real 
   if (dp1 > 0.0f) {
     if (dq1 > 0.0f) TRI_TRI_INTER_3D(r1,p1,q1,p2,r2,q2,dp2,dr2,dq2)
     else if (dr1 > 0.0f) TRI_TRI_INTER_3D(q1,r1,p1,p2,r2,q2,dp2,dr2,dq2)
-	
+    
     else TRI_TRI_INTER_3D(p1,q1,r1,p2,q2,r2,dp2,dq2,dr2)
   } else if (dp1 < 0.0f) {
     if (dq1 < 0.0f) TRI_TRI_INTER_3D(r1,p1,q1,p2,q2,r2,dp2,dq2,dr2)
@@ -462,10 +462,10 @@ int tri_tri_intersection_test_3d(const Real p1[3], const Real q1[3], const Real 
       if (dr1 > 0.0f) TRI_TRI_INTER_3D(r1,p1,q1,p2,q2,r2,dp2,dq2,dr2)
       else if (dr1 < 0.0f) TRI_TRI_INTER_3D(r1,p1,q1,p2,r2,q2,dp2,dr2,dq2)
       else {
-	// triangles are co-planar
+    // triangles are co-planar
 
-	*coplanar = 1;
-	return coplanar_tri_tri3d(p1,q1,r1,p2,q2,r2,N1,N2);
+    *coplanar = 1;
+    return coplanar_tri_tri3d(p1,q1,r1,p2,q2,r2,N1,N2);
       }
     }
   }
@@ -491,29 +491,29 @@ int tri_tri_intersection_test_3d(const Real p1[3], const Real q1[3], const Real 
   if (ORIENT_2D(R2,P2,Q1) >= 0.0f)\
     if (ORIENT_2D(R2,Q2,Q1) <= 0.0f)\
       if (ORIENT_2D(P1,P2,Q1) > 0.0f) {\
-	if (ORIENT_2D(P1,Q2,Q1) <= 0.0f) return 1; \
-	else return 0;} else {\
-	if (ORIENT_2D(P1,P2,R1) >= 0.0f)\
-	  if (ORIENT_2D(Q1,R1,P2) >= 0.0f) return 1; \
-	  else return 0;\
-	else return 0;}\
+    if (ORIENT_2D(P1,Q2,Q1) <= 0.0f) return 1; \
+    else return 0;} else {\
+    if (ORIENT_2D(P1,P2,R1) >= 0.0f)\
+      if (ORIENT_2D(Q1,R1,P2) >= 0.0f) return 1; \
+      else return 0;\
+    else return 0;}\
     else \
       if (ORIENT_2D(P1,Q2,Q1) <= 0.0f)\
-	if (ORIENT_2D(R2,Q2,R1) <= 0.0f)\
-	  if (ORIENT_2D(Q1,R1,Q2) >= 0.0f) return 1; \
-	  else return 0;\
-	else return 0;\
+    if (ORIENT_2D(R2,Q2,R1) <= 0.0f)\
+      if (ORIENT_2D(Q1,R1,Q2) >= 0.0f) return 1; \
+      else return 0;\
+    else return 0;\
       else return 0;\
   else\
     if (ORIENT_2D(R2,P2,R1) >= 0.0f) \
       if (ORIENT_2D(Q1,R1,R2) >= 0.0f)\
-	if (ORIENT_2D(P1,P2,R1) >= 0.0f) return 1;\
-	else return 0;\
+    if (ORIENT_2D(P1,P2,R1) >= 0.0f) return 1;\
+    else return 0;\
       else \
-	if (ORIENT_2D(Q1,R1,Q2) >= 0.0f) {\
-	  if (ORIENT_2D(R2,R1,Q2) >= 0.0f) return 1; \
-	  else return 0; }\
-	else return 0; \
+    if (ORIENT_2D(Q1,R1,Q2) >= 0.0f) {\
+      if (ORIENT_2D(R2,R1,Q2) >= 0.0f) return 1; \
+      else return 0; }\
+    else return 0; \
     else  return 0; \
  };
 
@@ -525,40 +525,40 @@ int tri_tri_intersection_test_3d(const Real p1[3], const Real q1[3], const Real 
         if (ORIENT_2D(P1,Q1,R2) >= 0.0f) return 1; \
         else return 0;} else { \
       if (ORIENT_2D(Q1,R1,P2) >= 0.0f){ \
-	if (ORIENT_2D(R1,P1,P2) >= 0.0f) return 1; else return 0;} \
+    if (ORIENT_2D(R1,P1,P2) >= 0.0f) return 1; else return 0;} \
       else return 0; } \
   } else {\
     if (ORIENT_2D(R2,P2,R1) >= 0.0f) {\
       if (ORIENT_2D(P1,P2,R1) >= 0.0f) {\
-	if (ORIENT_2D(P1,R1,R2) >= 0.0f) return 1;  \
-	else {\
-	  if (ORIENT_2D(Q1,R1,R2) >= 0.0f) return 1; else return 0;}}\
+    if (ORIENT_2D(P1,R1,R2) >= 0.0f) return 1;  \
+    else {\
+      if (ORIENT_2D(Q1,R1,R2) >= 0.0f) return 1; else return 0;}}\
       else  return 0; }\
     else return 0; }}
 
 
 
 int ccw_tri_tri_intersection_2d(const Real p1[2], const Real q1[2], const Real r1[2], 
-				const Real p2[2], const Real q2[2], const Real r2[2]) {
+                const Real p2[2], const Real q2[2], const Real r2[2]) {
   if ( ORIENT_2D(p2,q2,p1) >= 0.0f ) {
     if ( ORIENT_2D(q2,r2,p1) >= 0.0f ) {
       if ( ORIENT_2D(r2,p2,p1) >= 0.0f ) return 1;
       else INTERSECTION_TEST_EDGE(p1,q1,r1,p2,q2,r2)
     } else {  
       if ( ORIENT_2D(r2,p2,p1) >= 0.0f ) 
-	INTERSECTION_TEST_EDGE(p1,q1,r1,r2,p2,q2)
+    INTERSECTION_TEST_EDGE(p1,q1,r1,r2,p2,q2)
       else INTERSECTION_TEST_VERTEX(p1,q1,r1,p2,q2,r2)}}
   else {
     if ( ORIENT_2D(q2,r2,p1) >= 0.0f ) {
       if ( ORIENT_2D(r2,p2,p1) >= 0.0f ) 
-	INTERSECTION_TEST_EDGE(p1,q1,r1,q2,r2,p2)
+    INTERSECTION_TEST_EDGE(p1,q1,r1,q2,r2,p2)
       else  INTERSECTION_TEST_VERTEX(p1,q1,r1,q2,r2,p2)}
     else INTERSECTION_TEST_VERTEX(p1,q1,r1,r2,p2,q2)}
 };
 
 
 int tri_tri_overlap_test_2d(const Real p1[2], const Real q1[2], const Real r1[2], 
-			    const Real p2[2], const Real q2[2], const Real r2[2]) {
+                const Real p2[2], const Real q2[2], const Real r2[2]) {
   if ( ORIENT_2D(p1,q1,r1) < 0.0f )
     if ( ORIENT_2D(p2,q2,r2) < 0.0f )
       return ccw_tri_tri_intersection_2d(p1,r1,q1,p2,r2,q2);

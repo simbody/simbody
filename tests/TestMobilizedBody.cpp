@@ -132,11 +132,11 @@ void testWeld() {
     MobilizedBody::Free c2(p2, inboard, body, outboard);
     Constraint::Weld constraint(p2, inboard, c2, outboard);
 
-	// It is not a general test unless the Weld mobilizer has children!
-	MobilizedBody::Pin wchild1(c1, inboard, body, outboard);
-	MobilizedBody::Pin wchild2(c2, inboard, body, outboard);
-	Force::MobilityLinearSpring(forces, wchild1, 0, 1000, 0);
-	Force::MobilityLinearSpring(forces, wchild2, 0, 1000, 0);
+    // It is not a general test unless the Weld mobilizer has children!
+    MobilizedBody::Pin wchild1(c1, inboard, body, outboard);
+    MobilizedBody::Pin wchild2(c2, inboard, body, outboard);
+    Force::MobilityLinearSpring(forces, wchild1, 0, 1000, 0);
+    Force::MobilityLinearSpring(forces, wchild2, 0, 1000, 0);
 
     State state = system.realizeTopology();
     p1.setU(state, Vec3(1, 2, 3));

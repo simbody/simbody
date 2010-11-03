@@ -398,16 +398,16 @@ public:
     bool prescribe(State& s, Stage g) const;
 
     bool projectQConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-							 const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
-	{
+                             const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
+    {
         // TODO
         enforcePositionConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts);
         return true;
     }
     bool projectUConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-							 const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
-	{ 
-		// TODO
+                             const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
+    { 
+        // TODO
         enforceVelocityConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts);
         return true;
     }
@@ -482,13 +482,13 @@ public:
         const Vector&               appliedMobilityForces,
         const Vector_<SpatialVec>&  appliedBodyForces,
         const Vector&               knownUdot,
-		Vector_<SpatialVec>&	    A_GB,
+        Vector_<SpatialVec>&        A_GB,
         Vector&                     residualMobilityForces) const;
 
-	void calcMV(const State& s,
-		const Vector&			v,
-		Vector_<SpatialVec>&	A_GB,
-		Vector&					f) const;
+    void calcMV(const State& s,
+        const Vector&           v,
+        Vector_<SpatialVec>&    A_GB,
+        Vector&                 f) const;
 
     // Calculate the mass matrix in O(n^2) time. State must have already
     // been realized to Position stage. M must be resizeable or already the
@@ -618,37 +618,37 @@ public:
 
         // CALLABLE AFTER realizeModel()
 
-    int  getNumQuaternionsInUse(const State&) const;				 // mquat
+    int  getNumQuaternionsInUse(const State&) const;                // mquat
     bool isUsingQuaternion(const State&, MobilizedBodyIndex) const;
     QuaternionPoolIndex getQuaternionPoolIndex(const State&, MobilizedBodyIndex) const; // Invalid if none
     AnglePoolIndex      getAnglePoolIndex     (const State&, MobilizedBodyIndex) const; // Invalid if none
 
-	// Note that although holonomic constraints are position-level constraints, they
-	// do *not* include quaternion constraints (although the state's QErr vector does
-	// include both). The total number of position-level constraints is thus
-	// getNumHolonomicConstraintEquationsInUse()+getNumQuaternionsInUse()==mp+mquat.
+    // Note that although holonomic constraints are position-level constraints, they
+    // do *not* include quaternion constraints (although the state's QErr vector does
+    // include both). The total number of position-level constraints is thus
+    // getNumHolonomicConstraintEquationsInUse()+getNumQuaternionsInUse()==mp+mquat.
 
-	int getNumHolonomicConstraintEquationsInUse       (const State&) const; // mh
-	int getNumNonholonomicConstraintEquationsInUse    (const State&) const; // mn
-	int getNumAccelerationOnlyConstraintEquationsInUse(const State&) const; // ma
+    int getNumHolonomicConstraintEquationsInUse       (const State&) const; // mh
+    int getNumNonholonomicConstraintEquationsInUse    (const State&) const; // mn
+    int getNumAccelerationOnlyConstraintEquationsInUse(const State&) const; // ma
 
-	void calcHolonomicConstraintMatrixPNInv    (const State&, Matrix&) const; // mh X nq
-	void calcHolonomicVelocityConstraintMatrixP(const State&, Matrix&) const; // mh X nu
-	void calcHolonomicVelocityConstraintMatrixPt(const State&, Matrix&) const; // nu X mh
-	void calcNonholonomicConstraintMatrixV     (const State&, Matrix&) const; // mn X nu
-	void calcNonholonomicConstraintMatrixVt    (const State&, Matrix&) const; // nu X mn
-	void calcAccelerationOnlyConstraintMatrixA (const State&, Matrix&) const; // ma X nu
-	void calcAccelerationOnlyConstraintMatrixAt(const State&, Matrix&) const; // nu X ma
+    void calcHolonomicConstraintMatrixPNInv    (const State&, Matrix&) const; // mh X nq
+    void calcHolonomicVelocityConstraintMatrixP(const State&, Matrix&) const; // mh X nu
+    void calcHolonomicVelocityConstraintMatrixPt(const State&, Matrix&) const; // nu X mh
+    void calcNonholonomicConstraintMatrixV     (const State&, Matrix&) const; // mn X nu
+    void calcNonholonomicConstraintMatrixVt    (const State&, Matrix&) const; // nu X mn
+    void calcAccelerationOnlyConstraintMatrixA (const State&, Matrix&) const; // ma X nu
+    void calcAccelerationOnlyConstraintMatrixAt(const State&, Matrix&) const; // nu X ma
 
     void calcMobilizerReactionForces(const State& s, Vector_<SpatialVec>& forces) const;
 
     // Treating all constraints together, given a comprehensive set of multipliers lambda,
     // generate the complete set of body and mobility forces applied by all the 
     // constraints.
-	void calcConstraintForcesFromMultipliers
+    void calcConstraintForcesFromMultipliers
       (const State& s, const Vector& lambda,
-	   Vector_<SpatialVec>& bodyForcesInG,
-	   Vector&              mobilityForces) const;
+       Vector_<SpatialVec>& bodyForcesInG,
+       Vector&              mobilityForces) const;
 
 
 
@@ -656,9 +656,9 @@ public:
     void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
 
     void enforcePositionConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-									const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
+                                    const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
     void enforceVelocityConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-									const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
+                                    const Vector& ooTols, Vector& yErrest, System::ProjectOptions) const;
 
     // Unconstrained (tree) dynamics methods for use during realization.
 
@@ -966,14 +966,14 @@ private:
     // This method should clear out all the data members below.
     void clearTopologyCache();
 
-		// Mobilized bodies and their rigid body nodes
+        // Mobilized bodies and their rigid body nodes
 
     // This holds pointers to nodes and serves to map (level,offset) to nodeNum.
     Array_<RBNodePtrList>      rbNodeLevels;
     // Map nodeNum to (level,offset).
     Array_<RigidBodyNodeIndex> nodeNum2NodeMap;
 
-		// Constraints
+        // Constraints
 
     // Here we sort the above constraints by branch (ancestor's base body), then by
     // level within that branch. That is, each constraint is addressed

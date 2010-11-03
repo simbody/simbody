@@ -161,10 +161,10 @@ public:
     exception if the force element has not yet been adopted by a force 
     subsystem. **/
     operator ForceIndex() const {return getForceIndex();}
-	/** Get the GeneralForceSubsystem of which this Force is an element. 
+    /** Get the GeneralForceSubsystem of which this Force is an element. 
     This will throw an exception if the force element has not yet been
     adopted by a force subsystem. **/
-	const GeneralForceSubsystem& getForceSubsystem() const;
+    const GeneralForceSubsystem& getForceSubsystem() const;
     /** Get the index of this force element within its parent force subsystem.
     The returned index will be invalid if the force element has not yet been
     adopted by any subsystem (test with the index.isValid() method). **/

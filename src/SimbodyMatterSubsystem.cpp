@@ -195,7 +195,7 @@ void SimbodyMatterSubsystem::calcMInverseV(const State& s,
     const Vector&        v,
     Vector&              MinvV) const
 {
-	Vector_<SpatialVec> A_GB;
+    Vector_<SpatialVec> A_GB;
     getRep().calcMInverseF(s,v, A_GB, MinvV);
 }
 
@@ -224,17 +224,17 @@ void SimbodyMatterSubsystem::calcResidualForceIgnoringConstraints
 
     residualMobilityForces.resize(getNumMobilities());
 
-	Vector_<SpatialVec> A_GB(getNumBodies());
+    Vector_<SpatialVec> A_GB(getNumBodies());
     getRep().calcTreeResidualForces(state,
         appliedMobilityForces, appliedBodyForces, knownUdot,
         A_GB, residualMobilityForces);
 }
 
 void SimbodyMatterSubsystem::calcMV(const State& s, 
-	const Vector& v, 
-	Vector& MV) const
+    const Vector& v, 
+    Vector& MV) const
 {
-	Vector_<SpatialVec> A_GB;
+    Vector_<SpatialVec> A_GB;
     getRep().calcMV(s,v, A_GB, MV);
 }
 
@@ -493,7 +493,7 @@ bool SimbodyMatterSubsystem::projectQConstraints(State& s, Real consAccuracy, co
     return getRep().projectQConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts); 
 }
 bool SimbodyMatterSubsystem::projectUConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-												 const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
+                                                 const Vector& ooTols, Vector& yErrest, System::ProjectOptions opts) const
 { 
     return getRep().projectUConstraints(s, consAccuracy, yWeights, ooTols, yErrest, opts); 
 }

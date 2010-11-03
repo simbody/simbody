@@ -123,8 +123,8 @@ public:
     Motion() { }
     explicit Motion(MotionImpl* r) : HandleBase(r) { }
 
-	/// Get the MobilizedBody to which this Motion belongs.
-	const MobilizedBody& getMobilizedBody() const;
+    /// Get the MobilizedBody to which this Motion belongs.
+    const MobilizedBody& getMobilizedBody() const;
 
     Level  getLevel(const State&) const;
     Method getLevelMethod(const State&) const;

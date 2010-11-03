@@ -195,15 +195,15 @@ public:
         // POSITION STAGE //
     /// Get a Vector containing the position errors. Many subclasses provide 
     /// their own methods for getting this information in a more specific form.
-    Vector getPositionErrorsAsVector(const State&) const;	// mp of these
-	Vector calcPositionErrorFromQ(const State&, const Vector& q) const;
+    Vector getPositionErrorsAsVector(const State&) const;   // mp of these
+    Vector calcPositionErrorFromQ(const State&, const Vector& q) const;
 
-	// Matrix P = partial(perr_dot)/partial(u). (just the holonomic constraints)
-	Matrix calcPositionConstraintMatrixP(const State&) const; // mp X nu
-	Matrix calcPositionConstraintMatrixPt(const State&) const; // nu X mp
+    // Matrix P = partial(perr_dot)/partial(u). (just the holonomic constraints)
+    Matrix calcPositionConstraintMatrixP(const State&) const; // mp X nu
+    Matrix calcPositionConstraintMatrixPt(const State&) const; // nu X mp
 
-	// Matrix PNInv = partial(perr)/partial(q) = P*N^-1
-	Matrix calcPositionConstraintMatrixPNInv(const State&) const; // mp X nq
+    // Matrix PNInv = partial(perr)/partial(q) = P*N^-1
+    Matrix calcPositionConstraintMatrixPNInv(const State&) const; // mp X nq
 
     /// This operator calculates this constraint's body and mobility forces
     /// given the complete set of multipliers lambda for this Constraint. We 
@@ -226,14 +226,14 @@ public:
         // VELOCITY STAGE //
     /// Get a Vector containing the velocity errors. Many subclasses provide 
     /// their own methods for getting this information in a more specific form.
-    Vector getVelocityErrorsAsVector(const State&) const;	// mp+mv of these
-	Vector calcVelocityErrorFromU(const State&,     // mp+mv of these
+    Vector getVelocityErrorsAsVector(const State&) const;   // mp+mv of these
+    Vector calcVelocityErrorFromU(const State&,     // mp+mv of these
                                   const Vector& u) const;   // numParticipatingU u's
 
-	// Matrix V = partial(verr)/partial(u) for just the non-holonomic 
+    // Matrix V = partial(verr)/partial(u) for just the non-holonomic 
     // constraints.
-	Matrix calcVelocityConstraintMatrixV(const State&) const;  // mv X nu
-	Matrix calcVelocityConstraintMatrixVt(const State&) const; // nu X mv
+    Matrix calcVelocityConstraintMatrixV(const State&) const;  // mv X nu
+    Matrix calcVelocityConstraintMatrixVt(const State&) const; // nu X mv
 
         // DYNAMICS STAGE //
     // nothing in base class currently
@@ -242,19 +242,19 @@ public:
     /// Get a Vector containing the acceleration errors. Many subclasses 
     /// provide their own methods for getting this information in a more 
     /// specific form.
-    Vector getAccelerationErrorsAsVector(const State&) const;	// mp+mv+ma of these
-	Vector calcAccelerationErrorFromUDot(const State&,  // mp+mv+ma of these
+    Vector getAccelerationErrorsAsVector(const State&) const;   // mp+mv+ma of these
+    Vector calcAccelerationErrorFromUDot(const State&,  // mp+mv+ma of these
                                          const Vector& udot) const; // numParticipatingU udot's
 
     /// Get a Vector containing the Lagrange multipliers. Many subclasses 
     /// provide their own methods for getting this information in a more 
     /// specific form.
-    Vector getMultipliersAsVector(const State&) const;			// mp+mv+ma of these   
+    Vector getMultipliersAsVector(const State&) const;  // mp+mv+ma of these   
 
-	// Matrix A = partial(aerr)/partial(udot) for just the acceleration-only 
+    // Matrix A = partial(aerr)/partial(udot) for just the acceleration-only 
     // constraints.
-	Matrix calcAccelerationConstraintMatrixA(const State&) const;  // ma X nu
-	Matrix calcAccelerationConstraintMatrixAt(const State&) const; // nu X ma
+    Matrix calcAccelerationConstraintMatrixA(const State&) const;  // ma X nu
+    Matrix calcAccelerationConstraintMatrixAt(const State&) const; // nu X ma
 
     // These are the built-in Constraint types. Types on the same line are
     // synonymous.

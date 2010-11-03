@@ -2085,7 +2085,7 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints
     // not depend on u.
     // TODO: Tp P Wu^-1 should already have been calculated for position 
     // projection (at least if any position projection occurred)
-	//
+    //
     // This is a nonlinear least squares problem, but we only need to factor 
     // once since only the RHS is dependent on u. 
     Vector scaledVerrs = vErrs.rowScale(ooPVTols);

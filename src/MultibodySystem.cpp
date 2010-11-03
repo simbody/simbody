@@ -264,7 +264,7 @@ int MultibodySystemRep::realizeDynamicsImpl(const State& s) const {
     if (hasContactSubsystem())
         getContactSubsystem().getSubsystemGuts().realizeSubsystemDynamics(s);
 
-	// This realizes the matter subsystem's dynamic operators; not yet accelerations.
+    // This realizes the matter subsystem's dynamic operators; not yet accelerations.
     getMatterSubsystem().getRep().realizeSubsystemDynamics(s);
 
     // Now do forces in case any of them need dynamics-stage operators.

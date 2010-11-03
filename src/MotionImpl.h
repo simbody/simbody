@@ -43,7 +43,7 @@ class MobilizedBodyImpl;
 
 class MotionImpl : public PIMPLImplementation<Motion, MotionImpl> {
 public:
-	MotionImpl() : mobodImpl(0) {}
+    MotionImpl() : mobodImpl(0) {}
 
     // Base class copy constructor just clears out the mobilized body
     // reference because there can be only one Motion associated with a
@@ -52,12 +52,12 @@ public:
     MotionImpl(const MotionImpl& src) : mobodImpl(0) {}
 
     bool hasMobilizedBody() const {return mobodImpl != 0;}
-	const MobilizedBodyImpl& 
+    const MobilizedBodyImpl& 
          getMobilizedBodyImpl() const {assert(mobodImpl); return *mobodImpl;}
     MobilizedBodyIndex getMobilizedBodyIndex() const;
 
-	void setMobilizedBodyImpl(MobilizedBodyImpl* mbi) {assert(!mobodImpl); mobodImpl = mbi;}
-	void invalidateTopologyCache() const;
+    void setMobilizedBodyImpl(MobilizedBodyImpl* mbi) {assert(!mobodImpl); mobodImpl = mbi;}
+    void invalidateTopologyCache() const;
 
     const SimbodyMatterSubsystem& getMatterSubsystem() const; 
 
@@ -151,7 +151,7 @@ public:
     virtual void realizeAccelerationVirtual(const State&) const {}
     virtual void realizeReportVirtual      (const State&) const {}
 private:
-    MobilizedBodyImpl* mobodImpl;	// just a reference; don't delete on destruction
+    MobilizedBodyImpl* mobodImpl;   // just a reference; don't delete on destruction
 };
 
 //------------------------------------------------------------------------------

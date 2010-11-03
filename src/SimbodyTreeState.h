@@ -524,7 +524,7 @@ public:
     // constraint equations is mHolo+mNonholo. The number of acceleration constraints,
     // and thus the number of multipliers, is mHolo+mNonholo+mAccOnly.
     int totalNHolonomicConstraintEquationsInUse;         // sum(mHolo)    (#position equations = mHolo)
-	int totalNNonholonomicConstraintEquationsInUse;      // sum(mNonholo) (#velocity equations = mHolo+mNonholo)
+    int totalNNonholonomicConstraintEquationsInUse;      // sum(mNonholo) (#velocity equations = mHolo+mNonholo)
     int totalNAccelerationOnlyConstraintEquationsInUse;  // sum(mAccOnly) (#acceleration eqns  = mHolo+mNonholo+mAccOnly)
 
 public:
