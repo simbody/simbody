@@ -148,25 +148,36 @@ MARK_AS_ADVANCED( BUILD_INST_SET )
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     STRING(TOLOWER ${BUILD_INST_SET} GCC_INST_SET)
+
+    # Unrolling fixed-count loops is a useful optimization for Simmatrix.
+    SET(GCC_OPT_ENABLE "-funroll-loops")
+    # Gcc 4.4.3 on Ubuntu 10 is buggy; must disable these
+    SET(GCC_OPT_DISABLE 
+        "-fno-tree-vrp -fno-strict-aliasing -fno-guess-branch-probability")
+
     # C++
     SET(CMAKE_CXX_FLAGS_DEBUG          "-g -m${GCC_INST_SET}" 
-        CACHE STRING "g++ Debug build compile flags" FORCE)
-    SET(CMAKE_CXX_FLAGS_RELEASE        "-DNDEBUG -O3 -m${GCC_INST_SET}" 
-        CACHE STRING "g++ Release build compile flags" FORCE)
-    SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-DNDEBUG -O3 -g -m${GCC_INST_SET}" 
-        CACHE STRING "g++ RelWithDebInfo build compile flags" FORCE)
+      CACHE STRING "g++ Debug build compile flags" FORCE)
+    SET(CMAKE_CXX_FLAGS_RELEASE        
+      "-DNDEBUG -O3 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
+      CACHE STRING "g++ Release build compile flags" FORCE)
+    SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO 
+      "-DNDEBUG -O3 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
+      CACHE STRING "g++ RelWithDebInfo build compile flags" FORCE)
     SET(CMAKE_CXX_FLAGS_MINSIZEREL     "-DNDEBUG -Os -m${GCC_INST_SET}" 
-        CACHE STRING "g++ MinSizeRel build compile flags" FORCE)
+      CACHE STRING "g++ MinSizeRel build compile flags" FORCE)
 
     # C
     SET(CMAKE_C_FLAGS_DEBUG            "-g -m${GCC_INST_SET}" 
-        CACHE STRING "gcc Debug build compile flags" FORCE)
-    SET(CMAKE_C_FLAGS_RELEASE          "-DNDEBUG -O3 -m${GCC_INST_SET}" 
-        CACHE STRING "gcc Release build compile flags" FORCE)
-    SET(CMAKE_C_FLAGS_RELWITHDEBINFO   "-DNDEBUG -O3 -g -m${GCC_INST_SET}" 
-        CACHE STRING "gcc RelWithDebInfo build compile flags" FORCE)
+      CACHE STRING "gcc Debug build compile flags" FORCE)
+    SET(CMAKE_C_FLAGS_RELEASE          
+      "-DNDEBUG -O3 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
+      CACHE STRING "gcc Release build compile flags" FORCE)
+    SET(CMAKE_C_FLAGS_RELWITHDEBINFO   
+      "-DNDEBUG -O3 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} -m${GCC_INST_SET}" 
+      CACHE STRING "gcc RelWithDebInfo build compile flags" FORCE)
     SET(CMAKE_C_FLAGS_MINSIZEREL       "-DNDEBUG -Os -m${GCC_INST_SET}" 
-        CACHE STRING "gcc MinSizeRel build compile flags" FORCE)
+      CACHE STRING "gcc MinSizeRel build compile flags" FORCE)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
